@@ -46,7 +46,7 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 	wrotePending := false
 
 	for true {
-		pods, err := k8s.ListPodsByLabels(map[string]string{
+		allPods, err := k8s.ListPodsByLabels(map[string]string{
 			"appName":    appName,
 			"workloadID": workloadID,
 			"userFacing": "true",
@@ -54,6 +54,18 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 		if err != nil {
 			writeSocket(err.Error(), socket)
 			return
+		}
+
+		// Prefer running API pods if any exist
+		var pods []corev1.Pod
+		for _, pod := range allPods {
+			if pod.Labels["workloadType"] == WorkloadTypeAPI && k8s.GetPodStatus(&pod) != k8s.PodStatusRunning {
+				continue
+			}
+			pods = append(pods, pod)
+		}
+		if len(pods) == 0 {
+			pods = allPods
 		}
 
 		if len(pods) == 1 {
