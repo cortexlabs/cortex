@@ -1,0 +1,8 @@
+- kind: transformer
+  name: weight
+  inputs:
+    features:
+      col: INT_FEATURE
+    args:
+      class_distribution: {INT: FLOAT}
+  output_type: FLOAT_FEATURE

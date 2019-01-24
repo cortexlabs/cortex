@@ -1,0 +1,11 @@
+- kind: raw_feature
+  name: image
+  type: STRING_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: label
+  type: INT_FEATURE
+  required: true
+  min: 0
+  max: 9

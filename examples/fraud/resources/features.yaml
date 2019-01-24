@@ -1,0 +1,165 @@
+- kind: embed
+  template: normalize
+  args:
+    feature: time
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v1
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v2
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v3
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v4
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v5
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v6
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v7
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v8
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v9
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v10
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v11
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v12
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v13
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v14
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v15
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v16
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v17
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v18
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v19
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v20
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v21
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v22
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v23
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v24
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v25
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v26
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v27
+
+- kind: embed
+  template: normalize
+  args:
+    feature: v28
+
+- kind: embed
+  template: normalize
+  args:
+    feature: amount
+
+- kind: aggregate
+  name: class_distribution
+  aggregator: cortex.class_distribution_int
+  inputs:
+    features:
+      col: class
+
+- kind: transformed_feature
+  name: class_weight
+  transformer: weight
+  inputs:
+    features:
+      col: class
+    args:
+      class_distribution: class_distribution

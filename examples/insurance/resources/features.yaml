@@ -1,0 +1,76 @@
+- kind: raw_feature
+  name: age
+  type: INT_FEATURE
+  required: true
+  min: 0
+  max: 100
+
+- kind: raw_feature
+  name: sex
+  type: STRING_FEATURE
+  required: true
+  values: ['female', 'male']
+
+- kind: raw_feature
+  name: bmi
+  type: FLOAT_FEATURE
+  required: true
+  min: 0
+  max: 60
+
+- kind: raw_feature
+  name: children
+  type: INT_FEATURE
+  required: true
+  min: 0
+  max: 10
+
+- kind: raw_feature
+  name: smoker
+  type: STRING_FEATURE
+  required: true
+  values: ['yes', 'no']
+
+- kind: raw_feature
+  name: region
+  type: STRING_FEATURE
+  required: true
+  values: ['northwest', 'northeast', 'southwest', 'southeast']
+
+- kind: raw_feature
+  name: charges
+  type: FLOAT_FEATURE
+  required: true
+  min: 0
+  max: 100000
+
+- kind: aggregate
+  name: charges_mean
+  aggregator: cortex.mean
+  inputs:
+    features:
+      col: charges
+
+- kind: aggregate
+  name: charges_stddev
+  aggregator: cortex.stddev
+  inputs:
+    features:
+      col: charges
+
+- kind: aggregate
+  name: children_set
+  aggregator: cortex.collect_set_int
+  inputs:
+    features:
+      col: children
+
+- kind: transformed_feature
+  name: charges_normalized
+  transformer: cortex.normalize
+  inputs:
+    features:
+      num: charges
+    args:
+      mean: charges_mean
+      stddev: charges_stddev

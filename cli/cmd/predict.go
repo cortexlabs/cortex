@@ -1,0 +1,140 @@
+/*
+Copyright 2019 Cortex Labs, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package cmd
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+
+	"github.com/spf13/cobra"
+
+	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	"github.com/cortexlabs/cortex/pkg/utils/errors"
+	"github.com/cortexlabs/cortex/pkg/utils/util"
+)
+
+func init() {
+	rootCmd.AddCommand(predictCmd)
+	addAppNameFlag(predictCmd)
+	addEnvFlag(predictCmd)
+}
+
+type PredictResponse struct {
+	ResourceID                string                     `json:"resource_id"`
+	ClassificationPredictions []ClassificationPrediction `json:"classification_predictions"`
+	RegressionPredictions     []RegressionPrediction     `json:"regression_predictions"`
+}
+
+type ClassificationPrediction struct {
+	PredictedClass         int         `json:"predicted_class"`
+	PredictedClassReversed interface{} `json:"predicted_class_reversed"`
+	Probabilities          []float64   `json:"probabilities"`
+}
+
+type RegressionPrediction struct {
+	PredictedValue         float64     `json:"predicted_value"`
+	PredictedValueReversed interface{} `json:"predicted_value_reversed"`
+}
+
+var predictCmd = &cobra.Command{
+	Use:   "predict API_NAME SAMPLES_FILE",
+	Short: "make predictions",
+	Long:  "Make predictions.",
+	Args:  cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		apiName := args[0]
+		samplesJSONPath := args[1]
+
+		resourcesRes, err := getResourcesResponse()
+		if err != nil {
+			errors.Exit(err)
+		}
+
+		apiGroupStatus := resourcesRes.APIGroupStatuses[apiName]
+		if apiGroupStatus == nil {
+			errors.Exit(s.ErrApiNotFound(apiName))
+		}
+		if apiGroupStatus.ActiveStatus == nil {
+			errors.Exit(s.ErrApiNotReady(apiName, apiGroupStatus.Message()))
+		}
+
+		apiPath := apiGroupStatus.ActiveStatus.Path
+		apiURL := util.URLJoin(resourcesRes.APIsBaseURL, apiPath)
+		predictResponse, err := makePredictRequest(apiURL, samplesJSONPath)
+		if err != nil {
+			errors.Exit(err)
+		}
+
+		apiID := predictResponse.ResourceID
+		api := resourcesRes.APIStatuses[apiID]
+
+		apiStart := util.LocalTimestampHuman(api.Start)
+		fmt.Println("\n" + apiName + " was last updated on " + apiStart + "\n")
+
+		if predictResponse.ClassificationPredictions != nil {
+			fmt.Println("Predicted classes:")
+			for _, prediction := range predictResponse.ClassificationPredictions {
+				if prediction.PredictedClassReversed != nil {
+					json, _ := json.Marshal(prediction.PredictedClassReversed)
+					fmt.Println(s.TrimPrefixAndSuffix(string(json), "\""))
+				} else {
+					fmt.Println(prediction.PredictedClass)
+				}
+			}
+		}
+		if predictResponse.RegressionPredictions != nil {
+			fmt.Println("Predicted values:")
+			for _, prediction := range predictResponse.RegressionPredictions {
+				if prediction.PredictedValueReversed != nil {
+					json, _ := json.Marshal(prediction.PredictedValueReversed)
+					fmt.Println(s.TrimPrefixAndSuffix(string(json), "\""))
+				} else {
+					fmt.Println(util.Round(prediction.PredictedValue, 2, true))
+				}
+			}
+		}
+	},
+}
+
+func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse, error) {
+	samplesBytes, err := ioutil.ReadFile(samplesJSONPath)
+	if err != nil {
+		errors.Exit(err, s.ErrReadFile(samplesJSONPath))
+	}
+	payload := bytes.NewBuffer(samplesBytes)
+	req, err := http.NewRequest("POST", apiURL, payload)
+	if err != nil {
+		return nil, errors.Wrap(err, s.ErrCantMakeRequest)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	httpResponse, err := makeRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var predictResponse PredictResponse
+	err = json.Unmarshal(httpResponse, &predictResponse)
+	if err != nil {
+		return nil, errors.Wrap(err, "prediction response", s.ErrUnmarshalJson)
+	}
+
+	return &predictResponse, nil
+}

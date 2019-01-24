@@ -1,0 +1,23 @@
+- kind: aggregate
+  name: reviews_vocab
+  aggregator: vocab
+  inputs:
+    features:
+      col: review
+    args:
+      vocab_size: 10000
+      reserved_indices: reserved_indices
+
+- kind: aggregate
+  name: max_review_length
+  aggregator: max_length
+  inputs:
+    features:
+      col: review
+
+- kind: aggregate
+  name: label_index
+  aggregator: cortex.index_string
+  inputs:
+    features:
+      col: label

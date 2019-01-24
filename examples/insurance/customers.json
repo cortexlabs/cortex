@@ -1,0 +1,12 @@
+{
+  "samples": [
+    {
+      "age": 22,
+      "sex": "female",
+      "bmi": 25,
+      "children": 0,
+      "smoker": "no",
+      "region": "northeast"
+    }
+  ]
+}

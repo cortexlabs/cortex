@@ -1,0 +1,177 @@
+/*
+Copyright 2019 Cortex Labs, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package configreader
+
+import (
+	"io/ioutil"
+
+	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	"github.com/cortexlabs/cortex/pkg/utils/cast"
+	"github.com/cortexlabs/cortex/pkg/utils/errors"
+)
+
+type Int32PtrValidation struct {
+	Required             bool
+	Default              *int32
+	DisallowNull         bool
+	AllowedValues        []int32
+	GreaterThan          *int32
+	GreaterThanOrEqualTo *int32
+	LessThan             *int32
+	LessThanOrEqualTo    *int32
+	Validator            func(*int32) (*int32, error)
+}
+
+func makeInt32ValValidation(v *Int32PtrValidation) *Int32Validation {
+	return &Int32Validation{
+		AllowedValues:        v.AllowedValues,
+		GreaterThan:          v.GreaterThan,
+		GreaterThanOrEqualTo: v.GreaterThanOrEqualTo,
+		LessThan:             v.LessThan,
+		LessThanOrEqualTo:    v.LessThanOrEqualTo,
+	}
+}
+
+func Int32Ptr(inter interface{}, v *Int32PtrValidation) (*int32, error) {
+	if inter == nil {
+		return ValidateInt32Ptr(nil, v)
+	}
+	casted, castOk := cast.InterfaceToInt32(inter)
+	if !castOk {
+		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeInt))
+	}
+	return ValidateInt32Ptr(&casted, v)
+}
+
+func Int32PtrFromInterfaceMap(key string, iMap map[string]interface{}, v *Int32PtrValidation) (*int32, error) {
+	inter, ok := ReadInterfaceMapValue(key, iMap)
+	if !ok {
+		val, err := ValidateInt32PtrMissing(v)
+		if err != nil {
+			return nil, errors.Wrap(err, key)
+		}
+		return val, nil
+	}
+	val, err := Int32Ptr(inter, v)
+	if err != nil {
+		return nil, errors.Wrap(err, key)
+	}
+	return val, nil
+}
+
+func Int32PtrFromStrMap(key string, sMap map[string]string, v *Int32PtrValidation) (*int32, error) {
+	valStr, ok := sMap[key]
+	if !ok || valStr == "" {
+		val, err := ValidateInt32PtrMissing(v)
+		if err != nil {
+			return nil, errors.Wrap(err, key)
+		}
+		return val, nil
+	}
+	val, err := Int32PtrFromStr(valStr, v)
+	if err != nil {
+		return nil, errors.Wrap(err, key)
+	}
+	return val, nil
+}
+
+func Int32PtrFromStr(valStr string, v *Int32PtrValidation) (*int32, error) {
+	if valStr == "" {
+		return ValidateInt32PtrMissing(v)
+	}
+	casted, castOk := s.ParseInt32(valStr)
+	if !castOk {
+		return nil, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeInt))
+	}
+	return ValidateInt32Ptr(&casted, v)
+}
+
+func Int32PtrFromEnv(envVarName string, v *Int32PtrValidation) (*int32, error) {
+	valStr := ReadEnvVar(envVarName)
+	if valStr == nil || *valStr == "" {
+		val, err := ValidateInt32PtrMissing(v)
+		if err != nil {
+			return nil, errors.Wrap(err, s.EnvVar(envVarName))
+		}
+		return val, nil
+	}
+	val, err := Int32PtrFromStr(*valStr, v)
+	if err != nil {
+		return nil, errors.Wrap(err, s.EnvVar(envVarName))
+	}
+	return val, nil
+}
+
+func Int32PtrFromFile(filePath string, v *Int32PtrValidation) (*int32, error) {
+	valBytes, err := ioutil.ReadFile(filePath)
+	if err != nil || len(valBytes) == 0 {
+		val, err := ValidateInt32PtrMissing(v)
+		if err != nil {
+			return nil, errors.Wrap(err, filePath)
+		}
+		return val, nil
+	}
+	valStr := string(valBytes)
+	val, err := Int32PtrFromStr(valStr, v)
+	if err != nil {
+		return nil, errors.Wrap(err, filePath)
+	}
+	return val, nil
+}
+
+func Int32PtrFromEnvOrFile(envVarName string, filePath string, v *Int32PtrValidation) (*int32, error) {
+	valStr := ReadEnvVar(envVarName)
+	if valStr != nil && *valStr != "" {
+		return Int32PtrFromEnv(envVarName, v)
+	}
+	return Int32PtrFromFile(filePath, v)
+}
+
+func Int32PtrFromPrompt(promptOpts *PromptOptions, v *Int32PtrValidation) (*int32, error) {
+	valStr := prompt(promptOpts)
+	if valStr == "" {
+		return ValidateInt32PtrMissing(v)
+	}
+	return Int32PtrFromStr(valStr, v)
+}
+
+func ValidateInt32PtrMissing(v *Int32PtrValidation) (*int32, error) {
+	if v.Required {
+		return nil, errors.New(s.ErrMustBeDefined)
+	}
+	return ValidateInt32Ptr(v.Default, v)
+}
+
+func ValidateInt32Ptr(val *int32, v *Int32PtrValidation) (*int32, error) {
+	if v.DisallowNull {
+		if val == nil {
+			return nil, errors.New(s.ErrCannotBeNull)
+		}
+	}
+
+	if val != nil {
+		err := ValidateInt32Val(*val, makeInt32ValValidation(v))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if v.Validator != nil {
+		return v.Validator(val)
+	}
+	return val, nil
+}

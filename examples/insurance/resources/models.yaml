@@ -1,0 +1,20 @@
+- kind: model
+  name: dnn
+  type: regression
+  target: charges_normalized
+  features:
+    - age
+    - sex
+    - bmi
+    - children
+    - smoker
+    - region
+  hparams:
+    hidden_units: [100, 100, 100]
+  data_partition_ratio:
+    training: 0.8
+    evaluation: 0.2
+  training:
+    num_steps: 10000
+  aggregates:
+    - children_set

@@ -1,0 +1,11 @@
+- kind: api
+  name: sentiment-dnn
+  model_name: sentiment_dnn
+  compute:
+    replicas: 1
+
+- kind: api
+  name: sentiment-linear
+  model_name: sentiment_linear
+  compute:
+    replicas: 1

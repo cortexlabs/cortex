@@ -1,0 +1,11 @@
+- kind: api
+  name: dense-classifier
+  model_name: dense
+  compute:
+    replicas: 1
+
+- kind: api
+  name: conv-classifier
+  model_name: conv
+  compute:
+    replicas: 1

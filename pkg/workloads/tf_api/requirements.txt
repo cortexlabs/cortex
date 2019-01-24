@@ -1,0 +1,5 @@
+flask
+Flask-API
+waitress
+tensorflow-serving-api==1.12.0
+Pillow

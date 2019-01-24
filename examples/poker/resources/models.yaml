@@ -1,0 +1,22 @@
+- kind: model
+  name: dnn
+  type: classification
+  target: class
+  features:
+    - card_1_suit
+    - card_1_rank
+    - card_2_suit
+    - card_2_rank
+    - card_3_suit
+    - card_3_rank
+    - card_4_suit
+    - card_4_rank
+    - card_5_suit
+    - card_5_rank
+  hparams:
+    hidden_units: [100, 100, 100, 100, 100]
+  data_partition_ratio:
+    training: 0.9
+    evaluation: 0.1
+  training:
+    num_steps: 50000

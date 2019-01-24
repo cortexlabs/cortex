@@ -1,0 +1,16 @@
+- kind: environment
+  name: dev
+  data:
+    type: parquet
+    path: s3a://cortex-examples/iris.parquet
+    schema:
+      - column_name: sepal_length
+        feature_name: sepal_length
+      - column_name: sepal_width
+        feature_name: sepal_width
+      - column_name: petal_length
+        feature_name: petal_length
+      - column_name: petal_width
+        feature_name: petal_width
+      - column_name: class
+        feature_name: class

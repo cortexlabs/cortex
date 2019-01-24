@@ -1,0 +1,6 @@
+- kind: transformed_feature
+  name: image_pixels
+  transformer: decode_and_normalize
+  inputs:
+    features:
+      image: image

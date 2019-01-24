@@ -1,0 +1,168 @@
+# CLI
+
+## configure
+
+```bash
+Configure the CLI.
+
+Usage:
+  cortex configure [flags]
+
+Flags:
+  -e, --env string   environment (default "dev")
+  -h, --help         help for configure
+```
+
+The `configure` command is used to connect to the Cortex cluster. The CLI needs a Cortex operator URL as well as valid AWS credentials in order to authenticate requests.
+
+The CLI stores this information in the `.cortex` directory.
+
+## init
+
+```bash
+Initialize an application.
+
+Usage:
+  cortex init APP_NAME [flags]
+
+Flags:
+  -h, --help   help for init
+```
+
+The `init` command creates a scaffold for a new Cortex application.
+
+## deploy
+
+```bash
+Deploy an application.
+
+Usage:
+  cortex deploy [flags]
+
+Flags:
+  -e, --env string   environment (default "dev")
+  -f, --force        stop all running jobs
+  -h, --help         help for deploy
+```
+
+The `deploy` command sends all application configuration and code to the operator. If all validations pass, the operator will attempt to create the desired state on the cluster.
+
+## refresh
+
+```bash
+Delete cached resources and deploy.
+
+Usage:
+  cortex refresh [flags]
+
+Flags:
+  -e, --env string   environment (default "dev")
+  -f, --force        stop all running jobs
+  -h, --help         help for refresh
+```
+
+The `refresh` behaves similarly to the `deploy` command. The key difference is that `refresh` doesn't use any cached resource and will recreate all state using raw data from the data warehouse.
+
+## get
+
+```bash
+Get information about resources.
+
+Usage:
+  cortex get [RESOURCE_TYPE] [RESOURCE_NAME] [flags]
+
+Resource Types:
+  rawfeatures
+  aggregates
+  transformedfeatures
+  trainingdatasets
+  models
+  apis
+
+Flags:
+  -a, --app string   app name
+  -e, --env string   environment (default "dev")
+  -h, --help         help for get
+```
+
+The `get` command outputs the current state of all resources on the cluster. Specifying a resource name provides a more detailed view of the configuration and state of that particular resource.
+
+## status
+
+```bash
+Get resource statuses.
+
+Usage:
+  cortex status [RESOURCE_TYPE] [RESOURCE_NAME] [flags]
+
+Resource Types:
+  raw_feature
+  aggregate
+  transformed_feature
+  training_dataset
+  model
+  api
+
+Flags:
+  -a, --app string   app name
+  -e, --env string   environment (default "dev")
+  -h, --help         help for status
+```
+
+The `status` command outputs a condensed summary of all resources on the cluster. Specifying a resource name provides a more detailed view of the status of that particular resource.
+
+## logs
+
+```bash
+Get logs for a resource.
+
+Usage:
+  cortex logs [RESOURCE_TYPE] RESOURCE_NAME [flags]
+
+Resource Types:
+  rawfeatures
+  aggregates
+  transformedfeatures
+  trainingdatasets
+  models
+  apis
+
+Flags:
+  -a, --app string   app name
+  -e, --env string   environment (default "dev")
+  -h, --help         help for logs
+```
+
+The `logs` command gets logs from the workload corresponding to the specified resource. For example, `cortex logs models dnn` will get the logs from the last training workload for `dnn`.
+
+## predict
+
+```bash
+Make predictions.
+
+Usage:
+  cortex predict API_NAME SAMPLES_FILE [flags]
+
+Flags:
+  -a, --app string   app name
+  -e, --env string   environment (default "dev")
+  -h, --help         help for predict
+```
+
+The `predict` command converts samples from a samples file into prediction requests and outputs the response. This command is useful for quickly testing model output.
+
+## delete
+
+```bash
+Delete an application.
+
+Usage:
+  cortex delete [APP_NAME] [flags]
+
+Flags:
+  -e, --env string   environment (default "dev")
+  -h, --help         help for delete
+  -c, --keep-cache   keep cached data for the app
+```
+
+The `delete` command deletes an application's resources from the cluster.

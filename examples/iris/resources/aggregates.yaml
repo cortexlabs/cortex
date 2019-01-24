@@ -1,0 +1,62 @@
+- kind: aggregate
+  name: sepal_length_mean
+  aggregator: cortex.mean
+  inputs:
+    features:
+      col: sepal_length
+
+- kind: aggregate
+  name: sepal_length_stddev
+  aggregator: cortex.stddev
+  inputs:
+    features:
+      col: sepal_length
+
+- kind: aggregate
+  name: sepal_width_mean
+  aggregator: cortex.mean
+  inputs:
+    features:
+      col: sepal_width
+
+- kind: aggregate
+  name: sepal_width_stddev
+  aggregator: cortex.stddev
+  inputs:
+    features:
+      col: sepal_width
+
+- kind: aggregate
+  name: petal_length_mean
+  aggregator: cortex.mean
+  inputs:
+    features:
+      col: petal_length
+
+- kind: aggregate
+  name: petal_length_stddev
+  aggregator: cortex.stddev
+  inputs:
+    features:
+      col: petal_length
+
+- kind: aggregate
+  name: petal_width_mean
+  aggregator: cortex.mean
+  inputs:
+    features:
+      col: petal_width
+
+- kind: aggregate
+  name: petal_width_stddev
+  aggregator: cortex.stddev
+  inputs:
+    features:
+      col: petal_width
+
+- kind: aggregate
+  name: class_index
+  aggregator: cortex.index_string
+  inputs:
+    features:
+      col: class

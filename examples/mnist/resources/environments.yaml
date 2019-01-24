@@ -1,0 +1,9 @@
+- kind: environment
+  name: dev
+  data:
+    type: csv
+    path: s3a://cortex-examples/mnist.csv
+    skip_header: true
+    schema:
+      - image
+      - label

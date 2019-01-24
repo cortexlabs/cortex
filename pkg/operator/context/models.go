@@ -1,0 +1,158 @@
+/*
+Copyright 2019 Cortex Labs, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package context
+
+import (
+	"bytes"
+	"path/filepath"
+	"strings"
+
+	"github.com/cortexlabs/cortex/pkg/api/context"
+	"github.com/cortexlabs/cortex/pkg/api/resource"
+	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	"github.com/cortexlabs/cortex/pkg/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/operator/aws"
+	"github.com/cortexlabs/cortex/pkg/utils/errors"
+	"github.com/cortexlabs/cortex/pkg/utils/util"
+)
+
+var uploadedModels map[string]bool = map[string]bool{}
+
+func getModels(
+	config *userconfig.Config,
+	aggregates context.Aggregates,
+	features context.Features,
+	impls map[string][]byte,
+	root string,
+) (context.Models, error) {
+
+	models := context.Models{}
+
+	for _, modelConfig := range config.Models {
+		modelImplID, modelImplKey, err := getModelImplID(modelConfig.Path, impls)
+		if err != nil {
+			return nil, errors.Wrap(err, userconfig.Identify(modelConfig), userconfig.PathKey)
+		}
+
+		targetDataType := features[modelConfig.Target].GetType()
+		err = context.ValidateModelTargetType(targetDataType, modelConfig.Type)
+		if err != nil {
+			return nil, errors.Wrap(err, userconfig.Identify(modelConfig))
+		}
+
+		var buf bytes.Buffer
+		buf.WriteString(modelConfig.Type)
+		buf.WriteString(modelImplID)
+		buf.WriteString(modelConfig.PredictionKey)
+		buf.WriteString(s.Obj(modelConfig.Hparams))
+		buf.WriteString(s.Obj(modelConfig.DataPartitionRatio))
+		buf.WriteString(s.Obj(modelConfig.Training))
+		buf.WriteString(s.Obj(modelConfig.Evaluation))
+		buf.WriteString(s.Obj(modelConfig.Misc))
+		buf.WriteString(features.IDWithTags(modelConfig.AllFeatureNames())) // A change in tags can invalidate the model
+
+		for _, aggregate := range modelConfig.Aggregates {
+			buf.WriteString(aggregates[aggregate].GetID())
+		}
+		buf.WriteString(modelConfig.Tags.ID())
+
+		modelID := util.HashBytes(buf.Bytes())
+
+		buf.Reset()
+		buf.WriteString(s.Obj(modelConfig.DataPartitionRatio))
+		buf.WriteString(features.ID(modelConfig.AllFeatureNames()))
+		datasetID := util.HashBytes(buf.Bytes())
+		buf.WriteString(features.IDWithTags(modelConfig.AllFeatureNames()))
+		datasetIDWithTags := util.HashBytes(buf.Bytes())
+
+		datasetRoot := filepath.Join(root, consts.TrainingDataDir, datasetID)
+
+		trainingDatasetName := strings.Join([]string{
+			modelConfig.Name,
+			resource.TrainingDatasetType.String(),
+		}, "/")
+
+		models[modelConfig.Name] = &context.Model{
+			ComputedResourceFields: &context.ComputedResourceFields{
+				ResourceFields: &context.ResourceFields{
+					ID:           modelID,
+					IDWithTags:   modelID,
+					ResourceType: resource.ModelType,
+				},
+			},
+			Model:   modelConfig,
+			Key:     filepath.Join(root, consts.ModelsDir, modelID+".zip"),
+			ImplID:  modelImplID,
+			ImplKey: modelImplKey,
+			Dataset: &context.TrainingDataset{
+				ComputedResourceFields: &context.ComputedResourceFields{
+					ResourceFields: &context.ResourceFields{
+						ID:           datasetID,
+						IDWithTags:   datasetIDWithTags,
+						ResourceType: resource.TrainingDatasetType,
+					},
+				},
+				Name:      trainingDatasetName,
+				ModelName: modelConfig.Name,
+				TrainKey:  filepath.Join(datasetRoot, "train.tfrecord"),
+				EvalKey:   filepath.Join(datasetRoot, "eval.tfrecord"),
+			},
+		}
+	}
+
+	return models, nil
+}
+
+func getModelImplID(implPath string, impls map[string][]byte) (string, string, error) {
+	impl, ok := impls[strings.TrimPrefix(implPath, "/")]
+	if !ok {
+		return "", "", errors.New(s.ErrFileDoesNotExist(implPath))
+	}
+	modelImplID := util.HashBytes(impl)
+	modelImplKey, err := uploadModelImpl(modelImplID, impl)
+	if err != nil {
+		return "", "", errors.Wrap(err, implPath)
+	}
+	return modelImplID, modelImplKey, nil
+}
+
+func uploadModelImpl(modelImplID string, impl []byte) (string, error) {
+	modelImplKey := filepath.Join(
+		consts.ModelImplsDir,
+		modelImplID+".py",
+	)
+
+	if _, ok := uploadedModels[modelImplID]; ok {
+		return modelImplKey, nil
+	}
+
+	isUploaded, err := aws.IsS3File(modelImplKey)
+	if err != nil {
+		return "", errors.Wrap(err, "upload")
+	}
+
+	if !isUploaded {
+		err = aws.UploadBytesToS3(impl, modelImplKey)
+		if err != nil {
+			return "", errors.Wrap(err, "upload")
+		}
+	}
+
+	uploadedModels[modelImplID] = true
+	return modelImplKey, nil
+}

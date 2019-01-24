@@ -1,0 +1,154 @@
+- kind: raw_feature
+  name: time
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v1
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v2
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v3
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v4
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v5
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v6
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v7
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v8
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v9
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v10
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v11
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v12
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v13
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v14
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v15
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v16
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v17
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v18
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v19
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v20
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v21
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v22
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v23
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v24
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v25
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v26
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v27
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: v28
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: amount
+  type: FLOAT_FEATURE
+  required: true
+
+- kind: raw_feature
+  name: class
+  type: INT_FEATURE
+  required: true

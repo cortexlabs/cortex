@@ -1,0 +1,153 @@
+/*
+Copyright 2019 Cortex Labs, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package context
+
+import (
+	"bytes"
+	"path/filepath"
+
+	"github.com/cortexlabs/cortex/pkg/api/context"
+	"github.com/cortexlabs/cortex/pkg/api/resource"
+	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	"github.com/cortexlabs/cortex/pkg/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/utils/errors"
+	"github.com/cortexlabs/cortex/pkg/utils/util"
+)
+
+func getAggregates(
+	config *userconfig.Config,
+	constants context.Constants,
+	rawFeatures context.RawFeatures,
+	userAggregators map[string]*context.Aggregator,
+	root string,
+) (context.Aggregates, error) {
+
+	aggregates := context.Aggregates{}
+
+	for _, aggregateConfig := range config.Aggregates {
+		if _, ok := constants[aggregateConfig.Name]; ok {
+			return nil, userconfig.ErrorDuplicateConfigName(aggregateConfig.Name, resource.AggregateType, resource.ConstantType)
+		}
+
+		aggregator, err := getAggregator(aggregateConfig.Aggregator, userAggregators)
+		if err != nil {
+			return nil, errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.AggregatorKey)
+		}
+
+		err = validateAggregateInputs(aggregateConfig, constants, rawFeatures, aggregator)
+		if err != nil {
+			return nil, errors.Wrap(err)
+		}
+
+		constantIDMap := make(map[string]string, len(aggregateConfig.Inputs.Args))
+		constantIDWithTagsMap := make(map[string]string, len(aggregateConfig.Inputs.Args))
+		for argName, constantName := range aggregateConfig.Inputs.Args {
+			constantNameStr := constantName.(string)
+			constant, ok := constants[constantNameStr]
+			if !ok {
+				return nil, errors.Wrap(userconfig.ErrorUndefinedResource(constantNameStr, resource.ConstantType),
+					userconfig.Identify(aggregateConfig), userconfig.InputsKey, userconfig.ArgsKey, argName)
+			}
+			constantIDMap[argName] = constant.ID
+			constantIDWithTagsMap[argName] = constant.IDWithTags
+		}
+
+		var buf bytes.Buffer
+		buf.WriteString(rawFeatures.FeatureInputsID(aggregateConfig.Inputs.Features))
+		buf.WriteString(s.Obj(constantIDMap))
+		buf.WriteString(aggregator.ID)
+		id := util.HashBytes(buf.Bytes())
+
+		buf.Reset()
+		buf.WriteString(rawFeatures.FeatureInputsIDWithTags(aggregateConfig.Inputs.Features))
+		buf.WriteString(s.Obj(constantIDWithTagsMap))
+		buf.WriteString(aggregator.IDWithTags)
+		buf.WriteString(aggregateConfig.Tags.ID())
+		idWithTags := util.HashBytes(buf.Bytes())
+
+		aggregateKey := filepath.Join(
+			root,
+			consts.AggregatesDir,
+			id+".msgpack",
+		)
+
+		aggregates[aggregateConfig.Name] = &context.Aggregate{
+			ComputedResourceFields: &context.ComputedResourceFields{
+				ResourceFields: &context.ResourceFields{
+					ID:           id,
+					IDWithTags:   idWithTags,
+					ResourceType: resource.AggregateType,
+				},
+			},
+			Aggregate: aggregateConfig,
+			Type:      aggregator.OutputType,
+			Key:       aggregateKey,
+		}
+	}
+
+	return aggregates, nil
+}
+
+func validateAggregateInputs(
+	aggregateConfig *userconfig.Aggregate,
+	constants context.Constants,
+	rawFeatures context.RawFeatures,
+	aggregator *context.Aggregator,
+) error {
+
+	featureRuntimeTypes, err := context.GetFeatureRuntimeTypes(aggregateConfig.Inputs.Features, rawFeatures)
+	if err != nil {
+		return errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.InputsKey, userconfig.FeaturesKey)
+	}
+	err = userconfig.CheckFeatureRuntimeTypesMatch(featureRuntimeTypes, aggregator.Inputs.Features)
+	if err != nil {
+		return errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.InputsKey, userconfig.FeaturesKey)
+	}
+
+	argTypes, err := getAggregateArgTypes(aggregateConfig.Inputs.Args, constants)
+	if err != nil {
+		return errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.InputsKey, userconfig.ArgsKey)
+	}
+	err = userconfig.CheckArgRuntimeTypesMatch(argTypes, aggregator.Inputs.Args)
+	if err != nil {
+		return errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.InputsKey, userconfig.ArgsKey)
+	}
+
+	return nil
+}
+
+func getAggregateArgTypes(
+	args map[string]interface{},
+	constants context.Constants,
+) (map[string]interface{}, error) {
+
+	if len(args) == 0 {
+		return nil, nil
+	}
+
+	argTypes := make(map[string]interface{}, len(args))
+	for argName, constantName := range args {
+		constantNameStr := constantName.(string)
+		constant, ok := constants[constantNameStr]
+		if !ok {
+			return nil, errors.Wrap(userconfig.ErrorUndefinedResource(constantNameStr, resource.ConstantType), argName)
+		}
+		argTypes[argName] = constant.Type
+	}
+	return argTypes, nil
+}

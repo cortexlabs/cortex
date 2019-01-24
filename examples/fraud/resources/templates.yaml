@@ -1,0 +1,28 @@
+- kind: template
+  name: normalize
+  yaml: |
+    - kind: aggregate
+      name: {feature}_mean
+      aggregator: cortex.mean
+      inputs:
+        features:
+          col: {feature}
+
+    - kind: aggregate
+      name: {feature}_stddev
+      aggregator: cortex.stddev
+      inputs:
+        features:
+          col: {feature}
+
+    - kind: transformed_feature
+      name: {feature}_normalized
+      tags:
+        type: numeric
+      transformer: cortex.normalize
+      inputs:
+        features:
+          num: {feature}
+        args:
+          mean: {feature}_mean
+          stddev: {feature}_stddev

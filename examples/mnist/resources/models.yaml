@@ -1,0 +1,59 @@
+- kind: model
+  name: dense
+  path: implementations/models/basic.py
+  type: classification
+  target: label
+  features:
+    - image_pixels
+  hparams:
+    layer_type: basic
+    learning_rate: 0.01
+    input_shape: [784]
+    output_shape: [10]
+    hidden_units: [100, 200, 10]
+  data_partition_ratio:
+    training: 0.7
+    evaluation: 0.3
+  training:
+    batch_size: 64
+    num_steps: 5000
+
+- kind: model
+  name: conv
+  path: implementations/models/basic.py
+  type: classification
+  target: label
+  features:
+    - image_pixels
+  hparams:
+    layer_type: conv
+    learning_rate: 0.01
+    input_shape: [28, 28, 1]
+    output_shape: [10]
+    kernel_size: 2
+    hidden_units: [10, 10, 10]
+  data_partition_ratio:
+    training: 0.7
+    evaluation: 0.3
+  training:
+    batch_size: 64
+    num_steps: 5000
+
+- kind: model
+  name: dnn
+  path: implementations/models/dnn.py
+  type: classification
+  target: label
+  features:
+    - image_pixels
+  hparams:
+    learning_rate: 0.01
+    input_shape: [28, 28, 1]
+    output_shape: [10]
+    hidden_units: [100, 200]
+  data_partition_ratio:
+    training: 0.7
+    evaluation: 0.3
+  training:
+    batch_size: 64
+    num_steps: 5000

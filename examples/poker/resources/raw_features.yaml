@@ -1,0 +1,74 @@
+- kind: raw_feature
+  name: card_1_suit
+  type: INT_FEATURE
+  required: true
+  tags:
+    type: suit
+
+- kind: raw_feature
+  name: card_1_rank
+  type: INT_FEATURE
+  required: true
+  tags:
+    type: rank
+
+- kind: raw_feature
+  name: card_2_suit
+  type: INT_FEATURE
+  required: true
+  tags:
+    type: suit
+
+- kind: raw_feature
+  name: card_2_rank
+  type: INT_FEATURE
+  required: true
+  tags:
+    type: rank
+
+- kind: raw_feature
+  name: card_3_suit
+  type: INT_FEATURE
+  required: true
+  tags:
+    type: suit
+
+- kind: raw_feature
+  name: card_3_rank
+  type: INT_FEATURE
+  required: true
+  tags:
+    type: rank
+
+- kind: raw_feature
+  name: card_4_suit
+  type: INT_FEATURE
+  required: true
+  tags:
+    type: suit
+
+- kind: raw_feature
+  name: card_4_rank
+  type: INT_FEATURE
+  required: true
+  tags:
+    type: rank
+
+- kind: raw_feature
+  name: card_5_suit
+  type: INT_FEATURE
+  required: true
+  tags:
+    type: suit
+
+- kind: raw_feature
+  name: card_5_rank
+  type: INT_FEATURE
+  required: true
+  tags:
+    type: rank
+
+- kind: raw_feature
+  name: class
+  type: INT_FEATURE
+  required: true

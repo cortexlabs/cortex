@@ -1,0 +1,20 @@
+- kind: transformed_feature
+  name: embedding_input
+  transformer: tokenize_string_to_int
+  inputs:
+    features:
+      col: review
+    args:
+      max_len: max_review_length
+      stop_words: english_stop_words
+      vocab: reviews_vocab
+      reserved_indices: reserved_indices
+
+- kind: transformed_feature
+  name: label_indexed
+  transformer: cortex.index_string
+  inputs:
+    features:
+      text: label
+    args:
+      index: label_index

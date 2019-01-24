@@ -1,0 +1,14 @@
+/vendor/
+/bin/
+/dev/
+/docs/
+/examples/
+
+**/.*
+**/*.md
+**/*.zip
+
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/__pycache__/

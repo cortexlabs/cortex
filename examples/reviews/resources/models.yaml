@@ -1,0 +1,32 @@
+- kind: model
+  name: sentiment_dnn
+  type: classification
+  target: label_indexed
+  features:
+    - embedding_input
+  aggregates:
+    - reviews_vocab
+    - max_review_length
+  hparams:
+    learning_rate: 0.01
+  data_partition_ratio:
+    training: 0.8
+    evaluation: 0.2
+  training:
+    batch_size: 64
+    num_steps: 5000
+
+- kind: model
+  name: sentiment_linear
+  type: classification
+  target: label_indexed
+  features:
+    - embedding_input
+  aggregates:
+    - reviews_vocab
+  data_partition_ratio:
+    training: 0.8
+    evaluation: 0.2
+  training:
+    batch_size: 64
+    num_steps: 5000

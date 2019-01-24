@@ -1,0 +1,16 @@
+import tensorflow as tf
+
+
+def create_estimator(run_config, model_config):
+    columns = [
+        tf.feature_column.numeric_column(
+            "image_pixels", shape=model_config["hparams"]["input_shape"]
+        )
+    ]
+
+    return tf.estimator.DNNClassifier(
+        feature_columns=columns,
+        hidden_units=model_config["hparams"]["hidden_units"],
+        n_classes=10,
+        config=run_config,
+    )

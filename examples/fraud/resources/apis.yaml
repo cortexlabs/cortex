@@ -1,0 +1,11 @@
+- kind: api
+  name: fraud1
+  model_name: dnn_weighted
+  compute:
+    replicas: 1
+
+- kind: api
+  name: fraud2
+  model_name: dnn
+  compute:
+    replicas: 1

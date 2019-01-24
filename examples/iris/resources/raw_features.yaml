@@ -1,0 +1,28 @@
+- kind: raw_feature
+  name: sepal_length
+  type: FLOAT_FEATURE
+  min: 0
+  max: 10
+
+- kind: raw_feature
+  name: sepal_width
+  type: FLOAT_FEATURE
+  min: 0
+  max: 10
+
+- kind: raw_feature
+  name: petal_length
+  type: FLOAT_FEATURE
+  min: 0
+  max: 10
+
+- kind: raw_feature
+  name: petal_width
+  type: FLOAT_FEATURE
+  min: 0
+  max: 10
+
+- kind: raw_feature
+  name: class
+  type: STRING_FEATURE
+  values: ['Iris-setosa', 'Iris-versicolor', 'Iris-virginica']
