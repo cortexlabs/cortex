@@ -16,7 +16,7 @@
     evaluation: 0.3
   training:
     batch_size: 64
-    num_steps: 5000
+    num_epochs: 5
 
 - kind: model
   name: conv
@@ -37,7 +37,7 @@
     evaluation: 0.3
   training:
     batch_size: 64
-    num_steps: 5000
+    num_epochs: 5
 
 - kind: model
   name: dnn
