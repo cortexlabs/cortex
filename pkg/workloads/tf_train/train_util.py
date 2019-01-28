@@ -139,7 +139,7 @@ def train(model_name, model_impl, ctx, model_dir):
     train_num_steps = model["training"]["num_steps"]
     if model["training"]["num_epochs"]:
         train_num_steps = (
-            round(
+            math.ceil(
                 dataset_metadata["dataset_size"]
                 * model["data_partition_ratio"]["training"]
                 / float(model["training"]["batch_size"])
@@ -152,7 +152,7 @@ def train(model_name, model_impl, ctx, model_dir):
     eval_num_steps = model["evaluation"]["num_steps"]
     if model["evaluation"]["num_epochs"]:
         eval_num_steps = (
-            round(
+            math.ceil(
                 dataset_metadata["dataset_size"]
                 * model["data_partition_ratio"]["evaluation"]
                 / float(model["evaluation"]["batch_size"])
