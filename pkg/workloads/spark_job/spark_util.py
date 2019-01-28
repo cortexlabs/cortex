@@ -69,6 +69,9 @@ def write_training_data(model_name, df, ctx):
 
     df = df.select(*feature_names)
 
+    metadata = {"dataset_size": df.count()}
+    aws.upload_json_to_s3(metadata, training_dataset["metadata_key"], ctx.bucket)
+
     train_ratio = model["data_partition_ratio"]["training"]
     eval_ratio = model["data_partition_ratio"]["evaluation"]
     [train_df, eval_df] = df.randomSplit([train_ratio, eval_ratio])

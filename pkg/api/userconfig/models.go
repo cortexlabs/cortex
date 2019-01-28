@@ -157,7 +157,8 @@ var modelDataPartitionRatioValidation = &cr.StructValidation{
 
 type ModelTraining struct {
 	BatchSize                 int64  `json:"batch_size" yaml:"batch_size"`
-	NumSteps                  int64  `json:"num_steps" yaml:"num_steps"`
+	NumSteps                  *int64 `json:"num_steps" yaml:"num_steps"`
+	NumEpochs                 *int64 `json:"num_epochs" yaml:"num_epochs"`
 	Shuffle                   bool   `json:"shuffle" yaml:"shuffle"`
 	TfRandomSeed              int64  `json:"tf_random_seed" yaml:"tf_random_seed"`
 	TfRandomizeSeed           bool   `json:"tf_randomize_seed" yaml:"tf_randomize_seed"`
@@ -180,9 +181,14 @@ var modelTrainingValidation = &cr.StructValidation{
 		},
 		&cr.StructFieldValidation{
 			StructField: "NumSteps",
-			Int64Validation: &cr.Int64Validation{
+			Int64PtrValidation: &cr.Int64PtrValidation{
 				GreaterThan: util.Int64Ptr(0),
-				Default:     1000,
+			},
+		},
+		&cr.StructFieldValidation{
+			StructField: "NumEpochs",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				GreaterThan: util.Int64Ptr(0),
 			},
 		},
 		&cr.StructFieldValidation{
@@ -253,12 +259,11 @@ var modelTrainingValidation = &cr.StructValidation{
 }
 
 type ModelEvaluation struct {
-	BatchSize      int64  `json:"batch_size" yaml:"batch_size"`
-	NumSteps       *int64 `json:"num_steps" yaml:"num_steps"`
-	NumEpochs      *int64 `json:"num_epochs" yaml:"num_epochs"`
-	Shuffle        bool   `json:"shuffle" yaml:"shuffle"`
-	StartDelaySecs int64  `json:"start_delay_secs" yaml:"start_delay_secs"`
-	ThrottleSecs   int64  `json:"throttle_secs" yaml:"throttle_secs"`
+	BatchSize      int64 `json:"batch_size" yaml:"batch_size"`
+	NumSteps       int64 `json:"num_steps" yaml:"num_steps"`
+	Shuffle        bool  `json:"shuffle" yaml:"shuffle"`
+	StartDelaySecs int64 `json:"start_delay_secs" yaml:"start_delay_secs"`
+	ThrottleSecs   int64 `json:"throttle_secs" yaml:"throttle_secs"`
 }
 
 var modelEvaluationValidation = &cr.StructValidation{
@@ -272,14 +277,9 @@ var modelEvaluationValidation = &cr.StructValidation{
 		},
 		&cr.StructFieldValidation{
 			StructField: "NumSteps",
-			Int64PtrValidation: &cr.Int64PtrValidation{
+			Int64Validation: &cr.Int64Validation{
 				GreaterThan: util.Int64Ptr(0),
-			},
-		},
-		&cr.StructFieldValidation{
-			StructField: "NumEpochs",
-			Int64PtrValidation: &cr.Int64PtrValidation{
-				GreaterThan: util.Int64Ptr(0),
+				Default:     100,
 			},
 		},
 		&cr.StructFieldValidation{
@@ -350,10 +350,10 @@ func (model *Model) Validate() error {
 		return errors.Wrap(ErrorSpecifyOnlyOne(SaveCheckpointSecsKey, SaveCheckpointStepsKey), Identify(model), TrainingKey)
 	}
 
-	if model.Evaluation.NumSteps == nil && model.Evaluation.NumEpochs == nil {
-		model.Evaluation.NumEpochs = util.Int64Ptr(1)
-	} else if model.Evaluation.NumSteps != nil && model.Evaluation.NumEpochs != nil {
-		return errors.Wrap(ErrorSpecifyOnlyOne(NumEpochsKey, NumStepsKey), Identify(model), EvaluationKey)
+	if model.Training.NumSteps == nil && model.Training.NumEpochs == nil {
+		model.Training.NumSteps = util.Int64Ptr(1000)
+	} else if model.Training.NumSteps != nil && model.Training.NumEpochs != nil {
+		return errors.Wrap(ErrorSpecifyOnlyOne(NumEpochsKey, NumStepsKey), Identify(model), TrainingKey)
 	}
 
 	for _, trainingFeature := range model.TrainingFeatures {

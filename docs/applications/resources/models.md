@@ -23,6 +23,7 @@ Train custom TensorFlow models at scale.
   training:
     batch_size: <int>  # training batch size (default: 40)
     num_steps: <int>  # number of training steps (default: 1000)
+    num_epochs: <int>  # number of epochs to train the model over the entire dataset (optional)
     shuffle: <boolean>  # whether to shuffle the training data (default: true)
     tf_random_seed: <int>  # random seed for TensorFlow initializers (default: <random>)
     save_summary_steps: <int>  # save summaries every this many steps (default: 100)
@@ -34,8 +35,7 @@ Train custom TensorFlow models at scale.
 
   evaluation:
     batch_size: <int>  # evaluation batch size (default: 40)
-    num_steps: <int>  # number of eval steps (optional)
-    num_epochs: <int>  # number of eval epochs (default: 1)
+    num_steps: <int>  # number of eval steps (default: 100)
     shuffle: <bool>  # whether to shuffle the evaluation data (default: false)
     start_delay_secs: <int>  # start evaluating after waiting for this many seconds (default: 120)
     throttle_secs: <int>  # do not re-evaluate unless the last evaluation was started at least this many seconds ago (default: 600)

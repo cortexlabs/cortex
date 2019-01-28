@@ -37,10 +37,11 @@ type Model struct {
 
 type TrainingDataset struct {
 	*ComputedResourceFields
-	Name      string `json:"name"`
-	ModelName string `json:"model_name"`
-	TrainKey  string `json:"train_key"`
-	EvalKey   string `json:"eval_key"`
+	Name        string `json:"name"`
+	ModelName   string `json:"model_name"`
+	TrainKey    string `json:"train_key"`
+	EvalKey     string `json:"eval_key"`
+	MetadataKey string `json:"metadata_key"`
 }
 
 func (trainingDataset *TrainingDataset) GetName() string {
