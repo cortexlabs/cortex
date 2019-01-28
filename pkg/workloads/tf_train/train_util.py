@@ -63,12 +63,12 @@ def generate_input_fn(model_name, ctx, mode):
             num_parallel_calls=num_threads,
         )
 
-        dataset = dataset.prefetch(buffer_size)
-
         if model[mode]["shuffle"]:
             dataset = dataset.shuffle(buffer_size)
 
-        dataset = dataset.repeat().batch(model[mode]["batch_size"])
+        dataset = dataset.batch(model[mode]["batch_size"])
+        dataset = dataset.prefetch(buffer_size)
+        dataset = dataset.repeat()
         iterator = dataset.make_one_shot_iterator()
         features, target = iterator.get_next()
 
