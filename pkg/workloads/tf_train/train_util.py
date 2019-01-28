@@ -17,6 +17,7 @@ import sys
 import inspect
 import importlib
 import multiprocessing
+import math
 import tensorflow as tf
 
 from lib import util, tf_lib, aws
@@ -67,16 +68,7 @@ def generate_input_fn(model_name, ctx, mode):
 
         dataset = dataset.batch(model[mode]["batch_size"])
         dataset = dataset.prefetch(buffer_size)
-
-        if mode == "training":
-            dataset = dataset.repeat(None)  # Repeat forever
-        elif mode == "evaluation":
-            dataset = dataset.repeat(model["evaluation"]["num_epochs"])  # Repeats forever if None
-        else:
-            raise CortexException(
-                "model " + model_name, "expected training or evaluation but found " + mode
-            )
-
+        dataset = dataset.repeat()
         iterator = dataset.make_one_shot_iterator()
         features, target = iterator.get_next()
 
@@ -143,11 +135,34 @@ def train(model_name, model_impl, ctx, model_dir):
     serving_input_fn = generate_json_serving_input_fn(model_name, ctx)
     exporter = tf.estimator.FinalExporter("estimator", serving_input_fn, as_text=False)
 
-    train_spec = tf.estimator.TrainSpec(train_input_fn, max_steps=model["training"]["num_steps"])
+    dataset_metadata = aws.read_json_from_s3(model["dataset"]["metadata_key"], ctx.bucket)
+    train_num_steps = model["training"]["num_steps"]
+    if model["training"]["num_epochs"]:
+        train_num_steps = (
+            math.ceil(
+                dataset_metadata["dataset_size"]
+                * model["data_partition_ratio"]["training"]
+                / float(model["training"]["batch_size"])
+            )
+            * model["training"]["num_epochs"]
+        )
+
+    train_spec = tf.estimator.TrainSpec(train_input_fn, max_steps=train_num_steps)
+
+    eval_num_steps = model["evaluation"]["num_steps"]
+    if model["evaluation"]["num_epochs"]:
+        eval_num_steps = (
+            math.ceil(
+                dataset_metadata["dataset_size"]
+                * model["data_partition_ratio"]["evaluation"]
+                / float(model["evaluation"]["batch_size"])
+            )
+            * model["evaluation"]["num_epochs"]
+        )
 
     eval_spec = tf.estimator.EvalSpec(
         eval_input_fn,
-        steps=model["evaluation"]["num_steps"],
+        steps=eval_num_steps,
         exporters=[exporter],
         name="estimator-eval",
         start_delay_secs=model["evaluation"]["start_delay_secs"],

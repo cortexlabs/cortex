@@ -107,10 +107,11 @@ func getModels(
 						ResourceType: resource.TrainingDatasetType,
 					},
 				},
-				Name:      trainingDatasetName,
-				ModelName: modelConfig.Name,
-				TrainKey:  filepath.Join(datasetRoot, "train.tfrecord"),
-				EvalKey:   filepath.Join(datasetRoot, "eval.tfrecord"),
+				Name:        trainingDatasetName,
+				ModelName:   modelConfig.Name,
+				TrainKey:    filepath.Join(datasetRoot, "train.tfrecord"),
+				EvalKey:     filepath.Join(datasetRoot, "eval.tfrecord"),
+				MetadataKey: filepath.Join(datasetRoot, "metadata.json"),
 			},
 		}
 	}
