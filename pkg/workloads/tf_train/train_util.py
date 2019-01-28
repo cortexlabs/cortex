@@ -136,18 +136,25 @@ def train(model_name, model_impl, ctx, model_dir):
     exporter = tf.estimator.FinalExporter("estimator", serving_input_fn, as_text=False)
 
     dataset_metadata = aws.read_json_from_s3(model["dataset"]["metadata_key"], ctx.bucket)
-    num_steps = model["training"]["num_steps"]
+    train_num_steps = model["training"]["num_steps"]
     if model["training"]["num_epochs"]:
-        num_steps = (
+        train_num_steps = (
             math.ceil(dataset_metadata["dataset_size"] / float(model["training"]["batch_size"]))
             * model["training"]["num_epochs"]
         )
 
-    train_spec = tf.estimator.TrainSpec(train_input_fn, max_steps=num_steps)
+    train_spec = tf.estimator.TrainSpec(train_input_fn, max_steps=train_num_steps)
+
+    eval_num_steps = model["evaluation"]["num_steps"]
+    if model["evaluation"]["num_epochs"]:
+        eval_num_steps = (
+            math.ceil(dataset_metadata["dataset_size"] / float(model["evaluation"]["batch_size"]))
+            * model["evaluation"]["num_epochs"]
+        )
 
     eval_spec = tf.estimator.EvalSpec(
         eval_input_fn,
-        steps=model["evaluation"]["num_steps"],
+        steps=eval_num_steps,
         exporters=[exporter],
         name="estimator-eval",
         start_delay_secs=model["evaluation"]["start_delay_secs"],
