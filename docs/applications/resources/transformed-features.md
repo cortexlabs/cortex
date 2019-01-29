@@ -33,7 +33,7 @@ Note: the `features` and `args` fields of the the transformed feature must match
 
 Each `args` value may be the name of an aggregate, the name of a constant, or a literal value. Any string value will be assumed to be the name of an aggregate or constant. To use a string literal as an arg, escape it with double quotes (e.g. `arg_name: "\"string literal\""`.
 
-[comment]: <> (CORTEX_VERSION_MINOR)
+<!-- CORTEX_VERSION_MINOR -->
 
 See our [`transformers.yaml`](https://github.com/cortexlabs/cortex/blob/master/pkg/transformers/transformers.yaml) file for a list of built-in transformers.
 

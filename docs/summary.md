@@ -1,6 +1,6 @@
 # Summary
 
-[comment]: <> (CORTEX_VERSION_MINOR)
+<!-- CORTEX_VERSION_MINOR -->
 
 * [Read Me](../README.md)
 * [Install](install.md)

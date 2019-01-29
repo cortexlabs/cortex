@@ -36,6 +36,6 @@ See [Data Types](datatypes.md) for a list of valid data types.
 
 ## Built-in Transformers
 
-[comment]: <> (CORTEX_VERSION_MINOR)
+<!-- CORTEX_VERSION_MINOR -->
 
 Cortex includes common transformers that can be used out of the box (see [`transformers.yaml`](https://github.com/cortexlabs/cortex/blob/master/pkg/transformers/transformers.yaml)). To use built-in transformers, use the `cortex` namespace in the transformer name (e.g. `cortex.normalize`).
