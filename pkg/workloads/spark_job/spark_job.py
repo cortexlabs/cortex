@@ -210,9 +210,14 @@ def validate_transformers(spark, ctx, features_to_transform, raw_df):
         ctx.upload_resource_status_start(transformed_feature)
         try:
             input_features_dict = transformed_feature["inputs"]["features"]
-            input_cols = util.flatten_all_values(
-                [input_features_dict[k] for k in sorted(input_features_dict.keys())]
-            )
+
+            input_cols = []
+
+            for k in sorted(input_features_dict.keys()):
+                if util.is_list(input_features_dict[k]):
+                    input_cols += sorted(input_features_dict[k])
+                else:
+                    input_cols.append(input_features_dict[k])
 
             tf_name = transformed_feature["name"]
             logger.info("Transforming {} to {}".format(", ".join(input_cols), tf_name))
