@@ -5,7 +5,7 @@ branches:
 sudo: required
 
 language: go
-go: "1.11.3"
+go: "1.11.5"
 
 services:
   - docker
