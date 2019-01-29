@@ -10,7 +10,7 @@ Transform feature data at scale.
   transformer: <string>  # the name of the transformer to use (required)
   inputs:
     features:
-      <string>: <string>  # map of feature input name to raw feature name(s) (required)
+      <string>: <string> or <[string]>  # map of feature input name to raw feature name(s) (required)
       ...
     args:
       <string>: <value>  # value may be an aggregate, constant, or literal value (optional)
@@ -26,6 +26,7 @@ Transform feature data at scale.
     mem_overhead_factor: <float>  # the proportion of driver_mem/executor_mem which will be additionally allocated for off-heap (non-JVM) memory (default: 0.4)
   tags:
     <string>: <scalar>  # arbitrary key/value pairs to attach to the resource (optional)
+    ...
 ```
 
 Note: the `features` and `args` fields of the the transformed feature must match the data types of the `features` and `args` fields of the selected transformer.
@@ -68,4 +69,4 @@ See our [`transformers.yaml`](../../../pkg/transformers/transformers.yaml) file 
 
 ## Validating Transformers
 
-Cortex does not run feature transformers on the full dataset until they are required for model training. However, in order to catch bugs as early as possible, Cortex sanity checks the defined transformed features by running their transformers against the first 100 samples.
+Cortex does not run feature transformers on the full dataset until they are required for model training. However, in order to catch bugs as early as possible, Cortex sanity checks all transformed features by running their transformers against the first 100 samples in the dataset.

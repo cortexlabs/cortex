@@ -10,7 +10,7 @@ Aggregate feature data at scale.
   aggregator: <string>  # the name of the aggregator to use (required)
   inputs:
     features:
-      <string>: <string>  # map of feature input name to raw feature name(s) (required)
+      <string>: <string> or <[string]>  # map of feature input name to raw feature name(s) (required)
       ...
     args:
       <string>: <value>  # value may be a constant or literal value (optional)

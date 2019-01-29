@@ -8,17 +8,17 @@ A transformer converts a set of features and arbitrary arguments into a single t
 - kind: transformer
   name: <string>  # transformer name (required)
   path: <string>  # path to the implementation file, relative to the application root (default: implementations/transformers/<name>.py)
-  output_type: <feature_type>  # output data type (required)
+  output_type: <transformed_feature_type>  # output data type (required)
   inputs:
     features:
-      <string>: <string>  # map of feature input name to feature input type(s) (required)
+      <string>: <input_feature_type>  # map of feature input name to feature input type(s) (required)
       ...
     args:
-      <string>: <string>  # map of arg input name to value input type(s) (optional)
+      <string>: <value_type>  # map of arg input name to value input type(s) (optional)
       ...
 ```
 
-See [Data Types](datatypes.md) for a list of valid data types. Note: the `features` and `args` fields of the the transformed feature must match the data types of the `features` and `args` fields of the selected transformer.
+See [Data Types](datatypes.md) for a list of valid data types.
 
 ## Example
 

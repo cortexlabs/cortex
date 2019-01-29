@@ -71,7 +71,7 @@ def reverse_transform_python(transformed_value, args):
 ```python
 def transform_spark(data, features, args, transformed_feature):
     return data.withColumn(
-        transformed_feature, ((data[features["num"]] - args["mean"]) / args["stddev"]),
+        transformed_feature, ((data[features["num"]] - args["mean"]) / args["stddev"])
     )
 
 def transform_python(sample, args):

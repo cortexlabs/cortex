@@ -7,10 +7,10 @@ Templates allow you to reuse resource configuration within your application.
 ```yaml
 - kind: template  # (required)
   name: <string>  # template name (required)
-  yaml: <string>  # YAML string including named arguments in {} (required)
+  yaml: <string>  # YAML string including named arguments enclosed by {} (required)
 
 - kind: embed  # (required)
-  template: <string>  # reference to a Cortex template (required)
+  template: <string>  # name of a Cortex template (required)
   args:
     <string>: <value>  # (required)
     ...

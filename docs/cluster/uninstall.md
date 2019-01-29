@@ -38,5 +38,5 @@ If you used [eksctl](https://eksctl.io) to create your cluster, you can use it t
 
 ```bash
 # Spin down an EKS cluster
-eksctl delete cluster --name=<name> [--region=<region>]
+eksctl delete cluster --name=<name>
 ```

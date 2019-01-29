@@ -45,7 +45,6 @@ data:
   data:
     type: csv
     path: s3a://my-bucket/data.csv
-    drop_null: true
     schema:
       - feature1
       - feature2

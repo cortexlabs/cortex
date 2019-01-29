@@ -19,8 +19,8 @@ Cortex runs on Kubernetes. Please make sure you have a Kubernetes cluster runnin
 
 If you don't already have a Kubernetes cluster, we recommend using [eksctl](https://eksctl.io) to create and manage one.
 
-```text
-# Spin up an EKS cluster (this takes a while)
+```bash
+# Spin up an EKS cluster (this takes ~20 minutes for a small cluster)
 eksctl create cluster --name=<name> --nodes=<num-nodes> --node-type=<node-type>
 ```
 
@@ -28,9 +28,18 @@ Note: we recommend a minimum cluster size of 3 [t3.small](https://aws.amazon.com
 
 ## Cortex
 
+Confirm that your Kubernetes cluster is running and that you have access to it:
+
+```bash
+kubectl cluster-info
+```
+
+Install Cortex in your cluster:
+
 ```bash
 # Download install script
 curl -O https://s3-us-west-2.amazonaws.com/get-cortex/cortex.sh
+
 # Change permissions
 chmod +x cortex.sh
 
@@ -42,7 +51,7 @@ export AWS_SECRET_ACCESS_KEY=***
 ./cortex.sh install
 ```
 
-Cortex installation is configurable. For a full list of configuration options please refer to the [cluster config](cluster-config.md) documentation.
+Cortex installation is configurable. For a full list of configuration options please refer to the [cluster config](config.md) documentation.
 
 ## Install the Cortex CLI
 

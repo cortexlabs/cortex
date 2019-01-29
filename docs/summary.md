@@ -1,13 +1,12 @@
 # Summary
 
 * [Read Me](../README.md)
-* [Install](cluster/install.md)
+* [Install](install.md)
 * [Quick Start](quick-start.md)
 * [FAQ](faq.md)
 
 ## Cluster
 
-* [Install](cluster/install.md)
 * [Config](cluster/config.md)
 * [CLI](cluster/cli.md)
 * [Security](cluster/security.md)

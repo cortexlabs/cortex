@@ -7,7 +7,7 @@ Serve models at scale and use them to build smarter applications.
 ```yaml
 - kind: api  # (required)
   name: <string>  # API name (required)
-  model_name: <string>  # reference to a Cortex model (required)
+  model_name: <string>  # name of a Cortex model (required)
   compute:
     replicas: <int>  # number of replicas to launch (default: 1)
     cpu: <string>  # CPU request (default: Null)
@@ -29,7 +29,7 @@ Serve models at scale and use them to build smarter applications.
 
 ## Integration
 
-APIs can be integrated into other applications or services via their JSON endpoints. The endpoint for any API follows the following format: {APIs_endpoint}/{app_name}/{API_name}.
+APIs can be integrated into other applications or services via their JSON endpoints. The endpoint for any API follows the following format: {apis_endpoint}/{app_name}/{api_name}.
 
 The request payload for a particular API should match the raw features that were used to train the model that it is serving. Cortex automatically applies the same transformers that were used at training time when responding to prediction requests.
 

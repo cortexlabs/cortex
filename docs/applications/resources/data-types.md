@@ -34,13 +34,13 @@ Some resources specify the types of features that are to be used as inputs (e.g.
 
 Ambiguous input types are also supported, and are represented by joining feature types with `|`. For example, `INT_FEATURE|FLOAT_FEATURE` indicates that either a feature of type `INT_FEATURE` or a feature of type `FLOAT_FEATURE` may be used an the input. Any two or more feature types may be combined in this way (e.g. `INT_FEATURE|FLOAT_FEATURE|STRING_FEATURE` is supported). All permutations of ambiguous types are valid (e.g. `INT_FEATURE|FLOAT_FEATURE` and `FLOAT_FEATURE|INT_FEATURE` are equivalent).
 
-In addition, an input type may be a list of features. To denote this, use any of these types in a length-one list. For example, `[INT_FEATURE]` represents a list of integer features; `[INT_FEATURE|FLOAT_FEATURE]` represents a list of integer or float features.
+In addition, an input type may be a list of features. To denote this, use any of the supported input feature types in a length-one list. For example, `[INT_FEATURE]` represents a list of integer features; `[INT_FEATURE|FLOAT_FEATURE]` represents a list of integer or float features.
 
 Note: `[INT_FEATURE]` is not equivalent to `INT_LIST_FEATURE`: the former denotes a list of integer features, whereas the latter denotes a single feature which contains a list of integers.
 
 ## Value types
 
-These are valid types for all values (aggregator args, aggregator output types, transformer args, and constants).
+These are valid types for all values (e.g. aggregator args, aggregator output types, transformer args, constants).
 
 * `INT`
 * `FLOAT`

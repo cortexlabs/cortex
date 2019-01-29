@@ -11,9 +11,9 @@ Train custom TensorFlow models at scale.
   target: <string>  # the feature to predict (must be an integer feature for classification, or an integer or float feature for regression) (required)
   features: <[string]>  # a list of the features used as input for this model (required)
   training_features: <[string]>  # a list of the features used only during training (optional)
-  aggregates: <[string]>  # a list of the aggregates providing metadata about features (optional)
+  aggregates: <[string]>  # a list of aggregates to pass into model training (optional)
   hparams: <map>  # a map of hyperparameters to pass into model training (optional)
-  prediction_key: <string>   # target prediction in the estimator output (classification default: "class_ids" | regression default: "predictions")
+  prediction_key: <string>  # key of the target value in the estimator's exported predict outputs (default: "class_ids" for classification, "predictions" for regression)
   path: <string>  # path to the implementation file, relative to the application root (default: implementations/models/<name>.py)
 
   data_partition_ratio:
