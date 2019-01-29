@@ -29,10 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
-func init() {
-	rootCmd.AddCommand(initCmd)
-}
-
 var initCmd = &cobra.Command{
 	Use:   "init APP_NAME",
 	Short: "initialize an application",

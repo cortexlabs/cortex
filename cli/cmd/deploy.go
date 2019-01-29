@@ -31,7 +31,6 @@ import (
 var flagDeployForce bool
 
 func init() {
-	rootCmd.AddCommand(deployCmd)
 	deployCmd.PersistentFlags().BoolVarP(&flagDeployForce, "force", "f", false, "stop all running jobs")
 	addEnvFlag(deployCmd)
 }

@@ -36,7 +36,6 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(getCmd)
 	addAppNameFlag(getCmd)
 	addEnvFlag(getCmd)
 	addResourceTypesToHelp(getCmd)

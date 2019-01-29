@@ -47,6 +47,21 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	defer errors.RecoverAndExit()
 	rootCmd.SetHelpCommand(&cobra.Command{Hidden: true})
+	cobra.EnableCommandSorting = false
+
+	rootCmd.AddCommand(initCmd)
+	rootCmd.AddCommand(deployCmd)
+	rootCmd.AddCommand(refreshCmd)
+	rootCmd.AddCommand(predictCmd)
+	rootCmd.AddCommand(deleteCmd)
+
+	rootCmd.AddCommand(getCmd)
+	rootCmd.AddCommand(statusCmd)
+	rootCmd.AddCommand(logsCmd)
+
+	rootCmd.AddCommand(configureCmd)
+	rootCmd.AddCommand(completionCmd)
+
 	rootCmd.Execute()
 }
 

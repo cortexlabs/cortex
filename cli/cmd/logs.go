@@ -24,7 +24,6 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(logsCmd)
 	addAppNameFlag(logsCmd)
 	addEnvFlag(logsCmd)
 	addResourceTypesToHelp(logsCmd)
