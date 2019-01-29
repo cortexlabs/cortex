@@ -1,8 +1,11 @@
 # Summary
 
+[comment]: <> (CORTEX_VERSION_MINOR)
+
 * [Read Me](../README.md)
 * [Install](install.md)
 * [Quick Start](quick-start.md)
+* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)
 * [FAQ](faq.md)
 
 ## Cluster
@@ -16,8 +19,10 @@
 
 ### Resources
 
-  * [Data Types](applications/resources/data-types.md)
+  * [Overview](applications/resources/overview.md)
+  * [Application](applications/resources/app.md)
   * [Environments](applications/resources/environments.md)
+  * [Data Types](applications/resources/data-types.md)
   * [Raw Features](applications/resources/raw-features.md)
   * [Aggregators](applications/resources/aggregators.md)
   * [Aggregates](applications/resources/aggregates.md)
@@ -25,6 +30,7 @@
   * [Transformed Features](applications/resources/transformed-features.md)
   * [Models](applications/resources/models.md)
   * [APIs](applications/resources/apis.md)
+  * [Constants](applications/resources/constants.md)
 
 ### Implementations
 
