@@ -209,21 +209,27 @@ def validate_transformers(spark, ctx, features_to_transform, raw_df):
     for transform_resource in resource_list:
         ctx.upload_resource_status_start(transform_resource)
         try:
+            input_features_dict = transform_resource["inputs"]["features"]
+            input_cols = util.flatten_all_values(
+                [input_features_dict[k] for k in sorted(input_features_dict.keys())]
+            )
+
             tf_name = transform_resource["name"]
+            logger.info("Transforming {} to {}".format(", ".join(input_cols), tf_name))
+
             spark_util.validate_transformer(tf_name, test_df, ctx, spark)
             sample_df = spark_util.transform_feature(
                 transform_resource["name"], sample_df, ctx, spark
             )
 
             sample_df.select(tf_name).collect()  # run the transformer
+            show_df(sample_df.select(*input_cols, tf_name), ctx, n=3, sort=False)
 
-            for alias in transform_resource["aliases"]:
-                input_cols = sorted(transform_resource["inputs"]["features"].values())
+            for alias in transform_resource["aliases"][1:]:
                 logger.info("Transforming {} to {}".format(", ".join(input_cols), alias))
 
-                select_cols = input_cols + [alias]
                 display_transform_df = sample_df.withColumn(alias, F.col(tf_name)).select(
-                    *select_cols
+                    *input_cols, alias
                 )
                 show_df(display_transform_df, ctx, n=3, sort=False)
         except:
