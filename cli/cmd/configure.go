@@ -21,7 +21,6 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(configureCmd)
 	addEnvFlag(configureCmd)
 }
 

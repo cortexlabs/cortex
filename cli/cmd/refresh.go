@@ -23,7 +23,6 @@ import (
 var flagRefreshForce bool
 
 func init() {
-	rootCmd.AddCommand(refreshCmd)
 	refreshCmd.PersistentFlags().BoolVarP(&flagRefreshForce, "force", "f", false, "stop all running jobs")
 	addEnvFlag(refreshCmd)
 }

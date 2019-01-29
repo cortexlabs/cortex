@@ -23,10 +23,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	rootCmd.AddCommand(completionCmd)
-}
-
 var completionCmd = &cobra.Command{
 	Use:   "completion",
 	Short: "generate bash completion scripts",

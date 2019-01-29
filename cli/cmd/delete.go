@@ -30,7 +30,6 @@ import (
 var flagKeepCache bool
 
 func init() {
-	rootCmd.AddCommand(deleteCmd)
 	deleteCmd.PersistentFlags().BoolVarP(&flagKeepCache, "keep-cache", "c", false, "keep cached data for the app")
 	addEnvFlag(deleteCmd)
 }

@@ -31,7 +31,6 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(predictCmd)
 	addAppNameFlag(predictCmd)
 	addEnvFlag(predictCmd)
 }
