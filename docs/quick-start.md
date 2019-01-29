@@ -3,8 +3,8 @@
 ## Prerequisites
 
 1. An AWS account
-2. A Kubernetes cluster running Cortex ([installation instructions](cluster/install.md))
-3. Cortex CLI `0.1.0` or later
+2. A Kubernetes cluster running Cortex ([installation instructions](install.md))
+3. Cortex CLI
 
 ## Build a machine learning application
 

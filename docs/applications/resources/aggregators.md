@@ -35,6 +35,6 @@ See [Data Types](data-types.md) for a list of valid data types.
 
 ## Built-in Aggregators
 
-<!-- CORTEX_VERSION_MINOR -->
+[](CORTEX_VERSION_MINOR)
 
 Cortex includes common aggregators that can be used out of the box (see [`aggregators.yaml`](https://github.com/cortexlabs/cortex/blob/master/pkg/aggregators/aggregators.yaml)). To use built-in aggregators, use the `cortex` namespace in the aggregator name (e.g. `cortex.normalize`).
