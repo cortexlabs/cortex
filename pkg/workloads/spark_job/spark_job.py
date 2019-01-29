@@ -206,30 +206,41 @@ def validate_transformers(spark, ctx, features_to_transform, raw_df):
     resource_list = sorted(
         [ctx.tf_id_map[f] for f in features_to_transform], key=lambda r: r["name"]
     )
-    for transform_resource in resource_list:
-        ctx.upload_resource_status_start(transform_resource)
+    for transformed_feature in resource_list:
+        ctx.upload_resource_status_start(transformed_feature)
         try:
-            tf_name = transform_resource["name"]
+            input_features_dict = transformed_feature["inputs"]["features"]
+
+            input_cols = []
+
+            for k in sorted(input_features_dict.keys()):
+                if util.is_list(input_features_dict[k]):
+                    input_cols += sorted(input_features_dict[k])
+                else:
+                    input_cols.append(input_features_dict[k])
+
+            tf_name = transformed_feature["name"]
+            logger.info("Transforming {} to {}".format(", ".join(input_cols), tf_name))
+
             spark_util.validate_transformer(tf_name, test_df, ctx, spark)
             sample_df = spark_util.transform_feature(
-                transform_resource["name"], sample_df, ctx, spark
+                transformed_feature["name"], sample_df, ctx, spark
             )
 
             sample_df.select(tf_name).collect()  # run the transformer
+            show_df(sample_df.select(*input_cols, tf_name), ctx, n=3, sort=False)
 
-            for alias in transform_resource["aliases"]:
-                input_cols = sorted(transform_resource["inputs"]["features"].values())
+            for alias in transformed_feature["aliases"][1:]:
                 logger.info("Transforming {} to {}".format(", ".join(input_cols), alias))
 
-                select_cols = input_cols + [alias]
                 display_transform_df = sample_df.withColumn(alias, F.col(tf_name)).select(
-                    *select_cols
+                    *input_cols, alias
                 )
                 show_df(display_transform_df, ctx, n=3, sort=False)
         except:
-            ctx.upload_resource_status_failed(transform_resource)
+            ctx.upload_resource_status_failed(transformed_feature)
             raise
-        ctx.upload_resource_status_success(transform_resource)
+        ctx.upload_resource_status_success(transformed_feature)
 
 
 def create_training_datasets(spark, ctx, training_datasets, accumulated_df):
