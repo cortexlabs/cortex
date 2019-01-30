@@ -17,14 +17,12 @@ Please make sure that you have kubectl installed and configured correctly ([inst
 
 Cortex runs on Kubernetes. Please make sure you have a Kubernetes cluster running before installing Cortex. We support versions 1.10 and 1.11.
 
-If you don't already have a Kubernetes cluster, we recommend using [eksctl](https://eksctl.io) to create and manage one.
+If you don't already have a Kubernetes cluster, we recommend using [eksctl](https://eksctl.io) to create and manage one. We recommend a minimum cluster size of 3 [t3.small](https://aws.amazon.com/ec2/instance-types) AWS instances. Cortex may not run successfully on clusters with less compute resources.
 
 ```bash
 # Spin up an EKS cluster (this takes ~20 minutes for a small cluster)
 eksctl create cluster --name=<name> --nodes=<num-nodes> --node-type=<node-type>
 ```
-
-Note: we recommend a minimum cluster size of 3 [t3.small](https://aws.amazon.com/ec2/instance-types) AWS instances. Cortex may not run successfully on clusters with less compute resources.
 
 ## Cortex
 
