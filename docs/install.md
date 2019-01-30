@@ -36,7 +36,7 @@ kubectl cluster-info
 
 Install Cortex in your cluster:
 
-<!-- CORTEX_VERSION_STABLE -->
+<!-- CORTEX_VERSION_MINOR -->
 
 ```bash
 # Download install script
