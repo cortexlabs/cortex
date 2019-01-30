@@ -5,6 +5,7 @@
 ```bash
 # Download install script
 curl -O https://s3-us-west-2.amazonaws.com/get-cortex/cortex.sh
+
 # Change permissions
 chmod +x cortex.sh
 
@@ -12,7 +13,7 @@ chmod +x cortex.sh
 export AWS_ACCESS_KEY_ID=***
 export AWS_SECRET_ACCESS_KEY=***
 
-# Install
+# Uninstall
 ./cortex.sh uninstall
 ```
 
@@ -20,6 +21,7 @@ export AWS_SECRET_ACCESS_KEY=***
 
 ```bash
 sudo rm /usr/local/bin/cortex
+rm -r ~/.cortex
 ```
 
 ## Delete AWS data
