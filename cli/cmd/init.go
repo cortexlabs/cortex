@@ -141,7 +141,7 @@ var appInitFiles = map[string]string{
 #
 # - kind: transformed_feature
 #   name: feature1_bucketized
-#   transformer: cortex.bucketize  # Cortex provided transformers in pkg/transformers
+#   transformer: cortex.bucketize  # Cortex provided transformer in pkg/transformers
 #   inputs:
 #     features:
 #       num: feature1
@@ -150,7 +150,7 @@ var appInitFiles = map[string]string{
 #
 # - kind: transformed_feature
 #   name: feature2_transformed
-#   transformer: my_transformer  # Your own custom transformers from the transformers folder
+#   transformer: my_transformer  # Your own custom transformer from the transformers folder
 #   inputs:
 #     features:
 #       num: feature2
@@ -194,7 +194,7 @@ var appInitFiles = map[string]string{
       "key1": "value1",
       "key2": "value2",
       "key3": "value3"
-    },
+    }
   ]
 }
 `,

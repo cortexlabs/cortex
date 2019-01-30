@@ -38,8 +38,8 @@ The following directories and files have been created:
     ├── environments.yaml
     ├── models.yaml
     ├── raw_features.yaml
-    ├── transformers.yaml
-    └── transformed_features.yaml
+    ├── transformed_features.yaml
+    └── transformers.yaml
 ```
 
 **Edit `app.yaml` to name your application**
@@ -105,7 +105,7 @@ The Iris Data Set consists of four attributes and a label. We ensure that the da
 
 **Edit `resources/aggregates.yaml` to compute the required values to enable transformers**
 
-Aggregators are computations that require processing the full column. We want to normalize the numeric features so we need mean and standard deviation values for each numeric column. We also need a mapping of strings to integers for the label column. Cortex has `mean`, `stddev`, and `index_string` aggregators out of the box.
+Aggregates are computations that require processing the full column. We want to normalize the numeric features, so we need mean and standard deviation values for each numeric column. We also need a mapping of strings to integers for the label column. Cortex has `mean`, `stddev`, and `index_string` aggregators out of the box.
 
 ```yaml
 - kind: aggregate
@@ -174,7 +174,7 @@ Aggregators are computations that require processing the full column. We want to
 
 **Edit `resources/transformed_features.yaml` to convert the raw features into the appropriate inputs for a TensorFlow model**
 
-Here we use the built-in `normalize` and `index_string` transformers using the aggregators we computed earlier.
+Here we use the built-in `normalize` and `index_string` transformers using the aggregates we computed earlier.
 
 ```yaml
 - kind: transformed_feature
@@ -295,10 +295,18 @@ This will make your model available as a live web service that can make real-tim
 cortex deploy
 ```
 
-You can see more information about the live endpoint using:
+You can track the status of your resources using the `get` and `status` commands:
 
 ```bash
-cortex get api classifier
+cortex get
+cortex status
+```
+
+You can also view the status of individual resources using the `status` command:
+
+```bash
+cortex status class
+cortex status dnn
 ```
 
 **Rename `samples.json` to `irises.json` and create a sample**
