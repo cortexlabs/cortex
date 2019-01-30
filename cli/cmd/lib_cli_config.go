@@ -156,6 +156,10 @@ func getValidCliConfig() *CliConfig {
 
 func configure() *CliConfig {
 	defaults, _ := readCliConfig()
+	if defaults == nil {
+		defaults = &CliConfig{}
+	}
+
 	cachedCliConfig = &CliConfig{}
 	fmt.Println("\nEnvironment: " + flagEnv)
 	err := cr.ReadPrompt(cachedCliConfig, getPromptValidation(defaults))
