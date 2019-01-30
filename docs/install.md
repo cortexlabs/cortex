@@ -72,11 +72,11 @@ chmod +x cortex
 # Move the binary
 sudo mv cortex /usr/local/bin/cortex
 
+# Add bash completion scripts and the cx alias
+echo -e "\nsource <(cortex completion)" >> ~/.bash_profile && . ~/.bash_profile
+
 # Cleanup
 rm cortex-cli-master-mac.zip
-
-# Add bash completion scripts and the cx alias
-echo 'source <(cortex completion)' >> ~/.bash_profile
 ```
 
 ### Linux
@@ -97,7 +97,7 @@ chmod +x cortex
 sudo mv cortex /usr/local/bin/cortex
 
 # Add bash completion scripts and the cx alias
-echo 'source <(cortex completion)' >> ~/.bashrc
+echo -e "\nsource <(cortex completion)" >> ~/.bashrc && . ~/.bashrc
 
 # Cleanup
 rm cortex-cli-master-linux.zip
