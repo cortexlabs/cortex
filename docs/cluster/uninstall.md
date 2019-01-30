@@ -2,9 +2,11 @@
 
 ## Cortex
 
+<!-- CORTEX_VERSION_MINOR -->
+
 ```bash
 # Download install script
-curl -O https://s3-us-west-2.amazonaws.com/get-cortex/cortex.sh
+curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh
 
 # Change permissions
 chmod +x cortex.sh
