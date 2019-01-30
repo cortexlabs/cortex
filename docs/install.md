@@ -29,7 +29,7 @@ eksctl create cluster --name=<name> --nodes=<num-nodes> --node-type=<node-type>
 Confirm that your Kubernetes cluster is running and that you have access to it:
 
 ```bash
-kubectl cluster-info
+kubectl get nodes
 ```
 
 Install Cortex in your cluster:
@@ -51,7 +51,7 @@ export AWS_SECRET_ACCESS_KEY=***
 ./cortex.sh install
 ```
 
-Cortex installation is configurable. For a full list of configuration options please refer to the [cluster config](config.md) documentation.
+Cortex installation is configurable. For a full list of configuration options please refer to the [cluster config](cluster/config.md) documentation.
 
 ## Install the Cortex CLI
 
