@@ -36,7 +36,7 @@ kubectl cluster-info
 
 Install Cortex in your cluster:
 
-[](CORTEX_VERSION_STABLE)
+<!-- CORTEX_VERSION_STABLE -->
 
 ```bash
 # Download install script
@@ -57,7 +57,9 @@ Cortex installation is configurable. For a full list of configuration options pl
 
 ## Install the Cortex CLI
 
-### Mac [](CORTEX_VERSION_STABLE)
+### Mac
+
+<!-- CORTEX_VERSION_STABLE -->
 
 ```bash
 # Download
@@ -79,7 +81,9 @@ rm cortex-cli-master-mac.zip
 echo 'source <(cortex completion)' >> ~/.bash_profile
 ```
 
-### Linux [](CORTEX_VERSION_STABLE)
+### Linux
+
+<!-- CORTEX_VERSION_STABLE -->
 
 ```bash
 # Download

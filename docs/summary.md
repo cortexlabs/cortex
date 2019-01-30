@@ -1,11 +1,9 @@
 # Summary
 
-[](CORTEX_VERSION_MINOR)
-
 * [Read Me](../README.md)
 * [Install](install.md)
 * [Quick Start](quick-start.md)
-* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)
+* <!-- CORTEX_VERSION_MINOR -->[Examples](https://github.com/cortexlabs/cortex/tree/master/examples)
 * [FAQ](faq.md)
 
 ## Cluster
