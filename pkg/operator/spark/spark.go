@@ -143,6 +143,9 @@ func SparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 							Key:  "AWS_SECRET_ACCESS_KEY",
 						},
 					},
+					EnvVars: map[string]string{
+						"CORTEX_SPARK_VERBOSITY": ctx.Environment.LogLevel.Spark,
+					},
 				},
 				PodName:        &workloadID,
 				ServiceAccount: util.StrPtr("spark"),
@@ -166,6 +169,9 @@ func SparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 							Name: "aws-credentials",
 							Key:  "AWS_SECRET_ACCESS_KEY",
 						},
+					},
+					EnvVars: map[string]string{
+						"CORTEX_SPARK_VERBOSITY": ctx.Environment.LogLevel.Spark,
 					},
 				},
 				Instances: &sparkCompute.Executors,

@@ -27,8 +27,9 @@ import (
 type Environments []*Environment
 
 type Environment struct {
-	Name string `json:"name" yaml:"name"`
-	Data Data   `json:"-" yaml:"-"`
+	Name     string    `json:"name" yaml:"name"`
+	LogLevel *LogLevel `json:"log_level" yaml:"log_level"`
+	Data     Data      `json:"-" yaml:"-"`
 }
 
 var environmentValidation = &cr.StructValidation{
@@ -41,11 +42,39 @@ var environmentValidation = &cr.StructValidation{
 			},
 		},
 		&cr.StructFieldValidation{
+			StructField:      "LogLevel",
+			StructValidation: logLevelValidation,
+		},
+		&cr.StructFieldValidation{
 			StructField:               "Data",
 			Key:                       "data",
 			InterfaceStructValidation: dataValidation,
 		},
 		typeFieldValidation,
+	},
+}
+
+type LogLevel struct {
+	Tensorflow string `json:"tensorflow" yaml:"tensorflow"`
+	Spark      string `json:"spark" yaml:"spark"`
+}
+
+var logLevelValidation = &cr.StructValidation{
+	StructFieldValidations: []*cr.StructFieldValidation{
+		&cr.StructFieldValidation{
+			StructField: "Tensorflow",
+			StringValidation: &cr.StringValidation{
+				Default:       "INFO",
+				AllowedValues: []string{"DEBUG", "INFO", "WARN", "ERROR", "FATAL"},
+			},
+		},
+		&cr.StructFieldValidation{
+			StructField: "Spark",
+			StringValidation: &cr.StringValidation{
+				Default:       "WARN",
+				AllowedValues: []string{"ALL", "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"},
+			},
+		},
 	},
 }
 

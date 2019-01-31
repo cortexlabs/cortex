@@ -63,7 +63,6 @@ func getModels(
 		buf.WriteString(s.Obj(modelConfig.DataPartitionRatio))
 		buf.WriteString(s.Obj(modelConfig.Training))
 		buf.WriteString(s.Obj(modelConfig.Evaluation))
-		buf.WriteString(s.Obj(modelConfig.Misc))
 		buf.WriteString(features.IDWithTags(modelConfig.AllFeatureNames())) // A change in tags can invalidate the model
 
 		for _, aggregate := range modelConfig.Aggregates {

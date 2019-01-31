@@ -28,7 +28,10 @@ fi
 # entrypoint.sh doesn't do any of the following for executor (it does for driver):
 . $SPARK_HOME/bin/load-spark-env.sh  # Load spark-env.sh
 export SPARK_EXTRA_CLASSPATH=$($HADOOP_HOME/bin/hadoop classpath)  # Add hadoop to classpath
-export SPARK_JAVA_OPT_99="-Dlog4j.configuration=file://${SPARK_HOME}/conf/log4j.properties"  # Add log config (99 is used to avoid conflicts)
+export SPARK_JAVA_OPT_99="-Dlog4j.configuration=file://${SPARK_HOME}/conf-custom/log4j.properties"  # Add log config (99 is used to avoid conflicts)
+
+# Set user-specified spark logging level
+sed -i -e "s/log4j.rootCategory=INFO, console/log4j.rootCategory=${CORTEX_SPARK_VERBOSITY}, console/g" $SPARK_HOME/conf-custom/log4j.properties
 
 echo ""
 echo "Starting"

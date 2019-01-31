@@ -117,7 +117,7 @@ def train(model_name, model_impl, ctx, model_dir):
     util.mkdir_p(model_dir)
     util.rm_dir(model_dir)
 
-    tf_lib.set_logging_verbosity(model["misc"]["verbosity"])
+    tf_lib.set_logging_verbosity(ctx.environment["log_level"]["tensorflow"])
 
     run_config = tf.estimator.RunConfig(
         tf_random_seed=model["training"]["tf_random_seed"],
