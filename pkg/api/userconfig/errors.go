@@ -53,6 +53,7 @@ const (
 	ErrArgNameCannotBeType
 	ErrTypeListLength
 	ErrGenericTypeMapLength
+	ErrK8sQuantityMustBeInt
 )
 
 var errorKinds = []string{
@@ -81,9 +82,10 @@ var errorKinds = []string{
 	"err_arg_name_cannot_be_type",
 	"err_type_list_length",
 	"err_generic_type_map_length",
+	"err_k8s_quantity_must_be_int",
 }
 
-var _ = [1]int{}[int(ErrGenericTypeMapLength)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrK8sQuantityMustBeInt)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -305,6 +307,13 @@ func ErrorGenericTypeMapLength(provided interface{}) error {
 	return ConfigError{
 		Kind:    ErrGenericTypeMapLength,
 		message: fmt.Sprintf("generic type maps must contain exactly one key (i.e. the desired data type of all keys in the map) (got %s)", s.DataTypeStr(provided)),
+	}
+}
+
+func ErrorK8sQuantityMustBeInt(quantityStr string) error {
+	return ConfigError{
+		Kind:    ErrK8sQuantityMustBeInt,
+		message: fmt.Sprintf("resource compute quantity must be an integer-valued string, e.g. \"2\") (got %s)", s.DataTypeStr(quantityStr)),
 	}
 }
 
