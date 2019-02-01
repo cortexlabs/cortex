@@ -7,3 +7,4 @@ Checklist:
 - [ ] Update examples and `cx init`
 - [ ] Alert team if dev environment changed
 - [ ] Cherry-pick bugfixes into release branches
+- [ ] Delete the branch once it's merged
