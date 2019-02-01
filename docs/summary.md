@@ -3,13 +3,13 @@
 * [Read Me](../README.md)
 * [Install](install.md)
 * [Quick Start](quick-start.md)
-* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR --> 
+* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
 * [FAQ](faq.md)
 
 ## Cluster
 
 * [Config](cluster/config.md)
-* [CLI](cluster/cli.md)
+* [CLI Commands](cluster/cli.md)
 * [Security](cluster/security.md)
 * [Uninstall](cluster/uninstall.md)
 
