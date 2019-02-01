@@ -55,16 +55,6 @@ The following directories and files have been created:
     └── transformers.yaml
 ```
 
-#### Name the application
-
-```yaml
-# app.yaml
-
-- kind: app
-  name: iris
-```
-
-
 #### Configure data ingestion
 
 ```yaml
