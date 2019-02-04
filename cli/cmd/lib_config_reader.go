@@ -22,6 +22,7 @@ import (
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/utils/errors"
 	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
@@ -69,12 +70,12 @@ func pythonPaths(dir string) []string {
 
 func allConfigPaths(root string) []string {
 	var exportPaths []string
-	requirementsPath := filepath.Join(root, "requirements.txt")
+	requirementsPath := filepath.Join(root, consts.RequirementsTxt)
 	if util.IsFile(requirementsPath) {
 		exportPaths = append(exportPaths, requirementsPath)
 	}
 
-	customPackagesRoot := filepath.Join(root, "packages")
+	customPackagesRoot := filepath.Join(root, consts.PackageDir)
 	if util.IsDir(customPackagesRoot) {
 		customPackagesPaths, err := util.ListDirRecursive(customPackagesRoot, false)
 		if err != nil {

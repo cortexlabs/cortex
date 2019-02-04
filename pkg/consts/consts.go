@@ -35,6 +35,9 @@ var (
 	CortexConfigPath = "/configs/cortex"
 	CortexConfigName = "cortex-config"
 
+	RequirementsTxt = "requirements.txt"
+	PackageDir      = "packages"
+
 	AppsDir             = "apps"
 	DataDir             = "data"
 	RawDataDir          = "data_raw"

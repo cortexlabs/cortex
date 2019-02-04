@@ -29,14 +29,26 @@ import (
 	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
-var (
-	PackageDir = "packages"
-)
+func findCustomPackages(files map[string][]byte) []string {
+	var customPackages []string
+	for filePath := range files {
+		if strings.HasSuffix(filePath, "setup.py") {
+			packageFolder, packageName := filepath.Split(filepath.Dir(filePath))
+			baseDir := filepath.Dir(packageFolder)
+
+			if strings.TrimPrefix(baseDir, "/") == consts.PackageDir {
+				customPackages = append(customPackages, packageName)
+			}
+		}
+	}
+
+	return customPackages
+}
 
 func loadPythonPackages(files map[string][]byte, env *context.Environment) (context.PythonPackages, error) {
 	pythonPackages := make(map[string]*context.PythonPackage)
 
-	if reqFileBytes, ok := files["requirements.txt"]; ok {
+	if reqFileBytes, ok := files[consts.RequirementsTxt]; ok {
 		var buf bytes.Buffer
 		buf.WriteString(env.ID)
 		buf.Write(reqFileBytes)
@@ -48,7 +60,7 @@ func loadPythonPackages(files map[string][]byte, env *context.Environment) (cont
 					ResourceType: resource.PythonPackageType,
 				},
 			},
-			Name:       "requirements.txt",
+			Name:       consts.RequirementsTxt,
 			RawKey:     filepath.Join(consts.PythonPackagesDir, "raw", id+".txt"),
 			PackageKey: filepath.Join(consts.PythonPackagesDir, "package", id+".zip"),
 		}
@@ -60,29 +72,18 @@ func loadPythonPackages(files map[string][]byte, env *context.Environment) (cont
 		pythonPackages[pythonPackage.Name] = &pythonPackage
 	}
 
-	var customPackages []string
-
-	for filePath := range files {
-		if strings.HasSuffix(filePath, "setup.py") {
-			packageFolder, packageName := filepath.Split(filepath.Dir(filePath))
-			baseDir := filepath.Dir(packageFolder)
-			// TODO: throw warning if setup.py detected but not in expected path
-			if strings.TrimPrefix(baseDir, "/") == PackageDir {
-				customPackages = append(customPackages, packageName)
-			}
-		}
-	}
+	customPackages := findCustomPackages(files)
 
 	for _, packageName := range customPackages {
 		zipBytesInputs := []util.ZipBytesInput{}
 		var buf bytes.Buffer
 		buf.WriteString(env.ID)
 		for filePath, fileBytes := range files {
-			if strings.HasPrefix(filePath, filepath.Join(PackageDir, packageName)) {
+			if strings.HasPrefix(filePath, filepath.Join(consts.PackageDir, packageName)) {
 				buf.Write(fileBytes)
 				zipBytesInputs = append(zipBytesInputs, util.ZipBytesInput{
 					Content: fileBytes,
-					Dest:    filePath[len(PackageDir):],
+					Dest:    filePath[len(consts.PackageDir):],
 				})
 			}
 		}
