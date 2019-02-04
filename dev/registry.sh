@@ -128,12 +128,13 @@ elif [ "$CMD" = "update" ]; then
     build_and_push $ROOT/images/argo-controller argo-controller latest
     build_and_push $ROOT/images/argo-executor argo-executor latest
     build_and_push $ROOT/images/tf-serve tf-serve latest
+    build_and_push $ROOT/images/python-packager python-packager latest
+
   fi
 
   build_and_push $ROOT/images/spark spark latest
   build_and_push $ROOT/images/tf-train tf-train latest
   build_and_push $ROOT/images/tf-api tf-api latest
-  build_and_push $ROOT/images/python-packager python-packager latest
 
   cleanup
 fi
