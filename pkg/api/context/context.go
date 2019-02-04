@@ -33,6 +33,7 @@ type Context struct {
 	StatusPrefix        string              `json:"status_prefix"`
 	App                 *App                `json:"app"`
 	Environment         *Environment        `json:"environment"`
+	PythonPackages      PythonPackages      `json:"python_packages"`
 	RawFeatures         RawFeatures         `json:"-"`
 	Aggregates          Aggregates          `json:"aggregates"`
 	TransformedFeatures TransformedFeatures `json:"transformed_features"`
@@ -110,6 +111,9 @@ func ExtractResourceIDs(resources []ComputedResource) map[string]bool {
 
 func (ctx *Context) DataComputedResources() []ComputedResource {
 	var resources []ComputedResource
+	for _, pythonPackage := range ctx.PythonPackages {
+		resources = append(resources, pythonPackage)
+	}
 	for _, rawFeature := range ctx.RawFeatures {
 		resources = append(resources, rawFeature)
 	}
@@ -210,6 +214,9 @@ func (ctx *Context) CheckAllWorkloadIDsPopulated() error {
 
 func (ctx *Context) VisibleResourcesMap() map[string][]ComputedResource {
 	resources := make(map[string][]ComputedResource)
+	for name, pythonPackage := range ctx.PythonPackages {
+		resources[name] = append(resources[name], pythonPackage)
+	}
 	for name, rawFeature := range ctx.RawFeatures {
 		resources[name] = append(resources[name], rawFeature)
 	}
@@ -253,6 +260,12 @@ func (ctx *Context) VisibleResourceByNameAndType(name string, resourceTypeStr st
 	resourceType := resource.TypeFromString(resourceTypeStr)
 
 	switch resourceType {
+	case resource.PythonPackageType:
+		res := ctx.PythonPackages[name]
+		if res == nil {
+			return nil, resource.ErrorNotFound(name, resourceType)
+		}
+		return res, nil
 	case resource.RawFeatureType:
 		res := ctx.RawFeatures[name]
 		if res == nil {

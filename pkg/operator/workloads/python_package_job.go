@@ -1,0 +1,107 @@
+/*
+Copyright 2019 Cortex Labs, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+package workloads
+
+import (
+	"strings"
+
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+
+	"github.com/cortexlabs/cortex/pkg/api/context"
+	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/operator/argo"
+	"github.com/cortexlabs/cortex/pkg/operator/aws"
+	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
+	"github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/utils/sets/strset"
+)
+
+func pythonPackageJobSpec(ctx *context.Context, pythonPackages strset.Set, workloadID string) *batchv1.Job {
+	spec := k8s.Job(&k8s.JobSpec{
+		Name: "python-package-" + workloadID,
+		Labels: map[string]string{
+			"appName":      ctx.App.Name,
+			"workloadType": workloadTypePythonPackage,
+			"workloadID":   workloadID,
+		},
+		PodSpec: k8s.PodSpec{
+			Labels: map[string]string{
+				"appName":      ctx.App.Name,
+				"workloadType": workloadTypePythonPackage,
+				"workloadID":   workloadID,
+				"userFacing":   "true",
+			},
+			K8sPodSpec: corev1.PodSpec{
+				RestartPolicy: "Never",
+				Containers: []corev1.Container{
+					{
+						Name:            "python-package",
+						Image:           cc.PythonPackagerImage,
+						ImagePullPolicy: "Always",
+						Args: []string{
+							"--workload-id=" + workloadID,
+							"--context=" + aws.S3Path(ctx.Key),
+							"--cache-dir=" + consts.ContextCacheDir,
+							"--python-packages=" + strings.Join(pythonPackages.List(), ","),
+							"--build",
+						},
+						Env:          k8s.AWSCredentials(),
+						VolumeMounts: k8s.DefaultVolumeMounts(),
+					},
+				},
+				Volumes:            k8s.DefaultVolumes(),
+				ServiceAccountName: "default",
+			},
+		},
+		Namespace: cc.Namespace,
+	})
+	argo.EnableGC(spec)
+	return spec
+}
+
+func pythonPackageWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
+	resourceIDs := strset.New()
+
+	for _, pythonPackage := range ctx.PythonPackages {
+		isPythonPackageCached, err := checkResourceCached(pythonPackage, ctx)
+		if err != nil {
+			return nil, err
+		}
+		if isPythonPackageCached {
+			continue
+		}
+		resourceIDs.Add(pythonPackage.GetID())
+	}
+
+	workloadID := generateWorkloadID()
+	if len(resourceIDs) == 0 {
+		return nil, nil
+	}
+
+	spec := pythonPackageJobSpec(ctx, resourceIDs, workloadID)
+	workloadSpec := &WorkloadSpec{
+		WorkloadID:       workloadID,
+		ResourceIDs:      resourceIDs,
+		Spec:             spec,
+		K8sAction:        "create",
+		SuccessCondition: k8s.JobSuccessCondition,
+		FailureCondition: k8s.JobFailureCondition,
+		WorkloadType:     workloadTypePythonPackage,
+	}
+
+	return []*WorkloadSpec{workloadSpec}, nil
+}

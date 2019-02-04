@@ -26,6 +26,7 @@ from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import get_model_metadata_pb2
 from tensorflow_serving.apis import prediction_service_pb2
 from lib import util, tf_lib, aws
+from lib import package
 from lib.context import Context
 from lib.log import get_logger
 from lib.exceptions import CortexException, UserRuntimeException, UserException
@@ -292,6 +293,8 @@ def predict(app_name, api_name):
 
 def start(args):
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
+    package.install_packages(ctx.python_packages, ctx.bucket)
+
     api = ctx.apis_id_map[args.api]
     model = ctx.models[api["model_name"]]
     tf_lib.set_logging_verbosity(ctx.environment["log_level"]["tensorflow"])

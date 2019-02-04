@@ -14,16 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package workloads
+package context
 
-const (
-	WorkloadTypeAPI           = "api"
-	workloadTypeData          = "data-job"
-	workloadTypeTrain         = "training-job"
-	workloadTypePythonPackage = "python-package"
-
-	defaultPortInt32, defaultPortStr = int32(8888), "8888"
-	tfServingPortStr                 = "9000"
-
-	userFacingCheckInterval = 1 // seconds
+import (
+	"github.com/cortexlabs/cortex/pkg/api/resource"
 )
+
+type PythonPackages map[string]*PythonPackage
+
+type PythonPackage struct {
+	Name       string `json:"name"`
+	RawKey     string `json:"raw_key"`
+	PackageKey string `json:"package_key"`
+	*ComputedResourceFields
+}
+
+func (pythonPackage *PythonPackage) GetName() string {
+	return pythonPackage.Name
+}
+
+func (pythonPackage *PythonPackage) GetResourceType() resource.Type {
+	return resource.PythonPackageType
+}

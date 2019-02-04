@@ -24,9 +24,9 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	"github.com/cortexlabs/cortex/pkg/consts"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/utils/errors"
@@ -62,6 +62,12 @@ func Create(ctx *context.Context) (*awfv1.Workflow, error) {
 	wf := argo.New(ctx.App.Name, labels)
 
 	var allSpecs []*WorkloadSpec
+
+	pythonPackageJobSpecs, err := pythonPackageWorkloadSpecs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	allSpecs = append(allSpecs, pythonPackageJobSpecs...)
 
 	dataJobSpecs, err := dataWorkloadSpecs(ctx)
 	if err != nil {

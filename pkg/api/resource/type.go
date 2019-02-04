@@ -41,6 +41,7 @@ const (
 	EmbedType                          // 12
 	TrainingDatasetType                // 13
 	ConstantType                       // 14
+	PythonPackageType                  // 15
 )
 
 var (
@@ -59,6 +60,7 @@ var (
 		"embed",
 		"training_dataset",
 		"constant",
+		"python_package",
 	}
 
 	typePlurals = []string{
@@ -76,6 +78,7 @@ var (
 		"embeds",
 		"training_datasets",
 		"constants",
+		"python_packages",
 	}
 
 	typeAcronyms = map[string]Type{
@@ -95,6 +98,8 @@ var (
 		"tds":  TrainingDatasetType,
 		"ct":   ConstantType,
 		"cts":  ConstantType,
+		"pp":   PythonPackageType,
+		"pps":  PythonPackageType,
 	}
 
 	VisibleTypes = Types{

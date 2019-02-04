@@ -118,6 +118,8 @@ func printResourceByName(resourceName string, resourcesRes *schema.GetResourcesR
 		errors.Exit(err)
 	}
 	switch resourceType := rs.GetResourceType(); resourceType {
+	case resource.PythonPackageType:
+		describePythonPackage(resourceName, resourcesRes)
 	case resource.RawFeatureType:
 		describeRawFeature(resourceName, resourcesRes)
 	case resource.AggregateType:
@@ -137,6 +139,8 @@ func printResourceByName(resourceName string, resourcesRes *schema.GetResourcesR
 
 func printResourcesByType(resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) {
 	switch resourceType {
+	case resource.PythonPackageType:
+		printPythonPackages(resourcesRes.DataStatuses, resourcesRes.Context)
 	case resource.RawFeatureType:
 		printRawFeatures(resourcesRes.DataStatuses, resourcesRes.Context)
 	case resource.AggregateType:
@@ -156,6 +160,8 @@ func printResourcesByType(resourceType resource.Type, resourcesRes *schema.GetRe
 
 func printResourceByNameAndType(resourceName string, resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) {
 	switch resourceType {
+	case resource.PythonPackageType:
+		describePythonPackage(resourceName, resourcesRes)
 	case resource.RawFeatureType:
 		describeRawFeature(resourceName, resourcesRes)
 	case resource.AggregateType:
@@ -174,6 +180,9 @@ func printResourceByNameAndType(resourceName string, resourceType resource.Type,
 }
 
 func printAllResources(resourcesRes *schema.GetResourcesResponse) {
+	printTitle("Python Packages")
+	printPythonPackages(resourcesRes.DataStatuses, resourcesRes.Context)
+
 	printTitle("Raw Features")
 	printRawFeatures(resourcesRes.DataStatuses, resourcesRes.Context)
 
@@ -191,6 +200,20 @@ func printAllResources(resourcesRes *schema.GetResourcesResponse) {
 
 	printTitle("APIs")
 	printAPIs(resourcesRes.APIGroupStatuses)
+}
+
+func printPythonPackages(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
+	if len(ctx.PythonPackages) == 0 {
+		fmt.Println("None")
+		return
+	}
+
+	printDataResourcesHeader()
+	strings := make(map[string]string)
+	for name, pythonPackages := range ctx.PythonPackages {
+		strings[name] = dataResourceRow(name, pythonPackages, dataStatuses)
+	}
+	printStrings(strings)
 }
 
 func printRawFeatures(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
@@ -276,6 +299,16 @@ func printAPIs(apiGroupStatuses map[string]*resource.APIGroupStatus) {
 		strings[name] = apiResourceRow(apiGroupStatus)
 	}
 	printStrings(strings)
+}
+
+func describePythonPackage(name string, resourcesRes *schema.GetResourcesResponse) {
+	pythonPackage := resourcesRes.Context.PythonPackages[name]
+	if pythonPackage == nil {
+		fmt.Println("Python package " + name + " does not exist")
+		os.Exit(0)
+	}
+	dataStatus := resourcesRes.DataStatuses[pythonPackage.GetID()]
+	printDataStatusSummary(dataStatus)
 }
 
 func describeRawFeature(name string, resourcesRes *schema.GetResourcesResponse) {

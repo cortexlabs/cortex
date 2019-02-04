@@ -77,12 +77,23 @@ var statusCmd = &cobra.Command{
 
 func printAllResourceStatuses(resourcesRes *schema.GetResourcesResponse) {
 	fmt.Println("")
+	printPythonPackageStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
 	printRawFeatureStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
 	printAggregateStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
 	printTransformedFeatureStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
 	printTrainingDatasetStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
 	printModelStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
 	printAPIStatuses(resourcesRes.APIGroupStatuses)
+}
+
+func printPythonPackageStatuses(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
+	var statuses = make([]resource.Status, len(ctx.PythonPackages))
+	i := 0
+	for _, pythonPackage := range ctx.PythonPackages {
+		statuses[i] = dataStatuses[pythonPackage.GetID()]
+		i++
+	}
+	fmt.Println("Python Packages:        " + StatusStr(statuses))
 }
 
 func printRawFeatureStatuses(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {

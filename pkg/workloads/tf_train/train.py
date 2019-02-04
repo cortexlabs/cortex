@@ -19,6 +19,7 @@ import traceback
 import tensorflow as tf
 
 from lib import util, aws
+from lib import package
 from lib.context import Context
 from lib.exceptions import CortexException, UserRuntimeException
 import train_util
@@ -30,6 +31,8 @@ logger = get_logger()
 
 def train(args):
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
+
+    package.install_packages(ctx.python_packages, ctx.bucket)
 
     model = ctx.models_id_map[args.model]
 

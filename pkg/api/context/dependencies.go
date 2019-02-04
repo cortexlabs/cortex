@@ -63,12 +63,17 @@ func (ctx *Context) DirectComputedResourceDependencies(resourceID string) map[st
 }
 
 func (ctx *Context) rawFeatureDependencies(rawFeature RawFeature) map[string]bool {
-	return make(map[string]bool)
+	dependencies := make(map[string]bool)
+	for _, pythonPackage := range ctx.PythonPackages {
+		dependencies[pythonPackage.GetID()] = true
+	}
+	return dependencies
 }
 
 func (ctx *Context) aggregatesDependencies(aggregate *Aggregate) map[string]bool {
 	rawFeatureNames := aggregate.InputFeatureNames()
 	dependencies := make(map[string]bool, len(rawFeatureNames))
+
 	for rawFeatureName := range rawFeatureNames {
 		rawFeature := ctx.RawFeatures[rawFeatureName]
 		dependencies[rawFeature.GetID()] = true
@@ -105,6 +110,7 @@ func (ctx *Context) trainingDatasetDependencies(model *Model) map[string]bool {
 
 func (ctx *Context) modelDependencies(model *Model) map[string]bool {
 	dependencies := make(map[string]bool)
+
 	dependencies[model.Dataset.ID] = true
 	for _, aggregate := range model.Aggregates {
 		dependencies[ctx.Aggregates[aggregate].GetID()] = true

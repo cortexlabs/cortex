@@ -68,7 +68,23 @@ func pythonPaths(dir string) []string {
 }
 
 func allConfigPaths(root string) []string {
-	return util.UniqueStrs(append(yamlPaths(root), pythonPaths(root)...))
+	var exportPaths []string
+	requirementsPath := filepath.Join(root, "requirements.txt")
+	if util.IsFile(requirementsPath) {
+		exportPaths = append(exportPaths, requirementsPath)
+	}
+
+	customPackagesRoot := filepath.Join(root, "packages")
+	if util.IsDir(customPackagesRoot) {
+		customPackagesPaths, err := util.ListDirRecursive(customPackagesRoot, false)
+		if err != nil {
+			errors.Exit(err)
+		}
+		exportPaths = append(exportPaths, customPackagesPaths...)
+	}
+	exportPaths = append(exportPaths, yamlPaths(root)...)
+	exportPaths = append(exportPaths, pythonPaths(root)...)
+	return util.UniqueStrs(exportPaths)
 }
 
 func appNameFromConfig() (string, error) {

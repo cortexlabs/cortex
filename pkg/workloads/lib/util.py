@@ -60,7 +60,7 @@ def pp_str_flat(obj, indent=0):
         out = json.dumps(obj, sort_keys=True)
     except:
         out = str(obj).replace("\n", "")
-    return util.indent_str(out, indent)
+    return indent_str(out, indent)
 
 
 def log_indent(obj, indent=0, logging_func=logger.info):

@@ -30,6 +30,7 @@ import (
 func getRawFeatures(
 	config *userconfig.Config,
 	env *context.Environment,
+	pythonPackages context.PythonPackages,
 ) (context.RawFeatures, error) {
 
 	rawFeatures := context.RawFeatures{}
@@ -37,6 +38,9 @@ func getRawFeatures(
 	for _, featureConfig := range config.RawFeatures {
 		var buf bytes.Buffer
 		buf.WriteString(env.ID)
+		for _, pythonPackage := range pythonPackages {
+			buf.WriteString(pythonPackage.GetID())
+		}
 		buf.WriteString(featureConfig.GetName())
 		buf.WriteString(featureConfig.GetType())
 

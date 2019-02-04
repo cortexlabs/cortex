@@ -74,6 +74,12 @@ func New(
 
 	ctx.StatusPrefix = StatusPrefix(ctx.App.Name)
 
+	pythonPackages, err := loadPythonPackages(files, ctx.Environment)
+	if err != nil {
+		return nil, err
+	}
+	ctx.PythonPackages = pythonPackages
+
 	constants, err := loadConstants(config.Constants)
 	if err != nil {
 		return nil, err
@@ -92,7 +98,7 @@ func New(
 	}
 	ctx.Transformers = transformers
 
-	rawFeatures, err := getRawFeatures(config, ctx.Environment)
+	rawFeatures, err := getRawFeatures(config, ctx.Environment, pythonPackages)
 	if err != nil {
 		return nil, err
 	}

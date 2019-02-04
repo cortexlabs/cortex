@@ -1,6 +1,6 @@
-flask
-Flask-API
-waitress
+flask==1.0.2
+Flask-API==1.1
+waitress==1.2.1
 tensorflow-serving-api==1.12.0
 
 numpy==1.15.4
