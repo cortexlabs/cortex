@@ -1461,7 +1461,7 @@ function check_dep_unzip() {
 }
 
 function check_dep_kubectl() {
-  if ! command -v kubectl >/dev/null 2>&1 ; then
+  if ! command -v kubectl >/dev/null 2>&1; then
     read -p "kubectl must be installed. Would you like cortex.sh to install it? [Y/n] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -1471,15 +1471,15 @@ function check_dep_kubectl() {
     fi
   fi
 
-  if ! kubectl config current-context >/dev/null 2>&1 ; then
-    echo "error: kubectl is not configured to connect with your cluster. If you are using eksctl, you can use `eksctl utils write-kubeconfig --name=<name>` to configure kubectl."
+  if ! kubectl config current-context >/dev/null 2>&1; then
+    echo "error: kubectl is not configured to connect with your cluster. If you are using eksctl, you can run \`eksctl utils write-kubeconfig --name=<name>\` to configure kubectl."
     exit 1
   fi
 
   JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'
   GET_NODES_OUTPUT=$(kubectl get nodes -o jsonpath="$JSONPATH" 2>/dev/null)
   if [ $? -ne 0 ]; then
-    echo "error: kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can use `eksctl utils write-kubeconfig --name=<name>` to configure kubectl."
+    echo "error: kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can run \`eksctl utils write-kubeconfig --name=<name>\` to configure kubectl."
     exit 1
   fi
   NUM_NODES_READY=$(echo $GET_NODES_OUTPUT | tr ';' "\n" | grep "Ready=True" | wc -l)
@@ -1535,7 +1535,7 @@ function uninstall_kubectl() {
 }
 
 function check_dep_aws() {
-  if ! command -v aws >/dev/null 2>&1 ; then
+  if ! command -v aws >/dev/null 2>&1; then
     read -p "aws CLI must be installed. Would you like cortex.sh to install it? [Y/n] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -1587,12 +1587,15 @@ function install_aws() {
 
   curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
   unzip awscli-bundle.zip
+  rm awscli-bundle.zip
 
   if [ $(id -u) = 0 ]; then
     $PY_PATH ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
   else
     sudo $PY_PATH ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
   fi
+
+  rm -rf awscli-bundle
 }
 
 function uninstall_aws() {
@@ -1750,14 +1753,16 @@ function install_cortex_cli() {
 
   BASH_PROFILE=$(get_bash_profile)
   if [ ! "$BASH_PROFILE" = "" ]; then
-    read -p "Would you like to modify your bash profile (${BASH_PROFILE}) to enable cortex bash completion and the cx alias? [Y/n] " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-      echo -e "\nsource <(cortex completion)" >> $BASH_PROFILE
-      echo "Your bash profile (${BASH_PROFILE}) has been updated. Run `source ${BASH_PROFILE}` to update your current terminal session."
-    else
-      echo "Your bash profile has not been modified. If you would like to modify it manually, add this line to your bash profile:"
-      echo "  source <(cortex completion)"
+    if ! grep -Fxq "source <(cortex completion)" "$BASH_PROFILE"; then
+      read -p "Would you like to modify your bash profile (${BASH_PROFILE}) to enable cortex bash completion and the cx alias? [Y/n] " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "\nsource <(cortex completion)" >> $BASH_PROFILE
+        echo "Your bash profile (${BASH_PROFILE}) has been updated. Run \`source ${BASH_PROFILE}\` to update your current terminal session."
+      else
+        echo "Your bash profile has not been modified. If you would like to modify it manually, add this line to your bash profile:"
+        echo "  source <(cortex completion)"
+      fi
     fi
   else
     echo "If your would like to enable cortex bash completion and the cx alias, add this line to your bash profile:"
@@ -1769,6 +1774,8 @@ function install_cortex_cli() {
     export CORTEX_OPERATOR_ENDPOINT="$OPERATOR_ENDPOINT"
   fi
 
+  echo
+  echo "configuring Cortex CLI..."
   /usr/local/bin/cortex configure
 }
 
