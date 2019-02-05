@@ -36,24 +36,24 @@ def get_build_order(python_packages):
 
 
 def build_packages(python_packages, bucket):
-    requirements_map = {}
+    cmd_partial = {}
     build_order = get_build_order(python_packages)
     for package_name in build_order:
         python_package = python_packages[package_name]
         if package_name == "requirements.txt":
             requirements_path = os.path.join(LOCAL_PACKAGE_PATH, python_package["name"])
             aws.download_file_from_s3(python_package["raw_key"], requirements_path, bucket)
-            requirements_map[python_package["name"]] = "-r " + requirements_path
+            cmd_partial[python_package["name"]] = "-r " + requirements_path
         else:
             aws.download_and_extract_zip(python_package["raw_key"], LOCAL_PACKAGE_PATH, bucket)
-            requirements_map[python_package["name"]] = os.path.join(
+            cmd_partial[python_package["name"]] = os.path.join(
                 LOCAL_PACKAGE_PATH, python_package["name"]
             )
 
     logger.info("Setting up packages")
 
     for package_name in build_order:
-        requirement = requirements_map[package_name]
+        requirement = cmd_partial[package_name]
         logger.info("Building package {}".format(package_name))
         completed_process = run(
             "pip3 wheel -w {} {}".format(
@@ -66,7 +66,7 @@ def build_packages(python_packages, bucket):
     logger.info("Validating packages")
 
     for package_name in build_order:
-        requirement = requirements_map[package_name]
+        requirement = cmd_partial[package_name]
         logger.info("Installing package {}".format(package_name))
         completed_process = run(
             "pip3 install --no-index --find-links={} {}".format(

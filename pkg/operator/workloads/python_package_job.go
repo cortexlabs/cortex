@@ -32,16 +32,16 @@ import (
 
 func pythonPackageJobSpec(ctx *context.Context, pythonPackages strset.Set, workloadID string) *batchv1.Job {
 	spec := k8s.Job(&k8s.JobSpec{
-		Name: "python-package-" + workloadID,
+		Name: workloadID,
 		Labels: map[string]string{
 			"appName":      ctx.App.Name,
-			"workloadType": workloadTypePythonPackage,
+			"workloadType": workloadTypePythonPackager,
 			"workloadID":   workloadID,
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"appName":      ctx.App.Name,
-				"workloadType": workloadTypePythonPackage,
+				"workloadType": workloadTypePythonPackager,
 				"workloadID":   workloadID,
 				"userFacing":   "true",
 			},
@@ -49,7 +49,7 @@ func pythonPackageJobSpec(ctx *context.Context, pythonPackages strset.Set, workl
 				RestartPolicy: "Never",
 				Containers: []corev1.Container{
 					{
-						Name:            "python-package",
+						Name:            "python-packager",
 						Image:           cc.PythonPackagerImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
@@ -100,7 +100,7 @@ func pythonPackageWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 		K8sAction:        "create",
 		SuccessCondition: k8s.JobSuccessCondition,
 		FailureCondition: k8s.JobFailureCondition,
-		WorkloadType:     workloadTypePythonPackage,
+		WorkloadType:     workloadTypePythonPackager,
 	}
 
 	return []*WorkloadSpec{workloadSpec}, nil
