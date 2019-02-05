@@ -51,12 +51,3 @@ echo ""
 echo "Building Cortex CLI for Linux"
 
 build_and_upload linux "cortex-cli-$CORTEX_VERSION-linux.zip"
-
-###############
-### Windows ###
-###############
-
-echo ""
-echo "Building Cortex CLI for Windows"
-
-build_and_upload windows "cortex-cli-$CORTEX_VERSION-windows.zip"

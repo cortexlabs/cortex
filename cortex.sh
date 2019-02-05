@@ -205,7 +205,7 @@ function uninstall_operator() {
   fi
 
   echo "You may also wish to delete your kubernetes cluster and/or kubernetes tools. If you are using eksctl:"
-  echo "  eksctl delete cluster --name=<name>"
+  echo "  eksctl delete cluster --name=cortex"
   echo "  ./cortex.sh uninstall kubernetes-tools"
   echo
   echo "You may also wish to delete the bucket and log group used by Cortex via that AWS console or the CLI:"
@@ -1479,14 +1479,14 @@ function check_dep_kubectl() {
   fi
 
   if ! kubectl config current-context >/dev/null 2>&1; then
-    echo "error: kubectl is not configured to connect with your cluster. If you are using eksctl, you can run \`eksctl utils write-kubeconfig --name=<name>\` to configure kubectl."
+    echo "error: kubectl is not configured to connect with your cluster. If you are using eksctl, you can run \`eksctl utils write-kubeconfig --name=cortex\` to configure kubectl."
     exit 1
   fi
 
   JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'
   GET_NODES_OUTPUT=$(kubectl get nodes -o jsonpath="$JSONPATH" 2>/dev/null)
   if [ $? -ne 0 ]; then
-    echo "error: kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can run \`eksctl utils write-kubeconfig --name=<name>\` to configure kubectl."
+    echo "error: kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can run \`eksctl utils write-kubeconfig --name=cortex\` to configure kubectl."
     exit 1
   fi
   NUM_NODES_READY=$(echo $GET_NODES_OUTPUT | tr ';' "\n" | grep "Ready=True" | wc -l)
@@ -1761,11 +1761,11 @@ function install_cortex_cli() {
   BASH_PROFILE=$(get_bash_profile)
   if [ ! "$BASH_PROFILE" = "" ]; then
     if ! grep -Fxq "source <(cortex completion)" "$BASH_PROFILE"; then
-      read -p "Would you like to modify your bash profile (${BASH_PROFILE}) to enable cortex bash completion and the cx alias? [Y/n] " -n 1 -r
+      read -p "Would you like to modify your bash profile ($BASH_PROFILE) to enable cortex bash completion and the cx alias? [Y/n] " -n 1 -r
       echo
       if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo -e "\nsource <(cortex completion)" >> $BASH_PROFILE
-        echo "Your bash profile (${BASH_PROFILE}) has been updated. Run \`source ${BASH_PROFILE}\` to update your current terminal session."
+        echo "Your bash profile ($BASH_PROFILE) has been updated. Run \`source $BASH_PROFILE\` to update your current terminal session."
       else
         echo "Your bash profile has not been modified. If you would like to modify it manually, add this line to your bash profile:"
         echo "  source <(cortex completion)"
@@ -1810,6 +1810,18 @@ function uninstall_cortex_cli() {
     echo "uninstalled cortex CLI"
   else
     return
+  fi
+
+  BASH_PROFILE=$(get_bash_profile)
+  if [ ! "$BASH_PROFILE" = "" ]; then
+    if grep -Fxq "source <(cortex completion)" "$BASH_PROFILE"; then
+      read -p "Would you like to remove \"source <(cortex completion)\" from your bash profile ($BASH_PROFILE)? [Y/n] " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Yy]$ ]]; then
+        sed -i '/^source <(cortex completion)$/d' "$BASH_PROFILE"
+        echo "Your bash profile ($BASH_PROFILE) has been updated"
+      fi
+    fi
   fi
 }
 
