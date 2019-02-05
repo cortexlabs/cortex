@@ -215,7 +215,7 @@ function uninstall_cli() {
   uninstall_cortex_cli
 }
 
-function install_kubernetes_tools() {
+function uninstall_kubernetes_tools() {
   echo
 
   uninstall_kubectl
