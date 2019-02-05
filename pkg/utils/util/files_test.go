@@ -182,6 +182,7 @@ func TestListDirRecursive(t *testing.T) {
 		filepath.Join(tmpDir, "3/2/3/.tmp"),
 		filepath.Join(tmpDir, "4/1.yaml"),
 		filepath.Join(tmpDir, "4/2.pyc"),
+		filepath.Join(tmpDir, "4/.git/HEAD"),
 	}
 
 	err = util.MakeEmptyFiles(files...)
@@ -203,16 +204,30 @@ func TestListDirRecursive(t *testing.T) {
 		filepath.Join(tmpDir, "3/2/2.txt"),
 		filepath.Join(tmpDir, "4/1.yaml"),
 		filepath.Join(tmpDir, "4/2.pyc"),
+		filepath.Join(tmpDir, "4/.git/HEAD"),
 	}
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, fileList)
 
-	fileList, err = util.ListDirRecursive(tmpDir, false, util.IgnoreDotFiles, IgnoreDir3)
+	fileList, err = util.ListDirRecursive(tmpDir, false, util.IgnoreDotFiles, util.IgnoreHiddenFolders)
+	expected = []string{
+		filepath.Join(tmpDir, "1.txt"),
+		filepath.Join(tmpDir, "2.py"),
+		filepath.Join(tmpDir, "3/1.py"),
+		filepath.Join(tmpDir, "3/2/1.py"),
+		filepath.Join(tmpDir, "3/2/2.txt"),
+		filepath.Join(tmpDir, "4/1.yaml"),
+		filepath.Join(tmpDir, "4/2.pyc"),
+	}
+	require.NoError(t, err)
+	require.ElementsMatch(t, expected, fileList)
+
+	fileList, err = util.ListDirRecursive(tmpDir, false, util.IgnoreDotFiles, IgnoreDir3, util.IgnorePYC)
 	expected = []string{
 		filepath.Join(tmpDir, "1.txt"),
 		filepath.Join(tmpDir, "2.py"),
 		filepath.Join(tmpDir, "4/1.yaml"),
-		filepath.Join(tmpDir, "4/2.pyc"),
+		filepath.Join(tmpDir, "4/.git/HEAD"),
 	}
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, fileList)

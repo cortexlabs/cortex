@@ -180,6 +180,21 @@ func IgnoreDotFiles(path string, fi os.FileInfo) (bool, error) {
 	return false, nil
 }
 
+func IgnoreHiddenFolders(path string, fi os.FileInfo) (bool, error) {
+	if fi.IsDir() && strings.HasPrefix(fi.Name(), ".") {
+		return true, nil
+	}
+	return false, nil
+}
+
+func IgnorePYC(path string, fi os.FileInfo) (bool, error) {
+	if !fi.IsDir() {
+		ext := filepath.Ext(path)
+		return ext == ".pyc", nil
+	}
+	return false, nil
+}
+
 func IgnoreNonPython(path string, fi os.FileInfo) (bool, error) {
 	if !fi.IsDir() && !IsFilePathPython(path) {
 		return true, nil

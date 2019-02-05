@@ -77,7 +77,7 @@ func allConfigPaths(root string) []string {
 
 	customPackagesRoot := filepath.Join(root, consts.PackageDir)
 	if util.IsDir(customPackagesRoot) {
-		customPackagesPaths, err := util.ListDirRecursive(customPackagesRoot, false)
+		customPackagesPaths, err := util.ListDirRecursive(customPackagesRoot, false, util.IgnoreDotFiles, util.IgnoreHiddenFolders, util.IgnorePYC)
 		if err != nil {
 			errors.Exit(err)
 		}
