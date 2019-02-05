@@ -44,6 +44,7 @@ Train custom TensorFlow models at scale.
   compute:
     cpu: <string>  # CPU request (default: Null)
     mem: <string>  # memory request (default: Null)
+    gpu: <string>  # GPU request (default: Null)
 
   tags:
     <string>: <scalar>  # arbitrary key/value pairs to attach to the resource (optional)

@@ -19,6 +19,7 @@ package workloads
 import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
@@ -38,11 +39,17 @@ func trainingJobSpec(
 ) *batchv1.Job {
 
 	resourceList := corev1.ResourceList{}
+	limitsList := corev1.ResourceList{}
 	if tfCompute.CPU != nil {
 		resourceList[corev1.ResourceCPU] = tfCompute.CPU.Quantity
 	}
 	if tfCompute.Mem != nil {
 		resourceList[corev1.ResourceMemory] = tfCompute.Mem.Quantity
+	}
+
+	if tfCompute.GPU != nil {
+		resourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(*tfCompute.GPU, k8sresource.DecimalSI)
+		limitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(*tfCompute.GPU, k8sresource.DecimalSI)
 	}
 
 	spec := k8s.Job(&k8s.JobSpec{
@@ -76,6 +83,7 @@ func trainingJobSpec(
 						VolumeMounts: k8s.DefaultVolumeMounts(),
 						Resources: corev1.ResourceRequirements{
 							Requests: resourceList,
+							Limits:   limitsList,
 						},
 					},
 				},

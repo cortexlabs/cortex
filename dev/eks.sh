@@ -10,9 +10,10 @@ function eks_set_cluster() {
 }
 
 if [ "$1" = "start" ]; then
-  eksctl create cluster --version=1.11 --name=$K8S_NAME  --region $K8S_REGION --nodes=$K8S_NODE_COUNT --node-type=$K8S_NODE_INSTANCE_TYPE
+  eksctl create cluster --name=$K8S_NAME  --region $K8S_REGION --nodes-max $K8S_NODES_MAX_COUNT --nodes-min $K8S_NODES_MIN_COUNT --node-type=$K8S_NODE_INSTANCE_TYPE
+  eksctl create nodegroup --cluster=$K8S_NAME --nodes-max=$K8S_GPU_NODES_MAX_COUNT --nodes-min=$K8S_GPU_NODES_MIN_COUNT  --node-type=$K8S_GPU_NODE_INSTANCE_TYPE --node-ami=$K8S_GPU_NODE_AMI
   eks_set_cluster
-
+  
 elif [ "$1" = "update" ]; then
   echo "Not implemented"
 

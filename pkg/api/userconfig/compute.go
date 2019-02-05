@@ -142,6 +142,7 @@ func (sparkCompute *SparkCompute) ID() string {
 type TFCompute struct {
 	CPU *Quantity `json:"cpu" yaml:"cpu"`
 	Mem *Quantity `json:"mem" yaml:"mem"`
+	GPU *int64    `json:"gpu" yaml:"gpu"`
 }
 
 var tfComputeFieldValidation = &cr.StructFieldValidation{
@@ -166,6 +167,13 @@ var tfComputeFieldValidation = &cr.StructFieldValidation{
 					Min: k8sresource.MustParse("0"),
 				}),
 			},
+			&cr.StructFieldValidation{
+				StructField: "GPU",
+				Int64PtrValidation: &cr.Int64PtrValidation{
+					Default:     nil,
+					GreaterThan: util.Int64Ptr(0),
+				},
+			},
 		},
 	},
 }
@@ -181,6 +189,7 @@ type APICompute struct {
 	Replicas int32     `json:"replicas" yaml:"replicas"`
 	CPU      *Quantity `json:"cpu" yaml:"cpu"`
 	Mem      *Quantity `json:"mem" yaml:"mem"`
+	GPU      *int64    `json:"gpu" yaml:"gpu"`
 }
 
 var apiComputeFieldValidation = &cr.StructFieldValidation{
@@ -211,6 +220,13 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 				Parser: QuantityParser(&QuantityValidation{
 					Min: k8sresource.MustParse("0"),
 				}),
+			},
+			&cr.StructFieldValidation{
+				StructField: "GPU",
+				Int64PtrValidation: &cr.Int64PtrValidation{
+					Default:     nil,
+					GreaterThan: util.Int64Ptr(0),
+				},
 			},
 		},
 	},
@@ -284,6 +300,11 @@ func MaxTFCompute(tfComputes ...*TFCompute) *TFCompute {
 				aggregated.Mem = tfCompute.Mem
 			}
 		}
+		if tfCompute.GPU != nil {
+			if aggregated.GPU == nil || *tfCompute.GPU > 0 {
+				aggregated.GPU = tfCompute.GPU
+			}
+		}
 	}
 
 	return &aggregated
@@ -299,5 +320,18 @@ func (apiCompute *APICompute) Equal(apiCompute2 APICompute) bool {
 	if !QuantityPtrsEqual(apiCompute.Mem, apiCompute2.Mem) {
 		return false
 	}
+
+	if apiCompute.GPU != nil && apiCompute2.GPU == nil {
+		return false
+	}
+
+	if apiCompute.GPU == nil && apiCompute2.GPU != nil {
+		return false
+	}
+
+	if apiCompute.GPU != nil && apiCompute2.GPU != nil && *apiCompute.GPU != *apiCompute2.GPU {
+		return false
+	}
+
 	return true
 }

@@ -129,7 +129,7 @@ def upload_string_to_s3(string, key, bucket, client_config={}):
 def read_string_from_s3(key, bucket, allow_missing=True, client_config={}):
     s3 = s3_client(client_config)
     try:
-        string = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
+        string = s3.get_object(Bucket=bucket, Key=key)["Body"].read().decode("utf-8")
     except s3.exceptions.NoSuchKey as e:
         if allow_missing:
             return None

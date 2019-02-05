@@ -21,6 +21,7 @@ import (
 
 	appsv1b1 "k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
@@ -47,6 +48,8 @@ func apiSpec(
 
 	transformResourceList := corev1.ResourceList{}
 	tfServingResourceList := corev1.ResourceList{}
+	transformLimitsList := corev1.ResourceList{}
+	tfServingLimitsList := corev1.ResourceList{}
 
 	if apiCompute.CPU != nil {
 		q1, q2 := apiCompute.CPU.SplitInTwo()
@@ -57,6 +60,17 @@ func apiSpec(
 		q1, q2 := apiCompute.Mem.SplitInTwo()
 		transformResourceList[corev1.ResourceMemory] = *q1
 		tfServingResourceList[corev1.ResourceMemory] = *q2
+	}
+
+	if apiCompute.GPU != nil {
+		q := *apiCompute.GPU / 2
+		if q == 0 {
+			q = 1
+		}
+		transformLimitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(q, k8sresource.DecimalSI)
+		transformResourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(q, k8sresource.DecimalSI)
+		tfServingLimitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(q, k8sresource.DecimalSI)
+		tfServingResourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(q, k8sresource.DecimalSI)
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -102,6 +116,7 @@ func apiSpec(
 						VolumeMounts: k8s.DefaultVolumeMounts(),
 						Resources: corev1.ResourceRequirements{
 							Requests: transformResourceList,
+							Limits:   transformLimitsList,
 						},
 					},
 					{
@@ -116,6 +131,7 @@ func apiSpec(
 						VolumeMounts: k8s.DefaultVolumeMounts(),
 						Resources: corev1.ResourceRequirements{
 							Requests: tfServingResourceList,
+							Limits:   tfServingLimitsList,
 						},
 					},
 				},
