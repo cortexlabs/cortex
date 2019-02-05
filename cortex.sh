@@ -177,9 +177,16 @@ function install_cli() {
 function install_kubernetes_tools() {
   echo
 
-  install_kubectl
-  install_eksctl
   install_aws_iam_authenticator
+  install_eksctl
+  install_kubectl
+
+  echo
+  echo "You can now spin up a EKS cluster using this command (will take ~20 minutes):"
+  echo "  eksctl create cluster --name=cortex --nodes=3 --node-type=t3.small"
+  echo
+  echo "See eksctl.io for more configuration options"
+  echo "Note: we recommend a minimum cluster size of 3 t3.small AWS instances. Cortex may not run successfully on clusters with less compute resources."
 }
 
 function uninstall_operator() {
