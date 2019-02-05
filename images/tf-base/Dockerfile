@@ -1,7 +1,6 @@
 # Adapted from https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/dockerfiles/dockerfiles/gpu.Dockerfile
-ARG UBUNTU_VERSION=16.04
 
-FROM nvidia/cuda:9.0-base-ubuntu${UBUNTU_VERSION} as base
+FROM nvidia/cuda:9.0-base-ubuntu16.04 as base
 
 # Pick up some TF dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -29,9 +28,6 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 
-ARG PYTHON=python3
-ARG PIP=pip3
-
 # See http://bugs.python.org/issue19846
 ENV LANG C.UTF-8
 
@@ -39,9 +35,9 @@ RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
         curl \
         wget \
-        ${PYTHON} \
-        ${PYTHON}-pip \
-        ${PYTHON}-dev \
+        python3 \
+        python3-pip \
+        python3-dev \
         rsync \
         zlib1g-dev \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
