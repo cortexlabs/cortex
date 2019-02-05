@@ -1829,7 +1829,7 @@ function uninstall_cortex_cli() {
       read -p "Would you like to remove \"source <(cortex completion)\" from your bash profile ($BASH_PROFILE)? [Y/n] " -n 1 -r
       echo
       if [[ $REPLY =~ ^[Yy]$ ]]; then
-        sed -i '/^source <(cortex completion)$/d' "$BASH_PROFILE"
+        sed '/^source <(cortex completion)$/d' "$BASH_PROFILE" > "${BASH_PROFILE}_cortex_modified" && mv -f "${BASH_PROFILE}_cortex_modified" "$BASH_PROFILE"
         echo "Your bash profile ($BASH_PROFILE) has been updated"
       fi
     fi
