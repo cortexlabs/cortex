@@ -28,10 +28,12 @@ Usage:
 Available Commands:
   install operator            install the operator (and the AWS CLI if necessary)
   install cli                 install the CLI
-  install kubernetes-tools    install kubectl, eksctl, aws-iam-authenticator
+  install kubernetes-tools    install aws-iam-authenticator, eksctl, kubectl
+
   uninstall operator          uninstall the operator
   uninstall cli               uninstall the CLI
-  uninstall kubernetes-tools  uninstall kubectl, eksctl, aws-iam-authenticator
+  uninstall kubernetes-tools  uninstall aws-iam-authenticator, eksctl, kubectl
+
   update operator             update the operator
   endpoints                   show the operator and API endpoints
 
@@ -156,6 +158,9 @@ function install_operator() {
   check_dep_kubectl
 
   setup_bucket
+
+  echo "Installing the Cortex operator..."
+
   setup_namespace
   setup_configmap
   setup_secrets
@@ -182,10 +187,11 @@ function install_kubernetes_tools() {
   install_kubectl
 
   echo
-  echo "You can now spin up a EKS cluster using this command (will take ~20 minutes):"
+  echo "You can now spin up a EKS cluster using the command below (will take ~20 minutes):"
   echo "  eksctl create cluster --name=cortex --nodes=3 --node-type=t3.small"
   echo
   echo "See eksctl.io for more configuration options"
+  echo
   echo "Note: we recommend a minimum cluster size of 3 t3.small AWS instances. Cortex may not run successfully on clusters with less compute resources."
 }
 
@@ -198,22 +204,26 @@ function uninstall_operator() {
   kubectl delete --ignore-not-found=true --wait=false customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
   kubectl delete --ignore-not-found=true --wait=false customresourcedefinition workflows.argoproj.io >/dev/null 2>&1
 
-  echo "uninstalling operator in the background"
+  echo "Uninstalling the Cortex operator in the background"
+  echo
+  echo "Command to spin down your Kubernetes cluster:"
+  echo "  eksctl delete cluster --name=cortex"
+  echo
+  echo "Command to remove Kubernetes tools:"
+  echo "  ./cortex.sh uninstall kubernetes-tools"
+  echo
+  echo "Command to delete the bucket used by Cortex:"
+  echo "  aws s3 rb s3://<bucket-name> --force"
+  echo
+  echo "Command to delete the log group used by Cortex:"
+  echo "  aws logs delete-log-group --log-group-name cortex"
+  echo
+  echo "Command to uninstall the cortex CLI:"
+  echo "  ./cortex.sh uninstall cli"
 
   if [[ -f /usr/local/bin/aws ]]; then
     uninstall_aws
   fi
-
-  echo "You may also wish to delete your kubernetes cluster and/or kubernetes tools. If you are using eksctl:"
-  echo "  eksctl delete cluster --name=cortex"
-  echo "  ./cortex.sh uninstall kubernetes-tools"
-  echo
-  echo "You may also wish to delete the bucket and log group used by Cortex via that AWS console or the CLI:"
-  echo "  aws s3 rb s3://<bucket-name> --force"
-  echo "  aws logs delete-log-group --log-group-name <log-group-name>"
-  echo
-  echo "To uninstall the cortex CLI:"
-  echo "  ./cortex.sh uninstall cli"
 }
 
 function uninstall_cli() {
@@ -258,7 +268,7 @@ function get_endpoints() {
 function setup_bucket() {
   if ! aws s3api head-bucket --bucket $CORTEX_BUCKET --output json 2>/dev/null; then
     if aws s3 ls "s3://$CORTEX_BUCKET" --output json 2>&1 | grep -q 'NoSuchBucket'; then
-      echo "Creating S3 bucket: $CORTEX_BUCKET"
+      echo -e "Creating S3 bucket: $CORTEX_BUCKET\n"
       aws s3api create-bucket --bucket $CORTEX_BUCKET \
                               --region $CORTEX_REGION \
                               --create-bucket-configuration LocationConstraint=$CORTEX_REGION \
@@ -280,7 +290,7 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: ${CORTEX_NAMESPACE}
-" | kubectl apply -f -
+" | kubectl apply -f - >/dev/null
 }
 
 #######################
@@ -298,7 +308,7 @@ function setup_configmap() {
     --from-literal='IMAGE_TF_TRAIN'=$CORTEX_IMAGE_TF_TRAIN \
     --from-literal='IMAGE_TF_SERVE'=$CORTEX_IMAGE_TF_SERVE \
     --from-literal='IMAGE_TF_API'=$CORTEX_IMAGE_TF_API \
-    -o yaml --dry-run | kubectl apply -f -
+    -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 
 #######################
@@ -309,7 +319,7 @@ function setup_secrets() {
   kubectl -n=$CORTEX_NAMESPACE create secret generic 'aws-credentials' \
     --from-literal='AWS_ACCESS_KEY_ID'=$AWS_ACCESS_KEY_ID \
     --from-literal='AWS_SECRET_ACCESS_KEY'=$AWS_SECRET_ACCESS_KEY \
-    -o yaml --dry-run | kubectl apply -f -
+    -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 
 ##################
@@ -429,7 +439,7 @@ spec:
         image: ${CORTEX_IMAGE_ARGO_CONTROLLER}
         imagePullPolicy: Always
       serviceAccountName: argo-controller
-" | kubectl apply -f -
+" | kubectl apply -f - >/dev/null
 }
 
 ###################
@@ -747,7 +757,7 @@ roleRef:
   kind: Role
   name: spark
   apiGroup: rbac.authorization.k8s.io
-" | kubectl apply -f -
+" | kubectl apply -f - >/dev/null
 }
 
 ###################
@@ -1150,7 +1160,7 @@ spec:
   - name: https
     port: 443
     targetPort: https
-" | kubectl apply -f -
+" | kubectl apply -f - >/dev/null
 }
 
 #####################
@@ -1283,7 +1293,7 @@ spec:
       - name: config-volume
         configMap:
           name: fluentd
-" | kubectl apply -f -
+" | kubectl apply -f - >/dev/null
 }
 
 ######################
@@ -1382,7 +1392,7 @@ spec:
         backend:
           serviceName: operator
           servicePort: 8888
-" | kubectl apply -f -
+" | kubectl apply -f - >/dev/null
 }
 
 function delete_operator() {
@@ -1393,7 +1403,7 @@ function delete_operator() {
 
 function validate_cortex() {
   echo
-  echo "Validating cluster..."
+  echo "Validating the Cortex operator..."
   validation_errors="init"
 
   until [ "$validation_errors" == "" ]; do
@@ -1427,7 +1437,7 @@ function validate_cortex() {
   done
 
   echo
-  echo "Your cluster is ready!"
+  echo "Cortex is ready!"
 
   get_endpoints
 
@@ -1543,10 +1553,11 @@ function uninstall_kubectl() {
 
 function check_dep_aws() {
   if ! command -v aws >/dev/null 2>&1; then
-    read -p "aws CLI must be installed. Would you like cortex.sh to install it? [Y/n] " -n 1 -r
+    read -p "The AWS CLI is required. Would you like cortex.sh to install it? (may require sudo password) [Y/n] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
       install_aws
+      echo
     else
       exit 1
     fi
@@ -1565,7 +1576,7 @@ function check_dep_aws() {
 
 function install_aws() {
   if command -v aws > /dev/null; then
-    echo "aws CLI is already installed"
+    echo "The AWS CLI is already installed"
     return
   fi
 
@@ -1590,7 +1601,7 @@ function install_aws() {
     exit 1
   fi
 
-  echo "installing aws (/usr/local/bin/aws)"
+  echo "Installing the AWS CLI (/usr/local/bin/aws)"
 
   curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
   unzip awscli-bundle.zip
@@ -1607,16 +1618,16 @@ function install_aws() {
 
 function uninstall_aws() {
   if ! command -v aws > /dev/null; then
-    echo "aws CLI is not installed"
+    echo "The AWS CLI is not installed"
     return
   fi
 
   if [[ ! -f /usr/local/bin/aws ]]; then
-    echo "aws CLI was not installed by cortex.sh"
+    echo "The AWS CLI was not found at /usr/local/bin/aws, please uninstall it manually"
     return
   fi
 
-  read -p "would you like to uninstall aws CLI (/usr/local/bin/aws)? [Y/n] " -n 1 -r
+  read -p "Would you like to uninstall the AWS CLI (/usr/local/bin/aws)? [Y/n] " -n 1 -r
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]; then
     if [ $(id -u) = 0 ]; then
@@ -1626,17 +1637,17 @@ function uninstall_aws() {
       sudo rm -rf /usr/local/aws
       sudo rm /usr/local/bin/aws
     fi
-    echo "uninstalled aws CLI"
+    echo -e "\nUninstalled the AWS CLI"
   else
     return
   fi
 
   if [[ -d $HOME/.aws ]]; then
-    read -p "would you like to remove aws CLI credentials and configuration (~/.aws)? [Y/n] " -n 1 -r
+    read -p "Would you like to delete the AWS CLI credentials and configuration (~/.aws)? [Y/n] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
       rm -rf $HOME/.aws
-      echo "removed ~/.aws"
+      echo -e "\nDeleted ~/.aws"
     else
       return
     fi
@@ -1651,7 +1662,7 @@ function install_eksctl() {
 
   check_dep_curl
 
-  echo "installing eksctl (/usr/local/bin/eksctl)"
+  echo "Installing eksctl (/usr/local/bin/eksctl)"
 
   curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/0.1.19/eksctl_$(uname -s)_amd64.tar.gz" | tar xz
   chmod +x ./eksctl
@@ -1670,11 +1681,11 @@ function uninstall_eksctl() {
   fi
 
   if [[ ! -f /usr/local/bin/eksctl ]]; then
-    echo "eksctl was not installed by cortex.sh"
+    echo "eksctl was not found at /usr/local/bin/eksctl, please uninstall it manually"
     return
   fi
 
-  read -p "would you like to uninstall eksctl (/usr/local/bin/eksctl)? [Y/n] " -n 1 -r
+  read -p "Would you like to uninstall eksctl (/usr/local/bin/eksctl)? [Y/n] " -n 1 -r
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]; then
     if [ $(id -u) = 0 ]; then
@@ -1682,7 +1693,7 @@ function uninstall_eksctl() {
     else
       sudo rm /usr/local/bin/eksctl
     fi
-    echo "uninstalled eksctl"
+    echo "Uninstalled eksctl"
   else
     return
   fi
@@ -1696,7 +1707,7 @@ function install_aws_iam_authenticator() {
 
   check_dep_curl
 
-  echo "installing aws-iam-authenticator (/usr/local/bin/aws-iam-authenticator)"
+  echo "Installing aws-iam-authenticator (/usr/local/bin/aws-iam-authenticator)"
 
   curl --silent -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.11.5/2018-12-06/bin/$PARSED_OS/amd64/aws-iam-authenticator
   chmod +x ./aws-iam-authenticator
@@ -1715,7 +1726,7 @@ function uninstall_aws_iam_authenticator() {
   fi
 
   if [[ ! -f /usr/local/bin/aws-iam-authenticator ]]; then
-    echo "aws-iam-authenticator was not installed by cortex.sh"
+    echo "aws-iam-authenticator was not found at /usr/local/bin/aws-iam-authenticator, please uninstall it manually"
     return
   fi
 
@@ -1727,7 +1738,7 @@ function uninstall_aws_iam_authenticator() {
     else
       sudo rm /usr/local/bin/aws-iam-authenticator
     fi
-    echo "uninstalled aws-iam-authenticator"
+    echo "Uninstalled aws-iam-authenticator"
   else
     return
   fi
@@ -1735,7 +1746,7 @@ function uninstall_aws_iam_authenticator() {
 
 function install_cortex_cli() {
   if command -v cortex > /dev/null; then
-    echo "cortex CLI is already installed"
+    echo "The Cortex CLI is already installed"
     return
   fi
 
@@ -1756,7 +1767,7 @@ function install_cortex_cli() {
 
   rm cortex-cli-${CORTEX_VERSION_STABLE}-${PARSED_OS}.zip
 
-  echo "cortex CLI has been installed"
+  echo "The Cortex CLI has been installed"
 
   BASH_PROFILE=$(get_bash_profile)
   if [ ! "$BASH_PROFILE" = "" ]; then
@@ -1782,7 +1793,7 @@ function install_cortex_cli() {
   fi
 
   echo
-  echo "configuring Cortex CLI..."
+  echo "Configuring Cortex CLI..."
   /usr/local/bin/cortex configure
 }
 
@@ -1790,16 +1801,16 @@ function uninstall_cortex_cli() {
   rm -rf $HOME/.cortex
 
   if ! command -v cortex > /dev/null; then
-    echo "cortex CLI is not installed"
+    echo "The Cortex CLI is not installed"
     return
   fi
 
   if [[ ! -f /usr/local/bin/cortex ]]; then
-    echo "cortex CLI was not installed by cortex.sh"
+    echo "The Cortex CLI was not found at /usr/local/bin/cortex, please uninstall it manually"
     return
   fi
 
-  read -p "would you like to uninstall cortex CLI (/usr/local/bin/cortex)? [Y/n] " -n 1 -r
+  read -p "Would you like to uninstall the Cortex CLI? (may require sudo password) [Y/n] " -n 1 -r
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]; then
     if [ $(id -u) = 0 ]; then
@@ -1807,7 +1818,7 @@ function uninstall_cortex_cli() {
     else
       sudo rm /usr/local/bin/cortex
     fi
-    echo "uninstalled cortex CLI"
+    echo -e "\nUninstalled the Cortex CLI"
   else
     return
   fi
