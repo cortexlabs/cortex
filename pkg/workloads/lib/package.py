@@ -111,9 +111,10 @@ def install_packages(python_packages, bucket):
             python_package["package_key"], os.path.join(WHEELHOUSE_PATH, package_name), bucket
         )
 
-    aws.download_file_from_s3(
-        python_packages["requirements.txt"]["raw_key"], "/requirements.txt", bucket
-    )
+    if "requirements.txt" in python_packages:
+        aws.download_file_from_s3(
+            python_packages["requirements.txt"]["raw_key"], "/requirements.txt", bucket
+        )
 
     for package_name in build_order:
         cmd = package_name
