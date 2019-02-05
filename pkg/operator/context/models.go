@@ -119,7 +119,7 @@ func getModels(
 }
 
 func getModelImplID(implPath string, impls map[string][]byte) (string, string, error) {
-	impl, ok := impls[strings.TrimPrefix(implPath, "/")]
+	impl, ok := impls[implPath]
 	if !ok {
 		return "", "", errors.New(s.ErrFileDoesNotExist(implPath))
 	}
