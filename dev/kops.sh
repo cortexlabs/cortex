@@ -123,26 +123,6 @@ spec:
   subnets:
   - ${K8S_ZONE}
 
----
-
-apiVersion: kops/v1alpha2
-kind: InstanceGroup
-metadata:
-  creationTimestamp: null
-  labels:
-    kops.k8s.io/cluster: ${K8S_NAME}
-  name: gpu-nodes
-spec:
-  image: ${K8S_GPU_NODE_IMAGE}
-  machineType: ${K8S_GPU_NODE_INSTANCE_TYPE}
-  rootVolumeSize: ${K8S_NODE_VOLUME_SIZE}
-  maxSize: ${K8S_GPU_NODES_MAX_COUNT}
-  minSize: ${K8S_GPU_NODES_MIN_COUNT}
-  nodeLabels:
-    kops.k8s.io/instancegroup: nodes
-  role: Node
-  subnets:
-  - ${K8S_ZONE}
 EOM
 }
 
