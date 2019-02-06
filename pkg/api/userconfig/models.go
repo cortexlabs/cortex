@@ -40,7 +40,6 @@ type Model struct {
 	DataPartitionRatio *ModelDataPartitionRatio `json:"data_partition_ratio" yaml:"data_partition_ratio"`
 	Training           *ModelTraining           `json:"training" yaml:"training"`
 	Evaluation         *ModelEvaluation         `json:"evaluation" yaml:"evaluation"`
-	Misc               *ModelMisc               `json:"misc" yaml:"misc"`
 	Compute            *TFCompute               `json:"compute" yaml:"compute"`
 	Tags               Tags                     `json:"tags" yaml:"tags"`
 }
@@ -122,10 +121,6 @@ var modelValidation = &cr.StructValidation{
 		&cr.StructFieldValidation{
 			StructField:      "Evaluation",
 			StructValidation: modelEvaluationValidation,
-		},
-		&cr.StructFieldValidation{
-			StructField:      "Misc",
-			StructValidation: modelMiscValidation,
 		},
 		tfComputeFieldValidation,
 		tagsFieldValidation,
@@ -306,22 +301,6 @@ var modelEvaluationValidation = &cr.StructValidation{
 			Int64Validation: &cr.Int64Validation{
 				GreaterThan: util.Int64Ptr(0),
 				Default:     600,
-			},
-		},
-	},
-}
-
-type ModelMisc struct {
-	Verbosity string `json:"verbosity" yaml:"verbosity"`
-}
-
-var modelMiscValidation = &cr.StructValidation{
-	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
-			StructField: "Verbosity",
-			StringValidation: &cr.StringValidation{
-				Default:       "INFO",
-				AllowedValues: []string{"DEBUG", "INFO", "WARN", "ERROR", "FATAL"},
 			},
 		},
 	},

@@ -31,17 +31,18 @@ def aggregate_spark(data, features, args):
     from pyspark.ml.feature import QuantileDiscretizer
 
     discretizer = QuantileDiscretizer(
-        numBuckets=args["num_buckets"], inputCol=features["num"]
+        numBuckets=args["num_buckets"], inputCol=features["col"], outputCol="_"
     ).fit(data)
 
     return discretizer.getSplits()
 ```
 
-## Pre-installed PyPI Packages
+## Pre-installed Packages
 
-The following PyPI have been pre-installed and can be used in your implementations.
+The following packages have been pre-installed and can be used in your implementations:
 
 ```text
+pyspark==2.4.0
 pyyaml==3.13
 numpy==1.15.4
 pillow==5.4.1

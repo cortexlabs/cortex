@@ -48,7 +48,7 @@ func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
 
 		if v.Int {
 			if k8sQuantity.MilliValue() != k8sQuantity.Value()*1000 {
-				return nil, errors.New(s.ErrInvalidPrimitiveType(str, s.PrimTypeInt))
+				return nil, ErrorK8sQuantityMustBeInt(str)
 			}
 		}
 

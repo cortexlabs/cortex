@@ -1,21 +1,4 @@
-# CLI
-
-## configure
-
-```bash
-Configure the CLI.
-
-Usage:
-  cortex configure [flags]
-
-Flags:
-  -e, --env string   environment (default "dev")
-  -h, --help         help for configure
-```
-
-The `configure` command is used to connect to the Cortex cluster. The CLI needs a Cortex operator URL as well as valid AWS credentials in order to authenticate requests.
-
-The CLI stores this information in the `.cortex` directory.
+# CLI Commands
 
 ## init
 
@@ -63,6 +46,38 @@ Flags:
 
 The `refresh` behaves similarly to the `deploy` command. The key difference is that `refresh` doesn't use any cached resource and will recreate all state using raw data from the data warehouse.
 
+## predict
+
+```bash
+Make predictions.
+
+Usage:
+  cortex predict API_NAME SAMPLES_FILE [flags]
+
+Flags:
+  -a, --app string   app name
+  -e, --env string   environment (default "dev")
+  -h, --help         help for predict
+```
+
+The `predict` command converts samples from a JSON file into prediction requests and outputs the response. This command is useful for quickly testing model output.
+
+## delete
+
+```bash
+Delete an application.
+
+Usage:
+  cortex delete [APP_NAME] [flags]
+
+Flags:
+  -e, --env string   environment (default "dev")
+  -h, --help         help for delete
+  -c, --keep-cache   keep cached data for the app
+```
+
+The `delete` command deletes an application's resources from the cluster.
+
 ## get
 
 ```bash
@@ -109,7 +124,7 @@ Flags:
   -h, --help         help for status
 ```
 
-The `status` command outputs a condensed summary of all resources on the cluster. Specifying a resource name provides a more detailed view of the status of that particular resource.
+The `status` command outputs a condensed summary of all resources on the cluster. Specifying a resource name provides detailed real-time view of the status of that particular resource.
 
 ## logs
 
@@ -133,36 +148,41 @@ Flags:
   -h, --help         help for logs
 ```
 
-The `logs` command gets logs from the workload corresponding to the specified resource. For example, `cortex logs models dnn` will get the logs from the last training workload for `dnn`.
+The `logs` command streams logs from the workload corresponding to the specified resource. For example, `cortex logs models dnn` will get the logs from the most recent training workload for `dnn`.
 
-## predict
-
-```bash
-Make predictions.
-
-Usage:
-  cortex predict API_NAME SAMPLES_FILE [flags]
-
-Flags:
-  -a, --app string   app name
-  -e, --env string   environment (default "dev")
-  -h, --help         help for predict
-```
-
-The `predict` command converts samples from a samples file into prediction requests and outputs the response. This command is useful for quickly testing model output.
-
-## delete
+## configure
 
 ```bash
-Delete an application.
+Configure the CLI.
 
 Usage:
-  cortex delete [APP_NAME] [flags]
+  cortex configure [flags]
 
 Flags:
   -e, --env string   environment (default "dev")
-  -h, --help         help for delete
-  -c, --keep-cache   keep cached data for the app
+  -h, --help         help for configure
 ```
 
-The `delete` command deletes an application's resources from the cluster.
+The `configure` command is used to connect to the Cortex cluster. The CLI needs a Cortex operator URL as well as valid AWS credentials in order to authenticate requests.
+
+The CLI stores this information in the `~/.cortex` directory.
+
+## completion
+
+```bash
+Generate bash completion scripts.
+
+Add this to your bashrc or bash profile:
+  source <(cortex completion)
+Or run:
+  echo 'source <(cortex completion)' >> ~/.bash_profile  # Mac
+  echo 'source <(cortex completion)' >> ~/.bashrc  # Linux
+
+Note: This will also add the alias "cx"
+
+Usage:
+  cortex completion [flags]
+
+Flags:
+  -h, --help   help for completion
+```

@@ -46,7 +46,7 @@ def show_aggregates(ctx, aggregates, truncate=80):
     logger.info("Aggregates:")
 
     # duplicate the results for resources with different names but same ids for UI purposes
-    for key, value in aggregates.items():
+    for key, value in list(aggregates.items()):
         id = ctx.ag_id_map.name_map[key]["id"]
         for name in ctx.ag_id_map[id]["aliases"]:
             aggregates[name] = value

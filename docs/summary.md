@@ -1,24 +1,26 @@
 # Summary
 
 * [Read Me](../README.md)
-* [Install](cluster/install.md)
+* [Install](install.md)
 * [Quick Start](quick-start.md)
+* [CLI Commands](cli.md)
+* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
 * [FAQ](faq.md)
 
-## Cluster
+## Operator
 
-* [Install](cluster/install.md)
-* [Config](cluster/config.md)
-* [CLI](cluster/cli.md)
-* [Security](cluster/security.md)
-* [Uninstall](cluster/uninstall.md)
+* [Config](operator/config.md)
+* [Security](operator/security.md)
+* [Uninstall](operator/uninstall.md)
 
 ## Applications
 
 ### Resources
 
-  * [Data Types](applications/resources/data-types.md)
+  * [Overview](applications/resources/overview.md)
+  * [Application](applications/resources/app.md)
   * [Environments](applications/resources/environments.md)
+  * [Data Types](applications/resources/data-types.md)
   * [Raw Features](applications/resources/raw-features.md)
   * [Aggregators](applications/resources/aggregators.md)
   * [Aggregates](applications/resources/aggregates.md)
@@ -26,6 +28,7 @@
   * [Transformed Features](applications/resources/transformed-features.md)
   * [Models](applications/resources/models.md)
   * [APIs](applications/resources/apis.md)
+  * [Constants](applications/resources/constants.md)
 
 ### Implementations
 

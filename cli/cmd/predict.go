@@ -22,9 +22,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/utils/errors"
 	"github.com/cortexlabs/cortex/pkg/utils/util"
@@ -78,6 +80,9 @@ var predictCmd = &cobra.Command{
 		apiURL := util.URLJoin(resourcesRes.APIsBaseURL, apiPath)
 		predictResponse, err := makePredictRequest(apiURL, samplesJSONPath)
 		if err != nil {
+			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") {
+				errors.Exit(s.ErrApiNotReady(apiName, resource.StatusAPIUpdating.Message()))
+			}
 			errors.Exit(err)
 		}
 

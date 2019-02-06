@@ -346,7 +346,6 @@ class Context:
             "aggregates",
             "training",
             "evaluation",
-            "misc",
             "tags",
         ]
         util.keep_dict_keys(model_config, config_keys)

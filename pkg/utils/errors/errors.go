@@ -97,7 +97,7 @@ func FirstError(errs ...error) error {
 
 func Exit(items ...interface{}) {
 	if len(items) == 0 {
-		panic("")
+		items = append(items, "empty exit")
 	}
 
 	var err error
@@ -131,7 +131,7 @@ func Exit(items ...interface{}) {
 
 func Panic(items ...interface{}) {
 	if len(items) == 0 {
-		panic("")
+		items = append(items, "empty panic")
 	}
 
 	var err error
@@ -159,14 +159,18 @@ func Panic(items ...interface{}) {
 		}
 	}
 
-	PrintError(err)
-	panic("")
+	// PrintStacktrace(err)
+	panic(err)
 }
 
 func PrintError(err error, strs ...string) {
 	wrappedErr := Wrap(err, strs...)
 	fmt.Println("error:", wrappedErr.Error())
-	// fmt.Printf("%+v", wrappedErr) // Show stack trace for debugging
+	// PrintStacktrace(wrappedErr)
+}
+
+func PrintStacktrace(err error) {
+	fmt.Printf("%+v\n", err)
 }
 
 func CastRecoverError(errInterface interface{}, strs ...string) error {

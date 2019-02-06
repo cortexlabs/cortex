@@ -1,3 +1,19 @@
+/*
+Copyright 2019 Cortex Labs, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package userconfig
 
 import (
@@ -37,6 +53,7 @@ const (
 	ErrArgNameCannotBeType
 	ErrTypeListLength
 	ErrGenericTypeMapLength
+	ErrK8sQuantityMustBeInt
 )
 
 var errorKinds = []string{
@@ -65,9 +82,10 @@ var errorKinds = []string{
 	"err_arg_name_cannot_be_type",
 	"err_type_list_length",
 	"err_generic_type_map_length",
+	"err_k8s_quantity_must_be_int",
 }
 
-var _ = [1]int{}[int(ErrGenericTypeMapLength)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrK8sQuantityMustBeInt)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -289,6 +307,13 @@ func ErrorGenericTypeMapLength(provided interface{}) error {
 	return ConfigError{
 		Kind:    ErrGenericTypeMapLength,
 		message: fmt.Sprintf("generic type maps must contain exactly one key (i.e. the desired data type of all keys in the map) (got %s)", s.DataTypeStr(provided)),
+	}
+}
+
+func ErrorK8sQuantityMustBeInt(quantityStr string) error {
+	return ConfigError{
+		Kind:    ErrK8sQuantityMustBeInt,
+		message: fmt.Sprintf("resource compute quantity must be an integer-valued string, e.g. \"2\") (got %s)", s.DataTypeStr(quantityStr)),
 	}
 }
 

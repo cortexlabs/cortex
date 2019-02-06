@@ -63,7 +63,6 @@ func getModels(
 		buf.WriteString(s.Obj(modelConfig.DataPartitionRatio))
 		buf.WriteString(s.Obj(modelConfig.Training))
 		buf.WriteString(s.Obj(modelConfig.Evaluation))
-		buf.WriteString(s.Obj(modelConfig.Misc))
 		buf.WriteString(features.IDWithTags(modelConfig.AllFeatureNames())) // A change in tags can invalidate the model
 
 		for _, aggregate := range modelConfig.Aggregates {
@@ -120,7 +119,7 @@ func getModels(
 }
 
 func getModelImplID(implPath string, impls map[string][]byte) (string, string, error) {
-	impl, ok := impls[strings.TrimPrefix(implPath, "/")]
+	impl, ok := impls[implPath]
 	if !ok {
 		return "", "", errors.New(s.ErrFileDoesNotExist(implPath))
 	}

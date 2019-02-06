@@ -46,11 +46,12 @@ def create_estimator(run_config, model_config):
     )
 ```
 
-## Pre-installed PyPI Packages
+## Pre-installed Packages
 
-The following PyPI have been pre-installed and can be used in your implementations.
+The following packages have been pre-installed and can be used in your implementations:
 
 ```text
+tensorflow==1.12.0
 numpy==1.15.4
 pillow==5.4.1
 pandas==0.23.4

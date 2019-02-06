@@ -71,7 +71,7 @@ def reverse_transform_python(transformed_value, args):
 ```python
 def transform_spark(data, features, args, transformed_feature):
     return data.withColumn(
-        transformed_feature, ((data[features["num"]] - args["mean"]) / args["stddev"]),
+        transformed_feature, ((data[features["num"]] - args["mean"]) / args["stddev"])
     )
 
 def transform_python(sample, args):
@@ -81,11 +81,12 @@ def reverse_transform_python(transformed_value, args):
     return args["mean"] + (transformed_value * args["stddev"])
 ```
 
-## Pre-installed PyPI Packages
+## Pre-installed Packages
 
-The following PyPI have been pre-installed and can be used in your implementations.
+The following packages have been pre-installed and can be used in your implementations:
 
 ```text
+pyspark==2.4.0
 pyyaml==3.13
 numpy==1.15.4
 pillow==5.4.1

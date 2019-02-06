@@ -294,6 +294,7 @@ def start(args):
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
     api = ctx.apis_id_map[args.api]
     model = ctx.models[api["model_name"]]
+    tf_lib.set_logging_verbosity(ctx.environment["log_level"]["tensorflow"])
 
     local_cache["ctx"] = ctx
     local_cache["api"] = api

@@ -10,7 +10,7 @@ Aggregate feature data at scale.
   aggregator: <string>  # the name of the aggregator to use (required)
   inputs:
     features:
-      <string>: <string>  # map of feature input name to raw feature name(s) (required)
+      <string>: <string> or <[string]>  # map of feature input name to raw feature name(s) (required)
       ...
     args:
       <string>: <value>  # value may be a constant or literal value (optional)
@@ -33,7 +33,7 @@ Note: the `features` and `args` fields of the the aggregate must match the data 
 
 Each `args` value may be the name of a constant or a literal value. Any string value will be assumed to be the name of a constant. To use a string literal as an arg, escape it with double quotes (e.g. `arg_name: "\"string literal\""`.
 
-See our [`aggregators.yaml`](../../../pkg/aggregators/aggregators.yaml) file for a list of built-in aggregators.
+See <!-- CORTEX_VERSION_MINOR -->[`aggregators.yaml`](https://github.com/cortexlabs/cortex/blob/master/pkg/aggregators/aggregators.yaml) for a list of built-in aggregators.
 
 ## Example
 

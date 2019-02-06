@@ -1,6 +1,18 @@
 - kind: environment
   name: dev
   data:
+    type: csv
+    path: s3a://cortex-examples/iris.csv
+    schema:
+      - sepal_length
+      - sepal_width
+      - petal_length
+      - petal_width
+      - class
+
+- kind: environment
+  name: prod
+  data:
     type: parquet
     path: s3a://cortex-examples/iris.parquet
     schema:

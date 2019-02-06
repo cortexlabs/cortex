@@ -20,14 +20,13 @@ import (
 	"bytes"
 	"io/ioutil"
 	"path/filepath"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/utils/errors"
 	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
@@ -64,7 +63,7 @@ func loadUserTransformers(
 
 	userTransformers := make(map[string]*context.Transformer)
 	for _, transConfig := range transConfigs {
-		impl, ok := impls[strings.TrimPrefix(transConfig.Path, "/")] // Remove leading / that zip adds
+		impl, ok := impls[transConfig.Path]
 		if !ok {
 			return nil, errors.New(userconfig.Identify(transConfig), s.ErrFileDoesNotExist(transConfig.Path))
 		}

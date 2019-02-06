@@ -12,11 +12,11 @@ Developers who want to build machine learning powered web services.
 
 Cortex Labs.
 
-## What cloud providers are supported?
+## Which cloud providers are supported?
 
 Cortex currently only runs on AWS. Our goal is to support all the major cloud platforms, but we are starting with AWS.
 
-## What machine learning frameworks are supported?
+## Which machine learning frameworks are supported?
 
 We are focusing on TensorFlow for now, but we aim to support all popular machine learning frameworks.
 

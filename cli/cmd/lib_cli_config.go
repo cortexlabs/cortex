@@ -154,8 +154,28 @@ func getValidCliConfig() *CliConfig {
 	return cliConfig
 }
 
-func configure() *CliConfig {
+func getDefaults() *CliConfig {
 	defaults, _ := readCliConfig()
+	if defaults == nil {
+		defaults = &CliConfig{}
+	}
+
+	if defaults.AWSAccessKeyID == "" && os.Getenv("AWS_ACCESS_KEY_ID") != "" {
+		defaults.AWSAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
+	}
+	if defaults.AWSSecretAccessKey == "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
+		defaults.AWSSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
+	}
+	if defaults.CortexURL == "" && os.Getenv("CORTEX_OPERATOR_ENDPOINT") != "" {
+		defaults.CortexURL = os.Getenv("CORTEX_OPERATOR_ENDPOINT")
+	}
+
+	return defaults
+}
+
+func configure() *CliConfig {
+	defaults := getDefaults()
+
 	cachedCliConfig = &CliConfig{}
 	fmt.Println("\nEnvironment: " + flagEnv)
 	err := cr.ReadPrompt(cachedCliConfig, getPromptValidation(defaults))
