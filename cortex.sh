@@ -1393,47 +1393,48 @@ function delete_operator() {
 }
 
 function validate_cortex() {
-  echo
-  echo "Validating the Cortex operator ..."
-  validation_errors="init"
+  set -e
 
-  until [ "$validation_errors" == "" ]; do
-    validation_errors=""
+  echo -e "\nValidating the Cortex operator"
 
+  echo -n "  Waiting for load balancer (operator) "
+  while true; do
     out=$(kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-operator -o json | tr -d '[:space:]')
-    if ! [[ $out = *'"loadBalancer":{"ingress":[{"'* ]]; then
-      validation_errors="${validation_errors}\n  Waiting for load balancer (operator)"
+    if [[ $out = *'"loadBalancer":{"ingress":[{"'* ]]; then
+      break
     fi
+    echo -n "."
+    sleep 2
+  done
+  echo " ✓"
 
+  echo -n "  Waiting for load balancer (APIs) "
+  while true; do
     out=$(kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-apis -o json | tr -d '[:space:]')
-    if ! [[ $out = *'"loadBalancer":{"ingress":[{"'* ]]; then
-      validation_errors="${validation_errors}\n  Waiting for load balancer (APIs)"
+    if [[ $out = *'"loadBalancer":{"ingress":[{"'* ]]; then
+      break
     fi
-
-    if [ "$validation_errors" != "" ]; then
-      echo -e "${validation_errors:2}"
-      sleep 15
-    fi
+    echo -n "."
+    sleep 2
   done
+  echo " ✓"
 
-  status="down"
+  echo -n "  Waiting for DNS (operator) "
   operator_endpoint=$(kubectl -n=cortex get service nginx-controller-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
-  until [ "$status" == "up" ]; do
+  while true; do
     if curl $operator_endpoint >/dev/null 2>&1; then
-      status="up"
-    else
-      echo "  Waiting for DNS (operator)"
-      sleep 15
+      break
     fi
+    echo -n "."
+    sleep 2
   done
+  echo " ✓"
 
-  echo
-  echo "Cortex is ready!"
+  echo -e "\nCortex is ready!"
 
   get_endpoints
 
-  echo
-  echo "Please run 'cortex configure' to make sure your CLI is configured correctly"
+  echo -e "\nPlease run 'cortex configure' to make sure your CLI is configured correctly"
 }
 
 function get_operator_endpoint() {
@@ -1473,7 +1474,7 @@ function check_dep_kubectl() {
 
   if ! command -v kubectl >/dev/null 2>&1; then
     echo
-    read -p "kubectl must be installed. Would you like cortex.sh to install it? [Y/n] " -n 1 -r
+    read -p "kubectl is required. Would you like cortex.sh to install it? [Y/n] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
       install_kubectl
@@ -1558,11 +1559,11 @@ function check_dep_aws() {
   set -e
 
   if ! command -v aws >/dev/null 2>&1; then
+    echo
     read -p "The AWS CLI is required. Would you like cortex.sh to install it? [Y/n] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
       install_aws
-      echo
     else
       exit 1
     fi
@@ -1853,7 +1854,7 @@ function uninstall_cortex_cli() {
   fi
 
   echo
-  read -p "Would you like to uninstall the Cortex CLI? (may require sudo password) [Y/n] " -n 1 -r
+  read -p "Would you like to uninstall the Cortex CLI? [Y/n] " -n 1 -r
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]; then
     if [ $(id -u) = 0 ]; then
@@ -1905,7 +1906,7 @@ function get_bash_profile() {
 
 function ask_sudo() {
   if ! sudo -n true 2>/dev/null; then
-    echo "sudo password required"
+    echo -e "\nPlease enter your sudo password"
   fi
 }
 
@@ -1924,7 +1925,7 @@ fi
 
 if [ "$ARG1" = "install" ]; then
   if [ ! "$ARG3" = "" ]; then
-    echo "too many arguments for install command"
+    echo -e "\nerror: too many arguments for install command"
     show_help
     exit 1
   elif [ "$ARG2" = "operator" ]; then
@@ -1934,17 +1935,17 @@ if [ "$ARG1" = "install" ]; then
   elif [ "$ARG2" = "kubernetes-tools" ]; then
     install_kubernetes_tools
   elif [ "$ARG2" = "" ]; then
-    echo "missing subcommand for install"
+    echo -e "\nerror: missing subcommand for install"
     show_help
     exit 1
   else
-    echo "invalid subcommand for install: $ARG2"
+    echo -e "\nerror: invalid subcommand for install: $ARG2"
     show_help
     exit 1
   fi
 elif [ "$ARG1" = "uninstall" ]; then
   if [ ! "$ARG3" = "" ]; then
-    echo "too many arguments for uninstall command"
+    echo -e "\nerror: too many arguments for uninstall command"
     show_help
     exit 1
   elif [ "$ARG2" = "operator" ]; then
@@ -1954,40 +1955,40 @@ elif [ "$ARG1" = "uninstall" ]; then
   elif [ "$ARG2" = "kubernetes-tools" ]; then
     uninstall_kubernetes_tools
   elif [ "$ARG2" = "" ]; then
-    echo "missing subcommand for uninstall"
+    echo -e "\nerror: missing subcommand for uninstall"
     show_help
     exit 1
   else
-    echo "invalid subcommand for uninstall: $ARG2"
+    echo -e "\nerror: invalid subcommand for uninstall: $ARG2"
     show_help
     exit 1
   fi
 elif [ "$ARG1" = "update" ]; then
   if [ ! "$ARG3" = "" ]; then
-    echo "too many arguments for update command"
+    echo -e "\nerror: too many arguments for update command"
     show_help
     exit 1
   elif [ "$ARG2" = "operator" ]; then
     update_operator
   elif [ "$ARG2" = "" ]; then
-    echo "missing subcommand for update"
+    echo -e "\nerror: missing subcommand for update"
     show_help
     exit 1
   else
-    echo "invalid subcommand for update: $ARG2"
+    echo -e "\nerror: invalid subcommand for update: $ARG2"
     show_help
     exit 1
   fi
 elif [ "$ARG1" = "endpoints" ]; then
   if [ ! "$ARG2" = "" ]; then
-    echo "too many arguments for endpoints command"
+    echo -e "\nerror: too many arguments for endpoints command"
     show_help
     exit 1
   else
     get_endpoints
   fi
 else
-  echo "unknown command: $ARG1"
+  echo -e "\nerror: unknown command: $ARG1"
   show_help
   exit 1
 fi
