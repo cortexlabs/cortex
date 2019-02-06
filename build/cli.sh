@@ -41,7 +41,7 @@ function build_and_upload() {
 echo ""
 echo "Building Cortex CLI for Mac"
 
-build_and_upload darwin "cortex-cli-$CORTEX_VERSION-mac.zip"
+build_and_upload darwin "cortex-cli-$CORTEX_VERSION-darwin.zip"
 
 #############
 ### Linux ###
@@ -51,12 +51,3 @@ echo ""
 echo "Building Cortex CLI for Linux"
 
 build_and_upload linux "cortex-cli-$CORTEX_VERSION-linux.zip"
-
-###############
-### Windows ###
-###############
-
-echo ""
-echo "Building Cortex CLI for Windows"
-
-build_and_upload windows "cortex-cli-$CORTEX_VERSION-windows.zip"

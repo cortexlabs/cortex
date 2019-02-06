@@ -114,7 +114,7 @@ The Iris Data Set consists of four attributes and a label. We ensure that the da
 
 #### Define aggregates
 
-Aggregates are computations that require processing the full column. We want to normalize the numeric features, so we need mean and standard deviation values for each numeric column. We also need a mapping of strings to integers for the label column. Cortex has `mean`, `stddev`, and `index_string` aggregators out of the box.
+Aggregates are computations that require processing a full column of data. We want to normalize the numeric features, so we need mean and standard deviation values for each numeric column. We also need a mapping of strings to integers for the label column. Cortex has `mean`, `stddev`, and `index_string` aggregators out of the box.
 
 ```yaml
 # resources/aggregates.yaml

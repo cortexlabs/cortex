@@ -3,15 +3,15 @@
 * [Read Me](../README.md)
 * [Install](install.md)
 * [Quick Start](quick-start.md)
+* [CLI Commands](cli.md)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
 * [FAQ](faq.md)
 
-## Cluster
+## Operator
 
-* [Config](cluster/config.md)
-* [CLI Commands](cluster/cli.md)
-* [Security](cluster/security.md)
-* [Uninstall](cluster/uninstall.md)
+* [Config](operator/config.md)
+* [Security](operator/security.md)
+* [Uninstall](operator/uninstall.md)
 
 ## Applications
 
