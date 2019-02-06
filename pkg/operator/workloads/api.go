@@ -67,10 +67,9 @@ func apiSpec(
 		if q == 0 {
 			q = 1
 		}
+
 		transformLimitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(q, k8sresource.DecimalSI)
 		transformResourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(q, k8sresource.DecimalSI)
-		tfServingLimitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(q, k8sresource.DecimalSI)
-		tfServingResourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(q, k8sresource.DecimalSI)
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{

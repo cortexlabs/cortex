@@ -46,10 +46,6 @@ RUN pip3 --no-cache-dir install --upgrade \
     pip \
     setuptools
 
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-9.0/lib64
-RUN add-apt-repository ppa:graphics-drivers/ppa
-RUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -q nvidia-390
-
 
 # Some TF tools expect a "python" binary
 RUN ln -s python3 /usr/local/bin/python 
