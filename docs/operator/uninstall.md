@@ -37,7 +37,7 @@ export AWS_SECRET_ACCESS_KEY=***
 aws s3 rb s3://<bucket-name> --force
 
 # Delete the log group
-aws logs delete-log-group --log-group-name <log-group-name>
+aws logs delete-log-group --log-group-name cortex
 ```
 
 ## Kubernetes
@@ -46,8 +46,8 @@ If you used [`eksctl`](https://eksctl.io) to create your cluster, you can use it
 
 ```bash
 # Spin down an EKS cluster
-eksctl delete cluster --name=<name>
+eksctl delete cluster --name=cortex
 
-# Install kubectl, eksctl, and aws-iam-authenticator
+# Uninstall kubectl, eksctl, and aws-iam-authenticator
 ./cortex.sh uninstall kubernetes-tools
 ```

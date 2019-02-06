@@ -26,16 +26,14 @@ Cortex runs on Kubernetes. Please make sure you have a Kubernetes cluster runnin
 
 **We recommend a minimum cluster size of 3 [t3.small](https://aws.amazon.com/ec2/instance-types) AWS instances. Cortex may not run successfully on clusters with less compute resources.**
 
-If you don't already have a Kubernetes cluster, [eksctl](https://eksctl.io) is a simple tool to create and manage one.
+If you don't already have a Kubernetes cluster, [eksctl](https://eksctl.io) is a simple tool to create and manage one:
 
 ```bash
 # Install kubectl, eksctl, and aws-iam-authenticator
 ./cortex.sh install kubernetes-tools
 
-# Spin up an EKS cluster (this takes ~20 minutes)
-eksctl create cluster --name=cortex --nodes=3 --node-type=t3.small
-
-# See eksctl.io for more configuration options
+# Spin up an EKS cluster (see eksctl.io for more configuration options)
+eksctl create cluster --name=cortex --nodes=3 --node-type=t3.small  # this takes ~20 minutes
 ```
 
 ## Operator
