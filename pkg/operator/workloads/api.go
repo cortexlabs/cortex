@@ -62,9 +62,11 @@ func apiSpec(
 		tfServingResourceList[corev1.ResourceMemory] = *q2
 	}
 
+	servingImage := cc.TFServeImage
 	if apiCompute.GPU != nil {
-		transformLimitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(*apiCompute.GPU, k8sresource.DecimalSI)
-		transformResourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(*apiCompute.GPU, k8sresource.DecimalSI)
+		servingImage = cc.TFServeImageGPU
+		tfServingResourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(*apiCompute.GPU, k8sresource.DecimalSI)
+		tfServingLimitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(*apiCompute.GPU, k8sresource.DecimalSI)
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -115,7 +117,7 @@ func apiSpec(
 					},
 					{
 						Name:            tfServingContainerName,
-						Image:           cc.TFServeImage,
+						Image:           servingImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--port=" + tfServingPortStr,

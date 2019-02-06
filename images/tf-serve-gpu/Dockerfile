@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM nvidia/cuda:9.0-base-ubuntu16.04
 
 ARG TF_VERSION="1.12.0"
 

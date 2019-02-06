@@ -47,7 +47,9 @@ func trainingJobSpec(
 		resourceList[corev1.ResourceMemory] = tfCompute.Mem.Quantity
 	}
 
+	trainImage := cc.TFTrainImage
 	if tfCompute.GPU != nil {
+		trainImage = cc.TFTrainImageGPU
 		resourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(*tfCompute.GPU, k8sresource.DecimalSI)
 		limitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(*tfCompute.GPU, k8sresource.DecimalSI)
 	}
@@ -71,7 +73,7 @@ func trainingJobSpec(
 				Containers: []corev1.Container{
 					{
 						Name:            "train",
-						Image:           cc.TFTrainImage,
+						Image:           trainImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--workload-id=" + workloadID,

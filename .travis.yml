@@ -13,6 +13,7 @@ services:
 script:
   - docker build . -f images/spark-base/Dockerfile -t cortexlabs/spark-base:latest
   - docker build . -f images/tf-base/Dockerfile -t cortexlabs/tf-base:latest
+  - docker build . -f images/tf-base-gpu/Dockerfile -t cortexlabs/tf-base-gpu:latest
 
   - ./build/images.sh images/operator operator
   - ./build/images.sh images/spark spark

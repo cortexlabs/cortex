@@ -30,6 +30,8 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/tf-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-train --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-api --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/tf-train-gpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/tf-serve-gpu --region=$REGISTRY_REGION || true
 }
 
 ### HELPERS ###
@@ -98,6 +100,7 @@ elif [ "$CMD" = "update" ]; then
     cache_builder $ROOT/images/spark-base spark-base
     build_base $ROOT/images/spark-base spark-base
     build_base $ROOT/images/tf-base tf-base
+    build_base $ROOT/images/tf-base-gpu tf-base-gpu
 
     cache_builder $ROOT/images/operator operator
     build_and_push $ROOT/images/operator operator latest
@@ -111,10 +114,12 @@ elif [ "$CMD" = "update" ]; then
     build_and_push $ROOT/images/argo-controller argo-controller latest
     build_and_push $ROOT/images/argo-executor argo-executor latest
     build_and_push $ROOT/images/tf-serve tf-serve latest
+    build_and_push $ROOT/images/tf-serve-gpu tf-serve-gpu latest
   fi
 
   build_and_push $ROOT/images/spark spark latest
   build_and_push $ROOT/images/tf-train tf-train latest
+  build_and_push $ROOT/images/tf-train-gpu tf-train-gpu latest
   build_and_push $ROOT/images/tf-api tf-api latest
 
   cleanup
