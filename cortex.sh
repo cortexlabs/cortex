@@ -159,7 +159,7 @@ function install_operator() {
 
   setup_bucket
 
-  echo "Installing the Cortex operator..."
+  echo "Installing the Cortex operator ..."
 
   setup_namespace
   setup_configmap
@@ -174,8 +174,6 @@ function install_operator() {
 }
 
 function install_cli() {
-  echo
-
   install_cortex_cli
 }
 
@@ -233,8 +231,6 @@ function uninstall_cli() {
 }
 
 function uninstall_kubernetes_tools() {
-  echo
-
   uninstall_kubectl
   uninstall_eksctl
   uninstall_aws_iam_authenticator
@@ -272,7 +268,7 @@ function setup_bucket() {
       aws s3api create-bucket --bucket $CORTEX_BUCKET \
                               --region $CORTEX_REGION \
                               --create-bucket-configuration LocationConstraint=$CORTEX_REGION \
-                              > /dev/null
+                              >/dev/null
     else
       echo "A bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
       exit 1
@@ -1403,7 +1399,7 @@ function delete_operator() {
 
 function validate_cortex() {
   echo
-  echo "Validating the Cortex operator..."
+  echo "Validating the Cortex operator ..."
   validation_errors="init"
 
   until [ "$validation_errors" == "" ]; do
@@ -1411,12 +1407,12 @@ function validate_cortex() {
 
     out=$(kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-operator -o json | tr -d '[:space:]')
     if ! [[ $out = *'"loadBalancer":{"ingress":[{"'* ]]; then
-      validation_errors="${validation_errors}\n  -> Waiting for load balancer (operator)"
+      validation_errors="${validation_errors}\n  Waiting for load balancer (operator)"
     fi
 
     out=$(kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-apis -o json | tr -d '[:space:]')
     if ! [[ $out = *'"loadBalancer":{"ingress":[{"'* ]]; then
-      validation_errors="${validation_errors}\n  -> Waiting for load balancer (APIs)"
+      validation_errors="${validation_errors}\n  Waiting for load balancer (APIs)"
     fi
 
     if [ "$validation_errors" != "" ]; then
@@ -1464,14 +1460,14 @@ function get_apis_endpoint() {
 #############################
 
 function check_dep_curl() {
-  if ! command -v curl > /dev/null; then
+  if ! command -v curl >/dev/null; then
     echo "error: please install curl using your package manager"
     exit 1
   fi
 }
 
 function check_dep_unzip() {
-  if ! command -v unzip > /dev/null; then
+  if ! command -v unzip >/dev/null; then
     echo "error: please install unzip using your package manager"
     exit 1
   fi
@@ -1507,14 +1503,14 @@ function check_dep_kubectl() {
 }
 
 function install_kubectl() {
-  if command -v kubectl > /dev/null; then
-    echo "kubectl is already installed"
+  if command -v kubectl >/dev/null; then
+    echo -e "\nkubectl is already installed"
     return
   fi
 
   check_dep_curl
 
-  echo "installing kubectl (/usr/local/bin/kubectl)"
+  echo -e "\nInstalling kubectl (/usr/local/bin/kubectl) ..."
 
   curl --silent -LO https://storage.googleapis.com/kubernetes-release/release/v1.13.3/bin/$PARSED_OS/amd64/kubectl
   chmod +x ./kubectl
@@ -1527,17 +1523,18 @@ function install_kubectl() {
 }
 
 function uninstall_kubectl() {
-  if ! command -v kubectl > /dev/null; then
-    echo "kubectl is not installed"
+  if ! command -v kubectl >/dev/null; then
+    echo -e "\nkubectl is not installed"
     return
   fi
 
   if [[ ! -f /usr/local/bin/kubectl ]]; then
-    echo "kubectl was not installed by cortex.sh"
+    echo -e "\nkubectl was not installed by cortex.sh"
     return
   fi
 
-  read -p "would you like to uninstall kubectl (/usr/local/bin/kubectl)? [Y/n] " -n 1 -r
+  echo
+  read -p "Would you like to uninstall kubectl (/usr/local/bin/kubectl)? (may require sudo password) [Y/n] " -n 1 -r
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]; then
     if [ $(id -u) = 0 ]; then
@@ -1545,7 +1542,7 @@ function uninstall_kubectl() {
     else
       sudo rm /usr/local/bin/kubectl
     fi
-    echo "uninstalled kubectl"
+    echo "Uninstalled kubectl"
   else
     return
   fi
@@ -1575,7 +1572,7 @@ function check_dep_aws() {
 }
 
 function install_aws() {
-  if command -v aws > /dev/null; then
+  if command -v aws >/dev/null; then
     echo "The AWS CLI is already installed"
     return
   fi
@@ -1583,9 +1580,9 @@ function install_aws() {
   check_dep_curl
   check_dep_unzip
 
-  if command -v python > /dev/null; then
+  if command -v python >/dev/null; then
     PY_PATH=$(which python)
-  elif command -v python3 > /dev/null; then
+  elif command -v python3 >/dev/null; then
     PY_PATH=$(which python3)
   else
     echo "error: please install python or python3 using your package manager"
@@ -1593,7 +1590,7 @@ function install_aws() {
   fi
 
   if ! $PY_PATH -c "import distutils.sysconfig" >/dev/null 2>&1; then
-    if command -v python3 > /dev/null; then
+    if command -v python3 >/dev/null; then
       echo "error: please install python3-distutils using your package manager"
     else
       echo "error: please install python distutils"
@@ -1601,23 +1598,23 @@ function install_aws() {
     exit 1
   fi
 
-  echo "Installing the AWS CLI (/usr/local/bin/aws)"
+  echo -e "\nInstalling the AWS CLI (/usr/local/bin/aws) ..."
 
-  curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
-  unzip awscli-bundle.zip
+  curl -s "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
+  unzip awscli-bundle.zip >/dev/null
   rm awscli-bundle.zip
 
   if [ $(id -u) = 0 ]; then
-    $PY_PATH ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
+    $PY_PATH ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws >/dev/null
   else
-    sudo $PY_PATH ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
+    sudo $PY_PATH ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws >/dev/null
   fi
 
   rm -rf awscli-bundle
 }
 
 function uninstall_aws() {
-  if ! command -v aws > /dev/null; then
+  if ! command -v aws >/dev/null; then
     echo "The AWS CLI is not installed"
     return
   fi
@@ -1627,6 +1624,7 @@ function uninstall_aws() {
     return
   fi
 
+  echo
   read -p "Would you like to uninstall the AWS CLI (/usr/local/bin/aws)? [Y/n] " -n 1 -r
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -1637,17 +1635,18 @@ function uninstall_aws() {
       sudo rm -rf /usr/local/aws
       sudo rm /usr/local/bin/aws
     fi
-    echo -e "\nUninstalled the AWS CLI"
+    echo "Uninstalled the AWS CLI"
   else
     return
   fi
 
   if [[ -d $HOME/.aws ]]; then
+    echo
     read -p "Would you like to delete the AWS CLI credentials and configuration (~/.aws)? [Y/n] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
       rm -rf $HOME/.aws
-      echo -e "\nDeleted ~/.aws"
+      echo "Deleted ~/.aws"
     else
       return
     fi
@@ -1655,16 +1654,16 @@ function uninstall_aws() {
 }
 
 function install_eksctl() {
-  if command -v eksctl > /dev/null; then
-    echo "eksctl is already installed"
+  if command -v eksctl >/dev/null; then
+    echo -e "\neksctl is already installed"
     return
   fi
 
   check_dep_curl
 
-  echo "Installing eksctl (/usr/local/bin/eksctl)"
+  echo -e "\nInstalling eksctl (/usr/local/bin/eksctl) ..."
 
-  curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/0.1.19/eksctl_$(uname -s)_amd64.tar.gz" | tar xz
+  curl -s --location "https://github.com/weaveworks/eksctl/releases/download/0.1.19/eksctl_$(uname -s)_amd64.tar.gz" | tar xz
   chmod +x ./eksctl
 
   if [ $(id -u) = 0 ]; then
@@ -1675,17 +1674,20 @@ function install_eksctl() {
 }
 
 function uninstall_eksctl() {
-  if ! command -v eksctl > /dev/null; then
+  if ! command -v eksctl >/dev/null; then
+    echo
     echo "eksctl is not installed"
     return
   fi
 
   if [[ ! -f /usr/local/bin/eksctl ]]; then
+    echo
     echo "eksctl was not found at /usr/local/bin/eksctl, please uninstall it manually"
     return
   fi
 
-  read -p "Would you like to uninstall eksctl (/usr/local/bin/eksctl)? [Y/n] " -n 1 -r
+  echo
+  read -p "Would you like to uninstall eksctl (/usr/local/bin/eksctl)? (may require sudo password) [Y/n] " -n 1 -r
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]; then
     if [ $(id -u) = 0 ]; then
@@ -1700,16 +1702,16 @@ function uninstall_eksctl() {
 }
 
 function install_aws_iam_authenticator() {
-  if command -v aws-iam-authenticator > /dev/null; then
+  if command -v aws-iam-authenticator >/dev/null; then
     echo "aws-iam-authenticator is already installed"
     return
   fi
 
   check_dep_curl
 
-  echo "Installing aws-iam-authenticator (/usr/local/bin/aws-iam-authenticator)"
+  echo "Installing aws-iam-authenticator (/usr/local/bin/aws-iam-authenticator) ..."
 
-  curl --silent -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.11.5/2018-12-06/bin/$PARSED_OS/amd64/aws-iam-authenticator
+  curl -s -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.11.5/2018-12-06/bin/$PARSED_OS/amd64/aws-iam-authenticator
   chmod +x ./aws-iam-authenticator
 
   if [ $(id -u) = 0 ]; then
@@ -1720,17 +1722,20 @@ function install_aws_iam_authenticator() {
 }
 
 function uninstall_aws_iam_authenticator() {
-  if ! command -v aws-iam-authenticator > /dev/null; then
+  if ! command -v aws-iam-authenticator >/dev/null; then
+    echo
     echo "aws-iam-authenticator is not installed"
     return
   fi
 
   if [[ ! -f /usr/local/bin/aws-iam-authenticator ]]; then
+    echo
     echo "aws-iam-authenticator was not found at /usr/local/bin/aws-iam-authenticator, please uninstall it manually"
     return
   fi
 
-  read -p "would you like to uninstall aws-iam-authenticator (/usr/local/bin/aws-iam-authenticator)? [Y/n] " -n 1 -r
+  echo
+  read -p "Would you like to uninstall aws-iam-authenticator (/usr/local/bin/aws-iam-authenticator)? (may require sudo password) [Y/n] " -n 1 -r
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]; then
     if [ $(id -u) = 0 ]; then
@@ -1745,7 +1750,7 @@ function uninstall_aws_iam_authenticator() {
 }
 
 function install_cortex_cli() {
-  if command -v cortex > /dev/null; then
+  if command -v cortex >/dev/null; then
     echo "The Cortex CLI is already installed"
     return
   fi
@@ -1753,10 +1758,10 @@ function install_cortex_cli() {
   check_dep_curl
   check_dep_unzip
 
-  echo "installing cortex CLI (/usr/local/bin/cortex)"
+  echo "Installing the Cortex CLI (/usr/local/bin/cortex) ..."
 
-  curl -O https://s3-us-west-2.amazonaws.com/get-cortex/cortex-cli-${CORTEX_VERSION_STABLE}-${PARSED_OS}.zip
-  unzip cortex-cli-${CORTEX_VERSION_STABLE}-${PARSED_OS}.zip
+  curl -s -O https://s3-us-west-2.amazonaws.com/get-cortex/cortex-cli-${CORTEX_VERSION_STABLE}-${PARSED_OS}.zip
+  unzip cortex-cli-${CORTEX_VERSION_STABLE}-${PARSED_OS}.zip >/dev/null
   chmod +x cortex
 
   if [ $(id -u) = 0 ]; then
@@ -1767,16 +1772,16 @@ function install_cortex_cli() {
 
   rm cortex-cli-${CORTEX_VERSION_STABLE}-${PARSED_OS}.zip
 
-  echo "The Cortex CLI has been installed"
-
   BASH_PROFILE=$(get_bash_profile)
   if [ ! "$BASH_PROFILE" = "" ]; then
     if ! grep -Fxq "source <(cortex completion)" "$BASH_PROFILE"; then
+      echo
       read -p "Would you like to modify your bash profile ($BASH_PROFILE) to enable cortex bash completion and the cx alias? [Y/n] " -n 1 -r
       echo
       if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo -e "\nsource <(cortex completion)" >> $BASH_PROFILE
-        echo "Your bash profile ($BASH_PROFILE) has been updated. Run \`source $BASH_PROFILE\` to update your current terminal session."
+        echo "Your bash profile ($BASH_PROFILE) has been updated"
+        echo "Run \`source $BASH_PROFILE\` to update your current terminal session"
       else
         echo "Your bash profile has not been modified. If you would like to modify it manually, add this line to your bash profile:"
         echo "  source <(cortex completion)"
@@ -1793,23 +1798,24 @@ function install_cortex_cli() {
   fi
 
   echo
-  echo "Configuring Cortex CLI..."
+  echo "Configuring the Cortex CLI ..."
   /usr/local/bin/cortex configure
 }
 
 function uninstall_cortex_cli() {
   rm -rf $HOME/.cortex
 
-  if ! command -v cortex > /dev/null; then
-    echo "The Cortex CLI is not installed"
+  if ! command -v cortex >/dev/null; then
+    echo -e "\nThe Cortex CLI is not installed"
     return
   fi
 
   if [[ ! -f /usr/local/bin/cortex ]]; then
-    echo "The Cortex CLI was not found at /usr/local/bin/cortex, please uninstall it manually"
+    echo -e "\nThe Cortex CLI was not found at /usr/local/bin/cortex, please uninstall it manually"
     return
   fi
 
+  echo
   read -p "Would you like to uninstall the Cortex CLI? (may require sudo password) [Y/n] " -n 1 -r
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -1818,7 +1824,7 @@ function uninstall_cortex_cli() {
     else
       sudo rm /usr/local/bin/cortex
     fi
-    echo -e "\nUninstalled the Cortex CLI"
+    echo "Uninstalled the Cortex CLI"
   else
     return
   fi
@@ -1826,6 +1832,7 @@ function uninstall_cortex_cli() {
   BASH_PROFILE=$(get_bash_profile)
   if [ ! "$BASH_PROFILE" = "" ]; then
     if grep -Fxq "source <(cortex completion)" "$BASH_PROFILE"; then
+      echo
       read -p "Would you like to remove \"source <(cortex completion)\" from your bash profile ($BASH_PROFILE)? [Y/n] " -n 1 -r
       echo
       if [[ $REPLY =~ ^[Yy]$ ]]; then
