@@ -1809,29 +1809,27 @@ function install_cortex_cli() {
   BASH_PROFILE=$(get_bash_profile)
   if [ ! "$BASH_PROFILE" = "" ]; then
     if ! grep -Fxq "source <(cortex completion)" "$BASH_PROFILE"; then
-      if ! command -v _get_comp_words_by_ref >/dev/null; then
-        echo -e "\nWarning: Cortex CLI completion could not be enabled because \`bash_completion\` is not installed"
-        echo "To enable Cortex CLI completion, install \`bash_completion\` on your system, and add this line to your bash profile:"
-        echo "  source <(cortex completion)"
+      echo
+      read -p "Would you like to modify your bash profile ($BASH_PROFILE) to enable cortex bash completion and the cx alias? [Y/n] " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "\nsource <(cortex completion)" >> $BASH_PROFILE
+        echo "✓ Your bash profile ($BASH_PROFILE) has been updated"
+        echo
+        echo "Note: \`bash_completion\` must be installed on your system for cortex command completion to function properly"
+        echo
+        echo "Command to update your current terminal session:"
+        echo "  source $BASH_PROFILE"
       else
-        echo
-        read -p "Would you like to modify your bash profile ($BASH_PROFILE) to enable cortex bash completion and the cx alias? [Y/n] " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-          echo -e "\nsource <(cortex completion)" >> $BASH_PROFILE
-          echo "✓ Your bash profile ($BASH_PROFILE) has been updated"
-          echo
-          echo "Command to update your current terminal session:"
-          echo "  source $BASH_PROFILE"
-        else
-          echo "Your bash profile has not been modified. If you would like to modify it manually, add this line to your bash profile:"
-          echo "  source <(cortex completion)"
-        fi
+        echo "Your bash profile has not been modified. If you would like to modify it manually, add this line to your bash profile:"
+        echo "  source <(cortex completion)"
+        echo "Note: \`bash_completion\` must be installed on your system for cortex command completion to function properly"
       fi
     fi
   else
     echo -e "\nIf your would like to enable cortex bash completion and the cx alias, add this line to your bash profile:"
     echo "  source <(cortex completion)"
+    echo "Note: \`bash_completion\` must be installed on your system for cortex command completion to function properly"
   fi
 
   OPERATOR_ENDPOINT=$(get_operator_endpoint_or_empty)
