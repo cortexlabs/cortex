@@ -1859,20 +1859,13 @@ function uninstall_cortex_cli() {
     return
   fi
 
-  echo
-  read -p "Would you like to uninstall the Cortex CLI? [Y/n] " -n 1 -r
-  echo
-  if [[ $REPLY =~ ^[Yy]$ ]]; then
-    if [ $(id -u) = 0 ]; then
-      rm /usr/local/bin/cortex
-    else
-      ask_sudo
-      sudo rm /usr/local/bin/cortex
-    fi
-    echo "✓ Uninstalled the Cortex CLI"
+  if [ $(id -u) = 0 ]; then
+    rm /usr/local/bin/cortex
   else
-    return
+    ask_sudo
+    sudo rm /usr/local/bin/cortex
   fi
+  echo -e "\n✓ Uninstalled the Cortex CLI"
 
   BASH_PROFILE=$(get_bash_profile)
   if [ ! "$BASH_PROFILE" = "" ]; then
