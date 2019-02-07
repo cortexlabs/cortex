@@ -70,7 +70,10 @@ func New(
 		ctx.DatasetVersion,
 		ctx.Environment.ID,
 	)
-	ctx.RawDatasetKey = filepath.Join(ctx.Root, consts.RawDataDir, "raw.parquet")
+	ctx.RawDataset = context.RawDataset{
+		Key:         filepath.Join(ctx.Root, consts.RawDataDir, "raw.parquet"),
+		MetadataKey: filepath.Join(ctx.Root, consts.RawDataDir, "metadata.json"),
+	}
 
 	ctx.StatusPrefix = StatusPrefix(ctx.App.Name)
 
@@ -146,7 +149,7 @@ func calculateID(ctx *context.Context) string {
 	ids = append(ids, ctx.CortexConfig.ID)
 	ids = append(ids, ctx.DatasetVersion)
 	ids = append(ids, ctx.Root)
-	ids = append(ids, ctx.RawDatasetKey)
+	ids = append(ids, ctx.RawDataset.Key)
 	ids = append(ids, ctx.StatusPrefix)
 	ids = append(ids, ctx.App.ID)
 	ids = append(ids, ctx.Environment.ID)

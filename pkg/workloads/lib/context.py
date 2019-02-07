@@ -62,7 +62,7 @@ class Context:
         self.cortex_config = self.ctx["cortex_config"]
         self.dataset_version = self.ctx["dataset_version"]
         self.root = self.ctx["root"]
-        self.raw_dataset_key = self.ctx["raw_dataset_key"]
+        self.raw_dataset = self.ctx["raw_dataset"]
         self.status_prefix = self.ctx["status_prefix"]
         self.app = self.ctx["app"]
         self.environment = self.ctx["environment"]

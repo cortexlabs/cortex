@@ -60,7 +60,7 @@ func dataJobSpec(
 func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	workloadID := generateWorkloadID()
 
-	rawFileExists, err := aws.IsS3File(filepath.Join(ctx.RawDatasetKey, "_SUCCESS"))
+	rawFileExists, err := aws.IsS3File(filepath.Join(ctx.RawDataset.Key, "_SUCCESS"))
 	if err != nil {
 		return nil, errors.Wrap(err, ctx.App.Name, "raw dataset")
 	}
