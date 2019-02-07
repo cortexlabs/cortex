@@ -62,7 +62,6 @@ func New(
 	if err != nil {
 		return nil, err
 	}
-
 	ctx.PythonPackages = pythonPackages
 
 	userTransformers, err := loadUserTransformers(config.Transformers, files, pythonPackages)

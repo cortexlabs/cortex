@@ -59,7 +59,7 @@ func init() {
 func loadUserAggregators(
 	aggregatorConfigs userconfig.Aggregators,
 	impls map[string][]byte,
-	pythonPackage context.PythonPackages,
+	pythonPackages context.PythonPackages,
 ) (map[string]*context.Aggregator, error) {
 
 	userAggregators := make(map[string]*context.Aggregator)
@@ -68,7 +68,7 @@ func loadUserAggregators(
 		if !ok {
 			return nil, errors.New(userconfig.Identify(aggregatorConfig), s.ErrFileDoesNotExist(aggregatorConfig.Path))
 		}
-		aggregator, err := newAggregator(*aggregatorConfig, impl, nil, &pythonPackage)
+		aggregator, err := newAggregator(*aggregatorConfig, impl, nil, pythonPackages)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +82,7 @@ func newAggregator(
 	aggregatorConfig userconfig.Aggregator,
 	impl []byte,
 	namespace *string,
-	pythonPackages *context.PythonPackages,
+	pythonPackages context.PythonPackages,
 ) (*context.Aggregator, error) {
 
 	implID := util.HashBytes(impl)
@@ -91,11 +91,11 @@ func newAggregator(
 	buf.WriteString(context.DataTypeID(aggregatorConfig.Inputs))
 	buf.WriteString(context.DataTypeID(aggregatorConfig.OutputType))
 	buf.WriteString(implID)
-	if pythonPackages != nil {
-		for _, pythonPackage := range *pythonPackages {
-			buf.WriteString(pythonPackage.GetID())
-		}
+
+	for _, pythonPackage := range pythonPackages {
+		buf.WriteString(pythonPackage.GetID())
 	}
+
 	id := util.HashBytes(buf.Bytes())
 
 	aggregator := &context.Aggregator{

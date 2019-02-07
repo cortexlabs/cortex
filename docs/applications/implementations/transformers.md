@@ -98,4 +98,4 @@ six==1.11.0
 wrapt==1.11.0
 ```
 
-You can install additional PyPI packages and import your own Python libraries. See [Custom Dependencies](../advanced/custom-dependencies.md) for more details.
+You can install additional PyPI packages and import your own Python packages. See [Custom Packages](../advanced/custom-packages.md) for more details.

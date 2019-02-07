@@ -43,12 +43,10 @@ def build_packages(python_packages, bucket):
         if package_name == "requirements.txt":
             requirements_path = os.path.join(LOCAL_PACKAGE_PATH, package_name)
             aws.download_file_from_s3(python_package["src_key"], requirements_path, bucket)
-            cmd_partial[python_package["name"]] = "-r " + requirements_path
+            cmd_partial[package_name] = "-r " + requirements_path
         else:
             aws.download_and_extract_zip(python_package["src_key"], LOCAL_PACKAGE_PATH, bucket)
-            cmd_partial[python_package["name"]] = os.path.join(
-                LOCAL_PACKAGE_PATH, python_package["name"]
-            )
+            cmd_partial[package_name] = os.path.join(LOCAL_PACKAGE_PATH, package_name)
 
     logger.info("Setting up packages")
 

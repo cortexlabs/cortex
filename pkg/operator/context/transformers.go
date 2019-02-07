@@ -68,7 +68,7 @@ func loadUserTransformers(
 		if !ok {
 			return nil, errors.New(userconfig.Identify(transConfig), s.ErrFileDoesNotExist(transConfig.Path))
 		}
-		transformer, err := newTransformer(*transConfig, impl, nil, &pythonPackages)
+		transformer, err := newTransformer(*transConfig, impl, nil, pythonPackages)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +82,7 @@ func newTransformer(
 	transConfig userconfig.Transformer,
 	impl []byte,
 	namespace *string,
-	pythonPackages *context.PythonPackages,
+	pythonPackages context.PythonPackages,
 ) (*context.Transformer, error) {
 
 	implID := util.HashBytes(impl)
@@ -91,11 +91,10 @@ func newTransformer(
 	buf.WriteString(context.DataTypeID(transConfig.Inputs))
 	buf.WriteString(context.DataTypeID(transConfig.OutputType))
 	buf.WriteString(implID)
-	if pythonPackages != nil {
-		for _, pythonPackage := range *pythonPackages {
-			buf.WriteString(pythonPackage.GetID())
-		}
+	for _, pythonPackage := range pythonPackages {
+		buf.WriteString(pythonPackage.GetID())
 	}
+
 	id := util.HashBytes(buf.Bytes())
 
 	transformer := &context.Transformer{

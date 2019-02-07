@@ -40,4 +40,4 @@
 
   * [Templates](applications/advanced/templates.md)
   * [Compute](applications/advanced/compute.md)
-  * [Custom Dependencies](applications/advanced/custom-dependencies.md)
+  * [Custom Packages](applications/advanced/custom-packages.md)
