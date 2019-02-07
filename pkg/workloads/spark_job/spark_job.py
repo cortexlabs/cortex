@@ -110,7 +110,7 @@ def validate_dataset(ctx, raw_df, features_to_validate):
 
 def write_raw_dataset(df, ctx, spark):
     logger.info("Caching {} data (version: {})".format(ctx.app["name"], ctx.dataset_version))
-    acc, df = spark_util.count_rows(df, spark)
+    acc, df = spark_util.accumulate_count(df, spark)
     df.write.mode("overwrite").parquet(aws.s3a_path(ctx.bucket, ctx.raw_dataset["key"]))
     return acc.value
 

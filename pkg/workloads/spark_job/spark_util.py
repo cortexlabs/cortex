@@ -49,7 +49,7 @@ CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES = {
 }
 
 
-def count_rows(df, spark):
+def accumulate_count(df, spark):
     acc = df._sc.accumulator(0)
     first_column_schema = df.schema[0]
     col_name = first_column_schema.name
@@ -84,12 +84,12 @@ def write_training_data(model_name, df, ctx, spark):
     eval_ratio = model["data_partition_ratio"]["evaluation"]
     [train_df, eval_df] = df.randomSplit([train_ratio, eval_ratio])
 
-    train_df_acc, train_df = count_rows(train_df, spark)
+    train_df_acc, train_df = accumulate_count(train_df, spark)
     train_df.write.mode("overwrite").format("tfrecords").option("recordType", "Example").save(
         aws.s3a_path(ctx.bucket, training_dataset["train_key"])
     )
 
-    eval_df_acc, eval_df = count_rows(eval_df, spark)
+    eval_df_acc, eval_df = accumulate_count(eval_df, spark)
     eval_df.write.mode("overwrite").format("tfrecords").option("recordType", "Example").save(
         aws.s3a_path(ctx.bucket, training_dataset["eval_key"])
     )
