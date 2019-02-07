@@ -20,7 +20,7 @@ import traceback
 
 from pyspark.sql import SparkSession
 
-from lib import util
+from lib import util, aws
 from lib.context import Context
 from lib.log import get_logger
 from lib.exceptions import UserException, CortexException, UserRuntimeException
@@ -91,69 +91,79 @@ def parse_args(args):
     )
 
 
+def validate_dataset(ctx, raw_df, features_to_validate):
+    total_row_count = aws.read_json_from_s3(ctx.raw_dataset["metadata_key"], ctx.bucket)[
+        "dataset_size"
+    ]
+    conditions_dict = spark_util.value_check_data(ctx, raw_df, features_to_validate)
+
+    if len(conditions_dict) > 0:
+        for column, cond_count_list in conditions_dict.items():
+            for condition, fail_count in cond_count_list:
+                logger.error(
+                    "Data validation {} has been violated in {}/{} samples".format(
+                        condition, fail_count, total_row_count
+                    )
+                )
+        raise UserException("raw feature validations failed")
+
+
+def write_raw_dataset(df, ctx, spark):
+    logger.info("Caching {} data (version: {})".format(ctx.app["name"], ctx.dataset_version))
+    acc, df = spark_util.accumulate_count(df, spark)
+    df.write.mode("overwrite").parquet(aws.s3a_path(ctx.bucket, ctx.raw_dataset["key"]))
+    return acc.value
+
+
+def drop_null_and_write(ingest_df, ctx, spark):
+    full_dataset_size = ingest_df.count()
+    logger.info("Dropping any rows that contain null values")
+    ingest_df = ingest_df.dropna()
+    written_count = write_raw_dataset(ingest_df, ctx, spark)
+    metadata = {"dataset_size": written_count}
+    aws.upload_json_to_s3(metadata, ctx.raw_dataset["metadata_key"], ctx.bucket)
+    logger.info(
+        "{} rows read, {} rows dropped, {} rows ingested".format(
+            full_dataset_size, full_dataset_size - written_count, written_count
+        )
+    )
+
+
 def ingest_raw_dataset(spark, ctx, features_to_validate, should_ingest):
     if should_ingest:
         features_to_validate = list(ctx.rf_id_map.keys())
 
-    if len(features_to_validate) > 0:
-        feature_resources_to_validate = [ctx.rf_id_map[f] for f in features_to_validate]
-        ctx.upload_resource_status_start(*feature_resources_to_validate)
-        try:
-            if should_ingest:
-                logger.info("Ingesting")
-                logger.info(
-                    "Ingesting {} data from {}".format(
-                        ctx.app["name"], ctx.environment["data"]["path"]
-                    )
-                )
-                ingest_df = spark_util.ingest(ctx, spark)
-                full_dataset_counter = ingest_df.count()
-                if ctx.environment["data"].get("drop_null"):
-                    ingest_df = ingest_df.dropna()
-                    logger.info("Dropping any rows that contain null values")
-                    write_dataset_counter = ingest_df.count()
+    if len(features_to_validate) == 0:
+        logger.info("Reading {} data (version: {})".format(ctx.app["name"], ctx.dataset_version))
+        return spark_util.read_raw_dataset(ctx, spark)
 
-                logger.info(
-                    "Caching {} data (version: {})".format(ctx.app["name"], ctx.dataset_version)
-                )
-                spark_util.write_raw_dataset(ingest_df, ctx)
-
-                if ctx.environment["data"].get("drop_null"):
-                    logger.info(
-                        "{} rows read, {} rows dropped, {} rows ingested".format(
-                            full_dataset_counter,
-                            full_dataset_counter - write_dataset_counter,
-                            write_dataset_counter,
-                        )
-                    )
-                else:
-                    logger.info("{} rows ingested".format(full_dataset_counter))
+    feature_resources_to_validate = [ctx.rf_id_map[f] for f in features_to_validate]
+    ctx.upload_resource_status_start(*feature_resources_to_validate)
+    try:
+        if should_ingest:
+            logger.info("Ingesting")
             logger.info(
-                "Reading {} data (version: {})".format(ctx.app["name"], ctx.dataset_version)
+                "Ingesting {} data from {}".format(ctx.app["name"], ctx.environment["data"]["path"])
             )
-            raw_df = spark_util.read_raw_dataset(ctx, spark)
-            total_row_count = raw_df.count()
-            conditions_dict = spark_util.value_check_data(ctx, raw_df, features_to_validate)
+            ingest_df = spark_util.ingest(ctx, spark)
 
-            if len(conditions_dict) > 0:
-                for column, cond_count_list in conditions_dict.items():
-                    for condition, fail_count in cond_count_list:
-                        logger.error(
-                            "Data validation {} has been violated in {}/{} samples".format(
-                                condition, fail_count, total_row_count
-                            )
-                        )
-                raise UserException("raw feature validations failed")
-        except:
-            ctx.upload_resource_status_failed(*feature_resources_to_validate)
-            raise
-        ctx.upload_resource_status_success(*feature_resources_to_validate)
-        logger.info("First {} samples:".format(3))
-        show_df(raw_df, ctx, 3)
-    else:
+            if ctx.environment["data"].get("drop_null"):
+                drop_null_and_write(ingest_df, ctx, spark)
+            else:
+                written_count = write_raw_dataset(ingest_df, ctx, spark)
+                metadata = {"dataset_size": written_count}
+                aws.upload_json_to_s3(metadata, ctx.raw_dataset["metadata_key"], ctx.bucket)
+                logger.info("{} rows ingested".format(written_count))
+
         logger.info("Reading {} data (version: {})".format(ctx.app["name"], ctx.dataset_version))
         raw_df = spark_util.read_raw_dataset(ctx, spark)
-        spark_util.value_check_data(ctx, raw_df, features_to_validate)
+        validate_dataset(ctx, raw_df, features_to_validate)
+    except:
+        ctx.upload_resource_status_failed(*feature_resources_to_validate)
+        raise
+    ctx.upload_resource_status_success(*feature_resources_to_validate)
+    logger.info("First {} samples:".format(3))
+    show_df(raw_df, ctx, 3)
 
     return raw_df
 
@@ -256,7 +266,7 @@ def create_training_datasets(spark, ctx, training_datasets, accumulated_df):
                 td_resource["model_name"], accumulated_df, ctx, spark
             )
             logger.info("Generating {}".format(", ".join(td_resource["aliases"])))
-            spark_util.write_training_data(td_resource["model_name"], accumulated_df, ctx)
+            spark_util.write_training_data(td_resource["model_name"], accumulated_df, ctx, spark)
         except:
             ctx.upload_resource_status_failed(td_resource)
             raise

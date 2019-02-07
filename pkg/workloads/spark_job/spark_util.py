@@ -49,12 +49,23 @@ CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES = {
 }
 
 
+def accumulate_count(df, spark):
+    acc = df._sc.accumulator(0)
+    first_column_schema = df.schema[0]
+    col_name = first_column_schema.name
+    col_type = first_column_schema.dataType
+
+    def _acc_func(val):
+        acc.add(1)
+        return val
+
+    acc_func = F.udf(_acc_func, col_type)
+    df = df.withColumn(col_name, acc_func(F.col(col_name)))
+    return acc, df
+
+
 def read_raw_dataset(ctx, spark):
-    return spark.read.parquet(aws.s3a_path(ctx.bucket, ctx.raw_dataset_key))
-
-
-def write_raw_dataset(df, ctx):
-    df.write.mode("overwrite").parquet(aws.s3a_path(ctx.bucket, ctx.raw_dataset_key))
+    return spark.read.parquet(aws.s3a_path(ctx.bucket, ctx.raw_dataset["key"]))
 
 
 def log_df_schema(df, logger_func=logger.info):
@@ -62,25 +73,30 @@ def log_df_schema(df, logger_func=logger.info):
         logger_func(line)
 
 
-def write_training_data(model_name, df, ctx):
+def write_training_data(model_name, df, ctx, spark):
     model = ctx.models[model_name]
     training_dataset = model["dataset"]
     feature_names = model["features"] + [model["target"]] + model["training_features"]
 
     df = df.select(*feature_names)
 
-    metadata = {"dataset_size": df.count()}
-    aws.upload_json_to_s3(metadata, training_dataset["metadata_key"], ctx.bucket)
-
     train_ratio = model["data_partition_ratio"]["training"]
     eval_ratio = model["data_partition_ratio"]["evaluation"]
     [train_df, eval_df] = df.randomSplit([train_ratio, eval_ratio])
+
+    train_df_acc, train_df = accumulate_count(train_df, spark)
     train_df.write.mode("overwrite").format("tfrecords").option("recordType", "Example").save(
         aws.s3a_path(ctx.bucket, training_dataset["train_key"])
     )
+
+    eval_df_acc, eval_df = accumulate_count(eval_df, spark)
     eval_df.write.mode("overwrite").format("tfrecords").option("recordType", "Example").save(
         aws.s3a_path(ctx.bucket, training_dataset["eval_key"])
     )
+
+    metadata = {"training_size": train_df_acc.value, "eval_size": eval_df_acc.value}
+    aws.upload_json_to_s3(metadata, training_dataset["metadata_key"], ctx.bucket)
+
     return df
 
 

@@ -29,7 +29,7 @@ type Context struct {
 	CortexConfig        *CortexConfig       `json:"cortex_config"`
 	DatasetVersion      string              `json:"dataset_version"`
 	Root                string              `json:"root"`
-	RawDatasetKey       string              `json:"raw_dataset_key"`
+	RawDataset          RawDataset          `json:"raw_dataset"`
 	StatusPrefix        string              `json:"status_prefix"`
 	App                 *App                `json:"app"`
 	Environment         *Environment        `json:"environment"`
@@ -41,6 +41,11 @@ type Context struct {
 	Constants           Constants           `json:"constants"`
 	Aggregators         Aggregators         `json:"aggregators"`
 	Transformers        Transformers        `json:"transformers"`
+}
+
+type RawDataset struct {
+	Key         string `json:"key"`
+	MetadataKey string `json:"metadata_key"`
 }
 
 type Resource interface {
