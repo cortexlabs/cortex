@@ -53,3 +53,5 @@ python-dateutil==2.7.5
 six==1.11.0
 wrapt==1.11.0
 ```
+
+You can install additional PyPI packages and import your own Python libraries. See [Custom Dependencies](../advanced/custom-dependencies.md) for more details.

@@ -64,3 +64,5 @@ requests==2.21.0
 oauthlib==3.0.0
 httplib2==0.12.0
 ```
+
+You can install additional PyPI packages and import your own Python libraries. See [Custom Dependencies](../advanced/custom-dependencies.md) for more details.
