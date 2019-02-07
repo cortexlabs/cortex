@@ -33,7 +33,7 @@ elif [ "$1" = "update" ]; then
   echo "Not implemented"
 
 elif [ "$1" = "stop" ]; then
-  $ROOT/cortex.sh -c=$ROOT/dev/config/cortex.sh uninstall 2>/dev/null || true
+  $ROOT/cortex.sh -c=$ROOT/dev/config/cortex.sh uninstall operator 2>/dev/null || true
   eksctl delete cluster --name=$K8S_NAME
 
 elif [ "$1" = "set" ]; then
