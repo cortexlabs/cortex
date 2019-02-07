@@ -37,7 +37,7 @@ export AWS_SECRET_ACCESS_KEY=***
 aws s3 rb s3://<bucket-name> --force
 
 # Delete the log group
-aws logs delete-log-group --log-group-name cortex
+aws logs delete-log-group --log-group-name cortex --region us-west-2
 ```
 
 ## Kubernetes

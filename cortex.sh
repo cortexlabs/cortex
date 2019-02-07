@@ -183,9 +183,9 @@ function install_kubernetes_tools() {
 
   echo
   echo "You can now spin up a EKS cluster using the command below (see eksctl.io for more configuration options):"
-  echo "  eksctl create cluster --name=cortex --nodes=3 --node-type=t3.small  # this takes ~20 minutes"
+  echo "  eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium  # this takes ~20 minutes"
   echo
-  echo "Note: we recommend a minimum cluster size of 3 t3.small AWS instances. Cortex may not run successfully on clusters with less compute resources."
+  echo "Note: we recommend a minimum cluster size of 2 t3.medium AWS instances. Cortex may not run successfully on clusters with less compute resources."
 }
 
 function uninstall_operator() {
@@ -210,7 +210,7 @@ function uninstall_operator() {
   echo "  aws s3 rb s3://<bucket-name> --force"
   echo
   echo "Command to delete the log group used by Cortex:"
-  echo "  aws logs delete-log-group --log-group-name cortex"
+  echo "  aws logs delete-log-group --log-group-name cortex --region us-west-2"
   echo
   echo "Command to uninstall the cortex CLI:"
   echo "  ./cortex.sh uninstall cli"
@@ -1489,11 +1489,13 @@ function check_dep_kubectl() {
   fi
 
   JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'
+  set +e
   GET_NODES_OUTPUT=$(kubectl get nodes -o jsonpath="$JSONPATH" 2>/dev/null)
   if [ $? -ne 0 ]; then
     echo "error: kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can run \`eksctl utils write-kubeconfig --name=cortex\` to configure kubectl."
     exit 1
   fi
+  set -e
   NUM_NODES_READY=$(echo $GET_NODES_OUTPUT | tr ';' "\n" | grep "Ready=True" | wc -l)
   if ! [[ $NUM_NODES_READY -ge 1 ]]; then
     echo "error: your cluster has no registered nodes"

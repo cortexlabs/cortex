@@ -24,7 +24,7 @@ export AWS_SECRET_ACCESS_KEY=***
 
 Cortex runs on Kubernetes. Please make sure you have a Kubernetes cluster running before installing Cortex. We support versions 1.10 and 1.11.
 
-**We recommend a minimum cluster size of 3 [t3.small](https://aws.amazon.com/ec2/instance-types) AWS instances. Cortex may not run successfully on clusters with less compute resources.**
+**We recommend a minimum cluster size of 2 [t3.medium](https://aws.amazon.com/ec2/instance-types) AWS instances. Cortex may not run successfully on clusters with less compute resources.**
 
 If you don't already have a Kubernetes cluster, [eksctl](https://eksctl.io) is a simple tool to create and manage one:
 
@@ -33,7 +33,7 @@ If you don't already have a Kubernetes cluster, [eksctl](https://eksctl.io) is a
 ./cortex.sh install kubernetes-tools
 
 # Spin up an EKS cluster (see eksctl.io for more configuration options)
-eksctl create cluster --name=cortex --nodes=3 --node-type=t3.small  # this takes ~20 minutes
+eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium  # this takes ~20 minutes
 ```
 
 ## Operator

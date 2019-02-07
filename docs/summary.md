@@ -1,9 +1,9 @@
 # Summary
 
 * [Read Me](../README.md)
-* [Install](install.md)
+* [Install](operator/install.md)
 * [Quick Start](quick-start.md)
-* [CLI Commands](cli.md)
+* [CLI Commands](operator/cli.md)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
 * [FAQ](faq.md)
 

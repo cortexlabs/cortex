@@ -2,7 +2,7 @@
 
 <br>
 
-[Install](https://docs.cortexlabs.com/cortex/install) • [Quick Start](https://docs.cortexlabs.com/cortex/quick-start) • [Docs](https://docs.cortexlabs.com/cortex) • <!-- CORTEX_VERSION_MINOR_STABLE -->[Examples](https://github.com/cortexlabs/cortex/tree/0.1/examples) • [FAQ](https://docs.cortexlabs.com/cortex/faq) • [Discord](https://discord.gg/q2CFGPe)
+[Install](https://docs.cortexlabs.com/cortex/install) • [Quick Start](https://docs.cortexlabs.com/cortex/quick-start) • [Docs](https://docs.cortexlabs.com/cortex) • <!-- CORTEX_VERSION_MINOR_STABLE -->[Examples](https://github.com/cortexlabs/cortex/tree/0.1/examples) • [FAQ](https://docs.cortexlabs.com/cortex/faq) • [Gitter](https://gitter.im/cortexlabs/cortex)
 
 <br>
 
