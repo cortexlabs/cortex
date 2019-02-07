@@ -61,11 +61,11 @@ func loadPythonPackages(files map[string][]byte, env *context.Environment) (cont
 				},
 			},
 			Name:       consts.RequirementsTxt,
-			RawKey:     filepath.Join(consts.PythonPackagesDir, "raw", id+".txt"),
-			PackageKey: filepath.Join(consts.PythonPackagesDir, "package", id+".zip"),
+			SrcKey:     filepath.Join(consts.PythonPackagesDir, id, "src.txt"),
+			PackageKey: filepath.Join(consts.PythonPackagesDir, id, "package.zip"),
 		}
 
-		if err := aws.UploadBytesToS3(reqFileBytes, pythonPackage.RawKey); err != nil {
+		if err := aws.UploadBytesToS3(reqFileBytes, pythonPackage.SrcKey); err != nil {
 			return nil, errors.Wrap(err, "upload", "requirements")
 		}
 
@@ -96,8 +96,8 @@ func loadPythonPackages(files map[string][]byte, env *context.Environment) (cont
 				},
 			},
 			Name:       packageName,
-			RawKey:     filepath.Join(consts.PythonPackagesDir, "raw", id+".zip"),
-			PackageKey: filepath.Join(consts.PythonPackagesDir, "package", id+".zip"),
+			SrcKey:     filepath.Join(consts.PythonPackagesDir, id, "src.zip"),
+			PackageKey: filepath.Join(consts.PythonPackagesDir, id, "package.zip"),
 		}
 
 		zipInput := util.ZipInput{
@@ -109,7 +109,7 @@ func loadPythonPackages(files map[string][]byte, env *context.Environment) (cont
 			return nil, errors.Wrap(err, "zip", packageName)
 		}
 
-		if err := aws.UploadBytesToS3(zipBytes, pythonPackage.RawKey); err != nil {
+		if err := aws.UploadBytesToS3(zipBytes, pythonPackage.SrcKey); err != nil {
 			return nil, errors.Wrap(err, "upload", packageName)
 		}
 

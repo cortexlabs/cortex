@@ -24,7 +24,7 @@ type PythonPackages map[string]*PythonPackage
 
 type PythonPackage struct {
 	Name       string `json:"name"`
-	RawKey     string `json:"raw_key"`
+	SrcKey     string `json:"src_key"`
 	PackageKey string `json:"package_key"`
 	*ComputedResourceFields
 }

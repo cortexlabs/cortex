@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/utils/errors"
+	"github.com/cortexlabs/cortex/pkg/utils/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
@@ -69,23 +70,24 @@ func pythonPaths(dir string) []string {
 }
 
 func allConfigPaths(root string) []string {
-	var exportPaths []string
+	exportPaths := strset.New()
 	requirementsPath := filepath.Join(root, consts.RequirementsTxt)
 	if util.IsFile(requirementsPath) {
-		exportPaths = append(exportPaths, requirementsPath)
+		exportPaths.Add(requirementsPath)
 	}
 
 	customPackagesRoot := filepath.Join(root, consts.PackageDir)
 	if util.IsDir(customPackagesRoot) {
-		customPackagesPaths, err := util.ListDirRecursive(customPackagesRoot, false, util.IgnoreDotFiles, util.IgnoreHiddenFolders, util.IgnorePYC)
+		customPackagesPaths, err := util.ListDirRecursive(customPackagesRoot, false, util.IgnoreHiddenFiles, util.IgnoreHiddenFolders, util.IgnorePythonGeneratedFiles)
 		if err != nil {
 			errors.Exit(err)
 		}
-		exportPaths = append(exportPaths, customPackagesPaths...)
+		exportPaths.Add(customPackagesPaths...)
 	}
-	exportPaths = append(exportPaths, yamlPaths(root)...)
-	exportPaths = append(exportPaths, pythonPaths(root)...)
-	return util.UniqueStrs(exportPaths)
+	exportPaths.Add(yamlPaths(root)...)
+	exportPaths.Add(pythonPaths(root)...)
+
+	return exportPaths.List()
 }
 
 func appNameFromConfig() (string, error) {

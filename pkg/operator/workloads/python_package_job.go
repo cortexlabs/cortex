@@ -87,10 +87,11 @@ func pythonPackageWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 		resourceIDs.Add(pythonPackage.GetID())
 	}
 
-	workloadID := generateWorkloadID()
 	if len(resourceIDs) == 0 {
 		return nil, nil
 	}
+
+	workloadID := generateWorkloadID()
 
 	spec := pythonPackageJobSpec(ctx, resourceIDs, workloadID)
 	workloadSpec := &WorkloadSpec{

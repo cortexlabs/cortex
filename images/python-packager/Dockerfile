@@ -10,8 +10,6 @@ RUN apt-get update -qq && apt-get install -y -q \
         setuptools \
     && rm -rf /root/.cache/pip*
 
-ENV PYSPARK_PYTHON=/usr/bin/python3
-
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
         curl \

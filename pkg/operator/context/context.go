@@ -33,22 +33,6 @@ func New(
 	files map[string][]byte,
 	ignoreCache bool,
 ) (*context.Context, error) {
-
-	userTransformers, err := loadUserTransformers(config.Transformers, files)
-	if err != nil {
-		return nil, err
-	}
-
-	userAggregators, err := loadUserAggregators(config.Aggregators, files)
-	if err != nil {
-		return nil, err
-	}
-
-	err = autoGenerateConfig(config, userAggregators, userTransformers)
-	if err != nil {
-		return nil, err
-	}
-
 	ctx := &context.Context{}
 
 	ctx.CortexConfig = getCortexConfig()
@@ -78,7 +62,23 @@ func New(
 	if err != nil {
 		return nil, err
 	}
+
 	ctx.PythonPackages = pythonPackages
+
+	userTransformers, err := loadUserTransformers(config.Transformers, files, pythonPackages)
+	if err != nil {
+		return nil, err
+	}
+
+	userAggregators, err := loadUserAggregators(config.Aggregators, files, pythonPackages)
+	if err != nil {
+		return nil, err
+	}
+
+	err = autoGenerateConfig(config, userAggregators, userTransformers)
+	if err != nil {
+		return nil, err
+	}
 
 	constants, err := loadConstants(config.Constants)
 	if err != nil {
@@ -116,7 +116,7 @@ func New(
 	}
 	ctx.TransformedFeatures = transformedFeatures
 
-	models, err := getModels(config, aggregates, ctx.Features(), files, ctx.Root)
+	models, err := getModels(config, aggregates, ctx.Features(), files, ctx.Root, pythonPackages)
 	if err != nil {
 		return nil, err
 	}

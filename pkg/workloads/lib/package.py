@@ -41,11 +41,11 @@ def build_packages(python_packages, bucket):
     for package_name in build_order:
         python_package = python_packages[package_name]
         if package_name == "requirements.txt":
-            requirements_path = os.path.join(LOCAL_PACKAGE_PATH, python_package["name"])
-            aws.download_file_from_s3(python_package["raw_key"], requirements_path, bucket)
+            requirements_path = os.path.join(LOCAL_PACKAGE_PATH, package_name)
+            aws.download_file_from_s3(python_package["src_key"], requirements_path, bucket)
             cmd_partial[python_package["name"]] = "-r " + requirements_path
         else:
-            aws.download_and_extract_zip(python_package["raw_key"], LOCAL_PACKAGE_PATH, bucket)
+            aws.download_and_extract_zip(python_package["src_key"], LOCAL_PACKAGE_PATH, bucket)
             cmd_partial[python_package["name"]] = os.path.join(
                 LOCAL_PACKAGE_PATH, python_package["name"]
             )
@@ -113,7 +113,7 @@ def install_packages(python_packages, bucket):
 
     if "requirements.txt" in python_packages:
         aws.download_file_from_s3(
-            python_packages["requirements.txt"]["raw_key"], "/requirements.txt", bucket
+            python_packages["requirements.txt"]["src_key"], "/requirements.txt", bucket
         )
 
     for package_name in build_order:
@@ -142,7 +142,9 @@ def main():
     )
     na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
     na.add_argument("--python-packages", help="Resource ids of packages to build")
-    na.add_argument("--build", action="store_true", help="sum the integers (default: find the max)")
+    na.add_argument(
+        "--build", action="store_true", help="Flag to determine mode (build vs install)"
+    )
 
     args, _ = parser.parse_known_args()
     if args.build:

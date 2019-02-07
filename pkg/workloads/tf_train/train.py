@@ -18,8 +18,7 @@ import argparse
 import traceback
 import tensorflow as tf
 
-from lib import util, aws
-from lib import package
+from lib import util, aws, package
 from lib.context import Context
 from lib.exceptions import CortexException, UserRuntimeException
 import train_util
