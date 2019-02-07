@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"io/ioutil"
 	"path/filepath"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/resource"
@@ -65,7 +64,7 @@ func loadUserTransformers(
 
 	userTransformers := make(map[string]*context.Transformer)
 	for _, transConfig := range transConfigs {
-		impl, ok := impls[strings.TrimPrefix(transConfig.Path, "/")] // Remove leading / that zip adds
+		impl, ok := impls[transConfig.Path]
 		if !ok {
 			return nil, errors.New(userconfig.Identify(transConfig), s.ErrFileDoesNotExist(transConfig.Path))
 		}

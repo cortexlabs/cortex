@@ -53,7 +53,7 @@ var initCmd = &cobra.Command{
 			errors.Exit(s.ErrCwdDirExists(appName))
 		}
 
-		for path, content := range appInitFiles {
+		for path, content := range appInitFiles(appName) {
 			createdFiles = writeFile(path, content, appRoot, createdFiles)
 		}
 
@@ -80,14 +80,11 @@ func writeFile(subPath string, content string, root string, createdFiles []strin
 	return append(createdFiles, path)
 }
 
-var appInitFiles = map[string]string{
-	"app.yaml": `## Sample app:
-#
-# - kind: app
-#   name: my_app
-`,
+func appInitFiles(appName string) map[string]string {
+	return map[string]string{
+		"app.yaml": fmt.Sprintf("- kind: app\n  name: %s\n", appName),
 
-	"resources/environments.yaml": `## Sample environment:
+		"resources/environments.yaml": `## Sample environment:
 #
 # - kind: environment
 #   name: dev
@@ -102,7 +99,7 @@ var appInitFiles = map[string]string{
 #       - label
 `,
 
-	"resources/raw_features.yaml": `## Sample raw features:
+		"resources/raw_features.yaml": `## Sample raw features:
 #
 # - kind: raw_feature
 #   name: feature1
@@ -125,7 +122,7 @@ var appInitFiles = map[string]string{
 #   values: [a, b, c]
 `,
 
-	"resources/aggregates.yaml": `## Sample aggregates:
+		"resources/aggregates.yaml": `## Sample aggregates:
 #
 # - kind: aggregate
 #   name: feature1_bucket_boundaries
@@ -137,7 +134,7 @@ var appInitFiles = map[string]string{
 #       num_buckets: 3
 `,
 
-	"resources/transformed_features.yaml": `## Sample transformed features:
+		"resources/transformed_features.yaml": `## Sample transformed features:
 #
 # - kind: transformed_feature
 #   name: feature1_bucketized
@@ -159,7 +156,7 @@ var appInitFiles = map[string]string{
 #       arg2: 100
 `,
 
-	"resources/models.yaml": `## Sample model:
+		"resources/models.yaml": `## Sample model:
 #
 # - kind: model
 #   name: my_model
@@ -179,7 +176,7 @@ var appInitFiles = map[string]string{
 #     num_steps: 1000
 `,
 
-	"resources/apis.yaml": `## Sample API:
+		"resources/apis.yaml": `## Sample API:
 #
 # - kind: api
 #   name: my_api
@@ -188,7 +185,7 @@ var appInitFiles = map[string]string{
 #     replicas: 1
 `,
 
-	"samples.json": `{
+		"samples.json": `{
   "samples": [
     {
       "key1": "value1",
@@ -199,7 +196,7 @@ var appInitFiles = map[string]string{
 }
 `,
 
-	"implementations/models/model.py": `import tensorflow as tf
+		"implementations/models/model.py": `import tensorflow as tf
 
 
 def create_estimator(run_config, model_config):
@@ -236,7 +233,7 @@ def create_estimator(run_config, model_config):
     pass
 `,
 
-	"resources/constants.yaml": `## Sample constant:
+		"resources/constants.yaml": `## Sample constant:
 #
 # - kind: constant
 #   name: my_constant
@@ -244,7 +241,7 @@ def create_estimator(run_config, model_config):
 #   value: [0, 50, 100]
 `,
 
-	"resources/aggregators.yaml": `## Sample aggregator:
+		"resources/aggregators.yaml": `## Sample aggregator:
 #
 # - kind: aggregator
 #   name: my_aggregator
@@ -256,7 +253,7 @@ def create_estimator(run_config, model_config):
 #       arg1: INT
 `,
 
-	"implementations/aggregators/aggregator.py": `def aggregate_spark(data, features, args):
+		"implementations/aggregators/aggregator.py": `def aggregate_spark(data, features, args):
     """Aggregate a feature in a PySpark context.
 
     This function is required.
@@ -264,7 +261,7 @@ def create_estimator(run_config, model_config):
     Args:
         data: A dataframe including all of the raw features.
 
-				features: A dict with the same structure as the aggregator's input
+        features: A dict with the same structure as the aggregator's input
             features specifying the names of the dataframe's columns that
             contain the input features.
 
@@ -288,7 +285,7 @@ def create_estimator(run_config, model_config):
     pass
 `,
 
-	"resources/transformers.yaml": `## Sample transformer:
+		"resources/transformers.yaml": `## Sample transformer:
 #
 # - kind: transformer
 #   name: my_transformer
@@ -301,7 +298,7 @@ def create_estimator(run_config, model_config):
 #       arg2: FLOAT
 `,
 
-	"implementations/transformers/transformer.py": `def transform_spark(data, features, args, transformed_feature):
+		"implementations/transformers/transformer.py": `def transform_spark(data, features, args, transformed_feature):
     """Transform a feature in a PySpark context.
 
     This function is optional (recommended for large-scale feature processing).
@@ -321,7 +318,7 @@ def create_estimator(run_config, model_config):
 
     Returns:
         The original 'data' dataframe with an added column with the name of the
-				transformed_feature arg containing the transformed data.
+        transformed_feature arg containing the transformed data.
     """
 
     ## Sample transform_spark implementation:
@@ -340,7 +337,7 @@ def transform_python(sample, args):
 
     Args:
         sample: A dict with the same structure as the transformer's input
-						features containing a data sample to transform.
+            features containing a data sample to transform.
 
         args: A dict with the same structure as the transformer's input args
             containing the runtime values of the args.
@@ -378,4 +375,5 @@ def reverse_transform_python(transformed_value, args):
 
     pass
 `,
+	}
 }

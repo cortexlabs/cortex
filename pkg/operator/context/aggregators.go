@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"io/ioutil"
 	"path/filepath"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/resource"
@@ -65,7 +64,7 @@ func loadUserAggregators(
 
 	userAggregators := make(map[string]*context.Aggregator)
 	for _, aggregatorConfig := range aggregatorConfigs {
-		impl, ok := impls[strings.TrimPrefix(aggregatorConfig.Path, "/")] // Remove leading / that zip adds
+		impl, ok := impls[aggregatorConfig.Path]
 		if !ok {
 			return nil, errors.New(userconfig.Identify(aggregatorConfig), s.ErrFileDoesNotExist(aggregatorConfig.Path))
 		}
