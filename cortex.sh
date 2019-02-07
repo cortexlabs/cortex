@@ -192,12 +192,16 @@ function uninstall_operator() {
   check_dep_kubectl
 
   echo
-  echo "Uninstalling the Cortex operator ..."
-  kubectl delete --ignore-not-found=true customresourcedefinition scheduledsparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
-  kubectl delete --ignore-not-found=true customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
-  kubectl delete --ignore-not-found=true customresourcedefinition workflows.argoproj.io >/dev/null 2>&1
-  kubectl delete --ignore-not-found=true namespace $CORTEX_NAMESPACE >/dev/null 2>&1
-  echo "✓ Uninstalled the Cortex operator"
+  if kubectl get namespace cortex >/dev/null 2>&1 || kubectl get customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1 || kubectl get customresourcedefinition scheduledsparkapplications.sparkoperator.k8s.io >/dev/null 2>&1 || kubectl get customresourcedefinition workflows.argoproj.io >/dev/null 2>&1; then
+    echo "Uninstalling the Cortex operator from your Kubernetes cluster ..."
+    kubectl delete --ignore-not-found=true customresourcedefinition scheduledsparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
+    kubectl delete --ignore-not-found=true customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
+    kubectl delete --ignore-not-found=true customresourcedefinition workflows.argoproj.io >/dev/null 2>&1
+    kubectl delete --ignore-not-found=true namespace $CORTEX_NAMESPACE >/dev/null 2>&1
+    echo "✓ Uninstalled the Cortex operator"
+  else
+    echo "The cortex operator is not installed on your Kubernetes cluster"
+  fi
 
   echo
   echo "Command to spin down your Kubernetes cluster:"
