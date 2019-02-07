@@ -20,10 +20,10 @@ set -euo pipefail
 CORTEX_VERSION=master
 
 function build_and_upload() {
-  GOOS=$1
+  goos=$1
   file=$2
 
-  GOOS=$GOOS GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -installsuffix cgo -o cortex github.com/cortexlabs/cortex/cli
+  GOOS=$goos GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -installsuffix cgo -o cortex github.com/cortexlabs/cortex/cli
 
   zip -q $file cortex
   rm cortex

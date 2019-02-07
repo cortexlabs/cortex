@@ -28,11 +28,11 @@ function run_python_tests() {
   docker run cortexlabs/test
 }
 
-CMD=${1:-""}
+cmd=${1:-""}
 
-if [ "$CMD" = "go" ]; then
+if [ "$cmd" = "go" ]; then
   run_go_tests
-elif [ "$CMD" = "python" ]; then
+elif [ "$cmd" = "python" ]; then
   run_python_tests
 else
   run_go_tests
