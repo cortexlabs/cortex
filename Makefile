@@ -37,7 +37,6 @@ spark-base:
 	
 tf-base:
 	docker build . -f images/tf-base/Dockerfile -t cortexlabs/tf-base:latest
-	docker build . -f images/tf-base-gpu/Dockerfile -t cortexlabs/tf-base-gpu:latest
 
 base: spark-base tf-base
 
