@@ -29,6 +29,9 @@ tools:
 build-cli:
 	 $(call build, ./cli)
 
+test:
+	./build/test.sh
+
 ###############
 # CI Commands #
 ###############
@@ -65,5 +68,8 @@ operator-images:
 build-and-upload:
 	./build/cli.sh
 
-test:
-	./build/test.sh
+test-go:
+	./build/test.sh go
+
+test-python:
+	./build/test.sh python

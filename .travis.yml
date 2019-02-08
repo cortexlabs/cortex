@@ -23,7 +23,10 @@ jobs:
     - script: make operator-images
       name: "Operator"
     - stage: test
-      script: make test
+      script: make test-go
+      name: "Go test"
+    - script: make test-python
+      name: "Python test"
     - stage: deploy
       if: branch = master
       script: build-and-upload
