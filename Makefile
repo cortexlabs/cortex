@@ -45,8 +45,6 @@ tf-images:
 	./build/images.sh images/tf-train tf-train
 	./build/images.sh images/tf-serve tf-serve
 	./build/images.sh images/tf-api tf-api
-	./build/images.sh images/tf-train-gpu tf-train-gpu
-	./build/images.sh images/tf-serve-gpu tf-serve-gpu
 
 spark-images:
 	./build/images.sh images/spark spark
