@@ -1,7 +1,3 @@
-branches:
-  only:
-    - master
-
 sudo: required
 
 language: go
@@ -10,26 +6,31 @@ go: "1.11.5"
 services:
   - docker
 
-script:
-  - docker build . -f images/spark-base/Dockerfile -t cortexlabs/spark-base:latest
-  - docker build . -f images/tf-base/Dockerfile -t cortexlabs/tf-base:latest
-
-  - ./build/images.sh images/operator operator
-  - ./build/images.sh images/spark spark
-  - ./build/images.sh images/spark-operator spark-operator
-  - ./build/images.sh images/tf-train tf-train
-  - ./build/images.sh images/tf-serve tf-serve
-  - ./build/images.sh images/tf-api tf-api
-  - ./build/images.sh images/nginx-controller nginx-controller
-  - ./build/images.sh images/nginx-backend nginx-backend
-  - ./build/images.sh images/fluentd fluentd
-  - ./build/images.sh images/argo-controller argo-controller
-  - ./build/images.sh images/argo-executor argo-executor
-
-  - ./build/test.sh
-
-  - sudo apt-get install -y apt-transport-https ca-certificates software-properties-common zip python3-pip python3-dev build-essential
+before_install:
+  - apt-get install -y apt-transport-https ca-certificates software-properties-common zip python3-pip python3-dev build-essential
   - sudo pip3 install --upgrade pip
   - pip3 install --upgrade awscli --user
 
-  - ./build/cli.sh
+jobs:
+  include:
+    - stage: base
+      name: "Build base images"
+      script: make base
+    - stage: pipeline
+      name: "Build workload images"
+    - script: make tf-images
+      name: "Tensorflow"
+    - script: make spark-images
+      name: "Spark"
+    - script: make argo-images
+      name: "Argo"
+    - script: make operator-images
+      name: "Operator"
+    - stage: test
+      script: make test
+    - stage: deploy
+      if: branch = master
+      script: build-and-upload
+      
+
+
