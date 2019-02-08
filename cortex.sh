@@ -1491,7 +1491,8 @@ function check_dep_kubectl() {
   fi
 
   if ! kubectl config current-context >/dev/null 2>&1; then
-    echo "error: kubectl is not configured to connect with your cluster. If you are using eksctl, you can run \`eksctl utils write-kubeconfig --name=cortex\` to configure kubectl."
+    echo "error: kubectl is not configured to connect with your cluster. If you are using eksctl, you can run this command to configure kubectl:"
+    echo "  eksctl utils write-kubeconfig --name=cortex"
     exit 1
   fi
 
@@ -1499,7 +1500,8 @@ function check_dep_kubectl() {
   set +e
   get_nodes_output=$(kubectl get nodes -o jsonpath="$jsonpath" 2>/dev/null)
   if [ $? -ne 0 ]; then
-    echo "error: kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can run \`eksctl utils write-kubeconfig --name=cortex\` to configure kubectl."
+    echo "error: kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can run this command to configure kubectl:"
+    echo "  eksctl utils write-kubeconfig --name=cortex"
     exit 1
   fi
   set -e
