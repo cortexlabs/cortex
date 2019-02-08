@@ -44,7 +44,8 @@ func dataID(config *userconfig.Config, datasetVersion string) string {
 
 	data := config.Environment.Data
 	switch typedData := data.(type) {
-	case *userconfig.CsvData:
+	case *userconfig.CSVData:
+		util.Pp(s.Obj(typedData))
 		buf.WriteString(s.Obj(typedData))
 	case *userconfig.ParquetData:
 		buf.WriteString(typedData.Type)

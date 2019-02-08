@@ -33,7 +33,7 @@ type RawFeaturesTypeSplit struct {
 }
 
 type DataSplit struct {
-	CsvData     *userconfig.CsvData     `json:"csv_data"`
+	CSVData     *userconfig.CSVData     `json:"csv_data"`
 	ParquetData *userconfig.ParquetData `json:"parquet_data"`
 }
 
@@ -84,8 +84,8 @@ func (ctx ContextSerial) collectRawFeatures() RawFeatures {
 func (ctx Context) splitEnvironment() *DataSplit {
 	var split DataSplit
 	switch typedData := ctx.Environment.Data.(type) {
-	case *userconfig.CsvData:
-		split.CsvData = typedData
+	case *userconfig.CSVData:
+		split.CSVData = typedData
 	case *userconfig.ParquetData:
 		split.ParquetData = typedData
 	}
@@ -94,10 +94,10 @@ func (ctx Context) splitEnvironment() *DataSplit {
 }
 
 func (ctxSerial *ContextSerial) collectEnvironment() (*Environment, error) {
-	if ctxSerial.DataSplit.ParquetData != nil && ctxSerial.DataSplit.CsvData == nil {
+	if ctxSerial.DataSplit.ParquetData != nil && ctxSerial.DataSplit.CSVData == nil {
 		ctxSerial.Environment.Data = ctxSerial.DataSplit.ParquetData
-	} else if ctxSerial.DataSplit.CsvData != nil && ctxSerial.DataSplit.ParquetData == nil {
-		ctxSerial.Environment.Data = ctxSerial.DataSplit.CsvData
+	} else if ctxSerial.DataSplit.CSVData != nil && ctxSerial.DataSplit.ParquetData == nil {
+		ctxSerial.Environment.Data = ctxSerial.DataSplit.CSVData
 	} else {
 		return nil, errors.Wrap(userconfig.ErrorSpecifyOnlyOne("CSV", "PARQUET"), ctxSerial.App.Name, resource.EnvironmentType.String(), userconfig.DataKey)
 	}

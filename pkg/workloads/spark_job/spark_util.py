@@ -239,10 +239,16 @@ def ingest(ctx, spark):
 
 
 def read_csv(ctx, spark):
-    csv_config = ctx.environment["data"]
+    data_config = ctx.environment["data"]
     schema = expected_schema_from_context(ctx)
-    header = csv_config.get("skip_header", False)
-    return spark.read.csv(csv_config["path"], header=header, schema=schema, mode="FAILFAST")
+
+    csv_config = {
+        util.snake_to_camel(param_name): val
+        for param_name, val in data_config.get("csv_config", {}).items()
+        if val is not None
+    }
+
+    return spark.read.csv(data_config["path"], schema=schema, mode="FAILFAST", **csv_config)
 
 
 def read_parquet(ctx, spark):
