@@ -7,17 +7,16 @@ services:
   - docker
 
 before_install:
-  - apt-get install -y apt-transport-https ca-certificates software-properties-common zip python3-pip python3-dev build-essential
+  - sudo apt-get install -y apt-transport-https ca-certificates software-properties-common zip python3-pip python3-dev build-essential
   - sudo pip3 install --upgrade pip
   - pip3 install --upgrade awscli --user
 
 jobs:
   include:
     - stage: base
-      name: "Build base images"
       script: make base
+      name: "Build base images"
     - stage: pipeline
-      name: "Build workload images"
     - script: make tf-images
       name: "Tensorflow"
     - script: make spark-images
