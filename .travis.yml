@@ -14,8 +14,10 @@ before_install:
 jobs:
   include:
     - stage: base
-      script: make base
-      name: "Build base images"
+      script: make tf-base
+      name: "TF base images"
+    - script: make spark-base
+      name: "Spark base images"
     - stage: pipeline
       script: make tf-images
       name: "Tensorflow"
