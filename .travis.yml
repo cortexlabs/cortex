@@ -17,7 +17,7 @@ jobs:
       script: make base
       name: "Build base images"
     - stage: pipeline
-    - script: make tf-images
+      script: make tf-images
       name: "Tensorflow"
     - script: make spark-images
       name: "Spark"
