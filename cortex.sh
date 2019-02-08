@@ -34,7 +34,8 @@ Available Commands:
   uninstall cli               uninstall the CLI
   uninstall kubernetes-tools  uninstall aws-iam-authenticator, eksctl, kubectl
 
-  update operator             update the operator
+  update operator             update the operator config and restart the operator
+
   endpoints                   show the operator and API endpoints
 
 Flags:
@@ -200,7 +201,7 @@ function uninstall_operator() {
     kubectl delete --ignore-not-found=true namespace $CORTEX_NAMESPACE >/dev/null 2>&1
     echo "✓ Uninstalled the Cortex operator"
   else
-    echo "The cortex operator is not installed on your Kubernetes cluster"
+    echo "The Cortex operator is not installed on your Kubernetes cluster"
   fi
 
   echo
@@ -216,7 +217,7 @@ function uninstall_operator() {
   echo "Command to delete the log group used by Cortex:"
   echo "  aws logs delete-log-group --log-group-name cortex --region us-west-2"
   echo
-  echo "Command to uninstall the cortex CLI:"
+  echo "Command to uninstall the Cortex CLI:"
   echo "  ./cortex.sh uninstall cli"
 
   if [[ -f /usr/local/bin/aws ]]; then
@@ -238,6 +239,7 @@ function update_operator() {
   check_dep_curl
   check_dep_kubectl
 
+  echo -e "\nUpdating the Cortex operator ..."
   delete_operator
   setup_configmap
   setup_operator
@@ -250,8 +252,8 @@ function get_endpoints() {
   operator_endpoint=$(get_operator_endpoint)
   apis_endpoint=$(get_apis_endpoint)
   echo
-  echo "operator endpoint:    $operator_endpoint"
-  echo "APIs endpoint:        $apis_endpoint"
+  echo "operator endpoint:  $operator_endpoint"
+  echo "APIs endpoint:      $apis_endpoint"
 }
 
 #################
@@ -1390,10 +1392,9 @@ spec:
 }
 
 function delete_operator() {
-  echo
-  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true ingress operator
-  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true service operator
-  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true deployment operator
+  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true ingress operator >/dev/null 2>&1
+  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true service operator >/dev/null 2>&1
+  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true deployment operator >/dev/null 2>&1
 }
 
 function validate_cortex() {
@@ -1818,7 +1819,7 @@ function install_cortex_cli() {
   if [ ! "$bash_profile_path" = "" ]; then
     if ! grep -Fxq "source <(cortex completion)" "$bash_profile_path"; then
       echo
-      read -p "Would you like to modify your bash profile ($bash_profile_path) to enable cortex bash completion and the cx alias? [Y/n] " -n 1 -r
+      read -p "Would you like to modify your bash profile ($bash_profile_path) to enable cortex command completion and the cx alias? [Y/n] " -n 1 -r
       echo
       if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo -e "\nsource <(cortex completion)" >> $bash_profile_path
@@ -1835,7 +1836,7 @@ function install_cortex_cli() {
       fi
     fi
   else
-    echo -e "\nIf your would like to enable cortex bash completion and the cx alias, add this line to your bash profile:"
+    echo -e "\nIf your would like to enable cortex command completion and the cx alias, add this line to your bash profile:"
     echo "  source <(cortex completion)"
     echo "Note: \`bash_completion\` must be installed on your system for cortex command completion to function properly"
   fi
