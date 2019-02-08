@@ -40,14 +40,17 @@ tf-base:
 
 base: spark-base tf-base
 
-tf-images:
+tf-dev:
 	./build/images.sh images/tf-train tf-train
 	./build/images.sh images/tf-serve tf-serve
 	./build/images.sh images/tf-api tf-api
 
-spark-images:
+spark-dev:
 	./build/images.sh images/spark spark
 	./build/images.sh images/spark-operator spark-operator
+
+tf-images: tf-base tf-dev
+spark-images: spark-base spark-dev
 
 argo-images:
 	./build/images.sh images/argo-controller argo-controller
