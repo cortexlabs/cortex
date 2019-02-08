@@ -19,4 +19,4 @@
     training: 0.9
     evaluation: 0.1
   training:
-    num_steps: 50000
+    num_steps: 20000
