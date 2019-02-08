@@ -24,9 +24,9 @@ jobs:
       name: "Operator"
     - stage: test
       script: make test-go
-      name: "Go test"
+      name: "Go tests"
     - script: make test-python
-      name: "Python test"
+      name: "Python tests"
     - stage: deploy
       if: branch = master
       script: build-and-upload
