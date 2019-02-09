@@ -80,7 +80,7 @@ var predictCmd = &cobra.Command{
 		apiURL := util.URLJoin(resourcesRes.APIsBaseURL, apiPath)
 		predictResponse, err := makePredictRequest(apiURL, samplesJSONPath)
 		if err != nil {
-			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") {
+			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
 				errors.Exit(s.ErrApiNotReady(apiName, resource.StatusAPIUpdating.Message()))
 			}
 			errors.Exit(err)
