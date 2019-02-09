@@ -40,7 +40,7 @@ eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium  # this take
 
 ## Operator
 
-The operator installation is configurable. For a full list of configuration options please refer to the [operator config](operator/config.md) documentation.
+The operator installation is configurable. For a full list of configuration options please refer to the [operator config](config.md) documentation.
 
 ```bash
 # Install the Cortex operator

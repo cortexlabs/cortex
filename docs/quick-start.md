@@ -366,7 +366,7 @@ curl --insecure \
      --request POST \
      --header "Content-Type: application/json" \
      --data '{ "samples": [ { "sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3 } ] }' \
-     https://<ELB name>.us-west-2.elb.amazonaws.com/iris/classifier
+     <API endpoint>
 ```
 
 ## Cleanup
