@@ -215,7 +215,7 @@ func (config *Config) Validate(envName string) error {
 		}
 	}
 
-	// Check local transfomers exist
+	// Check local transformers exist
 	transformerNames := config.Transformers.Names()
 	for _, transformedFeature := range config.TransformedFeatures {
 		if !strings.Contains(transformedFeature.Transformer, ".") && !util.IsStrInSlice(transformedFeature.Transformer, transformerNames) {

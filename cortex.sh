@@ -183,7 +183,7 @@ function install_kubernetes_tools() {
   install_kubectl
 
   echo
-  echo "You can now spin up a EKS cluster using the command below (see eksctl.io for more configuration options):"
+  echo "You can now spin up an EKS cluster using the command below (see eksctl.io for more configuration options):"
   echo "  eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium  # this takes ~20 minutes"
   echo
   echo "Note: we recommend a minimum cluster size of 2 t3.medium AWS instances. Cortex may not run successfully on clusters with less compute resources."

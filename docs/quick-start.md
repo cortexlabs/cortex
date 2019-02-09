@@ -2,13 +2,13 @@
 
 ## Prerequisites
 
-1. AWS account
-2. Kubernetes cluster running Cortex ([installation instructions](operator/install.md))
-3. Cortex CLI
+1. An AWS account
+2. A Kubernetes cluster running the Cortex operator ([installation instructions](operator/install.md))
+3. The Cortex CLI
 
 ## TL;DR
 
-You can download the pre-built iris application by cloning our repository:
+You can download pre-built applications from our repository:
 
 <!-- CORTEX_VERSION_MINOR -->
 
@@ -26,39 +26,25 @@ Let's build and deploy a classifier using the famous [Iris Data Set](https://arc
 #### Initialize the application
 
 ```bash
-cortex init iris
-cd iris
+mkdir iris && cd iris
+touch app.yaml dnn.py irises.json
 ```
 
-The following directories and files have been created:
+Cortex requires an `app.yaml` file defining an app resource. All other resources can be defined in arbitrary YAML files.
 
-```text
-./iris/
-├── app.yaml
-├── samples.json
-├── implementations
-│   ├── aggregators
-│   │   └── aggregator.py
-│   ├── models
-│   │   └── model.py
-│   └── transformers
-│       └── transformer.py
-└── resources
-    ├── aggregators.yaml
-    ├── aggregates.yaml
-    ├── apis.yaml
-    ├── constants.yaml
-    ├── environments.yaml
-    ├── models.yaml
-    ├── raw_features.yaml
-    ├── transformed_features.yaml
-    └── transformers.yaml
+Add to `app.yaml`:
+
+```yaml
+- kind: app
+  name: iris
 ```
 
 #### Configure data ingestion
 
+Add to `app.yaml`:
+
 ```yaml
-# resources/environments.yaml
+# Environments
 
 - kind: environment
   name: dev
@@ -77,8 +63,12 @@ Cortex will be able to read from any S3 bucket that your AWS credentials grant a
 
 #### Define raw features
 
+The Iris Data Set consists of four attributes and a label. We ensure that the data matches the types we expect, the numerical data is within a reasonable range, and the class labels are within the set of expected labels.
+
+Add to `app.yaml`:
+
 ```yaml
-# resources/raw_features.yaml
+# Raw Features
 
 - kind: raw_feature
   name: sepal_length
@@ -110,14 +100,14 @@ Cortex will be able to read from any S3 bucket that your AWS credentials grant a
   values: ['Iris-setosa', 'Iris-versicolor', 'Iris-virginica']
 ```
 
-The Iris Data Set consists of four attributes and a label. We ensure that the data matches the types we expect, the numerical data is within a reasonable range, and the class labels are within the set of expected labels.
-
 #### Define aggregates
 
 Aggregates are computations that require processing a full column of data. We want to normalize the numeric features, so we need mean and standard deviation values for each numeric column. We also need a mapping of strings to integers for the label column. Cortex has `mean`, `stddev`, and `index_string` aggregators out of the box.
 
+Add to `app.yaml`:
+
 ```yaml
-# resources/aggregates.yaml
+# Aggregates
 
 - kind: aggregate
   name: sepal_length_mean
@@ -187,8 +177,10 @@ Aggregates are computations that require processing a full column of data. We wa
 
 Transformers convert the raw features into the appropriate inputs for a TensorFlow model. Here we use the built-in `normalize` and `index_string` transformers using the aggregates we computed earlier.
 
+Add to `app.yaml`:
+
 ```yaml
-# resources/transformed_features.yaml
+# Transformed Features
 
 - kind: transformed_feature
   name: sepal_length_normalized
@@ -244,11 +236,16 @@ You can simplify this YAML using [templates](applications/advanced/templates.md)
 
 #### Define the model
 
+This configuration will generate a training dataset with the specified features and train our classifier using the generated dataset.
+
+Add to `app.yaml`:
+
 ```yaml
-# resources/models.yaml
+# Models
 
 - kind: model
   name: dnn
+  path: dnn.py
   type: classification
   target: class_indexed
   features:
@@ -266,15 +263,11 @@ You can simplify this YAML using [templates](applications/advanced/templates.md)
     batch_size: 10
 ```
 
-This configuration will generate a training dataset with the specified features and train our classifier using the generated dataset.
+#### Implement the estimator
 
-#### Implement the model
-
-Rename `implementations/models/model.py` to `implementations/models/dnn.py` and add TensorFlow code:
+Define an estimator in `dnn.py`:
 
 ```python
-# implementations/models/dnn.py
-
 import tensorflow as tf
 
 
@@ -298,8 +291,12 @@ Cortex supports any TensorFlow code that adheres to the [tf.estimator API](https
 
 #### Define web APIs
 
+This will make the model available as a live web service that can make real-time predictions.
+
+Add to `app.yaml`:
+
 ```yaml
-# resources/apis.yaml
+# APIs
 
 - kind: api
   name: classifier
@@ -307,8 +304,6 @@ Cortex supports any TensorFlow code that adheres to the [tf.estimator API](https
   compute:
     replicas: 1
 ```
-
-This will make the model available as a live web service that can make real-time predictions.
 
 ## Deploy the application
 
@@ -326,13 +321,14 @@ cortex status
 You can also view the status of individual resources using the `status` command:
 
 ```bash
-cortex status class
+cortex status sepal_length_normalized
 cortex status dnn
+cortex status classifier
 ```
 
 #### Test the iris classification service
 
-Rename `samples.json` to `irises.json` and create a sample:
+Define a sample in `irises.json`:
 
 ```javascript
 {
