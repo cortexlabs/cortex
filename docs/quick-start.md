@@ -182,7 +182,7 @@ Add to `app.yaml`:
 ```yaml
 # Transformed Columns
 
-- kind: transformed_columns
+- kind: transformed_column
   name: sepal_length_normalized
   transformer: cortex.normalize
   inputs:
@@ -192,7 +192,7 @@ Add to `app.yaml`:
       mean: sepal_length_mean
       stddev: sepal_length_stddev
 
-- kind: transformed_columns
+- kind: transformed_column
   name: sepal_width_normalized
   transformer: cortex.normalize
   inputs:
@@ -202,7 +202,7 @@ Add to `app.yaml`:
       mean: sepal_width_mean
       stddev: sepal_width_stddev
 
-- kind: transformed_columns
+- kind: transformed_column
   name: petal_length_normalized
   transformer: cortex.normalize
   inputs:
@@ -212,7 +212,7 @@ Add to `app.yaml`:
       mean: petal_length_mean
       stddev: petal_length_stddev
 
-- kind: transformed_columns
+- kind: transformed_column
   name: petal_width_normalized
   transformer: cortex.normalize
   inputs:
@@ -222,7 +222,7 @@ Add to `app.yaml`:
       mean: petal_width_mean
       stddev: petal_width_stddev
 
-- kind: transformed_columns
+- kind: transformed_column
   name: class_indexed
   transformer: cortex.index_string
   inputs:
