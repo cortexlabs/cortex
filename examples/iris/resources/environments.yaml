@@ -16,13 +16,13 @@
     type: parquet
     path: s3a://cortex-examples/iris.parquet
     schema:
-      - column_name: sepal_length
-        feature_name: sepal_length
-      - column_name: sepal_width
-        feature_name: sepal_width
-      - column_name: petal_length
-        feature_name: petal_length
-      - column_name: petal_width
-        feature_name: petal_width
-      - column_name: class
-        feature_name: class
+      - parquet_column_name: sepal_length
+        raw_column_name: sepal_length
+      - parquet_column_name: sepal_width
+        raw_column_name: sepal_width
+      - parquet_column_name: petal_length
+        raw_column_name: petal_length
+      - parquet_column_name: petal_width
+        raw_column_name: petal_width
+      - parquet_column_name: class
+        raw_column_name: class

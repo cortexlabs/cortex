@@ -61,48 +61,48 @@ Add to `app.yaml`:
 
 Cortex will be able to read from any S3 bucket that your AWS credentials grant access to.
 
-#### Define raw features
+#### Define raw columns
 
 The Iris Data Set consists of four attributes and a label. We ensure that the data matches the types we expect, the numerical data is within a reasonable range, and the class labels are within the set of expected labels.
 
 Add to `app.yaml`:
 
 ```yaml
-# Raw Features
+# Raw Columns
 
-- kind: raw_feature
+- kind: raw_column
   name: sepal_length
-  type: FLOAT_FEATURE
+  type: FLOAT_COLUMN
   min: 0
   max: 10
 
-- kind: raw_feature
+- kind: raw_column
   name: sepal_width
-  type: FLOAT_FEATURE
+  type: FLOAT_COLUMN
   min: 0
   max: 10
 
-- kind: raw_feature
+- kind: raw_column
   name: petal_length
-  type: FLOAT_FEATURE
+  type: FLOAT_COLUMN
   min: 0
   max: 10
 
-- kind: raw_feature
+- kind: raw_column
   name: petal_width
-  type: FLOAT_FEATURE
+  type: FLOAT_COLUMN
   min: 0
   max: 10
 
-- kind: raw_feature
+- kind: raw_column
   name: class
-  type: STRING_FEATURE
+  type: STRING_COLUMN
   values: ['Iris-setosa', 'Iris-versicolor', 'Iris-virginica']
 ```
 
 #### Define aggregates
 
-Aggregates are computations that require processing a full column of data. We want to normalize the numeric features, so we need mean and standard deviation values for each numeric column. We also need a mapping of strings to integers for the label column. Cortex has `mean`, `stddev`, and `index_string` aggregators out of the box.
+Aggregates are computations that require processing a full column of data. We want to normalize the numeric columns, so we need mean and standard deviation values for each numeric column. We also need a mapping of strings to integers for the label column. Cortex has `mean`, `stddev`, and `index_string` aggregators out of the box.
 
 Add to `app.yaml`:
 
@@ -113,120 +113,120 @@ Add to `app.yaml`:
   name: sepal_length_mean
   aggregator: cortex.mean
   inputs:
-    features:
+    columns:
       col: sepal_length
 
 - kind: aggregate
   name: sepal_length_stddev
   aggregator: cortex.stddev
   inputs:
-    features:
+    columns:
       col: sepal_length
 
 - kind: aggregate
   name: sepal_width_mean
   aggregator: cortex.mean
   inputs:
-    features:
+    columns:
       col: sepal_width
 
 - kind: aggregate
   name: sepal_width_stddev
   aggregator: cortex.stddev
   inputs:
-    features:
+    columns:
       col: sepal_width
 
 - kind: aggregate
   name: petal_length_mean
   aggregator: cortex.mean
   inputs:
-    features:
+    columns:
       col: petal_length
 
 - kind: aggregate
   name: petal_length_stddev
   aggregator: cortex.stddev
   inputs:
-    features:
+    columns:
       col: petal_length
 
 - kind: aggregate
   name: petal_width_mean
   aggregator: cortex.mean
   inputs:
-    features:
+    columns:
       col: petal_width
 
 - kind: aggregate
   name: petal_width_stddev
   aggregator: cortex.stddev
   inputs:
-    features:
+    columns:
       col: petal_width
 
 - kind: aggregate
   name: class_index
   aggregator: cortex.index_string
   inputs:
-    features:
+    columns:
       col: class
 ```
 
-#### Define transformed features
+#### Define transformed columns
 
-Transformers convert the raw features into the appropriate inputs for a TensorFlow model. Here we use the built-in `normalize` and `index_string` transformers using the aggregates we computed earlier.
+Transformers convert the raw columns into the appropriate inputs for a TensorFlow model. Here we use the built-in `normalize` and `index_string` transformers using the aggregates we computed earlier.
 
 Add to `app.yaml`:
 
 ```yaml
-# Transformed Features
+# Transformed Columns
 
-- kind: transformed_feature
+- kind: transformed_columns
   name: sepal_length_normalized
   transformer: cortex.normalize
   inputs:
-    features:
+    columns:
       num: sepal_length
     args:
       mean: sepal_length_mean
       stddev: sepal_length_stddev
 
-- kind: transformed_feature
+- kind: transformed_columns
   name: sepal_width_normalized
   transformer: cortex.normalize
   inputs:
-    features:
+    columns:
       num: sepal_width
     args:
       mean: sepal_width_mean
       stddev: sepal_width_stddev
 
-- kind: transformed_feature
+- kind: transformed_columns
   name: petal_length_normalized
   transformer: cortex.normalize
   inputs:
-    features:
+    columns:
       num: petal_length
     args:
       mean: petal_length_mean
       stddev: petal_length_stddev
 
-- kind: transformed_feature
+- kind: transformed_columns
   name: petal_width_normalized
   transformer: cortex.normalize
   inputs:
-    features:
+    columns:
       num: petal_width
     args:
       mean: petal_width_mean
       stddev: petal_width_stddev
 
-- kind: transformed_feature
+- kind: transformed_columns
   name: class_indexed
   transformer: cortex.index_string
   inputs:
-    features:
+    columns:
       text: class
     args:
       index: class_index
@@ -236,7 +236,7 @@ You can simplify this YAML using [templates](applications/advanced/templates.md)
 
 #### Define the model
 
-This configuration will generate a training dataset with the specified features and train our classifier using the generated dataset.
+This configuration will generate a training dataset with the specified columns and train our classifier using the generated dataset.
 
 Add to `app.yaml`:
 
@@ -247,8 +247,8 @@ Add to `app.yaml`:
   name: dnn
   path: dnn.py
   type: classification
-  target: class_indexed
-  features:
+  target_column: class_indexed
+  feature_columns:
     - sepal_length_normalized
     - sepal_width_normalized
     - petal_length_normalized
@@ -272,7 +272,7 @@ import tensorflow as tf
 
 
 def create_estimator(run_config, model_config):
-    columns = [
+    feature_columns = [
         tf.feature_column.numeric_column("sepal_length_normalized"),
         tf.feature_column.numeric_column("sepal_width_normalized"),
         tf.feature_column.numeric_column("petal_length_normalized"),
@@ -280,7 +280,7 @@ def create_estimator(run_config, model_config):
     ]
 
     return tf.estimator.DNNClassifier(
-        feature_columns=columns,
+        feature_columns=feature_columns,
         hidden_units=model_config["hparams"]["hidden_units"],
         n_classes=3,
         config=run_config,

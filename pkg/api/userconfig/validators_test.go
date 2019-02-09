@@ -25,98 +25,98 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
 )
 
-func TestValidateFeatureInputTypes(t *testing.T) {
-	var featureTypes map[string]interface{}
+func TestValidateColumnInputTypes(t *testing.T) {
+	var columnTypes map[string]interface{}
 
-	featureTypes = cr.MustReadYAMLStrMap("num: FLOAT_FEATURE")
-	require.NoError(t, userconfig.ValidateFeatureInputTypes(featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("num: FLOAT_COLUMN")
+	require.NoError(t, userconfig.ValidateColumnInputTypes(columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap(
+	columnTypes = cr.MustReadYAMLStrMap(
 		`
-     float: FLOAT_FEATURE
-     int: INT_FEATURE
-     str: STRING_FEATURE
-     int_list: FLOAT_LIST_FEATURE
-     float_list: INT_LIST_FEATURE
-     str_list: STRING_LIST_FEATURE
+     float: FLOAT_COLUMN
+     int: INT_COLUMN
+     str: STRING_COLUMN
+     int_list: FLOAT_LIST_COLUMN
+     float_list: INT_LIST_COLUMN
+     str_list: STRING_LIST_COLUMN
     `)
-	require.NoError(t, userconfig.ValidateFeatureInputTypes(featureTypes))
+	require.NoError(t, userconfig.ValidateColumnInputTypes(columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap(
+	columnTypes = cr.MustReadYAMLStrMap(
 		`
-     num1: FLOAT_FEATURE|INT_FEATURE
-     num2: INT_FEATURE|FLOAT_FEATURE
-     num3: STRING_FEATURE|INT_FEATURE
-     num4: INT_FEATURE|FLOAT_FEATURE|STRING_FEATURE
-     num5: STRING_FEATURE|INT_FEATURE|FLOAT_FEATURE
-     num6: STRING_LIST_FEATURE|INT_LIST_FEATURE|FLOAT_LIST_FEATURE
-     num7: STRING_FEATURE|INT_LIST_FEATURE|FLOAT_LIST_FEATURE
+     num1: FLOAT_COLUMN|INT_COLUMN
+     num2: INT_COLUMN|FLOAT_COLUMN
+     num3: STRING_COLUMN|INT_COLUMN
+     num4: INT_COLUMN|FLOAT_COLUMN|STRING_COLUMN
+     num5: STRING_COLUMN|INT_COLUMN|FLOAT_COLUMN
+     num6: STRING_LIST_COLUMN|INT_LIST_COLUMN|FLOAT_LIST_COLUMN
+     num7: STRING_COLUMN|INT_LIST_COLUMN|FLOAT_LIST_COLUMN
     `)
-	require.NoError(t, userconfig.ValidateFeatureInputTypes(featureTypes))
+	require.NoError(t, userconfig.ValidateColumnInputTypes(columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap(
+	columnTypes = cr.MustReadYAMLStrMap(
 		`
-     nums1: [INT_FEATURE]
-     nums2: [FLOAT_FEATURE]
-     nums3: [INT_FEATURE|FLOAT_FEATURE]
-     nums4: [FLOAT_FEATURE|INT_FEATURE]
-     nums5: [STRING_FEATURE|INT_FEATURE|FLOAT_FEATURE]
-     nums6: [INT_LIST_FEATURE]
-     nums7: [INT_LIST_FEATURE|STRING_LIST_FEATURE]
-     nums8: [INT_LIST_FEATURE|STRING_FEATURE]
-     strs: [STRING_FEATURE]
-     num1: FLOAT_FEATURE
-     num2: INT_FEATURE
-     str_list: STRING_LIST_FEATURE
+     nums1: [INT_COLUMN]
+     nums2: [FLOAT_COLUMN]
+     nums3: [INT_COLUMN|FLOAT_COLUMN]
+     nums4: [FLOAT_COLUMN|INT_COLUMN]
+     nums5: [STRING_COLUMN|INT_COLUMN|FLOAT_COLUMN]
+     nums6: [INT_LIST_COLUMN]
+     nums7: [INT_LIST_COLUMN|STRING_LIST_COLUMN]
+     nums8: [INT_LIST_COLUMN|STRING_COLUMN]
+     strs: [STRING_COLUMN]
+     num1: FLOAT_COLUMN
+     num2: INT_COLUMN
+     str_list: STRING_LIST_COLUMN
     `)
-	require.NoError(t, userconfig.ValidateFeatureInputTypes(featureTypes))
+	require.NoError(t, userconfig.ValidateColumnInputTypes(columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap("num: bad")
-	require.Error(t, userconfig.ValidateFeatureInputTypes(featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("num: bad")
+	require.Error(t, userconfig.ValidateColumnInputTypes(columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap("num: BOOL")
-	require.Error(t, userconfig.ValidateFeatureInputTypes(featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("num: BOOL")
+	require.Error(t, userconfig.ValidateColumnInputTypes(columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap("num: [STRING_FEATURE, INT_FEATURE]")
-	require.Error(t, userconfig.ValidateFeatureInputTypes(featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("num: [STRING_COLUMN, INT_COLUMN]")
+	require.Error(t, userconfig.ValidateColumnInputTypes(columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap("num: FLOAT")
-	require.Error(t, userconfig.ValidateFeatureInputTypes(featureTypes))
-	featureTypes = cr.MustReadYAMLStrMap("num: FLOAT_FEATUREs")
-	require.Error(t, userconfig.ValidateFeatureInputTypes(featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("num: FLOAT")
+	require.Error(t, userconfig.ValidateColumnInputTypes(columnTypes))
+	columnTypes = cr.MustReadYAMLStrMap("num: FLOAT_COLUMNs")
+	require.Error(t, userconfig.ValidateColumnInputTypes(columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap("num: 1")
-	require.Error(t, userconfig.ValidateFeatureInputTypes(featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("num: 1")
+	require.Error(t, userconfig.ValidateColumnInputTypes(columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap("num: [1]")
-	require.Error(t, userconfig.ValidateFeatureInputTypes(featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("num: [1]")
+	require.Error(t, userconfig.ValidateColumnInputTypes(columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap("num: {nested: STRING_FEATURE}")
-	require.Error(t, userconfig.ValidateFeatureInputTypes(featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("num: {nested: STRING_COLUMN}")
+	require.Error(t, userconfig.ValidateColumnInputTypes(columnTypes))
 }
 
-func TestValidateFeatureValues(t *testing.T) {
-	var featureValues map[string]interface{}
+func TestValidateColumnInputValues(t *testing.T) {
+	var columnInputValues map[string]interface{}
 
-	featureValues = cr.MustReadYAMLStrMap("num: age")
-	require.NoError(t, userconfig.ValidateFeatureValues(featureValues))
+	columnInputValues = cr.MustReadYAMLStrMap("num: age")
+	require.NoError(t, userconfig.ValidateColumnInputValues(columnInputValues))
 
-	featureValues = cr.MustReadYAMLStrMap(
+	columnInputValues = cr.MustReadYAMLStrMap(
 		`
      num1: age
      num2: income
      str: prior_default
     `)
-	require.NoError(t, userconfig.ValidateFeatureValues(featureValues))
+	require.NoError(t, userconfig.ValidateColumnInputValues(columnInputValues))
 
-	featureValues = cr.MustReadYAMLStrMap(
+	columnInputValues = cr.MustReadYAMLStrMap(
 		`
      num1: age
      num2: income
     `)
-	require.NoError(t, userconfig.ValidateFeatureValues(featureValues))
+	require.NoError(t, userconfig.ValidateColumnInputValues(columnInputValues))
 
-	featureValues = cr.MustReadYAMLStrMap(
+	columnInputValues = cr.MustReadYAMLStrMap(
 		`
      nums1: [age, income]
      nums2: [income]
@@ -126,105 +126,105 @@ func TestValidateFeatureValues(t *testing.T) {
      num2: income
      str: prior_default
     `)
-	require.NoError(t, userconfig.ValidateFeatureValues(featureValues))
+	require.NoError(t, userconfig.ValidateColumnInputValues(columnInputValues))
 
-	featureValues = cr.MustReadYAMLStrMap("num: 1")
-	require.Error(t, userconfig.ValidateFeatureValues(featureValues))
+	columnInputValues = cr.MustReadYAMLStrMap("num: 1")
+	require.Error(t, userconfig.ValidateColumnInputValues(columnInputValues))
 
-	featureValues = cr.MustReadYAMLStrMap("num: [1]")
-	require.Error(t, userconfig.ValidateFeatureValues(featureValues))
+	columnInputValues = cr.MustReadYAMLStrMap("num: [1]")
+	require.Error(t, userconfig.ValidateColumnInputValues(columnInputValues))
 
-	featureValues = cr.MustReadYAMLStrMap("num: {nested: STRING_FEATURE}")
-	require.Error(t, userconfig.ValidateFeatureValues(featureValues))
+	columnInputValues = cr.MustReadYAMLStrMap("num: {nested: STRING_COLUMN}")
+	require.Error(t, userconfig.ValidateColumnInputValues(columnInputValues))
 }
 
-func TestCheckFeatureRuntimeTypesMatch(t *testing.T) {
-	var featureTypes map[string]interface{}
+func TestCheckColumnRuntimeTypesMatch(t *testing.T) {
+	var columnTypes map[string]interface{}
 	var runtimeTypes map[string]interface{}
 
-	featureTypes = cr.MustReadYAMLStrMap("in: INT_FEATURE")
-	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_FEATURE")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: FLOAT_FEATURE")
-	require.Error(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_FEATURE]")
-	require.Error(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN")
+	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: FLOAT_COLUMN")
+	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN]")
+	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap("in: INT_FEATURE|FLOAT_FEATURE")
-	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_FEATURE")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: FLOAT_FEATURE")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: STRING_FEATURE")
-	require.Error(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN|FLOAT_COLUMN")
+	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: FLOAT_COLUMN")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: STRING_COLUMN")
+	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap("in: STRING_FEATURE|INT_FEATURE|FLOAT_FEATURE")
-	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_FEATURE")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: FLOAT_FEATURE")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: STRING_FEATURE")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("in: STRING_COLUMN|INT_COLUMN|FLOAT_COLUMN")
+	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: FLOAT_COLUMN")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: STRING_COLUMN")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 	runtimeTypes = cr.MustReadYAMLStrMap("in: BOOL")
-	require.Error(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
+	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap("in: [INT_FEATURE]")
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_FEATURE]")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_FEATURE, INT_FEATURE, INT_FEATURE]")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_FEATURE")
-	require.Error(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [FLOAT_FEATURE]")
-	require.Error(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_FEATURE, FLOAT_FEATURE, INT_FEATURE]")
-	require.Error(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN]")
+	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN]")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN, INT_COLUMN, INT_COLUMN]")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN")
+	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: [FLOAT_COLUMN]")
+	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN, FLOAT_COLUMN, INT_COLUMN]")
+	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap("in: [INT_FEATURE|FLOAT_FEATURE]")
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_FEATURE]")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_FEATURE, INT_FEATURE, INT_FEATURE]")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_FEATURE")
-	require.Error(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [FLOAT_FEATURE]")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_FEATURE, FLOAT_FEATURE, INT_FEATURE]")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_FEATURE, FLOAT_FEATURE, STRING_FEATURE]")
-	require.Error(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN|FLOAT_COLUMN]")
+	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN]")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN, INT_COLUMN, INT_COLUMN]")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN")
+	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: [FLOAT_COLUMN]")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN, FLOAT_COLUMN, INT_COLUMN]")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN, FLOAT_COLUMN, STRING_COLUMN]")
+	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap("in: [STRING_FEATURE|INT_FEATURE|FLOAT_FEATURE]")
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_FEATURE]")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_FEATURE, INT_FEATURE, INT_FEATURE]")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_FEATURE")
-	require.Error(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("in: [STRING_COLUMN|INT_COLUMN|FLOAT_COLUMN]")
+	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN]")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN, INT_COLUMN, INT_COLUMN]")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN")
+	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 	runtimeTypes = cr.MustReadYAMLStrMap("in: [BOOL]")
-	require.Error(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [STRING_FEATURE]")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_FEATURE, FLOAT_FEATURE, STRING_FEATURE]")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
+	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: [STRING_COLUMN]")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN, FLOAT_COLUMN, STRING_COLUMN]")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap("in1: [INT_FEATURE]\nin2: STRING_FEATURE")
-	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_FEATURE]\nin2: STRING_FEATURE")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_FEATURE, INT_FEATURE]\nin2: STRING_FEATURE")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in2: STRING_FEATURE\nin1: [INT_FEATURE, INT_FEATURE]")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_FEATURE]")
-	require.Error(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_FEATURE]\nin2: STRING_FEATURE\nin3: INT_FEATURE")
-	require.Error(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN]\nin2: STRING_COLUMN")
+	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN]\nin2: STRING_COLUMN")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN, INT_COLUMN]\nin2: STRING_COLUMN")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in2: STRING_COLUMN\nin1: [INT_COLUMN, INT_COLUMN]")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN]")
+	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN]\nin2: STRING_COLUMN\nin3: INT_COLUMN")
+	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 
-	featureTypes = cr.MustReadYAMLStrMap("in1: [INT_FEATURE|FLOAT_FEATURE|STRING_FEATURE]\nin2: STRING_FEATURE")
-	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_FEATURE]\nin2: STRING_FEATURE")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_FEATURE, FLOAT_FEATURE, STRING_FEATURE, FLOAT_FEATURE]\nin2: STRING_FEATURE")
-	require.NoError(t, userconfig.CheckFeatureRuntimeTypesMatch(runtimeTypes, featureTypes))
+	columnTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN|FLOAT_COLUMN|STRING_COLUMN]\nin2: STRING_COLUMN")
+	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN]\nin2: STRING_COLUMN")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN, FLOAT_COLUMN, STRING_COLUMN, FLOAT_COLUMN]\nin2: STRING_COLUMN")
+	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 }
 
 func TestValidateArgTypes(t *testing.T) {

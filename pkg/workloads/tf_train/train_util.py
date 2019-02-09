@@ -25,10 +25,10 @@ from lib.exceptions import UserRuntimeException
 
 
 def get_input_placeholder(model_name, ctx, training=True):
-    feature_types = tf_lib.get_feature_tf_types(model_name, ctx, training)
+    column_types = tf_lib.get_column_tf_types(model_name, ctx, training)
     input_placeholder = {
         feature_name: tf.placeholder(shape=[None], dtype=tf_type)
-        for feature_name, tf_type in feature_types.items()
+        for feature_name, tf_type in column_types.items()
     }
     return input_placeholder
 
@@ -40,7 +40,7 @@ def generate_example_parsing_fn(model_name, ctx, training=True):
 
     def _parse_example(example_proto):
         features = tf.parse_single_example(serialized=example_proto, features=feature_spec)
-        target = features.pop(model["target"], None)
+        target = features.pop(model["target_column"], None)
         return features, target
 
     return _parse_example

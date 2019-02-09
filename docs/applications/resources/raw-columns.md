@@ -1,13 +1,13 @@
-# Raw Features
+# Raw Columns
 
-Validate raw data at scale and define features.
+Validate raw data at scale and define columns.
 
 ## Config
 
 ```yaml
-- kind: raw_feature
-  name: <string>  # raw feature name (required)
-  type: INT_FEATURE  # data type (required)
+- kind: raw_column
+  name: <string>  # raw column name (required)
+  type: INT_COLUMN  # data type (required)
   required: <boolean>  # whether null values are allowed (default: false)
   min: <int>  # minimum allowed value (optional)
   max: <int>  # maximum allowed value (optional)
@@ -25,9 +25,9 @@ Validate raw data at scale and define features.
     <string>: <scalar>  # arbitrary key/value pairs to attach to the resource (optional)
     ...
 
-- kind: raw_feature
-  name: <string>  # raw feature name (required)
-  type: FLOAT_FEATURE  # data type (required)
+- kind: raw_column
+  name: <string>  # raw column name (required)
+  type: FLOAT_COLUMN  # data type (required)
   required: <boolean>  # whether null values are allowed (default: false)
   min: <float>  # minimum allowed value (optional)
   max: <float>  # maximum allowed value (optional)
@@ -45,9 +45,9 @@ Validate raw data at scale and define features.
     <string>: <scalar>  # arbitrary key/value pairs to attach to the resource (optional)
     ...
 
-- kind: raw_feature
-  name: <string>  # raw feature name (required)
-  type: STRING_FEATURE  # data type (required)
+- kind: raw_column
+  name: <string>  # raw column name (required)
+  type: STRING_COLUMN  # data type (required)
   required: <boolean>  # whether null values are allowed (default: false)
   values: <[string]>  # an exhaustive list of allowed values (optional)
   compute:
@@ -67,27 +67,27 @@ Validate raw data at scale and define features.
 ## Example
 
 ```yaml
-- kind: raw_feature
-  name: feature1
-  type: INT_FEATURE
+- kind: raw_column
+  name: column1
+  type: INT_COLUMN
   required: true
   min: 0
   max: 10
 
-- kind: raw_feature
-  name: feature2
-  type: FLOAT_FEATURE
+- kind: raw_column
+  name: column2
+  type: FLOAT_COLUMN
   required: true
   min: 1.1
   max: 2.2
 
-- kind: raw_feature
-  name: feature3
-  type: STRING_FEATURE
+- kind: raw_column
+  name: column3
+  type: STRING_COLUMN
   required: false
   values: [a, b, c]
 ```
 
 ## Data Validation
 
-Cortex integrates with your existing data warehouse and runs all validations every time new data is ingested. All raw features are cached to speed up additional processing.
+Cortex integrates with your existing data warehouse and runs all validations every time new data is ingested. All raw columns are cached to speed up additional processing.

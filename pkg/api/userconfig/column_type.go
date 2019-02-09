@@ -18,77 +18,77 @@ package userconfig
 
 import "strings"
 
-type FeatureType int
-type FeatureTypes []FeatureType
+type ColumnType int
+type ColumnTypes []ColumnType
 
 const (
-	UnknownFeatureType FeatureType = iota
-	IntegerFeatureType
-	FloatFeatureType
-	StringFeatureType
-	IntegerListFeatureType
-	FloatListFeatureType
-	StringListFeatureType
+	UnknownColumnType ColumnType = iota
+	IntegerColumnType
+	FloatColumnType
+	StringColumnType
+	IntegerListColumnType
+	FloatListColumnType
+	StringListColumnType
 )
 
-var featureTypes = []string{
+var columnTypes = []string{
 	"unknown",
-	"INT_FEATURE",
-	"FLOAT_FEATURE",
-	"STRING_FEATURE",
-	"INT_LIST_FEATURE",
-	"FLOAT_LIST_FEATURE",
-	"STRING_LIST_FEATURE",
+	"INT_COLUMN",
+	"FLOAT_COLUMN",
+	"STRING_COLUMN",
+	"INT_LIST_COLUMN",
+	"FLOAT_LIST_COLUMN",
+	"STRING_LIST_COLUMN",
 }
 
-func FeatureTypeFromString(s string) FeatureType {
-	for i := 0; i < len(featureTypes); i++ {
-		if s == featureTypes[i] {
-			return FeatureType(i)
+func ColumnTypeFromString(s string) ColumnType {
+	for i := 0; i < len(columnTypes); i++ {
+		if s == columnTypes[i] {
+			return ColumnType(i)
 		}
 	}
-	return UnknownFeatureType
+	return UnknownColumnType
 }
 
-func FeatureTypeStrings() []string {
-	return featureTypes[1:]
+func ColumnTypeStrings() []string {
+	return columnTypes[1:]
 }
 
-func (t FeatureType) String() string {
-	return featureTypes[t]
+func (t ColumnType) String() string {
+	return columnTypes[t]
 }
 
 // MarshalText satisfies TextMarshaler
-func (t FeatureType) MarshalText() ([]byte, error) {
+func (t ColumnType) MarshalText() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
 // UnmarshalText satisfies TextUnmarshaler
-func (t *FeatureType) UnmarshalText(text []byte) error {
+func (t *ColumnType) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(featureTypes); i++ {
-		if enum == featureTypes[i] {
-			*t = FeatureType(i)
+	for i := 0; i < len(columnTypes); i++ {
+		if enum == columnTypes[i] {
+			*t = ColumnType(i)
 			return nil
 		}
 	}
 
-	*t = UnknownFeatureType
+	*t = UnknownColumnType
 	return nil
 }
 
 // UnmarshalBinary satisfies BinaryUnmarshaler
 // Needed for msgpack
-func (t *FeatureType) UnmarshalBinary(data []byte) error {
+func (t *ColumnType) UnmarshalBinary(data []byte) error {
 	return t.UnmarshalText(data)
 }
 
 // MarshalBinary satisfies BinaryMarshaler
-func (t FeatureType) MarshalBinary() ([]byte, error) {
+func (t ColumnType) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
-func (ts FeatureTypes) StringList() []string {
+func (ts ColumnTypes) StringList() []string {
 	strs := make([]string, len(ts))
 	for i, t := range ts {
 		strs[i] = t.String()
@@ -96,6 +96,6 @@ func (ts FeatureTypes) StringList() []string {
 	return strs
 }
 
-func (ts FeatureTypes) String() string {
+func (ts ColumnTypes) String() string {
 	return strings.Join(ts.StringList(), ", ")
 }

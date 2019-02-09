@@ -18,8 +18,8 @@ import os
 from lib import context
 
 
-def test_create_inputs_from_features_map():
-    features_values_map = {
+def test_create_inputs_map():
+    values_map = {
         "e11": "value_11",
         "e12": 12,
         "e21": 2.1,
@@ -31,15 +31,15 @@ def test_create_inputs_from_features_map():
         "e4": "value_e4",
     }
 
-    feature_input_config = {"in": "e11"}
-    inputs = context.create_inputs_from_features_map(features_values_map, feature_input_config)
+    input_config = {"in": "e11"}
+    inputs = context.create_inputs_map(values_map, input_config)
     assert inputs == {"in": "value_11"}
 
-    feature_input_config = {"a1": ["e11", "e12"], "a2": ["e21", "e22"]}
-    inputs = context.create_inputs_from_features_map(features_values_map, feature_input_config)
+    input_config = {"a1": ["e11", "e12"], "a2": ["e21", "e22"]}
+    inputs = context.create_inputs_map(values_map, input_config)
     assert inputs == {"a1": ["value_11", 12], "a2": [2.1, "value_22"]}
 
-    features_values_map2 = {
+    values_map2 = {
         "f1": 111,
         "f2": 2.22,
         "f3": "3",
@@ -51,18 +51,18 @@ def test_create_inputs_from_features_map():
         "f9": "9",
     }
 
-    feature_input_config = {"in1": "f1"}
-    inputs = context.create_inputs_from_features_map(features_values_map2, feature_input_config)
+    input_config = {"in1": "f1"}
+    inputs = context.create_inputs_map(values_map2, input_config)
     assert inputs == {"in1": 111}
 
-    feature_input_config = {"in1": "f1", "in2": "f2"}
-    inputs = context.create_inputs_from_features_map(features_values_map2, feature_input_config)
+    input_config = {"in1": "f1", "in2": "f2"}
+    inputs = context.create_inputs_map(values_map2, input_config)
     assert inputs == {"in1": 111, "in2": 2.22}
 
-    feature_input_config = {"in1": ["f1", "f2", "f3"]}
-    inputs = context.create_inputs_from_features_map(features_values_map2, feature_input_config)
+    input_config = {"in1": ["f1", "f2", "f3"]}
+    inputs = context.create_inputs_map(values_map2, input_config)
     assert inputs == {"in1": [111, 2.22, "3"]}
 
-    feature_input_config = {"in1": ["f1", "f2", "f3"], "in2": ["f4", "f5", "f6"]}
-    inputs = context.create_inputs_from_features_map(features_values_map2, feature_input_config)
+    input_config = {"in1": ["f1", "f2", "f3"], "in2": ["f4", "f5", "f6"]}
+    inputs = context.create_inputs_map(values_map2, input_config)
     assert inputs == {"in1": [111, 2.22, "3"], "in2": ["4", "5", "6"]}

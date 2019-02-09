@@ -118,12 +118,12 @@ func printResourceByName(resourceName string, resourcesRes *schema.GetResourcesR
 		errors.Exit(err)
 	}
 	switch resourceType := rs.GetResourceType(); resourceType {
-	case resource.RawFeatureType:
-		describeRawFeature(resourceName, resourcesRes)
+	case resource.RawColumnType:
+		describeRawColumn(resourceName, resourcesRes)
 	case resource.AggregateType:
 		describeAggregate(resourceName, resourcesRes)
-	case resource.TransformedFeatureType:
-		describeTransformedFeature(resourceName, resourcesRes)
+	case resource.TransformedColumnType:
+		describeTransformedColumn(resourceName, resourcesRes)
 	case resource.TrainingDatasetType:
 		describeTrainingDataset(resourceName, resourcesRes)
 	case resource.ModelType:
@@ -137,12 +137,12 @@ func printResourceByName(resourceName string, resourcesRes *schema.GetResourcesR
 
 func printResourcesByType(resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) {
 	switch resourceType {
-	case resource.RawFeatureType:
-		printRawFeatures(resourcesRes.DataStatuses, resourcesRes.Context)
+	case resource.RawColumnType:
+		printRawColumns(resourcesRes.DataStatuses, resourcesRes.Context)
 	case resource.AggregateType:
 		printAggregates(resourcesRes.DataStatuses, resourcesRes.Context)
-	case resource.TransformedFeatureType:
-		printTransformedFeatures(resourcesRes.DataStatuses, resourcesRes.Context)
+	case resource.TransformedColumnType:
+		printTransformedColumns(resourcesRes.DataStatuses, resourcesRes.Context)
 	case resource.TrainingDatasetType:
 		printTrainingData(resourcesRes.DataStatuses, resourcesRes.Context)
 	case resource.ModelType:
@@ -156,12 +156,12 @@ func printResourcesByType(resourceType resource.Type, resourcesRes *schema.GetRe
 
 func printResourceByNameAndType(resourceName string, resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) {
 	switch resourceType {
-	case resource.RawFeatureType:
-		describeRawFeature(resourceName, resourcesRes)
+	case resource.RawColumnType:
+		describeRawColumn(resourceName, resourcesRes)
 	case resource.AggregateType:
 		describeAggregate(resourceName, resourcesRes)
-	case resource.TransformedFeatureType:
-		describeTransformedFeature(resourceName, resourcesRes)
+	case resource.TransformedColumnType:
+		describeTransformedColumn(resourceName, resourcesRes)
 	case resource.TrainingDatasetType:
 		describeTrainingDataset(resourceName, resourcesRes)
 	case resource.ModelType:
@@ -174,14 +174,14 @@ func printResourceByNameAndType(resourceName string, resourceType resource.Type,
 }
 
 func printAllResources(resourcesRes *schema.GetResourcesResponse) {
-	printTitle("Raw Features")
-	printRawFeatures(resourcesRes.DataStatuses, resourcesRes.Context)
+	printTitle("Raw Columns")
+	printRawColumns(resourcesRes.DataStatuses, resourcesRes.Context)
 
 	printTitle("Aggregates")
 	printAggregates(resourcesRes.DataStatuses, resourcesRes.Context)
 
-	printTitle("Transformed Features")
-	printTransformedFeatures(resourcesRes.DataStatuses, resourcesRes.Context)
+	printTitle("Transformed Columns")
+	printTransformedColumns(resourcesRes.DataStatuses, resourcesRes.Context)
 
 	printTitle("Training Datasets")
 	printTrainingData(resourcesRes.DataStatuses, resourcesRes.Context)
@@ -193,16 +193,16 @@ func printAllResources(resourcesRes *schema.GetResourcesResponse) {
 	printAPIs(resourcesRes.APIGroupStatuses)
 }
 
-func printRawFeatures(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
-	if len(ctx.RawFeatures) == 0 {
+func printRawColumns(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
+	if len(ctx.RawColumns) == 0 {
 		fmt.Println("None")
 		return
 	}
 
 	printDataResourcesHeader()
 	strings := make(map[string]string)
-	for name, rawFeature := range ctx.RawFeatures {
-		strings[name] = dataResourceRow(name, rawFeature, dataStatuses)
+	for name, rawColumn := range ctx.RawColumns {
+		strings[name] = dataResourceRow(name, rawColumn, dataStatuses)
 	}
 	printStrings(strings)
 }
@@ -221,16 +221,16 @@ func printAggregates(dataStatuses map[string]*resource.DataStatus, ctx *context.
 	printStrings(strings)
 }
 
-func printTransformedFeatures(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
-	if len(ctx.TransformedFeatures) == 0 {
+func printTransformedColumns(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
+	if len(ctx.TransformedColumns) == 0 {
 		fmt.Println("None")
 		return
 	}
 
 	printDataResourcesHeader()
 	strings := make(map[string]string)
-	for name, transformedFeature := range ctx.TransformedFeatures {
-		strings[name] = dataResourceRow(name, transformedFeature, dataStatuses)
+	for name, transformedColumn := range ctx.TransformedColumns {
+		strings[name] = dataResourceRow(name, transformedColumn, dataStatuses)
 	}
 	printStrings(strings)
 }
@@ -278,15 +278,15 @@ func printAPIs(apiGroupStatuses map[string]*resource.APIGroupStatus) {
 	printStrings(strings)
 }
 
-func describeRawFeature(name string, resourcesRes *schema.GetResourcesResponse) {
-	rawFeature := resourcesRes.Context.RawFeatures[name]
-	if rawFeature == nil {
-		fmt.Println("Raw feature " + name + " does not exist")
+func describeRawColumn(name string, resourcesRes *schema.GetResourcesResponse) {
+	rawColumn := resourcesRes.Context.RawColumns[name]
+	if rawColumn == nil {
+		fmt.Println("Raw column " + name + " does not exist")
 		os.Exit(0)
 	}
-	dataStatus := resourcesRes.DataStatuses[rawFeature.GetID()]
+	dataStatus := resourcesRes.DataStatuses[rawColumn.GetID()]
 	printDataStatusSummary(dataStatus)
-	printResource(rawFeature.GetUserConfig())
+	printResource(rawColumn.GetUserConfig())
 }
 
 func describeAggregate(name string, resourcesRes *schema.GetResourcesResponse) {
@@ -321,15 +321,15 @@ func describeAggregate(name string, resourcesRes *schema.GetResourcesResponse) {
 	printResource(aggregate.Aggregate)
 }
 
-func describeTransformedFeature(name string, resourcesRes *schema.GetResourcesResponse) {
-	transformedFeature := resourcesRes.Context.TransformedFeatures[name]
-	if transformedFeature == nil {
-		fmt.Println("Transformed feature " + name + " does not exist")
+func describeTransformedColumn(name string, resourcesRes *schema.GetResourcesResponse) {
+	transformedColumn := resourcesRes.Context.TransformedColumns[name]
+	if transformedColumn == nil {
+		fmt.Println("Transformed column " + name + " does not exist")
 		os.Exit(0)
 	}
-	dataStatus := resourcesRes.DataStatuses[transformedFeature.ID]
+	dataStatus := resourcesRes.DataStatuses[transformedColumn.ID]
 	printDataStatusSummary(dataStatus)
-	printResource(transformedFeature.TransformedFeature)
+	printResource(transformedColumn.TransformedColumn)
 }
 
 func describeTrainingDataset(name string, resourcesRes *schema.GetResourcesResponse) {

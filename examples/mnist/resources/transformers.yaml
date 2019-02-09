@@ -1,6 +1,6 @@
 - kind: transformer
   name: decode_and_normalize
-  output_type: FLOAT_LIST_FEATURE
+  output_type: FLOAT_LIST_COLUMN
   inputs:
-    features:
-      image: STRING_FEATURE
+    columns:
+      image: STRING_COLUMN

@@ -1,8 +1,8 @@
 - kind: model
   name: dnn
   type: classification
-  target: class_indexed
-  features:
+  target_column: class_indexed
+  feature_columns:
     - sepal_length_normalized
     - sepal_width_normalized
     - petal_length_normalized

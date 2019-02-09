@@ -77,22 +77,22 @@ var statusCmd = &cobra.Command{
 
 func printAllResourceStatuses(resourcesRes *schema.GetResourcesResponse) {
 	fmt.Println("")
-	printRawFeatureStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
+	printRawColumnStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
 	printAggregateStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
-	printTransformedFeatureStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
+	printTransformedColumnStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
 	printTrainingDatasetStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
 	printModelStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
 	printAPIStatuses(resourcesRes.APIGroupStatuses)
 }
 
-func printRawFeatureStatuses(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
-	var statuses = make([]resource.Status, len(ctx.RawFeatures))
+func printRawColumnStatuses(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
+	var statuses = make([]resource.Status, len(ctx.RawColumns))
 	i := 0
-	for _, rawFeature := range ctx.RawFeatures {
-		statuses[i] = dataStatuses[rawFeature.GetID()]
+	for _, rawColumn := range ctx.RawColumns {
+		statuses[i] = dataStatuses[rawColumn.GetID()]
 		i++
 	}
-	fmt.Println("Raw Features:           " + StatusStr(statuses))
+	fmt.Println("Raw Columns:           " + StatusStr(statuses))
 }
 
 func printAggregateStatuses(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
@@ -102,17 +102,17 @@ func printAggregateStatuses(dataStatuses map[string]*resource.DataStatus, ctx *c
 		statuses[i] = dataStatuses[aggregate.GetID()]
 		i++
 	}
-	fmt.Println("Aggregates:             " + StatusStr(statuses))
+	fmt.Println("Aggregates:            " + StatusStr(statuses))
 }
 
-func printTransformedFeatureStatuses(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
-	var statuses = make([]resource.Status, len(ctx.TransformedFeatures))
+func printTransformedColumnStatuses(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
+	var statuses = make([]resource.Status, len(ctx.TransformedColumns))
 	i := 0
-	for _, transformedFeature := range ctx.TransformedFeatures {
-		statuses[i] = dataStatuses[transformedFeature.GetID()]
+	for _, transformedColumn := range ctx.TransformedColumns {
+		statuses[i] = dataStatuses[transformedColumn.GetID()]
 		i++
 	}
-	fmt.Println("Transformed Features:   " + StatusStr(statuses))
+	fmt.Println("Transformed Columns:   " + StatusStr(statuses))
 }
 
 func printTrainingDatasetStatuses(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
@@ -122,7 +122,7 @@ func printTrainingDatasetStatuses(dataStatuses map[string]*resource.DataStatus, 
 		statuses[i] = dataStatuses[model.Dataset.GetID()]
 		i++
 	}
-	fmt.Println("Training Datasets:      " + StatusStr(statuses))
+	fmt.Println("Training Datasets:     " + StatusStr(statuses))
 }
 
 func printModelStatuses(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
@@ -132,7 +132,7 @@ func printModelStatuses(dataStatuses map[string]*resource.DataStatus, ctx *conte
 		statuses[i] = dataStatuses[model.GetID()]
 		i++
 	}
-	fmt.Println("Models:                 " + StatusStr(statuses))
+	fmt.Println("Models:                " + StatusStr(statuses))
 }
 
 func printAPIStatuses(apiGroupStatuses map[string]*resource.APIGroupStatus) {
@@ -142,7 +142,7 @@ func printAPIStatuses(apiGroupStatuses map[string]*resource.APIGroupStatus) {
 		statuses[i] = apiGroupStatus
 		i++
 	}
-	fmt.Println("APIs:                   " + StatusStr(statuses))
+	fmt.Println("APIs:                  " + StatusStr(statuses))
 }
 
 func StatusStr(statuses []resource.Status) string {

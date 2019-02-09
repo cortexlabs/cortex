@@ -87,10 +87,10 @@ Usage:
   cortex get [RESOURCE_TYPE] [RESOURCE_NAME] [flags]
 
 Resource Types:
-  rawfeatures
+  raw_columns
   aggregates
-  transformedfeatures
-  trainingdatasets
+  transformed_columns
+  training_datasets
   models
   apis
 
@@ -111,9 +111,9 @@ Usage:
   cortex status [RESOURCE_TYPE] [RESOURCE_NAME] [flags]
 
 Resource Types:
-  raw_feature
+  raw_column
   aggregate
-  transformed_feature
+  transformed_column
   training_dataset
   model
   api
@@ -135,12 +135,12 @@ Usage:
   cortex logs [RESOURCE_TYPE] RESOURCE_NAME [flags]
 
 Resource Types:
-  rawfeatures
-  aggregates
-  transformedfeatures
-  trainingdatasets
-  models
-  apis
+  raw_column
+  aggregate
+  transformed_column
+  training_dataset
+  model
+  api
 
 Flags:
   -a, --app string   app name

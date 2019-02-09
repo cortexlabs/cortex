@@ -88,7 +88,7 @@ func (aggregates Aggregates) Get(name string) *Aggregate {
 	return nil
 }
 
-func (aggregate *Aggregate) InputFeatureNames() map[string]bool {
-	inputs, _ := util.FlattenAllStrValuesAsSet(aggregate.Inputs.Features)
+func (aggregate *Aggregate) InputColumnNames() map[string]bool {
+	inputs, _ := util.FlattenAllStrValuesAsSet(aggregate.Inputs.Columns)
 	return inputs
 }

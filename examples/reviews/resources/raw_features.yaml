@@ -1,7 +1,0 @@
-- kind: raw_feature
-  name: review
-  type: STRING_FEATURE
-
-- kind: raw_feature
-  name: label
-  type: STRING_FEATURE

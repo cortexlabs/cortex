@@ -95,25 +95,25 @@ func New(
 	}
 	ctx.Transformers = transformers
 
-	rawFeatures, err := getRawFeatures(config, ctx.Environment)
+	rawColumns, err := getRawColumns(config, ctx.Environment)
 	if err != nil {
 		return nil, err
 	}
-	ctx.RawFeatures = rawFeatures
+	ctx.RawColumns = rawColumns
 
-	aggregates, err := getAggregates(config, constants, rawFeatures, userAggregators, ctx.Root)
+	aggregates, err := getAggregates(config, constants, rawColumns, userAggregators, ctx.Root)
 	if err != nil {
 		return nil, err
 	}
 	ctx.Aggregates = aggregates
 
-	transformedFeatures, err := getTransformedFeatures(config, constants, rawFeatures, ctx.Aggregates, userTransformers, ctx.Root)
+	transformedColumns, err := getTransformedColumns(config, constants, rawColumns, ctx.Aggregates, userTransformers, ctx.Root)
 	if err != nil {
 		return nil, err
 	}
-	ctx.TransformedFeatures = transformedFeatures
+	ctx.TransformedColumns = transformedColumns
 
-	models, err := getModels(config, aggregates, ctx.Features(), files, ctx.Root)
+	models, err := getModels(config, aggregates, ctx.Columns(), files, ctx.Root)
 	if err != nil {
 		return nil, err
 	}

@@ -19,8 +19,8 @@
   name: approx_count_distinct
   output_type: INT
   inputs:
-    features:
-      col: FLOAT_FEATURE|INT_FEATURE|STRING_FEATURE
+    columns:
+      col: FLOAT_COLUMN|INT_COLUMN|STRING_COLUMN
     args:
       rsd: FLOAT
 
@@ -30,8 +30,8 @@
   name: avg
   output_type: FLOAT
   inputs:
-    features:
-      col: FLOAT_FEATURE|INT_FEATURE
+    columns:
+      col: FLOAT_COLUMN|INT_COLUMN
 
 # Spark Builtin: Accumalate all of the unique int values in the int col.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.collect_set
@@ -39,8 +39,8 @@
   name: collect_set_int
   output_type: [INT]
   inputs:
-    features:
-      col: INT_FEATURE
+    columns:
+      col: INT_COLUMN
 
 # Spark Builtin: Accumalate all of the unique int values in the float col.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.collect_set
@@ -48,8 +48,8 @@
   name: collect_set_float
   output_type: [FLOAT]
   inputs:
-    features:
-      col: FLOAT_FEATURE
+    columns:
+      col: FLOAT_COLUMN
 
 # Spark Builtin: Accumalate all of the unique int values in the string col.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.collect_set
@@ -57,8 +57,8 @@
   name: collect_set_string
   output_type: [STRING]
   inputs:
-    features:
-      col: STRING_FEATURE
+    columns:
+      col: STRING_COLUMN
 
 # Spark Builtin: Count the number of values in the column.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.count
@@ -66,8 +66,8 @@
   name: count
   output_type: INT
   inputs:
-    features:
-      col: INT_FEATURE|FLOAT_FEATURE|STRING_FEATURE
+    columns:
+      col: INT_COLUMN|FLOAT_COLUMN|STRING_COLUMN
 
 # Spark Builtin: Given a group of columns, count the unique rows in the group columns.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.countDistinct
@@ -75,9 +75,9 @@
   name: count_distinct
   output_type: INT
   inputs:
-    features:
-      col: INT_FEATURE|FLOAT_FEATURE|STRING_FEATURE
-      cols: [INT_FEATURE|FLOAT_FEATURE|STRING_FEATURE]
+    columns:
+      col: INT_COLUMN|FLOAT_COLUMN|STRING_COLUMN
+      cols: [INT_COLUMN|FLOAT_COLUMN|STRING_COLUMN]
 
 # Spark Builtin: Calculate the population covariance between col1 and col2 (scaled by 1/N).
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.covar_pop
@@ -85,9 +85,9 @@
   name: covar_pop
   output_type: FLOAT
   inputs:
-    features:
-      col1: INT_FEATURE|FLOAT_FEATURE
-      col2: INT_FEATURE|FLOAT_FEATURE
+    columns:
+      col1: INT_COLUMN|FLOAT_COLUMN
+      col2: INT_COLUMN|FLOAT_COLUMN
 
 
 # Spark Builtin: Calculate the sample covariance between col1 and col2 (scaled by 1/(N-1)).
@@ -96,9 +96,9 @@
   name: covar_samp
   output_type: FLOAT
   inputs:
-    features:
-      col1: INT_FEATURE|FLOAT_FEATURE
-      col2: INT_FEATURE|FLOAT_FEATURE
+    columns:
+      col1: INT_COLUMN|FLOAT_COLUMN
+      col2: INT_COLUMN|FLOAT_COLUMN
 
 # Spark Builtin: Calculate the sharpness of the peak of a frequency-distribution of the input column.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.kurtosis
@@ -106,8 +106,8 @@
   name: kurtosis
   output_type: FLOAT
   inputs:
-    features:
-      col: INT_FEATURE|FLOAT_FEATURE
+    columns:
+      col: INT_COLUMN|FLOAT_COLUMN
 
 # Spark Builtin: Get the max value of the input int column.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.max
@@ -115,8 +115,8 @@
   name: max_int
   output_type: INT
   inputs:
-    features:
-      col: INT_FEATURE
+    columns:
+      col: INT_COLUMN
 
 # Spark Builtin: Get the max value of the input float column.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.max
@@ -124,8 +124,8 @@
   name: max_float
   output_type: FLOAT
   inputs:
-    features:
-      col: FLOAT_FEATURE
+    columns:
+      col: FLOAT_COLUMN
 
 # Spark Builtin: Get the max value of the input string column.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.max
@@ -133,8 +133,8 @@
   name: max_string
   output_type: STRING
   inputs:
-    features:
-      col: STRING_FEATURE
+    columns:
+      col: STRING_COLUMN
 
 # Spark Builtin: Calculate the mean of the values in the input column.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.mean
@@ -142,8 +142,8 @@
   name: mean
   output_type: FLOAT
   inputs:
-    features:
-      col: FLOAT_FEATURE|INT_FEATURE
+    columns:
+      col: FLOAT_COLUMN|INT_COLUMN
 
 # Spark Builtin: Get the min value of the intput int column.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.min
@@ -151,8 +151,8 @@
   name: min_int
   output_type: INT
   inputs:
-    features:
-      col: INT_FEATURE
+    columns:
+      col: INT_COLUMN
 
 # Spark Builtin: Get the min value of the input float column.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.min
@@ -160,8 +160,8 @@
   name: min_float
   output_type: FLOAT
   inputs:
-    features:
-      col: FLOAT_FEATURE
+    columns:
+      col: FLOAT_COLUMN
 
 # Spark Builtin: Get the min value of the input string column.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.min
@@ -169,8 +169,8 @@
   name: min_string
   output_type: STRING
   inputs:
-    features:
-      col: STRING_FEATURE
+    columns:
+      col: STRING_COLUMN
 
 # Spark Builtin: Calculate the skewness of the values in the input column.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.skewness
@@ -178,8 +178,8 @@
   name: skewness
   output_type: FLOAT
   inputs:
-    features:
-      col: FLOAT_FEATURE|INT_FEATURE
+    columns:
+      col: FLOAT_COLUMN|INT_COLUMN
 
 # Spark Builtin: Calculate the standard deviation (scaled by 1/(N-1)).
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.stddev
@@ -187,8 +187,8 @@
   name: stddev
   output_type: FLOAT
   inputs:
-    features:
-      col: FLOAT_FEATURE|INT_FEATURE
+    columns:
+      col: FLOAT_COLUMN|INT_COLUMN
 
 # Spark Builtin: Calculate the standard deviation (scaled by 1/(N)).
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.stddev_pop
@@ -196,8 +196,8 @@
   name: stddev_pop
   output_type: FLOAT
   inputs:
-    features:
-      col: FLOAT_FEATURE|INT_FEATURE
+    columns:
+      col: FLOAT_COLUMN|INT_COLUMN
 
 # Spark Builtin: Calculate the standard deviation (scaled by 1/(N-1)).
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.stddev_samp
@@ -205,8 +205,8 @@
   name: stddev_samp
   output_type: FLOAT
   inputs:
-    features:
-      col: FLOAT_FEATURE|INT_FEATURE
+    columns:
+      col: FLOAT_COLUMN|INT_COLUMN
 
 # Spark Builtin: Sum all of the values in the input int column.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.sum
@@ -214,8 +214,8 @@
   name: sum_int
   output_type: INT
   inputs:
-    features:
-      col: INT_FEATURE
+    columns:
+      col: INT_COLUMN
 
 # Spark Builtin: Sum all of the values in the input float column.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.sum
@@ -223,8 +223,8 @@
   name: sum_float
   output_type: FLOAT
   inputs:
-    features:
-      col: FLOAT_FEATURE
+    columns:
+      col: FLOAT_COLUMN
 
 # Spark Builtin: Sum all of the distinct values in the input int column.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.sumDistinct
@@ -232,8 +232,8 @@
   name: sum_distinct_int
   output_type: INT
   inputs:
-    features:
-      col: INT_FEATURE
+    columns:
+      col: INT_COLUMN
 
 
 # Spark Builtin: Sum all of the distinct values in the input float column.
@@ -242,8 +242,8 @@
   name: sum_distinct_float
   output_type: FLOAT
   inputs:
-    features:
-      col: FLOAT_FEATURE
+    columns:
+      col: FLOAT_COLUMN
 
 # Spark Builtin: Calculate the variance (scaled by 1/(N)).
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.var_pop
@@ -251,8 +251,8 @@
   name: var_pop
   output_type: FLOAT
   inputs:
-    features:
-      col: FLOAT_FEATURE|INT_FEATURE
+    columns:
+      col: FLOAT_COLUMN|INT_COLUMN
 
 # Spark Builtin: Calculate the variance (scaled by 1/(N-1)).
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.var_samp
@@ -260,8 +260,8 @@
   name: var_samp
   output_type: FLOAT
   inputs:
-    features:
-      col: FLOAT_FEATURE|INT_FEATURE
+    columns:
+      col: FLOAT_COLUMN|INT_COLUMN
 
 
 # Spark Builtin: Calculate the variance (scaled by 1/(N-1)).
@@ -270,8 +270,8 @@
   name: variance
   output_type: FLOAT
   inputs:
-    features:
-      col: FLOAT_FEATURE|INT_FEATURE
+    columns:
+      col: FLOAT_COLUMN|INT_COLUMN
 
 # Given the number of buckets, calculates the boundaries of a bucket such that the values in the column can be evenly
 # split into the buckets. Works well with transformers.bucketize.
@@ -281,8 +281,8 @@
   name: bucket_boundaries
   output_type: [FLOAT]
   inputs:
-    features:
-      col: FLOAT_FEATURE|INT_FEATURE
+    columns:
+      col: FLOAT_COLUMN|INT_COLUMN
     args:
       num_buckets: INT
 
@@ -294,8 +294,8 @@
   name: index_string
   output_type: [STRING]
   inputs:
-    features:
-      col: STRING_FEATURE
+    columns:
+      col: STRING_COLUMN
 
 # Counts the occurences of each value in the string input column and divides the counts by the total number of values.
 # For example: An input column with the following values ['t', 'f', 't', 't'] would return {'t': 0.75, 'f': 0.25}.
@@ -303,8 +303,8 @@
   name: class_distribution_string
   output_type: {STRING: FLOAT}
   inputs:
-    features:
-      col: STRING_FEATURE
+    columns:
+      col: STRING_COLUMN
   path: class_distribution.py
 
 # Counts the occurences of each value in the int input column and divides the counts by the total number of values.
@@ -313,6 +313,6 @@
   name: class_distribution_int
   output_type: {INT: FLOAT}
   inputs:
-    features:
-      col: INT_FEATURE
+    columns:
+      col: INT_COLUMN
   path: class_distribution.py

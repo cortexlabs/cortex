@@ -2,8 +2,8 @@
   name: vocab
   output_type: {STRING: INT}
   inputs:
-    features:
-      col: STRING_FEATURE
+    columns:
+      col: STRING_COLUMN
     args:
       vocab_size: INT
       reserved_indices: {STRING: INT}
@@ -11,6 +11,6 @@
 - kind: aggregator
   name: max_length
   inputs:
-    features:
-      col: STRING_FEATURE
+    columns:
+      col: STRING_COLUMN
   output_type: INT
