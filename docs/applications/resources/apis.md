@@ -12,6 +12,7 @@ Serve models at scale and use them to build smarter applications.
     replicas: <int>  # number of replicas to launch (default: 1)
     cpu: <string>  # CPU request (default: Null)
     mem: <string>  # memory request (default: Null)
+    gpu: <string>  # gpu request (default: Null)
   tags:
     <string>: <scalar>  # arbitrary key/value pairs to attach to the resource (optional)
     ...
