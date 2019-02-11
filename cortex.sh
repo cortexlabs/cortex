@@ -229,7 +229,6 @@ function uninstall_operator() {
     else
       echo "  sudo rm -rf /usr/local/aws && sudo rm /usr/local/bin/aws && rm -rf ~/.aws"
     fi
-    return
   fi
 }
 
