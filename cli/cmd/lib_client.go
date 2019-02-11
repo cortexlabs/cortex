@@ -269,7 +269,7 @@ func makeRequest(request *http.Request) ([]byte, error) {
 		var output schema.ErrorResponse
 		err = json.Unmarshal(bodyBytes, &output)
 		if err != nil || output.Error == "" {
-			return nil, errors.New(string(bodyBytes))
+			return nil, errors.New(strings.TrimSpace(string(bodyBytes)))
 		}
 
 		return nil, errors.New(output.Error)
