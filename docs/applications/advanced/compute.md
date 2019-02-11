@@ -21,3 +21,7 @@ One unit of CPU corresponds to one virtual CPU on AWS. Fractional requests are a
 ## Memory
 
 One unit of memory is one byte. Memory can be expressed as an integer or by using one of these suffixes: `K`, `M`, `G`, `T` (or their power-of two counterparts: `Ki`, `Mi`, `Gi`, `Ti`). For example, the following values represent roughly the same memory: `128974848`, `129e6`, `129M`, `123Mi`.
+
+## GPU
+One unit of GPU corresponds to one virtual GPU on AWS. Fractional requests are not allowed. Here's some information on adding GPU enabled nodes to your cluster:
+- [EKS](https://docs.aws.amazon.com/en_ca/eks/latest/userguide/gpu-ami.html)

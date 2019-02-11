@@ -2,7 +2,7 @@
 FROM nvidia/cuda:9.0-base-ubuntu16.04
 
 # Pick up some TF dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update -qq && apt-get install -q -y --no-install-recommends \
     build-essential \
     cuda-command-line-tools-9-0 \
     cuda-cublas-9-0 \
@@ -19,11 +19,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     software-properties-common \
     unzip
 
-RUN apt-get update && \
-    apt-get install nvinfer-runtime-trt-repo-ubuntu1604-5.0.2-ga-cuda9.0 \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends libnvinfer5=5.0.2-1+cuda9.0 \
-    && apt-get clean \
+RUN apt-get update -qq && \
+    apt-get install -q nvinfer-runtime-trt-repo-ubuntu1604-5.0.2-ga-cuda9.0 \
+    && apt-get update -qq \
+    && apt-get -q install -y --no-install-recommends libnvinfer5=5.0.2-1+cuda9.0 \
+    && apt-get -q clean \
     && rm -rf /var/lib/apt/lists/*
 
 
@@ -46,6 +46,6 @@ RUN pip3 --no-cache-dir install --upgrade \
     setuptools
 
 # Some TF tools expect a "python" binary
-RUN ln -s python3 /usr/local/bin/python 
+# RUN ln -s python3 /usr/local/bin/python 
 
 RUN pip3 install tensorflow-gpu==1.12

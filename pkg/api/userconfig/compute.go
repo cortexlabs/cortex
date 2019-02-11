@@ -301,7 +301,7 @@ func MaxTFCompute(tfComputes ...*TFCompute) *TFCompute {
 			}
 		}
 		if tfCompute.GPU != nil {
-			if aggregated.GPU == nil || *tfCompute.GPU > 0 {
+			if aggregated.GPU == nil || *tfCompute.GPU > *aggregated.GPU {
 				aggregated.GPU = tfCompute.GPU
 			}
 		}
