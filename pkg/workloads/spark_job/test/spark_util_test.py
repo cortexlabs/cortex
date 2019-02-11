@@ -194,10 +194,10 @@ def test_read_csv_valid_options(spark, write_csv_file, ctx_obj, get_context):
         }
     }
 
-    ctx_obj["raw_features"] = {
-        "a_str": {"name": "a_str", "type": "STRING_FEATURE", "required": True, "id": "-"},
-        "b_float": {"name": "b_float", "type": "FLOAT_FEATURE", "required": True, "id": "-"},
-        "c_long": {"name": "c_long", "type": "INT_FEATURE", "required": False, "id": "-"},
+    ctx_obj["raw_columns"] = {
+        "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "-"},
+        "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": "-"},
+        "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "-"},
     }
 
     actual_results = spark_util.read_csv(get_context(ctx_obj), spark).collect()
