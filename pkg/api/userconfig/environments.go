@@ -121,8 +121,8 @@ type CSVConfig struct {
 	NanValue                  *string `json:"nan_value" yaml:"nan_value"`
 	PositiveInf               *string `json:"positive_inf" yaml:"positive_inf"`
 	NegativeInf               *string `json:"negative_inf" yaml:"negative_inf"`
-	MaxColumns                *int64  `json:"max_columns" yaml:"max_columns"`
-	MaxCharsPerColumn         *int64  `json:"max_chars_per_column" yaml:"max_chars_per_column"`
+	MaxColumns                *int32  `json:"max_columns" yaml:"max_columns"`
+	MaxCharsPerColumn         *int32  `json:"max_chars_per_column" yaml:"max_chars_per_column"`
 	Multiline                 *bool   `json:"multiline" yaml:"multiline"`
 	CharToEscapeQuoteEscaping *string `json:"char_to_escape_quote_escaping" yaml:"char_to_escape_quote_escaping"`
 	EmptyValue                *string `json:"empty_value" yaml:"empty_value"`
@@ -200,12 +200,16 @@ var csvDataFieldValidations = []*cr.StructFieldValidation{
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
 				&cr.StructFieldValidation{
-					StructField:        "MaxColumns",
-					Int64PtrValidation: &cr.Int64PtrValidation{},
+					StructField: "MaxColumns",
+					Int32PtrValidation: &cr.Int32PtrValidation{
+						GreaterThan: util.Int32Ptr(0),
+					},
 				},
 				&cr.StructFieldValidation{
-					StructField:        "MaxCharsPerColumn",
-					Int64PtrValidation: &cr.Int64PtrValidation{},
+					StructField: "MaxCharsPerColumn",
+					Int32PtrValidation: &cr.Int32PtrValidation{
+						GreaterThanOrEqualTo: util.Int32Ptr(-1),
+					},
 				},
 				&cr.StructFieldValidation{
 					StructField:       "Multiline",
