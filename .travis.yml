@@ -16,8 +16,8 @@ jobs:
     - stage: Images
       script: make tf-images
       name: "Tensorflow"
-    - script: make spark-images
-      name: "Spark"
+    - script: make spark-images && make test-python
+      name: "Spark and test python"
     - script: make argo-images
       name: "Argo"
     - script: make operator-images
@@ -25,8 +25,6 @@ jobs:
     - stage: test
       script: make test-go
       name: "Go tests"
-    - script: make test-python
-      name: "Python tests"
     - stage: deploy
       if: branch = master
       script: build-and-upload
