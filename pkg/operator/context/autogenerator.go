@@ -71,8 +71,8 @@ func autoGenerateConfig(
 		}
 	}
 
-	for _, transformedFeature := range config.TransformedFeatures {
-		for argName, argVal := range transformedFeature.Inputs.Args {
+	for _, transformedColumn := range config.TransformedColumns {
+		for argName, argVal := range transformedColumn.Inputs.Args {
 			if argValStr, ok := argVal.(string); ok {
 				if s.HasPrefixAndSuffix(argValStr, "\"") {
 					argVal = s.TrimPrefixAndSuffix(argValStr, "\"")
@@ -81,18 +81,18 @@ func autoGenerateConfig(
 				}
 			}
 
-			transformer, err := getTransformer(transformedFeature.Transformer, userTransformers)
+			transformer, err := getTransformer(transformedColumn.Transformer, userTransformers)
 			if err != nil {
-				return errors.Wrap(err, userconfig.Identify(transformedFeature), userconfig.TransformerKey)
+				return errors.Wrap(err, userconfig.Identify(transformedColumn), userconfig.TransformerKey)
 			}
 			argType, ok := transformer.Inputs.Args[argName]
 			if !ok {
-				return errors.New(userconfig.Identify(transformedFeature), userconfig.InputsKey, userconfig.ArgsKey, s.ErrUnsupportedKey(argName))
+				return errors.New(userconfig.Identify(transformedColumn), userconfig.InputsKey, userconfig.ArgsKey, s.ErrUnsupportedKey(argName))
 			}
 
 			constantName := strings.Join([]string{
-				resource.TransformedFeatureType.String(),
-				transformedFeature.Name,
+				resource.TransformedColumnType.String(),
+				transformedColumn.Name,
 				userconfig.InputsKey,
 				userconfig.ArgsKey,
 				argName,
@@ -106,7 +106,7 @@ func autoGenerateConfig(
 			}
 			config.Constants = append(config.Constants, constant)
 
-			transformedFeature.Inputs.Args[argName] = constantName
+			transformedColumn.Inputs.Args[argName] = constantName
 		}
 	}
 

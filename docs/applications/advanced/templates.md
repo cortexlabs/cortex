@@ -23,38 +23,38 @@ Templates allow you to reuse resource configuration within your application.
   name: normalize
   yaml: |
     - kind: aggregate
-      name: {feature}_mean
+      name: {column}_mean
       aggregator: cortex.mean
       inputs:
-        features:
-          col: {feature}
+        columns:
+          col: {column}
 
     - kind: aggregate
-      name: {feature}_stddev
+      name: {column}_stddev
       aggregator: cortex.stddev
       inputs:
-        features:
-          col: {feature}
+        columns:
+          col: {column}
 
-    - kind: transformed_feature
-      name: {feature}_normalized
+    - kind: transformed_column
+      name: {column}_normalized
       tags:
         type: numeric
       transformer: cortex.normalize
       inputs:
-        features:
-          num: {feature}
+        columns:
+          num: {column}
         args:
-          mean: {feature}_mean
-          stddev: {feature}_stddev
+          mean: {column}_mean
+          stddev: {column}_stddev
 
 - kind: embed
   template: normalize
   args:
-    feature: feature1
+    column: column1
 
 - kind: embed
   template: normalize
   args:
-    feature: feature2
+    column: column2
 ```

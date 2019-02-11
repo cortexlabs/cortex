@@ -20,6 +20,8 @@ set -e
 ### HELP ###
 ############
 
+CORTEX_SH_TMP_DIR="$HOME/.cortex-sh-tmp"
+
 function show_help() {
   echo "
 Usage:
@@ -109,9 +111,9 @@ set -u
 ################
 
 case "$OSTYPE" in
-  darwin*)  parsed_os="darwin" ;;
-  linux*)   parsed_os="linux" ;;
-  *)        echo "error: only mac and linux are supported"; exit 1 ;;
+  darwin*)  PARSED_OS="darwin" ;;
+  linux*)   PARSED_OS="linux" ;;
+  *)        echo "\nerror: only mac and linux are supported"; exit 1 ;;
 esac
 
 #####################
@@ -183,7 +185,7 @@ function install_kubernetes_tools() {
   install_kubectl
 
   echo
-  echo "You can now spin up a EKS cluster using the command below (see eksctl.io for more configuration options):"
+  echo "You can now spin up an EKS cluster using the command below (see eksctl.io for more configuration options):"
   echo "  eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium  # this takes ~20 minutes"
   echo
   echo "Note: we recommend a minimum cluster size of 2 t3.medium AWS instances. Cortex may not run successfully on clusters with less compute resources."
@@ -221,7 +223,13 @@ function uninstall_operator() {
   echo "  ./cortex.sh uninstall cli"
 
   if [[ -f /usr/local/bin/aws ]]; then
-    uninstall_aws
+    echo -e "\nCommand to uninstall the AWS CLI:"
+    if [ $(id -u) = 0 ]; then
+      echo "  rm -rf /usr/local/aws && rm /usr/local/bin/aws && rm -rf ~/.aws"
+    else
+      echo "  sudo rm -rf /usr/local/aws && sudo rm /usr/local/bin/aws && rm -rf ~/.aws"
+    fi
+    return
   fi
 }
 
@@ -1441,7 +1449,12 @@ function validate_cortex() {
 
   get_endpoints
 
-  echo -e "\nPlease run 'cortex configure' to make sure your CLI is configured correctly"
+  if command -v cortex >/dev/null; then
+    echo -e "\nPlease run 'cortex configure' to make sure your CLI is configured correctly"
+  else
+    echo -e "\nCommand to install the Cortex CLI:"
+    echo "  ./cortex.sh install cli"
+  fi
 }
 
 function get_operator_endpoint() {
@@ -1491,7 +1504,7 @@ function check_dep_kubectl() {
   fi
 
   if ! kubectl config current-context >/dev/null 2>&1; then
-    echo "error: kubectl is not configured to connect with your cluster. If you are using eksctl, you can run this command to configure kubectl:"
+    echo "\nerror: kubectl is not configured to connect with your cluster. If you are using eksctl, you can run this command to configure kubectl:"
     echo "  eksctl utils write-kubeconfig --name=cortex"
     exit 1
   fi
@@ -1500,14 +1513,14 @@ function check_dep_kubectl() {
   set +e
   get_nodes_output=$(kubectl get nodes -o jsonpath="$jsonpath" 2>/dev/null)
   if [ $? -ne 0 ]; then
-    echo "error: kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can run this command to configure kubectl:"
+    echo "\nerror: kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can run this command to configure kubectl:"
     echo "  eksctl utils write-kubeconfig --name=cortex"
     exit 1
   fi
   set -e
   num_nodes_ready=$(echo $get_nodes_output | tr ';' "\n" | grep "Ready=True" | wc -l)
   if ! [[ $num_nodes_ready -ge 1 ]]; then
-    echo "error: your cluster has no registered nodes"
+    echo "\nerror: your cluster has no registered nodes"
     exit 1
   fi
 }
@@ -1524,16 +1537,18 @@ function install_kubectl() {
 
   echo -e "\nInstalling kubectl (/usr/local/bin/kubectl) ..."
 
-  curl --silent -LO https://storage.googleapis.com/kubernetes-release/release/v1.13.3/bin/$parsed_os/amd64/kubectl
-  chmod +x ./kubectl
+  rm -rf $CORTEX_SH_TMP_DIR && mkdir -p $CORTEX_SH_TMP_DIR
+  curl -s -Lo $CORTEX_SH_TMP_DIR/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.13.3/bin/$PARSED_OS/amd64/kubectl
+  chmod +x $CORTEX_SH_TMP_DIR/kubectl
 
   if [ $(id -u) = 0 ]; then
-    mv ./kubectl /usr/local/bin/kubectl
+    mv $CORTEX_SH_TMP_DIR/kubectl /usr/local/bin/kubectl
   else
     ask_sudo
-    sudo mv ./kubectl /usr/local/bin/kubectl
+    sudo mv $CORTEX_SH_TMP_DIR/kubectl /usr/local/bin/kubectl
   fi
 
+  rm -rf $CORTEX_SH_TMP_DIR
   echo "✓ Installed kubectl"
 }
 
@@ -1560,6 +1575,7 @@ function uninstall_kubectl() {
       ask_sudo
       sudo rm /usr/local/bin/kubectl
     fi
+    rm -rf $HOME/.kube
     echo "✓ Uninstalled kubectl"
   else
     return
@@ -1581,12 +1597,12 @@ function check_dep_aws() {
   fi
 
   if [ -z "$AWS_ACCESS_KEY_ID" ]; then
-    echo "error: please export AWS_ACCESS_KEY_ID"
+    echo "\nerror: please export AWS_ACCESS_KEY_ID"
     exit 1
   fi
 
   if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-    echo "error: please export AWS_SECRET_ACCESS_KEY"
+    echo "\nerror: please export AWS_SECRET_ACCESS_KEY"
     exit 1
   fi
 }
@@ -1607,34 +1623,33 @@ function install_aws() {
   elif command -v python3 >/dev/null; then
     py_path=$(which python3)
   else
-    echo "error: please install python or python3 using your package manager"
+    echo "\nerror: please install python or python3 using your package manager"
     exit 1
   fi
 
   if ! $py_path -c "import distutils.sysconfig" >/dev/null 2>&1; then
     if command -v python3 >/dev/null; then
-      echo "error: please install python3-distutils using your package manager"
+      echo "\nerror: please install python3-distutils using your package manager"
     else
-      echo "error: please install python distutils"
+      echo "\nerror: please install python distutils"
     fi
     exit 1
   fi
 
   echo -e "\nInstalling the AWS CLI (/usr/local/bin/aws) ..."
 
-  curl -s "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
-  unzip awscli-bundle.zip >/dev/null
-  rm awscli-bundle.zip
+  rm -rf $CORTEX_SH_TMP_DIR && mkdir -p $CORTEX_SH_TMP_DIR
+  curl -s -o $CORTEX_SH_TMP_DIR/awscli-bundle.zip https://s3.amazonaws.com/aws-cli/awscli-bundle.zip
+  unzip $CORTEX_SH_TMP_DIR/awscli-bundle.zip -d $CORTEX_SH_TMP_DIR >/dev/null
 
   if [ $(id -u) = 0 ]; then
-    $py_path ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws >/dev/null
+    $py_path $CORTEX_SH_TMP_DIR/awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws >/dev/null
   else
     ask_sudo
-    sudo $py_path ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws >/dev/null
+    sudo $py_path $CORTEX_SH_TMP_DIR/awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws >/dev/null
   fi
 
-  rm -rf awscli-bundle
-
+  rm -rf $CORTEX_SH_TMP_DIR
   echo "✓ Installed the AWS CLI"
 }
 
@@ -1663,21 +1678,10 @@ function uninstall_aws() {
       sudo rm -rf /usr/local/aws
       sudo rm /usr/local/bin/aws
     fi
+    rm -rf $HOME/.aws
     echo "✓ Uninstalled the AWS CLI"
   else
     return
-  fi
-
-  if [[ -d $HOME/.aws ]]; then
-    echo
-    read -p "Would you like to delete the AWS CLI credentials and configuration (~/.aws)? [Y/n] " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-      rm -rf $HOME/.aws
-      echo "Deleted ~/.aws"
-    else
-      return
-    fi
   fi
 }
 
@@ -1693,16 +1697,18 @@ function install_eksctl() {
 
   echo -e "\nInstalling eksctl (/usr/local/bin/eksctl) ..."
 
-  curl -s --location "https://github.com/weaveworks/eksctl/releases/download/0.1.19/eksctl_$(uname -s)_amd64.tar.gz" | tar xz
-  chmod +x ./eksctl
+  rm -rf $CORTEX_SH_TMP_DIR && mkdir -p $CORTEX_SH_TMP_DIR
+  (cd $CORTEX_SH_TMP_DIR && curl -s --location "https://github.com/weaveworks/eksctl/releases/download/0.1.19/eksctl_$(uname -s)_amd64.tar.gz" | tar xz)
+  chmod +x $CORTEX_SH_TMP_DIR/eksctl
 
   if [ $(id -u) = 0 ]; then
-    mv ./eksctl /usr/local/bin/eksctl
+    mv $CORTEX_SH_TMP_DIR/eksctl /usr/local/bin/eksctl
   else
     ask_sudo
-    sudo mv ./eksctl /usr/local/bin/eksctl
+    sudo mv $CORTEX_SH_TMP_DIR/eksctl /usr/local/bin/eksctl
   fi
 
+  rm -rf $CORTEX_SH_TMP_DIR
   echo "✓ Installed eksctl"
 }
 
@@ -1747,16 +1753,18 @@ function install_aws_iam_authenticator() {
 
   echo -e "\nInstalling aws-iam-authenticator (/usr/local/bin/aws-iam-authenticator) ..."
 
-  curl -s -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.11.5/2018-12-06/bin/$parsed_os/amd64/aws-iam-authenticator
-  chmod +x ./aws-iam-authenticator
+  rm -rf $CORTEX_SH_TMP_DIR && mkdir -p $CORTEX_SH_TMP_DIR
+  curl -s -o $CORTEX_SH_TMP_DIR/aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.11.5/2018-12-06/bin/$PARSED_OS/amd64/aws-iam-authenticator
+  chmod +x $CORTEX_SH_TMP_DIR/aws-iam-authenticator
 
   if [ $(id -u) = 0 ]; then
-    mv ./aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
+    mv $CORTEX_SH_TMP_DIR/aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
   else
     ask_sudo
-    sudo mv ./aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
+    sudo mv $CORTEX_SH_TMP_DIR/aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
   fi
 
+  rm -rf $CORTEX_SH_TMP_DIR
   echo "✓ Installed aws-iam-authenticator"
 }
 
@@ -1802,19 +1810,19 @@ function install_cortex_cli() {
 
   echo -e "\nInstalling the Cortex CLI (/usr/local/bin/cortex) ..."
 
-  curl -s -O https://s3-us-west-2.amazonaws.com/get-cortex/cortex-cli-${CORTEX_VERSION_STABLE}-${parsed_os}.zip
-  unzip cortex-cli-${CORTEX_VERSION_STABLE}-${parsed_os}.zip >/dev/null
-  chmod +x cortex
+  rm -rf $CORTEX_SH_TMP_DIR && mkdir -p $CORTEX_SH_TMP_DIR
+  curl -s -o $CORTEX_SH_TMP_DIR/cortex-cli-${CORTEX_VERSION_STABLE}-${PARSED_OS}.zip https://s3-us-west-2.amazonaws.com/get-cortex/cortex-cli-${CORTEX_VERSION_STABLE}-${PARSED_OS}.zip
+  unzip $CORTEX_SH_TMP_DIR/cortex-cli-${CORTEX_VERSION_STABLE}-${PARSED_OS}.zip -d $CORTEX_SH_TMP_DIR >/dev/null
+  chmod +x $CORTEX_SH_TMP_DIR/cortex
 
   if [ $(id -u) = 0 ]; then
-    mv cortex /usr/local/bin/cortex
+    mv $CORTEX_SH_TMP_DIR/cortex /usr/local/bin/cortex
   else
     ask_sudo
-    sudo mv cortex /usr/local/bin/cortex
+    sudo mv $CORTEX_SH_TMP_DIR/cortex /usr/local/bin/cortex
   fi
 
-  rm cortex-cli-${CORTEX_VERSION_STABLE}-${parsed_os}.zip
-
+  rm -rf $CORTEX_SH_TMP_DIR
   echo "✓ Installed the Cortex CLI"
 
   bash_profile_path=$(get_bash_profile)
@@ -1891,7 +1899,7 @@ function uninstall_cortex_cli() {
 }
 
 function get_bash_profile() {
-  if [ "$parsed_os" = "darwin" ]; then
+  if [ "$PARSED_OS" = "darwin" ]; then
     if [ -f $HOME/.bash_profile ]; then
       echo $HOME/.bash_profile
       return

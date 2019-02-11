@@ -2,13 +2,13 @@
 
 ## Prerequisites
 
-1. AWS account
-2. Kubernetes cluster running Cortex ([installation instructions](operator/install.md))
-3. Cortex CLI
+1. An AWS account
+2. A Kubernetes cluster running the Cortex operator ([installation instructions](operator/install.md))
+3. The Cortex CLI
 
 ## TL;DR
 
-You can download the pre-built iris application by cloning our repository:
+You can download pre-built applications from our repository:
 
 <!-- CORTEX_VERSION_MINOR -->
 
@@ -26,39 +26,25 @@ Let's build and deploy a classifier using the famous [Iris Data Set](https://arc
 #### Initialize the application
 
 ```bash
-cortex init iris
-cd iris
+mkdir iris && cd iris
+touch app.yaml dnn.py irises.json
 ```
 
-The following directories and files have been created:
+Cortex requires an `app.yaml` file defining an app resource. All other resources can be defined in arbitrary YAML files.
 
-```text
-./iris/
-├── app.yaml
-├── samples.json
-├── implementations
-│   ├── aggregators
-│   │   └── aggregator.py
-│   ├── models
-│   │   └── model.py
-│   └── transformers
-│       └── transformer.py
-└── resources
-    ├── aggregators.yaml
-    ├── aggregates.yaml
-    ├── apis.yaml
-    ├── constants.yaml
-    ├── environments.yaml
-    ├── models.yaml
-    ├── raw_features.yaml
-    ├── transformed_features.yaml
-    └── transformers.yaml
+Add to `app.yaml`:
+
+```yaml
+- kind: app
+  name: iris
 ```
 
 #### Configure data ingestion
 
+Add to `app.yaml`:
+
 ```yaml
-# resources/environments.yaml
+# Environments
 
 - kind: environment
   name: dev
@@ -75,166 +61,172 @@ The following directories and files have been created:
 
 Cortex will be able to read from any S3 bucket that your AWS credentials grant access to.
 
-#### Define raw features
-
-```yaml
-# resources/raw_features.yaml
-
-- kind: raw_feature
-  name: sepal_length
-  type: FLOAT_FEATURE
-  min: 0
-  max: 10
-
-- kind: raw_feature
-  name: sepal_width
-  type: FLOAT_FEATURE
-  min: 0
-  max: 10
-
-- kind: raw_feature
-  name: petal_length
-  type: FLOAT_FEATURE
-  min: 0
-  max: 10
-
-- kind: raw_feature
-  name: petal_width
-  type: FLOAT_FEATURE
-  min: 0
-  max: 10
-
-- kind: raw_feature
-  name: class
-  type: STRING_FEATURE
-  values: ['Iris-setosa', 'Iris-versicolor', 'Iris-virginica']
-```
+#### Define raw columns
 
 The Iris Data Set consists of four attributes and a label. We ensure that the data matches the types we expect, the numerical data is within a reasonable range, and the class labels are within the set of expected labels.
 
-#### Define aggregates
-
-Aggregates are computations that require processing a full column of data. We want to normalize the numeric features, so we need mean and standard deviation values for each numeric column. We also need a mapping of strings to integers for the label column. Cortex has `mean`, `stddev`, and `index_string` aggregators out of the box.
+Add to `app.yaml`:
 
 ```yaml
-# resources/aggregates.yaml
+# Raw Columns
+
+- kind: raw_column
+  name: sepal_length
+  type: FLOAT_COLUMN
+  min: 0
+  max: 10
+
+- kind: raw_column
+  name: sepal_width
+  type: FLOAT_COLUMN
+  min: 0
+  max: 10
+
+- kind: raw_column
+  name: petal_length
+  type: FLOAT_COLUMN
+  min: 0
+  max: 10
+
+- kind: raw_column
+  name: petal_width
+  type: FLOAT_COLUMN
+  min: 0
+  max: 10
+
+- kind: raw_column
+  name: class
+  type: STRING_COLUMN
+  values: ['Iris-setosa', 'Iris-versicolor', 'Iris-virginica']
+```
+
+#### Define aggregates
+
+Aggregates are computations that require processing a full column of data. We want to normalize the numeric columns, so we need mean and standard deviation values for each numeric column. We also need a mapping of strings to integers for the label column. Cortex has `mean`, `stddev`, and `index_string` aggregators out of the box.
+
+Add to `app.yaml`:
+
+```yaml
+# Aggregates
 
 - kind: aggregate
   name: sepal_length_mean
   aggregator: cortex.mean
   inputs:
-    features:
+    columns:
       col: sepal_length
 
 - kind: aggregate
   name: sepal_length_stddev
   aggregator: cortex.stddev
   inputs:
-    features:
+    columns:
       col: sepal_length
 
 - kind: aggregate
   name: sepal_width_mean
   aggregator: cortex.mean
   inputs:
-    features:
+    columns:
       col: sepal_width
 
 - kind: aggregate
   name: sepal_width_stddev
   aggregator: cortex.stddev
   inputs:
-    features:
+    columns:
       col: sepal_width
 
 - kind: aggregate
   name: petal_length_mean
   aggregator: cortex.mean
   inputs:
-    features:
+    columns:
       col: petal_length
 
 - kind: aggregate
   name: petal_length_stddev
   aggregator: cortex.stddev
   inputs:
-    features:
+    columns:
       col: petal_length
 
 - kind: aggregate
   name: petal_width_mean
   aggregator: cortex.mean
   inputs:
-    features:
+    columns:
       col: petal_width
 
 - kind: aggregate
   name: petal_width_stddev
   aggregator: cortex.stddev
   inputs:
-    features:
+    columns:
       col: petal_width
 
 - kind: aggregate
   name: class_index
   aggregator: cortex.index_string
   inputs:
-    features:
+    columns:
       col: class
 ```
 
-#### Define transformed features
+#### Define transformed columns
 
-Transformers convert the raw features into the appropriate inputs for a TensorFlow model. Here we use the built-in `normalize` and `index_string` transformers using the aggregates we computed earlier.
+Transformers convert the raw columns into the appropriate inputs for a TensorFlow model. Here we use the built-in `normalize` and `index_string` transformers using the aggregates we computed earlier.
+
+Add to `app.yaml`:
 
 ```yaml
-# resources/transformed_features.yaml
+# Transformed Columns
 
-- kind: transformed_feature
+- kind: transformed_column
   name: sepal_length_normalized
   transformer: cortex.normalize
   inputs:
-    features:
+    columns:
       num: sepal_length
     args:
       mean: sepal_length_mean
       stddev: sepal_length_stddev
 
-- kind: transformed_feature
+- kind: transformed_column
   name: sepal_width_normalized
   transformer: cortex.normalize
   inputs:
-    features:
+    columns:
       num: sepal_width
     args:
       mean: sepal_width_mean
       stddev: sepal_width_stddev
 
-- kind: transformed_feature
+- kind: transformed_column
   name: petal_length_normalized
   transformer: cortex.normalize
   inputs:
-    features:
+    columns:
       num: petal_length
     args:
       mean: petal_length_mean
       stddev: petal_length_stddev
 
-- kind: transformed_feature
+- kind: transformed_column
   name: petal_width_normalized
   transformer: cortex.normalize
   inputs:
-    features:
+    columns:
       num: petal_width
     args:
       mean: petal_width_mean
       stddev: petal_width_stddev
 
-- kind: transformed_feature
+- kind: transformed_column
   name: class_indexed
   transformer: cortex.index_string
   inputs:
-    features:
+    columns:
       text: class
     args:
       index: class_index
@@ -244,14 +236,19 @@ You can simplify this YAML using [templates](applications/advanced/templates.md)
 
 #### Define the model
 
+This configuration will generate a training dataset with the specified columns and train our classifier using the generated dataset.
+
+Add to `app.yaml`:
+
 ```yaml
-# resources/models.yaml
+# Models
 
 - kind: model
   name: dnn
+  path: dnn.py
   type: classification
-  target: class_indexed
-  features:
+  target_column: class_indexed
+  feature_columns:
     - sepal_length_normalized
     - sepal_width_normalized
     - petal_length_normalized
@@ -266,20 +263,16 @@ You can simplify this YAML using [templates](applications/advanced/templates.md)
     batch_size: 10
 ```
 
-This configuration will generate a training dataset with the specified features and train our classifier using the generated dataset.
+#### Implement the estimator
 
-#### Implement the model
-
-Rename `implementations/models/model.py` to `implementations/models/dnn.py` and add TensorFlow code:
+Define an estimator in `dnn.py`:
 
 ```python
-# implementations/models/dnn.py
-
 import tensorflow as tf
 
 
 def create_estimator(run_config, model_config):
-    columns = [
+    feature_columns = [
         tf.feature_column.numeric_column("sepal_length_normalized"),
         tf.feature_column.numeric_column("sepal_width_normalized"),
         tf.feature_column.numeric_column("petal_length_normalized"),
@@ -287,7 +280,7 @@ def create_estimator(run_config, model_config):
     ]
 
     return tf.estimator.DNNClassifier(
-        feature_columns=columns,
+        feature_columns=feature_columns,
         hidden_units=model_config["hparams"]["hidden_units"],
         n_classes=3,
         config=run_config,
@@ -298,8 +291,12 @@ Cortex supports any TensorFlow code that adheres to the [tf.estimator API](https
 
 #### Define web APIs
 
+This will make the model available as a live web service that can make real-time predictions.
+
+Add to `app.yaml`:
+
 ```yaml
-# resources/apis.yaml
+# APIs
 
 - kind: api
   name: classifier
@@ -307,8 +304,6 @@ Cortex supports any TensorFlow code that adheres to the [tf.estimator API](https
   compute:
     replicas: 1
 ```
-
-This will make the model available as a live web service that can make real-time predictions.
 
 ## Deploy the application
 
@@ -326,13 +321,14 @@ cortex status
 You can also view the status of individual resources using the `status` command:
 
 ```bash
-cortex status class
+cortex status sepal_length_normalized
 cortex status dnn
+cortex status classifier
 ```
 
 #### Test the iris classification service
 
-Rename `samples.json` to `irises.json` and create a sample:
+Define a sample in `irises.json`:
 
 ```javascript
 {
@@ -370,7 +366,7 @@ curl --insecure \
      --request POST \
      --header "Content-Type: application/json" \
      --data '{ "samples": [ { "sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3 } ] }' \
-     https://<ELB name>.us-west-2.elb.amazonaws.com/iris/classifier
+     <API endpoint>
 ```
 
 ## Cleanup

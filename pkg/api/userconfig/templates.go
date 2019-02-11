@@ -113,7 +113,7 @@ func (template *Template) Populate(emb *Embed) (string, error) {
 	rightReplace := "🌛"
 	populatedTemplate := template.YAML
 
-	// normalize e.g. { feature } into {feature}
+	// normalize e.g. { column } into {column}
 	populatedTemplate = templateVarRegex.ReplaceAllString(populatedTemplate, "{$1}")
 
 	populatedTemplate = strings.Replace(populatedTemplate, "{{", leftReplace, -1)

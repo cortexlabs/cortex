@@ -22,9 +22,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
-type TransformedFeatures []*TransformedFeature
+type TransformedColumns []*TransformedColumn
 
-type TransformedFeature struct {
+type TransformedColumn struct {
 	Name        string        `json:"name" yaml:"name"`
 	Transformer string        `json:"transformer" yaml:"transformer"`
 	Inputs      *Inputs       `json:"inputs" yaml:"inputs"`
@@ -32,7 +32,7 @@ type TransformedFeature struct {
 	Tags        Tags          `json:"tags" yaml:"tags"`
 }
 
-var transformedFeatureValidation = &cr.StructValidation{
+var transformedColumnValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
 		&cr.StructFieldValidation{
 			StructField: "Name",
@@ -55,44 +55,44 @@ var transformedFeatureValidation = &cr.StructValidation{
 	},
 }
 
-func (transformedFeatures TransformedFeatures) Validate() error {
-	dups := util.FindDuplicateStrs(transformedFeatures.Names())
+func (transformedColumns TransformedColumns) Validate() error {
+	dups := util.FindDuplicateStrs(transformedColumns.Names())
 	if len(dups) > 0 {
-		return ErrorDuplicateConfigName(dups[0], resource.TransformedFeatureType)
+		return ErrorDuplicateConfigName(dups[0], resource.TransformedColumnType)
 	}
 	return nil
 }
 
-func (feature *TransformedFeature) IsRaw() bool {
+func (column *TransformedColumn) IsRaw() bool {
 	return false
 }
 
-func (transformedFeature *TransformedFeature) GetName() string {
-	return transformedFeature.Name
+func (transformedColumn *TransformedColumn) GetName() string {
+	return transformedColumn.Name
 }
 
-func (transformedFeature *TransformedFeature) GetResourceType() resource.Type {
-	return resource.TransformedFeatureType
+func (transformedColumn *TransformedColumn) GetResourceType() resource.Type {
+	return resource.TransformedColumnType
 }
 
-func (transformedFeatures TransformedFeatures) Names() []string {
-	names := make([]string, len(transformedFeatures))
-	for i, transformedFeature := range transformedFeatures {
-		names[i] = transformedFeature.GetName()
+func (transformedColumns TransformedColumns) Names() []string {
+	names := make([]string, len(transformedColumns))
+	for i, transformedColumn := range transformedColumns {
+		names[i] = transformedColumn.GetName()
 	}
 	return names
 }
 
-func (transformedFeatures TransformedFeatures) Get(name string) *TransformedFeature {
-	for _, transformedFeature := range transformedFeatures {
-		if transformedFeature.GetName() == name {
-			return transformedFeature
+func (transformedColumns TransformedColumns) Get(name string) *TransformedColumn {
+	for _, transformedColumn := range transformedColumns {
+		if transformedColumn.GetName() == name {
+			return transformedColumn
 		}
 	}
 	return nil
 }
 
-func (transformedFeature *TransformedFeature) InputFeatureNames() map[string]bool {
-	inputs, _ := util.FlattenAllStrValuesAsSet(transformedFeature.Inputs.Features)
+func (transformedColumn *TransformedColumn) InputColumnNames() map[string]bool {
+	inputs, _ := util.FlattenAllStrValuesAsSet(transformedColumn.Inputs.Columns)
 	return inputs
 }

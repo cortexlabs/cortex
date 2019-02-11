@@ -79,7 +79,7 @@ var logLevelValidation = &cr.StructValidation{
 }
 
 type Data interface {
-	GetIngestedFeatures() []string
+	GetIngestedColumns() []string
 	GetExternalPath() string
 	Validate() error
 }
@@ -257,20 +257,20 @@ var parquetDataFieldValidations = []*cr.StructFieldValidation{
 }
 
 type ParquetColumn struct {
-	ColumnName  string `json:"column_name" yaml:"column_name"`
-	FeatureName string `json:"feature_name" yaml:"feature_name"`
+	ParquetColumnName string `json:"parquet_column_name" yaml:"parquet_column_name"`
+	RawColumnName     string `json:"raw_column_name" yaml:"raw_column_name"`
 }
 
 var parquetColumnValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
 		&cr.StructFieldValidation{
-			StructField: "ColumnName",
+			StructField: "ParquetColumnName",
 			StringValidation: &cr.StringValidation{
 				Required: true,
 			},
 		},
 		&cr.StructFieldValidation{
-			StructField: "FeatureName",
+			StructField: "RawColumnName",
 			StringValidation: &cr.StringValidation{
 				Required: true,
 			},
@@ -298,9 +298,9 @@ func (env *Environment) Validate() error {
 		return errors.Wrap(err, Identify(env))
 	}
 
-	dups := util.FindDuplicateStrs(env.Data.GetIngestedFeatures())
+	dups := util.FindDuplicateStrs(env.Data.GetIngestedColumns())
 	if len(dups) > 0 {
-		return errors.New(Identify(env), DataKey, SchemaKey, "feature name", s.ErrDuplicatedValue(dups[0]))
+		return errors.New(Identify(env), DataKey, SchemaKey, "column name", s.ErrDuplicatedValue(dups[0]))
 	}
 
 	return nil
@@ -322,16 +322,16 @@ func (parqData *ParquetData) GetExternalPath() string {
 	return parqData.Path
 }
 
-func (csvData *CSVData) GetIngestedFeatures() []string {
+func (csvData *CSVData) GetIngestedColumns() []string {
 	return csvData.Schema
 }
 
-func (parqData *ParquetData) GetIngestedFeatures() []string {
-	features := make([]string, len(parqData.Schema))
+func (parqData *ParquetData) GetIngestedColumns() []string {
+	column_names := make([]string, len(parqData.Schema))
 	for i, parqCol := range parqData.Schema {
-		features[i] = parqCol.FeatureName
+		column_names[i] = parqCol.RawColumnName
 	}
-	return features
+	return column_names
 }
 
 func (env *Environment) GetName() string {

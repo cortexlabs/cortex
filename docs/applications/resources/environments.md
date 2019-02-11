@@ -23,7 +23,7 @@ data:
   drop_null: <bool>  # drop any rows that contain at least 1 null value (default: false)
   csv_config: <csv_config>  # optional configuration that can be provided
   schema:
-    - <string>  # raw feature names listed in the CSV columns' order (required)
+    - <string>  # raw column names listed in the CSV columns' order (required)
       ...
 
 ```
@@ -36,8 +36,8 @@ data:
   path: s3a://<bucket_name>/<file_name>  # S3 is currently supported (required)
   drop_null: <bool>  # drop any rows that contain at least 1 null value (default: false)
   schema:
-    - column_name: <string>  # name of the column in the parquet file (required)
-      feature_name: <string>  # raw feature name (required)
+    - parquet_column_name: <string>  # name of the column in the parquet file (required)
+      raw_column_name: <string>  # raw column name (required)
       ...
 ```
 
@@ -74,9 +74,9 @@ empty_value: <string>
     type: csv
     path: s3a://my-bucket/data.csv
     schema:
-      - feature1
-      - feature2
-      - feature3
+      - column1
+      - column2
+      - column3
       - label
 
 - kind: environment
@@ -85,12 +85,12 @@ empty_value: <string>
     type: parquet
     path: s3a://my-bucket/data.parquet
     schema:
-      - column_name: column1
-        feature_name: feature1
-      - column_name: column2
-        feature_name: feature2
-      - column_name: column3
-        feature_name: feature3
-      - column_name: column4
-        feature_name: label
+      - parquet_column_name: column1
+        raw_column_name: column1
+      - parquet_column_name: column2
+        raw_column_name: column2
+      - parquet_column_name: column3
+        raw_column_name: column3
+      - parquet_column_name: column4
+        raw_column_name: label
 ```

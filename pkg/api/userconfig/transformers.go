@@ -52,7 +52,7 @@ var transformerValidation = &cr.StructValidation{
 			StructField: "OutputType",
 			StringValidation: &cr.StringValidation{
 				Required:      true,
-				AllowedValues: FeatureTypeStrings(),
+				AllowedValues: ColumnTypeStrings(),
 			},
 		},
 		inputTypesFieldValidation,

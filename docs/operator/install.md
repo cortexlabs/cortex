@@ -26,11 +26,9 @@ export AWS_SECRET_ACCESS_KEY=***
 
 ## Kubernetes
 
-Cortex runs on Kubernetes. Please make sure you have a Kubernetes cluster running before installing Cortex. We support versions 1.10 and 1.11.
+Cortex runs on Kubernetes. If you don't already have a Kubernetes cluster, [eksctl](https://eksctl.io) is a simple tool to create and manage one.
 
 **We recommend a minimum cluster size of 2 [t3.medium](https://aws.amazon.com/ec2/instance-types) AWS instances. Cortex may not run successfully on clusters with less compute resources.**
-
-If you don't already have a Kubernetes cluster, [eksctl](https://eksctl.io) is a simple tool to create and manage one:
 
 ```bash
 # Install kubectl, eksctl, and aws-iam-authenticator
@@ -42,7 +40,7 @@ eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium  # this take
 
 ## Operator
 
-The operator installation is configurable. For a full list of configuration options please refer to the [operator config](operator/config.md) documentation.
+The operator installation is configurable. For a full list of configuration options please refer to the [operator config](config.md) documentation.
 
 ```bash
 # Install the Cortex operator

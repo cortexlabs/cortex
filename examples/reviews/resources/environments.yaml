@@ -4,7 +4,7 @@
     type: parquet
     path: s3a://cortex-examples/reviews.parquet
     schema:
-      - column_name: review
-        feature_name: review
-      - column_name: label
-        feature_name: label
+      - parquet_column_name: review
+        raw_column_name: review
+      - parquet_column_name: label
+        raw_column_name: label

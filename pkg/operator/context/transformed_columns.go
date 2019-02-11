@@ -27,99 +27,99 @@ import (
 	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
-func getTransformedFeatures(
+func getTransformedColumns(
 	config *userconfig.Config,
 	constants context.Constants,
-	rawFeatures context.RawFeatures,
+	rawColumns context.RawColumns,
 	aggregates context.Aggregates,
 	userTransformers map[string]*context.Transformer,
 	root string,
-) (context.TransformedFeatures, error) {
+) (context.TransformedColumns, error) {
 
-	transformedFeatures := context.TransformedFeatures{}
+	transformedColumns := context.TransformedColumns{}
 
-	for _, transformedFeatureConfig := range config.TransformedFeatures {
-		transformer, err := getTransformer(transformedFeatureConfig.Transformer, userTransformers)
+	for _, transformedColumnConfig := range config.TransformedColumns {
+		transformer, err := getTransformer(transformedColumnConfig.Transformer, userTransformers)
 		if err != nil {
-			return nil, errors.Wrap(err, userconfig.Identify(transformedFeatureConfig), userconfig.TransformerKey)
+			return nil, errors.Wrap(err, userconfig.Identify(transformedColumnConfig), userconfig.TransformerKey)
 		}
 
-		err = validateTransformedFeatureInputs(transformedFeatureConfig, constants, rawFeatures, aggregates, transformer)
+		err = validateTransformedColumnInputs(transformedColumnConfig, constants, rawColumns, aggregates, transformer)
 		if err != nil {
 			return nil, errors.Wrap(err)
 		}
 
-		valueResourceIDMap := make(map[string]string, len(transformedFeatureConfig.Inputs.Args))
-		valueResourceIDWithTagsMap := make(map[string]string, len(transformedFeatureConfig.Inputs.Args))
-		for argName, resourceName := range transformedFeatureConfig.Inputs.Args {
+		valueResourceIDMap := make(map[string]string, len(transformedColumnConfig.Inputs.Args))
+		valueResourceIDWithTagsMap := make(map[string]string, len(transformedColumnConfig.Inputs.Args))
+		for argName, resourceName := range transformedColumnConfig.Inputs.Args {
 			resourceNameStr := resourceName.(string)
 			resource, err := context.GetValueResource(resourceNameStr, constants, aggregates)
 			if err != nil {
-				return nil, errors.Wrap(err, userconfig.Identify(transformedFeatureConfig), userconfig.InputsKey, userconfig.ArgsKey, argName)
+				return nil, errors.Wrap(err, userconfig.Identify(transformedColumnConfig), userconfig.InputsKey, userconfig.ArgsKey, argName)
 			}
 			valueResourceIDMap[argName] = resource.GetID()
 			valueResourceIDWithTagsMap[argName] = resource.GetIDWithTags()
 		}
 
 		var buf bytes.Buffer
-		buf.WriteString(rawFeatures.FeatureInputsID(transformedFeatureConfig.Inputs.Features))
+		buf.WriteString(rawColumns.ColumnInputsID(transformedColumnConfig.Inputs.Columns))
 		buf.WriteString(s.Obj(valueResourceIDMap))
 		buf.WriteString(transformer.ID)
 		id := util.HashBytes(buf.Bytes())
 
 		buf.Reset()
-		buf.WriteString(rawFeatures.FeatureInputsIDWithTags(transformedFeatureConfig.Inputs.Features))
+		buf.WriteString(rawColumns.ColumnInputsIDWithTags(transformedColumnConfig.Inputs.Columns))
 		buf.WriteString(s.Obj(valueResourceIDWithTagsMap))
 		buf.WriteString(transformer.IDWithTags)
-		buf.WriteString(transformedFeatureConfig.Tags.ID())
+		buf.WriteString(transformedColumnConfig.Tags.ID())
 		idWithTags := util.HashBytes(buf.Bytes())
 
-		transformedFeatures[transformedFeatureConfig.Name] = &context.TransformedFeature{
+		transformedColumns[transformedColumnConfig.Name] = &context.TransformedColumn{
 			ComputedResourceFields: &context.ComputedResourceFields{
 				ResourceFields: &context.ResourceFields{
 					ID:           id,
 					IDWithTags:   idWithTags,
-					ResourceType: resource.TransformedFeatureType,
+					ResourceType: resource.TransformedColumnType,
 				},
 			},
-			TransformedFeature: transformedFeatureConfig,
-			Type:               transformer.OutputType,
+			TransformedColumn: transformedColumnConfig,
+			Type:              transformer.OutputType,
 		}
 	}
 
-	return transformedFeatures, nil
+	return transformedColumns, nil
 }
 
-func validateTransformedFeatureInputs(
-	transformedFeatureConfig *userconfig.TransformedFeature,
+func validateTransformedColumnInputs(
+	transformedColumnConfig *userconfig.TransformedColumn,
 	constants context.Constants,
-	rawFeatures context.RawFeatures,
+	rawColumns context.RawColumns,
 	aggregates context.Aggregates,
 	transformer *context.Transformer,
 ) error {
 
-	featureRuntimeTypes, err := context.GetFeatureRuntimeTypes(transformedFeatureConfig.Inputs.Features, rawFeatures)
+	columnRuntimeTypes, err := context.GetColumnRuntimeTypes(transformedColumnConfig.Inputs.Columns, rawColumns)
 	if err != nil {
-		return errors.Wrap(err, userconfig.Identify(transformedFeatureConfig), userconfig.InputsKey, userconfig.FeaturesKey)
+		return errors.Wrap(err, userconfig.Identify(transformedColumnConfig), userconfig.InputsKey, userconfig.ColumnsKey)
 	}
-	err = userconfig.CheckFeatureRuntimeTypesMatch(featureRuntimeTypes, transformer.Inputs.Features)
+	err = userconfig.CheckColumnRuntimeTypesMatch(columnRuntimeTypes, transformer.Inputs.Columns)
 	if err != nil {
-		return errors.Wrap(err, userconfig.Identify(transformedFeatureConfig), userconfig.InputsKey, userconfig.FeaturesKey)
+		return errors.Wrap(err, userconfig.Identify(transformedColumnConfig), userconfig.InputsKey, userconfig.ColumnsKey)
 	}
 
-	argTypes, err := getTransformedFeatureArgTypes(transformedFeatureConfig.Inputs.Args, constants, aggregates)
+	argTypes, err := getTransformedColumnArgTypes(transformedColumnConfig.Inputs.Args, constants, aggregates)
 	if err != nil {
-		return errors.Wrap(err, userconfig.Identify(transformedFeatureConfig), userconfig.InputsKey, userconfig.ArgsKey)
+		return errors.Wrap(err, userconfig.Identify(transformedColumnConfig), userconfig.InputsKey, userconfig.ArgsKey)
 	}
 	err = userconfig.CheckArgRuntimeTypesMatch(argTypes, transformer.Inputs.Args)
 	if err != nil {
-		return errors.Wrap(err, userconfig.Identify(transformedFeatureConfig), userconfig.InputsKey, userconfig.ArgsKey)
+		return errors.Wrap(err, userconfig.Identify(transformedColumnConfig), userconfig.InputsKey, userconfig.ArgsKey)
 	}
 
 	return nil
 }
 
-func getTransformedFeatureArgTypes(
+func getTransformedColumnArgTypes(
 	args map[string]interface{},
 	constants context.Constants,
 	aggregates context.Aggregates,

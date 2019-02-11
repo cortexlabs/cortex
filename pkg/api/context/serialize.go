@@ -26,10 +26,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
-type RawFeaturesTypeSplit struct {
-	RawIntFeatures    map[string]*RawIntFeature    `json:"raw_int_features"`
-	RawStringFeatures map[string]*RawStringFeature `json:"raw_string_features"`
-	RawFloatFeatures  map[string]*RawFloatFeature  `json:"raw_float_features"`
+type RawColumnsTypeSplit struct {
+	RawIntColumns    map[string]*RawIntColumn    `json:"raw_int_columns"`
+	RawStringColumns map[string]*RawStringColumn `json:"raw_string_columns"`
+	RawFloatColumns  map[string]*RawFloatColumn  `json:"raw_float_columns"`
 }
 
 type DataSplit struct {
@@ -39,46 +39,46 @@ type DataSplit struct {
 
 type ContextSerial struct {
 	Context
-	RawFeatureSplit *RawFeaturesTypeSplit `json:"raw_features"`
-	DataSplit       *DataSplit            `json:"environment_data"`
+	RawColumnSplit *RawColumnsTypeSplit `json:"raw_columns"`
+	DataSplit      *DataSplit           `json:"environment_data"`
 }
 
-func (ctx Context) splitRawFeatures() *RawFeaturesTypeSplit {
-	var rawIntFeatures = make(map[string]*RawIntFeature)
-	var rawFloatFeatures = make(map[string]*RawFloatFeature)
-	var rawStringFeatures = make(map[string]*RawStringFeature)
-	for name, rawFeature := range ctx.RawFeatures {
-		switch typedRawFeature := rawFeature.(type) {
-		case *RawIntFeature:
-			rawIntFeatures[name] = typedRawFeature
-		case *RawFloatFeature:
-			rawFloatFeatures[name] = typedRawFeature
-		case *RawStringFeature:
-			rawStringFeatures[name] = typedRawFeature
+func (ctx Context) splitRawColumns() *RawColumnsTypeSplit {
+	var rawIntColumns = make(map[string]*RawIntColumn)
+	var rawFloatColumns = make(map[string]*RawFloatColumn)
+	var rawStringColumns = make(map[string]*RawStringColumn)
+	for name, rawColumn := range ctx.RawColumns {
+		switch typedRawColumn := rawColumn.(type) {
+		case *RawIntColumn:
+			rawIntColumns[name] = typedRawColumn
+		case *RawFloatColumn:
+			rawFloatColumns[name] = typedRawColumn
+		case *RawStringColumn:
+			rawStringColumns[name] = typedRawColumn
 		}
 	}
 
-	return &RawFeaturesTypeSplit{
-		RawIntFeatures:    rawIntFeatures,
-		RawFloatFeatures:  rawFloatFeatures,
-		RawStringFeatures: rawStringFeatures,
+	return &RawColumnsTypeSplit{
+		RawIntColumns:    rawIntColumns,
+		RawFloatColumns:  rawFloatColumns,
+		RawStringColumns: rawStringColumns,
 	}
 }
 
-func (ctx ContextSerial) collectRawFeatures() RawFeatures {
-	var rawFeatures = make(map[string]RawFeature)
+func (ctx ContextSerial) collectRawColumns() RawColumns {
+	var rawColumns = make(map[string]RawColumn)
 
-	for name, rawFeature := range ctx.RawFeatureSplit.RawIntFeatures {
-		rawFeatures[name] = rawFeature
+	for name, rawColumn := range ctx.RawColumnSplit.RawIntColumns {
+		rawColumns[name] = rawColumn
 	}
-	for name, rawFeature := range ctx.RawFeatureSplit.RawFloatFeatures {
-		rawFeatures[name] = rawFeature
+	for name, rawColumn := range ctx.RawColumnSplit.RawFloatColumns {
+		rawColumns[name] = rawColumn
 	}
-	for name, rawFeature := range ctx.RawFeatureSplit.RawStringFeatures {
-		rawFeatures[name] = rawFeature
+	for name, rawColumn := range ctx.RawColumnSplit.RawStringColumns {
+		rawColumns[name] = rawColumn
 	}
 
-	return rawFeatures
+	return rawColumns
 }
 
 func (ctx Context) splitEnvironment() *DataSplit {
@@ -106,9 +106,9 @@ func (ctxSerial *ContextSerial) collectEnvironment() (*Environment, error) {
 
 func (ctx Context) ToSerial() *ContextSerial {
 	ctxSerial := ContextSerial{
-		Context:         ctx,
-		RawFeatureSplit: ctx.splitRawFeatures(),
-		DataSplit:       ctx.splitEnvironment(),
+		Context:        ctx,
+		RawColumnSplit: ctx.splitRawColumns(),
+		DataSplit:      ctx.splitEnvironment(),
 	}
 
 	return &ctxSerial
@@ -116,7 +116,7 @@ func (ctx Context) ToSerial() *ContextSerial {
 
 func (ctxSerial ContextSerial) FromSerial() (*Context, error) {
 	ctx := ctxSerial.Context
-	ctx.RawFeatures = ctxSerial.collectRawFeatures()
+	ctx.RawColumns = ctxSerial.collectRawColumns()
 	environment, err := ctxSerial.collectEnvironment()
 	if err != nil {
 		return nil, err

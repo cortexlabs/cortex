@@ -67,17 +67,17 @@ def test_get_expected_schema_from_context_csv(ctx_obj, get_context):
     ctx_obj["environment"] = {
         "data": {"type": "csv", "schema": ["income", "years_employed", "prior_default"]}
     }
-    ctx_obj["raw_features"] = {
-        "income": {"name": "income", "type": "FLOAT_FEATURE", "required": True, "id": "-"},
+    ctx_obj["raw_columns"] = {
+        "income": {"name": "income", "type": "FLOAT_COLUMN", "required": True, "id": "-"},
         "years_employed": {
             "name": "years_employed",
-            "type": "INT_FEATURE",
+            "type": "INT_COLUMN",
             "required": False,
             "id": "-",
         },
         "prior_default": {
             "name": "prior_default",
-            "type": "STRING_FEATURE",
+            "type": "STRING_COLUMN",
             "required": True,
             "id": "-",
         },
@@ -102,16 +102,16 @@ def test_get_expected_schema_from_context_parquet(ctx_obj, get_context):
         "data": {
             "type": "parquet",
             "schema": [
-                {"column_name": "a_str", "feature_name": "a_str"},
-                {"column_name": "b_float", "feature_name": "b_float"},
-                {"column_name": "c_long", "feature_name": "c_long"},
+                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
+                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
+                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
             ],
         }
     }
-    ctx_obj["raw_features"] = {
-        "b_float": {"name": "b_float", "type": "FLOAT_FEATURE", "required": True, "id": "-"},
-        "c_long": {"name": "c_long", "type": "INT_FEATURE", "required": False, "id": "-"},
-        "a_str": {"name": "a_str", "type": "STRING_FEATURE", "required": True, "id": "-"},
+    ctx_obj["raw_columns"] = {
+        "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": "-"},
+        "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "-"},
+        "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "-"},
     }
 
     ctx = get_context(ctx_obj)
@@ -137,10 +137,10 @@ def test_read_csv_valid(spark, write_csv_file, ctx_obj, get_context):
         "data": {"type": "csv", "path": path_to_file, "schema": ["a_str", "b_float", "c_long"]}
     }
 
-    ctx_obj["raw_features"] = {
-        "a_str": {"name": "a_str", "type": "STRING_FEATURE", "required": True, "id": "-"},
-        "b_float": {"name": "b_float", "type": "FLOAT_FEATURE", "required": True, "id": "-"},
-        "c_long": {"name": "c_long", "type": "INT_FEATURE", "required": False, "id": "-"},
+    ctx_obj["raw_columns"] = {
+        "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "-"},
+        "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": "-"},
+        "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "-"},
     }
 
     assert spark_util.read_csv(get_context(ctx_obj), spark).count() == 3
@@ -155,10 +155,10 @@ def test_read_csv_invalid_type(spark, write_csv_file, ctx_obj, get_context):
         "data": {"type": "csv", "path": path_to_file, "schema": ["a_str", "b_long", "c_long"]}
     }
 
-    ctx_obj["raw_features"] = {
-        "a_str": {"name": "a_str", "type": "STRING_FEATURE", "required": True, "id": "-"},
-        "b_long": {"name": "b_long", "type": "INT_FEATURE", "required": True, "id": "-"},
-        "c_long": {"name": "c_long", "type": "INT_FEATURE", "required": False, "id": "-"},
+    ctx_obj["raw_columns"] = {
+        "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "-"},
+        "b_long": {"name": "b_long", "type": "INT_COLUMN", "required": True, "id": "-"},
+        "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "-"},
     }
 
     with pytest.raises(Py4JJavaError):
@@ -215,8 +215,8 @@ def test_read_csv_valid_options(spark, write_csv_file, ctx_obj, get_context):
 
 
 def test_value_checker_required():
-    raw_feature_config = {"name": "a_str", "type": "STRING_FEATURE", "required": True}
-    results = list(spark_util.value_checker(raw_feature_config))
+    raw_column_config = {"name": "a_str", "type": "STRING_COLUMN", "required": True}
+    results = list(spark_util.value_checker(raw_column_config))
     results[0]["cond_col"] = str(results[0]["cond_col"]._jc)
 
     assert results == [
@@ -230,19 +230,19 @@ def test_value_checker_required():
 
 
 def test_value_checker_not_required():
-    raw_feature_config = {"name": "a_str", "type": "STRING_FEATURE", "required": False}
-    results = list(spark_util.value_checker(raw_feature_config))
+    raw_column_config = {"name": "a_str", "type": "STRING_COLUMN", "required": False}
+    results = list(spark_util.value_checker(raw_column_config))
     assert len(results) == 0
 
 
 def test_value_checker_values():
-    raw_feature_config = {
+    raw_column_config = {
         "name": "a_long",
-        "type": "INT_FEATURE",
+        "type": "INT_COLUMN",
         "values": [1, 2, 3],
         "required": True,
     }
-    results = sorted(spark_util.value_checker(raw_feature_config), key=lambda x: x["cond_name"])
+    results = sorted(spark_util.value_checker(raw_column_config), key=lambda x: x["cond_name"])
     for result in results:
         result["cond_col"] = str(result["cond_col"]._jc)
 
@@ -263,8 +263,8 @@ def test_value_checker_values():
 
 
 def test_value_checker_min_max():
-    raw_feature_config = {"name": "a_long", "type": "INT_FEATURE", "min": 1, "max": 2}
-    results = sorted(spark_util.value_checker(raw_feature_config), key=lambda x: x["cond_name"])
+    raw_column_config = {"name": "a_long", "type": "INT_COLUMN", "min": 1, "max": 2}
+    results = sorted(spark_util.value_checker(raw_column_config), key=lambda x: x["cond_name"])
     for result in results:
         result["cond_col"] = str(result["cond_col"]._jc)
 
@@ -297,18 +297,18 @@ def test_value_check_data_valid(spark, ctx_obj, get_context):
 
     df = spark.createDataFrame(data, schema)
 
-    ctx_obj["raw_features"] = {
+    ctx_obj["raw_columns"] = {
         "a_str": {
             "name": "a_str",
-            "type": "STRING_FEATURE",
+            "type": "STRING_COLUMN",
             "required": False,
             "values": ["a", "b"],
             "id": 1,
         },
-        "b_float": {"name": "b_float", "type": "FLOAT_FEATURE", "required": True, "id": 2},
+        "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": 2},
         "c_long": {
             "name": "c_long",
-            "type": "INT_FEATURE",
+            "type": "INT_COLUMN",
             "required": False,
             "max": 1,
             "min": 0,
@@ -334,10 +334,10 @@ def test_value_check_data_invalid_null_value(spark, ctx_obj, get_context):
 
     df = spark.createDataFrame(data, schema)
 
-    ctx_obj["raw_features"] = {
-        "a_str": {"name": "a_str", "type": "STRING_FEATURE", "required": True, "id": 1},
-        "b_float": {"name": "b_float", "type": "FLOAT_FEATURE", "required": True, "id": 2},
-        "c_long": {"name": "c_long", "type": "INT_FEATURE", "max": 1, "min": 0, "id": 3},
+    ctx_obj["raw_columns"] = {
+        "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": 1},
+        "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": 2},
+        "c_long": {"name": "c_long", "type": "INT_COLUMN", "max": 1, "min": 0, "id": 3},
     }
 
     ctx = get_context(ctx_obj)
@@ -358,12 +358,12 @@ def test_value_check_data_invalid_out_of_range(spark, ctx_obj, get_context):
 
     df = spark.createDataFrame(data, schema)
 
-    ctx_obj["raw_features"] = {
-        "a_str": {"name": "a_str", "type": "STRING_FEATURE", "required": True, "id": 1},
-        "b_float": {"name": "b_float", "type": "FLOAT_FEATURE", "required": True, "id": 2},
+    ctx_obj["raw_columns"] = {
+        "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": 1},
+        "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": 2},
         "c_long": {
             "name": "c_long",
-            "type": "INT_FEATURE",
+            "type": "INT_COLUMN",
             "required": False,
             "max": 1,
             "min": 0,
@@ -395,17 +395,17 @@ def test_ingest_parquet_valid(spark, write_parquet_file, ctx_obj, get_context):
             "type": "parquet",
             "path": path_to_file,
             "schema": [
-                {"column_name": "a_str", "feature_name": "a_str"},
-                {"column_name": "b_float", "feature_name": "b_float"},
-                {"column_name": "c_long", "feature_name": "c_long"},
+                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
+                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
+                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
             ],
         }
     }
 
-    ctx_obj["raw_features"] = {
-        "a_str": {"name": "a_str", "type": "STRING_FEATURE", "required": True, "id": "1"},
-        "b_float": {"name": "b_float", "type": "FLOAT_FEATURE", "required": True, "id": "2"},
-        "c_long": {"name": "c_long", "type": "INT_FEATURE", "required": False, "id": "3"},
+    ctx_obj["raw_columns"] = {
+        "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "1"},
+        "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": "2"},
+        "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "3"},
     }
 
     assert spark_util.ingest(get_context(ctx_obj), spark).count() == 3
@@ -429,17 +429,17 @@ def test_ingest_parquet_type_mismatch(spark, write_parquet_file, ctx_obj, get_co
             "type": "parquet",
             "path": path_to_file,
             "schema": [
-                {"column_name": "a_str", "feature_name": "a_str"},
-                {"column_name": "b_float", "feature_name": "b_float"},
-                {"column_name": "c_long", "feature_name": "c_long"},
+                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
+                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
+                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
             ],
         }
     }
 
-    ctx_obj["raw_features"] = {
-        "a_str": {"name": "a_str", "type": "STRING_FEATURE", "required": True, "id": "1"},
-        "b_float": {"name": "b_float", "type": "FLOAT_FEATURE", "required": True, "id": "2"},
-        "c_long": {"name": "c_long", "type": "INT_FEATURE", "required": False, "id": "3"},
+    ctx_obj["raw_columns"] = {
+        "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "1"},
+        "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": "2"},
+        "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "3"},
     }
 
     with pytest.raises(UserException):
@@ -466,17 +466,17 @@ def test_ingest_parquet_failed_requirements(
             "type": "parquet",
             "path": path_to_file,
             "schema": [
-                {"column_name": "a_str", "feature_name": "a_str"},
-                {"column_name": "b_float", "feature_name": "b_float"},
-                {"column_name": "c_long", "feature_name": "c_long"},
+                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
+                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
+                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
             ],
         }
     }
 
-    ctx_obj["raw_features"] = {
-        "a_str": {"name": "a_str", "type": "STRING_FEATURE", "values": ["a", "b"], "id": "1"},
-        "b_float": {"name": "b_float", "type": "FLOAT_FEATURE", "required": True, "id": "2"},
-        "c_long": {"name": "c_long", "type": "INT_FEATURE", "required": False, "id": "3"},
+    ctx_obj["raw_columns"] = {
+        "a_str": {"name": "a_str", "type": "STRING_COLUMN", "values": ["a", "b"], "id": "1"},
+        "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": "2"},
+        "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "3"},
     }
 
     ctx = get_context(ctx_obj)
@@ -487,22 +487,22 @@ def test_ingest_parquet_failed_requirements(
 
 
 def test_column_names_to_index():
-    sample_feature_input_config = {"b": "b_col", "a": "a_col"}
-    actual_list, actual_dict = spark_util.column_names_to_index(sample_feature_input_config)
+    sample_columns_input_config = {"b": "b_col", "a": "a_col"}
+    actual_list, actual_dict = spark_util.column_names_to_index(sample_columns_input_config)
     assert (["a_col", "b_col"], {"b": 1, "a": 0}) == (actual_list, actual_dict)
 
-    sample_feature_input_config = {"a": "a_col"}
+    sample_columns_input_config = {"a": "a_col"}
 
-    actual_list, actual_dict = spark_util.column_names_to_index(sample_feature_input_config)
+    actual_list, actual_dict = spark_util.column_names_to_index(sample_columns_input_config)
     assert (["a_col"], {"a": 0}) == (actual_list, actual_dict)
 
-    sample_feature_input_config = {"nums": ["a_long", "a_col", "b_col", "b_col"], "a": "a_long"}
+    sample_columns_input_config = {"nums": ["a_long", "a_col", "b_col", "b_col"], "a": "a_long"}
 
     expected_col_list = ["a_col", "a_long", "b_col"]
-    expected_feature_input_config = {"nums": [1, 0, 2, 2], "a": 1}
-    actual_list, actual_dict = spark_util.column_names_to_index(sample_feature_input_config)
+    expected_columns_input_config = {"nums": [1, 0, 2, 2], "a": 1}
+    actual_list, actual_dict = spark_util.column_names_to_index(sample_columns_input_config)
 
-    assert (expected_col_list, expected_feature_input_config) == (actual_list, actual_dict)
+    assert (expected_col_list, expected_columns_input_config) == (actual_list, actual_dict)
 
 
 def test_run_builtin_aggregators_success(spark, ctx_obj, get_context):
@@ -515,13 +515,13 @@ def test_run_builtin_aggregators_success(spark, ctx_obj, get_context):
             "name": "sum_a",
             "id": "1",
             "aggregator": "cortex.sum",
-            "inputs": {"features": {"col": "a"}},
+            "inputs": {"columns": {"col": "a"}},
         },
         "first_a": {
             "id": "2",
             "name": "first_a",
             "aggregator": "cortex.first",
-            "inputs": {"features": {"col": "a"}, "args": {"ignorenulls": "some_constant"}},
+            "inputs": {"columns": {"col": "a"}, "args": {"ignorenulls": "some_constant"}},
         },
     }
     aggregate_list = [v for v in ctx_obj["aggregates"].values()]
@@ -547,7 +547,7 @@ def test_run_builtin_aggregators_error(spark, ctx_obj, get_context):
             "name": "first_a",
             "aggregator": "cortex.first",
             "inputs": {
-                "features": {"col": "a"},
+                "columns": {"col": "a"},
                 "args": {"ignoreNulls": "some_constant"},  # supposed to be ignorenulls
             },
             "id": "1",
