@@ -3,7 +3,8 @@
   data:
     type: csv
     path: s3a://cortex-examples/fraud.csv
-    skip_header: true
+    csv_config:
+      header: true
     schema:
       - time
       - v1

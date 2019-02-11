@@ -3,8 +3,6 @@
   data:
     type: csv
     path: s3a://cortex-examples/iris.csv
-    csv_config:
-      sep: ","
     schema:
       - sepal_length
       - sepal_width
