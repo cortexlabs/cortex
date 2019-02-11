@@ -19,7 +19,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -38,6 +37,7 @@ import (
 func init() {
 	addAppNameFlag(getCmd)
 	addEnvFlag(getCmd)
+	addWatchFlag(getCmd)
 	addResourceTypesToHelp(getCmd)
 }
 
@@ -47,49 +47,54 @@ var getCmd = &cobra.Command{
 	Long:  "Get information about resources.",
 	Args:  cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		resourcesRes, err := getResourcesResponse()
-		if err != nil {
-			errors.Exit(err)
-		}
-
-		switch len(args) {
-		case 0:
-			printAllResources(resourcesRes)
-			os.Exit(0)
-
-		case 1:
-			resourceNameOrType := args[0]
-
-			resourceType, err := resource.VisibleResourceTypeFromPrefix(resourceNameOrType)
-			if err != nil {
-				if rerr, ok := err.(resource.ResourceError); ok && rerr.Kind != resource.ErrInvalidType {
-					errors.Exit(err)
-				}
-			} else {
-				printResourcesByType(resourceType, resourcesRes)
-				os.Exit(0)
-			}
-
-			if _, err = resourcesRes.Context.VisibleResourceByName(resourceNameOrType); err != nil {
-				if rerr, ok := err.(resource.ResourceError); ok && rerr.Kind == resource.ErrNotFound {
-					errors.Exit(errors.New(s.ErrUndefinedNameOrType(resourceNameOrType)))
-				}
-				errors.Exit(err)
-			}
-
-			printResourceByName(resourceNameOrType, resourcesRes)
-			os.Exit(0)
-
-		case 2:
-			userResourceType := args[0]
-			resourceName := args[1]
-			resourceType, err := resource.VisibleResourceTypeFromPrefix(userResourceType)
-			if err != nil {
-				errors.Exit(resource.ErrorInvalidType(userResourceType))
-			}
-			printResourceByNameAndType(resourceName, resourceType, resourcesRes)
-		}
+		rerun(func() (string, error) {
+			return runGet(cmd, args)
+		})
 	},
+}
+
+func runGet(cmd *cobra.Command, args []string) (string, error) {
+	resourcesRes, err := getResourcesResponse()
+	if err != nil {
+		return "", err
+	}
+
+	switch len(args) {
+	case 0:
+		return allResourcesStr(resourcesRes), nil
+
+	case 1:
+		resourceNameOrType := args[0]
+
+		resourceType, err := resource.VisibleResourceTypeFromPrefix(resourceNameOrType)
+		if err != nil {
+			if rerr, ok := err.(resource.ResourceError); ok && rerr.Kind != resource.ErrInvalidType {
+				return "", err
+			}
+		} else {
+			return resourcesByType(resourceType, resourcesRes)
+		}
+
+		if _, err = resourcesRes.Context.VisibleResourceByName(resourceNameOrType); err != nil {
+			if rerr, ok := err.(resource.ResourceError); ok && rerr.Kind == resource.ErrNotFound {
+				return "", errors.New(s.ErrUndefinedNameOrType(resourceNameOrType))
+			}
+			return "", err
+		}
+
+		return resourceByName(resourceNameOrType, resourcesRes)
+
+	case 2:
+		userResourceType := args[0]
+		resourceName := args[1]
+		resourceType, err := resource.VisibleResourceTypeFromPrefix(userResourceType)
+		if err != nil {
+			return "", resource.ErrorInvalidType(userResourceType)
+		}
+		return resourceByNameAndType(resourceName, resourceType, resourcesRes)
+	}
+
+	return "", errors.New("too many args") // unexpected
 }
 
 func getResourcesResponse() (*schema.GetResourcesResponse, error) {
@@ -112,253 +117,235 @@ func getResourcesResponse() (*schema.GetResourcesResponse, error) {
 	return &resourcesRes, nil
 }
 
-func printResourceByName(resourceName string, resourcesRes *schema.GetResourcesResponse) {
+func resourceByName(resourceName string, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	rs, err := resourcesRes.Context.VisibleResourceByName(resourceName)
 	if err != nil {
-		errors.Exit(err)
+		return "", err
 	}
 	switch resourceType := rs.GetResourceType(); resourceType {
 	case resource.RawColumnType:
-		describeRawColumn(resourceName, resourcesRes)
+		return describeRawColumn(resourceName, resourcesRes)
 	case resource.AggregateType:
-		describeAggregate(resourceName, resourcesRes)
+		return describeAggregate(resourceName, resourcesRes)
 	case resource.TransformedColumnType:
-		describeTransformedColumn(resourceName, resourcesRes)
+		return describeTransformedColumn(resourceName, resourcesRes)
 	case resource.TrainingDatasetType:
-		describeTrainingDataset(resourceName, resourcesRes)
+		return describeTrainingDataset(resourceName, resourcesRes)
 	case resource.ModelType:
-		describeModel(resourceName, resourcesRes)
+		return describeModel(resourceName, resourcesRes)
 	case resource.APIType:
-		describeAPI(resourceName, resourcesRes)
+		return describeAPI(resourceName, resourcesRes)
 	default:
-		fmt.Println("Unknown resource type: ", resourceType)
+		return "", resource.ErrorInvalidType(resourceType.String())
 	}
 }
 
-func printResourcesByType(resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) {
+func resourcesByType(resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	switch resourceType {
 	case resource.RawColumnType:
-		printRawColumns(resourcesRes.DataStatuses, resourcesRes.Context)
+		return rawColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.AggregateType:
-		printAggregates(resourcesRes.DataStatuses, resourcesRes.Context)
+		return aggregatesStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.TransformedColumnType:
-		printTransformedColumns(resourcesRes.DataStatuses, resourcesRes.Context)
+		return transformedColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.TrainingDatasetType:
-		printTrainingData(resourcesRes.DataStatuses, resourcesRes.Context)
+		return trainingDataStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.ModelType:
-		printModels(resourcesRes.DataStatuses, resourcesRes.Context)
+		return modelsStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.APIType:
-		printAPIs(resourcesRes.APIGroupStatuses)
+		return apisStr(resourcesRes.APIGroupStatuses), nil
 	default:
-		fmt.Println("Unknown resource type: ", resourceType)
+		return "", resource.ErrorInvalidType(resourceType.String())
 	}
 }
 
-func printResourceByNameAndType(resourceName string, resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) {
+func resourceByNameAndType(resourceName string, resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	switch resourceType {
 	case resource.RawColumnType:
-		describeRawColumn(resourceName, resourcesRes)
+		return describeRawColumn(resourceName, resourcesRes)
 	case resource.AggregateType:
-		describeAggregate(resourceName, resourcesRes)
+		return describeAggregate(resourceName, resourcesRes)
 	case resource.TransformedColumnType:
-		describeTransformedColumn(resourceName, resourcesRes)
+		return describeTransformedColumn(resourceName, resourcesRes)
 	case resource.TrainingDatasetType:
-		describeTrainingDataset(resourceName, resourcesRes)
+		return describeTrainingDataset(resourceName, resourcesRes)
 	case resource.ModelType:
-		describeModel(resourceName, resourcesRes)
+		return describeModel(resourceName, resourcesRes)
 	case resource.APIType:
-		describeAPI(resourceName, resourcesRes)
+		return describeAPI(resourceName, resourcesRes)
 	default:
-		fmt.Println("Unknown resource type: ", resourceType)
+		return "", resource.ErrorInvalidType(resourceType.String())
 	}
 }
 
-func printAllResources(resourcesRes *schema.GetResourcesResponse) {
-	printTitle("Raw Columns")
-	printRawColumns(resourcesRes.DataStatuses, resourcesRes.Context)
-
-	printTitle("Aggregates")
-	printAggregates(resourcesRes.DataStatuses, resourcesRes.Context)
-
-	printTitle("Transformed Columns")
-	printTransformedColumns(resourcesRes.DataStatuses, resourcesRes.Context)
-
-	printTitle("Training Datasets")
-	printTrainingData(resourcesRes.DataStatuses, resourcesRes.Context)
-
-	printTitle("Models")
-	printModels(resourcesRes.DataStatuses, resourcesRes.Context)
-
-	printTitle("APIs")
-	printAPIs(resourcesRes.APIGroupStatuses)
+func allResourcesStr(resourcesRes *schema.GetResourcesResponse) string {
+	out := ""
+	out += titleStr("Raw Columns")
+	out += rawColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context)
+	out += titleStr("Aggregates")
+	out += aggregatesStr(resourcesRes.DataStatuses, resourcesRes.Context)
+	out += titleStr("Transformed Columns")
+	out += transformedColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context)
+	out += titleStr("Training Datasets")
+	out += trainingDataStr(resourcesRes.DataStatuses, resourcesRes.Context)
+	out += titleStr("Models")
+	out += modelsStr(resourcesRes.DataStatuses, resourcesRes.Context)
+	out += titleStr("APIs")
+	out += apisStr(resourcesRes.APIGroupStatuses)
+	return out
 }
 
-func printRawColumns(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
+func rawColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.RawColumns) == 0 {
-		fmt.Println("None")
-		return
+		return "None\n"
 	}
 
-	printDataResourcesHeader()
 	strings := make(map[string]string)
 	for name, rawColumn := range ctx.RawColumns {
 		strings[name] = dataResourceRow(name, rawColumn, dataStatuses)
 	}
-	printStrings(strings)
+	return dataResourcesHeader() + strMapToStr(strings)
 }
 
-func printAggregates(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
+func aggregatesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.Aggregates) == 0 {
-		fmt.Println("None")
-		return
+		return "None\n"
 	}
 
-	printDataResourcesHeader()
 	strings := make(map[string]string)
 	for name, aggregate := range ctx.Aggregates {
 		strings[name] = dataResourceRow(name, aggregate, dataStatuses)
 	}
-	printStrings(strings)
+	return dataResourcesHeader() + strMapToStr(strings)
 }
 
-func printTransformedColumns(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
+func transformedColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.TransformedColumns) == 0 {
-		fmt.Println("None")
-		return
+		return "None\n"
 	}
 
-	printDataResourcesHeader()
 	strings := make(map[string]string)
 	for name, transformedColumn := range ctx.TransformedColumns {
 		strings[name] = dataResourceRow(name, transformedColumn, dataStatuses)
 	}
-	printStrings(strings)
+	return dataResourcesHeader() + strMapToStr(strings)
 }
 
-func printTrainingData(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
+func trainingDataStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.Models) == 0 {
-		fmt.Println("None")
-		return
+		return "None\n"
 	}
 
-	printDataResourcesHeader()
 	strings := make(map[string]string)
 	for _, model := range ctx.Models {
 		name := model.Dataset.Name
 		strings[name] = dataResourceRow(name, model.Dataset, dataStatuses)
 	}
-	printStrings(strings)
+	return dataResourcesHeader() + strMapToStr(strings)
 }
 
-func printModels(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
+func modelsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.Models) == 0 {
-		fmt.Println("None")
-		return
+		return "None\n"
 	}
 
-	printDataResourcesHeader()
 	strings := make(map[string]string)
 	for name, model := range ctx.Models {
 		strings[name] = dataResourceRow(name, model, dataStatuses)
 	}
-	printStrings(strings)
+	return dataResourcesHeader() + strMapToStr(strings)
 }
 
-func printAPIs(apiGroupStatuses map[string]*resource.APIGroupStatus) {
+func apisStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
 	if len(apiGroupStatuses) == 0 {
-		fmt.Println("None")
-		return
+		return "None\n"
 	}
 
-	printAPIsHeader()
 	strings := make(map[string]string)
 	for name, apiGroupStatus := range apiGroupStatuses {
 		strings[name] = apiResourceRow(apiGroupStatus)
 	}
-	printStrings(strings)
+	return apisHeader() + strMapToStr(strings)
 }
 
-func describeRawColumn(name string, resourcesRes *schema.GetResourcesResponse) {
+func describeRawColumn(name string, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	rawColumn := resourcesRes.Context.RawColumns[name]
 	if rawColumn == nil {
-		fmt.Println("Raw column " + name + " does not exist")
-		os.Exit(0)
+		return "", userconfig.ErrorUndefinedResource(name, resource.RawColumnType)
 	}
 	dataStatus := resourcesRes.DataStatuses[rawColumn.GetID()]
-	printDataStatusSummary(dataStatus)
-	printResource(rawColumn.GetUserConfig())
+	out := dataStatusSummary(dataStatus)
+	out += resourceStr(rawColumn.GetUserConfig())
+	return out, nil
 }
 
-func describeAggregate(name string, resourcesRes *schema.GetResourcesResponse) {
+func describeAggregate(name string, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	aggregate := resourcesRes.Context.Aggregates[name]
 	if aggregate == nil {
-		fmt.Println("Aggregate " + name + " does not exist")
-		os.Exit(0)
+		return "", userconfig.ErrorUndefinedResource(name, resource.AggregateType)
 	}
 	dataStatus := resourcesRes.DataStatuses[aggregate.ID]
-	printDataStatusSummary(dataStatus)
+	out := dataStatusSummary(dataStatus)
 
 	if dataStatus.ExitCode == resource.ExitCodeDataSucceeded {
 		params := map[string]string{"appName": resourcesRes.Context.App.Name}
 		httpResponse, err := HTTPGet("/aggregate/"+aggregate.ID, params)
 		if err != nil {
-			errors.Exit(err)
+			return "", err
 		}
 
 		var aggregateRes schema.GetAggregateResponse
 		err = json.Unmarshal(httpResponse, &aggregateRes)
 		if err != nil {
-			errors.Exit(err, "/aggregate", "response", s.ErrUnmarshalJson, string(httpResponse))
+			return "", errors.Wrap(err, "/aggregate", "response", s.ErrUnmarshalJson, string(httpResponse))
 		}
 
 		obj, err := util.UnmarshalMsgpackToInterface(aggregateRes.Value)
 		if err != nil {
-			errors.Exit(err, "/aggregate", "response", s.ErrUnmarshalMsgpack)
+			return "", errors.Wrap(err, "/aggregate", "response", s.ErrUnmarshalMsgpack)
 		}
-		printValue(s.Obj(obj))
+		out += valueStr(obj)
 	}
 
-	printResource(aggregate.Aggregate)
+	out += resourceStr(aggregate.Aggregate)
+	return out, nil
 }
 
-func describeTransformedColumn(name string, resourcesRes *schema.GetResourcesResponse) {
+func describeTransformedColumn(name string, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	transformedColumn := resourcesRes.Context.TransformedColumns[name]
 	if transformedColumn == nil {
-		fmt.Println("Transformed column " + name + " does not exist")
-		os.Exit(0)
+		return "", userconfig.ErrorUndefinedResource(name, resource.TransformedColumnType)
 	}
 	dataStatus := resourcesRes.DataStatuses[transformedColumn.ID]
-	printDataStatusSummary(dataStatus)
-	printResource(transformedColumn.TransformedColumn)
+	out := dataStatusSummary(dataStatus)
+	out += resourceStr(transformedColumn.TransformedColumn)
+	return out, nil
 }
 
-func describeTrainingDataset(name string, resourcesRes *schema.GetResourcesResponse) {
+func describeTrainingDataset(name string, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	trainingDataset := resourcesRes.Context.Models.GetTrainingDatasets()[name]
-
 	if trainingDataset == nil {
-		fmt.Println("Training dataset " + name + " does not exist")
-		os.Exit(0)
+		return "", userconfig.ErrorUndefinedResource(name, resource.TrainingDatasetType)
 	}
 	dataStatus := resourcesRes.DataStatuses[trainingDataset.ID]
-	printDataStatusSummary(dataStatus)
+	return dataStatusSummary(dataStatus), nil
 }
 
-func describeModel(name string, resourcesRes *schema.GetResourcesResponse) {
+func describeModel(name string, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	model := resourcesRes.Context.Models[name]
 	if model == nil {
-		fmt.Println("Model " + name + " does not exist")
-		os.Exit(0)
+		return "", userconfig.ErrorUndefinedResource(name, resource.ModelType)
 	}
 	dataStatus := resourcesRes.DataStatuses[model.ID]
-	printDataStatusSummary(dataStatus)
-	printResource(model.Model)
+	out := dataStatusSummary(dataStatus)
+	out += resourceStr(model.Model)
+	return out, nil
 }
 
-func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) {
+func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	groupStatus := resourcesRes.APIGroupStatuses[name]
 	if groupStatus == nil {
-		fmt.Println("API " + name + " does not exist")
-		os.Exit(0)
+		return "", userconfig.ErrorUndefinedResource(name, resource.APIType)
 	}
 
 	api := resourcesRes.Context.APIs[name]
@@ -375,63 +362,64 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) {
 		staleReplicas += apiStatus.TotalStaleReady()
 	}
 
-	printTitle("Summary")
+	out := titleStr("Summary")
 
 	if groupStatus.ActiveStatus != nil {
-		fmt.Println("Endpoint:        ", util.URLJoin(resourcesRes.APIsBaseURL, groupStatus.ActiveStatus.Path))
+		out += "Endpoint:          " + util.URLJoin(resourcesRes.APIsBaseURL, groupStatus.ActiveStatus.Path) + "\n"
 	}
 
-	fmt.Println("Status:          ", groupStatus.Message())
-	fmt.Println("Created at:      ", util.LocalTimestamp(groupStatus.Start))
+	out += "Status:            " + groupStatus.Message() + "\n"
+	out += "Created at:        " + util.LocalTimestamp(groupStatus.Start) + "\n"
 
 	if groupStatus.ActiveStatus != nil && groupStatus.ActiveStatus.Start != nil {
-		fmt.Println("Refreshed at:    ", util.LocalTimestamp(groupStatus.ActiveStatus.Start))
+		out += "Refreshed at:      " + util.LocalTimestamp(groupStatus.ActiveStatus.Start) + "\n"
 	}
 
 	if ctxAPIStatus != nil {
-		fmt.Printf("Updated replicas: %d/%d ready\n", ctxAPIStatus.ReadyUpdated, ctxAPIStatus.RequestedReplicas)
+		out += fmt.Sprintf("Updated replicas:  %d/%d ready\n", ctxAPIStatus.ReadyUpdated, ctxAPIStatus.RequestedReplicas)
 	}
 
 	if staleReplicas != 0 {
-		fmt.Printf("Stale replicas:   %d ready\n", staleReplicas)
+		out += fmt.Sprintf("Stale replicas:    %d ready\n", staleReplicas)
 	}
 
 	if api != nil {
-		printResource(api.API)
+		out += resourceStr(api.API)
 	}
+
+	return out, nil
 }
 
-func printResource(resource userconfig.Resource) {
-	printTitle("Configuration")
-
-	fmt.Println(s.Obj(resource))
+func dataStatusSummary(dataStatus *resource.DataStatus) string {
+	out := titleStr("Summary")
+	out += "Status:               " + dataStatus.Message() + "\n"
+	out += "Workload started at:  " + util.LocalTimestamp(dataStatus.Start) + "\n"
+	out += "Workload ended at:    " + util.LocalTimestamp(dataStatus.End) + "\n"
+	return out
 }
 
-func printDataStatusSummary(dataStatus *resource.DataStatus) {
-	printTitle("Summary")
-
-	fmt.Println("Status:              ", dataStatus.Message())
-	fmt.Println("Workload started at: ", util.LocalTimestamp(dataStatus.Start))
-	fmt.Println("Workload ended at:   ", util.LocalTimestamp(dataStatus.End))
+func resourceStr(resource userconfig.Resource) string {
+	return titleStr("Configuration") + s.Obj(resource) + "\n"
 }
 
-func printValue(value string) {
-	printTitle("Value")
-
-	fmt.Println(value)
+func valueStr(value interface{}) string {
+	return titleStr("Value") + s.Obj(value) + "\n"
 }
 
-func printStrings(strings map[string]string) {
-	keys := make([]string, len(strings))
+func strMapToStr(strings map[string]string) string {
+	var keys []string
 	for key := range strings {
 		keys = append(keys, key)
 	}
 
 	sort.Strings(keys)
 
+	out := ""
 	for _, key := range keys {
-		fmt.Printf(strings[key])
+		out += strings[key] + "\n"
 	}
+
+	return out
 }
 
 func dataResourceRow(name string, resource context.Resource, dataStatuses map[string]*resource.DataStatus) string {
@@ -458,26 +446,21 @@ func resourceRow(name string, status string, startTime *time.Time) string {
 	return stringifyRow(name, status, timeSince)
 }
 
-func printDataResourcesHeader() {
-	fmt.Printf(stringifyRow("NAME", "STATUS", "AGE"))
+func dataResourcesHeader() string {
+	return stringifyRow("NAME", "STATUS", "AGE") + "\n"
 }
 
-func printAPIsHeader() {
-	fmt.Printf(stringifyRow("NAME", "STATUS", "LAST UPDATE"))
+func apisHeader() string {
+	return stringifyRow("NAME", "STATUS", "LAST UPDATE") + "\n"
 }
 
 func stringifyRow(name string, status string, timeSince string) string {
-	return fmt.Sprintf("%-35s%-24s%s\n", name, status, timeSince)
+	return fmt.Sprintf("%-35s%-24s%s", name, status, timeSince)
 }
 
-func printTitle(title string) {
+func titleStr(title string) string {
 	titleLength := len(title)
 	top := strings.Repeat("-", titleLength)
 	bottom := strings.Repeat("-", titleLength)
-
-	fmt.Printf("\n")
-	fmt.Println(top)
-	fmt.Println(title)
-	fmt.Println(bottom)
-	fmt.Printf("\n")
+	return "\n" + top + "\n" + title + "\n" + bottom + "\n\n"
 }
