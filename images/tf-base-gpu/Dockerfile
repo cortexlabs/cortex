@@ -45,7 +45,4 @@ RUN pip3 --no-cache-dir install --upgrade \
     pip \
     setuptools
 
-# Some TF tools expect a "python" binary
-# RUN ln -s python3 /usr/local/bin/python 
-
 RUN pip3 install tensorflow-gpu==1.12
