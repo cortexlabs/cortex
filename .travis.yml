@@ -13,7 +13,7 @@ before_install:
 
 jobs:
   include:
-    - stage: Images
+    - stage: Images and Tests
       script: make tf-images
       name: "Tensorflow"
     - script: make spark-images && make test-python
@@ -22,8 +22,7 @@ jobs:
       name: "Argo"
     - script: make operator-images
       name: "Operator"
-    - stage: test
-      script: make test-go
+    - script: make test-go
       name: "Go tests"
     - stage: deploy
       if: branch = master
