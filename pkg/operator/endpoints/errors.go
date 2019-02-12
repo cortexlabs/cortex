@@ -14,35 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package resource
-
-import (
-	"fmt"
-
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-)
+package endpoints
 
 type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
-	ErrUnknownKind
-	ErrNotFound
-	ErrNameNotFound
-	ErrNameOrTypeNotFound
-	ErrInvalidType
+	ErrAuthHeaderMissing
+	ErrAuthHeaderMalformed
+	ErrAuthAPIError
+	ErrAuthForbidden
 )
 
 var (
 	errorKinds = []string{
 		"err_unknown",
-		"err_unknown_kind",
-		"err_not_found",
-		"err_name_not_found",
-		"err_name_or_type_not_found",
-		"err_invalid_type",
+		"err_auth_header_missing",
+		"err_auth_header_malformed",
+		"err_auth_api_error",
+		"err_auth_forbidden",
 	}
 )
+
+var _ = [1]int{}[int(ErrAuthForbidden)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -78,46 +72,39 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
-type ResourceError struct {
+type EndpointsError struct {
 	Kind    ErrorKind
 	message string
 }
 
-func (e ResourceError) Error() string {
+func (e EndpointsError) Error() string {
 	return e.message
 }
 
-func ErrorNotFound(name string, resourceType Type) error {
-	return ResourceError{
-		Kind:    ErrNotFound,
-		message: fmt.Sprintf("%s %s not found", resourceType, s.UserStr(name)),
+func ErrorAuthHeaderMissing() error {
+	return EndpointsError{
+		Kind:    ErrAuthHeaderMissing,
+		message: "auth header missing",
 	}
 }
 
-func ErrorNameNotFound(name string) error {
-	return ResourceError{
-		Kind:    ErrNameNotFound,
-		message: fmt.Sprintf("resource name %s not found", s.UserStr(name)),
+func ErrorAuthHeaderMalformed() error {
+	return EndpointsError{
+		Kind:    ErrAuthHeaderMalformed,
+		message: "auth header malformed",
 	}
 }
 
-func ErrorNameOrTypeNotFound(nameOrType string) error {
-	return ResourceError{
-		Kind:    ErrNameOrTypeNotFound,
-		message: fmt.Sprintf("resource name or type %s not found", s.UserStr(nameOrType)),
+func ErrorAuthAPIError() error {
+	return EndpointsError{
+		Kind:    ErrAuthAPIError,
+		message: "the operator is unable to verify user's credentials using AWS STS; run `./cortex.sh update operator` to update the operator's AWS credentials",
 	}
 }
 
-func ErrorInvalidType(invalid string) error {
-	return ResourceError{
-		Kind:    ErrInvalidType,
-		message: fmt.Sprintf("invalid resource type %s", s.UserStr(invalid)),
-	}
-}
-
-func ErrorUnknownKind(name string) error {
-	return ResourceError{
-		Kind:    ErrUnknownKind,
-		message: fmt.Sprintf("unknown kind %s", s.UserStr(name)),
+func ErrorAuthForbidden() error {
+	return EndpointsError{
+		Kind:    ErrAuthForbidden,
+		message: "invalid AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as the operator",
 	}
 }

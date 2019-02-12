@@ -126,6 +126,10 @@ type ConfigError struct {
 	message string
 }
 
+func (e ConfigError) Error() string {
+	return e.message
+}
+
 func ErrorDuplicateConfigName(name string, resourcesTypes ...resource.Type) error {
 	resourceTypes := resource.Types(resourcesTypes)
 	return ConfigError{
@@ -315,8 +319,4 @@ func ErrorK8sQuantityMustBeInt(quantityStr string) error {
 		Kind:    ErrK8sQuantityMustBeInt,
 		message: fmt.Sprintf("resource compute quantity must be an integer-valued string, e.g. \"2\") (got %s)", s.DataTypeStr(quantityStr)),
 	}
-}
-
-func (e ConfigError) Error() string {
-	return e.message
 }
