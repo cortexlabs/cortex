@@ -76,8 +76,8 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 		}
 
 		if _, err = resourcesRes.Context.VisibleResourceByName(resourceNameOrType); err != nil {
-			if rerr, ok := err.(resource.ResourceError); ok && rerr.Kind == resource.ErrNotFound {
-				return "", errors.New(s.ErrUndefinedNameOrType(resourceNameOrType))
+			if rerr, ok := err.(resource.ResourceError); ok && rerr.Kind == resource.ErrNameNotFound {
+				return "", resource.ErrorNameOrTypeNotFound(resourceNameOrType)
 			}
 			return "", err
 		}
