@@ -237,6 +237,9 @@ func (apiCompute *APICompute) ID() string {
 	buf.WriteString(s.Int32(apiCompute.Replicas))
 	buf.WriteString(QuantityPtrID(apiCompute.CPU))
 	buf.WriteString(QuantityPtrID(apiCompute.Mem))
+	if apiCompute.GPU != nil {
+		buf.WriteString(s.Int64(*apiCompute.GPU))
+	}
 	return util.HashBytes(buf.Bytes())
 }
 
@@ -244,6 +247,9 @@ func (apiCompute *APICompute) IDWithoutReplicas() string {
 	var buf bytes.Buffer
 	buf.WriteString(QuantityPtrID(apiCompute.CPU))
 	buf.WriteString(QuantityPtrID(apiCompute.Mem))
+	if apiCompute.GPU != nil {
+		buf.WriteString(s.Int64(*apiCompute.GPU))
+	}
 	return util.HashBytes(buf.Bytes())
 }
 
