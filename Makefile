@@ -32,6 +32,23 @@ build-cli:
 test:
 	./build/test.sh
 
+find-missing-licenses:
+	@grep -RL \
+	--exclude-dir=docs \
+	--exclude-dir=examples \
+	--exclude-dir=dev/config \
+	--exclude-dir=vendor \
+	--exclude-dir=bin \
+	--exclude-dir=.git \
+	--exclude=LICENSE \
+	--exclude=requirements.txt \
+	--exclude='go.*' \
+	--exclude='*.md' \
+	--exclude='.git*' \
+	--exclude='.travis.yml' \
+	--exclude='.dockerignore' \
+	"Copyright 2019 Cortex Labs, Inc" 
+
 ###############
 # CI Commands #
 ###############
