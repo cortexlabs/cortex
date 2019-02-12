@@ -1805,13 +1805,11 @@ function install_cortex_cli() {
   fi
 
   check_dep_curl
-  check_dep_unzip
 
   echo -e "\nInstalling the Cortex CLI (/usr/local/bin/cortex) ..."
 
   rm -rf $CORTEX_SH_TMP_DIR && mkdir -p $CORTEX_SH_TMP_DIR
-  curl -s -o $CORTEX_SH_TMP_DIR/cortex-cli-${CORTEX_VERSION_STABLE}-${PARSED_OS}.zip https://s3-us-west-2.amazonaws.com/get-cortex/cortex-cli-${CORTEX_VERSION_STABLE}-${PARSED_OS}.zip
-  unzip $CORTEX_SH_TMP_DIR/cortex-cli-${CORTEX_VERSION_STABLE}-${PARSED_OS}.zip -d $CORTEX_SH_TMP_DIR >/dev/null
+  curl -s -o $CORTEX_SH_TMP_DIR/cortex https://s3-us-west-2.amazonaws.com/get-cortex/$CORTEX_VERSION_STABLE/cli/$PARSED_OS/cortex
   chmod +x $CORTEX_SH_TMP_DIR/cortex
 
   if [ $(id -u) = 0 ]; then
