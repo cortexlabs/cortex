@@ -3,21 +3,15 @@
 * [Read Me](../README.md)
 * [Install](operator/install.md)
 * [Quick Start](quick-start.md)
+* [Application Overview](applications/resources/overview.md)
 * [CLI Commands](operator/cli.md)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
 * [FAQ](faq.md)
-
-## Operator
-
-* [Config](operator/config.md)
-* [Security](operator/security.md)
-* [Uninstall](operator/uninstall.md)
 
 ## Applications
 
 ### Resources
 
-  * [Overview](applications/resources/overview.md)
   * [Application](applications/resources/app.md)
   * [Environments](applications/resources/environments.md)
   * [Data Types](applications/resources/data-types.md)
@@ -40,3 +34,9 @@
 
   * [Templates](applications/advanced/templates.md)
   * [Compute](applications/advanced/compute.md)
+
+## Operator
+
+  * [Config](operator/config.md)
+  * [Security](operator/security.md)
+  * [Uninstall](operator/uninstall.md)

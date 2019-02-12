@@ -26,7 +26,7 @@ chmod +x cortex.sh
 ./cortex.sh uninstall cli
 ```
 
-## Delete AWS data
+## AWS
 
 ```bash
 # Set AWS credentials
@@ -38,6 +38,9 @@ aws s3 rb s3://<bucket-name> --force
 
 # Delete the log group
 aws logs delete-log-group --log-group-name cortex --region us-west-2
+
+# Uninstall the AWS CLI (if you used cortex.sh to install it)
+sudo rm -rf /usr/local/aws && sudo rm /usr/local/bin/aws && rm -rf ~/.aws
 ```
 
 ## Kubernetes

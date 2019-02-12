@@ -40,7 +40,7 @@ eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium  # this take
 
 ## Operator
 
-The operator installation is configurable. For a full list of configuration options please refer to the [operator config](config.md) documentation.
+The Cortex operator is a service that runs on Kubernetes, translates declarative configuration into workloads, and orchestrates those workloads on the cluster. Its installation is configurable. For a full list of configuration options please refer to the [operator config](config.md) documentation.
 
 ```bash
 # Install the Cortex operator
@@ -48,6 +48,8 @@ The operator installation is configurable. For a full list of configuration opti
 ```
 
 ## CLI
+
+The CLI runs on developer machines (e.g. your laptop) and communicates with the operator.
 
 ```bash
 # Install the Cortex CLI

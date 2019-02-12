@@ -183,12 +183,6 @@ function install_kubernetes_tools() {
   install_aws_iam_authenticator
   install_eksctl
   install_kubectl
-
-  echo
-  echo "You can now spin up an EKS cluster using the command below (see eksctl.io for more configuration options):"
-  echo "  eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium  # this takes ~20 minutes"
-  echo
-  echo "Note: we recommend a minimum cluster size of 2 t3.medium AWS instances. Cortex may not run successfully on clusters with less compute resources."
 }
 
 function uninstall_operator() {
@@ -204,31 +198,6 @@ function uninstall_operator() {
     echo "✓ Uninstalled the Cortex operator"
   else
     echo "The Cortex operator is not installed on your Kubernetes cluster"
-  fi
-
-  echo
-  echo "Command to spin down your Kubernetes cluster:"
-  echo "  eksctl delete cluster --name=cortex"
-  echo
-  echo "Command to remove Kubernetes tools:"
-  echo "  ./cortex.sh uninstall kubernetes-tools"
-  echo
-  echo "Command to delete the bucket used by Cortex:"
-  echo "  aws s3 rb s3://<bucket-name> --force"
-  echo
-  echo "Command to delete the log group used by Cortex:"
-  echo "  aws logs delete-log-group --log-group-name cortex --region us-west-2"
-  echo
-  echo "Command to uninstall the Cortex CLI:"
-  echo "  ./cortex.sh uninstall cli"
-
-  if [[ -f /usr/local/bin/aws ]]; then
-    echo -e "\nCommand to uninstall the AWS CLI:"
-    if [ $(id -u) = 0 ]; then
-      echo "  rm -rf /usr/local/aws && rm /usr/local/bin/aws && rm -rf ~/.aws"
-    else
-      echo "  sudo rm -rf /usr/local/aws && sudo rm /usr/local/bin/aws && rm -rf ~/.aws"
-    fi
   fi
 }
 

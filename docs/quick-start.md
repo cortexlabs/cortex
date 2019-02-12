@@ -21,7 +21,15 @@ Jump to [Deploy the application](#deploy-the-application).
 
 ## Build a machine learning application
 
-Let's build and deploy a classifier using the famous [Iris Data Set](https://archive.ics.uci.edu/ml/datasets/iris)!
+Let's build and deploy a classifier using the famous [Iris Data Set](https://archive.ics.uci.edu/ml/datasets/iris)! Below are a few samples of iris data:
+
+|sepal_length|speal_width|petal_length|petal_width|class|
+|:---:|:---:|:---:|:---:|:---|
+|5.1|3.5|1.4|0.2|Iris-setosa|
+|7.0|3.2|4.7|1.4|Iris-versicolor|
+|6.3|3.3|6.0|2.5|Iris-virginica|
+
+Our goal is to build a web API that returns the type of iris given its measurements.
 
 #### Initialize the application
 
@@ -343,7 +351,7 @@ Define a sample in `irises.json`:
 }
 ```
 
-Run the prediction:
+When the API is ready, run the prediction like so:
 
 ```bash
 cortex predict classifier irises.json

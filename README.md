@@ -1,4 +1,5 @@
-<img src='https://quirky-newton-6bd132.netlify.com/img/common/logo.png' height='88'>
+<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='88'>
+
 
 <br>
 
