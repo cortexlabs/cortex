@@ -21,6 +21,15 @@ from lib import util
 import logging
 
 
+def test_snake_to_camel():
+    assert util.snake_to_camel("ONE_TWO_THREE") == "oneTwoThree"
+    assert util.snake_to_camel("ONE_TWO_THREE", lower=False) == "OneTwoThree"
+    assert util.snake_to_camel("ONE_TWO_THREE", sep="-") == "one_two_three"
+    assert util.snake_to_camel("ONE-TWO-THREE", sep="-") == "oneTwoThree"
+    assert util.snake_to_camel("ONE") == "one"
+    assert util.snake_to_camel("ONE", lower=False) == "One"
+
+
 def test_flatten_all_values():
     obj = "v"
     expected = ["v"]

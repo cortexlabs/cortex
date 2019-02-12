@@ -25,7 +25,31 @@ data:
   schema:
     - <string>  # raw column names listed in the CSV columns' order (required)
       ...
+```
 
+#### CSV Config
+
+To help ingest different styles of CSV files, Cortex supports the parameters listed below. All of these parameters are optional. A description and default values for each parameter can be found in the [PySpark CSV Documentation](https://spark.apache.org/docs/2.4.0/api/python/pyspark.sql.html#pyspark.sql.DataFrameReader.csv).
+
+```yaml
+csv_config:
+  sep: <string>
+  encoding: <string>
+  quote: <string>
+  escape: <string>
+  comment: <string>
+  header: <bool>
+  ignore_leading_white_space: <bool>
+  ignore_trailing_white_space: <bool>
+  null_value: <string>
+  nan_value: <string>
+  positive_inf: <bool>
+  negative_inf: <bool>
+  max_columns: <int>
+  max_chars_per_column: <int>
+  multiline: <bool>
+  char_to_escape_quote_escaping: <string>
+  empty_value: <string>
 ```
 
 ### Parquet Data Config
@@ -39,30 +63,6 @@ data:
     - parquet_column_name: <string>  # name of the column in the parquet file (required)
       raw_column_name: <string>  # raw column name (required)
       ...
-```
-
-#### CSV Config
-
-To help ingest different styles of CSV files, Cortex supports the parameters listed below. All of the parameters listed below are optional. A description and default values for each parameter can be found in the [PySpark CSV Documentation](https://spark.apache.org/docs/2.4.0/api/python/pyspark.sql.html#pyspark.sql.DataFrameReader.csv).
-
-```yaml
-sep: <string>
-encoding: <string>
-quote: <string>
-escape: <string>
-comment: <string>
-header: <bool>
-ignore_leading_white_space: <bool>
-ignore_trailing_white_space: <bool>
-null_value: <string>
-nan_value: <string>
-positive_inf: <bool>
-negative_inf: <bool>
-max_columns: <int>
-max_chars_per_column: <int>
-multiline: <bool>
-char_to_escape_quote_escaping: <string>
-empty_value: <string>
 ```
 
 ## Example

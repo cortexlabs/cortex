@@ -90,11 +90,11 @@ def pluralize(num, singular, plural):
 
 def snake_to_camel(input, sep="_", lower=True):
     output = ""
-    for idx, word in enumerate(input.split(sep)):
-        if not (idx == 0 and lower):
-            output += word[0].upper() + word[1:]
-        else:
+    for idx, word in enumerate(input.lower().split(sep)):
+        if idx == 0 and lower:
             output += word
+        else:
+            output += word[0].upper() + word[1:]
     return output
 
 
