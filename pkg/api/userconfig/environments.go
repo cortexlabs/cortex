@@ -78,8 +78,8 @@ var subsetValidation = &cr.StructValidation{
 		&cr.StructFieldValidation{
 			StructField: "Fraction",
 			Float32PtrValidation: &cr.Float32PtrValidation{
-				GreaterThan:       util.Float32Ptr(0),
-				LessThanOrEqualTo: util.Float32Ptr(1),
+				GreaterThan: util.Float32Ptr(0),
+				LessThan:    util.Float32Ptr(1),
 			},
 		},
 		&cr.StructFieldValidation{
@@ -346,7 +346,7 @@ func (env *Environment) Validate() error {
 
 	if env.Subset != nil {
 		if env.Subset.Limit != nil && env.Subset.Fraction != nil {
-			return errors.Wrap(ErrorSpecifyAllOrNone(LimitKey, FractionKey), Identify(env), SubsetKey)
+			return errors.Wrap(ErrorSpecifyOnlyOne(LimitKey, FractionKey), Identify(env), SubsetKey)
 		}
 	}
 
