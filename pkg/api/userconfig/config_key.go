@@ -36,6 +36,11 @@ const (
 	PathKey            = "path"
 	ValueKey           = "value"
 
+	// environment
+	SubsetKey   = "subset"
+	LimitKey    = "limit"
+	FractionKey = "fraction"
+
 	// model
 	NumEpochsKey           = "num_epochs"
 	NumStepsKey            = "num_steps"

@@ -108,25 +108,27 @@ def validate_dataset(ctx, raw_df, cols_to_validate):
         raise UserException("raw column validations failed")
 
 
+def subset_dataset(full_dataset_size, ingest_df, subset_config):
+    max_rows = full_dataset_size
+    if subset_config.get("limit") is not None:
+        max_rows = min(subset_config["limit"], full_dataset_size)
+        fraction = float(subset_config["limit"] / full_dataset_size)
+    elif subset_config.get("fraction") is not None:
+        max_rows = round(full_dataset_size * subset_config["fraction"])
+        fraction = subset_config["fraction"]
+    if max_rows == full_dataset_size:
+        return ingest_df
+    if subset_config["shuffle"]:
+        ingest_df = ingest_df.sample(fraction=fraction, seed=subset_config["seed"])
+    logger.info("Selecting a subset of data of atmost {} rows".format(max_rows))
+    return ingest_df.limit(max_rows)
+
+
 def write_raw_dataset(df, ctx, spark):
     logger.info("Caching {} data (version: {})".format(ctx.app["name"], ctx.dataset_version))
     acc, df = spark_util.accumulate_count(df, spark)
     df.write.mode("overwrite").parquet(aws.s3a_path(ctx.bucket, ctx.raw_dataset["key"]))
     return acc.value
-
-
-def drop_null_and_write(ingest_df, ctx, spark):
-    full_dataset_size = ingest_df.count()
-    logger.info("Dropping any rows that contain null values")
-    ingest_df = ingest_df.dropna()
-    written_count = write_raw_dataset(ingest_df, ctx, spark)
-    metadata = {"dataset_size": written_count}
-    aws.upload_json_to_s3(metadata, ctx.raw_dataset["metadata_key"], ctx.bucket)
-    logger.info(
-        "{} rows read, {} rows dropped, {} rows ingested".format(
-            full_dataset_size, full_dataset_size - written_count, written_count
-        )
-    )
 
 
 def ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest):
@@ -141,18 +143,31 @@ def ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest):
     ctx.upload_resource_status_start(*col_resources_to_validate)
     try:
         if should_ingest:
+            data_config = ctx.environment["data"]
+
             logger.info("Ingesting")
-            logger.info(
-                "Ingesting {} data from {}".format(ctx.app["name"], ctx.environment["data"]["path"])
-            )
+            logger.info("Ingesting {} data from {}".format(ctx.app["name"], data_config["path"]))
             ingest_df = spark_util.ingest(ctx, spark)
 
-            if ctx.environment["data"].get("drop_null"):
-                drop_null_and_write(ingest_df, ctx, spark)
+            full_dataset_size = ingest_df.count()
+
+            if data_config.get("drop_null"):
+                logger.info("Dropping any rows that contain null values")
+                ingest_df = ingest_df.dropna()
+
+            if ctx.environment.get("subset"):
+                ingest_df = subset_dataset(full_dataset_size, ingest_df, ctx.environment["subset"])
+
+            written_count = write_raw_dataset(ingest_df, ctx, spark)
+            metadata = {"dataset_size": written_count}
+            aws.upload_json_to_s3(metadata, ctx.raw_dataset["metadata_key"], ctx.bucket)
+            if written_count != full_dataset_size:
+                logger.info(
+                    "{} rows read, {} rows dropped, {} rows ingested".format(
+                        full_dataset_size, full_dataset_size - written_count, written_count
+                    )
+                )
             else:
-                written_count = write_raw_dataset(ingest_df, ctx, spark)
-                metadata = {"dataset_size": written_count}
-                aws.upload_json_to_s3(metadata, ctx.raw_dataset["metadata_key"], ctx.bucket)
                 logger.info("{} rows ingested".format(written_count))
 
         logger.info("Reading {} data (version: {})".format(ctx.app["name"], ctx.dataset_version))

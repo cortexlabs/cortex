@@ -29,6 +29,7 @@ type Environments []*Environment
 type Environment struct {
 	Name     string    `json:"name" yaml:"name"`
 	LogLevel *LogLevel `json:"log_level" yaml:"log_level"`
+	Subset   *Subset   `json:"subset" yaml:"subset"`
 	Data     Data      `json:"-" yaml:"-"`
 	FilePath string    `json:"file_path"  yaml:"-"`
 }
@@ -47,11 +48,50 @@ var environmentValidation = &cr.StructValidation{
 			StructValidation: logLevelValidation,
 		},
 		&cr.StructFieldValidation{
+			StructField:      "Subset",
+			StructValidation: subsetValidation,
+		},
+		&cr.StructFieldValidation{
 			StructField:               "Data",
 			Key:                       "data",
 			InterfaceStructValidation: dataValidation,
 		},
 		typeFieldValidation,
+	},
+}
+
+type Subset struct {
+	Limit    *int64   `json:"limit" yaml:"limit"`
+	Fraction *float32 `json:"fraction" yaml:"fraction"`
+	Shuffle  bool     `json:"shuffle" yaml:"shuffle"`
+	Seed     *int64   `json:"seed" yaml:"seed"`
+}
+
+var subsetValidation = &cr.StructValidation{
+	StructFieldValidations: []*cr.StructFieldValidation{
+		&cr.StructFieldValidation{
+			StructField: "Limit",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				GreaterThan: util.Int64Ptr(0),
+			},
+		},
+		&cr.StructFieldValidation{
+			StructField: "Fraction",
+			Float32PtrValidation: &cr.Float32PtrValidation{
+				GreaterThan:       util.Float32Ptr(0),
+				LessThanOrEqualTo: util.Float32Ptr(1),
+			},
+		},
+		&cr.StructFieldValidation{
+			StructField: "Shuffle",
+			BoolValidation: &cr.BoolValidation{
+				Default: false,
+			},
+		},
+		&cr.StructFieldValidation{
+			StructField:        "Seed",
+			Int64PtrValidation: &cr.Int64PtrValidation{},
+		},
 	},
 }
 
@@ -302,6 +342,12 @@ func (environments Environments) Validate() error {
 func (env *Environment) Validate() error {
 	if err := env.Data.Validate(); err != nil {
 		return errors.Wrap(err, Identify(env))
+	}
+
+	if env.Subset != nil {
+		if env.Subset.Limit != nil && env.Subset.Fraction != nil {
+			return errors.Wrap(ErrorSpecifyAllOrNone(LimitKey, FractionKey), Identify(env), SubsetKey)
+		}
 	}
 
 	dups := util.FindDuplicateStrs(env.Data.GetIngestedColumns())
