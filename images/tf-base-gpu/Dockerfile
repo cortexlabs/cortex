@@ -1,34 +1,4 @@
-# Adapted from https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/dockerfiles/dockerfiles/gpu.Dockerfile
-FROM nvidia/cuda:9.0-base-ubuntu16.04
-
-# Pick up some TF dependencies
-RUN apt-get update -qq && apt-get install -q -y --no-install-recommends \
-    build-essential \
-    cuda-command-line-tools-9-0 \
-    cuda-cublas-9-0 \
-    cuda-cufft-9-0 \
-    cuda-curand-9-0 \
-    cuda-cusolver-9-0 \
-    cuda-cusparse-9-0 \
-    libcudnn7=7.4.1.5-1+cuda9.0 \
-    libfreetype6-dev \
-    libhdf5-serial-dev \
-    libpng12-dev \
-    libzmq3-dev \
-    pkg-config \
-    software-properties-common \
-    unzip
-
-RUN apt-get update -qq && \
-    apt-get install -q nvinfer-runtime-trt-repo-ubuntu1604-5.0.2-ga-cuda9.0 \
-    && apt-get update -qq \
-    && apt-get -q install -y --no-install-recommends libnvinfer5=5.0.2-1+cuda9.0 \
-    && apt-get -q clean \
-    && rm -rf /var/lib/apt/lists/*
-
-
-# See http://bugs.python.org/issue19846
-ENV LANG C.UTF-8
+FROM tensorflow/tensorflow:1.12.0-gpu-py3 as base
 
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
@@ -41,8 +11,4 @@ RUN apt-get update -qq && apt-get install -y -q \
         zlib1g-dev \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 --no-cache-dir install --upgrade \
-    pip \
-    setuptools
 
-RUN pip3 install tensorflow-gpu==1.12
