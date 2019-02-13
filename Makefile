@@ -1,3 +1,17 @@
+# Copyright 2019 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 ###############
 # Dev Helpers #
 ###############
@@ -33,22 +47,8 @@ test:
 	./build/test.sh
 
 find-missing-licenses:
-	@grep -RL \
-	--exclude-dir=docs \
-	--exclude-dir=examples \
-	--exclude-dir=dev/config \
-	--exclude-dir=vendor \
-	--exclude-dir=bin \
-	--exclude-dir=.git \
-	--exclude=LICENSE \
-	--exclude=requirements.txt \
-	--exclude='go.*' \
-	--exclude='*.md' \
-	--exclude='.git*' \
-	--exclude='.travis.yml' \
-	--exclude='.dockerignore' \
-	"Copyright 2019 Cortex Labs, Inc" 
-
+	@./build/find-missing-license.sh
+	
 ###############
 # CI Commands #
 ###############
@@ -90,3 +90,6 @@ test-go:
 
 test-python:
 	./build/test.sh python
+
+test-license:
+	@if [ $(make find-missing-licenses) ]; then exit 1; fi

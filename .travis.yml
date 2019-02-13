@@ -24,9 +24,11 @@ jobs:
       name: "Operator"
     - script: make test-go
       name: "Go tests"
+    - script: make test-license
+      name: "Check for license headers"
     - stage: deploy
       if: branch = master
       script: build-and-upload
+    
       
-
 
