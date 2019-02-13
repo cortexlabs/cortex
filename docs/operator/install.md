@@ -38,8 +38,8 @@ Cortex runs on Kubernetes. If you don't already have a Kubernetes cluster, [eksc
 # Install kubectl, eksctl, and aws-iam-authenticator
 ./cortex.sh install kubernetes-tools
 
-# Spin up an EKS cluster (see eksctl.io for more configuration options)
-eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium  # this takes ~20 minutes
+# Spin up an EKS cluster (this takes ~20 minutes; see eksctl.io for more configuration options)
+eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium
 ```
 
 ## Operator

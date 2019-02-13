@@ -38,7 +38,7 @@ mkdir iris && cd iris
 touch app.yaml dnn.py irises.json
 ```
 
-Cortex requires an `app.yaml` file defining an app resource. All other resources can be defined in arbitrary YAML files.
+Cortex requires an `app.yaml` file which defines a single `app` resource. Other resources may be defined in arbitrarily named YAML files in the the directory which contains `app.yaml` or any subdirectories. For this example, we will define all of our resources in `app.yaml`.
 
 Add to `app.yaml`:
 
@@ -240,7 +240,7 @@ Add to `app.yaml`:
       index: class_index
 ```
 
-You can simplify this YAML using [templates](applications/advanced/templates.md).
+You can simplify the YAML for aggregates and transformed columns using [templates](applications/advanced/templates.md).
 
 #### Define the model
 
@@ -320,6 +320,8 @@ $ cortex deploy
 
 Deployment started
 ```
+
+The first deployment may take some extra time as Cortex's dependencies are downloaded.
 
 You can get an overview of the deployment using `cortex get`:
 
@@ -600,3 +602,5 @@ $ cortex delete iris
 
 Deployment deleted
 ```
+
+See [uninstall](operator/uninstall.md) if you'd like to uninstall Cortex.
