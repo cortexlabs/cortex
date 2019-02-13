@@ -10,10 +10,9 @@
 
 You can download the pre-built iris application by cloning our repository:
 
-<!-- CORTEX_VERSION_MINOR -->
 
 ```bash
-git clone -b master https://github.com/cortexlabs/cortex.git
+git clone -b master https://github.com/cortexlabs/cortex.git # <!-- CORTEX_VERSION_MINOR -->
 cd cortex/examples/iris
 ```
 
