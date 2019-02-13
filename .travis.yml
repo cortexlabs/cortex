@@ -33,6 +33,6 @@ jobs:
       name: "Operator"
     - stage: deploy
       if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
-    - script: make build-and-upload
+      script: make build-and-upload
     
 
