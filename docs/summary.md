@@ -5,12 +5,7 @@
 * [Quick Start](quick-start.md)
 * [Application Overview](applications/resources/overview.md)
 * [CLI Commands](operator/cli.md)
-<<<<<<< Updated upstream
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
-* [FAQ](faq.md)
-=======
-* [Examples](https://github.com/cortexlabs/cortex/tree/0.1/examples)  <!-- CORTEX_VERSION_MINOR -->
->>>>>>> Stashed changes
 * [GitHub](https://github.com/cortexlabs/cortex)
 * [FAQ](faq.md)
 
