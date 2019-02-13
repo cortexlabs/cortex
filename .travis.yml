@@ -15,12 +15,12 @@ jobs:
   include:
     - stage: files
     - script: make test-license
-    - name: "License headers"
+      name: "License headers"
     - stage: tests
     - script: make test-go
-    - name: "Go tests"
+      name: "Go tests"
     - stage: release
-    - if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
+      if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
     - script: make test-version
       name: "Check version header"
     - script: make tf-images
@@ -32,6 +32,7 @@ jobs:
     - script: make operator-images
       name: "Operator"
     - stage: deploy
+      if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
     - script: make build-and-upload
     
 
