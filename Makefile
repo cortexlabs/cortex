@@ -15,6 +15,7 @@
 ###############
 # Dev Helpers #
 ###############
+SHELL := /bin/bash
 GOBIN ?= $$PWD/bin
 define build
     mkdir -p $(GOBIN)
@@ -46,8 +47,11 @@ build-cli:
 test:
 	@./build/test.sh
 
-find-missing-licenses:
+find-missing-license:
 	@./build/find-missing-license.sh
+
+find-missing-version:
+	@./build/check-cortex-version.sh
 	
 ###############
 # CI Commands #
@@ -91,5 +95,8 @@ test-go:
 test-python:
 	@./build/test.sh python
 
+test-license:
+	@if [ "$$(./build/find-missing-license.sh)" ]; then echo "some files are missing license headers, run 'make find-missing-license' to find offending files."; exit 1; fi
+
 test-version:
-	@./build/check-cortex-version.sh
+	@if [ "$$(./build/find-missing-version.sh)" ]; then echo "there are still CORTEX_VERSION references to master. run 'make find-missing-version'"; exit 1; fi

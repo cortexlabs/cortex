@@ -15,9 +15,9 @@ jobs:
   include:
     - stage: Release Checks
       if: branch =~ /[0-9]\.[0-9]/
-      script: if [ $(make test-version) ]; then echo "There are still references to master"; exit 1; fi
+      script: make test-version
     - stage: File checks
-      script: if [ $(make find-missing-licenses) ]; then echo "Missing license headers in $(make finder-missing-licenses)"; exit 1; fi
+      script: make test-license
       name: "License headers"
     - stage: Images and Tests
       script: make tf-images

@@ -15,5 +15,5 @@
 # limitations under the License.
 
 # find files containing CORTEX_VERSION
-grep --exclude="check-cortex-version.sh" -RE "CORTEX_VERSION" . | grep -E "master"
+grep --exclude="check-cortex-version.sh" -R -e "CORTEX_VERSION" | grep -e "master"
 
