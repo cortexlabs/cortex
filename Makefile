@@ -90,6 +90,3 @@ test-go:
 
 test-python:
 	./build/test.sh python
-
-test-license:
-	@if [ $(make find-missing-licenses) ]; then exit 1; fi

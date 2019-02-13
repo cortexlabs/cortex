@@ -24,7 +24,7 @@ jobs:
       name: "Operator"
     - script: make test-go
       name: "Go tests"
-    - script: make test-license
+    - script: if [ $(make find-missing-licenses) ]; then exit 1; fi
       name: "Check for license headers"
     - stage: deploy
       if: branch = master
