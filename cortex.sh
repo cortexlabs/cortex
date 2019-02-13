@@ -194,8 +194,10 @@ function uninstall_operator() {
 
     # Remove finalizers on sparkapplications (they sometimes create deadlocks)
     if kubectl get namespace $CORTEX_NAMESPACE >/dev/null 2>&1 && kubectl get customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1; then
+      set +e
       kubectl -n=$CORTEX_NAMESPACE get sparkapplications.sparkoperator.k8s.io -o name | xargs -L1 \
         kubectl -n=$CORTEX_NAMESPACE patch -p '{"metadata":{"finalizers": []}}' --type=merge >/dev/null 2>&1
+      set -e
     fi
 
     kubectl delete --ignore-not-found=true customresourcedefinition scheduledsparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
