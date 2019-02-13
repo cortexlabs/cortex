@@ -323,7 +323,7 @@ Deployment started
 
 The first deployment may take some extra time as Cortex's dependencies are downloaded.
 
-You can get an overview of the deployment using `cortex get`:
+You can get an overview of the deployment using `cortex get` (see [resource statuses](applications/resources/statuses.md) for the meaning of each status):
 
 ```
 $ cortex get

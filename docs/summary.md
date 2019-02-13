@@ -24,6 +24,7 @@
   * [Models](applications/resources/models.md)
   * [APIs](applications/resources/apis.md)
   * [Constants](applications/resources/constants.md)
+  * [Resource Statuses](applications/resources/statuses.md)
 
 ### Implementations
 
