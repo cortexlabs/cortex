@@ -17,7 +17,7 @@ git clone -b master https://github.com/cortexlabs/cortex.git
 cd cortex/examples/iris
 ```
 
-Jump to [Deploy the application](#deploy-the-application).
+Jump to [deploy the application](#deploy-the-application).
 
 ## Build a machine learning application
 
@@ -110,7 +110,7 @@ Add to `app.yaml`:
 
 #### Define aggregates
 
-Aggregates are computations that require processing a full column of data. We want to normalize the numeric columns, so we need mean and standard deviation values for each numeric column. We also need a mapping of strings to integers for the label column. Cortex has `mean`, `stddev`, and `index_string` aggregators out of the box.
+Aggregates are computations that require processing a full column of data. We want to normalize the numeric columns, so we need mean and standard deviation values for each numeric column. We also need a mapping of strings to integers for the label column. Here we use the built-in `mean`, `stddev`, and `index_string` aggregators.
 
 Add to `app.yaml`:
 
@@ -287,6 +287,7 @@ def create_estimator(run_config, model_config):
         tf.feature_column.numeric_column("petal_width_normalized"),
     ]
 
+    # returns an instance of tf.estimator.Estimator
     return tf.estimator.DNNClassifier(
         feature_columns=feature_columns,
         hidden_units=model_config["hparams"]["hidden_units"],

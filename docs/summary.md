@@ -15,7 +15,6 @@
 
   * [Application](applications/resources/app.md)
   * [Environments](applications/resources/environments.md)
-  * [Data Types](applications/resources/data-types.md)
   * [Raw Columns](applications/resources/raw-columns.md)
   * [Aggregators](applications/resources/aggregators.md)
   * [Aggregates](applications/resources/aggregates.md)
@@ -24,6 +23,7 @@
   * [Models](applications/resources/models.md)
   * [APIs](applications/resources/apis.md)
   * [Constants](applications/resources/constants.md)
+  * [Data Types](applications/resources/data-types.md)
   * [Resource Statuses](applications/resources/statuses.md)
 
 ### Implementations
