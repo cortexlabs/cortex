@@ -13,8 +13,9 @@ before_install:
 
 jobs:
   include:
-    - script: if [ $(make find-missing-licenses) ]; then echo "Missing license headers in $(make finder-missing-licenses)" exit 1; fi
-      name: "Check for license headers"
+    - stage: File checks
+      script: if [ $(make find-missing-licenses) ]; then echo "Missing license headers in $(make finder-missing-licenses)" exit 1; fi
+      name: "License headers"
     - stage: Images and Tests
       script: make tf-images
       name: "Tensorflow"
