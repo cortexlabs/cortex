@@ -544,7 +544,7 @@ $ cortex predict iris-type irises.json
 
 iris-type was last updated on Tuesday, February 14, 2019 at 2:57pm PST
 
-Predicted classes:
+Predicted class:
 Iris-setosa
 ```
 

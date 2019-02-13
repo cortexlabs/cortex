@@ -93,7 +93,11 @@ var predictCmd = &cobra.Command{
 		fmt.Println("\n" + apiName + " was last updated on " + apiStart + "\n")
 
 		if predictResponse.ClassificationPredictions != nil {
-			fmt.Println("Predicted classes:")
+			if len(predictResponse.ClassificationPredictions) == 1 {
+				fmt.Println("Predicted class:")
+			} else {
+				fmt.Println("Predicted classes:")
+			}
 			for _, prediction := range predictResponse.ClassificationPredictions {
 				if prediction.PredictedClassReversed != nil {
 					json, _ := json.Marshal(prediction.PredictedClassReversed)
@@ -104,7 +108,11 @@ var predictCmd = &cobra.Command{
 			}
 		}
 		if predictResponse.RegressionPredictions != nil {
-			fmt.Println("Predicted values:")
+			if len(predictResponse.RegressionPredictions) == 1 {
+				fmt.Println("Predicted value:")
+			} else {
+				fmt.Println("Predicted values:")
+			}
 			for _, prediction := range predictResponse.RegressionPredictions {
 				if prediction.PredictedValueReversed != nil {
 					json, _ := json.Marshal(prediction.PredictedValueReversed)
