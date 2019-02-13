@@ -559,7 +559,7 @@ $ cortex get api iris-type
 Summary
 -------
 
-Endpoint:         https://a84607a462f1811e9aa3b020abd0a844-645332984.us-west-2.elb.amazonaws.com/iris/classifier
+Endpoint:         https://a84607a462f1811e9aa3b020abd0a844-645332984.us-west-2.elb.amazonaws.com/iris/iris-type
 Status:           ready
 Created at:       2019-02-14 14:57:04 PST
 Refreshed at:     2019-02-14 14:57:35 PST
@@ -570,7 +570,7 @@ Configuration
 -------------
 
 {
- "name": "classifier",
+ "name": "iris-type",
  "model_name": "dnn",
  "compute": {
    "replicas": 1,
