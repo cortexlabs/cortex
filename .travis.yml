@@ -34,13 +34,13 @@ jobs:
       script: make build-and-upload
     
 stages:
-  - release
-      if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
+  - name: release
+    if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
   - files
-  - images
+  - name: images
       if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
   - tests
-  - deploy
+  - name: deploy
       if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
 
       
