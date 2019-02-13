@@ -170,14 +170,16 @@ func StreamLogs(appName string, resourceName string, resourceType string, verbos
 
 	connection, response, err := dialer.Dial(wsURL, header)
 	if response == nil {
-		return errors.New(s.ErrFailedToConnect(util.CleanURL(wsURL)))
+		cliConfig := getValidCliConfig()
+		return errors.New(s.ErrFailedToConnect(strings.Replace(cliConfig.CortexURL, "http", "ws", 1)))
 	}
 	defer response.Body.Close()
 
 	if err != nil {
 		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil || bodyBytes == nil || string(bodyBytes) == "" {
-			return errors.New(s.ErrFailedToConnect(util.CleanURL(wsURL)))
+			cliConfig := getValidCliConfig()
+			return errors.New(s.ErrFailedToConnect(strings.Replace(cliConfig.CortexURL, "http", "ws", 1)))
 		}
 		var output schema.ErrorResponse
 		err = json.Unmarshal(bodyBytes, &output)
@@ -257,7 +259,8 @@ func makeRequest(request *http.Request) ([]byte, error) {
 
 	response, err := httpClient.Do(request)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrFailedToConnect(util.CleanURL(request.URL.String())))
+		cliConfig := getValidCliConfig()
+		return nil, errors.New(s.ErrFailedToConnect(cliConfig.CortexURL))
 	}
 	defer response.Body.Close()
 
