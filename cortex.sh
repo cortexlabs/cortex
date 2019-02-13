@@ -113,7 +113,7 @@ set -u
 case "$OSTYPE" in
   darwin*)  PARSED_OS="darwin" ;;
   linux*)   PARSED_OS="linux" ;;
-  *)        echo "\nerror: only mac and linux are supported"; exit 1 ;;
+  *)        echo -e "\nerror: only mac and linux are supported"; exit 1 ;;
 esac
 
 #####################
@@ -1472,7 +1472,7 @@ function check_dep_kubectl() {
   fi
 
   if ! kubectl config current-context >/dev/null 2>&1; then
-    echo "\nerror: kubectl is not configured to connect with your cluster. If you are using eksctl, you can run this command to configure kubectl:"
+    echo -e "\nerror: kubectl is not configured to connect with your cluster. If you are using eksctl, you can run this command to configure kubectl:"
     echo "  eksctl utils write-kubeconfig --name=cortex"
     exit 1
   fi
@@ -1481,14 +1481,14 @@ function check_dep_kubectl() {
   set +e
   get_nodes_output=$(kubectl get nodes -o jsonpath="$jsonpath" 2>/dev/null)
   if [ $? -ne 0 ]; then
-    echo "\nerror: either your AWS credentials are incorrect or kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can run this command to configure kubectl:"
+    echo -e "\nerror: either your AWS credentials are incorrect or kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can run this command to configure kubectl:"
     echo "  eksctl utils write-kubeconfig --name=cortex"
     exit 1
   fi
   set -e
   num_nodes_ready=$(echo $get_nodes_output | tr ';' "\n" | grep "Ready=True" | wc -l)
   if ! [[ $num_nodes_ready -ge 1 ]]; then
-    echo "\nerror: your cluster has no registered nodes"
+    echo -e "\nerror: your cluster has no registered nodes"
     exit 1
   fi
 }
@@ -1565,12 +1565,12 @@ function check_dep_aws() {
   fi
 
   if [ -z "$AWS_ACCESS_KEY_ID" ]; then
-    echo "\nerror: please export AWS_ACCESS_KEY_ID"
+    echo -e "\nerror: please export AWS_ACCESS_KEY_ID"
     exit 1
   fi
 
   if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-    echo "\nerror: please export AWS_SECRET_ACCESS_KEY"
+    echo -e "\nerror: please export AWS_SECRET_ACCESS_KEY"
     exit 1
   fi
 }
@@ -1591,15 +1591,15 @@ function install_aws() {
   elif command -v python3 >/dev/null; then
     py_path=$(which python3)
   else
-    echo "\nerror: please install python or python3 using your package manager"
+    echo -e "\nerror: please install python or python3 using your package manager"
     exit 1
   fi
 
   if ! $py_path -c "import distutils.sysconfig" >/dev/null 2>&1; then
     if command -v python3 >/dev/null; then
-      echo "\nerror: please install python3-distutils using your package manager"
+      echo -e "\nerror: please install python3-distutils using your package manager"
     else
-      echo "\nerror: please install python distutils"
+      echo -e "\nerror: please install python distutils"
     fi
     exit 1
   fi
