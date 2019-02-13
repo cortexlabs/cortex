@@ -228,7 +228,7 @@ function get_endpoints() {
   operator_endpoint=$(get_operator_endpoint)
   apis_endpoint=$(get_apis_endpoint)
   echo
-  echo "operator endpoint:  $operator_endpoint"
+  echo "Operator endpoint:  $operator_endpoint"
   echo "APIs endpoint:      $apis_endpoint"
 }
 
@@ -1418,20 +1418,13 @@ function validate_cortex() {
   get_endpoints
 
   if command -v cortex >/dev/null; then
-    echo -e "\nPlease run 'cortex configure' to make sure your CLI is configured correctly"
-  else
-    echo -e "\nCommand to install the Cortex CLI:"
-    echo "  ./cortex.sh install cli"
+    echo -e "\nPlease run \`cortex configure\` to make sure your CLI is configured correctly"
   fi
 }
 
 function get_operator_endpoint() {
   set -eo pipefail
   kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
-}
-
-function get_operator_endpoint_or_empty() {
-  kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-operator -o json 2>/dev/null | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
 }
 
 function get_apis_endpoint() {
@@ -1816,15 +1809,6 @@ function install_cortex_cli() {
     echo "  source <(cortex completion)"
     echo "Note: \`bash_completion\` must be installed on your system for cortex command completion to function properly"
   fi
-
-  operator_endpoint=$(get_operator_endpoint_or_empty)
-  if [ "$operator_endpoint" != "" ]; then
-    export CORTEX_OPERATOR_ENDPOINT="$operator_endpoint"
-  fi
-
-  echo
-  echo "Running \`cortex configure\` ..."
-  /usr/local/bin/cortex configure
 }
 
 function uninstall_cortex_cli() {

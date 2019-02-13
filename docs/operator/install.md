@@ -54,4 +54,10 @@ The CLI runs on developer machines (e.g. your laptop) and communicates with the 
 ```bash
 # Install the Cortex CLI
 ./cortex.sh install cli
+
+# Get the operator endpoint
+./cortex.sh endpoints
+
+# Configure the CLI
+cortex configure
 ```
