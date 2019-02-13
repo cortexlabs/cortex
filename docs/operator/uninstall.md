@@ -35,7 +35,7 @@ export AWS_SECRET_ACCESS_KEY=***
 
 # Delete the S3 bucket
 aws s3 ls
-aws s3 rb s3://<bucket-name> --force
+aws s3 rb --force s3://<bucket-name>
 
 # Delete the log group
 aws logs delete-log-group --log-group-name cortex --region us-west-2
