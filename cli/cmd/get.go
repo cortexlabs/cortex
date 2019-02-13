@@ -72,7 +72,7 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 				return "", err
 			}
 		} else {
-			return resourcesByType(resourceType, resourcesRes)
+			return resourcesByTypeStr(resourceType, resourcesRes)
 		}
 
 		if _, err = resourcesRes.Context.VisibleResourceByName(resourceNameOrType); err != nil {
@@ -82,7 +82,7 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 			return "", err
 		}
 
-		return resourceByName(resourceNameOrType, resourcesRes)
+		return resourceByNameStr(resourceNameOrType, resourcesRes)
 
 	case 2:
 		userResourceType := args[0]
@@ -91,7 +91,7 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 		if err != nil {
 			return "", resource.ErrorInvalidType(userResourceType)
 		}
-		return resourceByNameAndType(resourceName, resourceType, resourcesRes)
+		return resourceByNameAndTypeStr(resourceName, resourceType, resourcesRes)
 	}
 
 	return "", errors.New("too many args") // unexpected
@@ -117,7 +117,7 @@ func getResourcesResponse() (*schema.GetResourcesResponse, error) {
 	return &resourcesRes, nil
 }
 
-func resourceByName(resourceName string, resourcesRes *schema.GetResourcesResponse) (string, error) {
+func resourceByNameStr(resourceName string, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	rs, err := resourcesRes.Context.VisibleResourceByName(resourceName)
 	if err != nil {
 		return "", err
@@ -140,26 +140,26 @@ func resourceByName(resourceName string, resourcesRes *schema.GetResourcesRespon
 	}
 }
 
-func resourcesByType(resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) (string, error) {
+func resourcesByTypeStr(resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	switch resourceType {
 	case resource.RawColumnType:
-		return rawColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
+		return "\n" + rawColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.AggregateType:
-		return aggregatesStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
+		return "\n" + aggregatesStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.TransformedColumnType:
-		return transformedColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
+		return "\n" + transformedColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.TrainingDatasetType:
-		return trainingDataStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
+		return "\n" + trainingDataStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.ModelType:
-		return modelsStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
+		return "\n" + modelsStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.APIType:
-		return apisStr(resourcesRes.APIGroupStatuses), nil
+		return "\n" + apisStr(resourcesRes.APIGroupStatuses), nil
 	default:
 		return "", resource.ErrorInvalidType(resourceType.String())
 	}
 }
 
-func resourceByNameAndType(resourceName string, resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) (string, error) {
+func resourceByNameAndTypeStr(resourceName string, resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	switch resourceType {
 	case resource.RawColumnType:
 		return describeRawColumn(resourceName, resourcesRes)
