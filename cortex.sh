@@ -1481,7 +1481,7 @@ function check_dep_kubectl() {
   set +e
   get_nodes_output=$(kubectl get nodes -o jsonpath="$jsonpath" 2>/dev/null)
   if [ $? -ne 0 ]; then
-    echo "\nerror: kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can run this command to configure kubectl:"
+    echo "\nerror: either your AWS credentials are incorrect or kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can run this command to configure kubectl:"
     echo "  eksctl utils write-kubeconfig --name=cortex"
     exit 1
   fi

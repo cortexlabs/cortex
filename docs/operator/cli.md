@@ -2,7 +2,7 @@
 
 ## init
 
-```bash
+```
 Initialize an application.
 
 Usage:
@@ -16,7 +16,7 @@ The `init` command creates a scaffold for a new Cortex application.
 
 ## deploy
 
-```bash
+```
 Deploy an application.
 
 Usage:
@@ -32,7 +32,7 @@ The `deploy` command sends all application configuration and code to the operato
 
 ## refresh
 
-```bash
+```
 Delete cached resources and deploy.
 
 Usage:
@@ -48,7 +48,7 @@ The `refresh` behaves similarly to the `deploy` command. The key difference is t
 
 ## predict
 
-```bash
+```
 Make predictions.
 
 Usage:
@@ -64,7 +64,7 @@ The `predict` command converts samples from a JSON file into prediction requests
 
 ## delete
 
-```bash
+```
 Delete an application.
 
 Usage:
@@ -80,7 +80,7 @@ The `delete` command deletes an application's resources from the cluster.
 
 ## get
 
-```bash
+```
 Get information about resources.
 
 Usage:
@@ -104,7 +104,7 @@ The `get` command outputs the current state of all resources on the cluster. Spe
 
 ## status
 
-```bash
+```
 Get resource statuses.
 
 Usage:
@@ -128,7 +128,7 @@ The `status` command outputs a condensed summary of all resources on the cluster
 
 ## logs
 
-```bash
+```
 Get logs for a resource.
 
 Usage:
@@ -152,7 +152,7 @@ The `logs` command streams logs from the workload corresponding to the specified
 
 ## configure
 
-```bash
+```
 Configure the CLI.
 
 Usage:
@@ -169,7 +169,7 @@ The CLI stores this information in the `~/.cortex` directory.
 
 ## completion
 
-```bash
+```
 Generate bash completion scripts.
 
 Add this to your bashrc or bash profile:

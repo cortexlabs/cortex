@@ -7,6 +7,7 @@
 * [CLI Commands](operator/cli.md)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
 * [FAQ](faq.md)
+* [GitHub](https://github.com/cortexlabs/cortex)
 
 ## Applications
 
