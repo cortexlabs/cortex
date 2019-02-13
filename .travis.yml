@@ -13,6 +13,8 @@ before_install:
 
 jobs:
   include:
+    - script: if [ $(make find-missing-licenses) ]; then echo "Missing license headers in $(make finder-missing-licenses)" exit 1; fi
+      name: "Check for license headers"
     - stage: Images and Tests
       script: make tf-images
       name: "Tensorflow"
@@ -24,8 +26,6 @@ jobs:
       name: "Operator"
     - script: make test-go
       name: "Go tests"
-    - script: if [ $(make find-missing-licenses) ]; then exit 1; fi
-      name: "Check for license headers"
     - stage: deploy
       if: branch = master
       script: build-and-upload
