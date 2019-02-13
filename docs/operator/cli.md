@@ -87,17 +87,18 @@ Usage:
   cortex get [RESOURCE_TYPE] [RESOURCE_NAME] [flags]
 
 Resource Types:
-  raw_columns
-  aggregates
-  transformed_columns
-  training_datasets
-  models
-  apis
+  raw_column
+  aggregate
+  transformed_column
+  training_dataset
+  model
+  api
 
 Flags:
   -a, --app string   app name
   -e, --env string   environment (default "dev")
   -h, --help         help for get
+  -w, --watch        re-run the command every 2 seconds
 ```
 
 The `get` command outputs the current state of all resources on the cluster. Specifying a resource name provides a more detailed view of the configuration and state of that particular resource.
@@ -122,6 +123,7 @@ Flags:
   -a, --app string   app name
   -e, --env string   environment (default "dev")
   -h, --help         help for status
+  -w, --watch        re-run the command every 2 seconds
 ```
 
 The `status` command outputs a condensed summary of all resources on the cluster. Specifying a resource name provides detailed real-time view of the status of that particular resource.

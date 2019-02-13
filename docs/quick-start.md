@@ -388,7 +388,7 @@ iris-type                          pending                 -
 You can get a summary of the status of resources using `cortex status`:
 
 ```
-$ cortex status
+$ cortex status --watch
 
 Raw Columns:           5 ready
 Aggregates:            9 ready
