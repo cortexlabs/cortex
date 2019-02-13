@@ -14,12 +14,13 @@ before_install:
 jobs:
   include:
     - stage: Release Checks
-      if: branch =~ /^[0-9]\.[0-9]$/
+      if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
       script: make test-version
     - stage: File checks
       script: make test-license
       name: "License headers"
-    - stage: Images and Tests
+    - stage: Images
+      if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
       script: make tf-images
       name: "Tensorflow"
     - script: make spark-images && make test-python
@@ -28,10 +29,11 @@ jobs:
       name: "Argo"
     - script: make operator-images
       name: "Operator"
-    - script: make test-go
+    - stage: Tests
+      script: make test-go
       name: "Go tests"
     - stage: deploy
-      if: branch = master
+      if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
       script: make build-and-upload
     
       
