@@ -30,6 +30,7 @@ type Environment struct {
 	Name     string    `json:"name" yaml:"name"`
 	LogLevel *LogLevel `json:"log_level" yaml:"log_level"`
 	Data     Data      `json:"-" yaml:"-"`
+	FilePath string    `json:"file_path"  yaml:"-"`
 }
 
 var environmentValidation = &cr.StructValidation{
@@ -191,9 +192,14 @@ func (environments Environments) Validate() error {
 		}
 	}
 
-	dups := util.FindDuplicateStrs(environments.Names())
+	resources := make([]Resource, len(environments))
+	for i, res := range environments {
+		resources[i] = res
+	}
+
+	dups := FindDuplicateResourceName(resources...)
 	if len(dups) > 0 {
-		return ErrorDuplicateConfigName(dups[0], resource.EnvironmentType)
+		return ErrorDuplicateResourceName(dups...)
 	}
 
 	return nil
@@ -246,6 +252,10 @@ func (env *Environment) GetName() string {
 
 func (env *Environment) GetResourceType() resource.Type {
 	return resource.EnvironmentType
+}
+
+func (env *Environment) GetFilePath() string {
+	return env.FilePath
 }
 
 func (environments Environments) Names() []string {

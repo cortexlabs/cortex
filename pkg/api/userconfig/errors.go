@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/utils/cast"
+	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
 type ErrorKind int
@@ -130,11 +131,18 @@ func (e ConfigError) Error() string {
 	return e.message
 }
 
-func ErrorDuplicateConfigName(name string, resourcesTypes ...resource.Type) error {
-	resourceTypes := resource.Types(resourcesTypes)
+func ErrorDuplicateResourceName(resources ...Resource) error {
+	filePaths := make([]string, len(resources))
+	resourceTypes := make(resource.Types, len(resources))
+	for i, res := range resources {
+		filePaths[i] = res.GetFilePath()
+		resourceTypes[i] = res.GetResourceType()
+
+	}
+
 	return ConfigError{
 		Kind:    ErrDuplicateConfigName,
-		message: fmt.Sprintf("name %s must be unique across %s", s.UserStr(name), s.StrsAnd(resourceTypes.PluralList())),
+		message: fmt.Sprintf("name %s must be unique across %s (defined in %s)", s.UserStr(resources[0].GetName()), s.StrsAnd(util.UniqueStrs(resourceTypes.PluralList())), s.StrsAnd(util.UniqueStrs(filePaths))),
 	}
 }
 

@@ -19,7 +19,6 @@ package userconfig
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
 type APIs []*API
@@ -29,6 +28,7 @@ type API struct {
 	ModelName string      `json:"model_name" yaml:"model_name"`
 	Compute   *APICompute `json:"compute" yaml:"compute"`
 	Tags      Tags        `json:"tags" yaml:"tags"`
+	FilePath  string      `json:"file_path"  yaml:"-"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -55,9 +55,14 @@ var apiValidation = &cr.StructValidation{
 }
 
 func (apis APIs) Validate() error {
-	dups := util.FindDuplicateStrs(apis.Names())
+	resources := make([]Resource, len(apis))
+	for i, res := range apis {
+		resources[i] = res
+	}
+
+	dups := FindDuplicateResourceName(resources...)
 	if len(dups) > 0 {
-		return ErrorDuplicateConfigName(dups[0], resource.APIType)
+		return ErrorDuplicateResourceName(dups...)
 	}
 	return nil
 }
@@ -68,6 +73,10 @@ func (api *API) GetName() string {
 
 func (api *API) GetResourceType() resource.Type {
 	return resource.APIType
+}
+
+func (api *API) GetFilePath() string {
+	return api.FilePath
 }
 
 func (apis APIs) Names() []string {

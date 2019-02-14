@@ -42,6 +42,7 @@ type Model struct {
 	Evaluation         *ModelEvaluation         `json:"evaluation" yaml:"evaluation"`
 	Compute            *TFCompute               `json:"compute" yaml:"compute"`
 	Tags               Tags                     `json:"tags" yaml:"tags"`
+	FilePath           string                   `json:"file_path"`
 }
 
 var modelValidation = &cr.StructValidation{
@@ -313,9 +314,14 @@ func (models Models) Validate() error {
 		}
 	}
 
-	dups := util.FindDuplicateStrs(models.Names())
+	resources := make([]Resource, len(models))
+	for i, res := range models {
+		resources[i] = res
+	}
+
+	dups := FindDuplicateResourceName(resources...)
 	if len(dups) > 0 {
-		return ErrorDuplicateConfigName(dups[0], resource.ModelType)
+		return ErrorDuplicateResourceName(dups...)
 	}
 
 	return nil
@@ -366,6 +372,10 @@ func (model *Model) GetName() string {
 
 func (model *Model) GetResourceType() resource.Type {
 	return resource.ModelType
+}
+
+func (model *Model) GetFilePath() string {
+	return model.FilePath
 }
 
 func (models Models) Names() []string {

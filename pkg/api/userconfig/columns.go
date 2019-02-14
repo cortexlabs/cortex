@@ -30,9 +30,18 @@ type Column interface {
 }
 
 func (config *Config) ValidateColumns() error {
-	dups := util.FindDuplicateStrs(config.ColumnNames())
+	columnResources := make([]Resource, len(config.RawColumns)+len(config.TransformedColumns))
+	for i, res := range config.RawColumns {
+		columnResources[i] = res
+	}
+
+	for i, res := range config.TransformedColumns {
+		columnResources[i+len(config.RawColumns)] = res
+	}
+
+	dups := FindDuplicateResourceName(columnResources...)
 	if len(dups) > 0 {
-		return ErrorDuplicateConfigName(dups[0], resource.RawColumnType, resource.TransformedColumnType)
+		return ErrorDuplicateResourceName(dups...)
 	}
 
 	for _, aggregate := range config.Aggregates {

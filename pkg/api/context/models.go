@@ -52,6 +52,10 @@ func (trainingDataset *TrainingDataset) GetResourceType() resource.Type {
 	return resource.TrainingDatasetType
 }
 
+func (trainingDataset *TrainingDataset) GetFilePath() string {
+	return ""
+}
+
 func (models Models) OneByID(id string) *Model {
 	for _, model := range models {
 		if model.ID == id {

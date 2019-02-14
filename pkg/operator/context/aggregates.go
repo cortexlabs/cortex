@@ -41,7 +41,7 @@ func getAggregates(
 
 	for _, aggregateConfig := range config.Aggregates {
 		if _, ok := constants[aggregateConfig.Name]; ok {
-			return nil, userconfig.ErrorDuplicateConfigName(aggregateConfig.Name, resource.AggregateType, resource.ConstantType)
+			return nil, userconfig.ErrorDuplicateResourceName(aggregateConfig, constants[aggregateConfig.Name])
 		}
 
 		aggregator, err := getAggregator(aggregateConfig.Aggregator, userAggregators)

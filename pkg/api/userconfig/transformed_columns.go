@@ -30,6 +30,7 @@ type TransformedColumn struct {
 	Inputs      *Inputs       `json:"inputs" yaml:"inputs"`
 	Compute     *SparkCompute `json:"compute" yaml:"compute"`
 	Tags        Tags          `json:"tags" yaml:"tags"`
+	FilePath    string        `json:"file_path"  yaml:"-"`
 }
 
 var transformedColumnValidation = &cr.StructValidation{
@@ -56,10 +57,16 @@ var transformedColumnValidation = &cr.StructValidation{
 }
 
 func (transformedColumns TransformedColumns) Validate() error {
-	dups := util.FindDuplicateStrs(transformedColumns.Names())
-	if len(dups) > 0 {
-		return ErrorDuplicateConfigName(dups[0], resource.TransformedColumnType)
+	resources := make([]Resource, len(transformedColumns))
+	for i, res := range transformedColumns {
+		resources[i] = res
 	}
+
+	dups := FindDuplicateResourceName(resources...)
+	if len(dups) > 0 {
+		return ErrorDuplicateResourceName(dups...)
+	}
+
 	return nil
 }
 
@@ -73,6 +80,10 @@ func (transformedColumn *TransformedColumn) GetName() string {
 
 func (transformedColumn *TransformedColumn) GetResourceType() resource.Type {
 	return resource.TransformedColumnType
+}
+
+func (transformedColumn *TransformedColumn) GetFilePath() string {
+	return transformedColumn.FilePath
 }
 
 func (transformedColumns TransformedColumns) Names() []string {

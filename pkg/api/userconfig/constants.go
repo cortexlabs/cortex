@@ -20,16 +20,16 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
 	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
 type Constants []*Constant
 
 type Constant struct {
-	Name  string      `json:"name" yaml:"name"`
-	Type  interface{} `json:"type" yaml:"type"`
-	Value interface{} `json:"value" yaml:"value"`
-	Tags  Tags        `json:"tags" yaml:"tags"`
+	Name     string      `json:"name" yaml:"name"`
+	Type     interface{} `json:"type" yaml:"type"`
+	Value    interface{} `json:"value" yaml:"value"`
+	Tags     Tags        `json:"tags" yaml:"tags"`
+	FilePath string      `json:"file_path"  yaml:"-"`
 }
 
 var constantValidation = &cr.StructValidation{
@@ -71,9 +71,14 @@ func (constants Constants) Validate() error {
 		}
 	}
 
-	dups := util.FindDuplicateStrs(constants.Names())
+	resources := make([]Resource, len(constants))
+	for i, res := range constants {
+		resources[i] = res
+	}
+
+	dups := FindDuplicateResourceName(resources...)
 	if len(dups) > 0 {
-		return ErrorDuplicateConfigName(dups[0], resource.ConstantType)
+		return ErrorDuplicateResourceName(dups...)
 	}
 
 	return nil
@@ -99,6 +104,10 @@ func (constant *Constant) GetName() string {
 
 func (constant *Constant) GetResourceType() resource.Type {
 	return resource.ConstantType
+}
+
+func (constant *Constant) GetFilePath() string {
+	return constant.FilePath
 }
 
 func (constants Constants) Names() []string {
