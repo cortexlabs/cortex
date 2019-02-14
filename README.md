@@ -3,7 +3,7 @@
 
 <br>
 
-[Install](https://docs.cortexlabs.com/cortex/install) • [Quick Start](https://docs.cortexlabs.com/cortex/quick-start) • [Docs](https://docs.cortexlabs.com/cortex) • <!-- CORTEX_VERSION_MINOR_STABLE -->[Examples](https://github.com/cortexlabs/cortex/tree/0.1/examples) • [FAQ](https://docs.cortexlabs.com/cortex/faq) • [Gitter](https://gitter.im/cortexlabs/cortex)
+[Install](https://docs.cortexlabs.com/cortex/install) • [Quick Start](https://docs.cortexlabs.com/cortex/quick-start) • [Demo Video](https://www.youtube.com/watch?v=vcistUor0b4) • [Docs](https://docs.cortexlabs.com/cortex) • <!-- CORTEX_VERSION_MINOR_STABLE -->[Examples](https://github.com/cortexlabs/cortex/tree/0.1/examples) • [FAQ](https://docs.cortexlabs.com/cortex/faq) • [Gitter](https://gitter.im/cortexlabs/cortex)
 
 <br>
 
@@ -26,9 +26,3 @@ Cortex is actively maintained by Cortex Labs. We're a venture-backed team of inf
 - **Spark & TensorFlow support:** Cortex supports custom [Spark](https://spark.apache.org/) code for data processing and custom [TensorFlow](https://www.tensorflow.org/) code for model training.
 
 - **Built for the cloud:** Cortex can be deployed on AWS in minutes.
-
-<br>
-
-## Demo
-
-[![Cortex Demo](https://s3-us-west-2.amazonaws.com/cortex-public/demo-video-thumbnail.png)](https://www.youtube.com/watch?v=vcistUor0b4)
