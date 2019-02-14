@@ -23,7 +23,7 @@ Jump to [deploy the application](#deploy-the-application).
 
 Let's build and deploy a classifier using the famous [Iris Data Set](https://archive.ics.uci.edu/ml/datasets/iris)! Below are a few samples of iris data:
 
-|sepal_length|speal_width|petal_length|petal_width|class|
+|sepal_length|sepal_width|petal_length|petal_width|class|
 |:---:|:---:|:---:|:---:|:---|
 |5.1|3.5|1.4|0.2|Iris-setosa|
 |7.0|3.2|4.7|1.4|Iris-versicolor|
