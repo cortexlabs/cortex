@@ -6,7 +6,7 @@
 
 ```bash
 # Download
-curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh
+curl -O https://raw.githubusercontent.com/cortexlabs/cortex/0.1/cortex.sh
 
 # Change permissions
 chmod +x cortex.sh
