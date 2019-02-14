@@ -7,9 +7,9 @@
 
 <br>
 
-**Machine learning infrastructure for developers: build  machine learning applications faster.**
+**Machine learning infrastructure for developers: build machine learning applications faster.**
 
-Cortex is an open-source platform for building, deploying, and managing machine learning applications in production. It is designed for any developer who wants to build machine learning powered services.
+Cortex is an open-source platform for building, deploying, and managing machine learning applications in production. It is designed for any developer who wants to build machine learning powered services without getting bogged down in DevOps and infrastructure challenges like configuring data pipelines, continuous deployment, and dependency management.
 
 Cortex is actively maintained by Cortex Labs. We're a venture-backed team of infrastructure engineers and [we're hiring](https://angel.co/cortex-labs-inc/jobs).
 
@@ -19,9 +19,9 @@ Cortex is actively maintained by Cortex Labs. We're a venture-backed team of inf
 
 - **End-to-end machine learning workflow:** Cortex spans the machine learning workflow from raw data ingestion to prediction serving.
 
-- **Declarative configuration:** Cortex applications are defined using a simple and modular syntax that enables flexibility and reusability.
+- **Machine learning pipelines as code:** Cortex applications are defined using a simple declaritive syntax that enables flexibility and reusability.
 
-- **Scalability:** Cortex is designed to scale to datasets of any size.
+- **Scalability:** Cortex is designed to handle production workloads.
 
 - **Spark & TensorFlow support:** Cortex supports custom [Spark](https://spark.apache.org/) code for data processing and custom [TensorFlow](https://www.tensorflow.org/) code for model training.
 

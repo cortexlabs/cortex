@@ -538,7 +538,7 @@ Define a sample in `irises.json`:
 }
 ```
 
-When the API is ready, run the prediction like so:
+When the API is ready, request a prediction from the API like so:
 
 ```
 $ cortex predict iris-type irises.json
