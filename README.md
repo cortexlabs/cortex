@@ -26,3 +26,9 @@ Cortex is actively maintained by Cortex Labs. We're a venture-backed team of inf
 - **Spark & TensorFlow support:** Cortex supports custom [Spark](https://spark.apache.org/) code for data processing and custom [TensorFlow](https://www.tensorflow.org/) code for model training.
 
 - **Built for the cloud:** Cortex can be deployed on AWS in minutes.
+
+<br>
+
+## Demo
+
+[![Cortex Demo](https://s3-us-west-2.amazonaws.com/cortex-public/demo-video-thumbnail.png)](https://www.youtube.com/watch?v=vcistUor0b4)
