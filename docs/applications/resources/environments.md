@@ -1,6 +1,6 @@
 # Environments
 
-Transfer data at scale from data warehouses like S3 into the Cortex cluster. Once data is ingested, it’s lifecycle is fully managed by Cortex.
+Transfer data at scale from data warehouses like S3 into the Cortex environment. Once data is ingested, it’s lifecycle is fully managed by Cortex.
 
 ## Config
 

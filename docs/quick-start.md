@@ -21,7 +21,7 @@ Jump to [deploy the application](#deploy-the-application).
 
 ## Build a machine learning application
 
-Let's build and deploy a classifier using the famous [Iris Data Set](https://archive.ics.uci.edu/ml/datasets/iris)! Below are a few samples of iris data:
+Let's build and deploy a classifier using the famous [iris data set](https://archive.ics.uci.edu/ml/datasets/iris)! Below are a few samples of iris data:
 
 |sepal_length|sepal_width|petal_length|petal_width|class|
 |:---:|:---:|:---:|:---:|:---|
@@ -71,7 +71,7 @@ Cortex will be able to read from any S3 bucket that your AWS credentials grant a
 
 #### Define raw columns
 
-The Iris Data Set consists of four attributes and a label. We ensure that the data matches the types we expect, the numerical data is within a reasonable range, and the class labels are within the set of expected labels.
+The Iris Data Set consists of four attributes and a label. We ensure that the data matches the types we expect, the numerical data is within a reasonable range, and the class labels are within the set of expected strings.
 
 Add to `app.yaml`:
 
@@ -183,7 +183,7 @@ Add to `app.yaml`:
 
 #### Define transformed columns
 
-Transformers convert the raw columns into the appropriate inputs for a TensorFlow model. Here we use the built-in `normalize` and `index_string` transformers using the aggregates we computed earlier.
+Transformers convert the raw columns into the appropriate inputs for a TensorFlow estimator. Here we use the built-in `normalize` and `index_string` transformers using the aggregates we computed earlier.
 
 Add to `app.yaml`:
 
@@ -300,7 +300,7 @@ Cortex supports any TensorFlow code that adheres to the [tf.estimator API](https
 
 #### Define web APIs
 
-This will make the model available as a live web service that can make real-time predictions.
+This will make the model available as a live web service that can serve real-time predictions.
 
 Add to `app.yaml`:
 
@@ -538,7 +538,7 @@ Define a sample in `irises.json`:
 }
 ```
 
-When the API is ready, run the prediction like so:
+When the API is ready, request a prediction from the API:
 
 ```
 $ cortex predict iris-type irises.json

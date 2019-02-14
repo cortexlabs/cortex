@@ -1,6 +1,6 @@
 # Overview
 
-Cortex applications consist of declarative resource configuration written in YAML as well as Python code to implement aggregators, transformers, and models. Each resource has one of the following `kind`s:
+Cortex applications consist of declarative resource configuration written in YAML as well as Python code to implement aggregators, transformers, and models. Each resource has a `kind`:
 
 * [app](app.md)
 * [environment](environments.md)
