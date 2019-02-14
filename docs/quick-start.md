@@ -585,10 +585,10 @@ Configuration
 Use cURL to test the API:
 
 ```
-$ curl --insecure \
-     --request POST \
-     --header "Content-Type: application/json" \
-     --data '{ "samples": [ { "sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3 } ] }' \
+$ curl -k \
+     -X POST \
+     -H "Content-Type: application/json" \
+     -d '{ "samples": [ { "sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3 } ] }' \
      <API endpoint>
 
 {"classification_predictions":[{"class_ids":["0"],"classes":["MA=="],"logits":[1.501487135887146,-0.6141998171806335,-1.4335800409317017],"predicted_class":0,"predicted_class_reversed":"Iris-setosa","probabilities":[0.8520227670669556,0.10271172970533371,0.04526554048061371]}],"resource_id":"18ef9f6fb4a1a8b2a3d3e8068f179f89f65d1ae3d8ac9d96b782b1cec3b39d2"}
