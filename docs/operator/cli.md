@@ -2,7 +2,7 @@
 
 ## init
 
-```bash
+```
 Initialize an application.
 
 Usage:
@@ -16,7 +16,7 @@ The `init` command creates a scaffold for a new Cortex application.
 
 ## deploy
 
-```bash
+```
 Deploy an application.
 
 Usage:
@@ -32,7 +32,7 @@ The `deploy` command sends all application configuration and code to the operato
 
 ## refresh
 
-```bash
+```
 Delete cached resources and deploy.
 
 Usage:
@@ -48,7 +48,7 @@ The `refresh` behaves similarly to the `deploy` command. The key difference is t
 
 ## predict
 
-```bash
+```
 Make predictions.
 
 Usage:
@@ -64,7 +64,7 @@ The `predict` command converts samples from a JSON file into prediction requests
 
 ## delete
 
-```bash
+```
 Delete an application.
 
 Usage:
@@ -80,40 +80,41 @@ The `delete` command deletes an application's resources from the cluster.
 
 ## get
 
-```bash
+```
 Get information about resources.
 
 Usage:
   cortex get [RESOURCE_TYPE] [RESOURCE_NAME] [flags]
 
 Resource Types:
-  rawfeatures
-  aggregates
-  transformedfeatures
-  trainingdatasets
-  models
-  apis
+  raw_column
+  aggregate
+  transformed_column
+  training_dataset
+  model
+  api
 
 Flags:
   -a, --app string   app name
   -e, --env string   environment (default "dev")
   -h, --help         help for get
+  -w, --watch        re-run the command every 2 seconds
 ```
 
 The `get` command outputs the current state of all resources on the cluster. Specifying a resource name provides a more detailed view of the configuration and state of that particular resource.
 
 ## status
 
-```bash
+```
 Get resource statuses.
 
 Usage:
   cortex status [RESOURCE_TYPE] [RESOURCE_NAME] [flags]
 
 Resource Types:
-  raw_feature
+  raw_column
   aggregate
-  transformed_feature
+  transformed_column
   training_dataset
   model
   api
@@ -122,25 +123,26 @@ Flags:
   -a, --app string   app name
   -e, --env string   environment (default "dev")
   -h, --help         help for status
+  -w, --watch        re-run the command every 2 seconds
 ```
 
 The `status` command outputs a condensed summary of all resources on the cluster. Specifying a resource name provides detailed real-time view of the status of that particular resource.
 
 ## logs
 
-```bash
+```
 Get logs for a resource.
 
 Usage:
   cortex logs [RESOURCE_TYPE] RESOURCE_NAME [flags]
 
 Resource Types:
-  rawfeatures
-  aggregates
-  transformedfeatures
-  trainingdatasets
-  models
-  apis
+  raw_column
+  aggregate
+  transformed_column
+  training_dataset
+  model
+  api
 
 Flags:
   -a, --app string   app name
@@ -152,7 +154,7 @@ The `logs` command streams logs from the workload corresponding to the specified
 
 ## configure
 
-```bash
+```
 Configure the CLI.
 
 Usage:
@@ -169,7 +171,7 @@ The CLI stores this information in the `~/.cortex` directory.
 
 ## completion
 
-```bash
+```
 Generate bash completion scripts.
 
 Add this to your bashrc or bash profile:

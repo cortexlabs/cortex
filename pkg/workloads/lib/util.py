@@ -688,12 +688,12 @@ def log_job_finished(workload_id):
 
 
 CORTEX_TYPE_TO_VALIDATOR = {
-    consts.FEATURE_TYPE_INT: is_int,
-    consts.FEATURE_TYPE_INT_LIST: is_int_list,
-    consts.FEATURE_TYPE_FLOAT: is_float,
-    consts.FEATURE_TYPE_FLOAT_LIST: is_float_list,
-    consts.FEATURE_TYPE_STRING: is_str,
-    consts.FEATURE_TYPE_STRING_LIST: is_str_list,
+    consts.COLUMN_TYPE_INT: is_int,
+    consts.COLUMN_TYPE_INT_LIST: is_int_list,
+    consts.COLUMN_TYPE_FLOAT: is_float,
+    consts.COLUMN_TYPE_FLOAT_LIST: is_float_list,
+    consts.COLUMN_TYPE_STRING: is_str,
+    consts.COLUMN_TYPE_STRING_LIST: is_str_list,
     consts.VALUE_TYPE_INT: is_int,
     consts.VALUE_TYPE_FLOAT: is_float,
     consts.VALUE_TYPE_STRING: is_str,
@@ -703,32 +703,32 @@ CORTEX_TYPE_TO_VALIDATOR = {
 CORTEX_TYPE_TO_UPCAST_VALIDATOR = merge_dicts_overwrite(
     CORTEX_TYPE_TO_VALIDATOR,
     {
-        consts.FEATURE_TYPE_FLOAT: is_float_or_int,
-        consts.FEATURE_TYPE_FLOAT_LIST: is_float_or_int_list,
+        consts.COLUMN_TYPE_FLOAT: is_float_or_int,
+        consts.COLUMN_TYPE_FLOAT_LIST: is_float_or_int_list,
     },
 )
 
 CORTEX_TYPE_TO_UPCASTER = {
-    consts.FEATURE_TYPE_FLOAT: lambda x: float(x),
-    consts.FEATURE_TYPE_FLOAT_LIST: lambda ls: [float(item) for item in ls],
+    consts.COLUMN_TYPE_FLOAT: lambda x: float(x),
+    consts.COLUMN_TYPE_FLOAT_LIST: lambda ls: [float(item) for item in ls],
 }
 
 
-def upcast(value, feature_type):
-    upcaster = CORTEX_TYPE_TO_UPCASTER.get(feature_type, None)
+def upcast(value, column_type):
+    upcaster = CORTEX_TYPE_TO_UPCASTER.get(column_type, None)
     if upcaster:
         return upcaster(value)
     return value
 
 
-def validate_feature_type(value, feature_type):
+def validate_column_type(value, column_type):
     if value is None:
         return True
 
-    if not is_str(feature_type):
+    if not is_str(column_type):
         raise
 
-    valid_types = feature_type.split("|")
+    valid_types = column_type.split("|")
     for valid_type in valid_types:
         if CORTEX_TYPE_TO_VALIDATOR[valid_type](value):
             return True

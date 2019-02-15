@@ -21,8 +21,8 @@ import (
 )
 
 type Inputs struct {
-	Features map[string]interface{} `json:"features" yaml:"features"`
-	Args     map[string]interface{} `json:"args" yaml:"args"`
+	Columns map[string]interface{} `json:"columns" yaml:"columns"`
+	Args    map[string]interface{} `json:"args" yaml:"args"`
 }
 
 var inputTypesFieldValidation = &cr.StructFieldValidation{
@@ -31,12 +31,12 @@ var inputTypesFieldValidation = &cr.StructFieldValidation{
 		Required: true,
 		StructFieldValidations: []*cr.StructFieldValidation{
 			&cr.StructFieldValidation{
-				StructField: "Features",
+				StructField: "Columns",
 				InterfaceMapValidation: &cr.InterfaceMapValidation{
 					AllowEmpty: true,
 					Default:    make(map[string]interface{}),
-					Validator: func(featureTypes map[string]interface{}) (map[string]interface{}, error) {
-						return featureTypes, ValidateFeatureInputTypes(featureTypes)
+					Validator: func(columnTypes map[string]interface{}) (map[string]interface{}, error) {
+						return columnTypes, ValidateColumnInputTypes(columnTypes)
 					},
 				},
 			},
@@ -60,12 +60,12 @@ var inputValuesFieldValidation = &cr.StructFieldValidation{
 		Required: true,
 		StructFieldValidations: []*cr.StructFieldValidation{
 			&cr.StructFieldValidation{
-				StructField: "Features",
+				StructField: "Columns",
 				InterfaceMapValidation: &cr.InterfaceMapValidation{
 					AllowEmpty: true,
 					Default:    make(map[string]interface{}),
-					Validator: func(featureValues map[string]interface{}) (map[string]interface{}, error) {
-						return featureValues, ValidateFeatureValues(featureValues)
+					Validator: func(columnInputValues map[string]interface{}) (map[string]interface{}, error) {
+						return columnInputValues, ValidateColumnInputValues(columnInputValues)
 					},
 				},
 			},

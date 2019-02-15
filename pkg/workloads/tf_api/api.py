@@ -61,33 +61,33 @@ DTYPE_TO_VALUE_KEY = {
 }
 
 
-def transform_features(raw_features):
+def transform_sample(sample):
     ctx = local_cache["ctx"]
     model = local_cache["model"]
 
-    transformed_features = {}
+    transformed_sample = {}
 
-    for feature_name in model["features"]:
-        if ctx.is_raw_feature(feature_name):
-            transformed_feature = raw_features[feature_name]
+    for column_name in model["feature_columns"]:
+        if ctx.is_raw_column(column_name):
+            transformed_value = sample[column_name]
         else:
-            inputs = ctx.create_inputs_from_features_map(raw_features, feature_name)
-            trans_impl = local_cache["trans_impls"][feature_name]
+            inputs = ctx.create_column_inputs_map(sample, column_name)
+            trans_impl = local_cache["trans_impls"][column_name]
             if not hasattr(trans_impl, "transform_python"):
                 raise UserException(
-                    "transformed feature " + feature_name,
-                    "transformer " + ctx.transformed_features[feature_name]["transformer"],
+                    "transformed column " + column_name,
+                    "transformer " + ctx.transformed_sample[column_name]["transformer"],
                     "transform_python function missing",
                 )
 
-            args = local_cache["transform_args_cache"].get(feature_name, {})
-            transformed_feature = trans_impl.transform_python(inputs, args)
-        transformed_features[feature_name] = transformed_feature
+            args = local_cache["transform_args_cache"].get(column_name, {})
+            transformed_value = trans_impl.transform_python(inputs, args)
+        transformed_sample[column_name] = transformed_value
 
-    return transformed_features
+    return transformed_sample
 
 
-def create_prediction_request(transformed_features):
+def create_prediction_request(transformed_sample):
     ctx = local_cache["ctx"]
 
     prediction_request = predict_pb2.PredictRequest()
@@ -96,13 +96,13 @@ def create_prediction_request(transformed_features):
         local_cache["metadata"]["signatureDef"].keys()
     )[0]
 
-    for feature_name, feature_value in transformed_features.items():
-        data_type = tf_lib.CORTEX_TYPE_TO_TF_TYPE[ctx.features[feature_name]["type"]]
+    for column_name, value in transformed_sample.items():
+        data_type = tf_lib.CORTEX_TYPE_TO_TF_TYPE[ctx.columns[column_name]["type"]]
         shape = [1]
-        if util.is_list(feature_value):
-            shape = [len(feature_value)]
-        tensor_proto = tf.make_tensor_proto([feature_value], dtype=data_type, shape=shape)
-        prediction_request.inputs[feature_name].CopyFrom(tensor_proto)
+        if util.is_list(value):
+            shape = [len(value)]
+        tensor_proto = tf.make_tensor_proto([value], dtype=data_type, shape=shape)
+        prediction_request.inputs[column_name].CopyFrom(tensor_proto)
 
     return prediction_request
 
@@ -111,12 +111,12 @@ def reverse_transform(value):
     ctx = local_cache["ctx"]
     model = local_cache["model"]
 
-    trans_impl = local_cache["trans_impls"].get(model["target"], None)
+    trans_impl = local_cache["trans_impls"].get(model["target_column"], None)
     if not (trans_impl and hasattr(trans_impl, "reverse_transform_python")):
         return None
 
-    transformer_name = model["target"]
-    input_schema = ctx.transformed_features[transformer_name]["inputs"]
+    transformer_name = model["target_column"]
+    input_schema = ctx.transformed_columns[transformer_name]["inputs"]
 
     if input_schema.get("args", None) is not None and len(input_schema["args"]) > 0:
         args = local_cache["transform_args_cache"].get(transformer_name, {})
@@ -124,7 +124,7 @@ def reverse_transform(value):
         result = trans_impl.reverse_transform_python(value, args)
     except Exception as e:
         raise UserRuntimeException(
-            "transformer " + ctx.transformed_features[model["target"]]["transformer"],
+            "transformer " + ctx.transformed_columns[model["target_column"]]["transformer"],
             "function reverse_transform_python",
         ) from e
 
@@ -189,15 +189,15 @@ def run_get_model_metadata():
     return sigmap
 
 
-def run_predict(raw_features):
-    transformed_features = transform_features(raw_features)
-    prediction_request = create_prediction_request(transformed_features)
+def run_predict(sample):
+    transformed_sample = transform_sample(sample)
+    prediction_request = create_prediction_request(transformed_sample)
     response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
     result = parse_response_proto(response_proto)
-    util.log_indent("Raw features:", indent=4)
-    util.log_pretty(raw_features, indent=6)
-    util.log_indent("Transformed features:", indent=4)
-    util.log_pretty(transformed_features, indent=6)
+    util.log_indent("Raw sample:", indent=4)
+    util.log_pretty(sample, indent=6)
+    util.log_indent("Transformed sample:", indent=4)
+    util.log_pretty(transformed_sample, indent=6)
     util.log_indent("Prediction:", indent=4)
     util.log_pretty(result, indent=6)
 
@@ -205,15 +205,15 @@ def run_predict(raw_features):
 
 
 def is_valid_sample(sample):
-    for feature in local_cache["required_inputs"]:
-        if feature["name"] not in sample:
-            return False, "{} is missing".format(feature["name"])
+    for column in local_cache["required_inputs"]:
+        if column["name"] not in sample:
+            return False, "{} is missing".format(column["name"])
 
-        sample_val = sample[feature["name"]]
-        is_valid = util.CORTEX_TYPE_TO_UPCAST_VALIDATOR[feature["type"]](sample_val)
+        sample_val = sample[column["name"]]
+        is_valid = util.CORTEX_TYPE_TO_UPCAST_VALIDATOR[column["type"]](sample_val)
 
         if not is_valid:
-            return (False, "{} should be a {}".format(feature["name"], feature["type"]))
+            return (False, "{} should be a {}".format(column["name"], column["type"]))
 
     return True, None
 
@@ -260,8 +260,8 @@ def predict(app_name, api_name):
         if not is_valid:
             return prediction_failed(sample, reason)
 
-        for feature in local_cache["required_inputs"]:
-            sample[feature["name"]] = util.upcast(sample[feature["name"]], feature["type"])
+        for column in local_cache["required_inputs"]:
+            sample[column["name"]] = util.upcast(sample[column["name"]], column["type"])
 
         try:
             result = run_predict(sample)
@@ -305,22 +305,22 @@ def start(args):
     if not os.path.isdir(args.model_dir):
         aws.download_and_extract_zip(model["key"], args.model_dir, ctx.bucket)
 
-    for feature_name in model["features"] + [model["target"]]:
-        if ctx.is_transformed_feature(feature_name):
-            trans_impl, _ = ctx.get_transformer_impl(feature_name)
-            local_cache["trans_impls"][feature_name] = trans_impl
-            transformed_feature = ctx.transformed_features[feature_name]
-            input_args_schema = transformed_feature["inputs"]["args"]
+    for column_name in model["feature_columns"] + [model["target_column"]]:
+        if ctx.is_transformed_column(column_name):
+            trans_impl, _ = ctx.get_transformer_impl(column_name)
+            local_cache["trans_impls"][column_name] = trans_impl
+            transformed_column = ctx.transformed_columns[column_name]
+            input_args_schema = transformed_column["inputs"]["args"]
             # cache aggregates and constants in memory
             if input_args_schema is not None:
-                local_cache["transform_args_cache"][feature_name] = ctx.populate_args(
+                local_cache["transform_args_cache"][column_name] = ctx.populate_args(
                     input_args_schema
                 )
 
     channel = implementations.insecure_channel("localhost", args.tf_serve_port)
     local_cache["stub"] = prediction_service_pb2.beta_create_PredictionService_stub(channel)
 
-    local_cache["required_inputs"] = tf_lib.get_base_input_features(model["name"], ctx)
+    local_cache["required_inputs"] = tf_lib.get_base_input_columns(model["name"], ctx)
 
     # wait a bit for tf serving to start before querying metadata
     limit = 600

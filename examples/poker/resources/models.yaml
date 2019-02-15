@@ -1,8 +1,8 @@
 - kind: model
   name: dnn
   type: classification
-  target: class
-  features:
+  target_column: class
+  feature_columns:
     - card_1_suit
     - card_1_rank
     - card_2_suit
@@ -19,4 +19,4 @@
     training: 0.9
     evaluation: 0.1
   training:
-    num_steps: 50000
+    num_steps: 20000

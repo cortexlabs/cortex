@@ -24,24 +24,29 @@ import (
 )
 
 type Context struct {
-	ID                  string              `json:"id"`
-	Key                 string              `json:"key"`
-	CortexConfig        *CortexConfig       `json:"cortex_config"`
-	DatasetVersion      string              `json:"dataset_version"`
-	Root                string              `json:"root"`
-	RawDatasetKey       string              `json:"raw_dataset_key"`
-	StatusPrefix        string              `json:"status_prefix"`
-	App                 *App                `json:"app"`
-	Environment         *Environment        `json:"environment"`
-	PythonPackages      PythonPackages      `json:"python_packages"`
-	RawFeatures         RawFeatures         `json:"-"`
-	Aggregates          Aggregates          `json:"aggregates"`
-	TransformedFeatures TransformedFeatures `json:"transformed_features"`
-	Models              Models              `json:"models"`
-	APIs                APIs                `json:"apis"`
-	Constants           Constants           `json:"constants"`
-	Aggregators         Aggregators         `json:"aggregators"`
-	Transformers        Transformers        `json:"transformers"`
+	ID                 string             `json:"id"`
+	Key                string             `json:"key"`
+	CortexConfig       *CortexConfig      `json:"cortex_config"`
+	DatasetVersion     string             `json:"dataset_version"`
+	Root               string             `json:"root"`
+	RawDataset         RawDataset         `json:"raw_dataset"`
+	StatusPrefix       string             `json:"status_prefix"`
+	App                *App               `json:"app"`
+	Environment        *Environment       `json:"environment"`
+	PythonPackages     PythonPackages     `json:"python_packages"`
+	RawColumns         RawColumns         `json:"-"`
+	Aggregates         Aggregates         `json:"aggregates"`
+	TransformedColumns TransformedColumns `json:"transformed_columns"`
+	Models             Models             `json:"models"`
+	APIs               APIs               `json:"apis"`
+	Constants          Constants          `json:"constants"`
+	Aggregators        Aggregators        `json:"aggregators"`
+	Transformers       Transformers       `json:"transformers"`
+}
+
+type RawDataset struct {
+	Key         string `json:"key"`
+	MetadataKey string `json:"metadata_key"`
 }
 
 type Resource interface {
@@ -114,14 +119,14 @@ func (ctx *Context) DataComputedResources() []ComputedResource {
 	for _, pythonPackage := range ctx.PythonPackages {
 		resources = append(resources, pythonPackage)
 	}
-	for _, rawFeature := range ctx.RawFeatures {
-		resources = append(resources, rawFeature)
+	for _, rawColumn := range ctx.RawColumns {
+		resources = append(resources, rawColumn)
 	}
 	for _, aggregate := range ctx.Aggregates {
 		resources = append(resources, aggregate)
 	}
-	for _, transformedFeature := range ctx.TransformedFeatures {
-		resources = append(resources, transformedFeature)
+	for _, transformedColumn := range ctx.TransformedColumns {
+		resources = append(resources, transformedColumn)
 	}
 	for _, model := range ctx.Models {
 		resources = append(resources, model, model.Dataset)
@@ -217,14 +222,14 @@ func (ctx *Context) VisibleResourcesMap() map[string][]ComputedResource {
 	for name, pythonPackage := range ctx.PythonPackages {
 		resources[name] = append(resources[name], pythonPackage)
 	}
-	for name, rawFeature := range ctx.RawFeatures {
-		resources[name] = append(resources[name], rawFeature)
+	for name, rawColumn := range ctx.RawColumns {
+		resources[name] = append(resources[name], rawColumn)
 	}
 	for name, aggregate := range ctx.Aggregates {
 		resources[name] = append(resources[name], aggregate)
 	}
-	for name, tFeature := range ctx.TransformedFeatures {
-		resources[name] = append(resources[name], tFeature)
+	for name, transformedColumn := range ctx.TransformedColumns {
+		resources[name] = append(resources[name], transformedColumn)
 	}
 	for name, model := range ctx.Models {
 		resources[name] = append(resources[name], model)
@@ -243,7 +248,7 @@ func (ctx *Context) VisibleResourcesByName(name string) []ComputedResource {
 func (ctx *Context) VisibleResourceByName(name string) (ComputedResource, error) {
 	resources := ctx.VisibleResourcesByName(name)
 	if len(resources) == 0 {
-		return nil, resource.ErrorNotFound(name, resource.UnknownType)
+		return nil, resource.ErrorNameNotFound(name)
 	}
 	if len(resources) > 1 {
 		validStrs := make([]string, len(resources))
@@ -266,8 +271,8 @@ func (ctx *Context) VisibleResourceByNameAndType(name string, resourceTypeStr st
 			return nil, resource.ErrorNotFound(name, resourceType)
 		}
 		return res, nil
-	case resource.RawFeatureType:
-		res := ctx.RawFeatures[name]
+	case resource.RawColumnType:
+		res := ctx.RawColumns[name]
 		if res == nil {
 			return nil, resource.ErrorNotFound(name, resourceType)
 		}
@@ -278,8 +283,8 @@ func (ctx *Context) VisibleResourceByNameAndType(name string, resourceTypeStr st
 			return nil, resource.ErrorNotFound(name, resourceType)
 		}
 		return res, nil
-	case resource.TransformedFeatureType:
-		res := ctx.TransformedFeatures[name]
+	case resource.TransformedColumnType:
+		res := ctx.TransformedColumns[name]
 		if res == nil {
 			return nil, resource.ErrorNotFound(name, resourceType)
 		}

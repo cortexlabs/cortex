@@ -1,8 +1,8 @@
 - kind: model
   name: sentiment_dnn
   type: classification
-  target: label_indexed
-  features:
+  target_column: label_indexed
+  feature_columns:
     - embedding_input
   aggregates:
     - reviews_vocab
@@ -19,8 +19,8 @@
 - kind: model
   name: sentiment_linear
   type: classification
-  target: label_indexed
-  features:
+  target_column: label_indexed
+  feature_columns:
     - embedding_input
   aggregates:
     - reviews_vocab

@@ -50,8 +50,8 @@ func main() {
 
 	router := mux.NewRouter()
 	router.Use(panicMiddleware)
-	router.Use(authMiddleware)
 	router.Use(apiVersionCheckMiddleware)
+	router.Use(authMiddleware)
 
 	router.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
 	router.HandleFunc("/delete", endpoints.Delete).Methods("POST")
@@ -75,21 +75,25 @@ func authMiddleware(next http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 
 		if !strings.HasPrefix(authHeader, "CortexAWS") {
-			http.Error(w, "Forbidden", http.StatusForbidden)
+			endpoints.RespondError(w, endpoints.ErrorAuthHeaderMissing())
 			return
 		}
 
 		parts := strings.Split(authHeader[10:], "|")
 		if len(parts) != 2 {
-			http.Error(w, "Forbidden", http.StatusForbidden)
+			endpoints.RespondError(w, endpoints.ErrorAuthHeaderMalformed())
 			return
 		}
 
 		accessKeyID, secretAccessKey := parts[0], parts[1]
 		authed, err := aws.AuthUser(accessKeyID, secretAccessKey)
-		if !authed || err != nil {
-			// TODO: handle err != nil case differently
-			http.Error(w, "Forbidden", http.StatusForbidden)
+		if err != nil {
+			endpoints.RespondError(w, endpoints.ErrorAuthAPIError())
+			return
+		}
+
+		if !authed {
+			endpoints.RespondErrorCode(w, http.StatusForbidden, endpoints.ErrorAuthForbidden())
 			return
 		}
 

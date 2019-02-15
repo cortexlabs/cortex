@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 
@@ -27,12 +26,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	"github.com/cortexlabs/cortex/pkg/api/schema"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
 )
 
 func init() {
 	addAppNameFlag(statusCmd)
 	addEnvFlag(statusCmd)
+	addWatchFlag(statusCmd)
 	addResourceTypesToHelp(statusCmd)
 }
 
@@ -42,118 +41,130 @@ var statusCmd = &cobra.Command{
 	Long:  "Get resource statuses.",
 	Args:  cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		resourceName, resourceTypeStr := "", ""
-		switch len(args) {
-		case 0:
-			resourcesRes, err := getResourcesResponse()
-			if err != nil {
-				errors.Exit(err)
-			}
-			printAllResourceStatuses(resourcesRes)
-			os.Exit(0)
-		case 1:
-			resourceName = args[0]
-		case 2:
-			userResourceType := args[0]
-			resourceName = args[1]
-
-			if userResourceType != "" {
-				resourceType, err := resource.VisibleResourceTypeFromPrefix(userResourceType)
-				if err != nil {
-					errors.Exit(err)
-				}
-
-				resourceTypeStr = resourceType.String()
-			}
-		}
-
-		appName, err := AppNameFromFlagOrConfig()
-		if err != nil {
-			errors.Exit(err)
-		}
-		StreamLogs(appName, resourceName, resourceTypeStr, false)
+		rerun(func() (string, error) {
+			return runStatus(cmd, args)
+		})
 	},
 }
 
-func printAllResourceStatuses(resourcesRes *schema.GetResourcesResponse) {
-	fmt.Println("")
-	printPythonPackageStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
-	printRawFeatureStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
-	printAggregateStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
-	printTransformedFeatureStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
-	printTrainingDatasetStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
-	printModelStatuses(resourcesRes.DataStatuses, resourcesRes.Context)
-	printAPIStatuses(resourcesRes.APIGroupStatuses)
+func runStatus(cmd *cobra.Command, args []string) (string, error) {
+	resourceName, resourceTypeStr := "", ""
+	switch len(args) {
+	case 0:
+		resourcesRes, err := getResourcesResponse()
+		if err != nil {
+			return "", err
+		}
+		return resourceStatusesStr(resourcesRes), nil
+	case 1:
+		resourceName = args[0]
+	case 2:
+		userResourceType := args[0]
+		resourceName = args[1]
+
+		if userResourceType != "" {
+			resourceType, err := resource.VisibleResourceTypeFromPrefix(userResourceType)
+			if err != nil {
+				return "", err
+			}
+
+			resourceTypeStr = resourceType.String()
+		}
+	}
+
+	appName, err := AppNameFromFlagOrConfig()
+	if err != nil {
+		return "", err
+	}
+
+	err = StreamLogs(appName, resourceName, resourceTypeStr, false)
+	if err != nil {
+		return "", err
+	}
+
+	return "", nil
 }
 
-func printPythonPackageStatuses(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
+func resourceStatusesStr(resourcesRes *schema.GetResourcesResponse) string {
+	out := "\n"
+	out += pythonPackageStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
+	out += rawColumnStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
+	out += aggregateStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
+	out += transformedColumnStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
+	out += trainingDatasetStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
+	out += modelStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
+	out += apiStatusesStr(resourcesRes.APIGroupStatuses)
+	return out
+}
+
+func pythonPackageStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	var statuses = make([]resource.Status, len(ctx.PythonPackages))
 	i := 0
 	for _, pythonPackage := range ctx.PythonPackages {
 		statuses[i] = dataStatuses[pythonPackage.GetID()]
 		i++
 	}
-	fmt.Println("Python Packages:        " + StatusStr(statuses))
+	return "Python Packages:       " + StatusStr(statuses)
 }
 
-func printRawFeatureStatuses(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
-	var statuses = make([]resource.Status, len(ctx.RawFeatures))
+func rawColumnStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
+	var statuses = make([]resource.Status, len(ctx.RawColumns))
 	i := 0
-	for _, rawFeature := range ctx.RawFeatures {
-		statuses[i] = dataStatuses[rawFeature.GetID()]
+	for _, rawColumn := range ctx.RawColumns {
+		statuses[i] = dataStatuses[rawColumn.GetID()]
 		i++
 	}
-	fmt.Println("Raw Features:           " + StatusStr(statuses))
+	return "Raw Columns:           " + StatusStr(statuses)
 }
 
-func printAggregateStatuses(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
+func aggregateStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	var statuses = make([]resource.Status, len(ctx.Aggregates))
 	i := 0
 	for _, aggregate := range ctx.Aggregates {
 		statuses[i] = dataStatuses[aggregate.GetID()]
 		i++
 	}
-	fmt.Println("Aggregates:             " + StatusStr(statuses))
+	return "Aggregates:            " + StatusStr(statuses)
 }
 
-func printTransformedFeatureStatuses(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
-	var statuses = make([]resource.Status, len(ctx.TransformedFeatures))
+func transformedColumnStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
+	var statuses = make([]resource.Status, len(ctx.TransformedColumns))
 	i := 0
-	for _, transformedFeature := range ctx.TransformedFeatures {
-		statuses[i] = dataStatuses[transformedFeature.GetID()]
+	for _, transformedColumn := range ctx.TransformedColumns {
+		statuses[i] = dataStatuses[transformedColumn.GetID()]
 		i++
 	}
-	fmt.Println("Transformed Features:   " + StatusStr(statuses))
+	return "Transformed Columns:   " + StatusStr(statuses)
 }
 
-func printTrainingDatasetStatuses(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
+func trainingDatasetStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	var statuses = make([]resource.Status, len(ctx.Models))
 	i := 0
 	for _, model := range ctx.Models {
 		statuses[i] = dataStatuses[model.Dataset.GetID()]
 		i++
 	}
-	fmt.Println("Training Datasets:      " + StatusStr(statuses))
+	return "Training Datasets:     " + StatusStr(statuses)
 }
 
-func printModelStatuses(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
+func modelStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	var statuses = make([]resource.Status, len(ctx.Models))
 	i := 0
 	for _, model := range ctx.Models {
 		statuses[i] = dataStatuses[model.GetID()]
 		i++
 	}
-	fmt.Println("Models:                 " + StatusStr(statuses))
+	return "Models:                " + StatusStr(statuses)
 }
 
-func printAPIStatuses(apiGroupStatuses map[string]*resource.APIGroupStatus) {
+func apiStatusesStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
 	var statuses = make([]resource.Status, len(apiGroupStatuses))
 	i := 0
 	for _, apiGroupStatus := range apiGroupStatuses {
 		statuses[i] = apiGroupStatus
 		i++
 	}
-	fmt.Println("APIs:                   " + StatusStr(statuses))
+	return "APIs:                  " + StatusStr(statuses)
 }
 
 func StatusStr(statuses []resource.Status) string {

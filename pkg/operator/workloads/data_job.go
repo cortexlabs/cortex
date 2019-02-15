@@ -35,18 +35,18 @@ import (
 func dataJobSpec(
 	ctx *context.Context,
 	shouldIngest bool,
-	rawFeatures strset.Set,
+	rawColumns strset.Set,
 	aggregates strset.Set,
-	transformedFeatures strset.Set,
+	transformedColumns strset.Set,
 	trainingDatasets strset.Set,
 	workloadID string,
 	sparkCompute *userconfig.SparkCompute,
 ) *sparkop.SparkApplication {
 
 	args := []string{
-		"--raw-features=" + strings.Join(rawFeatures.List(), ","),
+		"--raw-columns=" + strings.Join(rawColumns.List(), ","),
 		"--aggregates=" + strings.Join(aggregates.List(), ","),
-		"--transformed-features=" + strings.Join(transformedFeatures.List(), ","),
+		"--transformed-columns=" + strings.Join(transformedColumns.List(), ","),
 		"--training-datasets=" + strings.Join(trainingDatasets.List(), ","),
 	}
 	if shouldIngest {
@@ -60,7 +60,7 @@ func dataJobSpec(
 func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	workloadID := generateWorkloadID()
 
-	rawFileExists, err := aws.IsS3File(filepath.Join(ctx.RawDatasetKey, "_SUCCESS"))
+	rawFileExists, err := aws.IsS3File(filepath.Join(ctx.RawDataset.Key, "_SUCCESS"))
 	if err != nil {
 		return nil, errors.Wrap(err, ctx.App.Name, "raw dataset")
 	}
@@ -74,34 +74,34 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 		if err != nil || !externalDataExists {
 			return nil, errors.New(ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey, s.ErrUserDataUnavailable(externalDataPath))
 		}
-		for _, rawFeature := range ctx.RawFeatures {
-			allComputes = append(allComputes, rawFeature.GetCompute())
+		for _, rawColumn := range ctx.RawColumns {
+			allComputes = append(allComputes, rawColumn.GetCompute())
 		}
 	}
 
-	rawFeatureIDs := strset.New()
-	var rawFeatures []string
-	for rawFeatureName, rawFeature := range ctx.RawFeatures {
-		isFeatureCached, err := checkResourceCached(rawFeature, ctx)
+	rawColumnIDs := strset.New()
+	var rawColumns []string
+	for rawColumnName, rawColumn := range ctx.RawColumns {
+		isCached, err := checkResourceCached(rawColumn, ctx)
 		if err != nil {
 			return nil, err
 		}
-		if isFeatureCached {
+		if isCached {
 			continue
 		}
-		rawFeatures = append(rawFeatures, rawFeatureName)
-		rawFeatureIDs.Add(rawFeature.GetID())
-		allComputes = append(allComputes, rawFeature.GetCompute())
+		rawColumns = append(rawColumns, rawColumnName)
+		rawColumnIDs.Add(rawColumn.GetID())
+		allComputes = append(allComputes, rawColumn.GetCompute())
 	}
 
 	aggregateIDs := strset.New()
 	var aggregates []string
 	for aggregateName, aggregate := range ctx.Aggregates {
-		isAggregateCached, err := checkResourceCached(aggregate, ctx)
+		isCached, err := checkResourceCached(aggregate, ctx)
 		if err != nil {
 			return nil, err
 		}
-		if isAggregateCached {
+		if isCached {
 			continue
 		}
 		aggregates = append(aggregates, aggregateName)
@@ -109,50 +109,50 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 		allComputes = append(allComputes, aggregate.Compute)
 	}
 
-	transformedFeatureIDs := strset.New()
-	var transformedFeatures []string
-	for transformedFeatureName, transformedFeature := range ctx.TransformedFeatures {
-		isFeatureCached, err := checkResourceCached(transformedFeature, ctx)
+	transformedColumnIDs := strset.New()
+	var transformedColumns []string
+	for transformedColumnName, transformedColumn := range ctx.TransformedColumns {
+		isCached, err := checkResourceCached(transformedColumn, ctx)
 		if err != nil {
 			return nil, err
 		}
-		if isFeatureCached {
+		if isCached {
 			continue
 		}
-		transformedFeatures = append(transformedFeatures, transformedFeatureName)
-		transformedFeatureIDs.Add(transformedFeature.GetID())
-		allComputes = append(allComputes, transformedFeature.Compute)
+		transformedColumns = append(transformedColumns, transformedColumnName)
+		transformedColumnIDs.Add(transformedColumn.GetID())
+		allComputes = append(allComputes, transformedColumn.Compute)
 	}
 
 	trainingDatasetIDs := strset.New()
 	var trainingDatasets []string
 	for modelName, model := range ctx.Models {
 		dataset := model.Dataset
-		isTrainingDatasetCached, err := checkResourceCached(dataset, ctx)
+		isCached, err := checkResourceCached(dataset, ctx)
 		if err != nil {
 			return nil, err
 		}
-		if isTrainingDatasetCached {
+		if isCached {
 			continue
 		}
 		trainingDatasets = append(trainingDatasets, modelName)
 		trainingDatasetIDs.Add(dataset.GetID())
 		dependencyIDs := ctx.AllComputedResourceDependencies(dataset.GetID())
-		for _, transformedFeature := range ctx.TransformedFeatures {
-			if _, ok := dependencyIDs[transformedFeature.ID]; ok {
-				allComputes = append(allComputes, transformedFeature.Compute)
+		for _, transformedColumn := range ctx.TransformedColumns {
+			if _, ok := dependencyIDs[transformedColumn.ID]; ok {
+				allComputes = append(allComputes, transformedColumn.Compute)
 			}
 		}
 	}
 
-	resourceIDSet := strset.Union(rawFeatureIDs, aggregateIDs, transformedFeatureIDs, trainingDatasetIDs)
+	resourceIDSet := strset.Union(rawColumnIDs, aggregateIDs, transformedColumnIDs, trainingDatasetIDs)
 
 	if !shouldIngest && len(resourceIDSet) == 0 {
 		return nil, nil
 	}
 
 	sparkCompute := userconfig.MaxSparkCompute(allComputes...)
-	spec := dataJobSpec(ctx, shouldIngest, rawFeatureIDs, aggregateIDs, transformedFeatureIDs, trainingDatasetIDs, workloadID, sparkCompute)
+	spec := dataJobSpec(ctx, shouldIngest, rawColumnIDs, aggregateIDs, transformedColumnIDs, trainingDatasetIDs, workloadID, sparkCompute)
 
 	workloadSpec := &WorkloadSpec{
 		WorkloadID:       workloadID,

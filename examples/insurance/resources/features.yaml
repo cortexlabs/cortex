@@ -1,45 +1,45 @@
-- kind: raw_feature
+- kind: raw_column
   name: age
-  type: INT_FEATURE
+  type: INT_COLUMN
   required: true
   min: 0
   max: 100
 
-- kind: raw_feature
+- kind: raw_column
   name: sex
-  type: STRING_FEATURE
+  type: STRING_COLUMN
   required: true
   values: ['female', 'male']
 
-- kind: raw_feature
+- kind: raw_column
   name: bmi
-  type: FLOAT_FEATURE
+  type: FLOAT_COLUMN
   required: true
   min: 0
   max: 60
 
-- kind: raw_feature
+- kind: raw_column
   name: children
-  type: INT_FEATURE
+  type: INT_COLUMN
   required: true
   min: 0
   max: 10
 
-- kind: raw_feature
+- kind: raw_column
   name: smoker
-  type: STRING_FEATURE
+  type: STRING_COLUMN
   required: true
   values: ['yes', 'no']
 
-- kind: raw_feature
+- kind: raw_column
   name: region
-  type: STRING_FEATURE
+  type: STRING_COLUMN
   required: true
   values: ['northwest', 'northeast', 'southwest', 'southeast']
 
-- kind: raw_feature
+- kind: raw_column
   name: charges
-  type: FLOAT_FEATURE
+  type: FLOAT_COLUMN
   required: true
   min: 0
   max: 100000
@@ -48,28 +48,28 @@
   name: charges_mean
   aggregator: cortex.mean
   inputs:
-    features:
+    columns:
       col: charges
 
 - kind: aggregate
   name: charges_stddev
   aggregator: cortex.stddev
   inputs:
-    features:
+    columns:
       col: charges
 
 - kind: aggregate
   name: children_set
   aggregator: cortex.collect_set_int
   inputs:
-    features:
+    columns:
       col: children
 
-- kind: transformed_feature
+- kind: transformed_column
   name: charges_normalized
   transformer: cortex.normalize
   inputs:
-    features:
+    columns:
       num: charges
     args:
       mean: charges_mean

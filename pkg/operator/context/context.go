@@ -54,7 +54,10 @@ func New(
 		ctx.DatasetVersion,
 		ctx.Environment.ID,
 	)
-	ctx.RawDatasetKey = filepath.Join(ctx.Root, consts.RawDataDir, "raw.parquet")
+	ctx.RawDataset = context.RawDataset{
+		Key:         filepath.Join(ctx.Root, consts.RawDataDir, "raw.parquet"),
+		MetadataKey: filepath.Join(ctx.Root, consts.RawDataDir, "metadata.json"),
+	}
 
 	ctx.StatusPrefix = StatusPrefix(ctx.App.Name)
 
@@ -97,25 +100,25 @@ func New(
 	}
 	ctx.Transformers = transformers
 
-	rawFeatures, err := getRawFeatures(config, ctx.Environment, pythonPackages)
+	rawColumns, err := getRawColumns(config, ctx.Environment)
 	if err != nil {
 		return nil, err
 	}
-	ctx.RawFeatures = rawFeatures
+	ctx.RawColumns = rawColumns
 
-	aggregates, err := getAggregates(config, constants, rawFeatures, userAggregators, ctx.Root)
+	aggregates, err := getAggregates(config, constants, rawColumns, userAggregators, ctx.Root)
 	if err != nil {
 		return nil, err
 	}
 	ctx.Aggregates = aggregates
 
-	transformedFeatures, err := getTransformedFeatures(config, constants, rawFeatures, ctx.Aggregates, userTransformers, ctx.Root)
+	transformedColumns, err := getTransformedColumns(config, constants, rawColumns, ctx.Aggregates, userTransformers, ctx.Root)
 	if err != nil {
 		return nil, err
 	}
-	ctx.TransformedFeatures = transformedFeatures
+	ctx.TransformedColumns = transformedColumns
 
-	models, err := getModels(config, aggregates, ctx.Features(), files, ctx.Root, pythonPackages)
+	models, err := getModels(config, aggregates, ctx.Columns(), files, ctx.Root, pythonPackages)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +154,7 @@ func calculateID(ctx *context.Context) string {
 	ids = append(ids, ctx.CortexConfig.ID)
 	ids = append(ids, ctx.DatasetVersion)
 	ids = append(ids, ctx.Root)
-	ids = append(ids, ctx.RawDatasetKey)
+	ids = append(ids, ctx.RawDataset.Key)
 	ids = append(ids, ctx.StatusPrefix)
 	ids = append(ids, ctx.App.ID)
 	ids = append(ids, ctx.Environment.ID)

@@ -1,6 +1,6 @@
-- kind: transformed_feature
+- kind: transformed_column
   name: image_pixels
   transformer: decode_and_normalize
   inputs:
-    features:
+    columns:
       image: image

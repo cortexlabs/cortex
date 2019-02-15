@@ -36,7 +36,7 @@ var uploadedModels map[string]bool = map[string]bool{}
 func getModels(
 	config *userconfig.Config,
 	aggregates context.Aggregates,
-	features context.Features,
+	columns context.Columns,
 	impls map[string][]byte,
 	root string,
 	pythonPackages context.PythonPackages,
@@ -50,7 +50,7 @@ func getModels(
 			return nil, errors.Wrap(err, userconfig.Identify(modelConfig), userconfig.PathKey)
 		}
 
-		targetDataType := features[modelConfig.Target].GetType()
+		targetDataType := columns[modelConfig.TargetColumn].GetType()
 		err = context.ValidateModelTargetType(targetDataType, modelConfig.Type)
 		if err != nil {
 			return nil, errors.Wrap(err, userconfig.Identify(modelConfig))
@@ -67,7 +67,7 @@ func getModels(
 		buf.WriteString(s.Obj(modelConfig.DataPartitionRatio))
 		buf.WriteString(s.Obj(modelConfig.Training))
 		buf.WriteString(s.Obj(modelConfig.Evaluation))
-		buf.WriteString(features.IDWithTags(modelConfig.AllFeatureNames())) // A change in tags can invalidate the model
+		buf.WriteString(columns.IDWithTags(modelConfig.AllColumnNames())) // A change in tags can invalidate the model
 
 		for _, aggregate := range modelConfig.Aggregates {
 			buf.WriteString(aggregates[aggregate].GetID())
@@ -78,9 +78,9 @@ func getModels(
 
 		buf.Reset()
 		buf.WriteString(s.Obj(modelConfig.DataPartitionRatio))
-		buf.WriteString(features.ID(modelConfig.AllFeatureNames()))
+		buf.WriteString(columns.ID(modelConfig.AllColumnNames()))
 		datasetID := util.HashBytes(buf.Bytes())
-		buf.WriteString(features.IDWithTags(modelConfig.AllFeatureNames()))
+		buf.WriteString(columns.IDWithTags(modelConfig.AllColumnNames()))
 		datasetIDWithTags := util.HashBytes(buf.Bytes())
 
 		datasetRoot := filepath.Join(root, consts.TrainingDataDir, datasetID)

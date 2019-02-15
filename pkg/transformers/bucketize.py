@@ -13,15 +13,15 @@
 # limitations under the License.
 
 
-def transform_spark(data, features, args, transformed_feature):
+def transform_spark(data, columns, args, transformed_column):
     from pyspark.ml.feature import Bucketizer
     import pyspark.sql.functions as F
 
     new_b = Bucketizer(
-        splits=args["bucket_boundaries"], inputCol=features["num"], outputCol=transformed_feature
+        splits=args["bucket_boundaries"], inputCol=columns["num"], outputCol=transformed_column
     )
     return new_b.transform(data).withColumn(
-        transformed_feature, F.col(transformed_feature).cast("int")
+        transformed_column, F.col(transformed_column).cast("int")
     )
 
 

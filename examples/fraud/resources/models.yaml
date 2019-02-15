@@ -1,8 +1,8 @@
 - kind: model
   name: dnn_weighted
   type: classification
-  target: class
-  features:
+  target_column: class
+  feature_columns:
     - time_normalized
     - v1_normalized
     - v2_normalized
@@ -33,7 +33,7 @@
     - v27_normalized
     - v28_normalized
     - amount_normalized
-  training_features:
+  training_columns:
     - class_weight
   hparams:
     hidden_units: [100, 100, 100]
@@ -46,8 +46,8 @@
 - kind: model
   name: dnn
   type: classification
-  target: class
-  features:
+  target_column: class
+  feature_columns:
     - time_normalized
     - v1_normalized
     - v2_normalized

@@ -157,14 +157,14 @@ func getTransformers(
 ) (context.Transformers, error) {
 
 	transformers := context.Transformers{}
-	for _, transformedFeatureConfig := range config.TransformedFeatures {
-		transformerName := transformedFeatureConfig.Transformer
+	for _, transformedColumnConfig := range config.TransformedColumns {
+		transformerName := transformedColumnConfig.Transformer
 		if _, ok := transformers[transformerName]; ok {
 			continue
 		}
 		transformer, err := getTransformer(transformerName, userTransformers)
 		if err != nil {
-			return nil, errors.Wrap(err, userconfig.Identify(transformedFeatureConfig), userconfig.TransformerKey)
+			return nil, errors.Wrap(err, userconfig.Identify(transformedColumnConfig), userconfig.TransformerKey)
 		}
 		transformers[transformerName] = transformer
 	}

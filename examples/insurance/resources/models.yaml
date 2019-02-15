@@ -1,8 +1,8 @@
 - kind: model
   name: dnn
   type: regression
-  target: charges_normalized
-  features:
+  target_column: charges_normalized
+  feature_columns:
     - age
     - sex
     - bmi

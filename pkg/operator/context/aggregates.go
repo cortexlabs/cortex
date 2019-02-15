@@ -32,7 +32,7 @@ import (
 func getAggregates(
 	config *userconfig.Config,
 	constants context.Constants,
-	rawFeatures context.RawFeatures,
+	rawColumns context.RawColumns,
 	userAggregators map[string]*context.Aggregator,
 	root string,
 ) (context.Aggregates, error) {
@@ -49,7 +49,7 @@ func getAggregates(
 			return nil, errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.AggregatorKey)
 		}
 
-		err = validateAggregateInputs(aggregateConfig, constants, rawFeatures, aggregator)
+		err = validateAggregateInputs(aggregateConfig, constants, rawColumns, aggregator)
 		if err != nil {
 			return nil, errors.Wrap(err)
 		}
@@ -68,13 +68,13 @@ func getAggregates(
 		}
 
 		var buf bytes.Buffer
-		buf.WriteString(rawFeatures.FeatureInputsID(aggregateConfig.Inputs.Features))
+		buf.WriteString(rawColumns.ColumnInputsID(aggregateConfig.Inputs.Columns))
 		buf.WriteString(s.Obj(constantIDMap))
 		buf.WriteString(aggregator.ID)
 		id := util.HashBytes(buf.Bytes())
 
 		buf.Reset()
-		buf.WriteString(rawFeatures.FeatureInputsIDWithTags(aggregateConfig.Inputs.Features))
+		buf.WriteString(rawColumns.ColumnInputsIDWithTags(aggregateConfig.Inputs.Columns))
 		buf.WriteString(s.Obj(constantIDWithTagsMap))
 		buf.WriteString(aggregator.IDWithTags)
 		buf.WriteString(aggregateConfig.Tags.ID())
@@ -106,17 +106,17 @@ func getAggregates(
 func validateAggregateInputs(
 	aggregateConfig *userconfig.Aggregate,
 	constants context.Constants,
-	rawFeatures context.RawFeatures,
+	rawColumns context.RawColumns,
 	aggregator *context.Aggregator,
 ) error {
 
-	featureRuntimeTypes, err := context.GetFeatureRuntimeTypes(aggregateConfig.Inputs.Features, rawFeatures)
+	columnRuntimeTypes, err := context.GetColumnRuntimeTypes(aggregateConfig.Inputs.Columns, rawColumns)
 	if err != nil {
-		return errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.InputsKey, userconfig.FeaturesKey)
+		return errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.InputsKey, userconfig.ColumnsKey)
 	}
-	err = userconfig.CheckFeatureRuntimeTypesMatch(featureRuntimeTypes, aggregator.Inputs.Features)
+	err = userconfig.CheckColumnRuntimeTypesMatch(columnRuntimeTypes, aggregator.Inputs.Columns)
 	if err != nil {
-		return errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.InputsKey, userconfig.FeaturesKey)
+		return errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.InputsKey, userconfig.ColumnsKey)
 	}
 
 	argTypes, err := getAggregateArgTypes(aggregateConfig.Inputs.Args, constants)

@@ -30,19 +30,19 @@ import (
 )
 
 type Config struct {
-	App                 *App                `json:"app" yaml:"app"`
-	Environments        Environments        `json:"environments" yaml:"environments"`
-	Environment         *Environment        `json:"environment" yaml:"environment"`
-	RawFeatures         RawFeatures         `json:"raw_features" yaml:"raw_features"`
-	Aggregates          Aggregates          `json:"aggregates" yaml:"aggregates"`
-	TransformedFeatures TransformedFeatures `json:"transformed_features" yaml:"transformed_features"`
-	Models              Models              `json:"models" yaml:"models"`
-	APIs                APIs                `json:"apis" yaml:"apis"`
-	Aggregators         Aggregators         `json:"aggregators" yaml:"aggregators"`
-	Transformers        Transformers        `json:"transformers" yaml:"transformers"`
-	Constants           Constants           `json:"constants" yaml:"constants"`
-	Templates           Templates           `json:"templates" yaml:"templates"`
-	Embeds              Embeds              `json:"embeds" yaml:"embeds"`
+	App                *App               `json:"app" yaml:"app"`
+	Environments       Environments       `json:"environments" yaml:"environments"`
+	Environment        *Environment       `json:"environment" yaml:"environment"`
+	RawColumns         RawColumns         `json:"raw_columns" yaml:"raw_columns"`
+	Aggregates         Aggregates         `json:"aggregates" yaml:"aggregates"`
+	TransformedColumns TransformedColumns `json:"transformed_columns" yaml:"transformed_columns"`
+	Models             Models             `json:"models" yaml:"models"`
+	APIs               APIs               `json:"apis" yaml:"apis"`
+	Aggregators        Aggregators        `json:"aggregators" yaml:"aggregators"`
+	Transformers       Transformers       `json:"transformers" yaml:"transformers"`
+	Constants          Constants          `json:"constants" yaml:"constants"`
+	Templates          Templates          `json:"templates" yaml:"templates"`
+	Embeds             Embeds             `json:"embeds" yaml:"embeds"`
 }
 
 type Resource interface {
@@ -61,9 +61,9 @@ var typeFieldValidation = &cr.StructFieldValidation{
 
 func mergeConfigs(target *Config, source *Config) error {
 	target.Environments = append(target.Environments, source.Environments...)
-	target.RawFeatures = append(target.RawFeatures, source.RawFeatures...)
+	target.RawColumns = append(target.RawColumns, source.RawColumns...)
 	target.Aggregates = append(target.Aggregates, source.Aggregates...)
-	target.TransformedFeatures = append(target.TransformedFeatures, source.TransformedFeatures...)
+	target.TransformedColumns = append(target.TransformedColumns, source.TransformedColumns...)
 	target.Models = append(target.Models, source.Models...)
 	target.APIs = append(target.APIs, source.APIs...)
 	target.Aggregators = append(target.Aggregators, source.Aggregators...)
@@ -93,8 +93,8 @@ func (config *Config) ValidatePartial() error {
 			return err
 		}
 	}
-	if config.RawFeatures != nil {
-		if err := config.RawFeatures.Validate(); err != nil {
+	if config.RawColumns != nil {
+		if err := config.RawColumns.Validate(); err != nil {
 			return err
 		}
 	}
@@ -103,8 +103,8 @@ func (config *Config) ValidatePartial() error {
 			return err
 		}
 	}
-	if config.TransformedFeatures != nil {
-		if err := config.TransformedFeatures.Validate(); err != nil {
+	if config.TransformedColumns != nil {
+		if err := config.TransformedColumns.Validate(); err != nil {
 			return err
 		}
 	}
@@ -152,36 +152,36 @@ func (config *Config) Validate(envName string) error {
 		return ErrorUndefinedConfig(resource.AppType)
 	}
 
-	err = config.ValidateFeatures()
+	err = config.ValidateColumns()
 	if err != nil {
 		return err
 	}
 
-	// Check ingested features match raw features
-	rawFeatureNames := config.RawFeatures.Names()
+	// Check ingested columns match raw columns
+	rawColumnNames := config.RawColumns.Names()
 	for _, env := range config.Environments {
-		ingestedFeatureNames := env.Data.GetIngestedFeatures()
-		missingFeatures := util.SubtractStrSlice(rawFeatureNames, ingestedFeatureNames)
-		if len(missingFeatures) > 0 {
-			return errors.Wrap(ErrorMissingRawFeatures(missingFeatures), Identify(env), DataKey, SchemaKey)
+		ingestedColumnNames := env.Data.GetIngestedColumns()
+		missingColumns := util.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
+		if len(missingColumns) > 0 {
+			return errors.Wrap(ErrorMissingRawColumns(missingColumns), Identify(env), DataKey, SchemaKey)
 		}
-		extraFeatures := util.SubtractStrSlice(rawFeatureNames, ingestedFeatureNames)
-		if len(extraFeatures) > 0 {
-			return errors.Wrap(ErrorUndefinedResource(extraFeatures[0], resource.RawFeatureType), Identify(env), DataKey, SchemaKey)
+		extraColumns := util.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
+		if len(extraColumns) > 0 {
+			return errors.Wrap(ErrorUndefinedResource(extraColumns[0], resource.RawColumnType), Identify(env), DataKey, SchemaKey)
 		}
 	}
 
-	// Check model features exist
-	featureNames := config.FeatureNames()
+	// Check model columns exist
+	columnNames := config.ColumnNames()
 	for _, model := range config.Models {
-		if !util.IsStrInSlice(model.Target, featureNames) {
-			return errors.Wrap(ErrorUndefinedResource(model.Target, resource.RawFeatureType, resource.TransformedFeatureType),
-				Identify(model), TargetKey)
+		if !util.IsStrInSlice(model.TargetColumn, columnNames) {
+			return errors.Wrap(ErrorUndefinedResource(model.TargetColumn, resource.RawColumnType, resource.TransformedColumnType),
+				Identify(model), TargetColumnKey)
 		}
-		missingFeatureNames := util.SubtractStrSlice(model.Features, featureNames)
-		if len(missingFeatureNames) > 0 {
-			return errors.Wrap(ErrorUndefinedResource(missingFeatureNames[0], resource.RawFeatureType, resource.TransformedFeatureType),
-				Identify(model), FeaturesKey)
+		missingColumnNames := util.SubtractStrSlice(model.FeatureColumns, columnNames)
+		if len(missingColumnNames) > 0 {
+			return errors.Wrap(ErrorUndefinedResource(missingColumnNames[0], resource.RawColumnType, resource.TransformedColumnType),
+				Identify(model), FeatureColumnsKey)
 		}
 
 		missingAggregateNames := util.SubtractStrSlice(model.Aggregates, config.Aggregates.Names())
@@ -190,11 +190,11 @@ func (config *Config) Validate(envName string) error {
 				Identify(model), AggregatesKey)
 		}
 
-		// check training features
-		missingTrainingFeatureNames := util.SubtractStrSlice(model.TrainingFeatures, featureNames)
-		if len(missingTrainingFeatureNames) > 0 {
-			return errors.Wrap(ErrorUndefinedResource(missingTrainingFeatureNames[0], resource.RawFeatureType, resource.TransformedFeatureType),
-				Identify(model), TrainingFeaturesKey)
+		// check training columns
+		missingTrainingColumnNames := util.SubtractStrSlice(model.TrainingColumns, columnNames)
+		if len(missingTrainingColumnNames) > 0 {
+			return errors.Wrap(ErrorUndefinedResource(missingTrainingColumnNames[0], resource.RawColumnType, resource.TransformedColumnType),
+				Identify(model), TrainingColumnsKey)
 		}
 	}
 
@@ -215,11 +215,11 @@ func (config *Config) Validate(envName string) error {
 		}
 	}
 
-	// Check local transfomers exist
+	// Check local transformers exist
 	transformerNames := config.Transformers.Names()
-	for _, transformedFeature := range config.TransformedFeatures {
-		if !strings.Contains(transformedFeature.Transformer, ".") && !util.IsStrInSlice(transformedFeature.Transformer, transformerNames) {
-			return errors.Wrap(ErrorUndefinedResource(transformedFeature.Transformer, resource.TransformerType), Identify(transformedFeature), TransformerKey)
+	for _, transformedColumn := range config.TransformedColumns {
+		if !strings.Contains(transformedColumn.Transformer, ".") && !util.IsStrInSlice(transformedColumn.Transformer, transformerNames) {
+			return errors.Wrap(ErrorUndefinedResource(transformedColumn.Transformer, resource.TransformerType), Identify(transformedColumn), TransformerKey)
 		}
 	}
 
@@ -272,16 +272,16 @@ func newPartial(configData interface{}) (*Config, error) {
 			app := &App{}
 			errs = cr.Struct(app, data, appValidation)
 			config.App = app
-		case resource.RawFeatureType:
-			var rawFeatureInter interface{}
-			rawFeatureInter, errs = cr.InterfaceStruct(data, rawFeatureValidation)
-			if rawFeatureInter != nil {
-				config.RawFeatures = append(config.RawFeatures, rawFeatureInter.(RawFeature))
+		case resource.RawColumnType:
+			var rawColumnInter interface{}
+			rawColumnInter, errs = cr.InterfaceStruct(data, rawColumnValidation)
+			if rawColumnInter != nil {
+				config.RawColumns = append(config.RawColumns, rawColumnInter.(RawColumn))
 			}
-		case resource.TransformedFeatureType:
-			transformedFeature := &TransformedFeature{}
-			errs = cr.Struct(transformedFeature, data, transformedFeatureValidation)
-			config.TransformedFeatures = append(config.TransformedFeatures, transformedFeature)
+		case resource.TransformedColumnType:
+			transformedColumn := &TransformedColumn{}
+			errs = cr.Struct(transformedColumn, data, transformedColumnValidation)
+			config.TransformedColumns = append(config.TransformedColumns, transformedColumn)
 		case resource.AggregateType:
 			aggregate := &Aggregate{}
 			errs = cr.Struct(aggregate, data, aggregateValidation)

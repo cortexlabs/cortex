@@ -28,6 +28,8 @@ const (
 	ErrUnknown ErrorKind = iota
 	ErrUnknownKind
 	ErrNotFound
+	ErrNameNotFound
+	ErrNameOrTypeNotFound
 	ErrInvalidType
 )
 
@@ -36,6 +38,8 @@ var (
 		"err_unknown",
 		"err_unknown_kind",
 		"err_not_found",
+		"err_name_not_found",
+		"err_name_or_type_not_found",
 		"err_invalid_type",
 	}
 )
@@ -75,15 +79,32 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 }
 
 type ResourceError struct {
-	Kind ErrorKind
-
+	Kind    ErrorKind
 	message string
+}
+
+func (e ResourceError) Error() string {
+	return e.message
 }
 
 func ErrorNotFound(name string, resourceType Type) error {
 	return ResourceError{
 		Kind:    ErrNotFound,
 		message: fmt.Sprintf("%s %s not found", resourceType, s.UserStr(name)),
+	}
+}
+
+func ErrorNameNotFound(name string) error {
+	return ResourceError{
+		Kind:    ErrNameNotFound,
+		message: fmt.Sprintf("resource name %s not found", s.UserStr(name)),
+	}
+}
+
+func ErrorNameOrTypeNotFound(nameOrType string) error {
+	return ResourceError{
+		Kind:    ErrNameOrTypeNotFound,
+		message: fmt.Sprintf("resource name or type %s not found", s.UserStr(nameOrType)),
 	}
 }
 
@@ -99,8 +120,4 @@ func ErrorUnknownKind(name string) error {
 		Kind:    ErrUnknownKind,
 		message: fmt.Sprintf("unknown kind %s", s.UserStr(name)),
 	}
-}
-
-func (e ResourceError) Error() string {
-	return e.message
 }

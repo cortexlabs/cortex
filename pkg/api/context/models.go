@@ -79,15 +79,15 @@ func (models Models) GetTrainingDatasets() TrainingDatasets {
 }
 
 func ValidateModelTargetType(targetDataTypeStr string, modelType string) error {
-	targetType := userconfig.FeatureTypeFromString(targetDataTypeStr)
+	targetType := userconfig.ColumnTypeFromString(targetDataTypeStr)
 	switch modelType {
 	case "classification":
-		if targetType != userconfig.IntegerFeatureType {
+		if targetType != userconfig.IntegerColumnType {
 			return errors.New(s.ErrClassificationTargetType)
 		}
 		return nil
 	case "regression":
-		if targetType != userconfig.IntegerFeatureType && targetType != userconfig.FloatFeatureType {
+		if targetType != userconfig.IntegerColumnType && targetType != userconfig.FloatColumnType {
 			return errors.New(s.ErrRegressionTargetType)
 		}
 		return nil

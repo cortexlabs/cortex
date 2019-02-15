@@ -176,7 +176,7 @@ func ErrDuplicateZipPath(path string) string {
 }
 
 func ErrFailedToConnect(urlStr string) string {
-	return fmt.Sprintf("failed to connect at %s", urlStr)
+	return fmt.Sprintf("failed to connect to the operator (%s), run `cortex configure` if you need to update the operator URL", urlStr)
 }
 
 func ErrBeMoreSpecific(vals ...string) string {

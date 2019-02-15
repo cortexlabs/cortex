@@ -1,31 +1,31 @@
 # Transformers
 
-Transformers run both when transforming features before model training and when responding to prediction requests. You may define transformers for both a PySpark and a Python context. The PySpark implementation is optional but recommended for large-scale feature processing.
+Transformers run both when transforming data before model training and when responding to prediction requests. You may define transformers for both a PySpark and a Python context. The PySpark implementation is optional but recommended for large-scale data processing.
 
 ## Implementation
 
 ```python
-def transform_spark(data, features, args, transformed_feature):
-    """Transform a feature in a PySpark context.
+def transform_spark(data, columns, args, transformed_column):
+    """Transform a column in a PySpark context.
 
-    This function is optional (recommended for large-scale feature processing).
+    This function is optional (recommended for large-scale data processing).
 
     Args:
-        data: A dataframe including all of the raw features.
+        data: A dataframe including all of the raw columns.
 
-        features: A dict with the same structure as the transformer's input
-            features specifying the names of the dataframe's columns that
-            contain the input features.
+        columns: A dict with the same structure as the transformer's input
+            columns specifying the names of the dataframe's columns that
+            contain the input columns.
 
         args: A dict with the same structure as the transformer's input args
             containing the runtime values of the args.
 
-        transformed_feature: The name of the column containing the transformed
+        transformed_column: The name of the column containing the transformed
             data that is to be appended to the dataframe.
 
     Returns:
         The original 'data' dataframe with an added column with the name of the
-        transformed_feature arg containing the transformed data.
+        transformed_column arg containing the transformed data.
     """
     pass
 
@@ -37,7 +37,7 @@ def transform_python(sample, args):
 
     Args:
         sample: A dict with the same structure as the transformer's input
-            features containing a data sample to transform.
+            columns containing a data sample to transform.
 
         args: A dict with the same structure as the transformer's input args
             containing the runtime values of the args.
@@ -69,9 +69,9 @@ def reverse_transform_python(transformed_value, args):
 ## Example
 
 ```python
-def transform_spark(data, features, args, transformed_feature):
+def transform_spark(data, columns, args, transformed_column):
     return data.withColumn(
-        transformed_feature, ((data[features["num"]] - args["mean"]) / args["stddev"])
+        transformed_column, ((data[columns["num"]] - args["mean"]) / args["stddev"])
     )
 
 def transform_python(sample, args):

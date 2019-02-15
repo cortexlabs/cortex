@@ -60,9 +60,11 @@ def empty_context_obj():
     return NoneDict(
         app=NoneDict(),
         cortex_config=NoneDict(api_version=consts.CORTEX_VERSION, region=""),
-        python_packages={},
         raw_features={},
         transformed_features={},
+        python_packages={},
+        raw_columns={},
+        transformed_columns={},
         aggregates={},
         constants={},
         aggregators={},

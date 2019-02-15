@@ -1,9 +1,9 @@
-def aggregate_spark(data, features, args):
+def aggregate_spark(data, columns, args):
     from pyspark.ml.feature import StopWordsRemover, RegexTokenizer
     import pyspark.sql.functions as F
     from pyspark.sql.types import IntegerType
 
-    regexTokenizer = RegexTokenizer(inputCol=features["col"], outputCol="token_list", pattern="\\W")
+    regexTokenizer = RegexTokenizer(inputCol=columns["col"], outputCol="token_list", pattern="\\W")
     regexTokenized = regexTokenizer.transform(data)
 
     remover = StopWordsRemover(inputCol="token_list", outputCol="filtered_word_list")

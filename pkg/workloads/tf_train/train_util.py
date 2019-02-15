@@ -25,10 +25,10 @@ from lib.exceptions import UserRuntimeException
 
 
 def get_input_placeholder(model_name, ctx, training=True):
-    feature_types = tf_lib.get_feature_tf_types(model_name, ctx, training)
+    column_types = tf_lib.get_column_tf_types(model_name, ctx, training)
     input_placeholder = {
         feature_name: tf.placeholder(shape=[None], dtype=tf_type)
-        for feature_name, tf_type in feature_types.items()
+        for feature_name, tf_type in column_types.items()
     }
     return input_placeholder
 
@@ -40,7 +40,7 @@ def generate_example_parsing_fn(model_name, ctx, training=True):
 
     def _parse_example(example_proto):
         features = tf.parse_single_example(serialized=example_proto, features=feature_spec)
-        target = features.pop(model["target"], None)
+        target = features.pop(model["target_column"], None)
         return features, target
 
     return _parse_example
@@ -139,11 +139,7 @@ def train(model_name, model_impl, ctx, model_dir):
     train_num_steps = model["training"]["num_steps"]
     if model["training"]["num_epochs"]:
         train_num_steps = (
-            math.ceil(
-                dataset_metadata["dataset_size"]
-                * model["data_partition_ratio"]["training"]
-                / float(model["training"]["batch_size"])
-            )
+            math.ceil(dataset_metadata["training_size"] / float(model["training"]["batch_size"]))
             * model["training"]["num_epochs"]
         )
 
@@ -152,11 +148,7 @@ def train(model_name, model_impl, ctx, model_dir):
     eval_num_steps = model["evaluation"]["num_steps"]
     if model["evaluation"]["num_epochs"]:
         eval_num_steps = (
-            math.ceil(
-                dataset_metadata["dataset_size"]
-                * model["data_partition_ratio"]["evaluation"]
-                / float(model["evaluation"]["batch_size"])
-            )
+            math.ceil(dataset_metadata["eval_size"] / float(model["evaluation"]["batch_size"]))
             * model["evaluation"]["num_epochs"]
         )
 

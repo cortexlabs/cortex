@@ -20,6 +20,8 @@ set -e
 ### HELP ###
 ############
 
+CORTEX_SH_TMP_DIR="$HOME/.cortex-sh-tmp"
+
 function show_help() {
   echo "
 Usage:
@@ -34,7 +36,8 @@ Available Commands:
   uninstall cli               uninstall the CLI
   uninstall kubernetes-tools  uninstall aws-iam-authenticator, eksctl, kubectl
 
-  update operator             update the operator
+  update operator             update the operator config and restart the operator
+
   endpoints                   show the operator and API endpoints
 
 Flags:
@@ -47,8 +50,8 @@ Flags:
 ### FLAG PARSING ###
 ####################
 
-FLAG_HELP=false
-POSITIONAL=()
+flag_help=false
+positional_args=()
 
 while [[ $# -gt 0 ]]; do
   key="$1"
@@ -59,18 +62,18 @@ while [[ $# -gt 0 ]]; do
     shift
     ;;
     -h|--help)
-    FLAG_HELP="true"
+    flag_help="true"
     shift
     ;;
     *)
-    POSITIONAL+=("$1")
+    positional_args+=("$1")
     shift
     ;;
   esac
 done
 
-set -- "${POSITIONAL[@]}"
-POSITIONAL=()
+set -- "${positional_args[@]}"
+positional_args=()
 for i in "$@"; do
   case $i in
     -c=*|--config=*)
@@ -78,17 +81,17 @@ for i in "$@"; do
     shift
     ;;
     -h=*|--help=*)
-    FLAG_HELP="true"
+    flag_help="true"
     ;;
     *)
-    POSITIONAL+=("$1")
+    positional_args+=("$1")
     shift
     ;;
   esac
 done
 
-set -- "${POSITIONAL[@]}"
-if [ "$FLAG_HELP" == "true" ]; then
+set -- "${positional_args[@]}"
+if [ "$flag_help" == "true" ]; then
   show_help
   exit 0
 fi
@@ -110,7 +113,7 @@ set -u
 case "$OSTYPE" in
   darwin*)  PARSED_OS="darwin" ;;
   linux*)   PARSED_OS="linux" ;;
-  *)        echo "error: only mac and linux are supported"; exit 1 ;;
+  *)        echo -e "\nerror: only mac and linux are supported"; exit 1 ;;
 esac
 
 #####################
@@ -125,10 +128,10 @@ fi
 export CORTEX_VERSION_STABLE=master
 
 # Defaults
-RANDOM_ID=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-z0-9' | fold -w 12 | head -n 1)
+random_id=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-z0-9' | fold -w 12 | head -n 1)
 
 export CORTEX_LOG_GROUP="${CORTEX_LOG_GROUP:-cortex}"
-export CORTEX_BUCKET="${CORTEX_BUCKET:-cortex-$RANDOM_ID}"
+export CORTEX_BUCKET="${CORTEX_BUCKET:-cortex-$random_id}"
 export CORTEX_REGION="${CORTEX_REGION:-us-west-2}"
 export CORTEX_NAMESPACE="${CORTEX_NAMESPACE:-cortex}"
 
@@ -181,43 +184,30 @@ function install_kubernetes_tools() {
   install_aws_iam_authenticator
   install_eksctl
   install_kubectl
-
-  echo
-  echo "You can now spin up a EKS cluster using the command below (see eksctl.io for more configuration options):"
-  echo "  eksctl create cluster --name=cortex --nodes=3 --node-type=t3.small  # this takes ~20 minutes"
-  echo
-  echo "Note: we recommend a minimum cluster size of 3 t3.small AWS instances. Cortex may not run successfully on clusters with less compute resources."
 }
 
 function uninstall_operator() {
   check_dep_kubectl
 
   echo
-  echo "Uninstalling the Cortex operator ..."
-  kubectl delete --ignore-not-found=true customresourcedefinition scheduledsparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
-  kubectl delete --ignore-not-found=true customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
-  kubectl delete --ignore-not-found=true customresourcedefinition workflows.argoproj.io >/dev/null 2>&1
-  kubectl delete --ignore-not-found=true namespace $CORTEX_NAMESPACE >/dev/null 2>&1
-  echo "✓ Uninstalled the Cortex operator"
+  if kubectl get namespace $CORTEX_NAMESPACE >/dev/null 2>&1 || kubectl get customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1 || kubectl get customresourcedefinition scheduledsparkapplications.sparkoperator.k8s.io >/dev/null 2>&1 || kubectl get customresourcedefinition workflows.argoproj.io >/dev/null 2>&1; then
+    echo "Uninstalling the Cortex operator from your Kubernetes cluster ..."
 
-  echo
-  echo "Command to spin down your Kubernetes cluster:"
-  echo "  eksctl delete cluster --name=cortex"
-  echo
-  echo "Command to remove Kubernetes tools:"
-  echo "  ./cortex.sh uninstall kubernetes-tools"
-  echo
-  echo "Command to delete the bucket used by Cortex:"
-  echo "  aws s3 rb s3://<bucket-name> --force"
-  echo
-  echo "Command to delete the log group used by Cortex:"
-  echo "  aws logs delete-log-group --log-group-name cortex"
-  echo
-  echo "Command to uninstall the cortex CLI:"
-  echo "  ./cortex.sh uninstall cli"
+    # Remove finalizers on sparkapplications (they sometimes create deadlocks)
+    if kubectl get namespace $CORTEX_NAMESPACE >/dev/null 2>&1 && kubectl get customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1; then
+      set +e
+      kubectl -n=$CORTEX_NAMESPACE get sparkapplications.sparkoperator.k8s.io -o name | xargs -L1 \
+        kubectl -n=$CORTEX_NAMESPACE patch -p '{"metadata":{"finalizers": []}}' --type=merge >/dev/null 2>&1
+      set -e
+    fi
 
-  if [[ -f /usr/local/bin/aws ]]; then
-    uninstall_aws
+    kubectl delete --ignore-not-found=true customresourcedefinition scheduledsparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
+    kubectl delete --ignore-not-found=true customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
+    kubectl delete --ignore-not-found=true customresourcedefinition workflows.argoproj.io >/dev/null 2>&1
+    kubectl delete --ignore-not-found=true namespace $CORTEX_NAMESPACE >/dev/null 2>&1
+    echo "✓ Uninstalled the Cortex operator"
+  else
+    echo "The Cortex operator is not installed on your Kubernetes cluster"
   fi
 }
 
@@ -235,6 +225,7 @@ function update_operator() {
   check_dep_curl
   check_dep_kubectl
 
+  echo -e "\nUpdating the Cortex operator ..."
   delete_operator
   setup_configmap
   setup_operator
@@ -244,11 +235,11 @@ function update_operator() {
 function get_endpoints() {
   check_dep_kubectl
 
-  OPERATOR_ENDPOINT=$(get_operator_endpoint)
-  APIS_ENDPOINT=$(get_apis_endpoint)
+  operator_endpoint=$(get_operator_endpoint)
+  apis_endpoint=$(get_apis_endpoint)
   echo
-  echo "operator endpoint:    $OPERATOR_ENDPOINT"
-  echo "APIs endpoint:        $APIS_ENDPOINT"
+  echo "Operator endpoint:  $operator_endpoint"
+  echo "APIs endpoint:      $apis_endpoint"
 }
 
 #################
@@ -1388,64 +1379,63 @@ spec:
 }
 
 function delete_operator() {
-  echo
-  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true ingress operator
-  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true service operator
-  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true deployment operator
+  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true ingress operator >/dev/null 2>&1
+  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true service operator >/dev/null 2>&1
+  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true deployment operator >/dev/null 2>&1
 }
 
 function validate_cortex() {
   set -e
 
-  echo -e "\nValidating the Cortex operator"
+  echo -en "\nWaiting for the Cortex operator to be ready "
 
-  echo -n "  Waiting for load balancer (operator) "
-  while true; do
-    out=$(kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-operator -o json | tr -d '[:space:]')
-    if [[ $out = *'"loadBalancer":{"ingress":[{"'* ]]; then
-      break
-    fi
-    echo -n "."
-    sleep 2
-  done
-  echo " ✓"
+  operator_load_balancer="waiting"
+  api_load_balancer="waiting"
+  operator_endpoint=""
 
-  echo -n "  Waiting for load balancer (APIs) "
   while true; do
-    out=$(kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-apis -o json | tr -d '[:space:]')
-    if [[ $out = *'"loadBalancer":{"ingress":[{"'* ]]; then
-      break
-    fi
     echo -n "."
-    sleep 2
-  done
-  echo " ✓"
+    sleep 5
 
-  echo -n "  Waiting for DNS (operator) "
-  operator_endpoint=$(kubectl -n=cortex get service nginx-controller-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
-  while true; do
-    if curl $operator_endpoint >/dev/null 2>&1; then
-      break
+    if [ "$operator_load_balancer" != "ready" ]; then
+      out=$(kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-operator -o json | tr -d '[:space:]')
+      if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
+        continue
+      fi
+      operator_load_balancer="ready"
     fi
-    echo -n "."
-    sleep 2
+
+    if [ "$api_load_balancer" != "ready" ]; then
+      out=$(kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-apis -o json | tr -d '[:space:]')
+      if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
+        continue
+      fi
+      api_load_balancer="ready"
+    fi
+
+    if [ "$operator_endpoint" = "" ]; then
+      operator_endpoint=$(kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
+    fi
+    if ! curl $operator_endpoint >/dev/null 2>&1; then
+      continue
+    fi
+
+    echo " ✓"
+    break
   done
-  echo " ✓"
 
   echo -e "\nCortex is ready!"
 
   get_endpoints
 
-  echo -e "\nPlease run 'cortex configure' to make sure your CLI is configured correctly"
+  if command -v cortex >/dev/null; then
+    echo -e "\nPlease run \`cortex configure\` to make sure your CLI is configured correctly"
+  fi
 }
 
 function get_operator_endpoint() {
   set -eo pipefail
   kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
-}
-
-function get_operator_endpoint_or_empty() {
-  kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-operator -o json 2>/dev/null | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
 }
 
 function get_apis_endpoint() {
@@ -1486,19 +1476,23 @@ function check_dep_kubectl() {
   fi
 
   if ! kubectl config current-context >/dev/null 2>&1; then
-    echo "error: kubectl is not configured to connect with your cluster. If you are using eksctl, you can run \`eksctl utils write-kubeconfig --name=cortex\` to configure kubectl."
+    echo -e "\nerror: kubectl is not configured to connect with your cluster. If you are using eksctl, you can run this command to configure kubectl:"
+    echo "  eksctl utils write-kubeconfig --name=cortex"
     exit 1
   fi
 
-  JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'
-  GET_NODES_OUTPUT=$(kubectl get nodes -o jsonpath="$JSONPATH" 2>/dev/null)
+  jsonpath='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'
+  set +e
+  get_nodes_output=$(kubectl get nodes -o jsonpath="$jsonpath" 2>/dev/null)
   if [ $? -ne 0 ]; then
-    echo "error: kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can run \`eksctl utils write-kubeconfig --name=cortex\` to configure kubectl."
+    echo -e "\nerror: either your AWS credentials are incorrect or kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can run this command to configure kubectl:"
+    echo "  eksctl utils write-kubeconfig --name=cortex"
     exit 1
   fi
-  NUM_NODES_READY=$(echo $GET_NODES_OUTPUT | tr ';' "\n" | grep "Ready=True" | wc -l)
-  if ! [[ $NUM_NODES_READY -ge 1 ]]; then
-    echo "error: your cluster has no registered nodes"
+  set -e
+  num_nodes_ready=$(echo $get_nodes_output | tr ';' "\n" | grep "Ready=True" | wc -l)
+  if ! [[ $num_nodes_ready -ge 1 ]]; then
+    echo -e "\nerror: your cluster has no registered nodes"
     exit 1
   fi
 }
@@ -1515,16 +1509,18 @@ function install_kubectl() {
 
   echo -e "\nInstalling kubectl (/usr/local/bin/kubectl) ..."
 
-  curl --silent -LO https://storage.googleapis.com/kubernetes-release/release/v1.13.3/bin/$PARSED_OS/amd64/kubectl
-  chmod +x ./kubectl
+  rm -rf $CORTEX_SH_TMP_DIR && mkdir -p $CORTEX_SH_TMP_DIR
+  curl -s -Lo $CORTEX_SH_TMP_DIR/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.13.3/bin/$PARSED_OS/amd64/kubectl
+  chmod +x $CORTEX_SH_TMP_DIR/kubectl
 
   if [ $(id -u) = 0 ]; then
-    mv ./kubectl /usr/local/bin/kubectl
+    mv $CORTEX_SH_TMP_DIR/kubectl /usr/local/bin/kubectl
   else
     ask_sudo
-    sudo mv ./kubectl /usr/local/bin/kubectl
+    sudo mv $CORTEX_SH_TMP_DIR/kubectl /usr/local/bin/kubectl
   fi
 
+  rm -rf $CORTEX_SH_TMP_DIR
   echo "✓ Installed kubectl"
 }
 
@@ -1551,6 +1547,7 @@ function uninstall_kubectl() {
       ask_sudo
       sudo rm /usr/local/bin/kubectl
     fi
+    rm -rf $HOME/.kube
     echo "✓ Uninstalled kubectl"
   else
     return
@@ -1572,12 +1569,12 @@ function check_dep_aws() {
   fi
 
   if [ -z "$AWS_ACCESS_KEY_ID" ]; then
-    echo "error: please export AWS_ACCESS_KEY_ID"
+    echo -e "\nerror: please export AWS_ACCESS_KEY_ID"
     exit 1
   fi
 
   if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-    echo "error: please export AWS_SECRET_ACCESS_KEY"
+    echo -e "\nerror: please export AWS_SECRET_ACCESS_KEY"
     exit 1
   fi
 }
@@ -1594,38 +1591,37 @@ function install_aws() {
   check_dep_unzip
 
   if command -v python >/dev/null; then
-    PY_PATH=$(which python)
+    py_path=$(which python)
   elif command -v python3 >/dev/null; then
-    PY_PATH=$(which python3)
+    py_path=$(which python3)
   else
-    echo "error: please install python or python3 using your package manager"
+    echo -e "\nerror: please install python or python3 using your package manager"
     exit 1
   fi
 
-  if ! $PY_PATH -c "import distutils.sysconfig" >/dev/null 2>&1; then
+  if ! $py_path -c "import distutils.sysconfig" >/dev/null 2>&1; then
     if command -v python3 >/dev/null; then
-      echo "error: please install python3-distutils using your package manager"
+      echo -e "\nerror: please install python3-distutils using your package manager"
     else
-      echo "error: please install python distutils"
+      echo -e "\nerror: please install python distutils"
     fi
     exit 1
   fi
 
   echo -e "\nInstalling the AWS CLI (/usr/local/bin/aws) ..."
 
-  curl -s "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
-  unzip awscli-bundle.zip >/dev/null
-  rm awscli-bundle.zip
+  rm -rf $CORTEX_SH_TMP_DIR && mkdir -p $CORTEX_SH_TMP_DIR
+  curl -s -o $CORTEX_SH_TMP_DIR/awscli-bundle.zip https://s3.amazonaws.com/aws-cli/awscli-bundle.zip
+  unzip $CORTEX_SH_TMP_DIR/awscli-bundle.zip -d $CORTEX_SH_TMP_DIR >/dev/null
 
   if [ $(id -u) = 0 ]; then
-    $PY_PATH ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws >/dev/null
+    $py_path $CORTEX_SH_TMP_DIR/awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws >/dev/null
   else
     ask_sudo
-    sudo $PY_PATH ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws >/dev/null
+    sudo $py_path $CORTEX_SH_TMP_DIR/awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws >/dev/null
   fi
 
-  rm -rf awscli-bundle
-
+  rm -rf $CORTEX_SH_TMP_DIR
   echo "✓ Installed the AWS CLI"
 }
 
@@ -1654,21 +1650,10 @@ function uninstall_aws() {
       sudo rm -rf /usr/local/aws
       sudo rm /usr/local/bin/aws
     fi
+    rm -rf $HOME/.aws
     echo "✓ Uninstalled the AWS CLI"
   else
     return
-  fi
-
-  if [[ -d $HOME/.aws ]]; then
-    echo
-    read -p "Would you like to delete the AWS CLI credentials and configuration (~/.aws)? [Y/n] " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-      rm -rf $HOME/.aws
-      echo "Deleted ~/.aws"
-    else
-      return
-    fi
   fi
 }
 
@@ -1684,16 +1669,18 @@ function install_eksctl() {
 
   echo -e "\nInstalling eksctl (/usr/local/bin/eksctl) ..."
 
-  curl -s --location "https://github.com/weaveworks/eksctl/releases/download/0.1.19/eksctl_$(uname -s)_amd64.tar.gz" | tar xz
-  chmod +x ./eksctl
+  rm -rf $CORTEX_SH_TMP_DIR && mkdir -p $CORTEX_SH_TMP_DIR
+  (cd $CORTEX_SH_TMP_DIR && curl -s --location "https://github.com/weaveworks/eksctl/releases/download/0.1.19/eksctl_$(uname -s)_amd64.tar.gz" | tar xz)
+  chmod +x $CORTEX_SH_TMP_DIR/eksctl
 
   if [ $(id -u) = 0 ]; then
-    mv ./eksctl /usr/local/bin/eksctl
+    mv $CORTEX_SH_TMP_DIR/eksctl /usr/local/bin/eksctl
   else
     ask_sudo
-    sudo mv ./eksctl /usr/local/bin/eksctl
+    sudo mv $CORTEX_SH_TMP_DIR/eksctl /usr/local/bin/eksctl
   fi
 
+  rm -rf $CORTEX_SH_TMP_DIR
   echo "✓ Installed eksctl"
 }
 
@@ -1738,16 +1725,18 @@ function install_aws_iam_authenticator() {
 
   echo -e "\nInstalling aws-iam-authenticator (/usr/local/bin/aws-iam-authenticator) ..."
 
-  curl -s -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.11.5/2018-12-06/bin/$PARSED_OS/amd64/aws-iam-authenticator
-  chmod +x ./aws-iam-authenticator
+  rm -rf $CORTEX_SH_TMP_DIR && mkdir -p $CORTEX_SH_TMP_DIR
+  curl -s -o $CORTEX_SH_TMP_DIR/aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.11.5/2018-12-06/bin/$PARSED_OS/amd64/aws-iam-authenticator
+  chmod +x $CORTEX_SH_TMP_DIR/aws-iam-authenticator
 
   if [ $(id -u) = 0 ]; then
-    mv ./aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
+    mv $CORTEX_SH_TMP_DIR/aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
   else
     ask_sudo
-    sudo mv ./aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
+    sudo mv $CORTEX_SH_TMP_DIR/aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
   fi
 
+  rm -rf $CORTEX_SH_TMP_DIR
   echo "✓ Installed aws-iam-authenticator"
 }
 
@@ -1789,39 +1778,37 @@ function install_cortex_cli() {
   fi
 
   check_dep_curl
-  check_dep_unzip
 
   echo -e "\nInstalling the Cortex CLI (/usr/local/bin/cortex) ..."
 
-  curl -s -O https://s3-us-west-2.amazonaws.com/get-cortex/cortex-cli-${CORTEX_VERSION_STABLE}-${PARSED_OS}.zip
-  unzip cortex-cli-${CORTEX_VERSION_STABLE}-${PARSED_OS}.zip >/dev/null
-  chmod +x cortex
+  rm -rf $CORTEX_SH_TMP_DIR && mkdir -p $CORTEX_SH_TMP_DIR
+  curl -s -o $CORTEX_SH_TMP_DIR/cortex https://s3-us-west-2.amazonaws.com/get-cortex/$CORTEX_VERSION_STABLE/cli/$PARSED_OS/cortex
+  chmod +x $CORTEX_SH_TMP_DIR/cortex
 
   if [ $(id -u) = 0 ]; then
-    mv cortex /usr/local/bin/cortex
+    mv $CORTEX_SH_TMP_DIR/cortex /usr/local/bin/cortex
   else
     ask_sudo
-    sudo mv cortex /usr/local/bin/cortex
+    sudo mv $CORTEX_SH_TMP_DIR/cortex /usr/local/bin/cortex
   fi
 
-  rm cortex-cli-${CORTEX_VERSION_STABLE}-${PARSED_OS}.zip
-
+  rm -rf $CORTEX_SH_TMP_DIR
   echo "✓ Installed the Cortex CLI"
 
-  BASH_PROFILE=$(get_bash_profile)
-  if [ ! "$BASH_PROFILE" = "" ]; then
-    if ! grep -Fxq "source <(cortex completion)" "$BASH_PROFILE"; then
+  bash_profile_path=$(get_bash_profile)
+  if [ ! "$bash_profile_path" = "" ]; then
+    if ! grep -Fxq "source <(cortex completion)" "$bash_profile_path"; then
       echo
-      read -p "Would you like to modify your bash profile ($BASH_PROFILE) to enable cortex bash completion and the cx alias? [Y/n] " -n 1 -r
+      read -p "Would you like to modify your bash profile ($bash_profile_path) to enable cortex command completion and the cx alias? [Y/n] " -n 1 -r
       echo
       if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "\nsource <(cortex completion)" >> $BASH_PROFILE
-        echo "✓ Your bash profile ($BASH_PROFILE) has been updated"
+        echo -e "\nsource <(cortex completion)" >> $bash_profile_path
+        echo "✓ Your bash profile ($bash_profile_path) has been updated"
         echo
         echo "Note: \`bash_completion\` must be installed on your system for cortex command completion to function properly"
         echo
         echo "Command to update your current terminal session:"
-        echo "  source $BASH_PROFILE"
+        echo "  source $bash_profile_path"
       else
         echo "Your bash profile has not been modified. If you would like to modify it manually, add this line to your bash profile:"
         echo "  source <(cortex completion)"
@@ -1829,19 +1816,10 @@ function install_cortex_cli() {
       fi
     fi
   else
-    echo -e "\nIf your would like to enable cortex bash completion and the cx alias, add this line to your bash profile:"
+    echo -e "\nIf your would like to enable cortex command completion and the cx alias, add this line to your bash profile:"
     echo "  source <(cortex completion)"
     echo "Note: \`bash_completion\` must be installed on your system for cortex command completion to function properly"
   fi
-
-  OPERATOR_ENDPOINT=$(get_operator_endpoint_or_empty)
-  if [ "$OPERATOR_ENDPOINT" != "" ]; then
-    export CORTEX_OPERATOR_ENDPOINT="$OPERATOR_ENDPOINT"
-  fi
-
-  echo
-  echo "Running \`cortex configure\` ..."
-  /usr/local/bin/cortex configure
 }
 
 function uninstall_cortex_cli() {
@@ -1867,15 +1845,15 @@ function uninstall_cortex_cli() {
   fi
   echo -e "\n✓ Uninstalled the Cortex CLI"
 
-  BASH_PROFILE=$(get_bash_profile)
-  if [ ! "$BASH_PROFILE" = "" ]; then
-    if grep -Fxq "source <(cortex completion)" "$BASH_PROFILE"; then
+  bash_profile_path=$(get_bash_profile)
+  if [ ! "$bash_profile_path" = "" ]; then
+    if grep -Fxq "source <(cortex completion)" "$bash_profile_path"; then
       echo
-      read -p "Would you like to remove \"source <(cortex completion)\" from your bash profile ($BASH_PROFILE)? [Y/n] " -n 1 -r
+      read -p "Would you like to remove \"source <(cortex completion)\" from your bash profile ($bash_profile_path)? [Y/n] " -n 1 -r
       echo
       if [[ $REPLY =~ ^[Yy]$ ]]; then
-        sed '/^source <(cortex completion)$/d' "$BASH_PROFILE" > "${BASH_PROFILE}_cortex_modified" && mv -f "${BASH_PROFILE}_cortex_modified" "$BASH_PROFILE"
-        echo "✓ Your bash profile ($BASH_PROFILE) has been updated"
+        sed '/^source <(cortex completion)$/d' "$bash_profile_path" > "${bash_profile_path}_cortex_modified" && mv -f "${bash_profile_path}_cortex_modified" "$bash_profile_path"
+        echo "✓ Your bash profile ($bash_profile_path) has been updated"
       fi
     fi
   fi
@@ -1913,73 +1891,73 @@ function ask_sudo() {
 ### ARG PROCESSING ###
 ######################
 
-ARG1=${1:-""}
-ARG2=${2:-""}
-ARG3=${3:-""}
+arg1=${1:-""}
+arg2=${2:-""}
+arg3=${3:-""}
 
-if [ -z "$ARG1" ]; then
+if [ -z "$arg1" ]; then
   show_help
   exit 0
 fi
 
-if [ "$ARG1" = "install" ]; then
-  if [ ! "$ARG3" = "" ]; then
+if [ "$arg1" = "install" ]; then
+  if [ ! "$arg3" = "" ]; then
     echo -e "\nerror: too many arguments for install command"
     show_help
     exit 1
-  elif [ "$ARG2" = "operator" ]; then
+  elif [ "$arg2" = "operator" ]; then
     install_operator
-  elif [ "$ARG2" = "cli" ]; then
+  elif [ "$arg2" = "cli" ]; then
     install_cli
-  elif [ "$ARG2" = "kubernetes-tools" ]; then
+  elif [ "$arg2" = "kubernetes-tools" ]; then
     install_kubernetes_tools
-  elif [ "$ARG2" = "" ]; then
+  elif [ "$arg2" = "" ]; then
     echo -e "\nerror: missing subcommand for install"
     show_help
     exit 1
   else
-    echo -e "\nerror: invalid subcommand for install: $ARG2"
+    echo -e "\nerror: invalid subcommand for install: $arg2"
     show_help
     exit 1
   fi
-elif [ "$ARG1" = "uninstall" ]; then
-  if [ ! "$ARG3" = "" ]; then
+elif [ "$arg1" = "uninstall" ]; then
+  if [ ! "$arg3" = "" ]; then
     echo -e "\nerror: too many arguments for uninstall command"
     show_help
     exit 1
-  elif [ "$ARG2" = "operator" ]; then
+  elif [ "$arg2" = "operator" ]; then
     uninstall_operator
-  elif [ "$ARG2" = "cli" ]; then
+  elif [ "$arg2" = "cli" ]; then
     uninstall_cli
-  elif [ "$ARG2" = "kubernetes-tools" ]; then
+  elif [ "$arg2" = "kubernetes-tools" ]; then
     uninstall_kubernetes_tools
-  elif [ "$ARG2" = "" ]; then
+  elif [ "$arg2" = "" ]; then
     echo -e "\nerror: missing subcommand for uninstall"
     show_help
     exit 1
   else
-    echo -e "\nerror: invalid subcommand for uninstall: $ARG2"
+    echo -e "\nerror: invalid subcommand for uninstall: $arg2"
     show_help
     exit 1
   fi
-elif [ "$ARG1" = "update" ]; then
-  if [ ! "$ARG3" = "" ]; then
+elif [ "$arg1" = "update" ]; then
+  if [ ! "$arg3" = "" ]; then
     echo -e "\nerror: too many arguments for update command"
     show_help
     exit 1
-  elif [ "$ARG2" = "operator" ]; then
+  elif [ "$arg2" = "operator" ]; then
     update_operator
-  elif [ "$ARG2" = "" ]; then
+  elif [ "$arg2" = "" ]; then
     echo -e "\nerror: missing subcommand for update"
     show_help
     exit 1
   else
-    echo -e "\nerror: invalid subcommand for update: $ARG2"
+    echo -e "\nerror: invalid subcommand for update: $arg2"
     show_help
     exit 1
   fi
-elif [ "$ARG1" = "endpoints" ]; then
-  if [ ! "$ARG2" = "" ]; then
+elif [ "$arg1" = "endpoints" ]; then
+  if [ ! "$arg2" = "" ]; then
     echo -e "\nerror: too many arguments for endpoints command"
     show_help
     exit 1
@@ -1987,7 +1965,7 @@ elif [ "$ARG1" = "endpoints" ]; then
     get_endpoints
   fi
 else
-  echo -e "\nerror: unknown command: $ARG1"
+  echo -e "\nerror: unknown command: $arg1"
   show_help
   exit 1
 fi
