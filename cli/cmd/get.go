@@ -123,6 +123,8 @@ func resourceByNameStr(resourceName string, resourcesRes *schema.GetResourcesRes
 		return "", err
 	}
 	switch resourceType := rs.GetResourceType(); resourceType {
+	case resource.PythonPackageType:
+		return describePythonPackage(resourceName, resourcesRes)
 	case resource.RawColumnType:
 		return describeRawColumn(resourceName, resourcesRes)
 	case resource.AggregateType:
@@ -142,6 +144,8 @@ func resourceByNameStr(resourceName string, resourcesRes *schema.GetResourcesRes
 
 func resourcesByTypeStr(resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	switch resourceType {
+	case resource.PythonPackageType:
+		return "\n" + pythonPackagesStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.RawColumnType:
 		return "\n" + rawColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.AggregateType:
@@ -161,6 +165,8 @@ func resourcesByTypeStr(resourceType resource.Type, resourcesRes *schema.GetReso
 
 func resourceByNameAndTypeStr(resourceName string, resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	switch resourceType {
+	case resource.PythonPackageType:
+		return describePythonPackage(resourceName, resourcesRes)
 	case resource.RawColumnType:
 		return describeRawColumn(resourceName, resourcesRes)
 	case resource.AggregateType:
@@ -180,6 +186,8 @@ func resourceByNameAndTypeStr(resourceName string, resourceType resource.Type, r
 
 func allResourcesStr(resourcesRes *schema.GetResourcesResponse) string {
 	out := ""
+	out += titleStr("Python Packages")
+	out += pythonPackagesStr(resourcesRes.DataStatuses, resourcesRes.Context)
 	out += titleStr("Raw Columns")
 	out += rawColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context)
 	out += titleStr("Aggregates")
@@ -193,6 +201,18 @@ func allResourcesStr(resourcesRes *schema.GetResourcesResponse) string {
 	out += titleStr("APIs")
 	out += apisStr(resourcesRes.APIGroupStatuses)
 	return out
+}
+
+func pythonPackagesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
+	if len(ctx.PythonPackages) == 0 {
+		return "None\n"
+	}
+
+	strings := make(map[string]string)
+	for name, pythonPackage := range ctx.PythonPackages {
+		strings[name] = dataResourceRow(name, pythonPackage, dataStatuses)
+	}
+	return dataResourcesHeader() + strMapToStr(strings)
 }
 
 func rawColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
@@ -266,6 +286,15 @@ func apisStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
 		strings[name] = apiResourceRow(apiGroupStatus)
 	}
 	return apisHeader() + strMapToStr(strings)
+}
+
+func describePythonPackage(name string, resourcesRes *schema.GetResourcesResponse) (string, error) {
+	pythonPackage := resourcesRes.Context.PythonPackages[name]
+	if pythonPackage == nil {
+		return "", userconfig.ErrorUndefinedResource(name, resource.PythonPackageType)
+	}
+	dataStatus := resourcesRes.DataStatuses[pythonPackage.GetID()]
+	return dataStatusSummary(dataStatus), nil
 }
 
 func describeRawColumn(name string, resourcesRes *schema.GetResourcesResponse) (string, error) {

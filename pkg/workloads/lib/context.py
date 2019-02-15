@@ -66,6 +66,7 @@ class Context:
         self.status_prefix = self.ctx["status_prefix"]
         self.app = self.ctx["app"]
         self.environment = self.ctx["environment"]
+        self.python_packages = self.ctx["python_packages"]
         self.raw_columns = self.ctx["raw_columns"]
         self.transformed_columns = self.ctx["transformed_columns"]
         self.transformers = self.ctx["transformers"]
@@ -106,6 +107,7 @@ class Context:
         os.environ["AWS_REGION"] = self.region
 
         # Id map
+        self.pp_id_map = ResourceMap(self.python_packages)
         self.rf_id_map = ResourceMap(self.raw_columns)
         self.ag_id_map = ResourceMap(self.aggregates)
         self.tf_id_map = ResourceMap(self.transformed_columns)
@@ -115,6 +117,7 @@ class Context:
         self.constants_id_map = ResourceMap(self.constants)
 
         self.id_map = util.merge_dicts_overwrite(
+            self.pp_id_map,
             self.rf_id_map,
             self.ag_id_map,
             self.tf_id_map,

@@ -126,16 +126,20 @@ def upload_string_to_s3(string, key, bucket, client_config={}):
     s3.put_object(Bucket=bucket, Key=key, Body=string)
 
 
-def read_string_from_s3(key, bucket, allow_missing=True, client_config={}):
+def read_bytes_from_s3(key, bucket, allow_missing=True, client_config={}):
     s3 = s3_client(client_config)
     try:
-        string = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
+        byte_array = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
     except s3.exceptions.NoSuchKey as e:
         if allow_missing:
             return None
         raise e
 
-    return string.strip()
+    return byte_array.strip()
+
+
+def read_string_from_s3(key, bucket, allow_missing=True, decoding="utf-8", client_config={}):
+    return read_bytes_from_s3(key, bucket, allow_missing, client_config).decode(decoding)
 
 
 def upload_empty_file_to_s3(key, bucket, client_config={}):
@@ -147,7 +151,7 @@ def upload_json_to_s3(obj, key, bucket, client_config={}):
 
 
 def read_json_from_s3(key, bucket, allow_missing=True, client_config={}):
-    obj = read_string_from_s3(key, bucket, allow_missing, client_config)
+    obj = read_bytes_from_s3(key, bucket, allow_missing, client_config)
     if obj is None:
         return None
     return json.loads(obj)
@@ -158,7 +162,7 @@ def upload_msgpack_to_s3(obj, key, bucket, client_config={}):
 
 
 def read_msgpack_from_s3(key, bucket, allow_missing=True, client_config={}):
-    obj = read_string_from_s3(key, bucket, allow_missing, client_config)
+    obj = read_bytes_from_s3(key, bucket, allow_missing, client_config)
     if obj == None:
         return None
     return msgpack.loads(obj)
@@ -169,7 +173,7 @@ def upload_obj_to_s3(obj, key, bucket, client_config={}):
 
 
 def read_obj_from_s3(key, bucket, allow_missing=True, client_config={}):
-    obj = read_string_from_s3(key, bucket, allow_missing, client_config)
+    obj = read_bytes_from_s3(key, bucket, allow_missing, client_config)
     if obj is None:
         return None
     return pickle.loads(obj)
@@ -197,6 +201,13 @@ def download_dir_from_s3(prefix, local_dir, bucket, client_config={}):
         rel_path = util.remove_prefix_if_present(key, prefix)
         local_dest_path = os.path.join(local_dir, rel_path)
         download_file_from_s3(key, local_dest_path, bucket, client_config=client_config)
+
+
+def compress_zip_and_upload(local_path, key, bucket, client_config={}):
+    s3 = s3_client(client_config)
+    util.zip_dir(local_path, "temp.zip")
+    s3.upload_file("temp.zip", bucket, key)
+    util.rm_file("temp.zip")
 
 
 def download_and_extract_zip(key, local_dir, bucket, client_config={}):

@@ -45,7 +45,6 @@ The following packages have been pre-installed and can be used in your implement
 pyspark==2.4.0
 pyyaml==3.13
 numpy==1.15.4
-pillow==5.4.1
 pandas==0.23.4
 scipy==1.2.0
 sympy==1.3
@@ -54,3 +53,5 @@ python-dateutil==2.7.5
 six==1.11.0
 wrapt==1.11.0
 ```
+
+You can install additional PyPI packages and import your own Python packages. See [Python Packages](../advanced/python-packages.md) for more details.

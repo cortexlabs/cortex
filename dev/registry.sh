@@ -46,6 +46,7 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/tf-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-train --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-api --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/python-packager --region=$REGISTRY_REGION || true
 }
 
 ### HELPERS ###
@@ -127,6 +128,7 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/argo-controller argo-controller latest
     build_and_push $ROOT/images/argo-executor argo-executor latest
     build_and_push $ROOT/images/tf-serve tf-serve latest
+    build_and_push $ROOT/images/python-packager python-packager latest
   fi
 
   build_and_push $ROOT/images/spark spark latest

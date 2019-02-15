@@ -173,9 +173,24 @@ func IsFilePathPython(path string) bool {
 // If passed a dir, returning false will ignore all subdirs of dir
 type IgnoreFn func(string, os.FileInfo) (bool, error)
 
-func IgnoreDotFiles(path string, fi os.FileInfo) (bool, error) {
+func IgnoreHiddenFiles(path string, fi os.FileInfo) (bool, error) {
 	if !fi.IsDir() && strings.HasPrefix(fi.Name(), ".") {
 		return true, nil
+	}
+	return false, nil
+}
+
+func IgnoreHiddenFolders(path string, fi os.FileInfo) (bool, error) {
+	if fi.IsDir() && strings.HasPrefix(fi.Name(), ".") {
+		return true, nil
+	}
+	return false, nil
+}
+
+func IgnorePythonGeneratedFiles(path string, fi os.FileInfo) (bool, error) {
+	if !fi.IsDir() {
+		ext := filepath.Ext(path)
+		return ext == ".pyc" || ext == ".pyo" || ext == ".pyd", nil
 	}
 	return false, nil
 }

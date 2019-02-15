@@ -2,7 +2,6 @@ boto3==1.9.78
 
 pyyaml==3.13
 numpy==1.15.4
-pillow==5.4.1
 pandas==0.23.4
 scipy==1.2.0
 sympy==1.3
