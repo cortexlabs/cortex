@@ -137,7 +137,6 @@ func ErrorDuplicateResourceName(resources ...Resource) error {
 	for i, res := range resources {
 		filePaths[i] = res.GetFilePath()
 		resourceTypes[i] = res.GetResourceType()
-
 	}
 
 	return ConfigError{

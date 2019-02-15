@@ -31,15 +31,15 @@ func Identify(r Resource) string {
 	return fmt.Sprintf("%s: %s: %s", r.GetFilePath(), r.GetResourceType().String(), r.GetName())
 }
 
-func FindDuplicateResourceName(in ...Resource) []Resource {
-	names := map[string][]Resource{}
-	for _, elem := range in {
-		names[elem.GetName()] = append(names[elem.GetName()], elem)
+func FindDuplicateResourceName(resources ...Resource) []Resource {
+	names := make(map[string][]Resource)
+	for _, r := range resources {
+		names[r.GetName()] = append(names[r.GetName()], r)
 	}
 
-	for key := range names {
-		if len(names[key]) > 1 {
-			return names[key]
+	for name := range names {
+		if len(names[name]) > 1 {
+			return names[name]
 		}
 	}
 
