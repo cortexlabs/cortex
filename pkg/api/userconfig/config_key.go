@@ -37,9 +37,11 @@ const (
 	ValueKey           = "value"
 
 	// environment
-	SubsetKey   = "subset"
-	LimitKey    = "limit"
-	FractionKey = "fraction"
+	LimitKey          = "limit"
+	NumRowsKey        = "num_rows"
+	FractionOfRowsKey = "fraction_of_rows"
+	RandomizeKey      = "randomize"
+	RandomSeedKey     = "random_seed"
 
 	// model
 	NumEpochsKey           = "num_epochs"

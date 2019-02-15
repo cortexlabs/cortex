@@ -108,19 +108,22 @@ def validate_dataset(ctx, raw_df, cols_to_validate):
         raise UserException("raw column validations failed")
 
 
-def subset_dataset(full_dataset_size, ingest_df, subset_config):
+def limit_dataset(full_dataset_size, ingest_df, limit_config):
     max_rows = full_dataset_size
-    if subset_config.get("limit") is not None:
-        max_rows = min(subset_config["limit"], full_dataset_size)
-        fraction = float(subset_config["limit"] / full_dataset_size)
-    elif subset_config.get("fraction") is not None:
-        max_rows = round(full_dataset_size * subset_config["fraction"])
-        fraction = subset_config["fraction"]
+    if limit_config.get("num_rows") is not None:
+        max_rows = min(limit_config["num_rows"], full_dataset_size)
+        fraction = float(max_rows) / full_dataset_size
+    elif limit_config.get("fraction_of_rows") is not None:
+        fraction = limit_config["fraction_of_rows"]
+        max_rows = round(full_dataset_size * fraction)
     if max_rows == full_dataset_size:
         return ingest_df
-    if subset_config["shuffle"]:
-        ingest_df = ingest_df.sample(fraction=fraction, seed=subset_config["seed"])
-    logger.info("Selecting a subset of data of atmost {} rows".format(max_rows))
+    if limit_config["randomize"]:
+        fraction = min(
+            fraction * 1.1, 1.0  # increase the odds of getting the desired target row count
+        )
+        ingest_df = ingest_df.sample(fraction=fraction, seed=limit_config["random_seed"])
+    logger.info("Selecting a subset of data of at most {} rows".format(max_rows))
     return ingest_df.limit(max_rows)
 
 
@@ -155,8 +158,8 @@ def ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest):
                 logger.info("Dropping any rows that contain null values")
                 ingest_df = ingest_df.dropna()
 
-            if ctx.environment.get("subset"):
-                ingest_df = subset_dataset(full_dataset_size, ingest_df, ctx.environment["subset"])
+            if ctx.environment.get("limit"):
+                ingest_df = limit_dataset(full_dataset_size, ingest_df, ctx.environment["limit"])
 
             written_count = write_raw_dataset(ingest_df, ctx, spark)
             metadata = {"dataset_size": written_count}

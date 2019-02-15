@@ -1,5 +1,9 @@
 - kind: environment
   name: dev
+  limit:
+    fraction_of_rows: 0.5
+    randomize: true
+    random_seed: 1
   data:
     type: csv
     path: s3a://cortex-examples/iris.csv
