@@ -6,11 +6,6 @@ go: "1.11.5"
 services:
   - docker
 
-before_install:
-  - sudo apt-get install -y apt-transport-https ca-certificates software-properties-common zip python3-pip python3-dev build-essential
-  - sudo pip3 install --upgrade pip
-  - pip3 install --upgrade awscli --user
-
 jobs:
   include:
     - stage: files
