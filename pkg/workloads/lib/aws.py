@@ -151,7 +151,7 @@ def upload_json_to_s3(obj, key, bucket, client_config={}):
 
 
 def read_json_from_s3(key, bucket, allow_missing=True, client_config={}):
-    obj = read_bytes_from_s3(key, bucket, allow_missing, client_config)
+    obj = read_bytes_from_s3(key, bucket, allow_missing, client_config).decode("utf-8")
     if obj is None:
         return None
     return json.loads(obj)
