@@ -359,11 +359,11 @@ func NewPartialPath(filePath string) (*Config, error) {
 func New(configs map[string][]byte, envName string) (*Config, error) {
 	var err error
 	config := &Config{}
-	for configPath, configBytes := range configs {
-		if !util.IsFilePathYAML(configPath) {
+	for filePath, configBytes := range configs {
+		if !util.IsFilePathYAML(filePath) {
 			continue
 		}
-		config, err = config.MergeBytes(configBytes, configPath)
+		config, err = config.MergeBytes(configBytes, filePath)
 		if err != nil {
 			return nil, err
 		}
