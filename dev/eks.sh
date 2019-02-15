@@ -33,7 +33,7 @@ if [ "$1" = "start" ]; then
     echo "kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v1.11/nvidia-device-plugin.yml"
   fi
   eks_set_cluster
-  
+
 elif [ "$1" = "update" ]; then
   echo "Not implemented"
 

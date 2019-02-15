@@ -138,7 +138,6 @@ spec:
   role: Node
   subnets:
   - ${K8S_ZONE}
-
 EOM
 }
 

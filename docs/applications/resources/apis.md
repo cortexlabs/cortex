@@ -41,6 +41,3 @@ APIs can be configured using `replicas` in the `compute` field. Replicas can be 
 ## Rolling Updates
 
 When the model that an API is serving gets updated, Cortex will update the API with the new model without any downtime.
-
-## GPU Support
-We recommend using GPU compute requests on API resources only if you have enough nodes in your cluster to support the number GPU requests in model training and API ideally with an autoscaler to manage the training nodes. Otherwise, due to the nature of zero downtime rolling updates your model training will not behave as expected as there will always be GPU nodes consumed by APIs from a previous deployment.
