@@ -93,6 +93,7 @@ def build(args):
     ctx.upload_resource_status_start(*python_packages_list)
     try:
         build_packages(python_packages, ctx.bucket)
+        util.log_job_finished(ctx.workload_id)
     except Exception as e:
         logger.exception(e)
         ctx.upload_resource_status_failed(*python_packages_list)
