@@ -9,10 +9,9 @@ Transfer data at scale from data warehouses like S3 into the Cortex environment.
   name: <string>  # environment name (required)
   limit:
       # specify `num_rows` or `fraction_of_rows` if using `limit`
-      # exact dataset size is not guaranteed
       num_rows: <int>  # maximum number of rows to select from the dataset
       fraction_of_rows: <float>  # fraction of rows to select from the dataset
-      randomize: <bool>  # flag to indicate random selection of data
+      randomize: <bool>  # flag to indicate random selection of data (exact dataset size will not be guaranteed when using this option)
       random_seed: <int>  # seed value for randomizing
   log_level:
     tensorflow: <string>  # TensorFlow log level (DEBUG, INFO, WARN, ERROR, or FATAL) (default: INFO)

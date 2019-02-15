@@ -253,7 +253,7 @@ func ErrorSpecifyOnlyOne(vals ...string) error {
 }
 
 func ErrorOneOfPrerequisitesNotDefined(argName string, prerequisites ...string) error {
-	message := fmt.Sprintf("%s specified without specifying %s", argName, s.UserStrsOr(prerequisites))
+	message := fmt.Sprintf("%s specified without specifying %s", s.UserStr(argName), s.UserStrsOr(prerequisites))
 
 	return ConfigError{
 		Kind:    ErrOneOfPrerequisitesNotDefined,
