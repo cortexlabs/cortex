@@ -1,11 +1,11 @@
 
 ---
 Checklist:
-- [ ] Add license header to each new file
-- [ ] Test end to end manually (e.g. rebuild registry/operator and run `cx refresh` in an example folder)
 - [ ] Run automated tests (`./build/test.sh`)
+- [ ] Test end to end manually (e.g. rebuild registry/operator and run `cx refresh` in an example folder)
+- [ ] Add license header to each new file
 - [ ] Update documentation
 - [ ] Update examples and `cx init`
 - [ ] Alert team if dev environment changed
-- [ ] Cherry-pick bugfixes into release branches
+- [ ] Cherry-pick into release branches if it's a bugfix
 - [ ] Delete the branch once it's merged
