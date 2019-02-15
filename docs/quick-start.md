@@ -71,7 +71,7 @@ Cortex will be able to read from any S3 bucket that your AWS credentials grant a
 
 #### Define raw columns
 
-The Iris Data Set consists of four attributes and a label. We ensure that the data matches the types we expect, the numerical data is within a reasonable range, and the class labels are within the set of expected strings.
+The iris data set consists of four attributes and a label. We ensure that the data matches the types we expect, the numerical data is within a reasonable range, and the class labels are within the set of expected strings.
 
 Add to `app.yaml`:
 
