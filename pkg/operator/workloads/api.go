@@ -62,10 +62,10 @@ func apiSpec(
 	}
 
 	servingImage := cc.TFServeImage
-	if apiCompute.GPU != nil {
+	if apiCompute.GPU > 0 {
 		servingImage = cc.TFServeImageGPU
-		tfServingResourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(*apiCompute.GPU, k8sresource.DecimalSI)
-		tfServingLimitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(*apiCompute.GPU, k8sresource.DecimalSI)
+		tfServingResourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(apiCompute.GPU, k8sresource.DecimalSI)
+		tfServingLimitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(apiCompute.GPU, k8sresource.DecimalSI)
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -320,7 +320,7 @@ func APIDeploymentCompute(deployment *appsv1b1.Deployment) userconfig.APICompute
 	}
 }
 
-func APIPodCompute(containers []corev1.Container) (*userconfig.Quantity, *userconfig.Quantity, *int64) {
+func APIPodCompute(containers []corev1.Container) (*userconfig.Quantity, *userconfig.Quantity, int64) {
 	var totalCPU *userconfig.Quantity
 	var totalMem *userconfig.Quantity
 	var totalGPU int64
@@ -355,5 +355,5 @@ func APIPodCompute(containers []corev1.Container) (*userconfig.Quantity, *userco
 		}
 	}
 
-	return totalCPU, totalMem, &totalGPU
+	return totalCPU, totalMem, totalGPU
 }

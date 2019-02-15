@@ -189,7 +189,7 @@ type APICompute struct {
 	Replicas int32     `json:"replicas" yaml:"replicas"`
 	CPU      *Quantity `json:"cpu" yaml:"cpu"`
 	Mem      *Quantity `json:"mem" yaml:"mem"`
-	GPU      *int64    `json:"gpu" yaml:"gpu"`
+	GPU      int64     `json:"gpu" yaml:"gpu"`
 }
 
 var apiComputeFieldValidation = &cr.StructFieldValidation{
@@ -223,9 +223,9 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 			},
 			&cr.StructFieldValidation{
 				StructField: "GPU",
-				Int64PtrValidation: &cr.Int64PtrValidation{
-					Default:     nil,
-					GreaterThan: util.Int64Ptr(0),
+				Int64Validation: &cr.Int64Validation{
+					Default:              0,
+					GreaterThanOrEqualTo: util.Int64Ptr(0),
 				},
 			},
 		},
@@ -237,9 +237,7 @@ func (apiCompute *APICompute) ID() string {
 	buf.WriteString(s.Int32(apiCompute.Replicas))
 	buf.WriteString(QuantityPtrID(apiCompute.CPU))
 	buf.WriteString(QuantityPtrID(apiCompute.Mem))
-	if apiCompute.GPU != nil {
-		buf.WriteString(s.Int64(*apiCompute.GPU))
-	}
+	buf.WriteString(s.Int64(apiCompute.GPU))
 	return util.HashBytes(buf.Bytes())
 }
 
@@ -247,9 +245,7 @@ func (apiCompute *APICompute) IDWithoutReplicas() string {
 	var buf bytes.Buffer
 	buf.WriteString(QuantityPtrID(apiCompute.CPU))
 	buf.WriteString(QuantityPtrID(apiCompute.Mem))
-	if apiCompute.GPU != nil {
-		buf.WriteString(s.Int64(*apiCompute.GPU))
-	}
+	buf.WriteString(s.Int64(apiCompute.GPU))
 	return util.HashBytes(buf.Bytes())
 }
 
@@ -327,15 +323,7 @@ func (apiCompute *APICompute) Equal(apiCompute2 APICompute) bool {
 		return false
 	}
 
-	if apiCompute.GPU != nil && apiCompute2.GPU == nil {
-		return false
-	}
-
-	if apiCompute.GPU == nil && apiCompute2.GPU != nil {
-		return false
-	}
-
-	if apiCompute.GPU != nil && apiCompute2.GPU != nil && *apiCompute.GPU != *apiCompute2.GPU {
+	if apiCompute.GPU != apiCompute2.GPU {
 		return false
 	}
 
