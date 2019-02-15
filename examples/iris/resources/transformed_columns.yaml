@@ -1,48 +1,48 @@
-- kind: transformed_feature
+- kind: transformed_column
   name: sepal_length_normalized
   transformer: cortex.normalize
   inputs:
-    features:
+    columns:
       num: sepal_length
     args:
       mean: sepal_length_mean
       stddev: sepal_length_stddev
 
-- kind: transformed_feature
+- kind: transformed_column
   name: sepal_width_normalized
   transformer: cortex.normalize
   inputs:
-    features:
+    columns:
       num: sepal_width
     args:
       mean: sepal_width_mean
       stddev: sepal_width_stddev
 
-- kind: transformed_feature
+- kind: transformed_column
   name: petal_length_normalized
   transformer: cortex.normalize
   inputs:
-    features:
+    columns:
       num: petal_length
     args:
       mean: petal_length_mean
       stddev: petal_length_stddev
 
-- kind: transformed_feature
+- kind: transformed_column
   name: petal_width_normalized
   transformer: cortex.normalize
   inputs:
-    features:
+    columns:
       num: petal_width
     args:
       mean: petal_width_mean
       stddev: petal_width_stddev
 
-- kind: transformed_feature
+- kind: transformed_column
   name: class_indexed
   transformer: cortex.index_string
   inputs:
-    features:
+    columns:
       text: class
     args:
       index: class_index

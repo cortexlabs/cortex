@@ -31,10 +31,10 @@ type Model struct {
 	Name               string                   `json:"name" yaml:"name"`
 	Type               string                   `json:"type" yaml:"type"`
 	Path               string                   `json:"path" yaml:"path"`
-	Target             string                   `json:"target" yaml:"target"`
+	TargetColumn       string                   `json:"target_column" yaml:"target_column"`
 	PredictionKey      string                   `json:"prediction_key" yaml:"prediction_key"`
-	Features           []string                 `json:"features" yaml:"features"`
-	TrainingFeatures   []string                 `json:"training_features" yaml:"training_features"`
+	FeatureColumns     []string                 `json:"feature_columns" yaml:"feature_columns"`
+	TrainingColumns    []string                 `json:"training_columns" yaml:"training_columns"`
 	Aggregates         []string                 `json:"aggregates"  yaml:"aggregates"`
 	Hparams            map[string]interface{}   `json:"hparams" yaml:"hparams"`
 	DataPartitionRatio *ModelDataPartitionRatio `json:"data_partition_ratio" yaml:"data_partition_ratio"`
@@ -69,7 +69,7 @@ var modelValidation = &cr.StructValidation{
 			},
 		},
 		&cr.StructFieldValidation{
-			StructField: "Target",
+			StructField: "TargetColumn",
 			StringValidation: &cr.StringValidation{
 				Required: true,
 			},
@@ -82,14 +82,14 @@ var modelValidation = &cr.StructValidation{
 			},
 		},
 		&cr.StructFieldValidation{
-			StructField: "Features",
+			StructField: "FeatureColumns",
 			StringListValidation: &cr.StringListValidation{
 				Required:     true,
 				DisallowDups: true,
 			},
 		},
 		&cr.StructFieldValidation{
-			StructField: "TrainingFeatures",
+			StructField: "TrainingColumns",
 			StringListValidation: &cr.StringListValidation{
 				AllowEmpty:   true,
 				DisallowDups: true,
@@ -347,17 +347,17 @@ func (model *Model) Validate() error {
 		return errors.Wrap(ErrorSpecifyOnlyOne(NumEpochsKey, NumStepsKey), Identify(model), EvaluationKey)
 	}
 
-	for _, trainingFeature := range model.TrainingFeatures {
-		if util.IsStrInSlice(trainingFeature, model.Features) {
-			return errors.Wrap(ErrorDuplicateResourceValue(trainingFeature, TrainingFeaturesKey, FeaturesKey), Identify(model))
+	for _, trainingColumn := range model.TrainingColumns {
+		if util.IsStrInSlice(trainingColumn, model.FeatureColumns) {
+			return errors.Wrap(ErrorDuplicateResourceValue(trainingColumn, TrainingColumnsKey, FeatureColumnsKey), Identify(model))
 		}
 	}
 
 	return nil
 }
 
-func (model *Model) AllFeatureNames() []string {
-	return util.MergeStrSlices(model.Features, model.TrainingFeatures, []string{model.Target})
+func (model *Model) AllColumnNames() []string {
+	return util.MergeStrSlices(model.FeatureColumns, model.TrainingColumns, []string{model.TargetColumn})
 }
 
 func (model *Model) GetName() string {

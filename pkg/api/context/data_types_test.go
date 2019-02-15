@@ -88,34 +88,34 @@ func TestDataTypeID(t *testing.T) {
 	type2 = map[string]string{"a": "INT|BOOL", "b": "STRING|INT"}
 	checkDataTypeIDsNotEqual(type1, type2, t)
 
-	type1 = "STRING_FEATURE"
-	type2 = "STRING_FEATURE"
+	type1 = "STRING_COLUMN"
+	type2 = "STRING_COLUMN"
 	checkDataTypeIDsEqual(type1, type2, t)
-	type2 = "INT_FEATURE"
+	type2 = "INT_COLUMN"
 	checkDataTypeIDsNotEqual(type1, type2, t)
 
-	type1 = "INT_FEATURE|FLOAT_FEATURE|BOOL_FEATURE|STRING_FEATURE"
-	type2 = "INT_FEATURE|FLOAT_FEATURE|BOOL_FEATURE|STRING_FEATURE"
+	type1 = "INT_COLUMN|FLOAT_COLUMN|BOOL_COLUMN|STRING_COLUMN"
+	type2 = "INT_COLUMN|FLOAT_COLUMN|BOOL_COLUMN|STRING_COLUMN"
 	checkDataTypeIDsEqual(type1, type2, t)
-	type2 = "FLOAT_FEATURE|STRING_FEATURE|INT_FEATURE|BOOL_FEATURE"
+	type2 = "FLOAT_COLUMN|STRING_COLUMN|INT_COLUMN|BOOL_COLUMN"
 	checkDataTypeIDsEqual(type1, type2, t)
 
-	type1 = []string{"INT_FEATURE|FLOAT_FEATURE"}
-	type2 = []string{"INT_FEATURE|FLOAT_FEATURE"}
+	type1 = []string{"INT_COLUMN|FLOAT_COLUMN"}
+	type2 = []string{"INT_COLUMN|FLOAT_COLUMN"}
 	checkDataTypeIDsEqual(type1, type2, t)
-	type2 = []string{"FLOAT_FEATURE|INT_FEATURE"}
+	type2 = []string{"FLOAT_COLUMN|INT_COLUMN"}
 	checkDataTypeIDsEqual(type1, type2, t)
-	type2 = []string{"INT_FEATURE|STRING_FEATURE"}
+	type2 = []string{"INT_COLUMN|STRING_COLUMN"}
 	checkDataTypeIDsNotEqual(type1, type2, t)
-	type2 = "INT_FEATURE|FLOAT_FEATURE"
+	type2 = "INT_COLUMN|FLOAT_COLUMN"
 	checkDataTypeIDsNotEqual(type1, type2, t)
 
-	type1 = map[string]string{"INT_FEATURE|FLOAT_FEATURE": "STRING_FEATURE|BOOL_FEATURE"}
-	type2 = map[string]string{"INT_FEATURE|FLOAT_FEATURE": "STRING_FEATURE|BOOL_FEATURE"}
+	type1 = map[string]string{"INT_COLUMN|FLOAT_COLUMN": "STRING_COLUMN|BOOL_COLUMN"}
+	type2 = map[string]string{"INT_COLUMN|FLOAT_COLUMN": "STRING_COLUMN|BOOL_COLUMN"}
 	checkDataTypeIDsEqual(type1, type2, t)
-	type2 = map[string]string{"FLOAT_FEATURE|INT_FEATURE": "BOOL_FEATURE|STRING_FEATURE"}
+	type2 = map[string]string{"FLOAT_COLUMN|INT_COLUMN": "BOOL_COLUMN|STRING_COLUMN"}
 	checkDataTypeIDsEqual(type1, type2, t)
-	type2 = map[string]string{"INT_FEATURE|FLOAT_FEATURE": "STRING_FEATURE|INT_FEATURE"}
+	type2 = map[string]string{"INT_COLUMN|FLOAT_COLUMN": "STRING_COLUMN|INT_COLUMN"}
 	checkDataTypeIDsNotEqual(type1, type2, t)
 }
 

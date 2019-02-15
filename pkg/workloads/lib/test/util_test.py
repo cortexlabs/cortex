@@ -137,24 +137,24 @@ def test_print_samples_horiz(caplog):
     assert "\n".join(records) + "\n" == expected
 
 
-def test_validate_feature_type():
-    assert util.validate_feature_type(2, "INT_FEATURE") == True
-    assert util.validate_feature_type(2.2, "INT_FEATURE") == False
-    assert util.validate_feature_type("2", "INT_FEATURE") == False
-    assert util.validate_feature_type(None, "INT_FEATURE") == True
+def test_validate_column_type():
+    assert util.validate_column_type(2, "INT_COLUMN") == True
+    assert util.validate_column_type(2.2, "INT_COLUMN") == False
+    assert util.validate_column_type("2", "INT_COLUMN") == False
+    assert util.validate_column_type(None, "INT_COLUMN") == True
 
-    assert util.validate_feature_type(2.2, "FLOAT_FEATURE") == True
-    assert util.validate_feature_type(2, "FLOAT_FEATURE") == False
-    assert util.validate_feature_type("2", "FLOAT_FEATURE") == False
-    assert util.validate_feature_type(None, "FLOAT_FEATURE") == True
+    assert util.validate_column_type(2.2, "FLOAT_COLUMN") == True
+    assert util.validate_column_type(2, "FLOAT_COLUMN") == False
+    assert util.validate_column_type("2", "FLOAT_COLUMN") == False
+    assert util.validate_column_type(None, "FLOAT_COLUMN") == True
 
-    assert util.validate_feature_type("2", "STRING_FEATURE") == True
-    assert util.validate_feature_type(2, "STRING_FEATURE") == False
-    assert util.validate_feature_type(2.2, "STRING_FEATURE") == False
-    assert util.validate_feature_type(None, "STRING_FEATURE") == True
+    assert util.validate_column_type("2", "STRING_COLUMN") == True
+    assert util.validate_column_type(2, "STRING_COLUMN") == False
+    assert util.validate_column_type(2.2, "STRING_COLUMN") == False
+    assert util.validate_column_type(None, "STRING_COLUMN") == True
 
-    assert util.validate_feature_type("2", "STRING_LIST_FEATURE") == False
-    assert util.validate_feature_type(["2", "string"], "STRING_LIST_FEATURE") == True
+    assert util.validate_column_type("2", "STRING_LIST_COLUMN") == False
+    assert util.validate_column_type(["2", "string"], "STRING_LIST_COLUMN") == True
 
 
 def test_validate_value_type():

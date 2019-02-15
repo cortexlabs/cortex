@@ -142,13 +142,13 @@ func HTTPUploadZip(endpoint string, zipInput *util.ZipInput, fileName string, qP
 	return HTTPUpload(endpoint, uploadInput, qParams...)
 }
 
-func StreamLogs(appName string, resourceName string, resourceType string, verbose bool) {
+func StreamLogs(appName string, resourceName string, resourceType string, verbose bool) error {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
 	req, err := operatorRequest("GET", "/logs/read", nil, nil)
 	if err != nil {
-		errors.Exit(err)
+		return err
 	}
 
 	values := req.URL.Query()
@@ -170,27 +170,30 @@ func StreamLogs(appName string, resourceName string, resourceType string, verbos
 
 	connection, response, err := dialer.Dial(wsURL, header)
 	if response == nil {
-		errors.Exit(s.ErrFailedToConnect(util.CleanURL(wsURL)))
+		cliConfig := getValidCliConfig()
+		return errors.New(s.ErrFailedToConnect(strings.Replace(cliConfig.CortexURL, "http", "ws", 1)))
 	}
 	defer response.Body.Close()
 
 	if err != nil {
 		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil || bodyBytes == nil || string(bodyBytes) == "" {
-			errors.Exit(s.ErrFailedToConnect(util.CleanURL(wsURL)))
+			cliConfig := getValidCliConfig()
+			return errors.New(s.ErrFailedToConnect(strings.Replace(cliConfig.CortexURL, "http", "ws", 1)))
 		}
 		var output schema.ErrorResponse
 		err = json.Unmarshal(bodyBytes, &output)
 		if err != nil || output.Error == "" {
-			errors.Exit(string(bodyBytes))
+			return errors.New(string(bodyBytes))
 		}
-		errors.Exit(output.Error)
+		return errors.New(output.Error)
 	}
 	defer connection.Close()
 
 	done := make(chan struct{})
 	handleConnection(connection, done)
 	closeConnection(connection, done, interrupt)
+	return nil
 }
 
 func handleConnection(connection *websocket.Conn, done chan struct{}) {
@@ -256,7 +259,8 @@ func makeRequest(request *http.Request) ([]byte, error) {
 
 	response, err := httpClient.Do(request)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrFailedToConnect(util.CleanURL(request.URL.String())))
+		cliConfig := getValidCliConfig()
+		return nil, errors.New(s.ErrFailedToConnect(cliConfig.CortexURL))
 	}
 	defer response.Body.Close()
 
@@ -269,7 +273,7 @@ func makeRequest(request *http.Request) ([]byte, error) {
 		var output schema.ErrorResponse
 		err = json.Unmarshal(bodyBytes, &output)
 		if err != nil || output.Error == "" {
-			return nil, errors.New(string(bodyBytes))
+			return nil, errors.New(strings.TrimSpace(string(bodyBytes)))
 		}
 
 		return nil, errors.New(output.Error)

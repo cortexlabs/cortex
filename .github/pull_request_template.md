@@ -1,6 +1,7 @@
 
 ---
 Checklist:
+- [ ] Add license header to each new file
 - [ ] Test end to end manually (e.g. rebuild registry/operator and run `cx refresh` in an example folder)
 - [ ] Run automated tests (`./build/test.sh`)
 - [ ] Update documentation

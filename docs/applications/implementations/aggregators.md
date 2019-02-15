@@ -3,17 +3,17 @@
 ## Implementation
 
 ```python
-def aggregate_spark(data, features, args):
-    """Aggregate a feature in a PySpark context.
+def aggregate_spark(data, columns, args):
+    """Aggregate a column in a PySpark context.
 
     This function is required.
 
     Args:
-        data: A dataframe including all of the raw features.
+        data: A dataframe including all of the raw columns.
 
-        features: A dict with the same structure as the aggregator's input
-            features specifying the names of the dataframe's columns that
-            contain the input features.
+        columns: A dict with the same structure as the aggregator's input
+            columns specifying the names of the dataframe's columns that
+            contain the input columns.
 
         args: A dict with the same structure as the aggregator's input args
             containing the values of the args.
@@ -27,11 +27,11 @@ def aggregate_spark(data, features, args):
 ## Example
 
 ```python
-def aggregate_spark(data, features, args):
+def aggregate_spark(data, columns, args):
     from pyspark.ml.feature import QuantileDiscretizer
 
     discretizer = QuantileDiscretizer(
-        numBuckets=args["num_buckets"], inputCol=features["col"], outputCol="_"
+        numBuckets=args["num_buckets"], inputCol=columns["col"], outputCol="_"
     ).fit(data)
 
     return discretizer.getSplits()

@@ -1,8 +1,8 @@
-- kind: transformed_feature
+- kind: transformed_column
   name: embedding_input
   transformer: tokenize_string_to_int
   inputs:
-    features:
+    columns:
       col: review
     args:
       max_len: max_review_length
@@ -10,11 +10,11 @@
       vocab: reviews_vocab
       reserved_indices: reserved_indices
 
-- kind: transformed_feature
+- kind: transformed_column
   name: label_indexed
   transformer: cortex.index_string
   inputs:
-    features:
+    columns:
       text: label
     args:
       index: label_index

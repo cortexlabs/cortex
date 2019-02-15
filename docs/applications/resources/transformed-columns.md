@@ -1,16 +1,16 @@
-# Transformed Features
+# Transformed Columns
 
-Transform feature data at scale.
+Transform data at scale.
 
 ## Config
 
 ```yaml
-- kind: transformed_feature
-  name: <string>  # transformed feature name (required)
+- kind: transformed_column
+  name: <string>  # transformed column name (required)
   transformer: <string>  # the name of the transformer to use (required)
   inputs:
-    features:
-      <string>: <string> or <[string]>  # map of feature input name to raw feature name(s) (required)
+    columns:
+      <string>: <string> or <[string]>  # map of column input name to raw column name(s) (required)
       ...
     args:
       <string>: <value>  # value may be an aggregate, constant, or literal value (optional)
@@ -29,7 +29,7 @@ Transform feature data at scale.
     ...
 ```
 
-Note: the `features` and `args` fields of the the transformed feature must match the data types of the `features` and `args` fields of the selected transformer.
+Note: the `columns` and `args` fields of the the transformed column must match the data types of the `columns` and `args` fields of the selected transformer.
 
 Each `args` value may be the name of an aggregate, the name of a constant, or a literal value. Any string value will be assumed to be the name of an aggregate or constant. To use a string literal as an arg, escape it with double quotes (e.g. `arg_name: "\"string literal\""`.
 
@@ -38,35 +38,35 @@ See <!-- CORTEX_VERSION_MINOR -->[`transformers.yaml`](https://github.com/cortex
 ## Example
 
 ```yaml
-- kind: transformed_feature
+- kind: transformed_column
   name: age_normalized
   transformer: cortex.normalize
   inputs:
-    features:
-      num: age  # feature name
+    columns:
+      num: age  # column name
     args:
       mean: age_mean  # the name of a cortex.mean aggregator
       stddev: age_stddev  # the name of a cortex.stddev aggregator
 
-- kind: transformed_feature
+- kind: transformed_column
   name: class_indexed
   transformer: cortex.index_string
   inputs:
-    features:
-      col: class  # the name of a string feature
+    columns:
+      col: class  # the name of a string column
     args:
       index: ["t", "f"]  # a value to be used as the index
 
-- kind: transformed_feature
+- kind: transformed_column
   name: price_bucketized
   transformer: cortex.bucketize
   inputs:
-    features:
-      num: price  # feature name
+    columns:
+      num: price  # column name
     args:
       bucket_boundaries: bucket_boundaries  # the name of a [FLOAT] constant
 ```
 
 ## Validating Transformers
 
-Cortex does not run feature transformers on the full dataset until they are required for model training. However, in order to catch bugs as early as possible, Cortex sanity checks all transformed features by running their transformers against the first 100 samples in the dataset.
+Cortex does not run transformers on the full dataset until they are required for model training. However, in order to catch bugs as early as possible, Cortex sanity checks all transformed columns by running their transformers against the first 100 samples in the dataset.

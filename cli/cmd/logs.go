@@ -57,6 +57,10 @@ var logsCmd = &cobra.Command{
 		if err != nil {
 			errors.Exit(err)
 		}
-		StreamLogs(appName, resourceName, resourceTypeStr, true)
+
+		err = StreamLogs(appName, resourceName, resourceTypeStr, true)
+		if err != nil {
+			errors.Exit(err)
+		}
 	},
 }

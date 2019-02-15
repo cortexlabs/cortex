@@ -171,7 +171,7 @@ var _ = [1]int{}[int(StatusAPIGroupUpdateSkipped)-(len(statusCodeMessages)-1)] /
 
 // StatusDataRunning aliases
 const (
-	RawFeatureRunningMessage      = "ingesting"
+	RawColumnRunningMessage       = "ingesting"
 	AggregatorRunningMessage      = "aggregating"
 	TransformerRunningMessage     = "transforming"
 	TrainingDatasetRunningMessage = "generating"
@@ -231,11 +231,11 @@ func (code StatusCode) SortBucket() int {
 func (status *DataStatus) Message() string {
 	if status.Code == StatusDataRunning {
 		switch status.ResourceType {
-		case RawFeatureType:
-			return RawFeatureRunningMessage
+		case RawColumnType:
+			return RawColumnRunningMessage
 		case AggregateType:
 			return AggregatorRunningMessage
-		case TransformedFeatureType:
+		case TransformedColumnType:
 			return TransformerRunningMessage
 		case TrainingDatasetType:
 			return TrainingDatasetRunningMessage

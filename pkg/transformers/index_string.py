@@ -13,16 +13,16 @@
 # limitations under the License.
 
 
-def transform_spark(data, features, args, transformed_feature):
+def transform_spark(data, columns, args, transformed_column):
     from pyspark.ml.feature import StringIndexerModel
     import pyspark.sql.functions as F
 
     indexer = StringIndexerModel.from_labels(
-        args["index"], inputCol=features["text"], outputCol=transformed_feature
+        args["index"], inputCol=columns["text"], outputCol=transformed_column
     )
 
     return indexer.transform(data).withColumn(
-        transformed_feature, F.col(transformed_feature).cast("int")
+        transformed_column, F.col(transformed_column).cast("int")
     )
 
 

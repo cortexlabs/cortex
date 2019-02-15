@@ -47,7 +47,7 @@ var (
 	ErrCliNotInAppDir           = "your current working directory is not in or under a cortex app directory (identified via a top-level app.yaml file)"
 	ErrLoadBalancerInitializing = "load balancer is still initializing"
 	ErrUnableToAuthAws          = "unable to authenticate with AWS"
-	ErrCortexInstallationBroken = "cortex is out of date, or not installed properly on your cluster; run `./cortex.sh uninstall && ./cortex.sh install`"
+	ErrCortexInstallationBroken = "cortex is out of date, or not installed properly on your cluster; run `./cortex.sh uninstall operator && ./cortex.sh install operator`"
 
 	// internal only
 	ErrUnexpected           = "an unexpected error occurred"
@@ -176,7 +176,7 @@ func ErrDuplicateZipPath(path string) string {
 }
 
 func ErrFailedToConnect(urlStr string) string {
-	return fmt.Sprintf("failed to connect at %s", urlStr)
+	return fmt.Sprintf("failed to connect to the operator (%s), run `cortex configure` if you need to update the operator URL", urlStr)
 }
 
 func ErrBeMoreSpecific(vals ...string) string {

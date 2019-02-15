@@ -34,7 +34,8 @@ Or run:
   echo 'source <(cortex completion)' >> ~/.bash_profile  # Mac
   echo 'source <(cortex completion)' >> ~/.bashrc  # Linux
 
-Note: This will also add the alias "cx"
+This will also add the "cx" alias.
+Note: Cortex CLI completion requires the bash_completion package to be installed on your system.
 `,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {

@@ -127,14 +127,14 @@ func setSkippedDataStatusCodes(dataStatuses map[string]*resource.DataStatus, ctx
 
 func sparkGeneratedResources(ctx *context.Context) map[string]context.Resource {
 	resources := make(map[string]context.Resource)
-	for _, rawFeature := range ctx.RawFeatures {
-		resources[rawFeature.GetID()] = rawFeature
+	for _, rawColumn := range ctx.RawColumns {
+		resources[rawColumn.GetID()] = rawColumn
 	}
 	for _, aggregate := range ctx.Aggregates {
 		resources[aggregate.ID] = aggregate
 	}
-	for _, transformedFeature := range ctx.TransformedFeatures {
-		resources[transformedFeature.ID] = transformedFeature
+	for _, transformedColumn := range ctx.TransformedColumns {
+		resources[transformedColumn.ID] = transformedColumn
 	}
 	for _, model := range ctx.Models {
 		resources[model.Dataset.ID] = model.Dataset

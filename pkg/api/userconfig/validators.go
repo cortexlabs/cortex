@@ -25,13 +25,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
-func isValidFeatureOutputType(featureTypeStr string) bool {
-	return util.IsStrInSlice(featureTypeStr, FeatureTypeStrings())
+func isValidColumnOutputType(columnTypeStr string) bool {
+	return util.IsStrInSlice(columnTypeStr, ColumnTypeStrings())
 }
 
-func isValidFeatureInputType(featureTypeStr string) bool {
-	for _, featureTypeStrItem := range strings.Split(featureTypeStr, "|") {
-		if !util.IsStrInSlice(featureTypeStrItem, FeatureTypeStrings()) {
+func isValidColumnInputType(columnTypeStr string) bool {
+	for _, columnTypeStrItem := range strings.Split(columnTypeStr, "|") {
+		if !util.IsStrInSlice(columnTypeStrItem, ColumnTypeStrings()) {
 			return false
 		}
 	}
@@ -47,122 +47,122 @@ func isValidValueType(valueTypeStr string) bool {
 	return true
 }
 
-func ValidateFeatureInputTypes(featureTypes map[string]interface{}) error {
-	for featureInputName, featureType := range featureTypes {
-		if featureTypeStr, ok := featureType.(string); ok {
-			if !isValidFeatureInputType(featureTypeStr) {
-				return errors.Wrap(ErrorInvalidFeatureInputType(featureTypeStr), featureInputName)
+func ValidateColumnInputTypes(columnTypes map[string]interface{}) error {
+	for columnInputName, columnType := range columnTypes {
+		if columnTypeStr, ok := columnType.(string); ok {
+			if !isValidColumnInputType(columnTypeStr) {
+				return errors.Wrap(ErrorInvalidColumnInputType(columnTypeStr), columnInputName)
 			}
 			continue
 		}
 
-		if featureTypeStrs, ok := cast.InterfaceToStrSlice(featureType); ok {
-			if len(featureTypeStrs) != 1 {
-				return errors.Wrap(ErrorTypeListLength(featureTypeStrs), featureInputName)
+		if columnTypeStrs, ok := cast.InterfaceToStrSlice(columnType); ok {
+			if len(columnTypeStrs) != 1 {
+				return errors.Wrap(ErrorTypeListLength(columnTypeStrs), columnInputName)
 			}
-			if !isValidFeatureInputType(featureTypeStrs[0]) {
-				return errors.Wrap(ErrorInvalidFeatureInputType(featureTypeStrs), featureInputName)
+			if !isValidColumnInputType(columnTypeStrs[0]) {
+				return errors.Wrap(ErrorInvalidColumnInputType(columnTypeStrs), columnInputName)
 			}
 			continue
 		}
 
-		return errors.Wrap(ErrorInvalidFeatureInputType(featureType), featureInputName)
+		return errors.Wrap(ErrorInvalidColumnInputType(columnType), columnInputName)
 	}
 
 	return nil
 }
 
-func ValidateFeatureValues(featuresValues map[string]interface{}) error {
-	for featureInputName, featureValue := range featuresValues {
-		if _, ok := featureValue.(string); ok {
+func ValidateColumnInputValues(columnInputValues map[string]interface{}) error {
+	for columnInputName, columnInputValue := range columnInputValues {
+		if _, ok := columnInputValue.(string); ok {
 			continue
 		}
-		if featureNames, ok := cast.InterfaceToStrSlice(featureValue); ok {
-			if featureNames == nil {
-				return errors.New(featureInputName, s.ErrCannotBeNull)
+		if columnNames, ok := cast.InterfaceToStrSlice(columnInputValue); ok {
+			if columnNames == nil {
+				return errors.New(columnInputName, s.ErrCannotBeNull)
 			}
 			continue
 		}
-		return errors.New(featureInputName, s.ErrInvalidPrimitiveType(featureValue, s.PrimTypeString, s.PrimTypeStringList))
+		return errors.New(columnInputName, s.ErrInvalidPrimitiveType(columnInputValue, s.PrimTypeString, s.PrimTypeStringList))
 	}
 
 	return nil
 }
 
-func ValidateFeatureRuntimeTypes(featureRuntimeTypes map[string]interface{}) error {
-	for featureInputName, featureType := range featureRuntimeTypes {
-		if featureTypeStr, ok := featureType.(string); ok {
-			if !isValidFeatureOutputType(featureTypeStr) {
-				return errors.Wrap(ErrorInvalidFeatureRuntimeType(featureTypeStr), featureInputName)
+func ValidateColumnRuntimeTypes(columnRuntimeTypes map[string]interface{}) error {
+	for columnInputName, columnType := range columnRuntimeTypes {
+		if columnTypeStr, ok := columnType.(string); ok {
+			if !isValidColumnOutputType(columnTypeStr) {
+				return errors.Wrap(ErrorInvalidColumnRuntimeType(columnTypeStr), columnInputName)
 			}
 			continue
 		}
-		if featureTypeStrs, ok := cast.InterfaceToStrSlice(featureType); ok {
-			for i, featureTypeStr := range featureTypeStrs {
-				if !isValidFeatureOutputType(featureTypeStr) {
-					return errors.Wrap(ErrorInvalidFeatureRuntimeType(featureTypeStr), featureInputName, s.Index(i))
+		if columnTypeStrs, ok := cast.InterfaceToStrSlice(columnType); ok {
+			for i, columnTypeStr := range columnTypeStrs {
+				if !isValidColumnOutputType(columnTypeStr) {
+					return errors.Wrap(ErrorInvalidColumnRuntimeType(columnTypeStr), columnInputName, s.Index(i))
 				}
 			}
 			continue
 		}
-		return errors.Wrap(ErrorInvalidFeatureRuntimeType(featureType), featureInputName)
+		return errors.Wrap(ErrorInvalidColumnRuntimeType(columnType), columnInputName)
 	}
 
 	return nil
 }
 
-func CheckFeatureRuntimeTypesMatch(featureRuntimeTypes map[string]interface{}, featureSchemaTypes map[string]interface{}) error {
-	err := ValidateFeatureInputTypes(featureSchemaTypes)
+func CheckColumnRuntimeTypesMatch(columnRuntimeTypes map[string]interface{}, columnSchemaTypes map[string]interface{}) error {
+	err := ValidateColumnInputTypes(columnSchemaTypes)
 	if err != nil {
 		return err
 	}
-	err = ValidateFeatureRuntimeTypes(featureRuntimeTypes)
+	err = ValidateColumnRuntimeTypes(columnRuntimeTypes)
 	if err != nil {
 		return err
 	}
 
-	for featureInputName, featureSchemaType := range featureSchemaTypes {
-		if len(featureRuntimeTypes) == 0 {
-			return errors.New(s.MapMustBeDefined(util.InterfaceMapKeys(featureSchemaTypes)...))
+	for columnInputName, columnSchemaType := range columnSchemaTypes {
+		if len(columnRuntimeTypes) == 0 {
+			return errors.New(s.MapMustBeDefined(util.InterfaceMapKeys(columnSchemaTypes)...))
 		}
 
-		featureRuntimeType, ok := featureRuntimeTypes[featureInputName]
+		columnRuntimeType, ok := columnRuntimeTypes[columnInputName]
 		if !ok {
-			return errors.New(featureInputName, s.ErrMustBeDefined)
+			return errors.New(columnInputName, s.ErrMustBeDefined)
 		}
 
-		if featureSchemaTypeStr, ok := featureSchemaType.(string); ok {
-			validTypes := strings.Split(featureSchemaTypeStr, "|")
-			featureRuntimeTypeStr, ok := featureRuntimeType.(string)
+		if columnSchemaTypeStr, ok := columnSchemaType.(string); ok {
+			validTypes := strings.Split(columnSchemaTypeStr, "|")
+			columnRuntimeTypeStr, ok := columnRuntimeType.(string)
 			if !ok {
-				return errors.Wrap(ErrorUnsupportedFeatureType(featureRuntimeType, validTypes), featureInputName)
+				return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeType, validTypes), columnInputName)
 			}
-			if !util.IsStrInSlice(featureRuntimeTypeStr, validTypes) {
-				return errors.Wrap(ErrorUnsupportedFeatureType(featureRuntimeTypeStr, validTypes), featureInputName)
+			if !util.IsStrInSlice(columnRuntimeTypeStr, validTypes) {
+				return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeTypeStr, validTypes), columnInputName)
 			}
 			continue
 		}
 
-		if featureSchemaTypeStrs, ok := cast.InterfaceToStrSlice(featureSchemaType); ok {
-			validTypes := strings.Split(featureSchemaTypeStrs[0], "|")
-			featureRuntimeTypeStrs, ok := cast.InterfaceToStrSlice(featureRuntimeType)
+		if columnSchemaTypeStrs, ok := cast.InterfaceToStrSlice(columnSchemaType); ok {
+			validTypes := strings.Split(columnSchemaTypeStrs[0], "|")
+			columnRuntimeTypeStrs, ok := cast.InterfaceToStrSlice(columnRuntimeType)
 			if !ok {
-				return errors.Wrap(ErrorUnsupportedFeatureType(featureRuntimeType, featureSchemaTypeStrs), featureInputName)
+				return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeType, columnSchemaTypeStrs), columnInputName)
 			}
-			for i, featureRuntimeTypeStr := range featureRuntimeTypeStrs {
-				if !util.IsStrInSlice(featureRuntimeTypeStr, validTypes) {
-					return errors.Wrap(ErrorUnsupportedFeatureType(featureRuntimeTypeStr, validTypes), featureInputName, s.Index(i))
+			for i, columnRuntimeTypeStr := range columnRuntimeTypeStrs {
+				if !util.IsStrInSlice(columnRuntimeTypeStr, validTypes) {
+					return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeTypeStr, validTypes), columnInputName, s.Index(i))
 				}
 			}
 			continue
 		}
 
-		return errors.Wrap(ErrorInvalidFeatureInputType(featureSchemaType), featureInputName) // unexpected
+		return errors.Wrap(ErrorInvalidColumnInputType(columnSchemaType), columnInputName) // unexpected
 	}
 
-	for featureInputName := range featureRuntimeTypes {
-		if _, ok := featureSchemaTypes[featureInputName]; !ok {
-			return errors.New(s.ErrUnsupportedKey(featureInputName))
+	for columnInputName := range columnRuntimeTypes {
+		if _, ok := columnSchemaTypes[columnInputName]; !ok {
+			return errors.New(s.ErrUnsupportedKey(columnInputName))
 		}
 	}
 

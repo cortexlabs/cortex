@@ -2,8 +2,8 @@
   name: dense
   path: implementations/models/basic.py
   type: classification
-  target: label
-  features:
+  target_column: label
+  feature_columns:
     - image_pixels
   hparams:
     layer_type: basic
@@ -22,8 +22,8 @@
   name: conv
   path: implementations/models/basic.py
   type: classification
-  target: label
-  features:
+  target_column: label
+  feature_columns:
     - image_pixels
   hparams:
     layer_type: conv
@@ -43,8 +43,8 @@
   name: dnn
   path: implementations/models/dnn.py
   type: classification
-  target: label
-  features:
+  target_column: label
+  feature_columns:
     - image_pixels
   hparams:
     learning_rate: 0.01

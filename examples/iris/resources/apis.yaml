@@ -1,5 +1,5 @@
 - kind: api
-  name: classifier
+  name: iris-type
   model_name: dnn
   compute:
     replicas: 1

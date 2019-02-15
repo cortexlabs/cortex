@@ -1,165 +1,165 @@
 - kind: embed
   template: normalize
   args:
-    feature: time
+    column: time
 
 - kind: embed
   template: normalize
   args:
-    feature: v1
+    column: v1
 
 - kind: embed
   template: normalize
   args:
-    feature: v2
+    column: v2
 
 - kind: embed
   template: normalize
   args:
-    feature: v3
+    column: v3
 
 - kind: embed
   template: normalize
   args:
-    feature: v4
+    column: v4
 
 - kind: embed
   template: normalize
   args:
-    feature: v5
+    column: v5
 
 - kind: embed
   template: normalize
   args:
-    feature: v6
+    column: v6
 
 - kind: embed
   template: normalize
   args:
-    feature: v7
+    column: v7
 
 - kind: embed
   template: normalize
   args:
-    feature: v8
+    column: v8
 
 - kind: embed
   template: normalize
   args:
-    feature: v9
+    column: v9
 
 - kind: embed
   template: normalize
   args:
-    feature: v10
+    column: v10
 
 - kind: embed
   template: normalize
   args:
-    feature: v11
+    column: v11
 
 - kind: embed
   template: normalize
   args:
-    feature: v12
+    column: v12
 
 - kind: embed
   template: normalize
   args:
-    feature: v13
+    column: v13
 
 - kind: embed
   template: normalize
   args:
-    feature: v14
+    column: v14
 
 - kind: embed
   template: normalize
   args:
-    feature: v15
+    column: v15
 
 - kind: embed
   template: normalize
   args:
-    feature: v16
+    column: v16
 
 - kind: embed
   template: normalize
   args:
-    feature: v17
+    column: v17
 
 - kind: embed
   template: normalize
   args:
-    feature: v18
+    column: v18
 
 - kind: embed
   template: normalize
   args:
-    feature: v19
+    column: v19
 
 - kind: embed
   template: normalize
   args:
-    feature: v20
+    column: v20
 
 - kind: embed
   template: normalize
   args:
-    feature: v21
+    column: v21
 
 - kind: embed
   template: normalize
   args:
-    feature: v22
+    column: v22
 
 - kind: embed
   template: normalize
   args:
-    feature: v23
+    column: v23
 
 - kind: embed
   template: normalize
   args:
-    feature: v24
+    column: v24
 
 - kind: embed
   template: normalize
   args:
-    feature: v25
+    column: v25
 
 - kind: embed
   template: normalize
   args:
-    feature: v26
+    column: v26
 
 - kind: embed
   template: normalize
   args:
-    feature: v27
+    column: v27
 
 - kind: embed
   template: normalize
   args:
-    feature: v28
+    column: v28
 
 - kind: embed
   template: normalize
   args:
-    feature: amount
+    column: amount
 
 - kind: aggregate
   name: class_distribution
   aggregator: cortex.class_distribution_int
   inputs:
-    features:
+    columns:
       col: class
 
-- kind: transformed_feature
+- kind: transformed_column
   name: class_weight
   transformer: weight
   inputs:
-    features:
+    columns:
       col: class
     args:
       class_distribution: class_distribution
