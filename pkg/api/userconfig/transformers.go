@@ -19,7 +19,6 @@ package userconfig
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
 type Transformers []*Transformer
@@ -29,6 +28,7 @@ type Transformer struct {
 	Inputs     *Inputs `json:"inputs"  yaml:"inputs"`
 	OutputType string  `json:"output_type"  yaml:"output_type"`
 	Path       string  `json:"path"  yaml:"path"`
+	FilePath   string  `json:"file_path" yaml:"-"`
 }
 
 var transformerValidation = &cr.StructValidation{
@@ -61,10 +61,16 @@ var transformerValidation = &cr.StructValidation{
 }
 
 func (transformers Transformers) Validate() error {
-	dups := util.FindDuplicateStrs(transformers.Names())
-	if len(dups) > 0 {
-		return ErrorDuplicateConfigName(dups[0], resource.TransformerType)
+	resources := make([]Resource, len(transformers))
+	for i, res := range transformers {
+		resources[i] = res
 	}
+
+	dups := FindDuplicateResourceName(resources...)
+	if len(dups) > 0 {
+		return ErrorDuplicateResourceName(dups...)
+	}
+
 	return nil
 }
 
@@ -83,6 +89,10 @@ func (transformer *Transformer) GetName() string {
 
 func (transformer *Transformer) GetResourceType() resource.Type {
 	return resource.TransformerType
+}
+
+func (transformer *Transformer) GetFilePath() string {
+	return transformer.FilePath
 }
 
 func (transformers Transformers) Names() []string {

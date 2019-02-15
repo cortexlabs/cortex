@@ -13,41 +13,35 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package userconfig
 
 import (
+	"fmt"
+
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
 )
 
-type App struct {
-	Name     string `json:"name" yaml:"name"`
-	FilePath string `json:"file_path"  yaml:"-"`
+type Resource interface {
+	GetName() string
+	GetResourceType() resource.Type
+	GetFilePath() string
 }
 
-var appValidation = &cr.StructValidation{
-	DefualtNil: true,
-	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
-			StructField: "Name",
-			StringValidation: &cr.StringValidation{
-				Required:                   true,
-				AlphaNumericDashUnderscore: true,
-			},
-		},
-		typeFieldValidation,
-	},
+func Identify(r Resource) string {
+	return fmt.Sprintf("%s: %s: %s", r.GetFilePath(), r.GetResourceType().String(), r.GetName())
 }
 
-func (app *App) GetName() string {
-	return app.Name
-}
+func FindDuplicateResourceName(resources ...Resource) []Resource {
+	names := make(map[string][]Resource)
+	for _, r := range resources {
+		names[r.GetName()] = append(names[r.GetName()], r)
+	}
 
-func (app *App) GetResourceType() resource.Type {
-	return resource.AppType
-}
+	for name := range names {
+		if len(names[name]) > 1 {
+			return names[name]
+		}
+	}
 
-func (app *App) Validate() error {
 	return nil
 }

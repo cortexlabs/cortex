@@ -19,7 +19,6 @@ package userconfig
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
 type Aggregators []*Aggregator
@@ -29,6 +28,7 @@ type Aggregator struct {
 	Inputs     *Inputs     `json:"inputs"  yaml:"inputs"`
 	OutputType interface{} `json:"output_type"  yaml:"output_type"`
 	Path       string      `json:"path"  yaml:"path"`
+	FilePath   string      `json:"file_path" yaml:"-"`
 }
 
 var aggregatorValidation = &cr.StructValidation{
@@ -63,9 +63,14 @@ var aggregatorValidation = &cr.StructValidation{
 }
 
 func (aggregators Aggregators) Validate() error {
-	dups := util.FindDuplicateStrs(aggregators.Names())
+	resources := make([]Resource, len(aggregators))
+	for i, res := range aggregators {
+		resources[i] = res
+	}
+
+	dups := FindDuplicateResourceName(resources...)
 	if len(dups) > 0 {
-		return ErrorDuplicateConfigName(dups[0], resource.AggregatorType)
+		return ErrorDuplicateResourceName(dups...)
 	}
 	return nil
 }
@@ -85,6 +90,10 @@ func (aggregator *Aggregator) GetName() string {
 
 func (aggregator *Aggregator) GetResourceType() resource.Type {
 	return resource.AggregatorType
+}
+
+func (aggregator *Aggregator) GetFilePath() string {
+	return aggregator.FilePath
 }
 
 func (aggregators Aggregators) Names() []string {

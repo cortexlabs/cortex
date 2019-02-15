@@ -24,7 +24,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
 var templateVarRegex = regexp.MustCompile("\\{\\s*([a-zA-Z0-9_-]+)\\s*\\}")
@@ -32,8 +31,9 @@ var templateVarRegex = regexp.MustCompile("\\{\\s*([a-zA-Z0-9_-]+)\\s*\\}")
 type Templates []*Template
 
 type Template struct {
-	Name string `json:"name" yaml:"name"`
-	YAML string `json:"yaml" yaml:"yaml"`
+	Name     string `json:"name" yaml:"name"`
+	YAML     string `json:"yaml" yaml:"yaml"`
+	FilePath string `json:"file_path"  yaml:"-"`
 }
 
 var templateValidation = &cr.StructValidation{
@@ -56,9 +56,14 @@ var templateValidation = &cr.StructValidation{
 }
 
 func (templates Templates) Validate() error {
-	dups := util.FindDuplicateStrs(templates.Names())
+	resources := make([]Resource, len(templates))
+	for i, res := range templates {
+		resources[i] = res
+	}
+
+	dups := FindDuplicateResourceName(resources...)
 	if len(dups) > 0 {
-		return ErrorDuplicateConfigName(dups[0], resource.TemplateType)
+		return ErrorDuplicateResourceName(dups...)
 	}
 
 	return nil
@@ -137,4 +142,8 @@ func (template *Template) GetName() string {
 
 func (template *Template) GetResourceType() resource.Type {
 	return resource.TemplateType
+}
+
+func (template *Template) GetFilePath() string {
+	return template.FilePath
 }

@@ -25,6 +25,7 @@ type Embeds []*Embed
 type Embed struct {
 	Template string                 `json:"template" yaml:"template"`
 	Args     map[string]interface{} `json:"args" yaml:"args"`
+	FilePath string                 `json:"file_path"  yaml:"-"`
 }
 
 var embedValidation = &cr.StructValidation{

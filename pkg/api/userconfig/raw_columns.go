@@ -19,7 +19,6 @@ package userconfig
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
 type RawColumn interface {
@@ -28,6 +27,8 @@ type RawColumn interface {
 	GetCompute() *SparkCompute
 	GetUserConfig() Resource
 	GetResourceType() resource.Type
+	GetFilePath() string
+	SetFilePath(string)
 }
 
 type RawColumns []RawColumn
@@ -60,6 +61,7 @@ type RawIntColumn struct {
 	Values   []int64       `json:"values" yaml:"values"`
 	Compute  *SparkCompute `json:"compute" yaml:"compute"`
 	Tags     Tags          `json:"tags" yaml:"tags"`
+	FilePath string        `json:"file_path"  yaml:"-"`
 }
 
 var rawIntColumnFieldValidations = []*cr.StructFieldValidation{
@@ -109,6 +111,7 @@ type RawFloatColumn struct {
 	Values   []float32     `json:"values" yaml:"values"`
 	Compute  *SparkCompute `json:"compute" yaml:"compute"`
 	Tags     Tags          `json:"tags" yaml:"tags"`
+	FilePath string        `json:"file_path"  yaml:"-"`
 }
 
 var rawFloatColumnFieldValidations = []*cr.StructFieldValidation{
@@ -156,6 +159,7 @@ type RawStringColumn struct {
 	Values   []string      `json:"values" yaml:"values"`
 	Compute  *SparkCompute `json:"compute" yaml:"compute"`
 	Tags     Tags          `json:"tags" yaml:"tags"`
+	FilePath string        `json:"file_path"  yaml:"-"`
 }
 
 var rawStringColumnFieldValidations = []*cr.StructFieldValidation{
@@ -186,11 +190,17 @@ var rawStringColumnFieldValidations = []*cr.StructFieldValidation{
 	typeFieldValidation,
 }
 
-func (rawColumns *RawColumns) Validate() error {
-	dups := util.FindDuplicateStrs(rawColumns.Names())
-	if len(dups) > 0 {
-		return ErrorDuplicateConfigName(dups[0], resource.RawColumnType)
+func (rawColumns RawColumns) Validate() error {
+	resources := make([]Resource, len(rawColumns))
+	for i, res := range rawColumns {
+		resources[i] = res
 	}
+
+	dups := FindDuplicateResourceName(resources...)
+	if len(dups) > 0 {
+		return ErrorDuplicateResourceName(dups...)
+	}
+
 	return nil
 }
 
@@ -281,4 +291,28 @@ func (column *RawFloatColumn) GetUserConfig() Resource {
 
 func (column *RawStringColumn) GetUserConfig() Resource {
 	return column
+}
+
+func (column *RawIntColumn) SetFilePath(path string) {
+	column.FilePath = path
+}
+
+func (column *RawFloatColumn) SetFilePath(path string) {
+	column.FilePath = path
+}
+
+func (column *RawStringColumn) SetFilePath(path string) {
+	column.FilePath = path
+}
+
+func (column *RawIntColumn) GetFilePath() string {
+	return column.FilePath
+}
+
+func (column *RawFloatColumn) GetFilePath() string {
+	return column.FilePath
+}
+
+func (column *RawStringColumn) GetFilePath() string {
+	return column.FilePath
 }
