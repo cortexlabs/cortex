@@ -10,6 +10,7 @@ For example:
   compute:
     cpu: "2"
     mem: "1Gi"
+    gpu: 1
 ```
 
 CPU and memory requests in Cortex correspond to compute resource requests in Kubernetes. In the example above, the training job will only be scheduled once 2 CPUs and 1Gi of memory are available, and the job will be guaranteed to have access to those resources throughout it's execution. In some cases, a Cortex compute resource request can be (or may default to) `Null`.
