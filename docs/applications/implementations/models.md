@@ -65,4 +65,4 @@ oauthlib==3.0.0
 httplib2==0.12.0
 ```
 
-You can install additional PyPI packages and import your own Python packages. See [Custom Packages](../advanced/custom-packages.md) for more details.
+You can install additional PyPI packages and import your own Python packages. See [Python Packages](../advanced/python-packages.md) for more details.
