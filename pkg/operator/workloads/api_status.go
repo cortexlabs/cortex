@@ -117,10 +117,11 @@ func getReplicaCountsMap(podList []corev1.Pod, ctx *context.Context) map[string]
 
 	for _, pod := range podList {
 		resourceID := pod.Labels["resourceID"]
-		cpu, mem := APIPodCompute(pod.Spec.Containers)
+		cpu, mem, gpu := APIPodCompute(pod.Spec.Containers)
 		podAPICompute := userconfig.APICompute{
 			CPU: cpu,
 			Mem: mem,
+			GPU: gpu,
 		}
 		podAPIComputeID := podAPICompute.IDWithoutReplicas()
 		podStatus := k8s.GetPodStatus(&pod)

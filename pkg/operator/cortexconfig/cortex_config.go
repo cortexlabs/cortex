@@ -34,6 +34,8 @@ var (
 	TFServeImage        string
 	TFAPIImage          string
 	PythonPackagerImage string
+	TFTrainImageGPU     string
+	TFServeImageGPU     string
 )
 
 func init() {
@@ -47,6 +49,8 @@ func init() {
 	TFServeImage = getStr("IMAGE_TF_SERVE")
 	TFAPIImage = getStr("IMAGE_TF_API")
 	PythonPackagerImage = getStr("IMAGE_PYTHON_PACKAGER")
+	TFTrainImageGPU = getStr("IMAGE_TF_TRAIN_GPU")
+	TFServeImageGPU = getStr("IMAGE_TF_SERVE_GPU")
 }
 
 //

@@ -1,4 +1,4 @@
-FROM ubuntu:18.04 as builder
+FROM ubuntu:16.04 as builder
 
 RUN apt-get update -qq && apt-get install -y -q \
         git \
@@ -47,7 +47,7 @@ RUN wget -q -P $SPARK_HOME/jars/ http://central.maven.org/maven2/com/amazonaws/a
 COPY images/spark-base/conf/* $SPARK_HOME/conf/
 
 
-FROM ubuntu:18.04
+FROM ubuntu:16.04
 
 ENV JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64"
 ENV HADOOP_HOME="/opt/hadoop"
