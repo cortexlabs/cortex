@@ -89,7 +89,7 @@ var dataValidation = &cr.InterfaceStructValidation{
 	TypeStructField: "Type",
 	InterfaceStructTypes: map[string]*cr.InterfaceStructType{
 		"csv": &cr.InterfaceStructType{
-			Type:                   (*CsvData)(nil),
+			Type:                   (*CSVData)(nil),
 			StructFieldValidations: csvDataFieldValidations,
 		},
 		"parquet": &cr.InterfaceStructType{
@@ -99,12 +99,33 @@ var dataValidation = &cr.InterfaceStructValidation{
 	},
 }
 
-type CsvData struct {
-	Type       string   `json:"type" yaml:"type"`
-	Path       string   `json:"path" yaml:"path"`
-	Schema     []string `json:"schema" yaml:"schema"`
-	DropNull   bool     `json:"drop_null" yaml:"drop_null"`
-	SkipHeader bool     `json:"skip_header" yaml:"skip_header"`
+type CSVData struct {
+	Type      string     `json:"type" yaml:"type"`
+	Path      string     `json:"path" yaml:"path"`
+	Schema    []string   `json:"schema" yaml:"schema"`
+	DropNull  bool       `json:"drop_null" yaml:"drop_null"`
+	CSVConfig *CSVConfig `json:"csv_config" yaml:"csv_config"`
+}
+
+// SPARK_VERSION dependent
+type CSVConfig struct {
+	Sep                       *string `json:"sep" yaml:"sep"`
+	Encoding                  *string `json:"encoding" yaml:"encoding"`
+	Quote                     *string `json:"quote" yaml:"quote"`
+	Escape                    *string `json:"escape" yaml:"escape"`
+	Comment                   *string `json:"comment" yaml:"comment"`
+	Header                    *bool   `json:"header" yaml:"header"`
+	IgnoreLeadingWhiteSpace   *bool   `json:"ignore_leading_white_space" yaml:"ignore_leading_white_space"`
+	IgnoreTrailingWhiteSpace  *bool   `json:"ignore_trailing_white_space" yaml:"ignore_trailing_white_space"`
+	NullValue                 *string `json:"null_value" yaml:"null_value"`
+	NanValue                  *string `json:"nan_value" yaml:"nan_value"`
+	PositiveInf               *string `json:"positive_inf" yaml:"positive_inf"`
+	NegativeInf               *string `json:"negative_inf" yaml:"negative_inf"`
+	MaxColumns                *int32  `json:"max_columns" yaml:"max_columns"`
+	MaxCharsPerColumn         *int32  `json:"max_chars_per_column" yaml:"max_chars_per_column"`
+	Multiline                 *bool   `json:"multiline" yaml:"multiline"`
+	CharToEscapeQuoteEscaping *string `json:"char_to_escape_quote_escaping" yaml:"char_to_escape_quote_escaping"`
+	EmptyValue                *string `json:"empty_value" yaml:"empty_value"`
 }
 
 var csvDataFieldValidations = []*cr.StructFieldValidation{
@@ -127,9 +148,82 @@ var csvDataFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	&cr.StructFieldValidation{
-		StructField: "SkipHeader",
-		BoolValidation: &cr.BoolValidation{
-			Default: false,
+		StructField: "CSVConfig",
+		StructValidation: &cr.StructValidation{
+			StructFieldValidations: []*cr.StructFieldValidation{
+				&cr.StructFieldValidation{
+					StructField:         "Sep",
+					StringPtrValidation: &cr.StringPtrValidation{},
+				},
+				&cr.StructFieldValidation{
+					StructField:         "Encoding",
+					StringPtrValidation: &cr.StringPtrValidation{},
+				},
+				&cr.StructFieldValidation{
+					StructField:         "Quote",
+					StringPtrValidation: &cr.StringPtrValidation{},
+				},
+				&cr.StructFieldValidation{
+					StructField:         "Escape",
+					StringPtrValidation: &cr.StringPtrValidation{},
+				},
+				&cr.StructFieldValidation{
+					StructField:         "Comment",
+					StringPtrValidation: &cr.StringPtrValidation{},
+				},
+				&cr.StructFieldValidation{
+					StructField:       "Header",
+					BoolPtrValidation: &cr.BoolPtrValidation{},
+				},
+				&cr.StructFieldValidation{
+					StructField:       "IgnoreLeadingWhiteSpace",
+					BoolPtrValidation: &cr.BoolPtrValidation{},
+				},
+				&cr.StructFieldValidation{
+					StructField:       "IgnoreTrailingWhiteSpace",
+					BoolPtrValidation: &cr.BoolPtrValidation{},
+				},
+				&cr.StructFieldValidation{
+					StructField:         "NullValue",
+					StringPtrValidation: &cr.StringPtrValidation{},
+				},
+				&cr.StructFieldValidation{
+					StructField:         "NanValue",
+					StringPtrValidation: &cr.StringPtrValidation{},
+				},
+				&cr.StructFieldValidation{
+					StructField:         "PositiveInf",
+					StringPtrValidation: &cr.StringPtrValidation{},
+				},
+				&cr.StructFieldValidation{
+					StructField:         "NegativeInf",
+					StringPtrValidation: &cr.StringPtrValidation{},
+				},
+				&cr.StructFieldValidation{
+					StructField: "MaxColumns",
+					Int32PtrValidation: &cr.Int32PtrValidation{
+						GreaterThan: util.Int32Ptr(0),
+					},
+				},
+				&cr.StructFieldValidation{
+					StructField: "MaxCharsPerColumn",
+					Int32PtrValidation: &cr.Int32PtrValidation{
+						GreaterThanOrEqualTo: util.Int32Ptr(-1),
+					},
+				},
+				&cr.StructFieldValidation{
+					StructField:       "Multiline",
+					BoolPtrValidation: &cr.BoolPtrValidation{},
+				},
+				&cr.StructFieldValidation{
+					StructField:         "CharToEscapeQuoteEscaping",
+					StringPtrValidation: &cr.StringPtrValidation{},
+				},
+				&cr.StructFieldValidation{
+					StructField:         "EmptyValue",
+					StringPtrValidation: &cr.StringPtrValidation{},
+				},
+			},
 		},
 	},
 }
@@ -212,7 +306,7 @@ func (env *Environment) Validate() error {
 	return nil
 }
 
-func (csvData *CsvData) Validate() error {
+func (csvData *CSVData) Validate() error {
 	return nil
 }
 
@@ -220,7 +314,7 @@ func (parqData *ParquetData) Validate() error {
 	return nil
 }
 
-func (csvData *CsvData) GetExternalPath() string {
+func (csvData *CSVData) GetExternalPath() string {
 	return csvData.Path
 }
 
@@ -228,7 +322,7 @@ func (parqData *ParquetData) GetExternalPath() string {
 	return parqData.Path
 }
 
-func (csvData *CsvData) GetIngestedColumns() []string {
+func (csvData *CSVData) GetIngestedColumns() []string {
 	return csvData.Schema
 }
 

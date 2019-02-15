@@ -11,19 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import pytest
+import math
 
 import spark_util
+from lib.exceptions import UserException
 
+import pytest
 from pyspark.sql.types import *
 from pyspark.sql import Row
-from py4j.protocol import Py4JJavaError
-
-pytestmark = pytest.mark.usefixtures("spark")
 import pyspark.sql.functions as F
 from mock import MagicMock, call
-from lib.exceptions import UserException
+from py4j.protocol import Py4JJavaError
+
+
+pytestmark = pytest.mark.usefixtures("spark")
 
 
 def test_compare_column_schemas():
@@ -162,6 +163,55 @@ def test_read_csv_invalid_type(spark, write_csv_file, ctx_obj, get_context):
 
     with pytest.raises(Py4JJavaError):
         spark_util.ingest(get_context(ctx_obj), spark).collect()
+
+
+def test_read_csv_valid_options(spark, write_csv_file, ctx_obj, get_context):
+    csv_str = "\n".join(
+        [
+            "a_str|b_float|c_long",
+            "   a   |1|",
+            "|NaN|1",
+            '"""weird"" having a | inside the string"|-Infini|NULL',
+        ]
+    )
+    path_to_file = write_csv_file(csv_str)
+
+    ctx_obj["environment"] = {
+        "data": {
+            "type": "csv",
+            "path": path_to_file,
+            "schema": ["a_str", "b_float", "c_long"],
+            "csv_config": {
+                "header": True,
+                "sep": "|",
+                "ignore_leading_white_space": False,
+                "ignore_trailing_white_space": False,
+                "nan_value": "NaN",
+                "escape": '"',
+                "negative_inf": "-Infini",
+                "null_value": "NULL",
+            },
+        }
+    }
+
+    ctx_obj["raw_columns"] = {
+        "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "-"},
+        "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": "-"},
+        "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "-"},
+    }
+
+    actual_results = spark_util.read_csv(get_context(ctx_obj), spark).collect()
+
+    assert len(actual_results) == 3
+    assert actual_results[0] == Row(a_str="   a   ", b_float=float(1), c_long=None)
+    assert actual_results[1].a_str == None
+    assert math.isnan(
+        actual_results[1].b_float
+    )  # nan != nan so a row-wise comparison can't be done
+    assert actual_results[1].c_long == 1
+    assert actual_results[2] == Row(
+        a_str='"weird" having a | inside the string', b_float=float("-Inf"), c_long=None
+    )
 
 
 def test_value_checker_required():

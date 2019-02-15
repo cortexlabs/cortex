@@ -91,7 +91,8 @@ func appInitFiles(appName string) map[string]string {
 #   data:
 #     type: csv
 #     path: s3a://my-bucket/data.csv
-#     skip_header: true
+#     csv_config:
+#       header: true
 #     schema:
 #       - column1
 #       - column2

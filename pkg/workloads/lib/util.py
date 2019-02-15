@@ -88,6 +88,16 @@ def pluralize(num, singular, plural):
         return str(num) + " " + plural
 
 
+def snake_to_camel(input, sep="_", lower=True):
+    output = ""
+    for idx, word in enumerate(input.lower().split(sep)):
+        if idx == 0 and lower:
+            output += word
+        else:
+            output += word[0].upper() + word[1:]
+    return output
+
+
 def mkdir_p(dir_path):
     try:
         os.makedirs(dir_path)
