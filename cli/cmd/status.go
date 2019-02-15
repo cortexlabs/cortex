@@ -87,6 +87,7 @@ func runStatus(cmd *cobra.Command, args []string) (string, error) {
 
 func resourceStatusesStr(resourcesRes *schema.GetResourcesResponse) string {
 	out := "\n"
+	out += pythonPackageStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
 	out += rawColumnStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
 	out += aggregateStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
 	out += transformedColumnStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
@@ -94,6 +95,16 @@ func resourceStatusesStr(resourcesRes *schema.GetResourcesResponse) string {
 	out += modelStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
 	out += apiStatusesStr(resourcesRes.APIGroupStatuses)
 	return out
+}
+
+func pythonPackageStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
+	var statuses = make([]resource.Status, len(ctx.PythonPackages))
+	i := 0
+	for _, pythonPackage := range ctx.PythonPackages {
+		statuses[i] = dataStatuses[pythonPackage.GetID()]
+		i++
+	}
+	return "Python Packages:       " + StatusStr(statuses)
 }
 
 func rawColumnStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {

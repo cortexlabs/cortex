@@ -39,6 +39,7 @@ func getModels(
 	columns context.Columns,
 	impls map[string][]byte,
 	root string,
+	pythonPackages context.PythonPackages,
 ) (context.Models, error) {
 
 	models := context.Models{}
@@ -58,6 +59,9 @@ func getModels(
 		var buf bytes.Buffer
 		buf.WriteString(modelConfig.Type)
 		buf.WriteString(modelImplID)
+		for _, pythonPackage := range pythonPackages {
+			buf.WriteString(pythonPackage.GetID())
+		}
 		buf.WriteString(modelConfig.PredictionKey)
 		buf.WriteString(s.Obj(modelConfig.Hparams))
 		buf.WriteString(s.Obj(modelConfig.DataPartitionRatio))

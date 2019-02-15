@@ -53,7 +53,6 @@ The following packages have been pre-installed and can be used in your implement
 ```text
 tensorflow==1.12.0
 numpy==1.15.4
-pillow==5.4.1
 pandas==0.23.4
 scipy==1.2.0
 sympy==1.3
@@ -65,3 +64,5 @@ requests==2.21.0
 oauthlib==3.0.0
 httplib2==0.12.0
 ```
+
+You can install additional PyPI packages and import your own Python packages. See [Python Packages](../advanced/python-packages.md) for more details.

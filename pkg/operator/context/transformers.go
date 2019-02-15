@@ -48,7 +48,7 @@ func init() {
 		if err != nil {
 			errors.Exit(err, userconfig.Identify(transConfig), s.ErrReadFile(implPath))
 		}
-		transformer, err := newTransformer(*transConfig, impl, util.StrPtr("cortex"))
+		transformer, err := newTransformer(*transConfig, impl, util.StrPtr("cortex"), nil)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -59,6 +59,7 @@ func init() {
 func loadUserTransformers(
 	transConfigs userconfig.Transformers,
 	impls map[string][]byte,
+	pythonPackages context.PythonPackages,
 ) (map[string]*context.Transformer, error) {
 
 	userTransformers := make(map[string]*context.Transformer)
@@ -67,7 +68,7 @@ func loadUserTransformers(
 		if !ok {
 			return nil, errors.New(userconfig.Identify(transConfig), s.ErrFileDoesNotExist(transConfig.Path))
 		}
-		transformer, err := newTransformer(*transConfig, impl, nil)
+		transformer, err := newTransformer(*transConfig, impl, nil, pythonPackages)
 		if err != nil {
 			return nil, err
 		}
@@ -81,6 +82,7 @@ func newTransformer(
 	transConfig userconfig.Transformer,
 	impl []byte,
 	namespace *string,
+	pythonPackages context.PythonPackages,
 ) (*context.Transformer, error) {
 
 	implID := util.HashBytes(impl)
@@ -89,6 +91,10 @@ func newTransformer(
 	buf.WriteString(context.DataTypeID(transConfig.Inputs))
 	buf.WriteString(context.DataTypeID(transConfig.OutputType))
 	buf.WriteString(implID)
+	for _, pythonPackage := range pythonPackages {
+		buf.WriteString(pythonPackage.GetID())
+	}
+
 	id := util.HashBytes(buf.Bytes())
 
 	transformer := &context.Transformer{

@@ -280,6 +280,12 @@ func extractFromCortexLog(match string, loglevel string, logStr string) (*string
 		return formatHeader1(cutStr), false
 	case "Evaluating":
 		return formatHeader1(cutStr), false
+	case "Setting up packages":
+		return formatHeader1(cutStr), false
+	case "Validating packages":
+		return formatHeader1(cutStr), false
+	case "Caching built packages":
+		return formatHeader3(cutStr), false
 	}
 
 	lastLogRe := regexp.MustCompile(`^workload: (\w+), completed: (\S+)`)

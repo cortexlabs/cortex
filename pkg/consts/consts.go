@@ -35,6 +35,9 @@ var (
 	CortexConfigPath = "/configs/cortex"
 	CortexConfigName = "cortex-config"
 
+	RequirementsTxt = "requirements.txt"
+	PackageDir      = "packages"
+
 	AppsDir             = "apps"
 	DataDir             = "data"
 	RawDataDir          = "data_raw"
@@ -43,6 +46,7 @@ var (
 	AggregatesDir       = "aggregates"
 	TransformersDir     = "transformers"
 	ModelImplsDir       = "model_implementations"
+	PythonPackagesDir   = "python_packages"
 	ModelsDir           = "models"
 	ConstantsDir        = "constants"
 	ContextsDir         = "contexts"
