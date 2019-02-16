@@ -1674,7 +1674,7 @@ function install_eksctl() {
   echo -e "\nInstalling eksctl (/usr/local/bin/eksctl) ..."
 
   rm -rf $CORTEX_SH_TMP_DIR && mkdir -p $CORTEX_SH_TMP_DIR
-  (cd $CORTEX_SH_TMP_DIR && curl -s --location "https://github.com/weaveworks/eksctl/releases/download/0.1.19/eksctl_$(uname -s)_amd64.tar.gz" | tar xz)
+  (cd $CORTEX_SH_TMP_DIR && curl -s --location "https://github.com/weaveworks/eksctl/releases/download/0.1.21/eksctl_$(uname -s)_amd64.tar.gz" | tar xz)
   chmod +x $CORTEX_SH_TMP_DIR/eksctl
 
   if [ $(id -u) = 0 ]; then
