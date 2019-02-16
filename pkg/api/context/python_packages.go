@@ -36,3 +36,7 @@ func (pythonPackage *PythonPackage) GetName() string {
 func (pythonPackage *PythonPackage) GetResourceType() resource.Type {
 	return resource.PythonPackageType
 }
+
+func (pythonPackage *PythonPackage) GetFilePath() string {
+	return ""
+}
