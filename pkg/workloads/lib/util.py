@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import yaml
 import errno
 import shutil
 import sys
@@ -436,11 +435,6 @@ def read_file_strip(path):
     return contents
 
 
-def read_yaml(yaml_path):
-    with open(yaml_path, "r") as yaml_file:
-        return yaml.safe_load(yaml_file)
-
-
 def read_json(json_path):
     with open(json_path, "r") as json_file:
         return json.load(json_file)
@@ -449,11 +443,6 @@ def read_json(json_path):
 def read_msgpack(msgpack_path):
     with open(msgpack_path, "rb") as msgpack_file:
         return msgpack.load(msgpack_file, raw=False)
-
-
-def write_yaml(dictionary, file_path):
-    with open(file_path, "w") as file:
-        file.write(yaml.dump(dictionary))
 
 
 def hash_str(string, alg="sha256"):
@@ -566,20 +555,6 @@ def extract_zip(zip_path, dest_dir=None, delete_zip_file=False):
 
     if delete_zip_file:
         rm_file(zip_path)
-
-
-# config_path may already be a dict
-def read_config(config_path, defaults={}):
-    if is_str(config_path):
-        try:
-            config = read_yaml(config_path)
-        except IOError as e:
-            config = {}
-    else:
-        config = config_path
-
-    config = config or {}
-    return merge_dicts_no_overwrite(config, defaults)
 
 
 # The order for maps is deterministic. Returns a list

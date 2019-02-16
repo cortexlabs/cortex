@@ -1,6 +1,5 @@
 boto3==1.9.78
 
-pyyaml==3.13
 numpy==1.15.4
 pandas==0.23.4
 scipy==1.2.0

@@ -87,7 +87,6 @@ The following packages have been pre-installed and can be used in your implement
 
 ```text
 pyspark==2.4.0
-pyyaml==3.13
 numpy==1.15.4
 pandas==0.23.4
 scipy==1.2.0
