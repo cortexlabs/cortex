@@ -17,15 +17,20 @@ limitations under the License.
 package userconfig
 
 import (
+	"fmt"
+
+	"github.com/cortexlabs/cortex/pkg/api/resource"
+	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
 )
 
 type Embeds []*Embed
 
 type Embed struct {
-	Template string                 `json:"template" yaml:"template"`
-	Args     map[string]interface{} `json:"args" yaml:"args"`
-	FilePath string                 `json:"file_path"  yaml:"-"`
+	Template    string                 `json:"template" yaml:"template"`
+	Args        map[string]interface{} `json:"args" yaml:"args"`
+	FilePath    string                 `json:"file_path"  yaml:"-"`
+	ConfigIndex int                    `json:"config_index"  yaml:"-"`
 }
 
 var embedValidation = &cr.StructValidation{
@@ -46,4 +51,8 @@ var embedValidation = &cr.StructValidation{
 		},
 		typeFieldValidation,
 	},
+}
+
+func (embed *Embed) Identify() string {
+	return fmt.Sprintf("%s: %s at %s", embed.FilePath, resource.EmbedType.String(), s.Index(embed.ConfigIndex))
 }

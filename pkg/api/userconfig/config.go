@@ -254,7 +254,7 @@ func newPartial(configData interface{}, filePath string) (*Config, error) {
 	for i, data := range configDataSlice {
 		kindStr, ok := data[KindKey].(string)
 		if !ok {
-			return nil, errors.New("resource at "+s.Index(i), KindKey, s.ErrMustBeDefined)
+			return nil, errors.New(filePath, "resource at "+s.Index(i), KindKey, s.ErrMustBeDefined)
 		}
 
 		var errs []error
@@ -321,9 +321,10 @@ func newPartial(configData interface{}, filePath string) (*Config, error) {
 			embed := &Embed{}
 			errs = cr.Struct(embed, data, embedValidation)
 			embed.FilePath = filePath
+			embed.ConfigIndex = i
 			config.Embeds = append(config.Embeds, embed)
 		default:
-			return nil, errors.Wrap(resource.ErrorUnknownKind(kindStr), "resource at "+s.Index(i))
+			return nil, errors.Wrap(resource.ErrorUnknownKind(kindStr), filePath, "resource at "+s.Index(i))
 		}
 
 		if errors.HasErrors(errs) {
@@ -331,7 +332,7 @@ func newPartial(configData interface{}, filePath string) (*Config, error) {
 			if resourceName, ok := data[NameKey].(string); ok {
 				wrapStr = fmt.Sprintf("%s: %s", kindStr, resourceName)
 			}
-			return nil, errors.Wrap(errors.FirstError(errs...), wrapStr)
+			return nil, errors.Wrap(errors.FirstError(errs...), filePath, wrapStr)
 		}
 	}
 
@@ -373,17 +374,18 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 	for _, emb := range config.Embeds {
 		template, ok := templates[emb.Template]
 		if !ok {
-			return nil, errors.Wrap(ErrorUndefinedResource(emb.Template, resource.TemplateType), resource.EmbedType.String())
+			return nil, errors.Wrap(ErrorUndefinedResource(emb.Template, resource.TemplateType), emb.Identify())
 		}
 
 		populatedTemplate, err := template.Populate(emb)
 		if err != nil {
-			return nil, errors.Wrap(err, emb.FilePath, resource.EmbedType.String())
+			return nil, errors.Wrap(err, emb.Identify())
 		}
 
 		config, err = config.MergeBytes([]byte(populatedTemplate), emb.FilePath)
 		if err != nil {
-			return nil, errors.Wrap(err, resource.EmbedType.String(), fmt.Sprintf("%s %s", resource.TemplateType.String(), s.UserStr(template.Name)))
+			errStr := strings.TrimPrefix(err.Error(), emb.FilePath+": ") // Remove duplicate filePath from error message
+			return nil, errors.New(emb.Identify(), fmt.Sprintf("%s %s", resource.TemplateType.String(), s.UserStr(template.Name)), errStr)
 		}
 	}
 
@@ -393,22 +395,22 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 	return config, nil
 }
 
-func ReadAppName(configPath string) (string, error) {
-	configBytes, err := ioutil.ReadFile(configPath)
+func ReadAppName(filePath string, relativePath string) (string, error) {
+	configBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return "", errors.Wrap(err, ErrorReadConfig().Error(), configPath)
+		return "", errors.Wrap(err, ErrorReadConfig().Error(), relativePath)
 	}
 	configData, err := cr.ReadYAMLBytes(configBytes)
 	if err != nil {
-		return "", errors.Wrap(err, ErrorParseConfig().Error(), configPath)
+		return "", errors.Wrap(err, ErrorParseConfig().Error(), relativePath)
 	}
 	configDataSlice, ok := cast.InterfaceToStrInterfaceMapSlice(configData)
 	if !ok {
-		return "", errors.Wrap(ErrorMalformedConfig(), configPath)
+		return "", errors.Wrap(ErrorMalformedConfig(), relativePath)
 	}
 
 	if len(configDataSlice) == 0 {
-		return "", errors.Wrap(ErrorMissingAppDefinition(), configPath)
+		return "", errors.Wrap(ErrorMissingAppDefinition(), relativePath)
 	}
 
 	var appName string
@@ -416,28 +418,28 @@ func ReadAppName(configPath string) (string, error) {
 		kindStr, _ := configItem[KindKey].(string)
 		if resource.TypeFromString(kindStr) == resource.AppType {
 			if appName != "" {
-				return "", errors.Wrap(ErrorDuplicateConfig(resource.AppType), configPath)
+				return "", errors.Wrap(ErrorDuplicateConfig(resource.AppType), relativePath)
 			}
 
 			wrapStr := fmt.Sprintf("%s at %s", resource.AppType.String(), s.Index(i))
 
 			appNameInter, ok := configItem[NameKey]
 			if !ok {
-				return "", errors.New(configPath, wrapStr, NameKey, s.ErrMustBeDefined)
+				return "", errors.New(relativePath, wrapStr, NameKey, s.ErrMustBeDefined)
 			}
 
 			appName, ok = appNameInter.(string)
 			if !ok {
-				return "", errors.New(configPath, wrapStr, s.ErrInvalidPrimitiveType(appNameInter, s.PrimTypeString))
+				return "", errors.New(relativePath, wrapStr, s.ErrInvalidPrimitiveType(appNameInter, s.PrimTypeString))
 			}
 			if appName == "" {
-				return "", errors.New(configPath, wrapStr, s.ErrCannotBeEmpty)
+				return "", errors.New(relativePath, wrapStr, s.ErrCannotBeEmpty)
 			}
 		}
 	}
 
 	if appName == "" {
-		return "", errors.Wrap(ErrorMissingAppDefinition(), configPath)
+		return "", errors.Wrap(ErrorMissingAppDefinition(), relativePath)
 	}
 
 	return appName, nil
