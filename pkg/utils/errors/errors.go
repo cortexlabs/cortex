@@ -27,6 +27,7 @@ import (
 )
 
 func New(strs ...string) error {
+	strs = removeEmptyStrs(strs)
 	errStr := strings.Join(strs, ": ")
 	return pkgerrors.New(errStr)
 }
@@ -35,6 +36,7 @@ func Wrap(err error, strs ...string) error {
 	if err == nil {
 		return nil
 	}
+	strs = removeEmptyStrs(strs)
 	if len(strs) == 0 {
 		return pkgerrors.WithStack(err)
 	}
@@ -198,4 +200,14 @@ func RecoverAndExit(strs ...string) {
 		PrintError(err)
 		os.Exit(1)
 	}
+}
+
+func removeEmptyStrs(strs []string) []string {
+	var cleanStrs []string
+	for _, str := range strs {
+		if str != "" {
+			cleanStrs = append(cleanStrs, str)
+		}
+	}
+	return cleanStrs
 }
