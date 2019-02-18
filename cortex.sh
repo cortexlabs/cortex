@@ -104,26 +104,15 @@ for arg in "$@"; do
   fi
 done
 
-set -u
-
-################
-### CHECK OS ###
-################
-
-case "$OSTYPE" in
-  darwin*)  PARSED_OS="darwin" ;;
-  linux*)   PARSED_OS="linux" ;;
-  *)        echo -e "\nerror: only mac and linux are supported"; exit 1 ;;
-esac
-
 #####################
 ### CONFIGURATION ###
 #####################
 
-export CORTEX_CONFIG="${CORTEX_CONFIG:-config.sh}"
-if [ -f "$CORTEX_CONFIG" ]; then
+if [ "$CORTEX_CONFIG" != "" ] && [ -f "$CORTEX_CONFIG" ]; then
   source $CORTEX_CONFIG
 fi
+
+set -u
 
 export CORTEX_VERSION_STABLE=master
 
@@ -152,6 +141,16 @@ export CORTEX_IMAGE_TF_TRAIN_GPU="${CORTEX_IMAGE_TF_TRAIN_GPU:-cortexlabs/tf-tra
 
 export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-""}"
 export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-""}"
+
+################
+### CHECK OS ###
+################
+
+case "$OSTYPE" in
+  darwin*)  PARSED_OS="darwin" ;;
+  linux*)   PARSED_OS="linux" ;;
+  *)        echo -e "\nerror: only mac and linux are supported"; exit 1 ;;
+esac
 
 ##########################
 ### TOP-LEVEL COMMANDS ###
