@@ -287,7 +287,7 @@
       num_buckets: INT
 
 # Enumerates the unique values in a string column and orders them by placing the unique strings in
-# list ordered by most frequest starting at the 0th index.
+# list ordered by most frequent starting at the 0th index.
 # Works well in conjunction with transformers.index_string.
 # For example: An input column with the following values ['t', 'f', 't'] would return ['t', 'f'].
 - kind: aggregator
@@ -297,7 +297,7 @@
     columns:
       col: STRING_COLUMN
 
-# Counts the occurences of each value in the string input column and divides the counts by the total number of values.
+# Counts the occurrences of each value in the string input column and divides the counts by the total number of values.
 # For example: An input column with the following values ['t', 'f', 't', 't'] would return {'t': 0.75, 'f': 0.25}.
 - kind: aggregator
   name: class_distribution_string
@@ -307,7 +307,7 @@
       col: STRING_COLUMN
   path: class_distribution.py
 
-# Counts the occurences of each value in the int input column and divides the counts by the total number of values.
+# Counts the occurrences of each value in the int input column and divides the counts by the total number of values.
 # For example: An input column with the following values [1, 2, 3, 1] would return {1: 0.5, 2: 0.25, 3: 0.25}.
 - kind: aggregator
   name: class_distribution_int
