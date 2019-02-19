@@ -29,6 +29,7 @@ type Environments []*Environment
 type Environment struct {
 	Name     string    `json:"name" yaml:"name"`
 	LogLevel *LogLevel `json:"log_level" yaml:"log_level"`
+	Limit    *Limit    `json:"limit" yaml:"limit"`
 	Data     Data      `json:"-" yaml:"-"`
 	FilePath string    `json:"file_path"  yaml:"-"`
 }
@@ -47,11 +48,48 @@ var environmentValidation = &cr.StructValidation{
 			StructValidation: logLevelValidation,
 		},
 		&cr.StructFieldValidation{
+			StructField:      "Limit",
+			StructValidation: limitValidation,
+		},
+		&cr.StructFieldValidation{
 			StructField:               "Data",
 			Key:                       "data",
 			InterfaceStructValidation: dataValidation,
 		},
 		typeFieldValidation,
+	},
+}
+
+type Limit struct {
+	NumRows        *int64   `json:"num_rows" yaml:"num_rows"`
+	FractionOfRows *float32 `json:"fraction_of_rows" yaml:"fraction_of_rows"`
+	Randomize      *bool    `json:"randomize" yaml:"randomize"`
+	RandomSeed     *int64   `json:"random_seed" yaml:"random_seed"`
+}
+
+var limitValidation = &cr.StructValidation{
+	StructFieldValidations: []*cr.StructFieldValidation{
+		&cr.StructFieldValidation{
+			StructField: "NumRows",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				GreaterThan: util.Int64Ptr(0),
+			},
+		},
+		&cr.StructFieldValidation{
+			StructField: "FractionOfRows",
+			Float32PtrValidation: &cr.Float32PtrValidation{
+				GreaterThan: util.Float32Ptr(0),
+				LessThan:    util.Float32Ptr(1),
+			},
+		},
+		&cr.StructFieldValidation{
+			StructField:       "Randomize",
+			BoolPtrValidation: &cr.BoolPtrValidation{},
+		},
+		&cr.StructFieldValidation{
+			StructField:        "RandomSeed",
+			Int64PtrValidation: &cr.Int64PtrValidation{},
+		},
 	},
 }
 
@@ -302,6 +340,18 @@ func (environments Environments) Validate() error {
 func (env *Environment) Validate() error {
 	if err := env.Data.Validate(); err != nil {
 		return errors.Wrap(err, Identify(env))
+	}
+
+	if env.Limit != nil {
+		if env.Limit.NumRows != nil && env.Limit.FractionOfRows != nil {
+			return errors.Wrap(ErrorSpecifyOnlyOne(NumRowsKey, FractionOfRowsKey), Identify(env), LimitKey)
+		}
+		if env.Limit.Randomize != nil && env.Limit.NumRows == nil && env.Limit.FractionOfRows == nil {
+			return errors.Wrap(ErrorOneOfPrerequisitesNotDefined(RandomizeKey, LimitKey, FractionOfRowsKey), Identify(env))
+		}
+		if env.Limit.RandomSeed != nil && env.Limit.Randomize == nil {
+			return errors.Wrap(ErrorOneOfPrerequisitesNotDefined(RandomSeedKey, RandomizeKey), Identify(env))
+		}
 	}
 
 	dups := util.FindDuplicateStrs(env.Data.GetIngestedColumns())

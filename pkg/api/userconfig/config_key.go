@@ -36,6 +36,13 @@ const (
 	PathKey            = "path"
 	ValueKey           = "value"
 
+	// environment
+	LimitKey          = "limit"
+	NumRowsKey        = "num_rows"
+	FractionOfRowsKey = "fraction_of_rows"
+	RandomizeKey      = "randomize"
+	RandomSeedKey     = "random_seed"
+
 	// model
 	NumEpochsKey           = "num_epochs"
 	NumStepsKey            = "num_steps"

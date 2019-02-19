@@ -44,6 +44,7 @@ const (
 	ErrColumnMustBeRaw
 	ErrSpecifyAllOrNone
 	ErrSpecifyOnlyOne
+	ErrOneOfPrerequisitesNotDefined
 	ErrTemplateExtraArg
 	ErrTemplateMissingArg
 	ErrInvalidColumnInputType
@@ -73,6 +74,7 @@ var errorKinds = []string{
 	"err_column_must_be_raw",
 	"err_specify_all_or_none",
 	"err_specify_only_one",
+	"err_one_of_prerequisites_not_defined",
 	"err_template_extra_arg",
 	"err_template_missing_arg",
 	"err_invalid_column_input_type",
@@ -246,6 +248,15 @@ func ErrorSpecifyOnlyOne(vals ...string) error {
 
 	return ConfigError{
 		Kind:    ErrSpecifyOnlyOne,
+		message: message,
+	}
+}
+
+func ErrorOneOfPrerequisitesNotDefined(argName string, prerequisites ...string) error {
+	message := fmt.Sprintf("%s specified without specifying %s", s.UserStr(argName), s.UserStrsOr(prerequisites))
+
+	return ConfigError{
+		Kind:    ErrOneOfPrerequisitesNotDefined,
 		message: message,
 	}
 }

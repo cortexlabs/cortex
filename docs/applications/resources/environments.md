@@ -7,6 +7,12 @@ Transfer data at scale from data warehouses like S3 into the Cortex environment.
 ```yaml
 - kind: environment  # (required)
   name: <string>  # environment name (required)
+  limit:
+      # specify `num_rows` or `fraction_of_rows` if using `limit`
+      num_rows: <int>  # maximum number of rows to select from the dataset
+      fraction_of_rows: <float>  # fraction of rows to select from the dataset
+      randomize: <bool>  # flag to indicate random selection of data (exact dataset size will not be guaranteed when this flag is true)
+      random_seed: <int>  # seed value for randomizing
   log_level:
     tensorflow: <string>  # TensorFlow log level (DEBUG, INFO, WARN, ERROR, or FATAL) (default: INFO)
     spark: <string>  # Spark log level (ALL, TRACE, DEBUG, INFO, WARN, ERROR, or FATAL) (default: WARN)
