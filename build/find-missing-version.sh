@@ -14,5 +14,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-grep --exclude="check-cortex-version.sh" -R -e "CORTEX_VERSION" | grep -e "master"
+grep --exclude="check-cortex-version.sh" -R -A 10 -e "CORTEX_VERSION" | grep -e "master"
 

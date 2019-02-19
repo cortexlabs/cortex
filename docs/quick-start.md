@@ -10,9 +10,9 @@
 
 You can download pre-built applications from our repository:
 
-
+<!-- CORTEX_VERSION_MINOR -->
 ```bash
-git clone -b master https://github.com/cortexlabs/cortex.git # <!-- CORTEX_VERSION_MINOR -->
+git clone -b master https://github.com/cortexlabs/cortex.git
 cd cortex/examples/iris
 ```
 

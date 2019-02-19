@@ -2,10 +2,10 @@
 
 ## Uninstall script
 
-
+<!-- CORTEX_VERSION_MINOR -->
 ```bash
 # Download
-curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh # <!-- CORTEX_VERSION_MINOR -->
+curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh
 
 # Change permissions
 chmod +x cortex.sh

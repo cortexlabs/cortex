@@ -86,7 +86,7 @@ find-missing-license:
 	@./build/find-missing-license.sh
 
 find-missing-version:
-	@./build/check-cortex-version.sh
+	@./build/find-missing-version.sh
 	
 ###############
 # CI Commands #
