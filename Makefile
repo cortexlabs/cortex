@@ -31,9 +31,9 @@ define build
 endef
 
 
-#####################
-# Operator commands #
-#####################
+############
+# Operator #
+############
 olocal:
 	@./dev/operator_local.sh
 
@@ -50,6 +50,9 @@ ouninstall:
 	@./cortex.sh -c=./dev/config/cortex.sh uninstall operator
 
 
+#######
+# EKS #
+#######
 eks-up:
 	@./dev/eks.sh start
 	$(MAKE) oinstall
@@ -61,7 +64,9 @@ eks-down:
 eks-set:
 	@./dev/eks.sh set
 
-
+########
+# KOPS #
+########
 kops-up:
 	@./dev/kops.sh start
 	@./cortex.sh -c=dev/config/cortex.sh install operator 
@@ -82,18 +87,18 @@ build-cli:
 test:
 	@./build/test.sh
 
-find-missing-license:
-	@./build/find-missing-license.sh
-
-find-missing-version:
-	@./build/find-missing-version.sh
-	
 registry-all:
 	@./dev/registry.sh update
 
 registry-dev:
 	@./dev/registry.sh update dev 	
 
+find-missing-license:
+	@./build/find-missing-license.sh
+
+find-missing-version:
+	@./build/find-missing-version.sh
+	
 
 ###############
 # CI Commands #
