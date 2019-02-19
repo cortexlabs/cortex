@@ -88,6 +88,13 @@ find-missing-license:
 find-missing-version:
 	@./build/find-missing-version.sh
 	
+registry-all:
+	@./dev/registry.sh update
+
+registry-dev:
+	@./dev/registry.sh update dev 	
+
+
 ###############
 # CI Commands #
 ###############
