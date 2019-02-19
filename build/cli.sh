@@ -19,13 +19,6 @@ set -euo pipefail
 
 CORTEX_VERSION=master
 
-if ! command -v aws >/dev/null; then
-  sudo apt-get install -y apt-transport-https ca-certificates software-properties-common zip python3-pip python3-dev build-essential
-  sudo pip3 install --upgrade pip
-  pip3 install --upgrade awscli --user
-fi
-
-
 function build_and_upload() {
   set -euo pipefail
 
