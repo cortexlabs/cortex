@@ -145,6 +145,9 @@ func SparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 					},
 					EnvVars: map[string]string{
 						"CORTEX_SPARK_VERBOSITY": ctx.Environment.LogLevel.Spark,
+						"CORTEX_CONTEXT_S3_PATH": aws.S3Path(ctx.Key),
+						"CORTEX_WORKLOAD_ID":     workloadID,
+						"CORTEX_CACHE_DIR":       consts.ContextCacheDir,
 					},
 				},
 				PodName:        &workloadID,
@@ -172,6 +175,9 @@ func SparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 					},
 					EnvVars: map[string]string{
 						"CORTEX_SPARK_VERBOSITY": ctx.Environment.LogLevel.Spark,
+						"CORTEX_CONTEXT_S3_PATH": aws.S3Path(ctx.Key),
+						"CORTEX_WORKLOAD_ID":     workloadID,
+						"CORTEX_CACHE_DIR":       consts.ContextCacheDir,
 					},
 				},
 				Instances: &sparkCompute.Executors,

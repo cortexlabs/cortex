@@ -19,39 +19,40 @@ package userconfig
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
-type RawFeature interface {
-	Feature
+type RawColumn interface {
+	Column
 	GetType() string
 	GetCompute() *SparkCompute
 	GetUserConfig() Resource
 	GetResourceType() resource.Type
+	GetFilePath() string
+	SetFilePath(string)
 }
 
-type RawFeatures []RawFeature
+type RawColumns []RawColumn
 
-var rawFeatureValidation = &cr.InterfaceStructValidation{
+var rawColumnValidation = &cr.InterfaceStructValidation{
 	TypeKey:         "type",
 	TypeStructField: "Type",
 	InterfaceStructTypes: map[string]*cr.InterfaceStructType{
-		"STRING_FEATURE": &cr.InterfaceStructType{
-			Type:                   (*RawStringFeature)(nil),
-			StructFieldValidations: rawStringFeatureFieldValidations,
+		"STRING_COLUMN": &cr.InterfaceStructType{
+			Type:                   (*RawStringColumn)(nil),
+			StructFieldValidations: rawStringColumnFieldValidations,
 		},
-		"INT_FEATURE": &cr.InterfaceStructType{
-			Type:                   (*RawIntFeature)(nil),
-			StructFieldValidations: rawIntFeatureFieldValidations,
+		"INT_COLUMN": &cr.InterfaceStructType{
+			Type:                   (*RawIntColumn)(nil),
+			StructFieldValidations: rawIntColumnFieldValidations,
 		},
-		"FLOAT_FEATURE": &cr.InterfaceStructType{
-			Type:                   (*RawFloatFeature)(nil),
-			StructFieldValidations: rawFloatFeatureFieldValidations,
+		"FLOAT_COLUMN": &cr.InterfaceStructType{
+			Type:                   (*RawFloatColumn)(nil),
+			StructFieldValidations: rawFloatColumnFieldValidations,
 		},
 	},
 }
 
-type RawIntFeature struct {
+type RawIntColumn struct {
 	Name     string        `json:"name" yaml:"name"`
 	Type     string        `json:"type" yaml:"type"`
 	Required bool          `json:"required" yaml:"required"`
@@ -60,9 +61,10 @@ type RawIntFeature struct {
 	Values   []int64       `json:"values" yaml:"values"`
 	Compute  *SparkCompute `json:"compute" yaml:"compute"`
 	Tags     Tags          `json:"tags" yaml:"tags"`
+	FilePath string        `json:"file_path"  yaml:"-"`
 }
 
-var rawIntFeatureFieldValidations = []*cr.StructFieldValidation{
+var rawIntColumnFieldValidations = []*cr.StructFieldValidation{
 	&cr.StructFieldValidation{
 		Key:         "name",
 		StructField: "Name",
@@ -100,7 +102,7 @@ var rawIntFeatureFieldValidations = []*cr.StructFieldValidation{
 	typeFieldValidation,
 }
 
-type RawFloatFeature struct {
+type RawFloatColumn struct {
 	Name     string        `json:"name" yaml:"name"`
 	Type     string        `json:"type" yaml:"type"`
 	Required bool          `json:"required" yaml:"required"`
@@ -109,9 +111,10 @@ type RawFloatFeature struct {
 	Values   []float32     `json:"values" yaml:"values"`
 	Compute  *SparkCompute `json:"compute" yaml:"compute"`
 	Tags     Tags          `json:"tags" yaml:"tags"`
+	FilePath string        `json:"file_path"  yaml:"-"`
 }
 
-var rawFloatFeatureFieldValidations = []*cr.StructFieldValidation{
+var rawFloatColumnFieldValidations = []*cr.StructFieldValidation{
 	&cr.StructFieldValidation{
 		Key:         "name",
 		StructField: "Name",
@@ -149,16 +152,17 @@ var rawFloatFeatureFieldValidations = []*cr.StructFieldValidation{
 	typeFieldValidation,
 }
 
-type RawStringFeature struct {
+type RawStringColumn struct {
 	Name     string        `json:"name" yaml:"name"`
 	Type     string        `json:"type" yaml:"type"`
 	Required bool          `json:"required" yaml:"required"`
 	Values   []string      `json:"values" yaml:"values"`
 	Compute  *SparkCompute `json:"compute" yaml:"compute"`
 	Tags     Tags          `json:"tags" yaml:"tags"`
+	FilePath string        `json:"file_path"  yaml:"-"`
 }
 
-var rawStringFeatureFieldValidations = []*cr.StructFieldValidation{
+var rawStringColumnFieldValidations = []*cr.StructFieldValidation{
 	&cr.StructFieldValidation{
 		Key:         "name",
 		StructField: "Name",
@@ -186,99 +190,129 @@ var rawStringFeatureFieldValidations = []*cr.StructFieldValidation{
 	typeFieldValidation,
 }
 
-func (rawFeatures *RawFeatures) Validate() error {
-	dups := util.FindDuplicateStrs(rawFeatures.Names())
-	if len(dups) > 0 {
-		return ErrorDuplicateConfigName(dups[0], resource.RawFeatureType)
+func (rawColumns RawColumns) Validate() error {
+	resources := make([]Resource, len(rawColumns))
+	for i, res := range rawColumns {
+		resources[i] = res
 	}
+
+	dups := FindDuplicateResourceName(resources...)
+	if len(dups) > 0 {
+		return ErrorDuplicateResourceName(dups...)
+	}
+
 	return nil
 }
 
-func (rawFeatures RawFeatures) Names() []string {
+func (rawColumns RawColumns) Names() []string {
 	names := []string{}
-	for _, feature := range rawFeatures {
-		names = append(names, feature.GetName())
+	for _, column := range rawColumns {
+		names = append(names, column.GetName())
 	}
 	return names
 }
 
-func (rawFeatures RawFeatures) Get(name string) RawFeature {
-	for _, feature := range rawFeatures {
-		if feature.GetName() == name {
-			return feature
+func (rawColumns RawColumns) Get(name string) RawColumn {
+	for _, column := range rawColumns {
+		if column.GetName() == name {
+			return column
 		}
 	}
 	return nil
 }
 
-func (feature *RawIntFeature) GetName() string {
-	return feature.Name
+func (column *RawIntColumn) GetName() string {
+	return column.Name
 }
 
-func (feature *RawFloatFeature) GetName() string {
-	return feature.Name
+func (column *RawFloatColumn) GetName() string {
+	return column.Name
 }
 
-func (feature *RawStringFeature) GetName() string {
-	return feature.Name
+func (column *RawStringColumn) GetName() string {
+	return column.Name
 }
 
-func (feature *RawIntFeature) GetType() string {
-	return feature.Type
+func (column *RawIntColumn) GetType() string {
+	return column.Type
 }
 
-func (feature *RawFloatFeature) GetType() string {
-	return feature.Type
+func (column *RawFloatColumn) GetType() string {
+	return column.Type
 }
 
-func (feature *RawStringFeature) GetType() string {
-	return feature.Type
+func (column *RawStringColumn) GetType() string {
+	return column.Type
 }
 
-func (feature *RawIntFeature) GetCompute() *SparkCompute {
-	return feature.Compute
+func (column *RawIntColumn) GetCompute() *SparkCompute {
+	return column.Compute
 }
 
-func (feature *RawFloatFeature) GetCompute() *SparkCompute {
-	return feature.Compute
+func (column *RawFloatColumn) GetCompute() *SparkCompute {
+	return column.Compute
 }
 
-func (feature *RawStringFeature) GetCompute() *SparkCompute {
-	return feature.Compute
+func (column *RawStringColumn) GetCompute() *SparkCompute {
+	return column.Compute
 }
 
-func (feature *RawIntFeature) GetResourceType() resource.Type {
-	return resource.RawFeatureType
+func (column *RawIntColumn) GetResourceType() resource.Type {
+	return resource.RawColumnType
 }
 
-func (feature *RawFloatFeature) GetResourceType() resource.Type {
-	return resource.RawFeatureType
+func (column *RawFloatColumn) GetResourceType() resource.Type {
+	return resource.RawColumnType
 }
 
-func (feature *RawStringFeature) GetResourceType() resource.Type {
-	return resource.RawFeatureType
+func (column *RawStringColumn) GetResourceType() resource.Type {
+	return resource.RawColumnType
 }
 
-func (feature *RawIntFeature) IsRaw() bool {
+func (column *RawIntColumn) IsRaw() bool {
 	return true
 }
 
-func (feature *RawFloatFeature) IsRaw() bool {
+func (column *RawFloatColumn) IsRaw() bool {
 	return true
 }
 
-func (feature *RawStringFeature) IsRaw() bool {
+func (column *RawStringColumn) IsRaw() bool {
 	return true
 }
 
-func (feature *RawIntFeature) GetUserConfig() Resource {
-	return feature
+func (column *RawIntColumn) GetUserConfig() Resource {
+	return column
 }
 
-func (feature *RawFloatFeature) GetUserConfig() Resource {
-	return feature
+func (column *RawFloatColumn) GetUserConfig() Resource {
+	return column
 }
 
-func (feature *RawStringFeature) GetUserConfig() Resource {
-	return feature
+func (column *RawStringColumn) GetUserConfig() Resource {
+	return column
+}
+
+func (column *RawIntColumn) SetFilePath(path string) {
+	column.FilePath = path
+}
+
+func (column *RawFloatColumn) SetFilePath(path string) {
+	column.FilePath = path
+}
+
+func (column *RawStringColumn) SetFilePath(path string) {
+	column.FilePath = path
+}
+
+func (column *RawIntColumn) GetFilePath() string {
+	return column.FilePath
+}
+
+func (column *RawFloatColumn) GetFilePath() string {
+	return column.FilePath
+}
+
+func (column *RawStringColumn) GetFilePath() string {
+	return column.FilePath
 }

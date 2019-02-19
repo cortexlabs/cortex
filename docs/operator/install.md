@@ -6,7 +6,11 @@ As of now, Cortex only runs on AWS. We plan to support other cloud providers in 
 
 Follow this [tutorial](https://aws.amazon.com/premiumsupport/knowledge-center/create-access-key) to create an access key.
 
-**Note: add the `AdministratorAccess` policy to your IAM user, or see [security](security.md) for a minimal access configuration.**
+**Note**
+
+* Enable programmatic access for the IAM user.
+* Attach the existing policy `AdministratorAccess` to your IAM user, or see [security](security.md) for a minimal access configuration.
+* Each of the steps below requires different permissions. Please ensure you have the required permissions for each of the steps you need to run. The `AdministratorAccess` policy will work for all steps.
 
 ## Install script
 
@@ -25,23 +29,21 @@ export AWS_SECRET_ACCESS_KEY=***
 
 ## Kubernetes
 
-Cortex runs on Kubernetes. Please make sure you have a Kubernetes cluster running before installing Cortex. We support versions 1.10 and 1.11.
+Cortex runs on Kubernetes. If you don't already have a Kubernetes cluster, [eksctl](https://eksctl.io) is a simple tool to create and manage one.
 
 **We recommend a minimum cluster size of 2 [t3.medium](https://aws.amazon.com/ec2/instance-types) AWS instances. Cortex may not run successfully on clusters with less compute resources.**
-
-If you don't already have a Kubernetes cluster, [eksctl](https://eksctl.io) is a simple tool to create and manage one:
 
 ```bash
 # Install kubectl, eksctl, and aws-iam-authenticator
 ./cortex.sh install kubernetes-tools
 
-# Spin up an EKS cluster (see eksctl.io for more configuration options)
-eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium  # this takes ~20 minutes
+# Spin up an EKS cluster (this takes ~20 minutes; see eksctl.io for more options)
+eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium
 ```
 
 ## Operator
 
-The operator installation is configurable. For a full list of configuration options please refer to the [operator config](operator/config.md) documentation.
+The Cortex operator is a service that runs on Kubernetes, translates declarative configuration into workloads, and orchestrates those workloads on the cluster. Its installation is configurable. For a full list of configuration options please refer to the [operator config](config.md) documentation.
 
 ```bash
 # Install the Cortex operator
@@ -50,7 +52,15 @@ The operator installation is configurable. For a full list of configuration opti
 
 ## CLI
 
+The CLI runs on developer machines (e.g. your laptop) and communicates with the operator.
+
 ```bash
 # Install the Cortex CLI
 ./cortex.sh install cli
+
+# Get the operator endpoint
+./cortex.sh endpoints
+
+# Configure the CLI
+cortex configure
 ```

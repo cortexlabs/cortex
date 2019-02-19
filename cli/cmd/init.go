@@ -91,33 +91,34 @@ func appInitFiles(appName string) map[string]string {
 #   data:
 #     type: csv
 #     path: s3a://my-bucket/data.csv
-#     skip_header: true
+#     csv_config:
+#       header: true
 #     schema:
-#       - feature1
-#       - feature2
-#       - feature3
+#       - column1
+#       - column2
+#       - column3
 #       - label
 `,
 
-		"resources/raw_features.yaml": `## Sample raw features:
+		"resources/raw_columns.yaml": `## Sample raw columns:
 #
-# - kind: raw_feature
-#   name: feature1
-#   type: INT_FEATURE
+# - kind: raw_column
+#   name: column1
+#   type: INT_COLUMN
 #   required: true
 #   min: 0
 #   max: 10
 #
-# - kind: raw_feature
-#   name: feature2
-#   type: FLOAT_FEATURE
+# - kind: raw_column
+#   name: column2
+#   type: FLOAT_COLUMN
 #   required: true
 #   min: 1.1
 #   max: 2.2
 #
-# - kind: raw_feature
-#   name: feature3
-#   type: STRING_FEATURE
+# - kind: raw_column
+#   name: column3
+#   type: STRING_COLUMN
 #   required: false
 #   values: [a, b, c]
 `,
@@ -125,32 +126,32 @@ func appInitFiles(appName string) map[string]string {
 		"resources/aggregates.yaml": `## Sample aggregates:
 #
 # - kind: aggregate
-#   name: feature1_bucket_boundaries
+#   name: column1_bucket_boundaries
 #   aggregator: cortex.bucket_boundaries
 #   inputs:
-#     features:
-#       col: feature1
+#     columns:
+#       col: column1
 #     args:
 #       num_buckets: 3
 `,
 
-		"resources/transformed_features.yaml": `## Sample transformed features:
+		"resources/transformed_columns.yaml": `## Sample transformed columns:
 #
-# - kind: transformed_feature
-#   name: feature1_bucketized
+# - kind: transformed_column
+#   name: column1_bucketized
 #   transformer: cortex.bucketize  # Cortex provided transformer in pkg/transformers
 #   inputs:
-#     features:
-#       num: feature1
+#     columns:
+#       num: column1
 #     args:
-#       bucket_boundaries: feature2_bucket_boundaries
+#       bucket_boundaries: column2_bucket_boundaries
 #
-# - kind: transformed_feature
-#   name: feature2_transformed
+# - kind: transformed_column
+#   name: column2_transformed
 #   transformer: my_transformer  # Your own custom transformer from the transformers folder
 #   inputs:
-#     features:
-#       num: feature2
+#     columns:
+#       num: column2
 #     args:
 #       arg1: 10
 #       arg2: 100
@@ -161,11 +162,11 @@ func appInitFiles(appName string) map[string]string {
 # - kind: model
 #   name: my_model
 #   type: classification
-#   target: label
-#   features:
-#     - feature1
-#     - feature2
-#     - feature3
+#   target_column: label
+#   feature_columns:
+#     - column1
+#     - column2
+#     - column3
 #   hparams:
 #     hidden_units: [4, 2]
 #   data_partition_ratio:
@@ -207,9 +208,9 @@ def create_estimator(run_config, model_config):
             the estimator.
 
         model_config: The Cortex configuration for the model.
-            Note: nested resources are expanded (e.g. model_config["target"])
-            will be the configuration for the target feature, rather than the
-            name of the target feature).
+            Note: nested resources are expanded (e.g. model_config["target_column"])
+            will be the configuration for the target column, rather than the
+            name of the target column).
 
     Returns:
         An instance of tf.estimator.Estimator to train the model.
@@ -217,15 +218,15 @@ def create_estimator(run_config, model_config):
 
     ## Sample create_estimator implementation:
     #
-    # columns = [
-    #     tf.feature_column.numeric_column("feature1"),
+    # feature_columns = [
+    #     tf.feature_column.numeric_column("column1"),
     #     tf.feature_column.indicator_column(
-    #         tf.feature_column.categorical_column_with_identity("feature2", num_buckets=3)
+    #         tf.feature_column.categorical_column_with_identity("column2", num_buckets=3)
     #     ),
     # ]
     #
     # return tf.estimator.DNNRegressor(
-    #     feature_columns=columns,
+    #     feature_columns=feature_columns,
     #     hidden_units=model_config["hparams"]["hidden_units"],
     #     config=run_config,
     # )
@@ -247,23 +248,23 @@ def create_estimator(run_config, model_config):
 #   name: my_aggregator
 #   output_type: [FLOAT]
 #   inputs:
-#     features:
-#       feature1: FLOAT_FEATURE|INT_FEATURE
+#     columns:
+#       column1: FLOAT_COLUMN|INT_COLUMN
 #     args:
 #       arg1: INT
 `,
 
-		"implementations/aggregators/aggregator.py": `def aggregate_spark(data, features, args):
-    """Aggregate a feature in a PySpark context.
+		"implementations/aggregators/aggregator.py": `def aggregate_spark(data, columns, args):
+    """Aggregate a column in a PySpark context.
 
     This function is required.
 
     Args:
-        data: A dataframe including all of the raw features.
+        data: A dataframe including all of the raw columns.
 
-        features: A dict with the same structure as the aggregator's input
-            features specifying the names of the dataframe's columns that
-            contain the input features.
+        columns: A dict with the same structure as the aggregator's input
+            columns specifying the names of the dataframe's columns that
+            contain the input columns.
 
         args: A dict with the same structure as the aggregator's input args
             containing the runtime values of the args.
@@ -277,7 +278,7 @@ def create_estimator(run_config, model_config):
     # from pyspark.ml.feature import QuantileDiscretizer
     #
     # discretizer = QuantileDiscretizer(
-    #     numBuckets=args["num_buckets"], inputCol=features["col"], outputCol="_"
+    #     numBuckets=args["num_buckets"], inputCol=columns["col"], outputCol="_"
     # ).fit(data)
     #
     # return discretizer.getSplits()
@@ -289,42 +290,42 @@ def create_estimator(run_config, model_config):
 #
 # - kind: transformer
 #   name: my_transformer
-#   output_type: INT_FEATURE
+#   output_type: INT_COLUMN
 #   inputs:
-#     features:
-#       feature1: INT_FEATURE|FLOAT_FEATURE
+#     columns:
+#       column1: INT_COLUMN|FLOAT_COLUMN
 #     args:
 #       arg1: FLOAT
 #       arg2: FLOAT
 `,
 
-		"implementations/transformers/transformer.py": `def transform_spark(data, features, args, transformed_feature):
-    """Transform a feature in a PySpark context.
+		"implementations/transformers/transformer.py": `def transform_spark(data, columns, args, transformed_column):
+    """Transform a column in a PySpark context.
 
-    This function is optional (recommended for large-scale feature processing).
+    This function is optional (recommended for large-scale data processing).
 
     Args:
-        data: A dataframe including all of the raw features.
+        data: A dataframe including all of the raw columns.
 
-        features: A dict with the same structure as the transformer's input
-            features specifying the names of the dataframe's columns that
-            contain the input features.
+        columns: A dict with the same structure as the transformer's input
+            columns specifying the names of the dataframe's columns that
+            contain the input columns.
 
         args: A dict with the same structure as the transformer's input args
             containing the runtime values of the args.
 
-        transformed_feature: The name of the column containing the transformed
+        transformed_column: The name of the column containing the transformed
             data that is to be appended to the dataframe.
 
     Returns:
         The original 'data' dataframe with an added column with the name of the
-        transformed_feature arg containing the transformed data.
+        transformed_column arg containing the transformed data.
     """
 
     ## Sample transform_spark implementation:
     #
     # return data.withColumn(
-    #     transformed_feature, ((data[features["num"]] - args["mean"]) / args["stddev"])
+    #     transformed_column, ((data[columns["num"]] - args["mean"]) / args["stddev"])
     # )
 
     pass
@@ -337,7 +338,7 @@ def transform_python(sample, args):
 
     Args:
         sample: A dict with the same structure as the transformer's input
-            features containing a data sample to transform.
+            columns containing a data sample to transform.
 
         args: A dict with the same structure as the transformer's input args
             containing the runtime values of the args.

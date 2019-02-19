@@ -31,9 +31,14 @@ func (ctx *Context) AllComputedResourceDependencies(resourceID string) map[strin
 }
 
 func (ctx *Context) DirectComputedResourceDependencies(resourceID string) map[string]bool {
-	for _, rawFeature := range ctx.RawFeatures {
-		if rawFeature.GetID() == resourceID {
-			return ctx.rawFeatureDependencies(rawFeature)
+	for _, pythonPackage := range ctx.PythonPackages {
+		if pythonPackage.GetID() == resourceID {
+			return ctx.pythonPackageDependencies(pythonPackage)
+		}
+	}
+	for _, rawColumn := range ctx.RawColumns {
+		if rawColumn.GetID() == resourceID {
+			return ctx.rawColumnDependencies(rawColumn)
 		}
 	}
 	for _, aggregate := range ctx.Aggregates {
@@ -41,9 +46,9 @@ func (ctx *Context) DirectComputedResourceDependencies(resourceID string) map[st
 			return ctx.aggregatesDependencies(aggregate)
 		}
 	}
-	for _, transformedFeature := range ctx.TransformedFeatures {
-		if transformedFeature.ID == resourceID {
-			return ctx.transformedFeatureDependencies(transformedFeature)
+	for _, transformedColumn := range ctx.TransformedColumns {
+		if transformedColumn.ID == resourceID {
+			return ctx.transformedColumnDependencies(transformedColumn)
 		}
 	}
 	for _, model := range ctx.Models {
@@ -62,30 +67,47 @@ func (ctx *Context) DirectComputedResourceDependencies(resourceID string) map[st
 	return make(map[string]bool)
 }
 
-func (ctx *Context) rawFeatureDependencies(rawFeature RawFeature) map[string]bool {
+func (ctx *Context) pythonPackageDependencies(pythonPackage *PythonPackage) map[string]bool {
 	return make(map[string]bool)
 }
 
-func (ctx *Context) aggregatesDependencies(aggregate *Aggregate) map[string]bool {
-	rawFeatureNames := aggregate.InputFeatureNames()
-	dependencies := make(map[string]bool, len(rawFeatureNames))
-	for rawFeatureName := range rawFeatureNames {
-		rawFeature := ctx.RawFeatures[rawFeatureName]
-		dependencies[rawFeature.GetID()] = true
+func (ctx *Context) rawColumnDependencies(rawColumn RawColumn) map[string]bool {
+	// Currently python packages are a dependency on raw features because raw features share
+	// the same workload as transformed features and aggregates.
+	dependencies := make(map[string]bool)
+	for _, pythonPackage := range ctx.PythonPackages {
+		dependencies[pythonPackage.GetID()] = true
 	}
 	return dependencies
 }
 
-func (ctx *Context) transformedFeatureDependencies(transformedFeature *TransformedFeature) map[string]bool {
+func (ctx *Context) aggregatesDependencies(aggregate *Aggregate) map[string]bool {
+	rawColumnNames := aggregate.InputColumnNames()
+	dependencies := make(map[string]bool, len(rawColumnNames))
+	for _, pythonPackage := range ctx.PythonPackages {
+		dependencies[pythonPackage.GetID()] = true
+	}
+	for rawColumnName := range rawColumnNames {
+		rawColumn := ctx.RawColumns[rawColumnName]
+		dependencies[rawColumn.GetID()] = true
+	}
+	return dependencies
+}
+
+func (ctx *Context) transformedColumnDependencies(transformedColumn *TransformedColumn) map[string]bool {
 	dependencies := make(map[string]bool)
 
-	rawFeatureNames := transformedFeature.InputFeatureNames()
-	for rawFeatureName := range rawFeatureNames {
-		rawFeature := ctx.RawFeatures[rawFeatureName]
-		dependencies[rawFeature.GetID()] = true
+	for _, pythonPackage := range ctx.PythonPackages {
+		dependencies[pythonPackage.GetID()] = true
 	}
 
-	aggregateNames := transformedFeature.InputAggregateNames(ctx)
+	rawColumnNames := transformedColumn.InputColumnNames()
+	for rawColumnName := range rawColumnNames {
+		rawColumn := ctx.RawColumns[rawColumnName]
+		dependencies[rawColumn.GetID()] = true
+	}
+
+	aggregateNames := transformedColumn.InputAggregateNames(ctx)
 	for aggregateName := range aggregateNames {
 		aggregate := ctx.Aggregates[aggregateName]
 		dependencies[aggregate.GetID()] = true
@@ -96,15 +118,20 @@ func (ctx *Context) transformedFeatureDependencies(transformedFeature *Transform
 
 func (ctx *Context) trainingDatasetDependencies(model *Model) map[string]bool {
 	dependencies := make(map[string]bool)
-	for _, featureName := range model.AllFeatureNames() {
-		feature := ctx.GetFeature(featureName)
-		dependencies[feature.GetID()] = true
+	for _, columnName := range model.AllColumnNames() {
+		column := ctx.GetColumn(columnName)
+		dependencies[column.GetID()] = true
 	}
 	return dependencies
 }
 
 func (ctx *Context) modelDependencies(model *Model) map[string]bool {
 	dependencies := make(map[string]bool)
+
+	for _, pythonPackage := range ctx.PythonPackages {
+		dependencies[pythonPackage.GetID()] = true
+	}
+
 	dependencies[model.Dataset.ID] = true
 	for _, aggregate := range model.Aggregates {
 		dependencies[ctx.Aggregates[aggregate].GetID()] = true

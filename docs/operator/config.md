@@ -23,15 +23,16 @@ export CORTEX_REGION="us-west-2"
 export CORTEX_NAMESPACE="cortex"
 
 # Image paths
-export CORTEX_IMAGE_ARGO_CONTROLLER="cortexlabs/argo-controller:master" # <!-- CORTEX_VERSION_STABLE -->
-export CORTEX_IMAGE_ARGO_EXECUTOR="cortexlabs/argo-executor:master" # <!-- CORTEX_VERSION_STABLE -->
-export CORTEX_IMAGE_FLUENTD="cortexlabs/fluentd:master" # <!-- CORTEX_VERSION_STABLE -->
-export CORTEX_IMAGE_NGINX_BACKEND="cortexlabs/nginx-backend:master" # <!-- CORTEX_VERSION_STABLE -->
-export CORTEX_IMAGE_NGINX_CONTROLLER="cortexlabs/nginx-controller:master" # <!-- CORTEX_VERSION_STABLE -->
-export CORTEX_IMAGE_OPERATOR="cortexlabs/operator:master" # <!-- CORTEX_VERSION_STABLE -->
-export CORTEX_IMAGE_SPARK="cortexlabs/spark:master" # <!-- CORTEX_VERSION_STABLE -->
-export CORTEX_IMAGE_SPARK_OPERATOR="cortexlabs/spark-operator:master" # <!-- CORTEX_VERSION_STABLE -->
-export CORTEX_IMAGE_TF_SERVE="cortexlabs/tf-serve:master" # <!-- CORTEX_VERSION_STABLE -->
-export CORTEX_IMAGE_TF_TRAIN="cortexlabs/tf-train:master" # <!-- CORTEX_VERSION_STABLE -->
-export CORTEX_IMAGE_TF_API="cortexlabs/tf-api:master" # <!-- CORTEX_VERSION_STABLE -->
+export CORTEX_IMAGE_ARGO_CONTROLLER="cortexlabs/argo-controller:master"
+export CORTEX_IMAGE_ARGO_EXECUTOR="cortexlabs/argo-executor:master"
+export CORTEX_IMAGE_FLUENTD="cortexlabs/fluentd:master"
+export CORTEX_IMAGE_NGINX_BACKEND="cortexlabs/nginx-backend:master"
+export CORTEX_IMAGE_NGINX_CONTROLLER="cortexlabs/nginx-controller:master"
+export CORTEX_IMAGE_OPERATOR="cortexlabs/operator:master"
+export CORTEX_IMAGE_SPARK="cortexlabs/spark:master"
+export CORTEX_IMAGE_SPARK_OPERATOR="cortexlabs/spark-operator:master"
+export CORTEX_IMAGE_TF_SERVE="cortexlabs/tf-serve:master"
+export CORTEX_IMAGE_TF_TRAIN="cortexlabs/tf-train:master"
+export CORTEX_IMAGE_TF_API="cortexlabs/tf-api:master"
+export CORTEX_IMAGE_PYTHON_PACKAGER="cortexlabs/python-packager:master"
 ```

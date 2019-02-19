@@ -47,3 +47,13 @@ func MinInt(vals ...int) int {
 	}
 	return min
 }
+
+func MaxInt(vals ...int) int {
+	max := vals[0]
+	for _, val := range vals {
+		if val > max {
+			max = val
+		}
+	}
+	return max
+}

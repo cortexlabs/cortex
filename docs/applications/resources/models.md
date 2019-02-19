@@ -8,9 +8,9 @@ Train custom TensorFlow models at scale.
 - kind: <string>  # (required)
   name: <string>  # model name (required)
   type: <string>  # "classification" or "regression" (required)
-  target: <string>  # the feature to predict (must be an integer feature for classification, or an integer or float feature for regression) (required)
-  features: <[string]>  # a list of the features used as input for this model (required)
-  training_features: <[string]>  # a list of the features used only during training (optional)
+  target_column: <string>  # the column to predict (must be an integer column for classification, or an integer or float column for regression) (required)
+  feature_columns: <[string]>  # a list of the columns used as input for this model (required)
+  training_columns: <[string]>  # a list of the columns used only during training (optional)
   aggregates: <[string]>  # a list of aggregates to pass into model training (optional)
   hparams: <map>  # a map of hyperparameters to pass into model training (optional)
   prediction_key: <string>  # key of the target value in the estimator's exported predict outputs (default: "class_ids" for classification, "predictions" for regression)
@@ -44,6 +44,7 @@ Train custom TensorFlow models at scale.
   compute:
     cpu: <string>  # CPU request (default: Null)
     mem: <string>  # memory request (default: Null)
+    gpu: <string>  # GPU request (default: Null)
 
   tags:
     <string>: <scalar>  # arbitrary key/value pairs to attach to the resource (optional)
@@ -58,15 +59,15 @@ See the [tf.estimator.RunConfig](https://www.tensorflow.org/api_docs/python/tf/e
 - kind: model
   name: dnn
   type: classification
-  target: label
-  features:
-    - feature1
-    - feature2
-    - feature3
-  training_features:
+  target_column: label
+  feature_columns:
+    - column1
+    - column2
+    - column3
+  training_columns:
     - class_weight
   aggregates:
-    - feature1_index
+    - column1_index
   hparams:
     hidden_units: [4, 2]
   data_partition_ratio:

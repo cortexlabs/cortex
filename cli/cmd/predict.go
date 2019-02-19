@@ -80,7 +80,7 @@ var predictCmd = &cobra.Command{
 		apiURL := util.URLJoin(resourcesRes.APIsBaseURL, apiPath)
 		predictResponse, err := makePredictRequest(apiURL, samplesJSONPath)
 		if err != nil {
-			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") {
+			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
 				errors.Exit(s.ErrApiNotReady(apiName, resource.StatusAPIUpdating.Message()))
 			}
 			errors.Exit(err)
@@ -93,7 +93,11 @@ var predictCmd = &cobra.Command{
 		fmt.Println("\n" + apiName + " was last updated on " + apiStart + "\n")
 
 		if predictResponse.ClassificationPredictions != nil {
-			fmt.Println("Predicted classes:")
+			if len(predictResponse.ClassificationPredictions) == 1 {
+				fmt.Println("Predicted class:")
+			} else {
+				fmt.Println("Predicted classes:")
+			}
 			for _, prediction := range predictResponse.ClassificationPredictions {
 				if prediction.PredictedClassReversed != nil {
 					json, _ := json.Marshal(prediction.PredictedClassReversed)
@@ -104,7 +108,11 @@ var predictCmd = &cobra.Command{
 			}
 		}
 		if predictResponse.RegressionPredictions != nil {
-			fmt.Println("Predicted values:")
+			if len(predictResponse.RegressionPredictions) == 1 {
+				fmt.Println("Predicted value:")
+			} else {
+				fmt.Println("Predicted values:")
+			}
 			for _, prediction := range predictResponse.RegressionPredictions {
 				if prediction.PredictedValueReversed != nil {
 					json, _ := json.Marshal(prediction.PredictedValueReversed)

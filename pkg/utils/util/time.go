@@ -111,6 +111,10 @@ func LocalTimestampHuman(t *time.Time) string {
 	return (*t).Local().Format("Monday, January 2, 2006 at 3:04pm MST")
 }
 
+func LocalHourNow() string {
+	return time.Now().Local().Format("3:04:05pm MST")
+}
+
 func OlderThanSeconds(t time.Time, secs float64) bool {
 	return time.Since(t).Seconds() > secs
 }

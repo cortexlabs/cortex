@@ -33,9 +33,13 @@ func Respond(w http.ResponseWriter, response interface{}) {
 }
 
 func RespondError(w http.ResponseWriter, err error, strs ...string) {
+	RespondErrorCode(w, http.StatusBadRequest, err, strs...)
+}
+
+func RespondErrorCode(w http.ResponseWriter, code int, err error, strs ...string) {
 	err = errors.Wrap(err, strs...)
 	errors.PrintError(err)
-	w.WriteHeader(http.StatusBadRequest)
+	w.WriteHeader(code)
 	response := schema.ErrorResponse{
 		Error: err.Error(),
 	}

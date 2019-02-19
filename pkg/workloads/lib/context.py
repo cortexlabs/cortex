@@ -66,8 +66,9 @@ class Context:
         self.status_prefix = self.ctx["status_prefix"]
         self.app = self.ctx["app"]
         self.environment = self.ctx["environment"]
-        self.raw_features = self.ctx["raw_features"]
-        self.transformed_features = self.ctx["transformed_features"]
+        self.python_packages = self.ctx["python_packages"]
+        self.raw_columns = self.ctx["raw_columns"]
+        self.transformed_columns = self.ctx["transformed_columns"]
         self.transformers = self.ctx["transformers"]
         self.aggregators = self.ctx["aggregators"]
         self.aggregates = self.ctx["aggregates"]
@@ -87,15 +88,15 @@ class Context:
                 )
             )
 
-        self.features = util.merge_dicts_overwrite(
-            self.raw_features, self.transformed_features  # self.aggregates
+        self.columns = util.merge_dicts_overwrite(
+            self.raw_columns, self.transformed_columns  # self.aggregates
         )
 
         self.values = util.merge_dicts_overwrite(self.aggregates, self.constants)
 
-        self.raw_feature_names = list(self.raw_features.keys())
-        self.transformed_feature_names = list(self.transformed_features.keys())
-        self.feature_names = list(self.features.keys())
+        self.raw_column_names = list(self.raw_columns.keys())
+        self.transformed_column_names = list(self.transformed_columns.keys())
+        self.column_names = list(self.columns.keys())
 
         # Internal caches
         self._transformer_impls = {}
@@ -106,15 +107,17 @@ class Context:
         os.environ["AWS_REGION"] = self.region
 
         # Id map
-        self.rf_id_map = ResourceMap(self.raw_features)
+        self.pp_id_map = ResourceMap(self.python_packages)
+        self.rf_id_map = ResourceMap(self.raw_columns)
         self.ag_id_map = ResourceMap(self.aggregates)
-        self.tf_id_map = ResourceMap(self.transformed_features)
+        self.tf_id_map = ResourceMap(self.transformed_columns)
         self.td_id_map = ResourceMap(self.training_datasets)
         self.models_id_map = ResourceMap(self.models)
         self.apis_id_map = ResourceMap(self.apis)
         self.constants_id_map = ResourceMap(self.constants)
 
         self.id_map = util.merge_dicts_overwrite(
+            self.pp_id_map,
             self.rf_id_map,
             self.ag_id_map,
             self.tf_id_map,
@@ -124,11 +127,11 @@ class Context:
             self.constants_id_map,
         )
 
-    def is_raw_feature(self, name):
-        return name in self.raw_features
+    def is_raw_column(self, name):
+        return name in self.raw_columns
 
-    def is_transformed_feature(self, name):
-        return name in self.transformed_features
+    def is_transformed_column(self, name):
+        return name in self.transformed_columns
 
     def is_constant(self, name):
         return name in self.constants
@@ -136,10 +139,10 @@ class Context:
     def is_aggregate(self, name):
         return name in self.aggregates
 
-    def create_inputs_from_features_map(self, features_values_map, feature_name):
+    def create_column_inputs_map(self, values_map, column_name):
         """Construct an inputs dict with actual data"""
-        feature_input_config = self.transformed_features[feature_name]["inputs"]["features"]
-        return create_inputs_from_features_map(features_values_map, feature_input_config)
+        columns_input_config = self.transformed_columns[column_name]["inputs"]["columns"]
+        return create_inputs_map(values_map, columns_input_config)
 
     def get_file(self, impl_key, cache_impl_path):
         if not os.path.isfile(cache_impl_path):
@@ -182,8 +185,8 @@ class Context:
 
         return impl, impl_path
 
-    def get_aggregator_impl(self, feature_name):
-        aggregator_name = self.aggregates[feature_name]["aggregator"]
+    def get_aggregator_impl(self, column_name):
+        aggregator_name = self.aggregates[column_name]["aggregator"]
         if aggregator_name in self._aggregator_impls:
             return self._aggregator_impls[aggregator_name]
         aggregator = self.aggregators[aggregator_name]
@@ -197,23 +200,23 @@ class Context:
                 module_prefix, aggregator["name"], aggregator["impl_key"]
             )
         except CortexException as e:
-            e.wrap("aggregate " + feature_name, "aggregator")
+            e.wrap("aggregate " + column_name, "aggregator")
             raise
 
         try:
             _validate_impl(impl, AGGREGATOR_IMPL_VALIDATION)
         except CortexException as e:
-            e.wrap("aggregate " + feature_name, "aggregator " + aggregator["name"])
+            e.wrap("aggregate " + column_name, "aggregator " + aggregator["name"])
             raise
 
         self._aggregator_impls[aggregator_name] = (impl, impl_path)
         return (impl, impl_path)
 
-    def get_transformer_impl(self, feature_name):
-        if self.is_transformed_feature(feature_name) is not True:
+    def get_transformer_impl(self, column_name):
+        if self.is_transformed_column(column_name) is not True:
             return None, None
 
-        transformer_name = self.transformed_features[feature_name]["transformer"]
+        transformer_name = self.transformed_columns[column_name]["transformer"]
 
         if transformer_name in self._transformer_impls:
             return self._transformer_impls[transformer_name]
@@ -229,13 +232,13 @@ class Context:
                 module_prefix, transformer["name"], transformer["impl_key"]
             )
         except CortexException as e:
-            e.wrap("transformed feature " + feature_name, "transformer")
+            e.wrap("transformed column " + column_name, "transformer")
             raise
 
         try:
             _validate_impl(impl, TRANSFORMER_IMPL_VALIDATION)
         except CortexException as e:
-            e.wrap("transformed feature " + feature_name, "transformer " + transformer["name"])
+            e.wrap("transformed column " + column_name, "transformer " + transformer["name"])
             raise
 
         self._transformer_impls[transformer_name] = (impl, impl_path)
@@ -274,27 +277,27 @@ class Context:
         training_data_parts_prefix = os.path.join(data_key, part_prefix)
         return aws.get_matching_s3_keys(self.bucket, prefix=training_data_parts_prefix)
 
-    def feature_config(self, feature_name):
-        if self.is_raw_feature(feature_name):
-            return self.raw_feature_config(feature_name)
-        elif self.is_transformed_feature(feature_name):
-            return self.transformed_feature_config(feature_name)
+    def column_config(self, column_name):
+        if self.is_raw_column(column_name):
+            return self.raw_column_config(column_name)
+        elif self.is_transformed_column(column_name):
+            return self.transformed_column_config(column_name)
         return None
 
-    def raw_feature_config(self, feature_name):
-        raw_feature = self.raw_features[feature_name]
-        if raw_feature is None:
+    def raw_column_config(self, column_name):
+        raw_column = self.raw_columns[column_name]
+        if raw_column is None:
             return None
-        config = deepcopy(raw_feature)
+        config = deepcopy(raw_column)
         config_keys = ["name", "type", "required", "min", "max", "values", "tags"]
         util.keep_dict_keys(config, config_keys)
         return config
 
-    def transformed_feature_config(self, feature_name):
-        transformed_feature = self.transformed_features[feature_name]
-        if transformed_feature is None:
+    def transformed_column_config(self, column_name):
+        transformed_column = self.transformed_columns[column_name]
+        if transformed_column is None:
             return None
-        config = deepcopy(transformed_feature)
+        config = deepcopy(transformed_column)
         config_keys = ["name", "transformer", "inputs", "tags", "type"]
         util.keep_dict_keys(config, config_keys)
         config["inputs"] = self._expand_inputs_config(config["inputs"])
@@ -337,10 +340,10 @@ class Context:
             "name",
             "type",
             "path",
-            "target",
+            "target_column",
             "prediction_key",
-            "features",
-            "training_features",
+            "feature_columns",
+            "training_columns",
             "hparams",
             "data_partition_ratio",
             "aggregates",
@@ -350,13 +353,13 @@ class Context:
         ]
         util.keep_dict_keys(model_config, config_keys)
 
-        for i, feature_name in enumerate(model_config["features"]):
-            model_config["features"][i] = self.feature_config(feature_name)
+        for i, column_name in enumerate(model_config["feature_columns"]):
+            model_config["feature_columns"][i] = self.column_config(column_name)
 
-        for i, feature_name in enumerate(model_config["training_features"]):
-            model_config["training_features"][i] = self.feature_config(feature_name)
+        for i, column_name in enumerate(model_config["training_columns"]):
+            model_config["training_columns"][i] = self.column_config(column_name)
 
-        model_config["target"] = self.feature_config(model_config["target"])
+        model_config["target_column"] = self.column_config(model_config["target_column"])
 
         aggregates_dict = {key: key for key in model_config["aggregates"]}
         model_config["aggregates"] = self.populate_args(aggregates_dict)
@@ -384,17 +387,17 @@ class Context:
         return config
 
     def _expand_inputs_config(self, inputs_config):
-        inputs_config["features"] = self._expand_feature_inputs_dict(inputs_config["features"])
+        inputs_config["columns"] = self._expand_columns_input_dict(inputs_config["columns"])
         inputs_config["args"] = self._expand_args_dict(inputs_config["args"])
         return inputs_config
 
-    def _expand_feature_inputs_dict(self, input_features_dict):
+    def _expand_columns_input_dict(self, input_columns_dict):
         expanded = {}
-        for feature_name, value in input_features_dict.items():
+        for column_name, value in input_columns_dict.items():
             if util.is_str(value):
-                expanded[feature_name] = self.feature_config(value)
+                expanded[column_name] = self.column_config(value)
             elif util.is_list(value):
-                expanded[feature_name] = [self.feature_config(name) for name in value]
+                expanded[column_name] = [self.column_config(name) for name in value]
         return expanded
 
     def _expand_args_dict(self, args_dict):
@@ -461,12 +464,12 @@ MODEL_IMPL_VALIDATION = {
 }
 
 AGGREGATOR_IMPL_VALIDATION = {
-    "required": [{"name": "aggregate_spark", "args": ["data", "features", "args"]}]
+    "required": [{"name": "aggregate_spark", "args": ["data", "columns", "args"]}]
 }
 
 TRANSFORMER_IMPL_VALIDATION = {
     "optional": [
-        {"name": "transform_spark", "args": ["data", "features", "args", "transformed_feature"]},
+        {"name": "transform_spark", "args": ["data", "columns", "args", "transformed_column"]},
         {"name": "reverse_transform_python", "args": ["transformed_value", "args"]},
         {"name": "transform_python", "args": ["sample", "args"]},
     ]
@@ -515,27 +518,27 @@ def _validate_required_fn_args(impl, fn_name, args):
             )
 
 
-def create_inputs_from_features_map(features_values_map, feature_input_config):
+def create_inputs_map(values_map, input_config):
     inputs = {}
-    for input_name, input_config_item in feature_input_config.items():
+    for input_name, input_config_item in input_config.items():
         if util.is_str(input_config_item):
-            inputs[input_name] = features_values_map[input_config_item]
+            inputs[input_name] = values_map[input_config_item]
         elif util.is_int(input_config_item):
-            inputs[input_name] = features_values_map[input_config_item]
+            inputs[input_name] = values_map[input_config_item]
         elif util.is_list(input_config_item):
-            inputs[input_name] = [features_values_map[f] for f in input_config_item]
+            inputs[input_name] = [values_map[f] for f in input_config_item]
         else:
-            raise CortexException("invalid feature inputs")
+            raise CortexException("invalid column inputs")
 
     return inputs
 
 
 def _deserialize_raw_ctx(raw_ctx):
-    raw_features = raw_ctx["raw_features"]
-    raw_ctx["raw_features"] = util.merge_dicts_overwrite(
-        raw_features["raw_int_features"],
-        raw_features["raw_float_features"],
-        raw_features["raw_string_features"],
+    raw_columns = raw_ctx["raw_columns"]
+    raw_ctx["raw_columns"] = util.merge_dicts_overwrite(
+        raw_columns["raw_int_columns"],
+        raw_columns["raw_float_columns"],
+        raw_columns["raw_string_columns"],
     )
 
     data_split = raw_ctx["environment_data"]

@@ -23,3 +23,7 @@ We are focusing on TensorFlow for now, but we aim to support all popular machine
 ## Why do I need a Kubernetes cluster?
 
 Cortex is built on top of Kubernetes to limit cloud provider lock-in.
+
+## Can I use Cortex with my existing codebase?
+
+Yes you can. Your custom packages will be installed and made available for use in the Cortex pipeline.

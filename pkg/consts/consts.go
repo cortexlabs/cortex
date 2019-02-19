@@ -23,9 +23,9 @@ import (
 var (
 	CortexVersion = "master" // CORTEX_VERSION = "master"
 
-	SingleTypeStrRegex   = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_FEATURE)?"`)
-	CompoundTypeStrRegex = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_FEATURE)?(\|(INT|FLOAT|STRING|BOOL)(_FEATURE)?)+"`)
-	TypeStrRegex         = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_FEATURE)?(\|(INT|FLOAT|STRING|BOOL)(_FEATURE)?)*"`)
+	SingleTypeStrRegex   = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?"`)
+	CompoundTypeStrRegex = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?(\|(INT|FLOAT|STRING|BOOL)(_COLUMN)?)+"`)
+	TypeStrRegex         = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?(\|(INT|FLOAT|STRING|BOOL)(_COLUMN)?)*"`)
 
 	ContextCacheDir    = "/mnt/context"
 	EmptyDirMountPath  = "/mnt"
@@ -33,6 +33,9 @@ var (
 
 	CortexConfigPath = "/configs/cortex"
 	CortexConfigName = "cortex-config"
+
+	RequirementsTxt = "requirements.txt"
+	PackageDir      = "packages"
 
 	AppsDir             = "apps"
 	DataDir             = "data"
@@ -42,6 +45,7 @@ var (
 	AggregatesDir       = "aggregates"
 	TransformersDir     = "transformers"
 	ModelImplsDir       = "model_implementations"
+	PythonPackagesDir   = "python_packages"
 	ModelsDir           = "models"
 	ConstantsDir        = "constants"
 	ContextsDir         = "contexts"

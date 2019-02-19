@@ -13,11 +13,11 @@
 # limitations under the License.
 
 
-def aggregate_spark(data, features, args):
+def aggregate_spark(data, columns, args):
     from pyspark.ml.feature import QuantileDiscretizer
 
     discretizer = QuantileDiscretizer(
-        numBuckets=args["num_buckets"], inputCol=features["col"], outputCol="_"
+        numBuckets=args["num_buckets"], inputCol=columns["col"], outputCol="_"
     ).fit(data)
 
     return discretizer.getSplits()

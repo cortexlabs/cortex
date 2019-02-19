@@ -21,27 +21,27 @@ import (
 	"github.com/cortexlabs/cortex/pkg/utils/cast"
 )
 
-type TransformedFeatures map[string]*TransformedFeature
+type TransformedColumns map[string]*TransformedColumn
 
-type TransformedFeature struct {
-	*userconfig.TransformedFeature
+type TransformedColumn struct {
+	*userconfig.TransformedColumn
 	*ComputedResourceFields
 	Type string `json:"type"`
 }
 
-func (feature *TransformedFeature) GetType() string {
-	return feature.Type
+func (column *TransformedColumn) GetType() string {
+	return column.Type
 }
 
 // Returns map[string]string because after autogen, arg values are constant or aggregate names
-func (transformedFeature *TransformedFeature) Args() map[string]string {
-	args, _ := cast.InterfaceToStrStrMap(transformedFeature.Inputs.Args)
+func (transformedColumn *TransformedColumn) Args() map[string]string {
+	args, _ := cast.InterfaceToStrStrMap(transformedColumn.Inputs.Args)
 	return args
 }
 
-func (transformedFeature *TransformedFeature) InputAggregateNames(ctx *Context) map[string]bool {
+func (transformedColumn *TransformedColumn) InputAggregateNames(ctx *Context) map[string]bool {
 	inputAggregateNames := make(map[string]bool)
-	for _, valueResourceName := range transformedFeature.Args() {
+	for _, valueResourceName := range transformedColumn.Args() {
 		if _, ok := ctx.Aggregates[valueResourceName]; ok {
 			inputAggregateNames[valueResourceName] = true
 		}
@@ -49,10 +49,10 @@ func (transformedFeature *TransformedFeature) InputAggregateNames(ctx *Context) 
 	return inputAggregateNames
 }
 
-func (transformedFeatures TransformedFeatures) OneByID(id string) *TransformedFeature {
-	for _, transformedFeature := range transformedFeatures {
-		if transformedFeature.ID == id {
-			return transformedFeature
+func (transformedColumns TransformedColumns) OneByID(id string) *TransformedColumn {
+	for _, transformedColumn := range transformedColumns {
+		if transformedColumn.ID == id {
+			return transformedColumn
 		}
 	}
 	return nil

@@ -66,17 +66,17 @@ def get_spark_session(app_name):
 def parse_args(args):
     should_ingest = args.ingest
 
-    features_to_validate = []
-    if args.raw_features != None and args.raw_features != "":
-        features_to_validate = sorted(args.raw_features.split(","))
+    cols_to_validate = []
+    if args.raw_columns != None and args.raw_columns != "":
+        cols_to_validate = sorted(args.raw_columns.split(","))
 
-    features_to_aggregate = []
+    cols_to_aggregate = []
     if args.aggregates != None and args.aggregates != "":
-        features_to_aggregate = sorted(args.aggregates.split(","))
+        cols_to_aggregate = sorted(args.aggregates.split(","))
 
-    features_to_transform = []
-    if args.transformed_features != None and args.transformed_features != "":
-        features_to_transform = sorted(args.transformed_features.split(","))
+    cols_to_transform = []
+    if args.transformed_columns != None and args.transformed_columns != "":
+        cols_to_transform = sorted(args.transformed_columns.split(","))
 
     training_datasets = []
     if args.training_datasets != None and args.training_datasets != "":
@@ -84,18 +84,18 @@ def parse_args(args):
 
     return (
         should_ingest,
-        features_to_validate,
-        features_to_aggregate,
-        features_to_transform,
+        cols_to_validate,
+        cols_to_aggregate,
+        cols_to_transform,
         training_datasets,
     )
 
 
-def validate_dataset(ctx, raw_df, features_to_validate):
+def validate_dataset(ctx, raw_df, cols_to_validate):
     total_row_count = aws.read_json_from_s3(ctx.raw_dataset["metadata_key"], ctx.bucket)[
         "dataset_size"
     ]
-    conditions_dict = spark_util.value_check_data(ctx, raw_df, features_to_validate)
+    conditions_dict = spark_util.value_check_data(ctx, raw_df, cols_to_validate)
 
     if len(conditions_dict) > 0:
         for column, cond_count_list in conditions_dict.items():
@@ -105,7 +105,7 @@ def validate_dataset(ctx, raw_df, features_to_validate):
                         condition, fail_count, total_row_count
                     )
                 )
-        raise UserException("raw feature validations failed")
+        raise UserException("raw column validations failed")
 
 
 def write_raw_dataset(df, ctx, spark):
@@ -129,16 +129,16 @@ def drop_null_and_write(ingest_df, ctx, spark):
     )
 
 
-def ingest_raw_dataset(spark, ctx, features_to_validate, should_ingest):
+def ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest):
     if should_ingest:
-        features_to_validate = list(ctx.rf_id_map.keys())
+        cols_to_validate = list(ctx.rf_id_map.keys())
 
-    if len(features_to_validate) == 0:
+    if len(cols_to_validate) == 0:
         logger.info("Reading {} data (version: {})".format(ctx.app["name"], ctx.dataset_version))
         return spark_util.read_raw_dataset(ctx, spark)
 
-    feature_resources_to_validate = [ctx.rf_id_map[f] for f in features_to_validate]
-    ctx.upload_resource_status_start(*feature_resources_to_validate)
+    col_resources_to_validate = [ctx.rf_id_map[f] for f in cols_to_validate]
+    ctx.upload_resource_status_start(*col_resources_to_validate)
     try:
         if should_ingest:
             logger.info("Ingesting")
@@ -157,22 +157,22 @@ def ingest_raw_dataset(spark, ctx, features_to_validate, should_ingest):
 
         logger.info("Reading {} data (version: {})".format(ctx.app["name"], ctx.dataset_version))
         raw_df = spark_util.read_raw_dataset(ctx, spark)
-        validate_dataset(ctx, raw_df, features_to_validate)
+        validate_dataset(ctx, raw_df, cols_to_validate)
     except:
-        ctx.upload_resource_status_failed(*feature_resources_to_validate)
+        ctx.upload_resource_status_failed(*col_resources_to_validate)
         raise
-    ctx.upload_resource_status_success(*feature_resources_to_validate)
+    ctx.upload_resource_status_success(*col_resources_to_validate)
     logger.info("First {} samples:".format(3))
     show_df(raw_df, ctx, 3)
 
     return raw_df
 
 
-def run_custom_aggregators(spark, ctx, features_to_aggregate, raw_df):
+def run_custom_aggregators(spark, ctx, cols_to_aggregate, raw_df):
     logger.info("Aggregating")
     results = {}
 
-    aggregate_names = [ctx.ag_id_map[f]["name"] for f in features_to_aggregate]
+    aggregate_names = [ctx.ag_id_map[f]["name"] for f in cols_to_aggregate]
 
     builtin_aggregates, custom_aggregates = spark_util.split_aggregators(
         sorted(aggregate_names), ctx
@@ -204,7 +204,7 @@ def run_custom_aggregators(spark, ctx, features_to_aggregate, raw_df):
     show_aggregates(ctx, results)
 
 
-def validate_transformers(spark, ctx, features_to_transform, raw_df):
+def validate_transformers(spark, ctx, cols_to_transform, raw_df):
     logger.info("Validating Transformers")
 
     TEST_DF_SIZE = 100
@@ -213,34 +213,32 @@ def validate_transformers(spark, ctx, features_to_transform, raw_df):
     sample_df = raw_df.limit(TEST_DF_SIZE).cache()
     test_df = raw_df.limit(TEST_DF_SIZE).cache()
 
-    resource_list = sorted(
-        [ctx.tf_id_map[f] for f in features_to_transform], key=lambda r: r["name"]
-    )
-    for transformed_feature in resource_list:
-        ctx.upload_resource_status_start(transformed_feature)
+    resource_list = sorted([ctx.tf_id_map[f] for f in cols_to_transform], key=lambda r: r["name"])
+    for transformed_column in resource_list:
+        ctx.upload_resource_status_start(transformed_column)
         try:
-            input_features_dict = transformed_feature["inputs"]["features"]
+            input_columns_dict = transformed_column["inputs"]["columns"]
 
             input_cols = []
 
-            for k in sorted(input_features_dict.keys()):
-                if util.is_list(input_features_dict[k]):
-                    input_cols += sorted(input_features_dict[k])
+            for k in sorted(input_columns_dict.keys()):
+                if util.is_list(input_columns_dict[k]):
+                    input_cols += sorted(input_columns_dict[k])
                 else:
-                    input_cols.append(input_features_dict[k])
+                    input_cols.append(input_columns_dict[k])
 
-            tf_name = transformed_feature["name"]
+            tf_name = transformed_column["name"]
             logger.info("Transforming {} to {}".format(", ".join(input_cols), tf_name))
 
             spark_util.validate_transformer(tf_name, test_df, ctx, spark)
-            sample_df = spark_util.transform_feature(
-                transformed_feature["name"], sample_df, ctx, spark
+            sample_df = spark_util.transform_column(
+                transformed_column["name"], sample_df, ctx, spark
             )
 
             sample_df.select(tf_name).collect()  # run the transformer
             show_df(sample_df.select(*input_cols, tf_name), ctx, n=3, sort=False)
 
-            for alias in transformed_feature["aliases"][1:]:
+            for alias in transformed_column["aliases"][1:]:
                 logger.info("Transforming {} to {}".format(", ".join(input_cols), alias))
 
                 display_transform_df = sample_df.withColumn(alias, F.col(tf_name)).select(
@@ -248,9 +246,9 @@ def validate_transformers(spark, ctx, features_to_transform, raw_df):
                 )
                 show_df(display_transform_df, ctx, n=3, sort=False)
         except:
-            ctx.upload_resource_status_failed(transformed_feature)
+            ctx.upload_resource_status_failed(transformed_column)
             raise
-        ctx.upload_resource_status_success(transformed_feature)
+        ctx.upload_resource_status_success(transformed_column)
 
 
 def create_training_datasets(spark, ctx, training_datasets, accumulated_df):
@@ -274,13 +272,11 @@ def create_training_datasets(spark, ctx, training_datasets, accumulated_df):
 
 
 def run_job(args):
-    should_ingest, features_to_validate, features_to_aggregate, features_to_transform, training_datasets = parse_args(
+    should_ingest, cols_to_validate, cols_to_aggregate, cols_to_transform, training_datasets = parse_args(
         args
     )
 
-    resource_id_list = (
-        features_to_validate + features_to_aggregate + features_to_transform + training_datasets
-    )
+    resource_id_list = cols_to_validate + cols_to_aggregate + cols_to_transform + training_datasets
 
     try:
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
@@ -291,13 +287,13 @@ def run_job(args):
     try:
         spark = None  # For the finally clause
         spark = get_spark_session(ctx.workload_id)
-        raw_df = ingest_raw_dataset(spark, ctx, features_to_validate, should_ingest)
+        raw_df = ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest)
 
-        if len(features_to_aggregate) > 0:
-            run_custom_aggregators(spark, ctx, features_to_aggregate, raw_df)
+        if len(cols_to_aggregate) > 0:
+            run_custom_aggregators(spark, ctx, cols_to_aggregate, raw_df)
 
-        if len(features_to_transform) > 0:
-            validate_transformers(spark, ctx, features_to_transform, raw_df)
+        if len(cols_to_transform) > 0:
+            validate_transformers(spark, ctx, cols_to_transform, raw_df)
 
         create_training_datasets(spark, ctx, training_datasets, raw_df)
 
@@ -343,17 +339,17 @@ def main():
         "--ingest", required=False, action="store_true", help="Should external dataset be ingested"
     )
     na.add_argument(
-        "--raw-features",
+        "--raw-columns",
         required=False,
-        help="Comma separated resource ids of raw features to validate",
+        help="Comma separated resource ids of raw columns to validate",
     )
     na.add_argument(
         "--aggregates", required=False, help="Comma separated resource ids of aggregates to run"
     )
     na.add_argument(
-        "--transformed-features",
+        "--transformed-columns",
         required=False,
-        help="Comma separated resource ids of features to transform",
+        help="Comma separated resource ids of columns to transform",
     )
     na.add_argument(
         "--training-datasets",

@@ -1,6 +1,6 @@
 # Aggregators
 
-An aggregator converts a set of features and arbitrary arguments into a single value. Each aggregator has an input schema and an output data type. The input schema is a map which specifies the name and data type of each input feature and argument. Aggregators run before transformers.
+An aggregator converts a set of columns and arbitrary values into a single value. Each aggregator has an input schema and an output data type. The input schema is a map which specifies the name and data type of each input column and argument. Aggregators run before transformers.
 
 ## Config
 
@@ -10,8 +10,8 @@ An aggregator converts a set of features and arbitrary arguments into a single v
   path: <string>  # path to the implementation file, relative to the application root (default: implementations/aggregators/<name>.py)
   output_type: <value_type>  # output data type (required)
   inputs:
-    features:
-      <string>: <input_feature_type>  # map of feature input name to feature input type(s) (required)
+    columns:
+      <string>: <input_column_type>  # map of column input name to column input type(s) (required)
       ...
     args:
       <string>: <value_type>  # map of arg input name to value input type(s) (optional)
@@ -27,8 +27,8 @@ See [Data Types](data-types.md) for a list of valid data types.
   name: bucket_boundaries
   output_type: [FLOAT]
   inputs:
-    features:
-      num: FLOAT_FEATURE|INT_FEATURE
+    columns:
+      num: FLOAT_COLUMN|INT_COLUMN
     args:
       num_buckets: INT
 ```

@@ -21,6 +21,7 @@ import (
 
 	appsv1b1 "k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
@@ -47,6 +48,7 @@ func apiSpec(
 
 	transformResourceList := corev1.ResourceList{}
 	tfServingResourceList := corev1.ResourceList{}
+	tfServingLimitsList := corev1.ResourceList{}
 
 	if apiCompute.CPU != nil {
 		q1, q2 := apiCompute.CPU.SplitInTwo()
@@ -57,6 +59,13 @@ func apiSpec(
 		q1, q2 := apiCompute.Mem.SplitInTwo()
 		transformResourceList[corev1.ResourceMemory] = *q1
 		tfServingResourceList[corev1.ResourceMemory] = *q2
+	}
+
+	servingImage := cc.TFServeImage
+	if apiCompute.GPU > 0 {
+		servingImage = cc.TFServeImageGPU
+		tfServingResourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(apiCompute.GPU, k8sresource.DecimalSI)
+		tfServingLimitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(apiCompute.GPU, k8sresource.DecimalSI)
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -106,7 +115,7 @@ func apiSpec(
 					},
 					{
 						Name:            tfServingContainerName,
-						Image:           cc.TFServeImage,
+						Image:           servingImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--port=" + tfServingPortStr,
@@ -116,6 +125,7 @@ func apiSpec(
 						VolumeMounts: k8s.DefaultVolumeMounts(),
 						Resources: corev1.ResourceRequirements{
 							Requests: tfServingResourceList,
+							Limits:   tfServingLimitsList,
 						},
 					},
 				},
@@ -300,18 +310,20 @@ func APIDeploymentCompute(deployment *appsv1b1.Deployment) userconfig.APICompute
 		replicas = *deployment.Spec.Replicas
 	}
 
-	cpu, mem := APIPodCompute(deployment.Spec.Template.Spec.Containers)
+	cpu, mem, gpu := APIPodCompute(deployment.Spec.Template.Spec.Containers)
 
 	return userconfig.APICompute{
 		Replicas: replicas,
 		CPU:      cpu,
 		Mem:      mem,
+		GPU:      gpu,
 	}
 }
 
-func APIPodCompute(containers []corev1.Container) (*userconfig.Quantity, *userconfig.Quantity) {
-	var totalCPU *userconfig.Quantity = nil
-	var totalMem *userconfig.Quantity = nil
+func APIPodCompute(containers []corev1.Container) (*userconfig.Quantity, *userconfig.Quantity, int64) {
+	var totalCPU *userconfig.Quantity
+	var totalMem *userconfig.Quantity
+	var totalGPU int64
 
 	for _, container := range containers {
 		if container.Name != apiContainerName && container.Name != tfServingContainerName {
@@ -335,7 +347,13 @@ func APIPodCompute(containers []corev1.Container) (*userconfig.Quantity, *userco
 			}
 			totalMem.Add(mem)
 		}
+		if gpu, ok := requests["nvidia.com/gpu"]; ok {
+			gpuVal, ok := gpu.AsInt64()
+			if ok {
+				totalGPU += gpuVal
+			}
+		}
 	}
 
-	return totalCPU, totalMem
+	return totalCPU, totalMem, totalGPU
 }

@@ -27,28 +27,29 @@ type Type int
 type Types []Type
 
 const (
-	UnknownType            Type = iota // 0
-	AppType                            // 1
-	RawFeatureType                     // 2
-	TransformedFeatureType             // 3
-	AggregateType                      // 4
-	APIType                            // 5
-	ModelType                          // 6
-	EnvironmentType                    // 8
-	AggregatorType                     // 9
-	TransformerType                    // 10
-	TemplateType                       // 11
-	EmbedType                          // 12
-	TrainingDatasetType                // 13
-	ConstantType                       // 14
+	UnknownType           Type = iota // 0
+	AppType                           // 1
+	RawColumnType                     // 2
+	TransformedColumnType             // 3
+	AggregateType                     // 4
+	APIType                           // 5
+	ModelType                         // 6
+	EnvironmentType                   // 8
+	AggregatorType                    // 9
+	TransformerType                   // 10
+	TemplateType                      // 11
+	EmbedType                         // 12
+	TrainingDatasetType               // 13
+	ConstantType                      // 14
+	PythonPackageType                 // 15
 )
 
 var (
 	types = []string{
 		"unknown",
 		"app",
-		"raw_feature",
-		"transformed_feature",
+		"raw_column",
+		"transformed_column",
 		"aggregate",
 		"api",
 		"model",
@@ -59,13 +60,14 @@ var (
 		"embed",
 		"training_dataset",
 		"constant",
+		"python_package",
 	}
 
 	typePlurals = []string{
 		"unknown",
 		"apps",
-		"raw_features",
-		"transformed_features",
+		"raw_columns",
+		"transformed_columns",
 		"aggregates",
 		"apis",
 		"models",
@@ -76,13 +78,14 @@ var (
 		"embeds",
 		"training_datasets",
 		"constants",
+		"python_packages",
 	}
 
 	typeAcronyms = map[string]Type{
-		"rf":   RawFeatureType,
-		"rfs":  RawFeatureType,
-		"tf":   TransformedFeatureType,
-		"tfs":  TransformedFeatureType,
+		"rc":   RawColumnType,
+		"rcs":  RawColumnType,
+		"tc":   TransformedColumnType,
+		"tcs":  TransformedColumnType,
 		"agg":  AggregateType,
 		"aggs": AggregateType,
 		"m":    ModelType,
@@ -95,12 +98,14 @@ var (
 		"tds":  TrainingDatasetType,
 		"ct":   ConstantType,
 		"cts":  ConstantType,
+		"pp":   PythonPackageType,
+		"pps":  PythonPackageType,
 	}
 
 	VisibleTypes = Types{
-		RawFeatureType,
+		RawColumnType,
 		AggregateType,
-		TransformedFeatureType,
+		TransformedColumnType,
 		TrainingDatasetType,
 		ModelType,
 		APIType,

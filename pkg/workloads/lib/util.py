@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import yaml
 import errno
 import shutil
 import sys
@@ -60,7 +59,7 @@ def pp_str_flat(obj, indent=0):
         out = json.dumps(obj, sort_keys=True)
     except:
         out = str(obj).replace("\n", "")
-    return util.indent_str(out, indent)
+    return indent_str(out, indent)
 
 
 def log_indent(obj, indent=0, logging_func=logger.info):
@@ -86,6 +85,16 @@ def pluralize(num, singular, plural):
         return str(num) + " " + singular
     else:
         return str(num) + " " + plural
+
+
+def snake_to_camel(input, sep="_", lower=True):
+    output = ""
+    for idx, word in enumerate(input.lower().split(sep)):
+        if idx == 0 and lower:
+            output += word
+        else:
+            output += word[0].upper() + word[1:]
+    return output
 
 
 def mkdir_p(dir_path):
@@ -426,11 +435,6 @@ def read_file_strip(path):
     return contents
 
 
-def read_yaml(yaml_path):
-    with open(yaml_path, "r") as yaml_file:
-        return yaml.safe_load(yaml_file)
-
-
 def read_json(json_path):
     with open(json_path, "r") as json_file:
         return json.load(json_file)
@@ -439,11 +443,6 @@ def read_json(json_path):
 def read_msgpack(msgpack_path):
     with open(msgpack_path, "rb") as msgpack_file:
         return msgpack.load(msgpack_file, raw=False)
-
-
-def write_yaml(dictionary, file_path):
-    with open(file_path, "w") as file:
-        file.write(yaml.dump(dictionary))
 
 
 def hash_str(string, alg="sha256"):
@@ -556,20 +555,6 @@ def extract_zip(zip_path, dest_dir=None, delete_zip_file=False):
 
     if delete_zip_file:
         rm_file(zip_path)
-
-
-# config_path may already be a dict
-def read_config(config_path, defaults={}):
-    if is_str(config_path):
-        try:
-            config = read_yaml(config_path)
-        except IOError as e:
-            config = {}
-    else:
-        config = config_path
-
-    config = config or {}
-    return merge_dicts_no_overwrite(config, defaults)
 
 
 # The order for maps is deterministic. Returns a list
@@ -688,12 +673,12 @@ def log_job_finished(workload_id):
 
 
 CORTEX_TYPE_TO_VALIDATOR = {
-    consts.FEATURE_TYPE_INT: is_int,
-    consts.FEATURE_TYPE_INT_LIST: is_int_list,
-    consts.FEATURE_TYPE_FLOAT: is_float,
-    consts.FEATURE_TYPE_FLOAT_LIST: is_float_list,
-    consts.FEATURE_TYPE_STRING: is_str,
-    consts.FEATURE_TYPE_STRING_LIST: is_str_list,
+    consts.COLUMN_TYPE_INT: is_int,
+    consts.COLUMN_TYPE_INT_LIST: is_int_list,
+    consts.COLUMN_TYPE_FLOAT: is_float,
+    consts.COLUMN_TYPE_FLOAT_LIST: is_float_list,
+    consts.COLUMN_TYPE_STRING: is_str,
+    consts.COLUMN_TYPE_STRING_LIST: is_str_list,
     consts.VALUE_TYPE_INT: is_int,
     consts.VALUE_TYPE_FLOAT: is_float,
     consts.VALUE_TYPE_STRING: is_str,
@@ -703,32 +688,32 @@ CORTEX_TYPE_TO_VALIDATOR = {
 CORTEX_TYPE_TO_UPCAST_VALIDATOR = merge_dicts_overwrite(
     CORTEX_TYPE_TO_VALIDATOR,
     {
-        consts.FEATURE_TYPE_FLOAT: is_float_or_int,
-        consts.FEATURE_TYPE_FLOAT_LIST: is_float_or_int_list,
+        consts.COLUMN_TYPE_FLOAT: is_float_or_int,
+        consts.COLUMN_TYPE_FLOAT_LIST: is_float_or_int_list,
     },
 )
 
 CORTEX_TYPE_TO_UPCASTER = {
-    consts.FEATURE_TYPE_FLOAT: lambda x: float(x),
-    consts.FEATURE_TYPE_FLOAT_LIST: lambda ls: [float(item) for item in ls],
+    consts.COLUMN_TYPE_FLOAT: lambda x: float(x),
+    consts.COLUMN_TYPE_FLOAT_LIST: lambda ls: [float(item) for item in ls],
 }
 
 
-def upcast(value, feature_type):
-    upcaster = CORTEX_TYPE_TO_UPCASTER.get(feature_type, None)
+def upcast(value, column_type):
+    upcaster = CORTEX_TYPE_TO_UPCASTER.get(column_type, None)
     if upcaster:
         return upcaster(value)
     return value
 
 
-def validate_feature_type(value, feature_type):
+def validate_column_type(value, column_type):
     if value is None:
         return True
 
-    if not is_str(feature_type):
+    if not is_str(column_type):
         raise
 
-    valid_types = feature_type.split("|")
+    valid_types = column_type.split("|")
     for valid_type in valid_types:
         if CORTEX_TYPE_TO_VALIDATOR[valid_type](value):
             return True

@@ -17,9 +17,10 @@ limitations under the License.
 package workloads
 
 const (
-	WorkloadTypeAPI   = "api"
-	workloadTypeData  = "data-job"
-	workloadTypeTrain = "training-job"
+	WorkloadTypeAPI            = "api"
+	workloadTypeData           = "data-job"
+	workloadTypeTrain          = "training-job"
+	workloadTypePythonPackager = "python-packager"
 
 	defaultPortInt32, defaultPortStr = int32(8888), "8888"
 	tfServingPortStr                 = "9000"

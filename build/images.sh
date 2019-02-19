@@ -17,13 +17,14 @@
 
 set -euo pipefail
 
-DIR=$1
-IMAGE=$2
 CORTEX_VERSION=master
 
-docker build . -f $DIR/Dockerfile -t cortexlabs/$IMAGE \
-                                  -t cortexlabs/$IMAGE:$CORTEX_VERSION
+dir=$1
+image=$2
+
+docker build . -f $dir/Dockerfile -t cortexlabs/$image \
+                                  -t cortexlabs/$image:$CORTEX_VERSION
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
-docker push cortexlabs/$IMAGE:$CORTEX_VERSION
+docker push cortexlabs/$image:$CORTEX_VERSION

@@ -18,5 +18,6 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-export CLI_BUCKET_NAME="cortex-cli-david"
+source $ROOT/dev/config/build.sh
+
 $ROOT/build/cli.sh

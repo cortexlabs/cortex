@@ -131,8 +131,8 @@ spec:
   image: kope.io/k8s-1.11-debian-stretch-amd64-hvm-ebs-2018-08-17
   machineType: ${K8S_NODE_INSTANCE_TYPE}
   rootVolumeSize: ${K8S_NODE_VOLUME_SIZE}
-  maxSize: ${K8S_NODE_COUNT}
-  minSize: ${K8S_NODE_COUNT}
+  maxSize: ${K8S_NODES_MAX_COUNT}
+  minSize: ${K8S_NODES_MIN_COUNT}
   nodeLabels:
     kops.k8s.io/instancegroup: nodes
   role: Node

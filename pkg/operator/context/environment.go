@@ -36,15 +36,15 @@ func dataID(config *userconfig.Config, datasetVersion string) string {
 	var buf bytes.Buffer
 	buf.WriteString(datasetVersion)
 
-	rawFeatureTypeMap := make(map[string]string, len(config.RawFeatures))
-	for _, rawFeatureConfig := range config.RawFeatures {
-		rawFeatureTypeMap[rawFeatureConfig.GetName()] = rawFeatureConfig.GetType()
+	rawColumnTypeMap := make(map[string]string, len(config.RawColumns))
+	for _, rawColumnConfig := range config.RawColumns {
+		rawColumnTypeMap[rawColumnConfig.GetName()] = rawColumnConfig.GetType()
 	}
-	buf.WriteString(s.Obj(rawFeatureTypeMap))
+	buf.WriteString(s.Obj(rawColumnTypeMap))
 
 	data := config.Environment.Data
 	switch typedData := data.(type) {
-	case *userconfig.CsvData:
+	case *userconfig.CSVData:
 		buf.WriteString(s.Obj(typedData))
 	case *userconfig.ParquetData:
 		buf.WriteString(typedData.Type)
@@ -52,7 +52,7 @@ func dataID(config *userconfig.Config, datasetVersion string) string {
 		buf.WriteString(s.Bool(typedData.DropNull))
 		schemaMap := map[string]string{} // use map to sort keys
 		for _, parqCol := range typedData.Schema {
-			schemaMap[parqCol.FeatureName] = parqCol.ColumnName
+			schemaMap[parqCol.RawColumnName] = parqCol.ParquetColumnName
 		}
 		buf.WriteString(s.Obj(schemaMap))
 	}

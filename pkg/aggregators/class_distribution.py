@@ -13,11 +13,11 @@
 # limitations under the License.
 
 
-def aggregate_spark(data, features, args):
+def aggregate_spark(data, columns, args):
     import pyspark.sql.functions as F
     from functools import reduce
 
-    rows = data.groupBy(F.col(features["col"])).count().orderBy(F.col("count").desc()).collect()
+    rows = data.groupBy(F.col(columns["col"])).count().orderBy(F.col("count").desc()).collect()
 
     sum = float(reduce(lambda x, y: x + y, (r[1] for r in rows)))
 

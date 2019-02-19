@@ -19,10 +19,10 @@
 #   OUTPUT: [0, 1, 0, 2, 2, 1]
 - kind: transformer
   name: bucketize
-  output_type: INT_FEATURE
+  output_type: INT_COLUMN
   inputs:
-    features:
-      num: INT_FEATURE|FLOAT_FEATURE
+    columns:
+      num: INT_COLUMN|FLOAT_COLUMN
     args:
       bucket_boundaries: [FLOAT]
 
@@ -30,10 +30,10 @@
 # all of the values in column by (x - mean)/stddev where x is a value in the column.
 - kind: transformer
   name: normalize
-  output_type: FLOAT_FEATURE
+  output_type: FLOAT_COLUMN
   inputs:
-    features:
-      num: FLOAT_FEATURE|INT_FEATURE
+    columns:
+      num: FLOAT_COLUMN|INT_COLUMN
     args:
       mean: INT|FLOAT
       stddev: INT|FLOAT
@@ -44,9 +44,9 @@
 #   OUTPUT: [0, 1, 2, 2]
 - kind: transformer
   name: index_string
-  output_type: INT_FEATURE
+  output_type: INT_COLUMN
   inputs:
-    features:
-      text: STRING_FEATURE
+    columns:
+      text: STRING_COLUMN
     args:
       index: [STRING]

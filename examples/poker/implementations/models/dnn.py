@@ -6,17 +6,17 @@ def create_estimator(run_config, model_config):
     suits = [1, 2, 3, 4]
     ranks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
 
-    for feature in model_config["features"]:
-        if feature["tags"]["type"] == "suit":
+    for feature_column in model_config["feature_columns"]:
+        if feature_column["tags"]["type"] == "suit":
             categorical_column = tf.feature_column.categorical_column_with_vocabulary_list(
-                feature["name"], suits
+                feature_column["name"], suits
             )
             indicator_column = tf.feature_column.indicator_column(categorical_column)
             feature_columns.append(indicator_column)
 
-        elif feature["tags"]["type"] == "rank":
+        elif feature_column["tags"]["type"] == "rank":
             categorical_column = tf.feature_column.categorical_column_with_vocabulary_list(
-                feature["name"], ranks
+                feature_column["name"], ranks
             )
             indicator_column = tf.feature_column.indicator_column(categorical_column)
             feature_columns.append(indicator_column)

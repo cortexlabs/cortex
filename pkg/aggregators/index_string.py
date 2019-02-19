@@ -13,8 +13,8 @@
 # limitations under the License.
 
 
-def aggregate_spark(data, features, args):
+def aggregate_spark(data, columns, args):
     from pyspark.ml.feature import StringIndexer
 
-    indexer = StringIndexer(inputCol=features["col"])
+    indexer = StringIndexer(inputCol=columns["col"])
     return indexer.fit(data).labels

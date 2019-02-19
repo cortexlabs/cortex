@@ -30,6 +30,7 @@ type Aggregate struct {
 	Inputs     *Inputs       `json:"inputs" yaml:"inputs"`
 	Compute    *SparkCompute `json:"compute" yaml:"compute"`
 	Tags       Tags          `json:"tags" yaml:"tags"`
+	FilePath   string        `json:"file_path"  yaml:"-"`
 }
 
 var aggregateValidation = &cr.StructValidation{
@@ -56,9 +57,14 @@ var aggregateValidation = &cr.StructValidation{
 }
 
 func (aggregates Aggregates) Validate() error {
-	dups := util.FindDuplicateStrs(aggregates.Names())
+	resources := make([]Resource, len(aggregates))
+	for i, res := range aggregates {
+		resources[i] = res
+	}
+
+	dups := FindDuplicateResourceName(resources...)
 	if len(dups) > 0 {
-		return ErrorDuplicateConfigName(dups[0], resource.AggregateType)
+		return ErrorDuplicateResourceName(dups...)
 	}
 	return nil
 }
@@ -69,6 +75,10 @@ func (aggregate *Aggregate) GetName() string {
 
 func (aggregate *Aggregate) GetResourceType() resource.Type {
 	return resource.AggregateType
+}
+
+func (aggregate *Aggregate) GetFilePath() string {
+	return aggregate.FilePath
 }
 
 func (aggregates Aggregates) Names() []string {
@@ -88,7 +98,7 @@ func (aggregates Aggregates) Get(name string) *Aggregate {
 	return nil
 }
 
-func (aggregate *Aggregate) InputFeatureNames() map[string]bool {
-	inputs, _ := util.FlattenAllStrValuesAsSet(aggregate.Inputs.Features)
+func (aggregate *Aggregate) InputColumnNames() map[string]bool {
+	inputs, _ := util.FlattenAllStrValuesAsSet(aggregate.Inputs.Columns)
 	return inputs
 }

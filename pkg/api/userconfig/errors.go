@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/utils/cast"
+	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
 type ErrorKind int
@@ -37,18 +38,18 @@ const (
 	ErrReadConfig
 	ErrMissingAppDefinition
 	ErrUndefinedConfig
-	ErrMissingRawFeatures
+	ErrMissingRawColumns
 	ErrUndefinedResource
 	ErrUndefinedResourceBuiltin
-	ErrFeatureMustBeRaw
+	ErrColumnMustBeRaw
 	ErrSpecifyAllOrNone
 	ErrSpecifyOnlyOne
 	ErrTemplateExtraArg
 	ErrTemplateMissingArg
-	ErrInvalidFeatureInputType
-	ErrInvalidFeatureRuntimeType
+	ErrInvalidColumnInputType
+	ErrInvalidColumnRuntimeType
 	ErrInvalidValueDataType
-	ErrUnsupportedFeatureType
+	ErrUnsupportedColumnType
 	ErrUnsupportedDataType
 	ErrArgNameCannotBeType
 	ErrTypeListLength
@@ -66,18 +67,18 @@ var errorKinds = []string{
 	"err_read_config",
 	"err_missing_app_definition",
 	"err_undefined_config",
-	"err_missing_raw_features",
+	"err_missing_raw_columns",
 	"err_undefined_resource",
 	"err_undefined_resource_builtin",
-	"err_feature_must_be_raw",
+	"err_column_must_be_raw",
 	"err_specify_all_or_none",
 	"err_specify_only_one",
 	"err_template_extra_arg",
 	"err_template_missing_arg",
-	"err_invalid_feature_input_type",
-	"err_invalid_feature_runtime_type",
+	"err_invalid_column_input_type",
+	"err_invalid_column_runtime_type",
 	"err_invalid_value_data_type",
-	"err_unsupported_feature_type",
+	"err_unsupported_column_type",
 	"err_unsupported_data_type",
 	"err_arg_name_cannot_be_type",
 	"err_type_list_length",
@@ -126,11 +127,21 @@ type ConfigError struct {
 	message string
 }
 
-func ErrorDuplicateConfigName(name string, resourcesTypes ...resource.Type) error {
-	resourceTypes := resource.Types(resourcesTypes)
+func (e ConfigError) Error() string {
+	return e.message
+}
+
+func ErrorDuplicateResourceName(resources ...Resource) error {
+	filePaths := make([]string, len(resources))
+	resourceTypes := make(resource.Types, len(resources))
+	for i, res := range resources {
+		filePaths[i] = res.GetFilePath()
+		resourceTypes[i] = res.GetResourceType()
+	}
+
 	return ConfigError{
 		Kind:    ErrDuplicateConfigName,
-		message: fmt.Sprintf("name %s must be unique across %s", s.UserStr(name), s.StrsAnd(resourceTypes.PluralList())),
+		message: fmt.Sprintf("name %s must be unique across %s (defined in %s)", s.UserStr(resources[0].GetName()), s.StrsAnd(util.UniqueStrs(resourceTypes.PluralList())), s.StrsAnd(util.UniqueStrs(filePaths))),
 	}
 }
 
@@ -187,10 +198,10 @@ func ErrorUndefinedConfig(resourceType resource.Type) error {
 	}
 }
 
-func ErrorMissingRawFeatures(missingFeatures []string) error {
+func ErrorMissingRawColumns(missingColumns []string) error {
 	return ConfigError{
-		Kind:    ErrMissingRawFeatures,
-		message: fmt.Sprintf("all raw features must be ingested (missing: %s)", s.UserStrsAnd(missingFeatures)),
+		Kind:    ErrMissingRawColumns,
+		message: fmt.Sprintf("all raw columns must be ingested (missing: %s)", s.UserStrsAnd(missingColumns)),
 	}
 }
 
@@ -208,10 +219,10 @@ func ErrorUndefinedResourceBuiltin(resourceName string, resourceTypes ...resourc
 	}
 }
 
-func ErrorFeatureMustBeRaw(featureName string) error {
+func ErrorColumnMustBeRaw(columnName string) error {
 	return ConfigError{
-		Kind:    ErrFeatureMustBeRaw,
-		message: fmt.Sprintf("%s is a transformed feature, but only raw features are allowed", s.UserStr(featureName)),
+		Kind:    ErrColumnMustBeRaw,
+		message: fmt.Sprintf("%s is a transformed column, but only raw columns are allowed", s.UserStr(columnName)),
 	}
 }
 
@@ -253,17 +264,17 @@ func ErrorTemplateMissingArg(template *Template, argName string) error {
 	}
 }
 
-func ErrorInvalidFeatureInputType(provided interface{}) error {
+func ErrorInvalidColumnInputType(provided interface{}) error {
 	return ConfigError{
-		Kind:    ErrInvalidFeatureInputType,
-		message: fmt.Sprintf("invalid feature input type (got %s, expected %s, a combination of these types (separated by |), or a list of one of these types", s.DataTypeUserStr(provided), strings.Join(s.UserStrs(FeatureTypeStrings()), ", ")),
+		Kind:    ErrInvalidColumnInputType,
+		message: fmt.Sprintf("invalid column input type (got %s, expected %s, a combination of these types (separated by |), or a list of one of these types", s.DataTypeUserStr(provided), strings.Join(s.UserStrs(ColumnTypeStrings()), ", ")),
 	}
 }
 
-func ErrorInvalidFeatureRuntimeType(provided interface{}) error {
+func ErrorInvalidColumnRuntimeType(provided interface{}) error {
 	return ConfigError{
-		Kind:    ErrInvalidFeatureRuntimeType,
-		message: fmt.Sprintf("invalid feature type (got %s, expected %s)", s.DataTypeStr(provided), s.StrsOr(FeatureTypeStrings())),
+		Kind:    ErrInvalidColumnRuntimeType,
+		message: fmt.Sprintf("invalid column type (got %s, expected %s)", s.DataTypeStr(provided), s.StrsOr(ColumnTypeStrings())),
 	}
 }
 
@@ -274,11 +285,11 @@ func ErrorInvalidValueDataType(provided interface{}) error {
 	}
 }
 
-func ErrorUnsupportedFeatureType(provided interface{}, allowedTypes []string) error {
+func ErrorUnsupportedColumnType(provided interface{}, allowedTypes []string) error {
 	allowedTypesInterface, _ := cast.InterfaceToInterfaceSlice(allowedTypes)
 	return ConfigError{
-		Kind:    ErrUnsupportedFeatureType,
-		message: fmt.Sprintf("unsupported feature type (got %s, expected %s)", s.DataTypeStr(provided), s.DataTypeStrsOr(allowedTypesInterface)),
+		Kind:    ErrUnsupportedColumnType,
+		message: fmt.Sprintf("unsupported column type (got %s, expected %s)", s.DataTypeStr(provided), s.DataTypeStrsOr(allowedTypesInterface)),
 	}
 }
 
@@ -315,8 +326,4 @@ func ErrorK8sQuantityMustBeInt(quantityStr string) error {
 		Kind:    ErrK8sQuantityMustBeInt,
 		message: fmt.Sprintf("resource compute quantity must be an integer-valued string, e.g. \"2\") (got %s)", s.DataTypeStr(quantityStr)),
 	}
-}
-
-func (e ConfigError) Error() string {
-	return e.message
 }

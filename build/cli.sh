@@ -27,34 +27,19 @@ fi
 
 
 function build_and_upload() {
-  GOOS=$1
-  file=$2
+  set -euo pipefail
 
-  GOOS=$GOOS GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -installsuffix cgo -o cortex github.com/cortexlabs/cortex/cli
-
-  zip -q $file cortex
+  os=$1
+  GOOS=$os GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -installsuffix cgo -o cortex github.com/cortexlabs/cortex/cli
+  aws s3 cp cortex s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/cli/$os/cortex --only-show-errors
   rm cortex
-
-  aws s3 cp $file s3://$CLI_BUCKET_NAME --only-show-errors
-  rm $file
-
-  echo "Uploaded $file to s3://$CLI_BUCKET_NAME"
+  echo "Uploaded CLI to s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/cli/$os/cortex"
 }
-
-###########
-### Mac ###
-###########
 
 echo ""
 echo "Building Cortex CLI for Mac"
-
-build_and_upload darwin "cortex-cli-$CORTEX_VERSION-darwin.zip"
-
-#############
-### Linux ###
-#############
+build_and_upload darwin
 
 echo ""
 echo "Building Cortex CLI for Linux"
-
-build_and_upload linux "cortex-cli-$CORTEX_VERSION-linux.zip"
+build_and_upload linux

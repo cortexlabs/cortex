@@ -24,15 +24,18 @@ import (
 )
 
 var (
-	LogGroup      string
-	Bucket        string
-	Region        string
-	Namespace     string
-	OperatorImage string
-	SparkImage    string
-	TFTrainImage  string
-	TFServeImage  string
-	TFAPIImage    string
+	LogGroup            string
+	Bucket              string
+	Region              string
+	Namespace           string
+	OperatorImage       string
+	SparkImage          string
+	TFTrainImage        string
+	TFServeImage        string
+	TFAPIImage          string
+	PythonPackagerImage string
+	TFTrainImageGPU     string
+	TFServeImageGPU     string
 )
 
 func init() {
@@ -45,6 +48,9 @@ func init() {
 	TFTrainImage = getStr("IMAGE_TF_TRAIN")
 	TFServeImage = getStr("IMAGE_TF_SERVE")
 	TFAPIImage = getStr("IMAGE_TF_API")
+	PythonPackagerImage = getStr("IMAGE_PYTHON_PACKAGER")
+	TFTrainImageGPU = getStr("IMAGE_TF_TRAIN_GPU")
+	TFServeImageGPU = getStr("IMAGE_TF_SERVE_GPU")
 }
 
 //
