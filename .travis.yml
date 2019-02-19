@@ -7,7 +7,7 @@ services:
   - docker
 
 before_install:
-  #- if [[ ! $TRAVIS_BRANCH == "master" ]] && [[ ! $TRAVIS_BRANCH =~ ^[0-9]\.[0-9]$ ]]; then exit 0; fi
+  - if [[ ! $TRAVIS_BRANCH == "master" ]] && [[ ! $TRAVIS_BRANCH =~ ^[0-9]\.[0-9]$ ]]; then exit 0; fi
   - sudo apt-get install -y apt-transport-https ca-certificates software-properties-common zip python3-pip python3-dev build-essential
   - sudo pip3 install --upgrade pip
   - pip3 install --upgrade awscli --user
@@ -21,6 +21,7 @@ jobs:
       script: make test-go
       name: "Go tests"
     - stage: "Release"
+      if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
       script: make test-version && make build-images && push-images
     - stage: "Deploy CLI"
       if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
