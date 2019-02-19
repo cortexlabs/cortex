@@ -10,13 +10,19 @@ jobs:
   include:
     - stage: files
       script: make test-license
+      name: "License headers"
     - stage: tests
       script: make test-go
+      name: "Go tests"
     - stage: "Test Images"
       script: make build-tf-images
-      script: make build-spark-images && make test-python
-      script: make build-argo-images
-      script: make build-operator-images
+      name: "Tensorflow"
+    - script: make build-spark-images && make test-python
+      name: "Spark and test python"
+    - script: make build-argo-images
+      name: "Argo"
+    - script: make build-operator-images
+      name: "Operator"
     - stage: "Release"
       if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
       script: make test-version
