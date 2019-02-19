@@ -52,7 +52,7 @@ ouninstall:
 
 eks-up:
 	@./dev/eks.sh start
-	$(MAKE) install
+	$(MAKE) oinstall
 
 eks-down:
 	$(MAKE) ouninstall || true

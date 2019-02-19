@@ -14,11 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-set -euo pipefail
-
-CORTEX_VERSION=master
-
-echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-
-docker push cortexlabs/$image:$CORTEX_VERSION
+branch=$1
+if [[ $branch == "master" ]] || [[ $branch =~ ^[0-9]\.[0-9]$ ]]; then 
+    exit 0;
+fi
+exit 1;
