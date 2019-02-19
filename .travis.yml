@@ -21,7 +21,6 @@ jobs:
       script: make test-go
       name: "Go tests"
     - stage: "Release"
-      if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
       script: make test-version && make build-images && push-images
     - stage: "Deploy CLI"
       if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
