@@ -416,7 +416,7 @@ func ReadAppName(filePath string, relativePath string) (string, error) {
 	var appName string
 	for i, configItem := range configDataSlice {
 		kindStr, _ := configItem[KindKey].(string)
-		if resource.TypeFromString(kindStr) == resource.AppType {
+		if resource.TypeFromKindString(kindStr) == resource.AppType {
 			if appName != "" {
 				return "", errors.Wrap(ErrorDuplicateConfig(resource.AppType), relativePath)
 			}

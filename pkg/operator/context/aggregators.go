@@ -43,7 +43,7 @@ func init() {
 	}
 
 	for _, aggregatorConfig := range config.Aggregators {
-		implPath := filepath.Join(OperatorAggregatorsDir, filepath.Base(aggregatorConfig.Path))
+		implPath := filepath.Join(OperatorAggregatorsDir, aggregatorConfig.Path)
 		impl, err := ioutil.ReadFile(implPath)
 		if err != nil {
 			errors.Exit(err, userconfig.Identify(aggregatorConfig), s.ErrReadFile(implPath))
