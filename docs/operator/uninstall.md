@@ -3,6 +3,7 @@
 ## Uninstall script
 
 <!-- CORTEX_VERSION_MINOR -->
+
 ```bash
 # Download
 curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh
