@@ -91,35 +91,66 @@ find-missing-version:
 ###############
 # CI Commands #
 ###############
-spark-base:
+build-spark-base:
 	@docker build . -f images/spark-base/Dockerfile -t cortexlabs/spark-base:latest
 	
-tf-base:
+build-tf-base:
 	@docker build . -f images/tf-base/Dockerfile -t cortexlabs/tf-base:latest
+	@docker build . -f images/tf-base-gpu/Dockerfile -t cortexlabs/tf-base-gpu:latest
 
-base: spark-base tf-base
+build-base: spark-base tf-base
 
-tf-dev:
-	@./build/images.sh images/tf-train tf-train
-	@./build/images.sh images/tf-serve tf-serve
-	@./build/images.sh images/tf-api tf-api
+build-tf-dev:
+	@./build/build-image.sh images/tf-train tf-train
+	@./build/build-image.sh images/tf-serve tf-serve
+	@./build/build-image.sh images/tf-api tf-api
+	@./build/build-image.sh images/tf-train-gpu tf-train-gpu
+	@./build/build-image.sh images/tf-serve-gpu tf-serve-gpu
 
-spark-dev:
-	@./build/images.sh images/spark spark
-	@./build/images.sh images/spark-operator spark-operator
+build-spark-dev:
+	@./build/build-image.sh images/spark spark
+	@./build/build-image.sh images/spark-operator spark-operator
 
-tf-images: tf-base tf-dev
-spark-images: spark-base spark-dev
+build-tf-images: build-tf-base build-tf-dev
+build-spark-images: build-spark-base build-spark-dev
 
-argo-images:
-	@./build/images.sh images/argo-controller argo-controller
-	@./build/images.sh images/argo-executor argo-executor
+build-argo-images:
+	@./build/build-image.sh images/argo-controller argo-controller
+	@./build/build-image.sh images/argo-executor argo-executor
 
-operator-images:
-	@./build/images.sh images/operator operator
-	@./build/images.sh images/nginx-controller nginx-controller
-	@./build/images.sh images/nginx-backend nginx-backend
-	@./build/images.sh images/fluentd fluentd
+build-operator-images:
+	@./build/build-image.sh images/operator operator
+	@./build/build-image.sh images/nginx-controller nginx-controller
+	@./build/build-image.sh images/nginx-backend nginx-backend
+	@./build/build-image.sh images/fluentd fluentd
+
+build-images: build-tf-images build-spark-images build-argo-images build-operator-images
+
+push-tf-dev:
+	@./build/push-image.sh images/tf-train tf-train
+	@./build/push-image.sh images/tf-serve tf-serve
+	@./build/push-image.sh images/tf-api tf-api
+	@./build/push-image.sh images/tf-train-gpu tf-train-gpu
+	@./build/push-image.sh images/tf-serve-gpu tf-serve-gpu
+
+push-spark-dev:
+	@./build/push-image.sh images/spark spark
+	@./build/push-image.sh images/spark-operator spark-operator
+
+push-tf-images: push-tf-base push-tf-dev
+push-spark-images: push-spark-base push-spark-dev
+
+push-argo-images:
+	@./build/push-image.sh images/argo-controller argo-controller
+	@./build/push-image.sh images/argo-executor argo-executor
+
+push-operator-images:
+	@./build/push-image.sh images/operator operator
+	@./build/push-image.sh images/nginx-controller nginx-controller
+	@./build/push-image.sh images/nginx-backend nginx-backend
+	@./build/push-image.sh images/fluentd fluentd
+
+push-images: push-tf-images push-spark-images push-argo-images push-operator-images
 
 build-and-upload-cli:
 	@./build/cli.sh

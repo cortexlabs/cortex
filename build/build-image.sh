@@ -24,7 +24,3 @@ image=$2
 
 docker build . -f $dir/Dockerfile -t cortexlabs/$image \
                                   -t cortexlabs/$image:$CORTEX_VERSION
-
-echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-
-docker push cortexlabs/$image:$CORTEX_VERSION
