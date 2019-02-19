@@ -17,32 +17,67 @@
 ###############
 SHELL := /bin/bash
 GOBIN ?= $$PWD/bin
+GOOS ?= linux
 define build
-    mkdir -p $(GOBIN)
-    GOGC=off GOBIN=$(GOBIN) \
+    mkdir -p $(GOBIN) && \
+		GOOS=$(GOOS) \
+		GOARCH=amd64 \
+		CGO_ENABLED=0 \
+		GOBIN=$(GOBIN) \
+		GO111MODULE=on \
 		go install -v \
 		-gcflags='-e' \
 		$(1)
 endef
 
+
+#####################
+# Operator commands #
+#####################
 olocal:
 	@./dev/operator_local.sh
+
+ostop:
+	@.kubectl -n=cortex delete --ignore-not-found=true deployment operator
+
+opudate:
+	@./cortex.sh -c=./dev/config/cortex.sh update operator
+
+oinstall:
+	@./cortex.sh -c=./dev/config/cortex.sh install operator
+
+ouninstall:
+	@./cortex.sh -c=./dev/config/cortex.sh uninstall operator
+
 
 eks-up:
 	@./dev/eks.sh start
 	$(MAKE) install
 
 eks-down:
+	$(MAKE) ouninstall || true
 	@./dev/eks.sh stop
 
-install:
-	@./cortex.sh -c=./dev/config/cortex.sh install
+eks-set:
+	@./dev/eks.sh set
+
+
+kops-up:
+	@./dev/kops.sh start
+	@./cortex.sh -c=dev/config/cortex.sh install operator 
+	@kubectl -n=cortex delete --ignore-not-found=true deployment operator
+	
+kops-down:
+	@./dev/kops.sh stop
+
+kops-set:
+	@./dev/kops.sh set
 
 tools:
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
 
 build-cli:
-	 $(call build, ./cli)
+	 @$(call build, ./cli)
 
 test:
 	@./build/test.sh
@@ -86,7 +121,7 @@ operator-images:
 	@./build/images.sh images/nginx-backend nginx-backend
 	@./build/images.sh images/fluentd fluentd
 
-build-and-upload:
+build-and-upload-cli:
 	@./build/cli.sh
 
 test-go:

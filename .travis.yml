@@ -14,7 +14,7 @@ jobs:
     - stage: tests
       script: make test-go
       name: "Go tests"
-    - stage: release
+    - stage: "Deploy Images"
       if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
       script: make test-version
       name: "Check version header"
@@ -26,7 +26,7 @@ jobs:
       name: "Argo"
       script: make operator-images
       name: "Operator"
-    - stage: deploy
+    - stage: "Deploy CLI"
       if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
       script: make build-and-upload
     

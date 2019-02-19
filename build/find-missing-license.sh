@@ -24,8 +24,6 @@ find . -type f \
 ! -name requirements.txt \
 ! -name "go.*" \
 ! -name "*.md" \
-! -name ".git*" \
-! -name ".travis.yml" \
-! -name ".dockerignore" \
+! -name "\." \
 ! -name "Dockerfile" \
 -exec grep -L "Copyright 2019 Cortex Labs, Inc" {} \+
