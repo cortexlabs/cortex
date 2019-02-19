@@ -17,6 +17,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.approx_count_distinct
 - kind: aggregator
   name: approx_count_distinct
+  path: spark_builtin/approx_count_distinct.py
   output_type: INT
   inputs:
     columns:
@@ -28,6 +29,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.avg
 - kind: aggregator
   name: avg
+  path: spark_builtin/avg.py
   output_type: FLOAT
   inputs:
     columns:
@@ -37,6 +39,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.collect_set
 - kind: aggregator
   name: collect_set_int
+  path: spark_builtin/collect_set_int.py
   output_type: [INT]
   inputs:
     columns:
@@ -46,6 +49,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.collect_set
 - kind: aggregator
   name: collect_set_float
+  path: spark_builtin/collect_set_float.py
   output_type: [FLOAT]
   inputs:
     columns:
@@ -55,6 +59,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.collect_set
 - kind: aggregator
   name: collect_set_string
+  path: spark_builtin/collect_set_string.py
   output_type: [STRING]
   inputs:
     columns:
@@ -64,6 +69,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.count
 - kind: aggregator
   name: count
+  path: spark_builtin/count.py
   output_type: INT
   inputs:
     columns:
@@ -73,6 +79,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.countDistinct
 - kind: aggregator
   name: count_distinct
+  path: spark_builtin/count_distinct.py
   output_type: INT
   inputs:
     columns:
@@ -83,6 +90,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.covar_pop
 - kind: aggregator
   name: covar_pop
+  path: spark_builtin/covar_pop.py
   output_type: FLOAT
   inputs:
     columns:
@@ -94,6 +102,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.covar_samp
 - kind: aggregator
   name: covar_samp
+  path: spark_builtin/covar_samp.py
   output_type: FLOAT
   inputs:
     columns:
@@ -104,6 +113,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.kurtosis
 - kind: aggregator
   name: kurtosis
+  path: spark_builtin/kurtosis.py
   output_type: FLOAT
   inputs:
     columns:
@@ -113,6 +123,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.max
 - kind: aggregator
   name: max_int
+  path: spark_builtin/max_int.py
   output_type: INT
   inputs:
     columns:
@@ -122,6 +133,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.max
 - kind: aggregator
   name: max_float
+  path: spark_builtin/max_float.py
   output_type: FLOAT
   inputs:
     columns:
@@ -131,6 +143,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.max
 - kind: aggregator
   name: max_string
+  path: spark_builtin/max_string.py
   output_type: STRING
   inputs:
     columns:
@@ -140,6 +153,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.mean
 - kind: aggregator
   name: mean
+  path: spark_builtin/mean.py
   output_type: FLOAT
   inputs:
     columns:
@@ -149,6 +163,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.min
 - kind: aggregator
   name: min_int
+  path: spark_builtin/min_int.py
   output_type: INT
   inputs:
     columns:
@@ -158,6 +173,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.min
 - kind: aggregator
   name: min_float
+  path: spark_builtin/min_float.py
   output_type: FLOAT
   inputs:
     columns:
@@ -167,6 +183,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.min
 - kind: aggregator
   name: min_string
+  path: spark_builtin/min_string.py
   output_type: STRING
   inputs:
     columns:
@@ -176,6 +193,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.skewness
 - kind: aggregator
   name: skewness
+  path: spark_builtin/skewness.py
   output_type: FLOAT
   inputs:
     columns:
@@ -185,6 +203,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.stddev
 - kind: aggregator
   name: stddev
+  path: spark_builtin/stddev.py
   output_type: FLOAT
   inputs:
     columns:
@@ -194,6 +213,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.stddev_pop
 - kind: aggregator
   name: stddev_pop
+  path: spark_builtin/stddev_pop.py
   output_type: FLOAT
   inputs:
     columns:
@@ -203,6 +223,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.stddev_samp
 - kind: aggregator
   name: stddev_samp
+  path: spark_builtin/stddev_samp.py
   output_type: FLOAT
   inputs:
     columns:
@@ -212,6 +233,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.sum
 - kind: aggregator
   name: sum_int
+  path: spark_builtin/sum_int.py
   output_type: INT
   inputs:
     columns:
@@ -221,6 +243,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.sum
 - kind: aggregator
   name: sum_float
+  path: spark_builtin/sum_float.py
   output_type: FLOAT
   inputs:
     columns:
@@ -230,6 +253,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.sumDistinct
 - kind: aggregator
   name: sum_distinct_int
+  path: spark_builtin/sum_distinct_int.py
   output_type: INT
   inputs:
     columns:
@@ -240,6 +264,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.sumDistinct
 - kind: aggregator
   name: sum_distinct_float
+  path: spark_builtin/sum_distinct_float.py
   output_type: FLOAT
   inputs:
     columns:
@@ -249,6 +274,7 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.var_pop
 - kind: aggregator
   name: var_pop
+  path: spark_builtin/var_pop.py
   output_type: FLOAT
   inputs:
     columns:
@@ -258,16 +284,17 @@
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.var_samp
 - kind: aggregator
   name: var_samp
+  path: spark_builtin/var_samp.py
   output_type: FLOAT
   inputs:
     columns:
       col: FLOAT_COLUMN|INT_COLUMN
 
-
 # Spark Builtin: Calculate the variance (scaled by 1/(N-1)).
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.variance
 - kind: aggregator
   name: variance
+  path: spark_builtin/variance.py
   output_type: FLOAT
   inputs:
     columns:
@@ -279,6 +306,7 @@
 # would return [-inf, 2.0, 4.0, inf],
 - kind: aggregator
   name: bucket_boundaries
+  path: cortex/bucket_boundaries.py
   output_type: [FLOAT]
   inputs:
     columns:
@@ -292,6 +320,7 @@
 # For example: An input column with the following values ['t', 'f', 't'] would return ['t', 'f'].
 - kind: aggregator
   name: index_string
+  path: cortex/index_string.py
   output_type: [STRING]
   inputs:
     columns:
@@ -301,18 +330,18 @@
 # For example: An input column with the following values ['t', 'f', 't', 't'] would return {'t': 0.75, 'f': 0.25}.
 - kind: aggregator
   name: class_distribution_string
+  path: cortex/class_distribution.py
   output_type: {STRING: FLOAT}
   inputs:
     columns:
       col: STRING_COLUMN
-  path: class_distribution.py
 
 # Counts the occurrences of each value in the int input column and divides the counts by the total number of values.
 # For example: An input column with the following values [1, 2, 3, 1] would return {1: 0.5, 2: 0.25, 3: 0.25}.
 - kind: aggregator
   name: class_distribution_int
+  path: cortex/class_distribution.py
   output_type: {INT: FLOAT}
   inputs:
     columns:
       col: INT_COLUMN
-  path: class_distribution.py

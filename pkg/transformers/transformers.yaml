@@ -19,6 +19,7 @@
 #   OUTPUT: [0, 1, 0, 2, 2, 1]
 - kind: transformer
   name: bucketize
+  path: cortex/bucketize.py
   output_type: INT_COLUMN
   inputs:
     columns:
@@ -30,6 +31,7 @@
 # all of the values in column by (x - mean)/stddev where x is a value in the column.
 - kind: transformer
   name: normalize
+  path: cortex/normalize.py
   output_type: FLOAT_COLUMN
   inputs:
     columns:
@@ -44,6 +46,7 @@
 #   OUTPUT: [0, 1, 2, 2]
 - kind: transformer
   name: index_string
+  path: cortex/index_string.py
   output_type: INT_COLUMN
   inputs:
     columns:
