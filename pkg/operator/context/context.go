@@ -61,7 +61,7 @@ func New(
 
 	ctx.StatusPrefix = StatusPrefix(ctx.App.Name)
 
-	pythonPackages, err := loadPythonPackages(files, ctx.Environment)
+	pythonPackages, err := loadPythonPackages(files)
 	if err != nil {
 		return nil, err
 	}
