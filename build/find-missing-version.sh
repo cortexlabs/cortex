@@ -17,7 +17,7 @@
 output=$(grep --exclude="find-missing-version.sh" -R -A 50 -e "CORTEX_VERSION" . | grep -e "master")
 
 if [[ $output ]]; then
-    echo "$output"
-    exit 1
+  echo "$output"
+  exit 1
 fi
 

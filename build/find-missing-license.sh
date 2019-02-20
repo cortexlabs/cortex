@@ -29,6 +29,6 @@ output=$(find . -type f \
 -exec grep -L "Copyright 2019 Cortex Labs, Inc" {} \+)
 
 if [[ $output ]]; then
-    echo "$output"
-    exit 1
+  echo "$output"
+  exit 1
 fi
