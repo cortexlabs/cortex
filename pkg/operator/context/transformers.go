@@ -43,7 +43,7 @@ func init() {
 	}
 
 	for _, transConfig := range config.Transformers {
-		implPath := filepath.Join(OperatorTransformersDir, filepath.Base(transConfig.Path))
+		implPath := filepath.Join(OperatorTransformersDir, transConfig.Path)
 		impl, err := ioutil.ReadFile(implPath)
 		if err != nil {
 			errors.Exit(err, userconfig.Identify(transConfig), s.ErrReadFile(implPath))
