@@ -184,8 +184,3 @@ test-go:
 test-python:
 	@./build/test.sh python
 
-test-license:
-	@./build/find-missing-license.sh test
-
-test-version:
-	@./build/find-missing-version.sh test
