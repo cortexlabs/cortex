@@ -29,6 +29,7 @@ type API struct {
 	Compute   *APICompute `json:"compute" yaml:"compute"`
 	Tags      Tags        `json:"tags" yaml:"tags"`
 	FilePath  string      `json:"file_path"  yaml:"-"`
+	Embed     *Embed      `json:"embed"  yaml:"-"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -77,6 +78,10 @@ func (api *API) GetResourceType() resource.Type {
 
 func (api *API) GetFilePath() string {
 	return api.FilePath
+}
+
+func (api *API) GetEmbed() *Embed {
+	return api.Embed
 }
 
 func (apis APIs) Names() []string {

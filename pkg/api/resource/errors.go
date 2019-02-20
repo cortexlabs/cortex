@@ -31,6 +31,8 @@ const (
 	ErrNameNotFound
 	ErrNameOrTypeNotFound
 	ErrInvalidType
+	ErrTemplateInTemplate
+	ErrEmbedInTemplate
 )
 
 var (
@@ -41,6 +43,8 @@ var (
 		"err_name_not_found",
 		"err_name_or_type_not_found",
 		"err_invalid_type",
+		"err_template_in_template",
+		"err_embed_in_template",
 	}
 )
 
@@ -119,5 +123,19 @@ func ErrorUnknownKind(name string) error {
 	return ResourceError{
 		Kind:    ErrUnknownKind,
 		message: fmt.Sprintf("unknown kind %s", s.UserStr(name)),
+	}
+}
+
+func ErrorTemplateInTemplate() error {
+	return ResourceError{
+		Kind:    ErrTemplateInTemplate,
+		message: "templates cannot be defined inside of templates",
+	}
+}
+
+func ErrorEmbedInTemplate() error {
+	return ResourceError{
+		Kind:    ErrEmbedInTemplate,
+		message: "embeds cannot be defined inside of templates",
 	}
 }

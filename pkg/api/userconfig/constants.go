@@ -30,6 +30,7 @@ type Constant struct {
 	Value    interface{} `json:"value" yaml:"value"`
 	Tags     Tags        `json:"tags" yaml:"tags"`
 	FilePath string      `json:"file_path"  yaml:"-"`
+	Embed    *Embed      `json:"embed"  yaml:"-"`
 }
 
 var constantValidation = &cr.StructValidation{
@@ -108,6 +109,10 @@ func (constant *Constant) GetResourceType() resource.Type {
 
 func (constant *Constant) GetFilePath() string {
 	return constant.FilePath
+}
+
+func (constant *Constant) GetEmbed() *Embed {
+	return constant.Embed
 }
 
 func (constants Constants) Names() []string {

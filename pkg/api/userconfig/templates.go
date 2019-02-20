@@ -147,3 +147,7 @@ func (template *Template) GetResourceType() resource.Type {
 func (template *Template) GetFilePath() string {
 	return template.FilePath
 }
+
+func (template *Template) GetEmbed() *Embed {
+	return nil
+}

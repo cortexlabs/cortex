@@ -17,7 +17,6 @@ limitations under the License.
 package userconfig
 
 import (
-	"github.com/cortexlabs/cortex/pkg/api/resource"
 	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
 )
 
@@ -38,14 +37,6 @@ var appValidation = &cr.StructValidation{
 		},
 		typeFieldValidation,
 	},
-}
-
-func (app *App) GetName() string {
-	return app.Name
-}
-
-func (app *App) GetResourceType() resource.Type {
-	return resource.AppType
 }
 
 func (app *App) Validate() error {

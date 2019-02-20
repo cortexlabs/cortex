@@ -43,6 +43,7 @@ type Model struct {
 	Compute            *TFCompute               `json:"compute" yaml:"compute"`
 	Tags               Tags                     `json:"tags" yaml:"tags"`
 	FilePath           string                   `json:"file_path"`
+	Embed              *Embed                   `json:"embed"  yaml:"-"`
 }
 
 var modelValidation = &cr.StructValidation{
@@ -376,6 +377,10 @@ func (model *Model) GetResourceType() resource.Type {
 
 func (model *Model) GetFilePath() string {
 	return model.FilePath
+}
+
+func (model *Model) GetEmbed() *Embed {
+	return model.Embed
 }
 
 func (models Models) Names() []string {

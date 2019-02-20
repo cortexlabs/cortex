@@ -31,6 +31,7 @@ type TransformedColumn struct {
 	Compute     *SparkCompute `json:"compute" yaml:"compute"`
 	Tags        Tags          `json:"tags" yaml:"tags"`
 	FilePath    string        `json:"file_path"  yaml:"-"`
+	Embed       *Embed        `json:"embed"  yaml:"-"`
 }
 
 var transformedColumnValidation = &cr.StructValidation{
@@ -84,6 +85,10 @@ func (transformedColumn *TransformedColumn) GetResourceType() resource.Type {
 
 func (transformedColumn *TransformedColumn) GetFilePath() string {
 	return transformedColumn.FilePath
+}
+
+func (transformedColumn *TransformedColumn) GetEmbed() *Embed {
+	return transformedColumn.Embed
 }
 
 func (transformedColumns TransformedColumns) Names() []string {

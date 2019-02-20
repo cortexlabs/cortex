@@ -19,16 +19,43 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/api/resource"
+	s "github.com/cortexlabs/cortex/pkg/api/strings"
 )
 
 type Resource interface {
 	GetName() string
 	GetResourceType() resource.Type
 	GetFilePath() string
+	GetEmbed() *Embed
 }
 
 func Identify(r Resource) string {
-	return fmt.Sprintf("%s: %s: %s", r.GetFilePath(), r.GetResourceType().String(), r.GetName())
+	return identifyHelper(r.GetFilePath(), r.GetResourceType(), r.GetName(), -1, r.GetEmbed())
+}
+
+func identifyHelper(filePath string, resourceType resource.Type, name string, index int, embed *Embed) string {
+	resourceTypeStr := resourceType.String()
+	if resourceType == resource.UnknownType {
+		resourceTypeStr = "resource"
+	}
+
+	str := ""
+
+	if filePath != "" {
+		str += filePath + ": "
+	}
+
+	if embed != nil {
+		str += fmt.Sprintf("%s at %s (%s \"%s\"): ", resource.EmbedType.String(), s.Index(embed.ConfigIndex), resource.TemplateType.String(), embed.Template)
+	}
+
+	if name != "" {
+		return str + resourceTypeStr + ": " + name
+	} else if index >= 0 {
+		return str + resourceTypeStr + " at " + s.Index(index)
+	} else {
+		return str + resourceTypeStr
+	}
 }
 
 func FindDuplicateResourceName(resources ...Resource) []Resource {

@@ -32,6 +32,7 @@ type Environment struct {
 	Limit    *Limit    `json:"limit" yaml:"limit"`
 	Data     Data      `json:"-" yaml:"-"`
 	FilePath string    `json:"file_path"  yaml:"-"`
+	Embed    *Embed    `json:"embed"  yaml:"-"`
 }
 
 var environmentValidation = &cr.StructValidation{
@@ -400,6 +401,10 @@ func (env *Environment) GetResourceType() resource.Type {
 
 func (env *Environment) GetFilePath() string {
 	return env.FilePath
+}
+
+func (env *Environment) GetEmbed() *Embed {
+	return env.Embed
 }
 
 func (environments Environments) Names() []string {

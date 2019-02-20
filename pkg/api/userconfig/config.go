@@ -226,13 +226,17 @@ func (config *Config) Validate(envName string) error {
 	return nil
 }
 
-func (config *Config) MergeBytes(configBytes []byte, filePath string) (*Config, error) {
+func (config *Config) MergeBytes(configBytes []byte, filePath string, emb *Embed, template *Template) (*Config, error) {
 	sliceData, err := cr.ReadYAMLBytes(configBytes)
 	if err != nil {
-		return nil, err
+		if emb == nil {
+			return nil, errors.Wrap(err, filePath)
+		} else {
+			return nil, errors.Wrap(err, Identify(template), YAMLKey)
+		}
 	}
 
-	subConfig, err := newPartial(sliceData, filePath)
+	subConfig, err := newPartial(sliceData, filePath, emb, template)
 	if err != nil {
 		return nil, err
 	}
@@ -244,21 +248,30 @@ func (config *Config) MergeBytes(configBytes []byte, filePath string) (*Config, 
 	return config, nil
 }
 
-func newPartial(configData interface{}, filePath string) (*Config, error) {
+func newPartial(configData interface{}, filePath string, emb *Embed, template *Template) (*Config, error) {
 	configDataSlice, ok := cast.InterfaceToStrInterfaceMapSlice(configData)
 	if !ok {
-		return nil, ErrorMalformedConfig()
+		if emb == nil {
+			return nil, errors.Wrap(ErrorMalformedConfig(), filePath)
+		} else {
+			return nil, errors.Wrap(ErrorMalformedConfig(), Identify(template), YAMLKey)
+		}
 	}
 
 	config := &Config{}
 	for i, data := range configDataSlice {
-		kindStr, ok := data[KindKey].(string)
+		kindInterface, ok := data[KindKey]
 		if !ok {
-			return nil, errors.New(filePath, "resource at "+s.Index(i), KindKey, s.ErrMustBeDefined)
+			return nil, errors.New(identifyHelper(filePath, resource.UnknownType, "", i, emb), KindKey, s.ErrMustBeDefined)
+		}
+		kindStr, ok := kindInterface.(string)
+		if !ok {
+			return nil, errors.New(identifyHelper(filePath, resource.UnknownType, "", i, emb), KindKey, s.ErrInvalidPrimitiveType(kindInterface, s.PrimTypeString))
 		}
 
 		var errs []error
-		switch resource.TypeFromKindString(kindStr) {
+		resourceType := resource.TypeFromKindString(kindStr)
+		switch resourceType {
 		case resource.AppType:
 			app := &App{}
 			errs = cr.Struct(app, data, appValidation)
@@ -267,72 +280,106 @@ func newPartial(configData interface{}, filePath string) (*Config, error) {
 		case resource.RawColumnType:
 			var rawColumnInter interface{}
 			rawColumnInter, errs = cr.InterfaceStruct(data, rawColumnValidation)
-			if rawColumnInter != nil {
+			if !errors.HasErrors(errs) && rawColumnInter != nil {
 				rawColumn := rawColumnInter.(RawColumn)
 				rawColumn.SetFilePath(filePath)
+				rawColumn.SetEmbed(emb)
 				config.RawColumns = append(config.RawColumns, rawColumn)
 			}
 		case resource.TransformedColumnType:
 			transformedColumn := &TransformedColumn{}
 			errs = cr.Struct(transformedColumn, data, transformedColumnValidation)
-			transformedColumn.FilePath = filePath
-			config.TransformedColumns = append(config.TransformedColumns, transformedColumn)
+			if !errors.HasErrors(errs) {
+				transformedColumn.FilePath = filePath
+				transformedColumn.Embed = emb
+				config.TransformedColumns = append(config.TransformedColumns, transformedColumn)
+			}
 		case resource.AggregateType:
 			aggregate := &Aggregate{}
 			errs = cr.Struct(aggregate, data, aggregateValidation)
-			aggregate.FilePath = filePath
-			config.Aggregates = append(config.Aggregates, aggregate)
+			if !errors.HasErrors(errs) {
+				aggregate.FilePath = filePath
+				aggregate.Embed = emb
+				config.Aggregates = append(config.Aggregates, aggregate)
+			}
 		case resource.ConstantType:
 			constant := &Constant{}
 			errs = cr.Struct(constant, data, constantValidation)
-			constant.FilePath = filePath
-			config.Constants = append(config.Constants, constant)
+			if !errors.HasErrors(errs) {
+				constant.FilePath = filePath
+				constant.Embed = emb
+				config.Constants = append(config.Constants, constant)
+			}
 		case resource.APIType:
 			api := &API{}
 			errs = cr.Struct(api, data, apiValidation)
-			api.FilePath = filePath
-			config.APIs = append(config.APIs, api)
+			if !errors.HasErrors(errs) {
+				api.FilePath = filePath
+				api.Embed = emb
+				config.APIs = append(config.APIs, api)
+			}
 		case resource.ModelType:
 			model := &Model{}
 			errs = cr.Struct(model, data, modelValidation)
-			model.FilePath = filePath
-			config.Models = append(config.Models, model)
+			if !errors.HasErrors(errs) {
+				model.FilePath = filePath
+				model.Embed = emb
+				config.Models = append(config.Models, model)
+			}
 		case resource.EnvironmentType:
 			environment := &Environment{}
 			errs = cr.Struct(environment, data, environmentValidation)
-			environment.FilePath = filePath
-			config.Environments = append(config.Environments, environment)
+			if !errors.HasErrors(errs) {
+				environment.FilePath = filePath
+				environment.Embed = emb
+				config.Environments = append(config.Environments, environment)
+			}
 		case resource.AggregatorType:
 			aggregator := &Aggregator{}
 			errs = cr.Struct(aggregator, data, aggregatorValidation)
-			aggregator.FilePath = filePath
-			config.Aggregators = append(config.Aggregators, aggregator)
+			if !errors.HasErrors(errs) {
+				aggregator.FilePath = filePath
+				aggregator.Embed = emb
+				config.Aggregators = append(config.Aggregators, aggregator)
+			}
 		case resource.TransformerType:
 			transformer := &Transformer{}
 			errs = cr.Struct(transformer, data, transformerValidation)
-			transformer.FilePath = filePath
-			config.Transformers = append(config.Transformers, transformer)
+			if !errors.HasErrors(errs) {
+				transformer.FilePath = filePath
+				transformer.Embed = emb
+				config.Transformers = append(config.Transformers, transformer)
+			}
 		case resource.TemplateType:
-			template := &Template{}
-			errs = cr.Struct(template, data, templateValidation)
-			template.FilePath = filePath
-			config.Templates = append(config.Templates, template)
+			if emb != nil {
+				errs = []error{resource.ErrorTemplateInTemplate()}
+			} else {
+				template := &Template{}
+				errs = cr.Struct(template, data, templateValidation)
+				if !errors.HasErrors(errs) {
+					template.FilePath = filePath
+					config.Templates = append(config.Templates, template)
+				}
+			}
 		case resource.EmbedType:
-			embed := &Embed{}
-			errs = cr.Struct(embed, data, embedValidation)
-			embed.FilePath = filePath
-			embed.ConfigIndex = i
-			config.Embeds = append(config.Embeds, embed)
+			if emb != nil {
+				errs = []error{resource.ErrorEmbedInTemplate()}
+			} else {
+				embed := &Embed{}
+				errs = cr.Struct(embed, data, embedValidation)
+				if !errors.HasErrors(errs) {
+					embed.FilePath = filePath
+					embed.ConfigIndex = i
+					config.Embeds = append(config.Embeds, embed)
+				}
+			}
 		default:
-			return nil, errors.Wrap(resource.ErrorUnknownKind(kindStr), filePath, "resource at "+s.Index(i))
+			return nil, errors.Wrap(resource.ErrorUnknownKind(kindStr), identifyHelper(filePath, resource.UnknownType, "", i, emb))
 		}
 
 		if errors.HasErrors(errs) {
-			wrapStr := fmt.Sprintf("%s at %s", kindStr, s.Index(i))
-			if resourceName, ok := data[NameKey].(string); ok {
-				wrapStr = fmt.Sprintf("%s: %s", kindStr, resourceName)
-			}
-			return nil, errors.Wrap(errors.FirstError(errs...), filePath, wrapStr)
+			name, _ := data[NameKey].(string)
+			return nil, errors.Wrap(errors.FirstError(errs...), identifyHelper(filePath, resourceType, name, i, emb))
 		}
 	}
 
@@ -354,7 +401,7 @@ func NewPartialPath(filePath string) (*Config, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, filePath, ErrorParseConfig().Error())
 	}
-	return newPartial(configData, filePath)
+	return newPartial(configData, filePath, nil, nil)
 }
 
 func New(configs map[string][]byte, envName string) (*Config, error) {
@@ -364,7 +411,7 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 		if !util.IsFilePathYAML(filePath) {
 			continue
 		}
-		config, err = config.MergeBytes(configBytes, filePath)
+		config, err = config.MergeBytes(configBytes, filePath, nil, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -382,10 +429,9 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 			return nil, errors.Wrap(err, emb.Identify())
 		}
 
-		config, err = config.MergeBytes([]byte(populatedTemplate), emb.FilePath)
+		config, err = config.MergeBytes([]byte(populatedTemplate), emb.FilePath, emb, template)
 		if err != nil {
-			errStr := strings.TrimPrefix(err.Error(), emb.FilePath+": ") // Remove duplicate filePath from error message
-			return nil, errors.New(emb.Identify(), fmt.Sprintf("%s %s", resource.TemplateType.String(), s.UserStr(template.Name)), errStr)
+			return nil, err
 		}
 	}
 

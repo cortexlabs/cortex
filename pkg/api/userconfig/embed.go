@@ -17,10 +17,7 @@ limitations under the License.
 package userconfig
 
 import (
-	"fmt"
-
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
 )
 
@@ -54,5 +51,5 @@ var embedValidation = &cr.StructValidation{
 }
 
 func (embed *Embed) Identify() string {
-	return fmt.Sprintf("%s: %s at %s", embed.FilePath, resource.EmbedType.String(), s.Index(embed.ConfigIndex))
+	return identifyHelper(embed.FilePath, resource.EmbedType, "", embed.ConfigIndex, nil)
 }

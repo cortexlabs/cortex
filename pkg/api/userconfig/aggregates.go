@@ -31,6 +31,7 @@ type Aggregate struct {
 	Compute    *SparkCompute `json:"compute" yaml:"compute"`
 	Tags       Tags          `json:"tags" yaml:"tags"`
 	FilePath   string        `json:"file_path"  yaml:"-"`
+	Embed      *Embed        `json:"embed"  yaml:"-"`
 }
 
 var aggregateValidation = &cr.StructValidation{
@@ -79,6 +80,10 @@ func (aggregate *Aggregate) GetResourceType() resource.Type {
 
 func (aggregate *Aggregate) GetFilePath() string {
 	return aggregate.FilePath
+}
+
+func (aggregate *Aggregate) GetEmbed() *Embed {
+	return aggregate.Embed
 }
 
 func (aggregates Aggregates) Names() []string {

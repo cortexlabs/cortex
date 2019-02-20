@@ -18,6 +18,7 @@ package context
 
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
+	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 )
 
 type PythonPackages map[string]*PythonPackage
@@ -39,4 +40,8 @@ func (pythonPackage *PythonPackage) GetResourceType() resource.Type {
 
 func (pythonPackage *PythonPackage) GetFilePath() string {
 	return ""
+}
+
+func (pythonPackage *PythonPackage) GetEmbed() *userconfig.Embed {
+	return nil
 }

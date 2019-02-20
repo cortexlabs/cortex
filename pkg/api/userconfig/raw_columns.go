@@ -29,6 +29,8 @@ type RawColumn interface {
 	GetResourceType() resource.Type
 	GetFilePath() string
 	SetFilePath(string)
+	GetEmbed() *Embed
+	SetEmbed(*Embed)
 }
 
 type RawColumns []RawColumn
@@ -62,6 +64,7 @@ type RawIntColumn struct {
 	Compute  *SparkCompute `json:"compute" yaml:"compute"`
 	Tags     Tags          `json:"tags" yaml:"tags"`
 	FilePath string        `json:"file_path"  yaml:"-"`
+	Embed    *Embed        `json:"embed"  yaml:"-"`
 }
 
 var rawIntColumnFieldValidations = []*cr.StructFieldValidation{
@@ -112,6 +115,7 @@ type RawFloatColumn struct {
 	Compute  *SparkCompute `json:"compute" yaml:"compute"`
 	Tags     Tags          `json:"tags" yaml:"tags"`
 	FilePath string        `json:"file_path"  yaml:"-"`
+	Embed    *Embed        `json:"embed"  yaml:"-"`
 }
 
 var rawFloatColumnFieldValidations = []*cr.StructFieldValidation{
@@ -160,6 +164,7 @@ type RawStringColumn struct {
 	Compute  *SparkCompute `json:"compute" yaml:"compute"`
 	Tags     Tags          `json:"tags" yaml:"tags"`
 	FilePath string        `json:"file_path"  yaml:"-"`
+	Embed    *Embed        `json:"embed"  yaml:"-"`
 }
 
 var rawStringColumnFieldValidations = []*cr.StructFieldValidation{
@@ -315,4 +320,28 @@ func (column *RawFloatColumn) GetFilePath() string {
 
 func (column *RawStringColumn) GetFilePath() string {
 	return column.FilePath
+}
+
+func (column *RawIntColumn) GetEmbed() *Embed {
+	return column.Embed
+}
+
+func (column *RawFloatColumn) GetEmbed() *Embed {
+	return column.Embed
+}
+
+func (column *RawStringColumn) GetEmbed() *Embed {
+	return column.Embed
+}
+
+func (column *RawIntColumn) SetEmbed(emb *Embed) {
+	column.Embed = emb
+}
+
+func (column *RawFloatColumn) SetEmbed(emb *Embed) {
+	column.Embed = emb
+}
+
+func (column *RawStringColumn) SetEmbed(emb *Embed) {
+	column.Embed = emb
 }

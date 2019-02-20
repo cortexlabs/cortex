@@ -29,6 +29,7 @@ type Aggregator struct {
 	OutputType interface{} `json:"output_type"  yaml:"output_type"`
 	Path       string      `json:"path"  yaml:"path"`
 	FilePath   string      `json:"file_path" yaml:"-"`
+	Embed      *Embed      `json:"embed"  yaml:"-"`
 }
 
 var aggregatorValidation = &cr.StructValidation{
@@ -94,6 +95,10 @@ func (aggregator *Aggregator) GetResourceType() resource.Type {
 
 func (aggregator *Aggregator) GetFilePath() string {
 	return aggregator.FilePath
+}
+
+func (aggregator *Aggregator) GetEmbed() *Embed {
+	return aggregator.Embed
 }
 
 func (aggregators Aggregators) Names() []string {

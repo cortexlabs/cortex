@@ -29,6 +29,7 @@ type Transformer struct {
 	OutputType string  `json:"output_type"  yaml:"output_type"`
 	Path       string  `json:"path"  yaml:"path"`
 	FilePath   string  `json:"file_path" yaml:"-"`
+	Embed      *Embed  `json:"embed"  yaml:"-"`
 }
 
 var transformerValidation = &cr.StructValidation{
@@ -93,6 +94,10 @@ func (transformer *Transformer) GetResourceType() resource.Type {
 
 func (transformer *Transformer) GetFilePath() string {
 	return transformer.FilePath
+}
+
+func (transformer *Transformer) GetEmbed() *Embed {
+	return transformer.Embed
 }
 
 func (transformers Transformers) Names() []string {

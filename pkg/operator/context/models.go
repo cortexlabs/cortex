@@ -115,6 +115,8 @@ func getModels(
 				TrainKey:    filepath.Join(datasetRoot, "train.tfrecord"),
 				EvalKey:     filepath.Join(datasetRoot, "eval.tfrecord"),
 				MetadataKey: filepath.Join(datasetRoot, "metadata.json"),
+				FilePath:    modelConfig.FilePath,
+				Embed:       modelConfig.Embed,
 			},
 		}
 	}
