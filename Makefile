@@ -17,7 +17,7 @@
 ###############
 SHELL := /bin/bash
 GOBIN ?= $$PWD/bin
-GOOS ?= linux
+GOOS ?=
 define build
     mkdir -p $(GOBIN) && \
 		GOOS=$(GOOS) \
@@ -40,7 +40,7 @@ olocal:
 ostop:
 	@.kubectl -n=cortex delete --ignore-not-found=true deployment operator
 
-opudate:
+oupdate:
 	@./cortex.sh -c=./dev/config/cortex.sh update operator
 
 oinstall:
@@ -57,6 +57,10 @@ eks-up:
 	@./dev/eks.sh start
 	$(MAKE) oinstall
 
+eks-up-dev:
+	$(MAKE) eks-up
+	$(MAKE) ostop
+
 eks-down:
 	$(MAKE) ouninstall || true
 	@./dev/eks.sh stop
@@ -69,14 +73,21 @@ eks-set:
 ########
 kops-up:
 	@./dev/kops.sh start
-	@./cortex.sh -c=dev/config/cortex.sh install operator 
-	@kubectl -n=cortex delete --ignore-not-found=true deployment operator
+	$(MAKE) oinstall
+	
+kops-up-dev:
+	$(MAKE) kops-up
+	$(MAKE) ostop
 	
 kops-down:
 	@./dev/kops.sh stop
 
 kops-set:
 	@./dev/kops.sh set
+
+##############
+# Misc stuff #
+##############
 
 tools:
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
@@ -139,28 +150,28 @@ build-operator-images:
 build-images: build-tf-images build-spark-images build-argo-images build-operator-images
 
 push-tf-dev:
-	@./build/push-image.sh images/tf-train tf-train
-	@./build/push-image.sh images/tf-serve tf-serve
-	@./build/push-image.sh images/tf-api tf-api
-	@./build/push-image.sh images/tf-train-gpu tf-train-gpu
-	@./build/push-image.sh images/tf-serve-gpu tf-serve-gpu
+	@./build/push-image.sh tf-train
+	@./build/push-image.sh tf-serve
+	@./build/push-image.sh tf-api
+	@./build/push-image.sh tf-train-gpu
+	@./build/push-image.sh tf-serve-gpu
 
 push-spark-dev:
-	@./build/push-image.sh images/spark spark
-	@./build/push-image.sh images/spark-operator spark-operator
+	@./build/push-image.sh spark
+	@./build/push-image.sh spark-operator
 
 push-tf-images: push-tf-base push-tf-dev
 push-spark-images: push-spark-base push-spark-dev
 
 push-argo-images:
-	@./build/push-image.sh images/argo-controller argo-controller
-	@./build/push-image.sh images/argo-executor argo-executor
+	@./build/push-image.sh argo-controller
+	@./build/push-image.sh argo-executor
 
 push-operator-images:
-	@./build/push-image.sh images/operator operator
-	@./build/push-image.sh images/nginx-controller nginx-controller
-	@./build/push-image.sh images/nginx-backend nginx-backend
-	@./build/push-image.sh images/fluentd fluentd
+	@./build/push-image.sh operator
+	@./build/push-image.sh nginx-controller
+	@./build/push-image.sh nginx-backend
+	@./build/push-image.sh fluentd
 
 push-images: push-tf-images push-spark-images push-argo-images push-operator-images
 
@@ -174,7 +185,7 @@ test-python:
 	@./build/test.sh python
 
 test-license:
-	@if [ "$$(./build/find-missing-license.sh)" ]; then echo "some files are missing license headers, run 'make find-missing-license' to find offending files."; exit 1; fi
+	@./build/find-missing-license.sh test
 
 test-version:
-	@if [ "$$(./build/find-missing-version.sh)" ]; then echo "there are still CORTEX_VERSION references to master. run 'make find-missing-version'"; exit 1; fi
+	@./build/find-missing-version.sh test

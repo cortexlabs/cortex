@@ -7,23 +7,23 @@ services:
   - docker
 
 before_install:
-  - if build/is-release-branch.sh $TRAVIS_BRANCH; then sudo apt-get install -y apt-transport-https ca-certificates software-properties-common zip python3-pip python3-dev build-essential; fi
-  - if build/is-release-branch.sh $TRAVIS_BRANCH; then sudo pip3 install --upgrade pip; fi
-  - if build/is-release-branch.sh $TRAVIS_BRANCH; then pip3 install --upgrade awscli --user; fi
+  - |
+  if build/is-release-branch.sh $TRAVIS_BRANCH; then 
+    sudo apt-get install -y apt-transport-https ca-certificates software-properties-common zip python3-pip python3-dev build-essential
+    sudo pip3 install --upgrade pip
+    pip3 install --upgrade awscli --user
+  fi
 
 jobs:
   include:
-    - stage: files
-      script: make test-license
-      name: "License headers"
     - stage: tests
-      script: make test-go
+      script: test-license && make test-go
       name: "Go tests"
     - stage: "Release"
       if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
-      script: make test-version && make build-images && push-images
+      script: make test-version && make build-images && make test-python && make push-images
     - stage: "Deploy CLI"
       if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
-      script: make build-and-upload
+      script: make build-and-upload-cli
     
 

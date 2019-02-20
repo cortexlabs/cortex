@@ -19,6 +19,8 @@ set -euo pipefail
 
 CORTEX_VERSION=master
 
+image=$1
+
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
 docker push cortexlabs/$image:$CORTEX_VERSION

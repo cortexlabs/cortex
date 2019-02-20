@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+command=`cat <<EOF 
 find . -type f \
 ! -path "./vendor/*" \
 ! -path "./examples/*" \
@@ -27,3 +28,12 @@ find . -type f \
 ! -name ".*" \
 ! -name "Dockerfile" \
 -exec grep -L "Copyright 2019 Cortex Labs, Inc" {} \+
+EOF
+`
+
+if [[ $1 == "test" ]] && [[ $(eval $command) ]]; then
+	echo "some files are missing license headers, run 'make find-missing-license' to find offending files."; \
+    exit 1
+fi
+
+eval $command

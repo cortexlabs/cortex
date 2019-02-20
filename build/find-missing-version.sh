@@ -14,5 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-grep --exclude="check-cortex-version.sh" -R -A 10 -e "CORTEX_VERSION" | grep -e "master"
+command='grep --exclude="check-cortex-version.sh" -R -A 50 -e "CORTEX_VERSION" | grep -e "master"'
 
+
+if [[ $1 == "test" ]] && [[ $(eval $command) ]]; then
+	echo "there are still CORTEX_VERSION references to master. run 'make find-missing-version' to find offending files."; \
+    exit 1
+fi
+
+eval $command
