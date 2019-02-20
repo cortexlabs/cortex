@@ -45,12 +45,11 @@ func findCustomPackages(files map[string][]byte) []string {
 	return customPackages
 }
 
-func loadPythonPackages(files map[string][]byte, env *context.Environment) (context.PythonPackages, error) {
+func loadPythonPackages(files map[string][]byte) (context.PythonPackages, error) {
 	pythonPackages := make(map[string]*context.PythonPackage)
 
 	if reqFileBytes, ok := files[consts.RequirementsTxt]; ok {
 		var buf bytes.Buffer
-		buf.WriteString(env.ID)
 		buf.Write(reqFileBytes)
 		id := util.HashBytes(buf.Bytes())
 		pythonPackage := context.PythonPackage{
@@ -77,7 +76,6 @@ func loadPythonPackages(files map[string][]byte, env *context.Environment) (cont
 	for _, packageName := range customPackages {
 		zipBytesInputs := []util.ZipBytesInput{}
 		var buf bytes.Buffer
-		buf.WriteString(env.ID)
 		for filePath, fileBytes := range files {
 			if strings.HasPrefix(filePath, filepath.Join(consts.PackageDir, packageName)) {
 				buf.Write(fileBytes)
