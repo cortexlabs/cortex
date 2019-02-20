@@ -2,7 +2,8 @@
 
 These environment variables can be modified and exported before running `cortex.sh` commands. Alternatively, `cortex.sh` will automatically look for a `config.sh` file in your current directory, or a different file if you use `cortex.sh --config=<path>`. Default values are shown.
 
-<!-- CORTEX_VERSION_MINOR -->
+<!-- CORTEX_VERSION_STABLE -->
+
 ```bash
 # config.sh
 
