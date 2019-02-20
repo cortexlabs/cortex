@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-command='grep --exclude="check-cortex-version.sh" -R -A 50 -e "CORTEX_VERSION" | grep -e "master"'
+command='grep --exclude="find-missing-version.sh" -R -A 50 -e "CORTEX_VERSION" . | grep -e "master"'
 
 
 if [[ $1 == "test" ]] && [[ $(eval $command) ]]; then
