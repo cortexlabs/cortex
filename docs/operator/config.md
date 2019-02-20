@@ -23,7 +23,6 @@ export CORTEX_REGION="us-west-2"
 export CORTEX_NAMESPACE="cortex"
 
 # Image paths
-
 export CORTEX_IMAGE_ARGO_CONTROLLER="cortexlabs/argo-controller:master"
 export CORTEX_IMAGE_ARGO_EXECUTOR="cortexlabs/argo-executor:master"
 export CORTEX_IMAGE_FLUENTD="cortexlabs/fluentd:master"
