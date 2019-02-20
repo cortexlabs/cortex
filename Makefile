@@ -38,7 +38,7 @@ olocal:
 	@./dev/operator_local.sh
 
 ostop:
-	@.kubectl -n=cortex delete --ignore-not-found=true deployment operator
+	@kubectl -n=cortex delete --ignore-not-found=true deployment operator
 
 oupdate:
 	@./cortex.sh -c=./dev/config/cortex.sh update operator
