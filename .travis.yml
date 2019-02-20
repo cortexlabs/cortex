@@ -16,7 +16,7 @@ before_install:
 jobs:
   include:
     - stage: tests
-      script: test-license && make test-go
+      script: make test-license && make test-go
       name: "Go tests"
     - stage: "Release"
       if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
