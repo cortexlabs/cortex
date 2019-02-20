@@ -149,19 +149,16 @@ build-operator-images:
 
 build-images: build-tf-images build-spark-images build-argo-images build-operator-images
 
-push-tf-dev:
+push-tf-images:
 	@./build/push-image.sh tf-train
 	@./build/push-image.sh tf-serve
 	@./build/push-image.sh tf-api
 	@./build/push-image.sh tf-train-gpu
 	@./build/push-image.sh tf-serve-gpu
 
-push-spark-dev:
+push-spark-images:
 	@./build/push-image.sh spark
 	@./build/push-image.sh spark-operator
-
-push-tf-images: push-tf-base push-tf-dev
-push-spark-images: push-spark-base push-spark-dev
 
 push-argo-images:
 	@./build/push-image.sh argo-controller
