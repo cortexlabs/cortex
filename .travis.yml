@@ -8,7 +8,7 @@ services:
 
 before_install:
   - if build/is-release-branch.sh $TRAVIS_BRANCH; then 
-      sudo apt-get install -y apt-transport-https ca-certificates software-properties-common zip python3-pip python3-dev build-essential;
+      sudo apt-get install -y apt-transport-https ca-certificates software-properties-common python3-pip python3-dev build-essential;
       sudo pip3 install --upgrade pip;
       pip3 install --upgrade awscli --user;
     fi
