@@ -14,12 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-command='grep --exclude="find-missing-version.sh" -R -A 50 -e "CORTEX_VERSION" . | grep -e "master"'
+output=$(grep --exclude="find-missing-version.sh" -R -A 50 -e "CORTEX_VERSION" . | grep -e "master")
 
-
-if [[ $1 == "test" ]] && [[ $(eval $command) ]]; then
-	echo "there are still CORTEX_VERSION references to master. run 'make find-missing-version' to find offending files."; \
+if [[ $output ]]; then
+    echo "$output"
     exit 1
 fi
 
-eval $command
