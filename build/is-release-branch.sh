@@ -15,7 +15,7 @@
 # limitations under the License.
 
 branch=$1
-if [[ $branch == "master" ]] || [[ $branch =~ ^[0-9]\.[0-9]$ ]]; then 
+if [[ $branch =~ ^[0-9]\.[0-9]$ ]]; then 
     exit 0;
 fi
 exit 1;

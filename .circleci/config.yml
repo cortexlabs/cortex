@@ -15,14 +15,11 @@ jobs:
   release-test:
     docker:
       - image: circleci/golang:1.11.5
-    branches:
-      only:
-        - /^[0-9]\.[0-9]$/
     steps:
-      - checkou
+      - checkout
       - run:
           name: Version Test
-          command: make find-missing-version
+          command: if build/is-release-branch.sh $TRAVIS_BRANCH; make find-missing-version fi;
   docker-test:
     docker:
       - image: circleci/golang:1.11.5
