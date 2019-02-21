@@ -20,16 +20,22 @@ jobs:
       - run:
           name: Version Test
           command: make find-missing-version
+  docker-test:
+    docker:
+      - image: circleci/golang:1.11.5
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: make build-images      
   deploy:
     docker:
       - image: circleci/golang:1.11.5
     steps:
       - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run: sudo apt-get install -y apt-transport-https ca-certificates software-properties-common python3-pip python3-dev build-essential
-      - run: sudo pip3 install --upgrade pip
-      - run: pip3 install --upgrade awscli --user
+      - setup_remote_docker
+      - run: sudo apt-get install -y apt-transport-https ca-certificates software-properties-common python-pip build-essential
+      - run: sudo pip install --upgrade pip
+      - run: pip install --upgrade awscli --user
       - run: make build-images
       - run: make test-python
       - run: make push-images 
@@ -46,6 +52,9 @@ workflows:
             branches:
               only:
                 - /^[0-9]\.[0-9]$/
+      - docker-test:
+          requires:
+            - release-test        
       - deploy:
           requires:
             - test
