@@ -91,6 +91,7 @@ kops-set:
 
 tools:
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
+	@curl -fLSs https://circle.ci/cli | bash
 
 build-cli:
 	 @$(call build, ./cli)
