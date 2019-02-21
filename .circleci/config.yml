@@ -44,6 +44,7 @@ workflows:
       - deploy:
           requires:
             - release-test
+            - test
           filters:
             branches:
               only:
