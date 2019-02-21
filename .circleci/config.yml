@@ -28,7 +28,7 @@ jobs:
       - setup_remote_docker
       - run: mkdir /tmp/awscli && curl -s -o /tmp/awscli/awscli-bundle.zip https://s3.amazonaws.com/aws-cli/awscli-bundle.zip
       - run: unzip /tmp/awscli/awscli-bundle.zip -d /tmp/awscli >/dev/null
-      - run: python /tmp/awscli/awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws >/dev/null
+      - run: sudo python /tmp/awscli/awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws >/dev/null
       - run: make build-images      
   deploy:
     docker:
