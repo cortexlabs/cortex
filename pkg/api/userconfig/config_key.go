@@ -35,6 +35,7 @@ const (
 	TransformerKey     = "transformer"
 	PathKey            = "path"
 	ValueKey           = "value"
+	YAMLKey            = "yaml"
 
 	// environment
 	LimitKey          = "limit"

@@ -25,12 +25,11 @@ import (
 type TransformedColumns []*TransformedColumn
 
 type TransformedColumn struct {
-	Name        string        `json:"name" yaml:"name"`
+	ResourceConfigFields
 	Transformer string        `json:"transformer" yaml:"transformer"`
 	Inputs      *Inputs       `json:"inputs" yaml:"inputs"`
 	Compute     *SparkCompute `json:"compute" yaml:"compute"`
 	Tags        Tags          `json:"tags" yaml:"tags"`
-	FilePath    string        `json:"file_path"  yaml:"-"`
 }
 
 var transformedColumnValidation = &cr.StructValidation{
@@ -74,16 +73,8 @@ func (column *TransformedColumn) IsRaw() bool {
 	return false
 }
 
-func (transformedColumn *TransformedColumn) GetName() string {
-	return transformedColumn.Name
-}
-
 func (transformedColumn *TransformedColumn) GetResourceType() resource.Type {
 	return resource.TransformedColumnType
-}
-
-func (transformedColumn *TransformedColumn) GetFilePath() string {
-	return transformedColumn.FilePath
 }
 
 func (transformedColumns TransformedColumns) Names() []string {

@@ -25,7 +25,7 @@ import (
 )
 
 type Column interface {
-	GetName() string
+	Resource
 	IsRaw() bool
 }
 

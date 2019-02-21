@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/resource"
+	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/utils/errors"
@@ -53,13 +54,15 @@ func loadPythonPackages(files map[string][]byte) (context.PythonPackages, error)
 		buf.Write(reqFileBytes)
 		id := util.HashBytes(buf.Bytes())
 		pythonPackage := context.PythonPackage{
+			ResourceConfigFields: userconfig.ResourceConfigFields{
+				Name: consts.RequirementsTxt,
+			},
 			ComputedResourceFields: &context.ComputedResourceFields{
 				ResourceFields: &context.ResourceFields{
 					ID:           id,
 					ResourceType: resource.PythonPackageType,
 				},
 			},
-			Name:       consts.RequirementsTxt,
 			SrcKey:     filepath.Join(consts.PythonPackagesDir, id, "src.txt"),
 			PackageKey: filepath.Join(consts.PythonPackagesDir, id, "package.zip"),
 		}
@@ -87,13 +90,15 @@ func loadPythonPackages(files map[string][]byte) (context.PythonPackages, error)
 		}
 		id := util.HashBytes(buf.Bytes())
 		pythonPackage := context.PythonPackage{
+			ResourceConfigFields: userconfig.ResourceConfigFields{
+				Name: consts.RequirementsTxt,
+			},
 			ComputedResourceFields: &context.ComputedResourceFields{
 				ResourceFields: &context.ResourceFields{
 					ID:           id,
 					ResourceType: resource.PythonPackageType,
 				},
 			},
-			Name:       packageName,
 			SrcKey:     filepath.Join(consts.PythonPackagesDir, id, "src.zip"),
 			PackageKey: filepath.Join(consts.PythonPackagesDir, id, "package.zip"),
 		}

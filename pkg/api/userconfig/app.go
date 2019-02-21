@@ -17,13 +17,11 @@ limitations under the License.
 package userconfig
 
 import (
-	"github.com/cortexlabs/cortex/pkg/api/resource"
 	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
 )
 
 type App struct {
-	Name     string `json:"name" yaml:"name"`
-	FilePath string `json:"file_path"  yaml:"-"`
+	Name string `json:"name" yaml:"name"`
 }
 
 var appValidation = &cr.StructValidation{
@@ -38,14 +36,6 @@ var appValidation = &cr.StructValidation{
 		},
 		typeFieldValidation,
 	},
-}
-
-func (app *App) GetName() string {
-	return app.Name
-}
-
-func (app *App) GetResourceType() resource.Type {
-	return resource.AppType
 }
 
 func (app *App) Validate() error {

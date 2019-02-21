@@ -24,11 +24,10 @@ import (
 type APIs []*API
 
 type API struct {
-	Name      string      `json:"name" yaml:"name"`
+	ResourceConfigFields
 	ModelName string      `json:"model_name" yaml:"model_name"`
 	Compute   *APICompute `json:"compute" yaml:"compute"`
 	Tags      Tags        `json:"tags" yaml:"tags"`
-	FilePath  string      `json:"file_path"  yaml:"-"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -67,16 +66,8 @@ func (apis APIs) Validate() error {
 	return nil
 }
 
-func (api *API) GetName() string {
-	return api.Name
-}
-
 func (api *API) GetResourceType() resource.Type {
 	return resource.APIType
-}
-
-func (api *API) GetFilePath() string {
-	return api.FilePath
 }
 
 func (apis APIs) Names() []string {

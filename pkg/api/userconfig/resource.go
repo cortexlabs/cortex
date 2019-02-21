@@ -19,16 +19,85 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/api/resource"
+	s "github.com/cortexlabs/cortex/pkg/api/strings"
 )
 
 type Resource interface {
 	GetName() string
 	GetResourceType() resource.Type
+	GetIndex() int
+	SetIndex(int)
 	GetFilePath() string
+	SetFilePath(string)
+	GetEmbed() *Embed
+	SetEmbed(*Embed)
+}
+
+type ResourceConfigFields struct {
+	Name     string `json:"name" yaml:"name"`
+	Index    int    `json:"index" yaml:"-"`
+	FilePath string `json:"file_path" yaml:"-"`
+	Embed    *Embed `json:"embed" yaml:"-"`
+}
+
+func (resourceConfigFields *ResourceConfigFields) GetName() string {
+	return resourceConfigFields.Name
+}
+
+func (resourceConfigFields *ResourceConfigFields) GetIndex() int {
+	return resourceConfigFields.Index
+}
+
+func (resourceConfigFields *ResourceConfigFields) SetIndex(index int) {
+	resourceConfigFields.Index = index
+}
+
+func (resourceConfigFields *ResourceConfigFields) GetFilePath() string {
+	return resourceConfigFields.FilePath
+}
+
+func (resourceConfigFields *ResourceConfigFields) SetFilePath(filePath string) {
+	resourceConfigFields.FilePath = filePath
+}
+
+func (resourceConfigFields *ResourceConfigFields) GetEmbed() *Embed {
+	return resourceConfigFields.Embed
+}
+
+func (resourceConfigFields *ResourceConfigFields) SetEmbed(embed *Embed) {
+	resourceConfigFields.Embed = embed
 }
 
 func Identify(r Resource) string {
-	return fmt.Sprintf("%s: %s: %s", r.GetFilePath(), r.GetResourceType().String(), r.GetName())
+	return identify(r.GetFilePath(), r.GetResourceType(), r.GetName(), r.GetIndex(), r.GetEmbed())
+}
+
+func identify(filePath string, resourceType resource.Type, name string, index int, embed *Embed) string {
+	resourceTypeStr := resourceType.String()
+	if resourceType == resource.UnknownType {
+		resourceTypeStr = "resource"
+	}
+
+	str := ""
+
+	if filePath != "" {
+		str += filePath + ": "
+	}
+
+	if embed != nil {
+		if embed.Index >= 0 {
+			str += fmt.Sprintf("%s at %s (%s \"%s\"): ", resource.EmbedType.String(), s.Index(embed.Index), resource.TemplateType.String(), embed.Template)
+		} else {
+			str += fmt.Sprintf("%s (%s \"%s\"): ", resource.EmbedType.String(), resource.TemplateType.String(), embed.Template)
+		}
+	}
+
+	if name != "" {
+		return str + resourceTypeStr + ": " + name
+	} else if index >= 0 {
+		return str + resourceTypeStr + " at " + s.Index(index)
+	}
+	return str + resourceTypeStr
 }
 
 func FindDuplicateResourceName(resources ...Resource) []Resource {

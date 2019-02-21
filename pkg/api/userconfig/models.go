@@ -28,7 +28,7 @@ import (
 type Models []*Model
 
 type Model struct {
-	Name               string                   `json:"name" yaml:"name"`
+	ResourceConfigFields
 	Type               string                   `json:"type" yaml:"type"`
 	Path               string                   `json:"path" yaml:"path"`
 	TargetColumn       string                   `json:"target_column" yaml:"target_column"`
@@ -42,7 +42,6 @@ type Model struct {
 	Evaluation         *ModelEvaluation         `json:"evaluation" yaml:"evaluation"`
 	Compute            *TFCompute               `json:"compute" yaml:"compute"`
 	Tags               Tags                     `json:"tags" yaml:"tags"`
-	FilePath           string                   `json:"file_path"`
 }
 
 var modelValidation = &cr.StructValidation{
@@ -366,16 +365,8 @@ func (model *Model) AllColumnNames() []string {
 	return util.MergeStrSlices(model.FeatureColumns, model.TrainingColumns, []string{model.TargetColumn})
 }
 
-func (model *Model) GetName() string {
-	return model.Name
-}
-
 func (model *Model) GetResourceType() resource.Type {
 	return resource.ModelType
-}
-
-func (model *Model) GetFilePath() string {
-	return model.FilePath
 }
 
 func (models Models) Names() []string {
