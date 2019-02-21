@@ -13,9 +13,6 @@ jobs:
           name: Go Tests
           command: make test-go
   release-test:
-    braches:
-      only:
-        - /^[0-9]\.[0-9]$/
     docker:
       - image: circleci/golang:1.11.5
     steps:
@@ -24,10 +21,6 @@ jobs:
           name: Version Test
           command: make find-missing-version
   deploy:
-    braches:
-      only:
-        - /^[0-9]\.[0-9]$/
-        - master
     docker:
       - image: circleci/golang:1.11.5
     steps:
