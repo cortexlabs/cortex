@@ -14,10 +14,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output=$(grep --exclude="find-missing-version.sh" -R -A 50 -e "CORTEX_VERSION" . | grep -e "master")
+output=$(find . -type f \
+! -path "./vendor/*" \
+! -path "./bin/*" \
+! -path "./build/find-missing-version.sh" \
+! -path "./.git/*" \
+! -name ".*" \
+-exec grep -R -A 50 -e "CORTEX_VERSION" {} \+)
+
+output=$(echo "$output" | grep -e "master")
 
 if [[ $output ]]; then
   echo "$output"
   exit 1
 fi
-
