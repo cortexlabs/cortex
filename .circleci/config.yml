@@ -1,0 +1,40 @@
+version: 2
+
+jobs:
+  test:
+    docker:
+      - image: circleci/golang:1.11.5
+    steps:
+      - checkout
+      - run:
+          name: License Test
+          command: make find-missing-license
+      - run: 
+          name: Go Tests
+          command: make test-go
+  release:
+    braches:
+      only:
+        - /^[0-9]\.[0-9]$/
+    docker:
+      - image: circleci/golang:1.11.5
+    steps:
+      - checkout
+      - run:
+          name: Version Test
+          command: make find-missing-version
+  build:
+    braches:
+      only:
+        - /^[0-9]\.[0-9]$/
+        - master
+    docker:
+      - image: circleci/golang:1.11.5
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run: make build-images
+      - run: make test-python
+      - run: make push-images 
+      - run: make build-and-upload-cli
