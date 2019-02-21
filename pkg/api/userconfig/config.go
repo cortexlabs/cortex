@@ -226,13 +226,16 @@ func (config *Config) Validate(envName string) error {
 	return nil
 }
 
-func (config *Config) MergeBytes(configBytes []byte, filePath string) (*Config, error) {
+func (config *Config) MergeBytes(configBytes []byte, filePath string, emb *Embed, template *Template) (*Config, error) {
 	sliceData, err := cr.ReadYAMLBytes(configBytes)
 	if err != nil {
-		return nil, err
+		if emb == nil {
+			return nil, errors.Wrap(err, filePath)
+		}
+		return nil, errors.Wrap(err, Identify(template), YAMLKey)
 	}
 
-	subConfig, err := newPartial(sliceData, filePath)
+	subConfig, err := newPartial(sliceData, filePath, emb, template)
 	if err != nil {
 		return nil, err
 	}
@@ -244,94 +247,122 @@ func (config *Config) MergeBytes(configBytes []byte, filePath string) (*Config, 
 	return config, nil
 }
 
-func newPartial(configData interface{}, filePath string) (*Config, error) {
+func newPartial(configData interface{}, filePath string, emb *Embed, template *Template) (*Config, error) {
 	configDataSlice, ok := cast.InterfaceToStrInterfaceMapSlice(configData)
 	if !ok {
-		return nil, ErrorMalformedConfig()
+		if emb == nil {
+			return nil, errors.Wrap(ErrorMalformedConfig(), filePath)
+		}
+		return nil, errors.Wrap(ErrorMalformedConfig(), Identify(template), YAMLKey)
 	}
 
 	config := &Config{}
 	for i, data := range configDataSlice {
-		kindStr, ok := data[KindKey].(string)
+		kindInterface, ok := data[KindKey]
 		if !ok {
-			return nil, errors.New("resource at "+s.Index(i), KindKey, s.ErrMustBeDefined)
+			return nil, errors.New(identify(filePath, resource.UnknownType, "", i, emb), KindKey, s.ErrMustBeDefined)
+		}
+		kindStr, ok := kindInterface.(string)
+		if !ok {
+			return nil, errors.New(identify(filePath, resource.UnknownType, "", i, emb), KindKey, s.ErrInvalidPrimitiveType(kindInterface, s.PrimTypeString))
 		}
 
 		var errs []error
-		switch resource.TypeFromKindString(kindStr) {
+		resourceType := resource.TypeFromKindString(kindStr)
+		var newResource Resource
+		switch resourceType {
 		case resource.AppType:
 			app := &App{}
 			errs = cr.Struct(app, data, appValidation)
-			app.FilePath = filePath
 			config.App = app
 		case resource.RawColumnType:
 			var rawColumnInter interface{}
 			rawColumnInter, errs = cr.InterfaceStruct(data, rawColumnValidation)
-			if rawColumnInter != nil {
-				rawColumn := rawColumnInter.(RawColumn)
-				rawColumn.SetFilePath(filePath)
-				config.RawColumns = append(config.RawColumns, rawColumn)
+			if !errors.HasErrors(errs) && rawColumnInter != nil {
+				newResource = rawColumnInter.(RawColumn)
+				config.RawColumns = append(config.RawColumns, newResource.(RawColumn))
 			}
 		case resource.TransformedColumnType:
-			transformedColumn := &TransformedColumn{}
-			errs = cr.Struct(transformedColumn, data, transformedColumnValidation)
-			transformedColumn.FilePath = filePath
-			config.TransformedColumns = append(config.TransformedColumns, transformedColumn)
+			newResource = &TransformedColumn{}
+			errs = cr.Struct(newResource, data, transformedColumnValidation)
+			if !errors.HasErrors(errs) {
+				config.TransformedColumns = append(config.TransformedColumns, newResource.(*TransformedColumn))
+			}
 		case resource.AggregateType:
-			aggregate := &Aggregate{}
-			errs = cr.Struct(aggregate, data, aggregateValidation)
-			aggregate.FilePath = filePath
-			config.Aggregates = append(config.Aggregates, aggregate)
+			newResource = &Aggregate{}
+			errs = cr.Struct(newResource, data, aggregateValidation)
+			if !errors.HasErrors(errs) {
+				config.Aggregates = append(config.Aggregates, newResource.(*Aggregate))
+			}
 		case resource.ConstantType:
-			constant := &Constant{}
-			errs = cr.Struct(constant, data, constantValidation)
-			constant.FilePath = filePath
-			config.Constants = append(config.Constants, constant)
+			newResource = &Constant{}
+			errs = cr.Struct(newResource, data, constantValidation)
+			if !errors.HasErrors(errs) {
+				config.Constants = append(config.Constants, newResource.(*Constant))
+			}
 		case resource.APIType:
-			api := &API{}
-			errs = cr.Struct(api, data, apiValidation)
-			api.FilePath = filePath
-			config.APIs = append(config.APIs, api)
+			newResource = &API{}
+			errs = cr.Struct(newResource, data, apiValidation)
+			if !errors.HasErrors(errs) {
+				config.APIs = append(config.APIs, newResource.(*API))
+			}
 		case resource.ModelType:
-			model := &Model{}
-			errs = cr.Struct(model, data, modelValidation)
-			model.FilePath = filePath
-			config.Models = append(config.Models, model)
+			newResource = &Model{}
+			errs = cr.Struct(newResource, data, modelValidation)
+			if !errors.HasErrors(errs) {
+				config.Models = append(config.Models, newResource.(*Model))
+			}
 		case resource.EnvironmentType:
-			environment := &Environment{}
-			errs = cr.Struct(environment, data, environmentValidation)
-			environment.FilePath = filePath
-			config.Environments = append(config.Environments, environment)
+			newResource = &Environment{}
+			errs = cr.Struct(newResource, data, environmentValidation)
+			if !errors.HasErrors(errs) {
+				config.Environments = append(config.Environments, newResource.(*Environment))
+			}
 		case resource.AggregatorType:
-			aggregator := &Aggregator{}
-			errs = cr.Struct(aggregator, data, aggregatorValidation)
-			aggregator.FilePath = filePath
-			config.Aggregators = append(config.Aggregators, aggregator)
+			newResource = &Aggregator{}
+			errs = cr.Struct(newResource, data, aggregatorValidation)
+			if !errors.HasErrors(errs) {
+				config.Aggregators = append(config.Aggregators, newResource.(*Aggregator))
+			}
 		case resource.TransformerType:
-			transformer := &Transformer{}
-			errs = cr.Struct(transformer, data, transformerValidation)
-			transformer.FilePath = filePath
-			config.Transformers = append(config.Transformers, transformer)
+			newResource = &Transformer{}
+			errs = cr.Struct(newResource, data, transformerValidation)
+			if !errors.HasErrors(errs) {
+				config.Transformers = append(config.Transformers, newResource.(*Transformer))
+			}
 		case resource.TemplateType:
-			template := &Template{}
-			errs = cr.Struct(template, data, templateValidation)
-			template.FilePath = filePath
-			config.Templates = append(config.Templates, template)
+			if emb != nil {
+				errs = []error{resource.ErrorTemplateInTemplate()}
+			} else {
+				newResource = &Template{}
+				errs = cr.Struct(newResource, data, templateValidation)
+				if !errors.HasErrors(errs) {
+					config.Templates = append(config.Templates, newResource.(*Template))
+				}
+			}
 		case resource.EmbedType:
-			embed := &Embed{}
-			errs = cr.Struct(embed, data, embedValidation)
-			embed.FilePath = filePath
-			config.Embeds = append(config.Embeds, embed)
+			if emb != nil {
+				errs = []error{resource.ErrorEmbedInTemplate()}
+			} else {
+				newResource = &Embed{}
+				errs = cr.Struct(newResource, data, embedValidation)
+				if !errors.HasErrors(errs) {
+					config.Embeds = append(config.Embeds, newResource.(*Embed))
+				}
+			}
 		default:
-			return nil, errors.Wrap(resource.ErrorUnknownKind(kindStr), "resource at "+s.Index(i))
+			return nil, errors.Wrap(resource.ErrorUnknownKind(kindStr), identify(filePath, resource.UnknownType, "", i, emb))
 		}
 
 		if errors.HasErrors(errs) {
-			wrapStr := fmt.Sprintf("%s at %s", kindStr, s.Index(i))
-			if resourceName, ok := data[NameKey].(string); ok {
-				wrapStr = fmt.Sprintf("%s: %s", kindStr, resourceName)
-			}
-			return nil, errors.Wrap(errors.FirstError(errs...), wrapStr)
+			name, _ := data[NameKey].(string)
+			return nil, errors.Wrap(errors.FirstError(errs...), identify(filePath, resourceType, name, i, emb))
+		}
+
+		if newResource != nil {
+			newResource.SetIndex(i)
+			newResource.SetFilePath(filePath)
+			newResource.SetEmbed(emb)
 		}
 	}
 
@@ -353,7 +384,7 @@ func NewPartialPath(filePath string) (*Config, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, filePath, ErrorParseConfig().Error())
 	}
-	return newPartial(configData, filePath)
+	return newPartial(configData, filePath, nil, nil)
 }
 
 func New(configs map[string][]byte, envName string) (*Config, error) {
@@ -363,7 +394,7 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 		if !util.IsFilePathYAML(filePath) {
 			continue
 		}
-		config, err = config.MergeBytes(configBytes, filePath)
+		config, err = config.MergeBytes(configBytes, filePath, nil, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -373,17 +404,17 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 	for _, emb := range config.Embeds {
 		template, ok := templates[emb.Template]
 		if !ok {
-			return nil, errors.Wrap(ErrorUndefinedResource(emb.Template, resource.TemplateType), resource.EmbedType.String())
+			return nil, errors.Wrap(ErrorUndefinedResource(emb.Template, resource.TemplateType), Identify(emb))
 		}
 
 		populatedTemplate, err := template.Populate(emb)
 		if err != nil {
-			return nil, errors.Wrap(err, emb.FilePath, resource.EmbedType.String())
+			return nil, errors.Wrap(err, Identify(emb))
 		}
 
-		config, err = config.MergeBytes([]byte(populatedTemplate), emb.FilePath)
+		config, err = config.MergeBytes([]byte(populatedTemplate), emb.FilePath, emb, template)
 		if err != nil {
-			return nil, errors.Wrap(err, resource.EmbedType.String(), fmt.Sprintf("%s %s", resource.TemplateType.String(), s.UserStr(template.Name)))
+			return nil, err
 		}
 	}
 
@@ -393,22 +424,22 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 	return config, nil
 }
 
-func ReadAppName(configPath string) (string, error) {
-	configBytes, err := ioutil.ReadFile(configPath)
+func ReadAppName(filePath string, relativePath string) (string, error) {
+	configBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return "", errors.Wrap(err, ErrorReadConfig().Error(), configPath)
+		return "", errors.Wrap(err, ErrorReadConfig().Error(), relativePath)
 	}
 	configData, err := cr.ReadYAMLBytes(configBytes)
 	if err != nil {
-		return "", errors.Wrap(err, ErrorParseConfig().Error(), configPath)
+		return "", errors.Wrap(err, ErrorParseConfig().Error(), relativePath)
 	}
 	configDataSlice, ok := cast.InterfaceToStrInterfaceMapSlice(configData)
 	if !ok {
-		return "", errors.Wrap(ErrorMalformedConfig(), configPath)
+		return "", errors.Wrap(ErrorMalformedConfig(), relativePath)
 	}
 
 	if len(configDataSlice) == 0 {
-		return "", errors.Wrap(ErrorMissingAppDefinition(), configPath)
+		return "", errors.Wrap(ErrorMissingAppDefinition(), relativePath)
 	}
 
 	var appName string
@@ -416,28 +447,28 @@ func ReadAppName(configPath string) (string, error) {
 		kindStr, _ := configItem[KindKey].(string)
 		if resource.TypeFromKindString(kindStr) == resource.AppType {
 			if appName != "" {
-				return "", errors.Wrap(ErrorDuplicateConfig(resource.AppType), configPath)
+				return "", errors.Wrap(ErrorDuplicateConfig(resource.AppType), relativePath)
 			}
 
 			wrapStr := fmt.Sprintf("%s at %s", resource.AppType.String(), s.Index(i))
 
 			appNameInter, ok := configItem[NameKey]
 			if !ok {
-				return "", errors.New(configPath, wrapStr, NameKey, s.ErrMustBeDefined)
+				return "", errors.New(relativePath, wrapStr, NameKey, s.ErrMustBeDefined)
 			}
 
 			appName, ok = appNameInter.(string)
 			if !ok {
-				return "", errors.New(configPath, wrapStr, s.ErrInvalidPrimitiveType(appNameInter, s.PrimTypeString))
+				return "", errors.New(relativePath, wrapStr, s.ErrInvalidPrimitiveType(appNameInter, s.PrimTypeString))
 			}
 			if appName == "" {
-				return "", errors.New(configPath, wrapStr, s.ErrCannotBeEmpty)
+				return "", errors.New(relativePath, wrapStr, s.ErrCannotBeEmpty)
 			}
 		}
 	}
 
 	if appName == "" {
-		return "", errors.Wrap(ErrorMissingAppDefinition(), configPath)
+		return "", errors.Wrap(ErrorMissingAppDefinition(), relativePath)
 	}
 
 	return appName, nil

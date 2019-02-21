@@ -26,9 +26,6 @@ type RawColumn interface {
 	GetType() string
 	GetCompute() *SparkCompute
 	GetUserConfig() Resource
-	GetResourceType() resource.Type
-	GetFilePath() string
-	SetFilePath(string)
 }
 
 type RawColumns []RawColumn
@@ -53,7 +50,7 @@ var rawColumnValidation = &cr.InterfaceStructValidation{
 }
 
 type RawIntColumn struct {
-	Name     string        `json:"name" yaml:"name"`
+	ResourceConfigFields
 	Type     string        `json:"type" yaml:"type"`
 	Required bool          `json:"required" yaml:"required"`
 	Min      *int64        `json:"min" yaml:"min"`
@@ -61,7 +58,6 @@ type RawIntColumn struct {
 	Values   []int64       `json:"values" yaml:"values"`
 	Compute  *SparkCompute `json:"compute" yaml:"compute"`
 	Tags     Tags          `json:"tags" yaml:"tags"`
-	FilePath string        `json:"file_path"  yaml:"-"`
 }
 
 var rawIntColumnFieldValidations = []*cr.StructFieldValidation{
@@ -103,7 +99,7 @@ var rawIntColumnFieldValidations = []*cr.StructFieldValidation{
 }
 
 type RawFloatColumn struct {
-	Name     string        `json:"name" yaml:"name"`
+	ResourceConfigFields
 	Type     string        `json:"type" yaml:"type"`
 	Required bool          `json:"required" yaml:"required"`
 	Min      *float32      `json:"min" yaml:"min"`
@@ -111,7 +107,6 @@ type RawFloatColumn struct {
 	Values   []float32     `json:"values" yaml:"values"`
 	Compute  *SparkCompute `json:"compute" yaml:"compute"`
 	Tags     Tags          `json:"tags" yaml:"tags"`
-	FilePath string        `json:"file_path"  yaml:"-"`
 }
 
 var rawFloatColumnFieldValidations = []*cr.StructFieldValidation{
@@ -153,13 +148,12 @@ var rawFloatColumnFieldValidations = []*cr.StructFieldValidation{
 }
 
 type RawStringColumn struct {
-	Name     string        `json:"name" yaml:"name"`
+	ResourceConfigFields
 	Type     string        `json:"type" yaml:"type"`
 	Required bool          `json:"required" yaml:"required"`
 	Values   []string      `json:"values" yaml:"values"`
 	Compute  *SparkCompute `json:"compute" yaml:"compute"`
 	Tags     Tags          `json:"tags" yaml:"tags"`
-	FilePath string        `json:"file_path"  yaml:"-"`
 }
 
 var rawStringColumnFieldValidations = []*cr.StructFieldValidation{
@@ -221,18 +215,6 @@ func (rawColumns RawColumns) Get(name string) RawColumn {
 	return nil
 }
 
-func (column *RawIntColumn) GetName() string {
-	return column.Name
-}
-
-func (column *RawFloatColumn) GetName() string {
-	return column.Name
-}
-
-func (column *RawStringColumn) GetName() string {
-	return column.Name
-}
-
 func (column *RawIntColumn) GetType() string {
 	return column.Type
 }
@@ -291,28 +273,4 @@ func (column *RawFloatColumn) GetUserConfig() Resource {
 
 func (column *RawStringColumn) GetUserConfig() Resource {
 	return column
-}
-
-func (column *RawIntColumn) SetFilePath(path string) {
-	column.FilePath = path
-}
-
-func (column *RawFloatColumn) SetFilePath(path string) {
-	column.FilePath = path
-}
-
-func (column *RawStringColumn) SetFilePath(path string) {
-	column.FilePath = path
-}
-
-func (column *RawIntColumn) GetFilePath() string {
-	return column.FilePath
-}
-
-func (column *RawFloatColumn) GetFilePath() string {
-	return column.FilePath
-}
-
-func (column *RawStringColumn) GetFilePath() string {
-	return column.FilePath
 }

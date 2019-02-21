@@ -36,24 +36,16 @@ type Model struct {
 }
 
 type TrainingDataset struct {
+	userconfig.ResourceConfigFields
 	*ComputedResourceFields
-	Name        string `json:"name"`
 	ModelName   string `json:"model_name"`
 	TrainKey    string `json:"train_key"`
 	EvalKey     string `json:"eval_key"`
 	MetadataKey string `json:"metadata_key"`
 }
 
-func (trainingDataset *TrainingDataset) GetName() string {
-	return trainingDataset.Name
-}
-
 func (trainingDataset *TrainingDataset) GetResourceType() resource.Type {
 	return resource.TrainingDatasetType
-}
-
-func (trainingDataset *TrainingDataset) GetFilePath() string {
-	return ""
 }
 
 func (models Models) OneByID(id string) *Model {

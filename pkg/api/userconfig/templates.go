@@ -31,9 +31,8 @@ var templateVarRegex = regexp.MustCompile("\\{\\s*([a-zA-Z0-9_-]+)\\s*\\}")
 type Templates []*Template
 
 type Template struct {
-	Name     string `json:"name" yaml:"name"`
-	YAML     string `json:"yaml" yaml:"yaml"`
-	FilePath string `json:"file_path"  yaml:"-"`
+	ResourceConfigFields
+	YAML string `json:"yaml" yaml:"yaml"`
 }
 
 var templateValidation = &cr.StructValidation{
@@ -136,14 +135,6 @@ func (template *Template) Populate(emb *Embed) (string, error) {
 	return populatedTemplate, nil
 }
 
-func (template *Template) GetName() string {
-	return template.Name
-}
-
 func (template *Template) GetResourceType() resource.Type {
 	return resource.TemplateType
-}
-
-func (template *Template) GetFilePath() string {
-	return template.FilePath
 }

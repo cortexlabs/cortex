@@ -97,6 +97,7 @@ aws-clear-bucket:
 
 tools:
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
+	@curl -fLSs https://circle.ci/cli | bash
 
 #########
 # Tests #

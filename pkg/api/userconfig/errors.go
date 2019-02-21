@@ -23,7 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/utils/cast"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/utils/sets/strset"
 )
 
 type ErrorKind int
@@ -134,16 +134,43 @@ func (e ConfigError) Error() string {
 }
 
 func ErrorDuplicateResourceName(resources ...Resource) error {
-	filePaths := make([]string, len(resources))
-	resourceTypes := make(resource.Types, len(resources))
-	for i, res := range resources {
-		filePaths[i] = res.GetFilePath()
-		resourceTypes[i] = res.GetResourceType()
+	filePaths := strset.New()
+	embededFilePaths := strset.New()
+	templates := strset.New()
+	resourceTypes := strset.New()
+
+	for _, res := range resources {
+		resourceTypes.Add(res.GetResourceType().Plural())
+		if emb := res.GetEmbed(); emb != nil {
+			embededFilePaths.Add(res.GetFilePath())
+			templates.Add(emb.Template)
+		} else {
+			filePaths.Add(res.GetFilePath())
+		}
 	}
+
+	var pathStrs []string
+
+	if len(filePaths) > 0 {
+		pathStrs = append(pathStrs, "defined in "+s.StrsAnd(filePaths.List()))
+	}
+
+	if len(embededFilePaths) > 0 {
+		embStr := "embedded in " + s.StrsAnd(embededFilePaths.List())
+		if len(templates) > 1 {
+			embStr += " via templates "
+		} else {
+			embStr += " via template "
+		}
+		embStr += s.UserStrsAnd(templates.List())
+		pathStrs = append(pathStrs, embStr)
+	}
+
+	pathStr := strings.Join(pathStrs, ", ")
 
 	return ConfigError{
 		Kind:    ErrDuplicateConfigName,
-		message: fmt.Sprintf("name %s must be unique across %s (defined in %s)", s.UserStr(resources[0].GetName()), s.StrsAnd(util.UniqueStrs(resourceTypes.PluralList())), s.StrsAnd(util.UniqueStrs(filePaths))),
+		message: fmt.Sprintf("name %s must be unique across %s (%s)", s.UserStr(resources[0].GetName()), s.StrsAnd(resourceTypes.List()), pathStr),
 	}
 }
 

@@ -17,15 +17,16 @@ limitations under the License.
 package userconfig
 
 import (
+	"github.com/cortexlabs/cortex/pkg/api/resource"
 	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
 )
 
 type Embeds []*Embed
 
 type Embed struct {
+	ResourceConfigFields
 	Template string                 `json:"template" yaml:"template"`
 	Args     map[string]interface{} `json:"args" yaml:"args"`
-	FilePath string                 `json:"file_path"  yaml:"-"`
 }
 
 var embedValidation = &cr.StructValidation{
@@ -46,4 +47,8 @@ var embedValidation = &cr.StructValidation{
 		},
 		typeFieldValidation,
 	},
+}
+
+func (embed *Embed) GetResourceType() resource.Type {
+	return resource.EmbedType
 }

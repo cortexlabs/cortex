@@ -92,7 +92,7 @@ func allConfigPaths(root string) []string {
 
 func appNameFromConfig() (string, error) {
 	appRoot := mustAppRoot()
-	return userconfig.ReadAppName(filepath.Join(appRoot, "app.yaml"))
+	return userconfig.ReadAppName(filepath.Join(appRoot, "app.yaml"), "app.yaml")
 }
 
 func AppNameFromFlagOrConfig() (string, error) {

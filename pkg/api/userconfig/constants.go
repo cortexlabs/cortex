@@ -25,11 +25,10 @@ import (
 type Constants []*Constant
 
 type Constant struct {
-	Name     string      `json:"name" yaml:"name"`
-	Type     interface{} `json:"type" yaml:"type"`
-	Value    interface{} `json:"value" yaml:"value"`
-	Tags     Tags        `json:"tags" yaml:"tags"`
-	FilePath string      `json:"file_path"  yaml:"-"`
+	ResourceConfigFields
+	Type  interface{} `json:"type" yaml:"type"`
+	Value interface{} `json:"value" yaml:"value"`
+	Tags  Tags        `json:"tags" yaml:"tags"`
 }
 
 var constantValidation = &cr.StructValidation{
@@ -98,16 +97,8 @@ func (constant *Constant) GetType() interface{} {
 	return constant.Type
 }
 
-func (constant *Constant) GetName() string {
-	return constant.Name
-}
-
 func (constant *Constant) GetResourceType() resource.Type {
 	return resource.ConstantType
-}
-
-func (constant *Constant) GetFilePath() string {
-	return constant.FilePath
 }
 
 func (constants Constants) Names() []string {
