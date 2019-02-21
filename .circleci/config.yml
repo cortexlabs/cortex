@@ -9,7 +9,7 @@ jobs:
       - run:
           name: License Test
           command: make find-missing-license
-      - run: 
+      - run:
           name: Go Tests
           command: make test-go
   release-test:
@@ -19,21 +19,18 @@ jobs:
       - checkout
       - run:
           name: Version Test
-          command: if build/is-release-branch.sh $CIRCLE_BRANCH; then make find-missing-version; fi  
+          command: if build/is-release-branch.sh $CIRCLE_BRANCH; then make find-missing-version; fi
   deploy:
     docker:
       - image: circleci/golang:1.11.5
     steps:
+      - run: curl -s "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip" && unzip awscli-bundle.zip && sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws && rm -rf awscli-bundle*
       - checkout
       - setup_remote_docker
-      - run: mkdir /tmp/awscli && curl -s -o /tmp/awscli/awscli-bundle.zip https://s3.amazonaws.com/aws-cli/awscli-bundle.zip
-      - run: unzip /tmp/awscli/awscli-bundle.zip -d /tmp/awscli >/dev/null
-      - run: sudo python /tmp/awscli/awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws >/dev/null
       - run: make build-images
       - run: make test-python
-      - run: make push-images 
+      - run: make push-images
       - run: make build-and-upload-cli
-
 
 workflows:
   version: 2
