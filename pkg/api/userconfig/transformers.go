@@ -24,12 +24,10 @@ import (
 type Transformers []*Transformer
 
 type Transformer struct {
-	Name       string  `json:"name"  yaml:"name"`
+	ResourceConfigFields
 	Inputs     *Inputs `json:"inputs"  yaml:"inputs"`
 	OutputType string  `json:"output_type"  yaml:"output_type"`
 	Path       string  `json:"path"  yaml:"path"`
-	FilePath   string  `json:"file_path" yaml:"-"`
-	Embed      *Embed  `json:"embed"  yaml:"-"`
 }
 
 var transformerValidation = &cr.StructValidation{
@@ -84,20 +82,8 @@ func (transformers Transformers) Get(name string) *Transformer {
 	return nil
 }
 
-func (transformer *Transformer) GetName() string {
-	return transformer.Name
-}
-
 func (transformer *Transformer) GetResourceType() resource.Type {
 	return resource.TransformerType
-}
-
-func (transformer *Transformer) GetFilePath() string {
-	return transformer.FilePath
-}
-
-func (transformer *Transformer) GetEmbed() *Embed {
-	return transformer.Embed
 }
 
 func (transformers Transformers) Names() []string {

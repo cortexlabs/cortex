@@ -21,8 +21,7 @@ import (
 )
 
 type App struct {
-	Name     string `json:"name" yaml:"name"`
-	FilePath string `json:"file_path"  yaml:"-"`
+	Name string `json:"name" yaml:"name"`
 }
 
 var appValidation = &cr.StructValidation{

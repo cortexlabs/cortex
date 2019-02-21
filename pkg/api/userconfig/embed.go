@@ -24,10 +24,9 @@ import (
 type Embeds []*Embed
 
 type Embed struct {
-	Template    string                 `json:"template" yaml:"template"`
-	Args        map[string]interface{} `json:"args" yaml:"args"`
-	FilePath    string                 `json:"file_path"  yaml:"-"`
-	ConfigIndex int                    `json:"config_index"  yaml:"-"`
+	ResourceConfigFields
+	Template string                 `json:"template" yaml:"template"`
+	Args     map[string]interface{} `json:"args" yaml:"args"`
 }
 
 var embedValidation = &cr.StructValidation{
@@ -50,6 +49,6 @@ var embedValidation = &cr.StructValidation{
 	},
 }
 
-func (embed *Embed) Identify() string {
-	return identifyHelper(embed.FilePath, resource.EmbedType, "", embed.ConfigIndex, nil)
+func (embed *Embed) GetResourceType() resource.Type {
+	return resource.EmbedType
 }

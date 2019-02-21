@@ -60,7 +60,9 @@ func autoGenerateConfig(
 			}, "/")
 
 			constant := &userconfig.Constant{
-				Name:  constantName,
+				ResourceConfigFields: userconfig.ResourceConfigFields{
+					Name: constantName,
+				},
 				Type:  argType,
 				Value: argVal,
 				Tags:  make(map[string]interface{}),
@@ -99,7 +101,9 @@ func autoGenerateConfig(
 			}, "/")
 
 			constant := &userconfig.Constant{
-				Name:  constantName,
+				ResourceConfigFields: userconfig.ResourceConfigFields{
+					Name: constantName,
+				},
 				Type:  argType,
 				Value: argVal,
 				Tags:  make(map[string]interface{}),

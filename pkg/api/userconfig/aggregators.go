@@ -24,12 +24,10 @@ import (
 type Aggregators []*Aggregator
 
 type Aggregator struct {
-	Name       string      `json:"name"  yaml:"name"`
+	ResourceConfigFields
 	Inputs     *Inputs     `json:"inputs"  yaml:"inputs"`
 	OutputType interface{} `json:"output_type"  yaml:"output_type"`
 	Path       string      `json:"path"  yaml:"path"`
-	FilePath   string      `json:"file_path" yaml:"-"`
-	Embed      *Embed      `json:"embed"  yaml:"-"`
 }
 
 var aggregatorValidation = &cr.StructValidation{
@@ -85,20 +83,8 @@ func (aggregators Aggregators) Get(name string) *Aggregator {
 	return nil
 }
 
-func (aggregator *Aggregator) GetName() string {
-	return aggregator.Name
-}
-
 func (aggregator *Aggregator) GetResourceType() resource.Type {
 	return resource.AggregatorType
-}
-
-func (aggregator *Aggregator) GetFilePath() string {
-	return aggregator.FilePath
-}
-
-func (aggregator *Aggregator) GetEmbed() *Embed {
-	return aggregator.Embed
 }
 
 func (aggregators Aggregators) Names() []string {

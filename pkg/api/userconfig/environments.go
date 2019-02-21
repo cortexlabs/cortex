@@ -27,12 +27,10 @@ import (
 type Environments []*Environment
 
 type Environment struct {
-	Name     string    `json:"name" yaml:"name"`
+	ResourceConfigFields
 	LogLevel *LogLevel `json:"log_level" yaml:"log_level"`
 	Limit    *Limit    `json:"limit" yaml:"limit"`
 	Data     Data      `json:"-" yaml:"-"`
-	FilePath string    `json:"file_path"  yaml:"-"`
-	Embed    *Embed    `json:"embed"  yaml:"-"`
 }
 
 var environmentValidation = &cr.StructValidation{
@@ -391,20 +389,8 @@ func (parqData *ParquetData) GetIngestedColumns() []string {
 	return column_names
 }
 
-func (env *Environment) GetName() string {
-	return env.Name
-}
-
 func (env *Environment) GetResourceType() resource.Type {
 	return resource.EnvironmentType
-}
-
-func (env *Environment) GetFilePath() string {
-	return env.FilePath
-}
-
-func (env *Environment) GetEmbed() *Embed {
-	return env.Embed
 }
 
 func (environments Environments) Names() []string {

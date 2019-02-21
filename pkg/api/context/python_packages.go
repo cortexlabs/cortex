@@ -24,24 +24,12 @@ import (
 type PythonPackages map[string]*PythonPackage
 
 type PythonPackage struct {
-	Name       string `json:"name"`
+	userconfig.ResourceConfigFields
+	*ComputedResourceFields
 	SrcKey     string `json:"src_key"`
 	PackageKey string `json:"package_key"`
-	*ComputedResourceFields
-}
-
-func (pythonPackage *PythonPackage) GetName() string {
-	return pythonPackage.Name
 }
 
 func (pythonPackage *PythonPackage) GetResourceType() resource.Type {
 	return resource.PythonPackageType
-}
-
-func (pythonPackage *PythonPackage) GetFilePath() string {
-	return ""
-}
-
-func (pythonPackage *PythonPackage) GetEmbed() *userconfig.Embed {
-	return nil
 }

@@ -25,13 +25,11 @@ import (
 type Aggregates []*Aggregate
 
 type Aggregate struct {
-	Name       string        `json:"name" yaml:"name"`
+	ResourceConfigFields
 	Aggregator string        `json:"aggregator" yaml:"aggregator"`
 	Inputs     *Inputs       `json:"inputs" yaml:"inputs"`
 	Compute    *SparkCompute `json:"compute" yaml:"compute"`
 	Tags       Tags          `json:"tags" yaml:"tags"`
-	FilePath   string        `json:"file_path"  yaml:"-"`
-	Embed      *Embed        `json:"embed"  yaml:"-"`
 }
 
 var aggregateValidation = &cr.StructValidation{
@@ -70,20 +68,8 @@ func (aggregates Aggregates) Validate() error {
 	return nil
 }
 
-func (aggregate *Aggregate) GetName() string {
-	return aggregate.Name
-}
-
 func (aggregate *Aggregate) GetResourceType() resource.Type {
 	return resource.AggregateType
-}
-
-func (aggregate *Aggregate) GetFilePath() string {
-	return aggregate.FilePath
-}
-
-func (aggregate *Aggregate) GetEmbed() *Embed {
-	return aggregate.Embed
 }
 
 func (aggregates Aggregates) Names() []string {

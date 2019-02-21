@@ -25,12 +25,51 @@ import (
 type Resource interface {
 	GetName() string
 	GetResourceType() resource.Type
+	GetIndex() int
+	SetIndex(int)
 	GetFilePath() string
+	SetFilePath(string)
 	GetEmbed() *Embed
+	SetEmbed(*Embed)
+}
+
+type ResourceConfigFields struct {
+	Name     string `json:"name" yaml:"name"`
+	Index    int    `json:"index" yaml:"-"`
+	FilePath string `json:"file_path" yaml:"-"`
+	Embed    *Embed `json:"embed" yaml:"-"`
+}
+
+func (resourceConfigFields *ResourceConfigFields) GetName() string {
+	return resourceConfigFields.Name
+}
+
+func (resourceConfigFields *ResourceConfigFields) GetIndex() int {
+	return resourceConfigFields.Index
+}
+
+func (resourceConfigFields *ResourceConfigFields) SetIndex(index int) {
+	resourceConfigFields.Index = index
+}
+
+func (resourceConfigFields *ResourceConfigFields) GetFilePath() string {
+	return resourceConfigFields.FilePath
+}
+
+func (resourceConfigFields *ResourceConfigFields) SetFilePath(filePath string) {
+	resourceConfigFields.FilePath = filePath
+}
+
+func (resourceConfigFields *ResourceConfigFields) GetEmbed() *Embed {
+	return resourceConfigFields.Embed
+}
+
+func (resourceConfigFields *ResourceConfigFields) SetEmbed(embed *Embed) {
+	resourceConfigFields.Embed = embed
 }
 
 func Identify(r Resource) string {
-	return identifyHelper(r.GetFilePath(), r.GetResourceType(), r.GetName(), -1, r.GetEmbed())
+	return identifyHelper(r.GetFilePath(), r.GetResourceType(), r.GetName(), r.GetIndex(), r.GetEmbed())
 }
 
 func identifyHelper(filePath string, resourceType resource.Type, name string, index int, embed *Embed) string {
@@ -46,7 +85,11 @@ func identifyHelper(filePath string, resourceType resource.Type, name string, in
 	}
 
 	if embed != nil {
-		str += fmt.Sprintf("%s at %s (%s \"%s\"): ", resource.EmbedType.String(), s.Index(embed.ConfigIndex), resource.TemplateType.String(), embed.Template)
+		if embed.Index >= 0 {
+			str += fmt.Sprintf("%s at %s (%s \"%s\"): ", resource.EmbedType.String(), s.Index(embed.Index), resource.TemplateType.String(), embed.Template)
+		} else {
+			str += fmt.Sprintf("%s (%s \"%s\"): ", resource.EmbedType.String(), resource.TemplateType.String(), embed.Template)
+		}
 	}
 
 	if name != "" {

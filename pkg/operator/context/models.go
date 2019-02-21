@@ -103,6 +103,11 @@ func getModels(
 			ImplID:  modelImplID,
 			ImplKey: modelImplKey,
 			Dataset: &context.TrainingDataset{
+				ResourceConfigFields: userconfig.ResourceConfigFields{
+					Name:     trainingDatasetName,
+					FilePath: modelConfig.FilePath,
+					Embed:    modelConfig.Embed,
+				},
 				ComputedResourceFields: &context.ComputedResourceFields{
 					ResourceFields: &context.ResourceFields{
 						ID:           datasetID,
@@ -110,13 +115,10 @@ func getModels(
 						ResourceType: resource.TrainingDatasetType,
 					},
 				},
-				Name:        trainingDatasetName,
 				ModelName:   modelConfig.Name,
 				TrainKey:    filepath.Join(datasetRoot, "train.tfrecord"),
 				EvalKey:     filepath.Join(datasetRoot, "eval.tfrecord"),
 				MetadataKey: filepath.Join(datasetRoot, "metadata.json"),
-				FilePath:    modelConfig.FilePath,
-				Embed:       modelConfig.Embed,
 			},
 		}
 	}
