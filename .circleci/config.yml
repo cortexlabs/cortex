@@ -19,7 +19,7 @@ jobs:
       - checkout
       - run:
           name: Version Test
-          command: if build/is-release-branch.sh $TRAVIS_BRANCH; then make find-missing-version fi;
+          command: if build/is-release-branch.sh $TRAVIS_BRANCH; then make find-missing-version; fi
   docker-test:
     docker:
       - image: circleci/golang:1.11.5
