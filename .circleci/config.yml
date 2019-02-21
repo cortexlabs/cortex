@@ -34,6 +34,9 @@ jobs:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
+      - run: sudo apt-get install -y apt-transport-https ca-certificates software-properties-common python3-pip python3-dev build-essential
+      - run: sudo pip3 install --upgrade pip
+      - run: pip3 install --upgrade awscli --user
       - run: make build-images
       - run: make test-python
       - run: make push-images 
