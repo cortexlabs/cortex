@@ -1,7 +1,3 @@
-branches:
-  only:
-    - master
-
 sudo: required
 
 language: go
@@ -10,29 +6,22 @@ go: "1.11.5"
 services:
   - docker
 
-script:
-  - docker build . -f images/spark-base/Dockerfile -t cortexlabs/spark-base:latest
-  - docker build . -f images/tf-base/Dockerfile -t cortexlabs/tf-base:latest
-  - docker build . -f images/tf-base-gpu/Dockerfile -t cortexlabs/tf-base-gpu:latest
+before_install:
+  - if build/is-release-branch.sh $TRAVIS_BRANCH; then 
+      sudo apt-get install -y apt-transport-https ca-certificates software-properties-common python3-pip python3-dev build-essential;
+      sudo pip3 install --upgrade pip;
+      pip3 install --upgrade awscli --user;
+    fi
 
-  - ./build/images.sh images/operator operator
-  - ./build/images.sh images/spark spark
-  - ./build/images.sh images/spark-operator spark-operator
-  - ./build/images.sh images/tf-train tf-train
-  - ./build/images.sh images/tf-serve tf-serve
-  - ./build/images.sh images/tf-api tf-api
-  - ./build/images.sh images/tf-serve-gpu tf-serve-gpu
-  - ./build/images.sh images/tf-train-gpu tf-train-gpu
-  - ./build/images.sh images/nginx-controller nginx-controller
-  - ./build/images.sh images/nginx-backend nginx-backend
-  - ./build/images.sh images/fluentd fluentd
-  - ./build/images.sh images/argo-controller argo-controller
-  - ./build/images.sh images/argo-executor argo-executor
+jobs:
+  include:
+    - stage: tests
+      script: make find-missing-license && make test-go
+    - stage: "Release Checks"
+      if: branch =~ /^[0-9]\.[0-9]$/
+      script: make find-missing-version
+    - stage: "Deploy Images and CLI"
+      if: branch = master OR branch =~ /^[0-9]\.[0-9]$/
+      script: make build-images && make test-python && make push-images && make build-and-upload-cli
+    
 
-  - ./build/test.sh
-
-  - sudo apt-get install -y apt-transport-https ca-certificates software-properties-common zip python3-pip python3-dev build-essential
-  - sudo pip3 install --upgrade pip
-  - pip3 install --upgrade awscli --user
-
-  - ./build/cli.sh

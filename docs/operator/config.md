@@ -35,5 +35,7 @@ export CORTEX_IMAGE_SPARK_OPERATOR="cortexlabs/spark-operator:master"
 export CORTEX_IMAGE_TF_SERVE="cortexlabs/tf-serve:master"
 export CORTEX_IMAGE_TF_TRAIN="cortexlabs/tf-train:master"
 export CORTEX_IMAGE_TF_API="cortexlabs/tf-api:master"
+export CORTEX_IMAGE_TF_TRAIN_GPU="cortexlabs/tf-train-gpu:master"
+export CORTEX_IMAGE_TF_SERVE_GPU="cortexlabs/tf-serve-gpu:master"
 export CORTEX_IMAGE_PYTHON_PACKAGER="cortexlabs/python-packager:master"
 ```
