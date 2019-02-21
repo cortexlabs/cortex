@@ -69,10 +69,10 @@ func (resourceConfigFields *ResourceConfigFields) SetEmbed(embed *Embed) {
 }
 
 func Identify(r Resource) string {
-	return identifyHelper(r.GetFilePath(), r.GetResourceType(), r.GetName(), r.GetIndex(), r.GetEmbed())
+	return identify(r.GetFilePath(), r.GetResourceType(), r.GetName(), r.GetIndex(), r.GetEmbed())
 }
 
-func identifyHelper(filePath string, resourceType resource.Type, name string, index int, embed *Embed) string {
+func identify(filePath string, resourceType resource.Type, name string, index int, embed *Embed) string {
 	resourceTypeStr := resourceType.String()
 	if resourceType == resource.UnknownType {
 		resourceTypeStr = "resource"
@@ -96,9 +96,8 @@ func identifyHelper(filePath string, resourceType resource.Type, name string, in
 		return str + resourceTypeStr + ": " + name
 	} else if index >= 0 {
 		return str + resourceTypeStr + " at " + s.Index(index)
-	} else {
-		return str + resourceTypeStr
 	}
+	return str + resourceTypeStr
 }
 
 func FindDuplicateResourceName(resources ...Resource) []Resource {

@@ -231,9 +231,8 @@ func (config *Config) MergeBytes(configBytes []byte, filePath string, emb *Embed
 	if err != nil {
 		if emb == nil {
 			return nil, errors.Wrap(err, filePath)
-		} else {
-			return nil, errors.Wrap(err, Identify(template), YAMLKey)
 		}
+		return nil, errors.Wrap(err, Identify(template), YAMLKey)
 	}
 
 	subConfig, err := newPartial(sliceData, filePath, emb, template)
@@ -253,20 +252,19 @@ func newPartial(configData interface{}, filePath string, emb *Embed, template *T
 	if !ok {
 		if emb == nil {
 			return nil, errors.Wrap(ErrorMalformedConfig(), filePath)
-		} else {
-			return nil, errors.Wrap(ErrorMalformedConfig(), Identify(template), YAMLKey)
 		}
+		return nil, errors.Wrap(ErrorMalformedConfig(), Identify(template), YAMLKey)
 	}
 
 	config := &Config{}
 	for i, data := range configDataSlice {
 		kindInterface, ok := data[KindKey]
 		if !ok {
-			return nil, errors.New(identifyHelper(filePath, resource.UnknownType, "", i, emb), KindKey, s.ErrMustBeDefined)
+			return nil, errors.New(identify(filePath, resource.UnknownType, "", i, emb), KindKey, s.ErrMustBeDefined)
 		}
 		kindStr, ok := kindInterface.(string)
 		if !ok {
-			return nil, errors.New(identifyHelper(filePath, resource.UnknownType, "", i, emb), KindKey, s.ErrInvalidPrimitiveType(kindInterface, s.PrimTypeString))
+			return nil, errors.New(identify(filePath, resource.UnknownType, "", i, emb), KindKey, s.ErrInvalidPrimitiveType(kindInterface, s.PrimTypeString))
 		}
 
 		var errs []error
@@ -353,12 +351,12 @@ func newPartial(configData interface{}, filePath string, emb *Embed, template *T
 				}
 			}
 		default:
-			return nil, errors.Wrap(resource.ErrorUnknownKind(kindStr), identifyHelper(filePath, resource.UnknownType, "", i, emb))
+			return nil, errors.Wrap(resource.ErrorUnknownKind(kindStr), identify(filePath, resource.UnknownType, "", i, emb))
 		}
 
 		if errors.HasErrors(errs) {
 			name, _ := data[NameKey].(string)
-			return nil, errors.Wrap(errors.FirstError(errs...), identifyHelper(filePath, resourceType, name, i, emb))
+			return nil, errors.Wrap(errors.FirstError(errs...), identify(filePath, resourceType, name, i, emb))
 		}
 
 		if newResource != nil {
