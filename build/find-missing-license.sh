@@ -19,7 +19,7 @@ output=$(find . -type f \
 ! -path "./examples/*" \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
-! -path "./circleci/*" \
+! -path "./.circleci/*" \
 ! -path "./.git/*" \
 ! -name LICENSE \
 ! -name requirements.txt \
