@@ -12,7 +12,7 @@ jobs:
       - run: 
           name: Go Tests
           command: make test-go
-  release:
+  release-test:
     braches:
       only:
         - /^[0-9]\.[0-9]$/
@@ -23,7 +23,7 @@ jobs:
       - run:
           name: Version Test
           command: make find-missing-version
-  build:
+  deploy:
     braches:
       only:
         - /^[0-9]\.[0-9]$/
@@ -38,3 +38,24 @@ jobs:
       - run: make test-python
       - run: make push-images 
       - run: make build-and-upload-cli
+
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - test
+      - release-test:
+          filters:
+            branches:
+              only:
+                - /^[0-9]\.[0-9]$/
+      - deploy:
+          requires:
+            - test
+            - release
+          filters:
+            branches:
+              only:
+                - /^[0-9]\.[0-9]$/
+                - master
