@@ -53,8 +53,8 @@ workflows:
             - release-test
             - test
             - deploy-approval
-          filters:
-            branches:
-              only:
-                - /^[0-9]\.[0-9]$/
-                - master
+          # filters:
+          #   branches:
+          #     only:
+          #       - /^[0-9]\.[0-9]$/
+          #       - master
