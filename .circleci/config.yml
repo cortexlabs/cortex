@@ -19,7 +19,7 @@ jobs:
       - checkout
       - run:
           name: Version Test
-          command: if build/is-release-branch.sh $CIRCLE_BRANCH; then make find-missing-version; fi
+          command: make find-missing-version
   deploy:
     docker:
       - image: circleci/golang:1.11.5
@@ -37,7 +37,11 @@ workflows:
   build_and_test:
     jobs:
       - test
-      - release-test
+      - release-test:
+          filters:
+            branches:
+              only:
+                - /^[0-9]\.[0-9]$/
       - deploy-approval:
           type: approval
           requires:
@@ -47,11 +51,10 @@ workflows:
             branches:
               only:
                 - /^[0-9]\.[0-9]$/
-                - master
       - deploy:
           requires:
-            - release-test
             - test
+            - release-test
             - deploy-approval
           # filters:
           #   branches:
