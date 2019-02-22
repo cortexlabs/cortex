@@ -38,10 +38,21 @@ workflows:
     jobs:
       - test
       - release-test
+      - deploy-approval:
+          type: approval
+          requires:
+            - test
+            - release-test
+          # filters:
+          #   branches:
+          #     only:
+          #       - /^[0-9]\.[0-9]$/
+          #       - master
       - deploy:
           requires:
             - release-test
             - test
+            - deploy-approval
           filters:
             branches:
               only:
