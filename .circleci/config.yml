@@ -12,7 +12,7 @@ jobs:
       - run:
           name: Go Tests
           command: make test-go
-  release-test:
+  test-release:
     docker:
       - image: circleci/golang:1.11.5
     steps:
@@ -37,7 +37,7 @@ workflows:
   build_and_test:
     jobs:
       - test
-      - release-test:
+      - test-release:
           filters:
             branches:
               only:
@@ -46,7 +46,7 @@ workflows:
           type: approval
           requires:
             - test
-            - release-test
+            - test-release
           filters:
             branches:
               only:
@@ -54,7 +54,7 @@ workflows:
       - deploy:
           requires:
             - test
-            - release-test
+            - test-release
             - deploy-approval
           filters:
             branches:
