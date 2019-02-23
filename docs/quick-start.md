@@ -15,6 +15,7 @@ You can download pre-built applications from our repository:
 ```bash
 git clone -b master https://github.com/cortexlabs/cortex.git
 cd cortex/examples/iris
+cortex deploy
 ```
 
 Jump to [deploy the application](#deploy-the-application).
