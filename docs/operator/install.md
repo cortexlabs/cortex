@@ -18,10 +18,10 @@ Follow this [tutorial](https://aws.amazon.com/premiumsupport/knowledge-center/cr
 
 ```bash
 # Download
-curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh
+curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex-installer.sh
 
 # Change permissions
-chmod +x cortex.sh
+chmod +x cortex-installer.sh
 
 # Set AWS credentials
 export AWS_ACCESS_KEY_ID=***
@@ -36,7 +36,7 @@ Cortex runs on Kubernetes. If you don't already have a Kubernetes cluster, [eksc
 
 ```bash
 # Install kubectl, eksctl, and aws-iam-authenticator
-./cortex.sh install kubernetes-tools
+./cortex-installer.sh install kubernetes-tools
 
 # Spin up an EKS cluster (this takes ~20 minutes; see eksctl.io for more options)
 eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium
@@ -50,7 +50,7 @@ The Cortex operator is a service that runs on Kubernetes, translates declarative
 
 ```bash
 # Install the Cortex operator
-./cortex.sh install operator
+./cortex-installer.sh install operator
 ```
 
 ## CLI
@@ -59,10 +59,10 @@ The CLI runs on developer machines (e.g. your laptop) and communicates with the 
 
 ```bash
 # Install the Cortex CLI
-./cortex.sh install cli
+./cortex-installer.sh install cli
 
 # Get the operator endpoint
-./cortex.sh endpoints
+./cortex-installer.sh get endpoints
 
 # Configure the CLI
 cortex configure

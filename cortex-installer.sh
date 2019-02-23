@@ -25,7 +25,7 @@ CORTEX_SH_TMP_DIR="$HOME/.cortex-sh-tmp"
 function show_help() {
   echo "
 Usage:
-  ./cortex.sh command [sub-command] [flags]
+  ./cortex-installer.sh command [sub-command] [flags]
 
 Available Commands:
   install operator            install the operator (and the AWS CLI if necessary)
@@ -38,7 +38,7 @@ Available Commands:
 
   update operator             update the operator config and restart the operator
 
-  endpoints                   show the operator and API endpoints
+  get endpoints               show the operator and API endpoints
 
 Flags:
   -c, --config  path to a cortex config file
@@ -1469,7 +1469,7 @@ function check_dep_kubectl() {
 
   if ! command -v kubectl >/dev/null 2>&1; then
     echo
-    read -p "kubectl is required. Would you like cortex.sh to install it? [Y/n] " -n 1 -r
+    read -p "kubectl is required. Would you like cortex-installer.sh to install it? [Y/n] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
       install_kubectl
@@ -1562,7 +1562,7 @@ function check_dep_aws() {
 
   if ! command -v aws >/dev/null 2>&1; then
     echo
-    read -p "The AWS CLI is required. Would you like cortex.sh to install it? [Y/n] " -n 1 -r
+    read -p "The AWS CLI is required. Would you like cortex-installer.sh to install it? [Y/n] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
       install_aws
@@ -1959,13 +1959,21 @@ elif [ "$arg1" = "update" ]; then
     show_help
     exit 1
   fi
-elif [ "$arg1" = "endpoints" ]; then
-  if [ ! "$arg2" = "" ]; then
-    echo -e "\nerror: too many arguments for endpoints command"
+elif [ "$arg1" = "get" ]; then
+  if [ ! "$arg3" = "" ]; then
+    echo -e "\nerror: too many arguments for get command"
+    show_help
+    exit 1
+  elif [ "$arg2" = "endpoints" ]; then
+    get_endpoints
+  elif [ "$arg2" = "" ]; then
+    echo -e "\nerror: missing subcommand for get"
     show_help
     exit 1
   else
-    get_endpoints
+    echo -e "\nerror: invalid subcommand for get: $arg2"
+    show_help
+    exit 1
   fi
 else
   echo -e "\nerror: unknown command: $arg1"

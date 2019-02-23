@@ -155,9 +155,6 @@ elif [ "$1" = "update" ]; then
   echo "Not implemented"
 
 elif [ "$1" = "stop" ]; then
-  # This doesn't seem to be necessary
-  # $ROOT/cortex.sh -c=$ROOT/dev/config/cortex.sh uninstall operator 2>/dev/null || true
-
   kops delete cluster --yes --name=$K8S_NAME --state=s3://$K8S_KOPS_BUCKET
   aws s3 rm s3://$K8S_KOPS_BUCKET/$K8S_NAME --recursive
 

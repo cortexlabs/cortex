@@ -6,24 +6,24 @@
 
 ```bash
 # Download
-curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh
+curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex-installer.sh
 
 # Change permissions
-chmod +x cortex.sh
+chmod +x cortex-installer.sh
 ```
 
 ## Operator
 
 ```bash
 # Uninstall the Cortex operator
-./cortex.sh uninstall operator
+./cortex-installer.sh uninstall operator
 ```
 
 ## CLI
 
 ```bash
 # Uninstall the Cortex CLI
-./cortex.sh uninstall cli
+./cortex-installer.sh uninstall cli
 ```
 
 ## AWS
@@ -40,7 +40,7 @@ aws s3 rb --force s3://<bucket-name>
 # Delete the log group
 aws logs delete-log-group --log-group-name cortex --region us-west-2
 
-# Uninstall the AWS CLI (if you used cortex.sh to install it)
+# Uninstall the AWS CLI (if you used cortex-installer.sh to install it)
 sudo rm -rf /usr/local/aws && sudo rm /usr/local/bin/aws && rm -rf ~/.aws
 ```
 
@@ -56,5 +56,5 @@ eksctl delete cluster --name=cortex
 # Confirm that both eksctl CloudFormation stacks have been deleted via the AWS console
 
 # Uninstall kubectl, eksctl, and aws-iam-authenticator
-./cortex.sh uninstall kubernetes-tools
+./cortex-installer.sh uninstall kubernetes-tools
 ```
