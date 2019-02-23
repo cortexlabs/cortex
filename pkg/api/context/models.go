@@ -17,10 +17,13 @@ limitations under the License.
 package context
 
 import (
+	"sort"
+
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/utils/errors"
+	"github.com/cortexlabs/cortex/pkg/utils/sets/strset"
 )
 
 type Models map[string]*Model
@@ -90,4 +93,15 @@ func ValidateModelTargetType(targetDataTypeStr string, modelType string) error {
 	}
 
 	return errors.New(s.ErrInvalidStr(modelType, "classification", "regression")) // unexpected
+}
+
+func (ctx *Context) RawColumnInputNames(model *Model) []string {
+	rawColumnInputNames := strset.New()
+	for _, colName := range model.FeatureColumns {
+		col := ctx.GetColumn(colName)
+		rawColumnInputNames.Add(col.GetInputRawColumnNames()...)
+	}
+	list := rawColumnInputNames.List()
+	sort.Strings(list)
+	return list
 }

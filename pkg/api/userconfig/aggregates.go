@@ -17,6 +17,8 @@ limitations under the License.
 package userconfig
 
 import (
+	"sort"
+
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
 	"github.com/cortexlabs/cortex/pkg/utils/util"
@@ -89,7 +91,8 @@ func (aggregates Aggregates) Get(name string) *Aggregate {
 	return nil
 }
 
-func (aggregate *Aggregate) InputColumnNames() map[string]bool {
-	inputs, _ := util.FlattenAllStrValuesAsSet(aggregate.Inputs.Columns)
+func (aggregate *Aggregate) InputColumnNames() []string {
+	inputs, _ := util.FlattenAllStrValues(aggregate.Inputs.Columns)
+	sort.Strings(inputs)
 	return inputs
 }

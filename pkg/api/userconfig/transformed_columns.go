@@ -17,6 +17,8 @@ limitations under the License.
 package userconfig
 
 import (
+	"sort"
+
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
 	"github.com/cortexlabs/cortex/pkg/utils/util"
@@ -94,7 +96,8 @@ func (transformedColumns TransformedColumns) Get(name string) *TransformedColumn
 	return nil
 }
 
-func (transformedColumn *TransformedColumn) InputColumnNames() map[string]bool {
-	inputs, _ := util.FlattenAllStrValuesAsSet(transformedColumn.Inputs.Columns)
+func (transformedColumn *TransformedColumn) InputColumnNames() []string {
+	inputs, _ := util.FlattenAllStrValues(transformedColumn.Inputs.Columns)
+	sort.Strings(inputs)
 	return inputs
 }
