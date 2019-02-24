@@ -45,9 +45,9 @@ func init() {
 		if err != nil {
 			fmt.Println("Deleting stale workflow:", wf.Name)
 			argo.Delete(wf.Name)
+		} else {
+			setCurrentContext(ctx)
 		}
-
-		setCurrentContext(ctx)
 	}
 }
 

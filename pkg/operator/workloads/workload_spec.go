@@ -112,6 +112,9 @@ func UpdateDataWorkflowErrors(failedPods []corev1.Pod) error {
 		if err != nil {
 			return err
 		}
+		if savedWorkloadSpec == nil {
+			continue
+		}
 
 		resourceWorkloadIDs := make(map[string]string, len(savedWorkloadSpec.Resources))
 		for _, resource := range savedWorkloadSpec.Resources {
