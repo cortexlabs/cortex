@@ -86,3 +86,15 @@ func (rawColumns RawColumns) ColumnInputsID(columnInputValues map[string]interfa
 func (rawColumns RawColumns) ColumnInputsIDWithTags(columnInputValues map[string]interface{}) string {
 	return rawColumns.columnInputsID(columnInputValues, true)
 }
+
+func (rawColumn *RawIntColumn) GetInputRawColumnNames() []string {
+	return []string{rawColumn.GetName()}
+}
+
+func (rawColumn *RawFloatColumn) GetInputRawColumnNames() []string {
+	return []string{rawColumn.GetName()}
+}
+
+func (rawColumn *RawStringColumn) GetInputRawColumnNames() []string {
+	return []string{rawColumn.GetName()}
+}

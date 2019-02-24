@@ -15,6 +15,7 @@ You can download pre-built applications from our repository:
 ```bash
 git clone -b master https://github.com/cortexlabs/cortex.git
 cd cortex/examples/iris
+cortex deploy
 ```
 
 Jump to [deploy the application](#deploy-the-application).
@@ -560,25 +561,33 @@ $ cortex get api iris-type
 Summary
 -------
 
-Endpoint:         https://a84607a462f1811e9aa3b020abd0a844-645332984.us-west-2.elb.amazonaws.com/iris/iris-type
-Status:           ready
-Created at:       2019-02-14 14:57:04 PST
-Refreshed at:     2019-02-14 14:57:35 PST
-Updated replicas: 1/1 ready
+Status:            ready
+Updated replicas:  1/1 ready
+Created at:        2019-02-14 14:57:04 PST
+Refreshed at:      2019-02-14 14:57:35 PST
+
+--------
+Endpoint
+--------
+
+URL:      https://a84607a462f1811e9aa3b020abd0a844-645332984.us-west-2.elb.amazonaws.com/iris/iris-type
+Method:   POST
+Header:   "Content-Type: application/json"
+Payload:  { "samples": [ { "petal_length": FLOAT, "petal_width": FLOAT, "sepal_length": FLOAT, "sepal_width": FLOAT } ] }
 
 -------------
 Configuration
 -------------
 
 {
- "name": "iris-type",
- "model_name": "dnn",
- "compute": {
-   "replicas": 1,
-   "cpu": <null>,
-   "mem": <null>
- },
- "tags": {}
+  "name": "iris-type",
+  "model_name": "dnn",
+  "compute": {
+    "replicas": 1,
+    "cpu": <null>,
+    "mem": <null>
+  },
+  "tags": {}
 }
 ```
 

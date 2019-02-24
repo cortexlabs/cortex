@@ -18,6 +18,7 @@ package workloads
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 
 	awfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
@@ -42,10 +43,11 @@ func init() {
 	for _, wf := range workflows {
 		ctx, err := ocontext.DownloadContext(wf.Labels["ctxID"], wf.Labels["appName"])
 		if err != nil {
-			errors.Exit(err, "init", "contexts", wf.Labels["ctxID"], "download")
+			fmt.Println("Deleting stale workflow:", wf.Name)
+			argo.Delete(wf.Name)
+		} else {
+			setCurrentContext(ctx)
 		}
-
-		setCurrentContext(ctx)
 	}
 }
 

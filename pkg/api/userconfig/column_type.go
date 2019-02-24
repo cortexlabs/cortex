@@ -41,6 +41,16 @@ var columnTypes = []string{
 	"STRING_LIST_COLUMN",
 }
 
+var columnJSONPlaceholders = []string{
+	"_",
+	"INT",
+	"FLOAT",
+	"\"STRING\"",
+	"[INT]",
+	"[FLOAT]",
+	"[\"STRING\"]",
+}
+
 func ColumnTypeFromString(s string) ColumnType {
 	for i := 0; i < len(columnTypes); i++ {
 		if s == columnTypes[i] {
@@ -56,6 +66,10 @@ func ColumnTypeStrings() []string {
 
 func (t ColumnType) String() string {
 	return columnTypes[t]
+}
+
+func (t ColumnType) JSONPlaceholder() string {
+	return columnJSONPlaceholders[t]
 }
 
 // MarshalText satisfies TextMarshaler

@@ -87,7 +87,7 @@ func (ctx *Context) aggregatesDependencies(aggregate *Aggregate) strset.Set {
 	for _, pythonPackage := range ctx.PythonPackages {
 		dependencies.Add(pythonPackage.GetID())
 	}
-	for rawColumnName := range rawColumnNames {
+	for _, rawColumnName := range rawColumnNames {
 		rawColumn := ctx.RawColumns[rawColumnName]
 		dependencies.Add(rawColumn.GetID())
 	}
@@ -102,7 +102,7 @@ func (ctx *Context) transformedColumnDependencies(transformedColumn *Transformed
 	}
 
 	rawColumnNames := transformedColumn.InputColumnNames()
-	for rawColumnName := range rawColumnNames {
+	for _, rawColumnName := range rawColumnNames {
 		rawColumn := ctx.RawColumns[rawColumnName]
 		dependencies.Add(rawColumn.GetID())
 	}

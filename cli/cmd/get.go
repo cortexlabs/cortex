@@ -379,14 +379,18 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 		return "", userconfig.ErrorUndefinedResource(name, resource.APIType)
 	}
 
-	api := resourcesRes.Context.APIs[name]
+	ctx := resourcesRes.Context
+	api := ctx.APIs[name]
+	model := ctx.Models[api.ModelName]
 
 	var staleReplicas int32
 	var ctxAPIStatus *resource.APIStatus
+	var anyAPIStatus *resource.APIStatus
 	for _, apiStatus := range resourcesRes.APIStatuses {
 		if apiStatus.APIName != name {
 			continue
 		}
+		anyAPIStatus = apiStatus
 		if api != nil && apiStatus.ResourceID == api.ID {
 			ctxAPIStatus = apiStatus
 		}
@@ -394,25 +398,31 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 	}
 
 	out := titleStr("Summary")
-
-	if groupStatus.ActiveStatus != nil {
-		out += "Endpoint:          " + urls.URLJoin(resourcesRes.APIsBaseURL, groupStatus.ActiveStatus.Path) + "\n"
-	}
-
 	out += "Status:            " + groupStatus.Message() + "\n"
+	if ctxAPIStatus != nil {
+		out += fmt.Sprintf("Updated replicas:  %d/%d ready\n", ctxAPIStatus.ReadyUpdated, ctxAPIStatus.RequestedReplicas)
+	}
+	if staleReplicas != 0 {
+		out += fmt.Sprintf("Stale replicas:    %d ready\n", staleReplicas)
+	}
 	out += "Created at:        " + libtime.LocalTimestamp(groupStatus.Start) + "\n"
-
 	if groupStatus.ActiveStatus != nil && groupStatus.ActiveStatus.Start != nil {
 		out += "Refreshed at:      " + libtime.LocalTimestamp(groupStatus.ActiveStatus.Start) + "\n"
 	}
 
-	if ctxAPIStatus != nil {
-		out += fmt.Sprintf("Updated replicas:  %d/%d ready\n", ctxAPIStatus.ReadyUpdated, ctxAPIStatus.RequestedReplicas)
+	out += titleStr("Endpoint")
+	var samplePlaceholderFields []string
+	for _, colName := range ctx.RawColumnInputNames(model) {
+		column := ctx.GetColumn(colName)
+		columnType := userconfig.ColumnTypeFromString(column.GetType())
+		fieldStr := `"` + colName + `": ` + columnType.JSONPlaceholder()
+		samplePlaceholderFields = append(samplePlaceholderFields, fieldStr)
 	}
-
-	if staleReplicas != 0 {
-		out += fmt.Sprintf("Stale replicas:    %d ready\n", staleReplicas)
-	}
+	samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"
+	out += "URL:      " + urls.URLJoin(resourcesRes.APIsBaseURL, anyAPIStatus.Path) + "\n"
+	out += "Method:   POST\n"
+	out += `Header:   "Content-Type: application/json"` + "\n"
+	out += "Payload:  " + samplesPlaceholderStr + "\n"
 
 	if api != nil {
 		out += resourceStr(api.API)

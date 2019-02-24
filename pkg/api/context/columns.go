@@ -31,6 +31,7 @@ type Column interface {
 	ComputedResource
 	GetType() string
 	IsRaw() bool
+	GetInputRawColumnNames() []string
 }
 
 func (ctx *Context) Columns() Columns {

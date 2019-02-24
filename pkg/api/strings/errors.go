@@ -47,7 +47,7 @@ var (
 	ErrCliNotInAppDir           = "your current working directory is not in or under a cortex app directory (identified via a top-level app.yaml file)"
 	ErrLoadBalancerInitializing = "load balancer is still initializing"
 	ErrUnableToAuthAws          = "unable to authenticate with AWS"
-	ErrCortexInstallationBroken = "cortex is out of date, or not installed properly on your cluster; run `./cortex.sh uninstall operator && ./cortex.sh install operator`"
+	ErrCortexInstallationBroken = "cortex is out of date, or not installed properly on your cluster; run `./cortex-installer.sh uninstall operator && ./cortex-installer.sh install operator`"
 
 	// internal only
 

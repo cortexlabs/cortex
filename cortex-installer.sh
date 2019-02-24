@@ -25,7 +25,7 @@ CORTEX_SH_TMP_DIR="$HOME/.cortex-sh-tmp"
 function show_help() {
   echo "
 Usage:
-  ./cortex.sh command [sub-command] [flags]
+  ./cortex-installer.sh command [sub-command] [flags]
 
 Available Commands:
   install operator            install the operator (and the AWS CLI if necessary)
@@ -38,7 +38,7 @@ Available Commands:
 
   update operator             update the operator config and restart the operator
 
-  endpoints                   show the operator and API endpoints
+  get endpoints               show the operator and API endpoints
 
 Flags:
   -c, --config  path to a cortex config file
@@ -162,6 +162,7 @@ function install_operator() {
   check_dep_kubectl
 
   setup_bucket
+  setup_cloudwatch_logs
 
   echo "Installing the Cortex operator ..."
 
@@ -171,7 +172,7 @@ function install_operator() {
   setup_spark
   setup_argo
   setup_nginx
-  setup_logging
+  setup_fluentd
   setup_operator
 
   validate_cortex
@@ -222,15 +223,15 @@ function uninstall_kubernetes_tools() {
   uninstall_aws_iam_authenticator
 }
 
+# Note: if namespace is changed, the old namespace will not be deleted
 function update_operator() {
   check_dep_curl
+  check_dep_aws
   check_dep_kubectl
 
-  echo -e "\nUpdating the Cortex operator ..."
-  delete_operator
-  setup_configmap
-  setup_operator
-  validate_cortex
+  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true deployment operator >/dev/null 2>&1
+  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true daemonset fluentd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
+  install_operator
 }
 
 function get_endpoints() {
@@ -260,6 +261,17 @@ function setup_bucket() {
       echo "A bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
       exit 1
     fi
+  else
+    echo -e "Using existing S3 bucket: $CORTEX_BUCKET\n"
+  fi
+}
+
+function setup_cloudwatch_logs() {
+  if ! aws logs list-tags-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION --output json 2>&1 | grep -q "\"tags\":"; then
+    echo -e "Creating CloudWatch log group: $CORTEX_LOG_GROUP\n"
+    aws logs create-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION
+  else
+    echo -e "Using existing CloudWatch log group: $CORTEX_LOG_GROUP\n"
   fi
 }
 
@@ -1153,11 +1165,7 @@ spec:
 ### FLUENTD SETUP ###
 #####################
 
-function setup_logging() {
-  if ! aws logs list-tags-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION --output json 2>&1 | grep -q "\"tags\":"; then
-    aws logs create-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION
-  fi
-
+function setup_fluentd() {
   echo "
 apiVersion: v1
 kind: ServiceAccount
@@ -1381,24 +1389,32 @@ spec:
 " | kubectl apply -f - >/dev/null
 }
 
-function delete_operator() {
-  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true ingress operator >/dev/null 2>&1
-  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true service operator >/dev/null 2>&1
-  kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true deployment operator >/dev/null 2>&1
-}
-
 function validate_cortex() {
-  set -e
+  set +e
 
   echo -en "\nWaiting for the Cortex operator to be ready "
 
   operator_load_balancer="waiting"
   api_load_balancer="waiting"
+  operator_endpoint_reachable="waiting"
+  operator_pod_ready_cycles=0
   operator_endpoint=""
 
   while true; do
     echo -n "."
     sleep 5
+
+    operator_pod_name=$(kubectl -n=$CORTEX_NAMESPACE get pods -o=name --sort-by=.metadata.creationTimestamp | grep "^pod/operator-" | tail -1)
+    if [ "$operator_pod_name" == "" ]; then
+      operator_pod_ready_cycles=0
+    else
+      is_ready=$(kubectl -n=$CORTEX_NAMESPACE get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].ready}')
+      if [ "$is_ready" == "true" ]; then
+        ((operator_pod_ready_cycles++))
+      else
+        operator_pod_ready_cycles=0
+      fi
+    fi
 
     if [ "$operator_load_balancer" != "ready" ]; then
       out=$(kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-operator -o json | tr -d '[:space:]')
@@ -1419,7 +1435,25 @@ function validate_cortex() {
     if [ "$operator_endpoint" = "" ]; then
       operator_endpoint=$(kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
     fi
-    if ! curl $operator_endpoint >/dev/null 2>&1; then
+
+    if [ "$operator_endpoint_reachable" != "ready" ]; then
+      if ! curl $operator_endpoint >/dev/null 2>&1; then
+        continue
+      fi
+      operator_endpoint_reachable="ready"
+    fi
+
+    if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
+      num_restart=$(kubectl -n=$CORTEX_NAMESPACE get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
+      if [[ $num_restart -ge 2 ]]; then
+        echo -e "\n\nAn error occurred when starting the Cortex operator. View the logs with:"
+        echo "  kubectl logs $operator_pod_name --namespace=$CORTEX_NAMESPACE"
+        exit 1
+      fi
+      continue
+    fi
+
+    if [[ $operator_pod_ready_cycles -lt 3 ]]; then
       continue
     fi
 
@@ -1469,7 +1503,7 @@ function check_dep_kubectl() {
 
   if ! command -v kubectl >/dev/null 2>&1; then
     echo
-    read -p "kubectl is required. Would you like cortex.sh to install it? [Y/n] " -n 1 -r
+    read -p "kubectl is required. Would you like cortex-installer.sh to install it? [Y/n] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
       install_kubectl
@@ -1484,12 +1518,13 @@ function check_dep_kubectl() {
     exit 1
   fi
 
-  jsonpath='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'
   set +e
-  get_nodes_output=$(kubectl get nodes -o jsonpath="$jsonpath" 2>/dev/null)
+  get_nodes_output=$(kubectl get nodes -o jsonpath='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}' 2>/dev/null)
   if [ $? -ne 0 ]; then
-    echo -e "\nerror: either your AWS credentials are incorrect or kubectl is not properly configured to connect with your cluster. If you are using eksctl, you can run this command to configure kubectl:"
+    echo -e "\nerror: either your AWS credentials are incorrect or kubectl is not properly configured to connect with your cluster"
+    echo "If you are using eksctl, you can run this command to re-configure kubectl:"
     echo "  eksctl utils write-kubeconfig --name=cortex"
+    echo "If you are changing IAM users, you must edit the aws-auth ConfigMap (using your previous IAM credentials) to add the new IAM user; see https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html"
     exit 1
   fi
   set -e
@@ -1562,7 +1597,7 @@ function check_dep_aws() {
 
   if ! command -v aws >/dev/null 2>&1; then
     echo
-    read -p "The AWS CLI is required. Would you like cortex.sh to install it? [Y/n] " -n 1 -r
+    read -p "The AWS CLI is required. Would you like cortex-installer.sh to install it? [Y/n] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
       install_aws
@@ -1959,13 +1994,21 @@ elif [ "$arg1" = "update" ]; then
     show_help
     exit 1
   fi
-elif [ "$arg1" = "endpoints" ]; then
-  if [ ! "$arg2" = "" ]; then
-    echo -e "\nerror: too many arguments for endpoints command"
+elif [ "$arg1" = "get" ]; then
+  if [ ! "$arg3" = "" ]; then
+    echo -e "\nerror: too many arguments for get command"
+    show_help
+    exit 1
+  elif [ "$arg2" = "endpoints" ]; then
+    get_endpoints
+  elif [ "$arg2" = "" ]; then
+    echo -e "\nerror: missing subcommand for get"
     show_help
     exit 1
   else
-    get_endpoints
+    echo -e "\nerror: invalid subcommand for get: $arg2"
+    show_help
+    exit 1
   fi
 else
   echo -e "\nerror: unknown command: $arg1"
