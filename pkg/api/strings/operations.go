@@ -46,7 +46,7 @@ func TrimPrefixAndSuffix(str string, substr string) string {
 	return strings.TrimSuffix(strings.TrimPrefix(str, substr), substr)
 }
 
-// Don't show more than half of the string
+// MaskString omits no more than half of the string
 func MaskString(str string, numPlain int) string {
 	if numPlain > len(str)/2 {
 		numPlain = len(str) / 2

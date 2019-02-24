@@ -19,9 +19,9 @@ package userconfig
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/utils/cast"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
 
 type Column interface {
@@ -99,9 +99,9 @@ func (config *Config) ColumnNames() []string {
 }
 
 func (config *Config) IsRawColumn(name string) bool {
-	return util.IsStrInSlice(name, config.RawColumns.Names())
+	return slices.IsStrInSlice(name, config.RawColumns.Names())
 }
 
 func (config *Config) IsTransformedColumn(name string) bool {
-	return util.IsStrInSlice(name, config.TransformedColumns.Names())
+	return slices.IsStrInSlice(name, config.TransformedColumns.Names())
 }

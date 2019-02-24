@@ -29,12 +29,12 @@ import (
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
 )
 
 const (
@@ -105,7 +105,7 @@ func apiVersionCheckMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		clientVersion := r.Header.Get("CortexAPIVersion")
 		if clientVersion != consts.CortexVersion {
-			http.Error(w, s.ErrApiVersionMismatch(consts.CortexVersion, clientVersion), http.StatusBadRequest)
+			http.Error(w, s.ErrAPIVersionMismatch(consts.CortexVersion, clientVersion), http.StatusBadRequest)
 			return
 		}
 		next.ServeHTTP(w, r)

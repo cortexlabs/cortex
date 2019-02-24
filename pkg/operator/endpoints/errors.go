@@ -72,38 +72,38 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
-type EndpointsError struct {
+type Error struct {
 	Kind    ErrorKind
 	message string
 }
 
-func (e EndpointsError) Error() string {
+func (e Error) Error() string {
 	return e.message
 }
 
 func ErrorAuthHeaderMissing() error {
-	return EndpointsError{
+	return Error{
 		Kind:    ErrAuthHeaderMissing,
 		message: "auth header missing",
 	}
 }
 
 func ErrorAuthHeaderMalformed() error {
-	return EndpointsError{
+	return Error{
 		Kind:    ErrAuthHeaderMalformed,
 		message: "auth header malformed",
 	}
 }
 
 func ErrorAuthAPIError() error {
-	return EndpointsError{
+	return Error{
 		Kind:    ErrAuthAPIError,
 		message: "the operator is unable to verify user's credentials using AWS STS; run `./cortex.sh update operator` to update the operator's AWS credentials",
 	}
 }
 
 func ErrorAuthForbidden() error {
-	return EndpointsError{
+	return Error{
 		Kind:    ErrAuthForbidden,
 		message: "invalid AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as the operator",
 	}

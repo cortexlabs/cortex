@@ -86,7 +86,7 @@ func getStaleAPISavedStatuses(
 
 	var staleSavedStatuses []*resource.APISavedStatus
 	for appName := range apiStatusCache.m {
-		for resourceID, _ := range apiStatusCache.m[appName] {
+		for resourceID := range apiStatusCache.m[appName] {
 			for workloadID, savedStatus := range apiStatusCache.m[appName][resourceID] {
 				if _, ok := currentSavedStatusMap[appName]; !ok {
 					staleSavedStatuses = append(staleSavedStatuses, savedStatus.Copy())
@@ -113,12 +113,12 @@ func uncacheFinishedAPISavedStatuses(currentSavedStatuses []*resource.APISavedSt
 			delete(apiStatusCache.m, appName)
 			continue
 		}
-		for resourceID, _ := range apiStatusCache.m[appName] {
+		for resourceID := range apiStatusCache.m[appName] {
 			if _, ok := currentSavedStatusMap[appName][resourceID]; !ok {
 				delete(apiStatusCache.m[appName], resourceID)
 				continue
 			}
-			for workloadID, _ := range apiStatusCache.m[appName][resourceID] {
+			for workloadID := range apiStatusCache.m[appName][resourceID] {
 				if _, ok := currentSavedStatusMap[appName][resourceID][workloadID]; !ok {
 					delete(apiStatusCache.m[appName][resourceID], workloadID)
 					continue

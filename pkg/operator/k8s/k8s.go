@@ -34,9 +34,9 @@ import (
 	homedir "k8s.io/client-go/util/homedir"
 
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 var (
@@ -83,7 +83,7 @@ func init() {
 	ingressClient = clientset.ExtensionsV1beta1().Ingresses(cc.Namespace)
 }
 
-// Lower case alphanumeric, '-', or '.'
+// ValidName ensures name contains only lower case alphanumeric, '-', or '.'
 func ValidName(name string) string {
 	re := regexp.MustCompile(`[^a-zA-Z0-9\-\.]`)
 	name = re.ReplaceAllLiteralString(name, "-")
@@ -91,7 +91,7 @@ func ValidName(name string) string {
 	return name
 }
 
-// Lower case alphanumeric or '-', must start with alphabetic, end with alphanumeric
+// ValidNameContainer ensures name contains only lower case alphanumeric or '-', must start with alphabetic, end with alphanumeric
 func ValidNameContainer(name string) string {
 	name = ValidName(name)
 
@@ -111,7 +111,7 @@ func ValidNameContainer(name string) string {
 	return name
 }
 
-func Cpu(cpu string) k8sresource.Quantity {
+func CPU(cpu string) k8sresource.Quantity {
 	return k8sresource.MustParse(cpu)
 }
 

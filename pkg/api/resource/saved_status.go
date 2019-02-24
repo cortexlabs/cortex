@@ -19,7 +19,7 @@ package resource
 import (
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 )
 
 type BaseSavedStatus struct {
@@ -102,10 +102,10 @@ func (savedStatus *BaseSavedStatus) Equal(savedStatus2 BaseSavedStatus) bool {
 	if savedStatus.AppName != savedStatus2.AppName {
 		return false
 	}
-	if !util.TimePtrsEqual(savedStatus.Start, savedStatus2.Start) {
+	if !libtime.PtrsEqual(savedStatus.Start, savedStatus2.Start) {
 		return false
 	}
-	if !util.TimePtrsEqual(savedStatus.End, savedStatus2.End) {
+	if !libtime.PtrsEqual(savedStatus.End, savedStatus2.End) {
 		return false
 	}
 	return true
@@ -120,8 +120,8 @@ func (savedStatus *BaseSavedStatus) Copy() *BaseSavedStatus {
 		ResourceType: savedStatus.ResourceType,
 		WorkloadID:   savedStatus.WorkloadID,
 		AppName:      savedStatus.AppName,
-		Start:        util.CopyTimePtr(savedStatus.Start),
-		End:          util.CopyTimePtr(savedStatus.End),
+		Start:        libtime.CopyPtr(savedStatus.Start),
+		End:          libtime.CopyPtr(savedStatus.End),
 	}
 }
 

@@ -28,7 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/utils/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 func trainingJobSpec(

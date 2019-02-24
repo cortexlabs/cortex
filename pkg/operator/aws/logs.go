@@ -24,9 +24,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
 type FluentdLog struct {
@@ -65,7 +65,7 @@ func GetLogs(prefix string) (string, error) {
 	var allLogsBuf bytes.Buffer
 
 	for i, logStream := range logStreamsOut.LogStreams {
-		if !util.MatchAnyRegex(*logStream.LogStreamName, ignoreLogStreamNameRegexes) {
+		if !regex.MatchAnyRegex(*logStream.LogStreamName, ignoreLogStreamNameRegexes) {
 			getLogEventsInput := &cloudwatchlogs.GetLogEventsInput{
 				LogGroupName:  &cc.LogGroup,
 				LogStreamName: logStream.LogStreamName,

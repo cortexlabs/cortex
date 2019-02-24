@@ -23,8 +23,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 )
 
 func getTransformedColumns(
@@ -65,14 +65,14 @@ func getTransformedColumns(
 		buf.WriteString(rawColumns.ColumnInputsID(transformedColumnConfig.Inputs.Columns))
 		buf.WriteString(s.Obj(valueResourceIDMap))
 		buf.WriteString(transformer.ID)
-		id := util.HashBytes(buf.Bytes())
+		id := hash.Bytes(buf.Bytes())
 
 		buf.Reset()
 		buf.WriteString(rawColumns.ColumnInputsIDWithTags(transformedColumnConfig.Inputs.Columns))
 		buf.WriteString(s.Obj(valueResourceIDWithTagsMap))
 		buf.WriteString(transformer.IDWithTags)
 		buf.WriteString(transformedColumnConfig.Tags.ID())
-		idWithTags := util.HashBytes(buf.Bytes())
+		idWithTags := hash.Bytes(buf.Bytes())
 
 		transformedColumns[transformedColumnConfig.Name] = &context.TransformedColumn{
 			ComputedResourceFields: &context.ComputedResourceFields{

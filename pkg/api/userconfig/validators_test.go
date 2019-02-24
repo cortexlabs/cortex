@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 )
 
 func TestValidateColumnInputTypes(t *testing.T) {

@@ -26,8 +26,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/zip"
 )
 
 func findCustomPackages(files map[string][]byte) []string {
@@ -52,7 +53,7 @@ func loadPythonPackages(files map[string][]byte) (context.PythonPackages, error)
 	if reqFileBytes, ok := files[consts.RequirementsTxt]; ok {
 		var buf bytes.Buffer
 		buf.Write(reqFileBytes)
-		id := util.HashBytes(buf.Bytes())
+		id := hash.Bytes(buf.Bytes())
 		pythonPackage := context.PythonPackage{
 			ResourceConfigFields: userconfig.ResourceConfigFields{
 				Name: consts.RequirementsTxt,
@@ -77,18 +78,18 @@ func loadPythonPackages(files map[string][]byte) (context.PythonPackages, error)
 	customPackages := findCustomPackages(files)
 
 	for _, packageName := range customPackages {
-		zipBytesInputs := []util.ZipBytesInput{}
+		zipBytesInputs := []zip.BytesInput{}
 		var buf bytes.Buffer
 		for filePath, fileBytes := range files {
 			if strings.HasPrefix(filePath, filepath.Join(consts.PackageDir, packageName)) {
 				buf.Write(fileBytes)
-				zipBytesInputs = append(zipBytesInputs, util.ZipBytesInput{
+				zipBytesInputs = append(zipBytesInputs, zip.BytesInput{
 					Content: fileBytes,
 					Dest:    filePath[len(consts.PackageDir):],
 				})
 			}
 		}
-		id := util.HashBytes(buf.Bytes())
+		id := hash.Bytes(buf.Bytes())
 		pythonPackage := context.PythonPackage{
 			ResourceConfigFields: userconfig.ResourceConfigFields{
 				Name: consts.RequirementsTxt,
@@ -103,11 +104,11 @@ func loadPythonPackages(files map[string][]byte) (context.PythonPackages, error)
 			PackageKey: filepath.Join(consts.PythonPackagesDir, id, "package.zip"),
 		}
 
-		zipInput := util.ZipInput{
+		zipInput := zip.Input{
 			Bytes: zipBytesInputs,
 		}
 
-		zipBytes, err := util.ZipToMem(&zipInput)
+		zipBytes, err := zip.ToMem(&zipInput)
 		if err != nil {
 			return nil, errors.Wrap(err, "zip", packageName)
 		}

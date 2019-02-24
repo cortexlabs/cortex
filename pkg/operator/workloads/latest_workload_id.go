@@ -19,8 +19,9 @@ package workloads
 import (
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 func uploadLatestWorkloadID(resourceID string, workloadID string, appName string) error {
@@ -44,7 +45,7 @@ func uploadLatestWorkloadIDs(resourceWorkloadIDs map[string]string, appName stri
 		fns[i] = uploadLatestWorkloadIDFunc(resourceID, workloadID, appName)
 		i++
 	}
-	return util.RunInParallelFirstErr(fns...)
+	return parallel.RunFirstErr(fns...)
 }
 
 func uploadLatestWorkloadIDFunc(resourceID string, workloadID string, appName string) func() error {
@@ -75,14 +76,14 @@ func getSavedLatestWorkloadID(resourceID string, appName string) (string, error)
 	return workloadID, nil
 }
 
-func getSavedLatestWorkloadIDs(resourceIDs map[string]bool, appName string) (map[string]string, error) {
-	resourceIDList := util.StrSetToSlice(resourceIDs)
+func getSavedLatestWorkloadIDs(resourceIDs strset.Set, appName string) (map[string]string, error) {
+	resourceIDList := resourceIDs.Slice()
 	workloadIDList := make([]string, len(resourceIDList))
 	fns := make([]func() error, len(resourceIDList))
 	for i, resourceID := range resourceIDList {
 		fns[i] = getSavedLatestWorkloadIDFunc(resourceID, appName, workloadIDList, i)
 	}
-	err := util.RunInParallelFirstErr(fns...)
+	err := parallel.RunFirstErr(fns...)
 	if err != nil {
 		return nil, err
 	}

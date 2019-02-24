@@ -18,7 +18,7 @@ package context
 
 import (
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/cast"
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
 )
 
 type TransformedColumns map[string]*TransformedColumn
@@ -34,14 +34,14 @@ func (column *TransformedColumn) GetType() string {
 }
 
 // Returns map[string]string because after autogen, arg values are constant or aggregate names
-func (transformedColumn *TransformedColumn) Args() map[string]string {
-	args, _ := cast.InterfaceToStrStrMap(transformedColumn.Inputs.Args)
+func (column *TransformedColumn) Args() map[string]string {
+	args, _ := cast.InterfaceToStrStrMap(column.Inputs.Args)
 	return args
 }
 
-func (transformedColumn *TransformedColumn) InputAggregateNames(ctx *Context) map[string]bool {
+func (column *TransformedColumn) InputAggregateNames(ctx *Context) map[string]bool {
 	inputAggregateNames := make(map[string]bool)
-	for _, valueResourceName := range transformedColumn.Args() {
+	for _, valueResourceName := range column.Args() {
 		if _, ok := ctx.Aggregates[valueResourceName]; ok {
 			inputAggregateNames[valueResourceName] = true
 		}
@@ -49,8 +49,8 @@ func (transformedColumn *TransformedColumn) InputAggregateNames(ctx *Context) ma
 	return inputAggregateNames
 }
 
-func (transformedColumns TransformedColumns) OneByID(id string) *TransformedColumn {
-	for _, transformedColumn := range transformedColumns {
+func (columns TransformedColumns) OneByID(id string) *TransformedColumn {
+	for _, transformedColumn := range columns {
 		if transformedColumn.ID == id {
 			return transformedColumn
 		}

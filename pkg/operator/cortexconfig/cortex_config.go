@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 )
 
 var (

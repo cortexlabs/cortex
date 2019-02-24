@@ -17,7 +17,7 @@ limitations under the License.
 package userconfig
 
 import (
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 )
 
 type Inputs struct {

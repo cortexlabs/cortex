@@ -17,6 +17,8 @@ limitations under the License.
 package workloads
 
 import (
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -24,9 +26,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 type WorkloadSpec struct {
@@ -87,7 +89,7 @@ func getSavedWorkloadSpec(workloadID string, appName string) (*SavedWorkloadSpec
 
 func UpdateDataWorkflowErrors(failedPods []corev1.Pod) error {
 	checkedWorkloadIDs := strset.New()
-	nowTime := util.TimeNowPtr()
+	nowTime := pointer.Time(time.Now())
 
 	for _, pod := range failedPods {
 		appName, ok := pod.Labels["appName"]

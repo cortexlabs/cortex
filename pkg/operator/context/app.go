@@ -19,12 +19,12 @@ package context
 import (
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 )
 
 func getApp(appConfig *userconfig.App) *context.App {
 	return &context.App{
 		App: appConfig,
-		ID:  util.HashStr(appConfig.Name),
+		ID:  hash.Str(appConfig.Name),
 	}
 }

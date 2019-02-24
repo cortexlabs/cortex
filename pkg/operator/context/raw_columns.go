@@ -23,8 +23,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
 
 func getRawColumns(
@@ -46,9 +47,9 @@ func getRawColumns(
 			buf.WriteString(s.Bool(typedColumnConfig.Required))
 			buf.WriteString(s.Obj(typedColumnConfig.Min))
 			buf.WriteString(s.Obj(typedColumnConfig.Max))
-			buf.WriteString(s.Obj(util.SortInt64sCopy(typedColumnConfig.Values)))
-			id := util.HashBytes(buf.Bytes())
-			idWithTags := util.HashStr(id + typedColumnConfig.Tags.ID())
+			buf.WriteString(s.Obj(slices.SortInt64sCopy(typedColumnConfig.Values)))
+			id := hash.Bytes(buf.Bytes())
+			idWithTags := hash.Str(id + typedColumnConfig.Tags.ID())
 			rawColumn = &context.RawIntColumn{
 				ComputedResourceFields: &context.ComputedResourceFields{
 					ResourceFields: &context.ResourceFields{
@@ -63,9 +64,9 @@ func getRawColumns(
 			buf.WriteString(s.Bool(typedColumnConfig.Required))
 			buf.WriteString(s.Obj(typedColumnConfig.Min))
 			buf.WriteString(s.Obj(typedColumnConfig.Max))
-			buf.WriteString(s.Obj(util.SortFloat32sCopy(typedColumnConfig.Values)))
-			id := util.HashBytes(buf.Bytes())
-			idWithTags := util.HashStr(id + typedColumnConfig.Tags.ID())
+			buf.WriteString(s.Obj(slices.SortFloat32sCopy(typedColumnConfig.Values)))
+			id := hash.Bytes(buf.Bytes())
+			idWithTags := hash.Str(id + typedColumnConfig.Tags.ID())
 			rawColumn = &context.RawFloatColumn{
 				ComputedResourceFields: &context.ComputedResourceFields{
 					ResourceFields: &context.ResourceFields{
@@ -78,9 +79,9 @@ func getRawColumns(
 			}
 		case *userconfig.RawStringColumn:
 			buf.WriteString(s.Bool(typedColumnConfig.Required))
-			buf.WriteString(s.Obj(util.SortStrsCopy(typedColumnConfig.Values)))
-			id := util.HashBytes(buf.Bytes())
-			idWithTags := util.HashStr(id + typedColumnConfig.Tags.ID())
+			buf.WriteString(s.Obj(slices.SortStrsCopy(typedColumnConfig.Values)))
+			id := hash.Bytes(buf.Bytes())
+			idWithTags := hash.Str(id + typedColumnConfig.Tags.ID())
 			rawColumn = &context.RawStringColumn{
 				ComputedResourceFields: &context.ComputedResourceFields{
 					ResourceFields: &context.ResourceFields{

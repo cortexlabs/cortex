@@ -27,8 +27,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 )
 
 var builtinTransformers = make(map[string]*context.Transformer)
@@ -48,7 +49,7 @@ func init() {
 		if err != nil {
 			errors.Exit(err, userconfig.Identify(transConfig), s.ErrReadFile(implPath))
 		}
-		transformer, err := newTransformer(*transConfig, impl, util.StrPtr("cortex"), nil)
+		transformer, err := newTransformer(*transConfig, impl, pointer.Str("cortex"), nil)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -85,7 +86,7 @@ func newTransformer(
 	pythonPackages context.PythonPackages,
 ) (*context.Transformer, error) {
 
-	implID := util.HashBytes(impl)
+	implID := hash.Bytes(impl)
 
 	var buf bytes.Buffer
 	buf.WriteString(context.DataTypeID(transConfig.Inputs))
@@ -95,7 +96,7 @@ func newTransformer(
 		buf.WriteString(pythonPackage.GetID())
 	}
 
-	id := util.HashBytes(buf.Bytes())
+	id := hash.Bytes(buf.Bytes())
 
 	transformer := &context.Transformer{
 		ResourceFields: &context.ResourceFields{

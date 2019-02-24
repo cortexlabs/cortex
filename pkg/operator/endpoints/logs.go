@@ -23,8 +23,8 @@ import (
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
 
 func ReadLogs(w http.ResponseWriter, r *http.Request) {
@@ -91,7 +91,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	for _, resource := range ctx.VisibleResourcesByName(resourceName) {
 		workloadIDs = append(workloadIDs, resource.GetWorkloadID())
 	}
-	workloadIDs = util.UniqueStrs(workloadIDs)
+	workloadIDs = slices.UniqueStrs(workloadIDs)
 	if len(workloadIDs) == 1 {
 		workloadID = workloadIDs[0]
 		readLogs(w, r, workloadID, appName, verbose)

@@ -22,7 +22,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 )
 
 func getAPIs(config *userconfig.Config,
@@ -36,11 +36,11 @@ func getAPIs(config *userconfig.Config,
 		var buf bytes.Buffer
 		buf.WriteString(apiConfig.Name)
 		buf.WriteString(model.ID)
-		id := util.HashBytes(buf.Bytes())
+		id := hash.Bytes(buf.Bytes())
 
 		buf.WriteString(model.IDWithTags)
 		buf.WriteString(apiConfig.Tags.ID())
-		idWithTags := util.HashBytes(buf.Bytes())
+		idWithTags := hash.Bytes(buf.Bytes())
 
 		apis[apiConfig.Name] = &context.API{
 			ComputedResourceFields: &context.ComputedResourceFields{

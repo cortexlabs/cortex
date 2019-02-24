@@ -25,8 +25,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 func GetCurrentAPIStatuses(
@@ -256,7 +256,7 @@ func getActiveAPIStatus(apiStatuses []*resource.APIStatus, ctx *context.Context)
 	}
 
 	var latestTime time.Time
-	var latestAPIStatus *resource.APIStatus = nil
+	var latestAPIStatus *resource.APIStatus
 
 	for _, apiStatus := range apiStatuses {
 		if apiStatus.TotalReady() == 0 {

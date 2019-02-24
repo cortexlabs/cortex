@@ -30,8 +30,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/schema"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
 func init() {
@@ -68,7 +70,7 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 
 		resourceType, err := resource.VisibleResourceTypeFromPrefix(resourceNameOrType)
 		if err != nil {
-			if rerr, ok := err.(resource.ResourceError); ok && rerr.Kind != resource.ErrInvalidType {
+			if rerr, ok := err.(resource.Error); ok && rerr.Kind != resource.ErrInvalidType {
 				return "", err
 			}
 		} else {
@@ -76,7 +78,7 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 		}
 
 		if _, err = resourcesRes.Context.VisibleResourceByName(resourceNameOrType); err != nil {
-			if rerr, ok := err.(resource.ResourceError); ok && rerr.Kind == resource.ErrNameNotFound {
+			if rerr, ok := err.(resource.Error); ok && rerr.Kind == resource.ErrNameNotFound {
 				return "", resource.ErrorNameOrTypeNotFound(resourceNameOrType)
 			}
 			return "", err
@@ -326,10 +328,10 @@ func describeAggregate(name string, resourcesRes *schema.GetResourcesResponse) (
 		var aggregateRes schema.GetAggregateResponse
 		err = json.Unmarshal(httpResponse, &aggregateRes)
 		if err != nil {
-			return "", errors.Wrap(err, "/aggregate", "response", s.ErrUnmarshalJson, string(httpResponse))
+			return "", errors.Wrap(err, "/aggregate", "response", s.ErrUnmarshalJSON, string(httpResponse))
 		}
 
-		obj, err := util.UnmarshalMsgpackToInterface(aggregateRes.Value)
+		obj, err := msgpack.UnmarshalToInterface(aggregateRes.Value)
 		if err != nil {
 			return "", errors.Wrap(err, "/aggregate", "response", s.ErrUnmarshalMsgpack)
 		}
@@ -379,8 +381,8 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 
 	api := resourcesRes.Context.APIs[name]
 
-	var staleReplicas int32 = 0
-	var ctxAPIStatus *resource.APIStatus = nil
+	var staleReplicas int32
+	var ctxAPIStatus *resource.APIStatus
 	for _, apiStatus := range resourcesRes.APIStatuses {
 		if apiStatus.APIName != name {
 			continue
@@ -394,14 +396,14 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 	out := titleStr("Summary")
 
 	if groupStatus.ActiveStatus != nil {
-		out += "Endpoint:          " + util.URLJoin(resourcesRes.APIsBaseURL, groupStatus.ActiveStatus.Path) + "\n"
+		out += "Endpoint:          " + urls.URLJoin(resourcesRes.APIsBaseURL, groupStatus.ActiveStatus.Path) + "\n"
 	}
 
 	out += "Status:            " + groupStatus.Message() + "\n"
-	out += "Created at:        " + util.LocalTimestamp(groupStatus.Start) + "\n"
+	out += "Created at:        " + libtime.LocalTimestamp(groupStatus.Start) + "\n"
 
 	if groupStatus.ActiveStatus != nil && groupStatus.ActiveStatus.Start != nil {
-		out += "Refreshed at:      " + util.LocalTimestamp(groupStatus.ActiveStatus.Start) + "\n"
+		out += "Refreshed at:      " + libtime.LocalTimestamp(groupStatus.ActiveStatus.Start) + "\n"
 	}
 
 	if ctxAPIStatus != nil {
@@ -422,8 +424,8 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 func dataStatusSummary(dataStatus *resource.DataStatus) string {
 	out := titleStr("Summary")
 	out += "Status:               " + dataStatus.Message() + "\n"
-	out += "Workload started at:  " + util.LocalTimestamp(dataStatus.Start) + "\n"
-	out += "Workload ended at:    " + util.LocalTimestamp(dataStatus.End) + "\n"
+	out += "Workload started at:  " + libtime.LocalTimestamp(dataStatus.Start) + "\n"
+	out += "Workload ended at:    " + libtime.LocalTimestamp(dataStatus.End) + "\n"
 	return out
 }
 
@@ -457,7 +459,7 @@ func dataResourceRow(name string, resource context.Resource, dataStatuses map[st
 }
 
 func apiResourceRow(groupStatus *resource.APIGroupStatus) string {
-	var updatedAt *time.Time = nil
+	var updatedAt *time.Time
 	if groupStatus.ActiveStatus != nil {
 		updatedAt = groupStatus.ActiveStatus.Start
 	}
@@ -471,7 +473,7 @@ func resourceRow(name string, status string, startTime *time.Time) string {
 	if len(status) > 23 {
 		status = status[0:20] + "..."
 	}
-	timeSince := util.TimeSince(startTime)
+	timeSince := libtime.Since(startTime)
 	return stringifyRow(name, status, timeSince)
 }
 

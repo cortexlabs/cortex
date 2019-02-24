@@ -23,9 +23,9 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 func appRootOrBlank() string {
@@ -34,13 +34,13 @@ func appRootOrBlank() string {
 		errors.Exit(err)
 	}
 	for true {
-		if util.IsFile(filepath.Join(dir, "app.yaml")) {
+		if files.IsFile(filepath.Join(dir, "app.yaml")) {
 			return dir
 		}
 		if dir == "/" {
 			return ""
 		}
-		dir = util.ParentDir(dir)
+		dir = files.ParentDir(dir)
 	}
 	return "" // unreachable
 }
@@ -54,7 +54,7 @@ func mustAppRoot() string {
 }
 
 func yamlPaths(dir string) []string {
-	yamlPaths, err := util.ListDirRecursive(dir, false, util.IgnoreNonYAML)
+	yamlPaths, err := files.ListDirRecursive(dir, false, files.IgnoreNonYAML)
 	if err != nil {
 		errors.Exit(err)
 	}
@@ -62,7 +62,7 @@ func yamlPaths(dir string) []string {
 }
 
 func pythonPaths(dir string) []string {
-	pyPaths, err := util.ListDirRecursive(dir, false, util.IgnoreNonPython)
+	pyPaths, err := files.ListDirRecursive(dir, false, files.IgnoreNonPython)
 	if err != nil {
 		errors.Exit(err)
 	}
@@ -72,13 +72,13 @@ func pythonPaths(dir string) []string {
 func allConfigPaths(root string) []string {
 	exportPaths := strset.New()
 	requirementsPath := filepath.Join(root, consts.RequirementsTxt)
-	if util.IsFile(requirementsPath) {
+	if files.IsFile(requirementsPath) {
 		exportPaths.Add(requirementsPath)
 	}
 
 	customPackagesRoot := filepath.Join(root, consts.PackageDir)
-	if util.IsDir(customPackagesRoot) {
-		customPackagesPaths, err := util.ListDirRecursive(customPackagesRoot, false, util.IgnoreHiddenFiles, util.IgnoreHiddenFolders, util.IgnorePythonGeneratedFiles)
+	if files.IsDir(customPackagesRoot) {
+		customPackagesPaths, err := files.ListDirRecursive(customPackagesRoot, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders, files.IgnorePythonGeneratedFiles)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -87,7 +87,7 @@ func allConfigPaths(root string) []string {
 	exportPaths.Add(yamlPaths(root)...)
 	exportPaths.Add(pythonPaths(root)...)
 
-	return exportPaths.List()
+	return exportPaths.Slice()
 }
 
 func appNameFromConfig() (string, error) {

@@ -27,8 +27,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 )
 
 var builtinAggregators = make(map[string]*context.Aggregator)
@@ -48,7 +49,7 @@ func init() {
 		if err != nil {
 			errors.Exit(err, userconfig.Identify(aggregatorConfig), s.ErrReadFile(implPath))
 		}
-		aggregator, err := newAggregator(*aggregatorConfig, impl, util.StrPtr("cortex"), nil)
+		aggregator, err := newAggregator(*aggregatorConfig, impl, pointer.Str("cortex"), nil)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -85,7 +86,7 @@ func newAggregator(
 	pythonPackages context.PythonPackages,
 ) (*context.Aggregator, error) {
 
-	implID := util.HashBytes(impl)
+	implID := hash.Bytes(impl)
 
 	var buf bytes.Buffer
 	buf.WriteString(context.DataTypeID(aggregatorConfig.Inputs))
@@ -96,7 +97,7 @@ func newAggregator(
 		buf.WriteString(pythonPackage.GetID())
 	}
 
-	id := util.HashBytes(buf.Bytes())
+	id := hash.Bytes(buf.Bytes())
 
 	aggregator := &context.Aggregator{
 		ResourceFields: &context.ResourceFields{

@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/util"
 )
 
 type MyFloat float64

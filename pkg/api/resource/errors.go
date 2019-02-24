@@ -82,59 +82,59 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
-type ResourceError struct {
+type Error struct {
 	Kind    ErrorKind
 	message string
 }
 
-func (e ResourceError) Error() string {
+func (e Error) Error() string {
 	return e.message
 }
 
 func ErrorNotFound(name string, resourceType Type) error {
-	return ResourceError{
+	return Error{
 		Kind:    ErrNotFound,
 		message: fmt.Sprintf("%s %s not found", resourceType, s.UserStr(name)),
 	}
 }
 
 func ErrorNameNotFound(name string) error {
-	return ResourceError{
+	return Error{
 		Kind:    ErrNameNotFound,
 		message: fmt.Sprintf("resource name %s not found", s.UserStr(name)),
 	}
 }
 
 func ErrorNameOrTypeNotFound(nameOrType string) error {
-	return ResourceError{
+	return Error{
 		Kind:    ErrNameOrTypeNotFound,
 		message: fmt.Sprintf("resource name or type %s not found", s.UserStr(nameOrType)),
 	}
 }
 
 func ErrorInvalidType(invalid string) error {
-	return ResourceError{
+	return Error{
 		Kind:    ErrInvalidType,
 		message: fmt.Sprintf("invalid resource type %s", s.UserStr(invalid)),
 	}
 }
 
 func ErrorUnknownKind(name string) error {
-	return ResourceError{
+	return Error{
 		Kind:    ErrUnknownKind,
 		message: fmt.Sprintf("unknown kind %s", s.UserStr(name)),
 	}
 }
 
 func ErrorTemplateInTemplate() error {
-	return ResourceError{
+	return Error{
 		Kind:    ErrTemplateInTemplate,
 		message: "templates cannot be defined inside of templates",
 	}
 }
 
 func ErrorEmbedInTemplate() error {
-	return ResourceError{
+	return Error{
 		Kind:    ErrEmbedInTemplate,
 		message: "embeds cannot be defined inside of templates",
 	}

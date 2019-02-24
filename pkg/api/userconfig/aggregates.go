@@ -18,8 +18,8 @@ package userconfig
 
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/interfaces"
 )
 
 type Aggregates []*Aggregate
@@ -90,6 +90,6 @@ func (aggregates Aggregates) Get(name string) *Aggregate {
 }
 
 func (aggregate *Aggregate) InputColumnNames() map[string]bool {
-	inputs, _ := util.FlattenAllStrValuesAsSet(aggregate.Inputs.Columns)
+	inputs, _ := interfaces.FlattenAllStrValuesAsSet(aggregate.Inputs.Columns)
 	return inputs
 }

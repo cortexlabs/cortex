@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package workloads
 
 import (
@@ -27,7 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/utils/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 func pythonPackageJobSpec(ctx *context.Context, pythonPackages strset.Set, workloadID string) *batchv1.Job {
@@ -56,7 +57,7 @@ func pythonPackageJobSpec(ctx *context.Context, pythonPackages strset.Set, workl
 							"--workload-id=" + workloadID,
 							"--context=" + aws.S3Path(ctx.Key),
 							"--cache-dir=" + consts.ContextCacheDir,
-							"--python-packages=" + strings.Join(pythonPackages.List(), ","),
+							"--python-packages=" + strings.Join(pythonPackages.Slice(), ","),
 							"--build",
 						},
 						Env:          k8s.AWSCredentials(),

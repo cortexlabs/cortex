@@ -18,11 +18,12 @@ package context
 
 import (
 	"path/filepath"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
 func getOrSetDatasetVersion(appName string, ignoreCache bool) (string, error) {
@@ -33,7 +34,7 @@ func getOrSetDatasetVersion(appName string, ignoreCache bool) (string, error) {
 	)
 
 	if ignoreCache {
-		datasetVersion := util.NowTimestamp()
+		datasetVersion := libtime.Timestamp(time.Now())
 		err := aws.UploadStringToS3(datasetVersion, datasetVersionFileKey)
 		if err != nil {
 			return "", errors.Wrap(err, "dataset version") // unexpected error
@@ -46,7 +47,7 @@ func getOrSetDatasetVersion(appName string, ignoreCache bool) (string, error) {
 		if !aws.IsNoSuchKeyErr(err) {
 			return "", errors.Wrap(err, "dataset version") // unexpected error
 		}
-		datasetVersion = util.NowTimestamp()
+		datasetVersion = libtime.Timestamp(time.Now())
 		err := aws.UploadStringToS3(datasetVersion, datasetVersionFileKey)
 		if err != nil {
 			return "", errors.Wrap(err, "dataset version") // unexpected error

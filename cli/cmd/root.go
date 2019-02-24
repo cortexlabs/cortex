@@ -28,8 +28,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 )
 
 var cmdStr string
@@ -38,7 +39,7 @@ var flagEnv string
 var flagWatch bool
 var flagAppName string
 
-var configFileExts []string = []string{"json", "yaml", "yml"}
+var configFileExts = []string{"json", "yaml", "yml"}
 
 func init() {
 	cobra.EnablePrefixMatching = true
@@ -126,11 +127,11 @@ func getTerminalWidth() int {
 }
 
 func watchHeader() string {
-	timeStr := util.LocalHourNow()
+	timeStr := libtime.LocalHourNow()
 	width := getTerminalWidth()
 	numExtraChars := 4
-	padding := strings.Repeat(" ", util.MaxInt(width-len(cmdStr)-len(timeStr)-numExtraChars, 0))
-	return fmt.Sprintf("$ %s  %s%s", cmdStr, padding, util.LocalHourNow())
+	padding := strings.Repeat(" ", libmath.MaxInt(width-len(cmdStr)-len(timeStr)-numExtraChars, 0))
+	return fmt.Sprintf("$ %s  %s%s", cmdStr, padding, libtime.LocalHourNow())
 }
 
 func rerun(f func() (string, error)) {

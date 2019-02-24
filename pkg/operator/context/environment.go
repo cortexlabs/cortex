@@ -22,7 +22,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 )
 
 func getEnvironment(config *userconfig.Config, datasetVersion string) *context.Environment {
@@ -58,5 +58,5 @@ func dataID(config *userconfig.Config, datasetVersion string) string {
 		buf.WriteString(s.Obj(schemaMap))
 	}
 
-	return util.HashBytes(buf.Bytes())
+	return hash.Bytes(buf.Bytes())
 }

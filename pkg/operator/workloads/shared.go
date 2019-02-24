@@ -19,7 +19,7 @@ package workloads
 import (
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	"github.com/cortexlabs/cortex/pkg/utils/random"
+	"github.com/cortexlabs/cortex/pkg/lib/random"
 )
 
 func generateWorkloadID() string {

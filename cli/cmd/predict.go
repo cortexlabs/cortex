@@ -28,8 +28,10 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libstring "github.com/cortexlabs/cortex/pkg/lib/strings"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
 func init() {
@@ -70,18 +72,18 @@ var predictCmd = &cobra.Command{
 
 		apiGroupStatus := resourcesRes.APIGroupStatuses[apiName]
 		if apiGroupStatus == nil {
-			errors.Exit(s.ErrApiNotFound(apiName))
+			errors.Exit(s.ErrAPINotFound(apiName))
 		}
 		if apiGroupStatus.ActiveStatus == nil {
-			errors.Exit(s.ErrApiNotReady(apiName, apiGroupStatus.Message()))
+			errors.Exit(s.ErrAPINotReady(apiName, apiGroupStatus.Message()))
 		}
 
 		apiPath := apiGroupStatus.ActiveStatus.Path
-		apiURL := util.URLJoin(resourcesRes.APIsBaseURL, apiPath)
+		apiURL := urls.URLJoin(resourcesRes.APIsBaseURL, apiPath)
 		predictResponse, err := makePredictRequest(apiURL, samplesJSONPath)
 		if err != nil {
 			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
-				errors.Exit(s.ErrApiNotReady(apiName, resource.StatusAPIUpdating.Message()))
+				errors.Exit(s.ErrAPINotReady(apiName, resource.StatusAPIUpdating.Message()))
 			}
 			errors.Exit(err)
 		}
@@ -89,7 +91,7 @@ var predictCmd = &cobra.Command{
 		apiID := predictResponse.ResourceID
 		api := resourcesRes.APIStatuses[apiID]
 
-		apiStart := util.LocalTimestampHuman(api.Start)
+		apiStart := libtime.LocalTimestampHuman(api.Start)
 		fmt.Println("\n" + apiName + " was last updated on " + apiStart + "\n")
 
 		if predictResponse.ClassificationPredictions != nil {
@@ -118,7 +120,7 @@ var predictCmd = &cobra.Command{
 					json, _ := json.Marshal(prediction.PredictedValueReversed)
 					fmt.Println(s.TrimPrefixAndSuffix(string(json), "\""))
 				} else {
-					fmt.Println(util.Round(prediction.PredictedValue, 2, true))
+					fmt.Println(libstring.Round(prediction.PredictedValue, 2, true))
 				}
 			}
 		}
@@ -145,7 +147,7 @@ func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse
 	var predictResponse PredictResponse
 	err = json.Unmarshal(httpResponse, &predictResponse)
 	if err != nil {
-		return nil, errors.Wrap(err, "prediction response", s.ErrUnmarshalJson)
+		return nil, errors.Wrap(err, "prediction response", s.ErrUnmarshalJSON)
 	}
 
 	return &predictResponse, nil

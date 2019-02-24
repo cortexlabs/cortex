@@ -17,14 +17,17 @@ limitations under the License.
 package workloads
 
 import (
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 )
 
 func uploadAPISavedStatus(savedStatus *resource.APISavedStatus) error {
@@ -46,7 +49,7 @@ func uploadAPISavedStatuses(savedStatuses []*resource.APISavedStatus) error {
 	for i, savedStatus := range savedStatuses {
 		fns[i] = uploadAPISavedStatusFunc(savedStatus)
 	}
-	return util.RunInParallelFirstErr(fns...)
+	return parallel.RunFirstErr(fns...)
 }
 
 func uploadAPISavedStatusFunc(savedStatus *resource.APISavedStatus) func() error {
@@ -86,7 +89,7 @@ func calculateAPISavedStatuses(podList []corev1.Pod, appName string) ([]*resourc
 	}
 
 	var savedStatuses []*resource.APISavedStatus
-	for resourceID, _ := range podMap {
+	for resourceID := range podMap {
 		for workloadID, pods := range podMap[resourceID] {
 			savedStatus, err := getAPISavedStatus(resourceID, workloadID, appName)
 			if err != nil {
@@ -125,7 +128,7 @@ func updateAPISavedStatusStartTime(savedStatus *resource.APISavedStatus, pods []
 		}
 		podStartTime := k8s.GetPodLastContainerStartTime(&pod)
 		if podStartTime == nil {
-			podStartTime = util.TimeNowPtr()
+			podStartTime = pointer.Time(time.Now())
 		}
 		if savedStatus.Start == nil || (*podStartTime).Before(*savedStatus.Start) {
 			savedStatus.Start = podStartTime
@@ -166,7 +169,7 @@ func updateFinishedAPISavedStatuses(allSavedStatuses []*resource.APISavedStatus)
 	staleSavedStatuses := getStaleAPISavedStatuses(allSavedStatuses)
 	for _, savedStatus := range staleSavedStatuses {
 		if savedStatus.End == nil {
-			savedStatus.End = util.TimeNowPtr()
+			savedStatus.End = pointer.Time(time.Now())
 		}
 	}
 

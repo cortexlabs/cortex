@@ -18,7 +18,7 @@ package userconfig
 
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 )
 
 type APIs []*API
@@ -36,7 +36,7 @@ var apiValidation = &cr.StructValidation{
 			StructField: "Name",
 			StringValidation: &cr.StringValidation{
 				Required: true,
-				Dns1035:  true,
+				DNS1035:  true,
 			},
 		},
 		&cr.StructFieldValidation{

@@ -25,8 +25,8 @@ import (
 	"github.com/spf13/cobra"
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
 
 var initCmd = &cobra.Command{
@@ -58,12 +58,12 @@ var initCmd = &cobra.Command{
 		}
 
 		fmt.Println("Created files:")
-		fmt.Println(util.FileTree(createdFiles, cwd, util.DirsOnBottom))
+		fmt.Println(files.FileTree(createdFiles, cwd, files.DirsOnBottom))
 	},
 }
 
 func createDirIfMissing(path string) bool {
-	created, err := util.CreateDirIfMissing(path)
+	created, err := files.CreateDirIfMissing(path)
 	if err != nil {
 		errors.Exit(err)
 	}
