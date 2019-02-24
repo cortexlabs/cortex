@@ -163,15 +163,15 @@ func TestCopy(t *testing.T) {
 	}
 }
 
-func TestList(t *testing.T) {
+func TestSlice(t *testing.T) {
 	set := strset.New()
-	require.Equal(t, set.List(), []string{})
+	require.Equal(t, set.Slice(), []string{})
 
 	set.Add("a")
-	require.Equal(t, set.List(), []string{"a"})
+	require.Equal(t, set.Slice(), []string{"a"})
 
 	set.Add("a", "b")
-	require.ElementsMatch(t, set.List(), []string{"a", "b"})
+	require.ElementsMatch(t, set.Slice(), []string{"a", "b"})
 }
 
 func TestMerge(t *testing.T) {

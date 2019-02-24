@@ -109,6 +109,9 @@ test:
 test-go:
 	@./build/test.sh go
 
+lint-go:
+	@./build/golint.sh go
+
 test-python:
 	@./build/test.sh python
 

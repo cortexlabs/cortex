@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/cortexlabs/cortex/pkg/lib/util"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
 
 func TestStrSliceElementsMatch(t *testing.T) {
@@ -30,35 +30,35 @@ func TestStrSliceElementsMatch(t *testing.T) {
 
 	strs1 = []string{}
 	strs2 = []string{}
-	require.True(t, util.StrSliceElementsMatch(strs1, strs2))
+	require.True(t, slices.StrSliceElementsMatch(strs1, strs2))
 
 	strs1 = []string{"1"}
 	strs2 = []string{"1"}
-	require.True(t, util.StrSliceElementsMatch(strs1, strs2))
+	require.True(t, slices.StrSliceElementsMatch(strs1, strs2))
 
 	strs1 = []string{"1", "2", "3"}
 	strs2 = []string{"1", "2", "3"}
-	require.True(t, util.StrSliceElementsMatch(strs1, strs2))
+	require.True(t, slices.StrSliceElementsMatch(strs1, strs2))
 
 	strs1 = []string{"1", "2", "3"}
 	strs2 = []string{"1", "2", "3", "4"}
-	require.False(t, util.StrSliceElementsMatch(strs1, strs2))
+	require.False(t, slices.StrSliceElementsMatch(strs1, strs2))
 
 	strs1 = []string{"1", "2", "3"}
 	strs2 = []string{"1", "4", "3"}
-	require.False(t, util.StrSliceElementsMatch(strs1, strs2))
+	require.False(t, slices.StrSliceElementsMatch(strs1, strs2))
 
 	strs1 = []string{"1", "2", "3"}
 	strs2 = []string{"3", "2", "1"}
-	require.True(t, util.StrSliceElementsMatch(strs1, strs2))
+	require.True(t, slices.StrSliceElementsMatch(strs1, strs2))
 
 	strs1 = []string{"2", "1", "2", "3"}
 	strs2 = []string{"3", "2", "1", "2"}
-	require.True(t, util.StrSliceElementsMatch(strs1, strs2))
+	require.True(t, slices.StrSliceElementsMatch(strs1, strs2))
 	require.Equal(t, []string{"2", "1", "2", "3"}, strs1) // ensure sort didn't get applied
 	require.Equal(t, []string{"3", "2", "1", "2"}, strs2) // ensure sort didn't get applied
 
 	strs1 = []string{"2", "1", "2", "3"}
 	strs2 = []string{"3", "2", "1"}
-	require.False(t, util.StrSliceElementsMatch(strs1, strs2))
+	require.False(t, slices.StrSliceElementsMatch(strs1, strs2))
 }

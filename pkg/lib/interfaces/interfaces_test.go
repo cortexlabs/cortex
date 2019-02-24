@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package interfaces
+package interfaces_test
 
 import (
 	"testing"
@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/util"
+	"github.com/cortexlabs/cortex/pkg/lib/interfaces"
 )
 
 func TestFlattenAllStrValues(t *testing.T) {
@@ -89,7 +89,7 @@ func TestFlattenAllStrValues(t *testing.T) {
 }
 
 func CheckFlattenAllStrValues(obj interface{}, expected []string, t *testing.T) {
-	flattened, err := util.FlattenAllStrValues(obj)
+	flattened, err := interfaces.FlattenAllStrValues(obj)
 	require.NoError(t, err)
 	require.Equal(t, expected, flattened)
 }

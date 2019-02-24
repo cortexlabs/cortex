@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/util"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 )
 
 type MyFloat float64
@@ -68,7 +68,7 @@ func TestObj(t *testing.T) {
 	require.Equal(t, "2.0", s.Obj(float32(2)))
 	require.Equal(t, "2.0", s.Obj(float64(2)))
 	require.Equal(t, "3", s.Obj(int(3)))
-	require.Equal(t, "3", s.Obj(util.IntPtr(3)))
+	require.Equal(t, "3", s.Obj(pointer.Int(3)))
 	require.Equal(t, "-3", s.Obj(int8(-3)))
 	require.Equal(t, "3", s.Obj(int16(3)))
 	require.Equal(t, "-3", s.Obj(int32(-3)))
@@ -80,7 +80,7 @@ func TestObj(t *testing.T) {
 	require.Equal(t, "4", s.Obj(int64(4)))
 	require.Equal(t, `""`, s.Obj(""))
 	require.Equal(t, `"test"`, s.Obj("test"))
-	require.Equal(t, `"test"`, s.Obj(util.StrPtr("test")))
+	require.Equal(t, `"test"`, s.Obj(pointer.Str("test")))
 
 	var myFloat MyFloat = 2
 	require.Equal(t, "2.0", s.Obj(myFloat))
@@ -123,7 +123,7 @@ func TestObj(t *testing.T) {
 		Float: 2,
 		Test2Ptr: &Test2{
 			Bool:  false,
-			Float: util.Float64Ptr(1.7),
+			Float: pointer.Float64(1.7),
 			Strs:  &strSlice,
 			Test3Ptr: &Test3{
 				Strs: []string{"a", "b", "c"},

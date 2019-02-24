@@ -19,13 +19,13 @@ package pointer_test
 import (
 	"testing"
 
-	"github.com/cortexlabs/cortex/pkg/lib/util"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 )
 
 func TestIndirectSafe(t *testing.T) {
-	util.IndirectSafe(nil)
-	util.IndirectSafe("")
-	util.IndirectSafe([]string{})
+	pointer.IndirectSafe(nil)
+	pointer.IndirectSafe("")
+	pointer.IndirectSafe([]string{})
 	var s []string
-	util.IndirectSafe(s)
+	pointer.IndirectSafe(s)
 }

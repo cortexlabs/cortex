@@ -24,15 +24,17 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 )
 
 func TestZip(t *testing.T) {
-	tmpDir, err := util.TmpDir()
+	tmpDir, err := files.TmpDir()
 	defer os.RemoveAll(tmpDir)
 	require.NoError(t, err)
 
-	files := []string{
+	filesList := []string{
 		filepath.Join(tmpDir, "1.txt"),
 		filepath.Join(tmpDir, "2.py"),
 		filepath.Join(tmpDir, "3/1.py"),
@@ -46,23 +48,23 @@ func TestZip(t *testing.T) {
 		filepath.Join(tmpDir, "5/4/3/2/2/1.py"),
 	}
 
-	err = util.MakeEmptyFiles(files...)
+	err = files.MakeEmptyFiles(filesList...)
 	require.NoError(t, err)
 
-	var zipInput *util.ZipInput
+	var zipInput *zip.Input
 	var expected []string
 
-	zipInput = &util.ZipInput{
-		Bytes: []util.ZipBytesInput{
-			util.ZipBytesInput{
+	zipInput = &zip.Input{
+		Bytes: []zip.BytesInput{
+			zip.BytesInput{
 				Content: []byte(""),
 				Dest:    "text.txt",
 			},
-			util.ZipBytesInput{
+			zip.BytesInput{
 				Content: []byte(""),
 				Dest:    "test2/text2.txt",
 			},
-			util.ZipBytesInput{
+			zip.BytesInput{
 				Content: []byte(""),
 				Dest:    "/test3/text3.txt",
 			},
@@ -75,25 +77,25 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, expected, false, t)
 
-	zipInput = &util.ZipInput{
-		Files: []util.ZipFileInput{
-			util.ZipFileInput{
+	zipInput = &zip.Input{
+		Files: []zip.FileInput{
+			zip.FileInput{
 				Source: filepath.Join(tmpDir, "1.txt"),
 				Dest:   "1.txt",
 			},
-			util.ZipFileInput{
+			zip.FileInput{
 				Source: filepath.Join(tmpDir, "3/1.py"),
 				Dest:   "3/1.py",
 			},
-			util.ZipFileInput{
+			zip.FileInput{
 				Source: filepath.Join(tmpDir, "3/2/1.py"),
 				Dest:   "3/2/1.py",
 			},
-			util.ZipFileInput{
+			zip.FileInput{
 				Source: filepath.Join(tmpDir, "3/2/3/.tmp"),
 				Dest:   "3/2/3/.tmp",
 			},
-			util.ZipFileInput{
+			zip.FileInput{
 				Source: filepath.Join(tmpDir, "4/2.pyc"),
 				Dest:   "4/4/2.pyc",
 			},
@@ -108,13 +110,13 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, expected, false, t)
 
-	zipInput = &util.ZipInput{
-		Files: []util.ZipFileInput{
-			util.ZipFileInput{
+	zipInput = &zip.Input{
+		Files: []zip.FileInput{
+			zip.FileInput{
 				Source: filepath.Join(tmpDir, "1.txt"),
 				Dest:   "1.txt",
 			},
-			util.ZipFileInput{
+			zip.FileInput{
 				Source: filepath.Join(tmpDir, "test.txt"),
 				Dest:   "test.txt",
 			},
@@ -125,15 +127,15 @@ func TestZip(t *testing.T) {
 	zipInput.AllowMissing = false
 	CheckZip(zipInput, nil, true, t)
 
-	zipInput = &util.ZipInput{
-		Bytes: []util.ZipBytesInput{
-			util.ZipBytesInput{
+	zipInput = &zip.Input{
+		Bytes: []zip.BytesInput{
+			zip.BytesInput{
 				Content: []byte(""),
 				Dest:    "text.txt",
 			},
 		},
-		Files: []util.ZipFileInput{
-			util.ZipFileInput{
+		Files: []zip.FileInput{
+			zip.FileInput{
 				Source: filepath.Join(tmpDir, "1.txt"),
 				Dest:   "1/2/3.txt",
 			},
@@ -146,15 +148,15 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, expected, false, t)
 
-	zipInput = &util.ZipInput{
-		Bytes: []util.ZipBytesInput{
-			util.ZipBytesInput{
+	zipInput = &zip.Input{
+		Bytes: []zip.BytesInput{
+			zip.BytesInput{
 				Content: []byte(""),
 				Dest:    "text.txt",
 			},
 		},
-		Files: []util.ZipFileInput{
-			util.ZipFileInput{
+		Files: []zip.FileInput{
+			zip.FileInput{
 				Source: filepath.Join(tmpDir, "1.txt"),
 				Dest:   "1/2/3.txt",
 			},
@@ -167,7 +169,7 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, expected, false, t)
 
-	zipInput = &util.ZipInput{
+	zipInput = &zip.Input{
 		EmptyFiles: []string{
 			"text.txt",
 			"1/2/3.txt",
@@ -179,9 +181,9 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, expected, false, t)
 
-	zipInput = &util.ZipInput{
-		Dirs: []util.ZipDirInput{
-			util.ZipDirInput{
+	zipInput = &zip.Input{
+		Dirs: []zip.DirInput{
+			zip.DirInput{
 				Source: tmpDir,
 			},
 		},
@@ -201,9 +203,9 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, expected, false, t)
 
-	zipInput = &util.ZipInput{
-		Dirs: []util.ZipDirInput{
-			util.ZipDirInput{
+	zipInput = &zip.Input{
+		Dirs: []zip.DirInput{
+			zip.DirInput{
 				Source: filepath.Join(tmpDir, "3"),
 				Dest:   ".",
 			},
@@ -217,12 +219,12 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, expected, false, t)
 
-	zipInput = &util.ZipInput{
-		Dirs: []util.ZipDirInput{
-			util.ZipDirInput{
+	zipInput = &zip.Input{
+		Dirs: []zip.DirInput{
+			zip.DirInput{
 				Source:    tmpDir,
 				Dest:      "/",
-				IgnoreFns: []util.IgnoreFn{util.IgnoreHiddenFiles},
+				IgnoreFns: []files.IgnoreFn{files.IgnoreHiddenFiles},
 			},
 		},
 	}
@@ -240,15 +242,15 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, expected, false, t)
 
-	zipInput = &util.ZipInput{
-		Dirs: []util.ZipDirInput{
-			util.ZipDirInput{
+	zipInput = &zip.Input{
+		Dirs: []zip.DirInput{
+			zip.DirInput{
 				Source:    filepath.Join(tmpDir, "3"),
-				IgnoreFns: []util.IgnoreFn{util.IgnoreHiddenFiles},
+				IgnoreFns: []files.IgnoreFn{files.IgnoreHiddenFiles},
 				Dest:      "test3",
 				Flatten:   true,
 			},
-			util.ZipDirInput{
+			zip.DirInput{
 				Source: filepath.Join(tmpDir, "4"),
 				Dest:   "test4/",
 			},
@@ -263,9 +265,9 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, expected, false, t)
 
-	zipInput = &util.ZipInput{
-		Dirs: []util.ZipDirInput{
-			util.ZipDirInput{
+	zipInput = &zip.Input{
+		Dirs: []zip.DirInput{
+			zip.DirInput{
 				Source:       filepath.Join(tmpDir, "5"),
 				RemovePrefix: "4/3",
 			},
@@ -278,9 +280,9 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, expected, false, t)
 
-	zipInput = &util.ZipInput{
-		Dirs: []util.ZipDirInput{
-			util.ZipDirInput{
+	zipInput = &zip.Input{
+		Dirs: []zip.DirInput{
+			zip.DirInput{
 				Source:       filepath.Join(tmpDir, "5"),
 				RemovePrefix: "/4/3",
 			},
@@ -293,9 +295,9 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, expected, false, t)
 
-	zipInput = &util.ZipInput{
-		Dirs: []util.ZipDirInput{
-			util.ZipDirInput{
+	zipInput = &zip.Input{
+		Dirs: []zip.DirInput{
+			zip.DirInput{
 				Source:  filepath.Join(tmpDir, "5"),
 				Flatten: true,
 			},
@@ -308,9 +310,9 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, expected, false, t)
 
-	zipInput = &util.ZipInput{
-		Dirs: []util.ZipDirInput{
-			util.ZipDirInput{
+	zipInput = &zip.Input{
+		Dirs: []zip.DirInput{
+			zip.DirInput{
 				Source:             filepath.Join(tmpDir, "5"),
 				RemoveCommonPrefix: true,
 			},
@@ -323,13 +325,13 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, expected, false, t)
 
-	zipInput = &util.ZipInput{
-		Bytes: []util.ZipBytesInput{
-			util.ZipBytesInput{
+	zipInput = &zip.Input{
+		Bytes: []zip.BytesInput{
+			zip.BytesInput{
 				Content: []byte(""),
 				Dest:    "1/text.txt",
 			},
-			util.ZipBytesInput{
+			zip.BytesInput{
 				Content: []byte(""),
 				Dest:    "1/text.txt",
 			},
@@ -337,9 +339,9 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, nil, true, t)
 
-	zipInput = &util.ZipInput{
-		Bytes: []util.ZipBytesInput{
-			util.ZipBytesInput{
+	zipInput = &zip.Input{
+		Bytes: []zip.BytesInput{
+			zip.BytesInput{
 				Content: []byte(""),
 				Dest:    "1/text.txt",
 			},
@@ -348,9 +350,9 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, nil, true, t)
 
-	zipInput = &util.ZipInput{
-		Dirs: []util.ZipDirInput{
-			util.ZipDirInput{
+	zipInput = &zip.Input{
+		Dirs: []zip.DirInput{
+			zip.DirInput{
 				Source:  filepath.Join(tmpDir, "3"),
 				Flatten: true,
 			},
@@ -358,9 +360,9 @@ func TestZip(t *testing.T) {
 	}
 	CheckZip(zipInput, nil, true, t)
 
-	zipInput = &util.ZipInput{
-		Dirs: []util.ZipDirInput{
-			util.ZipDirInput{
+	zipInput = &zip.Input{
+		Dirs: []zip.DirInput{
+			zip.DirInput{
 				Source:  filepath.Join(tmpDir, "5"),
 				Flatten: true,
 			},
@@ -369,33 +371,33 @@ func TestZip(t *testing.T) {
 	CheckZip(zipInput, nil, true, t)
 }
 
-func CheckZip(zipInput *zip.ZipInput, expected []string, shouldErr bool, t *testing.T) {
-	tmpDir, err := util.TmpDir()
+func CheckZip(zipInput *zip.Input, expected []string, shouldErr bool, t *testing.T) {
+	tmpDir, err := files.TmpDir()
 	defer os.RemoveAll(tmpDir)
 	require.NoError(t, err)
 
-	err = util.Zip(zipInput, filepath.Join(tmpDir, "zip.zip"))
+	err = zip.Zip(zipInput, filepath.Join(tmpDir, "zip.zip"))
 	if shouldErr {
 		require.Error(t, err)
 		return
 	}
 	require.NoError(t, err)
 
-	_, err = util.Unzip(filepath.Join(tmpDir, "zip.zip"), filepath.Join(tmpDir, "zip"))
+	_, err = zip.Unzip(filepath.Join(tmpDir, "zip.zip"), filepath.Join(tmpDir, "zip"))
 	require.NoError(t, err)
 
-	unzippedFiles, err := util.ListDirRecursive(filepath.Join(tmpDir, "zip"), true)
+	unzippedFiles, err := files.ListDirRecursive(filepath.Join(tmpDir, "zip"), true)
 	require.NoError(t, err)
 
 	require.ElementsMatch(t, expected, unzippedFiles)
 
-	contents, err := util.UnzipFileToMem(filepath.Join(tmpDir, "zip.zip"))
+	contents, err := zip.UnzipFileToMem(filepath.Join(tmpDir, "zip.zip"))
 	require.NoError(t, err)
-	require.ElementsMatch(t, expected, util.InterfaceMapKeysUnsafe(contents))
+	require.ElementsMatch(t, expected, maps.InterfaceMapKeysUnsafe(contents))
 
 	zipBytes, err := ioutil.ReadFile(filepath.Join(tmpDir, "zip.zip"))
 	require.NoError(t, err)
-	contents, err = util.UnzipMemToMem(zipBytes)
+	contents, err = zip.UnzipMemToMem(zipBytes)
 	require.NoError(t, err)
-	require.ElementsMatch(t, expected, util.InterfaceMapKeysUnsafe(contents))
+	require.ElementsMatch(t, expected, maps.InterfaceMapKeysUnsafe(contents))
 }
