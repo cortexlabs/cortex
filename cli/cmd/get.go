@@ -419,7 +419,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 		samplePlaceholderFields = append(samplePlaceholderFields, fieldStr)
 	}
 	samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"
-	out += "URL:      " + urls.URLJoin(resourcesRes.APIsBaseURL, anyAPIStatus.Path) + "\n"
+	out += "URL:      " + urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path) + "\n"
 	out += "Method:   POST\n"
 	out += `Header:   "Content-Type: application/json"` + "\n"
 	out += "Payload:  " + samplesPlaceholderStr + "\n"

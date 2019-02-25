@@ -22,15 +22,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 )
 
-func CleanURL(urlStr string) string {
-	i := strings.Index(urlStr, "?")
-	if i != -1 {
-		urlStr = urlStr[:i]
-	}
-	return urlStr
-}
-
-func URLJoin(strs ...string) string {
+func Join(strs ...string) string {
 	fullPath := ""
 	for i, str := range strs {
 		if i == 0 {
