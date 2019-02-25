@@ -49,7 +49,7 @@ func SortFloat32s(a []float32)       { sort.Sort(Float32Slice(a)) }
 // Sort with copying
 
 func SortStrsCopy(a []string) []string {
-	aCopy := CopyStrSlice(a)
+	aCopy := CopyStrings(a)
 	sort.Strings(aCopy)
 	return aCopy
 }

@@ -27,12 +27,12 @@ import (
 )
 
 func isValidColumnOutputType(columnTypeStr string) bool {
-	return slices.IsStrInSlice(columnTypeStr, ColumnTypeStrings())
+	return slices.HasString(columnTypeStr, ColumnTypeStrings())
 }
 
 func isValidColumnInputType(columnTypeStr string) bool {
 	for _, columnTypeStrItem := range strings.Split(columnTypeStr, "|") {
-		if !slices.IsStrInSlice(columnTypeStrItem, ColumnTypeStrings()) {
+		if !slices.HasString(columnTypeStrItem, ColumnTypeStrings()) {
 			return false
 		}
 	}
@@ -41,7 +41,7 @@ func isValidColumnInputType(columnTypeStr string) bool {
 
 func isValidValueType(valueTypeStr string) bool {
 	for _, valueTypeStrItem := range strings.Split(valueTypeStr, "|") {
-		if !slices.IsStrInSlice(valueTypeStrItem, ValueTypeStrings()) {
+		if !slices.HasString(valueTypeStrItem, ValueTypeStrings()) {
 			return false
 		}
 	}
@@ -138,7 +138,7 @@ func CheckColumnRuntimeTypesMatch(columnRuntimeTypes map[string]interface{}, col
 			if !ok {
 				return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeType, validTypes), columnInputName)
 			}
-			if !slices.IsStrInSlice(columnRuntimeTypeStr, validTypes) {
+			if !slices.HasString(columnRuntimeTypeStr, validTypes) {
 				return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeTypeStr, validTypes), columnInputName)
 			}
 			continue
@@ -151,7 +151,7 @@ func CheckColumnRuntimeTypesMatch(columnRuntimeTypes map[string]interface{}, col
 				return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeType, columnSchemaTypeStrs), columnInputName)
 			}
 			for i, columnRuntimeTypeStr := range columnRuntimeTypeStrs {
-				if !slices.IsStrInSlice(columnRuntimeTypeStr, validTypes) {
+				if !slices.HasString(columnRuntimeTypeStr, validTypes) {
 					return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeTypeStr, validTypes), columnInputName, s.Index(i))
 				}
 			}
@@ -265,27 +265,27 @@ func CastValue(value interface{}, valueType interface{}) (interface{}, error) {
 		validTypes := strings.Split(valueTypeStr, "|")
 		var validTypeNames []s.PrimitiveType
 
-		if slices.IsStrInSlice(IntegerValueType.String(), validTypes) {
+		if slices.HasString(IntegerValueType.String(), validTypes) {
 			validTypeNames = append(validTypeNames, s.PrimTypeInt)
 			valueInt, ok := cast.InterfaceToInt64(value)
 			if ok {
 				return valueInt, nil
 			}
 		}
-		if slices.IsStrInSlice(FloatValueType.String(), validTypes) {
+		if slices.HasString(FloatValueType.String(), validTypes) {
 			validTypeNames = append(validTypeNames, s.PrimTypeFloat)
 			valueFloat, ok := cast.InterfaceToFloat64(value)
 			if ok {
 				return valueFloat, nil
 			}
 		}
-		if slices.IsStrInSlice(StringValueType.String(), validTypes) {
+		if slices.HasString(StringValueType.String(), validTypes) {
 			validTypeNames = append(validTypeNames, s.PrimTypeString)
 			if valueStr, ok := value.(string); ok {
 				return valueStr, nil
 			}
 		}
-		if slices.IsStrInSlice(BoolValueType.String(), validTypes) {
+		if slices.HasString(BoolValueType.String(), validTypes) {
 			validTypeNames = append(validTypeNames, s.PrimTypeBool)
 			if valueBool, ok := value.(bool); ok {
 				return valueBool, nil
@@ -421,7 +421,7 @@ func CheckValueRuntimeTypesMatch(runtimeType interface{}, schemaType interface{}
 			return ErrorUnsupportedDataType(runtimeType, schemaTypeStr)
 		}
 		for _, runtimeTypeOption := range strings.Split(runtimeTypeStr, "|") {
-			if !slices.IsStrInSlice(runtimeTypeOption, validTypes) {
+			if !slices.HasString(runtimeTypeOption, validTypes) {
 				return ErrorUnsupportedDataType(runtimeTypeStr, schemaTypeStr)
 			}
 		}
@@ -489,7 +489,7 @@ func CheckValueRuntimeTypesMatch(runtimeType interface{}, schemaType interface{}
 			return ErrorUnsupportedDataType(runtimeType, schemaTypeStrs)
 		}
 		for _, runtimeTypeOption := range strings.Split(runtimeTypeStrs[0], "|") {
-			if !slices.IsStrInSlice(runtimeTypeOption, validTypes) {
+			if !slices.HasString(runtimeTypeOption, validTypes) {
 				return ErrorUnsupportedDataType(runtimeTypeStrs, schemaTypeStrs)
 			}
 		}

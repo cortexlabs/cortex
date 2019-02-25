@@ -18,7 +18,7 @@ package slices
 
 import libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 
-func IsStrInSlice(query string, list []string) bool {
+func HasString(query string, list []string) bool {
 	for _, elem := range list {
 		if elem == query {
 			return true
@@ -27,7 +27,7 @@ func IsStrInSlice(query string, list []string) bool {
 	return false
 }
 
-func IsAnyStrInSlice(queries []string, list []string) bool {
+func HasAnyStrings(queries []string, list []string) bool {
 	keys := make(map[string]bool)
 	for _, elem := range queries {
 		keys[elem] = true
@@ -40,7 +40,7 @@ func IsAnyStrInSlice(queries []string, list []string) bool {
 	return false
 }
 
-func AreAllStrsInSlice(queries []string, list []string) bool {
+func HasAllStrings(queries []string, list []string) bool {
 	keys := make(map[string]bool)
 	for _, elem := range list {
 		keys[elem] = true
@@ -53,11 +53,11 @@ func AreAllStrsInSlice(queries []string, list []string) bool {
 	return true
 }
 
-func CopyStrSlice(vals []string) []string {
+func CopyStrings(vals []string) []string {
 	return append(vals[:0:0], vals...)
 }
 
-func UniqueStrs(strs []string) []string {
+func UniqueStrings(strs []string) []string {
 	keys := make(map[string]bool)
 	out := []string{}
 	for _, elem := range strs {
@@ -119,7 +119,7 @@ func FindDuplicateStrs(in []string) []string {
 func SubtractStrSlice(slice1 []string, slice2 []string) []string {
 	result := []string{}
 	for _, elem := range slice1 {
-		if !IsStrInSlice(elem, slice2) {
+		if !HasString(elem, slice2) {
 			result = append(result, elem)
 		}
 	}
