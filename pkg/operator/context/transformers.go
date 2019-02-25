@@ -49,7 +49,7 @@ func init() {
 		if err != nil {
 			errors.Exit(err, userconfig.Identify(transConfig), s.ErrReadFile(implPath))
 		}
-		transformer, err := newTransformer(*transConfig, impl, pointer.Str("cortex"), nil)
+		transformer, err := newTransformer(*transConfig, impl, pointer.String("cortex"), nil)
 		if err != nil {
 			errors.Exit(err)
 		}

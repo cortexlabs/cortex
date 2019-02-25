@@ -79,15 +79,15 @@ func init() {
 func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCompute *userconfig.SparkCompute, args ...string) *sparkop.SparkApplication {
 	var driverMemOverhead *string
 	if sparkCompute.DriverMemOverhead != nil {
-		driverMemOverhead = pointer.Str(s.Int64(sparkCompute.DriverMemOverhead.ToKi()) + "k")
+		driverMemOverhead = pointer.String(s.Int64(sparkCompute.DriverMemOverhead.ToKi()) + "k")
 	}
 	var executorMemOverhead *string
 	if sparkCompute.ExecutorMemOverhead != nil {
-		executorMemOverhead = pointer.Str(s.Int64(sparkCompute.ExecutorMemOverhead.ToKi()) + "k")
+		executorMemOverhead = pointer.String(s.Int64(sparkCompute.ExecutorMemOverhead.ToKi()) + "k")
 	}
 	var memOverheadFactor *string
 	if sparkCompute.MemOverheadFactor != nil {
-		memOverheadFactor = pointer.Str(s.Float64(*sparkCompute.MemOverheadFactor))
+		memOverheadFactor = pointer.String(s.Float64(*sparkCompute.MemOverheadFactor))
 	}
 
 	return &sparkop.SparkApplication{
@@ -106,11 +106,11 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 		},
 		Spec: sparkop.SparkApplicationSpec{
 			Type:                 sparkop.PythonApplicationType,
-			PythonVersion:        pointer.Str("3"),
+			PythonVersion:        pointer.String("3"),
 			Mode:                 sparkop.ClusterMode,
 			Image:                &cc.SparkImage,
-			ImagePullPolicy:      pointer.Str("Always"),
-			MainApplicationFile:  pointer.Str("local:///src/spark_job/spark_job.py"),
+			ImagePullPolicy:      pointer.String("Always"),
+			MainApplicationFile:  pointer.String("local:///src/spark_job/spark_job.py"),
 			RestartPolicy:        sparkop.RestartPolicy{Type: sparkop.Never},
 			MemoryOverheadFactor: memOverheadFactor,
 			Arguments: []string{
@@ -126,7 +126,7 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 			Driver: sparkop.DriverSpec{
 				SparkPodSpec: sparkop.SparkPodSpec{
 					Cores:          pointer.Float32(sparkCompute.DriverCPU.ToFloat32()),
-					Memory:         pointer.Str(s.Int64(sparkCompute.DriverMem.ToKi()) + "k"),
+					Memory:         pointer.String(s.Int64(sparkCompute.DriverMem.ToKi()) + "k"),
 					MemoryOverhead: driverMemOverhead,
 					Labels: map[string]string{
 						"workloadID":   workloadID,
@@ -152,12 +152,12 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 					},
 				},
 				PodName:        &workloadID,
-				ServiceAccount: pointer.Str("spark"),
+				ServiceAccount: pointer.String("spark"),
 			},
 			Executor: sparkop.ExecutorSpec{
 				SparkPodSpec: sparkop.SparkPodSpec{
 					Cores:          pointer.Float32(sparkCompute.ExecutorCPU.ToFloat32()),
-					Memory:         pointer.Str(s.Int64(sparkCompute.ExecutorMem.ToKi()) + "k"),
+					Memory:         pointer.String(s.Int64(sparkCompute.ExecutorMem.ToKi()) + "k"),
 					MemoryOverhead: executorMemOverhead,
 					Labels: map[string]string{
 						"workloadID":   workloadID,

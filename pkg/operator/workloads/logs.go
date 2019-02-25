@@ -243,15 +243,15 @@ var tensorflowRegex = regexp.MustCompile(`^?(DEBUG|INFO|WARNING|ERROR|CRITICAL):
 
 func formatHeader1(headerString string) *string {
 	headerBorder := "\n" + strings.Repeat("-", len(headerString)) + "\n"
-	return pointer.Str(headerBorder + strings.Title(headerString) + headerBorder)
+	return pointer.String(headerBorder + strings.Title(headerString) + headerBorder)
 }
 
 func formatHeader2(headerString string) *string {
-	return pointer.Str("\n" + strings.ToUpper(string(headerString[0])) + headerString[1:] + "\n")
+	return pointer.String("\n" + strings.ToUpper(string(headerString[0])) + headerString[1:] + "\n")
 }
 
 func formatHeader3(headerString string) *string {
-	return pointer.Str("\n" + strings.ToUpper(string(headerString[0])) + headerString[1:])
+	return pointer.String("\n" + strings.ToUpper(string(headerString[0])) + headerString[1:])
 }
 
 func extractFromCortexLog(match string, loglevel string, logStr string) (*string, bool) {
@@ -319,7 +319,7 @@ func extractFromCortexLog(match string, loglevel string, logStr string) (*string
 	}
 
 	if strings.HasPrefix(cutStr, "error:") {
-		return pointer.Str("\n" + cutStr), false
+		return pointer.String("\n" + cutStr), false
 	}
 
 	if strings.HasPrefix(cutStr, "An error occurred") {
@@ -336,7 +336,7 @@ func extractFromTensorflowLog(match string, loglevel string, logStr string) (*st
 
 	cutStr := logStr[len(match):]
 	if strings.HasPrefix(cutStr, "loss = ") {
-		return pointer.Str(cutStr), false
+		return pointer.String(cutStr), false
 	}
 	if strings.HasPrefix(cutStr, "Starting evaluation") {
 		return formatHeader1("Evaluating"), false
@@ -346,7 +346,7 @@ func extractFromTensorflowLog(match string, loglevel string, logStr string) (*st
 		metricsStr = strings.TrimSpace(metricsStr)
 		metrics := strings.Split(metricsStr, ", ")
 		outStr := strings.Join(metrics, "\n")
-		return pointer.Str(outStr), false
+		return pointer.String(outStr), false
 	}
 
 	return nil, false

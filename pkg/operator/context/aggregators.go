@@ -49,7 +49,7 @@ func init() {
 		if err != nil {
 			errors.Exit(err, userconfig.Identify(aggregatorConfig), s.ErrReadFile(implPath))
 		}
-		aggregator, err := newAggregator(*aggregatorConfig, impl, pointer.Str("cortex"), nil)
+		aggregator, err := newAggregator(*aggregatorConfig, impl, pointer.String("cortex"), nil)
 		if err != nil {
 			errors.Exit(err)
 		}

@@ -49,7 +49,7 @@ func Float32(val float32) *float32 {
 	return &val
 }
 
-func Str(val string) *string {
+func String(val string) *string {
 	return &val
 }
 

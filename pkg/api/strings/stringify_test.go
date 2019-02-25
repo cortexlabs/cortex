@@ -80,7 +80,7 @@ func TestObj(t *testing.T) {
 	require.Equal(t, "4", s.Obj(int64(4)))
 	require.Equal(t, `""`, s.Obj(""))
 	require.Equal(t, `"test"`, s.Obj("test"))
-	require.Equal(t, `"test"`, s.Obj(pointer.Str("test")))
+	require.Equal(t, `"test"`, s.Obj(pointer.String("test")))
 
 	var myFloat MyFloat = 2
 	require.Equal(t, "2.0", s.Obj(myFloat))
