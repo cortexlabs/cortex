@@ -101,7 +101,7 @@ func (ctx *Context) RawColumnInputNames(model *Model) []string {
 		col := ctx.GetColumn(colName)
 		rawColumnInputNames.Add(col.GetInputRawColumnNames()...)
 	}
-	list := rawColumnInputNames.Slice()
-	sort.Strings(list)
-	return list
+	columnNames := rawColumnInputNames.Slice()
+	sort.Strings(columnNames)
+	return columnNames
 }

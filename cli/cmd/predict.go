@@ -29,7 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	libstring "github.com/cortexlabs/cortex/pkg/lib/strings"
+	libstrings "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
@@ -120,7 +120,7 @@ var predictCmd = &cobra.Command{
 					json, _ := json.Marshal(prediction.PredictedValueReversed)
 					fmt.Println(s.TrimPrefixAndSuffix(string(json), "\""))
 				} else {
-					fmt.Println(libstring.Round(prediction.PredictedValue, 2, true))
+					fmt.Println(libstrings.Round(prediction.PredictedValue, 2, true))
 				}
 			}
 		}
