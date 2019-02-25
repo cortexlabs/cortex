@@ -25,6 +25,6 @@ import (
 func getApp(appConfig *userconfig.App) *context.App {
 	return &context.App{
 		App: appConfig,
-		ID:  hash.Str(appConfig.Name),
+		ID:  hash.String(appConfig.Name),
 	}
 }

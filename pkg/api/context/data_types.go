@@ -35,5 +35,5 @@ func DataTypeID(dataType interface{}) string {
 		replacement := strings.Join(parts, "|")
 		dataTypeStr = strings.Replace(dataTypeStr, match, replacement, -1)
 	}
-	return hash.Str(dataTypeStr)
+	return hash.String(dataTypeStr)
 }

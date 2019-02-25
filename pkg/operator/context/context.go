@@ -164,7 +164,7 @@ func calculateID(ctx *context.Context) string {
 	}
 
 	sort.Strings(ids)
-	return hash.Str(strings.Join(ids, ""))
+	return hash.String(strings.Join(ids, ""))
 }
 
 func DownloadContext(ctxID string, appName string) (*context.Context, error) {

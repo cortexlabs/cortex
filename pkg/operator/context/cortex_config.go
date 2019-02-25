@@ -29,6 +29,6 @@ func getCortexConfig() *context.CortexConfig {
 		Bucket:     cc.Bucket,
 		Region:     cc.Region,
 		LogGroup:   cc.LogGroup,
-		ID:         hash.Str(cc.Bucket + cc.Region + cc.LogGroup),
+		ID:         hash.String(cc.Bucket + cc.Region + cc.LogGroup),
 	}
 }

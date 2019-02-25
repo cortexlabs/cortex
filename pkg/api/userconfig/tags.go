@@ -34,5 +34,5 @@ var tagsFieldValidation = &cr.StructFieldValidation{
 }
 
 func (tags Tags) ID() string {
-	return hash.Obj(tags)
+	return hash.Any(tags)
 }

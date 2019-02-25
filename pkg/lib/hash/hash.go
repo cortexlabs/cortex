@@ -33,12 +33,12 @@ func Bytes(bytes []byte) string {
 	return str[:63]
 }
 
-func Str(str string) string {
+func String(str string) string {
 	return Bytes([]byte(str))
 }
 
-func Obj(obj interface{}) string {
-	return Str(s.Obj(obj))
+func Any(obj interface{}) string {
+	return String(s.Obj(obj))
 }
 
 func File(path string) (string, error) {

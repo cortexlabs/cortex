@@ -50,7 +50,7 @@ func newConstant(constantConfig userconfig.Constant) (*context.Constant, error) 
 	buf.WriteString(context.DataTypeID(constantConfig.Type))
 	buf.Write(msgpack.MustMarshal(constantConfig.Value))
 	id := hash.Bytes(buf.Bytes())
-	idWithTags := hash.Str(id + constantConfig.Tags.ID())
+	idWithTags := hash.String(id + constantConfig.Tags.ID())
 
 	constant := &context.Constant{
 		ResourceFields: &context.ResourceFields{

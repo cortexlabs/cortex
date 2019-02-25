@@ -49,7 +49,7 @@ func getRawColumns(
 			buf.WriteString(s.Obj(typedColumnConfig.Max))
 			buf.WriteString(s.Obj(slices.SortInt64sCopy(typedColumnConfig.Values)))
 			id := hash.Bytes(buf.Bytes())
-			idWithTags := hash.Str(id + typedColumnConfig.Tags.ID())
+			idWithTags := hash.String(id + typedColumnConfig.Tags.ID())
 			rawColumn = &context.RawIntColumn{
 				ComputedResourceFields: &context.ComputedResourceFields{
 					ResourceFields: &context.ResourceFields{
@@ -66,7 +66,7 @@ func getRawColumns(
 			buf.WriteString(s.Obj(typedColumnConfig.Max))
 			buf.WriteString(s.Obj(slices.SortFloat32sCopy(typedColumnConfig.Values)))
 			id := hash.Bytes(buf.Bytes())
-			idWithTags := hash.Str(id + typedColumnConfig.Tags.ID())
+			idWithTags := hash.String(id + typedColumnConfig.Tags.ID())
 			rawColumn = &context.RawFloatColumn{
 				ComputedResourceFields: &context.ComputedResourceFields{
 					ResourceFields: &context.ResourceFields{
@@ -81,7 +81,7 @@ func getRawColumns(
 			buf.WriteString(s.Bool(typedColumnConfig.Required))
 			buf.WriteString(s.Obj(slices.SortStrsCopy(typedColumnConfig.Values)))
 			id := hash.Bytes(buf.Bytes())
-			idWithTags := hash.Str(id + typedColumnConfig.Tags.ID())
+			idWithTags := hash.String(id + typedColumnConfig.Tags.ID())
 			rawColumn = &context.RawStringColumn{
 				ComputedResourceFields: &context.ComputedResourceFields{
 					ResourceFields: &context.ResourceFields{

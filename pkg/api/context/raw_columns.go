@@ -76,7 +76,7 @@ func (rawColumns RawColumns) columnInputsID(columnInputValues map[string]interfa
 			columnIDMap[columnInputName] = columnIDs
 		}
 	}
-	return hash.Obj(columnIDMap)
+	return hash.Any(columnIDMap)
 }
 
 func (rawColumns RawColumns) ColumnInputsID(columnInputValues map[string]interface{}) string {

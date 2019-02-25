@@ -70,7 +70,7 @@ func (columns Columns) ID(columnNames []string) string {
 	for _, columnName := range columnNames {
 		columnIDMap[columnName] = columns[columnName].GetID()
 	}
-	return hash.Obj(columnIDMap)
+	return hash.Any(columnIDMap)
 }
 
 func (columns Columns) IDWithTags(columnNames []string) string {
@@ -78,7 +78,7 @@ func (columns Columns) IDWithTags(columnNames []string) string {
 	for _, columnName := range columnNames {
 		columnIDMap[columnName] = columns[columnName].GetIDWithTags()
 	}
-	return hash.Obj(columnIDMap)
+	return hash.Any(columnIDMap)
 }
 
 func GetColumnRuntimeTypes(
