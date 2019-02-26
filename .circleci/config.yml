@@ -8,8 +8,8 @@ jobs:
       - checkout
       - run: go get -u -v golang.org/x/lint/golint
       - run:
-          name: Go Lint
-          command: make lint-go
+          name: Lint
+          command: make lint
       - run:
           name: License Test
           command: make find-missing-license

@@ -17,13 +17,15 @@
 
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
+
 CORTEX_VERSION=master
 
 function build_and_upload() {
   set -euo pipefail
 
   os=$1
-  GOOS=$os GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -o cortex github.com/cortexlabs/cortex/cli
+  GOOS=$os GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -o cortex "$ROOT/cli"
   aws s3 cp cortex s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/cli/$os/cortex --only-show-errors
   rm cortex
   echo "Uploaded CLI to s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/cli/$os/cortex"

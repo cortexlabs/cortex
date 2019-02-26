@@ -17,10 +17,12 @@
 
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
+
 CORTEX_VERSION=master
 
 dir=$1
 image=$2
 
-docker build . -f $dir/Dockerfile -t cortexlabs/$image \
-                                  -t cortexlabs/$image:$CORTEX_VERSION
+docker build "$ROOT" -f $dir/Dockerfile -t cortexlabs/$image \
+                                        -t cortexlabs/$image:$CORTEX_VERSION

@@ -14,25 +14,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# [FOR CI] make sure golint and gofmt are installed
-if ! command -v golint >/dev/null 2>&1; then
-  echo "golint must be installed"
-  exit 1
-fi
-if ! command -v gofmt >/dev/null 2>&1; then
-  echo "gofmt must be installed"
-  exit 1
-fi
+set -euo pipefail
 
-output=$(golint ./... | grep -v "comment")
-if [[ $output ]]; then
-  echo "$output"
-  exit 1
-fi
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-output=$(gofmt -s -l .)
-if [[ $output ]]; then
-  echo "gofmt failed on files:"
-  echo "$output"
-  exit 1
+function run_go_format() {
+  if ! command -v gofmt >/dev/null 2>&1; then
+    echo "gofmt must be installed"
+    exit 1
+  fi
+
+  gofmt -s -w "$ROOT"
+}
+
+function run_python_format() {
+  if ! command -v black >/dev/null 2>&1; then
+    echo "black must be installed"
+    exit 1
+  fi
+
+  black --quiet --line-length=100 "$ROOT"
+}
+
+cmd=${1:-""}
+
+if [ "$cmd" = "go" ]; then
+  run_go_format
+elif [ "$cmd" = "python" ]; then
+  run_python_format
+else
+  run_go_format
+  run_python_format
 fi
