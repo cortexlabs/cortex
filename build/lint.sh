@@ -15,6 +15,8 @@
 # limitations under the License.
 
 
+set -euo pipefail
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 function run_go_lint() {
@@ -28,13 +30,9 @@ function run_go_lint() {
     exit 1
   fi
 
-  output=$(go vet "$ROOT/..." 2>&1)
-  if [[ $output ]]; then
-    echo "$output"
-    exit 1
-  fi
+  go vet "$ROOT/..."
 
-  output=$(golint "$ROOT/..." | grep -v "comment")
+  output=$(golint "$ROOT/..." | grep -v "comment" || true)
   if [[ $output ]]; then
     echo "$output"
     exit 1
@@ -42,7 +40,7 @@ function run_go_lint() {
 
   output=$(gofmt -s -l "$ROOT")
   if [[ $output ]]; then
-    echo "go files not properly formatted:"
+    echo "go files not properly formatted (make format):"
     echo "$output"
     exit 1
   fi
@@ -56,7 +54,7 @@ function run_python_lint() {
 
   output=$(black --quiet --diff --line-length=100 "$ROOT")
   if [[ $output ]]; then
-    echo "python files not properly formatted:"
+    echo "python files not properly formatted (make format):"
     echo "$output"
     exit 1
   fi
