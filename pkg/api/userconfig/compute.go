@@ -49,14 +49,14 @@ var sparkComputeFieldValidation = &cr.StructFieldValidation{
 	StructField: "Compute",
 	StructValidation: &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				StructField: "Executors",
 				Int32Validation: &cr.Int32Validation{
 					Default:     1,
 					GreaterThan: pointer.Int32(0),
 				},
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "DriverCPU",
 				StringValidation: &cr.StringValidation{
 					Default: "1",
@@ -65,7 +65,7 @@ var sparkComputeFieldValidation = &cr.StructFieldValidation{
 					Min: k8sresource.MustParse("1"),
 				}),
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "ExecutorCPU",
 				StringValidation: &cr.StringValidation{
 					Default: "1",
@@ -75,7 +75,7 @@ var sparkComputeFieldValidation = &cr.StructFieldValidation{
 					Int: true,
 				}),
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "DriverMem",
 				StringValidation: &cr.StringValidation{
 					Default: "500Mi",
@@ -84,7 +84,7 @@ var sparkComputeFieldValidation = &cr.StructFieldValidation{
 					Min: k8sresource.MustParse("500Mi"),
 				}),
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "ExecutorMem",
 				StringValidation: &cr.StringValidation{
 					Default: "500Mi",
@@ -93,7 +93,7 @@ var sparkComputeFieldValidation = &cr.StructFieldValidation{
 					Min: k8sresource.MustParse("500Mi"),
 				}),
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "DriverMemOverhead",
 				StringPtrValidation: &cr.StringPtrValidation{
 					Default: nil, // min(DriverMem * 0.4, 384Mi)
@@ -102,7 +102,7 @@ var sparkComputeFieldValidation = &cr.StructFieldValidation{
 					Min: k8sresource.MustParse("0"),
 				}),
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "ExecutorMemOverhead",
 				StringPtrValidation: &cr.StringPtrValidation{
 					Default: nil, // min(ExecutorMem * 0.4, 384Mi)
@@ -111,7 +111,7 @@ var sparkComputeFieldValidation = &cr.StructFieldValidation{
 					Min: k8sresource.MustParse("0"),
 				}),
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "MemOverheadFactor",
 				Float64PtrValidation: &cr.Float64PtrValidation{
 					Default:              nil, // set to 0.4 by Spark
@@ -150,7 +150,7 @@ var tfComputeFieldValidation = &cr.StructFieldValidation{
 	StructField: "Compute",
 	StructValidation: &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				StructField: "CPU",
 				StringPtrValidation: &cr.StringPtrValidation{
 					Default: nil,
@@ -159,7 +159,7 @@ var tfComputeFieldValidation = &cr.StructFieldValidation{
 					Min: k8sresource.MustParse("0"),
 				}),
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "Mem",
 				StringPtrValidation: &cr.StringPtrValidation{
 					Default: nil,
@@ -168,7 +168,7 @@ var tfComputeFieldValidation = &cr.StructFieldValidation{
 					Min: k8sresource.MustParse("0"),
 				}),
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "GPU",
 				Int64PtrValidation: &cr.Int64PtrValidation{
 					Default:     nil,
@@ -197,14 +197,14 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 	StructField: "Compute",
 	StructValidation: &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				StructField: "Replicas",
 				Int32Validation: &cr.Int32Validation{
 					Default:     1,
 					GreaterThan: pointer.Int32(0),
 				},
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "CPU",
 				StringPtrValidation: &cr.StringPtrValidation{
 					Default: nil,
@@ -213,7 +213,7 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 					Min: k8sresource.MustParse("0"),
 				}),
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "Mem",
 				StringPtrValidation: &cr.StringPtrValidation{
 					Default: nil,
@@ -222,7 +222,7 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 					Min: k8sresource.MustParse("0"),
 				}),
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "GPU",
 				Int64Validation: &cr.Int64Validation{
 					Default:              0,

@@ -56,15 +56,15 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Bytes: []zip.BytesInput{
-			zip.BytesInput{
+			{
 				Content: []byte(""),
 				Dest:    "text.txt",
 			},
-			zip.BytesInput{
+			{
 				Content: []byte(""),
 				Dest:    "test2/text2.txt",
 			},
-			zip.BytesInput{
+			{
 				Content: []byte(""),
 				Dest:    "/test3/text3.txt",
 			},
@@ -79,23 +79,23 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Files: []zip.FileInput{
-			zip.FileInput{
+			{
 				Source: filepath.Join(tmpDir, "1.txt"),
 				Dest:   "1.txt",
 			},
-			zip.FileInput{
+			{
 				Source: filepath.Join(tmpDir, "3/1.py"),
 				Dest:   "3/1.py",
 			},
-			zip.FileInput{
+			{
 				Source: filepath.Join(tmpDir, "3/2/1.py"),
 				Dest:   "3/2/1.py",
 			},
-			zip.FileInput{
+			{
 				Source: filepath.Join(tmpDir, "3/2/3/.tmp"),
 				Dest:   "3/2/3/.tmp",
 			},
-			zip.FileInput{
+			{
 				Source: filepath.Join(tmpDir, "4/2.pyc"),
 				Dest:   "4/4/2.pyc",
 			},
@@ -112,11 +112,11 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Files: []zip.FileInput{
-			zip.FileInput{
+			{
 				Source: filepath.Join(tmpDir, "1.txt"),
 				Dest:   "1.txt",
 			},
-			zip.FileInput{
+			{
 				Source: filepath.Join(tmpDir, "test.txt"),
 				Dest:   "test.txt",
 			},
@@ -129,13 +129,13 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Bytes: []zip.BytesInput{
-			zip.BytesInput{
+			{
 				Content: []byte(""),
 				Dest:    "text.txt",
 			},
 		},
 		Files: []zip.FileInput{
-			zip.FileInput{
+			{
 				Source: filepath.Join(tmpDir, "1.txt"),
 				Dest:   "1/2/3.txt",
 			},
@@ -150,13 +150,13 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Bytes: []zip.BytesInput{
-			zip.BytesInput{
+			{
 				Content: []byte(""),
 				Dest:    "text.txt",
 			},
 		},
 		Files: []zip.FileInput{
-			zip.FileInput{
+			{
 				Source: filepath.Join(tmpDir, "1.txt"),
 				Dest:   "1/2/3.txt",
 			},
@@ -183,7 +183,7 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Dirs: []zip.DirInput{
-			zip.DirInput{
+			{
 				Source: tmpDir,
 			},
 		},
@@ -205,7 +205,7 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Dirs: []zip.DirInput{
-			zip.DirInput{
+			{
 				Source: filepath.Join(tmpDir, "3"),
 				Dest:   ".",
 			},
@@ -221,7 +221,7 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Dirs: []zip.DirInput{
-			zip.DirInput{
+			{
 				Source:    tmpDir,
 				Dest:      "/",
 				IgnoreFns: []files.IgnoreFn{files.IgnoreHiddenFiles},
@@ -244,13 +244,13 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Dirs: []zip.DirInput{
-			zip.DirInput{
+			{
 				Source:    filepath.Join(tmpDir, "3"),
 				IgnoreFns: []files.IgnoreFn{files.IgnoreHiddenFiles},
 				Dest:      "test3",
 				Flatten:   true,
 			},
-			zip.DirInput{
+			{
 				Source: filepath.Join(tmpDir, "4"),
 				Dest:   "test4/",
 			},
@@ -267,7 +267,7 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Dirs: []zip.DirInput{
-			zip.DirInput{
+			{
 				Source:       filepath.Join(tmpDir, "5"),
 				RemovePrefix: "4/3",
 			},
@@ -282,7 +282,7 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Dirs: []zip.DirInput{
-			zip.DirInput{
+			{
 				Source:       filepath.Join(tmpDir, "5"),
 				RemovePrefix: "/4/3",
 			},
@@ -297,7 +297,7 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Dirs: []zip.DirInput{
-			zip.DirInput{
+			{
 				Source:  filepath.Join(tmpDir, "5"),
 				Flatten: true,
 			},
@@ -312,7 +312,7 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Dirs: []zip.DirInput{
-			zip.DirInput{
+			{
 				Source:             filepath.Join(tmpDir, "5"),
 				RemoveCommonPrefix: true,
 			},
@@ -327,11 +327,11 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Bytes: []zip.BytesInput{
-			zip.BytesInput{
+			{
 				Content: []byte(""),
 				Dest:    "1/text.txt",
 			},
-			zip.BytesInput{
+			{
 				Content: []byte(""),
 				Dest:    "1/text.txt",
 			},
@@ -341,7 +341,7 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Bytes: []zip.BytesInput{
-			zip.BytesInput{
+			{
 				Content: []byte(""),
 				Dest:    "1/text.txt",
 			},
@@ -352,7 +352,7 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Dirs: []zip.DirInput{
-			zip.DirInput{
+			{
 				Source:  filepath.Join(tmpDir, "3"),
 				Flatten: true,
 			},
@@ -362,7 +362,7 @@ func TestZip(t *testing.T) {
 
 	zipInput = &zip.Input{
 		Dirs: []zip.DirInput{
-			zip.DirInput{
+			{
 				Source:  filepath.Join(tmpDir, "5"),
 				Flatten: true,
 			},

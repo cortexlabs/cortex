@@ -31,13 +31,13 @@ type Embed struct {
 
 var embedValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "Template",
 			StringValidation: &cr.StringValidation{
 				Required: true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "Args",
 			InterfaceMapValidation: &cr.InterfaceMapValidation{
 				Required:   false,

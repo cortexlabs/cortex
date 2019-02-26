@@ -32,14 +32,14 @@ type Transformer struct {
 
 var transformerValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "Name",
 			StringValidation: &cr.StringValidation{
 				Required:                   true,
 				AlphaNumericDashUnderscore: true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField:      "Path",
 			StringValidation: &cr.StringValidation{},
 			DefaultField:     "Name",
@@ -47,7 +47,7 @@ var transformerValidation = &cr.StructValidation{
 				return "implementations/transformers/" + name.(string) + ".py"
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "OutputType",
 			StringValidation: &cr.StringValidation{
 				Required:      true,

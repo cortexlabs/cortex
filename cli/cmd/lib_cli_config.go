@@ -55,7 +55,7 @@ type CliConfig struct {
 func getPromptValidation(defaults *CliConfig) *cr.PromptValidation {
 	return &cr.PromptValidation{
 		PromptItemValidations: []*cr.PromptItemValidation{
-			&cr.PromptItemValidation{
+			{
 				StructField: "CortexURL",
 				PromptOpts: &cr.PromptOptions{
 					Prompt: "Enter Cortex operator endpoint",
@@ -65,7 +65,7 @@ func getPromptValidation(defaults *CliConfig) *cr.PromptValidation {
 					Default:  defaults.CortexURL,
 				}),
 			},
-			&cr.PromptItemValidation{
+			{
 				StructField: "AWSAccessKeyID",
 				PromptOpts: &cr.PromptOptions{
 					Prompt: "Enter AWS Access Key ID",
@@ -75,7 +75,7 @@ func getPromptValidation(defaults *CliConfig) *cr.PromptValidation {
 					Default:  defaults.AWSAccessKeyID,
 				},
 			},
-			&cr.PromptItemValidation{
+			{
 				StructField: "AWSSecretAccessKey",
 				PromptOpts: &cr.PromptOptions{
 					Prompt:      "Enter AWS Secret Access Key",
@@ -95,21 +95,21 @@ var fileValidation = &cr.StructValidation{
 	ShortCircuit:     false,
 	AllowExtraFields: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			Key:         "cortex_url",
 			StructField: "CortexURL",
 			StringValidation: cr.GetURLValidation(&cr.URLValidation{
 				Required: true,
 			}),
 		},
-		&cr.StructFieldValidation{
+		{
 			Key:         "aws_access_key_id",
 			StructField: "AWSAccessKeyID",
 			StringValidation: &cr.StringValidation{
 				Required: true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			Key:         "aws_secret_access_key",
 			StructField: "AWSSecretAccessKey",
 			StringValidation: &cr.StringValidation{

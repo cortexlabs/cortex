@@ -27,7 +27,7 @@ func IsValidS3aPath(s3aPath string) bool {
 	if !strings.HasPrefix(s3aPath, "s3a://") {
 		return false
 	}
-	parts := strings.Split(s3aPath[6:len(s3aPath)], "/")
+	parts := strings.Split(s3aPath[6:], "/")
 	if len(parts) < 2 {
 		return false
 	}
@@ -41,10 +41,10 @@ func SplitS3aPath(s3aPath string) (string, string, error) {
 	if !IsValidS3aPath(s3aPath) {
 		return "", "", errors.New(s.ErrInvalidS3aPath(s3aPath))
 	}
-	fullPath := s3aPath[6:len(s3aPath)]
+	fullPath := s3aPath[6:]
 	slashIndex := strings.Index(fullPath, "/")
 	bucket := fullPath[0:slashIndex]
-	key := fullPath[slashIndex+1 : len(fullPath)]
+	key := fullPath[slashIndex+1:]
 
 	return bucket, key, nil
 }

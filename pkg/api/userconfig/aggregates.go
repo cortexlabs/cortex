@@ -36,14 +36,14 @@ type Aggregate struct {
 
 var aggregateValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "Name",
 			StringValidation: &cr.StringValidation{
 				Required:                   true,
 				AlphaNumericDashUnderscore: true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "Aggregator",
 			StringValidation: &cr.StringValidation{
 				Required:                      true,

@@ -36,14 +36,14 @@ type TransformedColumn struct {
 
 var transformedColumnValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "Name",
 			StringValidation: &cr.StringValidation{
 				Required:                   true,
 				AlphaNumericDashUnderscore: true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "Transformer",
 			StringValidation: &cr.StringValidation{
 				Required:                      true,
