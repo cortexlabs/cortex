@@ -14,7 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -euo pipefail
+# [FOR CI]make sure golint is installed
+golint -h
 
 output=$(golint ./... | grep -v "comment")
 
