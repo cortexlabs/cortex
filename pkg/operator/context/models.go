@@ -27,11 +27,11 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 )
 
-var uploadedModels map[string]bool = map[string]bool{}
+var uploadedModels = map[string]bool{}
 
 func getModels(
 	config *userconfig.Config,
@@ -74,14 +74,14 @@ func getModels(
 		}
 		buf.WriteString(modelConfig.Tags.ID())
 
-		modelID := util.HashBytes(buf.Bytes())
+		modelID := hash.Bytes(buf.Bytes())
 
 		buf.Reset()
 		buf.WriteString(s.Obj(modelConfig.DataPartitionRatio))
 		buf.WriteString(columns.ID(modelConfig.AllColumnNames()))
-		datasetID := util.HashBytes(buf.Bytes())
+		datasetID := hash.Bytes(buf.Bytes())
 		buf.WriteString(columns.IDWithTags(modelConfig.AllColumnNames()))
-		datasetIDWithTags := util.HashBytes(buf.Bytes())
+		datasetIDWithTags := hash.Bytes(buf.Bytes())
 
 		datasetRoot := filepath.Join(root, consts.TrainingDataDir, datasetID)
 
@@ -131,7 +131,7 @@ func getModelImplID(implPath string, impls map[string][]byte) (string, string, e
 	if !ok {
 		return "", "", errors.New(s.ErrFileDoesNotExist(implPath))
 	}
-	modelImplID := util.HashBytes(impl)
+	modelImplID := hash.Bytes(impl)
 	modelImplKey, err := uploadModelImpl(modelImplID, impl)
 	if err != nil {
 		return "", "", errors.Wrap(err, implPath)

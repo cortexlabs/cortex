@@ -20,9 +20,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/cast"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 )
 
 type Columns map[string]Column
@@ -70,7 +70,7 @@ func (columns Columns) ID(columnNames []string) string {
 	for _, columnName := range columnNames {
 		columnIDMap[columnName] = columns[columnName].GetID()
 	}
-	return util.HashObj(columnIDMap)
+	return hash.Any(columnIDMap)
 }
 
 func (columns Columns) IDWithTags(columnNames []string) string {
@@ -78,7 +78,7 @@ func (columns Columns) IDWithTags(columnNames []string) string {
 	for _, columnName := range columnNames {
 		columnIDMap[columnName] = columns[columnName].GetIDWithTags()
 	}
-	return util.HashObj(columnIDMap)
+	return hash.Any(columnIDMap)
 }
 
 func GetColumnRuntimeTypes(

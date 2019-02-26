@@ -37,8 +37,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/schema"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
+	"github.com/cortexlabs/cortex/pkg/lib/zip"
 )
 
 var httpTransport = &http.Transport{
@@ -61,7 +62,7 @@ func HTTPGet(endpoint string, qParams ...map[string]string) ([]byte, error) {
 func HTTPPostJSONData(endpoint string, requestData interface{}, qParams ...map[string]string) ([]byte, error) {
 	jsonRequestData, err := json.Marshal(requestData)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrMarshalJson)
+		return nil, errors.Wrap(err, s.ErrMarshalJSON)
 	}
 	return HTTPPostJSON(endpoint, jsonRequestData, qParams...)
 }
@@ -128,8 +129,8 @@ func addFileToMultipart(fileName string, writer *multipart.Writer, reader io.Rea
 	return nil
 }
 
-func HTTPUploadZip(endpoint string, zipInput *util.ZipInput, fileName string, qParams ...map[string]string) ([]byte, error) {
-	zipBytes, err := util.ZipToMem(zipInput)
+func HTTPUploadZip(endpoint string, zipInput *zip.Input, fileName string, qParams ...map[string]string) ([]byte, error) {
+	zipBytes, err := zip.ToMem(zipInput)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to zip configuration file")
 	}
@@ -213,7 +214,7 @@ func handleConnection(connection *websocket.Conn, done chan struct{}) {
 				if err != nil {
 					fmt.Println(msgStr)
 				} else {
-					timestampHuman := util.LocalTimestampHuman(&timestamp)
+					timestampHuman := libtime.LocalTimestampHuman(&timestamp)
 					fmt.Println("\nCompleted on " + timestampHuman)
 				}
 			} else {

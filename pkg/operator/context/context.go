@@ -25,7 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 )
 
 func New(
@@ -164,18 +164,18 @@ func calculateID(ctx *context.Context) string {
 	}
 
 	sort.Strings(ids)
-	return util.HashStr(strings.Join(ids, ""))
+	return hash.String(strings.Join(ids, ""))
 }
 
 func DownloadContext(ctxID string, appName string) (*context.Context, error) {
 	s3Key := ctxKey(ctxID, appName)
-	var ctxSerial context.ContextSerial
+	var serial context.Serial
 
-	if err := aws.ReadMsgpackFromS3(&ctxSerial, s3Key); err != nil {
+	if err := aws.ReadMsgpackFromS3(&serial, s3Key); err != nil {
 		return nil, err
 	}
 
-	return ctxSerial.FromSerial()
+	return serial.ContextFromSerial()
 }
 
 func StatusPrefix(appName string) string {

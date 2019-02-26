@@ -20,8 +20,8 @@ import (
 	"sort"
 
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/interfaces"
 )
 
 type Aggregates []*Aggregate
@@ -92,7 +92,7 @@ func (aggregates Aggregates) Get(name string) *Aggregate {
 }
 
 func (aggregate *Aggregate) InputColumnNames() []string {
-	inputs, _ := util.FlattenAllStrValues(aggregate.Inputs.Columns)
+	inputs, _ := interfaces.FlattenAllStrValues(aggregate.Inputs.Columns)
 	sort.Strings(inputs)
 	return inputs
 }

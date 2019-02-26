@@ -22,7 +22,7 @@ import (
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 )
 
 func DataTypeID(dataType interface{}) string {
@@ -35,5 +35,5 @@ func DataTypeID(dataType interface{}) string {
 		replacement := strings.Join(parts, "|")
 		dataTypeStr = strings.Replace(dataTypeStr, match, replacement, -1)
 	}
-	return util.HashStr(dataTypeStr)
+	return hash.String(dataTypeStr)
 }

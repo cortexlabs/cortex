@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type Type int

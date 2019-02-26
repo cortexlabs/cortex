@@ -18,8 +18,8 @@ package context
 
 import (
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/cast"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 )
 
 type RawColumns map[string]RawColumn
@@ -76,7 +76,7 @@ func (rawColumns RawColumns) columnInputsID(columnInputValues map[string]interfa
 			columnIDMap[columnInputName] = columnIDs
 		}
 	}
-	return util.HashObj(columnIDMap)
+	return hash.Any(columnIDMap)
 }
 
 func (rawColumns RawColumns) ColumnInputsID(columnInputValues map[string]interface{}) string {

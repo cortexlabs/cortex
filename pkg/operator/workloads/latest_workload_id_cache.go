@@ -18,6 +18,8 @@ package workloads
 
 import (
 	"sync"
+
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 // appName -> map(resourceID -> latest workloadID)
@@ -60,12 +62,7 @@ func cacheEmptyLatestWorkloadID(resourceID string, appName string) {
 	workloadIDCache.m[appName][resourceID] = ""
 }
 
-func uncacheLatestWorkloadIDs(currentResourceIDs map[string]bool, appName string) {
-	currentResourceIDMap := make(map[string]bool)
-	for currentResourceID := range currentResourceIDs {
-		currentResourceIDMap[currentResourceID] = true
-	}
-
+func uncacheLatestWorkloadIDs(currentResourceIDs strset.Set, appName string) {
 	workloadIDCache.Lock()
 	defer workloadIDCache.Unlock()
 
@@ -78,8 +75,8 @@ func uncacheLatestWorkloadIDs(currentResourceIDs map[string]bool, appName string
 		return
 	}
 
-	for resourceID, _ := range workloadIDCache.m[appName] {
-		if !currentResourceIDMap[resourceID] {
+	for resourceID := range workloadIDCache.m[appName] {
+		if !currentResourceIDs.Has(resourceID) {
 			delete(workloadIDCache.m[appName], resourceID)
 		}
 	}

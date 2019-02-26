@@ -25,9 +25,9 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 )
 
 var cachedCliConfig *CliConfig
@@ -183,7 +183,7 @@ func configure() *CliConfig {
 		errors.Exit(err)
 	}
 
-	err = util.WriteJSON(cachedCliConfig, configPath())
+	err = libjson.WriteJSON(cachedCliConfig, configPath())
 	if err != nil {
 		errors.Exit(err)
 	}

@@ -20,7 +20,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 )
 
 func getCortexConfig() *context.CortexConfig {
@@ -29,6 +29,6 @@ func getCortexConfig() *context.CortexConfig {
 		Bucket:     cc.Bucket,
 		Region:     cc.Region,
 		LogGroup:   cc.LogGroup,
-		ID:         util.HashStr(cc.Bucket + cc.Region + cc.LogGroup),
+		ID:         hash.String(cc.Bucket + cc.Region + cc.LogGroup),
 	}
 }

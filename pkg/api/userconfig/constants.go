@@ -18,8 +18,8 @@ package userconfig
 
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type Constants []*Constant

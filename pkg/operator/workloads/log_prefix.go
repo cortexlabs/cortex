@@ -24,8 +24,8 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 )
 
 func logPreifixKey(workloadID string, appName string) string {
@@ -61,7 +61,7 @@ func uploadLogPrefixes(logPrefixInfos []*LogPrefixInfo) error {
 	for i, logPrefixInfo := range logPrefixInfos {
 		fns[i] = uploadLogPrefixFunc(logPrefixInfo)
 	}
-	return util.RunInParallelFirstErr(fns...)
+	return parallel.RunFirstErr(fns...)
 }
 
 func uploadLogPrefixFunc(logPrefixInfo *LogPrefixInfo) func() error {

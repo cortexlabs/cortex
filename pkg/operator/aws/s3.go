@@ -23,13 +23,17 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	libs3 "github.com/cortexlabs/cortex/pkg/lib/aws/s3"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
 func S3Path(key string) string {
@@ -80,7 +84,7 @@ func IsS3PrefixExternal(prefix string, bucket string) (bool, error) {
 }
 
 func IsS3aPrefixExternal(s3aPath string) (bool, error) {
-	bucket, key, err := util.SplitS3aPath(s3aPath)
+	bucket, key, err := libs3.SplitS3aPath(s3aPath)
 	if err != nil {
 		return false, err
 	}
@@ -107,7 +111,7 @@ func UploadBytesesToS3(data []byte, keys ...string) error {
 			return UploadBytesToS3(data, key)
 		}
 	}
-	return util.RunInParallelFirstErr(fns...)
+	return parallel.RunFirstErr(fns...)
 }
 
 func UploadFileToS3(filePath string, key string) error {
@@ -128,7 +132,7 @@ func UploadStringToS3(str string, key string) error {
 }
 
 func UploadJSONToS3(obj interface{}, key string) error {
-	jsonBytes, err := util.MarshalJSON(obj)
+	jsonBytes, err := libjson.MarshalJSON(obj)
 	if err != nil {
 		return err
 	}
@@ -144,7 +148,7 @@ func ReadJSONFromS3(objPtr interface{}, key string) error {
 }
 
 func UploadMsgpackToS3(obj interface{}, key string) error {
-	msgpackBytes, err := util.MarshalMsgpack(obj)
+	msgpackBytes, err := msgpack.Marshal(obj)
 	if err != nil {
 		return err
 	}
@@ -156,7 +160,7 @@ func ReadMsgpackFromS3(objPtr interface{}, key string) error {
 	if err != nil {
 		return err
 	}
-	return errors.Wrap(util.UnmarshalMsgpack(msgpackBytes, objPtr), key)
+	return errors.Wrap(msgpack.Unmarshal(msgpackBytes, objPtr), key)
 }
 
 func ReadStringFromS3(key string) (string, error) {
@@ -196,7 +200,7 @@ func DeleteFromS3ByPrefix(prefix string, continueIfFailure bool) error {
 		MaxKeys: aws.Int64(1000),
 	}
 
-	var subErr error = nil
+	var subErr error
 
 	err := s3Client.ListObjectsV2Pages(listObjectsInput,
 		func(listObjectsOutput *s3.ListObjectsV2Output, lastPage bool) bool {

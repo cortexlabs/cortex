@@ -24,7 +24,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/schema"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 var flagKeepCache bool
@@ -63,7 +63,7 @@ var deleteCmd = &cobra.Command{
 		var deleteResponse schema.DeleteResponse
 		err = json.Unmarshal(httpResponse, &deleteResponse)
 		if err != nil {
-			errors.Exit(err, "/delete", "response", s.ErrUnmarshalJson, string(httpResponse))
+			errors.Exit(err, "/delete", "response", s.ErrUnmarshalJSON, string(httpResponse))
 		}
 		fmt.Println(deleteResponse.Message)
 	},

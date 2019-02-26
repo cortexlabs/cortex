@@ -30,8 +30,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 const (
@@ -237,7 +237,7 @@ func deleteOldAPIs(ctx *context.Context) {
 }
 
 func createServicesAndIngresses(ctx *context.Context) error {
-	for apiName, _ := range ctx.APIs {
+	for apiName := range ctx.APIs {
 		ingressExists, err := k8s.IngressExists(internalAPIName(apiName, ctx.App.Name))
 		if err != nil {
 			return errors.Wrap(err, ctx.App.Name, "ingresses", apiName, "create")

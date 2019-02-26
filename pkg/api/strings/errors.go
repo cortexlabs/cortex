@@ -36,8 +36,8 @@ var (
 	ErrCreateZip       = "unable to create zip file"
 	ErrCantMakeRequest = "unable to make request"
 
-	ErrMarshalJson      = "invalid json cannot be serialized"
-	ErrUnmarshalJson    = "invalid json"
+	ErrMarshalJSON      = "invalid json cannot be serialized"
+	ErrUnmarshalJSON    = "invalid json"
 	ErrUnmarshalYaml    = "invalid yaml"
 	ErrMarshalMsgpack   = "invalid messagepack cannot be serialized"
 	ErrUnmarshalMsgpack = "invalid messagepack"
@@ -50,6 +50,7 @@ var (
 	ErrCortexInstallationBroken = "cortex is out of date, or not installed properly on your cluster; run `./cortex-installer.sh uninstall operator && ./cortex-installer.sh install operator`"
 
 	// internal only
+
 	ErrUnexpected           = "an unexpected error occurred"
 	ErrWorkflowAppMismatch  = "workflow apps do not match"
 	ErrContextAppMismatch   = "context apps do not match"
@@ -124,7 +125,7 @@ func ErrAlphaNumericDashUnderscore(provided string) string {
 func ErrDNS1035(provided string) string {
 	return fmt.Sprintf("%s must contain only lower case letters, numbers, and dashes, start with a letter, and cannot end with a dash", UserStr(provided))
 }
-func ErrInvalidUrl(provided string) string {
+func ErrInvalidURL(provided string) string {
 	return fmt.Sprintf("%s is not a valid URL", UserStr(provided))
 }
 func ErrInvalidS3aPath(provided string) string {
@@ -183,7 +184,7 @@ func ErrBeMoreSpecific(vals ...string) string {
 	return fmt.Sprintf("please specify %s", UserStrsOr(vals))
 }
 
-func ErrApiNotFound(apiName string) string {
+func ErrAPINotFound(apiName string) string {
 	return fmt.Sprintf("api %s not found", UserStr(apiName))
 }
 
@@ -195,7 +196,7 @@ func ErrAppNotDeployed(appName string) string {
 	return fmt.Sprintf("app %s is not deployed", UserStr(appName))
 }
 
-func ErrApiNotReady(apiName string, status string) string {
+func ErrAPINotReady(apiName string, status string) string {
 	return fmt.Sprintf("api %s is %s", UserStr(apiName), status)
 }
 
@@ -203,7 +204,7 @@ func ErrCliAlreadyInAppDir(dirPath string) string {
 	return fmt.Sprintf("your current working directory is already in a cortex app directory (%s)", dirPath)
 }
 
-func ErrApiVersionMismatch(operatorVersion string, clientVersion string) string {
+func ErrAPIVersionMismatch(operatorVersion string, clientVersion string) string {
 	return fmt.Sprintf("API version mismatch (Operator: %s; Client: %s)", operatorVersion, clientVersion)
 }
 

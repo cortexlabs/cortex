@@ -32,8 +32,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
 
 var sparkClientset clientset.Interface
@@ -75,18 +76,18 @@ func init() {
 	sparkClient = sparkClientset.SparkoperatorV1alpha1().SparkApplications(cc.Namespace)
 }
 
-func SparkSpec(workloadID string, ctx *context.Context, workloadType string, sparkCompute *userconfig.SparkCompute, args ...string) *sparkop.SparkApplication {
-	var driverMemOverhead *string = nil
+func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCompute *userconfig.SparkCompute, args ...string) *sparkop.SparkApplication {
+	var driverMemOverhead *string
 	if sparkCompute.DriverMemOverhead != nil {
-		driverMemOverhead = util.StrPtr(s.Int64(sparkCompute.DriverMemOverhead.ToKi()) + "k")
+		driverMemOverhead = pointer.String(s.Int64(sparkCompute.DriverMemOverhead.ToKi()) + "k")
 	}
-	var executorMemOverhead *string = nil
+	var executorMemOverhead *string
 	if sparkCompute.ExecutorMemOverhead != nil {
-		executorMemOverhead = util.StrPtr(s.Int64(sparkCompute.ExecutorMemOverhead.ToKi()) + "k")
+		executorMemOverhead = pointer.String(s.Int64(sparkCompute.ExecutorMemOverhead.ToKi()) + "k")
 	}
-	var memOverheadFactor *string = nil
+	var memOverheadFactor *string
 	if sparkCompute.MemOverheadFactor != nil {
-		memOverheadFactor = util.StrPtr(s.Float64(*sparkCompute.MemOverheadFactor))
+		memOverheadFactor = pointer.String(s.Float64(*sparkCompute.MemOverheadFactor))
 	}
 
 	return &sparkop.SparkApplication{
@@ -105,11 +106,11 @@ func SparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 		},
 		Spec: sparkop.SparkApplicationSpec{
 			Type:                 sparkop.PythonApplicationType,
-			PythonVersion:        util.StrPtr("3"),
+			PythonVersion:        pointer.String("3"),
 			Mode:                 sparkop.ClusterMode,
 			Image:                &cc.SparkImage,
-			ImagePullPolicy:      util.StrPtr("Always"),
-			MainApplicationFile:  util.StrPtr("local:///src/spark_job/spark_job.py"),
+			ImagePullPolicy:      pointer.String("Always"),
+			MainApplicationFile:  pointer.String("local:///src/spark_job/spark_job.py"),
 			RestartPolicy:        sparkop.RestartPolicy{Type: sparkop.Never},
 			MemoryOverheadFactor: memOverheadFactor,
 			Arguments: []string{
@@ -124,8 +125,8 @@ func SparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 			},
 			Driver: sparkop.DriverSpec{
 				SparkPodSpec: sparkop.SparkPodSpec{
-					Cores:          util.Float32Ptr(sparkCompute.DriverCPU.ToFloat32()),
-					Memory:         util.StrPtr(s.Int64(sparkCompute.DriverMem.ToKi()) + "k"),
+					Cores:          pointer.Float32(sparkCompute.DriverCPU.ToFloat32()),
+					Memory:         pointer.String(s.Int64(sparkCompute.DriverMem.ToKi()) + "k"),
 					MemoryOverhead: driverMemOverhead,
 					Labels: map[string]string{
 						"workloadID":   workloadID,
@@ -151,12 +152,12 @@ func SparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 					},
 				},
 				PodName:        &workloadID,
-				ServiceAccount: util.StrPtr("spark"),
+				ServiceAccount: pointer.String("spark"),
 			},
 			Executor: sparkop.ExecutorSpec{
 				SparkPodSpec: sparkop.SparkPodSpec{
-					Cores:          util.Float32Ptr(sparkCompute.ExecutorCPU.ToFloat32()),
-					Memory:         util.StrPtr(s.Int64(sparkCompute.ExecutorMem.ToKi()) + "k"),
+					Cores:          pointer.Float32(sparkCompute.ExecutorCPU.ToFloat32()),
+					Memory:         pointer.String(s.Int64(sparkCompute.ExecutorMem.ToKi()) + "k"),
 					MemoryOverhead: executorMemOverhead,
 					Labels: map[string]string{
 						"workloadID":   workloadID,
@@ -220,5 +221,5 @@ func Delete(appName string) (bool, error) {
 }
 
 func IsDone(sparkApp *sparkop.SparkApplication) bool {
-	return util.IsStrInSlice(string(sparkApp.Status.AppState.State), doneStates)
+	return slices.HasString(string(sparkApp.Status.AppState.State), doneStates)
 }

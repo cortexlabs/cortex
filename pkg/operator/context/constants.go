@@ -25,8 +25,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 )
 
 var uploadedConstants = make(map[string]bool)
@@ -47,9 +48,9 @@ func loadConstants(constantConfigs userconfig.Constants) (context.Constants, err
 func newConstant(constantConfig userconfig.Constant) (*context.Constant, error) {
 	var buf bytes.Buffer
 	buf.WriteString(context.DataTypeID(constantConfig.Type))
-	buf.Write(util.MustMarshalMsgpack(constantConfig.Value))
-	id := util.HashBytes(buf.Bytes())
-	idWithTags := util.HashStr(id + constantConfig.Tags.ID())
+	buf.Write(msgpack.MustMarshal(constantConfig.Value))
+	id := hash.Bytes(buf.Bytes())
+	idWithTags := hash.String(id + constantConfig.Tags.ID())
 
 	constant := &context.Constant{
 		ResourceFields: &context.ResourceFields{
@@ -80,7 +81,7 @@ func uploadConstant(constant *context.Constant) error {
 	}
 
 	if !isUploaded {
-		serializedConstant := util.MustMarshalMsgpack(constant.Value)
+		serializedConstant := msgpack.MustMarshal(constant.Value)
 		err = aws.UploadBytesToS3(serializedConstant, constant.Key)
 		if err != nil {
 			return errors.Wrap(err, userconfig.Identify(constant), "upload")

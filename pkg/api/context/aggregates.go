@@ -18,7 +18,7 @@ package context
 
 import (
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/cast"
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
 )
 
 type Aggregates map[string]*Aggregate

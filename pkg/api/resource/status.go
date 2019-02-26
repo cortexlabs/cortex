@@ -255,31 +255,31 @@ func (status *APIGroupStatus) Message() string {
 }
 
 // MarshalText satisfies TextMarshaler
-func (k StatusCode) MarshalText() ([]byte, error) {
-	return []byte(k.String()), nil
+func (code StatusCode) MarshalText() ([]byte, error) {
+	return []byte(code.String()), nil
 }
 
 // UnmarshalText satisfies TextUnmarshaler
-func (k *StatusCode) UnmarshalText(text []byte) error {
+func (code *StatusCode) UnmarshalText(text []byte) error {
 	enum := string(text)
 	for i := 0; i < len(statusCodes); i++ {
 		if enum == statusCodes[i] {
-			*k = StatusCode(i)
+			*code = StatusCode(i)
 			return nil
 		}
 	}
 
-	*k = StatusUnknown
+	*code = StatusUnknown
 	return nil
 }
 
 // UnmarshalBinary satisfies BinaryUnmarshaler
 // Needed for msgpack
-func (k *StatusCode) UnmarshalBinary(data []byte) error {
-	return k.UnmarshalText(data)
+func (code *StatusCode) UnmarshalBinary(data []byte) error {
+	return code.UnmarshalText(data)
 }
 
 // MarshalBinary satisfies BinaryMarshaler
-func (k StatusCode) MarshalBinary() ([]byte, error) {
-	return []byte(k.String()), nil
+func (code StatusCode) MarshalBinary() ([]byte, error) {
+	return []byte(code.String()), nil
 }

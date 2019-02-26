@@ -68,7 +68,7 @@ func (quantity *Quantity) ToKi() int64 {
 	return int64(math.Round(kiFloat))
 }
 
-// Divide the quantity in two and return both halves (ensuring they add up to the original value)
+// SplitInTwo divides the quantity in two and return both halves (ensuring they add up to the original value)
 func (quantity *Quantity) SplitInTwo() (*k8sresource.Quantity, *k8sresource.Quantity) {
 	milliValue := quantity.MilliValue()
 	halfMilliValue := milliValue / 2

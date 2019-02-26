@@ -20,7 +20,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/utils/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 func GetCurrentDataStatuses(ctx *context.Context) (map[string]*resource.DataStatus, error) {

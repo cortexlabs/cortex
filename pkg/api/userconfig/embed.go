@@ -18,7 +18,7 @@ package userconfig
 
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 )
 
 type Embeds []*Embed

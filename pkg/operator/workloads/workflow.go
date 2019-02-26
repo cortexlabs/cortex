@@ -26,12 +26,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
 )
 
 func init() {
@@ -110,7 +110,7 @@ func Create(ctx *context.Context) (*awfv1.Workflow, error) {
 
 		manifest, err := json.Marshal(spec.Spec)
 		if err != nil {
-			return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID, s.ErrMarshalJson)
+			return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID, s.ErrMarshalJSON)
 		}
 
 		argo.AddTask(wf, &argo.WorkflowTask{
@@ -119,7 +119,7 @@ func Create(ctx *context.Context) (*awfv1.Workflow, error) {
 			Manifest:         string(manifest),
 			SuccessCondition: spec.SuccessCondition,
 			FailureCondition: spec.FailureCondition,
-			Dependencies:     util.UniqueStrs(dependencyWorkloadIDs),
+			Dependencies:     slices.UniqueStrings(dependencyWorkloadIDs),
 			Labels: map[string]string{
 				"appName":      ctx.App.Name,
 				"workloadType": spec.WorkloadType,

@@ -29,8 +29,9 @@ import (
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 )
 
 type SparkCompute struct {
@@ -52,7 +53,7 @@ var sparkComputeFieldValidation = &cr.StructFieldValidation{
 				StructField: "Executors",
 				Int32Validation: &cr.Int32Validation{
 					Default:     1,
-					GreaterThan: util.Int32Ptr(0),
+					GreaterThan: pointer.Int32(0),
 				},
 			},
 			&cr.StructFieldValidation{
@@ -114,8 +115,8 @@ var sparkComputeFieldValidation = &cr.StructFieldValidation{
 				StructField: "MemOverheadFactor",
 				Float64PtrValidation: &cr.Float64PtrValidation{
 					Default:              nil, // set to 0.4 by Spark
-					GreaterThanOrEqualTo: util.Float64Ptr(0),
-					LessThan:             util.Float64Ptr(1),
+					GreaterThanOrEqualTo: pointer.Float64(0),
+					LessThan:             pointer.Float64(1),
 				},
 			},
 		},
@@ -136,7 +137,7 @@ func (sparkCompute *SparkCompute) ID() string {
 	} else {
 		buf.WriteString(s.Float64(*sparkCompute.MemOverheadFactor))
 	}
-	return util.HashBytes(buf.Bytes())
+	return hash.Bytes(buf.Bytes())
 }
 
 type TFCompute struct {
@@ -171,7 +172,7 @@ var tfComputeFieldValidation = &cr.StructFieldValidation{
 				StructField: "GPU",
 				Int64PtrValidation: &cr.Int64PtrValidation{
 					Default:     nil,
-					GreaterThan: util.Int64Ptr(0),
+					GreaterThan: pointer.Int64(0),
 				},
 			},
 		},
@@ -182,7 +183,7 @@ func (tfCompute *TFCompute) ID() string {
 	var buf bytes.Buffer
 	buf.WriteString(QuantityPtrID(tfCompute.CPU))
 	buf.WriteString(QuantityPtrID(tfCompute.Mem))
-	return util.HashBytes(buf.Bytes())
+	return hash.Bytes(buf.Bytes())
 }
 
 type APICompute struct {
@@ -200,7 +201,7 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 				StructField: "Replicas",
 				Int32Validation: &cr.Int32Validation{
 					Default:     1,
-					GreaterThan: util.Int32Ptr(0),
+					GreaterThan: pointer.Int32(0),
 				},
 			},
 			&cr.StructFieldValidation{
@@ -225,7 +226,7 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 				StructField: "GPU",
 				Int64Validation: &cr.Int64Validation{
 					Default:              0,
-					GreaterThanOrEqualTo: util.Int64Ptr(0),
+					GreaterThanOrEqualTo: pointer.Int64(0),
 				},
 			},
 		},
@@ -238,7 +239,7 @@ func (apiCompute *APICompute) ID() string {
 	buf.WriteString(QuantityPtrID(apiCompute.CPU))
 	buf.WriteString(QuantityPtrID(apiCompute.Mem))
 	buf.WriteString(s.Int64(apiCompute.GPU))
-	return util.HashBytes(buf.Bytes())
+	return hash.Bytes(buf.Bytes())
 }
 
 func (apiCompute *APICompute) IDWithoutReplicas() string {
@@ -246,7 +247,7 @@ func (apiCompute *APICompute) IDWithoutReplicas() string {
 	buf.WriteString(QuantityPtrID(apiCompute.CPU))
 	buf.WriteString(QuantityPtrID(apiCompute.Mem))
 	buf.WriteString(s.Int64(apiCompute.GPU))
-	return util.HashBytes(buf.Bytes())
+	return hash.Bytes(buf.Bytes())
 }
 
 func MaxSparkCompute(sparkComputes ...*SparkCompute) *SparkCompute {

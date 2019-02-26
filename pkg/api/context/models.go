@@ -22,8 +22,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 type Models map[string]*Model
@@ -101,7 +101,7 @@ func (ctx *Context) RawColumnInputNames(model *Model) []string {
 		col := ctx.GetColumn(colName)
 		rawColumnInputNames.Add(col.GetInputRawColumnNames()...)
 	}
-	list := rawColumnInputNames.List()
-	sort.Strings(list)
-	return list
+	columnNames := rawColumnInputNames.Slice()
+	sort.Strings(columnNames)
+	return columnNames
 }

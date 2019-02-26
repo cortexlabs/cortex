@@ -24,8 +24,8 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/schema"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/zip"
 )
 
 var flagDeployForce bool
@@ -52,9 +52,9 @@ func deploy(force bool, ignoreCache bool) {
 		errors.Exit(err)
 	}
 
-	zipInput := &util.ZipInput{
-		FileLists: []util.ZipFileListInput{
-			util.ZipFileListInput{
+	zipInput := &zip.Input{
+		FileLists: []zip.FileListInput{
+			zip.FileListInput{
 				Sources:      allConfigPaths(root),
 				RemovePrefix: root,
 			},
@@ -74,7 +74,7 @@ func deploy(force bool, ignoreCache bool) {
 
 	var deployResponse schema.DeployResponse
 	if err := json.Unmarshal(response, &deployResponse); err != nil {
-		errors.Exit(err, "/deploy", "response", s.ErrUnmarshalJson, string(response))
+		errors.Exit(err, "/deploy", "response", s.ErrUnmarshalJSON, string(response))
 	}
 
 	fmt.Println(deployResponse.Message)

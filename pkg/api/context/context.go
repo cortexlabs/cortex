@@ -20,7 +20,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	userconfig "github.com/cortexlabs/cortex/pkg/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 type Context struct {
@@ -106,14 +107,6 @@ func ExtractResourceWorkloadIDs(resources []ComputedResource) map[string]string 
 	return resourceWorkloadIDs
 }
 
-func ExtractResourceIDs(resources []ComputedResource) map[string]bool {
-	resourceIDs := make(map[string]bool, len(resources))
-	for _, resource := range resources {
-		resourceIDs[resource.GetID()] = true
-	}
-	return resourceIDs
-}
-
 func (ctx *Context) DataComputedResources() []ComputedResource {
 	var resources []ComputedResource
 	for _, pythonPackage := range ctx.PythonPackages {
@@ -165,8 +158,12 @@ func (ctx *Context) AllResources() []Resource {
 	return resources
 }
 
-func (ctx *Context) ComputedResourceIDs() map[string]bool {
-	return ExtractResourceIDs(ctx.ComputedResources())
+func (ctx *Context) ComputedResourceIDs() strset.Set {
+	resourceIDs := make(strset.Set)
+	for _, resource := range ctx.ComputedResources() {
+		resourceIDs.Add(resource.GetID())
+	}
+	return resourceIDs
 }
 
 func (ctx *Context) DataResourceWorkloadIDs() map[string]string {

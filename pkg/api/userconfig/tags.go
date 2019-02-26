@@ -17,8 +17,8 @@ limitations under the License.
 package userconfig
 
 import (
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 )
 
 type Tags map[string]interface{}
@@ -34,5 +34,5 @@ var tagsFieldValidation = &cr.StructFieldValidation{
 }
 
 func (tags Tags) ID() string {
-	return util.HashObj(tags)
+	return hash.Any(tags)
 }

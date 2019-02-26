@@ -23,8 +23,8 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 )
 
 var podTypeMeta = metav1.TypeMeta{
@@ -81,7 +81,7 @@ func CreatePod(spec *PodSpec) (*corev1.Pod, error) {
 }
 
 func GetPodLastContainerStartTime(pod *corev1.Pod) *time.Time {
-	var startTime *time.Time = nil
+	var startTime *time.Time
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		if containerStatus.State.Running == nil {
 			return nil
@@ -252,7 +252,7 @@ func StalledPods() ([]corev1.Pod, error) {
 		return nil, err
 	}
 	for _, pod := range pods {
-		if !util.OlderThanSeconds(pod.CreationTimestamp.Time, 60) {
+		if !libtime.OlderThanSeconds(pod.CreationTimestamp.Time, 60) {
 			continue
 		}
 		stalledPods = append(stalledPods, pod)

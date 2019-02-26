@@ -27,8 +27,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/zip"
 )
 
 func Deploy(w http.ResponseWriter, r *http.Request) {
@@ -109,14 +110,15 @@ func getContext(r *http.Request, ignoreCache bool) (*context.Context, error) {
 		return nil, errors.Wrap(err)
 	}
 
-	zipBytes, err := util.ReadReqFile(r, "config.zip")
+	zipBytes, err := files.ReadReqFile(r, "config.zip")
 	if err != nil {
 		return nil, errors.Wrap(err)
 	}
 	if len(zipBytes) == 0 {
 		return nil, errors.New(s.ErrFormFileMustBeProvided("config.zip"))
 	}
-	zipContents, err := util.UnzipMemToMem(zipBytes)
+
+	zipContents, err := zip.UnzipMemToMem(zipBytes)
 	if err != nil {
 		return nil, errors.Wrap(err, "form file", "config.zip")
 	}

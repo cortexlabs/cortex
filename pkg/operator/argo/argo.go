@@ -28,9 +28,11 @@ import (
 
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/maps"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
 
 var (
@@ -68,7 +70,7 @@ func New(name string, labels ...map[string]string) *awfv1.Workflow {
 	if !strings.HasSuffix(name, "-") && !strings.HasSuffix(name, "_") {
 		name = name + "-"
 	}
-	allLabels := util.MergeStrMaps(labels...)
+	allLabels := maps.MergeStrMaps(labels...)
 
 	return &awfv1.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -99,7 +101,7 @@ func AddTask(wf *awfv1.Workflow, task *WorkflowTask) *awfv1.Workflow {
 	DAGTask := awfv1.DAGTask{
 		Name:         task.Name,
 		Template:     task.Name,
-		Dependencies: util.RemoveEmptiesAndUnique(task.Dependencies),
+		Dependencies: slices.RemoveEmptiesAndUnique(task.Dependencies),
 	}
 
 	// All tasks are added to the DAG template which is first
@@ -133,7 +135,7 @@ func EnableGC(spec metav1.Object) {
 		Kind:               "Workflow",
 		Name:               "{{workflow.name}}",
 		UID:                "{{workflow.uid}}",
-		BlockOwnerDeletion: util.BoolPtr(false),
+		BlockOwnerDeletion: pointer.Bool(false),
 	})
 	spec.SetOwnerReferences(ownerReferences)
 }
@@ -176,7 +178,7 @@ func ListByLabel(labelKey string, labelValue string) ([]awfv1.Workflow, error) {
 }
 
 func ListRunning(labels ...map[string]string) ([]awfv1.Workflow, error) {
-	wfs, err := ListByLabels(util.MergeStrMaps(labels...))
+	wfs, err := ListByLabels(maps.MergeStrMaps(labels...))
 	if err != nil {
 		return wfs, err
 	}
@@ -190,7 +192,7 @@ func ListRunning(labels ...map[string]string) ([]awfv1.Workflow, error) {
 }
 
 func ListDone(labels ...map[string]string) ([]awfv1.Workflow, error) {
-	wfs, err := ListByLabels(util.MergeStrMaps(labels...))
+	wfs, err := ListByLabels(maps.MergeStrMaps(labels...))
 	if err != nil {
 		return wfs, err
 	}
@@ -226,14 +228,14 @@ func IsDone(wf *awfv1.Workflow) bool {
 	if wf == nil {
 		return true
 	}
-	return util.IsStrInSlice(string(wf.Status.Phase), doneStates)
+	return slices.HasString(string(wf.Status.Phase), doneStates)
 }
 
 func IsRunning(wf *awfv1.Workflow) bool {
 	if wf == nil {
 		return false
 	}
-	return util.IsStrInSlice(string(wf.Status.Phase), runningStates)
+	return slices.HasString(string(wf.Status.Phase), runningStates)
 }
 
 type WorkflowItem struct {
@@ -243,7 +245,7 @@ type WorkflowItem struct {
 	Labels     map[string]string
 }
 
-// Returns task name -> *WorkflowItem
+// ParseWorkflow returns task name -> *WorkflowItem
 func ParseWorkflow(wf *awfv1.Workflow) map[string]*WorkflowItem {
 	if wf == nil {
 		return nil
@@ -284,31 +286,28 @@ func addNodeStatus(nodeStatus awfv1.NodeStatus, pWf map[string]*WorkflowItem) {
 func (wfItem *WorkflowItem) StartedAt() *time.Time {
 	if wfItem.NodeStatus != nil && !wfItem.NodeStatus.StartedAt.Time.IsZero() {
 		return &wfItem.NodeStatus.StartedAt.Time
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func (wfItem *WorkflowItem) FinishedAt() *time.Time {
 	if wfItem.NodeStatus != nil && !wfItem.NodeStatus.FinishedAt.Time.IsZero() {
 		return &wfItem.NodeStatus.FinishedAt.Time
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func (wfItem *WorkflowItem) Phase() *awfv1.NodePhase {
 	if wfItem.NodeStatus != nil {
 		return &wfItem.NodeStatus.Phase
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func (wfItem *WorkflowItem) Dependencies() strset.Set {
 	if wfItem.Task != nil && wfItem.Task.Dependencies != nil {
 		return strset.New(wfItem.Task.Dependencies...)
-	} else {
-		return make(strset.Set)
 	}
+
+	return make(strset.Set)
 }

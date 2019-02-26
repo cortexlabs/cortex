@@ -22,8 +22,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 )
 
 type RawColumnsTypeSplit struct {
@@ -37,7 +37,7 @@ type DataSplit struct {
 	ParquetData *userconfig.ParquetData `json:"parquet_data"`
 }
 
-type ContextSerial struct {
+type Serial struct {
 	Context
 	RawColumnSplit *RawColumnsTypeSplit `json:"raw_columns"`
 	DataSplit      *DataSplit           `json:"environment_data"`
@@ -65,16 +65,16 @@ func (ctx Context) splitRawColumns() *RawColumnsTypeSplit {
 	}
 }
 
-func (ctx ContextSerial) collectRawColumns() RawColumns {
+func (serial Serial) collectRawColumns() RawColumns {
 	var rawColumns = make(map[string]RawColumn)
 
-	for name, rawColumn := range ctx.RawColumnSplit.RawIntColumns {
+	for name, rawColumn := range serial.RawColumnSplit.RawIntColumns {
 		rawColumns[name] = rawColumn
 	}
-	for name, rawColumn := range ctx.RawColumnSplit.RawFloatColumns {
+	for name, rawColumn := range serial.RawColumnSplit.RawFloatColumns {
 		rawColumns[name] = rawColumn
 	}
-	for name, rawColumn := range ctx.RawColumnSplit.RawStringColumns {
+	for name, rawColumn := range serial.RawColumnSplit.RawStringColumns {
 		rawColumns[name] = rawColumn
 	}
 
@@ -93,31 +93,31 @@ func (ctx Context) splitEnvironment() *DataSplit {
 	return &split
 }
 
-func (ctxSerial *ContextSerial) collectEnvironment() (*Environment, error) {
-	if ctxSerial.DataSplit.ParquetData != nil && ctxSerial.DataSplit.CSVData == nil {
-		ctxSerial.Environment.Data = ctxSerial.DataSplit.ParquetData
-	} else if ctxSerial.DataSplit.CSVData != nil && ctxSerial.DataSplit.ParquetData == nil {
-		ctxSerial.Environment.Data = ctxSerial.DataSplit.CSVData
+func (serial *Serial) collectEnvironment() (*Environment, error) {
+	if serial.DataSplit.ParquetData != nil && serial.DataSplit.CSVData == nil {
+		serial.Environment.Data = serial.DataSplit.ParquetData
+	} else if serial.DataSplit.CSVData != nil && serial.DataSplit.ParquetData == nil {
+		serial.Environment.Data = serial.DataSplit.CSVData
 	} else {
-		return nil, errors.Wrap(userconfig.ErrorSpecifyOnlyOne("CSV", "PARQUET"), ctxSerial.App.Name, resource.EnvironmentType.String(), userconfig.DataKey)
+		return nil, errors.Wrap(userconfig.ErrorSpecifyOnlyOne("CSV", "PARQUET"), serial.App.Name, resource.EnvironmentType.String(), userconfig.DataKey)
 	}
-	return ctxSerial.Environment, nil
+	return serial.Environment, nil
 }
 
-func (ctx Context) ToSerial() *ContextSerial {
-	ctxSerial := ContextSerial{
+func (ctx Context) ToSerial() *Serial {
+	serial := Serial{
 		Context:        ctx,
 		RawColumnSplit: ctx.splitRawColumns(),
 		DataSplit:      ctx.splitEnvironment(),
 	}
 
-	return &ctxSerial
+	return &serial
 }
 
-func (ctxSerial ContextSerial) FromSerial() (*Context, error) {
-	ctx := ctxSerial.Context
-	ctx.RawColumns = ctxSerial.collectRawColumns()
-	environment, err := ctxSerial.collectEnvironment()
+func (serial Serial) ContextFromSerial() (*Context, error) {
+	ctx := serial.Context
+	ctx.RawColumns = serial.collectRawColumns()
+	environment, err := serial.collectEnvironment()
 	if err != nil {
 		return nil, err
 	}
@@ -126,16 +126,16 @@ func (ctxSerial ContextSerial) FromSerial() (*Context, error) {
 }
 
 func (ctx Context) ToMsgpackBytes() ([]byte, error) {
-	return util.MarshalMsgpack(ctx.ToSerial())
+	return msgpack.Marshal(ctx.ToSerial())
 }
 
 func FromMsgpackBytes(b []byte) (*Context, error) {
-	var ctxSerial ContextSerial
-	err := util.UnmarshalMsgpack(b, &ctxSerial)
+	var serial Serial
+	err := msgpack.Unmarshal(b, &serial)
 	if err != nil {
 		return nil, err
 	}
-	return ctxSerial.FromSerial()
+	return serial.ContextFromSerial()
 }
 
 func (ctx Context) MarshalJSON() ([]byte, error) {
@@ -145,7 +145,7 @@ func (ctx Context) MarshalJSON() ([]byte, error) {
 	}
 	msgpackJSONBytes, err := json.Marshal(&msgpackBytes)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrMarshalJson)
+		return nil, errors.Wrap(err, s.ErrMarshalJSON)
 	}
 	return msgpackJSONBytes, nil
 }
@@ -153,7 +153,7 @@ func (ctx Context) MarshalJSON() ([]byte, error) {
 func (ctx *Context) UnmarshalJSON(b []byte) error {
 	var msgpackBytes []byte
 	if err := json.Unmarshal(b, &msgpackBytes); err != nil {
-		return errors.Wrap(err, s.ErrUnmarshalJson)
+		return errors.Wrap(err, s.ErrUnmarshalJSON)
 	}
 	ctxPtr, err := FromMsgpackBytes(msgpackBytes)
 	if err != nil {

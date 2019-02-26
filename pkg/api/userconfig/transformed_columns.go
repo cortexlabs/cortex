@@ -20,8 +20,8 @@ import (
 	"sort"
 
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/interfaces"
 )
 
 type TransformedColumns []*TransformedColumn
@@ -57,9 +57,9 @@ var transformedColumnValidation = &cr.StructValidation{
 	},
 }
 
-func (transformedColumns TransformedColumns) Validate() error {
-	resources := make([]Resource, len(transformedColumns))
-	for i, res := range transformedColumns {
+func (columns TransformedColumns) Validate() error {
+	resources := make([]Resource, len(columns))
+	for i, res := range columns {
 		resources[i] = res
 	}
 
@@ -75,20 +75,20 @@ func (column *TransformedColumn) IsRaw() bool {
 	return false
 }
 
-func (transformedColumn *TransformedColumn) GetResourceType() resource.Type {
+func (column *TransformedColumn) GetResourceType() resource.Type {
 	return resource.TransformedColumnType
 }
 
-func (transformedColumns TransformedColumns) Names() []string {
-	names := make([]string, len(transformedColumns))
-	for i, transformedColumn := range transformedColumns {
+func (columns TransformedColumns) Names() []string {
+	names := make([]string, len(columns))
+	for i, transformedColumn := range columns {
 		names[i] = transformedColumn.GetName()
 	}
 	return names
 }
 
-func (transformedColumns TransformedColumns) Get(name string) *TransformedColumn {
-	for _, transformedColumn := range transformedColumns {
+func (columns TransformedColumns) Get(name string) *TransformedColumn {
+	for _, transformedColumn := range columns {
 		if transformedColumn.GetName() == name {
 			return transformedColumn
 		}
@@ -96,8 +96,8 @@ func (transformedColumns TransformedColumns) Get(name string) *TransformedColumn
 	return nil
 }
 
-func (transformedColumn *TransformedColumn) InputColumnNames() []string {
-	inputs, _ := util.FlattenAllStrValues(transformedColumn.Inputs.Columns)
+func (column *TransformedColumn) InputColumnNames() []string {
+	inputs, _ := interfaces.FlattenAllStrValues(column.Inputs.Columns)
 	sort.Strings(inputs)
 	return inputs
 }

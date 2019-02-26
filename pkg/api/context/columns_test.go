@@ -23,7 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 )
 
 func TestGetColumnRuntimeTypes(t *testing.T) {

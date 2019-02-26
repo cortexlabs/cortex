@@ -6,6 +6,10 @@ jobs:
       - image: circleci/golang:1.11.5
     steps:
       - checkout
+      - run: go get -u -v golang.org/x/lint/golint
+      - run:
+          name: Go Lint
+          command: make lint-go
       - run:
           name: License Test
           command: make find-missing-license

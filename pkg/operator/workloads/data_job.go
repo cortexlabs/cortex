@@ -28,8 +28,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/operator/spark"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 func dataJobSpec(
@@ -44,15 +44,15 @@ func dataJobSpec(
 ) *sparkop.SparkApplication {
 
 	args := []string{
-		"--raw-columns=" + strings.Join(rawColumns.List(), ","),
-		"--aggregates=" + strings.Join(aggregates.List(), ","),
-		"--transformed-columns=" + strings.Join(transformedColumns.List(), ","),
-		"--training-datasets=" + strings.Join(trainingDatasets.List(), ","),
+		"--raw-columns=" + strings.Join(rawColumns.Slice(), ","),
+		"--aggregates=" + strings.Join(aggregates.Slice(), ","),
+		"--transformed-columns=" + strings.Join(transformedColumns.Slice(), ","),
+		"--training-datasets=" + strings.Join(trainingDatasets.Slice(), ","),
 	}
 	if shouldIngest {
 		args = append(args, "--ingest")
 	}
-	spec := spark.SparkSpec(workloadID, ctx, workloadTypeData, sparkCompute, args...)
+	spec := spark.Spec(workloadID, ctx, workloadTypeData, sparkCompute, args...)
 	argo.EnableGC(spec)
 	return spec
 }

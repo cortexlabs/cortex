@@ -23,10 +23,11 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/utils/cast"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
 
 type Config struct {
@@ -152,11 +153,11 @@ func (config *Config) Validate(envName string) error {
 	rawColumnNames := config.RawColumns.Names()
 	for _, env := range config.Environments {
 		ingestedColumnNames := env.Data.GetIngestedColumns()
-		missingColumns := util.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
+		missingColumns := slices.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
 		if len(missingColumns) > 0 {
 			return errors.Wrap(ErrorMissingRawColumns(missingColumns), Identify(env), DataKey, SchemaKey)
 		}
-		extraColumns := util.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
+		extraColumns := slices.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
 		if len(extraColumns) > 0 {
 			return errors.Wrap(ErrorUndefinedResource(extraColumns[0], resource.RawColumnType), Identify(env), DataKey, SchemaKey)
 		}
@@ -165,24 +166,24 @@ func (config *Config) Validate(envName string) error {
 	// Check model columns exist
 	columnNames := config.ColumnNames()
 	for _, model := range config.Models {
-		if !util.IsStrInSlice(model.TargetColumn, columnNames) {
+		if !slices.HasString(model.TargetColumn, columnNames) {
 			return errors.Wrap(ErrorUndefinedResource(model.TargetColumn, resource.RawColumnType, resource.TransformedColumnType),
 				Identify(model), TargetColumnKey)
 		}
-		missingColumnNames := util.SubtractStrSlice(model.FeatureColumns, columnNames)
+		missingColumnNames := slices.SubtractStrSlice(model.FeatureColumns, columnNames)
 		if len(missingColumnNames) > 0 {
 			return errors.Wrap(ErrorUndefinedResource(missingColumnNames[0], resource.RawColumnType, resource.TransformedColumnType),
 				Identify(model), FeatureColumnsKey)
 		}
 
-		missingAggregateNames := util.SubtractStrSlice(model.Aggregates, config.Aggregates.Names())
+		missingAggregateNames := slices.SubtractStrSlice(model.Aggregates, config.Aggregates.Names())
 		if len(missingAggregateNames) > 0 {
 			return errors.Wrap(ErrorUndefinedResource(missingAggregateNames[0], resource.AggregateType),
 				Identify(model), AggregatesKey)
 		}
 
 		// check training columns
-		missingTrainingColumnNames := util.SubtractStrSlice(model.TrainingColumns, columnNames)
+		missingTrainingColumnNames := slices.SubtractStrSlice(model.TrainingColumns, columnNames)
 		if len(missingTrainingColumnNames) > 0 {
 			return errors.Wrap(ErrorUndefinedResource(missingTrainingColumnNames[0], resource.RawColumnType, resource.TransformedColumnType),
 				Identify(model), TrainingColumnsKey)
@@ -192,7 +193,7 @@ func (config *Config) Validate(envName string) error {
 	// Check api models exist
 	modelNames := config.Models.Names()
 	for _, api := range config.APIs {
-		if !util.IsStrInSlice(api.ModelName, modelNames) {
+		if !slices.HasString(api.ModelName, modelNames) {
 			return errors.Wrap(ErrorUndefinedResource(api.ModelName, resource.ModelType),
 				Identify(api), ModelNameKey)
 		}
@@ -201,7 +202,7 @@ func (config *Config) Validate(envName string) error {
 	// Check local aggregators exist
 	aggregatorNames := config.Aggregators.Names()
 	for _, aggregate := range config.Aggregates {
-		if !strings.Contains(aggregate.Aggregator, ".") && !util.IsStrInSlice(aggregate.Aggregator, aggregatorNames) {
+		if !strings.Contains(aggregate.Aggregator, ".") && !slices.HasString(aggregate.Aggregator, aggregatorNames) {
 			return errors.Wrap(ErrorUndefinedResource(aggregate.Aggregator, resource.AggregatorType), Identify(aggregate), AggregatorKey)
 		}
 	}
@@ -209,7 +210,7 @@ func (config *Config) Validate(envName string) error {
 	// Check local transformers exist
 	transformerNames := config.Transformers.Names()
 	for _, transformedColumn := range config.TransformedColumns {
-		if !strings.Contains(transformedColumn.Transformer, ".") && !util.IsStrInSlice(transformedColumn.Transformer, transformerNames) {
+		if !strings.Contains(transformedColumn.Transformer, ".") && !slices.HasString(transformedColumn.Transformer, transformerNames) {
 			return errors.Wrap(ErrorUndefinedResource(transformedColumn.Transformer, resource.TransformerType), Identify(transformedColumn), TransformerKey)
 		}
 	}
@@ -391,7 +392,7 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 	var err error
 	config := &Config{}
 	for filePath, configBytes := range configs {
-		if !util.IsFilePathYAML(filePath) {
+		if !files.IsFilePathYAML(filePath) {
 			continue
 		}
 		config, err = config.MergeBytes(configBytes, filePath, nil, nil)

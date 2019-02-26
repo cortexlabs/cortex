@@ -17,12 +17,15 @@ limitations under the License.
 package workloads
 
 import (
+	"time"
+
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 )
 
 func uploadDataSavedStatus(savedStatus *resource.DataSavedStatus) error {
@@ -44,7 +47,7 @@ func uploadDataSavedStatuses(savedStatuses []*resource.DataSavedStatus) error {
 	for i, savedStatus := range savedStatuses {
 		fns[i] = uploadDataSavedStatusFunc(savedStatus)
 	}
-	return util.RunInParallelFirstErr(fns...)
+	return parallel.RunFirstErr(fns...)
 }
 
 func uploadDataSavedStatusFunc(savedStatus *resource.DataSavedStatus) func() error {
@@ -79,7 +82,7 @@ func getDataSavedStatuses(resourceWorkloadIDs map[string]string, appName string)
 		fns[i] = getDataSavedStatusFunc(resourceID, workloadID, appName, savedStatuses, i)
 		i++
 	}
-	err := util.RunInParallelFirstErr(fns...)
+	err := parallel.RunFirstErr(fns...)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +122,7 @@ func updateKilledDataSavedStatuses(ctx *context.Context) error {
 	var savedStatusesToUpdate []*resource.DataSavedStatus
 	for _, savedStatus := range savedStatuses {
 		if savedStatus != nil && savedStatus.Start != nil && savedStatus.End == nil {
-			savedStatus.End = util.TimeNowPtr()
+			savedStatus.End = pointer.Time(time.Now())
 			savedStatus.ExitCode = resource.ExitCodeDataKilled
 			savedStatusesToUpdate = append(savedStatusesToUpdate, savedStatus)
 		}

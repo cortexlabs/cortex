@@ -20,9 +20,10 @@ import (
 	"math/rand"
 
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
 
 type Models []*Model
@@ -138,13 +139,13 @@ var modelDataPartitionRatioValidation = &cr.StructValidation{
 		&cr.StructFieldValidation{
 			StructField: "Training",
 			Float64PtrValidation: &cr.Float64PtrValidation{
-				GreaterThan: util.Float64Ptr(0),
+				GreaterThan: pointer.Float64(0),
 			},
 		},
 		&cr.StructFieldValidation{
 			StructField: "Evaluation",
 			Float64PtrValidation: &cr.Float64PtrValidation{
-				GreaterThan: util.Float64Ptr(0),
+				GreaterThan: pointer.Float64(0),
 			},
 		},
 	},
@@ -170,20 +171,20 @@ var modelTrainingValidation = &cr.StructValidation{
 		&cr.StructFieldValidation{
 			StructField: "BatchSize",
 			Int64Validation: &cr.Int64Validation{
-				GreaterThan: util.Int64Ptr(0),
+				GreaterThan: pointer.Int64(0),
 				Default:     40,
 			},
 		},
 		&cr.StructFieldValidation{
 			StructField: "NumSteps",
 			Int64PtrValidation: &cr.Int64PtrValidation{
-				GreaterThan: util.Int64Ptr(0),
+				GreaterThan: pointer.Int64(0),
 			},
 		},
 		&cr.StructFieldValidation{
 			StructField: "NumEpochs",
 			Int64PtrValidation: &cr.Int64PtrValidation{
-				GreaterThan: util.Int64Ptr(0),
+				GreaterThan: pointer.Int64(0),
 			},
 		},
 		&cr.StructFieldValidation{
@@ -204,49 +205,48 @@ var modelTrainingValidation = &cr.StructValidation{
 			DefaultFieldFunc: func(randomize interface{}) interface{} {
 				if randomize.(bool) == true {
 					return rand.Int63()
-				} else {
-					return int64(1788)
 				}
+				return int64(1788)
 			},
 			Int64Validation: &cr.Int64Validation{},
 		},
 		&cr.StructFieldValidation{
 			StructField: "SaveSummarySteps",
 			Int64Validation: &cr.Int64Validation{
-				GreaterThan: util.Int64Ptr(0),
+				GreaterThan: pointer.Int64(0),
 				Default:     100,
 			},
 		},
 		&cr.StructFieldValidation{
 			StructField: "SaveCheckpointsSecs",
 			Int64PtrValidation: &cr.Int64PtrValidation{
-				GreaterThan: util.Int64Ptr(0),
+				GreaterThan: pointer.Int64(0),
 			},
 		},
 		&cr.StructFieldValidation{
 			StructField: "SaveCheckpointsSteps",
 			Int64PtrValidation: &cr.Int64PtrValidation{
-				GreaterThan: util.Int64Ptr(0),
+				GreaterThan: pointer.Int64(0),
 			},
 		},
 		&cr.StructFieldValidation{
 			StructField: "LogStepCountSteps",
 			Int64Validation: &cr.Int64Validation{
-				GreaterThan: util.Int64Ptr(0),
+				GreaterThan: pointer.Int64(0),
 				Default:     100,
 			},
 		},
 		&cr.StructFieldValidation{
 			StructField: "KeepCheckpointMax",
 			Int64Validation: &cr.Int64Validation{
-				GreaterThan: util.Int64Ptr(0),
+				GreaterThan: pointer.Int64(0),
 				Default:     3,
 			},
 		},
 		&cr.StructFieldValidation{
 			StructField: "KeepCheckpointEveryNHours",
 			Int64Validation: &cr.Int64Validation{
-				GreaterThan: util.Int64Ptr(0),
+				GreaterThan: pointer.Int64(0),
 				Default:     10000,
 			},
 		},
@@ -267,20 +267,20 @@ var modelEvaluationValidation = &cr.StructValidation{
 		&cr.StructFieldValidation{
 			StructField: "BatchSize",
 			Int64Validation: &cr.Int64Validation{
-				GreaterThan: util.Int64Ptr(0),
+				GreaterThan: pointer.Int64(0),
 				Default:     40,
 			},
 		},
 		&cr.StructFieldValidation{
 			StructField: "NumSteps",
 			Int64PtrValidation: &cr.Int64PtrValidation{
-				GreaterThan: util.Int64Ptr(0),
+				GreaterThan: pointer.Int64(0),
 			},
 		},
 		&cr.StructFieldValidation{
 			StructField: "NumEpochs",
 			Int64PtrValidation: &cr.Int64PtrValidation{
-				GreaterThan: util.Int64Ptr(0),
+				GreaterThan: pointer.Int64(0),
 			},
 		},
 		&cr.StructFieldValidation{
@@ -292,14 +292,14 @@ var modelEvaluationValidation = &cr.StructValidation{
 		&cr.StructFieldValidation{
 			StructField: "StartDelaySecs",
 			Int64Validation: &cr.Int64Validation{
-				GreaterThan: util.Int64Ptr(0),
+				GreaterThan: pointer.Int64(0),
 				Default:     120,
 			},
 		},
 		&cr.StructFieldValidation{
 			StructField: "ThrottleSecs",
 			Int64Validation: &cr.Int64Validation{
-				GreaterThan: util.Int64Ptr(0),
+				GreaterThan: pointer.Int64(0),
 				Default:     600,
 			},
 		},
@@ -328,32 +328,32 @@ func (models Models) Validate() error {
 
 func (model *Model) Validate() error {
 	if model.DataPartitionRatio.Training == nil && model.DataPartitionRatio.Evaluation == nil {
-		model.DataPartitionRatio.Training = util.Float64Ptr(0.8)
-		model.DataPartitionRatio.Evaluation = util.Float64Ptr(0.2)
+		model.DataPartitionRatio.Training = pointer.Float64(0.8)
+		model.DataPartitionRatio.Evaluation = pointer.Float64(0.2)
 	} else if model.DataPartitionRatio.Training == nil || model.DataPartitionRatio.Evaluation == nil {
 		return errors.Wrap(ErrorSpecifyAllOrNone(TrainingKey, EvaluationKey), Identify(model), DataPartitionRatioKey)
 	}
 
 	if model.Training.SaveCheckpointsSecs == nil && model.Training.SaveCheckpointsSteps == nil {
-		model.Training.SaveCheckpointsSecs = util.Int64Ptr(600)
+		model.Training.SaveCheckpointsSecs = pointer.Int64(600)
 	} else if model.Training.SaveCheckpointsSecs != nil && model.Training.SaveCheckpointsSteps != nil {
 		return errors.Wrap(ErrorSpecifyOnlyOne(SaveCheckpointSecsKey, SaveCheckpointStepsKey), Identify(model), TrainingKey)
 	}
 
 	if model.Training.NumSteps == nil && model.Training.NumEpochs == nil {
-		model.Training.NumSteps = util.Int64Ptr(1000)
+		model.Training.NumSteps = pointer.Int64(1000)
 	} else if model.Training.NumSteps != nil && model.Training.NumEpochs != nil {
 		return errors.Wrap(ErrorSpecifyOnlyOne(NumEpochsKey, NumStepsKey), Identify(model), TrainingKey)
 	}
 
 	if model.Evaluation.NumSteps == nil && model.Evaluation.NumEpochs == nil {
-		model.Evaluation.NumSteps = util.Int64Ptr(100)
+		model.Evaluation.NumSteps = pointer.Int64(100)
 	} else if model.Evaluation.NumSteps != nil && model.Evaluation.NumEpochs != nil {
 		return errors.Wrap(ErrorSpecifyOnlyOne(NumEpochsKey, NumStepsKey), Identify(model), EvaluationKey)
 	}
 
 	for _, trainingColumn := range model.TrainingColumns {
-		if util.IsStrInSlice(trainingColumn, model.FeatureColumns) {
+		if slices.HasString(trainingColumn, model.FeatureColumns) {
 			return errors.Wrap(ErrorDuplicateResourceValue(trainingColumn, TrainingColumnsKey, FeatureColumnsKey), Identify(model))
 		}
 	}
@@ -362,7 +362,7 @@ func (model *Model) Validate() error {
 }
 
 func (model *Model) AllColumnNames() []string {
-	return util.MergeStrSlices(model.FeatureColumns, model.TrainingColumns, []string{model.TargetColumn})
+	return slices.MergeStrSlices(model.FeatureColumns, model.TrainingColumns, []string{model.TargetColumn})
 }
 
 func (model *Model) GetResourceType() resource.Type {

@@ -19,9 +19,10 @@ package userconfig
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	cr "github.com/cortexlabs/cortex/pkg/utils/configreader"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
 
 type Environments []*Environment
@@ -71,14 +72,14 @@ var limitValidation = &cr.StructValidation{
 		&cr.StructFieldValidation{
 			StructField: "NumRows",
 			Int64PtrValidation: &cr.Int64PtrValidation{
-				GreaterThan: util.Int64Ptr(0),
+				GreaterThan: pointer.Int64(0),
 			},
 		},
 		&cr.StructFieldValidation{
 			StructField: "FractionOfRows",
 			Float32PtrValidation: &cr.Float32PtrValidation{
-				GreaterThan: util.Float32Ptr(0),
-				LessThan:    util.Float32Ptr(1),
+				GreaterThan: pointer.Float32(0),
+				LessThan:    pointer.Float32(1),
 			},
 		},
 		&cr.StructFieldValidation{
@@ -145,7 +146,7 @@ type CSVData struct {
 	CSVConfig *CSVConfig `json:"csv_config" yaml:"csv_config"`
 }
 
-// SPARK_VERSION dependent
+// CSVConfig is SPARK_VERSION dependent
 type CSVConfig struct {
 	Sep                       *string `json:"sep" yaml:"sep"`
 	Encoding                  *string `json:"encoding" yaml:"encoding"`
@@ -240,13 +241,13 @@ var csvDataFieldValidations = []*cr.StructFieldValidation{
 				&cr.StructFieldValidation{
 					StructField: "MaxColumns",
 					Int32PtrValidation: &cr.Int32PtrValidation{
-						GreaterThan: util.Int32Ptr(0),
+						GreaterThan: pointer.Int32(0),
 					},
 				},
 				&cr.StructFieldValidation{
 					StructField: "MaxCharsPerColumn",
 					Int32PtrValidation: &cr.Int32PtrValidation{
-						GreaterThanOrEqualTo: util.Int32Ptr(-1),
+						GreaterThanOrEqualTo: pointer.Int32(-1),
 					},
 				},
 				&cr.StructFieldValidation{
@@ -353,7 +354,7 @@ func (env *Environment) Validate() error {
 		}
 	}
 
-	dups := util.FindDuplicateStrs(env.Data.GetIngestedColumns())
+	dups := slices.FindDuplicateStrs(env.Data.GetIngestedColumns())
 	if len(dups) > 0 {
 		return errors.New(Identify(env), DataKey, SchemaKey, "column name", s.ErrDuplicatedValue(dups[0]))
 	}
@@ -382,11 +383,11 @@ func (csvData *CSVData) GetIngestedColumns() []string {
 }
 
 func (parqData *ParquetData) GetIngestedColumns() []string {
-	column_names := make([]string, len(parqData.Schema))
+	columnNames := make([]string, len(parqData.Schema))
 	for i, parqCol := range parqData.Schema {
-		column_names[i] = parqCol.RawColumnName
+		columnNames[i] = parqCol.RawColumnName
 	}
-	return column_names
+	return columnNames
 }
 
 func (env *Environment) GetResourceType() resource.Type {

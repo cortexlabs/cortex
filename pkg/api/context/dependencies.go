@@ -17,20 +17,20 @@ limitations under the License.
 package context
 
 import (
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
-func (ctx *Context) AllComputedResourceDependencies(resourceID string) map[string]bool {
+func (ctx *Context) AllComputedResourceDependencies(resourceID string) strset.Set {
 	dependencies := ctx.DirectComputedResourceDependencies(resourceID)
-	for dependency := range util.CopyStrSet(dependencies) {
+	for dependency := range dependencies.Copy() {
 		for subDependency := range ctx.AllComputedResourceDependencies(dependency) {
-			dependencies[subDependency] = true
+			dependencies.Add(subDependency)
 		}
 	}
 	return dependencies
 }
 
-func (ctx *Context) DirectComputedResourceDependencies(resourceID string) map[string]bool {
+func (ctx *Context) DirectComputedResourceDependencies(resourceID string) strset.Set {
 	for _, pythonPackage := range ctx.PythonPackages {
 		if pythonPackage.GetID() == resourceID {
 			return ctx.pythonPackageDependencies(pythonPackage)
@@ -64,82 +64,82 @@ func (ctx *Context) DirectComputedResourceDependencies(resourceID string) map[st
 			return ctx.apiDependencies(api)
 		}
 	}
-	return make(map[string]bool)
+	return make(strset.Set)
 }
 
-func (ctx *Context) pythonPackageDependencies(pythonPackage *PythonPackage) map[string]bool {
-	return make(map[string]bool)
+func (ctx *Context) pythonPackageDependencies(pythonPackage *PythonPackage) strset.Set {
+	return make(strset.Set)
 }
 
-func (ctx *Context) rawColumnDependencies(rawColumn RawColumn) map[string]bool {
+func (ctx *Context) rawColumnDependencies(rawColumn RawColumn) strset.Set {
 	// Currently python packages are a dependency on raw features because raw features share
 	// the same workload as transformed features and aggregates.
-	dependencies := make(map[string]bool)
+	dependencies := make(strset.Set)
 	for _, pythonPackage := range ctx.PythonPackages {
-		dependencies[pythonPackage.GetID()] = true
+		dependencies.Add(pythonPackage.GetID())
 	}
 	return dependencies
 }
 
-func (ctx *Context) aggregatesDependencies(aggregate *Aggregate) map[string]bool {
+func (ctx *Context) aggregatesDependencies(aggregate *Aggregate) strset.Set {
 	rawColumnNames := aggregate.InputColumnNames()
-	dependencies := make(map[string]bool, len(rawColumnNames))
+	dependencies := make(strset.Set, len(rawColumnNames))
 	for _, pythonPackage := range ctx.PythonPackages {
-		dependencies[pythonPackage.GetID()] = true
+		dependencies.Add(pythonPackage.GetID())
 	}
 	for _, rawColumnName := range rawColumnNames {
 		rawColumn := ctx.RawColumns[rawColumnName]
-		dependencies[rawColumn.GetID()] = true
+		dependencies.Add(rawColumn.GetID())
 	}
 	return dependencies
 }
 
-func (ctx *Context) transformedColumnDependencies(transformedColumn *TransformedColumn) map[string]bool {
-	dependencies := make(map[string]bool)
+func (ctx *Context) transformedColumnDependencies(transformedColumn *TransformedColumn) strset.Set {
+	dependencies := make(strset.Set)
 
 	for _, pythonPackage := range ctx.PythonPackages {
-		dependencies[pythonPackage.GetID()] = true
+		dependencies.Add(pythonPackage.GetID())
 	}
 
 	rawColumnNames := transformedColumn.InputColumnNames()
 	for _, rawColumnName := range rawColumnNames {
 		rawColumn := ctx.RawColumns[rawColumnName]
-		dependencies[rawColumn.GetID()] = true
+		dependencies.Add(rawColumn.GetID())
 	}
 
 	aggregateNames := transformedColumn.InputAggregateNames(ctx)
 	for aggregateName := range aggregateNames {
 		aggregate := ctx.Aggregates[aggregateName]
-		dependencies[aggregate.GetID()] = true
+		dependencies.Add(aggregate.GetID())
 	}
 
 	return dependencies
 }
 
-func (ctx *Context) trainingDatasetDependencies(model *Model) map[string]bool {
-	dependencies := make(map[string]bool)
+func (ctx *Context) trainingDatasetDependencies(model *Model) strset.Set {
+	dependencies := make(strset.Set)
 	for _, columnName := range model.AllColumnNames() {
 		column := ctx.GetColumn(columnName)
-		dependencies[column.GetID()] = true
+		dependencies.Add(column.GetID())
 	}
 	return dependencies
 }
 
-func (ctx *Context) modelDependencies(model *Model) map[string]bool {
-	dependencies := make(map[string]bool)
+func (ctx *Context) modelDependencies(model *Model) strset.Set {
+	dependencies := make(strset.Set)
 
 	for _, pythonPackage := range ctx.PythonPackages {
-		dependencies[pythonPackage.GetID()] = true
+		dependencies.Add(pythonPackage.GetID())
 	}
 
-	dependencies[model.Dataset.ID] = true
+	dependencies.Add(model.Dataset.ID)
 	for _, aggregate := range model.Aggregates {
-		dependencies[ctx.Aggregates[aggregate].GetID()] = true
+		dependencies.Add(ctx.Aggregates[aggregate].GetID())
 	}
 	return dependencies
 }
 
-func (ctx *Context) apiDependencies(api *API) map[string]bool {
+func (ctx *Context) apiDependencies(api *API) strset.Set {
 	model := ctx.Models[api.ModelName]
-	return map[string]bool{model.ID: true}
+	return strset.New(model.ID)
 }

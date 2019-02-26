@@ -25,8 +25,8 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/utils/errors"
-	"github.com/cortexlabs/cortex/pkg/utils/util"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 )
 
 func getAggregates(
@@ -71,14 +71,14 @@ func getAggregates(
 		buf.WriteString(rawColumns.ColumnInputsID(aggregateConfig.Inputs.Columns))
 		buf.WriteString(s.Obj(constantIDMap))
 		buf.WriteString(aggregator.ID)
-		id := util.HashBytes(buf.Bytes())
+		id := hash.Bytes(buf.Bytes())
 
 		buf.Reset()
 		buf.WriteString(rawColumns.ColumnInputsIDWithTags(aggregateConfig.Inputs.Columns))
 		buf.WriteString(s.Obj(constantIDWithTagsMap))
 		buf.WriteString(aggregator.IDWithTags)
 		buf.WriteString(aggregateConfig.Tags.ID())
-		idWithTags := util.HashBytes(buf.Bytes())
+		idWithTags := hash.Bytes(buf.Bytes())
 
 		aggregateKey := filepath.Join(
 			root,
