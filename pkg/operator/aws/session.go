@@ -24,8 +24,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 )
 
 var awsAccountID string

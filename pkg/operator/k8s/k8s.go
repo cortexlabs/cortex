@@ -33,8 +33,8 @@ import (
 	clientcmd "k8s.io/client-go/tools/clientcmd"
 	homedir "k8s.io/client-go/util/homedir"
 
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )

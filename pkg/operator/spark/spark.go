@@ -29,12 +29,12 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	"github.com/cortexlabs/cortex/pkg/operator/aws"
+	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
+	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 )
 
 var sparkClientset clientset.Interface

@@ -17,11 +17,11 @@ limitations under the License.
 package workloads
 
 import (
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/aws"
+	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
 )
 
 func uploadLatestWorkloadID(resourceID string, workloadID string, appName string) error {

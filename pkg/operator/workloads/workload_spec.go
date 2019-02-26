@@ -24,11 +24,11 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/aws"
+	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
 )
 
 type WorkloadSpec struct {

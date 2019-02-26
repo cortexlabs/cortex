@@ -25,10 +25,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
+	"github.com/cortexlabs/cortex/pkg/operator/aws"
 )
 
 func findCustomPackages(files map[string][]byte) []string {

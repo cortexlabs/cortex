@@ -19,8 +19,8 @@ package context
 import (
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 )
 
 func getCortexConfig() *context.CortexConfig {

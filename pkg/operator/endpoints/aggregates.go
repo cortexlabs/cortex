@@ -22,9 +22,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	schema "github.com/cortexlabs/cortex/pkg/api/schema"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 func GetAggregate(w http.ResponseWriter, r *http.Request) {

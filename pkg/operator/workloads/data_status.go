@@ -19,8 +19,8 @@ package workloads
 import (
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 )
 
 func GetCurrentDataStatuses(ctx *context.Context) (map[string]*resource.DataStatus, error) {

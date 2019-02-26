@@ -23,8 +23,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
 
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 )
 
 func AuthUser(accessKeyID string, secretAccessKey string) (bool, error) {

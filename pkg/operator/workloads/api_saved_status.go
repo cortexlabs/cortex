@@ -22,12 +22,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
-	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/operator/aws"
+	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
+	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 )
 
 func uploadAPISavedStatus(savedStatus *resource.APISavedStatus) error {

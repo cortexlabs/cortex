@@ -26,13 +26,13 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
+	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 )
 
 var (
