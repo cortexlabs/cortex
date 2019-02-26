@@ -14,12 +14,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# [FOR CI]make sure golint is installed
-golint -h
+# [FOR CI] make sure golint and gofmt are installed
+if ! command -v golint >/dev/null 2>&1; then
+  echo "golint must be installed"
+  exit 1
+fi
+if ! command -v gofmt >/dev/null 2>&1; then
+  echo "gofmt must be installed"
+  exit 1
+fi
 
 output=$(golint ./... | grep -v "comment")
-
 if [[ $output ]]; then
+  echo "$output"
+  exit 1
+fi
+
+output=$(gofmt -s -l .)
+if [[ $output ]]; then
+  echo "gofmt failed on files:"
   echo "$output"
   exit 1
 fi
