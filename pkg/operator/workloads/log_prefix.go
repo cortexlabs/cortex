@@ -23,9 +23,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/aws"
 )
 
 func logPreifixKey(workloadID string, appName string) string {
@@ -89,7 +90,7 @@ func getSavedLogPrefix(workloadID string, appName string, allowNil bool) (string
 
 func UploadLogPrefixesFromAPIPods(pods []corev1.Pod) error {
 	logPrefixInfos := []*LogPrefixInfo{}
-	currentWorkloadIDs := map[string]map[string]bool{}
+	currentWorkloadIDs := make(map[string]strset.Set)
 	for _, pod := range pods {
 		if pod.Labels["workloadType"] != WorkloadTypeAPI {
 			continue
@@ -98,10 +99,10 @@ func UploadLogPrefixesFromAPIPods(pods []corev1.Pod) error {
 		workloadID := pod.Labels["workloadID"]
 		appName := pod.Labels["appName"]
 		if _, ok := currentWorkloadIDs[appName]; !ok {
-			currentWorkloadIDs[appName] = map[string]bool{}
+			currentWorkloadIDs[appName] = strset.New()
 		}
 
-		if currentWorkloadIDs[appName][workloadID] {
+		if currentWorkloadIDs[appName].Has(workloadID) {
 			continue
 		}
 
@@ -112,7 +113,7 @@ func UploadLogPrefixesFromAPIPods(pods []corev1.Pod) error {
 			WorkloadID: workloadID,
 		})
 
-		currentWorkloadIDs[appName][workloadID] = true
+		currentWorkloadIDs[appName].Add(workloadID)
 	}
 
 	uncacheLogPrefixes(currentWorkloadIDs)

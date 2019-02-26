@@ -22,6 +22,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 // FlattenAllStrValues assumes that the order for maps is deterministic
@@ -58,15 +59,15 @@ func FlattenAllStrValues(obj interface{}) ([]string, error) {
 	return nil, errors.New(s.ErrInvalidPrimitiveType(obj, s.PrimTypeString, s.PrimTypeList, s.PrimTypeMap))
 }
 
-func FlattenAllStrValuesAsSet(obj interface{}) (map[string]bool, error) {
+func FlattenAllStrValuesAsSet(obj interface{}) (strset.Set, error) {
 	strs, err := FlattenAllStrValues(obj)
 	if err != nil {
 		return nil, err
 	}
 
-	set := make(map[string]bool)
+	set := strset.New()
 	for _, str := range strs {
-		set[str] = true
+		set.Add(str)
 	}
 	return set, nil
 }

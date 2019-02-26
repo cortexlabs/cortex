@@ -26,14 +26,15 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/aws"
 )
 
 var builtinAggregators = make(map[string]*context.Aggregator)
-var uploadedAggregators = make(map[string]bool)
+var uploadedAggregators = strset.New()
 
 func init() {
 	configPath := filepath.Join(OperatorAggregatorsDir, "aggregators.yaml")
@@ -119,7 +120,7 @@ func newAggregator(
 }
 
 func uploadAggregator(aggregator *context.Aggregator, impl []byte) error {
-	if _, ok := uploadedAggregators[aggregator.ID]; ok {
+	if uploadedAggregators.Has(aggregator.ID) {
 		return nil
 	}
 
@@ -135,7 +136,7 @@ func uploadAggregator(aggregator *context.Aggregator, impl []byte) error {
 		}
 	}
 
-	uploadedAggregators[aggregator.ID] = true
+	uploadedAggregators.Add(aggregator.ID)
 	return nil
 }
 

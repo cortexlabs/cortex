@@ -29,9 +29,10 @@ import (
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
+	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
@@ -43,7 +44,7 @@ const (
 	cronInterval          = 5  // seconds
 )
 
-var markedWorkflows = map[string]bool{}
+var markedWorkflows = strset.New()
 
 func main() {
 	startCron()
@@ -152,8 +153,8 @@ func runCron() {
 
 func deleteWorkflowDelayed(wfName string) {
 	deletionDelay := time.Duration(workflowDeletionDelay) * time.Second
-	if _, ok := markedWorkflows[wfName]; !ok {
-		markedWorkflows[wfName] = true
+	if !markedWorkflows.Has(wfName) {
+		markedWorkflows.Add(wfName)
 		time.Sleep(deletionDelay)
 		argo.Delete(wfName)
 		go deleteMarkerDelayed(markedWorkflows, wfName)
@@ -161,7 +162,7 @@ func deleteWorkflowDelayed(wfName string) {
 }
 
 // Wait some time before trying to delete again
-func deleteMarkerDelayed(markerMap map[string]bool, key string) {
+func deleteMarkerDelayed(markerMap strset.Set, key string) {
 	time.Sleep(20 * time.Second)
-	delete(markerMap, key)
+	markerMap.Remove(key)
 }

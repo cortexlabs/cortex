@@ -28,6 +28,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 type FileInput struct {
@@ -70,7 +71,7 @@ type Input struct {
 
 func ToWriter(zipInput *Input, writer io.Writer) error {
 	archive := zip.NewWriter(writer)
-	addedPaths := &map[string]bool{}
+	addedPaths := strset.New()
 	var err error
 
 	for _, byteInput := range zipInput.Bytes {
@@ -150,14 +151,14 @@ func ToMem(zipInput *Input) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func addBytesToZip(byteInput *BytesInput, zipInput *Input, archive *zip.Writer, addedPaths *map[string]bool) error {
+func addBytesToZip(byteInput *BytesInput, zipInput *Input, archive *zip.Writer, addedPaths strset.Set) error {
 	path := filepath.Join(zipInput.AddPrefix, byteInput.Dest)
 
 	if !zipInput.AllowOverwrite {
-		if _, ok := (*addedPaths)[path]; ok {
+		if addedPaths.Has(path) {
 			return errors.New(s.ErrDuplicateZipPath(path))
 		}
-		(*addedPaths)[path] = true
+		addedPaths.Add(path)
 	}
 
 	f, err := archive.Create(path)
@@ -171,7 +172,7 @@ func addBytesToZip(byteInput *BytesInput, zipInput *Input, archive *zip.Writer, 
 	return nil
 }
 
-func addEmptyFileToZip(path string, zipInput *Input, archive *zip.Writer, addedPaths *map[string]bool) error {
+func addEmptyFileToZip(path string, zipInput *Input, archive *zip.Writer, addedPaths strset.Set) error {
 	byteInput := &BytesInput{
 		Content: []byte{},
 		Dest:    path,
@@ -179,7 +180,7 @@ func addEmptyFileToZip(path string, zipInput *Input, archive *zip.Writer, addedP
 	return addBytesToZip(byteInput, zipInput, archive, addedPaths)
 }
 
-func addFileToZip(fileInput *FileInput, zipInput *Input, archive *zip.Writer, addedPaths *map[string]bool) error {
+func addFileToZip(fileInput *FileInput, zipInput *Input, archive *zip.Writer, addedPaths strset.Set) error {
 	if !files.IsFile(fileInput.Source) {
 		if !zipInput.AllowMissing {
 			return errors.New(fileInput.Source, s.ErrFileDoesNotExist(fileInput.Source))
@@ -200,7 +201,7 @@ func addFileToZip(fileInput *FileInput, zipInput *Input, archive *zip.Writer, ad
 	return addBytesToZip(byteInput, zipInput, archive, addedPaths)
 }
 
-func addDirToZip(dirInput *DirInput, zipInput *Input, archive *zip.Writer, addedPaths *map[string]bool) error {
+func addDirToZip(dirInput *DirInput, zipInput *Input, archive *zip.Writer, addedPaths strset.Set) error {
 	if !files.IsDir(dirInput.Source) {
 		if !zipInput.AllowMissing {
 			return errors.New(s.ErrDirDoesNotExist(dirInput.Source))
@@ -243,7 +244,7 @@ func addDirToZip(dirInput *DirInput, zipInput *Input, archive *zip.Writer, added
 	return nil
 }
 
-func addFileListToZip(fileListInput *FileListInput, zipInput *Input, archive *zip.Writer, addedPaths *map[string]bool) error {
+func addFileListToZip(fileListInput *FileListInput, zipInput *Input, archive *zip.Writer, addedPaths strset.Set) error {
 	commonPrefix := ""
 	if fileListInput.RemoveCommonPrefix {
 		commonPrefix = s.LongestCommonPrefix(fileListInput.Sources...)

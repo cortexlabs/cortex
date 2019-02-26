@@ -26,12 +26,13 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/aws"
 )
 
-var uploadedModels = map[string]bool{}
+var uploadedModels = strset.New()
 
 func getModels(
 	config *userconfig.Config,
@@ -145,7 +146,7 @@ func uploadModelImpl(modelImplID string, impl []byte) (string, error) {
 		modelImplID+".py",
 	)
 
-	if _, ok := uploadedModels[modelImplID]; ok {
+	if uploadedModels.Has(modelImplID) {
 		return modelImplKey, nil
 	}
 
@@ -161,6 +162,6 @@ func uploadModelImpl(modelImplID string, impl []byte) (string, error) {
 		}
 	}
 
-	uploadedModels[modelImplID] = true
+	uploadedModels.Add(modelImplID)
 	return modelImplKey, nil
 }

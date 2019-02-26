@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 type Columns map[string]Column
@@ -45,13 +46,13 @@ func (ctx *Context) Columns() Columns {
 	return columns
 }
 
-func (ctx *Context) ColumnNames() map[string]bool {
-	names := make(map[string]bool, len(ctx.RawColumns)+len(ctx.TransformedColumns))
+func (ctx *Context) ColumnNames() strset.Set {
+	names := strset.NewWithSize(len(ctx.RawColumns) + len(ctx.TransformedColumns))
 	for name := range ctx.RawColumns {
-		names[name] = true
+		names.Add(name)
 	}
 	for name := range ctx.TransformedColumns {
-		names[name] = true
+		names.Add(name)
 	}
 	return names
 }

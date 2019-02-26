@@ -178,10 +178,10 @@ func (ctx *Context) ComputedResourceResourceWorkloadIDs() map[string]string {
 	return ExtractResourceWorkloadIDs(ctx.ComputedResources())
 }
 
-func (ctx *Context) ComputedResourceWorkloadIDs() map[string]bool {
-	workloadIDs := make(map[string]bool)
+func (ctx *Context) ComputedResourceWorkloadIDs() strset.Set {
+	workloadIDs := strset.New()
 	for _, workloadID := range ExtractResourceWorkloadIDs(ctx.ComputedResources()) {
-		workloadIDs[workloadID] = true
+		workloadIDs.Add(workloadID)
 	}
 	return workloadIDs
 }

@@ -19,6 +19,7 @@ package context
 import (
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 type TransformedColumns map[string]*TransformedColumn
@@ -39,11 +40,11 @@ func (column *TransformedColumn) Args() map[string]string {
 	return args
 }
 
-func (column *TransformedColumn) InputAggregateNames(ctx *Context) map[string]bool {
-	inputAggregateNames := make(map[string]bool)
+func (column *TransformedColumn) InputAggregateNames(ctx *Context) strset.Set {
+	inputAggregateNames := strset.New()
 	for _, valueResourceName := range column.Args() {
 		if _, ok := ctx.Aggregates[valueResourceName]; ok {
-			inputAggregateNames[valueResourceName] = true
+			inputAggregateNames.Add(valueResourceName)
 		}
 	}
 	return inputAggregateNames

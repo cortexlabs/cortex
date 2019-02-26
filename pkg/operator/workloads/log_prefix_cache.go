@@ -17,6 +17,8 @@ limitations under the License.
 package workloads
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+
 	"sync"
 )
 
@@ -49,7 +51,7 @@ func cacheLogPrefix(logPrefix string, workloadID string, appName string) {
 }
 
 // currentWorkloadIDs: appName -> workload IDs to keep
-func uncacheLogPrefixes(currentWorkloadIDs map[string]map[string]bool) {
+func uncacheLogPrefixes(currentWorkloadIDs map[string]strset.Set) {
 	logPrefixCache.Lock()
 	defer logPrefixCache.Unlock()
 	for appName := range logPrefixCache.m {
@@ -57,7 +59,7 @@ func uncacheLogPrefixes(currentWorkloadIDs map[string]map[string]bool) {
 			delete(logPrefixCache.m, appName)
 		} else {
 			for workloadID := range logPrefixCache.m[appName] {
-				if !currentWorkloadIDs[appName][workloadID] {
+				if !currentWorkloadIDs[appName].Has(workloadID) {
 					delete(logPrefixCache.m[appName], workloadID)
 				}
 			}

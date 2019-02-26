@@ -26,14 +26,15 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/aws"
 )
 
 var builtinTransformers = make(map[string]*context.Transformer)
-var uploadedTransformers = make(map[string]bool)
+var uploadedTransformers = strset.New()
 
 func init() {
 	configPath := filepath.Join(OperatorTransformersDir, "transformers.yaml")
@@ -118,7 +119,7 @@ func newTransformer(
 }
 
 func uploadTransformer(transformer *context.Transformer, impl []byte) error {
-	if _, ok := uploadedTransformers[transformer.ID]; ok {
+	if uploadedTransformers.Has(transformer.ID) {
 		return nil
 	}
 
@@ -134,7 +135,7 @@ func uploadTransformer(transformer *context.Transformer, impl []byte) error {
 		}
 	}
 
-	uploadedTransformers[transformer.ID] = true
+	uploadedTransformers.Add(transformer.ID)
 	return nil
 }
 

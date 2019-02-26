@@ -16,7 +16,10 @@ limitations under the License.
 
 package slices
 
-import libmath "github.com/cortexlabs/cortex/pkg/lib/math"
+import (
+	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+)
 
 func HasString(query string, list []string) bool {
 	for _, elem := range list {
@@ -28,12 +31,12 @@ func HasString(query string, list []string) bool {
 }
 
 func HasAnyStrings(queries []string, list []string) bool {
-	keys := make(map[string]bool)
+	keys := strset.New()
 	for _, elem := range queries {
-		keys[elem] = true
+		keys.Add(elem)
 	}
 	for _, elem := range list {
-		if _, ok := keys[elem]; ok {
+		if keys.Has(elem) {
 			return true
 		}
 	}
@@ -41,12 +44,12 @@ func HasAnyStrings(queries []string, list []string) bool {
 }
 
 func HasAllStrings(queries []string, list []string) bool {
-	keys := make(map[string]bool)
+	keys := strset.New()
 	for _, elem := range list {
-		keys[elem] = true
+		keys.Add(elem)
 	}
 	for _, elem := range queries {
-		if _, ok := keys[elem]; !ok {
+		if !keys.Has(elem) {
 			return false
 		}
 	}
@@ -58,11 +61,11 @@ func CopyStrings(vals []string) []string {
 }
 
 func UniqueStrings(strs []string) []string {
-	keys := make(map[string]bool)
+	keys := strset.New()
 	out := []string{}
 	for _, elem := range strs {
-		if _, ok := keys[elem]; !ok {
-			keys[elem] = true
+		if !keys.Has(elem) {
+			keys.Add(elem)
 			out = append(out, elem)
 		}
 	}
@@ -80,12 +83,12 @@ func RemoveEmpties(strs []string) []string {
 }
 
 func RemoveEmptiesAndUnique(strs []string) []string {
-	keys := make(map[string]bool)
+	keys := strset.New()
 	out := []string{}
 	for _, elem := range strs {
 		if elem != "" {
-			if _, ok := keys[elem]; !ok {
-				keys[elem] = true
+			if !keys.Has(elem) {
+				keys.Add(elem)
 				out = append(out, elem)
 			}
 		}
@@ -94,24 +97,24 @@ func RemoveEmptiesAndUnique(strs []string) []string {
 }
 
 func HasDuplicateStr(in []string) bool {
-	keys := make(map[string]bool)
+	keys := strset.New()
 	for _, elem := range in {
-		if _, ok := keys[elem]; ok {
+		if keys.Has(elem) {
 			return true
 		}
-		keys[elem] = true
+		keys.Add(elem)
 	}
 	return false
 }
 
 func FindDuplicateStrs(in []string) []string {
 	dups := []string{}
-	keys := map[string]bool{}
+	keys := strset.New()
 	for _, elem := range in {
-		if _, ok := keys[elem]; ok {
+		if keys.Has(elem) {
 			dups = append(dups, elem)
 		}
-		keys[elem] = true
+		keys.Add(elem)
 	}
 	return dups
 }
@@ -194,15 +197,4 @@ func ZipStrsToMap(strs1 []string, strs2 []string) map[string]string {
 		strMap[strs1[i]] = strs2[i]
 	}
 	return strMap
-}
-
-func StrSliceToSet(strs []string) map[string]bool {
-	if strs == nil {
-		return nil
-	}
-	set := make(map[string]bool)
-	for _, str := range strs {
-		set[str] = true
-	}
-	return set
 }

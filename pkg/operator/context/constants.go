@@ -24,13 +24,14 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/aws"
 )
 
-var uploadedConstants = make(map[string]bool)
+var uploadedConstants = strset.New()
 
 func loadConstants(constantConfigs userconfig.Constants) (context.Constants, error) {
 	constants := context.Constants{}
@@ -71,7 +72,7 @@ func newConstant(constantConfig userconfig.Constant) (*context.Constant, error) 
 }
 
 func uploadConstant(constant *context.Constant) error {
-	if _, ok := uploadedConstants[constant.ID]; ok {
+	if uploadedConstants.Has(constant.ID) {
 		return nil
 	}
 
@@ -88,6 +89,6 @@ func uploadConstant(constant *context.Constant) error {
 		}
 	}
 
-	uploadedConstants[constant.ID] = true
+	uploadedConstants.Add(constant.ID)
 	return nil
 }
