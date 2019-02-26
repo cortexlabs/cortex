@@ -32,14 +32,14 @@ type API struct {
 
 var apiValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "Name",
 			StringValidation: &cr.StringValidation{
 				Required: true,
 				DNS1035:  true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField:  "ModelName",
 			DefaultField: "Name",
 			StringValidation: &cr.StringValidation{

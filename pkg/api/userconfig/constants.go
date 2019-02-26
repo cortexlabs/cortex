@@ -33,14 +33,14 @@ type Constant struct {
 
 var constantValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "Name",
 			StringValidation: &cr.StringValidation{
 				Required:                   true,
 				AlphaNumericDashUnderscore: true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "Type",
 			InterfaceValidation: &cr.InterfaceValidation{
 				Required: true,
@@ -49,7 +49,7 @@ var constantValidation = &cr.StructValidation{
 				},
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "Value",
 			InterfaceValidation: &cr.InterfaceValidation{
 				Required: true,

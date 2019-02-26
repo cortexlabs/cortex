@@ -30,7 +30,7 @@ var inputTypesFieldValidation = &cr.StructFieldValidation{
 	StructValidation: &cr.StructValidation{
 		Required: true,
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				StructField: "Columns",
 				InterfaceMapValidation: &cr.InterfaceMapValidation{
 					AllowEmpty: true,
@@ -40,7 +40,7 @@ var inputTypesFieldValidation = &cr.StructFieldValidation{
 					},
 				},
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "Args",
 				InterfaceMapValidation: &cr.InterfaceMapValidation{
 					AllowEmpty: true,
@@ -59,7 +59,7 @@ var inputValuesFieldValidation = &cr.StructFieldValidation{
 	StructValidation: &cr.StructValidation{
 		Required: true,
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				StructField: "Columns",
 				InterfaceMapValidation: &cr.InterfaceMapValidation{
 					AllowEmpty: true,
@@ -69,7 +69,7 @@ var inputValuesFieldValidation = &cr.StructFieldValidation{
 					},
 				},
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "Args",
 				InterfaceMapValidation: &cr.InterfaceMapValidation{
 					AllowEmpty: true,

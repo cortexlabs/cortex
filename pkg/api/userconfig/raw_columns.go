@@ -34,15 +34,15 @@ var rawColumnValidation = &cr.InterfaceStructValidation{
 	TypeKey:         "type",
 	TypeStructField: "Type",
 	InterfaceStructTypes: map[string]*cr.InterfaceStructType{
-		"STRING_COLUMN": &cr.InterfaceStructType{
+		"STRING_COLUMN": {
 			Type:                   (*RawStringColumn)(nil),
 			StructFieldValidations: rawStringColumnFieldValidations,
 		},
-		"INT_COLUMN": &cr.InterfaceStructType{
+		"INT_COLUMN": {
 			Type:                   (*RawIntColumn)(nil),
 			StructFieldValidations: rawIntColumnFieldValidations,
 		},
-		"FLOAT_COLUMN": &cr.InterfaceStructType{
+		"FLOAT_COLUMN": {
 			Type:                   (*RawFloatColumn)(nil),
 			StructFieldValidations: rawFloatColumnFieldValidations,
 		},
@@ -61,7 +61,7 @@ type RawIntColumn struct {
 }
 
 var rawIntColumnFieldValidations = []*cr.StructFieldValidation{
-	&cr.StructFieldValidation{
+	{
 		Key:         "name",
 		StructField: "Name",
 		StringValidation: &cr.StringValidation{
@@ -69,24 +69,24 @@ var rawIntColumnFieldValidations = []*cr.StructFieldValidation{
 			AlphaNumericDashUnderscore: true,
 		},
 	},
-	&cr.StructFieldValidation{
+	{
 		Key:         "required",
 		StructField: "Required",
 		BoolValidation: &cr.BoolValidation{
 			Default: false,
 		},
 	},
-	&cr.StructFieldValidation{
+	{
 		Key:                "min",
 		StructField:        "Min",
 		Int64PtrValidation: &cr.Int64PtrValidation{},
 	},
-	&cr.StructFieldValidation{
+	{
 		Key:                "max",
 		StructField:        "Max",
 		Int64PtrValidation: &cr.Int64PtrValidation{},
 	},
-	&cr.StructFieldValidation{
+	{
 		Key:         "values",
 		StructField: "Values",
 		Int64ListValidation: &cr.Int64ListValidation{
@@ -110,7 +110,7 @@ type RawFloatColumn struct {
 }
 
 var rawFloatColumnFieldValidations = []*cr.StructFieldValidation{
-	&cr.StructFieldValidation{
+	{
 		Key:         "name",
 		StructField: "Name",
 		StringValidation: &cr.StringValidation{
@@ -118,24 +118,24 @@ var rawFloatColumnFieldValidations = []*cr.StructFieldValidation{
 			AlphaNumericDashUnderscore: true,
 		},
 	},
-	&cr.StructFieldValidation{
+	{
 		Key:         "required",
 		StructField: "Required",
 		BoolValidation: &cr.BoolValidation{
 			Default: false,
 		},
 	},
-	&cr.StructFieldValidation{
+	{
 		Key:                  "min",
 		StructField:          "Min",
 		Float32PtrValidation: &cr.Float32PtrValidation{},
 	},
-	&cr.StructFieldValidation{
+	{
 		Key:                  "max",
 		StructField:          "Max",
 		Float32PtrValidation: &cr.Float32PtrValidation{},
 	},
-	&cr.StructFieldValidation{
+	{
 		Key:         "values",
 		StructField: "Values",
 		Float32ListValidation: &cr.Float32ListValidation{
@@ -157,7 +157,7 @@ type RawStringColumn struct {
 }
 
 var rawStringColumnFieldValidations = []*cr.StructFieldValidation{
-	&cr.StructFieldValidation{
+	{
 		Key:         "name",
 		StructField: "Name",
 		StringValidation: &cr.StringValidation{
@@ -165,14 +165,14 @@ var rawStringColumnFieldValidations = []*cr.StructFieldValidation{
 			Required:                   true,
 		},
 	},
-	&cr.StructFieldValidation{
+	{
 		Key:         "required",
 		StructField: "Required",
 		BoolValidation: &cr.BoolValidation{
 			Default: false,
 		},
 	},
-	&cr.StructFieldValidation{
+	{
 		Key:         "values",
 		StructField: "Values",
 		StringListValidation: &cr.StringListValidation{

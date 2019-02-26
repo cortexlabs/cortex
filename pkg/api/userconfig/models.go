@@ -47,14 +47,14 @@ type Model struct {
 
 var modelValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "Name",
 			StringValidation: &cr.StringValidation{
 				Required:                   true,
 				AlphaNumericDashUnderscore: true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField:      "Path",
 			StringValidation: &cr.StringValidation{},
 			DefaultField:     "Name",
@@ -62,34 +62,34 @@ var modelValidation = &cr.StructValidation{
 				return "implementations/models/" + name.(string) + ".py"
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "Type",
 			StringValidation: &cr.StringValidation{
 				Default:       "classification",
 				AllowedValues: []string{"classification", "regression"},
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "TargetColumn",
 			StringValidation: &cr.StringValidation{
 				Required: true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "PredictionKey",
 			StringValidation: &cr.StringValidation{
 				Default:    "",
 				AllowEmpty: true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "FeatureColumns",
 			StringListValidation: &cr.StringListValidation{
 				Required:     true,
 				DisallowDups: true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "TrainingColumns",
 			StringListValidation: &cr.StringListValidation{
 				AllowEmpty:   true,
@@ -97,29 +97,29 @@ var modelValidation = &cr.StructValidation{
 				Default:      make([]string, 0),
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "Aggregates",
 			StringListValidation: &cr.StringListValidation{
 				AllowEmpty: true,
 				Default:    make([]string, 0),
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "Hparams",
 			InterfaceMapValidation: &cr.InterfaceMapValidation{
 				AllowEmpty: true,
 				Default:    make(map[string]interface{}),
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField:      "DataPartitionRatio",
 			StructValidation: modelDataPartitionRatioValidation,
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField:      "Training",
 			StructValidation: modelTrainingValidation,
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField:      "Evaluation",
 			StructValidation: modelEvaluationValidation,
 		},
@@ -136,13 +136,13 @@ type ModelDataPartitionRatio struct {
 
 var modelDataPartitionRatioValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "Training",
 			Float64PtrValidation: &cr.Float64PtrValidation{
 				GreaterThan: pointer.Float64(0),
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "Evaluation",
 			Float64PtrValidation: &cr.Float64PtrValidation{
 				GreaterThan: pointer.Float64(0),
@@ -168,38 +168,38 @@ type ModelTraining struct {
 
 var modelTrainingValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "BatchSize",
 			Int64Validation: &cr.Int64Validation{
 				GreaterThan: pointer.Int64(0),
 				Default:     40,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "NumSteps",
 			Int64PtrValidation: &cr.Int64PtrValidation{
 				GreaterThan: pointer.Int64(0),
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "NumEpochs",
 			Int64PtrValidation: &cr.Int64PtrValidation{
 				GreaterThan: pointer.Int64(0),
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "Shuffle",
 			BoolValidation: &cr.BoolValidation{
 				Default: true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "TfRandomizeSeed",
 			BoolValidation: &cr.BoolValidation{
 				Default: false,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField:  "TfRandomSeed",
 			DefaultField: "TfRandomizeSeed",
 			DefaultFieldFunc: func(randomize interface{}) interface{} {
@@ -210,40 +210,40 @@ var modelTrainingValidation = &cr.StructValidation{
 			},
 			Int64Validation: &cr.Int64Validation{},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "SaveSummarySteps",
 			Int64Validation: &cr.Int64Validation{
 				GreaterThan: pointer.Int64(0),
 				Default:     100,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "SaveCheckpointsSecs",
 			Int64PtrValidation: &cr.Int64PtrValidation{
 				GreaterThan: pointer.Int64(0),
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "SaveCheckpointsSteps",
 			Int64PtrValidation: &cr.Int64PtrValidation{
 				GreaterThan: pointer.Int64(0),
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "LogStepCountSteps",
 			Int64Validation: &cr.Int64Validation{
 				GreaterThan: pointer.Int64(0),
 				Default:     100,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "KeepCheckpointMax",
 			Int64Validation: &cr.Int64Validation{
 				GreaterThan: pointer.Int64(0),
 				Default:     3,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "KeepCheckpointEveryNHours",
 			Int64Validation: &cr.Int64Validation{
 				GreaterThan: pointer.Int64(0),
@@ -264,39 +264,39 @@ type ModelEvaluation struct {
 
 var modelEvaluationValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "BatchSize",
 			Int64Validation: &cr.Int64Validation{
 				GreaterThan: pointer.Int64(0),
 				Default:     40,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "NumSteps",
 			Int64PtrValidation: &cr.Int64PtrValidation{
 				GreaterThan: pointer.Int64(0),
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "NumEpochs",
 			Int64PtrValidation: &cr.Int64PtrValidation{
 				GreaterThan: pointer.Int64(0),
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "Shuffle",
 			BoolValidation: &cr.BoolValidation{
 				Default: false,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "StartDelaySecs",
 			Int64Validation: &cr.Int64Validation{
 				GreaterThan: pointer.Int64(0),
 				Default:     120,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "ThrottleSecs",
 			Int64Validation: &cr.Int64Validation{
 				GreaterThan: pointer.Int64(0),

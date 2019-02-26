@@ -36,22 +36,22 @@ type Environment struct {
 
 var environmentValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "Name",
 			StringValidation: &cr.StringValidation{
 				Required:                   true,
 				AlphaNumericDashUnderscore: true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField:      "LogLevel",
 			StructValidation: logLevelValidation,
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField:      "Limit",
 			StructValidation: limitValidation,
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField:               "Data",
 			Key:                       "data",
 			InterfaceStructValidation: dataValidation,
@@ -69,24 +69,24 @@ type Limit struct {
 
 var limitValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "NumRows",
 			Int64PtrValidation: &cr.Int64PtrValidation{
 				GreaterThan: pointer.Int64(0),
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "FractionOfRows",
 			Float32PtrValidation: &cr.Float32PtrValidation{
 				GreaterThan: pointer.Float32(0),
 				LessThan:    pointer.Float32(1),
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField:       "Randomize",
 			BoolPtrValidation: &cr.BoolPtrValidation{},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField:        "RandomSeed",
 			Int64PtrValidation: &cr.Int64PtrValidation{},
 		},
@@ -100,14 +100,14 @@ type LogLevel struct {
 
 var logLevelValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "Tensorflow",
 			StringValidation: &cr.StringValidation{
 				Default:       "INFO",
 				AllowedValues: []string{"DEBUG", "INFO", "WARN", "ERROR", "FATAL"},
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "Spark",
 			StringValidation: &cr.StringValidation{
 				Default:       "WARN",
@@ -127,11 +127,11 @@ var dataValidation = &cr.InterfaceStructValidation{
 	TypeKey:         "type",
 	TypeStructField: "Type",
 	InterfaceStructTypes: map[string]*cr.InterfaceStructType{
-		"csv": &cr.InterfaceStructType{
+		"csv": {
 			Type:                   (*CSVData)(nil),
 			StructFieldValidations: csvDataFieldValidations,
 		},
-		"parquet": &cr.InterfaceStructType{
+		"parquet": {
 			Type:                   (*ParquetData)(nil),
 			StructFieldValidations: parquetDataFieldValidations,
 		},
@@ -168,97 +168,97 @@ type CSVConfig struct {
 }
 
 var csvDataFieldValidations = []*cr.StructFieldValidation{
-	&cr.StructFieldValidation{
+	{
 		StructField: "Path",
 		StringValidation: cr.GetS3aPathValidation(&cr.S3aPathValidation{
 			Required: true,
 		}),
 	},
-	&cr.StructFieldValidation{
+	{
 		StructField: "Schema",
 		StringListValidation: &cr.StringListValidation{
 			Required: true,
 		},
 	},
-	&cr.StructFieldValidation{
+	{
 		StructField: "DropNull",
 		BoolValidation: &cr.BoolValidation{
 			Default: false,
 		},
 	},
-	&cr.StructFieldValidation{
+	{
 		StructField: "CSVConfig",
 		StructValidation: &cr.StructValidation{
 			StructFieldValidations: []*cr.StructFieldValidation{
-				&cr.StructFieldValidation{
+				{
 					StructField:         "Sep",
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField:         "Encoding",
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField:         "Quote",
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField:         "Escape",
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField:         "Comment",
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField:       "Header",
 					BoolPtrValidation: &cr.BoolPtrValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField:       "IgnoreLeadingWhiteSpace",
 					BoolPtrValidation: &cr.BoolPtrValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField:       "IgnoreTrailingWhiteSpace",
 					BoolPtrValidation: &cr.BoolPtrValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField:         "NullValue",
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField:         "NanValue",
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField:         "PositiveInf",
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField:         "NegativeInf",
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField: "MaxColumns",
 					Int32PtrValidation: &cr.Int32PtrValidation{
 						GreaterThan: pointer.Int32(0),
 					},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField: "MaxCharsPerColumn",
 					Int32PtrValidation: &cr.Int32PtrValidation{
 						GreaterThanOrEqualTo: pointer.Int32(-1),
 					},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField:       "Multiline",
 					BoolPtrValidation: &cr.BoolPtrValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField:         "CharToEscapeQuoteEscaping",
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					StructField:         "EmptyValue",
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
@@ -275,19 +275,19 @@ type ParquetData struct {
 }
 
 var parquetDataFieldValidations = []*cr.StructFieldValidation{
-	&cr.StructFieldValidation{
+	{
 		StructField: "Path",
 		StringValidation: cr.GetS3aPathValidation(&cr.S3aPathValidation{
 			Required: true,
 		}),
 	},
-	&cr.StructFieldValidation{
+	{
 		StructField: "Schema",
 		StructListValidation: &cr.StructListValidation{
 			StructValidation: parquetColumnValidation,
 		},
 	},
-	&cr.StructFieldValidation{
+	{
 		StructField: "DropNull",
 		BoolValidation: &cr.BoolValidation{
 			Default: false,
@@ -302,13 +302,13 @@ type ParquetColumn struct {
 
 var parquetColumnValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "ParquetColumnName",
 			StringValidation: &cr.StringValidation{
 				Required: true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "RawColumnName",
 			StringValidation: &cr.StringValidation{
 				Required: true,

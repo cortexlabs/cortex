@@ -34,14 +34,14 @@ type SimpleConfig struct {
 func TestSimple(t *testing.T) {
 	structValidation := &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				// Key:         "key1",
 				StructField: "Key1",
 				BoolValidation: &cr.BoolValidation{
 					Required: true,
 				},
 			},
-			&cr.StructFieldValidation{
+			{
 				// Key:         "key2",
 				StructField: "Key2",
 				BoolValidation: &cr.BoolValidation{
@@ -85,17 +85,17 @@ type Nested3 struct {
 func TestNested(t *testing.T) {
 	structValidation := &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				// Key:               "key0",
 				StructField:       "Key0",
 				Float64Validation: &cr.Float64Validation{},
 			},
-			&cr.StructFieldValidation{
+			{
 				// Key:         "key1",
 				StructField: "Key1",
 				StructValidation: &cr.StructValidation{
 					StructFieldValidations: []*cr.StructFieldValidation{
-						&cr.StructFieldValidation{
+						{
 							// Key:             "key11",
 							StructField:     "Key11",
 							Int32Validation: &cr.Int32Validation{},
@@ -105,22 +105,22 @@ func TestNested(t *testing.T) {
 					ShortCircuit: true,
 				},
 			},
-			&cr.StructFieldValidation{
+			{
 				// Key:         "key2",
 				StructField: "Key2",
 				StructValidation: &cr.StructValidation{
 					StructFieldValidations: []*cr.StructFieldValidation{
-						&cr.StructFieldValidation{
+						{
 							// Key:              "key21",
 							StructField:      "Key21",
 							StringValidation: &cr.StringValidation{},
 						},
-						&cr.StructFieldValidation{
+						{
 							// Key:         "key22",
 							StructField: "Key22",
 							StructValidation: &cr.StructValidation{
 								StructFieldValidations: []*cr.StructFieldValidation{
-									&cr.StructFieldValidation{
+									{
 										// Key:           "key31",
 										StructField:   "Key31",
 										IntValidation: &cr.IntValidation{},
@@ -188,48 +188,48 @@ type NestedList3 struct {
 func TestNestedList(t *testing.T) {
 	structValidation := &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				// Key:               "key0",
 				StructField:       "Key0",
 				Float64Validation: &cr.Float64Validation{},
 			},
-			&cr.StructFieldValidation{
+			{
 				// Key:         "key1",
 				StructField: "Key1",
 				StructValidation: &cr.StructValidation{
 					StructFieldValidations: []*cr.StructFieldValidation{
-						&cr.StructFieldValidation{
+						{
 							// Key:         "key11",
 							StructField: "Key11",
 							StructListValidation: &cr.StructListValidation{
 								StructValidation: &cr.StructValidation{
 									StructFieldValidations: []*cr.StructFieldValidation{
-										&cr.StructFieldValidation{
+										{
 											// Key:              "keyA",
 											StructField:      "KeyA",
 											StringValidation: &cr.StringValidation{},
 										},
-										&cr.StructFieldValidation{
+										{
 											// Key:           "keyB",
 											StructField:   "KeyB",
 											IntValidation: &cr.IntValidation{},
 										},
-										&cr.StructFieldValidation{
+										{
 											// Key:                   "keyC",
 											StructField:           "KeyC",
 											Float64ListValidation: &cr.Float64ListValidation{},
 										},
-										&cr.StructFieldValidation{
+										{
 											// Key:         "keyD",
 											StructField: "KeyD",
 											StructValidation: &cr.StructValidation{
 												StructFieldValidations: []*cr.StructFieldValidation{
-													&cr.StructFieldValidation{
+													{
 														// Key:              "keyX",
 														StructField:      "KeyX",
 														StringValidation: &cr.StringValidation{},
 													},
-													&cr.StructFieldValidation{
+													{
 														// Key:              "keyY",
 														StructField:      "KeyY",
 														StringValidation: &cr.StringValidation{},
@@ -277,7 +277,7 @@ func TestNestedList(t *testing.T) {
 		Key0: 1.1,
 		Key1: &NestedList1{
 			Key11: []*NestedList2{
-				&NestedList2{
+				{
 					KeyA: "A",
 					KeyB: 0,
 					KeyC: []float64{float64(0.1), float64(0.2)},
@@ -286,7 +286,7 @@ func TestNestedList(t *testing.T) {
 						KeyY: "test2",
 					},
 				},
-				&NestedList2{
+				{
 					KeyA: "X",
 					KeyB: 1,
 					KeyC: []float64{float64(1.1), float64(1.2), float64(1.3)},
@@ -351,30 +351,30 @@ type TypedConfig struct {
 var interfaceStructValidation = &cr.InterfaceStructValidation{
 	TypeKey: "type",
 	InterfaceStructTypes: map[string]*cr.InterfaceStructType{
-		"type1": &cr.InterfaceStructType{
+		"type1": {
 			Type: (*Typed1)(nil),
 			StructFieldValidations: []*cr.StructFieldValidation{
-				&cr.StructFieldValidation{
+				{
 					// Key:              "key0",
 					StructField:      "Key0",
 					StringValidation: &cr.StringValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					// Key:              "key1",
 					StructField:      "Key1",
 					StringValidation: &cr.StringValidation{},
 				},
 			},
 		},
-		"type2": &cr.InterfaceStructType{
+		"type2": {
 			Type: (*Typed2)(nil),
 			StructFieldValidations: []*cr.StructFieldValidation{
-				&cr.StructFieldValidation{
+				{
 					// Key:           "keyA",
 					StructField:   "KeyA",
 					IntValidation: &cr.IntValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					// Key:           "keyB",
 					StructField:   "KeyB",
 					IntValidation: &cr.IntValidation{},
@@ -388,30 +388,30 @@ var interfaceStructValidationWithTypeKeyConfig = &cr.InterfaceStructValidation{
 	TypeKey:         "type",
 	TypeStructField: "Type",
 	InterfaceStructTypes: map[string]*cr.InterfaceStructType{
-		"type1": &cr.InterfaceStructType{
+		"type1": {
 			Type: (*Typed1WithType)(nil),
 			StructFieldValidations: []*cr.StructFieldValidation{
-				&cr.StructFieldValidation{
+				{
 					// Key:              "key0",
 					StructField:      "Key0",
 					StringValidation: &cr.StringValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					// Key:              "key1",
 					StructField:      "Key1",
 					StringValidation: &cr.StringValidation{},
 				},
 			},
 		},
-		"type2": &cr.InterfaceStructType{
+		"type2": {
 			Type: (*Typed2WithType)(nil),
 			StructFieldValidations: []*cr.StructFieldValidation{
-				&cr.StructFieldValidation{
+				{
 					// Key:           "keyA",
 					StructField:   "KeyA",
 					IntValidation: &cr.IntValidation{},
 				},
-				&cr.StructFieldValidation{
+				{
 					// Key:           "keyB",
 					StructField:   "KeyB",
 					IntValidation: &cr.IntValidation{},
@@ -424,7 +424,7 @@ var interfaceStructValidationWithTypeKeyConfig = &cr.InterfaceStructValidation{
 func TestInterface(t *testing.T) {
 	structValidation := &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				// Key:         "typed",
 				StructField:               "Typed",
 				InterfaceStructValidation: interfaceStructValidation,
@@ -467,7 +467,7 @@ func TestInterface(t *testing.T) {
 
 	structValidation = &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				// Key:         "typed",
 				StructField:               "Typed",
 				InterfaceStructValidation: interfaceStructValidationWithTypeKeyConfig,
@@ -502,7 +502,7 @@ type TypedListConfig struct {
 func TestInterfaceList(t *testing.T) {
 	structValidation := &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				// Key:         "typeds",
 				StructField: "Typeds",
 				InterfaceStructListValidation: &cr.InterfaceStructListValidation{
@@ -557,7 +557,7 @@ func TestInterfaceList(t *testing.T) {
 
 	structValidation = &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				// Key:         "typeds",
 				StructField: "Typeds",
 				InterfaceStructListValidation: &cr.InterfaceStructListValidation{
@@ -604,18 +604,18 @@ type NullableConfig struct {
 func TestDefaultNull(t *testing.T) {
 	structValidation := &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				StructField:         "Key1",
 				StringPtrValidation: &cr.StringPtrValidation{},
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "Key2",
 				StringListValidation: &cr.StringListValidation{
 					Default:   []string{"key2"},
 					AllowNull: true,
 				},
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField: "Key3",
 				InterfaceValidation: &cr.InterfaceValidation{
 					Default:   "key3",
@@ -657,15 +657,15 @@ type DefaultConfig struct {
 func TestDefaultField(t *testing.T) {
 	structValidation := &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				StructField:    "Key1",
 				BoolValidation: &cr.BoolValidation{},
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField:      "Key2",
 				StringValidation: &cr.StringValidation{},
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField:      "Key3",
 				DefaultField:     "Key2",
 				StringValidation: &cr.StringValidation{},
@@ -700,15 +700,15 @@ func TestDefaultField(t *testing.T) {
 
 	structValidation = &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				StructField:    "Key1",
 				BoolValidation: &cr.BoolValidation{},
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField:      "Key2",
 				StringValidation: &cr.StringValidation{},
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField:  "Key3",
 				DefaultField: "Key2",
 				DefaultFieldFunc: func(val interface{}) interface{} {
@@ -733,15 +733,15 @@ func TestDefaultField(t *testing.T) {
 
 	structValidation = &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				StructField:    "Key1",
 				BoolValidation: &cr.BoolValidation{},
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField:      "Key2",
 				StringValidation: &cr.StringValidation{},
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField:  "Key3",
 				DefaultField: "Key1",
 				DefaultFieldFunc: func(val interface{}) interface{} {
@@ -770,15 +770,15 @@ func TestDefaultField(t *testing.T) {
 
 	structValidation = &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
-			&cr.StructFieldValidation{
+			{
 				StructField:      "Key2",
 				StringValidation: &cr.StringValidation{},
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField:      "Key3",
 				StringValidation: &cr.StringValidation{},
 			},
-			&cr.StructFieldValidation{
+			{
 				StructField:  "Key1",
 				DefaultField: "Key2",
 				DefaultFieldFunc: func(val interface{}) interface{} {
