@@ -33,14 +33,14 @@ type FluentdLog struct {
 	Log    string `json:"log"`
 	Stream string `json:"stream"`
 	Docker struct {
-		Container_id string `json:"container_id"`
+		ContainerID string `json:"container_id"`
 	} `json:"docker"`
 	Kubernetes struct {
-		Container_name     string `json:"container_name"`
-		Namespace_name     string `json:"namespace_name"`
-		Pod_name           string `json:"pod_name"`
-		Orphaned_namespace string `json:"orphaned_namespace"`
-		Namespace_id       string `json:"namespace_id"`
+		ContainerName string `json:"container_name"`
+		NamespaceName string `json:"namespace_name"`
+		PodName       string `json:"pod_name"`
+		OrphanedName  string `json:"orphaned_namespace"`
+		NamespaceID   string `json:"namespace_id"`
 	} `json:"kubernetes"`
 }
 

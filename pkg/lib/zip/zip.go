@@ -120,7 +120,7 @@ func ToWriter(zipInput *Input, writer io.Writer) error {
 	return nil
 }
 
-func Zip(zipInput *Input, destPath string) error {
+func ToFile(zipInput *Input, destPath string) error {
 	zipfile, err := os.Create(destPath)
 	if err != nil {
 		return errors.Wrap(err, s.ErrCreateFile(destPath))
@@ -272,7 +272,7 @@ func addFileListToZip(fileListInput *FileListInput, zipInput *Input, archive *zi
 	return nil
 }
 
-func Unzip(src string, destPath string) ([]string, error) {
+func UnzipToFile(src string, destPath string) ([]string, error) {
 	var filenames []string
 
 	r, err := zip.OpenReader(src)

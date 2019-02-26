@@ -200,7 +200,7 @@ func DeleteFromS3ByPrefix(prefix string, continueIfFailure bool) error {
 		MaxKeys: aws.Int64(1000),
 	}
 
-	var subErr error = nil
+	var subErr error
 
 	err := s3Client.ListObjectsV2Pages(listObjectsInput,
 		func(listObjectsOutput *s3.ListObjectsV2Output, lastPage bool) bool {

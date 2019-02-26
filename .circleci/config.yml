@@ -6,6 +6,7 @@ jobs:
       - image: circleci/golang:1.11.5
     steps:
       - checkout
+      - run: make tools
       - run:
           name: Go Lint
           command: make lint-go

@@ -58,6 +58,6 @@ func (columns TransformedColumns) OneByID(id string) *TransformedColumn {
 	return nil
 }
 
-func (transformedColumn *TransformedColumn) GetInputRawColumnNames() []string {
-	return transformedColumn.InputColumnNames()
+func (column *TransformedColumn) GetInputRawColumnNames() []string {
+	return column.InputColumnNames()
 }

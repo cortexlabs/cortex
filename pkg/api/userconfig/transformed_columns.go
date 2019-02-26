@@ -96,8 +96,8 @@ func (columns TransformedColumns) Get(name string) *TransformedColumn {
 	return nil
 }
 
-func (transformedColumn *TransformedColumn) InputColumnNames() []string {
-	inputs, _ := interfaces.FlattenAllStrValues(transformedColumn.Inputs.Columns)
+func (column *TransformedColumn) InputColumnNames() []string {
+	inputs, _ := interfaces.FlattenAllStrValues(column.Inputs.Columns)
 	sort.Strings(inputs)
 	return inputs
 }
