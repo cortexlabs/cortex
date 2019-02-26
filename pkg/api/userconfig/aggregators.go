@@ -32,14 +32,14 @@ type Aggregator struct {
 
 var aggregatorValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "Name",
 			StringValidation: &cr.StringValidation{
 				Required:                   true,
 				AlphaNumericDashUnderscore: true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField:      "Path",
 			StringValidation: &cr.StringValidation{},
 			DefaultField:     "Name",
@@ -47,7 +47,7 @@ var aggregatorValidation = &cr.StructValidation{
 				return "implementations/aggregators/" + name.(string) + ".py"
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "OutputType",
 			InterfaceValidation: &cr.InterfaceValidation{
 				Required: true,

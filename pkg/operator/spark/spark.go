@@ -135,11 +135,11 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 						"userFacing":   "true",
 					},
 					EnvSecretKeyRefs: map[string]sparkop.NameKey{
-						"AWS_ACCESS_KEY_ID": sparkop.NameKey{
+						"AWS_ACCESS_KEY_ID": {
 							Name: "aws-credentials",
 							Key:  "AWS_ACCESS_KEY_ID",
 						},
-						"AWS_SECRET_ACCESS_KEY": sparkop.NameKey{
+						"AWS_SECRET_ACCESS_KEY": {
 							Name: "aws-credentials",
 							Key:  "AWS_SECRET_ACCESS_KEY",
 						},
@@ -165,11 +165,11 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 						"appName":      ctx.App.Name,
 					},
 					EnvSecretKeyRefs: map[string]sparkop.NameKey{
-						"AWS_ACCESS_KEY_ID": sparkop.NameKey{
+						"AWS_ACCESS_KEY_ID": {
 							Name: "aws-credentials",
 							Key:  "AWS_ACCESS_KEY_ID",
 						},
-						"AWS_SECRET_ACCESS_KEY": sparkop.NameKey{
+						"AWS_SECRET_ACCESS_KEY": {
 							Name: "aws-credentials",
 							Key:  "AWS_SECRET_ACCESS_KEY",
 						},

@@ -37,14 +37,14 @@ type Template struct {
 
 var templateValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
-		&cr.StructFieldValidation{
+		{
 			StructField: "Name",
 			StringValidation: &cr.StringValidation{
 				Required:                   true,
 				AlphaNumericDashUnderscore: true,
 			},
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "YAML",
 			StringValidation: &cr.StringValidation{
 				Required: true,

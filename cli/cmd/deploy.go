@@ -54,7 +54,7 @@ func deploy(force bool, ignoreCache bool) {
 
 	zipInput := &zip.Input{
 		FileLists: []zip.FileListInput{
-			zip.FileListInput{
+			{
 				Sources:      allConfigPaths(root),
 				RemovePrefix: root,
 			},
