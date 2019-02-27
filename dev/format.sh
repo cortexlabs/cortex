@@ -18,31 +18,16 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-function run_go_format() {
-  if ! command -v gofmt >/dev/null 2>&1; then
-    echo "gofmt must be installed"
-    exit 1
-  fi
-
-  gofmt -s -w "$ROOT"
-}
-
-function run_python_format() {
-  if ! command -v black >/dev/null 2>&1; then
-    echo "black must be installed"
-    exit 1
-  fi
-
-  black --quiet --line-length=100 "$ROOT"
-}
-
-cmd=${1:-""}
-
-if [ "$cmd" = "go" ]; then
-  run_go_format
-elif [ "$cmd" = "python" ]; then
-  run_python_format
-else
-  run_go_format
-  run_python_format
+if ! command -v gofmt >/dev/null 2>&1; then
+  echo "gofmt must be installed"
+  exit 1
 fi
+
+if ! command -v black >/dev/null 2>&1; then
+  echo "black must be installed"
+  exit 1
+fi
+
+gofmt -s -w "$ROOT"
+
+black --quiet --line-length=100 "$ROOT"

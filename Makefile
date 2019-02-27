@@ -100,16 +100,8 @@ tools:
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
 	@pip3 install black
 
-# Formatting
-
 format:
 	@./dev/format.sh
-
-format-go:
-	@./dev/format.sh go
-
-format-python:
-	@./dev/format.sh python
 
 #########
 # Tests #
@@ -126,12 +118,6 @@ test-python:
 
 lint:
 	@./build/lint.sh
-
-lint-go:
-	@./build/lint.sh go
-
-lint-python:
-	@./build/lint.sh python
 
 ###############
 # CI Commands #

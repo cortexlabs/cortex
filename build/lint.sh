@@ -19,54 +19,39 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-function run_go_lint() {
-  if ! command -v golint >/dev/null 2>&1; then
-    echo "golint must be installed"
-    exit 1
-  fi
+if ! command -v golint >/dev/null 2>&1; then
+  echo "golint must be installed"
+  exit 1
+fi
 
-  if ! command -v gofmt >/dev/null 2>&1; then
-    echo "gofmt must be installed"
-    exit 1
-  fi
+if ! command -v gofmt >/dev/null 2>&1; then
+  echo "gofmt must be installed"
+  exit 1
+fi
 
-  go vet "$ROOT/..."
+if ! command -v black >/dev/null 2>&1; then
+  echo "black must be installed"
+  exit 1
+fi
 
-  output=$(golint "$ROOT/..." | grep -v "comment" || true)
-  if [[ $output ]]; then
-    echo "$output"
-    exit 1
-  fi
+go vet "$ROOT/..."
 
-  output=$(gofmt -s -l "$ROOT")
-  if [[ $output ]]; then
-    echo "go files not properly formatted (make format):"
-    echo "$output"
-    exit 1
-  fi
-}
+output=$(golint "$ROOT/..." | grep -v "comment" || true)
+if [[ $output ]]; then
+  echo "$output"
+  exit 1
+fi
 
-function run_python_lint() {
-  if ! command -v black >/dev/null 2>&1; then
-    echo "black must be installed"
-    exit 1
-  fi
+output=$(gofmt -s -l "$ROOT")
+if [[ $output ]]; then
+  echo "go files not properly formatted (run \`make format\`):"
+  echo "$output"
+  exit 1
+fi
 
-  output=$(black --quiet --diff --line-length=100 "$ROOT")
-  if [[ $output ]]; then
-    echo "python files not properly formatted (make format):"
-    echo "$output"
-    exit 1
-  fi
-}
-
-cmd=${1:-""}
-
-if [ "$cmd" = "go" ]; then
-  run_go_lint
-elif [ "$cmd" = "python" ]; then
-  run_python_lint
-else
-  run_go_lint
-  run_python_lint
+output=$(black --quiet --diff --line-length=100 "$ROOT")
+if [[ $output ]]; then
+  echo "python files not properly formatted (run \`make format\`):"
+  echo "$output"
+  exit 1
 fi
