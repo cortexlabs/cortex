@@ -31,3 +31,49 @@ fi
 gofmt -s -w "$ROOT"
 
 black --quiet --line-length=100 "$ROOT"
+
+# Trim trailing whitespace
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  output=$(cd "$ROOT" && find . -type f \
+  ! -path "./vendor/*" \
+  ! -path "./bin/*" \
+  ! -path "./.git/*" \
+  ! -name ".*" \
+  -print0 | \
+  xargs -0 sed -i '' -e's/[[:space:]]*$//')
+else
+  output=$(cd "$ROOT" && find . -type f \
+  ! -path "./vendor/*" \
+  ! -path "./bin/*" \
+  ! -path "./.git/*" \
+  ! -name ".*" \
+  -print0 | \
+  xargs -0 sed -i 's/[[:space:]]*$//')
+fi
+
+# Add new line to end of file
+(cd "$ROOT" && find . -type f \
+! -path "./vendor/*" \
+! -path "./bin/*" \
+! -path "./.git/*" \
+! -name ".*" \
+-print0 | \
+xargs -0 -L1 bash -c 'test "$(tail -c 1 "$0")" && echo "" >> "$0"' || true)
+
+# Remove repeated new lines at end of file
+(cd "$ROOT" && find . -type f \
+! -path "./vendor/*" \
+! -path "./bin/*" \
+! -path "./.git/*" \
+! -name ".*" \
+-print0 | \
+xargs -0 -L1 bash -c 'test "$(tail -c 2 "$0")" || (trimmed=$(printf "%s" "$(< $0)") && echo "$trimmed" > "$0")' || true)
+
+# Remove new lines at beginning of file
+(cd "$ROOT" && find . -type f \
+! -path "./vendor/*" \
+! -path "./bin/*" \
+! -path "./.git/*" \
+! -name ".*" \
+-print0 | \
+xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || (trimmed=$(sed '"'"'/./,$!d'"'"' "$0") && echo "$trimmed" > "$0")' || true)

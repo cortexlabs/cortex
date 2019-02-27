@@ -44,14 +44,66 @@ fi
 
 output=$(gofmt -s -l "$ROOT")
 if [[ $output ]]; then
-  echo "go files not properly formatted (run \`make format\`):"
+  echo "go files not properly formatted:"
   echo "$output"
   exit 1
 fi
 
 output=$(black --quiet --diff --line-length=100 "$ROOT")
 if [[ $output ]]; then
-  echo "python files not properly formatted (run \`make format\`):"
+  echo "python files not properly formatted:"
+  echo "$output"
+  exit 1
+fi
+
+# Check for trailing whitespace
+output=$(cd "$ROOT" && find . -type f \
+! -path "./vendor/*" \
+! -path "./bin/*" \
+! -path "./.git/*" \
+! -name ".*" \
+-exec egrep -l " +$" {} \;)
+if [[ $output ]]; then
+  echo "File(s) have lines with trailing whitespace:"
+  echo "$output"
+  exit 1
+fi
+
+# Check for missing new line at end of file
+output=$(cd "$ROOT" && find . -type f \
+! -path "./vendor/*" \
+! -path "./bin/*" \
+! -path "./.git/*" \
+! -name ".*" \
+-print0 | \
+xargs -0 -L1 bash -c 'test "$(tail -c 1 "$0")" && echo "No new line at end of $0"' || true)
+if [[ $output ]]; then
+  echo "$output"
+  exit 1
+fi
+
+# Check for multiple new lines at end of file
+output=$(cd "$ROOT" && find . -type f \
+! -path "./vendor/*" \
+! -path "./bin/*" \
+! -path "./.git/*" \
+! -name ".*" \
+-print0 | \
+xargs -0 -L1 bash -c 'test "$(tail -c 2 "$0")" || echo "Multiple new lines at end of $0"' || true)
+if [[ $output ]]; then
+  echo "$output"
+  exit 1
+fi
+
+# Check for new line(s) at beginning of file
+output=$(cd "$ROOT" && find . -type f \
+! -path "./vendor/*" \
+! -path "./bin/*" \
+! -path "./.git/*" \
+! -name ".*" \
+-print0 | \
+xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || echo "New line at beginning of $0"' || true)
+if [[ $output ]]; then
   echo "$output"
   exit 1
 fi
