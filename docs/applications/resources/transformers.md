@@ -2,6 +2,8 @@
 
 A transformer converts a set of columns and arbitrary values into a single transformed column. Each transformer has an input schema and an output data type. The input schema is a map which specifies the name and data type of each input column and argument.
 
+Custom transformers can be implemented in Python or PySpark. See the [implementation docs](../implementations/transformers) for a detailed guide.
+
 ## Config
 
 ```yaml
