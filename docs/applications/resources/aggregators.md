@@ -2,7 +2,7 @@
 
 An aggregator converts a set of columns and arbitrary values into a single value. Each aggregator has an input schema and an output data type. The input schema is a map which specifies the name and data type of each input column and argument. Aggregators run before transformers.
 
-Custom aggregators can be implemented in Python or PySpark. See the [implementation docs](../implementations/aggregators) for a detailed guide.
+Custom aggregators can be implemented in Python or PySpark. See the [implementation docs](../implementations/aggregators.md) for a detailed guide.
 
 ## Config
 
