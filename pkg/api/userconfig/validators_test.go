@@ -351,18 +351,18 @@ func TestCastValue(t *testing.T) {
 
 	valueType = "INT"
 	value = int64(2)
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.NoError(t, err)
 	value = float64(2.2)
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 	value = nil
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.NoError(t, err)
 
 	valueType = "FLOAT"
 	value = float64(2.2)
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.NoError(t, err)
 	value = int64(2)
 	casted, err = userconfig.CastValue(value, valueType)
@@ -371,15 +371,15 @@ func TestCastValue(t *testing.T) {
 
 	valueType = "BOOL"
 	value = false
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.NoError(t, err)
 	value = 2
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 
 	valueType = "FLOAT|INT"
 	value = float64(2.2)
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.NoError(t, err)
 	value = int64(2)
 	casted, err = userconfig.CastValue(value, valueType)
@@ -388,20 +388,20 @@ func TestCastValue(t *testing.T) {
 
 	valueType = cr.MustReadYAMLStrMap("STRING: FLOAT")
 	value = cr.MustReadYAMLStrMap("test: 2.2")
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.NoError(t, err)
 	value = cr.MustReadYAMLStrMap("test: 2.2\ntest2: 4.4")
 	casted, err = userconfig.CastValue(value, valueType)
 	require.NoError(t, err)
 	require.Equal(t, casted, map[interface{}]interface{}{"test": 2.2, "test2": 4.4})
 	value = cr.MustReadYAMLStrMap("test: test2")
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 	value = map[int]float64{2: 2.2}
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 	value = make(map[string]float64)
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.NoError(t, err)
 	value = cr.MustReadYAMLStrMap("test: 2") // YAML
 	casted, err = userconfig.CastValue(value, valueType)
@@ -422,10 +422,10 @@ func TestCastValue(t *testing.T) {
 
 	valueType = cr.MustReadYAMLStrMap("STRING: INT")
 	value = cr.MustReadYAMLStrMap("test: 2.2")
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 	value = cr.MustReadYAMLStrMap("test: 2\ntest2: 2.2")
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 	value = cr.MustReadYAMLStrMap("test: 2") // YAML
 	casted, err = userconfig.CastValue(value, valueType)
@@ -436,10 +436,10 @@ func TestCastValue(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, casted, map[interface{}]interface{}{"test": int64(2)})
 	value = cr.MustReadYAMLStrMap("test: 2.0") // YAML
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 	value = cr.MustReadJSONStr(`{"test": 2.0}`) // JSON
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 
 	valueType = cr.MustReadYAMLStrMap("STRING: INT|FLOAT")
@@ -454,22 +454,22 @@ func TestCastValue(t *testing.T) {
 
 	valueType = cr.MustReadYAMLStrMap("mean: FLOAT\nsum: INT")
 	value = cr.MustReadYAMLStrMap("mean: 2.2\nsum: 4")
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.NoError(t, err)
 	value = cr.MustReadYAMLStrMap("mean: 2.2\nsum: 4.4")
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 	value = cr.MustReadYAMLStrMap("mean: test\nsum: 4")
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 	value = cr.MustReadYAMLStrMap("mean: 2.2")
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 	value = cr.MustReadYAMLStrMap("mean: 2.2\nsum: null")
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.NoError(t, err)
 	value = cr.MustReadYAMLStrMap("mean: 2.2\nsum: 4\nextra: test")
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 
 	valueType = []string{"INT"}
@@ -478,10 +478,10 @@ func TestCastValue(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, casted, []interface{}{int64(1), int64(2), int64(3)})
 	value = []float64{1.1, 2.2, 3.3}
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 	value = []float64{1, 2, 3}
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 
 	valueType = []string{"FLOAT"}
@@ -516,7 +516,7 @@ func TestCastValue(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, casted, []interface{}{int64(1), float64(2), float64(2.2), true, false})
 	value = []interface{}{true, "str"}
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 
 	valueType = []string{"FLOAT|INT|BOOL|STRING"}
@@ -564,7 +564,7 @@ func TestCastValue(t *testing.T) {
          bools: [true, false, true]
          anything: [10, 2.2, test, false]
     `)
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.NoError(t, err)
 
 	value = cr.MustReadYAMLStrMap(
@@ -591,7 +591,7 @@ func TestCastValue(t *testing.T) {
          anything: [10, 2.2, test, false]
        testC: null
     `)
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.NoError(t, err)
 
 	value = cr.MustReadYAMLStrMap(
@@ -616,7 +616,7 @@ func TestCastValue(t *testing.T) {
          bools: [true, false, true]
          anything: [10, 2.2, test, false]
     `)
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 
 	value = cr.MustReadYAMLStrMap(
@@ -642,7 +642,7 @@ func TestCastValue(t *testing.T) {
          bools: [true, false, true]
          anything: [10, 2.2, test, false]
     `)
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 
 	value = cr.MustReadYAMLStrMap(
@@ -668,7 +668,7 @@ func TestCastValue(t *testing.T) {
          bools: [true, false, true]
          anything: [10, 2.2, test, false]
     `)
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 
 	value = cr.MustReadYAMLStrMap(
@@ -694,7 +694,7 @@ func TestCastValue(t *testing.T) {
          bools: [true, false, true]
          anything: [10, 2.2, test, false]
     `)
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 
 	value = cr.MustReadYAMLStrMap(
@@ -720,7 +720,7 @@ func TestCastValue(t *testing.T) {
          bools: true
          anything: [10, 2.2, test, false]
     `)
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 
 	value = cr.MustReadYAMLStrMap(
@@ -746,7 +746,7 @@ func TestCastValue(t *testing.T) {
          bools: [1, 2, 3]
          anything: [10, 2.2, test, false]
     `)
-	casted, err = userconfig.CastValue(value, valueType)
+	_, err = userconfig.CastValue(value, valueType)
 	require.Error(t, err)
 }
 
