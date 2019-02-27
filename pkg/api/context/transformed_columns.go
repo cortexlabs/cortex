@@ -30,8 +30,8 @@ type TransformedColumn struct {
 	Type string `json:"type"`
 }
 
-func (column *TransformedColumn) GetType() string {
-	return column.Type
+func (column *TransformedColumn) GetType() userconfig.ColumnType {
+	return userconfig.ColumnTypeFromString(column.Type)
 }
 
 // Returns map[string]string because after autogen, arg values are constant or aggregate names

@@ -77,8 +77,7 @@ func (models Models) GetTrainingDatasets() TrainingDatasets {
 	return trainingDatasets
 }
 
-func ValidateModelTargetType(targetDataTypeStr string, modelType string) error {
-	targetType := userconfig.ColumnTypeFromString(targetDataTypeStr)
+func ValidateModelTargetType(targetType userconfig.ColumnType, modelType string) error {
 	switch modelType {
 	case "classification":
 		if targetType != userconfig.IntegerColumnType {

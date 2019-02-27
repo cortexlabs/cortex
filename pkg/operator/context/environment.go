@@ -36,7 +36,7 @@ func dataID(config *userconfig.Config, datasetVersion string) string {
 	var buf bytes.Buffer
 	buf.WriteString(datasetVersion)
 
-	rawColumnTypeMap := make(map[string]string, len(config.RawColumns))
+	rawColumnTypeMap := make(map[string]userconfig.ColumnType, len(config.RawColumns))
 	for _, rawColumnConfig := range config.RawColumns {
 		rawColumnTypeMap[rawColumnConfig.GetName()] = rawColumnConfig.GetType()
 	}
