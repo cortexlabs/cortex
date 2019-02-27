@@ -130,7 +130,7 @@ func strIndent(val interface{}, indent string, currentIndent string, newlineChar
 	if funcVal.IsValid() {
 		t := funcVal.Type()
 		if t.NumIn() == 0 && t.NumOut() == 1 && t.Out(0).Kind() == reflect.String {
-			return funcVal.Call(nil)[0].Interface().(string)
+			return quoteStr + funcVal.Call(nil)[0].Interface().(string) + quoteStr
 		}
 	}
 	if _, ok := reflect.PtrTo(valueType).MethodByName("String"); ok {
@@ -140,7 +140,7 @@ func strIndent(val interface{}, indent string, currentIndent string, newlineChar
 		if funcVal.IsValid() {
 			t := funcVal.Type()
 			if t.NumIn() == 0 && t.NumOut() == 1 && t.Out(0).Kind() == reflect.String {
-				return funcVal.Call(nil)[0].Interface().(string)
+				return quoteStr + funcVal.Call(nil)[0].Interface().(string) + quoteStr
 			}
 		}
 	}

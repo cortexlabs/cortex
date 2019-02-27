@@ -18,9 +18,7 @@ package userconfig
 
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type Transformers []*Transformer
@@ -55,13 +53,7 @@ var transformerValidation = &cr.StructValidation{
 				Required:      true,
 				AllowedValues: ColumnTypeStrings(),
 			},
-			Parser: func(str string) (interface{}, error) {
-				colType := ColumnTypeFromString(str)
-				if colType == UnknownColumnType {
-					return nil, errors.New(s.ErrInvalidStr(str, ColumnTypeStrings()...))
-				}
-				return colType, nil
-			},
+			EnumParser: ColumnTypeFromString,
 		},
 		inputTypesFieldValidation,
 		typeFieldValidation,

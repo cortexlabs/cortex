@@ -18,9 +18,7 @@ package userconfig
 
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type RawColumn interface {
@@ -49,13 +47,7 @@ var rawColumnValidation = &cr.InterfaceStructValidation{
 			StructFieldValidations: rawFloatColumnFieldValidations,
 		},
 	},
-	Parser: func(str string) (interface{}, error) {
-		colType := ColumnTypeFromString(str)
-		if colType != IntegerColumnType && colType != FloatColumnType && colType != StringColumnType {
-			return nil, errors.New(s.ErrInvalidStr(str, IntegerColumnType.String(), FloatColumnType.String(), StringColumnType.String()))
-		}
-		return colType, nil
-	},
+	EnumParser: ColumnTypeFromString,
 }
 
 type RawIntColumn struct {

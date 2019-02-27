@@ -74,7 +74,8 @@ type StructFieldValidation struct {
 	Nil                           bool
 
 	// Additional parsing step for StringValidation or StringPtrValidation
-	Parser func(string) (interface{}, error)
+	Parser     func(string) (interface{}, error)
+	EnumParser interface{} // This must be func(string) EnumType, will override Parser
 }
 
 type StructValidation struct {
@@ -97,8 +98,9 @@ type InterfaceStructValidation struct {
 	TypeKey                    string                               // required
 	TypeStructField            string                               // optional (will set this field if present)
 	InterfaceStructTypes       map[string]*InterfaceStructType      // specify this or ParsedInterfaceStructTypes
-	ParsedInterfaceStructTypes map[interface{}]*InterfaceStructType // must specify Parser if using this
+	ParsedInterfaceStructTypes map[interface{}]*InterfaceStructType // must specify Parser or EnumParser if using this
 	Parser                     func(string) (interface{}, error)
+	EnumParser                 interface{} // This must be func(string) EnumType, will override Parser
 	Required                   bool
 	AllowNull                  bool
 	ShortCircuit               bool
@@ -139,6 +141,10 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 
 		if structFieldValidation.Nil == true {
 			continue
+		}
+
+		if structFieldValidation.EnumParser != nil {
+			structFieldValidation.Parser = convertEnumParser(structFieldValidation.EnumParser)
 		}
 
 		var err error
@@ -395,6 +401,10 @@ func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface
 		return nil, nil
 	}
 
+	if v.EnumParser != nil {
+		v.Parser = convertEnumParser(v.EnumParser)
+	}
+
 	interMap, ok := cast.InterfaceToStrInterfaceMap(inter)
 	if !ok {
 		return nil, []error{errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeMap))}
@@ -445,7 +455,7 @@ func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface
 	} else {
 		structType = v.ParsedInterfaceStructTypes[typeObj]
 		if structType == nil {
-			// This error case should be handled by v.Parser(), but we'll try to handle it here too
+			// This error case may or may not be handled by v.Parser()
 			var validTypeObjs []interface{}
 			for typeObj := range v.ParsedInterfaceStructTypes {
 				validTypeObjs = append(validTypeObjs, typeObj)
@@ -779,4 +789,12 @@ func getTagFieldName(field reflect.StructField) (string, bool) {
 		return strings.Split(tag, ",")[0], true
 	}
 	return "", false
+}
+
+func convertEnumParser(enumParser interface{}) func(string) (interface{}, error) {
+	enumParserVal := reflect.ValueOf(enumParser)
+	return func(str string) (interface{}, error) {
+		strVal := reflect.ValueOf(str)
+		return enumParserVal.Call([]reflect.Value{strVal})[0].Interface(), nil
+	}
 }
