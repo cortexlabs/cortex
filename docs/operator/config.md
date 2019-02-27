@@ -23,6 +23,9 @@ export CORTEX_REGION="us-west-2"
 # The name of the Kubernetes namespace Cortex will use
 export CORTEX_NAMESPACE="cortex"
 
+# Enable usage reporting
+export CORTEX_ENABLE_USAGE_REPORTING="true"
+
 # Image paths
 export CORTEX_IMAGE_ARGO_CONTROLLER="cortexlabs/argo-controller:master"
 export CORTEX_IMAGE_ARGO_EXECUTOR="cortexlabs/argo-executor:master"

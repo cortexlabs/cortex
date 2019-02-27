@@ -141,6 +141,7 @@ export CORTEX_IMAGE_TF_TRAIN_GPU="${CORTEX_IMAGE_TF_TRAIN_GPU:-cortexlabs/tf-tra
 
 export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-""}"
 export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-""}"
+export CORTEX_REPORTING_URL="${CORTEX_REPORTING_URL:-""}"
 
 ################
 ### CHECK OS ###
@@ -166,6 +167,7 @@ function install_operator() {
 
   echo "Installing the Cortex operator ..."
 
+  prompt_for_usage_stats
   setup_namespace
   setup_configmap
   setup_secrets
@@ -306,6 +308,8 @@ function setup_configmap() {
     --from-literal='IMAGE_PYTHON_PACKAGER'=$CORTEX_IMAGE_PYTHON_PACKAGER \
     --from-literal='IMAGE_TF_TRAIN_GPU'=$CORTEX_IMAGE_TF_TRAIN_GPU \
     --from-literal='IMAGE_TF_SERVE_GPU'=$CORTEX_IMAGE_TF_SERVE_GPU \
+    --from-literal='ENABLE_USAGE_REPORTING'=$CORTEX_ENABLE_USAGE_REPORTING \
+    --from-literal='REPORTING_URL'=$CORTEX_REPORTING_URL \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 
@@ -1922,6 +1926,20 @@ function get_bash_profile() {
 function ask_sudo() {
   if ! sudo -n true 2>/dev/null; then
     echo -e "\nPlease enter your sudo password"
+  fi
+}
+
+function prompt_for_usage_stats() {
+  CORTEX_ENABLE_USAGE_REPORTING=${CORTEX_ENABLE_USAGE_REPORTING:-""}
+  if [ "$CORTEX_ENABLE_USAGE_REPORTING" != "true" ] && [ "$CORTEX_ENABLE_USAGE_REPORTING" != "false" ]; then
+    echo
+    read -p "Would you like to help improve Cortex by anonymously sending usage stats to the Cortex team [Y/n] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      export CORTEX_ENABLE_USAGE_REPORTING=true
+    else
+      export CORTEX_ENABLE_USAGE_REPORTING=false
+    fi
   fi
 }
 

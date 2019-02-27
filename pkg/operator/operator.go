@@ -35,6 +35,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
@@ -47,6 +48,7 @@ const (
 var markedWorkflows = strset.New()
 
 func main() {
+	telemetry.Report("operator.init")
 	startCron()
 
 	router := mux.NewRouter()

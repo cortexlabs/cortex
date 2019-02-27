@@ -24,18 +24,20 @@ import (
 )
 
 var (
-	LogGroup            string
-	Bucket              string
-	Region              string
-	Namespace           string
-	OperatorImage       string
-	SparkImage          string
-	TFTrainImage        string
-	TFServeImage        string
-	TFAPIImage          string
-	PythonPackagerImage string
-	TFTrainImageGPU     string
-	TFServeImageGPU     string
+	LogGroup             string
+	Bucket               string
+	Region               string
+	Namespace            string
+	OperatorImage        string
+	SparkImage           string
+	TFTrainImage         string
+	TFServeImage         string
+	TFAPIImage           string
+	PythonPackagerImage  string
+	TFTrainImageGPU      string
+	TFServeImageGPU      string
+	EnableUsageReporting bool
+	BaseReportingURL     string
 )
 
 func init() {
@@ -51,6 +53,8 @@ func init() {
 	PythonPackagerImage = getStr("IMAGE_PYTHON_PACKAGER")
 	TFTrainImageGPU = getStr("IMAGE_TF_TRAIN_GPU")
 	TFServeImageGPU = getStr("IMAGE_TF_SERVE_GPU")
+	EnableUsageReporting = getBool("ENABLE_USAGE_REPORTING")
+	BaseReportingURL = maybeStr("REPORTING_URL")
 }
 
 //
@@ -67,4 +71,17 @@ func getStr(configName string) string {
 	envVarName, filePath := getPaths(configName)
 	v := &cr.StringValidation{Required: true}
 	return cr.MustStringFromEnvOrFile(envVarName, filePath, v)
+}
+
+func maybeStr(configName string) string {
+	envVarName, filePath := getPaths(configName)
+	v := &cr.StringValidation{}
+	str, _ := cr.StringFromEnvOrFile(envVarName, filePath, v)
+	return str
+}
+
+func getBool(configName string) bool {
+	envVarName, filePath := getPaths(configName)
+	v := &cr.BoolValidation{Default: false}
+	return cr.MustBoolFromEnvOrFile(envVarName, filePath, v)
 }

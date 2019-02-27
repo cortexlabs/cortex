@@ -29,10 +29,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
+	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
 func Deploy(w http.ResponseWriter, r *http.Request) {
+	telemetry.Report("endpoint.deploy")
+
 	ignoreCache := getOptionalBoolQParam("ignoreCache", false, r)
 	force := getOptionalBoolQParam("force", false, r)
 
