@@ -27,11 +27,11 @@ type TransformedColumns map[string]*TransformedColumn
 type TransformedColumn struct {
 	*userconfig.TransformedColumn
 	*ComputedResourceFields
-	Type string `json:"type"`
+	Type userconfig.ColumnType `json:"type"`
 }
 
 func (column *TransformedColumn) GetType() userconfig.ColumnType {
-	return userconfig.ColumnTypeFromString(column.Type)
+	return column.Type
 }
 
 // Returns map[string]string because after autogen, arg values are constant or aggregate names

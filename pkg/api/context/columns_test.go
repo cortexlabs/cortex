@@ -33,17 +33,17 @@ func TestGetColumnRuntimeTypes(t *testing.T) {
 	rawColumns := context.RawColumns{
 		"rfInt": &context.RawIntColumn{
 			RawIntColumn: &userconfig.RawIntColumn{
-				Type: "INT_COLUMN",
+				Type: userconfig.IntegerColumnType,
 			},
 		},
 		"rfFloat": &context.RawFloatColumn{
 			RawFloatColumn: &userconfig.RawFloatColumn{
-				Type: "FLOAT_COLUMN",
+				Type: userconfig.FloatColumnType,
 			},
 		},
 		"rfStr": &context.RawStringColumn{
 			RawStringColumn: &userconfig.RawStringColumn{
-				Type: "STRING_COLUMN",
+				Type: userconfig.StringColumnType,
 			},
 		},
 	}

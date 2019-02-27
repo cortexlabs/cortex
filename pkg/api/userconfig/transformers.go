@@ -18,16 +18,18 @@ package userconfig
 
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
+	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type Transformers []*Transformer
 
 type Transformer struct {
 	ResourceConfigFields
-	Inputs     *Inputs `json:"inputs"  yaml:"inputs"`
-	OutputType string  `json:"output_type"  yaml:"output_type"`
-	Path       string  `json:"path"  yaml:"path"`
+	Inputs     *Inputs    `json:"inputs"  yaml:"inputs"`
+	OutputType ColumnType `json:"output_type"  yaml:"output_type"`
+	Path       string     `json:"path"  yaml:"path"`
 }
 
 var transformerValidation = &cr.StructValidation{
@@ -52,6 +54,13 @@ var transformerValidation = &cr.StructValidation{
 			StringValidation: &cr.StringValidation{
 				Required:      true,
 				AllowedValues: ColumnTypeStrings(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				colType := ColumnTypeFromString(str)
+				if colType == UnknownColumnType {
+					return nil, errors.New(s.ErrInvalidStr(str, ColumnTypeStrings()...))
+				}
+				return colType, nil
 			},
 		},
 		inputTypesFieldValidation,

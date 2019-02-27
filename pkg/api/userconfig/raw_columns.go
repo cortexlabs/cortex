@@ -18,7 +18,9 @@ package userconfig
 
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
+	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type RawColumn interface {
@@ -33,25 +35,32 @@ type RawColumns []RawColumn
 var rawColumnValidation = &cr.InterfaceStructValidation{
 	TypeKey:         "type",
 	TypeStructField: "Type",
-	InterfaceStructTypes: map[string]*cr.InterfaceStructType{
-		"STRING_COLUMN": {
+	ParsedInterfaceStructTypes: map[interface{}]*cr.InterfaceStructType{
+		StringColumnType: {
 			Type:                   (*RawStringColumn)(nil),
 			StructFieldValidations: rawStringColumnFieldValidations,
 		},
-		"INT_COLUMN": {
+		IntegerColumnType: {
 			Type:                   (*RawIntColumn)(nil),
 			StructFieldValidations: rawIntColumnFieldValidations,
 		},
-		"FLOAT_COLUMN": {
+		FloatColumnType: {
 			Type:                   (*RawFloatColumn)(nil),
 			StructFieldValidations: rawFloatColumnFieldValidations,
 		},
+	},
+	Parser: func(str string) (interface{}, error) {
+		colType := ColumnTypeFromString(str)
+		if colType != IntegerColumnType && colType != FloatColumnType && colType != StringColumnType {
+			return nil, errors.New(s.ErrInvalidStr(str, IntegerColumnType.String(), FloatColumnType.String(), StringColumnType.String()))
+		}
+		return colType, nil
 	},
 }
 
 type RawIntColumn struct {
 	ResourceConfigFields
-	Type     string        `json:"type" yaml:"type"`
+	Type     ColumnType    `json:"type" yaml:"type"`
 	Required bool          `json:"required" yaml:"required"`
 	Min      *int64        `json:"min" yaml:"min"`
 	Max      *int64        `json:"max" yaml:"max"`
@@ -100,7 +109,7 @@ var rawIntColumnFieldValidations = []*cr.StructFieldValidation{
 
 type RawFloatColumn struct {
 	ResourceConfigFields
-	Type     string        `json:"type" yaml:"type"`
+	Type     ColumnType    `json:"type" yaml:"type"`
 	Required bool          `json:"required" yaml:"required"`
 	Min      *float32      `json:"min" yaml:"min"`
 	Max      *float32      `json:"max" yaml:"max"`
@@ -149,7 +158,7 @@ var rawFloatColumnFieldValidations = []*cr.StructFieldValidation{
 
 type RawStringColumn struct {
 	ResourceConfigFields
-	Type     string        `json:"type" yaml:"type"`
+	Type     ColumnType    `json:"type" yaml:"type"`
 	Required bool          `json:"required" yaml:"required"`
 	Values   []string      `json:"values" yaml:"values"`
 	Compute  *SparkCompute `json:"compute" yaml:"compute"`
@@ -216,15 +225,15 @@ func (rawColumns RawColumns) Get(name string) RawColumn {
 }
 
 func (column *RawIntColumn) GetType() ColumnType {
-	return ColumnTypeFromString(column.Type)
+	return column.Type
 }
 
 func (column *RawFloatColumn) GetType() ColumnType {
-	return ColumnTypeFromString(column.Type)
+	return column.Type
 }
 
 func (column *RawStringColumn) GetType() ColumnType {
-	return ColumnTypeFromString(column.Type)
+	return column.Type
 }
 
 func (column *RawIntColumn) GetCompute() *SparkCompute {
