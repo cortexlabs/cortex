@@ -58,7 +58,7 @@ func TestInterfaceToFloat64(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, float64(3), out)
 
-	out, ok = cast.InterfaceToFloat64("test")
+	_, ok = cast.InterfaceToFloat64("test")
 	require.False(t, ok)
 }
 
@@ -78,7 +78,7 @@ func TestInterfaceToIntDowncast(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, int(2), out)
 
-	out, ok = cast.InterfaceToIntDowncast(float32(2.2))
+	_, ok = cast.InterfaceToIntDowncast(float32(2.2))
 	require.False(t, ok)
 
 	out, ok = cast.InterfaceToIntDowncast(float64(3))
@@ -89,10 +89,10 @@ func TestInterfaceToIntDowncast(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, int(3), out)
 
-	out, ok = cast.InterfaceToIntDowncast(float64(3.3))
+	_, ok = cast.InterfaceToIntDowncast(float64(3.3))
 	require.False(t, ok)
 
-	out, ok = cast.InterfaceToIntDowncast("test")
+	_, ok = cast.InterfaceToIntDowncast("test")
 	require.False(t, ok)
 }
 
@@ -104,10 +104,10 @@ func TestInterfaceToInt(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, int(1), out)
 
-	out, ok = cast.InterfaceToInt(float32(2))
+	_, ok = cast.InterfaceToInt(float32(2))
 	require.False(t, ok)
 
-	out, ok = cast.InterfaceToInt("test")
+	_, ok = cast.InterfaceToInt("test")
 	require.False(t, ok)
 }
 
@@ -127,7 +127,7 @@ func TestInterfaceToInt8Downcast(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, int8(2), out)
 
-	out, ok = cast.InterfaceToInt8Downcast(float32(2.2))
+	_, ok = cast.InterfaceToInt8Downcast(float32(2.2))
 	require.False(t, ok)
 
 	out, ok = cast.InterfaceToInt8Downcast(float64(3))
@@ -138,13 +138,13 @@ func TestInterfaceToInt8Downcast(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, int8(3), out)
 
-	out, ok = cast.InterfaceToInt8Downcast(float64(3.3))
+	_, ok = cast.InterfaceToInt8Downcast(float64(3.3))
 	require.False(t, ok)
 
-	out, ok = cast.InterfaceToInt8Downcast("test")
+	_, ok = cast.InterfaceToInt8Downcast("test")
 	require.False(t, ok)
 
-	out, ok = cast.InterfaceToInt8Downcast(int(999999))
+	_, ok = cast.InterfaceToInt8Downcast(int(999999))
 	require.False(t, ok)
 }
 
@@ -156,10 +156,10 @@ func TestInterfaceToInt8(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, int8(1), out)
 
-	out, ok = cast.InterfaceToInt8(float32(2))
+	_, ok = cast.InterfaceToInt8(float32(2))
 	require.False(t, ok)
 
-	out, ok = cast.InterfaceToInt8("test")
+	_, ok = cast.InterfaceToInt8("test")
 	require.False(t, ok)
 }
 

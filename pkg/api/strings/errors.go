@@ -112,6 +112,9 @@ func ErrInvalidFloat32(provided float32, allowed ...float32) string {
 func ErrInvalidFloat64(provided float64, allowed ...float64) string {
 	return fmt.Sprintf("invalid value (got %s, must be %s)", UserStr(provided), UserStrsOr(allowed))
 }
+func ErrInvalidInterface(provided interface{}, allowed ...interface{}) string {
+	return fmt.Sprintf("invalid value (got %s, must be %s)", UserStr(provided), UserStrsOr(allowed))
+}
 
 func ErrMustHavePrefix(provided string, prefix string) string {
 	return fmt.Sprintf("%s must start with %s", UserStr(provided), UserStr(prefix))

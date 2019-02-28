@@ -16,7 +16,7 @@ limitations under the License.
 
 package slices
 
-func HasFloat64(query float64, list []float64) bool {
+func HasFloat64(list []float64, query float64) bool {
 	for _, elem := range list {
 		if elem == query {
 			return true

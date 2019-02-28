@@ -30,7 +30,7 @@ type Columns map[string]Column
 
 type Column interface {
 	ComputedResource
-	GetType() string
+	GetType() userconfig.ColumnType
 	IsRaw() bool
 	GetInputRawColumnNames() []string
 }
@@ -105,7 +105,7 @@ func GetColumnRuntimeTypes(
 		}
 
 		if rawColumnNames, ok := cast.InterfaceToStrSlice(columnInputValue); ok {
-			rawColumnTypes := make([]string, len(rawColumnNames))
+			rawColumnTypes := make([]userconfig.ColumnType, len(rawColumnNames))
 			for i, rawColumnName := range rawColumnNames {
 				rawColumn, ok := rawColumns[rawColumnName]
 				if !ok {

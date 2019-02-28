@@ -86,19 +86,16 @@ cli:
 	@mkdir -p ./bin
 	@GOARCH=amd64 CGO_ENABLED=0 go build -o ./bin/cortex ./cli
 
-find-missing-license:
-	@./build/find-missing-license.sh
-
-find-missing-version:
-	@./build/find-missing-version.sh
-
 aws-clear-bucket:
 	@./dev/aws.sh clear-bucket
 
 tools:
 	@go get -u -v golang.org/x/lint/golint
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
-	@curl -fLSs https://circle.ci/cli | bash
+	@pip3 install black
+
+format:
+	@./dev/format.sh
 
 #########
 # Tests #
@@ -110,11 +107,14 @@ test:
 test-go:
 	@./build/test.sh go
 
-lint-go:
-	@./build/golint.sh go
-
 test-python:
 	@./build/test.sh python
+
+lint:
+	@./build/lint.sh
+
+find-missing-version:
+	@./build/find-missing-version.sh
 
 ###############
 # CI Commands #

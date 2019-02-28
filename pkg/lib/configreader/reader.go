@@ -94,13 +94,15 @@ type StructListValidation struct {
 }
 
 type InterfaceStructValidation struct {
-	TypeKey              string // required
-	TypeStructField      string // optional (will set this field if present)
-	InterfaceStructTypes map[string]*InterfaceStructType
-	Required             bool
-	AllowNull            bool
-	ShortCircuit         bool
-	AllowExtraFields     bool
+	TypeKey                    string                               // required
+	TypeStructField            string                               // optional (will set this field if present)
+	InterfaceStructTypes       map[string]*InterfaceStructType      // specify this or ParsedInterfaceStructTypes
+	ParsedInterfaceStructTypes map[interface{}]*InterfaceStructType // must specify Parser if using this
+	Parser                     func(string) (interface{}, error)
+	Required                   bool
+	AllowNull                  bool
+	ShortCircuit               bool
+	AllowExtraFields           bool
 }
 
 type InterfaceStructType struct {
@@ -398,19 +400,28 @@ func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface
 		return nil, []error{errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeMap))}
 	}
 
-	validTypeStrs := make([]string, len(v.InterfaceStructTypes))
-	i := 0
-	for typeStr := range v.InterfaceStructTypes {
-		validTypeStrs[i] = typeStr
-		i++
+	var validTypeStrs []string
+	if v.InterfaceStructTypes != nil {
+		for typeStr := range v.InterfaceStructTypes {
+			validTypeStrs = append(validTypeStrs, typeStr)
+		}
 	}
+
 	typeStrValidation := &StringValidation{
 		Required:      true,
 		AllowedValues: validTypeStrs,
 	}
+
 	typeStr, err := StringFromInterfaceMap(v.TypeKey, interMap, typeStrValidation)
 	if err != nil {
 		return nil, []error{err}
+	}
+	var typeObj interface{}
+	if v.Parser != nil {
+		typeObj, err = v.Parser(typeStr)
+		if err != nil {
+			return nil, []error{errors.Wrap(err, v.TypeKey)}
+		}
 	}
 
 	var typeFieldValidation *StructFieldValidation
@@ -424,10 +435,25 @@ func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface
 			Key:              v.TypeKey,
 			StructField:      v.TypeStructField,
 			StringValidation: typeStrValidation,
+			Parser:           v.Parser,
 		}
 	}
 
-	structType := v.InterfaceStructTypes[typeStr]
+	var structType *InterfaceStructType
+	if v.InterfaceStructTypes != nil {
+		structType = v.InterfaceStructTypes[typeStr]
+	} else {
+		structType = v.ParsedInterfaceStructTypes[typeObj]
+		if structType == nil {
+			// This error case may or may not be handled by v.Parser()
+			var validTypeObjs []interface{}
+			for typeObj := range v.ParsedInterfaceStructTypes {
+				validTypeObjs = append(validTypeObjs, typeObj)
+			}
+			return nil, []error{errors.New(v.TypeKey, s.ErrInvalidInterface(typeStr, validTypeObjs...))}
+		}
+	}
+
 	val := reflect.New(reflect.TypeOf(structType.Type).Elem()).Interface()
 	structValidation := &StructValidation{
 		StructFieldValidations: append(structType.StructFieldValidations, typeFieldValidation),

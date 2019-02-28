@@ -20,7 +20,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 function run_go_tests() {
-  (cd $ROOT && GO111MODULE=on go test ./... && echo -e "\ngo vet..." && GO111MODULE=on go vet ./... && echo "go tests passed")
+  (cd $ROOT && GO111MODULE=on go test ./... && echo "go tests passed")
 }
 
 function run_python_tests() {

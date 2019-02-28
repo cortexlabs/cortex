@@ -100,7 +100,7 @@ func ValidateInterfaceMap(val map[string]interface{}, v *InterfaceMapValidation)
 			return nil, err
 		}
 		for _, leafVal := range leafVals {
-			if !slices.HasString(leafVal, v.AllowedLeafValues) {
+			if !slices.HasString(v.AllowedLeafValues, leafVal) {
 				return nil, errors.New(s.ErrInvalidStr(leafVal, v.AllowedLeafValues...))
 			}
 		}

@@ -126,24 +126,27 @@ type Data interface {
 var dataValidation = &cr.InterfaceStructValidation{
 	TypeKey:         "type",
 	TypeStructField: "Type",
-	InterfaceStructTypes: map[string]*cr.InterfaceStructType{
-		"csv": {
+	ParsedInterfaceStructTypes: map[interface{}]*cr.InterfaceStructType{
+		CSVEnvironmentDataType: {
 			Type:                   (*CSVData)(nil),
 			StructFieldValidations: csvDataFieldValidations,
 		},
-		"parquet": {
+		ParquetEnvironmentDataType: {
 			Type:                   (*ParquetData)(nil),
 			StructFieldValidations: parquetDataFieldValidations,
 		},
 	},
+	Parser: func(str string) (interface{}, error) {
+		return EnvironmentDataTypeFromString(str), nil
+	},
 }
 
 type CSVData struct {
-	Type      string     `json:"type" yaml:"type"`
-	Path      string     `json:"path" yaml:"path"`
-	Schema    []string   `json:"schema" yaml:"schema"`
-	DropNull  bool       `json:"drop_null" yaml:"drop_null"`
-	CSVConfig *CSVConfig `json:"csv_config" yaml:"csv_config"`
+	Type      EnvironmentDataType `json:"type" yaml:"type"`
+	Path      string              `json:"path" yaml:"path"`
+	Schema    []string            `json:"schema" yaml:"schema"`
+	DropNull  bool                `json:"drop_null" yaml:"drop_null"`
+	CSVConfig *CSVConfig          `json:"csv_config" yaml:"csv_config"`
 }
 
 // CSVConfig is SPARK_VERSION dependent
@@ -268,10 +271,10 @@ var csvDataFieldValidations = []*cr.StructFieldValidation{
 }
 
 type ParquetData struct {
-	Type     string           `json:"type" yaml:"type"`
-	Path     string           `json:"path" yaml:"path"`
-	Schema   []*ParquetColumn `json:"schema" yaml:"schema"`
-	DropNull bool             `json:"drop_null" yaml:"drop_null"`
+	Type     EnvironmentDataType `json:"type" yaml:"type"`
+	Path     string              `json:"path" yaml:"path"`
+	Schema   []*ParquetColumn    `json:"schema" yaml:"schema"`
+	DropNull bool                `json:"drop_null" yaml:"drop_null"`
 }
 
 var parquetDataFieldValidations = []*cr.StructFieldValidation{

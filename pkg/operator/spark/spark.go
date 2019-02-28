@@ -222,5 +222,5 @@ func Delete(appName string) (bool, error) {
 }
 
 func IsDone(sparkApp *sparkop.SparkApplication) bool {
-	return slices.HasString(string(sparkApp.Status.AppState.State), doneStates)
+	return slices.HasString(doneStates, string(sparkApp.Status.AppState.State))
 }

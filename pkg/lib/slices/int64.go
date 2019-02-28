@@ -16,7 +16,7 @@ limitations under the License.
 
 package slices
 
-func HasInt64(query int64, list []int64) bool {
+func HasInt64(list []int64, query int64) bool {
 	for _, elem := range list {
 		if elem == query {
 			return true

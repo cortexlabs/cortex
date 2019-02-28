@@ -16,7 +16,9 @@ limitations under the License.
 
 package userconfig
 
-import "strings"
+import (
+	"strings"
+)
 
 type ColumnType int
 type ColumnTypes []ColumnType
