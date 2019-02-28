@@ -19,60 +19,60 @@ package userconfig
 type EnvironmentDataType int
 
 const (
-  UnknownEnvironmentDataType EnvironmentDataType = iota
-  CSVEnvironmentDataType
-  ParquetEnvironmentDataType
+	UnknownEnvironmentDataType EnvironmentDataType = iota
+	CSVEnvironmentDataType
+	ParquetEnvironmentDataType
 )
 
 var environmentDataTypes = []string{
-  "unknown",
-  "csv",
-  "parquet",
+	"unknown",
+	"csv",
+	"parquet",
 }
 
 func EnvironmentDataTypeFromString(s string) EnvironmentDataType {
-  for i := 0; i < len(environmentDataTypes); i++ {
-    if s == environmentDataTypes[i] {
-      return EnvironmentDataType(i)
-    }
-  }
-  return UnknownEnvironmentDataType
+	for i := 0; i < len(environmentDataTypes); i++ {
+		if s == environmentDataTypes[i] {
+			return EnvironmentDataType(i)
+		}
+	}
+	return UnknownEnvironmentDataType
 }
 
 func EnvironmentDataTypeStrings() []string {
-  return environmentDataTypes[1:]
+	return environmentDataTypes[1:]
 }
 
 func (t EnvironmentDataType) String() string {
-  return environmentDataTypes[t]
+	return environmentDataTypes[t]
 }
 
 // MarshalText satisfies TextMarshaler
 func (t EnvironmentDataType) MarshalText() ([]byte, error) {
-  return []byte(t.String()), nil
+	return []byte(t.String()), nil
 }
 
 // UnmarshalText satisfies TextUnmarshaler
 func (t *EnvironmentDataType) UnmarshalText(text []byte) error {
-  enum := string(text)
-  for i := 0; i < len(environmentDataTypes); i++ {
-    if enum == environmentDataTypes[i] {
-      *t = EnvironmentDataType(i)
-      return nil
-    }
-  }
+	enum := string(text)
+	for i := 0; i < len(environmentDataTypes); i++ {
+		if enum == environmentDataTypes[i] {
+			*t = EnvironmentDataType(i)
+			return nil
+		}
+	}
 
-  *t = UnknownEnvironmentDataType
-  return nil
+	*t = UnknownEnvironmentDataType
+	return nil
 }
 
 // UnmarshalBinary satisfies BinaryUnmarshaler
 // Needed for msgpack
 func (t *EnvironmentDataType) UnmarshalBinary(data []byte) error {
-  return t.UnmarshalText(data)
+	return t.UnmarshalText(data)
 }
 
 // MarshalBinary satisfies BinaryMarshaler
 func (t EnvironmentDataType) MarshalBinary() ([]byte, error) {
-  return []byte(t.String()), nil
+	return []byte(t.String()), nil
 }

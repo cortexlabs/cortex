@@ -19,60 +19,60 @@ package userconfig
 type ModelType int
 
 const (
-  UnknownModelType ModelType = iota
-  ClassificationModelType
-  RegressionModelType
+	UnknownModelType ModelType = iota
+	ClassificationModelType
+	RegressionModelType
 )
 
 var modelTypes = []string{
-  "unknown",
-  "classification",
-  "regression",
+	"unknown",
+	"classification",
+	"regression",
 }
 
 func ModelTypeFromString(s string) ModelType {
-  for i := 0; i < len(modelTypes); i++ {
-    if s == modelTypes[i] {
-      return ModelType(i)
-    }
-  }
-  return UnknownModelType
+	for i := 0; i < len(modelTypes); i++ {
+		if s == modelTypes[i] {
+			return ModelType(i)
+		}
+	}
+	return UnknownModelType
 }
 
 func ModelTypeStrings() []string {
-  return modelTypes[1:]
+	return modelTypes[1:]
 }
 
 func (t ModelType) String() string {
-  return modelTypes[t]
+	return modelTypes[t]
 }
 
 // MarshalText satisfies TextMarshaler
 func (t ModelType) MarshalText() ([]byte, error) {
-  return []byte(t.String()), nil
+	return []byte(t.String()), nil
 }
 
 // UnmarshalText satisfies TextUnmarshaler
 func (t *ModelType) UnmarshalText(text []byte) error {
-  enum := string(text)
-  for i := 0; i < len(modelTypes); i++ {
-    if enum == modelTypes[i] {
-      *t = ModelType(i)
-      return nil
-    }
-  }
+	enum := string(text)
+	for i := 0; i < len(modelTypes); i++ {
+		if enum == modelTypes[i] {
+			*t = ModelType(i)
+			return nil
+		}
+	}
 
-  *t = UnknownModelType
-  return nil
+	*t = UnknownModelType
+	return nil
 }
 
 // UnmarshalBinary satisfies BinaryUnmarshaler
 // Needed for msgpack
 func (t *ModelType) UnmarshalBinary(data []byte) error {
-  return t.UnmarshalText(data)
+	return t.UnmarshalText(data)
 }
 
 // MarshalBinary satisfies BinaryMarshaler
 func (t ModelType) MarshalBinary() ([]byte, error) {
-  return []byte(t.String()), nil
+	return []byte(t.String()), nil
 }
