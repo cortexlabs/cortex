@@ -34,6 +34,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
+	oerrors "github.com/cortexlabs/cortex/pkg/operator/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
@@ -124,32 +125,31 @@ func startCron() {
 
 func runCron() {
 	defer errors.Recover("cron failed")
-
 	apiPods, err := k8s.ListPodsByLabels(map[string]string{
 		"workloadType": workloads.WorkloadTypeAPI,
 		"userFacing":   "true",
 	})
 	if err != nil {
-		errors.PrintError(err)
+		oerrors.PrintError(err)
 	}
 
 	if err := workloads.UpdateAPISavedStatuses(apiPods); err != nil {
-		errors.PrintError(err)
+		oerrors.PrintError(err)
 	}
 
 	if err := workloads.UploadLogPrefixesFromAPIPods(apiPods); err != nil {
-		errors.PrintError(err)
+		oerrors.PrintError(err)
 	}
 
 	failedPods, err := k8s.ListPods(&metav1.ListOptions{
 		FieldSelector: "status.phase=Failed",
 	})
 	if err != nil {
-		errors.PrintError(err)
+		oerrors.PrintError(err)
 	}
 
 	if err := workloads.UpdateDataWorkflowErrors(failedPods); err != nil {
-		errors.PrintError(err)
+		oerrors.PrintError(err)
 	}
 }
 

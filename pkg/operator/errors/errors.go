@@ -5,9 +5,14 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 )
 
+func PrintError(err error) {
+	errors.PrintError(err)
+	telemetry.ReportError(err)
+}
+
 func Exit(items ...interface{}) {
 	err := errors.ConsolidateErrItems(items...)
-	telemetry.ReportError(err)
+	telemetry.ReportErrorBlocking(err)
 	errors.Exit(err)
 }
 

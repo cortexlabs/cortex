@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/schema"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	oerrors "github.com/cortexlabs/cortex/pkg/operator/errors"
 )
 
 func Respond(w http.ResponseWriter, response interface{}) {
@@ -38,7 +39,8 @@ func RespondError(w http.ResponseWriter, err error, strs ...string) {
 
 func RespondErrorCode(w http.ResponseWriter, code int, err error, strs ...string) {
 	err = errors.Wrap(err, strs...)
-	errors.PrintError(err)
+	oerrors.PrintError(err)
+
 	w.WriteHeader(code)
 	response := schema.ErrorResponse{
 		Error: err.Error(),

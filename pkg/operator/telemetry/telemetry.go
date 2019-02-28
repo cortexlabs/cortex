@@ -29,13 +29,19 @@ import (
 	"time"
 )
 
-const defaultTelemetryURL = "https://reporting.cortexlabs.com"
+const defaultTelemetryURL = "https://telemetry.cortexlabs.com"
 const eventPath = "/events"
 const errorPath = "/errors"
 
 var telemetryURL string
+var httpClient http.Client
 
 func init() {
+	timeout := time.Duration(10 * time.Second)
+	httpClient = http.Client{
+		Timeout: timeout,
+	}
+
 	telemetryURL = cr.MustStringFromEnv("CONST_TELEMETRY_URL", &cr.StringValidation{Required: false, Default: defaultTelemetryURL})
 }
 
@@ -61,7 +67,7 @@ func sendUsageEvent(operatorID string, name string) {
 	}
 
 	byteArray, _ := json.Marshal(usageEvent)
-	resp, err := http.Post(telemetryURL+eventPath, "application/json", bytes.NewReader(byteArray))
+	resp, err := httpClient.Post(telemetryURL+eventPath, "application/json", bytes.NewReader(byteArray))
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -84,13 +90,13 @@ type ErrorEvent struct {
 	Stacktrace string    `json:"stacktrace"`
 }
 
-func ReportError(err error) {
+func ReportErrorBlocking(err error) {
 	if cc.EnableTelemetry {
 		sendErrorEvent(aws.HashedAccountID, err)
 	}
 }
 
-func ReportErrorAsync(err error) {
+func ReportError(err error) {
 	if cc.EnableTelemetry {
 		go sendErrorEvent(aws.HashedAccountID, err)
 	}
@@ -105,7 +111,7 @@ func sendErrorEvent(operatorID string, err error) {
 		Stacktrace: fmt.Sprintf("%+v", err),
 	}
 	byteArray, _ := json.Marshal(errorEvent)
-	resp, err := http.Post(telemetryURL+errorPath, "application/json", bytes.NewReader(byteArray))
+	resp, err := httpClient.Post(telemetryURL+errorPath, "application/json", bytes.NewReader(byteArray))
 	if err != nil {
 		fmt.Println(err.Error())
 		return
