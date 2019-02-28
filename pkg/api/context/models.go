@@ -77,21 +77,21 @@ func (models Models) GetTrainingDatasets() TrainingDatasets {
 	return trainingDatasets
 }
 
-func ValidateModelTargetType(targetType userconfig.ColumnType, modelType string) error {
+func ValidateModelTargetType(targetType userconfig.ColumnType, modelType userconfig.ModelType) error {
 	switch modelType {
-	case "classification":
+	case userconfig.ClassificationModelType:
 		if targetType != userconfig.IntegerColumnType {
 			return errors.New(s.ErrClassificationTargetType)
 		}
 		return nil
-	case "regression":
+	case userconfig.RegressionModelType:
 		if targetType != userconfig.IntegerColumnType && targetType != userconfig.FloatColumnType {
 			return errors.New(s.ErrRegressionTargetType)
 		}
 		return nil
 	}
 
-	return errors.New(s.ErrInvalidStr(modelType, "classification", "regression")) // unexpected
+	return errors.New(s.ErrInvalidStr(modelType.String(), "classification", "regression")) // unexpected
 }
 
 func (ctx *Context) RawColumnInputNames(model *Model) []string {

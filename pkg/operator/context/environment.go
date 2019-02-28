@@ -48,7 +48,7 @@ func dataID(config *userconfig.Config, datasetVersion string) string {
 	case *userconfig.CSVData:
 		buf.WriteString(s.Obj(typedData))
 	case *userconfig.ParquetData:
-		buf.WriteString(typedData.Type)
+		buf.WriteString(typedData.Type.String())
 		buf.WriteString(typedData.Path)
 		buf.WriteString(s.Bool(typedData.DropNull))
 		schemaMap := map[string]string{} // use map to sort keys
