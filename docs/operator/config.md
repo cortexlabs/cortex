@@ -23,8 +23,8 @@ export CORTEX_REGION="us-west-2"
 # The name of the Kubernetes namespace Cortex will use
 export CORTEX_NAMESPACE="cortex"
 
-# Enable usage reporting
-export CORTEX_ENABLE_USAGE_REPORTING="true"
+# Flag to enable collecting errors and usage stats. If flag is not set to either true or false, user will be prompted.
+export CORTEX_ENABLE_TELEMETRY=""
 
 # Image paths
 export CORTEX_IMAGE_ARGO_CONTROLLER="cortexlabs/argo-controller:master"

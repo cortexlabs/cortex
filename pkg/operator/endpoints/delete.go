@@ -27,7 +27,7 @@ import (
 )
 
 func Delete(w http.ResponseWriter, r *http.Request) {
-	telemetry.Report("endpoint.delete")
+	telemetry.ReportEvent("endpoint.delete")
 
 	appName, err := getRequiredQParam("appName", r)
 	if RespondIfError(w, err) {

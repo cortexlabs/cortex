@@ -31,6 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
+	oerrors "github.com/cortexlabs/cortex/pkg/operator/errors"
 )
 
 var builtinTransformers = make(map[string]*context.Transformer)
@@ -41,18 +42,18 @@ func init() {
 
 	config, err := userconfig.NewPartialPath(configPath)
 	if err != nil {
-		errors.Exit(err)
+		oerrors.Exit(err)
 	}
 
 	for _, transConfig := range config.Transformers {
 		implPath := filepath.Join(OperatorTransformersDir, transConfig.Path)
 		impl, err := ioutil.ReadFile(implPath)
 		if err != nil {
-			errors.Exit(err, userconfig.Identify(transConfig), s.ErrReadFile(implPath))
+			oerrors.Exit(err, userconfig.Identify(transConfig), s.ErrReadFile(implPath))
 		}
 		transformer, err := newTransformer(*transConfig, impl, pointer.String("cortex"), nil)
 		if err != nil {
-			errors.Exit(err)
+			oerrors.Exit(err)
 		}
 		builtinTransformers["cortex."+transConfig.Name] = transformer
 	}

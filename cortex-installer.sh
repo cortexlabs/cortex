@@ -141,7 +141,7 @@ export CORTEX_IMAGE_TF_TRAIN_GPU="${CORTEX_IMAGE_TF_TRAIN_GPU:-cortexlabs/tf-tra
 
 export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-""}"
 export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-""}"
-export CORTEX_REPORTING_URL="${CORTEX_REPORTING_URL:-""}"
+export CORTEX_ENABLE_TELEMETRY=${CORTEX_ENABLE_TELEMETRY:-""}
 
 ################
 ### CHECK OS ###
@@ -308,8 +308,7 @@ function setup_configmap() {
     --from-literal='IMAGE_PYTHON_PACKAGER'=$CORTEX_IMAGE_PYTHON_PACKAGER \
     --from-literal='IMAGE_TF_TRAIN_GPU'=$CORTEX_IMAGE_TF_TRAIN_GPU \
     --from-literal='IMAGE_TF_SERVE_GPU'=$CORTEX_IMAGE_TF_SERVE_GPU \
-    --from-literal='ENABLE_USAGE_REPORTING'=$CORTEX_ENABLE_USAGE_REPORTING \
-    --from-literal='REPORTING_URL'=$CORTEX_REPORTING_URL \
+    --from-literal='ENABLE_USAGE_REPORTING'=$CORTEX_ENABLE_TELEMETRY \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 
@@ -1930,16 +1929,20 @@ function ask_sudo() {
 }
 
 function prompt_for_usage_stats() {
-  CORTEX_ENABLE_USAGE_REPORTING=${CORTEX_ENABLE_USAGE_REPORTING:-""}
-  if [ "$CORTEX_ENABLE_USAGE_REPORTING" != "true" ] && [ "$CORTEX_ENABLE_USAGE_REPORTING" != "false" ]; then
-    echo
-    read -p "Would you like to help improve Cortex by anonymously sending usage stats to the Cortex team [Y/n] " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-      export CORTEX_ENABLE_USAGE_REPORTING=true
-    else
-      export CORTEX_ENABLE_USAGE_REPORTING=false
-    fi
+  if [ "$CORTEX_ENABLE_TELEMETRY" != "true" ] && [ "$CORTEX_ENABLE_TELEMETRY" != "false" ]; then
+    while true
+    do
+      echo
+      read -p "Would you like to help improve Cortex by anonymously sending errors and usage stats to the dev team [Y/n] " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Yy]$ ]]; then
+        export CORTEX_ENABLE_TELEMETRY=true
+        break
+      elif [[ $REPLY =~ ^[Nn]$ ]]; then
+        export CORTEX_ENABLE_TELEMETRY=false
+        break
+      fi
+    done
   fi
 }
 

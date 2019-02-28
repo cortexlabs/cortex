@@ -48,7 +48,7 @@ const (
 var markedWorkflows = strset.New()
 
 func main() {
-	telemetry.Report("operator.init")
+	telemetry.ReportEvent("operator.init")
 	startCron()
 
 	router := mux.NewRouter()

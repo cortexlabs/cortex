@@ -36,7 +36,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	oerrors "github.com/cortexlabs/cortex/pkg/operator/errors"
 )
 
 var (
@@ -68,12 +68,12 @@ func init() {
 	}
 
 	if err != nil {
-		errors.Exit(err, "kubeconfig")
+		oerrors.Exit(err, "kubeconfig")
 	}
 
 	clientset, err = kubernetes.NewForConfig(Config)
 	if err != nil {
-		errors.Exit(err, "kubeconfig")
+		oerrors.Exit(err, "kubeconfig")
 	}
 
 	podClient = clientset.CoreV1().Pods(cc.Namespace)

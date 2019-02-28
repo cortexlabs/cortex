@@ -19,24 +19,24 @@ package telemetry
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	"time"
-
+	"io/ioutil"
 	"net/http"
+	"time"
 )
 
-const defaultReportingURL = "https://reporting.cortexlabs.com"
+const defaultTelemetryURL = "https://reporting.cortexlabs.com"
+const eventPath = "/events"
+const errorPath = "/errors"
 
-var reportingURL string
+var telemetryURL string
 
 func init() {
-	if len(cc.BaseReportingURL) > 0 {
-		reportingURL = cc.BaseReportingURL
-	} else {
-		reportingURL = defaultReportingURL
-	}
+	telemetryURL = cr.MustStringFromEnv("CONST_TELEMETRY_URL", &cr.StringValidation{Required: false, Default: defaultTelemetryURL})
 }
 
 type UsageEvent struct {
@@ -46,8 +46,8 @@ type UsageEvent struct {
 	Event      string    `json:"event"`
 }
 
-func Report(name string) {
-	if cc.EnableUsageReporting {
+func ReportEvent(name string) {
+	if cc.EnableTelemetry {
 		go sendUsageEvent(aws.HashedAccountID, name)
 	}
 }
@@ -61,5 +61,61 @@ func sendUsageEvent(operatorID string, name string) {
 	}
 
 	byteArray, _ := json.Marshal(usageEvent)
-	http.Post(reportingURL, "application/json", bytes.NewReader(byteArray))
+	resp, err := http.Post(telemetryURL+eventPath, "application/json", bytes.NewReader(byteArray))
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 && resp.StatusCode >= 300 {
+		if byteArray, err := ioutil.ReadAll(resp.Body); err == nil {
+			fmt.Println(string(byteArray))
+		}
+	}
+}
+
+type ErrorEvent struct {
+	Timestamp  time.Time `json:"timestamp"`
+	Version    string    `json:"version"`
+	OperatorID string    `json:"operator_id"`
+	Title      string    `json:"title"`
+	Stacktrace string    `json:"stacktrace"`
+}
+
+func ReportError(err error) {
+	if cc.EnableTelemetry {
+		sendErrorEvent(aws.HashedAccountID, err)
+	}
+}
+
+func ReportErrorAsync(err error) {
+	if cc.EnableTelemetry {
+		go sendErrorEvent(aws.HashedAccountID, err)
+	}
+}
+
+func sendErrorEvent(operatorID string, err error) {
+	errorEvent := ErrorEvent{
+		Timestamp:  time.Now(),
+		Version:    consts.CortexVersion,
+		OperatorID: operatorID,
+		Title:      err.Error(),
+		Stacktrace: fmt.Sprintf("%+v", err),
+	}
+	byteArray, _ := json.Marshal(errorEvent)
+	resp, err := http.Post(telemetryURL+errorPath, "application/json", bytes.NewReader(byteArray))
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 && resp.StatusCode >= 300 {
+		if byteArray, err := ioutil.ReadAll(resp.Body); err == nil {
+			fmt.Println(string(byteArray))
+		}
+	}
 }

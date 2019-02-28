@@ -31,13 +31,14 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
+	oerrors "github.com/cortexlabs/cortex/pkg/operator/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 )
 
 func init() {
 	workflows, err := argo.List(nil)
 	if err != nil {
-		errors.Exit(err, "init", "argo", "list")
+		oerrors.Exit(err, "init", "argo", "list")
 	}
 
 	for _, wf := range workflows {

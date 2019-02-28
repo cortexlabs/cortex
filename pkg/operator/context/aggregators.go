@@ -31,6 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
+	oerrors "github.com/cortexlabs/cortex/pkg/operator/errors"
 )
 
 var builtinAggregators = make(map[string]*context.Aggregator)
@@ -41,18 +42,18 @@ func init() {
 
 	config, err := userconfig.NewPartialPath(configPath)
 	if err != nil {
-		errors.Exit(err)
+		oerrors.Exit(err)
 	}
 
 	for _, aggregatorConfig := range config.Aggregators {
 		implPath := filepath.Join(OperatorAggregatorsDir, aggregatorConfig.Path)
 		impl, err := ioutil.ReadFile(implPath)
 		if err != nil {
-			errors.Exit(err, userconfig.Identify(aggregatorConfig), s.ErrReadFile(implPath))
+			oerrors.Exit(err, userconfig.Identify(aggregatorConfig), s.ErrReadFile(implPath))
 		}
 		aggregator, err := newAggregator(*aggregatorConfig, impl, pointer.String("cortex"), nil)
 		if err != nil {
-			errors.Exit(err)
+			oerrors.Exit(err)
 		}
 		builtinAggregators["cortex."+aggregatorConfig.Name] = aggregator
 	}
