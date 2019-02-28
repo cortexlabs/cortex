@@ -166,7 +166,7 @@ func (config *Config) Validate(envName string) error {
 	// Check model columns exist
 	columnNames := config.ColumnNames()
 	for _, model := range config.Models {
-		if !slices.HasString(model.TargetColumn, columnNames) {
+		if !slices.HasString(columnNames, model.TargetColumn) {
 			return errors.Wrap(ErrorUndefinedResource(model.TargetColumn, resource.RawColumnType, resource.TransformedColumnType),
 				Identify(model), TargetColumnKey)
 		}
@@ -193,7 +193,7 @@ func (config *Config) Validate(envName string) error {
 	// Check api models exist
 	modelNames := config.Models.Names()
 	for _, api := range config.APIs {
-		if !slices.HasString(api.ModelName, modelNames) {
+		if !slices.HasString(modelNames, api.ModelName) {
 			return errors.Wrap(ErrorUndefinedResource(api.ModelName, resource.ModelType),
 				Identify(api), ModelNameKey)
 		}
@@ -202,7 +202,7 @@ func (config *Config) Validate(envName string) error {
 	// Check local aggregators exist
 	aggregatorNames := config.Aggregators.Names()
 	for _, aggregate := range config.Aggregates {
-		if !strings.Contains(aggregate.Aggregator, ".") && !slices.HasString(aggregate.Aggregator, aggregatorNames) {
+		if !strings.Contains(aggregate.Aggregator, ".") && !slices.HasString(aggregatorNames, aggregate.Aggregator) {
 			return errors.Wrap(ErrorUndefinedResource(aggregate.Aggregator, resource.AggregatorType), Identify(aggregate), AggregatorKey)
 		}
 	}
@@ -210,7 +210,7 @@ func (config *Config) Validate(envName string) error {
 	// Check local transformers exist
 	transformerNames := config.Transformers.Names()
 	for _, transformedColumn := range config.TransformedColumns {
-		if !strings.Contains(transformedColumn.Transformer, ".") && !slices.HasString(transformedColumn.Transformer, transformerNames) {
+		if !strings.Contains(transformedColumn.Transformer, ".") && !slices.HasString(transformerNames, transformedColumn.Transformer) {
 			return errors.Wrap(ErrorUndefinedResource(transformedColumn.Transformer, resource.TransformerType), Identify(transformedColumn), TransformerKey)
 		}
 	}

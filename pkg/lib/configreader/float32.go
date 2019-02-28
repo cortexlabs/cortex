@@ -182,7 +182,7 @@ func ValidateFloat32Val(val float32, v *Float32Validation) error {
 	}
 
 	if v.AllowedValues != nil {
-		if !slices.HasFloat32(val, v.AllowedValues) {
+		if !slices.HasFloat32(v.AllowedValues, val) {
 			return errors.New(s.ErrInvalidFloat32(val, v.AllowedValues...))
 		}
 	}

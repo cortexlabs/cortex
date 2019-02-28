@@ -27,10 +27,10 @@ type TransformedColumns map[string]*TransformedColumn
 type TransformedColumn struct {
 	*userconfig.TransformedColumn
 	*ComputedResourceFields
-	Type string `json:"type"`
+	Type userconfig.ColumnType `json:"type"`
 }
 
-func (column *TransformedColumn) GetType() string {
+func (column *TransformedColumn) GetType() userconfig.ColumnType {
 	return column.Type
 }
 

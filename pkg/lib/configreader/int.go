@@ -182,7 +182,7 @@ func ValidateIntVal(val int, v *IntValidation) error {
 	}
 
 	if v.AllowedValues != nil {
-		if !slices.HasInt(val, v.AllowedValues) {
+		if !slices.HasInt(v.AllowedValues, val) {
 			return errors.New(s.ErrInvalidInt(val, v.AllowedValues...))
 		}
 	}

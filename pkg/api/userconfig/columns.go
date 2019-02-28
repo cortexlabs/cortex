@@ -99,9 +99,9 @@ func (config *Config) ColumnNames() []string {
 }
 
 func (config *Config) IsRawColumn(name string) bool {
-	return slices.HasString(name, config.RawColumns.Names())
+	return slices.HasString(config.RawColumns.Names(), name)
 }
 
 func (config *Config) IsTransformedColumn(name string) bool {
-	return slices.HasString(name, config.TransformedColumns.Names())
+	return slices.HasString(config.TransformedColumns.Names(), name)
 }

@@ -1,4 +1,3 @@
-
 ---
 Checklist:
 - [ ] Run automated tests (`make test`)

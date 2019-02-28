@@ -33,39 +33,39 @@ func TestGetColumnRuntimeTypes(t *testing.T) {
 	rawColumns := context.RawColumns{
 		"rfInt": &context.RawIntColumn{
 			RawIntColumn: &userconfig.RawIntColumn{
-				Type: "INT_COLUMN",
+				Type: userconfig.IntegerColumnType,
 			},
 		},
 		"rfFloat": &context.RawFloatColumn{
 			RawFloatColumn: &userconfig.RawFloatColumn{
-				Type: "FLOAT_COLUMN",
+				Type: userconfig.FloatColumnType,
 			},
 		},
 		"rfStr": &context.RawStringColumn{
 			RawStringColumn: &userconfig.RawStringColumn{
-				Type: "STRING_COLUMN",
+				Type: userconfig.StringColumnType,
 			},
 		},
 	}
 
 	columnInputValues = cr.MustReadYAMLStrMap("in: rfInt")
-	expected = map[string]interface{}{"in": "INT_COLUMN"}
+	expected = map[string]interface{}{"in": userconfig.IntegerColumnType}
 	checkTestGetColumnRuntimeTypes(columnInputValues, rawColumns, expected, t)
 
 	columnInputValues = cr.MustReadYAMLStrMap("in: rfStr")
-	expected = map[string]interface{}{"in": "STRING_COLUMN"}
+	expected = map[string]interface{}{"in": userconfig.StringColumnType}
 	checkTestGetColumnRuntimeTypes(columnInputValues, rawColumns, expected, t)
 
 	columnInputValues = cr.MustReadYAMLStrMap("in: [rfFloat]")
-	expected = map[string]interface{}{"in": []string{"FLOAT_COLUMN"}}
+	expected = map[string]interface{}{"in": []userconfig.ColumnType{userconfig.FloatColumnType}}
 	checkTestGetColumnRuntimeTypes(columnInputValues, rawColumns, expected, t)
 
 	columnInputValues = cr.MustReadYAMLStrMap("in: [rfInt, rfFloat, rfStr, rfInt]")
-	expected = map[string]interface{}{"in": []string{"INT_COLUMN", "FLOAT_COLUMN", "STRING_COLUMN", "INT_COLUMN"}}
+	expected = map[string]interface{}{"in": []userconfig.ColumnType{userconfig.IntegerColumnType, userconfig.FloatColumnType, userconfig.StringColumnType, userconfig.IntegerColumnType}}
 	checkTestGetColumnRuntimeTypes(columnInputValues, rawColumns, expected, t)
 
 	columnInputValues = cr.MustReadYAMLStrMap("in1: [rfInt, rfFloat]\nin2: rfStr")
-	expected = map[string]interface{}{"in1": []string{"INT_COLUMN", "FLOAT_COLUMN"}, "in2": "STRING_COLUMN"}
+	expected = map[string]interface{}{"in1": []userconfig.ColumnType{userconfig.IntegerColumnType, userconfig.FloatColumnType}, "in2": userconfig.StringColumnType}
 	checkTestGetColumnRuntimeTypes(columnInputValues, rawColumns, expected, t)
 
 	columnInputValues = cr.MustReadYAMLStrMap("in: 1")

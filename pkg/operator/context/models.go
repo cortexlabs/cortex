@@ -58,7 +58,7 @@ func getModels(
 		}
 
 		var buf bytes.Buffer
-		buf.WriteString(modelConfig.Type)
+		buf.WriteString(modelConfig.Type.String())
 		buf.WriteString(modelImplID)
 		for _, pythonPackage := range pythonPackages {
 			buf.WriteString(pythonPackage.GetID())

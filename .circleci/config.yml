@@ -3,22 +3,21 @@ version: 2
 jobs:
   test:
     docker:
-      - image: circleci/golang:1.11.5
+      - image: circleci/python:3.7.2-stretch
     steps:
       - checkout
-      - run: go get -u -v golang.org/x/lint/golint
+      - run: wget https://dl.google.com/go/go1.11.5.linux-amd64.tar.gz && sudo tar -C /usr/local -xzf go1.11.5.linux-amd64.tar.gz && rm -rf go*.tar.gz && echo 'export PATH=$PATH:/usr/local/go/bin' >> $BASH_ENV && echo 'export PATH=$PATH:~/go/bin' >> $BASH_ENV
+      - run: GO111MODULE=off go get -u -v golang.org/x/lint/golint
+      - run: sudo pip3 install black
       - run:
-          name: Go Lint
-          command: make lint-go
-      - run:
-          name: License Test
-          command: make find-missing-license
+          name: Lint
+          command: make lint
       - run:
           name: Go Tests
           command: make test-go
   test-release:
     docker:
-      - image: circleci/golang:1.11.5
+      - image: circleci/python:3.7.2-stretch
     steps:
       - checkout
       - run:
@@ -26,9 +25,10 @@ jobs:
           command: make find-missing-version
   deploy:
     docker:
-      - image: circleci/golang:1.11.5
+      - image: circleci/python:3.7.2-stretch
     steps:
-      - run: curl -s "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip" && unzip awscli-bundle.zip && sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws && rm -rf awscli-bundle*
+      - run: wget https://dl.google.com/go/go1.11.5.linux-amd64.tar.gz && sudo tar -C /usr/local -xzf go1.11.5.linux-amd64.tar.gz && rm -rf go*.tar.gz && echo 'export PATH=$PATH:/usr/local/go/bin' >> $BASH_ENV && echo 'export PATH=$PATH:~/go/bin' >> $BASH_ENV
+      - run: sudo pip3 install awscli
       - checkout
       - setup_remote_docker
       - run: make build-images

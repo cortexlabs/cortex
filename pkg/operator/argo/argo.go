@@ -228,14 +228,14 @@ func IsDone(wf *awfv1.Workflow) bool {
 	if wf == nil {
 		return true
 	}
-	return slices.HasString(string(wf.Status.Phase), doneStates)
+	return slices.HasString(doneStates, string(wf.Status.Phase))
 }
 
 func IsRunning(wf *awfv1.Workflow) bool {
 	if wf == nil {
 		return false
 	}
-	return slices.HasString(string(wf.Status.Phase), runningStates)
+	return slices.HasString(runningStates, string(wf.Status.Phase))
 }
 
 type WorkflowItem struct {
