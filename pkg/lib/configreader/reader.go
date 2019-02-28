@@ -97,7 +97,7 @@ type InterfaceStructValidation struct {
 	TypeKey                    string                               // required
 	TypeStructField            string                               // optional (will set this field if present)
 	InterfaceStructTypes       map[string]*InterfaceStructType      // specify this or ParsedInterfaceStructTypes
-	ParsedInterfaceStructTypes map[interface{}]*InterfaceStructType // must specify Parser or EnumParser if using this
+	ParsedInterfaceStructTypes map[interface{}]*InterfaceStructType // must specify Parser if using this
 	Parser                     func(string) (interface{}, error)
 	Required                   bool
 	AllowNull                  bool
