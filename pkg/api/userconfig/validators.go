@@ -26,10 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
 
-func isValidColumnOutputType(columnTypeStr string) bool {
-	return slices.HasString(columnTypeStr, ColumnTypeStrings())
-}
-
 func isValidColumnInputType(columnTypeStr string) bool {
 	for _, columnTypeStrItem := range strings.Split(columnTypeStr, "|") {
 		if !slices.HasString(columnTypeStrItem, ColumnTypeStrings()) {
@@ -91,27 +87,28 @@ func ValidateColumnInputValues(columnInputValues map[string]interface{}) error {
 }
 
 func ValidateColumnRuntimeTypes(columnRuntimeTypes map[string]interface{}) error {
-	for columnInputName, columnType := range columnRuntimeTypes {
-		if columnTypeStr, ok := columnType.(string); ok {
-			if !isValidColumnOutputType(columnTypeStr) {
-				return errors.Wrap(ErrorInvalidColumnRuntimeType(columnTypeStr), columnInputName)
+	for columnInputName, columnTypeInter := range columnRuntimeTypes {
+		if columnType, ok := columnTypeInter.(ColumnType); ok {
+			if columnType == UnknownColumnType {
+				return errors.Wrap(ErrorInvalidColumnRuntimeType(), columnInputName) // unexpected
 			}
 			continue
 		}
-		if columnTypeStrs, ok := cast.InterfaceToStrSlice(columnType); ok {
-			for i, columnTypeStr := range columnTypeStrs {
-				if !isValidColumnOutputType(columnTypeStr) {
-					return errors.Wrap(ErrorInvalidColumnRuntimeType(columnTypeStr), columnInputName, s.Index(i))
+		if columnTypes, ok := columnTypeInter.([]ColumnType); ok {
+			for i, columnType := range columnTypes {
+				if columnType == UnknownColumnType {
+					return errors.Wrap(ErrorInvalidColumnRuntimeType(), columnInputName, s.Index(i)) // unexpected
 				}
 			}
 			continue
 		}
-		return errors.Wrap(ErrorInvalidColumnRuntimeType(columnType), columnInputName)
+		return errors.Wrap(ErrorInvalidColumnRuntimeType(), columnInputName) // unexpected
 	}
 
 	return nil
 }
 
+// columnRuntimeTypes is {string -> ColumnType or []ColumnType}, columnSchemaTypes is {string -> string or []string}
 func CheckColumnRuntimeTypesMatch(columnRuntimeTypes map[string]interface{}, columnSchemaTypes map[string]interface{}) error {
 	err := ValidateColumnInputTypes(columnSchemaTypes)
 	if err != nil {
@@ -127,32 +124,32 @@ func CheckColumnRuntimeTypesMatch(columnRuntimeTypes map[string]interface{}, col
 			return errors.New(s.MapMustBeDefined(maps.InterfaceMapKeys(columnSchemaTypes)...))
 		}
 
-		columnRuntimeType, ok := columnRuntimeTypes[columnInputName]
+		columnRuntimeTypeInter, ok := columnRuntimeTypes[columnInputName]
 		if !ok {
 			return errors.New(columnInputName, s.ErrMustBeDefined)
 		}
 
 		if columnSchemaTypeStr, ok := columnSchemaType.(string); ok {
 			validTypes := strings.Split(columnSchemaTypeStr, "|")
-			columnRuntimeTypeStr, ok := columnRuntimeType.(string)
+			columnRuntimeType, ok := columnRuntimeTypeInter.(ColumnType)
 			if !ok {
-				return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeType, validTypes), columnInputName)
+				return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeTypeInter, validTypes), columnInputName)
 			}
-			if !slices.HasString(columnRuntimeTypeStr, validTypes) {
-				return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeTypeStr, validTypes), columnInputName)
+			if !slices.HasString(columnRuntimeType.String(), validTypes) {
+				return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeType, validTypes), columnInputName)
 			}
 			continue
 		}
 
 		if columnSchemaTypeStrs, ok := cast.InterfaceToStrSlice(columnSchemaType); ok {
 			validTypes := strings.Split(columnSchemaTypeStrs[0], "|")
-			columnRuntimeTypeStrs, ok := cast.InterfaceToStrSlice(columnRuntimeType)
+			columnRuntimeTypeSlice, ok := columnRuntimeTypeInter.([]ColumnType)
 			if !ok {
-				return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeType, columnSchemaTypeStrs), columnInputName)
+				return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeTypeInter, columnSchemaTypeStrs), columnInputName)
 			}
-			for i, columnRuntimeTypeStr := range columnRuntimeTypeStrs {
-				if !slices.HasString(columnRuntimeTypeStr, validTypes) {
-					return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeTypeStr, validTypes), columnInputName, s.Index(i))
+			for i, columnRuntimeType := range columnRuntimeTypeSlice {
+				if !slices.HasString(columnRuntimeType.String(), validTypes) {
+					return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeType, validTypes), columnInputName, s.Index(i))
 				}
 			}
 			continue

@@ -309,10 +309,10 @@ func ErrorInvalidColumnInputType(provided interface{}) error {
 	}
 }
 
-func ErrorInvalidColumnRuntimeType(provided interface{}) error {
+func ErrorInvalidColumnRuntimeType() error {
 	return Error{
 		Kind:    ErrInvalidColumnRuntimeType,
-		message: fmt.Sprintf("invalid column type (got %s, expected %s)", s.DataTypeStr(provided), s.StrsOr(ColumnTypeStrings())),
+		message: fmt.Sprintf("invalid column runtime type (expected %s)", s.StrsOr(ColumnTypeStrings())),
 	}
 }
 

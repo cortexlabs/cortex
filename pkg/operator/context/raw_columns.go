@@ -39,7 +39,7 @@ func getRawColumns(
 		var buf bytes.Buffer
 		buf.WriteString(env.ID)
 		buf.WriteString(columnConfig.GetName())
-		buf.WriteString(columnConfig.GetType())
+		buf.WriteString(columnConfig.GetType().String())
 
 		var rawColumn context.RawColumn
 		switch typedColumnConfig := columnConfig.(type) {

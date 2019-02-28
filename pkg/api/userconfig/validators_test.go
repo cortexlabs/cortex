@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 )
 
@@ -143,88 +144,107 @@ func TestCheckColumnRuntimeTypesMatch(t *testing.T) {
 	var runtimeTypes map[string]interface{}
 
 	columnTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN")
-	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN")
+	runtimeTypes = readRuntimeTypes("in: INT_COLUMN")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: FLOAT_COLUMN")
+	runtimeTypes = readRuntimeTypes("in: FLOAT_COLUMN")
 	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN]")
 	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 
 	columnTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN|FLOAT_COLUMN")
-	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN")
+	runtimeTypes = readRuntimeTypes("in: INT_COLUMN")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: FLOAT_COLUMN")
+	runtimeTypes = readRuntimeTypes("in: FLOAT_COLUMN")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: STRING_COLUMN")
+	runtimeTypes = readRuntimeTypes("in: STRING_COLUMN")
 	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 
 	columnTypes = cr.MustReadYAMLStrMap("in: STRING_COLUMN|INT_COLUMN|FLOAT_COLUMN")
-	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN")
+	runtimeTypes = readRuntimeTypes("in: INT_COLUMN")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: FLOAT_COLUMN")
+	runtimeTypes = readRuntimeTypes("in: FLOAT_COLUMN")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: STRING_COLUMN")
+	runtimeTypes = readRuntimeTypes("in: STRING_COLUMN")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: BOOL")
+	runtimeTypes = readRuntimeTypes("in: BAD_COLUMN")
 	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 
 	columnTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN]")
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN]")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN, INT_COLUMN, INT_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN, INT_COLUMN, INT_COLUMN]")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN")
+	runtimeTypes = readRuntimeTypes("in: INT_COLUMN")
 	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [FLOAT_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in: [FLOAT_COLUMN]")
 	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN, FLOAT_COLUMN, INT_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN, FLOAT_COLUMN, INT_COLUMN]")
 	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 
 	columnTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN|FLOAT_COLUMN]")
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN]")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN, INT_COLUMN, INT_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN, INT_COLUMN, INT_COLUMN]")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN")
+	runtimeTypes = readRuntimeTypes("in: INT_COLUMN")
 	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [FLOAT_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in: [FLOAT_COLUMN]")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN, FLOAT_COLUMN, INT_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN, FLOAT_COLUMN, INT_COLUMN]")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN, FLOAT_COLUMN, STRING_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN, FLOAT_COLUMN, STRING_COLUMN]")
 	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 
 	columnTypes = cr.MustReadYAMLStrMap("in: [STRING_COLUMN|INT_COLUMN|FLOAT_COLUMN]")
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN]")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN, INT_COLUMN, INT_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN, INT_COLUMN, INT_COLUMN]")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN")
+	runtimeTypes = readRuntimeTypes("in: INT_COLUMN")
 	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [BOOL]")
+	runtimeTypes = readRuntimeTypes("in: [BAD_COLUMN]")
 	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [STRING_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in: [STRING_COLUMN]")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN, FLOAT_COLUMN, STRING_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN, FLOAT_COLUMN, STRING_COLUMN]")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 
 	columnTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN]\nin2: STRING_COLUMN")
-	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN]\nin2: STRING_COLUMN")
+	runtimeTypes = readRuntimeTypes("in1: [INT_COLUMN]\nin2: STRING_COLUMN")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN, INT_COLUMN]\nin2: STRING_COLUMN")
+	runtimeTypes = readRuntimeTypes("in1: [INT_COLUMN, INT_COLUMN]\nin2: STRING_COLUMN")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in2: STRING_COLUMN\nin1: [INT_COLUMN, INT_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in2: STRING_COLUMN\nin1: [INT_COLUMN, INT_COLUMN]")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN]")
+	runtimeTypes = readRuntimeTypes("in1: [INT_COLUMN]")
 	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN]\nin2: STRING_COLUMN\nin3: INT_COLUMN")
+	runtimeTypes = readRuntimeTypes("in1: [INT_COLUMN]\nin2: STRING_COLUMN\nin3: INT_COLUMN")
 	require.Error(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
 
 	columnTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN|FLOAT_COLUMN|STRING_COLUMN]\nin2: STRING_COLUMN")
-	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN]\nin2: STRING_COLUMN")
+	runtimeTypes = readRuntimeTypes("in1: [INT_COLUMN]\nin2: STRING_COLUMN")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN, FLOAT_COLUMN, STRING_COLUMN, FLOAT_COLUMN]\nin2: STRING_COLUMN")
+	runtimeTypes = readRuntimeTypes("in1: [INT_COLUMN, FLOAT_COLUMN, STRING_COLUMN, FLOAT_COLUMN]\nin2: STRING_COLUMN")
 	require.NoError(t, userconfig.CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
+}
+
+func readRuntimeTypes(yamlStr string) map[string]interface{} {
+	runtimeTypes := make(map[string]interface{})
+	runtimeTypesStr := cr.MustReadYAMLStrMap(yamlStr)
+
+	for k, v := range runtimeTypesStr {
+		if runtimeTypeStr, ok := v.(string); ok {
+			runtimeTypes[k] = userconfig.ColumnTypeFromString(runtimeTypeStr)
+		} else if runtimeTypeStrs, ok := cast.InterfaceToStrSlice(v); ok {
+			runtimeTypesSlice := make([]userconfig.ColumnType, len(runtimeTypeStrs))
+			for i, runtimeTypeStr := range runtimeTypeStrs {
+				runtimeTypesSlice[i] = userconfig.ColumnTypeFromString(runtimeTypeStr)
+			}
+			runtimeTypes[k] = runtimeTypesSlice
+		}
+	}
+
+	return runtimeTypes
 }
 
 func TestValidateArgTypes(t *testing.T) {
