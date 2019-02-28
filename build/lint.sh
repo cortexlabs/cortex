@@ -56,6 +56,27 @@ if [[ $output ]]; then
   exit 1
 fi
 
+# Check for missing license
+output=$(cd "$ROOT" && find . -type f \
+! -path "./vendor/*" \
+! -path "./examples/*" \
+! -path "./dev/config/*" \
+! -path "./bin/*" \
+! -path "./.circleci/*" \
+! -path "./.git/*" \
+! -name LICENSE \
+! -name requirements.txt \
+! -name "go.*" \
+! -name "*.md" \
+! -name ".*" \
+! -name "Dockerfile" \
+-exec grep -L "Copyright 2019 Cortex Labs, Inc" {} \+)
+if [[ $output ]]; then
+  echo "File(s) are missing Cortex license:"
+  echo "$output"
+  exit 1
+fi
+
 # Check for trailing whitespace
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
