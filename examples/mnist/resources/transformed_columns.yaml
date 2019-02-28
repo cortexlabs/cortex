@@ -4,3 +4,11 @@
   inputs:
     columns:
       image: image
+
+
+- kind: transformed_column
+  name: inputs
+  transformer: decode_and_normalize
+  inputs:
+    columns:
+      image: image

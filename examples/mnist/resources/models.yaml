@@ -39,18 +39,15 @@
     batch_size: 64
     num_epochs: 5
 
+
 - kind: model
-  name: dnn
-  path: implementations/models/dnn.py
+  name: t2t
+  path: implementations/models/t2t.py
   type: classification
   target_column: label
   feature_columns:
-    - image_pixels
-  hparams:
-    learning_rate: 0.01
-    input_shape: [28, 28, 1]
-    output_shape: [10]
-    hidden_units: [100, 200]
+    - inputs
+
   data_partition_ratio:
     training: 0.7
     evaluation: 0.3
