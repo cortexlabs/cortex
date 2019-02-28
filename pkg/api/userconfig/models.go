@@ -30,7 +30,7 @@ type Models []*Model
 
 type Model struct {
 	ResourceConfigFields
-	Type               string                   `json:"type" yaml:"type"`
+	Type               ModelType                `json:"type" yaml:"type"`
 	Path               string                   `json:"path" yaml:"path"`
 	TargetColumn       string                   `json:"target_column" yaml:"target_column"`
 	PredictionKey      string                   `json:"prediction_key" yaml:"prediction_key"`
@@ -65,8 +65,11 @@ var modelValidation = &cr.StructValidation{
 		{
 			StructField: "Type",
 			StringValidation: &cr.StringValidation{
-				Default:       "classification",
-				AllowedValues: []string{"classification", "regression"},
+				Default:       ClassificationModelType.String(),
+				AllowedValues: ModelTypeStrings(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return ModelTypeFromString(str), nil
 			},
 		},
 		{
