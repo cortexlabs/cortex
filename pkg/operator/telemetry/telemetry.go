@@ -20,13 +20,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"time"
+
 	"github.com/cortexlabs/cortex/pkg/consts"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	"io/ioutil"
-	"net/http"
-	"time"
 )
 
 const defaultTelemetryURL = "https://telemetry.cortexlabs.com"
@@ -59,6 +60,7 @@ func ReportEvent(name string) {
 }
 
 func sendUsageEvent(operatorID string, name string) {
+	fmt.Println(telemetryURL + eventPath)
 	usageEvent := UsageEvent{
 		Timestamp:  time.Now(),
 		Version:    consts.CortexVersion,
@@ -75,7 +77,7 @@ func sendUsageEvent(operatorID string, name string) {
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode < 200 && resp.StatusCode >= 300 {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if byteArray, err := ioutil.ReadAll(resp.Body); err == nil {
 			fmt.Println(string(byteArray))
 		}
@@ -119,7 +121,7 @@ func sendErrorEvent(operatorID string, err error) {
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode < 200 && resp.StatusCode >= 300 {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if byteArray, err := ioutil.ReadAll(resp.Body); err == nil {
 			fmt.Println(string(byteArray))
 		}
