@@ -14,7 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output=$(find . -type f \
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
+
+output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
 ! -path "./examples/*" \
 ! -path "./dev/config/*" \
