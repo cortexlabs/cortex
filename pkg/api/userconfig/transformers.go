@@ -53,7 +53,9 @@ var transformerValidation = &cr.StructValidation{
 				Required:      true,
 				AllowedValues: ColumnTypeStrings(),
 			},
-			EnumParser: ColumnTypeFromString,
+			Parser: func(str string) (interface{}, error) {
+				return ColumnTypeFromString(str), nil
+			},
 		},
 		inputTypesFieldValidation,
 		typeFieldValidation,

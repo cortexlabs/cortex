@@ -47,7 +47,9 @@ var rawColumnValidation = &cr.InterfaceStructValidation{
 			StructFieldValidations: rawFloatColumnFieldValidations,
 		},
 	},
-	EnumParser: ColumnTypeFromString,
+	Parser: func(str string) (interface{}, error) {
+		return ColumnTypeFromString(str), nil
+	},
 }
 
 type RawIntColumn struct {

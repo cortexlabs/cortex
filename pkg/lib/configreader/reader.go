@@ -74,8 +74,7 @@ type StructFieldValidation struct {
 	Nil                           bool
 
 	// Additional parsing step for StringValidation or StringPtrValidation
-	Parser     func(string) (interface{}, error)
-	EnumParser interface{} // This must be func(string) EnumType, will override Parser
+	Parser func(string) (interface{}, error)
 }
 
 type StructValidation struct {
@@ -100,7 +99,6 @@ type InterfaceStructValidation struct {
 	InterfaceStructTypes       map[string]*InterfaceStructType      // specify this or ParsedInterfaceStructTypes
 	ParsedInterfaceStructTypes map[interface{}]*InterfaceStructType // must specify Parser or EnumParser if using this
 	Parser                     func(string) (interface{}, error)
-	EnumParser                 interface{} // This must be func(string) EnumType, will override Parser
 	Required                   bool
 	AllowNull                  bool
 	ShortCircuit               bool
@@ -141,10 +139,6 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 
 		if structFieldValidation.Nil == true {
 			continue
-		}
-
-		if structFieldValidation.EnumParser != nil {
-			structFieldValidation.Parser = convertEnumParser(structFieldValidation.EnumParser)
 		}
 
 		var err error
@@ -399,10 +393,6 @@ func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface
 			return nil, []error{errors.New(s.ErrCannotBeNull)}
 		}
 		return nil, nil
-	}
-
-	if v.EnumParser != nil {
-		v.Parser = convertEnumParser(v.EnumParser)
 	}
 
 	interMap, ok := cast.InterfaceToStrInterfaceMap(inter)
@@ -789,12 +779,4 @@ func getTagFieldName(field reflect.StructField) (string, bool) {
 		return strings.Split(tag, ",")[0], true
 	}
 	return "", false
-}
-
-func convertEnumParser(enumParser interface{}) func(string) (interface{}, error) {
-	enumParserVal := reflect.ValueOf(enumParser)
-	return func(str string) (interface{}, error) {
-		strVal := reflect.ValueOf(str)
-		return enumParserVal.Call([]reflect.Value{strVal})[0].Interface(), nil
-	}
 }
