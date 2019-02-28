@@ -86,12 +86,6 @@ cli:
 	@mkdir -p ./bin
 	@GOARCH=amd64 CGO_ENABLED=0 go build -o ./bin/cortex ./cli
 
-find-missing-license:
-	@./build/find-missing-license.sh
-
-find-missing-version:
-	@./build/find-missing-version.sh
-
 aws-clear-bucket:
 	@./dev/aws.sh clear-bucket
 
@@ -118,6 +112,9 @@ test-python:
 
 lint:
 	@./build/lint.sh
+
+find-missing-version:
+	@./build/find-missing-version.sh
 
 ###############
 # CI Commands #
