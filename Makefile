@@ -98,7 +98,10 @@ aws-clear-bucket:
 tools:
 	@go get -u -v golang.org/x/lint/golint
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
-	@curl -fLSs https://circle.ci/cli | bash
+	@pip3 install black
+
+format:
+	@./dev/format.sh
 
 #########
 # Tests #
@@ -110,11 +113,11 @@ test:
 test-go:
 	@./build/test.sh go
 
-lint-go:
-	@./build/golint.sh go
-
 test-python:
 	@./build/test.sh python
+
+lint:
+	@./build/lint.sh
 
 ###############
 # CI Commands #
