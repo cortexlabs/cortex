@@ -13,9 +13,6 @@ jobs:
           name: Lint
           command: make lint
       - run:
-          name: License Test
-          command: make find-missing-license
-      - run:
           name: Go Tests
           command: make test-go
   test-release:
