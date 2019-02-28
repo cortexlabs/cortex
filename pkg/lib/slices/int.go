@@ -16,7 +16,7 @@ limitations under the License.
 
 package slices
 
-func HasInt(query int, list []int) bool {
+func HasInt(list []int, query int) bool {
 	for _, elem := range list {
 		if elem == query {
 			return true

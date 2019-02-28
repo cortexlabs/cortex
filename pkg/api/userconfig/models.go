@@ -356,7 +356,7 @@ func (model *Model) Validate() error {
 	}
 
 	for _, trainingColumn := range model.TrainingColumns {
-		if slices.HasString(trainingColumn, model.FeatureColumns) {
+		if slices.HasString(model.FeatureColumns, trainingColumn) {
 			return errors.Wrap(ErrorDuplicateResourceValue(trainingColumn, TrainingColumnsKey, FeatureColumnsKey), Identify(model))
 		}
 	}

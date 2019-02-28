@@ -182,7 +182,7 @@ func ValidateInt64Val(val int64, v *Int64Validation) error {
 	}
 
 	if v.AllowedValues != nil {
-		if !slices.HasInt64(val, v.AllowedValues) {
+		if !slices.HasInt64(v.AllowedValues, val) {
 			return errors.New(s.ErrInvalidInt64(val, v.AllowedValues...))
 		}
 	}

@@ -21,7 +21,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
-func HasString(query string, list []string) bool {
+func HasString(list []string, query string) bool {
 	for _, elem := range list {
 		if elem == query {
 			return true
@@ -122,7 +122,7 @@ func FindDuplicateStrs(in []string) []string {
 func SubtractStrSlice(slice1 []string, slice2 []string) []string {
 	result := []string{}
 	for _, elem := range slice1 {
-		if !HasString(elem, slice2) {
+		if !HasString(slice2, elem) {
 			result = append(result, elem)
 		}
 	}

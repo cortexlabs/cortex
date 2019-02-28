@@ -16,7 +16,7 @@ limitations under the License.
 
 package slices
 
-func HasFloat32(query float32, list []float32) bool {
+func HasFloat32(list []float32, query float32) bool {
 	for _, elem := range list {
 		if elem == query {
 			return true

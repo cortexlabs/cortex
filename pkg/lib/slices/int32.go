@@ -16,7 +16,7 @@ limitations under the License.
 
 package slices
 
-func HasInt32(query int32, list []int32) bool {
+func HasInt32(list []int32, query int32) bool {
 	for _, elem := range list {
 		if elem == query {
 			return true
