@@ -164,15 +164,6 @@ func CastRecoverError(errInterface interface{}, strs ...string) error {
 	return Wrap(err, strs...)
 }
 
-func Recover(strs ...string) error {
-	if errInterface := recover(); errInterface != nil {
-		err := CastRecoverError(errInterface, strs...)
-		PrintError(err)
-		return err
-	}
-	return nil
-}
-
 func RecoverAndExit(strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := CastRecoverError(errInterface, strs...)

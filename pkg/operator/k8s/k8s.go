@@ -68,12 +68,12 @@ func init() {
 	}
 
 	if err != nil {
-		oerrors.Exit(err, "kubeconfig")
+		oerrors.ReportAndExit(err, "kubeconfig")
 	}
 
 	clientset, err = kubernetes.NewForConfig(Config)
 	if err != nil {
-		oerrors.Exit(err, "kubeconfig")
+		oerrors.ReportAndExit(err, "kubeconfig")
 	}
 
 	podClient = clientset.CoreV1().Pods(cc.Namespace)

@@ -1933,15 +1933,16 @@ function prompt_for_usage_stats() {
     while true
     do
       echo
-      read -p "Would you like to help improve Cortex by anonymously sending errors and usage stats to the dev team [Y/n] " -n 1 -r
+      read -p "Would you like to help improve Cortex by anonymously sending errors and usage stats to the dev team [y/n] " -n 1 -r
       echo
-      if [[ $REPLY =~ ^[Yy]$ ]]; then
+      if [[ $REPLY == 'y' ]]; then
         export CORTEX_ENABLE_TELEMETRY=true
         break
-      elif [[ $REPLY =~ ^[Nn]$ ]]; then
+      elif [[ $REPLY == 'n' ]]; then
         export CORTEX_ENABLE_TELEMETRY=false
         break
       fi
+      echo "Unexpected value, please enter \"y\" or \"n\""
     done
   fi
 }
@@ -2015,6 +2016,8 @@ elif [ "$arg1" = "update" ]; then
     show_help
     exit 1
   fi
+elif [ "$arg1" = "stats" ]; then
+  prompt_for_usage_stats
 elif [ "$arg1" = "get" ]; then
   if [ ! "$arg3" = "" ]; then
     echo -e "\nerror: too many arguments for get command"

@@ -42,18 +42,18 @@ func init() {
 
 	config, err := userconfig.NewPartialPath(configPath)
 	if err != nil {
-		oerrors.Exit(err)
+		oerrors.ReportAndExit(err)
 	}
 
 	for _, transConfig := range config.Transformers {
 		implPath := filepath.Join(OperatorTransformersDir, transConfig.Path)
 		impl, err := ioutil.ReadFile(implPath)
 		if err != nil {
-			oerrors.Exit(err, userconfig.Identify(transConfig), s.ErrReadFile(implPath))
+			oerrors.ReportAndExit(err, userconfig.Identify(transConfig), s.ErrReadFile(implPath))
 		}
 		transformer, err := newTransformer(*transConfig, impl, pointer.String("cortex"), nil)
 		if err != nil {
-			oerrors.Exit(err)
+			oerrors.ReportAndExit(err)
 		}
 		builtinTransformers["cortex."+transConfig.Name] = transformer
 	}

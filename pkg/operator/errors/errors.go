@@ -21,19 +21,18 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 )
 
-func PrintError(err error) {
-	errors.PrintError(err)
-	telemetry.ReportError(err)
-}
-
-func Exit(items ...interface{}) {
+func ReportAndExit(items ...interface{}) {
 	err := errors.ConsolidateErrItems(items...)
 	telemetry.ReportErrorBlocking(err)
 	errors.Exit(err)
 }
 
-func Panic(items ...interface{}) {
-	err := errors.ConsolidateErrItems(items...)
-	telemetry.ReportError(err)
-	errors.Panic(err)
+func ReportAndRecover(strs ...string) error {
+	if errInterface := recover(); errInterface != nil {
+		err := errors.CastRecoverError(errInterface, strs...)
+		telemetry.ReportErrorBlocking(err)
+		errors.PrintError(err)
+		return err
+	}
+	return nil
 }

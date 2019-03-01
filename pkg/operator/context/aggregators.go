@@ -42,18 +42,18 @@ func init() {
 
 	config, err := userconfig.NewPartialPath(configPath)
 	if err != nil {
-		oerrors.Exit(err)
+		oerrors.ReportAndExit(err)
 	}
 
 	for _, aggregatorConfig := range config.Aggregators {
 		implPath := filepath.Join(OperatorAggregatorsDir, aggregatorConfig.Path)
 		impl, err := ioutil.ReadFile(implPath)
 		if err != nil {
-			oerrors.Exit(err, userconfig.Identify(aggregatorConfig), s.ErrReadFile(implPath))
+			oerrors.ReportAndExit(err, userconfig.Identify(aggregatorConfig), s.ErrReadFile(implPath))
 		}
 		aggregator, err := newAggregator(*aggregatorConfig, impl, pointer.String("cortex"), nil)
 		if err != nil {
-			oerrors.Exit(err)
+			oerrors.ReportAndExit(err)
 		}
 		builtinAggregators["cortex."+aggregatorConfig.Name] = aggregator
 	}

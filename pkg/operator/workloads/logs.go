@@ -29,11 +29,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	oerrors "github.com/cortexlabs/cortex/pkg/operator/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 )
 
 const (
@@ -147,14 +148,14 @@ func getKubectlLogs(pod *corev1.Pod, verbose bool, wrotePending bool, socket *we
 
 	outr, outw, err := os.Pipe()
 	if err != nil {
-		oerrors.Panic(err, "logs", "kubectl", "os.pipe")
+		errors.Panic(err, "logs", "kubectl", "os.pipe")
 	}
 	defer outr.Close()
 	defer outw.Close()
 
 	inr, inw, err := os.Pipe()
 	if err != nil {
-		oerrors.Panic(err, "logs", "kubectl", "os.pipe")
+		errors.Panic(err, "logs", "kubectl", "os.pipe")
 	}
 	defer inr.Close()
 	defer inw.Close()
@@ -163,7 +164,7 @@ func getKubectlLogs(pod *corev1.Pod, verbose bool, wrotePending bool, socket *we
 		Files: []*os.File{inr, outw, outw},
 	})
 	if err != nil {
-		oerrors.Panic(err, strings.Join(args, " "))
+		errors.Panic(err, strings.Join(args, " "))
 	}
 
 	go pumpStdout(socket, outr, verbose, true)
@@ -174,7 +175,8 @@ func getKubectlLogs(pod *corev1.Pod, verbose bool, wrotePending bool, socket *we
 func getCloudWatchLogs(prefix string, verbose bool, socket *websocket.Conn) {
 	logs, err := aws.GetLogs(prefix)
 	if err != nil {
-		oerrors.PrintError(err)
+		telemetry.ReportError(err)
+		errors.PrintError(err)
 	}
 
 	var logsReader *strings.Reader
@@ -189,7 +191,7 @@ func getCloudWatchLogs(prefix string, verbose bool, socket *websocket.Conn) {
 
 	inr, inw, err := os.Pipe()
 	if err != nil {
-		oerrors.Panic(err, "logs", "cloudwatch", "os.pipe")
+		errors.Panic(err, "logs", "cloudwatch", "os.pipe")
 	}
 	defer inr.Close()
 	defer inw.Close()

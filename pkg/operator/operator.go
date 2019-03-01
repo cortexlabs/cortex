@@ -124,32 +124,37 @@ func startCron() {
 }
 
 func runCron() {
-	defer errors.Recover("cron failed")
+	defer oerrors.ReportAndRecover("cron failed")
 	apiPods, err := k8s.ListPodsByLabels(map[string]string{
 		"workloadType": workloads.WorkloadTypeAPI,
 		"userFacing":   "true",
 	})
 	if err != nil {
-		oerrors.PrintError(err)
+		telemetry.ReportError(err)
+		errors.PrintError(err)
 	}
 
 	if err := workloads.UpdateAPISavedStatuses(apiPods); err != nil {
-		oerrors.PrintError(err)
+		telemetry.ReportError(err)
+		errors.PrintError(err)
 	}
 
 	if err := workloads.UploadLogPrefixesFromAPIPods(apiPods); err != nil {
-		oerrors.PrintError(err)
+		telemetry.ReportError(err)
+		errors.PrintError(err)
 	}
 
 	failedPods, err := k8s.ListPods(&metav1.ListOptions{
 		FieldSelector: "status.phase=Failed",
 	})
 	if err != nil {
-		oerrors.PrintError(err)
+		telemetry.ReportError(err)
+		errors.PrintError(err)
 	}
 
 	if err := workloads.UpdateDataWorkflowErrors(failedPods); err != nil {
-		oerrors.PrintError(err)
+		telemetry.ReportError(err)
+		errors.PrintError(err)
 	}
 }
 

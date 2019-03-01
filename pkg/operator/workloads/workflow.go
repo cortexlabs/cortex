@@ -38,7 +38,7 @@ import (
 func init() {
 	workflows, err := argo.List(nil)
 	if err != nil {
-		oerrors.Exit(err, "init", "argo", "list")
+		oerrors.ReportAndExit(err, "init", "argo", "list")
 	}
 
 	for _, wf := range workflows {
