@@ -23,7 +23,7 @@ export CORTEX_REGION="us-west-2"
 # The name of the Kubernetes namespace Cortex will use
 export CORTEX_NAMESPACE="cortex"
 
-# Flag to enable collecting errors and usage stats. If flag is not set to either "true" or "false", user will be prompted.
+# Flag to enable collecting error reports and usage stats. If flag is not set to either "true" or "false", user will be prompted.
 export CORTEX_ENABLE_TELEMETRY=""
 
 # Image paths
