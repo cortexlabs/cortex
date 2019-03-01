@@ -60,7 +60,6 @@ func ReportEvent(name string) {
 }
 
 func sendUsageEvent(operatorID string, name string) {
-	fmt.Println(telemetryURL + eventPath)
 	usageEvent := UsageEvent{
 		Timestamp:  time.Now(),
 		Version:    consts.CortexVersion,
