@@ -26,14 +26,11 @@ RUN apt-get update -qq && apt-get install -y -q \
 COPY pkg/workloads/consts.py /src/
 COPY pkg/workloads/lib /src/lib
 
-COPY pkg/workloads/spark_job/requirements.txt /src/spark_job/requirements.txt
-COPY pkg/workloads/tf_api/requirements.txt /src/tf_api/requirements.txt
-COPY pkg/workloads/tf_train/requirements.txt /src/tf_train/requirements.txt
+COPY pkg/workloads/spark_job/requirements* /src/spark_job/
+COPY pkg/workloads/tf_api/requirements* /src/tf_api/
+COPY pkg/workloads/tf_train/requirements* /src/tf_train/
 
-RUN pip3 install -r /src/lib/requirements.txt && \
-    pip3 install -r /src/tf_train/requirements.txt && \
-    pip3 install -r /src/spark_job/requirements.txt && \
-    pip3 install -r /src/tf_api/requirements.txt && \
+RUN find /src -name "requirements*" | xargs printf -- '-r %s ' | xargs pip3 install && \
     rm -rf /root/.cache/pip*
 
 ENV PYTHONPATH="/src:${PYTHONPATH}"

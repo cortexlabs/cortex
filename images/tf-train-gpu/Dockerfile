@@ -2,10 +2,9 @@ FROM cortexlabs/tf-base-gpu
 
 ENV PYTHONPATH="/src:${PYTHONPATH}"
 
-COPY pkg/workloads/lib/requirements.txt /src/lib/requirements.txt
-COPY pkg/workloads/tf_train/requirements.txt /src/tf_train/requirements.txt
-RUN pip3 install -r /src/lib/requirements.txt && \
-    pip3 install -r /src/tf_train/requirements.txt && \
+COPY pkg/workloads/lib/requirements* /src/lib/
+COPY pkg/workloads/tf_train/requirements* /src/tf_train/
+RUN find /src -name "requirements*" | xargs printf -- '-r %s ' | xargs pip3 install && \
     rm -rf /root/.cache/pip*
 
 COPY pkg/workloads/consts.py /src/

@@ -15,6 +15,7 @@
 import os
 import sys
 import argparse
+import glob
 from subprocess import run
 
 from lib import util, aws
@@ -35,6 +36,20 @@ def get_build_order(python_packages):
     return build_order + sorted([name for name in python_packages if name != "requirements.txt"])
 
 
+def get_restricted_packages():
+    cortex_packages = {"pyspark": "2.4.0", "tensorflow": "1.12.0"}
+    req_files = glob.glob("/src/**/requirements.txt", recursive=True)
+    for req_file in req_files:
+        with open(req_file) as f:
+            lines = [line.strip() for line in f.readlines()]
+            for line in lines:
+                print(line)
+                if len(line) > 0:
+                    requirement_line_split = line.split("==")
+                    cortex_packages[requirement_line_split[0].lower()] = requirement_line_split[1]
+    return cortex_packages
+
+
 def build_packages(python_packages, bucket):
     cmd_partial = {}
     build_order = get_build_order(python_packages)
@@ -50,16 +65,30 @@ def build_packages(python_packages, bucket):
 
     logger.info("Setting up packages")
 
+    restricted_packages = get_restricted_packages()
+
     for package_name in build_order:
+        package_wheel_path = os.path.join(WHEELHOUSE_PATH, package_name)
         requirement = cmd_partial[package_name]
         logger.info("Building package {}".format(package_name))
         completed_process = run(
-            "pip3 wheel -w {} {}".format(
-                os.path.join(WHEELHOUSE_PATH, package_name), requirement
-            ).split()
+            "pip3 wheel -w {} {}".format(package_wheel_path, requirement).split()
         )
         if completed_process.returncode != 0:
             raise UserException("creating wheels", package_name)
+
+        for wheelname in os.listdir(package_wheel_path):
+            name_split = wheelname.split("-")
+            dist_name = name_split[0]
+            version = name_split[1]
+            expected_version = restricted_packages.get(dist_name, None)
+            if expected_version is not None and version != expected_version:
+                raise UserException(
+                    "found {}=={} but cortex requires {}=={}".format(
+                        dist_name, version, dist_name, expected_version
+                    ),
+                    package_name,
+                )
 
     logger.info("Validating packages")
 
@@ -94,6 +123,10 @@ def build(args):
     try:
         build_packages(python_packages, ctx.bucket)
         util.log_job_finished(ctx.workload_id)
+    except CortexException as e:
+        e.wrap("error")
+        logger.exception(e)
+        ctx.upload_resource_status_failed(*python_packages_list)
     except Exception as e:
         logger.exception(e)
         ctx.upload_resource_status_failed(*python_packages_list)
