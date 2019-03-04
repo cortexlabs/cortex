@@ -10,7 +10,7 @@
 
 **Machine learning platform for developers: build machine learning applications faster.**
 
-Cortex is an open-source platform for building, deploying, and managing machine learning applications in production. It is designed for any developer who wants to build machine learning powered services without having to worry about infrastructure challenges like configuring data pipelines, continuous deployment, and dependency management.
+Cortex is an open-source platform for building, deploying, and managing machine learning applications in production. It is designed for developers wanting to build services powered by machine learning without the worries of infrastructure challenges such as configuring data pipelines, continuous deplyment, and dependency management.
 
 Cortex is actively maintained by Cortex Labs. We're a venture-backed team of infrastructure engineers and [we're hiring](https://angel.co/cortex-labs-inc/jobs).
 
