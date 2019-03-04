@@ -34,6 +34,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 )
 
 const (
@@ -174,6 +175,7 @@ func getKubectlLogs(pod *corev1.Pod, verbose bool, wrotePending bool, socket *we
 func getCloudWatchLogs(prefix string, verbose bool, socket *websocket.Conn) {
 	logs, err := aws.GetLogs(prefix)
 	if err != nil {
+		telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 

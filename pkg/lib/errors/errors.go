@@ -97,11 +97,7 @@ func FirstError(errs ...error) error {
 	return nil
 }
 
-func Exit(items ...interface{}) {
-	if len(items) == 0 {
-		items = append(items, "empty exit")
-	}
-
+func MergeErrItems(items ...interface{}) error {
 	var err error
 	switch casted := items[0].(type) {
 	case error:
@@ -127,6 +123,14 @@ func Exit(items ...interface{}) {
 		}
 	}
 
+	return err
+}
+
+func Exit(items ...interface{}) {
+	if len(items) == 0 {
+		items = append(items, "empty exit")
+	}
+	err := MergeErrItems(items...)
 	PrintError(err)
 	os.Exit(1)
 }
@@ -135,32 +139,7 @@ func Panic(items ...interface{}) {
 	if len(items) == 0 {
 		items = append(items, "empty panic")
 	}
-
-	var err error
-	switch casted := items[0].(type) {
-	case error:
-		err = casted
-	case string:
-		err = New(casted)
-	default:
-		err = New(s.UserStrStripped(casted))
-	}
-
-	for i, item := range items {
-		if i == 0 {
-			continue
-		}
-
-		switch casted := item.(type) {
-		case error:
-			err = Wrap(err, casted.Error())
-		case string:
-			err = Wrap(err, casted)
-		default:
-			err = Wrap(err, s.UserStrStripped(casted))
-		}
-	}
-
+	err := MergeErrItems(items...)
 	// PrintStacktrace(err)
 	panic(err)
 }
@@ -183,15 +162,6 @@ func CastRecoverError(errInterface interface{}, strs ...string) error {
 		err = New(fmt.Sprint(errInterface))
 	}
 	return Wrap(err, strs...)
-}
-
-func Recover(strs ...string) error {
-	if errInterface := recover(); errInterface != nil {
-		err := CastRecoverError(errInterface, strs...)
-		PrintError(err)
-		return err
-	}
-	return nil
 }
 
 func RecoverAndExit(strs ...string) {
