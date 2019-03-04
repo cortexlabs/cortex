@@ -25,6 +25,7 @@ import (
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 )
 
@@ -32,6 +33,7 @@ var awsAccountID string
 var s3Client *s3.S3
 var stsClient *sts.STS
 var cloudWatchLogsClient *cloudwatchlogs.CloudWatchLogs
+var HashedAccountID string
 
 func init() {
 	sess := session.Must(session.NewSession(&aws.Config{
@@ -48,4 +50,5 @@ func init() {
 		errors.Exit(err, s.ErrUnableToAuthAws)
 	}
 	awsAccountID = *response.Account
+	HashedAccountID = hash.String(awsAccountID)
 }

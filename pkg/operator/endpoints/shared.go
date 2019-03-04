@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/schema"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 )
 
 func Respond(w http.ResponseWriter, response interface{}) {
@@ -39,6 +40,7 @@ func RespondError(w http.ResponseWriter, err error, strs ...string) {
 func RespondErrorCode(w http.ResponseWriter, code int, err error, strs ...string) {
 	err = errors.Wrap(err, strs...)
 	errors.PrintError(err)
+
 	w.WriteHeader(code)
 	response := schema.ErrorResponse{
 		Error: err.Error(),
@@ -57,6 +59,7 @@ func RespondIfError(w http.ResponseWriter, err error, strs ...string) bool {
 func RecoverAndRespond(w http.ResponseWriter, strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
+		telemetry.ReportError(err)
 		RespondError(w, err)
 	}
 }
