@@ -35,9 +35,8 @@ RUN sed -i "/^set -ex$/c\set -e" /opt/entrypoint.sh
 # Our code
 ENV PYTHONPATH="/src:${PYTHONPATH}"
 
-COPY pkg/workloads/lib/requirements* /src/lib/
-COPY pkg/workloads/spark_job/requirements* /src/spark_job/
-RUN find /src -name "requirements*" | xargs printf -- '-r %s ' | xargs pip3 install && \
+COPY pkg/workloads/lib/requirements.txt /src/lib/requirements.txt
+RUN pip3 install -r /src/lib/requirements.txt && \
     rm -rf /root/.cache/pip*
 
 COPY pkg/workloads/consts.py /src/

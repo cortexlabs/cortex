@@ -23,6 +23,8 @@ from lib.context import Context
 from lib.log import get_logger
 from lib.exceptions import UserException, CortexException
 
+import requirements
+
 logger = get_logger()
 
 LOCAL_PACKAGE_PATH = "/src/package"
@@ -41,12 +43,8 @@ def get_restricted_packages():
     req_files = glob.glob("/src/**/requirements.txt", recursive=True)
     for req_file in req_files:
         with open(req_file) as f:
-            lines = [line.strip() for line in f.readlines()]
-            for line in lines:
-                print(line)
-                if len(line) > 0:
-                    requirement_line_split = line.split("==")
-                    cortex_packages[requirement_line_split[0].lower()] = requirement_line_split[1]
+            for req in requirements.parse(f):
+                cortex_packages[req.name] = req.specs[0][1]
     return cortex_packages
 
 
@@ -79,15 +77,13 @@ def build_packages(python_packages, bucket):
 
         for wheelname in os.listdir(package_wheel_path):
             name_split = wheelname.split("-")
-            dist_name = name_split[0]
-            version = name_split[1]
+            dist_name, version = name_split[0], name_split[1]
             expected_version = restricted_packages.get(dist_name, None)
             if expected_version is not None and version != expected_version:
                 raise UserException(
-                    "found {}=={} but cortex requires {}=={}".format(
-                        dist_name, version, dist_name, expected_version
-                    ),
-                    package_name,
+                    "when installing {}, found {}=={} but cortex requires {}=={}".format(
+                        package_name, dist_name, version, dist_name, expected_version
+                    )
                 )
 
     logger.info("Validating packages")
