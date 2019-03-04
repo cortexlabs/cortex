@@ -167,7 +167,7 @@ function install_operator() {
 
   echo "Installing the Cortex operator ..."
 
-  prompt_for_usage_stats
+  prompt_for_telemetry
   setup_namespace
   setup_configmap
   setup_secrets
@@ -308,7 +308,7 @@ function setup_configmap() {
     --from-literal='IMAGE_PYTHON_PACKAGER'=$CORTEX_IMAGE_PYTHON_PACKAGER \
     --from-literal='IMAGE_TF_TRAIN_GPU'=$CORTEX_IMAGE_TF_TRAIN_GPU \
     --from-literal='IMAGE_TF_SERVE_GPU'=$CORTEX_IMAGE_TF_SERVE_GPU \
-    --from-literal='ENABLE_USAGE_REPORTING'=$CORTEX_ENABLE_TELEMETRY \
+    --from-literal='ENABLE_TELEMETRY'=$CORTEX_ENABLE_TELEMETRY \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 
@@ -1928,21 +1928,21 @@ function ask_sudo() {
   fi
 }
 
-function prompt_for_usage_stats() {
+function prompt_for_telemetry() {
   if [ "$CORTEX_ENABLE_TELEMETRY" != "true" ] && [ "$CORTEX_ENABLE_TELEMETRY" != "false" ]; then
     while true
     do
       echo
-      read -p "Would you like to help improve Cortex by anonymously sending error reports and usage stats to the dev team [y/n] " -n 1 -r
+      read -p "Would you like to help improve Cortex by anonymously sending error reports and usage stats to the dev team [Y/n] " -n 1 -r
       echo
-      if [[ $REPLY == 'y' ]]; then
+      if [[ $REPLY == 'Y' ]]; then
         export CORTEX_ENABLE_TELEMETRY=true
         break
       elif [[ $REPLY == 'n' ]]; then
         export CORTEX_ENABLE_TELEMETRY=false
         break
       fi
-      echo "Unexpected value, please enter \"y\" or \"n\""
+      echo "Unexpected value, please enter \"Y\" or \"n\""
     done
   fi
 }

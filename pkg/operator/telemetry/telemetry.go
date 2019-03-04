@@ -26,6 +26,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 )
@@ -70,7 +71,7 @@ func sendUsageEvent(operatorID string, name string) {
 	byteArray, _ := json.Marshal(usageEvent)
 	resp, err := httpClient.Post(telemetryURL+eventPath, "application/json", bytes.NewReader(byteArray))
 	if err != nil {
-		fmt.Println(err.Error())
+		errors.PrintError(err)
 		return
 	}
 
@@ -114,7 +115,7 @@ func sendErrorEvent(operatorID string, err error) {
 	byteArray, _ := json.Marshal(errorEvent)
 	resp, err := httpClient.Post(telemetryURL+errorPath, "application/json", bytes.NewReader(byteArray))
 	if err != nil {
-		fmt.Println(err.Error())
+		errors.PrintError(err)
 		return
 	}
 

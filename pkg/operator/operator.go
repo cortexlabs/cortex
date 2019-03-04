@@ -124,7 +124,7 @@ func startCron() {
 }
 
 func runCron() {
-	defer oerrors.ReportAndRecover("cron failed")
+	defer oerrors.CronReportAndRecover("cron failed")
 	apiPods, err := k8s.ListPodsByLabels(map[string]string{
 		"workloadType": workloads.WorkloadTypeAPI,
 		"userFacing":   "true",

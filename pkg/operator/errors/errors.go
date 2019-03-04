@@ -27,10 +27,10 @@ func ReportAndExit(items ...interface{}) {
 	errors.Exit(err)
 }
 
-func ReportAndRecover(strs ...string) error {
+func CronReportAndRecover(strs ...string) error {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
-		telemetry.ReportErrorBlocking(err)
+		telemetry.ReportError(err)
 		errors.PrintError(err)
 		return err
 	}
