@@ -34,8 +34,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	oerrors "github.com/cortexlabs/cortex/pkg/operator/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 )
 
 var sparkClientset clientset.Interface
@@ -71,7 +71,9 @@ func init() {
 	var err error
 	sparkClientset, err = clientset.NewForConfig(k8s.Config)
 	if err != nil {
-		oerrors.ReportAndExit(err, "spark", "kubeconfig")
+		err = errors.Wrap(err, "spark", "kubeconfig")
+		telemetry.ReportErrorBlocking(err)
+		errors.Exit(err)
 	}
 
 	sparkClient = sparkClientset.SparkoperatorV1alpha1().SparkApplications(cc.Namespace)

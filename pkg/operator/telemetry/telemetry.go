@@ -31,20 +31,32 @@ import (
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 )
 
-const defaultTelemetryURL = "https://telemetry.cortexlabs.com"
+const defaultTelemetryURL = "https://telemetry.cortexlabs.dev"
 const eventPath = "/events"
 const errorPath = "/errors"
 
-var telemetryURL string
-var httpClient http.Client
+var defaultClient *Client
 
-func init() {
-	timeout := time.Duration(10 * time.Second)
-	httpClient = http.Client{
-		Timeout: timeout,
+type Client struct {
+	url  string
+	http http.Client
+}
+
+func getDefaultClient() *Client {
+	if defaultClient != nil {
+		return defaultClient
 	}
 
-	telemetryURL = cr.MustStringFromEnv("CONST_TELEMETRY_URL", &cr.StringValidation{Required: false, Default: defaultTelemetryURL})
+	timeout := time.Duration(10 * time.Second)
+	httpClient := http.Client{
+		Timeout: timeout,
+	}
+	defaultClient = &Client{
+		url:  cr.MustStringFromEnv("CONST_TELEMETRY_URL", &cr.StringValidation{Required: false, Default: defaultTelemetryURL}),
+		http: httpClient,
+	}
+
+	return defaultClient
 }
 
 type UsageEvent struct {
@@ -54,13 +66,7 @@ type UsageEvent struct {
 	Event      string    `json:"event"`
 }
 
-func ReportEvent(name string) {
-	if cc.EnableTelemetry {
-		go sendUsageEvent(aws.HashedAccountID, name)
-	}
-}
-
-func sendUsageEvent(operatorID string, name string) {
+func (client *Client) sendUsageEvent(operatorID string, name string) {
 	usageEvent := UsageEvent{
 		Timestamp:  time.Now(),
 		Version:    consts.CortexVersion,
@@ -69,7 +75,7 @@ func sendUsageEvent(operatorID string, name string) {
 	}
 
 	byteArray, _ := json.Marshal(usageEvent)
-	resp, err := httpClient.Post(telemetryURL+eventPath, "application/json", bytes.NewReader(byteArray))
+	resp, err := client.http.Post(client.url+eventPath, "application/json", bytes.NewReader(byteArray))
 	if err != nil {
 		errors.PrintError(err)
 		return
@@ -92,19 +98,7 @@ type ErrorEvent struct {
 	Stacktrace string    `json:"stacktrace"`
 }
 
-func ReportErrorBlocking(err error) {
-	if cc.EnableTelemetry {
-		sendErrorEvent(aws.HashedAccountID, err)
-	}
-}
-
-func ReportError(err error) {
-	if cc.EnableTelemetry {
-		go sendErrorEvent(aws.HashedAccountID, err)
-	}
-}
-
-func sendErrorEvent(operatorID string, err error) {
+func (client *Client) sendErrorEvent(operatorID string, err error) {
 	errorEvent := ErrorEvent{
 		Timestamp:  time.Now(),
 		Version:    consts.CortexVersion,
@@ -113,7 +107,7 @@ func sendErrorEvent(operatorID string, err error) {
 		Stacktrace: fmt.Sprintf("%+v", err),
 	}
 	byteArray, _ := json.Marshal(errorEvent)
-	resp, err := httpClient.Post(telemetryURL+errorPath, "application/json", bytes.NewReader(byteArray))
+	resp, err := client.http.Post(client.url+errorPath, "application/json", bytes.NewReader(byteArray))
 	if err != nil {
 		errors.PrintError(err)
 		return
@@ -125,5 +119,24 @@ func sendErrorEvent(operatorID string, err error) {
 		if byteArray, err := ioutil.ReadAll(resp.Body); err == nil {
 			fmt.Println(string(byteArray))
 		}
+	}
+}
+
+func ReportEvent(name string) {
+	if cc.EnableTelemetry {
+		fmt.Println(cc.EnableTelemetry)
+		go getDefaultClient().sendUsageEvent(aws.HashedAccountID, name)
+	}
+}
+
+func ReportErrorBlocking(err error) {
+	if cc.EnableTelemetry {
+		getDefaultClient().sendErrorEvent(aws.HashedAccountID, err)
+	}
+}
+
+func ReportError(err error) {
+	if cc.EnableTelemetry {
+		go getDefaultClient().sendErrorEvent(aws.HashedAccountID, err)
 	}
 }

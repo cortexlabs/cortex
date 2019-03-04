@@ -1935,10 +1935,10 @@ function prompt_for_telemetry() {
       echo
       read -p "Would you like to help improve Cortex by anonymously sending error reports and usage stats to the dev team [Y/n] " -n 1 -r
       echo
-      if [[ $REPLY == 'Y' ]]; then
+      if [[ $REPLY =~ ^[Yy]$ ]]; then
         export CORTEX_ENABLE_TELEMETRY=true
         break
-      elif [[ $REPLY == 'n' ]]; then
+      elif [[ $REPLY =~ ^[Nn]$ ]]; then
         export CORTEX_ENABLE_TELEMETRY=false
         break
       fi

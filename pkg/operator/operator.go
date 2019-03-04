@@ -34,7 +34,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
-	oerrors "github.com/cortexlabs/cortex/pkg/operator/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
@@ -124,7 +123,7 @@ func startCron() {
 }
 
 func runCron() {
-	defer oerrors.CronReportAndRecover("cron failed")
+	defer reportAndRecover("cron failed")
 	apiPods, err := k8s.ListPodsByLabels(map[string]string{
 		"workloadType": workloads.WorkloadTypeAPI,
 		"userFacing":   "true",
@@ -172,4 +171,14 @@ func deleteWorkflowDelayed(wfName string) {
 func deleteMarkerDelayed(markerMap strset.Set, key string) {
 	time.Sleep(20 * time.Second)
 	markerMap.Remove(key)
+}
+
+func reportAndRecover(strs ...string) error {
+	if errInterface := recover(); errInterface != nil {
+		err := errors.CastRecoverError(errInterface, strs...)
+		telemetry.ReportError(err)
+		errors.PrintError(err)
+		return err
+	}
+	return nil
 }

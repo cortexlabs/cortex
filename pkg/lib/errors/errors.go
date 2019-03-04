@@ -97,7 +97,7 @@ func FirstError(errs ...error) error {
 	return nil
 }
 
-func ConsolidateErrItems(items ...interface{}) error {
+func MergeErrItems(items ...interface{}) error {
 	var err error
 	switch casted := items[0].(type) {
 	case error:
@@ -130,7 +130,7 @@ func Exit(items ...interface{}) {
 	if len(items) == 0 {
 		items = append(items, "empty exit")
 	}
-	err := ConsolidateErrItems(items...)
+	err := MergeErrItems(items...)
 	PrintError(err)
 	os.Exit(1)
 }
@@ -139,7 +139,7 @@ func Panic(items ...interface{}) {
 	if len(items) == 0 {
 		items = append(items, "empty panic")
 	}
-	err := ConsolidateErrItems(items...)
+	err := MergeErrItems(items...)
 	// PrintStacktrace(err)
 	panic(err)
 }
