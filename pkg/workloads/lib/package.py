@@ -27,7 +27,7 @@ import requirements
 
 logger = get_logger()
 
-LOCAL_PACKAGE_PATH = "/src/package"
+LOCAL_PACKAGE_PATH = "/packages"
 WHEELHOUSE_PATH = "/wheelhouse"
 
 
@@ -68,10 +68,11 @@ def build_packages(python_packages, bucket):
     for package_name in build_order:
         package_wheel_path = os.path.join(WHEELHOUSE_PATH, package_name)
         requirement = cmd_partial[package_name]
-        logger.info("Building package {}".format(package_name))
+        logger.info("Building: {}".format(package_name))
         completed_process = run(
             "pip3 wheel -w {} {}".format(package_wheel_path, requirement).split()
         )
+
         if completed_process.returncode != 0:
             raise UserException("creating wheels", package_name)
 
@@ -90,7 +91,7 @@ def build_packages(python_packages, bucket):
 
     for package_name in build_order:
         requirement = cmd_partial[package_name]
-        logger.info("Installing package {}".format(package_name))
+        logger.info("Installing: {}".format(package_name))
         completed_process = run(
             "pip3 install --no-index --find-links={} {}".format(
                 os.path.join(WHEELHOUSE_PATH, package_name), requirement
