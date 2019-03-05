@@ -15,6 +15,7 @@
 import os
 import sys
 import argparse
+import glob
 from subprocess import run
 
 from lib import util, aws
@@ -22,9 +23,11 @@ from lib.context import Context
 from lib.log import get_logger
 from lib.exceptions import UserException, CortexException
 
+import requirements
+
 logger = get_logger()
 
-LOCAL_PACKAGE_PATH = "/src/package"
+LOCAL_PACKAGE_PATH = "/packages"
 WHEELHOUSE_PATH = "/wheelhouse"
 
 
@@ -33,6 +36,16 @@ def get_build_order(python_packages):
     if "requirements.txt" in python_packages:
         build_order.append("requirements.txt")
     return build_order + sorted([name for name in python_packages if name != "requirements.txt"])
+
+
+def get_restricted_packages():
+    cortex_packages = {"pyspark": "2.4.0", "tensorflow": "1.12.0"}
+    req_files = glob.glob("/src/**/requirements.txt", recursive=True)
+    for req_file in req_files:
+        with open(req_file) as f:
+            for req in requirements.parse(f):
+                cortex_packages[req.name] = req.specs[0][1]
+    return cortex_packages
 
 
 def build_packages(python_packages, bucket):
@@ -50,22 +63,35 @@ def build_packages(python_packages, bucket):
 
     logger.info("Setting up packages")
 
+    restricted_packages = get_restricted_packages()
+
     for package_name in build_order:
+        package_wheel_path = os.path.join(WHEELHOUSE_PATH, package_name)
         requirement = cmd_partial[package_name]
-        logger.info("Building package {}".format(package_name))
+        logger.info("Building: {}".format(package_name))
         completed_process = run(
-            "pip3 wheel -w {} {}".format(
-                os.path.join(WHEELHOUSE_PATH, package_name), requirement
-            ).split()
+            "pip3 wheel -w {} {}".format(package_wheel_path, requirement).split()
         )
+
         if completed_process.returncode != 0:
             raise UserException("creating wheels", package_name)
+
+        for wheelname in os.listdir(package_wheel_path):
+            name_split = wheelname.split("-")
+            dist_name, version = name_split[0], name_split[1]
+            expected_version = restricted_packages.get(dist_name, None)
+            if expected_version is not None and version != expected_version:
+                raise UserException(
+                    "when installing {}, found {}=={} but cortex requires {}=={}".format(
+                        package_name, dist_name, version, dist_name, expected_version
+                    )
+                )
 
     logger.info("Validating packages")
 
     for package_name in build_order:
         requirement = cmd_partial[package_name]
-        logger.info("Installing package {}".format(package_name))
+        logger.info("Installing: {}".format(package_name))
         completed_process = run(
             "pip3 install --no-index --find-links={} {}".format(
                 os.path.join(WHEELHOUSE_PATH, package_name), requirement
@@ -94,6 +120,10 @@ def build(args):
     try:
         build_packages(python_packages, ctx.bucket)
         util.log_job_finished(ctx.workload_id)
+    except CortexException as e:
+        e.wrap("error")
+        logger.exception(e)
+        ctx.upload_resource_status_failed(*python_packages_list)
     except Exception as e:
         logger.exception(e)
         ctx.upload_resource_status_failed(*python_packages_list)

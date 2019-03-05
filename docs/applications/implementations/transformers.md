@@ -81,20 +81,6 @@ def reverse_transform_python(transformed_value, args):
     return args["mean"] + (transformed_value * args["stddev"])
 ```
 
-## Pre-installed Packages
+## Customization
 
-The following packages have been pre-installed and can be used in your implementations:
-
-```text
-pyspark==2.4.0
-numpy==1.15.4
-pandas==0.23.4
-scipy==1.2.0
-sympy==1.3
-statsmodels==0.9.0
-python-dateutil==2.7.5
-six==1.11.0
-wrapt==1.11.0
-```
-
-You can install additional PyPI packages and import your own Python packages. See [Python Packages](../advanced/python-packages.md) for more details.
+You can import PyPI packages or your own Python packages to help create more complex transformers. See [Python Packages](../advanced/python-packages.md) for more details.

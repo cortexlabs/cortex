@@ -92,7 +92,7 @@ func loadPythonPackages(files map[string][]byte) (context.PythonPackages, error)
 		id := hash.Bytes(buf.Bytes())
 		pythonPackage := context.PythonPackage{
 			ResourceConfigFields: userconfig.ResourceConfigFields{
-				Name: consts.RequirementsTxt,
+				Name: packageName,
 			},
 			ComputedResourceFields: &context.ComputedResourceFields{
 				ResourceFields: &context.ResourceFields{
