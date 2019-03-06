@@ -30,18 +30,3 @@
   training:
     batch_size: 64
     num_steps: 5000
-
-- kind: model
-  name: sentiment_transformer
-  type: classification
-  target_column: label_indexed
-  feature_columns:
-    - embedding_input
-  aggregates:
-    - reviews_vocab
-  data_partition_ratio:
-    training: 0.8
-    evaluation: 0.2
-  training:
-    batch_size: 64
-    num_steps: 5000
