@@ -124,7 +124,6 @@ func (client *Client) sendErrorEvent(operatorID string, err error) {
 
 func ReportEvent(name string) {
 	if cc.EnableTelemetry {
-		fmt.Println(cc.EnableTelemetry)
 		go getDefaultClient().sendUsageEvent(aws.HashedAccountID, name)
 	}
 }
