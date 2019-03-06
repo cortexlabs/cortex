@@ -41,6 +41,16 @@ def get_label_placeholder(model_name, ctx):
     return tf.placeholder(shape=[None], dtype=column_type)
 
 
+def get_transform_tensor_fn(ctx, model_impl, model_name, training):
+    model = ctx.models[model_name]
+    model_config = ctx.model_config(model["name"])
+
+    def transform_tensor_fn_wrapper(inputs, labels):
+        return model_impl.transform_tensors(inputs, labels, model_config, training)
+
+    return transform_tensor_fn_wrapper
+
+
 def generate_example_parsing_fn(model_name, ctx, training=True):
     model = ctx.models[model_name]
 
@@ -75,7 +85,9 @@ def generate_input_fn(model_name, ctx, mode, model_impl):
             dataset = dataset.shuffle(buffer_size)
 
         if hasattr(model_impl, "transform_tensors"):
-            dataset = dataset.map(model_impl.transform_tensors)
+            dataset = dataset.map(
+                get_transform_tensor_fn(ctx, model_impl, model_name, training=True)
+            )
 
         dataset = dataset.batch(model[mode]["batch_size"])
         dataset = dataset.prefetch(buffer_size)
@@ -91,11 +103,15 @@ def generate_input_fn(model_name, ctx, mode, model_impl):
 def generate_json_serving_input_fn(model_name, ctx, model_impl):
     def _json_serving_input_fn():
         inputs = get_input_placeholder(model_name, ctx, training=False)
-        label = get_label_placeholder(model_name, ctx)
-        if hasattr(model_impl, "transform_tensors"):
-            inputs, _ = model_impl.transform_tensors(inputs, label)
+        labels = get_label_placeholder(model_name, ctx)
 
-        features = {key: tf.expand_dims(tensor, -1) for key, tensor in inputs.items()}
+        features = inputs
+        if hasattr(model_impl, "transform_tensors"):
+            features, _ = get_transform_tensor_fn(ctx, model_impl, model_name, training=False)(
+                inputs, labels
+            )
+
+        features = {key: tf.expand_dims(tensor, 0) for key, tensor in features.items()}
         return tf.estimator.export.ServingInputReceiver(features=features, receiver_tensors=inputs)
 
     return _json_serving_input_fn

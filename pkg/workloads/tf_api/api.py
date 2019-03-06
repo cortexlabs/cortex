@@ -31,6 +31,7 @@ from lib.log import get_logger
 from lib.exceptions import CortexException, UserRuntimeException, UserException
 from google.protobuf import json_format
 import time
+import numpy as np
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
@@ -89,18 +90,21 @@ def transform_sample(sample):
 
 def create_prediction_request(transformed_sample):
     ctx = local_cache["ctx"]
-
+    signatureDef = local_cache["metadata"]["signatureDef"]
+    signature_key = list(signatureDef.keys())[0]
     prediction_request = predict_pb2.PredictRequest()
     prediction_request.model_spec.name = "default"
-    prediction_request.model_spec.signature_name = list(
-        local_cache["metadata"]["signatureDef"].keys()
-    )[0]
+    prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in transformed_sample.items():
         data_type = tf_lib.CORTEX_TYPE_TO_TF_TYPE[ctx.columns[column_name]["type"]]
         shape = [1]
         if util.is_list(value):
-            shape = [len(value)]
+            shape = []
+            for dim in signatureDef[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
+                shape.append(int(dim["size"]))
+            value = np.asarray(value).reshape(shape).tolist()
+
         tensor_proto = tf.make_tensor_proto([value], dtype=data_type, shape=shape)
         prediction_request.inputs[column_name].CopyFrom(tensor_proto)
 
