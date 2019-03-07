@@ -1,5 +1,3 @@
-# specify exact version for each dependency, name==version
-
 flask==1.0.2
 flask-api==1.1
 waitress==1.2.1
