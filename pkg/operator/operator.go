@@ -35,6 +35,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
@@ -47,6 +48,7 @@ const (
 var markedWorkflows = strset.New()
 
 func main() {
+	telemetry.ReportEvent("operator.init")
 	startCron()
 
 	router := mux.NewRouter()
@@ -121,21 +123,23 @@ func startCron() {
 }
 
 func runCron() {
-	defer errors.Recover("cron failed")
-
+	defer reportAndRecover("cron failed")
 	apiPods, err := k8s.ListPodsByLabels(map[string]string{
 		"workloadType": workloads.WorkloadTypeAPI,
 		"userFacing":   "true",
 	})
 	if err != nil {
+		telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
 	if err := workloads.UpdateAPISavedStatuses(apiPods); err != nil {
+		telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
 	if err := workloads.UploadLogPrefixesFromAPIPods(apiPods); err != nil {
+		telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
@@ -143,10 +147,12 @@ func runCron() {
 		FieldSelector: "status.phase=Failed",
 	})
 	if err != nil {
+		telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
 	if err := workloads.UpdateDataWorkflowErrors(failedPods); err != nil {
+		telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 }
@@ -165,4 +171,14 @@ func deleteWorkflowDelayed(wfName string) {
 func deleteMarkerDelayed(markerMap strset.Set, key string) {
 	time.Sleep(20 * time.Second)
 	markerMap.Remove(key)
+}
+
+func reportAndRecover(strs ...string) error {
+	if errInterface := recover(); errInterface != nil {
+		err := errors.CastRecoverError(errInterface, strs...)
+		telemetry.ReportError(err)
+		errors.PrintError(err)
+		return err
+	}
+	return nil
 }

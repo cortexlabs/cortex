@@ -34,9 +34,9 @@ import (
 	homedir "k8s.io/client-go/util/homedir"
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
+	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 )
 
 var (
@@ -68,12 +68,16 @@ func init() {
 	}
 
 	if err != nil {
-		errors.Exit(err, "kubeconfig")
+		err = errors.Wrap(err, "kubeconfig")
+		telemetry.ReportErrorBlocking(err)
+		errors.Exit(err)
 	}
 
 	clientset, err = kubernetes.NewForConfig(Config)
 	if err != nil {
-		errors.Exit(err, "kubeconfig")
+		err = errors.Wrap(err, "kubeconfig")
+		telemetry.ReportErrorBlocking(err)
+		errors.Exit(err)
 	}
 
 	podClient = clientset.CoreV1().Pods(cc.Namespace)
