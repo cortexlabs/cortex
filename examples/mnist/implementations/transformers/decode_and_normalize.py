@@ -15,4 +15,6 @@ def transform_python(sample, args):
     # https://www.tensorflow.org/api_docs/python/tf/image/per_image_standardization
     adjusted_stddev = max(np.std(decoded_image), 1.0 / math.sqrt(decoded_image.size))
     standardized_image = (decoded_image - np.mean(decoded_image)) / adjusted_stddev
+
+    # TODO remove flatten() once we support spark tensors
     return standardized_image.flatten().tolist()
