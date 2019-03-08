@@ -41,12 +41,12 @@ def get_label_placeholder(model_name, ctx):
     return tf.placeholder(shape=[None], dtype=column_type)
 
 
-def get_transform_tensor_fn(ctx, model_impl, model_name, training):
+def get_transform_tensor_fn(ctx, model_impl, model_name):
     model = ctx.models[model_name]
     model_config = ctx.model_config(model["name"])
 
     def transform_tensor_fn_wrapper(inputs, labels):
-        return model_impl.transform_tensors(inputs, labels, model_config, training)
+        return model_impl.transform_tensors(inputs, labels, model_config)
 
     return transform_tensor_fn_wrapper
 
@@ -85,9 +85,7 @@ def generate_input_fn(model_name, ctx, mode, model_impl):
             dataset = dataset.shuffle(buffer_size)
 
         if hasattr(model_impl, "transform_tensors"):
-            dataset = dataset.map(
-                get_transform_tensor_fn(ctx, model_impl, model_name, training=True)
-            )
+            dataset = dataset.map(get_transform_tensor_fn(ctx, model_impl, model_name))
 
         dataset = dataset.batch(model[mode]["batch_size"])
         dataset = dataset.prefetch(buffer_size)
@@ -105,30 +103,15 @@ def generate_json_serving_input_fn(model_name, ctx, model_impl):
         inputs = get_input_placeholder(model_name, ctx, training=False)
         labels = get_label_placeholder(model_name, ctx)
 
-        features = inputs
+        # copy inputs
+        features = {key: tensor for key, tensor in inputs.items()}
         if hasattr(model_impl, "transform_tensors"):
-            features, _ = get_transform_tensor_fn(ctx, model_impl, model_name, training=False)(
-                inputs, labels
-            )
+            features, _ = get_transform_tensor_fn(ctx, model_impl, model_name)(features, labels)
 
         features = {key: tf.expand_dims(tensor, 0) for key, tensor in features.items()}
         return tf.estimator.export.ServingInputReceiver(features=features, receiver_tensors=inputs)
 
     return _json_serving_input_fn
-
-
-def generate_example_serving_input_fn(model_name, ctx):
-    def _example_serving_input_fn():
-        feature_spec = tf_lib.get_feature_spec(model_name, ctx, training=False)
-        example_bytestring = tf.placeholder(shape=[None], dtype=tf.string)
-        feature_scalars = tf.parse_single_example(example_bytestring, feature_spec)
-        features = {key: tf.expand_dims(tensor, -1) for key, tensor in feature_scalars.items()}
-
-        return tf.estimator.export.ServingInputReceiver(
-            features=features, receiver_tensors={"example_proto": example_bytestring}
-        )
-
-    return _example_serving_input_fn
 
 
 def get_regression_eval_metrics(labels, predictions):

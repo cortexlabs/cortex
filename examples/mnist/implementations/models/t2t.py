@@ -27,14 +27,13 @@ def create_estimator(run_config, model_config):
     return estimator
 
 
-def transform_tensors(features, labels, model_config, training):
+def transform_tensors(features, labels, model_config):
     hparams = model_config["hparams"]
 
     # t2t model performs flattening and expects this input key
-    features["inputs"] = tf.reshape(features["inputs"], hparams["input_shape"])
+    features["inputs"] = tf.reshape(features["image_pixels"], hparams["input_shape"])
 
-    if training:
-        # t2t expects this key and dimension
-        features["targets"] = tf.expand_dims(labels, 0)
+    # t2t expects this key and dimension
+    features["targets"] = tf.expand_dims(labels, 0)
 
     return features, labels

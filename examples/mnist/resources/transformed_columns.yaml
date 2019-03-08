@@ -4,11 +4,3 @@
   inputs:
     columns:
       image: image
-
-# t2t needs this specific key
-- kind: transformed_column
-  name: inputs
-  transformer: decode_and_normalize
-  inputs:
-    columns:
-      image: image
