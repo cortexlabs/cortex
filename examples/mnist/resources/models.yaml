@@ -7,6 +7,7 @@
     - image_pixels
   hparams:
     learning_rate: 0.01
+    input_shape: [784]
     output_shape: [10]
     hidden_units: [100, 200]
   data_partition_ratio:
@@ -26,7 +27,7 @@
     input_shape: [28, 28, 1]
     output_shape: [10]
     kernel_size: 2
-    hidden_units: [10, 10, 10]
+    hidden_units: [100, 50, 100]
   data_partition_ratio:
     training: 0.7
     evaluation: 0.3
