@@ -27,7 +27,7 @@ def create_estimator(run_config, model_config):
     return estimator
 
 
-def transform_tensors(features, labels, model_config):
+def transform_tensorflow(features, labels, model_config):
     hparams = model_config["hparams"]
 
     # t2t model performs flattening and expects this input key

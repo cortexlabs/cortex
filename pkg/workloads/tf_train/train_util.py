@@ -46,7 +46,7 @@ def get_transform_tensor_fn(ctx, model_impl, model_name):
     model_config = ctx.model_config(model["name"])
 
     def transform_tensor_fn_wrapper(inputs, labels):
-        return model_impl.transform_tensors(inputs, labels, model_config)
+        return model_impl.transform_tensorflow(inputs, labels, model_config)
 
     return transform_tensor_fn_wrapper
 
@@ -84,7 +84,7 @@ def generate_input_fn(model_name, ctx, mode, model_impl):
         if model[mode]["shuffle"]:
             dataset = dataset.shuffle(buffer_size)
 
-        if hasattr(model_impl, "transform_tensors"):
+        if hasattr(model_impl, "transform_tensorflow"):
             dataset = dataset.map(get_transform_tensor_fn(ctx, model_impl, model_name))
 
         dataset = dataset.batch(model[mode]["batch_size"])
@@ -105,7 +105,7 @@ def generate_json_serving_input_fn(model_name, ctx, model_impl):
 
         # copy inputs
         features = {key: tensor for key, tensor in inputs.items()}
-        if hasattr(model_impl, "transform_tensors"):
+        if hasattr(model_impl, "transform_tensorflow"):
             features, _ = get_transform_tensor_fn(ctx, model_impl, model_name)(features, labels)
 
         features = {key: tf.expand_dims(tensor, 0) for key, tensor in features.items()}
