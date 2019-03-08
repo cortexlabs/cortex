@@ -1,6 +1,6 @@
 - kind: api
-  name: dense-classifier
-  model_name: dense
+  name: dnn-classifier
+  model_name: dnn
   compute:
     replicas: 1
 
