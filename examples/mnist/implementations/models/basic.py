@@ -5,8 +5,9 @@ def create_estimator(run_config, model_config):
     hparams = model_config["hparams"]
 
     def model_fn(features, labels, mode, params):
-        x = features["image_pixels"]
+        images = features["image_pixels"]
 
+        x = images
         for i, feature_count in enumerate(hparams["hidden_units"]):
             with tf.variable_scope("layer_%d" % i):
                 if hparams["layer_type"] == "conv":
