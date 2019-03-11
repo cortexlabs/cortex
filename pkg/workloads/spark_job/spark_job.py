@@ -92,9 +92,7 @@ def parse_args(args):
 
 
 def validate_dataset(ctx, raw_df, cols_to_validate):
-    total_row_count = aws.read_json_from_s3(ctx.raw_dataset["metadata_key"], ctx.bucket)[
-        "dataset_size"
-    ]
+    total_row_count = ctx.storage.get_json(ctx.raw_dataset["metadata_key"])["dataset_size"]
     conditions_dict = spark_util.value_check_data(ctx, raw_df, cols_to_validate)
 
     if len(conditions_dict) > 0:
@@ -130,7 +128,7 @@ def limit_dataset(full_dataset_size, ingest_df, limit_config):
 def write_raw_dataset(df, ctx, spark):
     logger.info("Caching {} data (version: {})".format(ctx.app["name"], ctx.dataset_version))
     acc, df = spark_util.accumulate_count(df, spark)
-    df.write.mode("overwrite").parquet(aws.s3a_path(ctx.bucket, ctx.raw_dataset["key"]))
+    df.write.mode("overwrite").parquet(ctx.storage.hadoop_path(ctx.raw_dataset["key"]))
     return acc.value
 
 
@@ -163,7 +161,7 @@ def ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest):
 
             written_count = write_raw_dataset(ingest_df, ctx, spark)
             metadata = {"dataset_size": written_count}
-            aws.upload_json_to_s3(metadata, ctx.raw_dataset["metadata_key"], ctx.bucket)
+            ctx.storage.put_json(metadata, ctx.raw_dataset["metadata_key"])
             if written_count != full_dataset_size:
                 logger.info(
                     "{} rows read, {} rows dropped, {} rows ingested".format(
@@ -382,6 +380,7 @@ def main():
         sys.exit()
 
     args = parser.parse_args()
+    logger.info(args)
     args.func(args)
 
 

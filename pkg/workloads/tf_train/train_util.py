@@ -51,7 +51,7 @@ def generate_input_fn(model_name, ctx, mode):
     model = ctx.models[model_name]
 
     filenames = ctx.get_training_data_parts(model_name, mode)
-    filenames = [aws.s3_path(ctx.bucket, f) for f in filenames]
+    filenames = [ctx.storage.blob_path(f) for f in filenames]
 
     num_threads = multiprocessing.cpu_count()
     buffer_size = 2 * model[mode]["batch_size"] + 1
@@ -135,7 +135,7 @@ def train(model_name, model_impl, ctx, model_dir):
     serving_input_fn = generate_json_serving_input_fn(model_name, ctx)
     exporter = tf.estimator.FinalExporter("estimator", serving_input_fn, as_text=False)
 
-    dataset_metadata = aws.read_json_from_s3(model["dataset"]["metadata_key"], ctx.bucket)
+    dataset_metadata = ctx.storage.get_json(model["dataset"]["metadata_key"])
     train_num_steps = model["training"]["num_steps"]
     if model["training"]["num_epochs"]:
         train_num_steps = (

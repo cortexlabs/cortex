@@ -31,7 +31,7 @@ logger = get_logger()
 def train(args):
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
 
-    package.install_packages(ctx.python_packages, ctx.bucket)
+    package.install_packages(ctx.python_packages, ctx.storage)
 
     model = ctx.models_id_map[args.model]
 
@@ -52,7 +52,7 @@ def train(args):
             model_zip_path = os.path.join(temp_dir, "model.zip")
             util.zip_dir(model_export_dir, model_zip_path)
 
-            aws.upload_file_to_s3(local_path=model_zip_path, key=model["key"], bucket=ctx.bucket)
+            ctx.storage.put_file(model_zip_path, model["key"])
             util.log_job_finished(ctx.workload_id)
 
         except CortexException as e:

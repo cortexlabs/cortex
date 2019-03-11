@@ -48,17 +48,17 @@ def get_restricted_packages():
     return cortex_packages
 
 
-def build_packages(python_packages, bucket):
+def build_packages(python_packages, storage):
     cmd_partial = {}
     build_order = get_build_order(python_packages)
     for package_name in build_order:
         python_package = python_packages[package_name]
         if package_name == "requirements.txt":
             requirements_path = os.path.join(LOCAL_PACKAGE_PATH, package_name)
-            aws.download_file_from_s3(python_package["src_key"], requirements_path, bucket)
+            storage.get_file(python_package["src_key"], requirements_path)
             cmd_partial[package_name] = "-r " + requirements_path
         else:
-            aws.download_and_extract_zip(python_package["src_key"], LOCAL_PACKAGE_PATH, bucket)
+            storage.get_and_extract(python_package["src_key"], LOCAL_PACKAGE_PATH)
             cmd_partial[package_name] = os.path.join(LOCAL_PACKAGE_PATH, package_name)
 
     logger.info("Setting up packages")
@@ -103,10 +103,9 @@ def build_packages(python_packages, bucket):
     logger.info("Caching built packages")
 
     for package_name in build_order:
-        aws.compress_zip_and_upload(
+        storage.compress_and_put(
             os.path.join(WHEELHOUSE_PATH, package_name),
             python_packages[package_name]["package_key"],
-            bucket,
         )
 
 
@@ -118,7 +117,7 @@ def build(args):
     }
     ctx.upload_resource_status_start(*python_packages_list)
     try:
-        build_packages(python_packages, ctx.bucket)
+        build_packages(python_packages, ctx.storage)
         util.log_job_finished(ctx.workload_id)
     except CortexException as e:
         e.wrap("error")
@@ -131,19 +130,17 @@ def build(args):
         ctx.upload_resource_status_success(*python_packages_list)
 
 
-def install_packages(python_packages, bucket):
+def install_packages(python_packages, storage):
     build_order = get_build_order(python_packages)
 
     for package_name in build_order:
         python_package = python_packages[package_name]
-        aws.download_and_extract_zip(
-            python_package["package_key"], os.path.join(WHEELHOUSE_PATH, package_name), bucket
+        storage.get_and_extract(
+            python_package["package_key"], os.path.join(WHEELHOUSE_PATH, package_name)
         )
 
     if "requirements.txt" in python_packages:
-        aws.download_file_from_s3(
-            python_packages["requirements.txt"]["src_key"], "/requirements.txt", bucket
-        )
+        storage.get_file(python_packages["requirements.txt"]["src_key"], "/requirements.txt")
 
     for package_name in build_order:
         cmd = package_name
@@ -180,7 +177,7 @@ def main():
         build(args)
     else:
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
-        install_packages(ctx.python_packages, ctx.bucket)
+        install_packages(ctx.python_packages, ctx.storage)
 
 
 if __name__ == "__main__":
