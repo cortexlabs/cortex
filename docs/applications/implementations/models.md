@@ -49,3 +49,20 @@ def create_estimator(run_config, model_config):
 ## Customization
 
 You can import PyPI packages or your own Python packages to help create more complex models. See [Python Packages](../advanced/python-packages.md) for more details.
+
+
+# Tensorflow Transformations
+You can preprocess input features and labels to your model by defining a `transform_tensorflow` function. This is useful in cases where you don't have access to the model implementation which expects a multi-dimensional tensor, for example.
+
+```python
+def transform_tensorflow(features, labels, model_config):
+    hparams = model_config["hparams"]
+
+    # t2t model performs flattening and expects this input key
+    features["inputs"] = tf.reshape(features["image_pixels"], hparams["input_shape"])
+
+    # t2t expects this key and dimension
+    features["targets"] = tf.expand_dims(labels, 0)
+
+    return features, labels
+```
