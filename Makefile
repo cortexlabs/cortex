@@ -154,7 +154,7 @@ push-images:
 	@./build/push-image.sh argo-executor
 
 build-cli:
-	@CLI_BUCKET_NAME="" ./build/cli.sh
+	@./build/cli.sh
 
 build-and-upload-cli:
-	@./build/cli.sh
+	@./build/cli.sh upload

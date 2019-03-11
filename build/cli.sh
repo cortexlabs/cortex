@@ -21,16 +21,23 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 CORTEX_VERSION=master
 
+arg1=${1:-""}
+upload="false"
+if [ "$arg1" == "upload" ]; then
+  upload="true"
+fi
+
 function build_and_upload() {
   set -euo pipefail
 
   os=$1
   echo -e "\nBuilding Cortex CLI for $os"
   GOOS=$os GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -o cortex "$ROOT/cli"
-  if [ "$CLI_BUCKET_NAME" != "" ]; then
+  if [ "$upload" == "true" ]; then
+    echo "Uploading Cortex CLI to s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/cli/$os/cortex"
     aws s3 cp cortex s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/cli/$os/cortex --only-show-errors
-    echo "Uploaded Cortex CLI to s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/cli/$os/cortex"
   fi
+  echo "Done ✓"
   rm cortex
 }
 
