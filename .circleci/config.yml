@@ -9,7 +9,7 @@ commands:
           name: Exit build step if should not be deployed
           command: |
             if ! ([[ "$CIRCLE_BRANCH" =~ ^[0-9]\.[0-9]$ ]] || [[ "$CIRCLE_BRANCH" == "master" ]]); then
-              echo "Exiting build step for branch which should not be deployed"
+              echo "Exiting build step for branch which should not be deployed ($CIRCLE_BRANCH)"
               circleci step halt
             fi
   install-go:
