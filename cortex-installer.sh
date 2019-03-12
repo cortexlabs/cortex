@@ -165,9 +165,10 @@ function install_operator() {
   setup_bucket
   setup_cloudwatch_logs
 
+  prompt_for_telemetry
+
   echo "Installing the Cortex operator ..."
 
-  prompt_for_telemetry
   setup_namespace
   setup_configmap
   setup_secrets
@@ -1933,7 +1934,7 @@ function prompt_for_telemetry() {
     while true
     do
       echo
-      read -p "Would you like to help improve Cortex by anonymously sending error reports and usage stats to the dev team [Y/n] " -n 1 -r
+      read -p "Would you like to help improve Cortex by anonymously sending error reports and usage stats to the dev team? [Y/n] " -n 1 -r
       echo
       if [[ $REPLY =~ ^[Yy]$ ]]; then
         export CORTEX_ENABLE_TELEMETRY=true
