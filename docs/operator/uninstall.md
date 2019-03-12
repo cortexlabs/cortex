@@ -6,7 +6,7 @@
 
 ```bash
 # Download
-curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex-installer.sh
+curl -O https://raw.githubusercontent.com/cortexlabs/cortex/0.2/cortex-installer.sh
 
 # Change permissions
 chmod +x cortex-installer.sh
