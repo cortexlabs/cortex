@@ -167,7 +167,7 @@ function install_operator() {
 
   prompt_for_telemetry
 
-  echo "Installing the Cortex operator ..."
+  echo -e "\nInstalling the Cortex operator ..."
 
   setup_namespace
   setup_configmap
@@ -252,29 +252,28 @@ function get_endpoints() {
 #################
 
 function setup_bucket() {
-  echo
   if ! aws s3api head-bucket --bucket $CORTEX_BUCKET --output json 2>/dev/null; then
     if aws s3 ls "s3://$CORTEX_BUCKET" --output json 2>&1 | grep -q 'NoSuchBucket'; then
-      echo -e "Creating S3 bucket: $CORTEX_BUCKET\n"
+      echo -e "\nCreating S3 bucket: $CORTEX_BUCKET"
       aws s3api create-bucket --bucket $CORTEX_BUCKET \
                               --region $CORTEX_REGION \
                               --create-bucket-configuration LocationConstraint=$CORTEX_REGION \
                               >/dev/null
     else
-      echo "A bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
+      echo -e "\nA bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
       exit 1
     fi
   else
-    echo -e "Using existing S3 bucket: $CORTEX_BUCKET\n"
+    echo -e "\nUsing existing S3 bucket: $CORTEX_BUCKET"
   fi
 }
 
 function setup_cloudwatch_logs() {
   if ! aws logs list-tags-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION --output json 2>&1 | grep -q "\"tags\":"; then
-    echo -e "Creating CloudWatch log group: $CORTEX_LOG_GROUP\n"
+    echo -e "\nCreating CloudWatch log group: $CORTEX_LOG_GROUP"
     aws logs create-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION
   else
-    echo -e "Using existing CloudWatch log group: $CORTEX_LOG_GROUP\n"
+    echo -e "\nUsing existing CloudWatch log group: $CORTEX_LOG_GROUP"
   fi
 }
 
