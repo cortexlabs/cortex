@@ -1,6 +1,5 @@
 - kind: model
   name: dnn
-  path: dnn.py
   type: classification
   target_column: class_indexed
   feature_columns:
