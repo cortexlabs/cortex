@@ -1,4 +1,27 @@
-version: 2
+version: 2.1
+
+commands:
+  return-if-not-deployed-branch:
+    description: >-
+      Exit and succeed this build step if it should not deploy images to DockerHub / upload CLI to AWS
+    steps:
+      - run:
+          name: Exit build step if should not be deployed
+          command: |
+            if ! ([[ "$CIRCLE_BRANCH" =~ ^[0-9]\.[0-9]$ ]] || [[ "$CIRCLE_BRANCH" == "master" ]]); then
+              echo "Exiting build step for branch which should not be deployed ($CIRCLE_BRANCH)"
+              circleci step halt
+            fi
+  install-go:
+    steps:
+      - run:
+          name: Install Go
+          command: |
+            wget https://dl.google.com/go/go1.11.5.linux-amd64.tar.gz
+            sudo tar -C /usr/local -xzf go1.11.5.linux-amd64.tar.gz
+            rm -rf go*.tar.gz
+            echo 'export PATH=$PATH:/usr/local/go/bin' >> $BASH_ENV
+            echo 'export PATH=$PATH:~/go/bin' >> $BASH_ENV
 
 jobs:
   test:
@@ -6,7 +29,7 @@ jobs:
       - image: circleci/python:3.7.2-stretch
     steps:
       - checkout
-      - run: wget https://dl.google.com/go/go1.11.5.linux-amd64.tar.gz && sudo tar -C /usr/local -xzf go1.11.5.linux-amd64.tar.gz && rm -rf go*.tar.gz && echo 'export PATH=$PATH:/usr/local/go/bin' >> $BASH_ENV && echo 'export PATH=$PATH:~/go/bin' >> $BASH_ENV
+      - install-go
       - run: GO111MODULE=off go get -u -v golang.org/x/lint/golint
       - run: sudo pip3 install black
       - run:
@@ -23,22 +46,24 @@ jobs:
       - run:
           name: Version Test
           command: make find-missing-version
-  deploy:
+  build-and-deploy:
     docker:
       - image: circleci/python:3.7.2-stretch
     steps:
-      - run: wget https://dl.google.com/go/go1.11.5.linux-amd64.tar.gz && sudo tar -C /usr/local -xzf go1.11.5.linux-amd64.tar.gz && rm -rf go*.tar.gz && echo 'export PATH=$PATH:/usr/local/go/bin' >> $BASH_ENV && echo 'export PATH=$PATH:~/go/bin' >> $BASH_ENV
-      - run: sudo pip3 install awscli
-      - checkout
       - setup_remote_docker
+      - install-go
+      - checkout
       - run: make build-images
+      - run: make build-cli
       - run: make test-python
+      - return-if-not-deployed-branch
+      - run: sudo pip3 install awscli
       - run: make push-images
       - run: make build-and-upload-cli
 
 workflows:
-  version: 2
-  build_and_test:
+  version: 2.1
+  build:
     jobs:
       - test
       - test-release:
@@ -46,7 +71,7 @@ workflows:
             branches:
               only:
                 - /^[0-9]\.[0-9]$/
-      - deploy-approval:
+      - build-and-deploy-approval:
           type: approval
           requires:
             - test
@@ -55,13 +80,8 @@ workflows:
             branches:
               only:
                 - /^[0-9]\.[0-9]$/
-      - deploy:
+      - build-and-deploy:
           requires:
             - test
             - test-release
-            - deploy-approval
-          filters:
-            branches:
-              only:
-                - /^[0-9]\.[0-9]$/
-                - master
+            - build-and-deploy-approval

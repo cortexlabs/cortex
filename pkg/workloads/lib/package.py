@@ -24,6 +24,7 @@ from lib.log import get_logger
 from lib.exceptions import UserException, CortexException
 
 import requirements
+from packaging.requirements import Requirement
 
 logger = get_logger()
 
@@ -39,12 +40,27 @@ def get_build_order(python_packages):
 
 
 def get_restricted_packages():
-    cortex_packages = {"pyspark": "2.4.0", "tensorflow": "1.12.0"}
+    req_list = ["pyspark==2.4.0", "tensorflow==1.12.0"]
     req_files = glob.glob("/src/**/requirements.txt", recursive=True)
+
     for req_file in req_files:
+        # clean requirements file, like removing comments
         with open(req_file) as f:
             for req in requirements.parse(f):
-                cortex_packages[req.name] = req.specs[0][1]
+                specifiers = [op + version for op, version in req.specs]
+                req_list.append(req.name + ",".join(specifiers))
+
+    cortex_packages = {}
+
+    for req_line in req_list:
+        parsed_req = Requirement(req_line)
+        if cortex_packages.get(parsed_req.name) is None:
+            cortex_packages[parsed_req.name] = parsed_req.specifier
+        else:
+            cortex_packages[parsed_req.name] = (
+                cortex_packages[parsed_req.name] & parsed_req.specifier
+            )
+
     return cortex_packages
 
 
@@ -79,11 +95,11 @@ def build_packages(python_packages, bucket):
         for wheelname in os.listdir(package_wheel_path):
             name_split = wheelname.split("-")
             dist_name, version = name_split[0], name_split[1]
-            expected_version = restricted_packages.get(dist_name, None)
-            if expected_version is not None and version != expected_version:
+            expected_version_specs = restricted_packages.get(dist_name, None)
+            if expected_version_specs is not None and not expected_version_specs.contains(version):
                 raise UserException(
-                    "when installing {}, found {}=={} but cortex requires {}=={}".format(
-                        package_name, dist_name, version, dist_name, expected_version
+                    "when installing {}, found {}=={} which conflicts with cortex's requirements {}{}".format(
+                        package_name, dist_name, version, dist_name, expected_version_specs
                     )
                 )
 
