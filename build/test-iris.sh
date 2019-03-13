@@ -21,16 +21,15 @@ for EXAMPLES in $ROOT/examples/iris/app.yaml; do
   timer=1200
   EXAMPLE_ROOT=$(dirname "${EXAMPLES}")
 
-
   cd $EXAMPLE_ROOT
   echo "Deploying $EXAMPLE_ROOT"
   $CORTEX delete >/dev/null
   $CORTEX deploy
-  
+
   API_NAME="$($CORTEX get api | awk '/NAME/{getline; print}' | cut -f 1 -d " ")"
   SAMPLE="$(find . -name "*.json")"
 
-  while true 
+  while true
   do
     $CORTEX status
 
