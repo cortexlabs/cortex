@@ -100,14 +100,7 @@ def create_prediction_request(transformed_sample):
         shape = [1]
         if util.is_list(value):
             shape = [len(value)]
-            # shape = []
-            # for dim in signatureDef[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
-            #     dim = int(dim["size"])
-            #     if dim == -1:
-            #         dim = len(value)
 
-            #     shape.append(dim)
-            value = np.asarray(value).reshape(shape).tolist()
         tensor_proto = tf.make_tensor_proto([value], dtype=data_type, shape=shape)
         prediction_request.inputs[column_name].CopyFrom(tensor_proto)
 
