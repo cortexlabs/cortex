@@ -461,9 +461,7 @@ class Context:
 
 MODEL_IMPL_VALIDATION = {
     "required": [{"name": "create_estimator", "args": ["run_config", "model_config"]}],
-    "optional": [
-        {"name": "transform_tensorflow", "args": ["features", "labels", "model_config"]}
-    ]
+    "optional": [{"name": "transform_tensorflow", "args": ["features", "labels", "model_config"]}],
 }
 
 AGGREGATOR_IMPL_VALIDATION = {
