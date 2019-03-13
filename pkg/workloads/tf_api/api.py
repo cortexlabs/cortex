@@ -100,7 +100,6 @@ def create_prediction_request(transformed_sample):
         shape = [1]
         if util.is_list(value):
             shape = [len(value)]
-
         tensor_proto = tf.make_tensor_proto([value], dtype=data_type, shape=shape)
         prediction_request.inputs[column_name].CopyFrom(tensor_proto)
 
