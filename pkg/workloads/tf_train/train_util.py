@@ -20,7 +20,7 @@ import multiprocessing
 import math
 import tensorflow as tf
 
-from lib import util, tf_lib, aws
+from lib import util, tf_lib
 from lib.exceptions import UserRuntimeException
 
 

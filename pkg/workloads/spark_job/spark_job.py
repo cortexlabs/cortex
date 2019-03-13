@@ -20,8 +20,7 @@ import traceback
 
 from pyspark.sql import SparkSession
 
-from lib import util, aws
-from lib.context import Context
+from lib import util, Context
 from lib.log import get_logger
 from lib.exceptions import UserException, CortexException, UserRuntimeException
 import spark_util
@@ -380,7 +379,6 @@ def main():
         sys.exit()
 
     args = parser.parse_args()
-    logger.info(args)
     args.func(args)
 
 

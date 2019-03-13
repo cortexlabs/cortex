@@ -128,9 +128,6 @@ class S3(object):
     def search(self, prefix="", suffix=""):
         return list(self._get_matching_s3_keys_generator(prefix, suffix))
 
-    # def read_string(self, key, allow_missing=True, decoding="utf-8"):
-    #     return self._read_bytes_from_s3(key, allow_missing).decode(decoding)
-
     def put_json(self, obj, key):
         self._upload_string_to_s3(json.dumps(obj), key)
 
@@ -147,7 +144,7 @@ class S3(object):
         obj = self._read_bytes_from_s3(key, allow_missing)
         if obj == None:
             return None
-        return msgpack.loads(obj)
+        return msgpack.load(obj, raw=False)
 
     def put_pyobj(self, obj, key):
         self._upload_string_to_s3(pickle.dumps(obj), key)

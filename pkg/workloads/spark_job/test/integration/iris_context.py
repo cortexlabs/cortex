@@ -12,6 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+1. cx deploy
+2. get a path to a context
+3. ssh into a docker container (spark/tf_train)
+docker run -it --entrypoint "/bin/bash" cortexlabs/spark
+
+4. run the following in python3 shell
+
+from lib import util
+from lib.storage import S3
+bucket, key = S3.deconstruct_s3_path('s3://cortex-cluster-vishal/apps/iris/contexts/9dab4bf2ca95e2f6f3493795f9cabc62707e2f952cb26dbdc43e9f854edf385.msgpack')
+S3(bucket, client_config={}).get_msgpack(key)
+
+5. remove compute units (optional)
+"""
+
 raw_ctx = {
     "raw_dataset": {
         "key": "apps/iris/data/2019-03-08-09-58-35-701834/3976c5679bcf7cb550453802f4c3a9333c5f193f6097f1f5642de48d2397554/data_raw/raw.parquet",
@@ -496,7 +512,6 @@ raw_ctx = {
         "log_group": "cortex",
         "api_version": "master",
         "id": "da5e65b994ba4ebb069bdc19cf73da64aee79e5d83f466038dc75b3ef04fa63",
-        "bucket": "cortex-cluster-vishal",
     },
     "root": "apps/iris/data/2019-03-08-09-58-35-701834/3976c5679bcf7cb550453802f4c3a9333c5f193f6097f1f5642de48d2397554",
     "aggregators": {

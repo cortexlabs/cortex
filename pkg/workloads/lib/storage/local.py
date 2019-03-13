@@ -65,15 +65,6 @@ class LocalStorage(object):
                     files.append(filename)
         return files
 
-    # def read_string(self, key, allow_missing=True, decoding="utf-8"):
-    #     f = self._get_path(key)
-    #     if f.exists():
-    #         return f.read_text()
-    #     elif not f.exists() and allow_missing:
-    #         return None
-    #     else:
-    #         raise KeyError("{} not found".format(f))
-
     def put_json(self, obj, key):
         f = self._get_or_create_path(key)
         f.write_text(json.dumps(obj))

@@ -22,8 +22,7 @@ from copy import deepcopy
 
 import consts
 from lib import util
-from lib.aws import S3
-from lib.local_storage import LocalStorage
+from lib.storage import S3, LocalStorage
 from lib.exceptions import CortexException, UserException
 from botocore.exceptions import ClientError
 from lib.resources import ResourceMap

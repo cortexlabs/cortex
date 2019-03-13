@@ -22,7 +22,7 @@ import os
 
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
-from lib.context import Context
+from lib import Context
 import consts
 import shutil
 

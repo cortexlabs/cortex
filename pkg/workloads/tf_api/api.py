@@ -25,8 +25,7 @@ from grpc.beta import implementations
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import get_model_metadata_pb2
 from tensorflow_serving.apis import prediction_service_pb2
-from lib import util, tf_lib, aws, package
-from lib.context import Context
+from lib import util, tf_lib, package, Context
 from lib.log import get_logger
 from lib.exceptions import CortexException, UserRuntimeException, UserException
 from google.protobuf import json_format

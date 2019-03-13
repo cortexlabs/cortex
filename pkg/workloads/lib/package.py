@@ -18,8 +18,7 @@ import argparse
 import glob
 from subprocess import run
 
-from lib import util, aws
-from lib.context import Context
+from lib import util, Context
 from lib.log import get_logger
 from lib.exceptions import UserException, CortexException
 

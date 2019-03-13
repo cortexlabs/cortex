@@ -20,7 +20,7 @@ from pyspark.sql.types import *
 from pyspark.sql.dataframe import DataFrame
 import pyspark.sql.functions as F
 
-from lib import util, aws
+from lib import util
 from lib.context import create_inputs_map
 from lib.exceptions import CortexException, UserException, UserRuntimeException
 from lib.log import get_logger
@@ -470,7 +470,6 @@ def validate_transformer(column_name, df, ctx, spark):
                 column_name, df, ctx, spark, validate=True
             ).collect()
         except Exception as e:
-            logger.exception("hello")
             raise UserRuntimeException(
                 "transformed column " + column_name,
                 transformed_column["transformer"] + ".transform_python",

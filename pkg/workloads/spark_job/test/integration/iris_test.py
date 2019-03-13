@@ -16,8 +16,8 @@ import math
 import spark_util
 from spark_job import spark_job
 from lib.exceptions import UserException
-from lib.context import Context
-from iris_context import raw_ctx
+from lib import Context
+from test.integration.iris_context import raw_ctx
 
 import pytest
 from pyspark.sql.types import *

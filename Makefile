@@ -116,6 +116,9 @@ lint:
 find-missing-version:
 	@./build/find-missing-version.sh
 
+test-iris: registry-all
+	@./build/test-iris.sh
+
 ###############
 # CI Commands #
 ###############
