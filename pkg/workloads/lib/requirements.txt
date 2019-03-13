@@ -3,4 +3,3 @@
 boto3==1.9.78
 msgpack==0.6.1
 requirements-parser==0.2.0
-numpy

@@ -11,6 +11,7 @@ def create_estimator(run_config, model_config):
     run_config.data_parallelism = None
     run_config.t2t_device_info = {"num_async_replicas": 1}
 
+    # t2t has its own set of hyperparameters we can use
     hparams = trainer_lib.create_hparams("basic_fc_small")
     problem = registry.problem("image_mnist")
     p_hparams = problem.get_hparams(hparams)
@@ -33,7 +34,7 @@ def transform_tensorflow(features, labels, model_config):
     # t2t model performs flattening and expects this input key
     features["inputs"] = tf.reshape(features["image_pixels"], hparams["input_shape"])
 
-    # t2t expects this key and dimension
+    # t2t expects this key and dimensionality
     features["targets"] = tf.expand_dims(labels, 0)
 
     return features, labels

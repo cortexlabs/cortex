@@ -44,8 +44,6 @@ def get_restricted_packages():
     for req_file in req_files:
         with open(req_file) as f:
             for req in requirements.parse(f):
-                if len(req.specs) == 0:
-                    continue
                 cortex_packages[req.name] = req.specs[0][1]
     return cortex_packages
 

@@ -16,7 +16,7 @@
 
 - kind: model
   name: conv
-  path: implementations/models/basic.py
+  path: implementations/models/custom.py
   type: classification
   target_column: label
   feature_columns:
