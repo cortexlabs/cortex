@@ -33,6 +33,24 @@ def get_input_placeholder(model_name, ctx, training=True):
     return input_placeholder
 
 
+def get_label_placeholder(model_name, ctx):
+    model = ctx.models[model_name]
+
+    target_column_name = model["target_column"]
+    column_type = tf_lib.CORTEX_TYPE_TO_TF_TYPE[ctx.columns[target_column_name]["type"]]
+    return tf.placeholder(shape=[None], dtype=column_type)
+
+
+def get_transform_tensor_fn(ctx, model_impl, model_name):
+    model = ctx.models[model_name]
+    model_config = ctx.model_config(model["name"])
+
+    def transform_tensor_fn_wrapper(inputs, labels):
+        return model_impl.transform_tensorflow(inputs, labels, model_config)
+
+    return transform_tensor_fn_wrapper
+
+
 def generate_example_parsing_fn(model_name, ctx, training=True):
     model = ctx.models[model_name]
 
@@ -47,7 +65,7 @@ def generate_example_parsing_fn(model_name, ctx, training=True):
 
 
 # Mode must be "training" or "evaluation"
-def generate_input_fn(model_name, ctx, mode):
+def generate_input_fn(model_name, ctx, mode, model_impl):
     model = ctx.models[model_name]
 
     filenames = ctx.get_training_data_parts(model_name, mode)
@@ -66,6 +84,9 @@ def generate_input_fn(model_name, ctx, mode):
         if model[mode]["shuffle"]:
             dataset = dataset.shuffle(buffer_size)
 
+        if hasattr(model_impl, "transform_tensorflow"):
+            dataset = dataset.map(get_transform_tensor_fn(ctx, model_impl, model_name))
+
         dataset = dataset.batch(model[mode]["batch_size"])
         dataset = dataset.prefetch(buffer_size)
         dataset = dataset.repeat()
@@ -77,27 +98,19 @@ def generate_input_fn(model_name, ctx, mode):
     return _input_fn
 
 
-def generate_json_serving_input_fn(model_name, ctx):
+def generate_json_serving_input_fn(model_name, ctx, model_impl):
     def _json_serving_input_fn():
         inputs = get_input_placeholder(model_name, ctx, training=False)
-        features = {key: tf.expand_dims(tensor, -1) for key, tensor in inputs.items()}
+        labels = get_label_placeholder(model_name, ctx)
+
+        features = {key: tensor for key, tensor in inputs.items()}
+        if hasattr(model_impl, "transform_tensorflow"):
+            features, _ = get_transform_tensor_fn(ctx, model_impl, model_name)(features, labels)
+
+        features = {key: tf.expand_dims(tensor, 0) for key, tensor in features.items()}
         return tf.estimator.export.ServingInputReceiver(features=features, receiver_tensors=inputs)
 
     return _json_serving_input_fn
-
-
-def generate_example_serving_input_fn(model_name, ctx):
-    def _example_serving_input_fn():
-        feature_spec = tf_lib.get_feature_spec(model_name, ctx, training=False)
-        example_bytestring = tf.placeholder(shape=[None], dtype=tf.string)
-        feature_scalars = tf.parse_single_example(example_bytestring, feature_spec)
-        features = {key: tf.expand_dims(tensor, -1) for key, tensor in feature_scalars.items()}
-
-        return tf.estimator.export.ServingInputReceiver(
-            features=features, receiver_tensors={"example_proto": example_bytestring}
-        )
-
-    return _example_serving_input_fn
 
 
 def get_regression_eval_metrics(labels, predictions):
@@ -130,9 +143,9 @@ def train(model_name, model_impl, ctx, model_dir):
         model_dir=model_dir,
     )
 
-    train_input_fn = generate_input_fn(model_name, ctx, "training")
-    eval_input_fn = generate_input_fn(model_name, ctx, "evaluation")
-    serving_input_fn = generate_json_serving_input_fn(model_name, ctx)
+    train_input_fn = generate_input_fn(model_name, ctx, "training", model_impl)
+    eval_input_fn = generate_input_fn(model_name, ctx, "evaluation", model_impl)
+    serving_input_fn = generate_json_serving_input_fn(model_name, ctx, model_impl)
     exporter = tf.estimator.FinalExporter("estimator", serving_input_fn, as_text=False)
 
     dataset_metadata = aws.read_json_from_s3(model["dataset"]["metadata_key"], ctx.bucket)
