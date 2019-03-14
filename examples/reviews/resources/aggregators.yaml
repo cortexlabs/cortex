@@ -14,3 +14,10 @@
     columns:
       col: STRING_COLUMN
   output_type: INT
+
+- kind: aggregator
+  name: max_char_length
+  inputs:
+    columns:
+      col: STRING_COLUMN
+  output_type: INT

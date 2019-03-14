@@ -11,6 +11,17 @@
       reserved_indices: reserved_indices
 
 - kind: transformed_column
+  name: character_input
+  transformer: tokenize_char_to_int
+  inputs:
+    columns:
+      col: review
+    args:
+      max_len: max_char_length
+      reserved_indices: reserved_indices
+
+
+- kind: transformed_column
   name: label_indexed
   transformer: cortex.index_string
   inputs:

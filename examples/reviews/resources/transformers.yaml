@@ -9,3 +9,13 @@
       stop_words: {STRING: BOOL}
       vocab: {STRING: INT}
       reserved_indices: {STRING: INT}
+
+- kind: transformer
+  name: tokenize_char_to_int
+  output_type: INT_LIST_COLUMN
+  inputs:
+    columns:
+      col: STRING_COLUMN
+    args:
+      max_len: INT
+      reserved_indices: {STRING: INT}

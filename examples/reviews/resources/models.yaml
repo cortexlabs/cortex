@@ -30,3 +30,21 @@
   training:
     batch_size: 64
     num_steps: 5000
+
+- kind: model
+  name: t2t
+  type: classification
+  target_column: label_indexed
+  feature_columns:
+    - character_input
+  aggregates:
+    - max_char_length
+    - reviews_vocab
+  data_partition_ratio:
+    training: 0.8
+    evaluation: 0.2
+  training:
+    batch_size: 64
+    num_steps: 5000
+  compute:
+    gpu: 2
