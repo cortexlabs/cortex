@@ -69,9 +69,9 @@ You can preprocess input features and labels to your model by defining a `transf
 
 ```python
 def transform_tensorflow(features, labels, model_config):
-     """Create a mapping function for the tf.Dataset API. You can define
-     tensor transformations you want to apply to the features and labels of
-     each training sample.
+     """Define tensor transformations for the feature and label tensors. You can define
+     tensor transformations you want to apply to the features and labels tensors before
+     they are passed to the model.
 
     Args:
         features: A feature dictionary of column names to feature tensors.
@@ -85,9 +85,17 @@ def transform_tensorflow(features, labels, model_config):
 
 
     Returns:
-        features and label tensors for the current sample.
+        features and labels tensors.
     """
+    pass
+```
 
+## Example
+
+```python
+import tensorflow as tf
+
+def transform_tensorflow(features, labels, model_config):
     hparams = model_config["hparams"]
 
     # tensor2tensor model performs flattening and expects this input key,
