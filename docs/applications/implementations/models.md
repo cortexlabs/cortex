@@ -65,13 +65,13 @@ You can install additional PyPI packages and import your own Python packages. Se
 
 
 # Tensorflow Transformations
-You can preprocess input features and labels to your model by defining a `transform_tensorflow` function. An example of when this might be useful is to reshape a tensor to feed into a pre-made model.
+You can preprocess input features and labels to your model by defining a `transform_tensorflow` function. You can define tensor transformations you want to apply to the features and labels tensors before they are passed to the model.
+
+## Implementation
 
 ```python
 def transform_tensorflow(features, labels, model_config):
-     """Define tensor transformations for the feature and label tensors. You can define
-     tensor transformations you want to apply to the features and labels tensors before
-     they are passed to the model.
+     """Define tensor transformations for the feature and label tensors.
 
     Args:
         features: A feature dictionary of column names to feature tensors.
@@ -87,7 +87,7 @@ def transform_tensorflow(features, labels, model_config):
     Returns:
         features and labels tensors.
     """
-    pass
+    return features, labels
 ```
 
 ## Example
@@ -97,12 +97,6 @@ import tensorflow as tf
 
 def transform_tensorflow(features, labels, model_config):
     hparams = model_config["hparams"]
-
-    # tensor2tensor model performs flattening and expects this input key,
-    features["inputs"] = tf.reshape(features["image_pixels"], hparams["input_shape"])
-
-    # tensor2tensor expects this key and dimensionality
-    features["targets"] = tf.expand_dims(labels, 0)
-
+    features["image_pixels"] = tf.reshape(features["image_pixels"], hparams["input_shape"])
     return features, labels
 ```
