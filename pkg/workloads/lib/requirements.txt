@@ -1,6 +1,5 @@
-# specify exact version for each dependency, name==version
-
 boto3==1.9.78
 msgpack==0.6.1
+numpy>=1.13.3,<2
 requirements-parser==0.2.0
-numpy
+packaging==19.0.0

@@ -103,16 +103,11 @@ def generate_json_serving_input_fn(model_name, ctx, model_impl):
         inputs = get_input_placeholder(model_name, ctx, training=False)
         labels = get_label_placeholder(model_name, ctx)
 
-        # copy inputs
         features = {key: tensor for key, tensor in inputs.items()}
         if hasattr(model_impl, "transform_tensorflow"):
             features, _ = get_transform_tensor_fn(ctx, model_impl, model_name)(features, labels)
 
         features = {key: tf.expand_dims(tensor, 0) for key, tensor in features.items()}
-        print(features)
-        return tf.estimator.export.ServingInputReceiver(features=features, receiver_tensors=inputs)
-
-    return _json_serving_input_fn
 
 
 def get_regression_eval_metrics(labels, predictions):

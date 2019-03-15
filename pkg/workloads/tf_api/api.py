@@ -91,7 +91,6 @@ def transform_sample(sample):
 def create_prediction_request(transformed_sample):
     ctx = local_cache["ctx"]
     signatureDef = local_cache["metadata"]["signatureDef"]
-    util.log_pretty(signatureDef, indent=4)
     signature_key = list(signatureDef.keys())[0]
     prediction_request = predict_pb2.PredictRequest()
     prediction_request.model_spec.name = "default"
