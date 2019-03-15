@@ -9,3 +9,9 @@
   model_name: sentiment_linear
   compute:
     replicas: 1
+
+- kind: api
+  name: sentiment-t2t
+  model_name: t2t
+  compute:
+    replicas: 1

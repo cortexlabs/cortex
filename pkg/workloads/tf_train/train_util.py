@@ -109,6 +109,7 @@ def generate_json_serving_input_fn(model_name, ctx, model_impl):
             features, _ = get_transform_tensor_fn(ctx, model_impl, model_name)(features, labels)
 
         features = {key: tf.expand_dims(tensor, 0) for key, tensor in features.items()}
+        print(features)
         return tf.estimator.export.ServingInputReceiver(features=features, receiver_tensors=inputs)
 
     return _json_serving_input_fn
