@@ -16,13 +16,6 @@
       col: review
 
 - kind: aggregate
-  name: max_char_length
-  aggregator: max_char_length
-  inputs:
-    columns:
-      col: review
-
-- kind: aggregate
   name: label_index
   aggregator: cortex.index_string
   inputs:

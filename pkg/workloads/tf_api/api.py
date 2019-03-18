@@ -31,7 +31,6 @@ from lib.log import get_logger
 from lib.exceptions import CortexException, UserRuntimeException, UserException
 from google.protobuf import json_format
 import time
-import numpy as np
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
