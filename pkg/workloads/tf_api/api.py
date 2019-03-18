@@ -97,18 +97,10 @@ def create_prediction_request(transformed_sample):
     prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in transformed_sample.items():
-        util.log_pretty(column_name, indent=4)
         data_type = tf_lib.CORTEX_TYPE_TO_TF_TYPE[ctx.columns[column_name]["type"]]
         shape = [1]
         if util.is_list(value):
-            shape = []
-            for dim in signatureDef[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
-                dim = int(dim["size"])
-                if dim == -1:
-                    dim = len(value)
-
-                shape.append(dim)
-            value = np.asarray(value).reshape(shape).tolist()
+            shape = [len(value)]
         tensor_proto = tf.make_tensor_proto([value], dtype=data_type, shape=shape)
         prediction_request.inputs[column_name].CopyFrom(tensor_proto)
 
