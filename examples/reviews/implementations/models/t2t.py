@@ -5,6 +5,7 @@ from tensor2tensor import problems  # pylint: disable=unused-import
 from tensor2tensor.data_generators import problem_hparams
 from tensor2tensor.utils import registry
 from tensor2tensor.data_generators import imdb
+from tensor2tensor.data_generators import text_encoder
 
 
 def create_estimator(run_config, model_config):
@@ -13,7 +14,9 @@ def create_estimator(run_config, model_config):
     run_config.t2t_device_info = {"num_async_replicas": 1}
 
     hparams = trainer_lib.create_hparams("transformer_base_single_gpu")
-    problem = registry.problem("sentiment_imdb")
+    problem = registry.problem("sentiment_imdb_cortex")
+    vocab = model_config["aggregates"]["reviews_vocab"]
+    problem.set_vocab(list(vocab.keys()))
     p_hparams = problem.get_hparams(hparams)
     hparams.problem = problem
     hparams.problem_hparams = p_hparams
@@ -36,13 +39,10 @@ def create_estimator(run_config, model_config):
 
 
 def transform_tensorflow(features, labels, model_config):
-    hparams = model_config["hparams"]
     max_length = model_config["aggregates"]["max_review_length"]
 
-    # t2t model performs flattening and expects this input key
-    features["inputs"] = tf.reshape(features["embedding_input"], [max_length])
+    features["inputs"] = tf.expand_dims(tf.reshape(features["embedding_input"], [max_length]), -1)
 
-    # t2t expects this key and dimension
     features["targets"] = tf.expand_dims(labels, 0)
 
     return features, labels
@@ -52,5 +52,13 @@ def transform_tensorflow(features, labels, model_config):
 class SentimentIMDBCortex(imdb.SentimentIMDB):
     """IMDB sentiment classification, character level."""
 
+    def set_vocab(self, vocab_list):
+        self.vocab = vocab_list
+
     def feature_encoders(self, data_dir):
-        print("yolo")
+        encoder = text_encoder.TokenTextEncoder(vocab_filename=None, vocab_list=self.vocab)
+
+        return {
+            "inputs": encoder,
+            "targets": text_encoder.ClassLabelEncoder(self.class_labels(data_dir)),
+        }

@@ -40,9 +40,12 @@
   aggregates:
     - max_review_length
     - reviews_vocab
+  prediction_key: outputs
   data_partition_ratio:
     training: 0.8
     evaluation: 0.2
   training:
     batch_size: 64
-    num_steps: 5000
+    num_steps: 50000
+  compute:
+    gpu: 1
