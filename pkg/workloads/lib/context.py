@@ -53,7 +53,7 @@ class Context:
         elif "s3_path":
             local_ctx_path = os.path.join(self.cache_dir, "context.msgpack")
             bucket, key = S3.deconstruct_s3_path(kwargs["s3_path"])
-            S3(bucket, client_config={}).get_file(key, local_ctx_path)
+            S3(bucket, client_config={}).download_file(key, local_ctx_path)
             ctx_raw = util.read_msgpack(local_ctx_path)
             self.ctx = _deserialize_raw_ctx(ctx_raw)
         else:
@@ -86,7 +86,11 @@ class Context:
         if "local_storage_path" in kwargs:
             self.storage = LocalStorage(base_dir=kwargs["local_storage_path"])
         else:
-            self.storage = S3(bucket=self.cortex_config["bucket"], client_config={})
+            self.storage = S3(
+                bucket=self.cortex_config["bucket"],
+                region=self.cortex_config["region"],
+                client_config={},
+            )
 
         if self.api_version != consts.CORTEX_VERSION:
             raise ValueError(
@@ -151,19 +155,19 @@ class Context:
         columns_input_config = self.transformed_columns[column_name]["inputs"]["columns"]
         return create_inputs_map(values_map, columns_input_config)
 
-    def get_file(self, impl_key, cache_impl_path):
+    def download_file(self, impl_key, cache_impl_path):
         if not os.path.isfile(cache_impl_path):
-            self.storage.get_file(impl_key, cache_impl_path)
+            self.storage.download_file(impl_key, cache_impl_path)
         return cache_impl_path
 
     def get_python_file(self, impl_key, module_name):
         cache_impl_path = os.path.join(self.cache_dir, "{}.py".format(module_name))
-        self.get_file(impl_key, cache_impl_path)
+        self.download_file(impl_key, cache_impl_path)
         return cache_impl_path
 
     def get_obj(self, key):
         cache_path = os.path.join(self.cache_dir, key)
-        self.get_file(key, cache_path)
+        self.download_file(key, cache_path)
 
         return util.read_msgpack(cache_path)
 

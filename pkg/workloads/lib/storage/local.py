@@ -95,23 +95,23 @@ class LocalStorage(object):
             return None
         return pickle.loads(f.read_bytes())
 
-    def put_file(self, local_path, key):
+    def upload_file(self, local_path, key):
         shutil.copy(local_path, str(self._get_or_create_path(key)))
 
-    def get_file(self, key, local_path):
+    def download_file(self, key, local_path):
         try:
             Path(local_path).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(str(self._get_path(key)), local_path)
         except Exception as e:
             raise CortexException("file not found", key) from e
 
-    def compress_and_put(self, local_path, key):
+    def zip_and_upload(self, local_path, key):
         util.zip_dir(local_path, "temp.zip")
-        self.put_file("temp.zip", key)
+        self.upload_file("temp.zip", key)
         util.rm_file("temp.zip")
 
-    def get_and_extract(self, key, local_dir):
+    def download_and_unzip(self, key, local_dir):
         util.mkdir_p(local_dir)
         local_zip = os.path.join(local_dir, "zip.zip")
-        self.get_file(key, local_zip)
+        self.download_file(key, local_zip)
         util.extract_zip(local_zip, delete_zip_file=True)

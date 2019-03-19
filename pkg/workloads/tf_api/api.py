@@ -302,7 +302,7 @@ def start(args):
     local_cache["model"] = model
 
     if not os.path.isdir(args.model_dir):
-        ctx.storage.get_and_extract(model["key"], args.model_dir)
+        ctx.storage.download_and_unzip(model["key"], args.model_dir)
 
     for column_name in model["feature_columns"] + [model["target_column"]]:
         if ctx.is_transformed_column(column_name):

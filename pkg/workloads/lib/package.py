@@ -54,10 +54,10 @@ def build_packages(python_packages, storage):
         python_package = python_packages[package_name]
         if package_name == "requirements.txt":
             requirements_path = os.path.join(LOCAL_PACKAGE_PATH, package_name)
-            storage.get_file(python_package["src_key"], requirements_path)
+            storage.download_file(python_package["src_key"], requirements_path)
             cmd_partial[package_name] = "-r " + requirements_path
         else:
-            storage.get_and_extract(python_package["src_key"], LOCAL_PACKAGE_PATH)
+            storage.download_and_unzip(python_package["src_key"], LOCAL_PACKAGE_PATH)
             cmd_partial[package_name] = os.path.join(LOCAL_PACKAGE_PATH, package_name)
 
     logger.info("Setting up packages")
@@ -102,7 +102,7 @@ def build_packages(python_packages, storage):
     logger.info("Caching built packages")
 
     for package_name in build_order:
-        storage.compress_and_put(
+        storage.zip_and_upload(
             os.path.join(WHEELHOUSE_PATH, package_name),
             python_packages[package_name]["package_key"],
         )
@@ -134,12 +134,12 @@ def install_packages(python_packages, storage):
 
     for package_name in build_order:
         python_package = python_packages[package_name]
-        storage.get_and_extract(
+        storage.download_and_unzip(
             python_package["package_key"], os.path.join(WHEELHOUSE_PATH, package_name)
         )
 
     if "requirements.txt" in python_packages:
-        storage.get_file(python_packages["requirements.txt"]["src_key"], "/requirements.txt")
+        storage.download_file(python_packages["requirements.txt"]["src_key"], "/requirements.txt")
 
     for package_name in build_order:
         cmd = package_name

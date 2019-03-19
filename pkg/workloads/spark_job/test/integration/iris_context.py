@@ -13,19 +13,20 @@
 # limitations under the License.
 
 """
+HOW TO GENERATE CONTEXT
+
 1. cx deploy
 2. get a path to a context
 3. ssh into a docker container (spark/tf_train)
 docker run -it --entrypoint "/bin/bash" cortexlabs/spark
-
 4. run the following in python3 shell
 
 from lib import util
 from lib.storage import S3
-bucket, key = S3.deconstruct_s3_path('s3://cortex-cluster-vishal/apps/iris/contexts/9dab4bf2ca95e2f6f3493795f9cabc62707e2f952cb26dbdc43e9f854edf385.msgpack')
+bucket, key = S3.deconstruct_s3_path('<path_to_context>')
 S3(bucket, client_config={}).get_msgpack(key)
 
-5. remove compute units (optional)
+5. Modify environment_data to point to the correct input data file path
 """
 
 raw_ctx = {

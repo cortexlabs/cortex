@@ -51,7 +51,7 @@ def train(args):
             model_zip_path = os.path.join(temp_dir, "model.zip")
             util.zip_dir(model_export_dir, model_zip_path)
 
-            ctx.storage.put_file(model_zip_path, model["key"])
+            ctx.storage.upload_file(model_zip_path, model["key"])
             util.log_job_finished(ctx.workload_id)
 
         except CortexException as e:

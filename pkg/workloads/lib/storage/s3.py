@@ -25,8 +25,9 @@ from lib.exceptions import CortexException
 
 
 class S3(object):
-    def __init__(self, bucket=None, client_config={}):
+    def __init__(self, bucket=None, region=None, client_config={}):
         self.bucket = bucket
+        self.region = region
 
         default_config = {
             "use_ssl": True,
@@ -39,6 +40,9 @@ class S3(object):
 
         if client_config is None:
             client_config = {}
+
+        if region is not None:
+            client_config["region_name"] = region
 
         merged_client_config = util.merge_dicts_in_place_no_overwrite(client_config, default_config)
 
@@ -57,13 +61,13 @@ class S3(object):
     def blob_path(self, key):
         return os.path.join("s3://", self.bucket, key)
 
-    def _get_dir(self, prefix, local_dir, bucket):
+    def _get_dir(self, prefix, local_dir):
         prefix = util.add_suffix_unless_present(prefix, "/")
         util.mkdir_p(local_dir)
         for key in self._get_matching_s3_keys_generator(prefix):
             rel_path = util.remove_prefix_if_present(key, prefix)
             local_dest_path = os.path.join(local_dir, rel_path)
-            self.get_file(key, local_dest_path)
+            self.download_file(key, local_dest_path)
 
     def _file_exists(self, key):
         try:
@@ -81,14 +85,10 @@ class S3(object):
 
     def _is_s3_dir(self, dir_path):
         prefix = util.add_suffix_unless_present(dir_path, "/")
-        return self.is_s3_prefix(prefix)
+        return self._is_s3_prefix(prefix)
 
-    # prefix/suffix can be a string or a list/tuple
     def _get_matching_s3_objects_generator(self, prefix="", suffix=""):
-        kwargs = {"Bucket": self.bucket}
-
-        if isinstance(prefix, str):
-            kwargs["Prefix"] = prefix
+        kwargs = {"Bucket": self.bucket, "Prefix": prefix}
 
         while True:
             resp = self.s3.list_objects_v2(**kwargs)
@@ -107,7 +107,6 @@ class S3(object):
             except KeyError:
                 break
 
-    # prefix/suffix can be a string or a list/tuple
     def _get_matching_s3_keys_generator(self, prefix="", suffix=""):
         for obj in self._get_matching_s3_objects_generator(prefix, suffix):
             yield obj["Key"]
@@ -155,10 +154,10 @@ class S3(object):
             return None
         return pickle.loads(obj)
 
-    def put_file(self, local_path, key):
+    def upload_file(self, local_path, key):
         self.s3.upload_file(local_path, self.bucket, key)
 
-    def get_file(self, key, local_path):
+    def download_file(self, key, local_path):
         try:
             util.mkdir_p(os.path.dirname(local_path))
             self.s3.download_file(self.bucket, key, local_path)
@@ -166,13 +165,13 @@ class S3(object):
         except Exception as e:
             raise CortexException("bucket " + self.bucket, "key " + key) from e
 
-    def compress_and_put(self, local_path, key):
+    def zip_and_upload(self, local_path, key):
         util.zip_dir(local_path, "temp.zip")
         self.s3.upload_file("temp.zip", self.bucket, key)
         util.rm_file("temp.zip")
 
-    def get_and_extract(self, key, local_dir):
+    def download_and_unzip(self, key, local_dir):
         util.mkdir_p(local_dir)
         local_zip = os.path.join(local_dir, "zip.zip")
-        self.get_file(key, local_zip)
+        self.download_file(key, local_zip)
         util.extract_zip(local_zip, delete_zip_file=True)

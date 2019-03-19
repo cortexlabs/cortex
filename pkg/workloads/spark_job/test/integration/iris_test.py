@@ -54,14 +54,11 @@ def test_simple_end_to_end(spark):
     local_storage_path = Path("/workspace/local_storage")
     local_storage_path.mkdir(parents=True, exist_ok=True)
     should_ingest = True
-    cols_to_validate = [
-        "9479e84647a126fe5ce36e6eeac35aacb7156cd8c8e0773e572a91a7f9c1e92",
-        "690b9a1c2e717c7ec4304804d4d7fd54fba554d8ce4829062467a3dc4d5f0f8",
-        "eb81ff65ce934e409ce18627cbb7d77c804289404fd62850fa5f915a1a9d87f",
-        "98ee0c5e9935442ea77835297777f4ab916830db5cb1ec82590d8b03f53eb6c",
-        "397a3c2785bcfdab244acdd11d65b415e3e4258b762deb8c17e600ce187c425",
-    ]
+    workload_id = raw_ctx["raw_columns"]["raw_float_columns"]["sepal_length"]["workload_id"]
 
+    raw_float_column_ids = [r["id"] for r in raw_ctx["raw_columns"]["raw_float_columns"].values()]
+    raw_string_column_ids = [r["id"] for r in raw_ctx["raw_columns"]["raw_string_columns"].values()]
+    cols_to_validate = raw_float_column_ids + raw_string_column_ids
     iris_data_string = "\n".join(",".join(str(val) for val in line) for line in iris_data)
     Path(os.path.join(str(local_storage_path), "iris.csv")).write_text(iris_data_string)
 
@@ -79,55 +76,39 @@ def test_simple_end_to_end(spark):
     assert raw_df.count() == 15
     assert storage.get_json(ctx.raw_dataset["metadata_key"])["dataset_size"] == 15
     for raw_column_id in cols_to_validate:
-        path = os.path.join(raw_ctx["status_prefix"], raw_column_id, "jjd3l0fi4fhwqtgmpatg")
+        path = os.path.join(raw_ctx["status_prefix"], raw_column_id, workload_id)
         status = storage.get_json(str(path))
         status["resource_id"] = raw_column_id
         status["exist_code"] = "succeeded"
 
-    cols_to_aggregate = [
-        "54ead5d565a57cad06972cc11d2f01f05c4e9e1dbfc525d1fa66b7999213722",
-        "38159191e6018b929b42c7e73e8bfd19f5778bba79e84d9909f5d448ac15fc9",
-        "986fd2cbc2b1d74aa06cf533b67d7dd7f54b5b7bf58689c58d0ec8c2568bae8",
-        "317856401885874d95fffd349fe0878595e8c04833ba63c4546233ffd899e4d",
-        "e7191b1effd1e4d351580f251aa35dc7c0b9825745b207fbb8cce904c94a937",
-        "6a9481dc91eb3f82458356f1f5f98da6f25a69b460679e09a67988543f79e3f",
-        "64594f51d3cfb55a3776d013102d5fdab29bfe7332ce0c4f7c916d64d3ca29f",
-        "690f97171881c08770cac55137c672167a84324efba478cfd583ec98dd18844",
-        "4deea2705f55fa8a38658546ea5c2d31e37d4aad43a874e091f1c1667b63a6e",
-    ]
+    cols_to_aggregate = [r["id"] for r in raw_ctx["aggregates"].values()]
+
     spark_job.run_custom_aggregators(spark, ctx, cols_to_aggregate, raw_df)
 
     for aggregate_id in cols_to_aggregate:
         for aggregate_resource in raw_ctx["aggregates"].values():
             if aggregate_resource["id"] == aggregate_id:
                 assert local_storage_path.joinpath(aggregate_resource["key"]).exists()
-        path = os.path.join(raw_ctx["status_prefix"], aggregate_id, "jjd3l0fi4fhwqtgmpatg")
+        path = os.path.join(raw_ctx["status_prefix"], aggregate_id, workload_id)
         status = storage.get_json(str(path))
         status["resource_id"] = aggregate_id
         status["exist_code"] = "succeeded"
 
-    cols_to_transform = [
-        "a44a0acbb54123d03d67b47469cf83712df2045b90aa99036dab99f37583d46",
-        "41221f15eea0328c2987c44171f323529bfa7a196a697b1a87ff4915c143531",
-        "360fe839dbc1ee1db2d0e0f0e8ca0d1a2cc54aed69e29843e0361d285ddb700",
-        "7cbc111099c4bf38e27d6a05f9b2d37bdb9038f6f934be10298a718deae6db5",
-        "6097e63c46b62b3cf70d86d9e1282bdd77d15d62bc4d132d9154bb5ddc1861d",
-    ]
-
+    cols_to_transform = [r["id"] for r in raw_ctx["transformed_columns"].values()]
     spark_job.validate_transformers(spark, ctx, cols_to_transform, raw_df)
 
     for transformed_id in cols_to_transform:
-        path = os.path.join(raw_ctx["status_prefix"], transformed_id, "jjd3l0fi4fhwqtgmpatg")
+        path = os.path.join(raw_ctx["status_prefix"], transformed_id, workload_id)
         status = storage.get_json(str(path))
         status["resource_id"] = transformed_id
         status["exist_code"] = "succeeded"
 
-    training_datasets = ["5bdaecf9c5a0094d4a18df15348f709be8acfd3c6faf72c3f243956c3896e76"]
+    training_datasets = [raw_ctx["models"]["dnn"]["dataset"]["id"]]
 
     spark_job.create_training_datasets(spark, ctx, training_datasets, raw_df)
 
     for dataset_id in training_datasets:
-        path = os.path.join(raw_ctx["status_prefix"], transformed_id, "jjd3l0fi4fhwqtgmpatg")
+        path = os.path.join(raw_ctx["status_prefix"], transformed_id, workload_id)
         status = storage.get_json(str(path))
         status["resource_id"] = transformed_id
         status["exist_code"] = "succeeded"

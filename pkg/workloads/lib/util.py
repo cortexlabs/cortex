@@ -421,7 +421,7 @@ def normalize_path(path, rel_dir):
         return os.path.normpath(os.path.join(rel_dir, path))
 
 
-def get_file(path):
+def read_file(path):
     if not os.path.isfile(path):
         return None
     with open(path, "r") as file:
@@ -429,7 +429,7 @@ def get_file(path):
 
 
 def read_file_strip(path):
-    contents = get_file(path)
+    contents = read_file(path)
     if is_str(contents):
         contents = contents.strip()
     return contents
@@ -451,7 +451,7 @@ def hash_str(string, alg="sha256"):
 
 
 def hash_file(file_path, alg="sha256"):
-    file_str = get_file(file_path)
+    file_str = read_file(file_path)
     return hash_str(file_str, alg)
 
 
