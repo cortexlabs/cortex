@@ -38,7 +38,7 @@ API_NAMES="$($CORTEX get api | sed '1,2d' | sed '/^$/d' | tr -s ' ' | cut -f 1 -
     CURRENT_STATUS="$($CORTEX status)"
 
     ERROR_COUNT="$(echo $CURRENT_STATUS | grep "error" | wc -l)"
-    if [ $ERROR_COUNT -gt "0" ] && [[ ! $CURRENT_STATUS =~ ^error\:\ failed\ to\ connect\ to\ the\ operator.* ]]; then
+    if [ $ERROR_COUNT -gt "0" ] && [[ ! $CURRENT_STATUS =~ ^error\:.* ]]; then
       exit 1
     fi
 

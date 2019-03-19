@@ -59,7 +59,7 @@ class NoneDict(dict):
 def empty_context_obj():
     return NoneDict(
         app=NoneDict(),
-        cortex_config=NoneDict(api_version=consts.CORTEX_VERSION, region=""),
+        cortex_config=NoneDict(api_version=consts.CORTEX_VERSION, region="us-west-2"),
         raw_features={},
         transformed_features={},
         python_packages={},

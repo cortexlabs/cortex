@@ -116,9 +116,9 @@ lint:
 find-missing-version:
 	@./build/find-missing-version.sh
 
-test-all:
+test-examples:
 	$(MAKE) registry-all
-	@./build/test-all.sh
+	@./build/test-examples.sh
 
 ###############
 # CI Commands #
