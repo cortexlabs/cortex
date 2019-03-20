@@ -19,7 +19,6 @@ set -eou pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 CORTEX="$ROOT/bin/cortex"
 
-# replace examples/iris/app.yaml -> examples/*/app.yaml
 for example in $ROOT/examples/*/app.yaml; do
   timer=1200
   example_base_dir=$(dirname "${example}")
@@ -27,19 +26,17 @@ for example in $ROOT/examples/*/app.yaml; do
 
   cd $example_base_dir
   echo "Deploying $example_base_dir"
-  $CORTEX delete || test $? = 1
-  $CORTEX deploy
+  $CORTEX refresh
 
   api_names="$($CORTEX get api | sed '1,2d' | sed '/^$/d' | tr -s ' ' | cut -f 1 -d " ")"
   sample="$(find . -name "*.json")"
 
-  while true
-  do
-    # $CORTEX status
+  while true; do
     current_status="$($CORTEX status)"
     echo "$current_status"
 
     error_count="$(echo $current_status | { grep "error" || test $? = 1; } | wc -l)"
+    # accomodate transient error `error: failed to connect to operator...`
     if [ $error_count -gt "0" ] && [[ ! $current_status =~ ^error\:\ failed\ to\ connect\ to\ the\ operator.* ]]; then
       exit 1
     fi
@@ -47,18 +44,21 @@ for example in $ROOT/examples/*/app.yaml; do
     ready_count="$($CORTEX get api | sed '1,2d' | sed '/^$/d' | { grep "ready" || test $? = 1; } | wc -l)"
     total_count="$($CORTEX get api | sed '1,2d' | sed '/^$/d' | wc -l)"
 
-    sleep 15 # account for api startup delay
+    sleep 15 # account for API startup delay
 
     if [ "$ready_count" == "$total_count" ] && [ $total_count -ne "0" ]; then
       for api_name in $api_names; do
         echo "Running cx predict $api_name $sample"
         result="$($CORTEX predict $api_name $sample)"
+        prediction_code=$?
         echo "$result"
-        if [ $? -ne 0 ]; then
+        if [ $prediction_code -ne 0 ]; then
+          # accomodate transient error `error: failed to connect to operator...`
+          # handle `error: api ... is updating` error caused when the API status is set to `ready` but it actually isn't
           if [[ $result =~ ^error\:\ failed\ to\ connect\ to\ the\ operator.* ]] || [[ $result =~ ^error\:\ api.*is\ updating$ ]]; then
               echo "retrying prediction..."
               $retry="true"
-              break
+              break # skip request predictions from the remaining APIs and try again
           else
               echo "prediction failed"
               exit 1
@@ -67,7 +67,7 @@ for example in $ROOT/examples/*/app.yaml; do
       done
 
       if [ "$retry" == "false" ]; then
-        break
+        break # successfully got predictions from all APIs for this example, move into the next
       else
         retry="false"
       fi
