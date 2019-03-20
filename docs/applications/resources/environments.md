@@ -14,7 +14,7 @@ Transfer data at scale from data warehouses like S3 into the Cortex environment.
       randomize: <bool>  # flag to indicate random selection of data (exact dataset size will not be guaranteed when this flag is true)
       random_seed: <int>  # seed value for randomizing
   log_level:
-    tensorflow: <string>  # TensorFlow log level (DEBUG, INFO, WARN, ERROR, or FATAL) (default: INFO)
+    tensorflow: <string>  # TensorFlow log level (DEBUG, INFO, WARN, ERROR, or FATAL) (default: DEBUG)
     spark: <string>  # Spark log level (ALL, TRACE, DEBUG, INFO, WARN, ERROR, or FATAL) (default: WARN)
   data:
     <data_config>
