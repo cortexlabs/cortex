@@ -103,7 +103,7 @@ var logLevelValidation = &cr.StructValidation{
 		{
 			StructField: "Tensorflow",
 			StringValidation: &cr.StringValidation{
-				Default:       "INFO",
+				Default:       "DEBUG",
 				AllowedValues: []string{"DEBUG", "INFO", "WARN", "ERROR", "FATAL"},
 			},
 		},
