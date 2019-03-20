@@ -56,9 +56,12 @@ def test_simple_end_to_end(spark):
     should_ingest = True
     workload_id = raw_ctx["raw_columns"]["raw_float_columns"]["sepal_length"]["workload_id"]
 
-    raw_float_column_ids = [r["id"] for r in raw_ctx["raw_columns"]["raw_float_columns"].values()]
-    raw_string_column_ids = [r["id"] for r in raw_ctx["raw_columns"]["raw_string_columns"].values()]
-    cols_to_validate = raw_float_column_ids + raw_string_column_ids
+    cols_to_validate = []
+
+    for column_type in raw_ctx["raw_columns"].values():
+        for raw_column in column_type.values():
+            cols_to_validate.append(raw_column["id"])
+
     iris_data_string = "\n".join(",".join(str(val) for val in line) for line in iris_data)
     Path(os.path.join(str(local_storage_path), "iris.csv")).write_text(iris_data_string)
 

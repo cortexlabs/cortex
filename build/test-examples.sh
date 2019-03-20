@@ -14,48 +14,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -eou pipefail
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 CORTEX="$ROOT/bin/cortex"
 
 # replace examples/iris/app.yaml -> examples/*/app.yaml
-for EXAMPLE in $ROOT/examples/*/app.yaml; do
-  TIMER=1200
-  EXAMPLE_ROOT=$(dirname "${EXAMPLE}")
-  RETRY="false"
+for example in $ROOT/examples/*/app.yaml; do
+  timer=1200
+  example_base_dir=$(dirname "${example}")
+  retry="false"
 
-  cd $EXAMPLE_ROOT
-  echo "Deploying $EXAMPLE_ROOT"
-  $CORTEX delete >/dev/null
+  cd $example_base_dir
+  echo "Deploying $example_base_dir"
+  $CORTEX delete || test $? = 1
   $CORTEX deploy
 
-API_NAMES="$($CORTEX get api | sed '1,2d' | sed '/^$/d' | tr -s ' ' | cut -f 1 -d " ")"
-  echo $API_NAMES
-  SAMPLE="$(find . -name "*.json")"
+  api_names="$($CORTEX get api | sed '1,2d' | sed '/^$/d' | tr -s ' ' | cut -f 1 -d " ")"
+  sample="$(find . -name "*.json")"
 
   while true
   do
-    $CORTEX status
-    CURRENT_STATUS="$($CORTEX status)"
+    # $CORTEX status
+    current_status="$($CORTEX status)"
+    echo "$current_status"
 
-    ERROR_COUNT="$(echo $CURRENT_STATUS | grep "error" | wc -l)"
-    if [ $ERROR_COUNT -gt "0" ] && [[ ! $CURRENT_STATUS =~ ^error\:.* ]]; then
+    error_count="$(echo $current_status | { grep "error" || test $? = 1; } | wc -l)"
+    if [ $error_count -gt "0" ] && [[ ! $current_status =~ ^error\:\ failed\ to\ connect\ to\ the\ operator.* ]]; then
       exit 1
     fi
 
-    READY_COUNT="$($CORTEX get api | sed '1,2d' | sed '/^$/d' | grep "ready" | wc -l)"
-    TOTAL_COUNT="$($CORTEX get api | sed '1,2d' | sed '/^$/d' | wc -l)"
+    ready_count="$($CORTEX get api | sed '1,2d' | sed '/^$/d' | { grep "ready" || test $? = 1; } | wc -l)"
+    total_count="$($CORTEX get api | sed '1,2d' | sed '/^$/d' | wc -l)"
 
     sleep 15 # account for api startup delay
 
-    if [ "$READY_COUNT" == "$TOTAL_COUNT" ] && [ $TOTAL_COUNT -ne "0" ]; then
-      for API_NAME in $API_NAMES; do
-        echo "Running cx predict $API_NAME $SAMPLE"
-        $CORTEX predict $API_NAME $SAMPLE
-        RESULT="$($CORTEX predict $API_NAME $SAMPLE)"
+    if [ "$ready_count" == "$total_count" ] && [ $total_count -ne "0" ]; then
+      for api_name in $api_names; do
+        echo "Running cx predict $api_name $sample"
+        result="$($CORTEX predict $api_name $sample)"
+        echo "$result"
         if [ $? -ne 0 ]; then
-          if [[ $RESULT =~ ^error\:\ failed\ to\ connect\ to\ the\ operator.* ]] || [[ $RESULT =~ ^error\:\ api.*is\ updating$ ]]; then
+          if [[ $result =~ ^error\:\ failed\ to\ connect\ to\ the\ operator.* ]] || [[ $result =~ ^error\:\ api.*is\ updating$ ]]; then
               echo "retrying prediction..."
-              $RETRY="true"
+              $retry="true"
               break
           else
               echo "prediction failed"
@@ -64,17 +66,16 @@ API_NAMES="$($CORTEX get api | sed '1,2d' | sed '/^$/d' | tr -s ' ' | cut -f 1 -
         fi
       done
 
-      if [ "$RETRY" == "false" ]; then
-        RETRY="false"
+      if [ "$retry" == "false" ]; then
         break
       else
-        RETRY="false"
+        retry="false"
       fi
     fi
 
-    TIMER=$((TIMER-15))
-    echo "Running $EXAMPLE_ROOT. $TIMER seconds left before timing out."
-    if [ $TIMER -lt "0" ]; then
+    timer=$((timer-15))
+    echo "Running $example_base_dir. $timer seconds left before timing out."
+    if [ $timer -lt "0" ]; then
         echo "timed out!"
         exit 1
     fi
@@ -82,3 +83,5 @@ API_NAMES="$($CORTEX get api | sed '1,2d' | sed '/^$/d' | tr -s ' ' | cut -f 1 -
 
   $CORTEX delete
 done
+
+echo "Ran all examples successfully."

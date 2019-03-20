@@ -23,10 +23,10 @@ docker run -it --entrypoint "/bin/bash" cortexlabs/spark
 
 from lib import util
 from lib.storage import S3
-bucket, key = S3.deconstruct_s3_path('<path_to_context>')
+bucket, key = S3.deconstruct_s3_path('s3://<cortex-bucket>/apps/<app-name>/contexts/<context-id>.msgpack')
 S3(bucket, client_config={}).get_msgpack(key)
 
-5. Modify environment_data to point to the correct input data file path
+5. Modify environment_data.csv_data.path to point to the correct input data file
 """
 
 raw_ctx = {
