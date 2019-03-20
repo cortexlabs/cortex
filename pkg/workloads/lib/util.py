@@ -435,7 +435,7 @@ def read_file_strip(path):
     return contents
 
 
-def read_json(json_path):
+def get_json(json_path):
     with open(json_path, "r") as json_file:
         return json.load(json_file)
 

@@ -25,8 +25,7 @@ from grpc.beta import implementations
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import get_model_metadata_pb2
 from tensorflow_serving.apis import prediction_service_pb2
-from lib import util, tf_lib, aws, package
-from lib.context import Context
+from lib import util, tf_lib, package, Context
 from lib.log import get_logger
 from lib.exceptions import CortexException, UserRuntimeException, UserException
 from google.protobuf import json_format
@@ -291,7 +290,7 @@ def predict(app_name, api_name):
 
 def start(args):
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
-    package.install_packages(ctx.python_packages, ctx.bucket)
+    package.install_packages(ctx.python_packages, ctx.storage)
 
     api = ctx.apis_id_map[args.api]
     model = ctx.models[api["model_name"]]
@@ -302,7 +301,7 @@ def start(args):
     local_cache["model"] = model
 
     if not os.path.isdir(args.model_dir):
-        aws.download_and_extract_zip(model["key"], args.model_dir, ctx.bucket)
+        ctx.storage.download_and_unzip(model["key"], args.model_dir)
 
     for column_name in model["feature_columns"] + [model["target_column"]]:
         if ctx.is_transformed_column(column_name):
