@@ -88,12 +88,11 @@ def transform_sample(sample):
 
 def create_prediction_request(transformed_sample):
     ctx = local_cache["ctx"]
-
+    signatureDef = local_cache["metadata"]["signatureDef"]
+    signature_key = list(signatureDef.keys())[0]
     prediction_request = predict_pb2.PredictRequest()
     prediction_request.model_spec.name = "default"
-    prediction_request.model_spec.signature_name = list(
-        local_cache["metadata"]["signatureDef"].keys()
-    )[0]
+    prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in transformed_sample.items():
         data_type = tf_lib.CORTEX_TYPE_TO_TF_TYPE[ctx.columns[column_name]["type"]]

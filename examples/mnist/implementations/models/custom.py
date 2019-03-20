@@ -5,10 +5,7 @@ def create_estimator(run_config, model_config):
     hparams = model_config["hparams"]
 
     def model_fn(features, labels, mode, params):
-        images = features["image_pixels"]
-        images = tf.reshape(images, [-1] + hparams["input_shape"])
-        x = images
-
+        x = features["image_pixels"]
         for i, feature_count in enumerate(hparams["hidden_units"]):
             with tf.variable_scope("layer_%d" % i):
                 if hparams["layer_type"] == "conv":
@@ -55,3 +52,10 @@ def create_estimator(run_config, model_config):
 
     estimator = tf.estimator.Estimator(model_fn=model_fn, config=run_config)
     return estimator
+
+
+def transform_tensorflow(features, labels, model_config):
+    hparams = model_config["hparams"]
+
+    features["image_pixels"] = tf.reshape(features["image_pixels"], hparams["input_shape"])
+    return features, labels

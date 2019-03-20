@@ -42,7 +42,7 @@ Cortex runs on Kubernetes. If you don't already have a Kubernetes cluster, [eksc
 eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium
 ```
 
-This cluster configuration will cost about $0.29 per hour.
+This cluster configuration will cost about $0.29 per hour in AWS fees.
 
 ## Operator
 

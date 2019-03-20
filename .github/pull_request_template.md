@@ -1,8 +1,7 @@
 ---
 Checklist:
-- [ ] Run automated tests (`make test`)
-- [ ] Test end to end manually (e.g. rebuild registry/operator and run `cx refresh` in an example folder)
-- [ ] Add license header to each new file
+- [ ] Run `make test` and `make lint`
+- [ ] Test end to end manually (e.g. build/push all images, restart local operator, and run `cx refresh` in an example folder)
 - [ ] Update documentation
 - [ ] Update examples and `cx init`
 - [ ] Alert team if dev environment changed

@@ -47,12 +47,14 @@ func findCustomPackages(files map[string][]byte) []string {
 	return customPackages
 }
 
-func loadPythonPackages(files map[string][]byte) (context.PythonPackages, error) {
+func loadPythonPackages(files map[string][]byte, datasetVersion string) (context.PythonPackages, error) {
 	pythonPackages := make(map[string]*context.PythonPackage)
 
 	if reqFileBytes, ok := files[consts.RequirementsTxt]; ok {
 		var buf bytes.Buffer
 		buf.Write(reqFileBytes)
+		// Invalidate cached packages when refreshed without depending on environment ID
+		buf.WriteString(datasetVersion)
 		id := hash.Bytes(buf.Bytes())
 		pythonPackage := context.PythonPackage{
 			ResourceConfigFields: userconfig.ResourceConfigFields{
@@ -80,6 +82,8 @@ func loadPythonPackages(files map[string][]byte) (context.PythonPackages, error)
 	for _, packageName := range customPackages {
 		zipBytesInputs := []zip.BytesInput{}
 		var buf bytes.Buffer
+		// Invalidate cached packages when refreshed without depending on environment ID
+		buf.WriteString(datasetVersion)
 		for filePath, fileBytes := range files {
 			if strings.HasPrefix(filePath, filepath.Join(consts.PackageDir, packageName)) {
 				buf.Write(fileBytes)

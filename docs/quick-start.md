@@ -270,6 +270,8 @@ Add to `app.yaml`:
   training:
     num_steps: 1000
     batch_size: 10
+  aggregates:
+    - class_index
 ```
 
 #### Implement the estimator
@@ -292,7 +294,7 @@ def create_estimator(run_config, model_config):
     return tf.estimator.DNNClassifier(
         feature_columns=feature_columns,
         hidden_units=model_config["hparams"]["hidden_units"],
-        n_classes=3,
+        n_classes=len(model_config["aggregates"]["class_index"]),
         config=run_config,
     )
 ```
@@ -329,6 +331,12 @@ You can get an overview of the deployment using `cortex get` (see [resource stat
 
 ```
 $ cortex get
+
+---------------
+Python Packages
+---------------
+
+None
 
 -----------
 Raw Columns
@@ -394,6 +402,7 @@ You can get a summary of the status of resources using `cortex status`:
 ```
 $ cortex status --watch
 
+Python Packages:       none
 Raw Columns:           5 ready
 Aggregates:            9 ready
 Transformed Columns:   5 ready

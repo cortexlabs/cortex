@@ -141,6 +141,7 @@ build-images:
 	@./build/build-image.sh images/nginx-backend nginx-backend
 	@./build/build-image.sh images/argo-controller argo-controller
 	@./build/build-image.sh images/argo-executor argo-executor
+	@./build/build-image.sh images/python-packager python-packager
 
 push-images:
 	@./build/push-image.sh spark
@@ -156,6 +157,10 @@ push-images:
 	@./build/push-image.sh nginx-backend
 	@./build/push-image.sh argo-controller
 	@./build/push-image.sh argo-executor
+	@./build/push-image.sh python-packager
+
+build-cli:
+	@./build/cli.sh
 
 build-and-upload-cli:
-	@./build/cli.sh
+	@./build/cli.sh upload
