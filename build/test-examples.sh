@@ -50,9 +50,9 @@ for example in $ROOT/examples/*/app.yaml; do
       for api_name in $api_names; do
         echo "Running cx predict $api_name $sample"
         result="$($CORTEX predict $api_name $sample)"
-        prediction_code=$?
+        prediction_exit_code=$?
         echo "$result"
-        if [ $prediction_code -ne 0 ]; then
+        if [ $prediction_exit_code -ne 0 ]; then
           # accomodate transient error `error: failed to connect to operator...`
           # handle `error: api ... is updating` error caused when the API status is set to `ready` but it actually isn't
           if [[ $result =~ ^error\:\ failed\ to\ connect\ to\ the\ operator.* ]] || [[ $result =~ ^error\:\ api.*is\ updating$ ]]; then
