@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
+	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 )
 
 type WorkloadSpec struct {
