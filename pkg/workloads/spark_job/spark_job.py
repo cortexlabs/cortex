@@ -140,7 +140,7 @@ def ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest):
         return spark_util.read_raw_dataset(ctx, spark)
 
     col_resources_to_validate = [ctx.rf_id_map[f] for f in cols_to_validate]
-    ctx.upload_resource_status_start(*col_resources_to_validate)
+
     try:
         if should_ingest:
             data_config = ctx.environment["data"]
@@ -148,6 +148,9 @@ def ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest):
             logger.info("Ingesting")
             logger.info("Ingesting {} data from {}".format(ctx.app["name"], data_config["path"]))
             ingest_df = spark_util.ingest(ctx, spark)
+
+            ingest_df.take(1)  # trigger a spark action to see if there are enough resources
+            ctx.upload_resource_status_start(*col_resources_to_validate)
 
             full_dataset_size = ingest_df.count()
 
@@ -172,6 +175,9 @@ def ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest):
 
         logger.info("Reading {} data (version: {})".format(ctx.app["name"], ctx.dataset_version))
         raw_df = spark_util.read_raw_dataset(ctx, spark)
+        if not should_ingest:
+            ctx.upload_resource_status_start(*col_resources_to_validate)
+
         validate_dataset(ctx, raw_df, cols_to_validate)
     except:
         ctx.upload_resource_status_failed(*col_resources_to_validate)
