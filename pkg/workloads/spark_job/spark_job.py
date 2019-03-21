@@ -141,6 +141,7 @@ def ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest):
 
     col_resources_to_validate = [ctx.rf_id_map[f] for f in cols_to_validate]
     ctx.upload_resource_status_start(*col_resources_to_validate)
+
     try:
         if should_ingest:
             data_config = ctx.environment["data"]
@@ -302,6 +303,7 @@ def run_job(args):
     try:
         spark = None  # For the finally clause
         spark = get_spark_session(ctx.workload_id)
+        spark.sparkContext.parallelize([1, 2, 3, 4, 5]).count()  # test that executors are allocated
         raw_df = ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest)
 
         if len(cols_to_aggregate) > 0:
