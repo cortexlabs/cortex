@@ -21,7 +21,8 @@ from datetime import datetime
 from copy import deepcopy
 
 import consts
-from lib import util, aws
+from lib import util
+from lib.storage import S3, LocalStorage
 from lib.exceptions import CortexException, UserException
 from botocore.exceptions import ClientError
 from lib.resources import ResourceMap
@@ -46,10 +47,13 @@ class Context:
             self.ctx = _deserialize_raw_ctx(ctx_raw)
         elif "obj" in kwargs:
             self.ctx = kwargs["obj"]
+        elif "raw_obj" in kwargs:
+            ctx_raw = kwargs["raw_obj"]
+            self.ctx = _deserialize_raw_ctx(ctx_raw)
         elif "s3_path":
-            local_ctx_path = os.path.join(self.cache_dir, "context.json")
-            bucket, key = aws.deconstruct_s3_path(kwargs["s3_path"])
-            aws.download_file_from_s3(key, local_ctx_path, bucket)
+            local_ctx_path = os.path.join(self.cache_dir, "context.msgpack")
+            bucket, key = S3.deconstruct_s3_path(kwargs["s3_path"])
+            S3(bucket, client_config={}).download_file(key, local_ctx_path)
             ctx_raw = util.read_msgpack(local_ctx_path)
             self.ctx = _deserialize_raw_ctx(ctx_raw)
         else:
@@ -77,9 +81,16 @@ class Context:
         self.apis = self.ctx["apis"]
         self.training_datasets = {k: v["dataset"] for k, v in self.models.items()}
 
-        self.bucket = self.cortex_config["bucket"]
-        self.region = self.cortex_config["region"]
         self.api_version = self.cortex_config["api_version"]
+
+        if "local_storage_path" in kwargs:
+            self.storage = LocalStorage(base_dir=kwargs["local_storage_path"])
+        else:
+            self.storage = S3(
+                bucket=self.cortex_config["bucket"],
+                region=self.cortex_config["region"],
+                client_config={},
+            )
 
         if self.api_version != consts.CORTEX_VERSION:
             raise ValueError(
@@ -104,7 +115,7 @@ class Context:
         self._model_impls = {}
 
         # This affects Tensorflow S3 access
-        os.environ["AWS_REGION"] = self.region
+        os.environ["AWS_REGION"] = self.cortex_config.get("region", "")
 
         # Id map
         self.pp_id_map = ResourceMap(self.python_packages)
@@ -144,19 +155,19 @@ class Context:
         columns_input_config = self.transformed_columns[column_name]["inputs"]["columns"]
         return create_inputs_map(values_map, columns_input_config)
 
-    def get_file(self, impl_key, cache_impl_path):
+    def download_file(self, impl_key, cache_impl_path):
         if not os.path.isfile(cache_impl_path):
-            aws.download_file_from_s3(impl_key, cache_impl_path, self.bucket)
+            self.storage.download_file(impl_key, cache_impl_path)
         return cache_impl_path
 
     def get_python_file(self, impl_key, module_name):
         cache_impl_path = os.path.join(self.cache_dir, "{}.py".format(module_name))
-        self.get_file(impl_key, cache_impl_path)
+        self.download_file(impl_key, cache_impl_path)
         return cache_impl_path
 
     def get_obj(self, key):
         cache_path = os.path.join(self.cache_dir, key)
-        self.get_file(key, cache_path)
+        self.download_file(key, cache_path)
 
         return util.read_msgpack(cache_path)
 
@@ -167,7 +178,7 @@ class Context:
         }
 
     def store_aggregate_result(self, result, aggregate):
-        aws.upload_msgpack_to_s3(result, aggregate["key"], self.bucket)
+        self.storage.put_msgpack(result, aggregate["key"])
 
     def load_module(self, module_prefix, module_name, impl_key):
         full_module_name = "{}_{}".format(module_prefix, module_name)
@@ -275,7 +286,7 @@ class Context:
             )
 
         training_data_parts_prefix = os.path.join(data_key, part_prefix)
-        return aws.get_matching_s3_keys(self.bucket, prefix=training_data_parts_prefix)
+        return self.storage.search(prefix=training_data_parts_prefix)
 
     def column_config(self, column_name):
         if self.is_raw_column(column_name):
@@ -408,7 +419,7 @@ class Context:
 
     def get_resource_status(self, resource):
         key = self.resource_status_key(resource)
-        return aws.read_json_from_s3(key, self.bucket)
+        return self.storage.get_json(key)
 
     def upload_resource_status_start(self, *resources):
         timestamp = util.now_timestamp_rfc_3339()
@@ -421,7 +432,7 @@ class Context:
                 "app_name": self.app["name"],
                 "start": timestamp,
             }
-            aws.upload_json_to_s3(status, key, self.bucket)
+            self.storage.put_json(status, key)
 
     def upload_resource_status_no_op(self, *resources):
         timestamp = util.now_timestamp_rfc_3339()
@@ -436,7 +447,7 @@ class Context:
                 "end": timestamp,
                 "exit_code": "succeeded",
             }
-            aws.upload_json_to_s3(status, key, self.bucket)
+            self.storage.put_json(status, key)
 
     def upload_resource_status_success(self, *resources):
         self.upload_resource_status_end("succeeded", *resources)
@@ -453,7 +464,7 @@ class Context:
             status["end"] = timestamp
             status["exit_code"] = exit_code
             key = self.resource_status_key(resource)
-            aws.upload_json_to_s3(status, key, self.bucket)
+            self.storage.put_json(status, key)
 
     def resource_status_key(self, resource):
         return os.path.join(self.status_prefix, resource["id"], resource["workload_id"])
