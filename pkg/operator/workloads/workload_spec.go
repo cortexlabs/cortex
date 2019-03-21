@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
+	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 )
 
 type WorkloadSpec struct {
@@ -148,7 +149,12 @@ func UpdateDataWorkflowErrors(failedPods []corev1.Pod) error {
 				if savedStatus.Start == nil {
 					savedStatus.Start = nowTime
 				}
+
 				savedStatus.ExitCode = resource.ExitCodeDataFailed
+				if k8s.GetPodStatus(&pod) == k8s.PodStatusKilled {
+					savedStatus.ExitCode = resource.ExitCodeDataKilled
+				}
+
 				savedStatusesToUpload = append(savedStatusesToUpload, savedStatus)
 			}
 		}

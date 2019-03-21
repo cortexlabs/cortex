@@ -105,6 +105,19 @@ func GetPodStatus(pod *corev1.Pod) string {
 	case corev1.PodSucceeded:
 		return PodStatusSucceeded
 	case corev1.PodFailed:
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			if containerStatus.LastTerminationState.Terminated != nil {
+				exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
+				if killStatuses[exitCode] {
+					return PodStatusKilled
+				}
+			} else if containerStatus.State.Terminated != nil {
+				exitCode := containerStatus.State.Terminated.ExitCode
+				if killStatuses[exitCode] {
+					return PodStatusKilled
+				}
+			}
+		}
 		return PodStatusFailed
 	case corev1.PodRunning:
 		if pod.ObjectMeta.DeletionTimestamp != nil {
