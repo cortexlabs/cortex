@@ -47,6 +47,7 @@ const (
 	ExitCodeDataSucceeded DataExitCode = "succeeded"
 	ExitCodeDataFailed    DataExitCode = "failed"
 	ExitCodeDataKilled    DataExitCode = "killed"
+	ExitCodeDataOOM       DataExitCode = "oom"
 )
 
 func DataSavedStatusPtrsEqual(savedStatus *DataSavedStatus, savedStatus2 *DataSavedStatus) bool {

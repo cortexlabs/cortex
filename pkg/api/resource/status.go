@@ -109,6 +109,8 @@ const (
 	StatusAPIGroupParentFailed
 	StatusAPIGroupParentKilled
 	StatusAPIGroupUpdateSkipped
+
+	StatusDataOOM
 )
 
 var statusCodes = []string{
@@ -136,9 +138,11 @@ var statusCodes = []string{
 	"status_api_group_parent_failed",
 	"status_api_group_parent_killed",
 	"status_api_group_update_skipped",
+
+	"status_data_oom",
 }
 
-var _ = [1]int{}[int(StatusAPIGroupUpdateSkipped)-(len(statusCodes)-1)] // Ensure list length matches
+var _ = [1]int{}[int(StatusDataOOM)-(len(statusCodes)-1)] // Ensure list length matches
 
 var statusCodeMessages = []string{
 	"unknown", // StatusUnknown
@@ -165,9 +169,11 @@ var statusCodeMessages = []string{
 	"upstream error",       // StatusAPIGroupParentFailed
 	"upstream termination", // StatusAPIGroupParentKilled
 	"update skipped",       // StatusAPIGroupUpdateSkipped
+
+	"killed (oom)", // StatusDataOOM
 }
 
-var _ = [1]int{}[int(StatusAPIGroupUpdateSkipped)-(len(statusCodeMessages)-1)] // Ensure list length matches
+var _ = [1]int{}[int(StatusDataOOM)-(len(statusCodeMessages)-1)] // Ensure list length matches
 
 // StatusDataRunning aliases
 const (
@@ -203,9 +209,11 @@ var statusSortBuckets = []int{
 	2, // StatusAPIGroupParentFailed
 	2, // StatusAPIGroupParentKilled
 	2, // StatusAPIGroupUpdateSkipped
+
+	1, // StatusDataOOM
 }
 
-var _ = [1]int{}[int(StatusAPIGroupUpdateSkipped)-(len(statusSortBuckets)-1)] // Ensure list length matches
+var _ = [1]int{}[int(StatusDataOOM)-(len(statusSortBuckets)-1)] // Ensure list length matches
 
 func (code StatusCode) String() string {
 	if int(code) < 0 || int(code) >= len(statusCodes) {
