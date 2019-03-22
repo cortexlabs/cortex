@@ -33,13 +33,13 @@ var podTypeMeta = metav1.TypeMeta{
 }
 
 const (
+	PodStatusUnknown     = "Unknown"
 	PodStatusPending     = "Pending"
 	PodStatusRunning     = "Running"
 	PodStatusTerminating = "Terminating"
 	PodStatusSucceeded   = "Succeeded"
 	PodStatusFailed      = "Failed"
 	PodStatusKilled      = "Killed"
-	PodStatusUnknown     = "Unknown"
 	PodStatusKilledOOM   = "Out of Memory"
 )
 
