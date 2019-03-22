@@ -150,9 +150,13 @@ func UpdateDataWorkflowErrors(failedPods []corev1.Pod) error {
 					savedStatus.Start = nowTime
 				}
 
-				savedStatus.ExitCode = resource.ExitCodeDataFailed
-				if k8s.GetPodStatus(&pod) == k8s.PodStatusKilled {
+				switch k8s.GetPodStatus(&pod) {
+				case k8s.PodStatusKilled:
 					savedStatus.ExitCode = resource.ExitCodeDataKilled
+				case k8s.PodStatusKilledOOM:
+					savedStatus.ExitCode = resource.ExitCodeDataOOM
+				default:
+					savedStatus.ExitCode = resource.ExitCodeDataFailed
 				}
 
 				savedStatusesToUpload = append(savedStatusesToUpload, savedStatus)
