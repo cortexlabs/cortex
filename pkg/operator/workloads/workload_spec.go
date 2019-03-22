@@ -153,7 +153,7 @@ func UpdateDataWorkflowErrors(failedPods []corev1.Pod) error {
 				switch k8s.GetPodStatus(&pod) {
 				case k8s.PodStatusKilled:
 					savedStatus.ExitCode = resource.ExitCodeDataKilled
-				case k8s.PodStatusOOM:
+				case k8s.PodStatusKilledOOM:
 					savedStatus.ExitCode = resource.ExitCodeDataOOM
 				default:
 					savedStatus.ExitCode = resource.ExitCodeDataFailed

@@ -40,7 +40,7 @@ const (
 	PodStatusFailed      = "Failed"
 	PodStatusKilled      = "Killed"
 	PodStatusUnknown     = "Unknown"
-	PodStatusOOM         = "Out of Memory"
+	PodStatusKilledOOM   = "Out of Memory"
 )
 
 var killStatuses = map[int32]bool{
@@ -110,7 +110,7 @@ func GetPodStatus(pod *corev1.Pod) string {
 			if containerStatus.LastTerminationState.Terminated != nil {
 				exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
 				if exitCode == 137 {
-					return PodStatusOOM
+					return PodStatusKilledOOM
 				}
 				if killStatuses[exitCode] {
 					return PodStatusKilled
@@ -118,7 +118,7 @@ func GetPodStatus(pod *corev1.Pod) string {
 			} else if containerStatus.State.Terminated != nil {
 				exitCode := containerStatus.State.Terminated.ExitCode
 				if exitCode == 137 {
-					return PodStatusOOM
+					return PodStatusKilledOOM
 				}
 				if killStatuses[exitCode] {
 					return PodStatusKilled

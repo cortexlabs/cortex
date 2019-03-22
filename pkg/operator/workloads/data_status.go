@@ -78,7 +78,7 @@ func dataStatusCode(dataSavedStatus *resource.DataSavedStatus) resource.StatusCo
 	case resource.ExitCodeDataKilled:
 		return resource.StatusDataKilled
 	case resource.ExitCodeDataOOM:
-		return resource.StatusDataOOM
+		return resource.StatusDataKilledOOM
 	}
 
 	return resource.StatusUnknown
