@@ -4,6 +4,7 @@ from tensor2tensor import models  # pylint: disable=unused-import
 from tensor2tensor import problems  # pylint: disable=unused-import
 from tensor2tensor.data_generators import problem_hparams
 from tensor2tensor.utils import registry
+from tensor2tensor.utils import metrics
 from tensor2tensor.data_generators import imdb
 from tensor2tensor.data_generators import text_encoder
 
@@ -14,7 +15,8 @@ def create_estimator(run_config, model_config):
     run_config.t2t_device_info = {"num_async_replicas": 1}
 
     hparams = trainer_lib.create_hparams("transformer_base_single_gpu")
-    problem = registry.problem("sentiment_imdb_cortex")
+
+    problem = SentimentIMDBCortex()
     vocab = model_config["aggregates"]["reviews_vocab"]
     problem.set_vocab(list(vocab.keys()))
     p_hparams = problem.get_hparams(hparams)
@@ -22,7 +24,7 @@ def create_estimator(run_config, model_config):
     hparams.problem_hparams = p_hparams
 
     # don't need eval_metrics
-    problem.eval_metrics = lambda: []
+    problem.eval_metrics = lambda: [metrics.Metrics.ACC]
 
     # t2t expects this key
     hparams.warm_start_from = None
@@ -32,7 +34,6 @@ def create_estimator(run_config, model_config):
     hparams.hidden_size = 32
     hparams.filter_size = 32
     hparams.num_heads = 2
-    hparams.batch_size = 64
 
     estimator = trainer_lib.create_estimator("transformer", hparams, run_config)
     return estimator
@@ -41,14 +42,15 @@ def create_estimator(run_config, model_config):
 def transform_tensorflow(features, labels, model_config):
     max_length = model_config["aggregates"]["max_review_length"]
 
-    features["inputs"] = tf.expand_dims(tf.reshape(features["embedding_input"], [max_length]), -1)
+    features["inputs"] = tf.expand_dims(
+        tf.expand_dims(tf.reshape(features["embedding_input"], [max_length]), -1), -1
+    )
 
-    features["targets"] = tf.expand_dims(labels, 0)
+    features["targets"] = tf.expand_dims(tf.expand_dims(labels, -1), -1)
 
     return features, labels
 
 
-@registry.register_problem
 class SentimentIMDBCortex(imdb.SentimentIMDB):
     """IMDB sentiment classification, character level."""
 

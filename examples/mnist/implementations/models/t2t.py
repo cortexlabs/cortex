@@ -35,6 +35,6 @@ def transform_tensorflow(features, labels, model_config):
     features["inputs"] = tf.reshape(features["image_pixels"], hparams["input_shape"])
 
     # t2t expects this key and dimensionality
-    features["targets"] = tf.expand_dims(labels, 0)
+    features["targets"] = tf.expand_dims(tf.expand_dims(labels, -1), -1)
 
     return features, labels

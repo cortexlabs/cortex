@@ -45,7 +45,7 @@
     training: 0.8
     evaluation: 0.2
   training:
-    batch_size: 64
-    num_steps: 50000
-  compute:
-    gpu: 1
+    batch_size: 1
+    num_steps: 10000
+  evaluation:
+    start_delay_secs: 1
