@@ -194,7 +194,7 @@ func updateAPIStatusCodeByParents(apiStatus *resource.APIStatus, dataStatuses ma
 	parentSkipped := false
 	for dependency := range allDependencies {
 		switch dataStatuses[dependency].Code {
-		case resource.StatusDataKilled:
+		case resource.StatusDataKilled, resource.StatusDataKilledOOM:
 			apiStatus.Code = resource.StatusParentKilled
 			return
 		case resource.StatusDataFailed:

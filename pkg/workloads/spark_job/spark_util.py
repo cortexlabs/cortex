@@ -20,7 +20,7 @@ from pyspark.sql.types import *
 from pyspark.sql.dataframe import DataFrame
 import pyspark.sql.functions as F
 
-from lib import util, aws
+from lib import util
 from lib.context import create_inputs_map
 from lib.exceptions import CortexException, UserException, UserRuntimeException
 from lib.log import get_logger
@@ -65,7 +65,7 @@ def accumulate_count(df, spark):
 
 
 def read_raw_dataset(ctx, spark):
-    return spark.read.parquet(aws.s3a_path(ctx.bucket, ctx.raw_dataset["key"]))
+    return spark.read.parquet(ctx.storage.hadoop_path(ctx.raw_dataset["key"]))
 
 
 def log_df_schema(df, logger_func=logger.info):
@@ -86,16 +86,16 @@ def write_training_data(model_name, df, ctx, spark):
 
     train_df_acc, train_df = accumulate_count(train_df, spark)
     train_df.write.mode("overwrite").format("tfrecords").option("recordType", "Example").save(
-        aws.s3a_path(ctx.bucket, training_dataset["train_key"])
+        ctx.storage.hadoop_path(training_dataset["train_key"])
     )
 
     eval_df_acc, eval_df = accumulate_count(eval_df, spark)
     eval_df.write.mode("overwrite").format("tfrecords").option("recordType", "Example").save(
-        aws.s3a_path(ctx.bucket, training_dataset["eval_key"])
+        ctx.storage.hadoop_path(training_dataset["eval_key"])
     )
 
     metadata = {"training_size": train_df_acc.value, "eval_size": eval_df_acc.value}
-    aws.upload_json_to_s3(metadata, training_dataset["metadata_key"], ctx.bucket)
+    ctx.storage.put_json(metadata, training_dataset["metadata_key"])
 
     return df
 

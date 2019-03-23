@@ -77,6 +77,8 @@ func dataStatusCode(dataSavedStatus *resource.DataSavedStatus) resource.StatusCo
 		return resource.StatusDataFailed
 	case resource.ExitCodeDataKilled:
 		return resource.StatusDataKilled
+	case resource.ExitCodeDataOOM:
+		return resource.StatusDataKilledOOM
 	}
 
 	return resource.StatusUnknown
@@ -91,7 +93,7 @@ func updateDataStatusCodeByParents(dataStatus *resource.DataStatus, dataStatuses
 	parentSkipped := false
 	for dependency := range allDependencies {
 		switch dataStatuses[dependency].Code {
-		case resource.StatusDataKilled:
+		case resource.StatusDataKilled, resource.StatusDataKilledOOM:
 			dataStatus.Code = resource.StatusParentKilled
 			return
 		case resource.StatusDataFailed:
