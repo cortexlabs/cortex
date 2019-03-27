@@ -22,8 +22,8 @@ assignees: ''
 [Minimal set of steps to reproduce the behavior]
 
 1. ...
-1. ...
-1. ...
+2. ...
+3. ...
 
 ### Actual Behavior
 
@@ -46,10 +46,13 @@ assignees: ''
 ```
 
 ### Version
+
 [e.g. `0.2.2` or `master` (find with `cortex --version`)]
 
 ### Additional Context
+
 [If applicable, any other context about the problem]
 
 ### Possible Solution / Implementation
+
 [Optional]
