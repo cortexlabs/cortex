@@ -32,7 +32,7 @@
     num_steps: 5000
 
 - kind: model
-  name: t2t
+  name: t2t_transformer
   type: classification
   target_column: label_indexed
   feature_columns:
@@ -45,7 +45,9 @@
     training: 0.8
     evaluation: 0.2
   training:
-    batch_size: 1
-    num_steps: 10000
+    batch_size: 64
+    num_steps: 250000
   evaluation:
     start_delay_secs: 1
+  compute:
+    gpu: 1

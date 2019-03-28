@@ -16,24 +16,16 @@ def create_estimator(run_config, model_config):
 
     hparams = trainer_lib.create_hparams("transformer_base_single_gpu")
 
-    problem = SentimentIMDBCortex()
-    vocab = model_config["aggregates"]["reviews_vocab"]
-    problem.set_vocab(list(vocab.keys()))
+    problem = SentimentIMDBCortex(list(model_config["aggregates"]["reviews_vocab"]))
     p_hparams = problem.get_hparams(hparams)
     hparams.problem = problem
     hparams.problem_hparams = p_hparams
 
-    # don't need eval_metrics
+    # only want ACC
     problem.eval_metrics = lambda: [metrics.Metrics.ACC]
 
     # t2t expects this key
     hparams.warm_start_from = None
-
-    # reduce memory load
-    hparams.num_hidden_layers = 2
-    hparams.hidden_size = 32
-    hparams.filter_size = 32
-    hparams.num_heads = 2
 
     estimator = trainer_lib.create_estimator("transformer", hparams, run_config)
     return estimator
@@ -54,7 +46,8 @@ def transform_tensorflow(features, labels, model_config):
 class SentimentIMDBCortex(imdb.SentimentIMDB):
     """IMDB sentiment classification, character level."""
 
-    def set_vocab(self, vocab_list):
+    def __init__(self, vocab_list):
+        super().__init__()
         self.vocab = vocab_list
 
     def feature_encoders(self, data_dir):
