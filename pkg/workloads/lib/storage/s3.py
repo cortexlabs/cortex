@@ -114,13 +114,13 @@ class S3(object):
     def _upload_string_to_s3(self, string, key):
         self.s3.put_object(Bucket=self.bucket, Key=key, Body=string)
 
-    def _read_bytes_from_s3(self, key, allow_missing=True):
+    def _read_bytes_from_s3(self, key, allow_missing=False):
         try:
             byte_array = self.s3.get_object(Bucket=self.bucket, Key=key)["Body"].read()
         except self.s3.exceptions.NoSuchKey as e:
             if allow_missing:
                 return None
-            raise e
+            raise CortexException("bucket " + self.bucket, "key " + key) from e
 
         return byte_array.strip()
 
@@ -130,7 +130,7 @@ class S3(object):
     def put_json(self, obj, key):
         self._upload_string_to_s3(json.dumps(obj), key)
 
-    def get_json(self, key, allow_missing=True):
+    def get_json(self, key, allow_missing=False):
         obj = self._read_bytes_from_s3(key, allow_missing).decode("utf-8")
         if obj is None:
             return None
@@ -139,7 +139,7 @@ class S3(object):
     def put_msgpack(self, obj, key):
         self._upload_string_to_s3(msgpack.dumps(obj), key)
 
-    def get_msgpack(self, key, allow_missing=True):
+    def get_msgpack(self, key, allow_missing=False):
         obj = self._read_bytes_from_s3(key, allow_missing)
         if obj == None:
             return None
@@ -148,7 +148,7 @@ class S3(object):
     def put_pyobj(self, obj, key):
         self._upload_string_to_s3(pickle.dumps(obj), key)
 
-    def get_pyobj(self, key, allow_missing=True):
+    def get_pyobj(self, key, allow_missing=False):
         obj = self._read_bytes_from_s3(key, allow_missing)
         if obj is None:
             return None
