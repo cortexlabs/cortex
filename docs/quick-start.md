@@ -3,8 +3,8 @@
 ## Prerequisites
 
 1. An AWS account
-2. A Kubernetes cluster running the Cortex operator ([installation instructions](operator/install.md))
-3. The Cortex CLI
+1. A Kubernetes cluster running the Cortex operator ([installation instructions](operator/install.md))
+1. The Cortex CLI
 
 ## TL;DR
 
