@@ -241,7 +241,7 @@ Add to `app.yaml`:
       index: class_index
 ```
 
-You can simplify the YAML for aggregates and transformed columns using [templates](applications/advanced/templates.md).
+You can simplify the configuration for aggregates and transformed columns using [templates](applications/advanced/templates.md).
 
 #### Define the model
 
