@@ -15,7 +15,7 @@ assignees: ''
 
 ### Application Configuration
 
-[If applicable, any relevant resource YAML configuration or the name of the example application]
+[If applicable, any relevant resource configuration or the name of the example application]
 
 ### To Reproduce
 

@@ -3,8 +3,8 @@
 ## Prerequisites
 
 1. An AWS account
-2. A Kubernetes cluster running the Cortex operator ([installation instructions](operator/install.md))
-3. The Cortex CLI
+1. A Kubernetes cluster running the Cortex operator ([installation instructions](operator/install.md))
+1. The Cortex CLI
 
 ## TL;DR
 
@@ -241,7 +241,7 @@ Add to `app.yaml`:
       index: class_index
 ```
 
-You can simplify the YAML for aggregates and transformed columns using [templates](applications/advanced/templates.md).
+You can simplify the configuration for aggregates and transformed columns using [templates](applications/advanced/templates.md).
 
 #### Define the model
 
