@@ -49,3 +49,5 @@
     num_steps: 1
   evaluation:
     start_delay_secs: 1
+  compute:
+    gpu: 1
