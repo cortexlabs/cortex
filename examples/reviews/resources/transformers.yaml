@@ -6,6 +6,4 @@
       col: STRING_COLUMN
     args:
       max_len: INT
-      stop_words: [STRING]
       vocab: {STRING: INT}
-      reserved_indices: {STRING: INT}

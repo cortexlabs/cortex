@@ -1,1 +1,2 @@
 tensor2tensor==1.10.0
+nltk==3.4

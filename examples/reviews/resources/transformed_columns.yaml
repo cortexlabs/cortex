@@ -6,9 +6,7 @@
       col: review
     args:
       max_len: max_review_length
-      stop_words: english_stop_words
       vocab: reviews_vocab
-      reserved_indices: reserved_indices
 
 - kind: transformed_column
   name: label_indexed

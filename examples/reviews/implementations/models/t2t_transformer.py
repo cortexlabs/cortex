@@ -44,7 +44,7 @@ def transform_tensorflow(features, labels, model_config):
 
 
 class SentimentIMDBCortex(imdb.SentimentIMDB):
-    """IMDB sentiment classification, character level."""
+    """IMDB sentiment classification, with an in-memory vocab"""
 
     def __init__(self, vocab_list):
         super().__init__()

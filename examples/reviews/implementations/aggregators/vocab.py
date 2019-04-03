@@ -18,6 +18,6 @@ def aggregate_spark(data, columns, args):
     )
 
     vocab = [row["word"] for row in vocab_rows]
-    reverse_dict = {word: idx + len(args["reserved_indices"]) for idx, word in enumerate(vocab)}
+    reverse_dict = {word: 2 + idx for idx, word in enumerate(vocab)}
 
-    return {**reverse_dict, **args["reserved_indices"]}
+    return {**reverse_dict}

@@ -6,7 +6,6 @@
       col: review
     args:
       vocab_size: 10000
-      reserved_indices: reserved_indices
 
 - kind: aggregate
   name: max_review_length
