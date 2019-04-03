@@ -18,11 +18,11 @@ def transform_python(sample, args):
             continue
         if token in stop_words:
             continue
-        token_index_list.append(vocab.get(token, 0))
+        token_index_list.append(vocab.get(token, 1))
         if len(token_index_list) == args["max_len"]:
             break
 
     for i in range(args["max_len"] - len(token_index_list)):
-        token_index_list.append(1)
+        token_index_list.append(0)
 
     return token_index_list
