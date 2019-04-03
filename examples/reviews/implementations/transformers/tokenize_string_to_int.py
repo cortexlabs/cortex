@@ -10,7 +10,7 @@ non_word = re.compile("\\W")
 def transform_python(sample, args):
     text = sample["col"].lower()
     token_index_list = []
-
+    vocab = args["vocab"]
     stop_words = set(stopwords.words("english"))
 
     for token in non_word.split(text):
@@ -18,7 +18,7 @@ def transform_python(sample, args):
             continue
         if token in stop_words:
             continue
-        token_index_list.append(0)
+        token_index_list.append(vocab.get(token, 0))
         if len(token_index_list) == args["max_len"]:
             break
 
