@@ -1,5 +1,5 @@
 - kind: api
   name: fraud
-  model_name: dnn_weighted
+  model_name: dnn
   compute:
     replicas: 1
