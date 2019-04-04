@@ -15,7 +15,7 @@
   output_type: FLOAT_COLUMN
 
 - kind: transformed_column
-  name: class_weight
+  name: weight_column
   transformer: weight
   inputs:
     columns:

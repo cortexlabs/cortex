@@ -9,7 +9,7 @@
      v15_normalized, v16_normalized, v17_normalized, v18_normalized, v19_normalized,
      v20_normalized, v21_normalized, v22_normalized, v23_normalized, v24_normalized,
      v25_normalized, v26_normalized, v27_normalized, v28_normalized, amount_normalized]
-  training_columns: [class_weight]
+  training_columns: [weight_column]
   hparams:
     hidden_units: [100, 100, 100]
   data_partition_ratio:

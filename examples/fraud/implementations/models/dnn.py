@@ -11,6 +11,6 @@ def create_estimator(run_config, model_config):
         feature_columns=feature_columns,
         hidden_units=model_config["hparams"]["hidden_units"],
         n_classes=2,
-        weight_column="class_weight",
+        weight_column="weight_column",
         config=run_config,
     )
