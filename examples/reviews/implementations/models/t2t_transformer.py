@@ -27,6 +27,12 @@ def create_estimator(run_config, model_config):
     # t2t expects this key
     hparams.warm_start_from = None
 
+    # reduce memory load
+    hparams.num_hidden_layers = 2
+    hparams.hidden_size = 32
+    hparams.filter_size = 32
+    hparams.num_heads = 2
+
     estimator = trainer_lib.create_estimator("transformer", hparams, run_config)
     return estimator
 

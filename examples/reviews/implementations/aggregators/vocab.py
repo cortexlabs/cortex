@@ -21,4 +21,4 @@ def aggregate_spark(data, columns, args):
     reverse_dict = {word: 2 + idx for idx, word in enumerate(vocab)}
     reverse_dict["<PAD>"] = 0
     reverse_dict["<UNKNOWN>"] = 1
-    return {**reverse_dict}
+    return reverse_dict
