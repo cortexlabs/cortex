@@ -38,7 +38,7 @@ class LocalStorage(object):
         p.parent.mkdir(parents=True, exist_ok=True)
         return p
 
-    def _get_path_if_exists(self, key, allow_missing=True):
+    def _get_path_if_exists(self, key, allow_missing=False):
         p = Path(os.path.join(self.base_dir, key))
         if not p.exists() and allow_missing:
             return None
@@ -69,7 +69,7 @@ class LocalStorage(object):
         f = self._get_or_create_path(key)
         f.write_text(json.dumps(obj))
 
-    def get_json(self, key, allow_missing=True):
+    def get_json(self, key, allow_missing=False):
         f = self._get_path_if_exists(key, allow_missing)
         if f is None:
             return None
@@ -79,7 +79,7 @@ class LocalStorage(object):
         f = self._get_or_create_path(key)
         f.write_bytes(msgpack.dumps(obj))
 
-    def get_msgpack(self, key, allow_missing=True):
+    def get_msgpack(self, key, allow_missing=False):
         f = self._get_path_if_exists(key, allow_missing)
         if f is None:
             return None
@@ -89,7 +89,7 @@ class LocalStorage(object):
         f = self._get_or_create_path(key)
         f.write_bytes(pickle.dumps(obj))
 
-    def get_pyobj(self, key, bucket, allow_missing=True):
+    def get_pyobj(self, key, bucket, allow_missing=False):
         f = self._get_path_if_exists(key, allow_missing)
         if f is None:
             return None
