@@ -13,9 +13,7 @@ def aggregate_spark(data, columns, args):
     regexTokenized = regexTokenizer.transform(data)
 
     remover = StopWordsRemover(
-        inputCol="token_list",
-        outputCol="filtered_word_list",
-        stopWords=set(stopwords.words("english")),
+        inputCol="token_list", outputCol="filtered_word_list", stopWords=stopwords.words("english")
     )
     max_review_length_row = (
         remover.transform(regexTokenized)
