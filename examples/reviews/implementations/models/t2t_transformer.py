@@ -21,8 +21,11 @@ def create_estimator(run_config, model_config):
     hparams.problem = problem
     hparams.problem_hparams = p_hparams
 
-    # only want ACC
-    problem.eval_metrics = lambda: [metrics.Metrics.ACC]
+    problem.eval_metrics = lambda: [
+        metrics.Metrics.ACC_TOP5,
+        metrics.Metrics.ACC_PER_SEQ,
+        metrics.Metrics.NEG_LOG_PERPLEXITY,
+    ]
 
     # t2t expects this key
     hparams.warm_start_from = None
@@ -40,10 +43,7 @@ def create_estimator(run_config, model_config):
 def transform_tensorflow(features, labels, model_config):
     max_length = model_config["aggregates"]["max_review_length"]
 
-    features["inputs"] = tf.expand_dims(
-        tf.expand_dims(tf.reshape(features["embedding_input"], [max_length]), -1), -1
-    )
-
+    features["inputs"] = tf.expand_dims(tf.reshape(features["embedding_input"], [max_length]), -1)
     features["targets"] = tf.expand_dims(tf.expand_dims(labels, -1), -1)
 
     return features, labels

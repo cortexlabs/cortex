@@ -45,7 +45,7 @@
     training: 0.8
     evaluation: 0.2
   training:
-    batch_size: 64
+    batch_size: 16
     num_steps: 250000
   evaluation:
     start_delay_secs: 1
