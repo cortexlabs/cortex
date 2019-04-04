@@ -17,8 +17,6 @@
 
     - kind: transformed_column
       name: {column}_normalized
-      tags:
-        type: numeric
       transformer: cortex.normalize
       inputs:
         columns:
