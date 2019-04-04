@@ -5,7 +5,6 @@
       col: STRING_COLUMN
   output_type: INT
 
-
 - kind: aggregate
   name: max_review_length
   aggregator: max_length
