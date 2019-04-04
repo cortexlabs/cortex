@@ -7,3 +7,11 @@
       header: true
       escape: "\""
     schema: ["review", "label"]
+
+- kind: raw_column
+  name: review
+  type: STRING_COLUMN
+
+- kind: raw_column
+  name: label
+  type: STRING_COLUMN
