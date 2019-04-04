@@ -147,19 +147,3 @@
   template: normalize
   args:
     column: amount
-
-- kind: aggregate
-  name: class_distribution
-  aggregator: cortex.class_distribution_int
-  inputs:
-    columns:
-      col: class
-
-- kind: transformed_column
-  name: class_weight
-  transformer: weight
-  inputs:
-    columns:
-      col: class
-    args:
-      class_distribution: class_distribution

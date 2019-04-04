@@ -22,10 +22,10 @@ The `cortex deploy` command will validate all resource configuration and attempt
 Cortex processes resources in the following order:
 
 1. Raw Columns
-2. Aggregates
-3. Transformed Columns
-4. Models
-5. APIs
+1. Aggregates
+1. Transformed Columns
+1. Models
+1. APIs
 
 If resource configuration changes, Cortex attempts to reuse cached resources whenever possible.
 

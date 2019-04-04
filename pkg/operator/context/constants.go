@@ -22,6 +22,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/resource"
+	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -49,7 +50,7 @@ func loadConstants(constantConfigs userconfig.Constants) (context.Constants, err
 func newConstant(constantConfig userconfig.Constant) (*context.Constant, error) {
 	var buf bytes.Buffer
 	buf.WriteString(context.DataTypeID(constantConfig.Type))
-	buf.Write(msgpack.MustMarshal(constantConfig.Value))
+	buf.WriteString(s.Obj(constantConfig.Value))
 	id := hash.Bytes(buf.Bytes())
 	idWithTags := hash.String(id + constantConfig.Tags.ID())
 

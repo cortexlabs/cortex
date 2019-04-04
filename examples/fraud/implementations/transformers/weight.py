@@ -5,5 +5,5 @@ def transform_spark(data, columns, args, transformed_column):
 
     return data.withColumn(
         transformed_column,
-        F.when(data[columns["col"]] == 0, 1 - distribution[0]).otherwise(1 - distribution[1]),
+        F.when(data[columns["col"]] == 0, distribution[1]).otherwise(distribution[0]),
     )
