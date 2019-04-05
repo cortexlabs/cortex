@@ -17,8 +17,7 @@ import spark_util
 from spark_job import spark_job
 from lib.exceptions import UserException
 from lib import Context
-from test.integration.iris_context import raw_ctx
-import consts
+from test.integration.iris_context import get_raw_ctx
 
 import pytest
 from pyspark.sql.types import *
@@ -55,9 +54,9 @@ def test_simple_end_to_end(spark):
     local_storage_path = Path("/workspace/local_storage")
     local_storage_path.mkdir(parents=True, exist_ok=True)
     should_ingest = True
+    input_data_path = os.path.join(str(local_storage_path), "iris.csv")
 
-    # accommodate hard-coded version in iris_context.py
-    raw_ctx["cortex_config"]["api_version"] = consts.CORTEX_VERSION
+    raw_ctx = get_raw_ctx(input_data_path)
 
     workload_id = raw_ctx["raw_columns"]["raw_float_columns"]["sepal_length"]["workload_id"]
 
@@ -69,10 +68,6 @@ def test_simple_end_to_end(spark):
 
     iris_data_string = "\n".join(",".join(str(val) for val in line) for line in iris_data)
     Path(os.path.join(str(local_storage_path), "iris.csv")).write_text(iris_data_string)
-
-    raw_ctx["environment_data"]["csv_data"]["path"] = os.path.join(
-        str(local_storage_path), "iris.csv"
-    )
 
     ctx = Context(
         raw_obj=raw_ctx, cache_dir="/workspace/cache", local_storage_path=str(local_storage_path)
