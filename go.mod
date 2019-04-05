@@ -1,5 +1,5 @@
 // locked dependency versions:
-//   github.com/GoogleCloudPlatform/spark-on-k8s-operator v1alpha1-0.5-2.4.1
+//   github.com/GoogleCloudPlatform/spark-on-k8s-operator v1alpha1-0.5-2.4.0
 //   github.com/argoproj/argo v2.2.1
 //   k8s.io/client-go v10.0.0
 // go to the commit for the client-go release and browse to Godeps/Godeps.json to find these SHAs:
