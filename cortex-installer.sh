@@ -507,20 +507,20 @@ metadata:
   namespace: ${CORTEX_NAMESPACE}
   labels:
     app.kubernetes.io/name: spark-operator
-    app.kubernetes.io/version: v2.4.0-v1alpha1
+    app.kubernetes.io/version: v2.4.1-v1alpha1
 spec:
   replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: spark-operator
-      app.kubernetes.io/version: v2.4.0-v1alpha1
+      app.kubernetes.io/version: v2.4.1-v1alpha1
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
         app.kubernetes.io/name: spark-operator
-        app.kubernetes.io/version: v2.4.0-v1alpha1
+        app.kubernetes.io/version: v2.4.1-v1alpha1
       initializers:
         pending: []
     spec:

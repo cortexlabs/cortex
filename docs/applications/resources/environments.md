@@ -35,7 +35,7 @@ data:
 
 #### CSV Config
 
-To help ingest different styles of CSV files, Cortex supports the parameters listed below. All of these parameters are optional. A description and default values for each parameter can be found in the [PySpark CSV Documentation](https://spark.apache.org/docs/2.4.0/api/python/pyspark.sql.html#pyspark.sql.DataFrameReader.csv).
+To help ingest different styles of CSV files, Cortex supports the parameters listed below. All of these parameters are optional. A description and default values for each parameter can be found in the [PySpark CSV Documentation](https://spark.apache.org/docs/2.4.1/api/python/pyspark.sql.html#pyspark.sql.DataFrameReader.csv).
 
 ```yaml
 csv_config:

@@ -42,7 +42,7 @@ def aggregate_spark(data, columns, args):
 The following packages have been pre-installed and can be used in your implementations:
 
 ```text
-pyspark==2.4.0
+pyspark==2.4.1
 boto3==1.9.78
 msgpack==0.6.1
 numpy>=1.13.3,<2
