@@ -5,7 +5,7 @@ Transformers run both when transforming data before model training and when resp
 ## Implementation
 
 ```python
-def transform_spark(data, columns, args, transformed_column):
+def transform_spark(data, columns, args, transformed_column_name):
     """Transform a column in a PySpark context.
 
     This function is optional (recommended for large-scale data processing).
@@ -20,12 +20,12 @@ def transform_spark(data, columns, args, transformed_column):
         args: A dict with the same structure as the transformer's input args
             containing the runtime values of the args.
 
-        transformed_column: The name of the column containing the transformed
+        transformed_column_name: The name of the column containing the transformed
             data that is to be appended to the dataframe.
 
     Returns:
-        The original 'data' dataframe with an added column with the name of the
-        transformed_column arg containing the transformed data.
+        The original 'data' dataframe with an added column named <transformed_column_name>
+        which contains the transformed data.
     """
     pass
 
@@ -69,9 +69,9 @@ def reverse_transform_python(transformed_value, args):
 ## Example
 
 ```python
-def transform_spark(data, columns, args, transformed_column):
+def transform_spark(data, columns, args, transformed_column_name):
     return data.withColumn(
-        transformed_column, ((data[columns["num"]] - args["mean"]) / args["stddev"])
+        transformed_column_name, ((data[columns["num"]] - args["mean"]) / args["stddev"])
     )
 
 def transform_python(sample, args):

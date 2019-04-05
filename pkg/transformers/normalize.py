@@ -13,9 +13,9 @@
 # limitations under the License.
 
 
-def transform_spark(data, columns, args, transformed_column):
+def transform_spark(data, columns, args, transformed_column_name):
     return data.withColumn(
-        transformed_column, ((data[columns["num"]] - args["mean"]) / args["stddev"])
+        transformed_column_name, ((data[columns["num"]] - args["mean"]) / args["stddev"])
     )
 
 

@@ -481,7 +481,7 @@ AGGREGATOR_IMPL_VALIDATION = {
 
 TRANSFORMER_IMPL_VALIDATION = {
     "optional": [
-        {"name": "transform_spark", "args": ["data", "columns", "args", "transformed_column"]},
+        {"name": "transform_spark", "args": ["data", "columns", "args", "transformed_column_name"]},
         {"name": "reverse_transform_python", "args": ["transformed_value", "args"]},
         {"name": "transform_python", "args": ["sample", "args"]},
     ]
