@@ -33,7 +33,7 @@ Note: the `columns` and `args` fields of the the aggregate must match the data t
 
 Each `args` value may be the name of a constant or a literal value. Any string value will be assumed to be the name of a constant. To use a string literal as an arg, escape it with double quotes (e.g. `arg_name: "\"string literal\""`.
 
-See <!-- CORTEX_VERSION_MINOR -->[`aggregators.yaml`](https://github.com/cortexlabs/cortex/blob/master/pkg/aggregators/aggregators.yaml) for a list of built-in aggregators.
+See <!-- CORTEX_VERSION_MINOR -->[`aggregators.yaml`](https://github.com/cortexlabs/cortex/blob/0.3/pkg/aggregators/aggregators.yaml) for a list of built-in aggregators.
 
 ## Example
 
