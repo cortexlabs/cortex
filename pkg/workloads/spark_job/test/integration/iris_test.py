@@ -17,7 +17,7 @@ import spark_util
 from spark_job import spark_job
 from lib.exceptions import UserException
 from lib import Context
-from test.integration.iris_context import get_raw_ctx
+from test.integration import iris_context
 
 import pytest
 from pyspark.sql.types import *
@@ -56,7 +56,7 @@ def test_simple_end_to_end(spark):
     should_ingest = True
     input_data_path = os.path.join(str(local_storage_path), "iris.csv")
 
-    raw_ctx = get_raw_ctx(input_data_path)
+    raw_ctx = iris_context.get(input_data_path)
 
     workload_id = raw_ctx["raw_columns"]["raw_float_columns"]["sepal_length"]["workload_id"]
 

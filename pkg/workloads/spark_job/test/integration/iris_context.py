@@ -30,7 +30,7 @@ S3(bucket, client_config={}).get_msgpack(key)
 """
 
 
-def get_raw_ctx(input_data_path):
+def get(input_data_path):
     raw_ctx["environment_data"]["csv_data"]["path"] = input_data_path
     raw_ctx["cortex_config"]["api_version"] = consts.CORTEX_VERSION
 
@@ -519,7 +519,7 @@ raw_ctx = {
     "cortex_config": {
         "region": "us-west-2",
         "log_group": "cortex",
-        "api_version": consts.CORTEX_VERSION,
+        "api_version": "master",
         "id": "da5e65b994ba4ebb069bdc19cf73da64aee79e5d83f466038dc75b3ef04fa63",
     },
     "root": "apps/iris/data/2019-03-08-09-58-35-701834/3976c5679bcf7cb550453802f4c3a9333c5f193f6097f1f5642de48d2397554",
