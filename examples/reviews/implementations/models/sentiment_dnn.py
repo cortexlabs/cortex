@@ -5,11 +5,9 @@ from tensorflow import keras
 def create_estimator(run_config, model_config):
     hparams = model_config["hparams"]
     vocab_size = len(model_config["aggregates"]["reviews_vocab"])
-    max_review_length = model_config["aggregates"]["max_review_length"]
 
     def model_fn(features, labels, mode, params):
         embedding_input = features["embedding_input"]
-        embedding_input = tf.reshape(embedding_input, [-1, max_review_length])
         model = keras.Sequential()
         model.add(keras.layers.Embedding(vocab_size, 16))
         model.add(keras.layers.GlobalAveragePooling1D())
@@ -36,6 +34,7 @@ def create_estimator(run_config, model_config):
                 loss=loss,
                 train_op=optimizer.minimize(loss, tf.train.get_or_create_global_step()),
             )
+
         if mode is tf.estimator.ModeKeys.EVAL:
             logits = model(embedding_input, training=False)
             loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)

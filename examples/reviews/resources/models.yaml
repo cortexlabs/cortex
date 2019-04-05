@@ -6,7 +6,6 @@
     - embedding_input
   aggregates:
     - reviews_vocab
-    - max_review_length
   hparams:
     learning_rate: 0.01
   data_partition_ratio:
