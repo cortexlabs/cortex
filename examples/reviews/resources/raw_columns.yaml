@@ -1,3 +1,13 @@
+- kind: environment
+  name: dev
+  data:
+    type: csv
+    path: s3a://cortex-examples/reviews.csv
+    csv_config:
+      header: true
+      escape: "\""
+    schema: ["review", "label"]
+
 - kind: raw_column
   name: review
   type: STRING_COLUMN

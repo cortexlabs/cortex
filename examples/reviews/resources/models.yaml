@@ -30,3 +30,24 @@
   training:
     batch_size: 64
     num_steps: 5000
+
+- kind: model
+  name: t2t_transformer
+  type: classification
+  target_column: label_indexed
+  feature_columns:
+    - embedding_input
+  aggregates:
+    - max_review_length
+    - reviews_vocab
+  prediction_key: outputs
+  data_partition_ratio:
+    training: 0.8
+    evaluation: 0.2
+  training:
+    batch_size: 16
+    num_steps: 250000
+  evaluation:
+    start_delay_secs: 1
+  compute:
+    gpu: 1

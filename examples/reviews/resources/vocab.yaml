@@ -1,3 +1,12 @@
+- kind: aggregator
+  name: vocab
+  output_type: {STRING: INT}
+  inputs:
+    columns:
+      col: STRING_COLUMN
+    args:
+      vocab_size: INT
+
 - kind: aggregate
   name: reviews_vocab
   aggregator: vocab
@@ -6,14 +15,6 @@
       col: review
     args:
       vocab_size: 10000
-      reserved_indices: reserved_indices
-
-- kind: aggregate
-  name: max_review_length
-  aggregator: max_length
-  inputs:
-    columns:
-      col: review
 
 - kind: aggregate
   name: label_index
