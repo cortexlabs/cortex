@@ -18,6 +18,7 @@ from spark_job import spark_job
 from lib.exceptions import UserException
 from lib import Context
 from test.integration.iris_context import raw_ctx
+import consts
 
 import pytest
 from pyspark.sql.types import *
@@ -27,6 +28,7 @@ from mock import MagicMock, call
 from py4j.protocol import Py4JJavaError
 from pathlib import Path
 import os
+import copy
 
 pytestmark = pytest.mark.usefixtures("spark")
 
@@ -51,26 +53,31 @@ iris_data = [
 
 
 def test_simple_end_to_end(spark):
+    iris_ctx = copy.deepcopy(raw_ctx)
     local_storage_path = Path("/workspace/local_storage")
     local_storage_path.mkdir(parents=True, exist_ok=True)
     should_ingest = True
-    workload_id = raw_ctx["raw_columns"]["raw_float_columns"]["sepal_length"]["workload_id"]
+
+    # accommodate hard-coded version in iris_context.py
+    iris_ctx["cortex_config"]["api_version"] = consts.CORTEX_VERSION
+
+    workload_id = iris_ctx["raw_columns"]["raw_float_columns"]["sepal_length"]["workload_id"]
 
     cols_to_validate = []
 
-    for column_type in raw_ctx["raw_columns"].values():
+    for column_type in iris_ctx["raw_columns"].values():
         for raw_column in column_type.values():
             cols_to_validate.append(raw_column["id"])
 
     iris_data_string = "\n".join(",".join(str(val) for val in line) for line in iris_data)
     Path(os.path.join(str(local_storage_path), "iris.csv")).write_text(iris_data_string)
 
-    raw_ctx["environment_data"]["csv_data"]["path"] = os.path.join(
+    iris_ctx["environment_data"]["csv_data"]["path"] = os.path.join(
         str(local_storage_path), "iris.csv"
     )
 
     ctx = Context(
-        raw_obj=raw_ctx, cache_dir="/workspace/cache", local_storage_path=str(local_storage_path)
+        raw_obj=iris_ctx, cache_dir="/workspace/cache", local_storage_path=str(local_storage_path)
     )
     storage = ctx.storage
 
@@ -79,44 +86,44 @@ def test_simple_end_to_end(spark):
     assert raw_df.count() == 15
     assert storage.get_json(ctx.raw_dataset["metadata_key"])["dataset_size"] == 15
     for raw_column_id in cols_to_validate:
-        path = os.path.join(raw_ctx["status_prefix"], raw_column_id, workload_id)
+        path = os.path.join(iris_ctx["status_prefix"], raw_column_id, workload_id)
         status = storage.get_json(str(path))
         status["resource_id"] = raw_column_id
         status["exist_code"] = "succeeded"
 
-    cols_to_aggregate = [r["id"] for r in raw_ctx["aggregates"].values()]
+    cols_to_aggregate = [r["id"] for r in iris_ctx["aggregates"].values()]
 
     spark_job.run_custom_aggregators(spark, ctx, cols_to_aggregate, raw_df)
 
     for aggregate_id in cols_to_aggregate:
-        for aggregate_resource in raw_ctx["aggregates"].values():
+        for aggregate_resource in iris_ctx["aggregates"].values():
             if aggregate_resource["id"] == aggregate_id:
                 assert local_storage_path.joinpath(aggregate_resource["key"]).exists()
-        path = os.path.join(raw_ctx["status_prefix"], aggregate_id, workload_id)
+        path = os.path.join(iris_ctx["status_prefix"], aggregate_id, workload_id)
         status = storage.get_json(str(path))
         status["resource_id"] = aggregate_id
         status["exist_code"] = "succeeded"
 
-    cols_to_transform = [r["id"] for r in raw_ctx["transformed_columns"].values()]
+    cols_to_transform = [r["id"] for r in iris_ctx["transformed_columns"].values()]
     spark_job.validate_transformers(spark, ctx, cols_to_transform, raw_df)
 
     for transformed_id in cols_to_transform:
-        path = os.path.join(raw_ctx["status_prefix"], transformed_id, workload_id)
+        path = os.path.join(iris_ctx["status_prefix"], transformed_id, workload_id)
         status = storage.get_json(str(path))
         status["resource_id"] = transformed_id
         status["exist_code"] = "succeeded"
 
-    training_datasets = [raw_ctx["models"]["dnn"]["dataset"]["id"]]
+    training_datasets = [iris_ctx["models"]["dnn"]["dataset"]["id"]]
 
     spark_job.create_training_datasets(spark, ctx, training_datasets, raw_df)
 
     for dataset_id in training_datasets:
-        path = os.path.join(raw_ctx["status_prefix"], transformed_id, workload_id)
+        path = os.path.join(iris_ctx["status_prefix"], transformed_id, workload_id)
         status = storage.get_json(str(path))
         status["resource_id"] = transformed_id
         status["exist_code"] = "succeeded"
 
-        dataset = raw_ctx["models"]["dnn"]["dataset"]
+        dataset = iris_ctx["models"]["dnn"]["dataset"]
         metadata_key = storage.get_json(dataset["metadata_key"])
         assert metadata_key["training_size"] + metadata_key["eval_size"] == 15
         assert local_storage_path.joinpath(dataset["train_key"], "_SUCCESS").exists()
