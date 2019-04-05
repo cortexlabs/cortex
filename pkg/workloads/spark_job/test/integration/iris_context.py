@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import consts
+
 """
 HOW TO GENERATE CONTEXT
 
@@ -25,9 +27,15 @@ from lib import util
 from lib.storage import S3
 bucket, key = S3.deconstruct_s3_path('s3://<cortex-bucket>/apps/<app-name>/contexts/<context-id>.msgpack')
 S3(bucket, client_config={}).get_msgpack(key)
-
-5. Modify environment_data.csv_data.path to point to the correct input data file
 """
+
+
+def get(input_data_path):
+    raw_ctx["environment_data"]["csv_data"]["path"] = input_data_path
+    raw_ctx["cortex_config"]["api_version"] = consts.CORTEX_VERSION
+
+    return raw_ctx
+
 
 raw_ctx = {
     "raw_dataset": {
