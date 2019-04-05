@@ -2,17 +2,18 @@
 
 ## Statuses
 
-| Status               | Meaning |
-|----------------------|---|
-| ready                | Resource is ready |
-| pending              | Resource is waiting for another resource to be ready, or its workload is initializing |
+| Status                  | Meaning |
+|-------------------------|---|
+| ready                   | Resource is ready |
+| pending                 | Resource is waiting for another resource to be ready, or its workload is initializing |
 | running, ingesting,<br>aggregating, transforming,<br>generating, training | Resource is being created |
-| error                | Resource was not created due to an error; run `cortex logs <name>` to view the logs |
-| skipped              | Resource was not created due to an error in another resource in the same workload |
-| terminated           | Resource was terminated |
-| upstream error       | Resource was not created due to an error in one of its dependencies |
-| upstream termination | Resource was not created because one of its dependencies was terminated |
-| compute unavailable  | Resource's workload could not start due to insufficient memory, CPU or GPU in the cluster |
+| error                   | Resource was not created due to an error; run `cortex logs <name>` to view the logs |
+| skipped                 | Resource was not created due to an error in another resource in the same workload |
+| terminated              | Resource was terminated |
+| terminated (out of mem) | Resource was terminated due to insufficient memory |
+| upstream error          | Resource was not created due to an error in one of its dependencies |
+| upstream termination    | Resource was not created because one of its dependencies was terminated |
+| compute unavailable     | Resource's workload could not start due to insufficient memory, CPU, or GPU in the cluster |
 
 ## API statuses
 
@@ -29,4 +30,4 @@
 | update skipped       | API was not updated due to an error in another resource; a previous version of this API is ready |
 | upstream error       | API was not created due to an error in one of its dependencies; a previous version of this API may be ready |
 | upstream termination | API was not created because one of its dependencies was terminated; a previous version of this API may be ready |
-| compute unavailable  | API could not start due to insufficient memory, CPU or GPU in the cluster; some replicas may be ready |
+| compute unavailable  | API could not start due to insufficient memory, CPU, or GPU in the cluster; some replicas may be ready |
