@@ -348,7 +348,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 	if !v.AllowExtraFields {
 		extraFields := slices.SubtractStrSlice(maps.InterfaceMapKeys(interMap), allowedFields)
 		for _, extraField := range extraFields {
-			allErrs = append(allErrs, errors.New(s.ErrUnsupportedKey(extraField)))
+			allErrs = append(allErrs, ErrorUnsupportedKey(extraField))
 		}
 	}
 	if errors.HasErrors(allErrs) {
@@ -644,7 +644,7 @@ func ReadYAMLBytes(yamlBytes []byte) (interface{}, error) {
 	var parsed interface{}
 	err := yaml.Unmarshal(yamlBytes, &parsed)
 	if err != nil {
-		return nil, errors.New(s.ErrUnmarshalYaml, s.CleanYAMLError(err))
+		return nil, ErrorUnmarshalYAML(err)
 	}
 	return parsed, nil
 }

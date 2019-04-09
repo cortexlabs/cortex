@@ -18,7 +18,6 @@ package strings
 
 import (
 	"fmt"
-	"strings"
 )
 
 var (
@@ -38,7 +37,6 @@ var (
 
 	ErrMarshalJSON      = "invalid json cannot be serialized"
 	ErrUnmarshalJSON    = "invalid json"
-	ErrUnmarshalYaml    = "invalid yaml"
 	ErrMarshalMsgpack   = "invalid messagepack cannot be serialized"
 	ErrUnmarshalMsgpack = "invalid messagepack"
 
@@ -67,10 +65,6 @@ func MapMustBeDefined(keys ...string) string {
 		return fmt.Sprintf("must be defined")
 	}
 	return fmt.Sprintf("must be defined, and contain the following keys: %s", UserStrsAnd(keys))
-}
-
-func ErrUnsupportedKey(key interface{}) string {
-	return fmt.Sprintf("key %s is not supported", UserStr(key))
 }
 
 func ErrDuplicatedValue(val interface{}) string {
@@ -153,85 +147,4 @@ func ErrReadFile(path string) string {
 
 func ErrReadDir(path string) string {
 	return fmt.Sprintf("%s: unable to read directory", path)
-}
-
-func ErrReadFormFile(fileName string) string {
-	return fmt.Sprintf("unable to read request form file %s", UserStr(fileName))
-}
-
-func ErrCreateFile(path string) string {
-	return fmt.Sprintf("%s: unable to create file", path)
-}
-
-func ErrCreateDir(path string) string {
-	return fmt.Sprintf("%s: unable to create directory", path)
-}
-
-func ErrWriteFile(path string) string {
-	return fmt.Sprintf("%s: unable to write file", path)
-}
-
-func ErrCwdDirExists(dirName string) string {
-	return fmt.Sprintf("a directory named %s already exists in your current working directory", UserStr(dirName))
-}
-
-func ErrDuplicateZipPath(path string) string {
-	return fmt.Sprintf("conflicting path in zip (%s)", UserStr(path))
-}
-
-func ErrFailedToConnect(urlStr string) string {
-	return fmt.Sprintf("failed to connect to the operator (%s), run `cortex configure` if you need to update the operator URL", urlStr)
-}
-
-func ErrBeMoreSpecific(vals ...string) string {
-	return fmt.Sprintf("please specify %s", UserStrsOr(vals))
-}
-
-func ErrAPINotFound(apiName string) string {
-	return fmt.Sprintf("api %s not found", UserStr(apiName))
-}
-
-func ErrUserDataUnavailable(s3Path string) string {
-	return fmt.Sprintf("the file at %s does not exist, or your cluster does not have access to it", s3Path)
-}
-
-func ErrAppNotDeployed(appName string) string {
-	return fmt.Sprintf("app %s is not deployed", UserStr(appName))
-}
-
-func ErrAPINotReady(apiName string, status string) string {
-	return fmt.Sprintf("api %s is %s", UserStr(apiName), status)
-}
-
-func ErrCliAlreadyInAppDir(dirPath string) string {
-	return fmt.Sprintf("your current working directory is already in a cortex app directory (%s)", dirPath)
-}
-
-func ErrAPIVersionMismatch(operatorVersion string, clientVersion string) string {
-	return fmt.Sprintf("API version mismatch (Operator: %s; Client: %s)", operatorVersion, clientVersion)
-}
-
-func ErrFormFileMustBeProvided(fileName string) string {
-	return fmt.Sprintf("request form file %s must be provided", UserStr(fileName))
-}
-
-func ErrPathParamMustBeProvided(paramName string) string {
-	return fmt.Sprintf("path param %s must be provided", UserStr(paramName))
-}
-
-func ErrQueryParamMustBeProvided(paramName string) string {
-	return fmt.Sprintf("query param %s must be provided", UserStr(paramName))
-}
-
-func ErrAnyQueryParamMustBeProvided(paramNames ...string) string {
-	return fmt.Sprintf("path params %s must be provided", UserStrsOr(paramNames))
-}
-
-func ErrUndefinedNameOrType(resourceNameOrType string) string {
-	return fmt.Sprintf("resource name or type %s does not exist", UserStr(resourceNameOrType))
-}
-
-func CleanYAMLError(err error) string {
-	str := err.Error()
-	return strings.TrimPrefix(str, "yaml: ")
 }

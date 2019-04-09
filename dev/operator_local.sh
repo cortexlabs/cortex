@@ -28,5 +28,5 @@ export CONST_OPERATOR_IN_CLUSTER=false
 if ! command -v rerun >/dev/null; then
   GO111MODULE=off go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
 fi
-rerun -watch $ROOT/pkg -ignore $ROOT/vendor $ROOT/bin -run sh -c "go run $ROOT/pkg/operator/operator.go"
+rerun -watch $ROOT/pkg -ignore $ROOT/vendor $ROOT/bin -run sh -c "go build -o $ROOT/bin/operator $ROOT/pkg/operator && $ROOT/bin/operator"
 # go run -race $ROOT/pkg/operator/operator.go

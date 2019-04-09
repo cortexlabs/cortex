@@ -46,7 +46,7 @@ func getTransformedColumns(
 
 		err = validateTransformedColumnInputs(transformedColumnConfig, constants, rawColumns, aggregates, transformer)
 		if err != nil {
-			return nil, errors.Wrap(err)
+			return nil, err
 		}
 
 		valueResourceIDMap := make(map[string]string, len(transformedColumnConfig.Inputs.Args))

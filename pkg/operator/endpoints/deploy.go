@@ -108,17 +108,17 @@ func respondDeploy(w http.ResponseWriter, message string) {
 }
 
 func getContext(r *http.Request, ignoreCache bool) (*context.Context, error) {
-	envName, err := getRequiredQParam("environment", r)
+	envName, err := getRequiredQueryParam("environment", r)
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, err
 	}
 
 	zipBytes, err := files.ReadReqFile(r, "config.zip")
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, err
 	}
 	if len(zipBytes) == 0 {
-		return nil, errors.New(s.ErrFormFileMustBeProvided("config.zip"))
+		return nil, ErrorFormFileMustBeProvided("config.zip")
 	}
 
 	zipContents, err := zip.UnzipMemToMem(zipBytes)

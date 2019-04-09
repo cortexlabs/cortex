@@ -49,11 +49,11 @@ func WriteJSON(obj interface{}, outPath string) error {
 	}
 	err = os.MkdirAll(filepath.Dir(outPath), os.ModePerm)
 	if err != nil {
-		return errors.Wrap(err, s.ErrCreateDir(filepath.Dir(outPath)))
+		return errors.Wrap(err, ErrorCreateDir(filepath.Dir(outPath)).Error())
 	}
 	err = ioutil.WriteFile(outPath, jsonBytes, 0644)
 	if err != nil {
-		return errors.Wrap(err, s.ErrWriteFile(outPath))
+		return errors.Wrap(err, ErrorWriteFile(outPath).Error())
 	}
 	return nil
 }

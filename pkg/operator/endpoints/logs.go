@@ -28,13 +28,13 @@ import (
 )
 
 func ReadLogs(w http.ResponseWriter, r *http.Request) {
-	appName, err := getRequiredQParam("appName", r)
+	appName, err := getRequiredQueryParam("appName", r)
 	if RespondIfError(w, err) {
 		return
 	}
 	ctx := workloads.CurrentContext(appName)
 	if ctx == nil {
-		RespondError(w, errors.New(s.ErrAppNotDeployed(appName)))
+		RespondError(w, ErrorAppNotDeployed(appName))
 		return
 	}
 
@@ -64,7 +64,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resourceName == "" {
-		RespondError(w, errors.New(s.ErrAnyQueryParamMustBeProvided("workloadID", "resourceID", "resourceName")))
+		RespondError(w, ErrorPathParamRequired("workloadID", "resourceID", "resourceName"))
 		return
 	}
 

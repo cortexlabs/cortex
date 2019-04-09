@@ -21,8 +21,6 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 var serviceTypeMeta = metav1.TypeMeta{
@@ -69,7 +67,7 @@ func Service(spec *ServiceSpec) *corev1.Service {
 func CreateService(spec *ServiceSpec) (*corev1.Service, error) {
 	service, err := serviceClient.Create(Service(spec))
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, err
 	}
 	return service, nil
 }
@@ -80,7 +78,7 @@ func GetService(name string) (*corev1.Service, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, err
 	}
 	service.TypeMeta = serviceTypeMeta
 	return service, nil
@@ -92,7 +90,7 @@ func DeleteService(name string) (bool, error) {
 		return false, nil
 	}
 	if err != nil {
-		return false, errors.Wrap(err)
+		return false, err
 	}
 	return true, nil
 }
@@ -111,7 +109,7 @@ func ListServices(opts *metav1.ListOptions) ([]corev1.Service, error) {
 	}
 	serviceList, err := serviceClient.List(*opts)
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, err
 	}
 	for i := range serviceList.Items {
 		serviceList.Items[i].TypeMeta = serviceTypeMeta

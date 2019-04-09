@@ -253,7 +253,7 @@ func (ctx *Context) VisibleResourceByName(name string) (ComputedResource, error)
 			resourceTypeStr := resource.GetResourceType().String()
 			validStrs[i] = resourceTypeStr + " " + name
 		}
-		return nil, errors.New(s.ErrBeMoreSpecific(validStrs...))
+		return nil, resource.ErrorBeMoreSpecific(validStrs...)
 	}
 	return resources[0], nil
 }

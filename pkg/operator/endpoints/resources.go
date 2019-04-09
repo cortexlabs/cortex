@@ -20,20 +20,18 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
 func GetResources(w http.ResponseWriter, r *http.Request) {
-	appName, err := getRequiredQParam("appName", r)
+	appName, err := getRequiredQueryParam("appName", r)
 	if RespondIfError(w, err) {
 		return
 	}
 
 	ctx := workloads.CurrentContext(appName)
 	if ctx == nil {
-		RespondError(w, errors.New(s.ErrAppNotDeployed(appName)))
+		RespondError(w, ErrorAppNotDeployed(appName))
 		return
 	}
 

@@ -27,7 +27,6 @@ import (
 	cron "gopkg.in/robfig/cron.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -108,7 +107,7 @@ func apiVersionCheckMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		clientVersion := r.Header.Get("CortexAPIVersion")
 		if clientVersion != consts.CortexVersion {
-			http.Error(w, s.ErrAPIVersionMismatch(consts.CortexVersion, clientVersion), http.StatusBadRequest)
+			endpoints.RespondError(w, ErrorAPIVersionMismatch(consts.CortexVersion, clientVersion))
 			return
 		}
 		next.ServeHTTP(w, r)

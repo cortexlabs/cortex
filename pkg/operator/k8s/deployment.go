@@ -23,8 +23,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 var deploymentTypeMeta = metav1.TypeMeta{
@@ -85,7 +83,7 @@ func Deployment(spec *DeploymentSpec) *appsv1b1.Deployment {
 func CreateDeployment(spec *DeploymentSpec) (*appsv1b1.Deployment, error) {
 	deployment, err := deploymentClient.Create(Deployment(spec))
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, err
 	}
 	return deployment, nil
 }
@@ -93,7 +91,7 @@ func CreateDeployment(spec *DeploymentSpec) (*appsv1b1.Deployment, error) {
 func UpdateDeployment(deployment *appsv1b1.Deployment) (*appsv1b1.Deployment, error) {
 	deployment, err := deploymentClient.Update(deployment)
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, err
 	}
 	return deployment, nil
 }
@@ -104,7 +102,7 @@ func GetDeployment(name string) (*appsv1b1.Deployment, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, err
 	}
 	deployment.TypeMeta = deploymentTypeMeta
 	return deployment, nil
@@ -116,7 +114,7 @@ func DeleteDeployment(name string) (bool, error) {
 		return false, nil
 	}
 	if err != nil {
-		return false, errors.Wrap(err)
+		return false, err
 	}
 	return true, nil
 }
@@ -135,7 +133,7 @@ func ListDeployments(opts *metav1.ListOptions) ([]appsv1b1.Deployment, error) {
 	}
 	deploymentList, err := deploymentClient.List(*opts)
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, err
 	}
 	for i := range deploymentList.Items {
 		deploymentList.Items[i].TypeMeta = deploymentTypeMeta

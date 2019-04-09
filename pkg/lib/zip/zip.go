@@ -124,7 +124,7 @@ func ToWriter(zipInput *Input, writer io.Writer) error {
 func ToFile(zipInput *Input, destPath string) error {
 	zipfile, err := os.Create(destPath)
 	if err != nil {
-		return errors.Wrap(err, s.ErrCreateFile(destPath))
+		return errors.Wrap(err, ErrorCreateFile(destPath).Error())
 	}
 
 	err = ToWriter(zipInput, zipfile)
@@ -156,7 +156,7 @@ func addBytesToZip(byteInput *BytesInput, zipInput *Input, archive *zip.Writer, 
 
 	if !zipInput.AllowOverwrite {
 		if addedPaths.Has(path) {
-			return errors.New(s.ErrDuplicateZipPath(path))
+			return ErrorDuplicateZipPath(path)
 		}
 		addedPaths.Add(path)
 	}
@@ -295,23 +295,23 @@ func UnzipToFile(src string, destPath string) ([]string, error) {
 		if f.FileInfo().IsDir() {
 			err := os.MkdirAll(fpath, os.ModePerm)
 			if err != nil {
-				return nil, errors.Wrap(err, s.ErrCreateDir(fpath))
+				return nil, errors.Wrap(err, ErrorCreateDir(fpath).Error())
 			}
 		} else {
 			err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm)
 			if err != nil {
-				return nil, errors.Wrap(err, s.ErrCreateDir(filepath.Dir(fpath)))
+				return nil, errors.Wrap(err, ErrorCreateDir(filepath.Dir(fpath)).Error())
 			}
 
 			outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if err != nil {
-				return nil, errors.Wrap(err, s.ErrCreateFile(fpath))
+				return nil, errors.Wrap(err, ErrorCreateFile(fpath).Error())
 			}
 
 			_, err = io.Copy(outFile, rc)
 			outFile.Close()
 			if err != nil {
-				return nil, errors.Wrap(err, s.ErrCreateFile(fpath))
+				return nil, errors.Wrap(err, ErrorCreateFile(fpath).Error())
 			}
 		}
 	}

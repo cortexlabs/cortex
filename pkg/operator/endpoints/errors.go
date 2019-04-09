@@ -16,6 +16,12 @@ limitations under the License.
 
 package endpoints
 
+import (
+	"fmt"
+
+	s "github.com/cortexlabs/cortex/pkg/api/strings"
+)
+
 type ErrorKind int
 
 const (
@@ -24,6 +30,8 @@ const (
 	ErrAuthHeaderMalformed
 	ErrAuthAPIError
 	ErrAuthForbidden
+	ErrAppNotDeployed
+	ErrFormFileMustBeProvided
 )
 
 var (
@@ -33,6 +41,8 @@ var (
 		"err_auth_header_malformed",
 		"err_auth_api_error",
 		"err_auth_forbidden",
+		"err_app_not_deployed",
+		"err_form_file_must_be_provided",
 	}
 )
 
@@ -106,5 +116,33 @@ func ErrorAuthForbidden() error {
 	return Error{
 		Kind:    ErrAuthForbidden,
 		message: "invalid AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as the operator",
+	}
+}
+
+func ErrorAppNotDeployed(appName string) error {
+	return Error{
+		Kind:    ErrAuthForbidden,
+		message: fmt.Sprintf("app %s is not deployed", s.UserStr(appName)),
+	}
+}
+
+func ErrorFormFileMustBeProvided(fileName string) error {
+	return Error{
+		Kind:    ErrFormFileMustBeProvided,
+		message: fmt.Sprintf("request form file %s must be provided", s.UserStr(fileName)),
+	}
+}
+
+func ErrorQueryParamRequired(paramNames ...string) error {
+	return Error{
+		Kind:    ErrFormFileMustBeProvided,
+		message: fmt.Sprintf("query params required: %s", s.UserStrsOr(paramNames)),
+	}
+}
+
+func ErrorPathParamRequired(paramNames ...string) error {
+	return Error{
+		Kind:    ErrFormFileMustBeProvided,
+		message: fmt.Sprintf("path params required: %s", s.UserStrsOr(paramNames)),
 	}
 }

@@ -131,11 +131,11 @@ func MakeEmptyFile(path string) error {
 	path = filepath.Clean(path)
 	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
 	if err != nil {
-		return errors.Wrap(err, s.ErrCreateDir(filepath.Dir(path)))
+		return errors.Wrap(err, ErrorCreateDir(filepath.Dir(path)).Error())
 	}
 	f, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
-		return errors.Wrap(err, s.ErrCreateFile(path))
+		return errors.Wrap(err, ErrorCreateFile(path).Error())
 	}
 	defer f.Close()
 	return nil
@@ -395,12 +395,12 @@ func ReadReqFile(r *http.Request, fileName string) ([]byte, error) {
 		if strings.Contains(err.Error(), "no such file") {
 			return nil, nil
 		}
-		return nil, errors.Wrap(err, s.ErrReadFormFile(fileName))
+		return nil, errors.Wrap(err, ErrorReadFormFile(fileName).Error())
 	}
 	defer mpFile.Close()
 	fileBytes, err := ioutil.ReadAll(mpFile)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrReadFormFile(fileName))
+		return nil, errors.Wrap(err, ErrorReadFormFile(fileName).Error())
 	}
 	return fileBytes, nil
 }

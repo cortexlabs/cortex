@@ -51,7 +51,7 @@ func getAggregates(
 
 		err = validateAggregateInputs(aggregateConfig, constants, rawColumns, aggregator)
 		if err != nil {
-			return nil, errors.Wrap(err)
+			return nil, err
 		}
 
 		constantIDMap := make(map[string]string, len(aggregateConfig.Inputs.Args))

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package resource
+package cmd
 
 import (
 	"fmt"
@@ -26,29 +26,25 @@ type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
-	ErrUnknownKind
-	ErrNotFound
-	ErrNameNotFound
-	ErrNameOrTypeNotFound
-	ErrInvalidType
-	ErrTemplateInTemplate
-	ErrEmbedInTemplate
-	ErrBeMoreSpecific
+	ErrCliAlreadyInAppDir
+	ErrAPINotReady
+	ErrAPINotFound
+	ErrFailedToConnect
+	ErrCwdDirExists
+	ErrCreateFile
 )
 
-var (
-	errorKinds = []string{
-		"err_unknown",
-		"err_unknown_kind",
-		"err_not_found",
-		"err_name_not_found",
-		"err_name_or_type_not_found",
-		"err_invalid_type",
-		"err_template_in_template",
-		"err_embed_in_template",
-		"err_be_more_specific",
-	}
-)
+var errorKinds = []string{
+	"err_unknown",
+	"err_cli_already_in_app_dir",
+	"err_api_not_ready",
+	"err_api_not_found",
+	"err_failed_to_connect",
+	"err_cwd_dir_exists",
+	"err_create_file",
+}
+
+var _ = [1]int{}[int(ErrCreateFile)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -93,58 +89,44 @@ func (e Error) Error() string {
 	return e.message
 }
 
-func ErrorNotFound(name string, resourceType Type) error {
+func ErrorCliAlreadyInAppDir(dirPath string) error {
 	return Error{
-		Kind:    ErrNotFound,
-		message: fmt.Sprintf("%s %s not found", resourceType, s.UserStr(name)),
+		Kind:    ErrCliAlreadyInAppDir,
+		message: fmt.Sprintf("your current working directory is already in a cortex app directory (%s)", dirPath),
 	}
 }
 
-func ErrorNameNotFound(name string) error {
+func ErrorAPINotReady(apiName string, status string) error {
 	return Error{
-		Kind:    ErrNameNotFound,
-		message: fmt.Sprintf("resource name %s not found", s.UserStr(name)),
+		Kind:    ErrAPINotReady,
+		message: fmt.Sprintf("api %s is %s", s.UserStr(apiName), status),
 	}
 }
 
-func ErrorNameOrTypeNotFound(nameOrType string) error {
+func ErrorAPINotFound(apiName string) error {
 	return Error{
-		Kind:    ErrNameOrTypeNotFound,
-		message: fmt.Sprintf("resource name or type %s not found", s.UserStr(nameOrType)),
+		Kind:    ErrAPINotFound,
+		message: fmt.Sprintf("api %s not found", s.UserStr(apiName)),
 	}
 }
 
-func ErrorInvalidType(invalid string) error {
+func ErrorFailedToConnect(urlStr string) error {
 	return Error{
-		Kind:    ErrInvalidType,
-		message: fmt.Sprintf("invalid resource type %s", s.UserStr(invalid)),
+		Kind:    ErrFailedToConnect,
+		message: fmt.Sprintf("failed to connect to the operator (%s), run `cortex configure` if you need to update the operator URL", urlStr),
 	}
 }
 
-func ErrorUnknownKind(name string) error {
+func ErrorCwdDirExists(dirName string) error {
 	return Error{
-		Kind:    ErrUnknownKind,
-		message: fmt.Sprintf("unknown kind %s", s.UserStr(name)),
+		Kind:    ErrCwdDirExists,
+		message: fmt.Sprintf("a directory named %s already exists in your current working directory", s.UserStr(dirName)),
 	}
 }
 
-func ErrorTemplateInTemplate() error {
+func ErrorCreateFile(path string) error {
 	return Error{
-		Kind:    ErrTemplateInTemplate,
-		message: "templates cannot be defined inside of templates",
-	}
-}
-
-func ErrorEmbedInTemplate() error {
-	return Error{
-		Kind:    ErrEmbedInTemplate,
-		message: "embeds cannot be defined inside of templates",
-	}
-}
-
-func ErrorBeMoreSpecific(vals ...string) error {
-	return Error{
-		Kind:    ErrBeMoreSpecific,
-		message: fmt.Sprintf("please specify %s", s.UserStrsOr(vals)),
+		Kind:    ErrCreateFile,
+		message: fmt.Sprintf("%s: unable to create file", path),
 	}
 }

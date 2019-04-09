@@ -21,6 +21,7 @@ import (
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
+	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
@@ -160,7 +161,7 @@ func CheckColumnRuntimeTypesMatch(columnRuntimeTypes map[string]interface{}, col
 
 	for columnInputName := range columnRuntimeTypes {
 		if _, ok := columnSchemaTypes[columnInputName]; !ok {
-			return errors.New(s.ErrUnsupportedKey(columnInputName))
+			return configreader.ErrorUnsupportedKey(columnInputName)
 		}
 	}
 
@@ -350,7 +351,7 @@ func CastValue(value interface{}, valueType interface{}) (interface{}, error) {
 		}
 		for valueKey := range valueMap {
 			if _, ok := valueTypeMap[valueKey]; !ok {
-				return nil, errors.New(s.ErrUnsupportedKey(valueKey))
+				return nil, configreader.ErrorUnsupportedKey(valueKey)
 			}
 		}
 		return valueMapCasted, nil
@@ -403,7 +404,7 @@ func CheckArgRuntimeTypesMatch(argRuntimeTypes map[string]interface{}, argSchema
 
 	for argName := range argRuntimeTypes {
 		if _, ok := argSchemaTypes[argName]; !ok {
-			return errors.New(s.ErrUnsupportedKey(argName))
+			return configreader.ErrorUnsupportedKey(argName)
 		}
 	}
 
@@ -473,7 +474,7 @@ func CheckValueRuntimeTypesMatch(runtimeType interface{}, schemaType interface{}
 		}
 		for runtimeTypeKey := range runtimeTypeMap {
 			if _, ok := schemaTypeMap[runtimeTypeKey]; !ok {
-				return errors.New(s.ErrUnsupportedKey(runtimeTypeKey))
+				return configreader.ErrorUnsupportedKey(runtimeTypeKey)
 			}
 		}
 		return nil

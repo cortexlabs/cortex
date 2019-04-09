@@ -18,9 +18,6 @@ package resource
 
 import (
 	"strings"
-
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type Type int
@@ -226,7 +223,7 @@ func VisibleResourceTypeFromPrefix(prefix string) (Type, error) {
 	}
 
 	if len(resourceTypes) > 1 {
-		return UnknownType, errors.New(s.ErrBeMoreSpecific(resourceTypes.PluralList()...))
+		return UnknownType, ErrorBeMoreSpecific(resourceTypes.PluralList()...)
 	}
 
 	if len(resourceTypes) == 0 {

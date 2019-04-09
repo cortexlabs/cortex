@@ -21,8 +21,6 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 var ingressTypeMeta = metav1.TypeMeta{
@@ -83,7 +81,7 @@ func Ingress(spec *IngressSpec) *v1beta1.Ingress {
 func CreateIngress(spec *IngressSpec) (*v1beta1.Ingress, error) {
 	ingress, err := ingressClient.Create(Ingress(spec))
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, err
 	}
 	return ingress, nil
 }
@@ -94,7 +92,7 @@ func GetIngress(name string) (*v1beta1.Ingress, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, err
 	}
 	ingress.TypeMeta = ingressTypeMeta
 	return ingress, nil
@@ -106,7 +104,7 @@ func DeleteIngress(name string) (bool, error) {
 		return false, nil
 	}
 	if err != nil {
-		return false, errors.Wrap(err)
+		return false, err
 	}
 	return true, nil
 }
@@ -125,7 +123,7 @@ func ListIngresses(opts *metav1.ListOptions) ([]v1beta1.Ingress, error) {
 	}
 	ingressList, err := ingressClient.List(*opts)
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, err
 	}
 	for i := range ingressList.Items {
 		ingressList.Items[i].TypeMeta = ingressTypeMeta

@@ -28,7 +28,7 @@ import (
 )
 
 func GetAggregate(w http.ResponseWriter, r *http.Request) {
-	appName, err := getRequiredQParam("appName", r)
+	appName, err := getRequiredQueryParam("appName", r)
 	if RespondIfError(w, err) {
 		return
 	}
@@ -38,7 +38,7 @@ func GetAggregate(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := workloads.CurrentContext(appName)
 	if ctx == nil {
-		RespondError(w, errors.New(s.ErrAppNotDeployed(appName)))
+		RespondError(w, ErrorAppNotDeployed(appName))
 		return
 	}
 
