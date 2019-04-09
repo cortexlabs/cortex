@@ -10,25 +10,19 @@ from tensor2tensor.data_generators import text_encoder
 
 
 def create_estimator(run_config, model_config):
-    # t2t expects these keys in run_config
-    run_config.data_parallelism = None
-    run_config.t2t_device_info = {"num_async_replicas": 1}
-
     hparams = trainer_lib.create_hparams("transformer_base_single_gpu")
 
+    # SentimentIMDBCortex subclasses SentimentIMDB
     problem = SentimentIMDBCortex(list(model_config["aggregates"]["reviews_vocab"]))
-    p_hparams = problem.get_hparams(hparams)
     hparams.problem = problem
-    hparams.problem_hparams = p_hparams
+    hparams.problem_hparams = problem.get_hparams(hparams)
 
+    # metrics specific to the sentiment problem
     problem.eval_metrics = lambda: [
         metrics.Metrics.ACC_TOP5,
         metrics.Metrics.ACC_PER_SEQ,
         metrics.Metrics.NEG_LOG_PERPLEXITY,
     ]
-
-    # t2t expects this key
-    hparams.warm_start_from = None
 
     # reduce memory load
     hparams.num_hidden_layers = 2
@@ -36,8 +30,12 @@ def create_estimator(run_config, model_config):
     hparams.filter_size = 32
     hparams.num_heads = 2
 
-    estimator = trainer_lib.create_estimator("transformer", hparams, run_config)
-    return estimator
+    # t2t expects these keys
+    hparams.warm_start_from = None
+    run_config.data_parallelism = None
+    run_config.t2t_device_info = {"num_async_replicas": 1}
+
+    return trainer_lib.create_estimator("transformer", hparams, run_config)
 
 
 def transform_tensorflow(features, labels, model_config):
