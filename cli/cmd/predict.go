@@ -72,10 +72,10 @@ var predictCmd = &cobra.Command{
 
 		apiGroupStatus := resourcesRes.APIGroupStatuses[apiName]
 		if apiGroupStatus == nil {
-			errors.Exit(s.ErrAPINotFound(apiName))
+			errors.Exit(ErrorAPINotFound(apiName))
 		}
 		if apiGroupStatus.ActiveStatus == nil {
-			errors.Exit(s.ErrAPINotReady(apiName, apiGroupStatus.Message()))
+			errors.Exit(ErrorAPINotReady(apiName, apiGroupStatus.Message()))
 		}
 
 		apiPath := apiGroupStatus.ActiveStatus.Path
@@ -83,7 +83,7 @@ var predictCmd = &cobra.Command{
 		predictResponse, err := makePredictRequest(apiURL, samplesJSONPath)
 		if err != nil {
 			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
-				errors.Exit(s.ErrAPINotReady(apiName, resource.StatusAPIUpdating.Message()))
+				errors.Exit(ErrorAPINotReady(apiName, resource.StatusAPIUpdating.Message()))
 			}
 			errors.Exit(err)
 		}

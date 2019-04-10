@@ -24,7 +24,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
@@ -43,14 +42,14 @@ var initCmd = &cobra.Command{
 		}
 
 		if currentRoot := appRootOrBlank(); currentRoot != "" {
-			errors.Exit(s.ErrCliAlreadyInAppDir(currentRoot))
+			errors.Exit(ErrorCliAlreadyInAppDir(currentRoot))
 		}
 
 		appRoot := filepath.Join(cwd, appName)
 		var createdFiles []string
 
 		if !createDirIfMissing(appRoot) {
-			errors.Exit(s.ErrCwdDirExists(appName))
+			errors.Exit(ErrorCwdDirExists(appName))
 		}
 
 		for path, content := range appInitFiles(appName) {
@@ -75,7 +74,7 @@ func writeFile(subPath string, content string, root string, createdFiles []strin
 	createDirIfMissing(filepath.Dir(path))
 	err := ioutil.WriteFile(path, []byte(content), 0664)
 	if err != nil {
-		errors.Exit(err, s.ErrCreateFile(path))
+		errors.Exit(err, ErrorCreateFile(path))
 	}
 	return append(createdFiles, path)
 }

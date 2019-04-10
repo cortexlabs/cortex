@@ -46,7 +46,7 @@ var (
 	}
 )
 
-var _ = [1]int{}[int(ErrAuthForbidden)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrFormFileMustBeProvided)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
