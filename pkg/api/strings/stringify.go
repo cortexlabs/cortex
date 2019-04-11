@@ -323,3 +323,7 @@ func UserStrs(val interface{}) []string {
 	}
 	return out
 }
+
+func Index(index int) string {
+	return fmt.Sprintf("index %d", index)
+}

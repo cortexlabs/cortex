@@ -26,15 +26,19 @@ const (
 	ErrUnknown ErrorKind = iota
 	ErrWriteFile
 	ErrCreateDir
+	ErrUnmarshalJSON
+	ErrMarshalJSON
 )
 
 var errorKinds = []string{
 	"err_unknown",
 	"err_write_file",
 	"err_create_dir",
+	"err_unmarshal_json",
+	"err_marshal_json",
 }
 
-var _ = [1]int{}[int(ErrCreateDir)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrMarshalJSON)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -90,5 +94,18 @@ func ErrorCreateDir(path string) error {
 	return Error{
 		Kind:    ErrCreateDir,
 		message: fmt.Sprintf("%s: unable to create directory", path),
+	}
+}
+
+func ErrorUnmarshalJSON() error {
+	return Error{
+		Kind:    ErrUnmarshalJSON,
+		message: "invalid json",
+	}
+}
+func ErrorMarshalJSON() error {
+	return Error{
+		Kind:    ErrMarshalJSON,
+		message: "invalid json cannot be serialized",
 	}
 }

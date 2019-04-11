@@ -33,7 +33,7 @@ type StringMapValidation struct {
 func StringMap(inter interface{}, v *StringMapValidation) (map[string]string, error) {
 	casted, castOk := cast.InterfaceToStrStrMap(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeStringToStringMap))
+		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeStringToStringMap)
 	}
 	return ValidateStringMap(casted, v)
 }
@@ -56,7 +56,7 @@ func StringMapFromInterfaceMap(key string, iMap map[string]interface{}, v *Strin
 
 func ValidateStringMapMissing(v *StringMapValidation) (map[string]string, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateStringMap(v.Default, v)
 }
@@ -64,13 +64,13 @@ func ValidateStringMapMissing(v *StringMapValidation) (map[string]string, error)
 func ValidateStringMap(val map[string]string, v *StringMapValidation) (map[string]string, error) {
 	if !v.AllowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 

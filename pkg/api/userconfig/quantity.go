@@ -18,10 +18,10 @@ package userconfig
 
 import (
 	"encoding/json"
-	"errors"
 	"math"
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -43,7 +43,7 @@ func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
 		}
 
 		if k8sQuantity.Cmp(v.Min) < 0 {
-			return nil, errors.New(s.ErrMustBeGreaterThanOrEqualTo(str, v.Min))
+			return nil, configreader.ErrorMustBeGreaterThanOrEqualTo(str, v.Min)
 		}
 
 		if v.Int {

@@ -21,9 +21,7 @@ import (
 	"regexp"
 	"strings"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/aws/s3"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
 
@@ -43,7 +41,7 @@ func GetFilePathValidation(v *PathValidation) *StringValidation {
 	validator := func(val string) (string, error) {
 		val = files.RelPath(val, v.BaseDir)
 		if !files.IsFile(val) {
-			return "", errors.New(s.ErrFileDoesNotExist(val))
+			return "", ErrorFileDoesNotExist(val)
 		}
 		return val, nil
 	}
@@ -63,7 +61,7 @@ type S3aPathValidation struct {
 func GetS3aPathValidation(v *S3aPathValidation) *StringValidation {
 	validator := func(val string) (string, error) {
 		if !s3.IsValidS3aPath(val) {
-			return "", errors.New(s.ErrInvalidS3aPath(val))
+			return "", s3.ErrorInvalidS3aPath(val)
 		}
 		return val, nil
 	}
@@ -106,7 +104,7 @@ func GetURLValidation(v *URLValidation) *StringValidation {
 
 		_, err := url.Parse(urlStr)
 		if err != nil {
-			return "", errors.New(s.ErrInvalidURL(urlStr))
+			return "", ErrorInvalidURL(urlStr)
 		}
 
 		return urlStr, nil

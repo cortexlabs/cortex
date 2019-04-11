@@ -33,7 +33,7 @@ type Int32ListValidation struct {
 func Int32List(inter interface{}, v *Int32ListValidation) ([]int32, error) {
 	casted, castOk := cast.InterfaceToInt32Slice(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeIntList))
+		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeIntList)
 	}
 	return ValidateInt32List(casted, v)
 }
@@ -56,7 +56,7 @@ func Int32ListFromInterfaceMap(key string, iMap map[string]interface{}, v *Int32
 
 func ValidateInt32ListMissing(v *Int32ListValidation) ([]int32, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateInt32List(v.Default, v)
 }
@@ -64,13 +64,13 @@ func ValidateInt32ListMissing(v *Int32ListValidation) ([]int32, error) {
 func ValidateInt32List(val []int32, v *Int32ListValidation) ([]int32, error) {
 	if !v.AllowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 

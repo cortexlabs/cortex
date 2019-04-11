@@ -24,7 +24,6 @@ import (
 
 	homedir "github.com/mitchellh/go-homedir"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
@@ -133,7 +132,7 @@ func readCliConfig() (*CliConfig, []error) {
 
 	configBytes, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		return nil, []error{errors.Wrap(err, s.ErrReadFile(configPath))}
+		return nil, []error{errors.Wrap(err, ErrorReadFile(configPath).Error())}
 	}
 
 	cliConfigData, err := cr.ReadJSONBytes(configBytes)

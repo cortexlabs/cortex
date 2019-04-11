@@ -24,7 +24,6 @@ import (
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -296,10 +295,10 @@ func APIsBaseURL() (string, error) {
 		return "", err
 	}
 	if service == nil {
-		return "", errors.New(s.ErrCortexInstallationBroken)
+		return "", ErrorCortexInstallationBroken()
 	}
 	if len(service.Status.LoadBalancer.Ingress) == 0 {
-		return "", errors.New(s.ErrLoadBalancerInitializing)
+		return "", ErrorLoadBalancerInitializing()
 	}
 	return "https://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }

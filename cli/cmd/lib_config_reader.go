@@ -20,7 +20,6 @@ import (
 	"os"
 	"path/filepath"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -48,7 +47,7 @@ func appRootOrBlank() string {
 func mustAppRoot() string {
 	appRoot := appRootOrBlank()
 	if appRoot == "" {
-		errors.Exit(s.ErrCliNotInAppDir)
+		errors.Exit(ErrorCliNotInAppDir())
 	}
 	return appRoot
 }

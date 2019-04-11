@@ -124,13 +124,13 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 
 	if inter == nil {
 		if !v.AllowNull {
-			return []error{errors.New(s.ErrCannotBeNull)}
+			return []error{ErrorCannotBeNull()}
 		}
 	}
 
 	interMap, ok := cast.InterfaceToStrInterfaceMap(inter)
 	if !ok {
-		return []error{errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeMap))}
+		return []error{ErrorInvalidPrimitiveType(inter, s.PrimTypeMap)}
 	}
 
 	for _, structFieldValidation := range v.StructFieldValidations {
@@ -271,7 +271,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			nestedType := reflect.ValueOf(dest).Elem().FieldByName(structFieldValidation.StructField).Type()
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
 			if !ok && validation.Required {
-				err = errors.New(key, s.ErrMustBeDefined)
+				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else if !ok && validation.DefualtNil {
 				val = nil
 			} else {
@@ -289,7 +289,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			nestedType := reflect.ValueOf(dest).Elem().FieldByName(structFieldValidation.StructField).Type()
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
 			if !ok && validation.Required {
-				err = errors.New(key, s.ErrMustBeDefined)
+				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else {
 				val = reflect.Indirect(reflect.New(nestedType)).Interface()
 				val, errs = StructList(val, interMapVal, &validation)
@@ -301,7 +301,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			updateValidation(&validation, dest, structFieldValidation)
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
 			if !ok && validation.Required {
-				err = errors.New(key, s.ErrMustBeDefined)
+				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else {
 				val, errs = InterfaceStruct(interMapVal, &validation)
 				errs = errors.WrapMultiple(errs, key)
@@ -313,7 +313,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			nestedType := reflect.ValueOf(dest).Elem().FieldByName(structFieldValidation.StructField).Type()
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
 			if !ok && validation.Required {
-				err = errors.New(key, s.ErrMustBeDefined)
+				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else {
 				val = reflect.Indirect(reflect.New(nestedType)).Interface()
 				val, errs = InterfaceStructList(val, interMapVal, &validation)
@@ -360,14 +360,14 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 func StructList(dest interface{}, inter interface{}, v *StructListValidation) (interface{}, []error) {
 	if inter == nil {
 		if !v.AllowNull {
-			return nil, []error{errors.New(s.ErrCannotBeNull)}
+			return nil, []error{ErrorCannotBeNull()}
 		}
 		return nil, nil
 	}
 
 	interSlice, ok := cast.InterfaceToInterfaceSlice(inter)
 	if !ok {
-		return nil, []error{errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeList))}
+		return nil, []error{ErrorInvalidPrimitiveType(inter, s.PrimTypeList)}
 	}
 
 	errs := []error{}
@@ -390,14 +390,14 @@ func StructList(dest interface{}, inter interface{}, v *StructListValidation) (i
 func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface{}, []error) {
 	if inter == nil {
 		if !v.AllowNull {
-			return nil, []error{errors.New(s.ErrCannotBeNull)}
+			return nil, []error{ErrorCannotBeNull()}
 		}
 		return nil, nil
 	}
 
 	interMap, ok := cast.InterfaceToStrInterfaceMap(inter)
 	if !ok {
-		return nil, []error{errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeMap))}
+		return nil, []error{ErrorInvalidPrimitiveType(inter, s.PrimTypeMap)}
 	}
 
 	var validTypeStrs []string
@@ -450,7 +450,7 @@ func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface
 			for typeObj := range v.ParsedInterfaceStructTypes {
 				validTypeObjs = append(validTypeObjs, typeObj)
 			}
-			return nil, []error{errors.New(v.TypeKey, s.ErrInvalidInterface(typeStr, validTypeObjs...))}
+			return nil, []error{errors.Wrap(ErrorInvalidInterface(typeStr, validTypeObjs...), v.TypeKey)}
 		}
 	}
 
@@ -469,14 +469,14 @@ func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface
 func InterfaceStructList(dest interface{}, inter interface{}, v *InterfaceStructListValidation) (interface{}, []error) {
 	if inter == nil {
 		if !v.AllowNull {
-			return nil, []error{errors.New(s.ErrCannotBeNull)}
+			return nil, []error{ErrorCannotBeNull()}
 		}
 		return nil, nil
 	}
 
 	interSlice, ok := cast.InterfaceToInterfaceSlice(inter)
 	if !ok {
-		return nil, []error{errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeList))}
+		return nil, []error{ErrorInvalidPrimitiveType(inter, s.PrimTypeList)}
 	}
 
 	errs := []error{}
@@ -658,7 +658,7 @@ func ReadJSONBytes(jsonBytes []byte) (interface{}, error) {
 	d.UseNumber()
 	err := d.Decode(&parsed)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrUnmarshalJSON)
+		return nil, errors.Wrap(err, ErrorUnmarshalJSON().Error())
 	}
 	return parsed, nil
 }
@@ -678,7 +678,7 @@ func MustReadYAMLStrMap(yamlStr string) map[string]interface{} {
 	}
 	casted, ok := cast.InterfaceToStrInterfaceMap(parsed)
 	if !ok {
-		errors.Panic(s.ErrInvalidPrimitiveType(parsed, s.PrimTypeMap))
+		errors.Panic(ErrorInvalidPrimitiveType(parsed, s.PrimTypeMap))
 	}
 	return casted
 }
@@ -705,12 +705,12 @@ func setField(val interface{}, destStruct interface{}, fieldName string) error {
 	if !v.IsValid() || !v.CanSet() {
 		debug.Pp(val)
 		debug.Pp(destStruct)
-		return errors.New(fieldName, s.ErrCannotSetStructField)
+		return errors.Wrap(ErrorCannotSetStructField(), fieldName)
 	}
 	if !reflect.ValueOf(val).Type().AssignableTo(v.Type()) {
 		debug.Pp(val)
 		debug.Pp(destStruct)
-		return errors.New(fieldName, s.ErrCannotSetStructField)
+		return errors.Wrap(ErrorCannotSetStructField(), fieldName)
 	}
 	v.Set(reflect.ValueOf(val))
 	return nil
@@ -722,7 +722,7 @@ func setFirstField(val interface{}, destStruct interface{}) error {
 	if !v.IsValid() || !v.CanSet() {
 		debug.Pp(val)
 		debug.Pp(destStruct)
-		return errors.New("first field", s.ErrCannotSetStructField)
+		return errors.Wrap(ErrorCannotSetStructField(), "first field")
 	}
 	v.Set(reflect.ValueOf(val))
 	return nil
@@ -733,7 +733,7 @@ func setFieldNil(destStruct interface{}, fieldName string) error {
 	v := reflect.ValueOf(destStruct).Elem().FieldByName(fieldName)
 	if !v.IsValid() || !v.CanSet() {
 		debug.Pp(destStruct)
-		return errors.New(fieldName, s.ErrCannotSetStructField)
+		return errors.Wrap(ErrorCannotSetStructField(), fieldName)
 	}
 	v.Set(reflect.Zero(v.Type()))
 	return nil

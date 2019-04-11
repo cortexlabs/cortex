@@ -56,7 +56,7 @@ func FlattenAllStrValues(obj interface{}) ([]string, error) {
 		return flattened, nil
 	}
 
-	return nil, errors.New(s.ErrInvalidPrimitiveType(obj, s.PrimTypeString, s.PrimTypeList, s.PrimTypeMap))
+	return nil, ErrorInvalidPrimitiveType(obj, s.PrimTypeString, s.PrimTypeList, s.PrimTypeMap)
 }
 
 func FlattenAllStrValuesAsSet(obj interface{}) (strset.Set, error) {

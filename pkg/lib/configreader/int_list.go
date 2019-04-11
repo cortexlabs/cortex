@@ -33,7 +33,7 @@ type IntListValidation struct {
 func IntList(inter interface{}, v *IntListValidation) ([]int, error) {
 	casted, castOk := cast.InterfaceToIntSlice(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeIntList))
+		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeIntList)
 	}
 	return ValidateIntList(casted, v)
 }
@@ -56,7 +56,7 @@ func IntListFromInterfaceMap(key string, iMap map[string]interface{}, v *IntList
 
 func ValidateIntListMissing(v *IntListValidation) ([]int, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateIntList(v.Default, v)
 }
@@ -64,13 +64,13 @@ func ValidateIntListMissing(v *IntListValidation) ([]int, error) {
 func ValidateIntList(val []int, v *IntListValidation) ([]int, error) {
 	if !v.AllowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 

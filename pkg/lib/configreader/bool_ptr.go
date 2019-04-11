@@ -35,7 +35,7 @@ func BoolPtr(inter interface{}, v *BoolPtrValidation) (*bool, error) {
 	}
 	casted, castOk := inter.(bool)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeBool))
+		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeBool)
 	}
 	return ValidateBoolPtr(&casted, v)
 }
@@ -78,7 +78,7 @@ func BoolPtrFromStr(valStr string, v *BoolPtrValidation) (*bool, error) {
 	}
 	casted, castOk := s.ParseBool(valStr)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeBool))
+		return nil, ErrorInvalidPrimitiveType(valStr, s.PrimTypeBool)
 	}
 	return ValidateBoolPtr(&casted, v)
 }
@@ -134,7 +134,7 @@ func BoolPtrFromPrompt(promptOpts *PromptOptions, v *BoolPtrValidation) (*bool, 
 
 func ValidateBoolPtrMissing(v *BoolPtrValidation) (*bool, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateBoolPtr(v.Default, v)
 }
@@ -142,7 +142,7 @@ func ValidateBoolPtrMissing(v *BoolPtrValidation) (*bool, error) {
 func ValidateBoolPtr(val *bool, v *BoolPtrValidation) (*bool, error) {
 	if v.DisallowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 

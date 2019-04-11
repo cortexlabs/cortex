@@ -130,12 +130,12 @@ var predictCmd = &cobra.Command{
 func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse, error) {
 	samplesBytes, err := ioutil.ReadFile(samplesJSONPath)
 	if err != nil {
-		errors.Exit(err, s.ErrReadFile(samplesJSONPath))
+		errors.Exit(err, ErrorReadFile(samplesJSONPath).Error())
 	}
 	payload := bytes.NewBuffer(samplesBytes)
 	req, err := http.NewRequest("POST", apiURL, payload)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrCantMakeRequest)
+		return nil, errors.Wrap(err, ErrorCantMakeRequest().Error())
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -147,7 +147,7 @@ func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse
 	var predictResponse PredictResponse
 	err = json.Unmarshal(httpResponse, &predictResponse)
 	if err != nil {
-		return nil, errors.Wrap(err, "prediction response", s.ErrUnmarshalJSON)
+		return nil, errors.Wrap(err, "prediction response", ErrorUnmarshalJSON().Error())
 	}
 
 	return &predictResponse, nil

@@ -38,11 +38,11 @@ type Float64Validation struct {
 
 func Float64(inter interface{}, v *Float64Validation) (float64, error) {
 	if inter == nil {
-		return 0, errors.New(s.ErrCannotBeNull)
+		return 0, ErrorCannotBeNull()
 	}
 	casted, castOk := cast.InterfaceToFloat64(inter)
 	if !castOk {
-		return 0, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeFloat))
+		return 0, ErrorInvalidPrimitiveType(inter, s.PrimTypeFloat)
 	}
 	return ValidateFloat64(casted, v)
 }
@@ -85,7 +85,7 @@ func Float64FromStr(valStr string, v *Float64Validation) (float64, error) {
 	}
 	casted, castOk := s.ParseFloat64(valStr)
 	if !castOk {
-		return 0, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeFloat))
+		return 0, ErrorInvalidPrimitiveType(valStr, s.PrimTypeFloat)
 	}
 	return ValidateFloat64(casted, v)
 }
@@ -142,7 +142,7 @@ func Float64FromPrompt(promptOpts *PromptOptions, v *Float64Validation) (float64
 
 func ValidateFloat64Missing(v *Float64Validation) (float64, error) {
 	if v.Required {
-		return 0, errors.New(s.ErrMustBeDefined)
+		return 0, ErrorMustBeDefined()
 	}
 	return ValidateFloat64(v.Default, v)
 }
@@ -162,28 +162,28 @@ func ValidateFloat64(val float64, v *Float64Validation) (float64, error) {
 func ValidateFloat64Val(val float64, v *Float64Validation) error {
 	if v.GreaterThan != nil {
 		if val <= *v.GreaterThan {
-			return errors.New(s.ErrMustBeGreaterThan(val, *v.GreaterThan))
+			return ErrorMustBeGreaterThan(val, *v.GreaterThan)
 		}
 	}
 	if v.GreaterThanOrEqualTo != nil {
 		if val < *v.GreaterThanOrEqualTo {
-			return errors.New(s.ErrMustBeGreaterThanOrEqualTo(val, *v.GreaterThanOrEqualTo))
+			return ErrorMustBeGreaterThanOrEqualTo(val, *v.GreaterThanOrEqualTo)
 		}
 	}
 	if v.LessThan != nil {
 		if val >= *v.LessThan {
-			return errors.New(s.ErrMustBeLessThan(val, *v.LessThan))
+			return ErrorMustBeLessThan(val, *v.LessThan)
 		}
 	}
 	if v.LessThanOrEqualTo != nil {
 		if val > *v.LessThanOrEqualTo {
-			return errors.New(s.ErrMustBeLessThanOrEqualTo(val, *v.LessThanOrEqualTo))
+			return ErrorMustBeLessThanOrEqualTo(val, *v.LessThanOrEqualTo)
 		}
 	}
 
 	if v.AllowedValues != nil {
 		if !slices.HasFloat64(v.AllowedValues, val) {
-			return errors.New(s.ErrInvalidFloat64(val, v.AllowedValues...))
+			return ErrorInvalidFloat64(val, v.AllowedValues...)
 		}
 	}
 

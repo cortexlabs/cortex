@@ -20,6 +20,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
+	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
@@ -79,7 +80,7 @@ func ValidateColumnInputsExistAndRaw(columnInputValues map[string]interface{}, c
 			}
 			continue
 		}
-		return errors.New(columnInputName, s.ErrInvalidPrimitiveType(columnInputValue, s.PrimTypeString, s.PrimTypeStringList)) // unexpected
+		return errors.Wrap(configreader.ErrorInvalidPrimitiveType(columnInputValue, s.PrimTypeString, s.PrimTypeStringList), columnInputName) // unexpected
 	}
 	return nil
 }

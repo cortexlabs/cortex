@@ -22,14 +22,13 @@ import (
 	"os"
 	"path/filepath"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 func MarshalJSON(obj interface{}) ([]byte, error) {
 	jsonBytes, err := json.MarshalIndent(obj, "", "  ")
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrMarshalJSON)
+		return nil, errors.Wrap(err, ErrorMarshalJSON().Error())
 	}
 	return jsonBytes, nil
 }

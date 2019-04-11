@@ -33,7 +33,7 @@ type BoolListValidation struct {
 func BoolList(inter interface{}, v *BoolListValidation) ([]bool, error) {
 	casted, castOk := cast.InterfaceToBoolSlice(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeBoolList))
+		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeBoolList)
 	}
 	return ValidateBoolList(casted, v)
 }
@@ -56,7 +56,7 @@ func BoolListFromInterfaceMap(key string, iMap map[string]interface{}, v *BoolLi
 
 func ValidateBoolListMissing(v *BoolListValidation) ([]bool, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateBoolList(v.Default, v)
 }
@@ -64,13 +64,13 @@ func ValidateBoolListMissing(v *BoolListValidation) ([]bool, error) {
 func ValidateBoolList(val []bool, v *BoolListValidation) ([]bool, error) {
 	if !v.AllowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 

@@ -29,6 +29,11 @@ const (
 	ErrDuplicateZipPath
 	ErrCreateDir
 	ErrCreateFile
+	ErrReadFile
+	ErrDirDoesNotExist
+	ErrFileDoesNotExist
+	ErrCreateZip
+	ErrUnzip
 )
 
 var errorKinds = []string{
@@ -36,9 +41,14 @@ var errorKinds = []string{
 	"err_duplicate_zip_path",
 	"err_create_dir",
 	"err_create_file",
+	"err_read_file",
+	"err_dir_does_not_exist",
+	"err_file_does_not_exist",
+	"err_create_zip",
+	"err_unzip",
 }
 
-var _ = [1]int{}[int(ErrCreateFile)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrUnzip)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -101,5 +111,40 @@ func ErrorCreateFile(path string) error {
 	return Error{
 		Kind:    ErrCreateFile,
 		message: fmt.Sprintf("%s: unable to create file", path),
+	}
+}
+
+func ErrorReadFile(path string) error {
+	return Error{
+		Kind:    ErrReadFile,
+		message: fmt.Sprintf("%s: unable to read file", path),
+	}
+}
+
+func ErrorDirDoesNotExist(path string) error {
+	return Error{
+		Kind:    ErrDirDoesNotExist,
+		message: fmt.Sprintf("%s: directory does not exist", path),
+	}
+}
+
+func ErrorFileDoesNotExist(path string) error {
+	return Error{
+		Kind:    ErrFileDoesNotExist,
+		message: fmt.Sprintf("%s: file does not exist", path),
+	}
+}
+
+func ErrorCreateZip() error {
+	return Error{
+		Kind:    ErrCreateZip,
+		message: "unable to create zip file",
+	}
+}
+
+func ErrorUnzip() error {
+	return Error{
+		Kind:    ErrUnzip,
+		message: "unable to unzip file",
 	}
 }

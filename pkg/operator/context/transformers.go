@@ -23,7 +23,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -50,7 +49,7 @@ func init() {
 		implPath := filepath.Join(OperatorTransformersDir, transConfig.Path)
 		impl, err := ioutil.ReadFile(implPath)
 		if err != nil {
-			err = errors.Wrap(err, userconfig.Identify(transConfig), s.ErrReadFile(implPath))
+			err = errors.Wrap(err, userconfig.Identify(transConfig), ErrorReadFile(implPath).Error())
 			telemetry.ReportErrorBlocking(err)
 			errors.Exit(err)
 		}
@@ -73,7 +72,7 @@ func loadUserTransformers(
 	for _, transConfig := range transConfigs {
 		impl, ok := impls[transConfig.Path]
 		if !ok {
-			return nil, errors.New(userconfig.Identify(transConfig), s.ErrFileDoesNotExist(transConfig.Path))
+			return nil, errors.Wrap(ErrorFileDoesNotExist(transConfig.Path), userconfig.Identify(transConfig))
 		}
 		transformer, err := newTransformer(*transConfig, impl, nil, pythonPackages)
 		if err != nil {

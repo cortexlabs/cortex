@@ -18,9 +18,6 @@ package s3
 
 import (
 	"strings"
-
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 func IsValidS3aPath(s3aPath string) bool {
@@ -39,7 +36,7 @@ func IsValidS3aPath(s3aPath string) bool {
 
 func SplitS3aPath(s3aPath string) (string, string, error) {
 	if !IsValidS3aPath(s3aPath) {
-		return "", "", errors.New(s.ErrInvalidS3aPath(s3aPath))
+		return "", "", ErrorInvalidS3aPath(s3aPath)
 	}
 	fullPath := s3aPath[6:]
 	slashIndex := strings.Index(fullPath, "/")

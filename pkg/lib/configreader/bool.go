@@ -30,11 +30,11 @@ type BoolValidation struct {
 
 func Bool(inter interface{}, v *BoolValidation) (bool, error) {
 	if inter == nil {
-		return false, errors.New(s.ErrCannotBeNull)
+		return false, ErrorCannotBeNull()
 	}
 	casted, castOk := inter.(bool)
 	if !castOk {
-		return false, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeBool))
+		return false, ErrorInvalidPrimitiveType(inter, s.PrimTypeBool)
 	}
 	return ValidateBool(casted, v)
 }
@@ -77,7 +77,7 @@ func BoolFromStr(valStr string, v *BoolValidation) (bool, error) {
 	}
 	casted, castOk := s.ParseBool(valStr)
 	if !castOk {
-		return false, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeBool))
+		return false, ErrorInvalidPrimitiveType(valStr, s.PrimTypeBool)
 	}
 	return ValidateBool(casted, v)
 }
@@ -134,7 +134,7 @@ func BoolFromPrompt(promptOpts *PromptOptions, v *BoolValidation) (bool, error) 
 
 func ValidateBoolMissing(v *BoolValidation) (bool, error) {
 	if v.Required {
-		return false, errors.New(s.ErrMustBeDefined)
+		return false, ErrorMustBeDefined()
 	}
 	return ValidateBool(v.Default, v)
 }

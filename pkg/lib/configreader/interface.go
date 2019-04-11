@@ -17,7 +17,6 @@ limitations under the License.
 package configreader
 
 import (
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
@@ -50,7 +49,7 @@ func InterfaceFromInterfaceMap(key string, iMap map[string]interface{}, v *Inter
 
 func ValidateInterfaceMissing(v *InterfaceValidation) (interface{}, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateInterface(v.Default, v)
 }
@@ -58,7 +57,7 @@ func ValidateInterfaceMissing(v *InterfaceValidation) (interface{}, error) {
 func ValidateInterface(val interface{}, v *InterfaceValidation) (interface{}, error) {
 	if !v.AllowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 

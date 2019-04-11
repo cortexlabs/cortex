@@ -18,7 +18,7 @@ package userconfig
 
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -359,7 +359,7 @@ func (env *Environment) Validate() error {
 
 	dups := slices.FindDuplicateStrs(env.Data.GetIngestedColumns())
 	if len(dups) > 0 {
-		return errors.New(Identify(env), DataKey, SchemaKey, "column name", s.ErrDuplicatedValue(dups[0]))
+		return errors.Wrap(configreader.ErrorDuplicatedValue(dups[0]), Identify(env), DataKey, SchemaKey, "column name")
 	}
 
 	return nil

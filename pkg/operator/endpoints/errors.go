@@ -32,6 +32,7 @@ const (
 	ErrAuthForbidden
 	ErrAppNotDeployed
 	ErrFormFileMustBeProvided
+	ErrPending
 )
 
 var (
@@ -43,10 +44,11 @@ var (
 		"err_auth_forbidden",
 		"err_app_not_deployed",
 		"err_form_file_must_be_provided",
+		"err_pending",
 	}
 )
 
-var _ = [1]int{}[int(ErrFormFileMustBeProvided)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrPending)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -144,5 +146,12 @@ func ErrorPathParamRequired(paramNames ...string) error {
 	return Error{
 		Kind:    ErrFormFileMustBeProvided,
 		message: fmt.Sprintf("path params required: %s", s.UserStrsOr(paramNames)),
+	}
+}
+
+func ErrorPending() error {
+	return Error{
+		Kind:    ErrPending,
+		message: "pending",
 	}
 }

@@ -52,7 +52,7 @@ func Int32Ptr(inter interface{}, v *Int32PtrValidation) (*int32, error) {
 	}
 	casted, castOk := cast.InterfaceToInt32(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeInt))
+		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeInt)
 	}
 	return ValidateInt32Ptr(&casted, v)
 }
@@ -95,7 +95,7 @@ func Int32PtrFromStr(valStr string, v *Int32PtrValidation) (*int32, error) {
 	}
 	casted, castOk := s.ParseInt32(valStr)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeInt))
+		return nil, ErrorInvalidPrimitiveType(valStr, s.PrimTypeInt)
 	}
 	return ValidateInt32Ptr(&casted, v)
 }
@@ -151,7 +151,7 @@ func Int32PtrFromPrompt(promptOpts *PromptOptions, v *Int32PtrValidation) (*int3
 
 func ValidateInt32PtrMissing(v *Int32PtrValidation) (*int32, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateInt32Ptr(v.Default, v)
 }
@@ -159,7 +159,7 @@ func ValidateInt32PtrMissing(v *Int32PtrValidation) (*int32, error) {
 func ValidateInt32Ptr(val *int32, v *Int32PtrValidation) (*int32, error) {
 	if v.DisallowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 

@@ -14,37 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package files
-
-import (
-	"fmt"
-
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-)
+package msgpack
 
 type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
-	ErrCreateDir
-	ErrReadFormFile
-	ErrCreateFile
-	ErrReadDir
-	ErrFileAlreadyExists
-	ErrUnexpected
+	ErrUnmarshalMsgpack
+	ErrMarshalMsgpack
 )
 
 var errorKinds = []string{
 	"err_unknown",
-	"err_create_dir",
-	"err_read_form_file",
-	"err_create_file",
-	"err_read_dir",
-	"err_file_already_exists",
-	"err_unexpected",
+	"err_unmarshal_msgpack",
+	"err_marshal_msgpack",
 }
 
-var _ = [1]int{}[int(ErrUnexpected)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrMarshalMsgpack)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -89,44 +75,16 @@ func (e Error) Error() string {
 	return e.message
 }
 
-func ErrorCreateDir(path string) error {
+func ErrorUnmarshalMsgpack() error {
 	return Error{
-		Kind:    ErrCreateDir,
-		message: fmt.Sprintf("%s: unable to create directory", path),
+		Kind:    ErrUnmarshalMsgpack,
+		message: "invalid messagepack",
 	}
 }
 
-func ErrorReadFormFile(fileName string) error {
+func ErrorMarshalMsgpack() error {
 	return Error{
-		Kind:    ErrReadFormFile,
-		message: fmt.Sprintf("unable to read request form file %s", s.UserStr(fileName)),
-	}
-}
-
-func ErrorCreateFile(path string) error {
-	return Error{
-		Kind:    ErrCreateFile,
-		message: fmt.Sprintf("%s: unable to create file", path),
-	}
-}
-
-func ErrorReadDir(path string) error {
-	return Error{
-		Kind:    ErrReadDir,
-		message: fmt.Sprintf("%s: unable to read directory", path),
-	}
-}
-
-func ErrorFileAlreadyExists(path string) error {
-	return Error{
-		Kind:    ErrFileAlreadyExists,
-		message: fmt.Sprintf("%s: file already exists", path),
-	}
-}
-
-func ErrorUnexpected() error {
-	return Error{
-		Kind:    ErrUnexpected,
-		message: "an unexpected error occurred",
+		Kind:    ErrMarshalMsgpack,
+		message: "invalid messagepack cannot be serialized",
 	}
 }

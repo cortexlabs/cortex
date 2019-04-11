@@ -35,7 +35,6 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/cortexlabs/cortex/pkg/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
@@ -62,7 +61,7 @@ func HTTPGet(endpoint string, qParams ...map[string]string) ([]byte, error) {
 func HTTPPostJSONData(endpoint string, requestData interface{}, qParams ...map[string]string) ([]byte, error) {
 	jsonRequestData, err := json.Marshal(requestData)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrMarshalJSON)
+		return nil, errors.Wrap(err, ErrorMarshalJSON().Error())
 	}
 	return HTTPPostJSON(endpoint, jsonRequestData, qParams...)
 }
@@ -89,7 +88,7 @@ func HTTPUpload(endpoint string, input *HTTPUploadInput, qParams ...map[string]s
 	for fileName, filePath := range input.FilePaths {
 		file, err := os.Open(filePath)
 		if err != nil {
-			return nil, errors.Wrap(err, s.ErrReadFile(filePath))
+			return nil, errors.Wrap(err, ErrorReadFile(filePath).Error())
 		}
 
 		defer file.Close()
@@ -105,7 +104,7 @@ func HTTPUpload(endpoint string, input *HTTPUploadInput, qParams ...map[string]s
 	}
 
 	if err := writer.Close(); err != nil {
-		return nil, errors.Wrap(err, s.ErrCantMakeRequest)
+		return nil, errors.Wrap(err, ErrorCantMakeRequest().Error())
 	}
 
 	req, err := operatorRequest("POST", endpoint, body, qParams)
@@ -120,11 +119,11 @@ func HTTPUpload(endpoint string, input *HTTPUploadInput, qParams ...map[string]s
 func addFileToMultipart(fileName string, writer *multipart.Writer, reader io.Reader) error {
 	part, err := writer.CreateFormFile(fileName, fileName)
 	if err != nil {
-		return errors.Wrap(err, s.ErrCantMakeRequest)
+		return errors.Wrap(err, ErrorCantMakeRequest().Error())
 	}
 
 	if _, err = io.Copy(part, reader); err != nil {
-		return errors.Wrap(err, s.ErrCantMakeRequest)
+		return errors.Wrap(err, ErrorCantMakeRequest().Error())
 	}
 	return nil
 }
@@ -240,7 +239,7 @@ func operatorRequest(method string, endpoint string, body io.Reader, qParams []m
 	cliConfig := getValidCliConfig()
 	req, err := http.NewRequest(method, cliConfig.CortexURL+endpoint, body)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrCantMakeRequest)
+		return nil, errors.Wrap(err, ErrorCantMakeRequest().Error())
 	}
 
 	values := req.URL.Query()
@@ -268,7 +267,7 @@ func makeRequest(request *http.Request) ([]byte, error) {
 	if response.StatusCode != 200 {
 		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return nil, errors.New(s.ErrRead)
+			return nil, ErrorRead()
 		}
 
 		var output schema.ErrorResponse
@@ -282,7 +281,7 @@ func makeRequest(request *http.Request) ([]byte, error) {
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrRead)
+		return nil, errors.Wrap(err, ErrorRead().Error())
 	}
 	return bodyBytes, nil
 }

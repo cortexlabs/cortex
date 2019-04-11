@@ -80,7 +80,7 @@ func CreateDirIfMissing(path string) (bool, error) {
 	}
 
 	if IsFile(path) {
-		return false, errors.New(s.ErrFileAlreadyExists(path))
+		return false, ErrorFileAlreadyExists(path)
 	}
 
 	err := os.MkdirAll(path, os.ModePerm)
@@ -108,7 +108,7 @@ func SearchForFile(filename string, dir string) (string, error) {
 	for true {
 		files, err := ioutil.ReadDir(dir)
 		if err != nil {
-			return "", errors.Wrap(err, s.ErrReadDir(dir))
+			return "", errors.Wrap(err, ErrorReadDir(dir).Error())
 		}
 
 		for _, file := range files {
@@ -124,7 +124,7 @@ func SearchForFile(filename string, dir string) (string, error) {
 		dir = ParentDir(dir)
 	}
 
-	return "", errors.New(s.ErrUnexpected)
+	return "", ErrorUnexpected()
 }
 
 func MakeEmptyFile(path string) error {
@@ -370,7 +370,7 @@ func ListDir(dir string, relative bool) ([]string, error) {
 	var filenames []string
 	fileInfo, err := ioutil.ReadDir(dir)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrReadDir(dir))
+		return nil, errors.Wrap(err, ErrorReadDir(dir).Error())
 	}
 	for _, file := range fileInfo {
 		filename := file.Name()

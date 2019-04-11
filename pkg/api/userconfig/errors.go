@@ -56,6 +56,8 @@ const (
 	ErrTypeListLength
 	ErrGenericTypeMapLength
 	ErrK8sQuantityMustBeInt
+	ErrMapMustBeDefined
+	ErrMustBeEmpty
 )
 
 var errorKinds = []string{
@@ -86,9 +88,11 @@ var errorKinds = []string{
 	"err_type_list_length",
 	"err_generic_type_map_length",
 	"err_k8s_quantity_must_be_int",
+	"err_map_must_be_defined",
+	"err_must_be_empty",
 }
 
-var _ = [1]int{}[int(ErrK8sQuantityMustBeInt)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrMustBeEmpty)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -363,5 +367,23 @@ func ErrorK8sQuantityMustBeInt(quantityStr string) error {
 	return Error{
 		Kind:    ErrK8sQuantityMustBeInt,
 		message: fmt.Sprintf("resource compute quantity must be an integer-valued string, e.g. \"2\") (got %s)", s.DataTypeStr(quantityStr)),
+	}
+}
+
+func ErrorMapMustBeDefined(keys ...string) error {
+	message := fmt.Sprintf("must be defined")
+	if len(keys) > 0 {
+		message = fmt.Sprintf("must be defined, and contain the following keys: %s", s.UserStrsAnd(keys))
+	}
+	return Error{
+		Kind:    ErrMapMustBeDefined,
+		message: message,
+	}
+}
+
+func ErrorMustBeEmpty() error {
+	return Error{
+		Kind:    ErrMustBeEmpty,
+		message: "must be empty",
 	}
 }

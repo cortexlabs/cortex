@@ -53,7 +53,7 @@ func StringPtr(inter interface{}, v *StringPtrValidation) (*string, error) {
 	}
 	casted, castOk := inter.(string)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeString))
+		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeString)
 	}
 	return ValidateStringPtr(&casted, v)
 }
@@ -145,7 +145,7 @@ func StringPtrFromPrompt(promptOpts *PromptOptions, v *StringPtrValidation) (*st
 
 func ValidateStringPtrMissing(v *StringPtrValidation) (*string, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateStringPtr(v.Default, v)
 }
@@ -153,7 +153,7 @@ func ValidateStringPtrMissing(v *StringPtrValidation) (*string, error) {
 func ValidateStringPtr(val *string, v *StringPtrValidation) (*string, error) {
 	if v.DisallowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 

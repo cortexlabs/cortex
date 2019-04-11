@@ -117,7 +117,7 @@ func UploadBytesesToS3(data []byte, keys ...string) error {
 func UploadFileToS3(filePath string, key string) error {
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return errors.Wrap(err, s.ErrReadFile(filePath))
+		return errors.Wrap(err, ErrorReadFile(filePath).Error())
 	}
 	return UploadBytesToS3(data, key)
 }

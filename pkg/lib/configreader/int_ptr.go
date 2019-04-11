@@ -52,7 +52,7 @@ func IntPtr(inter interface{}, v *IntPtrValidation) (*int, error) {
 	}
 	casted, castOk := cast.InterfaceToInt(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeInt))
+		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeInt)
 	}
 	return ValidateIntPtr(&casted, v)
 }
@@ -95,7 +95,7 @@ func IntPtrFromStr(valStr string, v *IntPtrValidation) (*int, error) {
 	}
 	casted, castOk := s.ParseInt(valStr)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeInt))
+		return nil, ErrorInvalidPrimitiveType(valStr, s.PrimTypeInt)
 	}
 	return ValidateIntPtr(&casted, v)
 }
@@ -151,7 +151,7 @@ func IntPtrFromPrompt(promptOpts *PromptOptions, v *IntPtrValidation) (*int, err
 
 func ValidateIntPtrMissing(v *IntPtrValidation) (*int, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateIntPtr(v.Default, v)
 }
@@ -159,7 +159,7 @@ func ValidateIntPtrMissing(v *IntPtrValidation) (*int, error) {
 func ValidateIntPtr(val *int, v *IntPtrValidation) (*int, error) {
 	if v.DisallowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 

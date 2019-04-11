@@ -21,7 +21,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	schema "github.com/cortexlabs/cortex/pkg/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
@@ -45,7 +44,7 @@ func GetAggregate(w http.ResponseWriter, r *http.Request) {
 	aggregate := ctx.Aggregates.OneByID(id)
 
 	if aggregate == nil {
-		RespondError(w, errors.New(resource.AggregateType.String(), id, s.ErrNotFound))
+		RespondError(w, resource.ErrorNotFound(id, resource.AggregateType))
 		return
 	}
 
@@ -54,7 +53,7 @@ func GetAggregate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !exists {
-		RespondError(w, errors.New(resource.AggregateType.String(), id, s.ErrPending))
+		RespondError(w, errors.Wrap(ErrorPending(), resource.AggregateType.String(), id))
 		return
 	}
 

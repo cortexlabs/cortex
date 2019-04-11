@@ -18,7 +18,6 @@ package context
 
 import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	userconfig "github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -208,7 +207,7 @@ func (ctx *Context) PopulateWorkloadIDs(resourceWorkloadIDs map[string]string) {
 func (ctx *Context) CheckAllWorkloadIDsPopulated() error {
 	for _, resource := range ctx.ComputedResources() {
 		if resource.GetWorkloadID() == "" {
-			return errors.New(ctx.App.Name, "resource", resource.GetID(), "workload ID", s.ErrMissing) // unexpected
+			return errors.Wrap(ErrorMissing(), ctx.App.Name, "resource", resource.GetID(), "workload ID") // unexpected
 		}
 	}
 	return nil

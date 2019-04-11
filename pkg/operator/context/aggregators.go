@@ -23,7 +23,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -50,7 +49,7 @@ func init() {
 		implPath := filepath.Join(OperatorAggregatorsDir, aggregatorConfig.Path)
 		impl, err := ioutil.ReadFile(implPath)
 		if err != nil {
-			err := errors.Wrap(err, userconfig.Identify(aggregatorConfig), s.ErrReadFile(implPath))
+			err := errors.Wrap(err, userconfig.Identify(aggregatorConfig), ErrorReadFile(implPath).Error())
 			telemetry.ReportErrorBlocking(err)
 			errors.Exit(err)
 		}
@@ -73,7 +72,7 @@ func loadUserAggregators(
 	for _, aggregatorConfig := range aggregatorConfigs {
 		impl, ok := impls[aggregatorConfig.Path]
 		if !ok {
-			return nil, errors.New(userconfig.Identify(aggregatorConfig), s.ErrFileDoesNotExist(aggregatorConfig.Path))
+			return nil, errors.Wrap(ErrorFileDoesNotExist(aggregatorConfig.Path), userconfig.Identify(aggregatorConfig))
 		}
 		aggregator, err := newAggregator(*aggregatorConfig, impl, nil, pythonPackages)
 		if err != nil {

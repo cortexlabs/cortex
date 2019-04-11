@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package files
+package s3
 
 import (
 	"fmt"
@@ -26,25 +26,15 @@ type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
-	ErrCreateDir
-	ErrReadFormFile
-	ErrCreateFile
-	ErrReadDir
-	ErrFileAlreadyExists
-	ErrUnexpected
+	ErrInvalidS3aPath
 )
 
 var errorKinds = []string{
 	"err_unknown",
-	"err_create_dir",
-	"err_read_form_file",
-	"err_create_file",
-	"err_read_dir",
-	"err_file_already_exists",
-	"err_unexpected",
+	"err_invalid_s3a_path",
 }
 
-var _ = [1]int{}[int(ErrUnexpected)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrInvalidS3aPath)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -89,44 +79,9 @@ func (e Error) Error() string {
 	return e.message
 }
 
-func ErrorCreateDir(path string) error {
+func ErrorInvalidS3aPath(provided string) error {
 	return Error{
-		Kind:    ErrCreateDir,
-		message: fmt.Sprintf("%s: unable to create directory", path),
-	}
-}
-
-func ErrorReadFormFile(fileName string) error {
-	return Error{
-		Kind:    ErrReadFormFile,
-		message: fmt.Sprintf("unable to read request form file %s", s.UserStr(fileName)),
-	}
-}
-
-func ErrorCreateFile(path string) error {
-	return Error{
-		Kind:    ErrCreateFile,
-		message: fmt.Sprintf("%s: unable to create file", path),
-	}
-}
-
-func ErrorReadDir(path string) error {
-	return Error{
-		Kind:    ErrReadDir,
-		message: fmt.Sprintf("%s: unable to read directory", path),
-	}
-}
-
-func ErrorFileAlreadyExists(path string) error {
-	return Error{
-		Kind:    ErrFileAlreadyExists,
-		message: fmt.Sprintf("%s: file already exists", path),
-	}
-}
-
-func ErrorUnexpected() error {
-	return Error{
-		Kind:    ErrUnexpected,
-		message: "an unexpected error occurred",
+		Kind:    ErrInvalidS3aPath,
+		message: fmt.Sprintf("%s is not a valid s3a path", s.UserStr(provided)),
 	}
 }

@@ -21,7 +21,6 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
@@ -56,7 +55,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if workloadID == "" {
-			RespondError(w, errors.New(appName, "latest workload ID", resourceID, s.ErrNotFound))
+			RespondError(w, errors.Wrap(workloads.ErrorNotFound(), appName, "latest workload ID", resourceID))
 			return
 		}
 		readLogs(w, r, workloadID, appName, verbose)

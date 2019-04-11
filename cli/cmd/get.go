@@ -328,12 +328,12 @@ func describeAggregate(name string, resourcesRes *schema.GetResourcesResponse) (
 		var aggregateRes schema.GetAggregateResponse
 		err = json.Unmarshal(httpResponse, &aggregateRes)
 		if err != nil {
-			return "", errors.Wrap(err, "/aggregate", "response", s.ErrUnmarshalJSON, string(httpResponse))
+			return "", errors.Wrap(err, "/aggregate", "response", ErrorUnmarshalJSON().Error(), string(httpResponse))
 		}
 
 		obj, err := msgpack.UnmarshalToInterface(aggregateRes.Value)
 		if err != nil {
-			return "", errors.Wrap(err, "/aggregate", "response", s.ErrUnmarshalMsgpack)
+			return "", errors.Wrap(err, "/aggregate", "response", msgpack.ErrorUnmarshalMsgpack().Error())
 		}
 		out += valueStr(obj)
 	}

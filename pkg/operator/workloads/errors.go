@@ -25,14 +25,26 @@ type ErrorKind int
 const (
 	ErrUnknown ErrorKind = iota
 	ErrUserDataUnavailable
+	ErrMoreThanOneWorkflow
+	ErrContextAppMismatch
+	ErrWorkflowAppMismatch
+	ErrCortexInstallationBroken
+	ErrLoadBalancerInitializing
+	ErrNotFound
 )
 
 var errorKinds = []string{
 	"err_unknown",
 	"err_user_data_unavailable",
+	"error_more_than_one_workflow",
+	"err_context_app_mismatch",
+	"err_workflow_app_mismatch",
+	"err_cortex_installation_broken",
+	"err_load_balancer_initializing",
+	"err_not_found",
 }
 
-var _ = [1]int{}[int(ErrUserDataUnavailable)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrNotFound)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -81,5 +93,47 @@ func ErrorUserDataUnavailable(s3Path string) error {
 	return Error{
 		Kind:    ErrUserDataUnavailable,
 		message: fmt.Sprintf("the file at %s does not exist, or your cluster does not have access to it", s3Path),
+	}
+}
+
+func ErrorMoreThanOneWorkflow() error {
+	return Error{
+		Kind:    ErrMoreThanOneWorkflow,
+		message: "there is more than one workflow",
+	}
+}
+
+func ErrorContextAppMismatch() error {
+	return Error{
+		Kind:    ErrContextAppMismatch,
+		message: "context apps do not match",
+	}
+}
+
+func ErrorWorkflowAppMismatch() error {
+	return Error{
+		Kind:    ErrWorkflowAppMismatch,
+		message: "workflow apps do not match",
+	}
+}
+
+func ErrorCortexInstallationBroken() error {
+	return Error{
+		Kind:    ErrCortexInstallationBroken,
+		message: "cortex is out of date, or not installed properly on your cluster; run `./cortex-installer.sh uninstall operator && ./cortex-installer.sh install operator`",
+	}
+}
+
+func ErrorLoadBalancerInitializing() error {
+	return Error{
+		Kind:    ErrLoadBalancerInitializing,
+		message: "load balancer is still initializing",
+	}
+}
+
+func ErrorNotFound() error {
+	return Error{
+		Kind:    ErrNotFound,
+		message: "not found",
 	}
 }

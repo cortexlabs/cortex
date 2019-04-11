@@ -32,6 +32,12 @@ const (
 	ErrFailedToConnect
 	ErrCwdDirExists
 	ErrCreateFile
+	ErrReadFile
+	ErrCliNotInAppDir
+	ErrUnmarshalJSON
+	ErrMarshalJSON
+	ErrCantMakeRequest
+	ErrRead
 )
 
 var errorKinds = []string{
@@ -42,9 +48,15 @@ var errorKinds = []string{
 	"err_failed_to_connect",
 	"err_cwd_dir_exists",
 	"err_create_file",
+	"err_read_file",
+	"err_cli_not_in_app_dir",
+	"err_unmarshal_json",
+	"err_marshal_json",
+	"err_cant_make_request",
+	"err_read",
 }
 
-var _ = [1]int{}[int(ErrCreateFile)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrRead)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -128,5 +140,46 @@ func ErrorCreateFile(path string) error {
 	return Error{
 		Kind:    ErrCreateFile,
 		message: fmt.Sprintf("%s: unable to create file", path),
+	}
+}
+
+func ErrorReadFile(path string) error {
+	return Error{
+		Kind:    ErrReadFile,
+		message: fmt.Sprintf("%s: unable to read file", path),
+	}
+}
+
+func ErrorCliNotInAppDir() error {
+	return Error{
+		Kind:    ErrCliNotInAppDir,
+		message: "your current working directory is not in or under a cortex app directory (identified via a top-level app.yaml file)",
+	}
+}
+func ErrorUnmarshalJSON() error {
+	return Error{
+		Kind:    ErrUnmarshalJSON,
+		message: "invalid json",
+	}
+}
+
+func ErrorMarshalJSON() error {
+	return Error{
+		Kind:    ErrMarshalJSON,
+		message: "invalid json cannot be serialized",
+	}
+}
+
+func ErrorCantMakeRequest() error {
+	return Error{
+		Kind:    ErrCantMakeRequest,
+		message: "unable to make request",
+	}
+}
+
+func ErrorRead() error {
+	return Error{
+		Kind:    ErrRead,
+		message: "unable to read",
 	}
 }

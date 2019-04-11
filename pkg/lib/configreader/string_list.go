@@ -35,7 +35,7 @@ type StringListValidation struct {
 func StringList(inter interface{}, v *StringListValidation) ([]string, error) {
 	casted, castOk := cast.InterfaceToStrSlice(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeStringList))
+		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeStringList)
 	}
 	return ValidateStringList(casted, v)
 }
@@ -58,7 +58,7 @@ func StringListFromInterfaceMap(key string, iMap map[string]interface{}, v *Stri
 
 func ValidateStringListMissing(v *StringListValidation) ([]string, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateStringList(v.Default, v)
 }
@@ -66,19 +66,19 @@ func ValidateStringListMissing(v *StringListValidation) ([]string, error) {
 func ValidateStringList(val []string, v *StringListValidation) ([]string, error) {
 	if !v.AllowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 
 	if v.DisallowDups {
 		if dups := slices.FindDuplicateStrs(val); len(dups) > 0 {
-			return nil, errors.New(s.ErrDuplicatedValue(dups[0]))
+			return nil, ErrorDuplicatedValue(dups[0])
 		}
 	}
 

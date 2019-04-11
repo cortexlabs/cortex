@@ -20,8 +20,8 @@ import (
 	"encoding/json"
 
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 )
@@ -145,7 +145,7 @@ func (ctx Context) MarshalJSON() ([]byte, error) {
 	}
 	msgpackJSONBytes, err := json.Marshal(&msgpackBytes)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrMarshalJSON)
+		return nil, errors.Wrap(err, configreader.ErrorMarshalJSON().Error())
 	}
 	return msgpackJSONBytes, nil
 }
@@ -153,7 +153,7 @@ func (ctx Context) MarshalJSON() ([]byte, error) {
 func (ctx *Context) UnmarshalJSON(b []byte) error {
 	var msgpackBytes []byte
 	if err := json.Unmarshal(b, &msgpackBytes); err != nil {
-		return errors.Wrap(err, s.ErrUnmarshalJSON)
+		return errors.Wrap(err, configreader.ErrorUnmarshalJSON().Error())
 	}
 	ctxPtr, err := FromMsgpackBytes(msgpackBytes)
 	if err != nil {
