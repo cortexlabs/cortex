@@ -31,7 +31,7 @@
     num_steps: 5000
 
 - kind: model
-  name: t2t_transformer
+  name: transformer
   type: classification
   target_column: label_indexed
   feature_columns:
