@@ -126,3 +126,10 @@ make build-cli
 # use the operator's URL printed at the end of make cinstall
 cx configure
 ```
+
+Run an example application
+
+```bash
+cd ~/src/github.com/cortexlabs/cortex/examples/iris
+cx deploy
+```
