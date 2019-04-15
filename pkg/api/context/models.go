@@ -80,12 +80,12 @@ func ValidateModelTargetType(targetType userconfig.ColumnType, modelType usercon
 	switch modelType {
 	case userconfig.ClassificationModelType:
 		if targetType != userconfig.IntegerColumnType {
-			return configreader.ErrorClassificationTargetType()
+			return userconfig.ErrorClassificationTargetType()
 		}
 		return nil
 	case userconfig.RegressionModelType:
 		if targetType != userconfig.IntegerColumnType && targetType != userconfig.FloatColumnType {
-			return configreader.ErrorRegressionTargetType()
+			return userconfig.ErrorRegressionTargetType()
 		}
 		return nil
 	}

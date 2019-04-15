@@ -58,6 +58,8 @@ const (
 	ErrK8sQuantityMustBeInt
 	ErrMapMustBeDefined
 	ErrMustBeEmpty
+	ErrRegressionTargetType
+	ErrClassificationTargetType
 )
 
 var errorKinds = []string{
@@ -90,9 +92,11 @@ var errorKinds = []string{
 	"err_k8s_quantity_must_be_int",
 	"err_map_must_be_defined",
 	"err_must_be_empty",
+	"err_regression_target_type",
+	"err_classification_target_type",
 }
 
-var _ = [1]int{}[int(ErrMustBeEmpty)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrClassificationTargetType)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -370,20 +374,15 @@ func ErrorK8sQuantityMustBeInt(quantityStr string) error {
 	}
 }
 
-func ErrorMapMustBeDefined(keys ...string) error {
-	message := fmt.Sprintf("must be defined")
-	if len(keys) > 0 {
-		message = fmt.Sprintf("must be defined, and contain the following keys: %s", s.UserStrsAnd(keys))
-	}
+func ErrorRegressionTargetType() error {
 	return Error{
-		Kind:    ErrMapMustBeDefined,
-		message: message,
+		Kind:    ErrRegressionTargetType,
+		message: "regression models can only predict float target values",
 	}
 }
-
-func ErrorMustBeEmpty() error {
+func ErrorClassificationTargetType() error {
 	return Error{
-		Kind:    ErrMustBeEmpty,
-		message: "must be empty",
+		Kind:    ErrClassificationTargetType,
+		message: "classification models can only predict integer target values (i.e. {0, 1, ..., num_classes-1})",
 	}
 }

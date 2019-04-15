@@ -37,11 +37,12 @@ func Wrap(err error, strs ...string) error {
 		return nil
 	}
 	strs = removeEmptyStrs(strs)
-	if len(strs) == 0 {
-		return pkgerrors.WithStack(err)
-	}
 	errStr := strings.Join(strs, ": ")
 	return pkgerrors.Wrap(err, errStr)
+}
+
+func WithStack(err error) error {
+	return pkgerrors.WithStack(err)
 }
 
 func Cause(err error) error {

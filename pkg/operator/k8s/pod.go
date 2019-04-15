@@ -23,6 +23,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 )
 
@@ -75,7 +76,7 @@ func Pod(spec *PodSpec) *corev1.Pod {
 func CreatePod(spec *PodSpec) (*corev1.Pod, error) {
 	pod, err := podClient.Create(Pod(spec))
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return pod, nil
 }
@@ -203,7 +204,7 @@ func GetPod(name string) (*corev1.Pod, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	pod.TypeMeta = podTypeMeta
 	return pod, nil
@@ -215,7 +216,7 @@ func DeletePod(name string) (bool, error) {
 		return false, nil
 	}
 	if err != nil {
-		return false, err
+		return false, errors.WithStack(err)
 	}
 	return true, nil
 }
@@ -234,7 +235,7 @@ func ListPods(opts *metav1.ListOptions) ([]corev1.Pod, error) {
 	}
 	podList, err := podClient.List(*opts)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	for i := range podList.Items {
 		podList.Items[i].TypeMeta = podTypeMeta

@@ -63,7 +63,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resourceName == "" {
-		RespondError(w, ErrorPathParamRequired("workloadID", "resourceID", "resourceName"))
+		RespondError(w, ErrorAnyQueryParamRequired("workloadID", "resourceID", "resourceName"))
 		return
 	}
 

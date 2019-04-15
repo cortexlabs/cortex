@@ -44,7 +44,7 @@ func Any(obj interface{}) string {
 func File(path string) (string, error) {
 	fileBytes, err := ioutil.ReadFile(path)
 	if err != nil {
-		return "", errors.Wrap(err, ErrorReadFile(path).Error())
+		return "", errors.Wrap(err, "unable to read file")
 	}
 	return Bytes(fileBytes), nil
 }

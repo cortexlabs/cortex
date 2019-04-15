@@ -150,7 +150,7 @@ func NumTasks(wf *awfv1.Workflow) int {
 func Run(wf *awfv1.Workflow) error {
 	_, err := workflowClient.Create(wf)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -161,7 +161,7 @@ func List(opts *metav1.ListOptions) ([]awfv1.Workflow, error) {
 	}
 	wfList, err := workflowClient.List(*opts)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return wfList.Items, nil
 }
@@ -210,7 +210,7 @@ func Delete(wfName string) (bool, error) {
 	if k8serrors.IsNotFound(err) {
 		return false, nil
 	} else if err != nil {
-		return false, err
+		return false, errors.WithStack(err)
 	}
 	return true, nil
 }

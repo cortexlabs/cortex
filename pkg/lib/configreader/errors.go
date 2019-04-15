@@ -49,13 +49,13 @@ const (
 	ErrInvalidPrimitiveType
 	ErrDuplicatedValue
 	ErrCannotSetStructField
-	ErrRegressionTargetType
-	ErrClassificationTargetType
 	ErrUnmarshalJSON
 	ErrMarshalJSON
 	ErrCannotBeNull
 	ErrCannotBeEmpty
 	ErrMustBeDefined
+	ErrMapMustBeDefined
+	ErrMustBeEmpty
 )
 
 var errorKinds = []string{
@@ -82,16 +82,16 @@ var errorKinds = []string{
 	"err_invalid_primitive_type",
 	"err_duplicated_value",
 	"err_cannot_set_struct_field",
-	"err_regression_target_type",
-	"err_classification_target_type",
 	"err_unmarshal_json",
 	"err_marshal_json",
 	"err_cannot_be_null",
 	"err_cannot_be_empty",
 	"err_must_be_defined",
+	"err_map_must_be_defined",
+	"err_must_be_empty",
 }
 
-var _ = [1]int{}[int(ErrMustBeDefined)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrMustBeEmpty)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -291,19 +291,6 @@ func ErrorCannotSetStructField() error {
 	}
 }
 
-func ErrorRegressionTargetType() error {
-	return Error{
-		Kind:    ErrRegressionTargetType,
-		message: "regression models can only predict float target values",
-	}
-}
-func ErrorClassificationTargetType() error {
-	return Error{
-		Kind:    ErrClassificationTargetType,
-		message: "classification models can only predict integer target values (i.e. {0, 1, ..., num_classes-1})",
-	}
-}
-
 func ErrorUnmarshalJSON() error {
 	return Error{
 		Kind:    ErrUnmarshalJSON,
@@ -336,5 +323,23 @@ func ErrorMustBeDefined() error {
 	return Error{
 		Kind:    ErrMustBeDefined,
 		message: "must be defined",
+	}
+}
+
+func ErrorMapMustBeDefined(keys ...string) error {
+	message := fmt.Sprintf("must be defined")
+	if len(keys) > 0 {
+		message = fmt.Sprintf("must be defined, and contain the following keys: %s", s.UserStrsAnd(keys))
+	}
+	return Error{
+		Kind:    ErrMapMustBeDefined,
+		message: message,
+	}
+}
+
+func ErrorMustBeEmpty() error {
+	return Error{
+		Kind:    ErrMustBeEmpty,
+		message: "must be empty",
 	}
 }

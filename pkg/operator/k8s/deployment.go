@@ -19,6 +19,7 @@ package k8s
 import (
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	appsv1b1 "k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -83,7 +84,7 @@ func Deployment(spec *DeploymentSpec) *appsv1b1.Deployment {
 func CreateDeployment(spec *DeploymentSpec) (*appsv1b1.Deployment, error) {
 	deployment, err := deploymentClient.Create(Deployment(spec))
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return deployment, nil
 }
@@ -91,7 +92,7 @@ func CreateDeployment(spec *DeploymentSpec) (*appsv1b1.Deployment, error) {
 func UpdateDeployment(deployment *appsv1b1.Deployment) (*appsv1b1.Deployment, error) {
 	deployment, err := deploymentClient.Update(deployment)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return deployment, nil
 }
@@ -102,7 +103,7 @@ func GetDeployment(name string) (*appsv1b1.Deployment, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	deployment.TypeMeta = deploymentTypeMeta
 	return deployment, nil
@@ -114,7 +115,7 @@ func DeleteDeployment(name string) (bool, error) {
 		return false, nil
 	}
 	if err != nil {
-		return false, err
+		return false, errors.WithStack(err)
 	}
 	return true, nil
 }
@@ -133,7 +134,7 @@ func ListDeployments(opts *metav1.ListOptions) ([]appsv1b1.Deployment, error) {
 	}
 	deploymentList, err := deploymentClient.List(*opts)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	for i := range deploymentList.Items {
 		deploymentList.Items[i].TypeMeta = deploymentTypeMeta

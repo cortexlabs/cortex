@@ -17,6 +17,7 @@ limitations under the License.
 package k8s
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -67,7 +68,7 @@ func Service(spec *ServiceSpec) *corev1.Service {
 func CreateService(spec *ServiceSpec) (*corev1.Service, error) {
 	service, err := serviceClient.Create(Service(spec))
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return service, nil
 }
@@ -78,7 +79,7 @@ func GetService(name string) (*corev1.Service, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	service.TypeMeta = serviceTypeMeta
 	return service, nil
@@ -90,7 +91,7 @@ func DeleteService(name string) (bool, error) {
 		return false, nil
 	}
 	if err != nil {
-		return false, err
+		return false, errors.WithStack(err)
 	}
 	return true, nil
 }
@@ -109,7 +110,7 @@ func ListServices(opts *metav1.ListOptions) ([]corev1.Service, error) {
 	}
 	serviceList, err := serviceClient.List(*opts)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	for i := range serviceList.Items {
 		serviceList.Items[i].TypeMeta = serviceTypeMeta

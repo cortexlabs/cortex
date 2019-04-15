@@ -26,13 +26,11 @@ type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
-	ErrReadFile
 	ErrInvalidPrimitiveType
 )
 
 var errorKinds = []string{
 	"err_unknown",
-	"err_read_file",
 	"err_invalid_primitive_type",
 }
 
@@ -79,13 +77,6 @@ type Error struct {
 
 func (e Error) Error() string {
 	return e.message
-}
-
-func ErrorReadFile(path string) error {
-	return Error{
-		Kind:    ErrReadFile,
-		message: fmt.Sprintf("%s: unable to read file", path),
-	}
 }
 
 func ErrorInvalidPrimitiveType(provided interface{}, allowedTypes ...s.PrimitiveType) error {

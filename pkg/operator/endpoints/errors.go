@@ -32,6 +32,10 @@ const (
 	ErrAuthForbidden
 	ErrAppNotDeployed
 	ErrFormFileMustBeProvided
+	ErrQueryParamRequired
+	ErrPathParamRequired
+	ErrAnyQueryParamRequired
+	ErrAnyPathParamRequired
 	ErrPending
 )
 
@@ -44,6 +48,10 @@ var (
 		"err_auth_forbidden",
 		"err_app_not_deployed",
 		"err_form_file_must_be_provided",
+		"err_query_param_required",
+		"err_path_param_required",
+		"err_any_query_param_required",
+		"err_any_path_param_required",
 		"err_pending",
 	}
 )
@@ -134,17 +142,30 @@ func ErrorFormFileMustBeProvided(fileName string) error {
 		message: fmt.Sprintf("request form file %s must be provided", s.UserStr(fileName)),
 	}
 }
-
-func ErrorQueryParamRequired(paramNames ...string) error {
+func ErrorQueryParamRequired(param string) error {
 	return Error{
-		Kind:    ErrFormFileMustBeProvided,
+		Kind:    ErrQueryParamRequired,
+		message: fmt.Sprintf("query param required: %s", param),
+	}
+}
+
+func ErrorPathParamRequired(param string) error {
+	return Error{
+		Kind:    ErrPathParamRequired,
+		message: fmt.Sprintf("path param required: %s", param),
+	}
+}
+
+func ErrorAnyQueryParamRequired(paramNames ...string) error {
+	return Error{
+		Kind:    ErrQueryParamRequired,
 		message: fmt.Sprintf("query params required: %s", s.UserStrsOr(paramNames)),
 	}
 }
 
-func ErrorPathParamRequired(paramNames ...string) error {
+func ErrorAnyPathParamRequired(paramNames ...string) error {
 	return Error{
-		Kind:    ErrFormFileMustBeProvided,
+		Kind:    ErrPathParamRequired,
 		message: fmt.Sprintf("path params required: %s", s.UserStrsOr(paramNames)),
 	}
 }

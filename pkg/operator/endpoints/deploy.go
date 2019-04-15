@@ -110,12 +110,12 @@ func respondDeploy(w http.ResponseWriter, message string) {
 func getContext(r *http.Request, ignoreCache bool) (*context.Context, error) {
 	envName, err := getRequiredQueryParam("environment", r)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	zipBytes, err := files.ReadReqFile(r, "config.zip")
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if len(zipBytes) == 0 {
 		return nil, ErrorFormFileMustBeProvided("config.zip")

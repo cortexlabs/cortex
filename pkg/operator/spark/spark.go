@@ -196,7 +196,7 @@ func List(opts *metav1.ListOptions) ([]sparkop.SparkApplication, error) {
 	}
 	sparkList, err := sparkClient.List(*opts)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return sparkList.Items, nil
 }

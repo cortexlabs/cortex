@@ -122,7 +122,7 @@ func CheckColumnRuntimeTypesMatch(columnRuntimeTypes map[string]interface{}, col
 
 	for columnInputName, columnSchemaType := range columnSchemaTypes {
 		if len(columnRuntimeTypes) == 0 {
-			return ErrorMapMustBeDefined(maps.InterfaceMapKeys(columnSchemaTypes)...)
+			return configreader.ErrorMapMustBeDefined(maps.InterfaceMapKeys(columnSchemaTypes)...)
 		}
 
 		columnRuntimeTypeInter, ok := columnRuntimeTypes[columnInputName]
@@ -302,7 +302,7 @@ func CastValue(value interface{}, valueType interface{}) (interface{}, error) {
 			if len(valueMap) == 0 {
 				return make(map[interface{}]interface{}), nil
 			}
-			return nil, errors.Wrap(ErrorMustBeEmpty(), s.UserStr(valueMap))
+			return nil, errors.Wrap(configreader.ErrorMustBeEmpty(), s.UserStr(valueMap))
 		}
 
 		isGenericMap := false
@@ -389,7 +389,7 @@ func CheckArgRuntimeTypesMatch(argRuntimeTypes map[string]interface{}, argSchema
 
 	for argName, argSchemaType := range argSchemaTypes {
 		if len(argRuntimeTypes) == 0 {
-			return ErrorMapMustBeDefined(maps.InterfaceMapKeys(argSchemaTypes)...)
+			return configreader.ErrorMapMustBeDefined(maps.InterfaceMapKeys(argSchemaTypes)...)
 		}
 
 		argRuntimeType, ok := argRuntimeTypes[argName]
