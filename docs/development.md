@@ -25,14 +25,14 @@ Then, update image paths in the cortex config[link to config]
 
 ## Cortex Dev Environemnt
 
-1. Clone the project:
+Clone the project:
 
 ```bash
 git clone git@github.com:cortexlabs/cortex.git ~/src/github.com/cortexlabs/cortex
 cd ~/src/github.com/cortexlabs/cortex
 ```
 
-1. Create the AWS Elastic Container Registry:
+Create the AWS Elastic Container Registry:
 
 ```bash
 make registry-create
@@ -40,18 +40,18 @@ make registry-create
 
 Note the registry URL, as you will use it in the upcoming steps
 
-1. Create the following S3 buckets:
+Create the following S3 buckets:
 
 - cortex-cluster-<your_name>
 - cortex-cli-<your_name>
 
-1. Make the config folder:
+Make the config folder:
 
 ```bash
 mkdir -p ~/src/github.com/cortexlabs/cortex/dev/config
 ```
 
-1. Create `~/src/github.com/cortexlabs/cortex/dev/config/k8s.sh`. Paste the following config, and update `K8S_REGION`, `K8S_ZONE`, and `K8S_KOPS_BUCKET` accordingly:
+Create `~/src/github.com/cortexlabs/cortex/dev/config/k8s.sh`. Paste the following config, and update `K8S_REGION`, `K8S_ZONE`, and `K8S_KOPS_BUCKET` accordingly:
 
 ```bash
 # EKS and KOPS
@@ -67,7 +67,7 @@ export K8S_MASTER_VOLUME_SIZE="32"
 export K8S_NODE_VOLUME_SIZE="32"
 ```
 
-1. Create `~/src/github.com/cortexlabs/cortex/dev/config/cortex.sh`. Paste the following config, and update `CORTEX_BUCKET`, `CORTEX_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and all registry URLs accordingly:
+Create `~/src/github.com/cortexlabs/cortex/dev/config/cortex.sh`. Paste the following config, and update `CORTEX_BUCKET`, `CORTEX_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and all registry URLs accordingly:
 
 ```bash
 export CORTEX_LOG_GROUP="cortex"
@@ -91,7 +91,7 @@ export AWS_ACCESS_KEY_ID="XXXXXX"
 export AWS_SECRET_ACCESS_KEY="XXXXXX"
 ```
 
-1. Create `~/src/github.com/cortexlabs/cortex/dev/config/build.sh`. Paste the following config, and update `CLI_BUCKET_NAME`, `CLI_BUCKET_REGION`, `REGISTRY_URL`, and `REGISTRY_REGION` accordingly:
+Create `~/src/github.com/cortexlabs/cortex/dev/config/build.sh`. Paste the following config, and update `CLI_BUCKET_NAME`, `CLI_BUCKET_REGION`, `REGISTRY_URL`, and `REGISTRY_REGION` accordingly:
 
 ```bash
 export VERSION="latest"
@@ -101,25 +101,25 @@ export REGISTRY_URL="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com"
 export REGISTRY_REGION="us-west-2"
 ```
 
-1. Build and push all Cortex images (this will take a while)
+Build and push all Cortex images (this will take a while)
 
 ```bash
 make registry-dev
 ```
 
-1. Start Kubernetes cluster
+Start Kubernetes cluster
 
 ```bash
 make eks-up
 ```
 
-1. Install Cortex on the cluster
+Install Cortex on the cluster
 
 ```bash
 make cinstall
 ```
 
-1. Build and configure the Cortex CLI
+Build and configure the Cortex CLI
 
 ```bash
 make build-cli
