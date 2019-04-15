@@ -18,6 +18,10 @@ SHELL := /bin/bash
 # Dev #
 #######
 
+# Cortex
+cinstall:
+	@./cortex.sh --config=dev/config/cortex.sh install
+
 # Operator
 
 olocal:
@@ -124,7 +128,7 @@ test-examples:
 # CI Commands #
 ###############
 
-build-images:
+ci-build-images:
 	@./build/build-image.sh images/spark-base spark-base
 	@./build/build-image.sh images/tf-base tf-base
 	@./build/build-image.sh images/tf-base-gpu tf-base-gpu
@@ -143,7 +147,7 @@ build-images:
 	@./build/build-image.sh images/argo-executor argo-executor
 	@./build/build-image.sh images/python-packager python-packager
 
-push-images:
+ci-push-images:
 	@./build/push-image.sh spark
 	@./build/push-image.sh spark-operator
 	@./build/push-image.sh tf-train
@@ -162,5 +166,5 @@ push-images:
 build-cli:
 	@./build/cli.sh
 
-build-and-upload-cli:
+ci-build-and-upload-cli:
 	@./build/cli.sh upload
