@@ -19,10 +19,10 @@ package aws
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"path/filepath"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -115,9 +115,9 @@ func UploadBytesesToS3(data []byte, keys ...string) error {
 }
 
 func UploadFileToS3(filePath string, key string) error {
-	data, err := ioutil.ReadFile(filePath)
+	data, err := files.ReadFileBytes(filePath)
 	if err != nil {
-		return errors.Wrap(err, ErrorReadFile(filePath).Error())
+		return err
 	}
 	return UploadBytesToS3(data, key)
 }
@@ -132,7 +132,7 @@ func UploadStringToS3(str string, key string) error {
 }
 
 func UploadJSONToS3(obj interface{}, key string) error {
-	jsonBytes, err := libjson.MarshalJSON(obj)
+	jsonBytes, err := libjson.Marshal(obj)
 	if err != nil {
 		return err
 	}

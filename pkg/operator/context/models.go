@@ -130,7 +130,7 @@ func getModels(
 func getModelImplID(implPath string, impls map[string][]byte) (string, string, error) {
 	impl, ok := impls[implPath]
 	if !ok {
-		return "", "", ErrorFileDoesNotExist(implPath)
+		return "", "", ErrorImplDoesNotExist(implPath)
 	}
 	modelImplID := hash.Bytes(impl)
 	modelImplKey, err := uploadModelImpl(modelImplID, impl)

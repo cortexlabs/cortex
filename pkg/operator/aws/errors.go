@@ -17,8 +17,6 @@ limitations under the License.
 package aws
 
 import (
-	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
@@ -27,13 +25,11 @@ type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
-	ErrReadFile
 	ErrAuth
 )
 
 var errorKinds = []string{
 	"err_unknown",
-	"err_read_file",
 	"err_auth",
 }
 
@@ -99,13 +95,6 @@ type Error struct {
 
 func (e Error) Error() string {
 	return e.message
-}
-
-func ErrorReadFile(path string) error {
-	return Error{
-		Kind:    ErrReadFile,
-		message: fmt.Sprintf("%s: unable to read file", path),
-	}
 }
 
 func ErrorAuth() error {

@@ -29,7 +29,6 @@ const (
 	ErrUnknown ErrorKind = iota
 	ErrUnsupportedKey
 	ErrInvalidYAML
-	ErrFileDoesNotExist
 	ErrInvalidURL
 	ErrDNS1035
 	ErrAlphaNumericDashUnderscore
@@ -49,20 +48,18 @@ const (
 	ErrInvalidPrimitiveType
 	ErrDuplicatedValue
 	ErrCannotSetStructField
-	ErrUnmarshalJSON
-	ErrMarshalJSON
 	ErrCannotBeNull
 	ErrCannotBeEmpty
 	ErrMustBeDefined
 	ErrMapMustBeDefined
 	ErrMustBeEmpty
+	ErrNotAFile
 )
 
 var errorKinds = []string{
 	"err_unknown",
 	"err_unsupported_key",
 	"err_invalid_yaml",
-	"err_file_does_not_exist",
 	"err_invalid_url",
 	"err_dns1035",
 	"err_alpha_numeric_dash_underscore",
@@ -82,16 +79,15 @@ var errorKinds = []string{
 	"err_invalid_primitive_type",
 	"err_duplicated_value",
 	"err_cannot_set_struct_field",
-	"err_unmarshal_json",
-	"err_marshal_json",
 	"err_cannot_be_null",
 	"err_cannot_be_empty",
 	"err_must_be_defined",
 	"err_map_must_be_defined",
 	"err_must_be_empty",
+	"err_not_a_file",
 }
 
-var _ = [1]int{}[int(ErrMustBeEmpty)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrNotAFile)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -148,13 +144,6 @@ func ErrorUnmarshalYAML(err error) error {
 	return Error{
 		Kind:    ErrInvalidYAML,
 		message: fmt.Sprintf("invalid yaml: %s", str),
-	}
-}
-
-func ErrorFileDoesNotExist(path string) error {
-	return Error{
-		Kind:    ErrFileDoesNotExist,
-		message: fmt.Sprintf("%s: file does not exist", path),
 	}
 }
 
@@ -291,20 +280,6 @@ func ErrorCannotSetStructField() error {
 	}
 }
 
-func ErrorUnmarshalJSON() error {
-	return Error{
-		Kind:    ErrUnmarshalJSON,
-		message: "invalid json",
-	}
-}
-
-func ErrorMarshalJSON() error {
-	return Error{
-		Kind:    ErrMarshalJSON,
-		message: "invalid json cannot be serialized",
-	}
-}
-
 func ErrorCannotBeNull() error {
 	return Error{
 		Kind:    ErrCannotBeNull,
@@ -341,5 +316,12 @@ func ErrorMustBeEmpty() error {
 	return Error{
 		Kind:    ErrMustBeEmpty,
 		message: "must be empty",
+	}
+}
+
+func ErrorNotAFile(path string) error {
+	return Error{
+		Kind:    ErrNotAFile,
+		message: fmt.Sprintf("%s: not a file path", path),
 	}
 }

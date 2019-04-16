@@ -30,8 +30,11 @@ const (
 	ErrReadFormFile
 	ErrCreateFile
 	ErrReadDir
+	ErrReadFile
 	ErrFileAlreadyExists
 	ErrUnexpected
+	ErrFileDoesNotExist
+	ErrDirDoesNotExist
 )
 
 var errorKinds = []string{
@@ -40,11 +43,14 @@ var errorKinds = []string{
 	"err_read_form_file",
 	"err_create_file",
 	"err_read_dir",
+	"err_read_file",
 	"err_file_already_exists",
 	"err_unexpected",
+	"err_file_does_not_exist",
+	"err_dir_does_not_exist",
 }
 
-var _ = [1]int{}[int(ErrUnexpected)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrDirDoesNotExist)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -117,6 +123,13 @@ func ErrorReadDir(path string) error {
 	}
 }
 
+func ErrorReadFile(path string) error {
+	return Error{
+		Kind:    ErrReadFile,
+		message: fmt.Sprintf("%s: unable to read file", path),
+	}
+}
+
 func ErrorFileAlreadyExists(path string) error {
 	return Error{
 		Kind:    ErrFileAlreadyExists,
@@ -128,5 +141,18 @@ func ErrorUnexpected() error {
 	return Error{
 		Kind:    ErrUnexpected,
 		message: "an unexpected error occurred",
+	}
+}
+func ErrorFileDoesNotExist(path string) error {
+	return Error{
+		Kind:    ErrFileDoesNotExist,
+		message: fmt.Sprintf("%s: file does not exist", path),
+	}
+}
+
+func ErrorDirDoesNotExist(path string) error {
+	return Error{
+		Kind:    ErrDirDoesNotExist,
+		message: fmt.Sprintf("%s: directory does not exist", path),
 	}
 }

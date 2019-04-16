@@ -17,8 +17,6 @@ limitations under the License.
 package configreader
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -31,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
@@ -654,11 +653,9 @@ func ReadJSONBytes(jsonBytes []byte) (interface{}, error) {
 		return nil, nil
 	}
 	var parsed interface{}
-	d := json.NewDecoder(bytes.NewReader(jsonBytes))
-	d.UseNumber()
-	err := d.Decode(&parsed)
+	err := libjson.DecodeWithNumber(jsonBytes, &parsed)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorUnmarshalJSON().Error())
+		return nil, err
 	}
 	return parsed, nil
 }

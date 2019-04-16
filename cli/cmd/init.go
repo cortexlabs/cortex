@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -48,8 +47,8 @@ var initCmd = &cobra.Command{
 		appRoot := filepath.Join(cwd, appName)
 		var createdFiles []string
 
-		if !createDirIfMissing(appRoot) {
-			errors.Exit(ErrorCwdDirExists(appName))
+		if _, err := files.CreateDirIfMissing(appRoot); err != nil {
+			errors.Exit(err)
 		}
 
 		for path, content := range appInitFiles(appName) {
@@ -61,20 +60,14 @@ var initCmd = &cobra.Command{
 	},
 }
 
-func createDirIfMissing(path string) bool {
-	created, err := files.CreateDirIfMissing(path)
-	if err != nil {
-		errors.Exit(err)
-	}
-	return created
-}
-
 func writeFile(subPath string, content string, root string, createdFiles []string) []string {
 	path := filepath.Join(root, subPath)
-	createDirIfMissing(filepath.Dir(path))
-	err := ioutil.WriteFile(path, []byte(content), 0664)
+	if _, err := files.CreateDirIfMissing(filepath.Dir(path)); err != nil {
+		errors.Exit(err)
+	}
+	err := files.WriteFile(path, []byte(content), 0664)
 	if err != nil {
-		errors.Exit(err, ErrorCreateFile(path))
+		errors.Exit(err)
 	}
 	return append(createdFiles, path)
 }

@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -29,6 +28,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	libstrings "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -128,14 +129,14 @@ var predictCmd = &cobra.Command{
 }
 
 func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse, error) {
-	samplesBytes, err := ioutil.ReadFile(samplesJSONPath)
+	samplesBytes, err := files.ReadFileBytes(samplesJSONPath)
 	if err != nil {
-		errors.Exit(err, ErrorReadFile(samplesJSONPath).Error())
+		errors.Exit(err)
 	}
 	payload := bytes.NewBuffer(samplesBytes)
 	req, err := http.NewRequest("POST", apiURL, payload)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorCantMakeRequest().Error())
+		return nil, errors.Wrap(err, errStrCantMakeRequest)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -145,9 +146,9 @@ func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse
 	}
 
 	var predictResponse PredictResponse
-	err = json.Unmarshal(httpResponse, &predictResponse)
+	err = libjson.Unmarshal(httpResponse, &predictResponse)
 	if err != nil {
-		return nil, errors.Wrap(err, "prediction response", ErrorUnmarshalJSON().Error())
+		return nil, errors.Wrap(err, "prediction response")
 	}
 
 	return &predictResponse, nil

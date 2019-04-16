@@ -33,7 +33,7 @@ func appRootOrBlank() string {
 		errors.Exit(err)
 	}
 	for true {
-		if files.IsFile(filepath.Join(dir, "app.yaml")) {
+		if isFile, _ := files.IsFile(filepath.Join(dir, "app.yaml")); isFile {
 			return dir
 		}
 		if dir == "/" {
@@ -71,12 +71,12 @@ func pythonPaths(dir string) []string {
 func allConfigPaths(root string) []string {
 	exportPaths := strset.New()
 	requirementsPath := filepath.Join(root, consts.RequirementsTxt)
-	if files.IsFile(requirementsPath) {
+	if isFile, _ := files.IsFile(requirementsPath); isFile {
 		exportPaths.Add(requirementsPath)
 	}
 
 	customPackagesRoot := filepath.Join(root, consts.PackageDir)
-	if files.IsDir(customPackagesRoot) {
+	if isDir, _ := files.IsDir(customPackagesRoot); isDir {
 		customPackagesPaths, err := files.ListDirRecursive(customPackagesRoot, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders, files.IgnorePythonGeneratedFiles)
 		if err != nil {
 			errors.Exit(err)

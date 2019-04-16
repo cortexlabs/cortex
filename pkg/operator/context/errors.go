@@ -24,17 +24,15 @@ type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
-	ErrReadFile
-	ErrFileDoesNotExist
+	ErrImplDoesNotExist
 )
 
 var errorKinds = []string{
 	"err_unknown",
-	"err_read_file",
-	"err_file_does_not_exist",
+	"err_impl_does_not_exist",
 }
 
-var _ = [1]int{}[int(ErrFileDoesNotExist)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrImplDoesNotExist)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -79,16 +77,9 @@ func (e Error) Error() string {
 	return e.message
 }
 
-func ErrorReadFile(path string) error {
+func ErrorImplDoesNotExist(path string) error {
 	return Error{
-		Kind:    ErrReadFile,
-		message: fmt.Sprintf("%s: unable to read file", path),
-	}
-}
-
-func ErrorFileDoesNotExist(path string) error {
-	return Error{
-		Kind:    ErrFileDoesNotExist,
-		message: fmt.Sprintf("%s: file does not exist", path),
+		Kind:    ErrImplDoesNotExist,
+		message: fmt.Sprintf("%s: implementation file does not exist", path),
 	}
 }

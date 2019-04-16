@@ -17,7 +17,6 @@ limitations under the License.
 package workloads
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 
@@ -25,8 +24,8 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
@@ -111,9 +110,9 @@ func Create(ctx *context.Context) (*awfv1.Workflow, error) {
 			}
 		}
 
-		manifest, err := json.Marshal(spec.Spec)
+		manifest, err := libjson.Marshal(spec.Spec)
 		if err != nil {
-			return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID, configreader.ErrorMarshalJSON().Error())
+			return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID)
 		}
 
 		argo.AddTask(wf, &argo.WorkflowTask{

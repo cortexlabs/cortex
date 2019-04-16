@@ -31,6 +31,57 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
+func Open(path string) (*os.File, error) {
+	fileBytes, err := os.Open(path)
+	if err != nil {
+		return nil, errors.Wrap(err, ErrorReadFile(path).Error())
+	}
+
+	return fileBytes, nil
+}
+
+func OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
+	file, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+	if err != nil {
+		return nil, errors.Wrap(err, ErrorCreateFile(name).Error())
+	}
+
+	return file, err
+}
+func ReadFileBytes(path string) ([]byte, error) {
+	fileBytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, errors.Wrap(err, ErrorReadFile(path).Error())
+	}
+
+	return fileBytes, nil
+}
+
+func CreateFile(path string) (*os.File, error) {
+	file, err := os.Create(path)
+	if err != nil {
+		return nil, errors.Wrap(err, ErrorCreateFile(path).Error())
+	}
+
+	return file, nil
+}
+
+func WriteFile(filename string, data []byte, perm os.FileMode) error {
+	if err := ioutil.WriteFile(filename, data, perm); err != nil {
+		return errors.Wrap(err, ErrorCreateFile(filename).Error())
+	}
+
+	return nil
+}
+
+func MkdirAll(path string, perm os.FileMode) error {
+	if err := os.MkdirAll(path, perm); err != nil {
+		return errors.Wrap(err, ErrorCreateDir(path).Error())
+	}
+
+	return nil
+}
+
 func TrimDirPrefix(fullPath string, dirPath string) string {
 	if !strings.HasSuffix(dirPath, "/") {
 		dirPath = dirPath + "/"
@@ -58,28 +109,29 @@ func IsFileOrDir(path string) bool {
 	return false
 }
 
-func IsDir(path string) bool {
+func IsDir(path string) (bool, error) {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return false
+		return false, errors.Wrap(err, ErrorDirDoesNotExist(path).Error())
 	}
-	return fileInfo.IsDir()
+	return fileInfo.IsDir(), nil
 }
 
-func IsFile(path string) bool {
+func IsFile(path string) (bool, error) {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return false
+		return false, errors.Wrap(err, ErrorFileDoesNotExist(path).Error())
 	}
-	return !fileInfo.IsDir()
+
+	return !fileInfo.IsDir(), nil
 }
 
 func CreateDirIfMissing(path string) (bool, error) {
-	if IsDir(path) {
+	if isDir, _ := IsDir(path); isDir {
 		return false, nil
 	}
 
-	if IsFile(path) {
+	if isFile, _ := IsFile(path); isFile {
 		return false, ErrorFileAlreadyExists(path)
 	}
 

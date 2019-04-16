@@ -18,7 +18,6 @@ package context
 
 import (
 	"bytes"
-	"io/ioutil"
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
@@ -26,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -47,9 +47,9 @@ func init() {
 
 	for _, transConfig := range config.Transformers {
 		implPath := filepath.Join(OperatorTransformersDir, transConfig.Path)
-		impl, err := ioutil.ReadFile(implPath)
+		impl, err := files.ReadFileBytes(implPath)
 		if err != nil {
-			err = errors.Wrap(err, userconfig.Identify(transConfig), ErrorReadFile(implPath).Error())
+			err = errors.Wrap(err, userconfig.Identify(transConfig))
 			telemetry.ReportErrorBlocking(err)
 			errors.Exit(err)
 		}
@@ -72,7 +72,7 @@ func loadUserTransformers(
 	for _, transConfig := range transConfigs {
 		impl, ok := impls[transConfig.Path]
 		if !ok {
-			return nil, errors.Wrap(ErrorFileDoesNotExist(transConfig.Path), userconfig.Identify(transConfig))
+			return nil, errors.Wrap(ErrorImplDoesNotExist(transConfig.Path), userconfig.Identify(transConfig))
 		}
 		transformer, err := newTransformer(*transConfig, impl, nil, pythonPackages)
 		if err != nil {

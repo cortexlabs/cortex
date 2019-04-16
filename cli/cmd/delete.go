@@ -17,7 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -25,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/schema"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 )
 
 var flagKeepCache bool
@@ -61,9 +61,9 @@ var deleteCmd = &cobra.Command{
 		}
 
 		var deleteResponse schema.DeleteResponse
-		err = json.Unmarshal(httpResponse, &deleteResponse)
+		err = libjson.Unmarshal(httpResponse, &deleteResponse)
 		if err != nil {
-			errors.Exit(err, "/delete", "response", ErrorUnmarshalJSON(), string(httpResponse))
+			errors.Exit(err, "/delete", "response", string(httpResponse))
 		}
 		fmt.Println(deleteResponse.Message)
 	},
