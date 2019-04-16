@@ -40,14 +40,10 @@ type PathValidation struct {
 func GetFilePathValidation(v *PathValidation) *StringValidation {
 	validator := func(val string) (string, error) {
 		val = files.RelPath(val, v.BaseDir)
-		isFile, err := files.IsFile(val)
-		if err != nil {
+		if err := files.IsFile(val); err != nil {
 			return "", err
 		}
 
-		if !isFile {
-			return "", ErrorNotAFile(val)
-		}
 		return val, nil
 	}
 

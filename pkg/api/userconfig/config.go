@@ -427,7 +427,7 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 }
 
 func ReadAppName(filePath string, relativePath string) (string, error) {
-	configBytes, err := ioutil.ReadFile(filePath)
+	configBytes, err := files.ReadFileBytes(filePath)
 	if err != nil {
 		return "", errors.Wrap(err, ErrorReadConfig().Error(), relativePath)
 	}

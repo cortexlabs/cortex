@@ -109,29 +109,38 @@ func IsFileOrDir(path string) bool {
 	return false
 }
 
-func IsDir(path string) (bool, error) {
+func IsDir(path string) error {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return false, errors.Wrap(err, ErrorDirDoesNotExist(path).Error())
+		return errors.Wrap(err, ErrorDirDoesNotExist(path).Error())
 	}
-	return fileInfo.IsDir(), nil
+	if !fileInfo.IsDir() {
+		return ErrorNotADir(path)
+	}
+
+	return nil
 }
 
-func IsFile(path string) (bool, error) {
+// IsFile returns nil if the path is a file
+func IsFile(path string) error {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return false, errors.Wrap(err, ErrorFileDoesNotExist(path).Error())
+		return errors.Wrap(err, ErrorFileDoesNotExist(path).Error())
 	}
 
-	return !fileInfo.IsDir(), nil
+	if fileInfo.IsDir() {
+		return ErrorNotAFile(path)
+	}
+
+	return nil
 }
 
 func CreateDirIfMissing(path string) (bool, error) {
-	if isDir, _ := IsDir(path); isDir {
+	if err := IsDir(path); err == nil {
 		return false, nil
 	}
 
-	if isFile, _ := IsFile(path); isFile {
+	if err := IsFile(path); err == nil {
 		return false, ErrorFileAlreadyExists(path)
 	}
 

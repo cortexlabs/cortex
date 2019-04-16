@@ -181,14 +181,6 @@ func addEmptyFileToZip(path string, zipInput *Input, archive *zip.Writer, addedP
 }
 
 func addFileToZip(fileInput *FileInput, zipInput *Input, archive *zip.Writer, addedPaths strset.Set) error {
-	if _, err := files.IsFile(fileInput.Source); err != nil {
-		if !zipInput.AllowMissing {
-			return err
-		}
-
-		return nil
-	}
-
 	content, err := files.ReadFileBytes(fileInput.Source)
 	if err != nil {
 		return err
@@ -202,14 +194,6 @@ func addFileToZip(fileInput *FileInput, zipInput *Input, archive *zip.Writer, ad
 }
 
 func addDirToZip(dirInput *DirInput, zipInput *Input, archive *zip.Writer, addedPaths strset.Set) error {
-	if _, err := files.IsDir(dirInput.Source); err != nil {
-		if !zipInput.AllowMissing {
-			return err
-		}
-
-		return nil
-	}
-
 	paths, err := files.ListDirRecursive(dirInput.Source, true, dirInput.IgnoreFns...)
 	if err != nil {
 		return err

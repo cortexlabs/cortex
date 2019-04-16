@@ -318,10 +318,3 @@ func ErrorMustBeEmpty() error {
 		message: "must be empty",
 	}
 }
-
-func ErrorNotAFile(path string) error {
-	return Error{
-		Kind:    ErrNotAFile,
-		message: fmt.Sprintf("%s: not a file path", path),
-	}
-}

@@ -35,6 +35,8 @@ const (
 	ErrUnexpected
 	ErrFileDoesNotExist
 	ErrDirDoesNotExist
+	ErrNotAFile
+	ErrNotADir
 )
 
 var errorKinds = []string{
@@ -48,9 +50,11 @@ var errorKinds = []string{
 	"err_unexpected",
 	"err_file_does_not_exist",
 	"err_dir_does_not_exist",
+	"err_not_a_file",
+	"err_not_a_dir",
 }
 
-var _ = [1]int{}[int(ErrDirDoesNotExist)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrNotADir)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -154,5 +158,19 @@ func ErrorDirDoesNotExist(path string) error {
 	return Error{
 		Kind:    ErrDirDoesNotExist,
 		message: fmt.Sprintf("%s: directory does not exist", path),
+	}
+}
+
+func ErrorNotAFile(path string) error {
+	return Error{
+		Kind:    ErrNotAFile,
+		message: fmt.Sprintf("%s: not a file path", path),
+	}
+}
+
+func ErrorNotADir(path string) error {
+	return Error{
+		Kind:    ErrNotADir,
+		message: fmt.Sprintf("%s: not a directory path", path),
 	}
 }
