@@ -21,9 +21,9 @@ export REGISTRY_URL="389128963714.dkr.ecr.us-west-2.amazonaws.com"
 export REGISTRY_REGION="us-west-2"
 ```
 
-Then, update image paths in the cortex config[link to config]
+Then, update image paths in the cortex config ([update instructions](operator/config.md))
 
-## Cortex Dev Environemnt
+## Cortex Dev Environment
 
 Clone the project:
 
