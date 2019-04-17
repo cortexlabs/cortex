@@ -29,8 +29,6 @@ const (
 	ErrUnknown ErrorKind = iota
 	ErrUnsupportedKey
 	ErrInvalidYAML
-	ErrInvalidURL
-	ErrDNS1035
 	ErrAlphaNumericDashUnderscore
 	ErrAlphaNumericDashDotUnderscore
 	ErrMustHavePrefix
@@ -60,8 +58,6 @@ var errorKinds = []string{
 	"err_unknown",
 	"err_unsupported_key",
 	"err_invalid_yaml",
-	"err_invalid_url",
-	"err_dns1035",
 	"err_alpha_numeric_dash_underscore",
 	"err_alpha_numeric_dash_dot_underscore",
 	"err_must_have_prefix",
@@ -139,25 +135,11 @@ func ErrorUnsupportedKey(key interface{}) error {
 	}
 }
 
-func ErrorUnmarshalYAML(err error) error {
+func ErrorInvalidYAML(err error) error {
 	str := strings.TrimPrefix(err.Error(), "yaml: ")
 	return Error{
 		Kind:    ErrInvalidYAML,
 		message: fmt.Sprintf("invalid yaml: %s", str),
-	}
-}
-
-func ErrorInvalidURL(provided string) error {
-	return Error{
-		Kind:    ErrInvalidURL,
-		message: fmt.Sprintf("%s is not a valid URL", s.UserStr(provided)),
-	}
-}
-
-func ErrorDNS1035(provided string) error {
-	return Error{
-		Kind:    ErrDNS1035,
-		message: fmt.Sprintf("%s must contain only lower case letters, numbers, and dashes, start with a letter, and cannot end with a dash", s.UserStr(provided)),
 	}
 }
 

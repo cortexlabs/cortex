@@ -17,12 +17,12 @@ limitations under the License.
 package configreader
 
 import (
-	"net/url"
 	"regexp"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws/s3"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
 var portRe *regexp.Regexp
@@ -40,7 +40,7 @@ type PathValidation struct {
 func GetFilePathValidation(v *PathValidation) *StringValidation {
 	validator := func(val string) (string, error) {
 		val = files.RelPath(val, v.BaseDir)
-		if err := files.IsFile(val); err != nil {
+		if err := files.CheckFile(val); err != nil {
 			return "", err
 		}
 
@@ -103,9 +103,8 @@ func GetURLValidation(v *URLValidation) *StringValidation {
 			}
 		}
 
-		_, err := url.Parse(urlStr)
-		if err != nil {
-			return "", ErrorInvalidURL(urlStr)
+		if _, err := urls.Parse(urlStr); err != nil {
+			return "", err
 		}
 
 		return urlStr, nil

@@ -17,10 +17,22 @@ limitations under the License.
 package urls
 
 import (
+	"net/url"
+	"regexp"
 	"strings"
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 )
+
+var dns1035Regex = regexp.MustCompile(`^[a-z]([-a-z0-9]*[a-z0-9])?$`)
+
+func Parse(rawurl string) (*url.URL, error) {
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return nil, ErrorInvalidURL(rawurl)
+	}
+	return u, nil
+}
 
 func Join(strs ...string) string {
 	fullPath := ""
@@ -33,4 +45,11 @@ func Join(strs ...string) string {
 		}
 	}
 	return fullPath
+}
+
+func CheckDNS1035(s string) error {
+	if !dns1035Regex.MatchString(s) {
+		ErrorDNS1035(s)
+	}
+	return nil
 }

@@ -41,7 +41,7 @@ func Open(path string) (*os.File, error) {
 }
 
 func OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
-	file, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+	file, err := os.OpenFile(name, flag, perm)
 	if err != nil {
 		return nil, errors.Wrap(err, ErrorCreateFile(name).Error())
 	}
@@ -109,7 +109,8 @@ func IsFileOrDir(path string) bool {
 	return false
 }
 
-func IsDir(path string) error {
+// IsFile returns nil if the path is a directory
+func CheckDir(path string) error {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
 		return errors.Wrap(err, ErrorDirDoesNotExist(path).Error())
@@ -122,12 +123,11 @@ func IsDir(path string) error {
 }
 
 // IsFile returns nil if the path is a file
-func IsFile(path string) error {
+func CheckFile(path string) error {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
 		return errors.Wrap(err, ErrorFileDoesNotExist(path).Error())
 	}
-
 	if fileInfo.IsDir() {
 		return ErrorNotAFile(path)
 	}
@@ -136,11 +136,11 @@ func IsFile(path string) error {
 }
 
 func CreateDirIfMissing(path string) (bool, error) {
-	if err := IsDir(path); err == nil {
+	if err := CheckDir(path); err == nil {
 		return false, nil
 	}
 
-	if err := IsFile(path); err == nil {
+	if err := CheckFile(path); err == nil {
 		return false, ErrorFileAlreadyExists(path)
 	}
 

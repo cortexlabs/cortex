@@ -156,17 +156,17 @@ func ErrorPathParamRequired(param string) error {
 	}
 }
 
-func ErrorAnyQueryParamRequired(paramNames ...string) error {
+func ErrorAnyQueryParamRequired(params ...string) error {
 	return Error{
-		Kind:    ErrQueryParamRequired,
-		message: fmt.Sprintf("query params required: %s", s.UserStrsOr(paramNames)),
+		Kind:    ErrAnyQueryParamRequired,
+		message: fmt.Sprintf("query params required: %s", s.UserStrsOr(params)),
 	}
 }
 
-func ErrorAnyPathParamRequired(paramNames ...string) error {
+func ErrorAnyPathParamRequired(params ...string) error {
 	return Error{
-		Kind:    ErrPathParamRequired,
-		message: fmt.Sprintf("path params required: %s", s.UserStrsOr(paramNames)),
+		Kind:    ErrAnyPathParamRequired,
+		message: fmt.Sprintf("path params required: %s", s.UserStrsOr(params)),
 	}
 }
 

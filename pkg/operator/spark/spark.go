@@ -218,7 +218,7 @@ func Delete(appName string) (bool, error) {
 		return false, nil
 	}
 	if err != nil {
-		return false, err
+		return false, errors.WithStack(err)
 	}
 	return true, nil
 }

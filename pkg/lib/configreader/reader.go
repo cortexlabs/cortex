@@ -643,7 +643,7 @@ func ReadYAMLBytes(yamlBytes []byte) (interface{}, error) {
 	var parsed interface{}
 	err := yaml.Unmarshal(yamlBytes, &parsed)
 	if err != nil {
-		return nil, ErrorUnmarshalYAML(err)
+		return nil, ErrorInvalidYAML(err)
 	}
 	return parsed, nil
 }

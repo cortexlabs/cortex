@@ -65,7 +65,6 @@ type Input struct {
 	FileLists      []FileListInput
 	AddPrefix      string   // Gets added to every item
 	EmptyFiles     []string // Empty files to be created
-	AllowMissing   bool     // Don't error if a file/dir doesn't exist
 	AllowOverwrite bool     // Don't error if a file in the zip is overwritten
 }
 

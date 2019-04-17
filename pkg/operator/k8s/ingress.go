@@ -113,7 +113,7 @@ func DeleteIngress(name string) (bool, error) {
 func IngressExists(name string) (bool, error) {
 	ingress, err := GetIngress(name)
 	if err != nil {
-		return false, errors.WithStack(err)
+		return false, err
 	}
 	return ingress != nil, nil
 }

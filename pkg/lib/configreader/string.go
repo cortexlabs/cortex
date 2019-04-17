@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
 type StringValidation struct {
@@ -186,8 +187,8 @@ func ValidateStringVal(val string, v *StringValidation) error {
 	}
 
 	if v.DNS1035 {
-		if !regex.CheckDNS1035(val) {
-			return ErrorDNS1035(val)
+		if err := urls.CheckDNS1035(val); err != nil {
+			return err
 		}
 	}
 

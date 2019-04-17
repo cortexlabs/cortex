@@ -56,8 +56,6 @@ const (
 	ErrTypeListLength
 	ErrGenericTypeMapLength
 	ErrK8sQuantityMustBeInt
-	ErrMapMustBeDefined
-	ErrMustBeEmpty
 	ErrRegressionTargetType
 	ErrClassificationTargetType
 )
@@ -90,8 +88,6 @@ var errorKinds = []string{
 	"err_type_list_length",
 	"err_generic_type_map_length",
 	"err_k8s_quantity_must_be_int",
-	"err_map_must_be_defined",
-	"err_must_be_empty",
 	"err_regression_target_type",
 	"err_classification_target_type",
 }
