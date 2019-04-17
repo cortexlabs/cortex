@@ -28,8 +28,8 @@ Then, update image paths in the cortex config ([update instructions](operator/co
 Clone the project:
 
 ```bash
-git clone git@github.com:cortexlabs/cortex.git ~/src/github.com/cortexlabs/cortex
-cd ~/src/github.com/cortexlabs/cortex
+git clone git@github.com:cortexlabs/cortex.git
+cd cortex
 ```
 
 Create the AWS Elastic Container Registry:
@@ -48,10 +48,10 @@ Create the following S3 buckets:
 Make the config folder:
 
 ```bash
-mkdir -p ~/src/github.com/cortexlabs/cortex/dev/config
+mkdir -p dev/config
 ```
 
-Create `~/src/github.com/cortexlabs/cortex/dev/config/k8s.sh`. Paste the following config, and update `K8S_REGION`, `K8S_ZONE`, and `K8S_KOPS_BUCKET` accordingly:
+Create `dev/config/k8s.sh`. Paste the following config, and update `K8S_REGION`, `K8S_ZONE`, and `K8S_KOPS_BUCKET` accordingly:
 
 ```bash
 # EKS and KOPS
@@ -67,7 +67,7 @@ export K8S_MASTER_VOLUME_SIZE="32"
 export K8S_NODE_VOLUME_SIZE="32"
 ```
 
-Create `~/src/github.com/cortexlabs/cortex/dev/config/cortex.sh`. Paste the following config, and update `CORTEX_BUCKET`, `CORTEX_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and all registry URLs accordingly:
+Create `dev/config/cortex.sh`. Paste the following config, and update `CORTEX_BUCKET`, `CORTEX_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and all registry URLs accordingly:
 
 ```bash
 export CORTEX_LOG_GROUP="cortex"
@@ -91,14 +91,16 @@ export AWS_ACCESS_KEY_ID="XXXXXX"
 export AWS_SECRET_ACCESS_KEY="XXXXXX"
 ```
 
-Create `~/src/github.com/cortexlabs/cortex/dev/config/build.sh`. Paste the following config, and update `CLI_BUCKET_NAME`, `CLI_BUCKET_REGION`, `REGISTRY_URL`, and `REGISTRY_REGION` accordingly:
+Create `dev/config/build.sh`. Paste the following config, and update `CLI_BUCKET_NAME`, `CLI_BUCKET_REGION`, `REGISTRY_URL`, and `REGISTRY_REGION` accordingly:
 
 ```bash
 export VERSION="latest"
-export CLI_BUCKET_NAME="cortex-cli-<your_name>"
-export CLI_BUCKET_REGION="us-west-2"
 export REGISTRY_URL="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com"
 export REGISTRY_REGION="us-west-2"
+
+# optional, only used for make build-and-upload-cli
+export CLI_BUCKET_NAME="cortex-cli-<your_name>"
+export CLI_BUCKET_REGION="us-west-2"
 ```
 
 Build and push all Cortex images (this will take a while)
@@ -130,6 +132,6 @@ cx configure
 Run an example application
 
 ```bash
-cd ~/src/github.com/cortexlabs/cortex/examples/iris
+cd examples/iris
 cx deploy
 ```
