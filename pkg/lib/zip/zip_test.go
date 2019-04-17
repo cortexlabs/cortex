@@ -111,23 +111,6 @@ func TestZip(t *testing.T) {
 	CheckZip(zipInput, expected, false, t)
 
 	zipInput = &zip.Input{
-		Files: []zip.FileInput{
-			{
-				Source: filepath.Join(tmpDir, "1.txt"),
-				Dest:   "1.txt",
-			},
-			{
-				Source: filepath.Join(tmpDir, "test.txt"),
-				Dest:   "test.txt",
-			},
-		},
-		AllowMissing: true,
-	}
-	CheckZip(zipInput, []string{"1.txt"}, false, t)
-	zipInput.AllowMissing = false
-	CheckZip(zipInput, nil, true, t)
-
-	zipInput = &zip.Input{
 		Bytes: []zip.BytesInput{
 			{
 				Content: []byte(""),
