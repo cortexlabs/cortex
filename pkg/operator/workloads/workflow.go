@@ -17,16 +17,15 @@ limitations under the License.
 package workloads
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 
 	awfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/aws"
@@ -111,9 +110,9 @@ func Create(ctx *context.Context) (*awfv1.Workflow, error) {
 			}
 		}
 
-		manifest, err := json.Marshal(spec.Spec)
+		manifest, err := libjson.Marshal(spec.Spec)
 		if err != nil {
-			return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID, s.ErrMarshalJSON)
+			return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID)
 		}
 
 		argo.AddTask(wf, &argo.WorkflowTask{
@@ -159,10 +158,10 @@ func Run(wf *awfv1.Workflow, ctx *context.Context, existingWf *awfv1.Workflow) e
 	if existingWf != nil {
 		existingCtx := CurrentContext(ctx.App.Name)
 		if wf.Labels["appName"] != existingWf.Labels["appName"] {
-			return errors.New(s.ErrWorkflowAppMismatch)
+			return ErrorWorkflowAppMismatch()
 		}
 		if existingCtx != nil && ctx.App.Name != existingCtx.App.Name {
-			return errors.New(s.ErrContextAppMismatch)
+			return ErrorContextAppMismatch()
 		}
 
 		err := Stop(existingWf, existingCtx)
@@ -263,7 +262,7 @@ func GetWorkflow(appName string) (*awfv1.Workflow, error) {
 		return nil, errors.Wrap(err, appName)
 	}
 	if len(wfs) > 1 {
-		return nil, errors.New(appName, s.ErrMoreThanOneWorkflow)
+		return nil, errors.Wrap(ErrorMoreThanOneWorkflow(), appName)
 	}
 
 	if len(wfs) == 0 {

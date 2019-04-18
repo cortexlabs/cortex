@@ -38,11 +38,11 @@ type Float32Validation struct {
 
 func Float32(inter interface{}, v *Float32Validation) (float32, error) {
 	if inter == nil {
-		return 0, errors.New(s.ErrCannotBeNull)
+		return 0, ErrorCannotBeNull()
 	}
 	casted, castOk := cast.InterfaceToFloat32(inter)
 	if !castOk {
-		return 0, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeFloat))
+		return 0, ErrorInvalidPrimitiveType(inter, s.PrimTypeFloat)
 	}
 	return ValidateFloat32(casted, v)
 }
@@ -85,7 +85,7 @@ func Float32FromStr(valStr string, v *Float32Validation) (float32, error) {
 	}
 	casted, castOk := s.ParseFloat32(valStr)
 	if !castOk {
-		return 0, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeFloat))
+		return 0, ErrorInvalidPrimitiveType(valStr, s.PrimTypeFloat)
 	}
 	return ValidateFloat32(casted, v)
 }
@@ -142,7 +142,7 @@ func Float32FromPrompt(promptOpts *PromptOptions, v *Float32Validation) (float32
 
 func ValidateFloat32Missing(v *Float32Validation) (float32, error) {
 	if v.Required {
-		return 0, errors.New(s.ErrMustBeDefined)
+		return 0, ErrorMustBeDefined()
 	}
 	return ValidateFloat32(v.Default, v)
 }
@@ -162,28 +162,28 @@ func ValidateFloat32(val float32, v *Float32Validation) (float32, error) {
 func ValidateFloat32Val(val float32, v *Float32Validation) error {
 	if v.GreaterThan != nil {
 		if val <= *v.GreaterThan {
-			return errors.New(s.ErrMustBeGreaterThan(val, *v.GreaterThan))
+			return ErrorMustBeGreaterThan(val, *v.GreaterThan)
 		}
 	}
 	if v.GreaterThanOrEqualTo != nil {
 		if val < *v.GreaterThanOrEqualTo {
-			return errors.New(s.ErrMustBeGreaterThanOrEqualTo(val, *v.GreaterThanOrEqualTo))
+			return ErrorMustBeGreaterThanOrEqualTo(val, *v.GreaterThanOrEqualTo)
 		}
 	}
 	if v.LessThan != nil {
 		if val >= *v.LessThan {
-			return errors.New(s.ErrMustBeLessThan(val, *v.LessThan))
+			return ErrorMustBeLessThan(val, *v.LessThan)
 		}
 	}
 	if v.LessThanOrEqualTo != nil {
 		if val > *v.LessThanOrEqualTo {
-			return errors.New(s.ErrMustBeLessThanOrEqualTo(val, *v.LessThanOrEqualTo))
+			return ErrorMustBeLessThanOrEqualTo(val, *v.LessThanOrEqualTo)
 		}
 	}
 
 	if v.AllowedValues != nil {
 		if !slices.HasFloat32(v.AllowedValues, val) {
-			return errors.New(s.ErrInvalidFloat32(val, v.AllowedValues...))
+			return ErrorInvalidFloat32(val, v.AllowedValues...)
 		}
 	}
 

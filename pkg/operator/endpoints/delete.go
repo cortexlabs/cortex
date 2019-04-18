@@ -21,7 +21,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/schema"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
@@ -29,7 +28,7 @@ import (
 func Delete(w http.ResponseWriter, r *http.Request) {
 	telemetry.ReportEvent("endpoint.delete")
 
-	appName, err := getRequiredQParam("appName", r)
+	appName, err := getRequiredQueryParam("appName", r)
 	if RespondIfError(w, err) {
 		return
 	}
@@ -39,7 +38,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	wasDeployed := workloads.DeleteApp(appName, keepCache)
 
 	if !wasDeployed {
-		RespondError(w, errors.New(s.ErrAppNotDeployed(appName)))
+		RespondError(w, ErrorAppNotDeployed(appName))
 		return
 	}
 

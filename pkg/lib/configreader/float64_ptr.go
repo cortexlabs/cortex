@@ -52,7 +52,7 @@ func Float64Ptr(inter interface{}, v *Float64PtrValidation) (*float64, error) {
 	}
 	casted, castOk := cast.InterfaceToFloat64(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeFloat))
+		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeFloat)
 	}
 	return ValidateFloat64Ptr(&casted, v)
 }
@@ -95,7 +95,7 @@ func Float64PtrFromStr(valStr string, v *Float64PtrValidation) (*float64, error)
 	}
 	casted, castOk := s.ParseFloat64(valStr)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeFloat))
+		return nil, ErrorInvalidPrimitiveType(valStr, s.PrimTypeFloat)
 	}
 	return ValidateFloat64Ptr(&casted, v)
 }
@@ -151,7 +151,7 @@ func Float64PtrFromPrompt(promptOpts *PromptOptions, v *Float64PtrValidation) (*
 
 func ValidateFloat64PtrMissing(v *Float64PtrValidation) (*float64, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateFloat64Ptr(v.Default, v)
 }
@@ -159,7 +159,7 @@ func ValidateFloat64PtrMissing(v *Float64PtrValidation) (*float64, error) {
 func ValidateFloat64Ptr(val *float64, v *Float64PtrValidation) (*float64, error) {
 	if v.DisallowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 

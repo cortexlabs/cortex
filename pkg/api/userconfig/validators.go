@@ -21,6 +21,7 @@ import (
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
+	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
@@ -76,11 +77,11 @@ func ValidateColumnInputValues(columnInputValues map[string]interface{}) error {
 		}
 		if columnNames, ok := cast.InterfaceToStrSlice(columnInputValue); ok {
 			if columnNames == nil {
-				return errors.New(columnInputName, s.ErrCannotBeNull)
+				return errors.Wrap(configreader.ErrorCannotBeNull(), columnInputName)
 			}
 			continue
 		}
-		return errors.New(columnInputName, s.ErrInvalidPrimitiveType(columnInputValue, s.PrimTypeString, s.PrimTypeStringList))
+		return errors.Wrap(configreader.ErrorInvalidPrimitiveType(columnInputValue, s.PrimTypeString, s.PrimTypeStringList), columnInputName)
 	}
 
 	return nil
@@ -121,12 +122,12 @@ func CheckColumnRuntimeTypesMatch(columnRuntimeTypes map[string]interface{}, col
 
 	for columnInputName, columnSchemaType := range columnSchemaTypes {
 		if len(columnRuntimeTypes) == 0 {
-			return errors.New(s.MapMustBeDefined(maps.InterfaceMapKeys(columnSchemaTypes)...))
+			return configreader.ErrorMapMustBeDefined(maps.InterfaceMapKeys(columnSchemaTypes)...)
 		}
 
 		columnRuntimeTypeInter, ok := columnRuntimeTypes[columnInputName]
 		if !ok {
-			return errors.New(columnInputName, s.ErrMustBeDefined)
+			return errors.Wrap(configreader.ErrorMustBeDefined(), columnInputName)
 		}
 
 		if columnSchemaTypeStr, ok := columnSchemaType.(string); ok {
@@ -160,7 +161,7 @@ func CheckColumnRuntimeTypesMatch(columnRuntimeTypes map[string]interface{}, col
 
 	for columnInputName := range columnRuntimeTypes {
 		if _, ok := columnSchemaTypes[columnInputName]; !ok {
-			return errors.New(s.ErrUnsupportedKey(columnInputName))
+			return configreader.ErrorUnsupportedKey(columnInputName)
 		}
 	}
 
@@ -288,20 +289,20 @@ func CastValue(value interface{}, valueType interface{}) (interface{}, error) {
 				return valueBool, nil
 			}
 		}
-		return nil, errors.New(s.ErrInvalidPrimitiveType(value, validTypeNames...))
+		return nil, configreader.ErrorInvalidPrimitiveType(value, validTypeNames...)
 	}
 
 	if valueTypeMap, ok := cast.InterfaceToInterfaceInterfaceMap(valueType); ok {
 		valueMap, ok := cast.InterfaceToInterfaceInterfaceMap(value)
 		if !ok {
-			return nil, errors.New(s.ErrInvalidPrimitiveType(value, s.PrimTypeMap))
+			return nil, configreader.ErrorInvalidPrimitiveType(value, s.PrimTypeMap)
 		}
 
 		if len(valueTypeMap) == 0 {
 			if len(valueMap) == 0 {
 				return make(map[interface{}]interface{}), nil
 			}
-			return nil, errors.New(s.UserStr(valueMap), s.ErrMustBeEmpty)
+			return nil, errors.Wrap(configreader.ErrorMustBeEmpty(), s.UserStr(valueMap))
 		}
 
 		isGenericMap := false
@@ -340,7 +341,7 @@ func CastValue(value interface{}, valueType interface{}) (interface{}, error) {
 		for valueKey, valueType := range valueTypeMap {
 			valueVal, ok := valueMap[valueKey]
 			if !ok {
-				return nil, errors.New(s.UserStrStripped(valueKey), s.ErrMustBeDefined)
+				return nil, errors.Wrap(configreader.ErrorMustBeDefined(), s.UserStrStripped(valueKey))
 			}
 			valueValCasted, err := CastValue(valueVal, valueType)
 			if err != nil {
@@ -350,7 +351,7 @@ func CastValue(value interface{}, valueType interface{}) (interface{}, error) {
 		}
 		for valueKey := range valueMap {
 			if _, ok := valueTypeMap[valueKey]; !ok {
-				return nil, errors.New(s.ErrUnsupportedKey(valueKey))
+				return nil, configreader.ErrorUnsupportedKey(valueKey)
 			}
 		}
 		return valueMapCasted, nil
@@ -360,7 +361,7 @@ func CastValue(value interface{}, valueType interface{}) (interface{}, error) {
 		valueTypeStr := valueTypeStrs[0]
 		valueSlice, ok := cast.InterfaceToInterfaceSlice(value)
 		if !ok {
-			return nil, errors.New(s.ErrInvalidPrimitiveType(value, s.PrimTypeList))
+			return nil, configreader.ErrorInvalidPrimitiveType(value, s.PrimTypeList)
 		}
 		valueSliceCasted := make([]interface{}, len(valueSlice))
 		for i, valueItem := range valueSlice {
@@ -388,12 +389,12 @@ func CheckArgRuntimeTypesMatch(argRuntimeTypes map[string]interface{}, argSchema
 
 	for argName, argSchemaType := range argSchemaTypes {
 		if len(argRuntimeTypes) == 0 {
-			return errors.New(s.MapMustBeDefined(maps.InterfaceMapKeys(argSchemaTypes)...))
+			return configreader.ErrorMapMustBeDefined(maps.InterfaceMapKeys(argSchemaTypes)...)
 		}
 
 		argRuntimeType, ok := argRuntimeTypes[argName]
 		if !ok {
-			return errors.New(argName, s.ErrMustBeDefined)
+			return errors.Wrap(configreader.ErrorMustBeDefined(), argName)
 		}
 		err := CheckValueRuntimeTypesMatch(argRuntimeType, argSchemaType)
 		if err != nil {
@@ -403,7 +404,7 @@ func CheckArgRuntimeTypesMatch(argRuntimeTypes map[string]interface{}, argSchema
 
 	for argName := range argRuntimeTypes {
 		if _, ok := argSchemaTypes[argName]; !ok {
-			return errors.New(s.ErrUnsupportedKey(argName))
+			return configreader.ErrorUnsupportedKey(argName)
 		}
 	}
 
@@ -464,7 +465,7 @@ func CheckValueRuntimeTypesMatch(runtimeType interface{}, schemaType interface{}
 		for schemaTypeKey, schemaTypeValue := range schemaTypeMap {
 			runtimeTypeValue, ok := runtimeTypeMap[schemaTypeKey]
 			if !ok {
-				return errors.New(s.UserStrStripped(schemaTypeKey), s.ErrMustBeDefined)
+				return errors.Wrap(configreader.ErrorMustBeDefined(), s.UserStrStripped(schemaTypeKey))
 			}
 			err := CheckValueRuntimeTypesMatch(runtimeTypeValue, schemaTypeValue)
 			if err != nil {
@@ -473,7 +474,7 @@ func CheckValueRuntimeTypesMatch(runtimeType interface{}, schemaType interface{}
 		}
 		for runtimeTypeKey := range runtimeTypeMap {
 			if _, ok := schemaTypeMap[runtimeTypeKey]; !ok {
-				return errors.New(s.ErrUnsupportedKey(runtimeTypeKey))
+				return configreader.ErrorUnsupportedKey(runtimeTypeKey)
 			}
 		}
 		return nil

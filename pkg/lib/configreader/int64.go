@@ -38,11 +38,11 @@ type Int64Validation struct {
 
 func Int64(inter interface{}, v *Int64Validation) (int64, error) {
 	if inter == nil {
-		return 0, errors.New(s.ErrCannotBeNull)
+		return 0, ErrorCannotBeNull()
 	}
 	casted, castOk := cast.InterfaceToInt64(inter)
 	if !castOk {
-		return 0, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeInt))
+		return 0, ErrorInvalidPrimitiveType(inter, s.PrimTypeInt)
 	}
 	return ValidateInt64(casted, v)
 }
@@ -85,7 +85,7 @@ func Int64FromStr(valStr string, v *Int64Validation) (int64, error) {
 	}
 	casted, castOk := s.ParseInt64(valStr)
 	if !castOk {
-		return 0, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeInt))
+		return 0, ErrorInvalidPrimitiveType(valStr, s.PrimTypeInt)
 	}
 	return ValidateInt64(casted, v)
 }
@@ -142,7 +142,7 @@ func Int64FromPrompt(promptOpts *PromptOptions, v *Int64Validation) (int64, erro
 
 func ValidateInt64Missing(v *Int64Validation) (int64, error) {
 	if v.Required {
-		return 0, errors.New(s.ErrMustBeDefined)
+		return 0, ErrorMustBeDefined()
 	}
 	return ValidateInt64(v.Default, v)
 }
@@ -162,28 +162,28 @@ func ValidateInt64(val int64, v *Int64Validation) (int64, error) {
 func ValidateInt64Val(val int64, v *Int64Validation) error {
 	if v.GreaterThan != nil {
 		if val <= *v.GreaterThan {
-			return errors.New(s.ErrMustBeGreaterThan(val, *v.GreaterThan))
+			return ErrorMustBeGreaterThan(val, *v.GreaterThan)
 		}
 	}
 	if v.GreaterThanOrEqualTo != nil {
 		if val < *v.GreaterThanOrEqualTo {
-			return errors.New(s.ErrMustBeGreaterThanOrEqualTo(val, *v.GreaterThanOrEqualTo))
+			return ErrorMustBeGreaterThanOrEqualTo(val, *v.GreaterThanOrEqualTo)
 		}
 	}
 	if v.LessThan != nil {
 		if val >= *v.LessThan {
-			return errors.New(s.ErrMustBeLessThan(val, *v.LessThan))
+			return ErrorMustBeLessThan(val, *v.LessThan)
 		}
 	}
 	if v.LessThanOrEqualTo != nil {
 		if val > *v.LessThanOrEqualTo {
-			return errors.New(s.ErrMustBeLessThanOrEqualTo(val, *v.LessThanOrEqualTo))
+			return ErrorMustBeLessThanOrEqualTo(val, *v.LessThanOrEqualTo)
 		}
 	}
 
 	if v.AllowedValues != nil {
 		if !slices.HasInt64(v.AllowedValues, val) {
-			return errors.New(s.ErrInvalidInt64(val, v.AllowedValues...))
+			return ErrorInvalidInt64(val, v.AllowedValues...)
 		}
 	}
 

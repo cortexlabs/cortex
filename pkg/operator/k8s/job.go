@@ -17,12 +17,11 @@ limitations under the License.
 package k8s
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 const JobSuccessCondition = "status.succeeded > 0"
@@ -82,7 +81,7 @@ func Job(spec *JobSpec) *batchv1.Job {
 func CreateJob(spec *JobSpec) (*batchv1.Job, error) {
 	job, err := jobClient.Create(Job(spec))
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, errors.WithStack(err)
 	}
 	return job, nil
 }
@@ -90,7 +89,7 @@ func CreateJob(spec *JobSpec) (*batchv1.Job, error) {
 func UpdateJob(job *batchv1.Job) (*batchv1.Job, error) {
 	job, err := jobClient.Update(job)
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, errors.WithStack(err)
 	}
 	return job, nil
 }
@@ -101,7 +100,7 @@ func GetJob(name string) (*batchv1.Job, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, errors.WithStack(err)
 	}
 	job.TypeMeta = jobTypeMeta
 	return job, nil
@@ -113,7 +112,7 @@ func DeleteJob(name string) (bool, error) {
 		return false, nil
 	}
 	if err != nil {
-		return false, errors.Wrap(err)
+		return false, errors.WithStack(err)
 	}
 	return true, nil
 }
@@ -132,7 +131,7 @@ func ListJobs(opts *metav1.ListOptions) ([]batchv1.Job, error) {
 	}
 	jobList, err := jobClient.List(*opts)
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, errors.WithStack(err)
 	}
 	for i := range jobList.Items {
 		jobList.Items[i].TypeMeta = jobTypeMeta

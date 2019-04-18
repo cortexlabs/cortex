@@ -44,6 +44,10 @@ func Wrap(err error, strs ...string) error {
 	return pkgerrors.Wrap(err, errStr)
 }
 
+func WithStack(err error) error {
+	return pkgerrors.WithStack(err)
+}
+
 func Cause(err error) error {
 	return pkgerrors.Cause(err)
 }

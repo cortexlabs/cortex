@@ -20,9 +20,8 @@ import (
 	"sort"
 
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
@@ -81,17 +80,17 @@ func ValidateModelTargetType(targetType userconfig.ColumnType, modelType usercon
 	switch modelType {
 	case userconfig.ClassificationModelType:
 		if targetType != userconfig.IntegerColumnType {
-			return errors.New(s.ErrClassificationTargetType)
+			return userconfig.ErrorClassificationTargetType()
 		}
 		return nil
 	case userconfig.RegressionModelType:
 		if targetType != userconfig.IntegerColumnType && targetType != userconfig.FloatColumnType {
-			return errors.New(s.ErrRegressionTargetType)
+			return userconfig.ErrorRegressionTargetType()
 		}
 		return nil
 	}
 
-	return errors.New(s.ErrInvalidStr(modelType.String(), "classification", "regression")) // unexpected
+	return configreader.ErrorInvalidStr(modelType.String(), "classification", "regression") // unexpected
 }
 
 func (ctx *Context) RawColumnInputNames(model *Model) []string {

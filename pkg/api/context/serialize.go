@@ -17,12 +17,10 @@ limitations under the License.
 package context
 
 import (
-	"encoding/json"
-
 	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 )
 
@@ -143,17 +141,17 @@ func (ctx Context) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	msgpackJSONBytes, err := json.Marshal(&msgpackBytes)
+	msgpackJSONBytes, err := libjson.Marshal(&msgpackBytes)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrMarshalJSON)
+		return nil, err
 	}
 	return msgpackJSONBytes, nil
 }
 
 func (ctx *Context) UnmarshalJSON(b []byte) error {
 	var msgpackBytes []byte
-	if err := json.Unmarshal(b, &msgpackBytes); err != nil {
-		return errors.Wrap(err, s.ErrUnmarshalJSON)
+	if err := libjson.Unmarshal(b, &msgpackBytes); err != nil {
+		return err
 	}
 	ctxPtr, err := FromMsgpackBytes(msgpackBytes)
 	if err != nil {

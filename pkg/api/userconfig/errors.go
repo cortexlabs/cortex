@@ -56,6 +56,8 @@ const (
 	ErrTypeListLength
 	ErrGenericTypeMapLength
 	ErrK8sQuantityMustBeInt
+	ErrRegressionTargetType
+	ErrClassificationTargetType
 )
 
 var errorKinds = []string{
@@ -86,9 +88,11 @@ var errorKinds = []string{
 	"err_type_list_length",
 	"err_generic_type_map_length",
 	"err_k8s_quantity_must_be_int",
+	"err_regression_target_type",
+	"err_classification_target_type",
 }
 
-var _ = [1]int{}[int(ErrK8sQuantityMustBeInt)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrClassificationTargetType)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -363,5 +367,18 @@ func ErrorK8sQuantityMustBeInt(quantityStr string) error {
 	return Error{
 		Kind:    ErrK8sQuantityMustBeInt,
 		message: fmt.Sprintf("resource compute quantity must be an integer-valued string, e.g. \"2\") (got %s)", s.DataTypeStr(quantityStr)),
+	}
+}
+
+func ErrorRegressionTargetType() error {
+	return Error{
+		Kind:    ErrRegressionTargetType,
+		message: "regression models can only predict float target values",
+	}
+}
+func ErrorClassificationTargetType() error {
+	return Error{
+		Kind:    ErrClassificationTargetType,
+		message: "classification models can only predict integer target values (i.e. {0, 1, ..., num_classes-1})",
 	}
 }

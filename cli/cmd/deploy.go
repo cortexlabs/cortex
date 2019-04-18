@@ -17,7 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -25,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/schema"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 )
 
@@ -73,8 +73,8 @@ func deploy(force bool, ignoreCache bool) {
 	}
 
 	var deployResponse schema.DeployResponse
-	if err := json.Unmarshal(response, &deployResponse); err != nil {
-		errors.Exit(err, "/deploy", "response", s.ErrUnmarshalJSON, string(response))
+	if err := libjson.Unmarshal(response, &deployResponse); err != nil {
+		errors.Exit(err, "/deploy", "response", string(response))
 	}
 
 	fmt.Println(deployResponse.Message)

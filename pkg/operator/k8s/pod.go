@@ -76,7 +76,7 @@ func Pod(spec *PodSpec) *corev1.Pod {
 func CreatePod(spec *PodSpec) (*corev1.Pod, error) {
 	pod, err := podClient.Create(Pod(spec))
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, errors.WithStack(err)
 	}
 	return pod, nil
 }
@@ -204,7 +204,7 @@ func GetPod(name string) (*corev1.Pod, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, errors.WithStack(err)
 	}
 	pod.TypeMeta = podTypeMeta
 	return pod, nil
@@ -216,7 +216,7 @@ func DeletePod(name string) (bool, error) {
 		return false, nil
 	}
 	if err != nil {
-		return false, errors.Wrap(err)
+		return false, errors.WithStack(err)
 	}
 	return true, nil
 }
@@ -235,7 +235,7 @@ func ListPods(opts *metav1.ListOptions) ([]corev1.Pod, error) {
 	}
 	podList, err := podClient.List(*opts)
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, errors.WithStack(err)
 	}
 	for i := range podList.Items {
 		podList.Items[i].TypeMeta = podTypeMeta

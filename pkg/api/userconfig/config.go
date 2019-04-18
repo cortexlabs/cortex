@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
+	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -261,11 +262,11 @@ func newPartial(configData interface{}, filePath string, emb *Embed, template *T
 	for i, data := range configDataSlice {
 		kindInterface, ok := data[KindKey]
 		if !ok {
-			return nil, errors.New(identify(filePath, resource.UnknownType, "", i, emb), KindKey, s.ErrMustBeDefined)
+			return nil, errors.Wrap(configreader.ErrorMustBeDefined(), identify(filePath, resource.UnknownType, "", i, emb), KindKey)
 		}
 		kindStr, ok := kindInterface.(string)
 		if !ok {
-			return nil, errors.New(identify(filePath, resource.UnknownType, "", i, emb), KindKey, s.ErrInvalidPrimitiveType(kindInterface, s.PrimTypeString))
+			return nil, errors.Wrap(configreader.ErrorInvalidPrimitiveType(kindInterface, s.PrimTypeString), identify(filePath, resource.UnknownType, "", i, emb), KindKey)
 		}
 
 		var errs []error
@@ -426,7 +427,7 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 }
 
 func ReadAppName(filePath string, relativePath string) (string, error) {
-	configBytes, err := ioutil.ReadFile(filePath)
+	configBytes, err := files.ReadFileBytes(filePath)
 	if err != nil {
 		return "", errors.Wrap(err, ErrorReadConfig().Error(), relativePath)
 	}
@@ -455,15 +456,15 @@ func ReadAppName(filePath string, relativePath string) (string, error) {
 
 			appNameInter, ok := configItem[NameKey]
 			if !ok {
-				return "", errors.New(relativePath, wrapStr, NameKey, s.ErrMustBeDefined)
+				return "", errors.Wrap(configreader.ErrorMustBeDefined(), relativePath, wrapStr, NameKey)
 			}
 
 			appName, ok = appNameInter.(string)
 			if !ok {
-				return "", errors.New(relativePath, wrapStr, s.ErrInvalidPrimitiveType(appNameInter, s.PrimTypeString))
+				return "", errors.Wrap(configreader.ErrorInvalidPrimitiveType(appNameInter, s.PrimTypeString), relativePath, wrapStr)
 			}
 			if appName == "" {
-				return "", errors.New(relativePath, wrapStr, s.ErrCannotBeEmpty)
+				return "", errors.Wrap(configreader.ErrorCannotBeEmpty(), relativePath, wrapStr)
 			}
 		}
 	}

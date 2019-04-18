@@ -34,7 +34,7 @@ func AuthUser(accessKeyID string, secretAccessKey string) (bool, error) {
 		Credentials: credentials.NewStaticCredentials(accessKeyID, secretAccessKey, ""),
 	})
 	if err != nil {
-		return false, errors.Wrap(err)
+		return false, errors.WithStack(err)
 	}
 	userSTSClient := sts.New(sess)
 
@@ -45,7 +45,7 @@ func AuthUser(accessKeyID string, secretAccessKey string) (bool, error) {
 		}
 	}
 	if err != nil {
-		return false, errors.Wrap(err)
+		return false, errors.WithStack(err)
 	}
 
 	return *response.Account == awsAccountID, nil

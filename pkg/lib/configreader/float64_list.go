@@ -33,7 +33,7 @@ type Float64ListValidation struct {
 func Float64List(inter interface{}, v *Float64ListValidation) ([]float64, error) {
 	casted, castOk := cast.InterfaceToFloat64Slice(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeFloatList))
+		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeFloatList)
 	}
 	return ValidateFloat64List(casted, v)
 }
@@ -56,7 +56,7 @@ func Float64ListFromInterfaceMap(key string, iMap map[string]interface{}, v *Flo
 
 func ValidateFloat64ListMissing(v *Float64ListValidation) ([]float64, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateFloat64List(v.Default, v)
 }
@@ -64,13 +64,13 @@ func ValidateFloat64ListMissing(v *Float64ListValidation) ([]float64, error) {
 func ValidateFloat64List(val []float64, v *Float64ListValidation) ([]float64, error) {
 	if !v.AllowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 

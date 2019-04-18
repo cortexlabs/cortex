@@ -23,7 +23,6 @@ import (
 	sparkop "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/apis/sparkoperator.k8s.io/v1alpha1"
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -72,7 +71,7 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 		externalDataPath := ctx.Environment.Data.GetExternalPath()
 		externalDataExists, err := aws.IsS3aPrefixExternal(externalDataPath)
 		if err != nil || !externalDataExists {
-			return nil, errors.New(ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey, s.ErrUserDataUnavailable(externalDataPath))
+			return nil, errors.Wrap(ErrorUserDataUnavailable(externalDataPath), ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey)
 		}
 		for _, rawColumn := range ctx.RawColumns {
 			allComputes = append(allComputes, rawColumn.GetCompute())

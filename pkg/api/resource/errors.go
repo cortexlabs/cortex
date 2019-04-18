@@ -33,6 +33,7 @@ const (
 	ErrInvalidType
 	ErrTemplateInTemplate
 	ErrEmbedInTemplate
+	ErrBeMoreSpecific
 )
 
 var (
@@ -45,6 +46,7 @@ var (
 		"err_invalid_type",
 		"err_template_in_template",
 		"err_embed_in_template",
+		"err_be_more_specific",
 	}
 )
 
@@ -137,5 +139,12 @@ func ErrorEmbedInTemplate() error {
 	return Error{
 		Kind:    ErrEmbedInTemplate,
 		message: "embeds cannot be defined inside of templates",
+	}
+}
+
+func ErrorBeMoreSpecific(vals ...string) error {
+	return Error{
+		Kind:    ErrBeMoreSpecific,
+		message: fmt.Sprintf("please specify %s", s.UserStrsOr(vals)),
 	}
 }

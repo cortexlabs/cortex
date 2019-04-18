@@ -17,25 +17,42 @@ limitations under the License.
 package json
 
 import (
+	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
 
-func MarshalJSON(obj interface{}) ([]byte, error) {
+func Marshal(obj interface{}) ([]byte, error) {
 	jsonBytes, err := json.MarshalIndent(obj, "", "  ")
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrMarshalJSON)
+		return nil, errors.Wrap(err, errStrMarshalJSON)
 	}
 	return jsonBytes, nil
 }
 
+func Unmarshal(data []byte, dst interface{}) error {
+	if err := json.Unmarshal(data, dst); err != nil {
+		return errors.Wrap(err, errStrUnmarshalJSON)
+	}
+	return nil
+}
+
+func DecodeWithNumber(jsonBytes []byte, dst interface{}) error {
+	d := json.NewDecoder(bytes.NewReader(jsonBytes))
+	d.UseNumber()
+	if err := d.Decode(&dst); err != nil {
+		return errors.Wrap(err, errStrUnmarshalJSON)
+	}
+
+	return nil
+}
+
 func MarshalJSONStr(obj interface{}) (string, error) {
-	jsonBytes, err := MarshalJSON(obj)
+	jsonBytes, err := Marshal(obj)
 	if err != nil {
 		return "", err
 	}
@@ -43,17 +60,16 @@ func MarshalJSONStr(obj interface{}) (string, error) {
 }
 
 func WriteJSON(obj interface{}, outPath string) error {
-	jsonBytes, err := MarshalJSON(obj)
+	jsonBytes, err := Marshal(obj)
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(filepath.Dir(outPath), os.ModePerm)
-	if err != nil {
-		return errors.Wrap(err, s.ErrCreateDir(filepath.Dir(outPath)))
+	if err := files.MkdirAll(filepath.Dir(outPath), os.ModePerm); err != nil {
+		return err
 	}
-	err = ioutil.WriteFile(outPath, jsonBytes, 0644)
-	if err != nil {
-		return errors.Wrap(err, s.ErrWriteFile(outPath))
+
+	if err := files.WriteFile(outPath, jsonBytes, 0644); err != nil {
+		return err
 	}
 	return nil
 }

@@ -52,7 +52,7 @@ func Int64Ptr(inter interface{}, v *Int64PtrValidation) (*int64, error) {
 	}
 	casted, castOk := cast.InterfaceToInt64(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeInt))
+		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeInt)
 	}
 	return ValidateInt64Ptr(&casted, v)
 }
@@ -95,7 +95,7 @@ func Int64PtrFromStr(valStr string, v *Int64PtrValidation) (*int64, error) {
 	}
 	casted, castOk := s.ParseInt64(valStr)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeInt))
+		return nil, ErrorInvalidPrimitiveType(valStr, s.PrimTypeInt)
 	}
 	return ValidateInt64Ptr(&casted, v)
 }
@@ -151,7 +151,7 @@ func Int64PtrFromPrompt(promptOpts *PromptOptions, v *Int64PtrValidation) (*int6
 
 func ValidateInt64PtrMissing(v *Int64PtrValidation) (*int64, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateInt64Ptr(v.Default, v)
 }
@@ -159,7 +159,7 @@ func ValidateInt64PtrMissing(v *Int64PtrValidation) (*int64, error) {
 func ValidateInt64Ptr(val *int64, v *Int64PtrValidation) (*int64, error) {
 	if v.DisallowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 

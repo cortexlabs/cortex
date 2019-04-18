@@ -196,7 +196,7 @@ func List(opts *metav1.ListOptions) ([]sparkop.SparkApplication, error) {
 	}
 	sparkList, err := sparkClient.List(*opts)
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, errors.WithStack(err)
 	}
 	return sparkList.Items, nil
 }
@@ -218,7 +218,7 @@ func Delete(appName string) (bool, error) {
 		return false, nil
 	}
 	if err != nil {
-		return false, errors.Wrap(err)
+		return false, errors.WithStack(err)
 	}
 	return true, nil
 }

@@ -40,9 +40,3 @@ var alphaNumericDashUnderscoreRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-]+$`)
 func CheckAlphaNumericDashUnderscore(s string) bool {
 	return alphaNumericDashUnderscoreRegex.MatchString(s)
 }
-
-var dns1035Regex = regexp.MustCompile(`^[a-z]([-a-z0-9]*[a-z0-9])?$`)
-
-func CheckDNS1035(s string) bool {
-	return dns1035Regex.MatchString(s)
-}

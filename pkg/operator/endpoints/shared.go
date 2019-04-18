@@ -67,15 +67,15 @@ func RecoverAndRespond(w http.ResponseWriter, strs ...string) {
 func getRequiredPathParam(paramName string, r *http.Request) (string, error) {
 	param := mux.Vars(r)[paramName]
 	if param == "" {
-		return "", errors.New(s.ErrPathParamMustBeProvided(paramName))
+		return "", ErrorPathParamRequired(paramName)
 	}
 	return param, nil
 }
 
-func getRequiredQParam(paramName string, r *http.Request) (string, error) {
+func getRequiredQueryParam(paramName string, r *http.Request) (string, error) {
 	param := r.URL.Query().Get(paramName)
 	if param == "" {
-		return "", errors.New(s.ErrQueryParamMustBeProvided(paramName))
+		return "", ErrorQueryParamRequired(paramName)
 	}
 	return param, nil
 }

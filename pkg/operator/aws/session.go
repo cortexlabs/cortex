@@ -23,7 +23,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
@@ -47,7 +46,7 @@ func init() {
 
 	response, err := stsClient.GetCallerIdentity(nil)
 	if err != nil {
-		errors.Exit(err, s.ErrUnableToAuthAws)
+		errors.Exit(err, ErrorAuth())
 	}
 	awsAccountID = *response.Account
 	HashedAccountID = hash.String(awsAccountID)

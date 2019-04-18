@@ -33,7 +33,7 @@ type InterfaceMapListValidation struct {
 func InterfaceMapList(inter interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
 	casted, castOk := cast.InterfaceToStrInterfaceMapSlice(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeMapList))
+		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeMapList)
 	}
 	return ValidateInterfaceMapList(casted, v)
 }
@@ -56,7 +56,7 @@ func InterfaceMapListFromInterfaceMap(key string, iMap map[string]interface{}, v
 
 func ValidateInterfaceMapListMissing(v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateInterfaceMapList(v.Default, v)
 }
@@ -64,13 +64,13 @@ func ValidateInterfaceMapListMissing(v *InterfaceMapListValidation) ([]map[strin
 func ValidateInterfaceMapList(val []map[string]interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
 	if !v.AllowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 

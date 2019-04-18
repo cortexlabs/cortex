@@ -25,8 +25,6 @@ export CONST_OPERATOR_TRANSFORMERS_DIR=$ROOT/pkg/transformers
 export CONST_OPERATOR_AGGREGATORS_DIR=$ROOT/pkg/aggregators
 export CONST_OPERATOR_IN_CLUSTER=false
 
-if ! command -v rerun >/dev/null; then
-  GO111MODULE=off go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
-fi
-rerun -watch $ROOT/pkg -ignore $ROOT/vendor $ROOT/bin -run sh -c "go run $ROOT/pkg/operator/operator.go"
+rerun -watch $ROOT/pkg $ROOT/cli -ignore $ROOT/vendor $ROOT/bin -run sh -c \
+"go build -o $ROOT/bin/operator $ROOT/pkg/operator && go build -installsuffix cgo -o $ROOT/bin/cortex $ROOT/cli && $ROOT/bin/operator"
 # go run -race $ROOT/pkg/operator/operator.go

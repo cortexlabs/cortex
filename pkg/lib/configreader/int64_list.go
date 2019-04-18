@@ -33,7 +33,7 @@ type Int64ListValidation struct {
 func Int64List(inter interface{}, v *Int64ListValidation) ([]int64, error) {
 	casted, castOk := cast.InterfaceToInt64Slice(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeIntList))
+		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeIntList)
 	}
 	return ValidateInt64List(casted, v)
 }
@@ -56,7 +56,7 @@ func Int64ListFromInterfaceMap(key string, iMap map[string]interface{}, v *Int64
 
 func ValidateInt64ListMissing(v *Int64ListValidation) ([]int64, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateInt64List(v.Default, v)
 }
@@ -64,13 +64,13 @@ func ValidateInt64ListMissing(v *Int64ListValidation) ([]int64, error) {
 func ValidateInt64List(val []int64, v *Int64ListValidation) ([]int64, error) {
 	if !v.AllowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 

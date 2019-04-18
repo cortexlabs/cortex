@@ -38,11 +38,11 @@ type IntValidation struct {
 
 func Int(inter interface{}, v *IntValidation) (int, error) {
 	if inter == nil {
-		return 0, errors.New(s.ErrCannotBeNull)
+		return 0, ErrorCannotBeNull()
 	}
 	casted, castOk := cast.InterfaceToInt(inter)
 	if !castOk {
-		return 0, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeInt))
+		return 0, ErrorInvalidPrimitiveType(inter, s.PrimTypeInt)
 	}
 	return ValidateInt(casted, v)
 }
@@ -85,7 +85,7 @@ func IntFromStr(valStr string, v *IntValidation) (int, error) {
 	}
 	casted, castOk := s.ParseInt(valStr)
 	if !castOk {
-		return 0, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeInt))
+		return 0, ErrorInvalidPrimitiveType(valStr, s.PrimTypeInt)
 	}
 	return ValidateInt(casted, v)
 }
@@ -142,7 +142,7 @@ func IntFromPrompt(promptOpts *PromptOptions, v *IntValidation) (int, error) {
 
 func ValidateIntMissing(v *IntValidation) (int, error) {
 	if v.Required {
-		return 0, errors.New(s.ErrMustBeDefined)
+		return 0, ErrorMustBeDefined()
 	}
 	return ValidateInt(v.Default, v)
 }
@@ -162,28 +162,28 @@ func ValidateInt(val int, v *IntValidation) (int, error) {
 func ValidateIntVal(val int, v *IntValidation) error {
 	if v.GreaterThan != nil {
 		if val <= *v.GreaterThan {
-			return errors.New(s.ErrMustBeGreaterThan(val, *v.GreaterThan))
+			return ErrorMustBeGreaterThan(val, *v.GreaterThan)
 		}
 	}
 	if v.GreaterThanOrEqualTo != nil {
 		if val < *v.GreaterThanOrEqualTo {
-			return errors.New(s.ErrMustBeGreaterThanOrEqualTo(val, *v.GreaterThanOrEqualTo))
+			return ErrorMustBeGreaterThanOrEqualTo(val, *v.GreaterThanOrEqualTo)
 		}
 	}
 	if v.LessThan != nil {
 		if val >= *v.LessThan {
-			return errors.New(s.ErrMustBeLessThan(val, *v.LessThan))
+			return ErrorMustBeLessThan(val, *v.LessThan)
 		}
 	}
 	if v.LessThanOrEqualTo != nil {
 		if val > *v.LessThanOrEqualTo {
-			return errors.New(s.ErrMustBeLessThanOrEqualTo(val, *v.LessThanOrEqualTo))
+			return ErrorMustBeLessThanOrEqualTo(val, *v.LessThanOrEqualTo)
 		}
 	}
 
 	if v.AllowedValues != nil {
 		if !slices.HasInt(v.AllowedValues, val) {
-			return errors.New(s.ErrInvalidInt(val, v.AllowedValues...))
+			return ErrorInvalidInt(val, v.AllowedValues...)
 		}
 	}
 

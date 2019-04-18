@@ -18,15 +18,14 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	homedir "github.com/mitchellh/go-homedir"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 )
 
@@ -131,9 +130,9 @@ func readCliConfig() (*CliConfig, []error) {
 	configPath := configPath()
 	cachedCliConfig = &CliConfig{}
 
-	configBytes, err := ioutil.ReadFile(configPath)
+	configBytes, err := files.ReadFileBytes(configPath)
 	if err != nil {
-		return nil, []error{errors.Wrap(err, s.ErrReadFile(configPath))}
+		return nil, []error{err}
 	}
 
 	cliConfigData, err := cr.ReadJSONBytes(configBytes)

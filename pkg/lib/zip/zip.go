@@ -65,7 +65,6 @@ type Input struct {
 	FileLists      []FileListInput
 	AddPrefix      string   // Gets added to every item
 	EmptyFiles     []string // Empty files to be created
-	AllowMissing   bool     // Don't error if a file/dir doesn't exist
 	AllowOverwrite bool     // Don't error if a file in the zip is overwritten
 }
 
@@ -116,15 +115,15 @@ func ToWriter(zipInput *Input, writer io.Writer) error {
 
 	err = archive.Close()
 	if err != nil {
-		return errors.Wrap(err, s.ErrCreateZip)
+		return errors.Wrap(err, errStrCreateZip)
 	}
 	return nil
 }
 
 func ToFile(zipInput *Input, destPath string) error {
-	zipfile, err := os.Create(destPath)
+	zipfile, err := files.CreateFile(destPath)
 	if err != nil {
-		return errors.Wrap(err, s.ErrCreateFile(destPath))
+		return err
 	}
 
 	err = ToWriter(zipInput, zipfile)
@@ -135,7 +134,7 @@ func ToFile(zipInput *Input, destPath string) error {
 
 	err = zipfile.Close()
 	if err != nil {
-		return errors.Wrap(err, destPath, s.ErrCreateZip)
+		return errors.Wrap(err, destPath, errStrCreateZip)
 	}
 	return nil
 }
@@ -156,18 +155,18 @@ func addBytesToZip(byteInput *BytesInput, zipInput *Input, archive *zip.Writer, 
 
 	if !zipInput.AllowOverwrite {
 		if addedPaths.Has(path) {
-			return errors.New(s.ErrDuplicateZipPath(path))
+			return ErrorDuplicateZipPath(path)
 		}
 		addedPaths.Add(path)
 	}
 
 	f, err := archive.Create(path)
 	if err != nil {
-		return errors.Wrap(err, s.ErrCreateZip)
+		return errors.Wrap(err, errStrCreateZip)
 	}
 	_, err = f.Write(byteInput.Content)
 	if err != nil {
-		return errors.Wrap(err, s.ErrCreateZip)
+		return errors.Wrap(err, errStrCreateZip)
 	}
 	return nil
 }
@@ -181,17 +180,9 @@ func addEmptyFileToZip(path string, zipInput *Input, archive *zip.Writer, addedP
 }
 
 func addFileToZip(fileInput *FileInput, zipInput *Input, archive *zip.Writer, addedPaths strset.Set) error {
-	if !files.IsFile(fileInput.Source) {
-		if !zipInput.AllowMissing {
-			return errors.New(fileInput.Source, s.ErrFileDoesNotExist(fileInput.Source))
-		}
-
-		return nil
-	}
-
-	content, err := ioutil.ReadFile(fileInput.Source)
+	content, err := files.ReadFileBytes(fileInput.Source)
 	if err != nil {
-		return errors.Wrap(err, s.ErrReadFile(fileInput.Source))
+		return err
 	}
 
 	byteInput := &BytesInput{
@@ -202,14 +193,6 @@ func addFileToZip(fileInput *FileInput, zipInput *Input, archive *zip.Writer, ad
 }
 
 func addDirToZip(dirInput *DirInput, zipInput *Input, archive *zip.Writer, addedPaths strset.Set) error {
-	if !files.IsDir(dirInput.Source) {
-		if !zipInput.AllowMissing {
-			return errors.New(s.ErrDirDoesNotExist(dirInput.Source))
-		}
-
-		return nil
-	}
-
 	paths, err := files.ListDirRecursive(dirInput.Source, true, dirInput.IgnoreFns...)
 	if err != nil {
 		return err
@@ -278,14 +261,14 @@ func UnzipToFile(src string, destPath string) ([]string, error) {
 
 	r, err := zip.OpenReader(src)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrUnzip)
+		return nil, errors.Wrap(err, errStrUnzip)
 	}
 	defer r.Close()
 
 	for _, f := range r.File {
 		rc, err := f.Open()
 		if err != nil {
-			return nil, errors.Wrap(err, s.ErrUnzip)
+			return nil, errors.Wrap(err, errStrUnzip)
 		}
 		defer rc.Close()
 
@@ -293,25 +276,25 @@ func UnzipToFile(src string, destPath string) ([]string, error) {
 		filenames = append(filenames, fpath)
 
 		if f.FileInfo().IsDir() {
-			err := os.MkdirAll(fpath, os.ModePerm)
+			err := files.MkdirAll(fpath, os.ModePerm)
 			if err != nil {
-				return nil, errors.Wrap(err, s.ErrCreateDir(fpath))
+				return nil, err
 			}
 		} else {
-			err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm)
+			err := files.MkdirAll(filepath.Dir(fpath), os.ModePerm)
 			if err != nil {
-				return nil, errors.Wrap(err, s.ErrCreateDir(filepath.Dir(fpath)))
+				return nil, err
 			}
 
-			outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+			outFile, err := files.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if err != nil {
-				return nil, errors.Wrap(err, s.ErrCreateFile(fpath))
+				return nil, err
 			}
 
 			_, err = io.Copy(outFile, rc)
 			outFile.Close()
 			if err != nil {
-				return nil, errors.Wrap(err, s.ErrCreateFile(fpath))
+				return nil, errors.Wrap(err, errStrUnzip)
 			}
 		}
 	}
@@ -321,7 +304,7 @@ func UnzipToFile(src string, destPath string) ([]string, error) {
 func UnzipMemToMem(zipBytes []byte) (map[string][]byte, error) {
 	r, err := zip.NewReader(bytes.NewReader(zipBytes), int64(len(zipBytes)))
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrUnzip)
+		return nil, errors.Wrap(err, errStrUnzip)
 	}
 
 	return UnzipToMem(r)
@@ -330,7 +313,7 @@ func UnzipMemToMem(zipBytes []byte) (map[string][]byte, error) {
 func UnzipFileToMem(src string) (map[string][]byte, error) {
 	r, err := zip.OpenReader(src)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrUnzip)
+		return nil, errors.Wrap(err, errStrUnzip)
 	}
 	defer r.Close()
 
@@ -344,13 +327,13 @@ func UnzipToMem(r *zip.Reader) (map[string][]byte, error) {
 		if !f.FileInfo().IsDir() {
 			rc, err := f.Open()
 			if err != nil {
-				return nil, errors.Wrap(err, s.ErrUnzip)
+				return nil, errors.Wrap(err, errStrUnzip)
 			}
 			defer rc.Close()
 
 			bytes, err := ioutil.ReadAll(rc)
 			if err != nil {
-				return nil, errors.Wrap(err, s.ErrUnzip)
+				return nil, errors.Wrap(err, errStrUnzip)
 			}
 
 			path := strings.TrimPrefix(f.Name, "/")

@@ -38,7 +38,7 @@ type InterfaceMapValidation struct {
 func InterfaceMap(inter interface{}, v *InterfaceMapValidation) (map[string]interface{}, error) {
 	casted, castOk := cast.InterfaceToStrInterfaceMap(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeMap))
+		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeMap)
 	}
 	return ValidateInterfaceMap(casted, v)
 }
@@ -61,7 +61,7 @@ func InterfaceMapFromInterfaceMap(key string, iMap map[string]interface{}, v *In
 
 func ValidateInterfaceMapMissing(v *InterfaceMapValidation) (map[string]interface{}, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
 	return ValidateInterfaceMap(v.Default, v)
 }
@@ -69,20 +69,20 @@ func ValidateInterfaceMapMissing(v *InterfaceMapValidation) (map[string]interfac
 func ValidateInterfaceMap(val map[string]interface{}, v *InterfaceMapValidation) (map[string]interface{}, error) {
 	if !v.AllowNull {
 		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
+			return nil, ErrorCannotBeNull()
 		}
 	}
 
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 
 	if v.ScalarsOnly {
 		for k, v := range val {
 			if !cast.IsScalarType(v) {
-				return nil, errors.New(k, s.ErrInvalidPrimitiveType(v, s.PrimTypeString, s.PrimTypeInt, s.PrimTypeFloat, s.PrimTypeBool))
+				return nil, errors.Wrap(ErrorInvalidPrimitiveType(v, s.PrimTypeString, s.PrimTypeInt, s.PrimTypeFloat, s.PrimTypeBool), k)
 			}
 		}
 	}
@@ -101,7 +101,7 @@ func ValidateInterfaceMap(val map[string]interface{}, v *InterfaceMapValidation)
 		}
 		for _, leafVal := range leafVals {
 			if !slices.HasString(v.AllowedLeafValues, leafVal) {
-				return nil, errors.New(s.ErrInvalidStr(leafVal, v.AllowedLeafValues...))
+				return nil, ErrorInvalidStr(leafVal, v.AllowedLeafValues...)
 			}
 		}
 	}
