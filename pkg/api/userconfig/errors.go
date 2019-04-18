@@ -38,7 +38,7 @@ const (
 	ErrReadConfig
 	ErrMissingAppDefinition
 	ErrUndefinedConfig
-	ErrMissingRawColumns
+	ErrRawColumnNotInEnv
 	ErrUndefinedResource
 	ErrUndefinedResourceBuiltin
 	ErrColumnMustBeRaw
@@ -70,7 +70,7 @@ var errorKinds = []string{
 	"err_read_config",
 	"err_missing_app_definition",
 	"err_undefined_config",
-	"err_missing_raw_columns",
+	"err_raw_column_not_in_env",
 	"err_undefined_resource",
 	"err_undefined_resource_builtin",
 	"err_column_must_be_raw",
@@ -231,10 +231,10 @@ func ErrorUndefinedConfig(resourceType resource.Type) error {
 	}
 }
 
-func ErrorMissingRawColumns(missingColumns []string) error {
+func ErrorRawColumnNotInEnv(envName string) error {
 	return Error{
-		Kind:    ErrMissingRawColumns,
-		message: fmt.Sprintf("all raw columns must be ingested (missing: %s)", s.UserStrsAnd(missingColumns)),
+		Kind:    ErrRawColumnNotInEnv,
+		message: fmt.Sprintf("not defined in the schema for the %s %s", s.UserStr(envName), resource.EnvironmentType.String()),
 	}
 }
 
