@@ -156,7 +156,7 @@ func (config *Config) Validate(envName string) error {
 		ingestedColumnNames := env.Data.GetIngestedColumns()
 		missingColumns := slices.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
 		if len(missingColumns) > 0 {
-			return errors.Wrap(ErrorMissingRawColumns(missingColumns), Identify(env), DataKey, SchemaKey)
+			return errors.Wrap(ErrorRawColumnNotInEnv(env.Name), Identify(config.RawColumns.Get(missingColumns[0])))
 		}
 		extraColumns := slices.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
 		if len(extraColumns) > 0 {

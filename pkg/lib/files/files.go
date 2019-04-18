@@ -109,7 +109,7 @@ func IsFileOrDir(path string) bool {
 	return false
 }
 
-// IsFile returns nil if the path is a directory
+// CheckDir returns nil if the path is a directory
 func CheckDir(path string) error {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
@@ -122,7 +122,7 @@ func CheckDir(path string) error {
 	return nil
 }
 
-// IsFile returns nil if the path is a file
+// CheckFile returns nil if the path is a file
 func CheckFile(path string) error {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
