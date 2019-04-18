@@ -26,10 +26,10 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 )
 
 var uploadedModels = strset.New()
@@ -150,13 +150,13 @@ func uploadModelImpl(modelImplID string, impl []byte) (string, error) {
 		return modelImplKey, nil
 	}
 
-	isUploaded, err := aws.IsS3File(modelImplKey)
+	isUploaded, err := libaws.Client.IsS3File(modelImplKey)
 	if err != nil {
 		return "", errors.Wrap(err, "upload")
 	}
 
 	if !isUploaded {
-		err = aws.UploadBytesToS3(impl, modelImplKey)
+		err = libaws.Client.UploadBytesToS3(impl, modelImplKey)
 		if err != nil {
 			return "", errors.Wrap(err, "upload")
 		}

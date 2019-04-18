@@ -29,9 +29,9 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
@@ -173,7 +173,7 @@ func getKubectlLogs(pod *corev1.Pod, verbose bool, wrotePending bool, socket *we
 }
 
 func getCloudWatchLogs(prefix string, verbose bool, socket *websocket.Conn) {
-	logs, err := aws.GetLogs(prefix)
+	logs, err := libaws.Client.GetLogs(prefix)
 	if err != nil {
 		telemetry.ReportError(err)
 		errors.PrintError(err)

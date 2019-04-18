@@ -14,12 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package s3
+package aws
 
 import (
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type ErrorKind int
@@ -27,11 +29,13 @@ type ErrorKind int
 const (
 	ErrUnknown ErrorKind = iota
 	ErrInvalidS3aPath
+	ErrAuth
 )
 
 var errorKinds = []string{
 	"err_unknown",
 	"err_invalid_s3a_path",
+	"err_auth",
 }
 
 var _ = [1]int{}[int(ErrInvalidS3aPath)-(len(errorKinds)-1)] // Ensure list length matches
@@ -70,6 +74,25 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
+func IsNoSuchKeyErr(err error) bool {
+	return checkErrCode(err, "NoSuchKey")
+}
+
+func IsNotFoundErr(err error) bool {
+	return checkErrCode(err, "NotFound")
+}
+
+func checkErrCode(err error, errorCode string) bool {
+	awsErr, ok := errors.Cause(err).(awserr.Error)
+	if !ok {
+		return false
+	}
+	if awsErr.Code() == errorCode {
+		return true
+	}
+	return false
+}
+
 type Error struct {
 	Kind    ErrorKind
 	message string
@@ -83,5 +106,12 @@ func ErrorInvalidS3aPath(provided string) error {
 	return Error{
 		Kind:    ErrInvalidS3aPath,
 		message: fmt.Sprintf("%s is not a valid s3a path", s.UserStr(provided)),
+	}
+}
+
+func ErrorAuth() error {
+	return Error{
+		Kind:    ErrAuth,
+		message: "unable to authenticate with AWS",
 	}
 }

@@ -24,10 +24,10 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/resource"
+	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 )
@@ -68,7 +68,7 @@ func uploadWorkloadSpec(workloadSpec *WorkloadSpec, ctx *context.Context) error 
 	}
 
 	key := ocontext.WorkloadSpecKey(savedWorkloadSpec.WorkloadID, ctx.App.Name)
-	err := aws.UploadJSONToS3(savedWorkloadSpec, key)
+	err := libaws.Client.UploadJSONToS3(savedWorkloadSpec, key)
 	if err != nil {
 		return errors.Wrap(err, "upload workload spec", ctx.App.Name, savedWorkloadSpec.WorkloadID)
 	}
@@ -78,8 +78,8 @@ func uploadWorkloadSpec(workloadSpec *WorkloadSpec, ctx *context.Context) error 
 func getSavedWorkloadSpec(workloadID string, appName string) (*SavedWorkloadSpec, error) {
 	key := ocontext.WorkloadSpecKey(workloadID, appName)
 	var savedWorkloadSpec SavedWorkloadSpec
-	err := aws.ReadJSONFromS3(&savedWorkloadSpec, key)
-	if aws.IsNoSuchKeyErr(err) {
+	err := libaws.Client.ReadJSONFromS3(&savedWorkloadSpec, key)
+	if libaws.IsNoSuchKeyErr(err) {
 		return nil, nil
 	}
 	if err != nil {

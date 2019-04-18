@@ -24,11 +24,11 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
@@ -38,7 +38,7 @@ func init() {
 	workflows, err := argo.List(nil)
 	if err != nil {
 		err = errors.Wrap(err, "init", "argo", "list")
-		telemetry.ReportErrorBlocking(err)
+		telemetry.Client.ReportErrorBlocking(err)
 		errors.Exit(err)
 	}
 
@@ -250,7 +250,7 @@ func DeleteApp(appName string, keepCache bool) bool {
 	uncacheLatestWorkloadIDs(nil, appName)
 
 	if !keepCache {
-		aws.DeleteFromS3ByPrefix(filepath.Join(consts.AppsDir, appName), true)
+		libaws.Client.DeleteFromS3ByPrefix(filepath.Join(consts.AppsDir, appName), true)
 	}
 
 	return wasDeployed

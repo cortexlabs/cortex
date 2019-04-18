@@ -69,14 +69,14 @@ func init() {
 
 	if err != nil {
 		err = errors.Wrap(err, "kubeconfig")
-		telemetry.ReportErrorBlocking(err)
+		telemetry.Client.ReportErrorBlocking(err)
 		errors.Exit(err)
 	}
 
 	clientset, err = kubernetes.NewForConfig(Config)
 	if err != nil {
 		err = errors.Wrap(err, "kubeconfig")
-		telemetry.ReportErrorBlocking(err)
+		telemetry.Client.ReportErrorBlocking(err)
 		errors.Exit(err)
 	}
 

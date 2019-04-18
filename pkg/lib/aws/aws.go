@@ -25,29 +25,42 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 )
 
-var awsAccountID string
-var s3Client *s3.S3
-var stsClient *sts.STS
-var cloudWatchLogsClient *cloudwatchlogs.CloudWatchLogs
-var HashedAccountID string
+var Client *client
 
-func init() {
+type client struct {
+	Bucket   string
+	LogGroup string
+	Region   string
+
+	s3Client             *s3.S3
+	stsClient            *sts.STS
+	cloudWatchLogsClient *cloudwatchlogs.CloudWatchLogs
+	awsAccountID         string
+	HashedAccountID      string
+}
+
+func Init(bucket, logGroup, region string) *client {
 	sess := session.Must(session.NewSession(&aws.Config{
-		Region:     aws.String(cc.Region),
+		Region:     aws.String(region),
 		DisableSSL: aws.Bool(false),
 	}))
 
-	s3Client = s3.New(sess)
-	cloudWatchLogsClient = cloudwatchlogs.New(sess)
-	stsClient = sts.New(sess)
-
-	response, err := stsClient.GetCallerIdentity(nil)
+	c := &client{
+		Bucket:               bucket,
+		LogGroup:             logGroup,
+		Region:               region,
+		s3Client:             s3.New(sess),
+		stsClient:            sts.New(sess),
+		cloudWatchLogsClient: cloudwatchlogs.New(sess),
+	}
+	response, err := c.stsClient.GetCallerIdentity(nil)
 	if err != nil {
 		errors.Exit(err, ErrorAuth())
 	}
-	awsAccountID = *response.Account
-	HashedAccountID = hash.String(awsAccountID)
+	c.awsAccountID = *response.Account
+	c.HashedAccountID = hash.String(c.awsAccountID)
+
+	return c
 }

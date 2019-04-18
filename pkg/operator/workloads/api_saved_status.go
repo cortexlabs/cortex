@@ -22,10 +22,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/api/resource"
+	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 )
@@ -36,7 +36,7 @@ func uploadAPISavedStatus(savedStatus *resource.APISavedStatus) error {
 	}
 
 	key := ocontext.StatusKey(savedStatus.ResourceID, savedStatus.WorkloadID, savedStatus.AppName)
-	err := aws.UploadJSONToS3(savedStatus, key)
+	err := libaws.Client.UploadJSONToS3(savedStatus, key)
 	if err != nil {
 		return errors.Wrap(err, "upload api saved status", savedStatus.AppName, savedStatus.ResourceID, savedStatus.WorkloadID)
 	}
@@ -65,8 +65,8 @@ func getAPISavedStatus(resourceID string, workloadID string, appName string) (*r
 
 	key := ocontext.StatusKey(resourceID, workloadID, appName)
 	var savedStatus resource.APISavedStatus
-	err := aws.ReadJSONFromS3(&savedStatus, key)
-	if aws.IsNoSuchKeyErr(err) {
+	err := libaws.Client.ReadJSONFromS3(&savedStatus, key)
+	if libaws.IsNoSuchKeyErr(err) {
 		cacheNilAPISavedStatus(resourceID, workloadID, appName)
 		return nil, nil
 	}

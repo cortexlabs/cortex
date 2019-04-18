@@ -24,12 +24,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 )
 
-func AuthUser(accessKeyID string, secretAccessKey string) (bool, error) {
+func (c *client) AuthUser(accessKeyID string, secretAccessKey string) (bool, error) {
 	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(cc.Region),
+		Region:      aws.String(c.Region),
 		DisableSSL:  aws.Bool(false),
 		Credentials: credentials.NewStaticCredentials(accessKeyID, secretAccessKey, ""),
 	})
@@ -48,5 +47,5 @@ func AuthUser(accessKeyID string, secretAccessKey string) (bool, error) {
 		return false, errors.WithStack(err)
 	}
 
-	return *response.Account == awsAccountID, nil
+	return *response.Account == c.awsAccountID, nil
 }

@@ -29,32 +29,30 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	libs3 "github.com/cortexlabs/cortex/pkg/lib/aws/s3"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 )
 
-func S3Path(key string) string {
-	return "s3://" + filepath.Join(cc.Bucket, key)
+func (c *client) S3Path(key string) string {
+	return "s3://" + filepath.Join(c.Bucket, key)
 }
 
-func IsS3File(key string) (bool, error) {
-	return IsS3FileExternal(key, cc.Bucket)
+func (c *client) IsS3File(key string) (bool, error) {
+	return c.IsS3FileExternal(key, c.Bucket)
 }
 
-func IsS3Dir(dirPath string) (bool, error) {
+func (c *client) IsS3Dir(dirPath string) (bool, error) {
 	prefix := s.EnsureSuffix(dirPath, "/")
-	return IsS3Prefix(prefix)
+	return c.IsS3Prefix(prefix)
 }
 
-func IsS3Prefix(prefix string) (bool, error) {
-	return IsS3PrefixExternal(prefix, cc.Bucket)
+func (c *client) IsS3Prefix(prefix string) (bool, error) {
+	return c.IsS3PrefixExternal(prefix, c.Bucket)
 }
 
-func IsS3FileExternal(key string, bucket string) (bool, error) {
-	_, err := s3Client.HeadObject(&s3.HeadObjectInput{
+func (c *client) IsS3FileExternal(key string, bucket string) (bool, error) {
+	_, err := c.s3Client.HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
@@ -69,8 +67,8 @@ func IsS3FileExternal(key string, bucket string) (bool, error) {
 	return true, nil
 }
 
-func IsS3PrefixExternal(prefix string, bucket string) (bool, error) {
-	out, err := s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
+func (c *client) IsS3PrefixExternal(prefix string, bucket string) (bool, error) {
+	out, err := c.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
 		Bucket: aws.String(bucket),
 		Prefix: aws.String(prefix),
 	})
@@ -83,19 +81,19 @@ func IsS3PrefixExternal(prefix string, bucket string) (bool, error) {
 	return hasPrefix, nil
 }
 
-func IsS3aPrefixExternal(s3aPath string) (bool, error) {
-	bucket, key, err := libs3.SplitS3aPath(s3aPath)
+func (c *client) IsS3aPrefixExternal(s3aPath string) (bool, error) {
+	bucket, key, err := SplitS3aPath(s3aPath)
 	if err != nil {
 		return false, err
 	}
-	return IsS3PrefixExternal(key, bucket)
+	return c.IsS3PrefixExternal(key, bucket)
 }
 
-func UploadBytesToS3(data []byte, key string) error {
-	_, err := s3Client.PutObject(&s3.PutObjectInput{
+func (c *client) UploadBytesToS3(data []byte, key string) error {
+	_, err := c.s3Client.PutObject(&s3.PutObjectInput{
 		Body:                 bytes.NewReader(data),
 		Key:                  aws.String(key),
-		Bucket:               aws.String(cc.Bucket),
+		Bucket:               aws.String(c.Bucket),
 		ACL:                  aws.String("private"),
 		ContentDisposition:   aws.String("attachment"),
 		ServerSideEncryption: aws.String("AES256"),
@@ -103,70 +101,70 @@ func UploadBytesToS3(data []byte, key string) error {
 	return errors.Wrap(err, key)
 }
 
-func UploadBytesesToS3(data []byte, keys ...string) error {
+func (c *client) UploadBytesesToS3(data []byte, keys ...string) error {
 	fns := make([]func() error, len(keys))
 	for i, key := range keys {
 		key := key
 		fns[i] = func() error {
-			return UploadBytesToS3(data, key)
+			return c.UploadBytesToS3(data, key)
 		}
 	}
 	return parallel.RunFirstErr(fns...)
 }
 
-func UploadFileToS3(filePath string, key string) error {
+func (c *client) UploadFileToS3(filePath string, key string) error {
 	data, err := files.ReadFileBytes(filePath)
 	if err != nil {
 		return err
 	}
-	return UploadBytesToS3(data, key)
+	return c.UploadBytesToS3(data, key)
 }
 
-func UploadBufferToS3(buffer *bytes.Buffer, key string) error {
-	return UploadBytesToS3(buffer.Bytes(), key)
+func (c *client) UploadBufferToS3(buffer *bytes.Buffer, key string) error {
+	return c.UploadBytesToS3(buffer.Bytes(), key)
 }
 
-func UploadStringToS3(str string, key string) error {
+func (c *client) UploadStringToS3(str string, key string) error {
 	str = strings.TrimSpace(str)
-	return UploadBytesToS3([]byte(str), key)
+	return c.UploadBytesToS3([]byte(str), key)
 }
 
-func UploadJSONToS3(obj interface{}, key string) error {
+func (c *client) UploadJSONToS3(obj interface{}, key string) error {
 	jsonBytes, err := libjson.Marshal(obj)
 	if err != nil {
 		return err
 	}
-	return UploadBytesToS3(jsonBytes, key)
+	return c.UploadBytesToS3(jsonBytes, key)
 }
 
-func ReadJSONFromS3(objPtr interface{}, key string) error {
-	jsonBytes, err := ReadBytesFromS3(key)
+func (c *client) ReadJSONFromS3(objPtr interface{}, key string) error {
+	jsonBytes, err := c.ReadBytesFromS3(key)
 	if err != nil {
 		return err
 	}
 	return errors.Wrap(json.Unmarshal(jsonBytes, objPtr), key)
 }
 
-func UploadMsgpackToS3(obj interface{}, key string) error {
+func (c *client) UploadMsgpackToS3(obj interface{}, key string) error {
 	msgpackBytes, err := msgpack.Marshal(obj)
 	if err != nil {
 		return err
 	}
-	return UploadBytesToS3(msgpackBytes, key)
+	return c.UploadBytesToS3(msgpackBytes, key)
 }
 
-func ReadMsgpackFromS3(objPtr interface{}, key string) error {
-	msgpackBytes, err := ReadBytesFromS3(key)
+func (c *client) ReadMsgpackFromS3(objPtr interface{}, key string) error {
+	msgpackBytes, err := c.ReadBytesFromS3(key)
 	if err != nil {
 		return err
 	}
 	return errors.Wrap(msgpack.Unmarshal(msgpackBytes, objPtr), key)
 }
 
-func ReadStringFromS3(key string) (string, error) {
-	response, err := s3Client.GetObject(&s3.GetObjectInput{
+func (c *client) ReadStringFromS3(key string) (string, error) {
+	response, err := c.s3Client.GetObject(&s3.GetObjectInput{
 		Key:    aws.String(key),
-		Bucket: aws.String(cc.Bucket),
+		Bucket: aws.String(c.Bucket),
 	})
 
 	if err != nil {
@@ -178,10 +176,10 @@ func ReadStringFromS3(key string) (string, error) {
 	return buf.String(), nil
 }
 
-func ReadBytesFromS3(key string) ([]byte, error) {
-	response, err := s3Client.GetObject(&s3.GetObjectInput{
+func (c *client) ReadBytesFromS3(key string) ([]byte, error) {
+	response, err := c.s3Client.GetObject(&s3.GetObjectInput{
 		Key:    aws.String(key),
-		Bucket: aws.String(cc.Bucket),
+		Bucket: aws.String(c.Bucket),
 	})
 
 	if err != nil {
@@ -193,29 +191,29 @@ func ReadBytesFromS3(key string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func DeleteFromS3ByPrefix(prefix string, continueIfFailure bool) error {
+func (c *client) DeleteFromS3ByPrefix(prefix string, continueIfFailure bool) error {
 	listObjectsInput := &s3.ListObjectsV2Input{
-		Bucket:  aws.String(cc.Bucket),
+		Bucket:  aws.String(c.Bucket),
 		Prefix:  aws.String(prefix),
 		MaxKeys: aws.Int64(1000),
 	}
 
 	var subErr error
 
-	err := s3Client.ListObjectsV2Pages(listObjectsInput,
+	err := c.s3Client.ListObjectsV2Pages(listObjectsInput,
 		func(listObjectsOutput *s3.ListObjectsV2Output, lastPage bool) bool {
 			deleteObjects := make([]*s3.ObjectIdentifier, len(listObjectsOutput.Contents))
 			for i, object := range listObjectsOutput.Contents {
 				deleteObjects[i] = &s3.ObjectIdentifier{Key: object.Key}
 			}
 			deleteObjectsInput := &s3.DeleteObjectsInput{
-				Bucket: aws.String(cc.Bucket),
+				Bucket: aws.String(c.Bucket),
 				Delete: &s3.Delete{
 					Objects: deleteObjects,
 					Quiet:   aws.Bool(true),
 				},
 			}
-			_, newSubErr := s3Client.DeleteObjects(deleteObjectsInput)
+			_, newSubErr := c.s3Client.DeleteObjects(deleteObjectsInput)
 			if newSubErr != nil {
 				subErr = newSubErr
 				if !continueIfFailure {
@@ -229,4 +227,30 @@ func DeleteFromS3ByPrefix(prefix string, continueIfFailure bool) error {
 		return errors.Wrap(subErr, prefix)
 	}
 	return errors.Wrap(err, prefix)
+}
+
+func IsValidS3aPath(s3aPath string) bool {
+	if !strings.HasPrefix(s3aPath, "s3a://") {
+		return false
+	}
+	parts := strings.Split(s3aPath[6:], "/")
+	if len(parts) < 2 {
+		return false
+	}
+	if parts[0] == "" || parts[1] == "" {
+		return false
+	}
+	return true
+}
+
+func SplitS3aPath(s3aPath string) (string, string, error) {
+	if !IsValidS3aPath(s3aPath) {
+		return "", "", ErrorInvalidS3aPath(s3aPath)
+	}
+	fullPath := s3aPath[6:]
+	slashIndex := strings.Index(fullPath, "/")
+	bucket := fullPath[0:slashIndex]
+	key := fullPath[slashIndex+1:]
+
+	return bucket, key, nil
 }

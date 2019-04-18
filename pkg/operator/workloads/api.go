@@ -26,9 +26,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 )
@@ -101,7 +101,7 @@ func apiSpec(
 							"--workload-id=" + workloadID,
 							"--port=" + defaultPortStr,
 							"--tf-serve-port=" + tfServingPortStr,
-							"--context=" + aws.S3Path(ctx.Key),
+							"--context=" + libaws.Client.S3Path(ctx.Key),
 							"--api=" + ctx.APIs[apiName].ID,
 							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
 							"--cache-dir=" + consts.ContextCacheDir,

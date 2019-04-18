@@ -26,7 +26,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 )
 
 type FluentdLog struct {
@@ -44,7 +43,7 @@ type FluentdLog struct {
 	} `json:"kubernetes"`
 }
 
-func GetLogs(prefix string) (string, error) {
+func (c *client) GetLogs(prefix string) (string, error) {
 	logGroupNamePrefix := "var.log.containers."
 
 	ignoreLogStreamNameRegexes := []*regexp.Regexp{
@@ -53,9 +52,9 @@ func GetLogs(prefix string) (string, error) {
 		regexp.MustCompile(`_cortex_serve-`),
 	}
 
-	logStreamsOut, err := cloudWatchLogsClient.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
+	logStreamsOut, err := c.cloudWatchLogsClient.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
 		Limit:               aws.Int64(50),
-		LogGroupName:        aws.String(cc.LogGroup),
+		LogGroupName:        aws.String(c.LogGroup),
 		LogStreamNamePrefix: aws.String(logGroupNamePrefix + prefix),
 	})
 	if err != nil {
@@ -67,12 +66,12 @@ func GetLogs(prefix string) (string, error) {
 	for i, logStream := range logStreamsOut.LogStreams {
 		if !regex.MatchAnyRegex(*logStream.LogStreamName, ignoreLogStreamNameRegexes) {
 			getLogEventsInput := &cloudwatchlogs.GetLogEventsInput{
-				LogGroupName:  &cc.LogGroup,
+				LogGroupName:  &c.LogGroup,
 				LogStreamName: logStream.LogStreamName,
 				StartFromHead: aws.Bool(true),
 			}
 
-			err := cloudWatchLogsClient.GetLogEventsPages(getLogEventsInput, func(logEventsOut *cloudwatchlogs.GetLogEventsOutput, lastPage bool) bool {
+			err := c.cloudWatchLogsClient.GetLogEventsPages(getLogEventsInput, func(logEventsOut *cloudwatchlogs.GetLogEventsOutput, lastPage bool) bool {
 				for _, logEvent := range logEventsOut.Events {
 					var log FluentdLog
 					// millis := *logEvent.Timestamp

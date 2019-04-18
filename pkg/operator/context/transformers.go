@@ -24,12 +24,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/resource"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 )
 
@@ -41,7 +41,7 @@ func init() {
 
 	config, err := userconfig.NewPartialPath(configPath)
 	if err != nil {
-		telemetry.ReportErrorBlocking(err)
+		telemetry.Client.ReportErrorBlocking(err)
 		errors.Exit(err)
 	}
 
@@ -50,12 +50,12 @@ func init() {
 		impl, err := files.ReadFileBytes(implPath)
 		if err != nil {
 			err = errors.Wrap(err, userconfig.Identify(transConfig))
-			telemetry.ReportErrorBlocking(err)
+			telemetry.Client.ReportErrorBlocking(err)
 			errors.Exit(err)
 		}
 		transformer, err := newTransformer(*transConfig, impl, pointer.String("cortex"), nil)
 		if err != nil {
-			telemetry.ReportErrorBlocking(err)
+			telemetry.Client.ReportErrorBlocking(err)
 			errors.Exit(err)
 		}
 		builtinTransformers["cortex."+transConfig.Name] = transformer
@@ -127,13 +127,13 @@ func uploadTransformer(transformer *context.Transformer, impl []byte) error {
 		return nil
 	}
 
-	isUploaded, err := aws.IsS3File(transformer.ImplKey)
+	isUploaded, err := libaws.Client.IsS3File(transformer.ImplKey)
 	if err != nil {
 		return errors.Wrap(err, userconfig.Identify(transformer), "upload")
 	}
 
 	if !isUploaded {
-		err = aws.UploadBytesToS3(impl, transformer.ImplKey)
+		err = libaws.Client.UploadBytesToS3(impl, transformer.ImplKey)
 		if err != nil {
 			return errors.Wrap(err, userconfig.Identify(transformer), "upload")
 		}

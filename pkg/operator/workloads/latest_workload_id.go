@@ -17,10 +17,10 @@ limitations under the License.
 package workloads
 
 import (
+	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
 )
 
@@ -30,7 +30,7 @@ func uploadLatestWorkloadID(resourceID string, workloadID string, appName string
 	}
 
 	key := ocontext.LatestWorkloadIDKey(resourceID, appName)
-	err := aws.UploadStringToS3(workloadID, key)
+	err := libaws.Client.UploadStringToS3(workloadID, key)
 	if err != nil {
 		return errors.Wrap(err, "upload latest workload ID", appName, resourceID, workloadID)
 	}
@@ -64,8 +64,8 @@ func getSavedLatestWorkloadID(resourceID string, appName string) (string, error)
 	}
 
 	key := ocontext.LatestWorkloadIDKey(resourceID, appName)
-	workloadID, err := aws.ReadStringFromS3(key)
-	if aws.IsNoSuchKeyErr(err) {
+	workloadID, err := libaws.Client.ReadStringFromS3(key)
+	if libaws.IsNoSuchKeyErr(err) {
 		cacheEmptyLatestWorkloadID(resourceID, appName)
 		return "", nil
 	}

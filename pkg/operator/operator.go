@@ -28,10 +28,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/env"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
@@ -42,13 +43,32 @@ const (
 	operatorPortStr       = "8888"
 	workflowDeletionDelay = 60 // seconds
 	cronInterval          = 5  // seconds
+
 )
 
 var markedWorkflows = strset.New()
 
+type CortexConfig struct {
+	APIVersion string `json:"api_version"`
+	Bucket     string `json:"bucket"`
+	Region     string `json:"region"`
+	LogGroup   string `json:"log_group"`
+	ID         string `json:"id"`
+}
+
 func main() {
-	telemetry.ReportEvent("operator.init")
+	telemetry.Client.ReportEvent("operator.init")
 	startCron()
+
+	// default client is set
+	_ = libaws.Init(
+		env.GetStr("BUCKET"),
+		env.GetStr("LOG_GROUP"),
+		env.GetStr("REGION"),
+	)
+
+	// default client is set
+	_ = telemetry.Init(awsClient.HashedAccountID)
 
 	router := mux.NewRouter()
 	router.Use(panicMiddleware)

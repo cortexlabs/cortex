@@ -29,10 +29,10 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
@@ -72,7 +72,7 @@ func init() {
 	sparkClientset, err = clientset.NewForConfig(k8s.Config)
 	if err != nil {
 		err = errors.Wrap(err, "spark", "kubeconfig")
-		telemetry.ReportErrorBlocking(err)
+		telemetry.Client.ReportErrorBlocking(err)
 		errors.Exit(err)
 	}
 
@@ -119,7 +119,7 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 			Arguments: []string{
 				strings.TrimSpace(
 					" --workload-id=" + workloadID +
-						" --context=" + aws.S3Path(ctx.Key) +
+						" --context=" + libaws.Client.S3Path(ctx.Key) +
 						" --cache-dir=" + consts.ContextCacheDir +
 						" " + strings.Join(args, " ")),
 			},
@@ -149,7 +149,7 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 					},
 					EnvVars: map[string]string{
 						"CORTEX_SPARK_VERBOSITY": ctx.Environment.LogLevel.Spark,
-						"CORTEX_CONTEXT_S3_PATH": aws.S3Path(ctx.Key),
+						"CORTEX_CONTEXT_S3_PATH": libaws.Client.S3Path(ctx.Key),
 						"CORTEX_WORKLOAD_ID":     workloadID,
 						"CORTEX_CACHE_DIR":       consts.ContextCacheDir,
 					},
@@ -179,7 +179,7 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 					},
 					EnvVars: map[string]string{
 						"CORTEX_SPARK_VERBOSITY": ctx.Environment.LogLevel.Spark,
-						"CORTEX_CONTEXT_S3_PATH": aws.S3Path(ctx.Key),
+						"CORTEX_CONTEXT_S3_PATH": libaws.Client.S3Path(ctx.Key),
 						"CORTEX_WORKLOAD_ID":     workloadID,
 						"CORTEX_CACHE_DIR":       consts.ContextCacheDir,
 					},

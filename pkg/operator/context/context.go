@@ -24,8 +24,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 )
 
 func New(
@@ -171,7 +171,7 @@ func DownloadContext(ctxID string, appName string) (*context.Context, error) {
 	s3Key := ctxKey(ctxID, appName)
 	var serial context.Serial
 
-	if err := aws.ReadMsgpackFromS3(&serial, s3Key); err != nil {
+	if err := libaws.Client.ReadMsgpackFromS3(&serial, s3Key); err != nil {
 		return nil, err
 	}
 

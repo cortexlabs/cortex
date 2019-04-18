@@ -16,16 +16,9 @@ limitations under the License.
 
 package config
 
-import (
-	"path/filepath"
-
-	"github.com/cortexlabs/cortex/pkg/consts"
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-)
+import "github.com/cortexlabs/cortex/pkg/lib/env"
 
 var (
-	LogGroup            string
-	Bucket              string
 	Region              string
 	Namespace           string
 	OperatorImage       string
@@ -40,39 +33,15 @@ var (
 )
 
 func init() {
-	LogGroup = getStr("LOG_GROUP")
-	Bucket = getStr("BUCKET")
-	Region = getStr("REGION")
-	Namespace = getStr("NAMESPACE")
-	OperatorImage = getStr("IMAGE_OPERATOR")
-	SparkImage = getStr("IMAGE_SPARK")
-	TFTrainImage = getStr("IMAGE_TF_TRAIN")
-	TFServeImage = getStr("IMAGE_TF_SERVE")
-	TFAPIImage = getStr("IMAGE_TF_API")
-	PythonPackagerImage = getStr("IMAGE_PYTHON_PACKAGER")
-	TFTrainImageGPU = getStr("IMAGE_TF_TRAIN_GPU")
-	TFServeImageGPU = getStr("IMAGE_TF_SERVE_GPU")
-	EnableTelemetry = getBool("ENABLE_TELEMETRY")
-}
-
-//
-// Helpers
-//
-
-func getPaths(configName string) (string, string) {
-	envVarName := "CORTEX_" + configName
-	filePath := filepath.Join(consts.CortexConfigPath, configName)
-	return envVarName, filePath
-}
-
-func getStr(configName string) string {
-	envVarName, filePath := getPaths(configName)
-	v := &cr.StringValidation{Required: true}
-	return cr.MustStringFromEnvOrFile(envVarName, filePath, v)
-}
-
-func getBool(configName string) bool {
-	envVarName, filePath := getPaths(configName)
-	v := &cr.BoolValidation{Default: false}
-	return cr.MustBoolFromEnvOrFile(envVarName, filePath, v)
+	Region = env.GetStr("REGION")
+	Namespace = env.GetStr("NAMESPACE")
+	OperatorImage = env.GetStr("IMAGE_OPERATOR")
+	SparkImage = env.GetStr("IMAGE_SPARK")
+	TFTrainImage = env.GetStr("IMAGE_TF_TRAIN")
+	TFServeImage = env.GetStr("IMAGE_TF_SERVE")
+	TFAPIImage = env.GetStr("IMAGE_TF_API")
+	PythonPackagerImage = env.GetStr("IMAGE_PYTHON_PACKAGER")
+	TFTrainImageGPU = env.GetStr("IMAGE_TF_TRAIN_GPU")
+	TFServeImageGPU = env.GetStr("IMAGE_TF_SERVE_GPU")
+	EnableTelemetry = env.GetBool("ENABLE_TELEMETRY")
 }

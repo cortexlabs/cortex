@@ -24,9 +24,9 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
 	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/k8s"
 )
@@ -55,7 +55,7 @@ func pythonPackageJobSpec(ctx *context.Context, pythonPackages strset.Set, workl
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--workload-id=" + workloadID,
-							"--context=" + aws.S3Path(ctx.Key),
+							"--context=" + libaws.Client.S3Path(ctx.Key),
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--python-packages=" + strings.Join(pythonPackages.Slice(), ","),
 							"--build",
