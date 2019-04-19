@@ -21,23 +21,94 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
+var (
+	builtinAggregators   = make(map[string]*context.Aggregator)
+	uploadedAggregators  = strset.New()
+	builtinTransformers  = make(map[string]*context.Transformer)
+	uploadedTransformers = strset.New()
+
+	OperatorTransformersDir = configreader.MustStringFromEnv(
+		"CONST_OPERATOR_TRANSFORMERS_DIR",
+		&configreader.StringValidation{Default: "/src/transformers"},
+	)
+	OperatorAggregatorsDir = configreader.MustStringFromEnv(
+		"CONST_OPERATOR_AGGREGATORS_DIR",
+		&configreader.StringValidation{Default: "/src/aggregators"},
+	)
+)
+
+func Init() {
+	aggregatorConfigPath := filepath.Join(OperatorAggregatorsDir, "aggregators.yaml")
+	aggregatorConfig, err := userconfig.NewPartialPath(aggregatorConfigPath)
+	if err != nil {
+		telemetry.Telemetry.ReportErrorBlocking(err)
+		errors.Exit(err)
+	}
+
+	for _, aggregatorConfig := range aggregatorConfig.Aggregators {
+		implPath := filepath.Join(OperatorAggregatorsDir, aggregatorConfig.Path)
+		impl, err := files.ReadFileBytes(implPath)
+		if err != nil {
+			err := errors.Wrap(err, userconfig.Identify(aggregatorConfig))
+			telemetry.Telemetry.ReportErrorBlocking(err)
+			errors.Exit(err)
+		}
+		aggregator, err := newAggregator(*aggregatorConfig, impl, pointer.String("cortex"), nil)
+		if err != nil {
+			telemetry.Telemetry.ReportErrorBlocking(err)
+			errors.Exit(err)
+		}
+		builtinAggregators["cortex."+aggregatorConfig.Name] = aggregator
+	}
+
+	transformerConfigPath := filepath.Join(OperatorTransformersDir, "transformers.yaml")
+	transformerConfig, err := userconfig.NewPartialPath(transformerConfigPath)
+	if err != nil {
+		telemetry.Telemetry.ReportErrorBlocking(err)
+		errors.Exit(err)
+	}
+
+	for _, transConfig := range transformerConfig.Transformers {
+		implPath := filepath.Join(OperatorTransformersDir, transConfig.Path)
+		impl, err := files.ReadFileBytes(implPath)
+		if err != nil {
+			err = errors.Wrap(err, userconfig.Identify(transConfig))
+			telemetry.Telemetry.ReportErrorBlocking(err)
+			errors.Exit(err)
+		}
+		transformer, err := newTransformer(*transConfig, impl, pointer.String("cortex"), nil)
+		if err != nil {
+			telemetry.Telemetry.ReportErrorBlocking(err)
+			errors.Exit(err)
+		}
+		builtinTransformers["cortex."+transConfig.Name] = transformer
+	}
+}
+
 func New(
-	config *userconfig.Config,
+	userconf *userconfig.Config,
 	files map[string][]byte,
 	ignoreCache bool,
 ) (*context.Context, error) {
 	ctx := &context.Context{}
 
-	ctx.CortexConfig = getCortexConfig()
+	ctx.CortexConfig = config.Cortex
 
-	ctx.App = getApp(config.App)
+	ctx.App = getApp(userconf.App)
 
 	datasetVersion, err := getOrSetDatasetVersion(ctx.App.Name, ignoreCache)
 	if err != nil {
@@ -45,7 +116,7 @@ func New(
 	}
 	ctx.DatasetVersion = datasetVersion
 
-	ctx.Environment = getEnvironment(config, datasetVersion)
+	ctx.Environment = getEnvironment(userconf, datasetVersion)
 
 	ctx.Root = filepath.Join(
 		consts.AppsDir,
@@ -67,64 +138,64 @@ func New(
 	}
 	ctx.PythonPackages = pythonPackages
 
-	userTransformers, err := loadUserTransformers(config.Transformers, files, pythonPackages)
+	userTransformers, err := loadUserTransformers(userconf.Transformers, files, pythonPackages)
 	if err != nil {
 		return nil, err
 	}
 
-	userAggregators, err := loadUserAggregators(config.Aggregators, files, pythonPackages)
+	userAggregators, err := loadUserAggregators(userconf.Aggregators, files, pythonPackages)
 	if err != nil {
 		return nil, err
 	}
 
-	err = autoGenerateConfig(config, userAggregators, userTransformers)
+	err = autoGenerateConfig(userconf, userAggregators, userTransformers)
 	if err != nil {
 		return nil, err
 	}
 
-	constants, err := loadConstants(config.Constants)
+	constants, err := loadConstants(userconf.Constants)
 	if err != nil {
 		return nil, err
 	}
 	ctx.Constants = constants
 
-	aggregators, err := getAggregators(config, userAggregators)
+	aggregators, err := getAggregators(userconf, userAggregators)
 	if err != nil {
 		return nil, err
 	}
 	ctx.Aggregators = aggregators
 
-	transformers, err := getTransformers(config, userTransformers)
+	transformers, err := getTransformers(userconf, userTransformers)
 	if err != nil {
 		return nil, err
 	}
 	ctx.Transformers = transformers
 
-	rawColumns, err := getRawColumns(config, ctx.Environment)
+	rawColumns, err := getRawColumns(userconf, ctx.Environment)
 	if err != nil {
 		return nil, err
 	}
 	ctx.RawColumns = rawColumns
 
-	aggregates, err := getAggregates(config, constants, rawColumns, userAggregators, ctx.Root)
+	aggregates, err := getAggregates(userconf, constants, rawColumns, userAggregators, ctx.Root)
 	if err != nil {
 		return nil, err
 	}
 	ctx.Aggregates = aggregates
 
-	transformedColumns, err := getTransformedColumns(config, constants, rawColumns, ctx.Aggregates, userTransformers, ctx.Root)
+	transformedColumns, err := getTransformedColumns(userconf, constants, rawColumns, ctx.Aggregates, userTransformers, ctx.Root)
 	if err != nil {
 		return nil, err
 	}
 	ctx.TransformedColumns = transformedColumns
 
-	models, err := getModels(config, aggregates, ctx.Columns(), files, ctx.Root, pythonPackages)
+	models, err := getModels(userconf, aggregates, ctx.Columns(), files, ctx.Root, pythonPackages)
 	if err != nil {
 		return nil, err
 	}
 	ctx.Models = models
 
-	apis, err := getAPIs(config, ctx.Models)
+	apis, err := getAPIs(userconf, ctx.Models)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +222,7 @@ func ctxKey(ctxID string, appName string) string {
 
 func calculateID(ctx *context.Context) string {
 	ids := []string{}
-	ids = append(ids, ctx.CortexConfig.ID)
+	ids = append(ids, config.Cortex.ID)
 	ids = append(ids, ctx.DatasetVersion)
 	ids = append(ids, ctx.Root)
 	ids = append(ids, ctx.RawDataset.Key)
@@ -171,7 +242,7 @@ func DownloadContext(ctxID string, appName string) (*context.Context, error) {
 	s3Key := ctxKey(ctxID, appName)
 	var serial context.Serial
 
-	if err := libaws.Client.ReadMsgpackFromS3(&serial, s3Key); err != nil {
+	if err := aws.AWS.ReadMsgpackFromS3(&serial, config.Cortex.Bucket, s3Key); err != nil {
 		return nil, err
 	}
 

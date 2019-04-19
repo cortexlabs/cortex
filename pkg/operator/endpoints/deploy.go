@@ -19,22 +19,23 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
-	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
 func Deploy(w http.ResponseWriter, r *http.Request) {
-	telemetry.Client.ReportEvent("endpoint.deploy")
+	telemetry.Telemetry.ReportEvent("endpoint.deploy")
 
 	ignoreCache := getOptionalBoolQParam("ignoreCache", false, r)
 	force := getOptionalBoolQParam("force", false, r)
@@ -72,7 +73,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = libaws.Client.UploadMsgpackToS3(ctx.ToSerial(), ctx.Key)
+	err = aws.AWS.UploadMsgpackToS3(ctx.ToSerial(), config.Cortex.Bucket, ctx.Key)
 	if RespondIfError(w, err, ctx.App.Name, "upload context") {
 		return
 	}

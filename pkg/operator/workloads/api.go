@@ -23,14 +23,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 const (
@@ -60,9 +60,9 @@ func apiSpec(
 		tfServingResourceList[corev1.ResourceMemory] = *q2
 	}
 
-	servingImage := cc.TFServeImage
+	servingImage := config.Cortex.TFServeImage
 	if apiCompute.GPU > 0 {
-		servingImage = cc.TFServeImageGPU
+		servingImage = config.Cortex.TFServeImageGPU
 		tfServingResourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(apiCompute.GPU, k8sresource.DecimalSI)
 		tfServingLimitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(apiCompute.GPU, k8sresource.DecimalSI)
 	}
@@ -95,13 +95,13 @@ func apiSpec(
 				Containers: []corev1.Container{
 					{
 						Name:            apiContainerName,
-						Image:           cc.TFAPIImage,
+						Image:           config.Cortex.TFAPIImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--workload-id=" + workloadID,
 							"--port=" + defaultPortStr,
 							"--tf-serve-port=" + tfServingPortStr,
-							"--context=" + libaws.Client.S3Path(ctx.Key),
+							"--context=" + aws.AWS.S3Path(config.Cortex.Bucket, ctx.Key),
 							"--api=" + ctx.APIs[apiName].ID,
 							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
 							"--cache-dir=" + consts.ContextCacheDir,
@@ -132,7 +132,7 @@ func apiSpec(
 				ServiceAccountName: "default",
 			},
 		},
-		Namespace: cc.Namespace,
+		Namespace: config.Cortex.Namespace,
 	})
 }
 
@@ -148,7 +148,7 @@ func ingressSpec(ctx *context.Context, apiName string) *k8s.IngressSpec {
 			"workloadType": WorkloadTypeAPI,
 			"apiName":      apiName,
 		},
-		Namespace: cc.Namespace,
+		Namespace: config.Cortex.Namespace,
 	}
 }
 
@@ -167,7 +167,7 @@ func serviceSpec(ctx *context.Context, apiName string) *k8s.ServiceSpec {
 			"workloadType": WorkloadTypeAPI,
 			"apiName":      apiName,
 		},
-		Namespace: cc.Namespace,
+		Namespace: config.Cortex.Namespace,
 	}
 }
 

@@ -21,14 +21,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 func trainingJobSpec(
@@ -47,9 +47,9 @@ func trainingJobSpec(
 		resourceList[corev1.ResourceMemory] = tfCompute.Mem.Quantity
 	}
 
-	trainImage := cc.TFTrainImage
+	trainImage := config.Cortex.TFTrainImage
 	if tfCompute.GPU != nil {
-		trainImage = cc.TFTrainImageGPU
+		trainImage = config.Cortex.TFTrainImageGPU
 		resourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(*tfCompute.GPU, k8sresource.DecimalSI)
 		limitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(*tfCompute.GPU, k8sresource.DecimalSI)
 	}
@@ -77,7 +77,7 @@ func trainingJobSpec(
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--workload-id=" + workloadID,
-							"--context=" + libaws.Client.S3Path(ctx.Key),
+							"--context=" + aws.AWS.S3Path(config.Cortex.Bucket, ctx.Key),
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--model=" + modelID,
 						},
@@ -93,7 +93,7 @@ func trainingJobSpec(
 				ServiceAccountName: "default",
 			},
 		},
-		Namespace: cc.Namespace,
+		Namespace: config.Cortex.Namespace,
 	})
 	argo.EnableGC(spec)
 	return spec

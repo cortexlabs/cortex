@@ -20,7 +20,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"

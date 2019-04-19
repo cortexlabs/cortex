@@ -21,10 +21,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 )
 
@@ -73,7 +73,7 @@ func deploy(force bool, ignoreCache bool) {
 	}
 
 	var deployResponse schema.DeployResponse
-	if err := libjson.Unmarshal(response, &deployResponse); err != nil {
+	if err := json.Unmarshal(response, &deployResponse); err != nil {
 		errors.Exit(err, "/deploy", "response", string(response))
 	}
 

@@ -26,7 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-func (c *client) AuthUser(accessKeyID string, secretAccessKey string) (bool, error) {
+func (c *Client) AuthUser(accessKeyID string, secretAccessKey string) (bool, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(c.Region),
 		DisableSSL:  aws.Bool(false),

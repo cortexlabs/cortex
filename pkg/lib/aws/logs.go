@@ -43,7 +43,7 @@ type FluentdLog struct {
 	} `json:"kubernetes"`
 }
 
-func (c *client) GetLogs(prefix string) (string, error) {
+func (c *Client) GetLogs(prefix, logGroup string) (string, error) {
 	logGroupNamePrefix := "var.log.containers."
 
 	ignoreLogStreamNameRegexes := []*regexp.Regexp{
@@ -54,7 +54,7 @@ func (c *client) GetLogs(prefix string) (string, error) {
 
 	logStreamsOut, err := c.cloudWatchLogsClient.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
 		Limit:               aws.Int64(50),
-		LogGroupName:        aws.String(c.LogGroup),
+		LogGroupName:        aws.String(logGroup),
 		LogStreamNamePrefix: aws.String(logGroupNamePrefix + prefix),
 	})
 	if err != nil {
@@ -66,7 +66,7 @@ func (c *client) GetLogs(prefix string) (string, error) {
 	for i, logStream := range logStreamsOut.LogStreams {
 		if !regex.MatchAnyRegex(*logStream.LogStreamName, ignoreLogStreamNameRegexes) {
 			getLogEventsInput := &cloudwatchlogs.GetLogEventsInput{
-				LogGroupName:  &c.LogGroup,
+				LogGroupName:  &logGroup,
 				LogStreamName: logStream.LogStreamName,
 				StartFromHead: aws.Bool(true),
 			}

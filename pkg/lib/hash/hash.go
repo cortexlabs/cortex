@@ -20,7 +20,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
 

@@ -22,23 +22,24 @@ import (
 
 	awfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
-	"github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
-func init() {
+func Init() {
 	workflows, err := argo.List(nil)
 	if err != nil {
 		err = errors.Wrap(err, "init", "argo", "list")
-		telemetry.Client.ReportErrorBlocking(err)
+		telemetry.Telemetry.ReportErrorBlocking(err)
 		errors.Exit(err)
 	}
 
@@ -110,7 +111,7 @@ func Create(ctx *context.Context) (*awfv1.Workflow, error) {
 			}
 		}
 
-		manifest, err := libjson.Marshal(spec.Spec)
+		manifest, err := json.Marshal(spec.Spec)
 		if err != nil {
 			return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID)
 		}
@@ -250,7 +251,7 @@ func DeleteApp(appName string, keepCache bool) bool {
 	uncacheLatestWorkloadIDs(nil, appName)
 
 	if !keepCache {
-		libaws.Client.DeleteFromS3ByPrefix(filepath.Join(consts.AppsDir, appName), true)
+		aws.AWS.DeleteFromS3ByPrefix(config.Cortex.Bucket, filepath.Join(consts.AppsDir, appName), true)
 	}
 
 	return wasDeployed

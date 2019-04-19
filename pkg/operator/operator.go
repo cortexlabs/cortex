@@ -28,14 +28,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/env"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
-	"github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
+	"github.com/cortexlabs/cortex/pkg/operator/spark"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
@@ -43,32 +45,31 @@ const (
 	operatorPortStr       = "8888"
 	workflowDeletionDelay = 60 // seconds
 	cronInterval          = 5  // seconds
-
 )
 
-var markedWorkflows = strset.New()
-
-type CortexConfig struct {
-	APIVersion string `json:"api_version"`
-	Bucket     string `json:"bucket"`
-	Region     string `json:"region"`
-	LogGroup   string `json:"log_group"`
-	ID         string `json:"id"`
-}
+var (
+	awsClient       *aws.Client
+	telemtryClient  *telemetry.Client
+	markedWorkflows = strset.New()
+)
 
 func main() {
-	telemetry.Client.ReportEvent("operator.init")
+	conf := config.NewFromEnv()
+
+	// default client is set
+	_ = aws.Init(conf.Region)
+
+	// default client is set
+	_ = telemetry.Init(conf.TelemetryURL, aws.AWS.HashedAccountID)
+
+	k8s.Init(conf.Namespace, conf.OperatorInCluster)
+	argo.Init()
+	context.Init()
+	spark.Init()
+	workloads.Init()
+
+	telemetry.Telemetry.ReportEvent("operator.init")
 	startCron()
-
-	// default client is set
-	_ = libaws.Init(
-		env.GetStr("BUCKET"),
-		env.GetStr("LOG_GROUP"),
-		env.GetStr("REGION"),
-	)
-
-	// default client is set
-	_ = telemetry.Init(awsClient.HashedAccountID)
 
 	router := mux.NewRouter()
 	router.Use(panicMiddleware)
@@ -108,7 +109,7 @@ func authMiddleware(next http.Handler) http.Handler {
 		}
 
 		accessKeyID, secretAccessKey := parts[0], parts[1]
-		authed, err := aws.AuthUser(accessKeyID, secretAccessKey)
+		authed, err := aws.AWS.AuthUser(accessKeyID, secretAccessKey)
 		if err != nil {
 			endpoints.RespondError(w, endpoints.ErrorAuthAPIError())
 			return
@@ -148,17 +149,17 @@ func runCron() {
 		"userFacing":   "true",
 	})
 	if err != nil {
-		telemetry.ReportError(err)
+		telemetry.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
 	if err := workloads.UpdateAPISavedStatuses(apiPods); err != nil {
-		telemetry.ReportError(err)
+		telemetry.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
 	if err := workloads.UploadLogPrefixesFromAPIPods(apiPods); err != nil {
-		telemetry.ReportError(err)
+		telemetry.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
@@ -166,12 +167,12 @@ func runCron() {
 		FieldSelector: "status.phase=Failed",
 	})
 	if err != nil {
-		telemetry.ReportError(err)
+		telemetry.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
 	if err := workloads.UpdateDataWorkflowErrors(failedPods); err != nil {
-		telemetry.ReportError(err)
+		telemetry.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 }
@@ -195,7 +196,7 @@ func deleteMarkerDelayed(markerMap strset.Set, key string) {
 func reportAndRecover(strs ...string) error {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
-		telemetry.ReportError(err)
+		telemetry.Telemetry.ReportError(err)
 		errors.PrintError(err)
 		return err
 	}

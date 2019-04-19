@@ -25,17 +25,17 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 var sparkClientset clientset.Interface
@@ -67,16 +67,16 @@ var failureStates = []string{
 var SuccessCondition = "status.applicationState.state in (" + strings.Join(successStates, ",") + ")"
 var FailureCondition = "status.applicationState.state in (" + strings.Join(failureStates, ",") + ")"
 
-func init() {
+func Init() {
 	var err error
 	sparkClientset, err = clientset.NewForConfig(k8s.Config)
 	if err != nil {
 		err = errors.Wrap(err, "spark", "kubeconfig")
-		telemetry.Client.ReportErrorBlocking(err)
+		telemetry.Telemetry.ReportErrorBlocking(err)
 		errors.Exit(err)
 	}
 
-	sparkClient = sparkClientset.SparkoperatorV1alpha1().SparkApplications(cc.Namespace)
+	sparkClient = sparkClientset.SparkoperatorV1alpha1().SparkApplications(config.Cortex.Namespace)
 }
 
 func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCompute *userconfig.SparkCompute, args ...string) *sparkop.SparkApplication {
@@ -100,7 +100,7 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      workloadID,
-			Namespace: cc.Namespace,
+			Namespace: config.Cortex.Namespace,
 			Labels: map[string]string{
 				"workloadID":   workloadID,
 				"workloadType": workloadType,
@@ -111,7 +111,7 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 			Type:                 sparkop.PythonApplicationType,
 			PythonVersion:        pointer.String("3"),
 			Mode:                 sparkop.ClusterMode,
-			Image:                &cc.SparkImage,
+			Image:                &config.Cortex.SparkImage,
 			ImagePullPolicy:      pointer.String("Always"),
 			MainApplicationFile:  pointer.String("local:///src/spark_job/spark_job.py"),
 			RestartPolicy:        sparkop.RestartPolicy{Type: sparkop.Never},
@@ -119,7 +119,7 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 			Arguments: []string{
 				strings.TrimSpace(
 					" --workload-id=" + workloadID +
-						" --context=" + libaws.Client.S3Path(ctx.Key) +
+						" --context=" + aws.AWS.S3Path(config.Cortex.Bucket, ctx.Key) +
 						" --cache-dir=" + consts.ContextCacheDir +
 						" " + strings.Join(args, " ")),
 			},
@@ -149,7 +149,7 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 					},
 					EnvVars: map[string]string{
 						"CORTEX_SPARK_VERBOSITY": ctx.Environment.LogLevel.Spark,
-						"CORTEX_CONTEXT_S3_PATH": libaws.Client.S3Path(ctx.Key),
+						"CORTEX_CONTEXT_S3_PATH": aws.AWS.S3Path(config.Cortex.Bucket, ctx.Key),
 						"CORTEX_WORKLOAD_ID":     workloadID,
 						"CORTEX_CACHE_DIR":       consts.ContextCacheDir,
 					},
@@ -179,7 +179,7 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 					},
 					EnvVars: map[string]string{
 						"CORTEX_SPARK_VERBOSITY": ctx.Environment.LogLevel.Spark,
-						"CORTEX_CONTEXT_S3_PATH": libaws.Client.S3Path(ctx.Key),
+						"CORTEX_CONTEXT_S3_PATH": aws.AWS.S3Path(config.Cortex.Bucket, ctx.Key),
 						"CORTEX_WORKLOAD_ID":     workloadID,
 						"CORTEX_CACHE_DIR":       consts.ContextCacheDir,
 					},

@@ -22,12 +22,13 @@ import (
 
 	sparkop "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/apis/sparkoperator.k8s.io/v1alpha1"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
-	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/spark"
 )
 
@@ -59,7 +60,7 @@ func dataJobSpec(
 func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	workloadID := generateWorkloadID()
 
-	rawFileExists, err := libaws.Client.IsS3File(filepath.Join(ctx.RawDataset.Key, "_SUCCESS"))
+	rawFileExists, err := aws.AWS.IsS3File(config.Cortex.Bucket, filepath.Join(ctx.RawDataset.Key, "_SUCCESS"))
 	if err != nil {
 		return nil, errors.Wrap(err, ctx.App.Name, "raw dataset")
 	}
@@ -69,7 +70,7 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	shouldIngest := !rawFileExists
 	if shouldIngest {
 		externalDataPath := ctx.Environment.Data.GetExternalPath()
-		externalDataExists, err := libaws.Client.IsS3aPrefixExternal(externalDataPath)
+		externalDataExists, err := aws.AWS.IsS3aPrefixExternal(externalDataPath)
 		if err != nil || !externalDataExists {
 			return nil, errors.Wrap(ErrorUserDataUnavailable(externalDataPath), ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey)
 		}

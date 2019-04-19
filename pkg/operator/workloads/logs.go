@@ -29,12 +29,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	libaws "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
 const (
@@ -139,11 +139,9 @@ func getKubectlLogs(pod *corev1.Pod, verbose bool, wrotePending bool, socket *we
 		k8s.WaitForPodRunning(pod.Name, 1)
 	}
 
-	var args []string
+	args := []string{"kubectl", "-n=" + config.Cortex.Namespace, "logs", "--follow=true", pod.Name}
 	if pod.Labels["workloadType"] == WorkloadTypeAPI && pod.Labels["userFacing"] == "true" {
-		args = []string{"kubectl", "-n=" + cc.Namespace, "logs", "--follow=true", pod.Name, apiContainerName}
-	} else {
-		args = []string{"kubectl", "-n=" + cc.Namespace, "logs", "--follow=true", pod.Name}
+		args = []string{"kubectl", "-n=" + config.Cortex.Namespace, "logs", "--follow=true", pod.Name, apiContainerName}
 	}
 
 	outr, outw, err := os.Pipe()
@@ -173,9 +171,9 @@ func getKubectlLogs(pod *corev1.Pod, verbose bool, wrotePending bool, socket *we
 }
 
 func getCloudWatchLogs(prefix string, verbose bool, socket *websocket.Conn) {
-	logs, err := libaws.Client.GetLogs(prefix)
+	logs, err := aws.AWS.GetLogs(prefix, config.Cortex.LogGroup)
 	if err != nil {
-		telemetry.ReportError(err)
+		telemetry.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 

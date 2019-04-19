@@ -20,16 +20,17 @@ import (
 	"bytes"
 	"path/filepath"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 var uploadedConstants = strset.New()
@@ -77,14 +78,14 @@ func uploadConstant(constant *context.Constant) error {
 		return nil
 	}
 
-	isUploaded, err := aws.Client.IsS3File(constant.Key)
+	isUploaded, err := aws.AWS.IsS3File(config.Cortex.Bucket, constant.Key)
 	if err != nil {
 		return errors.Wrap(err, userconfig.Identify(constant), "upload")
 	}
 
 	if !isUploaded {
 		serializedConstant := msgpack.MustMarshal(constant.Value)
-		err = aws.Client.UploadBytesToS3(serializedConstant, constant.Key)
+		err = aws.AWS.UploadBytesToS3(serializedConstant, config.Cortex.Bucket, constant.Key)
 		if err != nil {
 			return errors.Wrap(err, userconfig.Identify(constant), "upload")
 		}

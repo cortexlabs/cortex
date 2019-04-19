@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
@@ -38,7 +38,7 @@ var errorKinds = []string{
 	"err_auth",
 }
 
-var _ = [1]int{}[int(ErrInvalidS3aPath)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrAuth)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]

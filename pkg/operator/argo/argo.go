@@ -27,12 +27,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 var (
@@ -50,9 +50,9 @@ var runningStates = []string{
 	string(awfv1.NodeRunning),
 }
 
-func init() {
+func Init() {
 	wfcs := wfclientset.NewForConfigOrDie(k8s.Config)
-	workflowClient = wfcs.ArgoprojV1alpha1().Workflows(cc.Namespace)
+	workflowClient = wfcs.ArgoprojV1alpha1().Workflows(config.Cortex.Namespace)
 }
 
 type WorkflowTask struct {
@@ -75,7 +75,7 @@ func New(name string, labels ...map[string]string) *awfv1.Workflow {
 	return &awfv1.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: name,
-			Namespace:    cc.Namespace,
+			Namespace:    config.Cortex.Namespace,
 			Labels:       allLabels,
 		},
 		Spec: awfv1.WorkflowSpec{

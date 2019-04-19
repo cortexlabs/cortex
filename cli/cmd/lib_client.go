@@ -33,11 +33,11 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/cortexlabs/cortex/pkg/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 )
@@ -60,7 +60,7 @@ func HTTPGet(endpoint string, qParams ...map[string]string) ([]byte, error) {
 }
 
 func HTTPPostJSONData(endpoint string, requestData interface{}, qParams ...map[string]string) ([]byte, error) {
-	jsonRequestData, err := libjson.Marshal(requestData)
+	jsonRequestData, err := json.Marshal(requestData)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +183,7 @@ func StreamLogs(appName string, resourceName string, resourceType string, verbos
 			return ErrorFailedToConnect(strings.Replace(cliConfig.CortexURL, "http", "ws", 1))
 		}
 		var output schema.ErrorResponse
-		err = libjson.Unmarshal(bodyBytes, &output)
+		err = json.Unmarshal(bodyBytes, &output)
 		if err != nil || output.Error == "" {
 			return errors.New(string(bodyBytes))
 		}
@@ -272,7 +272,7 @@ func makeRequest(request *http.Request) ([]byte, error) {
 		}
 
 		var output schema.ErrorResponse
-		err = libjson.Unmarshal(bodyBytes, &output)
+		err = json.Unmarshal(bodyBytes, &output)
 		if err != nil || output.Error == "" {
 			return nil, errors.New(strings.TrimSpace(string(bodyBytes)))
 		}
