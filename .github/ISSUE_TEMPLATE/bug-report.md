@@ -7,8 +7,6 @@ assignees: ''
 
 ---
 
-<!--- Please fill out the sections, deleting any that are not applicable -->
-
 ### Description
 
 [Description of the bug]
