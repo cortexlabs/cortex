@@ -21,9 +21,9 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 func Pp(obj interface{}) {

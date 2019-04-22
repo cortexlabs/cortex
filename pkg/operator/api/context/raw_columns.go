@@ -17,9 +17,9 @@ limitations under the License.
 package context
 
 import (
-	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
 type RawColumns map[string]RawColumn

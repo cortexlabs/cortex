@@ -19,9 +19,9 @@ package userconfig
 import (
 	"sort"
 
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/interfaces"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
 type Aggregates []*Aggregate

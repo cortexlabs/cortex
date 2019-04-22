@@ -17,9 +17,9 @@ limitations under the License.
 package userconfig
 
 import (
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
 type Constants []*Constant

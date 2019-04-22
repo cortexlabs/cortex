@@ -21,8 +21,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 type MyFloat float64

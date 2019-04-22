@@ -21,10 +21,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 var flagKeepCache bool

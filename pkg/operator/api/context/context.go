@@ -17,10 +17,10 @@ limitations under the License.
 package context
 
 import (
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
-	userconfig "github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	userconfig "github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 

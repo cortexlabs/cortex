@@ -21,9 +21,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 )
 
 func TestGetColumnRuntimeTypes(t *testing.T) {

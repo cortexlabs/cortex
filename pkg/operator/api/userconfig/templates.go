@@ -21,9 +21,9 @@ import (
 	"regexp"
 	"strings"
 
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 )
 
 var templateVarRegex = regexp.MustCompile("\\{\\s*([a-zA-Z0-9_-]+)\\s*\\}")

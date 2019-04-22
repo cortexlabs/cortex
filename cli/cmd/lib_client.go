@@ -33,13 +33,13 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
+	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
 
 var httpTransport = &http.Transport{
