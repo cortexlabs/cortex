@@ -119,20 +119,20 @@ func (c *Client) sendErrorEvent(err error) {
 	}
 }
 
-func (t *Client) ReportEvent(name string) {
-	if t.EnableTelemetry {
-		go t.sendUsageEvent(name)
+func (c *Client) ReportEvent(name string) {
+	if c.EnableTelemetry {
+		go c.sendUsageEvent(name)
 	}
 }
 
-func (t *Client) ReportErrorBlocking(err error) {
-	if t.EnableTelemetry {
-		t.sendErrorEvent(err)
+func (c *Client) ReportErrorBlocking(err error) {
+	if c.EnableTelemetry {
+		c.sendErrorEvent(err)
 	}
 }
 
-func (t *Client) ReportError(err error) {
-	if t.EnableTelemetry {
-		go t.sendErrorEvent(err)
+func (c *Client) ReportError(err error) {
+	if c.EnableTelemetry {
+		go c.sendErrorEvent(err)
 	}
 }
