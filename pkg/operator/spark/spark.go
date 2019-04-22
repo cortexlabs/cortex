@@ -67,7 +67,7 @@ var FailureCondition = "status.applicationState.state in (" + strings.Join(failu
 
 func Init() error {
 	var err error
-	sparkClientset, err = clientset.NewForConfig(config.Kubernetes)
+	sparkClientset, err = clientset.NewForConfig(config.Kubernetes.RestConfig)
 	if err != nil {
 		return errors.Wrap(err, "spark", "kubeconfig")
 	}

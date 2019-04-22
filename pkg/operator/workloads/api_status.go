@@ -21,12 +21,13 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 func GetCurrentAPIStatuses(
@@ -38,7 +39,7 @@ func GetCurrentAPIStatuses(
 		return nil, err
 	}
 
-	podList, err := k8s.ListPodsByLabels(map[string]string{
+	podList, err := config.Kubernetes.ListPodsByLabels(map[string]string{
 		"workloadType": WorkloadTypeAPI,
 		"appName":      ctx.App.Name,
 		"userFacing":   "true",
@@ -335,7 +336,7 @@ func apiGroupStatusCode(apiStatuses []*resource.APIStatus, ctx *context.Context)
 }
 
 func setInsufficientComputeAPIStatusCodes(apiStatuses map[string]*resource.APIStatus, ctx *context.Context) error {
-	stalledPods, err := k8s.StalledPods()
+	stalledPods, err := config.Kubernetes.StalledPods()
 	if err != nil {
 		return err
 	}

@@ -45,7 +45,7 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 	wrotePending := false
 
 	for true {
-		allPods, err := k8s.ListPodsByLabels(map[string]string{
+		allPods, err := config.Kubernetes.ListPodsByLabels(map[string]string{
 			"appName":    appName,
 			"workloadID": workloadID,
 			"userFacing": "true",
@@ -134,7 +134,7 @@ func getKubectlLogs(pod *corev1.Pod, verbose bool, wrotePending bool, socket *we
 				return
 			}
 		}
-		k8s.WaitForPodRunning(pod.Name, 1)
+		config.Kubernetes.WaitForPodRunning(pod.Name, 1)
 	}
 
 	args := []string{"kubectl", "-n=" + config.Cortex.Namespace, "logs", "--follow=true", pod.Name}

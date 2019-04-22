@@ -79,16 +79,16 @@ func Ingress(spec *IngressSpec) *v1beta1.Ingress {
 	return ingress
 }
 
-func CreateIngress(spec *IngressSpec) (*v1beta1.Ingress, error) {
-	ingress, err := ingressClient.Create(Ingress(spec))
+func (c *Client) CreateIngress(spec *IngressSpec) (*v1beta1.Ingress, error) {
+	ingress, err := c.ingressClient.Create(Ingress(spec))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return ingress, nil
 }
 
-func GetIngress(name string) (*v1beta1.Ingress, error) {
-	ingress, err := ingressClient.Get(name, metav1.GetOptions{})
+func (c *Client) GetIngress(name string) (*v1beta1.Ingress, error) {
+	ingress, err := c.ingressClient.Get(name, metav1.GetOptions{})
 	if k8serrors.IsNotFound(err) {
 		return nil, nil
 	}
@@ -99,8 +99,8 @@ func GetIngress(name string) (*v1beta1.Ingress, error) {
 	return ingress, nil
 }
 
-func DeleteIngress(name string) (bool, error) {
-	err := ingressClient.Delete(name, deleteOpts)
+func (c *Client) DeleteIngress(name string) (bool, error) {
+	err := c.ingressClient.Delete(name, deleteOpts)
 	if k8serrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -110,19 +110,19 @@ func DeleteIngress(name string) (bool, error) {
 	return true, nil
 }
 
-func IngressExists(name string) (bool, error) {
-	ingress, err := GetIngress(name)
+func (c *Client) IngressExists(name string) (bool, error) {
+	ingress, err := c.GetIngress(name)
 	if err != nil {
 		return false, err
 	}
 	return ingress != nil, nil
 }
 
-func ListIngresses(opts *metav1.ListOptions) ([]v1beta1.Ingress, error) {
+func (c *Client) ListIngresses(opts *metav1.ListOptions) ([]v1beta1.Ingress, error) {
 	if opts == nil {
 		opts = &metav1.ListOptions{}
 	}
-	ingressList, err := ingressClient.List(*opts)
+	ingressList, err := c.ingressClient.List(*opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -132,15 +132,15 @@ func ListIngresses(opts *metav1.ListOptions) ([]v1beta1.Ingress, error) {
 	return ingressList.Items, nil
 }
 
-func ListIngressesByLabels(labels map[string]string) ([]v1beta1.Ingress, error) {
+func (c *Client) ListIngressesByLabels(labels map[string]string) ([]v1beta1.Ingress, error) {
 	opts := &metav1.ListOptions{
 		LabelSelector: LabelSelector(labels),
 	}
-	return ListIngresses(opts)
+	return c.ListIngresses(opts)
 }
 
-func ListIngressesByLabel(labelKey string, labelValue string) ([]v1beta1.Ingress, error) {
-	return ListIngressesByLabels(map[string]string{labelKey: labelValue})
+func (c *Client) ListIngressesByLabel(labelKey string, labelValue string) ([]v1beta1.Ingress, error) {
+	return c.ListIngressesByLabels(map[string]string{labelKey: labelValue})
 }
 
 func IngressMap(ingresses []v1beta1.Ingress) map[string]v1beta1.Ingress {

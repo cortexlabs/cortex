@@ -78,24 +78,24 @@ func Job(spec *JobSpec) *batchv1.Job {
 	return job
 }
 
-func CreateJob(spec *JobSpec) (*batchv1.Job, error) {
-	job, err := jobClient.Create(Job(spec))
+func (c *Client) CreateJob(spec *JobSpec) (*batchv1.Job, error) {
+	job, err := c.jobClient.Create(Job(spec))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return job, nil
 }
 
-func UpdateJob(job *batchv1.Job) (*batchv1.Job, error) {
-	job, err := jobClient.Update(job)
+func (c *Client) UpdateJob(job *batchv1.Job) (*batchv1.Job, error) {
+	job, err := c.jobClient.Update(job)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return job, nil
 }
 
-func GetJob(name string) (*batchv1.Job, error) {
-	job, err := jobClient.Get(name, metav1.GetOptions{})
+func (c *Client) GetJob(name string) (*batchv1.Job, error) {
+	job, err := c.jobClient.Get(name, metav1.GetOptions{})
 	if k8serrors.IsNotFound(err) {
 		return nil, nil
 	}
@@ -106,8 +106,8 @@ func GetJob(name string) (*batchv1.Job, error) {
 	return job, nil
 }
 
-func DeleteJob(name string) (bool, error) {
-	err := jobClient.Delete(name, deleteOpts)
+func (c *Client) DeleteJob(name string) (bool, error) {
+	err := c.jobClient.Delete(name, deleteOpts)
 	if k8serrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -117,19 +117,19 @@ func DeleteJob(name string) (bool, error) {
 	return true, nil
 }
 
-func JobExists(name string) (bool, error) {
-	job, err := GetJob(name)
+func (c *Client) JobExists(name string) (bool, error) {
+	job, err := c.GetJob(name)
 	if err != nil {
 		return false, err
 	}
 	return job != nil, nil
 }
 
-func ListJobs(opts *metav1.ListOptions) ([]batchv1.Job, error) {
+func (c *Client) ListJobs(opts *metav1.ListOptions) ([]batchv1.Job, error) {
 	if opts == nil {
 		opts = &metav1.ListOptions{}
 	}
-	jobList, err := jobClient.List(*opts)
+	jobList, err := c.jobClient.List(*opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -139,15 +139,15 @@ func ListJobs(opts *metav1.ListOptions) ([]batchv1.Job, error) {
 	return jobList.Items, nil
 }
 
-func ListJobsByLabels(labels map[string]string) ([]batchv1.Job, error) {
+func (c *Client) ListJobsByLabels(labels map[string]string) ([]batchv1.Job, error) {
 	opts := &metav1.ListOptions{
 		LabelSelector: LabelSelector(labels),
 	}
-	return ListJobs(opts)
+	return c.ListJobs(opts)
 }
 
-func ListJobsByLabel(labelKey string, labelValue string) ([]batchv1.Job, error) {
-	return ListJobsByLabels(map[string]string{labelKey: labelValue})
+func (c *Client) ListJobsByLabel(labelKey string, labelValue string) ([]batchv1.Job, error) {
+	return c.ListJobsByLabels(map[string]string{labelKey: labelValue})
 }
 
 func JobMap(jobs []batchv1.Job) map[string]batchv1.Job {

@@ -65,16 +65,16 @@ func Service(spec *ServiceSpec) *corev1.Service {
 	return service
 }
 
-func CreateService(spec *ServiceSpec) (*corev1.Service, error) {
-	service, err := serviceClient.Create(Service(spec))
+func (c *Client) CreateService(spec *ServiceSpec) (*corev1.Service, error) {
+	service, err := c.serviceClient.Create(Service(spec))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return service, nil
 }
 
-func GetService(name string) (*corev1.Service, error) {
-	service, err := serviceClient.Get(name, metav1.GetOptions{})
+func (c *Client) GetService(name string) (*corev1.Service, error) {
+	service, err := c.serviceClient.Get(name, metav1.GetOptions{})
 	if k8serrors.IsNotFound(err) {
 		return nil, nil
 	}
@@ -85,8 +85,8 @@ func GetService(name string) (*corev1.Service, error) {
 	return service, nil
 }
 
-func DeleteService(name string) (bool, error) {
-	err := serviceClient.Delete(name, deleteOpts)
+func (c *Client) DeleteService(name string) (bool, error) {
+	err := c.serviceClient.Delete(name, deleteOpts)
 	if k8serrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -96,19 +96,19 @@ func DeleteService(name string) (bool, error) {
 	return true, nil
 }
 
-func ServiceExists(name string) (bool, error) {
-	service, err := GetService(name)
+func (c *Client) ServiceExists(name string) (bool, error) {
+	service, err := c.GetService(name)
 	if err != nil {
 		return false, err
 	}
 	return service != nil, nil
 }
 
-func ListServices(opts *metav1.ListOptions) ([]corev1.Service, error) {
+func (c *Client) ListServices(opts *metav1.ListOptions) ([]corev1.Service, error) {
 	if opts == nil {
 		opts = &metav1.ListOptions{}
 	}
-	serviceList, err := serviceClient.List(*opts)
+	serviceList, err := c.serviceClient.List(*opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -118,15 +118,15 @@ func ListServices(opts *metav1.ListOptions) ([]corev1.Service, error) {
 	return serviceList.Items, nil
 }
 
-func ListServicesByLabels(labels map[string]string) ([]corev1.Service, error) {
+func (c *Client) ListServicesByLabels(labels map[string]string) ([]corev1.Service, error) {
 	opts := &metav1.ListOptions{
 		LabelSelector: LabelSelector(labels),
 	}
-	return ListServices(opts)
+	return c.ListServices(opts)
 }
 
-func ListServicesByLabel(labelKey string, labelValue string) ([]corev1.Service, error) {
-	return ListServicesByLabels(map[string]string{labelKey: labelValue})
+func (c *Client) ListServicesByLabel(labelKey string, labelValue string) ([]corev1.Service, error) {
+	return c.ListServicesByLabels(map[string]string{labelKey: labelValue})
 }
 
 func ServiceMap(services []corev1.Service) map[string]corev1.Service {

@@ -25,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
@@ -223,25 +222,25 @@ func DeleteApp(appName string, keepCache bool) bool {
 		wasDeployed = true
 	}
 
-	deployments, _ := k8s.ListDeploymentsByLabel("appName", appName)
+	deployments, _ := config.Kubernetes.ListDeploymentsByLabel("appName", appName)
 	for _, deployment := range deployments {
-		k8s.DeleteDeployment(deployment.Name)
+		config.Kubernetes.DeleteDeployment(deployment.Name)
 	}
-	ingresses, _ := k8s.ListIngressesByLabel("appName", appName)
+	ingresses, _ := config.Kubernetes.ListIngressesByLabel("appName", appName)
 	for _, ingress := range ingresses {
-		k8s.DeleteIngress(ingress.Name)
+		config.Kubernetes.DeleteIngress(ingress.Name)
 	}
-	services, _ := k8s.ListServicesByLabel("appName", appName)
+	services, _ := config.Kubernetes.ListServicesByLabel("appName", appName)
 	for _, service := range services {
-		k8s.DeleteService(service.Name)
+		config.Kubernetes.DeleteService(service.Name)
 	}
-	jobs, _ := k8s.ListJobsByLabel("appName", appName)
+	jobs, _ := config.Kubernetes.ListJobsByLabel("appName", appName)
 	for _, job := range jobs {
-		k8s.DeleteJob(job.Name)
+		config.Kubernetes.DeleteJob(job.Name)
 	}
-	pods, _ := k8s.ListPodsByLabel("appName", appName)
+	pods, _ := config.Kubernetes.ListPodsByLabel("appName", appName)
 	for _, pod := range pods {
-		k8s.DeletePod(pod.Name)
+		config.Kubernetes.DeletePod(pod.Name)
 	}
 
 	deleteCurrentContext(appName)

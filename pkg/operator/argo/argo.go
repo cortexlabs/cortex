@@ -51,7 +51,7 @@ var runningStates = []string{
 }
 
 func Init() {
-	wfcs := wfclientset.NewForConfigOrDie(config.Kubernetes)
+	wfcs := wfclientset.NewForConfigOrDie(config.Kubernetes.RestConfig)
 	workflowClient = wfcs.ArgoprojV1alpha1().Workflows(config.Cortex.Namespace)
 }
 

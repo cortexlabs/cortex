@@ -81,24 +81,24 @@ func Deployment(spec *DeploymentSpec) *appsv1b1.Deployment {
 	return deployment
 }
 
-func CreateDeployment(spec *DeploymentSpec) (*appsv1b1.Deployment, error) {
-	deployment, err := deploymentClient.Create(Deployment(spec))
+func (c *Client) CreateDeployment(spec *DeploymentSpec) (*appsv1b1.Deployment, error) {
+	deployment, err := c.deploymentClient.Create(Deployment(spec))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return deployment, nil
 }
 
-func UpdateDeployment(deployment *appsv1b1.Deployment) (*appsv1b1.Deployment, error) {
-	deployment, err := deploymentClient.Update(deployment)
+func (c *Client) UpdateDeployment(deployment *appsv1b1.Deployment) (*appsv1b1.Deployment, error) {
+	deployment, err := c.deploymentClient.Update(deployment)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return deployment, nil
 }
 
-func GetDeployment(name string) (*appsv1b1.Deployment, error) {
-	deployment, err := deploymentClient.Get(name, metav1.GetOptions{})
+func (c *Client) GetDeployment(name string) (*appsv1b1.Deployment, error) {
+	deployment, err := c.deploymentClient.Get(name, metav1.GetOptions{})
 	if k8serrors.IsNotFound(err) {
 		return nil, nil
 	}
@@ -109,8 +109,8 @@ func GetDeployment(name string) (*appsv1b1.Deployment, error) {
 	return deployment, nil
 }
 
-func DeleteDeployment(name string) (bool, error) {
-	err := deploymentClient.Delete(name, deleteOpts)
+func (c *Client) DeleteDeployment(name string) (bool, error) {
+	err := c.deploymentClient.Delete(name, deleteOpts)
 	if k8serrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -120,19 +120,19 @@ func DeleteDeployment(name string) (bool, error) {
 	return true, nil
 }
 
-func DeploymentExists(name string) (bool, error) {
-	deployment, err := GetDeployment(name)
+func (c *Client) DeploymentExists(name string) (bool, error) {
+	deployment, err := c.GetDeployment(name)
 	if err != nil {
 		return false, err
 	}
 	return deployment != nil, nil
 }
 
-func ListDeployments(opts *metav1.ListOptions) ([]appsv1b1.Deployment, error) {
+func (c *Client) ListDeployments(opts *metav1.ListOptions) ([]appsv1b1.Deployment, error) {
 	if opts == nil {
 		opts = &metav1.ListOptions{}
 	}
-	deploymentList, err := deploymentClient.List(*opts)
+	deploymentList, err := c.deploymentClient.List(*opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -142,15 +142,15 @@ func ListDeployments(opts *metav1.ListOptions) ([]appsv1b1.Deployment, error) {
 	return deploymentList.Items, nil
 }
 
-func ListDeploymentsByLabels(labels map[string]string) ([]appsv1b1.Deployment, error) {
+func (c *Client) ListDeploymentsByLabels(labels map[string]string) ([]appsv1b1.Deployment, error) {
 	opts := &metav1.ListOptions{
 		LabelSelector: LabelSelector(labels),
 	}
-	return ListDeployments(opts)
+	return c.ListDeployments(opts)
 }
 
-func ListDeploymentsByLabel(labelKey string, labelValue string) ([]appsv1b1.Deployment, error) {
-	return ListDeploymentsByLabels(map[string]string{labelKey: labelValue})
+func (c *Client) ListDeploymentsByLabel(labelKey string, labelValue string) ([]appsv1b1.Deployment, error) {
+	return c.ListDeploymentsByLabels(map[string]string{labelKey: labelValue})
 }
 
 func DeploymentMap(deployments []appsv1b1.Deployment) map[string]appsv1b1.Deployment {

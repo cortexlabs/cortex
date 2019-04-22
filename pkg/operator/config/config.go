@@ -22,14 +22,14 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/env"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"k8s.io/client-go/rest"
 )
 
 var (
 	Cortex     *CortexConfig
 	AWS        *aws.Client
-	Kubernetes *rest.Config
+	Kubernetes *k8s.Client
 	Telemetry  *telemetry.Client
 )
 

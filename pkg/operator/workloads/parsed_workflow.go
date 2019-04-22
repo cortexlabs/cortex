@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 type WorkflowItem struct {
@@ -103,7 +104,7 @@ func getAllDependencies(workloadID string, workloads map[string]*WorkflowItem) (
 }
 
 func getFailedArgoWorkloadIDs(appName string) (strset.Set, error) {
-	failedArgoPods, err := k8s.ListPods(&metav1.ListOptions{
+	failedArgoPods, err := config.Kubernetes.ListPods(&metav1.ListOptions{
 		FieldSelector: "status.phase=Failed",
 		LabelSelector: k8s.LabelSelector(map[string]string{
 			"appName": appName,
@@ -122,7 +123,7 @@ func getFailedArgoWorkloadIDs(appName string) (strset.Set, error) {
 }
 
 func getFailedArgoPodForWorkload(workloadID string, appName string) (*corev1.Pod, error) {
-	failedArgoPods, err := k8s.ListPods(&metav1.ListOptions{
+	failedArgoPods, err := config.Kubernetes.ListPods(&metav1.ListOptions{
 		FieldSelector: "status.phase=Failed",
 		LabelSelector: k8s.LabelSelector(map[string]string{
 			"appName":    appName,

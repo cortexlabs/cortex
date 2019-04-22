@@ -203,56 +203,56 @@ func apiWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 }
 
 func deleteOldAPIs(ctx *context.Context) {
-	ingresses, _ := k8s.ListIngressesByLabels(map[string]string{
+	ingresses, _ := config.Kubernetes.ListIngressesByLabels(map[string]string{
 		"appName":      ctx.App.Name,
 		"workloadType": WorkloadTypeAPI,
 	})
 	for _, ingress := range ingresses {
 		if _, ok := ctx.APIs[ingress.Labels["apiName"]]; !ok {
-			k8s.DeleteIngress(ingress.Name)
+			config.Kubernetes.DeleteIngress(ingress.Name)
 		}
 	}
 
-	services, _ := k8s.ListServicesByLabels(map[string]string{
+	services, _ := config.Kubernetes.ListServicesByLabels(map[string]string{
 		"appName":      ctx.App.Name,
 		"workloadType": WorkloadTypeAPI,
 	})
 	for _, service := range services {
 		if _, ok := ctx.APIs[service.Labels["apiName"]]; !ok {
-			k8s.DeleteService(service.Name)
+			config.Kubernetes.DeleteService(service.Name)
 		}
 	}
 
-	deployments, _ := k8s.ListDeploymentsByLabels(map[string]string{
+	deployments, _ := config.Kubernetes.ListDeploymentsByLabels(map[string]string{
 		"appName":      ctx.App.Name,
 		"workloadType": WorkloadTypeAPI,
 	})
 	for _, deployment := range deployments {
 		if _, ok := ctx.APIs[deployment.Labels["apiName"]]; !ok {
-			k8s.DeleteDeployment(deployment.Name)
+			config.Kubernetes.DeleteDeployment(deployment.Name)
 		}
 	}
 }
 
 func createServicesAndIngresses(ctx *context.Context) error {
 	for apiName := range ctx.APIs {
-		ingressExists, err := k8s.IngressExists(internalAPIName(apiName, ctx.App.Name))
+		ingressExists, err := config.Kubernetes.IngressExists(internalAPIName(apiName, ctx.App.Name))
 		if err != nil {
 			return errors.Wrap(err, ctx.App.Name, "ingresses", apiName, "create")
 		}
 		if !ingressExists {
-			_, err = k8s.CreateIngress(ingressSpec(ctx, apiName))
+			_, err = config.Kubernetes.CreateIngress(ingressSpec(ctx, apiName))
 			if err != nil {
 				return errors.Wrap(err, ctx.App.Name, "ingresses", apiName, "create")
 			}
 		}
 
-		serviceExists, err := k8s.ServiceExists(internalAPIName(apiName, ctx.App.Name))
+		serviceExists, err := config.Kubernetes.ServiceExists(internalAPIName(apiName, ctx.App.Name))
 		if err != nil {
 			return errors.Wrap(err, ctx.App.Name, "services", apiName, "create")
 		}
 		if !serviceExists {
-			_, err = k8s.CreateService(serviceSpec(ctx, apiName))
+			_, err = config.Kubernetes.CreateService(serviceSpec(ctx, apiName))
 			if err != nil {
 				return errors.Wrap(err, ctx.App.Name, "services", apiName, "create")
 			}
@@ -263,7 +263,7 @@ func createServicesAndIngresses(ctx *context.Context) error {
 
 // This returns map apiName -> deployment (not internalName -> deployment)
 func deploymentMap(appName string) (map[string]*appsv1b1.Deployment, error) {
-	deploymentList, err := k8s.ListDeploymentsByLabels(map[string]string{
+	deploymentList, err := config.Kubernetes.ListDeploymentsByLabels(map[string]string{
 		"appName":      appName,
 		"workloadType": WorkloadTypeAPI,
 	})
@@ -289,7 +289,7 @@ func internalAPIName(apiName string, appName string) string {
 }
 
 func APIsBaseURL() (string, error) {
-	service, err := k8s.GetService("nginx-controller-apis")
+	service, err := config.Kubernetes.GetService("nginx-controller-apis")
 	if err != nil {
 		return "", err
 	}

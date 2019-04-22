@@ -37,15 +37,7 @@ import (
 )
 
 var (
-	home      = homedir.HomeDir()
-	Config    *rest.Config
-	clientset *kubernetes.Clientset
-
-	podClient        tcorev1.PodInterface
-	serviceClient    tcorev1.ServiceInterface
-	deploymentClient tappsv1b1.DeploymentInterface
-	jobClient        tbatchv1.JobInterface
-	ingressClient    textensionsv1b1.IngressInterface
+	home = homedir.HomeDir()
 )
 
 var deletePolicy = metav1.DeletePropagationBackground
@@ -53,31 +45,41 @@ var deleteOpts = &metav1.DeleteOptions{
 	PropagationPolicy: &deletePolicy,
 }
 
-func NewConfig(namespace string, operatorInCluster bool) (*rest.Config, error) {
+type Client struct {
+	RestConfig       *rest.Config
+	clientset        *kubernetes.Clientset
+	podClient        tcorev1.PodInterface
+	serviceClient    tcorev1.ServiceInterface
+	deploymentClient tappsv1b1.DeploymentInterface
+	jobClient        tbatchv1.JobInterface
+	ingressClient    textensionsv1b1.IngressInterface
+}
+
+func New(namespace string, operatorInCluster bool) (*Client, error) {
 	var err error
-	var config *rest.Config
+	client := &Client{}
 	if operatorInCluster {
-		config, err = rest.InClusterConfig()
+		client.RestConfig, err = rest.InClusterConfig()
 	} else {
 		kubeConfig := path.Join(home, ".kube", "config")
-		config, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
+		client.RestConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
 	}
 
 	if err != nil {
 		return nil, errors.Wrap(err, "kubeconfig")
 	}
 
-	clientset, err = kubernetes.NewForConfig(config)
+	client.clientset, err = kubernetes.NewForConfig(client.RestConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "kubeconfig")
 	}
 
-	podClient = clientset.CoreV1().Pods(namespace)
-	serviceClient = clientset.CoreV1().Services(namespace)
-	deploymentClient = clientset.AppsV1beta1().Deployments(namespace)
-	jobClient = clientset.BatchV1().Jobs(namespace)
-	ingressClient = clientset.ExtensionsV1beta1().Ingresses(namespace)
-	return config, nil
+	client.podClient = client.clientset.CoreV1().Pods(namespace)
+	client.serviceClient = client.clientset.CoreV1().Services(namespace)
+	client.deploymentClient = client.clientset.AppsV1beta1().Deployments(namespace)
+	client.jobClient = client.clientset.BatchV1().Jobs(namespace)
+	client.ingressClient = client.clientset.ExtensionsV1beta1().Ingresses(namespace)
+	return client, nil
 }
 
 // ValidName ensures name contains only lower case alphanumeric, '-', or '.'

@@ -59,7 +59,7 @@ func main() {
 	config.Telemetry = telemetry.New(conf.TelemetryURL, config.AWS.HashedAccountID)
 
 	var err error
-	if config.Kubernetes, err = k8s.NewClient(conf.Namespace, conf.OperatorInCluster); err != nil {
+	if config.Kubernetes, err = k8s.New(conf.Namespace, conf.OperatorInCluster); err != nil {
 		config.Telemetry.ReportErrorBlocking(err)
 		errors.Exit(err)
 	}
@@ -157,7 +157,7 @@ func startCron() {
 
 func runCron() {
 	defer reportAndRecover("cron failed")
-	apiPods, err := k8s.ListPodsByLabels(map[string]string{
+	apiPods, err := config.Kubernetes.ListPodsByLabels(map[string]string{
 		"workloadType": workloads.WorkloadTypeAPI,
 		"userFacing":   "true",
 	})
@@ -176,7 +176,7 @@ func runCron() {
 		errors.PrintError(err)
 	}
 
-	failedPods, err := k8s.ListPods(&metav1.ListOptions{
+	failedPods, err := config.Kubernetes.ListPods(&metav1.ListOptions{
 		FieldSelector: "status.phase=Failed",
 	})
 	if err != nil {

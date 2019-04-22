@@ -73,8 +73,8 @@ func Pod(spec *PodSpec) *corev1.Pod {
 	return pod
 }
 
-func CreatePod(spec *PodSpec) (*corev1.Pod, error) {
-	pod, err := podClient.Create(Pod(spec))
+func (c *Client) CreatePod(spec *PodSpec) (*corev1.Pod, error) {
+	pod, err := c.podClient.Create(Pod(spec))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -184,9 +184,9 @@ func GetPodStatus(pod *corev1.Pod) string {
 	}
 }
 
-func WaitForPodRunning(name string, numSeconds int) error {
+func (c *Client) WaitForPodRunning(name string, numSeconds int) error {
 	for true {
-		pod, err := GetPod(name)
+		pod, err := c.GetPod(name)
 		if err != nil {
 			return err
 		}
@@ -198,8 +198,8 @@ func WaitForPodRunning(name string, numSeconds int) error {
 	return nil
 }
 
-func GetPod(name string) (*corev1.Pod, error) {
-	pod, err := podClient.Get(name, metav1.GetOptions{})
+func (c *Client) GetPod(name string) (*corev1.Pod, error) {
+	pod, err := c.podClient.Get(name, metav1.GetOptions{})
 	if k8serrors.IsNotFound(err) {
 		return nil, nil
 	}
@@ -210,8 +210,8 @@ func GetPod(name string) (*corev1.Pod, error) {
 	return pod, nil
 }
 
-func DeletePod(name string) (bool, error) {
-	err := podClient.Delete(name, deleteOpts)
+func (c *Client) DeletePod(name string) (bool, error) {
+	err := c.podClient.Delete(name, deleteOpts)
 	if k8serrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -221,19 +221,19 @@ func DeletePod(name string) (bool, error) {
 	return true, nil
 }
 
-func PodExists(name string) (bool, error) {
-	pod, err := GetPod(name)
+func (c *Client) PodExists(name string) (bool, error) {
+	pod, err := c.GetPod(name)
 	if err != nil {
 		return false, err
 	}
 	return pod != nil, nil
 }
 
-func ListPods(opts *metav1.ListOptions) ([]corev1.Pod, error) {
+func (c *Client) ListPods(opts *metav1.ListOptions) ([]corev1.Pod, error) {
 	if opts == nil {
 		opts = &metav1.ListOptions{}
 	}
-	podList, err := podClient.List(*opts)
+	podList, err := c.podClient.List(*opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -243,15 +243,15 @@ func ListPods(opts *metav1.ListOptions) ([]corev1.Pod, error) {
 	return podList.Items, nil
 }
 
-func ListPodsByLabels(labels map[string]string) ([]corev1.Pod, error) {
+func (c *Client) ListPodsByLabels(labels map[string]string) ([]corev1.Pod, error) {
 	opts := &metav1.ListOptions{
 		LabelSelector: LabelSelector(labels),
 	}
-	return ListPods(opts)
+	return c.ListPods(opts)
 }
 
-func ListPodsByLabel(labelKey string, labelValue string) ([]corev1.Pod, error) {
-	return ListPodsByLabels(map[string]string{labelKey: labelValue})
+func (c *Client) ListPodsByLabel(labelKey string, labelValue string) ([]corev1.Pod, error) {
+	return c.ListPodsByLabels(map[string]string{labelKey: labelValue})
 }
 
 func PodMap(pods []corev1.Pod) map[string]corev1.Pod {
@@ -262,10 +262,10 @@ func PodMap(pods []corev1.Pod) map[string]corev1.Pod {
 	return podMap
 }
 
-func StalledPods() ([]corev1.Pod, error) {
+func (c *Client) StalledPods() ([]corev1.Pod, error) {
 	var stalledPods []corev1.Pod
 
-	pods, err := ListPods(&metav1.ListOptions{
+	pods, err := c.ListPods(&metav1.ListOptions{
 		FieldSelector: "status.phase=Pending",
 	})
 	if err != nil {
