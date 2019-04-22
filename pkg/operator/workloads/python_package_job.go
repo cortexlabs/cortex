@@ -22,13 +22,12 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 )
 
 func pythonPackageJobSpec(ctx *context.Context, pythonPackages strset.Set, workloadID string) *batchv1.Job {
@@ -55,7 +54,7 @@ func pythonPackageJobSpec(ctx *context.Context, pythonPackages strset.Set, workl
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--workload-id=" + workloadID,
-							"--context=" + aws.AWS.S3Path(config.Cortex.Bucket, ctx.Key),
+							"--context=" + config.AWS.S3Path(ctx.Key),
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--python-packages=" + strings.Join(pythonPackages.Slice(), ","),
 							"--build",

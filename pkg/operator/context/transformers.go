@@ -20,13 +20,12 @@ import (
 	"bytes"
 	"path/filepath"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
@@ -95,13 +94,13 @@ func uploadTransformer(transformer *context.Transformer, impl []byte) error {
 		return nil
 	}
 
-	isUploaded, err := aws.AWS.IsS3File(config.Cortex.Bucket, transformer.ImplKey)
+	isUploaded, err := config.AWS.IsS3File(transformer.ImplKey)
 	if err != nil {
 		return errors.Wrap(err, userconfig.Identify(transformer), "upload")
 	}
 
 	if !isUploaded {
-		err = aws.AWS.UploadBytesToS3(impl, config.Cortex.Bucket, transformer.ImplKey)
+		err = config.AWS.UploadBytesToS3(impl, transformer.ImplKey)
 		if err != nil {
 			return errors.Wrap(err, userconfig.Identify(transformer), "upload")
 		}

@@ -21,18 +21,16 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/operator/api/context"
-	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
 var (
@@ -51,26 +49,22 @@ var (
 	)
 )
 
-func Init() {
+func Init() error {
 	aggregatorConfigPath := filepath.Join(OperatorAggregatorsDir, "aggregators.yaml")
 	aggregatorConfig, err := userconfig.NewPartialPath(aggregatorConfigPath)
 	if err != nil {
-		telemetry.Telemetry.ReportErrorBlocking(err)
-		errors.Exit(err)
+		return err
 	}
 
 	for _, aggregatorConfig := range aggregatorConfig.Aggregators {
 		implPath := filepath.Join(OperatorAggregatorsDir, aggregatorConfig.Path)
 		impl, err := files.ReadFileBytes(implPath)
 		if err != nil {
-			err := errors.Wrap(err, userconfig.Identify(aggregatorConfig))
-			telemetry.Telemetry.ReportErrorBlocking(err)
-			errors.Exit(err)
+			return errors.Wrap(err, userconfig.Identify(aggregatorConfig))
 		}
 		aggregator, err := newAggregator(*aggregatorConfig, impl, pointer.String("cortex"), nil)
 		if err != nil {
-			telemetry.Telemetry.ReportErrorBlocking(err)
-			errors.Exit(err)
+			return err
 		}
 		builtinAggregators["cortex."+aggregatorConfig.Name] = aggregator
 	}
@@ -78,25 +72,23 @@ func Init() {
 	transformerConfigPath := filepath.Join(OperatorTransformersDir, "transformers.yaml")
 	transformerConfig, err := userconfig.NewPartialPath(transformerConfigPath)
 	if err != nil {
-		telemetry.Telemetry.ReportErrorBlocking(err)
-		errors.Exit(err)
+		return err
 	}
 
 	for _, transConfig := range transformerConfig.Transformers {
 		implPath := filepath.Join(OperatorTransformersDir, transConfig.Path)
 		impl, err := files.ReadFileBytes(implPath)
 		if err != nil {
-			err = errors.Wrap(err, userconfig.Identify(transConfig))
-			telemetry.Telemetry.ReportErrorBlocking(err)
-			errors.Exit(err)
+			return errors.Wrap(err, userconfig.Identify(transConfig))
 		}
 		transformer, err := newTransformer(*transConfig, impl, pointer.String("cortex"), nil)
 		if err != nil {
-			telemetry.Telemetry.ReportErrorBlocking(err)
-			errors.Exit(err)
+			return err
 		}
 		builtinTransformers["cortex."+transConfig.Name] = transformer
 	}
+
+	return nil
 }
 
 func New(
@@ -242,7 +234,7 @@ func DownloadContext(ctxID string, appName string) (*context.Context, error) {
 	s3Key := ctxKey(ctxID, appName)
 	var serial context.Serial
 
-	if err := aws.AWS.ReadMsgpackFromS3(&serial, config.Cortex.Bucket, s3Key); err != nil {
+	if err := config.AWS.ReadMsgpackFromS3(&serial, s3Key); err != nil {
 		return nil, err
 	}
 

@@ -18,13 +18,19 @@ package config
 
 import (
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/env"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"k8s.io/client-go/rest"
 )
 
 var (
-	Cortex *CortexConfig
+	Cortex     *CortexConfig
+	AWS        *aws.Client
+	Kubernetes *rest.Config
+	Telemetry  *telemetry.Client
 )
 
 type CortexConfig struct {
@@ -35,7 +41,7 @@ type CortexConfig struct {
 	Region              string `json:"region"`
 	Namespace           string `json:"namespace"`
 	OperatorImage       string `json:"operator_image"`
-	SparkImage          string `json:"SparkImage"`
+	SparkImage          string `json:"spark_image"`
 	TFTrainImage        string `json:"tf_train_image"`
 	TFServeImage        string `json:"tf_serve_image"`
 	TFAPIImage          string `json:"tf_api_image"`

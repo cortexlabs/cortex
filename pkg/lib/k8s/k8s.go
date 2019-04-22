@@ -23,18 +23,17 @@ import (
 
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kubernetes "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes"
 	tappsv1b1 "k8s.io/client-go/kubernetes/typed/apps/v1beta1"
 	tbatchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 	tcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	textensionsv1b1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	rest "k8s.io/client-go/rest"
-	clientcmd "k8s.io/client-go/tools/clientcmd"
-	homedir "k8s.io/client-go/util/homedir"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
 var (
@@ -54,27 +53,23 @@ var deleteOpts = &metav1.DeleteOptions{
 	PropagationPolicy: &deletePolicy,
 }
 
-func Init(namespace string, operatorInCluster bool) {
+func NewConfig(namespace string, operatorInCluster bool) (*rest.Config, error) {
 	var err error
-
+	var config *rest.Config
 	if operatorInCluster {
-		Config, err = rest.InClusterConfig()
+		config, err = rest.InClusterConfig()
 	} else {
 		kubeConfig := path.Join(home, ".kube", "config")
-		Config, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
+		config, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
 	}
 
 	if err != nil {
-		err = errors.Wrap(err, "kubeconfig")
-		telemetry.Telemetry.ReportErrorBlocking(err)
-		errors.Exit(err)
+		return nil, errors.Wrap(err, "kubeconfig")
 	}
 
-	clientset, err = kubernetes.NewForConfig(Config)
+	clientset, err = kubernetes.NewForConfig(config)
 	if err != nil {
-		err = errors.Wrap(err, "kubeconfig")
-		telemetry.Telemetry.ReportErrorBlocking(err)
-		errors.Exit(err)
+		return nil, errors.Wrap(err, "kubeconfig")
 	}
 
 	podClient = clientset.CoreV1().Pods(namespace)
@@ -82,6 +77,7 @@ func Init(namespace string, operatorInCluster bool) {
 	deploymentClient = clientset.AppsV1beta1().Deployments(namespace)
 	jobClient = clientset.BatchV1().Jobs(namespace)
 	ingressClient = clientset.ExtensionsV1beta1().Ingresses(namespace)
+	return config, nil
 }
 
 // ValidName ensures name contains only lower case alphanumeric, '-', or '.'

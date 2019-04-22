@@ -26,12 +26,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
@@ -67,16 +65,15 @@ var failureStates = []string{
 var SuccessCondition = "status.applicationState.state in (" + strings.Join(successStates, ",") + ")"
 var FailureCondition = "status.applicationState.state in (" + strings.Join(failureStates, ",") + ")"
 
-func Init() {
+func Init() error {
 	var err error
-	sparkClientset, err = clientset.NewForConfig(k8s.Config)
+	sparkClientset, err = clientset.NewForConfig(config.Kubernetes)
 	if err != nil {
-		err = errors.Wrap(err, "spark", "kubeconfig")
-		telemetry.Telemetry.ReportErrorBlocking(err)
-		errors.Exit(err)
+		return errors.Wrap(err, "spark", "kubeconfig")
 	}
 
 	sparkClient = sparkClientset.SparkoperatorV1alpha1().SparkApplications(config.Cortex.Namespace)
+	return nil
 }
 
 func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCompute *userconfig.SparkCompute, args ...string) *sparkop.SparkApplication {
@@ -119,7 +116,7 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 			Arguments: []string{
 				strings.TrimSpace(
 					" --workload-id=" + workloadID +
-						" --context=" + aws.AWS.S3Path(config.Cortex.Bucket, ctx.Key) +
+						" --context=" + config.AWS.S3Path(ctx.Key) +
 						" --cache-dir=" + consts.ContextCacheDir +
 						" " + strings.Join(args, " ")),
 			},
@@ -149,7 +146,7 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 					},
 					EnvVars: map[string]string{
 						"CORTEX_SPARK_VERBOSITY": ctx.Environment.LogLevel.Spark,
-						"CORTEX_CONTEXT_S3_PATH": aws.AWS.S3Path(config.Cortex.Bucket, ctx.Key),
+						"CORTEX_CONTEXT_S3_PATH": config.AWS.S3Path(ctx.Key),
 						"CORTEX_WORKLOAD_ID":     workloadID,
 						"CORTEX_CACHE_DIR":       consts.ContextCacheDir,
 					},
@@ -179,7 +176,7 @@ func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCom
 					},
 					EnvVars: map[string]string{
 						"CORTEX_SPARK_VERBOSITY": ctx.Environment.LogLevel.Spark,
-						"CORTEX_CONTEXT_S3_PATH": aws.AWS.S3Path(config.Cortex.Bucket, ctx.Key),
+						"CORTEX_CONTEXT_S3_PATH": config.AWS.S3Path(ctx.Key),
 						"CORTEX_WORKLOAD_ID":     workloadID,
 						"CORTEX_CACHE_DIR":       consts.ContextCacheDir,
 					},

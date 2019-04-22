@@ -55,20 +55,33 @@ var (
 
 func main() {
 	conf := config.NewFromEnv()
+	config.AWS = aws.New(conf.Region, conf.Bucket)
+	config.Telemetry = telemetry.New(conf.TelemetryURL, config.AWS.HashedAccountID)
 
-	// default client is set
-	_ = aws.Init(conf.Region)
+	var err error
+	if config.Kubernetes, err = k8s.NewClient(conf.Namespace, conf.OperatorInCluster); err != nil {
+		config.Telemetry.ReportErrorBlocking(err)
+		errors.Exit(err)
+	}
 
-	// default client is set
-	_ = telemetry.Init(conf.TelemetryURL, aws.AWS.HashedAccountID)
-
-	k8s.Init(conf.Namespace, conf.OperatorInCluster)
 	argo.Init()
-	context.Init()
-	spark.Init()
-	workloads.Init()
 
-	telemetry.Telemetry.ReportEvent("operator.init")
+	if err := context.Init(); err != nil {
+		config.Telemetry.ReportErrorBlocking(err)
+		errors.Exit(err)
+	}
+
+	if err := spark.Init(); err != nil {
+		config.Telemetry.ReportErrorBlocking(err)
+		errors.Exit(err)
+	}
+
+	if err := workloads.Init(); err != nil {
+		config.Telemetry.ReportErrorBlocking(err)
+		errors.Exit(err)
+	}
+
+	config.Telemetry.ReportEvent("operator.init")
 	startCron()
 
 	router := mux.NewRouter()
@@ -109,7 +122,7 @@ func authMiddleware(next http.Handler) http.Handler {
 		}
 
 		accessKeyID, secretAccessKey := parts[0], parts[1]
-		authed, err := aws.AWS.AuthUser(accessKeyID, secretAccessKey)
+		authed, err := config.AWS.AuthUser(accessKeyID, secretAccessKey)
 		if err != nil {
 			endpoints.RespondError(w, endpoints.ErrorAuthAPIError())
 			return
@@ -149,17 +162,17 @@ func runCron() {
 		"userFacing":   "true",
 	})
 	if err != nil {
-		telemetry.Telemetry.ReportError(err)
+		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
 	if err := workloads.UpdateAPISavedStatuses(apiPods); err != nil {
-		telemetry.Telemetry.ReportError(err)
+		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
 	if err := workloads.UploadLogPrefixesFromAPIPods(apiPods); err != nil {
-		telemetry.Telemetry.ReportError(err)
+		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
@@ -167,12 +180,12 @@ func runCron() {
 		FieldSelector: "status.phase=Failed",
 	})
 	if err != nil {
-		telemetry.Telemetry.ReportError(err)
+		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
 	if err := workloads.UpdateDataWorkflowErrors(failedPods); err != nil {
-		telemetry.Telemetry.ReportError(err)
+		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 }
@@ -196,7 +209,7 @@ func deleteMarkerDelayed(markerMap strset.Set, key string) {
 func reportAndRecover(strs ...string) error {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
-		telemetry.Telemetry.ReportError(err)
+		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
 		return err
 	}

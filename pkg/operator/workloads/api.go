@@ -24,7 +24,6 @@ import (
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -101,7 +100,7 @@ func apiSpec(
 							"--workload-id=" + workloadID,
 							"--port=" + defaultPortStr,
 							"--tf-serve-port=" + tfServingPortStr,
-							"--context=" + aws.AWS.S3Path(config.Cortex.Bucket, ctx.Key),
+							"--context=" + config.AWS.S3Path(ctx.Key),
 							"--api=" + ctx.APIs[apiName].ID,
 							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
 							"--cache-dir=" + consts.ContextCacheDir,

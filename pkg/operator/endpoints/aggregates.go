@@ -19,10 +19,9 @@ package endpoints
 import (
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	schema "github.com/cortexlabs/cortex/pkg/operator/api/schema"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
@@ -49,7 +48,7 @@ func GetAggregate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exists, err := aws.AWS.IsS3File(config.Cortex.Bucket, aggregate.Key)
+	exists, err := config.AWS.IsS3File(aggregate.Key)
 	if RespondIfError(w, err, resource.AggregateType.String(), id) {
 		return
 	}
@@ -58,7 +57,7 @@ func GetAggregate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bytes, err := aws.AWS.ReadBytesFromS3(config.Cortex.Bucket, aggregate.Key)
+	bytes, err := config.AWS.ReadBytesFromS3(aggregate.Key)
 	if RespondIfError(w, err, resource.AggregateType.String(), id) {
 		return
 	}

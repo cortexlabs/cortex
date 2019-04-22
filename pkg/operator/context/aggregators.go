@@ -20,13 +20,12 @@ import (
 	"bytes"
 	"path/filepath"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
@@ -96,13 +95,13 @@ func uploadAggregator(aggregator *context.Aggregator, impl []byte) error {
 		return nil
 	}
 
-	isUploaded, err := aws.AWS.IsS3File(config.Cortex.Bucket, aggregator.ImplKey)
+	isUploaded, err := config.AWS.IsS3File(aggregator.ImplKey)
 	if err != nil {
 		return errors.Wrap(err, userconfig.Identify(aggregator), "upload")
 	}
 
 	if !isUploaded {
-		err = aws.AWS.UploadBytesToS3(impl, config.Cortex.Bucket, aggregator.ImplKey)
+		err = config.AWS.UploadBytesToS3(impl, aggregator.ImplKey)
 		if err != nil {
 			return errors.Wrap(err, userconfig.Identify(aggregator), "upload")
 		}

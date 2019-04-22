@@ -36,20 +36,20 @@ func getOrSetDatasetVersion(appName string, ignoreCache bool) (string, error) {
 
 	if ignoreCache {
 		datasetVersion := libtime.Timestamp(time.Now())
-		err := aws.AWS.UploadStringToS3(datasetVersion, config.Cortex.Bucket, datasetVersionFileKey)
+		err := config.AWS.UploadStringToS3(datasetVersion, datasetVersionFileKey)
 		if err != nil {
 			return "", errors.Wrap(err, "dataset version") // unexpected error
 		}
 		return datasetVersion, nil
 	}
 
-	datasetVersion, err := aws.AWS.ReadStringFromS3(config.Cortex.Bucket, datasetVersionFileKey)
+	datasetVersion, err := config.AWS.ReadStringFromS3(datasetVersionFileKey)
 	if err != nil {
 		if !aws.IsNoSuchKeyErr(err) {
 			return "", errors.Wrap(err, "dataset version") // unexpected error
 		}
 		datasetVersion = libtime.Timestamp(time.Now())
-		err := aws.AWS.UploadStringToS3(datasetVersion, config.Cortex.Bucket, datasetVersionFileKey)
+		err := config.AWS.UploadStringToS3(datasetVersion, datasetVersionFileKey)
 		if err != nil {
 			return "", errors.Wrap(err, "dataset version") // unexpected error
 		}

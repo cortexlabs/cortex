@@ -27,27 +27,27 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
-func (c *Client) S3Path(bucket, key string) string {
-	return "s3://" + filepath.Join(bucket, key)
+func (c *Client) S3Path(key string) string {
+	return "s3://" + filepath.Join(c.Bucket, key)
 }
 
-func (c *Client) IsS3File(bucket, key string) (bool, error) {
-	return c.IsS3FileExternal(bucket, key)
+func (c *Client) IsS3File(key string) (bool, error) {
+	return c.IsS3FileExternal(c.Bucket, key)
 }
 
-func (c *Client) IsS3Dir(dirPath, bucket string) (bool, error) {
+func (c *Client) IsS3Dir(dirPath string) (bool, error) {
 	prefix := s.EnsureSuffix(dirPath, "/")
-	return c.IsS3Prefix(bucket, prefix)
+	return c.IsS3Prefix(prefix)
 }
 
-func (c *Client) IsS3Prefix(bucket, prefix string) (bool, error) {
-	return c.IsS3PrefixExternal(bucket, prefix)
+func (c *Client) IsS3Prefix(prefix string) (bool, error) {
+	return c.IsS3PrefixExternal(c.Bucket, prefix)
 }
 
 func (c *Client) IsS3FileExternal(bucket, key string) (bool, error) {
@@ -88,11 +88,11 @@ func (c *Client) IsS3aPrefixExternal(s3aPath string) (bool, error) {
 	return c.IsS3PrefixExternal(bucket, prefix)
 }
 
-func (c *Client) UploadBytesToS3(data []byte, bucket, key string) error {
+func (c *Client) UploadBytesToS3(data []byte, key string) error {
 	_, err := c.s3Client.PutObject(&s3.PutObjectInput{
 		Body:                 bytes.NewReader(data),
 		Key:                  aws.String(key),
-		Bucket:               aws.String(bucket),
+		Bucket:               aws.String(c.Bucket),
 		ACL:                  aws.String("private"),
 		ContentDisposition:   aws.String("attachment"),
 		ServerSideEncryption: aws.String("AES256"),
@@ -100,44 +100,44 @@ func (c *Client) UploadBytesToS3(data []byte, bucket, key string) error {
 	return errors.Wrap(err, key)
 }
 
-func (c *Client) UploadBytesesToS3(data []byte, bucket string, keys ...string) error {
+func (c *Client) UploadBytesesToS3(data []byte, keys ...string) error {
 	fns := make([]func() error, len(keys))
 	for i, key := range keys {
 		key := key
 		fns[i] = func() error {
-			return c.UploadBytesToS3(data, bucket, key)
+			return c.UploadBytesToS3(data, key)
 		}
 	}
 	return parallel.RunFirstErr(fns...)
 }
 
-func (c *Client) UploadFileToS3(filePath, bucket, key string) error {
+func (c *Client) UploadFileToS3(filePath, key string) error {
 	data, err := files.ReadFileBytes(filePath)
 	if err != nil {
 		return err
 	}
-	return c.UploadBytesToS3(data, bucket, key)
+	return c.UploadBytesToS3(data, key)
 }
 
-func (c *Client) UploadBufferToS3(buffer *bytes.Buffer, bucket, key string) error {
-	return c.UploadBytesToS3(buffer.Bytes(), bucket, key)
+func (c *Client) UploadBufferToS3(buffer *bytes.Buffer, key string) error {
+	return c.UploadBytesToS3(buffer.Bytes(), key)
 }
 
-func (c *Client) UploadStringToS3(str, bucket, key string) error {
+func (c *Client) UploadStringToS3(str, key string) error {
 	str = strings.TrimSpace(str)
-	return c.UploadBytesToS3([]byte(str), bucket, key)
+	return c.UploadBytesToS3([]byte(str), key)
 }
 
-func (c *Client) UploadJSONToS3(obj interface{}, bucket, key string) error {
+func (c *Client) UploadJSONToS3(obj interface{}, key string) error {
 	jsonBytes, err := json.Marshal(obj)
 	if err != nil {
 		return err
 	}
-	return c.UploadBytesToS3(jsonBytes, bucket, key)
+	return c.UploadBytesToS3(jsonBytes, key)
 }
 
-func (c *Client) ReadJSONFromS3(objPtr interface{}, bucket, key string) error {
-	jsonBytes, err := c.ReadBytesFromS3(bucket, key)
+func (c *Client) ReadJSONFromS3(objPtr interface{}, key string) error {
+	jsonBytes, err := c.ReadBytesFromS3(key)
 	if err != nil {
 		return err
 	}
@@ -149,21 +149,21 @@ func (c *Client) UploadMsgpackToS3(obj interface{}, bucket, key string) error {
 	if err != nil {
 		return err
 	}
-	return c.UploadBytesToS3(msgpackBytes, bucket, key)
+	return c.UploadBytesToS3(msgpackBytes, key)
 }
 
-func (c *Client) ReadMsgpackFromS3(objPtr interface{}, bucket, key string) error {
-	msgpackBytes, err := c.ReadBytesFromS3(bucket, key)
+func (c *Client) ReadMsgpackFromS3(objPtr interface{}, key string) error {
+	msgpackBytes, err := c.ReadBytesFromS3(key)
 	if err != nil {
 		return err
 	}
 	return errors.Wrap(msgpack.Unmarshal(msgpackBytes, objPtr), key)
 }
 
-func (c *Client) ReadStringFromS3(bucket, key string) (string, error) {
+func (c *Client) ReadStringFromS3(key string) (string, error) {
 	response, err := c.s3Client.GetObject(&s3.GetObjectInput{
 		Key:    aws.String(key),
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(c.Bucket),
 	})
 
 	if err != nil {
@@ -175,10 +175,10 @@ func (c *Client) ReadStringFromS3(bucket, key string) (string, error) {
 	return buf.String(), nil
 }
 
-func (c *Client) ReadBytesFromS3(bucket, key string) ([]byte, error) {
+func (c *Client) ReadBytesFromS3(key string) ([]byte, error) {
 	response, err := c.s3Client.GetObject(&s3.GetObjectInput{
 		Key:    aws.String(key),
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(c.Bucket),
 	})
 
 	if err != nil {

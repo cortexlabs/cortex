@@ -34,8 +34,6 @@ const (
 	errorPath = "/errors"
 )
 
-var Telemetry *Client
-
 type Client struct {
 	url             string
 	http            http.Client
@@ -43,19 +41,19 @@ type Client struct {
 	OperatorID      string
 }
 
-func Init(telemetryURL, hashedAccountID string) *Client {
+func New(telemetryURL, hashedAccountID string) *Client {
 	timeout := time.Duration(10 * time.Second)
 	httpClient := http.Client{
 		Timeout: timeout,
 	}
-	Telemetry = &Client{
+	telem := &Client{
 		url:             telemetryURL,
 		http:            httpClient,
 		EnableTelemetry: env.GetBool("ENABLE_TELEMETRY"),
 		OperatorID:      hashedAccountID,
 	}
 
-	return Telemetry
+	return telem
 }
 
 type UsageEvent struct {
@@ -121,20 +119,20 @@ func (c *Client) sendErrorEvent(err error) {
 	}
 }
 
-func (c *Client) ReportEvent(name string) {
-	if c.EnableTelemetry {
-		go c.sendUsageEvent(name)
+func (t *Client) ReportEvent(name string) {
+	if t.EnableTelemetry {
+		go t.sendUsageEvent(name)
 	}
 }
 
-func (c *Client) ReportErrorBlocking(err error) {
-	if c.EnableTelemetry {
-		c.sendErrorEvent(err)
+func (t *Client) ReportErrorBlocking(err error) {
+	if t.EnableTelemetry {
+		t.sendErrorEvent(err)
 	}
 }
 
-func (c *Client) ReportError(err error) {
-	if c.EnableTelemetry {
-		go c.sendErrorEvent(err)
+func (t *Client) ReportError(err error) {
+	if t.EnableTelemetry {
+		go t.sendErrorEvent(err)
 	}
 }

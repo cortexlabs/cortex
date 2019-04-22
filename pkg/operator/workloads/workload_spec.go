@@ -22,15 +22,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/cortexlabs/cortex/pkg/operator/api/context"
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 )
 
 type WorkloadSpec struct {
@@ -69,7 +69,7 @@ func uploadWorkloadSpec(workloadSpec *WorkloadSpec, ctx *context.Context) error 
 	}
 
 	key := ocontext.WorkloadSpecKey(savedWorkloadSpec.WorkloadID, ctx.App.Name)
-	err := aws.AWS.UploadJSONToS3(savedWorkloadSpec, config.Cortex.Bucket, key)
+	err := config.AWS.UploadJSONToS3(savedWorkloadSpec, key)
 	if err != nil {
 		return errors.Wrap(err, "upload workload spec", ctx.App.Name, savedWorkloadSpec.WorkloadID)
 	}
@@ -79,7 +79,7 @@ func uploadWorkloadSpec(workloadSpec *WorkloadSpec, ctx *context.Context) error 
 func getSavedWorkloadSpec(workloadID string, appName string) (*SavedWorkloadSpec, error) {
 	key := ocontext.WorkloadSpecKey(workloadID, appName)
 	var savedWorkloadSpec SavedWorkloadSpec
-	err := aws.AWS.ReadJSONFromS3(&savedWorkloadSpec, config.Cortex.Bucket, key)
+	err := config.AWS.ReadJSONFromS3(&savedWorkloadSpec, key)
 	if aws.IsNoSuchKeyErr(err) {
 		return nil, nil
 	}

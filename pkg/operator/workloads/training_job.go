@@ -22,7 +22,6 @@ import (
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
@@ -77,7 +76,7 @@ func trainingJobSpec(
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--workload-id=" + workloadID,
-							"--context=" + aws.AWS.S3Path(config.Cortex.Bucket, ctx.Key),
+							"--context=" + config.AWS.S3Path(ctx.Key),
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--model=" + modelID,
 						},

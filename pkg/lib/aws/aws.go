@@ -27,11 +27,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 )
 
-var AWS *Client
-
 type Client struct {
-	Region string
-
+	Region               string
+	Bucket               string
 	s3Client             *s3.S3
 	stsClient            *sts.STS
 	cloudWatchLogsClient *cloudwatchlogs.CloudWatchLogs
@@ -39,24 +37,25 @@ type Client struct {
 	HashedAccountID      string
 }
 
-func Init(region string) *Client {
+func New(region, bucket string) *Client {
 	sess := session.Must(session.NewSession(&aws.Config{
 		Region:     aws.String(region),
 		DisableSSL: aws.Bool(false),
 	}))
 
-	AWS = &Client{
+	awsClient := &Client{
+		Bucket:               bucket,
 		Region:               region,
 		s3Client:             s3.New(sess),
 		stsClient:            sts.New(sess),
 		cloudWatchLogsClient: cloudwatchlogs.New(sess),
 	}
-	response, err := AWS.stsClient.GetCallerIdentity(nil)
+	response, err := awsClient.stsClient.GetCallerIdentity(nil)
 	if err != nil {
 		errors.Exit(err, ErrorAuth())
 	}
-	AWS.awsAccountID = *response.Account
-	AWS.HashedAccountID = hash.String(AWS.awsAccountID)
+	awsClient.awsAccountID = *response.Account
+	awsClient.HashedAccountID = hash.String(awsClient.awsAccountID)
 
-	return AWS
+	return awsClient
 }

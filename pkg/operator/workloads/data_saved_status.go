@@ -19,12 +19,12 @@ package workloads
 import (
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/operator/api/context"
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
 )
@@ -35,7 +35,7 @@ func uploadDataSavedStatus(savedStatus *resource.DataSavedStatus) error {
 	}
 
 	key := ocontext.StatusKey(savedStatus.ResourceID, savedStatus.WorkloadID, savedStatus.AppName)
-	err := aws.AWS.UploadJSONToS3(savedStatus, config.Cortex.Bucket, key)
+	err := config.AWS.UploadJSONToS3(savedStatus, key)
 	if err != nil {
 		return errors.Wrap(err, "upload data saved status", savedStatus.AppName, savedStatus.ResourceID, savedStatus.WorkloadID)
 	}
@@ -64,7 +64,7 @@ func getDataSavedStatus(resourceID string, workloadID string, appName string) (*
 
 	key := ocontext.StatusKey(resourceID, workloadID, appName)
 	var savedStatus resource.DataSavedStatus
-	err := aws.AWS.ReadJSONFromS3(&savedStatus, config.Cortex.Bucket, key)
+	err := config.AWS.ReadJSONFromS3(&savedStatus, key)
 	if aws.IsNoSuchKeyErr(err) {
 		return nil, nil
 	}

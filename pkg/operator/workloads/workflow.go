@@ -22,25 +22,21 @@ import (
 
 	awfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 
-	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
-func Init() {
+func Init() error {
 	workflows, err := argo.List(nil)
 	if err != nil {
-		err = errors.Wrap(err, "init", "argo", "list")
-		telemetry.Telemetry.ReportErrorBlocking(err)
-		errors.Exit(err)
+		return errors.Wrap(err, "init", "argo", "list")
 	}
 
 	for _, wf := range workflows {
@@ -52,6 +48,8 @@ func Init() {
 			setCurrentContext(ctx)
 		}
 	}
+
+	return nil
 }
 
 func Create(ctx *context.Context) (*awfv1.Workflow, error) {
@@ -251,7 +249,7 @@ func DeleteApp(appName string, keepCache bool) bool {
 	uncacheLatestWorkloadIDs(nil, appName)
 
 	if !keepCache {
-		aws.AWS.DeleteFromS3ByPrefix(config.Cortex.Bucket, filepath.Join(consts.AppsDir, appName), true)
+		config.AWS.DeleteFromS3ByPrefix(config.Cortex.Bucket, filepath.Join(consts.AppsDir, appName), true)
 	}
 
 	return wasDeployed

@@ -31,7 +31,7 @@ func uploadLatestWorkloadID(resourceID string, workloadID string, appName string
 	}
 
 	key := ocontext.LatestWorkloadIDKey(resourceID, appName)
-	err := aws.AWS.UploadStringToS3(workloadID, config.Cortex.Bucket, key)
+	err := config.AWS.UploadStringToS3(workloadID, key)
 	if err != nil {
 		return errors.Wrap(err, "upload latest workload ID", appName, resourceID, workloadID)
 	}
@@ -65,7 +65,7 @@ func getSavedLatestWorkloadID(resourceID string, appName string) (string, error)
 	}
 
 	key := ocontext.LatestWorkloadIDKey(resourceID, appName)
-	workloadID, err := aws.AWS.ReadStringFromS3(config.Cortex.Bucket, key)
+	workloadID, err := config.AWS.ReadStringFromS3(key)
 	if aws.IsNoSuchKeyErr(err) {
 		cacheEmptyLatestWorkloadID(resourceID, appName)
 		return "", nil

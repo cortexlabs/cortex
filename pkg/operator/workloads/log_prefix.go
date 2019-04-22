@@ -44,7 +44,7 @@ func uploadLogPrefix(logPrefix string, workloadID string, appName string) error 
 		return nil
 	}
 	key := logPreifixKey(workloadID, appName)
-	err := aws.AWS.UploadStringToS3(logPrefix, config.Cortex.Bucket, key)
+	err := config.AWS.UploadStringToS3(logPrefix, key)
 	if err != nil {
 		return errors.Wrap(err, "upload log prefix", appName, workloadID)
 	}
@@ -78,7 +78,7 @@ func getSavedLogPrefix(workloadID string, appName string, allowNil bool) (string
 		return logPrefix, nil
 	}
 	key := logPreifixKey(workloadID, appName)
-	logPrefix, err := aws.AWS.ReadStringFromS3(config.Cortex.Bucket, key)
+	logPrefix, err := config.AWS.ReadStringFromS3(key)
 	if err != nil {
 		if aws.IsNoSuchKeyErr(err) && allowNil {
 			return "", nil
