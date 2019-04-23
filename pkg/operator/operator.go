@@ -35,7 +35,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
-	"github.com/cortexlabs/cortex/pkg/operator/spark"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
@@ -58,11 +57,6 @@ func main() {
 	}
 
 	if err := context.Init(); err != nil {
-		config.Telemetry.ReportErrorBlocking(err)
-		errors.Exit(err)
-	}
-
-	if err := spark.Init(); err != nil {
 		config.Telemetry.ReportErrorBlocking(err)
 		errors.Exit(err)
 	}

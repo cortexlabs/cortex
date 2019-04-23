@@ -52,7 +52,7 @@ type Client struct {
 	namespace      string
 }
 
-func Init(restConfig *rest.Config, namespace string) *Client {
+func New(restConfig *rest.Config, namespace string) *Client {
 	client := &Client{
 		namespace: namespace,
 	}

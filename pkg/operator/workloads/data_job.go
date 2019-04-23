@@ -21,14 +21,18 @@ import (
 	"strings"
 
 	sparkop "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/apis/sparkoperator.k8s.io/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/spark"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/spark"
 )
 
 func dataJobSpec(
@@ -51,9 +55,120 @@ func dataJobSpec(
 	if shouldIngest {
 		args = append(args, "--ingest")
 	}
-	spec := spark.Spec(workloadID, ctx, workloadTypeData, sparkCompute, args...)
+	spec := Spec(workloadID, ctx, workloadTypeData, sparkCompute, args...)
 	argo.EnableGC(spec)
 	return spec
+}
+
+func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCompute *userconfig.SparkCompute, args ...string) *sparkop.SparkApplication {
+	var driverMemOverhead *string
+	if sparkCompute.DriverMemOverhead != nil {
+		driverMemOverhead = pointer.String(s.Int64(sparkCompute.DriverMemOverhead.ToKi()) + "k")
+	}
+	var executorMemOverhead *string
+	if sparkCompute.ExecutorMemOverhead != nil {
+		executorMemOverhead = pointer.String(s.Int64(sparkCompute.ExecutorMemOverhead.ToKi()) + "k")
+	}
+	var memOverheadFactor *string
+	if sparkCompute.MemOverheadFactor != nil {
+		memOverheadFactor = pointer.String(s.Float64(*sparkCompute.MemOverheadFactor))
+	}
+
+	return &sparkop.SparkApplication{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "sparkoperator.k8s.io/v1alpha1",
+			Kind:       "SparkApplication",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      workloadID,
+			Namespace: config.Cortex.Namespace,
+			Labels: map[string]string{
+				"workloadID":   workloadID,
+				"workloadType": workloadType,
+				"appName":      ctx.App.Name,
+			},
+		},
+		Spec: sparkop.SparkApplicationSpec{
+			Type:                 sparkop.PythonApplicationType,
+			PythonVersion:        pointer.String("3"),
+			Mode:                 sparkop.ClusterMode,
+			Image:                &config.Cortex.SparkImage,
+			ImagePullPolicy:      pointer.String("Always"),
+			MainApplicationFile:  pointer.String("local:///src/spark_job/spark_job.py"),
+			RestartPolicy:        sparkop.RestartPolicy{Type: sparkop.Never},
+			MemoryOverheadFactor: memOverheadFactor,
+			Arguments: []string{
+				strings.TrimSpace(
+					" --workload-id=" + workloadID +
+						" --context=" + config.AWS.S3Path(ctx.Key) +
+						" --cache-dir=" + consts.ContextCacheDir +
+						" " + strings.Join(args, " ")),
+			},
+			Deps: sparkop.Dependencies{
+				PyFiles: []string{"local:///src/spark_job/spark_util.py", "local:///src/lib/*.py"},
+			},
+			Driver: sparkop.DriverSpec{
+				SparkPodSpec: sparkop.SparkPodSpec{
+					Cores:          pointer.Float32(sparkCompute.DriverCPU.ToFloat32()),
+					Memory:         pointer.String(s.Int64(sparkCompute.DriverMem.ToKi()) + "k"),
+					MemoryOverhead: driverMemOverhead,
+					Labels: map[string]string{
+						"workloadID":   workloadID,
+						"workloadType": workloadType,
+						"appName":      ctx.App.Name,
+						"userFacing":   "true",
+					},
+					EnvSecretKeyRefs: map[string]sparkop.NameKey{
+						"AWS_ACCESS_KEY_ID": {
+							Name: "aws-credentials",
+							Key:  "AWS_ACCESS_KEY_ID",
+						},
+						"AWS_SECRET_ACCESS_KEY": {
+							Name: "aws-credentials",
+							Key:  "AWS_SECRET_ACCESS_KEY",
+						},
+					},
+					EnvVars: map[string]string{
+						"CORTEX_SPARK_VERBOSITY": ctx.Environment.LogLevel.Spark,
+						"CORTEX_CONTEXT_S3_PATH": config.AWS.S3Path(ctx.Key),
+						"CORTEX_WORKLOAD_ID":     workloadID,
+						"CORTEX_CACHE_DIR":       consts.ContextCacheDir,
+					},
+				},
+				PodName:        &workloadID,
+				ServiceAccount: pointer.String("spark"),
+			},
+			Executor: sparkop.ExecutorSpec{
+				SparkPodSpec: sparkop.SparkPodSpec{
+					Cores:          pointer.Float32(sparkCompute.ExecutorCPU.ToFloat32()),
+					Memory:         pointer.String(s.Int64(sparkCompute.ExecutorMem.ToKi()) + "k"),
+					MemoryOverhead: executorMemOverhead,
+					Labels: map[string]string{
+						"workloadID":   workloadID,
+						"workloadType": workloadType,
+						"appName":      ctx.App.Name,
+					},
+					EnvSecretKeyRefs: map[string]sparkop.NameKey{
+						"AWS_ACCESS_KEY_ID": {
+							Name: "aws-credentials",
+							Key:  "AWS_ACCESS_KEY_ID",
+						},
+						"AWS_SECRET_ACCESS_KEY": {
+							Name: "aws-credentials",
+							Key:  "AWS_SECRET_ACCESS_KEY",
+						},
+					},
+					EnvVars: map[string]string{
+						"CORTEX_SPARK_VERBOSITY": ctx.Environment.LogLevel.Spark,
+						"CORTEX_CONTEXT_S3_PATH": config.AWS.S3Path(ctx.Key),
+						"CORTEX_WORKLOAD_ID":     workloadID,
+						"CORTEX_CACHE_DIR":       consts.ContextCacheDir,
+					},
+				},
+				Instances: &sparkCompute.Executors,
+			},
+		},
+	}
 }
 
 func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {

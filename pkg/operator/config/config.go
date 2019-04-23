@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/spark"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
 )
@@ -34,6 +35,7 @@ var (
 	Kubernetes *k8s.Client
 	Telemetry  *telemetry.Client
 	Argo       *argo.Client
+	Spark      *spark.Client
 )
 
 type CortexConfig struct {
@@ -85,7 +87,12 @@ func Init() error {
 		return err
 	}
 
-	Argo = argo.Init(Kubernetes.RestConfig, Kubernetes.Namespace)
+	Argo = argo.New(Kubernetes.RestConfig, Kubernetes.Namespace)
+
+	if Spark, err = spark.New(Kubernetes.RestConfig, Kubernetes.Namespace); err != nil {
+		return err
+	}
+
 	return nil
 }
 
