@@ -40,7 +40,7 @@ type Client struct {
 	OperatorID      string
 }
 
-func New(telemetryURL, hashedAccountID string, enable bool) *Client {
+func New(telemetryURL string, hashedAccountID string, enable bool) *Client {
 	timeout := time.Duration(10 * time.Second)
 	httpClient := http.Client{
 		Timeout: timeout,

@@ -50,7 +50,7 @@ func (c *Client) IsS3Prefix(prefix string) (bool, error) {
 	return c.IsS3PrefixExternal(c.Bucket, prefix)
 }
 
-func (c *Client) IsS3FileExternal(bucket, key string) (bool, error) {
+func (c *Client) IsS3FileExternal(bucket string, key string) (bool, error) {
 	_, err := c.s3Client.HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
@@ -66,7 +66,7 @@ func (c *Client) IsS3FileExternal(bucket, key string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) IsS3PrefixExternal(bucket, prefix string) (bool, error) {
+func (c *Client) IsS3PrefixExternal(bucket string, prefix string) (bool, error) {
 	out, err := c.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
 		Bucket: aws.String(bucket),
 		Prefix: aws.String(prefix),
@@ -111,7 +111,7 @@ func (c *Client) UploadBytesesToS3(data []byte, keys ...string) error {
 	return parallel.RunFirstErr(fns...)
 }
 
-func (c *Client) UploadFileToS3(filePath, key string) error {
+func (c *Client) UploadFileToS3(filePath string, key string) error {
 	data, err := files.ReadFileBytes(filePath)
 	if err != nil {
 		return err
@@ -123,7 +123,7 @@ func (c *Client) UploadBufferToS3(buffer *bytes.Buffer, key string) error {
 	return c.UploadBytesToS3(buffer.Bytes(), key)
 }
 
-func (c *Client) UploadStringToS3(str, key string) error {
+func (c *Client) UploadStringToS3(str string, key string) error {
 	str = strings.TrimSpace(str)
 	return c.UploadBytesToS3([]byte(str), key)
 }

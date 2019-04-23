@@ -33,7 +33,7 @@ import (
 )
 
 func Init() error {
-	workflows, err := argo.List(nil)
+	workflows, err := config.Argo.List(nil)
 	if err != nil {
 		return errors.Wrap(err, "init", "argo", "list")
 	}
@@ -42,7 +42,7 @@ func Init() error {
 		ctx, err := ocontext.DownloadContext(wf.Labels["ctxID"], wf.Labels["appName"])
 		if err != nil {
 			fmt.Println("Deleting stale workflow:", wf.Name)
-			argo.Delete(wf.Name)
+			config.Argo.Delete(wf.Name)
 		} else {
 			setCurrentContext(ctx)
 		}
@@ -61,7 +61,7 @@ func Create(ctx *context.Context) (*awfv1.Workflow, error) {
 		"appName": ctx.App.Name,
 		"ctxID":   ctx.ID,
 	}
-	wf := argo.New(ctx.App.Name, labels)
+	wf := config.Argo.NewWorkflow(ctx.App.Name, labels)
 
 	var allSpecs []*WorkloadSpec
 
@@ -168,7 +168,7 @@ func Run(wf *awfv1.Workflow, ctx *context.Context, existingWf *awfv1.Workflow) e
 		}
 	}
 
-	err = argo.Run(wf)
+	err = config.Argo.Run(wf)
 	if err != nil {
 		return errors.Wrap(err, ctx.App.Name)
 	}
@@ -199,7 +199,7 @@ func Stop(wf *awfv1.Workflow, ctx *context.Context) error {
 		return nil
 	}
 
-	_, err := argo.Delete(wf.Name)
+	_, err := config.Argo.Delete(wf.Name)
 	if err != nil {
 		return errors.Wrap(err, ctx.App.Name)
 	}
@@ -255,7 +255,7 @@ func DeleteApp(appName string, keepCache bool) bool {
 }
 
 func GetWorkflow(appName string) (*awfv1.Workflow, error) {
-	wfs, err := argo.ListByLabel("appName", appName)
+	wfs, err := config.Argo.ListByLabel("appName", appName)
 	if err != nil {
 		return nil, errors.Wrap(err, appName)
 	}

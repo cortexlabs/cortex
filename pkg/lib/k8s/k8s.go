@@ -52,11 +52,14 @@ type Client struct {
 	deploymentClient tappsv1b1.DeploymentInterface
 	jobClient        tbatchv1.JobInterface
 	ingressClient    textensionsv1b1.IngressInterface
+	Namespace        string
 }
 
 func New(namespace string, operatorInCluster bool) (*Client, error) {
 	var err error
-	client := &Client{}
+	client := &Client{
+		Namespace: namespace,
+	}
 	if operatorInCluster {
 		client.RestConfig, err = rest.InClusterConfig()
 	} else {

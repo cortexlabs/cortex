@@ -32,27 +32,33 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"k8s.io/client-go/rest"
 )
 
 var (
-	workflowClient twfv1.WorkflowInterface
+	doneStates = []string{
+		string(awfv1.NodeSucceeded),
+		string(awfv1.NodeSkipped),
+		string(awfv1.NodeFailed),
+		string(awfv1.NodeError),
+	}
+	runningStates = []string{
+		string(awfv1.NodeRunning),
+	}
 )
 
-var doneStates = []string{
-	string(awfv1.NodeSucceeded),
-	string(awfv1.NodeSkipped),
-	string(awfv1.NodeFailed),
-	string(awfv1.NodeError),
+type Client struct {
+	workflowClient twfv1.WorkflowInterface
+	namespace      string
 }
 
-var runningStates = []string{
-	string(awfv1.NodeRunning),
-}
-
-func Init(restConfig *rest.Config, namespace string) {
-	wfcs := wfclientset.NewForConfigOrDie(config.Kubernetes.RestConfig)
-	workflowClient = wfcs.ArgoprojV1alpha1().Workflows(config.Cortex.Namespace)
+func Init(restConfig *rest.Config, namespace string) *Client {
+	client := &Client{
+		namespace: namespace,
+	}
+	wfcs := wfclientset.NewForConfigOrDie(restConfig)
+	client.workflowClient = wfcs.ArgoprojV1alpha1().Workflows(namespace)
+	return client
 }
 
 type WorkflowTask struct {
@@ -65,7 +71,7 @@ type WorkflowTask struct {
 	Labels           map[string]string
 }
 
-func New(name string, labels ...map[string]string) *awfv1.Workflow {
+func (c *Client) NewWorkflow(name string, labels ...map[string]string) *awfv1.Workflow {
 	name = "argo-" + name
 	if !strings.HasSuffix(name, "-") && !strings.HasSuffix(name, "_") {
 		name = name + "-"
@@ -75,7 +81,7 @@ func New(name string, labels ...map[string]string) *awfv1.Workflow {
 	return &awfv1.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: name,
-			Namespace:    config.Cortex.Namespace,
+			Namespace:    c.namespace,
 			Labels:       allLabels,
 		},
 		Spec: awfv1.WorkflowSpec{
@@ -147,38 +153,38 @@ func NumTasks(wf *awfv1.Workflow) int {
 	return len(wf.Spec.Templates[0].DAG.Tasks)
 }
 
-func Run(wf *awfv1.Workflow) error {
-	_, err := workflowClient.Create(wf)
+func (c *Client) Run(wf *awfv1.Workflow) error {
+	_, err := c.workflowClient.Create(wf)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 	return nil
 }
 
-func List(opts *metav1.ListOptions) ([]awfv1.Workflow, error) {
+func (c *Client) List(opts *metav1.ListOptions) ([]awfv1.Workflow, error) {
 	if opts == nil {
 		opts = &metav1.ListOptions{}
 	}
-	wfList, err := workflowClient.List(*opts)
+	wfList, err := c.workflowClient.List(*opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return wfList.Items, nil
 }
 
-func ListByLabels(labels map[string]string) ([]awfv1.Workflow, error) {
+func (c *Client) ListByLabels(labels map[string]string) ([]awfv1.Workflow, error) {
 	opts := &metav1.ListOptions{
 		LabelSelector: k8s.LabelSelector(labels),
 	}
-	return List(opts)
+	return c.List(opts)
 }
 
-func ListByLabel(labelKey string, labelValue string) ([]awfv1.Workflow, error) {
-	return ListByLabels(map[string]string{labelKey: labelValue})
+func (c *Client) ListByLabel(labelKey string, labelValue string) ([]awfv1.Workflow, error) {
+	return c.ListByLabels(map[string]string{labelKey: labelValue})
 }
 
-func ListRunning(labels ...map[string]string) ([]awfv1.Workflow, error) {
-	wfs, err := ListByLabels(maps.MergeStrMaps(labels...))
+func (c *Client) ListRunning(labels ...map[string]string) ([]awfv1.Workflow, error) {
+	wfs, err := c.ListByLabels(maps.MergeStrMaps(labels...))
 	if err != nil {
 		return wfs, err
 	}
@@ -191,8 +197,8 @@ func ListRunning(labels ...map[string]string) ([]awfv1.Workflow, error) {
 	return runningWfs, nil
 }
 
-func ListDone(labels ...map[string]string) ([]awfv1.Workflow, error) {
-	wfs, err := ListByLabels(maps.MergeStrMaps(labels...))
+func (c *Client) ListDone(labels ...map[string]string) ([]awfv1.Workflow, error) {
+	wfs, err := c.ListByLabels(maps.MergeStrMaps(labels...))
 	if err != nil {
 		return wfs, err
 	}
@@ -205,8 +211,8 @@ func ListDone(labels ...map[string]string) ([]awfv1.Workflow, error) {
 	return doneWfs, nil
 }
 
-func Delete(wfName string) (bool, error) {
-	err := workflowClient.Delete(wfName, &metav1.DeleteOptions{})
+func (c *Client) Delete(wfName string) (bool, error) {
+	err := c.workflowClient.Delete(wfName, &metav1.DeleteOptions{})
 	if k8serrors.IsNotFound(err) {
 		return false, nil
 	} else if err != nil {
@@ -215,10 +221,10 @@ func Delete(wfName string) (bool, error) {
 	return true, nil
 }
 
-func DeleteMultiple(wfs []awfv1.Workflow) error {
+func (c *Client) DeleteMultiple(wfs []awfv1.Workflow) error {
 	errs := []error{}
 	for _, wf := range wfs {
-		_, err := Delete(wf.Name)
+		_, err := c.Delete(wf.Name)
 		errs = append(errs, err)
 	}
 	return errors.FirstError(errs...)

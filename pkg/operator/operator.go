@@ -30,11 +30,14 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
+	"github.com/cortexlabs/cortex/pkg/operator/spark"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
@@ -51,7 +54,30 @@ var (
 )
 
 func main() {
-	if err := config.Init(); err != nil {
+	config.Init()
+
+	config.AWS = aws.New(config.Cortex.Region, config.Cortex.Bucket)
+	config.Telemetry = telemetry.New(config.Cortex.TelemetryURL, config.AWS.HashedAccountID, config.Cortex.EnableTelemetry)
+
+	var err error
+	if config.Kubernetes, err = k8s.New(config.Cortex.Namespace, config.Cortex.OperatorInCluster); err != nil {
+		config.Telemetry.ReportErrorBlocking(err)
+		errors.Exit(err)
+	}
+
+	config.Argo = argo.Init(config.Kubernetes.RestConfig, config.Kubernetes.Namespace)
+
+	if err := context.Init(); err != nil {
+		config.Telemetry.ReportErrorBlocking(err)
+		errors.Exit(err)
+	}
+
+	if err := spark.Init(); err != nil {
+		config.Telemetry.ReportErrorBlocking(err)
+		errors.Exit(err)
+	}
+
+	if err := workloads.Init(); err != nil {
 		config.Telemetry.ReportErrorBlocking(err)
 		errors.Exit(err)
 	}
@@ -170,7 +196,7 @@ func deleteWorkflowDelayed(wfName string) {
 	if !markedWorkflows.Has(wfName) {
 		markedWorkflows.Add(wfName)
 		time.Sleep(deletionDelay)
-		argo.Delete(wfName)
+		config.Argo.Delete(wfName)
 		go deleteMarkerDelayed(markedWorkflows, wfName)
 	}
 }

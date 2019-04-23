@@ -43,7 +43,7 @@ type FluentdLog struct {
 	} `json:"kubernetes"`
 }
 
-func (c *Client) GetLogs(prefix, logGroup string) (string, error) {
+func (c *Client) GetLogs(prefix string, logGroup string) (string, error) {
 	logGroupNamePrefix := "var.log.containers."
 
 	ignoreLogStreamNameRegexes := []*regexp.Regexp{

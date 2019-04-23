@@ -26,9 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
-	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
 var (
@@ -36,6 +33,7 @@ var (
 	AWS        *aws.Client
 	Kubernetes *k8s.Client
 	Telemetry  *telemetry.Client
+	Argo       *argo.Client
 )
 
 type CortexConfig struct {
@@ -58,7 +56,7 @@ type CortexConfig struct {
 	OperatorInCluster   bool   `json:"operator_in_cluster"`
 }
 
-func Init() error {
+func Init() {
 	Cortex = &CortexConfig{
 		APIVersion:          consts.CortexVersion,
 		Bucket:              getStr("BUCKET"),
@@ -78,29 +76,6 @@ func Init() error {
 		OperatorInCluster:   configreader.MustBoolFromEnv("CONST_OPERATOR_IN_CLUSTER", &configreader.BoolValidation{Default: true}),
 	}
 	Cortex.ID = hash.String(Cortex.Bucket + Cortex.Region + Cortex.LogGroup)
-	AWS = aws.New(Cortex.Region, Cortex.Bucket)
-	Telemetry = telemetry.New(Cortex.TelemetryURL, AWS.HashedAccountID, Cortex.EnableTelemetry)
-
-	var err error
-	if Kubernetes, err = k8s.New(Cortex.Namespace, Cortex.OperatorInCluster); err != nil {
-		return err
-	}
-
-	argo.Init(Kubernetes.RestConfig, Kubernetes.Namespace)
-
-	if err := context.Init(); err != nil {
-		return err
-	}
-
-	if err := spark.Init(); err != nil {
-		return err
-	}
-
-	if err := workloads.Init(); err != nil {
-		return err
-	}
-
-	return Cortex
 }
 
 func getPaths(name string) (string, string) {
