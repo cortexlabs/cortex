@@ -66,6 +66,8 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 
 	var allComputes []*userconfig.SparkCompute
 
+	allComputes = append(allComputes, userconfig.DefaultSparkCompute())
+
 	shouldIngest := !rawFileExists
 	if shouldIngest {
 		externalDataPath := ctx.Environment.Data.GetExternalPath()

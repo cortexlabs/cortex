@@ -45,6 +45,27 @@ type SparkCompute struct {
 	MemOverheadFactor   *float64  `json:"mem_overhead_factor" yaml:"mem_overhead_factor"`
 }
 
+var defaultSC *SparkCompute
+
+func DefaultSparkCompute() *SparkCompute {
+	if defaultSC != nil {
+		return defaultSC
+	}
+
+	defaultSC := &SparkCompute{
+		Executors:           1,
+		DriverCPU:           MustNewQuantity("1"),
+		DriverMem:           MustNewQuantity("500Mi"),
+		DriverMemOverhead:   nil,
+		ExecutorCPU:         MustNewQuantity("1"),
+		ExecutorMem:         MustNewQuantity("500Mi"),
+		ExecutorMemOverhead: nil,
+		MemOverheadFactor:   nil,
+	}
+
+	return defaultSC
+}
+
 var sparkComputeFieldValidation = &cr.StructFieldValidation{
 	StructField: "Compute",
 	StructValidation: &cr.StructValidation{
