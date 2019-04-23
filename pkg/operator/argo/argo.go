@@ -50,7 +50,7 @@ var runningStates = []string{
 	string(awfv1.NodeRunning),
 }
 
-func Init() {
+func Init(restConfig *rest.Config, namespace string) {
 	wfcs := wfclientset.NewForConfigOrDie(config.Kubernetes.RestConfig)
 	workflowClient = wfcs.ArgoprojV1alpha1().Workflows(config.Cortex.Namespace)
 }

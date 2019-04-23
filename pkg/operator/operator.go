@@ -30,14 +30,11 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/argo"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
-	"github.com/cortexlabs/cortex/pkg/operator/spark"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
@@ -54,29 +51,7 @@ var (
 )
 
 func main() {
-	conf := config.NewFromEnv()
-	config.AWS = aws.New(conf.Region, conf.Bucket)
-	config.Telemetry = telemetry.New(conf.TelemetryURL, config.AWS.HashedAccountID)
-
-	var err error
-	if config.Kubernetes, err = k8s.New(conf.Namespace, conf.OperatorInCluster); err != nil {
-		config.Telemetry.ReportErrorBlocking(err)
-		errors.Exit(err)
-	}
-
-	argo.Init()
-
-	if err := context.Init(); err != nil {
-		config.Telemetry.ReportErrorBlocking(err)
-		errors.Exit(err)
-	}
-
-	if err := spark.Init(); err != nil {
-		config.Telemetry.ReportErrorBlocking(err)
-		errors.Exit(err)
-	}
-
-	if err := workloads.Init(); err != nil {
+	if err := config.Init(); err != nil {
 		config.Telemetry.ReportErrorBlocking(err)
 		errors.Exit(err)
 	}

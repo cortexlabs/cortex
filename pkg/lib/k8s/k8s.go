@@ -37,13 +37,12 @@ import (
 )
 
 var (
-	home = homedir.HomeDir()
+	home         = homedir.HomeDir()
+	deletePolicy = metav1.DeletePropagationBackground
+	deleteOpts   = &metav1.DeleteOptions{
+		PropagationPolicy: &deletePolicy,
+	}
 )
-
-var deletePolicy = metav1.DeletePropagationBackground
-var deleteOpts = &metav1.DeleteOptions{
-	PropagationPolicy: &deletePolicy,
-}
 
 type Client struct {
 	RestConfig       *rest.Config

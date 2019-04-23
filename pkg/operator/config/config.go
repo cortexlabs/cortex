@@ -17,13 +17,18 @@ limitations under the License.
 package config
 
 import (
+	"path/filepath"
+
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/env"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/operator/argo"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
+	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
 var (
@@ -53,25 +58,65 @@ type CortexConfig struct {
 	OperatorInCluster   bool   `json:"operator_in_cluster"`
 }
 
-func NewFromEnv() *CortexConfig {
+func Init() error {
 	Cortex = &CortexConfig{
 		APIVersion:          consts.CortexVersion,
-		Bucket:              env.GetStr("BUCKET"),
-		LogGroup:            env.GetStr("LOG_GROUP"),
-		Region:              env.GetStr("REGION"),
-		Namespace:           env.GetStr("NAMESPACE"),
-		OperatorImage:       env.GetStr("IMAGE_OPERATOR"),
-		SparkImage:          env.GetStr("IMAGE_SPARK"),
-		TFTrainImage:        env.GetStr("IMAGE_TF_TRAIN"),
-		TFServeImage:        env.GetStr("IMAGE_TF_SERVE"),
-		TFAPIImage:          env.GetStr("IMAGE_TF_API"),
-		PythonPackagerImage: env.GetStr("IMAGE_PYTHON_PACKAGER"),
-		TFTrainImageGPU:     env.GetStr("IMAGE_TF_TRAIN_GPU"),
-		TFServeImageGPU:     env.GetStr("IMAGE_TF_SERVE_GPU"),
+		Bucket:              getStr("BUCKET"),
+		LogGroup:            getStr("LOG_GROUP"),
+		Region:              getStr("REGION"),
+		Namespace:           getStr("NAMESPACE"),
+		OperatorImage:       getStr("IMAGE_OPERATOR"),
+		SparkImage:          getStr("IMAGE_SPARK"),
+		TFTrainImage:        getStr("IMAGE_TF_TRAIN"),
+		TFServeImage:        getStr("IMAGE_TF_SERVE"),
+		TFAPIImage:          getStr("IMAGE_TF_API"),
+		PythonPackagerImage: getStr("IMAGE_PYTHON_PACKAGER"),
+		TFTrainImageGPU:     getStr("IMAGE_TF_TRAIN_GPU"),
+		TFServeImageGPU:     getStr("IMAGE_TF_SERVE_GPU"),
 		TelemetryURL:        configreader.MustStringFromEnv("CONST_TELEMETRY_URL", &configreader.StringValidation{Required: false, Default: consts.TelemetryURL}),
-		EnableTelemetry:     env.GetBool("ENABLE_TELEMETRY"),
+		EnableTelemetry:     getBool("ENABLE_TELEMETRY"),
 		OperatorInCluster:   configreader.MustBoolFromEnv("CONST_OPERATOR_IN_CLUSTER", &configreader.BoolValidation{Default: true}),
 	}
 	Cortex.ID = hash.String(Cortex.Bucket + Cortex.Region + Cortex.LogGroup)
+	AWS = aws.New(Cortex.Region, Cortex.Bucket)
+	Telemetry = telemetry.New(Cortex.TelemetryURL, AWS.HashedAccountID, Cortex.EnableTelemetry)
+
+	var err error
+	if Kubernetes, err = k8s.New(Cortex.Namespace, Cortex.OperatorInCluster); err != nil {
+		return err
+	}
+
+	argo.Init(Kubernetes.RestConfig, Kubernetes.Namespace)
+
+	if err := context.Init(); err != nil {
+		return err
+	}
+
+	if err := spark.Init(); err != nil {
+		return err
+	}
+
+	if err := workloads.Init(); err != nil {
+		return err
+	}
+
 	return Cortex
+}
+
+func getPaths(name string) (string, string) {
+	envVarName := "CORTEX_" + name
+	filePath := filepath.Join(consts.CortexConfigPath, name)
+	return envVarName, filePath
+}
+
+func getStr(name string) string {
+	envVarName, filePath := getPaths(name)
+	v := &configreader.StringValidation{Required: true}
+	return configreader.MustStringFromEnvOrFile(envVarName, filePath, v)
+}
+
+func getBool(name string) bool {
+	envVarName, filePath := getPaths(name)
+	v := &configreader.BoolValidation{Default: false}
+	return configreader.MustBoolFromEnvOrFile(envVarName, filePath, v)
 }

@@ -144,7 +144,7 @@ func (c *Client) ReadJSONFromS3(objPtr interface{}, key string) error {
 	return errors.Wrap(json.Unmarshal(jsonBytes, objPtr), key)
 }
 
-func (c *Client) UploadMsgpackToS3(obj interface{}, bucket, key string) error {
+func (c *Client) UploadMsgpackToS3(obj interface{}, key string) error {
 	msgpackBytes, err := msgpack.Marshal(obj)
 	if err != nil {
 		return err
@@ -190,9 +190,9 @@ func (c *Client) ReadBytesFromS3(key string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *Client) DeleteFromS3ByPrefix(bucket, prefix string, continueIfFailure bool) error {
+func (c *Client) DeleteFromS3ByPrefix(prefix string, continueIfFailure bool) error {
 	listObjectsInput := &s3.ListObjectsV2Input{
-		Bucket:  aws.String(bucket),
+		Bucket:  aws.String(c.Bucket),
 		Prefix:  aws.String(prefix),
 		MaxKeys: aws.Int64(1000),
 	}
@@ -206,7 +206,7 @@ func (c *Client) DeleteFromS3ByPrefix(bucket, prefix string, continueIfFailure b
 				deleteObjects[i] = &s3.ObjectIdentifier{Key: object.Key}
 			}
 			deleteObjectsInput := &s3.DeleteObjectsInput{
-				Bucket: aws.String(bucket),
+				Bucket: aws.String(c.Bucket),
 				Delete: &s3.Delete{
 					Objects: deleteObjects,
 					Quiet:   aws.Bool(true),

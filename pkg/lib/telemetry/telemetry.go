@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/env"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
@@ -41,7 +40,7 @@ type Client struct {
 	OperatorID      string
 }
 
-func New(telemetryURL, hashedAccountID string) *Client {
+func New(telemetryURL, hashedAccountID string, enable bool) *Client {
 	timeout := time.Duration(10 * time.Second)
 	httpClient := http.Client{
 		Timeout: timeout,
@@ -49,7 +48,7 @@ func New(telemetryURL, hashedAccountID string) *Client {
 	telem := &Client{
 		url:             telemetryURL,
 		http:            httpClient,
-		EnableTelemetry: env.GetBool("ENABLE_TELEMETRY"),
+		EnableTelemetry: enable,
 		OperatorID:      hashedAccountID,
 	}
 

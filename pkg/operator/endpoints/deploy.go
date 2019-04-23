@@ -71,7 +71,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = config.AWS.UploadMsgpackToS3(ctx.ToSerial(), config.Cortex.Bucket, ctx.Key)
+	err = config.AWS.UploadMsgpackToS3(ctx.ToSerial(), ctx.Key)
 	if RespondIfError(w, err, ctx.App.Name, "upload context") {
 		return
 	}
