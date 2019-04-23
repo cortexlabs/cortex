@@ -56,7 +56,7 @@ type CortexConfig struct {
 	OperatorInCluster   bool   `json:"operator_in_cluster"`
 }
 
-func Init() {
+func Init() error {
 	Cortex = &CortexConfig{
 		APIVersion:          consts.CortexVersion,
 		Bucket:              getStr("BUCKET"),
@@ -76,6 +76,17 @@ func Init() {
 		OperatorInCluster:   configreader.MustBoolFromEnv("CONST_OPERATOR_IN_CLUSTER", &configreader.BoolValidation{Default: true}),
 	}
 	Cortex.ID = hash.String(Cortex.Bucket + Cortex.Region + Cortex.LogGroup)
+
+	AWS = aws.New(Cortex.Region, Cortex.Bucket)
+	Telemetry = telemetry.New(Cortex.TelemetryURL, AWS.HashedAccountID, Cortex.EnableTelemetry)
+
+	var err error
+	if Kubernetes, err = k8s.New(Cortex.Namespace, Cortex.OperatorInCluster); err != nil {
+		return err
+	}
+
+	Argo = argo.Init(Kubernetes.RestConfig, Kubernetes.Namespace)
+	return nil
 }
 
 func getPaths(name string) (string, string) {
