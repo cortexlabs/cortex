@@ -55,12 +55,12 @@ func dataJobSpec(
 	if shouldIngest {
 		args = append(args, "--ingest")
 	}
-	spec := Spec(workloadID, ctx, workloadTypeData, sparkCompute, args...)
+	spec := sparkSpec(workloadID, ctx, workloadTypeData, sparkCompute, args...)
 	argo.EnableGC(spec)
 	return spec
 }
 
-func Spec(workloadID string, ctx *context.Context, workloadType string, sparkCompute *userconfig.SparkCompute, args ...string) *sparkop.SparkApplication {
+func sparkSpec(workloadID string, ctx *context.Context, workloadType string, sparkCompute *userconfig.SparkCompute, args ...string) *sparkop.SparkApplication {
 	var driverMemOverhead *string
 	if sparkCompute.DriverMemOverhead != nil {
 		driverMemOverhead = pointer.String(s.Int64(sparkCompute.DriverMemOverhead.ToKi()) + "k")
