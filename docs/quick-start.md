@@ -60,12 +60,7 @@ Add to `app.yaml`:
   data:
     type: csv
     path: s3a://cortex-examples/iris.csv
-    schema:
-      - sepal_length
-      - sepal_width
-      - petal_length
-      - petal_width
-      - class
+    schema: [sepal_length, sepal_width, petal_length, petal_width, class]
 ```
 
 Cortex will be able to read from any S3 bucket that your AWS credentials grant access to.
@@ -257,11 +252,7 @@ Add to `app.yaml`:
   path: dnn.py
   type: classification
   target_column: class_indexed
-  feature_columns:
-    - sepal_length_normalized
-    - sepal_width_normalized
-    - petal_length_normalized
-    - petal_width_normalized
+  feature_columns: [sepal_length_normalized, sepal_width_normalized, petal_length_normalized, petal_width_normalized]
   hparams:
     hidden_units: [4, 2]
   data_partition_ratio:
@@ -270,8 +261,7 @@ Add to `app.yaml`:
   training:
     num_steps: 1000
     batch_size: 10
-  aggregates:
-    - class_index
+  aggregates: [class_index]
 ```
 
 #### Implement the estimator
