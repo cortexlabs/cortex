@@ -1,6 +1,6 @@
 # Uninstall
 
-## Uninstall script
+## Download the uninstall script
 
 <!-- CORTEX_VERSION_MINOR -->
 
@@ -10,23 +10,27 @@ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/0.3/cortex-installer
 
 # Change permissions
 chmod +x cortex-installer.sh
+
+# Set AWS credentials
+export AWS_ACCESS_KEY_ID=***
+export AWS_SECRET_ACCESS_KEY=***
 ```
 
-## Operator
+## Uninstall the Operator
 
 ```bash
 # Uninstall the Cortex operator
 ./cortex-installer.sh uninstall operator
 ```
 
-## CLI
+## Uninstall the CLI
 
 ```bash
 # Uninstall the Cortex CLI
 ./cortex-installer.sh uninstall cli
 ```
 
-## AWS
+## Clean up AWS
 
 ```bash
 # Set AWS credentials
@@ -44,7 +48,7 @@ aws logs delete-log-group --log-group-name cortex --region us-west-2
 sudo rm -rf /usr/local/aws && sudo rm /usr/local/bin/aws && rm -rf ~/.aws
 ```
 
-## Kubernetes
+## Spin down Kubernetes
 
 If you used [`eksctl`](https://eksctl.io) to create your cluster, you can use it to spin the cluster down.
 
