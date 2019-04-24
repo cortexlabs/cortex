@@ -17,9 +17,9 @@ limitations under the License.
 package workloads
 
 import (
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/resource"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
 func generateWorkloadID() string {

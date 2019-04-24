@@ -19,14 +19,14 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
+	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
 func Delete(w http.ResponseWriter, r *http.Request) {
-	telemetry.ReportEvent("endpoint.delete")
+	config.Telemetry.ReportEvent("endpoint.delete")
 
 	appName, err := getRequiredQueryParam("appName", r)
 	if RespondIfError(w, err) {

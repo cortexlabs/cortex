@@ -21,10 +21,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 var flagKeepCache bool
@@ -61,7 +61,7 @@ var deleteCmd = &cobra.Command{
 		}
 
 		var deleteResponse schema.DeleteResponse
-		err = libjson.Unmarshal(httpResponse, &deleteResponse)
+		err = json.Unmarshal(httpResponse, &deleteResponse)
 		if err != nil {
 			errors.Exit(err, "/delete", "response", string(httpResponse))
 		}

@@ -19,7 +19,7 @@ package workloads
 import (
 	"sync"
 
-	"github.com/cortexlabs/cortex/pkg/api/resource"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
 // appName -> map(resourceID -> *DataSavedStatus)

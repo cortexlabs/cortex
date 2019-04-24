@@ -22,13 +22,12 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/argo"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/operator/argo"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	cc "github.com/cortexlabs/cortex/pkg/operator/cortexconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 func pythonPackageJobSpec(ctx *context.Context, pythonPackages strset.Set, workloadID string) *batchv1.Job {
@@ -51,11 +50,11 @@ func pythonPackageJobSpec(ctx *context.Context, pythonPackages strset.Set, workl
 				Containers: []corev1.Container{
 					{
 						Name:            "python-packager",
-						Image:           cc.PythonPackagerImage,
+						Image:           config.Cortex.PythonPackagerImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--workload-id=" + workloadID,
-							"--context=" + aws.S3Path(ctx.Key),
+							"--context=" + config.AWS.S3Path(ctx.Key),
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--python-packages=" + strings.Join(pythonPackages.Slice(), ","),
 							"--build",
@@ -68,7 +67,7 @@ func pythonPackageJobSpec(ctx *context.Context, pythonPackages strset.Set, workl
 				ServiceAccountName: "default",
 			},
 		},
-		Namespace: cc.Namespace,
+		Namespace: config.Cortex.Namespace,
 	})
 	argo.EnableGC(spec)
 	return spec

@@ -21,7 +21,7 @@ import (
 	"regexp"
 	"strings"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 var dns1035Regex = regexp.MustCompile(`^[a-z]([-a-z0-9]*[a-z0-9])?$`)

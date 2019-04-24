@@ -17,9 +17,9 @@ limitations under the License.
 package context
 
 import (
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
 func getApp(appConfig *userconfig.App) *context.App {
