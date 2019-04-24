@@ -12,7 +12,7 @@ Follow this [tutorial](https://aws.amazon.com/premiumsupport/knowledge-center/cr
 * Attach the existing policy `AdministratorAccess` to your IAM user, or see [security](security.md) for a minimal access configuration.
 * Each of the steps below requires different permissions. Please ensure you have the required permissions for each of the steps you need to run. The `AdministratorAccess` policy will work for all steps.
 
-## Install script
+## Download the install script
 
 <!-- CORTEX_VERSION_MINOR -->
 
@@ -44,7 +44,7 @@ eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium
 
 This cluster configuration will cost about $0.29 per hour in AWS fees.
 
-## Operator
+## Install the Operator
 
 The Cortex operator is a service that runs on Kubernetes, translates declarative configuration into workloads, and orchestrates those workloads on the cluster. Its installation is configurable. For a full list of configuration options please refer to the [operator config](config.md) documentation.
 
@@ -53,7 +53,7 @@ The Cortex operator is a service that runs on Kubernetes, translates declarative
 ./cortex-installer.sh install operator
 ```
 
-## CLI
+## Install the CLI
 
 The CLI runs on developer machines (e.g. your laptop) and communicates with the operator.
 
