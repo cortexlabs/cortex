@@ -29,12 +29,17 @@ RUN curl http://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/h
 RUN curl http://www.us.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-without-hadoop.tgz | tar -zx && \
     mv spark-${SPARK_VERSION}-bin-without-hadoop $SPARK_HOME
 
+# Required for building tensorflow spark connector
+ARG SCALA_VERSION="2.12"
+# Scalatest version from https://github.com/apache/spark/blob/v2.4.2/pom.xml
+ARG SCALATEST_VERSION="3.0.3"
+
 # Tensorflow Spark connector
 RUN rm -rf ~/tf-ecosystem && git clone https://github.com/tensorflow/ecosystem.git ~/tf-ecosystem && \
     mvn -f ~/tf-ecosystem/hadoop/pom.xml versions:set -DnewVersion=${TF_VERSION} -q && \
     mvn -f ~/tf-ecosystem/hadoop/pom.xml -Dmaven.test.skip=true clean install -q && \
     mvn -f ~/tf-ecosystem/spark/spark-tensorflow-connector/pom.xml versions:set -DnewVersion=${TF_VERSION} -q && \
-    mvn -f ~/tf-ecosystem/spark/spark-tensorflow-connector/pom.xml -Dmaven.test.skip=true clean install -Dspark.version=${SPARK_VERSION} -q && \
+    mvn -f ~/tf-ecosystem/spark/spark-tensorflow-connector/pom.xml -Dmaven.test.skip=true clean install -Dspark.version=${SPARK_VERSION} -Dscala.binary.version=${SCALA_VERSION} -Dscala.test.version=${SCALATEST_VERSION} -q && \
     mv ~/tf-ecosystem/spark/spark-tensorflow-connector/target/spark-tensorflow-connector_2.11-${TF_VERSION}.jar $SPARK_HOME/jars/
 
 # Hadoop AWS
