@@ -109,9 +109,11 @@ func apiSpec(
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
 						ReadinessProbe: &corev1.Probe{
-							InitialDelaySeconds: 2,
-							TimeoutSeconds:      1,
-							PeriodSeconds:       1,
+							InitialDelaySeconds: 5,
+							TimeoutSeconds:      5,
+							PeriodSeconds:       5,
+							SuccessThreshold:    1,
+							FailureThreshold:    2,
 							Handler: corev1.Handler{
 								HTTPGet: &corev1.HTTPGetAction{
 									Path: "/healthz",
@@ -136,9 +138,11 @@ func apiSpec(
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
 						ReadinessProbe: &corev1.Probe{
-							InitialDelaySeconds: 2,
-							TimeoutSeconds:      1,
-							PeriodSeconds:       1,
+							InitialDelaySeconds: 5,
+							TimeoutSeconds:      5,
+							PeriodSeconds:       5,
+							SuccessThreshold:    1,
+							FailureThreshold:    2,
 							Handler: corev1.Handler{
 								TCPSocket: &corev1.TCPSocketAction{
 									Port: intstr.IntOrString{
