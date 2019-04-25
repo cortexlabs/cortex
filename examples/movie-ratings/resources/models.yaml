@@ -2,12 +2,8 @@
   name: basic_embedding
   type: regression
   target_column: rating
-  feature_columns:
-    - user_id_indexed
-    - movie_id_indexed
-  aggregates:
-    - user_id_index
-    - movie_id_index
+  feature_columns: [user_id_indexed, movie_id_indexed]
+  aggregates: [user_id_index, movie_id_index]
   hparams:
     embedding_size: 10
     hidden_units: [128]
