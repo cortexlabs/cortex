@@ -13,6 +13,10 @@ RUN mkdir -p /opt
 ARG HADOOP_VERSION="2.9.2"
 ARG SPARK_VERSION="2.4.2"
 ARG TF_VERSION="1.12.0"
+# Required for building tensorflow spark connector
+ARG SCALA_VERSION="2.12"
+# Scalatest version from https://github.com/apache/spark/blob/v2.4.2/pom.xml
+ARG SCALATEST_VERSION="3.0.3"
 # Check aws-java-sdk-bundle dependency version: https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws/$HADOOP_VERSION
 ARG AWS_JAVA_SDK_VERSION="1.11.199"
 
@@ -28,11 +32,6 @@ RUN curl http://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/h
 # Spark
 RUN curl http://www.us.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-without-hadoop.tgz | tar -zx && \
     mv spark-${SPARK_VERSION}-bin-without-hadoop $SPARK_HOME
-
-# Required for building tensorflow spark connector
-ARG SCALA_VERSION="2.12"
-# Scalatest version from https://github.com/apache/spark/blob/v2.4.2/pom.xml
-ARG SCALATEST_VERSION="3.0.3"
 
 # Tensorflow Spark connector
 RUN rm -rf ~/tf-ecosystem && git clone https://github.com/tensorflow/ecosystem.git ~/tf-ecosystem && \
