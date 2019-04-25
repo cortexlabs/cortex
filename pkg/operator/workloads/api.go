@@ -22,6 +22,7 @@ import (
 	appsv1b1 "k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
+	intstr "k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -107,6 +108,19 @@ func apiSpec(
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
+						ReadinessProbe: &corev1.Probe{
+							InitialDelaySeconds: 2,
+							TimeoutSeconds:      1,
+							PeriodSeconds:       1,
+							Handler: corev1.Handler{
+								HTTPGet: &corev1.HTTPGetAction{
+									Path: "/healthz",
+									Port: intstr.IntOrString{
+										IntVal: defaultPortInt32,
+									},
+								},
+							},
+						},
 						Resources: corev1.ResourceRequirements{
 							Requests: transformResourceList,
 						},
@@ -121,6 +135,18 @@ func apiSpec(
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
+						ReadinessProbe: &corev1.Probe{
+							InitialDelaySeconds: 2,
+							TimeoutSeconds:      1,
+							PeriodSeconds:       1,
+							Handler: corev1.Handler{
+								TCPSocket: &corev1.TCPSocketAction{
+									Port: intstr.IntOrString{
+										IntVal: tfServingPortInt32,
+									},
+								},
+							},
+						},
 						Resources: corev1.ResourceRequirements{
 							Requests: tfServingResourceList,
 							Limits:   tfServingLimitsList,
