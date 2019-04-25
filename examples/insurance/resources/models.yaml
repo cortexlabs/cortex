@@ -2,19 +2,39 @@
   name: dnn
   type: regression
   target_column: charges_normalized
-  feature_columns:
-    - age
-    - sex
-    - bmi
-    - children
-    - smoker
-    - region
-  hparams:
+  inputs:
+    categorical:
+      - feature: INT
+      - categories: [STRING]
+    bucketized:
+      - feature: INT|FLOAT
+      - buckets: [INT]
+  default_hparams:
     hidden_units: [100, 100, 100]
+
+- kind: trainer
+  name: dnn-big
+  model: dnn
+  target_column: charges_normalized
+  inputs:
+    categorical:
+      - feature: sex
+        categories: ["female", "male"]
+      - feature: smoker
+        categories: ["yes", "no"]
+      - feature: region
+        categories: ["northwest", "northeast", "southwest", "southeast"]
+      - feature: children
+        categories: children_set
+    bucketized:
+      - feature: age
+        buckets: [15, 20, 25, 35, 40, 45, 50, 55, 60, 65]
+      - feature: bmi
+        buckets: [15, 20, 25, 35, 40, 45, 50, 55]
+  hparams:
+    hidden_units: [1000, 1000, 1000]
   data_partition_ratio:
     training: 0.8
     evaluation: 0.2
   training:
     num_steps: 10000
-  aggregates:
-    - children_set

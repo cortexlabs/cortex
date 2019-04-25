@@ -1,20 +1,32 @@
 - kind: model
   name: dnn
   type: classification
-  target_column: class
-  feature_columns:
-    - card_1_suit
-    - card_1_rank
-    - card_2_suit
-    - card_2_rank
-    - card_3_suit
-    - card_3_rank
-    - card_4_suit
-    - card_4_rank
-    - card_5_suit
-    - card_5_rank
-  hparams:
+  target_column: INT
+  inputs:
+    suit_columns:
+      - INT_COLUMN
+    rank_columns:
+      - INT_COLUMN
+  default_hparams:
     hidden_units: [100, 100, 100, 100, 100]
+
+- kind: trainer
+  name: dnn
+  type: classification
+  target_column: class
+  inputs:
+    suit_columns:
+      - card_1_suit
+      - card_2_suit
+      - card_3_suit
+      - card_4_suit
+      - card_5_suit
+    rank_columns:
+      - card_1_rank
+      - card_2_rank
+      - card_3_rank
+      - card_4_rank
+      - card_5_rank
   data_partition_ratio:
     training: 0.9
     evaluation: 0.1

@@ -2,32 +2,48 @@
   name: dnn
   path: implementations/models/dnn.py
   type: classification
-  target_column: label
-  feature_columns:
-    - image_pixels
-  hparams:
+  target_column: INT
+  inputs:
+    - FLOAT_LIST_COLUMN
+  base_hparams:
     learning_rate: 0.01
     input_shape: [784]
     output_shape: [10]
     hidden_units: [100, 200]
+
+- kind: trainer
+  model: dnn
+  name: dnn-small
+  transformer: decode_and_normalize
+  target_column: label
+  inputs:
+    - image_pixels
   data_partition_ratio:
     training: 0.7
     evaluation: 0.3
 
+
 - kind: model
-  name: conv
+  name: ffn
   path: implementations/models/custom.py
   type: classification
-  target_column: label
+  target_column: INT
   feature_columns:
-    - image_pixels
-  hparams:
+    - FLOAT_LIST_COLUMN
+  default_hparams:
     layer_type: conv
     learning_rate: 0.01
     input_shape: [28, 28, 1]
     output_shape: [10]
     kernel_size: 4
     hidden_units: [10, 10, 10]
+
+- kind: trainer
+  name: conv
+  model: ffn
+  target_column: label
+  feature_columns:
+    - image_pixels
   data_partition_ratio:
     training: 0.7
     evaluation: 0.3
@@ -39,13 +55,18 @@
 - kind: model
   name: t2t
   path: implementations/models/t2t.py
-  type: classification
-  target_column: label
+  target_column: INT
   feature_columns:
-    - image_pixels
+    - FLOAT_LIST_COLUMN
   prediction_key: outputs
   hparams:
     input_shape: [28, 28, 1]
+
+- kind: trainer
+  name: t2t
+  target_column: label
+  feature_columns:
+    - image_pixels
   data_partition_ratio:
     training: 0.7
     evaluation: 0.3
