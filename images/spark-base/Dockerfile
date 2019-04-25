@@ -39,7 +39,8 @@ RUN rm -rf ~/tf-ecosystem && git clone https://github.com/tensorflow/ecosystem.g
     mvn -f ~/tf-ecosystem/hadoop/pom.xml versions:set -DnewVersion=${TF_VERSION} -q && \
     mvn -f ~/tf-ecosystem/hadoop/pom.xml -Dmaven.test.skip=true clean install -q && \
     mvn -f ~/tf-ecosystem/spark/spark-tensorflow-connector/pom.xml versions:set -DnewVersion=${TF_VERSION} -q && \
-    mvn -f ~/tf-ecosystem/spark/spark-tensorflow-connector/pom.xml -Dmaven.test.skip=true clean install -Dspark.version=${SPARK_VERSION} -Dscala.binary.version=${SCALA_VERSION} -Dscala.test.version=${SCALATEST_VERSION} -q && \
+    mvn -f ~/tf-ecosystem/spark/spark-tensorflow-connector/pom.xml -Dmaven.test.skip=true clean install \
+        -Dspark.version=${SPARK_VERSION} -Dscala.binary.version=${SCALA_VERSION} -Dscala.test.version=${SCALATEST_VERSION} -q && \
     mv ~/tf-ecosystem/spark/spark-tensorflow-connector/target/spark-tensorflow-connector_2.11-${TF_VERSION}.jar $SPARK_HOME/jars/
 
 # Hadoop AWS
