@@ -1,0 +1,8 @@
+- kind: transformed_column
+  name: quality_bucketized
+  transformer: cortex.bucketize
+  inputs:
+    columns:
+      num: quality
+    args:
+      bucket_boundaries: [0, 5, 10]
