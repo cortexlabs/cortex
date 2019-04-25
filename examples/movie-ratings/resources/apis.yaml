@@ -1,5 +1,5 @@
 - kind: api
-  name: rating-predictor
+  name: ratings
   model_name: basic_embedding
   compute:
     replicas: 1
