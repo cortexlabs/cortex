@@ -19,7 +19,7 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 

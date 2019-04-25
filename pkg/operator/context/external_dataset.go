@@ -21,9 +21,10 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 func getOrSetDatasetVersion(appName string, ignoreCache bool) (string, error) {
@@ -35,20 +36,20 @@ func getOrSetDatasetVersion(appName string, ignoreCache bool) (string, error) {
 
 	if ignoreCache {
 		datasetVersion := libtime.Timestamp(time.Now())
-		err := aws.UploadStringToS3(datasetVersion, datasetVersionFileKey)
+		err := config.AWS.UploadStringToS3(datasetVersion, datasetVersionFileKey)
 		if err != nil {
 			return "", errors.Wrap(err, "dataset version") // unexpected error
 		}
 		return datasetVersion, nil
 	}
 
-	datasetVersion, err := aws.ReadStringFromS3(datasetVersionFileKey)
+	datasetVersion, err := config.AWS.ReadStringFromS3(datasetVersionFileKey)
 	if err != nil {
 		if !aws.IsNoSuchKeyErr(err) {
 			return "", errors.Wrap(err, "dataset version") // unexpected error
 		}
 		datasetVersion = libtime.Timestamp(time.Now())
-		err := aws.UploadStringToS3(datasetVersion, datasetVersionFileKey)
+		err := config.AWS.UploadStringToS3(datasetVersion, datasetVersionFileKey)
 		if err != nil {
 			return "", errors.Wrap(err, "dataset version") // unexpected error
 		}

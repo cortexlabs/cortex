@@ -172,7 +172,7 @@ func appInitFiles(appName string) map[string]string {
 		"resources/apis.yaml": `## Sample API:
 #
 # - kind: api
-#   name: my_api
+#   name: my-api
 #   model_name: my_model
 #   compute:
 #     replicas: 1
@@ -189,7 +189,7 @@ func appInitFiles(appName string) map[string]string {
 }
 `,
 
-		"implementations/models/model.py": `import tensorflow as tf
+		"implementations/models/my_model.py": `import tensorflow as tf
 
 
 def create_estimator(run_config, model_config):
@@ -246,7 +246,7 @@ def create_estimator(run_config, model_config):
 #       arg1: INT
 `,
 
-		"implementations/aggregators/aggregator.py": `def aggregate_spark(data, columns, args):
+		"implementations/aggregators/my_aggregator.py": `def aggregate_spark(data, columns, args):
     """Aggregate a column in a PySpark context.
 
     This function is required.
@@ -291,7 +291,7 @@ def create_estimator(run_config, model_config):
 #       arg2: FLOAT
 `,
 
-		"implementations/transformers/transformer.py": `def transform_spark(data, columns, args, transformed_column_name):
+		"implementations/transformers/my_transformer.py": `def transform_spark(data, columns, args, transformed_column_name):
     """Transform a column in a PySpark context.
 
     This function is optional (recommended for large-scale data processing).

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 type ErrorKind int

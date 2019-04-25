@@ -20,47 +20,14 @@ import (
 	"bytes"
 	"path/filepath"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/resource"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
-
-var builtinAggregators = make(map[string]*context.Aggregator)
-var uploadedAggregators = strset.New()
-
-func init() {
-	configPath := filepath.Join(OperatorAggregatorsDir, "aggregators.yaml")
-
-	config, err := userconfig.NewPartialPath(configPath)
-	if err != nil {
-		telemetry.ReportErrorBlocking(err)
-		errors.Exit(err)
-	}
-
-	for _, aggregatorConfig := range config.Aggregators {
-		implPath := filepath.Join(OperatorAggregatorsDir, aggregatorConfig.Path)
-		impl, err := files.ReadFileBytes(implPath)
-		if err != nil {
-			err := errors.Wrap(err, userconfig.Identify(aggregatorConfig))
-			telemetry.ReportErrorBlocking(err)
-			errors.Exit(err)
-		}
-		aggregator, err := newAggregator(*aggregatorConfig, impl, pointer.String("cortex"), nil)
-		if err != nil {
-			telemetry.ReportErrorBlocking(err)
-			errors.Exit(err)
-		}
-		builtinAggregators["cortex."+aggregatorConfig.Name] = aggregator
-	}
-}
 
 func loadUserAggregators(
 	aggregatorConfigs userconfig.Aggregators,
@@ -128,13 +95,13 @@ func uploadAggregator(aggregator *context.Aggregator, impl []byte) error {
 		return nil
 	}
 
-	isUploaded, err := aws.IsS3File(aggregator.ImplKey)
+	isUploaded, err := config.AWS.IsS3File(aggregator.ImplKey)
 	if err != nil {
 		return errors.Wrap(err, userconfig.Identify(aggregator), "upload")
 	}
 
 	if !isUploaded {
-		err = aws.UploadBytesToS3(impl, aggregator.ImplKey)
+		err = config.AWS.UploadBytesToS3(impl, aggregator.ImplKey)
 		if err != nil {
 			return errors.Wrap(err, userconfig.Identify(aggregator), "upload")
 		}

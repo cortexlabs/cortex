@@ -20,8 +20,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 // Bytes will trim to 63 characters because e.g. K8s labels must be < 64

@@ -19,14 +19,14 @@ package context
 import (
 	"bytes"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
 func getRawColumns(

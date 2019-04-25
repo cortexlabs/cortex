@@ -18,21 +18,20 @@ package cmd
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 	libstrings "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 func init() {
@@ -146,7 +145,7 @@ func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse
 	}
 
 	var predictResponse PredictResponse
-	err = libjson.Unmarshal(httpResponse, &predictResponse)
+	err = json.Unmarshal(httpResponse, &predictResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "prediction response")
 	}

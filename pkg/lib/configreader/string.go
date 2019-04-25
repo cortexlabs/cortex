@@ -20,11 +20,11 @@ import (
 	"io/ioutil"
 	"strings"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 type StringValidation struct {
