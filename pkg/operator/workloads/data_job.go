@@ -66,8 +66,6 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 
 	var allComputes []*userconfig.SparkCompute
 
-	allComputes = append(allComputes, userconfig.DefaultSparkCompute())
-
 	shouldIngest := !rawFileExists
 	if shouldIngest {
 		externalDataPath := ctx.Environment.Data.GetExternalPath()
@@ -138,12 +136,7 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 		}
 		trainingDatasets = append(trainingDatasets, modelName)
 		trainingDatasetIDs.Add(dataset.GetID())
-		dependencyIDs := ctx.AllComputedResourceDependencies(dataset.GetID())
-		for _, transformedColumn := range ctx.TransformedColumns {
-			if _, ok := dependencyIDs[transformedColumn.ID]; ok {
-				allComputes = append(allComputes, transformedColumn.Compute)
-			}
-		}
+		allComputes = append(allComputes, model.DatasetCompute)
 	}
 
 	resourceIDSet := strset.Union(rawColumnIDs, aggregateIDs, transformedColumnIDs, trainingDatasetIDs)

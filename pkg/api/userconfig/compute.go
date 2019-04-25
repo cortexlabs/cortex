@@ -45,103 +45,84 @@ type SparkCompute struct {
 	MemOverheadFactor   *float64  `json:"mem_overhead_factor" yaml:"mem_overhead_factor"`
 }
 
-var defaultSC *SparkCompute
-
-func DefaultSparkCompute() *SparkCompute {
-	if defaultSC != nil {
-		return defaultSC
-	}
-
-	defaultSC := &SparkCompute{
-		Executors:           1,
-		DriverCPU:           MustNewQuantity("1"),
-		DriverMem:           MustNewQuantity("500Mi"),
-		DriverMemOverhead:   nil,
-		ExecutorCPU:         MustNewQuantity("1"),
-		ExecutorMem:         MustNewQuantity("500Mi"),
-		ExecutorMemOverhead: nil,
-		MemOverheadFactor:   nil,
-	}
-
-	return defaultSC
-}
-
-var sparkComputeFieldValidation = &cr.StructFieldValidation{
-	StructField: "Compute",
-	StructValidation: &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
-			{
-				StructField: "Executors",
-				Int32Validation: &cr.Int32Validation{
-					Default:     1,
-					GreaterThan: pointer.Int32(0),
+func sparkComputeFieldValidation(fieldName string) *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: fieldName,
+		StructValidation: &cr.StructValidation{
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Executors",
+					Int32Validation: &cr.Int32Validation{
+						Default:     1,
+						GreaterThan: pointer.Int32(0),
+					},
 				},
-			},
-			{
-				StructField: "DriverCPU",
-				StringValidation: &cr.StringValidation{
-					Default: "1",
+				{
+					StructField: "DriverCPU",
+					StringValidation: &cr.StringValidation{
+						Default: "1",
+					},
+					Parser: QuantityParser(&QuantityValidation{
+						Min: k8sresource.MustParse("1"),
+					}),
 				},
-				Parser: QuantityParser(&QuantityValidation{
-					Min: k8sresource.MustParse("1"),
-				}),
-			},
-			{
-				StructField: "ExecutorCPU",
-				StringValidation: &cr.StringValidation{
-					Default: "1",
+				{
+					StructField: "ExecutorCPU",
+					StringValidation: &cr.StringValidation{
+						Default: "1",
+					},
+					Parser: QuantityParser(&QuantityValidation{
+						Min: k8sresource.MustParse("1"),
+						Int: true,
+					}),
 				},
-				Parser: QuantityParser(&QuantityValidation{
-					Min: k8sresource.MustParse("1"),
-					Int: true,
-				}),
-			},
-			{
-				StructField: "DriverMem",
-				StringValidation: &cr.StringValidation{
-					Default: "500Mi",
+				{
+					StructField: "DriverMem",
+					StringValidation: &cr.StringValidation{
+						Default: "500Mi",
+					},
+					Parser: QuantityParser(&QuantityValidation{
+						Min: k8sresource.MustParse("500Mi"),
+					}),
 				},
-				Parser: QuantityParser(&QuantityValidation{
-					Min: k8sresource.MustParse("500Mi"),
-				}),
-			},
-			{
-				StructField: "ExecutorMem",
-				StringValidation: &cr.StringValidation{
-					Default: "500Mi",
+				{
+					StructField: "ExecutorMem",
+					StringValidation: &cr.StringValidation{
+						Default: "500Mi",
+					},
+					Parser: QuantityParser(&QuantityValidation{
+						Min: k8sresource.MustParse("500Mi"),
+					}),
 				},
-				Parser: QuantityParser(&QuantityValidation{
-					Min: k8sresource.MustParse("500Mi"),
-				}),
-			},
-			{
-				StructField: "DriverMemOverhead",
-				StringPtrValidation: &cr.StringPtrValidation{
-					Default: nil, // min(DriverMem * 0.4, 384Mi)
+				{
+					StructField: "DriverMemOverhead",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Default: nil, // min(DriverMem * 0.4, 384Mi)
+					},
+					Parser: QuantityParser(&QuantityValidation{
+						Min: k8sresource.MustParse("0"),
+					}),
 				},
-				Parser: QuantityParser(&QuantityValidation{
-					Min: k8sresource.MustParse("0"),
-				}),
-			},
-			{
-				StructField: "ExecutorMemOverhead",
-				StringPtrValidation: &cr.StringPtrValidation{
-					Default: nil, // min(ExecutorMem * 0.4, 384Mi)
+				{
+					StructField: "ExecutorMemOverhead",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Default: nil, // min(ExecutorMem * 0.4, 384Mi)
+					},
+					Parser: QuantityParser(&QuantityValidation{
+						Min: k8sresource.MustParse("0"),
+					}),
 				},
-				Parser: QuantityParser(&QuantityValidation{
-					Min: k8sresource.MustParse("0"),
-				}),
-			},
-			{
-				StructField: "MemOverheadFactor",
-				Float64PtrValidation: &cr.Float64PtrValidation{
-					Default:              nil, // set to 0.4 by Spark
-					GreaterThanOrEqualTo: pointer.Float64(0),
-					LessThan:             pointer.Float64(1),
+				{
+					StructField: "MemOverheadFactor",
+					Float64PtrValidation: &cr.Float64PtrValidation{
+						Default:              nil, // set to 0.4 by Spark
+						GreaterThanOrEqualTo: pointer.Float64(0),
+						LessThan:             pointer.Float64(1),
+					},
 				},
 			},
 		},
-	},
+	}
 }
 
 func (sparkCompute *SparkCompute) ID() string {
