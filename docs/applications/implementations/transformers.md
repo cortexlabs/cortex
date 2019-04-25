@@ -86,7 +86,7 @@ def reverse_transform_python(transformed_value, args):
 The following packages have been pre-installed and can be used in your implementations:
 
 ```text
-pyspark==2.4.1
+pyspark==2.4.2
 boto3==1.9.78
 msgpack==0.6.1
 numpy>=1.13.3,<2
