@@ -28,13 +28,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/operator/argo"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
-	"github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
@@ -44,10 +44,29 @@ const (
 	cronInterval          = 5  // seconds
 )
 
-var markedWorkflows = strset.New()
+var (
+	awsClient       *aws.Client
+	telemtryClient  *telemetry.Client
+	markedWorkflows = strset.New()
+)
 
 func main() {
-	telemetry.ReportEvent("operator.init")
+	if err := config.Init(); err != nil {
+		config.Telemetry.ReportErrorBlocking(err)
+		errors.Exit(err)
+	}
+
+	if err := context.Init(); err != nil {
+		config.Telemetry.ReportErrorBlocking(err)
+		errors.Exit(err)
+	}
+
+	if err := workloads.Init(); err != nil {
+		config.Telemetry.ReportErrorBlocking(err)
+		errors.Exit(err)
+	}
+
+	config.Telemetry.ReportEvent("operator.init")
 	startCron()
 
 	router := mux.NewRouter()
@@ -88,7 +107,7 @@ func authMiddleware(next http.Handler) http.Handler {
 		}
 
 		accessKeyID, secretAccessKey := parts[0], parts[1]
-		authed, err := aws.AuthUser(accessKeyID, secretAccessKey)
+		authed, err := config.AWS.AuthUser(accessKeyID, secretAccessKey)
 		if err != nil {
 			endpoints.RespondError(w, endpoints.ErrorAuthAPIError())
 			return
@@ -123,35 +142,35 @@ func startCron() {
 
 func runCron() {
 	defer reportAndRecover("cron failed")
-	apiPods, err := k8s.ListPodsByLabels(map[string]string{
+	apiPods, err := config.Kubernetes.ListPodsByLabels(map[string]string{
 		"workloadType": workloads.WorkloadTypeAPI,
 		"userFacing":   "true",
 	})
 	if err != nil {
-		telemetry.ReportError(err)
+		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
 	if err := workloads.UpdateAPISavedStatuses(apiPods); err != nil {
-		telemetry.ReportError(err)
+		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
 	if err := workloads.UploadLogPrefixesFromAPIPods(apiPods); err != nil {
-		telemetry.ReportError(err)
+		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
-	failedPods, err := k8s.ListPods(&metav1.ListOptions{
+	failedPods, err := config.Kubernetes.ListPods(&metav1.ListOptions{
 		FieldSelector: "status.phase=Failed",
 	})
 	if err != nil {
-		telemetry.ReportError(err)
+		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
 	if err := workloads.UpdateDataWorkflowErrors(failedPods); err != nil {
-		telemetry.ReportError(err)
+		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 }
@@ -161,7 +180,7 @@ func deleteWorkflowDelayed(wfName string) {
 	if !markedWorkflows.Has(wfName) {
 		markedWorkflows.Add(wfName)
 		time.Sleep(deletionDelay)
-		argo.Delete(wfName)
+		config.Argo.Delete(wfName)
 		go deleteMarkerDelayed(markedWorkflows, wfName)
 	}
 }
@@ -175,7 +194,7 @@ func deleteMarkerDelayed(markerMap strset.Set, key string) {
 func reportAndRecover(strs ...string) error {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
-		telemetry.ReportError(err)
+		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
 		return err
 	}

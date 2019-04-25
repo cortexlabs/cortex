@@ -17,10 +17,10 @@ limitations under the License.
 package workloads
 
 import (
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/resource"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 func GetCurrentDataStatuses(ctx *context.Context) (map[string]*resource.DataStatus, error) {
@@ -158,7 +158,7 @@ func didSparkShortCircuit(dataStatuses map[string]*resource.DataStatus, ctx *con
 }
 
 func setInsufficientComputeDataStatusCodes(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) error {
-	stalledPods, err := k8s.StalledPods()
+	stalledPods, err := config.Kubernetes.StalledPods()
 	if err != nil {
 		return err
 	}

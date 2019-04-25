@@ -20,47 +20,14 @@ import (
 	"bytes"
 	"path/filepath"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/resource"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
-	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
-
-var builtinTransformers = make(map[string]*context.Transformer)
-var uploadedTransformers = strset.New()
-
-func init() {
-	configPath := filepath.Join(OperatorTransformersDir, "transformers.yaml")
-
-	config, err := userconfig.NewPartialPath(configPath)
-	if err != nil {
-		telemetry.ReportErrorBlocking(err)
-		errors.Exit(err)
-	}
-
-	for _, transConfig := range config.Transformers {
-		implPath := filepath.Join(OperatorTransformersDir, transConfig.Path)
-		impl, err := files.ReadFileBytes(implPath)
-		if err != nil {
-			err = errors.Wrap(err, userconfig.Identify(transConfig))
-			telemetry.ReportErrorBlocking(err)
-			errors.Exit(err)
-		}
-		transformer, err := newTransformer(*transConfig, impl, pointer.String("cortex"), nil)
-		if err != nil {
-			telemetry.ReportErrorBlocking(err)
-			errors.Exit(err)
-		}
-		builtinTransformers["cortex."+transConfig.Name] = transformer
-	}
-}
 
 func loadUserTransformers(
 	transConfigs userconfig.Transformers,
@@ -127,13 +94,13 @@ func uploadTransformer(transformer *context.Transformer, impl []byte) error {
 		return nil
 	}
 
-	isUploaded, err := aws.IsS3File(transformer.ImplKey)
+	isUploaded, err := config.AWS.IsS3File(transformer.ImplKey)
 	if err != nil {
 		return errors.Wrap(err, userconfig.Identify(transformer), "upload")
 	}
 
 	if !isUploaded {
-		err = aws.UploadBytesToS3(impl, transformer.ImplKey)
+		err = config.AWS.UploadBytesToS3(impl, transformer.ImplKey)
 		if err != nil {
 			return errors.Wrap(err, userconfig.Identify(transformer), "upload")
 		}

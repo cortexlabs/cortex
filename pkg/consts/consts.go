@@ -52,4 +52,6 @@ var (
 	ResourceStatusesDir = "resource_statuses"
 	WorkloadSpecsDir    = "workload_specs"
 	LogPrefixesDir      = "log_prefixes"
+
+	TelemetryURL = "https://telemetry.cortexlabs.dev"
 )

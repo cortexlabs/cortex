@@ -1,0 +1,69 @@
+- kind: environment
+  name: dev
+  data:
+    type: csv
+    path: s3a://cortex-examples/wine-quality.csv
+    csv_config:
+      header: true
+      sep: ';'
+    schema: [fixed_acidity, volatile_acidity, citric_acid, residual_sugar, chlorides, free_sulfur_dioxide, total_sulfur_dioxide, density, pH, sulphates, alcohol, quality]
+
+- kind: raw_column
+  name: fixed_acidity
+  type: FLOAT_COLUMN
+  required: true
+
+- kind: raw_column
+  name: volatile_acidity
+  type: FLOAT_COLUMN
+  required: true
+
+- kind: raw_column
+  name: citric_acid
+  type: FLOAT_COLUMN
+  required: true
+
+- kind: raw_column
+  name: residual_sugar
+  type: FLOAT_COLUMN
+  required: true
+
+- kind: raw_column
+  name: chlorides
+  type: FLOAT_COLUMN
+  required: true
+
+- kind: raw_column
+  name: free_sulfur_dioxide
+  type: FLOAT_COLUMN
+  required: true
+
+- kind: raw_column
+  name: total_sulfur_dioxide
+  type: FLOAT_COLUMN
+  required: true
+
+- kind: raw_column
+  name: density
+  type: FLOAT_COLUMN
+  required: true
+
+- kind: raw_column
+  name: pH
+  type: FLOAT_COLUMN
+  required: true
+
+- kind: raw_column
+  name: sulphates
+  type: FLOAT_COLUMN
+  required: true
+
+- kind: raw_column
+  name: alcohol
+  type: FLOAT_COLUMN
+  required: true
+
+- kind: raw_column
+  name: quality
+  type: INT_COLUMN
+  required: true

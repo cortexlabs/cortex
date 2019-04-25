@@ -21,14 +21,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/resource"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 func findCustomPackages(files map[string][]byte) []string {
@@ -70,7 +70,7 @@ func loadPythonPackages(files map[string][]byte, datasetVersion string) (context
 			PackageKey: filepath.Join(consts.PythonPackagesDir, id, "package.zip"),
 		}
 
-		if err := aws.UploadBytesToS3(reqFileBytes, pythonPackage.SrcKey); err != nil {
+		if err := config.AWS.UploadBytesToS3(reqFileBytes, pythonPackage.SrcKey); err != nil {
 			return nil, errors.Wrap(err, "upload", "requirements")
 		}
 
@@ -117,7 +117,7 @@ func loadPythonPackages(files map[string][]byte, datasetVersion string) (context
 			return nil, errors.Wrap(err, "zip", packageName)
 		}
 
-		if err := aws.UploadBytesToS3(zipBytes, pythonPackage.SrcKey); err != nil {
+		if err := config.AWS.UploadBytesToS3(zipBytes, pythonPackage.SrcKey); err != nil {
 			return nil, errors.Wrap(err, "upload", packageName)
 		}
 

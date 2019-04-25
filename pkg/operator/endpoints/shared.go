@@ -22,10 +22,10 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/cortexlabs/cortex/pkg/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
+	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 func Respond(w http.ResponseWriter, response interface{}) {
@@ -59,7 +59,7 @@ func RespondIfError(w http.ResponseWriter, err error, strs ...string) bool {
 func RecoverAndRespond(w http.ResponseWriter, strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
-		telemetry.ReportError(err)
+		config.Telemetry.ReportError(err)
 		RespondError(w, err)
 	}
 }

@@ -26,7 +26,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 )
 
 var cachedCliConfig *CliConfig
@@ -182,7 +182,7 @@ func configure() *CliConfig {
 		errors.Exit(err)
 	}
 
-	err = libjson.WriteJSON(cachedCliConfig, configPath())
+	err = json.WriteJSON(cachedCliConfig, configPath())
 	if err != nil {
 		errors.Exit(err)
 	}
