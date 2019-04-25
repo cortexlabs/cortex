@@ -11,7 +11,7 @@ RUN apt-get update -qq && apt-get install -y -q \
 RUN mkdir -p /opt
 
 ARG HADOOP_VERSION="2.9.2"
-ARG SPARK_VERSION="2.4.1"
+ARG SPARK_VERSION="2.4.2"
 ARG TF_VERSION="1.12.0"
 # Check aws-java-sdk-bundle dependency version: https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws/$HADOOP_VERSION
 ARG AWS_JAVA_SDK_VERSION="1.11.199"
