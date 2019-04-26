@@ -45,7 +45,7 @@ type SparkCompute struct {
 	MemOverheadFactor   *float64  `json:"mem_overhead_factor" yaml:"mem_overhead_factor"`
 }
 
-var sparkComputeStructValidation = cr.StructValidation{
+var sparkComputeStructValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
 			StructField: "Executors",
@@ -123,7 +123,7 @@ var sparkComputeStructValidation = cr.StructValidation{
 func sparkComputeFieldValidation(fieldName string) *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField:      fieldName,
-		StructValidation: &sparkComputeStructValidation,
+		StructValidation: sparkComputeStructValidation,
 	}
 }
 

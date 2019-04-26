@@ -251,6 +251,7 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 		}
 		trainingDatasets = append(trainingDatasets, modelName)
 		trainingDatasetIDs.Add(dataset.GetID())
+		dependencyIDs := ctx.AllComputedResourceDependencies(dataset.GetID())
 		for _, transformedColumn := range ctx.TransformedColumns {
 			if _, ok := dependencyIDs[transformedColumn.ID]; ok {
 				allComputes = append(allComputes, transformedColumn.Compute)
