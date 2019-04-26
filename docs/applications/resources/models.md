@@ -41,12 +41,12 @@ Train custom TensorFlow models at scale.
     start_delay_secs: <int>  # start evaluating after waiting for this many seconds (default: 120)
     throttle_secs: <int>  # do not re-evaluate unless the last evaluation was started at least this many seconds ago (default: 600)
 
-  compute:         # Resources for training and evaluations steps
+  compute:         # Resources for training and evaluations steps (Tensorflow)
     cpu: <string>  # CPU request (default: Null)
     mem: <string>  # memory request (default: Null)
     gpu: <string>  # GPU request (default: Null)
 
-  dataset_compute:      # Resources for constructing training dataset
+  dataset_compute:      # Resources for constructing training dataset (Spark)
       executors: <int>  # number of spark executors (default: 1)
       driver_cpu: <string>  # CPU request for spark driver (default: 1)
       driver_mem: <string>  # memory request for spark driver (default: 500Mi)

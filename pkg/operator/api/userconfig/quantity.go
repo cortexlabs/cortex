@@ -30,15 +30,6 @@ type Quantity struct {
 	UserString string
 }
 
-func MustNewQuantity(str string) Quantity {
-	k8sQuantity := k8sresource.MustParse(str)
-
-	return Quantity{
-		Quantity:   k8sQuantity,
-		UserString: str,
-	}
-}
-
 type QuantityValidation struct {
 	Min k8sresource.Quantity
 	Int bool
