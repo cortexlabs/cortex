@@ -1,0 +1,15 @@
+- kind: model
+  name: basic_embedding
+  type: regression
+  target_column: rating
+  feature_columns: [user_id_indexed, movie_id_indexed]
+  aggregates: [user_id_index, movie_id_index]
+  hparams:
+    embedding_size: 10
+    hidden_units: [128]
+  data_partition_ratio:
+    training: 0.8
+    evaluation: 0.2
+  training:
+    batch_size: 50
+    num_steps: 8000

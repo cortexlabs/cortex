@@ -11,8 +11,12 @@ RUN apt-get update -qq && apt-get install -y -q \
 RUN mkdir -p /opt
 
 ARG HADOOP_VERSION="2.9.2"
-ARG SPARK_VERSION="2.4.1"
+ARG SPARK_VERSION="2.4.2"
 ARG TF_VERSION="1.12.0"
+# Required for building tensorflow spark connector
+ARG SCALA_VERSION="2.12"
+# Scalatest version from https://github.com/apache/spark/blob/v2.4.2/pom.xml
+ARG SCALATEST_VERSION="3.0.3"
 # Check aws-java-sdk-bundle dependency version: https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws/$HADOOP_VERSION
 ARG AWS_JAVA_SDK_VERSION="1.11.199"
 
@@ -34,7 +38,8 @@ RUN rm -rf ~/tf-ecosystem && git clone https://github.com/tensorflow/ecosystem.g
     mvn -f ~/tf-ecosystem/hadoop/pom.xml versions:set -DnewVersion=${TF_VERSION} -q && \
     mvn -f ~/tf-ecosystem/hadoop/pom.xml -Dmaven.test.skip=true clean install -q && \
     mvn -f ~/tf-ecosystem/spark/spark-tensorflow-connector/pom.xml versions:set -DnewVersion=${TF_VERSION} -q && \
-    mvn -f ~/tf-ecosystem/spark/spark-tensorflow-connector/pom.xml -Dmaven.test.skip=true clean install -Dspark.version=${SPARK_VERSION} -q && \
+    mvn -f ~/tf-ecosystem/spark/spark-tensorflow-connector/pom.xml -Dmaven.test.skip=true clean install \
+        -Dspark.version=${SPARK_VERSION} -Dscala.binary.version=${SCALA_VERSION} -Dscala.test.version=${SCALATEST_VERSION} -q && \
     mv ~/tf-ecosystem/spark/spark-tensorflow-connector/target/spark-tensorflow-connector_2.11-${TF_VERSION}.jar $SPARK_HOME/jars/
 
 # Hadoop AWS
