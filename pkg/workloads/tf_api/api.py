@@ -225,6 +225,11 @@ def prediction_failed(sample, reason=None):
     return message, status.HTTP_406_NOT_ACCEPTABLE
 
 
+@app.route("/healthz", methods=["GET"])
+def health():
+    return jsonify({"ok": True})
+
+
 @app.route("/<app_name>/<api_name>", methods=["POST"])
 def predict(app_name, api_name):
     try:

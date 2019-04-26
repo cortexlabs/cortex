@@ -22,8 +22,8 @@ const (
 	workloadTypeTrain          = "training-job"
 	workloadTypePythonPackager = "python-packager"
 
-	defaultPortInt32, defaultPortStr = int32(8888), "8888"
-	tfServingPortStr                 = "9000"
+	defaultPortInt32, defaultPortStr     = int32(8888), "8888"
+	tfServingPortInt32, tfServingPortStr = int32(9000), "9000"
 
 	userFacingCheckInterval = 1 // seconds
 )
