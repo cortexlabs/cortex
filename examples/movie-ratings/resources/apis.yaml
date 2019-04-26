@@ -1,0 +1,5 @@
+- kind: api
+  name: ratings
+  model_name: basic_embedding
+  compute:
+    replicas: 1
