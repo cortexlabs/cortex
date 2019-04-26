@@ -96,7 +96,7 @@ var rawIntColumnFieldValidations = []*cr.StructFieldValidation{
 			AllowNull: true,
 		},
 	},
-	sparkComputeFieldValidation,
+	sparkComputeFieldValidation("Compute"),
 	tagsFieldValidation,
 	typeFieldValidation,
 }
@@ -145,7 +145,7 @@ var rawFloatColumnFieldValidations = []*cr.StructFieldValidation{
 			AllowNull: true,
 		},
 	},
-	sparkComputeFieldValidation,
+	sparkComputeFieldValidation("Compute"),
 	tagsFieldValidation,
 	typeFieldValidation,
 }
@@ -182,7 +182,7 @@ var rawStringColumnFieldValidations = []*cr.StructFieldValidation{
 			AllowNull: true,
 		},
 	},
-	sparkComputeFieldValidation,
+	sparkComputeFieldValidation("Compute"),
 	tagsFieldValidation,
 	typeFieldValidation,
 }

@@ -51,7 +51,7 @@ var aggregateValidation = &cr.StructValidation{
 			},
 		},
 		inputValuesFieldValidation,
-		sparkComputeFieldValidation,
+		sparkComputeFieldValidation("Compute"),
 		tagsFieldValidation,
 		typeFieldValidation,
 	},

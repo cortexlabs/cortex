@@ -257,6 +257,7 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 				allComputes = append(allComputes, transformedColumn.Compute)
 			}
 		}
+		allComputes = append(allComputes, model.DatasetCompute)
 	}
 
 	resourceIDSet := strset.Union(rawColumnIDs, aggregateIDs, transformedColumnIDs, trainingDatasetIDs)
