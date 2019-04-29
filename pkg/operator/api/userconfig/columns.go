@@ -22,7 +22,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type Column interface {
@@ -80,7 +80,7 @@ func ValidateColumnInputsExistAndRaw(columnInputValues map[string]interface{}, c
 			}
 			continue
 		}
-		return errors.Wrap(configreader.ErrorInvalidPrimitiveType(columnInputValue, s.PrimTypeString, s.PrimTypeStringList), columnInputName) // unexpected
+		return errors.Wrap(configreader.ErrorInvalidPrimitiveType(columnInputValue, configreader.PrimTypeString, configreader.PrimTypeStringList), columnInputName) // unexpected
 	}
 	return nil
 }

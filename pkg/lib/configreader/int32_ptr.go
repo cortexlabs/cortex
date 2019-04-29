@@ -21,7 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type Int32PtrValidation struct {
@@ -52,7 +52,7 @@ func Int32Ptr(inter interface{}, v *Int32PtrValidation) (*int32, error) {
 	}
 	casted, castOk := cast.InterfaceToInt32(inter)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeInt)
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeInt)
 	}
 	return ValidateInt32Ptr(&casted, v)
 }
@@ -95,7 +95,7 @@ func Int32PtrFromStr(valStr string, v *Int32PtrValidation) (*int32, error) {
 	}
 	casted, castOk := s.ParseInt32(valStr)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(valStr, s.PrimTypeInt)
+		return nil, ErrorInvalidPrimitiveType(valStr, PrimTypeInt)
 	}
 	return ValidateInt32Ptr(&casted, v)
 }
@@ -105,13 +105,13 @@ func Int32PtrFromEnv(envVarName string, v *Int32PtrValidation) (*int32, error) {
 	if valStr == nil || *valStr == "" {
 		val, err := ValidateInt32PtrMissing(v)
 		if err != nil {
-			return nil, errors.Wrap(err, s.EnvVar(envVarName))
+			return nil, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := Int32PtrFromStr(*valStr, v)
 	if err != nil {
-		return nil, errors.Wrap(err, s.EnvVar(envVarName))
+		return nil, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }

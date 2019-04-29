@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type MyFloat float64
@@ -256,4 +256,32 @@ func TestObj(t *testing.T) {
 	require.Equal(t, test3SubStrMultiline, s.Obj(testInterface))
 	require.Equal(t, test3SubStrMultiline, s.Obj(&testInterface))
 
+}
+
+func TestRound(t *testing.T) {
+	require.Equal(t, strings.Round(1.111, 2, false), "1.11")
+	require.Equal(t, strings.Round(1.111, 3, false), "1.111")
+	require.Equal(t, strings.Round(1.111, 4, false), "1.111")
+	require.Equal(t, strings.Round(1.555, 2, false), "1.56")
+	require.Equal(t, strings.Round(1.555, 3, false), "1.555")
+	require.Equal(t, strings.Round(1.555, 4, false), "1.555")
+	require.Equal(t, strings.Round(1.100, 2, false), "1.1")
+
+	require.Equal(t, strings.Round(1.111, 2, true), "1.11")
+	require.Equal(t, strings.Round(1.111, 3, true), "1.111")
+	require.Equal(t, strings.Round(1.111, 4, true), "1.1110")
+	require.Equal(t, strings.Round(1.555, 2, true), "1.56")
+	require.Equal(t, strings.Round(1.555, 3, true), "1.555")
+	require.Equal(t, strings.Round(1.555, 4, true), "1.5550")
+	require.Equal(t, strings.Round(1.100, 2, true), "1.10")
+
+	require.Equal(t, strings.Round(30, 0, true), "30")
+	require.Equal(t, strings.Round(2, 1, true), "2.0")
+	require.Equal(t, strings.Round(1, 2, true), "1.00")
+	require.Equal(t, strings.Round(20, 3, true), "20.000")
+
+	require.Equal(t, strings.Round(30, 0, false), "30")
+	require.Equal(t, strings.Round(2, 1, false), "2")
+	require.Equal(t, strings.Round(1, 2, false), "1")
+	require.Equal(t, strings.Round(20, 3, false), "20")
 }

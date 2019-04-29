@@ -19,7 +19,6 @@ package configreader
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 type BoolListValidation struct {
@@ -33,7 +32,7 @@ type BoolListValidation struct {
 func BoolList(inter interface{}, v *BoolListValidation) ([]bool, error) {
 	casted, castOk := cast.InterfaceToBoolSlice(inter)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeBoolList)
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeBoolList)
 	}
 	return ValidateBoolList(casted, v)
 }

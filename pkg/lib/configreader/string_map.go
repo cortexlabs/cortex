@@ -19,7 +19,6 @@ package configreader
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 type StringMapValidation struct {
@@ -33,7 +32,7 @@ type StringMapValidation struct {
 func StringMap(inter interface{}, v *StringMapValidation) (map[string]string, error) {
 	casted, castOk := cast.InterfaceToStrStrMap(inter)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeStringToStringMap)
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeStringToStringMap)
 	}
 	return ValidateStringMap(casted, v)
 }

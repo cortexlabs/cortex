@@ -25,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
@@ -61,12 +60,12 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		if newWf.Labels["ctxID"] == existingWf.Labels["ctxID"] {
 			prevCtx := workloads.CurrentContext(ctx.App.Name)
 			if context.APIResourcesAndComputesMatch(ctx, prevCtx) {
-				respondDeploy(w, s.ResDeploymentRunning)
+				respondDeploy(w, ResDeploymentRunning)
 				return
 			}
 		}
 		if !force {
-			respondDeploy(w, s.ResDifferentDeploymentRunning)
+			respondDeploy(w, ResDifferentDeploymentRunning)
 			return
 		}
 	}
@@ -83,21 +82,21 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	switch {
 	case isRunning && ignoreCache:
-		respondDeploy(w, s.ResDeploymentStoppedCacheDeletedDeploymentStarted)
+		respondDeploy(w, ResDeploymentStoppedCacheDeletedDeploymentStarted)
 	case isRunning && !ignoreCache && argo.NumTasks(newWf) == 0:
-		respondDeploy(w, s.ResDeploymentStoppedDeploymentUpToDate)
+		respondDeploy(w, ResDeploymentStoppedDeploymentUpToDate)
 	case isRunning && !ignoreCache && argo.NumTasks(newWf) != 0:
-		respondDeploy(w, s.ResDeploymentStoppedDeploymentStarted)
+		respondDeploy(w, ResDeploymentStoppedDeploymentStarted)
 	case !isRunning && ignoreCache:
-		respondDeploy(w, s.ResCachedDeletedDeploymentStarted)
+		respondDeploy(w, ResCachedDeletedDeploymentStarted)
 	case !isRunning && !ignoreCache && argo.NumTasks(newWf) == 0:
 		if existingWf != nil && existingWf.Labels["ctxID"] == newWf.Labels["ctxID"] {
-			respondDeploy(w, s.ResDeploymentUpToDate)
+			respondDeploy(w, ResDeploymentUpToDate)
 			return
 		}
-		respondDeploy(w, s.ResDeploymentUpdated)
+		respondDeploy(w, ResDeploymentUpdated)
 	case !isRunning && !ignoreCache && argo.NumTasks(newWf) != 0:
-		respondDeploy(w, s.ResDeploymentStarted)
+		respondDeploy(w, ResDeploymentStarted)
 	}
 }
 

@@ -21,7 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type Float64PtrValidation struct {
@@ -52,7 +52,7 @@ func Float64Ptr(inter interface{}, v *Float64PtrValidation) (*float64, error) {
 	}
 	casted, castOk := cast.InterfaceToFloat64(inter)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeFloat)
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeFloat)
 	}
 	return ValidateFloat64Ptr(&casted, v)
 }
@@ -95,7 +95,7 @@ func Float64PtrFromStr(valStr string, v *Float64PtrValidation) (*float64, error)
 	}
 	casted, castOk := s.ParseFloat64(valStr)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(valStr, s.PrimTypeFloat)
+		return nil, ErrorInvalidPrimitiveType(valStr, PrimTypeFloat)
 	}
 	return ValidateFloat64Ptr(&casted, v)
 }
@@ -105,13 +105,13 @@ func Float64PtrFromEnv(envVarName string, v *Float64PtrValidation) (*float64, er
 	if valStr == nil || *valStr == "" {
 		val, err := ValidateFloat64PtrMissing(v)
 		if err != nil {
-			return nil, errors.Wrap(err, s.EnvVar(envVarName))
+			return nil, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := Float64PtrFromStr(*valStr, v)
 	if err != nil {
-		return nil, errors.Wrap(err, s.EnvVar(envVarName))
+		return nil, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }

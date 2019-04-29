@@ -19,6 +19,7 @@ package strings
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 	"sort"
 	"strconv"
@@ -99,6 +100,22 @@ func Complex128(val complex128) string {
 
 func Uintptr(val uintptr) string {
 	return fmt.Sprint(val)
+}
+
+func Round(val float64, decimalPlaces int, pad bool) string {
+	rounded := math.Round(val*math.Pow10(decimalPlaces)) / math.Pow10(decimalPlaces)
+	str := strconv.FormatFloat(rounded, 'f', -1, 64)
+	if !pad || decimalPlaces == 0 {
+		return str
+	}
+	split := strings.Split(str, ".")
+	intVal := split[0]
+	decVal := ""
+	if len(split) > 1 {
+		decVal = split[1]
+	}
+	numZeros := decimalPlaces - len(decVal)
+	return intVal + "." + decVal + strings.Repeat("0", numZeros)
 }
 
 // This is similar to json.Marshal, but handles non-string keys (which we support). It should be valid YAML since we use it in templates

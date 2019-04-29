@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 func TestLongestCommonPrefix(t *testing.T) {

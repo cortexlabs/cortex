@@ -24,7 +24,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 type StringValidation struct {
@@ -45,7 +44,7 @@ func String(inter interface{}, v *StringValidation) (string, error) {
 	}
 	casted, castOk := inter.(string)
 	if !castOk {
-		return "", ErrorInvalidPrimitiveType(inter, s.PrimTypeString)
+		return "", ErrorInvalidPrimitiveType(inter, PrimTypeString)
 	}
 	return ValidateString(casted, v)
 }
@@ -91,13 +90,13 @@ func StringFromEnv(envVarName string, v *StringValidation) (string, error) {
 	if valStr == nil {
 		val, err := ValidateStringMissing(v)
 		if err != nil {
-			return "", errors.Wrap(err, s.EnvVar(envVarName))
+			return "", errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := StringFromStr(*valStr, v)
 	if err != nil {
-		return "", errors.Wrap(err, s.EnvVar(envVarName))
+		return "", errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }

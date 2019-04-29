@@ -22,7 +22,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type IntValidation struct {
@@ -42,7 +42,7 @@ func Int(inter interface{}, v *IntValidation) (int, error) {
 	}
 	casted, castOk := cast.InterfaceToInt(inter)
 	if !castOk {
-		return 0, ErrorInvalidPrimitiveType(inter, s.PrimTypeInt)
+		return 0, ErrorInvalidPrimitiveType(inter, PrimTypeInt)
 	}
 	return ValidateInt(casted, v)
 }
@@ -85,7 +85,7 @@ func IntFromStr(valStr string, v *IntValidation) (int, error) {
 	}
 	casted, castOk := s.ParseInt(valStr)
 	if !castOk {
-		return 0, ErrorInvalidPrimitiveType(valStr, s.PrimTypeInt)
+		return 0, ErrorInvalidPrimitiveType(valStr, PrimTypeInt)
 	}
 	return ValidateInt(casted, v)
 }
@@ -95,13 +95,13 @@ func IntFromEnv(envVarName string, v *IntValidation) (int, error) {
 	if valStr == nil || *valStr == "" {
 		val, err := ValidateIntMissing(v)
 		if err != nil {
-			return 0, errors.Wrap(err, s.EnvVar(envVarName))
+			return 0, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := IntFromStr(*valStr, v)
 	if err != nil {
-		return 0, errors.Wrap(err, s.EnvVar(envVarName))
+		return 0, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }

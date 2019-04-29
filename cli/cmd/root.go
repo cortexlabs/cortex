@@ -27,10 +27,10 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 var cmdStr string
@@ -130,7 +130,7 @@ func watchHeader() string {
 	timeStr := libtime.LocalHourNow()
 	width := getTerminalWidth()
 	numExtraChars := 4
-	padding := strings.Repeat(" ", libmath.MaxInt(width-len(cmdStr)-len(timeStr)-numExtraChars, 0))
+	padding := strings.Repeat(" ", slices.MaxInt(width-len(cmdStr)-len(timeStr)-numExtraChars, 0))
 	return fmt.Sprintf("$ %s  %s%s", cmdStr, padding, libtime.LocalHourNow())
 }
 

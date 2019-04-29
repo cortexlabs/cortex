@@ -23,7 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
@@ -118,7 +118,7 @@ func GetColumnRuntimeTypes(
 			continue
 		}
 
-		return nil, errors.Wrap(configreader.ErrorInvalidPrimitiveType(columnInputValue, s.PrimTypeString, s.PrimTypeStringList), inputName) // unexpected
+		return nil, errors.Wrap(configreader.ErrorInvalidPrimitiveType(columnInputValue, configreader.PrimTypeString, configreader.PrimTypeStringList), inputName) // unexpected
 	}
 
 	return columnRuntimeTypes, nil

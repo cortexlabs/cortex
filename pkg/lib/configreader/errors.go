@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type ErrorKind int
@@ -241,10 +241,10 @@ func ErrorMustBeGreaterThan(provided interface{}, boundary interface{}) error {
 	}
 }
 
-func ErrorInvalidPrimitiveType(provided interface{}, allowedTypes ...s.PrimitiveType) error {
+func ErrorInvalidPrimitiveType(provided interface{}, allowedTypes ...PrimitiveType) error {
 	return Error{
 		Kind:    ErrInvalidPrimitiveType,
-		message: fmt.Sprintf("%s: invalid type (expected %s)", s.UserStr(provided), s.StrsOr(s.PrimitiveTypes(allowedTypes).StringList())),
+		message: fmt.Sprintf("%s: invalid type (expected %s)", s.UserStr(provided), s.StrsOr(PrimitiveTypes(allowedTypes).StringList())),
 	}
 }
 

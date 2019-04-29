@@ -19,8 +19,7 @@ package userconfig
 import (
 	"sort"
 
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/interfaces"
+	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -34,18 +33,18 @@ type Aggregate struct {
 	Tags       Tags          `json:"tags" yaml:"tags"`
 }
 
-var aggregateValidation = &cr.StructValidation{
-	StructFieldValidations: []*cr.StructFieldValidation{
+var aggregateValidation = &configreader.StructValidation{
+	StructFieldValidations: []*configreader.StructFieldValidation{
 		{
 			StructField: "Name",
-			StringValidation: &cr.StringValidation{
+			StringValidation: &configreader.StringValidation{
 				Required:                   true,
 				AlphaNumericDashUnderscore: true,
 			},
 		},
 		{
 			StructField: "Aggregator",
-			StringValidation: &cr.StringValidation{
+			StringValidation: &configreader.StringValidation{
 				Required:                      true,
 				AlphaNumericDashDotUnderscore: true,
 			},
@@ -92,7 +91,7 @@ func (aggregates Aggregates) Get(name string) *Aggregate {
 }
 
 func (aggregate *Aggregate) InputColumnNames() []string {
-	inputs, _ := interfaces.FlattenAllStrValues(aggregate.Inputs.Columns)
+	inputs, _ := configreader.FlattenAllStrValues(aggregate.Inputs.Columns)
 	sort.Strings(inputs)
 	return inputs
 }

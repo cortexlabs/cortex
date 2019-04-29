@@ -21,7 +21,7 @@ import (
 	"math"
 
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 )
 

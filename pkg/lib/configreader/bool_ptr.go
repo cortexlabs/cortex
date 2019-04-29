@@ -20,7 +20,7 @@ import (
 	"io/ioutil"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type BoolPtrValidation struct {
@@ -35,7 +35,7 @@ func BoolPtr(inter interface{}, v *BoolPtrValidation) (*bool, error) {
 	}
 	casted, castOk := inter.(bool)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeBool)
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeBool)
 	}
 	return ValidateBoolPtr(&casted, v)
 }
@@ -78,7 +78,7 @@ func BoolPtrFromStr(valStr string, v *BoolPtrValidation) (*bool, error) {
 	}
 	casted, castOk := s.ParseBool(valStr)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(valStr, s.PrimTypeBool)
+		return nil, ErrorInvalidPrimitiveType(valStr, PrimTypeBool)
 	}
 	return ValidateBoolPtr(&casted, v)
 }
@@ -88,13 +88,13 @@ func BoolPtrFromEnv(envVarName string, v *BoolPtrValidation) (*bool, error) {
 	if valStr == nil || *valStr == "" {
 		val, err := ValidateBoolPtrMissing(v)
 		if err != nil {
-			return nil, errors.Wrap(err, s.EnvVar(envVarName))
+			return nil, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := BoolPtrFromStr(*valStr, v)
 	if err != nil {
-		return nil, errors.Wrap(err, s.EnvVar(envVarName))
+		return nil, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }
