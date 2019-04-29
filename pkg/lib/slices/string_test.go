@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package slices_test
+package slices
 
 import (
 	"testing"
@@ -30,35 +30,35 @@ func TestStrSliceElementsMatch(t *testing.T) {
 
 	strs1 = []string{}
 	strs2 = []string{}
-	require.True(t, slices.StrSliceElementsMatch(strs1, strs2))
+	require.True(t, StrSliceElementsMatch(strs1, strs2))
 
 	strs1 = []string{"1"}
 	strs2 = []string{"1"}
-	require.True(t, slices.StrSliceElementsMatch(strs1, strs2))
+	require.True(t, StrSliceElementsMatch(strs1, strs2))
 
 	strs1 = []string{"1", "2", "3"}
 	strs2 = []string{"1", "2", "3"}
-	require.True(t, slices.StrSliceElementsMatch(strs1, strs2))
+	require.True(t, StrSliceElementsMatch(strs1, strs2))
 
 	strs1 = []string{"1", "2", "3"}
 	strs2 = []string{"1", "2", "3", "4"}
-	require.False(t, slices.StrSliceElementsMatch(strs1, strs2))
+	require.False(t, StrSliceElementsMatch(strs1, strs2))
 
 	strs1 = []string{"1", "2", "3"}
 	strs2 = []string{"1", "4", "3"}
-	require.False(t, slices.StrSliceElementsMatch(strs1, strs2))
+	require.False(t, StrSliceElementsMatch(strs1, strs2))
 
 	strs1 = []string{"1", "2", "3"}
 	strs2 = []string{"3", "2", "1"}
-	require.True(t, slices.StrSliceElementsMatch(strs1, strs2))
+	require.True(t, StrSliceElementsMatch(strs1, strs2))
 
 	strs1 = []string{"2", "1", "2", "3"}
 	strs2 = []string{"3", "2", "1", "2"}
-	require.True(t, slices.StrSliceElementsMatch(strs1, strs2))
+	require.True(t, StrSliceElementsMatch(strs1, strs2))
 	require.Equal(t, []string{"2", "1", "2", "3"}, strs1) // ensure sort didn't get applied
 	require.Equal(t, []string{"3", "2", "1", "2"}, strs2) // ensure sort didn't get applied
 
 	strs1 = []string{"2", "1", "2", "3"}
 	strs2 = []string{"3", "2", "1"}
-	require.False(t, slices.StrSliceElementsMatch(strs1, strs2))
+	require.False(t, StrSliceElementsMatch(strs1, strs2))
 }

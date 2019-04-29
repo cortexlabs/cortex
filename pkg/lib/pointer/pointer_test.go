@@ -14,18 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package pointer_test
+package pointer
 
 import (
 	"testing"
-
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 )
 
 func TestIndirectSafe(t *testing.T) {
-	pointer.IndirectSafe(nil)
-	pointer.IndirectSafe("")
-	pointer.IndirectSafe([]string{})
+	IndirectSafe(nil)
+	IndirectSafe("")
+	IndirectSafe([]string{})
 	var s []string
-	pointer.IndirectSafe(s)
+	IndirectSafe(s)
 }

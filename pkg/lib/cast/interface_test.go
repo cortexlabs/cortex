@@ -14,14 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cast_test
+package cast
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/cortexlabs/cortex/pkg/lib/cast"
 )
 
 func TestInterfaceToInterfaceSlice(t *testing.T) {
@@ -29,16 +27,16 @@ func TestInterfaceToInterfaceSlice(t *testing.T) {
 	slice2 := []interface{}{"test1", "test2", "test3"}
 	var ok bool
 
-	_, ok = cast.InterfaceToInterfaceSlice(slice1)
+	_, ok = InterfaceToInterfaceSlice(slice1)
 	require.True(t, ok)
 
-	_, ok = cast.InterfaceToInterfaceSlice(slice2)
+	_, ok = InterfaceToInterfaceSlice(slice2)
 	require.True(t, ok)
 
-	_, ok = cast.InterfaceToStrSlice(slice1)
+	_, ok = InterfaceToStrSlice(slice1)
 	require.True(t, ok)
 
-	_, ok = cast.InterfaceToStrSlice(slice2)
+	_, ok = InterfaceToStrSlice(slice2)
 	require.True(t, ok)
 }
 
@@ -46,19 +44,19 @@ func TestInterfaceToFloat64(t *testing.T) {
 	var out float64
 	var ok bool
 
-	out, ok = cast.InterfaceToFloat64(float64(1.1))
+	out, ok = InterfaceToFloat64(float64(1.1))
 	require.True(t, ok)
 	require.Equal(t, float64(1.1), out)
 
-	out, ok = cast.InterfaceToFloat64(float32(2.2))
+	out, ok = InterfaceToFloat64(float32(2.2))
 	require.True(t, ok)
 	require.Equal(t, float64(float32(2.2)), out)
 
-	out, ok = cast.InterfaceToFloat64(int(3))
+	out, ok = InterfaceToFloat64(int(3))
 	require.True(t, ok)
 	require.Equal(t, float64(3), out)
 
-	_, ok = cast.InterfaceToFloat64("test")
+	_, ok = InterfaceToFloat64("test")
 	require.False(t, ok)
 }
 
@@ -66,33 +64,33 @@ func TestInterfaceToIntDowncast(t *testing.T) {
 	var out int
 	var ok bool
 
-	out, ok = cast.InterfaceToIntDowncast(int(1))
+	out, ok = InterfaceToIntDowncast(int(1))
 	require.True(t, ok)
 	require.Equal(t, int(1), out)
 
-	out, ok = cast.InterfaceToIntDowncast(float32(2))
+	out, ok = InterfaceToIntDowncast(float32(2))
 	require.True(t, ok)
 	require.Equal(t, int(2), out)
 
-	out, ok = cast.InterfaceToIntDowncast(float32(2.0))
+	out, ok = InterfaceToIntDowncast(float32(2.0))
 	require.True(t, ok)
 	require.Equal(t, int(2), out)
 
-	_, ok = cast.InterfaceToIntDowncast(float32(2.2))
+	_, ok = InterfaceToIntDowncast(float32(2.2))
 	require.False(t, ok)
 
-	out, ok = cast.InterfaceToIntDowncast(float64(3))
+	out, ok = InterfaceToIntDowncast(float64(3))
 	require.True(t, ok)
 	require.Equal(t, int(3), out)
 
-	out, ok = cast.InterfaceToIntDowncast(float64(3.0))
+	out, ok = InterfaceToIntDowncast(float64(3.0))
 	require.True(t, ok)
 	require.Equal(t, int(3), out)
 
-	_, ok = cast.InterfaceToIntDowncast(float64(3.3))
+	_, ok = InterfaceToIntDowncast(float64(3.3))
 	require.False(t, ok)
 
-	_, ok = cast.InterfaceToIntDowncast("test")
+	_, ok = InterfaceToIntDowncast("test")
 	require.False(t, ok)
 }
 
@@ -100,14 +98,14 @@ func TestInterfaceToInt(t *testing.T) {
 	var out int
 	var ok bool
 
-	out, ok = cast.InterfaceToInt(int(1))
+	out, ok = InterfaceToInt(int(1))
 	require.True(t, ok)
 	require.Equal(t, int(1), out)
 
-	_, ok = cast.InterfaceToInt(float32(2))
+	_, ok = InterfaceToInt(float32(2))
 	require.False(t, ok)
 
-	_, ok = cast.InterfaceToInt("test")
+	_, ok = InterfaceToInt("test")
 	require.False(t, ok)
 }
 
@@ -115,36 +113,36 @@ func TestInterfaceToInt8Downcast(t *testing.T) {
 	var out int8
 	var ok bool
 
-	out, ok = cast.InterfaceToInt8Downcast(int(1))
+	out, ok = InterfaceToInt8Downcast(int(1))
 	require.True(t, ok)
 	require.Equal(t, int8(1), out)
 
-	out, ok = cast.InterfaceToInt8Downcast(float32(2))
+	out, ok = InterfaceToInt8Downcast(float32(2))
 	require.True(t, ok)
 	require.Equal(t, int8(2), out)
 
-	out, ok = cast.InterfaceToInt8Downcast(float32(2.0))
+	out, ok = InterfaceToInt8Downcast(float32(2.0))
 	require.True(t, ok)
 	require.Equal(t, int8(2), out)
 
-	_, ok = cast.InterfaceToInt8Downcast(float32(2.2))
+	_, ok = InterfaceToInt8Downcast(float32(2.2))
 	require.False(t, ok)
 
-	out, ok = cast.InterfaceToInt8Downcast(float64(3))
+	out, ok = InterfaceToInt8Downcast(float64(3))
 	require.True(t, ok)
 	require.Equal(t, int8(3), out)
 
-	out, ok = cast.InterfaceToInt8Downcast(float64(3.0))
+	out, ok = InterfaceToInt8Downcast(float64(3.0))
 	require.True(t, ok)
 	require.Equal(t, int8(3), out)
 
-	_, ok = cast.InterfaceToInt8Downcast(float64(3.3))
+	_, ok = InterfaceToInt8Downcast(float64(3.3))
 	require.False(t, ok)
 
-	_, ok = cast.InterfaceToInt8Downcast("test")
+	_, ok = InterfaceToInt8Downcast("test")
 	require.False(t, ok)
 
-	_, ok = cast.InterfaceToInt8Downcast(int(999999))
+	_, ok = InterfaceToInt8Downcast(int(999999))
 	require.False(t, ok)
 }
 
@@ -152,14 +150,14 @@ func TestInterfaceToInt8(t *testing.T) {
 	var out int8
 	var ok bool
 
-	out, ok = cast.InterfaceToInt8(int(1))
+	out, ok = InterfaceToInt8(int(1))
 	require.True(t, ok)
 	require.Equal(t, int8(1), out)
 
-	_, ok = cast.InterfaceToInt8(float32(2))
+	_, ok = InterfaceToInt8(float32(2))
 	require.False(t, ok)
 
-	_, ok = cast.InterfaceToInt8("test")
+	_, ok = InterfaceToInt8("test")
 	require.False(t, ok)
 }
 
@@ -171,19 +169,19 @@ func TestInterfaceToInterfaceInterfaceMap(t *testing.T) {
 
 	in = map[string]string{"test": "str"}
 	expected = map[interface{}]interface{}{"test": "str"}
-	casted, ok = cast.InterfaceToInterfaceInterfaceMap(in)
+	casted, ok = InterfaceToInterfaceInterfaceMap(in)
 	require.True(t, ok)
 	require.Equal(t, expected, casted)
 
 	in = map[int]bool{2: true}
 	expected = map[interface{}]interface{}{int(2): true}
-	casted, ok = cast.InterfaceToInterfaceInterfaceMap(in)
+	casted, ok = InterfaceToInterfaceInterfaceMap(in)
 	require.True(t, ok)
 	require.Equal(t, expected, casted)
 
 	in = map[interface{}]float32{"test": float32(2.2)}
 	expected = map[interface{}]interface{}{"test": float32(2.2)}
-	casted, ok = cast.InterfaceToInterfaceInterfaceMap(in)
+	casted, ok = InterfaceToInterfaceInterfaceMap(in)
 	require.True(t, ok)
 	require.Equal(t, expected, casted)
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package context_test
+package context
 
 import (
 	"testing"
@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
@@ -30,18 +29,18 @@ func TestGetColumnRuntimeTypes(t *testing.T) {
 	var columnInputValues map[string]interface{}
 	var expected map[string]interface{}
 
-	rawColumns := context.RawColumns{
-		"rfInt": &context.RawIntColumn{
+	rawColumns := RawColumns{
+		"rfInt": &RawIntColumn{
 			RawIntColumn: &userconfig.RawIntColumn{
 				Type: userconfig.IntegerColumnType,
 			},
 		},
-		"rfFloat": &context.RawFloatColumn{
+		"rfFloat": &RawFloatColumn{
 			RawFloatColumn: &userconfig.RawFloatColumn{
 				Type: userconfig.FloatColumnType,
 			},
 		},
-		"rfStr": &context.RawStringColumn{
+		"rfStr": &RawStringColumn{
 			RawStringColumn: &userconfig.RawStringColumn{
 				Type: userconfig.StringColumnType,
 			},
@@ -84,13 +83,13 @@ func TestGetColumnRuntimeTypes(t *testing.T) {
 	checkErrTestGetColumnRuntimeTypes(columnInputValues, rawColumns, t)
 }
 
-func checkTestGetColumnRuntimeTypes(columnInputValues map[string]interface{}, rawColumns context.RawColumns, expected map[string]interface{}, t *testing.T) {
-	runtimeTypes, err := context.GetColumnRuntimeTypes(columnInputValues, rawColumns)
+func checkTestGetColumnRuntimeTypes(columnInputValues map[string]interface{}, rawColumns RawColumns, expected map[string]interface{}, t *testing.T) {
+	runtimeTypes, err := GetColumnRuntimeTypes(columnInputValues, rawColumns)
 	require.NoError(t, err)
 	require.Equal(t, expected, runtimeTypes)
 }
 
-func checkErrTestGetColumnRuntimeTypes(columnInputValues map[string]interface{}, rawColumns context.RawColumns, t *testing.T) {
-	_, err := context.GetColumnRuntimeTypes(columnInputValues, rawColumns)
+func checkErrTestGetColumnRuntimeTypes(columnInputValues map[string]interface{}, rawColumns RawColumns, t *testing.T) {
+	_, err := GetColumnRuntimeTypes(columnInputValues, rawColumns)
 	require.Error(t, err)
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package strings_test
+package strings
 
 import (
 	"testing"
@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type MyFloat float64
@@ -57,66 +56,66 @@ func (t Test3) Test()  {}
 
 func TestObj(t *testing.T) {
 	var a interface{}
-	require.Equal(t, "<null>", s.Obj(a))
+	require.Equal(t, "<null>", Obj(a))
 	var b []string
-	require.Equal(t, "<null>", s.Obj(b))
+	require.Equal(t, "<null>", Obj(b))
 	var c *string
-	require.Equal(t, "<null>", s.Obj(c))
+	require.Equal(t, "<null>", Obj(c))
 
-	require.Equal(t, "true", s.Obj(true))
-	require.Equal(t, "2.2", s.Obj(float32(2.2)))
-	require.Equal(t, "2.0", s.Obj(float32(2)))
-	require.Equal(t, "2.0", s.Obj(float64(2)))
-	require.Equal(t, "3", s.Obj(int(3)))
-	require.Equal(t, "3", s.Obj(pointer.Int(3)))
-	require.Equal(t, "-3", s.Obj(int8(-3)))
-	require.Equal(t, "3", s.Obj(int16(3)))
-	require.Equal(t, "-3", s.Obj(int32(-3)))
-	require.Equal(t, "3", s.Obj(int64(3)))
-	require.Equal(t, "4", s.Obj(int(4)))
-	require.Equal(t, "4", s.Obj(int8(4)))
-	require.Equal(t, "4", s.Obj(int16(4)))
-	require.Equal(t, "4", s.Obj(int32(4)))
-	require.Equal(t, "4", s.Obj(int64(4)))
-	require.Equal(t, `""`, s.Obj(""))
-	require.Equal(t, `"test"`, s.Obj("test"))
-	require.Equal(t, `"test"`, s.Obj(pointer.String("test")))
+	require.Equal(t, "true", Obj(true))
+	require.Equal(t, "2.2", Obj(float32(2.2)))
+	require.Equal(t, "2.0", Obj(float32(2)))
+	require.Equal(t, "2.0", Obj(float64(2)))
+	require.Equal(t, "3", Obj(int(3)))
+	require.Equal(t, "3", Obj(pointer.Int(3)))
+	require.Equal(t, "-3", Obj(int8(-3)))
+	require.Equal(t, "3", Obj(int16(3)))
+	require.Equal(t, "-3", Obj(int32(-3)))
+	require.Equal(t, "3", Obj(int64(3)))
+	require.Equal(t, "4", Obj(int(4)))
+	require.Equal(t, "4", Obj(int8(4)))
+	require.Equal(t, "4", Obj(int16(4)))
+	require.Equal(t, "4", Obj(int32(4)))
+	require.Equal(t, "4", Obj(int64(4)))
+	require.Equal(t, `""`, Obj(""))
+	require.Equal(t, `"test"`, Obj("test"))
+	require.Equal(t, `"test"`, Obj(pointer.String("test")))
 
 	var myFloat MyFloat = 2
-	require.Equal(t, "2.0", s.Obj(myFloat))
+	require.Equal(t, "2.0", Obj(myFloat))
 	var myString MyString = "test"
-	require.Equal(t, `"test"`, s.Obj(myString))
+	require.Equal(t, `"test"`, Obj(myString))
 
 	strSlice := []string{"a", "b", "c"}
-	require.Equal(t, `["a", "b", "c"]`, s.ObjFlat(strSlice))
-	require.Equal(t, `["a", "b", "c"]`, s.ObjFlat(&strSlice))
+	require.Equal(t, `["a", "b", "c"]`, ObjFlat(strSlice))
+	require.Equal(t, `["a", "b", "c"]`, ObjFlat(&strSlice))
 	intSlice := []int8{1, 2, 3}
-	require.Equal(t, `[1, 2, 3]`, s.ObjFlat(intSlice))
+	require.Equal(t, `[1, 2, 3]`, ObjFlat(intSlice))
 	mixedSlice := []interface{}{int(1), float64(2), "three", ""}
-	require.Equal(t, `[1, 2.0, "three", ""]`, s.ObjFlat(mixedSlice))
+	require.Equal(t, `[1, 2.0, "three", ""]`, ObjFlat(mixedSlice))
 	nestedSlice := []interface{}{int(1), "three", strSlice, []interface{}{"a", []float64{1, 2.2}}}
-	require.Equal(t, `[1, "three", ["a", "b", "c"], ["a", [1.0, 2.2]]]`, s.ObjFlat(nestedSlice))
+	require.Equal(t, `[1, "three", ["a", "b", "c"], ["a", [1.0, 2.2]]]`, ObjFlat(nestedSlice))
 
 	strMap := map[string]string{"b": "y", "a": "x"}
-	require.Equal(t, `{"a": "x", "b": "y"}`, s.ObjFlat(strMap))
-	require.Equal(t, `{"a": "x", "b": "y"}`, s.ObjFlat(&strMap))
+	require.Equal(t, `{"a": "x", "b": "y"}`, ObjFlat(strMap))
+	require.Equal(t, `{"a": "x", "b": "y"}`, ObjFlat(&strMap))
 	mixedMap := map[interface{}]interface{}{"1": "a", true: strMap, int(3): strSlice}
-	require.Equal(t, `{"1": "a", 3: ["a", "b", "c"], true: {"a": "x", "b": "y"}}`, s.ObjFlat(mixedMap))
+	require.Equal(t, `{"1": "a", 3: ["a", "b", "c"], true: {"a": "x", "b": "y"}}`, ObjFlat(mixedMap))
 
 	myNested := MyNested{myFloat: []MyString{myString, myString}}
-	require.Equal(t, `{2.0: ["test", "test"]}`, s.ObjFlat(myNested))
+	require.Equal(t, `{2.0: ["test", "test"]}`, ObjFlat(myNested))
 
 	emptyMap := map[interface{}]interface{}{}
-	require.Equal(t, `{}`, s.Obj(emptyMap))
-	require.Equal(t, `{}`, s.ObjFlat(emptyMap))
+	require.Equal(t, `{}`, Obj(emptyMap))
+	require.Equal(t, `{}`, ObjFlat(emptyMap))
 
 	emptyCollectionsInMap := map[interface{}]interface{}{"empty_map": map[interface{}]interface{}{}, "a": "b", "empty_slice": []interface{}{}}
-	require.Equal(t, `{"a": "b", "empty_map": {}, "empty_slice": []}`, s.ObjFlat(emptyCollectionsInMap))
+	require.Equal(t, `{"a": "b", "empty_map": {}, "empty_slice": []}`, ObjFlat(emptyCollectionsInMap))
 	require.Equal(t, `{
   "a": "b",
   "empty_map": {},
   "empty_slice": []
-}`, s.Obj(emptyCollectionsInMap))
+}`, Obj(emptyCollectionsInMap))
 
 	testStruct := Test{
 		Str:   myString,
@@ -231,57 +230,57 @@ func TestObj(t *testing.T) {
 }`
 	test3SubStr := `{"Strs": <null>, "map": {"1": <null>, 3: [1, 2, 3], true: {"a": "x", "b": "y"}}}`
 
-	require.Equal(t, testStructStr, s.ObjFlat(testStruct))
-	require.Equal(t, testStructStr, s.ObjFlat(&testStruct))
+	require.Equal(t, testStructStr, ObjFlat(testStruct))
+	require.Equal(t, testStructStr, ObjFlat(&testStruct))
 	ptr := &testStruct
-	require.Equal(t, testStructStr, s.ObjFlat(&ptr))
+	require.Equal(t, testStructStr, ObjFlat(&ptr))
 
 	var testInterface TestInterface
 	testInterface = testStruct.Test2Ptr
-	require.Equal(t, test2SubStr, s.ObjFlat(testInterface))
-	require.Equal(t, test2SubStr, s.ObjFlat(&testInterface))
+	require.Equal(t, test2SubStr, ObjFlat(testInterface))
+	require.Equal(t, test2SubStr, ObjFlat(&testInterface))
 	testInterface = testStruct.Test3
-	require.Equal(t, test3SubStr, s.ObjFlat(testInterface))
-	require.Equal(t, test3SubStr, s.ObjFlat(&testInterface))
+	require.Equal(t, test3SubStr, ObjFlat(testInterface))
+	require.Equal(t, test3SubStr, ObjFlat(&testInterface))
 
-	require.Equal(t, testStructStrMultiline, s.Obj(testStruct))
-	require.Equal(t, testStructStrMultiline, s.Obj(&testStruct))
+	require.Equal(t, testStructStrMultiline, Obj(testStruct))
+	require.Equal(t, testStructStrMultiline, Obj(&testStruct))
 	ptr = &testStruct
-	require.Equal(t, testStructStrMultiline, s.Obj(&ptr))
+	require.Equal(t, testStructStrMultiline, Obj(&ptr))
 
 	testInterface = testStruct.Test2Ptr
-	require.Equal(t, test2SubStrMultiline, s.Obj(testInterface))
-	require.Equal(t, test2SubStrMultiline, s.Obj(&testInterface))
+	require.Equal(t, test2SubStrMultiline, Obj(testInterface))
+	require.Equal(t, test2SubStrMultiline, Obj(&testInterface))
 	testInterface = testStruct.Test3
-	require.Equal(t, test3SubStrMultiline, s.Obj(testInterface))
-	require.Equal(t, test3SubStrMultiline, s.Obj(&testInterface))
+	require.Equal(t, test3SubStrMultiline, Obj(testInterface))
+	require.Equal(t, test3SubStrMultiline, Obj(&testInterface))
 
 }
 
 func TestRound(t *testing.T) {
-	require.Equal(t, s.Round(1.111, 2, false), "1.11")
-	require.Equal(t, s.Round(1.111, 3, false), "1.111")
-	require.Equal(t, s.Round(1.111, 4, false), "1.111")
-	require.Equal(t, s.Round(1.555, 2, false), "1.56")
-	require.Equal(t, s.Round(1.555, 3, false), "1.555")
-	require.Equal(t, s.Round(1.555, 4, false), "1.555")
-	require.Equal(t, s.Round(1.100, 2, false), "1.1")
+	require.Equal(t, Round(1.111, 2, false), "1.11")
+	require.Equal(t, Round(1.111, 3, false), "1.111")
+	require.Equal(t, Round(1.111, 4, false), "1.111")
+	require.Equal(t, Round(1.555, 2, false), "1.56")
+	require.Equal(t, Round(1.555, 3, false), "1.555")
+	require.Equal(t, Round(1.555, 4, false), "1.555")
+	require.Equal(t, Round(1.100, 2, false), "1.1")
 
-	require.Equal(t, s.Round(1.111, 2, true), "1.11")
-	require.Equal(t, s.Round(1.111, 3, true), "1.111")
-	require.Equal(t, s.Round(1.111, 4, true), "1.1110")
-	require.Equal(t, s.Round(1.555, 2, true), "1.56")
-	require.Equal(t, s.Round(1.555, 3, true), "1.555")
-	require.Equal(t, s.Round(1.555, 4, true), "1.5550")
-	require.Equal(t, s.Round(1.100, 2, true), "1.10")
+	require.Equal(t, Round(1.111, 2, true), "1.11")
+	require.Equal(t, Round(1.111, 3, true), "1.111")
+	require.Equal(t, Round(1.111, 4, true), "1.1110")
+	require.Equal(t, Round(1.555, 2, true), "1.56")
+	require.Equal(t, Round(1.555, 3, true), "1.555")
+	require.Equal(t, Round(1.555, 4, true), "1.5550")
+	require.Equal(t, Round(1.100, 2, true), "1.10")
 
-	require.Equal(t, s.Round(30, 0, true), "30")
-	require.Equal(t, s.Round(2, 1, true), "2.0")
-	require.Equal(t, s.Round(1, 2, true), "1.00")
-	require.Equal(t, s.Round(20, 3, true), "20.000")
+	require.Equal(t, Round(30, 0, true), "30")
+	require.Equal(t, Round(2, 1, true), "2.0")
+	require.Equal(t, Round(1, 2, true), "1.00")
+	require.Equal(t, Round(20, 3, true), "20.000")
 
-	require.Equal(t, s.Round(30, 0, false), "30")
-	require.Equal(t, s.Round(2, 1, false), "2")
-	require.Equal(t, s.Round(1, 2, false), "1")
-	require.Equal(t, s.Round(20, 3, false), "20")
+	require.Equal(t, Round(30, 0, false), "30")
+	require.Equal(t, Round(2, 1, false), "2")
+	require.Equal(t, Round(1, 2, false), "1")
+	require.Equal(t, Round(20, 3, false), "20")
 }
