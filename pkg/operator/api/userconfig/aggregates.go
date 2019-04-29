@@ -50,7 +50,7 @@ var aggregateValidation = &configreader.StructValidation{
 			},
 		},
 		inputValuesFieldValidation,
-		sparkComputeFieldValidation,
+		sparkComputeFieldValidation("Compute"),
 		tagsFieldValidation,
 		typeFieldValidation,
 	},

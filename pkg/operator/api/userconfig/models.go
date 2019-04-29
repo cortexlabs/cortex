@@ -42,6 +42,7 @@ type Model struct {
 	Training           *ModelTraining           `json:"training" yaml:"training"`
 	Evaluation         *ModelEvaluation         `json:"evaluation" yaml:"evaluation"`
 	Compute            *TFCompute               `json:"compute" yaml:"compute"`
+	DatasetCompute     *SparkCompute            `json:"dataset_compute" yaml:"dataset_compute"`
 	Tags               Tags                     `json:"tags" yaml:"tags"`
 }
 
@@ -127,6 +128,7 @@ var modelValidation = &cr.StructValidation{
 			StructValidation: modelEvaluationValidation,
 		},
 		tfComputeFieldValidation,
+		sparkComputeFieldValidation("DatasetCompute"),
 		tagsFieldValidation,
 		typeFieldValidation,
 	},

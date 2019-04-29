@@ -50,7 +50,7 @@ var transformedColumnValidation = &configreader.StructValidation{
 			},
 		},
 		inputValuesFieldValidation,
-		sparkComputeFieldValidation,
+		sparkComputeFieldValidation("Compute"),
 		tagsFieldValidation,
 		typeFieldValidation,
 	},

@@ -1,0 +1,31 @@
+- kind: aggregate
+  name: user_id_index
+  aggregator: cortex.index_string
+  inputs:
+    columns:
+      col: user_id
+
+- kind: transformed_column
+  name: user_id_indexed
+  transformer: cortex.index_string
+  inputs:
+    columns:
+      text: user_id
+    args:
+      index: user_id_index
+
+- kind: aggregate
+  name: movie_id_index
+  aggregator: cortex.index_string
+  inputs:
+    columns:
+      col: movie_id
+
+- kind: transformed_column
+  name: movie_id_indexed
+  transformer: cortex.index_string
+  inputs:
+    columns:
+      text: movie_id
+    args:
+      index: movie_id_index
