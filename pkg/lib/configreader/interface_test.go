@@ -20,8 +20,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 )
 
 func TestFlattenAllStrValues(t *testing.T) {
@@ -65,7 +63,7 @@ func TestFlattenAllStrValues(t *testing.T) {
 	expected = []string{"test1", "test2", "test3", "test4", "test5", "test6", "test7", "test8"}
 	CheckFlattenAllStrValues(input, expected, t)
 
-	input = configreader.MustReadYAMLStr(
+	input = MustReadYAMLStr(
 		`
     test:
       key1: [test5]
@@ -88,7 +86,7 @@ func TestFlattenAllStrValues(t *testing.T) {
 }
 
 func CheckFlattenAllStrValues(obj interface{}, expected []string, t *testing.T) {
-	flattened, err := interfaces.FlattenAllStrValues(obj)
+	flattened, err := FlattenAllStrValues(obj)
 	require.NoError(t, err)
 	require.Equal(t, expected, flattened)
 }
