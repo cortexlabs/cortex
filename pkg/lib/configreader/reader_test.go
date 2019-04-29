@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package configreader_test
+package configreader
 
 import (
 	"fmt"
@@ -22,8 +22,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 )
 
 type SimpleConfig struct {
@@ -32,19 +30,19 @@ type SimpleConfig struct {
 }
 
 func TestSimple(t *testing.T) {
-	structValidation := &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
+	structValidation := &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
 			{
 				// Key:         "key1",
 				StructField: "Key1",
-				BoolValidation: &cr.BoolValidation{
+				BoolValidation: &BoolValidation{
 					Required: true,
 				},
 			},
 			{
 				// Key:         "key2",
 				StructField: "Key2",
-				BoolValidation: &cr.BoolValidation{
+				BoolValidation: &BoolValidation{
 					Default: true,
 				},
 			},
@@ -53,7 +51,7 @@ func TestSimple(t *testing.T) {
 		ShortCircuit: true,
 	}
 
-	configData := cr.MustReadYAMLStr(
+	configData := MustReadYAMLStr(
 		`
     key1: true
     `)
@@ -83,22 +81,22 @@ type Nested3 struct {
 }
 
 func TestNested(t *testing.T) {
-	structValidation := &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
+	structValidation := &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
 			{
 				// Key:               "key0",
 				StructField:       "Key0",
-				Float64Validation: &cr.Float64Validation{},
+				Float64Validation: &Float64Validation{},
 			},
 			{
 				// Key:         "key1",
 				StructField: "Key1",
-				StructValidation: &cr.StructValidation{
-					StructFieldValidations: []*cr.StructFieldValidation{
+				StructValidation: &StructValidation{
+					StructFieldValidations: []*StructFieldValidation{
 						{
 							// Key:             "key11",
 							StructField:     "Key11",
-							Int32Validation: &cr.Int32Validation{},
+							Int32Validation: &Int32Validation{},
 						},
 					},
 					Required:     true,
@@ -108,22 +106,22 @@ func TestNested(t *testing.T) {
 			{
 				// Key:         "key2",
 				StructField: "Key2",
-				StructValidation: &cr.StructValidation{
-					StructFieldValidations: []*cr.StructFieldValidation{
+				StructValidation: &StructValidation{
+					StructFieldValidations: []*StructFieldValidation{
 						{
 							// Key:              "key21",
 							StructField:      "Key21",
-							StringValidation: &cr.StringValidation{},
+							StringValidation: &StringValidation{},
 						},
 						{
 							// Key:         "key22",
 							StructField: "Key22",
-							StructValidation: &cr.StructValidation{
-								StructFieldValidations: []*cr.StructFieldValidation{
+							StructValidation: &StructValidation{
+								StructFieldValidations: []*StructFieldValidation{
 									{
 										// Key:           "key31",
 										StructField:   "Key31",
-										IntValidation: &cr.IntValidation{},
+										IntValidation: &IntValidation{},
 									},
 								},
 								Required:     true,
@@ -140,7 +138,7 @@ func TestNested(t *testing.T) {
 		ShortCircuit: true,
 	}
 
-	configData := cr.MustReadYAMLStr(
+	configData := MustReadYAMLStr(
 		`
     key0: 1.1
     key1:
@@ -186,53 +184,53 @@ type NestedList3 struct {
 }
 
 func TestNestedList(t *testing.T) {
-	structValidation := &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
+	structValidation := &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
 			{
 				// Key:               "key0",
 				StructField:       "Key0",
-				Float64Validation: &cr.Float64Validation{},
+				Float64Validation: &Float64Validation{},
 			},
 			{
 				// Key:         "key1",
 				StructField: "Key1",
-				StructValidation: &cr.StructValidation{
-					StructFieldValidations: []*cr.StructFieldValidation{
+				StructValidation: &StructValidation{
+					StructFieldValidations: []*StructFieldValidation{
 						{
 							// Key:         "key11",
 							StructField: "Key11",
-							StructListValidation: &cr.StructListValidation{
-								StructValidation: &cr.StructValidation{
-									StructFieldValidations: []*cr.StructFieldValidation{
+							StructListValidation: &StructListValidation{
+								StructValidation: &StructValidation{
+									StructFieldValidations: []*StructFieldValidation{
 										{
 											// Key:              "keyA",
 											StructField:      "KeyA",
-											StringValidation: &cr.StringValidation{},
+											StringValidation: &StringValidation{},
 										},
 										{
 											// Key:           "keyB",
 											StructField:   "KeyB",
-											IntValidation: &cr.IntValidation{},
+											IntValidation: &IntValidation{},
 										},
 										{
 											// Key:                   "keyC",
 											StructField:           "KeyC",
-											Float64ListValidation: &cr.Float64ListValidation{},
+											Float64ListValidation: &Float64ListValidation{},
 										},
 										{
 											// Key:         "keyD",
 											StructField: "KeyD",
-											StructValidation: &cr.StructValidation{
-												StructFieldValidations: []*cr.StructFieldValidation{
+											StructValidation: &StructValidation{
+												StructFieldValidations: []*StructFieldValidation{
 													{
 														// Key:              "keyX",
 														StructField:      "KeyX",
-														StringValidation: &cr.StringValidation{},
+														StringValidation: &StringValidation{},
 													},
 													{
 														// Key:              "keyY",
 														StructField:      "KeyY",
-														StringValidation: &cr.StringValidation{},
+														StringValidation: &StringValidation{},
 													},
 												},
 											},
@@ -249,7 +247,7 @@ func TestNestedList(t *testing.T) {
 		ShortCircuit: true,
 	}
 
-	configData := cr.MustReadYAMLStr(
+	configData := MustReadYAMLStr(
 		`
     key0: 1.1
     key1:
@@ -348,73 +346,73 @@ type TypedConfig struct {
 	Typed `json:"typed"`
 }
 
-var interfaceStructValidation = &cr.InterfaceStructValidation{
+var interfaceStructValidation = &InterfaceStructValidation{
 	TypeKey: "type",
-	InterfaceStructTypes: map[string]*cr.InterfaceStructType{
+	InterfaceStructTypes: map[string]*InterfaceStructType{
 		"type1": {
 			Type: (*Typed1)(nil),
-			StructFieldValidations: []*cr.StructFieldValidation{
+			StructFieldValidations: []*StructFieldValidation{
 				{
 					// Key:              "key0",
 					StructField:      "Key0",
-					StringValidation: &cr.StringValidation{},
+					StringValidation: &StringValidation{},
 				},
 				{
 					// Key:              "key1",
 					StructField:      "Key1",
-					StringValidation: &cr.StringValidation{},
+					StringValidation: &StringValidation{},
 				},
 			},
 		},
 		"type2": {
 			Type: (*Typed2)(nil),
-			StructFieldValidations: []*cr.StructFieldValidation{
+			StructFieldValidations: []*StructFieldValidation{
 				{
 					// Key:           "keyA",
 					StructField:   "KeyA",
-					IntValidation: &cr.IntValidation{},
+					IntValidation: &IntValidation{},
 				},
 				{
 					// Key:           "keyB",
 					StructField:   "KeyB",
-					IntValidation: &cr.IntValidation{},
+					IntValidation: &IntValidation{},
 				},
 			},
 		},
 	},
 }
 
-var interfaceStructValidationWithTypeKeyConfig = &cr.InterfaceStructValidation{
+var interfaceStructValidationWithTypeKeyConfig = &InterfaceStructValidation{
 	TypeKey:         "type",
 	TypeStructField: "Type",
-	InterfaceStructTypes: map[string]*cr.InterfaceStructType{
+	InterfaceStructTypes: map[string]*InterfaceStructType{
 		"type1": {
 			Type: (*Typed1WithType)(nil),
-			StructFieldValidations: []*cr.StructFieldValidation{
+			StructFieldValidations: []*StructFieldValidation{
 				{
 					// Key:              "key0",
 					StructField:      "Key0",
-					StringValidation: &cr.StringValidation{},
+					StringValidation: &StringValidation{},
 				},
 				{
 					// Key:              "key1",
 					StructField:      "Key1",
-					StringValidation: &cr.StringValidation{},
+					StringValidation: &StringValidation{},
 				},
 			},
 		},
 		"type2": {
 			Type: (*Typed2WithType)(nil),
-			StructFieldValidations: []*cr.StructFieldValidation{
+			StructFieldValidations: []*StructFieldValidation{
 				{
 					// Key:           "keyA",
 					StructField:   "KeyA",
-					IntValidation: &cr.IntValidation{},
+					IntValidation: &IntValidation{},
 				},
 				{
 					// Key:           "keyB",
 					StructField:   "KeyB",
-					IntValidation: &cr.IntValidation{},
+					IntValidation: &IntValidation{},
 				},
 			},
 		},
@@ -422,8 +420,8 @@ var interfaceStructValidationWithTypeKeyConfig = &cr.InterfaceStructValidation{
 }
 
 func TestInterface(t *testing.T) {
-	structValidation := &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
+	structValidation := &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
 			{
 				// Key:         "typed",
 				StructField:               "Typed",
@@ -432,7 +430,7 @@ func TestInterface(t *testing.T) {
 		},
 	}
 
-	configDataType1 := cr.MustReadYAMLStr(
+	configDataType1 := MustReadYAMLStr(
 		`
     typed:
       type: type1
@@ -440,7 +438,7 @@ func TestInterface(t *testing.T) {
       key1: testB
     `)
 
-	configDataType2 := cr.MustReadYAMLStr(
+	configDataType2 := MustReadYAMLStr(
 		`
     typed:
       type: type2
@@ -465,8 +463,8 @@ func TestInterface(t *testing.T) {
 	testConfig(structValidation, configDataType1, expectedType1, t)
 	testConfig(structValidation, configDataType2, expectedType2, t)
 
-	structValidation = &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
+	structValidation = &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
 			{
 				// Key:         "typed",
 				StructField:               "Typed",
@@ -500,19 +498,19 @@ type TypedListConfig struct {
 }
 
 func TestInterfaceList(t *testing.T) {
-	structValidation := &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
+	structValidation := &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
 			{
 				// Key:         "typeds",
 				StructField: "Typeds",
-				InterfaceStructListValidation: &cr.InterfaceStructListValidation{
+				InterfaceStructListValidation: &InterfaceStructListValidation{
 					InterfaceStructValidation: interfaceStructValidation,
 				},
 			},
 		},
 	}
 
-	configData := cr.MustReadYAMLStr(
+	configData := MustReadYAMLStr(
 		`
     typeds:
       - type: type1
@@ -555,12 +553,12 @@ func TestInterfaceList(t *testing.T) {
 
 	testConfig(structValidation, configData, expected, t)
 
-	structValidation = &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
+	structValidation = &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
 			{
 				// Key:         "typeds",
 				StructField: "Typeds",
-				InterfaceStructListValidation: &cr.InterfaceStructListValidation{
+				InterfaceStructListValidation: &InterfaceStructListValidation{
 					InterfaceStructValidation: interfaceStructValidationWithTypeKeyConfig,
 				},
 			},
@@ -602,22 +600,22 @@ type NullableConfig struct {
 }
 
 func TestDefaultNull(t *testing.T) {
-	structValidation := &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
+	structValidation := &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
 			{
 				StructField:         "Key1",
-				StringPtrValidation: &cr.StringPtrValidation{},
+				StringPtrValidation: &StringPtrValidation{},
 			},
 			{
 				StructField: "Key2",
-				StringListValidation: &cr.StringListValidation{
+				StringListValidation: &StringListValidation{
 					Default:   []string{"key2"},
 					AllowNull: true,
 				},
 			},
 			{
 				StructField: "Key3",
-				InterfaceValidation: &cr.InterfaceValidation{
+				InterfaceValidation: &InterfaceValidation{
 					Default:   "key3",
 					AllowNull: true,
 				},
@@ -626,7 +624,7 @@ func TestDefaultNull(t *testing.T) {
 		AllowNull: true,
 	}
 
-	configData := cr.MustReadYAMLStr(``)
+	configData := MustReadYAMLStr(``)
 	expected := &NullableConfig{
 		Key1: nil,
 		Key2: []string{"key2"},
@@ -634,7 +632,7 @@ func TestDefaultNull(t *testing.T) {
 	}
 	testConfig(structValidation, configData, expected, t)
 
-	configData = cr.MustReadYAMLStr(
+	configData = MustReadYAMLStr(
 		`
      key1: null
      key2: null
@@ -655,25 +653,25 @@ type DefaultConfig struct {
 }
 
 func TestDefaultField(t *testing.T) {
-	structValidation := &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
+	structValidation := &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
 			{
 				StructField:    "Key1",
-				BoolValidation: &cr.BoolValidation{},
+				BoolValidation: &BoolValidation{},
 			},
 			{
 				StructField:      "Key2",
-				StringValidation: &cr.StringValidation{},
+				StringValidation: &StringValidation{},
 			},
 			{
 				StructField:      "Key3",
 				DefaultField:     "Key2",
-				StringValidation: &cr.StringValidation{},
+				StringValidation: &StringValidation{},
 			},
 		},
 	}
 
-	configData := cr.MustReadYAMLStr(
+	configData := MustReadYAMLStr(
 		`
     key1: true
     key2: "key2"
@@ -686,7 +684,7 @@ func TestDefaultField(t *testing.T) {
 	}
 	testConfig(structValidation, configData, expected, t)
 
-	configData = cr.MustReadYAMLStr(
+	configData = MustReadYAMLStr(
 		`
     key1: true
     key2: "key2"
@@ -698,15 +696,15 @@ func TestDefaultField(t *testing.T) {
 	}
 	testConfig(structValidation, configData, expected, t)
 
-	structValidation = &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
+	structValidation = &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
 			{
 				StructField:    "Key1",
-				BoolValidation: &cr.BoolValidation{},
+				BoolValidation: &BoolValidation{},
 			},
 			{
 				StructField:      "Key2",
-				StringValidation: &cr.StringValidation{},
+				StringValidation: &StringValidation{},
 			},
 			{
 				StructField:  "Key3",
@@ -714,12 +712,12 @@ func TestDefaultField(t *testing.T) {
 				DefaultFieldFunc: func(val interface{}) interface{} {
 					return val.(string) + ".py"
 				},
-				StringValidation: &cr.StringValidation{},
+				StringValidation: &StringValidation{},
 			},
 		},
 	}
 
-	configData = cr.MustReadYAMLStr(
+	configData = MustReadYAMLStr(
 		`
     key1: true
     key2: "key2"
@@ -731,15 +729,15 @@ func TestDefaultField(t *testing.T) {
 	}
 	testConfig(structValidation, configData, expected, t)
 
-	structValidation = &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
+	structValidation = &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
 			{
 				StructField:    "Key1",
-				BoolValidation: &cr.BoolValidation{},
+				BoolValidation: &BoolValidation{},
 			},
 			{
 				StructField:      "Key2",
-				StringValidation: &cr.StringValidation{},
+				StringValidation: &StringValidation{},
 			},
 			{
 				StructField:  "Key3",
@@ -751,12 +749,12 @@ func TestDefaultField(t *testing.T) {
 						return "It was false"
 					}
 				},
-				StringValidation: &cr.StringValidation{},
+				StringValidation: &StringValidation{},
 			},
 		},
 	}
 
-	configData = cr.MustReadYAMLStr(
+	configData = MustReadYAMLStr(
 		`
     key1: true
     key2: "key2"
@@ -768,15 +766,15 @@ func TestDefaultField(t *testing.T) {
 	}
 	testConfig(structValidation, configData, expected, t)
 
-	structValidation = &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
+	structValidation = &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
 			{
 				StructField:      "Key2",
-				StringValidation: &cr.StringValidation{},
+				StringValidation: &StringValidation{},
 			},
 			{
 				StructField:      "Key3",
-				StringValidation: &cr.StringValidation{},
+				StringValidation: &StringValidation{},
 			},
 			{
 				StructField:  "Key1",
@@ -788,12 +786,12 @@ func TestDefaultField(t *testing.T) {
 						return false
 					}
 				},
-				BoolValidation: &cr.BoolValidation{},
+				BoolValidation: &BoolValidation{},
 			},
 		},
 	}
 
-	configData = cr.MustReadYAMLStr(
+	configData = MustReadYAMLStr(
 		`
     key2: "key2"
     key3: "key3"
@@ -805,7 +803,7 @@ func TestDefaultField(t *testing.T) {
 	}
 	testConfig(structValidation, configData, expected, t)
 
-	configData = cr.MustReadYAMLStr(
+	configData = MustReadYAMLStr(
 		`
     key2: "test"
     key3: "key3"
@@ -818,10 +816,10 @@ func TestDefaultField(t *testing.T) {
 	testConfig(structValidation, configData, expected, t)
 }
 
-func testConfig(structValidation *cr.StructValidation, configData interface{}, expected interface{}, t *testing.T) {
+func testConfig(structValidation *StructValidation, configData interface{}, expected interface{}, t *testing.T) {
 	config := reflect.New(reflect.TypeOf(expected).Elem()).Interface()
 
-	errs := cr.Struct(config, configData, structValidation)
+	errs := Struct(config, configData, structValidation)
 
 	if errs != nil {
 		for _, err := range errs {
