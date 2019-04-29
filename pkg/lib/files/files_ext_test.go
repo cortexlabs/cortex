@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package files
+package files_test
 
 import (
 	"os"
@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
 
 func IgnoreDir3(path string, fi os.FileInfo) (bool, error) {
@@ -57,23 +58,23 @@ func TestPrintFileTree(t *testing.T) {
 
 	cwd = ""
 	expectedHeader = "/1/2/"
-	require.Equal(t, expectedHeader+expectedTree, FileTree(filesList, cwd, DirsSorted))
+	require.Equal(t, expectedHeader+expectedTree, files.FileTree(filesList, cwd, files.DirsSorted))
 
 	cwd = "/missing"
 	expectedHeader = "/1/2/"
-	require.Equal(t, expectedHeader+expectedTree, FileTree(filesList, cwd, DirsSorted))
+	require.Equal(t, expectedHeader+expectedTree, files.FileTree(filesList, cwd, files.DirsSorted))
 
 	cwd = "/1/2"
 	expectedHeader = "."
-	require.Equal(t, expectedHeader+expectedTree, FileTree(filesList, cwd, DirsSorted))
+	require.Equal(t, expectedHeader+expectedTree, files.FileTree(filesList, cwd, files.DirsSorted))
 
 	cwd = "/1/2/"
 	expectedHeader = "."
-	require.Equal(t, expectedHeader+expectedTree, FileTree(filesList, cwd, DirsSorted))
+	require.Equal(t, expectedHeader+expectedTree, files.FileTree(filesList, cwd, files.DirsSorted))
 
 	cwd = "/1"
 	expectedHeader = "./2/"
-	require.Equal(t, expectedHeader+expectedTree, FileTree(filesList, cwd, DirsSorted))
+	require.Equal(t, expectedHeader+expectedTree, files.FileTree(filesList, cwd, files.DirsSorted))
 
 	filesList = []string{
 		"/1",
@@ -114,7 +115,7 @@ func TestPrintFileTree(t *testing.T) {
         ├── 1
         └── 2
 `
-	require.Equal(t, "/"+expectedTree, FileTree(filesList, cwd, DirsSorted))
+	require.Equal(t, "/"+expectedTree, files.FileTree(filesList, cwd, files.DirsSorted))
 
 	expectedTree = `
 ├── 1
@@ -138,7 +139,7 @@ func TestPrintFileTree(t *testing.T) {
         ├── 1
         └── 2
 `
-	require.Equal(t, "/"+expectedTree, FileTree(filesList, cwd, DirsOnBottom))
+	require.Equal(t, "/"+expectedTree, files.FileTree(filesList, cwd, files.DirsOnBottom))
 
 	expectedTree = `
 ├── 1
@@ -162,14 +163,14 @@ func TestPrintFileTree(t *testing.T) {
 ├── 1
 └── 2
 `
-	require.Equal(t, "/"+expectedTree, FileTree(filesList, cwd, DirsOnTop))
+	require.Equal(t, "/"+expectedTree, files.FileTree(filesList, cwd, files.DirsOnTop))
 }
 
 func TestListDirRecursive(t *testing.T) {
-	_, err := ListDirRecursive("/home/path/to/fake/dir", false)
+	_, err := files.ListDirRecursive("/home/path/to/fake/dir", false)
 	require.Error(t, err)
 
-	tmpDir, err := TmpDir()
+	tmpDir, err := files.TmpDir()
 	defer os.RemoveAll(tmpDir)
 	require.NoError(t, err)
 
@@ -185,17 +186,17 @@ func TestListDirRecursive(t *testing.T) {
 		filepath.Join(tmpDir, "4/.git/HEAD"),
 	}
 
-	err = MakeEmptyFiles(filesList...)
+	err = files.MakeEmptyFiles(filesList...)
 	require.NoError(t, err)
 
 	var filesListRecursive []string
 	var expected []string
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, false)
+	filesListRecursive, err = files.ListDirRecursive(tmpDir, false)
 	require.NoError(t, err)
 	require.ElementsMatch(t, filesList, filesListRecursive)
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, false, IgnoreHiddenFiles)
+	filesListRecursive, err = files.ListDirRecursive(tmpDir, false, files.IgnoreHiddenFiles)
 	expected = []string{
 		filepath.Join(tmpDir, "1.txt"),
 		filepath.Join(tmpDir, "2.py"),
@@ -209,7 +210,7 @@ func TestListDirRecursive(t *testing.T) {
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, false, IgnoreHiddenFiles, IgnoreHiddenFolders)
+	filesListRecursive, err = files.ListDirRecursive(tmpDir, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 	expected = []string{
 		filepath.Join(tmpDir, "1.txt"),
 		filepath.Join(tmpDir, "2.py"),
@@ -222,7 +223,7 @@ func TestListDirRecursive(t *testing.T) {
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, false, IgnoreHiddenFiles, IgnoreDir3, IgnorePythonGeneratedFiles)
+	filesListRecursive, err = files.ListDirRecursive(tmpDir, false, files.IgnoreHiddenFiles, IgnoreDir3, files.IgnorePythonGeneratedFiles)
 	expected = []string{
 		filepath.Join(tmpDir, "1.txt"),
 		filepath.Join(tmpDir, "2.py"),
@@ -232,7 +233,7 @@ func TestListDirRecursive(t *testing.T) {
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, false, IgnoreNonPython)
+	filesListRecursive, err = files.ListDirRecursive(tmpDir, false, files.IgnoreNonPython)
 	expected = []string{
 		filepath.Join(tmpDir, "2.py"),
 		filepath.Join(tmpDir, "3/1.py"),
@@ -242,7 +243,7 @@ func TestListDirRecursive(t *testing.T) {
 	debug.Ppj(filesListRecursive)
 	require.ElementsMatch(t, expected, filesListRecursive)
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, true, IgnoreNonPython)
+	filesListRecursive, err = files.ListDirRecursive(tmpDir, true, files.IgnoreNonPython)
 	expected = []string{
 		filepath.Join("2.py"),
 		filepath.Join("3/1.py"),

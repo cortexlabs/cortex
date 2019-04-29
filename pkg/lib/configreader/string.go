@@ -17,6 +17,7 @@ limitations under the License.
 package configreader
 
 import (
+	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -36,6 +37,10 @@ type StringValidation struct {
 	AlphaNumericDashUnderscore    bool
 	DNS1035                       bool
 	Validator                     func(string) (string, error)
+}
+
+func EnvVar(envVarName string) string {
+	return fmt.Sprintf("environment variable \"%s\"", envVarName)
 }
 
 func String(inter interface{}, v *StringValidation) (string, error) {

@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
-	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
@@ -310,7 +309,7 @@ func ErrorTemplateMissingArg(template *Template, argName string) error {
 func ErrorInvalidColumnInputType(provided interface{}) error {
 	return Error{
 		Kind:    ErrInvalidColumnInputType,
-		message: fmt.Sprintf("invalid column input type (got %s, expected %s, a combination of these types (separated by |), or a list of one of these types", configreader.DataTypeUserStr(provided), strings.Join(s.UserStrs(ColumnTypeStrings()), ", ")),
+		message: fmt.Sprintf("invalid column input type (got %s, expected %s, a combination of these types (separated by |), or a list of one of these types", DataTypeUserStr(provided), strings.Join(s.UserStrs(ColumnTypeStrings()), ", ")),
 	}
 }
 
@@ -324,7 +323,7 @@ func ErrorInvalidColumnRuntimeType() error {
 func ErrorInvalidValueDataType(provided interface{}) error {
 	return Error{
 		Kind:    ErrInvalidValueDataType,
-		message: fmt.Sprintf("invalid value data type (got %s, expected %s, a combination of these types (separated by |), a list of one of these types, or a map containing these types", configreader.DataTypeUserStr(provided), strings.Join(s.UserStrs(ValueTypeStrings()), ", ")),
+		message: fmt.Sprintf("invalid value data type (got %s, expected %s, a combination of these types (separated by |), a list of one of these types, or a map containing these types", DataTypeUserStr(provided), strings.Join(s.UserStrs(ValueTypeStrings()), ", ")),
 	}
 }
 
@@ -332,14 +331,14 @@ func ErrorUnsupportedColumnType(provided interface{}, allowedTypes []string) err
 	allowedTypesInterface, _ := cast.InterfaceToInterfaceSlice(allowedTypes)
 	return Error{
 		Kind:    ErrUnsupportedColumnType,
-		message: fmt.Sprintf("unsupported column type (got %s, expected %s)", configreader.DataTypeStr(provided), configreader.DataTypeStrsOr(allowedTypesInterface)),
+		message: fmt.Sprintf("unsupported column type (got %s, expected %s)", DataTypeStr(provided), DataTypeStrsOr(allowedTypesInterface)),
 	}
 }
 
 func ErrorUnsupportedDataType(provided interface{}, allowedType interface{}) error {
 	return Error{
 		Kind:    ErrUnsupportedDataType,
-		message: fmt.Sprintf("unsupported data type (got %s, expected %s)", configreader.DataTypeStr(provided), configreader.DataTypeStr(allowedType)),
+		message: fmt.Sprintf("unsupported data type (got %s, expected %s)", DataTypeStr(provided), DataTypeStr(allowedType)),
 	}
 }
 
@@ -353,21 +352,21 @@ func ErrorArgNameCannotBeType(provided string) error {
 func ErrorTypeListLength(provided interface{}) error {
 	return Error{
 		Kind:    ErrTypeListLength,
-		message: fmt.Sprintf("type lists must contain exactly one element (i.e. the desired data type) (got %s)", configreader.DataTypeStr(provided)),
+		message: fmt.Sprintf("type lists must contain exactly one element (i.e. the desired data type) (got %s)", DataTypeStr(provided)),
 	}
 }
 
 func ErrorGenericTypeMapLength(provided interface{}) error {
 	return Error{
 		Kind:    ErrGenericTypeMapLength,
-		message: fmt.Sprintf("generic type maps must contain exactly one key (i.e. the desired data type of all keys in the map) (got %s)", configreader.DataTypeStr(provided)),
+		message: fmt.Sprintf("generic type maps must contain exactly one key (i.e. the desired data type of all keys in the map) (got %s)", DataTypeStr(provided)),
 	}
 }
 
 func ErrorK8sQuantityMustBeInt(quantityStr string) error {
 	return Error{
 		Kind:    ErrK8sQuantityMustBeInt,
-		message: fmt.Sprintf("resource compute quantity must be an integer-valued string, e.g. \"2\") (got %s)", configreader.DataTypeStr(quantityStr)),
+		message: fmt.Sprintf("resource compute quantity must be an integer-valued string, e.g. \"2\") (got %s)", DataTypeStr(quantityStr)),
 	}
 }
 

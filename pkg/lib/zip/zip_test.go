@@ -358,14 +358,14 @@ func CheckZip(zipInput *Input, expected []string, shouldErr bool, t *testing.T) 
 	defer os.RemoveAll(tmpDir)
 	require.NoError(t, err)
 
-	err = ToFile(zipInput, filepath.Join(tmpDir, "zip"))
+	err = ToFile(zipInput, filepath.Join(tmpDir, "zip.zip"))
 	if shouldErr {
 		require.Error(t, err)
 		return
 	}
 	require.NoError(t, err)
 
-	_, err = UnzipToFile(filepath.Join(tmpDir, "zip"), filepath.Join(tmpDir, "zip"))
+	_, err = UnzipToFile(filepath.Join(tmpDir, "zip.zip"), filepath.Join(tmpDir, "zip"))
 	require.NoError(t, err)
 
 	unzippedFiles, err := files.ListDirRecursive(filepath.Join(tmpDir, "zip"), true)
@@ -373,11 +373,11 @@ func CheckZip(zipInput *Input, expected []string, shouldErr bool, t *testing.T) 
 
 	require.ElementsMatch(t, expected, unzippedFiles)
 
-	contents, err := UnzipFileToMem(filepath.Join(tmpDir, "zip"))
+	contents, err := UnzipFileToMem(filepath.Join(tmpDir, "zip.zip"))
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, maps.InterfaceMapKeysUnsafe(contents))
 
-	zipBytes, err := ioutil.ReadFile(filepath.Join(tmpDir, "zip"))
+	zipBytes, err := ioutil.ReadFile(filepath.Join(tmpDir, "zip.zip"))
 	require.NoError(t, err)
 	contents, err = UnzipMemToMem(zipBytes)
 	require.NoError(t, err)

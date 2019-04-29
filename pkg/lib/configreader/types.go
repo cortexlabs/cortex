@@ -16,14 +16,6 @@ limitations under the License.
 
 package configreader
 
-import (
-	"fmt"
-	"regexp"
-	"strings"
-
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-)
-
 type TypePlaceholder struct {
 	Type string `json:"type"`
 }
@@ -54,39 +46,4 @@ func (ts PrimitiveTypes) StringList() []string {
 		strs[i] = string(t)
 	}
 	return strs
-}
-
-var (
-	typeStrRegex         = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?(\|(INT|FLOAT|STRING|BOOL)(_COLUMN)?)*"`)
-	singleDataTypeRegexp = regexp.MustCompile(`^\w*\w$`)
-)
-
-func EnvVar(envVarName string) string {
-	return fmt.Sprintf("environment variable \"%s\"", envVarName)
-}
-
-func DataTypeStrsOr(dataTypes []interface{}) string {
-	dataTypeStrs := make([]string, len(dataTypes))
-	for i, dataType := range dataTypes {
-		dataTypeStrs[i] = DataTypeStr(dataType)
-	}
-	return s.StrsOr(dataTypeStrs)
-}
-
-func DataTypeStr(dataType interface{}) string {
-	dataTypeStr := s.ObjFlat(dataType)
-	matches := typeStrRegex.FindAllString(dataTypeStr, -1)
-	for _, match := range matches {
-		trimmed := s.TrimPrefixAndSuffix(match, `"`)
-		dataTypeStr = strings.Replace(dataTypeStr, match, trimmed, -1)
-	}
-	return dataTypeStr
-}
-
-func DataTypeUserStr(dataType interface{}) string {
-	dataTypeStr := DataTypeStr(dataType)
-	if singleDataTypeRegexp.MatchString(dataTypeStr) {
-		dataTypeStr = s.UserStr(dataTypeStr)
-	}
-	return dataTypeStr
 }
