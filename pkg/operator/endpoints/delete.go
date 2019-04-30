@@ -20,7 +20,6 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
@@ -42,6 +41,6 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := schema.DeleteResponse{Message: s.ResDeploymentDeleted}
+	response := schema.DeleteResponse{Message: ResDeploymentDeleted}
 	Respond(w, response)
 }

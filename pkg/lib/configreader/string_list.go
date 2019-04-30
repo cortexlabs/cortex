@@ -20,7 +20,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 type StringListValidation struct {
@@ -35,7 +34,7 @@ type StringListValidation struct {
 func StringList(inter interface{}, v *StringListValidation) ([]string, error) {
 	casted, castOk := cast.InterfaceToStrSlice(inter)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeStringList)
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeStringList)
 	}
 	return ValidateStringList(casted, v)
 }

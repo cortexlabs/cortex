@@ -19,7 +19,6 @@ package configreader
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 type InterfaceMapListValidation struct {
@@ -33,7 +32,7 @@ type InterfaceMapListValidation struct {
 func InterfaceMapList(inter interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
 	casted, castOk := cast.InterfaceToStrInterfaceMapSlice(inter)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeMapList)
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeMapList)
 	}
 	return ValidateInterfaceMapList(casted, v)
 }

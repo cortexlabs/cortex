@@ -17,6 +17,7 @@ limitations under the License.
 package configreader
 
 import (
+	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -24,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 type StringValidation struct {
@@ -39,13 +39,17 @@ type StringValidation struct {
 	Validator                     func(string) (string, error)
 }
 
+func EnvVar(envVarName string) string {
+	return fmt.Sprintf("environment variable \"%s\"", envVarName)
+}
+
 func String(inter interface{}, v *StringValidation) (string, error) {
 	if inter == nil {
 		return "", ErrorCannotBeNull()
 	}
 	casted, castOk := inter.(string)
 	if !castOk {
-		return "", ErrorInvalidPrimitiveType(inter, s.PrimTypeString)
+		return "", ErrorInvalidPrimitiveType(inter, PrimTypeString)
 	}
 	return ValidateString(casted, v)
 }
@@ -91,13 +95,13 @@ func StringFromEnv(envVarName string, v *StringValidation) (string, error) {
 	if valStr == nil {
 		val, err := ValidateStringMissing(v)
 		if err != nil {
-			return "", errors.Wrap(err, s.EnvVar(envVarName))
+			return "", errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := StringFromStr(*valStr, v)
 	if err != nil {
-		return "", errors.Wrap(err, s.EnvVar(envVarName))
+		return "", errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }

@@ -14,14 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package context_test
+package context
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 )
 
 func TestDataTypeID(t *testing.T) {
@@ -120,13 +118,13 @@ func TestDataTypeID(t *testing.T) {
 }
 
 func checkDataTypeIDsEqual(type1 interface{}, type2 interface{}, t *testing.T) {
-	id1 := context.DataTypeID(type1)
-	id2 := context.DataTypeID(type2)
+	id1 := DataTypeID(type1)
+	id2 := DataTypeID(type2)
 	require.Equal(t, id1, id2)
 }
 
 func checkDataTypeIDsNotEqual(type1 interface{}, type2 interface{}, t *testing.T) {
-	id1 := context.DataTypeID(type1)
-	id2 := context.DataTypeID(type2)
+	id1 := DataTypeID(type1)
+	id2 := DataTypeID(type2)
 	require.NotEqual(t, id1, id2)
 }

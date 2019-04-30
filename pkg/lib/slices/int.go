@@ -28,3 +28,23 @@ func HasInt(list []int, query int) bool {
 func CopyInts(vals []int) []int {
 	return append(vals[:0:0], vals...)
 }
+
+func MinInt(vals ...int) int {
+	min := vals[0]
+	for _, val := range vals {
+		if val < min {
+			min = val
+		}
+	}
+	return min
+}
+
+func MaxInt(vals ...int) int {
+	max := vals[0]
+	for _, val := range vals {
+		if val > max {
+			max = val
+		}
+	}
+	return max
+}

@@ -24,7 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 func isValidColumnInputType(columnTypeStr string) bool {
@@ -81,7 +81,10 @@ func ValidateColumnInputValues(columnInputValues map[string]interface{}) error {
 			}
 			continue
 		}
-		return errors.Wrap(configreader.ErrorInvalidPrimitiveType(columnInputValue, s.PrimTypeString, s.PrimTypeStringList), columnInputName)
+		return errors.Wrap(
+			configreader.ErrorInvalidPrimitiveType(columnInputValue, configreader.PrimTypeString, configreader.PrimTypeStringList),
+			columnInputName,
+		)
 	}
 
 	return nil
@@ -261,30 +264,30 @@ func CastValue(value interface{}, valueType interface{}) (interface{}, error) {
 
 	if valueTypeStr, ok := valueType.(string); ok {
 		validTypes := strings.Split(valueTypeStr, "|")
-		var validTypeNames []s.PrimitiveType
+		var validTypeNames []configreader.PrimitiveType
 
 		if slices.HasString(validTypes, IntegerValueType.String()) {
-			validTypeNames = append(validTypeNames, s.PrimTypeInt)
+			validTypeNames = append(validTypeNames, configreader.PrimTypeInt)
 			valueInt, ok := cast.InterfaceToInt64(value)
 			if ok {
 				return valueInt, nil
 			}
 		}
 		if slices.HasString(validTypes, FloatValueType.String()) {
-			validTypeNames = append(validTypeNames, s.PrimTypeFloat)
+			validTypeNames = append(validTypeNames, configreader.PrimTypeFloat)
 			valueFloat, ok := cast.InterfaceToFloat64(value)
 			if ok {
 				return valueFloat, nil
 			}
 		}
 		if slices.HasString(validTypes, StringValueType.String()) {
-			validTypeNames = append(validTypeNames, s.PrimTypeString)
+			validTypeNames = append(validTypeNames, configreader.PrimTypeString)
 			if valueStr, ok := value.(string); ok {
 				return valueStr, nil
 			}
 		}
 		if slices.HasString(validTypes, BoolValueType.String()) {
-			validTypeNames = append(validTypeNames, s.PrimTypeBool)
+			validTypeNames = append(validTypeNames, configreader.PrimTypeBool)
 			if valueBool, ok := value.(bool); ok {
 				return valueBool, nil
 			}
@@ -295,7 +298,7 @@ func CastValue(value interface{}, valueType interface{}) (interface{}, error) {
 	if valueTypeMap, ok := cast.InterfaceToInterfaceInterfaceMap(valueType); ok {
 		valueMap, ok := cast.InterfaceToInterfaceInterfaceMap(value)
 		if !ok {
-			return nil, configreader.ErrorInvalidPrimitiveType(value, s.PrimTypeMap)
+			return nil, configreader.ErrorInvalidPrimitiveType(value, configreader.PrimTypeMap)
 		}
 
 		if len(valueTypeMap) == 0 {
@@ -361,7 +364,7 @@ func CastValue(value interface{}, valueType interface{}) (interface{}, error) {
 		valueTypeStr := valueTypeStrs[0]
 		valueSlice, ok := cast.InterfaceToInterfaceSlice(value)
 		if !ok {
-			return nil, configreader.ErrorInvalidPrimitiveType(value, s.PrimTypeList)
+			return nil, configreader.ErrorInvalidPrimitiveType(value, configreader.PrimTypeList)
 		}
 		valueSliceCasted := make([]interface{}, len(valueSlice))
 		for i, valueItem := range valueSlice {

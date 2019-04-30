@@ -20,7 +20,7 @@ import (
 	"io/ioutil"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type BoolValidation struct {
@@ -34,7 +34,7 @@ func Bool(inter interface{}, v *BoolValidation) (bool, error) {
 	}
 	casted, castOk := inter.(bool)
 	if !castOk {
-		return false, ErrorInvalidPrimitiveType(inter, s.PrimTypeBool)
+		return false, ErrorInvalidPrimitiveType(inter, PrimTypeBool)
 	}
 	return ValidateBool(casted, v)
 }
@@ -77,7 +77,7 @@ func BoolFromStr(valStr string, v *BoolValidation) (bool, error) {
 	}
 	casted, castOk := s.ParseBool(valStr)
 	if !castOk {
-		return false, ErrorInvalidPrimitiveType(valStr, s.PrimTypeBool)
+		return false, ErrorInvalidPrimitiveType(valStr, PrimTypeBool)
 	}
 	return ValidateBool(casted, v)
 }
@@ -87,13 +87,13 @@ func BoolFromEnv(envVarName string, v *BoolValidation) (bool, error) {
 	if valStr == nil || *valStr == "" {
 		val, err := ValidateBoolMissing(v)
 		if err != nil {
-			return false, errors.Wrap(err, s.EnvVar(envVarName))
+			return false, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := BoolFromStr(*valStr, v)
 	if err != nil {
-		return false, errors.Wrap(err, s.EnvVar(envVarName))
+		return false, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }

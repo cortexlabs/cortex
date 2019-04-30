@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package parallel_test
+package parallel
 
 //
 // These tests must be run and verified manually:
-// go test github.com/cortexlabs/cortex/utils/util -run TestRunInParallel -v
+// go test github.com/cortexlabs/cortex/pkg/lib/parallel -run TestRunInParallel -v
 //
 
 // import (

@@ -22,7 +22,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type Int64Validation struct {
@@ -42,7 +42,7 @@ func Int64(inter interface{}, v *Int64Validation) (int64, error) {
 	}
 	casted, castOk := cast.InterfaceToInt64(inter)
 	if !castOk {
-		return 0, ErrorInvalidPrimitiveType(inter, s.PrimTypeInt)
+		return 0, ErrorInvalidPrimitiveType(inter, PrimTypeInt)
 	}
 	return ValidateInt64(casted, v)
 }
@@ -85,7 +85,7 @@ func Int64FromStr(valStr string, v *Int64Validation) (int64, error) {
 	}
 	casted, castOk := s.ParseInt64(valStr)
 	if !castOk {
-		return 0, ErrorInvalidPrimitiveType(valStr, s.PrimTypeInt)
+		return 0, ErrorInvalidPrimitiveType(valStr, PrimTypeInt)
 	}
 	return ValidateInt64(casted, v)
 }
@@ -95,13 +95,13 @@ func Int64FromEnv(envVarName string, v *Int64Validation) (int64, error) {
 	if valStr == nil || *valStr == "" {
 		val, err := ValidateInt64Missing(v)
 		if err != nil {
-			return 0, errors.Wrap(err, s.EnvVar(envVarName))
+			return 0, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := Int64FromStr(*valStr, v)
 	if err != nil {
-		return 0, errors.Wrap(err, s.EnvVar(envVarName))
+		return 0, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }

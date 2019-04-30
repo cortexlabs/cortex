@@ -19,9 +19,7 @@ package configreader
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/interfaces"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 type InterfaceMapValidation struct {
@@ -38,7 +36,7 @@ type InterfaceMapValidation struct {
 func InterfaceMap(inter interface{}, v *InterfaceMapValidation) (map[string]interface{}, error) {
 	casted, castOk := cast.InterfaceToStrInterfaceMap(inter)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeMap)
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeMap)
 	}
 	return ValidateInterfaceMap(casted, v)
 }
@@ -82,20 +80,20 @@ func ValidateInterfaceMap(val map[string]interface{}, v *InterfaceMapValidation)
 	if v.ScalarsOnly {
 		for k, v := range val {
 			if !cast.IsScalarType(v) {
-				return nil, errors.Wrap(ErrorInvalidPrimitiveType(v, s.PrimTypeString, s.PrimTypeInt, s.PrimTypeFloat, s.PrimTypeBool), k)
+				return nil, errors.Wrap(ErrorInvalidPrimitiveType(v, PrimTypeString, PrimTypeInt, PrimTypeFloat, PrimTypeBool), k)
 			}
 		}
 	}
 
 	if v.StringLeavesOnly {
-		_, err := interfaces.FlattenAllStrValues(val)
+		_, err := FlattenAllStrValues(val)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if v.AllowedLeafValues != nil {
-		leafVals, err := interfaces.FlattenAllStrValues(val)
+		leafVals, err := FlattenAllStrValues(val)
 		if err != nil {
 			return nil, err
 		}

@@ -20,7 +20,6 @@ import (
 	"io/ioutil"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 type StringPtrValidation struct {
@@ -53,7 +52,7 @@ func StringPtr(inter interface{}, v *StringPtrValidation) (*string, error) {
 	}
 	casted, castOk := inter.(string)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeString)
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeString)
 	}
 	return ValidateStringPtr(&casted, v)
 }
@@ -99,13 +98,13 @@ func StringPtrFromEnv(envVarName string, v *StringPtrValidation) (*string, error
 	if valStr == nil {
 		val, err := ValidateStringPtrMissing(v)
 		if err != nil {
-			return nil, errors.Wrap(err, s.EnvVar(envVarName))
+			return nil, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := StringPtrFromStr(*valStr, v)
 	if err != nil {
-		return nil, errors.Wrap(err, s.EnvVar(envVarName))
+		return nil, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }

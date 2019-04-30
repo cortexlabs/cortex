@@ -23,9 +23,22 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+)
+
+const (
+	ResDeploymentStarted                              = "Deployment started"
+	ResDeploymentUpdated                              = "Deployment updated"
+	ResDeploymentDeleted                              = "Deployment deleted"
+	ResDeploymentUpToDate                             = "Deployment is up-to-date"
+	ResDeploymentRunning                              = "Deployment is already running"
+	ResDifferentDeploymentRunning                     = "Another deployment is running, use --force to override"
+	ResCachedDeletedDeploymentStarted                 = "Cache deleted, deployment started"
+	ResDeploymentStoppedDeploymentStarted             = "Running deployment stopped, new deployment started"
+	ResDeploymentStoppedCacheDeletedDeploymentStarted = "Running deployment stopped, cached deleted, new deployment started"
+	ResDeploymentStoppedDeploymentUpToDate            = "Running deployment stopped, new deployment is up-to-date"
 )
 
 func Respond(w http.ResponseWriter, response interface{}) {

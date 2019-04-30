@@ -22,7 +22,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type Float32Validation struct {
@@ -42,7 +42,7 @@ func Float32(inter interface{}, v *Float32Validation) (float32, error) {
 	}
 	casted, castOk := cast.InterfaceToFloat32(inter)
 	if !castOk {
-		return 0, ErrorInvalidPrimitiveType(inter, s.PrimTypeFloat)
+		return 0, ErrorInvalidPrimitiveType(inter, PrimTypeFloat)
 	}
 	return ValidateFloat32(casted, v)
 }
@@ -85,7 +85,7 @@ func Float32FromStr(valStr string, v *Float32Validation) (float32, error) {
 	}
 	casted, castOk := s.ParseFloat32(valStr)
 	if !castOk {
-		return 0, ErrorInvalidPrimitiveType(valStr, s.PrimTypeFloat)
+		return 0, ErrorInvalidPrimitiveType(valStr, PrimTypeFloat)
 	}
 	return ValidateFloat32(casted, v)
 }
@@ -95,13 +95,13 @@ func Float32FromEnv(envVarName string, v *Float32Validation) (float32, error) {
 	if valStr == nil || *valStr == "" {
 		val, err := ValidateFloat32Missing(v)
 		if err != nil {
-			return 0, errors.Wrap(err, s.EnvVar(envVarName))
+			return 0, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := Float32FromStr(*valStr, v)
 	if err != nil {
-		return 0, errors.Wrap(err, s.EnvVar(envVarName))
+		return 0, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }

@@ -19,8 +19,8 @@ package userconfig
 import (
 	"fmt"
 
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 type Resource interface {
