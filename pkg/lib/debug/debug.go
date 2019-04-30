@@ -45,7 +45,7 @@ func Sppg(obj interface{}) string {
 }
 
 func Ppj(obj interface{}) {
-	b, err := json.Marshal(obj)
+	b, err := json.MarshalIndent(obj, "", " ")
 	if err != nil {
 		errors.PrintError(err)
 	}
