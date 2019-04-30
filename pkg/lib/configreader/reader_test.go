@@ -743,11 +743,10 @@ func TestDefaultField(t *testing.T) {
 				StructField:  "Key3",
 				DefaultField: "Key1",
 				DefaultFieldFunc: func(val interface{}) interface{} {
-					if val.(bool) == true {
+					if val.(bool) {
 						return "It was true"
-					} else {
-						return "It was false"
 					}
+					return "It was false"
 				},
 				StringValidation: &StringValidation{},
 			},
@@ -782,9 +781,8 @@ func TestDefaultField(t *testing.T) {
 				DefaultFieldFunc: func(val interface{}) interface{} {
 					if val.(string) == "key2" {
 						return true
-					} else {
-						return false
 					}
+					return false
 				},
 				BoolValidation: &BoolValidation{},
 			},
