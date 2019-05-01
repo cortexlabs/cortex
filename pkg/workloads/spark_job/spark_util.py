@@ -239,7 +239,7 @@ def read_csv(ctx, spark):
     df = spark.read.csv(
         data_config["path"], schema=StructType(schema_fields), mode="FAILFAST", **csv_config
     )
-    return df.select(*sorted(ctx.raw_columns.keys()))
+    return df.select(*ctx.raw_columns.keys())
 
 
 def read_parquet(ctx, spark):
@@ -258,7 +258,7 @@ def read_parquet(ctx, spark):
         log_df_schema(df, logger.error)
         raise UserException("missing column(s) in input dataset", str(missing_cols))
 
-    selectExprs = ["{} as {}".format(alias_map[alias], alias) for alias in sorted(alias_map.keys())]
+    selectExprs = ["{} as {}".format(alias_map[alias], alias) for alias in alias_map.keys()]
 
     return df.selectExpr(*selectExprs)
 

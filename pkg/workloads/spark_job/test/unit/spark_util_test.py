@@ -128,7 +128,8 @@ def test_read_csv_valid_options(spark, write_csv_file, ctx_obj, get_context):
         "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "-"},
     }
 
-    actual_results = spark_util.read_csv(get_context(ctx_obj), spark).collect()
+    result_df = spark_util.read_csv(get_context(ctx_obj), spark)
+    actual_results = result_df.select(*sorted(result_df.columns)).collect()
 
     assert len(actual_results) == 3
     assert actual_results[0] == Row(a_str="   a   ", b_float=float(1), c_long=None)
