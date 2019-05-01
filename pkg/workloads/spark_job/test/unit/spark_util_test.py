@@ -27,107 +27,6 @@ from py4j.protocol import Py4JJavaError
 pytestmark = pytest.mark.usefixtures("spark")
 
 
-def test_compare_column_schemas():
-    expected = StructType(
-        [
-            StructField("a_float", FloatType()),
-            StructField("b_long", LongType()),
-            StructField("c_str", StringType()),
-        ]
-    )
-
-    missing_col = StructType(
-        [StructField("a_float", FloatType()), StructField("b_long", LongType())]
-    )
-
-    assert spark_util.compare_column_schemas(expected, missing_col) == False
-
-    incorrect_type = StructType(
-        [
-            StructField("b_long", LongType()),
-            StructField("a_float", FloatType()),
-            StructField("c_str", LongType()),
-        ]
-    )
-
-    assert spark_util.compare_column_schemas(expected, incorrect_type) == False
-
-    actual = StructType(
-        [
-            StructField("b_long", LongType()),
-            StructField("a_float", FloatType()),
-            StructField("c_str", StringType()),
-        ]
-    )
-
-    assert spark_util.compare_column_schemas(expected, actual) == True
-
-
-def test_get_expected_schema_from_context_csv(ctx_obj, get_context):
-    ctx_obj["environment"] = {
-        "data": {"type": "csv", "schema": ["income", "years_employed", "prior_default"]}
-    }
-    ctx_obj["raw_columns"] = {
-        "income": {"name": "income", "type": "FLOAT_COLUMN", "required": True, "id": "-"},
-        "years_employed": {
-            "name": "years_employed",
-            "type": "INT_COLUMN",
-            "required": False,
-            "id": "-",
-        },
-        "prior_default": {
-            "name": "prior_default",
-            "type": "STRING_COLUMN",
-            "required": True,
-            "id": "-",
-        },
-    }
-
-    ctx = get_context(ctx_obj)
-
-    expected_output = StructType(
-        [
-            StructField("years_employed", LongType(), True),
-            StructField("income", FloatType(), False),
-            StructField("prior_default", StringType(), False),
-        ]
-    )
-
-    actual = spark_util.expected_schema_from_context(ctx)
-    assert spark_util.compare_column_schemas(actual, expected_output) == True
-
-
-def test_get_expected_schema_from_context_parquet(ctx_obj, get_context):
-    ctx_obj["environment"] = {
-        "data": {
-            "type": "parquet",
-            "schema": [
-                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
-            ],
-        }
-    }
-    ctx_obj["raw_columns"] = {
-        "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": "-"},
-        "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "-"},
-        "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "-"},
-    }
-
-    ctx = get_context(ctx_obj)
-
-    expected_output = StructType(
-        [
-            StructField("c_long", LongType(), True),
-            StructField("b_float", FloatType(), False),
-            StructField("a_str", StringType(), False),
-        ]
-    )
-
-    actual = spark_util.expected_schema_from_context(ctx)
-    assert spark_util.compare_column_schemas(actual, expected_output) == True
-
-
 def test_read_csv_valid(spark, write_csv_file, ctx_obj, get_context):
     csv_str = "\n".join(["a,0.1,", "b,1,1", "c,1.1,4"])
 
@@ -141,6 +40,16 @@ def test_read_csv_valid(spark, write_csv_file, ctx_obj, get_context):
         "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "-"},
         "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": "-"},
         "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "-"},
+    }
+
+    assert spark_util.read_csv(get_context(ctx_obj), spark).count() == 3
+
+    ctx_obj["environment"] = {
+        "data": {
+            "type": "csv",
+            "path": path_to_file,
+            "schema": ["a_str", "b_float", "c_long", "d_long"],
+        }
     }
 
     assert spark_util.read_csv(get_context(ctx_obj), spark).count() == 3
@@ -162,6 +71,25 @@ def test_read_csv_invalid_type(spark, write_csv_file, ctx_obj, get_context):
     }
 
     with pytest.raises(Py4JJavaError):
+        spark_util.ingest(get_context(ctx_obj), spark).collect()
+
+
+def test_read_csv_missing_column(spark, write_csv_file, ctx_obj, get_context):
+    csv_str = "\n".join(["a,0.1,", "b,1,1"])
+
+    path_to_file = write_csv_file(csv_str)
+
+    ctx_obj["environment"] = {
+        "data": {"type": "csv", "path": path_to_file, "schema": ["a_str", "b_long", "c_long"]}
+    }
+
+    ctx_obj["raw_columns"] = {
+        "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "-"},
+        "b_long": {"name": "b_long", "type": "INT_COLUMN", "required": True, "id": "-"},
+        "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "-"},
+    }
+
+    with pytest.raises(Py4JJavaError) as exec_info:
         spark_util.ingest(get_context(ctx_obj), spark).collect()
 
 
@@ -383,8 +311,8 @@ def test_ingest_parquet_valid(spark, write_parquet_file, ctx_obj, get_context):
     schema = StructType(
         [
             StructField("a_str", StringType()),
-            StructField("b_float", FloatType()),
-            StructField("c_long", LongType()),
+            StructField("b_float", DoubleType()),
+            StructField("c_long", IntegerType()),
         ]
     )
 
@@ -408,7 +336,86 @@ def test_ingest_parquet_valid(spark, write_parquet_file, ctx_obj, get_context):
         "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "3"},
     }
 
+    df = spark_util.ingest(get_context(ctx_obj), spark)
+
+    assert df.count() == 3
+
+    assert sorted([(s.name, s.dataType) for s in df.schema], key=lambda x: x[0]) == [
+        ("a_str", StringType()),
+        ("b_float", FloatType()),
+        ("c_long", LongType()),
+    ]
+
+
+def test_ingest_parquet_extra_cols(spark, write_parquet_file, ctx_obj, get_context):
+    data = [("a", 0.1, None), ("b", 1.0, None), ("c", 1.1, 4)]
+
+    schema = StructType(
+        [
+            StructField("a_str", StringType()),
+            StructField("b_float", FloatType()),
+            StructField("c_long", LongType()),
+        ]
+    )
+
+    path_to_file = write_parquet_file(spark, data, schema)
+
+    ctx_obj["environment"] = {
+        "data": {
+            "type": "parquet",
+            "path": path_to_file,
+            "schema": [
+                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
+                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
+                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+                {"parquet_column_name": "d_long", "raw_column_name": "d_long"},
+            ],
+        }
+    }
+
+    ctx_obj["raw_columns"] = {
+        "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "1"},
+        "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": "2"},
+        "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "3"},
+    }
+
     assert spark_util.ingest(get_context(ctx_obj), spark).count() == 3
+
+
+def test_ingest_parquet_missing_cols(spark, write_parquet_file, ctx_obj, get_context):
+    data = [("a", 0.1, None), ("b", 1.0, None), ("c", 1.1, 4)]
+
+    schema = StructType(
+        [
+            StructField("a_str", StringType()),
+            StructField("b_float", FloatType()),
+            StructField("d_long", LongType()),
+        ]
+    )
+
+    path_to_file = write_parquet_file(spark, data, schema)
+
+    ctx_obj["environment"] = {
+        "data": {
+            "type": "parquet",
+            "path": path_to_file,
+            "schema": [
+                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
+                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
+                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+            ],
+        }
+    }
+
+    ctx_obj["raw_columns"] = {
+        "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "1"},
+        "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": "2"},
+        "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "3"},
+    }
+
+    with pytest.raises(UserException) as exec_info:
+        spark_util.ingest(get_context(ctx_obj), spark).collect()
+    assert "c_long" in str(exec_info) and "missing column" in str(exec_info)
 
 
 def test_ingest_parquet_type_mismatch(spark, write_parquet_file, ctx_obj, get_context):
@@ -442,8 +449,9 @@ def test_ingest_parquet_type_mismatch(spark, write_parquet_file, ctx_obj, get_co
         "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "3"},
     }
 
-    with pytest.raises(UserException):
+    with pytest.raises(UserException) as exec_info:
         spark_util.ingest(get_context(ctx_obj), spark).collect()
+    assert "c_long" in str(exec_info) and "type mismatch" in str(exec_info)
 
 
 def test_ingest_parquet_failed_requirements(
@@ -562,7 +570,8 @@ def test_run_builtin_aggregators_error(spark, ctx_obj, get_context):
 
     data = [Row(a=None), Row(a=1), Row(a=2), Row(a=3)]
     df = spark.createDataFrame(data, StructType([StructField("a", LongType())]))
-    with pytest.raises(Exception):
+
+    with pytest.raises(Exception) as exec_info:
         spark_util.run_builtin_aggregators(aggregate_list, df, ctx, spark)
 
     ctx.store_aggregate_result.assert_not_called()
