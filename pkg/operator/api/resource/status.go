@@ -92,25 +92,23 @@ const (
 	StatusParentKilled
 
 	// Data statuses
-	StatusDataRunning
-	StatusDataSucceeded
-	StatusDataFailed
-	StatusDataKilled
+	StatusRunning
+	StatusSucceeded
+	StatusFailed
+	StatusKilled
 
 	// API statuses
-	StatusAPIUpdating
-	StatusAPIReady
-	StatusAPIStopping
-	StatusAPIStopped
-	StatusAPIError
+	StatusUpdating
+	StatusReady
+	StatusStopping
+	StatusStopped
+	StatusError
 
 	// Additional API group statuses (i.e. aggregated API status)
-	StatusAPIGroupPendingUpdate
-	StatusAPIGroupParentFailed
-	StatusAPIGroupParentKilled
-	StatusAPIGroupUpdateSkipped
+	StatusPendingUpdate
+	StatusUpdateSkipped
 
-	StatusDataKilledOOM
+	StatusKilledOOM
 )
 
 var statusCodes = []string{
@@ -123,26 +121,24 @@ var statusCodes = []string{
 	"status_parent_failed",
 	"status_parent_killed",
 
-	"status_data_running",
-	"status_data_succeeded",
-	"status_data_failed",
-	"status_data_killed",
+	"status_running",
+	"status_succeeded",
+	"status_failed",
+	"status_killed",
 
-	"status_api_updating",
-	"status_api_ready",
-	"status_api_stopping",
-	"status_api_stopped",
-	"status_api_error",
+	"status_updating",
+	"status_ready",
+	"status_stopping",
+	"status_stopped",
+	"status_error",
 
-	"status_api_group_pending_update",
-	"status_api_group_parent_failed",
-	"status_api_group_parent_killed",
-	"status_api_group_update_skipped",
+	"status_pending_update",
+	"status_update_skipped",
 
-	"status_data_oom",
+	"status_killed_oom",
 }
 
-var _ = [1]int{}[int(StatusDataKilledOOM)-(len(statusCodes)-1)] // Ensure list length matches
+var _ = [1]int{}[int(StatusKilledOOM)-(len(statusCodes)-1)] // Ensure list length matches
 
 var statusCodeMessages = []string{
 	"unknown", // StatusUnknown
@@ -165,15 +161,13 @@ var statusCodeMessages = []string{
 	"stopped",  // StatusAPIStopped
 	"error",    // StatusAPIError
 
-	"update pending",       // StatusAPIGroupPendingUpdate
-	"upstream error",       // StatusAPIGroupParentFailed
-	"upstream termination", // StatusAPIGroupParentKilled
-	"update skipped",       // StatusAPIGroupUpdateSkipped
+	"update pending", // StatusAPIGroupPendingUpdate
+	"update skipped", // StatusAPIGroupUpdateSkipped
 
 	"terminated (out of mem)", // StatusDataOOM
 }
 
-var _ = [1]int{}[int(StatusDataKilledOOM)-(len(statusCodeMessages)-1)] // Ensure list length matches
+var _ = [1]int{}[int(StatusKilledOOM)-(len(statusCodeMessages)-1)] // Ensure list length matches
 
 // StatusDataRunning aliases
 const (
@@ -194,26 +188,24 @@ var statusSortBuckets = []int{
 	2, // StatusParentFailed
 	2, // StatusParentKilled
 
-	3, // StatusDataRunning
-	0, // StatusDataSucceeded
-	1, // StatusDataFailed
-	1, // StatusDataKilled
+	3, // StatusRunning
+	0, // StatusSucceeded
+	1, // StatusFailed
+	1, // StatusKilled
 
-	3, // 	StatusAPIUpdating
-	0, // StatusAPIReady
-	3, // StatusAPIStopping
-	1, // StatusAPIStopped
-	1, // StatusAPIError
+	3, // StatusUpdating
+	0, // StatusReady
+	3, // StatusStopping
+	1, // StatusStopped
+	1, // StatusError
 
-	0, // StatusAPIGroupPendingUpdate
-	2, // StatusAPIGroupParentFailed
-	2, // StatusAPIGroupParentKilled
-	2, // StatusAPIGroupUpdateSkipped
+	0, // StatusPendingUpdate
+	2, // StatusUpdateSkipped
 
-	1, // StatusDataKilledOOM
+	1, // StatusKilledOOM
 }
 
-var _ = [1]int{}[int(StatusDataKilledOOM)-(len(statusSortBuckets)-1)] // Ensure list length matches
+var _ = [1]int{}[int(StatusKilledOOM)-(len(statusSortBuckets)-1)] // Ensure list length matches
 
 func (code StatusCode) String() string {
 	if int(code) < 0 || int(code) >= len(statusCodes) {
@@ -237,7 +229,7 @@ func (code StatusCode) SortBucket() int {
 }
 
 func (status *DataStatus) Message() string {
-	if status.Code == StatusDataRunning {
+	if status.Code == StatusRunning {
 		switch status.ResourceType {
 		case RawColumnType:
 			return RawColumnRunningMessage

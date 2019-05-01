@@ -31,7 +31,6 @@ import (
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 func init() {
@@ -83,7 +82,7 @@ var predictCmd = &cobra.Command{
 		predictResponse, err := makePredictRequest(apiURL, samplesJSONPath)
 		if err != nil {
 			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
-				errors.Exit(ErrorAPINotReady(apiName, resource.StatusAPIUpdating.Message()))
+				errors.Exit(ErrorAPINotReady(apiName, resource.StatusUpdating.Message()))
 			}
 			errors.Exit(err)
 		}
@@ -103,7 +102,7 @@ var predictCmd = &cobra.Command{
 			for _, prediction := range predictResponse.ClassificationPredictions {
 				if prediction.PredictedClassReversed != nil {
 					json, _ := json.Marshal(prediction.PredictedClassReversed)
-					fmt.Println(s.TrimPrefixAndSuffix(string(json), "\""))
+					fmt.Println(libstrings.TrimPrefixAndSuffix(string(json), "\""))
 				} else {
 					fmt.Println(prediction.PredictedClass)
 				}
@@ -118,7 +117,7 @@ var predictCmd = &cobra.Command{
 			for _, prediction := range predictResponse.RegressionPredictions {
 				if prediction.PredictedValueReversed != nil {
 					json, _ := json.Marshal(prediction.PredictedValueReversed)
-					fmt.Println(s.TrimPrefixAndSuffix(string(json), "\""))
+					fmt.Println(libstrings.TrimPrefixAndSuffix(string(json), "\""))
 				} else {
 					fmt.Println(libstrings.Round(prediction.PredictedValue, 2, true))
 				}

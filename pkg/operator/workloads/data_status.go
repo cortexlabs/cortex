@@ -67,18 +67,18 @@ func dataStatusCode(dataSavedStatus *resource.DataSavedStatus) resource.StatusCo
 		return resource.StatusPending
 	}
 	if dataSavedStatus.End == nil {
-		return resource.StatusDataRunning
+		return resource.StatusRunning
 	}
 
 	switch dataSavedStatus.ExitCode {
 	case resource.ExitCodeDataSucceeded:
-		return resource.StatusDataSucceeded
+		return resource.StatusSucceeded
 	case resource.ExitCodeDataFailed:
-		return resource.StatusDataFailed
+		return resource.StatusFailed
 	case resource.ExitCodeDataKilled:
-		return resource.StatusDataKilled
+		return resource.StatusKilled
 	case resource.ExitCodeDataOOM:
-		return resource.StatusDataKilledOOM
+		return resource.StatusKilledOOM
 	}
 
 	return resource.StatusUnknown
@@ -93,15 +93,15 @@ func updateDataStatusCodeByParents(dataStatus *resource.DataStatus, dataStatuses
 	parentSkipped := false
 	for dependency := range allDependencies {
 		switch dataStatuses[dependency].Code {
-		case resource.StatusDataKilled, resource.StatusDataKilledOOM:
+		case resource.StatusKilled, resource.StatusKilledOOM:
 			dataStatus.Code = resource.StatusParentKilled
 			return
-		case resource.StatusDataFailed:
+		case resource.StatusFailed:
 			dataStatus.Code = resource.StatusParentFailed
 			return
 		case resource.StatusSkipped:
 			parentSkipped = true
-		case resource.StatusDataSucceeded:
+		case resource.StatusSucceeded:
 			numSucceeded++
 		}
 	}
@@ -150,7 +150,7 @@ func didSparkShortCircuit(dataStatuses map[string]*resource.DataStatus, ctx *con
 		if _, ok := sparkResources[dataStatus.ResourceID]; !ok {
 			continue
 		}
-		if dataStatus.Code == resource.StatusDataFailed || dataStatus.Code == resource.StatusDataKilled {
+		if dataStatus.Code == resource.StatusFailed || dataStatus.Code == resource.StatusKilled {
 			return true
 		}
 	}
