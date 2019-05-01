@@ -18,7 +18,3 @@
 - kind: raw_column
   name: rating
   type: FLOAT_COLUMN
-
-- kind: raw_column
-  name: timestamp
-  type: INT_COLUMN
