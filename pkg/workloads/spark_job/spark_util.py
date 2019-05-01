@@ -100,39 +100,6 @@ def write_training_data(model_name, df, ctx, spark):
     return df
 
 
-def expected_schema_from_context(ctx):
-    data_config = ctx.environment["data"]
-
-    if data_config["type"] == "csv":
-        expected_field_names = data_config["schema"]
-    else:
-        expected_field_names = [f["raw_column_name"] for f in data_config["schema"]]
-
-    schema_fields = [
-        StructField(
-            name=fname,
-            dataType=CORTEX_TYPE_TO_SPARK_TYPE[ctx.columns[fname]["type"]],
-            nullable=not ctx.columns[fname].get("required", False),
-        )
-        for fname in expected_field_names
-    ]
-    return StructType(schema_fields)
-
-
-def compare_column_schemas(expected_schema, actual_schema):
-    # Nullables are being left out because when Spark is reading CSV files, it is setting nullable to true
-    # regardless of if the column has all values or not. The null checks will be done elsewhere.
-    # This compares only the schemas
-    expected_sorted_fields = sorted(
-        [(f.name, f.dataType) for f in expected_schema], key=lambda f: f[0]
-    )
-
-    # Sorted for determinism when testing
-    actual_sorted_fields = sorted([(f.name, f.dataType) for f in actual_schema], key=lambda f: f[0])
-
-    return expected_sorted_fields == actual_sorted_fields
-
-
 def min_check(input_col, min):
     return input_col >= min, input_col < min
 
@@ -220,27 +187,48 @@ def value_check_data(ctx, df, raw_columns=None):
 
 
 def ingest(ctx, spark):
-    expected_schema = expected_schema_from_context(ctx)
-
     if ctx.environment["data"]["type"] == "csv":
         df = read_csv(ctx, spark)
     elif ctx.environment["data"]["type"] == "parquet":
         df = read_parquet(ctx, spark)
 
-    if compare_column_schemas(expected_schema, df.schema) is not True:
-        logger.error("expected schema:")
-        log_df_schema(spark.createDataFrame([], expected_schema), logger.error)
-        logger.error("found schema:")
-        log_df_schema(df, logger.error)
+    input_type_map = {f.name: f.dataType for f in df.schema}
 
-        raise UserException("raw data schema mismatch")
+    for raw_column_name in ctx.raw_columns.keys():
+        raw_column = ctx.raw_columns[raw_column_name]
+        expected_types = CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES[raw_column["type"]]
+        actual_type = input_type_map[raw_column_name]
+        if actual_type not in expected_types:
+            logger.error("found schema:")
+            log_df_schema(df, logger.error)
 
-    return df
+            raise UserException(
+                "raw column " + raw_column_name,
+                "type mismatch",
+                "expected {} but found {}".format(
+                    " or ".join(str(x) for x in expected_types), actual_type
+                ),
+            )
+        target_type = CORTEX_TYPE_TO_SPARK_TYPE[raw_column["type"]]
+
+        if target_type != actual_type:
+            df = df.withColumn(raw_column_name, F.col(raw_column_name).cast(target_type))
+
+    return df.select(*sorted(df.columns))
 
 
 def read_csv(ctx, spark):
     data_config = ctx.environment["data"]
-    schema = expected_schema_from_context(ctx)
+    expected_field_names = data_config["schema"]
+
+    schema_fields = []
+    for field_name in expected_field_names:
+        if field_name in ctx.raw_columns:
+            spark_type = CORTEX_TYPE_TO_SPARK_TYPE[ctx.raw_columns[field_name]["type"]]
+        else:
+            spark_type = StringType()
+
+        schema_fields.append(StructField(name=field_name, dataType=spark_type))
 
     csv_config = {
         util.snake_to_camel(param_name): val
@@ -248,22 +236,29 @@ def read_csv(ctx, spark):
         if val is not None
     }
 
-    return spark.read.csv(data_config["path"], schema=schema, mode="FAILFAST", **csv_config)
+    df = spark.read.csv(
+        data_config["path"], schema=StructType(schema_fields), mode="FAILFAST", **csv_config
+    )
+    return df.select(*ctx.raw_columns.keys())
 
 
 def read_parquet(ctx, spark):
     parquet_config = ctx.environment["data"]
     df = spark.read.parquet(parquet_config["path"])
 
-    parquet_columns = [c["parquet_column_name"] for c in parquet_config["schema"]]
-    missing_cols = util.subtract_lists(parquet_columns, df.columns)
-    if len(missing_cols) > 0:
-        raise UserException("parquet dataset", "missing columns: " + str(missing_cols))
-
-    selectExprs = [
-        "{} as {}".format(c["parquet_column_name"], c["raw_column_name"])
+    alias_map = {
+        c["parquet_column_name"]: c["raw_column_name"]
         for c in parquet_config["schema"]
-    ]
+        if c["parquet_column_name"] in ctx.raw_columns
+    }
+
+    missing_cols = set(alias_map.keys()) - set(df.columns)
+    if len(missing_cols) > 0:
+        logger.error("found schema:")
+        log_df_schema(df, logger.error)
+        raise UserException("missing column(s) in input dataset", str(missing_cols))
+
+    selectExprs = ["{} as {}".format(alias_map[alias], alias) for alias in alias_map.keys()]
 
     return df.selectExpr(*selectExprs)
 
