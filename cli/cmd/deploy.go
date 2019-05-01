@@ -23,9 +23,9 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 var flagDeployForce bool

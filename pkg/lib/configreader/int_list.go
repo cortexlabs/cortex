@@ -19,7 +19,6 @@ package configreader
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 type IntListValidation struct {
@@ -33,7 +32,7 @@ type IntListValidation struct {
 func IntList(inter interface{}, v *IntListValidation) ([]int, error) {
 	casted, castOk := cast.InterfaceToIntSlice(inter)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeIntList)
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeIntList)
 	}
 	return ValidateIntList(casted, v)
 }

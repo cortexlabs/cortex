@@ -27,8 +27,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 type Config struct {
@@ -266,7 +266,7 @@ func newPartial(configData interface{}, filePath string, emb *Embed, template *T
 		}
 		kindStr, ok := kindInterface.(string)
 		if !ok {
-			return nil, errors.Wrap(configreader.ErrorInvalidPrimitiveType(kindInterface, s.PrimTypeString), identify(filePath, resource.UnknownType, "", i, emb), KindKey)
+			return nil, errors.Wrap(configreader.ErrorInvalidPrimitiveType(kindInterface, configreader.PrimTypeString), identify(filePath, resource.UnknownType, "", i, emb), KindKey)
 		}
 
 		var errs []error
@@ -461,7 +461,7 @@ func ReadAppName(filePath string, relativePath string) (string, error) {
 
 			appName, ok = appNameInter.(string)
 			if !ok {
-				return "", errors.Wrap(configreader.ErrorInvalidPrimitiveType(appNameInter, s.PrimTypeString), relativePath, wrapStr)
+				return "", errors.Wrap(configreader.ErrorInvalidPrimitiveType(appNameInter, configreader.PrimTypeString), relativePath, wrapStr)
 			}
 			if appName == "" {
 				return "", errors.Wrap(configreader.ErrorCannotBeEmpty(), relativePath, wrapStr)

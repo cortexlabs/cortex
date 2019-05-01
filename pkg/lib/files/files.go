@@ -28,7 +28,7 @@ import (
 	"github.com/xlab/treeprint"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 func Open(path string) (*os.File, error) {

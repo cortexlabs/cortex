@@ -14,14 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package strings_test
+package strings
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 func TestLongestCommonPrefix(t *testing.T) {
@@ -32,14 +30,14 @@ func TestLongestCommonPrefix(t *testing.T) {
 		"12345",
 	}
 	expected = "12345"
-	require.Equal(t, expected, s.LongestCommonPrefix(strs...))
+	require.Equal(t, expected, LongestCommonPrefix(strs...))
 
 	strs = []string{
 		"12345",
 		"12345678",
 	}
 	expected = "12345"
-	require.Equal(t, expected, s.LongestCommonPrefix(strs...))
+	require.Equal(t, expected, LongestCommonPrefix(strs...))
 
 	strs = []string{
 		"12345",
@@ -47,12 +45,12 @@ func TestLongestCommonPrefix(t *testing.T) {
 		"1239",
 	}
 	expected = "123"
-	require.Equal(t, expected, s.LongestCommonPrefix(strs...))
+	require.Equal(t, expected, LongestCommonPrefix(strs...))
 
 	strs = []string{
 		"123",
 		"456",
 	}
 	expected = ""
-	require.Equal(t, expected, s.LongestCommonPrefix(strs...))
+	require.Equal(t, expected, LongestCommonPrefix(strs...))
 }

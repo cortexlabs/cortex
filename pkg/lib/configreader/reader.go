@@ -31,7 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type StructFieldValidation struct {
@@ -129,7 +129,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 
 	interMap, ok := cast.InterfaceToStrInterfaceMap(inter)
 	if !ok {
-		return []error{ErrorInvalidPrimitiveType(inter, s.PrimTypeMap)}
+		return []error{ErrorInvalidPrimitiveType(inter, PrimTypeMap)}
 	}
 
 	for _, structFieldValidation := range v.StructFieldValidations {
@@ -366,7 +366,7 @@ func StructList(dest interface{}, inter interface{}, v *StructListValidation) (i
 
 	interSlice, ok := cast.InterfaceToInterfaceSlice(inter)
 	if !ok {
-		return nil, []error{ErrorInvalidPrimitiveType(inter, s.PrimTypeList)}
+		return nil, []error{ErrorInvalidPrimitiveType(inter, PrimTypeList)}
 	}
 
 	errs := []error{}
@@ -396,7 +396,7 @@ func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface
 
 	interMap, ok := cast.InterfaceToStrInterfaceMap(inter)
 	if !ok {
-		return nil, []error{ErrorInvalidPrimitiveType(inter, s.PrimTypeMap)}
+		return nil, []error{ErrorInvalidPrimitiveType(inter, PrimTypeMap)}
 	}
 
 	var validTypeStrs []string
@@ -475,7 +475,7 @@ func InterfaceStructList(dest interface{}, inter interface{}, v *InterfaceStruct
 
 	interSlice, ok := cast.InterfaceToInterfaceSlice(inter)
 	if !ok {
-		return nil, []error{ErrorInvalidPrimitiveType(inter, s.PrimTypeList)}
+		return nil, []error{ErrorInvalidPrimitiveType(inter, PrimTypeList)}
 	}
 
 	errs := []error{}
@@ -675,7 +675,7 @@ func MustReadYAMLStrMap(yamlStr string) map[string]interface{} {
 	}
 	casted, ok := cast.InterfaceToStrInterfaceMap(parsed)
 	if !ok {
-		errors.Panic(ErrorInvalidPrimitiveType(parsed, s.PrimTypeMap))
+		errors.Panic(ErrorInvalidPrimitiveType(parsed, PrimTypeMap))
 	}
 	return casted
 }

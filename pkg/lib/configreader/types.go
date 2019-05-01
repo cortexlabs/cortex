@@ -19,3 +19,31 @@ package configreader
 type TypePlaceholder struct {
 	Type string `json:"type"`
 }
+
+type PrimitiveType string
+type PrimitiveTypes []PrimitiveType
+
+var (
+	PrimTypeInt        PrimitiveType = "integer"
+	PrimTypeIntList    PrimitiveType = "integer list"
+	PrimTypeFloat      PrimitiveType = "float"
+	PrimTypeFloatList  PrimitiveType = "float list"
+	PrimTypeString     PrimitiveType = "string"
+	PrimTypeStringList PrimitiveType = "string list"
+	PrimTypeBool       PrimitiveType = "boolean"
+	PrimTypeBoolList   PrimitiveType = "boolean list"
+
+	PrimTypeMap     PrimitiveType = "map"
+	PrimTypeMapList PrimitiveType = "list of maps"
+	PrimTypeList    PrimitiveType = "list"
+
+	PrimTypeStringToStringMap PrimitiveType = "map of strings to strings"
+)
+
+func (ts PrimitiveTypes) StringList() []string {
+	strs := make([]string, len(ts))
+	for i, t := range ts {
+		strs[i] = string(t)
+	}
+	return strs
+}

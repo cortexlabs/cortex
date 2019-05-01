@@ -17,7 +17,12 @@ limitations under the License.
 package configreader
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/maps"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type InterfaceValidation struct {
@@ -65,4 +70,51 @@ func ValidateInterface(val interface{}, v *InterfaceValidation) (interface{}, er
 		return v.Validator(val)
 	}
 	return val, nil
+}
+
+// FlattenAllStrValues assumes that the order for maps is deterministic
+func FlattenAllStrValues(obj interface{}) ([]string, error) {
+	obj = pointer.IndirectSafe(obj)
+	flattened := []string{}
+
+	if objStr, ok := obj.(string); ok {
+		return append(flattened, objStr), nil
+	}
+
+	if objSlice, ok := cast.InterfaceToInterfaceSlice(obj); ok {
+		for i, elem := range objSlice {
+			subFlattened, err := FlattenAllStrValues(elem)
+			if err != nil {
+				return nil, errors.Wrap(err, s.Index(i))
+			}
+			flattened = append(flattened, subFlattened...)
+		}
+		return flattened, nil
+	}
+
+	if objMap, ok := cast.InterfaceToStrInterfaceMap(obj); ok {
+		for _, key := range maps.InterfaceMapSortedKeys(objMap) {
+			subFlattened, err := FlattenAllStrValues(objMap[key])
+			if err != nil {
+				return nil, errors.Wrap(err, s.UserStrStripped(key))
+			}
+			flattened = append(flattened, subFlattened...)
+		}
+		return flattened, nil
+	}
+
+	return nil, ErrorInvalidPrimitiveType(obj, PrimTypeString, PrimTypeList, PrimTypeMap)
+}
+
+func FlattenAllStrValuesAsSet(obj interface{}) (strset.Set, error) {
+	strs, err := FlattenAllStrValues(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	set := strset.New()
+	for _, str := range strs {
+		set.Add(str)
+	}
+	return set, nil
 }

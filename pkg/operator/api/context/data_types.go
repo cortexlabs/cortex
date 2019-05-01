@@ -22,7 +22,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 func DataTypeID(dataType interface{}) string {

@@ -19,7 +19,6 @@ package configreader
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/operator/api/strings"
 )
 
 type Float64ListValidation struct {
@@ -33,7 +32,7 @@ type Float64ListValidation struct {
 func Float64List(inter interface{}, v *Float64ListValidation) ([]float64, error) {
 	casted, castOk := cast.InterfaceToFloat64Slice(inter)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, s.PrimTypeFloatList)
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeFloatList)
 	}
 	return ValidateFloat64List(casted, v)
 }
