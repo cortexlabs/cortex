@@ -90,6 +90,7 @@ const (
 	StatusSkipped
 	StatusParentFailed
 	StatusParentKilled
+	StatusKilledOOM
 
 	// Data statuses
 	StatusRunning
@@ -107,8 +108,6 @@ const (
 	// Additional API group statuses (i.e. aggregated API status)
 	StatusPendingUpdate
 	StatusUpdateSkipped
-
-	StatusKilledOOM
 )
 
 var statusCodes = []string{
@@ -120,6 +119,7 @@ var statusCodes = []string{
 	"status_skipped",
 	"status_parent_failed",
 	"status_parent_killed",
+	"status_killed_oom",
 
 	"status_running",
 	"status_succeeded",
@@ -134,21 +134,20 @@ var statusCodes = []string{
 
 	"status_pending_update",
 	"status_update_skipped",
-
-	"status_killed_oom",
 }
 
-var _ = [1]int{}[int(StatusKilledOOM)-(len(statusCodes)-1)] // Ensure list length matches
+var _ = [1]int{}[int(StatusUpdateSkipped)-(len(statusCodes)-1)] // Ensure list length matches
 
 var statusCodeMessages = []string{
 	"unknown", // StatusUnknown
 
-	"pending",              // StatusPending
-	"compute unavailable",  // StatusPendingCompute
-	"pending",              // StatusWaiting
-	"skipped",              // StatusSkipped
-	"upstream error",       // StatusParentFailed
-	"upstream termination", // StatusParentKilled
+	"pending",                 // StatusPending
+	"compute unavailable",     // StatusPendingCompute
+	"pending",                 // StatusWaiting
+	"skipped",                 // StatusSkipped
+	"upstream error",          // StatusParentFailed
+	"upstream termination",    // StatusParentKilled
+	"terminated (out of mem)", // StatusDataOOM
 
 	"running",    // StatusDataRunning
 	"ready",      // StatusDataSucceeded
@@ -164,10 +163,9 @@ var statusCodeMessages = []string{
 	"update pending", // StatusAPIGroupPendingUpdate
 	"update skipped", // StatusAPIGroupUpdateSkipped
 
-	"terminated (out of mem)", // StatusDataOOM
 }
 
-var _ = [1]int{}[int(StatusKilledOOM)-(len(statusCodeMessages)-1)] // Ensure list length matches
+var _ = [1]int{}[int(StatusUpdateSkipped)-(len(statusCodeMessages)-1)] // Ensure list length matches
 
 // StatusDataRunning aliases
 const (
@@ -187,6 +185,7 @@ var statusSortBuckets = []int{
 	2, // StatusSkipped
 	2, // StatusParentFailed
 	2, // StatusParentKilled
+	1, // StatusKilledOOM
 
 	3, // StatusRunning
 	0, // StatusSucceeded
@@ -201,11 +200,9 @@ var statusSortBuckets = []int{
 
 	0, // StatusPendingUpdate
 	2, // StatusUpdateSkipped
-
-	1, // StatusKilledOOM
 }
 
-var _ = [1]int{}[int(StatusKilledOOM)-(len(statusSortBuckets)-1)] // Ensure list length matches
+var _ = [1]int{}[int(StatusUpdateSkipped)-(len(statusSortBuckets)-1)] // Ensure list length matches
 
 func (code StatusCode) String() string {
 	if int(code) < 0 || int(code) >= len(statusCodes) {
