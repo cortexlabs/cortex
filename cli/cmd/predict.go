@@ -27,7 +27,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
-	libstrings "github.com/cortexlabs/cortex/pkg/lib/strings"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -83,7 +82,7 @@ var predictCmd = &cobra.Command{
 		predictResponse, err := makePredictRequest(apiURL, samplesJSONPath)
 		if err != nil {
 			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
-				errors.Exit(ErrorAPINotReady(apiName, resource.StatusAPIUpdating.Message()))
+				errors.Exit(ErrorAPINotReady(apiName, resource.StatusUpdating.Message()))
 			}
 			errors.Exit(err)
 		}
@@ -120,7 +119,7 @@ var predictCmd = &cobra.Command{
 					json, _ := json.Marshal(prediction.PredictedValueReversed)
 					fmt.Println(s.TrimPrefixAndSuffix(string(json), "\""))
 				} else {
-					fmt.Println(libstrings.Round(prediction.PredictedValue, 2, true))
+					fmt.Println(s.Round(prediction.PredictedValue, 2, true))
 				}
 			}
 		}
