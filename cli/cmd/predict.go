@@ -27,7 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
-	libstrings "github.com/cortexlabs/cortex/pkg/lib/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
@@ -102,7 +102,7 @@ var predictCmd = &cobra.Command{
 			for _, prediction := range predictResponse.ClassificationPredictions {
 				if prediction.PredictedClassReversed != nil {
 					json, _ := json.Marshal(prediction.PredictedClassReversed)
-					fmt.Println(libstrings.TrimPrefixAndSuffix(string(json), "\""))
+					fmt.Println(s.TrimPrefixAndSuffix(string(json), "\""))
 				} else {
 					fmt.Println(prediction.PredictedClass)
 				}
@@ -117,9 +117,9 @@ var predictCmd = &cobra.Command{
 			for _, prediction := range predictResponse.RegressionPredictions {
 				if prediction.PredictedValueReversed != nil {
 					json, _ := json.Marshal(prediction.PredictedValueReversed)
-					fmt.Println(libstrings.TrimPrefixAndSuffix(string(json), "\""))
+					fmt.Println(s.TrimPrefixAndSuffix(string(json), "\""))
 				} else {
-					fmt.Println(libstrings.Round(prediction.PredictedValue, 2, true))
+					fmt.Println(s.Round(prediction.PredictedValue, 2, true))
 				}
 			}
 		}
