@@ -22,11 +22,11 @@ import (
 )
 
 type StringMapValidation struct {
-	Required   bool
-	Default    map[string]string
-	AllowNull  bool
-	AllowEmpty bool
-	Validator  func(map[string]string) (map[string]string, error)
+	Required          bool
+	Default           map[string]string
+	AllowExplicitNull bool
+	AllowEmpty        bool
+	Validator         func(map[string]string) (map[string]string, error)
 }
 
 func StringMap(inter interface{}, v *StringMapValidation) (map[string]string, error) {
@@ -34,7 +34,7 @@ func StringMap(inter interface{}, v *StringMapValidation) (map[string]string, er
 	if !castOk {
 		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeStringToStringMap)
 	}
-	return ValidateStringMap(casted, v)
+	return ValidateStringMapProvided(casted, v)
 }
 
 func StringMapFromInterfaceMap(key string, iMap map[string]interface{}, v *StringMapValidation) (map[string]string, error) {
@@ -57,16 +57,17 @@ func ValidateStringMapMissing(v *StringMapValidation) (map[string]string, error)
 	if v.Required {
 		return nil, ErrorMustBeDefined()
 	}
-	return ValidateStringMap(v.Default, v)
+	return validateStringMap(v.Default, v)
 }
 
-func ValidateStringMap(val map[string]string, v *StringMapValidation) (map[string]string, error) {
-	if !v.AllowNull {
-		if val == nil {
-			return nil, ErrorCannotBeNull()
-		}
+func ValidateStringMapProvided(val map[string]string, v *StringMapValidation) (map[string]string, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateStringMap(val, v)
+}
 
+func validateStringMap(val map[string]string, v *StringMapValidation) (map[string]string, error) {
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
 			return nil, ErrorCannotBeEmpty()

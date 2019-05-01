@@ -22,11 +22,11 @@ import (
 )
 
 type InterfaceMapListValidation struct {
-	Required   bool
-	Default    []map[string]interface{}
-	AllowNull  bool
-	AllowEmpty bool
-	Validator  func([]map[string]interface{}) ([]map[string]interface{}, error)
+	Required          bool
+	Default           []map[string]interface{}
+	AllowExplicitNull bool
+	AllowEmpty        bool
+	Validator         func([]map[string]interface{}) ([]map[string]interface{}, error)
 }
 
 func InterfaceMapList(inter interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
@@ -34,7 +34,7 @@ func InterfaceMapList(inter interface{}, v *InterfaceMapListValidation) ([]map[s
 	if !castOk {
 		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeMapList)
 	}
-	return ValidateInterfaceMapList(casted, v)
+	return ValidateInterfaceMapListProvided(casted, v)
 }
 
 func InterfaceMapListFromInterfaceMap(key string, iMap map[string]interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
@@ -57,16 +57,17 @@ func ValidateInterfaceMapListMissing(v *InterfaceMapListValidation) ([]map[strin
 	if v.Required {
 		return nil, ErrorMustBeDefined()
 	}
-	return ValidateInterfaceMapList(v.Default, v)
+	return validateInterfaceMapList(v.Default, v)
 }
 
-func ValidateInterfaceMapList(val []map[string]interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
-	if !v.AllowNull {
-		if val == nil {
-			return nil, ErrorCannotBeNull()
-		}
+func ValidateInterfaceMapListProvided(val []map[string]interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateInterfaceMapList(val, v)
+}
 
+func validateInterfaceMapList(val []map[string]interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
 			return nil, ErrorCannotBeEmpty()

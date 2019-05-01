@@ -26,14 +26,14 @@ import (
 )
 
 type InterfaceValidation struct {
-	Required  bool
-	Default   interface{}
-	AllowNull bool
-	Validator func(interface{}) (interface{}, error)
+	Required          bool
+	Default           interface{}
+	AllowExplicitNull bool
+	Validator         func(interface{}) (interface{}, error)
 }
 
 func Interface(inter interface{}, v *InterfaceValidation) (interface{}, error) {
-	return ValidateInterface(inter, v)
+	return ValidateInterfaceProvided(inter, v)
 }
 
 func InterfaceFromInterfaceMap(key string, iMap map[string]interface{}, v *InterfaceValidation) (interface{}, error) {
@@ -45,7 +45,7 @@ func InterfaceFromInterfaceMap(key string, iMap map[string]interface{}, v *Inter
 		}
 		return val, nil
 	}
-	val, err := ValidateInterface(inter, v)
+	val, err := ValidateInterfaceProvided(inter, v)
 	if err != nil {
 		return nil, errors.Wrap(err, key)
 	}
@@ -56,16 +56,17 @@ func ValidateInterfaceMissing(v *InterfaceValidation) (interface{}, error) {
 	if v.Required {
 		return nil, ErrorMustBeDefined()
 	}
-	return ValidateInterface(v.Default, v)
+	return validateInterface(v.Default, v)
 }
 
-func ValidateInterface(val interface{}, v *InterfaceValidation) (interface{}, error) {
-	if !v.AllowNull {
-		if val == nil {
-			return nil, ErrorCannotBeNull()
-		}
+func ValidateInterfaceProvided(val interface{}, v *InterfaceValidation) (interface{}, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateInterface(val, v)
+}
 
+func validateInterface(val interface{}, v *InterfaceValidation) (interface{}, error) {
 	if v.Validator != nil {
 		return v.Validator(val)
 	}

@@ -22,11 +22,11 @@ import (
 )
 
 type BoolListValidation struct {
-	Required   bool
-	Default    []bool
-	AllowNull  bool
-	AllowEmpty bool
-	Validator  func([]bool) ([]bool, error)
+	Required          bool
+	Default           []bool
+	AllowExplicitNull bool
+	AllowEmpty        bool
+	Validator         func([]bool) ([]bool, error)
 }
 
 func BoolList(inter interface{}, v *BoolListValidation) ([]bool, error) {
@@ -34,7 +34,7 @@ func BoolList(inter interface{}, v *BoolListValidation) ([]bool, error) {
 	if !castOk {
 		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeBoolList)
 	}
-	return ValidateBoolList(casted, v)
+	return ValidateBoolListProvided(casted, v)
 }
 
 func BoolListFromInterfaceMap(key string, iMap map[string]interface{}, v *BoolListValidation) ([]bool, error) {
@@ -57,16 +57,17 @@ func ValidateBoolListMissing(v *BoolListValidation) ([]bool, error) {
 	if v.Required {
 		return nil, ErrorMustBeDefined()
 	}
-	return ValidateBoolList(v.Default, v)
+	return validateBoolList(v.Default, v)
 }
 
-func ValidateBoolList(val []bool, v *BoolListValidation) ([]bool, error) {
-	if !v.AllowNull {
-		if val == nil {
-			return nil, ErrorCannotBeNull()
-		}
+func ValidateBoolListProvided(val []bool, v *BoolListValidation) ([]bool, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateBoolList(val, v)
+}
 
+func validateBoolList(val []bool, v *BoolListValidation) ([]bool, error) {
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
 			return nil, ErrorCannotBeEmpty()

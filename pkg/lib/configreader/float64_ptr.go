@@ -27,7 +27,7 @@ import (
 type Float64PtrValidation struct {
 	Required             bool
 	Default              *float64
-	DisallowNull         bool
+	AllowExplicitNull    bool
 	AllowedValues        []float64
 	GreaterThan          *float64
 	GreaterThanOrEqualTo *float64
@@ -48,13 +48,13 @@ func makeFloat64ValValidation(v *Float64PtrValidation) *Float64Validation {
 
 func Float64Ptr(inter interface{}, v *Float64PtrValidation) (*float64, error) {
 	if inter == nil {
-		return ValidateFloat64Ptr(nil, v)
+		return ValidateFloat64PtrProvided(nil, v)
 	}
 	casted, castOk := cast.InterfaceToFloat64(inter)
 	if !castOk {
 		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeFloat)
 	}
-	return ValidateFloat64Ptr(&casted, v)
+	return ValidateFloat64PtrProvided(&casted, v)
 }
 
 func Float64PtrFromInterfaceMap(key string, iMap map[string]interface{}, v *Float64PtrValidation) (*float64, error) {
@@ -97,7 +97,7 @@ func Float64PtrFromStr(valStr string, v *Float64PtrValidation) (*float64, error)
 	if !castOk {
 		return nil, ErrorInvalidPrimitiveType(valStr, PrimTypeFloat)
 	}
-	return ValidateFloat64Ptr(&casted, v)
+	return ValidateFloat64PtrProvided(&casted, v)
 }
 
 func Float64PtrFromEnv(envVarName string, v *Float64PtrValidation) (*float64, error) {
@@ -153,16 +153,17 @@ func ValidateFloat64PtrMissing(v *Float64PtrValidation) (*float64, error) {
 	if v.Required {
 		return nil, ErrorMustBeDefined()
 	}
-	return ValidateFloat64Ptr(v.Default, v)
+	return validateFloat64Ptr(v.Default, v)
 }
 
-func ValidateFloat64Ptr(val *float64, v *Float64PtrValidation) (*float64, error) {
-	if v.DisallowNull {
-		if val == nil {
-			return nil, ErrorCannotBeNull()
-		}
+func ValidateFloat64PtrProvided(val *float64, v *Float64PtrValidation) (*float64, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateFloat64Ptr(val, v)
+}
 
+func validateFloat64Ptr(val *float64, v *Float64PtrValidation) (*float64, error) {
 	if val != nil {
 		err := ValidateFloat64Val(*val, makeFloat64ValValidation(v))
 		if err != nil {

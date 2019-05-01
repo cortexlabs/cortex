@@ -24,12 +24,12 @@ import (
 
 type InterfaceMapValidation struct {
 	Required          bool
-	AllowNull         bool
+	Default           map[string]interface{}
+	AllowExplicitNull bool
 	AllowEmpty        bool
 	ScalarsOnly       bool
 	StringLeavesOnly  bool
 	AllowedLeafValues []string
-	Default           map[string]interface{}
 	Validator         func(map[string]interface{}) (map[string]interface{}, error)
 }
 
@@ -38,7 +38,7 @@ func InterfaceMap(inter interface{}, v *InterfaceMapValidation) (map[string]inte
 	if !castOk {
 		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeMap)
 	}
-	return ValidateInterfaceMap(casted, v)
+	return ValidateInterfaceMapProvided(casted, v)
 }
 
 func InterfaceMapFromInterfaceMap(key string, iMap map[string]interface{}, v *InterfaceMapValidation) (map[string]interface{}, error) {
@@ -61,16 +61,17 @@ func ValidateInterfaceMapMissing(v *InterfaceMapValidation) (map[string]interfac
 	if v.Required {
 		return nil, ErrorMustBeDefined()
 	}
-	return ValidateInterfaceMap(v.Default, v)
+	return validateInterfaceMap(v.Default, v)
 }
 
-func ValidateInterfaceMap(val map[string]interface{}, v *InterfaceMapValidation) (map[string]interface{}, error) {
-	if !v.AllowNull {
-		if val == nil {
-			return nil, ErrorCannotBeNull()
-		}
+func ValidateInterfaceMapProvided(val map[string]interface{}, v *InterfaceMapValidation) (map[string]interface{}, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateInterfaceMap(val, v)
+}
 
+func validateInterfaceMap(val map[string]interface{}, v *InterfaceMapValidation) (map[string]interface{}, error) {
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
 			return nil, ErrorCannotBeEmpty()

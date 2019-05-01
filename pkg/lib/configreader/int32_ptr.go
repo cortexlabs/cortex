@@ -27,7 +27,7 @@ import (
 type Int32PtrValidation struct {
 	Required             bool
 	Default              *int32
-	DisallowNull         bool
+	AllowExplicitNull    bool
 	AllowedValues        []int32
 	GreaterThan          *int32
 	GreaterThanOrEqualTo *int32
@@ -48,13 +48,13 @@ func makeInt32ValValidation(v *Int32PtrValidation) *Int32Validation {
 
 func Int32Ptr(inter interface{}, v *Int32PtrValidation) (*int32, error) {
 	if inter == nil {
-		return ValidateInt32Ptr(nil, v)
+		return ValidateInt32PtrProvdied(nil, v)
 	}
 	casted, castOk := cast.InterfaceToInt32(inter)
 	if !castOk {
 		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeInt)
 	}
-	return ValidateInt32Ptr(&casted, v)
+	return ValidateInt32PtrProvdied(&casted, v)
 }
 
 func Int32PtrFromInterfaceMap(key string, iMap map[string]interface{}, v *Int32PtrValidation) (*int32, error) {
@@ -97,7 +97,7 @@ func Int32PtrFromStr(valStr string, v *Int32PtrValidation) (*int32, error) {
 	if !castOk {
 		return nil, ErrorInvalidPrimitiveType(valStr, PrimTypeInt)
 	}
-	return ValidateInt32Ptr(&casted, v)
+	return ValidateInt32PtrProvdied(&casted, v)
 }
 
 func Int32PtrFromEnv(envVarName string, v *Int32PtrValidation) (*int32, error) {
@@ -153,16 +153,17 @@ func ValidateInt32PtrMissing(v *Int32PtrValidation) (*int32, error) {
 	if v.Required {
 		return nil, ErrorMustBeDefined()
 	}
-	return ValidateInt32Ptr(v.Default, v)
+	return validateInt32Ptr(v.Default, v)
 }
 
-func ValidateInt32Ptr(val *int32, v *Int32PtrValidation) (*int32, error) {
-	if v.DisallowNull {
-		if val == nil {
-			return nil, ErrorCannotBeNull()
-		}
+func ValidateInt32PtrProvdied(val *int32, v *Int32PtrValidation) (*int32, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateInt32Ptr(val, v)
+}
 
+func validateInt32Ptr(val *int32, v *Int32PtrValidation) (*int32, error) {
 	if val != nil {
 		err := ValidateInt32Val(*val, makeInt32ValValidation(v))
 		if err != nil {
