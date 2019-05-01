@@ -164,22 +164,22 @@ func getReplicaCountsMap(podList []corev1.Pod, ctx *context.Context) map[string]
 
 func apiStatusCode(apiStatus *resource.APIStatus, failedWorkloadIDs strset.Set) resource.StatusCode {
 	if failedWorkloadIDs.Has(apiStatus.WorkloadID) {
-		return resource.StatusAPIError
+		return resource.StatusError
 	}
 	if apiStatus.RequestedReplicas == 0 {
 		if apiStatus.TotalReady() > 0 {
-			return resource.StatusAPIStopping
+			return resource.StatusStopping
 		}
-		return resource.StatusAPIStopped
+		return resource.StatusStopped
 	}
 	if apiStatus.ReadyUpdated == apiStatus.RequestedReplicas {
-		return resource.StatusAPIReady
+		return resource.StatusReady
 	}
 	if apiStatus.FailedUpdated > 0 {
-		return resource.StatusAPIError
+		return resource.StatusError
 	}
 	if apiStatus.TotalReady() > 0 {
-		return resource.StatusAPIUpdating
+		return resource.StatusUpdating
 	}
 
 	return resource.StatusPending
@@ -195,15 +195,15 @@ func updateAPIStatusCodeByParents(apiStatus *resource.APIStatus, dataStatuses ma
 	parentSkipped := false
 	for dependency := range allDependencies {
 		switch dataStatuses[dependency].Code {
-		case resource.StatusDataKilled, resource.StatusDataKilledOOM:
+		case resource.StatusKilled, resource.StatusKilledOOM:
 			apiStatus.Code = resource.StatusParentKilled
 			return
-		case resource.StatusDataFailed:
+		case resource.StatusFailed:
 			apiStatus.Code = resource.StatusParentFailed
 			return
 		case resource.StatusSkipped:
 			parentSkipped = true
-		case resource.StatusDataSucceeded:
+		case resource.StatusSucceeded:
 			numSucceeded++
 		}
 	}
@@ -214,7 +214,7 @@ func updateAPIStatusCodeByParents(apiStatus *resource.APIStatus, dataStatuses ma
 	}
 
 	if numSucceeded == len(allDependencies) {
-		apiStatus.Code = resource.StatusAPIUpdating
+		apiStatus.Code = resource.StatusUpdating
 	}
 }
 
@@ -276,7 +276,7 @@ func getActiveAPIStatus(apiStatuses []*resource.APIStatus, ctx *context.Context)
 
 func apiGroupStatusCode(apiStatuses []*resource.APIStatus, ctx *context.Context) resource.StatusCode {
 	if len(apiStatuses) == 0 {
-		return resource.StatusAPIStopped
+		return resource.StatusStopped
 	}
 
 	apiName := apiStatuses[0].APIName
@@ -285,10 +285,10 @@ func apiGroupStatusCode(apiStatuses []*resource.APIStatus, ctx *context.Context)
 	if ctxAPI == nil {
 		for _, apiStatus := range apiStatuses {
 			if apiStatus.TotalReady() > 0 {
-				return resource.StatusAPIStopping
+				return resource.StatusStopping
 			}
 		}
-		return resource.StatusAPIStopped
+		return resource.StatusStopped
 	}
 
 	var ctxAPIStatus *resource.APIStatus
@@ -306,30 +306,18 @@ func apiGroupStatusCode(apiStatuses []*resource.APIStatus, ctx *context.Context)
 	}
 
 	switch ctxAPIStatus.Code {
-	case resource.StatusUnknown:
-		return resource.StatusUnknown
+	case resource.StatusUnknown, resource.StatusPendingCompute,
+		resource.StatusParentFailed, resource.StatusParentKilled, resource.StatusUpdating,
+		resource.StatusReady, resource.StatusStopping, resource.StatusError:
+		return ctxAPIStatus.Code
 	case resource.StatusPending:
-		return resource.StatusAPIGroupPendingUpdate
-	case resource.StatusPendingCompute:
-		return resource.StatusPendingCompute
+		return resource.StatusPendingUpdate
 	case resource.StatusWaiting:
-		return resource.StatusAPIUpdating
+		return resource.StatusUpdating
 	case resource.StatusSkipped:
-		return resource.StatusAPIGroupUpdateSkipped
-	case resource.StatusParentFailed:
-		return resource.StatusAPIGroupParentFailed
-	case resource.StatusParentKilled:
-		return resource.StatusAPIGroupParentKilled
-	case resource.StatusAPIUpdating:
-		return resource.StatusAPIUpdating
-	case resource.StatusAPIReady:
-		return resource.StatusAPIReady
-	case resource.StatusAPIStopping:
-		return resource.StatusAPIStopping
-	case resource.StatusAPIStopped:
-		return resource.StatusAPIGroupPendingUpdate
-	case resource.StatusAPIError:
-		return resource.StatusAPIError
+		return resource.StatusUpdateSkipped
+	case resource.StatusStopped:
+		return resource.StatusPendingUpdate
 	}
 
 	return resource.StatusUnknown
@@ -346,7 +334,7 @@ func setInsufficientComputeAPIStatusCodes(apiStatuses map[string]*resource.APISt
 	}
 
 	for _, apiStatus := range apiStatuses {
-		if apiStatus.Code == resource.StatusPending || apiStatus.Code == resource.StatusWaiting || apiStatus.Code == resource.StatusAPIUpdating {
+		if apiStatus.Code == resource.StatusPending || apiStatus.Code == resource.StatusWaiting || apiStatus.Code == resource.StatusUpdating {
 			if _, ok := stalledWorkloads[apiStatus.WorkloadID]; ok {
 				apiStatus.Code = resource.StatusPendingCompute
 			}
