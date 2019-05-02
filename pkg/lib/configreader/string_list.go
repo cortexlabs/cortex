@@ -23,12 +23,12 @@ import (
 )
 
 type StringListValidation struct {
-	Required     bool
-	Default      []string
-	AllowNull    bool
-	AllowEmpty   bool
-	DisallowDups bool
-	Validator    func([]string) ([]string, error)
+	Required          bool
+	Default           []string
+	AllowExplicitNull bool
+	AllowEmpty        bool
+	DisallowDups      bool
+	Validator         func([]string) ([]string, error)
 }
 
 func StringList(inter interface{}, v *StringListValidation) ([]string, error) {
@@ -36,7 +36,7 @@ func StringList(inter interface{}, v *StringListValidation) ([]string, error) {
 	if !castOk {
 		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeStringList)
 	}
-	return ValidateStringList(casted, v)
+	return ValidateStringListProvided(casted, v)
 }
 
 func StringListFromInterfaceMap(key string, iMap map[string]interface{}, v *StringListValidation) ([]string, error) {
@@ -59,16 +59,17 @@ func ValidateStringListMissing(v *StringListValidation) ([]string, error) {
 	if v.Required {
 		return nil, ErrorMustBeDefined()
 	}
-	return ValidateStringList(v.Default, v)
+	return validateStringList(v.Default, v)
 }
 
-func ValidateStringList(val []string, v *StringListValidation) ([]string, error) {
-	if !v.AllowNull {
-		if val == nil {
-			return nil, ErrorCannotBeNull()
-		}
+func ValidateStringListProvided(val []string, v *StringListValidation) ([]string, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateStringList(val, v)
+}
 
+func validateStringList(val []string, v *StringListValidation) ([]string, error) {
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
 			return nil, ErrorCannotBeEmpty()

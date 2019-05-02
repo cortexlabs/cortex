@@ -27,7 +27,7 @@ import (
 type Int64PtrValidation struct {
 	Required             bool
 	Default              *int64
-	DisallowNull         bool
+	AllowExplicitNull    bool
 	AllowedValues        []int64
 	GreaterThan          *int64
 	GreaterThanOrEqualTo *int64
@@ -48,13 +48,13 @@ func makeInt64ValValidation(v *Int64PtrValidation) *Int64Validation {
 
 func Int64Ptr(inter interface{}, v *Int64PtrValidation) (*int64, error) {
 	if inter == nil {
-		return ValidateInt64Ptr(nil, v)
+		return ValidateInt64PtrProvided(nil, v)
 	}
 	casted, castOk := cast.InterfaceToInt64(inter)
 	if !castOk {
 		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeInt)
 	}
-	return ValidateInt64Ptr(&casted, v)
+	return ValidateInt64PtrProvided(&casted, v)
 }
 
 func Int64PtrFromInterfaceMap(key string, iMap map[string]interface{}, v *Int64PtrValidation) (*int64, error) {
@@ -97,7 +97,7 @@ func Int64PtrFromStr(valStr string, v *Int64PtrValidation) (*int64, error) {
 	if !castOk {
 		return nil, ErrorInvalidPrimitiveType(valStr, PrimTypeInt)
 	}
-	return ValidateInt64Ptr(&casted, v)
+	return ValidateInt64PtrProvided(&casted, v)
 }
 
 func Int64PtrFromEnv(envVarName string, v *Int64PtrValidation) (*int64, error) {
@@ -153,16 +153,17 @@ func ValidateInt64PtrMissing(v *Int64PtrValidation) (*int64, error) {
 	if v.Required {
 		return nil, ErrorMustBeDefined()
 	}
-	return ValidateInt64Ptr(v.Default, v)
+	return validateInt64Ptr(v.Default, v)
 }
 
-func ValidateInt64Ptr(val *int64, v *Int64PtrValidation) (*int64, error) {
-	if v.DisallowNull {
-		if val == nil {
-			return nil, ErrorCannotBeNull()
-		}
+func ValidateInt64PtrProvided(val *int64, v *Int64PtrValidation) (*int64, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateInt64Ptr(val, v)
+}
 
+func validateInt64Ptr(val *int64, v *Int64PtrValidation) (*int64, error) {
 	if val != nil {
 		err := ValidateInt64Val(*val, makeInt64ValValidation(v))
 		if err != nil {

@@ -27,7 +27,7 @@ import (
 type IntPtrValidation struct {
 	Required             bool
 	Default              *int
-	DisallowNull         bool
+	AllowExplicitNull    bool
 	AllowedValues        []int
 	GreaterThan          *int
 	GreaterThanOrEqualTo *int
@@ -48,13 +48,13 @@ func makeIntValValidation(v *IntPtrValidation) *IntValidation {
 
 func IntPtr(inter interface{}, v *IntPtrValidation) (*int, error) {
 	if inter == nil {
-		return ValidateIntPtr(nil, v)
+		return ValidateIntPtrProvided(nil, v)
 	}
 	casted, castOk := cast.InterfaceToInt(inter)
 	if !castOk {
 		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeInt)
 	}
-	return ValidateIntPtr(&casted, v)
+	return ValidateIntPtrProvided(&casted, v)
 }
 
 func IntPtrFromInterfaceMap(key string, iMap map[string]interface{}, v *IntPtrValidation) (*int, error) {
@@ -97,7 +97,7 @@ func IntPtrFromStr(valStr string, v *IntPtrValidation) (*int, error) {
 	if !castOk {
 		return nil, ErrorInvalidPrimitiveType(valStr, PrimTypeInt)
 	}
-	return ValidateIntPtr(&casted, v)
+	return ValidateIntPtrProvided(&casted, v)
 }
 
 func IntPtrFromEnv(envVarName string, v *IntPtrValidation) (*int, error) {
@@ -153,16 +153,17 @@ func ValidateIntPtrMissing(v *IntPtrValidation) (*int, error) {
 	if v.Required {
 		return nil, ErrorMustBeDefined()
 	}
-	return ValidateIntPtr(v.Default, v)
+	return validateIntPtr(v.Default, v)
 }
 
-func ValidateIntPtr(val *int, v *IntPtrValidation) (*int, error) {
-	if v.DisallowNull {
-		if val == nil {
-			return nil, ErrorCannotBeNull()
-		}
+func ValidateIntPtrProvided(val *int, v *IntPtrValidation) (*int, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateIntPtr(val, v)
+}
 
+func validateIntPtr(val *int, v *IntPtrValidation) (*int, error) {
 	if val != nil {
 		err := ValidateIntVal(*val, makeIntValValidation(v))
 		if err != nil {

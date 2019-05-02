@@ -90,11 +90,9 @@ var rawIntColumnFieldValidations = []*cr.StructFieldValidation{
 		Int64PtrValidation: &cr.Int64PtrValidation{},
 	},
 	{
-		Key:         "values",
-		StructField: "Values",
-		Int64ListValidation: &cr.Int64ListValidation{
-			AllowNull: true,
-		},
+		Key:                 "values",
+		StructField:         "Values",
+		Int64ListValidation: &cr.Int64ListValidation{},
 	},
 	sparkComputeFieldValidation("Compute"),
 	tagsFieldValidation,
@@ -139,11 +137,9 @@ var rawFloatColumnFieldValidations = []*cr.StructFieldValidation{
 		Float32PtrValidation: &cr.Float32PtrValidation{},
 	},
 	{
-		Key:         "values",
-		StructField: "Values",
-		Float32ListValidation: &cr.Float32ListValidation{
-			AllowNull: true,
-		},
+		Key:                   "values",
+		StructField:           "Values",
+		Float32ListValidation: &cr.Float32ListValidation{},
 	},
 	sparkComputeFieldValidation("Compute"),
 	tagsFieldValidation,
@@ -176,11 +172,9 @@ var rawStringColumnFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
-		Key:         "values",
-		StructField: "Values",
-		StringListValidation: &cr.StringListValidation{
-			AllowNull: true,
-		},
+		Key:                  "values",
+		StructField:          "Values",
+		StringListValidation: &cr.StringListValidation{},
 	},
 	sparkComputeFieldValidation("Compute"),
 	tagsFieldValidation,

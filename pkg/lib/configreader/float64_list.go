@@ -22,11 +22,11 @@ import (
 )
 
 type Float64ListValidation struct {
-	Required   bool
-	Default    []float64
-	AllowNull  bool
-	AllowEmpty bool
-	Validator  func([]float64) ([]float64, error)
+	Required          bool
+	Default           []float64
+	AllowExplicitNull bool
+	AllowEmpty        bool
+	Validator         func([]float64) ([]float64, error)
 }
 
 func Float64List(inter interface{}, v *Float64ListValidation) ([]float64, error) {
@@ -34,7 +34,7 @@ func Float64List(inter interface{}, v *Float64ListValidation) ([]float64, error)
 	if !castOk {
 		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeFloatList)
 	}
-	return ValidateFloat64List(casted, v)
+	return ValidateFloat64ListProvided(casted, v)
 }
 
 func Float64ListFromInterfaceMap(key string, iMap map[string]interface{}, v *Float64ListValidation) ([]float64, error) {
@@ -57,16 +57,17 @@ func ValidateFloat64ListMissing(v *Float64ListValidation) ([]float64, error) {
 	if v.Required {
 		return nil, ErrorMustBeDefined()
 	}
-	return ValidateFloat64List(v.Default, v)
+	return validateFloat64List(v.Default, v)
 }
 
-func ValidateFloat64List(val []float64, v *Float64ListValidation) ([]float64, error) {
-	if !v.AllowNull {
-		if val == nil {
-			return nil, ErrorCannotBeNull()
-		}
+func ValidateFloat64ListProvided(val []float64, v *Float64ListValidation) ([]float64, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateFloat64List(val, v)
+}
 
+func validateFloat64List(val []float64, v *Float64ListValidation) ([]float64, error) {
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
 			return nil, ErrorCannotBeEmpty()

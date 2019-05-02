@@ -603,21 +603,23 @@ func TestDefaultNull(t *testing.T) {
 	structValidation := &StructValidation{
 		StructFieldValidations: []*StructFieldValidation{
 			{
-				StructField:         "Key1",
-				StringPtrValidation: &StringPtrValidation{},
+				StructField: "Key1",
+				StringPtrValidation: &StringPtrValidation{
+					AllowExplicitNull: true,
+				},
 			},
 			{
 				StructField: "Key2",
 				StringListValidation: &StringListValidation{
-					Default:   []string{"key2"},
-					AllowNull: true,
+					Default:           []string{"key2"},
+					AllowExplicitNull: true,
 				},
 			},
 			{
 				StructField: "Key3",
 				InterfaceValidation: &InterfaceValidation{
-					Default:   "key3",
-					AllowNull: true,
+					Default:           "key3",
+					AllowExplicitNull: true,
 				},
 			},
 		},
