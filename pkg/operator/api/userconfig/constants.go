@@ -25,7 +25,7 @@ import (
 type Constants []*Constant
 
 type Constant struct {
-	ResourceConfigFields
+	ResourceFields
 	Type  interface{} `json:"type" yaml:"type"`
 	Value interface{} `json:"value" yaml:"value"`
 	Tags  Tags        `json:"tags" yaml:"tags"`

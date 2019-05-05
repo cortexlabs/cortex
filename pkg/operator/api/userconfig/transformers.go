@@ -24,7 +24,7 @@ import (
 type Transformers []*Transformer
 
 type Transformer struct {
-	ResourceConfigFields
+	ResourceFields
 	Inputs     *Inputs    `json:"inputs"  yaml:"inputs"`
 	OutputType ColumnType `json:"output_type"  yaml:"output_type"`
 	Path       string     `json:"path"  yaml:"path"`

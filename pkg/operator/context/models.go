@@ -104,7 +104,7 @@ func getModels(
 			ImplID:  modelImplID,
 			ImplKey: modelImplKey,
 			Dataset: &context.TrainingDataset{
-				ResourceConfigFields: userconfig.ResourceConfigFields{
+				ResourceFields: userconfig.ResourceFields{
 					Name:     trainingDatasetName,
 					FilePath: modelConfig.FilePath,
 					Embed:    modelConfig.Embed,

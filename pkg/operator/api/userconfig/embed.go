@@ -24,7 +24,7 @@ import (
 type Embeds []*Embed
 
 type Embed struct {
-	ResourceConfigFields
+	ResourceFields
 	Template string                 `json:"template" yaml:"template"`
 	Args     map[string]interface{} `json:"args" yaml:"args"`
 }

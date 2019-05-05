@@ -26,7 +26,7 @@ import (
 type Aggregates []*Aggregate
 
 type Aggregate struct {
-	ResourceConfigFields
+	ResourceFields
 	Aggregator string        `json:"aggregator" yaml:"aggregator"`
 	Inputs     *Inputs       `json:"inputs" yaml:"inputs"`
 	Compute    *SparkCompute `json:"compute" yaml:"compute"`

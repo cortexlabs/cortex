@@ -24,7 +24,7 @@ import (
 type Aggregators []*Aggregator
 
 type Aggregator struct {
-	ResourceConfigFields
+	ResourceFields
 	Inputs     *Inputs     `json:"inputs"  yaml:"inputs"`
 	OutputType interface{} `json:"output_type"  yaml:"output_type"`
 	Path       string      `json:"path"  yaml:"path"`

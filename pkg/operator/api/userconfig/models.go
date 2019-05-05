@@ -29,7 +29,7 @@ import (
 type Models []*Model
 
 type Model struct {
-	ResourceConfigFields
+	ResourceFields
 	Type               ModelType                `json:"type" yaml:"type"`
 	Path               string                   `json:"path" yaml:"path"`
 	TargetColumn       string                   `json:"target_column" yaml:"target_column"`
