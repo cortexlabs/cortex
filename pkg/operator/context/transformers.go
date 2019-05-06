@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
@@ -60,7 +61,7 @@ func loadUserTransformers(
 
 		anonTransformerConfig := &userconfig.Transformer{
 			ResourceFields: userconfig.ResourceFields{
-				Name: *transColConfig.TransformerPath,
+				Name: s.PathToName(*transColConfig.TransformerPath),
 			},
 			Path: *transColConfig.TransformerPath,
 		}

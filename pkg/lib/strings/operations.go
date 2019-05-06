@@ -128,3 +128,7 @@ func StrsSentence(strs []string, lastJoinWord string) string {
 		return strings.Join(strs[:lastIndex], ", ") + ", " + lastJoinWord + " " + strs[lastIndex]
 	}
 }
+
+func PathToName(path string) string {
+	return strings.Replace(strings.Replace(path, "/", "_", -1), ".", "_", -1)
+}

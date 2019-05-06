@@ -48,6 +48,19 @@ CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES = {
     consts.COLUMN_TYPE_STRING_LIST: [ArrayType(StringType(), True)],
 }
 
+PYTHON_TYPE_TO_CORTEX_TYPE = {
+    int: consts.COLUMN_TYPE_INT,
+    float: consts.COLUMN_TYPE_FLOAT,
+    str: consts.COLUMN_TYPE_STRING,
+}
+
+PYTHON_TYPE_TO_CORTEX_LIST_TYPE = {
+    int: consts.COLUMN_TYPE_INT_LIST,
+    float: consts.COLUMN_TYPE_FLOAT_LIST,
+    str: consts.COLUMN_TYPE_STRING_LIST,
+}
+
+
 
 def accumulate_count(df, spark):
     acc = df._sc.accumulator(0)
@@ -458,10 +471,24 @@ def validate_transformer(column_name, df, ctx, spark):
     transformed_column = ctx.transformed_columns[column_name]
 
     trans_impl, _ = ctx.get_transformer_impl(column_name)
-    if ctx.transformers[transformed_column["transformer"]]["skip_validation"]:
-        return
 
     if hasattr(trans_impl, "transform_python"):
+        sample_df = df.collect()
+        sample = sample_df[0]
+        inputs = ctx.create_column_inputs_map(sample, column_name)
+        _, impl_args = extract_inputs(column_name, ctx)
+        rowType = type(trans_impl.transform_python(inputs, impl_args))
+        isList = rowType == list
+        for row in sample_df[1:]:
+            if rowType != type(trans_impl.transform_python(ctx.create_column_inputs_map(row, column_name), impl_args)):
+                raise "bad"
+
+        if isList:
+            rowType = type(trans_impl.transform_python(inputs, impl_args)[0])
+            ctx.transformed_columns[column_name]["type"] = PYTHON_TYPE_TO_CORTEX_LIST_TYPE[rowType]
+        else:
+            ctx.transformed_columns[column_name]["type"] = PYTHON_TYPE_TO_CORTEX_TYPE[rowType]
+
         try:
             transform_python_collect = execute_transform_python(
                 column_name, df, ctx, spark, validate=True
