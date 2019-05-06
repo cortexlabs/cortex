@@ -48,6 +48,19 @@ CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES = {
     consts.COLUMN_TYPE_STRING_LIST: [ArrayType(StringType(), True)],
 }
 
+PYTHON_TYPE_TO_CORTEX_TYPE = {
+    int: consts.COLUMN_TYPE_INT,
+    float: consts.COLUMN_TYPE_FLOAT,
+    str: consts.COLUMN_TYPE_STRING,
+}
+
+PYTHON_TYPE_TO_CORTEX_LIST_TYPE = {
+    int: consts.COLUMN_TYPE_INT_LIST,
+    float: consts.COLUMN_TYPE_FLOAT_LIST,
+    str: consts.COLUMN_TYPE_STRING_LIST,
+}
+
+
 
 def accumulate_count(df, spark):
     acc = df._sc.accumulator(0)
@@ -95,7 +108,7 @@ def write_training_data(model_name, df, ctx, spark):
     )
 
     metadata = {"training_size": train_df_acc.value, "eval_size": eval_df_acc.value}
-    ctx.storage.put_json(metadata, training_dataset["metadata_key"])
+    ctx.update_metadata(metadata, "models", model_name)
 
     return df
 
@@ -384,7 +397,7 @@ def run_custom_aggregator(aggregator_resource, df, ctx, spark):
             "function aggregate_spark",
         ) from e
 
-    if not util.validate_value_type(result, aggregator["output_type"]):
+    if not aggregator["skip_validation"] and not util.validate_value_type(result, aggregator["output_type"]):
         raise UserException(
             "aggregate " + aggregator_resource["name"],
             "aggregator " + aggregator["name"],
@@ -460,6 +473,24 @@ def validate_transformer(column_name, df, ctx, spark):
     trans_impl, _ = ctx.get_transformer_impl(column_name)
 
     if hasattr(trans_impl, "transform_python"):
+        sample_df = df.collect()
+        sample = sample_df[0]
+        inputs = ctx.create_column_inputs_map(sample, column_name)
+        _, impl_args = extract_inputs(column_name, ctx)
+        transformedSample = trans_impl.transform_python(inputs, impl_args)
+        rowType = type(transformedSample)
+        isList = rowType == list
+        typeConversionDict = PYTHON_TYPE_TO_CORTEX_TYPE
+        if isList:
+            rowType = type(transformedSample[0])
+            typeConversionDict = PYTHON_TYPE_TO_CORTEX_LIST_TYPE
+
+        # for downstream operations on this job
+        ctx.transformed_columns[column_name]["type"] = typeConversionDict[rowType]
+
+        # for downstream operations on other jobs
+        ctx.update_metadata({"type": typeConversionDict[rowType]}, "transformed_columns", column_name)
+
         try:
             transform_python_collect = execute_transform_python(
                 column_name, df, ctx, spark, validate=True

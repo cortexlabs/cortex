@@ -43,7 +43,16 @@ func autoGenerateConfig(
 				}
 			}
 
-			aggregator, err := getAggregator(aggregate.Aggregator, userAggregators)
+			var name string
+			if aggregate.Aggregator != nil {
+				name = *aggregate.Aggregator
+			}
+
+			if aggregate.AggregatorPath != nil {
+				name = *aggregate.AggregatorPath
+			}
+
+			aggregator, err := getAggregator(name, userAggregators)
 			if err != nil {
 				return errors.Wrap(err, userconfig.Identify(aggregate), userconfig.AggregatorKey)
 			}
@@ -61,7 +70,7 @@ func autoGenerateConfig(
 			}, "/")
 
 			constant := &userconfig.Constant{
-				ResourceConfigFields: userconfig.ResourceConfigFields{
+				ResourceFields: userconfig.ResourceFields{
 					Name: constantName,
 				},
 				Type:  argType,
@@ -84,7 +93,16 @@ func autoGenerateConfig(
 				}
 			}
 
-			transformer, err := getTransformer(transformedColumn.Transformer, userTransformers)
+			var name string
+			if transformedColumn.Transformer != nil {
+				name = *transformedColumn.Transformer
+			}
+
+			if transformedColumn.TransformerPath != nil {
+				name = s.PathToName(*transformedColumn.TransformerPath)
+			}
+
+			transformer, err := getTransformer(name, userTransformers)
 			if err != nil {
 				return errors.Wrap(err, userconfig.Identify(transformedColumn), userconfig.TransformerKey)
 			}
@@ -102,7 +120,7 @@ func autoGenerateConfig(
 			}, "/")
 
 			constant := &userconfig.Constant{
-				ResourceConfigFields: userconfig.ResourceConfigFields{
+				ResourceFields: userconfig.ResourceFields{
 					Name: constantName,
 				},
 				Type:  argType,

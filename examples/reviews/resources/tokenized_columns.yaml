@@ -1,16 +1,6 @@
-- kind: transformer
-  name: tokenize_string_to_int
-  output_type: INT_LIST_COLUMN
-  inputs:
-    columns:
-      col: STRING_COLUMN
-    args:
-      max_len: INT
-      vocab: {STRING: INT}
-
 - kind: transformed_column
   name: embedding_input
-  transformer: tokenize_string_to_int
+  transformer_path: implementations/transformers/tokenize_string_to_int.py
   inputs:
     columns:
       col: review

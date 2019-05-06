@@ -117,7 +117,7 @@ def test_simple_end_to_end(spark):
         status["exist_code"] = "succeeded"
 
         dataset = raw_ctx["models"]["dnn"]["dataset"]
-        metadata_key = storage.get_json(dataset["metadata_key"])
-        assert metadata_key["training_size"] + metadata_key["eval_size"] == 15
+        metadata = storage.get_json(raw_ctx["models"]["dnn"]["metadata"])
+        assert metadata["training_size"] + metadata["eval_size"] == 15
         assert local_storage_path.joinpath(dataset["train_key"], "_SUCCESS").exists()
         assert local_storage_path.joinpath(dataset["eval_key"], "_SUCCESS").exists()

@@ -18,7 +18,9 @@ package context
 
 import (
 	"bytes"
+	"path/filepath"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -39,7 +41,17 @@ func getTransformedColumns(
 	transformedColumns := context.TransformedColumns{}
 
 	for _, transformedColumnConfig := range config.TransformedColumns {
-		transformer, err := getTransformer(transformedColumnConfig.Transformer, userTransformers)
+		var transName string
+		if transformedColumnConfig.Transformer != nil {
+			transName = *transformedColumnConfig.Transformer
+		}
+
+		if transformedColumnConfig.TransformerPath != nil {
+			transName = s.PathToName(*transformedColumnConfig.TransformerPath)
+			transformedColumnConfig.Transformer = &transName
+		}
+
+		transformer, err := getTransformer(transName, userTransformers)
 		if err != nil {
 			return nil, errors.Wrap(err, userconfig.Identify(transformedColumnConfig), userconfig.TransformerKey)
 		}
@@ -80,6 +92,7 @@ func getTransformedColumns(
 					ID:           id,
 					IDWithTags:   idWithTags,
 					ResourceType: resource.TransformedColumnType,
+					MetadataKey:  filepath.Join(consts.TransformedColumnsDir, id+"_metadata.json"),
 				},
 			},
 			TransformedColumn: transformedColumnConfig,
@@ -97,6 +110,9 @@ func validateTransformedColumnInputs(
 	aggregates context.Aggregates,
 	transformer *context.Transformer,
 ) error {
+	if transformer.SkipValidation {
+		return nil
+	}
 
 	columnRuntimeTypes, err := context.GetColumnRuntimeTypes(transformedColumnConfig.Inputs.Columns, rawColumns)
 	if err != nil {

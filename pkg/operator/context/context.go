@@ -62,7 +62,7 @@ func Init() error {
 		if err != nil {
 			return errors.Wrap(err, userconfig.Identify(aggregatorConfig))
 		}
-		aggregator, err := newAggregator(*aggregatorConfig, impl, pointer.String("cortex"), nil)
+		aggregator, err := newAggregator(*aggregatorConfig, impl, pointer.String("cortex"), nil, false)
 		if err != nil {
 			return err
 		}
@@ -81,7 +81,7 @@ func Init() error {
 		if err != nil {
 			return errors.Wrap(err, userconfig.Identify(transConfig))
 		}
-		transformer, err := newTransformer(*transConfig, impl, pointer.String("cortex"), nil)
+		transformer, err := newTransformer(*transConfig, impl, pointer.String("cortex"), nil, false)
 		if err != nil {
 			return err
 		}
@@ -130,12 +130,12 @@ func New(
 	}
 	ctx.PythonPackages = pythonPackages
 
-	userTransformers, err := loadUserTransformers(userconf.Transformers, files, pythonPackages)
+	userTransformers, err := loadUserTransformers(userconf, files, pythonPackages)
 	if err != nil {
 		return nil, err
 	}
 
-	userAggregators, err := loadUserAggregators(userconf.Aggregators, files, pythonPackages)
+	userAggregators, err := loadUserAggregators(userconf, files, pythonPackages)
 	if err != nil {
 		return nil, err
 	}

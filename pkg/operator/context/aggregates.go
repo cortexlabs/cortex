@@ -44,7 +44,17 @@ func getAggregates(
 			return nil, userconfig.ErrorDuplicateResourceName(aggregateConfig, constants[aggregateConfig.Name])
 		}
 
-		aggregator, err := getAggregator(aggregateConfig.Aggregator, userAggregators)
+		var aggName string
+		if aggregateConfig.Aggregator != nil {
+			aggName = *aggregateConfig.Aggregator
+		}
+
+		if aggregateConfig.AggregatorPath != nil {
+			aggName = *aggregateConfig.AggregatorPath
+			aggregateConfig.Aggregator = &aggName
+		}
+
+		aggregator, err := getAggregator(aggName, userAggregators)
 		if err != nil {
 			return nil, errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.AggregatorKey)
 		}
@@ -80,11 +90,13 @@ func getAggregates(
 		buf.WriteString(aggregateConfig.Tags.ID())
 		idWithTags := hash.Bytes(buf.Bytes())
 
-		aggregateKey := filepath.Join(
+		aggregateRootKey := filepath.Join(
 			root,
 			consts.AggregatesDir,
-			id+".msgpack",
+			id,
 		)
+		aggregateKey := aggregateRootKey + ".msgpack"
+		aggregateMetadataKey := aggregateRootKey + "_metadata.json"
 
 		aggregates[aggregateConfig.Name] = &context.Aggregate{
 			ComputedResourceFields: &context.ComputedResourceFields{
@@ -92,6 +104,7 @@ func getAggregates(
 					ID:           id,
 					IDWithTags:   idWithTags,
 					ResourceType: resource.AggregateType,
+					MetadataKey:  aggregateMetadataKey,
 				},
 			},
 			Aggregate: aggregateConfig,
@@ -109,6 +122,9 @@ func validateAggregateInputs(
 	rawColumns context.RawColumns,
 	aggregator *context.Aggregator,
 ) error {
+	if aggregator.SkipValidation {
+		return nil
+	}
 
 	columnRuntimeTypes, err := context.GetColumnRuntimeTypes(aggregateConfig.Inputs.Columns, rawColumns)
 	if err != nil {

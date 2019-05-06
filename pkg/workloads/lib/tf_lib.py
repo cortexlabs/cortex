@@ -57,10 +57,13 @@ def get_column_tf_types(model_name, ctx, training=True):
     """Generate a dict {column name -> tf_type}"""
     model = ctx.models[model_name]
 
-    column_types = {
-        column_name: CORTEX_TYPE_TO_TF_TYPE[ctx.columns[column_name]["type"]]
-        for column_name in model["feature_columns"]
-    }
+    column_types = {}
+    for column_name in model["feature_columns"]:
+        columnType = ctx.columns[column_name]["type"]
+        if columnType == "unknown":
+            columnType = ctx.columns[column_name]["metadata"]["type"]
+
+        column_types[column_name] = CORTEX_TYPE_TO_TF_TYPE[columnType]
 
     if training:
         target_column_name = model["target_column"]
@@ -79,7 +82,11 @@ def get_feature_spec(model_name, ctx, training=True):
     column_types = get_column_tf_types(model_name, ctx, training)
     feature_spec = {}
     for column_name, tf_type in column_types.items():
-        if ctx.columns[column_name]["type"] in consts.COLUMN_LIST_TYPES:
+        columnType = ctx.columns[column_name]["type"]
+        if columnType == "unknown":
+            columnType = ctx.columns[column_name]["metadata"]["type"]
+
+        if columnType in consts.COLUMN_LIST_TYPES:
             feature_spec[column_name] = tf.FixedLenSequenceFeature(
                 shape=(), dtype=tf_type, allow_missing=True
             )

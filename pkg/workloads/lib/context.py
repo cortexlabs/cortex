@@ -80,7 +80,6 @@ class Context:
         self.models = self.ctx["models"]
         self.apis = self.ctx["apis"]
         self.training_datasets = {k: v["dataset"] for k, v in self.models.items()}
-
         self.api_version = self.cortex_config["api_version"]
 
         if "local_storage_path" in kwargs:
@@ -98,6 +97,8 @@ class Context:
                     self.api_version, consts.CORTEX_VERSION
                 )
             )
+
+        self.fetch_metadata()
 
         self.columns = util.merge_dicts_overwrite(
             self.raw_columns, self.transformed_columns  # self.aggregates
@@ -137,6 +138,7 @@ class Context:
             self.apis_id_map,
             self.constants_id_map,
         )
+
 
     def is_raw_column(self, name):
         return name in self.raw_columns
@@ -228,6 +230,8 @@ class Context:
             return None, None
 
         transformer_name = self.transformed_columns[column_name]["transformer"]
+        if not transformer_name:
+            transformer_name = self.transformed_columns[column_name]["transformer_path"]
 
         if transformer_name in self._transformer_impls:
             return self._transformer_impls[transformer_name]
@@ -468,6 +472,76 @@ class Context:
 
     def resource_status_key(self, resource):
         return os.path.join(self.status_prefix, resource["id"], resource["workload_id"])
+
+    def update_metadata(self, metadata, context_key, context_item=""):
+        if context_item == "":
+            self.ctx[context_key]["metadata"] = metadata
+            self.storage.put_json(metadata,  self.ctx[context_key]["metadata_key"])
+            return
+
+        self.ctx[context_key][context_item]["metadata"] = metadata
+        self.storage.put_json(metadata,  self.ctx[context_key][context_item]["metadata_key"])
+
+
+    def fetch_metadata(self):
+        for k, v in self.python_packages.items():
+            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
+            if not metadata:
+                metadata = {}
+            self.python_packages[k]["metadata"] = metadata
+
+        for k, v in self.raw_columns.items():
+            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
+            if not metadata:
+                metadata = {}
+            self.raw_columns[k]["metadata"] =  metadata
+
+        for k, v in self.transformed_columns.items():
+            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
+            if not metadata:
+                metadata = {}
+            self.transformed_columns[k]["metadata"] =  metadata
+
+        for k, v in self.transformers.items():
+            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
+            if not metadata:
+                metadata = {}
+            self.transformers[k]["metadata"] =  metadata
+
+        for k, v in self.aggregators.items():
+            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
+            if not metadata:
+                metadata = {}
+            self.aggregators[k]["metadata"] =  metadata
+
+        for k, v in self.aggregates.items():
+            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
+            if not metadata:
+                metadata = {}
+            self.aggregates[k]["metadata"] =  metadata
+
+        for k, v in self.constants.items():
+            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
+            if not metadata:
+                metadata = {}
+            self.constants[k]["metadata"] =  metadata
+
+        for k, v in self.models.items():
+            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
+            if not metadata:
+                metadata = {}
+            self.models[k]["metadata"] =  metadata
+
+        for k, v in self.apis.items():
+            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
+            if not metadata:
+                metadata = {}
+            self.apis[k]["metadata"] =  metadata
+
+        metadata = self.storage.get_json(self.raw_dataset["metadata_key"], allow_missing=True)
+        if not metadata:
+                metadata = {}
+        self.raw_dataset["metadata"] = metadata
 
 
 MODEL_IMPL_VALIDATION = {

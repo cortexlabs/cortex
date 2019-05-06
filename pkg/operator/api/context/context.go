@@ -55,6 +55,8 @@ type Resource interface {
 	GetID() string
 	GetIDWithTags() string
 	GetResourceFields() *ResourceFields
+	GetMetadataKey() string
+	SetMetadataKey(string)
 }
 
 type ComputedResource interface {
@@ -72,6 +74,7 @@ type ResourceFields struct {
 	ID           string        `json:"id"`
 	IDWithTags   string        `json:"id_with_tags"`
 	ResourceType resource.Type `json:"resource_type"`
+	MetadataKey  string        `json:"metadata_key"`
 }
 
 type ComputedResourceFields struct {
@@ -89,6 +92,14 @@ func (r *ResourceFields) GetIDWithTags() string {
 
 func (r *ResourceFields) GetResourceFields() *ResourceFields {
 	return r
+}
+
+func (r *ResourceFields) GetMetadataKey() string {
+	return r.MetadataKey
+}
+
+func (r *ResourceFields) SetMetadataKey(metadataKey string) {
+	r.MetadataKey = metadataKey
 }
 
 func (r *ComputedResourceFields) GetWorkloadID() string {
