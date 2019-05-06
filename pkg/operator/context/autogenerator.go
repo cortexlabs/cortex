@@ -61,7 +61,7 @@ func autoGenerateConfig(
 			}, "/")
 
 			constant := &userconfig.Constant{
-				ResourceConfigFields: userconfig.ResourceConfigFields{
+				ResourceFields: userconfig.ResourceFields{
 					Name: constantName,
 				},
 				Type:  argType,
@@ -84,7 +84,16 @@ func autoGenerateConfig(
 				}
 			}
 
-			transformer, err := getTransformer(transformedColumn.Transformer, userTransformers)
+			var name string
+			if transformedColumn.Transformer != nil {
+				name = *transformedColumn.Transformer
+			}
+
+			if transformedColumn.TransformerPath != nil {
+				name = *transformedColumn.TransformerPath
+			}
+
+			transformer, err := getTransformer(name, userTransformers)
 			if err != nil {
 				return errors.Wrap(err, userconfig.Identify(transformedColumn), userconfig.TransformerKey)
 			}
@@ -102,7 +111,7 @@ func autoGenerateConfig(
 			}, "/")
 
 			constant := &userconfig.Constant{
-				ResourceConfigFields: userconfig.ResourceConfigFields{
+				ResourceFields: userconfig.ResourceFields{
 					Name: constantName,
 				},
 				Type:  argType,

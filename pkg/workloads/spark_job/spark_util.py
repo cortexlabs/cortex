@@ -458,6 +458,8 @@ def validate_transformer(column_name, df, ctx, spark):
     transformed_column = ctx.transformed_columns[column_name]
 
     trans_impl, _ = ctx.get_transformer_impl(column_name)
+    if ctx.transformers[transformed_column["transformer"]]["skip_validation"]:
+        return
 
     if hasattr(trans_impl, "transform_python"):
         try:

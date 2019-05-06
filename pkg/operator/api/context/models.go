@@ -38,7 +38,7 @@ type Model struct {
 }
 
 type TrainingDataset struct {
-	userconfig.ResourceConfigFields
+	userconfig.ResourceFields
 	*ComputedResourceFields
 	ModelName   string `json:"model_name"`
 	TrainKey    string `json:"train_key"`

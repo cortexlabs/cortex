@@ -39,7 +39,17 @@ func getTransformedColumns(
 	transformedColumns := context.TransformedColumns{}
 
 	for _, transformedColumnConfig := range config.TransformedColumns {
-		transformer, err := getTransformer(transformedColumnConfig.Transformer, userTransformers)
+		var transName string
+		if transformedColumnConfig.Transformer != nil {
+			transName = *transformedColumnConfig.Transformer
+		}
+
+		if transformedColumnConfig.TransformerPath != nil {
+			transName = *transformedColumnConfig.TransformerPath
+			transformedColumnConfig.Transformer = &transName
+		}
+
+		transformer, err := getTransformer(transName, userTransformers)
 		if err != nil {
 			return nil, errors.Wrap(err, userconfig.Identify(transformedColumnConfig), userconfig.TransformerKey)
 		}
@@ -97,6 +107,9 @@ func validateTransformedColumnInputs(
 	aggregates context.Aggregates,
 	transformer *context.Transformer,
 ) error {
+	if transformer.SkipValidation {
+		return nil
+	}
 
 	columnRuntimeTypes, err := context.GetColumnRuntimeTypes(transformedColumnConfig.Inputs.Columns, rawColumns)
 	if err != nil {

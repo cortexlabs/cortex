@@ -228,6 +228,8 @@ class Context:
             return None, None
 
         transformer_name = self.transformed_columns[column_name]["transformer"]
+        if not transformer_name:
+            transformer_name = self.transformed_columns[column_name]["transformer_path"]
 
         if transformer_name in self._transformer_impls:
             return self._transformer_impls[transformer_name]

@@ -211,8 +211,10 @@ func (config *Config) Validate(envName string) error {
 	// Check local transformers exist
 	transformerNames := config.Transformers.Names()
 	for _, transformedColumn := range config.TransformedColumns {
-		if !strings.Contains(transformedColumn.Transformer, ".") && !slices.HasString(transformerNames, transformedColumn.Transformer) {
-			return errors.Wrap(ErrorUndefinedResource(transformedColumn.Transformer, resource.TransformerType), Identify(transformedColumn), TransformerKey)
+		if transformedColumn.Transformer != nil &&
+			!strings.Contains(*transformedColumn.Transformer, ".") &&
+			!slices.HasString(transformerNames, *transformedColumn.Transformer) {
+			return errors.Wrap(ErrorUndefinedResource(*transformedColumn.Transformer, resource.TransformerType), Identify(transformedColumn), TransformerKey)
 		}
 	}
 
