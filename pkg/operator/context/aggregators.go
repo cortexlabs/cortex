@@ -30,22 +30,45 @@ import (
 )
 
 func loadUserAggregators(
-	aggregatorConfigs userconfig.Aggregators,
+	config *userconfig.Config,
 	impls map[string][]byte,
 	pythonPackages context.PythonPackages,
 ) (map[string]*context.Aggregator, error) {
 
 	userAggregators := make(map[string]*context.Aggregator)
-	for _, aggregatorConfig := range aggregatorConfigs {
+	for _, aggregatorConfig := range config.Aggregators {
 		impl, ok := impls[aggregatorConfig.Path]
 		if !ok {
 			return nil, errors.Wrap(ErrorImplDoesNotExist(aggregatorConfig.Path), userconfig.Identify(aggregatorConfig))
 		}
-		aggregator, err := newAggregator(*aggregatorConfig, impl, nil, pythonPackages)
+		aggregator, err := newAggregator(*aggregatorConfig, impl, nil, pythonPackages, false)
 		if err != nil {
 			return nil, err
 		}
 		userAggregators[aggregator.Name] = aggregator
+	}
+
+	for _, aggregateConfig := range config.Aggregates {
+		if aggregateConfig.AggregatorPath == nil {
+			continue
+		}
+
+		impl, ok := impls[*aggregateConfig.AggregatorPath]
+		if !ok {
+			return nil, errors.Wrap(ErrorImplDoesNotExist(*aggregateConfig.AggregatorPath), userconfig.Identify(aggregateConfig))
+		}
+
+		anonAggregatorConfig := &userconfig.Aggregator{
+			ResourceFields: userconfig.ResourceFields{
+				Name: *aggregateConfig.AggregatorPath,
+			},
+			Path: *aggregateConfig.AggregatorPath,
+		}
+		aggregator, err := newAggregator(*anonAggregatorConfig, impl, nil, pythonPackages, true)
+		if err != nil {
+			return nil, err
+		}
+		userAggregators[*aggregateConfig.AggregatorPath] = aggregator
 	}
 
 	return userAggregators, nil
@@ -56,6 +79,7 @@ func newAggregator(
 	impl []byte,
 	namespace *string,
 	pythonPackages context.PythonPackages,
+	skipValidation bool,
 ) (*context.Aggregator, error) {
 
 	implID := hash.Bytes(impl)
@@ -80,6 +104,7 @@ func newAggregator(
 		Aggregator: &aggregatorConfig,
 		Namespace:  namespace,
 		ImplKey:    filepath.Join(consts.AggregatorsDir, implID+".py"),
+		SkipValidation: skipValidation,
 	}
 	aggregator.Aggregator.Path = ""
 
@@ -132,7 +157,16 @@ func getAggregators(
 
 	aggregators := context.Aggregators{}
 	for _, aggregateConfig := range config.Aggregates {
-		aggregatorName := aggregateConfig.Aggregator
+
+		var aggregatorName string
+		if aggregateConfig.Aggregator != nil {
+			aggregatorName = *aggregateConfig.Aggregator
+		}
+
+		if aggregateConfig.AggregatorPath != nil {
+			aggregatorName = *aggregateConfig.AggregatorPath
+		}
+
 		if _, ok := aggregators[aggregatorName]; ok {
 			continue
 		}

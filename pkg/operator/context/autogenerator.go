@@ -43,7 +43,16 @@ func autoGenerateConfig(
 				}
 			}
 
-			aggregator, err := getAggregator(aggregate.Aggregator, userAggregators)
+			var name string
+			if aggregate.Aggregator != nil {
+				name = *aggregate.Aggregator
+			}
+
+			if aggregate.AggregatorPath != nil {
+				name = *aggregate.AggregatorPath
+			}
+
+			aggregator, err := getAggregator(name, userAggregators)
 			if err != nil {
 				return errors.Wrap(err, userconfig.Identify(aggregate), userconfig.AggregatorKey)
 			}

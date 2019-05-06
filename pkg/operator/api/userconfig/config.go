@@ -203,8 +203,10 @@ func (config *Config) Validate(envName string) error {
 	// Check local aggregators exist
 	aggregatorNames := config.Aggregators.Names()
 	for _, aggregate := range config.Aggregates {
-		if !strings.Contains(aggregate.Aggregator, ".") && !slices.HasString(aggregatorNames, aggregate.Aggregator) {
-			return errors.Wrap(ErrorUndefinedResource(aggregate.Aggregator, resource.AggregatorType), Identify(aggregate), AggregatorKey)
+		if aggregate.Aggregator != nil &&
+			!strings.Contains(*aggregate.Aggregator, ".") &&
+			!slices.HasString(aggregatorNames, *aggregate.Aggregator) {
+			return errors.Wrap(ErrorUndefinedResource(*aggregate.Aggregator, resource.AggregatorType), Identify(aggregate), AggregatorKey)
 		}
 	}
 

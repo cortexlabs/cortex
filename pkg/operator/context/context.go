@@ -62,7 +62,7 @@ func Init() error {
 		if err != nil {
 			return errors.Wrap(err, userconfig.Identify(aggregatorConfig))
 		}
-		aggregator, err := newAggregator(*aggregatorConfig, impl, pointer.String("cortex"), nil)
+		aggregator, err := newAggregator(*aggregatorConfig, impl, pointer.String("cortex"), nil, false)
 		if err != nil {
 			return err
 		}
@@ -135,7 +135,7 @@ func New(
 		return nil, err
 	}
 
-	userAggregators, err := loadUserAggregators(userconf.Aggregators, files, pythonPackages)
+	userAggregators, err := loadUserAggregators(userconf, files, pythonPackages)
 	if err != nil {
 		return nil, err
 	}

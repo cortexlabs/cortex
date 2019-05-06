@@ -44,7 +44,17 @@ func getAggregates(
 			return nil, userconfig.ErrorDuplicateResourceName(aggregateConfig, constants[aggregateConfig.Name])
 		}
 
-		aggregator, err := getAggregator(aggregateConfig.Aggregator, userAggregators)
+		var aggName string
+		if aggregateConfig.Aggregator != nil {
+			aggName = *aggregateConfig.Aggregator
+		}
+
+		if aggregateConfig.AggregatorPath != nil {
+			aggName = *aggregateConfig.AggregatorPath
+			aggregateConfig.Aggregator = &aggName
+		}
+
+		aggregator, err := getAggregator(aggName, userAggregators)
 		if err != nil {
 			return nil, errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.AggregatorKey)
 		}
@@ -109,6 +119,9 @@ func validateAggregateInputs(
 	rawColumns context.RawColumns,
 	aggregator *context.Aggregator,
 ) error {
+	if aggregator.SkipValidation {
+		return nil
+	}
 
 	columnRuntimeTypes, err := context.GetColumnRuntimeTypes(aggregateConfig.Inputs.Columns, rawColumns)
 	if err != nil {

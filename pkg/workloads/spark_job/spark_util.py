@@ -384,7 +384,7 @@ def run_custom_aggregator(aggregator_resource, df, ctx, spark):
             "function aggregate_spark",
         ) from e
 
-    if not util.validate_value_type(result, aggregator["output_type"]):
+    if not aggregator["skip_validation"] and not util.validate_value_type(result, aggregator["output_type"]):
         raise UserException(
             "aggregate " + aggregator_resource["name"],
             "aggregator " + aggregator["name"],
