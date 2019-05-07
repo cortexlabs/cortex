@@ -108,7 +108,7 @@ def write_training_data(model_name, df, ctx, spark):
     )
 
     metadata = {"training_size": train_df_acc.value, "eval_size": eval_df_acc.value}
-    ctx.storage.put_json(metadata, training_dataset["metadata_key"])
+    ctx.update_metadata(metadata, "models", model_name)
 
     return df
 
@@ -477,17 +477,19 @@ def validate_transformer(column_name, df, ctx, spark):
         sample = sample_df[0]
         inputs = ctx.create_column_inputs_map(sample, column_name)
         _, impl_args = extract_inputs(column_name, ctx)
-        rowType = type(trans_impl.transform_python(inputs, impl_args))
+        transformedSample = trans_impl.transform_python(inputs, impl_args)
+        rowType = type(transformedSample)
         isList = rowType == list
-        for row in sample_df[1:]:
-            if rowType != type(trans_impl.transform_python(ctx.create_column_inputs_map(row, column_name), impl_args)):
-                raise "bad"
-
+        typeConversionDict = PYTHON_TYPE_TO_CORTEX_TYPE
         if isList:
-            rowType = type(trans_impl.transform_python(inputs, impl_args)[0])
-            ctx.transformed_columns[column_name]["type"] = PYTHON_TYPE_TO_CORTEX_LIST_TYPE[rowType]
-        else:
-            ctx.transformed_columns[column_name]["type"] = PYTHON_TYPE_TO_CORTEX_TYPE[rowType]
+            rowType = type(transformedSample[0])
+            typeConversionDict = PYTHON_TYPE_TO_CORTEX_LIST_TYPE
+
+        # for downstream operations on this job
+        ctx.transformed_columns[column_name]["type"] = typeConversionDict[rowType]
+
+        # for downstream operations on other jobs
+        ctx.update_metadata({"type": typeConversionDict[rowType]}, "transformed_columns", column_name)
 
         try:
             transform_python_collect = execute_transform_python(

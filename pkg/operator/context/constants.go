@@ -59,6 +59,7 @@ func newConstant(constantConfig userconfig.Constant) (*context.Constant, error) 
 			ID:           id,
 			IDWithTags:   idWithTags,
 			ResourceType: resource.ConstantType,
+			MetadataKey:  filepath.Join(consts.ConstantsDir, id+"_metadata.json"),
 		},
 		Constant: &constantConfig,
 		Key:      filepath.Join(consts.ConstantsDir, id+".msgpack"),

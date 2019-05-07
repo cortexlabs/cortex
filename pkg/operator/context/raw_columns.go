@@ -18,7 +18,9 @@ package context
 
 import (
 	"bytes"
+	"path/filepath"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -57,6 +59,7 @@ func getRawColumns(
 						ID:           id,
 						IDWithTags:   idWithTags,
 						ResourceType: resource.RawColumnType,
+						MetadataKey:  filepath.Join(consts.RawColumnsDir, id+"_metadata.json"),
 					},
 				},
 				RawIntColumn: typedColumnConfig,
@@ -74,6 +77,7 @@ func getRawColumns(
 						ID:           id,
 						IDWithTags:   idWithTags,
 						ResourceType: resource.RawColumnType,
+						MetadataKey:  filepath.Join(consts.RawColumnsDir, id+"_metadata.json"),
 					},
 				},
 				RawFloatColumn: typedColumnConfig,
@@ -89,6 +93,7 @@ func getRawColumns(
 						ID:           id,
 						IDWithTags:   idWithTags,
 						ResourceType: resource.RawColumnType,
+						MetadataKey:  filepath.Join(consts.RawColumnsDir, id+"_metadata.json"),
 					},
 				},
 				RawStringColumn: typedColumnConfig,

@@ -99,7 +99,7 @@ func autoGenerateConfig(
 			}
 
 			if transformedColumn.TransformerPath != nil {
-				name = *transformedColumn.TransformerPath
+				name = s.PathToName(*transformedColumn.TransformerPath)
 			}
 
 			transformer, err := getTransformer(name, userTransformers)

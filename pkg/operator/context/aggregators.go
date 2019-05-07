@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
@@ -60,7 +61,7 @@ func loadUserAggregators(
 
 		anonAggregatorConfig := &userconfig.Aggregator{
 			ResourceFields: userconfig.ResourceFields{
-				Name: *aggregateConfig.AggregatorPath,
+				Name: s.PathToName(*aggregateConfig.AggregatorPath),
 			},
 			Path: *aggregateConfig.AggregatorPath,
 		}
@@ -100,10 +101,11 @@ func newAggregator(
 			ID:           id,
 			IDWithTags:   id,
 			ResourceType: resource.AggregatorType,
+			MetadataKey:  filepath.Join(consts.AggregatorsDir, id+"_metadata.json"),
 		},
-		Aggregator: &aggregatorConfig,
-		Namespace:  namespace,
-		ImplKey:    filepath.Join(consts.AggregatorsDir, implID+".py"),
+		Aggregator:     &aggregatorConfig,
+		Namespace:      namespace,
+		ImplKey:        filepath.Join(consts.AggregatorsDir, implID+".py"),
 		SkipValidation: skipValidation,
 	}
 	aggregator.Aggregator.Path = ""

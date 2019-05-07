@@ -97,6 +97,7 @@ func getModels(
 					ID:           modelID,
 					IDWithTags:   modelID,
 					ResourceType: resource.ModelType,
+					MetadataKey:  filepath.Join(datasetRoot, "metadata.json"),
 				},
 			},
 			Model:   modelConfig,
@@ -116,10 +117,9 @@ func getModels(
 						ResourceType: resource.TrainingDatasetType,
 					},
 				},
-				ModelName:   modelConfig.Name,
-				TrainKey:    filepath.Join(datasetRoot, "train.tfrecord"),
-				EvalKey:     filepath.Join(datasetRoot, "eval.tfrecord"),
-				MetadataKey: filepath.Join(datasetRoot, "metadata.json"),
+				ModelName: modelConfig.Name,
+				TrainKey:  filepath.Join(datasetRoot, "train.tfrecord"),
+				EvalKey:   filepath.Join(datasetRoot, "eval.tfrecord"),
 			},
 		}
 	}

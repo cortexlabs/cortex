@@ -131,10 +131,10 @@ class S3(object):
         self._upload_string_to_s3(json.dumps(obj), key)
 
     def get_json(self, key, allow_missing=False):
-        obj = self._read_bytes_from_s3(key, allow_missing).decode("utf-8")
+        obj = self._read_bytes_from_s3(key, allow_missing)
         if obj is None:
             return None
-        return json.loads(obj)
+        return json.loads(obj.decode("utf-8"))
 
     def put_msgpack(self, obj, key):
         self._upload_string_to_s3(msgpack.dumps(obj), key)

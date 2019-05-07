@@ -69,7 +69,7 @@ func loadUserTransformers(
 		if err != nil {
 			return nil, err
 		}
-		userTransformers[*transColConfig.TransformerPath] = transformer
+		userTransformers[transformer.Name] = transformer
 	}
 	return userTransformers, nil
 }
@@ -99,6 +99,7 @@ func newTransformer(
 			ID:           id,
 			IDWithTags:   id,
 			ResourceType: resource.TransformerType,
+			MetadataKey:  filepath.Join(consts.TransformersDir, id+"_metadata.json"),
 		},
 		Transformer:    &transConfig,
 		Namespace:      namespace,
@@ -161,7 +162,7 @@ func getTransformers(
 		}
 
 		if transformedColumnConfig.TransformerPath != nil {
-			transformerName = *transformedColumnConfig.TransformerPath
+			transformerName = s.PathToName(*transformedColumnConfig.TransformerPath)
 		}
 
 		if _, ok := transformers[transformerName]; ok {
