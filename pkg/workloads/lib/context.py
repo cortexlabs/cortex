@@ -482,59 +482,24 @@ class Context:
         self.storage.put_json(metadata, self.ctx[context_key][context_item]["metadata_key"])
 
     def fetch_metadata(self):
-        for k, v in self.python_packages.items():
-            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
-            if not metadata:
-                metadata = {}
-            self.python_packages[k]["metadata"] = metadata
+        resources = [
+            "python_packages",
+            "raw_columns",
+            "transformed_columns",
+            "transformers",
+            "aggregators",
+            "aggregates",
+            "constants",
+            "models",
+            "apis",
+        ]
 
-        for k, v in self.raw_columns.items():
-            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
-            if not metadata:
-                metadata = {}
-            self.raw_columns[k]["metadata"] = metadata
-
-        for k, v in self.transformed_columns.items():
-            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
-            if not metadata:
-                metadata = {}
-            self.transformed_columns[k]["metadata"] = metadata
-
-        for k, v in self.transformers.items():
-            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
-            if not metadata:
-                metadata = {}
-            self.transformers[k]["metadata"] = metadata
-
-        for k, v in self.aggregators.items():
-            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
-            if not metadata:
-                metadata = {}
-            self.aggregators[k]["metadata"] = metadata
-
-        for k, v in self.aggregates.items():
-            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
-            if not metadata:
-                metadata = {}
-            self.aggregates[k]["metadata"] = metadata
-
-        for k, v in self.constants.items():
-            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
-            if not metadata:
-                metadata = {}
-            self.constants[k]["metadata"] = metadata
-
-        for k, v in self.models.items():
-            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
-            if not metadata:
-                metadata = {}
-            self.models[k]["metadata"] = metadata
-
-        for k, v in self.apis.items():
-            metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
-            if not metadata:
-                metadata = {}
-            self.apis[k]["metadata"] = metadata
+        for resource in resources:
+            for k, v in self.ctx[resource].items():
+                metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
+                if not metadata:
+                    metadata = {}
+                self.ctx[resource][k]["metadata"] = metadata
 
         metadata = self.storage.get_json(self.raw_dataset["metadata_key"], allow_missing=True)
         if not metadata:
