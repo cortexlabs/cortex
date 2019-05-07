@@ -61,7 +61,6 @@ PYTHON_TYPE_TO_CORTEX_LIST_TYPE = {
 }
 
 
-
 def accumulate_count(df, spark):
     acc = df._sc.accumulator(0)
     first_column_schema = df.schema[0]
@@ -397,7 +396,9 @@ def run_custom_aggregator(aggregator_resource, df, ctx, spark):
             "function aggregate_spark",
         ) from e
 
-    if not aggregator["skip_validation"] and not util.validate_value_type(result, aggregator["output_type"]):
+    if not aggregator["skip_validation"] and not util.validate_value_type(
+        result, aggregator["output_type"]
+    ):
         raise UserException(
             "aggregate " + aggregator_resource["name"],
             "aggregator " + aggregator["name"],
@@ -489,7 +490,9 @@ def validate_transformer(column_name, df, ctx, spark):
         ctx.transformed_columns[column_name]["type"] = typeConversionDict[rowType]
 
         # for downstream operations on other jobs
-        ctx.update_metadata({"type": typeConversionDict[rowType]}, "transformed_columns", column_name)
+        ctx.update_metadata(
+            {"type": typeConversionDict[rowType]}, "transformed_columns", column_name
+        )
 
         try:
             transform_python_collect = execute_transform_python(

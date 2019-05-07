@@ -139,7 +139,6 @@ class Context:
             self.constants_id_map,
         )
 
-
     def is_raw_column(self, name):
         return name in self.raw_columns
 
@@ -476,12 +475,11 @@ class Context:
     def update_metadata(self, metadata, context_key, context_item=""):
         if context_item == "":
             self.ctx[context_key]["metadata"] = metadata
-            self.storage.put_json(metadata,  self.ctx[context_key]["metadata_key"])
+            self.storage.put_json(metadata, self.ctx[context_key]["metadata_key"])
             return
 
         self.ctx[context_key][context_item]["metadata"] = metadata
-        self.storage.put_json(metadata,  self.ctx[context_key][context_item]["metadata_key"])
-
+        self.storage.put_json(metadata, self.ctx[context_key][context_item]["metadata_key"])
 
     def fetch_metadata(self):
         for k, v in self.python_packages.items():
@@ -494,53 +492,53 @@ class Context:
             metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
             if not metadata:
                 metadata = {}
-            self.raw_columns[k]["metadata"] =  metadata
+            self.raw_columns[k]["metadata"] = metadata
 
         for k, v in self.transformed_columns.items():
             metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
             if not metadata:
                 metadata = {}
-            self.transformed_columns[k]["metadata"] =  metadata
+            self.transformed_columns[k]["metadata"] = metadata
 
         for k, v in self.transformers.items():
             metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
             if not metadata:
                 metadata = {}
-            self.transformers[k]["metadata"] =  metadata
+            self.transformers[k]["metadata"] = metadata
 
         for k, v in self.aggregators.items():
             metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
             if not metadata:
                 metadata = {}
-            self.aggregators[k]["metadata"] =  metadata
+            self.aggregators[k]["metadata"] = metadata
 
         for k, v in self.aggregates.items():
             metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
             if not metadata:
                 metadata = {}
-            self.aggregates[k]["metadata"] =  metadata
+            self.aggregates[k]["metadata"] = metadata
 
         for k, v in self.constants.items():
             metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
             if not metadata:
                 metadata = {}
-            self.constants[k]["metadata"] =  metadata
+            self.constants[k]["metadata"] = metadata
 
         for k, v in self.models.items():
             metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
             if not metadata:
                 metadata = {}
-            self.models[k]["metadata"] =  metadata
+            self.models[k]["metadata"] = metadata
 
         for k, v in self.apis.items():
             metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
             if not metadata:
                 metadata = {}
-            self.apis[k]["metadata"] =  metadata
+            self.apis[k]["metadata"] = metadata
 
         metadata = self.storage.get_json(self.raw_dataset["metadata_key"], allow_missing=True)
         if not metadata:
-                metadata = {}
+            metadata = {}
         self.raw_dataset["metadata"] = metadata
 
 
