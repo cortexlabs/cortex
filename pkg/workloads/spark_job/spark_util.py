@@ -70,8 +70,9 @@ SPARK_TYPE_TO_CORTEX_TYPE = {
     ArrayType(FloatType(), True): consts.COLUMN_TYPE_FLOAT_LIST,
     ArrayType(DoubleType(), True): consts.COLUMN_TYPE_FLOAT_LIST,
     StringType(): consts.COLUMN_TYPE_STRING,
-    ArrayType(StringType(), True):  consts.COLUMN_TYPE_STRING_LIST,
+    ArrayType(StringType(), True): consts.COLUMN_TYPE_STRING_LIST,
 }
+
 
 def accumulate_count(df, spark):
     acc = df._sc.accumulator(0)
@@ -630,20 +631,17 @@ def transform_column(column_name, df, ctx, spark):
 
     trans_impl, trans_impl_path = ctx.get_transformer_impl(column_name)
     if hasattr(trans_impl, "transform_spark"):
-        skip_validation = ctx.transformers[ctx.transformed_columns[column_name]["transformer"]]["skip_validation"]
+        skip_validation = ctx.transformers[ctx.transformed_columns[column_name]["transformer"]][
+            "skip_validation"
+        ]
         if skip_validation:
             df = execute_transform_spark(column_name, df, ctx, spark)
-            column_type =  df.select(column_name).schema[0].dataType
+            column_type = df.select(column_name).schema[0].dataType
             # for downstream operations on other jobs
             ctx.update_metadata(
                 {"type": SPARK_TYPE_TO_CORTEX_TYPE[column_type]}, "transformed_columns", column_name
             )
-            return df.withColumn(
-                column_name,
-                F.col(column_name).cast(
-                    column_type
-                ),
-            )
+            return df.withColumn(column_name, F.col(column_name).cast(column_type))
 
         return execute_transform_spark(column_name, df, ctx, spark).withColumn(
             column_name,
