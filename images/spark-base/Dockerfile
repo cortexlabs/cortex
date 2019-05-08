@@ -30,7 +30,7 @@ RUN curl http://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/h
     rm -rf $HADOOP_HOME/share/doc
 
 # Spark
-RUN curl http://www.us.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-without-hadoop.tgz | tar -zx && \
+RUN curl http://www.archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-without-hadoop.tgz | tar -zx && \
     mv spark-${SPARK_VERSION}-bin-without-hadoop $SPARK_HOME
 
 # Tensorflow Spark connector
