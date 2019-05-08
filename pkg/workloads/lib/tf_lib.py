@@ -72,7 +72,11 @@ def get_column_tf_types(model_name, ctx, training=True):
         ]
 
         for column_name in model["training_columns"]:
-            column_types[column_name] = CORTEX_TYPE_TO_TF_TYPE[ctx.columns[column_name]["type"]]
+            columnType = ctx.columns[column_name]["type"]
+            if columnType == "unknown":
+                columnType = ctx.columns[column_name]["metadata"]["type"]
+
+            column_types[column_name] = CORTEX_TYPE_TO_TF_TYPE[columnType]
 
     return column_types
 

@@ -60,6 +60,18 @@ PYTHON_TYPE_TO_CORTEX_LIST_TYPE = {
     str: consts.COLUMN_TYPE_STRING_LIST,
 }
 
+SPARK_TYPE_TO_CORTEX_TYPE = {
+    IntegerType(): consts.COLUMN_TYPE_INT,
+    LongType(): consts.COLUMN_TYPE_INT,
+    ArrayType(IntegerType(), True): consts.COLUMN_TYPE_INT_LIST,
+    ArrayType(LongType(), True): consts.COLUMN_TYPE_INT_LIST,
+    FloatType(): consts.COLUMN_TYPE_FLOAT,
+    DoubleType(): consts.COLUMN_TYPE_FLOAT,
+    ArrayType(FloatType(), True): consts.COLUMN_TYPE_FLOAT_LIST,
+    ArrayType(DoubleType(), True): consts.COLUMN_TYPE_FLOAT_LIST,
+    StringType(): consts.COLUMN_TYPE_STRING,
+    ArrayType(StringType(), True):  consts.COLUMN_TYPE_STRING_LIST,
+}
 
 def accumulate_count(df, spark):
     acc = df._sc.accumulator(0)
@@ -536,9 +548,13 @@ def validate_transformer(column_name, df, ctx, spark):
 
             actual_structfield = transform_spark_df.select(column_name).schema.fields[0]
 
+            transformer = ctx.transformers[transformed_column["transformer"]]
+            skip_validation = transformer["skip_validation"]
+
             # check that expected output column has the correct data type
             if (
-                actual_structfield.dataType
+                not skip_validation
+                and actual_structfield.dataType
                 not in CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES[transformed_column["type"]]
             ):
                 raise UserException(
@@ -554,12 +570,13 @@ def validate_transformer(column_name, df, ctx, spark):
                 )
 
             # perform the necessary upcast/downcast for the column e.g INT -> LONG or DOUBLE -> FLOAT
-            transform_spark_df = transform_spark_df.withColumn(
-                column_name,
-                F.col(column_name).cast(
-                    CORTEX_TYPE_TO_SPARK_TYPE[ctx.transformed_columns[column_name]["type"]]
-                ),
-            )
+            if not skip_validation:
+                transform_spark_df = transform_spark_df.withColumn(
+                    column_name,
+                    F.col(column_name).cast(
+                        CORTEX_TYPE_TO_SPARK_TYPE[ctx.transformed_columns[column_name]["type"]]
+                    ),
+                )
 
             # check that the function doesn't modify the schema of the other columns in the input dataframe
             if set(transform_spark_df.columns) - set([column_name]) != set(df.columns):
@@ -613,6 +630,21 @@ def transform_column(column_name, df, ctx, spark):
 
     trans_impl, trans_impl_path = ctx.get_transformer_impl(column_name)
     if hasattr(trans_impl, "transform_spark"):
+        skip_validation = ctx.transformers[ctx.transformed_columns[column_name]["transformer"]]["skip_validation"]
+        if skip_validation:
+            df = execute_transform_spark(column_name, df, ctx, spark)
+            column_type =  df.select(column_name).schema[0].dataType
+            # for downstream operations on other jobs
+            ctx.update_metadata(
+                {"type": SPARK_TYPE_TO_CORTEX_TYPE[column_type]}, "transformed_columns", column_name
+            )
+            return df.withColumn(
+                column_name,
+                F.col(column_name).cast(
+                    column_type
+                ),
+            )
+
         return execute_transform_spark(column_name, df, ctx, spark).withColumn(
             column_name,
             F.col(column_name).cast(
