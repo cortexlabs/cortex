@@ -56,7 +56,6 @@ type Resource interface {
 	GetIDWithTags() string
 	GetResourceFields() *ResourceFields
 	GetMetadataKey() string
-	SetMetadataKey(string)
 }
 
 type ComputedResource interface {
@@ -96,10 +95,6 @@ func (r *ResourceFields) GetResourceFields() *ResourceFields {
 
 func (r *ResourceFields) GetMetadataKey() string {
 	return r.MetadataKey
-}
-
-func (r *ResourceFields) SetMetadataKey(metadataKey string) {
-	r.MetadataKey = metadataKey
 }
 
 func (r *ComputedResourceFields) GetWorkloadID() string {

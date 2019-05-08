@@ -80,6 +80,7 @@ class Context:
         self.models = self.ctx["models"]
         self.apis = self.ctx["apis"]
         self.training_datasets = {k: v["dataset"] for k, v in self.models.items()}
+
         self.api_version = self.cortex_config["api_version"]
 
         if "local_storage_path" in kwargs:

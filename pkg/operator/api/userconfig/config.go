@@ -200,9 +200,13 @@ func (config *Config) Validate(envName string) error {
 		}
 	}
 
-	// Check local aggregators exist
+	// Check local aggregators exist or a path to one is defined
 	aggregatorNames := config.Aggregators.Names()
 	for _, aggregate := range config.Aggregates {
+		if aggregate.AggregatorPath == nil && aggregate.Aggregator == nil {
+			return ErrorMissingAggregator(aggregate)
+		}
+
 		if aggregate.Aggregator != nil &&
 			!strings.Contains(*aggregate.Aggregator, ".") &&
 			!slices.HasString(aggregatorNames, *aggregate.Aggregator) {
@@ -210,9 +214,13 @@ func (config *Config) Validate(envName string) error {
 		}
 	}
 
-	// Check local transformers exist
+	// Check local transformers exist or a path to one is defined
 	transformerNames := config.Transformers.Names()
 	for _, transformedColumn := range config.TransformedColumns {
+		if transformedColumn.TransformerPath == nil && transformedColumn.Transformer == nil {
+			return ErrorMissingTransformer(transformedColumn)
+		}
+
 		if transformedColumn.Transformer != nil &&
 			!strings.Contains(*transformedColumn.Transformer, ".") &&
 			!slices.HasString(transformerNames, *transformedColumn.Transformer) {

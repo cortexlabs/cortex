@@ -58,6 +58,8 @@ const (
 	ErrK8sQuantityMustBeInt
 	ErrRegressionTargetType
 	ErrClassificationTargetType
+	ErrMissingAggregator
+	ErrMissingTransformer
 )
 
 var errorKinds = []string{
@@ -90,9 +92,11 @@ var errorKinds = []string{
 	"err_k8s_quantity_must_be_int",
 	"err_regression_target_type",
 	"err_classification_target_type",
+	"err_missing_aggregator",
+	"err_missing_transformer",
 }
 
-var _ = [1]int{}[int(ErrClassificationTargetType)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrMissingTransformer)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -376,9 +380,24 @@ func ErrorRegressionTargetType() error {
 		message: "regression models can only predict float target values",
 	}
 }
+
 func ErrorClassificationTargetType() error {
 	return Error{
 		Kind:    ErrClassificationTargetType,
 		message: "classification models can only predict integer target values (i.e. {0, 1, ..., num_classes-1})",
+	}
+}
+
+func ErrorMissingAggregator(aggregate *Aggregate) error {
+	return Error{
+		Kind:    ErrMissingAggregator,
+		message: fmt.Sprintf("missing aggregator for aggregate \"%s\", expecting either \"aggregator\" or \"aggregator_path\"", aggregate.Name),
+	}
+}
+
+func ErrorMissingTransformer(transformedColumn *TransformedColumn) error {
+	return Error{
+		Kind:    ErrMissingTransformer,
+		message: fmt.Sprintf("missing transformer for transformed_column \"%s\", expecting either \"transformer\" or \"transformer_path\"", transformedColumn.Name),
 	}
 }
