@@ -5,6 +5,7 @@
 1. Go (1.11.4<)
 1. Docker
 1. eksctl
+1. kubectl
 
 ## Build the CLI from Source
 
