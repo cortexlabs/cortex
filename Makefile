@@ -159,7 +159,7 @@ ci-push-images:
 	@./build/push-image.sh argo-executor
 	@./build/push-image.sh python-packager
 
-build-cli:
+ci-build-cli:
 	@./build/cli.sh
 
 ci-build-and-upload-cli:

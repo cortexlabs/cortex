@@ -54,7 +54,7 @@ jobs:
       - install-go
       - checkout
       - run: make ci-build-images
-      - run: make build-cli
+      - run: make ci-build-cli
       - run: make test-python
       - return-if-not-deployed-branch
       - run: sudo pip3 install awscli

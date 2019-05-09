@@ -94,7 +94,7 @@ export VERSION="master"
 export REGISTRY_URL="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com"
 export REGISTRY_REGION="us-west-2"
 
-# optional, only used for make build-and-upload-cli
+# optional, only used for make ci-build-and-upload-cli
 export CLI_BUCKET_NAME="cortex-cli-<your_name>"
 export CLI_BUCKET_REGION="us-west-2"
 ```
@@ -124,7 +124,7 @@ kubectl get nodes "-o=custom-columns=NAME:.metadata.name,GPU:.status.allocatable
 Build and configure the Cortex CLI
 
 ```bash
-make build-cli  # The binary will be placed in path/to/cortex/bin/cortex
+make cli  # The binary will be placed in path/to/cortex/bin/cortex
 path/to/cortex/bin/cortex configure
 ```
 
