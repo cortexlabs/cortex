@@ -12,16 +12,14 @@ To build the Cortex CLI, run `make build-cli` in the project root directory.
 
 ## Build workload images from Source
 To build the Cortex workload images, run `make build-images` in the project root directory.
-Then, specify your AWS registry and region in a dev/config/build.sh file:
-
-dev/config/build.sh
+Then, specify your AWS registry and region in `dev/config/build.sh`:
 
 ```bash
 export REGISTRY_URL="389128963714.dkr.ecr.us-west-2.amazonaws.com"
 export REGISTRY_REGION="us-west-2"
 ```
 
-Then, update image paths in the cortex config ([update instructions](operator/config.md))
+Update image paths in the cortex config ([update instructions](operator/config.md))
 
 ## Cortex Dev Environment
 
@@ -38,7 +36,7 @@ Create the AWS Elastic Container Registry:
 make registry-create
 ```
 
-Note the registry URL, as you will use it in the upcoming steps
+Note the registry URL, this will be needed shortly.
 
 Create the following S3 buckets:
 
@@ -154,4 +152,3 @@ If you're making changes in the operator and want faster iterations, you can run
 1. Run the off-cluster operator (rebuilds and restarts with file changes): `make devstart`
 1. On a separate terminal, configure your cortex installation to use the off-cluster operator: `cx configure`
 1. When prompted for operator URL, use `http://localhost:8888`
-1. Run `make devstart` to rebuild/restart the operator and CLI on file changes.
