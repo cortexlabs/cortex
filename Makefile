@@ -18,10 +18,6 @@ SHELL := /bin/bash
 # Dev #
 #######
 
-# Cortex
-cinstall:
-	@./cortex.sh --config=dev/config/cortex.sh install
-
 # Operator
 
 devstart:
