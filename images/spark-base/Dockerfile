@@ -25,12 +25,12 @@ ENV HADOOP_HOME="/opt/hadoop"
 ENV SPARK_HOME="/opt/spark"
 
 # Hadoop (code for e.g. finding a mirror, checking the checksum: https://github.com/smizy/docker-hadoop-base/blob/master/Dockerfile, https://github.com/liubin/docker-hadoop/blob/master/Dockerfile)
-RUN curl http://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz | tar -zx && \
+RUN curl https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz | tar -zx && \
     mv hadoop-${HADOOP_VERSION} $HADOOP_HOME && \
     rm -rf $HADOOP_HOME/share/doc
 
 # Spark
-RUN curl http://www.us.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-without-hadoop.tgz | tar -zx && \
+RUN curl https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-without-hadoop.tgz | tar -zx && \
     mv spark-${SPARK_VERSION}-bin-without-hadoop $SPARK_HOME
 
 # Tensorflow Spark connector
