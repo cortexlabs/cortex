@@ -145,3 +145,13 @@ cx deploy
 1. Make changes
 1. Re-build the workload images `make registry-all`
 1. Test your changes with projects in `examples` or your own
+
+
+## Off-cluster Operator
+If you're making changes in the operator and want faster iterations, you can run an off-cluster operator.
+
+1. Stop the in-cluster operator: `kubectl -n=cortex delete deployment operator`
+1. Run the off-cluster operator (rebuilds and restarts with file changes): `make devstart`
+1. On a separate terminal, configure your cortex installation to use the off-cluster operator: `cx configure`
+1. When prompted for operator URL, use `http://localhost:8888`
+1. Run `make devstart` to rebuild/restart the operator and CLI on file changes.
