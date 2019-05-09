@@ -7,10 +7,12 @@
 1. eksctl
 
 ## Build the CLI from Source
+
 To build the Cortex CLI, run `make build-cli` in the project root directory.
 
 
 ## Build workload images from Source
+
 To build the Cortex workload images, run `make build-images` in the project root directory.
 Then, specify your AWS registry and region in `dev/config/build.sh`:
 
@@ -146,6 +148,7 @@ cx deploy
 
 
 ## Off-cluster Operator
+
 If you're making changes in the operator and want faster iterations, you can run an off-cluster operator.
 
 1. Stop the in-cluster operator: `kubectl -n=cortex delete deployment operator`
