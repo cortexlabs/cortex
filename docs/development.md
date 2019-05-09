@@ -84,8 +84,11 @@ export CORTEX_IMAGE_OPERATOR="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlab
 export CORTEX_IMAGE_SPARK="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/spark:latest"
 export CORTEX_IMAGE_SPARK_OPERATOR="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/spark-operator:latest"
 export CORTEX_IMAGE_TF_SERVE="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve:latest"
+export CORTEX_IMAGE_TF_SERVE_GPU="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve-gpu:latest"
 export CORTEX_IMAGE_TF_TRAIN="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-train:latest"
+export CORTEX_IMAGE_TF_TRAIN_GPU="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-train-gpu:latest"
 export CORTEX_IMAGE_TF_TRANSFORM="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-transform:latest"
+export CORTEX_IMAGE_PYTHON_PACKAGER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-packager:latest"
 
 export AWS_ACCESS_KEY_ID="XXXXXX"
 export AWS_SECRET_ACCESS_KEY="XXXXXX"
@@ -106,7 +109,7 @@ export CLI_BUCKET_REGION="us-west-2"
 Build and push all Cortex images (this will take a while)
 
 ```bash
-make registry-dev
+make registry-all
 ```
 
 Start Kubernetes cluster
@@ -135,3 +138,10 @@ Run an example application
 cd examples/iris
 cx deploy
 ```
+
+## Dev Workflow
+
+1. Install
+1. Make changes
+1. Re-build the workload images `make registry-all`
+1. Test your changes with projects in `examples` or your own
