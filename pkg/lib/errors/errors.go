@@ -23,7 +23,7 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 func New(strs ...string) error {
@@ -42,6 +42,10 @@ func Wrap(err error, strs ...string) error {
 	}
 	errStr := strings.Join(strs, ": ")
 	return pkgerrors.Wrap(err, errStr)
+}
+
+func WithStack(err error) error {
+	return pkgerrors.WithStack(err)
 }
 
 func Cause(err error) error {

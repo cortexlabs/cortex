@@ -17,27 +17,26 @@ limitations under the License.
 package configreader
 
 import (
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
 
 type StringListValidation struct {
-	Required     bool
-	Default      []string
-	AllowNull    bool
-	AllowEmpty   bool
-	DisallowDups bool
-	Validator    func([]string) ([]string, error)
+	Required          bool
+	Default           []string
+	AllowExplicitNull bool
+	AllowEmpty        bool
+	DisallowDups      bool
+	Validator         func([]string) ([]string, error)
 }
 
 func StringList(inter interface{}, v *StringListValidation) ([]string, error) {
 	casted, castOk := cast.InterfaceToStrSlice(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeStringList))
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeStringList)
 	}
-	return ValidateStringList(casted, v)
+	return ValidateStringListProvided(casted, v)
 }
 
 func StringListFromInterfaceMap(key string, iMap map[string]interface{}, v *StringListValidation) ([]string, error) {
@@ -58,27 +57,28 @@ func StringListFromInterfaceMap(key string, iMap map[string]interface{}, v *Stri
 
 func ValidateStringListMissing(v *StringListValidation) ([]string, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
-	return ValidateStringList(v.Default, v)
+	return validateStringList(v.Default, v)
 }
 
-func ValidateStringList(val []string, v *StringListValidation) ([]string, error) {
-	if !v.AllowNull {
-		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
-		}
+func ValidateStringListProvided(val []string, v *StringListValidation) ([]string, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateStringList(val, v)
+}
 
+func validateStringList(val []string, v *StringListValidation) ([]string, error) {
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 
 	if v.DisallowDups {
 		if dups := slices.FindDuplicateStrs(val); len(dups) > 0 {
-			return nil, errors.New(s.ErrDuplicatedValue(dups[0]))
+			return nil, ErrorDuplicatedValue(dups[0])
 		}
 	}
 

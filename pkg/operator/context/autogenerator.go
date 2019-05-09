@@ -19,11 +19,12 @@ package context
 import (
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
 func autoGenerateConfig(
@@ -48,7 +49,7 @@ func autoGenerateConfig(
 			}
 			argType, ok := aggregator.Inputs.Args[argName]
 			if !ok {
-				return errors.New(userconfig.Identify(aggregate), userconfig.InputsKey, userconfig.ArgsKey, s.ErrUnsupportedKey(argName))
+				return errors.Wrap(configreader.ErrorUnsupportedKey(argName), userconfig.Identify(aggregate), userconfig.InputsKey, userconfig.ArgsKey)
 			}
 
 			constantName := strings.Join([]string{
@@ -89,7 +90,7 @@ func autoGenerateConfig(
 			}
 			argType, ok := transformer.Inputs.Args[argName]
 			if !ok {
-				return errors.New(userconfig.Identify(transformedColumn), userconfig.InputsKey, userconfig.ArgsKey, s.ErrUnsupportedKey(argName))
+				return errors.Wrap(configreader.ErrorUnsupportedKey(argName), userconfig.Identify(transformedColumn), userconfig.InputsKey, userconfig.ArgsKey)
 			}
 
 			constantName := strings.Join([]string{

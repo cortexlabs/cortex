@@ -17,7 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -25,15 +24,16 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/resource"
-	"github.com/cortexlabs/cortex/pkg/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
 func init() {
@@ -328,12 +328,12 @@ func describeAggregate(name string, resourcesRes *schema.GetResourcesResponse) (
 		var aggregateRes schema.GetAggregateResponse
 		err = json.Unmarshal(httpResponse, &aggregateRes)
 		if err != nil {
-			return "", errors.Wrap(err, "/aggregate", "response", s.ErrUnmarshalJSON, string(httpResponse))
+			return "", errors.Wrap(err, "/aggregate", "response", string(httpResponse))
 		}
 
 		obj, err := msgpack.UnmarshalToInterface(aggregateRes.Value)
 		if err != nil {
-			return "", errors.Wrap(err, "/aggregate", "response", s.ErrUnmarshalMsgpack)
+			return "", errors.Wrap(err, "/aggregate", "response", msgpack.ErrorUnmarshalMsgpack().Error())
 		}
 		out += valueStr(obj)
 	}

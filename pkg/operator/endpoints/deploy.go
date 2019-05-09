@@ -19,22 +19,20 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/lib/argo"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
-	"github.com/cortexlabs/cortex/pkg/operator/argo"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
-	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
 func Deploy(w http.ResponseWriter, r *http.Request) {
-	telemetry.ReportEvent("endpoint.deploy")
+	config.Telemetry.ReportEvent("endpoint.deploy")
 
 	ignoreCache := getOptionalBoolQParam("ignoreCache", false, r)
 	force := getOptionalBoolQParam("force", false, r)
@@ -62,17 +60,17 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		if newWf.Labels["ctxID"] == existingWf.Labels["ctxID"] {
 			prevCtx := workloads.CurrentContext(ctx.App.Name)
 			if context.APIResourcesAndComputesMatch(ctx, prevCtx) {
-				respondDeploy(w, s.ResDeploymentRunning)
+				respondDeploy(w, ResDeploymentRunning)
 				return
 			}
 		}
 		if !force {
-			respondDeploy(w, s.ResDifferentDeploymentRunning)
+			respondDeploy(w, ResDifferentDeploymentRunning)
 			return
 		}
 	}
 
-	err = aws.UploadMsgpackToS3(ctx.ToSerial(), ctx.Key)
+	err = config.AWS.UploadMsgpackToS3(ctx.ToSerial(), ctx.Key)
 	if RespondIfError(w, err, ctx.App.Name, "upload context") {
 		return
 	}
@@ -84,21 +82,21 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	switch {
 	case isRunning && ignoreCache:
-		respondDeploy(w, s.ResDeploymentStoppedCacheDeletedDeploymentStarted)
+		respondDeploy(w, ResDeploymentStoppedCacheDeletedDeploymentStarted)
 	case isRunning && !ignoreCache && argo.NumTasks(newWf) == 0:
-		respondDeploy(w, s.ResDeploymentStoppedDeploymentUpToDate)
+		respondDeploy(w, ResDeploymentStoppedDeploymentUpToDate)
 	case isRunning && !ignoreCache && argo.NumTasks(newWf) != 0:
-		respondDeploy(w, s.ResDeploymentStoppedDeploymentStarted)
+		respondDeploy(w, ResDeploymentStoppedDeploymentStarted)
 	case !isRunning && ignoreCache:
-		respondDeploy(w, s.ResCachedDeletedDeploymentStarted)
+		respondDeploy(w, ResCachedDeletedDeploymentStarted)
 	case !isRunning && !ignoreCache && argo.NumTasks(newWf) == 0:
 		if existingWf != nil && existingWf.Labels["ctxID"] == newWf.Labels["ctxID"] {
-			respondDeploy(w, s.ResDeploymentUpToDate)
+			respondDeploy(w, ResDeploymentUpToDate)
 			return
 		}
-		respondDeploy(w, s.ResDeploymentUpdated)
+		respondDeploy(w, ResDeploymentUpdated)
 	case !isRunning && !ignoreCache && argo.NumTasks(newWf) != 0:
-		respondDeploy(w, s.ResDeploymentStarted)
+		respondDeploy(w, ResDeploymentStarted)
 	}
 }
 
@@ -108,17 +106,17 @@ func respondDeploy(w http.ResponseWriter, message string) {
 }
 
 func getContext(r *http.Request, ignoreCache bool) (*context.Context, error) {
-	envName, err := getRequiredQParam("environment", r)
+	envName, err := getRequiredQueryParam("environment", r)
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, errors.WithStack(err)
 	}
 
 	zipBytes, err := files.ReadReqFile(r, "config.zip")
 	if err != nil {
-		return nil, errors.Wrap(err)
+		return nil, errors.WithStack(err)
 	}
 	if len(zipBytes) == 0 {
-		return nil, errors.New(s.ErrFormFileMustBeProvided("config.zip"))
+		return nil, ErrorFormFileMustBeProvided("config.zip")
 	}
 
 	zipContents, err := zip.UnzipMemToMem(zipBytes)

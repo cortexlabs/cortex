@@ -19,10 +19,10 @@ package configreader
 import (
 	"io/ioutil"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type Int32Validation struct {
@@ -38,11 +38,11 @@ type Int32Validation struct {
 
 func Int32(inter interface{}, v *Int32Validation) (int32, error) {
 	if inter == nil {
-		return 0, errors.New(s.ErrCannotBeNull)
+		return 0, ErrorCannotBeNull()
 	}
 	casted, castOk := cast.InterfaceToInt32(inter)
 	if !castOk {
-		return 0, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeInt))
+		return 0, ErrorInvalidPrimitiveType(inter, PrimTypeInt)
 	}
 	return ValidateInt32(casted, v)
 }
@@ -85,7 +85,7 @@ func Int32FromStr(valStr string, v *Int32Validation) (int32, error) {
 	}
 	casted, castOk := s.ParseInt32(valStr)
 	if !castOk {
-		return 0, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeInt))
+		return 0, ErrorInvalidPrimitiveType(valStr, PrimTypeInt)
 	}
 	return ValidateInt32(casted, v)
 }
@@ -95,13 +95,13 @@ func Int32FromEnv(envVarName string, v *Int32Validation) (int32, error) {
 	if valStr == nil || *valStr == "" {
 		val, err := ValidateInt32Missing(v)
 		if err != nil {
-			return 0, errors.Wrap(err, s.EnvVar(envVarName))
+			return 0, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := Int32FromStr(*valStr, v)
 	if err != nil {
-		return 0, errors.Wrap(err, s.EnvVar(envVarName))
+		return 0, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }
@@ -142,7 +142,7 @@ func Int32FromPrompt(promptOpts *PromptOptions, v *Int32Validation) (int32, erro
 
 func ValidateInt32Missing(v *Int32Validation) (int32, error) {
 	if v.Required {
-		return 0, errors.New(s.ErrMustBeDefined)
+		return 0, ErrorMustBeDefined()
 	}
 	return ValidateInt32(v.Default, v)
 }
@@ -162,28 +162,28 @@ func ValidateInt32(val int32, v *Int32Validation) (int32, error) {
 func ValidateInt32Val(val int32, v *Int32Validation) error {
 	if v.GreaterThan != nil {
 		if val <= *v.GreaterThan {
-			return errors.New(s.ErrMustBeGreaterThan(val, *v.GreaterThan))
+			return ErrorMustBeGreaterThan(val, *v.GreaterThan)
 		}
 	}
 	if v.GreaterThanOrEqualTo != nil {
 		if val < *v.GreaterThanOrEqualTo {
-			return errors.New(s.ErrMustBeGreaterThanOrEqualTo(val, *v.GreaterThanOrEqualTo))
+			return ErrorMustBeGreaterThanOrEqualTo(val, *v.GreaterThanOrEqualTo)
 		}
 	}
 	if v.LessThan != nil {
 		if val >= *v.LessThan {
-			return errors.New(s.ErrMustBeLessThan(val, *v.LessThan))
+			return ErrorMustBeLessThan(val, *v.LessThan)
 		}
 	}
 	if v.LessThanOrEqualTo != nil {
 		if val > *v.LessThanOrEqualTo {
-			return errors.New(s.ErrMustBeLessThanOrEqualTo(val, *v.LessThanOrEqualTo))
+			return ErrorMustBeLessThanOrEqualTo(val, *v.LessThanOrEqualTo)
 		}
 	}
 
 	if v.AllowedValues != nil {
 		if !slices.HasInt32(v.AllowedValues, val) {
-			return errors.New(s.ErrInvalidInt32(val, v.AllowedValues...))
+			return ErrorInvalidInt32(val, v.AllowedValues...)
 		}
 	}
 

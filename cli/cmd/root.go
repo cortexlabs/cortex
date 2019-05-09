@@ -25,12 +25,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
 var cmdStr string
@@ -56,8 +56,8 @@ func init() {
 var rootCmd = &cobra.Command{
 	Use:     "cortex",
 	Aliases: []string{"cx"},
-	Short:   "machine learning platform for developers",
-	Long:    "Machine learning platform for developers",
+	Short:   "machine learning infrastructure for developers",
+	Long:    "Machine learning infrastructure for developers",
 	Version: consts.CortexVersion,
 }
 
@@ -130,7 +130,7 @@ func watchHeader() string {
 	timeStr := libtime.LocalHourNow()
 	width := getTerminalWidth()
 	numExtraChars := 4
-	padding := strings.Repeat(" ", libmath.MaxInt(width-len(cmdStr)-len(timeStr)-numExtraChars, 0))
+	padding := strings.Repeat(" ", slices.MaxInt(width-len(cmdStr)-len(timeStr)-numExtraChars, 0))
 	return fmt.Sprintf("$ %s  %s%s", cmdStr, padding, libtime.LocalHourNow())
 }
 

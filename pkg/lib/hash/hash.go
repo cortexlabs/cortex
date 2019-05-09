@@ -19,10 +19,9 @@ package hash
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"io/ioutil"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 // Bytes will trim to 63 characters because e.g. K8s labels must be < 64
@@ -42,9 +41,9 @@ func Any(obj interface{}) string {
 }
 
 func File(path string) (string, error) {
-	fileBytes, err := ioutil.ReadFile(path)
+	fileBytes, err := files.ReadFileBytes(path)
 	if err != nil {
-		return "", errors.Wrap(err, s.ErrReadFile(path))
+		return "", err
 	}
 	return Bytes(fileBytes), nil
 }

@@ -17,25 +17,24 @@ limitations under the License.
 package configreader
 
 import (
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type Int64ListValidation struct {
-	Required   bool
-	Default    []int64
-	AllowNull  bool
-	AllowEmpty bool
-	Validator  func([]int64) ([]int64, error)
+	Required          bool
+	Default           []int64
+	AllowExplicitNull bool
+	AllowEmpty        bool
+	Validator         func([]int64) ([]int64, error)
 }
 
 func Int64List(inter interface{}, v *Int64ListValidation) ([]int64, error) {
 	casted, castOk := cast.InterfaceToInt64Slice(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeIntList))
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeIntList)
 	}
-	return ValidateInt64List(casted, v)
+	return ValidateInt64ListProvided(casted, v)
 }
 
 func Int64ListFromInterfaceMap(key string, iMap map[string]interface{}, v *Int64ListValidation) ([]int64, error) {
@@ -56,21 +55,22 @@ func Int64ListFromInterfaceMap(key string, iMap map[string]interface{}, v *Int64
 
 func ValidateInt64ListMissing(v *Int64ListValidation) ([]int64, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
-	return ValidateInt64List(v.Default, v)
+	return validateInt64List(v.Default, v)
 }
 
-func ValidateInt64List(val []int64, v *Int64ListValidation) ([]int64, error) {
-	if !v.AllowNull {
-		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
-		}
+func ValidateInt64ListProvided(val []int64, v *Int64ListValidation) ([]int64, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateInt64List(val, v)
+}
 
+func validateInt64List(val []int64, v *Int64ListValidation) ([]int64, error) {
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 

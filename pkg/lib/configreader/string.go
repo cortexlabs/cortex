@@ -17,13 +17,14 @@ limitations under the License.
 package configreader
 
 import (
+	"fmt"
 	"io/ioutil"
 	"strings"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
 type StringValidation struct {
@@ -38,13 +39,17 @@ type StringValidation struct {
 	Validator                     func(string) (string, error)
 }
 
+func EnvVar(envVarName string) string {
+	return fmt.Sprintf("environment variable \"%s\"", envVarName)
+}
+
 func String(inter interface{}, v *StringValidation) (string, error) {
 	if inter == nil {
-		return "", errors.New(s.ErrCannotBeNull)
+		return "", ErrorCannotBeNull()
 	}
 	casted, castOk := inter.(string)
 	if !castOk {
-		return "", errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeString))
+		return "", ErrorInvalidPrimitiveType(inter, PrimTypeString)
 	}
 	return ValidateString(casted, v)
 }
@@ -90,13 +95,13 @@ func StringFromEnv(envVarName string, v *StringValidation) (string, error) {
 	if valStr == nil {
 		val, err := ValidateStringMissing(v)
 		if err != nil {
-			return "", errors.Wrap(err, s.EnvVar(envVarName))
+			return "", errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := StringFromStr(*valStr, v)
 	if err != nil {
-		return "", errors.Wrap(err, s.EnvVar(envVarName))
+		return "", errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }
@@ -137,7 +142,7 @@ func StringFromPrompt(promptOpts *PromptOptions, v *StringValidation) (string, e
 
 func ValidateStringMissing(v *StringValidation) (string, error) {
 	if v.Required {
-		return "", errors.New(s.ErrMustBeDefined)
+		return "", ErrorMustBeDefined()
 	}
 	return ValidateString(v.Default, v)
 }
@@ -157,37 +162,37 @@ func ValidateString(val string, v *StringValidation) (string, error) {
 func ValidateStringVal(val string, v *StringValidation) error {
 	if !v.AllowEmpty {
 		if len(val) == 0 {
-			return errors.New(s.ErrCannotBeEmpty)
+			return ErrorCannotBeEmpty()
 		}
 	}
 
 	if v.AllowedValues != nil {
 		if !slices.HasString(v.AllowedValues, val) {
-			return errors.New(s.ErrInvalidStr(val, v.AllowedValues...))
+			return ErrorInvalidStr(val, v.AllowedValues...)
 		}
 	}
 
 	if v.Prefix != "" {
 		if !strings.HasPrefix(val, v.Prefix) {
-			return errors.New(s.ErrMustHavePrefix(val, v.Prefix))
+			return ErrorMustHavePrefix(val, v.Prefix)
 		}
 	}
 
 	if v.AlphaNumericDashDotUnderscore {
 		if !regex.CheckAlphaNumericDashDotUnderscore(val) {
-			return errors.New(s.ErrAlphaNumericDashDotUnderscore(val))
+			return ErrorAlphaNumericDashDotUnderscore(val)
 		}
 	}
 
 	if v.AlphaNumericDashUnderscore {
 		if !regex.CheckAlphaNumericDashUnderscore(val) {
-			return errors.New(s.ErrAlphaNumericDashUnderscore(val))
+			return ErrorAlphaNumericDashUnderscore(val)
 		}
 	}
 
 	if v.DNS1035 {
-		if !regex.CheckDNS1035(val) {
-			return errors.New(s.ErrDNS1035(val))
+		if err := urls.CheckDNS1035(val); err != nil {
+			return err
 		}
 	}
 

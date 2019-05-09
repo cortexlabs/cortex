@@ -19,7 +19,7 @@ package workloads
 import (
 	"sync"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 )
 
 // appName -> currently deployed context

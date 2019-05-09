@@ -1,0 +1,13 @@
+- kind: model
+  name: dnn
+  type: classification
+  target_column: quality_bucketized
+  feature_columns: [fixed_acidity_normalized, volatile_acidity_normalized, citric_acid_normalized, residual_sugar_normalized, chlorides_normalized, free_sulfur_dioxide_normalized, total_sulfur_dioxide_normalized, density_normalized, pH_normalized, sulphates_normalized, alcohol_normalized]
+  hparams:
+    hidden_units: [100, 100, 100, 100, 100]
+  data_partition_ratio:
+    training: 80
+    evaluation: 20
+  training:
+    batch_size: 64
+    num_steps: 10000

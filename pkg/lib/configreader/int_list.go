@@ -17,25 +17,24 @@ limitations under the License.
 package configreader
 
 import (
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type IntListValidation struct {
-	Required   bool
-	Default    []int
-	AllowNull  bool
-	AllowEmpty bool
-	Validator  func([]int) ([]int, error)
+	Required          bool
+	Default           []int
+	AllowExplicitNull bool
+	AllowEmpty        bool
+	Validator         func([]int) ([]int, error)
 }
 
 func IntList(inter interface{}, v *IntListValidation) ([]int, error) {
 	casted, castOk := cast.InterfaceToIntSlice(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeIntList))
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeIntList)
 	}
-	return ValidateIntList(casted, v)
+	return ValidateIntListProvided(casted, v)
 }
 
 func IntListFromInterfaceMap(key string, iMap map[string]interface{}, v *IntListValidation) ([]int, error) {
@@ -56,21 +55,22 @@ func IntListFromInterfaceMap(key string, iMap map[string]interface{}, v *IntList
 
 func ValidateIntListMissing(v *IntListValidation) ([]int, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
-	return ValidateIntList(v.Default, v)
+	return validateIntList(v.Default, v)
 }
 
-func ValidateIntList(val []int, v *IntListValidation) ([]int, error) {
-	if !v.AllowNull {
-		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
-		}
+func ValidateIntListProvided(val []int, v *IntListValidation) ([]int, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateIntList(val, v)
+}
 
+func validateIntList(val []int, v *IntListValidation) ([]int, error) {
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 

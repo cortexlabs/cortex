@@ -17,25 +17,24 @@ limitations under the License.
 package configreader
 
 import (
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type Int32ListValidation struct {
-	Required   bool
-	Default    []int32
-	AllowNull  bool
-	AllowEmpty bool
-	Validator  func([]int32) ([]int32, error)
+	Required          bool
+	Default           []int32
+	AllowExplicitNull bool
+	AllowEmpty        bool
+	Validator         func([]int32) ([]int32, error)
 }
 
 func Int32List(inter interface{}, v *Int32ListValidation) ([]int32, error) {
 	casted, castOk := cast.InterfaceToInt32Slice(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeIntList))
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeIntList)
 	}
-	return ValidateInt32List(casted, v)
+	return ValidateInt32ListProvided(casted, v)
 }
 
 func Int32ListFromInterfaceMap(key string, iMap map[string]interface{}, v *Int32ListValidation) ([]int32, error) {
@@ -56,21 +55,22 @@ func Int32ListFromInterfaceMap(key string, iMap map[string]interface{}, v *Int32
 
 func ValidateInt32ListMissing(v *Int32ListValidation) ([]int32, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
-	return ValidateInt32List(v.Default, v)
+	return validateInt32List(v.Default, v)
 }
 
-func ValidateInt32List(val []int32, v *Int32ListValidation) ([]int32, error) {
-	if !v.AllowNull {
-		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
-		}
+func ValidateInt32ListProvided(val []int32, v *Int32ListValidation) ([]int32, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateInt32List(val, v)
+}
 
+func validateInt32List(val []int32, v *Int32ListValidation) ([]int32, error) {
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 

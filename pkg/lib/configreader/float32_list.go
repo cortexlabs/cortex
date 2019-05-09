@@ -17,25 +17,24 @@ limitations under the License.
 package configreader
 
 import (
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type Float32ListValidation struct {
-	Required   bool
-	Default    []float32
-	AllowNull  bool
-	AllowEmpty bool
-	Validator  func([]float32) ([]float32, error)
+	Required          bool
+	Default           []float32
+	AllowExplicitNull bool
+	AllowEmpty        bool
+	Validator         func([]float32) ([]float32, error)
 }
 
 func Float32List(inter interface{}, v *Float32ListValidation) ([]float32, error) {
 	casted, castOk := cast.InterfaceToFloat32Slice(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeFloatList))
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeFloatList)
 	}
-	return ValidateFloat32List(casted, v)
+	return ValidateFloat32ListProvided(casted, v)
 }
 
 func Float32ListFromInterfaceMap(key string, iMap map[string]interface{}, v *Float32ListValidation) ([]float32, error) {
@@ -56,21 +55,22 @@ func Float32ListFromInterfaceMap(key string, iMap map[string]interface{}, v *Flo
 
 func ValidateFloat32ListMissing(v *Float32ListValidation) ([]float32, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
-	return ValidateFloat32List(v.Default, v)
+	return validateFloat32List(v.Default, v)
 }
 
-func ValidateFloat32List(val []float32, v *Float32ListValidation) ([]float32, error) {
-	if !v.AllowNull {
-		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
-		}
+func ValidateFloat32ListProvided(val []float32, v *Float32ListValidation) ([]float32, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateFloat32List(val, v)
+}
 
+func validateFloat32List(val []float32, v *Float32ListValidation) ([]float32, error) {
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 

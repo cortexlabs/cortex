@@ -19,25 +19,25 @@ package configreader
 import (
 	"io/ioutil"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type BoolPtrValidation struct {
-	Required     bool
-	Default      *bool
-	DisallowNull bool
+	Required          bool
+	Default           *bool
+	AllowExplicitNull bool
 }
 
 func BoolPtr(inter interface{}, v *BoolPtrValidation) (*bool, error) {
 	if inter == nil {
-		return ValidateBoolPtr(nil, v)
+		return ValidateBoolPtrProvided(nil, v)
 	}
 	casted, castOk := inter.(bool)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeBool))
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeBool)
 	}
-	return ValidateBoolPtr(&casted, v)
+	return ValidateBoolPtrProvided(&casted, v)
 }
 
 func BoolPtrFromInterfaceMap(key string, iMap map[string]interface{}, v *BoolPtrValidation) (*bool, error) {
@@ -78,9 +78,9 @@ func BoolPtrFromStr(valStr string, v *BoolPtrValidation) (*bool, error) {
 	}
 	casted, castOk := s.ParseBool(valStr)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeBool))
+		return nil, ErrorInvalidPrimitiveType(valStr, PrimTypeBool)
 	}
-	return ValidateBoolPtr(&casted, v)
+	return ValidateBoolPtrProvided(&casted, v)
 }
 
 func BoolPtrFromEnv(envVarName string, v *BoolPtrValidation) (*bool, error) {
@@ -88,13 +88,13 @@ func BoolPtrFromEnv(envVarName string, v *BoolPtrValidation) (*bool, error) {
 	if valStr == nil || *valStr == "" {
 		val, err := ValidateBoolPtrMissing(v)
 		if err != nil {
-			return nil, errors.Wrap(err, s.EnvVar(envVarName))
+			return nil, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := BoolPtrFromStr(*valStr, v)
 	if err != nil {
-		return nil, errors.Wrap(err, s.EnvVar(envVarName))
+		return nil, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }
@@ -134,17 +134,14 @@ func BoolPtrFromPrompt(promptOpts *PromptOptions, v *BoolPtrValidation) (*bool, 
 
 func ValidateBoolPtrMissing(v *BoolPtrValidation) (*bool, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
-	return ValidateBoolPtr(v.Default, v)
+	return v.Default, nil
 }
 
-func ValidateBoolPtr(val *bool, v *BoolPtrValidation) (*bool, error) {
-	if v.DisallowNull {
-		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
-		}
+func ValidateBoolPtrProvided(val *bool, v *BoolPtrValidation) (*bool, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
-
 	return val, nil
 }

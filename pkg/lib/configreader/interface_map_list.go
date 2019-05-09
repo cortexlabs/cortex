@@ -17,25 +17,24 @@ limitations under the License.
 package configreader
 
 import (
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type InterfaceMapListValidation struct {
-	Required   bool
-	Default    []map[string]interface{}
-	AllowNull  bool
-	AllowEmpty bool
-	Validator  func([]map[string]interface{}) ([]map[string]interface{}, error)
+	Required          bool
+	Default           []map[string]interface{}
+	AllowExplicitNull bool
+	AllowEmpty        bool
+	Validator         func([]map[string]interface{}) ([]map[string]interface{}, error)
 }
 
 func InterfaceMapList(inter interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
 	casted, castOk := cast.InterfaceToStrInterfaceMapSlice(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeMapList))
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeMapList)
 	}
-	return ValidateInterfaceMapList(casted, v)
+	return ValidateInterfaceMapListProvided(casted, v)
 }
 
 func InterfaceMapListFromInterfaceMap(key string, iMap map[string]interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
@@ -56,21 +55,22 @@ func InterfaceMapListFromInterfaceMap(key string, iMap map[string]interface{}, v
 
 func ValidateInterfaceMapListMissing(v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
-	return ValidateInterfaceMapList(v.Default, v)
+	return validateInterfaceMapList(v.Default, v)
 }
 
-func ValidateInterfaceMapList(val []map[string]interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
-	if !v.AllowNull {
-		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
-		}
+func ValidateInterfaceMapListProvided(val []map[string]interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateInterfaceMapList(val, v)
+}
 
+func validateInterfaceMapList(val []map[string]interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 

@@ -19,15 +19,15 @@ package configreader
 import (
 	"io/ioutil"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type Int64PtrValidation struct {
 	Required             bool
 	Default              *int64
-	DisallowNull         bool
+	AllowExplicitNull    bool
 	AllowedValues        []int64
 	GreaterThan          *int64
 	GreaterThanOrEqualTo *int64
@@ -48,13 +48,13 @@ func makeInt64ValValidation(v *Int64PtrValidation) *Int64Validation {
 
 func Int64Ptr(inter interface{}, v *Int64PtrValidation) (*int64, error) {
 	if inter == nil {
-		return ValidateInt64Ptr(nil, v)
+		return ValidateInt64PtrProvided(nil, v)
 	}
 	casted, castOk := cast.InterfaceToInt64(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeInt))
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeInt)
 	}
-	return ValidateInt64Ptr(&casted, v)
+	return ValidateInt64PtrProvided(&casted, v)
 }
 
 func Int64PtrFromInterfaceMap(key string, iMap map[string]interface{}, v *Int64PtrValidation) (*int64, error) {
@@ -95,9 +95,9 @@ func Int64PtrFromStr(valStr string, v *Int64PtrValidation) (*int64, error) {
 	}
 	casted, castOk := s.ParseInt64(valStr)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeInt))
+		return nil, ErrorInvalidPrimitiveType(valStr, PrimTypeInt)
 	}
-	return ValidateInt64Ptr(&casted, v)
+	return ValidateInt64PtrProvided(&casted, v)
 }
 
 func Int64PtrFromEnv(envVarName string, v *Int64PtrValidation) (*int64, error) {
@@ -105,13 +105,13 @@ func Int64PtrFromEnv(envVarName string, v *Int64PtrValidation) (*int64, error) {
 	if valStr == nil || *valStr == "" {
 		val, err := ValidateInt64PtrMissing(v)
 		if err != nil {
-			return nil, errors.Wrap(err, s.EnvVar(envVarName))
+			return nil, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := Int64PtrFromStr(*valStr, v)
 	if err != nil {
-		return nil, errors.Wrap(err, s.EnvVar(envVarName))
+		return nil, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }
@@ -151,18 +151,19 @@ func Int64PtrFromPrompt(promptOpts *PromptOptions, v *Int64PtrValidation) (*int6
 
 func ValidateInt64PtrMissing(v *Int64PtrValidation) (*int64, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
-	return ValidateInt64Ptr(v.Default, v)
+	return validateInt64Ptr(v.Default, v)
 }
 
-func ValidateInt64Ptr(val *int64, v *Int64PtrValidation) (*int64, error) {
-	if v.DisallowNull {
-		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
-		}
+func ValidateInt64PtrProvided(val *int64, v *Int64PtrValidation) (*int64, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateInt64Ptr(val, v)
+}
 
+func validateInt64Ptr(val *int64, v *Int64PtrValidation) (*int64, error) {
 	if val != nil {
 		err := ValidateInt64Val(*val, makeInt64ValValidation(v))
 		if err != nil {

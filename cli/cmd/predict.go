@@ -18,20 +18,19 @@ package cmd
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	libstrings "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
 func init() {
@@ -72,10 +71,10 @@ var predictCmd = &cobra.Command{
 
 		apiGroupStatus := resourcesRes.APIGroupStatuses[apiName]
 		if apiGroupStatus == nil {
-			errors.Exit(s.ErrAPINotFound(apiName))
+			errors.Exit(ErrorAPINotFound(apiName))
 		}
 		if apiGroupStatus.ActiveStatus == nil {
-			errors.Exit(s.ErrAPINotReady(apiName, apiGroupStatus.Message()))
+			errors.Exit(ErrorAPINotReady(apiName, apiGroupStatus.Message()))
 		}
 
 		apiPath := apiGroupStatus.ActiveStatus.Path
@@ -83,7 +82,7 @@ var predictCmd = &cobra.Command{
 		predictResponse, err := makePredictRequest(apiURL, samplesJSONPath)
 		if err != nil {
 			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
-				errors.Exit(s.ErrAPINotReady(apiName, resource.StatusAPIUpdating.Message()))
+				errors.Exit(ErrorAPINotReady(apiName, resource.StatusUpdating.Message()))
 			}
 			errors.Exit(err)
 		}
@@ -120,7 +119,7 @@ var predictCmd = &cobra.Command{
 					json, _ := json.Marshal(prediction.PredictedValueReversed)
 					fmt.Println(s.TrimPrefixAndSuffix(string(json), "\""))
 				} else {
-					fmt.Println(libstrings.Round(prediction.PredictedValue, 2, true))
+					fmt.Println(s.Round(prediction.PredictedValue, 2, true))
 				}
 			}
 		}
@@ -128,14 +127,14 @@ var predictCmd = &cobra.Command{
 }
 
 func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse, error) {
-	samplesBytes, err := ioutil.ReadFile(samplesJSONPath)
+	samplesBytes, err := files.ReadFileBytes(samplesJSONPath)
 	if err != nil {
-		errors.Exit(err, s.ErrReadFile(samplesJSONPath))
+		errors.Exit(err)
 	}
 	payload := bytes.NewBuffer(samplesBytes)
 	req, err := http.NewRequest("POST", apiURL, payload)
 	if err != nil {
-		return nil, errors.Wrap(err, s.ErrCantMakeRequest)
+		return nil, errors.Wrap(err, errStrCantMakeRequest)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -147,7 +146,7 @@ func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse
 	var predictResponse PredictResponse
 	err = json.Unmarshal(httpResponse, &predictResponse)
 	if err != nil {
-		return nil, errors.Wrap(err, "prediction response", s.ErrUnmarshalJSON)
+		return nil, errors.Wrap(err, "prediction response")
 	}
 
 	return &predictResponse, nil

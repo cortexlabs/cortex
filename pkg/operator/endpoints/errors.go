@@ -16,6 +16,12 @@ limitations under the License.
 
 package endpoints
 
+import (
+	"fmt"
+
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+)
+
 type ErrorKind int
 
 const (
@@ -24,6 +30,13 @@ const (
 	ErrAuthHeaderMalformed
 	ErrAuthAPIError
 	ErrAuthForbidden
+	ErrAppNotDeployed
+	ErrFormFileMustBeProvided
+	ErrQueryParamRequired
+	ErrPathParamRequired
+	ErrAnyQueryParamRequired
+	ErrAnyPathParamRequired
+	ErrPending
 )
 
 var (
@@ -33,10 +46,17 @@ var (
 		"err_auth_header_malformed",
 		"err_auth_api_error",
 		"err_auth_forbidden",
+		"err_app_not_deployed",
+		"err_form_file_must_be_provided",
+		"err_query_param_required",
+		"err_path_param_required",
+		"err_any_query_param_required",
+		"err_any_path_param_required",
+		"err_pending",
 	}
 )
 
-var _ = [1]int{}[int(ErrAuthForbidden)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrPending)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -106,5 +126,53 @@ func ErrorAuthForbidden() error {
 	return Error{
 		Kind:    ErrAuthForbidden,
 		message: "invalid AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as the operator",
+	}
+}
+
+func ErrorAppNotDeployed(appName string) error {
+	return Error{
+		Kind:    ErrAuthForbidden,
+		message: fmt.Sprintf("app %s is not deployed", s.UserStr(appName)),
+	}
+}
+
+func ErrorFormFileMustBeProvided(fileName string) error {
+	return Error{
+		Kind:    ErrFormFileMustBeProvided,
+		message: fmt.Sprintf("request form file %s must be provided", s.UserStr(fileName)),
+	}
+}
+func ErrorQueryParamRequired(param string) error {
+	return Error{
+		Kind:    ErrQueryParamRequired,
+		message: fmt.Sprintf("query param required: %s", param),
+	}
+}
+
+func ErrorPathParamRequired(param string) error {
+	return Error{
+		Kind:    ErrPathParamRequired,
+		message: fmt.Sprintf("path param required: %s", param),
+	}
+}
+
+func ErrorAnyQueryParamRequired(params ...string) error {
+	return Error{
+		Kind:    ErrAnyQueryParamRequired,
+		message: fmt.Sprintf("query params required: %s", s.UserStrsOr(params)),
+	}
+}
+
+func ErrorAnyPathParamRequired(params ...string) error {
+	return Error{
+		Kind:    ErrAnyPathParamRequired,
+		message: fmt.Sprintf("path params required: %s", s.UserStrsOr(params)),
+	}
+}
+
+func ErrorPending() error {
+	return Error{
+		Kind:    ErrPending,
+		message: "pending",
 	}
 }

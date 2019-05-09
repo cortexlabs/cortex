@@ -19,15 +19,15 @@ package configreader
 import (
 	"io/ioutil"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type Float64PtrValidation struct {
 	Required             bool
 	Default              *float64
-	DisallowNull         bool
+	AllowExplicitNull    bool
 	AllowedValues        []float64
 	GreaterThan          *float64
 	GreaterThanOrEqualTo *float64
@@ -48,13 +48,13 @@ func makeFloat64ValValidation(v *Float64PtrValidation) *Float64Validation {
 
 func Float64Ptr(inter interface{}, v *Float64PtrValidation) (*float64, error) {
 	if inter == nil {
-		return ValidateFloat64Ptr(nil, v)
+		return ValidateFloat64PtrProvided(nil, v)
 	}
 	casted, castOk := cast.InterfaceToFloat64(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeFloat))
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeFloat)
 	}
-	return ValidateFloat64Ptr(&casted, v)
+	return ValidateFloat64PtrProvided(&casted, v)
 }
 
 func Float64PtrFromInterfaceMap(key string, iMap map[string]interface{}, v *Float64PtrValidation) (*float64, error) {
@@ -95,9 +95,9 @@ func Float64PtrFromStr(valStr string, v *Float64PtrValidation) (*float64, error)
 	}
 	casted, castOk := s.ParseFloat64(valStr)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeFloat))
+		return nil, ErrorInvalidPrimitiveType(valStr, PrimTypeFloat)
 	}
-	return ValidateFloat64Ptr(&casted, v)
+	return ValidateFloat64PtrProvided(&casted, v)
 }
 
 func Float64PtrFromEnv(envVarName string, v *Float64PtrValidation) (*float64, error) {
@@ -105,13 +105,13 @@ func Float64PtrFromEnv(envVarName string, v *Float64PtrValidation) (*float64, er
 	if valStr == nil || *valStr == "" {
 		val, err := ValidateFloat64PtrMissing(v)
 		if err != nil {
-			return nil, errors.Wrap(err, s.EnvVar(envVarName))
+			return nil, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := Float64PtrFromStr(*valStr, v)
 	if err != nil {
-		return nil, errors.Wrap(err, s.EnvVar(envVarName))
+		return nil, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }
@@ -151,18 +151,19 @@ func Float64PtrFromPrompt(promptOpts *PromptOptions, v *Float64PtrValidation) (*
 
 func ValidateFloat64PtrMissing(v *Float64PtrValidation) (*float64, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
-	return ValidateFloat64Ptr(v.Default, v)
+	return validateFloat64Ptr(v.Default, v)
 }
 
-func ValidateFloat64Ptr(val *float64, v *Float64PtrValidation) (*float64, error) {
-	if v.DisallowNull {
-		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
-		}
+func ValidateFloat64PtrProvided(val *float64, v *Float64PtrValidation) (*float64, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateFloat64Ptr(val, v)
+}
 
+func validateFloat64Ptr(val *float64, v *Float64PtrValidation) (*float64, error) {
 	if val != nil {
 		err := ValidateFloat64Val(*val, makeFloat64ValValidation(v))
 		if err != nil {

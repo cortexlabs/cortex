@@ -19,15 +19,15 @@ package configreader
 import (
 	"io/ioutil"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type Int32PtrValidation struct {
 	Required             bool
 	Default              *int32
-	DisallowNull         bool
+	AllowExplicitNull    bool
 	AllowedValues        []int32
 	GreaterThan          *int32
 	GreaterThanOrEqualTo *int32
@@ -48,13 +48,13 @@ func makeInt32ValValidation(v *Int32PtrValidation) *Int32Validation {
 
 func Int32Ptr(inter interface{}, v *Int32PtrValidation) (*int32, error) {
 	if inter == nil {
-		return ValidateInt32Ptr(nil, v)
+		return ValidateInt32PtrProvdied(nil, v)
 	}
 	casted, castOk := cast.InterfaceToInt32(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeInt))
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeInt)
 	}
-	return ValidateInt32Ptr(&casted, v)
+	return ValidateInt32PtrProvdied(&casted, v)
 }
 
 func Int32PtrFromInterfaceMap(key string, iMap map[string]interface{}, v *Int32PtrValidation) (*int32, error) {
@@ -95,9 +95,9 @@ func Int32PtrFromStr(valStr string, v *Int32PtrValidation) (*int32, error) {
 	}
 	casted, castOk := s.ParseInt32(valStr)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeInt))
+		return nil, ErrorInvalidPrimitiveType(valStr, PrimTypeInt)
 	}
-	return ValidateInt32Ptr(&casted, v)
+	return ValidateInt32PtrProvdied(&casted, v)
 }
 
 func Int32PtrFromEnv(envVarName string, v *Int32PtrValidation) (*int32, error) {
@@ -105,13 +105,13 @@ func Int32PtrFromEnv(envVarName string, v *Int32PtrValidation) (*int32, error) {
 	if valStr == nil || *valStr == "" {
 		val, err := ValidateInt32PtrMissing(v)
 		if err != nil {
-			return nil, errors.Wrap(err, s.EnvVar(envVarName))
+			return nil, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := Int32PtrFromStr(*valStr, v)
 	if err != nil {
-		return nil, errors.Wrap(err, s.EnvVar(envVarName))
+		return nil, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }
@@ -151,18 +151,19 @@ func Int32PtrFromPrompt(promptOpts *PromptOptions, v *Int32PtrValidation) (*int3
 
 func ValidateInt32PtrMissing(v *Int32PtrValidation) (*int32, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
-	return ValidateInt32Ptr(v.Default, v)
+	return validateInt32Ptr(v.Default, v)
 }
 
-func ValidateInt32Ptr(val *int32, v *Int32PtrValidation) (*int32, error) {
-	if v.DisallowNull {
-		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
-		}
+func ValidateInt32PtrProvdied(val *int32, v *Int32PtrValidation) (*int32, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateInt32Ptr(val, v)
+}
 
+func validateInt32Ptr(val *int32, v *Int32PtrValidation) (*int32, error) {
 	if val != nil {
 		err := ValidateInt32Val(*val, makeInt32ValValidation(v))
 		if err != nil {

@@ -19,14 +19,13 @@ package configreader
 import (
 	"io/ioutil"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type StringPtrValidation struct {
 	Required                      bool
 	Default                       *string
-	DisallowNull                  bool
+	AllowExplicitNull             bool
 	AllowEmpty                    bool
 	AllowedValues                 []string
 	Prefix                        string
@@ -49,13 +48,13 @@ func makeStringValValidation(v *StringPtrValidation) *StringValidation {
 
 func StringPtr(inter interface{}, v *StringPtrValidation) (*string, error) {
 	if inter == nil {
-		return ValidateStringPtr(nil, v)
+		return ValidateStringPtrProvided(nil, v)
 	}
 	casted, castOk := inter.(string)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeString))
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeString)
 	}
-	return ValidateStringPtr(&casted, v)
+	return ValidateStringPtrProvided(&casted, v)
 }
 
 func StringPtrFromInterfaceMap(key string, iMap map[string]interface{}, v *StringPtrValidation) (*string, error) {
@@ -91,7 +90,7 @@ func StringPtrFromStrMap(key string, sMap map[string]string, v *StringPtrValidat
 }
 
 func StringPtrFromStr(str string, v *StringPtrValidation) (*string, error) {
-	return ValidateStringPtr(&str, v)
+	return ValidateStringPtrProvided(&str, v)
 }
 
 func StringPtrFromEnv(envVarName string, v *StringPtrValidation) (*string, error) {
@@ -99,13 +98,13 @@ func StringPtrFromEnv(envVarName string, v *StringPtrValidation) (*string, error
 	if valStr == nil {
 		val, err := ValidateStringPtrMissing(v)
 		if err != nil {
-			return nil, errors.Wrap(err, s.EnvVar(envVarName))
+			return nil, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := StringPtrFromStr(*valStr, v)
 	if err != nil {
-		return nil, errors.Wrap(err, s.EnvVar(envVarName))
+		return nil, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }
@@ -145,18 +144,19 @@ func StringPtrFromPrompt(promptOpts *PromptOptions, v *StringPtrValidation) (*st
 
 func ValidateStringPtrMissing(v *StringPtrValidation) (*string, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
-	return ValidateStringPtr(v.Default, v)
+	return validateStringPtr(v.Default, v)
 }
 
-func ValidateStringPtr(val *string, v *StringPtrValidation) (*string, error) {
-	if v.DisallowNull {
-		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
-		}
+func ValidateStringPtrProvided(val *string, v *StringPtrValidation) (*string, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateStringPtr(val, v)
+}
 
+func validateStringPtr(val *string, v *StringPtrValidation) (*string, error) {
 	if val != nil {
 		err := ValidateStringVal(*val, makeStringValValidation(v))
 		if err != nil {

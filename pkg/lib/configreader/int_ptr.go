@@ -19,15 +19,15 @@ package configreader
 import (
 	"io/ioutil"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type IntPtrValidation struct {
 	Required             bool
 	Default              *int
-	DisallowNull         bool
+	AllowExplicitNull    bool
 	AllowedValues        []int
 	GreaterThan          *int
 	GreaterThanOrEqualTo *int
@@ -48,13 +48,13 @@ func makeIntValValidation(v *IntPtrValidation) *IntValidation {
 
 func IntPtr(inter interface{}, v *IntPtrValidation) (*int, error) {
 	if inter == nil {
-		return ValidateIntPtr(nil, v)
+		return ValidateIntPtrProvided(nil, v)
 	}
 	casted, castOk := cast.InterfaceToInt(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeInt))
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeInt)
 	}
-	return ValidateIntPtr(&casted, v)
+	return ValidateIntPtrProvided(&casted, v)
 }
 
 func IntPtrFromInterfaceMap(key string, iMap map[string]interface{}, v *IntPtrValidation) (*int, error) {
@@ -95,9 +95,9 @@ func IntPtrFromStr(valStr string, v *IntPtrValidation) (*int, error) {
 	}
 	casted, castOk := s.ParseInt(valStr)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeInt))
+		return nil, ErrorInvalidPrimitiveType(valStr, PrimTypeInt)
 	}
-	return ValidateIntPtr(&casted, v)
+	return ValidateIntPtrProvided(&casted, v)
 }
 
 func IntPtrFromEnv(envVarName string, v *IntPtrValidation) (*int, error) {
@@ -105,13 +105,13 @@ func IntPtrFromEnv(envVarName string, v *IntPtrValidation) (*int, error) {
 	if valStr == nil || *valStr == "" {
 		val, err := ValidateIntPtrMissing(v)
 		if err != nil {
-			return nil, errors.Wrap(err, s.EnvVar(envVarName))
+			return nil, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := IntPtrFromStr(*valStr, v)
 	if err != nil {
-		return nil, errors.Wrap(err, s.EnvVar(envVarName))
+		return nil, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }
@@ -151,18 +151,19 @@ func IntPtrFromPrompt(promptOpts *PromptOptions, v *IntPtrValidation) (*int, err
 
 func ValidateIntPtrMissing(v *IntPtrValidation) (*int, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
-	return ValidateIntPtr(v.Default, v)
+	return validateIntPtr(v.Default, v)
 }
 
-func ValidateIntPtr(val *int, v *IntPtrValidation) (*int, error) {
-	if v.DisallowNull {
-		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
-		}
+func ValidateIntPtrProvided(val *int, v *IntPtrValidation) (*int, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateIntPtr(val, v)
+}
 
+func validateIntPtr(val *int, v *IntPtrValidation) (*int, error) {
 	if val != nil {
 		err := ValidateIntVal(*val, makeIntValValidation(v))
 		if err != nil {

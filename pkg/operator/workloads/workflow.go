@@ -17,41 +17,38 @@ limitations under the License.
 package workloads
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 
 	awfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/argo"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	"github.com/cortexlabs/cortex/pkg/operator/argo"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
-	"github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
 )
 
-func init() {
-	workflows, err := argo.List(nil)
+func Init() error {
+	workflows, err := config.Argo.List(nil)
 	if err != nil {
-		err = errors.Wrap(err, "init", "argo", "list")
-		telemetry.ReportErrorBlocking(err)
-		errors.Exit(err)
+		return errors.Wrap(err, "init", "argo", "list")
 	}
 
 	for _, wf := range workflows {
 		ctx, err := ocontext.DownloadContext(wf.Labels["ctxID"], wf.Labels["appName"])
 		if err != nil {
 			fmt.Println("Deleting stale workflow:", wf.Name)
-			argo.Delete(wf.Name)
+			config.Argo.Delete(wf.Name)
 		} else {
 			setCurrentContext(ctx)
 		}
 	}
+
+	return nil
 }
 
 func Create(ctx *context.Context) (*awfv1.Workflow, error) {
@@ -64,7 +61,7 @@ func Create(ctx *context.Context) (*awfv1.Workflow, error) {
 		"appName": ctx.App.Name,
 		"ctxID":   ctx.ID,
 	}
-	wf := argo.New(ctx.App.Name, labels)
+	wf := config.Argo.NewWorkflow(ctx.App.Name, labels)
 
 	var allSpecs []*WorkloadSpec
 
@@ -113,7 +110,7 @@ func Create(ctx *context.Context) (*awfv1.Workflow, error) {
 
 		manifest, err := json.Marshal(spec.Spec)
 		if err != nil {
-			return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID, s.ErrMarshalJSON)
+			return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID)
 		}
 
 		argo.AddTask(wf, &argo.WorkflowTask{
@@ -159,10 +156,10 @@ func Run(wf *awfv1.Workflow, ctx *context.Context, existingWf *awfv1.Workflow) e
 	if existingWf != nil {
 		existingCtx := CurrentContext(ctx.App.Name)
 		if wf.Labels["appName"] != existingWf.Labels["appName"] {
-			return errors.New(s.ErrWorkflowAppMismatch)
+			return ErrorWorkflowAppMismatch()
 		}
 		if existingCtx != nil && ctx.App.Name != existingCtx.App.Name {
-			return errors.New(s.ErrContextAppMismatch)
+			return ErrorContextAppMismatch()
 		}
 
 		err := Stop(existingWf, existingCtx)
@@ -171,7 +168,7 @@ func Run(wf *awfv1.Workflow, ctx *context.Context, existingWf *awfv1.Workflow) e
 		}
 	}
 
-	err = argo.Run(wf)
+	err = config.Argo.Run(wf)
 	if err != nil {
 		return errors.Wrap(err, ctx.App.Name)
 	}
@@ -202,7 +199,7 @@ func Stop(wf *awfv1.Workflow, ctx *context.Context) error {
 		return nil
 	}
 
-	_, err := argo.Delete(wf.Name)
+	_, err := config.Argo.Delete(wf.Name)
 	if err != nil {
 		return errors.Wrap(err, ctx.App.Name)
 	}
@@ -225,25 +222,25 @@ func DeleteApp(appName string, keepCache bool) bool {
 		wasDeployed = true
 	}
 
-	deployments, _ := k8s.ListDeploymentsByLabel("appName", appName)
+	deployments, _ := config.Kubernetes.ListDeploymentsByLabel("appName", appName)
 	for _, deployment := range deployments {
-		k8s.DeleteDeployment(deployment.Name)
+		config.Kubernetes.DeleteDeployment(deployment.Name)
 	}
-	ingresses, _ := k8s.ListIngressesByLabel("appName", appName)
+	ingresses, _ := config.Kubernetes.ListIngressesByLabel("appName", appName)
 	for _, ingress := range ingresses {
-		k8s.DeleteIngress(ingress.Name)
+		config.Kubernetes.DeleteIngress(ingress.Name)
 	}
-	services, _ := k8s.ListServicesByLabel("appName", appName)
+	services, _ := config.Kubernetes.ListServicesByLabel("appName", appName)
 	for _, service := range services {
-		k8s.DeleteService(service.Name)
+		config.Kubernetes.DeleteService(service.Name)
 	}
-	jobs, _ := k8s.ListJobsByLabel("appName", appName)
+	jobs, _ := config.Kubernetes.ListJobsByLabel("appName", appName)
 	for _, job := range jobs {
-		k8s.DeleteJob(job.Name)
+		config.Kubernetes.DeleteJob(job.Name)
 	}
-	pods, _ := k8s.ListPodsByLabel("appName", appName)
+	pods, _ := config.Kubernetes.ListPodsByLabel("appName", appName)
 	for _, pod := range pods {
-		k8s.DeletePod(pod.Name)
+		config.Kubernetes.DeletePod(pod.Name)
 	}
 
 	deleteCurrentContext(appName)
@@ -251,19 +248,19 @@ func DeleteApp(appName string, keepCache bool) bool {
 	uncacheLatestWorkloadIDs(nil, appName)
 
 	if !keepCache {
-		aws.DeleteFromS3ByPrefix(filepath.Join(consts.AppsDir, appName), true)
+		config.AWS.DeleteFromS3ByPrefix(filepath.Join(consts.AppsDir, appName), true)
 	}
 
 	return wasDeployed
 }
 
 func GetWorkflow(appName string) (*awfv1.Workflow, error) {
-	wfs, err := argo.ListByLabel("appName", appName)
+	wfs, err := config.Argo.ListByLabel("appName", appName)
 	if err != nil {
 		return nil, errors.Wrap(err, appName)
 	}
 	if len(wfs) > 1 {
-		return nil, errors.New(appName, s.ErrMoreThanOneWorkflow)
+		return nil, errors.Wrap(ErrorMoreThanOneWorkflow(), appName)
 	}
 
 	if len(wfs) == 0 {

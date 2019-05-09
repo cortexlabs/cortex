@@ -19,15 +19,15 @@ package configreader
 import (
 	"io/ioutil"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type Float32PtrValidation struct {
 	Required             bool
 	Default              *float32
-	DisallowNull         bool
+	AllowExplicitNull    bool
 	AllowedValues        []float32
 	GreaterThan          *float32
 	GreaterThanOrEqualTo *float32
@@ -48,13 +48,13 @@ func makeFloat32ValValidation(v *Float32PtrValidation) *Float32Validation {
 
 func Float32Ptr(inter interface{}, v *Float32PtrValidation) (*float32, error) {
 	if inter == nil {
-		return ValidateFloat32Ptr(nil, v)
+		return ValidateFloat32PtrProvided(nil, v)
 	}
 	casted, castOk := cast.InterfaceToFloat32(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeFloat))
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeFloat)
 	}
-	return ValidateFloat32Ptr(&casted, v)
+	return ValidateFloat32PtrProvided(&casted, v)
 }
 
 func Float32PtrFromInterfaceMap(key string, iMap map[string]interface{}, v *Float32PtrValidation) (*float32, error) {
@@ -95,9 +95,9 @@ func Float32PtrFromStr(valStr string, v *Float32PtrValidation) (*float32, error)
 	}
 	casted, castOk := s.ParseFloat32(valStr)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeFloat))
+		return nil, ErrorInvalidPrimitiveType(valStr, PrimTypeFloat)
 	}
-	return ValidateFloat32Ptr(&casted, v)
+	return ValidateFloat32PtrProvided(&casted, v)
 }
 
 func Float32PtrFromEnv(envVarName string, v *Float32PtrValidation) (*float32, error) {
@@ -105,13 +105,13 @@ func Float32PtrFromEnv(envVarName string, v *Float32PtrValidation) (*float32, er
 	if valStr == nil || *valStr == "" {
 		val, err := ValidateFloat32PtrMissing(v)
 		if err != nil {
-			return nil, errors.Wrap(err, s.EnvVar(envVarName))
+			return nil, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := Float32PtrFromStr(*valStr, v)
 	if err != nil {
-		return nil, errors.Wrap(err, s.EnvVar(envVarName))
+		return nil, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }
@@ -151,18 +151,19 @@ func Float32PtrFromPrompt(promptOpts *PromptOptions, v *Float32PtrValidation) (*
 
 func ValidateFloat32PtrMissing(v *Float32PtrValidation) (*float32, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
-	return ValidateFloat32Ptr(v.Default, v)
+	return validateFloat32Ptr(v.Default, v)
 }
 
-func ValidateFloat32Ptr(val *float32, v *Float32PtrValidation) (*float32, error) {
-	if v.DisallowNull {
-		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
-		}
+func ValidateFloat32PtrProvided(val *float32, v *Float32PtrValidation) (*float32, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateFloat32Ptr(val, v)
+}
 
+func validateFloat32Ptr(val *float32, v *Float32PtrValidation) (*float32, error) {
 	if val != nil {
 		err := ValidateFloat32Val(*val, makeFloat32ValValidation(v))
 		if err != nil {

@@ -17,13 +17,13 @@ limitations under the License.
 package debug
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/davecgh/go-spew/spew"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 func Pp(obj interface{}) {
@@ -45,9 +45,9 @@ func Sppg(obj interface{}) string {
 }
 
 func Ppj(obj interface{}) {
-	str, err := libjson.MarshalJSONStr(obj)
+	b, err := json.MarshalIndent(obj, "", " ")
 	if err != nil {
 		errors.PrintError(err)
 	}
-	fmt.Println(str)
+	fmt.Println(string(b))
 }

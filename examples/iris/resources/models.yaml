@@ -15,5 +15,4 @@
   training:
     batch_size: 10
     num_steps: 1000
-  aggregates:
-    - class_index
+  aggregates: [class_index]

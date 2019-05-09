@@ -19,8 +19,8 @@ package configreader
 import (
 	"io/ioutil"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type BoolValidation struct {
@@ -30,11 +30,11 @@ type BoolValidation struct {
 
 func Bool(inter interface{}, v *BoolValidation) (bool, error) {
 	if inter == nil {
-		return false, errors.New(s.ErrCannotBeNull)
+		return false, ErrorCannotBeNull()
 	}
 	casted, castOk := inter.(bool)
 	if !castOk {
-		return false, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeBool))
+		return false, ErrorInvalidPrimitiveType(inter, PrimTypeBool)
 	}
 	return ValidateBool(casted, v)
 }
@@ -77,7 +77,7 @@ func BoolFromStr(valStr string, v *BoolValidation) (bool, error) {
 	}
 	casted, castOk := s.ParseBool(valStr)
 	if !castOk {
-		return false, errors.New(s.ErrInvalidPrimitiveType(valStr, s.PrimTypeBool))
+		return false, ErrorInvalidPrimitiveType(valStr, PrimTypeBool)
 	}
 	return ValidateBool(casted, v)
 }
@@ -87,13 +87,13 @@ func BoolFromEnv(envVarName string, v *BoolValidation) (bool, error) {
 	if valStr == nil || *valStr == "" {
 		val, err := ValidateBoolMissing(v)
 		if err != nil {
-			return false, errors.Wrap(err, s.EnvVar(envVarName))
+			return false, errors.Wrap(err, EnvVar(envVarName))
 		}
 		return val, nil
 	}
 	val, err := BoolFromStr(*valStr, v)
 	if err != nil {
-		return false, errors.Wrap(err, s.EnvVar(envVarName))
+		return false, errors.Wrap(err, EnvVar(envVarName))
 	}
 	return val, nil
 }
@@ -134,7 +134,7 @@ func BoolFromPrompt(promptOpts *PromptOptions, v *BoolValidation) (bool, error) 
 
 func ValidateBoolMissing(v *BoolValidation) (bool, error) {
 	if v.Required {
-		return false, errors.New(s.ErrMustBeDefined)
+		return false, ErrorMustBeDefined()
 	}
 	return ValidateBool(v.Default, v)
 }

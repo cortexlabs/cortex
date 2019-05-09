@@ -21,15 +21,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/api/context"
-	"github.com/cortexlabs/cortex/pkg/api/resource"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/operator/aws"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 var uploadedModels = strset.New()
@@ -130,7 +130,7 @@ func getModels(
 func getModelImplID(implPath string, impls map[string][]byte) (string, string, error) {
 	impl, ok := impls[implPath]
 	if !ok {
-		return "", "", errors.New(s.ErrFileDoesNotExist(implPath))
+		return "", "", ErrorImplDoesNotExist(implPath)
 	}
 	modelImplID := hash.Bytes(impl)
 	modelImplKey, err := uploadModelImpl(modelImplID, impl)
@@ -150,13 +150,13 @@ func uploadModelImpl(modelImplID string, impl []byte) (string, error) {
 		return modelImplKey, nil
 	}
 
-	isUploaded, err := aws.IsS3File(modelImplKey)
+	isUploaded, err := config.AWS.IsS3File(modelImplKey)
 	if err != nil {
 		return "", errors.Wrap(err, "upload")
 	}
 
 	if !isUploaded {
-		err = aws.UploadBytesToS3(impl, modelImplKey)
+		err = config.AWS.UploadBytesToS3(impl, modelImplKey)
 		if err != nil {
 			return "", errors.Wrap(err, "upload")
 		}

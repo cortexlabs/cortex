@@ -22,10 +22,23 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/cortexlabs/cortex/pkg/api/schema"
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/operator/telemetry"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
+)
+
+const (
+	ResDeploymentStarted                              = "Deployment started"
+	ResDeploymentUpdated                              = "Deployment updated"
+	ResDeploymentDeleted                              = "Deployment deleted"
+	ResDeploymentUpToDate                             = "Deployment is up-to-date"
+	ResDeploymentRunning                              = "Deployment is already running"
+	ResDifferentDeploymentRunning                     = "Another deployment is running, use --force to override"
+	ResCachedDeletedDeploymentStarted                 = "Cache deleted, deployment started"
+	ResDeploymentStoppedDeploymentStarted             = "Running deployment stopped, new deployment started"
+	ResDeploymentStoppedCacheDeletedDeploymentStarted = "Running deployment stopped, cached deleted, new deployment started"
+	ResDeploymentStoppedDeploymentUpToDate            = "Running deployment stopped, new deployment is up-to-date"
 )
 
 func Respond(w http.ResponseWriter, response interface{}) {
@@ -59,7 +72,7 @@ func RespondIfError(w http.ResponseWriter, err error, strs ...string) bool {
 func RecoverAndRespond(w http.ResponseWriter, strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
-		telemetry.ReportError(err)
+		config.Telemetry.ReportError(err)
 		RespondError(w, err)
 	}
 }
@@ -67,15 +80,15 @@ func RecoverAndRespond(w http.ResponseWriter, strs ...string) {
 func getRequiredPathParam(paramName string, r *http.Request) (string, error) {
 	param := mux.Vars(r)[paramName]
 	if param == "" {
-		return "", errors.New(s.ErrPathParamMustBeProvided(paramName))
+		return "", ErrorPathParamRequired(paramName)
 	}
 	return param, nil
 }
 
-func getRequiredQParam(paramName string, r *http.Request) (string, error) {
+func getRequiredQueryParam(paramName string, r *http.Request) (string, error) {
 	param := r.URL.Query().Get(paramName)
 	if param == "" {
-		return "", errors.New(s.ErrQueryParamMustBeProvided(paramName))
+		return "", ErrorQueryParamRequired(paramName)
 	}
 	return param, nil
 }

@@ -20,12 +20,11 @@ import (
 	"os"
 	"path/filepath"
 
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
-	"github.com/cortexlabs/cortex/pkg/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
 func appRootOrBlank() string {
@@ -34,7 +33,7 @@ func appRootOrBlank() string {
 		errors.Exit(err)
 	}
 	for true {
-		if files.IsFile(filepath.Join(dir, "app.yaml")) {
+		if err := files.CheckFile(filepath.Join(dir, "app.yaml")); err == nil {
 			return dir
 		}
 		if dir == "/" {
@@ -48,7 +47,7 @@ func appRootOrBlank() string {
 func mustAppRoot() string {
 	appRoot := appRootOrBlank()
 	if appRoot == "" {
-		errors.Exit(s.ErrCliNotInAppDir)
+		errors.Exit(ErrorCliNotInAppDir())
 	}
 	return appRoot
 }
@@ -72,12 +71,12 @@ func pythonPaths(dir string) []string {
 func allConfigPaths(root string) []string {
 	exportPaths := strset.New()
 	requirementsPath := filepath.Join(root, consts.RequirementsTxt)
-	if files.IsFile(requirementsPath) {
+	if err := files.CheckFile(requirementsPath); err == nil {
 		exportPaths.Add(requirementsPath)
 	}
 
 	customPackagesRoot := filepath.Join(root, consts.PackageDir)
-	if files.IsDir(customPackagesRoot) {
+	if err := files.CheckDir(customPackagesRoot); err == nil {
 		customPackagesPaths, err := files.ListDirRecursive(customPackagesRoot, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders, files.IgnorePythonGeneratedFiles)
 		if err != nil {
 			errors.Exit(err)

@@ -24,7 +24,7 @@ cinstall:
 
 # Operator
 
-olocal:
+devstart:
 	@./dev/operator_local.sh || true
 
 oinstall:

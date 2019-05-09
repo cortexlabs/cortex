@@ -17,25 +17,24 @@ limitations under the License.
 package configreader
 
 import (
-	s "github.com/cortexlabs/cortex/pkg/api/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type BoolListValidation struct {
-	Required   bool
-	Default    []bool
-	AllowNull  bool
-	AllowEmpty bool
-	Validator  func([]bool) ([]bool, error)
+	Required          bool
+	Default           []bool
+	AllowExplicitNull bool
+	AllowEmpty        bool
+	Validator         func([]bool) ([]bool, error)
 }
 
 func BoolList(inter interface{}, v *BoolListValidation) ([]bool, error) {
 	casted, castOk := cast.InterfaceToBoolSlice(inter)
 	if !castOk {
-		return nil, errors.New(s.ErrInvalidPrimitiveType(inter, s.PrimTypeBoolList))
+		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeBoolList)
 	}
-	return ValidateBoolList(casted, v)
+	return ValidateBoolListProvided(casted, v)
 }
 
 func BoolListFromInterfaceMap(key string, iMap map[string]interface{}, v *BoolListValidation) ([]bool, error) {
@@ -56,21 +55,22 @@ func BoolListFromInterfaceMap(key string, iMap map[string]interface{}, v *BoolLi
 
 func ValidateBoolListMissing(v *BoolListValidation) ([]bool, error) {
 	if v.Required {
-		return nil, errors.New(s.ErrMustBeDefined)
+		return nil, ErrorMustBeDefined()
 	}
-	return ValidateBoolList(v.Default, v)
+	return validateBoolList(v.Default, v)
 }
 
-func ValidateBoolList(val []bool, v *BoolListValidation) ([]bool, error) {
-	if !v.AllowNull {
-		if val == nil {
-			return nil, errors.New(s.ErrCannotBeNull)
-		}
+func ValidateBoolListProvided(val []bool, v *BoolListValidation) ([]bool, error) {
+	if !v.AllowExplicitNull && val == nil {
+		return nil, ErrorCannotBeNull()
 	}
+	return validateBoolList(val, v)
+}
 
+func validateBoolList(val []bool, v *BoolListValidation) ([]bool, error) {
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
-			return nil, errors.New(s.ErrCannotBeEmpty)
+			return nil, ErrorCannotBeEmpty()
 		}
 	}
 
