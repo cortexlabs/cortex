@@ -28,13 +28,9 @@ Create the Cortex S3 buckets:
 
 ```bash
 aws s3 mb s3://cortex-cluster-<your_name>
-aws s3 mb s3://cortex-kops-<your_name>
-aws s3 mb s3://cortex-cli-<your_name>
+aws s3 mb s3://cortex-kops-<your_name> # (if you'll be using KOPS)
+aws s3 mb s3://cortex-cli-<your_name> # (if you'll be uploading your compiled CLI)
 ```
-
-- `cortex-cluster-<your_name>`
-- `cortex-kops-<your_name>` (if you'll be using KOPS)
-- `cortex-cli-<your_name>` (if you'll be uploading your compiled CLI)
 
 ### Configuration
 
