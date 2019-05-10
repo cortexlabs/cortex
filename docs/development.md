@@ -24,7 +24,7 @@ make registry-create
 
 Note the registry URL, this will be needed shortly.
 
-Create the Cortex S3 buckets:
+Create the S3 buckets:
 
 ```bash
 aws s3 mb s3://cortex-cluster-<your_name>
