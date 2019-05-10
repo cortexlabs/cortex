@@ -1,4 +1,4 @@
-# Build from Source and Development
+# Development
 
 ## Prerequisites
 
