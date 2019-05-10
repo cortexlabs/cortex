@@ -23,7 +23,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
@@ -61,7 +60,7 @@ func loadUserAggregators(
 
 		anonAggregatorConfig := &userconfig.Aggregator{
 			ResourceFields: userconfig.ResourceFields{
-				Name: s.PathToName(*aggregateConfig.AggregatorPath),
+				Name: hash.Bytes(impl),
 			},
 			Path: *aggregateConfig.AggregatorPath,
 		}
@@ -69,7 +68,9 @@ func loadUserAggregators(
 		if err != nil {
 			return nil, err
 		}
-		userAggregators[*aggregateConfig.AggregatorPath] = aggregator
+
+		aggregateConfig.Aggregator = aggregator.Name
+		userAggregators[anonAggregatorConfig.Name] = aggregator
 	}
 
 	return userAggregators, nil
@@ -159,24 +160,14 @@ func getAggregators(
 
 	aggregators := context.Aggregators{}
 	for _, aggregateConfig := range config.Aggregates {
-
-		var aggregatorName string
-		if aggregateConfig.Aggregator != nil {
-			aggregatorName = *aggregateConfig.Aggregator
-		}
-
-		if aggregateConfig.AggregatorPath != nil {
-			aggregatorName = *aggregateConfig.AggregatorPath
-		}
-
-		if _, ok := aggregators[aggregatorName]; ok {
+		if _, ok := aggregators[aggregateConfig.Aggregator]; ok {
 			continue
 		}
-		aggregator, err := getAggregator(aggregatorName, userAggregators)
+		aggregator, err := getAggregator(aggregateConfig.Aggregator, userAggregators)
 		if err != nil {
 			return nil, errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.AggregatorKey)
 		}
-		aggregators[aggregatorName] = aggregator
+		aggregators[aggregateConfig.Aggregator] = aggregator
 	}
 
 	return aggregators, nil

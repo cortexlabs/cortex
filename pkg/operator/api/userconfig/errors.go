@@ -60,6 +60,8 @@ const (
 	ErrClassificationTargetType
 	ErrMissingAggregator
 	ErrMissingTransformer
+	ErrMultipleAggregatorSpecified
+	ErrMultipleTransformerSpecified
 )
 
 var errorKinds = []string{
@@ -94,9 +96,11 @@ var errorKinds = []string{
 	"err_classification_target_type",
 	"err_missing_aggregator",
 	"err_missing_transformer",
+	"err_multiple_aggregator_specified",
+	"err_multiple_transformer_specified",
 }
 
-var _ = [1]int{}[int(ErrMissingTransformer)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrMultipleTransformerSpecified)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -399,5 +403,19 @@ func ErrorMissingTransformer(transformedColumn *TransformedColumn) error {
 	return Error{
 		Kind:    ErrMissingTransformer,
 		message: fmt.Sprintf("missing transformer for transformed_column \"%s\", expecting either \"transformer\" or \"transformer_path\"", transformedColumn.Name),
+	}
+}
+
+func ErrorMultipleAggregatorSpecified(aggregate *Aggregate) error {
+	return Error{
+		Kind:    ErrMultipleAggregatorSpecified,
+		message: fmt.Sprintf("aggregate \"%s\" specified both \"aggregator\" and \"aggregator_path\", please specify only one", aggregate.Name),
+	}
+}
+
+func ErrorMultipleTransformerSpecified(transformedColumn *TransformedColumn) error {
+	return Error{
+		Kind:    ErrMultipleTransformerSpecified,
+		message: fmt.Sprintf("transformed_column \"%s\" specified both  \"transformer\" and \"transformer_path\", please specify only one", transformedColumn.Name),
 	}
 }

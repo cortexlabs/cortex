@@ -27,7 +27,7 @@ type Aggregates []*Aggregate
 
 type Aggregate struct {
 	ResourceFields
-	Aggregator     *string       `json:"aggregator" yaml:"aggregator"`
+	Aggregator     string        `json:"aggregator" yaml:"aggregator"`
 	AggregatorPath *string       `json:"aggregator_path" yaml:"aggregator_path"`
 	Inputs         *Inputs       `json:"inputs" yaml:"inputs"`
 	Compute        *SparkCompute `json:"compute" yaml:"compute"`
@@ -45,8 +45,8 @@ var aggregateValidation = &configreader.StructValidation{
 		},
 		{
 			StructField: "Aggregator",
-			StringPtrValidation: &configreader.StringPtrValidation{
-				AlphaNumericDashDotUnderscore: true,
+			StringValidation: &configreader.StringValidation{
+				AllowEmpty: true,
 			},
 		},
 		{

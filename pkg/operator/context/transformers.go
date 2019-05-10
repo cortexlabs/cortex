@@ -23,7 +23,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
@@ -61,7 +60,7 @@ func loadUserTransformers(
 
 		anonTransformerConfig := &userconfig.Transformer{
 			ResourceFields: userconfig.ResourceFields{
-				Name: s.PathToName(*transColConfig.TransformerPath),
+				Name: hash.Bytes(impl),
 			},
 			Path: *transColConfig.TransformerPath,
 		}
@@ -69,6 +68,7 @@ func loadUserTransformers(
 		if err != nil {
 			return nil, err
 		}
+		transColConfig.Transformer = transformer.Name
 		userTransformers[transformer.Name] = transformer
 	}
 	return userTransformers, nil
@@ -156,24 +156,15 @@ func getTransformers(
 
 	transformers := context.Transformers{}
 	for _, transformedColumnConfig := range config.TransformedColumns {
-		var transformerName string
-		if transformedColumnConfig.Transformer != nil {
-			transformerName = *transformedColumnConfig.Transformer
-		}
-
-		if transformedColumnConfig.TransformerPath != nil {
-			transformerName = s.PathToName(*transformedColumnConfig.TransformerPath)
-		}
-
-		if _, ok := transformers[transformerName]; ok {
+		if _, ok := transformers[transformedColumnConfig.Transformer]; ok {
 			continue
 		}
 
-		transformer, err := getTransformer(transformerName, userTransformers)
+		transformer, err := getTransformer(transformedColumnConfig.Transformer, userTransformers)
 		if err != nil {
 			return nil, errors.Wrap(err, userconfig.Identify(transformedColumnConfig), userconfig.TransformerKey)
 		}
-		transformers[transformerName] = transformer
+		transformers[transformedColumnConfig.Transformer] = transformer
 	}
 
 	return transformers, nil

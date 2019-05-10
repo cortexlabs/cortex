@@ -43,16 +43,11 @@ func autoGenerateConfig(
 				}
 			}
 
-			var name string
-			if aggregate.Aggregator != nil {
-				name = *aggregate.Aggregator
-			}
-
 			if aggregate.AggregatorPath != nil {
-				name = *aggregate.AggregatorPath
+				continue
 			}
 
-			aggregator, err := getAggregator(name, userAggregators)
+			aggregator, err := getAggregator(aggregate.Aggregator, userAggregators)
 			if err != nil {
 				return errors.Wrap(err, userconfig.Identify(aggregate), userconfig.AggregatorKey)
 			}
@@ -93,16 +88,11 @@ func autoGenerateConfig(
 				}
 			}
 
-			var name string
-			if transformedColumn.Transformer != nil {
-				name = *transformedColumn.Transformer
-			}
-
 			if transformedColumn.TransformerPath != nil {
-				name = s.PathToName(*transformedColumn.TransformerPath)
+				continue
 			}
 
-			transformer, err := getTransformer(name, userTransformers)
+			transformer, err := getTransformer(transformedColumn.Transformer, userTransformers)
 			if err != nil {
 				return errors.Wrap(err, userconfig.Identify(transformedColumn), userconfig.TransformerKey)
 			}
@@ -133,8 +123,5 @@ func autoGenerateConfig(
 		}
 	}
 
-	if err := config.Validate(config.Environment.Name); err != nil {
-		return err
-	}
 	return nil
 }

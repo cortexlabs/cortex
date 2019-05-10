@@ -44,17 +44,7 @@ func getAggregates(
 			return nil, userconfig.ErrorDuplicateResourceName(aggregateConfig, constants[aggregateConfig.Name])
 		}
 
-		var aggName string
-		if aggregateConfig.Aggregator != nil {
-			aggName = *aggregateConfig.Aggregator
-		}
-
-		if aggregateConfig.AggregatorPath != nil {
-			aggName = *aggregateConfig.AggregatorPath
-			aggregateConfig.Aggregator = &aggName
-		}
-
-		aggregator, err := getAggregator(aggName, userAggregators)
+		aggregator, err := getAggregator(aggregateConfig.Aggregator, userAggregators)
 		if err != nil {
 			return nil, errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.AggregatorKey)
 		}

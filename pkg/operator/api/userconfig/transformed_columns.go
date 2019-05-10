@@ -27,7 +27,7 @@ type TransformedColumns []*TransformedColumn
 
 type TransformedColumn struct {
 	ResourceFields
-	Transformer     *string       `json:"transformer" yaml:"transformer"`
+	Transformer     string        `json:"transformer" yaml:"transformer"`
 	TransformerPath *string       `json:"transformer_path" yaml:"transformer_path"`
 	Inputs          *Inputs       `json:"inputs" yaml:"inputs"`
 	Compute         *SparkCompute `json:"compute" yaml:"compute"`
@@ -45,8 +45,8 @@ var transformedColumnValidation = &configreader.StructValidation{
 		},
 		{
 			StructField: "Transformer",
-			StringPtrValidation: &configreader.StringPtrValidation{
-				AlphaNumericDashDotUnderscore: true,
+			StringValidation: &configreader.StringValidation{
+				AllowEmpty: true,
 			},
 		},
 		{

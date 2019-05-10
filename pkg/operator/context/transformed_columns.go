@@ -41,17 +41,7 @@ func getTransformedColumns(
 	transformedColumns := context.TransformedColumns{}
 
 	for _, transformedColumnConfig := range config.TransformedColumns {
-		var transName string
-		if transformedColumnConfig.Transformer != nil {
-			transName = *transformedColumnConfig.Transformer
-		}
-
-		if transformedColumnConfig.TransformerPath != nil {
-			transName = s.PathToName(*transformedColumnConfig.TransformerPath)
-			transformedColumnConfig.Transformer = &transName
-		}
-
-		transformer, err := getTransformer(transName, userTransformers)
+		transformer, err := getTransformer(transformedColumnConfig.Transformer, userTransformers)
 		if err != nil {
 			return nil, errors.Wrap(err, userconfig.Identify(transformedColumnConfig), userconfig.TransformerKey)
 		}
