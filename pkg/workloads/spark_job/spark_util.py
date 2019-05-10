@@ -494,6 +494,17 @@ def validate_transformer(column_name, df, ctx, spark):
         transformedSample = trans_impl.transform_python(inputs, impl_args)
         rowType = type(transformedSample)
         isList = rowType == list
+
+        for row in sample_df:
+            inputs = ctx.create_column_inputs_map(row, column_name)
+            transformedSample = trans_impl.transform_python(inputs, impl_args)
+            if rowType != type(transformedSample):
+                raise UserRuntimeException(
+                "transformed column " + column_name,
+                "type inference failed, mixed data types in dataframe.",
+            )
+
+
         typeConversionDict = PYTHON_TYPE_TO_CORTEX_TYPE
         if isList:
             rowType = type(transformedSample[0])
