@@ -30,6 +30,8 @@ Create the following S3 buckets:
 - `cortex-kops-<your_name>` (if you'll be using KOPS)
 - `cortex-cli-<your_name>` (if you'll be uploading your compiled CLI)
 
+### Configuration
+
 Make the config folder:
 
 ```bash
@@ -99,11 +101,22 @@ export CLI_BUCKET_NAME="cortex-cli-<your_name>"
 export CLI_BUCKET_REGION="us-west-2"
 ```
 
+### Building
+
 Build and push all Cortex images (this will take a while)
 
 ```bash
 make registry-all
 ```
+
+Build and configure the Cortex CLI
+
+```bash
+make cli  # The binary will be placed in path/to/cortex/bin/cortex
+path/to/cortex/bin/cortex configure
+```
+
+### Kubernetes
 
 Start Kubernetes cluster and install Cortex on it
 
@@ -121,12 +134,7 @@ kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v1.1
 kubectl get nodes "-o=custom-columns=NAME:.metadata.name,GPU:.status.allocatable.nvidia\.com/gpu"
 ```
 
-Build and configure the Cortex CLI
-
-```bash
-make cli  # The binary will be placed in path/to/cortex/bin/cortex
-path/to/cortex/bin/cortex configure
-```
+### Deployment
 
 Run an example application
 
@@ -149,13 +157,13 @@ If you're making changes in the operator and want faster iterations, you can run
 
 1. `make ostop` to stop the in-cluster operator
 1. `make devstart` to run the off-cluster operator (which rebuilds the CLI and restarts the Operator when files change)
-1. `path/to/cortex/bin/cortex configure` (on a separate terminal) to configure your cortex CLI to use the off-cluster operator. When prompted for operator URL, use `http://localhost:8888`.
+1. `path/to/cortex/bin/cortex configure` (on a separate terminal) to configure your cortex CLI to use the off-cluster operator. When prompted for operator URL, use `http://localhost:8888`
 
 If you want to switch back to the in-cluster operator:
 
 1. `<ctrl+C>` to stop your off-cluster operator
 1. `oinstall` to install the operator in your cluster
-1. `path/to/cortex/bin/cortex configure` to configure your cortex CLI to use the in-cluster operator. When prompted for operator URL, use the URL shown when running `oinstall`.
+1. `path/to/cortex/bin/cortex configure` to configure your cortex CLI to use the in-cluster operator. When prompted for operator URL, use the URL shown when running `oinstall`
 
 ## Dev Workflow
 
