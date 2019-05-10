@@ -24,7 +24,13 @@ make registry-create
 
 Note the registry URL, this will be needed shortly.
 
-Create the following S3 buckets:
+Create the Cortex S3 buckets:
+
+```bash
+aws s3 mb s3://cortex-cluster-<your_name>
+aws s3 mb s3://cortex-kops-<your_name>
+aws s3 mb s3://cortex-cli-<your_name>
+```
 
 - `cortex-cluster-<your_name>`
 - `cortex-kops-<your_name>` (if you'll be using KOPS)
@@ -103,13 +109,13 @@ export CLI_BUCKET_REGION="us-west-2"
 
 ### Building
 
-Build and push all Cortex images (this will take a while)
+Build and push all Cortex images (this will take a while):
 
 ```bash
 make registry-all
 ```
 
-Build and configure the Cortex CLI
+Build and configure the Cortex CLI:
 
 ```bash
 make cli  # The binary will be placed in path/to/cortex/bin/cortex
@@ -118,7 +124,7 @@ path/to/cortex/bin/cortex configure
 
 ### Kubernetes
 
-Start Kubernetes cluster and install Cortex on it
+Start Kubernetes cluster and install Cortex on it:
 
 ```bash
 make eks-up
@@ -136,14 +142,14 @@ kubectl get nodes "-o=custom-columns=NAME:.metadata.name,GPU:.status.allocatable
 
 ### Deployment
 
-Run an example application
+Run an example application:
 
 ```bash
 cd examples/iris
 path/to/cortex/bin/cortex deploy
 ```
 
-Tear down the cluster
+Tear down the cluster:
 
 ```bash
 make eks-down
