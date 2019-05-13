@@ -1,24 +1,10 @@
-# Quick Start
+# Tutorial
 
 ## Prerequisites
 
 1. An AWS account
 1. A Kubernetes cluster running the Cortex operator ([installation instructions](operator/install.md))
 1. The Cortex CLI
-
-## TL;DR
-
-You can download pre-built applications from our repository:
-
-<!-- CORTEX_VERSION_MINOR -->
-
-```bash
-git clone -b master https://github.com/cortexlabs/cortex.git
-cd cortex/examples/iris
-cortex deploy
-```
-
-Jump to [deploy the application](#deploy-the-application).
 
 ## Build a machine learning application
 
@@ -179,7 +165,7 @@ Add to `app.yaml`:
 
 #### Define transformed columns
 
-Transformers convert the raw columns into the appropriate inputs for a TensorFlow estimator. Here we use the built-in `normalize` and `index_string` transformers using the aggregates we computed earlier.
+Transformers convert the raw columns into the appropriate inputs for a TensorFlow Estimator. Here we use the built-in `normalize` and `index_string` transformers using the aggregates we computed earlier.
 
 Add to `app.yaml`:
 
@@ -264,9 +250,9 @@ Add to `app.yaml`:
   aggregates: [class_index]
 ```
 
-#### Implement the estimator
+#### Implement the Estimator
 
-Define an estimator in `dnn.py`:
+Define an Estimator in `dnn.py`:
 
 ```python
 import tensorflow as tf
