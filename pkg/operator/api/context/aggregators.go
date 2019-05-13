@@ -25,9 +25,8 @@ type Aggregators map[string]*Aggregator
 type Aggregator struct {
 	*userconfig.Aggregator
 	*ResourceFields
-	Namespace      *string `json:"namespace"`
-	ImplKey        string  `json:"impl_key"`
-	SkipValidation bool    `json:"skip_validation"`
+	Namespace *string `json:"namespace"`
+	ImplKey   string  `json:"impl_key"`
 }
 
 func (aggregators Aggregators) OneByID(id string) *Aggregator {

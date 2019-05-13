@@ -398,7 +398,7 @@ def run_custom_aggregator(aggregator_resource, df, ctx, spark):
     aggregator_column_input = input_schema["columns"]
     args_schema = input_schema["args"]
     args = {}
-    if input_schema.get("args", None) is not None and len(input_schema["args"]) > 0:
+    if input_schema.get("args", None) is not None and len(args_schema) > 0:
         args = ctx.populate_args(input_schema["args"])
     try:
         result = aggregator_impl.aggregate_spark(df, aggregator_column_input, args)
@@ -409,7 +409,7 @@ def run_custom_aggregator(aggregator_resource, df, ctx, spark):
             "function aggregate_spark",
         ) from e
 
-    if not aggregator["skip_validation"] and not util.validate_value_type(
+    if aggregator["output_type"] and not util.validate_value_type(
         result, aggregator["output_type"]
     ):
         raise UserException(
@@ -560,12 +560,9 @@ def validate_transformer(column_name, df, ctx, spark):
 
             actual_structfield = transform_spark_df.select(column_name).schema.fields[0]
 
-            transformer = ctx.transformers[transformed_column["transformer"]]
-            skip_validation = transformer["skip_validation"]
-
             # check that expected output column has the correct data type
             if (
-                not skip_validation
+                not transformed_column["transformer_path"]
                 and actual_structfield.dataType
                 not in CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES[transformed_column["type"]]
             ):
@@ -582,7 +579,7 @@ def validate_transformer(column_name, df, ctx, spark):
                 )
 
             # perform the necessary upcast/downcast for the column e.g INT -> LONG or DOUBLE -> FLOAT
-            if not skip_validation:
+            if not transformed_column["transformer_path"]:
                 transform_spark_df = transform_spark_df.withColumn(
                     column_name,
                     F.col(column_name).cast(
@@ -640,12 +637,9 @@ def transform_column(column_name, df, ctx, spark):
         return df
     transformed_column = ctx.transformed_columns[column_name]
 
-    trans_impl, trans_impl_path = ctx.get_transformer_impl(column_name)
+    trans_impl, _ = ctx.get_transformer_impl(column_name)
     if hasattr(trans_impl, "transform_spark"):
-        skip_validation = ctx.transformers[ctx.transformed_columns[column_name]["transformer"]][
-            "skip_validation"
-        ]
-        if skip_validation:
+        if transformed_column["transformer_path"]:
             df = execute_transform_spark(column_name, df, ctx, spark)
             column_type = df.select(column_name).schema[0].dataType
             # for downstream operations on other jobs

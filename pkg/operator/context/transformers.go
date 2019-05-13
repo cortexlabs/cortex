@@ -41,7 +41,7 @@ func loadUserTransformers(
 		if !ok {
 			return nil, errors.Wrap(ErrorImplDoesNotExist(transConfig.Path), userconfig.Identify(transConfig))
 		}
-		transformer, err := newTransformer(*transConfig, impl, nil, pythonPackages, false)
+		transformer, err := newTransformer(*transConfig, impl, nil, pythonPackages)
 		if err != nil {
 			return nil, err
 		}
@@ -64,7 +64,7 @@ func loadUserTransformers(
 			},
 			Path: *transColConfig.TransformerPath,
 		}
-		transformer, err := newTransformer(*anonTransformerConfig, impl, nil, pythonPackages, true)
+		transformer, err := newTransformer(*anonTransformerConfig, impl, nil, pythonPackages)
 		if err != nil {
 			return nil, err
 		}
@@ -79,7 +79,6 @@ func newTransformer(
 	impl []byte,
 	namespace *string,
 	pythonPackages context.PythonPackages,
-	skipValidation bool,
 ) (*context.Transformer, error) {
 
 	implID := hash.Bytes(impl)
@@ -101,10 +100,9 @@ func newTransformer(
 			ResourceType: resource.TransformerType,
 			MetadataKey:  filepath.Join(consts.TransformersDir, id+"_metadata.json"),
 		},
-		Transformer:    &transConfig,
-		Namespace:      namespace,
-		ImplKey:        filepath.Join(consts.TransformersDir, implID+".py"),
-		SkipValidation: skipValidation,
+		Transformer: &transConfig,
+		Namespace:   namespace,
+		ImplKey:     filepath.Join(consts.TransformersDir, implID+".py"),
 	}
 	transformer.Transformer.Path = ""
 

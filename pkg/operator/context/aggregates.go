@@ -112,7 +112,7 @@ func validateAggregateInputs(
 	rawColumns context.RawColumns,
 	aggregator *context.Aggregator,
 ) error {
-	if aggregator.SkipValidation {
+	if aggregateConfig.AggregatorPath != nil {
 		return nil
 	}
 

@@ -41,7 +41,7 @@ func loadUserAggregators(
 		if !ok {
 			return nil, errors.Wrap(ErrorImplDoesNotExist(aggregatorConfig.Path), userconfig.Identify(aggregatorConfig))
 		}
-		aggregator, err := newAggregator(*aggregatorConfig, impl, nil, pythonPackages, false)
+		aggregator, err := newAggregator(*aggregatorConfig, impl, nil, pythonPackages)
 		if err != nil {
 			return nil, err
 		}
@@ -64,7 +64,7 @@ func loadUserAggregators(
 			},
 			Path: *aggregateConfig.AggregatorPath,
 		}
-		aggregator, err := newAggregator(*anonAggregatorConfig, impl, nil, pythonPackages, true)
+		aggregator, err := newAggregator(*anonAggregatorConfig, impl, nil, pythonPackages)
 		if err != nil {
 			return nil, err
 		}
@@ -81,7 +81,6 @@ func newAggregator(
 	impl []byte,
 	namespace *string,
 	pythonPackages context.PythonPackages,
-	skipValidation bool,
 ) (*context.Aggregator, error) {
 
 	implID := hash.Bytes(impl)
@@ -104,10 +103,9 @@ func newAggregator(
 			ResourceType: resource.AggregatorType,
 			MetadataKey:  filepath.Join(consts.AggregatorsDir, id+"_metadata.json"),
 		},
-		Aggregator:     &aggregatorConfig,
-		Namespace:      namespace,
-		ImplKey:        filepath.Join(consts.AggregatorsDir, implID+".py"),
-		SkipValidation: skipValidation,
+		Aggregator: &aggregatorConfig,
+		Namespace:  namespace,
+		ImplKey:    filepath.Join(consts.AggregatorsDir, implID+".py"),
 	}
 	aggregator.Aggregator.Path = ""
 

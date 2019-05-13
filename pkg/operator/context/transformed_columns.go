@@ -100,7 +100,7 @@ func validateTransformedColumnInputs(
 	aggregates context.Aggregates,
 	transformer *context.Transformer,
 ) error {
-	if transformer.SkipValidation {
+	if transformedColumnConfig.TransformerPath != nil {
 		return nil
 	}
 

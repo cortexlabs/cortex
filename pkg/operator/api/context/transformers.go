@@ -25,9 +25,8 @@ type Transformers map[string]*Transformer
 type Transformer struct {
 	*userconfig.Transformer
 	*ResourceFields
-	Namespace      *string `json:"namespace"`
-	ImplKey        string  `json:"impl_key"`
-	SkipValidation bool    `json:"skip_validation"`
+	Namespace *string `json:"namespace"`
+	ImplKey   string  `json:"impl_key"`
 }
 
 func (transformers Transformers) OneByID(id string) *Transformer {
