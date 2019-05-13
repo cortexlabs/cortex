@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-1. [AWS account and access key](aws.md)
+1. [AWS credentials](aws.md)
 
 ## Download the install script
 
