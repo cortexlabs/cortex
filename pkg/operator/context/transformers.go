@@ -58,9 +58,14 @@ func loadUserTransformers(
 			return nil, errors.Wrap(ErrorImplDoesNotExist(*transColConfig.TransformerPath), userconfig.Identify(transColConfig))
 		}
 
+		implHash := hash.Bytes(impl)
+		if _, ok := userTransformers[implHash]; ok {
+			continue
+		}
+
 		anonTransformerConfig := &userconfig.Transformer{
 			ResourceFields: userconfig.ResourceFields{
-				Name: hash.Bytes(impl),
+				Name: implHash,
 			},
 			Path: *transColConfig.TransformerPath,
 		}

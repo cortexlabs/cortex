@@ -58,9 +58,14 @@ func loadUserAggregators(
 			return nil, errors.Wrap(ErrorImplDoesNotExist(*aggregateConfig.AggregatorPath), userconfig.Identify(aggregateConfig))
 		}
 
+		implHash := hash.Bytes(impl)
+		if _, ok := userAggregators[implHash]; ok {
+			continue
+		}
+
 		anonAggregatorConfig := &userconfig.Aggregator{
 			ResourceFields: userconfig.ResourceFields{
-				Name: hash.Bytes(impl),
+				Name: implHash,
 			},
 			Path: *aggregateConfig.AggregatorPath,
 		}
