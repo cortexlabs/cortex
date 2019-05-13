@@ -58,10 +58,9 @@ const (
 	ErrK8sQuantityMustBeInt
 	ErrRegressionTargetType
 	ErrClassificationTargetType
-	ErrMissingAggregator
-	ErrMissingTransformer
 	ErrMultipleAggregatorSpecified
 	ErrMultipleTransformerSpecified
+	ErrSpecifyOnlyOneMissing
 )
 
 var errorKinds = []string{
@@ -94,13 +93,12 @@ var errorKinds = []string{
 	"err_k8s_quantity_must_be_int",
 	"err_regression_target_type",
 	"err_classification_target_type",
-	"err_missing_aggregator",
-	"err_missing_transformer",
 	"err_multiple_aggregator_specified",
 	"err_multiple_transformer_specified",
+	"err_specify_only_one_missing",
 }
 
-var _ = [1]int{}[int(ErrMultipleTransformerSpecified)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrSpecifyOnlyOneMissing)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -392,20 +390,6 @@ func ErrorClassificationTargetType() error {
 	}
 }
 
-func ErrorMissingAggregator(aggregate *Aggregate) error {
-	return Error{
-		Kind:    ErrMissingAggregator,
-		message: fmt.Sprintf("missing aggregator for aggregate \"%s\", expecting either \"aggregator\" or \"aggregator_path\"", aggregate.Name),
-	}
-}
-
-func ErrorMissingTransformer(transformedColumn *TransformedColumn) error {
-	return Error{
-		Kind:    ErrMissingTransformer,
-		message: fmt.Sprintf("missing transformer for transformed_column \"%s\", expecting either \"transformer\" or \"transformer_path\"", transformedColumn.Name),
-	}
-}
-
 func ErrorMultipleAggregatorSpecified(aggregate *Aggregate) error {
 	return Error{
 		Kind:    ErrMultipleAggregatorSpecified,
@@ -417,5 +401,17 @@ func ErrorMultipleTransformerSpecified(transformedColumn *TransformedColumn) err
 	return Error{
 		Kind:    ErrMultipleTransformerSpecified,
 		message: fmt.Sprintf("transformed_column \"%s\" specified both  \"transformer\" and \"transformer_path\", please specify only one", transformedColumn.Name),
+	}
+}
+
+func ErrorSpecifyOnlyOneMissing(vals ...string) error {
+	message := fmt.Sprintf("please specify one of %s", s.UserStrsOr(vals))
+	if len(vals) == 2 {
+		message = fmt.Sprintf("please specify either %s or %s", s.UserStr(vals[0]), s.UserStr(vals[1]))
+	}
+
+	return Error{
+		Kind:    ErrSpecifyOnlyOneMissing,
+		message: message,
 	}
 }

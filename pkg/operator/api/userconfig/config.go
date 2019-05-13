@@ -204,21 +204,17 @@ func (config *Config) Validate(envName string) error {
 	aggregatorNames := config.Aggregators.Names()
 	for _, aggregate := range config.Aggregates {
 		if aggregate.AggregatorPath == nil && aggregate.Aggregator == "" {
-			return ErrorMissingAggregator(aggregate)
+			return errors.Wrap(ErrorSpecifyOnlyOneMissing("aggregator", "aggregator_path"), Identify(aggregate))
 		}
 
 		if aggregate.AggregatorPath != nil && aggregate.Aggregator != "" {
 			return ErrorMultipleAggregatorSpecified(aggregate)
 		}
 
-		switch {
-		case aggregate.AggregatorPath != nil:
-			continue
-		case aggregate.Aggregator != "":
-			if !strings.Contains(aggregate.Aggregator, ".") &&
-				!slices.HasString(aggregatorNames, aggregate.Aggregator) {
-				return errors.Wrap(ErrorUndefinedResource(aggregate.Aggregator, resource.AggregatorType), Identify(aggregate), AggregatorKey)
-			}
+		if aggregate.Aggregator != "" &&
+			!strings.Contains(aggregate.Aggregator, ".") &&
+			!slices.HasString(aggregatorNames, aggregate.Aggregator) {
+			return errors.Wrap(ErrorUndefinedResource(aggregate.Aggregator, resource.AggregatorType), Identify(aggregate), AggregatorKey)
 		}
 	}
 
@@ -226,21 +222,18 @@ func (config *Config) Validate(envName string) error {
 	transformerNames := config.Transformers.Names()
 	for _, transformedColumn := range config.TransformedColumns {
 		if transformedColumn.TransformerPath == nil && transformedColumn.Transformer == "" {
-			return ErrorMissingTransformer(transformedColumn)
+			return errors.Wrap(ErrorSpecifyOnlyOneMissing("transformer", "transformer_path"), Identify(transformedColumn))
 		}
 
 		if transformedColumn.TransformerPath != nil && transformedColumn.Transformer != "" {
 			return ErrorMultipleTransformerSpecified(transformedColumn)
 		}
 
-		switch {
-		case transformedColumn.TransformerPath != nil:
-			continue
-		case transformedColumn.Transformer != "":
-			if !strings.Contains(transformedColumn.Transformer, ".") &&
-				!slices.HasString(transformerNames, transformedColumn.Transformer) {
-				return errors.Wrap(ErrorUndefinedResource(transformedColumn.Transformer, resource.TransformerType), Identify(transformedColumn), TransformerKey)
-			}
+		if transformedColumn.Transformer != "" &&
+			!strings.Contains(transformedColumn.Transformer, ".") &&
+			!slices.HasString(transformerNames, transformedColumn.Transformer) {
+			return errors.Wrap(ErrorUndefinedResource(transformedColumn.Transformer, resource.TransformerType), Identify(transformedColumn), TransformerKey)
+
 		}
 	}
 
