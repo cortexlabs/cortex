@@ -16,7 +16,7 @@ export AWS_ACCESS_KEY_ID=***
 export AWS_SECRET_ACCESS_KEY=***
 ```
 
-## Uninstall the Operator
+## Uninstall the operator
 
 ```bash
 # Uninstall the Cortex operator
