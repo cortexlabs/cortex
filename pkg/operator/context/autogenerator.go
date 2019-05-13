@@ -43,17 +43,18 @@ func autoGenerateConfig(
 				}
 			}
 
-			if aggregate.AggregatorPath != nil {
-				continue
-			}
-
 			aggregator, err := getAggregator(aggregate.Aggregator, userAggregators)
 			if err != nil {
 				return errors.Wrap(err, userconfig.Identify(aggregate), userconfig.AggregatorKey)
 			}
-			argType, ok := aggregator.Inputs.Args[argName]
-			if !ok {
-				return errors.Wrap(configreader.ErrorUnsupportedKey(argName), userconfig.Identify(aggregate), userconfig.InputsKey, userconfig.ArgsKey)
+
+			var argType interface{}
+			if aggregator.Inputs != nil {
+				var ok bool
+				argType, ok = aggregator.Inputs.Args[argName]
+				if !ok {
+					return errors.Wrap(configreader.ErrorUnsupportedKey(argName), userconfig.Identify(aggregate), userconfig.InputsKey, userconfig.ArgsKey)
+				}
 			}
 
 			constantName := strings.Join([]string{
@@ -88,17 +89,18 @@ func autoGenerateConfig(
 				}
 			}
 
-			if transformedColumn.TransformerPath != nil {
-				continue
-			}
-
 			transformer, err := getTransformer(transformedColumn.Transformer, userTransformers)
 			if err != nil {
 				return errors.Wrap(err, userconfig.Identify(transformedColumn), userconfig.TransformerKey)
 			}
-			argType, ok := transformer.Inputs.Args[argName]
-			if !ok {
-				return errors.Wrap(configreader.ErrorUnsupportedKey(argName), userconfig.Identify(transformedColumn), userconfig.InputsKey, userconfig.ArgsKey)
+
+			var argType interface{}
+			if transformer.Inputs != nil {
+				var ok bool
+				argType, ok = transformer.Inputs.Args[argName]
+				if !ok {
+					return errors.Wrap(configreader.ErrorUnsupportedKey(argName), userconfig.Identify(transformedColumn), userconfig.InputsKey, userconfig.ArgsKey)
+				}
 			}
 
 			constantName := strings.Join([]string{
