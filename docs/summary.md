@@ -37,6 +37,7 @@
   * [Templates](applications/advanced/templates.md)
   * [Compute](applications/advanced/compute.md)
   * [Python Packages](applications/advanced/python-packages.md)
+  * [Development](development.md)
 
 ## Operator
 
