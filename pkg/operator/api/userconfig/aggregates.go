@@ -46,7 +46,8 @@ var aggregateValidation = &configreader.StructValidation{
 		{
 			StructField: "Aggregator",
 			StringValidation: &configreader.StringValidation{
-				AllowEmpty: true,
+				AllowEmpty:                           true,
+				AlphaNumericDashDotUnderscoreOrEmpty: true,
 			},
 		},
 		{

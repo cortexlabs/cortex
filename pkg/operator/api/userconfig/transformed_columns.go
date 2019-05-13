@@ -46,7 +46,8 @@ var transformedColumnValidation = &configreader.StructValidation{
 		{
 			StructField: "Transformer",
 			StringValidation: &configreader.StringValidation{
-				AllowEmpty: true,
+				AllowEmpty:                           true,
+				AlphaNumericDashDotUnderscoreOrEmpty: true,
 			},
 		},
 		{
