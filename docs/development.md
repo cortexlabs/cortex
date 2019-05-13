@@ -103,21 +103,6 @@ export CLI_BUCKET_NAME="cortex-cli-<your_name>"
 export CLI_BUCKET_REGION="us-west-2"
 ```
 
-### Building
-
-Build and push all Cortex images (this will take a while):
-
-```bash
-make registry-all
-```
-
-Build and configure the Cortex CLI:
-
-```bash
-make cli  # The binary will be placed in path/to/cortex/bin/cortex
-path/to/cortex/bin/cortex configure
-```
-
 ### Kubernetes
 
 Start Kubernetes cluster and install Cortex on it:
@@ -134,6 +119,21 @@ If you're using GPUs on EKS, run this after your GPU nodes join the cluster:
 kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v1.11/nvidia-device-plugin.yml
 # check for GPUs:
 kubectl get nodes "-o=custom-columns=NAME:.metadata.name,GPU:.status.allocatable.nvidia\.com/gpu"
+```
+
+### Building
+
+Build and push all Cortex images (this will take a while):
+
+```bash
+make registry-all
+```
+
+Build and configure the Cortex CLI:
+
+```bash
+make cli  # The binary will be placed in path/to/cortex/bin/cortex
+path/to/cortex/bin/cortex configure
 ```
 
 ### Deployment
