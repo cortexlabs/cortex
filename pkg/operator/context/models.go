@@ -85,7 +85,6 @@ func getModels(
 		datasetIDWithTags := hash.Bytes(buf.Bytes())
 
 		datasetRoot := filepath.Join(root, consts.TrainingDataDir, datasetID)
-
 		trainingDatasetName := strings.Join([]string{
 			modelConfig.Name,
 			resource.TrainingDatasetType.String(),
@@ -97,7 +96,7 @@ func getModels(
 					ID:           modelID,
 					IDWithTags:   modelID,
 					ResourceType: resource.ModelType,
-					MetadataKey:  filepath.Join(datasetRoot, "metadata.json"),
+					MetadataKey:  filepath.Join(root, consts.ModelsDir, modelID+"_metadata.json"),
 				},
 			},
 			Model:   modelConfig,
@@ -115,6 +114,7 @@ func getModels(
 						ID:           datasetID,
 						IDWithTags:   datasetIDWithTags,
 						ResourceType: resource.TrainingDatasetType,
+						MetadataKey:  filepath.Join(datasetRoot, "metadata.json"),
 					},
 				},
 				ModelName: modelConfig.Name,

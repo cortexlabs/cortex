@@ -479,6 +479,17 @@ class Context:
         self.ctx[context_key][context_item]["metadata"] = metadata
         self.storage.put_json(metadata, self.ctx[context_key][context_item]["metadata_key"])
 
+    def get_metadata(self, context_key, context_item, use_cache=True):
+        if use_cache and self.ctx[context_key][context_item]["metadata"]:
+            return self.ctx[context_key][context_item]["metadata"]
+
+        metadata_uri = self.ctx[context_key][context_item]["metadata_key"]
+        metadata = self.storage.get_json(metadata_uri, allow_missing=True)
+        self.ctx[context_key][context_item]["metadata"] = metadata
+        return metadata
+
+
+
     def fetch_metadata(self):
         resources = [
             "python_packages",
@@ -498,6 +509,13 @@ class Context:
                 if not metadata:
                     metadata = {}
                 self.ctx[resource][k]["metadata"] = metadata
+
+        # fetch dataset metadata for models
+        for k, v in self.ctx["models"].items():
+            metadata = self.storage.get_json(v["dataset"]["metadata_key"], allow_missing=True)
+            if not metadata:
+                metadata = {}
+            self.ctx["models"][k]["dataset"]["metadata"] = metadata
 
         metadata = self.storage.get_json(self.raw_dataset["metadata_key"], allow_missing=True)
         if not metadata:
