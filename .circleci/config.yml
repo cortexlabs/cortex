@@ -53,13 +53,13 @@ jobs:
       - setup_remote_docker
       - install-go
       - checkout
-      - run: make build-images
-      - run: make build-cli
+      - run: make ci-build-images
+      - run: make ci-build-cli
       - run: make test-python
       - return-if-not-deployed-branch
       - run: sudo pip3 install awscli
-      - run: make push-images
-      - run: make build-and-upload-cli
+      - run: make ci-push-images
+      - run: make ci-build-and-upload-cli
 
 workflows:
   version: 2.1
