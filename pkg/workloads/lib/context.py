@@ -471,9 +471,9 @@ class Context:
         return os.path.join(self.status_prefix, resource["id"], resource["workload_id"])
 
     def update_metadata(self, metadata, context_key, context_item=""):
-        if context_item == "":
-            self.ctx[context_key]["metadata"] = metadata
-            self.storage.put_json(metadata, self.ctx[context_key]["metadata_key"])
+        if context_key == "raw_dataset":
+            self.raw_dataset["metadata"] = metadata
+            self.storage.put_json(metadata, self.raw_dataset["metadata_key"])
             return
 
         self.ctx[context_key][context_item]["metadata"] = metadata
@@ -506,37 +506,14 @@ class Context:
         self.ctx[context_key][context_item]["metadata"] = metadata
         return metadata
 
-    def fetch_all_metadata(self):
-        resources = [
-            "python_packages",
-            "raw_columns",
-            "transformed_columns",
-            "transformers",
-            "aggregators",
-            "aggregates",
-            "constants",
-            "models",
-            "apis",
-        ]
+    def get_inferred_column_type(self, column_name):
+        columnType = self.columns[column_name].get("type", None)
+        if not columnType or columnType == "unknown":
+            columnType = self.get_metadata("columns", column_name)["type"]
+            self.columns[column_name]["type"] = columnType
 
-        for resource in resources:
-            for k, v in self.ctx[resource].items():
-                metadata = self.storage.get_json(v["metadata_key"], allow_missing=True)
-                if not metadata:
-                    metadata = {}
-                self.ctx[resource][k]["metadata"] = metadata
+        return columnType
 
-        # fetch dataset metadata for models
-        for k, v in self.ctx["models"].items():
-            metadata = self.storage.get_json(v["dataset"]["metadata_key"], allow_missing=True)
-            if not metadata:
-                metadata = {}
-            self.ctx["models"][k]["dataset"]["metadata"] = metadata
-
-        metadata = self.storage.get_json(self.raw_dataset["metadata_key"], allow_missing=True)
-        if not metadata:
-            metadata = {}
-        self.raw_dataset["metadata"] = metadata
 
 
 MODEL_IMPL_VALIDATION = {

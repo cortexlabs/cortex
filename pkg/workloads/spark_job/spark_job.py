@@ -160,8 +160,7 @@ def ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest):
                 ingest_df = limit_dataset(full_dataset_size, ingest_df, ctx.environment["limit"])
 
             written_count = write_raw_dataset(ingest_df, ctx, spark)
-            metadata = {"dataset_size": written_count}
-            ctx.update_metadata(metadata, "raw_dataset")
+            ctx.update_metadata({"dataset_size": written_count}, "raw_dataset")
             if written_count != full_dataset_size:
                 logger.info(
                     "{} rows read, {} rows dropped, {} rows ingested".format(
