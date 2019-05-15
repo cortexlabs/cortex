@@ -99,11 +99,11 @@ class Context:
                 )
             )
 
-        self.fetch_metadata()
-
         self.columns = util.merge_dicts_overwrite(
             self.raw_columns, self.transformed_columns  # self.aggregates
         )
+
+        self.ctx["columns"] = self.columns
 
         self.values = util.merge_dicts_overwrite(self.aggregates, self.constants)
 
@@ -479,8 +479,26 @@ class Context:
         self.ctx[context_key][context_item]["metadata"] = metadata
         self.storage.put_json(metadata, self.ctx[context_key][context_item]["metadata_key"])
 
-    def get_metadata(self, context_key, context_item, use_cache=True):
-        if use_cache and self.ctx[context_key][context_item]["metadata"]:
+    def get_metadata(self, context_key, context_item="", use_cache=True):
+        if context_key == "raw_dataset":
+            if use_cache and self.raw_dataset.get("metadata", None):
+                return self.raw_dataset["metadata"]
+
+            metadata = self.storage.get_json(self.raw_dataset["metadata_key"], allow_missing=True)
+            self.raw_dataset["metadata"] = metadata
+            return metadata
+
+
+        if context_key == "training_dataset":
+            if use_cache and self.ctx["models"][context_item]["dataset"].get("metadata", None):
+                return self.ctx["models"][context_item]["dataset"]["metadata"]
+
+            metadata_uri = self.ctx["models"][context_item]["dataset"]["metadata_key"]
+            metadata = self.storage.get_json(metadata_uri, allow_missing=True)
+            self.ctx["models"][context_item]["dataset"]["metadata"] = metadata
+            return metadata
+
+        if use_cache and self.ctx[context_key][context_item].get("metadata", None):
             return self.ctx[context_key][context_item]["metadata"]
 
         metadata_uri = self.ctx[context_key][context_item]["metadata_key"]
@@ -488,9 +506,7 @@ class Context:
         self.ctx[context_key][context_item]["metadata"] = metadata
         return metadata
 
-
-
-    def fetch_metadata(self):
+    def fetch_all_metadata(self):
         resources = [
             "python_packages",
             "raw_columns",

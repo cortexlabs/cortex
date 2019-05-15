@@ -91,7 +91,7 @@ def parse_args(args):
 
 
 def validate_dataset(ctx, raw_df, cols_to_validate):
-    total_row_count = ctx.raw_dataset["metadata"]["dataset_size"]
+    total_row_count = ctx.get_metadata("raw_dataset")["dataset_size"]
     conditions_dict = spark_util.value_check_data(ctx, raw_df, cols_to_validate)
 
     if len(conditions_dict) > 0:

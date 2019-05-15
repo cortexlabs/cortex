@@ -61,7 +61,7 @@ def get_column_tf_types(model_name, ctx, training=True):
     for column_name in model["feature_columns"]:
         columnType = ctx.columns[column_name]["type"]
         if columnType == "unknown":
-            columnType = ctx.columns[column_name]["metadata"]["type"]
+            columnType = ctx.get_metadata("columns", column_name)["type"]
 
         column_types[column_name] = CORTEX_TYPE_TO_TF_TYPE[columnType]
 
@@ -74,7 +74,7 @@ def get_column_tf_types(model_name, ctx, training=True):
         for column_name in model["training_columns"]:
             columnType = ctx.columns[column_name]["type"]
             if columnType == "unknown":
-                columnType = ctx.columns[column_name]["metadata"]["type"]
+                columnType = ctx.get_metadata("columns", column_name)["type"]
 
             column_types[column_name] = CORTEX_TYPE_TO_TF_TYPE[columnType]
 
@@ -88,7 +88,7 @@ def get_feature_spec(model_name, ctx, training=True):
     for column_name, tf_type in column_types.items():
         columnType = ctx.columns[column_name]["type"]
         if columnType == "unknown":
-            columnType = ctx.columns[column_name]["metadata"]["type"]
+            columnType = ctx.get_metadata("columns", column_name)["type"]
 
         if columnType in consts.COLUMN_LIST_TYPES:
             feature_spec[column_name] = tf.FixedLenSequenceFeature(
