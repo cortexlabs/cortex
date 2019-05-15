@@ -488,7 +488,6 @@ class Context:
             self.raw_dataset["metadata"] = metadata
             return metadata
 
-
         if context_key == "training_dataset":
             if use_cache and self.ctx["models"][context_item]["dataset"].get("metadata", None):
                 return self.ctx["models"][context_item]["dataset"]["metadata"]
@@ -513,7 +512,6 @@ class Context:
             self.columns[column_name]["type"] = columnType
 
         return columnType
-
 
 
 MODEL_IMPL_VALIDATION = {
