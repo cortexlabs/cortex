@@ -513,8 +513,8 @@ class Context:
         return metadata
 
     def get_inferred_column_type(self, column_name):
-        columnType = self.columns[column_name].get("type", None)
-        if not columnType or columnType == "unknown":
+        columnType = self.columns[column_name].get("type", "unknown")
+        if columnType == "unknown":
             columnType = self.get_metadata("columns", column_name)["type"]
             self.columns[column_name]["type"] = columnType
 

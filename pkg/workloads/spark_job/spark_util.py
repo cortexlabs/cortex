@@ -485,6 +485,16 @@ def execute_transform_python(column_name, df, ctx, spark, validate=False):
     return df.withColumn(column_name, transform_udf(*required_columns_sorted))
 
 
+def infer_type(obj):
+    objType = type(obj)
+    typeConversionDict = PYTHON_TYPE_TO_CORTEX_TYPE
+    isList = objType == list
+    if isList:
+        objType = type(obj[0])
+        typeConversionDict = PYTHON_TYPE_TO_CORTEX_LIST_TYPE
+
+    return typeConversionDict[objType]
+
 def validate_transformer(column_name, test_df, ctx, spark):
     transformed_column = ctx.transformed_columns[column_name]
 
@@ -496,27 +506,35 @@ def validate_transformer(column_name, test_df, ctx, spark):
             sample = sample_df[0]
             inputs = ctx.create_column_inputs_map(sample, column_name)
             _, impl_args = extract_inputs(column_name, ctx)
-            transformedSample = trans_impl.transform_python(inputs, impl_args)
-            rowType = type(transformedSample)
-            isList = rowType == list
+            initial_transformed_sample = trans_impl.transform_python(inputs, impl_args)
+            expectedType = type(initial_transformed_sample)
+            isList = expectedType == list
 
             for row in sample_df:
                 inputs = ctx.create_column_inputs_map(row, column_name)
-                transformedSample = trans_impl.transform_python(inputs, impl_args)
-                if rowType != type(transformedSample):
+                transformed_sample = trans_impl.transform_python(inputs, impl_args)
+                if expectedType != type(transformed_sample):
                     raise UserRuntimeException(
                         "transformed column " + column_name,
                         "type inference failed, mixed data types in dataframe.",
+                        "expected type of \"" + transformed_sample + "\" to be " + expectedType,
                     )
 
-            typeConversionDict = PYTHON_TYPE_TO_CORTEX_TYPE
-            if isList:
-                rowType = type(transformedSample[0])
-                typeConversionDict = PYTHON_TYPE_TO_CORTEX_LIST_TYPE
+                if isList:
+                    expectedListType = type(initial_transformed_sample[0])
+                    if expectedListType != type(transformed_sample[0]):
+                        raise UserRuntimeException(
+                            "transformed column " + column_name,
+                            "type inference failed, mixed data types in list column.",
+                            "expected type of \"" + transformed_sample[0] + "\" to be " + expectedListType,
+                        )
+
+
+            inferredCxType = infer_type(initial_transformed_sample)
 
             # for downstream operations on other jobs
             ctx.update_metadata(
-                {"type": typeConversionDict[rowType]}, "transformed_columns", column_name
+                {"type": inferredCxType}, "transformed_columns", column_name
             )
 
         try:
