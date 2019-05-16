@@ -488,7 +488,7 @@ def validate_transformer(column_name, test_df, ctx, spark):
     trans_impl, _ = ctx.get_transformer_impl(column_name)
 
     if hasattr(trans_impl, "transform_python"):
-        if transformed_column["transformer_path"]:
+        if transformed_column.get("transformer_path", None):
             sample_df = test_df.collect()
             sample = sample_df[0]
             inputs = ctx.create_column_inputs_map(sample, column_name)
@@ -560,7 +560,7 @@ def validate_transformer(column_name, test_df, ctx, spark):
 
             # check that expected output column has the correct data type
             if (
-                not transformed_column["transformer_path"]
+                not transformed_column.get("transformer_path", None)
                 and actual_structfield.dataType
                 not in CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES[
                     ctx.get_inferred_column_type(column_name)
@@ -640,7 +640,7 @@ def transform_column(column_name, df, ctx, spark):
     if hasattr(trans_impl, "transform_spark"):
         column_type = CORTEX_TYPE_TO_SPARK_TYPE[ctx.get_inferred_column_type(column_name)]
         df = execute_transform_spark(column_name, df, ctx, spark)
-        if transformed_column["transformer_path"]:
+        if transformed_column.get("transformer_path", None):
             column_type = df.select(column_name).schema[0].dataType
             # for downstream operations on other jobs
             ctx.update_metadata(
