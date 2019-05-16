@@ -478,7 +478,9 @@ class Context:
 
         if context_key == "training_datasets":
             self.ctx["models"][context_item]["dataset"]["metadata"] = metadata
-            self.storage.put_json(metadata, self.ctx["models"][context_item]["dataset"]["metadata_key"])
+            self.storage.put_json(
+                metadata, self.ctx["models"][context_item]["dataset"]["metadata_key"]
+            )
             return
 
         self.ctx[context_key][context_item]["metadata"] = metadata

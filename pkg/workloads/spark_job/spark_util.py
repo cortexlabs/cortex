@@ -119,7 +119,11 @@ def write_training_data(model_name, df, ctx, spark):
         ctx.storage.hadoop_path(training_dataset["eval_key"])
     )
 
-    ctx.update_metadata({"training_size": train_df_acc.value, "eval_size": eval_df_acc.value}, "training_datasets", model_name)
+    ctx.update_metadata(
+        {"training_size": train_df_acc.value, "eval_size": eval_df_acc.value},
+        "training_datasets",
+        model_name,
+    )
 
     return df
 
