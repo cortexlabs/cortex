@@ -149,7 +149,7 @@ def train(model_name, model_impl, ctx, model_dir):
     exporter = tf.estimator.FinalExporter("estimator", serving_input_fn, as_text=False)
 
     train_num_steps = model["training"]["num_steps"]
-    dataset_metadata = ctx.get_metadata("training_dataset", model_name)
+    dataset_metadata = ctx.get_metadata("training_datasets", model_name)
     if model["training"]["num_epochs"]:
         train_num_steps = (
             math.ceil(dataset_metadata["training_size"] / float(model["training"]["batch_size"]))

@@ -5,9 +5,18 @@
     columns:
       col: class
 
+- kind: transformer
+  name: weight
+  inputs:
+    columns:
+      col: INT_COLUMN
+    args:
+      class_distribution: {INT: FLOAT}
+  output_type: FLOAT_COLUMN
+
 - kind: transformed_column
   name: weight_column
-  transformer_path: implementations/transformers/weight.py
+  transformer: weight
   inputs:
     columns:
       col: class

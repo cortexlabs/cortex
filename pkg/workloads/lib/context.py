@@ -471,16 +471,21 @@ class Context:
         return os.path.join(self.status_prefix, resource["id"], resource["workload_id"])
 
     def update_metadata(self, metadata, context_key, context_item=""):
-        if context_key == "raw_dataset":
+        if context_key == "raw_datasets":
             self.raw_dataset["metadata"] = metadata
             self.storage.put_json(metadata, self.raw_dataset["metadata_key"])
+            return
+
+        if context_key == "training_datasets":
+            self.ctx["models"][context_item]["dataset"]["metadata"] = metadata
+            self.storage.put_json(metadata, self.ctx["models"][context_item]["dataset"]["metadata_key"])
             return
 
         self.ctx[context_key][context_item]["metadata"] = metadata
         self.storage.put_json(metadata, self.ctx[context_key][context_item]["metadata_key"])
 
     def get_metadata(self, context_key, context_item="", use_cache=True):
-        if context_key == "raw_dataset":
+        if context_key == "raw_datasets":
             if use_cache and self.raw_dataset.get("metadata", None):
                 return self.raw_dataset["metadata"]
 
@@ -488,7 +493,7 @@ class Context:
             self.raw_dataset["metadata"] = metadata
             return metadata
 
-        if context_key == "training_dataset":
+        if context_key == "training_datasets":
             if use_cache and self.ctx["models"][context_item]["dataset"].get("metadata", None):
                 return self.ctx["models"][context_item]["dataset"]["metadata"]
 
