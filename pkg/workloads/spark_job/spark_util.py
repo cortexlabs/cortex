@@ -579,13 +579,12 @@ def validate_transformer(column_name, test_df, ctx, spark):
                 )
 
             # perform the necessary upcast/downcast for the column e.g INT -> LONG or DOUBLE -> FLOAT
-            if not transformed_column["transformer_path"]:
-                transform_spark_df = transform_spark_df.withColumn(
-                    column_name,
-                    F.col(column_name).cast(
-                        CORTEX_TYPE_TO_SPARK_TYPE[ctx.get_inferred_column_type(column_name)]
-                    ),
-                )
+            transform_spark_df = transform_spark_df.withColumn(
+                column_name,
+                F.col(column_name).cast(
+                    CORTEX_TYPE_TO_SPARK_TYPE[ctx.get_inferred_column_type(column_name)]
+                ),
+            )
 
             # check that the function doesn't modify the schema of the other columns in the input dataframe
             if set(transform_spark_df.columns) - set([column_name]) != set(test_df.columns):
