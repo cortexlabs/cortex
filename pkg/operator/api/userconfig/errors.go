@@ -58,8 +58,6 @@ const (
 	ErrK8sQuantityMustBeInt
 	ErrRegressionTargetType
 	ErrClassificationTargetType
-	ErrMultipleAggregatorSpecified
-	ErrMultipleTransformerSpecified
 	ErrSpecifyOnlyOneMissing
 )
 
@@ -93,8 +91,6 @@ var errorKinds = []string{
 	"err_k8s_quantity_must_be_int",
 	"err_regression_target_type",
 	"err_classification_target_type",
-	"err_multiple_aggregator_specified",
-	"err_multiple_transformer_specified",
 	"err_specify_only_one_missing",
 }
 
@@ -387,20 +383,6 @@ func ErrorClassificationTargetType() error {
 	return Error{
 		Kind:    ErrClassificationTargetType,
 		message: "classification models can only predict integer target values (i.e. {0, 1, ..., num_classes-1})",
-	}
-}
-
-func ErrorMultipleAggregatorSpecified(aggregate *Aggregate) error {
-	return Error{
-		Kind:    ErrMultipleAggregatorSpecified,
-		message: fmt.Sprintf("aggregate \"%s\" specified both \"aggregator\" and \"aggregator_path\", please specify only one", aggregate.Name),
-	}
-}
-
-func ErrorMultipleTransformerSpecified(transformedColumn *TransformedColumn) error {
-	return Error{
-		Kind:    ErrMultipleTransformerSpecified,
-		message: fmt.Sprintf("transformed_column \"%s\" specified both  \"transformer\" and \"transformer_path\", please specify only one", transformedColumn.Name),
 	}
 }
 

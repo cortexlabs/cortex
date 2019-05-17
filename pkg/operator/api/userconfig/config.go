@@ -208,7 +208,7 @@ func (config *Config) Validate(envName string) error {
 		}
 
 		if aggregate.AggregatorPath != nil && aggregate.Aggregator != "" {
-			return ErrorMultipleAggregatorSpecified(aggregate)
+			return errors.Wrap(ErrorSpecifyOnlyOne("aggregator", "aggregator_path"), Identify(aggregate))
 		}
 
 		if aggregate.Aggregator != "" &&
@@ -226,14 +226,13 @@ func (config *Config) Validate(envName string) error {
 		}
 
 		if transformedColumn.TransformerPath != nil && transformedColumn.Transformer != "" {
-			return ErrorMultipleTransformerSpecified(transformedColumn)
+			return errors.Wrap(ErrorSpecifyOnlyOne("transformer", "transformer_path"), Identify(transformedColumn))
 		}
 
 		if transformedColumn.Transformer != "" &&
 			!strings.Contains(transformedColumn.Transformer, ".") &&
 			!slices.HasString(transformerNames, transformedColumn.Transformer) {
 			return errors.Wrap(ErrorUndefinedResource(transformedColumn.Transformer, resource.TransformerType), Identify(transformedColumn), TransformerKey)
-
 		}
 	}
 
