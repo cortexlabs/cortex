@@ -1,16 +1,8 @@
 # Install
 
-## AWS account and access key
+## Prerequisites
 
-As of now, Cortex only runs on AWS. We plan to support other cloud providers in the future. If you don't have an AWS account you can get started with one [here](https://portal.aws.amazon.com/billing/signup#/start).
-
-Follow this [tutorial](https://aws.amazon.com/premiumsupport/knowledge-center/create-access-key) to create an access key.
-
-**Note**
-
-* Enable programmatic access for the IAM user.
-* Attach the existing policy `AdministratorAccess` to your IAM user, or see [security](security.md) for a minimal access configuration.
-* Each of the steps below requires different permissions. Please ensure you have the required permissions for each of the steps you need to run. The `AdministratorAccess` policy will work for all steps.
+1. [AWS credentials](aws.md)
 
 ## Download the install script
 
@@ -30,7 +22,7 @@ export AWS_SECRET_ACCESS_KEY=***
 
 ## Kubernetes
 
-Cortex runs on Kubernetes. If you don't already have a Kubernetes cluster, [eksctl](https://eksctl.io) is a simple tool to create and manage one.
+Cortex runs on Kubernetes and requires access to `kubectl`. If you don't already have a Kubernetes cluster, [eksctl](https://eksctl.io) is a simple tool to create and manage one.
 
 **We recommend a minimum cluster size of 2 [t3.medium](https://aws.amazon.com/ec2/instance-types) AWS instances. Cortex may not run successfully on clusters with less compute resources.**
 
@@ -44,7 +36,7 @@ eksctl create cluster --name=cortex --nodes=2 --node-type=t3.medium
 
 This cluster configuration will cost about $0.29 per hour in AWS fees.
 
-## Install the Operator
+## Install the operator
 
 The Cortex operator is a service that runs on Kubernetes, translates declarative configuration into workloads, and orchestrates those workloads on the cluster. Its installation is configurable. For a full list of configuration options please refer to the [operator config](config.md) documentation.
 
@@ -67,3 +59,33 @@ The CLI runs on developer machines (e.g. your laptop) and communicates with the 
 # Configure the CLI
 cortex configure
 ```
+
+## Deploy an application
+
+<!-- CORTEX_VERSION_MINOR -->
+
+```bash
+# Clone the Cortex repository
+git clone -b master https://github.com/cortexlabs/cortex.git
+
+# Navigate to the iris classification example
+cd cortex/examples/iris
+
+# Deploy the application to the cluster
+cortex deploy
+
+# View the status of the deployment
+cortex status --watch
+
+# Classify a sample
+cortex predict iris-type irises.json
+```
+
+## Cleanup
+
+```
+# Delete the deployment
+$ cortex delete iris
+```
+
+See [uninstall](uninstall.md) if you'd like to uninstall Cortex.

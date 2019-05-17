@@ -2,7 +2,7 @@
 
 * [Read Me](../README.md)
 * [Install](operator/install.md)
-* [Quick Start](quick-start.md)
+* [Tutorial](tutorial.md)
 * [Application Overview](applications/resources/overview.md)
 * [CLI Commands](operator/cli.md)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
@@ -37,9 +37,11 @@
   * [Templates](applications/advanced/templates.md)
   * [Compute](applications/advanced/compute.md)
   * [Python Packages](applications/advanced/python-packages.md)
+  * [Development](development.md)
 
 ## Operator
 
+  * [AWS Credentials](operator/aws.md)
   * [Config](operator/config.md)
   * [Security](operator/security.md)
   * [Uninstall](operator/uninstall.md)
