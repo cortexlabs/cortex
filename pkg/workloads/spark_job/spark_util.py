@@ -508,17 +508,17 @@ def validate_transformer(column_name, test_df, ctx, spark):
             inputs = ctx.create_column_inputs_map(sample, column_name)
             _, impl_args = extract_inputs(column_name, ctx)
             initial_transformed_sample = trans_impl.transform_python(inputs, impl_args)
-            expectedType = type(initial_transformed_sample)
-            isList = expectedType == list
+            expected_type = type(initial_transformed_sample)
+            isList = expected_type == list
 
             for row in sample_df:
                 inputs = ctx.create_column_inputs_map(row, column_name)
                 transformed_sample = trans_impl.transform_python(inputs, impl_args)
-                if expectedType != type(transformed_sample):
+                if expected_type != type(transformed_sample):
                     raise UserRuntimeException(
                         "transformed column " + column_name,
                         "type inference failed, mixed data types in dataframe.",
-                        'expected type of "' + transformed_sample + '" to be ' + expectedType,
+                        'expected type of "' + transformed_sample + '" to be ' + expected_type,
                     )
 
                 if isList:
@@ -533,10 +533,10 @@ def validate_transformer(column_name, test_df, ctx, spark):
                             + expectedListType,
                         )
 
-            inferredCxType = infer_type(initial_transformed_sample)
+            inferred_cx_type = infer_type(initial_transformed_sample)
 
             # for downstream operations on other jobs
-            ctx.update_metadata({"type": inferredCxType}, "transformed_columns", column_name)
+            ctx.update_metadata({"type": inferred_cx_type}, "transformed_columns", column_name)
 
         try:
             transform_python_collect = execute_transform_python(
