@@ -486,14 +486,14 @@ def execute_transform_python(column_name, df, ctx, spark, validate=False):
 
 
 def infer_type(obj):
-    objType = type(obj)
-    typeConversionDict = PYTHON_TYPE_TO_CORTEX_TYPE
-    isList = objType == list
+    obj_type = type(obj)
+    type_conversion_dict = PYTHON_TYPE_TO_CORTEX_TYPE
+    isList = obj_type == list
     if isList:
-        objType = type(obj[0])
-        typeConversionDict = PYTHON_TYPE_TO_CORTEX_LIST_TYPE
+        obj_type = type(obj[0])
+        type_conversion_dict = PYTHON_TYPE_TO_CORTEX_LIST_TYPE
 
-    return typeConversionDict[objType]
+    return type_conversion_dict[obj_type]
 
 
 def validate_transformer(column_name, test_df, ctx, spark):
