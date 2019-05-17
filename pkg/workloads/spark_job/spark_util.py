@@ -465,15 +465,15 @@ def execute_transform_python(column_name, df, ctx, spark, validate=False):
 
     if validate:
         transformed_column = ctx.transformed_columns[column_name]
-        columnType = ctx.get_inferred_column_type(column_name)
+        column_type = ctx.get_inferred_column_type(column_name)
 
         def _transform_and_validate(*values):
             result = _transform(*values)
-            if not util.validate_column_type(result, columnType):
+            if not util.validate_column_type(result, column_type):
                 raise UserException(
                     "transformed column " + column_name,
                     "tranformation " + transformed_column["transformer"],
-                    "type of {} is not {}".format(result, columnType),
+                    "type of {} is not {}".format(result, column_type),
                 )
 
             return result
