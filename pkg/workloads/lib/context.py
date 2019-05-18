@@ -80,7 +80,7 @@ class Context:
         self.models = self.ctx["models"]
         self.apis = self.ctx["apis"]
         self.training_datasets = {k: v["dataset"] for k, v in self.models.items()}
-
+        self._metadatas = {}
         self.api_version = self.cortex_config["api_version"]
 
         if "local_storage_path" in kwargs:
@@ -102,8 +102,6 @@ class Context:
         self.columns = util.merge_dicts_overwrite(
             self.raw_columns, self.transformed_columns  # self.aggregates
         )
-
-        self.ctx["columns"] = self.columns
 
         self.values = util.merge_dicts_overwrite(self.aggregates, self.constants)
 
@@ -470,52 +468,23 @@ class Context:
     def resource_status_key(self, resource):
         return os.path.join(self.status_prefix, resource["id"], resource["workload_id"])
 
-    def update_metadata(self, metadata, context_key, context_item=""):
-        if context_key == "raw_dataset":
-            self.raw_dataset["metadata"] = metadata
-            self.storage.put_json(metadata, self.raw_dataset["metadata_key"])
-            return
+    def update_metadata(self, resource_id, metadata_key, metadata):
+        self._metadatas[resource_id] = metadata
+        self.storage.put_json(metadata, metadata_key)
 
-        if context_key == "training_datasets":
-            self.ctx["models"][context_item]["dataset"]["metadata"] = metadata
-            self.storage.put_json(
-                metadata, self.ctx["models"][context_item]["dataset"]["metadata_key"]
-            )
-            return
+    def get_metadata(self, resource_id, metadata_key, use_cache=True):
+        if use_cache and self._metadatas.get(resource_id, None):
+            return self._metadatas[resource_id]
 
-        self.ctx[context_key][context_item]["metadata"] = metadata
-        self.storage.put_json(metadata, self.ctx[context_key][context_item]["metadata_key"])
-
-    def get_metadata(self, context_key, context_item="", use_cache=True):
-        if context_key == "raw_dataset":
-            if use_cache and self.raw_dataset.get("metadata", None):
-                return self.raw_dataset["metadata"]
-
-            metadata = self.storage.get_json(self.raw_dataset["metadata_key"], allow_missing=True)
-            self.raw_dataset["metadata"] = metadata
-            return metadata
-
-        if context_key == "training_datasets":
-            if use_cache and self.ctx["models"][context_item]["dataset"].get("metadata", None):
-                return self.ctx["models"][context_item]["dataset"]["metadata"]
-
-            metadata_uri = self.ctx["models"][context_item]["dataset"]["metadata_key"]
-            metadata = self.storage.get_json(metadata_uri, allow_missing=True)
-            self.ctx["models"][context_item]["dataset"]["metadata"] = metadata
-            return metadata
-
-        if use_cache and self.ctx[context_key][context_item].get("metadata", None):
-            return self.ctx[context_key][context_item]["metadata"]
-
-        metadata_uri = self.ctx[context_key][context_item]["metadata_key"]
-        metadata = self.storage.get_json(metadata_uri, allow_missing=True)
-        self.ctx[context_key][context_item]["metadata"] = metadata
+        metadata = self.storage.get_json(metadata_key, allow_missing=True)
+        self._metadatas[resource_id] = metadata
         return metadata
 
     def get_inferred_column_type(self, column_name):
+        column = self.columns[column_name]
         column_type = self.columns[column_name].get("type", "unknown")
         if column_type == "unknown":
-            column_type = self.get_metadata("columns", column_name)["type"]
+            column_type = self.get_metadata(column["id"], column["metadata_key"])["type"]
             self.columns[column_name]["type"] = column_type
 
         return column_type

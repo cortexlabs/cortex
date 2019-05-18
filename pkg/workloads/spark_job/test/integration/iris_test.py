@@ -77,7 +77,10 @@ def test_simple_end_to_end(spark):
     raw_df = spark_job.ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest)
 
     assert raw_df.count() == 15
-    assert ctx.get_metadata("raw_dataset")["dataset_size"] == 15
+    assert (
+        ctx.get_metadata(ctx.raw_dataset["id"], ctx.raw_dataset["metadata_key"])["dataset_size"]
+        == 15
+    )
     for raw_column_id in cols_to_validate:
         path = os.path.join(raw_ctx["status_prefix"], raw_column_id, workload_id)
         status = storage.get_json(str(path))
@@ -117,7 +120,7 @@ def test_simple_end_to_end(spark):
         status["exist_code"] = "succeeded"
 
         dataset = raw_ctx["models"]["dnn"]["dataset"]
-        metadata = ctx.get_metadata("training_datasets", "dnn")
+        metadata = ctx.get_metadata(dataset["id"], dataset["metadata_key"])
         assert metadata["training_size"] + metadata["eval_size"] == 15
         assert local_storage_path.joinpath(dataset["train_key"], "_SUCCESS").exists()
         assert local_storage_path.joinpath(dataset["eval_key"], "_SUCCESS").exists()

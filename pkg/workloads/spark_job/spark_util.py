@@ -120,9 +120,9 @@ def write_training_data(model_name, df, ctx, spark):
     )
 
     ctx.update_metadata(
+        training_dataset["id"],
+        training_dataset["metadata_key"],
         {"training_size": train_df_acc.value, "eval_size": eval_df_acc.value},
-        "training_datasets",
-        model_name,
     )
 
     return df
@@ -521,7 +521,11 @@ def validate_transformer(column_name, test_df, ctx, spark):
                     )
 
             # for downstream operations on other jobs
-            ctx.update_metadata({"type": expected_type}, "transformed_columns", column_name)
+            ctx.update_metadata(
+                transformed_column["id"],
+                transformed_column["metadata_key"],
+                {"type": expected_type},
+            )
 
         try:
             transform_python_collect = execute_transform_python(
@@ -651,7 +655,9 @@ def transform_column(column_name, df, ctx, spark):
             column_type = df.select(column_name).schema[0].dataType
             # for downstream operations on other jobs
             ctx.update_metadata(
-                {"type": SPARK_TYPE_TO_CORTEX_TYPE[column_type]}, "transformed_columns", column_name
+                transformed_column["id"],
+                transformed_column["metadata_key"],
+                {"type": SPARK_TYPE_TO_CORTEX_TYPE[column_type]},
             )
 
         return df.withColumn(column_name, F.col(column_name).cast(column_type))
