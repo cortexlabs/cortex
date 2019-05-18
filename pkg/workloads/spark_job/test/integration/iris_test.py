@@ -78,7 +78,7 @@ def test_simple_end_to_end(spark):
 
     assert raw_df.count() == 15
     assert (
-        ctx.get_metadata(ctx.raw_dataset["id"], ctx.raw_dataset["metadata_key"])["dataset_size"]
+        ctx.get_metadata(ctx.raw_dataset["key"], ctx.raw_dataset["metadata_key"])["dataset_size"]
         == 15
     )
     for raw_column_id in cols_to_validate:
