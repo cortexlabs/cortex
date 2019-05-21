@@ -503,8 +503,8 @@ def validate_transformer(column_name, test_df, ctx, spark):
     inferred_python_type = None
     inferred_spark_type = None
 
-    try:
-        if hasattr(trans_impl, "transform_python"):
+    if hasattr(trans_impl, "transform_python"):
+        try:
             if transformer["output_type"] == "unknown":
                 sample_df = test_df.collect()
                 sample = sample_df[0]
@@ -535,14 +535,13 @@ def validate_transformer(column_name, test_df, ctx, spark):
             transform_python_collect = execute_transform_python(
                 column_name, test_df, ctx, spark, validate=True
             ).collect()
-    except Exception as e:
-        raise UserRuntimeException(
-            "transformed column " + column_name,
-            transformed_column["transformer"] + ".transform_python",
-        ) from e
+        except Exception as e:
+            raise UserRuntimeException(
+                "transformed column " + column_name,
+                transformed_column["transformer"] + ".transform_python",
+            ) from e
 
     if hasattr(trans_impl, "transform_spark"):
-
         try:
             transform_spark_df = execute_transform_spark(column_name, test_df, ctx, spark)
 
