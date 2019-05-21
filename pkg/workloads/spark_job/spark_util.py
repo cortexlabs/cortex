@@ -447,7 +447,7 @@ def execute_transform_spark(column_name, df, ctx, spark):
         raise UserRuntimeException("function transform_spark") from e
 
 
-def execute_transform_python(column_name, df, ctx, spark, validate=False):
+def execute_transform_python(column_name, df, ctx, spark, validate=False, inferred_type=None):
     trans_impl, trans_impl_path = ctx.get_transformer_impl(column_name)
     columns_input_config, impl_args = extract_inputs(column_name, ctx)
 
@@ -465,7 +465,9 @@ def execute_transform_python(column_name, df, ctx, spark, validate=False):
 
     if validate:
         transformed_column = ctx.transformed_columns[column_name]
-        column_type = ctx.get_inferred_column_type(column_name)
+        column_type = inferred_type
+        if not column_type:
+            column_type = ctx.get_inferred_column_type(column_name)
 
         def _transform_and_validate(*values):
             result = _transform(*values)
@@ -480,7 +482,10 @@ def execute_transform_python(column_name, df, ctx, spark, validate=False):
 
         transform_python_func = _transform_and_validate
 
-    column_data_type_str = ctx.get_inferred_column_type(column_name)
+    column_data_type_str = inferred_type
+    if not column_data_type_str:
+        column_data_type_str = ctx.get_inferred_column_type(column_name)
+
     transform_udf = F.udf(transform_python_func, CORTEX_TYPE_TO_SPARK_TYPE[column_data_type_str])
     return df.withColumn(column_name, transform_udf(*required_columns_sorted))
 
@@ -527,7 +532,7 @@ def validate_transformer(column_name, test_df, ctx, spark):
 
         try:
             transform_python_collect = execute_transform_python(
-                column_name, test_df, ctx, spark, validate=True
+                column_name, test_df, ctx, spark, validate=True, inferred_type=inferred_python_type
             ).collect()
         except Exception as e:
             raise UserRuntimeException(
@@ -656,7 +661,6 @@ def validate_transformer(column_name, test_df, ctx, spark):
         if inferred_type == None:
             inferred_type = inferred_spark_type
 
-        # for downstream operations on other jobs
         ctx.write_metadata(
             transformed_column["id"], transformed_column["metadata_key"], {"type": inferred_type}
         )
