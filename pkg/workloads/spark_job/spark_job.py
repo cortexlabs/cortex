@@ -162,7 +162,7 @@ def ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest):
                 ingest_df = limit_dataset(full_dataset_size, ingest_df, ctx.environment["limit"])
 
             written_count = write_raw_dataset(ingest_df, ctx, spark)
-            ctx.update_metadata(
+            ctx.write_metadata(
                 ctx.raw_dataset["key"],
                 ctx.raw_dataset["metadata_key"],
                 {"dataset_size": written_count},

@@ -80,7 +80,6 @@ class Context:
         self.models = self.ctx["models"]
         self.apis = self.ctx["apis"]
         self.training_datasets = {k: v["dataset"] for k, v in self.models.items()}
-        self._metadatas = {}
         self.api_version = self.cortex_config["api_version"]
 
         if "local_storage_path" in kwargs:
@@ -113,6 +112,7 @@ class Context:
         self._transformer_impls = {}
         self._aggregator_impls = {}
         self._model_impls = {}
+        self._metadatas = {}
 
         # This affects Tensorflow S3 access
         os.environ["AWS_REGION"] = self.cortex_config.get("region", "")
@@ -468,12 +468,12 @@ class Context:
     def resource_status_key(self, resource):
         return os.path.join(self.status_prefix, resource["id"], resource["workload_id"])
 
-    def update_metadata(self, resource_id, metadata_key, metadata):
+    def write_metadata(self, resource_id, metadata_key, metadata):
         self._metadatas[resource_id] = metadata
         self.storage.put_json(metadata, metadata_key)
 
     def get_metadata(self, resource_id, metadata_key, use_cache=True):
-        if use_cache and self._metadatas.get(resource_id, None):
+        if use_cache and resource_id in self._metadatas:
             return self._metadatas[resource_id]
 
         metadata = self.storage.get_json(metadata_key, allow_missing=True)
