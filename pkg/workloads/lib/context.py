@@ -503,6 +503,8 @@ TRANSFORMER_IMPL_VALIDATION = {
     "optional": [
         {"name": "transform_spark", "args": ["data", "columns", "args", "transformed_column_name"]},
         {"name": "reverse_transform_python", "args": ["transformed_value", "args"]},
+        # it is possible to not define transform_python()
+        # if you are only using the transformation for training columns, and not for inference
         {"name": "transform_python", "args": ["sample", "args"]},
     ]
 }
