@@ -526,8 +526,10 @@ def validate_transformer(column_name, test_df, ctx, spark):
                     )
 
             ctx.write_metadata(
-                    transformed_column["id"], transformed_column["metadata_key"], {"type": inferred_python_type}
-                )
+                transformed_column["id"],
+                transformed_column["metadata_key"],
+                {"type": inferred_python_type},
+            )
 
         try:
             transform_python_collect = execute_transform_python(
@@ -593,7 +595,9 @@ def validate_transformer(column_name, test_df, ctx, spark):
             if transformer["output_type"] == "unknown":
                 inferred_spark_type = transform_spark_df.select(column_name).schema[0].dataType
                 ctx.write_metadata(
-                    transformed_column["id"], transformed_column["metadata_key"], {"type": inferred_spark_type}
+                    transformed_column["id"],
+                    transformed_column["metadata_key"],
+                    {"type": inferred_spark_type},
                 )
 
             # perform the necessary upcast/downcast for the column e.g INT -> LONG or DOUBLE -> FLOAT
@@ -658,7 +662,6 @@ def validate_transformer(column_name, test_df, ctx, spark):
                 "transform_python: " + inferred_python_type,
                 "transform_spark: " + inferred_spark_type,
             )
-
 
 
 def transform_column(column_name, df, ctx, spark):
