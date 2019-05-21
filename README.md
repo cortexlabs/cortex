@@ -20,6 +20,8 @@
 
 3. **Serve predictions:** serve real time predictions via horizontally scalable JSON APIs.
 
+<br>
+
 ## End-to-end machine learning workflow
 
 **Data ingestion:** connect to your data warehouse and ingest data.
