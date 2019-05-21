@@ -587,6 +587,16 @@ def validate_transformer(column_name, test_df, ctx, spark):
                     )
                 )
 
+
+            if transformer["output_type"] == "unknown":
+                column_type = transform_spark_df.select(column_name).schema[0].dataType
+                # for downstream operations on other jobs
+                ctx.write_metadata(
+                    transformed_column["id"],
+                    transformed_column["metadata_key"],
+                    {"type": SPARK_TYPE_TO_CORTEX_TYPE[column_type]},
+                )
+
             # perform the necessary upcast/downcast for the column e.g INT -> LONG or DOUBLE -> FLOAT
             transform_spark_df = transform_spark_df.withColumn(
                 column_name,
@@ -651,15 +661,6 @@ def transform_column(column_name, df, ctx, spark):
     if hasattr(trans_impl, "transform_spark"):
         column_type = CORTEX_TYPE_TO_SPARK_TYPE[ctx.get_inferred_column_type(column_name)]
         df = execute_transform_spark(column_name, df, ctx, spark)
-        if transformer["output_type"] == "unknown":
-            column_type = df.select(column_name).schema[0].dataType
-            # for downstream operations on other jobs
-            ctx.write_metadata(
-                transformed_column["id"],
-                transformed_column["metadata_key"],
-                {"type": SPARK_TYPE_TO_CORTEX_TYPE[column_type]},
-            )
-
         return df.withColumn(column_name, F.col(column_name).cast(column_type))
     elif hasattr(trans_impl, "transform_python"):
         return execute_transform_python(column_name, df, ctx, spark)
