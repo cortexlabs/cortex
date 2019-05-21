@@ -31,7 +31,7 @@ var templateVarRegex = regexp.MustCompile("\\{\\s*([a-zA-Z0-9_-]+)\\s*\\}")
 type Templates []*Template
 
 type Template struct {
-	ResourceConfigFields
+	ResourceFields
 	YAML string `json:"yaml" yaml:"yaml"`
 }
 

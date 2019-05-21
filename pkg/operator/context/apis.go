@@ -18,7 +18,9 @@ package context
 
 import (
 	"bytes"
+	"path/filepath"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
@@ -48,6 +50,7 @@ func getAPIs(config *userconfig.Config,
 					ID:           id,
 					IDWithTags:   idWithTags,
 					ResourceType: resource.APIType,
+					MetadataKey:  filepath.Join(consts.APIsDir, id+"_metadata.json"),
 				},
 			},
 			API:  apiConfig,

@@ -80,7 +80,6 @@ class Context:
         self.models = self.ctx["models"]
         self.apis = self.ctx["apis"]
         self.training_datasets = {k: v["dataset"] for k, v in self.models.items()}
-
         self.api_version = self.cortex_config["api_version"]
 
         if "local_storage_path" in kwargs:
@@ -113,6 +112,7 @@ class Context:
         self._transformer_impls = {}
         self._aggregator_impls = {}
         self._model_impls = {}
+        self._metadatas = {}
 
         # This affects Tensorflow S3 access
         os.environ["AWS_REGION"] = self.cortex_config.get("region", "")
@@ -228,7 +228,6 @@ class Context:
             return None, None
 
         transformer_name = self.transformed_columns[column_name]["transformer"]
-
         if transformer_name in self._transformer_impls:
             return self._transformer_impls[transformer_name]
 
@@ -469,6 +468,30 @@ class Context:
     def resource_status_key(self, resource):
         return os.path.join(self.status_prefix, resource["id"], resource["workload_id"])
 
+    def write_metadata(self, resource_id, metadata_key, metadata):
+        if resource_id in self._metadatas and self._metadatas[resource_id] == metadata:
+            return
+
+        self._metadatas[resource_id] = metadata
+        self.storage.put_json(metadata, metadata_key)
+
+    def get_metadata(self, resource_id, metadata_key, use_cache=True):
+        if use_cache and resource_id in self._metadatas:
+            return self._metadatas[resource_id]
+
+        metadata = self.storage.get_json(metadata_key, allow_missing=True)
+        self._metadatas[resource_id] = metadata
+        return metadata
+
+    def get_inferred_column_type(self, column_name):
+        column = self.columns[column_name]
+        column_type = self.columns[column_name].get("type", "unknown")
+        if column_type == "unknown":
+            column_type = self.get_metadata(column["id"], column["metadata_key"])["type"]
+            self.columns[column_name]["type"] = column_type
+
+        return column_type
+
 
 MODEL_IMPL_VALIDATION = {
     "required": [{"name": "create_estimator", "args": ["run_config", "model_config"]}],
@@ -483,6 +506,8 @@ TRANSFORMER_IMPL_VALIDATION = {
     "optional": [
         {"name": "transform_spark", "args": ["data", "columns", "args", "transformed_column_name"]},
         {"name": "reverse_transform_python", "args": ["transformed_value", "args"]},
+        # it is possible to not define transform_python()
+        # if you are only using the transformation for training columns, and not for inference
         {"name": "transform_python", "args": ["sample", "args"]},
     ]
 }

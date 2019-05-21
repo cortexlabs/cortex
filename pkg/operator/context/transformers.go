@@ -30,13 +30,13 @@ import (
 )
 
 func loadUserTransformers(
-	transConfigs userconfig.Transformers,
+	config *userconfig.Config,
 	impls map[string][]byte,
 	pythonPackages context.PythonPackages,
 ) (map[string]*context.Transformer, error) {
 
 	userTransformers := make(map[string]*context.Transformer)
-	for _, transConfig := range transConfigs {
+	for _, transConfig := range config.Transformers {
 		impl, ok := impls[transConfig.Path]
 		if !ok {
 			return nil, errors.Wrap(ErrorImplDoesNotExist(transConfig.Path), userconfig.Identify(transConfig))
@@ -48,6 +48,34 @@ func loadUserTransformers(
 		userTransformers[transformer.Name] = transformer
 	}
 
+	for _, transColConfig := range config.TransformedColumns {
+		if transColConfig.TransformerPath == nil {
+			continue
+		}
+
+		impl, ok := impls[*transColConfig.TransformerPath]
+		if !ok {
+			return nil, errors.Wrap(ErrorImplDoesNotExist(*transColConfig.TransformerPath), userconfig.Identify(transColConfig))
+		}
+
+		implHash := hash.Bytes(impl)
+		if _, ok := userTransformers[implHash]; ok {
+			continue
+		}
+
+		anonTransformerConfig := &userconfig.Transformer{
+			ResourceFields: userconfig.ResourceFields{
+				Name: implHash,
+			},
+			Path: *transColConfig.TransformerPath,
+		}
+		transformer, err := newTransformer(*anonTransformerConfig, impl, nil, pythonPackages)
+		if err != nil {
+			return nil, err
+		}
+		transColConfig.Transformer = transformer.Name
+		userTransformers[transformer.Name] = transformer
+	}
 	return userTransformers, nil
 }
 
@@ -75,6 +103,7 @@ func newTransformer(
 			ID:           id,
 			IDWithTags:   id,
 			ResourceType: resource.TransformerType,
+			MetadataKey:  filepath.Join(consts.TransformersDir, id+"_metadata.json"),
 		},
 		Transformer: &transConfig,
 		Namespace:   namespace,
@@ -114,7 +143,6 @@ func getTransformer(
 	name string,
 	userTransformers map[string]*context.Transformer,
 ) (*context.Transformer, error) {
-
 	if transformer, ok := builtinTransformers[name]; ok {
 		return transformer, nil
 	}
@@ -131,15 +159,15 @@ func getTransformers(
 
 	transformers := context.Transformers{}
 	for _, transformedColumnConfig := range config.TransformedColumns {
-		transformerName := transformedColumnConfig.Transformer
-		if _, ok := transformers[transformerName]; ok {
+		if _, ok := transformers[transformedColumnConfig.Transformer]; ok {
 			continue
 		}
-		transformer, err := getTransformer(transformerName, userTransformers)
+
+		transformer, err := getTransformer(transformedColumnConfig.Transformer, userTransformers)
 		if err != nil {
 			return nil, errors.Wrap(err, userconfig.Identify(transformedColumnConfig), userconfig.TransformerKey)
 		}
-		transformers[transformerName] = transformer
+		transformers[transformedColumnConfig.Transformer] = transformer
 	}
 
 	return transformers, nil

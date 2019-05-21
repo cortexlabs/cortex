@@ -148,8 +148,8 @@ def train(model_name, model_impl, ctx, model_dir):
     serving_input_fn = generate_json_serving_input_fn(model_name, ctx, model_impl)
     exporter = tf.estimator.FinalExporter("estimator", serving_input_fn, as_text=False)
 
-    dataset_metadata = ctx.storage.get_json(model["dataset"]["metadata_key"])
     train_num_steps = model["training"]["num_steps"]
+    dataset_metadata = ctx.get_metadata(model["dataset"]["id"], model["dataset"]["metadata_key"])
     if model["training"]["num_epochs"]:
         train_num_steps = (
             math.ceil(dataset_metadata["training_size"] / float(model["training"]["batch_size"]))

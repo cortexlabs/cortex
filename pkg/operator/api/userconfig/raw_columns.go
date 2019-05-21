@@ -53,7 +53,7 @@ var rawColumnValidation = &cr.InterfaceStructValidation{
 }
 
 type RawIntColumn struct {
-	ResourceConfigFields
+	ResourceFields
 	Type     ColumnType    `json:"type" yaml:"type"`
 	Required bool          `json:"required" yaml:"required"`
 	Min      *int64        `json:"min" yaml:"min"`
@@ -100,7 +100,7 @@ var rawIntColumnFieldValidations = []*cr.StructFieldValidation{
 }
 
 type RawFloatColumn struct {
-	ResourceConfigFields
+	ResourceFields
 	Type     ColumnType    `json:"type" yaml:"type"`
 	Required bool          `json:"required" yaml:"required"`
 	Min      *float32      `json:"min" yaml:"min"`
@@ -147,7 +147,7 @@ var rawFloatColumnFieldValidations = []*cr.StructFieldValidation{
 }
 
 type RawStringColumn struct {
-	ResourceConfigFields
+	ResourceFields
 	Type     ColumnType    `json:"type" yaml:"type"`
 	Required bool          `json:"required" yaml:"required"`
 	Values   []string      `json:"values" yaml:"values"`

@@ -57,10 +57,10 @@ def get_column_tf_types(model_name, ctx, training=True):
     """Generate a dict {column name -> tf_type}"""
     model = ctx.models[model_name]
 
-    column_types = {
-        column_name: CORTEX_TYPE_TO_TF_TYPE[ctx.columns[column_name]["type"]]
-        for column_name in model["feature_columns"]
-    }
+    column_types = {}
+    for column_name in model["feature_columns"]:
+        column_type = ctx.get_inferred_column_type(column_name)
+        column_types[column_name] = CORTEX_TYPE_TO_TF_TYPE[column_type]
 
     if training:
         target_column_name = model["target_column"]
@@ -69,7 +69,8 @@ def get_column_tf_types(model_name, ctx, training=True):
         ]
 
         for column_name in model["training_columns"]:
-            column_types[column_name] = CORTEX_TYPE_TO_TF_TYPE[ctx.columns[column_name]["type"]]
+            column_type = ctx.get_inferred_column_type(column_name)
+            column_types[column_name] = CORTEX_TYPE_TO_TF_TYPE[column_type]
 
     return column_types
 
@@ -79,7 +80,8 @@ def get_feature_spec(model_name, ctx, training=True):
     column_types = get_column_tf_types(model_name, ctx, training)
     feature_spec = {}
     for column_name, tf_type in column_types.items():
-        if ctx.columns[column_name]["type"] in consts.COLUMN_LIST_TYPES:
+        column_type = ctx.get_inferred_column_type(column_name)
+        if column_type in consts.COLUMN_LIST_TYPES:
             feature_spec[column_name] = tf.FixedLenSequenceFeature(
                 shape=(), dtype=tf_type, allow_missing=True
             )

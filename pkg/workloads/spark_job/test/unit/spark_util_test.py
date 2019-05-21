@@ -14,6 +14,7 @@
 import math
 
 import spark_util
+import consts
 from lib.exceptions import UserException
 
 import pytest
@@ -577,3 +578,13 @@ def test_run_builtin_aggregators_error(spark, ctx_obj, get_context):
 
     ctx.store_aggregate_result.assert_not_called()
     ctx.populate_args.assert_called_once_with({"ignoreNulls": "some_constant"})
+
+
+def test_infer_type():
+    assert spark_util.infer_type(1) == consts.COLUMN_TYPE_INT
+    assert spark_util.infer_type(1.0) == consts.COLUMN_TYPE_FLOAT
+    assert spark_util.infer_type("cortex") == consts.COLUMN_TYPE_STRING
+
+    assert spark_util.infer_type([1]) == consts.COLUMN_TYPE_INT_LIST
+    assert spark_util.infer_type([1.0]) == consts.COLUMN_TYPE_FLOAT_LIST
+    assert spark_util.infer_type(["cortex"]) == consts.COLUMN_TYPE_STRING_LIST

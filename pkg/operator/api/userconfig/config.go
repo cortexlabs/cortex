@@ -200,18 +200,38 @@ func (config *Config) Validate(envName string) error {
 		}
 	}
 
-	// Check local aggregators exist
+	// Check local aggregators exist or a path to one is defined
 	aggregatorNames := config.Aggregators.Names()
 	for _, aggregate := range config.Aggregates {
-		if !strings.Contains(aggregate.Aggregator, ".") && !slices.HasString(aggregatorNames, aggregate.Aggregator) {
+		if aggregate.AggregatorPath == nil && aggregate.Aggregator == "" {
+			return errors.Wrap(ErrorSpecifyOnlyOneMissing("aggregator", "aggregator_path"), Identify(aggregate))
+		}
+
+		if aggregate.AggregatorPath != nil && aggregate.Aggregator != "" {
+			return errors.Wrap(ErrorSpecifyOnlyOne("aggregator", "aggregator_path"), Identify(aggregate))
+		}
+
+		if aggregate.Aggregator != "" &&
+			!strings.Contains(aggregate.Aggregator, ".") &&
+			!slices.HasString(aggregatorNames, aggregate.Aggregator) {
 			return errors.Wrap(ErrorUndefinedResource(aggregate.Aggregator, resource.AggregatorType), Identify(aggregate), AggregatorKey)
 		}
 	}
 
-	// Check local transformers exist
+	// Check local transformers exist or a path to one is defined
 	transformerNames := config.Transformers.Names()
 	for _, transformedColumn := range config.TransformedColumns {
-		if !strings.Contains(transformedColumn.Transformer, ".") && !slices.HasString(transformerNames, transformedColumn.Transformer) {
+		if transformedColumn.TransformerPath == nil && transformedColumn.Transformer == "" {
+			return errors.Wrap(ErrorSpecifyOnlyOneMissing("transformer", "transformer_path"), Identify(transformedColumn))
+		}
+
+		if transformedColumn.TransformerPath != nil && transformedColumn.Transformer != "" {
+			return errors.Wrap(ErrorSpecifyOnlyOne("transformer", "transformer_path"), Identify(transformedColumn))
+		}
+
+		if transformedColumn.Transformer != "" &&
+			!strings.Contains(transformedColumn.Transformer, ".") &&
+			!slices.HasString(transformerNames, transformedColumn.Transformer) {
 			return errors.Wrap(ErrorUndefinedResource(transformedColumn.Transformer, resource.TransformerType), Identify(transformedColumn), TransformerKey)
 		}
 	}

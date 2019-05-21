@@ -1,13 +1,6 @@
-- kind: aggregator
-  name: max_length
-  inputs:
-    columns:
-      col: STRING_COLUMN
-  output_type: INT
-
 - kind: aggregate
   name: max_review_length
-  aggregator: max_length
+  aggregator_path: implementations/aggregators/max_length.py
   inputs:
     columns:
       col: review

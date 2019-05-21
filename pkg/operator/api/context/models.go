@@ -38,12 +38,11 @@ type Model struct {
 }
 
 type TrainingDataset struct {
-	userconfig.ResourceConfigFields
+	userconfig.ResourceFields
 	*ComputedResourceFields
-	ModelName   string `json:"model_name"`
-	TrainKey    string `json:"train_key"`
-	EvalKey     string `json:"eval_key"`
-	MetadataKey string `json:"metadata_key"`
+	ModelName string `json:"model_name"`
+	TrainKey  string `json:"train_key"`
+	EvalKey   string `json:"eval_key"`
 }
 
 func (trainingDataset *TrainingDataset) GetResourceType() resource.Type {

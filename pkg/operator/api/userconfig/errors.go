@@ -58,6 +58,7 @@ const (
 	ErrK8sQuantityMustBeInt
 	ErrRegressionTargetType
 	ErrClassificationTargetType
+	ErrSpecifyOnlyOneMissing
 )
 
 var errorKinds = []string{
@@ -90,9 +91,10 @@ var errorKinds = []string{
 	"err_k8s_quantity_must_be_int",
 	"err_regression_target_type",
 	"err_classification_target_type",
+	"err_specify_only_one_missing",
 }
 
-var _ = [1]int{}[int(ErrClassificationTargetType)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrSpecifyOnlyOneMissing)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -376,9 +378,22 @@ func ErrorRegressionTargetType() error {
 		message: "regression models can only predict float target values",
 	}
 }
+
 func ErrorClassificationTargetType() error {
 	return Error{
 		Kind:    ErrClassificationTargetType,
 		message: "classification models can only predict integer target values (i.e. {0, 1, ..., num_classes-1})",
+	}
+}
+
+func ErrorSpecifyOnlyOneMissing(vals ...string) error {
+	message := fmt.Sprintf("please specify one of %s", s.UserStrsOr(vals))
+	if len(vals) == 2 {
+		message = fmt.Sprintf("please specify either %s or %s", s.UserStr(vals[0]), s.UserStr(vals[1]))
+	}
+
+	return Error{
+		Kind:    ErrSpecifyOnlyOneMissing,
+		message: message,
 	}
 }

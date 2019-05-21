@@ -95,7 +95,8 @@ def create_prediction_request(transformed_sample):
     prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in transformed_sample.items():
-        data_type = tf_lib.CORTEX_TYPE_TO_TF_TYPE[ctx.columns[column_name]["type"]]
+        column_Type = ctx.get_inferred_column_type(column_name)
+        data_type = tf_lib.CORTEX_TYPE_TO_TF_TYPE[column_Type]
         shape = [1]
         if util.is_list(value):
             shape = [len(value)]

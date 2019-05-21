@@ -57,13 +57,14 @@ func loadPythonPackages(files map[string][]byte, datasetVersion string) (context
 		buf.WriteString(datasetVersion)
 		id := hash.Bytes(buf.Bytes())
 		pythonPackage := context.PythonPackage{
-			ResourceConfigFields: userconfig.ResourceConfigFields{
+			ResourceFields: userconfig.ResourceFields{
 				Name: consts.RequirementsTxt,
 			},
 			ComputedResourceFields: &context.ComputedResourceFields{
 				ResourceFields: &context.ResourceFields{
 					ID:           id,
 					ResourceType: resource.PythonPackageType,
+					MetadataKey:  filepath.Join(consts.PythonPackagesDir, id, "metadata.json"),
 				},
 			},
 			SrcKey:     filepath.Join(consts.PythonPackagesDir, id, "src.txt"),
@@ -95,13 +96,14 @@ func loadPythonPackages(files map[string][]byte, datasetVersion string) (context
 		}
 		id := hash.Bytes(buf.Bytes())
 		pythonPackage := context.PythonPackage{
-			ResourceConfigFields: userconfig.ResourceConfigFields{
+			ResourceFields: userconfig.ResourceFields{
 				Name: packageName,
 			},
 			ComputedResourceFields: &context.ComputedResourceFields{
 				ResourceFields: &context.ResourceFields{
 					ID:           id,
 					ResourceType: resource.PythonPackageType,
+					MetadataKey:  filepath.Join(consts.PythonPackagesDir, id, "metadata.json"),
 				},
 			},
 			SrcKey:     filepath.Join(consts.PythonPackagesDir, id, "src.zip"),

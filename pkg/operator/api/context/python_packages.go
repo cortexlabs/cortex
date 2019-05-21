@@ -24,7 +24,7 @@ import (
 type PythonPackages map[string]*PythonPackage
 
 type PythonPackage struct {
-	userconfig.ResourceConfigFields
+	userconfig.ResourceFields
 	*ComputedResourceFields
 	SrcKey     string `json:"src_key"`
 	PackageKey string `json:"package_key"`

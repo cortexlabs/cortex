@@ -130,12 +130,12 @@ func New(
 	}
 	ctx.PythonPackages = pythonPackages
 
-	userTransformers, err := loadUserTransformers(userconf.Transformers, files, pythonPackages)
+	userTransformers, err := loadUserTransformers(userconf, files, pythonPackages)
 	if err != nil {
 		return nil, err
 	}
 
-	userAggregators, err := loadUserAggregators(userconf.Aggregators, files, pythonPackages)
+	userAggregators, err := loadUserAggregators(userconf, files, pythonPackages)
 	if err != nil {
 		return nil, err
 	}

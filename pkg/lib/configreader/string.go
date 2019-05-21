@@ -28,15 +28,16 @@ import (
 )
 
 type StringValidation struct {
-	Required                      bool
-	Default                       string
-	AllowEmpty                    bool
-	AllowedValues                 []string
-	Prefix                        string
-	AlphaNumericDashDotUnderscore bool
-	AlphaNumericDashUnderscore    bool
-	DNS1035                       bool
-	Validator                     func(string) (string, error)
+	Required                             bool
+	Default                              string
+	AllowEmpty                           bool
+	AllowedValues                        []string
+	Prefix                               string
+	AlphaNumericDashDotUnderscoreOrEmpty bool
+	AlphaNumericDashDotUnderscore        bool
+	AlphaNumericDashUnderscore           bool
+	DNS1035                              bool
+	Validator                            func(string) (string, error)
 }
 
 func EnvVar(envVarName string) string {
@@ -187,6 +188,12 @@ func ValidateStringVal(val string, v *StringValidation) error {
 	if v.AlphaNumericDashUnderscore {
 		if !regex.CheckAlphaNumericDashUnderscore(val) {
 			return ErrorAlphaNumericDashUnderscore(val)
+		}
+	}
+
+	if v.AlphaNumericDashDotUnderscoreOrEmpty {
+		if !regex.CheckAlphaNumericDashDotUnderscore(val) && val != "" {
+			return ErrorAlphaNumericDashDotUnderscore(val)
 		}
 	}
 

@@ -47,9 +47,14 @@ func autoGenerateConfig(
 			if err != nil {
 				return errors.Wrap(err, userconfig.Identify(aggregate), userconfig.AggregatorKey)
 			}
-			argType, ok := aggregator.Inputs.Args[argName]
-			if !ok {
-				return errors.Wrap(configreader.ErrorUnsupportedKey(argName), userconfig.Identify(aggregate), userconfig.InputsKey, userconfig.ArgsKey)
+
+			var argType interface{}
+			if aggregator.Inputs != nil {
+				var ok bool
+				argType, ok = aggregator.Inputs.Args[argName]
+				if !ok {
+					return errors.Wrap(configreader.ErrorUnsupportedKey(argName), userconfig.Identify(aggregate), userconfig.InputsKey, userconfig.ArgsKey)
+				}
 			}
 
 			constantName := strings.Join([]string{
@@ -61,7 +66,7 @@ func autoGenerateConfig(
 			}, "/")
 
 			constant := &userconfig.Constant{
-				ResourceConfigFields: userconfig.ResourceConfigFields{
+				ResourceFields: userconfig.ResourceFields{
 					Name: constantName,
 				},
 				Type:  argType,
@@ -88,9 +93,14 @@ func autoGenerateConfig(
 			if err != nil {
 				return errors.Wrap(err, userconfig.Identify(transformedColumn), userconfig.TransformerKey)
 			}
-			argType, ok := transformer.Inputs.Args[argName]
-			if !ok {
-				return errors.Wrap(configreader.ErrorUnsupportedKey(argName), userconfig.Identify(transformedColumn), userconfig.InputsKey, userconfig.ArgsKey)
+
+			var argType interface{}
+			if transformer.Inputs != nil {
+				var ok bool
+				argType, ok = transformer.Inputs.Args[argName]
+				if !ok {
+					return errors.Wrap(configreader.ErrorUnsupportedKey(argName), userconfig.Identify(transformedColumn), userconfig.InputsKey, userconfig.ArgsKey)
+				}
 			}
 
 			constantName := strings.Join([]string{
@@ -102,7 +112,7 @@ func autoGenerateConfig(
 			}, "/")
 
 			constant := &userconfig.Constant{
-				ResourceConfigFields: userconfig.ResourceConfigFields{
+				ResourceFields: userconfig.ResourceFields{
 					Name: constantName,
 				},
 				Type:  argType,
@@ -115,8 +125,5 @@ func autoGenerateConfig(
 		}
 	}
 
-	if err := config.Validate(config.Environment.Name); err != nil {
-		return err
-	}
 	return nil
 }

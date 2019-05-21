@@ -30,13 +30,13 @@ import (
 )
 
 func loadUserAggregators(
-	aggregatorConfigs userconfig.Aggregators,
+	config *userconfig.Config,
 	impls map[string][]byte,
 	pythonPackages context.PythonPackages,
 ) (map[string]*context.Aggregator, error) {
 
 	userAggregators := make(map[string]*context.Aggregator)
-	for _, aggregatorConfig := range aggregatorConfigs {
+	for _, aggregatorConfig := range config.Aggregators {
 		impl, ok := impls[aggregatorConfig.Path]
 		if !ok {
 			return nil, errors.Wrap(ErrorImplDoesNotExist(aggregatorConfig.Path), userconfig.Identify(aggregatorConfig))
@@ -46,6 +46,36 @@ func loadUserAggregators(
 			return nil, err
 		}
 		userAggregators[aggregator.Name] = aggregator
+	}
+
+	for _, aggregateConfig := range config.Aggregates {
+		if aggregateConfig.AggregatorPath == nil {
+			continue
+		}
+
+		impl, ok := impls[*aggregateConfig.AggregatorPath]
+		if !ok {
+			return nil, errors.Wrap(ErrorImplDoesNotExist(*aggregateConfig.AggregatorPath), userconfig.Identify(aggregateConfig))
+		}
+
+		implHash := hash.Bytes(impl)
+		if _, ok := userAggregators[implHash]; ok {
+			continue
+		}
+
+		anonAggregatorConfig := &userconfig.Aggregator{
+			ResourceFields: userconfig.ResourceFields{
+				Name: implHash,
+			},
+			Path: *aggregateConfig.AggregatorPath,
+		}
+		aggregator, err := newAggregator(*anonAggregatorConfig, impl, nil, pythonPackages)
+		if err != nil {
+			return nil, err
+		}
+
+		aggregateConfig.Aggregator = aggregator.Name
+		userAggregators[anonAggregatorConfig.Name] = aggregator
 	}
 
 	return userAggregators, nil
@@ -76,6 +106,7 @@ func newAggregator(
 			ID:           id,
 			IDWithTags:   id,
 			ResourceType: resource.AggregatorType,
+			MetadataKey:  filepath.Join(consts.AggregatorsDir, id+"_metadata.json"),
 		},
 		Aggregator: &aggregatorConfig,
 		Namespace:  namespace,
@@ -132,15 +163,14 @@ func getAggregators(
 
 	aggregators := context.Aggregators{}
 	for _, aggregateConfig := range config.Aggregates {
-		aggregatorName := aggregateConfig.Aggregator
-		if _, ok := aggregators[aggregatorName]; ok {
+		if _, ok := aggregators[aggregateConfig.Aggregator]; ok {
 			continue
 		}
-		aggregator, err := getAggregator(aggregatorName, userAggregators)
+		aggregator, err := getAggregator(aggregateConfig.Aggregator, userAggregators)
 		if err != nil {
 			return nil, errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.AggregatorKey)
 		}
-		aggregators[aggregatorName] = aggregator
+		aggregators[aggregateConfig.Aggregator] = aggregator
 	}
 
 	return aggregators, nil

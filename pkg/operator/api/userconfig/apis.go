@@ -24,7 +24,7 @@ import (
 type APIs []*API
 
 type API struct {
-	ResourceConfigFields
+	ResourceFields
 	ModelName string      `json:"model_name" yaml:"model_name"`
 	Compute   *APICompute `json:"compute" yaml:"compute"`
 	Tags      Tags        `json:"tags" yaml:"tags"`

@@ -1,6 +1,6 @@
 - kind: transformed_column
   name: image_pixels
-  transformer: decode_and_normalize
+  transformer_path: implementations/transformers/decode_and_normalize.py
   inputs:
     columns:
       image: image

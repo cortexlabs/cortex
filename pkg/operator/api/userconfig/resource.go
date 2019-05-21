@@ -34,39 +34,39 @@ type Resource interface {
 	SetEmbed(*Embed)
 }
 
-type ResourceConfigFields struct {
+type ResourceFields struct {
 	Name     string `json:"name" yaml:"name"`
 	Index    int    `json:"index" yaml:"-"`
 	FilePath string `json:"file_path" yaml:"-"`
 	Embed    *Embed `json:"embed" yaml:"-"`
 }
 
-func (resourceConfigFields *ResourceConfigFields) GetName() string {
-	return resourceConfigFields.Name
+func (resourceFields *ResourceFields) GetName() string {
+	return resourceFields.Name
 }
 
-func (resourceConfigFields *ResourceConfigFields) GetIndex() int {
-	return resourceConfigFields.Index
+func (resourceFields *ResourceFields) GetIndex() int {
+	return resourceFields.Index
 }
 
-func (resourceConfigFields *ResourceConfigFields) SetIndex(index int) {
-	resourceConfigFields.Index = index
+func (resourceFields *ResourceFields) SetIndex(index int) {
+	resourceFields.Index = index
 }
 
-func (resourceConfigFields *ResourceConfigFields) GetFilePath() string {
-	return resourceConfigFields.FilePath
+func (resourceFields *ResourceFields) GetFilePath() string {
+	return resourceFields.FilePath
 }
 
-func (resourceConfigFields *ResourceConfigFields) SetFilePath(filePath string) {
-	resourceConfigFields.FilePath = filePath
+func (resourceFields *ResourceFields) SetFilePath(filePath string) {
+	resourceFields.FilePath = filePath
 }
 
-func (resourceConfigFields *ResourceConfigFields) GetEmbed() *Embed {
-	return resourceConfigFields.Embed
+func (resourceFields *ResourceFields) GetEmbed() *Embed {
+	return resourceFields.Embed
 }
 
-func (resourceConfigFields *ResourceConfigFields) SetEmbed(embed *Embed) {
-	resourceConfigFields.Embed = embed
+func (resourceFields *ResourceFields) SetEmbed(embed *Embed) {
+	resourceFields.Embed = embed
 }
 
 func Identify(r Resource) string {

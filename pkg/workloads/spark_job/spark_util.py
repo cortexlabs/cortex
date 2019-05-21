@@ -48,6 +48,31 @@ CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES = {
     consts.COLUMN_TYPE_STRING_LIST: [ArrayType(StringType(), True)],
 }
 
+PYTHON_TYPE_TO_CORTEX_TYPE = {
+    int: consts.COLUMN_TYPE_INT,
+    float: consts.COLUMN_TYPE_FLOAT,
+    str: consts.COLUMN_TYPE_STRING,
+}
+
+PYTHON_TYPE_TO_CORTEX_LIST_TYPE = {
+    int: consts.COLUMN_TYPE_INT_LIST,
+    float: consts.COLUMN_TYPE_FLOAT_LIST,
+    str: consts.COLUMN_TYPE_STRING_LIST,
+}
+
+SPARK_TYPE_TO_CORTEX_TYPE = {
+    IntegerType(): consts.COLUMN_TYPE_INT,
+    LongType(): consts.COLUMN_TYPE_INT,
+    ArrayType(IntegerType(), True): consts.COLUMN_TYPE_INT_LIST,
+    ArrayType(LongType(), True): consts.COLUMN_TYPE_INT_LIST,
+    FloatType(): consts.COLUMN_TYPE_FLOAT,
+    DoubleType(): consts.COLUMN_TYPE_FLOAT,
+    ArrayType(FloatType(), True): consts.COLUMN_TYPE_FLOAT_LIST,
+    ArrayType(DoubleType(), True): consts.COLUMN_TYPE_FLOAT_LIST,
+    StringType(): consts.COLUMN_TYPE_STRING,
+    ArrayType(StringType(), True): consts.COLUMN_TYPE_STRING_LIST,
+}
+
 
 def accumulate_count(df, spark):
     acc = df._sc.accumulator(0)
@@ -94,8 +119,11 @@ def write_training_data(model_name, df, ctx, spark):
         ctx.storage.hadoop_path(training_dataset["eval_key"])
     )
 
-    metadata = {"training_size": train_df_acc.value, "eval_size": eval_df_acc.value}
-    ctx.storage.put_json(metadata, training_dataset["metadata_key"])
+    ctx.write_metadata(
+        training_dataset["id"],
+        training_dataset["metadata_key"],
+        {"training_size": train_df_acc.value, "eval_size": eval_df_acc.value},
+    )
 
     return df
 
@@ -373,7 +401,7 @@ def run_custom_aggregator(aggregator_resource, df, ctx, spark):
     aggregator_column_input = input_schema["columns"]
     args_schema = input_schema["args"]
     args = {}
-    if input_schema.get("args", None) is not None and len(input_schema["args"]) > 0:
+    if input_schema.get("args", None) is not None and len(args_schema) > 0:
         args = ctx.populate_args(input_schema["args"])
     try:
         result = aggregator_impl.aggregate_spark(df, aggregator_column_input, args)
@@ -384,7 +412,9 @@ def run_custom_aggregator(aggregator_resource, df, ctx, spark):
             "function aggregate_spark",
         ) from e
 
-    if not util.validate_value_type(result, aggregator["output_type"]):
+    if aggregator["output_type"] and not util.validate_value_type(
+        result, aggregator["output_type"]
+    ):
         raise UserException(
             "aggregate " + aggregator_resource["name"],
             "aggregator " + aggregator["name"],
@@ -435,34 +465,75 @@ def execute_transform_python(column_name, df, ctx, spark, validate=False):
 
     if validate:
         transformed_column = ctx.transformed_columns[column_name]
+        column_type = ctx.get_inferred_column_type(column_name)
 
         def _transform_and_validate(*values):
             result = _transform(*values)
-            if not util.validate_column_type(result, transformed_column["type"]):
+            if not util.validate_column_type(result, column_type):
                 raise UserException(
                     "transformed column " + column_name,
                     "tranformation " + transformed_column["transformer"],
-                    "type of {} is not {}".format(result, transformed_column["type"]),
+                    "type of {} is not {}".format(result, column_type),
                 )
 
             return result
 
         transform_python_func = _transform_and_validate
 
-    column_data_type_str = ctx.transformed_columns[column_name]["type"]
+    column_data_type_str = ctx.get_inferred_column_type(column_name)
     transform_udf = F.udf(transform_python_func, CORTEX_TYPE_TO_SPARK_TYPE[column_data_type_str])
     return df.withColumn(column_name, transform_udf(*required_columns_sorted))
 
 
-def validate_transformer(column_name, df, ctx, spark):
-    transformed_column = ctx.transformed_columns[column_name]
+def infer_type(obj):
+    obj_type = type(obj)
 
+    if obj_type == list:
+        obj_type = type(obj[0])
+        return PYTHON_TYPE_TO_CORTEX_LIST_TYPE[obj_type]
+
+    return PYTHON_TYPE_TO_CORTEX_TYPE[obj_type]
+
+
+def validate_transformer(column_name, test_df, ctx, spark):
+    transformed_column = ctx.transformed_columns[column_name]
+    transformer = ctx.transformers[transformed_column["transformer"]]
     trans_impl, _ = ctx.get_transformer_impl(column_name)
+
+    inferred_python_type = None
+    inferred_spark_type = None
 
     if hasattr(trans_impl, "transform_python"):
         try:
+            if transformer["output_type"] == "unknown":
+                sample_df = test_df.collect()
+                sample = sample_df[0]
+                inputs = ctx.create_column_inputs_map(sample, column_name)
+                _, impl_args = extract_inputs(column_name, ctx)
+                initial_transformed_sample = trans_impl.transform_python(inputs, impl_args)
+                inferred_python_type = infer_type(initial_transformed_sample)
+
+                for row in sample_df:
+                    inputs = ctx.create_column_inputs_map(row, column_name)
+                    transformed_sample = trans_impl.transform_python(inputs, impl_args)
+                    if inferred_python_type != infer_type(transformed_sample):
+                        raise UserRuntimeException(
+                            "transformed column " + column_name,
+                            "type inference failed, mixed data types in dataframe.",
+                            'expected type of "'
+                            + transformed_sample
+                            + '" to be '
+                            + inferred_python_type,
+                        )
+
+                ctx.write_metadata(
+                    transformed_column["id"],
+                    transformed_column["metadata_key"],
+                    {"type": inferred_python_type},
+                )
+
             transform_python_collect = execute_transform_python(
-                column_name, df, ctx, spark, validate=True
+                column_name, test_df, ctx, spark, validate=True
             ).collect()
         except Exception as e:
             raise UserRuntimeException(
@@ -471,9 +542,8 @@ def validate_transformer(column_name, df, ctx, spark):
             ) from e
 
     if hasattr(trans_impl, "transform_spark"):
-
         try:
-            transform_spark_df = execute_transform_spark(column_name, df, ctx, spark)
+            transform_spark_df = execute_transform_spark(column_name, test_df, ctx, spark)
 
             # check that the return object is a dataframe
             if type(transform_spark_df) is not DataFrame:
@@ -505,33 +575,43 @@ def validate_transformer(column_name, df, ctx, spark):
             # check that expected output column has the correct data type
             if (
                 actual_structfield.dataType
-                not in CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES[transformed_column["type"]]
+                not in CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES[
+                    ctx.get_inferred_column_type(column_name)
+                ]
             ):
                 raise UserException(
                     "incorrect column type, expected {}, found {}.".format(
                         " or ".join(
                             str(t)
                             for t in CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES[
-                                transformed_column["type"]
+                                ctx.get_inferred_column_type(column_name)
                             ]
                         ),
                         actual_structfield.dataType,
                     )
                 )
 
+            if transformer["output_type"] == "unknown":
+                inferred_spark_type = transform_spark_df.select(column_name).schema[0].dataType
+                ctx.write_metadata(
+                    transformed_column["id"],
+                    transformed_column["metadata_key"],
+                    {"type": inferred_spark_type},
+                )
+
             # perform the necessary upcast/downcast for the column e.g INT -> LONG or DOUBLE -> FLOAT
             transform_spark_df = transform_spark_df.withColumn(
                 column_name,
                 F.col(column_name).cast(
-                    CORTEX_TYPE_TO_SPARK_TYPE[ctx.transformed_columns[column_name]["type"]]
+                    CORTEX_TYPE_TO_SPARK_TYPE[ctx.get_inferred_column_type(column_name)]
                 ),
             )
 
             # check that the function doesn't modify the schema of the other columns in the input dataframe
-            if set(transform_spark_df.columns) - set([column_name]) != set(df.columns):
+            if set(transform_spark_df.columns) - set([column_name]) != set(test_df.columns):
                 logger.error("expected schema:")
 
-                log_df_schema(df, logger.error)
+                log_df_schema(test_df, logger.error)
 
                 logger.error("found schema (with {} dropped):".format(column_name))
                 log_df_schema(transform_spark_df.drop(column_name), logger.error)
@@ -546,28 +626,36 @@ def validate_transformer(column_name, df, ctx, spark):
             )
             raise
 
-        if hasattr(trans_impl, "transform_spark") and hasattr(trans_impl, "transform_python"):
-            name_type_map = [(s.name, s.dataType) for s in transform_spark_df.schema]
-            transform_spark_collect = transform_spark_df.collect()
+    if hasattr(trans_impl, "transform_spark") and hasattr(trans_impl, "transform_python"):
+        if transformer["output_type"] == "unknown" and inferred_spark_type != inferred_python_type:
+            raise UserRuntimeException(
+                "transformed column " + column_name,
+                "type inference failed, transform_spark and transform_python had differing types.",
+                "transform_python: " + inferred_python_type,
+                "transform_spark: " + inferred_spark_type,
+            )
 
-            for tp_row, ts_row in zip(transform_python_collect, transform_spark_collect):
-                tp_dict = tp_row.asDict()
-                ts_dict = ts_row.asDict()
+        name_type_map = [(s.name, s.dataType) for s in transform_spark_df.schema]
+        transform_spark_collect = transform_spark_df.collect()
 
-                for name, dataType in name_type_map:
-                    if tp_dict[name] == ts_dict[name]:
-                        continue
-                    elif dataType == FloatType() and util.isclose(
-                        tp_dict[name], ts_dict[name], FLOAT_PRECISION
-                    ):
-                        continue
-                    raise UserException(
-                        column_name,
-                        "{0}.transform_spark and {0}.transform_python had differing values".format(
-                            transformed_column["transformer"]
-                        ),
-                        "{} != {}".format(ts_row, tp_row),
-                    )
+        for tp_row, ts_row in zip(transform_python_collect, transform_spark_collect):
+            tp_dict = tp_row.asDict()
+            ts_dict = ts_row.asDict()
+
+            for name, dataType in name_type_map:
+                if tp_dict[name] == ts_dict[name]:
+                    continue
+                elif dataType == FloatType() and util.isclose(
+                    tp_dict[name], ts_dict[name], FLOAT_PRECISION
+                ):
+                    continue
+                raise UserException(
+                    column_name,
+                    "{0}.transform_spark and {0}.transform_python had differing values".format(
+                        transformed_column["transformer"]
+                    ),
+                    "{} != {}".format(ts_row, tp_row),
+                )
 
 
 def transform_column(column_name, df, ctx, spark):
@@ -575,16 +663,14 @@ def transform_column(column_name, df, ctx, spark):
         return df
     if column_name in df.columns:
         return df
-    transformed_column = ctx.transformed_columns[column_name]
 
-    trans_impl, trans_impl_path = ctx.get_transformer_impl(column_name)
+    transformed_column = ctx.transformed_columns[column_name]
+    trans_impl, _ = ctx.get_transformer_impl(column_name)
+
     if hasattr(trans_impl, "transform_spark"):
-        return execute_transform_spark(column_name, df, ctx, spark).withColumn(
-            column_name,
-            F.col(column_name).cast(
-                CORTEX_TYPE_TO_SPARK_TYPE[ctx.transformed_columns[column_name]["type"]]
-            ),
-        )
+        column_type = CORTEX_TYPE_TO_SPARK_TYPE[ctx.get_inferred_column_type(column_name)]
+        df = execute_transform_spark(column_name, df, ctx, spark)
+        return df.withColumn(column_name, F.col(column_name).cast(column_type))
     elif hasattr(trans_impl, "transform_python"):
         return execute_transform_python(column_name, df, ctx, spark)
     else:

@@ -26,11 +26,12 @@ import (
 type TransformedColumns []*TransformedColumn
 
 type TransformedColumn struct {
-	ResourceConfigFields
-	Transformer string        `json:"transformer" yaml:"transformer"`
-	Inputs      *Inputs       `json:"inputs" yaml:"inputs"`
-	Compute     *SparkCompute `json:"compute" yaml:"compute"`
-	Tags        Tags          `json:"tags" yaml:"tags"`
+	ResourceFields
+	Transformer     string        `json:"transformer" yaml:"transformer"`
+	TransformerPath *string       `json:"transformer_path" yaml:"transformer_path"`
+	Inputs          *Inputs       `json:"inputs" yaml:"inputs"`
+	Compute         *SparkCompute `json:"compute" yaml:"compute"`
+	Tags            Tags          `json:"tags" yaml:"tags"`
 }
 
 var transformedColumnValidation = &configreader.StructValidation{
@@ -45,9 +46,13 @@ var transformedColumnValidation = &configreader.StructValidation{
 		{
 			StructField: "Transformer",
 			StringValidation: &configreader.StringValidation{
-				Required:                      true,
-				AlphaNumericDashDotUnderscore: true,
+				AllowEmpty:                           true,
+				AlphaNumericDashDotUnderscoreOrEmpty: true,
 			},
+		},
+		{
+			StructField:         "TransformerPath",
+			StringPtrValidation: &configreader.StringPtrValidation{},
 		},
 		inputValuesFieldValidation,
 		sparkComputeFieldValidation("Compute"),

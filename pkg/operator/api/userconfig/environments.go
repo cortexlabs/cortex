@@ -28,7 +28,7 @@ import (
 type Environments []*Environment
 
 type Environment struct {
-	ResourceConfigFields
+	ResourceFields
 	LogLevel *LogLevel `json:"log_level" yaml:"log_level"`
 	Limit    *Limit    `json:"limit" yaml:"limit"`
 	Data     Data      `json:"-" yaml:"-"`
