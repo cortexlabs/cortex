@@ -627,41 +627,36 @@ def validate_transformer(column_name, test_df, ctx, spark):
             )
             raise
 
-        if hasattr(trans_impl, "transform_spark") and hasattr(trans_impl, "transform_python"):
-            name_type_map = [(s.name, s.dataType) for s in transform_spark_df.schema]
-            transform_spark_collect = transform_spark_df.collect()
-
-            for tp_row, ts_row in zip(transform_python_collect, transform_spark_collect):
-                tp_dict = tp_row.asDict()
-                ts_dict = ts_row.asDict()
-
-                for name, dataType in name_type_map:
-                    if tp_dict[name] == ts_dict[name]:
-                        continue
-                    elif dataType == FloatType() and util.isclose(
-                        tp_dict[name], ts_dict[name], FLOAT_PRECISION
-                    ):
-                        continue
-                    raise UserException(
-                        column_name,
-                        "{0}.transform_spark and {0}.transform_python had differing values".format(
-                            transformed_column["transformer"]
-                        ),
-                        "{} != {}".format(ts_row, tp_row),
-                    )
-
-    if transformer["output_type"] == "unknown":
-        if (
-            inferred_spark_type
-            and inferred_python_type
-            and inferred_spark_type != inferred_python_type
-        ):
+    if hasattr(trans_impl, "transform_spark") and hasattr(trans_impl, "transform_python"):
+        if transformer["output_type"] == "unknown" and inferred_spark_type != inferred_python_type:
             raise UserRuntimeException(
                 "transformed column " + column_name,
                 "type inference failed, transform_spark and transform_python had differing types.",
                 "transform_python: " + inferred_python_type,
                 "transform_spark: " + inferred_spark_type,
             )
+
+        name_type_map = [(s.name, s.dataType) for s in transform_spark_df.schema]
+        transform_spark_collect = transform_spark_df.collect()
+
+        for tp_row, ts_row in zip(transform_python_collect, transform_spark_collect):
+            tp_dict = tp_row.asDict()
+            ts_dict = ts_row.asDict()
+
+            for name, dataType in name_type_map:
+                if tp_dict[name] == ts_dict[name]:
+                    continue
+                elif dataType == FloatType() and util.isclose(
+                    tp_dict[name], ts_dict[name], FLOAT_PRECISION
+                ):
+                    continue
+                raise UserException(
+                    column_name,
+                    "{0}.transform_spark and {0}.transform_python had differing values".format(
+                        transformed_column["transformer"]
+                    ),
+                    "{} != {}".format(ts_row, tp_row),
+                )
 
 
 def transform_column(column_name, df, ctx, spark):
