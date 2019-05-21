@@ -673,7 +673,6 @@ def transform_column(column_name, df, ctx, spark):
         return df
 
     transformed_column = ctx.transformed_columns[column_name]
-    transformer = ctx.transformers[transformed_column["transformer"]]
     trans_impl, _ = ctx.get_transformer_impl(column_name)
 
     if hasattr(trans_impl, "transform_spark"):
