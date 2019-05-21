@@ -469,6 +469,9 @@ class Context:
         return os.path.join(self.status_prefix, resource["id"], resource["workload_id"])
 
     def write_metadata(self, resource_id, metadata_key, metadata):
+        if resource_id in self._metadatas and self._metadatas[resource_id] == metadata:
+            return
+
         self._metadatas[resource_id] = metadata
         self.storage.put_json(metadata, metadata_key)
 
