@@ -8,7 +8,9 @@
 
 <br>
 
-**Machine learning pipelines as code:** deploy machine learning applications without worrying about setting up infrastructure, managing dependencies, or orchestrating data pipelines.
+## Machine learning pipelines as code
+
+Deploy machine learning applications without worrying about setting up infrastructure, managing dependencies, or orchestrating data pipelines.
 
 <br>
 
