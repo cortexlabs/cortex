@@ -103,7 +103,6 @@ func newTransformer(
 			ID:           id,
 			IDWithTags:   id,
 			ResourceType: resource.TransformerType,
-			MetadataKey:  filepath.Join(consts.TransformersDir, id+"_metadata.json"),
 		},
 		Transformer: &transConfig,
 		Namespace:   namespace,

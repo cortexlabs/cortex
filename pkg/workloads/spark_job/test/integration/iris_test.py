@@ -78,7 +78,7 @@ def test_simple_end_to_end(spark):
 
     assert raw_df.count() == 15
     assert (
-        ctx.get_metadata(ctx.raw_dataset["key"], ctx.raw_dataset["metadata_key"])["dataset_size"]
+        ctx.get_metadata(ctx.raw_dataset["key"])["dataset_size"]
         == 15
     )
     for raw_column_id in cols_to_validate:
@@ -120,7 +120,7 @@ def test_simple_end_to_end(spark):
         status["exist_code"] = "succeeded"
 
         dataset = raw_ctx["models"]["dnn"]["dataset"]
-        metadata = ctx.get_metadata(dataset["id"], dataset["metadata_key"])
+        metadata = ctx.get_metadata(dataset["id"])
         assert metadata["training_size"] + metadata["eval_size"] == 15
         assert local_storage_path.joinpath(dataset["train_key"], "_SUCCESS").exists()
         assert local_storage_path.joinpath(dataset["eval_key"], "_SUCCESS").exists()

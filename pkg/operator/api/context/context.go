@@ -30,6 +30,7 @@ type Context struct {
 	CortexConfig       *config.CortexConfig `json:"cortex_config"`
 	DatasetVersion     string               `json:"dataset_version"`
 	Root               string               `json:"root"`
+	MetadataRoot       string               `json:"metadata_root"`
 	RawDataset         RawDataset           `json:"raw_dataset"`
 	StatusPrefix       string               `json:"status_prefix"`
 	App                *App                 `json:"app"`
@@ -46,8 +47,7 @@ type Context struct {
 }
 
 type RawDataset struct {
-	Key         string `json:"key"`
-	MetadataKey string `json:"metadata_key"`
+	Key string `json:"key"`
 }
 
 type Resource interface {
@@ -55,7 +55,6 @@ type Resource interface {
 	GetID() string
 	GetIDWithTags() string
 	GetResourceFields() *ResourceFields
-	GetMetadataKey() string
 }
 
 type ComputedResource interface {
@@ -73,7 +72,6 @@ type ResourceFields struct {
 	ID           string        `json:"id"`
 	IDWithTags   string        `json:"id_with_tags"`
 	ResourceType resource.Type `json:"resource_type"`
-	MetadataKey  string        `json:"metadata_key"`
 }
 
 type ComputedResourceFields struct {
@@ -91,10 +89,6 @@ func (r *ResourceFields) GetIDWithTags() string {
 
 func (r *ResourceFields) GetResourceFields() *ResourceFields {
 	return r
-}
-
-func (r *ResourceFields) GetMetadataKey() string {
-	return r.MetadataKey
 }
 
 func (r *ComputedResourceFields) GetWorkloadID() string {

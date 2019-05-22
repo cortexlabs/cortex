@@ -117,9 +117,14 @@ func New(
 		ctx.DatasetVersion,
 		ctx.Environment.ID,
 	)
+
+	ctx.MetadataRoot = filepath.Join(
+		ctx.Root,
+		consts.MetadataDir,
+	)
+
 	ctx.RawDataset = context.RawDataset{
-		Key:         filepath.Join(ctx.Root, consts.RawDataDir, "raw.parquet"),
-		MetadataKey: filepath.Join(ctx.Root, consts.RawDataDir, "metadata.json"),
+		Key: filepath.Join(ctx.Root, consts.RawDataDir, "raw.parquet"),
 	}
 
 	ctx.StatusPrefix = StatusPrefix(ctx.App.Name)

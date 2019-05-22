@@ -468,14 +468,20 @@ class Context:
     def resource_status_key(self, resource):
         return os.path.join(self.status_prefix, resource["id"], resource["workload_id"])
 
-    def write_metadata(self, resource_id, metadata_key, metadata):
+    def get_metadata_url(self, resource_id):
+        return os.path.join(self.ctx["metadata_root"], resource_id+".json")
+
+
+    def write_metadata(self, resource_id, metadata):
+        metadata_key = self.get_metadata_url(resource_id)
         if resource_id in self._metadatas and self._metadatas[resource_id] == metadata:
             return
 
         self._metadatas[resource_id] = metadata
         self.storage.put_json(metadata, metadata_key)
 
-    def get_metadata(self, resource_id, metadata_key, use_cache=True):
+    def get_metadata(self, resource_id, use_cache=True):
+        metadata_key = self.get_metadata_url(resource_id)
         if use_cache and resource_id in self._metadatas:
             return self._metadatas[resource_id]
 
@@ -487,7 +493,7 @@ class Context:
         column = self.columns[column_name]
         column_type = self.columns[column_name].get("type", "unknown")
         if column_type == "unknown":
-            column_type = self.get_metadata(column["id"], column["metadata_key"])["type"]
+            column_type = self.get_metadata(column["id"])["type"]
             self.columns[column_name]["type"] = column_type
 
         return column_type

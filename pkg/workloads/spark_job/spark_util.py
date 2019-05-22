@@ -121,7 +121,6 @@ def write_training_data(model_name, df, ctx, spark):
 
     ctx.write_metadata(
         training_dataset["id"],
-        training_dataset["metadata_key"],
         {"training_size": train_df_acc.value, "eval_size": eval_df_acc.value},
     )
 
@@ -528,7 +527,6 @@ def validate_transformer(column_name, test_df, ctx, spark):
 
                 ctx.write_metadata(
                     transformed_column["id"],
-                    transformed_column["metadata_key"],
                     {"type": inferred_python_type},
                 )
 
@@ -595,7 +593,6 @@ def validate_transformer(column_name, test_df, ctx, spark):
                 inferred_spark_type = transform_spark_df.select(column_name).schema[0].dataType
                 ctx.write_metadata(
                     transformed_column["id"],
-                    transformed_column["metadata_key"],
                     {"type": inferred_spark_type},
                 )
 

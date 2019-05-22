@@ -18,9 +18,7 @@ package context
 
 import (
 	"bytes"
-	"path/filepath"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -82,7 +80,6 @@ func getTransformedColumns(
 					ID:           id,
 					IDWithTags:   idWithTags,
 					ResourceType: resource.TransformedColumnType,
-					MetadataKey:  filepath.Join(consts.TransformedColumnsDir, id+"_metadata.json"),
 				},
 			},
 			TransformedColumn: transformedColumnConfig,
