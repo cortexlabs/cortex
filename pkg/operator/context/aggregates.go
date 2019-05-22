@@ -96,7 +96,7 @@ func getAggregates(
 			},
 			Aggregate: aggregateConfig,
 			Type:      aggregator.OutputType,
-			Key:       aggregateKey + ".msgpack",
+			Key:       aggregateKey,
 		}
 	}
 
