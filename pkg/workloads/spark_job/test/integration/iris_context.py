@@ -39,7 +39,7 @@ def get(input_data_path):
 
 raw_ctx = {
     "raw_dataset": {
-        "key": "apps/iris/data/2019-03-08-09-58-35-701834/3976c5679bcf7cb550453802f4c3a9333c5f193f6097f1f5642de48d2397554/data_raw/raw.parquet",
+        "key": "apps/iris/data/2019-03-08-09-58-35-701834/3976c5679bcf7cb550453802f4c3a9333c5f193f6097f1f5642de48d2397554/data_raw/raw.parquet"
     },
     "aggregates": {
         "class_index": {

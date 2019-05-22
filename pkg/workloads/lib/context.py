@@ -469,8 +469,7 @@ class Context:
         return os.path.join(self.status_prefix, resource["id"], resource["workload_id"])
 
     def get_metadata_url(self, resource_id):
-        return os.path.join(self.ctx["metadata_root"], resource_id+".json")
-
+        return os.path.join(self.ctx["metadata_root"], resource_id + ".json")
 
     def write_metadata(self, resource_id, metadata):
         metadata_key = self.get_metadata_url(resource_id)

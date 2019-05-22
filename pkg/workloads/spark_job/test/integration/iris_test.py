@@ -77,10 +77,7 @@ def test_simple_end_to_end(spark):
     raw_df = spark_job.ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest)
 
     assert raw_df.count() == 15
-    assert (
-        ctx.get_metadata(ctx.raw_dataset["key"])["dataset_size"]
-        == 15
-    )
+    assert ctx.get_metadata(ctx.raw_dataset["key"])["dataset_size"] == 15
     for raw_column_id in cols_to_validate:
         path = os.path.join(raw_ctx["status_prefix"], raw_column_id, workload_id)
         status = storage.get_json(str(path))
