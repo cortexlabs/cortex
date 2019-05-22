@@ -106,7 +106,6 @@ func newAggregator(
 			ID:           id,
 			IDWithTags:   id,
 			ResourceType: resource.AggregatorType,
-			MetadataKey:  filepath.Join(consts.AggregatorsDir, id+"_metadata.json"),
 		},
 		Aggregator: &aggregatorConfig,
 		Namespace:  namespace,

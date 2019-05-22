@@ -54,6 +54,7 @@ var (
 	LogPrefixesDir        = "log_prefixes"
 	RawColumnsDir         = "raw_columns"
 	TransformedColumnsDir = "transformed_columns"
+	MetadataDir           = "metadata"
 
 	TelemetryURL = "https://telemetry.cortexlabs.dev"
 )
