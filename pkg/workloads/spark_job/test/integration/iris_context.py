@@ -521,6 +521,7 @@ raw_ctx = {
         "id": "da5e65b994ba4ebb069bdc19cf73da64aee79e5d83f466038dc75b3ef04fa63",
     },
     "root": "apps/iris/data/2019-03-08-09-58-35-701834/3976c5679bcf7cb550453802f4c3a9333c5f193f6097f1f5642de48d2397554",
+    "metadata_root": "apps/iris/data/2019-03-08-09-58-35-701834/3976c5679bcf7cb550453802f4c3a9333c5f193f6097f1f5642de48d2397554/metadata",
     "aggregators": {
         "cortex.mean": {
             "id": "a68b354ddadc2e14348698e03af74db72cba92d7acb162e3163629e3e343373",
