@@ -79,17 +79,17 @@ type StructFieldValidation struct {
 type StructValidation struct {
 	StructFieldValidations []*StructFieldValidation
 	Required               bool
-	AllowNull              bool
-	DefualtNil             bool // If this struct is nested and it's key is not defined, set it to nil instead of defaults or erroring (e.g. if any subfields are required)
+	AllowExplicitNull      bool
+	DefaultNil             bool // If this struct is nested and its key is not defined, set it to nil instead of defaults or erroring (e.g. if any subfields are required)
 	ShortCircuit           bool
 	AllowExtraFields       bool
 }
 
 type StructListValidation struct {
-	StructValidation *StructValidation
-	Required         bool
-	AllowNull        bool
-	ShortCircuit     bool
+	StructValidation  *StructValidation
+	Required          bool
+	AllowExplicitNull bool
+	ShortCircuit      bool
 }
 
 type InterfaceStructValidation struct {
@@ -99,7 +99,7 @@ type InterfaceStructValidation struct {
 	ParsedInterfaceStructTypes map[interface{}]*InterfaceStructType // must specify Parser if using this
 	Parser                     func(string) (interface{}, error)
 	Required                   bool
-	AllowNull                  bool
+	AllowExplicitNull          bool
 	ShortCircuit               bool
 	AllowExtraFields           bool
 }
@@ -112,7 +112,7 @@ type InterfaceStructType struct {
 type InterfaceStructListValidation struct {
 	InterfaceStructValidation *InterfaceStructValidation
 	Required                  bool
-	AllowNull                 bool
+	AllowExplicitNull         bool
 	ShortCircuit              bool
 }
 
@@ -122,9 +122,10 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 	var ok bool
 
 	if inter == nil {
-		if !v.AllowNull {
+		if !v.AllowExplicitNull {
 			return []error{ErrorCannotBeNull()}
 		}
+		return nil
 	}
 
 	interMap, ok := cast.InterfaceToStrInterfaceMap(inter)
@@ -271,14 +272,17 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
 			if !ok && validation.Required {
 				err = errors.Wrap(ErrorMustBeDefined(), key)
-			} else if !ok && validation.DefualtNil {
+			} else if !ok && validation.DefaultNil {
 				val = nil
 			} else {
 				if !ok {
-					interMapVal = make(map[string]interface{}) // Distinguish between null and not defined
+					interMapVal = make(map[string]interface{}) // Here validation.DefaultNil == false, so create an empty map to hold the nested default values
 				}
 				val = reflect.New(nestedType.Elem()).Interface()
 				errs = Struct(val, interMapVal, &validation)
+				if interMapVal == nil {
+					val = nil // If the object was nil, set val to nil rather than a pointer to the initialized zero value
+				}
 				errs = errors.WrapMultiple(errs, key)
 			}
 
@@ -358,7 +362,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 
 func StructList(dest interface{}, inter interface{}, v *StructListValidation) (interface{}, []error) {
 	if inter == nil {
-		if !v.AllowNull {
+		if !v.AllowExplicitNull {
 			return nil, []error{ErrorCannotBeNull()}
 		}
 		return nil, nil
@@ -380,6 +384,9 @@ func StructList(dest interface{}, inter interface{}, v *StructListValidation) (i
 			}
 			continue
 		}
+		if interItem == nil {
+			val = nil // If the object was nil, set val to nil rather than a pointer to the initialized zero value
+		}
 		dest = appendVal(dest, val)
 	}
 
@@ -388,7 +395,7 @@ func StructList(dest interface{}, inter interface{}, v *StructListValidation) (i
 
 func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface{}, []error) {
 	if inter == nil {
-		if !v.AllowNull {
+		if !v.AllowExplicitNull {
 			return nil, []error{ErrorCannotBeNull()}
 		}
 		return nil, nil
@@ -457,7 +464,7 @@ func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface
 	structValidation := &StructValidation{
 		StructFieldValidations: append(structType.StructFieldValidations, typeFieldValidation),
 		Required:               v.Required,
-		AllowNull:              v.AllowNull,
+		AllowExplicitNull:      v.AllowExplicitNull,
 		ShortCircuit:           v.ShortCircuit,
 		AllowExtraFields:       v.AllowExtraFields,
 	}
@@ -467,7 +474,7 @@ func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface
 
 func InterfaceStructList(dest interface{}, inter interface{}, v *InterfaceStructListValidation) (interface{}, []error) {
 	if inter == nil {
-		if !v.AllowNull {
+		if !v.AllowExplicitNull {
 			return nil, []error{ErrorCannotBeNull()}
 		}
 		return nil, nil
@@ -595,11 +602,11 @@ func prompt(opts *PromptOptions) string {
 	prompt := opts.Prompt
 
 	if opts.defaultStr != "" {
-		defualtStr := opts.defaultStr
+		defaultStr := opts.defaultStr
 		if opts.MaskDefault {
-			defualtStr = s.MaskString(defualtStr, 4)
+			defaultStr = s.MaskString(defaultStr, 4)
 		}
-		prompt = fmt.Sprintf("%s [%s]", opts.Prompt, defualtStr)
+		prompt = fmt.Sprintf("%s [%s]", opts.Prompt, defaultStr)
 	}
 
 	val, err := ui.Ask(prompt, &input.Options{
@@ -700,13 +707,13 @@ func appendVal(slice interface{}, val interface{}) interface{} {
 func setField(val interface{}, destStruct interface{}, fieldName string) error {
 	v := reflect.ValueOf(destStruct).Elem().FieldByName(fieldName)
 	if !v.IsValid() || !v.CanSet() {
-		debug.Pp(val)
-		debug.Pp(destStruct)
+		debug.Ppg(val)
+		debug.Ppg(destStruct)
 		return errors.Wrap(ErrorCannotSetStructField(), fieldName)
 	}
 	if !reflect.ValueOf(val).Type().AssignableTo(v.Type()) {
-		debug.Pp(val)
-		debug.Pp(destStruct)
+		debug.Ppg(val)
+		debug.Ppg(destStruct)
 		return errors.Wrap(ErrorCannotSetStructField(), fieldName)
 	}
 	v.Set(reflect.ValueOf(val))
@@ -717,8 +724,8 @@ func setField(val interface{}, destStruct interface{}, fieldName string) error {
 func setFirstField(val interface{}, destStruct interface{}) error {
 	v := reflect.ValueOf(destStruct).Elem().FieldByIndex([]int{0})
 	if !v.IsValid() || !v.CanSet() {
-		debug.Pp(val)
-		debug.Pp(destStruct)
+		debug.Ppg(val)
+		debug.Ppg(destStruct)
 		return errors.Wrap(ErrorCannotSetStructField(), "first field")
 	}
 	v.Set(reflect.ValueOf(val))
@@ -729,7 +736,7 @@ func setFirstField(val interface{}, destStruct interface{}) error {
 func setFieldNil(destStruct interface{}, fieldName string) error {
 	v := reflect.ValueOf(destStruct).Elem().FieldByName(fieldName)
 	if !v.IsValid() || !v.CanSet() {
-		debug.Pp(destStruct)
+		debug.Ppg(destStruct)
 		return errors.Wrap(ErrorCannotSetStructField(), fieldName)
 	}
 	v.Set(reflect.Zero(v.Type()))

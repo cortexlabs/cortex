@@ -599,53 +599,255 @@ type NullableConfig struct {
 	Key3 interface{} `json:"key3"`
 }
 
+type NullableParentConfig struct {
+	KeyA *NullableConfig `json:"key_a"`
+}
+
 func TestDefaultNull(t *testing.T) {
-	structValidation := &StructValidation{
-		StructFieldValidations: []*StructFieldValidation{
-			{
-				StructField: "Key1",
-				StringPtrValidation: &StringPtrValidation{
-					AllowExplicitNull: true,
-				},
-			},
-			{
-				StructField: "Key2",
-				StringListValidation: &StringListValidation{
-					Default:           []string{"key2"},
-					AllowExplicitNull: true,
-				},
-			},
-			{
-				StructField: "Key3",
-				InterfaceValidation: &InterfaceValidation{
-					Default:           "key3",
-					AllowExplicitNull: true,
-				},
-			},
-		},
-		AllowNull: true,
-	}
-
-	configData := MustReadYAMLStr(``)
-	expected := &NullableConfig{
-		Key1: nil,
-		Key2: []string{"key2"},
-		Key3: "key3",
-	}
-	testConfig(structValidation, configData, expected, t)
-
-	configData = MustReadYAMLStr(
+	configDataEmpty := MustReadYAMLStr(``)
+	configDataNull := MustReadYAMLStr(`Null`)
+	configDataEmptyMap := MustReadYAMLStr(`{}`)
+	configDataNullValues := MustReadYAMLStr(
 		`
      key1: null
      key2: null
      key3: null
      `)
+	configDataParentNullValues := MustReadYAMLStr(
+		`
+     key_a:
+       key1: null
+       key2: null
+       key3: null
+     `)
+	configDataParentNull := MustReadYAMLStr(
+		`
+     key_a: null
+     `)
+
+	structFieldValidations := []*StructFieldValidation{
+		{
+			StructField: "Key1",
+			StringPtrValidation: &StringPtrValidation{
+				AllowExplicitNull: true,
+			},
+		},
+		{
+			StructField: "Key2",
+			StringListValidation: &StringListValidation{
+				Default:           []string{"key2"},
+				AllowExplicitNull: true,
+			},
+		},
+		{
+			StructField: "Key3",
+			InterfaceValidation: &InterfaceValidation{
+				Default:           "key3",
+				AllowExplicitNull: true,
+			},
+		},
+	}
+
+	structValidation := &StructValidation{
+		StructFieldValidations: structFieldValidations,
+		AllowExplicitNull:      true,
+	}
+
+	var expected interface{}
+
+	//
+
+	expected = &NullableConfig{}
+	testConfig(structValidation, configDataEmpty, expected, t)
+	testConfig(structValidation, configDataNull, expected, t)
+
+	expected = &NullableConfig{
+		Key1: nil,
+		Key2: []string{"key2"},
+		Key3: "key3",
+	}
+	testConfig(structValidation, configDataEmptyMap, expected, t)
+
 	expected = &NullableConfig{
 		Key1: nil,
 		Key2: nil,
 		Key3: nil,
 	}
-	testConfig(structValidation, configData, expected, t)
+	testConfig(structValidation, configDataNullValues, expected, t)
+
+	//
+
+	structValidation = &StructValidation{
+		StructFieldValidations: structFieldValidations,
+		AllowExplicitNull:      false,
+	}
+
+	expected = &NullableConfig{}
+	testConfigError(structValidation, configDataEmpty, expected, t)
+	testConfigError(structValidation, configDataNull, expected, t)
+
+	expected = &NullableConfig{
+		Key1: nil,
+		Key2: []string{"key2"},
+		Key3: "key3",
+	}
+	testConfig(structValidation, configDataEmptyMap, expected, t)
+
+	expected = &NullableConfig{
+		Key1: nil,
+		Key2: nil,
+		Key3: nil,
+	}
+	testConfig(structValidation, configDataNullValues, expected, t)
+
+	//
+
+	structValidation = &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
+			{
+				StructField: "KeyA",
+				StructValidation: &StructValidation{
+					StructFieldValidations: structFieldValidations,
+					AllowExplicitNull:      true,
+				},
+			},
+		},
+		AllowExplicitNull: true,
+	}
+
+	expected = &NullableParentConfig{}
+	testConfig(structValidation, configDataEmpty, expected, t)
+	testConfig(structValidation, configDataNull, expected, t)
+
+	expected = &NullableParentConfig{
+		KeyA: &NullableConfig{
+			Key1: nil,
+			Key2: []string{"key2"},
+			Key3: "key3",
+		},
+	}
+	testConfig(structValidation, configDataEmptyMap, expected, t)
+
+	expected = &NullableParentConfig{}
+	testConfig(structValidation, configDataParentNull, expected, t)
+
+	expected = &NullableParentConfig{
+		KeyA: &NullableConfig{
+			Key1: nil,
+			Key2: nil,
+			Key3: nil,
+		},
+	}
+	testConfig(structValidation, configDataParentNullValues, expected, t)
+
+	//
+
+	structValidation = &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
+			{
+				StructField: "KeyA",
+				StructValidation: &StructValidation{
+					StructFieldValidations: structFieldValidations,
+					AllowExplicitNull:      false,
+				},
+			},
+		},
+		AllowExplicitNull: false,
+	}
+
+	expected = &NullableParentConfig{}
+	testConfigError(structValidation, configDataEmpty, expected, t)
+	testConfigError(structValidation, configDataNull, expected, t)
+
+	expected = &NullableParentConfig{
+		KeyA: &NullableConfig{
+			Key1: nil,
+			Key2: []string{"key2"},
+			Key3: "key3",
+		},
+	}
+	testConfig(structValidation, configDataEmptyMap, expected, t)
+
+	testConfigError(structValidation, configDataParentNull, expected, t)
+
+	expected = &NullableParentConfig{
+		KeyA: &NullableConfig{
+			Key1: nil,
+			Key2: nil,
+			Key3: nil,
+		},
+	}
+	testConfig(structValidation, configDataParentNullValues, expected, t)
+
+	//
+
+	structValidation = &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
+			{
+				StructField: "KeyA",
+				StructValidation: &StructValidation{
+					StructFieldValidations: structFieldValidations,
+					AllowExplicitNull:      true,
+					DefaultNil:             true,
+				},
+			},
+		},
+		AllowExplicitNull: false,
+	}
+
+	expected = &NullableParentConfig{}
+	testConfigError(structValidation, configDataEmpty, expected, t)
+	testConfigError(structValidation, configDataNull, expected, t)
+
+	expected = &NullableParentConfig{}
+	testConfig(structValidation, configDataEmptyMap, expected, t)
+
+	expected = &NullableParentConfig{}
+	testConfig(structValidation, configDataParentNull, expected, t)
+
+	expected = &NullableParentConfig{
+		KeyA: &NullableConfig{
+			Key1: nil,
+			Key2: nil,
+			Key3: nil,
+		},
+	}
+	testConfig(structValidation, configDataParentNullValues, expected, t)
+
+	//
+
+	structValidation = &StructValidation{
+		StructFieldValidations: []*StructFieldValidation{
+			{
+				StructField: "KeyA",
+				StructValidation: &StructValidation{
+					StructFieldValidations: structFieldValidations,
+					AllowExplicitNull:      false,
+					DefaultNil:             true,
+				},
+			},
+		},
+		AllowExplicitNull: false,
+	}
+
+	expected = &NullableParentConfig{}
+	testConfigError(structValidation, configDataEmpty, expected, t)
+	testConfigError(structValidation, configDataNull, expected, t)
+
+	expected = &NullableParentConfig{}
+	testConfig(structValidation, configDataEmptyMap, expected, t)
+
+	expected = &NullableParentConfig{}
+	testConfigError(structValidation, configDataParentNull, expected, t)
+
+	expected = &NullableParentConfig{
+		KeyA: &NullableConfig{
+			Key1: nil,
+			Key2: nil,
+			Key3: nil,
+		},
+	}
+	testConfig(structValidation, configDataParentNullValues, expected, t)
 }
 
 type DefaultConfig struct {
@@ -826,7 +1028,13 @@ func testConfig(structValidation *StructValidation, configData interface{}, expe
 			fmt.Println("ERROR: " + err.Error())
 		}
 	}
-	require.Nil(t, errs)
+	require.Empty(t, errs)
 
 	require.Equal(t, expected, config)
+}
+
+func testConfigError(structValidation *StructValidation, configData interface{}, expectedTypeInstance interface{}, t *testing.T) {
+	config := reflect.New(reflect.TypeOf(expectedTypeInstance).Elem()).Interface()
+	errs := Struct(config, configData, structValidation)
+	require.NotEmpty(t, errs)
 }
