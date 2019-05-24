@@ -25,7 +25,6 @@ type RawColumn interface {
 	Column
 	GetType() ColumnType
 	GetCompute() *SparkCompute
-	GetUserConfig() Resource
 }
 
 type RawColumns []RawColumn
@@ -181,6 +180,24 @@ var rawStringColumnFieldValidations = []*cr.StructFieldValidation{
 	typeFieldValidation,
 }
 
+type RawInferredColumn struct {
+	ResourceFields
+	Type    ColumnType    `json:"type" yaml:"type"`
+	Compute *SparkCompute `json:"compute" yaml:"compute"`
+}
+
+var rawInferredColumnFieldValidations = []*cr.StructFieldValidation{
+	{
+		Key:         "name",
+		StructField: "Name",
+		StringValidation: &cr.StringValidation{
+			AlphaNumericDashUnderscore: true,
+			Required:                   true,
+		},
+	},
+	sparkComputeFieldValidation("Compute"),
+}
+
 func (rawColumns RawColumns) Validate() error {
 	resources := make([]Resource, len(rawColumns))
 	for i, res := range rawColumns {
@@ -224,6 +241,10 @@ func (column *RawStringColumn) GetType() ColumnType {
 	return column.Type
 }
 
+func (column *RawInferredColumn) GetType() ColumnType {
+	return column.Type
+}
+
 func (column *RawIntColumn) GetCompute() *SparkCompute {
 	return column.Compute
 }
@@ -233,6 +254,10 @@ func (column *RawFloatColumn) GetCompute() *SparkCompute {
 }
 
 func (column *RawStringColumn) GetCompute() *SparkCompute {
+	return column.Compute
+}
+
+func (column *RawInferredColumn) GetCompute() *SparkCompute {
 	return column.Compute
 }
 
@@ -248,6 +273,10 @@ func (column *RawStringColumn) GetResourceType() resource.Type {
 	return resource.RawColumnType
 }
 
+func (column *RawInferredColumn) GetResourceType() resource.Type {
+	return resource.RawColumnType
+}
+
 func (column *RawIntColumn) IsRaw() bool {
 	return true
 }
@@ -260,14 +289,6 @@ func (column *RawStringColumn) IsRaw() bool {
 	return true
 }
 
-func (column *RawIntColumn) GetUserConfig() Resource {
-	return column
-}
-
-func (column *RawFloatColumn) GetUserConfig() Resource {
-	return column
-}
-
-func (column *RawStringColumn) GetUserConfig() Resource {
-	return column
+func (column *RawInferredColumn) IsRaw() bool {
+	return true
 }

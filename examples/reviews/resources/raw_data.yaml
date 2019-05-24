@@ -1,9 +1,0 @@
-- kind: environment
-  name: dev
-  data:
-    type: csv
-    path: s3a://cortex-examples/reviews.csv
-    csv_config:
-      header: true
-      escape: "\""
-    schema: ["review", "label"]

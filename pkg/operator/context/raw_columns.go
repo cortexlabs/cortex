@@ -98,8 +98,21 @@ func getRawColumns(
 				},
 				RawStringColumn: typedColumnConfig,
 			}
+		case *userconfig.RawInferredColumn:
+			buf.WriteString(typedColumnConfig.Name)
+			id := hash.Bytes(buf.Bytes())
+			rawColumn = &context.RawInferredColumn{
+				ComputedResourceFields: &context.ComputedResourceFields{
+					ResourceFields: &context.ResourceFields{
+						ID:           id,
+						ResourceType: resource.RawColumnType,
+						MetadataKey:  filepath.Join(consts.RawColumnsDir, id+"_metadata.json"),
+					},
+				},
+				RawInferredColumn: typedColumnConfig,
+			}
 		default:
-			return nil, errors.Wrap(configreader.ErrorInvalidStr(userconfig.TypeKey, userconfig.IntegerColumnType.String(), userconfig.FloatColumnType.String(), userconfig.StringColumnType.String()), userconfig.Identify(columnConfig)) // unexpected error
+			return nil, errors.Wrap(configreader.ErrorInvalidStr(typedColumnConfig.GetType().String(), userconfig.IntegerColumnType.String(), userconfig.FloatColumnType.String(), userconfig.StringColumnType.String()), userconfig.Identify(columnConfig)) // unexpected error
 		}
 
 		rawColumns[columnConfig.GetName()] = rawColumn

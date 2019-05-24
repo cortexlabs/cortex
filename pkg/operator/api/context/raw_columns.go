@@ -27,7 +27,6 @@ type RawColumns map[string]RawColumn
 type RawColumn interface {
 	Column
 	GetCompute() *userconfig.SparkCompute
-	GetUserConfig() userconfig.Resource
 }
 
 type RawIntColumn struct {
@@ -42,6 +41,11 @@ type RawFloatColumn struct {
 
 type RawStringColumn struct {
 	*userconfig.RawStringColumn
+	*ComputedResourceFields
+}
+
+type RawInferredColumn struct {
+	*userconfig.RawInferredColumn
 	*ComputedResourceFields
 }
 
@@ -96,5 +100,9 @@ func (rawColumn *RawFloatColumn) GetInputRawColumnNames() []string {
 }
 
 func (rawColumn *RawStringColumn) GetInputRawColumnNames() []string {
+	return []string{rawColumn.GetName()}
+}
+
+func (rawColumn *RawInferredColumn) GetInputRawColumnNames() []string {
 	return []string{rawColumn.GetName()}
 }

@@ -21,6 +21,8 @@ import (
 	"io/ioutil"
 	"strings"
 
+	k8sresource "k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -437,6 +439,28 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 		config, err = config.MergeBytes([]byte(populatedTemplate), emb.FilePath, emb, template)
 		if err != nil {
 			return nil, err
+		}
+	}
+
+	rawColumnNames := config.RawColumns.Names()
+	for _, env := range config.Environments {
+		ingestedColumnNames := env.Data.GetIngestedColumns()
+		missingColumns := slices.SubtractStrSlice(ingestedColumnNames, rawColumnNames)
+		for _, inferredColumn := range missingColumns {
+			inferredRawColumn := &RawInferredColumn{
+				ResourceFields: ResourceFields{
+					Name: inferredColumn,
+				},
+				Type: InferredColumnType,
+				Compute: &SparkCompute{
+					Executors:   1,
+					DriverCPU:   Quantity{Quantity: k8sresource.MustParse("1")},
+					ExecutorCPU: Quantity{Quantity: k8sresource.MustParse("1")},
+					DriverMem:   Quantity{Quantity: k8sresource.MustParse("500Mi")},
+					ExecutorMem: Quantity{Quantity: k8sresource.MustParse("500Mi")},
+				},
+			}
+			config.RawColumns = append(config.RawColumns, inferredRawColumn)
 		}
 	}
 

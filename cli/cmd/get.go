@@ -306,7 +306,7 @@ func describeRawColumn(name string, resourcesRes *schema.GetResourcesResponse) (
 	}
 	dataStatus := resourcesRes.DataStatuses[rawColumn.GetID()]
 	out := dataStatusSummary(dataStatus)
-	out += resourceStr(rawColumn.GetUserConfig())
+	out += resourceStr(rawColumn)
 	return out, nil
 }
 
