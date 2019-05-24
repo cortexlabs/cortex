@@ -80,13 +80,11 @@ func getAggregates(
 		buf.WriteString(aggregateConfig.Tags.ID())
 		idWithTags := hash.Bytes(buf.Bytes())
 
-		aggregateRootKey := filepath.Join(
+		aggregateKey := filepath.Join(
 			root,
 			consts.AggregatesDir,
 			id,
-		)
-		aggregateKey := aggregateRootKey + ".msgpack"
-		aggregateMetadataKey := aggregateRootKey + "_metadata.json"
+		) + ".msgpack"
 
 		aggregates[aggregateConfig.Name] = &context.Aggregate{
 			ComputedResourceFields: &context.ComputedResourceFields{
@@ -94,7 +92,6 @@ func getAggregates(
 					ID:           id,
 					IDWithTags:   idWithTags,
 					ResourceType: resource.AggregateType,
-					MetadataKey:  aggregateMetadataKey,
 				},
 			},
 			Aggregate: aggregateConfig,

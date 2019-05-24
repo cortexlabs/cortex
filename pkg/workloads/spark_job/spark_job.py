@@ -91,9 +91,7 @@ def parse_args(args):
 
 
 def validate_dataset(ctx, raw_df, cols_to_validate):
-    total_row_count = ctx.get_metadata(ctx.raw_dataset["key"], ctx.raw_dataset["metadata_key"])[
-        "dataset_size"
-    ]
+    total_row_count = ctx.get_metadata(ctx.raw_dataset["key"])["dataset_size"]
     conditions_dict = spark_util.value_check_data(ctx, raw_df, cols_to_validate)
 
     if len(conditions_dict) > 0:
@@ -162,11 +160,7 @@ def ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest):
                 ingest_df = limit_dataset(full_dataset_size, ingest_df, ctx.environment["limit"])
 
             written_count = write_raw_dataset(ingest_df, ctx, spark)
-            ctx.write_metadata(
-                ctx.raw_dataset["key"],
-                ctx.raw_dataset["metadata_key"],
-                {"dataset_size": written_count},
-            )
+            ctx.write_metadata(ctx.raw_dataset["key"], {"dataset_size": written_count})
             if written_count != full_dataset_size:
                 logger.info(
                     "{} rows read, {} rows dropped, {} rows ingested".format(

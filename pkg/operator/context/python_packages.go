@@ -64,7 +64,6 @@ func loadPythonPackages(files map[string][]byte, datasetVersion string) (context
 				ResourceFields: &context.ResourceFields{
 					ID:           id,
 					ResourceType: resource.PythonPackageType,
-					MetadataKey:  filepath.Join(consts.PythonPackagesDir, id, "metadata.json"),
 				},
 			},
 			SrcKey:     filepath.Join(consts.PythonPackagesDir, id, "src.txt"),
@@ -103,7 +102,6 @@ func loadPythonPackages(files map[string][]byte, datasetVersion string) (context
 				ResourceFields: &context.ResourceFields{
 					ID:           id,
 					ResourceType: resource.PythonPackageType,
-					MetadataKey:  filepath.Join(consts.PythonPackagesDir, id, "metadata.json"),
 				},
 			},
 			SrcKey:     filepath.Join(consts.PythonPackagesDir, id, "src.zip"),
