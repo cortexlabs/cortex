@@ -25,7 +25,7 @@ type App struct {
 }
 
 var appValidation = &cr.StructValidation{
-	DefualtNil: true,
+	DefaultNil: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
 			StructField: "Name",
