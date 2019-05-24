@@ -648,14 +648,14 @@ func TestDefaultNull(t *testing.T) {
 		},
 	}
 
+	// AllowExplicitNull = true
+
 	structValidation := &StructValidation{
 		StructFieldValidations: structFieldValidations,
 		AllowExplicitNull:      true,
 	}
 
 	var expected interface{}
-
-	//
 
 	expected = &NullableConfig{}
 	testConfig(structValidation, configDataEmpty, expected, t)
@@ -675,7 +675,7 @@ func TestDefaultNull(t *testing.T) {
 	}
 	testConfig(structValidation, configDataNullValues, expected, t)
 
-	//
+	// AllowExplicitNull = false
 
 	structValidation = &StructValidation{
 		StructFieldValidations: structFieldValidations,
@@ -700,7 +700,7 @@ func TestDefaultNull(t *testing.T) {
 	}
 	testConfig(structValidation, configDataNullValues, expected, t)
 
-	//
+	// parent, AllowExplicitNull = true on both
 
 	structValidation = &StructValidation{
 		StructFieldValidations: []*StructFieldValidation{
@@ -740,7 +740,7 @@ func TestDefaultNull(t *testing.T) {
 	}
 	testConfig(structValidation, configDataParentNullValues, expected, t)
 
-	//
+	// parent, AllowExplicitNull = false on both
 
 	structValidation = &StructValidation{
 		StructFieldValidations: []*StructFieldValidation{
@@ -779,7 +779,7 @@ func TestDefaultNull(t *testing.T) {
 	}
 	testConfig(structValidation, configDataParentNullValues, expected, t)
 
-	//
+	// parent, AllowExplicitNull = true on child, DefaultNil = true
 
 	structValidation = &StructValidation{
 		StructFieldValidations: []*StructFieldValidation{
@@ -814,7 +814,7 @@ func TestDefaultNull(t *testing.T) {
 	}
 	testConfig(structValidation, configDataParentNullValues, expected, t)
 
-	//
+	// parent, AllowExplicitNull = false on both, DefaultNil = true
 
 	structValidation = &StructValidation{
 		StructFieldValidations: []*StructFieldValidation{
