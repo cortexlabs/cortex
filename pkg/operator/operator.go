@@ -119,7 +119,6 @@ func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.RequestURI() != "/init" {
 			authHeader := r.Header.Get("Authorization")
-			fmt.Println(authHeader)
 			if !strings.HasPrefix(authHeader, "CortexAuth ") {
 				endpoints.RespondError(w, endpoints.ErrorAuthHeaderMissing())
 				return

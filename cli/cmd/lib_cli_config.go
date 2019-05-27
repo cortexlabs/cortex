@@ -143,62 +143,60 @@ func awsPromptValidation(defaults *AWSConfig) *cr.PromptValidation {
 	}
 }
 
-// var fileValidation = &cr.StructValidation{
-// 	ShortCircuit:     false,
-// 	AllowExtraFields: true,
-// 	StructFieldValidations: []*cr.StructFieldValidation{
-// 		{
-// 			StructField: "CortexURL",
-// 			StringValidation: cr.GetURLValidation(&cr.URLValidation{
-// 				Required: true,
-// 			}),
-// 		},
-// 		{
-// 			StructField: "CloudProvider",
-// 			StringValidation: &cr.StringValidation{
-// 				Required: true,
-// 			},
-// 		},
-// 		{
-// 			StructField: "AWS",
-// 			StructValidation: &cr.StructValidation{
-// 				StructFieldValidations: []*cr.StructFieldValidation{
-// 					{
-// 						StructField: "AccessKeyID",
-// 						StringValidation: &cr.StringValidation{
-// 							Required: true,
-// 						},
-// 					},
-// 					{
-// 						StructField: "SecretAccessKey",
-// 						StringValidation: &cr.StringValidation{
-// 							Required: true,
-// 						},
-// 					},
-// 				},
-// 				Required:   false,
-// 				AllowNull:  true,
-// 				DefualtNil: true,
-// 			},
-// 		},
-// 		{
-// 			StructField: "Local",
-// 			StructValidation: &cr.StructValidation{
-// 				StructFieldValidations: []*cr.StructFieldValidation{
-// 					{
-// 						StructField: "Mount",
-// 						StringValidation: &cr.StringValidation{
-// 							Required: true,
-// 						},
-// 					},
-// 				},
-// 				Required:   false,
-// 				AllowNull:  true,
-// 				DefualtNil: true,
-// 			},
-// 		},
-// 	},
-// }
+var fileValidation = &cr.StructValidation{
+	ShortCircuit:     false,
+	AllowExtraFields: true,
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField: "CortexURL",
+			StringValidation: cr.GetURLValidation(&cr.URLValidation{
+				Required: true,
+			}),
+		},
+		{
+			StructField: "CloudProvider",
+			StringValidation: &cr.StringValidation{
+				Required: true,
+			},
+		},
+		{
+			StructField: "AWS",
+			StructValidation: &cr.StructValidation{
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "AccessKeyID",
+						StringValidation: &cr.StringValidation{
+							Required: true,
+						},
+					},
+					{
+						StructField: "SecretAccessKey",
+						StringValidation: &cr.StringValidation{
+							Required: true,
+						},
+					},
+				},
+				Required:          false,
+				AllowExplicitNull: true,
+			},
+		},
+		{
+			StructField: "Local",
+			StructValidation: &cr.StructValidation{
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "Mount",
+						StringValidation: &cr.StringValidation{
+							Required: true,
+						},
+					},
+				},
+				Required:          false,
+				AllowExplicitNull: true,
+			},
+		},
+	},
+}
 
 func configPath() string {
 	return filepath.Join(localDir, flagEnv+".json")
@@ -217,20 +215,19 @@ func readCliConfig() (*CliConfig, []error) {
 		return nil, []error{err}
 	}
 
-	// cliConfigData, err := cr.ReadJSONBytes(configBytes)
-	// if err != nil {
-	// 	cachedCliConfigErrs = []error{err}
-	// 	return cachedCliConfig, cachedCliConfigErrs
-	// }
+	cliConfigData, err := cr.ReadJSONBytes(configBytes)
+	if err != nil {
+		cachedCliConfigErrs = []error{err}
+		return cachedCliConfig, cachedCliConfigErrs
+	}
 	err = json.Unmarshal(configBytes, cachedCliConfig)
-	// cachedCliConfigErrs = cr.Struct(cachedCliConfig, cliConfigData, fileValidation)
-	return cachedCliConfig, errors.WrapMultiple([]error{err}, configPath)
+	cachedCliConfigErrs = cr.Struct(cachedCliConfig, cliConfigData, fileValidation)
+	return cachedCliConfig, errors.WrapMultiple(cachedCliConfigErrs, configPath)
 }
 
 func getValidCliConfig() *CliConfig {
 	cliConfig, errs := readCliConfig()
 	if errs != nil && len(errs) > 0 {
-		fmt.Println(errs)
 		cliConfig = configure()
 	}
 	return cliConfig
