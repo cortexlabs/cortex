@@ -189,3 +189,11 @@ func MustStringPtrFromEnv(envVarName string, v *StringPtrValidation) *string {
 	}
 	return val
 }
+
+func MustStringPtrFromEnvOrFile(envVarName string, filePath string, v *StringPtrValidation) *string {
+	val, err := StringPtrFromEnvOrFile(envVarName, filePath, v)
+	if err != nil {
+		errors.Panic(err)
+	}
+	return val
+}
