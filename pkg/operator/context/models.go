@@ -148,13 +148,13 @@ func uploadModelImpl(modelImplID string, impl []byte) (string, error) {
 		return modelImplKey, nil
 	}
 
-	isUploaded, err := config.AWS.IsS3File(modelImplKey)
+	isUploaded, err := config.Cloud.FileExists(modelImplKey)
 	if err != nil {
 		return "", errors.Wrap(err, "upload")
 	}
 
 	if !isUploaded {
-		err = config.AWS.UploadBytesToS3(impl, modelImplKey)
+		err = config.Cloud.PutBytes(impl, modelImplKey)
 		if err != nil {
 			return "", errors.Wrap(err, "upload")
 		}

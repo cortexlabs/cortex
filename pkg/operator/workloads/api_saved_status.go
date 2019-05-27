@@ -21,7 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/cloud"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
@@ -37,7 +37,7 @@ func uploadAPISavedStatus(savedStatus *resource.APISavedStatus) error {
 	}
 
 	key := ocontext.StatusKey(savedStatus.ResourceID, savedStatus.WorkloadID, savedStatus.AppName)
-	err := config.AWS.UploadJSONToS3(savedStatus, key)
+	err := config.Cloud.PutJSON(savedStatus, key)
 	if err != nil {
 		return errors.Wrap(err, "upload api saved status", savedStatus.AppName, savedStatus.ResourceID, savedStatus.WorkloadID)
 	}
@@ -66,8 +66,8 @@ func getAPISavedStatus(resourceID string, workloadID string, appName string) (*r
 
 	key := ocontext.StatusKey(resourceID, workloadID, appName)
 	var savedStatus resource.APISavedStatus
-	err := config.AWS.ReadJSONFromS3(&savedStatus, key)
-	if aws.IsNoSuchKeyErr(err) {
+	err := config.Cloud.GetJSON(&savedStatus, key)
+	if cloud.IsNoSuchKeyErr(err) {
 		cacheNilAPISavedStatus(resourceID, workloadID, appName)
 		return nil, nil
 	}

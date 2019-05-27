@@ -20,6 +20,7 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
@@ -50,7 +51,7 @@ func GetResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apisBaseURL, err := workloads.APIsBaseURL()
+	apisBaseURL, err := config.Cloud.APIsBaseURL(config.Kubernetes)
 	if RespondIfError(w, err) {
 		return
 	}

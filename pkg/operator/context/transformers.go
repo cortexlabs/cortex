@@ -122,13 +122,13 @@ func uploadTransformer(transformer *context.Transformer, impl []byte) error {
 		return nil
 	}
 
-	isUploaded, err := config.AWS.IsS3File(transformer.ImplKey)
+	isUploaded, err := config.Cloud.FileExists(transformer.ImplKey)
 	if err != nil {
 		return errors.Wrap(err, userconfig.Identify(transformer), "upload")
 	}
 
 	if !isUploaded {
-		err = config.AWS.UploadBytesToS3(impl, transformer.ImplKey)
+		err = config.Cloud.PutBytes(impl, transformer.ImplKey)
 		if err != nil {
 			return errors.Wrap(err, userconfig.Identify(transformer), "upload")
 		}

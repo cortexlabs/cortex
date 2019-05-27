@@ -23,7 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/cloud"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -44,7 +44,7 @@ func uploadLogPrefix(logPrefix string, workloadID string, appName string) error 
 		return nil
 	}
 	key := logPreifixKey(workloadID, appName)
-	err := config.AWS.UploadStringToS3(logPrefix, key)
+	err := config.Cloud.PutString(logPrefix, key)
 	if err != nil {
 		return errors.Wrap(err, "upload log prefix", appName, workloadID)
 	}
@@ -78,9 +78,9 @@ func getSavedLogPrefix(workloadID string, appName string, allowNil bool) (string
 		return logPrefix, nil
 	}
 	key := logPreifixKey(workloadID, appName)
-	logPrefix, err := config.AWS.ReadStringFromS3(key)
+	logPrefix, err := config.Cloud.GetString(key)
 	if err != nil {
-		if aws.IsNoSuchKeyErr(err) && allowNil {
+		if cloud.IsNoSuchKeyErr(err) && allowNil {
 			return "", nil
 		}
 		return "", errors.Wrap(err, "download log prefix", appName, workloadID)

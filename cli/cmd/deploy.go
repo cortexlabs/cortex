@@ -17,11 +17,19 @@ limitations under the License.
 package cmd
 
 import (
+	"bytes"
 	"fmt"
-
 	"github.com/spf13/cobra"
+	"os"
+	"os/exec"
+	"os/user"
+	"path/filepath"
+	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/cloud"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
@@ -52,6 +60,36 @@ func deploy(force bool, ignoreCache bool) {
 		errors.Exit(err)
 	}
 
+	rawDataPaths, err := GetRawDataPaths(root)
+
+	// swallow error in cli and allow operator to perform YAML validations
+	if err == nil {
+		config := getValidCliConfig()
+
+		if config.CloudProvider == cloud.LocalProviderType.String() {
+			for _, rawDataPath := range rawDataPaths {
+				rawDataLocation, err := cloud.ProviderTypeFromPath(rawDataPath)
+				if err != nil {
+					errors.Exit(err)
+				}
+
+				destDir := filepath.Join(config.Local.Mount, consts.ExternalDataDir)
+
+				if rawDataLocation == cloud.LocalProviderType {
+					srcPath, err := ResolveSourcePath(rawDataPath, root)
+					if err != nil {
+						errors.Exit(err, rawDataPath)
+					}
+
+					err = CopyRawDataToMount(srcPath, destDir)
+					if err != nil {
+						errors.Exit(err, rawDataPath)
+					}
+				}
+			}
+		}
+	}
+
 	zipInput := &zip.Input{
 		FileLists: []zip.FileListInput{
 			{
@@ -78,4 +116,38 @@ func deploy(force bool, ignoreCache bool) {
 	}
 
 	fmt.Println(deployResponse.Message)
+}
+
+func ResolveSourcePath(rawDataPath string, root string) (string, error) {
+	if _, err := os.Stat(rawDataPath); os.IsNotExist(err) {
+		return "", ErrorPathDoesNotExist()
+	}
+
+	srcPath := rawDataPath
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+
+	dir := usr.HomeDir
+
+	if strings.HasPrefix(rawDataPath, "~/") {
+		srcPath = filepath.Join(dir, rawDataPath[2:])
+	} else if !filepath.IsAbs(rawDataPath) {
+		srcPath = filepath.Join(root, rawDataPath)
+	}
+	return srcPath, nil
+}
+
+func CopyRawDataToMount(srcPath string, destDir string) error {
+	srcPathKey := hash.String(srcPath)
+	destPath := filepath.Join(destDir, srcPathKey)
+	cmd := exec.Command("cp", "-a", srcPath, destPath)
+	var errbuf bytes.Buffer
+	cmd.Stderr = &errbuf
+	err := cmd.Run()
+	if err != nil {
+		return errors.Wrap(err, errbuf.String())
+	}
+	return nil
 }

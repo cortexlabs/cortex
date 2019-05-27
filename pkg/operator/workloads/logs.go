@@ -97,7 +97,7 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			if logPrefix == "" {
 				logPrefix = workloadID
 			}
-			getCloudWatchLogs(logPrefix, verbose, socket)
+			getCloudLogs(logPrefix, verbose, socket)
 			return
 		}
 
@@ -168,11 +168,12 @@ func getKubectlLogs(pod *corev1.Pod, verbose bool, wrotePending bool, socket *we
 	stopProcess(process)
 }
 
-func getCloudWatchLogs(prefix string, verbose bool, socket *websocket.Conn) {
-	logs, err := config.AWS.GetLogs(prefix, config.Cortex.LogGroup)
+func getCloudLogs(prefix string, verbose bool, socket *websocket.Conn) {
+	logs, err := config.Cloud.GetLogs(prefix)
 	if err != nil {
+		err = errors.Wrap(err, prefix)
 		config.Telemetry.ReportError(err)
-		errors.PrintError(err)
+		errors.PrintError(errors.Wrap(err, prefix))
 	}
 
 	var logsReader *strings.Reader
@@ -187,7 +188,7 @@ func getCloudWatchLogs(prefix string, verbose bool, socket *websocket.Conn) {
 
 	inr, inw, err := os.Pipe()
 	if err != nil {
-		errors.Panic(err, "logs", "cloudwatch", "os.pipe")
+		errors.Panic(err, prefix, "logs", "cloud", "os.pipe")
 	}
 	defer inr.Close()
 	defer inw.Close()

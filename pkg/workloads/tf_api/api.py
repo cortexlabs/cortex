@@ -295,7 +295,12 @@ def predict(app_name, api_name):
 
 
 def start(args):
-    ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
+    ctx = Context(
+        path=args.context,
+        cache_dir=args.cache_dir,
+        workload_id=args.workload_id,
+        cloud_provider_type=args.cloud_provider_type,
+    )
     package.install_packages(ctx.python_packages, ctx.storage)
 
     api = ctx.apis_id_map[args.api]
@@ -349,14 +354,13 @@ def main():
     parser = argparse.ArgumentParser()
     na = parser.add_argument_group("required named arguments")
     na.add_argument("--workload-id", required=True, help="Workload ID")
+    na.add_argument("--cloud-provider-type", required=True, help="Cloud type")
     na.add_argument("--port", type=int, required=True, help="Port (on localhost) to use")
     na.add_argument(
         "--tf-serve-port", type=int, required=True, help="Port (on localhost) where TF Serving runs"
     )
     na.add_argument(
-        "--context",
-        required=True,
-        help="S3 path to context (e.g. s3://bucket/path/to/context.json)",
+        "--context", required=True, help="path to context (e.g. s3://bucket/path/to/context.json)"
     )
     na.add_argument("--api", required=True, help="Resource id of api to serve")
     na.add_argument("--model-dir", required=True, help="Directory to download the model to")

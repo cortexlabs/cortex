@@ -70,7 +70,7 @@ func loadPythonPackages(files map[string][]byte, datasetVersion string) (context
 			PackageKey: filepath.Join(consts.PythonPackagesDir, id, "package.zip"),
 		}
 
-		if err := config.AWS.UploadBytesToS3(reqFileBytes, pythonPackage.SrcKey); err != nil {
+		if err := config.Cloud.PutBytes(reqFileBytes, pythonPackage.SrcKey); err != nil {
 			return nil, errors.Wrap(err, "upload", "requirements")
 		}
 
@@ -117,7 +117,7 @@ func loadPythonPackages(files map[string][]byte, datasetVersion string) (context
 			return nil, errors.Wrap(err, "zip", packageName)
 		}
 
-		if err := config.AWS.UploadBytesToS3(zipBytes, pythonPackage.SrcKey); err != nil {
+		if err := config.Cloud.PutBytes(zipBytes, pythonPackage.SrcKey); err != nil {
 			return nil, errors.Wrap(err, "upload", packageName)
 		}
 

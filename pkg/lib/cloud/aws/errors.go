@@ -14,27 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
-
-import "fmt"
+package aws
 
 type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
-	ErrAPIVersionMismatch
-	ErrCloudProviderTypeMismatch
+	ErrAuth
 )
 
-var (
-	errorKinds = []string{
-		"err_unknown",
-		"err_api_version_mismatch",
-		"err_cloud_provider_type_mismatch",
-	}
-)
+var errorKinds = []string{
+	"err_unknown",
+	"err_auth",
+}
 
-var _ = [1]int{}[int(ErrCloudProviderTypeMismatch)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrAuth)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -59,17 +53,6 @@ func (t *ErrorKind) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
 type Error struct {
 	Kind    ErrorKind
 	message string
@@ -79,16 +62,9 @@ func (e Error) Error() string {
 	return e.message
 }
 
-func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error {
+func ErrorAuth(cloudProvider string) error {
 	return Error{
-		Kind:    ErrAPIVersionMismatch,
-		message: fmt.Sprintf("API version mismatch (Operator: %s; Client: %s)", operatorVersion, clientVersion),
-	}
-}
-
-func ErrorCloudProviderTypeMismatch(operatorProvider string, clientProvider string) error {
-	return Error{
-		Kind:    ErrCloudProviderTypeMismatch,
-		message: fmt.Sprintf("Operator cloud provider type mismatch (Operator: %s; Client: %s)", operatorProvider, clientProvider),
+		Kind:    ErrAuth,
+		message: "unable to authenticate with " + cloudProvider,
 	}
 }

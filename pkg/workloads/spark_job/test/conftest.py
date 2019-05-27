@@ -59,7 +59,9 @@ class NoneDict(dict):
 def empty_context_obj():
     return NoneDict(
         app=NoneDict(),
-        cortex_config=NoneDict(api_version=consts.CORTEX_VERSION, region="us-west-2"),
+        cortex_config=NoneDict(
+            api_version=consts.CORTEX_VERSION, cloud_options=NoneDict(region="us-west-2")
+        ),
         raw_features={},
         transformed_features={},
         python_packages={},
@@ -76,7 +78,7 @@ def empty_context_obj():
 @pytest.fixture(scope="module")
 def get_context():
     def _get_context(d):
-        return Context(obj=d, cache_dir=".")
+        return Context(obj=d, cache_dir=".", cloud_provider_type="local", path=".")
 
     return _get_context
 

@@ -24,6 +24,9 @@ import shutil
 
 from lib import util
 from lib.exceptions import CortexException
+from lib.log import get_logger
+
+logger = get_logger()
 
 
 class LocalStorage(object):
@@ -53,17 +56,19 @@ class LocalStorage(object):
         return os.path.join(self.base_dir, key)
 
     def search(self, prefix="", suffix=""):
-        files = []
+        matched_files = []
+
+        prefix_path = os.path.join(self.base_dir, prefix)
         for root, dirs, files in os.walk(self.base_dir, topdown=False):
-            common_prefix_len = min(len(prefix), len(root))
-            if root[:common_prefix_len] != prefix[:common_prefix_len]:
+            if not prefix_path.startswith(root):
                 continue
 
             for name in files:
                 filename = os.path.join(root, name)
-                if filename.startswith(prefix) and filename.endswith(suffix):
-                    files.append(filename)
-        return files
+                if filename.startswith(prefix_path) and filename.endswith(suffix):
+                    matched_files.append(filename)
+
+        return matched_files
 
     def put_json(self, obj, key):
         f = self._get_or_create_path(key)

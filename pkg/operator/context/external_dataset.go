@@ -21,10 +21,11 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+
+	"gocloud.dev/gcerrors"
 )
 
 func getOrSetDatasetVersion(appName string, ignoreCache bool) (string, error) {
@@ -36,20 +37,20 @@ func getOrSetDatasetVersion(appName string, ignoreCache bool) (string, error) {
 
 	if ignoreCache {
 		datasetVersion := libtime.Timestamp(time.Now())
-		err := config.AWS.UploadStringToS3(datasetVersion, datasetVersionFileKey)
+		err := config.Cloud.PutString(datasetVersion, datasetVersionFileKey)
 		if err != nil {
 			return "", errors.Wrap(err, "dataset version") // unexpected error
 		}
 		return datasetVersion, nil
 	}
 
-	datasetVersion, err := config.AWS.ReadStringFromS3(datasetVersionFileKey)
+	datasetVersion, err := config.Cloud.GetString(datasetVersionFileKey)
 	if err != nil {
-		if !aws.IsNoSuchKeyErr(err) {
+		if gcerrors.Code(err) != gcerrors.NotFound {
 			return "", errors.Wrap(err, "dataset version") // unexpected error
 		}
 		datasetVersion = libtime.Timestamp(time.Now())
-		err := config.AWS.UploadStringToS3(datasetVersion, datasetVersionFileKey)
+		err := config.Cloud.PutString(datasetVersion, datasetVersionFileKey)
 		if err != nil {
 			return "", errors.Wrap(err, "dataset version") // unexpected error
 		}

@@ -162,7 +162,9 @@ func StreamLogs(appName string, resourceName string, resourceType string, verbos
 	wsURL = strings.Replace(wsURL, "http", "ws", 1)
 
 	header := http.Header{}
-	header.Set("Authorization", authHeader())
+	cliConfig := getValidCliConfig()
+	header.Set("Authorization", cliConfig.authHeader())
+	header.Set("CortexCloudProvider", cliConfig.CloudProvider)
 	header.Set("CortexAPIVersion", consts.CortexVersion)
 
 	var dialer = websocket.Dialer{
@@ -171,7 +173,6 @@ func StreamLogs(appName string, resourceName string, resourceType string, verbos
 
 	connection, response, err := dialer.Dial(wsURL, header)
 	if response == nil {
-		cliConfig := getValidCliConfig()
 		return ErrorFailedToConnect(strings.Replace(cliConfig.CortexURL, "http", "ws", 1))
 	}
 	defer response.Body.Close()
@@ -179,7 +180,6 @@ func StreamLogs(appName string, resourceName string, resourceType string, verbos
 	if err != nil {
 		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil || bodyBytes == nil || string(bodyBytes) == "" {
-			cliConfig := getValidCliConfig()
 			return ErrorFailedToConnect(strings.Replace(cliConfig.CortexURL, "http", "ws", 1))
 		}
 		var output schema.ErrorResponse
@@ -255,16 +255,22 @@ func operatorRequest(method string, endpoint string, body io.Reader, qParams []m
 }
 
 func makeRequest(request *http.Request) ([]byte, error) {
-	request.Header.Set("Authorization", authHeader())
+	cliConfig := getValidCliConfig()
+
+	request.Header.Set("Authorization", cliConfig.authHeader())
+	request.Header.Set("CortexCloudProvider", cliConfig.CloudProvider)
 	request.Header.Set("CortexAPIVersion", consts.CortexVersion)
 
 	response, err := httpClient.Do(request)
 	if err != nil {
-		cliConfig := getValidCliConfig()
 		return nil, ErrorFailedToConnect(cliConfig.CortexURL)
 	}
 	defer response.Body.Close()
 
+	return handleResponse(response)
+}
+
+func handleResponse(response *http.Response) ([]byte, error) {
 	if response.StatusCode != 200 {
 		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil {
@@ -285,9 +291,4 @@ func makeRequest(request *http.Request) ([]byte, error) {
 		return nil, errors.Wrap(err, errStrRead)
 	}
 	return bodyBytes, nil
-}
-
-func authHeader() string {
-	cliConfig := getValidCliConfig()
-	return fmt.Sprintf("CortexAWS %s|%s", cliConfig.AWSAccessKeyID, cliConfig.AWSSecretAccessKey)
 }

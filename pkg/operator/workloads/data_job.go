@@ -25,6 +25,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/argo"
+	"github.com/cortexlabs/cortex/pkg/lib/cloud"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -97,11 +98,14 @@ func sparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 			MainApplicationFile:  pointer.String("local:///src/spark_job/spark_job.py"),
 			RestartPolicy:        sparkop.RestartPolicy{Type: sparkop.Never},
 			MemoryOverheadFactor: memOverheadFactor,
+			ImagePullSecrets:     []string{"awsecr-cred"},
+			Volumes:              config.Cloud.StorageVolumes(),
 			Arguments: []string{
 				strings.TrimSpace(
 					" --workload-id=" + workloadID +
-						" --context=" + config.AWS.S3Path(ctx.Key) +
+						" --context=" + config.Cloud.InternalPath(ctx.Key) +
 						" --cache-dir=" + consts.ContextCacheDir +
+						" --cloud-provider-type=" + config.Cloud.ProviderType.String() +
 						" " + strings.Join(args, " ")),
 			},
 			Deps: sparkop.Dependencies{
@@ -118,22 +122,15 @@ func sparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 						"appName":      ctx.App.Name,
 						"userFacing":   "true",
 					},
-					EnvSecretKeyRefs: map[string]sparkop.NameKey{
-						"AWS_ACCESS_KEY_ID": {
-							Name: "aws-credentials",
-							Key:  "AWS_ACCESS_KEY_ID",
-						},
-						"AWS_SECRET_ACCESS_KEY": {
-							Name: "aws-credentials",
-							Key:  "AWS_SECRET_ACCESS_KEY",
-						},
-					},
+					EnvSecretKeyRefs: config.Cloud.SparkEnvCredentials(),
 					EnvVars: map[string]string{
-						"CORTEX_SPARK_VERBOSITY": ctx.Environment.LogLevel.Spark,
-						"CORTEX_CONTEXT_S3_PATH": config.AWS.S3Path(ctx.Key),
-						"CORTEX_WORKLOAD_ID":     workloadID,
-						"CORTEX_CACHE_DIR":       consts.ContextCacheDir,
+						"CORTEX_SPARK_VERBOSITY":     ctx.Environment.LogLevel.Spark,
+						"CORTEX_CONTEXT_PATH":        config.Cloud.InternalPath(ctx.Key),
+						"CORTEX_WORKLOAD_ID":         workloadID,
+						"CORTEX_CACHE_DIR":           consts.ContextCacheDir,
+						"CORTEX_CLOUD_PROVIDER_TYPE": config.Cloud.ProviderType.String(),
 					},
+					VolumeMounts: config.Cloud.StorageVolumeMounts(),
 				},
 				PodName:        &workloadID,
 				ServiceAccount: pointer.String("spark"),
@@ -148,22 +145,15 @@ func sparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 						"workloadType": workloadType,
 						"appName":      ctx.App.Name,
 					},
-					EnvSecretKeyRefs: map[string]sparkop.NameKey{
-						"AWS_ACCESS_KEY_ID": {
-							Name: "aws-credentials",
-							Key:  "AWS_ACCESS_KEY_ID",
-						},
-						"AWS_SECRET_ACCESS_KEY": {
-							Name: "aws-credentials",
-							Key:  "AWS_SECRET_ACCESS_KEY",
-						},
-					},
+					EnvSecretKeyRefs: config.Cloud.SparkEnvCredentials(),
 					EnvVars: map[string]string{
-						"CORTEX_SPARK_VERBOSITY": ctx.Environment.LogLevel.Spark,
-						"CORTEX_CONTEXT_S3_PATH": config.AWS.S3Path(ctx.Key),
-						"CORTEX_WORKLOAD_ID":     workloadID,
-						"CORTEX_CACHE_DIR":       consts.ContextCacheDir,
+						"CORTEX_SPARK_VERBOSITY":     ctx.Environment.LogLevel.Spark,
+						"CORTEX_CONTEXT_PATH":        config.Cloud.InternalPath(ctx.Key),
+						"CORTEX_WORKLOAD_ID":         workloadID,
+						"CORTEX_CACHE_DIR":           consts.ContextCacheDir,
+						"CORTEX_CLOUD_PROVIDER_TYPE": config.Cloud.ProviderType.String(),
 					},
+					VolumeMounts: config.Cloud.StorageVolumeMounts(),
 				},
 				Instances: &sparkCompute.Executors,
 			},
@@ -174,7 +164,7 @@ func sparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	workloadID := generateWorkloadID()
 
-	rawFileExists, err := config.AWS.IsS3File(filepath.Join(ctx.RawDataset.Key, "_SUCCESS"))
+	rawFileExists, err := config.Cloud.FileExists(filepath.Join(ctx.RawDataset.Key, "_SUCCESS"))
 	if err != nil {
 		return nil, errors.Wrap(err, ctx.App.Name, "raw dataset")
 	}
@@ -184,8 +174,18 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	shouldIngest := !rawFileExists
 	if shouldIngest {
 		externalDataPath := ctx.Environment.Data.GetExternalPath()
-		externalDataExists, err := config.AWS.IsS3aPrefixExternal(externalDataPath)
-		if err != nil || !externalDataExists {
+		cloudType, err := cloud.ProviderTypeFromPath(externalDataPath)
+		if err != nil {
+			return nil, err
+		}
+		if !config.Cortex.OperatorInCluster && cloudType == cloud.LocalProviderType {
+			externalDataPath = filepath.Join(config.Cortex.OperatorLocalMount, externalDataPath)
+		}
+		externalDataExists, err := cloud.ExternalPrefixExists(externalDataPath)
+		if err != nil {
+			return nil, err
+		}
+		if !externalDataExists {
 			return nil, errors.Wrap(ErrorUserDataUnavailable(externalDataPath), ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey)
 		}
 		for _, rawColumn := range ctx.RawColumns {

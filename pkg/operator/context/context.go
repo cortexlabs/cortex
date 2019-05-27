@@ -219,7 +219,6 @@ func ctxKey(ctxID string, appName string) string {
 
 func calculateID(ctx *context.Context) string {
 	ids := []string{}
-	ids = append(ids, config.Cortex.ID)
 	ids = append(ids, ctx.DatasetVersion)
 	ids = append(ids, ctx.Root)
 	ids = append(ids, ctx.RawDataset.Key)
@@ -239,8 +238,8 @@ func DownloadContext(ctxID string, appName string) (*context.Context, error) {
 	s3Key := ctxKey(ctxID, appName)
 	var serial context.Serial
 
-	if err := config.AWS.ReadMsgpackFromS3(&serial, s3Key); err != nil {
-		return nil, err
+	if err := config.Cloud.GetMsgpack(&serial, s3Key); err != nil {
+		return nil, errors.Wrap(err, "unable to read "+s3Key)
 	}
 
 	return serial.ContextFromSerial()

@@ -54,9 +54,8 @@ def test_simple_end_to_end(spark):
     local_storage_path = Path("/workspace/local_storage")
     local_storage_path.mkdir(parents=True, exist_ok=True)
     should_ingest = True
-    input_data_path = os.path.join(str(local_storage_path), "iris.csv")
 
-    raw_ctx = iris_context.get(input_data_path)
+    raw_ctx = iris_context.get(local_storage_path)
 
     workload_id = raw_ctx["raw_columns"]["raw_float_columns"]["sepal_length"]["workload_id"]
 
@@ -68,10 +67,9 @@ def test_simple_end_to_end(spark):
 
     iris_data_string = "\n".join(",".join(str(val) for val in line) for line in iris_data)
     Path(os.path.join(str(local_storage_path), "iris.csv")).write_text(iris_data_string)
+    cache_dir = Path("/workspace/cache")
 
-    ctx = Context(
-        raw_obj=raw_ctx, cache_dir="/workspace/cache", local_storage_path=str(local_storage_path)
-    )
+    ctx = Context(raw_obj=raw_ctx, cache_dir=str(cache_dir), cloud_provider_type="local")
     storage = ctx.storage
 
     raw_df = spark_job.ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest)
@@ -117,6 +115,7 @@ def test_simple_end_to_end(spark):
         status["exist_code"] = "succeeded"
 
         dataset = raw_ctx["models"]["dnn"]["dataset"]
+
         metadata = ctx.get_metadata(dataset["id"])
         assert metadata["training_size"] + metadata["eval_size"] == 15
         assert local_storage_path.joinpath(dataset["train_key"], "_SUCCESS").exists()

@@ -446,6 +446,44 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 	return config, nil
 }
 
+func ReadEnvDataPaths(root string, yamlPaths []string) ([]string, error) {
+	paths := []string{}
+	for _, yamlFile := range yamlPaths {
+		configBytes, err := files.ReadFileBytes(yamlFile)
+		if err != nil {
+			return paths, errors.Wrap(err, ErrorReadConfig().Error(), yamlFile)
+		}
+		configData, err := cr.ReadYAMLBytes(configBytes)
+		if err != nil {
+			return paths, errors.Wrap(err, ErrorParseConfig().Error(), yamlFile)
+		}
+		configDataSlice, ok := cast.InterfaceToStrInterfaceMapSlice(configData)
+		if !ok {
+			return paths, errors.Wrap(ErrorMalformedConfig(), yamlFile)
+		}
+
+		for _, configItem := range configDataSlice {
+			kindStr, _ := configItem[KindKey].(string)
+			if resource.TypeFromKindString(kindStr) == resource.EnvironmentType {
+				dataInter, _ := configItem[DataKey]
+				if !ok {
+					return paths, errors.Wrap(configreader.ErrorMustBeDefined(), yamlFile, DataKey)
+				}
+				dataItem, ok := cast.InterfaceToStrInterfaceMap(dataInter)
+				if !ok {
+					return paths, ErrorReadConfig()
+				}
+				pathStr, ok := dataItem[PathKey].(string)
+				if !ok {
+					return paths, ErrorReadConfig()
+				}
+				paths = append(paths, pathStr)
+			}
+		}
+	}
+	return paths, nil
+}
+
 func ReadAppName(filePath string, relativePath string) (string, error) {
 	configBytes, err := files.ReadFileBytes(filePath)
 	if err != nil {

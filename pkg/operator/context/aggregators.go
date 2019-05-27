@@ -125,13 +125,13 @@ func uploadAggregator(aggregator *context.Aggregator, impl []byte) error {
 		return nil
 	}
 
-	isUploaded, err := config.AWS.IsS3File(aggregator.ImplKey)
+	isUploaded, err := config.Cloud.FileExists(aggregator.ImplKey)
 	if err != nil {
 		return errors.Wrap(err, userconfig.Identify(aggregator), "upload")
 	}
 
 	if !isUploaded {
-		err = config.AWS.UploadBytesToS3(impl, aggregator.ImplKey)
+		err = config.Cloud.PutBytes(impl, aggregator.ImplKey)
 		if err != nil {
 			return errors.Wrap(err, userconfig.Identify(aggregator), "upload")
 		}

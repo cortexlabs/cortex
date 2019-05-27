@@ -21,6 +21,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
+type InitResponse struct {
+	CloudProvider string `json:"cloud_provider_type"`
+}
+
 type DeployResponse struct {
 	Message string `json:"message"`
 }

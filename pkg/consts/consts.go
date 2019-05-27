@@ -56,5 +56,11 @@ var (
 	TransformedColumnsDir = "transformed_columns"
 	MetadataDir           = "metadata"
 
+	// Local Dev
+	ExternalDataDir = "/data"
+	LogsDir         = "/local_logs"
+
+	DefaultAWSRegion = "us-west-2"
+
 	TelemetryURL = "https://telemetry.cortexlabs.dev"
 )

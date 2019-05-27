@@ -48,7 +48,7 @@ func GetAggregate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exists, err := config.AWS.IsS3File(aggregate.Key)
+	exists, err := config.Cloud.FileExists(aggregate.Key)
 	if RespondIfError(w, err, resource.AggregateType.String(), id) {
 		return
 	}
@@ -57,7 +57,7 @@ func GetAggregate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bytes, err := config.AWS.ReadBytesFromS3(aggregate.Key)
+	bytes, err := config.Cloud.GetBytes(aggregate.Key)
 	if RespondIfError(w, err, resource.AggregateType.String(), id) {
 		return
 	}

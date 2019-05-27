@@ -125,7 +125,7 @@ def build_packages(python_packages, storage):
 
 
 def build(args):
-    ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
+    ctx = Context(path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
     python_packages_list = [ctx.pp_id_map[id] for id in args.python_packages.split(",")]
     python_packages = {
         python_package["name"]: python_package for python_package in python_packages_list
@@ -178,8 +178,9 @@ def main():
     parser = argparse.ArgumentParser()
     na = parser.add_argument_group("required named arguments")
     na.add_argument("--workload-id", required=True, help="Workload ID")
+    na.add_argument("--cloud-provider-type", required=True, help="Cloud type")
     na.add_argument(
-        "--context", required=True, help="S3 path to context (e.g. s3://bucket/path/to/context.json"
+        "--context", required=True, help="path to context (e.g. s3://bucket/path/to/context.json"
     )
     na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
     na.add_argument("--python-packages", help="Resource ids of packages to build")
@@ -191,7 +192,12 @@ def main():
     if args.build:
         build(args)
     else:
-        ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
+        ctx = Context(
+            path=args.context,
+            cache_dir=args.cache_dir,
+            workload_id=args.workload_id,
+            cloud_provider_type=args.cloud_provider_type,
+        )
         install_packages(ctx.python_packages, ctx.storage)
 
 

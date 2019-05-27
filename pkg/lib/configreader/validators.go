@@ -20,7 +20,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
@@ -44,26 +43,6 @@ func GetFilePathValidation(v *PathValidation) *StringValidation {
 			return "", err
 		}
 
-		return val, nil
-	}
-
-	return &StringValidation{
-		Required:  v.Required,
-		Default:   v.Default,
-		Validator: validator,
-	}
-}
-
-type S3aPathValidation struct {
-	Required bool
-	Default  string
-}
-
-func GetS3aPathValidation(v *S3aPathValidation) *StringValidation {
-	validator := func(val string) (string, error) {
-		if !aws.IsValidS3aPath(val) {
-			return "", aws.ErrorInvalidS3aPath(val)
-		}
 		return val, nil
 	}
 

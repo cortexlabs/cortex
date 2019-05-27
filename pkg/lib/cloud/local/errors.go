@@ -14,31 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package aws
-
-import (
-	"fmt"
-
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-)
+package local
 
 type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
-	ErrInvalidS3aPath
-	ErrAuth
+	ErrNotAnAbsolutePath
 )
 
 var errorKinds = []string{
 	"err_unknown",
-	"err_invalid_s3a_path",
-	"err_auth",
+	"err_not_absolute_file_path",
 }
 
-var _ = [1]int{}[int(ErrAuth)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrNotAnAbsolutePath)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -63,36 +53,6 @@ func (t *ErrorKind) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-func IsNoSuchKeyErr(err error) bool {
-	return checkErrCode(err, "NoSuchKey")
-}
-
-func IsNotFoundErr(err error) bool {
-	return checkErrCode(err, "NotFound")
-}
-
-func checkErrCode(err error, errorCode string) bool {
-	awsErr, ok := errors.Cause(err).(awserr.Error)
-	if !ok {
-		return false
-	}
-	if awsErr.Code() == errorCode {
-		return true
-	}
-	return false
-}
-
 type Error struct {
 	Kind    ErrorKind
 	message string
@@ -102,16 +62,9 @@ func (e Error) Error() string {
 	return e.message
 }
 
-func ErrorInvalidS3aPath(provided string) error {
+func ErrorNotAnAbsolutePath() error {
 	return Error{
-		Kind:    ErrInvalidS3aPath,
-		message: fmt.Sprintf("%s is not a valid s3a path", s.UserStr(provided)),
-	}
-}
-
-func ErrorAuth() error {
-	return Error{
-		Kind:    ErrAuth,
-		message: "unable to authenticate with AWS",
+		Kind:    ErrNotAnAbsolutePath,
+		message: "not an absolute file path",
 	}
 }

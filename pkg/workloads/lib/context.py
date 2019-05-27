@@ -35,32 +35,33 @@ class Context:
     def __init__(self, **kwargs):
         if "cache_dir" in kwargs:
             self.cache_dir = kwargs["cache_dir"]
-        elif "local_path" in kwargs:
-            local_path_dir = os.path.dirname(os.path.abspath(kwargs["local_path"]))
-            self.cache_dir = os.path.join(local_path_dir, "cache")
         else:
-            raise ValueError("cache_dir must be specified (or inferred from local_path)")
+            raise ValueError("cache_dir must be specified")
         util.mkdir_p(self.cache_dir)
 
-        if "local_path" in kwargs:
-            ctx_raw = util.read_msgpack(kwargs["local_path"])
-            self.ctx = _deserialize_raw_ctx(ctx_raw)
-        elif "obj" in kwargs:
+        if "obj" in kwargs:
             self.ctx = kwargs["obj"]
         elif "raw_obj" in kwargs:
             ctx_raw = kwargs["raw_obj"]
             self.ctx = _deserialize_raw_ctx(ctx_raw)
-        elif "s3_path":
+        elif "path" in kwargs:
+            cloud_provider_type = kwargs["cloud_provider_type"]
             local_ctx_path = os.path.join(self.cache_dir, "context.msgpack")
-            bucket, key = S3.deconstruct_s3_path(kwargs["s3_path"])
-            S3(bucket, client_config={}).download_file(key, local_ctx_path)
+
+            if cloud_provider_type == "aws":
+                bucket, key = S3.deconstruct_s3_path(kwargs["path"])
+                S3(bucket, client_config={}).download_file(key, local_ctx_path)
+            elif cloud_provider_type == "local":
+                local_ctx_path = kwargs["path"]
+            else:
+                raise ValueError("invalid cloud provider type: " + cloud_provider_type)
             ctx_raw = util.read_msgpack(local_ctx_path)
             self.ctx = _deserialize_raw_ctx(ctx_raw)
         else:
             raise ValueError("invalid context args: " + kwargs)
 
         self.workload_id = kwargs.get("workload_id")
-
+        logger.info(self.ctx["cortex_config"])
         self.id = self.ctx["id"]
         self.key = self.ctx["key"]
         self.cortex_config = self.ctx["cortex_config"]
@@ -82,14 +83,16 @@ class Context:
         self.training_datasets = {k: v["dataset"] for k, v in self.models.items()}
         self.api_version = self.cortex_config["api_version"]
 
-        if "local_storage_path" in kwargs:
-            self.storage = LocalStorage(base_dir=kwargs["local_storage_path"])
-        else:
+        if kwargs["cloud_provider_type"] == "local":
+            self.storage = LocalStorage(base_dir=self.cortex_config["bucket"])
+        elif kwargs["cloud_provider_type"] == "aws":
             self.storage = S3(
-                bucket=self.cortex_config["bucket"],
-                region=self.cortex_config["region"],
+                bucket=self.cortex_config["cloud_options"]["bucket"],
+                region=self.cortex_config["cloud_options"]["region"],
                 client_config={},
             )
+        else:
+            raise ValueError("invalid cloud provider type: " + cloud_provider_type)
 
         if self.api_version != consts.CORTEX_VERSION:
             raise ValueError(
@@ -115,7 +118,8 @@ class Context:
         self._metadatas = {}
 
         # This affects Tensorflow S3 access
-        os.environ["AWS_REGION"] = self.cortex_config.get("region", "")
+        if kwargs["cloud_provider_type"] == "aws":
+            os.environ["AWS_REGION"] = self.cortex_config["cloud_options"]["region"]
 
         # Id map
         self.pp_id_map = ResourceMap(self.python_packages)

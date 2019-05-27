@@ -17,7 +17,8 @@ limitations under the License.
 package workloads
 
 import (
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/cloud"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -31,7 +32,7 @@ func uploadLatestWorkloadID(resourceID string, workloadID string, appName string
 	}
 
 	key := ocontext.LatestWorkloadIDKey(resourceID, appName)
-	err := config.AWS.UploadStringToS3(workloadID, key)
+	err := config.Cloud.PutString(workloadID, key)
 	if err != nil {
 		return errors.Wrap(err, "upload latest workload ID", appName, resourceID, workloadID)
 	}
@@ -65,8 +66,8 @@ func getSavedLatestWorkloadID(resourceID string, appName string) (string, error)
 	}
 
 	key := ocontext.LatestWorkloadIDKey(resourceID, appName)
-	workloadID, err := config.AWS.ReadStringFromS3(key)
-	if aws.IsNoSuchKeyErr(err) {
+	workloadID, err := config.Cloud.GetString(key)
+	if cloud.IsNoSuchKeyErr(err) {
 		cacheEmptyLatestWorkloadID(resourceID, appName)
 		return "", nil
 	}

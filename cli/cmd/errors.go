@@ -36,6 +36,8 @@ const (
 	ErrAPINotFound
 	ErrFailedToConnect
 	ErrCliNotInAppDir
+	ErrUnrecognizedCloudProvider
+	ErrPathDoesNotExist
 )
 
 var errorKinds = []string{
@@ -45,9 +47,11 @@ var errorKinds = []string{
 	"err_api_not_found",
 	"err_failed_to_connect",
 	"err_cli_not_in_app_dir",
+	"err_unrecognized_cloud_provider_type",
+	"err_path_does_not_exist",
 }
 
-var _ = [1]int{}[int(ErrCliNotInAppDir)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrPathDoesNotExist)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -124,5 +128,19 @@ func ErrorCliNotInAppDir() error {
 	return Error{
 		Kind:    ErrCliNotInAppDir,
 		message: "your current working directory is not in or under a cortex app directory (identified via a top-level app.yaml file)",
+	}
+}
+
+func ErrorUnrecognizedCloudProvider(provider string) error {
+	return Error{
+		Kind:    ErrUnrecognizedCloudProvider,
+		message: "unrecognized cloud provider " + provider,
+	}
+}
+
+func ErrorPathDoesNotExist() error {
+	return Error{
+		Kind:    ErrPathDoesNotExist,
+		message: "path does not exist",
 	}
 }

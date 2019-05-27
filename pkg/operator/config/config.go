@@ -21,9 +21,8 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/argo"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/cloud"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/spark"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -31,7 +30,7 @@ import (
 
 var (
 	Cortex     *CortexConfig
-	AWS        *aws.Client
+	Cloud      *cloud.Client
 	Kubernetes *k8s.Client
 	Telemetry  *telemetry.Client
 	Argo       *argo.Client
@@ -39,31 +38,37 @@ var (
 )
 
 type CortexConfig struct {
-	ID                  string `json:"id"`
-	APIVersion          string `json:"api_version"`
-	Bucket              string `json:"bucket"`
-	LogGroup            string `json:"log_group"`
-	Region              string `json:"region"`
-	Namespace           string `json:"namespace"`
-	OperatorImage       string `json:"operator_image"`
-	SparkImage          string `json:"spark_image"`
-	TFTrainImage        string `json:"tf_train_image"`
-	TFServeImage        string `json:"tf_serve_image"`
-	TFAPIImage          string `json:"tf_api_image"`
-	PythonPackagerImage string `json:"python_packager_image"`
-	TFTrainImageGPU     string `json:"tf_train_image_gpu"`
-	TFServeImageGPU     string `json:"tf_serve_image_gpu"`
-	TelemetryURL        string `json:"telemetry_url"`
-	EnableTelemetry     bool   `json:"enable_telemetry"`
-	OperatorInCluster   bool   `json:"operator_in_cluster"`
+	CloudProvider       string         `json:"cloud_provider_type"`
+	CloudOptions        *cloud.Options `json:"cloud_options"`
+	APIVersion          string         `json:"api_version"`
+	Namespace           string         `json:"namespace"`
+	OperatorImage       string         `json:"operator_image"`
+	SparkImage          string         `json:"spark_image"`
+	TFTrainImage        string         `json:"tf_train_image"`
+	TFServeImage        string         `json:"tf_serve_image"`
+	TFAPIImage          string         `json:"tf_api_image"`
+	PythonPackagerImage string         `json:"python_packager_image"`
+	TFTrainImageGPU     string         `json:"tf_train_image_gpu"`
+	TFServeImageGPU     string         `json:"tf_serve_image_gpu"`
+	TelemetryURL        string         `json:"telemetry_url"`
+	EnableTelemetry     bool           `json:"enable_telemetry"`
+	OperatorInCluster   bool           `json:"operator_in_cluster"`
+	OperatorLocalMount  string         `json:"operator_local_mount"`
 }
 
-func Init() error {
+func InitCortexConfig() {
+	cloudOptions := cloud.Options{
+		Bucket:             getStr("BUCKET"),
+		Region:             getStrPtr("REGION"),
+		LogGroup:           getStrPtr("LOG_GROUP"),
+		OperatorInCluster:  configreader.MustBoolFromEnv("CONST_OPERATOR_IN_CLUSTER", &configreader.BoolValidation{Default: true}),
+		OperatorLocalMount: configreader.MustStringPtrFromEnv("CONST_OPERATOR_LOCAL_MOUNT", &configreader.StringPtrValidation{Default: nil}),
+	}
+
 	Cortex = &CortexConfig{
+		CloudProvider:       getStr("CLOUD_PROVIDER_TYPE"),
+		CloudOptions:        &cloudOptions,
 		APIVersion:          consts.CortexVersion,
-		Bucket:              getStr("BUCKET"),
-		LogGroup:            getStr("LOG_GROUP"),
-		Region:              getStr("REGION"),
 		Namespace:           getStr("NAMESPACE"),
 		OperatorImage:       getStr("IMAGE_OPERATOR"),
 		SparkImage:          getStr("IMAGE_SPARK"),
@@ -75,15 +80,24 @@ func Init() error {
 		TFServeImageGPU:     getStr("IMAGE_TF_SERVE_GPU"),
 		TelemetryURL:        configreader.MustStringFromEnv("CONST_TELEMETRY_URL", &configreader.StringValidation{Required: false, Default: consts.TelemetryURL}),
 		EnableTelemetry:     getBool("ENABLE_TELEMETRY"),
-		OperatorInCluster:   configreader.MustBoolFromEnv("CONST_OPERATOR_IN_CLUSTER", &configreader.BoolValidation{Default: true}),
 	}
-	Cortex.ID = hash.String(Cortex.Bucket + Cortex.Region + Cortex.LogGroup)
+}
 
-	AWS = aws.New(Cortex.Region, Cortex.Bucket)
-	Telemetry = telemetry.New(Cortex.TelemetryURL, AWS.HashedAccountID, Cortex.EnableTelemetry)
-
+func InitCloud(config *CortexConfig) error {
 	var err error
-	if Kubernetes, err = k8s.New(Cortex.Namespace, Cortex.OperatorInCluster); err != nil {
+
+	if Cloud, err = cloud.New(Cortex.CloudProvider, config.CloudOptions); err != nil {
+		return err
+	}
+	return nil
+}
+
+func InitClients(cloud *cloud.Client, config *CortexConfig) error {
+	var err error
+
+	Telemetry = telemetry.New(Cortex.TelemetryURL, cloud.HashedAccountID(), Cortex.EnableTelemetry)
+
+	if Kubernetes, err = k8s.New(Cortex.Namespace, config.CloudOptions.OperatorInCluster); err != nil {
 		return err
 	}
 
@@ -100,6 +114,12 @@ func getPaths(name string) (string, string) {
 	envVarName := "CORTEX_" + name
 	filePath := filepath.Join(consts.CortexConfigPath, name)
 	return envVarName, filePath
+}
+
+func getStrPtr(name string) *string {
+	envVarName, filePath := getPaths(name)
+	v := &configreader.StringPtrValidation{Default: nil}
+	return configreader.MustStringPtrFromEnvOrFile(envVarName, filePath, v)
 }
 
 func getStr(name string) string {

@@ -94,6 +94,10 @@ func appNameFromConfig() (string, error) {
 	return userconfig.ReadAppName(filepath.Join(appRoot, "app.yaml"), "app.yaml")
 }
 
+func GetRawDataPaths(root string) ([]string, error) {
+	return userconfig.ReadEnvDataPaths(root, yamlPaths(root))
+}
+
 func AppNameFromFlagOrConfig() (string, error) {
 	if flagAppName != "" {
 		return flagAppName, nil

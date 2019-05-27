@@ -28,10 +28,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
@@ -45,14 +43,18 @@ const (
 )
 
 var (
-	awsClient       *aws.Client
-	telemtryClient  *telemetry.Client
 	markedWorkflows = strset.New()
 )
 
 func main() {
-	if err := config.Init(); err != nil {
-		config.Telemetry.ReportErrorBlocking(err)
+	config.InitCortexConfig()
+
+	if err := config.InitCloud(config.Cortex); err != nil {
+		errors.Exit(err)
+	}
+	defer config.Cloud.Close()
+
+	if err := config.InitClients(config.Cloud, config.Cortex); err != nil {
 		errors.Exit(err)
 	}
 
@@ -70,18 +72,28 @@ func main() {
 	startCron()
 
 	router := mux.NewRouter()
+
 	router.Use(panicMiddleware)
 	router.Use(apiVersionCheckMiddleware)
-	router.Use(authMiddleware)
 
-	router.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
-	router.HandleFunc("/delete", endpoints.Delete).Methods("POST")
-	router.HandleFunc("/resources", endpoints.GetResources).Methods("GET")
-	router.HandleFunc("/aggregate/{id}", endpoints.GetAggregate).Methods("GET")
-	router.HandleFunc("/logs/read", endpoints.ReadLogs)
+	router.HandleFunc("/init", endpoints.Initialize)
+
+	postInitRouter := router.MatcherFunc(postInitPaths).Subrouter()
+	postInitRouter.Use(authMiddleware)
+	postInitRouter.Use(cloudProviderCheckMiddleware)
+
+	postInitRouter.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
+	postInitRouter.HandleFunc("/delete", endpoints.Delete).Methods("POST")
+	postInitRouter.HandleFunc("/resources", endpoints.GetResources).Methods("GET")
+	postInitRouter.HandleFunc("/aggregate/{id}", endpoints.GetAggregate).Methods("GET")
+	postInitRouter.HandleFunc("/logs/read", endpoints.ReadLogs)
 
 	log.Print("Running on port " + operatorPortStr)
 	log.Fatal(http.ListenAndServe(":"+operatorPortStr, router))
+}
+
+func postInitPaths(r *http.Request, match *mux.RouteMatch) bool {
+	return r.URL.RequestURI() != "/init"
 }
 
 func panicMiddleware(next http.Handler) http.Handler {
@@ -91,33 +103,45 @@ func panicMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func cloudProviderCheckMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		operatorCloudProvider := r.Header.Get("CortexCloudProvider")
+
+		if operatorCloudProvider != config.Cloud.ProviderType.String() {
+			endpoints.RespondError(w, ErrorCloudProviderTypeMismatch(config.Cloud.ProviderType.String(), operatorCloudProvider))
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
+		if r.URL.RequestURI() != "/init" {
+			authHeader := r.Header.Get("Authorization")
+			fmt.Println(authHeader)
+			if !strings.HasPrefix(authHeader, "CortexAuth ") {
+				endpoints.RespondError(w, endpoints.ErrorAuthHeaderMissing())
+				return
+			}
 
-		if !strings.HasPrefix(authHeader, "CortexAWS") {
-			endpoints.RespondError(w, endpoints.ErrorAuthHeaderMissing())
-			return
+			authHeaderParts := strings.Split(authHeader, " ")
+			if len(authHeaderParts) != 2 {
+				endpoints.RespondError(w, endpoints.ErrorAuthHeaderMalformed())
+				return
+			}
+
+			authed, err := config.Cloud.AuthUser(authHeaderParts[1])
+			if err != nil {
+				endpoints.RespondError(w, endpoints.ErrorAuthAPIError())
+				return
+			}
+
+			if !authed {
+				endpoints.RespondErrorCode(w, http.StatusForbidden, endpoints.ErrorAuthForbidden())
+				return
+			}
 		}
-
-		parts := strings.Split(authHeader[10:], "|")
-		if len(parts) != 2 {
-			endpoints.RespondError(w, endpoints.ErrorAuthHeaderMalformed())
-			return
-		}
-
-		accessKeyID, secretAccessKey := parts[0], parts[1]
-		authed, err := config.AWS.AuthUser(accessKeyID, secretAccessKey)
-		if err != nil {
-			endpoints.RespondError(w, endpoints.ErrorAuthAPIError())
-			return
-		}
-
-		if !authed {
-			endpoints.RespondErrorCode(w, http.StatusForbidden, endpoints.ErrorAuthForbidden())
-			return
-		}
-
 		next.ServeHTTP(w, r)
 	})
 }

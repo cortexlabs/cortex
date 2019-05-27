@@ -101,13 +101,14 @@ func apiSpec(
 							"--workload-id=" + workloadID,
 							"--port=" + defaultPortStr,
 							"--tf-serve-port=" + tfServingPortStr,
-							"--context=" + config.AWS.S3Path(ctx.Key),
+							"--context=" + config.Cloud.InternalPath(ctx.Key),
 							"--api=" + ctx.APIs[apiName].ID,
 							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
 							"--cache-dir=" + consts.ContextCacheDir,
+							"--cloud-provider-type=" + config.Cloud.ProviderType.String(),
 						},
-						Env:          k8s.AWSCredentials(),
-						VolumeMounts: k8s.DefaultVolumeMounts(),
+						Env:          config.Cloud.EnvCredentials(),
+						VolumeMounts: append(k8s.DefaultVolumeMounts(), config.Cloud.StorageVolumeMounts()...),
 						ReadinessProbe: &corev1.Probe{
 							InitialDelaySeconds: 5,
 							TimeoutSeconds:      5,
@@ -135,8 +136,8 @@ func apiSpec(
 							"--port=" + tfServingPortStr,
 							"--model_base_path=" + path.Join(consts.EmptyDirMountPath, "model"),
 						},
-						Env:          k8s.AWSCredentials(),
-						VolumeMounts: k8s.DefaultVolumeMounts(),
+						Env:          config.Cloud.EnvCredentials(),
+						VolumeMounts: append(k8s.DefaultVolumeMounts(), config.Cloud.StorageVolumeMounts()...),
 						ReadinessProbe: &corev1.Probe{
 							InitialDelaySeconds: 5,
 							TimeoutSeconds:      5,
@@ -157,7 +158,7 @@ func apiSpec(
 						},
 					},
 				},
-				Volumes:            k8s.DefaultVolumes(),
+				Volumes:            append(k8s.DefaultVolumes(), config.Cloud.StorageVolumes()...),
 				ServiceAccountName: "default",
 			},
 		},
@@ -316,20 +317,6 @@ func addToDeploymentMap(deployments map[string]*appsv1b1.Deployment, deployment 
 
 func internalAPIName(apiName string, appName string) string {
 	return appName + "----" + apiName
-}
-
-func APIsBaseURL() (string, error) {
-	service, err := config.Kubernetes.GetService("nginx-controller-apis")
-	if err != nil {
-		return "", err
-	}
-	if service == nil {
-		return "", ErrorCortexInstallationBroken()
-	}
-	if len(service.Status.LoadBalancer.Ingress) == 0 {
-		return "", ErrorLoadBalancerInitializing()
-	}
-	return "https://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
 
 func APIDeploymentCompute(deployment *appsv1b1.Deployment) userconfig.APICompute {

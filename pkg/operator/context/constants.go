@@ -77,14 +77,14 @@ func uploadConstant(constant *context.Constant) error {
 		return nil
 	}
 
-	isUploaded, err := config.AWS.IsS3File(constant.Key)
+	isUploaded, err := config.Cloud.FileExists(constant.Key)
 	if err != nil {
 		return errors.Wrap(err, userconfig.Identify(constant), "upload")
 	}
 
 	if !isUploaded {
 		serializedConstant := msgpack.MustMarshal(constant.Value)
-		err = config.AWS.UploadBytesToS3(serializedConstant, constant.Key)
+		err = config.Cloud.PutBytes(serializedConstant, constant.Key)
 		if err != nil {
 			return errors.Wrap(err, userconfig.Identify(constant), "upload")
 		}

@@ -248,7 +248,7 @@ func DeleteApp(appName string, keepCache bool) bool {
 	uncacheLatestWorkloadIDs(nil, appName)
 
 	if !keepCache {
-		config.AWS.DeleteFromS3ByPrefix(filepath.Join(consts.AppsDir, appName), true)
+		config.Cloud.DeleteByPrefix(filepath.Join(consts.AppsDir, appName), true)
 	}
 
 	return wasDeployed

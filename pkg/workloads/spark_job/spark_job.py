@@ -294,7 +294,12 @@ def run_job(args):
     resource_id_list = cols_to_validate + cols_to_aggregate + cols_to_transform + training_datasets
 
     try:
-        ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
+        ctx = Context(
+            cloud_provider_type=args.cloud_provider_type,
+            path=args.context,
+            cache_dir=args.cache_dir,
+            workload_id=args.workload_id,
+        )
     except Exception as e:
         logger.exception("An error occurred, see the logs for more details.")
         sys.exit(1)
@@ -343,10 +348,9 @@ def main():
 
     na = parser.add_argument_group("required named arguments")
     na.add_argument("--workload-id", required=True, help="Workload ID")
+    na.add_argument("--cloud-provider-type", required=True, help="Cloud type")
     na.add_argument(
-        "--context",
-        required=True,
-        help="S3 path to context (e.g. s3://bucket/path/to/context.json)",
+        "--context", required=True, help="path to context (e.g. s3://bucket/path/to/context.json)"
     )
     na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
 

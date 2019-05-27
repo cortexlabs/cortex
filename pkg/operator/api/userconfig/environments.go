@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 )
 
 type Environments []*Environment
@@ -173,7 +174,7 @@ type CSVConfig struct {
 var csvDataFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "Path",
-		StringValidation: cr.GetS3aPathValidation(&cr.S3aPathValidation{
+		StringValidation: cloud.GetHadoopPathValidation(&cloud.HadoopPathValidation{
 			Required: true,
 		}),
 	},
@@ -280,7 +281,7 @@ type ParquetData struct {
 var parquetDataFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "Path",
-		StringValidation: cr.GetS3aPathValidation(&cr.S3aPathValidation{
+		StringValidation: cloud.GetHadoopPathValidation(&cloud.HadoopPathValidation{
 			Required: true,
 		}),
 	},
