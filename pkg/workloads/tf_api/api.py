@@ -209,7 +209,8 @@ def is_valid_sample(sample):
             return False, "{} is missing".format(column["name"])
 
         sample_val = sample[column["name"]]
-        is_valid = util.CORTEX_TYPE_TO_UPCAST_VALIDATOR[column["type"]](sample_val)
+        column_type = local_cache["ctx"].get_inferred_column_type(column["name"])
+        is_valid = util.CORTEX_TYPE_TO_UPCAST_VALIDATOR[column_type](sample_val)
 
         if not is_valid:
             return (False, "{} should be a {}".format(column["name"], column["type"]))

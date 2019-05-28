@@ -101,7 +101,6 @@ func getRawColumns(
 					ResourceFields: &context.ResourceFields{
 						ID:           id,
 						ResourceType: resource.RawColumnType,
-						MetadataKey:  filepath.Join(consts.RawColumnsDir, id+"_metadata.json"),
 					},
 				},
 				RawInferredColumn: typedColumnConfig,

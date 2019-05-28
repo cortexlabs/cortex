@@ -223,8 +223,33 @@ def ingest(ctx, spark):
 
     for raw_column_name in ctx.raw_columns.keys():
         raw_column = ctx.raw_columns[raw_column_name]
-        expected_types = CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES[raw_column["type"]]
         actual_type = input_type_map[raw_column_name]
+
+        if actual_type not in SPARK_TYPE_TO_CORTEX_TYPE.keys():
+            actual_type = StringType()
+
+        column_type = raw_column["type"]
+        if column_type == consts.COLUMN_TYPE_INFERRED:
+            TEST_DF_SIZE = 10
+            sample_df = df.select(raw_column_name).limit(TEST_DF_SIZE).collect()
+            sample = sample_df[0][raw_column_name]
+            inferred_type = infer_type(sample)
+
+            for row in sample_df:
+                if inferred_type != infer_type(row[raw_column_name]):
+                    raise UserRuntimeException(
+                        "raw column " + raw_column_name,
+                        "type inference failed, mixed data types in dataframe.",
+                        'expected type of "'
+                        + row
+                        + '" to be '
+                        + inferred_type,
+                    )
+
+            ctx.write_metadata(raw_column["id"], {"type": inferred_type})
+            column_type = inferred_type
+
+        expected_types = CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES[column_type]
         if actual_type not in expected_types:
             logger.error("found schema:")
             log_df_schema(df, logger.error)
@@ -236,7 +261,7 @@ def ingest(ctx, spark):
                     " or ".join(str(x) for x in expected_types), actual_type
                 ),
             )
-        target_type = CORTEX_TYPE_TO_SPARK_TYPE[raw_column["type"]]
+        target_type = CORTEX_TYPE_TO_SPARK_TYPE[column_type]
 
         if target_type != actual_type:
             df = df.withColumn(raw_column_name, F.col(raw_column_name).cast(target_type))
@@ -246,16 +271,6 @@ def ingest(ctx, spark):
 
 def read_csv(ctx, spark):
     data_config = ctx.environment["data"]
-    expected_field_names = data_config["schema"]
-
-    schema_fields = []
-    for field_name in expected_field_names:
-        if field_name in ctx.raw_columns:
-            spark_type = CORTEX_TYPE_TO_SPARK_TYPE[ctx.raw_columns[field_name]["type"]]
-        else:
-            spark_type = StringType()
-
-        schema_fields.append(StructField(name=field_name, dataType=spark_type))
 
     csv_config = {
         util.snake_to_camel(param_name): val
@@ -264,7 +279,7 @@ def read_csv(ctx, spark):
     }
 
     df = spark.read.csv(
-        data_config["path"], schema=StructType(schema_fields), mode="FAILFAST", **csv_config
+        data_config["path"], inferSchema=True, **csv_config
     )
     return df.select(*ctx.raw_columns.keys())
 

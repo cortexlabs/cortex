@@ -157,7 +157,6 @@ def train(model_name, model_impl, ctx, model_dir):
         )
 
     train_spec = tf.estimator.TrainSpec(train_input_fn, max_steps=train_num_steps)
-
     eval_num_steps = model["evaluation"]["num_steps"]
     if model["evaluation"]["num_epochs"]:
         eval_num_steps = (
@@ -175,12 +174,11 @@ def train(model_name, model_impl, ctx, model_dir):
     )
 
     model_config = ctx.model_config(model["name"])
-    tf_lib.add_tf_types(model_config)
 
     try:
         estimator = model_impl.create_estimator(run_config, model_config)
     except Exception as e:
-        raise UserRuntimeException("model " + model_name) from e
+       raise UserRuntimeException("model " + model_name) from e
 
     if model["type"] == "regression":
         estimator = tf.contrib.estimator.add_metrics(estimator, get_regression_eval_metrics)

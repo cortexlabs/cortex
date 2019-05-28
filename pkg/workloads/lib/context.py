@@ -489,7 +489,7 @@ class Context:
     def get_inferred_column_type(self, column_name):
         column = self.columns[column_name]
         column_type = self.columns[column_name].get("type", "unknown")
-        if column_type == "unknown":
+        if column_type == "unknown" or column_type == "INFERRED_COLUMN":
             column_type = self.get_metadata(column["id"])["type"]
             self.columns[column_name]["type"] = column_type
 
@@ -575,11 +575,7 @@ def create_inputs_map(values_map, input_config):
 
 def _deserialize_raw_ctx(raw_ctx):
     raw_columns = raw_ctx["raw_columns"]
-    raw_ctx["raw_columns"] = util.merge_dicts_overwrite(
-        raw_columns["raw_int_columns"],
-        raw_columns["raw_float_columns"],
-        raw_columns["raw_string_columns"],
-    )
+    raw_ctx["raw_columns"] = util.merge_dicts_overwrite(*raw_columns.values())
 
     data_split = raw_ctx["environment_data"]
 
