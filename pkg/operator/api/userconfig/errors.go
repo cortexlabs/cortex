@@ -59,7 +59,6 @@ const (
 	ErrRegressionTargetType
 	ErrClassificationTargetType
 	ErrSpecifyOnlyOneMissing
-	ErrAppNameMustBeDNS1123
 )
 
 var errorKinds = []string{
@@ -93,10 +92,9 @@ var errorKinds = []string{
 	"err_regression_target_type",
 	"err_classification_target_type",
 	"err_specify_only_one_missing",
-	"err_app_name_must_be_dns1123",
 }
 
-var _ = [1]int{}[int(ErrAppNameMustBeDNS1123)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrSpecifyOnlyOneMissing)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -397,12 +395,5 @@ func ErrorSpecifyOnlyOneMissing(vals ...string) error {
 	return Error{
 		Kind:    ErrSpecifyOnlyOneMissing,
 		message: message,
-	}
-}
-
-func ErrorAppNameMustBeDNS1123() error {
-	return Error{
-		Kind:    ErrAppNameMustBeDNS1123,
-		message: "App name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character",
 	}
 }

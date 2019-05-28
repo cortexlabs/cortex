@@ -28,15 +28,17 @@ const (
 	ErrUnknown ErrorKind = iota
 	ErrInvalidURL
 	ErrDNS1035
+	ErrDNS1123
 )
 
 var errorKinds = []string{
 	"err_unknown",
 	"err_invalid_url",
 	"err_dns1035",
+	"err_dns1123",
 }
 
-var _ = [1]int{}[int(ErrDNS1035)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrDNS1123)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -91,6 +93,13 @@ func ErrorInvalidURL(provided string) error {
 func ErrorDNS1035(provided string) error {
 	return Error{
 		Kind:    ErrDNS1035,
-		message: fmt.Sprintf("%s must contain only lower case letters, numbers, and dashes, start with a letter, and cannot end with a dash", s.UserStr(provided)),
+		message: fmt.Sprintf("%s must contain only lower case letters, numbers, and dashes, start with a letter, and cannot end with a dash", provided),
+	}
+}
+
+func ErrorDNS1123(provided string) error {
+	return Error{
+		Kind:    ErrDNS1123,
+		message: fmt.Sprintf("%s must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character", provided),
 	}
 }

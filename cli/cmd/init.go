@@ -22,11 +22,10 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
 var initCmd = &cobra.Command{
@@ -37,8 +36,8 @@ var initCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		appName := args[0]
 
-		if errList := k8svalidation.IsDNS1123Subdomain(appName); len(errList) > 0 {
-			errors.Exit(userconfig.ErrorAppNameMustBeDNS1123())
+		if err := urls.CheckDNS1123(appName); err != nil {
+			errors.Exit(err)
 		}
 
 		cwd, err := os.Getwd()
