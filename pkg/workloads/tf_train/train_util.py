@@ -178,7 +178,7 @@ def train(model_name, model_impl, ctx, model_dir):
     try:
         estimator = model_impl.create_estimator(run_config, model_config)
     except Exception as e:
-       raise UserRuntimeException("model " + model_name) from e
+        raise UserRuntimeException("model " + model_name) from e
 
     if model["type"] == "regression":
         estimator = tf.contrib.estimator.add_metrics(estimator, get_regression_eval_metrics)

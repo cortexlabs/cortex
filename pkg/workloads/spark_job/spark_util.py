@@ -240,10 +240,7 @@ def ingest(ctx, spark):
                     raise UserRuntimeException(
                         "raw column " + raw_column_name,
                         "type inference failed, mixed data types in dataframe.",
-                        'expected type of "'
-                        + row
-                        + '" to be '
-                        + inferred_type,
+                        'expected type of "' + row + '" to be ' + inferred_type,
                     )
 
             ctx.write_metadata(raw_column["id"], {"type": inferred_type})
@@ -278,9 +275,7 @@ def read_csv(ctx, spark):
         if val is not None
     }
 
-    df = spark.read.csv(
-        data_config["path"], inferSchema=True, **csv_config
-    )
+    df = spark.read.csv(data_config["path"], inferSchema=True, **csv_config)
     return df.select(*ctx.raw_columns.keys())
 
 
