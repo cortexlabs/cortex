@@ -32,6 +32,7 @@ type StringPtrValidation struct {
 	AlphaNumericDashDotUnderscore bool
 	AlphaNumericDashUnderscore    bool
 	DNS1035                       bool
+	DNS1123                       bool
 	Validator                     func(*string) (*string, error)
 }
 
@@ -43,6 +44,7 @@ func makeStringValValidation(v *StringPtrValidation) *StringValidation {
 		AlphaNumericDashDotUnderscore: v.AlphaNumericDashDotUnderscore,
 		AlphaNumericDashUnderscore:    v.AlphaNumericDashUnderscore,
 		DNS1035:                       v.DNS1035,
+		DNS1123:                       v.DNS1123,
 	}
 }
 
