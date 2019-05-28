@@ -46,11 +46,7 @@ def test_read_csv_valid(spark, write_csv_file, ctx_obj, get_context):
     assert spark_util.read_csv(get_context(ctx_obj), spark).count() == 3
 
     ctx_obj["environment"] = {
-        "data": {
-            "type": "csv",
-            "path": path_to_file,
-            "schema": ["a_str", "b_float", "c_long"],
-        }
+        "data": {"type": "csv", "path": path_to_file, "schema": ["a_str", "b_float", "c_long"]}
     }
 
     assert spark_util.read_csv(get_context(ctx_obj), spark).count() == 3
