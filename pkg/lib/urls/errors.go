@@ -93,13 +93,13 @@ func ErrorInvalidURL(provided string) error {
 func ErrorDNS1035(provided string) error {
 	return Error{
 		Kind:    ErrDNS1035,
-		message: fmt.Sprintf("%s must contain only lower case letters, numbers, and dashes, start with a letter, and cannot end with a dash", provided),
+		message: fmt.Sprintf("%s must contain only lower case letters, numbers, and dashes, start with a letter, and cannot end with a dash", s.UserStr(provided)),
 	}
 }
 
 func ErrorDNS1123(provided string) error {
 	return Error{
 		Kind:    ErrDNS1123,
-		message: fmt.Sprintf("%s must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character", provided),
+		message: fmt.Sprintf("%s must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character", s.UserStr(provided)),
 	}
 }
