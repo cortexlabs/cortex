@@ -21,6 +21,8 @@ import (
 	"io/ioutil"
 	"strings"
 
+	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
+
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -491,6 +493,10 @@ func ReadAppName(filePath string, relativePath string) (string, error) {
 
 	if appName == "" {
 		return "", errors.Wrap(ErrorMissingAppDefinition(), relativePath)
+	}
+
+	if errList := k8svalidation.IsDNS1123Subdomain(appName); len(errList) > 0 {
+		return "", ErrorAppNameMustBeDNS1123()
 	}
 
 	return appName, nil
