@@ -157,6 +157,7 @@ def train(model_name, model_impl, ctx, model_dir):
         )
 
     train_spec = tf.estimator.TrainSpec(train_input_fn, max_steps=train_num_steps)
+
     eval_num_steps = model["evaluation"]["num_steps"]
     if model["evaluation"]["num_epochs"]:
         eval_num_steps = (
