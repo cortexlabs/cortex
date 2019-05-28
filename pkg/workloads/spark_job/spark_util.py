@@ -276,6 +276,15 @@ def read_csv(ctx, spark):
     }
 
     df = spark.read.csv(data_config["path"], inferSchema=True, **csv_config)
+    renamed_cols = [F.col(c).alias(data_config["schema"][idx]) for idx, c in enumerate(df.columns)]
+    df = df.select(*renamed_cols)
+
+    missing_cols = set(data_config["schema"]) - set(df.columns)
+    if len(missing_cols) > 0:
+        logger.error("found schema:")
+        log_df_schema(df, logger.error)
+        raise UserException("missing column(s) in input dataset", str(missing_cols))
+
     return df.select(*ctx.raw_columns.keys())
 
 

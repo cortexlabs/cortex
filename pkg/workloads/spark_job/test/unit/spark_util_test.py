@@ -49,7 +49,7 @@ def test_read_csv_valid(spark, write_csv_file, ctx_obj, get_context):
         "data": {
             "type": "csv",
             "path": path_to_file,
-            "schema": ["a_str", "b_float", "c_long", "d_long"],
+            "schema": ["a_str", "b_float", "c_long"],
         }
     }
 
@@ -71,12 +71,12 @@ def test_read_csv_invalid_type(spark, write_csv_file, ctx_obj, get_context):
         "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "-"},
     }
 
-    with pytest.raises(Py4JJavaError):
+    with pytest.raises(UserException):
         spark_util.ingest(get_context(ctx_obj), spark).collect()
 
 
 def test_read_csv_missing_column(spark, write_csv_file, ctx_obj, get_context):
-    csv_str = "\n".join(["a,0.1,", "b,1,1"])
+    csv_str = "\n".join(["a,1,", "b,1,"])
 
     path_to_file = write_csv_file(csv_str)
 
@@ -90,7 +90,7 @@ def test_read_csv_missing_column(spark, write_csv_file, ctx_obj, get_context):
         "c_long": {"name": "c_long", "type": "INT_COLUMN", "required": False, "id": "-"},
     }
 
-    with pytest.raises(Py4JJavaError) as exec_info:
+    with pytest.raises(UserException) as exec_info:
         spark_util.ingest(get_context(ctx_obj), spark).collect()
 
 
