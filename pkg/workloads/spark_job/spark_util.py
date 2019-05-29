@@ -220,6 +220,7 @@ def ingest(ctx, spark):
         df = read_parquet(ctx, spark)
 
     input_type_map = {f.name: f.dataType for f in df.schema}
+    inferred_col_type_map = {c.name: c.dataType for c in df.schema}
 
     for raw_column_name in ctx.raw_columns.keys():
         raw_column = ctx.raw_columns[raw_column_name]
@@ -230,11 +231,8 @@ def ingest(ctx, spark):
 
         column_type = raw_column["type"]
         if column_type == consts.COLUMN_TYPE_INFERRED:
-            sample_df = df.select(raw_column_name).limit(1).collect()
-            sample = sample_df[0][raw_column_name]
-            inferred_type = infer_type(sample)
-            ctx.write_metadata(raw_column["id"], {"type": inferred_type})
-            column_type = inferred_type
+            column_type = SPARK_TYPE_TO_CORTEX_TYPE[inferred_col_type_map[raw_column_name]]
+            ctx.write_metadata(raw_column["id"], {"type": column_type})
 
         expected_types = CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES[column_type]
         if actual_type not in expected_types:
@@ -284,15 +282,14 @@ def read_csv(ctx, spark):
     for column_name in ctx.raw_columns:
         column_type = ctx.raw_columns[column_name]["type"]
         if column_type == consts.COLUMN_TYPE_INFERRED:
-            casted_cols.append(F.col(column_name).alias(column_name))
+            casted_cols.append(F.col(column_name))
         else:
             casted_cols.append(
                 F.col(column_name).cast(CORTEX_TYPE_TO_SPARK_TYPE[column_type]).alias(column_name)
             )
 
-    df = df.select(*casted_cols)
+    return df.select(*casted_cols)
 
-    return df.select(*ctx.raw_columns.keys())
 
 
 def read_parquet(ctx, spark):
