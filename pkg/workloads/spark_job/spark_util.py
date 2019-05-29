@@ -283,7 +283,7 @@ def read_csv(ctx, spark):
     casted_cols = []
     for column_name in ctx.raw_columns:
         column_type = ctx.raw_columns[column_name]["type"]
-        if column_type == consts.COLUMN_TYPE_VALUE:
+        if column_type == consts.COLUMN_TYPE_INFERRED:
             casted_cols.append(F.col(column_name).alias(column_name))
         else:
             casted_cols.append(
