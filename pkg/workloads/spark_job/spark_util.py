@@ -279,6 +279,19 @@ def read_csv(ctx, spark):
             + str(set(df.columns))
         )
 
+    # for columns with types, cast it
+    casted_cols = []
+    for column_name in ctx.raw_columns:
+        column_type = ctx.raw_columns[column_name]["type"]
+        if column_type == consts.COLUMN_TYPE_VALUE:
+            casted_cols.append(F.col(column_name).alias(column_name))
+        else:
+            casted_cols.append(
+                F.col(column_name).cast(CORTEX_TYPE_TO_SPARK_TYPE[column_type]).alias(column_name)
+            )
+
+    df = df.select(*casted_cols)
+
     return df.select(*ctx.raw_columns.keys())
 
 
@@ -524,6 +537,20 @@ def validate_transformer(column_name, test_df, ctx, spark):
                 _, impl_args = extract_inputs(column_name, ctx)
                 initial_transformed_sample = trans_impl.transform_python(inputs, impl_args)
                 inferred_python_type = infer_type(initial_transformed_sample)
+
+                for row in sample_df:
+                    inputs = ctx.create_column_inputs_map(row, column_name)
+                    transformed_sample = trans_impl.transform_python(inputs, impl_args)
+                    if inferred_python_type != infer_type(transformed_sample):
+                        raise UserRuntimeException(
+                            "transformed column " + column_name,
+                            "type inference failed, mixed data types in dataframe.",
+                            'expected type of "'
+                            + transformed_sample
+                            + '" to be '
+                            + inferred_python_type,
+                        )
+
                 ctx.write_metadata(transformed_column["id"], {"type": inferred_python_type})
 
             transform_python_collect = execute_transform_python(
@@ -617,7 +644,10 @@ def validate_transformer(column_name, test_df, ctx, spark):
             raise
 
     if hasattr(trans_impl, "transform_spark") and hasattr(trans_impl, "transform_python"):
-        if transformer["output_type"] == consts.COLUMN_TYPE_VALUE and inferred_spark_type != inferred_python_type:
+        if (
+            transformer["output_type"] == consts.COLUMN_TYPE_VALUE
+            and inferred_spark_type != inferred_python_type
+        ):
             raise UserRuntimeException(
                 "transformed column " + column_name,
                 "type inference failed, transform_spark and transform_python had differing types.",
