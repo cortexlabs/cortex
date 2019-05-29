@@ -83,6 +83,21 @@ func (rawColumns RawColumns) columnInputsID(columnInputValues map[string]interfa
 	return hash.Any(columnIDMap)
 }
 
+func GetRawColumnUserConfig(rawColumn RawColumn) userconfig.Resource {
+	switch rawColumn.GetType() {
+	case userconfig.IntegerColumnType:
+		return rawColumn.(*RawIntColumn).RawIntColumn
+	case userconfig.FloatColumnType:
+		return rawColumn.(*RawFloatColumn).RawFloatColumn
+	case userconfig.StringColumnType:
+		return rawColumn.(*RawStringColumn).RawStringColumn
+	case userconfig.InferredColumnType:
+		return rawColumn.(*RawInferredColumn).RawInferredColumn
+	}
+
+	return nil
+}
+
 func (rawColumns RawColumns) ColumnInputsID(columnInputValues map[string]interface{}) string {
 	return rawColumns.columnInputsID(columnInputValues, false)
 }

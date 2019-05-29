@@ -95,8 +95,8 @@ def create_prediction_request(transformed_sample):
     prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in transformed_sample.items():
-        column_Type = ctx.get_inferred_column_type(column_name)
-        data_type = tf_lib.CORTEX_TYPE_TO_TF_TYPE[column_Type]
+        column_type = ctx.get_inferred_column_type(column_name)
+        data_type = tf_lib.CORTEX_TYPE_TO_TF_TYPE[column_type]
         shape = [1]
         if util.is_list(value):
             shape = [len(value)]
@@ -213,7 +213,7 @@ def is_valid_sample(sample):
         is_valid = util.CORTEX_TYPE_TO_UPCAST_VALIDATOR[column_type](sample_val)
 
         if not is_valid:
-            return (False, "{} should be a {}".format(column["name"], column["type"]))
+            return (False, "{} should be a {}".format(column["name"], column_type))
 
     return True, None
 
@@ -266,7 +266,8 @@ def predict(app_name, api_name):
             return prediction_failed(sample, reason)
 
         for column in local_cache["required_inputs"]:
-            sample[column["name"]] = util.upcast(sample[column["name"]], column["type"])
+            column_type = local_cache["ctx"].get_inferred_column_type(column["name"])
+            sample[column["name"]] = util.upcast(sample[column["name"]], column_type)
 
         try:
             result = run_predict(sample)

@@ -225,24 +225,14 @@ def ingest(ctx, spark):
         raw_column = ctx.raw_columns[raw_column_name]
         actual_type = input_type_map[raw_column_name]
 
-        if actual_type not in SPARK_TYPE_TO_CORTEX_TYPE.keys():
+        if actual_type not in SPARK_TYPE_TO_CORTEX_TYPE:
             actual_type = StringType()
 
         column_type = raw_column["type"]
         if column_type == consts.COLUMN_TYPE_INFERRED:
-            TEST_DF_SIZE = 10
-            sample_df = df.select(raw_column_name).limit(TEST_DF_SIZE).collect()
+            sample_df = df.select(raw_column_name).limit(1).collect()
             sample = sample_df[0][raw_column_name]
             inferred_type = infer_type(sample)
-
-            for row in sample_df:
-                if inferred_type != infer_type(row[raw_column_name]):
-                    raise UserRuntimeException(
-                        "raw column " + raw_column_name,
-                        "type inference failed, mixed data types in dataframe.",
-                        'expected type of "' + row + '" to be ' + inferred_type,
-                    )
-
             ctx.write_metadata(raw_column["id"], {"type": inferred_type})
             column_type = inferred_type
 
@@ -527,27 +517,13 @@ def validate_transformer(column_name, test_df, ctx, spark):
 
     if hasattr(trans_impl, "transform_python"):
         try:
-            if transformer["output_type"] == "unknown":
+            if transformer["output_type"] == consts.COLUMN_TYPE_INFERRED:
                 sample_df = test_df.collect()
                 sample = sample_df[0]
                 inputs = ctx.create_column_inputs_map(sample, column_name)
                 _, impl_args = extract_inputs(column_name, ctx)
                 initial_transformed_sample = trans_impl.transform_python(inputs, impl_args)
                 inferred_python_type = infer_type(initial_transformed_sample)
-
-                for row in sample_df:
-                    inputs = ctx.create_column_inputs_map(row, column_name)
-                    transformed_sample = trans_impl.transform_python(inputs, impl_args)
-                    if inferred_python_type != infer_type(transformed_sample):
-                        raise UserRuntimeException(
-                            "transformed column " + column_name,
-                            "type inference failed, mixed data types in dataframe.",
-                            'expected type of "'
-                            + transformed_sample
-                            + '" to be '
-                            + inferred_python_type,
-                        )
-
                 ctx.write_metadata(transformed_column["id"], {"type": inferred_python_type})
 
             transform_python_collect = execute_transform_python(
@@ -609,7 +585,7 @@ def validate_transformer(column_name, test_df, ctx, spark):
                     )
                 )
 
-            if transformer["output_type"] == "unknown":
+            if transformer["output_type"] == consts.COLUMN_TYPE_INFERRED:
                 inferred_spark_type = transform_spark_df.select(column_name).schema[0].dataType
                 ctx.write_metadata(transformed_column["id"], {"type": inferred_spark_type})
 
@@ -641,7 +617,7 @@ def validate_transformer(column_name, test_df, ctx, spark):
             raise
 
     if hasattr(trans_impl, "transform_spark") and hasattr(trans_impl, "transform_python"):
-        if transformer["output_type"] == "unknown" and inferred_spark_type != inferred_python_type:
+        if transformer["output_type"] == consts.COLUMN_TYPE_INFERRED and inferred_spark_type != inferred_python_type:
             raise UserRuntimeException(
                 "transformed column " + column_name,
                 "type inference failed, transform_spark and transform_python had differing types.",

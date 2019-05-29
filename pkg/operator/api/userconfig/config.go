@@ -21,8 +21,6 @@ import (
 	"io/ioutil"
 	"strings"
 
-	k8sresource "k8s.io/apimachinery/pkg/api/resource"
-
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -156,9 +154,9 @@ func (config *Config) Validate(envName string) error {
 	rawColumnNames := config.RawColumns.Names()
 	for _, env := range config.Environments {
 		ingestedColumnNames := env.Data.GetIngestedColumns()
-		missingColumns := slices.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
-		if len(missingColumns) > 0 {
-			return errors.Wrap(ErrorRawColumnNotInEnv(env.Name), Identify(config.RawColumns.Get(missingColumns[0])))
+		missingColumnNames := slices.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
+		if len(missingColumnNames) > 0 {
+			return errors.Wrap(ErrorRawColumnNotInEnv(env.Name), Identify(config.RawColumns.Get(missingColumnNames[0])))
 		}
 		extraColumns := slices.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
 		if len(extraColumns) > 0 {
@@ -445,21 +443,16 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 	rawColumnNames := config.RawColumns.Names()
 	for _, env := range config.Environments {
 		ingestedColumnNames := env.Data.GetIngestedColumns()
-		missingColumns := slices.SubtractStrSlice(ingestedColumnNames, rawColumnNames)
-		for _, inferredColumn := range missingColumns {
+		missingColumnNames := slices.SubtractStrSlice(ingestedColumnNames, rawColumnNames)
+		for _, inferredColumnName := range missingColumnNames {
 			inferredRawColumn := &RawInferredColumn{
 				ResourceFields: ResourceFields{
-					Name: inferredColumn,
+					Name: inferredColumnName,
 				},
-				Type: InferredColumnType,
-				Compute: &SparkCompute{
-					Executors:   1,
-					DriverCPU:   Quantity{Quantity: k8sresource.MustParse("1")},
-					ExecutorCPU: Quantity{Quantity: k8sresource.MustParse("1")},
-					DriverMem:   Quantity{Quantity: k8sresource.MustParse("500Mi")},
-					ExecutorMem: Quantity{Quantity: k8sresource.MustParse("500Mi")},
-				},
+				Type:    InferredColumnType,
+				Compute: &SparkCompute{},
 			}
+			cr.Struct(inferredRawColumn.Compute, make(map[string]interface{}), sparkComputeStructValidation)
 			config.RawColumns = append(config.RawColumns, inferredRawColumn)
 		}
 	}

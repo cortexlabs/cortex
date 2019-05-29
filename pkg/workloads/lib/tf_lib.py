@@ -46,9 +46,8 @@ def get_column_tf_types(model_name, ctx, training=True):
 
     if training:
         target_column_name = model["target_column"]
-        column_types[target_column_name] = CORTEX_TYPE_TO_TF_TYPE[
-            ctx.columns[target_column_name]["type"]
-        ]
+        column_type = ctx.get_inferred_column_type(target_column_name)
+        column_types[target_column_name] = CORTEX_TYPE_TO_TF_TYPE[column_type]
 
         for column_name in model["training_columns"]:
             column_type = ctx.get_inferred_column_type(column_name)

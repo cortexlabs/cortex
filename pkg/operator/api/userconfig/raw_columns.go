@@ -186,18 +186,6 @@ type RawInferredColumn struct {
 	Compute *SparkCompute `json:"compute" yaml:"compute"`
 }
 
-var rawInferredColumnFieldValidations = []*cr.StructFieldValidation{
-	{
-		Key:         "name",
-		StructField: "Name",
-		StringValidation: &cr.StringValidation{
-			AlphaNumericDashUnderscore: true,
-			Required:                   true,
-		},
-	},
-	sparkComputeFieldValidation("Compute"),
-}
-
 func (rawColumns RawColumns) Validate() error {
 	resources := make([]Resource, len(rawColumns))
 	for i, res := range rawColumns {
