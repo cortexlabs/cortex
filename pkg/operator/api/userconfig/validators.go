@@ -140,7 +140,7 @@ func CheckColumnRuntimeTypesMatch(columnRuntimeTypes map[string]interface{}, col
 				return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeTypeInter, validTypes), columnInputName)
 			}
 
-			if columnRuntimeType == InferredColumnType {
+			if columnRuntimeType == ValueColumnType {
 				continue
 			}
 

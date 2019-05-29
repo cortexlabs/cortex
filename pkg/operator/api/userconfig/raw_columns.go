@@ -180,7 +180,7 @@ var rawStringColumnFieldValidations = []*cr.StructFieldValidation{
 	typeFieldValidation,
 }
 
-type RawInferredColumn struct {
+type RawValueColumn struct {
 	ResourceFields
 	Type    ColumnType    `json:"type" yaml:"type"`
 	Compute *SparkCompute `json:"compute" yaml:"compute"`
@@ -229,7 +229,7 @@ func (column *RawStringColumn) GetType() ColumnType {
 	return column.Type
 }
 
-func (column *RawInferredColumn) GetType() ColumnType {
+func (column *RawValueColumn) GetType() ColumnType {
 	return column.Type
 }
 
@@ -245,7 +245,7 @@ func (column *RawStringColumn) GetCompute() *SparkCompute {
 	return column.Compute
 }
 
-func (column *RawInferredColumn) GetCompute() *SparkCompute {
+func (column *RawValueColumn) GetCompute() *SparkCompute {
 	return column.Compute
 }
 
@@ -261,7 +261,7 @@ func (column *RawStringColumn) GetResourceType() resource.Type {
 	return resource.RawColumnType
 }
 
-func (column *RawInferredColumn) GetResourceType() resource.Type {
+func (column *RawValueColumn) GetResourceType() resource.Type {
 	return resource.RawColumnType
 }
 
@@ -277,6 +277,6 @@ func (column *RawStringColumn) IsRaw() bool {
 	return true
 }
 
-func (column *RawInferredColumn) IsRaw() bool {
+func (column *RawValueColumn) IsRaw() bool {
 	return true
 }

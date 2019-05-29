@@ -229,7 +229,7 @@ def ingest(ctx, spark):
             actual_type = StringType()
 
         column_type = raw_column["type"]
-        if column_type == consts.COLUMN_TYPE_INFERRED:
+        if column_type == consts.COLUMN_TYPE_VALUE:
             sample_df = df.select(raw_column_name).limit(1).collect()
             sample = sample_df[0][raw_column_name]
             inferred_type = infer_type(sample)
@@ -517,7 +517,7 @@ def validate_transformer(column_name, test_df, ctx, spark):
 
     if hasattr(trans_impl, "transform_python"):
         try:
-            if transformer["output_type"] == consts.COLUMN_TYPE_INFERRED:
+            if transformer["output_type"] == consts.COLUMN_TYPE_VALUE:
                 sample_df = test_df.collect()
                 sample = sample_df[0]
                 inputs = ctx.create_column_inputs_map(sample, column_name)
@@ -585,7 +585,7 @@ def validate_transformer(column_name, test_df, ctx, spark):
                     )
                 )
 
-            if transformer["output_type"] == consts.COLUMN_TYPE_INFERRED:
+            if transformer["output_type"] == consts.COLUMN_TYPE_VALUE:
                 inferred_spark_type = transform_spark_df.select(column_name).schema[0].dataType
                 ctx.write_metadata(transformed_column["id"], {"type": inferred_spark_type})
 
@@ -617,7 +617,7 @@ def validate_transformer(column_name, test_df, ctx, spark):
             raise
 
     if hasattr(trans_impl, "transform_spark") and hasattr(trans_impl, "transform_python"):
-        if transformer["output_type"] == consts.COLUMN_TYPE_INFERRED and inferred_spark_type != inferred_python_type:
+        if transformer["output_type"] == consts.COLUMN_TYPE_VALUE and inferred_spark_type != inferred_python_type:
             raise UserRuntimeException(
                 "transformed column " + column_name,
                 "type inference failed, transform_spark and transform_python had differing types.",

@@ -93,17 +93,17 @@ func getRawColumns(
 				},
 				RawStringColumn: typedColumnConfig,
 			}
-		case *userconfig.RawInferredColumn:
+		case *userconfig.RawValueColumn:
 			buf.WriteString(typedColumnConfig.Name)
 			id := hash.Bytes(buf.Bytes())
-			rawColumn = &context.RawInferredColumn{
+			rawColumn = &context.RawValueColumn{
 				ComputedResourceFields: &context.ComputedResourceFields{
 					ResourceFields: &context.ResourceFields{
 						ID:           id,
 						ResourceType: resource.RawColumnType,
 					},
 				},
-				RawInferredColumn: typedColumnConfig,
+				RawValueColumn: typedColumnConfig,
 			}
 		default:
 			return nil, errors.Wrap(configreader.ErrorInvalidStr(typedColumnConfig.GetType().String(), userconfig.IntegerColumnType.String(), userconfig.FloatColumnType.String(), userconfig.StringColumnType.String()), userconfig.Identify(columnConfig)) // unexpected error
