@@ -24,7 +24,10 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-var dns1035Regex = regexp.MustCompile(`^[a-z]([-a-z0-9]*[a-z0-9])?$`)
+var (
+	dns1035Regex = regexp.MustCompile(`^[a-z]([-a-z0-9]*[a-z0-9])?$`)
+	dns1123Regex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
+)
 
 func Parse(rawurl string) (*url.URL, error) {
 	u, err := url.Parse(rawurl)
@@ -49,7 +52,14 @@ func Join(strs ...string) string {
 
 func CheckDNS1035(s string) error {
 	if !dns1035Regex.MatchString(s) {
-		ErrorDNS1035(s)
+		return ErrorDNS1035(s)
+	}
+	return nil
+}
+
+func CheckDNS1123(s string) error {
+	if !dns1123Regex.MatchString(s) {
+		return ErrorDNS1123(s)
 	}
 	return nil
 }

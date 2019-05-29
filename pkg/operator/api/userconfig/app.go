@@ -32,6 +32,7 @@ var appValidation = &cr.StructValidation{
 			StringValidation: &cr.StringValidation{
 				Required:                   true,
 				AlphaNumericDashUnderscore: true,
+				DNS1123:                    true,
 			},
 		},
 		typeFieldValidation,
