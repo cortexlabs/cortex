@@ -291,7 +291,6 @@ def read_csv(ctx, spark):
     return df.select(*casted_cols)
 
 
-
 def read_parquet(ctx, spark):
     parquet_config = ctx.environment["data"]
     df = spark.read.parquet(parquet_config["path"])
