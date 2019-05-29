@@ -44,8 +44,8 @@ type RawStringColumn struct {
 	*ComputedResourceFields
 }
 
-type RawValueColumn struct {
-	*userconfig.RawValueColumn
+type RawInferredColumn struct {
+	*userconfig.RawInferredColumn
 	*ComputedResourceFields
 }
 
@@ -91,8 +91,8 @@ func GetRawColumnUserConfig(rawColumn RawColumn) userconfig.Resource {
 		return rawColumn.(*RawFloatColumn).RawFloatColumn
 	case userconfig.StringColumnType:
 		return rawColumn.(*RawStringColumn).RawStringColumn
-	case userconfig.ValueColumnType:
-		return rawColumn.(*RawValueColumn).RawValueColumn
+	case userconfig.InferredColumnType:
+		return rawColumn.(*RawInferredColumn).RawInferredColumn
 	}
 
 	return nil
@@ -118,6 +118,6 @@ func (rawColumn *RawStringColumn) GetInputRawColumnNames() []string {
 	return []string{rawColumn.GetName()}
 }
 
-func (rawColumn *RawValueColumn) GetInputRawColumnNames() []string {
+func (rawColumn *RawInferredColumn) GetInputRawColumnNames() []string {
 	return []string{rawColumn.GetName()}
 }

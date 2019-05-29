@@ -31,7 +31,7 @@ const (
 	IntegerListColumnType
 	FloatListColumnType
 	StringListColumnType
-	ValueColumnType
+	InferredColumnType
 )
 
 var columnTypes = []string{
@@ -42,7 +42,7 @@ var columnTypes = []string{
 	"INT_LIST_COLUMN",
 	"FLOAT_LIST_COLUMN",
 	"STRING_LIST_COLUMN",
-	"VALUE_COLUMN",
+	"INFERRED_COLUMN",
 }
 
 var columnJSONPlaceholders = []string{
@@ -53,7 +53,7 @@ var columnJSONPlaceholders = []string{
 	"[INT]",
 	"[FLOAT]",
 	"[\"STRING\"]",
-	"VALUE",
+	"INFER",
 }
 
 func ColumnTypeFromString(s string) ColumnType {

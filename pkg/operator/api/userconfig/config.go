@@ -444,16 +444,16 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 	for _, env := range config.Environments {
 		ingestedColumnNames := env.Data.GetIngestedColumns()
 		missingColumnNames := slices.SubtractStrSlice(ingestedColumnNames, rawColumnNames)
-		for _, valueColumnName := range missingColumnNames {
-			valueRawColumn := &RawValueColumn{
+		for _, inferredColumnName := range missingColumnNames {
+			inferredRawColumn := &RawInferredColumn{
 				ResourceFields: ResourceFields{
-					Name: valueColumnName,
+					Name: inferredColumnName,
 				},
-				Type:    ValueColumnType,
+				Type:    InferredColumnType,
 				Compute: &SparkCompute{},
 			}
-			cr.Struct(valueRawColumn.Compute, make(map[string]interface{}), sparkComputeStructValidation)
-			config.RawColumns = append(config.RawColumns, valueRawColumn)
+			cr.Struct(inferredRawColumn.Compute, make(map[string]interface{}), sparkComputeStructValidation)
+			config.RawColumns = append(config.RawColumns, inferredRawColumn)
 		}
 	}
 

@@ -25,10 +25,10 @@ import (
 )
 
 type RawColumnsTypeSplit struct {
-	RawIntColumns    map[string]*RawIntColumn    `json:"raw_int_columns"`
-	RawStringColumns map[string]*RawStringColumn `json:"raw_string_columns"`
-	RawFloatColumns  map[string]*RawFloatColumn  `json:"raw_float_columns"`
-	RawValueColumns  map[string]*RawValueColumn  `json:"raw_value_columns"`
+	RawIntColumns      map[string]*RawIntColumn      `json:"raw_int_columns"`
+	RawStringColumns   map[string]*RawStringColumn   `json:"raw_string_columns"`
+	RawFloatColumns    map[string]*RawFloatColumn    `json:"raw_float_columns"`
+	RawInferredColumns map[string]*RawInferredColumn `json:"raw_inferred_columns"`
 }
 
 type DataSplit struct {
@@ -46,7 +46,7 @@ func (ctx Context) splitRawColumns() *RawColumnsTypeSplit {
 	var rawIntColumns = make(map[string]*RawIntColumn)
 	var rawFloatColumns = make(map[string]*RawFloatColumn)
 	var rawStringColumns = make(map[string]*RawStringColumn)
-	var rawValueColumns = make(map[string]*RawValueColumn)
+	var rawInferredColumns = make(map[string]*RawInferredColumn)
 	for name, rawColumn := range ctx.RawColumns {
 		switch typedRawColumn := rawColumn.(type) {
 		case *RawIntColumn:
@@ -55,16 +55,16 @@ func (ctx Context) splitRawColumns() *RawColumnsTypeSplit {
 			rawFloatColumns[name] = typedRawColumn
 		case *RawStringColumn:
 			rawStringColumns[name] = typedRawColumn
-		case *RawValueColumn:
-			rawValueColumns[name] = typedRawColumn
+		case *RawInferredColumn:
+			rawInferredColumns[name] = typedRawColumn
 		}
 	}
 
 	return &RawColumnsTypeSplit{
-		RawIntColumns:    rawIntColumns,
-		RawFloatColumns:  rawFloatColumns,
-		RawStringColumns: rawStringColumns,
-		RawValueColumns:  rawValueColumns,
+		RawIntColumns:      rawIntColumns,
+		RawFloatColumns:    rawFloatColumns,
+		RawStringColumns:   rawStringColumns,
+		RawInferredColumns: rawInferredColumns,
 	}
 }
 
@@ -80,7 +80,7 @@ func (serial Serial) collectRawColumns() RawColumns {
 	for name, rawColumn := range serial.RawColumnSplit.RawStringColumns {
 		rawColumns[name] = rawColumn
 	}
-	for name, rawColumn := range serial.RawColumnSplit.RawValueColumns {
+	for name, rawColumn := range serial.RawColumnSplit.RawInferredColumns {
 		rawColumns[name] = rawColumn
 	}
 

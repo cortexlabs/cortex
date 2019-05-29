@@ -489,7 +489,7 @@ class Context:
     def get_inferred_column_type(self, column_name):
         column = self.columns[column_name]
         column_type = self.columns[column_name].get("type", "unknown")
-        if column_type == consts.COLUMN_TYPE_VALUE:
+        if column_type == consts.COLUMN_TYPE_INFERRED:
             column_type = self.get_metadata(column["id"])["type"]
             self.columns[column_name]["type"] = column_type
 
