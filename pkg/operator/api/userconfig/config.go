@@ -28,7 +28,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -492,10 +491,6 @@ func ReadAppName(filePath string, relativePath string) (string, error) {
 
 	if appName == "" {
 		return "", errors.Wrap(ErrorMissingAppDefinition(), relativePath)
-	}
-
-	if err := urls.CheckDNS1123(appName); err != nil {
-		return "", err
 	}
 
 	return appName, nil
