@@ -37,6 +37,7 @@ type StringValidation struct {
 	AlphaNumericDashDotUnderscore        bool
 	AlphaNumericDashUnderscore           bool
 	DNS1035                              bool
+	DNS1123                              bool
 	Validator                            func(string) (string, error)
 }
 
@@ -199,6 +200,12 @@ func ValidateStringVal(val string, v *StringValidation) error {
 
 	if v.DNS1035 {
 		if err := urls.CheckDNS1035(val); err != nil {
+			return err
+		}
+	}
+
+	if v.DNS1123 {
+		if err := urls.CheckDNS1123(val); err != nil {
 			return err
 		}
 	}

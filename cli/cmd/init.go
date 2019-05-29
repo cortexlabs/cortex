@@ -25,6 +25,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
 var initCmd = &cobra.Command{
@@ -34,6 +35,10 @@ var initCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		appName := args[0]
+
+		if err := urls.CheckDNS1123(appName); err != nil {
+			errors.Exit(err)
+		}
 
 		cwd, err := os.Getwd()
 		if err != nil {
