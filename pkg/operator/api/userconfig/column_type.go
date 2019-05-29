@@ -53,7 +53,7 @@ var columnJSONPlaceholders = []string{
 	"[INT]",
 	"[FLOAT]",
 	"[\"STRING\"]",
-	"INFER",
+	"VALUE",
 }
 
 func ColumnTypeFromString(s string) ColumnType {
