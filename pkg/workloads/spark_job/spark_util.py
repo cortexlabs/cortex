@@ -48,6 +48,15 @@ CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES = {
     consts.COLUMN_TYPE_STRING_LIST: [ArrayType(StringType(), True)],
 }
 
+CORTEX_TYPE_TO_CASTABLE_SPARK_TYPES = {
+    consts.COLUMN_TYPE_INT: [IntegerType(), LongType()],
+    consts.COLUMN_TYPE_INT_LIST: [ArrayType(IntegerType(), True), ArrayType(LongType(), True)],
+    consts.COLUMN_TYPE_FLOAT: [FloatType(), DoubleType()],
+    consts.COLUMN_TYPE_FLOAT_LIST: [ArrayType(FloatType(), True), ArrayType(DoubleType(), True)],
+    consts.COLUMN_TYPE_STRING: [StringType(), IntegerType(), LongType(), FloatType(), DoubleType()],
+    consts.COLUMN_TYPE_STRING_LIST: [ArrayType(StringType(), True)],
+}
+
 PYTHON_TYPE_TO_CORTEX_TYPE = {
     int: consts.COLUMN_TYPE_INT,
     float: consts.COLUMN_TYPE_FLOAT,
@@ -221,35 +230,33 @@ def ingest(ctx, spark):
 
     input_type_map = {f.name: f.dataType for f in df.schema}
     inferred_col_type_map = {c.name: c.dataType for c in df.schema}
-
-    for raw_column_name in ctx.raw_columns.keys():
+    for raw_column_name in ctx.raw_columns:
         raw_column = ctx.raw_columns[raw_column_name]
-        actual_type = input_type_map[raw_column_name]
-
-        if actual_type not in SPARK_TYPE_TO_CORTEX_TYPE:
-            actual_type = StringType()
-
-        column_type = raw_column["type"]
-        if column_type == consts.COLUMN_TYPE_INFERRED:
+        expected_cortex_type = raw_column["type"]
+        if expected_cortex_type == consts.COLUMN_TYPE_INFERRED:
             column_type = SPARK_TYPE_TO_CORTEX_TYPE[inferred_col_type_map[raw_column_name]]
             ctx.write_metadata(raw_column["id"], {"type": column_type})
+        else:
+            actual_spark_type = input_type_map[raw_column_name]
+            if actual_spark_type not in SPARK_TYPE_TO_CORTEX_TYPE:
+                actual_spark_type = StringType()
 
-        expected_types = CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES[column_type]
-        if actual_type not in expected_types:
-            logger.error("found schema:")
-            log_df_schema(df, logger.error)
+            expected_types = CORTEX_TYPE_TO_CASTABLE_SPARK_TYPES[expected_cortex_type]
+            if actual_spark_type not in expected_types:
+                logger.error("found schema:")
+                log_df_schema(df, logger.error)
 
-            raise UserException(
-                "raw column " + raw_column_name,
-                "type mismatch",
-                "expected {} but found {}".format(
-                    " or ".join(str(x) for x in expected_types), actual_type
-                ),
-            )
-        target_type = CORTEX_TYPE_TO_SPARK_TYPE[column_type]
+                raise UserException(
+                    "raw column " + raw_column_name,
+                    "type mismatch",
+                    "expected {} but found {}".format(
+                        " or ".join(str(x) for x in expected_types), actual_spark_type
+                    ),
+                )
 
-        if target_type != actual_type:
-            df = df.withColumn(raw_column_name, F.col(raw_column_name).cast(target_type))
+            if actual_spark_type != expected_cortex_type:
+                target_spark_type = CORTEX_TYPE_TO_SPARK_TYPE[expected_cortex_type]
+                df = df.withColumn(raw_column_name, F.col(raw_column_name).cast(target_spark_type))
 
     return df.select(*sorted(df.columns))
 
@@ -263,7 +270,7 @@ def read_csv(ctx, spark):
         if val is not None
     }
 
-    df = spark.read.csv(data_config["path"], inferSchema=True, **csv_config)
+    df = spark.read.csv(data_config["path"], inferSchema=True, mode="FAILFAST", **csv_config)
     renamed_cols = [F.col(c).alias(data_config["schema"][idx]) for idx, c in enumerate(df.columns)]
     df = df.select(*renamed_cols)
 
@@ -276,20 +283,7 @@ def read_csv(ctx, spark):
             + " but got "
             + str(set(df.columns))
         )
-
-    # for columns with types, cast it
-    casted_cols = []
-    for column_name in ctx.raw_columns:
-        column_type = ctx.raw_columns[column_name]["type"]
-        if column_type == consts.COLUMN_TYPE_INFERRED:
-            casted_cols.append(F.col(column_name))
-        else:
-            casted_cols.append(
-                F.col(column_name).cast(CORTEX_TYPE_TO_SPARK_TYPE[column_type]).alias(column_name)
-            )
-
-    return df.select(*casted_cols)
-
+    return df
 
 def read_parquet(ctx, spark):
     parquet_config = ctx.environment["data"]
