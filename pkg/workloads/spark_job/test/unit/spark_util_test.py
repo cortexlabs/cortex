@@ -64,6 +64,7 @@ def test_read_csv_invalid_type(spark, write_csv_file, ctx_obj, get_context):
     with pytest.raises(UserException):
         spark_util.ingest(get_context(ctx_obj), spark).collect()
 
+
 def test_read_csv_infer_type(spark, write_csv_file, ctx_obj, get_context):
     csv_str = "\n".join(["a,0.1,", "b,0.1,1", "c,1.1,4"])
 
@@ -113,7 +114,7 @@ def test_read_csv_infer_invalid(spark, write_csv_file, ctx_obj, get_context):
     }
 
     ctx_obj["raw_columns"] = {
-        "a_int": {"name": "a_int", "type": "INT_COLUMN", "required": True, "id": "-"},
+        "a_int": {"name": "a_int", "type": "INT_COLUMN", "required": True, "id": "-"}
     }
 
     with pytest.raises(UserException):
@@ -127,13 +128,11 @@ def test_read_csv_infer_invalid(spark, write_csv_file, ctx_obj, get_context):
     }
 
     ctx_obj["raw_columns"] = {
-        "b_float": {"name": "a_float", "type": "FLOAT_COLUMN", "required": True, "id": "-"},
+        "b_float": {"name": "a_float", "type": "FLOAT_COLUMN", "required": True, "id": "-"}
     }
 
     with pytest.raises(UserException):
         spark_util.ingest(get_context(ctx_obj), spark).collect()
-
-
 
 
 def test_read_csv_missing_column(spark, write_csv_file, ctx_obj, get_context):
