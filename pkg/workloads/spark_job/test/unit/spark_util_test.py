@@ -66,73 +66,86 @@ def test_read_csv_invalid_type(spark, write_csv_file, ctx_obj, get_context):
 
 
 def test_read_csv_infer_type(spark, write_csv_file, ctx_obj, get_context):
-    csv_str = "\n".join(["a,0.1,", "b,0.1,1", "c,1.1,4"])
+    test_cases = [
+        {
+            "csv": ["a,0.1,", "b,0.1,1", "c,1.1,4"],
+            "schema": ["a_str", "b_float", "c_long"],
+            "raw_columns": {},
+            "expected_types": {
+                "a_str": StringType(),
+                "b_float": DoubleType(),
+                "c_long": IntegerType(),
+            },
+        },
+        {
+            "csv": ["1,4,4.5", "1,3,1.2", "1,5,4.7"],
+            "schema": ["a_str", "b_int", "c_float"],
+            "raw_columns": {
+                "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "-"},
+                "c_float": {"name": "c_float", "type": "FLOAT_COLUMN", "required": True, "id": "-"},
+            },
+            "expected_types": {
+                "a_str": StringType(),
+                "b_int": IntegerType(),
+                "c_float": FloatType(),
+            },
+        },
+    ]
 
-    path_to_file = write_csv_file(csv_str)
+    for test in test_cases:
+        csv_str = "\n".join(test["csv"])
+        path_to_file = write_csv_file(csv_str)
 
-    ctx_obj["environment"] = {
-        "data": {"type": "csv", "path": path_to_file, "schema": ["a_str", "b_float", "c_long"]}
-    }
+        ctx_obj["environment"] = {
+            "data": {"type": "csv", "path": path_to_file, "schema": test["schema"]}
+        }
 
-    df = spark_util.ingest(get_context(ctx_obj), spark)
-    assert df.count() == 3
-    inferred_col_type_map = {c.name: c.dataType for c in df.schema}
-    assert inferred_col_type_map["a_str"] == StringType()
-    assert inferred_col_type_map["b_float"] == DoubleType()
-    assert inferred_col_type_map["c_long"] == IntegerType()
+        ctx_obj["raw_columns"] = test["raw_columns"]
 
-
-def test_read_csv_infer_and_cast_type(spark, write_csv_file, ctx_obj, get_context):
-    csv_str = "\n".join(["1,4,4.5", "1,3,1.2", "1,5,4.7"])
-
-    path_to_file = write_csv_file(csv_str)
-
-    ctx_obj["environment"] = {
-        "data": {"type": "csv", "path": path_to_file, "schema": ["a_str", "b_int", "c_float"]}
-    }
-
-    ctx_obj["raw_columns"] = {
-        "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "-"},
-        "c_float": {"name": "c_float", "type": "FLOAT_COLUMN", "required": True, "id": "-"},
-    }
-
-    df = spark_util.ingest(get_context(ctx_obj), spark)
-    assert df.count() == 3
-    inferred_col_type_map = {c.name: c.dataType for c in df.schema}
-    assert inferred_col_type_map["a_str"] == StringType()
-    assert inferred_col_type_map["b_int"] == IntegerType()
-    assert inferred_col_type_map["c_float"] == FloatType()
+        df = spark_util.ingest(get_context(ctx_obj), spark)
+        assert df.count() == len(test["expected_types"])
+        inferred_col_type_map = {c.name: c.dataType for c in df.schema}
+        for column_name in test["expected_types"]:
+            assert inferred_col_type_map[column_name] == test["expected_types"][column_name]
 
 
 def test_read_csv_infer_invalid(spark, write_csv_file, ctx_obj, get_context):
-    csv_str = "\n".join(["a,0.1,", "a,0.1,1", "a,1.1,4"])
+    test_cases = [
+        {
+            "csv": ["a,0.1,", "a,0.1,1", "a,1.1,4"],
+            "schema": ["a_int", "b_float", "c_long"],
+            "raw_columns": {
+                "a_int": {"name": "a_int", "type": "INT_COLUMN", "required": True, "id": "-"}
+            },
+        },
+        {
+            "csv": ["a,1,", "a,1,1", "a,1,4"],
+            "schema": ["a_int", "b_float", "c_long"],
+            "raw_columns": {
+                "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": "-"}
+            },
+        },
+        {
+            "csv": ["a,1.1,", "a,1.1,1", "a,1.1,4"],
+            "schema": ["a_str", "b_int", "c_long"],
+            "raw_columns": {
+                "b_int": {"name": "b_int", "type": "INT_COLUMN", "required": True, "id": "-"}
+            },
+        },
+    ]
 
-    path_to_file = write_csv_file(csv_str)
+    for test in test_cases:
+        csv_str = "\n".join(test["csv"])
+        path_to_file = write_csv_file(csv_str)
 
-    ctx_obj["environment"] = {
-        "data": {"type": "csv", "path": path_to_file, "schema": ["a_int", "b_float", "c_long"]}
-    }
+        ctx_obj["environment"] = {
+            "data": {"type": "csv", "path": path_to_file, "schema": test["schema"]}
+        }
 
-    ctx_obj["raw_columns"] = {
-        "a_int": {"name": "a_int", "type": "INT_COLUMN", "required": True, "id": "-"}
-    }
+        ctx_obj["raw_columns"] = test["raw_columns"]
 
-    with pytest.raises(UserException):
-        spark_util.ingest(get_context(ctx_obj), spark).collect()
-
-    csv_str = "\n".join(["a,1,", "a,1,1", "a,1,4"])
-    path_to_file = write_csv_file(csv_str)
-
-    ctx_obj["environment"] = {
-        "data": {"type": "csv", "path": path_to_file, "schema": ["a_str", "b_float", "c_long"]}
-    }
-
-    ctx_obj["raw_columns"] = {
-        "b_float": {"name": "a_float", "type": "FLOAT_COLUMN", "required": True, "id": "-"}
-    }
-
-    with pytest.raises(UserException):
-        spark_util.ingest(get_context(ctx_obj), spark).collect()
+        with pytest.raises(UserException):
+            spark_util.ingest(get_context(ctx_obj), spark).collect()
 
 
 def test_read_csv_missing_column(spark, write_csv_file, ctx_obj, get_context):
