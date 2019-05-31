@@ -25,6 +25,7 @@ from lib.log import get_logger
 from lib.exceptions import UserException, CortexException, UserRuntimeException
 import spark_util
 import pyspark.sql.functions as F
+import consts
 
 
 logger = get_logger()
@@ -149,6 +150,12 @@ def ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest):
             logger.info("Ingesting")
             logger.info("Ingesting {} data from {}".format(ctx.app["name"], data_config["path"]))
             ingest_df = spark_util.ingest(ctx, spark)
+
+            input_type_map = {f.name: f.dataType for f in ingest_df.schema}
+            for raw_column_name in ctx.raw_columns:
+                if ctx.raw_columns[raw_column_name]["type"] == consts.COLUMN_TYPE_INFERRED:
+                    column_type = spark_util.SPARK_TYPE_TO_CORTEX_TYPE[input_type_map[raw_column_name]]
+                    ctx.write_metadata(ctx.raw_columns[raw_column_name]["id"], {"type": column_type})
 
             full_dataset_size = ingest_df.count()
 

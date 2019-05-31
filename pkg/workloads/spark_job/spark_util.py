@@ -51,7 +51,7 @@ CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES = {
 CORTEX_TYPE_TO_CASTABLE_SPARK_TYPES = {
     consts.COLUMN_TYPE_INT: [IntegerType(), LongType()],
     consts.COLUMN_TYPE_INT_LIST: [ArrayType(IntegerType(), True), ArrayType(LongType(), True)],
-    consts.COLUMN_TYPE_FLOAT: [FloatType(), DoubleType()],
+    consts.COLUMN_TYPE_FLOAT: [FloatType(), DoubleType(), IntegerType(), LongType()],
     consts.COLUMN_TYPE_FLOAT_LIST: [ArrayType(FloatType(), True), ArrayType(DoubleType(), True)],
     consts.COLUMN_TYPE_STRING: [StringType(), IntegerType(), LongType(), FloatType(), DoubleType()],
     consts.COLUMN_TYPE_STRING_LIST: [ArrayType(StringType(), True)],
@@ -229,17 +229,15 @@ def ingest(ctx, spark):
         df = read_parquet(ctx, spark)
 
     input_type_map = {f.name: f.dataType for f in df.schema}
-    inferred_col_type_map = {c.name: c.dataType for c in df.schema}
+    logger.info(ctx.raw_columns)
     for raw_column_name in ctx.raw_columns:
         raw_column = ctx.raw_columns[raw_column_name]
         expected_cortex_type = raw_column["type"]
-        if expected_cortex_type == consts.COLUMN_TYPE_INFERRED:
-            column_type = SPARK_TYPE_TO_CORTEX_TYPE[inferred_col_type_map[raw_column_name]]
-            ctx.write_metadata(raw_column["id"], {"type": column_type})
-        else:
-            actual_spark_type = input_type_map[raw_column_name]
-            if actual_spark_type not in SPARK_TYPE_TO_CORTEX_TYPE:
-                actual_spark_type = StringType()
+        actual_spark_type = input_type_map[raw_column_name]
+
+        if actual_spark_type in SPARK_TYPE_TO_CORTEX_TYPE:
+            if expected_cortex_type == consts.COLUMN_TYPE_INFERRED:
+                expected_cortex_type = SPARK_TYPE_TO_CORTEX_TYPE[input_type_map[raw_column_name]]
 
             expected_types = CORTEX_TYPE_TO_CASTABLE_SPARK_TYPES[expected_cortex_type]
             if actual_spark_type not in expected_types:
@@ -253,10 +251,13 @@ def ingest(ctx, spark):
                         " or ".join(str(x) for x in expected_types), actual_spark_type
                     ),
                 )
-
-            if actual_spark_type != expected_cortex_type:
-                target_spark_type = CORTEX_TYPE_TO_SPARK_TYPE[expected_cortex_type]
+            target_spark_type = CORTEX_TYPE_TO_SPARK_TYPE[expected_cortex_type]
+            if actual_spark_type != target_spark_type:
+                target_spark_type = target_spark_type
                 df = df.withColumn(raw_column_name, F.col(raw_column_name).cast(target_spark_type))
+        else: # for unexpected types, just cast to string
+            df = df.withColumn(raw_column_name, F.col(raw_column_name).cast(StringType()))
+
 
     return df.select(*sorted(df.columns))
 

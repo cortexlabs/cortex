@@ -455,6 +455,7 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 			cr.Struct(inferredRawColumn.Compute, make(map[string]interface{}), sparkComputeStructValidation)
 			config.RawColumns = append(config.RawColumns, inferredRawColumn)
 		}
+		rawColumnNames = config.RawColumns.Names()
 	}
 
 	if err := config.Validate(envName); err != nil {
