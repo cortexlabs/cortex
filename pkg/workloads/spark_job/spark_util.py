@@ -255,9 +255,8 @@ def ingest(ctx, spark):
             if actual_spark_type != target_spark_type:
                 target_spark_type = target_spark_type
                 df = df.withColumn(raw_column_name, F.col(raw_column_name).cast(target_spark_type))
-        else: # for unexpected types, just cast to string
+        else:  # for unexpected types, just cast to string
             df = df.withColumn(raw_column_name, F.col(raw_column_name).cast(StringType()))
-
 
     return df.select(*sorted(df.columns))
 
