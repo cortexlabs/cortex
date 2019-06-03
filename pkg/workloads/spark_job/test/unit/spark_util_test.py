@@ -643,6 +643,56 @@ def test_read_parquet_infer_invalid(spark, write_parquet_file, ctx_obj, get_cont
                 "c_str": {"name": "c_str", "type": "INT_COLUMN", "required": False, "id": "3"},
             },
         },
+        {
+            "data": [("a", 1, None), ("b", 1, None), ("c", 1, 4)],
+            "schema": StructType(
+                [
+                    StructField("a_str", StringType()),
+                    StructField("b_float", IntegerType()),
+                    StructField("c_long", IntegerType()),
+                ]
+            ),
+            "env": [
+                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
+                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
+                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+            ],
+            "raw_columns": {
+                "a_str": {"name": "a_str", "type": "INFERRED_COLUMN", "required": True, "id": "1"},
+                "b_float": {"name": "b_float", "type": "FLOAT_COLUMN", "required": True, "id": "2"},
+                "c_long": {
+                    "name": "c_long",
+                    "type": "INFERRED_COLUMN",
+                    "required": False,
+                    "id": "3",
+                },
+            },
+        },
+         {
+            "data": [("a", 1, None), ("b", 1, None), ("c", 1, 4)],
+            "schema": StructType(
+                [
+                    StructField("a_str", StringType()),
+                    StructField("b_float", IntegerType()),
+                    StructField("c_long", IntegerType()),
+                ]
+            ),
+            "env": [
+                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
+                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
+                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+            ],
+            "raw_columns": {
+                "a_str": {"name": "a_str", "type": "INT_COLUMN", "required": True, "id": "1"},
+                "b_float": {"name": "b_float", "type": "STRING_COLUMN", "required": True, "id": "2"},
+                "c_long": {
+                    "name": "c_long",
+                    "type": "INFERRED_COLUMN",
+                    "required": False,
+                    "id": "3",
+                },
+            },
+        },
     ]
 
     for test in tests:
