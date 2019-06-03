@@ -63,6 +63,11 @@ CORTEX_TYPE_TO_CASTABLE_SPARK_TYPES = {
             LongType(),
             FloatType(),
             DoubleType(),
+            ArrayType(FloatType(), True),
+            ArrayType(DoubleType(), True),
+            ArrayType(StringType(), True),
+            ArrayType(IntegerType(), True),
+            ArrayType(LongType(), True),
         ],
         consts.COLUMN_TYPE_STRING_LIST: [ArrayType(StringType(), True)],
     },
@@ -75,7 +80,13 @@ CORTEX_TYPE_TO_CASTABLE_SPARK_TYPES = {
             ArrayType(DoubleType(), True),
         ],
         consts.COLUMN_TYPE_STRING: [StringType()],
-        consts.COLUMN_TYPE_STRING_LIST: [ArrayType(StringType(), True)],
+        consts.COLUMN_TYPE_STRING_LIST: [
+            ArrayType(StringType(), True),
+            ArrayType(FloatType(), True),
+            ArrayType(DoubleType(), True),
+            ArrayType(IntegerType(), True),
+            ArrayType(LongType(), True),
+        ],
     },
 }
 
@@ -267,7 +278,6 @@ def ingest(ctx, spark):
                     df = df.withColumn(
                         raw_column_name, F.col(raw_column_name).cast(expected_spark_type)
                     )
-            continue
         else:
             expected_spark_type = CORTEX_TYPE_TO_SPARK_TYPE[expected_cortex_type]
             if actual_spark_type in SPARK_TYPE_TO_CORTEX_TYPE:
@@ -295,7 +305,7 @@ def ingest(ctx, spark):
                 except Exception as e:
                     raise UserException(
                         "tried casting " + raw_column_name,
-                        "to from ingested type " + actual_spark_type,
+                        "from ingested type " + actual_spark_type,
                         "to expected type " + expected_spark_type,
                         "but got exception: " + e,
                     )

@@ -340,12 +340,7 @@ func (environments Environments) Validate() error {
 
 	ingestedColumns := environments[0].Data.GetIngestedColumns()
 	for _, env := range environments[1:] {
-		difference := strset.Difference(
-			strset.New(ingestedColumns...),
-			strset.New(env.Data.GetIngestedColumns()...),
-		)
-
-		if len(difference) > 0 {
+		if !strset.New(ingestedColumns...).IsEqual(strset.New(env.Data.GetIngestedColumns()...)) {
 			return ErrorEnvSchemaMismatch(environments[0], env)
 		}
 	}

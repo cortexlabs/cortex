@@ -401,17 +401,13 @@ func ErrorSpecifyOnlyOneMissing(vals ...string) error {
 }
 
 func ErrorEnvSchemaMismatch(env1, env2 *Environment) error {
-	difference := strset.Difference(
-		strset.New(env1.Data.GetIngestedColumns()...),
-		strset.New(env2.Data.GetIngestedColumns()...),
-	)
-
 	return Error{
 		Kind: ErrEnvSchemaMismatch,
-		message: fmt.Sprintf("schemas diverged between environments, %s lists %s columns but %s does not",
+		message: fmt.Sprintf("schemas diverged between environments, %s lists %s columns and %s lists %s",
 			env1.Name,
-			s.StrsAnd(difference.Slice()),
+			s.StrsAnd(env1.Data.GetIngestedColumns()),
 			env2.Name,
+			s.StrsAnd(env2.Data.GetIngestedColumns()),
 		),
 	}
 }
