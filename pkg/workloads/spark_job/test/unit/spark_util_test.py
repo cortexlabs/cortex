@@ -567,6 +567,40 @@ def test_ingest_parquet_infer_valid(spark, write_parquet_file, ctx_obj, get_cont
                 ("c_str", StringType()),
             ],
         },
+        {
+            "data": [
+                ("1", [0.1, 12.0], datetime.now()),
+                ("1", [1.23, 1.0], datetime.now()),
+                ("1", [12.3, 1.1], datetime.now()),
+            ],
+            "schema": StructType(
+                [
+                    StructField("a_str", StringType()),
+                    StructField("b_float", ArrayType(DoubleType()), True),
+                    StructField("c_str", TimestampType()),
+                ]
+            ),
+            "env": [
+                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
+                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
+                {"parquet_column_name": "c_str", "raw_column_name": "c_str"},
+            ],
+            "raw_columns": {
+                "a_str": {"name": "a_str", "type": "INFERRED_COLUMN", "required": True, "id": "1"},
+                "b_float": {
+                    "name": "b_float",
+                    "type": "FLOAT_LIST_COLUMN",
+                    "required": True,
+                    "id": "2",
+                },
+                "c_str": {"name": "c_str", "type": "INFERRED_COLUMN", "required": False, "id": "3"},
+            },
+            "expected_types": [
+                ("a_str", StringType()),
+                ("b_float", ArrayType(FloatType(), True)),
+                ("c_str", StringType()),
+            ],
+        },
     ]
 
     for test in tests:
@@ -668,7 +702,7 @@ def test_read_parquet_infer_invalid(spark, write_parquet_file, ctx_obj, get_cont
                 },
             },
         },
-         {
+        {
             "data": [("a", 1, None), ("b", 1, None), ("c", 1, 4)],
             "schema": StructType(
                 [
@@ -685,6 +719,31 @@ def test_read_parquet_infer_invalid(spark, write_parquet_file, ctx_obj, get_cont
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "INT_COLUMN", "required": True, "id": "1"},
                 "b_float": {"name": "b_float", "type": "STRING_COLUMN", "required": True, "id": "2"},
+                "c_long": {
+                    "name": "c_long",
+                    "type": "INFERRED_COLUMN",
+                    "required": False,
+                    "id": "3",
+                },
+            },
+        },
+        {
+            "data": [("a", [1], None), ("b", [1], None), ("c", [1], 4)],
+            "schema": StructType(
+                [
+                    StructField("a_str", StringType()),
+                    StructField("b_float", ArrayType(IntegerType()), True),
+                    StructField("c_long", IntegerType()),
+                ]
+            ),
+            "env": [
+                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
+                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
+                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+            ],
+            "raw_columns": {
+                "a_str": {"name": "a_str", "type": "INT_COLUMN", "required": True, "id": "1"},
+                "b_float": {"name": "b_float", "type": "FLOAT_LIST_COLUMN", "required": True, "id": "2"},
                 "c_long": {
                     "name": "c_long",
                     "type": "INFERRED_COLUMN",
