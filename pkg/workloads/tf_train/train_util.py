@@ -175,7 +175,6 @@ def train(model_name, model_impl, ctx, model_dir):
     )
 
     model_config = ctx.model_config(model["name"])
-    tf_lib.add_tf_types(model_config)
 
     try:
         estimator = model_impl.create_estimator(run_config, model_config)

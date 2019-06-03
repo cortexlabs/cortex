@@ -27,7 +27,6 @@ type RawColumns map[string]RawColumn
 type RawColumn interface {
 	Column
 	GetCompute() *userconfig.SparkCompute
-	GetUserConfig() userconfig.Resource
 }
 
 type RawIntColumn struct {
@@ -42,6 +41,11 @@ type RawFloatColumn struct {
 
 type RawStringColumn struct {
 	*userconfig.RawStringColumn
+	*ComputedResourceFields
+}
+
+type RawInferredColumn struct {
+	*userconfig.RawInferredColumn
 	*ComputedResourceFields
 }
 
@@ -79,6 +83,21 @@ func (rawColumns RawColumns) columnInputsID(columnInputValues map[string]interfa
 	return hash.Any(columnIDMap)
 }
 
+func GetRawColumnUserConfig(rawColumn RawColumn) userconfig.Resource {
+	switch rawColumn.GetType() {
+	case userconfig.IntegerColumnType:
+		return rawColumn.(*RawIntColumn).RawIntColumn
+	case userconfig.FloatColumnType:
+		return rawColumn.(*RawFloatColumn).RawFloatColumn
+	case userconfig.StringColumnType:
+		return rawColumn.(*RawStringColumn).RawStringColumn
+	case userconfig.InferredColumnType:
+		return rawColumn.(*RawInferredColumn).RawInferredColumn
+	}
+
+	return nil
+}
+
 func (rawColumns RawColumns) ColumnInputsID(columnInputValues map[string]interface{}) string {
 	return rawColumns.columnInputsID(columnInputValues, false)
 }
@@ -96,5 +115,9 @@ func (rawColumn *RawFloatColumn) GetInputRawColumnNames() []string {
 }
 
 func (rawColumn *RawStringColumn) GetInputRawColumnNames() []string {
+	return []string{rawColumn.GetName()}
+}
+
+func (rawColumn *RawInferredColumn) GetInputRawColumnNames() []string {
 	return []string{rawColumn.GetName()}
 }

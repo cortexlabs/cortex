@@ -154,9 +154,9 @@ func (config *Config) Validate(envName string) error {
 	rawColumnNames := config.RawColumns.Names()
 	for _, env := range config.Environments {
 		ingestedColumnNames := env.Data.GetIngestedColumns()
-		missingColumns := slices.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
-		if len(missingColumns) > 0 {
-			return errors.Wrap(ErrorRawColumnNotInEnv(env.Name), Identify(config.RawColumns.Get(missingColumns[0])))
+		missingColumnNames := slices.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
+		if len(missingColumnNames) > 0 {
+			return errors.Wrap(ErrorRawColumnNotInEnv(env.Name), Identify(config.RawColumns.Get(missingColumnNames[0])))
 		}
 		extraColumns := slices.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
 		if len(extraColumns) > 0 {
@@ -437,6 +437,22 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 		config, err = config.MergeBytes([]byte(populatedTemplate), emb.FilePath, emb, template)
 		if err != nil {
 			return nil, err
+		}
+	}
+
+	for _, env := range config.Environments {
+		ingestedColumnNames := env.Data.GetIngestedColumns()
+		missingColumnNames := slices.SubtractStrSlice(ingestedColumnNames, config.RawColumns.Names())
+		for _, inferredColumnName := range missingColumnNames {
+			inferredRawColumn := &RawInferredColumn{
+				ResourceFields: ResourceFields{
+					Name: inferredColumnName,
+				},
+				Type:    InferredColumnType,
+				Compute: &SparkCompute{},
+			}
+			cr.Struct(inferredRawColumn.Compute, make(map[string]interface{}), sparkComputeStructValidation)
+			config.RawColumns = append(config.RawColumns, inferredRawColumn)
 		}
 	}
 
