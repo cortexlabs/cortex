@@ -718,7 +718,12 @@ def test_read_parquet_infer_invalid(spark, write_parquet_file, ctx_obj, get_cont
             ],
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "INT_COLUMN", "required": True, "id": "1"},
-                "b_float": {"name": "b_float", "type": "STRING_COLUMN", "required": True, "id": "2"},
+                "b_float": {
+                    "name": "b_float",
+                    "type": "STRING_COLUMN",
+                    "required": True,
+                    "id": "2",
+                },
                 "c_long": {
                     "name": "c_long",
                     "type": "INFERRED_COLUMN",
@@ -743,7 +748,12 @@ def test_read_parquet_infer_invalid(spark, write_parquet_file, ctx_obj, get_cont
             ],
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "INT_COLUMN", "required": True, "id": "1"},
-                "b_float": {"name": "b_float", "type": "FLOAT_LIST_COLUMN", "required": True, "id": "2"},
+                "b_float": {
+                    "name": "b_float",
+                    "type": "FLOAT_LIST_COLUMN",
+                    "required": True,
+                    "id": "2",
+                },
                 "c_long": {
                     "name": "c_long",
                     "type": "INFERRED_COLUMN",

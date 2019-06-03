@@ -408,7 +408,7 @@ func ErrorEnvSchemaMismatch(env1, env2 *Environment) error {
 
 	return Error{
 		Kind: ErrEnvSchemaMismatch,
-		message: fmt.Sprintf("schemas diverged between environments, %s lists $s columns but %s does not",
+		message: fmt.Sprintf("schemas diverged between environments, %s lists %s columns but %s does not",
 			env1.Name,
 			s.StrsAnd(difference.Slice()),
 			env2.Name,
