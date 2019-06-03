@@ -264,9 +264,9 @@ def ingest(ctx, spark):
                 actual_cortex_type = SPARK_TYPE_TO_CORTEX_TYPE[actual_spark_type]
                 expected_spark_type = CORTEX_TYPE_TO_SPARK_TYPE[actual_cortex_type]
                 if actual_spark_type != expected_spark_type:
-                        df = df.withColumn(
-                            raw_column_name, F.col(raw_column_name).cast(expected_spark_type)
-                        )
+                    df = df.withColumn(
+                        raw_column_name, F.col(raw_column_name).cast(expected_spark_type)
+                    )
             continue
         else:
             expected_spark_type = CORTEX_TYPE_TO_SPARK_TYPE[expected_cortex_type]
