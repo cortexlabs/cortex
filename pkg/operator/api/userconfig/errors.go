@@ -403,7 +403,7 @@ func ErrorSpecifyOnlyOneMissing(vals ...string) error {
 func ErrorEnvSchemaMismatch(env1, env2 *Environment) error {
 	return Error{
 		Kind: ErrEnvSchemaMismatch,
-		message: fmt.Sprintf("schemas diverged between environments, %s lists %s columns and %s lists %s",
+		message: fmt.Sprintf("schemas diverge between environments (%s lists %s, and %s lists %s)",
 			env1.Name,
 			s.StrsAnd(env1.Data.GetIngestedColumns()),
 			env2.Name,
