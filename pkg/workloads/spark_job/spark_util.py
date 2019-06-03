@@ -49,12 +49,34 @@ CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES = {
 }
 
 CORTEX_TYPE_TO_CASTABLE_SPARK_TYPES = {
-    consts.COLUMN_TYPE_INT: [IntegerType(), LongType()],
-    consts.COLUMN_TYPE_INT_LIST: [ArrayType(IntegerType(), True), ArrayType(LongType(), True)],
-    consts.COLUMN_TYPE_FLOAT: [FloatType(), DoubleType(), IntegerType(), LongType()],
-    consts.COLUMN_TYPE_FLOAT_LIST: [ArrayType(FloatType(), True), ArrayType(DoubleType(), True)],
-    consts.COLUMN_TYPE_STRING: [StringType(), IntegerType(), LongType(), FloatType(), DoubleType()],
-    consts.COLUMN_TYPE_STRING_LIST: [ArrayType(StringType(), True)],
+    "csv": {
+        consts.COLUMN_TYPE_INT: [IntegerType(), LongType()],
+        consts.COLUMN_TYPE_INT_LIST: [ArrayType(IntegerType(), True), ArrayType(LongType(), True)],
+        consts.COLUMN_TYPE_FLOAT: [FloatType(), DoubleType(), IntegerType(), LongType()],
+        consts.COLUMN_TYPE_FLOAT_LIST: [
+            ArrayType(FloatType(), True),
+            ArrayType(DoubleType(), True),
+        ],
+        consts.COLUMN_TYPE_STRING: [
+            StringType(),
+            IntegerType(),
+            LongType(),
+            FloatType(),
+            DoubleType(),
+        ],
+        consts.COLUMN_TYPE_STRING_LIST: [ArrayType(StringType(), True)],
+    },
+    "parquet": {
+        consts.COLUMN_TYPE_INT: [IntegerType(), LongType()],
+        consts.COLUMN_TYPE_INT_LIST: [ArrayType(IntegerType(), True), ArrayType(LongType(), True)],
+        consts.COLUMN_TYPE_FLOAT: [FloatType(), DoubleType()],
+        consts.COLUMN_TYPE_FLOAT_LIST: [
+            ArrayType(FloatType(), True),
+            ArrayType(DoubleType(), True),
+        ],
+        consts.COLUMN_TYPE_STRING: [StringType()],
+        consts.COLUMN_TYPE_STRING_LIST: [ArrayType(StringType(), True)],
+    },
 }
 
 PYTHON_TYPE_TO_CORTEX_TYPE = {
@@ -223,40 +245,60 @@ def value_check_data(ctx, df, raw_columns=None):
 
 
 def ingest(ctx, spark):
-    if ctx.environment["data"]["type"] == "csv":
+    fileType = ctx.environment["data"]["type"]
+    if fileType == "csv":
         df = read_csv(ctx, spark)
-    elif ctx.environment["data"]["type"] == "parquet":
+    elif fileType == "parquet":
         df = read_parquet(ctx, spark)
 
     input_type_map = {f.name: f.dataType for f in df.schema}
-    logger.info(ctx.raw_columns)
     for raw_column_name in ctx.raw_columns:
         raw_column = ctx.raw_columns[raw_column_name]
         expected_cortex_type = raw_column["type"]
         actual_spark_type = input_type_map[raw_column_name]
 
-        if actual_spark_type in SPARK_TYPE_TO_CORTEX_TYPE:
-            if expected_cortex_type == consts.COLUMN_TYPE_INFERRED:
-                expected_cortex_type = SPARK_TYPE_TO_CORTEX_TYPE[input_type_map[raw_column_name]]
+        if expected_cortex_type == consts.COLUMN_TYPE_INFERRED:
+            if actual_spark_type not in SPARK_TYPE_TO_CORTEX_TYPE:
+                df = df.withColumn(raw_column_name, F.col(raw_column_name).cast(StringType()))
+            else:
+                actual_cortex_type = SPARK_TYPE_TO_CORTEX_TYPE[actual_spark_type]
+                expected_spark_type = CORTEX_TYPE_TO_SPARK_TYPE[actual_cortex_type]
+                if actual_spark_type != expected_spark_type:
+                        df = df.withColumn(
+                            raw_column_name, F.col(raw_column_name).cast(expected_spark_type)
+                        )
+            continue
+        else:
+            expected_spark_type = CORTEX_TYPE_TO_SPARK_TYPE[expected_cortex_type]
+            if actual_spark_type in SPARK_TYPE_TO_CORTEX_TYPE:
+                expected_types = CORTEX_TYPE_TO_CASTABLE_SPARK_TYPES[fileType][expected_cortex_type]
+                if actual_spark_type not in expected_types:
+                    logger.error("found schema:")
+                    log_df_schema(df, logger.error)
 
-            expected_types = CORTEX_TYPE_TO_CASTABLE_SPARK_TYPES[expected_cortex_type]
-            if actual_spark_type not in expected_types:
-                logger.error("found schema:")
-                log_df_schema(df, logger.error)
-
-                raise UserException(
-                    "raw column " + raw_column_name,
-                    "type mismatch",
-                    "expected {} but found {}".format(
-                        " or ".join(str(x) for x in expected_types), actual_spark_type
-                    ),
-                )
-            target_spark_type = CORTEX_TYPE_TO_SPARK_TYPE[expected_cortex_type]
-            if actual_spark_type != target_spark_type:
-                target_spark_type = target_spark_type
-                df = df.withColumn(raw_column_name, F.col(raw_column_name).cast(target_spark_type))
-        else:  # for unexpected types, just cast to string
-            df = df.withColumn(raw_column_name, F.col(raw_column_name).cast(StringType()))
+                    raise UserException(
+                        "raw column " + raw_column_name,
+                        "type mismatch",
+                        "expected {} but found {}".format(
+                            " or ".join(str(x) for x in expected_types), actual_spark_type
+                        ),
+                    )
+                if actual_spark_type != expected_spark_type:
+                    df = df.withColumn(
+                        raw_column_name, F.col(raw_column_name).cast(expected_spark_type)
+                    )
+            else:
+                try:
+                    df = df.withColumn(
+                        raw_column_name, F.col(raw_column_name).cast(expected_spark_type)
+                    )
+                except Exception as e:
+                    raise UserException(
+                        "tried casting " + raw_column_name,
+                        "to from ingested type " + actual_spark_type,
+                        "to expected type " + expected_spark_type,
+                        "but got exception: " + e,
+                    )
 
     return df.select(*sorted(df.columns))
 
@@ -271,19 +313,13 @@ def read_csv(ctx, spark):
     }
 
     df = spark.read.csv(data_config["path"], inferSchema=True, mode="FAILFAST", **csv_config)
-    renamed_cols = [F.col(c).alias(data_config["schema"][idx]) for idx, c in enumerate(df.columns)]
-    df = df.select(*renamed_cols)
-
-    if set(data_config["schema"]) != set(df.columns):
-        logger.error("found schema:")
-        log_df_schema(df, logger.error)
+    if len(data_config["schema"]) != len(df.columns):
         raise UserException(
-            "expected column(s) "
-            + str(set(data_config["schema"]))
-            + " but got "
-            + str(set(df.columns))
+            "expected " + len(data_config["schema"]) + " column(s) but got " + len(df.columns)
         )
-    return df
+
+    renamed_cols = [F.col(c).alias(data_config["schema"][idx]) for idx, c in enumerate(df.columns)]
+    return df.select(*renamed_cols)
 
 
 def read_parquet(ctx, spark):

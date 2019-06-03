@@ -567,36 +567,6 @@ def test_ingest_parquet_infer_valid(spark, write_parquet_file, ctx_obj, get_cont
                 ("c_str", StringType()),
             ],
         },
-        {
-            "data": [(1, 0.1, datetime.now()), (1, 1.0, datetime.now()), (1, 1.1, datetime.now())],
-            "schema": StructType(
-                [
-                    StructField("a_long", IntegerType()),
-                    StructField("b_float", DoubleType()),
-                    StructField("c_str", TimestampType()),
-                ]
-            ),
-            "env": [
-                {"parquet_column_name": "a_long", "raw_column_name": "a_long"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_str", "raw_column_name": "c_str"},
-            ],
-            "raw_columns": {
-                "a_long": {"name": "a_long", "type": "FLOAT_COLUMN", "required": True, "id": "1"},
-                "b_float": {
-                    "name": "b_float",
-                    "type": "INFERRED_COLUMN",
-                    "required": True,
-                    "id": "2",
-                },
-                "c_str": {"name": "c_str", "type": "INFERRED_COLUMN", "required": False, "id": "3"},
-            },
-            "expected_types": [
-                ("a_long", FloatType()),
-                ("b_float", FloatType()),
-                ("c_str", StringType()),
-            ],
-        },
     ]
 
     for test in tests:
@@ -619,6 +589,77 @@ def test_ingest_parquet_infer_valid(spark, write_parquet_file, ctx_obj, get_cont
             sorted([(s.name, s.dataType) for s in df.schema], key=lambda x: x[0])
             == test["expected_types"]
         )
+
+
+def test_read_parquet_infer_invalid(spark, write_parquet_file, ctx_obj, get_context):
+    tests = [
+        {
+            "data": [("a", 0.1, None), ("b", 1.0, None), ("c", 1.1, 4)],
+            "schema": StructType(
+                [
+                    StructField("a_str", StringType()),
+                    StructField("b_float", DoubleType()),
+                    StructField("c_long", IntegerType()),
+                ]
+            ),
+            "env": [
+                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
+                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
+                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+            ],
+            "raw_columns": {
+                "a_str": {"name": "a_str", "type": "INFERRED_COLUMN", "required": True, "id": "1"},
+                "b_float": {"name": "b_float", "type": "INT_COLUMN", "required": True, "id": "2"},
+                "c_long": {
+                    "name": "c_long",
+                    "type": "INFERRED_COLUMN",
+                    "required": False,
+                    "id": "3",
+                },
+            },
+        },
+        {
+            "data": [("1", 0.1, "yolo"), ("1", 1.0, "yolo"), ("1", 1.1, "yolo")],
+            "schema": StructType(
+                [
+                    StructField("a_str", StringType()),
+                    StructField("b_float", DoubleType()),
+                    StructField("c_str", StringType()),
+                ]
+            ),
+            "env": [
+                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
+                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
+                {"parquet_column_name": "c_str", "raw_column_name": "c_str"},
+            ],
+            "raw_columns": {
+                "a_str": {"name": "a_str", "type": "INFERRED_COLUMN", "required": True, "id": "1"},
+                "b_float": {
+                    "name": "b_float",
+                    "type": "INFERRED_COLUMN",
+                    "required": True,
+                    "id": "2",
+                },
+                "c_str": {"name": "c_str", "type": "INT_COLUMN", "required": False, "id": "3"},
+            },
+        },
+    ]
+
+    for test in tests:
+        data = test["data"]
+
+        schema = test["schema"]
+
+        path_to_file = write_parquet_file(spark, data, schema)
+
+        ctx_obj["environment"] = {
+            "data": {"type": "parquet", "path": path_to_file, "schema": test["env"]}
+        }
+
+        ctx_obj["raw_columns"] = test["raw_columns"]
+
+        with pytest.raises(UserException) as exec_info:
+            spark_util.ingest(get_context(ctx_obj), spark).collect()
 
 
 def test_ingest_parquet_extra_cols(spark, write_parquet_file, ctx_obj, get_context):

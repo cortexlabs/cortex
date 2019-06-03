@@ -59,6 +59,7 @@ const (
 	ErrRegressionTargetType
 	ErrClassificationTargetType
 	ErrSpecifyOnlyOneMissing
+	ErrEnvSchemaMismatch
 )
 
 var errorKinds = []string{
@@ -92,9 +93,10 @@ var errorKinds = []string{
 	"err_regression_target_type",
 	"err_classification_target_type",
 	"err_specify_only_one_missing",
+	"err_env_schema_mismatch",
 }
 
-var _ = [1]int{}[int(ErrSpecifyOnlyOneMissing)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrEnvSchemaMismatch)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -395,5 +397,21 @@ func ErrorSpecifyOnlyOneMissing(vals ...string) error {
 	return Error{
 		Kind:    ErrSpecifyOnlyOneMissing,
 		message: message,
+	}
+}
+
+func ErrorEnvSchemaMismatch(env1, env2 *Environment) error {
+	difference := strset.Difference(
+		strset.New(env1.Data.GetIngestedColumns()...),
+		strset.New(env2.Data.GetIngestedColumns()...),
+	)
+
+	return Error{
+		Kind: ErrEnvSchemaMismatch,
+		message: fmt.Sprintf("schemas diverged between environments, %s lists $s columns but %s does not",
+			env1.Name,
+			s.StrsAnd(difference.Slice()),
+			env2.Name,
+		),
 	}
 }
