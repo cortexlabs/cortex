@@ -1,1 +1,1 @@
-FROM argoproj/argoexec:v2.2.1
+FROM argoproj/argoexec:v2.3.0
