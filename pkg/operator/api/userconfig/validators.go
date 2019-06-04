@@ -139,6 +139,11 @@ func CheckColumnRuntimeTypesMatch(columnRuntimeTypes map[string]interface{}, col
 			if !ok {
 				return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeTypeInter, validTypes), columnInputName)
 			}
+
+			if columnRuntimeType == InferredColumnType {
+				continue
+			}
+
 			if !slices.HasString(validTypes, columnRuntimeType.String()) {
 				return errors.Wrap(ErrorUnsupportedColumnType(columnRuntimeType, validTypes), columnInputName)
 			}

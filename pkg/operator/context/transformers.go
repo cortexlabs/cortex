@@ -67,7 +67,8 @@ func loadUserTransformers(
 			ResourceFields: userconfig.ResourceFields{
 				Name: implHash,
 			},
-			Path: *transColConfig.TransformerPath,
+			OutputType: userconfig.InferredColumnType,
+			Path:       *transColConfig.TransformerPath,
 		}
 		transformer, err := newTransformer(*anonTransformerConfig, impl, nil, pythonPackages)
 		if err != nil {

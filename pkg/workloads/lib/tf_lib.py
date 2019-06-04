@@ -30,24 +30,6 @@ CORTEX_TYPE_TO_TF_TYPE = {
 }
 
 
-def add_tf_types(config):
-    if not util.is_dict(config):
-        return
-
-    type_fields = {}
-    for k, v in config.items():
-        if util.is_str(k) and util.is_str(v) and v in consts.COLUMN_TYPES:
-            type_fields[k] = v
-        elif util.is_dict(v):
-            add_tf_types(v)
-        elif util.is_list(v):
-            for sub_v in v:
-                add_tf_types(sub_v)
-
-    for k, v in type_fields.items():
-        config[k + "_tf"] = CORTEX_TYPE_TO_TF_TYPE[v]
-
-
 def set_logging_verbosity(verbosity):
     tf.logging.set_verbosity(verbosity)
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = str(tf.logging.__dict__[verbosity] / 10)
@@ -64,9 +46,8 @@ def get_column_tf_types(model_name, ctx, training=True):
 
     if training:
         target_column_name = model["target_column"]
-        column_types[target_column_name] = CORTEX_TYPE_TO_TF_TYPE[
-            ctx.columns[target_column_name]["type"]
-        ]
+        column_type = ctx.get_inferred_column_type(target_column_name)
+        column_types[target_column_name] = CORTEX_TYPE_TO_TF_TYPE[column_type]
 
         for column_name in model["training_columns"]:
             column_type = ctx.get_inferred_column_type(column_name)

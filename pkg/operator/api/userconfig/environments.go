@@ -21,6 +21,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
@@ -335,6 +336,13 @@ func (environments Environments) Validate() error {
 	dups := FindDuplicateResourceName(resources...)
 	if len(dups) > 0 {
 		return ErrorDuplicateResourceName(dups...)
+	}
+
+	ingestedColumns := environments[0].Data.GetIngestedColumns()
+	for _, env := range environments[1:] {
+		if !strset.New(ingestedColumns...).IsEqual(strset.New(env.Data.GetIngestedColumns()...)) {
+			return ErrorEnvSchemaMismatch(environments[0], env)
+		}
 	}
 
 	return nil

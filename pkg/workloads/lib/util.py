@@ -316,10 +316,6 @@ def flatten(var):
         return [var]
 
 
-def subtract_lists(lst1, lst2):
-    return [e for e in lst1 if e not in lst2]
-
-
 def keep_dict_keys(d, keys):
     key_set = set(keys)
     for key in list(d.keys()):

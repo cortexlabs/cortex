@@ -1,15 +1,6 @@
-- kind: aggregator
-  name: vocab
-  output_type: {STRING: INT}
-  inputs:
-    columns:
-      col: STRING_COLUMN
-    args:
-      vocab_size: INT
-
 - kind: aggregate
   name: reviews_vocab
-  aggregator: vocab
+  aggregator_path: implementations/aggregators/vocab.py
   inputs:
     columns:
       col: review
