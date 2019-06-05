@@ -34,4 +34,4 @@ def transform_python(sample, args):
 
 
 def reverse_transform_python(transformed_value, args):
-    return args["index"][transformed_value]
+    return args["indexes"]["index"][transformed_value]
