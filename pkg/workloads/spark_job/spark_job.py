@@ -237,7 +237,7 @@ def validate_transformers(spark, ctx, cols_to_transform, raw_df):
 
     logger.info("Sanity checking transformers against the first {} samples".format(TEST_DF_SIZE))
     sample_df = raw_df.limit(TEST_DF_SIZE).cache()
-    test_df = raw_df.limit(TEST_DF_SIZE).cache()
+    test_df = raw_df.limit(TEST_DF_SIZE)
 
     resource_list = sorted([ctx.tf_id_map[f] for f in cols_to_transform], key=lambda r: r["name"])
     for transformed_column in resource_list:
