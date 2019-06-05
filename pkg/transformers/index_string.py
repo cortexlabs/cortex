@@ -18,7 +18,7 @@ def transform_spark(data, columns, args, transformed_column_name):
     import pyspark.sql.functions as F
 
     indexer = StringIndexerModel.from_labels(
-        args["index"], inputCol=columns["text"], outputCol=transformed_column_name
+        args["indexes"]["index"], inputCol=columns["text"], outputCol=transformed_column_name
     )
 
     return indexer.transform(data).withColumn(
@@ -27,12 +27,11 @@ def transform_spark(data, columns, args, transformed_column_name):
 
 
 def transform_python(sample, args):
-    for idx, label in enumerate(args["index"]):
-        if label == sample["text"]:
-            return idx
+    if sample["text"] in args["indexes"]["reversed_index"]:
+        return args["indexes"]["reversed_index"][sample["text"]]
 
     raise Exception("Could not find {} in index: {}".format(sample["text"], args))
 
 
 def reverse_transform_python(transformed_value, args):
-    return args["index"][transformed_value]
+    return args["indexes"]["index"][transformed_value]

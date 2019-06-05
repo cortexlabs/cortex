@@ -42,7 +42,7 @@
 
 # Given labels, map the string column to its index in the labels array.
 # Example:
-#   INPUT: labels = ['r', 'b', 'g'] column = ['r', 'b', 'g', 'g'],
+#   INPUT: indexes = {"index": ['r', 'b', 'g'], "reversed_index": {'r': 0, 'b': 1, 'g': 2}} column = ['r', 'b', 'g', 'g'],
 #   OUTPUT: [0, 1, 2, 2]
 - kind: transformer
   name: index_string
@@ -52,4 +52,4 @@
     columns:
       text: STRING_COLUMN
     args:
-      index: [STRING]
+      indexes: {"index": [STRING], "reversed_index": {STRING: INT}}

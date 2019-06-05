@@ -25,4 +25,4 @@
     columns:
       text: label
     args:
-      index: label_index
+      indexes: label_index

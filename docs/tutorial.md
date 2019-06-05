@@ -219,7 +219,7 @@ Add to `app.yaml`:
     columns:
       text: class
     args:
-      index: class_index
+      indexes: class_index
 ```
 
 You can simplify the configuration for aggregates and transformed columns using [templates](applications/advanced/templates.md).
