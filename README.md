@@ -8,9 +8,11 @@
 
 <br>
 
-## Machine learning pipelines as code
+## Deploy, manage, and scale machine learning applications
 
 Deploy machine learning applications without worrying about setting up infrastructure, managing dependencies, or orchestrating data pipelines.
+
+Cortex is actively maintained by Cortex Labs. We're a venture-backed team of infrastructure engineers and [we're hiring](https://angel.co/cortex-labs-inc/jobs).
 
 <br>
 
@@ -35,6 +37,16 @@ Deploy machine learning applications without worrying about setting up infrastru
     type: csv
     path: s3a://my-bucket/data.csv
     schema: [@col1, @col2, ...]
+```
+
+**Data validation:** prevent data quality issues early.
+
+```yaml
+- kind: raw_column
+  name: col1
+  type: INT_COLUMN
+  min: 0
+  max: 10
 ```
 
 **Data transformation:** use custom Python and PySpark code to transform data.
