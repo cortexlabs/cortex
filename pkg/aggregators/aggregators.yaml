@@ -317,11 +317,12 @@
 # Enumerates the unique values in a string column and orders them by placing the unique strings in
 # list ordered by most frequent starting at the 0th index.
 # Works well in conjunction with transformers.index_string.
-# For example: An input column with the following values ['t', 'f', 't'] would return ['t', 'f'].
+# For example: An input column with the following values ['t', 'f', 't'] would return
+# {"index": ['t', 'f'], "reversed_index": {'t': 0, 'f': 1}}.
 - kind: aggregator
   name: index_string
   path: index_string.py
-  output_type: [STRING]
+  output_type: {"index": [STRING], "reversed_index": {STRING: INT}}
   inputs:
     columns:
       col: STRING_COLUMN
