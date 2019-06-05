@@ -45,4 +45,4 @@
     columns:
       text: class
     args:
-      index: class_index
+      indexes: class_index

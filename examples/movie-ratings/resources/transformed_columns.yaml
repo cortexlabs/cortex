@@ -12,7 +12,7 @@
     columns:
       text: user_id
     args:
-      index: user_id_index
+      indexes: user_id_index
 
 - kind: aggregate
   name: movie_id_index
@@ -28,4 +28,4 @@
     columns:
       text: movie_id
     args:
-      index: movie_id_index
+      indexes: movie_id_index

@@ -55,7 +55,7 @@ See <!-- CORTEX_VERSION_MINOR -->[`transformers.yaml`](https://github.com/cortex
     columns:
       col: class  # the name of a string column
     args:
-      index: ["t", "f"]  # a value to be used as the index
+      index: {"indexes": ["t", "f"], "reversed_index": ["t": 0, "f": 1]}  # a value to be used as the index
 
 - kind: transformed_column
   name: price_bucketized
