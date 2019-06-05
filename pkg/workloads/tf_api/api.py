@@ -323,7 +323,7 @@ def start(args):
                     input_args_schema
                 )
 
-    channel = grpc.insecure_channel("localhost:"+str(args.tf_serve_port))
+    channel = grpc.insecure_channel("localhost:" + str(args.tf_serve_port))
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)
 
     local_cache["required_inputs"] = tf_lib.get_base_input_columns(model["name"], ctx)
