@@ -236,7 +236,7 @@ def validate_transformers(spark, ctx, cols_to_transform, raw_df):
     TEST_DF_SIZE = 100
 
     logger.info("Sanity checking transformers against the first {} samples".format(TEST_DF_SIZE))
-    sample_df = raw_df.limit(TEST_DF_SIZE).cache()
+    transformed_df = raw_df.limit(TEST_DF_SIZE).cache()
     test_df = raw_df.limit(TEST_DF_SIZE)
 
     resource_list = sorted([ctx.tf_id_map[f] for f in cols_to_transform], key=lambda r: r["name"])
@@ -257,17 +257,17 @@ def validate_transformers(spark, ctx, cols_to_transform, raw_df):
             logger.info("Transforming {} to {}".format(", ".join(input_cols), tf_name))
 
             spark_util.validate_transformer(tf_name, test_df, ctx, spark)
-            sample_df = spark_util.transform_column(
-                transformed_column["name"], sample_df, ctx, spark
+            transformed_df = spark_util.transform_column(
+                transformed_column["name"], transformed_df, ctx, spark
             )
 
-            sample_df.select(tf_name).collect()  # run the transformer
-            show_df(sample_df.select(*input_cols, tf_name), ctx, n=3, sort=False)
+            transformed_df.select(tf_name).collect()  # run the transformer
+            show_df(transformed_df.select(*input_cols, tf_name), ctx, n=3, sort=False)
 
             for alias in transformed_column["aliases"][1:]:
                 logger.info("Transforming {} to {}".format(", ".join(input_cols), alias))
 
-                display_transform_df = sample_df.withColumn(alias, F.col(tf_name)).select(
+                display_transform_df = transformed_df.withColumn(alias, F.col(tf_name)).select(
                     *input_cols, alias
                 )
                 show_df(display_transform_df, ctx, n=3, sort=False)
