@@ -1,1 +1,1 @@
-tensor2tensor==1.10.0
+tensor2tensor==1.13.4
