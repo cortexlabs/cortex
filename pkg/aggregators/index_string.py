@@ -18,5 +18,5 @@ def aggregate_spark(data, columns, args):
 
     indexer = StringIndexer(inputCol=columns["col"])
     index = indexer.fit(data).labels
-    reversed_index = {v:k for k, v in enumerate(index)}
+    reversed_index = {v: k for k, v in enumerate(index)}
     return {"index": index, "reversed_index": reversed_index}
