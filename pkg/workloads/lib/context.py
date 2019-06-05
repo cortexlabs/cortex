@@ -113,6 +113,7 @@ class Context:
         self._aggregator_impls = {}
         self._model_impls = {}
         self._metadatas = {}
+        self.spark_uploaded_impls = {}
 
         # This affects Tensorflow S3 access
         os.environ["AWS_REGION"] = self.cortex_config.get("region", "")
