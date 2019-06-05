@@ -16,7 +16,7 @@ module github.com/cortexlabs/cortex
 
 require (
 	github.com/GoogleCloudPlatform/spark-on-k8s-operator v0.0.0-20181208011959-62db1d66dafa
-	github.com/argoproj/argo v2.2.1+incompatible
+	github.com/argoproj/argo v2.3.0+incompatible
 	github.com/aws/aws-sdk-go v1.16.17
 	github.com/davecgh/go-spew v1.1.1
 	github.com/emicklei/go-restful v2.8.0+incompatible // indirect
