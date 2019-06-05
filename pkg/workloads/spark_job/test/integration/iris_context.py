@@ -208,7 +208,10 @@ raw_ctx = {
             "index": 2,
             "id_with_tags": "81bcee8795009e19f3378b2c3ea10fa6048741f2ad6ef841e5ed55c81319a0c",
             "resource_type": "transformer",
-            "inputs": {"columns": {"text": "STRING_COLUMN"}, "args": {"indexes": {"index": ["STRING"], "reversed_index": {"STRING": "INT"}}}},
+            "inputs": {
+                "columns": {"text": "STRING_COLUMN"},
+                "args": {"indexes": {"index": ["STRING"], "reversed_index": {"STRING": "INT"}}},
+            },
         },
     },
     "python_packages": {},
