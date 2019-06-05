@@ -21,10 +21,10 @@ import traceback
 from flask import Flask, request, jsonify
 from flask_api import status
 from waitress import serve
-from grpc.beta import implementations
+import grpc
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import get_model_metadata_pb2
-from tensorflow_serving.apis import prediction_service_pb2
+from tensorflow_serving.apis import prediction_service_pb2_grpc
 from lib import util, tf_lib, package, Context
 from lib.log import get_logger
 from lib.exceptions import CortexException, UserRuntimeException, UserException
@@ -323,8 +323,8 @@ def start(args):
                     input_args_schema
                 )
 
-    channel = implementations.insecure_channel("localhost", args.tf_serve_port)
-    local_cache["stub"] = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+    channel = grpc.insecure_channel("localhost:"+str(args.tf_serve_port))
+    local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)
 
     local_cache["required_inputs"] = tf_lib.get_base_input_columns(model["name"], ctx)
 
