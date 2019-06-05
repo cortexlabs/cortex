@@ -501,7 +501,11 @@ def extract_inputs(column_name, ctx):
 
 def execute_transform_spark(column_name, df, ctx, spark):
     trans_impl, trans_impl_path = ctx.get_transformer_impl(column_name)
-    spark.sparkContext.addPyFile(trans_impl_path)  # Executor pods need this because of the UDF
+
+    if trans_impl_path not in ctx.spark_uploaded_impls:
+        spark.sparkContext.addPyFile(trans_impl_path)  # Executor pods need this because of the UDF
+        ctx.spark_uploaded_impls[trans_impl_path] = True
+
     columns_input_config, impl_args = extract_inputs(column_name, ctx)
     try:
         return trans_impl.transform_spark(df, columns_input_config, impl_args, column_name)
@@ -513,8 +517,11 @@ def execute_transform_python(column_name, df, ctx, spark, validate=False):
     trans_impl, trans_impl_path = ctx.get_transformer_impl(column_name)
     columns_input_config, impl_args = extract_inputs(column_name, ctx)
 
-    spark.sparkContext.addPyFile(trans_impl_path)  # Executor pods need this because of the UDF
-    # not a dictionary because it is possible that one column may map to multiple input names
+    if trans_impl_path not in ctx.spark_uploaded_impls:
+        spark.sparkContext.addPyFile(trans_impl_path)  # Executor pods need this because of the UDF
+        # not a dictionary because it is possible that one column may map to multiple input names
+        ctx.spark_uploaded_impls[trans_impl_path] = True
+
     required_columns_sorted, columns_input_config_indexed = column_names_to_index(
         columns_input_config
     )
