@@ -40,6 +40,8 @@ var (
 	PrimTypeStringToStringMap PrimitiveType = "map of strings to strings"
 )
 
+var PrimTypeScalars = []PrimitiveType{PrimTypeInt, PrimTypeFloat, PrimTypeString, PrimTypeBool}
+
 func (ts PrimitiveTypes) StringList() []string {
 	strs := make([]string, len(ts))
 	for i, t := range ts {

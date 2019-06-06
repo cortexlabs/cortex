@@ -17,9 +17,8 @@ limitations under the License.
 package userconfig
 
 import (
-	"sort"
-
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -29,7 +28,7 @@ type TransformedColumn struct {
 	ResourceFields
 	Transformer     string        `json:"transformer" yaml:"transformer"`
 	TransformerPath *string       `json:"transformer_path" yaml:"transformer_path"`
-	Inputs          *Inputs       `json:"inputs" yaml:"inputs"`
+	Input           interface{}   `json:"input" yaml:"input"`
 	Compute         *SparkCompute `json:"compute" yaml:"compute"`
 	Tags            Tags          `json:"tags" yaml:"tags"`
 }
@@ -54,7 +53,13 @@ var transformedColumnValidation = &configreader.StructValidation{
 			StructField:         "TransformerPath",
 			StringPtrValidation: &configreader.StringPtrValidation{},
 		},
-		inputValuesFieldValidation,
+		{
+			StructField: "Input",
+			InterfaceValidation: &configreader.InterfaceValidation{
+				Required:             true,
+				AllowCortexResources: true,
+			},
+		},
 		sparkComputeFieldValidation("Compute"),
 		tagsFieldValidation,
 		typeFieldValidation,
@@ -62,6 +67,12 @@ var transformedColumnValidation = &configreader.StructValidation{
 }
 
 func (columns TransformedColumns) Validate() error {
+	for _, column := range columns {
+		if err := column.Validate(); err != nil {
+			return err
+		}
+	}
+
 	resources := make([]Resource, len(columns))
 	for i, res := range columns {
 		resources[i] = res
@@ -70,6 +81,18 @@ func (columns TransformedColumns) Validate() error {
 	dups := FindDuplicateResourceName(resources...)
 	if len(dups) > 0 {
 		return ErrorDuplicateResourceName(dups...)
+	}
+
+	return nil
+}
+
+func (column *TransformedColumn) Validate() error {
+	if column.TransformerPath == nil && column.Transformer == "" {
+		return errors.Wrap(ErrorSpecifyOnlyOneMissing("transformer", "transformer_path"), Identify(column))
+	}
+
+	if column.TransformerPath != nil && column.Transformer != "" {
+		return errors.Wrap(ErrorSpecifyOnlyOne("transformer", "transformer_path"), Identify(column))
 	}
 
 	return nil
@@ -85,23 +108,17 @@ func (column *TransformedColumn) GetResourceType() resource.Type {
 
 func (columns TransformedColumns) Names() []string {
 	names := make([]string, len(columns))
-	for i, transformedColumn := range columns {
-		names[i] = transformedColumn.GetName()
+	for i, column := range columns {
+		names[i] = column.GetName()
 	}
 	return names
 }
 
 func (columns TransformedColumns) Get(name string) *TransformedColumn {
-	for _, transformedColumn := range columns {
-		if transformedColumn.GetName() == name {
-			return transformedColumn
+	for _, column := range columns {
+		if column.GetName() == name {
+			return column
 		}
 	}
 	return nil
-}
-
-func (column *TransformedColumn) InputColumnNames() []string {
-	inputs, _ := configreader.FlattenAllStrValues(column.Inputs.Columns)
-	sort.Strings(inputs)
-	return inputs
 }

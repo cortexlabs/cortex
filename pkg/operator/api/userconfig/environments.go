@@ -17,6 +17,8 @@ limitations under the License.
 package userconfig
 
 import (
+	"github.com/cortexlabs/yaml"
+
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -119,7 +121,7 @@ var logLevelValidation = &cr.StructValidation{
 }
 
 type Data interface {
-	GetIngestedColumns() []string
+	GetIngestedColumnNames() []string
 	GetExternalPath() string
 	Validate() error
 }
@@ -181,7 +183,8 @@ var csvDataFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "Schema",
 		StringListValidation: &cr.StringListValidation{
-			Required: true,
+			Required:               true,
+			RequireCortexResources: true,
 		},
 	},
 	{
@@ -301,7 +304,7 @@ var parquetDataFieldValidations = []*cr.StructFieldValidation{
 
 type ParquetColumn struct {
 	ParquetColumnName string `json:"parquet_column_name" yaml:"parquet_column_name"`
-	RawColumnName     string `json:"raw_column_name" yaml:"raw_column_name"`
+	RawColumn         string `json:"raw_column" yaml:"raw_column"`
 }
 
 var parquetColumnValidation = &cr.StructValidation{
@@ -313,9 +316,10 @@ var parquetColumnValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "RawColumnName",
+			StructField: "RawColumn",
 			StringValidation: &cr.StringValidation{
-				Required: true,
+				Required:               true,
+				RequireCortexResources: true,
 			},
 		},
 	},
@@ -338,9 +342,9 @@ func (environments Environments) Validate() error {
 		return ErrorDuplicateResourceName(dups...)
 	}
 
-	ingestedColumns := environments[0].Data.GetIngestedColumns()
+	ingestedColumns := environments[0].Data.GetIngestedColumnNames()
 	for _, env := range environments[1:] {
-		if !strset.New(ingestedColumns...).IsEqual(strset.New(env.Data.GetIngestedColumns()...)) {
+		if !strset.New(ingestedColumns...).IsEqual(strset.New(env.Data.GetIngestedColumnNames()...)) {
 			return ErrorEnvSchemaMismatch(environments[0], env)
 		}
 	}
@@ -365,7 +369,7 @@ func (env *Environment) Validate() error {
 		}
 	}
 
-	dups := slices.FindDuplicateStrs(env.Data.GetIngestedColumns())
+	dups := slices.FindDuplicateStrs(env.Data.GetIngestedColumnNames())
 	if len(dups) > 0 {
 		return errors.Wrap(configreader.ErrorDuplicatedValue(dups[0]), Identify(env), DataKey, SchemaKey, "column name")
 	}
@@ -389,14 +393,20 @@ func (parqData *ParquetData) GetExternalPath() string {
 	return parqData.Path
 }
 
-func (csvData *CSVData) GetIngestedColumns() []string {
-	return csvData.Schema
+func (csvData *CSVData) GetIngestedColumnNames() []string {
+	columnNames := make([]string, len(csvData.Schema))
+	for i, col := range csvData.Schema {
+		colName, _ := yaml.ExtractAtSymbolText(col)
+		columnNames[i] = colName
+	}
+	return columnNames
 }
 
-func (parqData *ParquetData) GetIngestedColumns() []string {
+func (parqData *ParquetData) GetIngestedColumnNames() []string {
 	columnNames := make([]string, len(parqData.Schema))
 	for i, parqCol := range parqData.Schema {
-		columnNames[i] = parqCol.RawColumnName
+		colName, _ := yaml.ExtractAtSymbolText(parqCol.RawColumn)
+		columnNames[i] = colName
 	}
 	return columnNames
 }

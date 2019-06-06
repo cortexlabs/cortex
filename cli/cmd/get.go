@@ -412,9 +412,10 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 
 	out += titleStr("Endpoint")
 	var samplePlaceholderFields []string
-	for _, colName := range ctx.RawColumnInputNames(model) {
-		column := ctx.GetColumn(colName)
-		fieldStr := `"` + colName + `": ` + column.GetType().JSONPlaceholder()
+	combinedInput := []interface{}{model.Input, model.TrainingInput}
+	for _, res := range ctx.ExtractCortexResources(combinedInput, resource.RawColumnType) {
+		rawColumn := res.(context.RawColumn)
+		fieldStr := `"` + rawColumn.GetName() + `": ` + rawColumn.GetColumnType().JSONPlaceholder()
 		samplePlaceholderFields = append(samplePlaceholderFields, fieldStr)
 	}
 	samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"

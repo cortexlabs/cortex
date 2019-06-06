@@ -22,7 +22,6 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -30,14 +29,13 @@ type Models []*Model
 
 type Model struct {
 	ResourceFields
-	Type               ModelType                `json:"type" yaml:"type"`
-	Path               string                   `json:"path" yaml:"path"`
+	Estimator          string                   `json:"estimator" yaml:"estimator"`
+	EstimatorPath      *string                  `json:"estimator_path" yaml:"estimator_path"`
 	TargetColumn       string                   `json:"target_column" yaml:"target_column"`
+	Input              interface{}              `json:"input" yaml:"input"`
+	TrainingInput      interface{}              `json:"training_input" yaml:"training_input"`
+	Hparams            interface{}              `json:"hparams"  yaml:"hparams"`
 	PredictionKey      string                   `json:"prediction_key" yaml:"prediction_key"`
-	FeatureColumns     []string                 `json:"feature_columns" yaml:"feature_columns"`
-	TrainingColumns    []string                 `json:"training_columns" yaml:"training_columns"`
-	Aggregates         []string                 `json:"aggregates"  yaml:"aggregates"`
-	Hparams            map[string]interface{}   `json:"hparams" yaml:"hparams"`
 	DataPartitionRatio *ModelDataPartitionRatio `json:"data_partition_ratio" yaml:"data_partition_ratio"`
 	Training           *ModelTraining           `json:"training" yaml:"training"`
 	Evaluation         *ModelEvaluation         `json:"evaluation" yaml:"evaluation"`
@@ -56,27 +54,41 @@ var modelValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField:      "Path",
-			StringValidation: &cr.StringValidation{},
-			DefaultField:     "Name",
-			DefaultFieldFunc: func(name interface{}) interface{} {
-				return "implementations/models/" + name.(string) + ".py"
+			StructField: "Estimator",
+			StringValidation: &cr.StringValidation{
+				AllowEmpty:                           true,
+				AlphaNumericDashDotUnderscoreOrEmpty: true,
 			},
 		},
 		{
-			StructField: "Type",
-			StringValidation: &cr.StringValidation{
-				Default:       ClassificationModelType.String(),
-				AllowedValues: ModelTypeStrings(),
-			},
-			Parser: func(str string) (interface{}, error) {
-				return ModelTypeFromString(str), nil
-			},
+			StructField:         "EstimatorPath",
+			StringPtrValidation: &cr.StringPtrValidation{},
 		},
 		{
 			StructField: "TargetColumn",
 			StringValidation: &cr.StringValidation{
-				Required: true,
+				Required:               true,
+				RequireCortexResources: true,
+			},
+		},
+		{
+			StructField: "Input",
+			InterfaceValidation: &cr.InterfaceValidation{
+				Required:             true,
+				AllowCortexResources: true,
+			},
+		},
+		{
+			StructField: "TrainingInput",
+			InterfaceValidation: &cr.InterfaceValidation{
+				Required:             false,
+				AllowCortexResources: true,
+			},
+		},
+		{
+			StructField: "HParams",
+			InterfaceValidation: &cr.InterfaceValidation{
+				Required: false,
 			},
 		},
 		{
@@ -84,35 +96,6 @@ var modelValidation = &cr.StructValidation{
 			StringValidation: &cr.StringValidation{
 				Default:    "",
 				AllowEmpty: true,
-			},
-		},
-		{
-			StructField: "FeatureColumns",
-			StringListValidation: &cr.StringListValidation{
-				Required:     true,
-				DisallowDups: true,
-			},
-		},
-		{
-			StructField: "TrainingColumns",
-			StringListValidation: &cr.StringListValidation{
-				AllowEmpty:   true,
-				DisallowDups: true,
-				Default:      make([]string, 0),
-			},
-		},
-		{
-			StructField: "Aggregates",
-			StringListValidation: &cr.StringListValidation{
-				AllowEmpty: true,
-				Default:    make([]string, 0),
-			},
-		},
-		{
-			StructField: "Hparams",
-			InterfaceMapValidation: &cr.InterfaceMapValidation{
-				AllowEmpty: true,
-				Default:    make(map[string]interface{}),
 			},
 		},
 		{
@@ -342,7 +325,7 @@ func (model *Model) Validate() error {
 	if model.Training.SaveCheckpointsSecs == nil && model.Training.SaveCheckpointsSteps == nil {
 		model.Training.SaveCheckpointsSecs = pointer.Int64(600)
 	} else if model.Training.SaveCheckpointsSecs != nil && model.Training.SaveCheckpointsSteps != nil {
-		return errors.Wrap(ErrorSpecifyOnlyOne(SaveCheckpointSecsKey, SaveCheckpointStepsKey), Identify(model), TrainingKey)
+		return errors.Wrap(ErrorSpecifyOnlyOne(SaveCheckpointsSecsKey, SaveCheckpointsStepsKey), Identify(model), TrainingKey)
 	}
 
 	if model.Training.NumSteps == nil && model.Training.NumEpochs == nil {
@@ -357,17 +340,19 @@ func (model *Model) Validate() error {
 		return errors.Wrap(ErrorSpecifyOnlyOne(NumEpochsKey, NumStepsKey), Identify(model), EvaluationKey)
 	}
 
-	for _, trainingColumn := range model.TrainingColumns {
-		if slices.HasString(model.FeatureColumns, trainingColumn) {
-			return errors.Wrap(ErrorDuplicateResourceValue(trainingColumn, TrainingColumnsKey, FeatureColumnsKey), Identify(model))
-		}
+	if model.EstimatorPath == nil && model.Estimator == "" {
+		return errors.Wrap(ErrorSpecifyOnlyOneMissing("estimator", "estimator_path"), Identify(model))
+	}
+
+	if model.EstimatorPath != nil && model.Estimator != "" {
+		return errors.Wrap(ErrorSpecifyOnlyOne("estimator", "estimator_path"), Identify(model))
+	}
+
+	if model.Estimator != "" && model.PredictionKey != "" {
+		return ErrorPredictionKeyOnModelWithEstimator()
 	}
 
 	return nil
-}
-
-func (model *Model) AllColumnNames() []string {
-	return slices.MergeStrSlices(model.FeatureColumns, model.TrainingColumns, []string{model.TargetColumn})
 }
 
 func (model *Model) GetResourceType() resource.Type {

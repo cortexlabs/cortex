@@ -17,6 +17,8 @@ limitations under the License.
 package userconfig
 
 import (
+	"github.com/cortexlabs/yaml"
+
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
@@ -25,9 +27,9 @@ type APIs []*API
 
 type API struct {
 	ResourceFields
-	ModelName string      `json:"model_name" yaml:"model_name"`
-	Compute   *APICompute `json:"compute" yaml:"compute"`
-	Tags      Tags        `json:"tags" yaml:"tags"`
+	Model   string      `json:"model" yaml:"model"`
+	Compute *APICompute `json:"compute" yaml:"compute"`
+	Tags    Tags        `json:"tags" yaml:"tags"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -40,11 +42,16 @@ var apiValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField:  "ModelName",
+			StructField:  "Model",
 			DefaultField: "Name",
+			DefaultFieldFunc: func(name interface{}) interface{} {
+				model := "@" + name.(string)
+				escapedModel, _ := yaml.EscapeAtSymbol(model)
+				return escapedModel
+			},
 			StringValidation: &cr.StringValidation{
-				Required:                   false,
-				AlphaNumericDashUnderscore: true,
+				Required:               false,
+				RequireCortexResources: true,
 			},
 		},
 		apiComputeFieldValidation,

@@ -25,35 +25,35 @@ type ColumnTypes []ColumnType
 
 const (
 	UnknownColumnType ColumnType = iota
+	InferredColumnType
 	IntegerColumnType
 	FloatColumnType
 	StringColumnType
 	IntegerListColumnType
 	FloatListColumnType
 	StringListColumnType
-	InferredColumnType
 )
 
 var columnTypes = []string{
 	"unknown",
+	"INFERRED_COLUMN",
 	"INT_COLUMN",
 	"FLOAT_COLUMN",
 	"STRING_COLUMN",
 	"INT_LIST_COLUMN",
 	"FLOAT_LIST_COLUMN",
 	"STRING_LIST_COLUMN",
-	"INFERRED_COLUMN",
 }
 
 var columnJSONPlaceholders = []string{
 	"_",
+	"VALUE",
 	"INT",
 	"FLOAT",
 	"\"STRING\"",
 	"[INT]",
 	"[FLOAT]",
 	"[\"STRING\"]",
-	"VALUE",
 }
 
 func ColumnTypeFromString(s string) ColumnType {
@@ -65,8 +65,8 @@ func ColumnTypeFromString(s string) ColumnType {
 	return UnknownColumnType
 }
 
-func ColumnTypeStrings() []string {
-	return columnTypes[1:]
+func ValidColumnTypeStrings() []string {
+	return columnTypes[2:]
 }
 
 func (t ColumnType) String() string {

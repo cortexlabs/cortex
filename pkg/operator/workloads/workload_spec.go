@@ -58,7 +58,10 @@ func uploadWorkloadSpec(workloadSpec *WorkloadSpec, ctx *context.Context) error 
 	resources := make(map[string]*context.ResourceFields)
 	for resourceID := range workloadSpec.ResourceIDs {
 		resource := ctx.OneResourceByID(resourceID)
-		resources[resourceID] = resource.GetResourceFields()
+		resources[resourceID] = &context.ResourceFields{
+			ID:           resource.GetID(),
+			ResourceType: resource.GetResourceType(),
+		}
 	}
 
 	savedWorkloadSpec := SavedWorkloadSpec{

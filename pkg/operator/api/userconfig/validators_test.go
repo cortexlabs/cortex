@@ -21,530 +21,152 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 )
 
-func TestValidateColumnInputTypes(t *testing.T) {
-	var columnTypes map[string]interface{}
-
-	columnTypes = cr.MustReadYAMLStrMap("num: FLOAT_COLUMN")
-	require.NoError(t, ValidateColumnInputTypes(columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap(
-		`
-     float: FLOAT_COLUMN
-     int: INT_COLUMN
-     str: STRING_COLUMN
-     int_list: FLOAT_LIST_COLUMN
-     float_list: INT_LIST_COLUMN
-     str_list: STRING_LIST_COLUMN
-    `)
-	require.NoError(t, ValidateColumnInputTypes(columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap(
-		`
-     num1: FLOAT_COLUMN|INT_COLUMN
-     num2: INT_COLUMN|FLOAT_COLUMN
-     num3: STRING_COLUMN|INT_COLUMN
-     num4: INT_COLUMN|FLOAT_COLUMN|STRING_COLUMN
-     num5: STRING_COLUMN|INT_COLUMN|FLOAT_COLUMN
-     num6: STRING_LIST_COLUMN|INT_LIST_COLUMN|FLOAT_LIST_COLUMN
-     num7: STRING_COLUMN|INT_LIST_COLUMN|FLOAT_LIST_COLUMN
-    `)
-	require.NoError(t, ValidateColumnInputTypes(columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap(
-		`
-     nums1: [INT_COLUMN]
-     nums2: [FLOAT_COLUMN]
-     nums3: [INT_COLUMN|FLOAT_COLUMN]
-     nums4: [FLOAT_COLUMN|INT_COLUMN]
-     nums5: [STRING_COLUMN|INT_COLUMN|FLOAT_COLUMN]
-     nums6: [INT_LIST_COLUMN]
-     nums7: [INT_LIST_COLUMN|STRING_LIST_COLUMN]
-     nums8: [INT_LIST_COLUMN|STRING_COLUMN]
-     strs: [STRING_COLUMN]
-     num1: FLOAT_COLUMN
-     num2: INT_COLUMN
-     str_list: STRING_LIST_COLUMN
-    `)
-	require.NoError(t, ValidateColumnInputTypes(columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap("num: bad")
-	require.Error(t, ValidateColumnInputTypes(columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap("num: BOOL")
-	require.Error(t, ValidateColumnInputTypes(columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap("num: [STRING_COLUMN, INT_COLUMN]")
-	require.Error(t, ValidateColumnInputTypes(columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap("num: FLOAT")
-	require.Error(t, ValidateColumnInputTypes(columnTypes))
-	columnTypes = cr.MustReadYAMLStrMap("num: FLOAT_COLUMNs")
-	require.Error(t, ValidateColumnInputTypes(columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap("num: 1")
-	require.Error(t, ValidateColumnInputTypes(columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap("num: [1]")
-	require.Error(t, ValidateColumnInputTypes(columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap("num: {nested: STRING_COLUMN}")
-	require.Error(t, ValidateColumnInputTypes(columnTypes))
-}
-
-func TestValidateColumnInputValues(t *testing.T) {
-	var columnInputValues map[string]interface{}
-
-	columnInputValues = cr.MustReadYAMLStrMap("num: age")
-	require.NoError(t, ValidateColumnInputValues(columnInputValues))
-
-	columnInputValues = cr.MustReadYAMLStrMap(
-		`
-     num1: age
-     num2: income
-     str: prior_default
-    `)
-	require.NoError(t, ValidateColumnInputValues(columnInputValues))
-
-	columnInputValues = cr.MustReadYAMLStrMap(
-		`
-     num1: age
-     num2: income
-    `)
-	require.NoError(t, ValidateColumnInputValues(columnInputValues))
-
-	columnInputValues = cr.MustReadYAMLStrMap(
-		`
-     nums1: [age, income]
-     nums2: [income]
-     nums3: [age, income, years_employed]
-     strs: [prior_default, approved]
-     num1: age
-     num2: income
-     str: prior_default
-    `)
-	require.NoError(t, ValidateColumnInputValues(columnInputValues))
-
-	columnInputValues = cr.MustReadYAMLStrMap("num: 1")
-	require.Error(t, ValidateColumnInputValues(columnInputValues))
-
-	columnInputValues = cr.MustReadYAMLStrMap("num: [1]")
-	require.Error(t, ValidateColumnInputValues(columnInputValues))
-
-	columnInputValues = cr.MustReadYAMLStrMap("num: {nested: STRING_COLUMN}")
-	require.Error(t, ValidateColumnInputValues(columnInputValues))
-}
-
-func TestCheckColumnRuntimeTypesMatch(t *testing.T) {
-	var columnTypes map[string]interface{}
-	var runtimeTypes map[string]interface{}
-
-	columnTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN")
-	runtimeTypes = readRuntimeTypes("in: INT_COLUMN")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: FLOAT_COLUMN")
-	require.Error(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN]")
-	require.Error(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap("in: INT_COLUMN|FLOAT_COLUMN")
-	runtimeTypes = readRuntimeTypes("in: INT_COLUMN")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: FLOAT_COLUMN")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: STRING_COLUMN")
-	require.Error(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap("in: STRING_COLUMN|INT_COLUMN|FLOAT_COLUMN")
-	runtimeTypes = readRuntimeTypes("in: INT_COLUMN")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: FLOAT_COLUMN")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: STRING_COLUMN")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: BAD_COLUMN")
-	require.Error(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN]")
-	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN]")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN, INT_COLUMN, INT_COLUMN]")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: INT_COLUMN")
-	require.Error(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: [FLOAT_COLUMN]")
-	require.Error(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN, FLOAT_COLUMN, INT_COLUMN]")
-	require.Error(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap("in: [INT_COLUMN|FLOAT_COLUMN]")
-	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN]")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN, INT_COLUMN, INT_COLUMN]")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: INT_COLUMN")
-	require.Error(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: [FLOAT_COLUMN]")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN, FLOAT_COLUMN, INT_COLUMN]")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN, FLOAT_COLUMN, STRING_COLUMN]")
-	require.Error(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap("in: [STRING_COLUMN|INT_COLUMN|FLOAT_COLUMN]")
-	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN]")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN, INT_COLUMN, INT_COLUMN]")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: INT_COLUMN")
-	require.Error(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: [BAD_COLUMN]")
-	require.Error(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: [STRING_COLUMN]")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in: [INT_COLUMN, FLOAT_COLUMN, STRING_COLUMN]")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN]\nin2: STRING_COLUMN")
-	runtimeTypes = readRuntimeTypes("in1: [INT_COLUMN]\nin2: STRING_COLUMN")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in1: [INT_COLUMN, INT_COLUMN]\nin2: STRING_COLUMN")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in2: STRING_COLUMN\nin1: [INT_COLUMN, INT_COLUMN]")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in1: [INT_COLUMN]")
-	require.Error(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in1: [INT_COLUMN]\nin2: STRING_COLUMN\nin3: INT_COLUMN")
-	require.Error(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-
-	columnTypes = cr.MustReadYAMLStrMap("in1: [INT_COLUMN|FLOAT_COLUMN|STRING_COLUMN]\nin2: STRING_COLUMN")
-	runtimeTypes = readRuntimeTypes("in1: [INT_COLUMN]\nin2: STRING_COLUMN")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-	runtimeTypes = readRuntimeTypes("in1: [INT_COLUMN, FLOAT_COLUMN, STRING_COLUMN, FLOAT_COLUMN]\nin2: STRING_COLUMN")
-	require.NoError(t, CheckColumnRuntimeTypesMatch(runtimeTypes, columnTypes))
-}
-
-func readRuntimeTypes(yamlStr string) map[string]interface{} {
-	runtimeTypes := make(map[string]interface{})
-	runtimeTypesStr := cr.MustReadYAMLStrMap(yamlStr)
-
-	for k, v := range runtimeTypesStr {
-		if runtimeTypeStr, ok := v.(string); ok {
-			runtimeTypes[k] = ColumnTypeFromString(runtimeTypeStr)
-		} else if runtimeTypeStrs, ok := cast.InterfaceToStrSlice(v); ok {
-			runtimeTypesSlice := make([]ColumnType, len(runtimeTypeStrs))
-			for i, runtimeTypeStr := range runtimeTypeStrs {
-				runtimeTypesSlice[i] = ColumnTypeFromString(runtimeTypeStr)
-			}
-			runtimeTypes[k] = runtimeTypesSlice
-		}
-	}
-
-	return runtimeTypes
-}
-
-func TestValidateArgTypes(t *testing.T) {
-	var argTypes map[string]interface{}
-
-	argTypes = cr.MustReadYAMLStrMap("STRING: FLOAT")
-	require.Error(t, ValidateArgTypes(argTypes))
-}
-
-func TestValidateValueType(t *testing.T) {
-	var valueType interface{}
-
-	valueType = "FLOAT"
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = "FLOAT|INT|BOOL|STRING"
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = []string{"INT|FLOAT"}
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("STRING: FLOAT")
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("num: FLOAT")
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("bools: [BOOL]")
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("bools: [BOOL|FLOAT|INT]")
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("STRING: INT")
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("map: {BOOL|FLOAT: INT|STRING}")
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("map: {mean: FLOAT, stddev: FLOAT}")
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("map: {STRING: {lat: FLOAT, lon: FLOAT}}")
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("map: {STRING: {lat: FLOAT, lon: [FLOAT]}}")
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("map: {STRING: {FLOAT: INT}}")
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("map: {STRING: {FLOAT: [INT]}}")
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("map: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: INT}}}")
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("map6: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: {INT: STRING}}}}")
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("map6: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: {INT: STRING}, mean: BOOL}}}")
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap(
-		`
-     num: [INT]
-     str: STRING
-     map1: {STRING: INT}
-     map2: {mean: FLOAT, stddev: FLOAT}
-     map3: {STRING: {lat: FLOAT, lon: FLOAT}}
-     map3: {STRING: {lat: FLOAT, lon: [FLOAT]}}
-     map4: {STRING: {FLOAT: INT}}
-     map5: {STRING: {BOOL: [INT]}}
-     map6: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: INT}}}
-     map6: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: {INT: STRING}, mean: BOOL}}}
-    `)
-	require.NoError(t, ValidateValueType(valueType))
-
-	valueType = "FLOAT|INT|BAD"
-	require.Error(t, ValidateValueType(valueType))
-
-	valueType = []string{"INT", "FLOAT"}
-	require.Error(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("num: FLOATs")
-	require.Error(t, ValidateValueType(valueType))
-
-	valueType = 1
-	require.Error(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("num: 1")
-	require.Error(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("num: [1]")
-	require.Error(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("STRING: test")
-	require.Error(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("map: {STRING: INT, INT: FLOAT}")
-	require.Error(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("map: {STRING: INT, INT: [FLOAT]}")
-	require.Error(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("map: {mean: FLOAT, INT: FLOAT}")
-	require.Error(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("map: {mean: FLOAT, INT: [FLOAT]}")
-	require.Error(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("map: {STRING: {lat: FLOAT, STRING: FLOAT}}")
-	require.Error(t, ValidateValueType(valueType))
-
-	valueType = cr.MustReadYAMLStrMap("map: {STRING: {STRING: test}}")
-	require.Error(t, ValidateValueType(valueType))
-}
-
-func TestCastValue(t *testing.T) {
-	var valueType interface{}
-	var value interface{}
-	var casted interface{}
+func TestValidateOutputSchema(t *testing.T) {
 	var err error
 
-	valueType = "INT"
-	value = int64(2)
-	_, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	value = float64(2.2)
-	_, err = CastValue(value, valueType)
-	require.Error(t, err)
-	value = nil
-	_, err = CastValue(value, valueType)
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`STRING`))
 	require.NoError(t, err)
 
-	valueType = "FLOAT"
-	value = float64(2.2)
-	_, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	value = int64(2)
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, float64(2))
-
-	valueType = "BOOL"
-	value = false
-	_, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	value = 2
-	_, err = CastValue(value, valueType)
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`STRING|INT`))
 	require.Error(t, err)
 
-	valueType = "FLOAT|INT"
-	value = float64(2.2)
-	_, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	value = int64(2)
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, int64(2))
-
-	valueType = cr.MustReadYAMLStrMap("STRING: FLOAT")
-	value = cr.MustReadYAMLStrMap("test: 2.2")
-	_, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	value = cr.MustReadYAMLStrMap("test: 2.2\ntest2: 4.4")
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, map[interface{}]interface{}{"test": 2.2, "test2": 4.4})
-	value = cr.MustReadYAMLStrMap("test: test2")
-	_, err = CastValue(value, valueType)
-	require.Error(t, err)
-	value = map[int]float64{2: 2.2}
-	_, err = CastValue(value, valueType)
-	require.Error(t, err)
-	value = make(map[string]float64)
-	_, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	value = cr.MustReadYAMLStrMap("test: 2") // YAML
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, map[interface{}]interface{}{"test": float64(2)})
-	value = cr.MustReadJSONStr(`{"test": 2}`) // JSON
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, map[interface{}]interface{}{"test": float64(2)})
-	value = cr.MustReadYAMLStrMap("test: 2.0") // YAML
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, map[interface{}]interface{}{"test": float64(2)})
-	value = cr.MustReadJSONStr(`{"test": 2.0}`) // JSON
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, map[interface{}]interface{}{"test": float64(2)})
-
-	valueType = cr.MustReadYAMLStrMap("STRING: INT")
-	value = cr.MustReadYAMLStrMap("test: 2.2")
-	_, err = CastValue(value, valueType)
-	require.Error(t, err)
-	value = cr.MustReadYAMLStrMap("test: 2\ntest2: 2.2")
-	_, err = CastValue(value, valueType)
-	require.Error(t, err)
-	value = cr.MustReadYAMLStrMap("test: 2") // YAML
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, map[interface{}]interface{}{"test": int64(2)})
-	value = cr.MustReadJSONStr(`{"test": 2}`) // JSON
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, map[interface{}]interface{}{"test": int64(2)})
-	value = cr.MustReadYAMLStrMap("test: 2.0") // YAML
-	_, err = CastValue(value, valueType)
-	require.Error(t, err)
-	value = cr.MustReadJSONStr(`{"test": 2.0}`) // JSON
-	_, err = CastValue(value, valueType)
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`STRING_COLUMN`))
 	require.Error(t, err)
 
-	valueType = cr.MustReadYAMLStrMap("STRING: INT|FLOAT")
-	value = cr.MustReadYAMLStrMap("test: 2.2")
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, map[interface{}]interface{}{"test": 2.2})
-	value = map[string]int{"test": 2}
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, map[interface{}]interface{}{"test": int64(2)})
-
-	valueType = cr.MustReadYAMLStrMap("mean: FLOAT\nsum: INT")
-	value = cr.MustReadYAMLStrMap("mean: 2.2\nsum: 4")
-	_, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	value = cr.MustReadYAMLStrMap("mean: 2.2\nsum: 4.4")
-	_, err = CastValue(value, valueType)
-	require.Error(t, err)
-	value = cr.MustReadYAMLStrMap("mean: test\nsum: 4")
-	_, err = CastValue(value, valueType)
-	require.Error(t, err)
-	value = cr.MustReadYAMLStrMap("mean: 2.2")
-	_, err = CastValue(value, valueType)
-	require.Error(t, err)
-	value = cr.MustReadYAMLStrMap("mean: 2.2\nsum: null")
-	_, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	value = cr.MustReadYAMLStrMap("mean: 2.2\nsum: 4\nextra: test")
-	_, err = CastValue(value, valueType)
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`bad`))
 	require.Error(t, err)
 
-	valueType = []string{"INT"}
-	value = []int{1, 2, 3}
-	casted, err = CastValue(value, valueType)
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`[STRING]`))
 	require.NoError(t, err)
-	require.Equal(t, casted, []interface{}{int64(1), int64(2), int64(3)})
-	value = []float64{1.1, 2.2, 3.3}
-	_, err = CastValue(value, valueType)
-	require.Error(t, err)
-	value = []float64{1, 2, 3}
-	_, err = CastValue(value, valueType)
+
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`[STRING, INT]`))
 	require.Error(t, err)
 
-	valueType = []string{"FLOAT"}
-	value = []float64{1.1, 2.2, 3.3}
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, []interface{}{1.1, 2.2, 3.3})
-	value = []float64{1, 2, 3}
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, []interface{}{float64(1), float64(2), float64(3)})
-	value = []int{1, 2, 3}
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, []interface{}{float64(1), float64(2), float64(3)})
-
-	valueType = []string{"FLOAT|INT|BOOL"}
-	value = []float64{1.1, 2.2, 3.3}
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, []interface{}{float64(1.1), float64(2.2), float64(3.3)})
-	value = []int{1, 2, 3}
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, []interface{}{int64(1), int64(2), int64(3)})
-	value = []float64{1, 2, 3}
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, []interface{}{float64(1), float64(2), float64(3)})
-	value = []interface{}{int64(1), float64(2), float64(2.2), true, false}
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, []interface{}{int64(1), float64(2), float64(2.2), true, false})
-	value = []interface{}{true, "str"}
-	_, err = CastValue(value, valueType)
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`[STRING|INT]`))
 	require.Error(t, err)
 
-	valueType = []string{"FLOAT|INT|BOOL|STRING"}
-	value = []interface{}{int64(1), float64(2), float64(2.2), "str", false}
-	casted, err = CastValue(value, valueType)
-	require.NoError(t, err)
-	require.Equal(t, casted, []interface{}{int64(1), float64(2), float64(2.2), "str", false})
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`[STRING_COLUMN]`))
+	require.Error(t, err)
 
-	valueType = cr.MustReadYAMLStrMap(
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`[bad]`))
+	require.Error(t, err)
+
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`{mean: FLOAT, stddev: FLOAT}`))
+	require.NoError(t, err)
+
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`{_type: FLOAT}`))
+	require.Error(t, err)
+
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`{_mean: FLOAT}`))
+	require.Error(t, err)
+
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`{INT: FLOAT}`))
+	require.NoError(t, err)
+
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`{INT: INT|FLOAT}`))
+	require.Error(t, err)
+
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`{INT|FLOAT: FLOAT}`))
+	require.Error(t, err)
+
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`{INT: FLOAT_COLUMN}`))
+	require.Error(t, err)
+
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`{INT_COLUMN: FLOAT}`))
+	require.Error(t, err)
+
+	_, err = ValidateOutputSchema(cr.MustReadYAMLStr(
+		`{INT: FLOAT, FLOAT: FLOAT}`))
+	require.Error(t, err)
+}
+
+func checkCastOutputValueEqual(t *testing.T, outputSchemaYAML string, valueYAML string, expected interface{}) {
+	outputSchema, err := ValidateOutputSchema(cr.MustReadYAMLStr(outputSchemaYAML))
+	require.NoError(t, err)
+	casted, err := CastOutputValue(cr.MustReadYAMLStr(valueYAML), outputSchema)
+	require.NoError(t, err)
+	require.Equal(t, casted, expected)
+
+	// All output schemas are valid input schemas, so test those too
+	checkCastInputValueEqual(t, outputSchemaYAML, valueYAML, expected)
+}
+
+func checkCastOutputValueNoError(t *testing.T, outputSchemaYAML string, valueYAML string) {
+	outputSchema, err := ValidateOutputSchema(cr.MustReadYAMLStr(outputSchemaYAML))
+	require.NoError(t, err)
+	_, err = CastOutputValue(cr.MustReadYAMLStr(valueYAML), outputSchema)
+	require.NoError(t, err)
+
+	// All output schemas are valid input schemas, so test those too
+	checkCastInputValueNoError(t, outputSchemaYAML, valueYAML)
+}
+
+func checkCastOutputValueError(t *testing.T, outputSchemaYAML string, valueYAML string) {
+	outputSchema, err := ValidateOutputSchema(cr.MustReadYAMLStr(outputSchemaYAML))
+	require.NoError(t, err)
+	_, err = CastOutputValue(cr.MustReadYAMLStr(valueYAML), outputSchema)
+	require.Error(t, err)
+
+	// All output schemas are valid input schemas, so test those too
+	checkCastInputValueError(t, outputSchemaYAML, valueYAML)
+}
+
+func TestCastOutputValue(t *testing.T) {
+	checkCastOutputValueEqual(t, `INT`, `2`, int64(2))
+	checkCastOutputValueError(t, `INT`, `test`)
+	checkCastOutputValueError(t, `INT`, `2.2`)
+	checkCastOutputValueEqual(t, `FLOAT`, `2`, float64(2))
+	checkCastOutputValueError(t, `FLOAT`, `test`)
+	checkCastOutputValueEqual(t, `BOOL`, `true`, true)
+	checkCastOutputValueEqual(t, `STRING`, `str`, "str")
+	checkCastOutputValueError(t, `STRING`, `1`)
+
+	checkCastOutputValueEqual(t, `{STRING: FLOAT}`, `{test: 2.2, test2: 4.4}`,
+		map[interface{}]interface{}{"test": 2.2, "test2": 4.4})
+	checkCastOutputValueError(t, `{STRING: FLOAT}`, `{test: test2}`)
+	checkCastOutputValueEqual(t, `{STRING: FLOAT}`, `{test: 2}`,
+		map[interface{}]interface{}{"test": float64(2)})
+	checkCastOutputValueEqual(t, `{STRING: INT}`, `{test: 2}`,
+		map[interface{}]interface{}{"test": int64(2)})
+	checkCastOutputValueError(t, `{STRING: INT}`, `{test: 2.0}`)
+
+	checkCastOutputValueEqual(t, `{mean: FLOAT, sum: INT}`, `{mean: 2.2, sum: 4}`,
+		map[interface{}]interface{}{"mean": float64(2.2), "sum": int64(4)})
+	checkCastOutputValueError(t, `{mean: FLOAT, sum: INT}`, `{mean: 2.2, sum: test}`)
+	checkCastOutputValueError(t, `{mean: FLOAT, sum: INT}`, `{mean: false, sum: 4}`)
+	checkCastOutputValueError(t, `{mean: FLOAT, sum: INT}`, `{mean: 2.2, 2: 4}`)
+	checkCastOutputValueError(t, `{mean: FLOAT, sum: INT}`, `{mean: 2.2, sum: Null}`)
+	checkCastOutputValueError(t, `{mean: FLOAT, sum: INT}`, `{mean: 2.2}`)
+	checkCastOutputValueError(t, `{mean: FLOAT, sum: INT}`, `{mean: 2.2, sum: Null}`)
+	checkCastOutputValueError(t, `{mean: FLOAT, sum: INT}`, `{mean: 2.2, sum: 4, stddev: 2}`)
+
+	checkCastOutputValueEqual(t, `[INT]`, `[1, 2]`,
+		[]interface{}{int64(1), int64(2)})
+	checkCastOutputValueError(t, `[INT]`, `[1.0, 2]`)
+	checkCastOutputValueEqual(t, `[FLOAT]`, `[1.0, 2]`,
+		[]interface{}{float64(1), float64(2)})
+
+	outputSchemaYAML :=
 		`
      map: {STRING: FLOAT}
      str: STRING
@@ -557,11 +179,9 @@ func TestCastValue(t *testing.T) {
            b: [STRING]
            c: {mean: FLOAT, sum: [INT], stddev: {STRING: INT}}
          bools: [BOOL]
-         anything: [BOOL|INT|FLOAT|STRING]
-    `)
+    `
 
-	value = cr.MustReadYAMLStrMap(
-		`
+	checkCastOutputValueNoError(t, outputSchemaYAML, `
      map: {a: 2.2, b: 3}
      str: test1
      floats: [2.2, 3.3, 4.4]
@@ -573,7 +193,6 @@ func TestCastValue(t *testing.T) {
            b: [test1, test2, test3]
            c: {mean: 8.8, sum: [3, 2, 1], stddev: {a: 1, b: 2}}
          bools: [true]
-         anything: []
        testB:
          lat: 3.14
          lon:
@@ -581,40 +200,9 @@ func TestCastValue(t *testing.T) {
            b: [testX, testY, testZ]
            c: {mean: 1.7, sum: [1], stddev: {z: 12}}
          bools: [true, false, true]
-         anything: [10, 2.2, test, false]
     `)
-	_, err = CastValue(value, valueType)
-	require.NoError(t, err)
 
-	value = cr.MustReadYAMLStrMap(
-		`
-     map: {a: 2.2, b: 3}
-     str: test1
-     floats: [2.2, 3.3, 4.4]
-     map2:
-       testA:
-         lat: 9.9
-         lon:
-           a: 17
-           b: [test1, test2, test3]
-           c: null
-         bools: [true]
-         anything: []
-       testB:
-         lat: null
-         lon:
-           a: 88
-           b: null
-           c: {mean: 1.7, sum: [1], stddev: {z: 12}}
-         bools: [true, false, true]
-         anything: [10, 2.2, test, false]
-       testC: null
-    `)
-	_, err = CastValue(value, valueType)
-	require.NoError(t, err)
-
-	value = cr.MustReadYAMLStrMap(
-		`
+	checkCastOutputValueError(t, outputSchemaYAML, `
      map: {a: 2.2, b: 3}
      str: test1
      floats: [2.2, 3.3, 4.4]
@@ -626,20 +214,15 @@ func TestCastValue(t *testing.T) {
            b: [test1, test2, test3]
            c: {mean: 8.8, sum: [3, 2, 1], stddev: {a: 1, b: 2}}
          bools: [true]
-         anything: []
        testB:
          lat: 3.14
          lon:
            b: [testX, testY, testZ]
            c: {mean: 1.7, sum: [1], stddev: {z: 12}}
          bools: [true, false, true]
-         anything: [10, 2.2, test, false]
     `)
-	_, err = CastValue(value, valueType)
-	require.Error(t, err)
 
-	value = cr.MustReadYAMLStrMap(
-		`
+	checkCastOutputValueError(t, outputSchemaYAML, `
      map: {a: 2.2, b: 3}
      str: test1
      floats: [2.2, 3.3, 4.4]
@@ -651,7 +234,6 @@ func TestCastValue(t *testing.T) {
            b: [test1, test2, test3]
            c: {mean: 8.8, sum: [3, 2, 1], stddev: {a: 1, b: 2}}
          bools: [true]
-         anything: []
        testB:
          lat: 3.14
          lon:
@@ -659,13 +241,9 @@ func TestCastValue(t *testing.T) {
            b: [testX, testY, testZ]
            c: {mean: 1.7, sum: [1], stddev: {z: 12}}
          bools: [true, false, true]
-         anything: [10, 2.2, test, false]
     `)
-	_, err = CastValue(value, valueType)
-	require.Error(t, err)
 
-	value = cr.MustReadYAMLStrMap(
-		`
+	checkCastOutputValueError(t, outputSchemaYAML, `
      map: {a: 2.2, b: 3}
      str: test1
      floats: [2.2, 3.3, 4.4]
@@ -677,7 +255,6 @@ func TestCastValue(t *testing.T) {
            b: [test1, test2, test3]
            c: {mean: 8.8, sum: [3, 2, 1], stddev: {a: 1, b: 2}}
          bools: [true]
-         anything: []
        testB:
          lat: 3.14
          lon:
@@ -685,13 +262,9 @@ func TestCastValue(t *testing.T) {
            b: [testX, testY, 2]
            c: {mean: 1.7, sum: [1], stddev: {z: 12}}
          bools: [true, false, true]
-         anything: [10, 2.2, test, false]
     `)
-	_, err = CastValue(value, valueType)
-	require.Error(t, err)
 
-	value = cr.MustReadYAMLStrMap(
-		`
+	checkCastOutputValueError(t, outputSchemaYAML, `
      map: {a: 2.2, b: 3}
      str: test1
      floats: [2.2, 3.3, 4.4]
@@ -703,7 +276,6 @@ func TestCastValue(t *testing.T) {
            b: [test1, test2, test3]
            c: {mean: 8.8, sum: [3, 2, 1], stddev: {a: 1, b: test}}
          bools: [true]
-         anything: []
        testB:
          lat: 3.14
          lon:
@@ -711,13 +283,9 @@ func TestCastValue(t *testing.T) {
            b: [testX, testY, testZ]
            c: {mean: 1.7, sum: [1], stddev: {z: 12}}
          bools: [true, false, true]
-         anything: [10, 2.2, test, false]
     `)
-	_, err = CastValue(value, valueType)
-	require.Error(t, err)
 
-	value = cr.MustReadYAMLStrMap(
-		`
+	checkCastOutputValueError(t, outputSchemaYAML, `
      map: {a: 2.2, b: 3}
      str: test1
      floats: [2.2, 3.3, 4.4]
@@ -729,7 +297,6 @@ func TestCastValue(t *testing.T) {
            b: [test1, test2, test3]
            c: {mean: 8.8, sum: [3, 2, 1], stddev: {a: 1, b: 2}}
          bools: [true]
-         anything: []
        testB:
          lat: 3.14
          lon:
@@ -737,13 +304,9 @@ func TestCastValue(t *testing.T) {
            b: [testX, testY, testZ]
            c: {mean: 1.7, sum: [1], stddev: {z: 12}}
          bools: true
-         anything: [10, 2.2, test, false]
     `)
-	_, err = CastValue(value, valueType)
-	require.Error(t, err)
 
-	value = cr.MustReadYAMLStrMap(
-		`
+	checkCastOutputValueError(t, outputSchemaYAML, `
      map: {a: 2.2, b: 3}
      str: test1
      floats: [2.2, 3.3, 4.4]
@@ -755,7 +318,6 @@ func TestCastValue(t *testing.T) {
            b: [test1, test2, test3]
            c: {mean: 8.8, sum: [3, 2, 1], stddev: {a: 1, b: 2}}
          bools: [true]
-         anything: []
        testB:
          lat: 3.14
          lon:
@@ -763,203 +325,1324 @@ func TestCastValue(t *testing.T) {
            b: [testX, testY, testZ]
            c: {mean: 1.7, sum: [1], stddev: {z: 12}}
          bools: [1, 2, 3]
-         anything: [10, 2.2, test, false]
     `)
-	_, err = CastValue(value, valueType)
+}
+
+func checkCastInputValueEqual(t *testing.T, inputSchemaYAML string, valueYAML string, expected interface{}) {
+	inputSchema, err := ValidateInputSchema(cr.MustReadYAMLStr(inputSchemaYAML), false)
+	require.NoError(t, err)
+	casted, err := CastInputValue(cr.MustReadYAMLStr(valueYAML), inputSchema)
+	require.NoError(t, err)
+	require.Equal(t, casted, expected)
+}
+
+func checkCastInputValueError(t *testing.T, inputSchemaYAML string, valueYAML string) {
+	inputSchema, err := ValidateInputSchema(cr.MustReadYAMLStr(inputSchemaYAML), false)
+	require.NoError(t, err)
+	_, err = CastInputValue(cr.MustReadYAMLStr(valueYAML), inputSchema)
 	require.Error(t, err)
 }
 
-func TestCheckValueRuntimeTypesMatch(t *testing.T) {
-	var schemaType interface{}
-	var runtimeType interface{}
+func checkCastInputValueNoError(t *testing.T, inputSchemaYAML string, valueYAML string) {
+	inputSchema, err := ValidateInputSchema(cr.MustReadYAMLStr(inputSchemaYAML), false)
+	require.NoError(t, err)
+	_, err = CastInputValue(cr.MustReadYAMLStr(valueYAML), inputSchema)
+	require.NoError(t, err)
+}
 
-	schemaType = "INT"
-	runtimeType = "INT"
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = "FLOAT"
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = "FLOAT|INT"
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
+func TestCastInputValue(t *testing.T) {
+	// Note: all test cases in TestCastOutputValue also test CastInputValue() since output schemas are valid input schemas
 
-	schemaType = "FLOAT|INT"
-	runtimeType = "FLOAT|INT"
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = "INT|FLOAT"
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = "FLOAT"
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = "INT"
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = "STRING"
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
+	checkCastInputValueEqual(t, `FLOAT|INT`, `2`, int64(2))
+	checkCastInputValueEqual(t, `INT|FLOAT`, `2`, int64(2))
+	checkCastInputValueEqual(t, `FLOAT|INT`, `2.2`, float64(2.2))
+	checkCastInputValueEqual(t, `INT|FLOAT`, `2.2`, float64(2.2))
+	checkCastInputValueError(t, `STRING`, `2`)
+	checkCastInputValueEqual(t, `STRING|FLOAT`, `2`, float64(2))
+	checkCastInputValueEqual(t, `{_type: [INT], _max_count: 2}`, `[2]`, []interface{}{int64(2)})
+	checkCastInputValueError(t, `{_type: [INT], _max_count: 2}`, `[2, 3, 4]`)
+	checkCastInputValueEqual(t, `{_type: [INT], _min_count: 2}`, `[2, 3, 4]`, []interface{}{int64(2), int64(3), int64(4)})
+	checkCastInputValueError(t, `{_type: [INT], _min_count: 2}`, `[2]`)
+	checkCastInputValueError(t, `{_type: INT, _optional: true}`, `Null`)
+	checkCastInputValueError(t, `{_type: INT, _optional: true}`, ``)
+	checkCastInputValueEqual(t, `{_type: INT, _allow_null: true}`, `Null`, nil)
+	checkCastInputValueEqual(t, `{_type: INT, _allow_null: true}`, ``, nil)
+	checkCastInputValueError(t, `{_type: {a: INT}}`, `Null`)
+	checkCastInputValueError(t, `{_type: {a: INT}, _optional: true}`, `Null`)
+	checkCastInputValueEqual(t, `{_type: {a: INT}, _allow_null: true}`, `Null`, nil)
+	checkCastInputValueEqual(t, `{_type: {a: INT}}`, `{a: 2}`, map[interface{}]interface{}{"a": int64(2)})
+	checkCastInputValueError(t, `{_type: {a: INT}}`, `{a: Null}`)
+	checkCastInputValueError(t, `{a: {_type: INT, _optional: false}}`, `{a: Null}`)
+	checkCastInputValueError(t, `{a: {_type: INT, _optional: false}}`, `{}`)
+	checkCastInputValueError(t, `{a: {_type: INT, _optional: true}}`, `{a: Null}`)
+	checkCastInputValueEqual(t, `{a: {_type: INT, _optional: true}}`, `{}`, map[interface{}]interface{}{})
+	checkCastInputValueEqual(t, `{a: {_type: INT, _allow_null: true}}`, `{a: Null}`, map[interface{}]interface{}{"a": nil})
+	checkCastInputValueError(t, `{a: {_type: INT, _allow_null: true}}`, `{}`)
+	checkCastInputValueEqual(t, `{a: {_type: INT, _allow_null: true, _optional: true}}`, `{}`, map[interface{}]interface{}{})
+}
 
-	schemaType = []string{"INT"}
-	runtimeType = []string{"INT"}
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = []string{"STRING"}
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
+func TestValidateInputSchema(t *testing.T) {
+	var inputSchema, inputSchema2, inputSchema3, inputSchema4 *InputSchema
+	var err error
 
-	schemaType = []string{"BOOL"}
-	runtimeType = []string{"BOOL"}
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = []string{"INT"}
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`STRING`), false)
+	require.NoError(t, err)
+	inputSchema2, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`_type: STRING`), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema, inputSchema2)
 
-	schemaType = []string{"FLOAT|INT"}
-	runtimeType = []string{"INT|FLOAT"}
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = []string{"INT"}
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`STRING_COLUMN`), false)
+	require.NoError(t, err)
 
-	schemaType = []string{"BOOL|FLOAT|INT"}
-	runtimeType = []string{"FLOAT|INT|BOOL"}
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = []string{"INT|FLOAT"}
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = []string{"FLOAT"}
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = []string{"INT"}
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = []string{"BOOL"}
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = []string{"STRING"}
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = "FLOAT"
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`STRING_COLUMN`), true)
+	require.Error(t, err)
 
-	schemaType = cr.MustReadYAMLStrMap("STRING: FLOAT")
-	runtimeType = cr.MustReadYAMLStrMap("STRING: FLOAT")
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap("STRING: INT")
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`INFERRED_COLUMN`), false)
+	require.Error(t, err)
 
-	schemaType = cr.MustReadYAMLStrMap("STRING: [INT|FLOAT]")
-	runtimeType = cr.MustReadYAMLStrMap("STRING: [FLOAT|INT]")
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap("STRING: [INT]")
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap("STRING: [BOOL]")
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap("STRING: INT")
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`BAD_COLUMN`), false)
+	require.Error(t, err)
 
-	schemaType = cr.MustReadYAMLStrMap("INT|FLOAT: STRING")
-	runtimeType = cr.MustReadYAMLStrMap("FLOAT|INT: STRING")
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap("INT: STRING")
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap("BOOL: STRING")
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-
-	schemaType = cr.MustReadYAMLStrMap("mean: FLOAT\nsum: INT")
-	runtimeType = cr.MustReadYAMLStrMap("mean: FLOAT\nsum: INT")
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap("sum: INT\nmean: FLOAT")
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap("sum: INT\nmean: INT")
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap("mean: FLOAT")
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap("mean: FLOAT\nsum: INT\nextra: STRING")
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-
-	schemaType = cr.MustReadYAMLStrMap("mean: FLOAT\nsum: INT|FLOAT")
-	runtimeType = cr.MustReadYAMLStrMap("mean: FLOAT\nsum: FLOAT|INT")
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap("sum: FLOAT\nmean: FLOAT")
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap("sum: INT\nmean: FLOAT")
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap("sum: INT\nmean: INT")
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-
-	schemaType = cr.MustReadYAMLStrMap(
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
-      map: {STRING: FLOAT}
-      str: STRING
-      floats: [FLOAT]
-      map2:
-        STRING:
-          lat: FLOAT
-          lon:
-            a: INT|FLOAT
-            b: [STRING]
-            c: {mean: FLOAT, sum: [INT], stddev: {STRING: INT|FLOAT}}
-            d: [BOOL]
-     `)
-	runtimeType = cr.MustReadYAMLStrMap(
+     _type: STRING
+     _default: test
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
-      floats: [FLOAT]
-      str: STRING
-      map2:
-        STRING:
-          lat: FLOAT
-          lon:
-            c: {sum: [INT], mean: FLOAT, stddev: {STRING: FLOAT|INT}}
-            b: [STRING]
-            a: FLOAT|INT
-            d: [BOOL]
-      map: {STRING: FLOAT}
-     `)
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap(
+     _type: STRING_COLUMN
+     _default: test
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
-      floats: [FLOAT]
-      str: STRING
-      map2:
-        STRING:
-          lat: FLOAT
-          lon:
-            c: {sum: [INT], mean: FLOAT, stddev: {STRING: FLOAT|INT}}
-            b: [STRING]
-            a: INT
-            d: [BOOL]
-      map: {STRING: FLOAT}
-     `)
-	require.NoError(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap(
+     _type: STRING
+     _default: Null
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
-      floats: [FLOAT]
-      str: STRING
-      map2:
-        STRING:
-          lat: FLOAT
-          lon:
-            c: {sum: [INT], mean: FLOAT, stddev: {STRING: FLOAT|INT}}
-            b: STRING
-            a: FLOAT|INT
-            d: [BOOL]
-      map: {STRING: FLOAT}
-     `)
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap(
+     _type: STRING
+     _default: 2
+    `), false)
+	require.Error(t, err)
+
+	// Lists
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`[STRING]`), false)
+	require.NoError(t, err)
+	inputSchema2, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`_type: [STRING]`), false)
+	require.NoError(t, err)
+	inputSchema3, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
-      floats: [FLOAT]
-      str: STRING
-      map2:
-        STRING:
-          lat: FLOAT
-          lon:
-            c: {sum: [INT], stddev: {STRING: FLOAT|INT}}
-            b: [STRING]
-            a: FLOAT|INT
-            d: [BOOL]
-      map: {STRING: FLOAT}
-     `)
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
-	runtimeType = cr.MustReadYAMLStrMap(
+     _type:
+       - _type: STRING
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema, inputSchema2)
+	require.Equal(t, inputSchema, inputSchema3)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`[STRING|INT]`), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`[STRING_COLUMN|INT_COLUMN]`), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`[STRING_COLUMN|INT_COLUMN]`), true)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`[STRING|INT_COLUMN]`), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
-      floats: [FLOAT]
-      str: STRING
-      map2:
-        STRING:
-          lat: FLOAT
-          lon:
-            c: {sum: [INT], mean: FLOAT, stddev: {STRING: FLOAT|INT}}
-            b: [STRING]
-            a: FLOAT|INT
-            d: BOOL
-      map: {STRING: FLOAT}
-     `)
-	require.Error(t, CheckValueRuntimeTypesMatch(runtimeType, schemaType))
+     _type: [STRING]
+     _default: [test1, test2, test3]
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [STRING_COLUMN]
+     _default: [test1, test2, test3]
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [STRING]
+     _default: [test1, 2, test3]
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [STRING|INT]
+     _default: [test1, 2, test3]
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [STRING|FLOAT]
+     _default: [test1, 2, test3]
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [STRING]
+     _default: test1
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [STRING]
+     _min_count: 2
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [STRING]
+     _min_count: 2
+     _max_count: 2
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [STRING]
+     _min_count: 2
+     _max_count: 1
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [STRING]
+     _default: [test1]
+     _min_count: 2
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [STRING]
+     _default: [test1, test2]
+     _min_count: 2
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [STRING]
+     _min_count: -1
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [STRING]
+     _min_count: test
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [STRING]
+     _default: [test1, test2, test3]
+     _max_count: 2
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [STRING]
+     _default: [test1, test2]
+     _max_count: 2
+    `), false)
+	require.NoError(t, err)
+
+	// Maps
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`arg1: STRING`), false)
+	require.NoError(t, err)
+	inputSchema2, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     arg1:
+       _type: STRING
+    `), false)
+	require.NoError(t, err)
+	inputSchema3, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {arg1: STRING}
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema, inputSchema2)
+	require.Equal(t, inputSchema, inputSchema3)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`arg1: STRING_COLUMN`), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`arg1: STRING_COLUMN`), true)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`STRING_COLUMN: STRING`), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`STRING_COLUMN: STRING`), true)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`_arg1: STRING`), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`arg1: test`), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`STRING: test`), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`STRING_COLUMN: test`), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {arg1: STRING}
+     _min_count: 2
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING: INT}
+     _default: {test: 2}
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {FLOAT: INT}
+     _default: {2: 2}
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING: INT}
+     _default: {test: test}
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING: INT|STRING}
+     _default: {test: test}
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING: INT_COLUMN}
+     _min_count: 2
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING_COLUMN: INT}
+     _min_count: 2
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING_COLUMN: INT}
+     _default: {test: 2}
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING_COLUMN: INT_COLUMN}
+     _min_count: 2
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING_COLUMN: INT_COLUMN|STRING}
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING_COLUMN: INT_COLUMN|STRING_COLUMN}
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING: INT}
+     _min_count: 2
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     arg1:
+       _type: STRING
+       _optional: true
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     arg1:
+       _type: STRING
+       _default: test
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     arg1:
+       _type: STRING
+       _default: 2
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     arg1:
+       _type: STRING
+       _default: Null
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     arg1:
+       _type: STRING
+       _default: Null
+    `), false)
+	require.Error(t, err)
+
+	// Mixed
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`[[STRING]]`), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [[STRING]]
+     _default: [[test1, test2]]
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [[STRING_COLUMN]]
+     _default: [[test1, test2]]
+    `), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     - arg1: STRING
+       arg2: INT
+    `), false)
+	require.NoError(t, err)
+	inputSchema2, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type:
+     - arg1: STRING
+       arg2: INT
+    `), false)
+	require.NoError(t, err)
+	inputSchema3, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     - arg1: {_type: STRING}
+       arg2: {_type: INT}
+    `), false)
+	require.NoError(t, err)
+	inputSchema4, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type:
+     - arg1:
+         _type: STRING
+       arg2:
+         _type: INT
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema, inputSchema2)
+	require.Equal(t, inputSchema, inputSchema3)
+	require.Equal(t, inputSchema, inputSchema4)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     - arg1:
+         _type: STRING
+         _default: test
+       arg2:
+         _type: INT
+         _default: 2
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     - arg1:
+         _type:
+           arg_a: STRING
+           arg_b:
+             _type: INT
+             _default: 1
+       arg2:
+         _type: INT
+         _default: 2
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     arg_a:
+       arg1:
+         _type:
+           arg_a: STRING
+           arg_b:
+             _type: INT
+             _default: 1
+       arg2:
+         _type: INT
+         _default: 2
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     arg1:
+       INT:
+         arg_a: INT
+         arg_b:
+           _type: STRING
+           _default: test
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     - arg1:
+         INT:
+           arg_a: INT
+           arg_b:
+             _type: STRING
+             _default: test
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     arg1:
+     - INT:
+         arg_a: INT
+         arg_b:
+           _type: STRING
+           _default: test
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     arg1:
+       2: STRING
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     arg1:
+       _type: {2: STRING}
+       _default: {2: test}
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     arg1:
+       2:
+         _type: STRING
+         _default: test
+    `), false)
+	require.NoError(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`[{INT_COLUMN: STRING|INT}]`), false)
+	require.NoError(t, err)
+	inputSchema2, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [{INT_COLUMN: STRING|INT}]
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema, inputSchema2)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`map: {BOOL|FLOAT: INT|STRING}`), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`map: {mean: FLOAT, stddev: FLOAT}`), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`map: {STRING: {lat: FLOAT, lon: FLOAT}}`), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`map: {STRING: {lat: FLOAT, lon: [FLOAT]}}`), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`map: {STRING: {FLOAT: INT}}`), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`map: {STRING: {FLOAT: [INT]}}`), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`map: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: INT}}}`), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`map6: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: {INT: STRING}}}}`), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`map6: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: {INT: STRING}, mean: BOOL}}}`), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     num: [INT]
+     str: STRING
+     map1: {STRING: INT}
+     map2: {mean: FLOAT, stddev: FLOAT}
+     map3: {STRING: {lat: FLOAT, lon: FLOAT}}
+     map3: {STRING: {lat: FLOAT, lon: [FLOAT]}}
+     map4: {STRING: {FLOAT: INT}}
+     map5: {STRING: {BOOL: [INT]}}
+     map6: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: INT}}}
+     map6: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: {INT: STRING}, mean: BOOL}}}
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`map: {STRING: INT, INT: FLOAT}`), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`map: {STRING: INT, INT: [FLOAT]}`), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`map: {mean: FLOAT, INT: FLOAT}`), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`map: {mean: FLOAT, INT: [FLOAT]}`), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`map: {STRING: {lat: FLOAT, STRING: FLOAT}}`), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`map: {STRING: {STRING: test}}`), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`cols: [STRING_COLUMN, INT_COLUMN]`), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`cols: [STRING_COLUMNs]`), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`cols: [STRING_COLUMN|BAD]`), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`cols: Null`), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`cols: 1`), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`cols: [1]`), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`cols: []`), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     float: FLOAT_COLUMN
+     int: INT_COLUMN
+     str: STRING_COLUMN
+     int_list: FLOAT_LIST_COLUMN
+     float_list: INT_LIST_COLUMN
+     str_list: STRING_LIST_COLUMN
+     num1: FLOAT_COLUMN|INT_COLUMN
+     num2: INT_COLUMN|FLOAT_COLUMN
+     num3: STRING_COLUMN|INT_COLUMN
+     num4: INT_COLUMN|FLOAT_COLUMN|STRING_COLUMN
+     num5: STRING_COLUMN|INT_COLUMN|FLOAT_COLUMN
+     num6: STRING_LIST_COLUMN|INT_LIST_COLUMN|FLOAT_LIST_COLUMN
+     num7: STRING_COLUMN|INT_LIST_COLUMN|FLOAT_LIST_COLUMN
+     nums1: [INT_COLUMN]
+     nums2: [FLOAT_COLUMN]
+     nums3: [INT_COLUMN|FLOAT_COLUMN]
+     nums4: [FLOAT_COLUMN|INT_COLUMN]
+     nums5: [STRING_COLUMN|INT_COLUMN|FLOAT_COLUMN]
+     nums6: [INT_LIST_COLUMN]
+     nums7: [INT_LIST_COLUMN|STRING_LIST_COLUMN]
+     nums8: [INT_LIST_COLUMN|STRING_COLUMN]
+     float_scalar: FLOAT
+     int_scalar: INT
+     str_scalar: STRING
+     bool_scalar: BOOL
+     num1_scalar: FLOAT|INT
+     num2_scalar: INT|FLOAT
+     num3_scalar: STRING|INT
+     num4_scalar: INT|FLOAT|STRING
+     num5_scalar: STRING|INT|FLOAT
+     nums1_scalar: [INT]
+     nums2_scalar: [FLOAT]
+     nums3_scalar: [INT|FLOAT]
+     nums4_scalar: [FLOAT|INT]
+     nums5_scalar: [STRING|INT|FLOAT]
+     nums6_scalar: [STRING|INT|FLOAT|BOOL]
+    `), false)
+	require.NoError(t, err)
+
+	// Casting defaults
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: INT
+     _default: 2
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema.Default, int64(2))
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: INT
+     _default: test
+    `), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: INT
+     _default: 2.2
+    `), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: FLOAT
+     _default: 2
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema.Default, float64(2))
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: FLOAT|INT
+     _default: 2
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema.Default, int64(2))
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: BOOL
+     _default: true
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema.Default, true)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING: FLOAT}
+     _default: {test: 2.2, test2: 4.4}
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema.Default, map[interface{}]interface{}{"test": 2.2, "test2": 4.4})
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING: FLOAT}
+     _default: {test: test2}
+    `), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING: FLOAT}
+     _default: {test: 2}
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema.Default, map[interface{}]interface{}{"test": float64(2)})
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING: FLOAT}
+     _default: {test: 2.0}
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema.Default, map[interface{}]interface{}{"test": float64(2)})
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING: INT}
+     _default: {test: 2}
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema.Default, map[interface{}]interface{}{"test": int64(2)})
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {STRING: INT}
+     _default: {test: 2.0}
+    `), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {mean: FLOAT, sum: INT}
+     _default: {mean: 2.2, sum: 4}
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema.Default, map[interface{}]interface{}{"mean": float64(2.2), "sum": int64(4)})
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {mean: FLOAT, sum: INT}
+     _default: {mean: 2.2, sum: test}
+    `), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {mean: FLOAT, sum: INT}
+     _default: {mean: false, sum: 4}
+    `), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {mean: FLOAT, sum: INT}
+     _default: {mean: 2.2, 2: 4}
+    `), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {mean: FLOAT, sum: INT}
+     _default: {mean: 2.2, sum: Null}
+    `), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {mean: FLOAT, sum: INT}
+     _default: {mean: 2.2}
+    `), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: {mean: FLOAT, sum: INT}
+     _default: {mean: 2.2, sum: 4, stddev: 2}
+    `), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [INT]
+     _default: [1, 2]
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema.Default, []interface{}{int64(1), int64(2)})
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [INT]
+     _default: [1.0, 2]
+    `), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [FLOAT]
+     _default: [1.0, 2]
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema.Default, []interface{}{float64(1), float64(2)})
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [FLOAT|INT]
+     _default: [1.0, 2]
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema.Default, []interface{}{float64(1), int64(2)})
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [FLOAT|INT|BOOL]
+     _default: [1.0, 2, true, test]
+    `), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type: [FLOAT|INT|BOOL|STRING]
+     _default: [1.0, 2, true, test]
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema.Default, []interface{}{float64(1), int64(2), true, "test"})
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type:
+       STRING:
+         a:
+           _type: INT
+           _optional: true
+         b:
+           _type: [STRING]
+           _optional: true
+         c:
+           _type: {mean: FLOAT, sum: [INT], stddev: {STRING: INT}}
+           _optional: true
+         d:
+           _type: INT
+           _default: 2
+     _default:
+       testA: {}
+       testB:
+         a: 88
+         b: [testX, testY, testZ]
+         c: {mean: 1.7, sum: [1], stddev: {z: 12}}
+         d: 17
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema.Default, map[interface{}]interface{}{
+		"testA": map[interface{}]interface{}{},
+		"testB": map[interface{}]interface{}{
+			"a": int64(88),
+			"b": []interface{}{"testX", "testY", "testZ"},
+			"c": map[interface{}]interface{}{
+				"mean":   float64(1.7),
+				"sum":    []interface{}{int64(1)},
+				"stddev": map[interface{}]interface{}{"z": int64(12)},
+			},
+			"d": int64(17),
+		},
+	})
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type:
+       STRING:
+         a:
+           _type: INT
+           _optional: true
+         b:
+           _type: [STRING]
+         c:
+           _type: {mean: FLOAT, sum: [INT], stddev: {STRING: INT}}
+           _optional: true
+         d:
+           _type: INT
+           _default: 2
+     _default:
+       testA: Null
+    `), false)
+	require.Error(t, err)
+
+	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type:
+       STRING:
+         _allow_null: true
+         _type:
+           a:
+             _type: INT
+             _optional: true
+           b:
+             _type: [STRING]
+           c:
+             _type: {mean: FLOAT, sum: [INT], stddev: {STRING: INT}}
+             _optional: true
+           d:
+             _type: INT
+             _default: 2
+     _default:
+       testA: Null
+    `), false)
+	require.NoError(t, err)
+	require.Equal(t, inputSchema.Default, map[interface{}]interface{}{
+		"testA": nil,
+	})
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type:
+       STRING:
+         a:
+           _type: INT
+           _optional: true
+         b:
+           _type: [STRING]
+         c:
+           _type: {mean: FLOAT, sum: [INT], stddev: {STRING: INT}}
+           _optional: true
+         d:
+           _type: INT
+           _default: 2
+     _default:
+       testA: {}
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type:
+       STRING:
+         a:
+           _type: INT
+           _optional: true
+         b:
+           _type: [STRING]
+         c:
+           _type: {mean: FLOAT, sum: [INT], stddev: {STRING: INT}}
+           _optional: true
+         d:
+           _type: INT
+           _default: 2
+     _default:
+       testA:
+         a: 88
+         c: {mean: 1.7, sum: [1], stddev: {z: 12}}
+         d: 17
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type:
+       map: {STRING: FLOAT}
+       str: STRING
+       floats: [FLOAT]
+       map2:
+         STRING:
+           lat: FLOAT
+           lon:
+             a: INT
+             b: [STRING]
+             c: {mean: FLOAT, sum: [INT], stddev: {STRING: INT}}
+           bools: [BOOL]
+           anything: [BOOL|INT|FLOAT|STRING]
+     _default:
+       map: {a: 2.2, b: 3}
+       str: test1
+       floats: [2.2, 3.3, 4.4]
+       map2:
+         testA:
+           lat: 9.9
+           lon:
+             a: 17
+             b: [test1, test2, test3]
+             c: {mean: 8.8, sum: [3, 2, 1], stddev: {a: 1, b: 2}}
+           bools: [true]
+           anything: []
+         testB:
+           lat: 3.14
+           lon:
+             a: 88
+             b: [testX, testY, testZ]
+             c: {mean: 1.7, sum: [1], stddev: {z: 12}}
+           bools: [true, false, true]
+           anything: [10, 2.2, test, false]
+    `), false)
+	require.NoError(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type:
+       map: {STRING: FLOAT}
+       str: STRING
+       floats: [FLOAT]
+       map2:
+         STRING:
+           lat: FLOAT
+           lon:
+             a: INT
+             b: [STRING]
+             c: {mean: FLOAT, sum: [INT], stddev: {STRING: INT}}
+           bools: [BOOL]
+           anything: [BOOL|INT|FLOAT|STRING]
+     _default:
+       map: {a: 2.2, b: 3}
+       str: test1
+       floats: [2.2, 3.3, 4.4]
+       map2:
+         testA:
+           lat: 9.9
+           lon:
+             a: 17
+             b: [test1, test2, test3]
+             c: {mean: 8.8, sum: [3, 2, 1], stddev: {a: 1, b: 2}}
+           bools: [true]
+           anything: []
+         testB:
+           lat: 3.14
+           lon:
+             b: [testX, testY, testZ]
+             c: {mean: 1.7, sum: [1], stddev: {z: 12}}
+           bools: [true, false, true]
+           anything: [10, 2.2, test, false]
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type:
+       map: {STRING: FLOAT}
+       str: STRING
+       floats: [FLOAT]
+       map2:
+         STRING:
+           lat: FLOAT
+           lon:
+             a: INT
+             b: [STRING]
+             c: {mean: FLOAT, sum: [INT], stddev: {STRING: INT}}
+           bools: [BOOL]
+           anything: [BOOL|INT|FLOAT|STRING]
+     _default:
+       map: {a: 2.2, b: 3}
+       str: test1
+       floats: [2.2, 3.3, 4.4]
+       map2:
+         testA:
+           lat: 9.9
+           lon:
+             a: 17
+             b: [test1, test2, test3]
+             c: {mean: 8.8, sum: [3, 2, 1], stddev: {a: 1, b: 2}}
+           bools: [true]
+           anything: []
+         testB:
+           lat: 3.14
+           lon:
+             a: 88.8
+             b: [testX, testY, testZ]
+             c: {mean: 1.7, sum: [1], stddev: {z: 12}}
+           bools: [true, false, true]
+           anything: [10, 2.2, test, false]
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type:
+       map: {STRING: FLOAT}
+       str: STRING
+       floats: [FLOAT]
+       map2:
+         STRING:
+           lat: FLOAT
+           lon:
+             a: INT
+             b: [STRING]
+             c: {mean: FLOAT, sum: [INT], stddev: {STRING: INT}}
+           bools: [BOOL]
+           anything: [BOOL|INT|FLOAT|STRING]
+     _default:
+       map: {a: 2.2, b: 3}
+       str: test1
+       floats: [2.2, 3.3, 4.4]
+       map2:
+         testA:
+           lat: 9.9
+           lon:
+             a: 17
+             b: [test1, test2, test3]
+             c: {mean: 8.8, sum: [3, 2, 1], stddev: {a: 1, b: 2}}
+           bools: [true]
+           anything: []
+         testB:
+           lat: 3.14
+           lon:
+             a: 88
+             b: [testX, testY, 2]
+             c: {mean: 1.7, sum: [1], stddev: {z: 12}}
+           bools: [true, false, true]
+           anything: [10, 2.2, test, false]
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type:
+       map: {STRING: FLOAT}
+       str: STRING
+       floats: [FLOAT]
+       map2:
+         STRING:
+           lat: FLOAT
+           lon:
+             a: INT
+             b: [STRING]
+             c: {mean: FLOAT, sum: [INT], stddev: {STRING: INT}}
+           bools: [BOOL]
+           anything: [BOOL|INT|FLOAT|STRING]
+     _default:
+       map: {a: 2.2, b: 3}
+       str: test1
+       floats: [2.2, 3.3, 4.4]
+       map2:
+         testA:
+           lat: 9.9
+           lon:
+             a: 17
+             b: [test1, test2, test3]
+             c: {mean: 8.8, sum: [3, 2, 1], stddev: {a: 1, b: test}}
+           bools: [true]
+           anything: []
+         testB:
+           lat: 3.14
+           lon:
+             a: 88
+             b: [testX, testY, testZ]
+             c: {mean: 1.7, sum: [1], stddev: {z: 12}}
+           bools: [true, false, true]
+           anything: [10, 2.2, test, false]
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type:
+       map: {STRING: FLOAT}
+       str: STRING
+       floats: [FLOAT]
+       map2:
+         STRING:
+           lat: FLOAT
+           lon:
+             a: INT
+             b: [STRING]
+             c: {mean: FLOAT, sum: [INT], stddev: {STRING: INT}}
+           bools: [BOOL]
+           anything: [BOOL|INT|FLOAT|STRING]
+     _default:
+       map: {a: 2.2, b: 3}
+       str: test1
+       floats: [2.2, 3.3, 4.4]
+       map2:
+         testA:
+           lat: 9.9
+           lon:
+             a: 17
+             b: [test1, test2, test3]
+             c: {mean: 8.8, sum: [3, 2, 1], stddev: {a: 1, b: 2}}
+           bools: [true]
+           anything: []
+         testB:
+           lat: 3.14
+           lon:
+             a: 88
+             b: [testX, testY, testZ]
+             c: {mean: 1.7, sum: [1], stddev: {z: 12}}
+           bools: true
+           anything: [10, 2.2, test, false]
+    `), false)
+	require.Error(t, err)
+
+	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
+		`
+     _type:
+       map: {STRING: FLOAT}
+       str: STRING
+       floats: [FLOAT]
+       map2:
+         STRING:
+           lat: FLOAT
+           lon:
+             a: INT
+             b: [STRING]
+             c: {mean: FLOAT, sum: [INT], stddev: {STRING: INT}}
+           bools: [BOOL]
+           anything: [BOOL|INT|FLOAT|STRING]
+     _default:
+       map: {a: 2.2, b: 3}
+       str: test1
+       floats: [2.2, 3.3, 4.4]
+       map2:
+         testA:
+           lat: 9.9
+           lon:
+             a: 17
+             b: [test1, test2, test3]
+             c: {mean: 8.8, sum: [3, 2, 1], stddev: {a: 1, b: 2}}
+           bools: [true]
+           anything: []
+         testB:
+           lat: 3.14
+           lon:
+             a: 88
+             b: [testX, testY, testZ]
+             c: {mean: 1.7, sum: [1], stddev: {z: 12}}
+           bools: [1, 2, 3]
+           anything: [10, 2.2, test, false]
+    `), false)
+	require.Error(t, err)
 }

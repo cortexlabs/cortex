@@ -17,82 +17,12 @@ limitations under the License.
 package userconfig
 
 import (
-	"github.com/cortexlabs/cortex/pkg/lib/cast"
-	"github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
 type Column interface {
 	Resource
 	IsRaw() bool
-}
-
-func (config *Config) ValidateColumns() error {
-	columnResources := make([]Resource, len(config.RawColumns)+len(config.TransformedColumns))
-	for i, res := range config.RawColumns {
-		columnResources[i] = res
-	}
-
-	for i, res := range config.TransformedColumns {
-		columnResources[i+len(config.RawColumns)] = res
-	}
-
-	dups := FindDuplicateResourceName(columnResources...)
-	if len(dups) > 0 {
-		return ErrorDuplicateResourceName(dups...)
-	}
-
-	for _, aggregate := range config.Aggregates {
-		err := ValidateColumnInputsExistAndRaw(aggregate.Inputs.Columns, config)
-		if err != nil {
-			return errors.Wrap(err, Identify(aggregate), InputsKey, ColumnsKey)
-		}
-	}
-
-	for _, transformedColumn := range config.TransformedColumns {
-		err := ValidateColumnInputsExistAndRaw(transformedColumn.Inputs.Columns, config)
-		if err != nil {
-			return errors.Wrap(err, Identify(transformedColumn), InputsKey, ColumnsKey)
-		}
-	}
-
-	return nil
-}
-
-func ValidateColumnInputsExistAndRaw(columnInputValues map[string]interface{}, config *Config) error {
-	for columnInputName, columnInputValue := range columnInputValues {
-		if columnName, ok := columnInputValue.(string); ok {
-			err := ValidateColumnNameExistsAndRaw(columnName, config)
-			if err != nil {
-				return errors.Wrap(err, columnInputName)
-			}
-			continue
-		}
-		if columnNames, ok := cast.InterfaceToStrSlice(columnInputValue); ok {
-			for i, columnName := range columnNames {
-				err := ValidateColumnNameExistsAndRaw(columnName, config)
-				if err != nil {
-					return errors.Wrap(err, columnInputName, s.Index(i))
-				}
-			}
-			continue
-		}
-		return errors.Wrap(configreader.ErrorInvalidPrimitiveType(columnInputValue, configreader.PrimTypeString, configreader.PrimTypeStringList), columnInputName) // unexpected
-	}
-	return nil
-}
-
-func ValidateColumnNameExistsAndRaw(columnName string, config *Config) error {
-	if config.IsTransformedColumn(columnName) {
-		return ErrorColumnMustBeRaw(columnName)
-	}
-	if !config.IsRawColumn(columnName) {
-		return ErrorUndefinedResource(columnName, resource.RawColumnType)
-	}
-	return nil
 }
 
 func (config *Config) ColumnNames() []string {

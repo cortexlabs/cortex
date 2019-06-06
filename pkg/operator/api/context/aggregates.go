@@ -17,7 +17,6 @@ limitations under the License.
 package context
 
 import (
-	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
@@ -28,16 +27,6 @@ type Aggregate struct {
 	*ComputedResourceFields
 	Type interface{} `json:"type"`
 	Key  string      `json:"key"`
-}
-
-func (aggregate *Aggregate) GetType() interface{} {
-	return aggregate.Type
-}
-
-// Returns map[string]string because after autogen, arg values are constant or aggregate names
-func (aggregate *Aggregate) Args() map[string]string {
-	args, _ := cast.InterfaceToStrStrMap(aggregate.Inputs.Args)
-	return args
 }
 
 func (aggregates Aggregates) OneByID(id string) *Aggregate {

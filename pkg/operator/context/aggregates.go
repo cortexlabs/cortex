@@ -23,7 +23,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
@@ -33,52 +32,41 @@ func getAggregates(
 	config *userconfig.Config,
 	constants context.Constants,
 	rawColumns context.RawColumns,
-	userAggregators map[string]*context.Aggregator,
+	aggregators context.Aggregators,
 	root string,
 ) (context.Aggregates, error) {
 
 	aggregates := context.Aggregates{}
 
 	for _, aggregateConfig := range config.Aggregates {
-		if _, ok := constants[aggregateConfig.Name]; ok {
-			return nil, userconfig.ErrorDuplicateResourceName(aggregateConfig, constants[aggregateConfig.Name])
+		aggregator := aggregators[aggregateConfig.Aggregator]
+
+		var validInputResources []context.Resource
+		for _, res := range constants {
+			validInputResources = append(validInputResources, res)
+		}
+		for _, res := range rawColumns {
+			validInputResources = append(validInputResources, res)
 		}
 
-		aggregator, err := getAggregator(aggregateConfig.Aggregator, userAggregators)
+		castedInput, inputID, err := ValidateInput(
+			aggregateConfig.Input,
+			aggregator.Input,
+			[]resource.Type{resource.RawColumnType, resource.ConstantType},
+			validInputResources,
+			config.Resources,
+			nil,
+			nil,
+		)
 		if err != nil {
-			return nil, errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.AggregatorKey)
+			return nil, errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.InputKey)
 		}
-
-		err = validateAggregateInputs(aggregateConfig, constants, rawColumns, aggregator)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		constantIDMap := make(map[string]string, len(aggregateConfig.Inputs.Args))
-		constantIDWithTagsMap := make(map[string]string, len(aggregateConfig.Inputs.Args))
-		for argName, constantName := range aggregateConfig.Inputs.Args {
-			constantNameStr := constantName.(string)
-			constant, ok := constants[constantNameStr]
-			if !ok {
-				return nil, errors.Wrap(userconfig.ErrorUndefinedResource(constantNameStr, resource.ConstantType),
-					userconfig.Identify(aggregateConfig), userconfig.InputsKey, userconfig.ArgsKey, argName)
-			}
-			constantIDMap[argName] = constant.ID
-			constantIDWithTagsMap[argName] = constant.IDWithTags
-		}
+		aggregateConfig.Input = castedInput
 
 		var buf bytes.Buffer
-		buf.WriteString(rawColumns.ColumnInputsID(aggregateConfig.Inputs.Columns))
-		buf.WriteString(s.Obj(constantIDMap))
+		buf.WriteString(inputID)
 		buf.WriteString(aggregator.ID)
 		id := hash.Bytes(buf.Bytes())
-
-		buf.Reset()
-		buf.WriteString(rawColumns.ColumnInputsIDWithTags(aggregateConfig.Inputs.Columns))
-		buf.WriteString(s.Obj(constantIDWithTagsMap))
-		buf.WriteString(aggregator.IDWithTags)
-		buf.WriteString(aggregateConfig.Tags.ID())
-		idWithTags := hash.Bytes(buf.Bytes())
 
 		aggregateKey := filepath.Join(
 			root,
@@ -90,7 +78,6 @@ func getAggregates(
 			ComputedResourceFields: &context.ComputedResourceFields{
 				ResourceFields: &context.ResourceFields{
 					ID:           id,
-					IDWithTags:   idWithTags,
 					ResourceType: resource.AggregateType,
 				},
 			},
@@ -101,56 +88,4 @@ func getAggregates(
 	}
 
 	return aggregates, nil
-}
-
-func validateAggregateInputs(
-	aggregateConfig *userconfig.Aggregate,
-	constants context.Constants,
-	rawColumns context.RawColumns,
-	aggregator *context.Aggregator,
-) error {
-	if aggregateConfig.AggregatorPath != nil {
-		return nil
-	}
-
-	columnRuntimeTypes, err := context.GetColumnRuntimeTypes(aggregateConfig.Inputs.Columns, rawColumns)
-	if err != nil {
-		return errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.InputsKey, userconfig.ColumnsKey)
-	}
-	err = userconfig.CheckColumnRuntimeTypesMatch(columnRuntimeTypes, aggregator.Inputs.Columns)
-	if err != nil {
-		return errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.InputsKey, userconfig.ColumnsKey)
-	}
-
-	argTypes, err := getAggregateArgTypes(aggregateConfig.Inputs.Args, constants)
-	if err != nil {
-		return errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.InputsKey, userconfig.ArgsKey)
-	}
-	err = userconfig.CheckArgRuntimeTypesMatch(argTypes, aggregator.Inputs.Args)
-	if err != nil {
-		return errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.InputsKey, userconfig.ArgsKey)
-	}
-
-	return nil
-}
-
-func getAggregateArgTypes(
-	args map[string]interface{},
-	constants context.Constants,
-) (map[string]interface{}, error) {
-
-	if len(args) == 0 {
-		return nil, nil
-	}
-
-	argTypes := make(map[string]interface{}, len(args))
-	for argName, constantName := range args {
-		constantNameStr := constantName.(string)
-		constant, ok := constants[constantNameStr]
-		if !ok {
-			return nil, errors.Wrap(userconfig.ErrorUndefinedResource(constantNameStr, resource.ConstantType), argName)
-		}
-		argTypes[argName] = constant.Type
-	}
-	return argTypes, nil
 }

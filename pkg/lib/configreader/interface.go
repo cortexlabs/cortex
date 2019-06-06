@@ -17,6 +17,8 @@ limitations under the License.
 package configreader
 
 import (
+	"github.com/cortexlabs/yaml"
+
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
@@ -26,10 +28,12 @@ import (
 )
 
 type InterfaceValidation struct {
-	Required          bool
-	Default           interface{}
-	AllowExplicitNull bool
-	Validator         func(interface{}) (interface{}, error)
+	Required               bool
+	Default                interface{}
+	AllowExplicitNull      bool
+	AllowCortexResources   bool
+	RequireCortexResources bool
+	Validator              func(interface{}) (interface{}, error)
 }
 
 func Interface(inter interface{}, v *InterfaceValidation) (interface{}, error) {
@@ -67,10 +71,78 @@ func ValidateInterfaceProvided(val interface{}, v *InterfaceValidation) (interfa
 }
 
 func validateInterface(val interface{}, v *InterfaceValidation) (interface{}, error) {
+	if v.RequireCortexResources {
+		if err := checkOnlyCortexResources(val); err != nil {
+			return nil, err
+		}
+	} else if !v.AllowCortexResources {
+		if err := checkNoCortexResources(val); err != nil {
+			return nil, err
+		}
+	}
+
 	if v.Validator != nil {
 		return v.Validator(val)
 	}
 	return val, nil
+}
+
+func checkNoCortexResources(obj interface{}) error {
+	if objStr, ok := obj.(string); ok {
+		if resourceName, ok := yaml.ExtractAtSymbolText(objStr); ok {
+			return ErrorCortexResourceNotAllowed(resourceName)
+		}
+	}
+
+	if objSlice, ok := cast.InterfaceToInterfaceSlice(obj); ok {
+		for i, objItem := range objSlice {
+			if err := checkNoCortexResources(objItem); err != nil {
+				return errors.Wrap(err, s.Index(i))
+			}
+		}
+	}
+
+	if objMap, ok := cast.InterfaceToInterfaceInterfaceMap(obj); ok {
+		for k, v := range objMap {
+			if err := checkNoCortexResources(k); err != nil {
+				return err
+			}
+			if err := checkNoCortexResources(v); err != nil {
+				return errors.Wrap(err, s.UserStrStripped(k))
+			}
+		}
+	}
+
+	return nil
+}
+
+func checkOnlyCortexResources(obj interface{}) error {
+	if objStr, ok := obj.(string); ok {
+		if _, ok := yaml.ExtractAtSymbolText(objStr); !ok {
+			return ErrorCortexResourceOnlyAllowed(objStr)
+		}
+	}
+
+	if objSlice, ok := cast.InterfaceToInterfaceSlice(obj); ok {
+		for i, objItem := range objSlice {
+			if err := checkOnlyCortexResources(objItem); err != nil {
+				return errors.Wrap(err, s.Index(i))
+			}
+		}
+	}
+
+	if objMap, ok := cast.InterfaceToInterfaceInterfaceMap(obj); ok {
+		for k, v := range objMap {
+			if err := checkOnlyCortexResources(k); err != nil {
+				return err
+			}
+			if err := checkOnlyCortexResources(v); err != nil {
+				return errors.Wrap(err, s.UserStrStripped(k))
+			}
+		}
+	}
+
+	return nil
 }
 
 // FlattenAllStrValues assumes that the order for maps is deterministic

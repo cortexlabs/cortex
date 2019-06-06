@@ -51,7 +51,8 @@ const (
 	ErrMustBeDefined
 	ErrMapMustBeDefined
 	ErrMustBeEmpty
-	ErrNotAFile
+	ErrCortexResourceOnlyAllowed
+	ErrCortexResourceNotAllowed
 )
 
 var errorKinds = []string{
@@ -80,10 +81,11 @@ var errorKinds = []string{
 	"err_must_be_defined",
 	"err_map_must_be_defined",
 	"err_must_be_empty",
-	"err_not_a_file",
+	"err_cortex_resource_only_allowed",
+	"err_cortex_resource_not_allowed",
 }
 
-var _ = [1]int{}[int(ErrNotAFile)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrCortexResourceNotAllowed)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -298,5 +300,19 @@ func ErrorMustBeEmpty() error {
 	return Error{
 		Kind:    ErrMustBeEmpty,
 		message: "must be empty",
+	}
+}
+
+func ErrorCortexResourceOnlyAllowed(invalidStr string) error {
+	return Error{
+		Kind:    ErrCortexResourceOnlyAllowed,
+		message: fmt.Sprintf("%s: only cortex resource references (which start with @) are allowed in this context", invalidStr),
+	}
+}
+
+func ErrorCortexResourceNotAllowed(resourceName string) error {
+	return Error{
+		Kind:    ErrCortexResourceNotAllowed,
+		message: fmt.Sprintf("@%s: cortex resource references (which start with @) are not allowed in this context", resourceName),
 	}
 }

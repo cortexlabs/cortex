@@ -25,9 +25,9 @@ type Aggregators []*Aggregator
 
 type Aggregator struct {
 	ResourceFields
-	Inputs     *Inputs     `json:"inputs"  yaml:"inputs"`
-	OutputType interface{} `json:"output_type"  yaml:"output_type"`
-	Path       string      `json:"path"  yaml:"path"`
+	Input      *InputSchema `json:"input" yaml:"input"`
+	OutputType OutputSchema `json:"output_type"  yaml:"output_type"`
+	Path       string       `json:"path"  yaml:"path"`
 }
 
 var aggregatorValidation = &cr.StructValidation{
@@ -51,12 +51,18 @@ var aggregatorValidation = &cr.StructValidation{
 			StructField: "OutputType",
 			InterfaceValidation: &cr.InterfaceValidation{
 				Required: true,
-				Validator: func(outputType interface{}) (interface{}, error) {
-					return outputType, ValidateValueType(outputType)
+				Validator: func(t interface{}) (interface{}, error) {
+					return ValidateOutputSchema(t)
 				},
 			},
 		},
-		inputTypesFieldValidation,
+		{
+			StructField: "Input",
+			InterfaceValidation: &cr.InterfaceValidation{
+				Required:  true,
+				Validator: inputSchemaValidator,
+			},
+		},
 		typeFieldValidation,
 	},
 }
@@ -71,6 +77,7 @@ func (aggregators Aggregators) Validate() error {
 	if len(dups) > 0 {
 		return ErrorDuplicateResourceName(dups...)
 	}
+
 	return nil
 }
 

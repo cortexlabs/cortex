@@ -40,7 +40,7 @@ func getRawColumns(
 		var buf bytes.Buffer
 		buf.WriteString(env.ID)
 		buf.WriteString(columnConfig.GetName())
-		buf.WriteString(columnConfig.GetType().String())
+		buf.WriteString(columnConfig.GetColumnType().String())
 
 		var rawColumn context.RawColumn
 		switch typedColumnConfig := columnConfig.(type) {
@@ -50,12 +50,10 @@ func getRawColumns(
 			buf.WriteString(s.Obj(typedColumnConfig.Max))
 			buf.WriteString(s.Obj(slices.SortInt64sCopy(typedColumnConfig.Values)))
 			id := hash.Bytes(buf.Bytes())
-			idWithTags := hash.String(id + typedColumnConfig.Tags.ID())
 			rawColumn = &context.RawIntColumn{
 				ComputedResourceFields: &context.ComputedResourceFields{
 					ResourceFields: &context.ResourceFields{
 						ID:           id,
-						IDWithTags:   idWithTags,
 						ResourceType: resource.RawColumnType,
 					},
 				},
@@ -67,12 +65,10 @@ func getRawColumns(
 			buf.WriteString(s.Obj(typedColumnConfig.Max))
 			buf.WriteString(s.Obj(slices.SortFloat32sCopy(typedColumnConfig.Values)))
 			id := hash.Bytes(buf.Bytes())
-			idWithTags := hash.String(id + typedColumnConfig.Tags.ID())
 			rawColumn = &context.RawFloatColumn{
 				ComputedResourceFields: &context.ComputedResourceFields{
 					ResourceFields: &context.ResourceFields{
 						ID:           id,
-						IDWithTags:   idWithTags,
 						ResourceType: resource.RawColumnType,
 					},
 				},
@@ -82,12 +78,10 @@ func getRawColumns(
 			buf.WriteString(s.Bool(typedColumnConfig.Required))
 			buf.WriteString(s.Obj(slices.SortStrsCopy(typedColumnConfig.Values)))
 			id := hash.Bytes(buf.Bytes())
-			idWithTags := hash.String(id + typedColumnConfig.Tags.ID())
 			rawColumn = &context.RawStringColumn{
 				ComputedResourceFields: &context.ComputedResourceFields{
 					ResourceFields: &context.ResourceFields{
 						ID:           id,
-						IDWithTags:   idWithTags,
 						ResourceType: resource.RawColumnType,
 					},
 				},
@@ -106,7 +100,7 @@ func getRawColumns(
 				RawInferredColumn: typedColumnConfig,
 			}
 		default:
-			return nil, errors.Wrap(configreader.ErrorInvalidStr(typedColumnConfig.GetType().String(), userconfig.IntegerColumnType.String(), userconfig.FloatColumnType.String(), userconfig.StringColumnType.String()), userconfig.Identify(columnConfig)) // unexpected error
+			return nil, errors.Wrap(configreader.ErrorInvalidStr(typedColumnConfig.GetColumnType().String(), userconfig.IntegerColumnType.String(), userconfig.FloatColumnType.String(), userconfig.StringColumnType.String()), userconfig.Identify(columnConfig)) // unexpected error
 		}
 
 		rawColumns[columnConfig.GetName()] = rawColumn

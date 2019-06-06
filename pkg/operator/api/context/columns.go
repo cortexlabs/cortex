@@ -17,13 +17,7 @@ limitations under the License.
 package context
 
 import (
-	"github.com/cortexlabs/cortex/pkg/lib/cast"
-	"github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
@@ -31,9 +25,8 @@ type Columns map[string]Column
 
 type Column interface {
 	ComputedResource
-	GetType() userconfig.ColumnType
+	GetColumnType() userconfig.ColumnType
 	IsRaw() bool
-	GetInputRawColumnNames() []string
 }
 
 func (ctx *Context) Columns() Columns {
@@ -65,61 +58,4 @@ func (ctx *Context) GetColumn(name string) Column {
 		return transformedColumn
 	}
 	return nil
-}
-
-func (columns Columns) ID(columnNames []string) string {
-	columnIDMap := make(map[string]string)
-	for _, columnName := range columnNames {
-		columnIDMap[columnName] = columns[columnName].GetID()
-	}
-	return hash.Any(columnIDMap)
-}
-
-func (columns Columns) IDWithTags(columnNames []string) string {
-	columnIDMap := make(map[string]string)
-	for _, columnName := range columnNames {
-		columnIDMap[columnName] = columns[columnName].GetIDWithTags()
-	}
-	return hash.Any(columnIDMap)
-}
-
-func GetColumnRuntimeTypes(
-	columnInputValues map[string]interface{},
-	rawColumns RawColumns,
-) (map[string]interface{}, error) {
-
-	err := userconfig.ValidateColumnInputValues(columnInputValues)
-	if err != nil {
-		return nil, err
-	}
-
-	columnRuntimeTypes := make(map[string]interface{}, len(columnInputValues))
-
-	for inputName, columnInputValue := range columnInputValues {
-		if rawColumnName, ok := columnInputValue.(string); ok {
-			rawColumn, ok := rawColumns[rawColumnName]
-			if !ok {
-				return nil, errors.Wrap(userconfig.ErrorUndefinedResource(rawColumnName, resource.RawColumnType), inputName)
-			}
-			columnRuntimeTypes[inputName] = rawColumn.GetType()
-			continue
-		}
-
-		if rawColumnNames, ok := cast.InterfaceToStrSlice(columnInputValue); ok {
-			rawColumnTypes := make([]userconfig.ColumnType, len(rawColumnNames))
-			for i, rawColumnName := range rawColumnNames {
-				rawColumn, ok := rawColumns[rawColumnName]
-				if !ok {
-					return nil, errors.Wrap(userconfig.ErrorUndefinedResource(rawColumnName, resource.RawColumnType), inputName, s.Index(i))
-				}
-				rawColumnTypes[i] = rawColumn.GetType()
-			}
-			columnRuntimeTypes[inputName] = rawColumnTypes
-			continue
-		}
-
-		return nil, errors.Wrap(configreader.ErrorInvalidPrimitiveType(columnInputValue, configreader.PrimTypeString, configreader.PrimTypeStringList), inputName) // unexpected
-	}
-
-	return columnRuntimeTypes, nil
 }

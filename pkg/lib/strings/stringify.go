@@ -25,6 +25,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cortexlabs/yaml"
 )
 
 var emptyTime time.Time
@@ -147,7 +149,7 @@ func strIndent(val interface{}, indent string, currentIndent string, newlineChar
 	if funcVal.IsValid() {
 		t := funcVal.Type()
 		if t.NumIn() == 0 && t.NumOut() == 1 && t.Out(0).Kind() == reflect.String {
-			return quoteStr + funcVal.Call(nil)[0].Interface().(string) + quoteStr
+			return strIndent(funcVal.Call(nil)[0].Interface().(string), indent, currentIndent, newlineChar, quoteStr)
 		}
 	}
 	if _, ok := reflect.PtrTo(valueType).MethodByName("String"); ok {
@@ -157,7 +159,7 @@ func strIndent(val interface{}, indent string, currentIndent string, newlineChar
 		if funcVal.IsValid() {
 			t := funcVal.Type()
 			if t.NumIn() == 0 && t.NumOut() == 1 && t.Out(0).Kind() == reflect.String {
-				return quoteStr + funcVal.Call(nil)[0].Interface().(string) + quoteStr
+				return strIndent(funcVal.Call(nil)[0].Interface().(string), indent, currentIndent, newlineChar, quoteStr)
 			}
 		}
 	}
@@ -216,6 +218,9 @@ func strIndent(val interface{}, indent string, currentIndent string, newlineChar
 	case reflect.String:
 		var t string
 		casted := value.Convert(reflect.TypeOf(t)).Interface().(string)
+
+		casted, _ = yaml.UnescapeAtSymbol(casted)
+
 		switch val.(type) {
 		case json.Number:
 			return casted

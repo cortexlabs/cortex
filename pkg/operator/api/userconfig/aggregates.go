@@ -17,9 +17,8 @@ limitations under the License.
 package userconfig
 
 import (
-	"sort"
-
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -29,7 +28,7 @@ type Aggregate struct {
 	ResourceFields
 	Aggregator     string        `json:"aggregator" yaml:"aggregator"`
 	AggregatorPath *string       `json:"aggregator_path" yaml:"aggregator_path"`
-	Inputs         *Inputs       `json:"inputs" yaml:"inputs"`
+	Input          interface{}   `json:"input" yaml:"input"`
 	Compute        *SparkCompute `json:"compute" yaml:"compute"`
 	Tags           Tags          `json:"tags" yaml:"tags"`
 }
@@ -54,7 +53,13 @@ var aggregateValidation = &configreader.StructValidation{
 			StructField:         "AggregatorPath",
 			StringPtrValidation: &configreader.StringPtrValidation{},
 		},
-		inputValuesFieldValidation,
+		{
+			StructField: "Input",
+			InterfaceValidation: &configreader.InterfaceValidation{
+				Required:             true,
+				AllowCortexResources: true,
+			},
+		},
 		sparkComputeFieldValidation("Compute"),
 		tagsFieldValidation,
 		typeFieldValidation,
@@ -62,6 +67,12 @@ var aggregateValidation = &configreader.StructValidation{
 }
 
 func (aggregates Aggregates) Validate() error {
+	for _, aggregate := range aggregates {
+		if err := aggregate.Validate(); err != nil {
+			return err
+		}
+	}
+
 	resources := make([]Resource, len(aggregates))
 	for i, res := range aggregates {
 		resources[i] = res
@@ -71,6 +82,19 @@ func (aggregates Aggregates) Validate() error {
 	if len(dups) > 0 {
 		return ErrorDuplicateResourceName(dups...)
 	}
+
+	return nil
+}
+
+func (aggregate *Aggregate) Validate() error {
+	if aggregate.AggregatorPath == nil && aggregate.Aggregator == "" {
+		return errors.Wrap(ErrorSpecifyOnlyOneMissing("aggregator", "aggregator_path"), Identify(aggregate))
+	}
+
+	if aggregate.AggregatorPath != nil && aggregate.Aggregator != "" {
+		return errors.Wrap(ErrorSpecifyOnlyOne("aggregator", "aggregator_path"), Identify(aggregate))
+	}
+
 	return nil
 }
 
@@ -93,10 +117,4 @@ func (aggregates Aggregates) Get(name string) *Aggregate {
 		}
 	}
 	return nil
-}
-
-func (aggregate *Aggregate) InputColumnNames() []string {
-	inputs, _ := configreader.FlattenAllStrValues(aggregate.Inputs.Columns)
-	sort.Strings(inputs)
-	return inputs
 }

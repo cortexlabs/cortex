@@ -23,6 +23,7 @@ import (
 var (
 	CortexVersion = "master" // CORTEX_VERSION
 
+	TypeStrRegex         = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?(\|(INT|FLOAT|STRING|BOOL)(_COLUMN)?)*"`)
 	SingleTypeStrRegex   = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?"`)
 	CompoundTypeStrRegex = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?(\|(INT|FLOAT|STRING|BOOL)(_COLUMN)?)+"`)
 
@@ -44,6 +45,7 @@ var (
 	AggregatorsDir        = "aggregators"
 	AggregatesDir         = "aggregates"
 	TransformersDir       = "transformers"
+	EstimatorsDir         = "estimators"
 	ModelImplsDir         = "model_implementations"
 	PythonPackagesDir     = "python_packages"
 	ModelsDir             = "models"
