@@ -33,26 +33,31 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
+var predictPrintJSON bool
+
 func init() {
+	predictCmd.PersistentFlags().BoolVarP(&predictPrintJSON, "json", "j", false, "print the raw json response")
 	addAppNameFlag(predictCmd)
 	addEnvFlag(predictCmd)
 }
 
 type PredictResponse struct {
 	ResourceID                string                     `json:"resource_id"`
-	ClassificationPredictions []ClassificationPrediction `json:"classification_predictions"`
-	RegressionPredictions     []RegressionPrediction     `json:"regression_predictions"`
+	ClassificationPredictions []ClassificationPrediction `json:"classification_predictions,omitempty"`
+	RegressionPredictions     []RegressionPrediction     `json:"regression_predictions,omitempty"`
 }
 
 type ClassificationPrediction struct {
 	PredictedClass         int         `json:"predicted_class"`
 	PredictedClassReversed interface{} `json:"predicted_class_reversed"`
 	Probabilities          []float64   `json:"probabilities"`
+	TransformedSample      interface{} `json:"transformed_sample"`
 }
 
 type RegressionPrediction struct {
 	PredictedValue         float64     `json:"predicted_value"`
 	PredictedValueReversed interface{} `json:"predicted_value_reversed"`
+	TransformedSample      interface{} `json:"transformed_sample"`
 }
 
 var predictCmd = &cobra.Command{
@@ -85,6 +90,16 @@ var predictCmd = &cobra.Command{
 				errors.Exit(ErrorAPINotReady(apiName, resource.StatusUpdating.Message()))
 			}
 			errors.Exit(err)
+		}
+
+		if predictPrintJSON {
+			prettyResp, err := json.Pretty(predictResponse)
+			if err != nil {
+				errors.Exit(err)
+			}
+
+			fmt.Println(prettyResp)
+			return
 		}
 
 		apiID := predictResponse.ResourceID
