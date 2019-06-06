@@ -58,6 +58,7 @@ Flags:
   -a, --app string   app name
   -e, --env string   environment (default "dev")
   -h, --help         help for predict
+  -j, --json         print the raw json response
 ```
 
 The `predict` command converts samples from a JSON file into prediction requests and outputs the response. This command is useful for quickly testing model output.
