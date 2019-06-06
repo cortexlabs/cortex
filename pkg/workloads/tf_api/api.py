@@ -193,6 +193,7 @@ def run_predict(sample):
     prediction_request = create_prediction_request(transformed_sample)
     response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
     result = parse_response_proto(response_proto)
+    result["transformed_sample"] = transformed_sample
     util.log_indent("Raw sample:", indent=4)
     util.log_pretty(sample, indent=6)
     util.log_indent("Transformed sample:", indent=4)

@@ -73,3 +73,12 @@ func WriteJSON(obj interface{}, outPath string) error {
 	}
 	return nil
 }
+
+func Pretty(obj interface{}) (string, error) {
+	b, err := json.MarshalIndent(obj, "", "  ")
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
+}
