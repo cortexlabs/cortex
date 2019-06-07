@@ -41,14 +41,14 @@ type InputTypeSchema interface{} // CompundType, length-one array of *InputSchem
 type OutputSchema interface{} // ValueType, length-one array of OutputSchema, or map of {scalar|ValueType -> OutputSchema} (no *_COLUMN types, compound types, or input options like _default)
 
 func inputSchemaValidator(in interface{}) (interface{}, error) {
-	return ValidateInputSchema(in, false) // This casts it to *InputSchema
+	return ValidateInputSchema(in, false, false) // This casts it to *InputSchema
 }
 
 func inputSchemaValidatorValueTypesOnly(in interface{}) (interface{}, error) {
-	return ValidateInputSchema(in, true) // This casts it to *InputSchema
+	return ValidateInputSchema(in, true, false) // This casts it to *InputSchema
 }
 
-func ValidateInputSchema(in interface{}, disallowColumnTypes bool) (*InputSchema, error) {
+func ValidateInputSchema(in interface{}, disallowColumnTypes bool, isAlreadyParsed bool) (*InputSchema, error) {
 	// Check for cortex options vs short form
 	if inMap, ok := cast.InterfaceToStrInterfaceMap(in); ok {
 		foundUnderscore, foundNonUnderscore := false, false
@@ -72,7 +72,7 @@ func ValidateInputSchema(in interface{}, disallowColumnTypes bool) (*InputSchema
 						InterfaceValidation: &cr.InterfaceValidation{
 							Required: true,
 							Validator: func(t interface{}) (interface{}, error) {
-								return validateInputTypeSchema(t, disallowColumnTypes)
+								return ValidateInputTypeSchema(t, disallowColumnTypes, isAlreadyParsed)
 							},
 						},
 					},
@@ -81,8 +81,10 @@ func ValidateInputSchema(in interface{}, disallowColumnTypes bool) (*InputSchema
 						BoolValidation: &cr.BoolValidation{},
 					},
 					{
-						StructField:         "Default",
-						InterfaceValidation: &cr.InterfaceValidation{},
+						StructField: "Default",
+						InterfaceValidation: &cr.InterfaceValidation{
+							AllowExplicitNull: isAlreadyParsed,
+						},
 					},
 					{
 						StructField:         "AllowNull",
@@ -92,12 +94,14 @@ func ValidateInputSchema(in interface{}, disallowColumnTypes bool) (*InputSchema
 						StructField: "MinCount",
 						Int64PtrValidation: &cr.Int64PtrValidation{
 							GreaterThanOrEqualTo: pointer.Int64(0),
+							AllowExplicitNull:    isAlreadyParsed,
 						},
 					},
 					{
 						StructField: "MaxCount",
 						Int64PtrValidation: &cr.Int64PtrValidation{
 							GreaterThanOrEqualTo: pointer.Int64(0),
+							AllowExplicitNull:    isAlreadyParsed,
 						},
 					},
 				},
@@ -117,7 +121,7 @@ func ValidateInputSchema(in interface{}, disallowColumnTypes bool) (*InputSchema
 		}
 	}
 
-	typeSchema, err := validateInputTypeSchema(in, disallowColumnTypes)
+	typeSchema, err := ValidateInputTypeSchema(in, disallowColumnTypes, isAlreadyParsed)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +136,7 @@ func ValidateInputSchema(in interface{}, disallowColumnTypes bool) (*InputSchema
 	return inputSchema, nil
 }
 
-func validateInputTypeSchema(in interface{}, disallowColumnTypes bool) (InputTypeSchema, error) {
+func ValidateInputTypeSchema(in interface{}, disallowColumnTypes bool, isAlreadyParsed bool) (InputTypeSchema, error) {
 	// String
 	if inStr, ok := in.(string); ok {
 		compoundType, err := CompoundTypeFromString(inStr)
@@ -150,7 +154,7 @@ func validateInputTypeSchema(in interface{}, disallowColumnTypes bool) (InputTyp
 		if len(inSlice) != 1 {
 			return nil, ErrorTypeListLength(inSlice)
 		}
-		inputSchema, err := ValidateInputSchema(inSlice[0], disallowColumnTypes)
+		inputSchema, err := ValidateInputSchema(inSlice[0], disallowColumnTypes, isAlreadyParsed)
 		if err != nil {
 			return nil, errors.Wrap(err, s.Index(0))
 		}
@@ -182,7 +186,7 @@ func validateInputTypeSchema(in interface{}, disallowColumnTypes bool) (InputTyp
 			if disallowColumnTypes && typeKey.IsColumns() {
 				return nil, ErrorColumnTypeNotAllowed(typeKey)
 			}
-			valueInputSchema, err := ValidateInputSchema(typeValue, disallowColumnTypes)
+			valueInputSchema, err := ValidateInputSchema(typeValue, disallowColumnTypes, isAlreadyParsed)
 			if err != nil {
 				return nil, errors.Wrap(err, string(typeKey))
 			}
@@ -201,7 +205,7 @@ func validateInputTypeSchema(in interface{}, disallowColumnTypes bool) (InputTyp
 				}
 			}
 
-			valueInputSchema, err := ValidateInputSchema(value, disallowColumnTypes)
+			valueInputSchema, err := ValidateInputSchema(value, disallowColumnTypes, isAlreadyParsed)
 			if err != nil {
 				return nil, errors.Wrap(err, s.UserStrStripped(key))
 			}

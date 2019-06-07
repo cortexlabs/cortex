@@ -26,7 +26,7 @@ import (
 )
 
 func checkValidateRuntimeTypesEqual(t *testing.T, schemaYAML string, inputYAML string, expected interface{}) {
-	schema, err := userconfig.ValidateInputSchema(cr.MustReadYAMLStr(schemaYAML), false)
+	schema, err := userconfig.ValidateInputSchema(cr.MustReadYAMLStr(schemaYAML), false, false)
 	require.NoError(t, err)
 	input := cr.MustReadYAMLStr(inputYAML)
 	casted, err := validateRuntimeTypes(input, schema, allResourcesMap, aggregators, transformers, false)
@@ -35,7 +35,7 @@ func checkValidateRuntimeTypesEqual(t *testing.T, schemaYAML string, inputYAML s
 }
 
 func checkValidateRuntimeTypesError(t *testing.T, schemaYAML string, inputYAML string) {
-	schema, err := userconfig.ValidateInputSchema(cr.MustReadYAMLStr(schemaYAML), false)
+	schema, err := userconfig.ValidateInputSchema(cr.MustReadYAMLStr(schemaYAML), false, false)
 	require.NoError(t, err)
 	input := cr.MustReadYAMLStr(inputYAML)
 	_, err = validateRuntimeTypes(input, schema, allResourcesMap, aggregators, transformers, false)
@@ -43,7 +43,7 @@ func checkValidateRuntimeTypesError(t *testing.T, schemaYAML string, inputYAML s
 }
 
 func checkValidateRuntimeTypesNoError(t *testing.T, schemaYAML string, inputYAML string) {
-	schema, err := userconfig.ValidateInputSchema(cr.MustReadYAMLStr(schemaYAML), false)
+	schema, err := userconfig.ValidateInputSchema(cr.MustReadYAMLStr(schemaYAML), false, false)
 	require.NoError(t, err)
 	input := cr.MustReadYAMLStr(inputYAML)
 	_, err = validateRuntimeTypes(input, schema, allResourcesMap, aggregators, transformers, false)

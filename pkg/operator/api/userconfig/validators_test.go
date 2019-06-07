@@ -329,7 +329,7 @@ func TestCastOutputValue(t *testing.T) {
 }
 
 func checkCastInputValueEqual(t *testing.T, inputSchemaYAML string, valueYAML string, expected interface{}) {
-	inputSchema, err := ValidateInputSchema(cr.MustReadYAMLStr(inputSchemaYAML), false)
+	inputSchema, err := ValidateInputSchema(cr.MustReadYAMLStr(inputSchemaYAML), false, false)
 	require.NoError(t, err)
 	casted, err := CastInputValue(cr.MustReadYAMLStr(valueYAML), inputSchema)
 	require.NoError(t, err)
@@ -337,14 +337,14 @@ func checkCastInputValueEqual(t *testing.T, inputSchemaYAML string, valueYAML st
 }
 
 func checkCastInputValueError(t *testing.T, inputSchemaYAML string, valueYAML string) {
-	inputSchema, err := ValidateInputSchema(cr.MustReadYAMLStr(inputSchemaYAML), false)
+	inputSchema, err := ValidateInputSchema(cr.MustReadYAMLStr(inputSchemaYAML), false, false)
 	require.NoError(t, err)
 	_, err = CastInputValue(cr.MustReadYAMLStr(valueYAML), inputSchema)
 	require.Error(t, err)
 }
 
 func checkCastInputValueNoError(t *testing.T, inputSchemaYAML string, valueYAML string) {
-	inputSchema, err := ValidateInputSchema(cr.MustReadYAMLStr(inputSchemaYAML), false)
+	inputSchema, err := ValidateInputSchema(cr.MustReadYAMLStr(inputSchemaYAML), false, false)
 	require.NoError(t, err)
 	_, err = CastInputValue(cr.MustReadYAMLStr(valueYAML), inputSchema)
 	require.NoError(t, err)
@@ -386,137 +386,137 @@ func TestValidateInputSchema(t *testing.T) {
 	var err error
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`STRING`), false)
+		`STRING`), false, false)
 	require.NoError(t, err)
 	inputSchema2, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`_type: STRING`), false)
+		`_type: STRING`), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema, inputSchema2)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`STRING_COLUMN`), false)
+		`STRING_COLUMN`), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`STRING_COLUMN`), true)
+		`STRING_COLUMN`), true, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`INFERRED_COLUMN`), false)
+		`INFERRED_COLUMN`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`BAD_COLUMN`), false)
+		`BAD_COLUMN`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: STRING
      _default: test
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: STRING_COLUMN
      _default: test
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: STRING
      _default: Null
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: STRING
      _default: 2
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	// Lists
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`[STRING]`), false)
+		`[STRING]`), false, false)
 	require.NoError(t, err)
 	inputSchema2, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`_type: [STRING]`), false)
+		`_type: [STRING]`), false, false)
 	require.NoError(t, err)
 	inputSchema3, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type:
        - _type: STRING
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema, inputSchema2)
 	require.Equal(t, inputSchema, inputSchema3)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`[STRING|INT]`), false)
+		`[STRING|INT]`), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`[STRING_COLUMN|INT_COLUMN]`), false)
+		`[STRING_COLUMN|INT_COLUMN]`), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`[STRING_COLUMN|INT_COLUMN]`), true)
+		`[STRING_COLUMN|INT_COLUMN]`), true, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`[STRING|INT_COLUMN]`), false)
+		`[STRING|INT_COLUMN]`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: [STRING]
      _default: [test1, test2, test3]
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: [STRING_COLUMN]
      _default: [test1, test2, test3]
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: [STRING]
      _default: [test1, 2, test3]
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: [STRING|INT]
      _default: [test1, 2, test3]
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: [STRING|FLOAT]
      _default: [test1, 2, test3]
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: [STRING]
      _default: test1
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: [STRING]
      _min_count: 2
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -524,7 +524,7 @@ func TestValidateInputSchema(t *testing.T) {
      _type: [STRING]
      _min_count: 2
      _max_count: 2
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -532,7 +532,7 @@ func TestValidateInputSchema(t *testing.T) {
      _type: [STRING]
      _min_count: 2
      _max_count: 1
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -540,7 +540,7 @@ func TestValidateInputSchema(t *testing.T) {
      _type: [STRING]
      _default: [test1]
      _min_count: 2
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -548,21 +548,21 @@ func TestValidateInputSchema(t *testing.T) {
      _type: [STRING]
      _default: [test1, test2]
      _min_count: 2
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: [STRING]
      _min_count: -1
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: [STRING]
      _min_count: test
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -570,7 +570,7 @@ func TestValidateInputSchema(t *testing.T) {
      _type: [STRING]
      _default: [test1, test2, test3]
      _max_count: 2
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -578,140 +578,140 @@ func TestValidateInputSchema(t *testing.T) {
      _type: [STRING]
      _default: [test1, test2]
      _max_count: 2
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	// Maps
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`arg1: STRING`), false)
+		`arg1: STRING`), false, false)
 	require.NoError(t, err)
 	inputSchema2, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      arg1:
        _type: STRING
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	inputSchema3, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {arg1: STRING}
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema, inputSchema2)
 	require.Equal(t, inputSchema, inputSchema3)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`arg1: STRING_COLUMN`), false)
+		`arg1: STRING_COLUMN`), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`arg1: STRING_COLUMN`), true)
+		`arg1: STRING_COLUMN`), true, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`STRING_COLUMN: STRING`), false)
+		`STRING_COLUMN: STRING`), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`STRING_COLUMN: STRING`), true)
+		`STRING_COLUMN: STRING`), true, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`_arg1: STRING`), false)
+		`_arg1: STRING`), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`arg1: test`), false)
+		`arg1: test`), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`STRING: test`), false)
+		`STRING: test`), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`STRING_COLUMN: test`), false)
+		`STRING_COLUMN: test`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {arg1: STRING}
      _min_count: 2
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {STRING: INT}
      _default: {test: 2}
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {FLOAT: INT}
      _default: {2: 2}
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {STRING: INT}
      _default: {test: test}
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {STRING: INT|STRING}
      _default: {test: test}
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {STRING: INT_COLUMN}
      _min_count: 2
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {STRING_COLUMN: INT}
      _min_count: 2
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {STRING_COLUMN: INT}
      _default: {test: 2}
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {STRING_COLUMN: INT_COLUMN}
      _min_count: 2
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {STRING_COLUMN: INT_COLUMN|STRING}
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {STRING_COLUMN: INT_COLUMN|STRING_COLUMN}
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {STRING: INT}
      _min_count: 2
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -719,7 +719,7 @@ func TestValidateInputSchema(t *testing.T) {
      arg1:
        _type: STRING
        _optional: true
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -727,7 +727,7 @@ func TestValidateInputSchema(t *testing.T) {
      arg1:
        _type: STRING
        _default: test
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -735,7 +735,7 @@ func TestValidateInputSchema(t *testing.T) {
      arg1:
        _type: STRING
        _default: 2
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -743,7 +743,7 @@ func TestValidateInputSchema(t *testing.T) {
      arg1:
        _type: STRING
        _default: Null
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -751,47 +751,47 @@ func TestValidateInputSchema(t *testing.T) {
      arg1:
        _type: STRING
        _default: Null
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	// Mixed
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`[[STRING]]`), false)
+		`[[STRING]]`), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: [[STRING]]
      _default: [[test1, test2]]
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: [[STRING_COLUMN]]
      _default: [[test1, test2]]
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      - arg1: STRING
        arg2: INT
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	inputSchema2, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type:
      - arg1: STRING
        arg2: INT
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	inputSchema3, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      - arg1: {_type: STRING}
        arg2: {_type: INT}
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	inputSchema4, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
@@ -800,7 +800,7 @@ func TestValidateInputSchema(t *testing.T) {
          _type: STRING
        arg2:
          _type: INT
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema, inputSchema2)
 	require.Equal(t, inputSchema, inputSchema3)
@@ -814,7 +814,7 @@ func TestValidateInputSchema(t *testing.T) {
        arg2:
          _type: INT
          _default: 2
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -828,7 +828,7 @@ func TestValidateInputSchema(t *testing.T) {
        arg2:
          _type: INT
          _default: 2
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -843,7 +843,7 @@ func TestValidateInputSchema(t *testing.T) {
        arg2:
          _type: INT
          _default: 2
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -854,7 +854,7 @@ func TestValidateInputSchema(t *testing.T) {
          arg_b:
            _type: STRING
            _default: test
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -865,7 +865,7 @@ func TestValidateInputSchema(t *testing.T) {
            arg_b:
              _type: STRING
              _default: test
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -876,14 +876,14 @@ func TestValidateInputSchema(t *testing.T) {
          arg_b:
            _type: STRING
            _default: test
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      arg1:
        2: STRING
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -891,7 +891,7 @@ func TestValidateInputSchema(t *testing.T) {
      arg1:
        _type: {2: STRING}
        _default: {2: test}
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -900,53 +900,53 @@ func TestValidateInputSchema(t *testing.T) {
        2:
          _type: STRING
          _default: test
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`[{INT_COLUMN: STRING|INT}]`), false)
+		`[{INT_COLUMN: STRING|INT}]`), false, false)
 	require.NoError(t, err)
 	inputSchema2, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: [{INT_COLUMN: STRING|INT}]
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema, inputSchema2)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`map: {BOOL|FLOAT: INT|STRING}`), false)
+		`map: {BOOL|FLOAT: INT|STRING}`), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`map: {mean: FLOAT, stddev: FLOAT}`), false)
+		`map: {mean: FLOAT, stddev: FLOAT}`), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`map: {STRING: {lat: FLOAT, lon: FLOAT}}`), false)
+		`map: {STRING: {lat: FLOAT, lon: FLOAT}}`), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`map: {STRING: {lat: FLOAT, lon: [FLOAT]}}`), false)
+		`map: {STRING: {lat: FLOAT, lon: [FLOAT]}}`), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`map: {STRING: {FLOAT: INT}}`), false)
+		`map: {STRING: {FLOAT: INT}}`), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`map: {STRING: {FLOAT: [INT]}}`), false)
+		`map: {STRING: {FLOAT: [INT]}}`), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`map: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: INT}}}`), false)
+		`map: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: INT}}}`), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`map6: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: {INT: STRING}}}}`), false)
+		`map6: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: {INT: STRING}}}}`), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`map6: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: {INT: STRING}, mean: BOOL}}}`), false)
+		`map6: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: {INT: STRING}, mean: BOOL}}}`), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -961,59 +961,59 @@ func TestValidateInputSchema(t *testing.T) {
      map5: {STRING: {BOOL: [INT]}}
      map6: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: INT}}}
      map6: {STRING: {lat: FLOAT, lon: {lat2: FLOAT, lon2: {INT: STRING}, mean: BOOL}}}
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`map: {STRING: INT, INT: FLOAT}`), false)
+		`map: {STRING: INT, INT: FLOAT}`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`map: {STRING: INT, INT: [FLOAT]}`), false)
+		`map: {STRING: INT, INT: [FLOAT]}`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`map: {mean: FLOAT, INT: FLOAT}`), false)
+		`map: {mean: FLOAT, INT: FLOAT}`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`map: {mean: FLOAT, INT: [FLOAT]}`), false)
+		`map: {mean: FLOAT, INT: [FLOAT]}`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`map: {STRING: {lat: FLOAT, STRING: FLOAT}}`), false)
+		`map: {STRING: {lat: FLOAT, STRING: FLOAT}}`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`map: {STRING: {STRING: test}}`), false)
+		`map: {STRING: {STRING: test}}`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`cols: [STRING_COLUMN, INT_COLUMN]`), false)
+		`cols: [STRING_COLUMN, INT_COLUMN]`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`cols: [STRING_COLUMNs]`), false)
+		`cols: [STRING_COLUMNs]`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`cols: [STRING_COLUMN|BAD]`), false)
+		`cols: [STRING_COLUMN|BAD]`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`cols: Null`), false)
+		`cols: Null`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`cols: 1`), false)
+		`cols: 1`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`cols: [1]`), false)
+		`cols: [1]`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
-		`cols: []`), false)
+		`cols: []`), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -1054,7 +1054,7 @@ func TestValidateInputSchema(t *testing.T) {
      nums4_scalar: [FLOAT|INT]
      nums5_scalar: [STRING|INT|FLOAT]
      nums6_scalar: [STRING|INT|FLOAT|BOOL]
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	// Casting defaults
@@ -1063,7 +1063,7 @@ func TestValidateInputSchema(t *testing.T) {
 		`
      _type: INT
      _default: 2
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema.Default, int64(2))
 
@@ -1071,21 +1071,21 @@ func TestValidateInputSchema(t *testing.T) {
 		`
      _type: INT
      _default: test
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: INT
      _default: 2.2
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: FLOAT
      _default: 2
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema.Default, float64(2))
 
@@ -1093,7 +1093,7 @@ func TestValidateInputSchema(t *testing.T) {
 		`
      _type: FLOAT|INT
      _default: 2
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema.Default, int64(2))
 
@@ -1101,7 +1101,7 @@ func TestValidateInputSchema(t *testing.T) {
 		`
      _type: BOOL
      _default: true
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema.Default, true)
 
@@ -1109,7 +1109,7 @@ func TestValidateInputSchema(t *testing.T) {
 		`
      _type: {STRING: FLOAT}
      _default: {test: 2.2, test2: 4.4}
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema.Default, map[interface{}]interface{}{"test": 2.2, "test2": 4.4})
 
@@ -1117,14 +1117,14 @@ func TestValidateInputSchema(t *testing.T) {
 		`
      _type: {STRING: FLOAT}
      _default: {test: test2}
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {STRING: FLOAT}
      _default: {test: 2}
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema.Default, map[interface{}]interface{}{"test": float64(2)})
 
@@ -1132,7 +1132,7 @@ func TestValidateInputSchema(t *testing.T) {
 		`
      _type: {STRING: FLOAT}
      _default: {test: 2.0}
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema.Default, map[interface{}]interface{}{"test": float64(2)})
 
@@ -1140,7 +1140,7 @@ func TestValidateInputSchema(t *testing.T) {
 		`
      _type: {STRING: INT}
      _default: {test: 2}
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema.Default, map[interface{}]interface{}{"test": int64(2)})
 
@@ -1148,14 +1148,14 @@ func TestValidateInputSchema(t *testing.T) {
 		`
      _type: {STRING: INT}
      _default: {test: 2.0}
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {mean: FLOAT, sum: INT}
      _default: {mean: 2.2, sum: 4}
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema.Default, map[interface{}]interface{}{"mean": float64(2.2), "sum": int64(4)})
 
@@ -1163,49 +1163,49 @@ func TestValidateInputSchema(t *testing.T) {
 		`
      _type: {mean: FLOAT, sum: INT}
      _default: {mean: 2.2, sum: test}
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {mean: FLOAT, sum: INT}
      _default: {mean: false, sum: 4}
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {mean: FLOAT, sum: INT}
      _default: {mean: 2.2, 2: 4}
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {mean: FLOAT, sum: INT}
      _default: {mean: 2.2, sum: Null}
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {mean: FLOAT, sum: INT}
      _default: {mean: 2.2}
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: {mean: FLOAT, sum: INT}
      _default: {mean: 2.2, sum: 4, stddev: 2}
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: [INT]
      _default: [1, 2]
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema.Default, []interface{}{int64(1), int64(2)})
 
@@ -1213,14 +1213,14 @@ func TestValidateInputSchema(t *testing.T) {
 		`
      _type: [INT]
      _default: [1.0, 2]
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: [FLOAT]
      _default: [1.0, 2]
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema.Default, []interface{}{float64(1), float64(2)})
 
@@ -1228,7 +1228,7 @@ func TestValidateInputSchema(t *testing.T) {
 		`
      _type: [FLOAT|INT]
      _default: [1.0, 2]
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema.Default, []interface{}{float64(1), int64(2)})
 
@@ -1236,14 +1236,14 @@ func TestValidateInputSchema(t *testing.T) {
 		`
      _type: [FLOAT|INT|BOOL]
      _default: [1.0, 2, true, test]
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
 		`
      _type: [FLOAT|INT|BOOL|STRING]
      _default: [1.0, 2, true, test]
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema.Default, []interface{}{float64(1), int64(2), true, "test"})
 
@@ -1270,7 +1270,7 @@ func TestValidateInputSchema(t *testing.T) {
          b: [testX, testY, testZ]
          c: {mean: 1.7, sum: [1], stddev: {z: 12}}
          d: 17
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema.Default, map[interface{}]interface{}{
 		"testA": map[interface{}]interface{}{},
@@ -1303,7 +1303,7 @@ func TestValidateInputSchema(t *testing.T) {
            _default: 2
      _default:
        testA: Null
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	inputSchema, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -1325,7 +1325,7 @@ func TestValidateInputSchema(t *testing.T) {
              _default: 2
      _default:
        testA: Null
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 	require.Equal(t, inputSchema.Default, map[interface{}]interface{}{
 		"testA": nil,
@@ -1348,7 +1348,7 @@ func TestValidateInputSchema(t *testing.T) {
            _default: 2
      _default:
        testA: {}
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -1371,7 +1371,7 @@ func TestValidateInputSchema(t *testing.T) {
          a: 88
          c: {mean: 1.7, sum: [1], stddev: {z: 12}}
          d: 17
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -1410,7 +1410,7 @@ func TestValidateInputSchema(t *testing.T) {
              c: {mean: 1.7, sum: [1], stddev: {z: 12}}
            bools: [true, false, true]
            anything: [10, 2.2, test, false]
-    `), false)
+    `), false, false)
 	require.NoError(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -1448,7 +1448,7 @@ func TestValidateInputSchema(t *testing.T) {
              c: {mean: 1.7, sum: [1], stddev: {z: 12}}
            bools: [true, false, true]
            anything: [10, 2.2, test, false]
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -1487,7 +1487,7 @@ func TestValidateInputSchema(t *testing.T) {
              c: {mean: 1.7, sum: [1], stddev: {z: 12}}
            bools: [true, false, true]
            anything: [10, 2.2, test, false]
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -1526,7 +1526,7 @@ func TestValidateInputSchema(t *testing.T) {
              c: {mean: 1.7, sum: [1], stddev: {z: 12}}
            bools: [true, false, true]
            anything: [10, 2.2, test, false]
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -1565,7 +1565,7 @@ func TestValidateInputSchema(t *testing.T) {
              c: {mean: 1.7, sum: [1], stddev: {z: 12}}
            bools: [true, false, true]
            anything: [10, 2.2, test, false]
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -1604,7 +1604,7 @@ func TestValidateInputSchema(t *testing.T) {
              c: {mean: 1.7, sum: [1], stddev: {z: 12}}
            bools: true
            anything: [10, 2.2, test, false]
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 
 	_, err = ValidateInputSchema(cr.MustReadYAMLStr(
@@ -1643,6 +1643,6 @@ func TestValidateInputSchema(t *testing.T) {
              c: {mean: 1.7, sum: [1], stddev: {z: 12}}
            bools: [1, 2, 3]
            anything: [10, 2.2, test, false]
-    `), false)
+    `), false, false)
 	require.Error(t, err)
 }

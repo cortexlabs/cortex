@@ -25,8 +25,8 @@ type Aggregates map[string]*Aggregate
 type Aggregate struct {
 	*userconfig.Aggregate
 	*ComputedResourceFields
-	Type interface{} `json:"type"`
-	Key  string      `json:"key"`
+	Type userconfig.OutputSchema `json:"type"`
+	Key  string                  `json:"key"`
 }
 
 func (aggregates Aggregates) OneByID(id string) *Aggregate {

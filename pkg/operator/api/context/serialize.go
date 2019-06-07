@@ -37,12 +37,12 @@ type DataSplit struct {
 }
 
 type Serial struct {
-	Context
+	*Context
 	RawColumnSplit *RawColumnsTypeSplit `json:"raw_columns"`
 	DataSplit      *DataSplit           `json:"environment_data"`
 }
 
-func (ctx Context) splitRawColumns() *RawColumnsTypeSplit {
+func (ctx *Context) splitRawColumns() *RawColumnsTypeSplit {
 	var rawIntColumns = make(map[string]*RawIntColumn)
 	var rawFloatColumns = make(map[string]*RawFloatColumn)
 	var rawStringColumns = make(map[string]*RawStringColumn)
@@ -68,7 +68,7 @@ func (ctx Context) splitRawColumns() *RawColumnsTypeSplit {
 	}
 }
 
-func (serial Serial) collectRawColumns() RawColumns {
+func (serial *Serial) collectRawColumns() RawColumns {
 	var rawColumns = make(map[string]RawColumn)
 
 	for name, rawColumn := range serial.RawColumnSplit.RawIntColumns {
@@ -87,7 +87,7 @@ func (serial Serial) collectRawColumns() RawColumns {
 	return rawColumns
 }
 
-func (ctx Context) splitEnvironment() *DataSplit {
+func (ctx *Context) splitEnvironment() *DataSplit {
 	var split DataSplit
 	switch typedData := ctx.Environment.Data.(type) {
 	case *userconfig.CSVData:
@@ -110,7 +110,85 @@ func (serial *Serial) collectEnvironment() (*Environment, error) {
 	return serial.Environment, nil
 }
 
-func (ctx Context) ToSerial() *Serial {
+func (ctx *Context) castSchemaTypes() error {
+	for _, constant := range ctx.Constants {
+		if constant.Type != nil {
+			castedType, err := userconfig.ValidateOutputSchema(constant.Type)
+			if err != nil {
+				return err
+			}
+			constant.Constant.Type = castedType
+		}
+	}
+
+	for _, aggregator := range ctx.Aggregators {
+		if aggregator.OutputType != nil {
+			casted, err := userconfig.ValidateOutputSchema(aggregator.OutputType)
+			if err != nil {
+				return err
+			}
+			aggregator.Aggregator.OutputType = casted
+		}
+
+		if aggregator.Input != nil {
+			casted, err := userconfig.ValidateInputTypeSchema(aggregator.Input.Type, false, true)
+			if err != nil {
+				return err
+			}
+			aggregator.Aggregator.Input.Type = casted
+		}
+	}
+
+	for _, aggregate := range ctx.Aggregates {
+		if aggregate.Type != nil {
+			casted, err := userconfig.ValidateOutputSchema(aggregate.Type)
+			if err != nil {
+				return err
+			}
+			aggregate.Type = casted
+		}
+	}
+
+	for _, transformer := range ctx.Transformers {
+		if transformer.Input != nil {
+			casted, err := userconfig.ValidateInputTypeSchema(transformer.Input.Type, false, true)
+			if err != nil {
+				return err
+			}
+			transformer.Transformer.Input.Type = casted
+		}
+	}
+
+	for _, estimator := range ctx.Estimators {
+		if estimator.Input != nil {
+			casted, err := userconfig.ValidateInputTypeSchema(estimator.Input.Type, false, true)
+			if err != nil {
+				return err
+			}
+			estimator.Estimator.Input.Type = casted
+		}
+
+		if estimator.TrainingInput != nil {
+			casted, err := userconfig.ValidateInputTypeSchema(estimator.TrainingInput.Type, false, true)
+			if err != nil {
+				return err
+			}
+			estimator.Estimator.TrainingInput.Type = casted
+		}
+
+		if estimator.Hparams != nil {
+			casted, err := userconfig.ValidateInputTypeSchema(estimator.Hparams.Type, true, true)
+			if err != nil {
+				return err
+			}
+			estimator.Estimator.Hparams.Type = casted
+		}
+	}
+
+	return nil
+}
+
+func (ctx *Context) ToSerial() *Serial {
 	serial := Serial{
 		Context:        ctx,
 		RawColumnSplit: ctx.splitRawColumns(),
@@ -120,15 +198,23 @@ func (ctx Context) ToSerial() *Serial {
 	return &serial
 }
 
-func (serial Serial) ContextFromSerial() (*Context, error) {
+func (serial *Serial) ContextFromSerial() (*Context, error) {
 	ctx := serial.Context
+
 	ctx.RawColumns = serial.collectRawColumns()
+
 	environment, err := serial.collectEnvironment()
 	if err != nil {
 		return nil, err
 	}
 	ctx.Environment = environment
-	return &ctx, nil
+
+	err = ctx.castSchemaTypes()
+	if err != nil {
+		return nil, err
+	}
+
+	return ctx, nil
 }
 
 func (ctx Context) ToMsgpackBytes() ([]byte, error) {
