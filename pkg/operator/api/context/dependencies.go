@@ -178,8 +178,8 @@ func ExtractCortexResources(
 
 	// convert to slice and sort by ID
 	var resourceIDs []string
-	for resourceId := range resources {
-		resourceIDs = append(resourceIDs, resourceId)
+	for resourceID := range resources {
+		resourceIDs = append(resourceIDs, resourceID)
 	}
 	sort.Strings(resourceIDs)
 	resoucesSlice := make([]Resource, len(resources))

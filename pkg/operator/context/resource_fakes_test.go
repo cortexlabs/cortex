@@ -32,7 +32,7 @@ func mustValidateOutputSchema(yamlStr string) userconfig.OutputSchema {
 }
 
 func genConst(id string, outputType string, value string) *context.Constant {
-	var outType userconfig.OutputSchema = nil
+	var outType userconfig.OutputSchema
 	if outputType != "" {
 		outType = mustValidateOutputSchema(outputType)
 	}
@@ -60,7 +60,7 @@ func genConst(id string, outputType string, value string) *context.Constant {
 }
 
 func genAgg(id string, aggregatorType string) (*context.Aggregate, *context.Aggregator) {
-	var outputType userconfig.OutputSchema = nil
+	var outputType userconfig.OutputSchema
 	if aggregatorType != "" {
 		outputType = mustValidateOutputSchema(aggregatorType)
 	}
