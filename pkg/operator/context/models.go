@@ -103,7 +103,7 @@ func getModels(
 		}
 
 		// TargetColumn
-		targetColumnName, _ := yaml.UnescapeAtSymbol(modelConfig.TargetColumn)
+		targetColumnName, _ := yaml.ExtractAtSymbolText(modelConfig.TargetColumn)
 		targetColumn := columns[targetColumnName]
 		if targetColumn == nil {
 			return nil, errors.Wrap(userconfig.ErrorUndefinedResource(targetColumnName, resource.RawColumnType, resource.TransformedColumnType), userconfig.Identify(modelConfig), userconfig.TargetColumnKey)

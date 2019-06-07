@@ -86,7 +86,7 @@ var modelValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "HParams",
+			StructField: "Hparams",
 			InterfaceValidation: &cr.InterfaceValidation{
 				Required: false,
 			},

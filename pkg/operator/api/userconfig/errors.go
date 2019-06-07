@@ -441,9 +441,13 @@ func ErrorInvalidOutputType(provided interface{}) error {
 }
 
 func ErrorUnsupportedLiteralType(provided interface{}, allowedType interface{}) error {
+	message := fmt.Sprintf("input value's type is not supported by the schema (got %s, expected input with type %s)", DataTypeStr(provided), DataTypeStr(allowedType))
+	if str, ok := provided.(string); ok {
+		message += fmt.Sprintf(" (note: if you are trying to reference a Cortex resource named %s, use \"@%s\")", str, str)
+	}
 	return Error{
 		Kind:    ErrUnsupportedLiteralType,
-		message: fmt.Sprintf("input value's type is not supported by the schema (got %s, expected input with type %s)", DataTypeStr(provided), DataTypeStr(allowedType)),
+		message: message,
 	}
 }
 

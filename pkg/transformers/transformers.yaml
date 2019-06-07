@@ -21,11 +21,9 @@
   name: bucketize
   path: bucketize.py
   output_type: INT_COLUMN
-  inputs:
-    columns:
-      num: INT_COLUMN|FLOAT_COLUMN
-    args:
-      bucket_boundaries: [FLOAT]
+  input:
+    col: INT_COLUMN|FLOAT_COLUMN
+    bucket_boundaries: [FLOAT]
 
 # Given the mean and standard deviation of the column, normalize (z-score, standardize)
 # all of the values in column by (x - mean)/stddev where x is a value in the column.
@@ -33,12 +31,10 @@
   name: normalize
   path: normalize.py
   output_type: FLOAT_COLUMN
-  inputs:
-    columns:
-      num: FLOAT_COLUMN|INT_COLUMN
-    args:
-      mean: INT|FLOAT
-      stddev: INT|FLOAT
+  input:
+    col: FLOAT_COLUMN|INT_COLUMN
+    mean: INT|FLOAT
+    stddev: INT|FLOAT
 
 # Given labels, map the string column to its index in the labels array.
 # Example:
@@ -48,8 +44,6 @@
   name: index_string
   path: index_string.py
   output_type: INT_COLUMN
-  inputs:
-    columns:
-      text: STRING_COLUMN
-    args:
-      indexes: {"index": [STRING], "reversed_index": {STRING: INT}}
+  input:
+    col: STRING_COLUMN
+    indexes: {"index": [STRING], "reversed_index": {STRING: INT}}

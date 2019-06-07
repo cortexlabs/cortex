@@ -1,5 +1,5 @@
 - kind: api
   name: iris-type
-  model_name: dnn
+  model: @dnn
   compute:
     replicas: 1

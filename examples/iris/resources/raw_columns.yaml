@@ -3,7 +3,7 @@
   data:
     type: csv
     path: s3a://cortex-examples/iris.csv
-    schema: [sepal_length, sepal_width, petal_length, petal_width, class]
+    schema: [@sepal_length, @sepal_width, @petal_length, @petal_width, @class]
 
 
 - kind: environment
@@ -13,15 +13,15 @@
     path: s3a://cortex-examples/iris.parquet
     schema:
       - parquet_column_name: sepal_length
-        raw_column_name: sepal_length
+        raw_column: @sepal_length
       - parquet_column_name: sepal_width
-        raw_column_name: sepal_width
+        raw_column: @sepal_width
       - parquet_column_name: petal_length
-        raw_column_name: petal_length
+        raw_column: @petal_length
       - parquet_column_name: petal_width
-        raw_column_name: petal_width
+        raw_column: @petal_width
       - parquet_column_name: class
-        raw_column_name: class
+        raw_column: @class
 
 - kind: raw_column
   name: sepal_length
