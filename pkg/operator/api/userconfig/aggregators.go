@@ -50,10 +50,8 @@ var aggregatorValidation = &cr.StructValidation{
 		{
 			StructField: "OutputType",
 			InterfaceValidation: &cr.InterfaceValidation{
-				Required: true,
-				Validator: func(t interface{}) (interface{}, error) {
-					return ValidateOutputSchema(t)
-				},
+				Required:  true,
+				Validator: outputSchemaValidator,
 			},
 		},
 		{

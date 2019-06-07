@@ -41,11 +41,24 @@ type InputTypeSchema interface{} // CompundType, length-one array of *InputSchem
 type OutputSchema interface{} // ValueType, length-one array of OutputSchema, or map of {scalar|ValueType -> OutputSchema} (no *_COLUMN types, compound types, or input options like _default)
 
 func inputSchemaValidator(in interface{}) (interface{}, error) {
+	if in == nil {
+		return nil, nil
+	}
 	return ValidateInputSchema(in, false, false) // This casts it to *InputSchema
 }
 
 func inputSchemaValidatorValueTypesOnly(in interface{}) (interface{}, error) {
+	if in == nil {
+		return nil, nil
+	}
 	return ValidateInputSchema(in, true, false) // This casts it to *InputSchema
+}
+
+func outputSchemaValidator(in interface{}) (interface{}, error) {
+	if in == nil {
+		return nil, nil
+	}
+	return ValidateOutputSchema(in)
 }
 
 func ValidateInputSchema(in interface{}, disallowColumnTypes bool, isAlreadyParsed bool) (*InputSchema, error) {

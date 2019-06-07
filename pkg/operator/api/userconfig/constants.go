@@ -43,10 +43,8 @@ var constantValidation = &cr.StructValidation{
 		{
 			StructField: "Type",
 			InterfaceValidation: &cr.InterfaceValidation{
-				Required: false,
-				Validator: func(t interface{}) (interface{}, error) {
-					return ValidateOutputSchema(t)
-				},
+				Required:  false,
+				Validator: outputSchemaValidator,
 			},
 		},
 		{
