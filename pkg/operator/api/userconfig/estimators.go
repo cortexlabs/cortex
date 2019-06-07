@@ -25,12 +25,12 @@ type Estimators []*Estimator
 
 type Estimator struct {
 	ResourceFields
-	TargetColumn  ColumnType   `json:"target_column"  yaml:"target_column"`
-	Input         *InputSchema `json:"input" yaml:"input"`
-	TrainingInput *InputSchema `json:"training_input" yaml:"training_input"`
-	Hparams       *InputSchema `json:"hparams"  yaml:"hparams"`
-	PredictionKey string       `json:"prediction_key" yaml:"prediction_key"`
-	Path          string       `json:"path"  yaml:"path"`
+	TargetColumn  *CompoundType `json:"target_column"  yaml:"target_column"`
+	Input         *InputSchema  `json:"input" yaml:"input"`
+	TrainingInput *InputSchema  `json:"training_input" yaml:"training_input"`
+	Hparams       *InputSchema  `json:"hparams"  yaml:"hparams"`
+	PredictionKey string        `json:"prediction_key" yaml:"prediction_key"`
+	Path          string        `json:"path"  yaml:"path"`
 }
 
 var estimatorValidation = &cr.StructValidation{
@@ -54,16 +54,20 @@ var estimatorValidation = &cr.StructValidation{
 			StructField: "TargetColumn",
 			StringValidation: &cr.StringValidation{
 				Required: true,
-				Validator: func(col string) (string, error) {
-					colType := ColumnTypeFromString(col)
-					if colType != IntegerColumnType && colType != FloatColumnType {
-						return "", ErrorTargetColumnIntOrFloat()
+				Validator: func(colStr string) (string, error) {
+					_, err := CompoundTypeFromString(colStr)
+					if err != nil {
+						return "", err
 					}
-					return col, nil
+					return colStr, nil
 				},
 			},
-			Parser: func(str string) (interface{}, error) {
-				return ColumnTypeFromString(str), nil
+			Parser: func(colStr string) (interface{}, error) {
+				colType, err := CompoundTypeFromString(colStr)
+				if err != nil {
+					return nil, err
+				}
+				return &colType, nil
 			},
 		},
 		{

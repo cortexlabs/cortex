@@ -69,7 +69,6 @@ const (
 	ErrTypeMapZeroLength
 	ErrGenericTypeMapLength
 	ErrK8sQuantityMustBeInt
-	ErrTargetColumnIntOrFloat
 	ErrPredictionKeyOnModelWithEstimator
 	ErrSpecifyOnlyOneMissing
 	ErrEnvSchemaMismatch
@@ -117,7 +116,6 @@ var errorKinds = []string{
 	"err_type_map_zero_length",
 	"err_generic_type_map_length",
 	"err_k8s_quantity_must_be_int",
-	"err_target_column_int_or_float",
 	"err_prediction_key_on_model_with_estimator",
 	"err_specify_only_one_missing",
 	"err_env_schema_mismatch",
@@ -504,13 +502,6 @@ func ErrorK8sQuantityMustBeInt(quantityStr string) error {
 	return Error{
 		Kind:    ErrK8sQuantityMustBeInt,
 		message: fmt.Sprintf("resource compute quantity must be an integer-valued string, e.g. \"2\") (got %s)", DataTypeStr(quantityStr)),
-	}
-}
-
-func ErrorTargetColumnIntOrFloat() error {
-	return Error{
-		Kind:    ErrTargetColumnIntOrFloat,
-		message: "models can only predict values of type INT_COLUMN (i.e. classification) or FLOAT_COLUMN (i.e. regression)",
 	}
 }
 

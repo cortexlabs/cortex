@@ -67,7 +67,7 @@ func loadUserEstimators(
 			ResourceFields: userconfig.ResourceFields{
 				Name: implHash,
 			},
-			TargetColumn:  userconfig.InferredColumnType,
+			TargetColumn:  nil,
 			PredictionKey: modelConfig.PredictionKey,
 			Path:          *modelConfig.EstimatorPath,
 		}

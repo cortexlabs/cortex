@@ -108,11 +108,8 @@ func getModels(
 		if targetColumn == nil {
 			return nil, errors.Wrap(userconfig.ErrorUndefinedResource(targetColumnName, resource.RawColumnType, resource.TransformedColumnType), userconfig.Identify(modelConfig), userconfig.TargetColumnKey)
 		}
-		if targetColumn.GetColumnType() != userconfig.IntegerColumnType && targetColumn.GetColumnType() != userconfig.FloatColumnType {
-			return nil, userconfig.ErrorTargetColumnIntOrFloat()
-		}
-		if estimator.TargetColumn != userconfig.InferredColumnType {
-			if targetColumn.GetColumnType() != estimator.TargetColumn {
+		if estimator.TargetColumn != nil {
+			if !estimator.TargetColumn.SupportsType(targetColumn.GetColumnType()) {
 				return nil, errors.Wrap(userconfig.ErrorUnsupportedOutputType(targetColumn.GetColumnType(), estimator.TargetColumn), userconfig.Identify(modelConfig), userconfig.TargetColumnKey)
 			}
 		}
