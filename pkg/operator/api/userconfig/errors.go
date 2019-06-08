@@ -65,6 +65,7 @@ const (
 	ErrUnsupportedOutputType
 	ErrMustBeDefined
 	ErrCannotBeNull
+	ErrUnsupportedConfigKey
 	ErrTypeListLength
 	ErrTypeMapZeroLength
 	ErrGenericTypeMapLength
@@ -112,6 +113,7 @@ var errorKinds = []string{
 	"err_unsupported_output_type",
 	"err_must_be_defined",
 	"err_cannot_be_null",
+	"error_unsupported_config_key",
 	"err_type_list_length",
 	"err_type_map_zero_length",
 	"err_generic_type_map_length",
@@ -364,7 +366,7 @@ func ErrorCannotMixValueAndColumnTypes(provided interface{}) error {
 func ErrorColumnTypeLiteral(provided interface{}) error {
 	return Error{
 		Kind:    ErrColumnTypeLiteral,
-		message: fmt.Sprintf("%s: literal values cannot be provided for column input types", s.UserStrStripped(provided)),
+		message: fmt.Sprintf("%s: literal values cannot be provided for column input types (e.g. use FLOAT_COLUMN instead of FLOAT)", s.UserStrStripped(provided)),
 	}
 }
 
@@ -474,6 +476,13 @@ func ErrorCannotBeNull() error {
 	return Error{
 		Kind:    ErrCannotBeNull,
 		message: "cannot be null",
+	}
+}
+
+func ErrorUnsupportedConfigKey() error {
+	return Error{
+		Kind:    ErrUnsupportedConfigKey,
+		message: "is not supported for this resource",
 	}
 }
 

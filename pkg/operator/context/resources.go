@@ -51,8 +51,15 @@ func ValidateInput(
 
 	castedInput := input
 
-	// Skip validation if schema is nil (i.e. user didn't define the aggregator/transformer/estimator)
 	if schema != nil {
+		if input == nil {
+			if schema.Optional {
+				return nil, hash.Any(nil), nil
+			} else {
+				return nil, "", userconfig.ErrorMustBeDefined(schema)
+			}
+		}
+
 		castedInput, err = validateRuntimeTypes(input, schema, validResourcesMap, aggregators, transformers, false)
 		if err != nil {
 			return nil, "", err

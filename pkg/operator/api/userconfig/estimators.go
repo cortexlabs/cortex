@@ -55,9 +55,12 @@ var estimatorValidation = &cr.StructValidation{
 			StringValidation: &cr.StringValidation{
 				Required: true,
 				Validator: func(colStr string) (string, error) {
-					_, err := CompoundTypeFromString(colStr)
+					colType, err := CompoundTypeFromString(colStr)
 					if err != nil {
 						return "", err
+					}
+					if colType.IsValues() {
+						return "", ErrorColumnTypeLiteral(colStr)
 					}
 					return colStr, nil
 				},

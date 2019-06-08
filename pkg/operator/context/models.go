@@ -79,6 +79,9 @@ func getModels(
 		modelConfig.Input = castedInput
 
 		// TrainingInput
+		if modelConfig.EstimatorPath == nil && estimator.TrainingInput == nil && modelConfig.TrainingInput != nil {
+			return nil, errors.Wrap(userconfig.ErrorUnsupportedConfigKey(), userconfig.Identify(modelConfig), userconfig.TrainingInputKey)
+		}
 		castedTrainingInput, trainingInputID, err := ValidateInput(
 			modelConfig.TrainingInput,
 			estimator.TrainingInput,
@@ -94,6 +97,9 @@ func getModels(
 		modelConfig.TrainingInput = castedTrainingInput
 
 		// Hparams
+		if modelConfig.EstimatorPath == nil && estimator.Hparams == nil && modelConfig.Hparams != nil {
+			return nil, errors.Wrap(userconfig.ErrorUnsupportedConfigKey(), userconfig.Identify(modelConfig), userconfig.HparamsKey)
+		}
 		if estimator.Hparams != nil {
 			castedHparams, err := userconfig.CastInputValue(modelConfig.Hparams, estimator.Hparams)
 			if err != nil {
