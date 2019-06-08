@@ -1,9 +1,9 @@
 - kind: model
   name: dnn
-  estimator_path: implementations/models/dnn.py
+  estimator: cortex.dnn_classifier
   target_column: @class_indexed
   input:
-    cols:
+    numeric_columns:
       - @sepal_length_normalized
       - @sepal_width_normalized
       - @petal_length_normalized

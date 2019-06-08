@@ -13,15 +13,15 @@
 # limitations under the License.
 
 
-def transform_spark(data, columns, args, transformed_column_name):
+def transform_spark(data, input, transformed_column_name):
     return data.withColumn(
-        transformed_column_name, ((data[columns["num"]] - args["mean"]) / args["stddev"])
+        transformed_column_name, ((data[input["col"]] - input["mean"]) / input["stddev"])
     )
 
 
-def transform_python(sample, args):
-    return (sample["num"] - args["mean"]) / args["stddev"]
+def transform_python(input):
+    return (input["col"] - input["mean"]) / input["stddev"]
 
 
-def reverse_transform_python(transformed_value, args):
-    return args["mean"] + (transformed_value * args["stddev"])
+def reverse_transform_python(transformed_value, input):
+    return input["mean"] + (transformed_value * input["stddev"])

@@ -13,21 +13,21 @@
 # limitations under the License.
 
 
-def transform_spark(data, columns, args, transformed_column_name):
+def transform_spark(data, input, transformed_column_name):
     from pyspark.ml.feature import Bucketizer
     import pyspark.sql.functions as F
 
     new_b = Bucketizer(
-        splits=args["bucket_boundaries"], inputCol=columns["num"], outputCol=transformed_column_name
+        splits=input["bucket_boundaries"], inputCol=input["col"], outputCol=transformed_column_name
     )
     return new_b.transform(data).withColumn(
         transformed_column_name, F.col(transformed_column_name).cast("int")
     )
 
 
-def transform_python(sample, args):
-    num = sample["num"]
-    buckets = args["bucket_boundaries"][1:]
+def transform_python(input):
+    num = input["col"]
+    buckets = input["bucket_boundaries"][1:]
     for id, v in enumerate(buckets):
         if num < v:
             return id
