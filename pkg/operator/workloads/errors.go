@@ -92,7 +92,7 @@ func (e Error) Error() string {
 func ErrorExternalDataUnavailable(s3Path string) error {
 	return Error{
 		Kind:    ErrExternalDataUnavailable,
-		message: fmt.Sprintf("the file(s) at %s does not exist", s3Path),
+		message: fmt.Sprintf("the data at %s does not exist", s3Path),
 	}
 }
 

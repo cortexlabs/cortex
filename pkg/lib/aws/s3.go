@@ -57,7 +57,19 @@ func (c *Client) S3Path(key string) string {
 }
 
 func (c *Client) IsS3File(key string) (bool, error) {
-	return c.IsS3Prefix(key)
+	_, err := c.s3Client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(c.Bucket),
+		Key:    aws.String(key),
+	})
+
+	if IsNotFoundErr(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, errors.Wrap(err, key)
+	}
+
+	return true, nil
 }
 
 func (c *Client) IsS3Dir(dirPath string) (bool, error) {
