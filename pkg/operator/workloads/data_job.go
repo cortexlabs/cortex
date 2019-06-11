@@ -25,6 +25,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/argo"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -183,10 +184,13 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 
 	shouldIngest := !rawFileExists
 	if shouldIngest {
-		externalDataPath := ctx.Environment.Data.GetExternalPath()
-		externalDataExists, err := config.AWS.IsS3aPrefixExternal(externalDataPath)
+		externalData := ctx.Environment.Data.GetExternalData()
+		externalDataExists, err := aws.IsS3aPrefixExternal(externalData.Path, externalData.Region)
 		if err != nil || !externalDataExists {
-			return nil, errors.Wrap(ErrorUserDataUnavailable(externalDataPath), ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey)
+			return nil, errors.Wrap(err, externalData.Path, ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey)
+		}
+		if !externalDataExists {
+			return nil, errors.Wrap(ErrorExternalDataUnavailable(externalData.Path), ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey)
 		}
 		for _, rawColumn := range ctx.RawColumns {
 			allComputes = append(allComputes, rawColumn.GetCompute())

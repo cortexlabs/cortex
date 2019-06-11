@@ -21,24 +21,43 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
-
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
+
+var DefaultS3Region string
+var S3Regions []string
+
+func init() {
+	DefaultS3Region = endpoints.UsWest2RegionID
+
+	resolver := endpoints.DefaultResolver()
+	partitions := resolver.(endpoints.EnumPartitions).Partitions()
+
+	for _, p := range partitions {
+		if p.ID() == endpoints.AwsPartitionID || p.ID() == endpoints.AwsCnPartitionID {
+			for id := range p.Regions() {
+				S3Regions = append(S3Regions, id)
+			}
+		}
+	}
+}
 
 func (c *Client) S3Path(key string) string {
 	return "s3://" + filepath.Join(c.Bucket, key)
 }
 
 func (c *Client) IsS3File(key string) (bool, error) {
-	return c.IsS3FileExternal(c.Bucket, key)
+	return c.IsS3Prefix(key)
 }
 
 func (c *Client) IsS3Dir(dirPath string) (bool, error) {
@@ -47,28 +66,8 @@ func (c *Client) IsS3Dir(dirPath string) (bool, error) {
 }
 
 func (c *Client) IsS3Prefix(prefix string) (bool, error) {
-	return c.IsS3PrefixExternal(c.Bucket, prefix)
-}
-
-func (c *Client) IsS3FileExternal(bucket string, key string) (bool, error) {
-	_, err := c.s3Client.HeadObject(&s3.HeadObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	})
-
-	if IsNotFoundErr(err) {
-		return false, nil
-	}
-	if err != nil {
-		return false, errors.Wrap(err, key)
-	}
-
-	return true, nil
-}
-
-func (c *Client) IsS3PrefixExternal(bucket string, prefix string) (bool, error) {
 	out, err := c.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(c.Bucket),
 		Prefix: aws.String(prefix),
 	})
 
@@ -78,14 +77,6 @@ func (c *Client) IsS3PrefixExternal(bucket string, prefix string) (bool, error) 
 
 	hasPrefix := *out.KeyCount > 0
 	return hasPrefix, nil
-}
-
-func (c *Client) IsS3aPrefixExternal(s3aPath string) (bool, error) {
-	bucket, prefix, err := SplitS3aPath(s3aPath)
-	if err != nil {
-		return false, err
-	}
-	return c.IsS3PrefixExternal(bucket, prefix)
 }
 
 func (c *Client) UploadBytesToS3(data []byte, key string) error {
@@ -252,4 +243,30 @@ func SplitS3aPath(s3aPath string) (string, string, error) {
 	key := fullPath[slashIndex+1:]
 
 	return bucket, key, nil
+}
+
+func IsS3PrefixExternal(bucket string, prefix string, region string) (bool, error) {
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(region),
+	}))
+
+	out, err := s3.New(sess).ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket: aws.String(bucket),
+		Prefix: aws.String(prefix),
+	})
+
+	if err != nil {
+		return false, errors.Wrap(err, prefix)
+	}
+
+	hasPrefix := *out.KeyCount > 0
+	return hasPrefix, nil
+}
+
+func IsS3aPrefixExternal(s3aPath string, region string) (bool, error) {
+	bucket, prefix, err := SplitS3aPath(s3aPath)
+	if err != nil {
+		return false, err
+	}
+	return IsS3PrefixExternal(bucket, prefix, region)
 }
