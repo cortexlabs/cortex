@@ -18,6 +18,7 @@ import json
 import argparse
 import tensorflow as tf
 import traceback
+import time
 from flask import Flask, request, jsonify
 from flask_api import status
 from waitress import serve
@@ -25,11 +26,13 @@ import grpc
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import get_model_metadata_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
+from google.protobuf import json_format
+
+import consts
 from lib import util, tf_lib, package, Context
 from lib.log import get_logger
 from lib.exceptions import CortexException, UserRuntimeException, UserException
-from google.protobuf import json_format
-import time
+from lib.context import create_transformer_inputs_from_map
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
@@ -74,8 +77,9 @@ def transform_sample(sample):
         else:
             transformed_column = ctx.transformed_columns[column_name]
             input_repl = ctx.populate_values(
-                transformed_column["input"], None, preserve_column_refs=False
+                transformed_column["input"], None, preserve_column_refs=True
             )
+            transformer_input = create_transformer_inputs_from_map(input_repl, sample)
             trans_impl = local_cache["trans_impls"][column_name]
             if not hasattr(trans_impl, "transform_python"):
                 raise UserException(
@@ -83,7 +87,7 @@ def transform_sample(sample):
                     "transformer " + transformed_column["transformer"],
                     "transform_python() function is missing",
                 )
-            transformed_value = trans_impl.transform_python(input_repl)
+            transformed_value = trans_impl.transform_python(transformer_input)
 
         transformed_sample[column_name] = transformed_value
 
@@ -155,7 +159,7 @@ def parse_response_proto(response_proto):
     outputs = results_dict["outputs"]
     value_key = DTYPE_TO_VALUE_KEY[outputs[prediction_key]["dtype"]]
     predicted = outputs[prediction_key][value_key][0]
-    predicted = util.upcast(predicted, target_col_type)
+    predicted = util.cast(predicted, target_col_type)
 
     result = {}
     for key in outputs.keys():

@@ -243,8 +243,6 @@ def validate_transformers(spark, ctx, cols_to_transform, raw_df):
     for transformed_column in resource_list:
         ctx.upload_resource_status_start(transformed_column)
         try:
-            input_columns_dict = transformed_column["inputs"]["columns"]
-
             input_cols = sorted(ctx.extract_column_names(transformed_column["input"]))
             tf_name = transformed_column["name"]
             logger.info("Transforming {} to {}".format(", ".join(input_cols), tf_name))

@@ -54,6 +54,10 @@ def pp_str(obj, indent=0):
     return indent_str(out, indent)
 
 
+def pp(obj, indent=0):
+    print(pp_str(obj, indent))
+
+
 def pp_str_flat(obj, indent=0):
     try:
         out = json.dumps(obj, sort_keys=True)
@@ -687,22 +691,42 @@ CORTEX_TYPE_TO_UPCASTER = {
     consts.COLUMN_TYPE_FLOAT_LIST: lambda ls: [float(item) for item in ls],
 }
 
+CORTEX_TYPE_TO_CASTER = {
+    consts.COLUMN_TYPE_INT: lambda x: int(x),
+    consts.COLUMN_TYPE_INT_LIST: lambda ls: [int(item) for item in ls],
+    consts.COLUMN_TYPE_FLOAT: lambda x: float(x),
+    consts.COLUMN_TYPE_FLOAT_LIST: lambda ls: [float(item) for item in ls],
+    consts.COLUMN_TYPE_STRING: lambda x: str(x),
+    consts.COLUMN_TYPE_STRING_LIST: lambda ls: [str(item) for item in ls],
+    consts.VALUE_TYPE_INT: lambda x: int(x),
+    consts.VALUE_TYPE_FLOAT: lambda x: float(x),
+    consts.VALUE_TYPE_STRING: lambda x: str(x),
+    consts.VALUE_TYPE_BOOL: lambda x: bool(x),
+}
 
-def upcast(value, column_type):
-    upcaster = CORTEX_TYPE_TO_UPCASTER.get(column_type, None)
+
+def upcast(value, cortex_type):
+    upcaster = CORTEX_TYPE_TO_UPCASTER.get(cortex_type, None)
     if upcaster:
         return upcaster(value)
     return value
 
 
-def validate_column_type(value, column_type):
+def cast(value, cortex_type):
+    upcaster = CORTEX_TYPE_TO_CASTER.get(cortex_type, None)
+    if upcaster:
+        return upcaster(value)
+    return value
+
+
+def validate_cortex_type(value, cortex_type):
     if value is None:
         return True
 
-    if not is_str(column_type):
+    if not is_str(cortex_type):
         raise
 
-    valid_types = column_type.split("|")
+    valid_types = cortex_type.split("|")
     for valid_type in valid_types:
         if CORTEX_TYPE_TO_VALIDATOR[valid_type](value):
             return True
@@ -829,9 +853,9 @@ def get_resource_ref(obj):
 
 def extract_resource_refs(input):
     if is_str(input):
-        res = util.get_resource_ref(input)
+        res = get_resource_ref(input)
         if res is not None:
-            return set(res)
+            return {res}
         return set()
 
     if is_dict(input):
@@ -844,7 +868,7 @@ def extract_resource_refs(input):
     if is_list(input):
         resources = set()
         for item in input:
-            resources = resources.union(extract_resource_refs(val))
+            resources = resources.union(extract_resource_refs(item))
         return resources
 
     return set()

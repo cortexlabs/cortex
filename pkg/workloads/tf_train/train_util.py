@@ -20,6 +20,7 @@ import multiprocessing
 import math
 import tensorflow as tf
 
+import consts
 from lib import util, tf_lib
 from lib.exceptions import UserRuntimeException
 

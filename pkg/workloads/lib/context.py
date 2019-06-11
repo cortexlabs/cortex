@@ -244,7 +244,7 @@ class Context:
         return (impl, impl_path)
 
     def get_estimator_impl(self, model_name):
-        estimator_name = self.models[model_name]["aggregator"]
+        estimator_name = self.models[model_name]["estimator"]
         if estimator_name in self._estimator_impls:
             return self._estimator_impls[estimator_name]
 
@@ -521,13 +521,15 @@ class Context:
                 input_type_key = next(iter(input_schema["_type"].keys()))
                 if is_compound_type(input_type_key):
                     is_generic_map = True
-                    generic_map_key = input_type_key
+                    generic_map_key_schema = input_schema_from_type_schema(input_type_key)
                     generic_map_value = input_schema["_type"][input_type_key]
 
             if is_generic_map:
                 casted = {}
                 for key, val in input.items():
-                    key_casted = self.populate_values(key, generic_map_key, preserve_column_refs)
+                    key_casted = self.populate_values(
+                        key, generic_map_key_schema, preserve_column_refs
+                    )
                     try:
                         val_casted = self.populate_values(
                             val, generic_map_value, preserve_column_refs
@@ -540,14 +542,14 @@ class Context:
 
             # fixed map
             casted = {}
-            for key, val_schema in input_schema["_type"]:
+            for key, val_schema in input_schema["_type"].items():
                 default = None
                 if key not in input:
-                    if input_schema.get("_optional") is not True:
+                    if val_schema.get("_optional") is not True:
                         raise UserException("missing key: " + util.pp_str_flat(key))
-                    if input_schema.get("_default") is None:
+                    if val_schema.get("_default") is None:
                         continue
-                    default = input_schema["_default"]
+                    default = val_schema["_default"]
 
                 val = input.get(key, default)
                 try:
@@ -563,6 +565,17 @@ class Context:
         if util.is_list(input_schema["_type"]) or util.is_dict(input_schema["_type"]):
             raise UserException("unexpected type (scalar)")
         return cast_compound_type(input, input_schema["_type"])
+
+
+def input_schema_from_type_schema(type_schema):
+    return {
+        "_type": type_schema,
+        "_optional": False,
+        "_default": None,
+        "_allow_null": False,
+        "_min_count": None,
+        "_max_count": None,
+    }
 
 
 def is_compound_type(type_str):
@@ -591,7 +604,7 @@ def cast_compound_type(value, type_str):
         if util.is_float(value):
             return value
     if consts.VALUE_TYPE_STRING in allowed_types:
-        if util.is_string(value):
+        if util.is_str(value):
             return value
     if consts.VALUE_TYPE_BOOL in allowed_types:
         if util.is_bool(value):

@@ -41,7 +41,7 @@ def train(args):
         ctx.upload_resource_status_start(model)
 
         try:
-            estimator_impl = ctx.get_estimator_impl(model["name"])
+            estimator_impl, _ = ctx.get_estimator_impl(model["name"])
             train_util.train(model["name"], estimator_impl, ctx, model_dir)
             ctx.upload_resource_status_success(model)
 

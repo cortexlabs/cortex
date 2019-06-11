@@ -124,9 +124,11 @@
           boundaries: [FLOAT]
       _default: []
   training_input:
-    weight_column:
-      _type: INT_COLUMN|FLOAT_COLUMN
-      _optional: True
+    _type:
+      weight_column:
+        _type: INT_COLUMN|FLOAT_COLUMN
+        _optional: True
+    _default: {}
   hparams:
     hidden_units: [INT]
 
@@ -178,9 +180,11 @@
           boundaries: [FLOAT]
       _default: []
   training_input:
-    weight_column:
-      _type: INT_COLUMN|FLOAT_COLUMN
-      _optional: True
+    _type:
+      weight_column:
+        _type: INT_COLUMN|FLOAT_COLUMN
+        _optional: True
+    _default: {}
 
 - kind: estimator
   name: linear_regressor
@@ -220,9 +224,11 @@
           boundaries: [FLOAT]
       _default: []
   training_input:
-    weight_column:
-      _type: INT_COLUMN|FLOAT_COLUMN
-      _optional: True
+    _type:
+      weight_column:
+        _type: INT_COLUMN|FLOAT_COLUMN
+        _optional: True
+    _default: {}
 
 - kind: estimator
   name: dnn_linear_combined_classifier
@@ -317,9 +323,11 @@
         _default: []
 
   training_input:
-    weight_column:
-      _type: INT_COLUMN|FLOAT_COLUMN
-      _optional: True
+    _type:
+      weight_column:
+        _type: INT_COLUMN|FLOAT_COLUMN
+        _optional: True
+    _default: {}
   hparams:
     dnn_hidden_units: [INT]
 
@@ -406,9 +414,11 @@
         _default: []
 
   training_input:
-    weight_column:
-      _type: INT_COLUMN|FLOAT_COLUMN
-      _optional: True
+    _type:
+      weight_column:
+        _type: INT_COLUMN|FLOAT_COLUMN
+        _optional: True
+    _default: {}
   hparams:
     dnn_hidden_units: [INT]
 
@@ -469,9 +479,11 @@
           boundaries: [FLOAT]
       _default: []
   training_input:
-    weight_column:
-      _type: INT_COLUMN|FLOAT_COLUMN
-      _optional: True
+    _type:
+      weight_column:
+        _type: INT_COLUMN|FLOAT_COLUMN
+        _optional: True
+    _default: {}
   hparams:
     batches_per_layer: INT
     num_trees:
@@ -549,9 +561,11 @@
           boundaries: [FLOAT]
       _default: []
   training_input:
-    weight_column:
-      _type: INT_COLUMN|FLOAT_COLUMN
-      _optional: True
+    _type:
+      weight_column:
+        _type: INT_COLUMN|FLOAT_COLUMN
+        _optional: True
+    _default: {}
   hparams:
     batches_per_layer: INT
     num_trees:

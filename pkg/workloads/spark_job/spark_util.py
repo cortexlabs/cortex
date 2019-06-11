@@ -21,7 +21,7 @@ from pyspark.sql.dataframe import DataFrame
 import pyspark.sql.functions as F
 
 from lib import util
-from lib.context import create_inputs_map
+from lib.context import create_transformer_inputs_from_map, create_transformer_inputs_from_lists
 from lib.exceptions import CortexException, UserException, UserRuntimeException
 from lib.log import get_logger
 import consts
@@ -364,7 +364,7 @@ def read_parquet(ctx, spark):
 
 
 # not included in this list: collect_list, grouping, grouping_id
-AGG_SPARK_LIST = set(
+AGG_SPARK_LIST = {
     "approx_count_distinct",
     "avg",
     "collect_set_int",
@@ -393,7 +393,7 @@ AGG_SPARK_LIST = set(
     "var_pop",
     "var_samp",
     "variance",
-)
+}
 
 
 def split_aggregators(aggregate_names, ctx):
@@ -426,7 +426,7 @@ def run_builtin_aggregators(builtin_aggregates, df, ctx, spark):
             )
         if aggregator["name"] == "avg":
             agg_cols.append(F.avg(input_repl).alias(agg["name"]))
-        if aggregator["name"] in set("collect_set_int", "collect_set_float", "collect_set_string"):
+        if aggregator["name"] in {"collect_set_int", "collect_set_float", "collect_set_string"}:
             agg_cols.append(F.collect_set(input_repl).alias(agg["name"]))
         if aggregator["name"] == "count":
             agg_cols.append(F.count(input_repl).alias(agg["name"]))
@@ -438,11 +438,11 @@ def run_builtin_aggregators(builtin_aggregates, df, ctx, spark):
             agg_cols.append(F.covar_samp(input_repl["col1"], input_repl["col2"]).alias(agg["name"]))
         if aggregator["name"] == "kurtosis":
             agg_cols.append(F.kurtosis(input_repl).alias(agg["name"]))
-        if aggregator["name"] in set("max_int", "max_float", "max_string"):
+        if aggregator["name"] in {"max_int", "max_float", "max_string"}:
             agg_cols.append(F.max(input_repl).alias(agg["name"]))
         if aggregator["name"] == "mean":
             agg_cols.append(F.mean(input_repl).alias(agg["name"]))
-        if aggregator["name"] in set("min_int", "min_float", "min_string"):
+        if aggregator["name"] in {"min_int", "min_float", "min_string"}:
             agg_cols.append(F.min(input_repl).alias(agg["name"]))
         if aggregator["name"] == "skewness":
             agg_cols.append(F.skewness(input_repl).alias(agg["name"]))
@@ -452,9 +452,9 @@ def run_builtin_aggregators(builtin_aggregates, df, ctx, spark):
             agg_cols.append(F.stddev_pop(input_repl).alias(agg["name"]))
         if aggregator["name"] == "stddev_samp":
             agg_cols.append(F.stddev_samp(input_repl).alias(agg["name"]))
-        if aggregator["name"] in set("sum_int", "sum_float"):
+        if aggregator["name"] in {"sum_int", "sum_float"}:
             agg_cols.append(F.sum(input_repl).alias(agg["name"]))
-        if aggregator["name"] in set("sum_distinct_int", "sum_distinct_float"):
+        if aggregator["name"] in {"sum_distinct_int", "sum_distinct_float"}:
             agg_cols.append(F.sumDistinct(input_repl).alias(agg["name"]))
         if aggregator["name"] == "var_pop":
             agg_cols.append(F.var_pop(input_repl).alias(agg["name"]))
@@ -582,7 +582,7 @@ def execute_transform_python(column_name, df, ctx, spark, validate=False):
 
         def _transform_and_validate(*values):
             result = _transform(*values)
-            if not util.validate_column_type(result, column_type):
+            if not util.validate_cortex_type(result, column_type):
                 raise UserException(
                     "transformed column " + column_name,
                     "tranformer " + transformed_column["transformer"],

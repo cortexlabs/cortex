@@ -146,24 +146,24 @@ def test_print_samples_horiz(caplog):
     assert "\n".join(records) + "\n" == expected
 
 
-def test_validate_column_type():
-    assert util.validate_column_type(2, "INT_COLUMN") == True
-    assert util.validate_column_type(2.2, "INT_COLUMN") == False
-    assert util.validate_column_type("2", "INT_COLUMN") == False
-    assert util.validate_column_type(None, "INT_COLUMN") == True
+def test_validate_cortex_type():
+    assert util.validate_cortex_type(2, "INT_COLUMN") == True
+    assert util.validate_cortex_type(2.2, "INT_COLUMN") == False
+    assert util.validate_cortex_type("2", "INT_COLUMN") == False
+    assert util.validate_cortex_type(None, "INT_COLUMN") == True
 
-    assert util.validate_column_type(2.2, "FLOAT_COLUMN") == True
-    assert util.validate_column_type(2, "FLOAT_COLUMN") == False
-    assert util.validate_column_type("2", "FLOAT_COLUMN") == False
-    assert util.validate_column_type(None, "FLOAT_COLUMN") == True
+    assert util.validate_cortex_type(2.2, "FLOAT_COLUMN") == True
+    assert util.validate_cortex_type(2, "FLOAT_COLUMN") == False
+    assert util.validate_cortex_type("2", "FLOAT_COLUMN") == False
+    assert util.validate_cortex_type(None, "FLOAT_COLUMN") == True
 
-    assert util.validate_column_type("2", "STRING_COLUMN") == True
-    assert util.validate_column_type(2, "STRING_COLUMN") == False
-    assert util.validate_column_type(2.2, "STRING_COLUMN") == False
-    assert util.validate_column_type(None, "STRING_COLUMN") == True
+    assert util.validate_cortex_type("2", "STRING_COLUMN") == True
+    assert util.validate_cortex_type(2, "STRING_COLUMN") == False
+    assert util.validate_cortex_type(2.2, "STRING_COLUMN") == False
+    assert util.validate_cortex_type(None, "STRING_COLUMN") == True
 
-    assert util.validate_column_type("2", "STRING_LIST_COLUMN") == False
-    assert util.validate_column_type(["2", "string"], "STRING_LIST_COLUMN") == True
+    assert util.validate_cortex_type("2", "STRING_LIST_COLUMN") == False
+    assert util.validate_cortex_type(["2", "string"], "STRING_LIST_COLUMN") == True
 
 
 def test_validate_output_type():
