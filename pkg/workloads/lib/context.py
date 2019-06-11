@@ -415,14 +415,15 @@ class Context:
 
         return column_type
 
-    # replaces column references with column names (unless preserve_column_refs = true, then leaves them untouched)
+    # Replace aggregates and constants with their values, and columns with their names (unless preserve_column_refs == False)
+    # Also validate against input_schema (if not None)
     def populate_values(self, input, input_schema, preserve_column_refs):
         if input is None:
             if input_schema is None:
                 return None
-            if input_schema["_allow_null"]:
+            if input_schema.get("_allow_null") == True:
                 return None
-            raise UserException("Null is not allowed")
+            raise UserException("Null value is not allowed")
 
         if util.is_resource_ref(input):
             res_name = util.get_resource_ref(input)
@@ -447,8 +448,10 @@ class Context:
                     col_type = self.get_inferred_column_type(res_name)
                     if col_type not in input_schema["_type"]:
                         raise UserException(
-                            "column {}: column type mismatch: got {}, expected {}".format(
-                                res_name, col_type, input_schema["_type"]
+                            "column {}: unsupported input type (expected type {}, got type {})".format(
+                                res_name,
+                                util.data_type_str(input_schema["_type"]),
+                                util.data_type_str(col_type),
                             )
                         )
                 if preserve_column_refs:
@@ -460,13 +463,17 @@ class Context:
             elem_schema = None
             if input_schema is not None:
                 if not util.is_list(input_schema["_type"]):
-                    raise UserException("unexpected type (list)")
+                    raise UserException(
+                        "unsupported input type (expected type {}, got {})".format(
+                            util.data_type_str(input_schema["_type"]), util.pp_str_flat(input)
+                        )
+                    )
                 elem_schema = input_schema["_type"][0]
 
                 min_count = input_schema.get("_min_count")
                 if min_count is not None and len(input) < min_count:
                     raise UserException(
-                        "list has length {}, but the minimum length is {}".format(
+                        "list has length {}, but the minimum allowed length is {}".format(
                             len(input), min_count
                         )
                     )
@@ -474,7 +481,7 @@ class Context:
                 max_count = input_schema.get("_max_count")
                 if max_count is not None and len(input) > max_count:
                     raise UserException(
-                        "list has length {}, but the maximum length is {}".format(
+                        "list has length {}, but the maximum allowed length is {}".format(
                             len(input), max_count
                         )
                     )
@@ -496,24 +503,32 @@ class Context:
                     try:
                         val_casted = self.populate_values(val, None, preserve_column_refs)
                     except CortexException as e:
-                        e.wrap(util.pp_str_flat(key_casted))
+                        e.wrap(util.pp_str_flat(key))
                         raise
                     casted[key_casted] = val_casted
                 return casted
 
             if not util.is_dict(input_schema["_type"]):
-                raise UserException("unexpected type (map)")
+                raise UserException(
+                    "unsupported input type (expected type {}, got {})".format(
+                        util.data_type_str(input_schema["_type"]), util.pp_str_flat(input)
+                    )
+                )
 
             min_count = input_schema.get("_min_count")
             if min_count is not None and len(input) < min_count:
                 raise UserException(
-                    "map has length {}, but the minimum length is {}".format(len(input), min_count)
+                    "map has length {}, but the minimum allowed length is {}".format(
+                        len(input), min_count
+                    )
                 )
 
             max_count = input_schema.get("_max_count")
             if max_count is not None and len(input) > max_count:
                 raise UserException(
-                    "map has length {}, but the maximum length is {}".format(len(input), max_count)
+                    "map has length {}, but the maximum allowed length is {}".format(
+                        len(input), max_count
+                    )
                 )
 
             is_generic_map = False
@@ -535,7 +550,7 @@ class Context:
                             val, generic_map_value, preserve_column_refs
                         )
                     except CortexException as e:
-                        e.wrap(util.pp_str_flat(key_casted))
+                        e.wrap(util.pp_str_flat(key))
                         raise
                     casted[key_casted] = val_casted
                 return casted
@@ -543,15 +558,15 @@ class Context:
             # fixed map
             casted = {}
             for key, val_schema in input_schema["_type"].items():
-                default = None
-                if key not in input:
+                if key in input:
+                    val = input[key]
+                else:
                     if val_schema.get("_optional") is not True:
                         raise UserException("missing key: " + util.pp_str_flat(key))
                     if val_schema.get("_default") is None:
                         continue
-                    default = val_schema["_default"]
+                    val = val_schema["_default"]
 
-                val = input.get(key, default)
                 try:
                     val_casted = self.populate_values(val, val_schema, preserve_column_refs)
                 except CortexException as e:
@@ -562,8 +577,12 @@ class Context:
 
         if input_schema is None:
             return input
-        if util.is_list(input_schema["_type"]) or util.is_dict(input_schema["_type"]):
-            raise UserException("unexpected type (scalar)")
+        if not util.is_str(input_schema["_type"]):
+            raise UserException(
+                "unsupported input type (expected type {}, got {})".format(
+                    util.data_type_str(input_schema["_type"]), util.pp_str_flat(input)
+                )
+            )
         return cast_compound_type(input, input_schema["_type"])
 
 
@@ -605,8 +624,8 @@ def cast_compound_type(value, type_str):
             return value
 
     raise UserException(
-        "input value's type is not supported by the schema (got {}, expected input with type {})".format(
-            util.pp_str_flat(value), type_str
+        "unsupported input type (expected type {}, got {})".format(
+            util.data_type_str(type_str), util.pp_str_flat(value)
         )
     )
 
@@ -689,7 +708,7 @@ def _deserialize_raw_ctx(raw_ctx):
 def create_transformer_inputs_from_map(input, col_value_map):
     if util.is_str(input):
         res_name = util.get_resource_ref(input)
-        if res_name in col_value_map:
+        if res_name is not None and res_name in col_value_map:
             return col_value_map[res_name]
         return input
 

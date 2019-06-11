@@ -66,6 +66,11 @@ def pp_str_flat(obj, indent=0):
     return indent_str(out, indent)
 
 
+def data_type_str(obj):
+    # TODO. Also call this method with output types?
+    return pp_str_flat(obj)
+
+
 def log_indent(obj, indent=0, logging_func=logger.info):
     if not is_str(obj):
         text = repr(obj)
@@ -748,8 +753,6 @@ def validate_output_type(value, output_type):
         return False
 
     if is_list(output_type):
-        if not (len(output_type) == 1 and is_str(output_type[0])):
-            return False
         if not is_list(value):
             return False
         for value_item in value:
@@ -759,8 +762,6 @@ def validate_output_type(value, output_type):
 
     if is_dict(output_type):
         if not is_dict(value):
-            return False
-        if len(output_type) == 0:
             return False
 
         is_generic_map = False
@@ -787,10 +788,10 @@ def validate_output_type(value, output_type):
                 return False
         return True
 
-    return False
+    return False  # unexpected
 
 
-# Casts int -> float. Input is assumed to be already validated
+# value is assumed to be already validated against output_type
 def cast_output_type(value, output_type):
     if is_str(output_type):
         if (
@@ -858,17 +859,17 @@ def extract_resource_refs(input):
             return {res}
         return set()
 
+    if is_list(input):
+        resources = set()
+        for item in input:
+            resources = resources.union(extract_resource_refs(item))
+        return resources
+
     if is_dict(input):
         resources = set()
         for key, val in input.items():
             resources = resources.union(extract_resource_refs(key))
             resources = resources.union(extract_resource_refs(val))
-        return resources
-
-    if is_list(input):
-        resources = set()
-        for item in input:
-            resources = resources.union(extract_resource_refs(item))
         return resources
 
     return set()

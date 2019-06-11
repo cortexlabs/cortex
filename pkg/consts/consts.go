@@ -46,7 +46,6 @@ var (
 	AggregatesDir         = "aggregates"
 	TransformersDir       = "transformers"
 	EstimatorsDir         = "estimators"
-	ModelImplsDir         = "model_implementations"
 	PythonPackagesDir     = "python_packages"
 	ModelsDir             = "models"
 	ConstantsDir          = "constants"

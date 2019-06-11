@@ -397,12 +397,12 @@ AGG_SPARK_LIST = {
 
 
 def split_aggregators(aggregate_names, ctx):
-    aggregate_resources = [ctx.aggregates[agg_name] for agg_name in aggregate_names]
+    aggregates = [ctx.aggregates[agg_name] for agg_name in aggregate_names]
 
     builtin_aggregates = []
     custom_aggregates = []
 
-    for agg in aggregate_resources:
+    for agg in aggregates:
         aggregator = ctx.aggregators[agg["aggregator"]]
         if aggregator.get("namespace", None) == "cortex" and aggregator["name"] in AGG_SPARK_LIST:
             builtin_aggregates.append(agg)
@@ -416,52 +416,50 @@ def run_builtin_aggregators(builtin_aggregates, df, ctx, spark):
     agg_cols = []
     for agg in builtin_aggregates:
         aggregator = ctx.aggregators[agg["aggregator"]]
-        input_repl = ctx.populate_values(
-            agg["input"], aggregator["input"], preserve_column_refs=False
-        )
+        input = ctx.populate_values(agg["input"], aggregator["input"], preserve_column_refs=False)
 
         if aggregator["name"] == "approx_count_distinct":
             agg_cols.append(
-                F.approxCountDistinct(input_repl["col"], input_repl.get("rsd")).alias(agg["name"])
+                F.approxCountDistinct(input["col"], input.get("rsd")).alias(agg["name"])
             )
         if aggregator["name"] == "avg":
-            agg_cols.append(F.avg(input_repl).alias(agg["name"]))
+            agg_cols.append(F.avg(input).alias(agg["name"]))
         if aggregator["name"] in {"collect_set_int", "collect_set_float", "collect_set_string"}:
-            agg_cols.append(F.collect_set(input_repl).alias(agg["name"]))
+            agg_cols.append(F.collect_set(input).alias(agg["name"]))
         if aggregator["name"] == "count":
-            agg_cols.append(F.count(input_repl).alias(agg["name"]))
+            agg_cols.append(F.count(input).alias(agg["name"]))
         if aggregator["name"] == "count_distinct":
-            agg_cols.append(F.countDistinct(*input_repl).alias(agg["name"]))
+            agg_cols.append(F.countDistinct(*input).alias(agg["name"]))
         if aggregator["name"] == "covar_pop":
-            agg_cols.append(F.covar_pop(input_repl["col1"], input_repl["col2"]).alias(agg["name"]))
+            agg_cols.append(F.covar_pop(input["col1"], input["col2"]).alias(agg["name"]))
         if aggregator["name"] == "covar_samp":
-            agg_cols.append(F.covar_samp(input_repl["col1"], input_repl["col2"]).alias(agg["name"]))
+            agg_cols.append(F.covar_samp(input["col1"], input["col2"]).alias(agg["name"]))
         if aggregator["name"] == "kurtosis":
-            agg_cols.append(F.kurtosis(input_repl).alias(agg["name"]))
+            agg_cols.append(F.kurtosis(input).alias(agg["name"]))
         if aggregator["name"] in {"max_int", "max_float", "max_string"}:
-            agg_cols.append(F.max(input_repl).alias(agg["name"]))
+            agg_cols.append(F.max(input).alias(agg["name"]))
         if aggregator["name"] == "mean":
-            agg_cols.append(F.mean(input_repl).alias(agg["name"]))
+            agg_cols.append(F.mean(input).alias(agg["name"]))
         if aggregator["name"] in {"min_int", "min_float", "min_string"}:
-            agg_cols.append(F.min(input_repl).alias(agg["name"]))
+            agg_cols.append(F.min(input).alias(agg["name"]))
         if aggregator["name"] == "skewness":
-            agg_cols.append(F.skewness(input_repl).alias(agg["name"]))
+            agg_cols.append(F.skewness(input).alias(agg["name"]))
         if aggregator["name"] == "stddev":
-            agg_cols.append(F.stddev(input_repl).alias(agg["name"]))
+            agg_cols.append(F.stddev(input).alias(agg["name"]))
         if aggregator["name"] == "stddev_pop":
-            agg_cols.append(F.stddev_pop(input_repl).alias(agg["name"]))
+            agg_cols.append(F.stddev_pop(input).alias(agg["name"]))
         if aggregator["name"] == "stddev_samp":
-            agg_cols.append(F.stddev_samp(input_repl).alias(agg["name"]))
+            agg_cols.append(F.stddev_samp(input).alias(agg["name"]))
         if aggregator["name"] in {"sum_int", "sum_float"}:
-            agg_cols.append(F.sum(input_repl).alias(agg["name"]))
+            agg_cols.append(F.sum(input).alias(agg["name"]))
         if aggregator["name"] in {"sum_distinct_int", "sum_distinct_float"}:
-            agg_cols.append(F.sumDistinct(input_repl).alias(agg["name"]))
+            agg_cols.append(F.sumDistinct(input).alias(agg["name"]))
         if aggregator["name"] == "var_pop":
-            agg_cols.append(F.var_pop(input_repl).alias(agg["name"]))
+            agg_cols.append(F.var_pop(input).alias(agg["name"]))
         if aggregator["name"] == "var_samp":
-            agg_cols.append(F.var_samp(input_repl).alias(agg["name"]))
+            agg_cols.append(F.var_samp(input).alias(agg["name"]))
         if aggregator["name"] == "variance":
-            agg_cols.append(F.variance(input_repl).alias(agg["name"]))
+            agg_cols.append(F.variance(input).alias(agg["name"]))
 
     results = df.agg(*agg_cols).collect()[0].asDict()
 
@@ -479,12 +477,10 @@ def run_builtin_aggregators(builtin_aggregates, df, ctx, spark):
 def run_custom_aggregator(aggregate, df, ctx, spark):
     aggregator = ctx.aggregators[aggregate["aggregator"]]
     aggregator_impl, _ = ctx.get_aggregator_impl(aggregate["name"])
-    input_repl = ctx.populate_values(
-        aggregate["input"], aggregator["input"], preserve_column_refs=False
-    )
+    input = ctx.populate_values(aggregate["input"], aggregator["input"], preserve_column_refs=False)
 
     try:
-        result = aggregator_impl.aggregate_spark(df, input_repl)
+        result = aggregator_impl.aggregate_spark(df, input)
     except Exception as e:
         raise UserRuntimeException(
             "aggregate " + aggregate["name"],
@@ -517,11 +513,11 @@ def execute_transform_spark(column_name, df, ctx, spark):
         spark.sparkContext.addPyFile(trans_impl_path)  # Executor pods need this because of the UDF
         ctx.spark_uploaded_impls[trans_impl_path] = True
 
-    input_repl = ctx.populate_values(
+    input = ctx.populate_values(
         transformed_column["input"], transformer["input"], preserve_column_refs=False
     )
     try:
-        return trans_impl.transform_spark(df, input_repl, column_name)
+        return trans_impl.transform_spark(df, input, column_name)
     except Exception as e:
         raise UserRuntimeException("function transform_spark") from e
 
@@ -532,7 +528,7 @@ def execute_transform_python(column_name, df, ctx, spark, validate=False):
     transformer = ctx.transformers[transformed_column["transformer"]]
 
     input_cols_sorted = sorted(ctx.extract_column_names(transformed_column["input"]))
-    input_repl = ctx.populate_values(
+    input = ctx.populate_values(
         transformed_column["input"], transformer["input"], preserve_column_refs=True
     )
 
@@ -541,9 +537,7 @@ def execute_transform_python(column_name, df, ctx, spark, validate=False):
         ctx.spark_uploaded_impls[trans_impl_path] = True
 
     def _transform(*values):
-        transformer_input = create_transformer_inputs_from_lists(
-            input_repl, input_cols_sorted, values
-        )
+        transformer_input = create_transformer_inputs_from_lists(input, input_cols_sorted, values)
         return trans_impl.transform_python(transformer_input)
 
     transform_python_func = _transform
@@ -593,15 +587,15 @@ def validate_transformer(column_name, test_df, ctx, spark):
             if transformer["output_type"] == consts.COLUMN_TYPE_INFERRED:
                 sample_df = test_df.collect()
                 sample = sample_df[0]
-                input_repl = ctx.populate_values(
+                input = ctx.populate_values(
                     transformed_column["input"], transformer["input"], preserve_column_refs=True
                 )
-                transformer_input = create_transformer_inputs_from_map(input_repl, sample)
+                transformer_input = create_transformer_inputs_from_map(input, sample)
                 initial_transformed_sample = trans_impl.transform_python(transformer_input)
                 inferred_python_type = infer_type(initial_transformed_sample)
 
                 for row in sample_df:
-                    transformer_input = create_transformer_inputs_from_map(input_repl, row)
+                    transformer_input = create_transformer_inputs_from_map(input, row)
                     transformed_sample = trans_impl.transform_python(transformer_input)
                     if inferred_python_type != infer_type(transformed_sample):
                         raise UserRuntimeException(

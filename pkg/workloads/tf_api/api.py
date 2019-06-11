@@ -76,17 +76,17 @@ def transform_sample(sample):
             transformed_value = sample[column_name]
         else:
             transformed_column = ctx.transformed_columns[column_name]
-            input_repl = ctx.populate_values(
-                transformed_column["input"], None, preserve_column_refs=True
-            )
-            transformer_input = create_transformer_inputs_from_map(input_repl, sample)
             trans_impl = local_cache["trans_impls"][column_name]
             if not hasattr(trans_impl, "transform_python"):
                 raise UserException(
                     "transformed column " + column_name,
                     "transformer " + transformed_column["transformer"],
-                    "transform_python() function is missing",
+                    "transform_python function is missing",
                 )
+            input = ctx.populate_values(
+                transformed_column["input"], None, preserve_column_refs=True
+            )
+            transformer_input = create_transformer_inputs_from_map(input, sample)
             transformed_value = trans_impl.transform_python(transformer_input)
 
         transformed_sample[column_name] = transformed_value
@@ -123,9 +123,9 @@ def reverse_transform(value):
     if not (trans_impl and hasattr(trans_impl, "reverse_transform_python")):
         return None
 
-    input_repl = ctx.populate_values(target_col["input"], None, preserve_column_refs=False)
+    input = ctx.populate_values(target_col["input"], None, preserve_column_refs=False)
     try:
-        result = trans_impl.reverse_transform_python(value, input_repl)
+        result = trans_impl.reverse_transform_python(value, input)
     except Exception as e:
         raise UserRuntimeException(
             "transformer " + target_col["transformer"], "function reverse_transform_python"
@@ -246,10 +246,7 @@ def predict(app_name, api_name):
         return "Malformed JSON", status.HTTP_400_BAD_REQUEST
 
     ctx = local_cache["ctx"]
-    model = local_cache["model"]
-    estimator = local_cache["estimator"]
     api = local_cache["api"]
-    target_col_type = local_cache["target_col_type"]
 
     response = {}
 
