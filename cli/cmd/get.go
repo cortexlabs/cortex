@@ -421,7 +421,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 	var samplePlaceholderFields []string
 	for rawColumnName, rawColumn := range ctx.RawColumns {
 		if resIDs.Has(rawColumn.GetID()) {
-			fieldStr := `"` + rawColumnName + `": ` + rawColumn.GetColumnType().JSONPlaceholder()
+			fieldStr := fmt.Sprintf("\"%s\": %s", rawColumnName, rawColumn.GetColumnType().JSONPlaceholder())
 			samplePlaceholderFields = append(samplePlaceholderFields, fieldStr)
 		}
 	}

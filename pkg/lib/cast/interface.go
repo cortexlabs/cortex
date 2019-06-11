@@ -742,19 +742,3 @@ func IsScalarType(in interface{}) bool {
 	}
 	return false
 }
-
-func ToScalarType(in interface{}) (interface{}, bool) {
-	if casted, ok := InterfaceToInt64(in); ok {
-		return casted, true
-	}
-	if casted, ok := InterfaceToFloat64(in); ok {
-		return casted, true
-	}
-	if casted, ok := in.(bool); ok {
-		return casted, true
-	}
-	if casted, ok := in.(string); ok {
-		return casted, true
-	}
-	return in, false
-}
