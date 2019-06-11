@@ -508,16 +508,6 @@ def run_custom_aggregator(aggregate, df, ctx, spark):
     return result
 
 
-# def extract_inputs(column_name, ctx):
-#     columns_input_config = ctx.transformed_columns[column_name]["inputs"]["columns"]
-#     impl_args_schema = ctx.transformed_columns[column_name]["inputs"]["args"]
-#     if impl_args_schema is not None:
-#         impl_args = ctx.populate_args(impl_args_schema)
-#     else:
-#         impl_args = {}
-#     return columns_input_config, impl_args
-
-
 def execute_transform_spark(column_name, df, ctx, spark):
     trans_impl, trans_impl_path = ctx.get_transformer_impl(column_name)
     transformed_column = ctx.transformed_columns[column_name]
@@ -534,24 +524,6 @@ def execute_transform_spark(column_name, df, ctx, spark):
         return trans_impl.transform_spark(df, input_repl, column_name)
     except Exception as e:
         raise UserRuntimeException("function transform_spark") from e
-
-
-# def column_names_to_index(columns_input_config):
-#     column_list = []
-#     for k, v in columns_input_config.items():
-#         if util.is_list(v):
-#             column_list += v
-#         else:
-#             column_list.append(v)
-
-#     required_input_columns_sorted = sorted(set(column_list))
-
-#     index_to_col_map = dict(
-#         [(column_name, idx) for idx, column_name in enumerate(required_input_columns_sorted)]
-#     )
-
-#     columns_input_config_indexed = create_inputs_map(index_to_col_map, columns_input_config)
-#     return required_input_columns_sorted, columns_input_config_indexed
 
 
 def execute_transform_python(column_name, df, ctx, spark, validate=False):

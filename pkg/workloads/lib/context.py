@@ -445,7 +445,7 @@ class Context:
             if res_name in self.columns:
                 if input_schema is not None:
                     col_type = self.get_inferred_column_type(res_name)
-                    if not column_type_matches(col_type, input_schema["_type"]):
+                    if col_type not in input_schema["_type"]:
                         raise UserException(
                             "column {}: column type mismatch: got {}, expected {}".format(
                                 res_name, col_type, input_schema["_type"]
@@ -587,12 +587,6 @@ def is_compound_type(type_str):
     return True
 
 
-def column_type_matches(value_type, schema_type):
-    if consts.COLUMN_TYPE_FLOAT in schema_type:
-        schema_type = schema_type + "|" + consts.COLUMN_TYPE_INT
-    return value_type in schema_type
-
-
 def cast_compound_type(value, type_str):
     allowed_types = type_str.split("|")
     if consts.VALUE_TYPE_INT in allowed_types:
@@ -723,139 +717,3 @@ def create_transformer_inputs_from_lists(input, input_cols_sorted, col_values):
         col_value_map[col_name] = col_value
 
     return create_transformer_inputs_from_map(input, col_value_map)
-
-
-# def create_column_inputs_map(self, values_map, column_name):
-#     """Construct an inputs dict with actual data"""
-#     columns_input_config = self.transformed_columns[column_name]["inputs"]["columns"]
-#     return create_inputs_map(values_map, columns_input_config)
-
-# def create_inputs_map(values_map, input_config):
-#     inputs = {}
-#     for input_name, input_config_item in input_config.items():
-#         if util.is_str(input_config_item):
-#             inputs[input_name] = values_map[input_config_item]
-#         elif util.is_int(input_config_item):
-#             inputs[input_name] = values_map[input_config_item]
-#         elif util.is_list(input_config_item):
-#             inputs[input_name] = [values_map[f] for f in input_config_item]
-#         else:
-#             raise CortexException("invalid column inputs")
-
-#     return inputs
-
-# def populate_args(self, args_dict):
-#     return {
-#         arg_name: self.get_obj(self.values[value_name]["key"])
-#         for arg_name, value_name in args_dict.items()
-#     }
-
-# def get_model_impl(self, model_name):
-#     if model_name in self._model_impls:
-#         return self._model_impls[model_name]
-
-#     model = self.models[model_name]
-
-#     try:
-#         impl, impl_path = self.load_module("model", model_name, model["impl_key"])
-#         _validate_impl(impl, MODEL_IMPL_VALIDATION)
-#     except CortexException as e:
-#         e.wrap("model " + model_name)
-#         raise
-
-#     self._model_impls[model_name] = impl
-#     return impl
-
-# def column_config(self, column_name):
-#     if self.is_raw_column(column_name):
-#         return self.raw_column_config(column_name)
-#     elif self.is_transformed_column(column_name):
-#         return self.transformed_column_config(column_name)
-#     return None
-
-# def raw_column_config(self, column_name):
-#     raw_column = self.raw_columns[column_name]
-#     if raw_column is None:
-#         return None
-#     config = deepcopy(raw_column)
-#     config_keys = ["name", "type", "required", "min", "max", "values", "tags"]
-#     util.keep_dict_keys(config, config_keys)
-#     return config
-
-# def transformed_column_config(self, column_name):
-#     transformed_column = self.transformed_columns[column_name]
-#     if transformed_column is None:
-#         return None
-#     config = deepcopy(transformed_column)
-#     config_keys = ["name", "transformer", "inputs", "tags", "type"]
-#     util.keep_dict_keys(config, config_keys)
-#     config["inputs"] = self._expand_inputs_config(config["inputs"])
-#     config["transformer"] = self.transformer_config(config["transformer"])
-#     return config
-
-# def value_config(self, value_name):
-#     if self.is_constant(value_name):
-#         return self.constant_config(value_name)
-#     elif self.is_aggregate(value_name):
-#         return self.aggregate_config(value_name)
-#     return None
-
-# def constant_config(self, constant_name):
-#     constant = self.constants[constant_name]
-#     if constant is None:
-#         return None
-#     config = deepcopy(constant)
-#     config_keys = ["name", "type", "tags"]
-#     util.keep_dict_keys(config, config_keys)
-#     return config
-
-# def aggregate_config(self, aggregate_name):
-#     aggregate = self.aggregates[aggregate_name]
-#     if aggregate is None:
-#         return None
-#     config = deepcopy(aggregate)
-#     config_keys = ["name", "type", "inputs", "aggregator", "tags"]
-#     util.keep_dict_keys(config, config_keys)
-#     config["inputs"] = self._expand_inputs_config(config["inputs"])
-#     config["aggregator"] = self.aggregator_config(config["aggregator"])
-#     return config
-
-# def aggregator_config(self, aggregator_name):
-#     aggregator = self.aggregators[aggregator_name]
-#     if aggregator is None:
-#         return None
-#     config = deepcopy(aggregator)
-#     config_keys = ["name", "output_type", "inputs"]
-#     util.keep_dict_keys(config, config_keys)
-#     config["name"] = aggregator_name  # Use the fully qualified name (includes namespace)
-#     return config
-
-# def transformer_config(self, transformer_name):
-#     transformer = self.transformers[transformer_name]
-#     if transformer is None:
-#         return None
-#     config = deepcopy(transformer)
-#     config_keys = ["name", "output_type", "inputs"]
-#     util.keep_dict_keys(config, config_keys)
-#     config["name"] = transformer_name  # Use the fully qualified name (includes namespace)
-#     return config
-
-# def _expand_inputs_config(self, inputs_config):
-#     inputs_config["columns"] = self._expand_columns_input_dict(inputs_config["columns"])
-#     inputs_config["args"] = self._expand_args_dict(inputs_config["args"])
-#     return inputs_config
-
-# def _expand_columns_input_dict(self, input_columns_dict):
-#     expanded = {}
-#     for column_name, value in input_columns_dict.items():
-#         if util.util.is_str(value):
-#             expanded[column_name] = self.column_config(value)
-#         elif util.is_list(value):
-#             expanded[column_name] = [self.column_config(name) for name in value]
-#     return expanded
-
-# def _expand_args_dict(self, args_dict):
-#     expanded = {}
-#     for arg_name, value_name in args_dict.items():
-#         expanded[arg_name] = self.value_config(value_name)
-#     return expanded

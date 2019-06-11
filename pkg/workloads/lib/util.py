@@ -872,25 +872,3 @@ def extract_resource_refs(input):
         return resources
 
     return set()
-
-
-# def replace_resource_refs(input):
-#     if is_str(input):
-#         res = util.get_resource_ref(input)
-#         if res is not None:
-#             return res
-#         return input
-
-#     if is_dict(input):
-#         replaced = {}
-#         for key, val in input.items():
-#             replaced[replace_resource_refs(key)] = replace_resource_refs(val)
-#         return replaced
-
-#     if is_list(input):
-#         replaced = []
-#         for item in input:
-#             replaced.append(replace_resource_refs(item))
-#         return replaced
-
-#     return input
