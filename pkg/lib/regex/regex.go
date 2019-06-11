@@ -31,12 +31,12 @@ func MatchAnyRegex(s string, regexes []*regexp.Regexp) bool {
 
 var alphaNumericDashDotUnderscoreRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-\.]+$`)
 
-func CheckAlphaNumericDashDotUnderscore(s string) bool {
+func IsAlphaNumericDashDotUnderscore(s string) bool {
 	return alphaNumericDashDotUnderscoreRegex.MatchString(s)
 }
 
 var alphaNumericDashUnderscoreRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-]+$`)
 
-func CheckAlphaNumericDashUnderscore(s string) bool {
+func IsAlphaNumericDashUnderscore(s string) bool {
 	return alphaNumericDashUnderscoreRegex.MatchString(s)
 }

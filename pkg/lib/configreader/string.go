@@ -193,19 +193,19 @@ func ValidateStringVal(val string, v *StringValidation) error {
 	}
 
 	if v.AlphaNumericDashDotUnderscore {
-		if !regex.CheckAlphaNumericDashDotUnderscore(val) {
+		if !regex.IsAlphaNumericDashDotUnderscore(val) {
 			return ErrorAlphaNumericDashDotUnderscore(val)
 		}
 	}
 
 	if v.AlphaNumericDashUnderscore {
-		if !regex.CheckAlphaNumericDashUnderscore(val) {
+		if !regex.IsAlphaNumericDashUnderscore(val) {
 			return ErrorAlphaNumericDashUnderscore(val)
 		}
 	}
 
 	if v.AlphaNumericDashDotUnderscoreOrEmpty {
-		if !regex.CheckAlphaNumericDashDotUnderscore(val) && val != "" {
+		if !regex.IsAlphaNumericDashDotUnderscore(val) && val != "" {
 			return ErrorAlphaNumericDashDotUnderscore(val)
 		}
 	}
