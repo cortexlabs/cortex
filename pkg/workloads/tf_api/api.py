@@ -158,20 +158,17 @@ def parse_response_proto(response_proto):
     results_dict = json_format.MessageToDict(response_proto)
     outputs = results_dict["outputs"]
     value_key = DTYPE_TO_VALUE_KEY[outputs[prediction_key]["dtype"]]
-    predicted = outputs[prediction_key][value_key][0]
-    predicted = util.cast(predicted, target_col_type)
+    prediction = outputs[prediction_key][value_key][0]
+    prediction = util.cast(prediction, target_col_type)
 
     result = {}
+    result["prediction"] = prediction
+    result["prediction_reversed"] = reverse_transform(prediction)
+
+    result["response"] = {}
     for key in outputs.keys():
         value_key = DTYPE_TO_VALUE_KEY[outputs[key]["dtype"]]
-        result[key] = outputs[key][value_key]
-
-    if target_col_type in {consts.COLUMN_TYPE_STRING, consts.COLUMN_TYPE_INT}:
-        result["predicted_class"] = predicted
-        result["predicted_class_reversed"] = reverse_transform(predicted)
-    else:
-        result["predicted_value"] = predicted
-        result["predicted_value_reversed"] = reverse_transform(predicted)
+        result["response"][key] = outputs[key][value_key]
 
     return result
 
@@ -198,13 +195,14 @@ def run_predict(sample):
     prediction_request = create_prediction_request(transformed_sample)
     response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
     result = parse_response_proto(response_proto)
-    result["transformed_sample"] = transformed_sample
     util.log_indent("Raw sample:", indent=4)
     util.log_pretty(sample, indent=6)
     util.log_indent("Transformed sample:", indent=4)
     util.log_pretty(transformed_sample, indent=6)
     util.log_indent("Prediction:", indent=4)
     util.log_pretty(result, indent=6)
+
+    result["transformed_sample"] = transformed_sample
 
     return result
 
@@ -297,11 +295,7 @@ def predict(app_name, api_name):
 
         predictions.append(result)
 
-    if target_col_type in {consts.COLUMN_TYPE_STRING, consts.COLUMN_TYPE_INT}:
-        response["classification_predictions"] = predictions
-    else:
-        response["regression_predictions"] = predictions
-
+    response["predictions"] = predictions
     response["resource_id"] = api["id"]
 
     return jsonify(response)
