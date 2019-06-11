@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -411,13 +412,20 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 	}
 
 	out += titleStr("Endpoint")
-	var samplePlaceholderFields []string
+	resIDs := strset.New()
 	combinedInput := []interface{}{model.Input, model.TrainingInput}
-	for _, res := range ctx.ExtractCortexResources(combinedInput, resource.RawColumnType) {
-		rawColumn := res.(context.RawColumn)
-		fieldStr := `"` + rawColumn.GetName() + `": ` + rawColumn.GetColumnType().JSONPlaceholder()
-		samplePlaceholderFields = append(samplePlaceholderFields, fieldStr)
+	for _, res := range ctx.ExtractCortexResources(combinedInput) {
+		resIDs.Add(res.GetID())
+		resIDs.Merge(ctx.AllComputedResourceDependencies(res.GetID()))
 	}
+	var samplePlaceholderFields []string
+	for rawColumnName, rawColumn := range ctx.RawColumns {
+		if resIDs.Has(rawColumn.GetID()) {
+			fieldStr := `"` + rawColumnName + `": ` + rawColumn.GetColumnType().JSONPlaceholder()
+			samplePlaceholderFields = append(samplePlaceholderFields, fieldStr)
+		}
+	}
+	sort.Strings(samplePlaceholderFields)
 	samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"
 	out += "URL:      " + urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path) + "\n"
 	out += "Method:   POST\n"
