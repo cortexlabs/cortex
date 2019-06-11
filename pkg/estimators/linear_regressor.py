@@ -44,7 +44,7 @@ def create_estimator(run_config, model_config):
             )
         )
 
-    return tf.estimator.DNNRegressor(
+    return tf.estimator.LinearRegressor(
         feature_columns=feature_columns,
         weight_column=model_config["input"].get("weight_column", None),
         config=run_config,

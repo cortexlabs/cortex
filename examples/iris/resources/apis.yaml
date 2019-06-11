@@ -1,5 +1,0 @@
-- kind: api
-  name: iris-type
-  model: @dnn
-  compute:
-    replicas: 1

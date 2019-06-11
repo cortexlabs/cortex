@@ -57,7 +57,7 @@ def create_estimator(run_config, model_config):
         target_vocab = model_config["input"]["target_vocab"]
         num_classes = len(target_vocab)
 
-    return tf.estimator.DNNClassifier(
+    return tf.estimator.LinearClassifier(
         feature_columns=feature_columns,
         n_classes=num_classes,
         label_vocabulary=target_vocab,

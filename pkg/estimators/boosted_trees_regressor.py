@@ -59,7 +59,7 @@ def create_estimator(run_config, model_config):
             )
         )
 
-    return tf.estimator.BoostedTreesClassifier(
+    return tf.estimator.BoostedTreesRegressor(
         feature_columns=feature_columns,
         n_batches_per_layer=model_config["hparams"]["batches_per_layer"],
         weight_column=model_config["input"].get("weight_column", None),

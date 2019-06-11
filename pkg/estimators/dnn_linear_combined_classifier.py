@@ -5,7 +5,7 @@ def create_estimator(run_config, model_config):
     dnn_feature_columns = []
 
     for col_name in model_config["input"]["dnn_columns"]["numeric_columns"]:
-        feature_columns.append(tf.feature_column.numeric_column(col_name))
+        dnn_feature_columns.append(tf.feature_column.numeric_column(col_name))
 
     for col_info in model_config["input"]["dnn_columns"]["categorical_columns_with_vocab"]:
         col = tf.feature_column.categorical_column_with_vocabulary_list(
@@ -114,7 +114,7 @@ def create_estimator(run_config, model_config):
         target_vocab = model_config["input"]["target_vocab"]
         num_classes = len(target_vocab)
 
-    return tf.estimator.DNNClassifier(
+    return tf.estimator.DNNLinearCombinedClassifier(
         linear_feature_columns=linear_feature_columns,
         dnn_feature_columns=dnn_feature_columns,
         n_classes=num_classes,
