@@ -166,64 +166,66 @@ def test_validate_column_type():
     assert util.validate_column_type(["2", "string"], "STRING_LIST_COLUMN") == True
 
 
-def test_validate_value_type():
-    assert util.validate_value_type(2, "INT") == True
-    assert util.validate_value_type(2.2, "INT") == False
-    assert util.validate_value_type("2", "INT") == False
-    assert util.validate_value_type(None, "INT") == True
+def test_validate_output_type():
+    assert util.validate_output_type(2, "INT") == True
+    assert util.validate_output_type(2.2, "INT") == False
+    assert util.validate_output_type("2", "INT") == False
+    assert util.validate_output_type(None, "INT") == True
 
-    assert util.validate_value_type(2.2, "FLOAT") == True
-    assert util.validate_value_type(2, "FLOAT") == False
-    assert util.validate_value_type("2", "FLOAT") == False
-    assert util.validate_value_type(None, "FLOAT") == True
+    assert util.validate_output_type(2.2, "FLOAT") == True
+    assert util.validate_output_type(2, "FLOAT") == False
+    assert util.validate_output_type("2", "FLOAT") == False
+    assert util.validate_output_type(None, "FLOAT") == True
 
-    assert util.validate_value_type(False, "BOOL") == True
-    assert util.validate_value_type(2, "BOOL") == False
-    assert util.validate_value_type("2", "BOOL") == False
-    assert util.validate_value_type(None, "BOOL") == True
+    assert util.validate_output_type(False, "BOOL") == True
+    assert util.validate_output_type(2, "BOOL") == False
+    assert util.validate_output_type("2", "BOOL") == False
+    assert util.validate_output_type(None, "BOOL") == True
 
-    assert util.validate_value_type(2.2, "INT|FLOAT") == True
-    assert util.validate_value_type(2, "FLOAT|INT") == True
-    assert util.validate_value_type("2", "FLOAT|INT") == False
-    assert util.validate_value_type(None, "INT|FLOAT") == True
+    assert util.validate_output_type(2.2, "INT|FLOAT") == True
+    assert util.validate_output_type(2, "FLOAT|INT") == True
+    assert util.validate_output_type("2", "FLOAT|INT") == False
+    assert util.validate_output_type(None, "INT|FLOAT") == True
 
-    assert util.validate_value_type({"test": 2.2}, {"STRING": "FLOAT"}) == True
-    assert util.validate_value_type({"test": 2.2, "test2": 3.3}, {"STRING": "FLOAT"}) == True
-    assert util.validate_value_type({}, {"STRING": "FLOAT"}) == True
-    assert util.validate_value_type({"test": "2.2"}, {"STRING": "FLOAT"}) == False
-    assert util.validate_value_type({2: 2.2}, {"STRING": "FLOAT"}) == False
+    assert util.validate_output_type({"test": 2.2}, {"STRING": "FLOAT"}) == True
+    assert util.validate_output_type({"test": 2.2, "test2": 3.3}, {"STRING": "FLOAT"}) == True
+    assert util.validate_output_type({}, {"STRING": "FLOAT"}) == True
+    assert util.validate_output_type({"test": "2.2"}, {"STRING": "FLOAT"}) == False
+    assert util.validate_output_type({2: 2.2}, {"STRING": "FLOAT"}) == False
 
-    assert util.validate_value_type({"test": 2.2}, {"STRING": "INT|FLOAT"}) == True
-    assert util.validate_value_type({"a": 2.2, "b": False}, {"STRING": "FLOAT|BOOL"}) == True
-    assert util.validate_value_type({"test": 2.2, "test2": 3}, {"STRING": "FLOAT|BOOL"}) == False
-    assert util.validate_value_type({}, {"STRING": "INT|FLOAT"}) == True
-    assert util.validate_value_type({"test": "2.2"}, {"STRING": "FLOAT|INT"}) == False
-    assert util.validate_value_type({2: 2.2}, {"STRING": "INT|FLOAT"}) == False
+    assert util.validate_output_type({"test": 2.2}, {"STRING": "INT|FLOAT"}) == True
+    assert util.validate_output_type({"a": 2.2, "b": False}, {"STRING": "FLOAT|BOOL"}) == True
+    assert util.validate_output_type({"test": 2.2, "test2": 3}, {"STRING": "FLOAT|BOOL"}) == False
+    assert util.validate_output_type({}, {"STRING": "INT|FLOAT"}) == True
+    assert util.validate_output_type({"test": "2.2"}, {"STRING": "FLOAT|INT"}) == False
+    assert util.validate_output_type({2: 2.2}, {"STRING": "INT|FLOAT"}) == False
 
-    assert util.validate_value_type({"f": 2.2, "i": 2}, {"f": "FLOAT", "i": "INT"}) == True
-    assert util.validate_value_type({"f": 2.2, "i": 2.2}, {"f": "FLOAT", "i": "INT"}) == False
-    assert util.validate_value_type({"f": "s", "i": 2}, {"f": "FLOAT", "i": "INT"}) == False
-    assert util.validate_value_type({"f": 2.2}, {"f": "FLOAT", "i": "INT"}) == False
-    assert util.validate_value_type({"f": 2.2, "i": None}, {"f": "FLOAT", "i": "INT"}) == True
-    assert util.validate_value_type({"f": 0.2, "i": 2, "e": 1}, {"f": "FLOAT", "i": "INT"}) == False
+    assert util.validate_output_type({"f": 2.2, "i": 2}, {"f": "FLOAT", "i": "INT"}) == True
+    assert util.validate_output_type({"f": 2.2, "i": 2.2}, {"f": "FLOAT", "i": "INT"}) == False
+    assert util.validate_output_type({"f": "s", "i": 2}, {"f": "FLOAT", "i": "INT"}) == False
+    assert util.validate_output_type({"f": 2.2}, {"f": "FLOAT", "i": "INT"}) == False
+    assert util.validate_output_type({"f": 2.2, "i": None}, {"f": "FLOAT", "i": "INT"}) == True
+    assert (
+        util.validate_output_type({"f": 0.2, "i": 2, "e": 1}, {"f": "FLOAT", "i": "INT"}) == False
+    )
 
-    assert util.validate_value_type(["s"], ["STRING"]) == True
-    assert util.validate_value_type(["a", "b", "c"], ["STRING"]) == True
-    assert util.validate_value_type([], ["STRING"]) == True
-    assert util.validate_value_type(None, ["STRING"]) == True
-    assert util.validate_value_type([2], ["STRING"]) == False
-    assert util.validate_value_type(["a", False, "c"], ["STRING"]) == False
-    assert util.validate_value_type("a", ["STRING"]) == False
+    assert util.validate_output_type(["s"], ["STRING"]) == True
+    assert util.validate_output_type(["a", "b", "c"], ["STRING"]) == True
+    assert util.validate_output_type([], ["STRING"]) == True
+    assert util.validate_output_type(None, ["STRING"]) == True
+    assert util.validate_output_type([2], ["STRING"]) == False
+    assert util.validate_output_type(["a", False, "c"], ["STRING"]) == False
+    assert util.validate_output_type("a", ["STRING"]) == False
 
-    assert util.validate_value_type([2], ["FLOAT|INT|BOOL"]) == True
-    assert util.validate_value_type([2.2], ["FLOAT|INT|BOOL"]) == True
-    assert util.validate_value_type([False], ["FLOAT|INT|BOOL"]) == True
-    assert util.validate_value_type([2, 2.2, False], ["FLOAT|INT|BOOL"]) == True
-    assert util.validate_value_type([], ["FLOAT|INT|BOOL"]) == True
-    assert util.validate_value_type(None, ["FLOAT|INT|BOOL"]) == True
-    assert util.validate_value_type([2, "s", True], ["FLOAT|INT|BOOL"]) == False
-    assert util.validate_value_type(["s"], ["FLOAT|INT|BOOL"]) == False
-    assert util.validate_value_type(2, ["FLOAT|INT|BOOL"]) == False
+    assert util.validate_output_type([2], ["FLOAT|INT|BOOL"]) == True
+    assert util.validate_output_type([2.2], ["FLOAT|INT|BOOL"]) == True
+    assert util.validate_output_type([False], ["FLOAT|INT|BOOL"]) == True
+    assert util.validate_output_type([2, 2.2, False], ["FLOAT|INT|BOOL"]) == True
+    assert util.validate_output_type([], ["FLOAT|INT|BOOL"]) == True
+    assert util.validate_output_type(None, ["FLOAT|INT|BOOL"]) == True
+    assert util.validate_output_type([2, "s", True], ["FLOAT|INT|BOOL"]) == False
+    assert util.validate_output_type(["s"], ["FLOAT|INT|BOOL"]) == False
+    assert util.validate_output_type(2, ["FLOAT|INT|BOOL"]) == False
 
     value_type = {
         "map": {"STRING": "FLOAT"},
@@ -270,7 +272,7 @@ def test_validate_value_type():
             },
         },
     }
-    assert util.validate_value_type(value, value_type) == True
+    assert util.validate_output_type(value, value_type) == True
 
     value = {
         "map": {"a": 2.2, "b": float(3)},
@@ -292,7 +294,7 @@ def test_validate_value_type():
             "testB": None,
         },
     }
-    assert util.validate_value_type(value, value_type) == True
+    assert util.validate_output_type(value, value_type) == True
 
     value = {
         "map": {"a": 2.2, "b": float(3)},
@@ -320,7 +322,7 @@ def test_validate_value_type():
             },
         },
     }
-    assert util.validate_value_type(value, value_type) == False
+    assert util.validate_output_type(value, value_type) == False
 
     value = {
         "map": {"a": 2.2, "b": float(3)},
@@ -349,7 +351,7 @@ def test_validate_value_type():
             },
         },
     }
-    assert util.validate_value_type(value, value_type) == False
+    assert util.validate_output_type(value, value_type) == False
 
     value = {
         "map": {"a": 2.2, "b": float(3)},
@@ -378,7 +380,7 @@ def test_validate_value_type():
             },
         },
     }
-    assert util.validate_value_type(value, value_type) == False
+    assert util.validate_output_type(value, value_type) == False
 
     value = {
         "map": {"a": 2.2, "b": float(3)},
@@ -407,7 +409,7 @@ def test_validate_value_type():
             },
         },
     }
-    assert util.validate_value_type(value, value_type) == False
+    assert util.validate_output_type(value, value_type) == False
 
     value = {
         "map": {"a": 2.2, "b": float(3)},
@@ -436,7 +438,7 @@ def test_validate_value_type():
             },
         },
     }
-    assert util.validate_value_type(value, value_type) == False
+    assert util.validate_output_type(value, value_type) == False
 
     value = {
         "map": {"a": 2.2, "b": float(3)},
@@ -465,4 +467,4 @@ def test_validate_value_type():
             },
         },
     }
-    assert util.validate_value_type(value, value_type) == False
+    assert util.validate_output_type(value, value_type) == False

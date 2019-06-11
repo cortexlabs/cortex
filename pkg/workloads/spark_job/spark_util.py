@@ -42,8 +42,13 @@ FLOAT_PRECISION = 1e-4
 CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES = {
     consts.COLUMN_TYPE_INT: [IntegerType(), LongType()],
     consts.COLUMN_TYPE_INT_LIST: [ArrayType(IntegerType(), True), ArrayType(LongType(), True)],
-    consts.COLUMN_TYPE_FLOAT: [FloatType(), DoubleType()],
-    consts.COLUMN_TYPE_FLOAT_LIST: [ArrayType(FloatType(), True), ArrayType(DoubleType(), True)],
+    consts.COLUMN_TYPE_FLOAT: [FloatType(), DoubleType(), IntegerType(), LongType()],
+    consts.COLUMN_TYPE_FLOAT_LIST: [
+        ArrayType(FloatType(), True),
+        ArrayType(DoubleType(), True),
+        ArrayType(IntegerType(), True),
+        ArrayType(LongType(), True),
+    ],
     consts.COLUMN_TYPE_STRING: [StringType()],
     consts.COLUMN_TYPE_STRING_LIST: [ArrayType(StringType(), True)],
 }
@@ -143,7 +148,9 @@ def log_df_schema(df, logger_func=logger.info):
 def write_training_data(model_name, df, ctx, spark):
     model = ctx.models[model_name]
     training_dataset = model["dataset"]
-    column_names = model["feature_columns"] + [model["target_column"]] + model["training_columns"]
+    column_names = ctx.extract_column_names(
+        [model["input"], model["target_column"], model.get("training_input")]
+    )
 
     df = df.select(*column_names)
 
@@ -328,7 +335,8 @@ def read_csv(ctx, spark):
             "expected " + len(data_config["schema"]) + " column(s) but got " + len(df.columns)
         )
 
-    renamed_cols = [F.col(c).alias(data_config["schema"][idx]) for idx, c in enumerate(df.columns)]
+    col_names = [util.get_resource_ref(col_ref) for col_ref in data_config["schema"]]
+    renamed_cols = [F.col(c).alias(col_names[idx]) for idx, c in enumerate(df.columns)]
     return df.select(*renamed_cols)
 
 
@@ -336,11 +344,11 @@ def read_parquet(ctx, spark):
     parquet_config = ctx.environment["data"]
     df = spark.read.parquet(parquet_config["path"])
 
-    alias_map = {
-        c["parquet_column_name"]: c["raw_column_name"]
-        for c in parquet_config["schema"]
-        if c["parquet_column_name"] in ctx.raw_columns
-    }
+    alias_map = {}
+    for parquet_col_config in parquet_config["schema"]:
+        col_name = util.get_resource_ref(parquet_col_config["raw_column"])
+        if col_name in ctx.raw_columns:
+            alias_map[col_name] = parquet_col_config["parquet_column_name"]
 
     missing_cols = set(alias_map.keys()) - set(df.columns)
     if len(missing_cols) > 0:
@@ -348,187 +356,223 @@ def read_parquet(ctx, spark):
         log_df_schema(df, logger.error)
         raise UserException("missing column(s) in input dataset", str(missing_cols))
 
-    selectExprs = ["{} as {}".format(alias_map[alias], alias) for alias in alias_map.keys()]
+    selectExprs = [
+        "{} as {}".format(parq_name, col_name) for col_name, parq_name in alias_map.items()
+    ]
 
     return df.selectExpr(*selectExprs)
 
 
-def column_names_to_index(columns_input_config):
-    column_list = []
-    for k, v in columns_input_config.items():
-        if util.is_list(v):
-            column_list += v
-        else:
-            column_list.append(v)
-
-    required_input_columns_sorted = sorted(set(column_list))
-
-    index_to_col_map = dict(
-        [(column_name, idx) for idx, column_name in enumerate(required_input_columns_sorted)]
-    )
-
-    columns_input_config_indexed = create_inputs_map(index_to_col_map, columns_input_config)
-    return required_input_columns_sorted, columns_input_config_indexed
-
-
 # not included in this list: collect_list, grouping, grouping_id
 AGG_SPARK_LIST = set(
-    [
-        "approx_count_distinct",
-        "avg",
-        "collect_set",
-        "count",
-        "countDistinct",
-        "kurtosis",
-        "max",
-        "mean",
-        "min",
-        "skewness",
-        "stddev",
-        "stddev_pop",
-        "stddev_samp",
-        "sum",
-        "sumDistinct",
-        "var_pop",
-        "var_samp",
-        "variance",
-    ]
+    "approx_count_distinct",
+    "avg",
+    "collect_set_int",
+    "collect_set_float",
+    "collect_set_string",
+    "count",
+    "count_distinct",
+    "covar_pop",
+    "covar_samp",
+    "kurtosis",
+    "max_int",
+    "max_float",
+    "max_string",
+    "mean",
+    "min_int",
+    "min_float",
+    "min_string",
+    "skewness",
+    "stddev",
+    "stddev_pop",
+    "stddev_samp",
+    "sum_int",
+    "sum_float",
+    "sum_distinct_int",
+    "sum_distinct_float",
+    "var_pop",
+    "var_samp",
+    "variance",
 )
 
 
-def extract_spark_name(f_name):
-    if f_name.endswith("_string") or f_name.endswith("_float") or f_name.endswith("_int"):
-        f_name = "_".join(f_name.split("_")[:-1])
-    snake_case_mapping = {"sum_distinct": "sumDistinct", "count_distinct": "countDistinct"}
-    return snake_case_mapping.get(f_name, f_name)
-
-
-def split_aggregators(columns_to_aggregate, ctx):
-    aggregate_resources = [ctx.aggregates[r] for r in columns_to_aggregate]
+def split_aggregators(aggregate_names, ctx):
+    aggregate_resources = [ctx.aggregates[agg_name] for agg_name in aggregate_names]
 
     builtin_aggregates = []
     custom_aggregates = []
 
-    for r in aggregate_resources:
-        aggregator = ctx.aggregators[r["aggregator"]]
-        spark_name = extract_spark_name(aggregator["name"])
-        if aggregator.get("namespace", None) == "cortex" and spark_name in AGG_SPARK_LIST:
-            builtin_aggregates.append(r)
+    for agg in aggregate_resources:
+        aggregator = ctx.aggregators[agg["aggregator"]]
+        if aggregator.get("namespace", None) == "cortex" and aggregator["name"] in AGG_SPARK_LIST:
+            builtin_aggregates.append(agg)
         else:
-            custom_aggregates.append(r)
+            custom_aggregates.append(agg)
 
     return builtin_aggregates, custom_aggregates
 
 
 def run_builtin_aggregators(builtin_aggregates, df, ctx, spark):
     agg_cols = []
-    for r in builtin_aggregates:
-        aggregator = ctx.aggregators[r["aggregator"]]
-        f_name = extract_spark_name(aggregator["name"])
+    for agg in builtin_aggregates:
+        aggregator = ctx.aggregators[agg["aggregator"]]
+        input_repl = ctx.populate_values(
+            agg["input"], aggregator["input"], preserve_column_refs=False
+        )
 
-        agg_func = getattr(F, f_name)
-        col_name_list = []
-        columns_dict = r["inputs"]["columns"]
-
-        if "col" in columns_dict.keys():
-            col_name_list.append(columns_dict["col"])
-        if "cols" in columns_dict.keys():
-            col_name_list += columns_dict["cols"]
-        if "col1" in columns_dict.keys() and "col2" in columns_dict.keys():
-            col_name_list.append(columns_dict["col1"])
-            col_name_list.append(columns_dict["col2"])
-
-        if len(col_name_list) == 0:
-            raise CortexException("input columns not found in aggregator: {}".format(r))
-
-        args = {}
-        if r["inputs"].get("args", None) is not None and len(r["inputs"]["args"]) > 0:
-            args = ctx.populate_args(r["inputs"]["args"])
-        col_list = [F.col(c) for c in col_name_list]
-        agg_cols.append(agg_func(*col_list, **args).alias(r["name"]))
+        if aggregator["name"] == "approx_count_distinct":
+            agg_cols.append(
+                F.approxCountDistinct(input_repl["col"], input_repl.get("rsd")).alias(agg["name"])
+            )
+        if aggregator["name"] == "avg":
+            agg_cols.append(F.avg(input_repl).alias(agg["name"]))
+        if aggregator["name"] in set("collect_set_int", "collect_set_float", "collect_set_string"):
+            agg_cols.append(F.collect_set(input_repl).alias(agg["name"]))
+        if aggregator["name"] == "count":
+            agg_cols.append(F.count(input_repl).alias(agg["name"]))
+        if aggregator["name"] == "count_distinct":
+            agg_cols.append(F.countDistinct(*input_repl).alias(agg["name"]))
+        if aggregator["name"] == "covar_pop":
+            agg_cols.append(F.covar_pop(input_repl["col1"], input_repl["col2"]).alias(agg["name"]))
+        if aggregator["name"] == "covar_samp":
+            agg_cols.append(F.covar_samp(input_repl["col1"], input_repl["col2"]).alias(agg["name"]))
+        if aggregator["name"] == "kurtosis":
+            agg_cols.append(F.kurtosis(input_repl).alias(agg["name"]))
+        if aggregator["name"] in set("max_int", "max_float", "max_string"):
+            agg_cols.append(F.max(input_repl).alias(agg["name"]))
+        if aggregator["name"] == "mean":
+            agg_cols.append(F.mean(input_repl).alias(agg["name"]))
+        if aggregator["name"] in set("min_int", "min_float", "min_string"):
+            agg_cols.append(F.min(input_repl).alias(agg["name"]))
+        if aggregator["name"] == "skewness":
+            agg_cols.append(F.skewness(input_repl).alias(agg["name"]))
+        if aggregator["name"] == "stddev":
+            agg_cols.append(F.stddev(input_repl).alias(agg["name"]))
+        if aggregator["name"] == "stddev_pop":
+            agg_cols.append(F.stddev_pop(input_repl).alias(agg["name"]))
+        if aggregator["name"] == "stddev_samp":
+            agg_cols.append(F.stddev_samp(input_repl).alias(agg["name"]))
+        if aggregator["name"] in set("sum_int", "sum_float"):
+            agg_cols.append(F.sum(input_repl).alias(agg["name"]))
+        if aggregator["name"] in set("sum_distinct_int", "sum_distinct_float"):
+            agg_cols.append(F.sumDistinct(input_repl).alias(agg["name"]))
+        if aggregator["name"] == "var_pop":
+            agg_cols.append(F.var_pop(input_repl).alias(agg["name"]))
+        if aggregator["name"] == "var_samp":
+            agg_cols.append(F.var_samp(input_repl).alias(agg["name"]))
+        if aggregator["name"] == "variance":
+            agg_cols.append(F.variance(input_repl).alias(agg["name"]))
 
     results = df.agg(*agg_cols).collect()[0].asDict()
 
-    for r in builtin_aggregates:
-        ctx.store_aggregate_result(results[r["name"]], r)
+    for agg in builtin_aggregates:
+        result = results[agg["name"]]
+        aggregator = ctx.aggregators[agg["aggregator"]]
+        result = util.cast_output_type(result, aggregator["output_type"])
+
+        results[agg["name"]] = result
+        ctx.store_aggregate_result(result, agg)
 
     return results
 
 
-def run_custom_aggregator(aggregator_resource, df, ctx, spark):
-    aggregator = ctx.aggregators[aggregator_resource["aggregator"]]
-    aggregate_name = aggregator_resource["name"]
-    aggregator_impl, _ = ctx.get_aggregator_impl(aggregate_name)
-    input_schema = aggregator_resource["inputs"]
-    aggregator_column_input = input_schema["columns"]
-    args_schema = input_schema["args"]
-    args = {}
-    if input_schema.get("args", None) is not None and len(args_schema) > 0:
-        args = ctx.populate_args(input_schema["args"])
+def run_custom_aggregator(aggregate, df, ctx, spark):
+    aggregator = ctx.aggregators[aggregate["aggregator"]]
+    aggregator_impl, _ = ctx.get_aggregator_impl(aggregate["name"])
+    input_repl = ctx.populate_values(
+        aggregate["input"], aggregator["input"], preserve_column_refs=False
+    )
+
     try:
-        result = aggregator_impl.aggregate_spark(df, aggregator_column_input, args)
+        result = aggregator_impl.aggregate_spark(df, input_repl)
     except Exception as e:
         raise UserRuntimeException(
-            "aggregate " + aggregator_resource["name"],
+            "aggregate " + aggregate["name"],
             "aggregator " + aggregator["name"],
             "function aggregate_spark",
         ) from e
 
-    if aggregator["output_type"] and not util.validate_value_type(
+    if "output_type" in aggregator and not util.validate_output_type(
         result, aggregator["output_type"]
     ):
         raise UserException(
-            "aggregate " + aggregator_resource["name"],
+            "aggregate " + aggregate["name"],
             "aggregator " + aggregator["name"],
             "type of {} is not {}".format(
                 util.str_rep(util.pp_str(result), truncate=100), aggregator["output_type"]
             ),
         )
 
-    ctx.store_aggregate_result(result, aggregator_resource)
+    result = util.cast_output_type(result, aggregator["output_type"])
+    ctx.store_aggregate_result(result, aggregate)
     return result
 
 
-def extract_inputs(column_name, ctx):
-    columns_input_config = ctx.transformed_columns[column_name]["inputs"]["columns"]
-    impl_args_schema = ctx.transformed_columns[column_name]["inputs"]["args"]
-    if impl_args_schema is not None:
-        impl_args = ctx.populate_args(impl_args_schema)
-    else:
-        impl_args = {}
-    return columns_input_config, impl_args
+# def extract_inputs(column_name, ctx):
+#     columns_input_config = ctx.transformed_columns[column_name]["inputs"]["columns"]
+#     impl_args_schema = ctx.transformed_columns[column_name]["inputs"]["args"]
+#     if impl_args_schema is not None:
+#         impl_args = ctx.populate_args(impl_args_schema)
+#     else:
+#         impl_args = {}
+#     return columns_input_config, impl_args
 
 
 def execute_transform_spark(column_name, df, ctx, spark):
     trans_impl, trans_impl_path = ctx.get_transformer_impl(column_name)
+    transformed_column = ctx.transformed_columns[column_name]
+    transformer = ctx.transformers[transformed_column["transformer"]]
 
     if trans_impl_path not in ctx.spark_uploaded_impls:
         spark.sparkContext.addPyFile(trans_impl_path)  # Executor pods need this because of the UDF
         ctx.spark_uploaded_impls[trans_impl_path] = True
 
-    columns_input_config, impl_args = extract_inputs(column_name, ctx)
+    input_repl = ctx.populate_values(
+        transformed_column["input"], transformer["input"], preserve_column_refs=False
+    )
     try:
-        return trans_impl.transform_spark(df, columns_input_config, impl_args, column_name)
+        return trans_impl.transform_spark(df, input_repl, column_name)
     except Exception as e:
         raise UserRuntimeException("function transform_spark") from e
 
 
+# def column_names_to_index(columns_input_config):
+#     column_list = []
+#     for k, v in columns_input_config.items():
+#         if util.is_list(v):
+#             column_list += v
+#         else:
+#             column_list.append(v)
+
+#     required_input_columns_sorted = sorted(set(column_list))
+
+#     index_to_col_map = dict(
+#         [(column_name, idx) for idx, column_name in enumerate(required_input_columns_sorted)]
+#     )
+
+#     columns_input_config_indexed = create_inputs_map(index_to_col_map, columns_input_config)
+#     return required_input_columns_sorted, columns_input_config_indexed
+
+
 def execute_transform_python(column_name, df, ctx, spark, validate=False):
     trans_impl, trans_impl_path = ctx.get_transformer_impl(column_name)
-    columns_input_config, impl_args = extract_inputs(column_name, ctx)
+    transformed_column = ctx.transformed_columns[column_name]
+    transformer = ctx.transformers[transformed_column["transformer"]]
+
+    input_cols_sorted = sorted(ctx.extract_column_names(transformed_column["input"]))
+    input_repl = ctx.populate_values(
+        transformed_column["input"], transformer["input"], preserve_column_refs=True
+    )
 
     if trans_impl_path not in ctx.spark_uploaded_impls:
         spark.sparkContext.addPyFile(trans_impl_path)  # Executor pods need this because of the UDF
-        # not a dictionary because it is possible that one column may map to multiple input names
         ctx.spark_uploaded_impls[trans_impl_path] = True
 
-    required_columns_sorted, columns_input_config_indexed = column_names_to_index(
-        columns_input_config
-    )
-
     def _transform(*values):
-        inputs = create_inputs_map(values, columns_input_config_indexed)
-        return trans_impl.transform_python(inputs, impl_args)
+        transformer_input = create_transformer_inputs_from_lists(
+            input_repl, transformer["input"], input_cols_sorted, values
+        )
+        return trans_impl.transform_python(transformer_input)
 
     transform_python_func = _transform
 
@@ -541,7 +585,7 @@ def execute_transform_python(column_name, df, ctx, spark, validate=False):
             if not util.validate_column_type(result, column_type):
                 raise UserException(
                     "transformed column " + column_name,
-                    "tranformation " + transformed_column["transformer"],
+                    "tranformer " + transformed_column["transformer"],
                     "type of {} is not {}".format(result, column_type),
                 )
 
@@ -549,9 +593,9 @@ def execute_transform_python(column_name, df, ctx, spark, validate=False):
 
         transform_python_func = _transform_and_validate
 
-    column_data_type_str = ctx.get_inferred_column_type(column_name)
-    transform_udf = F.udf(transform_python_func, CORTEX_TYPE_TO_SPARK_TYPE[column_data_type_str])
-    return df.withColumn(column_name, transform_udf(*required_columns_sorted))
+    column_type = ctx.get_inferred_column_type(column_name)
+    transform_udf = F.udf(transform_python_func, CORTEX_TYPE_TO_SPARK_TYPE[column_type])
+    return df.withColumn(column_name, transform_udf(*input_cols_sorted))
 
 
 def infer_type(obj):
@@ -577,14 +621,20 @@ def validate_transformer(column_name, test_df, ctx, spark):
             if transformer["output_type"] == consts.COLUMN_TYPE_INFERRED:
                 sample_df = test_df.collect()
                 sample = sample_df[0]
-                inputs = ctx.create_column_inputs_map(sample, column_name)
-                _, impl_args = extract_inputs(column_name, ctx)
-                initial_transformed_sample = trans_impl.transform_python(inputs, impl_args)
+                input_repl = ctx.populate_values(
+                    transformed_column["input"], transformer["input"], preserve_column_refs=True
+                )
+                transformer_input = create_transformer_inputs_from_map(
+                    input_repl, transformer["input"], sample
+                )
+                initial_transformed_sample = trans_impl.transform_python(transformer_input)
                 inferred_python_type = infer_type(initial_transformed_sample)
 
                 for row in sample_df:
-                    inputs = ctx.create_column_inputs_map(row, column_name)
-                    transformed_sample = trans_impl.transform_python(inputs, impl_args)
+                    transformer_input = create_transformer_inputs_from_map(
+                        input_repl, transformer["input"], row
+                    )
+                    transformed_sample = trans_impl.transform_python(transformer_input)
                     if inferred_python_type != infer_type(transformed_sample):
                         raise UserRuntimeException(
                             "transformed column " + column_name,
@@ -635,9 +685,12 @@ def validate_transformer(column_name, test_df, ctx, spark):
             except Exception as e:
                 raise UserRuntimeException("function transform_spark") from e
 
-            actual_structfield = transform_spark_df.select(column_name).schema.fields[0]
+            if transformer["output_type"] == consts.COLUMN_TYPE_INFERRED:
+                inferred_spark_type = transform_spark_df.select(column_name).schema[0].dataType
+                ctx.write_metadata(transformed_column["id"], {"type": inferred_spark_type})
 
             # check that expected output column has the correct data type
+            actual_structfield = transform_spark_df.select(column_name).schema.fields[0]
             if (
                 actual_structfield.dataType
                 not in CORTEX_TYPE_TO_ACCEPTABLE_SPARK_TYPES[
@@ -656,11 +709,7 @@ def validate_transformer(column_name, test_df, ctx, spark):
                     )
                 )
 
-            if transformer["output_type"] == consts.COLUMN_TYPE_INFERRED:
-                inferred_spark_type = transform_spark_df.select(column_name).schema[0].dataType
-                ctx.write_metadata(transformed_column["id"], {"type": inferred_spark_type})
-
-            # perform the necessary upcast/downcast for the column e.g INT -> LONG or DOUBLE -> FLOAT
+            # perform the necessary casting for the column
             transform_spark_df = transform_spark_df.withColumn(
                 column_name,
                 F.col(column_name).cast(
@@ -732,9 +781,13 @@ def transform_column(column_name, df, ctx, spark):
     trans_impl, _ = ctx.get_transformer_impl(column_name)
 
     if hasattr(trans_impl, "transform_spark"):
-        column_type = CORTEX_TYPE_TO_SPARK_TYPE[ctx.get_inferred_column_type(column_name)]
         df = execute_transform_spark(column_name, df, ctx, spark)
-        return df.withColumn(column_name, F.col(column_name).cast(column_type))
+        return df.withColumn(
+            column_name,
+            F.col(column_name).cast(
+                CORTEX_TYPE_TO_SPARK_TYPE[ctx.get_inferred_column_type(column_name)]
+            ),
+        )
     elif hasattr(trans_impl, "transform_python"):
         return execute_transform_python(column_name, df, ctx, spark)
     else:
@@ -747,7 +800,9 @@ def transform_column(column_name, df, ctx, spark):
 
 def transform(model_name, accumulated_df, ctx, spark):
     model = ctx.models[model_name]
-    column_names = model["feature_columns"] + [model["target_column"]] + model["training_columns"]
+    column_names = ctx.extract_column_names(
+        [model["input"], model["target_column"], model.get("training_input")]
+    )
 
     for column_name in column_names:
         accumulated_df = transform_column(column_name, accumulated_df, ctx, spark)

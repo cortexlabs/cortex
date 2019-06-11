@@ -20,7 +20,6 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
-	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 )
 
 type CompoundType string
@@ -138,10 +137,7 @@ func (compoundType *CompoundType) CastValue(value interface{}) (interface{}, err
 		return nil, ErrorColumnTypeLiteral(value)
 	}
 
-	var validPrimitiveTypes []configreader.PrimitiveType
-
 	if parsed.valueTypes[IntegerValueType] {
-		validPrimitiveTypes = append(validPrimitiveTypes, configreader.PrimTypeInt)
 		valueInt, ok := cast.InterfaceToInt64(value)
 		if ok {
 			return valueInt, nil
@@ -149,7 +145,6 @@ func (compoundType *CompoundType) CastValue(value interface{}) (interface{}, err
 	}
 
 	if parsed.valueTypes[FloatValueType] {
-		validPrimitiveTypes = append(validPrimitiveTypes, configreader.PrimTypeFloat)
 		valueFloat, ok := cast.InterfaceToFloat64(value)
 		if ok {
 			return valueFloat, nil
@@ -157,14 +152,12 @@ func (compoundType *CompoundType) CastValue(value interface{}) (interface{}, err
 	}
 
 	if parsed.valueTypes[StringValueType] {
-		validPrimitiveTypes = append(validPrimitiveTypes, configreader.PrimTypeString)
 		if valueStr, ok := value.(string); ok {
 			return valueStr, nil
 		}
 	}
 
 	if parsed.valueTypes[BoolValueType] {
-		validPrimitiveTypes = append(validPrimitiveTypes, configreader.PrimTypeBool)
 		if valueBool, ok := value.(bool); ok {
 			return valueBool, nil
 		}

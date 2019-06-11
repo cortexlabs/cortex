@@ -40,16 +40,16 @@ def get_column_tf_types(model_name, ctx, training=True):
     model = ctx.models[model_name]
 
     column_types = {}
-    for column_name in model["feature_columns"]:
+    for column_name in ctx.extract_column_names(model["input"]):
         column_type = ctx.get_inferred_column_type(column_name)
         column_types[column_name] = CORTEX_TYPE_TO_TF_TYPE[column_type]
 
     if training:
-        target_column_name = model["target_column"]
-        column_type = ctx.get_inferred_column_type(target_column_name)
-        column_types[target_column_name] = CORTEX_TYPE_TO_TF_TYPE[column_type]
+        for column_name in ctx.extract_column_names(model["target_column"]):
+            column_type = ctx.get_inferred_column_type(column_name)
+            column_types[column_name] = CORTEX_TYPE_TO_TF_TYPE[column_type]
 
-        for column_name in model["training_columns"]:
+        for column_name in ctx.extract_column_names(model.get("training_input")):
             column_type = ctx.get_inferred_column_type(column_name)
             column_types[column_name] = CORTEX_TYPE_TO_TF_TYPE[column_type]
 
@@ -74,12 +74,12 @@ def get_feature_spec(model_name, ctx, training=True):
 def get_base_input_columns(model_name, ctx):
     model = ctx.models[model_name]
     base_column_names = set()
-    for column_name in model["feature_columns"]:
+    for column_name in ctx.extract_column_names(model["input"]):
         if ctx.is_raw_column(column_name):
             base_column_names.add(column_name)
         else:
             transformed_column = ctx.transformed_columns[column_name]
-            for name in util.flatten_all_values(transformed_column["inputs"]["columns"]):
+            for name in ctx.extract_column_names(transformed_column["input"]):
                 base_column_names.add(name)
 
     return [ctx.raw_columns[name] for name in base_column_names]

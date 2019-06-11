@@ -15,7 +15,7 @@
 - kind: estimator
   name: dnn_classifier
   path: dnn_classifier.py
-  target_column: FLOAT
+  target_column: INT_COLUMN|STRING_COLUMN
   input:
     # Specify num_classes if target is INT_COLUMN
     num_classes:

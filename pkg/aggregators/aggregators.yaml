@@ -21,7 +21,9 @@
   output_type: INT
   input:
     col: FLOAT_COLUMN|INT_COLUMN|STRING_COLUMN
-    rsd: FLOAT
+    rsd:
+      _type: FLOAT
+      _optional: TRUE
 
 # Spark Builtin: Calculate the average of the column.
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.avg
@@ -70,10 +72,8 @@
   path: spark/count_distinct.py
   output_type: INT
   input:
-    col: INT_COLUMN|FLOAT_COLUMN|STRING_COLUMN
-    cols:
-      _type: [INT_COLUMN|FLOAT_COLUMN|STRING_COLUMN]
-      _default: []
+    _type: [INT_COLUMN|FLOAT_COLUMN|STRING_COLUMN]
+    _min_count: 1
 
 # Spark Builtin: Calculate the population covariance between col1 and col2 (scaled by 1/N).
 # source: https://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.functions.covar_pop

@@ -671,25 +671,18 @@ def log_job_finished(workload_id):
 CORTEX_TYPE_TO_VALIDATOR = {
     consts.COLUMN_TYPE_INT: is_int,
     consts.COLUMN_TYPE_INT_LIST: is_int_list,
-    consts.COLUMN_TYPE_FLOAT: is_float,
-    consts.COLUMN_TYPE_FLOAT_LIST: is_float_list,
+    consts.COLUMN_TYPE_FLOAT: is_float_or_int,
+    consts.COLUMN_TYPE_FLOAT_LIST: is_float_or_int_list,
     consts.COLUMN_TYPE_STRING: is_str,
     consts.COLUMN_TYPE_STRING_LIST: is_str_list,
     consts.VALUE_TYPE_INT: is_int,
-    consts.VALUE_TYPE_FLOAT: is_float,
+    consts.VALUE_TYPE_FLOAT: is_float_or_int,
     consts.VALUE_TYPE_STRING: is_str,
     consts.VALUE_TYPE_BOOL: is_bool,
 }
 
-CORTEX_TYPE_TO_UPCAST_VALIDATOR = merge_dicts_overwrite(
-    CORTEX_TYPE_TO_VALIDATOR,
-    {
-        consts.COLUMN_TYPE_FLOAT: is_float_or_int,
-        consts.COLUMN_TYPE_FLOAT_LIST: is_float_or_int_list,
-    },
-)
-
 CORTEX_TYPE_TO_UPCASTER = {
+    consts.VALUE_TYPE_FLOAT: lambda x: float(x),
     consts.COLUMN_TYPE_FLOAT: lambda x: float(x),
     consts.COLUMN_TYPE_FLOAT_LIST: lambda ls: [float(item) for item in ls],
 }
@@ -717,12 +710,12 @@ def validate_column_type(value, column_type):
     return False
 
 
-def validate_value_type(value, value_type):
+def validate_output_type(value, output_type):
     if value is None:
         return True
 
-    if is_str(value_type):
-        valid_types = value_type.split("|")
+    if is_str(output_type):
+        valid_types = output_type.split("|")
 
         for valid_type in valid_types:
             if CORTEX_TYPE_TO_VALIDATOR[valid_type](value):
@@ -730,47 +723,150 @@ def validate_value_type(value, value_type):
 
         return False
 
-    if is_dict(value_type):
-        if not is_dict(value):
-            return False
-        if len(value_type) == 0:
-            if len(value) == 0:
-                return True
-            return False
-
-        is_generic_map = False
-        if len(value_type) == 1:
-            value_type_key = next(iter(value_type.keys()))
-            if value_type_key in consts.VALUE_TYPES:
-                is_generic_map = True
-                generic_map_key = value_type_key
-                generic_map_value = value_type[value_type_key]
-
-        if is_generic_map:
-            for value_key, value_val in value.items():
-                if not validate_value_type(value_key, generic_map_key):
-                    return False
-                if not validate_value_type(value_val, generic_map_value):
-                    return False
-            return True
-
-        if len(value) != len(value_type):
-            return False
-        for value_key, value_val in value.items():
-            if value_key not in value_type:
-                return False
-            if not validate_value_type(value_val, value_type[value_key]):
-                return False
-        return True
-
-    if is_list(value_type):
-        if not (len(value_type) == 1 and is_str(value_type[0])):
+    if is_list(output_type):
+        if not (len(output_type) == 1 and is_str(output_type[0])):
             return False
         if not is_list(value):
             return False
         for value_item in value:
-            if not validate_value_type(value_item, value_type[0]):
+            if not validate_output_type(value_item, output_type[0]):
+                return False
+        return True
+
+    if is_dict(output_type):
+        if not is_dict(value):
+            return False
+        if len(output_type) == 0:
+            return False
+
+        is_generic_map = False
+        if len(output_type) == 1:
+            output_type_key = next(iter(output_type.keys()))
+            if output_type_key in consts.VALUE_TYPES:
+                is_generic_map = True
+                generic_map_key = output_type_key
+                generic_map_value = output_type[output_type_key]
+
+        if is_generic_map:
+            for value_key, value_val in value.items():
+                if not validate_output_type(value_key, generic_map_key):
+                    return False
+                if not validate_output_type(value_val, generic_map_value):
+                    return False
+            return True
+
+        # Fixed map
+        for value_key, value_val in value.items():
+            if value_key not in output_type:
+                return False
+            if not validate_output_type(value_val, output_type[value_key]):
                 return False
         return True
 
     return False
+
+
+# Casts int -> float. Input is assumed to be already validated
+def cast_output_type(value, output_type):
+    if is_str(output_type):
+        if (
+            is_int(value)
+            and consts.VALUE_TYPE_FLOAT in output_type
+            and consts.VALUE_TYPE_INT not in output_type
+        ):
+            return float(value)
+        return value
+
+    if is_list(output_type):
+        casted = []
+        for item in value:
+            casted.append(cast_output_type(item, output_type[0]))
+        return casted
+
+    if is_dict(output_type):
+        is_generic_map = False
+        if len(output_type) == 1:
+            output_type_key = next(iter(output_type.keys()))
+            if output_type_key in consts.VALUE_TYPES:
+                is_generic_map = True
+                generic_map_key = output_type_key
+                generic_map_value = output_type[output_type_key]
+
+        if is_generic_map:
+            casted = {}
+            for value_key, value_val in value.items():
+                casted_key = cast_output_type(value_key, generic_map_key)
+                casted_val = cast_output_type(value_val, generic_map_value)
+                casted[casted_key] = casted_val
+            return casted
+
+        # Fixed map
+        casted = {}
+        for output_type_key, output_type_val in output_type.items():
+            casted_val = cast_output_type(value[output_type_key], output_type_val)
+            casted[output_type_key] = casted_val
+        return casted
+
+    return value
+
+
+escape_seq = "🌝🌝🌝🌝🌝"
+
+
+def is_resource_ref(obj):
+    if not is_str(obj):
+        return False
+    return obj.startswith(escape_seq)
+
+
+def get_resource_ref(obj):
+    if not is_str(obj):
+        return None
+    if not obj.startswith(escape_seq):
+        return None
+    return obj[len(escape_seq) :]
+
+
+def extract_resource_refs(input):
+    if is_str(input):
+        res = util.get_resource_ref(input)
+        if res is not None:
+            return set(res)
+        return set()
+
+    if is_dict(input):
+        resources = set()
+        for key, val in input.items():
+            resources = resources.union(extract_resource_refs(key))
+            resources = resources.union(extract_resource_refs(val))
+        return resources
+
+    if is_list(input):
+        resources = set()
+        for item in input:
+            resources = resources.union(extract_resource_refs(val))
+        return resources
+
+    return set()
+
+
+# def replace_resource_refs(input):
+#     if is_str(input):
+#         res = util.get_resource_ref(input)
+#         if res is not None:
+#             return res
+#         return input
+
+#     if is_dict(input):
+#         replaced = {}
+#         for key, val in input.items():
+#             replaced[replace_resource_refs(key)] = replace_resource_refs(val)
+#         return replaced
+
+#     if is_list(input):
+#         replaced = []
+#         for item in input:
+#             replaced.append(replace_resource_refs(item))
+#         return replaced
+
+#     return input
