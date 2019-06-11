@@ -119,7 +119,6 @@ export CORTEX_VERSION_STABLE=master
 # Defaults
 random_id=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-z0-9' | fold -w 12 | head -n 1)
 
-export CORTEX_CLOUD_PROVIDER_TYPE="aws"
 export CORTEX_LOG_GROUP="${CORTEX_LOG_GROUP:-cortex}"
 export CORTEX_BUCKET="${CORTEX_BUCKET:-cortex-$random_id}"
 export CORTEX_REGION="${CORTEX_REGION:-us-west-2}"
@@ -297,7 +296,7 @@ metadata:
 
 function setup_configmap() {
   kubectl -n=$CORTEX_NAMESPACE create configmap 'cortex-config' \
-    --from-literal='CLOUD_PROVIDER_TYPE'=$CORTEX_CLOUD_PROVIDER_TYPE \
+    --from-literal='CLOUD_PROVIDER_TYPE'="aws" \
     --from-literal='LOG_GROUP'=$CORTEX_LOG_GROUP \
     --from-literal='BUCKET'=$CORTEX_BUCKET \
     --from-literal='REGION'=$CORTEX_REGION \

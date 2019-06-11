@@ -58,8 +58,14 @@ def show_aggregates(ctx, aggregates, truncate=80):
         logger.info(name_padded + util.truncate_str(json.dumps(result), truncate))
 
 
-def get_spark_session(app_name):
-    return SparkSession.builder.appName(app_name).getOrCreate()
+def get_spark_session(cloud_provider_type, app_name):
+    spark = SparkSession.builder.appName(ctx.app_name).getOrCreate()
+    if cloud_provider_type == "local":
+        spark.conf.set(
+            "fs.s3a.aws.credentials.provider",
+            "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider",
+        )
+    return spark
 
 
 def parse_args(args):
@@ -177,7 +183,7 @@ def ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest):
         ctx.upload_resource_status_failed(*col_resources_to_validate)
         raise
     ctx.upload_resource_status_success(*col_resources_to_validate)
-    logger.info("First {} samples:".format(3))
+    logger.info("First {} csamples:".format(3))
     show_df(raw_df, ctx, 3)
 
     return raw_df
@@ -306,7 +312,7 @@ def run_job(args):
 
     try:
         spark = None  # For the finally clause
-        spark = get_spark_session(ctx.workload_id)
+        spark = get_spark_session(args.cloud_provider_type, ctx.workload_id)
         spark.sparkContext.parallelize([1, 2, 3, 4, 5]).count()  # test that executors are allocated
         raw_df = ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest)
 

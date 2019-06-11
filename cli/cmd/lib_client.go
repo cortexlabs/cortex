@@ -164,7 +164,7 @@ func StreamLogs(appName string, resourceName string, resourceType string, verbos
 	header := http.Header{}
 	cliConfig := getValidCliConfig()
 	header.Set("Authorization", cliConfig.authHeader())
-	header.Set("CortexCloudProvider", cliConfig.CloudProvider)
+	header.Set("CortexCloudProvider", cliConfig.CloudProvider.String())
 	header.Set("CortexAPIVersion", consts.CortexVersion)
 
 	var dialer = websocket.Dialer{
@@ -258,7 +258,7 @@ func makeRequest(request *http.Request) ([]byte, error) {
 	cliConfig := getValidCliConfig()
 
 	request.Header.Set("Authorization", cliConfig.authHeader())
-	request.Header.Set("CortexCloudProvider", cliConfig.CloudProvider)
+	request.Header.Set("CortexCloudProvider", cliConfig.CloudProvider.String())
 	request.Header.Set("CortexAPIVersion", consts.CortexVersion)
 
 	response, err := httpClient.Do(request)

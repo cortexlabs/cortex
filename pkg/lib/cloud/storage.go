@@ -19,8 +19,6 @@ package cloud
 import (
 	"bytes"
 	"context"
-	"path/filepath"
-	"strings"
 
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/fileblob"
@@ -32,67 +30,70 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 )
 
-func (c *Client) BucketPath() string {
-	return c.OperatorBucketURL().String()
+type Storage struct {
+	Bucket *blob.Bucket
 }
 
-func (c *Client) InternalPath(key string) string {
-	url := c.WorkloadBucketURL()
-	url.Path = filepath.Join(url.Path, key)
-	return url.String()
-}
-
-func (c *Client) FileExists(key string) (bool, error) {
+func (c *Storage) FileExists(key string) (bool, error) {
 	ctx := context.Background()
-	return c.bucket.Exists(ctx, key)
-}
-
-func (c *Client) PutBytes(data []byte, key string) error {
-	ctx := context.Background()
-	w, err := c.bucket.NewWriter(ctx, key, nil)
+	exists, err := c.Bucket.Exists(ctx, key)
 	if err != nil {
-		return errors.Wrap(err, "unable to open writer")
+		return false, errors.WithStack(err)
+	}
+	return exists, nil
+}
+
+func (c *Storage) PutBytes(data []byte, key string) error {
+	ctx := context.Background()
+	w, err := c.Bucket.NewWriter(ctx, key, nil)
+	if err != nil {
+		return errors.WithStack(err)
 	}
 	defer w.Close()
 
-	_, err = w.Write(data)
-	return err
+	if _, err = w.Write(data); err != nil {
+		return errors.Wrap(err, key)
+	}
+	return nil
 }
 
-func (c *Client) PutFile(filePath string, key string) error {
+func (c *Storage) PutFile(filePath string, key string) error {
 	data, err := files.ReadFileBytes(filePath)
 	if err != nil {
-		return errors.Wrap(err, "failed to open file")
+		return err
 	}
 	return c.PutBytes(data, key)
 }
 
-func (c *Client) PutBuffer(buffer *bytes.Buffer, key string) error {
+func (c *Storage) PutBuffer(buffer *bytes.Buffer, key string) error {
 	return c.PutBytes(buffer.Bytes(), key)
 }
 
-func (c *Client) PutString(str string, key string) error {
-	str = strings.TrimSpace(str)
+func (c *Storage) PutString(str string, key string) error {
 	return c.PutBytes([]byte(str), key)
 }
 
-func (c *Client) PutJSON(obj interface{}, key string) error {
+func (c *Storage) PutJSON(obj interface{}, key string) error {
 	jsonBytes, err := json.Marshal(obj)
 	if err != nil {
-		return errors.Wrap(err, "failed to json marshalling")
+		return errors.Wrap(err, key)
 	}
 	return c.PutBytes(jsonBytes, key)
 }
 
-func (c *Client) GetJSON(objPtr interface{}, key string) error {
+func (c *Storage) GetJSON(objPtr interface{}, key string) error {
 	jsonBytes, err := c.GetBytes(key)
 	if err != nil {
 		return err
 	}
-	return errors.Wrap(json.Unmarshal(jsonBytes, objPtr), key)
+
+	if err := json.Unmarshal(jsonBytes, objPtr); err != nil {
+		return errors.Wrap(err, key)
+	}
+	return nil
 }
 
-func (c *Client) PutMsgpack(obj interface{}, key string) error {
+func (c *Storage) PutMsgpack(obj interface{}, key string) error {
 	msgpackBytes, err := msgpack.Marshal(obj)
 	if err != nil {
 		return err
@@ -100,20 +101,27 @@ func (c *Client) PutMsgpack(obj interface{}, key string) error {
 	return c.PutBytes(msgpackBytes, key)
 }
 
-func (c *Client) GetBytes(key string) ([]byte, error) {
+func (c *Storage) GetBytes(key string) ([]byte, error) {
 	ctx := context.Background()
-	return c.bucket.ReadAll(ctx, key)
+	bytes, err := c.Bucket.ReadAll(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
 }
 
-func (c *Client) GetMsgpack(objPtr interface{}, key string) error {
+func (c *Storage) GetMsgpack(objPtr interface{}, key string) error {
 	msgpackBytes, err := c.GetBytes(key)
 	if err != nil {
 		return err
 	}
-	return msgpack.Unmarshal(msgpackBytes, objPtr)
+	if err := msgpack.Unmarshal(msgpackBytes, objPtr); err != nil {
+		return errors.Wrap(err, key)
+	}
+	return nil
 }
 
-func (c *Client) GetString(key string) (string, error) {
+func (c *Storage) GetString(key string) (string, error) {
 	bytes, err := c.GetBytes(key)
 	if err != nil {
 		return "", err
@@ -122,10 +130,10 @@ func (c *Client) GetString(key string) (string, error) {
 	return string(bytes), nil
 }
 
-func (c *Client) DeleteByPrefix(prefix string, continueIfFailure bool) error {
+func (c *Storage) DeleteByPrefix(prefix string, continueIfFailure bool) error {
 	ctx := context.Background()
 
-	blobIter := c.bucket.List(&blob.ListOptions{Prefix: prefix})
+	blobIter := c.Bucket.List(&blob.ListOptions{Prefix: prefix})
 	if blobIter == nil {
 		return ErrorFailedToListBlobs()
 	}
@@ -138,10 +146,10 @@ func (c *Client) DeleteByPrefix(prefix string, continueIfFailure bool) error {
 		}
 
 		if err != nil {
-			return errors.Wrap(err, "next failed", blob.Key)
+			return errors.Wrap(err, "blob iteration failed", blob.Key)
 		}
 
-		err = c.bucket.Delete(ctx, blob.Key)
+		err = c.Bucket.Delete(ctx, blob.Key)
 		if err != nil {
 			return errors.Wrap(err, "delete failed", blob.Key)
 		}

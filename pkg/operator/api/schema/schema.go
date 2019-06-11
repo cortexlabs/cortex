@@ -17,12 +17,13 @@ limitations under the License.
 package schema
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
-type InitResponse struct {
-	CloudProvider string `json:"cloud_provider_type"`
+type InfoResponse struct {
+	CloudProvider cloud.ProviderType `json:"cloud_provider_type"`
 }
 
 type DeployResponse struct {

@@ -17,9 +17,10 @@ limitations under the License.
 package cloud
 
 import (
+	"path/filepath"
+
 	"github.com/cortexlabs/cortex/pkg/lib/cloud"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -47,6 +48,7 @@ func GetHadoopPathValidation(v *HadoopPathValidation) *cr.StringValidation {
 		}
 
 		if cloudType == cloud.LocalProviderType {
+			// in the case of local files, the CLI copies data to the path below
 			return filepath.Join(consts.ExternalDataDir, hash.String(val)), nil
 		}
 

@@ -67,9 +67,8 @@ def test_simple_end_to_end(spark):
 
     iris_data_string = "\n".join(",".join(str(val) for val in line) for line in iris_data)
     Path(os.path.join(str(local_storage_path), "iris.csv")).write_text(iris_data_string)
-    cache_dir = Path("/workspace/cache")
 
-    ctx = Context(raw_obj=raw_ctx, cache_dir=str(cache_dir), cloud_provider_type="local")
+    ctx = Context(raw_obj=raw_ctx, cache_dir="/workspace/cache", cloud_provider_type="local")
     storage = ctx.storage
 
     raw_df = spark_job.ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest)

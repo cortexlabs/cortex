@@ -21,11 +21,10 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/cloud"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-
-	"gocloud.dev/gcerrors"
 )
 
 func getOrSetDatasetVersion(appName string, ignoreCache bool) (string, error) {
@@ -46,7 +45,7 @@ func getOrSetDatasetVersion(appName string, ignoreCache bool) (string, error) {
 
 	datasetVersion, err := config.Cloud.GetString(datasetVersionFileKey)
 	if err != nil {
-		if gcerrors.Code(err) != gcerrors.NotFound {
+		if cloud.IsNoSuchKeyErr(err) {
 			return "", errors.Wrap(err, "dataset version") // unexpected error
 		}
 		datasetVersion = libtime.Timestamp(time.Now())

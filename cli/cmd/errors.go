@@ -137,10 +137,3 @@ func ErrorUnrecognizedCloudProvider(provider string) error {
 		message: "unrecognized cloud provider " + provider,
 	}
 }
-
-func ErrorPathDoesNotExist() error {
-	return Error{
-		Kind:    ErrPathDoesNotExist,
-		message: "path does not exist",
-	}
-}

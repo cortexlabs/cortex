@@ -28,7 +28,6 @@ logger = get_logger()
 
 
 def train(args):
-    print(args)
     ctx = Context(
         path=args.context,
         cache_dir=args.cache_dir,

@@ -61,7 +61,6 @@ class Context:
             raise ValueError("invalid context args: " + kwargs)
 
         self.workload_id = kwargs.get("workload_id")
-        logger.info(self.ctx["cortex_config"])
         self.id = self.ctx["id"]
         self.key = self.ctx["key"]
         self.cortex_config = self.ctx["cortex_config"]
@@ -84,11 +83,11 @@ class Context:
         self.api_version = self.cortex_config["api_version"]
 
         if kwargs["cloud_provider_type"] == "local":
-            self.storage = LocalStorage(base_dir=self.cortex_config["bucket"])
+            self.storage = LocalStorage(base_dir=self.cortex_config["cloud_config"]["bucket"])
         elif kwargs["cloud_provider_type"] == "aws":
             self.storage = S3(
-                bucket=self.cortex_config["cloud_options"]["bucket"],
-                region=self.cortex_config["cloud_options"]["region"],
+                bucket=self.cortex_config["cloud_config"]["bucket"],
+                region=self.cortex_config["cloud_config"]["region"],
                 client_config={},
             )
         else:
@@ -119,7 +118,7 @@ class Context:
 
         # This affects Tensorflow S3 access
         if kwargs["cloud_provider_type"] == "aws":
-            os.environ["AWS_REGION"] = self.cortex_config["cloud_options"]["region"]
+            os.environ["AWS_REGION"] = self.cortex_config["cloud_config"]["region"]
 
         # Id map
         self.pp_id_map = ResourceMap(self.python_packages)

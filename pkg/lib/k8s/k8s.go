@@ -21,6 +21,7 @@ import (
 	"regexp"
 	"strings"
 
+	homedir "github.com/mitchellh/go-homedir"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -31,13 +32,11 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 var (
-	home         = homedir.HomeDir()
 	deletePolicy = metav1.DeletePropagationBackground
 	deleteOpts   = &metav1.DeleteOptions{
 		PropagationPolicy: &deletePolicy,
@@ -59,6 +58,10 @@ func New(namespace string, operatorInCluster bool) (*Client, error) {
 	var err error
 	client := &Client{
 		Namespace: namespace,
+	}
+	home, err := homedir.Dir()
+	if err != nil {
+		return nil, errors.WithStack(err)
 	}
 	if operatorInCluster {
 		client.RestConfig, err = rest.InClusterConfig()

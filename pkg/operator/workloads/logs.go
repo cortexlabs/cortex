@@ -171,9 +171,8 @@ func getKubectlLogs(pod *corev1.Pod, verbose bool, wrotePending bool, socket *we
 func getCloudLogs(prefix string, verbose bool, socket *websocket.Conn) {
 	logs, err := config.Cloud.GetLogs(prefix)
 	if err != nil {
-		err = errors.Wrap(err, prefix)
 		config.Telemetry.ReportError(err)
-		errors.PrintError(errors.Wrap(err, prefix))
+		errors.PrintError(err)
 	}
 
 	var logsReader *strings.Reader
@@ -188,7 +187,7 @@ func getCloudLogs(prefix string, verbose bool, socket *websocket.Conn) {
 
 	inr, inw, err := os.Pipe()
 	if err != nil {
-		errors.Panic(err, prefix, "logs", "cloud", "os.pipe")
+		errors.Panic(err, prefix, "logs", "os.pipe")
 	}
 	defer inr.Close()
 	defer inw.Close()

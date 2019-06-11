@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/cloud"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -54,7 +55,7 @@ func main() {
 	}
 	defer config.Cloud.Close()
 
-	if err := config.InitClients(config.Cloud, config.Cortex); err != nil {
+	if err := config.InitClients(config.Cloud); err != nil {
 		errors.Exit(err)
 	}
 
@@ -76,24 +77,24 @@ func main() {
 	router.Use(panicMiddleware)
 	router.Use(apiVersionCheckMiddleware)
 
-	router.HandleFunc("/init", endpoints.Initialize)
+	router.HandleFunc("/info", endpoints.Info)
 
-	postInitRouter := router.MatcherFunc(postInitPaths).Subrouter()
-	postInitRouter.Use(authMiddleware)
-	postInitRouter.Use(cloudProviderCheckMiddleware)
+	mainPathRouter := router.MatcherFunc(mainPaths).Subrouter()
+	mainPathRouter.Use(authMiddleware)
+	mainPathRouter.Use(cloudProviderCheckMiddleware)
 
-	postInitRouter.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
-	postInitRouter.HandleFunc("/delete", endpoints.Delete).Methods("POST")
-	postInitRouter.HandleFunc("/resources", endpoints.GetResources).Methods("GET")
-	postInitRouter.HandleFunc("/aggregate/{id}", endpoints.GetAggregate).Methods("GET")
-	postInitRouter.HandleFunc("/logs/read", endpoints.ReadLogs)
+	mainPathRouter.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
+	mainPathRouter.HandleFunc("/delete", endpoints.Delete).Methods("POST")
+	mainPathRouter.HandleFunc("/resources", endpoints.GetResources).Methods("GET")
+	mainPathRouter.HandleFunc("/aggregate/{id}", endpoints.GetAggregate).Methods("GET")
+	mainPathRouter.HandleFunc("/logs/read", endpoints.ReadLogs)
 
 	log.Print("Running on port " + operatorPortStr)
 	log.Fatal(http.ListenAndServe(":"+operatorPortStr, router))
 }
 
-func postInitPaths(r *http.Request, match *mux.RouteMatch) bool {
-	return r.URL.RequestURI() != "/init"
+func mainPaths(r *http.Request, match *mux.RouteMatch) bool {
+	return r.URL.RequestURI() != "/info"
 }
 
 func panicMiddleware(next http.Handler) http.Handler {
@@ -105,10 +106,16 @@ func panicMiddleware(next http.Handler) http.Handler {
 
 func cloudProviderCheckMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		operatorCloudProvider := r.Header.Get("CortexCloudProvider")
+		headerStr := r.Header.Get("CortexCloudProvider")
 
-		if operatorCloudProvider != config.Cloud.ProviderType.String() {
-			endpoints.RespondError(w, ErrorCloudProviderTypeMismatch(config.Cloud.ProviderType.String(), operatorCloudProvider))
+		cliCloudProviderType := cloud.ProviderTypeFromString(headerStr)
+
+		if cliCloudProviderType == cloud.UnknownProviderType {
+			endpoints.RespondError(w, cloud.ErrorUnsupportedProviderType(headerStr))
+		}
+
+		if cliCloudProviderType != config.Cortex.CloudProvider {
+			endpoints.RespondError(w, ErrorCloudProviderTypeMismatch(config.Cortex.CloudProvider, cliCloudProviderType))
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -117,30 +124,29 @@ func cloudProviderCheckMiddleware(next http.Handler) http.Handler {
 
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.RequestURI() != "/init" {
-			authHeader := r.Header.Get("Authorization")
-			if !strings.HasPrefix(authHeader, "CortexAuth ") {
-				endpoints.RespondError(w, endpoints.ErrorAuthHeaderMissing())
-				return
-			}
-
-			authHeaderParts := strings.Split(authHeader, " ")
-			if len(authHeaderParts) != 2 {
-				endpoints.RespondError(w, endpoints.ErrorAuthHeaderMalformed())
-				return
-			}
-
-			authed, err := config.Cloud.AuthUser(authHeaderParts[1])
-			if err != nil {
-				endpoints.RespondError(w, endpoints.ErrorAuthAPIError())
-				return
-			}
-
-			if !authed {
-				endpoints.RespondErrorCode(w, http.StatusForbidden, endpoints.ErrorAuthForbidden())
-				return
-			}
+		authHeader := r.Header.Get("Authorization")
+		if !strings.HasPrefix(authHeader, "CortexAuth ") {
+			endpoints.RespondError(w, endpoints.ErrorAuthHeaderMissing())
+			return
 		}
+
+		authHeaderParts := strings.Split(authHeader, " ")
+		if len(authHeaderParts) != 2 {
+			endpoints.RespondError(w, endpoints.ErrorAuthHeaderMalformed())
+			return
+		}
+
+		authed, err := config.Cloud.AuthUser(authHeaderParts[1])
+		if err != nil {
+			endpoints.RespondError(w, endpoints.ErrorAuthAPIError())
+			return
+		}
+
+		if !authed {
+			endpoints.RespondErrorCode(w, http.StatusForbidden, endpoints.ErrorAuthForbidden())
+			return
+		}
+
 		next.ServeHTTP(w, r)
 	})
 }

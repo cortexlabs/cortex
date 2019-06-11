@@ -25,7 +25,7 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-
+	"github.com/cortexlabs/cortex/pkg/lib/cloud"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -52,21 +52,21 @@ func init() {
 }
 
 type CliConfig struct {
-	CortexURL     string       `json:"cortex_url"`
-	CloudProvider string       `json:"cloud_provider_type"`
-	AWS           *AWSConfig   `json:"aws"`
-	Local         *LocalConfig `json:"local"`
+	CortexURL     string             `json:"cortex_url"`
+	CloudProvider cloud.ProviderType `json:"cloud_provider_type"`
+	AWS           *AWSConfig         `json:"aws"`
+	Local         *LocalConfig       `json:"local"`
 }
 
 func (c *CliConfig) authHeader() string {
-
 	switch c.CloudProvider {
-	case "aws":
+	case cloud.AWSProviderType:
+		// | is not a valid character in access key or secret key
 		return fmt.Sprintf(authHeaderTemplate, c.AWS.AccessKeyID+"|"+c.AWS.SecretAccessKey)
-	case "local":
+	case cloud.LocalProviderType:
 		return fmt.Sprintf(authHeaderTemplate, "local")
 	default:
-		errors.Exit(ErrorUnrecognizedCloudProvider(c.CloudProvider))
+		errors.Exit(ErrorUnrecognizedCloudProvider(c.CloudProvider.String()))
 	}
 	return ""
 }
@@ -98,7 +98,7 @@ func localPromptValidation(defaults *LocalConfig) *cr.PromptValidation {
 			{
 				StructField: "Mount",
 				PromptOpts: &cr.PromptOptions{
-					Prompt: "Enter directory for Cortex workspace",
+					Prompt: "Enter directory for Cortex mount",
 				},
 				StringValidation: &cr.StringValidation{
 					Required: true,
@@ -156,7 +156,11 @@ var fileValidation = &cr.StructValidation{
 		{
 			StructField: "CloudProvider",
 			StringValidation: &cr.StringValidation{
-				Required: true,
+				Required:      true,
+				AllowedValues: cloud.ProviderTypeStrings(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return cloud.ProviderTypeFromString(str), nil
 			},
 		},
 		{
@@ -220,7 +224,6 @@ func readCliConfig() (*CliConfig, []error) {
 		cachedCliConfigErrs = []error{err}
 		return cachedCliConfig, cachedCliConfigErrs
 	}
-	err = json.Unmarshal(configBytes, cachedCliConfig)
 	cachedCliConfigErrs = cr.Struct(cachedCliConfig, cliConfigData, fileValidation)
 	return cachedCliConfig, errors.WrapMultiple(cachedCliConfigErrs, configPath)
 }
@@ -264,10 +267,16 @@ func getLocalConfigDefaults(defaults *LocalConfig) *LocalConfig {
 	if defaults == nil {
 		defaults = &LocalConfig{}
 	}
-	if defaults.Mount == "" && os.Getenv("CONST_OPERATOR_LOCAL_MOUNT") != "" {
-		defaults.Mount = os.Getenv("CONST_OPERATOR_LOCAL_MOUNT")
+	if defaults.Mount == "" && os.Getenv("CORTEX_OPERATOR_LOCAL_MOUNT") != "" {
+		defaults.Mount = os.Getenv("CORTEX_OPERATOR_LOCAL_MOUNT")
 	}
-
+	if defaults.Mount == "" {
+		homeDir, err := homedir.Expand("~/.cortex/mount")
+		if err != nil {
+			errors.Exit(err)
+		}
+		defaults.Mount = homeDir
+	}
 	return defaults
 }
 
@@ -281,7 +290,7 @@ func configure() *CliConfig {
 		errors.Exit(err)
 	}
 
-	req, err := http.NewRequest("GET", cachedCliConfig.CortexURL+"/init", nil)
+	req, err := http.NewRequest("GET", cachedCliConfig.CortexURL+"/info", nil)
 	req.Header.Set("CortexAPIVersion", consts.CortexVersion)
 	response, err := httpClient.Do(req)
 	if err != nil {
@@ -293,29 +302,27 @@ func configure() *CliConfig {
 		errors.Exit(err)
 	}
 
-	var initRes schema.InitResponse
+	var initRes schema.InfoResponse
 	if err = json.Unmarshal(resBytes, &initRes); err != nil {
 		errors.Exit(err)
 	}
 
-	awsConfig := &AWSConfig{}
-	localConfig := &LocalConfig{}
-
 	switch initRes.CloudProvider {
-	case "aws":
-		err := cr.ReadPrompt(awsConfig, awsPromptValidation(getAWSConfigDefaults(defaults.AWS)))
+	case cloud.AWSProviderType:
+		cachedCliConfig.AWS = &AWSConfig{}
+		err := cr.ReadPrompt(cachedCliConfig.AWS, awsPromptValidation(getAWSConfigDefaults(defaults.AWS)))
 		if err != nil {
 			errors.Exit(err)
 		}
-		cachedCliConfig.AWS = awsConfig
-	case "local":
-		err := cr.ReadPrompt(localConfig, localPromptValidation(getLocalConfigDefaults(defaults.Local)))
+		// cachedCliConfig.AWS = awsConfig
+	case cloud.LocalProviderType:
+		cachedCliConfig.Local = &LocalConfig{}
+		err := cr.ReadPrompt(cachedCliConfig.Local, localPromptValidation(getLocalConfigDefaults(defaults.Local)))
 		if err != nil {
 			errors.Exit(err)
 		}
-		cachedCliConfig.Local = localConfig
 	default:
-		errors.Exit(ErrorUnrecognizedCloudProvider(initRes.CloudProvider))
+		errors.Exit(ErrorUnrecognizedCloudProvider(initRes.CloudProvider.String()))
 	}
 
 	cachedCliConfig.CloudProvider = initRes.CloudProvider

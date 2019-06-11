@@ -24,6 +24,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
@@ -446,20 +448,21 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 	return config, nil
 }
 
-func ReadEnvDataPaths(root string, yamlPaths []string) ([]string, error) {
-	paths := []string{}
+// Allow operator handle errors
+func ReadEnvDataPaths(yamlPaths []string) strset.Set {
+	paths := strset.New()
 	for _, yamlFile := range yamlPaths {
 		configBytes, err := files.ReadFileBytes(yamlFile)
 		if err != nil {
-			return paths, errors.Wrap(err, ErrorReadConfig().Error(), yamlFile)
+			continue
 		}
 		configData, err := cr.ReadYAMLBytes(configBytes)
 		if err != nil {
-			return paths, errors.Wrap(err, ErrorParseConfig().Error(), yamlFile)
+			continue
 		}
 		configDataSlice, ok := cast.InterfaceToStrInterfaceMapSlice(configData)
 		if !ok {
-			return paths, errors.Wrap(ErrorMalformedConfig(), yamlFile)
+			continue
 		}
 
 		for _, configItem := range configDataSlice {
@@ -467,21 +470,21 @@ func ReadEnvDataPaths(root string, yamlPaths []string) ([]string, error) {
 			if resource.TypeFromKindString(kindStr) == resource.EnvironmentType {
 				dataInter, _ := configItem[DataKey]
 				if !ok {
-					return paths, errors.Wrap(configreader.ErrorMustBeDefined(), yamlFile, DataKey)
+					continue
 				}
 				dataItem, ok := cast.InterfaceToStrInterfaceMap(dataInter)
 				if !ok {
-					return paths, ErrorReadConfig()
+					continue
 				}
 				pathStr, ok := dataItem[PathKey].(string)
 				if !ok {
-					return paths, ErrorReadConfig()
+					continue
 				}
-				paths = append(paths, pathStr)
+				paths.Add(pathStr)
 			}
 		}
 	}
-	return paths, nil
+	return paths
 }
 
 func ReadAppName(filePath string, relativePath string) (string, error) {

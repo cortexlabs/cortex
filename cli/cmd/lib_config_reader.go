@@ -52,7 +52,7 @@ func mustAppRoot() string {
 	return appRoot
 }
 
-func yamlPaths(dir string) []string {
+func YamlPaths(dir string) []string {
 	yamlPaths, err := files.ListDirRecursive(dir, false, files.IgnoreNonYAML)
 	if err != nil {
 		errors.Exit(err)
@@ -83,7 +83,7 @@ func allConfigPaths(root string) []string {
 		}
 		exportPaths.Add(customPackagesPaths...)
 	}
-	exportPaths.Add(yamlPaths(root)...)
+	exportPaths.Add(YamlPaths(root)...)
 	exportPaths.Add(pythonPaths(root)...)
 
 	return exportPaths.Slice()
@@ -92,10 +92,6 @@ func allConfigPaths(root string) []string {
 func appNameFromConfig() (string, error) {
 	appRoot := mustAppRoot()
 	return userconfig.ReadAppName(filepath.Join(appRoot, "app.yaml"), "app.yaml")
-}
-
-func GetRawDataPaths(root string) ([]string, error) {
-	return userconfig.ReadEnvDataPaths(root, yamlPaths(root))
 }
 
 func AppNameFromFlagOrConfig() (string, error) {

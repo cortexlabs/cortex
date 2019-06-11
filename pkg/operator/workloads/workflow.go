@@ -88,7 +88,7 @@ func Create(ctx *context.Context) (*awfv1.Workflow, error) {
 		return nil, err
 	}
 	allSpecs = append(allSpecs, apiSpecs...)
-
+	fmt.Println(allSpecs)
 	resourceWorkloadIDs := make(map[string]string)
 	for _, spec := range allSpecs {
 		for resourceID := range spec.ResourceIDs {

@@ -56,9 +56,12 @@ var (
 	TransformedColumnsDir = "transformed_columns"
 	MetadataDir           = "metadata"
 
-	// Local Dev
+	// Local Provider
 	ExternalDataDir = "/data"
-	LogsDir         = "/local_logs"
+	LocalLogsDir    = "/local_logs"
+
+	CortexSharedVolume      = "cortex-shared-volume"
+	CortexSharedVolumeClaim = "cortex-shared-volume-claim"
 
 	DefaultAWSRegion = "us-west-2"
 

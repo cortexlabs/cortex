@@ -305,7 +305,7 @@ raw_ctx = {
         "csv_data": {
             "drop_null": False,
             "type": "csv",
-            "path": "/workspace/iris.csv",
+            "path": "/mount/iris.csv",
             "csv_config": {
                 "negative_inf": None,
                 "null_value": None,
@@ -519,12 +519,10 @@ raw_ctx = {
     },
     "cortex_config": {
         "api_version": "master",
-        "cloud_options": {"bucket": "/data", "operator_in_cluster": False},
+        "cloud_config": {"bucket": "/data", "operator_in_cluster": False, "operator_local_mount": ""},
         "cloud_provider_type": "local",
         "namespace": "cortex",
         "operator_image": "969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/operator:latest",
-        "operator_in_cluster": False,
-        "operator_local_mount": "",
     },
     "root": "apps/iris/data/2019-03-08-09-58-35-701834/3976c5679bcf7cb550453802f4c3a9333c5f193f6097f1f5642de48d2397554",
     "metadata_root": "apps/iris/data/2019-03-08-09-58-35-701834/3976c5679bcf7cb550453802f4c3a9333c5f193f6097f1f5642de48d2397554/metadata",

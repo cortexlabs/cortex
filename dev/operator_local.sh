@@ -21,9 +21,18 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 source $ROOT/dev/config/cortex.sh
 
-export CONST_OPERATOR_TRANSFORMERS_DIR=$ROOT/pkg/transformers
-export CONST_OPERATOR_AGGREGATORS_DIR=$ROOT/pkg/aggregators
-export CONST_OPERATOR_IN_CLUSTER=false
+export CORTEX_OPERATOR_TRANSFORMERS_DIR=$ROOT/pkg/transformers
+export CORTEX_OPERATOR_AGGREGATORS_DIR=$ROOT/pkg/aggregators
+export CORTEX_OPERATOR_IN_CLUSTER=false
+
+is_local=${1:-""}
+
+if [ "$is_local" == "local" ]; then
+    export CORTEX_CLOUD_PROVIDER_TYPE="local"
+    export CORTEX_OPERATOR_LOCAL_MOUNT="$HOME/.cortex"
+    export CORTEX_BUCKET="/mount"
+    export CORTEX_OPERATOR_HOST_IP="192.168.99.115"
+fi
 
 rerun -watch $ROOT/pkg $ROOT/cli -ignore $ROOT/vendor $ROOT/bin -run sh -c \
 "go build -o $ROOT/bin/operator $ROOT/pkg/operator && go build -installsuffix cgo -o $ROOT/bin/cortex $ROOT/cli && $ROOT/bin/operator"

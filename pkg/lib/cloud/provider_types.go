@@ -16,10 +16,7 @@ limitations under the License.
 
 package cloud
 
-import (
-	_ "gocloud.dev/blob/fileblob"
-	_ "gocloud.dev/blob/s3blob"
-)
+import "fmt"
 
 type ProviderType int
 
@@ -59,6 +56,7 @@ func (p ProviderType) MarshalText() ([]byte, error) {
 
 // UnmarshalText satisfies TextUnmarshaler
 func (p *ProviderType) UnmarshalText(text []byte) error {
+	fmt.Println(string(text))
 	enum := string(text)
 	for i := 0; i < len(providerTypes); i++ {
 		if enum == providerTypes[i] {
@@ -69,4 +67,12 @@ func (p *ProviderType) UnmarshalText(text []byte) error {
 
 	*p = UnknownProviderType
 	return nil
+}
+
+func ParserFunc(str string) (interface{}, error) {
+	providerType := ProviderTypeFromString(str)
+	if providerType == UnknownProviderType {
+		return providerType, ErrorUnsupportedProviderType(str)
+	}
+	return providerType, nil
 }

@@ -19,6 +19,7 @@ package local
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -29,50 +30,72 @@ import (
 	"strings"
 
 	sparkop "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/apis/sparkoperator.k8s.io/v1alpha1"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"gocloud.dev/blob"
+	_ "gocloud.dev/blob/fileblob"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/cloud/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/cloud"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/random"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 )
 
-type Provider struct {
-	accountID          string
-	hashedAccountID    string
-	baseDir            string
-	operatorLocalMount *string
-	operaterInCluster  bool
+type Cloud struct {
+	hashedAccountID string
+	config          *cloud.Config
+	*cloud.Storage
 }
 
-func New(baseDir string, operaterInCluster bool, operatorLocalMount *string) *Provider {
-	return &Provider{
-		accountID:          "abc",
-		hashedAccountID:    "123",
-		baseDir:            baseDir,
-		operatorLocalMount: operatorLocalMount,
-		operaterInCluster:  operaterInCluster,
-	}
-}
+// type Config struct {
+// 	Bucket             string
+// 	OperatorLocalMount *string
+// 	OperatorHostIP     *string
+// 	OperatorInCluster  bool
+// }
 
-func (provider *Provider) OperatorBucketURL() *url.URL {
+func NewFromConfig(config *cloud.Config) (cloud.Client, error) {
 	url := url.URL{
 		Scheme: "file",
 		Host:   "localhost",
+		Path:   config.Bucket,
 	}
-	url.Path = provider.baseDir
 
-	if !provider.operaterInCluster && provider.operatorLocalMount != nil {
-		url.Path = filepath.Join(*provider.operatorLocalMount, provider.baseDir)
+	if !config.OperatorInCluster && config.OperatorLocalMount != nil {
+		url.Path = filepath.Join(*config.OperatorLocalMount, config.Bucket)
 	}
-	return &url
+
+	ctx := context.Background()
+	bucket, err := blob.OpenBucket(ctx, url.String())
+	if err != nil {
+		return nil, err
+	}
+	return &Cloud{
+		hashedAccountID: random.String(63),
+		config:          config,
+		Storage: &cloud.Storage{
+			Bucket: bucket,
+		},
+	}, nil
 }
 
-func (provider *Provider) WorkloadBucketURL() *url.URL {
-	return &url.URL{
-		Path: provider.baseDir,
+func (c *Cloud) operatorBucketURL() *url.URL {
+	url := url.URL{
+		Scheme: "file",
+		Host:   "localhost",
+		Path:   c.config.Bucket,
 	}
+
+	if !c.config.OperatorInCluster && c.config.OperatorLocalMount != nil {
+		url.Path = filepath.Join(*c.config.OperatorLocalMount, c.config.Bucket)
+	}
+	return &url
 }
 
 type fluentdLog struct {
@@ -80,9 +103,12 @@ type fluentdLog struct {
 	Stream string `json:"stream"`
 }
 
-func (provider *Provider) GetLogs(prefix string) (string, error) {
-	baseDir := filepath.Join(provider.OperatorBucketURL().Path, consts.LogsDir)
-	files, _ := ioutil.ReadDir(baseDir)
+func (c *Cloud) GetLogs(prefix string) (string, error) {
+	baseDir := filepath.Join(c.operatorBucketURL().Path, consts.LocalLogsDir)
+	files, err := ioutil.ReadDir(baseDir)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to access log directory", baseDir)
+	}
 	ignoreLogStreamNameRegexes := []*regexp.Regexp{
 		regexp.MustCompile(`-exec-[0-9]+`),
 		regexp.MustCompile(`_spark-init-`),
@@ -103,7 +129,10 @@ func (provider *Provider) GetLogs(prefix string) (string, error) {
 	}
 
 	for i, targetFile := range matchedFiles {
-		f, _ := os.Open(targetFile)
+		f, err := os.Open(targetFile)
+		if err != nil {
+			return "", errors.Wrap(err, "unable to open file", targetFile)
+		}
 		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
 			var log fluentdLog
@@ -111,7 +140,7 @@ func (provider *Provider) GetLogs(prefix string) (string, error) {
 			allLogsBuf.WriteString(log.Log)
 		}
 		if err := scanner.Err(); err != nil {
-			fmt.Fprintln(os.Stderr, "reading standard input:", err)
+			return "", errors.Wrap(err, "failed to read file", targetFile)
 		}
 		if i < len(matchedFiles)-1 {
 			allLogsBuf.WriteString("\n----------\n\n")
@@ -120,65 +149,73 @@ func (provider *Provider) GetLogs(prefix string) (string, error) {
 	return allLogsBuf.String(), nil
 }
 
-func (provider *Provider) AuthUser(authHeader string) (bool, error) {
+func (c *Cloud) AuthUser(authHeader string) (bool, error) {
 	return true, nil
 }
 
-func (provider *Provider) HashedAccountID() string {
-	return provider.hashedAccountID
+func (c *Cloud) HashedAccountID() string {
+	return c.hashedAccountID
 }
 
-func (provider *Provider) IsValidHadoopPath(path string) (bool, error) {
-	isS3a, err := aws.IsValidS3a(path)
+func (c *Cloud) IsValidHadoopPath(path string) (bool, error) {
+	isS3a, err := cloud.IsValidS3aPath(path)
 	if err != nil {
 		return false, err
 	}
 
-	isLocal, err := IsValidPath(path)
+	isLocal, err := cloud.IsValidLocalPath(path)
+	if err != nil {
+		return false, err
+	}
 
-	return (isLocal || isS3a), err
+	return (isLocal || isS3a), nil
 }
 
-func (provider *Provider) EnvCredentials() []corev1.EnvVar {
+func (c *Cloud) EnvCredentials() []corev1.EnvVar {
 	return []corev1.EnvVar{}
 }
 
-func (provider *Provider) SparkEnvCredentials() map[string]sparkop.NameKey {
+func (c *Cloud) SparkEnvCredentials() map[string]sparkop.NameKey {
 	return map[string]sparkop.NameKey{}
 }
 
-func (provider *Provider) StorageVolumes() []corev1.Volume {
+func (c *Cloud) StorageVolumes() []corev1.Volume {
 	return []corev1.Volume{
 		{
-			Name: "task-pv-storage",
+			Name: consts.CortexSharedVolume,
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: "task-pv-claim",
+					ClaimName: consts.CortexSharedVolumeClaim,
 				},
 			},
 		},
 	}
 }
 
-func (provider *Provider) StorageVolumeMounts() []corev1.VolumeMount {
+func (c *Cloud) StorageVolumeMounts() []corev1.VolumeMount {
 	return []corev1.VolumeMount{
 		{
-			Name:      "task-pv-storage",
-			MountPath: provider.baseDir,
+			Name:      consts.CortexSharedVolume,
+			MountPath: c.config.Bucket,
 		},
 	}
 }
 
-func (provider *Provider) APIsBaseURL(kubernetes *k8s.Client) (string, error) {
-	clusterHost, err := url.Parse(kubernetes.RestConfig.Host)
+func (c *Cloud) APIsBaseURL(k8sClient *k8s.Client) (string, error) {
+	clusterHost, err := url.Parse(k8sClient.RestConfig.Host)
 	if err != nil {
 		return "", err
 	}
 
 	host := strings.Split(clusterHost.Host, ":")[0]
+
+	if c.config.OperatorHostIP != nil {
+		host = *c.config.OperatorHostIP
+	}
+
 	clusterHost.Scheme = "https"
 
-	service, err := kubernetes.GetService("nginx-controller-apis")
+	service, err := k8sClient.GetService("nginx-controller-apis")
 	if err != nil {
 		return "", err
 	}
@@ -193,11 +230,49 @@ func (provider *Provider) APIsBaseURL(kubernetes *k8s.Client) (string, error) {
 	return "", errors.New("Port for HTTPS not found")
 }
 
-func IsValidPath(path string) (bool, error) {
+func (c *Cloud) BucketPath(key string) string {
+	return filepath.Join(c.config.Bucket, key)
+}
+
+func (c *Cloud) Close() {
+	if c.Bucket != nil {
+		c.Bucket.Close()
+	}
+}
+
+func (c *Cloud) ExternalPrefixExists(path string) (bool, error) {
+	cloudType, err := cloud.ProviderTypeFromPath(path)
+	if err != nil {
+		return false, err
+	}
+
 	pathURL, err := url.Parse(path)
 	if err != nil {
 		return false, err
 	}
 
-	return len(pathURL.Scheme) == 0 && len(pathURL.Host) == 0 && len(pathURL.Path) > 0, nil
+	switch cloudType {
+	case cloud.AWSProviderType:
+		sess := session.Must(session.NewSession(&aws.Config{
+			Credentials: credentials.AnonymousCredentials,
+			Region:      aws.String(consts.DefaultAWSRegion),
+		}))
+
+		out, err := s3.New(sess).ListObjectsV2(&s3.ListObjectsV2Input{
+			Bucket: aws.String(pathURL.Host),
+			Prefix: aws.String(pathURL.Path),
+		})
+		if err != nil {
+			return false, errors.Wrap(err, path)
+		}
+		hasPrefix := *out.KeyCount > 0
+		return hasPrefix, nil
+	case cloud.LocalProviderType:
+		if !c.config.OperatorInCluster {
+			path = filepath.Join(*c.config.OperatorLocalMount, path)
+		}
+		return files.IsFileOrDir(path), nil
+	default:
+		return false, errors.Wrap(cloud.ErrorUnsupportedFilePath(path, "s3", "s3a", "local"))
+	}
 }

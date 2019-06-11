@@ -60,7 +60,7 @@ def empty_context_obj():
     return NoneDict(
         app=NoneDict(),
         cortex_config=NoneDict(
-            api_version=consts.CORTEX_VERSION, cloud_options=NoneDict(region="us-west-2")
+            api_version=consts.CORTEX_VERSION, cloud_config=NoneDict(region="us-west-2")
         ),
         raw_features={},
         transformed_features={},

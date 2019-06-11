@@ -31,8 +31,9 @@ const (
 	ErrRequiredFieldNotDefined
 	ErrInvalidHadoopPath
 	ErrUnsupportedProviderType
-	ErrUnrecognizedFilepath
+	ErrNotAnAbsolutePath
 	ErrFailedToListBlobs
+	ErrUnsupportedFilePath
 )
 
 var errorKinds = []string{
@@ -40,11 +41,12 @@ var errorKinds = []string{
 	"err_required_field_not_defined",
 	"err_invalid_hadoop_path",
 	"err_unsupported_provider_type",
-	"err_unrecognized_filepath",
+	"err_not_an_absolute_path",
 	"err_failed_to_list_blobs",
+	"err_unsupported_file_path",
 }
 
-var _ = [1]int{}[int(ErrFailedToListBlobs)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrUnsupportedFilePath)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -67,6 +69,17 @@ func (t *ErrorKind) UnmarshalText(text []byte) error {
 
 	*t = ErrUnknown
 	return nil
+}
+
+// UnmarshalBinary satisfies BinaryUnmarshaler
+// Needed for msgpack
+func (t *ErrorKind) UnmarshalBinary(data []byte) error {
+	return t.UnmarshalText(data)
+}
+
+// MarshalBinary satisfies BinaryMarshaler
+func (t ErrorKind) MarshalBinary() ([]byte, error) {
+	return []byte(t.String()), nil
 }
 
 func IsNoSuchKeyErr(err error) bool {
@@ -103,10 +116,10 @@ func ErrorUnsupportedProviderType(provider string) error {
 	}
 }
 
-func ErrorUnrecognizedFilepath() error {
+func ErrorNotAnAbsolutePath(path string) error {
 	return Error{
-		Kind:    ErrUnrecognizedFilepath,
-		message: "file path not recognized",
+		Kind:    ErrNotAnAbsolutePath,
+		message: fmt.Sprintf("%s is not an absolute file path", path),
 	}
 }
 
@@ -114,5 +127,13 @@ func ErrorFailedToListBlobs() error {
 	return Error{
 		Kind:    ErrFailedToListBlobs,
 		message: "failed to list blobs",
+	}
+}
+
+func ErrorUnsupportedFilePath(path string, scheme string, schemeList ...string) error {
+	schemeList = append(schemeList, scheme)
+	return Error{
+		Kind:    ErrUnsupportedFilePath,
+		message: fmt.Sprintf("expected path of type %s but found %s", s.StrsOr(schemeList), path),
 	}
 }

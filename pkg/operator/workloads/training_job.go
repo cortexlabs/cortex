@@ -76,10 +76,10 @@ func trainingJobSpec(
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--workload-id=" + workloadID,
-							"--context=" + config.Cloud.InternalPath(ctx.Key),
+							"--context=" + config.Cloud.BucketPath(ctx.Key),
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--model=" + modelID,
-							"--cloud-provider-type=" + config.Cloud.ProviderType.String(),
+							"--cloud-provider-type=" + config.Cortex.CloudProvider.String(),
 						},
 						Env:          config.Cloud.EnvCredentials(),
 						VolumeMounts: append(k8s.DefaultVolumeMounts(), config.Cloud.StorageVolumeMounts()...),

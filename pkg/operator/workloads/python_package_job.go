@@ -54,10 +54,10 @@ func pythonPackageJobSpec(ctx *context.Context, pythonPackages strset.Set, workl
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--workload-id=" + workloadID,
-							"--context=" + config.Cloud.InternalPath(ctx.Key),
+							"--context=" + config.Cloud.BucketPath(ctx.Key),
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--python-packages=" + strings.Join(pythonPackages.Slice(), ","),
-							"--cloud-provider-type=" + config.Cloud.ProviderType.String(),
+							"--cloud-provider-type=" + config.Cortex.CloudProvider.String(),
 							"--build",
 						},
 						Env:          config.Cloud.EnvCredentials(),

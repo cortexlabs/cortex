@@ -23,6 +23,9 @@ SHELL := /bin/bash
 devstart:
 	@./dev/operator_local.sh || true
 
+devstart-local:
+	@./dev/operator_local.sh local|| true
+
 oinstall:
 	@./cortex-installer.sh -c=./dev/config/cortex.sh install operator
 

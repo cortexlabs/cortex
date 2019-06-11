@@ -16,7 +16,11 @@ limitations under the License.
 
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/cortexlabs/cortex/pkg/lib/cloud"
+)
 
 type ErrorKind int
 
@@ -86,7 +90,7 @@ func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error
 	}
 }
 
-func ErrorCloudProviderTypeMismatch(operatorProvider string, clientProvider string) error {
+func ErrorCloudProviderTypeMismatch(operatorProvider cloud.ProviderType, clientProvider cloud.ProviderType) error {
 	return Error{
 		Kind:    ErrCloudProviderTypeMismatch,
 		message: fmt.Sprintf("Operator cloud provider type mismatch (Operator: %s; Client: %s)", operatorProvider, clientProvider),

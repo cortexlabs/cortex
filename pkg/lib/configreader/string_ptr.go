@@ -175,17 +175,9 @@ func validateStringPtr(val *string, v *StringPtrValidation) (*string, error) {
 //
 
 func MustStringPtrFromEnv(envVarName string, v *StringPtrValidation) *string {
-	valStr := ReadEnvVar(envVarName)
-	if valStr == nil {
-		val, err := ValidateStringPtrMissing(v)
-		if err != nil {
-			errors.Panic(errors.Wrap(err, EnvVar(envVarName)))
-		}
-		return val
-	}
-	val, err := StringPtrFromStr(*valStr, v)
+	val, err := StringPtrFromEnv(envVarName, v)
 	if err != nil {
-		errors.Panic(errors.Wrap(err, EnvVar(envVarName)))
+		errors.Panic(err)
 	}
 	return val
 }

@@ -18,7 +18,9 @@ package aws
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
@@ -29,41 +31,35 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"gocloud.dev/blob/s3blob"
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/cortexlabs/cortex/pkg/lib/cloud"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 )
 
-type Provider struct {
-	Bucket               string
-	Region               string
-	logGroup             string
+type Cloud struct {
 	awsAccountID         string
 	hashedAccountID      string
 	cloudWatchLogsClient *cloudwatchlogs.CloudWatchLogs
+	config               *cloud.Config
+	*cloud.Storage
 }
 
-func (provider *Provider) OperatorBucketURL() *url.URL {
-	return &url.URL{
-		Scheme: "s3",
-		Host:   provider.Bucket,
-	}
-}
+// type Config struct {
+// 	Bucket   string
+// 	Region   string
+// 	LogGroup string
+// }
 
-func (provider *Provider) WorkloadBucketURL() *url.URL {
-	return &url.URL{
-		Scheme: "s3",
-		Host:   provider.Bucket,
-	}
-}
-
-func New(bucket string, region string, logGroup string) *Provider {
+func NewFromConfig(config *cloud.Config) (cloud.Client, error) {
 	sess := session.Must(session.NewSession(&aws.Config{
-		Region:     aws.String(region),
+		Region:     aws.String(*config.Region),
 		DisableSSL: aws.Bool(false),
 	}))
 
@@ -74,13 +70,20 @@ func New(bucket string, region string, logGroup string) *Provider {
 	awsAccountID := *response.Account
 	hashedAccountID := hash.String(awsAccountID)
 
-	return &Provider{
-		Bucket:               bucket,
-		Region:               region,
+	ctx := context.Background()
+	bucket, err := s3blob.OpenBucket(ctx, sess, config.Bucket, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &Cloud{
 		awsAccountID:         awsAccountID,
 		hashedAccountID:      hashedAccountID,
 		cloudWatchLogsClient: cloudwatchlogs.New(sess),
-	}
+		config:               config,
+		Storage: &cloud.Storage{
+			Bucket: bucket,
+		},
+	}, nil
 }
 
 type FluentdLog struct {
@@ -98,7 +101,7 @@ type FluentdLog struct {
 	} `json:"kubernetes"`
 }
 
-func (provider *Provider) GetLogs(prefix string) (string, error) {
+func (c *Cloud) GetLogs(prefix string) (string, error) {
 	logGroupNamePrefix := "var.log.containers."
 	ignoreLogStreamNameRegexes := []*regexp.Regexp{
 		regexp.MustCompile(`-exec-[0-9]+`),
@@ -106,9 +109,9 @@ func (provider *Provider) GetLogs(prefix string) (string, error) {
 		regexp.MustCompile(`_cortex_serve-`),
 	}
 
-	logStreamsOut, err := provider.cloudWatchLogsClient.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
+	logStreamsOut, err := c.cloudWatchLogsClient.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
 		Limit:               aws.Int64(50),
-		LogGroupName:        aws.String(provider.logGroup),
+		LogGroupName:        aws.String(*c.config.LogGroup),
 		LogStreamNamePrefix: aws.String(logGroupNamePrefix + prefix),
 	})
 	if err != nil {
@@ -120,12 +123,12 @@ func (provider *Provider) GetLogs(prefix string) (string, error) {
 	for i, logStream := range logStreamsOut.LogStreams {
 		if !regex.MatchAnyRegex(*logStream.LogStreamName, ignoreLogStreamNameRegexes) {
 			getLogEventsInput := &cloudwatchlogs.GetLogEventsInput{
-				LogGroupName:  &provider.logGroup,
+				LogGroupName:  c.config.LogGroup,
 				LogStreamName: logStream.LogStreamName,
 				StartFromHead: aws.Bool(true),
 			}
 
-			err := provider.cloudWatchLogsClient.GetLogEventsPages(getLogEventsInput, func(logEventsOut *cloudwatchlogs.GetLogEventsOutput, lastPage bool) bool {
+			err := c.cloudWatchLogsClient.GetLogEventsPages(getLogEventsInput, func(logEventsOut *cloudwatchlogs.GetLogEventsOutput, lastPage bool) bool {
 				for _, logEvent := range logEventsOut.Events {
 					var log FluentdLog
 					// millis := *logEvent.Timestamp
@@ -136,7 +139,7 @@ func (provider *Provider) GetLogs(prefix string) (string, error) {
 				return true
 			})
 			if err != nil {
-				return "", errors.Wrap(err, "cloudwatch logs")
+				return "", errors.Wrap(err, "cloudwatch logs", prefix)
 			}
 
 			if i < len(logStreamsOut.LogStreams)-1 {
@@ -148,16 +151,16 @@ func (provider *Provider) GetLogs(prefix string) (string, error) {
 	return allLogsBuf.String(), nil
 }
 
-func (provider *Provider) AuthUser(authHeader string) (bool, error) {
+func (c *Cloud) AuthUser(authHeader string) (bool, error) {
 	parts := strings.Split(authHeader, "|")
 	if len(parts) != 2 {
-		return false, ErrorAuth("aws")
+		return false, ErrorAuth("AWS")
 	}
 
 	accessKeyID, secretAccessKey := parts[0], parts[1]
 
 	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(provider.Region),
+		Region:      aws.String(*c.config.Region),
 		DisableSSL:  aws.Bool(false),
 		Credentials: credentials.NewStaticCredentials(accessKeyID, secretAccessKey, ""),
 	})
@@ -176,19 +179,19 @@ func (provider *Provider) AuthUser(authHeader string) (bool, error) {
 		return false, errors.WithStack(err)
 	}
 
-	return *response.Account == provider.awsAccountID, nil
+	return *response.Account == c.awsAccountID, nil
 }
 
-func (provider *Provider) HashedAccountID() string {
-	return provider.hashedAccountID
+func (c *Cloud) HashedAccountID() string {
+	return c.hashedAccountID
 }
 
-func (provider *Provider) IsValidHadoopPath(path string) (bool, error) {
-	return IsValidS3a(path)
+func (c *Cloud) IsValidHadoopPath(path string) (bool, error) {
+	return cloud.IsValidS3aPath(path)
 }
 
-func (provider *Provider) EnvCredentials() []corev1.EnvVar {
-	envVars := []corev1.EnvVar{
+func (c *Cloud) EnvCredentials() []corev1.EnvVar {
+	return []corev1.EnvVar{
 		{
 			Name: "AWS_ACCESS_KEY_ID",
 			ValueFrom: &corev1.EnvVarSource{
@@ -212,11 +215,9 @@ func (provider *Provider) EnvCredentials() []corev1.EnvVar {
 			},
 		},
 	}
-
-	return envVars
 }
 
-func (provider *Provider) SparkEnvCredentials() map[string]sparkop.NameKey {
+func (c *Cloud) SparkEnvCredentials() map[string]sparkop.NameKey {
 	return map[string]sparkop.NameKey{
 		"AWS_ACCESS_KEY_ID": {
 			Name: "aws-credentials",
@@ -228,42 +229,68 @@ func (provider *Provider) SparkEnvCredentials() map[string]sparkop.NameKey {
 		}}
 }
 
-func (provider *Provider) StorageVolumes() []corev1.Volume {
+func (c *Cloud) StorageVolumes() []corev1.Volume {
 	return []corev1.Volume{}
 }
 
-func (provider *Provider) StorageVolumeMounts() []corev1.VolumeMount {
+func (c *Cloud) StorageVolumeMounts() []corev1.VolumeMount {
 	return []corev1.VolumeMount{}
 }
 
-func (provider *Provider) APIsBaseURL(kubernetes *k8s.Client) (string, error) {
+func (c *Cloud) APIsBaseURL(kubernetes *k8s.Client) (string, error) {
 	service, err := kubernetes.GetService("nginx-controller-apis")
 	if err != nil {
 		return "", err
 	}
 	if service == nil {
-		return "", errors.New("ErrorCortexInstallationBroken()")
+		return "", ErrorCortexInstallationBroken()
 	}
 	if len(service.Status.LoadBalancer.Ingress) == 0 {
-		return "", errors.New("ErrorLoadBalancerInitializing()")
+		return "", ErrorLoadBalancerInitializing()
 	}
 	return "https://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
 
-func IsValidS3a(path string) (bool, error) {
-	pathURL, err := url.Parse(path)
-	if err != nil {
-		return false, err
-	}
-
-	return pathURL.Scheme == "s3a" && len(pathURL.Host) > 0 && len(pathURL.Path) > 0, nil
+func (c *Cloud) BucketPath(key string) string {
+	return fmt.Sprintf("s3://%s/%s", c.config.Bucket, key)
 }
 
-func IsValidS3(path string) (bool, error) {
+func (c *Cloud) Close() {
+	if c.Bucket != nil {
+		c.Bucket.Close()
+	}
+}
+
+func (c *Cloud) ExternalPrefixExists(path string) (bool, error) {
+	cloudType, err := cloud.ProviderTypeFromPath(path)
+	if err != nil {
+		return false, err
+	}
+
+	if cloudType != cloud.AWSProviderType {
+		return false, errors.Wrap(cloud.ErrorUnsupportedFilePath(path, "s3", "s3a"))
+	}
+
 	pathURL, err := url.Parse(path)
 	if err != nil {
 		return false, err
 	}
 
-	return pathURL.Scheme == "s3" && len(pathURL.Host) > 0 && len(pathURL.Path) > 0, nil
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region:     aws.String(*c.config.Region),
+		DisableSSL: aws.Bool(false),
+	}))
+	fmt.Println(pathURL.Host)
+	fmt.Println(pathURL.Path[1:])
+	out, err := s3.New(sess).ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket: aws.String(pathURL.Host),
+		Prefix: aws.String(pathURL.Path[1:]),
+	})
+
+	if err != nil {
+		return false, errors.Wrap(err, path)
+	}
+
+	hasPrefix := *out.KeyCount > 0
+	return hasPrefix, nil
 }

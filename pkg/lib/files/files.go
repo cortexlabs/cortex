@@ -17,14 +17,17 @@ limitations under the License.
 package files
 
 import (
+	"bytes"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
 
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/xlab/treeprint"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -89,16 +92,25 @@ func TrimDirPrefix(fullPath string, dirPath string) string {
 	return strings.TrimPrefix(fullPath, dirPath)
 }
 
-func RelPath(userPath string, baseDir string) string {
-	if !filepath.IsAbs(userPath) {
-		userPath = filepath.Join(baseDir, userPath)
+func FullPath(path string, baseDir string) (string, error) {
+	path, err := homedir.Expand(path)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to expand home path", path)
 	}
-	return filepath.Clean(userPath)
+
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(baseDir, path)
+	}
+
+	return filepath.Clean(path), nil
 }
 
-func UserPath(userPath string) string {
-	baseDir, _ := os.Getwd()
-	return RelPath(userPath, baseDir)
+func FullPathFromCWD(path string) (string, error) {
+	baseDir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	return FullPath(path, baseDir)
 }
 
 func IsFileOrDir(path string) bool {
@@ -464,4 +476,19 @@ func ReadReqFile(r *http.Request, fileName string) ([]byte, error) {
 		return nil, errors.Wrap(err, ErrorReadFormFile(fileName).Error())
 	}
 	return fileBytes, nil
+}
+
+func Copy(srcPath string, destPath string) error {
+	if !IsFileOrDir(srcPath) {
+		return ErrorFileOrDirDoesNotExist(srcPath)
+	}
+
+	cmd := exec.Command("cp", "-a", srcPath, destPath)
+	var errbuf bytes.Buffer
+	cmd.Stderr = &errbuf
+	err := cmd.Run()
+	if err != nil {
+		return errors.Wrap(err, errbuf.String(), srcPath)
+	}
+	return nil
 }

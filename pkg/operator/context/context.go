@@ -40,11 +40,11 @@ var (
 	uploadedTransformers = strset.New()
 
 	OperatorTransformersDir = configreader.MustStringFromEnv(
-		"CONST_OPERATOR_TRANSFORMERS_DIR",
+		"CORTEX_OPERATOR_TRANSFORMERS_DIR",
 		&configreader.StringValidation{Default: "/src/transformers"},
 	)
 	OperatorAggregatorsDir = configreader.MustStringFromEnv(
-		"CONST_OPERATOR_AGGREGATORS_DIR",
+		"CORTEX_OPERATOR_AGGREGATORS_DIR",
 		&configreader.StringValidation{Default: "/src/aggregators"},
 	)
 )
@@ -239,7 +239,7 @@ func DownloadContext(ctxID string, appName string) (*context.Context, error) {
 	var serial context.Serial
 
 	if err := config.Cloud.GetMsgpack(&serial, s3Key); err != nil {
-		return nil, errors.Wrap(err, "unable to read "+s3Key)
+		return nil, err
 	}
 
 	return serial.ContextFromSerial()

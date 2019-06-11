@@ -25,7 +25,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/argo"
-	"github.com/cortexlabs/cortex/pkg/lib/cloud"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -98,14 +97,13 @@ func sparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 			MainApplicationFile:  pointer.String("local:///src/spark_job/spark_job.py"),
 			RestartPolicy:        sparkop.RestartPolicy{Type: sparkop.Never},
 			MemoryOverheadFactor: memOverheadFactor,
-			ImagePullSecrets:     []string{"awsecr-cred"},
 			Volumes:              config.Cloud.StorageVolumes(),
 			Arguments: []string{
 				strings.TrimSpace(
 					" --workload-id=" + workloadID +
-						" --context=" + config.Cloud.InternalPath(ctx.Key) +
+						" --context=" + config.Cloud.BucketPath(ctx.Key) +
 						" --cache-dir=" + consts.ContextCacheDir +
-						" --cloud-provider-type=" + config.Cloud.ProviderType.String() +
+						" --cloud-provider-type=" + config.Cortex.CloudProvider.String() +
 						" " + strings.Join(args, " ")),
 			},
 			Deps: sparkop.Dependencies{
@@ -125,10 +123,10 @@ func sparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 					EnvSecretKeyRefs: config.Cloud.SparkEnvCredentials(),
 					EnvVars: map[string]string{
 						"CORTEX_SPARK_VERBOSITY":     ctx.Environment.LogLevel.Spark,
-						"CORTEX_CONTEXT_PATH":        config.Cloud.InternalPath(ctx.Key),
+						"CORTEX_CONTEXT_PATH":        config.Cloud.BucketPath(ctx.Key),
 						"CORTEX_WORKLOAD_ID":         workloadID,
 						"CORTEX_CACHE_DIR":           consts.ContextCacheDir,
-						"CORTEX_CLOUD_PROVIDER_TYPE": config.Cloud.ProviderType.String(),
+						"CORTEX_CLOUD_PROVIDER_TYPE": config.Cortex.CloudProvider.String(),
 					},
 					VolumeMounts: config.Cloud.StorageVolumeMounts(),
 				},
@@ -148,10 +146,10 @@ func sparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 					EnvSecretKeyRefs: config.Cloud.SparkEnvCredentials(),
 					EnvVars: map[string]string{
 						"CORTEX_SPARK_VERBOSITY":     ctx.Environment.LogLevel.Spark,
-						"CORTEX_CONTEXT_PATH":        config.Cloud.InternalPath(ctx.Key),
+						"CORTEX_CONTEXT_PATH":        config.Cloud.BucketPath(ctx.Key),
 						"CORTEX_WORKLOAD_ID":         workloadID,
 						"CORTEX_CACHE_DIR":           consts.ContextCacheDir,
-						"CORTEX_CLOUD_PROVIDER_TYPE": config.Cloud.ProviderType.String(),
+						"CORTEX_CLOUD_PROVIDER_TYPE": config.Cortex.CloudProvider.String(),
 					},
 					VolumeMounts: config.Cloud.StorageVolumeMounts(),
 				},
@@ -174,14 +172,8 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	shouldIngest := !rawFileExists
 	if shouldIngest {
 		externalDataPath := ctx.Environment.Data.GetExternalPath()
-		cloudType, err := cloud.ProviderTypeFromPath(externalDataPath)
-		if err != nil {
-			return nil, err
-		}
-		if !config.Cortex.OperatorInCluster && cloudType == cloud.LocalProviderType {
-			externalDataPath = filepath.Join(config.Cortex.OperatorLocalMount, externalDataPath)
-		}
-		externalDataExists, err := cloud.ExternalPrefixExists(externalDataPath)
+
+		externalDataExists, err := config.Cloud.ExternalPrefixExists(externalDataPath)
 		if err != nil {
 			return nil, err
 		}

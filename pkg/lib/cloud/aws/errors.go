@@ -21,14 +21,18 @@ type ErrorKind int
 const (
 	ErrUnknown ErrorKind = iota
 	ErrAuth
+	ErrCortexInstallationBroken
+	ErrLoadBalancerInitializing
 )
 
 var errorKinds = []string{
 	"err_unknown",
 	"err_auth",
+	"err_cortex_installation_broken",
+	"err_load_balancer_initializing",
 }
 
-var _ = [1]int{}[int(ErrAuth)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrLoadBalancerInitializing)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -53,6 +57,17 @@ func (t *ErrorKind) UnmarshalText(text []byte) error {
 	return nil
 }
 
+// UnmarshalBinary satisfies BinaryUnmarshaler
+// Needed for msgpack
+func (t *ErrorKind) UnmarshalBinary(data []byte) error {
+	return t.UnmarshalText(data)
+}
+
+// MarshalBinary satisfies BinaryMarshaler
+func (t ErrorKind) MarshalBinary() ([]byte, error) {
+	return []byte(t.String()), nil
+}
+
 type Error struct {
 	Kind    ErrorKind
 	message string
@@ -66,5 +81,19 @@ func ErrorAuth(cloudProvider string) error {
 	return Error{
 		Kind:    ErrAuth,
 		message: "unable to authenticate with " + cloudProvider,
+	}
+}
+
+func ErrorCortexInstallationBroken() error {
+	return Error{
+		Kind:    ErrCortexInstallationBroken,
+		message: "cortex is out of date, or not installed properly on your cluster; run `./cortex-installer.sh uninstall operator && ./cortex-installer.sh install operator`",
+	}
+}
+
+func ErrorLoadBalancerInitializing() error {
+	return Error{
+		Kind:    ErrLoadBalancerInitializing,
+		message: "load balancer is still initializing",
 	}
 }

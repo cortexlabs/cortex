@@ -28,8 +28,6 @@ const (
 	ErrMoreThanOneWorkflow
 	ErrContextAppMismatch
 	ErrWorkflowAppMismatch
-	ErrCortexInstallationBroken
-	ErrLoadBalancerInitializing
 	ErrNotFound
 )
 
@@ -39,8 +37,6 @@ var errorKinds = []string{
 	"error_more_than_one_workflow",
 	"err_context_app_mismatch",
 	"err_workflow_app_mismatch",
-	"err_cortex_installation_broken",
-	"err_load_balancer_initializing",
 	"err_not_found",
 }
 
@@ -114,20 +110,6 @@ func ErrorWorkflowAppMismatch() error {
 	return Error{
 		Kind:    ErrWorkflowAppMismatch,
 		message: "workflow apps do not match",
-	}
-}
-
-func ErrorCortexInstallationBroken() error {
-	return Error{
-		Kind:    ErrCortexInstallationBroken,
-		message: "cortex is out of date, or not installed properly on your cluster; run `./cortex-installer.sh uninstall operator && ./cortex-installer.sh install operator`",
-	}
-}
-
-func ErrorLoadBalancerInitializing() error {
-	return Error{
-		Kind:    ErrLoadBalancerInitializing,
-		message: "load balancer is still initializing",
 	}
 }
 
