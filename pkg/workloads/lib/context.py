@@ -679,62 +679,24 @@ def _deserialize_raw_ctx(raw_ctx):
 
 
 # input should already have non-column arguments replaced, and all types validated
-def create_transformer_inputs_from_map(input, input_schema, col_value_map):
+def create_transformer_inputs_from_map(input, col_value_map):
     if util.is_str(input):
         res_name = util.get_resource_ref(input)
         if res_name in col_value_map:
-            value = col_value_map[res_name]
-            if input_schema is not None:
-                valid_col_types = input_schema["_type"].split("|")
-                if util.is_int(value) and consts.COLUMN_TYPE_INT not in valid_col_types:
-                    value = float(value)
-                if util.is_int_list(value) and consts.COLUMN_TYPE_INT_LIST not in valid_col_types:
-                    value = [float(elem) for elem in value]
-            return value
+            return col_value_map[res_name]
         return input
 
     if util.is_list(input):
         replaced = []
         for item in input:
-            sub_schema = None
-            if input_schema is not None:
-                sub_schema = input_schema["_type"][0]
-            replaced.append(create_transformer_inputs_from_map(item, sub_schema, col_value_map))
+            replaced.append(create_transformer_inputs_from_map(item, col_value_map))
         return replaced
 
     if util.is_dict(input):
         replaced = {}
-
-        if input_schema is not None:
-            is_generic_map = False
-            generic_key_sub_schema = None
-            generic_val_sub_schema = None
-            if len(input_schema["_type"]) == 1:
-                input_type_key = next(iter(input_schema["_type"].keys()))
-                if is_compound_type(input_type_key):
-                    is_generic_map = True
-                    generic_key_sub_schema = {
-                        "_type": input_type_key,
-                        "_optional": False,
-                        "_default": None,
-                        "_allow_null": False,
-                        "_min_count": None,
-                        "_max_count": None,
-                    }
-                    generic_val_sub_schema = input_schema["_type"][input_type_key]
-
         for key, val in input.items():
-            key_sub_schema = None
-            val_sub_schema = None
-            if input_schema is not None:
-                if is_generic_map:
-                    key_sub_schema = generic_key_sub_schema
-                    val_sub_schema = generic_val_sub_schema
-                else:
-                    val_sub_schema = input_schema["_type"].get(key)
-
-            key_replaced = create_transformer_inputs_from_map(key, key_sub_schema, col_value_map)
-            val_replaced = create_transformer_inputs_from_map(val, val_sub_schema, col_value_map)
+            key_replaced = create_transformer_inputs_from_map(key, col_value_map)
+            val_replaced = create_transformer_inputs_from_map(val, col_value_map)
             replaced[key_replaced] = val_replaced
         return replaced
 
@@ -742,12 +704,12 @@ def create_transformer_inputs_from_map(input, input_schema, col_value_map):
 
 
 # input should already have non-column arguments replaced, and all types validated
-def create_transformer_inputs_from_lists(input, input_schema, input_cols_sorted, col_values):
+def create_transformer_inputs_from_lists(input, input_cols_sorted, col_values):
     col_value_map = {}
     for col_name, col_value in zip(input_cols_sorted, col_values):
         col_value_map[col_name] = col_value
 
-    return create_transformer_inputs_from_map(input, input_schema, col_value_map, col_type_map)
+    return create_transformer_inputs_from_map(input, col_value_map)
 
 
 # def create_column_inputs_map(self, values_map, column_name):

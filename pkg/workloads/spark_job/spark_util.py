@@ -570,7 +570,7 @@ def execute_transform_python(column_name, df, ctx, spark, validate=False):
 
     def _transform(*values):
         transformer_input = create_transformer_inputs_from_lists(
-            input_repl, transformer["input"], input_cols_sorted, values
+            input_repl, input_cols_sorted, values
         )
         return trans_impl.transform_python(transformer_input)
 
@@ -624,16 +624,12 @@ def validate_transformer(column_name, test_df, ctx, spark):
                 input_repl = ctx.populate_values(
                     transformed_column["input"], transformer["input"], preserve_column_refs=True
                 )
-                transformer_input = create_transformer_inputs_from_map(
-                    input_repl, transformer["input"], sample
-                )
+                transformer_input = create_transformer_inputs_from_map(input_repl, sample)
                 initial_transformed_sample = trans_impl.transform_python(transformer_input)
                 inferred_python_type = infer_type(initial_transformed_sample)
 
                 for row in sample_df:
-                    transformer_input = create_transformer_inputs_from_map(
-                        input_repl, transformer["input"], row
-                    )
+                    transformer_input = create_transformer_inputs_from_map(input_repl, row)
                     transformed_sample = trans_impl.transform_python(transformer_input)
                     if inferred_python_type != infer_type(transformed_sample):
                         raise UserRuntimeException(

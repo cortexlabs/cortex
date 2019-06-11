@@ -101,12 +101,6 @@ func (compoundType *CompoundType) SupportsType(t interface{}) bool {
 	parsed, _ := parseCompoundType(string(*compoundType))
 
 	if columnType, ok := t.(ColumnType); ok {
-		if columnType == IntegerColumnType {
-			return parsed.columnTypes[IntegerColumnType] || parsed.columnTypes[FloatColumnType]
-		}
-		if columnType == IntegerListColumnType {
-			return parsed.columnTypes[IntegerListColumnType] || parsed.columnTypes[FloatListColumnType]
-		}
 		return parsed.columnTypes[columnType] || columnType == InferredColumnType
 	}
 

@@ -176,9 +176,9 @@ func TestValidateRuntimeTypes(t *testing.T) {
 	checkValidateRuntimeTypesError(t, `{a: FLOAT, b: INT, c: INT}`, `@ca`)
 
 	checkValidateRuntimeTypesEqual(t, `INT_COLUMN`, `@rc1`, `🌝🌝🌝🌝🌝rc1`)
-	checkValidateRuntimeTypesEqual(t, `FLOAT_COLUMN`, `@rc1`, `🌝🌝🌝🌝🌝rc1`)
+	checkValidateRuntimeTypesError(t, `FLOAT_COLUMN`, `@rc1`)
 	checkValidateRuntimeTypesError(t, `STRING_COLUMN`, `@rc1`)
-	checkValidateRuntimeTypesEqual(t, `FLOAT_COLUMN|STRING_COLUMN`, `@rc1`, `🌝🌝🌝🌝🌝rc1`)
+	checkValidateRuntimeTypesEqual(t, `INT_COLUMN|STRING_COLUMN`, `@rc1`, `🌝🌝🌝🌝🌝rc1`)
 	checkValidateRuntimeTypesError(t, `INT_LIST_COLUMN`, `@rc1`)
 	checkValidateRuntimeTypesError(t, `[INT_COLUMN]`, `@rc1`)
 	checkValidateRuntimeTypesError(t, `{INT_COLUMN: INT}`, `@rc1`)
@@ -323,7 +323,7 @@ func TestValidateRuntimeTypes(t *testing.T) {
 
 	checkValidateRuntimeTypesError(t, `STRING_COLUMN`, `@tc3`)
 	checkValidateRuntimeTypesEqual(t, `INT_COLUMN`, `@tc3`, `🌝🌝🌝🌝🌝tc3`)
-	checkValidateRuntimeTypesEqual(t, `FLOAT_COLUMN`, `@tc3`, `🌝🌝🌝🌝🌝tc3`)
+	checkValidateRuntimeTypesError(t, `FLOAT_COLUMN`, `@tc3`)
 	checkValidateRuntimeTypesError(t, `STRING_LIST_COLUMN`, `@tc3`)
 	checkValidateRuntimeTypesError(t, `INT_LIST_COLUMN`, `@tc3`)
 	checkValidateRuntimeTypesError(t, `FLOAT_LIST_COLUMN`, `@tc3`)
@@ -361,7 +361,7 @@ func TestValidateRuntimeTypes(t *testing.T) {
 	checkValidateRuntimeTypesError(t, `FLOAT_COLUMN`, `@tc6`)
 	checkValidateRuntimeTypesError(t, `STRING_LIST_COLUMN`, `@tc6`)
 	checkValidateRuntimeTypesEqual(t, `INT_LIST_COLUMN`, `@tc6`, `🌝🌝🌝🌝🌝tc6`)
-	checkValidateRuntimeTypesEqual(t, `FLOAT_LIST_COLUMN`, `@tc6`, `🌝🌝🌝🌝🌝tc6`)
+	checkValidateRuntimeTypesError(t, `FLOAT_LIST_COLUMN`, `@tc6`)
 	checkValidateRuntimeTypesError(t, `[STRING_COLUMN]`, `@tc6`)
 	checkValidateRuntimeTypesError(t, `[INT_COLUMN]`, `@tc6`)
 	checkValidateRuntimeTypesError(t, `{STRING_COLUMN: INT}`, `@tc6`)
@@ -386,8 +386,12 @@ func TestValidateRuntimeTypes(t *testing.T) {
 
 	checkValidateRuntimeTypesEqual(t,
 		`[FLOAT_COLUMN]`,
-		`[@tc3, @rc1, @tc4, @rc4]`,
-		[]interface{}{"🌝🌝🌝🌝🌝tc3", "🌝🌝🌝🌝🌝rc1", "🌝🌝🌝🌝🌝tc4", "🌝🌝🌝🌝🌝rc4"})
+		`[@tc4, @rc4]`,
+		[]interface{}{"🌝🌝🌝🌝🌝tc4", "🌝🌝🌝🌝🌝rc4"})
+
+	checkValidateRuntimeTypesError(t,
+		`[FLOAT_COLUMN]`,
+		`[@tc3, @rc1, @tc4, @rc4]`)
 
 	checkValidateRuntimeTypesEqual(t,
 		`[FLOAT]`,
@@ -416,16 +420,16 @@ func TestValidateRuntimeTypes(t *testing.T) {
 
 	checkValidateRuntimeTypesEqual(t,
 		`{2: FLOAT_COLUMN, 3: FLOAT}`,
-		`{2: @tc3, 3: @agg4}`,
-		map[interface{}]interface{}{int64(2): "🌝🌝🌝🌝🌝tc3", int64(3): "🌝🌝🌝🌝🌝agg4"})
+		`{2: @tc4, 3: @agg4}`,
+		map[interface{}]interface{}{int64(2): "🌝🌝🌝🌝🌝tc4", int64(3): "🌝🌝🌝🌝🌝agg4"})
 
 	checkValidateRuntimeTypesEqual(t,
 		`{FLOAT: FLOAT_COLUMN}`,
-		`{2: @tc3, 3: @tc4, @agg4: @rc1, @agg5: @rc2, @c5: @rc4, @c6: @tc2}`,
+		`{2: @tc4, 3: @tc4, @agg4: @rc4, @agg5: @rc2, @c5: @rc4, @c6: @tc2}`,
 		map[interface{}]interface{}{
-			float64(2):  "🌝🌝🌝🌝🌝tc3",
+			float64(2):  "🌝🌝🌝🌝🌝tc4",
 			float64(3):  "🌝🌝🌝🌝🌝tc4",
-			"🌝🌝🌝🌝🌝agg4": "🌝🌝🌝🌝🌝rc1",
+			"🌝🌝🌝🌝🌝agg4": "🌝🌝🌝🌝🌝rc4",
 			"🌝🌝🌝🌝🌝agg5": "🌝🌝🌝🌝🌝rc2",
 			"🌝🌝🌝🌝🌝c5":   "🌝🌝🌝🌝🌝rc4",
 			"🌝🌝🌝🌝🌝c6":   "🌝🌝🌝🌝🌝tc2",
@@ -524,16 +528,38 @@ func TestValidateRuntimeTypes(t *testing.T) {
       c: {1: INT_COLUMN, 2: FLOAT_COLUMN, 3: BOOL, 4: STRING}
       d: {INT: INT_COLUMN}
       e: {FLOAT_COLUMN: FLOAT|STRING}
-      f: {INT_LIST_COLUMN|STRING_COLUMN: FLOAT_COLUMN}
-      g: [FLOAT]
+      f: {FLOAT_COLUMN: FLOAT|STRING}
+      g: {INT_LIST_COLUMN|STRING_COLUMN: FLOAT_COLUMN}
+      h: [FLOAT]
     `, `
     - a: @tc4
       b: @rc3
-      c: {1: @rc1, 2: @tc3, 3: true, 4: @agg1}
+      c: {1: @rc1, 2: @tc4, 3: true, 4: @agg1}
       d: {1: @rc1, 2: @tc3, @c6: @rc2, @agg4: @tc2}
-      e: {@tc3: @agg4, @rc4: test, @tc2: 2.2, @rc1: @c1, @tc4: @agg5, @rc2: 2}
-      f: {@tc6: @tc4, @tc1: @rc2, @rc3: @rc1}
-      g: [@c5, @c6, 2, 2.2, @agg4, @agg5]
+      e: {@rc4: test, @tc2: 2.2, @tc4: @agg5, @rc2: 2}
+      f: {@tc4: @agg4, @rc4: @c1}
+      g: {@tc6: @tc4, @tc1: @rc2, @rc3: @rc4}
+      h: [@c5, @c6, 2, 2.2, @agg4, @agg5]
+    `)
+
+	checkValidateRuntimeTypesError(t, `
+    - a: FLOAT_COLUMN
+      b: INT_COLUMN|STRING_COLUMN
+      c: {1: INT_COLUMN, 2: FLOAT_COLUMN, 3: BOOL, 4: STRING}
+      d: {INT: INT_COLUMN}
+      e: {FLOAT_COLUMN: FLOAT|STRING}
+      f: {FLOAT_COLUMN: FLOAT|STRING}
+      g: {INT_LIST_COLUMN|STRING_COLUMN: FLOAT_COLUMN}
+      h: [FLOAT]
+    `, `
+    - a: @tc4
+      b: @rc3
+      c: {1: @rc1, 2: @tc4, 3: true, 4: @agg1}
+      d: {1: @rc1, 2: @tc3, @c6: @rc2, @agg4: @tc2}
+      e: {@rc4: test, @tc2: 2.2, @tc4: @agg5, @rc2: 2}
+      f: {@tc4: @agg4, @rc4: @c1}
+      g: {@tc6: @tc4, @tc1: @rc2, @rc3: @rc1}
+      h: [@c5, @c6, 2, 2.2, @agg4, @agg5]
     `)
 
 	checkValidateRuntimeTypesError(t, `
