@@ -153,7 +153,7 @@ def test_validate_cortex_type():
     assert util.validate_cortex_type(None, "INT_COLUMN") == True
 
     assert util.validate_cortex_type(2.2, "FLOAT_COLUMN") == True
-    assert util.validate_cortex_type(2, "FLOAT_COLUMN") == False
+    assert util.validate_cortex_type(2, "FLOAT_COLUMN") == True
     assert util.validate_cortex_type("2", "FLOAT_COLUMN") == False
     assert util.validate_cortex_type(None, "FLOAT_COLUMN") == True
 
@@ -173,7 +173,7 @@ def test_validate_output_type():
     assert util.validate_output_type(None, "INT") == True
 
     assert util.validate_output_type(2.2, "FLOAT") == True
-    assert util.validate_output_type(2, "FLOAT") == False
+    assert util.validate_output_type(2, "FLOAT") == True
     assert util.validate_output_type("2", "FLOAT") == False
     assert util.validate_output_type(None, "FLOAT") == True
 
@@ -195,7 +195,7 @@ def test_validate_output_type():
 
     assert util.validate_output_type({"test": 2.2}, {"STRING": "INT|FLOAT"}) == True
     assert util.validate_output_type({"a": 2.2, "b": False}, {"STRING": "FLOAT|BOOL"}) == True
-    assert util.validate_output_type({"test": 2.2, "test2": 3}, {"STRING": "FLOAT|BOOL"}) == False
+    assert util.validate_output_type({"test": 2.2, "test2": 3}, {"STRING": "FLOAT|BOOL"}) == True
     assert util.validate_output_type({}, {"STRING": "INT|FLOAT"}) == True
     assert util.validate_output_type({"test": "2.2"}, {"STRING": "FLOAT|INT"}) == False
     assert util.validate_output_type({2: 2.2}, {"STRING": "INT|FLOAT"}) == False
@@ -205,9 +205,7 @@ def test_validate_output_type():
     assert util.validate_output_type({"f": "s", "i": 2}, {"f": "FLOAT", "i": "INT"}) == False
     assert util.validate_output_type({"f": 2.2}, {"f": "FLOAT", "i": "INT"}) == False
     assert util.validate_output_type({"f": 2.2, "i": None}, {"f": "FLOAT", "i": "INT"}) == True
-    assert (
-        util.validate_output_type({"f": 0.2, "i": 2, "e": 1}, {"f": "FLOAT", "i": "INT"}) == False
-    )
+    assert util.validate_output_type({"f": 0.2, "i": 2, "e": 1}, {"f": "FLOAT", "i": "INT"}) == True
 
     assert util.validate_output_type(["s"], ["STRING"]) == True
     assert util.validate_output_type(["a", "b", "c"], ["STRING"]) == True

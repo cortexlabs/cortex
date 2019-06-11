@@ -780,10 +780,10 @@ def validate_output_type(value, output_type):
             return True
 
         # Fixed map
-        for value_key, value_val in value.items():
-            if value_key not in output_type:
+        for type_key, type_val in output_type.items():
+            if type_key not in value:
                 return False
-            if not validate_output_type(value_val, output_type[value_key]):
+            if not validate_output_type(value[type_key], type_val):
                 return False
         return True
 
