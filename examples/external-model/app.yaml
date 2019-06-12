@@ -1,2 +1,8 @@
 - kind: app
   name: sentiment
+
+- kind: api
+  name: sentiment
+  model_path: s3://cortex-examples/model.zip
+  compute:
+    replicas: 1
