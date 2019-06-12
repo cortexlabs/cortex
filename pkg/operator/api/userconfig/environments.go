@@ -122,8 +122,8 @@ var logLevelValidation = &cr.StructValidation{
 }
 
 type Data interface {
-	GetIngestedColumnNames() []string
-	GetExternalPath() string
+	GetIngestedColumns() []string
+	GetExternalData() ExternalData
 	Validate() error
 }
 
@@ -352,9 +352,9 @@ func (environments Environments) Validate() error {
 		return ErrorDuplicateResourceName(dups...)
 	}
 
-	ingestedColumns := environments[0].Data.GetIngestedColumnNames()
+	ingestedColumns := environments[0].Data.GetIngestedColumns()
 	for _, env := range environments[1:] {
-		if !strset.New(ingestedColumns...).IsEqual(strset.New(env.Data.GetIngestedColumnNames()...)) {
+		if !strset.New(ingestedColumns...).IsEqual(strset.New(env.Data.GetIngestedColumns()...)) {
 			return ErrorEnvSchemaMismatch(environments[0], env)
 		}
 	}
@@ -379,7 +379,7 @@ func (env *Environment) Validate() error {
 		}
 	}
 
-	dups := slices.FindDuplicateStrs(env.Data.GetIngestedColumnNames())
+	dups := slices.FindDuplicateStrs(env.Data.GetIngestedColumns())
 	if len(dups) > 0 {
 		return errors.Wrap(configreader.ErrorDuplicatedValue(dups[0]), Identify(env), DataKey, SchemaKey, "column name")
 	}
@@ -403,7 +403,7 @@ func (parqData *ParquetData) GetExternalData() ExternalData {
 	return parqData.ExternalData
 }
 
-func (csvData *CSVData) GetIngestedColumnNames() []string {
+func (csvData *CSVData) GetIngestedColumns() []string {
 	columnNames := make([]string, len(csvData.Schema))
 	for i, col := range csvData.Schema {
 		colName, _ := yaml.ExtractAtSymbolText(col)
@@ -412,7 +412,7 @@ func (csvData *CSVData) GetIngestedColumnNames() []string {
 	return columnNames
 }
 
-func (parqData *ParquetData) GetIngestedColumnNames() []string {
+func (parqData *ParquetData) GetIngestedColumns() []string {
 	columnNames := make([]string, len(parqData.Schema))
 	for i, parqCol := range parqData.Schema {
 		colName, _ := yaml.ExtractAtSymbolText(parqCol.RawColumn)

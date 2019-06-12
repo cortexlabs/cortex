@@ -174,7 +174,7 @@ func (config *Config) Validate(envName string) error {
 	// Check ingested columns match raw columns
 	rawColumnNames := config.RawColumns.Names()
 	for _, env := range config.Environments {
-		ingestedColumnNames := env.Data.GetIngestedColumnNames()
+		ingestedColumnNames := env.Data.GetIngestedColumns()
 		missingColumnNames := slices.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
 		if len(missingColumnNames) > 0 {
 			return errors.Wrap(ErrorRawColumnNotInEnv(env.Name), Identify(config.RawColumns.Get(missingColumnNames[0])))
@@ -189,12 +189,12 @@ func (config *Config) Validate(envName string) error {
 	modelNames := config.Models.Names()
 	allowNoEnv := false // if every API is path based, don't need env
 	for _, api := range config.APIs {
-		if !slices.HasString(modelNames, api.ModelName) && api.ModelPath == nil {
-			return errors.Wrap(ErrorUndefinedResource(api.ModelName, resource.ModelType),
+		if !slices.HasString(modelNames, api.Model) && api.ModelPath == nil {
+			return errors.Wrap(ErrorUndefinedResource(api.Model, resource.ModelType),
 				Identify(api), ModelNameKey)
 		}
 
-		if api.ModelName == "" && api.ModelPath != nil {
+		if api.Model == "" && api.ModelPath != nil {
 			allowNoEnv = true
 		}
 	}
@@ -415,7 +415,7 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 	}
 
 	for _, env := range config.Environments {
-		ingestedColumnNames := env.Data.GetIngestedColumnNames()
+		ingestedColumnNames := env.Data.GetIngestedColumns()
 		missingColumnNames := slices.SubtractStrSlice(ingestedColumnNames, config.RawColumns.Names())
 		for _, inferredColumnName := range missingColumnNames {
 			inferredRawColumn := &RawInferredColumn{

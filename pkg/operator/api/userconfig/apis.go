@@ -85,11 +85,11 @@ func (apis APIs) Validate() error {
 }
 
 func (api *API) Validate() error {
-	if api.ModelPath == nil && api.ModelName == "" {
+	if api.ModelPath == nil && api.Model == "" {
 		return errors.Wrap(ErrorSpecifyOnlyOneMissing("model_name", "model_path"), Identify(api))
 	}
 
-	if api.ModelPath != nil && api.ModelName != "" {
+	if api.ModelPath != nil && api.Model != "" {
 		return errors.Wrap(ErrorSpecifyOnlyOne("model_name", "model_path"), Identify(api))
 	}
 

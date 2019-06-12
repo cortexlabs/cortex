@@ -542,9 +542,9 @@ func ErrorEnvSchemaMismatch(env1, env2 *Environment) error {
 		Kind: ErrEnvSchemaMismatch,
 		message: fmt.Sprintf("schemas diverge between environments (%s lists %s, and %s lists %s)",
 			env1.Name,
-			s.StrsAnd(env1.Data.GetIngestedColumnNames()),
+			s.StrsAnd(env1.Data.GetIngestedColumns()),
 			env2.Name,
-			s.StrsAnd(env2.Data.GetIngestedColumnNames()),
+			s.StrsAnd(env2.Data.GetIngestedColumns()),
 		),
 	}
 }

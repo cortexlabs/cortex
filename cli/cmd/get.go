@@ -427,7 +427,6 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 			}
 		}
 		sort.Strings(samplePlaceholderFields)
-		samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"
 	}
 	out += "URL:      " + urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path) + "\n"
 	out += "Method:   POST\n"

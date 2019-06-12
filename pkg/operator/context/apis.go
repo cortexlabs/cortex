@@ -42,7 +42,7 @@ func getAPIs(config *userconfig.Config,
 
 		var buf bytes.Buffer
 		buf.WriteString(apiConfig.Name)
-		if model, ok := models[apiConfig.ModelName]; ok {
+		if model, ok := models[apiConfig.Model]; ok {
 			buf.WriteString(model.ID)
 		}
 
