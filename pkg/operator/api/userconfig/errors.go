@@ -271,9 +271,20 @@ func ErrorRawColumnNotInEnv(envName string) error {
 }
 
 func ErrorUndefinedResource(resourceName string, resourceTypes ...resource.Type) error {
-	message := fmt.Sprintf("%s %s is not defined", s.StrsOr(resource.Types(resourceTypes).StringList()), s.UserStr(resourceName))
+	message := fmt.Sprintf("%s is not defined", s.UserStr(resourceName))
+
+	if len(resourceTypes) == 1 {
+		message = fmt.Sprintf("%s %s is not defined", resourceTypes[0].String(), s.UserStr(resourceName))
+	} else if len(resourceTypes) > 1 {
+		message = fmt.Sprintf("%s is not defined as a %s", s.UserStr(resourceName), s.StrsOr(resource.Types(resourceTypes).StringList()))
+	}
+
 	if strings.HasPrefix(resourceName, "cortex.") {
-		message = fmt.Sprintf("%s is not defined as a built-in %s in the Cortex namespace", s.UserStr(resourceName), s.StrsOr(resource.Types(resourceTypes).StringList()))
+		if len(resourceTypes) == 0 {
+			message = fmt.Sprintf("%s is not defined in the Cortex namespace", s.UserStr(resourceName))
+		} else {
+			message = fmt.Sprintf("%s is not defined as a built-in %s in the Cortex namespace", s.UserStr(resourceName), s.StrsOr(resource.Types(resourceTypes).StringList()))
+		}
 	}
 
 	return Error{
