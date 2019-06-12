@@ -121,23 +121,22 @@ class Context:
 
         # Id map
         self.id_map = {}
-        if self.environment is not None:
-            self.pp_id_map = ResourceMap(self.python_packages)
-            self.rf_id_map = ResourceMap(self.raw_columns)
-            self.ag_id_map = ResourceMap(self.aggregates)
-            self.tf_id_map = ResourceMap(self.transformed_columns)
-            self.td_id_map = ResourceMap(self.training_datasets)
-            self.models_id_map = ResourceMap(self.models)
-            self.constants_id_map = ResourceMap(self.constants)
-            self.id_map = util.merge_dicts_overwrite(
-                self.pp_id_map,
-                self.rf_id_map,
-                self.ag_id_map,
-                self.tf_id_map,
-                self.td_id_map,
-                self.models_id_map,
-                self.constants_id_map,
-            )
+        self.pp_id_map = ResourceMap(self.python_packages) if self.python_packages else None
+        self.rf_id_map = ResourceMap(self.raw_columns) if self.raw_columns else None
+        self.ag_id_map = ResourceMap(self.aggregates) if self.aggregates else None
+        self.tf_id_map = ResourceMap(self.transformed_columns) if self.transformed_columns else None
+        self.td_id_map = ResourceMap(self.training_datasets) if self.training_datasets else None
+        self.models_id_map = ResourceMap(self.models) if self.models else None
+        self.constants_id_map = ResourceMap(self.constants) if self.constants else None
+        self.id_map = util.merge_dicts_overwrite(
+            self.pp_id_map,
+            self.rf_id_map,
+            self.ag_id_map,
+            self.tf_id_map,
+            self.td_id_map,
+            self.models_id_map,
+            self.constants_id_map,
+        )
 
         self.apis_id_map = ResourceMap(self.apis)
         self.id_map = util.merge_dicts_overwrite(self.id_map, self.apis_id_map)
