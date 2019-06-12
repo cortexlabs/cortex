@@ -31,7 +31,7 @@ def create_estimator(run_config, model_config):
     hparams.num_heads = 2
 
     # t2t expects these keys
-    hparams.add_hparam("warm_start_from", None)
+    hparams.warm_start_from = None
     run_config.data_parallelism = None
     run_config.t2t_device_info = {"num_async_replicas": 1}
 
