@@ -879,19 +879,18 @@ def is_resource_ref(obj):
 
 def get_resource_ref(obj):
     if not is_str(obj):
-        return None
+        raise ValueError("expected input of type string but received " + str(type(obj)))
     if obj.startswith(resource_escape_seq):
         return obj[len(resource_escape_seq) :]
     elif obj.startswith(resource_escape_seq_raw):
         return obj[len(resource_escape_seq_raw) :]
-    return None
+    raise ValueError("expected a resource reference but got " + obj)
 
 
 def extract_resource_refs(input):
     if is_str(input):
-        res = get_resource_ref(input)
-        if res is not None:
-            return {res}
+        if is_resource_ref(input):
+            return {get_resource_ref(input)}
         return set()
 
     if is_list(input):
