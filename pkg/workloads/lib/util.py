@@ -66,9 +66,35 @@ def pp_str_flat(obj, indent=0):
     return indent_str(out, indent)
 
 
-def data_type_str(obj):
-    # TODO. Also call this method with output types?
-    return pp_str_flat(obj)
+def data_type_str(data_type):
+    data_type_str = pp_str_flat(flatten_type_schema(data_type))
+    for t in consts.ALL_TYPES:
+        data_type_str = data_type_str.replace('"' + t, t)
+        data_type_str = data_type_str.replace(t + '"', t)
+    return data_type_str
+
+
+def flatten_type_schema(data_type):
+    if is_list(data_type):
+        flattened = []
+        for item in data_type:
+            flattened.append(flatten_type_schema(item))
+        return flattened
+
+    if is_dict(data_type):
+        if "_type" in data_type:
+            return flatten_type_schema(data_type["_type"])
+
+        flattened = {}
+        for key, val in data_type.items():
+            flattened[key] = flatten_type_schema(val)
+        return flattened
+
+    return data_type
+
+
+def user_obj_str(obj):
+    return truncate_str(pp_str_flat(obj), 1000)
 
 
 def log_indent(obj, indent=0, logging_func=logger.info):
@@ -730,6 +756,9 @@ def validate_cortex_type(value, cortex_type):
 
     if not is_str(cortex_type):
         raise
+
+    if cortex_type == consts.COLUMN_TYPE_INFERRED:
+        return True
 
     valid_types = cortex_type.split("|")
     for valid_type in valid_types:

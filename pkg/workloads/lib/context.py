@@ -408,7 +408,7 @@ class Context:
 
     def get_inferred_column_type(self, column_name):
         column = self.columns[column_name]
-        column_type = self.columns[column_name].get("type", "unknown")
+        column_type = self.columns[column_name]["type"]
         if column_type == consts.COLUMN_TYPE_INFERRED:
             column_type = self.get_metadata(column["id"])["type"]
             self.columns[column_name]["type"] = column_type
@@ -465,7 +465,7 @@ class Context:
                 if not util.is_list(input_schema["_type"]):
                     raise UserException(
                         "unsupported input type (expected type {}, got {})".format(
-                            util.data_type_str(input_schema["_type"]), util.pp_str_flat(input)
+                            util.data_type_str(input_schema["_type"]), util.user_obj_str(input)
                         )
                     )
                 elem_schema = input_schema["_type"][0]
@@ -503,7 +503,7 @@ class Context:
                     try:
                         val_casted = self.populate_values(val, None, preserve_column_refs)
                     except CortexException as e:
-                        e.wrap(util.pp_str_flat(key))
+                        e.wrap(util.user_obj_str(key))
                         raise
                     casted[key_casted] = val_casted
                 return casted
@@ -511,7 +511,7 @@ class Context:
             if not util.is_dict(input_schema["_type"]):
                 raise UserException(
                     "unsupported input type (expected type {}, got {})".format(
-                        util.data_type_str(input_schema["_type"]), util.pp_str_flat(input)
+                        util.data_type_str(input_schema["_type"]), util.user_obj_str(input)
                     )
                 )
 
@@ -550,7 +550,7 @@ class Context:
                             val, generic_map_value, preserve_column_refs
                         )
                     except CortexException as e:
-                        e.wrap(util.pp_str_flat(key))
+                        e.wrap(util.user_obj_str(key))
                         raise
                     casted[key_casted] = val_casted
                 return casted
@@ -562,7 +562,7 @@ class Context:
                     val = input[key]
                 else:
                     if val_schema.get("_optional") is not True:
-                        raise UserException("missing key: " + util.pp_str_flat(key))
+                        raise UserException("missing key: " + util.user_obj_str(key))
                     if val_schema.get("_default") is None:
                         continue
                     val = val_schema["_default"]
@@ -570,7 +570,7 @@ class Context:
                 try:
                     val_casted = self.populate_values(val, val_schema, preserve_column_refs)
                 except CortexException as e:
-                    e.wrap(util.pp_str_flat(key))
+                    e.wrap(util.user_obj_str(key))
                     raise
                 casted[key] = val_casted
             return casted
@@ -580,7 +580,7 @@ class Context:
         if not util.is_str(input_schema["_type"]):
             raise UserException(
                 "unsupported input type (expected type {}, got {})".format(
-                    util.data_type_str(input_schema["_type"]), util.pp_str_flat(input)
+                    util.data_type_str(input_schema["_type"]), util.user_obj_str(input)
                 )
             )
         return cast_compound_type(input, input_schema["_type"])
@@ -625,7 +625,7 @@ def cast_compound_type(value, type_str):
 
     raise UserException(
         "unsupported input type (expected type {}, got {})".format(
-            util.data_type_str(type_str), util.pp_str_flat(value)
+            util.data_type_str(type_str), util.user_obj_str(value)
         )
     )
 
