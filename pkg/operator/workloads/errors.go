@@ -24,7 +24,7 @@ type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
-	ErrUserDataUnavailable
+	ErrExternalDataUnavailable
 	ErrMoreThanOneWorkflow
 	ErrContextAppMismatch
 	ErrWorkflowAppMismatch
@@ -35,8 +35,8 @@ const (
 
 var errorKinds = []string{
 	"err_unknown",
-	"err_user_data_unavailable",
-	"error_more_than_one_workflow",
+	"err_external_data_unavailable",
+	"err_more_than_one_workflow",
 	"err_context_app_mismatch",
 	"err_workflow_app_mismatch",
 	"err_cortex_installation_broken",
@@ -89,10 +89,10 @@ func (e Error) Error() string {
 	return e.message
 }
 
-func ErrorUserDataUnavailable(s3Path string) error {
+func ErrorExternalDataUnavailable(s3Path string) error {
 	return Error{
-		Kind:    ErrUserDataUnavailable,
-		message: fmt.Sprintf("the file at %s does not exist, or your cluster does not have access to it", s3Path),
+		Kind:    ErrExternalDataUnavailable,
+		message: fmt.Sprintf("the data at %s does not exist", s3Path),
 	}
 }
 
