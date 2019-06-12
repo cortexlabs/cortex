@@ -35,6 +35,9 @@ from lib.log import get_logger
 
 logger = get_logger()
 
+resource_escape_seq = "🌝🌝🌝🌝🌝"
+resource_escape_seq_raw = r"\ud83c\udf1d\ud83c\udf1d\ud83c\udf1d\ud83c\udf1d\ud83c\udf1d"
+
 
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
     return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
@@ -51,6 +54,8 @@ def pp_str(obj, indent=0):
         out = json.dumps(obj, sort_keys=True, indent=2)
     except:
         out = pprint.pformat(obj, width=120)
+    out = out.replace(resource_escape_seq, "@")
+    out = out.replace(resource_escape_seq_raw, "@")
     return indent_str(out, indent)
 
 
@@ -63,6 +68,8 @@ def pp_str_flat(obj, indent=0):
         out = json.dumps(obj, sort_keys=True)
     except:
         out = str(obj).replace("\n", "")
+    out = out.replace(resource_escape_seq, "@")
+    out = out.replace(resource_escape_seq_raw, "@")
     return indent_str(out, indent)
 
 
@@ -864,21 +871,20 @@ def cast_output_type(value, output_type):
     return value
 
 
-escape_seq = "🌝🌝🌝🌝🌝"
-
-
 def is_resource_ref(obj):
     if not is_str(obj):
         return False
-    return obj.startswith(escape_seq)
+    return obj.startswith(resource_escape_seq) or obj.startswith(resource_escape_seq_raw)
 
 
 def get_resource_ref(obj):
     if not is_str(obj):
         return None
-    if not obj.startswith(escape_seq):
-        return None
-    return obj[len(escape_seq) :]
+    if obj.startswith(resource_escape_seq):
+        return obj[len(resource_escape_seq) :]
+    elif obj.startswith(resource_escape_seq_raw):
+        return obj[len(resource_escape_seq_raw) :]
+    return None
 
 
 def extract_resource_refs(input):
