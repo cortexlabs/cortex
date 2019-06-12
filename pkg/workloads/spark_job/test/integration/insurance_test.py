@@ -17,7 +17,7 @@ import spark_util
 from spark_job import spark_job
 from lib.exceptions import UserException
 from lib import Context
-from test.integration import iris_context
+from test.integration import insurance_context
 
 import pytest
 from pyspark.sql.types import *
@@ -31,22 +31,22 @@ import os
 pytestmark = pytest.mark.usefixtures("spark")
 
 
-iris_data = [
-    [5.1, 3.5, 1.4, 0.2, "Iris-setosa"],
-    [4.9, 3.0, 1.4, 0.2, "Iris-setosa"],
-    [4.7, 3.2, 1.3, 0.2, "Iris-setosa"],
-    [4.6, 3.1, 1.5, 0.2, "Iris-setosa"],
-    [5.0, 3.6, 1.4, 0.2, "Iris-setosa"],
-    [7.0, 3.2, 4.7, 1.4, "Iris-versicolor"],
-    [6.4, 3.2, 4.5, 1.5, "Iris-versicolor"],
-    [6.9, 3.1, 4.9, 1.5, "Iris-versicolor"],
-    [5.5, 2.3, 4.0, 1.3, "Iris-versicolor"],
-    [6.5, 2.8, 4.6, 1.5, "Iris-versicolor"],
-    [6.3, 3.3, 6.0, 2.5, "Iris-virginica"],
-    [5.8, 2.7, 5.1, 1.9, "Iris-virginica"],
-    [7.1, 3.0, 5.9, 2.1, "Iris-virginica"],
-    [6.3, 2.9, 5.6, 1.8, "Iris-virginica"],
-    [6.5, 3.0, 5.8, 2.2, "Iris-virginica"],
+insurance_data = [
+    [19, "female", 27.9, 0, "yes", "southwest", 16884.924],
+    [18, "male", 33.77, 1, "no", "southeast", 1725.5523],
+    [28, "male", 33, 3, "no", "southeast", 4449.462],
+    [33, "male", 22.705, 0, "no", "northwest", 21984.47061],
+    [32, "male", 28.88, 0, "no", "northwest", 3866.8552],
+    [31, "female", 25.74, 0, "no", "southeast", 3756.6216],
+    [46, "female", 33.44, 1, "no", "southeast", 8240.5896],
+    [37, "female", 27.74, 3, "no", "northwest", 7281.5056],
+    [37, "male", 29.83, 2, "no", "northeast", 6406.4107],
+    [60, "female", 25.84, 0, "no", "northwest", 28923.13692],
+    [25, "male", 26.22, 0, "no", "northeast", 2721.3208],
+    [62, "female", 26.29, 0, "yes", "southeast", 27808.7251],
+    [23, "male", 34.4, 0, "no", "southwest", 1826.843],
+    [56, "female", 39.82, 0, "no", "southeast", 11090.7178],
+    [27, "male", 42.13, 0, "yes", "southeast", 39611.7577],
 ]
 
 
@@ -54,11 +54,11 @@ def test_simple_end_to_end(spark):
     local_storage_path = Path("/workspace/local_storage")
     local_storage_path.mkdir(parents=True, exist_ok=True)
     should_ingest = True
-    input_data_path = os.path.join(str(local_storage_path), "iris.csv")
+    input_data_path = os.path.join(str(local_storage_path), "insurance.csv")
 
-    raw_ctx = iris_context.get(input_data_path)
+    raw_ctx = insurance_context.get(input_data_path)
 
-    workload_id = raw_ctx["raw_columns"]["raw_float_columns"]["sepal_length"]["workload_id"]
+    workload_id = raw_ctx["raw_columns"]["raw_string_columns"]["smoker"]["workload_id"]
 
     cols_to_validate = []
 
@@ -66,8 +66,8 @@ def test_simple_end_to_end(spark):
         for raw_column in column_type.values():
             cols_to_validate.append(raw_column["id"])
 
-    iris_data_string = "\n".join(",".join(str(val) for val in line) for line in iris_data)
-    Path(os.path.join(str(local_storage_path), "iris.csv")).write_text(iris_data_string)
+    insurance_data_string = "\n".join(",".join(str(val) for val in line) for line in insurance_data)
+    Path(os.path.join(str(local_storage_path), "insurance.csv")).write_text(insurance_data_string)
 
     ctx = Context(
         raw_obj=raw_ctx, cache_dir="/workspace/cache", local_storage_path=str(local_storage_path)
@@ -86,7 +86,7 @@ def test_simple_end_to_end(spark):
 
     cols_to_aggregate = [r["id"] for r in raw_ctx["aggregates"].values()]
 
-    spark_job.run_custom_aggregators(spark, ctx, cols_to_aggregate, raw_df)
+    spark_job.run_aggregators(spark, ctx, cols_to_aggregate, raw_df)
 
     for aggregate_id in cols_to_aggregate:
         for aggregate_resource in raw_ctx["aggregates"].values():
