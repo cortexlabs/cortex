@@ -17,15 +17,11 @@ limitations under the License.
 package userconfig
 
 import (
-	"regexp"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-)
-
-var (
-	typeStrRegex         = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?(\|(INT|FLOAT|STRING|BOOL)(_COLUMN)?)*"`)
-	singleDataTypeRegexp = regexp.MustCompile(`^\w*\w$`)
 )
 
 func DataTypeStrsOr(dataTypes []interface{}) string {
@@ -37,8 +33,8 @@ func DataTypeStrsOr(dataTypes []interface{}) string {
 }
 
 func DataTypeStr(dataType interface{}) string {
-	dataTypeStr := s.ObjFlat(dataType)
-	matches := typeStrRegex.FindAllString(dataTypeStr, -1)
+	dataTypeStr := s.ObjFlat(flattenTypeSchema(dataType))
+	matches := consts.TypeStrRegex.FindAllString(dataTypeStr, -1)
 	for _, match := range matches {
 		trimmed := s.TrimPrefixAndSuffix(match, `"`)
 		dataTypeStr = strings.Replace(dataTypeStr, match, trimmed, -1)
@@ -48,8 +44,37 @@ func DataTypeStr(dataType interface{}) string {
 
 func DataTypeUserStr(dataType interface{}) string {
 	dataTypeStr := DataTypeStr(dataType)
-	if singleDataTypeRegexp.MatchString(dataTypeStr) {
+	if consts.SingleTypeStrRegex.MatchString(dataTypeStr) {
 		dataTypeStr = s.UserStr(dataTypeStr)
 	}
 	return dataTypeStr
+}
+
+// Remove cortex arg options from input schemas
+func flattenTypeSchema(schema interface{}) interface{} {
+	if inputSchema, ok := schema.(InputSchema); ok {
+		return flattenTypeSchema(inputSchema.Type)
+	}
+
+	if inputSchemaPtr, ok := schema.(*InputSchema); ok {
+		return flattenTypeSchema(inputSchemaPtr.Type)
+	}
+
+	if schemaSlice, ok := cast.InterfaceToInterfaceSlice(schema); ok {
+		flattenedSlice := make([]interface{}, len(schemaSlice))
+		for i := range schemaSlice {
+			flattenedSlice[i] = flattenTypeSchema(schemaSlice[i])
+		}
+		return flattenedSlice
+	}
+
+	if schemaMap, ok := cast.InterfaceToInterfaceInterfaceMap(schema); ok {
+		flattenedMap := make(map[interface{}]interface{}, len(schemaMap))
+		for k, v := range schemaMap {
+			flattenedMap[k] = flattenTypeSchema(v)
+		}
+		return flattenedMap
+	}
+
+	return schema
 }

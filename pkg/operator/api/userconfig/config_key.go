@@ -17,39 +17,82 @@ limitations under the License.
 package userconfig
 
 const (
-	UnknownKey         = "unknown"
-	NameKey            = "name"
-	KindKey            = "kind"
-	DataKey            = "data"
-	SchemaKey          = "schema"
-	ColumnsKey         = "columns"
-	FeatureColumnsKey  = "feature_columns"
-	TrainingColumnsKey = "training_columns"
-	TargetColumnKey    = "target_column"
-	AggregatesKey      = "aggregates"
-	ModelNameKey       = "model_name"
-	InputsKey          = "inputs"
-	ArgsKey            = "args"
-	TypeKey            = "type"
-	AggregatorKey      = "aggregator"
-	TransformerKey     = "transformer"
-	PathKey            = "path"
-	ValueKey           = "value"
-	YAMLKey            = "yaml"
+	// Shared
+	UnknownKey    = "unknown"
+	NameKey       = "name"
+	KindKey       = "kind"
+	InputKey      = "input"
+	ComputeKey    = "compute"
+	TypeKey       = "type"
+	PathKey       = "path"
+	OutputTypeKey = "output_type"
+	TagsKey       = "tags"
+
+	// input schema options
+	OptionalOptKey = "_optional"
+	DefaultOptKey  = "_default"
+	MinCountOptKey = "_min_count"
+	MaxCountOptKey = "_max_count"
 
 	// environment
+	DataKey           = "data"
+	SchemaKey         = "schema"
+	LogLevelKey       = "log_level"
 	LimitKey          = "limit"
 	NumRowsKey        = "num_rows"
 	FractionOfRowsKey = "fraction_of_rows"
 	RandomizeKey      = "randomize"
 	RandomSeedKey     = "random_seed"
 
-	// model
-	NumEpochsKey           = "num_epochs"
-	NumStepsKey            = "num_steps"
-	SaveCheckpointSecsKey  = "save_checkpoints_secs"
-	SaveCheckpointStepsKey = "save_checkpoints_steps"
-	DataPartitionRatioKey  = "data_partition_ratio"
-	TrainingKey            = "training"
-	EvaluationKey          = "evaluation"
+	// templates / embeds
+	TemplateKey = "template"
+	YAMLKey     = "yaml"
+	ArgsKey     = "args"
+
+	// constants
+	ValueKey = "value"
+
+	// raw columns
+	RequiredKey = "required"
+	MinKey      = "min"
+	MaxKey      = "max"
+	ValuesKey   = "values"
+
+	// aggregator / aggregate
+	AggregatorKey     = "aggregator"
+	AggregatorPathKey = "aggregator_path"
+
+	// transformer / transformed_column
+	TransformerKey     = "transformer"
+	TransformerPathKey = "transformer_path"
+
+	// estimator / model
+	EstimatorKey                 = "estimator"
+	EstimatorPathKey             = "estimator_path"
+	TrainingInputKey             = "training_input"
+	HparamsKey                   = "hparams"
+	TargetColumnKey              = "target_column"
+	PredictionKeyKey             = "prediction_key"
+	DataPartitionRatioKey        = "data_partition_ratio"
+	TrainingKey                  = "training"
+	EvaluationKey                = "evaluation"
+	BatchSizeKey                 = "batch_size"
+	NumStepsKey                  = "num_steps"
+	NumEpochsKey                 = "num_epochs"
+	ShuffleKey                   = "shuffle"
+	TfRandomSeedKey              = "tf_random_seed"
+	TfRandomizeSeedKey           = "tf_randomize_seed"
+	SaveSummaryStepsKey          = "save_summary_steps"
+	SaveCheckpointsSecsKey       = "save_checkpoints_secs"
+	SaveCheckpointsStepsKey      = "save_checkpoints_steps"
+	LogStepCountStepsKey         = "log_step_count_steps"
+	KeepCheckpointMaxKey         = "keep_checkpoint_max"
+	KeepCheckpointEveryNHoursKey = "keep_checkpoint_every_n_hours"
+	StartDelaySecsKey            = "start_delay_secs"
+	ThrottleSecsKey              = "throttle_secs"
+	DatasetComputeKey            = "dataset_compute"
+
+	// API
+	ModelKey     = "model"
+	ModelNameKey = "model_name"
 )

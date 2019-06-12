@@ -38,6 +38,8 @@ type StringValidation struct {
 	AlphaNumericDashUnderscore           bool
 	DNS1035                              bool
 	DNS1123                              bool
+	AllowCortexResources                 bool
+	RequireCortexResources               bool
 	Validator                            func(string) (string, error)
 }
 
@@ -162,6 +164,16 @@ func ValidateString(val string, v *StringValidation) (string, error) {
 }
 
 func ValidateStringVal(val string, v *StringValidation) error {
+	if v.RequireCortexResources {
+		if err := checkOnlyCortexResources(val); err != nil {
+			return err
+		}
+	} else if !v.AllowCortexResources {
+		if err := checkNoCortexResources(val); err != nil {
+			return err
+		}
+	}
+
 	if !v.AllowEmpty {
 		if len(val) == 0 {
 			return ErrorCannotBeEmpty()
@@ -181,19 +193,19 @@ func ValidateStringVal(val string, v *StringValidation) error {
 	}
 
 	if v.AlphaNumericDashDotUnderscore {
-		if !regex.CheckAlphaNumericDashDotUnderscore(val) {
+		if !regex.IsAlphaNumericDashDotUnderscore(val) {
 			return ErrorAlphaNumericDashDotUnderscore(val)
 		}
 	}
 
 	if v.AlphaNumericDashUnderscore {
-		if !regex.CheckAlphaNumericDashUnderscore(val) {
+		if !regex.IsAlphaNumericDashUnderscore(val) {
 			return ErrorAlphaNumericDashUnderscore(val)
 		}
 	}
 
 	if v.AlphaNumericDashDotUnderscoreOrEmpty {
-		if !regex.CheckAlphaNumericDashDotUnderscore(val) && val != "" {
+		if !regex.IsAlphaNumericDashDotUnderscore(val) && val != "" {
 			return ErrorAlphaNumericDashDotUnderscore(val)
 		}
 	}

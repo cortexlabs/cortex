@@ -39,7 +39,7 @@ func loadUserAggregators(
 	for _, aggregatorConfig := range config.Aggregators {
 		impl, ok := impls[aggregatorConfig.Path]
 		if !ok {
-			return nil, errors.Wrap(ErrorImplDoesNotExist(aggregatorConfig.Path), userconfig.Identify(aggregatorConfig))
+			return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(aggregatorConfig.Path), userconfig.Identify(aggregatorConfig))
 		}
 		aggregator, err := newAggregator(*aggregatorConfig, impl, nil, pythonPackages)
 		if err != nil {
@@ -55,7 +55,7 @@ func loadUserAggregators(
 
 		impl, ok := impls[*aggregateConfig.AggregatorPath]
 		if !ok {
-			return nil, errors.Wrap(ErrorImplDoesNotExist(*aggregateConfig.AggregatorPath), userconfig.Identify(aggregateConfig))
+			return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(*aggregateConfig.AggregatorPath), userconfig.Identify(aggregateConfig))
 		}
 
 		implHash := hash.Bytes(impl)
@@ -67,7 +67,8 @@ func loadUserAggregators(
 			ResourceFields: userconfig.ResourceFields{
 				Name: implHash,
 			},
-			Path: *aggregateConfig.AggregatorPath,
+			OutputType: nil,
+			Path:       *aggregateConfig.AggregatorPath,
 		}
 		aggregator, err := newAggregator(*anonAggregatorConfig, impl, nil, pythonPackages)
 		if err != nil {
@@ -91,7 +92,7 @@ func newAggregator(
 	implID := hash.Bytes(impl)
 
 	var buf bytes.Buffer
-	buf.WriteString(context.DataTypeID(aggregatorConfig.Inputs))
+	buf.WriteString(context.DataTypeID(aggregatorConfig.Input))
 	buf.WriteString(context.DataTypeID(aggregatorConfig.OutputType))
 	buf.WriteString(implID)
 
@@ -104,14 +105,12 @@ func newAggregator(
 	aggregator := &context.Aggregator{
 		ResourceFields: &context.ResourceFields{
 			ID:           id,
-			IDWithTags:   id,
 			ResourceType: resource.AggregatorType,
 		},
 		Aggregator: &aggregatorConfig,
 		Namespace:  namespace,
 		ImplKey:    filepath.Join(consts.AggregatorsDir, implID+".py"),
 	}
-	aggregator.Aggregator.Path = ""
 
 	if err := uploadAggregator(aggregator, impl); err != nil {
 		return nil, err
@@ -141,20 +140,6 @@ func uploadAggregator(aggregator *context.Aggregator, impl []byte) error {
 	return nil
 }
 
-func getAggregator(
-	name string,
-	userAggregators map[string]*context.Aggregator,
-) (*context.Aggregator, error) {
-
-	if aggregator, ok := builtinAggregators[name]; ok {
-		return aggregator, nil
-	}
-	if aggregator, ok := userAggregators[name]; ok {
-		return aggregator, nil
-	}
-	return nil, userconfig.ErrorUndefinedResourceBuiltin(name, resource.AggregatorType)
-}
-
 func getAggregators(
 	config *userconfig.Config,
 	userAggregators map[string]*context.Aggregator,
@@ -162,14 +147,23 @@ func getAggregators(
 
 	aggregators := context.Aggregators{}
 	for _, aggregateConfig := range config.Aggregates {
-		if _, ok := aggregators[aggregateConfig.Aggregator]; ok {
+		name := aggregateConfig.Aggregator
+
+		if _, ok := aggregators[name]; ok {
 			continue
 		}
-		aggregator, err := getAggregator(aggregateConfig.Aggregator, userAggregators)
-		if err != nil {
-			return nil, errors.Wrap(err, userconfig.Identify(aggregateConfig), userconfig.AggregatorKey)
+
+		if aggregator, ok := builtinAggregators[name]; ok {
+			aggregators[name] = aggregator
+			continue
 		}
-		aggregators[aggregateConfig.Aggregator] = aggregator
+
+		if aggregator, ok := userAggregators[name]; ok {
+			aggregators[name] = aggregator
+			continue
+		}
+
+		return nil, errors.Wrap(userconfig.ErrorUndefinedResource(name, resource.AggregatorType), userconfig.Identify(aggregateConfig), userconfig.AggregatorKey)
 	}
 
 	return aggregators, nil

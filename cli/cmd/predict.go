@@ -24,6 +24,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
@@ -42,23 +43,15 @@ func init() {
 }
 
 type PredictResponse struct {
-	ResourceID                string                     `json:"resource_id"`
-	ClassificationPredictions []ClassificationPrediction `json:"classification_predictions,omitempty"`
-	RegressionPredictions     []RegressionPrediction     `json:"regression_predictions,omitempty"`
-	Predictions               []interface{}              `json:"predictions,omitempty"`
+	ResourceID  string       `json:"resource_id"`
+	Predictions []Prediction `json:"predictions"`
 }
 
-type ClassificationPrediction struct {
-	PredictedClass         int         `json:"predicted_class"`
-	PredictedClassReversed interface{} `json:"predicted_class_reversed"`
-	Probabilities          []float64   `json:"probabilities"`
-	TransformedSample      interface{} `json:"transformed_sample"`
-}
-
-type RegressionPrediction struct {
-	PredictedValue         float64     `json:"predicted_value"`
-	PredictedValueReversed interface{} `json:"predicted_value_reversed"`
-	TransformedSample      interface{} `json:"transformed_sample"`
+type Prediction struct {
+	Prediction         interface{} `json:"prediction"`
+	PredictionReversed interface{} `json:"prediction_reversed"`
+	TransformedSample  interface{} `json:"transformed_sample"`
+	Response           interface{} `json:"response"`
 }
 
 var predictCmd = &cobra.Command{
@@ -109,34 +102,22 @@ var predictCmd = &cobra.Command{
 		apiStart := libtime.LocalTimestampHuman(api.Start)
 		fmt.Println("\n" + apiName + " was last updated on " + apiStart + "\n")
 
-		if predictResponse.ClassificationPredictions != nil {
-			if len(predictResponse.ClassificationPredictions) == 1 {
-				fmt.Println("Predicted class:")
-			} else {
-				fmt.Println("Predicted classes:")
-			}
-			for _, prediction := range predictResponse.ClassificationPredictions {
-				if prediction.PredictedClassReversed != nil {
-					json, _ := json.Marshal(prediction.PredictedClassReversed)
-					fmt.Println(s.TrimPrefixAndSuffix(string(json), "\""))
-				} else {
-					fmt.Println(prediction.PredictedClass)
-				}
-			}
+		if len(predictResponse.Predictions) == 1 {
+			fmt.Println("Prediction:")
+		} else {
+			fmt.Println("Predictions:")
 		}
-		if predictResponse.RegressionPredictions != nil {
-			if len(predictResponse.RegressionPredictions) == 1 {
-				fmt.Println("Predicted value:")
-			} else {
-				fmt.Println("Predicted values:")
+
+		for _, prediction := range predictResponse.Predictions {
+			value := prediction.Prediction
+			if prediction.PredictionReversed != nil {
+				value = prediction.PredictionReversed
 			}
-			for _, prediction := range predictResponse.RegressionPredictions {
-				if prediction.PredictedValueReversed != nil {
-					json, _ := json.Marshal(prediction.PredictedValueReversed)
-					fmt.Println(s.TrimPrefixAndSuffix(string(json), "\""))
-				} else {
-					fmt.Println(s.Round(prediction.PredictedValue, 2, true))
-				}
+
+			if casted, ok := cast.InterfaceToFloat64(value); ok {
+				fmt.Println(s.Round(casted, 2, true))
+			} else {
+				fmt.Println(s.UserStrStripped(value))
 			}
 		}
 	},

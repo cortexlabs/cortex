@@ -17,22 +17,23 @@ limitations under the License.
 package context
 
 import (
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
-func GetValueResource(
-	name string,
-	constants Constants,
-	aggregates Aggregates,
-) (ValueResource, error) {
+type Estimators map[string]*Estimator
 
-	if constant, ok := constants[name]; ok {
-		return constant, nil
-	}
-	if aggregate, ok := aggregates[name]; ok {
-		return aggregate, nil
-	}
+type Estimator struct {
+	*userconfig.Estimator
+	*ResourceFields
+	Namespace *string `json:"namespace"`
+	ImplKey   string  `json:"impl_key"`
+}
 
-	return nil, userconfig.ErrorUndefinedResource(name, resource.ConstantType, resource.AggregateType)
+func (estimators Estimators) OneByID(id string) *Estimator {
+	for _, estimator := range estimators {
+		if estimator.ID == id {
+			return estimator
+		}
+	}
+	return nil
 }

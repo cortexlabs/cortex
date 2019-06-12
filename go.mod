@@ -11,6 +11,7 @@
 //   go mod tidy
 //   (replace versions of locked dependencies above)
 //   go mod tidy
+//   check the diff in this file
 
 module github.com/cortexlabs/cortex
 
@@ -18,6 +19,7 @@ require (
 	github.com/GoogleCloudPlatform/spark-on-k8s-operator v0.0.0-20181208011959-62db1d66dafa
 	github.com/argoproj/argo v2.3.0+incompatible
 	github.com/aws/aws-sdk-go v1.16.17
+	github.com/cortexlabs/yaml v0.0.0-20190530233410-11baebde6c89
 	github.com/davecgh/go-spew v1.1.1
 	github.com/emicklei/go-restful v2.8.0+incompatible // indirect
 	github.com/go-openapi/spec v0.18.0 // indirect
@@ -33,6 +35,7 @@ require (
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
+	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mitchellh/go-homedir v1.0.0
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
@@ -49,9 +52,9 @@ require (
 	golang.org/x/oauth2 v0.0.0-20190110195249-fd3eaa146cbb // indirect
 	golang.org/x/sys v0.0.0-20190109145017-48ac38b7c8cb // indirect
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c // indirect
+	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/robfig/cron.v2 v2.0.0-20150107220207-be2e0b0deed5
-	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0-20181204000039-89a74a8d264d
 	k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
 	k8s.io/client-go v10.0.0+incompatible

@@ -194,7 +194,7 @@ def ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest):
     return raw_df
 
 
-def run_custom_aggregators(spark, ctx, cols_to_aggregate, raw_df):
+def run_aggregators(spark, ctx, cols_to_aggregate, raw_df):
     logger.info("Aggregating")
     results = {}
 
@@ -243,16 +243,7 @@ def validate_transformers(spark, ctx, cols_to_transform, raw_df):
     for transformed_column in resource_list:
         ctx.upload_resource_status_start(transformed_column)
         try:
-            input_columns_dict = transformed_column["inputs"]["columns"]
-
-            input_cols = []
-
-            for k in sorted(input_columns_dict.keys()):
-                if util.is_list(input_columns_dict[k]):
-                    input_cols += sorted(input_columns_dict[k])
-                else:
-                    input_cols.append(input_columns_dict[k])
-
+            input_cols = sorted(ctx.extract_column_names(transformed_column["input"]))
             tf_name = transformed_column["name"]
             logger.info("Transforming {} to {}".format(", ".join(input_cols), tf_name))
 
@@ -317,7 +308,7 @@ def run_job(args):
         raw_df = ingest_raw_dataset(spark, ctx, cols_to_validate, should_ingest)
 
         if len(cols_to_aggregate) > 0:
-            run_custom_aggregators(spark, ctx, cols_to_aggregate, raw_df)
+            run_aggregators(spark, ctx, cols_to_aggregate, raw_df)
 
         if len(cols_to_transform) > 0:
             validate_transformers(spark, ctx, cols_to_transform, raw_df)

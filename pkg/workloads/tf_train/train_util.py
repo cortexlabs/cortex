@@ -20,6 +20,7 @@ import multiprocessing
 import math
 import tensorflow as tf
 
+import consts
 from lib import util, tf_lib
 from lib.exceptions import UserRuntimeException
 
@@ -36,17 +37,17 @@ def get_input_placeholder(model_name, ctx, training=True):
 def get_label_placeholder(model_name, ctx):
     model = ctx.models[model_name]
 
-    target_column_name = model["target_column"]
+    target_column_name = util.get_resource_ref(model["target_column"])
     column_type = tf_lib.CORTEX_TYPE_TO_TF_TYPE[ctx.columns[target_column_name]["type"]]
     return tf.placeholder(shape=[None], dtype=column_type)
 
 
-def get_transform_tensor_fn(ctx, model_impl, model_name):
+def get_transform_tensor_fn(ctx, estimator_impl, model_name):
     model = ctx.models[model_name]
     model_config = ctx.model_config(model["name"])
 
     def transform_tensor_fn_wrapper(inputs, labels):
-        return model_impl.transform_tensorflow(inputs, labels, model_config)
+        return estimator_impl.transform_tensorflow(inputs, labels, model_config)
 
     return transform_tensor_fn_wrapper
 
@@ -58,14 +59,14 @@ def generate_example_parsing_fn(model_name, ctx, training=True):
 
     def _parse_example(example_proto):
         features = tf.parse_single_example(serialized=example_proto, features=feature_spec)
-        target = features.pop(model["target_column"], None)
+        target = features.pop(util.get_resource_ref(model["target_column"]), None)
         return features, target
 
     return _parse_example
 
 
 # Mode must be "training" or "evaluation"
-def generate_input_fn(model_name, ctx, mode, model_impl):
+def generate_input_fn(model_name, ctx, mode, estimator_impl):
     model = ctx.models[model_name]
 
     filenames = ctx.get_training_data_parts(model_name, mode)
@@ -84,8 +85,8 @@ def generate_input_fn(model_name, ctx, mode, model_impl):
         if model[mode]["shuffle"]:
             dataset = dataset.shuffle(buffer_size)
 
-        if hasattr(model_impl, "transform_tensorflow"):
-            dataset = dataset.map(get_transform_tensor_fn(ctx, model_impl, model_name))
+        if hasattr(estimator_impl, "transform_tensorflow"):
+            dataset = dataset.map(get_transform_tensor_fn(ctx, estimator_impl, model_name))
 
         dataset = dataset.batch(model[mode]["batch_size"])
         dataset = dataset.prefetch(buffer_size)
@@ -98,14 +99,14 @@ def generate_input_fn(model_name, ctx, mode, model_impl):
     return _input_fn
 
 
-def generate_json_serving_input_fn(model_name, ctx, model_impl):
+def generate_json_serving_input_fn(model_name, ctx, estimator_impl):
     def _json_serving_input_fn():
         inputs = get_input_placeholder(model_name, ctx, training=False)
         labels = get_label_placeholder(model_name, ctx)
 
         features = {key: tensor for key, tensor in inputs.items()}
-        if hasattr(model_impl, "transform_tensorflow"):
-            features, _ = get_transform_tensor_fn(ctx, model_impl, model_name)(features, labels)
+        if hasattr(estimator_impl, "transform_tensorflow"):
+            features, _ = get_transform_tensor_fn(ctx, estimator_impl, model_name)(features, labels)
 
         features = {key: tf.expand_dims(tensor, 0) for key, tensor in features.items()}
         return tf.estimator.export.ServingInputReceiver(features=features, receiver_tensors=inputs)
@@ -124,7 +125,7 @@ def get_regression_eval_metrics(labels, predictions):
     return metrics
 
 
-def train(model_name, model_impl, ctx, model_dir):
+def train(model_name, estimator_impl, ctx, model_dir):
     model = ctx.models[model_name]
 
     util.mkdir_p(model_dir)
@@ -143,9 +144,9 @@ def train(model_name, model_impl, ctx, model_dir):
         model_dir=model_dir,
     )
 
-    train_input_fn = generate_input_fn(model_name, ctx, "training", model_impl)
-    eval_input_fn = generate_input_fn(model_name, ctx, "evaluation", model_impl)
-    serving_input_fn = generate_json_serving_input_fn(model_name, ctx, model_impl)
+    train_input_fn = generate_input_fn(model_name, ctx, "training", estimator_impl)
+    eval_input_fn = generate_input_fn(model_name, ctx, "evaluation", estimator_impl)
+    serving_input_fn = generate_json_serving_input_fn(model_name, ctx, estimator_impl)
     exporter = tf.estimator.FinalExporter("estimator", serving_input_fn, as_text=False)
 
     train_num_steps = model["training"]["num_steps"]
@@ -177,13 +178,14 @@ def train(model_name, model_impl, ctx, model_dir):
     model_config = ctx.model_config(model["name"])
 
     try:
-        estimator = model_impl.create_estimator(run_config, model_config)
+        tf_estimator = estimator_impl.create_estimator(run_config, model_config)
     except Exception as e:
         raise UserRuntimeException("model " + model_name) from e
 
-    if model["type"] == "regression":
-        estimator = tf.contrib.estimator.add_metrics(estimator, get_regression_eval_metrics)
+    target_col_name = util.get_resource_ref(model["target_column"])
+    if ctx.get_inferred_column_type(target_col_name) == consts.COLUMN_TYPE_FLOAT:
+        tf_estimator = tf.contrib.estimator.add_metrics(tf_estimator, get_regression_eval_metrics)
 
-    tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+    tf.estimator.train_and_evaluate(tf_estimator, train_spec, eval_spec)
 
     return model_dir

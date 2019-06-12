@@ -19,10 +19,12 @@ package context
 import (
 	"bytes"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
+	"github.com/cortexlabs/yaml"
 )
 
 func getAPIs(config *userconfig.Config,
@@ -31,6 +33,12 @@ func getAPIs(config *userconfig.Config,
 	apis := context.APIs{}
 
 	for _, apiConfig := range config.APIs {
+		modelName, _ := yaml.ExtractAtSymbolText(apiConfig.Model)
+
+		model := models[modelName]
+		if model == nil {
+			return nil, errors.Wrap(userconfig.ErrorUndefinedResource(modelName, resource.ModelType), userconfig.Identify(apiConfig), userconfig.ModelNameKey)
+		}
 
 		var buf bytes.Buffer
 		buf.WriteString(apiConfig.Name)
@@ -44,19 +52,16 @@ func getAPIs(config *userconfig.Config,
 
 		id := hash.Bytes(buf.Bytes())
 
-		buf.WriteString(apiConfig.Tags.ID())
-		idWithTags := hash.Bytes(buf.Bytes())
-
 		apis[apiConfig.Name] = &context.API{
 			ComputedResourceFields: &context.ComputedResourceFields{
 				ResourceFields: &context.ResourceFields{
 					ID:           id,
-					IDWithTags:   idWithTags,
 					ResourceType: resource.APIType,
 				},
 			},
-			API:  apiConfig,
-			Path: context.APIPath(apiConfig.Name, config.App.Name),
+			API:       apiConfig,
+			Path:      context.APIPath(apiConfig.Name, config.App.Name),
+			ModelName: modelName,
 		}
 	}
 	return apis, nil

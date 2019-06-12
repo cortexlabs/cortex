@@ -19,7 +19,7 @@ HOW TO GENERATE CONTEXT
 
 1. cx deploy
 2. get a path to a context
-3. ssh into a docker container (spark/tf_train)
+3. ssh into a docker container (spark or tf_train)
 docker run -it --entrypoint "/bin/bash" cortexlabs/spark
 4. run the following in python3 shell
 

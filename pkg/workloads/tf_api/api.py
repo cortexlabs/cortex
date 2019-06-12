@@ -18,6 +18,7 @@ import json
 import argparse
 import tensorflow as tf
 import traceback
+import time
 from flask import Flask, request, jsonify
 from flask_api import status
 from waitress import serve
@@ -25,11 +26,13 @@ import grpc
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import get_model_metadata_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
+from google.protobuf import json_format
+
+import consts
 from lib import util, tf_lib, package, Context
 from lib.log import get_logger
 from lib.exceptions import CortexException, UserRuntimeException, UserException
-from google.protobuf import json_format
-import time
+from lib.context import create_transformer_inputs_from_map
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
@@ -39,10 +42,12 @@ app = Flask(__name__)
 local_cache = {
     "ctx": None,
     "model": None,
+    "estimator": None,
+    "target_col": None,
+    "target_col_type": None,
     "stub": None,
     "api": None,
     "trans_impls": {},
-    "transform_args_cache": {},
     "required_inputs": None,
     "metadata": None,
 }
@@ -74,21 +79,24 @@ def transform_sample(sample):
 
     transformed_sample = {}
 
-    for column_name in model["feature_columns"]:
+    for column_name in ctx.extract_column_names(model["input"]):
         if ctx.is_raw_column(column_name):
             transformed_value = sample[column_name]
         else:
-            inputs = ctx.create_column_inputs_map(sample, column_name)
+            transformed_column = ctx.transformed_columns[column_name]
             trans_impl = local_cache["trans_impls"][column_name]
             if not hasattr(trans_impl, "transform_python"):
                 raise UserException(
                     "transformed column " + column_name,
-                    "transformer " + ctx.transformed_sample[column_name]["transformer"],
-                    "transform_python function missing",
+                    "transformer " + transformed_column["transformer"],
+                    "transform_python function is missing",
                 )
+            input = ctx.populate_values(
+                transformed_column["input"], None, preserve_column_refs=True
+            )
+            transformer_input = create_transformer_inputs_from_map(input, sample)
+            transformed_value = trans_impl.transform_python(transformer_input)
 
-            args = local_cache["transform_args_cache"].get(column_name, {})
-            transformed_value = trans_impl.transform_python(inputs, args)
         transformed_sample[column_name] = transformed_value
 
     return transformed_sample
@@ -136,22 +144,18 @@ def create_raw_prediction_request(sample):
 def reverse_transform(value):
     ctx = local_cache["ctx"]
     model = local_cache["model"]
+    target_col = local_cache["target_col"]
 
-    trans_impl = local_cache["trans_impls"].get(model["target_column"], None)
+    trans_impl = local_cache["trans_impls"].get(target_col["name"])
     if not (trans_impl and hasattr(trans_impl, "reverse_transform_python")):
         return None
 
-    transformer_name = model["target_column"]
-    input_schema = ctx.transformed_columns[transformer_name]["inputs"]
-
-    if input_schema.get("args", None) is not None and len(input_schema["args"]) > 0:
-        args = local_cache["transform_args_cache"].get(transformer_name, {})
+    input = ctx.populate_values(target_col["input"], None, preserve_column_refs=False)
     try:
-        result = trans_impl.reverse_transform_python(value, args)
+        result = trans_impl.reverse_transform_python(value, input)
     except Exception as e:
         raise UserRuntimeException(
-            "transformer " + ctx.transformed_columns[model["target_column"]]["transformer"],
-            "function reverse_transform_python",
+            "transformer " + target_col["transformer"], "function reverse_transform_python"
         ) from e
 
     return result
@@ -167,33 +171,45 @@ def parse_response_proto(response_proto):
     response_proto.result() may be necessary (TF > 1.2?)
     """
     model = local_cache["model"]
+    estimator = local_cache["estimator"]
+    target_col_type = local_cache["target_col_type"]
 
-    if model["type"] == "regression":
-        prediction_key = "predictions"
-    if model["type"] == "classification":
+    if target_col_type in {consts.COLUMN_TYPE_STRING, consts.COLUMN_TYPE_INT}:
         prediction_key = "class_ids"
+    else:
+        prediction_key = "predictions"
 
-    if model["prediction_key"]:
-        prediction_key = model["prediction_key"]
+    if estimator["prediction_key"]:
+        prediction_key = estimator["prediction_key"]
 
     results_dict = json_format.MessageToDict(response_proto)
     outputs = results_dict["outputs"]
     value_key = DTYPE_TO_VALUE_KEY[outputs[prediction_key]["dtype"]]
-    predicted = outputs[prediction_key][value_key][0]
+    prediction = outputs[prediction_key][value_key][0]
+
+    target_vocab_estimators = {
+        "dnn_classifier",
+        "linear_classifier",
+        "dnn_linear_combined_classifier",
+        "boosted_trees_classifier",
+    }
+    if (
+        estimator["namespace"] == "cortex"
+        and estimator["name"] in target_vocab_estimators
+        and model["input"].get("target_vocab") is not None
+    ):
+        prediction = model["input"]["target_vocab"][int(prediction)]
+    else:
+        prediction = util.cast(prediction, target_col_type)
 
     result = {}
+    result["prediction"] = prediction
+    result["prediction_reversed"] = reverse_transform(prediction)
+
+    result["response"] = {}
     for key in outputs.keys():
         value_key = DTYPE_TO_VALUE_KEY[outputs[key]["dtype"]]
-        result[key] = outputs[key][value_key]
-
-    if model["type"] == "regression":
-        predicted = float(predicted)
-        result["predicted_value"] = predicted
-        result["predicted_value_reversed"] = reverse_transform(predicted)
-    if model["type"] == "classification":
-        predicted = int(predicted)
-        result["predicted_class"] = predicted
-        result["predicted_class_reversed"] = reverse_transform(predicted)
+        result["response"][key] = outputs[key][value_key]
 
     return result
 
@@ -249,17 +265,21 @@ def run_predict(sample):
         util.log_indent("Prediction:", indent=4)
         util.log_pretty(result, indent=6)
 
+    result["transformed_sample"] = transformed_sample
+
     return result
 
 
 def is_valid_sample(sample):
+    ctx = local_cache["ctx"]
+
     for column in local_cache["required_inputs"]:
         if column["name"] not in sample:
             return False, "{} is missing".format(column["name"])
 
         sample_val = sample[column["name"]]
-        column_type = local_cache["ctx"].get_inferred_column_type(column["name"])
-        is_valid = util.CORTEX_TYPE_TO_UPCAST_VALIDATOR[column_type](sample_val)
+        column_type = ctx.get_inferred_column_type(column["name"])
+        is_valid = util.CORTEX_TYPE_TO_VALIDATOR[column_type](sample_val)
 
         if not is_valid:
             return (False, "{} should be a {}".format(column["name"], column_type))
@@ -288,7 +308,7 @@ def predict(app_name, api_name):
     except Exception as e:
         return "Malformed JSON", status.HTTP_400_BAD_REQUEST
 
-    model = local_cache["model"]
+    ctx = local_cache["ctx"]
     api = local_cache["api"]
 
     response = {}
@@ -336,14 +356,7 @@ def predict(app_name, api_name):
 
         predictions.append(result)
 
-    if local_cache["ctx"].environment is not None:
-        if model["type"] == "regression":
-            response["regression_predictions"] = predictions
-        if model["type"] == "classification":
-            response["classification_predictions"] = predictions
-    else:
-        response["predictions"] = predictions
-
+    response["predictions"] = predictions
     response["resource_id"] = api["id"]
 
     return jsonify(response)

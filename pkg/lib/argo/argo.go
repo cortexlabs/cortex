@@ -315,5 +315,5 @@ func (wfItem *WorkflowItem) Dependencies() strset.Set {
 		return strset.New(wfItem.Task.Dependencies...)
 	}
 
-	return make(strset.Set)
+	return strset.New()
 }

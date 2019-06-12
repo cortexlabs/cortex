@@ -21,6 +21,7 @@ RUN chmod +x /usr/local/bin/kubectl
 
 COPY pkg/transformers /src/transformers
 COPY pkg/aggregators /src/aggregators
+COPY pkg/estimators /src/estimators
 
 COPY --from=builder /go/src/github.com/cortexlabs/cortex/pkg/operator/operator /root/
 RUN chmod +x /root/operator

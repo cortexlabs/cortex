@@ -16,7 +16,12 @@ limitations under the License.
 
 package userconfig
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+)
 
 type ValueType int
 type ValueTypes []ValueType
@@ -94,4 +99,38 @@ func (ts ValueTypes) StringList() []string {
 
 func (ts ValueTypes) String() string {
 	return strings.Join(ts.StringList(), ", ")
+}
+
+func (t *ValueType) CastValue(value interface{}) (interface{}, error) {
+	switch *t {
+	case IntegerValueType:
+		valueInt, ok := cast.InterfaceToInt64(value)
+		if !ok {
+			return nil, ErrorUnsupportedLiteralType(value, t.String())
+		}
+		return valueInt, nil
+
+	case FloatValueType:
+		valueFloat, ok := cast.InterfaceToFloat64(value)
+		if !ok {
+			return nil, ErrorUnsupportedLiteralType(value, t.String())
+		}
+		return valueFloat, nil
+
+	case StringValueType:
+		valueStr, ok := value.(string)
+		if !ok {
+			return nil, ErrorUnsupportedLiteralType(value, t.String())
+		}
+		return valueStr, nil
+
+	case BoolValueType:
+		valueBool, ok := value.(bool)
+		if !ok {
+			return nil, ErrorUnsupportedLiteralType(value, t.String())
+		}
+		return valueBool, nil
+	}
+
+	return nil, errors.New(t.String(), "unimplemented ValueType") // unexpected
 }

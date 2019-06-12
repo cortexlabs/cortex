@@ -19,6 +19,8 @@ package context
 import (
 	"bytes"
 
+	"github.com/cortexlabs/yaml"
+
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
@@ -38,7 +40,7 @@ func dataID(config *userconfig.Config, datasetVersion string) string {
 
 	rawColumnTypeMap := make(map[string]userconfig.ColumnType, len(config.RawColumns))
 	for _, rawColumnConfig := range config.RawColumns {
-		rawColumnTypeMap[rawColumnConfig.GetName()] = rawColumnConfig.GetType()
+		rawColumnTypeMap[rawColumnConfig.GetName()] = rawColumnConfig.GetColumnType()
 	}
 	buf.WriteString(s.Obj(config.Environment.Limit))
 	buf.WriteString(s.Obj(rawColumnTypeMap))
@@ -53,7 +55,8 @@ func dataID(config *userconfig.Config, datasetVersion string) string {
 		buf.WriteString(s.Bool(typedData.DropNull))
 		schemaMap := map[string]string{} // use map to sort keys
 		for _, parqCol := range typedData.Schema {
-			schemaMap[parqCol.RawColumnName] = parqCol.ParquetColumnName
+			colName, _ := yaml.ExtractAtSymbolText(parqCol.RawColumn)
+			schemaMap[colName] = parqCol.ParquetColumnName
 		}
 		buf.WriteString(s.Obj(schemaMap))
 	}

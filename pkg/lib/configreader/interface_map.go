@@ -23,14 +23,16 @@ import (
 )
 
 type InterfaceMapValidation struct {
-	Required          bool
-	Default           map[string]interface{}
-	AllowExplicitNull bool
-	AllowEmpty        bool
-	ScalarsOnly       bool
-	StringLeavesOnly  bool
-	AllowedLeafValues []string
-	Validator         func(map[string]interface{}) (map[string]interface{}, error)
+	Required               bool
+	Default                map[string]interface{}
+	AllowExplicitNull      bool
+	AllowEmpty             bool
+	ScalarsOnly            bool
+	StringLeavesOnly       bool
+	AllowedLeafValues      []string
+	AllowCortexResources   bool
+	RequireCortexResources bool
+	Validator              func(map[string]interface{}) (map[string]interface{}, error)
 }
 
 func InterfaceMap(inter interface{}, v *InterfaceMapValidation) (map[string]interface{}, error) {
@@ -72,6 +74,16 @@ func ValidateInterfaceMapProvided(val map[string]interface{}, v *InterfaceMapVal
 }
 
 func validateInterfaceMap(val map[string]interface{}, v *InterfaceMapValidation) (map[string]interface{}, error) {
+	if v.RequireCortexResources {
+		if err := checkOnlyCortexResources(val); err != nil {
+			return nil, err
+		}
+	} else if !v.AllowCortexResources {
+		if err := checkNoCortexResources(val); err != nil {
+			return nil, err
+		}
+	}
+
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
 			return nil, ErrorCannotBeEmpty()
