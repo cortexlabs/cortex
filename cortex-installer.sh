@@ -335,7 +335,7 @@ metadata:
   name: argo-executor
   namespace: ${CORTEX_NAMESPACE}
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: argo-executor
@@ -381,13 +381,13 @@ rules:
   verbs: [create, get, list, watch, update, patch, delete]
 - apiGroups: [\"\"]
   resources: [configmaps]
-  verbs: [get, list, watch]
+  verbs: [get, watch, list]
 - apiGroups: [\"\"]
   resources: [persistentvolumeclaims]
   verbs: [create, delete]
 - apiGroups: [argoproj.io]
   resources: [workflows, workflows/finalizers]
-  verbs: [get, list, watch, update, patch]
+  verbs: [get, list, watch, update, patch, delete]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -412,7 +412,7 @@ data:
   config: |
     namespace: ${CORTEX_NAMESPACE}
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: argo-controller
@@ -436,9 +436,9 @@ spec:
         - Always
         command:
         - workflow-controller
-        name: argo-controller
         image: ${CORTEX_IMAGE_ARGO_CONTROLLER}
         imagePullPolicy: Always
+        name: argo-controller
       serviceAccountName: argo-controller
 " | kubectl apply -f - >/dev/null
 }
@@ -455,7 +455,7 @@ metadata:
   name: spark-operator
   namespace: ${CORTEX_NAMESPACE}
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: spark-operator
@@ -486,7 +486,7 @@ rules:
   resources: [sparkapplications, scheduledsparkapplications]
   verbs: [\"*\"]
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: spark-operator
@@ -500,7 +500,7 @@ roleRef:
   name: spark-operator
   apiGroup: rbac.authorization.k8s.io
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: spark-operator
@@ -730,7 +730,7 @@ metadata:
   name: spark
   namespace: ${CORTEX_NAMESPACE}
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: spark
@@ -745,7 +745,7 @@ rules:
   resources: [services]
   verbs: [\"*\"]
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: spark
@@ -774,7 +774,7 @@ metadata:
   name: nginx
   namespace: ${CORTEX_NAMESPACE}
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: nginx
@@ -812,7 +812,7 @@ rules:
     resources: [configmaps]
     verbs: [get, list, watch, create]
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: nginx
@@ -834,7 +834,7 @@ metadata:
 data:
   use-proxy-protocol: \"true\"
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-backend-operator
@@ -895,7 +895,7 @@ spec:
     app.kubernetes.io/name: nginx-backend-operator
     app.kubernetes.io/part-of: ingress-nginx
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-controller-operator
@@ -998,7 +998,7 @@ spec:
     port: 443
     targetPort: https
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-backend-apis
@@ -1059,7 +1059,7 @@ spec:
     app.kubernetes.io/name: nginx-backend-apis
     app.kubernetes.io/part-of: ingress-nginx
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-controller-apis
@@ -1178,7 +1178,7 @@ metadata:
   labels:
     app: fluentd
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: fluentd
@@ -1188,7 +1188,7 @@ rules:
   resources: [pods]
   verbs: [get, list, watch]
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: fluentd
@@ -1305,7 +1305,7 @@ metadata:
   name: operator
   namespace: ${CORTEX_NAMESPACE}
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: operator
@@ -1319,7 +1319,7 @@ roleRef:
   name: cluster-admin
   apiGroup: rbac.authorization.k8s.io
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: operator
@@ -1328,6 +1328,9 @@ metadata:
     workloadType: operator
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      workloadId: operator
   template:
     metadata:
       labels:
