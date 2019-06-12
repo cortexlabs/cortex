@@ -13,11 +13,6 @@ def create_estimator(run_config, model_config):
 
     # t2t has its own set of hyperparameters we can use
     hparams = trainer_lib.create_hparams("basic_fc_small")
-    # t2t expects this key
-    hparams.add_hparam("warm_start_from", None)
-    hparams.add_hparam("model_dir", None)
-
-
     problem = registry.problem("image_mnist")
     p_hparams = problem.get_hparams(hparams)
     hparams.problem = problem
@@ -25,6 +20,9 @@ def create_estimator(run_config, model_config):
 
     # don't need eval_metrics
     problem.eval_metrics = lambda: []
+
+    # t2t expects this key
+    hparams.warm_start_from = None
 
     estimator = trainer_lib.create_estimator("basic_fc_relu", hparams, run_config)
     return estimator
