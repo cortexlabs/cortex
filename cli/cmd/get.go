@@ -414,7 +414,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 	out += titleStr("Endpoint")
 	resIDs := strset.New()
 	combinedInput := []interface{}{model.Input, model.TrainingInput}
-	for _, res := range ctx.ExtractCortexResources(combinedInput) {
+	for _, res := range ctx.ExtractCortexResources(combinedInput, resource.ConstantType, resource.RawColumnType, resource.AggregateType, resource.TransformedColumnType) {
 		resIDs.Add(res.GetID())
 		resIDs.Merge(ctx.AllComputedResourceDependencies(res.GetID()))
 	}
