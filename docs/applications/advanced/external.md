@@ -1,30 +1,27 @@
-# External
+# Importing external resources
 
 Some Cortex resources support external importing.
 
-## Model
+## Models
 
-You can serve a external model as an `API`.
+You can serve a model that was trained outside of Cortex as an API.
 
-1. Zip the exported estimator output in your checkpoint directory
-
-Example:
+1. Zip the exported estimator output in your checkpoint directory, e.g.
 
 ```bash
-ls export/estimator
+$ ls export/estimator
 saved_model.pb  variables/
-zip -r model.zip export/estimator
+
+$ zip -r model.zip export/estimator
 ```
 
-2. Upload the zipped file to Amazon S3
-
-Example:
+2. Upload the zipped file to Amazon S3, e.g.
 
 ```bash
-aws s3 cp model.zip s3://your-bucket/model.zip
+$ aws s3 cp model.zip s3://your-bucket/model.zip
 ```
 
-3. Specify `model_path` in an API kind
+3. Specify `model_path` in an API, e.g.
 
 ```yaml
 - kind: api
