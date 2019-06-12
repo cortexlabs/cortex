@@ -303,6 +303,20 @@ class Context:
         if model is None:
             return None
         estimator = self.estimators[model["estimator"]]
+        target_column = self.columns[util.get_resource_ref(model["target_column"])]
+
+        if estimator.get("target_column") is not None:
+            target_col_type = self.get_inferred_column_type(target_column["name"])
+            if target_col_type not in estimator["target_column"]:
+                raise UserException(
+                    "model " + model_name,
+                    "target_column",
+                    target_column["name"],
+                    "unsupported type (expected type {}, got type {})".format(
+                        util.data_type_str(estimator["target_column"]),
+                        util.data_type_str(target_col_type),
+                    ),
+                )
 
         model_config = deepcopy(model)
         config_keys = [
@@ -321,15 +335,15 @@ class Context:
         ]
         util.keep_dict_keys(model_config, config_keys)
 
-        model_config["target_column"] = util.get_resource_ref(model["target_column"])
+        model_config["target_column"] = target_column["name"]
         model_config["input"] = self.populate_values(
             model["input"], estimator["input"], preserve_column_refs=False
         )
-        if model["training_input"] is not None:
+        if model.get("training_input") is not None:
             model_config["training_input"] = self.populate_values(
                 model["training_input"], estimator["training_input"], preserve_column_refs=False
             )
-        if model["hparams"] is not None:
+        if model.get("hparams") is not None:
             model_config["hparams"] = self.populate_values(
                 model["hparams"], estimator["hparams"], preserve_column_refs=False
             )
