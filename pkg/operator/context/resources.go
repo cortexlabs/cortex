@@ -55,9 +55,8 @@ func ValidateInput(
 		if input == nil {
 			if schema.Optional {
 				return nil, hash.Any(nil), nil
-			} else {
-				return nil, "", userconfig.ErrorMustBeDefined(schema)
 			}
+			return nil, "", userconfig.ErrorMustBeDefined(schema)
 		}
 
 		castedInput, err = validateRuntimeTypes(input, schema, validResourcesMap, aggregators, transformers, false)
