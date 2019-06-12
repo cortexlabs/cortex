@@ -159,7 +159,21 @@ def parse_response_proto(response_proto):
     outputs = results_dict["outputs"]
     value_key = DTYPE_TO_VALUE_KEY[outputs[prediction_key]["dtype"]]
     prediction = outputs[prediction_key][value_key][0]
-    prediction = util.cast(prediction, target_col_type)
+
+    target_vocab_estimators = {
+        "dnn_classifier",
+        "linear_classifier",
+        "dnn_linear_combined_classifier",
+        "boosted_trees_classifier",
+    }
+    if (
+        estimator["namespace"] == "cortex"
+        and estimator["name"] in target_vocab_estimators
+        and model["input"].get("target_vocab") is not None
+    ):
+        prediction = model["input"]["target_vocab"][int(prediction)]
+    else:
+        prediction = util.cast(prediction, target_col_type)
 
     result = {}
     result["prediction"] = prediction
