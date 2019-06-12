@@ -151,7 +151,7 @@ func Panic(items ...interface{}) {
 func PrintError(err error, strs ...string) {
 	wrappedErr := Wrap(err, strs...)
 	fmt.Println("error:", wrappedErr.Error())
-	// PrintStacktrace(wrappedErr)
+	PrintStacktrace(wrappedErr)
 }
 
 func PrintStacktrace(err error) {

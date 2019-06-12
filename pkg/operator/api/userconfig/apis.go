@@ -18,7 +18,6 @@ package userconfig
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/yaml"
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -29,7 +28,7 @@ type APIs []*API
 
 type API struct {
 	ResourceFields
-	Model     string      `json:"model" yaml:"model"`
+	Model     *string     `json:"model" yaml:"model"`
 	ModelPath *string     `json:"model_path" yaml:"model_path"`
 	Compute   *APICompute `json:"compute" yaml:"compute"`
 	Tags      Tags        `json:"tags" yaml:"tags"`
@@ -45,15 +44,8 @@ var apiValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField:  "Model",
-			DefaultField: "Name",
-			DefaultFieldFunc: func(name interface{}) interface{} {
-				model := "@" + name.(string)
-				escapedModel, _ := yaml.EscapeAtSymbol(model)
-				return escapedModel
-			},
-			StringValidation: &cr.StringValidation{
-				Required:               false,
+			StructField: "Model",
+			StringPtrValidation: &cr.StringPtrValidation{
 				RequireCortexResources: true,
 			},
 		},
@@ -85,11 +77,11 @@ func (apis APIs) Validate() error {
 }
 
 func (api *API) Validate() error {
-	if api.ModelPath == nil && api.Model == "" {
+	if api.ModelPath == nil && api.Model == nil {
 		return errors.Wrap(ErrorSpecifyOnlyOneMissing("model_name", "model_path"), Identify(api))
 	}
 
-	if api.ModelPath != nil && api.Model != "" {
+	if api.ModelPath != nil && api.Model != nil {
 		return errors.Wrap(ErrorSpecifyOnlyOne("model_name", "model_path"), Identify(api))
 	}
 

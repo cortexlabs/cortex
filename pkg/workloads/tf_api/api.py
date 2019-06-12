@@ -235,12 +235,12 @@ def parse_response_proto_raw(response_proto):
     results_dict = json_format.MessageToDict(response_proto)
     outputs = results_dict["outputs"]
 
-    result = {}
+    outputs_simplified = {}
     for key in outputs.keys():
         value_key = DTYPE_TO_VALUE_KEY[outputs[key]["dtype"]]
-        result[key] = outputs[key][value_key]
+        outputs_simplified[key] = outputs[key][value_key]
 
-    return result
+    return {"response": outputs_simplified}
 
 
 def run_predict(sample):
@@ -264,8 +264,6 @@ def run_predict(sample):
         util.log_pretty(sample, indent=6)
         util.log_indent("Prediction:", indent=4)
         util.log_pretty(result, indent=6)
-
-    result["transformed_sample"] = transformed_sample
 
     return result
 

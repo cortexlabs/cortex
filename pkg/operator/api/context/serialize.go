@@ -189,6 +189,10 @@ func (ctx *Context) castSchemaTypes() error {
 }
 
 func (ctx *Context) ToSerial() *Serial {
+	if ctx.Environment == nil {
+		return &Serial{Context: ctx}
+	}
+
 	serial := Serial{
 		Context:        ctx,
 		RawColumnSplit: ctx.splitRawColumns(),

@@ -33,20 +33,25 @@ func getAPIs(config *userconfig.Config,
 	apis := context.APIs{}
 
 	for _, apiConfig := range config.APIs {
-		modelName, _ := yaml.ExtractAtSymbolText(apiConfig.Model)
-
-		model := models[modelName]
-		if model == nil {
-			return nil, errors.Wrap(userconfig.ErrorUndefinedResource(modelName, resource.ModelType), userconfig.Identify(apiConfig), userconfig.ModelNameKey)
-		}
 
 		var buf bytes.Buffer
+		var modelName string
 		buf.WriteString(apiConfig.Name)
-		if model, ok := models[apiConfig.Model]; ok {
-			buf.WriteString(model.ID)
+
+		if apiConfig.Model != nil {
+			modelName, _ := yaml.ExtractAtSymbolText(apiConfig.Model)
+			model := models[modelName]
+			if model == nil {
+				return nil, errors.Wrap(userconfig.ErrorUndefinedResource(modelName, resource.ModelType), userconfig.Identify(apiConfig), userconfig.ModelNameKey)
+			}
+
+			if model, ok := models[*apiConfig.Model]; ok {
+				buf.WriteString(model.ID)
+			}
 		}
 
 		if apiConfig.ModelPath != nil {
+			modelName = *apiConfig.ModelPath
 			buf.WriteString(*apiConfig.ModelPath)
 		}
 
