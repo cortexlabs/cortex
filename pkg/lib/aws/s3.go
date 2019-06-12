@@ -43,6 +43,8 @@ func init() {
 	resolver := endpoints.DefaultResolver()
 	partitions := resolver.(endpoints.EnumPartitions).Partitions()
 
+	S3Regions = strset.New()
+
 	for _, p := range partitions {
 		if p.ID() == endpoints.AwsPartitionID || p.ID() == endpoints.AwsCnPartitionID {
 			for id := range p.Regions() {
