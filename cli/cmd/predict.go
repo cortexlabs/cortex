@@ -86,7 +86,7 @@ var predictCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		if predictPrintJSON || predictResponse.Predictions != nil {
+		if predictPrintJSON {
 			prettyResp, err := json.Pretty(predictResponse)
 			if err != nil {
 				errors.Exit(err)
@@ -112,6 +112,16 @@ var predictCmd = &cobra.Command{
 			value := prediction.Prediction
 			if prediction.PredictionReversed != nil {
 				value = prediction.PredictionReversed
+			}
+
+			if prediction.Prediction == nil && prediction.Response != nil {
+				prettyResp, err := json.Pretty(prediction)
+				if err != nil {
+					errors.Exit(err)
+				}
+
+				fmt.Println(prettyResp)
+				continue
 			}
 
 			if casted, ok := cast.InterfaceToFloat64(value); ok {
