@@ -243,7 +243,7 @@ func IsFilePathPython(path string) bool {
 	return ext == ".py"
 }
 
-// IgnoreFn if passed a dir, returning false will ignore all subdirs of dir
+// If passed a dir, returning true will ignore all subdirs of dir
 type IgnoreFn func(string, os.FileInfo) (bool, error)
 
 func IgnoreHiddenFiles(path string, fi os.FileInfo) (bool, error) {
@@ -438,7 +438,7 @@ func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]strin
 	return fileList, nil
 }
 
-func ListDir(dir string, relative bool) ([]string, error) {
+func ListFilesInDir(dir string, relative bool, ignoreFns ...IgnoreFn) ([]string, error) {
 	dir = filepath.Clean(dir)
 	var filenames []string
 	fileInfo, err := ioutil.ReadDir(dir)
@@ -450,7 +450,16 @@ func ListDir(dir string, relative bool) ([]string, error) {
 		if !relative {
 			filename = filepath.Join(dir, filename)
 		}
-		filenames = append(filenames, filename)
+
+		for _, ignoreFn := range ignoreFns {
+			ignore, err := ignoreFn(filename, file)
+			if err != nil {
+				return nil, errors.Wrap(err, filename)
+			}
+			if !ignore {
+				filenames = append(filenames, filename)
+			}
+		}
 	}
 	return filenames, nil
 }

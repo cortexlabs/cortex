@@ -81,10 +81,13 @@ func deploy(force bool, ignoreCache bool) {
 					errors.Exit(err)
 				}
 				destPath := filepath.Join(destDir, hash.String(srcPath))
+				alreadyExists := files.IsFileOrDir(destPath)
 
-				err = files.Copy(srcPath, destPath)
-				if err != nil {
-					errors.Exit(err)
+				if !alreadyExists || ignoreCache {
+					err = files.Copy(srcPath, destPath)
+					if err != nil {
+						errors.Exit(err)
+					}
 				}
 			}
 		}

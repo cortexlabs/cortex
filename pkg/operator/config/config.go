@@ -69,7 +69,7 @@ func InitCortexConfig() {
 		LogGroup:           getStrPtr("LOG_GROUP"),
 		OperatorLocalMount: getStrPtr("OPERATOR_LOCAL_MOUNT"),
 		OperatorHostIP:     getStrPtr("OPERATOR_HOST_IP"),
-		OperatorInCluster:  configreader.MustBoolFromEnv("CONST_OPERATOR_IN_CLUSTER", &configreader.BoolValidation{Default: true}),
+		OperatorInCluster:  getBool("CONST_OPERATOR_IN_CLUSTER", true),
 	}
 
 	Cortex = &CortexConfig{
@@ -86,7 +86,7 @@ func InitCortexConfig() {
 		TFTrainImageGPU:     getStr("IMAGE_TF_TRAIN_GPU"),
 		TFServeImageGPU:     getStr("IMAGE_TF_SERVE_GPU"),
 		TelemetryURL:        configreader.MustStringFromEnv("CORTEX_TELEMETRY_URL", &configreader.StringValidation{Required: false, Default: consts.TelemetryURL}),
-		EnableTelemetry:     getBool("ENABLE_TELEMETRY"),
+		EnableTelemetry:     getBool("ENABLE_TELEMETRY", false),
 	}
 }
 
@@ -144,8 +144,8 @@ func getStr(name string) string {
 	return configreader.MustStringFromEnvOrFile(envVarName, filePath, v)
 }
 
-func getBool(name string) bool {
+func getBool(name string, defaultVal bool) bool {
 	envVarName, filePath := getPaths(name)
-	v := &configreader.BoolValidation{Default: false}
+	v := &configreader.BoolValidation{Default: defaultVal}
 	return configreader.MustBoolFromEnvOrFile(envVarName, filePath, v)
 }
