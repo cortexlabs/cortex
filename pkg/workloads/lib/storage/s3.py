@@ -143,7 +143,7 @@ class S3(object):
         obj = self._read_bytes_from_s3(key, allow_missing)
         if obj == None:
             return None
-        return msgpack.load(obj, raw=False)
+        return msgpack.loads(obj, raw=False)
 
     def put_pyobj(self, obj, key):
         self._upload_string_to_s3(pickle.dumps(obj), key)
