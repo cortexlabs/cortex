@@ -11,6 +11,8 @@ from tensor2tensor.data_generators import text_encoder
 
 def create_estimator(run_config, model_config):
     hparams = trainer_lib.create_hparams("transformer_base_single_gpu")
+    # t2t expects this key
+    hparams.add_hparam("warm_start_from", None)
 
     # SentimentIMDBCortex subclasses SentimentIMDB
     problem = SentimentIMDBCortex(list(model_config["aggregates"]["reviews_vocab"]))
@@ -31,7 +33,6 @@ def create_estimator(run_config, model_config):
     hparams.num_heads = 2
 
     # t2t expects these keys
-    hparams.warm_start_from = None
     run_config.data_parallelism = None
     run_config.t2t_device_info = {"num_async_replicas": 1}
 
