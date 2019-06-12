@@ -1,8 +1,4 @@
-# Importing external resources
-
-Some Cortex resources support external importing.
-
-## Models
+# Importing External Models
 
 You can serve a model that was trained outside of Cortex as an API.
 
