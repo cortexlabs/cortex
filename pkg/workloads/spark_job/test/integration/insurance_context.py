@@ -30,7 +30,8 @@ S3(bucket, client_config={}).get_msgpack(key)
 
 bucket, key = S3.deconstruct_s3_path('s3://<cortex-bucket>/apps/<app-name>/contexts/<context-id>.msgpack')
 
-5. modify 
+5. udpate path of any implementations being used to /<impl_type>/<impl> e.g. /transformers/normalize.py
+6. delete images in cortex_config
 """
 
 
@@ -148,21 +149,12 @@ raw_ctx = {
     },
     "cortex_config": {
         "enable_telemetry": False,
-        "tf_api_image": "969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-api:latest",
         "id": "da5e65b994ba4ebb069bdc19cf73da64aee79e5d83f466038dc75b3ef04fa63",
         "operator_in_cluster": False,
         "log_group": "cortex",
-        "python_packager_image": "969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-packager:latest",
         "namespace": "cortex",
-        "telemetry_url": "https://telemetry.cortexlabs.dev",
-        "tf_serve_image": "969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve:latest",
-        "operator_image": "969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/operator:latest",
         "region": "us-west-2",
-        "spark_image": "969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/spark:latest",
-        "tf_train_image_gpu": "969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-train-gpu:latest",
-        "tf_train_image": "969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-train:latest",
         "api_version": "master",
-        "tf_serve_image_gpu": "969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve-gpu:latest",
     },
     "metadata_root": "apps/insurance/data/2019-06-12-19-22-55-936375/483b4537be2db30b81be4809ab0c787f65230540b9b6779af7420922d654011/metadata",
     "raw_columns": {
