@@ -31,13 +31,18 @@ pytestmark = pytest.mark.usefixtures("spark")
 def add_res_ref(input):
     return util.resource_escape_seq_raw + input
 
+
 def test_read_csv_valid(spark, write_csv_file, ctx_obj, get_context):
     csv_str = "\n".join(["a,0.1,", "b,1,1", "c,1.1,4"])
 
     path_to_file = write_csv_file(csv_str)
 
     ctx_obj["environment"] = {
-        "data": {"type": "csv", "path": path_to_file, "schema": [add_res_ref("a_str"), add_res_ref("b_float"), add_res_ref("c_long")]}
+        "data": {
+            "type": "csv",
+            "path": path_to_file,
+            "schema": [add_res_ref("a_str"), add_res_ref("b_float"), add_res_ref("c_long")],
+        }
     }
 
     ctx_obj["raw_columns"] = {
@@ -55,7 +60,11 @@ def test_read_csv_invalid_type(spark, write_csv_file, ctx_obj, get_context):
     path_to_file = write_csv_file(csv_str)
 
     ctx_obj["environment"] = {
-        "data": {"type": "csv", "path": path_to_file, "schema": [add_res_ref("a_str"), add_res_ref("b_long"), add_res_ref("c_long")]}
+        "data": {
+            "type": "csv",
+            "path": path_to_file,
+            "schema": [add_res_ref("a_str"), add_res_ref("b_long"), add_res_ref("c_long")],
+        }
     }
 
     ctx_obj["raw_columns"] = {
@@ -196,7 +205,11 @@ def test_read_csv_missing_column(spark, write_csv_file, ctx_obj, get_context):
     path_to_file = write_csv_file(csv_str)
 
     ctx_obj["environment"] = {
-        "data": {"type": "csv", "path": path_to_file, "schema": [add_res_ref("a_str"), add_res_ref("b_long"), add_res_ref("c_long")]}
+        "data": {
+            "type": "csv",
+            "path": path_to_file,
+            "schema": [add_res_ref("a_str"), add_res_ref("b_long"), add_res_ref("c_long")],
+        }
     }
 
     ctx_obj["raw_columns"] = {
@@ -932,17 +945,11 @@ def test_ingest_parquet_failed_requirements(
 
 
 def test_run_builtin_aggregators_success(spark, ctx_obj, get_context):
-    ctx_obj["raw_columns"] = {
-            "a": {
-                "id": "2",
-                "name": "a",
-                "type": "INT_COLUMN"
-        }
-    }
+    ctx_obj["raw_columns"] = {"a": {"id": "2", "name": "a", "type": "INT_COLUMN"}}
     ctx_obj["aggregators"] = {
         "cortex.sum_int": {
-            "name": "sum_int", 
-            "namespace": "cortex", 
+            "name": "sum_int",
+            "namespace": "cortex",
             "input": {"_type": "INT_COLUMN"},
             "output_type": "INT_COLUMN",
         }
