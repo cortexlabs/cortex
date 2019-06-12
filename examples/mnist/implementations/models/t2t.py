@@ -15,6 +15,7 @@ def create_estimator(run_config, model_config):
     hparams = trainer_lib.create_hparams("basic_fc_small")
     # t2t expects this key
     hparams.add_hparam("warm_start_from", None)
+    hparams.add_hparam("model_dir", None)
 
 
     problem = registry.problem("image_mnist")
