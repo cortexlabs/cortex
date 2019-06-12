@@ -364,9 +364,13 @@ func ErrorCannotMixValueAndColumnTypes(provided interface{}) error {
 }
 
 func ErrorColumnTypeLiteral(provided interface{}) error {
+	colName := "column_name"
+	if providedStr, ok := provided.(string); ok {
+		colName = providedStr
+	}
 	return Error{
 		Kind:    ErrColumnTypeLiteral,
-		message: fmt.Sprintf("%s: literal values cannot be provided for column input types (e.g. use FLOAT_COLUMN instead of FLOAT)", s.UserStrStripped(provided)),
+		message: fmt.Sprintf("%s: literal values cannot be provided for column input types (use a reference to a column, e.g. \"@%s\")", s.UserStrStripped(provided), colName),
 	}
 }
 
