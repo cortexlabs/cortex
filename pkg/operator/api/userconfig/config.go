@@ -195,14 +195,6 @@ func (config *Config) Validate(envName string) error {
 	modelNames := config.Models.Names()
 	allowNoEnv := false // if every API is path based, don't need env
 	for _, api := range config.APIs {
-		if api.ModelPath == nil && api.ModelName == "" {
-			return errors.Wrap(ErrorSpecifyOnlyOneMissing("model_name", "model_path"), Identify(api))
-		}
-
-		if api.ModelPath != nil && api.ModelName != "" {
-			return errors.Wrap(ErrorSpecifyOnlyOne("model_name", "model_path"), Identify(api))
-		}
-
 		if !slices.HasString(modelNames, api.ModelName) && api.ModelPath == nil {
 			return errors.Wrap(ErrorUndefinedResource(api.ModelName, resource.ModelType),
 				Identify(api), ModelNameKey)

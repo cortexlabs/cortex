@@ -19,6 +19,7 @@ package userconfig
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -61,6 +62,10 @@ var apiValidation = &cr.StructValidation{
 func (apis APIs) Validate() error {
 	resources := make([]Resource, len(apis))
 	for i, res := range apis {
+		if err := res.Validate(); err != nil {
+			return err
+		}
+
 		resources[i] = res
 	}
 
@@ -68,6 +73,18 @@ func (apis APIs) Validate() error {
 	if len(dups) > 0 {
 		return ErrorDuplicateResourceName(dups...)
 	}
+	return nil
+}
+
+func (api *API) Validate() error {
+	if api.ModelPath == nil && api.ModelName == "" {
+		return errors.Wrap(ErrorSpecifyOnlyOneMissing("model_name", "model_path"), Identify(api))
+	}
+
+	if api.ModelPath != nil && api.ModelName != "" {
+		return errors.Wrap(ErrorSpecifyOnlyOne("model_name", "model_path"), Identify(api))
+	}
+
 	return nil
 }
 
