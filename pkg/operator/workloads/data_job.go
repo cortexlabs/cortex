@@ -186,7 +186,7 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	if shouldIngest {
 		externalData := ctx.Environment.Data.GetExternalData()
 		externalDataExists, err := aws.IsS3aPrefixExternal(externalData.Path, externalData.Region)
-		if err != nil || !externalDataExists {
+		if err != nil {
 			return nil, errors.Wrap(err, externalData.Path, ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey)
 		}
 		if !externalDataExists {

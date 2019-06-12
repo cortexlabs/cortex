@@ -159,7 +159,7 @@ var externalDataValidation = []*cr.StructFieldValidation{
 		StructField: "Region",
 		StringValidation: &cr.StringValidation{
 			Default:       aws.DefaultS3Region,
-			AllowedValues: aws.S3Regions,
+			AllowedValues: aws.S3Regions.Slice(),
 		},
 	},
 }

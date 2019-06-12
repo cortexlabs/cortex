@@ -31,22 +31,22 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-var DefaultS3Region string
-var S3Regions []string
+const DefaultS3Region string = endpoints.UsWest2RegionID
+
+var S3Regions strset.Set
 
 func init() {
-	DefaultS3Region = endpoints.UsWest2RegionID
-
 	resolver := endpoints.DefaultResolver()
 	partitions := resolver.(endpoints.EnumPartitions).Partitions()
 
 	for _, p := range partitions {
 		if p.ID() == endpoints.AwsPartitionID || p.ID() == endpoints.AwsCnPartitionID {
 			for id := range p.Regions() {
-				S3Regions = append(S3Regions, id)
+				S3Regions.Add(id)
 			}
 		}
 	}
