@@ -67,7 +67,7 @@ func getModels(
 		castedInput, inputID, err := ValidateInput(
 			modelConfig.Input,
 			estimator.Input,
-			[]resource.Type{resource.RawColumnType, resource.TransformedColumnType, resource.ConstantType, resource.AggregateType, resource.TransformedColumnType},
+			[]resource.Type{resource.RawColumnType, resource.TransformedColumnType, resource.ConstantType, resource.AggregateType},
 			validInputResources,
 			config.Resources,
 			aggregators,
@@ -85,7 +85,7 @@ func getModels(
 		castedTrainingInput, trainingInputID, err := ValidateInput(
 			modelConfig.TrainingInput,
 			estimator.TrainingInput,
-			[]resource.Type{resource.RawColumnType, resource.TransformedColumnType, resource.ConstantType, resource.AggregateType, resource.TransformedColumnType},
+			[]resource.Type{resource.RawColumnType, resource.TransformedColumnType, resource.ConstantType, resource.AggregateType},
 			validInputResources,
 			config.Resources,
 			aggregators,

@@ -28,13 +28,19 @@ import (
 )
 
 func (ctx *Context) AllComputedResourceDependencies(resourceID string) strset.Set {
-	dependencies := ctx.DirectComputedResourceDependencies(resourceID)
-	for dependency := range dependencies.Copy() {
-		for subDependency := range ctx.AllComputedResourceDependencies(dependency) {
-			dependencies.Add(subDependency)
-		}
+	allDependencies := strset.New()
+	ctx.allComputedResourceDependenciesHelper(resourceID, allDependencies)
+	return allDependencies
+}
+
+func (ctx *Context) allComputedResourceDependenciesHelper(resourceID string, allDependencies strset.Set) {
+	subDependencies := ctx.DirectComputedResourceDependencies(resourceID)
+	subDependencies.Subtract(allDependencies)
+	allDependencies.Merge(subDependencies)
+
+	for dependency := range subDependencies {
+		ctx.allComputedResourceDependenciesHelper(dependency, allDependencies)
 	}
-	return dependencies
 }
 
 func (ctx *Context) DirectComputedResourceDependencies(resourceID string) strset.Set {
@@ -95,7 +101,7 @@ func (ctx *Context) aggregatesDependencies(aggregate *Aggregate) strset.Set {
 		dependencies.Add(pythonPackage.GetID())
 	}
 
-	for _, res := range ctx.ExtractCortexResources(aggregate.Input) {
+	for _, res := range ctx.ExtractCortexResources(aggregate.Input, resource.ConstantType, resource.RawColumnType) {
 		dependencies.Add(res.GetID())
 	}
 
@@ -109,7 +115,7 @@ func (ctx *Context) transformedColumnDependencies(transformedColumn *Transformed
 		dependencies.Add(pythonPackage.GetID())
 	}
 
-	for _, res := range ctx.ExtractCortexResources(transformedColumn.Input) {
+	for _, res := range ctx.ExtractCortexResources(transformedColumn.Input, resource.ConstantType, resource.RawColumnType, resource.AggregateType) {
 		dependencies.Add(res.GetID())
 	}
 
@@ -137,7 +143,7 @@ func (ctx *Context) modelDependencies(model *Model) strset.Set {
 	dependencies.Add(model.Dataset.ID)
 
 	combinedInput := []interface{}{model.Input, model.TrainingInput, model.TargetColumn}
-	for _, res := range ctx.ExtractCortexResources(combinedInput) {
+	for _, res := range ctx.ExtractCortexResources(combinedInput, resource.ConstantType, resource.RawColumnType, resource.AggregateType, resource.TransformedColumnType) {
 		dependencies.Add(res.GetID())
 	}
 
