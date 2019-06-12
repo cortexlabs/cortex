@@ -175,3 +175,20 @@ class S3(object):
         local_zip = os.path.join(local_dir, "zip.zip")
         self.download_file(key, local_zip)
         util.extract_zip(local_zip, delete_zip_file=True)
+
+    def download_and_unzip_external(self, key, local_dir):
+        util.mkdir_p(local_dir)
+        local_zip = os.path.join(local_dir, "zip.zip")
+        self.download_file_external(key, local_zip)
+        util.extract_zip(local_zip, delete_zip_file=True)
+
+    def download_file_external(self, key, local_path):
+        try:
+            util.mkdir_p(os.path.dirname(local_path))
+            path_parts = self.deconstruct_s3_path(key)
+            bucket = path_parts[0]
+            path = path_parts[1]
+            self.s3.download_file(bucket, path, local_path)
+            return local_path
+        except Exception as e:
+            raise CortexException("bucket " + bucket, "key " + key) from e

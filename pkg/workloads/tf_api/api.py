@@ -59,6 +59,13 @@ DTYPE_TO_VALUE_KEY = {
     "DT_COMPLEX128": "dcomplexVal",
 }
 
+DTYPE_TO_TF_TYPE = {
+    "DT_INT32": tf.int32,
+    "DT_INT64": tf.int64,
+    "DT_FLOAT": tf.float32,
+    "DT_STRING": tf.string,
+    "DT_BOOL": tf.bool,
+}
 
 def transform_sample(sample):
     ctx = local_cache["ctx"]
@@ -88,8 +95,8 @@ def transform_sample(sample):
 
 def create_prediction_request(transformed_sample):
     ctx = local_cache["ctx"]
-    signatureDef = local_cache["metadata"]["signatureDef"]
-    signature_key = list(signatureDef.keys())[0]
+    signature_def = local_cache["metadata"]["signatureDef"]
+    signature_key = list(signature_def.keys())[0]
     prediction_request = predict_pb2.PredictRequest()
     prediction_request.model_spec.name = "default"
     prediction_request.model_spec.signature_name = signature_key
@@ -101,6 +108,24 @@ def create_prediction_request(transformed_sample):
         if util.is_list(value):
             shape = [len(value)]
         tensor_proto = tf.make_tensor_proto([value], dtype=data_type, shape=shape)
+        prediction_request.inputs[column_name].CopyFrom(tensor_proto)
+
+    return prediction_request
+
+def create_raw_prediction_request(sample):
+    signature_def = local_cache["metadata"]["signatureDef"]
+    signature_key = list(signature_def.keys())[0]
+    logger.info(signature_def)
+    prediction_request = predict_pb2.PredictRequest()
+    prediction_request.model_spec.name = "default"
+    prediction_request.model_spec.signature_name = signature_key
+
+    for column_name, value in sample.items():
+        shape = [1]
+        if util.is_list(value):
+            shape = [len(value)]
+        sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
+        tensor_proto = tf.make_tensor_proto([value], dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape)
         prediction_request.inputs[column_name].CopyFrom(tensor_proto)
 
     return prediction_request
@@ -187,19 +212,38 @@ def run_get_model_metadata():
     sigmap = json_format.MessageToDict(signature_def_map)
     return sigmap
 
+def parse_response_proto_raw(response_proto):
+    results_dict = json_format.MessageToDict(response_proto)
+    outputs = results_dict["outputs"]
+
+    result = {}
+    for key in outputs.keys():
+        value_key = DTYPE_TO_VALUE_KEY[outputs[key]["dtype"]]
+        result[key] = outputs[key][value_key]
+
+    return result
 
 def run_predict(sample):
-    transformed_sample = transform_sample(sample)
-    prediction_request = create_prediction_request(transformed_sample)
-    response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
-    result = parse_response_proto(response_proto)
-    result["transformed_sample"] = transformed_sample
-    util.log_indent("Raw sample:", indent=4)
-    util.log_pretty(sample, indent=6)
-    util.log_indent("Transformed sample:", indent=4)
-    util.log_pretty(transformed_sample, indent=6)
-    util.log_indent("Prediction:", indent=4)
-    util.log_pretty(result, indent=6)
+    if local_cache["ctx"].environment is not None:
+        transformed_sample = transform_sample(sample)
+        prediction_request = create_prediction_request(transformed_sample)
+        response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
+        result = parse_response_proto(response_proto)
+        result["transformed_sample"] = transformed_sample
+        util.log_indent("Raw sample:", indent=4)
+        util.log_pretty(sample, indent=6)
+        util.log_indent("Transformed sample:", indent=4)
+        util.log_pretty(transformed_sample, indent=6)
+        util.log_indent("Prediction:", indent=4)
+        util.log_pretty(result, indent=6)
+    else:
+        prediction_request = create_raw_prediction_request(sample)
+        response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
+        result = parse_response_proto_raw(response_proto)
+        util.log_indent("Raw sample:", indent=4)
+        util.log_pretty(sample, indent=6)
+        util.log_indent("Prediction:", indent=4)
+        util.log_pretty(result, indent=6)
 
     return result
 
@@ -262,13 +306,14 @@ def predict(app_name, api_name):
     for i, sample in enumerate(payload["samples"]):
         util.log_indent("sample {}".format(i + 1), 2)
 
-        is_valid, reason = is_valid_sample(sample)
-        if not is_valid:
-            return prediction_failed(sample, reason)
+        if local_cache["ctx"].environment is not None:
+            is_valid, reason = is_valid_sample(sample)
+            if not is_valid:
+                return prediction_failed(sample, reason)
 
-        for column in local_cache["required_inputs"]:
-            column_type = local_cache["ctx"].get_inferred_column_type(column["name"])
-            sample[column["name"]] = util.upcast(sample[column["name"]], column_type)
+            for column in local_cache["required_inputs"]:
+                column_type = local_cache["ctx"].get_inferred_column_type(column["name"])
+                sample[column["name"]] = util.upcast(sample[column["name"]], column_type)
 
         try:
             result = run_predict(sample)
@@ -287,14 +332,18 @@ def predict(app_name, api_name):
 
         predictions.append(result)
 
-    if model["type"] == "regression":
-        response["regression_predictions"] = predictions
-    if model["type"] == "classification":
-        response["classification_predictions"] = predictions
+    if local_cache["ctx"].environment is not None:
+        if model["type"] == "regression":
+            response["regression_predictions"] = predictions
+        if model["type"] == "classification":
+            response["classification_predictions"] = predictions
+    else:
+        response["predictions"] = predictions
 
     response["resource_id"] = api["id"]
 
     return jsonify(response)
+
 
 
 def start(args):
@@ -302,35 +351,41 @@ def start(args):
     package.install_packages(ctx.python_packages, ctx.storage)
 
     api = ctx.apis_id_map[args.api]
-    model = ctx.models[api["model_name"]]
-    tf_lib.set_logging_verbosity(ctx.environment["log_level"]["tensorflow"])
 
-    local_cache["ctx"] = ctx
+
     local_cache["api"] = api
-    local_cache["model"] = model
+    local_cache["ctx"] = ctx
 
-    if not os.path.isdir(args.model_dir):
-        ctx.storage.download_and_unzip(model["key"], args.model_dir)
+    if ctx.environment is not None:
+        model = ctx.models[api["model_name"]]
+        tf_lib.set_logging_verbosity(ctx.environment["log_level"]["tensorflow"])
 
-    for column_name in model["feature_columns"] + [model["target_column"]]:
-        if ctx.is_transformed_column(column_name):
-            trans_impl, _ = ctx.get_transformer_impl(column_name)
-            local_cache["trans_impls"][column_name] = trans_impl
-            transformed_column = ctx.transformed_columns[column_name]
-            input_args_schema = transformed_column["inputs"]["args"]
-            # cache aggregates and constants in memory
-            if input_args_schema is not None:
-                local_cache["transform_args_cache"][column_name] = ctx.populate_args(
-                    input_args_schema
-                )
+        local_cache["model"] = model
+
+        if not os.path.isdir(args.model_dir):
+            ctx.storage.download_and_unzip(model["key"], args.model_dir)
+
+        for column_name in model["feature_columns"] + [model["target_column"]]:
+            if ctx.is_transformed_column(column_name):
+                trans_impl, _ = ctx.get_transformer_impl(column_name)
+                local_cache["trans_impls"][column_name] = trans_impl
+                transformed_column = ctx.transformed_columns[column_name]
+                input_args_schema = transformed_column["inputs"]["args"]
+                # cache aggregates and constants in memory
+                if input_args_schema is not None:
+                    local_cache["transform_args_cache"][column_name] = ctx.populate_args(
+                        input_args_schema
+                    )
+        local_cache["required_inputs"] = tf_lib.get_base_input_columns(model["name"], ctx)
+    else:
+        if not os.path.isdir(args.model_dir):
+            ctx.storage.download_and_unzip_external(api["model_path"], args.model_dir)
 
     channel = grpc.insecure_channel("localhost:" + str(args.tf_serve_port))
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)
 
-    local_cache["required_inputs"] = tf_lib.get_base_input_columns(model["name"], ctx)
-
     # wait a bit for tf serving to start before querying metadata
-    limit = 600
+    limit = 300
     for i in range(limit):
         try:
             local_cache["metadata"] = run_get_model_metadata()
@@ -344,7 +399,11 @@ def start(args):
 
         time.sleep(1)
 
-    logger.info("Serving model: {}".format(model["name"]))
+    model_name = api["model_name"]
+    if model_name == "":
+        model_name = api["model_path"]
+
+    logger.info("Serving model: {}".format(model_name))
     serve(app, listen="*:{}".format(args.port))
 
 

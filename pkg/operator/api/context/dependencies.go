@@ -141,5 +141,9 @@ func (ctx *Context) modelDependencies(model *Model) strset.Set {
 
 func (ctx *Context) apiDependencies(api *API) strset.Set {
 	model := ctx.Models[api.ModelName]
-	return strset.New(model.ID)
+	dependencies := make(strset.Set)
+	if model != nil {
+		dependencies.Add(model.ID)
+	}
+	return dependencies
 }

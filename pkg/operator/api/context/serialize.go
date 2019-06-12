@@ -111,6 +111,10 @@ func (serial *Serial) collectEnvironment() (*Environment, error) {
 }
 
 func (ctx Context) ToSerial() *Serial {
+	if ctx.Environment == nil {
+		return &Serial{Context: ctx}
+	}
+
 	serial := Serial{
 		Context:        ctx,
 		RawColumnSplit: ctx.splitRawColumns(),
@@ -122,12 +126,14 @@ func (ctx Context) ToSerial() *Serial {
 
 func (serial Serial) ContextFromSerial() (*Context, error) {
 	ctx := serial.Context
-	ctx.RawColumns = serial.collectRawColumns()
-	environment, err := serial.collectEnvironment()
-	if err != nil {
-		return nil, err
+	if ctx.Environment != nil {
+		ctx.RawColumns = serial.collectRawColumns()
+		environment, err := serial.collectEnvironment()
+		if err != nil {
+			return nil, err
+		}
+		ctx.Environment = environment
 	}
-	ctx.Environment = environment
 	return &ctx, nil
 }
 

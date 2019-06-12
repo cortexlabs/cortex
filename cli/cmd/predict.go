@@ -45,6 +45,7 @@ type PredictResponse struct {
 	ResourceID                string                     `json:"resource_id"`
 	ClassificationPredictions []ClassificationPrediction `json:"classification_predictions,omitempty"`
 	RegressionPredictions     []RegressionPrediction     `json:"regression_predictions,omitempty"`
+	Predictions               []interface{}              `json:"predictions,omitempty"`
 }
 
 type ClassificationPrediction struct {
@@ -92,7 +93,7 @@ var predictCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		if predictPrintJSON {
+		if predictPrintJSON || predictResponse.Predictions != nil {
 			prettyResp, err := json.Pretty(predictResponse)
 			if err != nil {
 				errors.Exit(err)

@@ -31,14 +31,19 @@ func getAPIs(config *userconfig.Config,
 	apis := context.APIs{}
 
 	for _, apiConfig := range config.APIs {
-		model := models[apiConfig.ModelName]
 
 		var buf bytes.Buffer
 		buf.WriteString(apiConfig.Name)
-		buf.WriteString(model.ID)
+		if model, ok := models[apiConfig.ModelName]; ok {
+			buf.WriteString(model.ID)
+		}
+
+		if apiConfig.ModelPath != nil {
+			buf.WriteString(*apiConfig.ModelPath)
+		}
+
 		id := hash.Bytes(buf.Bytes())
 
-		buf.WriteString(model.IDWithTags)
 		buf.WriteString(apiConfig.Tags.ID())
 		idWithTags := hash.Bytes(buf.Bytes())
 

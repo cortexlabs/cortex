@@ -1,0 +1,5 @@
+- kind: api
+  name: sentiment
+  model_path: s3://cortex-yolo/dnn.zip
+  compute:
+    replicas: 1

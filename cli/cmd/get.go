@@ -412,17 +412,20 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 
 	out += titleStr("Endpoint")
 	var samplePlaceholderFields []string
-	for _, colName := range ctx.RawColumnInputNames(model) {
-		column := ctx.GetColumn(colName)
-		fieldStr := `"` + colName + `": ` + column.GetType().JSONPlaceholder()
-		samplePlaceholderFields = append(samplePlaceholderFields, fieldStr)
+	if api.ModelPath == nil {
+		for _, colName := range ctx.RawColumnInputNames(model) {
+			column := ctx.GetColumn(colName)
+			fieldStr := `"` + colName + `": ` + column.GetType().JSONPlaceholder()
+			samplePlaceholderFields = append(samplePlaceholderFields, fieldStr)
+		}
 	}
-	samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"
 	out += "URL:      " + urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path) + "\n"
 	out += "Method:   POST\n"
 	out += `Header:   "Content-Type: application/json"` + "\n"
-	out += "Payload:  " + samplesPlaceholderStr + "\n"
-
+	if api.ModelPath == nil {
+		samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"
+		out += "Payload:  " + samplesPlaceholderStr + "\n"
+	}
 	if api != nil {
 		out += resourceStr(api.API)
 	}

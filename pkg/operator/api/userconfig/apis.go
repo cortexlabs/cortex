@@ -17,6 +17,7 @@ limitations under the License.
 package userconfig
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
@@ -26,6 +27,7 @@ type APIs []*API
 type API struct {
 	ResourceFields
 	ModelName string      `json:"model_name" yaml:"model_name"`
+	ModelPath *string     `json:"model_path" yaml:"model_path"`
 	Compute   *APICompute `json:"compute" yaml:"compute"`
 	Tags      Tags        `json:"tags" yaml:"tags"`
 }
@@ -40,12 +42,15 @@ var apiValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField:  "ModelName",
-			DefaultField: "Name",
+			StructField: "ModelName",
 			StringValidation: &cr.StringValidation{
-				Required:                   false,
-				AlphaNumericDashUnderscore: true,
+				AllowEmpty:                           true,
+				AlphaNumericDashDotUnderscoreOrEmpty: true,
 			},
+		},
+		{
+			StructField:         "ModelPath",
+			StringPtrValidation: &configreader.StringPtrValidation{},
 		},
 		apiComputeFieldValidation,
 		tagsFieldValidation,
