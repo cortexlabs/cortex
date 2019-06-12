@@ -67,6 +67,7 @@ DTYPE_TO_TF_TYPE = {
     "DT_BOOL": tf.bool,
 }
 
+
 def transform_sample(sample):
     ctx = local_cache["ctx"]
     model = local_cache["model"]
@@ -111,6 +112,7 @@ def create_prediction_request(transformed_sample):
         prediction_request.inputs[column_name].CopyFrom(tensor_proto)
 
     return prediction_request
+
 
 def create_raw_prediction_request(sample):
     signature_def = local_cache["metadata"]["signatureDef"]
@@ -212,6 +214,7 @@ def run_get_model_metadata():
     sigmap = json_format.MessageToDict(signature_def_map)
     return sigmap
 
+
 def parse_response_proto_raw(response_proto):
     results_dict = json_format.MessageToDict(response_proto)
     outputs = results_dict["outputs"]
@@ -222,6 +225,7 @@ def parse_response_proto_raw(response_proto):
         result[key] = outputs[key][value_key]
 
     return result
+
 
 def run_predict(sample):
     if local_cache["ctx"].environment is not None:
@@ -345,13 +349,11 @@ def predict(app_name, api_name):
     return jsonify(response)
 
 
-
 def start(args):
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
     package.install_packages(ctx.python_packages, ctx.storage)
 
     api = ctx.apis_id_map[args.api]
-
 
     local_cache["api"] = api
     local_cache["ctx"] = ctx

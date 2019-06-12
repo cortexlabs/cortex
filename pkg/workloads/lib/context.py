@@ -140,10 +140,7 @@ class Context:
             )
 
         self.apis_id_map = ResourceMap(self.apis)
-        self.id_map = util.merge_dicts_overwrite(
-            self.id_map,
-            self.apis_id_map,
-        )
+        self.id_map = util.merge_dicts_overwrite(self.id_map, self.apis_id_map)
 
     def is_raw_column(self, name):
         return name in self.raw_columns
