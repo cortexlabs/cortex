@@ -412,14 +412,17 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 	}
 
 	out += titleStr("Endpoint")
-	resIDs := strset.New()
-	combinedInput := []interface{}{model.Input, model.TrainingInput}
-	for _, res := range ctx.ExtractCortexResources(combinedInput, resource.ConstantType, resource.RawColumnType, resource.AggregateType, resource.TransformedColumnType) {
-		resIDs.Add(res.GetID())
-		resIDs.Merge(ctx.AllComputedResourceDependencies(res.GetID()))
-	}
-	var samplePlaceholderFields []string
+	out += "URL:      " + urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path) + "\n"
+	out += "Method:   POST\n"
+	out += `Header:   "Content-Type: application/json"` + "\n"
 	if api.ModelPath == nil {
+		resIDs := strset.New()
+		combinedInput := []interface{}{model.Input, model.TrainingInput}
+		for _, res := range ctx.ExtractCortexResources(combinedInput, resource.ConstantType, resource.RawColumnType, resource.AggregateType, resource.TransformedColumnType) {
+			resIDs.Add(res.GetID())
+			resIDs.Merge(ctx.AllComputedResourceDependencies(res.GetID()))
+		}
+		var samplePlaceholderFields []string
 		for rawColumnName, rawColumn := range ctx.RawColumns {
 			if resIDs.Has(rawColumn.GetID()) {
 				fieldStr := fmt.Sprintf("\"%s\": %s", rawColumnName, rawColumn.GetColumnType().JSONPlaceholder())
@@ -427,11 +430,6 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 			}
 		}
 		sort.Strings(samplePlaceholderFields)
-	}
-	out += "URL:      " + urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path) + "\n"
-	out += "Method:   POST\n"
-	out += `Header:   "Content-Type: application/json"` + "\n"
-	if api.ModelPath == nil {
 		samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"
 		out += "Payload:  " + samplesPlaceholderStr + "\n"
 	}
