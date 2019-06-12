@@ -1,14 +1,16 @@
 - kind: model
   name: dnn
-  type: regression
-  target_column: charges_normalized
-  feature_columns:
-    - age
-    - sex
-    - bmi
-    - children
-    - smoker
-    - region
+  estimator_path: implementations/models/dnn.py
+  target_column: @charges_normalized
+  input:
+    features: [@age, @sex, @bmi, @children, @smoker, @region, @charges]
+    aggregates:
+      children_set: @children_set
+      region_vocab: ["northwest", "northeast", "southwest", "southeast"]
+      age_buckets: [15, 20, 25, 35, 40, 45, 50, 55, 60, 65]
+      bmi_buckets: [15, 20, 25, 35, 40, 45, 50, 55]
+      smoker_vocab: ["yes", "no"]
+      sex_vocab: ["female", "male"]
   hparams:
     hidden_units: [100, 100, 100]
   data_partition_ratio:
@@ -16,5 +18,3 @@
     evaluation: 0.2
   training:
     num_steps: 10000
-  aggregates:
-    - children_set

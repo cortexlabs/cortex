@@ -2,27 +2,33 @@ import tensorflow as tf
 
 
 def create_estimator(run_config, model_config):
+    aggregates = model_config["input"]["aggregates"]
+
     feature_columns = [
         tf.feature_column.indicator_column(
-            tf.feature_column.categorical_column_with_vocabulary_list("sex", ["female", "male"])
-        ),
-        tf.feature_column.indicator_column(
-            tf.feature_column.categorical_column_with_vocabulary_list("smoker", ["yes", "no"])
+            tf.feature_column.categorical_column_with_vocabulary_list(
+                "sex", aggregates["sex_vocab"]
+            )
         ),
         tf.feature_column.indicator_column(
             tf.feature_column.categorical_column_with_vocabulary_list(
-                "region", ["northwest", "northeast", "southwest", "southeast"]
+                "smoker", aggregates["smoker_vocab"]
+            )
+        ),
+        tf.feature_column.indicator_column(
+            tf.feature_column.categorical_column_with_vocabulary_list(
+                "region", aggregates["region_vocab"]
             )
         ),
         tf.feature_column.bucketized_column(
-            tf.feature_column.numeric_column("age"), [15, 20, 25, 35, 40, 45, 50, 55, 60, 65]
+            tf.feature_column.numeric_column("age"), aggregates["age_buckets"]
         ),
         tf.feature_column.bucketized_column(
-            tf.feature_column.numeric_column("bmi"), [15, 20, 25, 35, 40, 45, 50, 55]
+            tf.feature_column.numeric_column("bmi"), aggregates["bmi_buckets"]
         ),
         tf.feature_column.indicator_column(
             tf.feature_column.categorical_column_with_vocabulary_list(
-                "children", model_config["aggregates"]["children_set"]
+                "children", aggregates["children_set"]
             )
         ),
     ]
