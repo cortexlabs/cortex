@@ -65,23 +65,25 @@ func Create(ctx *context.Context) (*awfv1.Workflow, error) {
 
 	var allSpecs []*WorkloadSpec
 
-	pythonPackageJobSpecs, err := pythonPackageWorkloadSpecs(ctx)
-	if err != nil {
-		return nil, err
-	}
-	allSpecs = append(allSpecs, pythonPackageJobSpecs...)
+	if ctx.Environment != nil {
+		pythonPackageJobSpecs, err := pythonPackageWorkloadSpecs(ctx)
+		if err != nil {
+			return nil, err
+		}
+		allSpecs = append(allSpecs, pythonPackageJobSpecs...)
 
-	dataJobSpecs, err := dataWorkloadSpecs(ctx)
-	if err != nil {
-		return nil, err
-	}
-	allSpecs = append(allSpecs, dataJobSpecs...)
+		dataJobSpecs, err := dataWorkloadSpecs(ctx)
+		if err != nil {
+			return nil, err
+		}
+		allSpecs = append(allSpecs, dataJobSpecs...)
 
-	trainingJobSpecs, err := trainingWorkloadSpecs(ctx)
-	if err != nil {
-		return nil, err
+		trainingJobSpecs, err := trainingWorkloadSpecs(ctx)
+		if err != nil {
+			return nil, err
+		}
+		allSpecs = append(allSpecs, trainingJobSpecs...)
 	}
-	allSpecs = append(allSpecs, trainingJobSpecs...)
 
 	apiSpecs, err := apiWorkloadSpecs(ctx)
 	if err != nil {

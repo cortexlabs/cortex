@@ -1,14 +1,11 @@
 - kind: model
   name: dnn
-  path: implementations/models/dnn.py
-  type: classification
-  target_column: label
-  feature_columns:
-    - image_pixels
+  estimator_path: implementations/models/dnn.py
+  target_column: @label
+  input: @image_pixels
   hparams:
-    learning_rate: 0.01
     input_shape: [784]
-    output_shape: [10]
+    learning_rate: 0.01
     hidden_units: [100, 200]
   data_partition_ratio:
     training: 0.7
@@ -16,11 +13,9 @@
 
 - kind: model
   name: conv
-  path: implementations/models/custom.py
-  type: classification
-  target_column: label
-  feature_columns:
-    - image_pixels
+  estimator_path: implementations/models/custom.py
+  target_column: @label
+  input: @image_pixels
   hparams:
     layer_type: conv
     learning_rate: 0.01
@@ -38,11 +33,9 @@
 
 - kind: model
   name: t2t
-  path: implementations/models/t2t.py
-  type: classification
-  target_column: label
-  feature_columns:
-    - image_pixels
+  estimator_path: implementations/models/t2t.py
+  target_column: @label
+  input: @image_pixels
   prediction_key: outputs
   hparams:
     input_shape: [28, 28, 1]

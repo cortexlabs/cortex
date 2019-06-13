@@ -22,8 +22,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/cortexlabs/yaml"
 	input "github.com/tcnksm/go-input"
-	yaml "gopkg.in/yaml.v2"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"

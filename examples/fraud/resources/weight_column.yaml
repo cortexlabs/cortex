@@ -1,24 +1,11 @@
 - kind: aggregate
   name: class_distribution
   aggregator: cortex.class_distribution_int
-  inputs:
-    columns:
-      col: class
-
-- kind: transformer
-  name: weight
-  inputs:
-    columns:
-      col: INT_COLUMN
-    args:
-      class_distribution: {INT: FLOAT}
-  output_type: FLOAT_COLUMN
+  input: @class
 
 - kind: transformed_column
   name: weight_column
-  transformer: weight
-  inputs:
-    columns:
-      col: class
-    args:
-      class_distribution: class_distribution
+  transformer_path: implementations/transformers/weight.py
+  input:
+    col: @class
+    class_distribution: @class_distribution

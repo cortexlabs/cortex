@@ -26,9 +26,9 @@ type Constants []*Constant
 
 type Constant struct {
 	ResourceFields
-	Type  interface{} `json:"type" yaml:"type"`
-	Value interface{} `json:"value" yaml:"value"`
-	Tags  Tags        `json:"tags" yaml:"tags"`
+	Type  OutputSchema `json:"type" yaml:"type"`
+	Value interface{}  `json:"value" yaml:"value"`
+	Tags  Tags         `json:"tags" yaml:"tags"`
 }
 
 var constantValidation = &cr.StructValidation{
@@ -43,19 +43,14 @@ var constantValidation = &cr.StructValidation{
 		{
 			StructField: "Type",
 			InterfaceValidation: &cr.InterfaceValidation{
-				Required: true,
-				Validator: func(t interface{}) (interface{}, error) {
-					return t, ValidateValueType(t)
-				},
+				Required:  false,
+				Validator: outputSchemaValidator,
 			},
 		},
 		{
 			StructField: "Value",
 			InterfaceValidation: &cr.InterfaceValidation{
 				Required: true,
-				Validator: func(value interface{}) (interface{}, error) {
-					return value, ValidateValue(value)
-				},
 			},
 		},
 		tagsFieldValidation,
@@ -84,17 +79,15 @@ func (constants Constants) Validate() error {
 }
 
 func (constant *Constant) Validate() error {
-	castedValue, err := CastValue(constant.Value, constant.Type)
-	if err != nil {
-		return errors.Wrap(err, Identify(constant), ValueKey)
+	if constant.Type != nil {
+		castedValue, err := CastOutputValue(constant.Value, constant.Type)
+		if err != nil {
+			return errors.Wrap(err, Identify(constant), ValueKey)
+		}
+		constant.Value = castedValue
 	}
-	constant.Value = castedValue
 
 	return nil
-}
-
-func (constant *Constant) GetType() interface{} {
-	return constant.Type
 }
 
 func (constant *Constant) GetResourceType() resource.Type {

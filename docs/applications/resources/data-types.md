@@ -1,6 +1,7 @@
 # Data Types
 
-Data types are used in config files to help validate data and ensure your Cortex application is functioning as expected.
+Data types are used in configuration files to help validate data and ensure your Cortex application is functioning as expected.
+
 
 ## Raw Column Types
 
@@ -9,6 +10,7 @@ These are the valid types for raw columns:
 * `INT_COLUMN`
 * `FLOAT_COLUMN`
 * `STRING_COLUMN`
+
 
 ## Transformed Column Types
 
@@ -21,9 +23,58 @@ These are the valid types for transformed columns (i.e. output types of transfor
 * `FLOAT_LIST_COLUMN`
 * `STRING_LIST_COLUMN`
 
-## Input Column Types
 
-Some resources specify the types of columns that are to be used as inputs (e.g. `transformer.inputs.columns` and `aggregator.inputs.columns`). For these types, any of the column types may be used:
+## Output Types
+
+Output types are used to define the output types of aggregators and constants. There are four base scalar types:
+
+* `INT`
+* `FLOAT`
+* `STRING`
+* `BOOL`
+
+In addition, an output type may be a list of scalar types. This is denoted by a length-one list of any of the supported types. For example, `[INT]` represents a list of integers.
+
+An output type may also be a map containing these types. There are two types of maps: generic maps and fixed maps. **Generic maps** represent maps which may have any number of items. The types of the keys and values must match the declared types. For example, `{STRING: INT}` fits `{"San Francisco": -7, "Toronto": -4}`. **Fixed maps** represent maps which must define values for each of the pre-defined keys. For example: `{value1: INT, value2: FLOAT}` fits `{value1: 17, value2: 8.8}`.
+
+The values in lists, generic maps, and fixed maps may be arbitrarily nested.
+
+These are all valid output types:
+
+* `INT`
+* `[STRING]`
+* `{STRING: INT}`
+* `[{STRING: INT}]`
+* `{value1: INT, value2: FLOAT}`
+* `{STRING: {value1: INT, value2: FLOAT}}`
+* `{value1: {STRING: BOOL}, value2: [FLOAT], value2: STRING}`
+
+### Example
+
+Output type:
+
+```yaml
+output_type:
+  value1: BOOL
+  value2: INT|FLOAT
+  value3: [STRING]
+  value4: {INT: STRING}
+```
+
+Output value:
+
+```yaml
+output_type:
+  value1: True
+  value2: 2.2
+  value3: [test1, test2, test3]
+  value4: {1: test1, 2: test2}
+```
+
+
+## Input Types
+
+Input types are used to define the inputs to aggregators, transformers, and estimators. Typically, input types can be any combination of the column or scalar types:
 
 * `INT_COLUMN`
 * `FLOAT_COLUMN`
@@ -31,50 +82,65 @@ Some resources specify the types of columns that are to be used as inputs (e.g. 
 * `INT_LIST_COLUMN`
 * `FLOAT_LIST_COLUMN`
 * `STRING_LIST_COLUMN`
-
-Ambiguous input types are also supported, and are represented by joining column types with `|`. For example, `INT_COLUMN|FLOAT_COLUMN` indicates that either a column of type `INT_COLUMN` or a column of type `FLOAT_COLUMN` may be used an the input. Any two or more column types may be combined in this way (e.g. `INT_COLUMN|FLOAT_COLUMN|STRING_COLUMN` is supported). All permutations of ambiguous types are valid (e.g. `INT_COLUMN|FLOAT_COLUMN` and `FLOAT_COLUMN|INT_COLUMN` are equivalent).
-
-In addition, an input type may be a list of columns. To denote this, use any of the supported input column types in a length-one list. For example, `[INT_COLUMN]` represents a list of integer columns; `[INT_COLUMN|FLOAT_COLUMN]` represents a list of integer or float columns.
-
-Note: `[INT_COLUMN]` is not equivalent to `INT_LIST_COLUMN`: the former denotes a list of integer columns, whereas the latter denotes a single column which contains a list of integers.
-
-## Value types
-
-These are valid types for all values (e.g. aggregator args, aggregator output types, transformer args, constants).
-
 * `INT`
 * `FLOAT`
 * `STRING`
 * `BOOL`
 
-As with column input types, ambiguous types are supported (e.g. `INT|FLOAT`), length-one lists of types are valid (e.g. `[STRING]`), and all permutations of ambiguous types are valid (e.g. `INT|FLOAT` is equivalent to `FLOAT|INT`).
+Like with output types, input types may occur within lists, generic maps, and fixed maps.
 
-In addition, maps are valid value types. There are two types of maps: maps with a single data type key, and maps with any number of arbitrary keys:
+Ambiguous input types are also supported, and are represented by joining types with `|`. For example, `INT_COLUMN|FLOAT_COLUMN` indicates that either a column of type `INT_COLUMN` or a column of type `FLOAT_COLUMN` may be used an the input. Any two or more types may be combined in this way (e.g. `INT|FLOAT|STRING` is supported). All permutations of ambiguous types are valid (e.g. `INT|FLOAT` and `FLOAT|INT` are equivalent). Column types and scalar types may not be combined (e.g. `INT|FLOAT_COLUMN` is not valid).
 
-### Maps with a single data type key
+### Input Type Validations
 
-This represents a map which, at runtime, may have any number of items. The types of the keys and values must match the declared types.
+By default, all declared inputs are required. For example, if the input type is `{value1: INT, value2: FLOAT}`, both `value1` and `value2` must be provided (and cannot be `Null`). With Cortex, it is possible to declare inputs as optional, set default values, allow values to be `Null`, and specify minimum and maximum map/list lengths.
 
-Example: `{STRING: INT}`
+To specify validation options, the "long form" input schema is used. In the long form, the input type is always a map, with the `_type` key specifying the type, and other keys (which all start with `_`) specifying the options. The available options are:
 
-Example value: `{"San Francisco": -7, "Toronto": -4}`
+* `_optional`: If set to `True`, allows the value to be missing from the input. Only applicable to values in maps.
+* `_default`: Specifies a default value to use if the value is missing from the input. Only applicable to values in maps. Setting `_defaut` implies `_optional: True`.
+* `_allow_null`: If set to `True`, allows the value to be explicitly set to `Null`.
+* `_min_count`: Specifies the minimum number of elements that must be in the list or map.
+* `_max_count`: Specifies the maximum number of elements that must be in the list or map.
 
-### Maps with arbitrary keys
+### Example
 
-This represents a map which, at runtime, must define values for each of the pre-defined keys.
+Short form input type:
 
-Example: `{"value1": INT, "value2": FLOAT}`
+```yaml
+input:
+  value1: INT_COLUMN
+  value2: INT|FLOAT
+  value3: [STRING]
+  value4: {INT: STRING}
+```
 
-Example value: `{"value1": 17, "value2": 8.8}`
+Long form input type:
 
-### Nested maps
+```yaml
+input:
+  value1:
+    _type: INT_COLUMN
+    _optional: True
+  value2:
+    _type: INT|FLOAT
+    _default: 2.2
+    _allow_null: True
+  value3:
+    _type: [STRING]
+    _min_count: 1
+  value4:
+    _type: {INT: STRING}
+    _min_count: 1
+    _max_count: 100
+```
 
-The values in either of the map types may be arbitrarily nested data types.
+Input value (assuming `column1` is an `INT_COLUMN`, `constant1` is a `[STRING]`, and `aggregate1` is an `INT`):
 
-## Examples
-
-* `INT`
-* `[FLOAT|STRING]`
-* `{STRING: INT}`
-* `{"value1": INT, "value2": FLOAT}`
-* `{"value1": {STRING: BOOL|INT}, "value2": [FLOAT], "value2": STRING}`
+```yaml
+input:
+  value1: @column1
+  value2: 2.2
+  value3: @constant1
+  value4: {1: test1, 2: @aggregate1}
+```

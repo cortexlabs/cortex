@@ -35,6 +35,9 @@ from lib.log import get_logger
 
 logger = get_logger()
 
+resource_escape_seq = "🌝🌝🌝🌝🌝"
+resource_escape_seq_raw = r"\ud83c\udf1d\ud83c\udf1d\ud83c\udf1d\ud83c\udf1d\ud83c\udf1d"
+
 
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
     return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
@@ -51,7 +54,13 @@ def pp_str(obj, indent=0):
         out = json.dumps(obj, sort_keys=True, indent=2)
     except:
         out = pprint.pformat(obj, width=120)
+    out = out.replace(resource_escape_seq, "@")
+    out = out.replace(resource_escape_seq_raw, "@")
     return indent_str(out, indent)
+
+
+def pp(obj, indent=0):
+    print(pp_str(obj, indent))
 
 
 def pp_str_flat(obj, indent=0):
@@ -59,7 +68,40 @@ def pp_str_flat(obj, indent=0):
         out = json.dumps(obj, sort_keys=True)
     except:
         out = str(obj).replace("\n", "")
+    out = out.replace(resource_escape_seq, "@")
+    out = out.replace(resource_escape_seq_raw, "@")
     return indent_str(out, indent)
+
+
+def data_type_str(data_type):
+    data_type_str = pp_str_flat(flatten_type_schema(data_type))
+    for t in consts.ALL_TYPES:
+        data_type_str = data_type_str.replace('"' + t, t)
+        data_type_str = data_type_str.replace(t + '"', t)
+    return data_type_str
+
+
+def flatten_type_schema(data_type):
+    if is_list(data_type):
+        flattened = []
+        for item in data_type:
+            flattened.append(flatten_type_schema(item))
+        return flattened
+
+    if is_dict(data_type):
+        if "_type" in data_type:
+            return flatten_type_schema(data_type["_type"])
+
+        flattened = {}
+        for key, val in data_type.items():
+            flattened[key] = flatten_type_schema(val)
+        return flattened
+
+    return data_type
+
+
+def user_obj_str(obj):
+    return truncate_str(pp_str_flat(obj), 1000)
 
 
 def log_indent(obj, indent=0, logging_func=logger.info):
@@ -379,6 +421,12 @@ def merge_dicts_no_overwrite(*dicts):
 
 def merge_two_dicts_in_place_overwrite(x, y):
     """Merge y into x, with overwriting. x is updated in place"""
+    if x is None:
+        x = {}
+
+    if y is None:
+        y = {}
+
     for k, v in y.items():
         if k in x and isinstance(x[k], dict) and isinstance(y[k], collections.Mapping):
             merge_dicts_in_place_overwrite(x[k], y[k])
@@ -671,45 +719,61 @@ def log_job_finished(workload_id):
 CORTEX_TYPE_TO_VALIDATOR = {
     consts.COLUMN_TYPE_INT: is_int,
     consts.COLUMN_TYPE_INT_LIST: is_int_list,
-    consts.COLUMN_TYPE_FLOAT: is_float,
-    consts.COLUMN_TYPE_FLOAT_LIST: is_float_list,
+    consts.COLUMN_TYPE_FLOAT: is_float_or_int,
+    consts.COLUMN_TYPE_FLOAT_LIST: is_float_or_int_list,
     consts.COLUMN_TYPE_STRING: is_str,
     consts.COLUMN_TYPE_STRING_LIST: is_str_list,
     consts.VALUE_TYPE_INT: is_int,
-    consts.VALUE_TYPE_FLOAT: is_float,
+    consts.VALUE_TYPE_FLOAT: is_float_or_int,
     consts.VALUE_TYPE_STRING: is_str,
     consts.VALUE_TYPE_BOOL: is_bool,
 }
 
-CORTEX_TYPE_TO_UPCAST_VALIDATOR = merge_dicts_overwrite(
-    CORTEX_TYPE_TO_VALIDATOR,
-    {
-        consts.COLUMN_TYPE_FLOAT: is_float_or_int,
-        consts.COLUMN_TYPE_FLOAT_LIST: is_float_or_int_list,
-    },
-)
-
 CORTEX_TYPE_TO_UPCASTER = {
+    consts.VALUE_TYPE_FLOAT: lambda x: float(x),
     consts.COLUMN_TYPE_FLOAT: lambda x: float(x),
     consts.COLUMN_TYPE_FLOAT_LIST: lambda ls: [float(item) for item in ls],
 }
 
+CORTEX_TYPE_TO_CASTER = {
+    consts.COLUMN_TYPE_INT: lambda x: int(x),
+    consts.COLUMN_TYPE_INT_LIST: lambda ls: [int(item) for item in ls],
+    consts.COLUMN_TYPE_FLOAT: lambda x: float(x),
+    consts.COLUMN_TYPE_FLOAT_LIST: lambda ls: [float(item) for item in ls],
+    consts.COLUMN_TYPE_STRING: lambda x: str(x),
+    consts.COLUMN_TYPE_STRING_LIST: lambda ls: [str(item) for item in ls],
+    consts.VALUE_TYPE_INT: lambda x: int(x),
+    consts.VALUE_TYPE_FLOAT: lambda x: float(x),
+    consts.VALUE_TYPE_STRING: lambda x: str(x),
+    consts.VALUE_TYPE_BOOL: lambda x: bool(x),
+}
 
-def upcast(value, column_type):
-    upcaster = CORTEX_TYPE_TO_UPCASTER.get(column_type, None)
+
+def upcast(value, cortex_type):
+    upcaster = CORTEX_TYPE_TO_UPCASTER.get(cortex_type, None)
     if upcaster:
         return upcaster(value)
     return value
 
 
-def validate_column_type(value, column_type):
+def cast(value, cortex_type):
+    upcaster = CORTEX_TYPE_TO_CASTER.get(cortex_type, None)
+    if upcaster:
+        return upcaster(value)
+    return value
+
+
+def validate_cortex_type(value, cortex_type):
     if value is None:
         return True
 
-    if not is_str(column_type):
+    if not is_str(cortex_type):
         raise
 
-    valid_types = column_type.split("|")
+    if cortex_type == consts.COLUMN_TYPE_INFERRED:
+        return True
+
+    valid_types = cortex_type.split("|")
     for valid_type in valid_types:
         if CORTEX_TYPE_TO_VALIDATOR[valid_type](value):
             return True
@@ -717,12 +781,12 @@ def validate_column_type(value, column_type):
     return False
 
 
-def validate_value_type(value, value_type):
+def validate_output_type(value, output_type):
     if value is None:
         return True
 
-    if is_str(value_type):
-        valid_types = value_type.split("|")
+    if is_str(output_type):
+        valid_types = output_type.split("|")
 
         for valid_type in valid_types:
             if CORTEX_TYPE_TO_VALIDATOR[valid_type](value):
@@ -730,47 +794,122 @@ def validate_value_type(value, value_type):
 
         return False
 
-    if is_dict(value_type):
-        if not is_dict(value):
-            return False
-        if len(value_type) == 0:
-            if len(value) == 0:
-                return True
-            return False
-
-        is_generic_map = False
-        if len(value_type) == 1:
-            value_type_key = next(iter(value_type.keys()))
-            if value_type_key in consts.VALUE_TYPES:
-                is_generic_map = True
-                generic_map_key = value_type_key
-                generic_map_value = value_type[value_type_key]
-
-        if is_generic_map:
-            for value_key, value_val in value.items():
-                if not validate_value_type(value_key, generic_map_key):
-                    return False
-                if not validate_value_type(value_val, generic_map_value):
-                    return False
-            return True
-
-        if len(value) != len(value_type):
-            return False
-        for value_key, value_val in value.items():
-            if value_key not in value_type:
-                return False
-            if not validate_value_type(value_val, value_type[value_key]):
-                return False
-        return True
-
-    if is_list(value_type):
-        if not (len(value_type) == 1 and is_str(value_type[0])):
-            return False
+    if is_list(output_type):
         if not is_list(value):
             return False
         for value_item in value:
-            if not validate_value_type(value_item, value_type[0]):
+            if not validate_output_type(value_item, output_type[0]):
                 return False
         return True
 
-    return False
+    if is_dict(output_type):
+        if not is_dict(value):
+            return False
+
+        is_generic_map = False
+        if len(output_type) == 1:
+            output_type_key = next(iter(output_type.keys()))
+            if output_type_key in consts.VALUE_TYPES:
+                is_generic_map = True
+                generic_map_key = output_type_key
+                generic_map_value = output_type[output_type_key]
+
+        if is_generic_map:
+            for value_key, value_val in value.items():
+                if not validate_output_type(value_key, generic_map_key):
+                    return False
+                if not validate_output_type(value_val, generic_map_value):
+                    return False
+            return True
+
+        # Fixed map
+        for type_key, type_val in output_type.items():
+            if type_key not in value:
+                return False
+            if not validate_output_type(value[type_key], type_val):
+                return False
+        return True
+
+    return False  # unexpected
+
+
+# value is assumed to be already validated against output_type
+def cast_output_type(value, output_type):
+    if is_str(output_type):
+        if (
+            is_int(value)
+            and consts.VALUE_TYPE_FLOAT in output_type
+            and consts.VALUE_TYPE_INT not in output_type
+        ):
+            return float(value)
+        return value
+
+    if is_list(output_type):
+        casted = []
+        for item in value:
+            casted.append(cast_output_type(item, output_type[0]))
+        return casted
+
+    if is_dict(output_type):
+        is_generic_map = False
+        if len(output_type) == 1:
+            output_type_key = next(iter(output_type.keys()))
+            if output_type_key in consts.VALUE_TYPES:
+                is_generic_map = True
+                generic_map_key = output_type_key
+                generic_map_value = output_type[output_type_key]
+
+        if is_generic_map:
+            casted = {}
+            for value_key, value_val in value.items():
+                casted_key = cast_output_type(value_key, generic_map_key)
+                casted_val = cast_output_type(value_val, generic_map_value)
+                casted[casted_key] = casted_val
+            return casted
+
+        # Fixed map
+        casted = {}
+        for output_type_key, output_type_val in output_type.items():
+            casted_val = cast_output_type(value[output_type_key], output_type_val)
+            casted[output_type_key] = casted_val
+        return casted
+
+    return value
+
+
+def is_resource_ref(obj):
+    if not is_str(obj):
+        return False
+    return obj.startswith(resource_escape_seq) or obj.startswith(resource_escape_seq_raw)
+
+
+def get_resource_ref(obj):
+    if not is_str(obj):
+        raise ValueError("expected input of type string but received " + str(type(obj)))
+    if obj.startswith(resource_escape_seq):
+        return obj[len(resource_escape_seq) :]
+    elif obj.startswith(resource_escape_seq_raw):
+        return obj[len(resource_escape_seq_raw) :]
+    raise ValueError("expected a resource reference but got " + obj)
+
+
+def extract_resource_refs(input):
+    if is_str(input):
+        if is_resource_ref(input):
+            return {get_resource_ref(input)}
+        return set()
+
+    if is_list(input):
+        resources = set()
+        for item in input:
+            resources = resources.union(extract_resource_refs(item))
+        return resources
+
+    if is_dict(input):
+        resources = set()
+        for key, val in input.items():
+            resources = resources.union(extract_resource_refs(key))
+            resources = resources.union(extract_resource_refs(val))
+        return resources
+
+    return set()

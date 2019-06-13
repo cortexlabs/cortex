@@ -4,7 +4,7 @@ import tensorflow as tf
 def create_estimator(run_config, model_config):
     feature_columns = [
         tf.feature_column.numeric_column(
-            "image_pixels", shape=model_config["hparams"]["input_shape"]
+            model_config["input"], shape=model_config["hparams"]["input_shape"]
         )
     ]
 

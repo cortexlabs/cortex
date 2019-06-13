@@ -13,12 +13,12 @@
 # limitations under the License.
 
 
-def transform_spark(data, columns, args, transformed_column_name):
+def transform_spark(data, input, transformed_column_name):
     from pyspark.ml.feature import StringIndexerModel
     import pyspark.sql.functions as F
 
     indexer = StringIndexerModel.from_labels(
-        args["indexes"]["index"], inputCol=columns["text"], outputCol=transformed_column_name
+        input["indexes"]["index"], inputCol=input["col"], outputCol=transformed_column_name
     )
 
     return indexer.transform(data).withColumn(
@@ -26,12 +26,12 @@ def transform_spark(data, columns, args, transformed_column_name):
     )
 
 
-def transform_python(sample, args):
-    if sample["text"] in args["indexes"]["reversed_index"]:
-        return args["indexes"]["reversed_index"][sample["text"]]
+def transform_python(input):
+    if input["col"] in input["indexes"]["reversed_index"]:
+        return input["indexes"]["reversed_index"][input["col"]]
 
-    raise Exception("Could not find {} in index: {}".format(sample["text"], args))
+    raise Exception("Could not find {} in index".format(input["col"]))
 
 
-def reverse_transform_python(transformed_value, args):
-    return args["indexes"]["index"][transformed_value]
+def reverse_transform_python(transformed_value, input):
+    return input["indexes"]["index"][transformed_value]

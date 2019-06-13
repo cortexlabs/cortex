@@ -38,14 +38,20 @@ var (
 	uploadedAggregators  = strset.New()
 	builtinTransformers  = make(map[string]*context.Transformer)
 	uploadedTransformers = strset.New()
+	builtinEstimators    = make(map[string]*context.Estimator)
+	uploadedEstimators   = strset.New()
 
+	OperatorAggregatorsDir = configreader.MustStringFromEnv(
+		"CONST_OPERATOR_AGGREGATORS_DIR",
+		&configreader.StringValidation{Default: "/src/aggregators"},
+	)
 	OperatorTransformersDir = configreader.MustStringFromEnv(
 		"CONST_OPERATOR_TRANSFORMERS_DIR",
 		&configreader.StringValidation{Default: "/src/transformers"},
 	)
-	OperatorAggregatorsDir = configreader.MustStringFromEnv(
-		"CONST_OPERATOR_AGGREGATORS_DIR",
-		&configreader.StringValidation{Default: "/src/aggregators"},
+	OperatorEstimatorsDir = configreader.MustStringFromEnv(
+		"CONST_OPERATOR_ESTIMATORS_DIR",
+		&configreader.StringValidation{Default: "/src/estimators"},
 	)
 )
 
@@ -88,6 +94,25 @@ func Init() error {
 		builtinTransformers["cortex."+transConfig.Name] = transformer
 	}
 
+	estimatorConfigPath := filepath.Join(OperatorEstimatorsDir, "estimators.yaml")
+	estimatorConfig, err := userconfig.NewPartialPath(estimatorConfigPath)
+	if err != nil {
+		return err
+	}
+
+	for _, estimatorConfig := range estimatorConfig.Estimators {
+		implPath := filepath.Join(OperatorEstimatorsDir, estimatorConfig.Path)
+		impl, err := files.ReadFileBytes(implPath)
+		if err != nil {
+			return errors.Wrap(err, userconfig.Identify(estimatorConfig))
+		}
+		estimator, err := newEstimator(*estimatorConfig, impl, pointer.String("cortex"), nil)
+		if err != nil {
+			return err
+		}
+		builtinEstimators["cortex."+estimatorConfig.Name] = estimator
+	}
+
 	return nil
 }
 
@@ -108,15 +133,23 @@ func New(
 	}
 	ctx.DatasetVersion = datasetVersion
 
-	ctx.Environment = getEnvironment(userconf, datasetVersion)
+	if userconf.Environment != nil {
+		ctx.Environment = getEnvironment(userconf, datasetVersion)
+	}
 
 	ctx.Root = filepath.Join(
 		consts.AppsDir,
 		ctx.App.Name,
 		consts.DataDir,
 		ctx.DatasetVersion,
-		ctx.Environment.ID,
 	)
+
+	if ctx.Environment != nil {
+		ctx.Root = filepath.Join(
+			ctx.Root,
+			ctx.Environment.ID,
+		)
+	}
 
 	ctx.MetadataRoot = filepath.Join(
 		ctx.Root,
@@ -135,22 +168,22 @@ func New(
 	}
 	ctx.PythonPackages = pythonPackages
 
-	userTransformers, err := loadUserTransformers(userconf, files, pythonPackages)
-	if err != nil {
-		return nil, err
-	}
-
 	userAggregators, err := loadUserAggregators(userconf, files, pythonPackages)
 	if err != nil {
 		return nil, err
 	}
 
-	err = autoGenerateConfig(userconf, userAggregators, userTransformers)
+	userTransformers, err := loadUserTransformers(userconf, files, pythonPackages)
 	if err != nil {
 		return nil, err
 	}
 
-	constants, err := loadConstants(userconf.Constants)
+	userEstimators, err := loadUserEstimators(userconf, files, pythonPackages)
+	if err != nil {
+		return nil, err
+	}
+
+	constants, err := getConstants(userconf.Constants)
 	if err != nil {
 		return nil, err
 	}
@@ -168,31 +201,37 @@ func New(
 	}
 	ctx.Transformers = transformers
 
+	estimators, err := getEstimators(userconf, userEstimators)
+	if err != nil {
+		return nil, err
+	}
+	ctx.Estimators = estimators
+
 	rawColumns, err := getRawColumns(userconf, ctx.Environment)
 	if err != nil {
 		return nil, err
 	}
 	ctx.RawColumns = rawColumns
 
-	aggregates, err := getAggregates(userconf, constants, rawColumns, userAggregators, ctx.Root)
+	aggregates, err := getAggregates(userconf, constants, rawColumns, aggregators, ctx.Root)
 	if err != nil {
 		return nil, err
 	}
 	ctx.Aggregates = aggregates
 
-	transformedColumns, err := getTransformedColumns(userconf, constants, rawColumns, ctx.Aggregates, userTransformers, ctx.Root)
+	transformedColumns, err := getTransformedColumns(userconf, constants, rawColumns, aggregates, aggregators, transformers, ctx.Root)
 	if err != nil {
 		return nil, err
 	}
 	ctx.TransformedColumns = transformedColumns
 
-	models, err := getModels(userconf, aggregates, ctx.Columns(), files, ctx.Root, pythonPackages)
+	models, err := getModels(userconf, constants, ctx.Columns(), aggregates, transformedColumns, aggregators, transformers, estimators, ctx.Root)
 	if err != nil {
 		return nil, err
 	}
 	ctx.Models = models
 
-	apis, err := getAPIs(userconf, ctx.Models)
+	apis, err := getAPIs(userconf, ctx.Models, ctx.DatasetVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +264,9 @@ func calculateID(ctx *context.Context) string {
 	ids = append(ids, ctx.RawDataset.Key)
 	ids = append(ids, ctx.StatusPrefix)
 	ids = append(ids, ctx.App.ID)
-	ids = append(ids, ctx.Environment.ID)
+	if ctx.Environment != nil {
+		ids = append(ids, ctx.Environment.ID)
+	}
 
 	for _, resource := range ctx.AllResources() {
 		ids = append(ids, resource.GetID())

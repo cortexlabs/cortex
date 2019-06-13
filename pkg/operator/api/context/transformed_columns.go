@@ -17,8 +17,6 @@ limitations under the License.
 package context
 
 import (
-	"github.com/cortexlabs/cortex/pkg/lib/cast"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
@@ -30,24 +28,8 @@ type TransformedColumn struct {
 	Type userconfig.ColumnType `json:"type"`
 }
 
-func (column *TransformedColumn) GetType() userconfig.ColumnType {
+func (column *TransformedColumn) GetColumnType() userconfig.ColumnType {
 	return column.Type
-}
-
-// Returns map[string]string because after autogen, arg values are constant or aggregate names
-func (column *TransformedColumn) Args() map[string]string {
-	args, _ := cast.InterfaceToStrStrMap(column.Inputs.Args)
-	return args
-}
-
-func (column *TransformedColumn) InputAggregateNames(ctx *Context) strset.Set {
-	inputAggregateNames := strset.New()
-	for _, valueResourceName := range column.Args() {
-		if _, ok := ctx.Aggregates[valueResourceName]; ok {
-			inputAggregateNames.Add(valueResourceName)
-		}
-	}
-	return inputAggregateNames
 }
 
 func (columns TransformedColumns) OneByID(id string) *TransformedColumn {
@@ -57,8 +39,4 @@ func (columns TransformedColumns) OneByID(id string) *TransformedColumn {
 		}
 	}
 	return nil
-}
-
-func (column *TransformedColumn) GetInputRawColumnNames() []string {
-	return column.InputColumnNames()
 }

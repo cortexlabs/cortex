@@ -5,7 +5,7 @@ Transfer data at scale from data warehouses like S3 into the Cortex environment.
 ## Config
 
 ```yaml
-- kind: environment  # (required)
+- kind: environment
   name: <string>  # environment name (required)
   limit:
       # specify `num_rows` or `fraction_of_rows` if using `limit`
@@ -30,7 +30,7 @@ data:
   drop_null: <bool>  # drop any rows that contain at least 1 null value (default: false)
   csv_config: <csv_config>  # optional configuration that can be provided
   schema:
-    - <string>  # raw column names listed in the CSV columns' order (required)
+    - <string>  # raw column references listed in the CSV columns' order (required)
       ...
 ```
 
@@ -69,7 +69,7 @@ data:
   drop_null: <bool>  # drop any rows that contain at least 1 null value (default: false)
   schema:
     - parquet_column_name: <string>  # name of the column in the parquet file (required)
-      raw_column_name: <string>  # raw column name (required)
+      raw_column: <string>  # raw column reference (required)
       ...
 ```
 
@@ -82,10 +82,10 @@ data:
     type: csv
     path: s3a://my-bucket/data.csv
     schema:
-      - column1
-      - column2
-      - column3
-      - label
+      - @column1
+      - @column2
+      - @column3
+      - @label
 
 - kind: environment
   name: prod
@@ -94,11 +94,11 @@ data:
     path: s3a://my-bucket/data.parquet
     schema:
       - parquet_column_name: column1
-        raw_column_name: column1
+        raw_column: @column1
       - parquet_column_name: column2
-        raw_column_name: column2
+        raw_column: @column2
       - parquet_column_name: column3
-        raw_column_name: column3
+        raw_column: @column3
       - parquet_column_name: column4
-        raw_column_name: label
+        raw_column: @label
 ```

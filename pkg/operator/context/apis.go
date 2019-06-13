@@ -19,39 +19,54 @@ package context
 import (
 	"bytes"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
+	"github.com/cortexlabs/yaml"
 )
 
 func getAPIs(config *userconfig.Config,
 	models context.Models,
+	datasetVersion string,
 ) (context.APIs, error) {
 	apis := context.APIs{}
 
 	for _, apiConfig := range config.APIs {
-		model := models[apiConfig.ModelName]
 
 		var buf bytes.Buffer
+		var modelName string
 		buf.WriteString(apiConfig.Name)
-		buf.WriteString(model.ID)
-		id := hash.Bytes(buf.Bytes())
 
-		buf.WriteString(model.IDWithTags)
-		buf.WriteString(apiConfig.Tags.ID())
-		idWithTags := hash.Bytes(buf.Bytes())
+		if apiConfig.Model != nil {
+			modelName, _ = yaml.ExtractAtSymbolText(*apiConfig.Model)
+			model := models[modelName]
+			if model == nil {
+				return nil, errors.Wrap(userconfig.ErrorUndefinedResource(modelName, resource.ModelType), userconfig.Identify(apiConfig), userconfig.ModelNameKey)
+			}
+			buf.WriteString(model.ID)
+		}
+
+		if apiConfig.ExternalModel != nil {
+			modelName = apiConfig.ExternalModel.Path
+			buf.WriteString(datasetVersion)
+			buf.WriteString(apiConfig.ExternalModel.Path)
+			buf.WriteString(apiConfig.ExternalModel.Region)
+		}
+
+		id := hash.Bytes(buf.Bytes())
 
 		apis[apiConfig.Name] = &context.API{
 			ComputedResourceFields: &context.ComputedResourceFields{
 				ResourceFields: &context.ResourceFields{
 					ID:           id,
-					IDWithTags:   idWithTags,
 					ResourceType: resource.APIType,
 				},
 			},
-			API:  apiConfig,
-			Path: context.APIPath(apiConfig.Name, config.App.Name),
+			API:       apiConfig,
+			Path:      context.APIPath(apiConfig.Name, config.App.Name),
+			ModelName: modelName,
 		}
 	}
 	return apis, nil

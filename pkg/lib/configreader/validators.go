@@ -31,69 +31,49 @@ func init() {
 	portRe = regexp.MustCompile(`:[0-9]+$`)
 }
 
-type PathValidation struct {
-	Required bool
-	Default  string
-	BaseDir  string
-}
-
-func GetFilePathValidation(v *PathValidation) *StringValidation {
-	validator := func(val string) (string, error) {
-		val = files.RelPath(val, v.BaseDir)
+func GetFilePathValidator(baseDir string) func(string) (string, error) {
+	return func(val string) (string, error) {
+		val = files.RelPath(val, baseDir)
 		if err := files.CheckFile(val); err != nil {
 			return "", err
 		}
 
 		return val, nil
 	}
-
-	return &StringValidation{
-		Required:  v.Required,
-		Default:   v.Default,
-		Validator: validator,
-	}
 }
 
-type S3aPathValidation struct {
-	Required bool
-	Default  string
-}
-
-func GetS3aPathValidation(v *S3aPathValidation) *StringValidation {
-	validator := func(val string) (string, error) {
+func GetS3aPathValidator() func(string) (string, error) {
+	return func(val string) (string, error) {
 		if !aws.IsValidS3aPath(val) {
 			return "", aws.ErrorInvalidS3aPath(val)
 		}
 		return val, nil
 	}
+}
 
-	return &StringValidation{
-		Required:  v.Required,
-		Default:   v.Default,
-		Validator: validator,
+func GetS3PathValidator() func(string) (string, error) {
+	return func(val string) (string, error) {
+		if !aws.IsValidS3Path(val) {
+			return "", aws.ErrorInvalidS3Path(val)
+		}
+		return val, nil
 	}
 }
 
-type URLValidation struct {
-	Required    bool
-	Default     string
-	DefaultHTTP bool // Otherwise default is https
-	AddPort     bool
-}
-
-func GetURLValidation(v *URLValidation) *StringValidation {
-	validator := func(val string) (string, error) {
+// uses https unless defaultHTTP == true
+func GetURLValidator(defaultHTTP bool, addPort bool) func(string) (string, error) {
+	return func(val string) (string, error) {
 		urlStr := strings.TrimSpace(val)
 
 		if !strings.HasPrefix(strings.ToLower(urlStr), "http") {
-			if v.DefaultHTTP {
+			if defaultHTTP {
 				urlStr = "http://" + urlStr
 			} else {
 				urlStr = "https://" + urlStr
 			}
 		}
 
-		if v.AddPort {
+		if addPort {
 			if !portRe.MatchString(urlStr) {
 				if strings.HasPrefix(strings.ToLower(urlStr), "https") {
 					urlStr = urlStr + ":443"
@@ -108,11 +88,5 @@ func GetURLValidation(v *URLValidation) *StringValidation {
 		}
 
 		return urlStr, nil
-	}
-
-	return &StringValidation{
-		Required:  v.Required,
-		Default:   v.Default,
-		Validator: validator,
 	}
 }

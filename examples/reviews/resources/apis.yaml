@@ -1,17 +1,17 @@
 - kind: api
   name: sentiment-dnn
-  model_name: sentiment_dnn
+  model: @sentiment_dnn
   compute:
     replicas: 1
 
 - kind: api
   name: sentiment-linear
-  model_name: sentiment_linear
+  model: @sentiment_linear
   compute:
     replicas: 1
 
 - kind: api
   name: sentiment-t2t
-  model_name: transformer
+  model: @transformer
   compute:
     replicas: 1

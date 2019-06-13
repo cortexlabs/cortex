@@ -1,20 +1,19 @@
 # Models
 
-Train custom TensorFlow models at scale.
+Train TensorFlow models at scale.
 
 ## Config
 
 ```yaml
-- kind: <string>  # (required)
+- kind: model
   name: <string>  # model name (required)
-  type: <string>  # "classification" or "regression" (required)
-  target_column: <string>  # the column to predict (must be an integer column for classification, or an integer or float column for regression) (required)
-  feature_columns: <[string]>  # a list of the columns used as input for this model (required)
-  training_columns: <[string]>  # a list of the columns used only during training (optional)
-  aggregates: <[string]>  # a list of aggregates to pass into model training (optional)
-  hparams: <map>  # a map of hyperparameters to pass into model training (optional)
-  prediction_key: <string>  # key of the target value in the estimator's exported predict outputs (default: "class_ids" for classification, "predictions" for regression)
-  path: <string>  # path to the implementation file, relative to the application root (default: implementations/models/<name>.py)
+  estimator: <string>  # the name of the estimator to use (this or estimator_path must be specified)
+  estimator_path: <string>  # a path to an estimator implementation file (this or estimator must be specified)
+  target_column: <column_reference>  # a reference to the column to predict (e.g. @column1) (required)
+  input: <input_value>  # the input to the model, which may contain references to columns, constants, and aggregates (e.g. @column1) (required)
+  training_input: <input_value> # input to the model which is only used during training, which may contain references to columns, constants, and aggregates (e.g. @column1) (optional)
+  hparams: <output_value>  # hyperparameters to pass into model training, which may not contain reference to other resources (optional)
+  prediction_key: <string>  # key of the target value in the estimator's exported predict outputs (default: "class_ids" for INT_COLUMN and STRING_COLUMN targets, "predictions" otherwise)
 
   data_partition_ratio:
     training: <float>  # the proportion of data to be used for training (default: 0.8)
@@ -55,11 +54,9 @@ Train custom TensorFlow models at scale.
     executor_mem: <string>  # memory request for each spark executor (default: 500Mi)
     executor_mem_overhead: <string>  # off-heap (non-JVM) memory allocated to each executor (overrides mem_overhead_factor) (default: min[executor_mem * 0.4, 384Mi])
     mem_overhead_factor: <float>  # the proportion of driver_mem/executor_mem which will be additionally allocated for off-heap (non-JVM) memory (default: 0.4)
-
-  tags:
-    <string>: <scalar>  # arbitrary key/value pairs to attach to the resource (optional)
-    ...
 ```
+
+See [Data Types](data-types.md) for details about input and output values. Note: the `target_column`, `input`, `training_input`, and `hparams` of the the aggregate must match the input types of the estimator (if specified).
 
 See the [tf.estimator.RunConfig](https://www.tensorflow.org/api_docs/python/tf/estimator/RunConfig) and [tf.estimator.EvalSpec](https://www.tensorflow.org/api_docs/python/tf/estimator/EvalSpec) documentation for more information.
 
@@ -68,16 +65,10 @@ See the [tf.estimator.RunConfig](https://www.tensorflow.org/api_docs/python/tf/e
 ```yaml
 - kind: model
   name: dnn
-  type: classification
-  target_column: label
-  feature_columns:
-    - column1
-    - column2
-    - column3
-  training_columns:
-    - class_weight
-  aggregates:
-    - column1_index
+  estimator: cortex.dnn_classifier
+  target_column: @class
+  input:
+    numeric_columns: [@column1, @column2, @column3]
   hparams:
     hidden_units: [4, 2]
   data_partition_ratio:

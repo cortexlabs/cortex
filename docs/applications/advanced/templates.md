@@ -5,15 +5,14 @@ Templates allow you to reuse resource configuration within your application.
 ## Config
 
 ```yaml
-- kind: template  # (required)
+- kind: template
   name: <string>  # template name (required)
   yaml: <string>  # YAML string including named arguments enclosed by {} (required)
 
-- kind: embed  # (required)
+- kind: embed
   template: <string>  # name of a Cortex template (required)
   args:
     <string>: <value>  # (required)
-    ...
 ```
 
 ## Example
@@ -25,28 +24,20 @@ Templates allow you to reuse resource configuration within your application.
     - kind: aggregate
       name: {column}_mean
       aggregator: cortex.mean
-      inputs:
-        columns:
-          col: {column}
+      input: @{column}
 
     - kind: aggregate
       name: {column}_stddev
       aggregator: cortex.stddev
-      inputs:
-        columns:
-          col: {column}
+      input: @{column}
 
     - kind: transformed_column
       name: {column}_normalized
-      tags:
-        type: numeric
       transformer: cortex.normalize
-      inputs:
-        columns:
-          num: {column}
-        args:
-          mean: {column}_mean
-          stddev: {column}_stddev
+      input:
+        col: @{column}
+        mean: @{column}_mean
+        stddev: @{column}_stddev
 
 - kind: embed
   template: normalize

@@ -13,7 +13,7 @@ def create_estimator(run_config, model_config):
     hparams = trainer_lib.create_hparams("transformer_base_single_gpu")
 
     # SentimentIMDBCortex subclasses SentimentIMDB
-    problem = SentimentIMDBCortex(list(model_config["aggregates"]["reviews_vocab"]))
+    problem = SentimentIMDBCortex(list(model_config["input"]["vocab"]))
     hparams.problem = problem
     hparams.problem_hparams = problem.get_hparams(hparams)
 
@@ -39,7 +39,7 @@ def create_estimator(run_config, model_config):
 
 
 def transform_tensorflow(features, labels, model_config):
-    max_length = model_config["aggregates"]["max_review_length"]
+    max_length = model_config["input"]["max_review_length"]
 
     features["inputs"] = tf.expand_dims(tf.reshape(features["embedding_input"], [max_length]), -1)
     features["targets"] = tf.expand_dims(tf.expand_dims(labels, -1), -1)

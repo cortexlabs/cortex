@@ -1,9 +1,9 @@
-def transform_spark(data, columns, args, transformed_column_name):
+def transform_spark(data, input, transformed_column_name):
     import pyspark.sql.functions as F
 
-    distribution = args["class_distribution"]
+    distribution = input["class_distribution"]
 
     return data.withColumn(
         transformed_column_name,
-        F.when(data[columns["col"]] == 0, distribution[1]).otherwise(distribution[0]),
+        F.when(data[input["col"]] == 0, distribution[1]).otherwise(distribution[0]),
     )

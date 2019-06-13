@@ -21,20 +21,17 @@ import (
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 var uploadedConstants = strset.New()
 
-func loadConstants(constantConfigs userconfig.Constants) (context.Constants, error) {
+func getConstants(constantConfigs userconfig.Constants) (context.Constants, error) {
 	constants := context.Constants{}
 	for _, constantConfig := range constantConfigs {
 		constant, err := newConstant(*constantConfig)
@@ -52,44 +49,15 @@ func newConstant(constantConfig userconfig.Constant) (*context.Constant, error) 
 	buf.WriteString(context.DataTypeID(constantConfig.Type))
 	buf.WriteString(s.Obj(constantConfig.Value))
 	id := hash.Bytes(buf.Bytes())
-	idWithTags := hash.String(id + constantConfig.Tags.ID())
 
 	constant := &context.Constant{
 		ResourceFields: &context.ResourceFields{
 			ID:           id,
-			IDWithTags:   idWithTags,
 			ResourceType: resource.ConstantType,
 		},
 		Constant: &constantConfig,
 		Key:      filepath.Join(consts.ConstantsDir, id+".msgpack"),
 	}
 
-	if err := uploadConstant(constant); err != nil {
-		return nil, err
-	}
-
-	constant.Constant.Value = nil
 	return constant, nil
-}
-
-func uploadConstant(constant *context.Constant) error {
-	if uploadedConstants.Has(constant.ID) {
-		return nil
-	}
-
-	isUploaded, err := config.AWS.IsS3File(constant.Key)
-	if err != nil {
-		return errors.Wrap(err, userconfig.Identify(constant), "upload")
-	}
-
-	if !isUploaded {
-		serializedConstant := msgpack.MustMarshal(constant.Value)
-		err = config.AWS.UploadBytesToS3(serializedConstant, constant.Key)
-		if err != nil {
-			return errors.Wrap(err, userconfig.Identify(constant), "upload")
-		}
-	}
-
-	uploadedConstants.Add(constant.ID)
-	return nil
 }

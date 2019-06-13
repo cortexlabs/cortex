@@ -17,10 +17,6 @@ limitations under the License.
 package context
 
 import (
-	"sort"
-
-	"github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
@@ -32,8 +28,6 @@ type Model struct {
 	*userconfig.Model
 	*ComputedResourceFields
 	Key     string           `json:"key"`
-	ImplID  string           `json:"impl_id"`
-	ImplKey string           `json:"impl_key"`
 	Dataset *TrainingDataset `json:"dataset"`
 }
 
@@ -73,32 +67,4 @@ func (models Models) GetTrainingDatasets() TrainingDatasets {
 		trainingDatasets[model.Dataset.Name] = model.Dataset
 	}
 	return trainingDatasets
-}
-
-func ValidateModelTargetType(targetType userconfig.ColumnType, modelType userconfig.ModelType) error {
-	switch modelType {
-	case userconfig.ClassificationModelType:
-		if targetType != userconfig.IntegerColumnType {
-			return userconfig.ErrorClassificationTargetType()
-		}
-		return nil
-	case userconfig.RegressionModelType:
-		if targetType != userconfig.IntegerColumnType && targetType != userconfig.FloatColumnType {
-			return userconfig.ErrorRegressionTargetType()
-		}
-		return nil
-	}
-
-	return configreader.ErrorInvalidStr(modelType.String(), "classification", "regression") // unexpected
-}
-
-func (ctx *Context) RawColumnInputNames(model *Model) []string {
-	rawColumnInputNames := strset.New()
-	for _, colName := range model.FeatureColumns {
-		col := ctx.GetColumn(colName)
-		rawColumnInputNames.Add(col.GetInputRawColumnNames()...)
-	}
-	columnNames := rawColumnInputNames.Slice()
-	sort.Strings(columnNames)
-	return columnNames
 }

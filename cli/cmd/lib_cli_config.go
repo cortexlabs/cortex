@@ -59,10 +59,11 @@ func getPromptValidation(defaults *CliConfig) *cr.PromptValidation {
 				PromptOpts: &cr.PromptOptions{
 					Prompt: "Enter Cortex operator endpoint",
 				},
-				StringValidation: cr.GetURLValidation(&cr.URLValidation{
-					Required: true,
-					Default:  defaults.CortexURL,
-				}),
+				StringValidation: &cr.StringValidation{
+					Required:  true,
+					Default:   defaults.CortexURL,
+					Validator: cr.GetURLValidator(false, false),
+				},
 			},
 			{
 				StructField: "AWSAccessKeyID",
@@ -97,9 +98,10 @@ var fileValidation = &cr.StructValidation{
 		{
 			Key:         "cortex_url",
 			StructField: "CortexURL",
-			StringValidation: cr.GetURLValidation(&cr.URLValidation{
-				Required: true,
-			}),
+			StringValidation: &cr.StringValidation{
+				Required:  true,
+				Validator: cr.GetURLValidator(false, false),
+			},
 		},
 		{
 			Key:         "aws_access_key_id",

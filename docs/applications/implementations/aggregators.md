@@ -3,7 +3,7 @@
 ## Implementation
 
 ```python
-def aggregate_spark(data, columns, args):
+def aggregate_spark(data, input):
     """Aggregate a column in a PySpark context.
 
     This function is required.
@@ -11,15 +11,13 @@ def aggregate_spark(data, columns, args):
     Args:
         data: A dataframe including all of the raw columns.
 
-        columns: A dict with the same structure as the aggregator's input
-            columns specifying the names of the dataframe's columns that
-            contain the input columns.
-
-        args: A dict with the same structure as the aggregator's input args
-            containing the values of the args.
+        input: The aggregate's input object. Column references in the input are
+            replaced by their names (e.g. "@column1" will be replaced with "column1"),
+            and all other resource references (e.g. constants) are replaced by their
+            runtime values.
 
     Returns:
-        Any json-serializable object that matches the data type of the aggregator.
+        Any serializable object that matches the output type of the aggregator.
     """
     pass
 ```
@@ -27,11 +25,11 @@ def aggregate_spark(data, columns, args):
 ## Example
 
 ```python
-def aggregate_spark(data, columns, args):
+def aggregate_spark(data, input):
     from pyspark.ml.feature import QuantileDiscretizer
 
     discretizer = QuantileDiscretizer(
-        numBuckets=args["num_buckets"], inputCol=columns["col"], outputCol="_"
+        numBuckets=input["num_buckets"], inputCol=input["col"], outputCol="_"
     ).fit(data)
 
     return discretizer.getSplits()

@@ -1,11 +1,11 @@
 # Transformers
 
-Transformers run both when transforming data before model training and when responding to prediction requests. You may define transformers for both a PySpark and a Python context. The PySpark implementation is optional but recommended for large-scale data processing.
+Transformers run when transforming data before model training and when responding to prediction requests. You may define transformers for both a PySpark and a Python context. The PySpark implementation is optional but recommended for large-scale data processing.
 
 ## Implementation
 
 ```python
-def transform_spark(data, columns, args, transformed_column_name):
+def transform_spark(data, input, transformed_column_name):
     """Transform a column in a PySpark context.
 
     This function is optional (recommended for large-scale data processing).
@@ -13,12 +13,10 @@ def transform_spark(data, columns, args, transformed_column_name):
     Args:
         data: A dataframe including all of the raw columns.
 
-        columns: A dict with the same structure as the transformer's input
-            columns specifying the names of the dataframe's columns that
-            contain the input columns.
-
-        args: A dict with the same structure as the transformer's input args
-            containing the runtime values of the args.
+        input: The transformed column's input object. Column references in the input are
+            replaced by their names (e.g. "@column1" will be replaced with "column1"),
+            and all other resource references (e.g. constants and aggregates) are replaced
+            by their runtime values.
 
         transformed_column_name: The name of the column containing the transformed
             data that is to be appended to the dataframe.
@@ -30,17 +28,16 @@ def transform_spark(data, columns, args, transformed_column_name):
     pass
 
 
-def transform_python(sample, args):
+def transform_python(input):
     """Transform a single data sample outside of a PySpark context.
 
-    This function is required.
+    This function is required for any columns that are used during inference.
 
     Args:
-        sample: A dict with the same structure as the transformer's input
-            columns containing a data sample to transform.
-
-        args: A dict with the same structure as the transformer's input args
-            containing the runtime values of the args.
+        input: The transformed column's input object. Column references in the input are
+            replaced by their values in the sample (e.g. "@column1" will be replaced with
+            the value for column1), and all other resource references (e.g. constants and
+            aggregates) are replaced by their runtime values.
 
     Returns:
         The transformed value.
@@ -48,7 +45,7 @@ def transform_python(sample, args):
     pass
 
 
-def reverse_transform_python(transformed_value, args):
+def reverse_transform_python(transformed_value, input):
     """Reverse transform a single data sample outside of a PySpark context.
 
     This function is optional, and only relevant for certain one-to-one
@@ -57,8 +54,10 @@ def reverse_transform_python(transformed_value, args):
     Args:
         transformed_value: The transformed data value.
 
-        args: A dict with the same structure as the transformer's input args
-            containing the runtime values of the args.
+        input: The transformed column's input object. Column references in the input are
+            replaced by their names (e.g. "@column1" will be replaced with "column1"),
+            and all other resource references (e.g. constants and aggregates) are replaced
+            by their runtime values.
 
     Returns:
         The raw data value that corresponds to the transformed value.
@@ -69,16 +68,16 @@ def reverse_transform_python(transformed_value, args):
 ## Example
 
 ```python
-def transform_spark(data, columns, args, transformed_column_name):
+def transform_spark(data, input, transformed_column_name):
     return data.withColumn(
-        transformed_column_name, ((data[columns["num"]] - args["mean"]) / args["stddev"])
+        transformed_column_name, ((data[input["col"]] - input["mean"]) / input["stddev"])
     )
 
-def transform_python(sample, args):
-    return (sample["num"] - args["mean"]) / args["stddev"]
+def transform_python(input):
+    return (input["col"] - input["mean"]) / input["stddev"]
 
-def reverse_transform_python(transformed_value, args):
-    return args["mean"] + (transformed_value * args["stddev"])
+def reverse_transform_python(transformed_value, input):
+    return input["mean"] + (transformed_value * input["stddev"])
 ```
 
 ## Pre-installed Packages

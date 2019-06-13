@@ -40,9 +40,10 @@ var embedValidation = &cr.StructValidation{
 		{
 			StructField: "Args",
 			InterfaceMapValidation: &cr.InterfaceMapValidation{
-				Required:   false,
-				AllowEmpty: true,
-				Default:    make(map[string]interface{}),
+				Required:             false,
+				AllowEmpty:           true,
+				AllowCortexResources: true,
+				Default:              make(map[string]interface{}),
 			},
 		},
 		typeFieldValidation,

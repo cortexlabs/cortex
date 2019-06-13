@@ -33,7 +33,9 @@ type StringPtrValidation struct {
 	AlphaNumericDashUnderscore    bool
 	DNS1035                       bool
 	DNS1123                       bool
-	Validator                     func(*string) (*string, error)
+	AllowCortexResources          bool
+	RequireCortexResources        bool
+	Validator                     func(string) (string, error)
 }
 
 func makeStringValValidation(v *StringPtrValidation) *StringValidation {
@@ -45,6 +47,8 @@ func makeStringValValidation(v *StringPtrValidation) *StringValidation {
 		AlphaNumericDashUnderscore:    v.AlphaNumericDashUnderscore,
 		DNS1035:                       v.DNS1035,
 		DNS1123:                       v.DNS1123,
+		AllowCortexResources:          v.AllowCortexResources,
+		RequireCortexResources:        v.RequireCortexResources,
 	}
 }
 
@@ -166,8 +170,17 @@ func validateStringPtr(val *string, v *StringPtrValidation) (*string, error) {
 		}
 	}
 
-	if v.Validator != nil {
-		return v.Validator(val)
+	if val == nil {
+		return val, nil
 	}
+
+	if v.Validator != nil {
+		validated, err := v.Validator(*val)
+		if err != nil {
+			return nil, err
+		}
+		return &validated, nil
+	}
+
 	return val, nil
 }

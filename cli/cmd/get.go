@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -381,7 +382,6 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 
 	ctx := resourcesRes.Context
 	api := ctx.APIs[name]
-	model := ctx.Models[api.ModelName]
 
 	var staleReplicas int32
 	var ctxAPIStatus *resource.APIStatus
@@ -411,18 +411,29 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 	}
 
 	out += titleStr("Endpoint")
-	var samplePlaceholderFields []string
-	for _, colName := range ctx.RawColumnInputNames(model) {
-		column := ctx.GetColumn(colName)
-		fieldStr := `"` + colName + `": ` + column.GetType().JSONPlaceholder()
-		samplePlaceholderFields = append(samplePlaceholderFields, fieldStr)
-	}
-	samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"
 	out += "URL:      " + urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path) + "\n"
 	out += "Method:   POST\n"
 	out += `Header:   "Content-Type: application/json"` + "\n"
-	out += "Payload:  " + samplesPlaceholderStr + "\n"
 
+	if api.Model != nil {
+		model := ctx.Models[api.ModelName]
+		resIDs := strset.New()
+		combinedInput := []interface{}{model.Input, model.TrainingInput}
+		for _, res := range ctx.ExtractCortexResources(combinedInput, resource.ConstantType, resource.RawColumnType, resource.AggregateType, resource.TransformedColumnType) {
+			resIDs.Add(res.GetID())
+			resIDs.Merge(ctx.AllComputedResourceDependencies(res.GetID()))
+		}
+		var samplePlaceholderFields []string
+		for rawColumnName, rawColumn := range ctx.RawColumns {
+			if resIDs.Has(rawColumn.GetID()) {
+				fieldStr := fmt.Sprintf("\"%s\": %s", rawColumnName, rawColumn.GetColumnType().JSONPlaceholder())
+				samplePlaceholderFields = append(samplePlaceholderFields, fieldStr)
+			}
+		}
+		sort.Strings(samplePlaceholderFields)
+		samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"
+		out += "Payload:  " + samplesPlaceholderStr + "\n"
+	}
 	if api != nil {
 		out += resourceStr(api.API)
 	}

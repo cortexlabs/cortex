@@ -39,7 +39,7 @@ func loadUserTransformers(
 	for _, transConfig := range config.Transformers {
 		impl, ok := impls[transConfig.Path]
 		if !ok {
-			return nil, errors.Wrap(ErrorImplDoesNotExist(transConfig.Path), userconfig.Identify(transConfig))
+			return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(transConfig.Path), userconfig.Identify(transConfig))
 		}
 		transformer, err := newTransformer(*transConfig, impl, nil, pythonPackages)
 		if err != nil {
@@ -55,7 +55,7 @@ func loadUserTransformers(
 
 		impl, ok := impls[*transColConfig.TransformerPath]
 		if !ok {
-			return nil, errors.Wrap(ErrorImplDoesNotExist(*transColConfig.TransformerPath), userconfig.Identify(transColConfig))
+			return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(*transColConfig.TransformerPath), userconfig.Identify(transColConfig))
 		}
 
 		implHash := hash.Bytes(impl)
@@ -74,9 +74,11 @@ func loadUserTransformers(
 		if err != nil {
 			return nil, err
 		}
+
 		transColConfig.Transformer = transformer.Name
 		userTransformers[transformer.Name] = transformer
 	}
+
 	return userTransformers, nil
 }
 
@@ -90,9 +92,10 @@ func newTransformer(
 	implID := hash.Bytes(impl)
 
 	var buf bytes.Buffer
-	buf.WriteString(context.DataTypeID(transConfig.Inputs))
+	buf.WriteString(context.DataTypeID(transConfig.Input))
 	buf.WriteString(context.DataTypeID(transConfig.OutputType))
 	buf.WriteString(implID)
+
 	for _, pythonPackage := range pythonPackages {
 		buf.WriteString(pythonPackage.GetID())
 	}
@@ -102,14 +105,12 @@ func newTransformer(
 	transformer := &context.Transformer{
 		ResourceFields: &context.ResourceFields{
 			ID:           id,
-			IDWithTags:   id,
 			ResourceType: resource.TransformerType,
 		},
 		Transformer: &transConfig,
 		Namespace:   namespace,
 		ImplKey:     filepath.Join(consts.TransformersDir, implID+".py"),
 	}
-	transformer.Transformer.Path = ""
 
 	if err := uploadTransformer(transformer, impl); err != nil {
 		return nil, err
@@ -139,19 +140,6 @@ func uploadTransformer(transformer *context.Transformer, impl []byte) error {
 	return nil
 }
 
-func getTransformer(
-	name string,
-	userTransformers map[string]*context.Transformer,
-) (*context.Transformer, error) {
-	if transformer, ok := builtinTransformers[name]; ok {
-		return transformer, nil
-	}
-	if transformer, ok := userTransformers[name]; ok {
-		return transformer, nil
-	}
-	return nil, userconfig.ErrorUndefinedResourceBuiltin(name, resource.TransformerType)
-}
-
 func getTransformers(
 	config *userconfig.Config,
 	userTransformers map[string]*context.Transformer,
@@ -159,15 +147,23 @@ func getTransformers(
 
 	transformers := context.Transformers{}
 	for _, transformedColumnConfig := range config.TransformedColumns {
-		if _, ok := transformers[transformedColumnConfig.Transformer]; ok {
+		name := transformedColumnConfig.Transformer
+
+		if _, ok := transformers[name]; ok {
 			continue
 		}
 
-		transformer, err := getTransformer(transformedColumnConfig.Transformer, userTransformers)
-		if err != nil {
-			return nil, errors.Wrap(err, userconfig.Identify(transformedColumnConfig), userconfig.TransformerKey)
+		if transformer, ok := builtinTransformers[name]; ok {
+			transformers[name] = transformer
+			continue
 		}
-		transformers[transformedColumnConfig.Transformer] = transformer
+
+		if transformer, ok := userTransformers[name]; ok {
+			transformers[name] = transformer
+			continue
+		}
+
+		return nil, errors.Wrap(userconfig.ErrorUndefinedResource(name, resource.TransformerType), userconfig.Identify(transformedColumnConfig), userconfig.TransformerKey)
 	}
 
 	return transformers, nil

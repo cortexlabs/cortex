@@ -4,7 +4,7 @@ from tensorflow import keras
 
 def create_estimator(run_config, model_config):
     hparams = model_config["hparams"]
-    vocab_size = len(model_config["aggregates"]["reviews_vocab"])
+    vocab_size = len(model_config["input"]["vocab"])
 
     def model_fn(features, labels, mode, params):
         embedding_input = features["embedding_input"]

@@ -18,6 +18,7 @@ import json
 import argparse
 import tensorflow as tf
 import traceback
+import time
 from flask import Flask, request, jsonify
 from flask_api import status
 from waitress import serve
@@ -25,11 +26,13 @@ import grpc
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import get_model_metadata_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
+from google.protobuf import json_format
+
+import consts
 from lib import util, tf_lib, package, Context
 from lib.log import get_logger
 from lib.exceptions import CortexException, UserRuntimeException, UserException
-from google.protobuf import json_format
-import time
+from lib.context import create_transformer_inputs_from_map
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
@@ -39,10 +42,12 @@ app = Flask(__name__)
 local_cache = {
     "ctx": None,
     "model": None,
+    "estimator": None,
+    "target_col": None,
+    "target_col_type": None,
     "stub": None,
     "api": None,
     "trans_impls": {},
-    "transform_args_cache": {},
     "required_inputs": None,
     "metadata": None,
 }
@@ -59,6 +64,14 @@ DTYPE_TO_VALUE_KEY = {
     "DT_COMPLEX128": "dcomplexVal",
 }
 
+DTYPE_TO_TF_TYPE = {
+    "DT_INT32": tf.int32,
+    "DT_INT64": tf.int64,
+    "DT_FLOAT": tf.float32,
+    "DT_STRING": tf.string,
+    "DT_BOOL": tf.bool,
+}
+
 
 def transform_sample(sample):
     ctx = local_cache["ctx"]
@@ -66,21 +79,24 @@ def transform_sample(sample):
 
     transformed_sample = {}
 
-    for column_name in model["feature_columns"]:
+    for column_name in ctx.extract_column_names(model["input"]):
         if ctx.is_raw_column(column_name):
             transformed_value = sample[column_name]
         else:
-            inputs = ctx.create_column_inputs_map(sample, column_name)
+            transformed_column = ctx.transformed_columns[column_name]
             trans_impl = local_cache["trans_impls"][column_name]
             if not hasattr(trans_impl, "transform_python"):
                 raise UserException(
                     "transformed column " + column_name,
-                    "transformer " + ctx.transformed_sample[column_name]["transformer"],
-                    "transform_python function missing",
+                    "transformer " + transformed_column["transformer"],
+                    "transform_python function is missing",
                 )
+            input = ctx.populate_values(
+                transformed_column["input"], None, preserve_column_refs=True
+            )
+            transformer_input = create_transformer_inputs_from_map(input, sample)
+            transformed_value = trans_impl.transform_python(transformer_input)
 
-            args = local_cache["transform_args_cache"].get(column_name, {})
-            transformed_value = trans_impl.transform_python(inputs, args)
         transformed_sample[column_name] = transformed_value
 
     return transformed_sample
@@ -88,8 +104,8 @@ def transform_sample(sample):
 
 def create_prediction_request(transformed_sample):
     ctx = local_cache["ctx"]
-    signatureDef = local_cache["metadata"]["signatureDef"]
-    signature_key = list(signatureDef.keys())[0]
+    signature_def = local_cache["metadata"]["signatureDef"]
+    signature_key = list(signature_def.keys())[0]
     prediction_request = predict_pb2.PredictRequest()
     prediction_request.model_spec.name = "default"
     prediction_request.model_spec.signature_name = signature_key
@@ -106,25 +122,39 @@ def create_prediction_request(transformed_sample):
     return prediction_request
 
 
+def create_raw_prediction_request(sample):
+    signature_def = local_cache["metadata"]["signatureDef"]
+    signature_key = list(signature_def.keys())[0]
+    prediction_request = predict_pb2.PredictRequest()
+    prediction_request.model_spec.name = "default"
+    prediction_request.model_spec.signature_name = signature_key
+
+    for column_name, value in sample.items():
+        shape = [1]
+        if util.is_list(value):
+            shape = [len(value)]
+        sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
+        tensor_proto = tf.make_tensor_proto([value], dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape)
+        prediction_request.inputs[column_name].CopyFrom(tensor_proto)
+
+    return prediction_request
+
+
 def reverse_transform(value):
     ctx = local_cache["ctx"]
     model = local_cache["model"]
+    target_col = local_cache["target_col"]
 
-    trans_impl = local_cache["trans_impls"].get(model["target_column"], None)
+    trans_impl = local_cache["trans_impls"].get(target_col["name"])
     if not (trans_impl and hasattr(trans_impl, "reverse_transform_python")):
         return None
 
-    transformer_name = model["target_column"]
-    input_schema = ctx.transformed_columns[transformer_name]["inputs"]
-
-    if input_schema.get("args", None) is not None and len(input_schema["args"]) > 0:
-        args = local_cache["transform_args_cache"].get(transformer_name, {})
+    input = ctx.populate_values(target_col["input"], None, preserve_column_refs=False)
     try:
-        result = trans_impl.reverse_transform_python(value, args)
+        result = trans_impl.reverse_transform_python(value, input)
     except Exception as e:
         raise UserRuntimeException(
-            "transformer " + ctx.transformed_columns[model["target_column"]]["transformer"],
-            "function reverse_transform_python",
+            "transformer " + target_col["transformer"], "function reverse_transform_python"
         ) from e
 
     return result
@@ -140,33 +170,45 @@ def parse_response_proto(response_proto):
     response_proto.result() may be necessary (TF > 1.2?)
     """
     model = local_cache["model"]
+    estimator = local_cache["estimator"]
+    target_col_type = local_cache["target_col_type"]
 
-    if model["type"] == "regression":
-        prediction_key = "predictions"
-    if model["type"] == "classification":
+    if target_col_type in {consts.COLUMN_TYPE_STRING, consts.COLUMN_TYPE_INT}:
         prediction_key = "class_ids"
+    else:
+        prediction_key = "predictions"
 
-    if model["prediction_key"]:
-        prediction_key = model["prediction_key"]
+    if estimator["prediction_key"]:
+        prediction_key = estimator["prediction_key"]
 
     results_dict = json_format.MessageToDict(response_proto)
     outputs = results_dict["outputs"]
     value_key = DTYPE_TO_VALUE_KEY[outputs[prediction_key]["dtype"]]
-    predicted = outputs[prediction_key][value_key][0]
+    prediction = outputs[prediction_key][value_key][0]
+
+    target_vocab_estimators = {
+        "dnn_classifier",
+        "linear_classifier",
+        "dnn_linear_combined_classifier",
+        "boosted_trees_classifier",
+    }
+    if (
+        estimator["namespace"] == "cortex"
+        and estimator["name"] in target_vocab_estimators
+        and model["input"].get("target_vocab") is not None
+    ):
+        prediction = model["input"]["target_vocab"][int(prediction)]
+    else:
+        prediction = util.cast(prediction, target_col_type)
 
     result = {}
+    result["prediction"] = prediction
+    result["prediction_reversed"] = reverse_transform(prediction)
+
+    result["response"] = {}
     for key in outputs.keys():
         value_key = DTYPE_TO_VALUE_KEY[outputs[key]["dtype"]]
-        result[key] = outputs[key][value_key]
-
-    if model["type"] == "regression":
-        predicted = float(predicted)
-        result["predicted_value"] = predicted
-        result["predicted_value_reversed"] = reverse_transform(predicted)
-    if model["type"] == "classification":
-        predicted = int(predicted)
-        result["predicted_class"] = predicted
-        result["predicted_class_reversed"] = reverse_transform(predicted)
+        result["response"][key] = outputs[key][value_key]
 
     return result
 
@@ -188,30 +230,56 @@ def run_get_model_metadata():
     return sigmap
 
 
+def parse_response_proto_raw(response_proto):
+    results_dict = json_format.MessageToDict(response_proto)
+    outputs = results_dict["outputs"]
+
+    outputs_simplified = {}
+    for key in outputs.keys():
+        value_key = DTYPE_TO_VALUE_KEY[outputs[key]["dtype"]]
+        outputs_simplified[key] = outputs[key][value_key]
+
+    return {"response": outputs_simplified}
+
+
 def run_predict(sample):
-    transformed_sample = transform_sample(sample)
-    prediction_request = create_prediction_request(transformed_sample)
-    response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
-    result = parse_response_proto(response_proto)
-    result["transformed_sample"] = transformed_sample
-    util.log_indent("Raw sample:", indent=4)
-    util.log_pretty(sample, indent=6)
-    util.log_indent("Transformed sample:", indent=4)
-    util.log_pretty(transformed_sample, indent=6)
-    util.log_indent("Prediction:", indent=4)
-    util.log_pretty(result, indent=6)
+    if local_cache["ctx"].environment is not None:
+        transformed_sample = transform_sample(sample)
+        prediction_request = create_prediction_request(transformed_sample)
+        response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
+        result = parse_response_proto(response_proto)
+
+        util.log_indent("Raw sample:", indent=4)
+        util.log_pretty(sample, indent=6)
+        util.log_indent("Transformed sample:", indent=4)
+        util.log_pretty(transformed_sample, indent=6)
+        util.log_indent("Prediction:", indent=4)
+        util.log_pretty(result, indent=6)
+
+        result["transformed_sample"] = transformed_sample
+
+    else:
+        prediction_request = create_raw_prediction_request(sample)
+        response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
+        result = parse_response_proto_raw(response_proto)
+        util.log_indent("Sample:", indent=4)
+        util.log_pretty(sample, indent=6)
+        util.log_indent("Prediction:", indent=4)
+        util.log_pretty(result, indent=6)
 
     return result
 
 
 def is_valid_sample(sample):
+    ctx = local_cache["ctx"]
+
     for column in local_cache["required_inputs"]:
         if column["name"] not in sample:
             return False, "{} is missing".format(column["name"])
 
         sample_val = sample[column["name"]]
-        column_type = local_cache["ctx"].get_inferred_column_type(column["name"])
-        is_valid = util.CORTEX_TYPE_TO_UPCAST_VALIDATOR[column_type](sample_val)
+        column_type = ctx.get_inferred_column_type(column["name"])
+        is_valid = util.CORTEX_TYPE_TO_VALIDATOR[column_type](sample_val)
 
         if not is_valid:
             return (False, "{} should be a {}".format(column["name"], column_type))
@@ -240,7 +308,7 @@ def predict(app_name, api_name):
     except Exception as e:
         return "Malformed JSON", status.HTTP_400_BAD_REQUEST
 
-    model = local_cache["model"]
+    ctx = local_cache["ctx"]
     api = local_cache["api"]
 
     response = {}
@@ -262,13 +330,14 @@ def predict(app_name, api_name):
     for i, sample in enumerate(payload["samples"]):
         util.log_indent("sample {}".format(i + 1), 2)
 
-        is_valid, reason = is_valid_sample(sample)
-        if not is_valid:
-            return prediction_failed(sample, reason)
+        if local_cache["ctx"].environment is not None:
+            is_valid, reason = is_valid_sample(sample)
+            if not is_valid:
+                return prediction_failed(sample, reason)
 
-        for column in local_cache["required_inputs"]:
-            column_type = local_cache["ctx"].get_inferred_column_type(column["name"])
-            sample[column["name"]] = util.upcast(sample[column["name"]], column_type)
+            for column in local_cache["required_inputs"]:
+                column_type = ctx.get_inferred_column_type(column["name"])
+                sample[column["name"]] = util.upcast(sample[column["name"]], column_type)
 
         try:
             result = run_predict(sample)
@@ -287,11 +356,7 @@ def predict(app_name, api_name):
 
         predictions.append(result)
 
-    if model["type"] == "regression":
-        response["regression_predictions"] = predictions
-    if model["type"] == "classification":
-        response["classification_predictions"] = predictions
-
+    response["predictions"] = predictions
     response["resource_id"] = api["id"]
 
     return jsonify(response)
@@ -302,35 +367,48 @@ def start(args):
     package.install_packages(ctx.python_packages, ctx.storage)
 
     api = ctx.apis_id_map[args.api]
-    model = ctx.models[api["model_name"]]
-    tf_lib.set_logging_verbosity(ctx.environment["log_level"]["tensorflow"])
 
-    local_cache["ctx"] = ctx
     local_cache["api"] = api
-    local_cache["model"] = model
+    local_cache["ctx"] = ctx
 
-    if not os.path.isdir(args.model_dir):
-        ctx.storage.download_and_unzip(model["key"], args.model_dir)
+    if ctx.environment is not None:
+        model = ctx.models[api["model_name"]]
+        estimator = ctx.estimators[model["estimator"]]
 
-    for column_name in model["feature_columns"] + [model["target_column"]]:
-        if ctx.is_transformed_column(column_name):
-            trans_impl, _ = ctx.get_transformer_impl(column_name)
-            local_cache["trans_impls"][column_name] = trans_impl
-            transformed_column = ctx.transformed_columns[column_name]
-            input_args_schema = transformed_column["inputs"]["args"]
-            # cache aggregates and constants in memory
-            if input_args_schema is not None:
-                local_cache["transform_args_cache"][column_name] = ctx.populate_args(
-                    input_args_schema
-                )
+        local_cache["model"] = model
+        local_cache["estimator"] = estimator
+        local_cache["target_col"] = ctx.columns[util.get_resource_ref(model["target_column"])]
+        local_cache["target_col_type"] = ctx.get_inferred_column_type(
+            util.get_resource_ref(model["target_column"])
+        )
+
+        tf_lib.set_logging_verbosity(ctx.environment["log_level"]["tensorflow"])
+
+        if not os.path.isdir(args.model_dir):
+            ctx.storage.download_and_unzip(model["key"], args.model_dir)
+
+        for column_name in ctx.extract_column_names([model["input"], model["target_column"]]):
+            if ctx.is_transformed_column(column_name):
+                trans_impl, _ = ctx.get_transformer_impl(column_name)
+                local_cache["trans_impls"][column_name] = trans_impl
+                transformed_column = ctx.transformed_columns[column_name]
+
+                # cache aggregate values
+                for resource_name in util.extract_resource_refs(transformed_column["input"]):
+                    if resource_name in ctx.aggregates:
+                        ctx.get_obj(ctx.aggregates[resource_name]["key"])
+
+        local_cache["required_inputs"] = tf_lib.get_base_input_columns(model["name"], ctx)
+
+    else:
+        if not os.path.isdir(args.model_dir):
+            ctx.storage.download_and_unzip_external(api["external_model"]["path"], args.model_dir)
 
     channel = grpc.insecure_channel("localhost:" + str(args.tf_serve_port))
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)
 
-    local_cache["required_inputs"] = tf_lib.get_base_input_columns(model["name"], ctx)
-
     # wait a bit for tf serving to start before querying metadata
-    limit = 600
+    limit = 300
     for i in range(limit):
         try:
             local_cache["metadata"] = run_get_model_metadata()
@@ -344,7 +422,7 @@ def start(args):
 
         time.sleep(1)
 
-    logger.info("Serving model: {}".format(model["name"]))
+    logger.info("Serving model: {}".format(api["model_name"]))
     serve(app, listen="*:{}".format(args.port))
 
 

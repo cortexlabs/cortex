@@ -25,7 +25,8 @@ type APIs map[string]*API
 type API struct {
 	*userconfig.API
 	*ComputedResourceFields
-	Path string `json:"path"`
+	Path      string `json:"path"`
+	ModelName string `json:"model_name"` // This removes the @ from userconfig.API.Model, or sets it to userconfig.API.ModelPath if it's external
 }
 
 func APIPath(apiName string, appName string) string {

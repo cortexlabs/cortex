@@ -23,12 +23,14 @@ import (
 )
 
 type StringListValidation struct {
-	Required          bool
-	Default           []string
-	AllowExplicitNull bool
-	AllowEmpty        bool
-	DisallowDups      bool
-	Validator         func([]string) ([]string, error)
+	Required               bool
+	Default                []string
+	AllowExplicitNull      bool
+	AllowEmpty             bool
+	DisallowDups           bool
+	AllowCortexResources   bool
+	RequireCortexResources bool
+	Validator              func([]string) ([]string, error)
 }
 
 func StringList(inter interface{}, v *StringListValidation) ([]string, error) {
@@ -70,6 +72,16 @@ func ValidateStringListProvided(val []string, v *StringListValidation) ([]string
 }
 
 func validateStringList(val []string, v *StringListValidation) ([]string, error) {
+	if v.RequireCortexResources {
+		if err := checkOnlyCortexResources(val); err != nil {
+			return nil, err
+		}
+	} else if !v.AllowCortexResources {
+		if err := checkNoCortexResources(val); err != nil {
+			return nil, err
+		}
+	}
+
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
 			return nil, ErrorCannotBeEmpty()

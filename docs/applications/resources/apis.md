@@ -5,17 +5,17 @@ Serve models at scale and use them to build smarter applications.
 ## Config
 
 ```yaml
-- kind: api  # (required)
+- kind: api
   name: <string>  # API name (required)
-  model_name: <string>  # name of a Cortex model (required)
+  model: <string>  # reference to a Cortex model (this or external_model must be specified)
+  external_model:  # (this or model must be specified)
+    path: <string>  # path to a zipped model dir
+    region: <string> # S3 region (default: us-west-2)
   compute:
     replicas: <int>  # number of replicas to launch (default: 1)
     cpu: <string>  # CPU request (default: Null)
     mem: <string>  # memory request (default: Null)
     gpu: <string>  # gpu request (default: Null)
-  tags:
-    <string>: <scalar>  # arbitrary key/value pairs to attach to the resource (optional)
-    ...
 ```
 
 ## Example
@@ -23,7 +23,7 @@ Serve models at scale and use them to build smarter applications.
 ```yaml
 - kind: api
   name: classifier
-  model_name: dnn
+  model: @dnn
   compute:
     replicas: 3
 ```

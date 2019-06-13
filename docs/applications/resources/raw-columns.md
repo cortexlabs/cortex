@@ -21,9 +21,6 @@ Validate raw data at scale and define columns.
       executor_mem: <string>  # memory request for each spark executor (default: 500Mi)
       executor_mem_overhead: <string>  # off-heap (non-JVM) memory allocated to each executor (overrides mem_overhead_factor) (default: min[executor_mem * 0.4, 384Mi])
       mem_overhead_factor: <float>  # the proportion of driver_mem/executor_mem which will be additionally allocated for off-heap (non-JVM) memory (default: 0.4)
-  tags:
-    <string>: <scalar>  # arbitrary key/value pairs to attach to the resource (optional)
-    ...
 
 - kind: raw_column
   name: <string>  # raw column name (required)
@@ -41,9 +38,6 @@ Validate raw data at scale and define columns.
       executor_mem: <string>  # memory request for each spark executor (default: 500Mi)
       executor_mem_overhead: <string>  # off-heap (non-JVM) memory allocated to each executor (overrides mem_overhead_factor) (default: min[executor_mem * 0.4, 384Mi])
       mem_overhead_factor: <float>  # the proportion of driver_mem/executor_mem which will be additionally allocated for off-heap (non-JVM) memory (default: 0.4)
-  tags:
-    <string>: <scalar>  # arbitrary key/value pairs to attach to the resource (optional)
-    ...
 
 - kind: raw_column
   name: <string>  # raw column name (required)
@@ -59,9 +53,6 @@ Validate raw data at scale and define columns.
       executor_mem: <string>  # memory request for each spark executor (default: 500Mi)
       executor_mem_overhead: <string>  # off-heap (non-JVM) memory allocated to each executor (overrides mem_overhead_factor) (default: min[executor_mem * 0.4, 384Mi])
       mem_overhead_factor: <float>  # the proportion of driver_mem/executor_mem which will be additionally allocated for off-heap (non-JVM) memory (default: 0.4)
-  tags:
-    <string>: <scalar>  # arbitrary key/value pairs to attach to the resource (optional)
-    ...
 ```
 
 ## Example

@@ -143,7 +143,7 @@ class S3(object):
         obj = self._read_bytes_from_s3(key, allow_missing)
         if obj == None:
             return None
-        return msgpack.load(obj, raw=False)
+        return msgpack.loads(obj, raw=False)
 
     def put_pyobj(self, obj, key):
         self._upload_string_to_s3(pickle.dumps(obj), key)
@@ -175,3 +175,18 @@ class S3(object):
         local_zip = os.path.join(local_dir, "zip.zip")
         self.download_file(key, local_zip)
         util.extract_zip(local_zip, delete_zip_file=True)
+
+    def download_and_unzip_external(self, s3_path, local_dir):
+        util.mkdir_p(local_dir)
+        local_zip = os.path.join(local_dir, "zip.zip")
+        self.download_file_external(s3_path, local_zip)
+        util.extract_zip(local_zip, delete_zip_file=True)
+
+    def download_file_external(self, s3_path, local_path):
+        try:
+            util.mkdir_p(os.path.dirname(local_path))
+            bucket, key = self.deconstruct_s3_path(s3_path)
+            self.s3.download_file(bucket, key, local_path)
+            return local_path
+        except Exception as e:
+            raise CortexException("bucket " + bucket, "key " + key) from e

@@ -21,68 +21,129 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cortexlabs/yaml"
+
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
-
-var uploadedModels = strset.New()
 
 func getModels(
 	config *userconfig.Config,
-	aggregates context.Aggregates,
+	constants context.Constants,
 	columns context.Columns,
-	impls map[string][]byte,
+	aggregates context.Aggregates,
+	transformedColumns context.TransformedColumns,
+	aggregators context.Aggregators,
+	transformers context.Transformers,
+	estimators context.Estimators,
 	root string,
-	pythonPackages context.PythonPackages,
 ) (context.Models, error) {
 
 	models := context.Models{}
 
 	for _, modelConfig := range config.Models {
-		modelImplID, modelImplKey, err := getModelImplID(modelConfig.Path, impls)
-		if err != nil {
-			return nil, errors.Wrap(err, userconfig.Identify(modelConfig), userconfig.PathKey)
+		estimator := estimators[modelConfig.Estimator]
+
+		var validInputResources []context.Resource
+		for _, res := range constants {
+			validInputResources = append(validInputResources, res)
+		}
+		for _, res := range columns {
+			validInputResources = append(validInputResources, res)
+		}
+		for _, res := range aggregates {
+			validInputResources = append(validInputResources, res)
+		}
+		for _, res := range transformedColumns {
+			validInputResources = append(validInputResources, res)
 		}
 
-		targetDataType := columns[modelConfig.TargetColumn].GetType()
-		err = context.ValidateModelTargetType(targetDataType, modelConfig.Type)
+		// Input
+		castedInput, inputID, err := ValidateInput(
+			modelConfig.Input,
+			estimator.Input,
+			[]resource.Type{resource.RawColumnType, resource.TransformedColumnType, resource.ConstantType, resource.AggregateType},
+			validInputResources,
+			config.Resources,
+			aggregators,
+			transformers,
+		)
 		if err != nil {
-			return nil, errors.Wrap(err, userconfig.Identify(modelConfig))
+			return nil, errors.Wrap(err, userconfig.Identify(modelConfig), userconfig.InputKey)
+		}
+		modelConfig.Input = castedInput
+
+		// TrainingInput
+		if modelConfig.EstimatorPath == nil && estimator.TrainingInput == nil && modelConfig.TrainingInput != nil {
+			return nil, errors.Wrap(userconfig.ErrorUnsupportedConfigKey(), userconfig.Identify(modelConfig), userconfig.TrainingInputKey)
+		}
+		castedTrainingInput, trainingInputID, err := ValidateInput(
+			modelConfig.TrainingInput,
+			estimator.TrainingInput,
+			[]resource.Type{resource.RawColumnType, resource.TransformedColumnType, resource.ConstantType, resource.AggregateType},
+			validInputResources,
+			config.Resources,
+			aggregators,
+			transformers,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, userconfig.Identify(modelConfig), userconfig.TrainingInputKey)
+		}
+		modelConfig.TrainingInput = castedTrainingInput
+
+		// Hparams
+		if modelConfig.EstimatorPath == nil && estimator.Hparams == nil && modelConfig.Hparams != nil {
+			return nil, errors.Wrap(userconfig.ErrorUnsupportedConfigKey(), userconfig.Identify(modelConfig), userconfig.HparamsKey)
+		}
+		if estimator.Hparams != nil {
+			castedHparams, err := userconfig.CastInputValue(modelConfig.Hparams, estimator.Hparams)
+			if err != nil {
+				return nil, errors.Wrap(err, userconfig.Identify(modelConfig), userconfig.HparamsKey)
+			}
+			modelConfig.Hparams = castedHparams
 		}
 
+		// TargetColumn
+		targetColumnName, _ := yaml.ExtractAtSymbolText(modelConfig.TargetColumn)
+		targetColumn := columns[targetColumnName]
+		if targetColumn == nil {
+			return nil, errors.Wrap(userconfig.ErrorUndefinedResource(targetColumnName, resource.RawColumnType, resource.TransformedColumnType), userconfig.Identify(modelConfig), userconfig.TargetColumnKey)
+		}
+		if estimator.TargetColumn != nil {
+			if !estimator.TargetColumn.SupportsType(targetColumn.GetColumnType()) {
+				return nil, errors.Wrap(userconfig.ErrorUnsupportedOutputType(targetColumn.GetColumnType(), estimator.TargetColumn), userconfig.Identify(modelConfig), userconfig.TargetColumnKey)
+			}
+		}
+
+		// Model ID
 		var buf bytes.Buffer
-		buf.WriteString(modelConfig.Type.String())
-		buf.WriteString(modelImplID)
-		for _, pythonPackage := range pythonPackages {
-			buf.WriteString(pythonPackage.GetID())
-		}
-		buf.WriteString(modelConfig.PredictionKey)
+		buf.WriteString(inputID)
+		buf.WriteString(trainingInputID)
+		buf.WriteString(targetColumn.GetID())
 		buf.WriteString(s.Obj(modelConfig.Hparams))
 		buf.WriteString(s.Obj(modelConfig.DataPartitionRatio))
 		buf.WriteString(s.Obj(modelConfig.Training))
 		buf.WriteString(s.Obj(modelConfig.Evaluation))
-		buf.WriteString(columns.IDWithTags(modelConfig.AllColumnNames())) // A change in tags can invalidate the model
-
-		for _, aggregate := range modelConfig.Aggregates {
-			buf.WriteString(aggregates[aggregate].GetID())
-		}
-		buf.WriteString(modelConfig.Tags.ID())
-
+		buf.WriteString(estimator.ID)
 		modelID := hash.Bytes(buf.Bytes())
 
+		// Dataset ID
 		buf.Reset()
 		buf.WriteString(s.Obj(modelConfig.DataPartitionRatio))
-		buf.WriteString(columns.ID(modelConfig.AllColumnNames()))
+		combinedInput := []interface{}{modelConfig.Input, modelConfig.TrainingInput, modelConfig.TargetColumn}
+		var columnSlice []context.Resource
+		for _, res := range columns {
+			columnSlice = append(columnSlice, res)
+		}
+		for _, col := range context.ExtractCortexResources(combinedInput, columnSlice, resource.RawColumnType, resource.TransformedColumnType) {
+			buf.WriteString(col.GetID())
+		}
 		datasetID := hash.Bytes(buf.Bytes())
-		buf.WriteString(columns.IDWithTags(modelConfig.AllColumnNames()))
-		datasetIDWithTags := hash.Bytes(buf.Bytes())
 
 		datasetRoot := filepath.Join(root, consts.TrainingDataDir, datasetID)
 		trainingDatasetName := strings.Join([]string{
@@ -94,14 +155,11 @@ func getModels(
 			ComputedResourceFields: &context.ComputedResourceFields{
 				ResourceFields: &context.ResourceFields{
 					ID:           modelID,
-					IDWithTags:   modelID,
 					ResourceType: resource.ModelType,
 				},
 			},
-			Model:   modelConfig,
-			Key:     filepath.Join(root, consts.ModelsDir, modelID+".zip"),
-			ImplID:  modelImplID,
-			ImplKey: modelImplKey,
+			Model: modelConfig,
+			Key:   filepath.Join(root, consts.ModelsDir, modelID+".zip"),
 			Dataset: &context.TrainingDataset{
 				ResourceFields: userconfig.ResourceFields{
 					Name:     trainingDatasetName,
@@ -111,7 +169,6 @@ func getModels(
 				ComputedResourceFields: &context.ComputedResourceFields{
 					ResourceFields: &context.ResourceFields{
 						ID:           datasetID,
-						IDWithTags:   datasetIDWithTags,
 						ResourceType: resource.TrainingDatasetType,
 					},
 				},
@@ -123,43 +180,4 @@ func getModels(
 	}
 
 	return models, nil
-}
-
-func getModelImplID(implPath string, impls map[string][]byte) (string, string, error) {
-	impl, ok := impls[implPath]
-	if !ok {
-		return "", "", ErrorImplDoesNotExist(implPath)
-	}
-	modelImplID := hash.Bytes(impl)
-	modelImplKey, err := uploadModelImpl(modelImplID, impl)
-	if err != nil {
-		return "", "", errors.Wrap(err, implPath)
-	}
-	return modelImplID, modelImplKey, nil
-}
-
-func uploadModelImpl(modelImplID string, impl []byte) (string, error) {
-	modelImplKey := filepath.Join(
-		consts.ModelImplsDir,
-		modelImplID+".py",
-	)
-
-	if uploadedModels.Has(modelImplID) {
-		return modelImplKey, nil
-	}
-
-	isUploaded, err := config.AWS.IsS3File(modelImplKey)
-	if err != nil {
-		return "", errors.Wrap(err, "upload")
-	}
-
-	if !isUploaded {
-		err = config.AWS.UploadBytesToS3(impl, modelImplKey)
-		if err != nil {
-			return "", errors.Wrap(err, "upload")
-		}
-	}
-
-	uploadedModels.Add(modelImplID)
-	return modelImplKey, nil
 }

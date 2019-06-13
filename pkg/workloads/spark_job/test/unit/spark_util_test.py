@@ -16,7 +16,7 @@ import math
 import spark_util
 import consts
 from lib.exceptions import UserException
-
+from lib import util
 import pytest
 from pyspark.sql.types import *
 from pyspark.sql import Row
@@ -28,13 +28,21 @@ from datetime import datetime
 pytestmark = pytest.mark.usefixtures("spark")
 
 
+def add_res_ref(input):
+    return util.resource_escape_seq_raw + input
+
+
 def test_read_csv_valid(spark, write_csv_file, ctx_obj, get_context):
     csv_str = "\n".join(["a,0.1,", "b,1,1", "c,1.1,4"])
 
     path_to_file = write_csv_file(csv_str)
 
     ctx_obj["environment"] = {
-        "data": {"type": "csv", "path": path_to_file, "schema": ["a_str", "b_float", "c_long"]}
+        "data": {
+            "type": "csv",
+            "path": path_to_file,
+            "schema": [add_res_ref("a_str"), add_res_ref("b_float"), add_res_ref("c_long")],
+        }
     }
 
     ctx_obj["raw_columns"] = {
@@ -52,7 +60,11 @@ def test_read_csv_invalid_type(spark, write_csv_file, ctx_obj, get_context):
     path_to_file = write_csv_file(csv_str)
 
     ctx_obj["environment"] = {
-        "data": {"type": "csv", "path": path_to_file, "schema": ["a_str", "b_long", "c_long"]}
+        "data": {
+            "type": "csv",
+            "path": path_to_file,
+            "schema": [add_res_ref("a_str"), add_res_ref("b_long"), add_res_ref("c_long")],
+        }
     }
 
     ctx_obj["raw_columns"] = {
@@ -69,7 +81,7 @@ def test_read_csv_infer_type(spark, write_csv_file, ctx_obj, get_context):
     test_cases = [
         {
             "csv": ["a,0.1,", "b,0.1,1", "c,1.1,4"],
-            "schema": ["a_str", "b_float", "c_long"],
+            "schema": [add_res_ref("a_str"), add_res_ref("b_float"), add_res_ref("c_long")],
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "INFERRED_COLUMN", "required": True, "id": "-"},
                 "b_float": {
@@ -89,7 +101,7 @@ def test_read_csv_infer_type(spark, write_csv_file, ctx_obj, get_context):
         },
         {
             "csv": ["1,4,4.5", "1,3,1.2", "1,5,4.7"],
-            "schema": ["a_str", "b_int", "c_float"],
+            "schema": [add_res_ref("a_str"), add_res_ref("b_int"), add_res_ref("c_float")],
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "-"},
                 "b_int": {"name": "b_int", "type": "INFERRED_COLUMN", "required": True, "id": "-"},
@@ -104,7 +116,7 @@ def test_read_csv_infer_type(spark, write_csv_file, ctx_obj, get_context):
         },
         {
             "csv": ["1,4,2017-09-16", "1,3,2017-09-16", "1,5,2017-09-16"],
-            "schema": ["a_str", "b_int", "c_str"],
+            "schema": [add_res_ref("a_str"), add_res_ref("b_int"), add_res_ref("c_str")],
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "STRING_COLUMN", "required": True, "id": "-"},
                 "b_int": {"name": "b_int", "type": "INFERRED_COLUMN", "required": True, "id": "-"},
@@ -114,7 +126,7 @@ def test_read_csv_infer_type(spark, write_csv_file, ctx_obj, get_context):
         },
         {
             "csv": ["1,4,2017-09-16", "1,3,2017-09-16", "1,5,2017-09-16"],
-            "schema": ["a_float", "b_int", "c_str"],
+            "schema": [add_res_ref("a_float"), add_res_ref("b_int"), add_res_ref("c_str")],
             "raw_columns": {
                 "a_float": {"name": "a_float", "type": "FLOAT_COLUMN", "required": True, "id": "-"},
                 "b_int": {"name": "b_int", "type": "INFERRED_COLUMN", "required": True, "id": "-"},
@@ -145,7 +157,7 @@ def test_read_csv_infer_invalid(spark, write_csv_file, ctx_obj, get_context):
     test_cases = [
         {
             "csv": ["a,0.1,", "a,0.1,1", "a,1.1,4"],
-            "schema": ["a_int", "b_float", "c_long"],
+            "schema": [add_res_ref("a_int"), add_res_ref("b_float"), add_res_ref("c_long")],
             "raw_columns": {
                 "a_int": {"name": "a_int", "type": "INT_COLUMN", "required": True, "id": "-"},
                 "b_float": {
@@ -164,7 +176,7 @@ def test_read_csv_infer_invalid(spark, write_csv_file, ctx_obj, get_context):
         },
         {
             "csv": ["a,1.1,", "a,1.1,1", "a,1.1,4"],
-            "schema": ["a_str", "b_int", "c_int"],
+            "schema": [add_res_ref("a_str"), add_res_ref("b_int"), add_res_ref("c_int")],
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "INFERRED_COLUMN", "required": True, "id": "-"},
                 "b_int": {"name": "b_int", "type": "INT_COLUMN", "required": True, "id": "-"},
@@ -193,7 +205,11 @@ def test_read_csv_missing_column(spark, write_csv_file, ctx_obj, get_context):
     path_to_file = write_csv_file(csv_str)
 
     ctx_obj["environment"] = {
-        "data": {"type": "csv", "path": path_to_file, "schema": ["a_str", "b_long", "c_long"]}
+        "data": {
+            "type": "csv",
+            "path": path_to_file,
+            "schema": [add_res_ref("a_str"), add_res_ref("b_long"), add_res_ref("c_long")],
+        }
     }
 
     ctx_obj["raw_columns"] = {
@@ -221,7 +237,7 @@ def test_read_csv_valid_options(spark, write_csv_file, ctx_obj, get_context):
         "data": {
             "type": "csv",
             "path": path_to_file,
-            "schema": ["a_str", "b_float", "c_long"],
+            "schema": [add_res_ref("a_str"), add_res_ref("b_float"), add_res_ref("c_long")],
             "csv_config": {
                 "header": True,
                 "sep": "|",
@@ -437,9 +453,9 @@ def test_ingest_parquet_valid(spark, write_parquet_file, ctx_obj, get_context):
             "type": "parquet",
             "path": path_to_file,
             "schema": [
-                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+                {"parquet_column_name": "a_str", "raw_column": add_res_ref("a_str")},
+                {"parquet_column_name": "b_float", "raw_column": add_res_ref("b_float")},
+                {"parquet_column_name": "c_long", "raw_column": add_res_ref("c_long")},
             ],
         }
     }
@@ -473,9 +489,9 @@ def test_ingest_parquet_infer_valid(spark, write_parquet_file, ctx_obj, get_cont
                 ]
             ),
             "env": [
-                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+                {"parquet_column_name": "a_str", "raw_column": add_res_ref("a_str")},
+                {"parquet_column_name": "b_float", "raw_column": add_res_ref("b_float")},
+                {"parquet_column_name": "c_long", "raw_column": add_res_ref("c_long")},
             ],
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "INFERRED_COLUMN", "required": True, "id": "1"},
@@ -508,9 +524,9 @@ def test_ingest_parquet_infer_valid(spark, write_parquet_file, ctx_obj, get_cont
                 ]
             ),
             "env": [
-                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+                {"parquet_column_name": "a_str", "raw_column": add_res_ref("a_str")},
+                {"parquet_column_name": "b_float", "raw_column": add_res_ref("b_float")},
+                {"parquet_column_name": "c_long", "raw_column": add_res_ref("c_long")},
             ],
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "INFERRED_COLUMN", "required": True, "id": "1"},
@@ -547,9 +563,9 @@ def test_ingest_parquet_infer_valid(spark, write_parquet_file, ctx_obj, get_cont
                 ]
             ),
             "env": [
-                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_str", "raw_column_name": "c_str"},
+                {"parquet_column_name": "a_str", "raw_column": add_res_ref("a_str")},
+                {"parquet_column_name": "b_float", "raw_column": add_res_ref("b_float")},
+                {"parquet_column_name": "c_str", "raw_column": add_res_ref("c_str")},
             ],
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "INFERRED_COLUMN", "required": True, "id": "1"},
@@ -581,9 +597,9 @@ def test_ingest_parquet_infer_valid(spark, write_parquet_file, ctx_obj, get_cont
                 ]
             ),
             "env": [
-                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_str", "raw_column_name": "c_str"},
+                {"parquet_column_name": "a_str", "raw_column": add_res_ref("a_str")},
+                {"parquet_column_name": "b_float", "raw_column": add_res_ref("b_float")},
+                {"parquet_column_name": "c_str", "raw_column": add_res_ref("c_str")},
             ],
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "INFERRED_COLUMN", "required": True, "id": "1"},
@@ -637,9 +653,9 @@ def test_read_parquet_infer_invalid(spark, write_parquet_file, ctx_obj, get_cont
                 ]
             ),
             "env": [
-                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+                {"parquet_column_name": "a_str", "raw_column": add_res_ref("a_str")},
+                {"parquet_column_name": "b_float", "raw_column": add_res_ref("b_float")},
+                {"parquet_column_name": "c_long", "raw_column": add_res_ref("c_long")},
             ],
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "INFERRED_COLUMN", "required": True, "id": "1"},
@@ -662,9 +678,9 @@ def test_read_parquet_infer_invalid(spark, write_parquet_file, ctx_obj, get_cont
                 ]
             ),
             "env": [
-                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_str", "raw_column_name": "c_str"},
+                {"parquet_column_name": "a_str", "raw_column": add_res_ref("a_str")},
+                {"parquet_column_name": "b_float", "raw_column": add_res_ref("b_float")},
+                {"parquet_column_name": "c_str", "raw_column": add_res_ref("c_str")},
             ],
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "INFERRED_COLUMN", "required": True, "id": "1"},
@@ -687,9 +703,9 @@ def test_read_parquet_infer_invalid(spark, write_parquet_file, ctx_obj, get_cont
                 ]
             ),
             "env": [
-                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+                {"parquet_column_name": "a_str", "raw_column": add_res_ref("a_str")},
+                {"parquet_column_name": "b_float", "raw_column": add_res_ref("b_float")},
+                {"parquet_column_name": "c_long", "raw_column": add_res_ref("c_long")},
             ],
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "INFERRED_COLUMN", "required": True, "id": "1"},
@@ -712,9 +728,9 @@ def test_read_parquet_infer_invalid(spark, write_parquet_file, ctx_obj, get_cont
                 ]
             ),
             "env": [
-                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+                {"parquet_column_name": "a_str", "raw_column": add_res_ref("a_str")},
+                {"parquet_column_name": "b_float", "raw_column": add_res_ref("b_float")},
+                {"parquet_column_name": "c_long", "raw_column": add_res_ref("c_long")},
             ],
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "INT_COLUMN", "required": True, "id": "1"},
@@ -742,9 +758,9 @@ def test_read_parquet_infer_invalid(spark, write_parquet_file, ctx_obj, get_cont
                 ]
             ),
             "env": [
-                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+                {"parquet_column_name": "a_str", "raw_column": add_res_ref("a_str")},
+                {"parquet_column_name": "b_float", "raw_column": add_res_ref("b_float")},
+                {"parquet_column_name": "c_long", "raw_column": add_res_ref("c_long")},
             ],
             "raw_columns": {
                 "a_str": {"name": "a_str", "type": "INT_COLUMN", "required": True, "id": "1"},
@@ -799,10 +815,10 @@ def test_ingest_parquet_extra_cols(spark, write_parquet_file, ctx_obj, get_conte
             "type": "parquet",
             "path": path_to_file,
             "schema": [
-                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
-                {"parquet_column_name": "d_long", "raw_column_name": "d_long"},
+                {"parquet_column_name": "a_str", "raw_column": add_res_ref("a_str")},
+                {"parquet_column_name": "b_float", "raw_column": add_res_ref("b_float")},
+                {"parquet_column_name": "c_long", "raw_column": add_res_ref("c_long")},
+                {"parquet_column_name": "d_long", "raw_column": add_res_ref("d_long")},
             ],
         }
     }
@@ -834,9 +850,9 @@ def test_ingest_parquet_missing_cols(spark, write_parquet_file, ctx_obj, get_con
             "type": "parquet",
             "path": path_to_file,
             "schema": [
-                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+                {"parquet_column_name": "a_str", "raw_column": add_res_ref("a_str")},
+                {"parquet_column_name": "b_float", "raw_column": add_res_ref("b_float")},
+                {"parquet_column_name": "c_long", "raw_column": add_res_ref("c_long")},
             ],
         }
     }
@@ -870,9 +886,9 @@ def test_ingest_parquet_type_mismatch(spark, write_parquet_file, ctx_obj, get_co
             "type": "parquet",
             "path": path_to_file,
             "schema": [
-                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+                {"parquet_column_name": "a_str", "raw_column": add_res_ref("a_str")},
+                {"parquet_column_name": "b_float", "raw_column": add_res_ref("b_float")},
+                {"parquet_column_name": "c_long", "raw_column": add_res_ref("c_long")},
             ],
         }
     }
@@ -908,9 +924,9 @@ def test_ingest_parquet_failed_requirements(
             "type": "parquet",
             "path": path_to_file,
             "schema": [
-                {"parquet_column_name": "a_str", "raw_column_name": "a_str"},
-                {"parquet_column_name": "b_float", "raw_column_name": "b_float"},
-                {"parquet_column_name": "c_long", "raw_column_name": "c_long"},
+                {"parquet_column_name": "a_str", "raw_column": add_res_ref("a_str")},
+                {"parquet_column_name": "b_float", "raw_column": add_res_ref("b_float")},
+                {"parquet_column_name": "c_long", "raw_column": add_res_ref("c_long")},
             ],
         }
     }
@@ -928,43 +944,23 @@ def test_ingest_parquet_failed_requirements(
     assert validations == {"a_str": [("(a_str IN (a, b))", 1)]}
 
 
-def test_column_names_to_index():
-    sample_columns_input_config = {"b": "b_col", "a": "a_col"}
-    actual_list, actual_dict = spark_util.column_names_to_index(sample_columns_input_config)
-    assert (["a_col", "b_col"], {"b": 1, "a": 0}) == (actual_list, actual_dict)
-
-    sample_columns_input_config = {"a": "a_col"}
-
-    actual_list, actual_dict = spark_util.column_names_to_index(sample_columns_input_config)
-    assert (["a_col"], {"a": 0}) == (actual_list, actual_dict)
-
-    sample_columns_input_config = {"nums": ["a_long", "a_col", "b_col", "b_col"], "a": "a_long"}
-
-    expected_col_list = ["a_col", "a_long", "b_col"]
-    expected_columns_input_config = {"nums": [1, 0, 2, 2], "a": 1}
-    actual_list, actual_dict = spark_util.column_names_to_index(sample_columns_input_config)
-
-    assert (expected_col_list, expected_columns_input_config) == (actual_list, actual_dict)
-
-
 def test_run_builtin_aggregators_success(spark, ctx_obj, get_context):
+    ctx_obj["raw_columns"] = {"a": {"id": "2", "name": "a", "type": "INT_COLUMN"}}
     ctx_obj["aggregators"] = {
-        "cortex.sum": {"name": "sum", "namespace": "cortex"},
-        "cortex.first": {"name": "first", "namespace": "cortex"},
+        "cortex.sum_int": {
+            "name": "sum_int",
+            "namespace": "cortex",
+            "input": {"_type": "INT_COLUMN"},
+            "output_type": "INT_COLUMN",
+        }
     }
     ctx_obj["aggregates"] = {
         "sum_a": {
             "name": "sum_a",
             "id": "1",
-            "aggregator": "cortex.sum",
-            "inputs": {"columns": {"col": "a"}},
-        },
-        "first_a": {
-            "id": "2",
-            "name": "first_a",
-            "aggregator": "cortex.first",
-            "inputs": {"columns": {"col": "a"}, "args": {"ignorenulls": "some_constant"}},
-        },
+            "aggregator": "cortex.sum_int",
+            "input": add_res_ref("a"),
+        }
     }
     aggregate_list = [v for v in ctx_obj["aggregates"].values()]
 
@@ -976,47 +972,15 @@ def test_run_builtin_aggregators_success(spark, ctx_obj, get_context):
     df = spark.createDataFrame(data, StructType([StructField("a", LongType())]))
 
     spark_util.run_builtin_aggregators(aggregate_list, df, ctx, spark)
-    calls = [call(6, ctx_obj["aggregates"]["sum_a"]), call(1, ctx_obj["aggregates"]["first_a"])]
+    calls = [call(6, ctx_obj["aggregates"]["sum_a"])]
     ctx.store_aggregate_result.assert_has_calls(calls, any_order=True)
 
-    ctx.populate_args.assert_called_once_with({"ignorenulls": "some_constant"})
 
+def test_infer_python_type():
+    assert spark_util.infer_python_type(1) == consts.COLUMN_TYPE_INT
+    assert spark_util.infer_python_type(1.0) == consts.COLUMN_TYPE_FLOAT
+    assert spark_util.infer_python_type("cortex") == consts.COLUMN_TYPE_STRING
 
-def test_run_builtin_aggregators_error(spark, ctx_obj, get_context):
-    ctx_obj["aggregators"] = {"cortex.first": {"name": "first", "namespace": "cortex"}}
-    ctx_obj["aggregates"] = {
-        "first_a": {
-            "name": "first_a",
-            "aggregator": "cortex.first",
-            "inputs": {
-                "columns": {"col": "a"},
-                "args": {"ignoreNulls": "some_constant"},  # supposed to be ignorenulls
-            },
-            "id": "1",
-        }
-    }
-
-    aggregate_list = [v for v in ctx_obj["aggregates"].values()]
-
-    ctx = get_context(ctx_obj)
-    ctx.store_aggregate_result = MagicMock()
-    ctx.populate_args = MagicMock(return_value={"ignoreNulls": True})
-
-    data = [Row(a=None), Row(a=1), Row(a=2), Row(a=3)]
-    df = spark.createDataFrame(data, StructType([StructField("a", LongType())]))
-
-    with pytest.raises(Exception) as exec_info:
-        spark_util.run_builtin_aggregators(aggregate_list, df, ctx, spark)
-
-    ctx.store_aggregate_result.assert_not_called()
-    ctx.populate_args.assert_called_once_with({"ignoreNulls": "some_constant"})
-
-
-def test_infer_type():
-    assert spark_util.infer_type(1) == consts.COLUMN_TYPE_INT
-    assert spark_util.infer_type(1.0) == consts.COLUMN_TYPE_FLOAT
-    assert spark_util.infer_type("cortex") == consts.COLUMN_TYPE_STRING
-
-    assert spark_util.infer_type([1]) == consts.COLUMN_TYPE_INT_LIST
-    assert spark_util.infer_type([1.0]) == consts.COLUMN_TYPE_FLOAT_LIST
-    assert spark_util.infer_type(["cortex"]) == consts.COLUMN_TYPE_STRING_LIST
+    assert spark_util.infer_python_type([1]) == consts.COLUMN_TYPE_INT_LIST
+    assert spark_util.infer_python_type([1.0]) == consts.COLUMN_TYPE_FLOAT_LIST
+    assert spark_util.infer_python_type(["cortex"]) == consts.COLUMN_TYPE_STRING_LIST
