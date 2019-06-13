@@ -1,9 +1,9 @@
-def aggregate_spark(data, columns, args):
+def aggregate_spark(data, input):
     from pyspark.ml.feature import RegexTokenizer
     import pyspark.sql.functions as F
     from pyspark.sql.types import IntegerType
 
-    regexTokenizer = RegexTokenizer(inputCol=columns["col"], outputCol="token_list", pattern="\\W")
+    regexTokenizer = RegexTokenizer(inputCol=input, outputCol="token_list", pattern="\\W")
     regexTokenized = regexTokenizer.transform(data)
 
     max_review_length_row = (

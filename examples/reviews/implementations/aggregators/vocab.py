@@ -1,8 +1,8 @@
-def aggregate_spark(data, columns, args):
+def aggregate_spark(data, input):
     import pyspark.sql.functions as F
     from pyspark.ml.feature import RegexTokenizer
 
-    regexTokenizer = RegexTokenizer(inputCol=columns["col"], outputCol="token_list", pattern="\\W")
+    regexTokenizer = RegexTokenizer(inputCol=input["col"], outputCol="token_list", pattern="\\W")
     regexTokenized = regexTokenizer.transform(data)
 
     vocab_rows = (
@@ -10,7 +10,7 @@ def aggregate_spark(data, columns, args):
         .groupBy("word")
         .count()
         .orderBy(F.col("count").desc())
-        .limit(args["vocab_size"])
+        .limit(input["vocab_size"])
         .select("word")
         .collect()
     )

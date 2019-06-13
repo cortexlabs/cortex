@@ -1,31 +1,33 @@
 - kind: aggregate
+  name: user_id_size
+  aggregator: cortex.count_distinct
+  input: @user_id
+
+- kind: aggregate
   name: user_id_index
   aggregator: cortex.index_string
-  inputs:
-    columns:
-      col: user_id
+  input: @user_id
 
 - kind: transformed_column
   name: user_id_indexed
   transformer: cortex.index_string
-  inputs:
-    columns:
-      text: user_id
-    args:
-      indexes: user_id_index
+  input:
+    col: user_id
+    indexes: user_id_index
+
+- kind: aggregate
+  name: movie_id_size
+  aggregator: cortex.count_distinct
+  input: @movie_id
 
 - kind: aggregate
   name: movie_id_index
   aggregator: cortex.index_string
-  inputs:
-    columns:
-      col: movie_id
+  input: @movie_id
 
 - kind: transformed_column
   name: movie_id_indexed
   transformer: cortex.index_string
-  inputs:
-    columns:
-      text: movie_id
-    args:
-      indexes: movie_id_index
+  input:
+    col: movie_id
+    indexes: movie_id_index

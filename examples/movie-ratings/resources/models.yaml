@@ -1,8 +1,12 @@
 - kind: model
   name: basic_embedding
-  type: regression
-  target_column: rating
-  feature_columns: [user_id_indexed, movie_id_indexed]
+  estimator: cortex.dnn_regressor
+  target_column: @rating
+  input: 
+    categorical_columns_with_identity:
+      - col @user_id_indexed
+      
+      movie_id_indexed]
   aggregates: [user_id_index, movie_id_index]
   hparams:
     embedding_size: 10

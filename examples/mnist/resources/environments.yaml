@@ -5,6 +5,21 @@
     path: s3a://cortex-examples/mnist.csv
     csv_config:
       header: true
-    schema:
-      - image
-      - label
+    schema: [@image, @label]
+
+- kind: raw_column
+  name: image
+  type: STRING_COLUMN
+  required: true
+
+- kind: raw_column
+  name: label
+  type: INT_COLUMN
+  required: true
+  min: 0
+  max: 9
+
+- kind: transformed_column
+  name: image_pixels
+  transformer_path: implementations/transformers/decode_and_normalize.py
+  input: @image
