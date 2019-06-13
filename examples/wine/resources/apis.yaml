@@ -1,5 +1,5 @@
 - kind: api
   name: quality
-  model_name: dnn
+  model: @dnn
   compute:
     replicas: 1
