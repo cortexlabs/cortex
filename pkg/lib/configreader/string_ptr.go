@@ -35,7 +35,7 @@ type StringPtrValidation struct {
 	DNS1123                       bool
 	AllowCortexResources          bool
 	RequireCortexResources        bool
-	Validator                     func(*string) (*string, error)
+	Validator                     func(string) (string, error)
 }
 
 func makeStringValValidation(v *StringPtrValidation) *StringValidation {
@@ -170,8 +170,17 @@ func validateStringPtr(val *string, v *StringPtrValidation) (*string, error) {
 		}
 	}
 
-	if v.Validator != nil {
-		return v.Validator(val)
+	if val == nil {
+		return val, nil
 	}
+
+	if v.Validator != nil {
+		validated, err := v.Validator(*val)
+		if err != nil {
+			return nil, err
+		}
+		return &validated, nil
+	}
+
 	return val, nil
 }

@@ -151,12 +151,11 @@ func (ctx *Context) modelDependencies(model *Model) strset.Set {
 }
 
 func (ctx *Context) apiDependencies(api *API) strset.Set {
-	model := ctx.Models[api.ModelName]
-	dependencies := make(strset.Set)
-	if model != nil {
-		dependencies.Add(model.ID)
+	if api.Model == nil {
+		return strset.New()
 	}
-	return dependencies
+	model := ctx.Models[api.ModelName]
+	return strset.New(model.ID)
 }
 
 func (ctx *Context) ExtractCortexResources(

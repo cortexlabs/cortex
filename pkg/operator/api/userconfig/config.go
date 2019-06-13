@@ -74,6 +74,15 @@ func mergeConfigs(target *Config, source *Config) error {
 		target.App = source.App
 	}
 
+	if target.Resources == nil {
+		target.Resources = make(map[string][]Resource)
+	}
+	for resourceName, resources := range source.Resources {
+		for _, res := range resources {
+			target.Resources[resourceName] = append(target.Resources[resourceName], res)
+		}
+	}
+
 	return nil
 }
 
@@ -185,29 +194,32 @@ func (config *Config) Validate(envName string) error {
 		}
 	}
 
-	// Check api models exist
-	modelNames := config.Models.Names()
-	allowNoEnv := false // if every API is path based, don't need env
-	for _, api := range config.APIs {
-		if api.Model == nil && api.ModelPath != nil {
-			allowNoEnv = true
-			continue
-		}
-
-		if !slices.HasString(modelNames, *api.Model) && api.ModelPath == nil {
-			return errors.Wrap(ErrorUndefinedResource(*api.Model, resource.ModelType),
-				Identify(api), ModelNameKey)
-		}
-	}
-
 	for _, env := range config.Environments {
 		if env.Name == envName {
 			config.Environment = env
 		}
 	}
 
-	if config.Environment == nil && !allowNoEnv {
-		return ErrorUndefinedResource(envName, resource.EnvironmentType)
+	apisAllExternal := true
+	for _, api := range config.APIs {
+		if api.Model != nil {
+			apisAllExternal = false
+			break
+		}
+	}
+
+	if config.Environment == nil {
+		if !apisAllExternal || len(config.APIs) == 0 {
+			return ErrorUndefinedResource(envName, resource.EnvironmentType)
+		}
+
+		for _, resources := range config.Resources {
+			for _, res := range resources {
+				if res.GetResourceType() != resource.APIType {
+					return ErrorExtraResourcesWithExternalAPIs(res)
+				}
+			}
+		}
 	}
 
 	return nil

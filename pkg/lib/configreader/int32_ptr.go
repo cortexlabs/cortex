@@ -33,7 +33,7 @@ type Int32PtrValidation struct {
 	GreaterThanOrEqualTo *int32
 	LessThan             *int32
 	LessThanOrEqualTo    *int32
-	Validator            func(*int32) (*int32, error)
+	Validator            func(int32) (int32, error)
 }
 
 func makeInt32ValValidation(v *Int32PtrValidation) *Int32Validation {
@@ -171,8 +171,17 @@ func validateInt32Ptr(val *int32, v *Int32PtrValidation) (*int32, error) {
 		}
 	}
 
-	if v.Validator != nil {
-		return v.Validator(val)
+	if val == nil {
+		return val, nil
 	}
+
+	if v.Validator != nil {
+		validated, err := v.Validator(*val)
+		if err != nil {
+			return nil, err
+		}
+		return &validated, nil
+	}
+
 	return val, nil
 }

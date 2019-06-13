@@ -17,8 +17,6 @@ limitations under the License.
 package userconfig
 
 import (
-	"github.com/cortexlabs/cortex/pkg/lib/configreader"
-
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
@@ -50,8 +48,10 @@ var apiValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField:         "ModelPath",
-			StringPtrValidation: &configreader.StringPtrValidation{},
+			StructField: "ModelPath",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Validator: cr.GetS3PathValidator(),
+			},
 		},
 		apiComputeFieldValidation,
 		tagsFieldValidation,
@@ -60,12 +60,14 @@ var apiValidation = &cr.StructValidation{
 }
 
 func (apis APIs) Validate() error {
-	resources := make([]Resource, len(apis))
-	for i, res := range apis {
-		if err := res.Validate(); err != nil {
+	for _, api := range apis {
+		if err := api.Validate(); err != nil {
 			return err
 		}
+	}
 
+	resources := make([]Resource, len(apis))
+	for i, res := range apis {
 		resources[i] = res
 	}
 
@@ -73,6 +75,7 @@ func (apis APIs) Validate() error {
 	if len(dups) > 0 {
 		return ErrorDuplicateResourceName(dups...)
 	}
+
 	return nil
 }
 

@@ -33,7 +33,7 @@ type Float32PtrValidation struct {
 	GreaterThanOrEqualTo *float32
 	LessThan             *float32
 	LessThanOrEqualTo    *float32
-	Validator            func(*float32) (*float32, error)
+	Validator            func(float32) (float32, error)
 }
 
 func makeFloat32ValValidation(v *Float32PtrValidation) *Float32Validation {
@@ -171,8 +171,17 @@ func validateFloat32Ptr(val *float32, v *Float32PtrValidation) (*float32, error)
 		}
 	}
 
-	if v.Validator != nil {
-		return v.Validator(val)
+	if val == nil {
+		return val, nil
 	}
+
+	if v.Validator != nil {
+		validated, err := v.Validator(*val)
+		if err != nil {
+			return nil, err
+		}
+		return &validated, nil
+	}
+
 	return val, nil
 }

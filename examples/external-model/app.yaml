@@ -1,8 +1,8 @@
 - kind: app
-  name: sentiment
+  name: iris
 
 - kind: api
-  name: sentiment
-  model_path: s3://cortex-examples/model.zip
+  name: iris
+  model_path: s3://cortex-examples/iris-model.zip
   compute:
     replicas: 1

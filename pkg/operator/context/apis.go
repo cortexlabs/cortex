@@ -40,15 +40,12 @@ func getAPIs(config *userconfig.Config,
 		buf.WriteString(apiConfig.Name)
 
 		if apiConfig.Model != nil {
-			modelName, _ := yaml.ExtractAtSymbolText(apiConfig.Model)
+			modelName, _ = yaml.ExtractAtSymbolText(*apiConfig.Model)
 			model := models[modelName]
 			if model == nil {
 				return nil, errors.Wrap(userconfig.ErrorUndefinedResource(modelName, resource.ModelType), userconfig.Identify(apiConfig), userconfig.ModelNameKey)
 			}
-
-			if model, ok := models[*apiConfig.Model]; ok {
-				buf.WriteString(model.ID)
-			}
+			buf.WriteString(model.ID)
 		}
 
 		if apiConfig.ModelPath != nil {

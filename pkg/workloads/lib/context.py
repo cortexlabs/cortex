@@ -120,13 +120,13 @@ class Context:
         os.environ["AWS_REGION"] = self.cortex_config.get("region", "")
 
         # Id map
-        self.id_map = {}
         self.pp_id_map = ResourceMap(self.python_packages) if self.python_packages else None
         self.rf_id_map = ResourceMap(self.raw_columns) if self.raw_columns else None
         self.ag_id_map = ResourceMap(self.aggregates) if self.aggregates else None
         self.tf_id_map = ResourceMap(self.transformed_columns) if self.transformed_columns else None
         self.td_id_map = ResourceMap(self.training_datasets) if self.training_datasets else None
         self.models_id_map = ResourceMap(self.models) if self.models else None
+        self.apis_id_map = ResourceMap(self.apis) if self.apis else None
         self.constants_id_map = ResourceMap(self.constants) if self.constants else None
         self.id_map = util.merge_dicts_overwrite(
             self.pp_id_map,
@@ -135,11 +135,9 @@ class Context:
             self.tf_id_map,
             self.td_id_map,
             self.models_id_map,
+            self.apis_id_map,
             self.constants_id_map,
         )
-
-        self.apis_id_map = ResourceMap(self.apis)
-        self.id_map = util.merge_dicts_overwrite(self.id_map, self.apis_id_map)
 
     def is_raw_column(self, name):
         return name in self.raw_columns
@@ -708,7 +706,7 @@ def _validate_required_fn_args(impl, fn_name, args):
 
 
 def _deserialize_raw_ctx(raw_ctx):
-    if raw_ctx["environment"]:
+    if raw_ctx.get("environment") is not None:
         raw_columns = raw_ctx["raw_columns"]
         raw_ctx["raw_columns"] = util.merge_dicts_overwrite(*raw_columns.values())
 

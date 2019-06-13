@@ -125,7 +125,6 @@ def create_prediction_request(transformed_sample):
 def create_raw_prediction_request(sample):
     signature_def = local_cache["metadata"]["signatureDef"]
     signature_key = list(signature_def.keys())[0]
-    logger.info(signature_def)
     prediction_request = predict_pb2.PredictRequest()
     prediction_request.model_spec.name = "default"
     prediction_request.model_spec.signature_name = signature_key
@@ -249,18 +248,21 @@ def run_predict(sample):
         prediction_request = create_prediction_request(transformed_sample)
         response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
         result = parse_response_proto(response_proto)
-        result["transformed_sample"] = transformed_sample
+
         util.log_indent("Raw sample:", indent=4)
         util.log_pretty(sample, indent=6)
         util.log_indent("Transformed sample:", indent=4)
         util.log_pretty(transformed_sample, indent=6)
         util.log_indent("Prediction:", indent=4)
         util.log_pretty(result, indent=6)
+
+        result["transformed_sample"] = transformed_sample
+
     else:
         prediction_request = create_raw_prediction_request(sample)
         response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
         result = parse_response_proto_raw(response_proto)
-        util.log_indent("Raw sample:", indent=4)
+        util.log_indent("Sample:", indent=4)
         util.log_pretty(sample, indent=6)
         util.log_indent("Prediction:", indent=4)
         util.log_pretty(result, indent=6)
@@ -371,25 +373,33 @@ def start(args):
 
     if ctx.environment is not None:
         model = ctx.models[api["model_name"]]
-        tf_lib.set_logging_verbosity(ctx.environment["log_level"]["tensorflow"])
+        estimator = ctx.estimators[model["estimator"]]
 
         local_cache["model"] = model
+        local_cache["estimator"] = estimator
+        local_cache["target_col"] = ctx.columns[util.get_resource_ref(model["target_column"])]
+        local_cache["target_col_type"] = ctx.get_inferred_column_type(
+            util.get_resource_ref(model["target_column"])
+        )
+
+        tf_lib.set_logging_verbosity(ctx.environment["log_level"]["tensorflow"])
 
         if not os.path.isdir(args.model_dir):
             ctx.storage.download_and_unzip(model["key"], args.model_dir)
 
-        for column_name in model["feature_columns"] + [model["target_column"]]:
+        for column_name in ctx.extract_column_names([model["input"], model["target_column"]]):
             if ctx.is_transformed_column(column_name):
                 trans_impl, _ = ctx.get_transformer_impl(column_name)
                 local_cache["trans_impls"][column_name] = trans_impl
                 transformed_column = ctx.transformed_columns[column_name]
-                input_args_schema = transformed_column["inputs"]["args"]
-                # cache aggregates and constants in memory
-                if input_args_schema is not None:
-                    local_cache["transform_args_cache"][column_name] = ctx.populate_args(
-                        input_args_schema
-                    )
+
+                # cache aggregate values
+                for resource_name in util.extract_resource_refs(transformed_column["input"]):
+                    if resource_name in ctx.aggregates:
+                        ctx.get_obj(ctx.aggregates[resource_name]["key"])
+
         local_cache["required_inputs"] = tf_lib.get_base_input_columns(model["name"], ctx)
+
     else:
         if not os.path.isdir(args.model_dir):
             ctx.storage.download_and_unzip_external(api["model_path"], args.model_dir)
@@ -412,11 +422,7 @@ def start(args):
 
         time.sleep(1)
 
-    model_name = api["model_name"]
-    if model_name == "":
-        model_name = api["model_path"]
-
-    logger.info("Serving model: {}".format(model_name))
+    logger.info("Serving model: {}".format(api["model_name"]))
     serve(app, listen="*:{}".format(args.port))
 
 

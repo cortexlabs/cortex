@@ -73,6 +73,7 @@ const (
 	ErrPredictionKeyOnModelWithEstimator
 	ErrSpecifyOnlyOneMissing
 	ErrEnvSchemaMismatch
+	ErrExtraResourcesWithExternalAPIs
 	ErrImplDoesNotExist
 )
 
@@ -121,6 +122,7 @@ var errorKinds = []string{
 	"err_prediction_key_on_model_with_estimator",
 	"err_specify_only_one_missing",
 	"err_env_schema_mismatch",
+	"err_extra_resources_with_external_a_p_is",
 	"err_impl_does_not_exist",
 }
 
@@ -557,6 +559,13 @@ func ErrorEnvSchemaMismatch(env1, env2 *Environment) error {
 			env2.Name,
 			s.StrsAnd(env2.Data.GetIngestedColumnNames()),
 		),
+	}
+}
+
+func ErrorExtraResourcesWithExternalAPIs(res Resource) error {
+	return Error{
+		Kind:    ErrExtraResourcesWithExternalAPIs,
+		message: fmt.Sprintf("only apis can be defined if environment is not defined (found %s)", Identify(res)),
 	}
 }
 

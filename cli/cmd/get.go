@@ -382,7 +382,6 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 
 	ctx := resourcesRes.Context
 	api := ctx.APIs[name]
-	model := ctx.Models[api.ModelName]
 
 	var staleReplicas int32
 	var ctxAPIStatus *resource.APIStatus
@@ -415,7 +414,9 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 	out += "URL:      " + urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path) + "\n"
 	out += "Method:   POST\n"
 	out += `Header:   "Content-Type: application/json"` + "\n"
-	if api.ModelPath == nil {
+
+	if api.Model != nil {
+		model := ctx.Models[api.ModelName]
 		resIDs := strset.New()
 		combinedInput := []interface{}{model.Input, model.TrainingInput}
 		for _, res := range ctx.ExtractCortexResources(combinedInput, resource.ConstantType, resource.RawColumnType, resource.AggregateType, resource.TransformedColumnType) {

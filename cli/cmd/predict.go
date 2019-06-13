@@ -109,19 +109,19 @@ var predictCmd = &cobra.Command{
 		}
 
 		for _, prediction := range predictResponse.Predictions {
-			value := prediction.Prediction
-			if prediction.PredictionReversed != nil {
-				value = prediction.PredictionReversed
-			}
-
-			if prediction.Prediction == nil && prediction.Response != nil {
-				prettyResp, err := json.Pretty(prediction)
+			if prediction.Prediction == nil {
+				prettyResp, err := json.Pretty(prediction.Response)
 				if err != nil {
 					errors.Exit(err)
 				}
 
 				fmt.Println(prettyResp)
 				continue
+			}
+
+			value := prediction.Prediction
+			if prediction.PredictionReversed != nil {
+				value = prediction.PredictionReversed
 			}
 
 			if casted, ok := cast.InterfaceToFloat64(value); ok {
