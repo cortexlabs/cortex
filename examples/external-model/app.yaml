@@ -3,6 +3,8 @@
 
 - kind: api
   name: iris
-  model_path: s3://cortex-examples/iris-model.zip
+  external_model:
+    path: s3://cortex2-test-us-east/iris-model.zip
+    region: us-east-1
   compute:
     replicas: 1

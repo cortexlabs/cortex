@@ -8,7 +8,9 @@ Serve models at scale and use them to build smarter applications.
 - kind: api  # (required)
   name: <string>  # API name (required)
   model_name: <string>  # name of a Cortex model (required)
-  model_path: <string>  # path to a zipped model dir (optional)
+  external_model:
+    path: <string>  # path to a zipped model dir (optional)
+    region: <string> # region of external model
   compute:
     replicas: <int>  # number of replicas to launch (default: 1)
     cpu: <string>  # CPU request (default: Null)

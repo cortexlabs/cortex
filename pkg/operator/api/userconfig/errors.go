@@ -75,6 +75,7 @@ const (
 	ErrEnvSchemaMismatch
 	ErrExtraResourcesWithExternalAPIs
 	ErrImplDoesNotExist
+	ErrExternalModelNotFound
 )
 
 var errorKinds = []string{
@@ -124,9 +125,10 @@ var errorKinds = []string{
 	"err_env_schema_mismatch",
 	"err_extra_resources_with_external_a_p_is",
 	"err_impl_does_not_exist",
+	"err_external_model_not_found",
 }
 
-var _ = [1]int{}[int(ErrImplDoesNotExist)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrExternalModelNotFound)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -573,5 +575,12 @@ func ErrorImplDoesNotExist(path string) error {
 	return Error{
 		Kind:    ErrImplDoesNotExist,
 		message: fmt.Sprintf("%s: implementation file does not exist", path),
+	}
+}
+
+func ErrorExternalModelNotFound(path string) error {
+	return Error{
+		Kind:    ErrExternalModelNotFound,
+		message: fmt.Sprintf("%s: file not found or inaccessible", path),
 	}
 }

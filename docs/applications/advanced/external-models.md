@@ -17,12 +17,14 @@ $ zip -r model.zip export/estimator
 $ aws s3 cp model.zip s3://your-bucket/model.zip
 ```
 
-3. Specify `model_path` in an API, e.g.
+3. Specify `external_model` in an API, e.g.
 
 ```yaml
 - kind: api
   name: my-api
-  model_path: s3://your-bucket/model.zip
+  external_model:
+    path: s3://your-bucket/model.zip
+    region: us-west-2
   compute:
     replicas: 5
     gpu: 1
