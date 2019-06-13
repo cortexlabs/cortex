@@ -114,7 +114,7 @@ fi
 
 set -u
 
-export CORTEX_VERSION_STABLE=master
+export CORTEX_VERSION_STABLE=0.4.0
 
 # Defaults
 random_id=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-z0-9' | fold -w 12 | head -n 1)

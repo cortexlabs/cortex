@@ -23,7 +23,7 @@ Transform data at scale.
 
 See [Data Types](data-types.md) for details about input values. Note: the `input` of the the transformed column must match the input type of the transformer (if specified).
 
-See <!-- CORTEX_VERSION_MINOR -->[`transformers.yaml`](https://github.com/cortexlabs/cortex/blob/master/pkg/transformers/transformers.yaml) for a list of built-in transformers.
+See <!-- CORTEX_VERSION_MINOR -->[`transformers.yaml`](https://github.com/cortexlabs/cortex/blob/0.4/pkg/transformers/transformers.yaml) for a list of built-in transformers.
 
 ## Example
 

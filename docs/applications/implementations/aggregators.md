@@ -22,7 +22,7 @@ def aggregate_spark(data, input):
     pass
 ```
 
-See Cortex's built-in <!-- CORTEX_VERSION_MINOR -->[`aggregators`](https://github.com/cortexlabs/cortex/blob/master/pkg/aggregators)) for example implementations.
+See Cortex's built-in <!-- CORTEX_VERSION_MINOR -->[`aggregators`](https://github.com/cortexlabs/cortex/blob/0.4/pkg/aggregators)) for example implementations.
 
 ## Example
 

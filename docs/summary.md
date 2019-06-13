@@ -5,7 +5,7 @@
 * [Tutorial](tutorial.md)
 * [Application Overview](applications/resources/overview.md)
 * [CLI Commands](operator/cli.md)
-* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
+* [Examples](https://github.com/cortexlabs/cortex/tree/0.4/examples)  <!-- CORTEX_VERSION_MINOR -->
 * [GitHub](https://github.com/cortexlabs/cortex)
 * [FAQ](faq.md)
 
