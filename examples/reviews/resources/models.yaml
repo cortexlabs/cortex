@@ -1,6 +1,6 @@
 - kind: model
   name: sentiment_dnn
-  estimator_path: implementations/models/sentiment_dnn.py 
+  estimator_path: implementations/models/sentiment_dnn.py
   target_column: @label_indexed
   input:
     embedding_input: @embedding_input

@@ -2,7 +2,7 @@
   name: basic_embedding
   estimator_path: implementations/models/basic_embedding.py
   target_column: @rating
-  input: 
+  input:
     embedding_columns:
       - col: @user_id_indexed
         vocab: @user_id_index
