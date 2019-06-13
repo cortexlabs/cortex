@@ -29,6 +29,7 @@ import (
 
 func getAPIs(config *userconfig.Config,
 	models context.Models,
+	datasetVersion string,
 ) (context.APIs, error) {
 	apis := context.APIs{}
 
@@ -52,6 +53,7 @@ func getAPIs(config *userconfig.Config,
 
 		if apiConfig.ModelPath != nil {
 			modelName = *apiConfig.ModelPath
+			buf.WriteString(datasetVersion)
 			buf.WriteString(*apiConfig.ModelPath)
 		}
 

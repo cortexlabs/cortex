@@ -231,7 +231,7 @@ func New(
 	}
 	ctx.Models = models
 
-	apis, err := getAPIs(userconf, ctx.Models)
+	apis, err := getAPIs(userconf, ctx.Models, ctx.DatasetVersion)
 	if err != nil {
 		return nil, err
 	}
