@@ -83,9 +83,9 @@ cortex predict iris-type irises.json
 
 ## Cleanup
 
-```
+```bash
 # Delete the deployment
-$ cortex delete iris
+cortex delete iris
 ```
 
 See [uninstall](uninstall.md) if you'd like to uninstall Cortex.
