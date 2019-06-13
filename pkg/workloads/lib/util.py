@@ -422,13 +422,10 @@ def merge_dicts_no_overwrite(*dicts):
 def merge_two_dicts_in_place_overwrite(x, y):
     """Merge y into x, with overwriting. x is updated in place"""
     if x is None:
-        return y
+        x = {}
 
     if y is None:
-        return x
-
-    if y is None and x is None:
-        return None
+        y = {}
 
     for k, v in y.items():
         if k in x and isinstance(x[k], dict) and isinstance(y[k], collections.Mapping):

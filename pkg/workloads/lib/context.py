@@ -70,16 +70,16 @@ class Context:
         self.status_prefix = self.ctx["status_prefix"]
         self.app = self.ctx["app"]
         self.environment = self.ctx["environment"]
-        self.python_packages = self.ctx["python_packages"]
-        self.raw_columns = self.ctx["raw_columns"]
-        self.transformed_columns = self.ctx["transformed_columns"]
-        self.transformers = self.ctx["transformers"]
-        self.aggregators = self.ctx["aggregators"]
-        self.aggregates = self.ctx["aggregates"]
-        self.constants = self.ctx["constants"]
-        self.models = self.ctx["models"]
-        self.estimators = self.ctx["estimators"]
-        self.apis = self.ctx["apis"]
+        self.python_packages = self.ctx["python_packages"] or {}
+        self.raw_columns = self.ctx["raw_columns"] or {}
+        self.transformed_columns = self.ctx["transformed_columns"] or {}
+        self.transformers = self.ctx["transformers"] or {}
+        self.aggregators = self.ctx["aggregators"] or {}
+        self.aggregates = self.ctx["aggregates"] or {}
+        self.constants = self.ctx["constants"] or {}
+        self.models = self.ctx["models"] or {}
+        self.estimators = self.ctx["estimators"] or {}
+        self.apis = self.ctx["apis"] or {}
         self.training_datasets = {k: v["dataset"] for k, v in self.models.items()}
         self.api_version = self.cortex_config["api_version"]
 
@@ -99,12 +99,11 @@ class Context:
                 )
             )
 
-        if self.environment is not None:
-            self.columns = util.merge_dicts_overwrite(self.raw_columns, self.transformed_columns)
+        self.columns = util.merge_dicts_overwrite(self.raw_columns, self.transformed_columns)
 
-            self.raw_column_names = list(self.raw_columns.keys())
-            self.transformed_column_names = list(self.transformed_columns.keys())
-            self.column_names = list(self.columns.keys())
+        self.raw_column_names = list(self.raw_columns.keys())
+        self.transformed_column_names = list(self.transformed_columns.keys())
+        self.column_names = list(self.columns.keys())
 
         # Internal caches
         self._transformer_impls = {}
