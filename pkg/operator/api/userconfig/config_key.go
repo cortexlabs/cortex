@@ -93,6 +93,7 @@ const (
 	DatasetComputeKey            = "dataset_compute"
 
 	// API
-	ModelKey     = "model"
-	ModelNameKey = "model_name"
+	ModelKey         = "model"
+	ModelNameKey     = "model_name"
+	ExternalModelKey = "external_model"
 )

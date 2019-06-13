@@ -1,5 +1,0 @@
-- kind: api
-  name: hand
-  model: @dnn
-  compute:
-    replicas: 1

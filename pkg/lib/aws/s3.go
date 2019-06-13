@@ -265,7 +265,19 @@ func SplitS3aPath(s3aPath string) (string, string, error) {
 	if !IsValidS3aPath(s3aPath) {
 		return "", "", ErrorInvalidS3aPath(s3aPath)
 	}
-	fullPath := s3aPath[6:]
+	fullPath := s3aPath[len("s3a://"):]
+	slashIndex := strings.Index(fullPath, "/")
+	bucket := fullPath[0:slashIndex]
+	key := fullPath[slashIndex+1:]
+
+	return bucket, key, nil
+}
+
+func SplitS3Path(s3Path string) (string, string, error) {
+	if !IsValidS3Path(s3Path) {
+		return "", "", ErrorInvalidS3aPath(s3Path)
+	}
+	fullPath := s3Path[len("s3://"):]
 	slashIndex := strings.Index(fullPath, "/")
 	bucket := fullPath[0:slashIndex]
 	key := fullPath[slashIndex+1:]
@@ -289,6 +301,27 @@ func IsS3PrefixExternal(bucket string, prefix string, region string) (bool, erro
 
 	hasPrefix := *out.KeyCount > 0
 	return hasPrefix, nil
+}
+
+func IsS3FileExternal(bucket string, key string, region string) (bool, error) {
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(region),
+	}))
+
+	_, err := s3.New(sess).HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+
+	if IsNotFoundErr(err) {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, errors.Wrap(err, key)
+	}
+
+	return true, nil
 }
 
 func IsS3aPrefixExternal(s3aPath string, region string) (bool, error) {
