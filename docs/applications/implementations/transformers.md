@@ -65,6 +65,8 @@ def reverse_transform_python(transformed_value, input):
     pass
 ```
 
+See Cortex's built-in <!-- CORTEX_VERSION_MINOR -->[`transformers`](https://github.com/cortexlabs/cortex/blob/master/pkg/transformers)) for example implementations.
+
 ## Example
 
 ```python
