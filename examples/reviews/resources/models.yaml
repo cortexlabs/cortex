@@ -1,28 +1,12 @@
-# - kind: model
-#   name: sentiment_dnn
-#   estimator: 
-#   target_column: label_indexed
-#   feature_columns:
-#     - embedding_input
-#   aggregates:
-#     - reviews_vocab
-#   hparams:
-#     learning_rate: 0.01
-#   data_partition_ratio:
-#     training: 0.8
-#     evaluation: 0.2
-#   training:
-#     batch_size: 64
-#     num_steps: 5000
-
 - kind: model
-  name: sentiment_linear
-  estimator: cortex.linear_classifier
+  name: sentiment_dnn
+  estimator_path: implementations/models/sentiment_dnn.py 
   target_column: @label_indexed
   input:
-      categorical_columns_with_vocab:
-        - col: @embedding_input
-          vocab: @reviews_vocab
+    embedding_input: @embedding_input
+    vocab: @reviews_vocab
+  hparams:
+    learning_rate: 0.01
   data_partition_ratio:
     training: 0.8
     evaluation: 0.2
@@ -30,23 +14,36 @@
     batch_size: 64
     num_steps: 5000
 
-# - kind: model
-#   name: transformer
-#   type: classification
-#   target_column: label_indexed
-#   feature_columns:
-#     - embedding_input
-#   aggregates:
-#     - max_review_length
-#     - reviews_vocab
-#   prediction_key: outputs
-#   data_partition_ratio:
-#     training: 0.8
-#     evaluation: 0.2
-#   training:
-#     batch_size: 16
-#     num_steps: 250000
-#   evaluation:
-#     start_delay_secs: 1
-#   compute:
-#     gpu: 1
+- kind: model
+  name: sentiment_linear
+  estimator_path: implementations/models/sentiment_linear.py
+  target_column: @label_indexed
+  input:
+    embedding_input: @embedding_input
+    vocab: @reviews_vocab
+  data_partition_ratio:
+    training: 0.8
+    evaluation: 0.2
+  training:
+    batch_size: 64
+    num_steps: 5000
+
+- kind: model
+  name: transformer
+  estimator_path: implementations/models/transformer.py
+  target_column: @label_indexed
+  input:
+    embedding_input: @embedding_input
+    max_review_length: @max_review_length
+    vocab: @reviews_vocab
+  prediction_key: outputs
+  data_partition_ratio:
+    training: 0.8
+    evaluation: 0.2
+  training:
+    batch_size: 16
+    num_steps: 250000
+  evaluation:
+    start_delay_secs: 1
+  compute:
+    gpu: 1

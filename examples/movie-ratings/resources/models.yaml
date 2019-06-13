@@ -1,16 +1,16 @@
 - kind: model
   name: basic_embedding
-  estimator: cortex.dnn_regressor
+  estimator_path: implementations/models/basic_embedding.py
   target_column: @rating
   input: 
-    categorical_columns_with_identity:
-      - col @user_id_indexed
-      
-      movie_id_indexed]
-  aggregates: [user_id_index, movie_id_index]
+    embedding_columns:
+      - col: @user_id_indexed
+        vocab: @user_id_index
+      - col: @movie_id_indexed
+        vocab: @movie_id_index
   hparams:
-    embedding_size: 10
-    hidden_units: [128]
+    embedding_size: 20
+    hidden_units: [10, 10]
   data_partition_ratio:
     training: 0.8
     evaluation: 0.2

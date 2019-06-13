@@ -2,8 +2,7 @@
   name: dnn
   estimator_path: implementations/models/dnn.py
   target_column: @label
-  input:
-    image: @image_pixels
+  input: @image_pixels
   hparams:
     input_shape: [784]
     learning_rate: 0.01
@@ -16,7 +15,7 @@
   name: conv
   estimator_path: implementations/models/custom.py
   target_column: @label
-  feature_columns: [@image_pixels]
+  input: @image_pixels
   hparams:
     layer_type: conv
     learning_rate: 0.01
@@ -36,7 +35,7 @@
   name: t2t
   estimator_path: implementations/models/t2t.py
   target_column: @label
-  feature_columns: [@image_pixels]
+  input: @image_pixels
   prediction_key: outputs
   hparams:
     input_shape: [28, 28, 1]
