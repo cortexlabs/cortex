@@ -402,7 +402,7 @@ def start(args):
 
     else:
         if not os.path.isdir(args.model_dir):
-            ctx.storage.download_and_unzip_external(api["model_path"], args.model_dir)
+            ctx.storage.download_and_unzip_external(api["external_model"]["path"], args.model_dir)
 
     channel = grpc.insecure_channel("localhost:" + str(args.tf_serve_port))
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)

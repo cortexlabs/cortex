@@ -48,10 +48,11 @@ func getAPIs(config *userconfig.Config,
 			buf.WriteString(model.ID)
 		}
 
-		if apiConfig.ModelPath != nil {
-			modelName = *apiConfig.ModelPath
+		if apiConfig.ExternalModel != nil {
+			modelName = apiConfig.ExternalModel.Path
 			buf.WriteString(datasetVersion)
-			buf.WriteString(*apiConfig.ModelPath)
+			buf.WriteString(apiConfig.ExternalModel.Path)
+			buf.WriteString(apiConfig.ExternalModel.Region)
 		}
 
 		id := hash.Bytes(buf.Bytes())

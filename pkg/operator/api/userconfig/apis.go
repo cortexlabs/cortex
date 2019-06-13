@@ -17,6 +17,7 @@ limitations under the License.
 package userconfig
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
@@ -26,10 +27,10 @@ type APIs []*API
 
 type API struct {
 	ResourceFields
-	Model     *string     `json:"model" yaml:"model"`
-	ModelPath *string     `json:"model_path" yaml:"model_path"`
-	Compute   *APICompute `json:"compute" yaml:"compute"`
-	Tags      Tags        `json:"tags" yaml:"tags"`
+	Model         *string        `json:"model" yaml:"model"`
+	ExternalModel *ExternalModel `json:"external_model" yaml:"external_model"`
+	Compute       *APICompute    `json:"compute" yaml:"compute"`
+	Tags          Tags           `json:"tags" yaml:"tags"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -48,14 +49,37 @@ var apiValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "ModelPath",
-			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: cr.GetS3PathValidator(),
-			},
+			StructField:      "ExternalModel",
+			StructValidation: externalModelFieldValidation,
 		},
 		apiComputeFieldValidation,
 		tagsFieldValidation,
 		typeFieldValidation,
+	},
+}
+
+type ExternalModel struct {
+	Path   string `json:"path" yaml:"path"`
+	Region string `json:"region" yaml:"region"`
+}
+
+var externalModelFieldValidation = &cr.StructValidation{
+	DefaultNil: true,
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField: "Path",
+			StringValidation: &cr.StringValidation{
+				Validator: cr.GetS3PathValidator(),
+				Required:  true,
+			},
+		},
+		{
+			StructField: "Region",
+			StringValidation: &cr.StringValidation{
+				Default:       aws.DefaultS3Region,
+				AllowedValues: aws.S3Regions.Slice(),
+			},
+		},
 	},
 }
 
@@ -80,12 +104,23 @@ func (apis APIs) Validate() error {
 }
 
 func (api *API) Validate() error {
-	if api.ModelPath == nil && api.Model == nil {
-		return errors.Wrap(ErrorSpecifyOnlyOneMissing("model_name", "model_path"), Identify(api))
+	if api.ExternalModel == nil && api.Model == nil {
+		return errors.Wrap(ErrorSpecifyOnlyOneMissing(ModelKey, ExternalModelKey), Identify(api))
 	}
 
-	if api.ModelPath != nil && api.Model != nil {
-		return errors.Wrap(ErrorSpecifyOnlyOne("model_name", "model_path"), Identify(api))
+	if api.ExternalModel != nil && api.Model != nil {
+		return errors.Wrap(ErrorSpecifyOnlyOne(ModelKey, ExternalModelKey), Identify(api))
+	}
+
+	if api.ExternalModel != nil {
+		bucket, key, err := aws.SplitS3Path(api.ExternalModel.Path)
+		if err != nil {
+			return errors.Wrap(err, Identify(api), ExternalModelKey, PathKey)
+		}
+
+		if ok, err := aws.IsS3FileExternal(bucket, key, api.ExternalModel.Region); err != nil || !ok {
+			return errors.Wrap(ErrorExternalModelNotFound(api.ExternalModel.Path), Identify(api), ExternalModelKey, PathKey)
+		}
 	}
 
 	return nil
