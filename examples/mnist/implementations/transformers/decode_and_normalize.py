@@ -5,10 +5,8 @@ import numpy as np
 import math
 
 
-def transform_python(sample, args):
-    image = sample["image"]
-
-    decoded = base64.b64decode(image)
+def transform_python(input):
+    decoded = base64.b64decode(input)
     decoded_image = np.asarray(Image.open(BytesIO(decoded)), dtype=np.uint8)
 
     # reimplmenting tf.per_image_standardization

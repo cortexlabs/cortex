@@ -1,11 +1,10 @@
 - kind: model
   name: sentiment_dnn
-  type: classification
-  target_column: label_indexed
-  feature_columns:
-    - embedding_input
-  aggregates:
-    - reviews_vocab
+  estimator_path: implementations/models/sentiment_dnn.py
+  target_column: @label_indexed
+  input:
+    embedding_input: @embedding_input
+    vocab: @reviews_vocab
   hparams:
     learning_rate: 0.01
   data_partition_ratio:
@@ -17,12 +16,11 @@
 
 - kind: model
   name: sentiment_linear
-  type: classification
-  target_column: label_indexed
-  feature_columns:
-    - embedding_input
-  aggregates:
-    - reviews_vocab
+  estimator_path: implementations/models/sentiment_linear.py
+  target_column: @label_indexed
+  input:
+    embedding_input: @embedding_input
+    vocab: @reviews_vocab
   data_partition_ratio:
     training: 0.8
     evaluation: 0.2
@@ -32,13 +30,12 @@
 
 - kind: model
   name: transformer
-  type: classification
-  target_column: label_indexed
-  feature_columns:
-    - embedding_input
-  aggregates:
-    - max_review_length
-    - reviews_vocab
+  estimator_path: implementations/models/transformer.py
+  target_column: @label_indexed
+  input:
+    embedding_input: @embedding_input
+    max_review_length: @max_review_length
+    vocab: @reviews_vocab
   prediction_key: outputs
   data_partition_ratio:
     training: 0.8
