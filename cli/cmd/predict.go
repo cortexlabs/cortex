@@ -124,7 +124,8 @@ var predictCmd = &cobra.Command{
 				value = prediction.PredictionReversed
 			}
 
-			if casted, ok := cast.InterfaceToFloat64(value); ok {
+			if cast.IsFloatType(value) {
+				casted, _ := cast.InterfaceToFloat64(value)
 				fmt.Println(s.Round(casted, 2, true))
 			} else {
 				fmt.Println(s.UserStrStripped(value))
@@ -151,7 +152,7 @@ func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse
 	}
 
 	var predictResponse PredictResponse
-	err = json.Unmarshal(httpResponse, &predictResponse)
+	err = json.DecodeWithNumber(httpResponse, &predictResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "prediction response")
 	}

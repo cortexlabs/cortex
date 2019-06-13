@@ -702,6 +702,9 @@ func InterfaceToStrStrMap(in interface{}) (map[string]string, bool) {
 
 func IsIntType(in interface{}) bool {
 	switch in.(type) {
+	case json.Number:
+		_, err := in.(json.Number).Int64()
+		return err == nil
 	case int8:
 		return true
 	case int16:
@@ -718,6 +721,9 @@ func IsIntType(in interface{}) bool {
 
 func IsFloatType(in interface{}) bool {
 	switch in.(type) {
+	case json.Number:
+		_, err := in.(json.Number).Float64()
+		return err == nil
 	case float32:
 		return true
 	case float64:
@@ -731,10 +737,21 @@ func IsFloatOrIntType(in interface{}) bool {
 }
 
 func IsScalarType(in interface{}) bool {
-	if IsFloatOrIntType(in) {
-		return true
-	}
 	switch in.(type) {
+	case int8:
+		return true
+	case int16:
+		return true
+	case int32:
+		return true
+	case int64:
+		return true
+	case int:
+		return true
+	case float32:
+		return true
+	case float64:
+		return true
 	case string:
 		return true
 	case bool:
