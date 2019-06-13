@@ -4,7 +4,7 @@
 - kind: api
   name: iris
   external_model:
-    path: s3://cortex-examples/ir3is-model.zip
-    region: us-west-2
+    path: s3://cortex-examples/iris-model.zip
+    region: us-east-2
   compute:
     replicas: 1
