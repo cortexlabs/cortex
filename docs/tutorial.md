@@ -22,10 +22,10 @@ Our goal is to build a web API that returns the type of iris given its measureme
 
 ```bash
 mkdir iris && cd iris
-touch app.yaml dnn.py irises.json
+touch app.yaml irises.json
 ```
 
-Cortex requires an `app.yaml` file which defines a single `app` resource. Other resources may be defined in arbitrarily named YAML files in the the directory which contains `app.yaml` or any subdirectories. For this example, we will define all of our resources in `app.yaml`.
+Cortex requires an `app.yaml` file which defines an `app` resource. Other resources may be defined in arbitrarily named YAML files in the the directory which contains `app.yaml` or any subdirectories. For this example, we will define all of our resources in `app.yaml`.
 
 Add to `app.yaml`:
 
@@ -49,11 +49,11 @@ Add to `app.yaml`:
     schema: [@sepal_length, @sepal_width, @petal_length, @petal_width, @class]
 ```
 
-Cortex will be able to read from any S3 bucket that your AWS credentials grant access to.
+Cortex is able to read from any S3 bucket that your AWS credentials grant access to.
 
 #### Define the model
 
-This configuration will generate a training dataset with the specified columns and train our classifier using the generated dataset. Here we're using TensorFlow's [DNNClassifier](https://www.tensorflow.org/api_docs/python/tf/estimator/DNNClassifier) but Cortex supports any TensorFlow code that adheres to the [tf.estimator API](https://www.tensorflow.org/guide/estimators).
+This configuration will generate a training dataset with the specified columns and train our classifier using the generated dataset. Here we're using a built-in estimator (which uses TensorFlow's [DNNClassifier](https://www.tensorflow.org/api_docs/python/tf/estimator/DNNClassifier)) but Cortex supports any TensorFlow code that adheres to the [tf.estimator API](https://www.tensorflow.org/guide/estimators).
 
 Add to `app.yaml`:
 
@@ -87,7 +87,7 @@ Add to `app.yaml`:
   name: iris-type
   model: @dnn
   compute:
-    replicas: 1
+    replicas: 2
 ```
 
 ## Deploy the application

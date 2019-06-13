@@ -9,6 +9,7 @@ Cortex applications consist of declarative resource configuration written in YAM
 * [aggregate](aggregates.md)
 * [transformer](transformers.md)
 * [transformed_column](transformed-columns.md)
+* [estimator](estimators.md)
 * [model](models.md)
 * [api](apis.md)
 * [constant](constants.md)

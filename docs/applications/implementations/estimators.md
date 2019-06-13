@@ -26,6 +26,8 @@ def create_estimator(run_config, model_config):
     pass
 ```
 
+See the [tf.estimator.RunConfig](https://www.tensorflow.org/api_docs/python/tf/estimator/RunConfig) and [tf.estimator.Estimator](https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator) documentation for more information.
+
 ## Example
 
 ```python

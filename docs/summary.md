@@ -20,6 +20,7 @@
   * [Aggregates](applications/resources/aggregates.md)
   * [Transformers](applications/resources/transformers.md)
   * [Transformed Columns](applications/resources/transformed-columns.md)
+  * [Estimators](applications/resources/estimators.md)
   * [Models](applications/resources/models.md)
   * [APIs](applications/resources/apis.md)
   * [Constants](applications/resources/constants.md)
@@ -30,7 +31,7 @@
 
   * [Aggregators](applications/implementations/aggregators.md)
   * [Transformers](applications/implementations/transformers.md)
-  * [Models](applications/implementations/models.md)
+  * [Estimators](applications/implementations/estimators.md)
 
 ### Advanced
 

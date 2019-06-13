@@ -1,5 +1,5 @@
 - kind: app
-  name: iris
+  name: external-model
 
 - kind: api
   name: iris

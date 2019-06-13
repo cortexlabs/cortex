@@ -58,8 +58,6 @@ Train TensorFlow models at scale.
 
 See [Data Types](data-types.md) for details about input and output values. Note: the `target_column`, `input`, `training_input`, and `hparams` of the the aggregate must match the input types of the estimator (if specified).
 
-See the [tf.estimator.RunConfig](https://www.tensorflow.org/api_docs/python/tf/estimator/RunConfig) and [tf.estimator.EvalSpec](https://www.tensorflow.org/api_docs/python/tf/estimator/EvalSpec) documentation for more information.
-
 ## Example
 
 ```yaml
