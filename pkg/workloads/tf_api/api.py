@@ -336,7 +336,7 @@ def predict(app_name, api_name):
                 return prediction_failed(sample, reason)
 
             for column in local_cache["required_inputs"]:
-                column_type = local_cache["ctx"].get_inferred_column_type(column["name"])
+                column_type = ctx.get_inferred_column_type(column["name"])
                 sample[column["name"]] = util.upcast(sample[column["name"]], column_type)
 
         try:

@@ -102,8 +102,6 @@ class Context:
         if self.environment is not None:
             self.columns = util.merge_dicts_overwrite(self.raw_columns, self.transformed_columns)
 
-            self.values = util.merge_dicts_overwrite(self.aggregates, self.constants)
-
             self.raw_column_names = list(self.raw_columns.keys())
             self.transformed_column_names = list(self.transformed_columns.keys())
             self.column_names = list(self.columns.keys())
