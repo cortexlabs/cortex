@@ -91,10 +91,10 @@ func appInitFiles(appName string) map[string]string {
 #     csv_config:
 #       header: true
 #     schema:
-#       - column1
-#       - column2
-#       - column3
-#       - label
+#       - @column1
+#       - @column2
+#       - @column3
+#       - @label
 `,
 
 		"resources/raw_columns.yaml": `## Sample raw columns:
@@ -125,11 +125,9 @@ func appInitFiles(appName string) map[string]string {
 # - kind: aggregate
 #   name: column1_bucket_boundaries
 #   aggregator: cortex.bucket_boundaries
-#   inputs:
-#     columns:
-#       col: column1
-#     args:
-#       num_buckets: 3
+#   input:
+#     col: @column1
+#     num_buckets: 3
 `,
 
 		"resources/transformed_columns.yaml": `## Sample transformed columns:
@@ -137,33 +135,27 @@ func appInitFiles(appName string) map[string]string {
 # - kind: transformed_column
 #   name: column1_bucketized
 #   transformer: cortex.bucketize  # Cortex provided transformer in pkg/transformers
-#   inputs:
-#     columns:
-#       num: column1
-#     args:
-#       bucket_boundaries: column2_bucket_boundaries
+#   input:
+#     num: @column1
+#     bucket_boundaries: @column2_bucket_boundaries
 #
 # - kind: transformed_column
 #   name: column2_transformed
-#   transformer: my_transformer  # Your own custom transformer from the transformers folder
+#   transformer: my_transformer  # Your own custom transformer
 #   inputs:
-#     columns:
-#       num: column2
-#     args:
-#       arg1: 10
-#       arg2: 100
+#     col: @column2
+#     arg1: 10
+#     arg2: 100
 `,
 
 		"resources/models.yaml": `## Sample model:
 #
 # - kind: model
-#   name: my_model
-#   type: classification
-#   target_column: label
-#   feature_columns:
-#     - column1
-#     - column2
-#     - column3
+#   name: dnn
+#   estimator: cortex.dnn_classifier
+#   target_column: @class
+#   input:
+#     numeric_columns: [@column1, @column2, @column3]
 #   hparams:
 #     hidden_units: [4, 2]
 #   data_partition_ratio:
@@ -178,7 +170,7 @@ func appInitFiles(appName string) map[string]string {
 #
 # - kind: api
 #   name: my-api
-#   model_name: my_model
+#   model: @my_model
 #   compute:
 #     replicas: 1
 `,
@@ -204,10 +196,11 @@ def create_estimator(run_config, model_config):
         run_config: An instance of tf.estimator.RunConfig to be used when creating
             the estimator.
 
-        model_config: The Cortex configuration for the model.
-            Note: nested resources are expanded (e.g. model_config["target_column"])
-            will be the configuration for the target column, rather than the
-            name of the target column).
+        model_config: The Cortex configuration for the model. Column references in all
+            inputs (i.e. model_config["target_column"], model_config["input"], and
+            model_config["training_input"]) are replaced by their names (e.g. "@column1"
+            will be replaced with "column1"). All other resource references (e.g. constants
+            and aggregates) are replaced by their runtime values.
 
     Returns:
         An instance of tf.estimator.Estimator to train the model.
@@ -215,15 +208,13 @@ def create_estimator(run_config, model_config):
 
     ## Sample create_estimator implementation:
     #
-    # feature_columns = [
-    #     tf.feature_column.numeric_column("column1"),
-    #     tf.feature_column.indicator_column(
-    #         tf.feature_column.categorical_column_with_identity("column2", num_buckets=3)
-    #     ),
-    # ]
+    # feature_columns = []
+    # for col_name in model_config["input"]["numeric_columns"]:
+    #     feature_columns.append(tf.feature_column.numeric_column(col_name))
     #
-    # return tf.estimator.DNNRegressor(
+    # return tf.estimator.DNNClassifier(
     #     feature_columns=feature_columns,
+    #     n_classes=model_config["input"]["num_classes"],
     #     hidden_units=model_config["hparams"]["hidden_units"],
     #     config=run_config,
     # )
@@ -235,7 +226,6 @@ def create_estimator(run_config, model_config):
 #
 # - kind: constant
 #   name: my_constant
-#   type: [INT]
 #   value: [0, 50, 100]
 `,
 
@@ -244,14 +234,12 @@ def create_estimator(run_config, model_config):
 # - kind: aggregator
 #   name: my_aggregator
 #   output_type: [FLOAT]
-#   inputs:
-#     columns:
-#       column1: FLOAT_COLUMN|INT_COLUMN
-#     args:
-#       arg1: INT
+#   input:
+#     column1: FLOAT_COLUMN|INT_COLUMN
+#     arg1: INT
 `,
 
-		"implementations/aggregators/my_aggregator.py": `def aggregate_spark(data, columns, args):
+		"implementations/aggregators/my_aggregator.py": `def aggregate_spark(data, input):
     """Aggregate a column in a PySpark context.
 
     This function is required.
@@ -259,15 +247,13 @@ def create_estimator(run_config, model_config):
     Args:
         data: A dataframe including all of the raw columns.
 
-        columns: A dict with the same structure as the aggregator's input
-            columns specifying the names of the dataframe's columns that
-            contain the input columns.
-
-        args: A dict with the same structure as the aggregator's input args
-            containing the runtime values of the args.
+        input: The aggregate's input object. Column references in the input are
+            replaced by their names (e.g. "@column1" will be replaced with "column1"),
+            and all other resource references (e.g. constants) are replaced by their
+            runtime values.
 
     Returns:
-        Any json-serializable object that matches the data type of the aggregator.
+        Any serializable object that matches the output type of the aggregator.
     """
 
     ## Sample aggregate_spark implementation:
@@ -275,7 +261,7 @@ def create_estimator(run_config, model_config):
     # from pyspark.ml.feature import QuantileDiscretizer
     #
     # discretizer = QuantileDiscretizer(
-    #     numBuckets=args["num_buckets"], inputCol=columns["col"], outputCol="_"
+    #     numBuckets=input["num_buckets"], inputCol=input["col"], outputCol="_"
     # ).fit(data)
     #
     # return discretizer.getSplits()
@@ -288,15 +274,13 @@ def create_estimator(run_config, model_config):
 # - kind: transformer
 #   name: my_transformer
 #   output_type: INT_COLUMN
-#   inputs:
-#     columns:
-#       column1: INT_COLUMN|FLOAT_COLUMN
-#     args:
-#       arg1: FLOAT
-#       arg2: FLOAT
+#   input:
+#     column1: INT_COLUMN|FLOAT_COLUMN
+#     arg1: FLOAT
+#     arg2: FLOAT
 `,
 
-		"implementations/transformers/my_transformer.py": `def transform_spark(data, columns, args, transformed_column_name):
+		"implementations/transformers/my_transformer.py": `def transform_spark(data, input, transformed_column_name):
     """Transform a column in a PySpark context.
 
     This function is optional (recommended for large-scale data processing).
@@ -304,12 +288,10 @@ def create_estimator(run_config, model_config):
     Args:
         data: A dataframe including all of the raw columns.
 
-        columns: A dict with the same structure as the transformer's input
-            columns specifying the names of the dataframe's columns that
-            contain the input columns.
-
-        args: A dict with the same structure as the transformer's input args
-            containing the runtime values of the args.
+        input: The transformed column's input object. Column references in the input are
+            replaced by their names (e.g. "@column1" will be replaced with "column1"),
+            and all other resource references (e.g. constants and aggregates) are replaced
+            by their runtime values.
 
         transformed_column_name: The name of the column containing the transformed
             data that is to be appended to the dataframe.
@@ -322,23 +304,22 @@ def create_estimator(run_config, model_config):
     ## Sample transform_spark implementation:
     #
     # return data.withColumn(
-    #     transformed_column_name, ((data[columns["num"]] - args["mean"]) / args["stddev"])
+    #     transformed_column_name, ((data[input["col"]] - input["mean"]) / input["stddev"])
     # )
 
     pass
 
 
-def transform_python(sample, args):
+def transform_python(input):
     """Transform a single data sample outside of a PySpark context.
 
-    This function is required.
+    This function is required for any columns that are used during inference.
 
     Args:
-        sample: A dict with the same structure as the transformer's input
-            columns containing a data sample to transform.
-
-        args: A dict with the same structure as the transformer's input args
-            containing the runtime values of the args.
+        input: The transformed column's input object. Column references in the input are
+            replaced by their values in the sample (e.g. "@column1" will be replaced with
+            the value for column1), and all other resource references (e.g. constants and
+            aggregates) are replaced by their runtime values.
 
     Returns:
         The transformed value.
@@ -346,12 +327,12 @@ def transform_python(sample, args):
 
     ## Sample transform_python implementation:
     #
-    # return (sample["num"] - args["mean"]) / args["stddev"]
+    # return (input["col"] - input["mean"]) / input["stddev"]
 
     pass
 
 
-def reverse_transform_python(transformed_value, args):
+def reverse_transform_python(transformed_value, input):
     """Reverse transform a single data sample outside of a PySpark context.
 
     This function is optional, and only relevant for certain one-to-one
@@ -360,8 +341,10 @@ def reverse_transform_python(transformed_value, args):
     Args:
         transformed_value: The transformed data value.
 
-        args: A dict with the same structure as the transformer's input args
-            containing the runtime values of the args.
+        input: The transformed column's input object. Column references in the input are
+            replaced by their names (e.g. "@column1" will be replaced with "column1"),
+            and all other resource references (e.g. constants and aggregates) are replaced
+            by their runtime values.
 
     Returns:
         The raw data value that corresponds to the transformed value.
@@ -369,7 +352,40 @@ def reverse_transform_python(transformed_value, args):
 
     ## Sample reverse_transform_python implementation:
     #
-    # return args["mean"] + (transformed_value * args["stddev"])
+    # return input["mean"] + (transformed_value * input["stddev"])
+
+    pass
+`,
+
+		"implementations/estimators/my_estimator.py": `def create_estimator(run_config, model_config):
+    """Create an estimator to train the model.
+
+    Args:
+        run_config: An instance of tf.estimator.RunConfig to be used when creating
+            the estimator.
+
+        model_config: The Cortex configuration for the model. Column references in all
+            inputs (i.e. model_config["target_column"], model_config["input"], and
+            model_config["training_input"]) are replaced by their names (e.g. "@column1"
+            will be replaced with "column1"). All other resource references (e.g. constants
+            and aggregates) are replaced by their runtime values.
+
+    Returns:
+        An instance of tf.estimator.Estimator to train the model.
+    """
+
+    ## Sample create_estimator implementation:
+    #
+    # feature_columns = []
+    # for col_name in model_config["input"]["numeric_columns"]:
+    #     feature_columns.append(tf.feature_column.numeric_column(col_name))
+    #
+    # return tf.estimator.DNNClassifier(
+    #     feature_columns=feature_columns,
+    #     n_classes=model_config["input"]["num_classes"],
+    #     hidden_units=model_config["hparams"]["hidden_units"],
+    #     config=run_config,
+    # )
 
     pass
 `,

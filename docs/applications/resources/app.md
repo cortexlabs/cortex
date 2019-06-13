@@ -5,7 +5,7 @@ The app resource is used to group a set of resources into an application that ca
 ## Config
 
 ```yaml
-- kind: app  # (required)
+- kind: app
   name: <string>  # app name (required)
 ```
 

@@ -7,14 +7,9 @@ Transform data at scale.
 ```yaml
 - kind: transformed_column
   name: <string>  # transformed column name (required)
-  transformer: <string>  # the name of the transformer to use (required)
-  inputs:
-    columns:
-      <string>: <string> or <[string]>  # map of column input name to raw column name(s) (required)
-      ...
-    args:
-      <string>: <value>  # value may be an aggregate, constant, or literal value (optional)
-      ...
+  transformer: <string>  # the name of the transformer to use (this or transformer_path must be specified)
+  transformer_path: <string>  # a path to an transformer implementation file (this or transformer must be specified)
+  input: <input_value>  # the input to the transformer, which may contain references to columns, constants, and aggregates (e.g. @column1) (required)
   compute:
     executors: <int>  # number of spark executors (default: 1)
     driver_cpu: <string>  # CPU request for spark driver (default: 1)
@@ -24,14 +19,9 @@ Transform data at scale.
     executor_mem: <string>  # memory request for each spark executor (default: 500Mi)
     executor_mem_overhead: <string>  # off-heap (non-JVM) memory allocated to each executor (overrides mem_overhead_factor) (default: min[executor_mem * 0.4, 384Mi])
     mem_overhead_factor: <float>  # the proportion of driver_mem/executor_mem which will be additionally allocated for off-heap (non-JVM) memory (default: 0.4)
-  tags:
-    <string>: <scalar>  # arbitrary key/value pairs to attach to the resource (optional)
-    ...
 ```
 
-Note: the `columns` and `args` fields of the the transformed column must match the data types of the `columns` and `args` fields of the selected transformer.
-
-Each `args` value may be the name of an aggregate, the name of a constant, or a literal value. Any string value will be assumed to be the name of an aggregate or constant. To use a string literal as an arg, escape it with double quotes (e.g. `arg_name: "\"string literal\""`.
+See [Data Types](data-types.md) for details about input values. Note: the `input` of the the transformed column must match the input type of the transformer (if specified).
 
 See <!-- CORTEX_VERSION_MINOR -->[`transformers.yaml`](https://github.com/cortexlabs/cortex/blob/master/pkg/transformers/transformers.yaml) for a list of built-in transformers.
 
@@ -41,30 +31,24 @@ See <!-- CORTEX_VERSION_MINOR -->[`transformers.yaml`](https://github.com/cortex
 - kind: transformed_column
   name: age_normalized
   transformer: cortex.normalize
-  inputs:
-    columns:
-      num: age  # column name
-    args:
-      mean: age_mean  # the name of a cortex.mean aggregator
-      stddev: age_stddev  # the name of a cortex.stddev aggregator
+  input:
+    num: @age  # "age" is the name of a numeric raw column
+    mean: @age_mean  # "age_mean" is the name of an aggregate which used the cortex.mean aggregator
+    stddev: @age_stddev  # "age_stddev" is the name of an aggregate which used the cortex.stddev aggregator
 
 - kind: transformed_column
   name: class_indexed
   transformer: cortex.index_string
-  inputs:
-    columns:
-      col: class  # the name of a string column
-    args:
-      index: {"indexes": ["t", "f"], "reversed_index": ["t": 0, "f": 1]}  # a value to be used as the index
+  input:
+    col: @class  # "class" is the name of a string raw column
+    index: {"indexes": ["t", "f"], "reversed_index": ["t": 0, "f": 1]}  # a value to be used as the index
 
 - kind: transformed_column
   name: price_bucketized
   transformer: cortex.bucketize
-  inputs:
-    columns:
-      num: price  # column name
-    args:
-      bucket_boundaries: bucket_boundaries  # the name of a [FLOAT] constant
+  input:
+    num: @price  # "price" is the name of a numeric raw column
+    bucket_boundaries: @bucket_boundaries  # "bucket_boundaries" is the name of a [FLOAT] constant
 ```
 
 ## Validating Transformers

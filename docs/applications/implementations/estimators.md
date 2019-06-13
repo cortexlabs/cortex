@@ -1,4 +1,4 @@
-# Models
+# Estimators
 
 Cortex can train any model that implements the TensorFlow Estimator API. Models can be trained using any subset of the raw and transformed columns.
 
@@ -14,10 +14,11 @@ def create_estimator(run_config, model_config):
         run_config: An instance of tf.estimator.RunConfig to be used when creating
             the estimator.
 
-        model_config: The Cortex configuration for the model.
-            Note: nested resources are expanded (e.g. model_config["target_column"])
-            will be the configuration for the target column, rather than the
-            name of the target column).
+        model_config: The Cortex configuration for the model. Column references in all
+            inputs (i.e. model_config["target_column"], model_config["input"], and
+            model_config["training_input"]) are replaced by their names (e.g. "@column1"
+            will be replaced with "column1"). All other resource references (e.g. constants
+            and aggregates) are replaced by their runtime values.
 
     Returns:
         An instance of tf.estimator.Estimator to train the model.
@@ -31,17 +32,14 @@ def create_estimator(run_config, model_config):
 import tensorflow as tf
 
 def create_estimator(run_config, model_config):
-    feature_columns = [
-        tf.feature_column.numeric_column("sepal_length_normalized"),
-        tf.feature_column.numeric_column("sepal_width_normalized"),
-        tf.feature_column.numeric_column("petal_length_normalized"),
-        tf.feature_column.numeric_column("petal_width_normalized"),
-    ]
+    feature_columns = []
+    for col_name in model_config["input"]["numeric_columns"]:
+        feature_columns.append(tf.feature_column.numeric_column(col_name))
 
     return tf.estimator.DNNClassifier(
         feature_columns=feature_columns,
+        n_classes=model_config["input"]["num_classes"],
         hidden_units=model_config["hparams"]["hidden_units"],
-        n_classes=len(model_config["aggregates"]["class_index"]),
         config=run_config,
     )
 ```
@@ -78,11 +76,11 @@ def transform_tensorflow(features, labels, model_config):
 
         labels: The label tensor.
 
-        model_config: The Cortex configuration for the model.
-            Note: nested resources are expanded (e.g. model_config["target_column"])
-            will be the configuration for the target column, rather than the
-            name of the target column).
-
+        model_config: The Cortex configuration for the model. Column references in all
+            inputs (i.e. model_config["target_column"], model_config["input"], and
+            model_config["training_input"]) are replaced by their names (e.g. "@column1"
+            will be replaced with "column1"). All other resource references (e.g. constants
+            and aggregates) are replaced by their runtime values.
 
     Returns:
         features and labels tensors.
