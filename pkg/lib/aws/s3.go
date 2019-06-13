@@ -308,16 +308,20 @@ func IsS3FileExternal(bucket string, key string, region string) (bool, error) {
 		Region: aws.String(region),
 	}))
 
-	out, err := s3.New(sess).HeadObject(&s3.HeadObjectInput{
+	_, err := s3.New(sess).HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
+
+	if IsNotFoundErr(err) {
+		return false, nil
+	}
 
 	if err != nil {
 		return false, errors.Wrap(err, key)
 	}
 
-	return out != nil, nil
+	return true, nil
 }
 
 func IsS3aPrefixExternal(s3aPath string, region string) (bool, error) {

@@ -70,11 +70,15 @@ var externalModelFieldValidation = &cr.StructValidation{
 			StructField: "Path",
 			StringValidation: &cr.StringValidation{
 				Validator: cr.GetS3PathValidator(),
+				Required:  true,
 			},
 		},
 		{
-			StructField:      "Region",
-			StringValidation: &cr.StringValidation{},
+			StructField: "Region",
+			StringValidation: &cr.StringValidation{
+				Default:       aws.DefaultS3Region,
+				AllowedValues: aws.S3Regions.Slice(),
+			},
 		},
 	},
 }
@@ -101,21 +105,21 @@ func (apis APIs) Validate() error {
 
 func (api *API) Validate() error {
 	if api.ExternalModel == nil && api.Model == nil {
-		return errors.Wrap(ErrorSpecifyOnlyOneMissing("model", "external_model"), Identify(api))
+		return errors.Wrap(ErrorSpecifyOnlyOneMissing(ModelKey, ExternalModelKey), Identify(api))
 	}
 
 	if api.ExternalModel != nil && api.Model != nil {
-		return errors.Wrap(ErrorSpecifyOnlyOne("model", "external_model"), Identify(api))
+		return errors.Wrap(ErrorSpecifyOnlyOne(ModelKey, ExternalModelKey), Identify(api))
 	}
 
 	if api.ExternalModel != nil {
 		bucket, key, err := aws.SplitS3Path(api.ExternalModel.Path)
 		if err != nil {
-			return err
+			return errors.Wrap(err, Identify(api), ExternalModelKey, PathKey)
 		}
 
 		if ok, err := aws.IsS3FileExternal(bucket, key, api.ExternalModel.Region); err != nil || !ok {
-			return ErrorExternalModelNotFound(api.ExternalModel.Path)
+			return errors.Wrap(ErrorExternalModelNotFound(api.ExternalModel.Path), Identify(api), ExternalModelKey, PathKey)
 		}
 	}
 
