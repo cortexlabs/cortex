@@ -99,11 +99,12 @@ class Context:
                 )
             )
 
-        self.columns = util.merge_dicts_overwrite(self.raw_columns, self.transformed_columns)
+        if self.environment is not None:
+            self.columns = util.merge_dicts_overwrite(self.raw_columns, self.transformed_columns)
 
-        self.raw_column_names = list(self.raw_columns.keys())
-        self.transformed_column_names = list(self.transformed_columns.keys())
-        self.column_names = list(self.columns.keys())
+            self.raw_column_names = list(self.raw_columns.keys())
+            self.transformed_column_names = list(self.transformed_columns.keys())
+            self.column_names = list(self.columns.keys())
 
         # Internal caches
         self._transformer_impls = {}
@@ -117,15 +118,14 @@ class Context:
         os.environ["AWS_REGION"] = self.cortex_config.get("region", "")
 
         # Id map
-        self.pp_id_map = ResourceMap(self.python_packages)
-        self.rf_id_map = ResourceMap(self.raw_columns)
-        self.ag_id_map = ResourceMap(self.aggregates)
-        self.tf_id_map = ResourceMap(self.transformed_columns)
-        self.td_id_map = ResourceMap(self.training_datasets)
-        self.models_id_map = ResourceMap(self.models)
-        self.apis_id_map = ResourceMap(self.apis)
-        self.constants_id_map = ResourceMap(self.constants)
-
+        self.pp_id_map = ResourceMap(self.python_packages) if self.python_packages else None
+        self.rf_id_map = ResourceMap(self.raw_columns) if self.raw_columns else None
+        self.ag_id_map = ResourceMap(self.aggregates) if self.aggregates else None
+        self.tf_id_map = ResourceMap(self.transformed_columns) if self.transformed_columns else None
+        self.td_id_map = ResourceMap(self.training_datasets) if self.training_datasets else None
+        self.models_id_map = ResourceMap(self.models) if self.models else None
+        self.apis_id_map = ResourceMap(self.apis) if self.apis else None
+        self.constants_id_map = ResourceMap(self.constants) if self.constants else None
         self.id_map = util.merge_dicts_overwrite(
             self.pp_id_map,
             self.rf_id_map,
@@ -704,17 +704,19 @@ def _validate_required_fn_args(impl, fn_name, args):
 
 
 def _deserialize_raw_ctx(raw_ctx):
-    raw_columns = raw_ctx["raw_columns"]
-    raw_ctx["raw_columns"] = util.merge_dicts_overwrite(*raw_columns.values())
+    if raw_ctx.get("environment") is not None:
+        raw_columns = raw_ctx["raw_columns"]
+        raw_ctx["raw_columns"] = util.merge_dicts_overwrite(*raw_columns.values())
 
-    data_split = raw_ctx["environment_data"]
+        data_split = raw_ctx["environment_data"]
 
-    if data_split["csv_data"] is not None and data_split["parquet_data"] is None:
-        raw_ctx["environment"]["data"] = data_split["csv_data"]
-    elif data_split["parquet_data"] is not None and data_split["csv_data"] is None:
-        raw_ctx["environment"]["data"] = data_split["parquet_data"]
-    else:
-        raise CortexException("expected csv_data or parquet_data but found " + data_split)
+        if data_split["csv_data"] is not None and data_split["parquet_data"] is None:
+            raw_ctx["environment"]["data"] = data_split["csv_data"]
+        elif data_split["parquet_data"] is not None and data_split["csv_data"] is None:
+            raw_ctx["environment"]["data"] = data_split["parquet_data"]
+        else:
+            raise CortexException("expected csv_data or parquet_data but found " + data_split)
+
     return raw_ctx
 
 

@@ -133,15 +133,23 @@ func New(
 	}
 	ctx.DatasetVersion = datasetVersion
 
-	ctx.Environment = getEnvironment(userconf, datasetVersion)
+	if userconf.Environment != nil {
+		ctx.Environment = getEnvironment(userconf, datasetVersion)
+	}
 
 	ctx.Root = filepath.Join(
 		consts.AppsDir,
 		ctx.App.Name,
 		consts.DataDir,
 		ctx.DatasetVersion,
-		ctx.Environment.ID,
 	)
+
+	if ctx.Environment != nil {
+		ctx.Root = filepath.Join(
+			ctx.Root,
+			ctx.Environment.ID,
+		)
+	}
 
 	ctx.MetadataRoot = filepath.Join(
 		ctx.Root,
@@ -223,7 +231,7 @@ func New(
 	}
 	ctx.Models = models
 
-	apis, err := getAPIs(userconf, ctx.Models)
+	apis, err := getAPIs(userconf, ctx.Models, ctx.DatasetVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +264,9 @@ func calculateID(ctx *context.Context) string {
 	ids = append(ids, ctx.RawDataset.Key)
 	ids = append(ids, ctx.StatusPrefix)
 	ids = append(ids, ctx.App.ID)
-	ids = append(ids, ctx.Environment.ID)
+	if ctx.Environment != nil {
+		ids = append(ids, ctx.Environment.ID)
+	}
 
 	for _, resource := range ctx.AllResources() {
 		ids = append(ids, resource.GetID())

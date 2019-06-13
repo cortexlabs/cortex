@@ -153,9 +153,10 @@ type ExternalData struct {
 var externalDataValidation = []*cr.StructFieldValidation{
 	{
 		StructField: "Path",
-		StringValidation: cr.GetS3aPathValidation(&cr.S3aPathValidation{
-			Required: true,
-		}),
+		StringValidation: &cr.StringValidation{
+			Required:  true,
+			Validator: cr.GetS3aPathValidator(),
+		},
 	},
 	{
 		StructField: "Region",

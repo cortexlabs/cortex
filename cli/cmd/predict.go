@@ -109,6 +109,16 @@ var predictCmd = &cobra.Command{
 		}
 
 		for _, prediction := range predictResponse.Predictions {
+			if prediction.Prediction == nil {
+				prettyResp, err := json.Pretty(prediction.Response)
+				if err != nil {
+					errors.Exit(err)
+				}
+
+				fmt.Println(prettyResp)
+				continue
+			}
+
 			value := prediction.Prediction
 			if prediction.PredictionReversed != nil {
 				value = prediction.PredictionReversed

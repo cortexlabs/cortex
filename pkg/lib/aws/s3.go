@@ -233,6 +233,20 @@ func (c *Client) DeleteFromS3ByPrefix(prefix string, continueIfFailure bool) err
 	return errors.Wrap(err, prefix)
 }
 
+func IsValidS3Path(s3Path string) bool {
+	if !strings.HasPrefix(s3Path, "s3://") {
+		return false
+	}
+	parts := strings.Split(s3Path[5:], "/")
+	if len(parts) < 2 {
+		return false
+	}
+	if parts[0] == "" || parts[1] == "" {
+		return false
+	}
+	return true
+}
+
 func IsValidS3aPath(s3aPath string) bool {
 	if !strings.HasPrefix(s3aPath, "s3a://") {
 		return false

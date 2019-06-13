@@ -29,20 +29,31 @@ import (
 
 func getAPIs(config *userconfig.Config,
 	models context.Models,
+	datasetVersion string,
 ) (context.APIs, error) {
 	apis := context.APIs{}
 
 	for _, apiConfig := range config.APIs {
-		modelName, _ := yaml.ExtractAtSymbolText(apiConfig.Model)
-
-		model := models[modelName]
-		if model == nil {
-			return nil, errors.Wrap(userconfig.ErrorUndefinedResource(modelName, resource.ModelType), userconfig.Identify(apiConfig), userconfig.ModelNameKey)
-		}
 
 		var buf bytes.Buffer
+		var modelName string
 		buf.WriteString(apiConfig.Name)
-		buf.WriteString(model.ID)
+
+		if apiConfig.Model != nil {
+			modelName, _ = yaml.ExtractAtSymbolText(*apiConfig.Model)
+			model := models[modelName]
+			if model == nil {
+				return nil, errors.Wrap(userconfig.ErrorUndefinedResource(modelName, resource.ModelType), userconfig.Identify(apiConfig), userconfig.ModelNameKey)
+			}
+			buf.WriteString(model.ID)
+		}
+
+		if apiConfig.ModelPath != nil {
+			modelName = *apiConfig.ModelPath
+			buf.WriteString(datasetVersion)
+			buf.WriteString(*apiConfig.ModelPath)
+		}
+
 		id := hash.Bytes(buf.Bytes())
 
 		apis[apiConfig.Name] = &context.API{

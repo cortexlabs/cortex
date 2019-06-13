@@ -151,6 +151,9 @@ func (ctx *Context) modelDependencies(model *Model) strset.Set {
 }
 
 func (ctx *Context) apiDependencies(api *API) strset.Set {
+	if api.Model == nil {
+		return strset.New()
+	}
 	model := ctx.Models[api.ModelName]
 	return strset.New(model.ID)
 }

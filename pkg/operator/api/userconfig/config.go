@@ -74,6 +74,15 @@ func mergeConfigs(target *Config, source *Config) error {
 		target.App = source.App
 	}
 
+	if target.Resources == nil {
+		target.Resources = make(map[string][]Resource)
+	}
+	for resourceName, resources := range source.Resources {
+		for _, res := range resources {
+			target.Resources[resourceName] = append(target.Resources[resourceName], res)
+		}
+	}
+
 	return nil
 }
 
@@ -190,8 +199,27 @@ func (config *Config) Validate(envName string) error {
 			config.Environment = env
 		}
 	}
+
+	apisAllExternal := true
+	for _, api := range config.APIs {
+		if api.Model != nil {
+			apisAllExternal = false
+			break
+		}
+	}
+
 	if config.Environment == nil {
-		return ErrorUndefinedResource(envName, resource.EnvironmentType)
+		if !apisAllExternal || len(config.APIs) == 0 {
+			return ErrorUndefinedResource(envName, resource.EnvironmentType)
+		}
+
+		for _, resources := range config.Resources {
+			for _, res := range resources {
+				if res.GetResourceType() != resource.APIType {
+					return ErrorExtraResourcesWithExternalAPIs(res)
+				}
+			}
+		}
 	}
 
 	return nil

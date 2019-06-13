@@ -1,0 +1,8 @@
+- kind: app
+  name: iris
+
+- kind: api
+  name: iris
+  model_path: s3://cortex-examples/iris-model.zip
+  compute:
+    replicas: 1

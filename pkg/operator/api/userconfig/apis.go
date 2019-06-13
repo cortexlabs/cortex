@@ -17,9 +17,8 @@ limitations under the License.
 package userconfig
 
 import (
-	"github.com/cortexlabs/yaml"
-
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -27,9 +26,10 @@ type APIs []*API
 
 type API struct {
 	ResourceFields
-	Model   string      `json:"model" yaml:"model"`
-	Compute *APICompute `json:"compute" yaml:"compute"`
-	Tags    Tags        `json:"tags" yaml:"tags"`
+	Model     *string     `json:"model" yaml:"model"`
+	ModelPath *string     `json:"model_path" yaml:"model_path"`
+	Compute   *APICompute `json:"compute" yaml:"compute"`
+	Tags      Tags        `json:"tags" yaml:"tags"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -42,16 +42,15 @@ var apiValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField:  "Model",
-			DefaultField: "Name",
-			DefaultFieldFunc: func(name interface{}) interface{} {
-				model := "@" + name.(string)
-				escapedModel, _ := yaml.EscapeAtSymbol(model)
-				return escapedModel
-			},
-			StringValidation: &cr.StringValidation{
-				Required:               false,
+			StructField: "Model",
+			StringPtrValidation: &cr.StringPtrValidation{
 				RequireCortexResources: true,
+			},
+		},
+		{
+			StructField: "ModelPath",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Validator: cr.GetS3PathValidator(),
 			},
 		},
 		apiComputeFieldValidation,
@@ -61,6 +60,12 @@ var apiValidation = &cr.StructValidation{
 }
 
 func (apis APIs) Validate() error {
+	for _, api := range apis {
+		if err := api.Validate(); err != nil {
+			return err
+		}
+	}
+
 	resources := make([]Resource, len(apis))
 	for i, res := range apis {
 		resources[i] = res
@@ -70,6 +75,19 @@ func (apis APIs) Validate() error {
 	if len(dups) > 0 {
 		return ErrorDuplicateResourceName(dups...)
 	}
+
+	return nil
+}
+
+func (api *API) Validate() error {
+	if api.ModelPath == nil && api.Model == nil {
+		return errors.Wrap(ErrorSpecifyOnlyOneMissing("model_name", "model_path"), Identify(api))
+	}
+
+	if api.ModelPath != nil && api.Model != nil {
+		return errors.Wrap(ErrorSpecifyOnlyOne("model_name", "model_path"), Identify(api))
+	}
+
 	return nil
 }
 

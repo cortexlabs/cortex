@@ -38,6 +38,7 @@
   * [Compute](applications/advanced/compute.md)
   * [Python Packages](applications/advanced/python-packages.md)
   * [Development](development.md)
+  * [Importing External Models](applications/advanced/external-models.md)
 
 ## Operator
 
