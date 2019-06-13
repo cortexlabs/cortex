@@ -102,14 +102,6 @@ You can get a summary of the status of resources using `cortex status`:
 
 ```
 $ cortex status --watch
-
-Python Packages:       none
-Raw Columns:           5 ready
-Aggregates:            9 ready
-Transformed Columns:   5 ready
-Training Datasets:     1 ready
-Models:                1 training
-APIs:                  1 pending
 ```
 
 #### Test the iris classification service
@@ -133,11 +125,6 @@ When the API is ready, request a prediction from the API:
 
 ```
 $ cortex predict iris-type irises.json
-
-iris-type was last updated on Tuesday, February 14, 2019 at 2:57pm PST
-
-Predicted class:
-Iris-setosa
 ```
 
 #### Call the API from other clients (e.g. cURL)
@@ -146,8 +133,6 @@ Get the API's endpoint:
 
 ```
 $ cortex get api iris-type
-
-# https://abc.amazonaws.com/iris/iris-type
 ```
 
 Use cURL to test the API:
@@ -158,8 +143,6 @@ $ curl -k \
      -H "Content-Type: application/json" \
      -d '{ "samples": [ { "sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3 } ] }' \
      <API endpoint>
-
-{"classification_predictions":[{"class_ids":["0"],"classes":["MA=="],"logits":[1.501487135887146,-0.6141998171806335,-1.4335800409317017],"predicted_class":0,"predicted_class_reversed":"Iris-setosa","probabilities":[0.8520227670669556,0.10271172970533371,0.04526554048061371]}],"resource_id":"18ef9f6fb4a1a8b2a3d3e8068f179f89f65d1ae3d8ac9d96b782b1cec3b39d2"}
 ```
 
 ## Cleanup
