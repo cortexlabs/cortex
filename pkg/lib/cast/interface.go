@@ -722,8 +722,9 @@ func IsIntType(in interface{}) bool {
 func IsFloatType(in interface{}) bool {
 	switch in.(type) {
 	case json.Number:
-		_, err := in.(json.Number).Float64()
-		return err == nil
+		_, intErr := in.(json.Number).Int64()
+		_, floatErr := in.(json.Number).Float64()
+		return floatErr == nil && intErr != nil
 	case float32:
 		return true
 	case float64:
