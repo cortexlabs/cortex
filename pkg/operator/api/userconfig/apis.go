@@ -48,7 +48,10 @@ var apiValidation = &cr.StructValidation{
 				RequireCortexResources: true,
 			},
 		},
-		externalModelFieldValidation,
+		{
+			StructField:      "ExternalModel",
+			StructValidation: externalModelFieldValidation,
+		},
 		apiComputeFieldValidation,
 		tagsFieldValidation,
 		typeFieldValidation,
@@ -60,20 +63,18 @@ type ExternalModel struct {
 	Region string `json:"region" yaml:"region"`
 }
 
-var externalModelFieldValidation = &cr.StructFieldValidation{
-	StructField: "ExternalModel",
-	StructValidation: &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
-			{
-				StructField: "Path",
-				StringValidation: &cr.StringValidation{
-					Validator: cr.GetS3PathValidator(),
-				},
+var externalModelFieldValidation = &cr.StructValidation{
+	DefaultNil: true,
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField: "Path",
+			StringValidation: &cr.StringValidation{
+				Validator: cr.GetS3PathValidator(),
 			},
-			{
-				StructField:      "Region",
-				StringValidation: &cr.StringValidation{},
-			},
+		},
+		{
+			StructField:      "Region",
+			StringValidation: &cr.StringValidation{},
 		},
 	},
 }
