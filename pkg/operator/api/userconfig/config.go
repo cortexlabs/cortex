@@ -174,7 +174,7 @@ func (config *Config) Validate(envName string) error {
 	// Check ingested columns match raw columns
 	rawColumnNames := config.RawColumns.Names()
 	for _, env := range config.Environments {
-		ingestedColumnNames := env.Data.GetIngestedColumns()
+		ingestedColumnNames := env.Data.GetIngestedColumnNames()
 		missingColumnNames := slices.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
 		if len(missingColumnNames) > 0 {
 			return errors.Wrap(ErrorRawColumnNotInEnv(env.Name), Identify(config.RawColumns.Get(missingColumnNames[0])))
@@ -416,7 +416,7 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 	}
 
 	for _, env := range config.Environments {
-		ingestedColumnNames := env.Data.GetIngestedColumns()
+		ingestedColumnNames := env.Data.GetIngestedColumnNames()
 		missingColumnNames := slices.SubtractStrSlice(ingestedColumnNames, config.RawColumns.Names())
 		for _, inferredColumnName := range missingColumnNames {
 			inferredRawColumn := &RawInferredColumn{

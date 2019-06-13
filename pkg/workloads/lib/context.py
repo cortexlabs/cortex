@@ -727,8 +727,8 @@ def _deserialize_raw_ctx(raw_ctx):
 # input should already have non-column arguments replaced, and all types validated
 def create_transformer_inputs_from_map(input, col_value_map):
     if util.is_str(input):
-        res_name = util.get_resource_ref(input)
-        if res_name is not None and res_name in col_value_map:
+        if util.is_resource_ref(input):
+            res_name = util.get_resource_ref(input)
             return col_value_map[res_name]
         return input
 

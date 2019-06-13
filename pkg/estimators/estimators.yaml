@@ -43,8 +43,8 @@
       _default: []
     categorical_columns_with_vocab:
       _type:
-        - col: STRING_COLUMN
-          vocab: [STRING]
+        - col: STRING_COLUMN|INT_COLUMN
+          vocab: [STRING|INT]
           embedding_size: # If not specified, an indicator column will be used instead
             _type: INT
             _optional: true
@@ -98,8 +98,8 @@
       _default: []
     categorical_columns_with_vocab:
       _type:
-        - col: STRING_COLUMN
-          vocab: [STRING]
+        - col: STRING_COLUMN|INT_COLUMN
+          vocab: [STRING|INT]
           embedding_size: # If not specified, an indicator column will be used instead
             _type: INT
             _optional: true
@@ -160,8 +160,8 @@
       _default: []
     categorical_columns_with_vocab:
       _type:
-        - col: STRING_COLUMN
-          vocab: [STRING]
+        - col: STRING_COLUMN|INT_COLUMN
+          vocab: [STRING|INT]
           weight_column:
             _type: INT_COLUMN|FLOAT_COLUMN
             _optional: True
@@ -204,8 +204,8 @@
       _default: []
     categorical_columns_with_vocab:
       _type:
-        - col: STRING_COLUMN
-          vocab: [STRING]
+        - col: STRING_COLUMN|INT_COLUMN
+          vocab: [STRING|INT]
           weight_column:
             _type: INT_COLUMN|FLOAT_COLUMN
             _optional: True
@@ -262,8 +262,8 @@
         _default: []
       categorical_columns_with_vocab:
         _type:
-          - col: STRING_COLUMN
-            vocab: [STRING]
+          - col: STRING_COLUMN|INT_COLUMN
+            vocab: [STRING|INT]
             embedding_size: # If not specified, an indicator column will be used instead
               _type: INT
               _optional: true
@@ -302,8 +302,8 @@
         _default: []
       categorical_columns_with_vocab:
         _type:
-          - col: STRING_COLUMN
-            vocab: [STRING]
+          - col: STRING_COLUMN|INT_COLUMN
+            vocab: [STRING|INT]
             weight_column:
               _type: INT_COLUMN|FLOAT_COLUMN
               _optional: True
@@ -353,8 +353,8 @@
         _default: []
       categorical_columns_with_vocab:
         _type:
-          - col: STRING_COLUMN
-            vocab: [STRING]
+          - col: STRING_COLUMN|INT_COLUMN
+            vocab: [STRING|INT]
             embedding_size: # If not specified, an indicator column will be used instead
               _type: INT
               _optional: true
@@ -393,8 +393,8 @@
         _default: []
       categorical_columns_with_vocab:
         _type:
-          - col: STRING_COLUMN
-            vocab: [STRING]
+          - col: STRING_COLUMN|INT_COLUMN
+            vocab: [STRING|INT]
             weight_column:
               _type: INT_COLUMN|FLOAT_COLUMN
               _optional: True
@@ -453,8 +453,8 @@
       _default: []
     categorical_columns_with_vocab:
       _type:
-        - col: STRING_COLUMN
-          vocab: [STRING]
+        - col: STRING_COLUMN|INT_COLUMN
+          vocab: [STRING|INT]
           embedding_size: # If not specified, an indicator column will be used instead
             _type: INT
             _optional: true
@@ -535,8 +535,8 @@
       _default: []
     categorical_columns_with_vocab:
       _type:
-        - col: STRING_COLUMN
-          vocab: [STRING]
+        - col: STRING_COLUMN|INT_COLUMN
+          vocab: [STRING|INT]
           embedding_size: # If not specified, an indicator column will be used instead
             _type: INT
             _optional: true
