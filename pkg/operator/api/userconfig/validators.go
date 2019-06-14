@@ -365,7 +365,7 @@ func CastInputValue(value interface{}, inputSchema *InputSchema) (interface{}, e
 				valueMapCasted[typeSchemaKey] = valueValCasted
 			} else {
 				if !typeSchemaValue.(*InputSchema).Optional {
-					return nil, ErrorMustBeDefined(typeSchemaValue)
+					return nil, errors.Wrap(ErrorMustBeDefined(typeSchemaValue), s.UserStrStripped(typeSchemaKey))
 				}
 				// don't set default (python has to)
 			}
@@ -537,7 +537,7 @@ func CastOutputValue(value interface{}, outputSchema OutputSchema) (interface{},
 		for typeSchemaKey, typeSchemaValue := range typeSchemaMap {
 			valueVal, ok := valueMap[typeSchemaKey]
 			if !ok {
-				return nil, ErrorMustBeDefined(typeSchemaValue)
+				return nil, errors.Wrap(ErrorMustBeDefined(typeSchemaValue), s.UserStrStripped(typeSchemaKey))
 			}
 			valueValCasted, err := CastOutputValue(valueVal, typeSchemaValue)
 			if err != nil {

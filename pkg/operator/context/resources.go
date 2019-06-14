@@ -266,7 +266,7 @@ func validateRuntimeTypes(
 				valueMapCasted[typeSchemaKey] = valueValCasted
 			} else {
 				if !typeSchemaValue.(*userconfig.InputSchema).Optional {
-					return nil, userconfig.ErrorMustBeDefined(typeSchemaValue)
+					return nil, errors.Wrap(userconfig.ErrorMustBeDefined(typeSchemaValue), s.UserStrStripped(typeSchemaKey))
 				}
 				// don't set default (python has to)
 			}
@@ -402,7 +402,7 @@ func validateInputRuntimeOutputTypes(outputType interface{}, schema *userconfig.
 					}
 				} else {
 					if !typeSchemaValue.(*userconfig.InputSchema).Optional {
-						return userconfig.ErrorMustBeDefined(typeSchemaValue)
+						return errors.Wrap(userconfig.ErrorMustBeDefined(typeSchemaValue), s.UserStrStripped(typeSchemaKey))
 					}
 				}
 			}
