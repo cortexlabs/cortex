@@ -186,42 +186,6 @@ func appInitFiles(appName string) map[string]string {
 }
 `,
 
-		"implementations/models/my_model.py": `import tensorflow as tf
-
-
-def create_estimator(run_config, model_config):
-    """Create an estimator to train the model.
-
-    Args:
-        run_config: An instance of tf.estimator.RunConfig to be used when creating
-            the estimator.
-
-        model_config: The Cortex configuration for the model. Column references in all
-            inputs (i.e. model_config["target_column"], model_config["input"], and
-            model_config["training_input"]) are replaced by their names (e.g. "@column1"
-            will be replaced with "column1"). All other resource references (e.g. constants
-            and aggregates) are replaced by their runtime values.
-
-    Returns:
-        An instance of tf.estimator.Estimator to train the model.
-    """
-
-    ## Sample create_estimator implementation:
-    #
-    # feature_columns = []
-    # for col_name in model_config["input"]["numeric_columns"]:
-    #     feature_columns.append(tf.feature_column.numeric_column(col_name))
-    #
-    # return tf.estimator.DNNClassifier(
-    #     feature_columns=feature_columns,
-    #     n_classes=model_config["input"]["num_classes"],
-    #     hidden_units=model_config["hparams"]["hidden_units"],
-    #     config=run_config,
-    # )
-
-    pass
-`,
-
 		"resources/constants.yaml": `## Sample constant:
 #
 # - kind: constant
