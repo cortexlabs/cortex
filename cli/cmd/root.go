@@ -39,7 +39,7 @@ var flagEnv string
 var flagWatch bool
 var flagAppName string
 
-var configFileExts = []string{"json", "yaml", "yml"}
+var configFileExts = []string{"yaml", "yml"}
 
 func init() {
 	cobra.EnablePrefixMatching = true
