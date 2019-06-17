@@ -444,7 +444,7 @@ class Context:
                 if self.constants[res_name]["value"]:
                     const_val = self.constants[res_name]["value"]
                 elif self.constants[res_name]["external"]:
-                    const_val = self.storage.get_json_external(str(self.constants[res_name]["external"]["path"]))
+                    const_val = self.storage.get_json_external(self.constants[res_name]["external"]["path"])
                 try:
                     return self.populate_values(const_val, input_schema, preserve_column_refs)
                 except CortexException as e:

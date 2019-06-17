@@ -9,6 +9,10 @@ Constants represent literal values which can be used in other Cortex resources. 
   name: <string>  # constant name (required)
   type: <output_type>  # the type of the constant (optional, will be inferred from value if not specified)
   value: <output_value>  # a literal value (required)
+  external_model:  # (this or value must be specified)
+    path: <string>  # path to a JSON object
+    region: <string> # S3 region (default: us-west-2)
+
 ```
 
 See [Data Types](data-types.md) for details about output types and values.
