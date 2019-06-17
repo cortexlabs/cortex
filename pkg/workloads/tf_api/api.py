@@ -401,7 +401,7 @@ def start(args):
 
         local_cache["required_inputs"] = tf_lib.get_base_input_columns(model["name"], ctx)
 
-        if model["input"].get("target_vocab") is not None:
+        if util.is_dict(model["input"]) and model["input"].get("target_vocab") is not None:
             local_cache["target_vocab_populated"] = ctx.populate_values(
                 model["input"]["target_vocab"], None, False
             )
