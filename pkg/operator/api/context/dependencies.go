@@ -101,7 +101,7 @@ func (ctx *Context) aggregatesDependencies(aggregate *Aggregate) strset.Set {
 		dependencies.Add(pythonPackage.GetID())
 	}
 
-	for _, res := range ctx.ExtractCortexResources(aggregate.Input, resource.ConstantType, resource.RawColumnType) {
+	for _, res := range ctx.ExtractCortexResources(aggregate.Input, resource.RawColumnType) {
 		dependencies.Add(res.GetID())
 	}
 
@@ -115,7 +115,7 @@ func (ctx *Context) transformedColumnDependencies(transformedColumn *Transformed
 		dependencies.Add(pythonPackage.GetID())
 	}
 
-	for _, res := range ctx.ExtractCortexResources(transformedColumn.Input, resource.ConstantType, resource.RawColumnType, resource.AggregateType) {
+	for _, res := range ctx.ExtractCortexResources(transformedColumn.Input, resource.RawColumnType, resource.AggregateType) {
 		dependencies.Add(res.GetID())
 	}
 
@@ -143,7 +143,7 @@ func (ctx *Context) modelDependencies(model *Model) strset.Set {
 	dependencies.Add(model.Dataset.ID)
 
 	combinedInput := []interface{}{model.Input, model.TrainingInput, model.TargetColumn}
-	for _, res := range ctx.ExtractCortexResources(combinedInput, resource.ConstantType, resource.RawColumnType, resource.AggregateType, resource.TransformedColumnType) {
+	for _, res := range ctx.ExtractCortexResources(combinedInput, resource.RawColumnType, resource.AggregateType, resource.TransformedColumnType) {
 		dependencies.Add(res.GetID())
 	}
 
