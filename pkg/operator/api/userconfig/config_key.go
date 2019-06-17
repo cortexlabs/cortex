@@ -27,6 +27,7 @@ const (
 	PathKey       = "path"
 	OutputTypeKey = "output_type"
 	TagsKey       = "tags"
+	ExternalKey   = "external"
 
 	// input schema options
 	OptionalOptKey = "_optional"

@@ -669,7 +669,7 @@ def test_read_parquet_infer_invalid(spark, write_parquet_file, ctx_obj, get_cont
             },
         },
         {
-            "data": [("1", 0.1, "yolo"), ("1", 1.0, "yolo"), ("1", 1.1, "yolo")],
+            "data": [("1", 0.1, "a"), ("1", 1.0, "a"), ("1", 1.1, "a")],
             "schema": StructType(
                 [
                     StructField("a_str", StringType()),

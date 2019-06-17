@@ -114,9 +114,12 @@ class S3(object):
     def _upload_string_to_s3(self, string, key):
         self.s3.put_object(Bucket=self.bucket, Key=key, Body=string)
 
-    def _read_bytes_from_s3(self, key, allow_missing=False):
+    def _read_bytes_from_s3(self, key, allow_missing=False, ext_bucket=None):
         try:
-            byte_array = self.s3.get_object(Bucket=self.bucket, Key=key)["Body"].read()
+            bucket = self.bucket
+            if ext_bucket is not None:
+                bucket = ext_bucket
+            byte_array = self.s3.get_object(Bucket=bucket, Key=key)["Body"].read()
         except self.s3.exceptions.NoSuchKey as e:
             if allow_missing:
                 return None
@@ -188,5 +191,15 @@ class S3(object):
             bucket, key = self.deconstruct_s3_path(s3_path)
             self.s3.download_file(bucket, key, local_path)
             return local_path
+        except Exception as e:
+            raise CortexException("bucket " + bucket, "key " + key) from e
+
+    def get_json_external(self, s3_path):
+        try:
+            bucket, key = self.deconstruct_s3_path(s3_path)
+            obj = self._read_bytes_from_s3(key, ext_bucket=bucket)
+            if obj is None:
+                return None
+            return json.loads(obj.decode("utf-8"))
         except Exception as e:
             raise CortexException("bucket " + bucket, "key " + key) from e
