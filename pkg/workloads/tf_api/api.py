@@ -50,6 +50,7 @@ local_cache = {
     "trans_impls": {},
     "required_inputs": None,
     "metadata": None,
+    "target_vocab_populated": None,
 }
 
 DTYPE_TO_VALUE_KEY = {
@@ -197,7 +198,7 @@ def parse_response_proto(response_proto):
         and estimator["name"] in target_vocab_estimators
         and model["input"].get("target_vocab") is not None
     ):
-        prediction = model["input"]["target_vocab"][int(prediction)]
+        prediction = local_cache["target_vocab_populated"][int(prediction)]
     else:
         prediction = util.cast(prediction, target_col_type)
 
@@ -399,6 +400,11 @@ def start(args):
                         ctx.get_obj(ctx.aggregates[resource_name]["key"])
 
         local_cache["required_inputs"] = tf_lib.get_base_input_columns(model["name"], ctx)
+
+        if model["input"].get("target_vocab") is not None:
+            local_cache["target_vocab_populated"] = ctx.populate_values(
+                model["input"]["target_vocab"], None, False
+            )
 
     else:
         if not os.path.isdir(args.model_dir):
