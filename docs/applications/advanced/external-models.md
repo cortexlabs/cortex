@@ -23,7 +23,7 @@ $ aws s3 cp model.zip s3://your-bucket/model.zip
 - kind: api
   name: my-api
   external_model:
-    path: s3://your-bucket/model.zip
+    path: s3://my-bucket/model.zip
     region: us-west-2
   compute:
     replicas: 5
