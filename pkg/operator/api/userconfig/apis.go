@@ -119,7 +119,7 @@ func (api *API) Validate() error {
 		}
 
 		if ok, err := aws.IsS3FileExternal(bucket, key, api.ExternalModel.Region); err != nil || !ok {
-			return errors.Wrap(ErrorExternalModelNotFound(api.ExternalModel.Path), Identify(api), ExternalModelKey, PathKey)
+			return errors.Wrap(ErrorExternalNotFound(api.ExternalModel.Path), Identify(api), ExternalModelKey, PathKey)
 		}
 	}
 

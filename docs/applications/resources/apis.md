@@ -9,8 +9,8 @@ Serve models at scale and use them to build smarter applications.
   name: <string>  # API name (required)
   model: <string>  # reference to a Cortex model (this or external_model must be specified)
   external_model:  # (this or model must be specified)
-    path: <string>  # path to a zipped model dir
-    region: <string> # S3 region (default: us-west-2)
+    path: <string>  # path to a zipped model dir (e.g. s3://my-bucket/model.zip)
+    region: <string>  # S3 region (default: us-west-2)
   compute:
     replicas: <int>  # number of replicas to launch (default: 1)
     cpu: <string>  # CPU request (default: Null)
