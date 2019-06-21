@@ -26,7 +26,7 @@ import (
 
 var (
 	dns1035Regex = regexp.MustCompile(`^[a-z]([-a-z0-9]*[a-z0-9])?$`)
-	dns1123Regex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
+	dns1123Regex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
 )
 
 func Parse(rawurl string) (*url.URL, error) {
