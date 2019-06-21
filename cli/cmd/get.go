@@ -41,6 +41,7 @@ func init() {
 	addAppNameFlag(getCmd)
 	addEnvFlag(getCmd)
 	addWatchFlag(getCmd)
+	addSummaryFlag(getCmd)
 	addResourceTypesToHelp(getCmd)
 }
 
@@ -64,6 +65,9 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 
 	switch len(args) {
 	case 0:
+		if flagSummary {
+			return resourceStatusesStr(resourcesRes), nil
+		}
 		return allResourcesStr(resourcesRes), nil
 
 	case 1:
@@ -514,4 +518,126 @@ func titleStr(title string) string {
 	top := strings.Repeat("-", titleLength)
 	bottom := strings.Repeat("-", titleLength)
 	return "\n" + top + "\n" + title + "\n" + bottom + "\n\n"
+}
+
+func resourceStatusesStr(resourcesRes *schema.GetResourcesResponse) string {
+	out := "\n"
+	out += pythonPackageStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
+	out += rawColumnStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
+	out += aggregateStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
+	out += transformedColumnStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
+	out += trainingDatasetStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
+	out += modelStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
+	out += apiStatusesStr(resourcesRes.APIGroupStatuses)
+	return out
+}
+
+func pythonPackageStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
+	var statuses = make([]resource.Status, len(ctx.PythonPackages))
+	i := 0
+	for _, pythonPackage := range ctx.PythonPackages {
+		statuses[i] = dataStatuses[pythonPackage.GetID()]
+		i++
+	}
+	return "Python Packages:       " + StatusStr(statuses)
+}
+
+func rawColumnStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
+	var statuses = make([]resource.Status, len(ctx.RawColumns))
+	i := 0
+	for _, rawColumn := range ctx.RawColumns {
+		statuses[i] = dataStatuses[rawColumn.GetID()]
+		i++
+	}
+	return "Raw Columns:           " + StatusStr(statuses)
+}
+
+func aggregateStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
+	var statuses = make([]resource.Status, len(ctx.Aggregates))
+	i := 0
+	for _, aggregate := range ctx.Aggregates {
+		statuses[i] = dataStatuses[aggregate.GetID()]
+		i++
+	}
+	return "Aggregates:            " + StatusStr(statuses)
+}
+
+func transformedColumnStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
+	var statuses = make([]resource.Status, len(ctx.TransformedColumns))
+	i := 0
+	for _, transformedColumn := range ctx.TransformedColumns {
+		statuses[i] = dataStatuses[transformedColumn.GetID()]
+		i++
+	}
+	return "Transformed Columns:   " + StatusStr(statuses)
+}
+
+func trainingDatasetStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
+	var statuses = make([]resource.Status, len(ctx.Models))
+	i := 0
+	for _, model := range ctx.Models {
+		statuses[i] = dataStatuses[model.Dataset.GetID()]
+		i++
+	}
+	return "Training Datasets:     " + StatusStr(statuses)
+}
+
+func modelStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
+	var statuses = make([]resource.Status, len(ctx.Models))
+	i := 0
+	for _, model := range ctx.Models {
+		statuses[i] = dataStatuses[model.GetID()]
+		i++
+	}
+	return "Models:                " + StatusStr(statuses)
+}
+
+func apiStatusesStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
+	var statuses = make([]resource.Status, len(apiGroupStatuses))
+	i := 0
+	for _, apiGroupStatus := range apiGroupStatuses {
+		statuses[i] = apiGroupStatus
+		i++
+	}
+	return "APIs:                  " + StatusStr(statuses)
+}
+
+func StatusStr(statuses []resource.Status) string {
+	if len(statuses) == 0 {
+		return "none"
+	}
+
+	messageBuckets := make(map[int][]string)
+	for _, status := range statuses {
+		bucketKey := status.GetCode().SortBucket()
+		messageBuckets[bucketKey] = append(messageBuckets[bucketKey], status.Message())
+	}
+
+	var bucketKeys []int
+	for bucketKey := range messageBuckets {
+		bucketKeys = append(bucketKeys, bucketKey)
+	}
+	sort.Ints(bucketKeys)
+
+	var messageItems []string
+
+	for _, bucketKey := range bucketKeys {
+		messageCounts := make(map[string]int)
+		for _, message := range messageBuckets[bucketKey] {
+			messageCounts[message]++
+		}
+
+		var messages []string
+		for message := range messageCounts {
+			messages = append(messages, message)
+		}
+		sort.Strings(messages)
+
+		for _, message := range messages {
+			messageItem := fmt.Sprintf("%d %s", messageCounts[message], message)
+			messageItems = append(messageItems, messageItem)
+		}
+	}
+
+	return strings.Join(messageItems, " | ")
 }
