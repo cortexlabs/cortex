@@ -19,7 +19,7 @@ set -eou pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 CORTEX="$ROOT/bin/cortex"
 
-for example in $ROOT/examples/*/app.yaml; do
+for example in $ROOT/examples/*/cortex.yaml; do
   timer=1200
   example_base_dir=$(dirname "${example}")
   retry="false"

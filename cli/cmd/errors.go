@@ -123,6 +123,6 @@ func ErrorFailedToConnect(urlStr string) error {
 func ErrorCliNotInAppDir() error {
 	return Error{
 		Kind:    ErrCliNotInAppDir,
-		message: "your current working directory is not in or under a cortex app directory (identified via a top-level app.yaml file)",
+		message: "your current working directory is not in or under a cortex app directory (identified via a top-level cortex.yaml file)",
 	}
 }

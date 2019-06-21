@@ -4,11 +4,11 @@ Cortex allows you to install additional Python packages that can be made availab
 
 ## PyPI Packages
 
-Cortex looks for a `requirements.txt` file in the top level directory of the app (in the same level as `app.yaml`). All packages listed in `requirements.txt` will be made available to aggregators, transformers, and estimators.
+Cortex looks for a `requirements.txt` file in the top level directory of the app (in the same level as `cortex.yaml`). All packages listed in `requirements.txt` will be made available to aggregators, transformers, and estimators.
 
 ```text
 ./iris/
-├── app.yaml
+├── cortex.yaml
 ├── requirements.txt
 ├── samples.json
 ├── implementations/
@@ -23,7 +23,7 @@ Cortex App Directory
 
 ```text
 ./iris/
-├── app.yaml
+├── cortex.yaml
 ├── samples.json
 ├── implementations/
 ├── resources/

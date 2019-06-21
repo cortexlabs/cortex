@@ -79,7 +79,7 @@ func writeFile(subPath string, content string, root string, createdFiles []strin
 
 func appInitFiles(appName string) map[string]string {
 	return map[string]string{
-		"app.yaml": fmt.Sprintf("- kind: app\n  name: %s\n", appName),
+		"cortex.yaml": fmt.Sprintf("- kind: app\n  name: %s\n", appName),
 
 		"resources/environments.yaml": `## Sample environment:
 #

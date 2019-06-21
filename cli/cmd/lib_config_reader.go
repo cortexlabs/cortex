@@ -33,7 +33,7 @@ func appRootOrBlank() string {
 		errors.Exit(err)
 	}
 	for true {
-		if err := files.CheckFile(filepath.Join(dir, "app.yaml")); err == nil {
+		if err := files.CheckFile(filepath.Join(dir, "cortex.yaml")); err == nil {
 			return dir
 		}
 		if dir == "/" {
@@ -91,7 +91,7 @@ func allConfigPaths(root string) []string {
 
 func appNameFromConfig() (string, error) {
 	appRoot := mustAppRoot()
-	return userconfig.ReadAppName(filepath.Join(appRoot, "app.yaml"), "app.yaml")
+	return userconfig.ReadAppName(filepath.Join(appRoot, "cortex.yaml"), "cortex.yaml")
 }
 
 func AppNameFromFlagOrConfig() (string, error) {
