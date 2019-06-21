@@ -17,8 +17,8 @@ commands:
       - run:
           name: Install Go
           command: |
-            wget https://dl.google.com/go/go1.11.5.linux-amd64.tar.gz
-            sudo tar -C /usr/local -xzf go1.11.5.linux-amd64.tar.gz
+            wget https://dl.google.com/go/go1.12.6.linux-amd64.tar.gz
+            sudo tar -C /usr/local -xzf go1.12.6.linux-amd64.tar.gz
             rm -rf go*.tar.gz
             echo 'export PATH=$PATH:/usr/local/go/bin' >> $BASH_ENV
             echo 'export PATH=$PATH:~/go/bin' >> $BASH_ENV
@@ -30,7 +30,7 @@ jobs:
     steps:
       - checkout
       - install-go
-      - run: GO111MODULE=off go get -u -v golang.org/x/lint/golint
+      - run: go get -u -v golang.org/x/lint/golint
       - run: sudo pip3 install black
       - run:
           name: Lint
