@@ -158,7 +158,7 @@ func (config *Config) Validate(envName string) error {
 	}
 
 	if config.App == nil {
-		return ErrorUndefinedConfig(resource.AppType)
+		return ErrorMissingAppDefinition()
 	}
 
 	// Check for duplicate names across types that must have unique names

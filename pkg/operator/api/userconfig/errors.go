@@ -31,13 +31,11 @@ type ErrorKind int
 const (
 	ErrUnknown ErrorKind = iota
 	ErrDuplicateResourceName
-	ErrDuplicateResourceValue
 	ErrDuplicateConfig
 	ErrMalformedConfig
 	ErrParseConfig
 	ErrReadConfig
 	ErrMissingAppDefinition
-	ErrUndefinedConfig
 	ErrRawColumnNotInEnv
 	ErrUndefinedResource
 	ErrResourceWrongType
@@ -81,13 +79,11 @@ const (
 var errorKinds = []string{
 	"err_unknown",
 	"err_duplicate_resource_name",
-	"err_duplicate_resource_value",
 	"err_duplicate_config",
 	"err_malformed_config",
 	"err_parse_config",
 	"err_read_config",
 	"err_missing_app_definition",
-	"err_undefined_config",
 	"err_raw_column_not_in_env",
 	"err_undefined_resource",
 	"err_resource_wrong_type",
@@ -214,13 +210,6 @@ func ErrorDuplicateResourceName(resources ...Resource) error {
 	}
 }
 
-func ErrorDuplicateResourceValue(value string, keys ...string) error {
-	return Error{
-		Kind:    ErrDuplicateResourceValue,
-		message: fmt.Sprintf("%s is defined in %s, but may only be specified in one", s.UserStr(value), s.StrsAnd(keys)),
-	}
-}
-
 func ErrorDuplicateConfig(resourceType resource.Type) error {
 	return Error{
 		Kind:    ErrDuplicateConfig,
@@ -257,13 +246,6 @@ func ErrorMissingAppDefinition() error {
 	return Error{
 		Kind:    ErrMissingAppDefinition,
 		message: fmt.Sprintf("app.yaml must define an app resource"),
-	}
-}
-
-func ErrorUndefinedConfig(resourceType resource.Type) error {
-	return Error{
-		Kind:    ErrUndefinedConfig,
-		message: fmt.Sprintf("%s resource is not defined", resourceType.String()),
 	}
 }
 
