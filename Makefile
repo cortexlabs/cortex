@@ -90,7 +90,7 @@ aws-clear-bucket:
 	@./dev/aws.sh clear-bucket
 
 tools:
-	@GO111MODULE=off go get -u -v golang.org/x/lint/golint
+	@go get -u -v golang.org/x/lint/golint
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
 	@pip3 install black
 

@@ -1,11 +1,11 @@
-FROM golang:1.11.5 as builder
+FROM golang:1.12.6 as builder
 
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && \
     mv ./kubectl /tmp/kubectl
 
 COPY go.mod go.sum /go/src/github.com/cortexlabs/cortex/
 WORKDIR /go/src/github.com/cortexlabs/cortex
-RUN GO111MODULE=on go mod download
+RUN go mod download
 
 COPY pkg /go/src/github.com/cortexlabs/cortex/pkg
 WORKDIR /go/src/github.com/cortexlabs/cortex/pkg/operator
