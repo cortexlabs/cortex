@@ -55,12 +55,12 @@ type Client struct {
 	Namespace        string
 }
 
-func New(namespace string, operatorInCluster bool) (*Client, error) {
+func New(namespace string, inCluster bool) (*Client, error) {
 	var err error
 	client := &Client{
 		Namespace: namespace,
 	}
-	if operatorInCluster {
+	if inCluster {
 		client.RestConfig, err = rest.InClusterConfig()
 	} else {
 		kubeConfig := path.Join(home, ".kube", "config")
