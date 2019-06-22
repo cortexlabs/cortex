@@ -14,7 +14,7 @@
   target_column: @class
   input:
     numeric_columns: [@sepal_length, @sepal_width, @petal_length, @petal_width]
-    target_vocab: ['Iris-setosa', 'Iris-versicolor', 'Iris-virginica']
+    target_vocab: ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
   hparams:
     hidden_units: [4, 2]
   training:
