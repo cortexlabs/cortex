@@ -193,74 +193,67 @@ func resourceByNameAndTypeStr(resourceName string, resourceType resource.Type, r
 
 func allResourcesStr(resourcesRes *schema.GetResourcesResponse) string {
 	out := ""
-	out += titleStr("Python Packages")
 	out += pythonPackagesStr(resourcesRes.DataStatuses, resourcesRes.Context)
-	out += titleStr("Raw Columns")
 	out += rawColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context)
-	out += titleStr("Aggregates")
 	out += aggregatesStr(resourcesRes.DataStatuses, resourcesRes.Context)
-	out += titleStr("Transformed Columns")
 	out += transformedColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context)
-	out += titleStr("Training Datasets")
 	out += trainingDataStr(resourcesRes.DataStatuses, resourcesRes.Context)
-	out += titleStr("Models")
 	out += modelsStr(resourcesRes.DataStatuses, resourcesRes.Context)
-	out += titleStr("APIs")
 	out += apisStr(resourcesRes.APIGroupStatuses)
 	return out
 }
 
 func pythonPackagesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.PythonPackages) == 0 {
-		return "None\n"
+		return ""
 	}
 
 	strings := make(map[string]string)
 	for name, pythonPackage := range ctx.PythonPackages {
 		strings[name] = dataResourceRow(name, pythonPackage, dataStatuses)
 	}
-	return dataResourcesHeader() + strMapToStr(strings)
+	return titleStr("Python Packages") + dataResourcesHeader() + strMapToStr(strings)
 }
 
 func rawColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.RawColumns) == 0 {
-		return "None\n"
+		return ""
 	}
 
 	strings := make(map[string]string)
 	for name, rawColumn := range ctx.RawColumns {
 		strings[name] = dataResourceRow(name, rawColumn, dataStatuses)
 	}
-	return dataResourcesHeader() + strMapToStr(strings)
+	return titleStr("Raw Columns") + dataResourcesHeader() + strMapToStr(strings)
 }
 
 func aggregatesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.Aggregates) == 0 {
-		return "None\n"
+		return ""
 	}
 
 	strings := make(map[string]string)
 	for name, aggregate := range ctx.Aggregates {
 		strings[name] = dataResourceRow(name, aggregate, dataStatuses)
 	}
-	return dataResourcesHeader() + strMapToStr(strings)
+	return titleStr("Aggregates") + dataResourcesHeader() + strMapToStr(strings)
 }
 
 func transformedColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.TransformedColumns) == 0 {
-		return "None\n"
+		return ""
 	}
 
 	strings := make(map[string]string)
 	for name, transformedColumn := range ctx.TransformedColumns {
 		strings[name] = dataResourceRow(name, transformedColumn, dataStatuses)
 	}
-	return dataResourcesHeader() + strMapToStr(strings)
+	return titleStr("Transformed Columns") + dataResourcesHeader() + strMapToStr(strings)
 }
 
 func trainingDataStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.Models) == 0 {
-		return "None\n"
+		return ""
 	}
 
 	strings := make(map[string]string)
@@ -268,31 +261,31 @@ func trainingDataStr(dataStatuses map[string]*resource.DataStatus, ctx *context.
 		name := model.Dataset.Name
 		strings[name] = dataResourceRow(name, model.Dataset, dataStatuses)
 	}
-	return dataResourcesHeader() + strMapToStr(strings)
+	return titleStr("Training Datasets") + dataResourcesHeader() + strMapToStr(strings)
 }
 
 func modelsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.Models) == 0 {
-		return "None\n"
+		return ""
 	}
 
 	strings := make(map[string]string)
 	for name, model := range ctx.Models {
 		strings[name] = dataResourceRow(name, model, dataStatuses)
 	}
-	return dataResourcesHeader() + strMapToStr(strings)
+	return titleStr("Models") + dataResourcesHeader() + strMapToStr(strings)
 }
 
 func apisStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
 	if len(apiGroupStatuses) == 0 {
-		return "None\n"
+		return ""
 	}
 
 	strings := make(map[string]string)
 	for name, apiGroupStatus := range apiGroupStatuses {
 		strings[name] = apiResourceRow(apiGroupStatus)
 	}
-	return apisHeader() + strMapToStr(strings)
+	return titleStr("APIs") + apisHeader() + strMapToStr(strings)
 }
 
 func describePythonPackage(name string, resourcesRes *schema.GetResourcesResponse) (string, error) {
@@ -521,14 +514,53 @@ func titleStr(title string) string {
 }
 
 func resourceStatusesStr(resourcesRes *schema.GetResourcesResponse) string {
+	ctx := resourcesRes.Context
+	var titles, values []string
+
+	if len(ctx.PythonPackages) != 0 {
+		titles = append(titles, "Python Packages")
+		values = append(values, pythonPackageStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
+	}
+
+	if len(ctx.RawColumns) != 0 {
+		titles = append(titles, "Raw Columns")
+		values = append(values, rawColumnStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
+	}
+
+	if len(ctx.Aggregates) != 0 {
+		titles = append(titles, "Aggregates")
+		values = append(values, aggregateStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
+	}
+
+	if len(ctx.TransformedColumns) != 0 {
+		titles = append(titles, "Transformed Columns")
+		values = append(values, transformedColumnStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
+	}
+
+	if len(ctx.Models) != 0 {
+		titles = append(titles, "Training Datasets")
+		values = append(values, trainingDatasetStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
+	}
+
+	if len(ctx.Models) != 0 {
+		titles = append(titles, "Models")
+		values = append(values, modelStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
+	}
+
+	if len(resourcesRes.APIGroupStatuses) != 0 {
+		titles = append(titles, "APIs")
+		values = append(values, apiStatusesStr(resourcesRes.APIGroupStatuses))
+	}
+
+	maxTitleLen := s.MaxLen(titles...)
+
 	out := "\n"
-	out += pythonPackageStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
-	out += rawColumnStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
-	out += aggregateStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
-	out += transformedColumnStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
-	out += trainingDatasetStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
-	out += modelStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context) + "\n"
-	out += apiStatusesStr(resourcesRes.APIGroupStatuses)
+	for i, title := range titles {
+		paddingWidth := maxTitleLen - len(title) + 3
+		padding := strings.Repeat(" ", paddingWidth)
+		out += title + ":" + padding + values[i] + "\n"
+	}
+
 	return out
 }
 
@@ -539,7 +571,7 @@ func pythonPackageStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx 
 		statuses[i] = dataStatuses[pythonPackage.GetID()]
 		i++
 	}
-	return "Python Packages:       " + StatusStr(statuses)
+	return StatusStr(statuses)
 }
 
 func rawColumnStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
@@ -549,7 +581,7 @@ func rawColumnStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *con
 		statuses[i] = dataStatuses[rawColumn.GetID()]
 		i++
 	}
-	return "Raw Columns:           " + StatusStr(statuses)
+	return StatusStr(statuses)
 }
 
 func aggregateStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
@@ -559,7 +591,7 @@ func aggregateStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *con
 		statuses[i] = dataStatuses[aggregate.GetID()]
 		i++
 	}
-	return "Aggregates:            " + StatusStr(statuses)
+	return StatusStr(statuses)
 }
 
 func transformedColumnStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
@@ -569,7 +601,7 @@ func transformedColumnStatusesStr(dataStatuses map[string]*resource.DataStatus, 
 		statuses[i] = dataStatuses[transformedColumn.GetID()]
 		i++
 	}
-	return "Transformed Columns:   " + StatusStr(statuses)
+	return StatusStr(statuses)
 }
 
 func trainingDatasetStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
@@ -579,7 +611,7 @@ func trainingDatasetStatusesStr(dataStatuses map[string]*resource.DataStatus, ct
 		statuses[i] = dataStatuses[model.Dataset.GetID()]
 		i++
 	}
-	return "Training Datasets:     " + StatusStr(statuses)
+	return StatusStr(statuses)
 }
 
 func modelStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
@@ -589,7 +621,7 @@ func modelStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context
 		statuses[i] = dataStatuses[model.GetID()]
 		i++
 	}
-	return "Models:                " + StatusStr(statuses)
+	return StatusStr(statuses)
 }
 
 func apiStatusesStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
@@ -599,7 +631,7 @@ func apiStatusesStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string
 		statuses[i] = apiGroupStatus
 		i++
 	}
-	return "APIs:                  " + StatusStr(statuses)
+	return StatusStr(statuses)
 }
 
 func StatusStr(statuses []resource.Status) string {
