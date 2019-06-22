@@ -99,35 +99,11 @@ Flags:
   -a, --app string   app name
   -e, --env string   environment (default "dev")
   -h, --help         help for get
+  -s, --summary      show summarized output
   -w, --watch        re-run the command every 2 seconds
 ```
 
-The `get` command outputs the current state of all resources on the cluster. Specifying a resource name provides a more detailed view of the configuration and state of that particular resource.
-
-## status
-
-```
-Get resource statuses.
-
-Usage:
-  cortex status [RESOURCE_TYPE] [RESOURCE_NAME] [flags]
-
-Resource Types:
-  raw_column
-  aggregate
-  transformed_column
-  training_dataset
-  model
-  api
-
-Flags:
-  -a, --app string   app name
-  -e, --env string   environment (default "dev")
-  -h, --help         help for status
-  -w, --watch        re-run the command every 2 seconds
-```
-
-The `status` command outputs a condensed summary of all resources on the cluster. Specifying a resource name provides detailed real-time view of the status of that particular resource.
+The `get` command outputs the current state of all resources on the cluster. Specifying a resource name provides a more detailed view of the configuration and state of that particular resource. Using the `-s` or `--summary` flag will show a summarized view of all resource statuses.
 
 ## logs
 
@@ -149,9 +125,10 @@ Flags:
   -a, --app string   app name
   -e, --env string   environment (default "dev")
   -h, --help         help for logs
+  -v, --verbose      show verbose output
 ```
 
-The `logs` command streams logs from the workload corresponding to the specified resource. For example, `cortex logs models dnn` will get the logs from the most recent training workload for `dnn`.
+The `logs` command streams logs from the workload corresponding to the specified resource. For example, `cortex logs models dnn` will get the Cortex logs from the most recent training workload for `dnn`. Using the `-v` or `--verbose` flag will show all of the logs for the workload (not just Cortex's logs).
 
 ## configure
 

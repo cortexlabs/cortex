@@ -59,13 +59,17 @@ def train(args):
             e.wrap("error")
             logger.error(str(e))
             logger.exception(
-                "An error occurred, see `cx logs model {}` for more details.".format(model["name"])
+                "An error occurred, see `cortex logs -v model {}` for more details.".format(
+                    model["name"]
+                )
             )
             sys.exit(1)
         except Exception as e:
             ctx.upload_resource_status_failed(model)
             logger.exception(
-                "An error occurred, see `cx logs model {}` for more details.".format(model["name"])
+                "An error occurred, see `cortex logs -v model {}` for more details.".format(
+                    model["name"]
+                )
             )
             sys.exit(1)
 

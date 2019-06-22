@@ -7,7 +7,7 @@
 | ready                   | Resource is ready |
 | pending                 | Resource is waiting for another resource to be ready, or its workload is initializing |
 | running, ingesting,<br>aggregating, transforming,<br>generating, training | Resource is being created |
-| error                   | Resource was not created due to an error; run `cortex logs <name>` to view the logs |
+| error                   | Resource was not created due to an error; run `cortex logs -v <name>` to view the logs |
 | skipped                 | Resource was not created due to an error in another resource in the same workload |
 | terminated              | Resource was terminated |
 | terminated (out of mem) | Resource was terminated due to insufficient memory |
@@ -25,7 +25,7 @@
 | update pending       | API will be updated when the new model is ready; a previous version of this API is ready |
 | stopping             | API is stopping |
 | stopped              | API is stopped |
-| error                | API was not created due to an error; run `cortex logs <name>` to view the logs |
+| error                | API was not created due to an error; run `cortex logs -v <name>` to view the logs |
 | skipped              | API was not created due to an error in another resource |
 | update skipped       | API was not updated due to an error in another resource; a previous version of this API is ready |
 | upstream error       | API was not created due to an error in one of its dependencies; a previous version of this API may be ready |
