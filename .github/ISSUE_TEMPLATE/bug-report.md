@@ -37,7 +37,7 @@ assignees: ''
 
 ### Stack Trace
 
-[If applicable, the stack trace which shows the error. Find it with `cortex logs <resource name>`, or use `kubectl get pods -n cortex` and use the name of the failed pod in `kubectl logs <pod name> -n cortex`]
+[If applicable, the stack trace which shows the error. Find it with `cortex logs -v <resource name>`, or use `kubectl get pods -n cortex` and use the name of the failed pod in `kubectl logs <pod name> -n cortex`]
 
 ```
 <paste stack trace here>

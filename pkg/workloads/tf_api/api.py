@@ -346,12 +346,16 @@ def predict(app_name, api_name):
             e.wrap("error", "sample {}".format(i + 1))
             logger.error(str(e))
             logger.exception(
-                "An error occurred, see `cx logs api {}` for more details.".format(api["name"])
+                "An error occurred, see `cortex logs -v api {}` for more details.".format(
+                    api["name"]
+                )
             )
             return prediction_failed(sample, str(e))
         except Exception as e:
             logger.exception(
-                "An error occurred, see `cx logs api {}` for more details.".format(api["name"])
+                "An error occurred, see `cortex logs -v api {}` for more details.".format(
+                    api["name"]
+                )
             )
             return prediction_failed(sample, str(e))
 
@@ -422,7 +426,9 @@ def start(args):
         except Exception as e:
             if i == limit - 1:
                 logger.exception(
-                    "An error occurred, see `cx logs api {}` for more details.".format(api["name"])
+                    "An error occurred, see `cortex logs -v api {}` for more details.".format(
+                        api["name"]
+                    )
                 )
                 sys.exit(1)
 

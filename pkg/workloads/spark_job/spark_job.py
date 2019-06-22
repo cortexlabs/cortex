@@ -320,7 +320,7 @@ def run_job(args):
         e.wrap("error")
         logger.error(str(e))
         logger.exception(
-            "An error occurred, see `cx logs {} {}` for more details.".format(
+            "An error occurred, see `cortex logs -v {} {}` for more details.".format(
                 ctx.id_map[resource_id_list[0]]["resource_type"],
                 ctx.id_map[resource_id_list[0]]["name"],
             )
@@ -328,7 +328,7 @@ def run_job(args):
         sys.exit(1)
     except Exception as e:
         logger.exception(
-            "An error occurred, see `cx logs {} {}` for more details.".format(
+            "An error occurred, see `cortex logs -v {} {}` for more details.".format(
                 ctx.id_map[resource_id_list[0]]["resource_type"],
                 ctx.id_map[resource_id_list[0]]["name"],
             )
