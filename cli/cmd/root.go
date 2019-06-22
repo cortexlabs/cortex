@@ -68,7 +68,6 @@ func Execute() {
 	rootCmd.SetHelpCommand(&cobra.Command{Hidden: true})
 	cobra.EnableCommandSorting = false
 
-	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(deployCmd)
 	rootCmd.AddCommand(refreshCmd)
 	rootCmd.AddCommand(predictCmd)

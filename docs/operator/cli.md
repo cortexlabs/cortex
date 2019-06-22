@@ -1,19 +1,5 @@
 # CLI Commands
 
-## init
-
-```
-Initialize an application.
-
-Usage:
-  cortex init APP_NAME [flags]
-
-Flags:
-  -h, --help   help for init
-```
-
-The `init` command creates a scaffold for a new Cortex application.
-
 ## deploy
 
 ```
