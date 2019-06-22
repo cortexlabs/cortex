@@ -85,6 +85,21 @@ func LongestCommonPrefix(strs ...string) string {
 	return prefix
 }
 
+func MaxLen(strs ...string) int {
+	if len(strs) == 0 {
+		return 0
+	}
+
+	maxLen := len(strs[0])
+	for _, str := range strs {
+		if len(str) > maxLen {
+			maxLen = len(str)
+		}
+	}
+
+	return maxLen
+}
+
 func TrimPrefixIfPresentInAll(strs []string, prefix string) ([]string, bool) {
 	if prefix == "" {
 		return strs, false
