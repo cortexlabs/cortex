@@ -18,19 +18,19 @@ Let's build and deploy a classifier using the famous [iris data set](https://arc
 
 Our goal is to build a web API that returns the type of iris given its measurements.
 
-#### Initialize the application
+#### Initialize the deployment
 
 ```bash
 mkdir iris && cd iris
 touch cortex.yaml irises.json
 ```
 
-Cortex requires an `cortex.yaml` file which defines an `app` resource. Other resources may be defined in arbitrarily named YAML files in the the directory which contains `cortex.yaml` or any subdirectories. For this example, we will define all of our resources in `cortex.yaml`.
+Cortex requires an `cortex.yaml` file which defines a `deployment` resource. Other resources may be defined in arbitrarily named YAML files in the the directory which contains `cortex.yaml` or any subdirectories. For this example, we will define all of our resources in `cortex.yaml`.
 
 Add to `cortex.yaml`:
 
 ```yaml
-- kind: app
+- kind: deployment
   name: iris
 ```
 
@@ -90,7 +90,7 @@ Add to `cortex.yaml`:
     replicas: 2
 ```
 
-## Deploy the application
+## Create the deployment
 
 ```
 $ cortex deploy
@@ -147,7 +147,7 @@ $ curl -k \
 
 ## Cleanup
 
-Delete the iris application:
+Delete the iris deployment:
 
 ```
 $ cortex delete iris

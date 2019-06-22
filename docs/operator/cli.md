@@ -3,7 +3,7 @@
 ## deploy
 
 ```
-Deploy an application.
+Create or update a deployment.
 
 Usage:
   cortex deploy [flags]
@@ -14,7 +14,7 @@ Flags:
   -h, --help         help for deploy
 ```
 
-The `deploy` command sends all application configuration and code to the operator. If all validations pass, the operator will attempt to create the desired state on the cluster.
+The `deploy` command sends all configuration and code to the operator. If all validations pass, the operator will attempt to create the desired state on the cluster.
 
 ## refresh
 
@@ -41,10 +41,10 @@ Usage:
   cortex predict API_NAME SAMPLES_FILE [flags]
 
 Flags:
-  -a, --app string   app name
-  -e, --env string   environment (default "dev")
-  -h, --help         help for predict
-  -j, --json         print the raw json response
+  -d, --deployment string   deployment name
+  -e, --env string          environment (default "dev")
+  -h, --help                help for predict
+  -j, --json                print the raw json response
 ```
 
 The `predict` command converts samples from a JSON file into prediction requests and outputs the response. This command is useful for quickly testing model output.
@@ -52,18 +52,18 @@ The `predict` command converts samples from a JSON file into prediction requests
 ## delete
 
 ```
-Delete an application.
+Delete a deployment.
 
 Usage:
-  cortex delete [APP_NAME] [flags]
+  cortex delete [DEPLOYMENT_NAME] [flags]
 
 Flags:
   -e, --env string   environment (default "dev")
   -h, --help         help for delete
-  -c, --keep-cache   keep cached data for the app
+  -c, --keep-cache   keep cached data for the deployment
 ```
 
-The `delete` command deletes an application's resources from the cluster.
+The `delete` command deletes an deployment's resources from the cluster.
 
 ## get
 
@@ -82,11 +82,11 @@ Resource Types:
   api
 
 Flags:
-  -a, --app string   app name
-  -e, --env string   environment (default "dev")
-  -h, --help         help for get
-  -s, --summary      show summarized output
-  -w, --watch        re-run the command every 2 seconds
+  -d, --deployment string   deployment name
+  -e, --env string          environment (default "dev")
+  -h, --help                help for get
+  -s, --summary             show summarized output
+  -w, --watch               re-run the command every 2 seconds
 ```
 
 The `get` command outputs the current state of all resources on the cluster. Specifying a resource name provides a more detailed view of the configuration and state of that particular resource. Using the `-s` or `--summary` flag will show a summarized view of all resource statuses.
@@ -108,10 +108,10 @@ Resource Types:
   api
 
 Flags:
-  -a, --app string   app name
-  -e, --env string   environment (default "dev")
-  -h, --help         help for logs
-  -v, --verbose      show verbose output
+  -d, --deployment string   deployment name
+  -e, --env string          environment (default "dev")
+  -h, --help                help for logs
+  -v, --verbose             show verbose output
 ```
 
 The `logs` command streams logs from the workload corresponding to the specified resource. For example, `cortex logs models dnn` will get the Cortex logs from the most recent training workload for `dnn`. Using the `-v` or `--verbose` flag will show all of the logs for the workload (not just Cortex's logs).

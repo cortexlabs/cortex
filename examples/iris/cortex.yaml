@@ -1,4 +1,4 @@
-- kind: app
+- kind: deployment
   name: iris
 
 - kind: environment

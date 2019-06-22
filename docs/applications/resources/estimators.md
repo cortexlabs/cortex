@@ -9,7 +9,7 @@ Custom estimators can be implemented in Python or PySpark. See the [implementati
 ```yaml
 - kind: estimator
   name: <string>  # estimator name (required)
-  path: <string>  # path to the implementation file, relative to the application root (default: implementations/estimators/<name>.py)
+  path: <string>  # path to the implementation file, relative to the cortex root (default: implementations/estimators/<name>.py)
   target_column: <column_type>  # The type of column that can be used as a target (ambiguous types like INT_COLUMN|FLOAT_COLUMN are supported) (required)
   input: <input_type>  # the input type of the estimator (required)
   training_input: <input_type>  # the input type of the training input to the estimator (optional)

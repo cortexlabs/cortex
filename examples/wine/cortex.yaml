@@ -1,2 +1,2 @@
-- kind: app
+- kind: deployment
   name: wine

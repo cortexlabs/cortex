@@ -37,8 +37,8 @@ func init() {
 
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
-	Short: "deploy an application",
-	Long:  "Deploy an application.",
+	Short: "create or update a deployment",
+	Long:  "Create or update a deployment.",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		deploy(flagDeployForce, false)

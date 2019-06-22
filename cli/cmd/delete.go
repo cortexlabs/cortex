@@ -30,12 +30,12 @@ import (
 var flagKeepCache bool
 
 func init() {
-	deleteCmd.PersistentFlags().BoolVarP(&flagKeepCache, "keep-cache", "c", false, "keep cached data for the app")
+	deleteCmd.PersistentFlags().BoolVarP(&flagKeepCache, "keep-cache", "c", false, "keep cached data for the deployment")
 	addEnvFlag(deleteCmd)
 }
 
 var deleteCmd = &cobra.Command{
-	Use:   "delete [APP_NAME]",
+	Use:   "delete [DEPLOYMENT_NAME]",
 	Short: "delete a deployment",
 	Long:  "Delete a deployment.",
 	Args:  cobra.MaximumNArgs(1),

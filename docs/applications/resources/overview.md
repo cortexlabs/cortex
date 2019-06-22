@@ -1,8 +1,8 @@
 # Overview
 
-Cortex applications consist of declarative resource configuration written in YAML as well as Python code to implement aggregators, transformers, and models. Each resource has a `kind`:
+Cortex deployments consist of declarative resource configuration written in YAML as well as Python code to implement aggregators, transformers, and models. Each resource has a `kind`:
 
-* [app](app.md)
+* [deployment](deployment.md)
 * [environment](environments.md)
 * [raw_column](raw-columns.md)
 * [aggregator](aggregators.md)
@@ -16,7 +16,7 @@ Cortex applications consist of declarative resource configuration written in YAM
 
 Resources can reference other resources from within their configuration (e.g. when defining input values) by prefixing the other resource's name with an `@` symbol. For example, a model may specify `input: @column1`, which denotes that a resource named "column1" is an input to this model.
 
-With the exception of the `app` kind (which must be defined in a top-level `cortex.yaml` file), resources may be defined in any YAML file within your Cortex application folder or any subdirectories.
+With the exception of the `deployment` kind (which must be defined in a top-level `cortex.yaml` file), resources may be defined in any YAML file within your Cortex folder or any subdirectories.
 
 The `cortex deploy` command will validate all resource configuration and attempt to create the requested state on the cluster.
 

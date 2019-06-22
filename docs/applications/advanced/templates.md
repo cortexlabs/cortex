@@ -1,6 +1,6 @@
 # Templates
 
-Templates allow you to reuse resource configuration within your application.
+Templates allow you to reuse resource configuration accross your configuration files.
 
 ## Config
 

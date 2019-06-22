@@ -1,6 +1,6 @@
 # Data Types
 
-Data types are used in configuration files to help validate data and ensure your Cortex application is functioning as expected.
+Data types are used in configuration files to help validate data and ensure your Cortex deployment is functioning as expected.
 
 
 ## Raw Column Types

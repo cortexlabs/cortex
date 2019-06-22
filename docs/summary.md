@@ -13,7 +13,7 @@
 
 ### Resources
 
-  * [Application](applications/resources/app.md)
+  * [Application](applications/resources/deployment.md)
   * [Environments](applications/resources/environments.md)
   * [Raw Columns](applications/resources/raw-columns.md)
   * [Aggregators](applications/resources/aggregators.md)

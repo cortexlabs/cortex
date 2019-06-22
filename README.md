@@ -18,7 +18,7 @@ Cortex is actively maintained by Cortex Labs. We're a venture-backed team of inf
 
 ## How it works
 
-1. **Define your app:** define your app using Python, TensorFlow, and PySpark.
+1. **Define your app:** define your application using Python, TensorFlow, and PySpark.
 
 2. **`$ cortex deploy`:** deploy end-to-end machine learning pipelines to AWS with one command.
 
@@ -98,7 +98,7 @@ Ready! https://abc.amazonaws.com/my-api
 
 ## Key features
 
-- **Machine learning pipelines as code:** Cortex applications are defined using a simple declarative syntax that enables flexibility and reusability.
+- **Machine learning pipelines as code:** Cortex deployments are defined using a simple declarative syntax that enables flexibility and reusability.
 
 - **End-to-end machine learning workflow:** Cortex spans the machine learning workflow from feature management to model training to prediction serving.
 

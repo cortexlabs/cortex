@@ -138,7 +138,7 @@ path/to/cortex/bin/cortex configure
 
 ### Deployment
 
-Run an example application:
+Deploy an example:
 
 ```bash
 cd examples/iris

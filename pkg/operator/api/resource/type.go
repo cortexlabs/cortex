@@ -45,7 +45,7 @@ const (
 var (
 	types = []string{
 		"unknown",
-		"app",
+		"deployment",
 		"raw_column",
 		"transformed_column",
 		"aggregate",
@@ -64,7 +64,7 @@ var (
 
 	typePlurals = []string{
 		"unknown",
-		"apps",
+		"deployments",
 		"raw_columns",
 		"transformed_columns",
 		"aggregates",

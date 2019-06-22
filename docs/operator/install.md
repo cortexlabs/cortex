@@ -60,7 +60,7 @@ The CLI runs on developer machines (e.g. your laptop) and communicates with the 
 cortex configure
 ```
 
-## Deploy an application
+## Create a deployment
 
 <!-- CORTEX_VERSION_MINOR -->
 

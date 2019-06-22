@@ -302,8 +302,8 @@ def health():
     return jsonify({"ok": True})
 
 
-@app.route("/<app_name>/<api_name>", methods=["POST"])
-def predict(app_name, api_name):
+@app.route("/<deployment_name>/<api_name>", methods=["POST"])
+def predict(deployment_name, api_name):
     try:
         payload = request.get_json()
     except Exception as e:

@@ -9,7 +9,7 @@ Custom aggregators can be implemented in Python or PySpark. See the [implementat
 ```yaml
 - kind: aggregator
   name: <string>  # aggregator name (required)
-  path: <string>  # path to the implementation file, relative to the application root (default: implementations/aggregators/<name>.py)
+  path: <string>  # path to the implementation file, relative to the cortex root (default: implementations/aggregators/<name>.py)
   output_type: <output_type>  # the output type of the aggregator (required)
   input: <input_type>  # the input type of the aggregator (required)
 ```
