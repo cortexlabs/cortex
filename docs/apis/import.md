@@ -11,13 +11,13 @@ saved_model.pb  variables/
 $ zip -r model.zip export/estimator
 ```
 
-1. Upload the zipped file to Amazon S3, e.g.
+2. Upload the zipped file to Amazon S3, e.g.
 
 ```bash
 $ aws s3 cp model.zip s3://your-bucket/model.zip
 ```
 
-1. Specify `model` in an API, e.g.
+3. Specify `model` in an API, e.g.
 
 ```yaml
 - kind: api
