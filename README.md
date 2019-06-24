@@ -4,94 +4,54 @@
 
 **Get started:** [Install](https://docs.cortex.dev/install) • [Tutorial](https://docs.cortex.dev/tutorial) • [Demo Video](https://www.youtube.com/watch?v=tgMjCOD_ufo) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[Docs](https://docs.cortex.dev) • <!-- CORTEX_VERSION_MINOR_STABLE -->[Examples](https://github.com/cortexlabs/cortex/tree/0.4/examples)
 
-**Learn more:** [Website](https://cortex.dev) • [FAQ](https://docs.cortex.dev/faq) • [Blog](https://blog.cortex.dev) • [Subscribe](https://cortexlabs.us20.list-manage.com/subscribe?u=a1987373ab814f20961fd90b4&id=ae83491e1c) • [Twitter](https://twitter.com/cortex_deploy) • [Contact](mailto:hello@cortex.dev)
+**Learn more:** [Website](https://cortex.dev) • [Blog](https://blog.cortex.dev) • [Subscribe](https://cortexlabs.us20.list-manage.com/subscribe?u=a1987373ab814f20961fd90b4&id=ae83491e1c) • [Twitter](https://twitter.com/cortex_deploy) • [Contact](mailto:hello@cortex.dev)
 
 <br>
 
-## Deploy, manage, and scale machine learning applications
+## Deploy machine learning models in production
 
-Deploy machine learning applications without worrying about setting up infrastructure, managing dependencies, or orchestrating data pipelines.
+Cortex deploys your machine learning models on your cloud infrastructure. You define your deployment with simple declarative configuration, Cortex containerizes your models, deploys them as scalable JSON APIs, and manages their lifecycle in production.
 
 Cortex is actively maintained by Cortex Labs. We're a venture-backed team of infrastructure engineers and [we're hiring](https://angel.co/cortex-labs-inc/jobs).
 
 <br>
 
-## How it works
+## Machine learning deployments as code
 
-1. **Define your app:** define your application using Python, TensorFlow, and PySpark.
-
-2. **`$ cortex deploy`:** deploy end-to-end machine learning pipelines to AWS with one command.
-
-3. **Serve predictions:** serve real time predictions via horizontally scalable JSON APIs.
-
-<br>
-
-## End-to-end machine learning workflow
-
-**Data ingestion:** connect to your data warehouse and ingest data.
-
-```yaml
-- kind: environment
-  name: dev
-  data:
-    type: csv
-    path: s3a://my-bucket/data.csv
-    schema: [@col1, @col2, ...]
-```
-
-**Data validation:** prevent data quality issues early.
-
-```yaml
-- kind: raw_column
-  name: col1
-  type: INT_COLUMN
-  min: 0
-  max: 10
-```
-
-**Data transformation:** use custom Python and PySpark code to transform data.
-
-```yaml
-- kind: transformed_column
-  name: col1_normalized
-  transformer_path: normalize.py  # Python / PySpark code
-  input: @col1
-```
-
-**Model training:** train models with custom TensorFlow code.
-
-```yaml
-- kind: model
-  name: my_model
-  estimator_path: dnn.py  # TensorFlow code
-  target_column: @label_col
-  input: [@col1_normalized, @col2_indexed, ...]
-  hparams:
-    hidden_units: [16, 8]
-  training:
-    batch_size: 32
-    num_steps: 10000
-```
-
-**Prediction serving:** serve real time predictions via JSON APIs.
+**Configure:** Define your deployment using simple declarative configuration.
 
 ```yaml
 - kind: api
   name: my-api
-  model: @my_model
+  model: s3://my-bucket/my-model.zip    # TensorFlow / PyTorch
+  preprocessor: transform_payload.py    # Transform request payloads before inference
+  postprocessor: process_prediction.py  # Transform predicitons before responding to the client
   compute:
     replicas: 3
+    GPU: 2
 ```
 
-**Deployment:** Cortex deploys your pipeline on scalable cloud infrastructure.
+**Deploy:** Cortex deploys your pipeline on scalable cloud infrastructure.
 
 ```
 $ cortex deploy
-Ingesting data ...
-Transforming data ...
-Training models ...
+
+Provisioning infrastructure ...
 Deploying API ...
-Ready! https://abc.amazonaws.com/my-api
+Loading model ...
+
+Ready! https://amazonaws.com/my-api
+```
+
+**Manage:** Serve real time predictions via scalable JSON APIs.
+
+```
+$ cortex status my-api
+
+Endpoint: https://amazonaws.com/my-api
+Latency: 200ms
+Throughput: 50 requests per second
+Predictions: 1,234,567 legitimate | 89 fraud
 ```
 
 <br>
@@ -100,8 +60,12 @@ Ready! https://abc.amazonaws.com/my-api
 
 - **Machine learning pipelines as code:** Cortex deployments are defined using a simple declarative syntax that enables flexibility and reusability.
 
-- **End-to-end machine learning workflow:** Cortex spans the machine learning workflow from feature management to model training to prediction serving.
+- **Multi framework support:** Cortex supports [TensorFlow](https://www.tensorflow.org), [Keras](https://keras.io), and [PyTorch](https://pytorch.org) models.
 
-- **TensorFlow and PySpark support:** Cortex supports custom [TensorFlow](https://www.tensorflow.org) code for model training and custom [PySpark](https://spark.apache.org/docs/latest/api/python/index.html) code for data processing.
+- **Scalability:** Cortex automatically handles scaling APIs.
 
-- **Built for the cloud:** Cortex can handle production workloads and can be deployed in any AWS account in minutes.
+- **Rolling updates:** Cortex updates deployed APIs without any downtime.
+
+- **A/B testing:** Cortex can load balance traffic across multiple models.
+
+- **Cloud agnostic:** Cortex can handle production workloads and can be deployed on any Kubernetes cluster in minutes.
