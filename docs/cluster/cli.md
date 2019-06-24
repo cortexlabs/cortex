@@ -54,7 +54,7 @@ Delete a deployment.
 Usage:
   cortex delete [DEPLOYMENT_NAME] [flags]
 
-Flags:        
+Flags:
   -c, --keep-cache   keep cached data for the deployment
   -h, --help
 ```
