@@ -25,6 +25,8 @@ package userconfig
 
 import (
 	"bytes"
+	"fmt"
+	"strings"
 
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 
@@ -127,6 +129,25 @@ func sparkComputeFieldValidation(fieldName string) *cr.StructFieldValidation {
 	}
 }
 
+func (sparkCompute *SparkCompute) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ExecutorsKey, s.Int32(sparkCompute.Executors)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", DriverCPUKey, sparkCompute.DriverCPU.UserString))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", DriverMemKey, sparkCompute.DriverMem.UserString))
+	if sparkCompute.DriverMemOverhead != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", DriverMemOverheadKey, sparkCompute.DriverMemOverhead.UserString))
+	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ExecutorCPUKey, sparkCompute.ExecutorCPU.UserString))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ExecutorMemKey, sparkCompute.ExecutorMem.UserString))
+	if sparkCompute.ExecutorMemOverhead != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ExecutorMemOverheadKey, sparkCompute.ExecutorMemOverhead.UserString))
+	}
+	if sparkCompute.MemOverheadFactor != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ExecutorMemOverheadKey, s.Float64(*sparkCompute.MemOverheadFactor)))
+	}
+	return sb.String()
+}
+
 func (sparkCompute *SparkCompute) ID() string {
 	var buf bytes.Buffer
 	buf.WriteString(s.Int32(sparkCompute.Executors))
@@ -183,6 +204,20 @@ var tfComputeFieldValidation = &cr.StructFieldValidation{
 	},
 }
 
+func (tfCompute *TFCompute) UserConfigStr() string {
+	var sb strings.Builder
+	if tfCompute.CPU != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", CPUKey, tfCompute.CPU.UserString))
+	}
+	if tfCompute.GPU != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(*tfCompute.GPU)))
+	}
+	if tfCompute.Mem != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, tfCompute.Mem.UserString))
+	}
+	return sb.String()
+}
+
 func (tfCompute *TFCompute) ID() string {
 	var buf bytes.Buffer
 	buf.WriteString(QuantityPtrID(tfCompute.CPU))
@@ -235,6 +270,21 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 			},
 		},
 	},
+}
+
+func (apiCompute *APICompute) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ReplicasKey, s.Int32(apiCompute.Replicas)))
+	if apiCompute.CPU != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", CPUKey, apiCompute.CPU.UserString))
+	}
+	if apiCompute.GPU != 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(apiCompute.GPU)))
+	}
+	if apiCompute.Mem != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, apiCompute.Mem.UserString))
+	}
+	return sb.String()
 }
 
 func (apiCompute *APICompute) ID() string {

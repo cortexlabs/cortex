@@ -18,6 +18,7 @@ package userconfig
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cortexlabs/yaml"
 
@@ -71,12 +72,27 @@ func (resourceFields *ResourceFields) SetEmbed(embed *Embed) {
 	resourceFields.Embed = embed
 }
 
+func (resourceFields *ResourceFields) UserConfigStr() string {
+	var sb strings.Builder
+	if resourceFields.FilePath == "" {
+		sb.WriteString("file: <none>\n")
+	} else {
+		sb.WriteString(fmt.Sprintf("file: %s\n", resourceFields.FilePath))
+	}
+	if resourceFields.Embed == nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, resourceFields.Name))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s (embedded at index %d)\n", NameKey, resourceFields.Name, resourceFields.Embed.Index))
+	}
+	return sb.String()
+}
+
 func Identify(r Resource) string {
 	return identify(r.GetFilePath(), r.GetResourceType(), r.GetName(), r.GetIndex(), r.GetEmbed())
 }
 
 func identify(filePath string, resourceType resource.Type, name string, index int, embed *Embed) string {
-	name, _ = yaml.UnescapeAtSymbol(name)
+	name = yaml.UnescapeAtSymbol(name)
 
 	resourceTypeStr := resourceType.String()
 	if resourceType == resource.UnknownType {

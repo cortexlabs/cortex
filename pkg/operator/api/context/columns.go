@@ -27,6 +27,7 @@ type Column interface {
 	ComputedResource
 	GetColumnType() userconfig.ColumnType
 	IsRaw() bool
+	UserConfigStr() string
 }
 
 func (ctx *Context) Columns() Columns {

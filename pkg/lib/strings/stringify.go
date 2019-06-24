@@ -219,7 +219,11 @@ func strIndent(val interface{}, indent string, currentIndent string, newlineChar
 		var t string
 		casted := value.Convert(reflect.TypeOf(t)).Interface().(string)
 
-		casted, _ = yaml.UnescapeAtSymbol(casted)
+		var ok bool
+		casted, ok = yaml.UnescapeAtSymbolOk(casted)
+		if ok {
+			return casted
+		}
 
 		switch val.(type) {
 		case json.Number:
@@ -348,4 +352,20 @@ func UserStrs(val interface{}) []string {
 
 func Index(index int) string {
 	return fmt.Sprintf("index %d", index)
+}
+
+func Indent(str string, indent string) string {
+	if str[len(str)-1:] == "\n" {
+		out := ""
+		for _, line := range strings.Split(str[:len(str)-1], "\n") {
+			out += indent + line + "\n"
+		}
+		return out
+	}
+
+	out := ""
+	for _, line := range strings.Split(strings.TrimRight(str, "\n"), "\n") {
+		out += indent + line + "\n"
+	}
+	return out[:len(out)-1]
 }

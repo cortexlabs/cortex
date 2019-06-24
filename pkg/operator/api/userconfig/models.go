@@ -17,11 +17,16 @@ limitations under the License.
 package userconfig
 
 import (
+	"fmt"
 	"math/rand"
+	"strings"
+
+	"github.com/cortexlabs/yaml"
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -117,6 +122,50 @@ var modelValidation = &cr.StructValidation{
 	},
 }
 
+func (model *Model) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(model.ResourceFields.UserConfigStr())
+	if model.EstimatorPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", EstimatorPathKey, *model.EstimatorPath))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", EstimatorKey, model.Estimator))
+	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetColumnKey, yaml.UnescapeAtSymbol(model.TargetColumn)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", InputKey, s.Obj(model.Input)))
+	if model.TrainingInput != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", TrainingInputKey, s.Obj(model.TrainingInput)))
+	}
+	if model.Hparams != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", HparamsKey, s.Obj(model.Hparams)))
+	}
+	if model.PredictionKey != "" {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", PredictionKeyKey, model.PredictionKey))
+	}
+	if model.DataPartitionRatio != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", DataPartitionRatioKey))
+		sb.WriteString(s.Indent(model.DataPartitionRatio.UserConfigStr(), "  "))
+	}
+	if model.Training != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", TrainingKey))
+		sb.WriteString(s.Indent(model.Training.UserConfigStr(), "  "))
+	}
+	if model.Evaluation != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", EvaluationKey))
+		sb.WriteString(s.Indent(model.Evaluation.UserConfigStr(), "  "))
+	}
+	if model.Compute != nil {
+		if tfComputeStr := model.Compute.UserConfigStr(); tfComputeStr != "" {
+			sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
+			sb.WriteString(s.Indent(tfComputeStr, "  "))
+		}
+	}
+	if model.DatasetCompute != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", DatasetComputeKey))
+		sb.WriteString(s.Indent(model.DatasetCompute.UserConfigStr(), "  "))
+	}
+	return sb.String()
+}
+
 type ModelDataPartitionRatio struct {
 	Training   *float64 `json:"training"`
 	Evaluation *float64 `json:"evaluation"`
@@ -137,6 +186,17 @@ var modelDataPartitionRatioValidation = &cr.StructValidation{
 			},
 		},
 	},
+}
+
+func (mdpr *ModelDataPartitionRatio) UserConfigStr() string {
+	var sb strings.Builder
+	if mdpr.Training != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", TrainingKey, s.Float64(*mdpr.Training)))
+	}
+	if mdpr.Evaluation != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", EvaluationKey, s.Float64(*mdpr.Evaluation)))
+	}
+	return sb.String()
 }
 
 type ModelTraining struct {
@@ -241,6 +301,30 @@ var modelTrainingValidation = &cr.StructValidation{
 	},
 }
 
+func (mt *ModelTraining) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", BatchSizeKey, s.Int64(mt.BatchSize)))
+	if mt.NumSteps != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", NumStepsKey, s.Int64(*mt.NumSteps)))
+	}
+	if mt.NumEpochs != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", NumEpochsKey, s.Int64(*mt.NumEpochs)))
+	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ShuffleKey, s.Bool(mt.Shuffle)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", TfRandomSeedKey, s.Int64(mt.TfRandomSeed)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", SaveSummaryStepsKey, s.Int64(mt.SaveSummarySteps)))
+	if mt.SaveCheckpointsSecs != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", SaveCheckpointsSecsKey, s.Int64(*mt.SaveCheckpointsSecs)))
+	}
+	if mt.SaveCheckpointsSteps != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", SaveCheckpointsStepsKey, s.Int64(*mt.SaveCheckpointsSteps)))
+	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", LogStepCountStepsKey, s.Int64(mt.LogStepCountSteps)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", KeepCheckpointEveryNHoursKey, s.Int64(mt.KeepCheckpointEveryNHours)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", KeepCheckpointMaxKey, s.Int64(mt.KeepCheckpointMax)))
+	return sb.String()
+}
+
 type ModelEvaluation struct {
 	BatchSize      int64  `json:"batch_size" yaml:"batch_size"`
 	NumSteps       *int64 `json:"num_steps" yaml:"num_steps"`
@@ -292,6 +376,21 @@ var modelEvaluationValidation = &cr.StructValidation{
 			},
 		},
 	},
+}
+
+func (me *ModelEvaluation) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", BatchSizeKey, s.Int64(me.BatchSize)))
+	if me.NumSteps != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", NumStepsKey, s.Int64(*me.NumSteps)))
+	}
+	if me.NumEpochs != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", NumEpochsKey, s.Int64(*me.NumEpochs)))
+	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ShuffleKey, s.Bool(me.Shuffle)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", StartDelaySecsKey, s.Int64(me.StartDelaySecs)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ThrottleSecsKey, s.Int64(me.ThrottleSecs)))
+	return sb.String()
 }
 
 func (models Models) Validate() error {

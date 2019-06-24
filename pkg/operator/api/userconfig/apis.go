@@ -17,9 +17,15 @@ limitations under the License.
 package userconfig
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/cortexlabs/yaml"
+
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -58,6 +64,23 @@ var apiValidation = &cr.StructValidation{
 	},
 }
 
+func (api *API) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(api.ResourceFields.UserConfigStr())
+	if api.Model != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, yaml.UnescapeAtSymbol(*api.Model)))
+	}
+	if api.ExternalModel != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ExternalModelKey))
+		sb.WriteString(s.Indent(api.ExternalModel.UserConfigStr(), "  "))
+	}
+	if api.Compute != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
+		sb.WriteString(s.Indent(api.Compute.UserConfigStr(), "  "))
+	}
+	return sb.String()
+}
+
 type ExternalModel struct {
 	Path   string `json:"path" yaml:"path"`
 	Region string `json:"region" yaml:"region"`
@@ -81,6 +104,13 @@ var externalModelFieldValidation = &cr.StructValidation{
 			},
 		},
 	},
+}
+
+func (extModel *ExternalModel) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, extModel.Path))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", RegionKey, extModel.Region))
+	return sb.String()
 }
 
 func (apis APIs) Validate() error {
