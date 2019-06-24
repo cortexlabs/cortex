@@ -10,6 +10,8 @@
 
 * [Deployments](deployments/resources/deployment.md)
 * [APIs](deployments/resources/apis.md)
+* [Importing Models](deployments/advanced/importing-models.md)
+* [Compute](deployments/advanced/compute.md)
 
 ## Pipeline Deployment
 
@@ -36,7 +38,6 @@
 * [Templates](deployments/advanced/templates.md)
 * [Compute](deployments/advanced/compute.md)
 * [Python Packages](deployments/advanced/python-packages.md)
-* [Importing External Models](deployments/advanced/external-models.md)
 
 ## Cluster
 

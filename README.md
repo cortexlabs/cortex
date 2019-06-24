@@ -28,7 +28,7 @@ Cortex is actively maintained by Cortex Labs. We're a venture-backed team of inf
   postprocessor: process_prediction.py  # Transform predicitons before responding to the client
   compute:
     replicas: 3
-    GPU: 2
+    gpu: 2
 ```
 
 **Deploy:** Cortex deploys your pipeline on scalable cloud infrastructure.
