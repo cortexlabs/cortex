@@ -8,35 +8,35 @@
 
 ## Model Deployment
 
-* [Deployment](applications/resources/deployment.md)
-* [APIs](applications/resources/apis.md)
+* [Deployments](deployments/resources/deployment.md)
+* [APIs](deployments/resources/apis.md)
 
 ## Pipeline Deployment
 
-* [Pipeline Overview](applications/resources/overview.md)
-* [Deployment](applications/resources/deployment.md)
-* [Environments](applications/resources/environments.md)
-* [Raw Columns](applications/resources/raw-columns.md)
-* [Aggregators](applications/resources/aggregators.md)
-* [Custom Aggregators](applications/implementations/aggregators.md)
-* [Aggregates](applications/resources/aggregates.md)
-* [Transformers](applications/resources/transformers.md)
-* [Custom Transformers](applications/implementations/transformers.md)
-* [Transformed Columns](applications/resources/transformed-columns.md)
-* [Estimators](applications/resources/estimators.md)
-* [Custom Estimators](applications/implementations/estimators.md)
-* [Models](applications/resources/models.md)
-* [APIs](applications/resources/apis.md)
-* [Constants](applications/resources/constants.md)
-* [Data Types](applications/resources/data-types.md)
-* [Resource Statuses](applications/resources/statuses.md)
+* [Pipeline Overview](deployments/resources/overview.md)
+* [Deployments](deployments/resources/deployment.md)
+* [Environments](deployments/resources/environments.md)
+* [Raw Columns](deployments/resources/raw-columns.md)
+* [Aggregators](deployments/resources/aggregators.md)
+* [Custom Aggregators](deployments/implementations/aggregators.md)
+* [Aggregates](deployments/resources/aggregates.md)
+* [Transformers](deployments/resources/transformers.md)
+* [Custom Transformers](deployments/implementations/transformers.md)
+* [Transformed Columns](deployments/resources/transformed-columns.md)
+* [Estimators](deployments/resources/estimators.md)
+* [Custom Estimators](deployments/implementations/estimators.md)
+* [Models](deployments/resources/models.md)
+* [APIs](deployments/resources/apis.md)
+* [Constants](deployments/resources/constants.md)
+* [Data Types](deployments/resources/data-types.md)
+* [Resource Statuses](deployments/resources/statuses.md)
 
 ## Advanced
 
-* [Templates](applications/advanced/templates.md)
-* [Compute](applications/advanced/compute.md)
-* [Python Packages](applications/advanced/python-packages.md)
-* [Importing External Models](applications/advanced/external-models.md)
+* [Templates](deployments/advanced/templates.md)
+* [Compute](deployments/advanced/compute.md)
+* [Python Packages](deployments/advanced/python-packages.md)
+* [Importing External Models](deployments/advanced/external-models.md)
 
 ## Cluster
 
