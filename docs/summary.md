@@ -3,7 +3,6 @@
 * [README](../README.md)
 * [Install](cluster/install.md)
 * [Tutorial](tutorial.md)
-* [CLI Commands](cluster/cli.md)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
 
 ## Model Deployment
@@ -12,6 +11,7 @@
 * [APIs](deployments/resources/apis.md)
 * [Importing Models](deployments/advanced/importing-models.md)
 * [Compute](deployments/advanced/compute.md)
+* [CLI Commands](cluster/cli.md)
 
 ## Pipeline Deployment
 
@@ -32,6 +32,7 @@
 * [Constants](deployments/resources/constants.md)
 * [Data Types](deployments/resources/data-types.md)
 * [Resource Statuses](deployments/resources/statuses.md)
+* [CLI Commands](cluster/cli.md)
 
 ## Advanced
 
