@@ -21,11 +21,11 @@
 * [Config](cluster/config.md)
 * [Security](cluster/security.md)
 * [Uninstall](cluster/uninstall.md)
-* [Development](development.md)
+* [Development](cluster/development.md)
 
 ## Pipeline Deployments
 
-* [Pipeline Overview](pipelines/overview.md)
+* [Overview](pipelines/overview.md)
 * [Deployments](pipelines/deployment.md)
 * [Environments](pipelines/environments.md)
 * [Raw Columns](pipelines/raw-columns.md)
@@ -42,7 +42,7 @@
 * [Constants](pipelines/constants.md)
 * [Data Types](pipelines/data-types.md)
 * [Templates](pipelines/templates.md)
-* [Compute](pipelines/compute.md)
 * [Python Packages](pipelines/python-packages.md)
+* [Compute](pipelines/compute.md)
 * [CLI Commands](cluster/cli.md)
 * [Resource Statuses](pipelines/statuses.md)

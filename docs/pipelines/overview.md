@@ -1,18 +1,6 @@
 # Overview
 
-Cortex deployments consist of declarative resource configuration written in YAML as well as Python code to implement aggregators, transformers, and models. Each resource has a `kind`:
-
-* [deployment](deployment.md)
-* [environment](environments.md)
-* [raw_column](raw-columns.md)
-* [aggregator](aggregators.md)
-* [aggregate](aggregates.md)
-* [transformer](transformers.md)
-* [transformed_column](transformed-columns.md)
-* [estimator](estimators.md)
-* [model](models.md)
-* [api](apis.md)
-* [constant](constants.md)
+Cortex deployments consist of declarative resource configuration written in YAML as well as Python code to implement aggregators, transformers, and models. Each resource has a `kind`.
 
 Resources can reference other resources from within their configuration (e.g. when defining input values) by prefixing the other resource's name with an `@` symbol. For example, a model may specify `input: @column1`, which denotes that a resource named "column1" is an input to this model.
 
