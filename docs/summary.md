@@ -1,48 +1,47 @@
 # Summary
 
-* [Read Me](../README.md)
-* [Install](operator/install.md)
+* [README](../README.md)
+* [Install](cluster/install.md)
 * [Tutorial](tutorial.md)
-* [Application Overview](applications/resources/overview.md)
-* [CLI Commands](operator/cli.md)
+* [CLI Commands](cluster/cli.md)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
-* [GitHub](https://github.com/cortexlabs/cortex)
 
-## Applications
+## Model Deployment
 
-### Resources
+* [Deployment](applications/resources/deployment.md)
+* [APIs](applications/resources/apis.md)
 
-  * [Application](applications/resources/deployment.md)
-  * [Environments](applications/resources/environments.md)
-  * [Raw Columns](applications/resources/raw-columns.md)
-  * [Aggregators](applications/resources/aggregators.md)
-  * [Aggregates](applications/resources/aggregates.md)
-  * [Transformers](applications/resources/transformers.md)
-  * [Transformed Columns](applications/resources/transformed-columns.md)
-  * [Estimators](applications/resources/estimators.md)
-  * [Models](applications/resources/models.md)
-  * [APIs](applications/resources/apis.md)
-  * [Constants](applications/resources/constants.md)
-  * [Data Types](applications/resources/data-types.md)
-  * [Resource Statuses](applications/resources/statuses.md)
+## Pipeline Deployment
 
-### Implementations
+* [Pipeline Overview](applications/resources/overview.md)
+* [Deployment](applications/resources/deployment.md)
+* [Environments](applications/resources/environments.md)
+* [Raw Columns](applications/resources/raw-columns.md)
+* [Aggregators](applications/resources/aggregators.md)
+* [Custom Aggregators](applications/implementations/aggregators.md)
+* [Aggregates](applications/resources/aggregates.md)
+* [Transformers](applications/resources/transformers.md)
+* [Custom Transformers](applications/implementations/transformers.md)
+* [Transformed Columns](applications/resources/transformed-columns.md)
+* [Estimators](applications/resources/estimators.md)
+* [Custom Estimators](applications/implementations/estimators.md)
+* [Models](applications/resources/models.md)
+* [APIs](applications/resources/apis.md)
+* [Constants](applications/resources/constants.md)
+* [Data Types](applications/resources/data-types.md)
+* [Resource Statuses](applications/resources/statuses.md)
 
-  * [Aggregators](applications/implementations/aggregators.md)
-  * [Transformers](applications/implementations/transformers.md)
-  * [Estimators](applications/implementations/estimators.md)
+## Advanced
 
-### Advanced
+* [Templates](applications/advanced/templates.md)
+* [Compute](applications/advanced/compute.md)
+* [Python Packages](applications/advanced/python-packages.md)
+* [Importing External Models](applications/advanced/external-models.md)
 
-  * [Templates](applications/advanced/templates.md)
-  * [Compute](applications/advanced/compute.md)
-  * [Python Packages](applications/advanced/python-packages.md)
-  * [Development](development.md)
-  * [Importing External Models](applications/advanced/external-models.md)
+## Cluster
 
-## Operator
-
-  * [AWS Credentials](operator/aws.md)
-  * [Config](operator/config.md)
-  * [Security](operator/security.md)
-  * [Uninstall](operator/uninstall.md)
+* [Development](development.md)
+* [AWS Credentials](cluster/aws.md)
+* [Config](cluster/config.md)
+* [Security](cluster/security.md)
+* [Uninstall](cluster/uninstall.md)
