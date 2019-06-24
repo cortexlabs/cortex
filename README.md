@@ -8,7 +8,7 @@
 
 <br>
 
-## Deploy machine learning models in production
+## Deployment platform for machine learning in production
 
 Cortex deploys your machine learning models on your cloud infrastructure. You define your deployment with simple declarative configuration, Cortex containerizes your models, deploys them as scalable JSON APIs, and manages their lifecycle in production.
 
@@ -18,7 +18,7 @@ Cortex is actively maintained by Cortex Labs. We're a venture-backed team of inf
 
 ## Machine learning deployments as code
 
-**Configure:** Define your deployment using simple declarative configuration.
+**Define** your deployment using declarative configuration.
 
 ```yaml
 - kind: api
@@ -31,7 +31,7 @@ Cortex is actively maintained by Cortex Labs. We're a venture-backed team of inf
     gpu: 2
 ```
 
-**Deploy:** Cortex deploys your pipeline on scalable cloud infrastructure.
+**Deploy** to your cloud infrastructure.
 
 ```
 $ cortex deploy
@@ -43,7 +43,7 @@ Loading model ...
 Ready! https://amazonaws.com/my-api
 ```
 
-**Manage:** Serve real time predictions via scalable JSON APIs.
+**Serve** real time predictions via scalable JSON APIs.
 
 ```
 $ cortex status my-api
@@ -58,7 +58,7 @@ Predictions: 1,234,567 legitimate | 89 fraud
 
 ## Key features
 
-- **Machine learning pipelines as code:** Cortex deployments are defined using a simple declarative syntax that enables flexibility and reusability.
+- **Machine learning deployments as code:** Cortex deployments are defined using a simple declarative syntax that enables flexibility and reusability.
 
 - **Multi framework support:** Cortex supports [TensorFlow](https://www.tensorflow.org), [Keras](https://keras.io), and [PyTorch](https://pytorch.org) models.
 
