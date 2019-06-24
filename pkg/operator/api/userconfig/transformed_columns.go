@@ -17,8 +17,12 @@ limitations under the License.
 package userconfig
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -64,6 +68,22 @@ var transformedColumnValidation = &configreader.StructValidation{
 		tagsFieldValidation,
 		typeFieldValidation,
 	},
+}
+
+func (column *TransformedColumn) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(column.ResourceFields.UserConfigStr())
+	if column.TransformerPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", TransformerPathKey, *column.TransformerPath))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", TransformerKey, column.Transformer))
+	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", InputKey, s.Obj(column.Input)))
+	if column.Compute != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
+		sb.WriteString(s.Indent(column.Compute.UserConfigStr(), "  "))
+	}
+	return sb.String()
 }
 
 func (columns TransformedColumns) Validate() error {

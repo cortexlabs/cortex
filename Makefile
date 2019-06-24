@@ -86,6 +86,9 @@ cli:
 	@mkdir -p ./bin
 	@GOARCH=amd64 CGO_ENABLED=0 go build -o ./bin/cortex ./cli
 
+cli-watch:
+	@rerun -watch ./pkg ./cli -ignore ./vendor ./bin -run sh -c "go build -installsuffix cgo -o ./bin/cortex ./cli && echo 'CLI built.'"
+
 aws-clear-bucket:
 	@./dev/aws.sh clear-bucket
 

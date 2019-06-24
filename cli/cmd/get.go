@@ -304,7 +304,7 @@ func describeRawColumn(name string, resourcesRes *schema.GetResourcesResponse) (
 	}
 	dataStatus := resourcesRes.DataStatuses[rawColumn.GetID()]
 	out := dataStatusSummary(dataStatus)
-	out += resourceStr(context.GetRawColumnUserConfig(rawColumn))
+	out += titleStr("Configuration") + rawColumn.UserConfigStr()
 	return out, nil
 }
 
@@ -336,7 +336,7 @@ func describeAggregate(name string, resourcesRes *schema.GetResourcesResponse) (
 		out += valueStr(obj)
 	}
 
-	out += resourceStr(aggregate.Aggregate)
+	out += titleStr("Configuration") + aggregate.UserConfigStr()
 	return out, nil
 }
 
@@ -347,7 +347,7 @@ func describeTransformedColumn(name string, resourcesRes *schema.GetResourcesRes
 	}
 	dataStatus := resourcesRes.DataStatuses[transformedColumn.ID]
 	out := dataStatusSummary(dataStatus)
-	out += resourceStr(transformedColumn.TransformedColumn)
+	out += titleStr("Configuration") + transformedColumn.UserConfigStr()
 	return out, nil
 }
 
@@ -367,7 +367,7 @@ func describeModel(name string, resourcesRes *schema.GetResourcesResponse) (stri
 	}
 	dataStatus := resourcesRes.DataStatuses[model.ID]
 	out := dataStatusSummary(dataStatus)
-	out += resourceStr(model.Model)
+	out += titleStr("Configuration") + model.UserConfigStr()
 	return out, nil
 }
 
@@ -432,7 +432,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 		out += "Payload:  " + samplesPlaceholderStr + "\n"
 	}
 	if api != nil {
-		out += resourceStr(api.API)
+		out += titleStr("Configuration") + api.UserConfigStr()
 	}
 
 	return out, nil
@@ -444,10 +444,6 @@ func dataStatusSummary(dataStatus *resource.DataStatus) string {
 	out += "Workload started at:  " + libtime.LocalTimestamp(dataStatus.Start) + "\n"
 	out += "Workload ended at:    " + libtime.LocalTimestamp(dataStatus.End) + "\n"
 	return out
-}
-
-func resourceStr(resource userconfig.Resource) string {
-	return titleStr("Configuration") + s.Obj(resource) + "\n"
 }
 
 func valueStr(value interface{}) string {

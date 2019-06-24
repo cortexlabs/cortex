@@ -22,9 +22,9 @@ const (
 	NameKey       = "name"
 	KindKey       = "kind"
 	InputKey      = "input"
-	ComputeKey    = "compute"
 	TypeKey       = "type"
 	PathKey       = "path"
+	RegionKey     = "region"
 	OutputTypeKey = "output_type"
 	TagsKey       = "tags"
 	ExternalKey   = "external"
@@ -91,10 +91,25 @@ const (
 	KeepCheckpointEveryNHoursKey = "keep_checkpoint_every_n_hours"
 	StartDelaySecsKey            = "start_delay_secs"
 	ThrottleSecsKey              = "throttle_secs"
-	DatasetComputeKey            = "dataset_compute"
 
 	// API
 	ModelKey         = "model"
 	ModelNameKey     = "model_name"
 	ExternalModelKey = "external_model"
+
+	// compute
+	ComputeKey             = "compute"
+	DatasetComputeKey      = "dataset_compute"
+	ReplicasKey            = "replicas"
+	CPUKey                 = "cpu"
+	GPUKey                 = "gpu"
+	MemKey                 = "mem"
+	ExecutorsKey           = "executors"
+	DriverCPUKey           = "driver_cpu"
+	DriverMemKey           = "driver_mem"
+	DriverMemOverheadKey   = "driver_mem_overhead"
+	ExecutorCPUKey         = "executor_cpu"
+	ExecutorMemKey         = "executor_mem"
+	ExecutorMemOverheadKey = "executor_mem_overhead"
+	MemOverheadFactorKey   = "mem_overhead_factor"
 )

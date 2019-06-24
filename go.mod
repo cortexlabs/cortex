@@ -5,7 +5,7 @@
 //   replace these lines in go.mod:
 //     github.com/GoogleCloudPlatform/spark-on-k8s-operator v1alpha1-0.5-2.4.0
 //     github.com/argoproj/argo v2.3.0
-//     github.com/cortexlabs/yaml v2.2.2
+//     github.com/cortexlabs/yaml v2.2.3
 //     k8s.io/client-go v10.0.0
 //     k8s.io/api 89a74a8d264df0e993299876a8cde88379b940ee
 //     k8s.io/apimachinery 2b1284ed4c93a43499e781493253e2ac5959c4fd
@@ -20,8 +20,8 @@ go 1.12
 require (
 	github.com/GoogleCloudPlatform/spark-on-k8s-operator v0.0.0-20181208011959-62db1d66dafa
 	github.com/argoproj/argo v2.3.0+incompatible
-	github.com/aws/aws-sdk-go v1.20.5
-	github.com/cortexlabs/yaml v0.0.0-20190530233410-11baebde6c89
+	github.com/aws/aws-sdk-go v1.20.7
+	github.com/cortexlabs/yaml v0.0.0-20190624201412-7f31702857b6
 	github.com/davecgh/go-spew v1.1.1
 	github.com/emicklei/go-restful v2.9.6+incompatible // indirect
 	github.com/go-openapi/spec v0.19.2 // indirect

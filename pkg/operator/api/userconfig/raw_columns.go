@@ -17,7 +17,11 @@ limitations under the License.
 package userconfig
 
 import (
+	"fmt"
+	"strings"
+
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -98,6 +102,27 @@ var rawIntColumnFieldValidations = []*cr.StructFieldValidation{
 	typeFieldValidation,
 }
 
+func (column *RawIntColumn) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(column.ResourceFields.UserConfigStr())
+	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, column.Type.String()))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", RequiredKey, s.Bool(column.Required)))
+	if column.Min != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MinKey, s.Int64(*column.Min)))
+	}
+	if column.Max != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MaxKey, s.Int64(*column.Max)))
+	}
+	if len(column.Values) != 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ValuesKey, s.Obj(column.Values)))
+	}
+	if column.Compute != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
+		sb.WriteString(s.Indent(column.Compute.UserConfigStr(), "  "))
+	}
+	return sb.String()
+}
+
 type RawFloatColumn struct {
 	ResourceFields
 	Type     ColumnType    `json:"type" yaml:"type"`
@@ -145,6 +170,27 @@ var rawFloatColumnFieldValidations = []*cr.StructFieldValidation{
 	typeFieldValidation,
 }
 
+func (column *RawFloatColumn) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(column.ResourceFields.UserConfigStr())
+	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, column.Type.String()))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", RequiredKey, s.Bool(column.Required)))
+	if column.Min != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MinKey, s.Float32(*column.Min)))
+	}
+	if column.Max != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MaxKey, s.Float32(*column.Max)))
+	}
+	if len(column.Values) != 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ValuesKey, s.Obj(column.Values)))
+	}
+	if column.Compute != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
+		sb.WriteString(s.Indent(column.Compute.UserConfigStr(), "  "))
+	}
+	return sb.String()
+}
+
 type RawStringColumn struct {
 	ResourceFields
 	Type     ColumnType    `json:"type" yaml:"type"`
@@ -180,6 +226,21 @@ var rawStringColumnFieldValidations = []*cr.StructFieldValidation{
 	typeFieldValidation,
 }
 
+func (column *RawStringColumn) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(column.ResourceFields.UserConfigStr())
+	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, column.Type.String()))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", RequiredKey, s.Bool(column.Required)))
+	if len(column.Values) != 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ValuesKey, s.Obj(column.Values)))
+	}
+	if column.Compute != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
+		sb.WriteString(s.Indent(column.Compute.UserConfigStr(), "  "))
+	}
+	return sb.String()
+}
+
 type RawInferredColumn struct {
 	ResourceFields
 	Type    ColumnType    `json:"type" yaml:"type"`
@@ -198,6 +259,16 @@ func (rawColumns RawColumns) Validate() error {
 	}
 
 	return nil
+}
+
+func (column *RawInferredColumn) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(column.ResourceFields.UserConfigStr())
+	if column.Compute != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
+		sb.WriteString(s.Indent(column.Compute.UserConfigStr(), "  "))
+	}
+	return sb.String()
 }
 
 func (rawColumns RawColumns) Names() []string {

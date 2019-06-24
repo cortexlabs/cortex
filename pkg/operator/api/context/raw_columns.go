@@ -55,18 +55,3 @@ func (rawColumns RawColumns) OneByID(id string) RawColumn {
 	}
 	return nil
 }
-
-func GetRawColumnUserConfig(rawColumn RawColumn) userconfig.Resource {
-	switch rawColumn.GetColumnType() {
-	case userconfig.IntegerColumnType:
-		return rawColumn.(*RawIntColumn).RawIntColumn
-	case userconfig.FloatColumnType:
-		return rawColumn.(*RawFloatColumn).RawFloatColumn
-	case userconfig.StringColumnType:
-		return rawColumn.(*RawStringColumn).RawStringColumn
-	case userconfig.InferredColumnType:
-		return rawColumn.(*RawInferredColumn).RawInferredColumn
-	}
-
-	return nil
-}

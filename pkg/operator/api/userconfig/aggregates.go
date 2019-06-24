@@ -17,8 +17,12 @@ limitations under the License.
 package userconfig
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -64,6 +68,22 @@ var aggregateValidation = &configreader.StructValidation{
 		tagsFieldValidation,
 		typeFieldValidation,
 	},
+}
+
+func (aggregate *Aggregate) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(aggregate.ResourceFields.UserConfigStr())
+	if aggregate.AggregatorPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", AggregatorPathKey, *aggregate.AggregatorPath))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", AggregatorKey, aggregate.Aggregator))
+	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", InputKey, s.Obj(aggregate.Input)))
+	if aggregate.Compute != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
+		sb.WriteString(s.Indent(aggregate.Compute.UserConfigStr(), "  "))
+	}
+	return sb.String()
 }
 
 func (aggregates Aggregates) Validate() error {
