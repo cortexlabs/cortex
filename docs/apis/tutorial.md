@@ -100,4 +100,4 @@ Delete the deployment:
 $ cortex delete iris
 ```
 
-See [uninstall](operator/uninstall.md) if you'd like to uninstall Cortex.
+See [uninstall](../cluster/uninstall.md) if you'd like to uninstall Cortex.
