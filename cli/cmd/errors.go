@@ -95,7 +95,7 @@ func (e Error) Error() string {
 func ErrorCliAlreadyInAppDir(dirPath string) error {
 	return Error{
 		Kind:    ErrCliAlreadyInAppDir,
-		message: fmt.Sprintf("your current working directory is already in a cortex app directory (%s)", dirPath),
+		message: fmt.Sprintf("your current working directory is already in a cortex directory (%s)", dirPath),
 	}
 }
 
@@ -123,6 +123,6 @@ func ErrorFailedToConnect(urlStr string) error {
 func ErrorCliNotInAppDir() error {
 	return Error{
 		Kind:    ErrCliNotInAppDir,
-		message: "your current working directory is not in or under a cortex app directory (identified via a top-level cortex.yaml file)",
+		message: "your current working directory is not in or under a cortex directory (identified via a top-level cortex.yaml file)",
 	}
 }

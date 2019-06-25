@@ -42,7 +42,7 @@ func init() {
 	addEnvFlag(getCmd)
 	addWatchFlag(getCmd)
 	addSummaryFlag(getCmd)
-	addResourceTypesToHelp(getCmd)
+	// addResourceTypesToHelp(getCmd)
 }
 
 var getCmd = &cobra.Command{

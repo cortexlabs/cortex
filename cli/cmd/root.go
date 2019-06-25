@@ -96,7 +96,7 @@ func addWatchFlag(cmd *cobra.Command) {
 }
 
 func addAppNameFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&flagAppName, "app", "a", "", "app name")
+	cmd.PersistentFlags().StringVarP(&flagAppName, "deployment", "d", "", "deployment name")
 }
 
 func addVerboseFlag(cmd *cobra.Command) {

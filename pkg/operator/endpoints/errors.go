@@ -132,7 +132,7 @@ func ErrorAuthForbidden() error {
 func ErrorAppNotDeployed(appName string) error {
 	return Error{
 		Kind:    ErrAuthForbidden,
-		message: fmt.Sprintf("app %s is not deployed", s.UserStr(appName)),
+		message: fmt.Sprintf("%s is not deployed", s.UserStr(appName)),
 	}
 }
 

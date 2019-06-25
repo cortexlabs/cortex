@@ -106,14 +106,14 @@ func ErrorMoreThanOneWorkflow() error {
 func ErrorContextAppMismatch() error {
 	return Error{
 		Kind:    ErrContextAppMismatch,
-		message: "context apps do not match",
+		message: "context deployments do not match",
 	}
 }
 
 func ErrorWorkflowAppMismatch() error {
 	return Error{
 		Kind:    ErrWorkflowAppMismatch,
-		message: "workflow apps do not match",
+		message: "workflow deployments do not match",
 	}
 }
 

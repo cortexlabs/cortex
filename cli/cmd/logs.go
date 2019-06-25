@@ -27,7 +27,7 @@ func init() {
 	addAppNameFlag(logsCmd)
 	addEnvFlag(logsCmd)
 	addVerboseFlag(logsCmd)
-	addResourceTypesToHelp(logsCmd)
+	// addResourceTypesToHelp(logsCmd)
 }
 
 var logsCmd = &cobra.Command{

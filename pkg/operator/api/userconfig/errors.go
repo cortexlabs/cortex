@@ -245,7 +245,7 @@ func ErrorReadConfig() error {
 func ErrorMissingAppDefinition() error {
 	return Error{
 		Kind:    ErrMissingAppDefinition,
-		message: fmt.Sprintf("cortex.yaml must define an app resource"),
+		message: fmt.Sprintf("cortex.yaml must define a deployment resource"),
 	}
 }
 

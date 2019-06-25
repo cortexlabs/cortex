@@ -11,9 +11,9 @@ assignees: ''
 
 [Description of the bug]
 
-### Application Configuration
+### Configuration
 
-[If applicable, any relevant resource configuration or the name of the example application]
+[If applicable, any relevant resource configuration or the name of the example]
 
 ### To Reproduce
 
