@@ -1,6 +1,6 @@
 # Deployment
 
-The deployment resource is used to group a set of resources that can be deployed as a singular unit. It must be defined in every Cortex directory in a top-level `cortex.yaml` file.
+The deployment resource is used to group a set of resources that can be deployed as a single unit. It must be defined in every Cortex directory in a top-level `cortex.yaml` file.
 
 ## Config
 

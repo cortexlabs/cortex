@@ -14,7 +14,7 @@ $ mkdir iris && cd iris
 $ touch cortex.yaml irises.json
 ```
 
-Cortex requires a `cortex.yaml` file which defines a `deployment` resource. Other resources may be defined in arbitrarily named YAML files in the the directory which contains `cortex.yaml` or any subdirectories. We will define all of our resources in `cortex.yaml` in this example.
+Cortex requires a `cortex.yaml` file which defines a `deployment` resource. Other resources may be defined in arbitrarily named YAML files in the the directory which contains `cortex.yaml` or any subdirectories. We'll define all of our resources in `cortex.yaml` in this example.
 
 Add to `cortex.yaml`:
 

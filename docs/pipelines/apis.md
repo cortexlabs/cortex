@@ -18,6 +18,8 @@ Serve models at scale and use them to build smarter applications.
     mem: <string>  # memory request per replica (default: Null)
 ```
 
+See [packaging models](packaging-models.md) for how to create the zipped model (for use in `external_model`).
+
 ## Example
 
 ```yaml

@@ -26,7 +26,3 @@ One unit of memory is one byte. Memory can be expressed as an integer or by usin
 ## GPU
 
 One unit of GPU corresponds to one virtual GPU on AWS. Fractional requests are not allowed. Here's some information on [adding GPU enabled nodes on EKS](https://docs.aws.amazon.com/en_ca/eks/latest/userguide/gpu-ami.html).
-
-## GPU Support
-
-We recommend using GPU compute requests on API resources only if you have enough nodes in your cluster to support the number of GPU requests in model training plus APIs (ideally with an autoscaler). Otherwise, due to the nature of zero downtime rolling updates, your model training will not have sufficient GPU resources as there will always be GPUs consumed by APIs from the previous deployment.
