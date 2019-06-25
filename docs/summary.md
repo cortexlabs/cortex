@@ -10,7 +10,6 @@
 * [Deployments](apis/deployment.md)
 * [APIs](apis/apis.md)
 * [Packaging Models](apis/packaging-models.md)
-* [Python Packages](apis/python-packages.md)
 * [Compute](apis/compute.md)
 * [CLI Commands](cluster/cli.md)
 * [Resource Statuses](apis/statuses.md)
