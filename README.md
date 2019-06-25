@@ -43,7 +43,7 @@ Ready! https://amazonaws.com/my-api
 ```
 $ curl https://amazonaws.com/my-api
 
-{ prediction: ABC }
+{ prediction: 123 }
 ```
 
 <br>
@@ -52,7 +52,7 @@ $ curl https://amazonaws.com/my-api
 
 - **Machine learning deployments as code:** Cortex deployments are defined using a simple declarative syntax.
 
-- **Multi framework support:** Cortex supports [TensorFlow](https://www.tensorflow.org) models with more frameworks coming soon.
+- **Multi framework support:** Cortex supports TensorFlow models with more frameworks coming soon.
 
 - **Scalability:** Cortex can scale APIs to handle production workloads.
 
