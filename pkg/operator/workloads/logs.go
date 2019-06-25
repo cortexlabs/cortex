@@ -45,7 +45,7 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 	wrotePending := false
 
 	for true {
-		allPods, err := config.Kubernetes.ListPodsByLabels(map[string]string{
+		pods, err := config.Kubernetes.ListPodsByLabels(map[string]string{
 			"appName":    appName,
 			"workloadID": workloadID,
 			"userFacing": "true",
@@ -55,34 +55,42 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			return
 		}
 
-		// Prefer running API pods if any exist
-		var pods []corev1.Pod
-		for _, pod := range allPods {
-			if pod.Labels["workloadType"] == WorkloadTypeAPI && k8s.GetPodStatus(&pod) != k8s.PodStatusRunning {
-				continue
-			}
-			pods = append(pods, pod)
-		}
-		if len(pods) == 0 {
-			pods = allPods
-		}
-
-		if len(pods) == 1 {
-			getKubectlLogs(&pods[0], verbose, wrotePending, socket)
-			return
-		}
-
-		if len(pods) > 1 {
-			if !writeSocket(fmt.Sprintf("%d pods available, streaming logs for one of them:", len(pods)), socket) {
-				return
-			}
-			for _, pod := range pods {
-				if pod.Status.Phase != "Pending" {
-					getKubectlLogs(&pod, verbose, wrotePending, socket)
+		if len(pods) > 0 {
+			if len(pods) > 1 {
+				if !writeSocket(fmt.Sprintf("%d pods available, streaming logs for one of them:", len(pods)), socket) {
 					return
 				}
 			}
-			getKubectlLogs(&pods[0], verbose, wrotePending, socket)
+
+			podMap := make(map[k8s.PodStatus][]corev1.Pod)
+			for _, pod := range pods {
+				podMap[k8s.GetPodStatus(&pod)] = append(podMap[k8s.GetPodStatus(&pod)], pod)
+			}
+
+			switch {
+			case len(podMap[k8s.PodStatusSucceeded]) > 0:
+				getKubectlLogs(&podMap[k8s.PodStatusSucceeded][0], verbose, wrotePending, false, socket)
+			case len(podMap[k8s.PodStatusRunning]) > 0:
+				getKubectlLogs(&podMap[k8s.PodStatusRunning][0], verbose, wrotePending, false, socket)
+			case len(podMap[k8s.PodStatusPending]) > 0:
+				getKubectlLogs(&podMap[k8s.PodStatusPending][0], verbose, wrotePending, false, socket)
+			case len(podMap[k8s.PodStatusKilled]) > 0:
+				getKubectlLogs(&podMap[k8s.PodStatusKilled][0], verbose, wrotePending, false, socket)
+			case len(podMap[k8s.PodStatusKilledOOM]) > 0:
+				getKubectlLogs(&podMap[k8s.PodStatusKilledOOM][0], verbose, wrotePending, false, socket)
+			case len(podMap[k8s.PodStatusFailed]) > 0:
+				previous := false
+				if pods[0].Labels["workloadType"] == WorkloadTypeAPI {
+					previous = true
+				}
+				getKubectlLogs(&podMap[k8s.PodStatusFailed][0], verbose, wrotePending, previous, socket)
+			case len(podMap[k8s.PodStatusTerminating]) > 0:
+				getKubectlLogs(&podMap[k8s.PodStatusTerminating][0], verbose, wrotePending, false, socket)
+			case len(podMap[k8s.PodStatusUnknown]) > 0:
+				getKubectlLogs(&podMap[k8s.PodStatusUnknown][0], verbose, wrotePending, false, socket)
+			default: // unexpected
+				getKubectlLogs(&pods[0], verbose, wrotePending, false, socket)
+			}
 			return
 		}
 
@@ -110,7 +118,7 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			if !writeSocket("\nFailed to start:\n", socket) {
 				return
 			}
-			getKubectlLogs(failedArgoPod, true, false, socket)
+			getKubectlLogs(failedArgoPod, true, false, false, socket)
 			return
 		}
 
@@ -125,10 +133,10 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 	}
 }
 
-func getKubectlLogs(pod *corev1.Pod, verbose bool, wrotePending bool, socket *websocket.Conn) {
+func getKubectlLogs(pod *corev1.Pod, verbose bool, wrotePending bool, previous bool, socket *websocket.Conn) {
 	cmdPath := "/usr/local/bin/kubectl"
 
-	if pod.Status.Phase == "Pending" {
+	if k8s.GetPodStatus(pod) == k8s.PodStatusPending {
 		if !wrotePending {
 			if !writeSocket("\nPending", socket) {
 				return
@@ -137,9 +145,14 @@ func getKubectlLogs(pod *corev1.Pod, verbose bool, wrotePending bool, socket *we
 		config.Kubernetes.WaitForPodRunning(pod.Name, 1)
 	}
 
-	args := []string{"kubectl", "-n=" + config.Cortex.Namespace, "logs", "--follow=true", pod.Name}
+	args := []string{"kubectl", "-n=" + config.Cortex.Namespace, "logs", "--follow=true"}
+	if previous {
+		args = append(args, "--previous")
+	}
+
+	args = append(args, pod.Name)
 	if pod.Labels["workloadType"] == WorkloadTypeAPI && pod.Labels["userFacing"] == "true" {
-		args = []string{"kubectl", "-n=" + config.Cortex.Namespace, "logs", "--follow=true", pod.Name, apiContainerName}
+		args = append(args, apiContainerName)
 	}
 
 	outr, outw, err := os.Pipe()

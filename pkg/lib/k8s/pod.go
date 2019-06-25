@@ -32,15 +32,17 @@ var podTypeMeta = metav1.TypeMeta{
 	Kind:       "Pod",
 }
 
+type PodStatus string
+
 const (
-	PodStatusUnknown     = "Unknown"
-	PodStatusPending     = "Pending"
-	PodStatusRunning     = "Running"
-	PodStatusTerminating = "Terminating"
-	PodStatusSucceeded   = "Succeeded"
-	PodStatusFailed      = "Failed"
-	PodStatusKilled      = "Killed"
-	PodStatusKilledOOM   = "Out of Memory"
+	PodStatusUnknown     PodStatus = "Unknown"
+	PodStatusPending     PodStatus = "Pending"
+	PodStatusRunning     PodStatus = "Running"
+	PodStatusTerminating PodStatus = "Terminating"
+	PodStatusSucceeded   PodStatus = "Succeeded"
+	PodStatusFailed      PodStatus = "Failed"
+	PodStatusKilled      PodStatus = "Killed"
+	PodStatusKilledOOM   PodStatus = "Out of Memory"
 )
 
 var killStatuses = map[int32]bool{
@@ -95,7 +97,7 @@ func GetPodLastContainerStartTime(pod *corev1.Pod) *time.Time {
 	return startTime
 }
 
-func GetPodStatus(pod *corev1.Pod) string {
+func GetPodStatus(pod *corev1.Pod) PodStatus {
 	if pod == nil {
 		return PodStatusUnknown
 	}
@@ -190,7 +192,7 @@ func (c *Client) WaitForPodRunning(name string, numSeconds int) error {
 		if err != nil {
 			return err
 		}
-		if pod != nil && pod.Status.Phase == "Running" {
+		if pod != nil && pod.Status.Phase == corev1.PodRunning {
 			return nil
 		}
 		time.Sleep(time.Duration(numSeconds) * time.Second)
