@@ -114,7 +114,7 @@ func ErrorInvalidS3aPath(provided string) error {
 func ErrorInvalidS3Path(provided string) error {
 	return Error{
 		Kind:    ErrInvalidS3Path,
-		message: fmt.Sprintf("%s is not a valid s3 path (e.g. s3://cortex-examples/iris-model.zip is a valid s3 path)", s.UserStr(provided)),
+		message: fmt.Sprintf("%s is not a valid s3 path (e.g. s3://cortex-examples/iris-tensorflow.zip is a valid s3 path)", s.UserStr(provided)),
 	}
 }
 

@@ -30,8 +30,6 @@ An API makes your model available as a live web service that can serve real-time
 Add to `cortex.yaml`:
 
 ```yaml
-# APIs
-
 - kind: api
   name: iris-type
   external_model:

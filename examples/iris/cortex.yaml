@@ -4,7 +4,7 @@
 - kind: api
   name: iris-type
   external_model:
-    path: s3://cortex-examples/iris-model.zip
+    path: s3://cortex-examples/iris-tensorflow.zip
     region: us-west-2
   compute:
     replicas: 3

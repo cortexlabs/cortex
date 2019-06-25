@@ -46,3 +46,4 @@
 * [Compute](pipelines/compute.md)
 * [CLI Commands](cluster/cli.md)
 * [Resource Statuses](pipelines/statuses.md)
+* [Tutorial](pipelines/tutorial.md)
