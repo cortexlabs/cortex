@@ -1,5 +1,5 @@
-- kind: app
-  name: iris
+- kind: deployment
+  name: iris-e2e
 
 - kind: environment
   name: dev
