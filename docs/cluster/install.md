@@ -71,11 +71,11 @@ git clone -b master https://github.com/cortexlabs/cortex.git
 # Navigate to the iris classification example
 cd cortex/examples/iris
 
-# Deploy the application to the cluster
+# Deploy the model to the cluster
 cortex deploy
 
 # View the status of the deployment
-cortex status --watch
+cortex get --watch
 
 # Classify a sample
 cortex predict iris-type irises.json

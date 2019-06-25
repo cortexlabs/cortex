@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-1. A Kubernetes cluster running Cortex ([installation instructions](operator/install.md))
+1. A Kubernetes cluster running Cortex ([installation instructions](cluster/install.md))
 2. The Cortex CLI
 
 ## Deployment
@@ -43,13 +43,13 @@ Add to `cortex.yaml`:
 
 ### Deploy the API
 
-```
+```text
 $ cortex deploy
 ```
 
 You can get a summary of the status of resources using `cortex get`:
 
-```
+```text
 $ cortex get --watch
 ```
 
@@ -72,7 +72,7 @@ Define a sample in `irises.json`:
 
 When the API is ready, request a prediction from the API:
 
-```
+```text
 $ cortex predict iris-type irises.json
 ```
 
@@ -80,13 +80,13 @@ $ cortex predict iris-type irises.json
 
 Get the API's endpoint:
 
-```
+```text
 $ cortex get iris-type
 ```
 
 Use cURL to test the API:
 
-```
+```text
 $ curl -k -X POST -H "Content-Type: application/json" \
        -d '{ "samples": [ { "sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3 } ] }' \
        <API endpoint>
@@ -96,7 +96,7 @@ $ curl -k -X POST -H "Content-Type: application/json" \
 
 Delete the deployment:
 
-```
+```text
 $ cortex delete iris
 ```
 
