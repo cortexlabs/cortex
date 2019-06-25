@@ -3,7 +3,7 @@
 ## Prerequisites
 
 1. An AWS account
-1. A Kubernetes cluster running the Cortex operator ([installation instructions](operator/install.md))
+1. A Kubernetes cluster running the Cortex operator ([installation instructions](../cluster/install.md))
 1. The Cortex CLI
 
 ## Build a machine learning application
@@ -155,4 +155,4 @@ $ cortex delete iris
 Deployment deleted
 ```
 
-See [uninstall](operator/uninstall.md) if you'd like to uninstall Cortex.
+See [uninstall](../cluster/uninstall.md) if you'd like to uninstall Cortex.
