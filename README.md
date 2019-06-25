@@ -8,17 +8,15 @@
 
 <br>
 
-## Deployment platform for machine learning in production
-
-Cortex deploys your machine learning models on your cloud infrastructure. You define your deployment with simple declarative configuration, Cortex containerizes your models, deploys them as scalable JSON APIs, and manages their lifecycle in production.
+Cortex deploys your machine learning models to your cloud infrastructure. You define your deployment with simple declarative configuration, Cortex containerizes your models, deploys them as scalable JSON APIs, and manages their lifecycle in production.
 
 Cortex is actively maintained by Cortex Labs. We're a venture-backed team of infrastructure engineers and [we're hiring](https://angel.co/cortex-labs-inc/jobs).
 
 <br>
 
-## Machine learning deployments as code
+## How it works
 
-**Define** your deployment using declarative configuration.
+**Define** your deployment using declarative configuration:
 
 ```yaml
 - kind: api
@@ -31,41 +29,33 @@ Cortex is actively maintained by Cortex Labs. We're a venture-backed team of inf
     gpu: 2
 ```
 
-**Deploy** to your cloud infrastructure.
+**Deploy** to your cloud infrastructure:
 
 ```
 $ cortex deploy
 
-Provisioning infrastructure ...
-Deploying API ...
-Loading model ...
-
+Deploying ...
 Ready! https://amazonaws.com/my-api
 ```
 
-**Serve** real time predictions via scalable JSON APIs.
+**Serve** real time predictions via scalable JSON APIs:
 
 ```
-$ cortex status my-api
+$ cortex predict my-api my-samples.json
 
-Endpoint: https://amazonaws.com/my-api
-Latency: 200ms
-Throughput: 50 requests per second
-Predictions: 1,234,567 legitimate | 89 fraud
+TODO
 ```
 
 <br>
 
 ## Key features
 
-- **Machine learning deployments as code:** Cortex deployments are defined using a simple declarative syntax that enables flexibility and reusability.
+- **Machine learning deployments as code:** Cortex deployments are defined using a simple declarative syntax TODO.
 
-- **Multi framework support:** Cortex supports [TensorFlow](https://www.tensorflow.org), [Keras](https://keras.io), and [PyTorch](https://pytorch.org) models.
+- **Multi framework support:** Cortex supports [TensorFlow](https://www.tensorflow.org) models with more frameworks coming soon.
 
-- **Scalability:** Cortex automatically handles scaling APIs.
+- **Scalability:** Cortex can scale APIs to handle production workloads.
 
 - **Rolling updates:** Cortex updates deployed APIs without any downtime.
 
-- **A/B testing:** Cortex can load balance traffic across multiple models.
-
-- **Cloud agnostic:** Cortex can handle production workloads and can be deployed on any Kubernetes cluster in minutes.
+- **Cloud agnostic:** Cortex can be deployed on any AWS account in minutes.
