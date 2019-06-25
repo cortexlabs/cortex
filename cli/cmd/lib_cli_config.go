@@ -149,7 +149,8 @@ func readCliConfig() (*CliConfig, []error) {
 
 func getValidCliConfig() *CliConfig {
 	cliConfig, errs := readCliConfig()
-	if errs != nil && len(errs) > 0 {
+	if len(errs) > 0 {
+		fmt.Printf("Environment \"%s\" is not configured, configuring now:\n", flagEnv)
 		cliConfig = configure()
 	}
 	return cliConfig
