@@ -41,16 +41,16 @@ Ready! https://amazonaws.com/my-api
 **Serve** real time predictions via scalable JSON APIs:
 
 ```
-$ cortex predict my-api my-samples.json
+$ curl https://amazonaws.com/my-api
 
-TODO
+{ prediction: ABC }
 ```
 
 <br>
 
 ## Key features
 
-- **Machine learning deployments as code:** Cortex deployments are defined using a simple declarative syntax TODO.
+- **Machine learning deployments as code:** Cortex deployments are defined using a simple declarative syntax.
 
 - **Multi framework support:** Cortex supports [TensorFlow](https://www.tensorflow.org) models with more frameworks coming soon.
 
