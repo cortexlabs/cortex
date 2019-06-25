@@ -25,6 +25,7 @@
 ## Pipeline Deployments
 
 * [Overview](pipelines/overview.md)
+* [Tutorial](pipelines/tutorial.md)
 * [Deployments](pipelines/deployment.md)
 * [Environments](pipelines/environments.md)
 * [Raw Columns](pipelines/raw-columns.md)
@@ -46,4 +47,3 @@
 * [Compute](pipelines/compute.md)
 * [CLI Commands](cluster/cli.md)
 * [Resource Statuses](pipelines/statuses.md)
-* [Tutorial](pipelines/tutorial.md)

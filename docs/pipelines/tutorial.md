@@ -1,4 +1,4 @@
-# Tutorial
+# Pipeline Tutorial
 
 ## Prerequisites
 
