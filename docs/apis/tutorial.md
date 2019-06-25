@@ -2,14 +2,14 @@
 
 ## Prerequisites
 
-1. A Kubernetes cluster running Cortex ([installation instructions](cluster/install.md))
+1. A Kubernetes cluster running Cortex ([installation instructions](../cluster/install.md))
 2. The Cortex CLI
 
 ## Deployment
 
 ### cortex.yaml
 
-```bash
+```text
 $ mkdir iris && cd iris
 $ touch cortex.yaml irises.json
 ```
