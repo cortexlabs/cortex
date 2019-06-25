@@ -1,4 +1,4 @@
-# Importing Models
+# Packaging Models
 
 ## TensorFlow
 
@@ -17,7 +17,7 @@ Upload the zipped file to Amazon S3, e.g.
 $ aws s3 cp model.zip s3://my-bucket/model.zip
 ```
 
-Specify `model` in an API, e.g.
+Specify `external_model` in an API, e.g.
 
 ```yaml
 - kind: api

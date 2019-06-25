@@ -9,7 +9,7 @@
 
 * [Deployments](apis/deployment.md)
 * [APIs](apis/apis.md)
-* [Importing Models](apis/import.md)
+* [Packaging Models](apis/packaging-models.md)
 * [Python Packages](apis/python-packages.md)
 * [Compute](apis/compute.md)
 * [CLI Commands](cluster/cli.md)
@@ -42,6 +42,7 @@
 * [Constants](pipelines/constants.md)
 * [Data Types](pipelines/data-types.md)
 * [Templates](pipelines/templates.md)
+* [Packaging Models](pipelines/packaging-models.md)
 * [Python Packages](pipelines/python-packages.md)
 * [Compute](pipelines/compute.md)
 * [CLI Commands](cluster/cli.md)
