@@ -7,14 +7,17 @@ Serve models at scale and use them to build smarter applications.
 ```yaml
 - kind: api
   name: <string>  # API name (required)
-  model: <string>  # reference to a model (e.g. s3://my-bucket/my-model.zip)
+  model: <string>  # reference to a model (e.g. @dnn) (this or external_model must be specified)
+  external_model:  # (this or model must be specified)
+    path: <string>  # path to a zipped model dir (e.g. s3://my-bucket/model.zip)
+    region: <string>  # S3 region (default: us-west-2)
   preprocessor: <string>  # path to the implementation file, relative to the cortex root (default: <name>.py)
   postprocessor: <string>  # path to the implementation file, relative to the cortex root (default: <name>.py)
   compute:
     replicas: <int>  # number of replicas to launch (default: 1)
-    cpu: <string>  # CPU request (default: Null)
-    mem: <string>  # memory request (default: Null)
-    gpu: <string>  # gpu request (default: Null)
+    cpu: <string>  # CPU request per replica (default: Null)
+    gpu: <string>  # gpu request per replica (default: Null)
+    mem: <string>  # memory request per replica (default: Null)
 ```
 
 ## Example
