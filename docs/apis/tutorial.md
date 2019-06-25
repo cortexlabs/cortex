@@ -34,7 +34,9 @@ Add to `cortex.yaml`:
 
 - kind: api
   name: iris-type
-  model: s3://cortex-examples/iris-tensorflow.zip
+  external_model:
+    path: s3://cortex-examples/iris-tensorflow.zip
+    region: us-west-2
   compute:
     replicas: 3
 ```

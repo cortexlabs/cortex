@@ -10,8 +10,6 @@ Serve models at scale and use them to build smarter applications.
   external_model:
     path: <string>  # path to a zipped model dir (e.g. s3://my-bucket/model.zip)
     region: <string>  # S3 region (default: us-west-2)
-  preprocessor: <string>  # path to the implementation file, relative to the cortex root (default: <name>.py)
-  postprocessor: <string>  # path to the implementation file, relative to the cortex root (default: <name>.py)
   compute:
     replicas: <int>  # number of replicas to launch (default: 1)
     cpu: <string>  # CPU request per replica (default: Null)
@@ -24,9 +22,9 @@ Serve models at scale and use them to build smarter applications.
 ```yaml
 - kind: api
   name: my-api
-  model: s3://my-bucket/my-model.zip
-  preprocessor: transform_payload.py
-  postprocessor: process_prediction.py
+  external_model:
+    path: s3://my-bucket/my-model.zip
+    region: us-west-2
   compute:
     replicas: 3
     gpu: 2

@@ -21,9 +21,9 @@ Cortex is actively maintained by Cortex Labs. We're a venture-backed team of inf
 ```yaml
 - kind: api
   name: my-api
-  model: s3://my-bucket/my-model.zip    # TensorFlow / PyTorch
-  preprocessor: transform_payload.py    # Transform request payloads before inference
-  postprocessor: process_prediction.py  # Transform predicitons before responding to the client
+  external_model:
+    path: s3://my-bucket/my-model.zip
+    region: us-west-2
   compute:
     replicas: 3
     gpu: 2
@@ -41,9 +41,9 @@ Ready! https://amazonaws.com/my-api
 **Serve** real time predictions via scalable JSON APIs:
 
 ```
-$ curl https://amazonaws.com/my-api
+$ curl -d '{"a": 1, "b": 2, "c": 3}' https://amazonaws.com/my-api
 
-{ prediction: 123 }
+{ prediction: "def" }
 ```
 
 <br>
@@ -58,4 +58,4 @@ $ curl https://amazonaws.com/my-api
 
 - **Rolling updates:** Cortex updates deployed APIs without any downtime.
 
-- **Cloud agnostic:** Cortex can be deployed on any AWS account in minutes.
+- **Cloud native:** Cortex can be deployed on any AWS account in minutes.

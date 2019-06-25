@@ -22,5 +22,7 @@ $ aws s3 cp model.zip s3://your-bucket/model.zip
 ```yaml
 - kind: api
   name: my-api
-  model: s3://my-bucket/model.zip
+  external_model:
+    path: s3://my-bucket/my-model.zip
+    region: us-west-2
 ```
