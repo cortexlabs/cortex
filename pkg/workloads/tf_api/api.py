@@ -376,7 +376,7 @@ def start(args):
     local_cache["api"] = api
     local_cache["ctx"] = ctx
 
-    if ctx.environment is not None:
+    if api.get("external_model") is None:
         model = ctx.models[api["model_name"]]
         estimator = ctx.estimators[model["estimator"]]
 
