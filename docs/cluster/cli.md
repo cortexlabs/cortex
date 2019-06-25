@@ -2,37 +2,39 @@
 
 ## deploy
 
-```
+```text
 Create or update a deployment.
 
 Usage:
   cortex deploy [flags]
 
 Flags:
-  -f, --force
-  -h, --help
+  -e, --env string   environment (default "dev")
+  -f, --force        stop all running jobs
+  -h, --help         help for deploy
 ```
 
-The `deploy` command sends all deployment configuration and code to Cortex. If all validations pass, Cortex will attempt to create the desired state on the cluster.
+The `deploy` command sends all deployment configuration and code to Cortex. If validations pass, Cortex will attempt to create the desired state on the cluster.
 
 ## refresh
 
-```
+```text
 Delete cached resources and deploy.
 
 Usage:
   cortex refresh [flags]
 
 Flags:
-  -f, --force
-  -h, --help
+  -e, --env string   environment (default "dev")
+  -f, --force        stop all running jobs
+  -h, --help         help for refresh
 ```
 
 The `refresh` command behaves similarly to the `deploy` command. The key difference is that `refresh` doesn't use any cached resources.
 
 ## predict
 
-```
+```text
 Make predictions.
 
 Usage:
@@ -40,30 +42,32 @@ Usage:
 
 Flags:
   -d, --deployment string   deployment name
+  -e, --env string          environment (default "dev")
+  -h, --help                help for predict
   -j, --json                print the raw json response
-  -h, --help
 ```
 
-The `predict` command converts samples from a JSON file into prediction requests and outputs the response. This command is useful for quickly testing model output.
+The `predict` command converts samples from a JSON file into prediction requests and displays the response. This command is useful for quickly testing model output.
 
 ## delete
 
-```
+```text
 Delete a deployment.
 
 Usage:
   cortex delete [DEPLOYMENT_NAME] [flags]
 
 Flags:
+  -e, --env string   environment (default "dev")
+  -h, --help         help for delete
   -c, --keep-cache   keep cached data for the deployment
-  -h, --help
 ```
 
 The `delete` command deletes an deployment's resources from the cluster.
 
 ## get
 
-```
+```text
 Get information about resources.
 
 Usage:
@@ -71,16 +75,17 @@ Usage:
 
 Flags:
   -d, --deployment string   deployment name
-  -s, --summary             summarized view of resources
+  -e, --env string          environment (default "dev")
+  -h, --help                help for get
+  -s, --summary             show summarized output
   -w, --watch               re-run the command every 2 seconds
-  -h, --help
 ```
 
-The `get` command outputs the current state of all resources on the cluster. Specifying a resource name provides a more detailed view of the configuration and state of that particular resource.
+The `get` command displays the current state of all resources on the cluster. Specifying a resource name provides a more detailed view of the configuration and state of that particular resource. Using the `-s` or `--summary` flag will show a summarized view of all resource statuses.
 
 ## logs
 
-```
+```text
 Get logs for a resource.
 
 Usage:
@@ -88,31 +93,31 @@ Usage:
 
 Flags:
   -d, --deployment string   deployment name
-  -v, --verbose
-  -h, --help
+  -e, --env string          environment (default "dev")
+  -h, --help                help for logs
+  -v, --verbose             show verbose output
 ```
 
 The `logs` command streams logs from the workload corresponding to the specified resource. For example, `cortex logs models dnn` will get the Cortex logs from the most recent training workload for `dnn`. Using the `-v` or `--verbose` flag will show all of the logs for the workload (not just Cortex's logs).
 
 ## configure
 
-```
+```text
 Configure the CLI.
 
 Usage:
   cortex configure [flags]
 
 Flags:
-  -h, --help
+  -e, --env string   environment (default "dev")
+  -h, --help         help for configure
 ```
 
-The `configure` command is used to connect to the Cortex cluster. The CLI needs a Cortex operator URL as well as valid AWS credentials in order to authenticate requests.
-
-The CLI stores this information in the `~/.cortex` directory.
+The `configure` command is used to connect to the Cortex cluster. The CLI needs a Cortex operator URL as well as valid AWS credentials in order to authenticate requests. The CLI stores this information in the `~/.cortex` directory.
 
 ## completion
 
-```
+```text
 Generate bash completion scripts.
 
 Add this to your bashrc or bash profile:
