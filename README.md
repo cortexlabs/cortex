@@ -19,13 +19,14 @@ Cortex is actively maintained by Cortex Labs. We're a venture-backed team of inf
 **Define** your deployment using declarative configuration:
 
 ```yaml
+# cortex.yaml
+
 - kind: api
   name: my-api
-  external_model:
-    path: s3://my-bucket/my-model.zip
-    region: us-west-2
+  model: s3://my-bucket/my-model.zip
+  request_handler: transform_payload.py
   compute:
-    replicas: 3
+    replicas: 4
     gpu: 2
 ```
 
@@ -52,7 +53,7 @@ $ curl -d '{"a": 1, "b": 2, "c": 3}' https://amazonaws.com/my-api
 
 - **Machine learning deployments as code:** Cortex deployments are defined using declarative configuration.
 
-- **Multi framework support:** Cortex supports TensorFlow models with more frameworks coming soon.
+- **Multi framework support:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
 
 - **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
 
