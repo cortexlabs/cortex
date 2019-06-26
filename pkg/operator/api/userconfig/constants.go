@@ -102,7 +102,7 @@ func (constant *Constant) Validate() error {
 		}
 	}
 
-	if constant.Type != nil {
+	if constant.Value != nil && constant.Type != nil {
 		castedValue, err := CastOutputValue(constant.Value, constant.Type)
 		if err != nil {
 			return errors.Wrap(err, Identify(constant), ValueKey)

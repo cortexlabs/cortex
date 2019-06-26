@@ -150,9 +150,16 @@ func validateRuntimeTypes(
 		switch res.GetResourceType() {
 		case resource.ConstantType:
 			constant := res.(*context.Constant)
-			_, err := validateRuntimeTypes(constant.Value, schema, validResources, aggregators, transformers, true)
-			if err != nil {
-				return nil, errors.Wrap(err, userconfig.Identify(constant), userconfig.ValueKey)
+			if constant.Value != nil {
+				_, err := validateRuntimeTypes(constant.Value, schema, validResources, aggregators, transformers, true)
+				if err != nil {
+					return nil, errors.Wrap(err, userconfig.Identify(constant), userconfig.ValueKey)
+				}
+			} else if constant.Type != nil {
+				err := validateInputRuntimeOutputTypes(constant.Type, schema)
+				if err != nil {
+					return nil, errors.Wrap(err, userconfig.Identify(constant), userconfig.TypeKey)
+				}
 			}
 			return input, nil
 		case resource.RawColumnType:
