@@ -3,8 +3,19 @@
 
 - kind: api
   name: iris-type
+  model_type: tensorflow
   external_model:
     path: s3://cortex-examples/iris-tensorflow.zip
     region: us-west-2
   compute:
     replicas: 3
+
+- kind: api
+  name: iris
+  model_type: onnx
+  inference_processor_path: inference.py
+  external_model:
+    path: s3://data-vishal/iris.onnx
+    region: us-west-2
+  compute:
+    replicas: 1

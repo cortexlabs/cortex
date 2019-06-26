@@ -33,10 +33,12 @@ type APIs []*API
 
 type API struct {
 	ResourceFields
-	Model         *string        `json:"model" yaml:"model"`
-	ExternalModel *ExternalModel `json:"external_model" yaml:"external_model"`
-	Compute       *APICompute    `json:"compute" yaml:"compute"`
-	Tags          Tags           `json:"tags" yaml:"tags"`
+	ModelType              ModelType      `json:"model_type" yaml:"model_type"`
+	Model                  *string        `json:"model" yaml:"model"`
+	InferenceProcessorPath *string        `json:"inference_processor_path" yaml:"inference_processor_path"`
+	ExternalModel          *ExternalModel `json:"external_model" yaml:"external_model"`
+	Compute                *APICompute    `json:"compute" yaml:"compute"`
+	Tags                   Tags           `json:"tags" yaml:"tags"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -55,6 +57,19 @@ var apiValidation = &cr.StructValidation{
 			},
 		},
 		{
+			StructField:         "InferenceProcessorPath",
+			StringPtrValidation: &cr.StringPtrValidation{},
+		},
+		{
+			StructField: "ModelType",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: ModelTypeStrings(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return ModelTypeFromString(str), nil
+			},
+		},
+		{
 			StructField:      "ExternalModel",
 			StructValidation: externalModelFieldValidation,
 		},
@@ -70,6 +85,12 @@ func (api *API) UserConfigStr() string {
 	if api.Model != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, yaml.UnescapeAtSymbol(*api.Model)))
 	}
+	if api.ModelType != UnknownModelType {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelTypeKey, api.ModelType.String()))
+	}
+	// if api.ServingFunction != nil {
+	// 	sb.WriteString(fmt.Sprintf("%s: %s\n", ServingFunctionKey, *api.ServingFunction))
+	// }
 	if api.ExternalModel != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ExternalModelKey))
 		sb.WriteString(s.Indent(api.ExternalModel.UserConfigStr(), "  "))

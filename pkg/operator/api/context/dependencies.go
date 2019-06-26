@@ -22,6 +22,7 @@ import (
 	"github.com/cortexlabs/yaml"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
@@ -35,6 +36,7 @@ func (ctx *Context) AllComputedResourceDependencies(resourceID string) strset.Se
 
 func (ctx *Context) allComputedResourceDependenciesHelper(resourceID string, allDependencies strset.Set) {
 	subDependencies := ctx.DirectComputedResourceDependencies(resourceID)
+	debug.Pp(subDependencies)
 	subDependencies.Subtract(allDependencies)
 	allDependencies.Merge(subDependencies)
 
@@ -72,6 +74,7 @@ func (ctx *Context) DirectComputedResourceDependencies(resourceID string) strset
 			return ctx.trainingDatasetDependencies(model)
 		}
 	}
+	debug.Pp(ctx.APIs)
 	for _, api := range ctx.APIs {
 		if api.ID == resourceID {
 			return ctx.apiDependencies(api)
@@ -151,11 +154,18 @@ func (ctx *Context) modelDependencies(model *Model) strset.Set {
 }
 
 func (ctx *Context) apiDependencies(api *API) strset.Set {
-	if api.Model == nil {
-		return strset.New()
+	dependencies := strset.New()
+	if api.InferenceProcessorPath != nil {
+		debug.Pp(api)
+		for _, pythonPackage := range ctx.PythonPackages {
+			dependencies.Add(pythonPackage.GetID())
+		}
 	}
-	model := ctx.Models[api.ModelName]
-	return strset.New(model.ID)
+	if api.Model != nil {
+		model := ctx.Models[api.ModelName]
+		dependencies.Add(model.ID)
+	}
+	return dependencies
 }
 
 func (ctx *Context) ExtractCortexResources(

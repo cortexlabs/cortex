@@ -270,6 +270,21 @@ class Context:
         self._estimator_impls[estimator_name] = (impl, impl_path)
         return (impl, impl_path)
 
+    def get_inference_processor_impl(self, api_name):
+        api = self.apis[api_name]
+
+        module_prefix = "inference_processor"
+
+        try:
+            impl, impl_path = self.load_module(
+                module_prefix, api["name"], api["inference_processor_impl_key"]
+            )
+        except CortexException as e:
+            e.wrap("api " + api_name, "inference_processor")
+            raise
+
+        return (impl, impl_path)
+
     # Mode must be "training" or "evaluation"
     def get_training_data_parts(self, model_name, mode, part_prefix="part"):
         training_dataset = self.models[model_name]["dataset"]

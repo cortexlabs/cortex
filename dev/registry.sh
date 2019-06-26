@@ -49,6 +49,7 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/python-packager --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-train-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve-gpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/onnx-serve --region=$REGISTRY_REGION || true
 }
 
 ### HELPERS ###
@@ -139,6 +140,7 @@ elif [ "$cmd" = "update" ]; then
   build_and_push $ROOT/images/tf-train tf-train latest
   build_and_push $ROOT/images/tf-train-gpu tf-train-gpu latest
   build_and_push $ROOT/images/tf-api tf-api latest
+  build_and_push $ROOT/images/onnx-serve onnx-serve latest
 
   cleanup
 fi

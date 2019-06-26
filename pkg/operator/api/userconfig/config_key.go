@@ -93,9 +93,11 @@ const (
 	ThrottleSecsKey              = "throttle_secs"
 
 	// API
-	ModelKey         = "model"
-	ModelNameKey     = "model_name"
-	ExternalModelKey = "external_model"
+	ModelKey           = "model"
+	ModelTypeKey       = "model_key"
+	ServingFunctionKey = "serving_fn"
+	ModelNameKey       = "model_name"
+	ExternalModelKey   = "external_model"
 
 	// compute
 	ComputeKey             = "compute"

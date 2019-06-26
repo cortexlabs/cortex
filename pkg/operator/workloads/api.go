@@ -22,6 +22,7 @@ import (
 	appsv1b1 "k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -38,13 +39,12 @@ const (
 	tfServingContainerName = "serve"
 )
 
-func apiSpec(
+func tfAPISpec(
 	ctx *context.Context,
 	apiName string,
 	workloadID string,
 	apiCompute *userconfig.APICompute,
 ) *appsv1b1.Deployment {
-
 	transformResourceList := corev1.ResourceList{}
 	tfServingResourceList := corev1.ResourceList{}
 	tfServingLimitsList := corev1.ResourceList{}
@@ -165,6 +165,89 @@ func apiSpec(
 	})
 }
 
+func onnxAPISpec(
+	ctx *context.Context,
+	apiName string,
+	workloadID string,
+	apiCompute *userconfig.APICompute,
+) *appsv1b1.Deployment {
+	transformResourceList := corev1.ResourceList{}
+	if apiCompute.CPU != nil {
+		transformResourceList[corev1.ResourceCPU] = apiCompute.CPU.Quantity
+	}
+
+	if apiCompute.Mem != nil {
+		transformResourceList[corev1.ResourceMemory] = apiCompute.Mem.Quantity
+	}
+
+	return k8s.Deployment(&k8s.DeploymentSpec{
+		Name:     internalAPIName(apiName, ctx.App.Name),
+		Replicas: ctx.APIs[apiName].Compute.Replicas,
+		Labels: map[string]string{
+			"appName":      ctx.App.Name,
+			"workloadType": WorkloadTypeAPI,
+			"apiName":      apiName,
+			"resourceID":   ctx.APIs[apiName].ID,
+			"workloadID":   workloadID,
+		},
+		Selector: map[string]string{
+			"appName":      ctx.App.Name,
+			"workloadType": WorkloadTypeAPI,
+			"apiName":      apiName,
+		},
+		PodSpec: k8s.PodSpec{
+			Labels: map[string]string{
+				"appName":      ctx.App.Name,
+				"workloadType": WorkloadTypeAPI,
+				"apiName":      apiName,
+				"resourceID":   ctx.APIs[apiName].ID,
+				"workloadID":   workloadID,
+				"userFacing":   "true",
+			},
+			K8sPodSpec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:            apiContainerName,
+						Image:           config.Cortex.ONNXServeImage,
+						ImagePullPolicy: "Always",
+						Args: []string{
+							"--workload-id=" + workloadID,
+							"--port=" + defaultPortStr,
+							"--context=" + config.AWS.S3Path(ctx.Key),
+							"--api=" + ctx.APIs[apiName].ID,
+							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
+							"--cache-dir=" + consts.ContextCacheDir,
+						},
+						Env:          k8s.AWSCredentials(),
+						VolumeMounts: k8s.DefaultVolumeMounts(),
+						ReadinessProbe: &corev1.Probe{
+							InitialDelaySeconds: 5,
+							TimeoutSeconds:      5,
+							PeriodSeconds:       5,
+							SuccessThreshold:    1,
+							FailureThreshold:    2,
+							Handler: corev1.Handler{
+								HTTPGet: &corev1.HTTPGetAction{
+									Path: "/healthz",
+									Port: intstr.IntOrString{
+										IntVal: defaultPortInt32,
+									},
+								},
+							},
+						},
+						Resources: corev1.ResourceRequirements{
+							Requests: transformResourceList,
+						},
+					},
+				},
+				Volumes:            k8s.DefaultVolumes(),
+				ServiceAccountName: "default",
+			},
+		},
+		Namespace: config.Cortex.Namespace,
+	})
+}
+
 func ingressSpec(ctx *context.Context, apiName string) *k8s.IngressSpec {
 	return &k8s.IngressSpec{
 		Name:         internalAPIName(apiName, ctx.App.Name),
@@ -219,10 +302,19 @@ func apiWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 			workloadID = deployment.Labels["workloadID"] // Reuse workloadID if just modifying compute
 		}
 
+		var spec metav1.Object
+
+		if api.ModelType == userconfig.TensorFlowModelType {
+			spec = tfAPISpec(ctx, apiName, workloadID, api.Compute)
+		}
+
+		if api.ModelType == userconfig.ONNXModelType {
+			spec = onnxAPISpec(ctx, apiName, workloadID, api.Compute)
+		}
 		workloadSpecs = append(workloadSpecs, &WorkloadSpec{
 			WorkloadID:       workloadID,
 			ResourceIDs:      strset.New(api.ID),
-			Spec:             apiSpec(ctx, apiName, workloadID, api.Compute),
+			Spec:             spec,
 			K8sAction:        "apply",
 			SuccessCondition: k8s.DeploymentSuccessConditionAll,
 			WorkloadType:     WorkloadTypeAPI,

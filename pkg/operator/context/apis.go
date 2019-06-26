@@ -18,18 +18,26 @@ package context
 
 import (
 	"bytes"
+	"path/filepath"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/yaml"
 )
+
+var uploadedInferenceProcessors = strset.New()
 
 func getAPIs(config *userconfig.Config,
 	models context.Models,
 	datasetVersion string,
+	impls map[string][]byte,
+	pythonPackages context.PythonPackages,
 ) (context.APIs, error) {
 	apis := context.APIs{}
 
@@ -37,7 +45,25 @@ func getAPIs(config *userconfig.Config,
 
 		var buf bytes.Buffer
 		var modelName string
+		var inferenceProcessorImplKey *string
 		buf.WriteString(apiConfig.Name)
+		buf.WriteString(apiConfig.ModelType.String())
+
+		for _, pythonPackage := range pythonPackages {
+			buf.WriteString(pythonPackage.GetID())
+		}
+
+		if apiConfig.InferenceProcessorPath != nil {
+			impl, ok := impls[*apiConfig.InferenceProcessorPath]
+			if !ok {
+				return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(*apiConfig.InferenceProcessorPath), userconfig.Identify(apiConfig))
+			}
+			implID := hash.Bytes(impl)
+			buf.WriteString(implID)
+
+			key := filepath.Join(consts.InferenceProcessorsDir, implID)
+			inferenceProcessorImplKey = &key
+		}
 
 		if apiConfig.Model != nil {
 			modelName, _ = yaml.ExtractAtSymbolText(*apiConfig.Model)
@@ -64,10 +90,38 @@ func getAPIs(config *userconfig.Config,
 					ResourceType: resource.APIType,
 				},
 			},
-			API:       apiConfig,
-			Path:      context.APIPath(apiConfig.Name, config.App.Name),
-			ModelName: modelName,
+			API:                       apiConfig,
+			Path:                      context.APIPath(apiConfig.Name, config.App.Name),
+			ModelName:                 modelName,
+			InferenceProcessorImplKey: inferenceProcessorImplKey,
+		}
+
+		if apiConfig.InferenceProcessorPath != nil {
+			uploadInferenceProcessor(apis[apiConfig.Name], impls[*apiConfig.InferenceProcessorPath])
 		}
 	}
 	return apis, nil
+}
+
+func uploadInferenceProcessor(api *context.API, impl []byte) error {
+	implID := hash.Bytes(impl)
+
+	if uploadedInferenceProcessors.Has(implID) {
+		return nil
+	}
+
+	isUploaded, err := config.AWS.IsS3File(*api.InferenceProcessorImplKey)
+	if err != nil {
+		return errors.Wrap(err, userconfig.Identify(api), "upload")
+	}
+
+	if !isUploaded {
+		err = config.AWS.UploadBytesToS3(impl, *api.InferenceProcessorImplKey)
+		if err != nil {
+			return errors.Wrap(err, userconfig.Identify(api), "upload")
+		}
+	}
+
+	uploadedInferenceProcessors.Add(implID)
+	return nil
 }

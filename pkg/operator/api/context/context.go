@@ -206,7 +206,7 @@ func (ctx *Context) PopulateWorkloadIDs(resourceWorkloadIDs map[string]string) {
 func (ctx *Context) CheckAllWorkloadIDsPopulated() error {
 	for _, res := range ctx.ComputedResources() {
 		if res.GetWorkloadID() == "" {
-			return errors.New(ctx.App.Name, "resource", res.GetID(), "workload ID is missing") // unexpected
+			return errors.New(ctx.App.Name, "resource", res.GetID(), "workload ID is missing", res.GetName()) // unexpected
 		}
 	}
 	return nil

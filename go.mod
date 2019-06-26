@@ -23,6 +23,10 @@ require (
 	github.com/aws/aws-sdk-go v1.20.7
 	github.com/cortexlabs/yaml v0.0.0-20190624201412-7f31702857b6
 	github.com/davecgh/go-spew v1.1.1
+	github.com/docker/distribution v2.7.1+incompatible // indirect
+	github.com/docker/docker v1.13.1 // indirect
+	github.com/docker/go-connections v0.4.0 // indirect
+	github.com/docker/go-units v0.4.0 // indirect
 	github.com/emicklei/go-restful v2.9.6+incompatible // indirect
 	github.com/go-openapi/spec v0.19.2 // indirect
 	github.com/gogo/protobuf v1.2.1 // indirect
@@ -36,6 +40,7 @@ require (
 	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/cobra v0.0.5
