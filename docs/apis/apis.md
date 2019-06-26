@@ -7,9 +7,7 @@ Serve models at scale and use them to build smarter applications.
 ```yaml
 - kind: api
   name: <string>  # API name (required)
-  external_model:
-    path: <string>  # path to a zipped model dir (e.g. s3://my-bucket/model.zip)
-    region: <string>  # S3 region (default: us-west-2)
+  model: <string>  # path to a zipped model dir (e.g. s3://my-bucket/model.zip)
   compute:
     replicas: <int>  # number of replicas to launch (default: 1)
     cpu: <string>  # CPU request per replica (default: Null)
@@ -24,9 +22,7 @@ See [packaging models](packaging-models.md) for how to create the zipped model.
 ```yaml
 - kind: api
   name: my-api
-  external_model:
-    path: s3://my-bucket/my-model.zip
-    region: us-west-2
+  model: s3://my-bucket/my-model.zip
   compute:
     replicas: 3
     gpu: 2

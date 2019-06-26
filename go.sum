@@ -13,13 +13,13 @@ github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578/go.mod h1:uGdko
 github.com/argoproj/argo v2.3.0+incompatible h1:L1OYZ86Q7NK19ahdl/eJOq78Mlf52wUKGmp7VDNQVz8=
 github.com/argoproj/argo v2.3.0+incompatible/go.mod h1:KJ0MB+tuhtAklR4jkPM10mIZXfRA0peTYJ1sLUnFLVU=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
-github.com/aws/aws-sdk-go v1.20.7 h1:fRjZRYJg0wPCA8yaDdb3DeP4rVjjmEiuqYhYoqOaIJg=
-github.com/aws/aws-sdk-go v1.20.7/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
+github.com/aws/aws-sdk-go v1.20.8 h1:oXnNFH/8PosUvHXqZHYLUn6LCSzHZ/34H52vrB4YhpA=
+github.com/aws/aws-sdk-go v1.20.8/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
 github.com/coreos/go-semver v0.2.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
-github.com/cortexlabs/yaml v0.0.0-20190624201412-7f31702857b6 h1:NRxzHeHMTVyPV9yTGoXo3zRPplzVhrLTNzSFLNgpQII=
-github.com/cortexlabs/yaml v0.0.0-20190624201412-7f31702857b6/go.mod h1:nuzR4zMPuiBWg1HyZo9bzSZmtdSVjKfn8+RyO7egs0c=
+github.com/cortexlabs/yaml v0.0.0-20190626164117-202ab3a3d475 h1:N+pms5TCPH2F/DIX6a+2dgJI/CHweh45pEhGW/+stxQ=
+github.com/cortexlabs/yaml v0.0.0-20190626164117-202ab3a3d475/go.mod h1:nuzR4zMPuiBWg1HyZo9bzSZmtdSVjKfn8+RyO7egs0c=
 github.com/cpuguy83/go-md2man v1.0.10/go.mod h1:SmD6nW6nTyfqj6ABTjUi3V3JVMnlJmwcJI5acqYI6dE=
 github.com/davecgh/go-spew v0.0.0-20151105211317-5215b55f46b2/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

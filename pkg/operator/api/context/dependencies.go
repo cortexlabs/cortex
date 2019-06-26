@@ -151,10 +151,11 @@ func (ctx *Context) modelDependencies(model *Model) strset.Set {
 }
 
 func (ctx *Context) apiDependencies(api *API) strset.Set {
-	if api.Model == nil {
+	modelName, ok := yaml.ExtractAtSymbolText(api.Model)
+	if !ok {
 		return strset.New()
 	}
-	model := ctx.Models[api.ModelName]
+	model := ctx.Models[modelName]
 	return strset.New(model.ID)
 }
 
@@ -210,7 +211,7 @@ func extractCortexResourcesHelper(
 		return
 	}
 
-	if resourceName, ok := yaml.ExtractAtSymbolText(input); ok {
+	if resourceName, ok := yaml.ExtractAtSymbolTextInter(input); ok {
 		for _, res := range validResourcesMap[resourceName] {
 			foundMatch := false
 			if len(resourceTypeFilter) == 0 || resourceTypeFilter[res.GetResourceType()] == true {

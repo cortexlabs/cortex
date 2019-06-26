@@ -440,11 +440,11 @@ func (model *Model) Validate() error {
 	}
 
 	if model.EstimatorPath == nil && model.Estimator == "" {
-		return errors.Wrap(ErrorSpecifyOnlyOneMissing("estimator", "estimator_path"), Identify(model))
+		return errors.Wrap(ErrorSpecifyOnlyOneMissing(EstimatorKey, EstimatorPathKey), Identify(model))
 	}
 
 	if model.EstimatorPath != nil && model.Estimator != "" {
-		return errors.Wrap(ErrorSpecifyOnlyOne("estimator", "estimator_path"), Identify(model))
+		return errors.Wrap(ErrorSpecifyOnlyOne(EstimatorKey, EstimatorPathKey), Identify(model))
 	}
 
 	if model.Estimator != "" && model.PredictionKey != "" {

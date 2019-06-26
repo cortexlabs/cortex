@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -412,8 +413,8 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 	out += "Method:   POST\n"
 	out += `Header:   "Content-Type: application/json"` + "\n"
 
-	if api.Model != nil {
-		model := ctx.Models[api.ModelName]
+	if modelName, ok := yaml.ExtractAtSymbolText(api.Model); ok {
+		model := ctx.Models[modelName]
 		resIDs := strset.New()
 		combinedInput := []interface{}{model.Input, model.TrainingInput}
 		for _, res := range ctx.ExtractCortexResources(combinedInput, resource.ConstantType, resource.RawColumnType, resource.AggregateType, resource.TransformedColumnType) {

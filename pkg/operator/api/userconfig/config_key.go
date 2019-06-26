@@ -24,10 +24,8 @@ const (
 	InputKey      = "input"
 	TypeKey       = "type"
 	PathKey       = "path"
-	RegionKey     = "region"
 	OutputTypeKey = "output_type"
 	TagsKey       = "tags"
-	ExternalKey   = "external"
 
 	// input schema options
 	OptionalOptKey = "_optional"
@@ -93,9 +91,7 @@ const (
 	ThrottleSecsKey              = "throttle_secs"
 
 	// API
-	ModelKey         = "model"
-	ModelNameKey     = "model_name"
-	ExternalModelKey = "external_model"
+	ModelKey = "model"
 
 	// compute
 	ComputeKey             = "compute"

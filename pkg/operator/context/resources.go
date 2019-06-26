@@ -80,7 +80,7 @@ func validateResourceReferences(
 		return nil, nil
 	}
 
-	if resourceName, ok := yaml.ExtractAtSymbolText(input); ok {
+	if resourceName, ok := yaml.ExtractAtSymbolTextInter(input); ok {
 		if res, ok := validResources[resourceName]; ok {
 			return res.GetID(), nil
 		}
@@ -142,7 +142,7 @@ func validateRuntimeTypes(
 	}
 
 	// Check if input is Cortex resource
-	if resourceName, ok := yaml.ExtractAtSymbolText(input); ok {
+	if resourceName, ok := yaml.ExtractAtSymbolTextInter(input); ok {
 		res := validResources[resourceName]
 		if res == nil {
 			return nil, errors.New(resourceName, "missing resource") // unexpected

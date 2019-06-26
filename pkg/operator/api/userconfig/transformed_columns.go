@@ -108,11 +108,11 @@ func (columns TransformedColumns) Validate() error {
 
 func (column *TransformedColumn) Validate() error {
 	if column.TransformerPath == nil && column.Transformer == "" {
-		return errors.Wrap(ErrorSpecifyOnlyOneMissing("transformer", "transformer_path"), Identify(column))
+		return errors.Wrap(ErrorSpecifyOnlyOneMissing(TransformerKey, TransformerPathKey), Identify(column))
 	}
 
 	if column.TransformerPath != nil && column.Transformer != "" {
-		return errors.Wrap(ErrorSpecifyOnlyOne("transformer", "transformer_path"), Identify(column))
+		return errors.Wrap(ErrorSpecifyOnlyOne(TransformerKey, TransformerPathKey), Identify(column))
 	}
 
 	return nil

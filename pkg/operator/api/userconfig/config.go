@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/cortexlabs/yaml"
+
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -202,7 +204,7 @@ func (config *Config) Validate(envName string) error {
 
 	apisAllExternal := true
 	for _, api := range config.APIs {
-		if api.Model != nil {
+		if yaml.StartsWithEscapedAtSymbol(api.Model) {
 			apisAllExternal = false
 			break
 		}

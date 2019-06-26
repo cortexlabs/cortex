@@ -19,7 +19,6 @@ package userconfig
 import (
 	"github.com/cortexlabs/yaml"
 
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -123,7 +122,7 @@ var logLevelValidation = &cr.StructValidation{
 
 type Data interface {
 	GetIngestedColumnNames() []string
-	GetExternalData() ExternalData
+	GetPath() string
 	Validate() error
 }
 
@@ -133,11 +132,11 @@ var dataValidation = &cr.InterfaceStructValidation{
 	ParsedInterfaceStructTypes: map[interface{}]*cr.InterfaceStructType{
 		CSVEnvironmentDataType: {
 			Type:                   (*CSVData)(nil),
-			StructFieldValidations: append(csvDataFieldValidations, externalDataValidation...),
+			StructFieldValidations: csvDataFieldValidations,
 		},
 		ParquetEnvironmentDataType: {
 			Type:                   (*ParquetData)(nil),
-			StructFieldValidations: append(parquetDataFieldValidations, externalDataValidation...),
+			StructFieldValidations: parquetDataFieldValidations,
 		},
 	},
 	Parser: func(str string) (interface{}, error) {
@@ -145,34 +144,20 @@ var dataValidation = &cr.InterfaceStructValidation{
 	},
 }
 
-type ExternalData struct {
-	Path   string `json:"path" yaml:"path"`
-	Region string `json:"region" yaml:"region"`
-}
-
-var externalDataValidation = []*cr.StructFieldValidation{
-	{
-		StructField: "Path",
-		StringValidation: &cr.StringValidation{
-			Required:  true,
-			Validator: cr.GetS3aPathValidator(),
-		},
-	},
-	{
-		StructField: "Region",
-		StringValidation: &cr.StringValidation{
-			Default:       aws.DefaultS3Region,
-			AllowedValues: aws.S3Regions.Slice(),
-		},
+var pathFieldValidation = &cr.StructFieldValidation{
+	StructField: "Path",
+	StringValidation: &cr.StringValidation{
+		Required:  true,
+		Validator: cr.GetS3aPathValidator(),
 	},
 }
 
 type CSVData struct {
 	Type      EnvironmentDataType `json:"type" yaml:"type"`
+	Path      string              `json:"path" yaml:"path"`
 	Schema    []string            `json:"schema" yaml:"schema"`
 	DropNull  bool                `json:"drop_null" yaml:"drop_null"`
 	CSVConfig *CSVConfig          `json:"csv_config" yaml:"csv_config"`
-	ExternalData
 }
 
 // CSVConfig is SPARK_VERSION dependent
@@ -289,13 +274,14 @@ var csvDataFieldValidations = []*cr.StructFieldValidation{
 			},
 		},
 	},
+	pathFieldValidation,
 }
 
 type ParquetData struct {
 	Type     EnvironmentDataType `json:"type" yaml:"type"`
+	Path     string              `json:"path" yaml:"path"`
 	Schema   []*ParquetColumn    `json:"schema" yaml:"schema"`
 	DropNull bool                `json:"drop_null" yaml:"drop_null"`
-	ExternalData
 }
 
 var parquetDataFieldValidations = []*cr.StructFieldValidation{
@@ -311,6 +297,7 @@ var parquetDataFieldValidations = []*cr.StructFieldValidation{
 			Default: false,
 		},
 	},
+	pathFieldValidation,
 }
 
 type ParquetColumn struct {
@@ -396,12 +383,12 @@ func (parqData *ParquetData) Validate() error {
 	return nil
 }
 
-func (csvData *CSVData) GetExternalData() ExternalData {
-	return csvData.ExternalData
+func (csvData *CSVData) GetPath() string {
+	return csvData.Path
 }
 
-func (parqData *ParquetData) GetExternalData() ExternalData {
-	return parqData.ExternalData
+func (parqData *ParquetData) GetPath() string {
+	return parqData.Path
 }
 
 func (csvData *CSVData) GetIngestedColumnNames() []string {

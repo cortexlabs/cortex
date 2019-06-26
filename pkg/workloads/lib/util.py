@@ -883,14 +883,30 @@ def is_resource_ref(obj):
     return obj.startswith(resource_escape_seq) or obj.startswith(resource_escape_seq_raw)
 
 
-def get_resource_ref(obj):
-    if not is_str(obj):
-        raise ValueError("expected input of type string but received " + str(type(obj)))
-    if obj.startswith(resource_escape_seq):
-        return obj[len(resource_escape_seq) :]
-    elif obj.startswith(resource_escape_seq_raw):
-        return obj[len(resource_escape_seq_raw) :]
-    raise ValueError("expected a resource reference but got " + obj)
+def get_resource_ref(string):
+    if not is_str(string):
+        raise ValueError("expected input of type string but received " + str(type(string)))
+    if string.startswith(resource_escape_seq):
+        return string[len(resource_escape_seq) :]
+    elif string.startswith(resource_escape_seq_raw):
+        return string[len(resource_escape_seq_raw) :]
+    raise ValueError("expected a resource reference but got " + string)
+
+
+def unescape_resource_ref(string):
+    if not is_str(string):
+        raise ValueError("expected input of type string but received " + str(type(string)))
+    out = string.replace(resource_escape_seq, "@")
+    out = out.replace(resource_escape_seq_raw, "@")
+    return out
+
+
+def remove_resource_ref(string):
+    if not is_str(string):
+        raise ValueError("expected input of type string but received " + str(type(string)))
+    out = string.replace(resource_escape_seq, "")
+    out = out.replace(resource_escape_seq_raw, "")
+    return out
 
 
 def extract_resource_refs(input):

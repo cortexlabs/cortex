@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -73,6 +74,7 @@ const (
 	ErrEnvSchemaMismatch
 	ErrExtraResourcesWithExternalAPIs
 	ErrImplDoesNotExist
+	ErrInvalidS3PathOrResourceReference
 	ErrExternalNotFound
 )
 
@@ -119,8 +121,9 @@ var errorKinds = []string{
 	"err_prediction_key_on_model_with_estimator",
 	"err_specify_only_one_missing",
 	"err_env_schema_mismatch",
-	"err_extra_resources_with_external_a_p_is",
+	"err_extra_resources_with_external_apis",
 	"err_impl_does_not_exist",
+	"err_invalid_s3_path_or_resource_reference",
 	"err_external_not_found",
 }
 
@@ -563,6 +566,14 @@ func ErrorImplDoesNotExist(path string) error {
 func ErrorExternalNotFound(path string) error {
 	return Error{
 		Kind:    ErrExternalNotFound,
-		message: fmt.Sprintf("%s: file not found or inaccessible", path),
+		message: fmt.Sprintf("%s: not found or insufficient permissions", path),
+	}
+}
+
+func ErrorInvalidS3PathOrResourceReference(provided string) error {
+	s3ErrMsg := aws.ErrorInvalidS3Path(provided).Error()
+	return Error{
+		Kind:    ErrInvalidS3PathOrResourceReference,
+		message: s3ErrMsg + ", and is not a cortex resource reference (which starts with @)",
 	}
 }

@@ -33,10 +33,9 @@ type APIs []*API
 
 type API struct {
 	ResourceFields
-	Model         *string        `json:"model" yaml:"model"`
-	ExternalModel *ExternalModel `json:"external_model" yaml:"external_model"`
-	Compute       *APICompute    `json:"compute" yaml:"compute"`
-	Tags          Tags           `json:"tags" yaml:"tags"`
+	Model   string      `json:"model" yaml:"model"`
+	Compute *APICompute `json:"compute" yaml:"compute"`
+	Tags    Tags        `json:"tags" yaml:"tags"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -50,13 +49,10 @@ var apiValidation = &cr.StructValidation{
 		},
 		{
 			StructField: "Model",
-			StringPtrValidation: &cr.StringPtrValidation{
-				RequireCortexResources: true,
+			StringValidation: &cr.StringValidation{
+				Required:             true,
+				AllowCortexResources: true,
 			},
-		},
-		{
-			StructField:      "ExternalModel",
-			StructValidation: externalModelFieldValidation,
 		},
 		apiComputeFieldValidation,
 		tagsFieldValidation,
@@ -67,49 +63,11 @@ var apiValidation = &cr.StructValidation{
 func (api *API) UserConfigStr() string {
 	var sb strings.Builder
 	sb.WriteString(api.ResourceFields.UserConfigStr())
-	if api.Model != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, yaml.UnescapeAtSymbol(*api.Model)))
-	}
-	if api.ExternalModel != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", ExternalModelKey))
-		sb.WriteString(s.Indent(api.ExternalModel.UserConfigStr(), "  "))
-	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, yaml.UnescapeAtSymbol(api.Model)))
 	if api.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
 		sb.WriteString(s.Indent(api.Compute.UserConfigStr(), "  "))
 	}
-	return sb.String()
-}
-
-type ExternalModel struct {
-	Path   string `json:"path" yaml:"path"`
-	Region string `json:"region" yaml:"region"`
-}
-
-var externalModelFieldValidation = &cr.StructValidation{
-	DefaultNil: true,
-	StructFieldValidations: []*cr.StructFieldValidation{
-		{
-			StructField: "Path",
-			StringValidation: &cr.StringValidation{
-				Validator: cr.GetS3PathValidator(),
-				Required:  true,
-			},
-		},
-		{
-			StructField: "Region",
-			StringValidation: &cr.StringValidation{
-				Default:       aws.DefaultS3Region,
-				AllowedValues: aws.S3Regions.Slice(),
-			},
-		},
-	},
-}
-
-func (extModel *ExternalModel) UserConfigStr() string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, extModel.Path))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", RegionKey, extModel.Region))
 	return sb.String()
 }
 
@@ -134,22 +92,13 @@ func (apis APIs) Validate() error {
 }
 
 func (api *API) Validate() error {
-	if api.ExternalModel == nil && api.Model == nil {
-		return errors.Wrap(ErrorSpecifyOnlyOneMissing(ModelKey, ExternalModelKey), Identify(api))
-	}
-
-	if api.ExternalModel != nil && api.Model != nil {
-		return errors.Wrap(ErrorSpecifyOnlyOne(ModelKey, ExternalModelKey), Identify(api))
-	}
-
-	if api.ExternalModel != nil {
-		bucket, key, err := aws.SplitS3Path(api.ExternalModel.Path)
-		if err != nil {
-			return errors.Wrap(err, Identify(api), ExternalModelKey, PathKey)
+	if !yaml.StartsWithEscapedAtSymbol(api.Model) {
+		if !aws.IsValidS3Path(api.Model) {
+			return errors.Wrap(ErrorInvalidS3PathOrResourceReference(api.Model), Identify(api), ModelKey)
 		}
 
-		if ok, err := aws.IsS3FileExternal(bucket, key, api.ExternalModel.Region); err != nil || !ok {
-			return errors.Wrap(ErrorExternalNotFound(api.ExternalModel.Path), Identify(api), ExternalModelKey, PathKey)
+		if ok, err := aws.IsS3PathFileExternal(api.Model); err != nil || !ok {
+			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
 		}
 	}
 
