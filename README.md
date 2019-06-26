@@ -24,10 +24,23 @@ Cortex is actively maintained by Cortex Labs. We're a venture-backed team of inf
 - kind: api
   name: my-api
   model: s3://my-bucket/my-model.zip
-  request_handler: transform_payload.py
+  request_handler: handler.py
   compute:
     replicas: 4
     gpu: 2
+```
+
+**Customize** request handling (optional):
+
+```python
+# handler.py
+
+def preprocess(payload):
+  # Python code
+
+
+def postprocess(prediction):
+  # Python code
 ```
 
 **Deploy** to your cloud infrastructure:
