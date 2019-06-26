@@ -115,15 +115,22 @@ class S3(object):
         self.s3.put_object(Bucket=self.bucket, Key=key, Body=string)
 
     def _read_bytes_from_s3(self, key, allow_missing=False, ext_bucket=None):
+        bucket = self.bucket
+        if ext_bucket is not None:
+            bucket = ext_bucket
+
         try:
-            bucket = self.bucket
-            if ext_bucket is not None:
-                bucket = ext_bucket
-            byte_array = self.s3.get_object(Bucket=bucket, Key=key)["Body"].read()
-        except self.s3.exceptions.NoSuchKey as e:
-            if allow_missing:
-                return None
-            raise CortexException("bucket " + self.bucket, "key " + key) from e
+            try:
+                byte_array = self.s3.get_object(Bucket=bucket, Key=key)["Body"].read()
+            except self.s3.exceptions.NoSuchKey as e:
+                if allow_missing:
+                    return None
+                raise e
+        except Exception as e:
+            raise CortexException(
+                'key "{}" in bucket "{}" could not be accessed; '.format(key, bucket)
+                + "it may not exist, or you may not have suffienct permissions"
+            ) from e
 
         return byte_array.strip()
 
@@ -161,12 +168,15 @@ class S3(object):
         self.s3.upload_file(local_path, self.bucket, key)
 
     def download_file(self, key, local_path):
+        util.mkdir_p(os.path.dirname(local_path))
         try:
-            util.mkdir_p(os.path.dirname(local_path))
             self.s3.download_file(self.bucket, key, local_path)
             return local_path
         except Exception as e:
-            raise CortexException("bucket " + self.bucket, "key " + key) from e
+            raise CortexException(
+                'key "{}" in bucket "{}" could not be accessed; '.format(key, bucket)
+                + "it may not exist, or you may not have suffienct permissions"
+            ) from e
 
     def zip_and_upload(self, local_path, key):
         util.zip_dir(local_path, "temp.zip")
@@ -186,20 +196,20 @@ class S3(object):
         util.extract_zip(local_zip, delete_zip_file=True)
 
     def download_file_external(self, s3_path, local_path):
+        util.mkdir_p(os.path.dirname(local_path))
+        bucket, key = self.deconstruct_s3_path(s3_path)
         try:
-            util.mkdir_p(os.path.dirname(local_path))
-            bucket, key = self.deconstruct_s3_path(s3_path)
             self.s3.download_file(bucket, key, local_path)
             return local_path
         except Exception as e:
-            raise CortexException("bucket " + bucket, "key " + key) from e
+            raise CortexException(
+                'key "{}" in bucket "{}" could not be accessed; '.format(key, bucket)
+                + "it may not exist, or you may not have suffienct permissions"
+            ) from e
 
     def get_json_external(self, s3_path):
-        try:
-            bucket, key = self.deconstruct_s3_path(s3_path)
-            obj = self._read_bytes_from_s3(key, ext_bucket=bucket)
-            if obj is None:
-                return None
-            return json.loads(obj.decode("utf-8"))
-        except Exception as e:
-            raise CortexException("bucket " + bucket, "key " + key) from e
+        bucket, key = self.deconstruct_s3_path(s3_path)
+        obj = self._read_bytes_from_s3(key, ext_bucket=bucket)
+        if obj is None:
+            return None
+        return json.loads(obj.decode("utf-8"))
