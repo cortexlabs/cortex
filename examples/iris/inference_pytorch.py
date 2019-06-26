@@ -20,5 +20,9 @@ def preprocess(sample, input_metadata):
 
 
 def postprocess(prediction, output_metadata):
-    predicted_class_id = int(prediction[0][0])
-    return {"class_label": iris_labels[predicted_class_id], "class_index": predicted_class_id}
+    predicted_class_id = int(np.argmax(prediction[0][0]))
+    return {
+        "class_label": iris_labels[predicted_class_id],
+        "class_index": predicted_class_id,
+        "probabilites": prediction[0][0].tolist(),
+    }

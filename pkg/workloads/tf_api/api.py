@@ -369,12 +369,14 @@ def predict(deployment_name, api_name):
 
 def start(args):
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
-    package.install_packages(ctx.python_packages, ctx.storage)
 
     api = ctx.apis_id_map[args.api]
-
     local_cache["api"] = api
     local_cache["ctx"] = ctx
+
+    print(api)
+    if api.get("inference_processor_path") is not None or api.get("external_model") is None:
+        package.install_packages(ctx.python_packages, ctx.storage)
 
     if api.get("external_model") is None:
         model = ctx.models[api["model_name"]]

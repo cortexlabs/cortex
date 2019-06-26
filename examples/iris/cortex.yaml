@@ -2,20 +2,40 @@
   name: iris
 
 - kind: api
-  name: iris-type
+  name: iris-tf-nn
   model_type: tensorflow
   external_model:
     path: s3://cortex-examples/iris-tensorflow.zip
     region: us-west-2
   compute:
-    replicas: 3
+    replicas: 1
 
 - kind: api
-  name: iris
+  name: iris-pytorch-nn
+  model_type: onnx
+  inference_processor_path: inference_pytorch.py
+  external_model:
+    path: s3://data-vishal/iris_pytorch.onnx
+    region: us-west-2
+  compute:
+    replicas: 1
+
+- kind: api
+  name: iris-xgb-classifier
   model_type: onnx
   inference_processor_path: inference.py
   external_model:
-    path: s3://data-vishal/iris.onnx
+    path: s3://data-vishal/iris_xgb.onnx
+    region: us-west-2
+  compute:
+    replicas: 1
+
+- kind: api
+  name: iris-sklearn-logistic-regression
+  model_type: onnx
+  inference_processor_path: inference.py
+  external_model:
+    path: s3://data-vishal/iris_sklearn_logreg.onnx
     region: us-west-2
   compute:
     replicas: 1
