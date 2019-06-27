@@ -357,7 +357,20 @@ def predict(deployment_name, api_name):
                     api["name"]
                 )
             )
-            return prediction_failed(sample, str(e))
+
+            # Show signature def for external models (since we don't validate input)
+            schemaStr = ""
+            signature_def = local_cache["metadata"]["signatureDef"]
+            if (
+                not util.is_resource_ref(api["model"])
+                and signature_def.get("predict") is not None  # Just to be safe
+                and signature_def["predict"].get("inputs") is not None  # Just to be safe
+            ):
+                schemaStr = "\n\nExpected shema:\n" + util.pp_str(
+                    signature_def["predict"]["inputs"]
+                )
+
+            return prediction_failed(sample, str(e) + schemaStr)
 
         predictions.append(result)
 
