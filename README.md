@@ -30,19 +30,6 @@ Cortex is actively maintained by Cortex Labs. We're a venture-backed team of inf
     gpu: 2
 ```
 
-**Customize** request handling (optional):
-
-```python
-# handler.py
-
-def preprocess(payload):
-  # Python code
-
-
-def postprocess(prediction):
-  # Python code
-```
-
 **Deploy** to your cloud infrastructure:
 
 ```
@@ -66,7 +53,7 @@ $ curl -d '{"a": 1, "b": 2, "c": 3}' https://amazonaws.com/my-api
 
 - **Machine learning deployments as code:** Cortex deployments are defined using declarative configuration.
 
-- **Multi framework support:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
+- **Multi framework support (coming soon):** Cortex will support TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
 
 - **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
 
