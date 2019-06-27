@@ -30,4 +30,4 @@ See [Data Types](data-types.md) for details about input and column types.
 
 ## Built-in Transformers
 
-Cortex includes common transformers that can be used out of the box (see <!-- CORTEX_VERSION_MINOR -->[`transformers.yaml`](https://github.com/cortexlabs/cortex/blob/master/pkg/transformers/transformers.yaml)). To use built-in transformers, use the `cortex` namespace in the transformer name (e.g. `cortex.normalize`).
+Cortex includes common transformers that can be used out of the box (see <!-- CORTEX_VERSION_MINOR -->[`transformers.yaml`](https://github.com/cortexlabs/cortex/blob/0.5/pkg/transformers/transformers.yaml)). To use built-in transformers, use the `cortex` namespace in the transformer name (e.g. `cortex.normalize`).

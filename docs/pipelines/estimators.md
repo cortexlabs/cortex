@@ -35,4 +35,4 @@ See [Data Types](data-types.md) for details about input types.
 
 ## Built-in Estimators
 
-Cortex includes common estimators that can be used out of the box (see <!-- CORTEX_VERSION_MINOR -->[`estimators.yaml`](https://github.com/cortexlabs/cortex/blob/master/pkg/estimators/estimators.yaml)). To use built-in estimators, use the `cortex` namespace in the estimator name (e.g. `cortex.dnn_classifier`).
+Cortex includes common estimators that can be used out of the box (see <!-- CORTEX_VERSION_MINOR -->[`estimators.yaml`](https://github.com/cortexlabs/cortex/blob/0.5/pkg/estimators/estimators.yaml)). To use built-in estimators, use the `cortex` namespace in the estimator name (e.g. `cortex.dnn_classifier`).

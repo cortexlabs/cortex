@@ -3,7 +3,7 @@
 * [README](../README.md)
 * [Install](cluster/install.md)
 * [Tutorial](apis/tutorial.md)
-* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
+* [Examples](https://github.com/cortexlabs/cortex/tree/0.5/examples)  <!-- CORTEX_VERSION_MINOR -->
 
 ## Model Deployments
 
