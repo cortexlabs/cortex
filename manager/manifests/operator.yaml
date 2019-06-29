@@ -1,0 +1,111 @@
+# Copyright 2019 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: operator
+  namespace: $CORTEX_NAMESPACE
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: operator
+  namespace: $CORTEX_NAMESPACE
+subjects:
+- kind: ServiceAccount
+  name: operator
+  namespace: $CORTEX_NAMESPACE
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: operator
+  namespace: $CORTEX_NAMESPACE
+  labels:
+    workloadType: operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      workloadId: operator
+  template:
+    metadata:
+      labels:
+        workloadId: operator
+        workloadType: operator
+    spec:
+      containers:
+      - name: operator
+        image: $CORTEX_IMAGE_OPERATOR
+        imagePullPolicy: Always
+        env:
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: aws-credentials
+                key: AWS_ACCESS_KEY_ID
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: aws-credentials
+                key: AWS_SECRET_ACCESS_KEY
+        volumeMounts:
+          - name: cortex-config
+            mountPath: /configs/cortex
+      volumes:
+        - name: cortex-config
+          configMap:
+            name: cortex-config
+      serviceAccountName: operator
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: operator
+  namespace: $CORTEX_NAMESPACE
+  labels:
+    workloadType: operator
+spec:
+  selector:
+    workloadId: operator
+  ports:
+  - port: 8888
+    targetPort: 8888
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: operator
+  namespace: $CORTEX_NAMESPACE
+  labels:
+    workloadType: operator
+  annotations:
+    kubernetes.io/ingress.class: operator
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        backend:
+          serviceName: operator
+          servicePort: 8888

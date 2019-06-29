@@ -24,13 +24,13 @@ devstart:
 	@./dev/operator_local.sh || true
 
 oinstall:
-	@./cortex-installer.sh -c=./dev/config/cortex.sh install operator
+	@./cortex.sh -c=./dev/config/cortex.sh install operator
 
 oupdate:
-	@./cortex-installer.sh -c=./dev/config/cortex.sh update operator
+	@./cortex.sh -c=./dev/config/cortex.sh update operator
 
 ouninstall:
-	@./cortex-installer.sh -c=./dev/config/cortex.sh uninstall operator
+	@./cortex.sh -c=./dev/config/cortex.sh uninstall operator
 
 ostop:
 	@kubectl -n=cortex delete --ignore-not-found=true deployment operator
