@@ -443,16 +443,16 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 	}
 
 	out := titleStr("Summary")
-	out += "Status:            " + groupStatus.Message() + "\n"
+	out += "Status:               " + groupStatus.Message() + "\n"
 	if ctxAPIStatus != nil {
-		out += fmt.Sprintf("Updated replicas:  %d ready\n", ctxAPIStatus.ReadyUpdated)
+		out += fmt.Sprintf("Up-to-date replicas:  %d ready\n", ctxAPIStatus.ReadyUpdated)
 	}
 	if staleReplicas != 0 {
-		out += fmt.Sprintf("Stale replicas:    %d ready\n", staleReplicas)
+		out += fmt.Sprintf("Stale replicas:       %d ready\n", staleReplicas)
 	}
-	out += "Created at:        " + libtime.LocalTimestamp(groupStatus.Start) + "\n"
+	out += "Created at:           " + libtime.LocalTimestamp(groupStatus.Start) + "\n"
 	if groupStatus.ActiveStatus != nil && groupStatus.ActiveStatus.Start != nil {
-		out += "Refreshed at:      " + libtime.LocalTimestamp(groupStatus.ActiveStatus.Start) + "\n"
+		out += "Refreshed at:         " + libtime.LocalTimestamp(groupStatus.ActiveStatus.Start) + "\n"
 	}
 
 	out += titleStr("Endpoint")
