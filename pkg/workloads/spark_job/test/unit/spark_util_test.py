@@ -865,7 +865,7 @@ def test_ingest_parquet_missing_cols(spark, write_parquet_file, ctx_obj, get_con
 
     with pytest.raises(UserException) as exec_info:
         spark_util.ingest(get_context(ctx_obj), spark).collect()
-    assert "c_long" in str(exec_info) and "missing column" in str(exec_info)
+    assert "c_long" in str(exec_info.value) and "missing column" in str(exec_info.value)
 
 
 def test_ingest_parquet_type_mismatch(spark, write_parquet_file, ctx_obj, get_context):
@@ -901,7 +901,7 @@ def test_ingest_parquet_type_mismatch(spark, write_parquet_file, ctx_obj, get_co
 
     with pytest.raises(UserException) as exec_info:
         spark_util.ingest(get_context(ctx_obj), spark).collect()
-    assert "c_long" in str(exec_info) and "type mismatch" in str(exec_info)
+    assert "c_long" in str(exec_info.value) and "type mismatch" in str(exec_info.value)
 
 
 def test_ingest_parquet_failed_requirements(
