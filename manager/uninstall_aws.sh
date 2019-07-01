@@ -14,8 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-echo -e "\nSpinning down cluster ... (this will take a few minutes)"
+echo -e "\nSpinning down the cluster ... (this will take a few minutes)"
 
+echo
 eksctl delete cluster --name=$CORTEX_CLUSTER
 
-echo -e "\nSpun down cluster"
+echo -e "\n✓ Spun down the cluster"

@@ -16,7 +16,8 @@
 
 set -e
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER >/dev/null 2>&1
+echo
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER
 
 echo -e "\nUninstalling Cortex ..."
 
@@ -33,4 +34,4 @@ kubectl delete --ignore-not-found=true customresourcedefinition sparkapplication
 kubectl delete --ignore-not-found=true customresourcedefinition workflows.argoproj.io >/dev/null 2>&1
 kubectl delete --ignore-not-found=true namespace $CORTEX_NAMESPACE >/dev/null 2>&1
 
-echo -e "\nUninstalled Cortex"
+echo "✓ Uninstalled Cortex"

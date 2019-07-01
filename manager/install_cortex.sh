@@ -16,35 +16,10 @@
 
 set -e
 
-function setup_configmap() {
-  kubectl -n=$CORTEX_NAMESPACE create configmap 'cortex-config' \
-    --from-literal='LOG_GROUP'=$CORTEX_LOG_GROUP \
-    --from-literal='BUCKET'=$CORTEX_BUCKET \
-    --from-literal='REGION'=$CORTEX_REGION \
-    --from-literal='NAMESPACE'=$CORTEX_NAMESPACE \
-    --from-literal='IMAGE_OPERATOR'=$CORTEX_IMAGE_OPERATOR \
-    --from-literal='IMAGE_SPARK'=$CORTEX_IMAGE_SPARK \
-    --from-literal='IMAGE_TF_TRAIN'=$CORTEX_IMAGE_TF_TRAIN \
-    --from-literal='IMAGE_TF_SERVE'=$CORTEX_IMAGE_TF_SERVE \
-    --from-literal='IMAGE_TF_API'=$CORTEX_IMAGE_TF_API \
-    --from-literal='IMAGE_PYTHON_PACKAGER'=$CORTEX_IMAGE_PYTHON_PACKAGER \
-    --from-literal='IMAGE_TF_TRAIN_GPU'=$CORTEX_IMAGE_TF_TRAIN_GPU \
-    --from-literal='IMAGE_TF_SERVE_GPU'=$CORTEX_IMAGE_TF_SERVE_GPU \
-    --from-literal='ENABLE_TELEMETRY'=$CORTEX_ENABLE_TELEMETRY \
-    -o yaml --dry-run | kubectl apply -f - >/dev/null
-}
-
-function setup_secrets() {
-  kubectl -n=$CORTEX_NAMESPACE create secret generic 'aws-credentials' \
-    --from-literal='AWS_ACCESS_KEY_ID'=$AWS_ACCESS_KEY_ID \
-    --from-literal='AWS_SECRET_ACCESS_KEY'=$AWS_SECRET_ACCESS_KEY \
-    -o yaml --dry-run | kubectl apply -f - >/dev/null
-}
-
 function validate_cortex() {
   set +e
 
-  echo -en "\nWaiting for the Cortex operator to be ready "
+  echo -en "\nWaiting for Cortex to be ready "
 
   operator_load_balancer="waiting"
   api_load_balancer="waiting"
@@ -109,24 +84,22 @@ function validate_cortex() {
       continue
     fi
 
-    echo " ✓"
     break
   done
 
-  echo -e "\nCortex is ready!"
+  echo -e "\n\n✓ Cortex is ready!"
 
   if command -v cortex >/dev/null; then
     echo -e "\nPlease run \`cortex configure\` to make sure your CLI is configured correctly"
   fi
 }
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER >/dev/null 2>&1
+echo
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER
+
+echo -e "\nInstalling Cortex ..."
 
 envsubst < manifests/namespace.yaml | kubectl apply -f - >/dev/null
-
-setup_configmap
-setup_secrets
-
 envsubst < manifests/spark.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/argo.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/nginx.yaml | kubectl apply -f - >/dev/null

@@ -103,7 +103,7 @@ export CORTEX_REGION="${CORTEX_REGION:-us-west-2}"
 export CORTEX_CLUSTER="${CORTEX_CLUSTER:-cortex}"
 export CORTEX_NAMESPACE="${CORTEX_NAMESPACE:-cortex}"
 export CORTEX_NODE_TYPE="${CORTEX_NODE_TYPE:-t3.medium}"
-export CORTEX_NODES_MIN="${CORTEX_NODES_MIN:-1}"
+export CORTEX_NODES_MIN="${CORTEX_NODES_MIN:-2}"
 export CORTEX_NODES_MAX="${CORTEX_NODES_MAX:-5}"
 
 export CORTEX_IMAGE_ARGO_CONTROLLER="${CORTEX_IMAGE_ARGO_CONTROLLER:-cortexlabs/argo-controller:$CORTEX_VERSION_STABLE}"
@@ -150,7 +150,7 @@ function uninstall_aws() {
 }
 
 function install_cortex() {
-  docker run --entrypoint /root/install_operator.sh \
+  docker run --entrypoint /root/install_cortex.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
