@@ -27,7 +27,7 @@ metadata:
   name: fluentd
   namespace: $CORTEX_NAMESPACE
 rules:
-- apiGroups: [\"\"]
+- apiGroups: [""]
   resources: [pods]
   verbs: [get, list, watch]
 ---
@@ -69,7 +69,7 @@ data:
     </source>
     <match **>
       @type cloudwatch_logs
-      log_group_name \"#{ENV['LOG_GROUP_NAME']}\"
+      log_group_name "#{ENV['LOG_GROUP_NAME']}"
       auto_create_stream true
       use_tag_as_stream true
     </match>

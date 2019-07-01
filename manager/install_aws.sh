@@ -44,7 +44,7 @@ function setup_cloudwatch_logs() {
 
 echo "Installing Cortex ... (this will about 20 minutes)"
 
-eksctl create cluster --name=cortex --asg-access --node-type=$CORTEX_NODE_TYPE --nodes-min=$CORTEX_NODES_MIN --nodes-max=$CORTEX_NODES_MAX
+eksctl create cluster --name=$CORTEX_CLUSTER --asg-access --node-type=$CORTEX_NODE_TYPE --nodes-min=$CORTEX_NODES_MIN --nodes-max=$CORTEX_NODES_MAX
 
 setup_bucket
 setup_cloudwatch_logs

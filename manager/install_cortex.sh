@@ -120,7 +120,7 @@ function validate_cortex() {
   fi
 }
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME >/dev/null 2>&1
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER >/dev/null 2>&1
 
 envsubst < manifests/namespace.yaml | kubectl apply -f - >/dev/null
 

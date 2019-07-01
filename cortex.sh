@@ -80,7 +80,8 @@ done
 
 if [ "$CORTEX_CONFIG" != "" ]; then
   if [ ! -f "$CORTEX_CONFIG" ]; then
-    echo "cortex config file does not exist: $CORTEX_CONFIG"
+    echo "Cortex config file does not exist: $CORTEX_CONFIG"
+    exit 1
   fi
   source $CORTEX_CONFIG
 fi
@@ -99,12 +100,11 @@ export CORTEX_LOG_GROUP="${CORTEX_LOG_GROUP:-cortex}"
 export CORTEX_BUCKET="${CORTEX_BUCKET:-cortex-$random_id}"
 export CORTEX_REGION="${CORTEX_REGION:-us-west-2}"
 
-export CORTEX_CLUSTER_NAME="${CORTEX_CLUSTER_NAME:-cortex}"
+export CORTEX_CLUSTER="${CORTEX_CLUSTER:-cortex}"
+export CORTEX_NAMESPACE="${CORTEX_NAMESPACE:-cortex}"
 export CORTEX_NODE_TYPE="${CORTEX_NODE_TYPE:-t3.medium}"
 export CORTEX_NODES_MIN="${CORTEX_NODES_MIN:-1}"
-export CORTEX_NODES_MAX="${CORTEX_NODES_MAX:-3}"
-
-export CORTEX_NAMESPACE="${CORTEX_NAMESPACE:-cortex}"
+export CORTEX_NODES_MAX="${CORTEX_NODES_MAX:-5}"
 
 export CORTEX_IMAGE_ARGO_CONTROLLER="${CORTEX_IMAGE_ARGO_CONTROLLER:-cortexlabs/argo-controller:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_ARGO_EXECUTOR="${CORTEX_IMAGE_ARGO_EXECUTOR:-cortexlabs/argo-executor:$CORTEX_VERSION_STABLE}"
@@ -127,11 +127,11 @@ export CORTEX_ENABLE_TELEMETRY="${CORTEX_ENABLE_TELEMETRY:-""}"
 ### TOP-LEVEL COMMANDS ###
 ##########################
 
-function aws() {
-  docker run --entrypoint /root/aws.sh \
+function install_aws() {
+  docker run --entrypoint /root/install_aws.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e CORTEX_CLUSTER_NAME=$CORTEX_CLUSTER_NAME \
+    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
     -e CORTEX_NODE_TYPE=$CORTEX_NODE_TYPE \
     -e CORTEX_NODES_MIN=$CORTEX_NODES_MIN \
     -e CORTEX_NODES_MAX=$CORTEX_NODES_MAX \
@@ -141,11 +141,19 @@ function aws() {
     cortexlabs/manager
 }
 
-function install() {
-  docker run --entrypoint /root/install.sh \
+function uninstall_aws() {
+  docker run --entrypoint /root/uninstall_aws.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e CORTEX_CLUSTER_NAME=$CORTEX_CLUSTER_NAME \
+    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    cortexlabs/manager
+}
+
+function install_cortex() {
+  docker run --entrypoint /root/install_operator.sh \
+    -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+    -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
     -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
     -e CORTEX_LOG_GROUP=$CORTEX_LOG_GROUP \
     -e CORTEX_BUCKET=$CORTEX_BUCKET \
@@ -168,11 +176,20 @@ function install() {
     cortexlabs/manager
 }
 
-function uninstall() {
-  docker run --entrypoint /root/uninstall.sh \
+function uninstall_cortex() {
+  docker run --entrypoint /root/uninstall_cortex.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e CORTEX_CLUSTER_NAME=$CORTEX_CLUSTER_NAME \
+    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
+    cortexlabs/manager
+}
+
+function uninstall_operator() {
+  docker run --entrypoint /root/uninstall_operator.sh \
+    -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+    -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
     -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
     cortexlabs/manager
 }
@@ -181,16 +198,7 @@ function info() {
   docker run --entrypoint /root/info.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e CORTEX_CLUSTER_NAME=$CORTEX_CLUSTER_NAME \
-    -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
-    cortexlabs/manager
-}
-
-function update() {
-  docker run --entrypoint /root/update.sh \
-    -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-    -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e CORTEX_CLUSTER_NAME=$CORTEX_CLUSTER_NAME \
+    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
     -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
     cortexlabs/manager
 }
@@ -364,13 +372,13 @@ Usage:
   ./cortex.sh command [sub-command] [flags]
 
 Available Commands:
-  install                     install Cortex
-  uninstall                   uninstall Cortex
-  update                      update Cortex
-  info                        information about Cortex
+  install             install Cortex
+  uninstall           uninstall Cortex
+  update              update Cortex
+  info                information about Cortex
 
-  install cli                 install the Cortex CLI
-  uninstall cli               uninstall the Cortex CLI
+  install cli         install the Cortex CLI
+  uninstall cli       uninstall the Cortex CLI
 
 Flags:
   -c, --config  path to a Cortex config file
@@ -397,7 +405,7 @@ if [ "$arg1" = "install" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    aws && install && info
+    prompt_for_telemetry && install_aws && install_cortex && info
   elif [ "$arg2" = "cli" ]; then
     install_cli
   elif [ "$arg2" = "" ]; then
@@ -415,7 +423,7 @@ elif [ "$arg1" = "uninstall" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    uninstall
+    uninstall_cortex && uninstall_aws
   elif [ "$arg2" = "cli" ]; then
     uninstall_cli
   elif [ "$arg2" = "" ]; then
@@ -433,7 +441,7 @@ elif [ "$arg1" = "update" ]; then
     show_help
     exit 1
   else
-    update && install
+    uninstall_operator && install_cortex
   fi
 elif [ "$arg1" = "info" ]; then
   if [ ! "$arg2" = "" ]; then

@@ -17,7 +17,7 @@
 set -e
 
 # Note: if namespace is changed, the old namespace will not be deleted
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME >/dev/null 2>&1
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER >/dev/null 2>&1
 
 kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true deployment operator
 kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true daemonset fluentd  # Pods in DaemonSets cannot be modified

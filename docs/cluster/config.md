@@ -21,7 +21,7 @@ export CORTEX_BUCKET="cortex-[RANDOM_ID]"
 export CORTEX_REGION="us-west-2"
 
 # The name of the EKS cluster Cortex will use
-export CORTEX_CLUSTER_NAME="cortex"
+export CORTEX_CLUSTER="cortex"
 
 # The AWS node type Cortex will use
 export CORTEX_NODE_TYPE="t3.medium"
@@ -30,7 +30,7 @@ export CORTEX_NODE_TYPE="t3.medium"
 export CORTEX_NODES_MIN=1
 
 # Maximum number of nodes in the cluster
-export CORTEX_NODES_MAX=3
+export CORTEX_NODES_MAX=5
 
 # The name of the Kubernetes namespace Cortex will use
 export CORTEX_NAMESPACE="cortex"

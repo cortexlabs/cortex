@@ -107,7 +107,7 @@ func ErrorWorkflowAppMismatch() error {
 func ErrorCortexInstallationBroken() error {
 	return Error{
 		Kind:    ErrCortexInstallationBroken,
-		message: "cortex is out of date, or not installed properly on your cluster; run `./cortex.sh uninstall operator && ./cortex-installer.sh install operator`",
+		message: "cortex is out of date, or not installed properly on your cluster; run `./cortex.sh update`",
 	}
 }
 

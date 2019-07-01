@@ -16,10 +16,9 @@
 
 set -e
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME >/dev/null 2>&1
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER >/dev/null 2>&1
 
-echo
-echo "Uninstalling Cortex ... (this will take a few minutes)"
+echo -e "\nUninstalling Cortex ..."
 
 # Remove finalizers on sparkapplications (they sometimes create deadlocks)
 if kubectl get namespace $CORTEX_NAMESPACE >/dev/null 2>&1 && kubectl get customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1; then
@@ -34,6 +33,4 @@ kubectl delete --ignore-not-found=true customresourcedefinition sparkapplication
 kubectl delete --ignore-not-found=true customresourcedefinition workflows.argoproj.io >/dev/null 2>&1
 kubectl delete --ignore-not-found=true namespace $CORTEX_NAMESPACE >/dev/null 2>&1
 
-eksctl delete cluster --name=cortex
-
-echo "✓ Uninstalled Cortex"
+echo -e "\nUninstalled Cortex"
