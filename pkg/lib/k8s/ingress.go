@@ -87,6 +87,14 @@ func (c *Client) CreateIngress(spec *IngressSpec) (*v1beta1.Ingress, error) {
 	return ingress, nil
 }
 
+func (c *Client) UpdateIngress(ingress *v1beta1.Ingress) (*v1beta1.Ingress, error) {
+	ingress, err := c.ingressClient.Update(ingress)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return ingress, nil
+}
+
 func (c *Client) GetIngress(name string) (*v1beta1.Ingress, error) {
 	ingress, err := c.ingressClient.Get(name, metav1.GetOptions{})
 	if k8serrors.IsNotFound(err) {

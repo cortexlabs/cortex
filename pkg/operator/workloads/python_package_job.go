@@ -21,6 +21,7 @@ import (
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/argo"
@@ -97,7 +98,7 @@ func pythonPackageWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	workloadSpec := &WorkloadSpec{
 		WorkloadID:       workloadID,
 		ResourceIDs:      resourceIDs,
-		Spec:             spec,
+		K8sSpecs:         []metav1.Object{spec},
 		K8sAction:        "create",
 		SuccessCondition: k8s.JobSuccessCondition,
 		FailureCondition: k8s.JobFailureCondition,

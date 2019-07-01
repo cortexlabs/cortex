@@ -27,10 +27,13 @@ type DataStatus struct {
 
 type APIStatus struct {
 	APISavedStatus
-	Path              string `json:"path"`
-	RequestedReplicas int32  `json:"requested_replicas"`
-	ReplicaCounts     `json:"replica_counts"`
-	Code              StatusCode `json:"status_code"`
+	Path                 string `json:"path"`
+	MinReplicas          int32  `json:"min_replicas"`
+	MaxReplicas          int32  `json:"max_replicas"`
+	InitReplicas         int32  `json:"init_replicas"`
+	TargetCPUUtilization int32  `json:"target_cpu_utilization"`
+	ReplicaCounts        `json:"replica_counts"`
+	Code                 StatusCode `json:"status_code"`
 }
 
 type ReplicaCounts struct {

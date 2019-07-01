@@ -20,6 +20,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/argo"
@@ -39,18 +40,16 @@ func trainingJobSpec(
 
 	resourceList := corev1.ResourceList{}
 	limitsList := corev1.ResourceList{}
-	if tfCompute.CPU != nil {
-		resourceList[corev1.ResourceCPU] = tfCompute.CPU.Quantity
-	}
+	resourceList[corev1.ResourceCPU] = tfCompute.CPU.Quantity
 	if tfCompute.Mem != nil {
 		resourceList[corev1.ResourceMemory] = tfCompute.Mem.Quantity
 	}
 
 	trainImage := config.Cortex.TFTrainImage
-	if tfCompute.GPU != nil {
+	if tfCompute.GPU > 0 {
 		trainImage = config.Cortex.TFTrainImageGPU
-		resourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(*tfCompute.GPU, k8sresource.DecimalSI)
-		limitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(*tfCompute.GPU, k8sresource.DecimalSI)
+		resourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(tfCompute.GPU, k8sresource.DecimalSI)
+		limitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(tfCompute.GPU, k8sresource.DecimalSI)
 	}
 
 	spec := k8s.Job(&k8s.JobSpec{
@@ -122,7 +121,7 @@ func trainingWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 		workloadSpecs = append(workloadSpecs, &WorkloadSpec{
 			WorkloadID:       workloadID,
 			ResourceIDs:      strset.New(modelID),
-			Spec:             trainingJobSpec(ctx, modelID, workloadID, tfCompute),
+			K8sSpecs:         []metav1.Object{trainingJobSpec(ctx, modelID, workloadID, tfCompute)},
 			K8sAction:        "create",
 			SuccessCondition: k8s.JobSuccessCondition,
 			FailureCondition: k8s.JobFailureCondition,

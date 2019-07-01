@@ -273,7 +273,7 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	workloadSpec := &WorkloadSpec{
 		WorkloadID:       workloadID,
 		ResourceIDs:      resourceIDSet,
-		Spec:             spec,
+		K8sSpecs:         []metav1.Object{spec},
 		K8sAction:        "create",
 		SuccessCondition: spark.SuccessCondition,
 		FailureCondition: spark.FailureCondition,

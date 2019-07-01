@@ -87,7 +87,10 @@ func GetCurrentAPIStatuses(
 				},
 			}
 		}
-		apiStatuses[resourceID].RequestedReplicas = api.Compute.Replicas
+		apiStatuses[resourceID].MinReplicas = api.Compute.MinReplicas
+		apiStatuses[resourceID].MaxReplicas = api.Compute.MaxReplicas
+		apiStatuses[resourceID].InitReplicas = api.Compute.InitReplicas
+		apiStatuses[resourceID].TargetCPUUtilization = api.Compute.TargetCPUUtilization
 		currentAPIResourceIDs.Add(resourceID)
 	}
 
@@ -119,8 +122,11 @@ func getReplicaCountsMap(podList []corev1.Pod, ctx *context.Context) map[string]
 	for _, pod := range podList {
 		resourceID := pod.Labels["resourceID"]
 		cpu, mem, gpu := APIPodCompute(pod.Spec.Containers)
+		if cpu == nil {
+			cpu = &userconfig.Quantity{} // unexpected, since the default is 200m and 0 is disallowed
+		}
 		podAPICompute := userconfig.APICompute{
-			CPU: cpu,
+			CPU: *cpu,
 			Mem: mem,
 			GPU: gpu,
 		}
@@ -166,13 +172,13 @@ func apiStatusCode(apiStatus *resource.APIStatus, failedWorkloadIDs strset.Set) 
 	if failedWorkloadIDs.Has(apiStatus.WorkloadID) {
 		return resource.StatusError
 	}
-	if apiStatus.RequestedReplicas == 0 {
+	if apiStatus.MaxReplicas == 0 {
 		if apiStatus.TotalReady() > 0 {
 			return resource.StatusStopping
 		}
 		return resource.StatusStopped
 	}
-	if apiStatus.ReadyUpdated == apiStatus.RequestedReplicas {
+	if apiStatus.ReadyUpdated >= apiStatus.MinReplicas {
 		return resource.StatusReady
 	}
 	if apiStatus.FailedUpdated > 0 {

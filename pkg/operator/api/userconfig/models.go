@@ -154,10 +154,8 @@ func (model *Model) UserConfigStr() string {
 		sb.WriteString(s.Indent(model.Evaluation.UserConfigStr(), "  "))
 	}
 	if model.Compute != nil {
-		if tfComputeStr := model.Compute.UserConfigStr(); tfComputeStr != "" {
-			sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
-			sb.WriteString(s.Indent(tfComputeStr, "  "))
-		}
+		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
+		sb.WriteString(s.Indent(model.Compute.UserConfigStr(), "  "))
 	}
 	if model.DatasetCompute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", DatasetComputeKey))

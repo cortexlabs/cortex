@@ -83,6 +83,14 @@ func (c *Client) CreatePod(spec *PodSpec) (*corev1.Pod, error) {
 	return pod, nil
 }
 
+func (c *Client) UpdatePod(pod *corev1.Pod) (*corev1.Pod, error) {
+	pod, err := c.podClient.Update(pod)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return pod, nil
+}
+
 func GetPodLastContainerStartTime(pod *corev1.Pod) *time.Time {
 	var startTime *time.Time
 	for _, containerStatus := range pod.Status.ContainerStatuses {

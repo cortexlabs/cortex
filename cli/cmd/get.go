@@ -445,7 +445,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 	out := titleStr("Summary")
 	out += "Status:            " + groupStatus.Message() + "\n"
 	if ctxAPIStatus != nil {
-		out += fmt.Sprintf("Updated replicas:  %d/%d ready\n", ctxAPIStatus.ReadyUpdated, ctxAPIStatus.RequestedReplicas)
+		out += fmt.Sprintf("Updated replicas:  %d ready\n", ctxAPIStatus.ReadyUpdated)
 	}
 	if staleReplicas != 0 {
 		out += fmt.Sprintf("Stale replicas:    %d ready\n", staleReplicas)
