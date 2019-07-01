@@ -4,7 +4,8 @@ WORKDIR /root
 
 ENV PATH /root/.local/bin:$PATH
 
-RUN pip3 install awscli --upgrade --user
+RUN pip3 install awscli --upgrade --user && \
+    rm -rf /root/.cache/pip*
 
 RUN apk add --no-cache bash curl gettext
 
