@@ -112,7 +112,7 @@ spec:
         emptyDir: {}
       containers:
       - name: metrics-server
-        image: k8s.gcr.io/metrics-server-amd64:v0.3.2
+        image: $CORTEX_IMAGE_METRICS_SERVER
         imagePullPolicy: Always
         volumeMounts:
         - name: tmp-dir
