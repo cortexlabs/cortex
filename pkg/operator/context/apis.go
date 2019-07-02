@@ -31,7 +31,7 @@ import (
 	"github.com/cortexlabs/yaml"
 )
 
-var uploadedInferenceProcessors = strset.New()
+var uploadedRequestHandlers = strset.New()
 
 func getAPIs(config *userconfig.Config,
 	models context.Models,
@@ -45,24 +45,24 @@ func getAPIs(config *userconfig.Config,
 
 		var buf bytes.Buffer
 		var modelName string
-		var inferenceProcessorImplKey *string
+		var requestHandlerImplKey *string
 		buf.WriteString(apiConfig.Name)
 		buf.WriteString(apiConfig.ModelType.String())
 
-		for _, pythonPackage := range pythonPackages {
-			buf.WriteString(pythonPackage.GetID())
-		}
+		if apiConfig.RequestHandlerPath != nil {
+			for _, pythonPackage := range pythonPackages {
+				buf.WriteString(pythonPackage.GetID())
+			}
 
-		if apiConfig.InferenceProcessorPath != nil {
-			impl, ok := impls[*apiConfig.InferenceProcessorPath]
+			impl, ok := impls[*apiConfig.RequestHandlerPath]
 			if !ok {
-				return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(*apiConfig.InferenceProcessorPath), userconfig.Identify(apiConfig))
+				return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(*apiConfig.RequestHandlerPath), userconfig.Identify(apiConfig))
 			}
 			implID := hash.Bytes(impl)
 			buf.WriteString(implID)
 
-			key := filepath.Join(consts.InferenceProcessorsDir, implID)
-			inferenceProcessorImplKey = &key
+			key := filepath.Join(consts.RequestHandlersDir, implID)
+			requestHandlerImplKey = &key
 		}
 
 		if apiConfig.Model != nil {
@@ -90,38 +90,38 @@ func getAPIs(config *userconfig.Config,
 					ResourceType: resource.APIType,
 				},
 			},
-			API:                       apiConfig,
-			Path:                      context.APIPath(apiConfig.Name, config.App.Name),
-			ModelName:                 modelName,
-			InferenceProcessorImplKey: inferenceProcessorImplKey,
+			API:                   apiConfig,
+			Path:                  context.APIPath(apiConfig.Name, config.App.Name),
+			ModelName:             modelName,
+			RequestHandlerImplKey: requestHandlerImplKey,
 		}
 
-		if apiConfig.InferenceProcessorPath != nil {
-			uploadInferenceProcessor(apis[apiConfig.Name], impls[*apiConfig.InferenceProcessorPath])
+		if apiConfig.RequestHandlerPath != nil {
+			uploadRequestHandlers(apis[apiConfig.Name], impls[*apiConfig.RequestHandlerPath])
 		}
 	}
 	return apis, nil
 }
 
-func uploadInferenceProcessor(api *context.API, impl []byte) error {
+func uploadRequestHandlers(api *context.API, impl []byte) error {
 	implID := hash.Bytes(impl)
 
-	if uploadedInferenceProcessors.Has(implID) {
+	if uploadedRequestHandlers.Has(implID) {
 		return nil
 	}
 
-	isUploaded, err := config.AWS.IsS3File(*api.InferenceProcessorImplKey)
+	isUploaded, err := config.AWS.IsS3File(*api.RequestHandlerImplKey)
 	if err != nil {
 		return errors.Wrap(err, userconfig.Identify(api), "upload")
 	}
 
 	if !isUploaded {
-		err = config.AWS.UploadBytesToS3(impl, *api.InferenceProcessorImplKey)
+		err = config.AWS.UploadBytesToS3(impl, *api.RequestHandlerImplKey)
 		if err != nil {
 			return errors.Wrap(err, userconfig.Identify(api), "upload")
 		}
 	}
 
-	uploadedInferenceProcessors.Add(implID)
+	uploadedRequestHandlers.Add(implID)
 	return nil
 }

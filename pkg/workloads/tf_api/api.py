@@ -375,7 +375,7 @@ def start(args):
     local_cache["ctx"] = ctx
 
     print(api)
-    if api.get("inference_processor_path") is not None or api.get("external_model") is None:
+    if api.get("request_handler_path") is not None or api.get("external_model") is None:
         package.install_packages(ctx.python_packages, ctx.storage)
 
     if api.get("external_model") is None:

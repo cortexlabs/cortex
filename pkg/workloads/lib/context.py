@@ -270,17 +270,17 @@ class Context:
         self._estimator_impls[estimator_name] = (impl, impl_path)
         return (impl, impl_path)
 
-    def get_inference_processor_impl(self, api_name):
+    def get_request_handler_impl(self, api_name):
         api = self.apis[api_name]
 
-        module_prefix = "inference_processor"
+        module_prefix = "request_handler"
 
         try:
             impl, impl_path = self.load_module(
-                module_prefix, api["name"], api["inference_processor_impl_key"]
+                module_prefix, api["name"], api["request_handler_impl_key"]
             )
         except CortexException as e:
-            e.wrap("api " + api_name, "inference_processor")
+            e.wrap("api " + api_name, "request_handler")
             raise
 
         return (impl, impl_path)

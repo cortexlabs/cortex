@@ -155,7 +155,7 @@ func (ctx *Context) modelDependencies(model *Model) strset.Set {
 
 func (ctx *Context) apiDependencies(api *API) strset.Set {
 	dependencies := strset.New()
-	if api.InferenceProcessorPath != nil {
+	if api.RequestHandlerPath != nil {
 		debug.Pp(api)
 		for _, pythonPackage := range ctx.PythonPackages {
 			dependencies.Add(pythonPackage.GetID())

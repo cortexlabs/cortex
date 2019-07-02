@@ -13,7 +13,7 @@
 - kind: api
   name: iris-pytorch-nn
   model_type: onnx
-  inference_processor_path: inference_pytorch.py
+  request_handler_path: inference_pytorch.py
   external_model:
     path: s3://data-vishal/iris_pytorch.onnx
     region: us-west-2
@@ -23,7 +23,7 @@
 - kind: api
   name: iris-xgb-classifier
   model_type: onnx
-  inference_processor_path: inference.py
+  request_handler_path: inference.py
   external_model:
     path: s3://data-vishal/iris_xgb.onnx
     region: us-west-2
@@ -33,7 +33,7 @@
 - kind: api
   name: iris-sklearn-logistic-regression
   model_type: onnx
-  inference_processor_path: inference.py
+  request_handler_path: inference.py
   external_model:
     path: s3://data-vishal/iris_sklearn_logreg.onnx
     region: us-west-2

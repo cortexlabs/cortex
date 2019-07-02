@@ -41,7 +41,7 @@ local_cache = {
     "sess": None,
     "model_inputs": None,
     "model_outputs": None,
-    "inference_processor": None,
+    "request_handler": None,
 }
 
 
@@ -68,7 +68,7 @@ def predict(app_name, api_name):
 
     sess = local_cache["sess"]
     api = local_cache["api"]
-    inference_processor = local_cache["inference_processor"]
+    request_handler = local_cache["request_handler"]
     model_inputs = local_cache["model_inputs"]
     model_outputs = local_cache["model_outputs"]
 
@@ -93,10 +93,10 @@ def predict(app_name, api_name):
         try:
             util.log_indent("Raw sample:", indent=4)
             util.log_pretty(sample, indent=6)
-            inference_input = inference_processor.preprocess(sample, model_inputs)
+            inference_input = request_handler.preinference(sample, model_inputs)
             labels = [output_node.name for output_node in model_outputs]
             inference = sess.run(labels, inference_input)
-            result = inference_processor.postprocess(inference, model_outputs)
+            result = request_handler.postinference(inference, model_outputs)
             util.log_indent("Prediction:", indent=4)
             util.log_pretty(result, indent=6)
             prediction = {"prediction": result}
@@ -125,7 +125,7 @@ def start(args):
 
     local_cache["api"] = api
     local_cache["ctx"] = ctx
-    local_cache["inference_processor"], _ = ctx.get_inference_processor_impl(api["name"])
+    local_cache["request_handler"], _ = ctx.get_request_handler_impl(api["name"])
 
     logger.info(ctx)
     model_cache_path = os.path.join(args.model_dir, args.api)

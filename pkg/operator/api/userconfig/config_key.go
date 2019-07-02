@@ -94,8 +94,8 @@ const (
 
 	// API
 	ModelKey           = "model"
-	ModelTypeKey       = "model_key"
-	ServingFunctionKey = "serving_fn"
+	ModelTypeKey       = "model_type"
+	RequestHandlerPathKey = "request_handler_path"
 	ModelNameKey       = "model_name"
 	ExternalModelKey   = "external_model"
 

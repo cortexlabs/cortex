@@ -3,7 +3,7 @@ import numpy as np
 iris_labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
 
 
-def preprocess(sample, input_metadata):
+def preinference(sample, input_metadata):
     return {
         input_metadata[0].name: np.asarray(
             [
@@ -19,6 +19,6 @@ def preprocess(sample, input_metadata):
     }
 
 
-def postprocess(prediction, output_metadata):
+def postinference(prediction, output_metadata):
     predicted_class_id = int(prediction[0][0])
     return {"class_label": iris_labels[predicted_class_id], "class_index": predicted_class_id}
