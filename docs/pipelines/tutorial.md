@@ -86,8 +86,6 @@ Add to `cortex.yaml`:
 - kind: api
   name: iris-type
   model: @dnn
-  compute:
-    replicas: 2
 ```
 
 ## Deploy the application
