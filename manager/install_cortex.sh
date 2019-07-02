@@ -24,26 +24,26 @@ function setup_bucket() {
 
   if ! aws s3api head-bucket --bucket $CORTEX_BUCKET --output json 2>/dev/null; then
     if aws s3 ls "s3://$CORTEX_BUCKET" --output json 2>&1 | grep -q 'NoSuchBucket'; then
-      echo -e "\n✓ Creating an S3 bucket: $CORTEX_BUCKET"
+      echo "✓ Creating an S3 bucket: $CORTEX_BUCKET"
       aws s3api create-bucket --bucket $CORTEX_BUCKET \
                               --region $CORTEX_REGION \
                               --create-bucket-configuration LocationConstraint=$CORTEX_REGION \
                               >/dev/null
     else
-      echo -e "\nA bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
+      echo "A bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
       exit 1
     fi
   else
-    echo -e "\n✓ Using an existing S3 bucket: $CORTEX_BUCKET"
+    echo "✓ Using an existing S3 bucket: $CORTEX_BUCKET"
   fi
 }
 
 function setup_cloudwatch_logs() {
   if ! aws logs list-tags-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION --output json 2>&1 | grep -q "\"tags\":"; then
-    echo -e "\n✓ Creating a CloudWatch log group: $CORTEX_LOG_GROUP"
+    echo "✓ Creating a CloudWatch log group: $CORTEX_LOG_GROUP"
     aws logs create-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION
   else
-    echo -e "\n✓ Using an existing CloudWatch log group: $CORTEX_LOG_GROUP"
+    echo "✓ Using an existing CloudWatch log group: $CORTEX_LOG_GROUP"
   fi
 }
 
@@ -143,15 +143,14 @@ function validate_cortex() {
     break
   done
 
-  echo -e "\n\n✓ Cortex is ready!"
+  echo -e "\n✓ Cortex is ready!"
 
   if command -v cortex >/dev/null; then
     echo -e "\nPlease run \`cortex configure\` to make sure your CLI is configured correctly"
   fi
 }
 
-echo
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER | grep -v "saved kubeconfig as" || true
 
 echo -e "\nInstalling Cortex ..."
 

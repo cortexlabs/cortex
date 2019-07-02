@@ -8,7 +8,7 @@
 
 <br>
 
-Cortex deploys your machine learning models to your cloud infrastructure. You define your deployment with simple declarative configuration, Cortex containerizes your models, deploys them as scalable JSON APIs, and manages their lifecycle in production.
+Cortex deploys your machine learning models to your cloud infrastructure. You define your deployment with simple declarative configuration, Cortex containerizes your models, deploys them as autoscaling JSON APIs, and manages their lifecycle in production.
 
 Cortex is actively maintained by Cortex Labs. We're a venture-backed team of infrastructure engineers and [we're hiring](https://angel.co/cortex-labs-inc/jobs).
 
@@ -66,11 +66,11 @@ $ curl -d '{"a": 1, "b": 2, "c": 3}' https://amazonaws.com/my-api
 
 - **Machine learning deployments as code:** Cortex deployments are defined using declarative configuration.
 
+- **Autoscaling:** Cortex can automatically scale APIs to handle production workloads.
+
 - **Multi framework support:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
 
 - **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
-
-- **Scalability:** Cortex can scale APIs to handle production workloads.
 
 - **Rolling updates:** Cortex updates deployed APIs without any downtime.
 

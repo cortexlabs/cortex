@@ -18,8 +18,7 @@ set -e
 
 # Note: if namespace is changed, the old namespace will not be deleted
 
-echo
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER | grep -v "saved kubeconfig as" || true
 
 echo -e "\nUninstalling the Cortex operator ..."
 
