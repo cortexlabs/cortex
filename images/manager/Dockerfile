@@ -7,7 +7,7 @@ ENV PATH /root/.local/bin:$PATH
 RUN pip3 install awscli --upgrade --user && \
     rm -rf /root/.cache/pip*
 
-RUN apk add --no-cache bash curl gettext
+RUN apk add --no-cache bash curl gettext jq
 
 RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/0.1.38/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
     mv /tmp/eksctl /usr/local/bin

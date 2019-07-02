@@ -16,6 +16,62 @@
 
 set -e
 
+function setup_bucket() {
+  if [ "$CORTEX_BUCKET" == "" ]; then
+    account_id_hash=$(aws sts get-caller-identity | jq .Account | sha256sum | cut -f1 -d" " | cut -c -10)
+    CORTEX_BUCKET="cortex-${account_id_hash}"
+  fi
+
+  if ! aws s3api head-bucket --bucket $CORTEX_BUCKET --output json 2>/dev/null; then
+    if aws s3 ls "s3://$CORTEX_BUCKET" --output json 2>&1 | grep -q 'NoSuchBucket'; then
+      echo -e "\n✓ Creating an S3 bucket: $CORTEX_BUCKET"
+      aws s3api create-bucket --bucket $CORTEX_BUCKET \
+                              --region $CORTEX_REGION \
+                              --create-bucket-configuration LocationConstraint=$CORTEX_REGION \
+                              >/dev/null
+    else
+      echo -e "\nA bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
+      exit 1
+    fi
+  else
+    echo -e "\n✓ Using an existing S3 bucket: $CORTEX_BUCKET"
+  fi
+}
+
+function setup_cloudwatch_logs() {
+  if ! aws logs list-tags-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION --output json 2>&1 | grep -q "\"tags\":"; then
+    echo -e "\n✓ Creating a CloudWatch log group: $CORTEX_LOG_GROUP"
+    aws logs create-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION
+  else
+    echo -e "\n✓ Using an existing CloudWatch log group: $CORTEX_LOG_GROUP"
+  fi
+}
+
+function setup_configmap() {
+  kubectl -n=$CORTEX_NAMESPACE create configmap 'cortex-config' \
+    --from-literal='LOG_GROUP'=$CORTEX_LOG_GROUP \
+    --from-literal='BUCKET'=$CORTEX_BUCKET \
+    --from-literal='REGION'=$CORTEX_REGION \
+    --from-literal='NAMESPACE'=$CORTEX_NAMESPACE \
+    --from-literal='IMAGE_OPERATOR'=$CORTEX_IMAGE_OPERATOR \
+    --from-literal='IMAGE_SPARK'=$CORTEX_IMAGE_SPARK \
+    --from-literal='IMAGE_TF_TRAIN'=$CORTEX_IMAGE_TF_TRAIN \
+    --from-literal='IMAGE_TF_SERVE'=$CORTEX_IMAGE_TF_SERVE \
+    --from-literal='IMAGE_TF_API'=$CORTEX_IMAGE_TF_API \
+    --from-literal='IMAGE_PYTHON_PACKAGER'=$CORTEX_IMAGE_PYTHON_PACKAGER \
+    --from-literal='IMAGE_TF_TRAIN_GPU'=$CORTEX_IMAGE_TF_TRAIN_GPU \
+    --from-literal='IMAGE_TF_SERVE_GPU'=$CORTEX_IMAGE_TF_SERVE_GPU \
+    --from-literal='ENABLE_TELEMETRY'=$CORTEX_ENABLE_TELEMETRY \
+    -o yaml --dry-run | kubectl apply -f - >/dev/null
+}
+
+function setup_secrets() {
+  kubectl -n=$CORTEX_NAMESPACE create secret generic 'aws-credentials' \
+    --from-literal='AWS_ACCESS_KEY_ID'=$AWS_ACCESS_KEY_ID \
+    --from-literal='AWS_SECRET_ACCESS_KEY'=$AWS_SECRET_ACCESS_KEY \
+    -o yaml --dry-run | kubectl apply -f - >/dev/null
+}
+
 function validate_cortex() {
   set +e
 
@@ -99,7 +155,14 @@ eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER
 
 echo -e "\nInstalling Cortex ..."
 
+setup_bucket
+setup_cloudwatch_logs
+
 envsubst < manifests/namespace.yaml | kubectl apply -f - >/dev/null
+
+setup_configmap
+setup_secrets
+
 envsubst < manifests/spark.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/argo.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/nginx.yaml | kubectl apply -f - >/dev/null

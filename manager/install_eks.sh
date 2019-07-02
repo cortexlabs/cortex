@@ -14,9 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-echo -e "\nSpinning down the cluster ... (this will take a few minutes)"
+set -e
+
+echo -e "\nSpinning up the cluster ... (this will about 15 minutes)"
 
 echo
-eksctl delete cluster --name=$CORTEX_CLUSTER
+eksctl create cluster --name=$CORTEX_CLUSTER --asg-access --node-type=$CORTEX_NODE_TYPE --nodes-min=$CORTEX_NODES_MIN --nodes-max=$CORTEX_NODES_MAX
 
-echo -e "\n✓ Spun down the cluster"
+echo -e "\n✓ Spun up the cluster"

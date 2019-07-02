@@ -91,13 +91,11 @@ set -u
 export CORTEX_VERSION_STABLE=master
 
 # Defaults
-random_id=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-z0-9' | fold -w 12 | head -n 1)
-
 export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-""}"
 export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-""}"
 
 export CORTEX_LOG_GROUP="${CORTEX_LOG_GROUP:-cortex}"
-export CORTEX_BUCKET="${CORTEX_BUCKET:-cortex-$random_id}"
+export CORTEX_BUCKET="${CORTEX_BUCKET:-""}"
 export CORTEX_REGION="${CORTEX_REGION:-us-west-2}"
 
 export CORTEX_CLUSTER="${CORTEX_CLUSTER:-cortex}"
@@ -127,22 +125,19 @@ export CORTEX_ENABLE_TELEMETRY="${CORTEX_ENABLE_TELEMETRY:-""}"
 ### TOP-LEVEL COMMANDS ###
 ##########################
 
-function install_aws() {
-  docker run --entrypoint /root/install_aws.sh \
+function install_eks() {
+  docker run --entrypoint /root/install_eks.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
     -e CORTEX_NODE_TYPE=$CORTEX_NODE_TYPE \
     -e CORTEX_NODES_MIN=$CORTEX_NODES_MIN \
     -e CORTEX_NODES_MAX=$CORTEX_NODES_MAX \
-    -e CORTEX_LOG_GROUP=$CORTEX_LOG_GROUP \
-    -e CORTEX_BUCKET=$CORTEX_BUCKET \
-    -e CORTEX_REGION=$CORTEX_REGION \
     cortexlabs/manager
 }
 
-function uninstall_aws() {
-  docker run --entrypoint /root/uninstall_aws.sh \
+function uninstall_eks() {
+  docker run --entrypoint /root/uninstall_eks.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
@@ -405,7 +400,7 @@ if [ "$arg1" = "install" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    prompt_for_telemetry && install_aws && install_cortex && info
+    prompt_for_telemetry && install_eks && install_cortex && info
   elif [ "$arg2" = "cli" ]; then
     install_cli
   elif [ "$arg2" = "" ]; then
@@ -423,7 +418,7 @@ elif [ "$arg1" = "uninstall" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    uninstall_cortex && uninstall_aws
+    uninstall_cortex && uninstall_eks
   elif [ "$arg2" = "cli" ]; then
     uninstall_cli
   elif [ "$arg2" = "" ]; then
