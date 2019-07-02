@@ -48,3 +48,16 @@ func MaxInt(vals ...int) int {
 	}
 	return max
 }
+
+func AreNGreaterThanZero(minCount int, vals ...int) bool {
+	count := 0
+	for _, val := range vals {
+		if val > 0 {
+			count++
+			if count >= minCount {
+				return true
+			}
+		}
+	}
+	return false
+}

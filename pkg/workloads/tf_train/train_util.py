@@ -43,8 +43,7 @@ def get_label_placeholder(model_name, ctx):
 
 
 def get_transform_tensor_fn(ctx, estimator_impl, model_name):
-    model = ctx.models[model_name]
-    model_config = ctx.model_config(model["name"])
+    model_config = ctx.model_config(model_name)
 
     def transform_tensor_fn_wrapper(inputs, labels):
         return estimator_impl.transform_tensorflow(inputs, labels, model_config)
@@ -175,7 +174,7 @@ def train(model_name, estimator_impl, ctx, model_dir):
         throttle_secs=model["evaluation"]["throttle_secs"],
     )
 
-    model_config = ctx.model_config(model["name"])
+    model_config = ctx.model_config(model_name)
 
     try:
         tf_estimator = estimator_impl.create_estimator(run_config, model_config)

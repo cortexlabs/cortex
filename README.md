@@ -2,13 +2,13 @@
 
 <br>
 
-**Get started:** [Install](https://docs.cortex.dev/install) • [Tutorial](https://docs.cortex.dev/tutorial) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[Docs](https://docs.cortex.dev) • <!-- CORTEX_VERSION_MINOR_STABLE -->[Examples](https://github.com/cortexlabs/cortex/tree/0.4/examples)
+**Get started:** [Install](https://docs.cortex.dev/install) • [Tutorial](https://docs.cortex.dev/tutorial) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[Docs](https://docs.cortex.dev) • <!-- CORTEX_VERSION_MINOR_STABLE -->[Examples](https://github.com/cortexlabs/cortex/tree/0.5/examples)
 
 **Learn more:** [Website](https://cortex.dev) • [Blog](https://blog.cortex.dev) • [Subscribe](https://cortexlabs.us20.list-manage.com/subscribe?u=a1987373ab814f20961fd90b4&id=ae83491e1c) • [Twitter](https://twitter.com/cortex_deploy) • [Contact](mailto:hello@cortex.dev)
 
 <br>
 
-Cortex deploys your machine learning models to your cloud infrastructure. You define your deployment with simple declarative configuration, Cortex containerizes your models, deploys them as scalable JSON APIs, and manages their lifecycle in production.
+Cortex deploys your machine learning models to your cloud infrastructure. You define your deployment with simple declarative configuration, Cortex containerizes your models, deploys them as autoscaling JSON APIs, and manages their lifecycle in production.
 
 Cortex is actively maintained by Cortex Labs. We're a venture-backed team of infrastructure engineers and [we're hiring](https://angel.co/cortex-labs-inc/jobs).
 
@@ -19,14 +19,28 @@ Cortex is actively maintained by Cortex Labs. We're a venture-backed team of inf
 **Define** your deployment using declarative configuration:
 
 ```yaml
+# cortex.yaml
+
 - kind: api
   name: my-api
-  external_model:
-    path: s3://my-bucket/my-model.zip
-    region: us-west-2
+  model: s3://my-bucket/my-model.zip
+  request_handler: handler.py
   compute:
-    replicas: 3
+    replicas: 4
     gpu: 2
+```
+
+**Customize** request handling (optional):
+
+```python
+# handler.py
+
+def preprocess(payload):
+  # Python code
+
+
+def postprocess(prediction):
+  # Python code
 ```
 
 **Deploy** to your cloud infrastructure:
@@ -52,11 +66,11 @@ $ curl -d '{"a": 1, "b": 2, "c": 3}' https://amazonaws.com/my-api
 
 - **Machine learning deployments as code:** Cortex deployments are defined using declarative configuration.
 
-- **Multi framework support:** Cortex supports TensorFlow models with more frameworks coming soon.
+- **Autoscaling:** Cortex can automatically scale APIs to handle production workloads.
+
+- **Multi framework support:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
 
 - **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
-
-- **Scalability:** Cortex can scale APIs to handle production workloads.
 
 - **Rolling updates:** Cortex updates deployed APIs without any downtime.
 

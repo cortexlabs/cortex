@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -285,7 +286,21 @@ func SplitS3Path(s3Path string) (string, string, error) {
 	return bucket, key, nil
 }
 
-func IsS3PrefixExternal(bucket string, prefix string, region string) (bool, error) {
+func GetBucketRegion(bucket string) (string, error) {
+	sess := session.Must(session.NewSession())
+	region, err := s3manager.GetBucketRegion(aws.BackgroundContext(), sess, bucket, endpoints.UsWest2RegionID)
+	if err != nil {
+		return "", errors.Wrap(err, bucket)
+	}
+	return region, nil
+}
+
+func IsS3PrefixExternal(bucket string, prefix string) (bool, error) {
+	region, err := GetBucketRegion(bucket)
+	if err != nil {
+		return false, err
+	}
+
 	sess := session.Must(session.NewSession(&aws.Config{
 		Region: aws.String(region),
 	}))
@@ -296,19 +311,24 @@ func IsS3PrefixExternal(bucket string, prefix string, region string) (bool, erro
 	})
 
 	if err != nil {
-		return false, errors.Wrap(err, prefix)
+		return false, errors.Wrap(err, bucket, prefix)
 	}
 
 	hasPrefix := *out.KeyCount > 0
 	return hasPrefix, nil
 }
 
-func IsS3FileExternal(bucket string, key string, region string) (bool, error) {
+func IsS3FileExternal(bucket string, key string) (bool, error) {
+	region, err := GetBucketRegion(bucket)
+	if err != nil {
+		return false, err
+	}
+
 	sess := session.Must(session.NewSession(&aws.Config{
 		Region: aws.String(region),
 	}))
 
-	_, err := s3.New(sess).HeadObject(&s3.HeadObjectInput{
+	_, err = s3.New(sess).HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
@@ -318,16 +338,25 @@ func IsS3FileExternal(bucket string, key string, region string) (bool, error) {
 	}
 
 	if err != nil {
-		return false, errors.Wrap(err, key)
+		return false, errors.Wrap(err, bucket, key)
 	}
 
 	return true, nil
 }
 
-func IsS3aPrefixExternal(s3aPath string, region string) (bool, error) {
+func IsS3aPathPrefixExternal(s3aPath string) (bool, error) {
 	bucket, prefix, err := SplitS3aPath(s3aPath)
 	if err != nil {
 		return false, err
 	}
-	return IsS3PrefixExternal(bucket, prefix, region)
+	return IsS3PrefixExternal(bucket, prefix)
+}
+
+func IsS3PathFileExternal(s3Path string) (bool, error) {
+	bucket, key, err := SplitS3Path(s3Path)
+	if err != nil {
+		return false, err
+	}
+
+	return IsS3FileExternal(bucket, key)
 }

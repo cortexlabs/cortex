@@ -27,10 +27,10 @@ type Constants []*Constant
 
 type Constant struct {
 	ResourceFields
-	Type     OutputSchema      `json:"type" yaml:"type"`
-	Value    interface{}       `json:"value" yaml:"value"`
-	Tags     Tags              `json:"tags" yaml:"tags"`
-	External *ExternalConstant `json:"external" yaml:"external"`
+	Type  OutputSchema `json:"type" yaml:"type"`
+	Value interface{}  `json:"value" yaml:"value"`
+	Tags  Tags         `json:"tags" yaml:"tags"`
+	Path  *string      `json:"path" yaml:"path"`
 }
 
 var constantValidation = &cr.StructValidation{
@@ -56,36 +56,14 @@ var constantValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField:      "External",
-			StructValidation: externalModelFieldValidation,
+			StructField: "Path",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Validator: cr.GetS3PathValidator(),
+				Required:  false,
+			},
 		},
 		tagsFieldValidation,
 		typeFieldValidation,
-	},
-}
-
-type ExternalConstant struct {
-	Path   string `json:"path" yaml:"path"`
-	Region string `json:"region" yaml:"region"`
-}
-
-var externalConstantFieldValidation = &cr.StructValidation{
-	DefaultNil: true,
-	StructFieldValidations: []*cr.StructFieldValidation{
-		{
-			StructField: "Path",
-			StringValidation: &cr.StringValidation{
-				Validator: cr.GetS3PathValidator(),
-				Required:  true,
-			},
-		},
-		{
-			StructField: "Region",
-			StringValidation: &cr.StringValidation{
-				Default:       aws.DefaultS3Region,
-				AllowedValues: aws.S3Regions.Slice(),
-			},
-		},
 	},
 }
 
@@ -110,26 +88,21 @@ func (constants Constants) Validate() error {
 }
 
 func (constant *Constant) Validate() error {
-	if constant.External == nil && constant.Value == nil {
-		return errors.Wrap(ErrorSpecifyOnlyOneMissing(ValueKey, ExternalKey), Identify(constant))
+	if constant.Path == nil && constant.Value == nil {
+		return errors.Wrap(ErrorSpecifyOnlyOneMissing(ValueKey, PathKey), Identify(constant))
 	}
 
-	if constant.External != nil && constant.Value != nil {
-		return errors.Wrap(ErrorSpecifyOnlyOne(ValueKey, ExternalKey), Identify(constant))
+	if constant.Path != nil && constant.Value != nil {
+		return errors.Wrap(ErrorSpecifyOnlyOne(ValueKey, PathKey), Identify(constant))
 	}
 
-	if constant.External != nil {
-		bucket, key, err := aws.SplitS3Path(constant.External.Path)
-		if err != nil {
-			return errors.Wrap(err, Identify(constant), ExternalKey, PathKey)
-		}
-
-		if ok, err := aws.IsS3FileExternal(bucket, key, constant.External.Region); err != nil || !ok {
-			return errors.Wrap(ErrorExternalNotFound(constant.External.Path), Identify(constant), ExternalKey, PathKey)
+	if constant.Path != nil {
+		if ok, err := aws.IsS3PathFileExternal(*constant.Path); err != nil || !ok {
+			return errors.Wrap(ErrorExternalNotFound(*constant.Path), Identify(constant), PathKey)
 		}
 	}
 
-	if constant.Type != nil {
+	if constant.Value != nil && constant.Type != nil {
 		castedValue, err := CastOutputValue(constant.Value, constant.Type)
 		if err != nil {
 			return errors.Wrap(err, Identify(constant), ValueKey)

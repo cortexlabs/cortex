@@ -244,7 +244,7 @@ def parse_response_proto_raw(response_proto):
 
 
 def run_predict(sample):
-    if local_cache["ctx"].environment is not None:
+    if util.is_resource_ref(local_cache["api"]["model"]):
         transformed_sample = transform_sample(sample)
         prediction_request = create_prediction_request(transformed_sample)
         response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
@@ -331,7 +331,7 @@ def predict(deployment_name, api_name):
     for i, sample in enumerate(payload["samples"]):
         util.log_indent("sample {}".format(i + 1), 2)
 
-        if local_cache["ctx"].environment is not None:
+        if util.is_resource_ref(api["model"]):
             is_valid, reason = is_valid_sample(sample)
             if not is_valid:
                 return prediction_failed(sample, reason)
@@ -357,7 +357,20 @@ def predict(deployment_name, api_name):
                     api["name"]
                 )
             )
-            return prediction_failed(sample, str(e))
+
+            # Show signature def for external models (since we don't validate input)
+            schemaStr = ""
+            signature_def = local_cache["metadata"]["signatureDef"]
+            if (
+                not util.is_resource_ref(api["model"])
+                and signature_def.get("predict") is not None  # Just to be safe
+                and signature_def["predict"].get("inputs") is not None  # Just to be safe
+            ):
+                schemaStr = "\n\nExpected shema:\n" + util.pp_str(
+                    signature_def["predict"]["inputs"]
+                )
+
+            return prediction_failed(sample, str(e) + schemaStr)
 
         predictions.append(result)
 
@@ -374,12 +387,16 @@ def start(args):
     local_cache["api"] = api
     local_cache["ctx"] = ctx
 
-    print(api)
-    if api.get("request_handler_path") is not None or api.get("external_model") is None:
-        package.install_packages(ctx.python_packages, ctx.storage)
+    if not util.is_resource_ref(api["model"]):
+        if api.get("request_handler_path") is not None:
+            package.install_packages(ctx.python_packages, ctx.storage)
+        if not os.path.isdir(args.model_dir):
+            ctx.storage.download_and_unzip_external(api["model"], args.model_dir)
 
-    if api.get("external_model") is None:
-        model = ctx.models[api["model_name"]]
+    if util.is_resource_ref(api["model"]):
+        package.install_packages(ctx.python_packages, ctx.storage)
+        model_name = util.get_resource_ref(api["model"])
+        model = ctx.models[model_name]
         estimator = ctx.estimators[model["estimator"]]
 
         local_cache["model"] = model
@@ -389,7 +406,10 @@ def start(args):
             util.get_resource_ref(model["target_column"])
         )
 
-        tf_lib.set_logging_verbosity(ctx.environment["log_level"]["tensorflow"])
+        log_level = "DEBUG"
+        if ctx.environment is not None and ctx.environment.get("log_level") is not None:
+            log_level = ctx.environment["log_level"].get("tensorflow", "DEBUG")
+        tf_lib.set_logging_verbosity(log_level)
 
         if not os.path.isdir(args.model_dir):
             ctx.storage.download_and_unzip(model["key"], args.model_dir)
@@ -412,10 +432,6 @@ def start(args):
                 model["input"]["target_vocab"], None, False
             )
 
-    else:
-        if not os.path.isdir(args.model_dir):
-            ctx.storage.download_and_unzip_external(api["external_model"]["path"], args.model_dir)
-
     channel = grpc.insecure_channel("localhost:" + str(args.tf_serve_port))
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)
 
@@ -436,7 +452,7 @@ def start(args):
 
         time.sleep(1)
 
-    logger.info("Serving model: {}".format(api["model_name"]))
+    logger.info("Serving model: {}".format(util.remove_resource_ref(api["model"])))
     serve(app, listen="*:{}".format(args.port))
 
 

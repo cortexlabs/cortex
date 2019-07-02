@@ -184,13 +184,10 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 
 	shouldIngest := !rawFileExists
 	if shouldIngest {
-		externalData := ctx.Environment.Data.GetExternalData()
-		externalDataExists, err := aws.IsS3aPrefixExternal(externalData.Path, externalData.Region)
-		if err != nil {
-			return nil, errors.Wrap(err, externalData.Path, ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey)
-		}
-		if !externalDataExists {
-			return nil, errors.Wrap(ErrorExternalDataUnavailable(externalData.Path), ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey)
+		externalPath := ctx.Environment.Data.GetPath()
+		externalDataExists, err := aws.IsS3aPathPrefixExternal(externalPath)
+		if !externalDataExists || err != nil {
+			return nil, errors.Wrap(userconfig.ErrorExternalNotFound(externalPath), ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey)
 		}
 		for _, rawColumn := range ctx.RawColumns {
 			allComputes = append(allComputes, rawColumn.GetCompute())

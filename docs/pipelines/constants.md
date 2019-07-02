@@ -8,10 +8,8 @@ Constants represent literal values which can be used in other Cortex resources. 
 - kind: constant
   name: <string>  # constant name (required)
   type: <output_type>  # the type of the constant (optional, will be inferred from value if not specified)
-  value: <output_value>  # a literal value (this or external_model must be specified)
-  external_model:  # (this or value must be specified)
-    path: <string>  # path to a JSON object (e.g. s3://my-bucket/constant.json)
-    region: <string>  # S3 region (default: us-west-2)
+  value: <output_value>  # a literal value (this or path must be specified)
+  path: <string>  # path to a JSON object (e.g. s3://my-bucket/constant.json) (this or value must be specified)
 
 ```
 

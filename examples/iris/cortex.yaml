@@ -4,9 +4,7 @@
 - kind: api
   name: iris-tf-nn
   model_type: tensorflow
-  external_model:
-    path: s3://cortex-examples/iris-tensorflow.zip
-    region: us-west-2
+  model: s3://cortex-examples/iris-tensorflow.zip
   compute:
     replicas: 1
 
@@ -14,9 +12,7 @@
   name: iris-pytorch-nn
   model_type: onnx
   request_handler_path: inference_pytorch.py
-  external_model:
-    path: s3://data-vishal/iris_pytorch.onnx
-    region: us-west-2
+  model: s3://data-vishal/iris_pytorch.onnx
   compute:
     replicas: 1
 
@@ -24,9 +20,7 @@
   name: iris-xgb-classifier
   model_type: onnx
   request_handler_path: inference.py
-  external_model:
-    path: s3://data-vishal/iris_xgb.onnx
-    region: us-west-2
+  model: s3://data-vishal/iris_xgb.onnx
   compute:
     replicas: 1
 
@@ -34,8 +28,6 @@
   name: iris-sklearn-logistic-regression
   model_type: onnx
   request_handler_path: inference.py
-  external_model:
-    path: s3://data-vishal/iris_sklearn_logreg.onnx
-    region: us-west-2
+  model: s3://data-vishal/iris_sklearn_logreg.onnx
   compute:
     replicas: 1

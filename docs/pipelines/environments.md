@@ -26,7 +26,6 @@ Transfer data at scale from data warehouses like S3 into the Cortex environment.
 data:
   type: csv  # file type (required)
   path: s3a://<bucket_name>/<file_name>  # S3 is currently supported (required)
-  region: us-west-2  # S3 region (default: us-west-2)
   drop_null: <bool>  # drop any rows that contain at least 1 null value (default: false)
   csv_config: <csv_config>  # optional configuration that can be provided
   schema:
@@ -65,7 +64,6 @@ csv_config:
 data:
   type: parquet  # file type (required)
   path: s3a://<bucket_name>/<file_name>  # S3 is currently supported (required)
-  region: us-west-2  # S3 region (default: us-west-2)
   drop_null: <bool>  # drop any rows that contain at least 1 null value (default: false)
   schema:
     - parquet_column_name: <string>  # name of the column in the parquet file (required)

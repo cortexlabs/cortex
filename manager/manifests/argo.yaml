@@ -1,0 +1,132 @@
+# Copyright 2019 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argo-executor
+  namespace: $CORTEX_NAMESPACE
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-executor
+  namespace: $CORTEX_NAMESPACE
+subjects:
+- kind: ServiceAccount
+  name: argo-executor
+  namespace: $CORTEX_NAMESPACE
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: workflows.argoproj.io
+  namespace: $CORTEX_NAMESPACE
+spec:
+  group: argoproj.io
+  names:
+    kind: Workflow
+    plural: workflows
+    shortNames:
+    - wf
+  scope: Namespaced
+  version: v1alpha1
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argo-controller
+  namespace: $CORTEX_NAMESPACE
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argo-controller
+  namespace: $CORTEX_NAMESPACE
+rules:
+- apiGroups: [""]
+  resources: [pods, pods/exec]
+  verbs: [create, get, list, watch, update, patch, delete]
+- apiGroups: [""]
+  resources: [configmaps]
+  verbs: [get, watch, list]
+- apiGroups: [""]
+  resources: [persistentvolumeclaims]
+  verbs: [create, delete]
+- apiGroups: [argoproj.io]
+  resources: [workflows, workflows/finalizers]
+  verbs: [get, list, watch, update, patch, delete]
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo
+  namespace: $CORTEX_NAMESPACE
+subjects:
+- kind: ServiceAccount
+  name: argo-controller
+  namespace: $CORTEX_NAMESPACE
+roleRef:
+  kind: Role
+  name: argo-controller
+  apiGroup: rbac.authorization.k8s.io
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argo-controller
+  namespace: $CORTEX_NAMESPACE
+data:
+  config: |
+    namespace: $CORTEX_NAMESPACE
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argo-controller
+  namespace: $CORTEX_NAMESPACE
+spec:
+  selector:
+    matchLabels:
+      app: argo-controller
+  template:
+    metadata:
+      labels:
+        app: argo-controller
+    spec:
+      containers:
+      - args:
+        - --configmap
+        - argo-controller
+        - --executor-image
+        - $CORTEX_IMAGE_ARGO_EXECUTOR
+        - --executor-image-pull-policy
+        - Always
+        command:
+        - workflow-controller
+        image: $CORTEX_IMAGE_ARGO_CONTROLLER
+        imagePullPolicy: Always
+        name: argo-controller
+      serviceAccountName: argo-controller

@@ -108,11 +108,11 @@ func (aggregates Aggregates) Validate() error {
 
 func (aggregate *Aggregate) Validate() error {
 	if aggregate.AggregatorPath == nil && aggregate.Aggregator == "" {
-		return errors.Wrap(ErrorSpecifyOnlyOneMissing("aggregator", "aggregator_path"), Identify(aggregate))
+		return errors.Wrap(ErrorSpecifyOnlyOneMissing(AggregatorKey, AggregatorPathKey), Identify(aggregate))
 	}
 
 	if aggregate.AggregatorPath != nil && aggregate.Aggregator != "" {
-		return errors.Wrap(ErrorSpecifyOnlyOne("aggregator", "aggregator_path"), Identify(aggregate))
+		return errors.Wrap(ErrorSpecifyOnlyOne(AggregatorKey, AggregatorPathKey), Identify(aggregate))
 	}
 
 	return nil

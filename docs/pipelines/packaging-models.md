@@ -17,12 +17,10 @@ Upload the zipped file to Amazon S3, e.g.
 $ aws s3 cp model.zip s3://my-bucket/model.zip
 ```
 
-Specify `external_model` in an API, e.g.
+Specify `model` in an API, e.g.
 
 ```yaml
 - kind: api
   name: my-api
-  external_model:
-    path: s3://my-bucket/model.zip
-    region: us-west-2
+  model: s3://my-bucket/model.zip
 ```
