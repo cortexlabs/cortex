@@ -50,6 +50,7 @@ export CORTEX_IMAGE_TF_API="cortexlabs/tf-api:master"
 export CORTEX_IMAGE_TF_TRAIN_GPU="cortexlabs/tf-train-gpu:master"
 export CORTEX_IMAGE_TF_SERVE_GPU="cortexlabs/tf-serve-gpu:master"
 export CORTEX_IMAGE_PYTHON_PACKAGER="cortexlabs/python-packager:master"
+export CORTEX_IMAGE_CLUSTER_AUTOSCALER="cortexlabs/cluster-autoscaler:master"
 
 # Flag to enable collecting error reports and usage stats. If flag is not set to either "true" or "false", you will be prompted.
 export CORTEX_ENABLE_TELEMETRY=""
