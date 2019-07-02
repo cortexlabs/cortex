@@ -31,8 +31,11 @@ type Quantity struct {
 }
 
 type QuantityValidation struct {
-	Min k8sresource.Quantity
-	Int bool
+	GreaterThan          *k8sresource.Quantity
+	GreaterThanOrEqualTo *k8sresource.Quantity
+	LessThan             *k8sresource.Quantity
+	LessThanOrEqualTo    *k8sresource.Quantity
+	Int                  bool
 }
 
 func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
@@ -42,8 +45,25 @@ func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
 			return Quantity{}, err
 		}
 
-		if k8sQuantity.Cmp(v.Min) < 0 {
-			return nil, configreader.ErrorMustBeGreaterThanOrEqualTo(str, v.Min)
+		if v.GreaterThan != nil {
+			if k8sQuantity.Cmp(*v.GreaterThan) <= 0 {
+				return nil, configreader.ErrorMustBeGreaterThan(str, *v.GreaterThan)
+			}
+		}
+		if v.GreaterThanOrEqualTo != nil {
+			if k8sQuantity.Cmp(*v.GreaterThanOrEqualTo) < 0 {
+				return nil, configreader.ErrorMustBeGreaterThanOrEqualTo(str, *v.GreaterThanOrEqualTo)
+			}
+		}
+		if v.LessThan != nil {
+			if k8sQuantity.Cmp(*v.LessThan) >= 0 {
+				return nil, configreader.ErrorMustBeLessThan(str, *v.LessThan)
+			}
+		}
+		if v.LessThanOrEqualTo != nil {
+			if k8sQuantity.Cmp(*v.LessThanOrEqualTo) > 0 {
+				return nil, configreader.ErrorMustBeLessThanOrEqualTo(str, *v.LessThanOrEqualTo)
+			}
 		}
 
 		if v.Int {
@@ -90,6 +110,10 @@ func (quantity *Quantity) Equal(quantity2 Quantity) bool {
 
 func (quantity *Quantity) ID() string {
 	return s.Int64(quantity.MilliValue())
+}
+
+func k8sQuantityPtr(k8sQuantity k8sresource.Quantity) *k8sresource.Quantity {
+	return &k8sQuantity
 }
 
 func QuantityPtrID(quantity *Quantity) string {

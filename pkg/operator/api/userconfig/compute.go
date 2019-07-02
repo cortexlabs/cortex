@@ -62,7 +62,7 @@ var sparkComputeStructValidation = &cr.StructValidation{
 				Default: "1",
 			},
 			Parser: QuantityParser(&QuantityValidation{
-				Min: k8sresource.MustParse("1"),
+				GreaterThanOrEqualTo: k8sQuantityPtr(k8sresource.MustParse("1")),
 			}),
 		},
 		{
@@ -71,8 +71,8 @@ var sparkComputeStructValidation = &cr.StructValidation{
 				Default: "1",
 			},
 			Parser: QuantityParser(&QuantityValidation{
-				Min: k8sresource.MustParse("1"),
-				Int: true,
+				GreaterThanOrEqualTo: k8sQuantityPtr(k8sresource.MustParse("1")),
+				Int:                  true,
 			}),
 		},
 		{
@@ -81,7 +81,7 @@ var sparkComputeStructValidation = &cr.StructValidation{
 				Default: "500Mi",
 			},
 			Parser: QuantityParser(&QuantityValidation{
-				Min: k8sresource.MustParse("500Mi"),
+				GreaterThanOrEqualTo: k8sQuantityPtr(k8sresource.MustParse("500Mi")),
 			}),
 		},
 		{
@@ -90,7 +90,7 @@ var sparkComputeStructValidation = &cr.StructValidation{
 				Default: "500Mi",
 			},
 			Parser: QuantityParser(&QuantityValidation{
-				Min: k8sresource.MustParse("500Mi"),
+				GreaterThanOrEqualTo: k8sQuantityPtr(k8sresource.MustParse("500Mi")),
 			}),
 		},
 		{
@@ -99,7 +99,7 @@ var sparkComputeStructValidation = &cr.StructValidation{
 				Default: nil, // min(DriverMem * 0.4, 384Mi)
 			},
 			Parser: QuantityParser(&QuantityValidation{
-				Min: k8sresource.MustParse("0"),
+				GreaterThanOrEqualTo: k8sQuantityPtr(k8sresource.MustParse("0")),
 			}),
 		},
 		{
@@ -108,7 +108,7 @@ var sparkComputeStructValidation = &cr.StructValidation{
 				Default: nil, // min(ExecutorMem * 0.4, 384Mi)
 			},
 			Parser: QuantityParser(&QuantityValidation{
-				Min: k8sresource.MustParse("0"),
+				GreaterThanOrEqualTo: k8sQuantityPtr(k8sresource.MustParse("0")),
 			}),
 		},
 		{
@@ -181,7 +181,7 @@ var tfComputeFieldValidation = &cr.StructFieldValidation{
 					Default: "200m",
 				},
 				Parser: QuantityParser(&QuantityValidation{
-					Min: k8sresource.MustParse("0"),
+					GreaterThan: k8sQuantityPtr(k8sresource.MustParse("0")),
 				}),
 			},
 			{
@@ -190,7 +190,7 @@ var tfComputeFieldValidation = &cr.StructFieldValidation{
 					Default: nil,
 				},
 				Parser: QuantityParser(&QuantityValidation{
-					Min: k8sresource.MustParse("0"),
+					GreaterThan: k8sQuantityPtr(k8sresource.MustParse("0")),
 				}),
 			},
 			{
@@ -272,7 +272,7 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 					Default: "200m",
 				},
 				Parser: QuantityParser(&QuantityValidation{
-					Min: k8sresource.MustParse("0"),
+					GreaterThan: k8sQuantityPtr(k8sresource.MustParse("0")),
 				}),
 			},
 			{
@@ -281,7 +281,7 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 					Default: nil,
 				},
 				Parser: QuantityParser(&QuantityValidation{
-					Min: k8sresource.MustParse("0"),
+					GreaterThan: k8sQuantityPtr(k8sresource.MustParse("0")),
 				}),
 			},
 			{
