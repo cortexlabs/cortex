@@ -24,13 +24,13 @@ devstart:
 	@./dev/operator_local.sh || true
 
 oinstall:
-	@./cortex-installer.sh -c=./dev/config/cortex.sh install operator
+	@./cortex.sh -c=./dev/config/cortex.sh install operator
 
 oupdate:
-	@./cortex-installer.sh -c=./dev/config/cortex.sh update operator
+	@./cortex.sh -c=./dev/config/cortex.sh update operator
 
 ouninstall:
-	@./cortex-installer.sh -c=./dev/config/cortex.sh uninstall operator
+	@./cortex.sh -c=./dev/config/cortex.sh uninstall operator
 
 ostop:
 	@kubectl -n=cortex delete --ignore-not-found=true deployment operator
@@ -145,6 +145,7 @@ ci-build-images:
 	@./build/build-image.sh images/argo-controller argo-controller
 	@./build/build-image.sh images/argo-executor argo-executor
 	@./build/build-image.sh images/python-packager python-packager
+	@./build/build-image.sh images/manager manager
 
 ci-push-images:
 	@./build/push-image.sh spark
@@ -161,6 +162,7 @@ ci-push-images:
 	@./build/push-image.sh argo-controller
 	@./build/push-image.sh argo-executor
 	@./build/push-image.sh python-packager
+	@./build/push-image.sh manager
 
 ci-build-cli:
 	@./build/cli.sh
