@@ -18,55 +18,44 @@ SHELL := /bin/bash
 # Dev #
 #######
 
-# Operator
+# Cortex
 
 devstart:
 	@./dev/operator_local.sh || true
 
-oinstall:
-	@./cortex.sh -c=./dev/config/cortex.sh install operator
+kubectl:
+	@eksctl utils write-kubeconfig --name="cortex"
+	@kubectl config set-context --current --namespace="cortex"
 
-oupdate:
-	@./cortex.sh -c=./dev/config/cortex.sh update operator
+cortex-up:
+	@./cortex.sh -c=./dev/config/cortex.sh install
+	$(MAKE) kubectl
 
-ouninstall:
-	@./cortex.sh -c=./dev/config/cortex.sh uninstall operator
+cortex-up-dev:
+	$(MAKE) cortex-up
+	$(MAKE) operator-stop
 
-ostop:
-	@kubectl -n=cortex delete --ignore-not-found=true deployment operator
+cortex-down:
+	$(MAKE) kubectl
+	@./cortex.sh -c=./dev/config/cortex.sh uninstall
 
-# EKS
+cortex-info:
+	$(MAKE) kubectl
+	@./cortex.sh -c=./dev/config/cortex.sh info
 
-eks-up:
-	@./dev/eks.sh start
-	$(MAKE) oinstall
+cortex-update:
+	$(MAKE) kubectl
+	@./cortex.sh -c=./dev/config/cortex.sh update
 
-eks-up-dev:
-	$(MAKE) eks-up
-	$(MAKE) ostop
+operator-start:
+	@./cortex.sh -c=./dev/config/cortex.sh update
 
-eks-down:
-	$(MAKE) ouninstall || true
-	@./dev/eks.sh stop
+operator-update:
+	@./cortex.sh -c=./dev/config/cortex.sh update
 
-eks-set:
-	@./dev/eks.sh set
-
-# KOPS
-
-kops-up:
-	@./dev/kops.sh start
-	$(MAKE) oinstall
-
-kops-up-dev:
-	$(MAKE) kops-up
-	$(MAKE) ostop
-
-kops-down:
-	@./dev/kops.sh stop
-
-kops-set:
-	@./dev/kops.sh set
+operator-stop:
+	$(MAKE) kubectl
+	@kubectl delete --namespace="cortex" --ignore-not-found=true deployment operator
 
 # Docker images
 
