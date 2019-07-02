@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	tappsv1b1 "k8s.io/client-go/kubernetes/typed/apps/v1beta1"
+	tautoscaling "k8s.io/client-go/kubernetes/typed/autoscaling/v1"
 	tbatchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 	tcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	textensionsv1b1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
@@ -52,6 +53,7 @@ type Client struct {
 	deploymentClient tappsv1b1.DeploymentInterface
 	jobClient        tbatchv1.JobInterface
 	ingressClient    textensionsv1b1.IngressInterface
+	hpaClient        tautoscaling.HorizontalPodAutoscalerInterface
 	Namespace        string
 }
 
@@ -81,6 +83,7 @@ func New(namespace string, inCluster bool) (*Client, error) {
 	client.deploymentClient = client.clientset.AppsV1beta1().Deployments(namespace)
 	client.jobClient = client.clientset.BatchV1().Jobs(namespace)
 	client.ingressClient = client.clientset.ExtensionsV1beta1().Ingresses(namespace)
+	client.hpaClient = client.clientset.AutoscalingV1().HorizontalPodAutoscalers(namespace)
 	return client, nil
 }
 

@@ -102,6 +102,10 @@ func (api *API) Validate() error {
 		}
 	}
 
+	if err := api.Compute.Validate(); err != nil {
+		return errors.Wrap(err, Identify(api), ComputeKey)
+	}
+
 	return nil
 }
 

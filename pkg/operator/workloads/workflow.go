@@ -19,8 +19,10 @@ package workloads
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	awfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	ghodssyaml "github.com/ghodss/yaml"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/argo"
@@ -110,15 +112,40 @@ func Create(ctx *context.Context) (*awfv1.Workflow, error) {
 			}
 		}
 
-		manifest, err := json.Marshal(spec.Spec)
-		if err != nil {
-			return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID)
+		var combinedManifest string
+
+		switch len(spec.K8sSpecs) {
+		case 0:
+			return nil, errors.New("a kubernetes manifest must be specified") // unexpected internal error
+		case 1:
+			manifestBytes, err := json.Marshal(spec.K8sSpecs[0])
+			if err != nil {
+				return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID)
+			}
+			combinedManifest = string(manifestBytes)
+		default: // >1
+			if spec.SuccessCondition != "" || spec.FailureCondition != "" {
+				return nil, errors.New("success and failure conditions are not permitted with multiple manifests") // unexpected internal error
+			}
+			manifests := make([]string, len(spec.K8sSpecs))
+			for i, k8sSpec := range spec.K8sSpecs {
+				manifestJSON, err := json.Marshal(k8sSpec)
+				if err != nil {
+					return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID)
+				}
+				manifestYAML, err := ghodssyaml.JSONToYAML(manifestJSON)
+				if err != nil {
+					return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID)
+				}
+				manifests[i] = string(manifestYAML)
+			}
+			combinedManifest = strings.Join(manifests, "\n\n---\n\n")
 		}
 
 		argo.AddTask(wf, &argo.WorkflowTask{
 			Name:             spec.WorkloadID,
 			Action:           spec.K8sAction,
-			Manifest:         string(manifest),
+			Manifest:         combinedManifest,
 			SuccessCondition: spec.SuccessCondition,
 			FailureCondition: spec.FailureCondition,
 			Dependencies:     slices.UniqueStrings(dependencyWorkloadIDs),
@@ -235,6 +262,10 @@ func DeleteApp(appName string, keepCache bool) bool {
 	services, _ := config.Kubernetes.ListServicesByLabel("appName", appName)
 	for _, service := range services {
 		config.Kubernetes.DeleteService(service.Name)
+	}
+	hpas, _ := config.Kubernetes.ListHPAsByLabel("appName", appName)
+	for _, hpa := range hpas {
+		config.Kubernetes.DeleteHPA(hpa.Name)
 	}
 	jobs, _ := config.Kubernetes.ListJobsByLabel("appName", appName)
 	for _, job := range jobs {

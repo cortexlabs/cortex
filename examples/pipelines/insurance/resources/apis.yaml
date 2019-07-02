@@ -1,5 +1,3 @@
 - kind: api
   name: cost
   model: @dnn
-  compute:
-    replicas: 1

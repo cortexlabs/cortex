@@ -69,6 +69,9 @@ const (
 	ErrTypeMapZeroLength
 	ErrGenericTypeMapLength
 	ErrK8sQuantityMustBeInt
+	ErrMinReplicasGreaterThanMax
+	ErrInitReplicasGreaterThanMax
+	ErrInitReplicasLessThanMin
 	ErrPredictionKeyOnModelWithEstimator
 	ErrSpecifyOnlyOneMissing
 	ErrEnvSchemaMismatch
@@ -118,6 +121,9 @@ var errorKinds = []string{
 	"err_type_map_zero_length",
 	"err_generic_type_map_length",
 	"err_k8s_quantity_must_be_int",
+	"err_min_replicas_greater_than_max",
+	"err_init_replicas_greater_than_max",
+	"err_init_replicas_less_than_min",
 	"err_prediction_key_on_model_with_estimator",
 	"err_specify_only_one_missing",
 	"err_env_schema_mismatch",
@@ -515,6 +521,27 @@ func ErrorK8sQuantityMustBeInt(quantityStr string) error {
 	return Error{
 		Kind:    ErrK8sQuantityMustBeInt,
 		message: fmt.Sprintf("resource compute quantity must be an integer-valued string, e.g. \"2\") (got %s)", DataTypeStr(quantityStr)),
+	}
+}
+
+func ErrorMinReplicasGreaterThanMax(min int32, max int32) error {
+	return Error{
+		Kind:    ErrMinReplicasGreaterThanMax,
+		message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", MinReplicasKey, MaxReplicasKey, min, max),
+	}
+}
+
+func ErrorInitReplicasGreaterThanMax(init int32, max int32) error {
+	return Error{
+		Kind:    ErrInitReplicasGreaterThanMax,
+		message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", InitReplicasKey, MaxReplicasKey, init, max),
+	}
+}
+
+func ErrorInitReplicasLessThanMin(init int32, min int32) error {
+	return Error{
+		Kind:    ErrInitReplicasLessThanMin,
+		message: fmt.Sprintf("%s cannot be less than %s (%d < %d)", InitReplicasKey, MinReplicasKey, init, min),
 	}
 }
 

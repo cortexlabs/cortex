@@ -1,17 +1,11 @@
 - kind: api
   name: dnn-classifier
   model: @dnn
-  compute:
-    replicas: 1
 
 - kind: api
   name: conv-classifier
   model: @conv
-  compute:
-    replicas: 1
 
 - kind: api
   name: t2t-classifier
   model: @t2t
-  compute:
-    replicas: 1

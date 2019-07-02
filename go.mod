@@ -20,16 +20,17 @@ go 1.12
 require (
 	github.com/GoogleCloudPlatform/spark-on-k8s-operator v0.0.0-20181208011959-62db1d66dafa
 	github.com/argoproj/argo v2.3.0+incompatible
-	github.com/aws/aws-sdk-go v1.20.8
+	github.com/aws/aws-sdk-go v1.20.12
 	github.com/cortexlabs/yaml v0.0.0-20190626164117-202ab3a3d475
 	github.com/davecgh/go-spew v1.1.1
 	github.com/emicklei/go-restful v2.9.6+incompatible // indirect
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-openapi/spec v0.19.2 // indirect
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/gofuzz v1.0.0 // indirect
 	github.com/googleapis/gnostic v0.3.0 // indirect
-	github.com/gorilla/mux v1.7.2
+	github.com/gorilla/mux v1.7.3
 	github.com/gorilla/websocket v1.4.0
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect

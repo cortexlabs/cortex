@@ -26,8 +26,8 @@ Cortex is actively maintained by Cortex Labs. We're a venture-backed team of inf
   model: s3://my-bucket/my-model.zip
   request_handler: handler.py
   compute:
-    replicas: 4
-    gpu: 2
+    min_replicas: 5
+    max_replicas: 20
 ```
 
 **Customize** request handling (optional):

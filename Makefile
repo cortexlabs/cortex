@@ -117,6 +117,7 @@ test-examples:
 ###############
 
 ci-build-images:
+	@./build/build-image.sh images/manager manager
 	@./build/build-image.sh images/spark-base spark-base
 	@./build/build-image.sh images/tf-base tf-base
 	@./build/build-image.sh images/tf-base-gpu tf-base-gpu
@@ -135,9 +136,10 @@ ci-build-images:
 	@./build/build-image.sh images/argo-executor argo-executor
 	@./build/build-image.sh images/python-packager python-packager
 	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
-	@./build/build-image.sh images/manager manager
+	@./build/build-image.sh images/metrics-server metrics-server
 
 ci-push-images:
+	@./build/push-image.sh manager
 	@./build/push-image.sh spark
 	@./build/push-image.sh spark-operator
 	@./build/push-image.sh tf-train
@@ -153,7 +155,8 @@ ci-push-images:
 	@./build/push-image.sh argo-executor
 	@./build/push-image.sh python-packager
 	@./build/push-image.sh cluster-autoscaler
-	@./build/push-image.sh manager
+	@./build/push-image.sh metrics-server
+
 
 ci-build-cli:
 	@./build/cli.sh
