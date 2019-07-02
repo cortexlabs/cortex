@@ -1,6 +1,6 @@
 # Config
 
-These environment variables can be modified and exported before running `cortex-installer.sh` commands. Alternatively, a configuration file may be provided to `cortex-installer.sh` via the `--config` flag (e.g. `cortex-installer.sh --config=./config.sh install operator`). Default values are shown.
+These environment variables can be modified and exported before running `cortex.sh` commands. Alternatively, a configuration file may be provided to `cortex.sh` via the `--config` flag (e.g. `cortex.sh --config=./config.sh install`). Default values are shown.
 
 <!-- CORTEX_VERSION_STABLE -->
 
@@ -20,13 +20,23 @@ export CORTEX_BUCKET="cortex-[RANDOM_ID]"
 # The AWS region Cortex will use
 export CORTEX_REGION="us-west-2"
 
+# The name of the EKS cluster Cortex will use
+export CORTEX_CLUSTER="cortex"
+
+# The AWS node type Cortex will use
+export CORTEX_NODE_TYPE="t3.medium"
+
+# Minimum number of nodes in the cluster
+export CORTEX_NODES_MIN=2
+
+# Maximum number of nodes in the cluster
+export CORTEX_NODES_MAX=5
+
 # The name of the Kubernetes namespace Cortex will use
 export CORTEX_NAMESPACE="cortex"
 
-# Flag to enable collecting error reports and usage stats. If flag is not set to either "true" or "false", you will be prompted.
-export CORTEX_ENABLE_TELEMETRY=""
-
 # Image paths
+export CORTEX_IMAGE_MANAGER="cortexlabs/manager:master"
 export CORTEX_IMAGE_ARGO_CONTROLLER="cortexlabs/argo-controller:master"
 export CORTEX_IMAGE_ARGO_EXECUTOR="cortexlabs/argo-executor:master"
 export CORTEX_IMAGE_FLUENTD="cortexlabs/fluentd:master"
@@ -41,4 +51,8 @@ export CORTEX_IMAGE_TF_API="cortexlabs/tf-api:master"
 export CORTEX_IMAGE_TF_TRAIN_GPU="cortexlabs/tf-train-gpu:master"
 export CORTEX_IMAGE_TF_SERVE_GPU="cortexlabs/tf-serve-gpu:master"
 export CORTEX_IMAGE_PYTHON_PACKAGER="cortexlabs/python-packager:master"
+export CORTEX_IMAGE_CLUSTER_AUTOSCALER="cortexlabs/cluster-autoscaler:master"
+
+# Flag to enable collecting error reports and usage stats. If flag is not set to either "true" or "false", you will be prompted.
+export CORTEX_ENABLE_TELEMETRY=""
 ```

@@ -85,6 +85,7 @@ export CORTEX_IMAGE_TF_TRAIN="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlab
 export CORTEX_IMAGE_TF_TRAIN_GPU="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-train-gpu:latest"
 export CORTEX_IMAGE_TF_TRANSFORM="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-transform:latest"
 export CORTEX_IMAGE_PYTHON_PACKAGER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-packager:latest"
+export CORTEX_IMAGE_CLUSTER_AUTOSCALER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/cluster-autoscaler:latest"
 
 export AWS_ACCESS_KEY_ID="XXXXXX"
 export AWS_SECRET_ACCESS_KEY="XXXXXX"

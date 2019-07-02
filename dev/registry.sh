@@ -49,6 +49,8 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/python-packager --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-train-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve-gpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/cluster-autoscaler --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/manager --region=$REGISTRY_REGION || true
 }
 
 ### HELPERS ###
@@ -133,6 +135,8 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/tf-serve tf-serve latest
     build_and_push $ROOT/images/tf-serve-gpu tf-serve-gpu latest
     build_and_push $ROOT/images/python-packager python-packager latest
+    build_and_push $ROOT/images/cluster-autoscaler cluster-autoscaler latest
+    build_and_push $ROOT/images/manager manager latest
   fi
 
   build_and_push $ROOT/images/spark spark latest
