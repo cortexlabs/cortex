@@ -233,7 +233,7 @@ func GetAPIGroupStatuses(apiStatuses map[string]*resource.APIStatus, ctx *contex
 		statusMap[apiName] = append(statusMap[apiName], apiStatus)
 	}
 
-	deployments, err := deploymentMap(ctx.App.Name)
+	deployments, err := apiDeploymentMap(ctx.App.Name)
 	if err != nil {
 		return nil, errors.Wrap(err, "api group statuses")
 	}

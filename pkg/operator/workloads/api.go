@@ -219,12 +219,12 @@ func hpaSpec(ctx *context.Context, api *context.API) *autoscaling.HorizontalPodA
 func apiWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	var workloadSpecs []*WorkloadSpec
 
-	deployments, err := deploymentMap(ctx.App.Name)
+	deployments, err := apiDeploymentMap(ctx.App.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	hpas, err := hpaMap(ctx.App.Name)
+	hpas, err := apiHPAMap(ctx.App.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func apiWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 			if deployment.Spec.Replicas != nil {
 				desiredReplicas = *deployment.Spec.Replicas
 			}
-			if hpa != nil && hpa.Spec.MinReplicas != nil && desiredReplicas < *hpa.Spec.MinReplicas {
+			if hpa != nil && hpa.Spec.MinReplicas != nil && *hpa.Spec.MinReplicas > desiredReplicas {
 				desiredReplicas = *hpa.Spec.MinReplicas
 			}
 		}
@@ -365,7 +365,7 @@ func createServicesAndIngresses(ctx *context.Context) error {
 }
 
 // This returns map apiName -> deployment (not internalName -> deployment)
-func deploymentMap(appName string) (map[string]*appsv1b1.Deployment, error) {
+func apiDeploymentMap(appName string) (map[string]*appsv1b1.Deployment, error) {
 	deploymentList, err := config.Kubernetes.ListDeploymentsByLabels(map[string]string{
 		"appName":      appName,
 		"workloadType": WorkloadTypeAPI,
@@ -388,8 +388,11 @@ func addToDeploymentMap(deployments map[string]*appsv1b1.Deployment, deployment 
 }
 
 // This returns map apiName -> hpa (not internalName -> hpa)
-func hpaMap(appName string) (map[string]*autoscaling.HorizontalPodAutoscaler, error) {
-	hpaList, err := config.Kubernetes.ListHPAsByLabel("appName", appName)
+func apiHPAMap(appName string) (map[string]*autoscaling.HorizontalPodAutoscaler, error) {
+	hpaList, err := config.Kubernetes.ListHPAsByLabels(map[string]string{
+		"appName":      appName,
+		"workloadType": WorkloadTypeAPI,
+	})
 	if err != nil {
 		return nil, errors.Wrap(err, appName)
 	}
