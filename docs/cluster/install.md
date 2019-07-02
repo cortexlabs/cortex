@@ -3,6 +3,7 @@
 ## Prerequisites
 
 1. [AWS credentials](aws.md)
+2. [Docker](https://docs.docker.com/install)
 
 ## Spin up Cortex in your AWS account
 

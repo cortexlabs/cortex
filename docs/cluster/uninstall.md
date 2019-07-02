@@ -1,5 +1,10 @@
 # Uninstall
 
+## Prerequisites
+
+1. [AWS credentials](aws.md)
+2. [Docker](https://docs.docker.com/install)
+
 ## Uninstall Cortex
 
 <!-- CORTEX_VERSION_MINOR -->

@@ -115,6 +115,7 @@ export CORTEX_NODE_TYPE="${CORTEX_NODE_TYPE:-t3.medium}"
 export CORTEX_NODES_MIN="${CORTEX_NODES_MIN:-2}"
 export CORTEX_NODES_MAX="${CORTEX_NODES_MAX:-5}"
 
+export CORTEX_IMAGE_MANAGER="${CORTEX_IMAGE_MANAGER:-cortexlabs/manager:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_ARGO_CONTROLLER="${CORTEX_IMAGE_ARGO_CONTROLLER:-cortexlabs/argo-controller:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_ARGO_EXECUTOR="${CORTEX_IMAGE_ARGO_EXECUTOR:-cortexlabs/argo-executor:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_FLUENTD="${CORTEX_IMAGE_FLUENTD:-cortexlabs/fluentd:$CORTEX_VERSION_STABLE}"
@@ -145,7 +146,7 @@ function install_eks() {
     -e CORTEX_NODE_TYPE=$CORTEX_NODE_TYPE \
     -e CORTEX_NODES_MIN=$CORTEX_NODES_MIN \
     -e CORTEX_NODES_MAX=$CORTEX_NODES_MAX \
-    cortexlabs/manager
+    $CORTEX_IMAGE_MANAGER
 }
 
 function uninstall_eks() {
@@ -153,7 +154,7 @@ function uninstall_eks() {
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
-    cortexlabs/manager
+    $CORTEX_IMAGE_MANAGER
 }
 
 function install_cortex() {
@@ -181,7 +182,7 @@ function install_cortex() {
     -e CORTEX_IMAGE_TF_TRAIN_GPU=$CORTEX_IMAGE_TF_TRAIN_GPU \
     -e CORTEX_IMAGE_CLUSTER_AUTOSCALER=$CORTEX_IMAGE_CLUSTER_AUTOSCALER \
     -e CORTEX_ENABLE_TELEMETRY=$CORTEX_ENABLE_TELEMETRY \
-    cortexlabs/manager
+    $CORTEX_IMAGE_MANAGER
 }
 
 function uninstall_cortex() {
@@ -190,7 +191,7 @@ function uninstall_cortex() {
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
     -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
-    cortexlabs/manager
+    $CORTEX_IMAGE_MANAGER
 }
 
 function uninstall_operator() {
@@ -199,7 +200,7 @@ function uninstall_operator() {
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
     -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
-    cortexlabs/manager
+    $CORTEX_IMAGE_MANAGER
 }
 
 function info() {
@@ -208,7 +209,7 @@ function info() {
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
     -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
-    cortexlabs/manager
+    $CORTEX_IMAGE_MANAGER
 }
 
 ################
