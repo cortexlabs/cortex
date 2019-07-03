@@ -219,7 +219,7 @@ func hpaSpec(ctx *context.Context, api *context.API) *autoscaling.HorizontalPodA
 func apiWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	var workloadSpecs []*WorkloadSpec
 
-	deployments, err := apiDeploymentMap(ctx.App.Name)
+	deployments, err := APIDeploymentMap(ctx.App.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -365,7 +365,7 @@ func createServicesAndIngresses(ctx *context.Context) error {
 }
 
 // This returns map apiName -> deployment (not internalName -> deployment)
-func apiDeploymentMap(appName string) (map[string]*appsv1b1.Deployment, error) {
+func APIDeploymentMap(appName string) (map[string]*appsv1b1.Deployment, error) {
 	deploymentList, err := config.Kubernetes.ListDeploymentsByLabels(map[string]string{
 		"appName":      appName,
 		"workloadType": WorkloadTypeAPI,
@@ -426,6 +426,19 @@ func APIsBaseURL() (string, error) {
 		return "", ErrorLoadBalancerInitializing()
 	}
 	return "https://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
+}
+
+func APIPodComputeID(containers []corev1.Container) string {
+	cpu, mem, gpu := APIPodCompute(containers)
+	if cpu == nil {
+		cpu = &userconfig.Quantity{} // unexpected, since the default is 200m and 0 is disallowed
+	}
+	podAPICompute := userconfig.APICompute{
+		CPU: *cpu,
+		Mem: mem,
+		GPU: gpu,
+	}
+	return podAPICompute.IDWithoutReplicas()
 }
 
 func APIPodCompute(containers []corev1.Container) (*userconfig.Quantity, *userconfig.Quantity, int64) {
