@@ -19,6 +19,12 @@ set -e
 echo -e "\nSpinning up the cluster ... (this will about 15 minutes)"
 
 echo
-eksctl create cluster --name=$CORTEX_CLUSTER --asg-access --node-type=$CORTEX_NODE_TYPE --nodes-min=$CORTEX_NODES_MIN --nodes-max=$CORTEX_NODES_MAX
+eksctl create cluster --name=$CORTEX_CLUSTER \
+                      --region=$CORTEX_REGION \
+                      --node-type=$CORTEX_NODE_TYPE \
+                      --nodes-min=$CORTEX_NODES_MIN \
+                      --nodes-max=$CORTEX_NODES_MAX \
+                      --version=1.13 \
+                      --asg-access
 
 echo -e "\n✓ Spun up the cluster"
