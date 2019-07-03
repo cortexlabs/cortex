@@ -125,12 +125,13 @@ def start(args):
 
     local_cache["api"] = api
     local_cache["ctx"] = ctx
-    local_cache["request_handler"], _ = ctx.get_request_handler_impl(api["name"])
+    if api.get("request_handler_impl_key") is not None:
+        local_cache["request_handler"], _ = ctx.get_request_handler_impl(api["name"])
 
     logger.info(ctx)
     model_cache_path = os.path.join(args.model_dir, args.api)
     if not os.path.exists(model_cache_path):
-        ctx.storage.download_file_external(api["external_model"]["path"], model_cache_path)
+        ctx.storage.download_file_external(api["model"], model_cache_path)
 
     sess = rt.InferenceSession(model_cache_path)
     local_cache["sess"] = sess

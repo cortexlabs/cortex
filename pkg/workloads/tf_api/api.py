@@ -244,6 +244,9 @@ def parse_response_proto_raw(response_proto):
 
 
 def run_predict(sample):
+    preprocessed_sample = local_cache["request_handler"].preinference(
+        sample, local_cache["metadata"]["signatureDef"]
+    )
     if util.is_resource_ref(local_cache["api"]["model"]):
         transformed_sample = transform_sample(sample)
         prediction_request = create_prediction_request(transformed_sample)
@@ -386,6 +389,9 @@ def start(args):
     api = ctx.apis_id_map[args.api]
     local_cache["api"] = api
     local_cache["ctx"] = ctx
+
+    if api.get("request_handler_impl_key") is not None:
+        local_cache["request_handler"], _ = ctx.get_request_handler_impl(api["name"])
 
     if not util.is_resource_ref(api["model"]):
         if api.get("request_handler_path") is not None:
