@@ -169,5 +169,6 @@ envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/cluster-autoscaler.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
+envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
 
 validate_cortex
