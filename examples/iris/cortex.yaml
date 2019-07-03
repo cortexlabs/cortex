@@ -5,29 +5,21 @@
   name: iris-tf-nn
   model_type: tensorflow
   model: s3://cortex-examples/iris-tensorflow.zip
-  compute:
-    replicas: 1
 
 - kind: api
   name: iris-pytorch-nn
   model_type: onnx
   request_handler_path: inference_pytorch.py
   model: s3://data-vishal/iris_pytorch.onnx
-  compute:
-    replicas: 1
 
 - kind: api
-  name: iris-xgb-classifier
+name: iris-xgb-classifier
   model_type: onnx
   request_handler_path: inference.py
   model: s3://data-vishal/iris_xgb.onnx
-  compute:
-    replicas: 1
 
 - kind: api
   name: iris-sklearn-logistic-regression
   model_type: onnx
   request_handler_path: inference.py
   model: s3://data-vishal/iris_sklearn_logreg.onnx
-  compute:
-    replicas: 1

@@ -9,9 +9,12 @@ Serve models at scale and use them to build smarter applications.
   name: <string>  # API name (required)
   model: <string>  # path to a zipped model dir (e.g. s3://my-bucket/model.zip)
   compute:
-    replicas: <int>  # number of replicas to launch (default: 1)
-    cpu: <string>  # CPU request per replica (default: Null)
-    gpu: <string>  # gpu request per replica (default: Null)
+    min_replicas: <int>  # minimum number of replicas (default: 1)
+    max_replicas: <int>  # maximum number of replicas (default: 100)
+    init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
+    target_cpu_utilization: <int>  # CPU utilization threshold (as a percentage) to trigger scaling (default: 80)
+    cpu: <string>  # CPU request per replica (default: 200m)
+    gpu: <string>  # gpu request per replica (default: 0)
     mem: <string>  # memory request per replica (default: Null)
 ```
 
@@ -24,8 +27,9 @@ See [packaging models](packaging-models.md) for how to create the zipped model.
   name: my-api
   model: s3://my-bucket/my-model.zip
   compute:
-    replicas: 3
-    gpu: 2
+    min_replicas: 5
+    max_replicas: 20
+    cpu: "1"
 ```
 
 ## Integration

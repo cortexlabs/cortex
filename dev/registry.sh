@@ -35,6 +35,7 @@ function ecr_login() {
 }
 
 function create_registry() {
+  aws ecr create-repository --repository-name=cortexlabs/manager --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/argo-controller --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/argo-executor --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/fluentd --region=$REGISTRY_REGION || true
@@ -51,7 +52,7 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/tf-serve-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/cluster-autoscaler --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/manager --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/metrics-server --region=$REGISTRY_REGION || true
 }
 
 ### HELPERS ###
@@ -117,6 +118,8 @@ if [ "$cmd" = "create" ]; then
 
 elif [ "$cmd" = "update" ]; then
   if [ "$env" != "dev" ]; then
+    build_and_push $ROOT/images/manager manager latest
+
     cache_builder $ROOT/images/spark-base spark-base
     build_base $ROOT/images/spark-base spark-base
     build_base $ROOT/images/tf-base tf-base
@@ -137,7 +140,7 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/tf-serve-gpu tf-serve-gpu latest
     build_and_push $ROOT/images/python-packager python-packager latest
     build_and_push $ROOT/images/cluster-autoscaler cluster-autoscaler latest
-    build_and_push $ROOT/images/manager manager latest
+    build_and_push $ROOT/images/metrics-server metrics-server latest
   fi
 
   build_and_push $ROOT/images/spark spark latest

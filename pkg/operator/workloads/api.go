@@ -20,6 +20,7 @@ import (
 	"path"
 
 	appsv1b1 "k8s.io/api/apps/v1beta1"
+	autoscaling "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,53 +42,52 @@ const (
 
 func tfAPISpec(
 	ctx *context.Context,
-	apiName string,
+	api *context.API,
 	workloadID string,
-	apiCompute *userconfig.APICompute,
+	desiredReplicas int32,
 ) *appsv1b1.Deployment {
 	transformResourceList := corev1.ResourceList{}
 	tfServingResourceList := corev1.ResourceList{}
 	tfServingLimitsList := corev1.ResourceList{}
 
-	if apiCompute.CPU != nil {
-		q1, q2 := apiCompute.CPU.SplitInTwo()
-		transformResourceList[corev1.ResourceCPU] = *q1
-		tfServingResourceList[corev1.ResourceCPU] = *q2
-	}
-	if apiCompute.Mem != nil {
-		q1, q2 := apiCompute.Mem.SplitInTwo()
+	q1, q2 := api.Compute.CPU.SplitInTwo()
+	transformResourceList[corev1.ResourceCPU] = *q1
+	tfServingResourceList[corev1.ResourceCPU] = *q2
+
+	if api.Compute.Mem != nil {
+		q1, q2 := api.Compute.Mem.SplitInTwo()
 		transformResourceList[corev1.ResourceMemory] = *q1
 		tfServingResourceList[corev1.ResourceMemory] = *q2
 	}
 
 	servingImage := config.Cortex.TFServeImage
-	if apiCompute.GPU > 0 {
+	if api.Compute.GPU > 0 {
 		servingImage = config.Cortex.TFServeImageGPU
-		tfServingResourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(apiCompute.GPU, k8sresource.DecimalSI)
-		tfServingLimitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(apiCompute.GPU, k8sresource.DecimalSI)
+		tfServingResourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(api.Compute.GPU, k8sresource.DecimalSI)
+		tfServingLimitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(api.Compute.GPU, k8sresource.DecimalSI)
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:     internalAPIName(apiName, ctx.App.Name),
-		Replicas: ctx.APIs[apiName].Compute.Replicas,
+		Name:     internalAPIName(api.Name, ctx.App.Name),
+		Replicas: desiredReplicas,
 		Labels: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": WorkloadTypeAPI,
-			"apiName":      apiName,
-			"resourceID":   ctx.APIs[apiName].ID,
+			"apiName":      api.Name,
+			"resourceID":   ctx.APIs[api.Name].ID,
 			"workloadID":   workloadID,
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": WorkloadTypeAPI,
-			"apiName":      apiName,
+			"apiName":      api.Name,
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"appName":      ctx.App.Name,
 				"workloadType": WorkloadTypeAPI,
-				"apiName":      apiName,
-				"resourceID":   ctx.APIs[apiName].ID,
+				"apiName":      api.Name,
+				"resourceID":   ctx.APIs[api.Name].ID,
 				"workloadID":   workloadID,
 				"userFacing":   "true",
 			},
@@ -102,7 +102,7 @@ func tfAPISpec(
 							"--port=" + defaultPortStr,
 							"--tf-serve-port=" + tfServingPortStr,
 							"--context=" + config.AWS.S3Path(ctx.Key),
-							"--api=" + ctx.APIs[apiName].ID,
+							"--api=" + ctx.APIs[api.Name].ID,
 							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
 							"--cache-dir=" + consts.ContextCacheDir,
 						},
@@ -167,40 +167,38 @@ func tfAPISpec(
 
 func onnxAPISpec(
 	ctx *context.Context,
-	apiName string,
+	api *context.API,
 	workloadID string,
-	apiCompute *userconfig.APICompute,
+	desiredReplicas int32,
 ) *appsv1b1.Deployment {
 	transformResourceList := corev1.ResourceList{}
-	if apiCompute.CPU != nil {
-		transformResourceList[corev1.ResourceCPU] = apiCompute.CPU.Quantity
-	}
+	transformResourceList[corev1.ResourceCPU] = api.Compute.CPU.Quantity
 
-	if apiCompute.Mem != nil {
-		transformResourceList[corev1.ResourceMemory] = apiCompute.Mem.Quantity
+	if api.Compute.Mem != nil {
+		transformResourceList[corev1.ResourceMemory] = api.Compute.Mem.Quantity
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:     internalAPIName(apiName, ctx.App.Name),
-		Replicas: ctx.APIs[apiName].Compute.Replicas,
+		Name:     internalAPIName(api.Name, ctx.App.Name),
+		Replicas: desiredReplicas,
 		Labels: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": WorkloadTypeAPI,
-			"apiName":      apiName,
-			"resourceID":   ctx.APIs[apiName].ID,
+			"apiName":      api.Name,
+			"resourceID":   ctx.APIs[api.Name].ID,
 			"workloadID":   workloadID,
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": WorkloadTypeAPI,
-			"apiName":      apiName,
+			"apiName":      api.Name,
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"appName":      ctx.App.Name,
 				"workloadType": WorkloadTypeAPI,
-				"apiName":      apiName,
-				"resourceID":   ctx.APIs[apiName].ID,
+				"apiName":      api.Name,
+				"resourceID":   ctx.APIs[api.Name].ID,
 				"workloadID":   workloadID,
 				"userFacing":   "true",
 			},
@@ -214,7 +212,7 @@ func onnxAPISpec(
 							"--workload-id=" + workloadID,
 							"--port=" + defaultPortStr,
 							"--context=" + config.AWS.S3Path(ctx.Key),
-							"--api=" + ctx.APIs[apiName].ID,
+							"--api=" + ctx.APIs[api.Name].ID,
 							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
 							"--cache-dir=" + consts.ContextCacheDir,
 						},
@@ -248,80 +246,142 @@ func onnxAPISpec(
 	})
 }
 
-func ingressSpec(ctx *context.Context, apiName string) *k8s.IngressSpec {
+func ingressSpec(ctx *context.Context, api *context.API) *k8s.IngressSpec {
 	return &k8s.IngressSpec{
-		Name:         internalAPIName(apiName, ctx.App.Name),
-		ServiceName:  internalAPIName(apiName, ctx.App.Name),
+		Name:         internalAPIName(api.Name, ctx.App.Name),
+		ServiceName:  internalAPIName(api.Name, ctx.App.Name),
 		ServicePort:  defaultPortInt32,
-		Path:         context.APIPath(apiName, ctx.App.Name),
+		Path:         context.APIPath(api.Name, ctx.App.Name),
 		IngressClass: "apis",
 		Labels: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": WorkloadTypeAPI,
-			"apiName":      apiName,
+			"apiName":      api.Name,
 		},
 		Namespace: config.Cortex.Namespace,
 	}
 }
 
-func serviceSpec(ctx *context.Context, apiName string) *k8s.ServiceSpec {
+func serviceSpec(ctx *context.Context, api *context.API) *k8s.ServiceSpec {
 	return &k8s.ServiceSpec{
-		Name:       internalAPIName(apiName, ctx.App.Name),
+		Name:       internalAPIName(api.Name, ctx.App.Name),
 		Port:       defaultPortInt32,
 		TargetPort: defaultPortInt32,
 		Labels: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": WorkloadTypeAPI,
-			"apiName":      apiName,
+			"apiName":      api.Name,
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": WorkloadTypeAPI,
-			"apiName":      apiName,
+			"apiName":      api.Name,
 		},
 		Namespace: config.Cortex.Namespace,
 	}
 }
 
+func hpaSpec(ctx *context.Context, api *context.API) *autoscaling.HorizontalPodAutoscaler {
+	return k8s.HPA(&k8s.HPASpec{
+		DeploymentName:       internalAPIName(api.Name, ctx.App.Name),
+		MinReplicas:          api.Compute.MinReplicas,
+		MaxReplicas:          api.Compute.MaxReplicas,
+		TargetCPUUtilization: api.Compute.TargetCPUUtilization,
+		Labels: map[string]string{
+			"appName":      ctx.App.Name,
+			"workloadType": WorkloadTypeAPI,
+			"apiName":      api.Name,
+		},
+		Namespace: config.Cortex.Namespace,
+	})
+}
+
 func apiWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	var workloadSpecs []*WorkloadSpec
 
-	deployments, err := deploymentMap(ctx.App.Name)
+	deployments, err := apiDeploymentMap(ctx.App.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	hpas, err := apiHPAMap(ctx.App.Name)
 	if err != nil {
 		return nil, err
 	}
 
 	for apiName, api := range ctx.APIs {
 		workloadID := generateWorkloadID()
+		desiredReplicas := api.Compute.InitReplicas
+
 		deployment, deploymentExists := deployments[apiName]
 		if deploymentExists && deployment.Labels["resourceID"] == api.ID && deployment.DeletionTimestamp == nil {
-			currentCompute := APIDeploymentCompute(deployment)
-			if api.Compute.Equal(currentCompute) {
-				continue // Deployment is already up to date
+			hpa := hpas[apiName]
+
+			if !apiComputeNeedsUpdating(api, deployment, hpa) {
+				continue // Deployment is fully up to date (model and compute/replicas)
 			}
-			workloadID = deployment.Labels["workloadID"] // Reuse workloadID if just modifying compute
+
+			// Reuse workloadID if just modifying compute/replicas
+			workloadID = deployment.Labels["workloadID"]
+
+			// Use current replicas or min replicas
+			if deployment.Spec.Replicas != nil {
+				desiredReplicas = *deployment.Spec.Replicas
+			}
+			if hpa != nil && hpa.Spec.MinReplicas != nil && *hpa.Spec.MinReplicas > desiredReplicas {
+				desiredReplicas = *hpa.Spec.MinReplicas
+			}
 		}
 
 		var spec metav1.Object
 
 		if api.ModelType == userconfig.TensorFlowModelType {
-			spec = tfAPISpec(ctx, apiName, workloadID, api.Compute)
+			spec = tfAPISpec(ctx, api, workloadID, desiredReplicas)
 		}
 
 		if api.ModelType == userconfig.ONNXModelType {
-			spec = onnxAPISpec(ctx, apiName, workloadID, api.Compute)
+			spec = onnxAPISpec(ctx, api, workloadID, desiredReplicas)
 		}
 		workloadSpecs = append(workloadSpecs, &WorkloadSpec{
-			WorkloadID:       workloadID,
-			ResourceIDs:      strset.New(api.ID),
-			Spec:             spec,
-			K8sAction:        "apply",
-			SuccessCondition: k8s.DeploymentSuccessConditionAll,
-			WorkloadType:     WorkloadTypeAPI,
+			WorkloadID:   workloadID,
+			ResourceIDs:  strset.New(api.ID),
+			K8sSpecs:     []metav1.Object{spec, hpaSpec(ctx, api)},
+			K8sAction:    "apply",
+			WorkloadType: WorkloadTypeAPI,
+			// SuccessCondition: k8s.DeploymentSuccessConditionAll,  # Currently success conditions don't work for multi-resource config
 		})
 	}
 
 	return workloadSpecs, nil
+}
+
+func apiComputeNeedsUpdating(api *context.API, deployment *appsv1b1.Deployment, hpa *autoscaling.HorizontalPodAutoscaler) bool {
+	if hpa == nil {
+		return true
+	}
+
+	if hpa.Spec.MinReplicas != nil && api.Compute.MinReplicas != *hpa.Spec.MinReplicas {
+		return true
+	}
+	if api.Compute.MaxReplicas != hpa.Spec.MaxReplicas {
+		return true
+	}
+	if hpa.Spec.TargetCPUUtilizationPercentage != nil && api.Compute.TargetCPUUtilization != *hpa.Spec.TargetCPUUtilizationPercentage {
+		return true
+	}
+
+	curCPU, curMem, curGPU := APIPodCompute(deployment.Spec.Template.Spec.Containers)
+	if !userconfig.QuantityPtrsEqual(curCPU, &api.Compute.CPU) {
+		return true
+	}
+	if !userconfig.QuantityPtrsEqual(curMem, api.Compute.Mem) {
+		return true
+	}
+	if curGPU != api.Compute.GPU {
+		return true
+	}
+
+	return false
 }
 
 func deleteOldAPIs(ctx *context.Context) {
@@ -354,29 +414,39 @@ func deleteOldAPIs(ctx *context.Context) {
 			config.Kubernetes.DeleteDeployment(deployment.Name)
 		}
 	}
+
+	hpas, _ := config.Kubernetes.ListHPAsByLabels(map[string]string{
+		"appName":      ctx.App.Name,
+		"workloadType": WorkloadTypeAPI,
+	})
+	for _, hpa := range hpas {
+		if _, ok := ctx.APIs[hpa.Labels["apiName"]]; !ok {
+			config.Kubernetes.DeleteHPA(hpa.Name)
+		}
+	}
 }
 
 func createServicesAndIngresses(ctx *context.Context) error {
-	for apiName := range ctx.APIs {
-		ingressExists, err := config.Kubernetes.IngressExists(internalAPIName(apiName, ctx.App.Name))
+	for _, api := range ctx.APIs {
+		ingressExists, err := config.Kubernetes.IngressExists(internalAPIName(api.Name, ctx.App.Name))
 		if err != nil {
-			return errors.Wrap(err, ctx.App.Name, "ingresses", apiName, "create")
+			return errors.Wrap(err, ctx.App.Name, "ingresses", api.Name, "create")
 		}
 		if !ingressExists {
-			_, err = config.Kubernetes.CreateIngress(ingressSpec(ctx, apiName))
+			_, err = config.Kubernetes.CreateIngress(ingressSpec(ctx, api))
 			if err != nil {
-				return errors.Wrap(err, ctx.App.Name, "ingresses", apiName, "create")
+				return errors.Wrap(err, ctx.App.Name, "ingresses", api.Name, "create")
 			}
 		}
 
-		serviceExists, err := config.Kubernetes.ServiceExists(internalAPIName(apiName, ctx.App.Name))
+		serviceExists, err := config.Kubernetes.ServiceExists(internalAPIName(api.Name, ctx.App.Name))
 		if err != nil {
-			return errors.Wrap(err, ctx.App.Name, "services", apiName, "create")
+			return errors.Wrap(err, ctx.App.Name, "services", api.Name, "create")
 		}
 		if !serviceExists {
-			_, err = config.Kubernetes.CreateService(serviceSpec(ctx, apiName))
+			_, err = config.Kubernetes.CreateService(serviceSpec(ctx, api))
 			if err != nil {
-				return errors.Wrap(err, ctx.App.Name, "services", apiName, "create")
+				return errors.Wrap(err, ctx.App.Name, "services", api.Name, "create")
 			}
 		}
 	}
@@ -384,7 +454,7 @@ func createServicesAndIngresses(ctx *context.Context) error {
 }
 
 // This returns map apiName -> deployment (not internalName -> deployment)
-func deploymentMap(appName string) (map[string]*appsv1b1.Deployment, error) {
+func apiDeploymentMap(appName string) (map[string]*appsv1b1.Deployment, error) {
 	deploymentList, err := config.Kubernetes.ListDeploymentsByLabels(map[string]string{
 		"appName":      appName,
 		"workloadType": WorkloadTypeAPI,
@@ -406,6 +476,29 @@ func addToDeploymentMap(deployments map[string]*appsv1b1.Deployment, deployment 
 	deployments[apiName] = &deployment
 }
 
+// This returns map apiName -> hpa (not internalName -> hpa)
+func apiHPAMap(appName string) (map[string]*autoscaling.HorizontalPodAutoscaler, error) {
+	hpaList, err := config.Kubernetes.ListHPAsByLabels(map[string]string{
+		"appName":      appName,
+		"workloadType": WorkloadTypeAPI,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, appName)
+	}
+
+	hpas := make(map[string]*autoscaling.HorizontalPodAutoscaler, len(hpaList))
+	for _, hpa := range hpaList {
+		addToHPAMap(hpas, hpa)
+	}
+	return hpas, nil
+}
+
+// Avoid pointer in loop issues
+func addToHPAMap(hpas map[string]*autoscaling.HorizontalPodAutoscaler, hpa autoscaling.HorizontalPodAutoscaler) {
+	apiName := hpa.Labels["apiName"]
+	hpas[apiName] = &hpa
+}
+
 func internalAPIName(apiName string, appName string) string {
 	return appName + "----" + apiName
 }
@@ -422,22 +515,6 @@ func APIsBaseURL() (string, error) {
 		return "", ErrorLoadBalancerInitializing()
 	}
 	return "https://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
-}
-
-func APIDeploymentCompute(deployment *appsv1b1.Deployment) userconfig.APICompute {
-	replicas := int32(0)
-	if deployment.Spec.Replicas != nil {
-		replicas = *deployment.Spec.Replicas
-	}
-
-	cpu, mem, gpu := APIPodCompute(deployment.Spec.Template.Spec.Containers)
-
-	return userconfig.APICompute{
-		Replicas: replicas,
-		CPU:      cpu,
-		Mem:      mem,
-		GPU:      gpu,
-	}
 }
 
 func APIPodCompute(containers []corev1.Container) (*userconfig.Quantity, *userconfig.Quantity, int64) {

@@ -73,6 +73,14 @@ func (c *Client) CreateService(spec *ServiceSpec) (*corev1.Service, error) {
 	return service, nil
 }
 
+func (c *Client) UpdateService(service *corev1.Service) (*corev1.Service, error) {
+	service, err := c.serviceClient.Update(service)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return service, nil
+}
+
 func (c *Client) GetService(name string) (*corev1.Service, error) {
 	service, err := c.serviceClient.Get(name, metav1.GetOptions{})
 	if k8serrors.IsNotFound(err) {

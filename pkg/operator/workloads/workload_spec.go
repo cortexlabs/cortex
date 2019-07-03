@@ -36,7 +36,7 @@ import (
 type WorkloadSpec struct {
 	WorkloadID       string
 	ResourceIDs      strset.Set
-	Spec             metav1.Object
+	K8sSpecs         []metav1.Object
 	K8sAction        string
 	SuccessCondition string
 	FailureCondition string
