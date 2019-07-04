@@ -24,7 +24,7 @@ export CORTEX_REGION="us-west-2"
 export CORTEX_CLUSTER="cortex"
 
 # The AWS node type Cortex will use
-export CORTEX_NODE_TYPE="t3.medium"
+export CORTEX_NODE_TYPE="t3.small"
 
 # Minimum number of nodes in the cluster
 export CORTEX_NODES_MIN=2
@@ -53,6 +53,7 @@ export CORTEX_IMAGE_TF_SERVE_GPU="cortexlabs/tf-serve-gpu:master"
 export CORTEX_IMAGE_ONNX_SERVE="cortexlabs/onnx-serve:master"
 export CORTEX_IMAGE_PYTHON_PACKAGER="cortexlabs/python-packager:master"
 export CORTEX_IMAGE_CLUSTER_AUTOSCALER="cortexlabs/cluster-autoscaler:master"
+export CORTEX_IMAGE_NVIDIA="cortexlabs/nvidia:master"
 export CORTEX_IMAGE_METRICS_SERVER="cortexlabs/metrics-server:master"
 
 # Flag to enable collecting error reports and usage stats. If flag is not set to either "true" or "false", you will be prompted.

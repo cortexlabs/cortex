@@ -16,7 +16,7 @@
 
 set -e
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER | grep -v "saved kubeconfig as" || true
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" || true
 
 echo -e "\nUninstalling Cortex ..."
 

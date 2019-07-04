@@ -40,12 +40,17 @@ func GetResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiStatuses, err := workloads.GetCurrentAPIStatuses(ctx, dataStatuses)
+	deployments, err := workloads.APIDeploymentMap(ctx.App.Name)
 	if RespondIfError(w, err) {
 		return
 	}
 
-	apiGroupStatuses, err := workloads.GetAPIGroupStatuses(apiStatuses, ctx)
+	apiStatuses, err := workloads.GetCurrentAPIStatuses(dataStatuses, deployments, ctx)
+	if RespondIfError(w, err) {
+		return
+	}
+
+	apiGroupStatuses, err := workloads.GetAPIGroupStatuses(apiStatuses, deployments, ctx)
 	if RespondIfError(w, err) {
 		return
 	}

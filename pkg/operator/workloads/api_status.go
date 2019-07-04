@@ -19,6 +19,7 @@ package workloads
 import (
 	"time"
 
+	appsv1b1 "k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -26,12 +27,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
-	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 func GetCurrentAPIStatuses(
-	ctx *context.Context, dataStatuses map[string]*resource.DataStatus,
+	dataStatuses map[string]*resource.DataStatus,
+	deployments map[string]*appsv1b1.Deployment, // api.Name -> deployment
+	ctx *context.Context,
 ) (map[string]*resource.APIStatus, error) {
 
 	failedWorkloadIDs, err := getFailedArgoWorkloadIDs(ctx.App.Name)
@@ -48,7 +50,7 @@ func GetCurrentAPIStatuses(
 		return nil, errors.Wrap(err, "api statuses", ctx.App.Name)
 	}
 
-	replicaCountsMap := getReplicaCountsMap(podList, ctx)
+	replicaCountsMap := getReplicaCountsMap(podList, deployments, ctx)
 
 	currentResourceWorkloadIDs := ctx.APIResourceWorkloadIDs()
 
@@ -111,57 +113,62 @@ func GetCurrentAPIStatuses(
 	return apiStatuses, nil
 }
 
-func getReplicaCountsMap(podList []corev1.Pod, ctx *context.Context) map[string]resource.ReplicaCounts {
-	replicaCountsMap := make(map[string]resource.ReplicaCounts)
+func getReplicaCountsMap(
+	podList []corev1.Pod,
+	deployments map[string]*appsv1b1.Deployment, // api.Name -> deployment
+	ctx *context.Context,
+) map[string]resource.ReplicaCounts {
 
-	ctxAPIComputeIDMap := make(map[string]string)
+	apiComputeIDMap := make(map[string]string)
 	for _, api := range ctx.APIs {
-		ctxAPIComputeIDMap[api.ID] = api.Compute.IDWithoutReplicas()
+		apiComputeIDMap[api.ID] = api.Compute.IDWithoutReplicas()
+	}
+	for _, deployment := range deployments {
+		resourceID := deployment.Labels["resourceID"]
+		if _, ok := apiComputeIDMap[resourceID]; !ok {
+			apiComputeIDMap[resourceID] = APIPodComputeID(deployment.Spec.Template.Spec.Containers)
+		}
 	}
 
+	replicaCountsMap := make(map[string]resource.ReplicaCounts)
 	for _, pod := range podList {
 		resourceID := pod.Labels["resourceID"]
-		cpu, mem, gpu := APIPodCompute(pod.Spec.Containers)
-		if cpu == nil {
-			cpu = &userconfig.Quantity{} // unexpected, since the default is 200m and 0 is disallowed
-		}
-		podAPICompute := userconfig.APICompute{
-			CPU: *cpu,
-			Mem: mem,
-			GPU: gpu,
-		}
-		podAPIComputeID := podAPICompute.IDWithoutReplicas()
+		podAPIComputeID := APIPodComputeID(pod.Spec.Containers)
 		podStatus := k8s.GetPodStatus(&pod)
 
 		replicaCounts := replicaCountsMap[resourceID]
 
-		ctxAPIComputeID, isAPIInCtx := ctxAPIComputeIDMap[resourceID]
 		computeMatches := false
-		if isAPIInCtx && ctxAPIComputeID == podAPIComputeID {
+		ctxAPIComputeID, ok := apiComputeIDMap[resourceID]
+		if ok && ctxAPIComputeID == podAPIComputeID {
 			computeMatches = true
 		}
 
 		if podStatus == k8s.PodStatusRunning {
-			switch {
-			case isAPIInCtx && computeMatches:
-				replicaCounts.ReadyUpdated++
-			case isAPIInCtx && !computeMatches:
+			if computeMatches {
+				replicaCounts.ReadyUpdatedCompute++
+			} else {
 				replicaCounts.ReadyStaleCompute++
-			case !isAPIInCtx:
-				replicaCounts.ReadyStaleResource++
 			}
 		}
 		if podStatus == k8s.PodStatusFailed {
-			switch {
-			case isAPIInCtx && computeMatches:
-				replicaCounts.FailedUpdated++
-			case isAPIInCtx && !computeMatches:
+			if computeMatches {
+				replicaCounts.FailedUpdatedCompute++
+			} else {
 				replicaCounts.FailedStaleCompute++
-			case !isAPIInCtx:
-				replicaCounts.FailedStaleResource++
 			}
 		}
 
+		replicaCountsMap[resourceID] = replicaCounts
+	}
+
+	for _, deployment := range deployments {
+		if deployment.Spec.Replicas == nil {
+			continue
+		}
+		resourceID := deployment.Labels["resourceID"]
+		replicaCounts := replicaCountsMap[resourceID]
+		replicaCounts.K8sRequested = *deployment.Spec.Replicas
 		replicaCountsMap[resourceID] = replicaCounts
 	}
 
@@ -172,20 +179,24 @@ func apiStatusCode(apiStatus *resource.APIStatus, failedWorkloadIDs strset.Set) 
 	if failedWorkloadIDs.Has(apiStatus.WorkloadID) {
 		return resource.StatusError
 	}
+
 	if apiStatus.MaxReplicas == 0 {
 		if apiStatus.TotalReady() > 0 {
 			return resource.StatusStopping
 		}
 		return resource.StatusStopped
 	}
-	if apiStatus.ReadyUpdated >= apiStatus.MinReplicas {
-		return resource.StatusReady
+
+	if apiStatus.TotalReady() > 0 {
+		return resource.StatusLive
 	}
-	if apiStatus.FailedUpdated > 0 {
+
+	if apiStatus.TotalFailed() > 0 {
 		return resource.StatusError
 	}
-	if apiStatus.TotalReady() > 0 {
-		return resource.StatusUpdating
+
+	if apiStatus.K8sRequested != 0 {
+		return resource.StatusCreating
 	}
 
 	return resource.StatusPending
@@ -204,7 +215,7 @@ func updateAPIStatusCodeByParents(apiStatus *resource.APIStatus, dataStatuses ma
 		case resource.StatusKilled, resource.StatusKilledOOM:
 			apiStatus.Code = resource.StatusParentKilled
 			return
-		case resource.StatusFailed:
+		case resource.StatusError:
 			apiStatus.Code = resource.StatusParentFailed
 			return
 		case resource.StatusSkipped:
@@ -220,11 +231,16 @@ func updateAPIStatusCodeByParents(apiStatus *resource.APIStatus, dataStatuses ma
 	}
 
 	if numSucceeded == len(allDependencies) {
-		apiStatus.Code = resource.StatusUpdating
+		apiStatus.Code = resource.StatusCreating
 	}
 }
 
-func GetAPIGroupStatuses(apiStatuses map[string]*resource.APIStatus, ctx *context.Context) (map[string]*resource.APIGroupStatus, error) {
+func GetAPIGroupStatuses(
+	apiStatuses map[string]*resource.APIStatus,
+	deployments map[string]*appsv1b1.Deployment, // api.Name -> deployment
+	ctx *context.Context,
+) (map[string]*resource.APIGroupStatus, error) {
+
 	apiGroupStatuses := make(map[string]*resource.APIGroupStatus)
 
 	statusMap := make(map[string][]*resource.APIStatus)
@@ -233,17 +249,13 @@ func GetAPIGroupStatuses(apiStatuses map[string]*resource.APIStatus, ctx *contex
 		statusMap[apiName] = append(statusMap[apiName], apiStatus)
 	}
 
-	deployments, err := apiDeploymentMap(ctx.App.Name)
-	if err != nil {
-		return nil, errors.Wrap(err, "api group statuses")
-	}
-
 	for apiName, apiStatuses := range statusMap {
 		apiGroupStatuses[apiName] = &resource.APIGroupStatus{
-			APIName:      apiName,
-			Start:        k8s.DeploymentStartTime(deployments[apiName]),
-			ActiveStatus: getActiveAPIStatus(apiStatuses, ctx),
-			Code:         apiGroupStatusCode(apiStatuses, ctx),
+			APIName:              apiName,
+			Start:                k8s.DeploymentStartTime(deployments[apiName]),
+			ActiveStatus:         getActiveAPIStatus(apiStatuses, ctx),
+			Code:                 apiGroupStatusCode(apiStatuses, ctx),
+			GroupedReplicaCounts: getGroupedReplicaCounts(apiStatuses, ctx),
 		}
 	}
 
@@ -297,36 +309,44 @@ func apiGroupStatusCode(apiStatuses []*resource.APIStatus, ctx *context.Context)
 		return resource.StatusStopped
 	}
 
-	var ctxAPIStatus *resource.APIStatus
-	nonCtxPodsReady := false
 	for _, apiStatus := range apiStatuses {
-		if apiStatus.ResourceID == ctxAPI.ID {
-			ctxAPIStatus = apiStatus
-		} else if apiStatus.TotalReady() > 0 {
-			nonCtxPodsReady = true
+		if apiStatus.TotalReady() > 0 {
+			return resource.StatusLive
 		}
 	}
 
-	if !nonCtxPodsReady {
-		return ctxAPIStatus.Code
-	}
-
-	switch ctxAPIStatus.Code {
-	case resource.StatusUnknown, resource.StatusPendingCompute,
-		resource.StatusParentFailed, resource.StatusParentKilled, resource.StatusUpdating,
-		resource.StatusReady, resource.StatusStopping, resource.StatusError:
-		return ctxAPIStatus.Code
-	case resource.StatusPending:
-		return resource.StatusPendingUpdate
-	case resource.StatusWaiting:
-		return resource.StatusUpdating
-	case resource.StatusSkipped:
-		return resource.StatusUpdateSkipped
-	case resource.StatusStopped:
-		return resource.StatusPendingUpdate
+	for _, apiStatus := range apiStatuses {
+		if apiStatus.ResourceID == ctxAPI.ID {
+			return apiStatus.Code
+		}
 	}
 
 	return resource.StatusUnknown
+}
+
+func getGroupedReplicaCounts(apiStatuses []*resource.APIStatus, ctx *context.Context) resource.GroupedReplicaCounts {
+	groupedReplicaCounts := resource.GroupedReplicaCounts{}
+
+	if len(apiStatuses) == 0 {
+		return groupedReplicaCounts
+	}
+
+	apiName := apiStatuses[0].APIName
+	ctxAPI := ctx.APIs[apiName]
+
+	for _, apiStatus := range apiStatuses {
+		if ctxAPI != nil && apiStatus.ResourceID == ctxAPI.ID {
+			groupedReplicaCounts.ReadyUpdated += apiStatus.ReadyUpdatedCompute
+			groupedReplicaCounts.ReadyStaleCompute += apiStatus.ReadyStaleCompute
+			groupedReplicaCounts.FailedUpdated += apiStatus.FailedUpdatedCompute
+			groupedReplicaCounts.FailedStaleCompute += apiStatus.FailedStaleCompute
+		} else {
+			groupedReplicaCounts.ReadyStaleModel += apiStatus.TotalReady()
+			groupedReplicaCounts.FailedStaleModel += apiStatus.TotalFailed()
+		}
+	}
+
+	return groupedReplicaCounts
 }
 
 func setInsufficientComputeAPIStatusCodes(apiStatuses map[string]*resource.APIStatus, ctx *context.Context) error {
@@ -340,7 +360,7 @@ func setInsufficientComputeAPIStatusCodes(apiStatuses map[string]*resource.APISt
 	}
 
 	for _, apiStatus := range apiStatuses {
-		if apiStatus.Code == resource.StatusPending || apiStatus.Code == resource.StatusWaiting || apiStatus.Code == resource.StatusUpdating {
+		if apiStatus.Code == resource.StatusPending || apiStatus.Code == resource.StatusWaiting || apiStatus.Code == resource.StatusCreating {
 			if _, ok := stalledWorkloads[apiStatus.WorkloadID]; ok {
 				apiStatus.Code = resource.StatusPendingCompute
 			}

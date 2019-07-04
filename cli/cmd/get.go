@@ -428,32 +428,55 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 	ctx := resourcesRes.Context
 	api := ctx.APIs[name]
 
-	var staleReplicas int32
 	var ctxAPIStatus *resource.APIStatus
+	if api != nil {
+		ctxAPIStatus = resourcesRes.APIStatuses[api.ID]
+	}
+
 	var anyAPIStatus *resource.APIStatus
 	for _, apiStatus := range resourcesRes.APIStatuses {
-		if apiStatus.APIName != name {
-			continue
+		if apiStatus.APIName == name {
+			anyAPIStatus = apiStatus
+			break
 		}
-		anyAPIStatus = apiStatus
-		if api != nil && apiStatus.ResourceID == api.ID {
-			ctxAPIStatus = apiStatus
+	}
+
+	var requestedReplicas int32
+	if ctxAPIStatus != nil {
+		requestedReplicas = api.Compute.InitReplicas
+		if ctxAPIStatus.K8sRequested > 0 {
+			requestedReplicas = ctxAPIStatus.K8sRequested
 		}
-		staleReplicas += apiStatus.TotalStaleReady()
+		if requestedReplicas < api.Compute.MinReplicas {
+			requestedReplicas = api.Compute.MinReplicas
+		}
+	}
+
+	refreshedAt := groupStatus.Start
+	if groupStatus.ActiveStatus != nil && groupStatus.ActiveStatus.Start != nil {
+		refreshedAt = groupStatus.ActiveStatus.Start
+	}
+
+	var staleComputeStr = ""
+	if groupStatus.ReadyStaleCompute != 0 {
+		hasStr := "has"
+		if groupStatus.ReadyStaleCompute > 1 {
+			hasStr = "have"
+		}
+		staleComputeStr = fmt.Sprintf(" (%s %s previous compute)", s.Int32(groupStatus.ReadyStaleCompute), hasStr)
 	}
 
 	out := titleStr("Summary")
-	out += "Status:               " + groupStatus.Message() + "\n"
-	if ctxAPIStatus != nil {
-		out += fmt.Sprintf("Up-to-date replicas:  %d ready\n", ctxAPIStatus.ReadyUpdated)
-	}
-	if staleReplicas != 0 {
-		out += fmt.Sprintf("Stale replicas:       %d ready\n", staleReplicas)
-	}
-	out += "Created at:           " + libtime.LocalTimestamp(groupStatus.Start) + "\n"
-	if groupStatus.ActiveStatus != nil && groupStatus.ActiveStatus.Start != nil {
-		out += "Refreshed at:         " + libtime.LocalTimestamp(groupStatus.ActiveStatus.Start) + "\n"
-	}
+	out += fmt.Sprintf("Status:  %s\n", groupStatus.Message())
+	out += "\n"
+	out += fmt.Sprintf("Available replicas:  %s\n", s.Int32(groupStatus.Available()))
+	out += fmt.Sprintf("  - Current model:   %s%s\n", s.Int32(groupStatus.UpToDate()), staleComputeStr)
+	out += fmt.Sprintf("  - Previous model:  %s\n", s.Int32(groupStatus.ReadyStaleModel))
+	out += fmt.Sprintf("Requested replicas:  %s\n", s.Int32(requestedReplicas))
+	out += fmt.Sprintf("Failed replicas:     %s\n", s.Int32(groupStatus.FailedUpdated))
+	out += "\n"
+	out += fmt.Sprintf("Created at:    %s\n", libtime.LocalTimestamp(groupStatus.Start))
+	out += fmt.Sprintf("Refreshed at:  %s\n", libtime.LocalTimestamp(refreshedAt))
 
 	out += titleStr("Endpoint")
 	out += "URL:      " + urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path) + "\n"

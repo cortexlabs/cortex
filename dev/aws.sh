@@ -20,7 +20,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 source $ROOT/dev/config/build.sh
-source $ROOT/dev/config/k8s.sh
 source $ROOT/dev/config/cortex.sh
 source $ROOT/dev/util.sh
 

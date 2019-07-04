@@ -150,7 +150,7 @@ function validate_cortex() {
   fi
 }
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER | grep -v "saved kubeconfig as" || true
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" || true
 
 echo -e "\nInstalling Cortex ..."
 
@@ -169,5 +169,6 @@ envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/cluster-autoscaler.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
+envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
 
 validate_cortex

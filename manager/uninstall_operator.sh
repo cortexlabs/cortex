@@ -18,11 +18,14 @@ set -e
 
 # Note: if namespace is changed, the old namespace will not be deleted
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER | grep -v "saved kubeconfig as" || true
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" || true
 
 echo -e "\nUninstalling the Cortex operator ..."
 
 kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true deployment operator >/dev/null 2>&1
-kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true daemonset fluentd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
+
+# Pods in DaemonSets cannot be modified
+kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true daemonset fluentd >/dev/null 2>&1
+kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true daemonset nvidia-device-plugin-daemonset >/dev/null 2>&1
 
 echo "✓ Uninstalled the Cortex operator"

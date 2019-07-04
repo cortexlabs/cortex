@@ -25,4 +25,6 @@ One unit of memory is one byte. Memory can be expressed as an integer or by usin
 
 ## GPU
 
-One unit of GPU corresponds to one virtual GPU on AWS. Fractional requests are not allowed. Here's some information on [adding GPU enabled nodes on EKS](https://docs.aws.amazon.com/en_ca/eks/latest/userguide/gpu-ami.html).
+1. Please make sure your AWS account is subscribed to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM).
+2. Set CORTEX_NODE_TYPE to an AWS GPU instance (e.g. p2.xlarge) before installing Cortex.
+3. Note that one unit of GPU corresponds to one virtual GPU on AWS. Fractional requests are not allowed.

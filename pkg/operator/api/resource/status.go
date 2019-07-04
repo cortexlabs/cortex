@@ -25,6 +25,7 @@ type DataStatus struct {
 	Code StatusCode `json:"status_code"`
 }
 
+// There is one APIStatus per API resource ID (including stale/removed models). There is always an APIStatus for APIs currently in the context.
 type APIStatus struct {
 	APISavedStatus
 	Path                 string `json:"path"`
@@ -37,19 +38,29 @@ type APIStatus struct {
 }
 
 type ReplicaCounts struct {
-	ReadyUpdated        int32 `json:"ready_updated"`
-	ReadyStaleCompute   int32 `json:"ready_stale_compute"`
-	ReadyStaleResource  int32 `json:"ready_stale_resource"`
-	FailedUpdated       int32 `json:"failed_updated"`
-	FailedStaleCompute  int32 `json:"failed_stale_compute"`
-	FailedStaleResource int32 `json:"failed_stale_resource"`
+	ReadyUpdatedCompute  int32 `json:"ready_updated_compute"`
+	ReadyStaleCompute    int32 `json:"ready_stale_compute"`
+	FailedUpdatedCompute int32 `json:"failed_updated_compute"`
+	FailedStaleCompute   int32 `json:"failed_stale_compute"`
+	K8sRequested         int32 `json:"k8s_requested"` // Number of requested replicas in an active k8s.deployment for this resource ID
 }
 
+// There is one APIGroupStatus per API name/endpoint
 type APIGroupStatus struct {
-	APIName      string     `json:"api_name"`
-	Start        *time.Time `json:"start"`
-	ActiveStatus *APIStatus `json:"active_status"`
-	Code         StatusCode `json:"status_code"`
+	APIName              string     `json:"api_name"`
+	Start                *time.Time `json:"start"`
+	ActiveStatus         *APIStatus `json:"active_status"` // The most recently ready API status, or the ctx API status if it's ready
+	Code                 StatusCode `json:"status_code"`
+	GroupedReplicaCounts `json:"grouped_replica_counts"`
+}
+
+type GroupedReplicaCounts struct {
+	ReadyUpdated       int32 `json:"ready_updated"`       // Updated means the replica is fully up-to-date (compute and model match the API's current resource ID in the context)
+	ReadyStaleModel    int32 `json:"ready_stale_model"`   // Stale model means the replica is serving a model which not currently in the context (either it was updated or removed)
+	ReadyStaleCompute  int32 `json:"ready_stale_compute"` // Stale compute means the replica is serving the correct model, but the compute request has changed
+	FailedUpdated      int32 `json:"failed_updated"`
+	FailedStaleModel   int32 `json:"failed_stale_model"`
+	FailedStaleCompute int32 `json:"failed_stale_compute"`
 }
 
 type Status interface {
@@ -57,16 +68,21 @@ type Status interface {
 	GetCode() StatusCode
 }
 
-func (replicaCounts *ReplicaCounts) TotalReady() int32 {
-	return replicaCounts.ReadyUpdated + replicaCounts.ReadyStaleCompute + replicaCounts.ReadyStaleResource
+func (rc *ReplicaCounts) TotalReady() int32 {
+	return rc.ReadyUpdatedCompute + rc.ReadyStaleCompute
 }
 
-func (replicaCounts *ReplicaCounts) TotalStaleReady() int32 {
-	return replicaCounts.ReadyStaleCompute + replicaCounts.ReadyStaleResource
+func (rc *ReplicaCounts) TotalFailed() int32 {
+	return rc.FailedUpdatedCompute + rc.FailedStaleCompute
 }
 
-func (replicaCounts *ReplicaCounts) TotalStale() int32 {
-	return replicaCounts.ReadyStaleCompute + replicaCounts.ReadyStaleResource + replicaCounts.FailedStaleCompute + replicaCounts.FailedStaleResource
+func (grc *GroupedReplicaCounts) Available() int32 {
+	return grc.ReadyUpdated + grc.ReadyStaleModel + grc.ReadyStaleCompute
+}
+
+// Number of replicas with the up-to-date model (includes stale compute)
+func (grc *GroupedReplicaCounts) UpToDate() int32 {
+	return grc.ReadyUpdated + grc.ReadyStaleCompute
 }
 
 func (status *DataStatus) GetCode() StatusCode {
@@ -91,6 +107,7 @@ const (
 	StatusPendingCompute
 	StatusWaiting // Resource can be created based on resource DAG, but hasn't started yet
 	StatusSkipped
+	StatusError
 	StatusParentFailed
 	StatusParentKilled
 	StatusKilledOOM
@@ -98,19 +115,13 @@ const (
 	// Data statuses
 	StatusRunning
 	StatusSucceeded
-	StatusFailed
 	StatusKilled
 
 	// API statuses
-	StatusUpdating
-	StatusReady
+	StatusCreating
+	StatusLive
 	StatusStopping
 	StatusStopped
-	StatusError
-
-	// Additional API group statuses (i.e. aggregated API status)
-	StatusPendingUpdate
-	StatusUpdateSkipped
 )
 
 var statusCodes = []string{
@@ -120,26 +131,22 @@ var statusCodes = []string{
 	"status_pending_compute",
 	"status_waiting",
 	"status_skipped",
+	"status_error",
 	"status_parent_failed",
 	"status_parent_killed",
 	"status_killed_oom",
 
 	"status_running",
 	"status_succeeded",
-	"status_failed",
 	"status_killed",
 
-	"status_updating",
-	"status_ready",
+	"status_creating",
+	"status_live",
 	"status_stopping",
 	"status_stopped",
-	"status_error",
-
-	"status_pending_update",
-	"status_update_skipped",
 }
 
-var _ = [1]int{}[int(StatusUpdateSkipped)-(len(statusCodes)-1)] // Ensure list length matches
+var _ = [1]int{}[int(StatusStopped)-(len(statusCodes)-1)] // Ensure list length matches
 
 var statusCodeMessages = []string{
 	"unknown", // StatusUnknown
@@ -148,27 +155,22 @@ var statusCodeMessages = []string{
 	"compute unavailable",     // StatusPendingCompute
 	"pending",                 // StatusWaiting
 	"skipped",                 // StatusSkipped
+	"error",                   // StatusError
 	"upstream error",          // StatusParentFailed
 	"upstream termination",    // StatusParentKilled
 	"terminated (out of mem)", // StatusDataOOM
 
-	"running",    // StatusDataRunning
-	"ready",      // StatusDataSucceeded
-	"error",      // StatusDataFailed
-	"terminated", // StatusDataKilled
+	"running",    // StatusRunning
+	"ready",      // StatusSucceeded
+	"terminated", // StatusKilled
 
-	"updating", // 	StatusAPIUpdating
-	"ready",    // StatusAPIReady
-	"stopping", // StatusAPIStopping
-	"stopped",  // StatusAPIStopped
-	"error",    // StatusAPIError
-
-	"update pending", // StatusAPIGroupPendingUpdate
-	"update skipped", // StatusAPIGroupUpdateSkipped
-
+	"creating", // StatusCreating
+	"live",     // StatusLive
+	"stopping", // StatusStopping
+	"stopped",  // StatusStopped
 }
 
-var _ = [1]int{}[int(StatusUpdateSkipped)-(len(statusCodeMessages)-1)] // Ensure list length matches
+var _ = [1]int{}[int(StatusStopped)-(len(statusCodeMessages)-1)] // Ensure list length matches
 
 // StatusDataRunning aliases
 const (
@@ -186,26 +188,22 @@ var statusSortBuckets = []int{
 	4, // StatusPendingCompute
 	4, // StatusWaiting
 	2, // StatusSkipped
+	1, // StatusError
 	2, // StatusParentFailed
 	2, // StatusParentKilled
 	1, // StatusKilledOOM
 
 	3, // StatusRunning
 	0, // StatusSucceeded
-	1, // StatusFailed
 	1, // StatusKilled
 
-	3, // StatusUpdating
-	0, // StatusReady
+	3, // StatusCreating
+	0, // StatusLive
 	3, // StatusStopping
 	1, // StatusStopped
-	1, // StatusError
-
-	0, // StatusPendingUpdate
-	2, // StatusUpdateSkipped
 }
 
-var _ = [1]int{}[int(StatusUpdateSkipped)-(len(statusSortBuckets)-1)] // Ensure list length matches
+var _ = [1]int{}[int(StatusStopped)-(len(statusSortBuckets)-1)] // Ensure list length matches
 
 func (code StatusCode) String() string {
 	if int(code) < 0 || int(code) >= len(statusCodes) {
