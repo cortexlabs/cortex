@@ -25,7 +25,7 @@ eksctl create cluster --name=$CORTEX_CLUSTER \
                       --nodes-min=$CORTEX_NODES_MIN \
                       --nodes-max=$CORTEX_NODES_MAX \
                       --node-ami=auto \
-                      --version=1.11 \
+                      --version=1.13 \
                       --asg-access
 
 echo -e "\n✓ Spun up the cluster"

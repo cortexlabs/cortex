@@ -31,7 +31,7 @@ export AWS_SECRET_ACCESS_KEY=***
 ./cortex.sh install cli
 
 # Get the operator endpoint
-./cortex.sh get endpoints
+./cortex.sh info
 
 # Configure the CLI
 cortex configure
