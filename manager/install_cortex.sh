@@ -25,10 +25,16 @@ function setup_bucket() {
   if ! aws s3api head-bucket --bucket $CORTEX_BUCKET --output json 2>/dev/null; then
     if aws s3 ls "s3://$CORTEX_BUCKET" --output json 2>&1 | grep -q 'NoSuchBucket'; then
       echo "✓ Creating an S3 bucket: $CORTEX_BUCKET"
-      aws s3api create-bucket --bucket $CORTEX_BUCKET \
-                              --region $CORTEX_REGION \
-                              --create-bucket-configuration LocationConstraint=$CORTEX_REGION \
-                              >/dev/null
+      if [ "$CORTEX_REGION" == "us-east-1" ]; then
+        aws s3api create-bucket --bucket $CORTEX_BUCKET \
+                                --region $CORTEX_REGION \
+                                >/dev/null
+      else
+        aws s3api create-bucket --bucket $CORTEX_BUCKET \
+                                --region $CORTEX_REGION \
+                                --create-bucket-configuration LocationConstraint=$CORTEX_REGION \
+                                >/dev/null
+      fi
     else
       echo "A bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
       exit 1
@@ -152,7 +158,7 @@ function validate_cortex() {
 
 eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" || true
 
-echo -e "\nInstalling Cortex ..."
+echo "Installing Cortex ..."
 
 setup_bucket
 setup_cloudwatch_logs

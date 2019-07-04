@@ -16,11 +16,11 @@
 
 set -e
 
-echo -e "\nSpinning up the cluster ... (this will about 15 minutes)"
+echo -e "Spinning up the cluster ... (this will take about 15 minutes)\n"
 
-echo
 eksctl create cluster --name=$CORTEX_CLUSTER \
                       --region=$CORTEX_REGION \
+                      --zones=$CORTEX_ZONES \
                       --node-type=$CORTEX_NODE_TYPE \
                       --nodes-min=$CORTEX_NODES_MIN \
                       --nodes-max=$CORTEX_NODES_MAX \
