@@ -171,11 +171,11 @@ func onnxAPISpec(
 	workloadID string,
 	desiredReplicas int32,
 ) *appsv1b1.Deployment {
-	transformResourceList := corev1.ResourceList{}
-	transformResourceList[corev1.ResourceCPU] = api.Compute.CPU.Quantity
+	resourceList := corev1.ResourceList{}
+	resourceList[corev1.ResourceCPU] = api.Compute.CPU.Quantity
 
 	if api.Compute.Mem != nil {
-		transformResourceList[corev1.ResourceMemory] = api.Compute.Mem.Quantity
+		resourceList[corev1.ResourceMemory] = api.Compute.Mem.Quantity
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -234,7 +234,7 @@ func onnxAPISpec(
 							},
 						},
 						Resources: corev1.ResourceRequirements{
-							Requests: transformResourceList,
+							Requests: resourceList,
 						},
 					},
 				},
@@ -335,13 +335,15 @@ func apiWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 
 		var spec metav1.Object
 
-		if api.ModelType == userconfig.TensorFlowModelType {
+		switch api.ModelType {
+		case userconfig.TensorFlowModelType:
 			spec = tfAPISpec(ctx, api, workloadID, desiredReplicas)
+		case userconfig.ONNXModelType:
+			spec = onnxAPISpec(ctx, api, workloadID, desiredReplicas)
+		default:
+			return nil, userconfig.ErrorUnknownModelType()
 		}
 
-		if api.ModelType == userconfig.ONNXModelType {
-			spec = onnxAPISpec(ctx, api, workloadID, desiredReplicas)
-		}
 		workloadSpecs = append(workloadSpecs, &WorkloadSpec{
 			WorkloadID:   workloadID,
 			ResourceIDs:  strset.New(api.ID),

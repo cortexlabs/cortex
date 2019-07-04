@@ -93,7 +93,7 @@ const (
 	// API
 	ModelKey          = "model"
 	ModelTypeKey      = "model_type"
-	RequesthandlerKey = "request_handler"
+	RequestHandlerKey = "request_handler"
 
 	// compute
 	ComputeKey              = "compute"

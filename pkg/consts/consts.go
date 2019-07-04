@@ -47,7 +47,7 @@ var (
 	TransformersDir       = "transformers"
 	EstimatorsDir         = "estimators"
 	PythonPackagesDir     = "python_packages"
-	RequestHandlersDir    = "request_handlers_dir"
+	RequestHandlersDir    = "request_handlers"
 	ModelsDir             = "models"
 	ConstantsDir          = "constants"
 	ContextsDir           = "contexts"

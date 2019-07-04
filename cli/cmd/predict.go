@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/cortexlabs/yaml"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -44,6 +45,19 @@ type PredictResponse struct {
 	ResourceID  string        `json:"resource_id"`
 	Predictions []interface{} `json:"predictions"`
 }
+
+type Prediction struct {
+	Prediction         interface{} `json:"prediction"`
+	PredictionReversed interface{} `json:"prediction_reversed"`
+	TransformedSample  interface{} `json:"transformed_sample"`
+	Response           interface{} `json:"response"`
+}
+
+
+// type PredictResponseExternalModel struct {
+// 	ResourceID  string        `json:"resource_id"`
+// 	Predictions []interface{} `json:"predictions"`
+// }
 
 var predictCmd = &cobra.Command{
 	Use:   "predict API_NAME SAMPLES_FILE",
@@ -70,10 +84,9 @@ var predictCmd = &cobra.Command{
 		apiPath := apiGroupStatus.ActiveStatus.Path
 		apiURL := urls.Join(resourcesRes.APIsBaseURL, apiPath)
 		predictResponse, err := makePredictRequest(apiURL, samplesJSONPath)
-
 		if err != nil {
 			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
-				errors.Exit(ErrorAPINotReady(apiName, resource.StatusUpdating.Message()))
+				errors.Exit(ErrorAPINotReady(apiName, resource.StatusCreating.Message()))
 			}
 			errors.Exit(err)
 		}
@@ -90,6 +103,7 @@ var predictCmd = &cobra.Command{
 
 		apiID := predictResponse.ResourceID
 		api := resourcesRes.APIStatuses[apiID]
+		_, isExternalModel := yaml.ExtractAtSymbolText(resourcesRes.Context.APIs[apiName].model)
 
 		apiStart := libtime.LocalTimestampHuman(api.Start)
 		fmt.Println("\n" + apiName + " was last updated on " + apiStart + "\n")
@@ -101,12 +115,38 @@ var predictCmd = &cobra.Command{
 		}
 
 		for _, prediction := range predictResponse.Predictions {
-			prettyResp, err := json.Pretty(prediction)
-			if err != nil {
-				errors.Exit(err)
+			if isExternalModel {
+				prettyResp, err := json.Pretty(prediction)
+				if err != nil {
+					errors.Exit(err)
+				}
+	
+				fmt.Println(prettyResp)
+				continue
 			}
 
-			fmt.Println(prettyResp)
+			parsedPrediction = prediction.(Prediction)
+			if parsedPrediction.Prediction == nil {
+				prettyResp, err := json.Pretty(parsedPrediction.Response)
+				if err != nil {
+					errors.Exit(err)
+				}
+
+				fmt.Println(prettyResp)
+				continue
+			}
+
+			value := parsedPrediction.Prediction
+			if parsedPrediction.PredictionReversed != nil {
+				value = parsedPrediction.PredictionReversed
+			}
+
+			if cast.IsFloatType(value) {
+				casted, _ := cast.InterfaceToFloat64(value)
+				fmt.Println(s.Round(casted, 2, true))
+			} else {
+				fmt.Println(s.UserStrStripped(value))
+			}
 		}
 	},
 }
@@ -136,3 +176,195 @@ func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse
 
 	return &predictResponse, nil
 }
+
+
+
+// var predictCmd = &cobra.Command{
+// 	Use:   "predict API_NAME SAMPLES_FILE",
+// 	Short: "make predictions",
+// 	Long:  "Make predictions.",
+// 	Args:  cobra.ExactArgs(2),
+// 	Run: func(cmd *cobra.Command, args []string) {
+// 		apiName := args[0]
+// 		samplesJSONPath := args[1]
+
+// 		resourcesRes, err := getResourcesResponse()
+// 		if err != nil {
+// 			errors.Exit(err)
+// 		}
+
+// 		apiGroupStatus := resourcesRes.APIGroupStatuses[apiName]
+// 		if apiGroupStatus == nil {
+// 			errors.Exit(ErrorAPINotFound(apiName))
+// 		}
+// 		if apiGroupStatus.ActiveStatus == nil {
+// 			errors.Exit(ErrorAPINotReady(apiName, apiGroupStatus.Message()))
+// 		}
+
+// 		api := resourcesRes.Context.APIs[apiName]
+// 		apiPath := apiGroupStatus.ActiveStatus.Path
+// 		apiURL := urls.Join(resourcesRes.APIsBaseURL, apiPath)
+
+// 		if _, ok := yaml.ExtractAtSymbolText(api.Model); ok {
+// 			// e2e
+// 			predict(apiURL, samplesJSONPath)
+// 		} else {
+// 			predictExternalModel(apiURL, samplesJSONPath)
+// 		}
+// 	},
+// }
+
+// var predictCmd = &cobra.Command{
+// 	Use:   "predict API_NAME SAMPLES_FILE",
+// 	Short: "make predictions",
+// 	Long:  "Make predictions.",
+// 	Args:  cobra.ExactArgs(2),
+// 	Run: func(cmd *cobra.Command, args []string) {
+// 		apiName := args[0]
+// 		samplesJSONPath := args[1]
+
+// 		resourcesRes, err := getResourcesResponse()
+// 		if err != nil {
+// 			errors.Exit(err)
+// 		}
+
+// 		apiGroupStatus := resourcesRes.APIGroupStatuses[apiName]
+// 		if apiGroupStatus == nil {
+// 			errors.Exit(ErrorAPINotFound(apiName))
+// 		}
+// 		if apiGroupStatus.ActiveStatus == nil {
+// 			errors.Exit(ErrorAPINotReady(apiName, apiGroupStatus.Message()))
+// 		}
+
+// 		api := resourcesRes.Context.APIs[apiName]
+// 		apiPath := apiGroupStatus.ActiveStatus.Path
+// 		apiURL := urls.Join(resourcesRes.APIsBaseURL, apiPath)
+
+// 		if _, ok := yaml.ExtractAtSymbolText(api.Model); ok {
+// 			// e2e
+// 			predict(apiURL, samplesJSONPath)
+// 		} else {
+// 			predictExternalModel(apiURL, samplesJSONPath)
+// 		}
+// 	},
+// }
+
+// func predict(apiURL string, samplesJSONPath string) {
+// 	httpResponse := makePredictRequest(apiURL, samplesJSONPath)
+
+// 	var predictResponse PredictResponse
+// 	err := json.DecodeWithNumber(httpResponse, &predictResponse)
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "prediction response")
+// 	}
+
+// 	if predictPrintJSON {
+// 		prettyResp, err := json.Pretty(predictResponse)
+// 		if err != nil {
+// 			errors.Exit(err)
+// 		}
+
+// 		fmt.Println(prettyResp)
+// 		return
+// 	}
+
+// 	apiID := predictResponse.ResourceID
+// 	api := resourcesRes.APIStatuses[apiID]
+
+// 	apiStart := libtime.LocalTimestampHuman(api.Start)
+// 	fmt.Println("\n" + apiName + " was last updated on " + apiStart + "\n")
+
+// 	if len(predictResponse.Predictions) == 1 {
+// 		fmt.Println("Prediction:")
+// 	} else {
+// 		fmt.Println("Predictions:")
+// 	}
+
+// 	for _, prediction := range predictResponse.Predictions {
+// 		if prediction.Prediction == nil {
+// 			prettyResp, err := json.Pretty(prediction.Response)
+// 			if err != nil {
+// 				errors.Exit(err)
+// 			}
+
+// 			fmt.Println(prettyResp)
+// 			continue
+// 		}
+
+// 		value := prediction.Prediction
+// 		if prediction.PredictionReversed != nil {
+// 			value = prediction.PredictionReversed
+// 		}
+
+// 		if cast.IsFloatType(value) {
+// 			casted, _ := cast.InterfaceToFloat64(value)
+// 			fmt.Println(s.Round(casted, 2, true))
+// 		} else {
+// 			fmt.Println(s.UserStrStripped(value))
+// 		}
+// 	}
+// }
+
+// func predictExternalModel(apiURL string, samplesJSONPath string) {
+// 	httpResponse := makePredictRequest(apiURL, samplesJSONPath)
+
+// 	var predictResponse PredictResponseExternalModel
+// 	err = json.DecodeWithNumber(httpResponse, &predictResponse)
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "prediction response")
+// 	}
+
+// 	if predictPrintJSON {
+// 		prettyResp, err := json.Pretty(predictResponse)
+// 		if err != nil {
+// 			errors.Exit(err)
+// 		}
+
+// 		fmt.Println(prettyResp)
+// 		return
+// 	}
+
+// 	apiID := predictResponse.ResourceID
+// 	api := resourcesRes.APIStatuses[apiID]
+
+// 	apiStart := libtime.LocalTimestampHuman(api.Start)
+// 	fmt.Println("\n" + apiName + " was last updated on " + apiStart + "\n")
+
+// 	if len(predictResponse.Predictions) == 1 {
+// 		fmt.Println("Prediction:")
+// 	} else {
+// 		fmt.Println("Predictions:")
+// 	}
+
+// 	for _, prediction := range predictResponse.Predictions {
+// 		prettyResp, err := json.Pretty(prediction)
+// 		if err != nil {
+// 			errors.Exit(err)
+// 		}
+
+// 		fmt.Println(prettyResp)
+// 	}
+// }
+
+// func makePredictRequest(apiURL string, samplesJSONPath string) []byte {
+// 	samplesBytes, err := files.ReadFileBytes(samplesJSONPath)
+// 	if err != nil {
+// 		errors.Exit(err)
+// 	}
+// 	payload := bytes.NewBuffer(samplesBytes)
+// 	req, err := http.NewRequest("POST", apiURL, payload)
+// 	if err != nil {
+// 		return nil, errors.Exit(err, errStrCantMakeRequest)
+// 	}
+
+// 	req.Header.Set("Content-Type", "application/json")
+// 	httpResponse, err := makeRequest(req)
+// 	if err != nil {
+// 		if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
+// 			errors.Exit(ErrorAPINotReady(apiName, resource.StatusUpdating.Message()))
+// 		}
+// 		errors.Exit(err)
+// 	}
+
+// 	return &predictResponse
+// }

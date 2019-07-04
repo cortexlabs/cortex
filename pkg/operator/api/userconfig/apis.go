@@ -35,7 +35,7 @@ type API struct {
 	ResourceFields
 	Model          string      `json:"model" yaml:"model"`
 	ModelType      ModelType   `json:"model_type" yaml:"model_type"`
-	Requesthandler *string     `json:"request_handler" yaml:"request_handler"`
+	RequestHandler *string     `json:"request_handler" yaml:"request_handler"`
 	Compute        *APICompute `json:"compute" yaml:"compute"`
 	Tags           Tags        `json:"tags" yaml:"tags"`
 }
@@ -57,12 +57,13 @@ var apiValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField:         "Requesthandler",
+			StructField:         "RequestHandler",
 			StringPtrValidation: &cr.StringPtrValidation{},
 		},
 		{
 			StructField: "ModelType",
 			StringValidation: &cr.StringValidation{
+				Required:      true,
 				AllowedValues: ModelTypeStrings(),
 			},
 			Parser: func(str string) (interface{}, error) {
@@ -83,8 +84,8 @@ func (api *API) UserConfigStr() string {
 	if api.ModelType != UnknownModelType {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelTypeKey, api.ModelType.String()))
 	}
-	if api.Requesthandler != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", RequesthandlerKey, *api.Requesthandler))
+	if api.RequestHandler != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestHandlerKey, *api.RequestHandler))
 	}
 	if api.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))

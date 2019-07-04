@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
@@ -48,20 +49,25 @@ func getAPIs(config *userconfig.Config,
 		buf.WriteString(apiConfig.Name)
 		buf.WriteString(apiConfig.ModelType.String())
 
-		if apiConfig.Requesthandler != nil {
+		if apiConfig.RequestHandler != nil {
 			for _, pythonPackage := range pythonPackages {
 				buf.WriteString(pythonPackage.GetID())
 			}
 
-			impl, ok := impls[*apiConfig.Requesthandler]
+			impl, ok := impls[*apiConfig.RequestHandler]
 			if !ok {
-				return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(*apiConfig.Requesthandler), userconfig.Identify(apiConfig))
+				return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(*apiConfig.RequestHandler), userconfig.Identify(apiConfig), userconfig.RequestHandlerKey)
 			}
 			implID := hash.Bytes(impl)
 			buf.WriteString(implID)
 
-			key := filepath.Join(consts.RequestHandlersDir, implID)
-			requestHandlerImplKey = &key
+			requestHandlerImplKey = pointer.String(filepath.Join(consts.RequestHandlersDir, implID))
+
+			err := uploadRequestHandler(*requestHandlerImplKey, impls[*apiConfig.RequestHandler])
+
+			if err != nil {
+				return nil, errors.Wrap(err, userconfig.Identify(apiConfig), "upload")
+			}
 		}
 
 		if yaml.StartsWithEscapedAtSymbol(apiConfig.Model) {
@@ -89,33 +95,23 @@ func getAPIs(config *userconfig.Config,
 			Path:                  context.APIPath(apiConfig.Name, config.App.Name),
 			RequestHandlerImplKey: requestHandlerImplKey,
 		}
-
-		if apiConfig.Requesthandler != nil {
-			uploadRequestHandlers(apis[apiConfig.Name], impls[*apiConfig.Requesthandler])
-		}
 	}
 	return apis, nil
 }
 
-func uploadRequestHandlers(api *context.API, impl []byte) error {
-	implID := hash.Bytes(impl)
-
-	if uploadedRequestHandlers.Has(implID) {
-		return nil
-	}
-
-	isUploaded, err := config.AWS.IsS3File(*api.RequestHandlerImplKey)
+func uploadRequestHandler(implKey string, impl []byte) error {
+	isUploaded, err := config.AWS.IsS3File(implKey)
 	if err != nil {
-		return errors.Wrap(err, userconfig.Identify(api), "upload")
+		return err
 	}
 
 	if !isUploaded {
-		err = config.AWS.UploadBytesToS3(impl, *api.RequestHandlerImplKey)
+		err = config.AWS.UploadBytesToS3(impl, implKey)
 		if err != nil {
-			return errors.Wrap(err, userconfig.Identify(api), "upload")
+			return err
 		}
 	}
 
-	uploadedRequestHandlers.Add(implID)
+	uploadedRequestHandlers.Add(implKey)
 	return nil
 }

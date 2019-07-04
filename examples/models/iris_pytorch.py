@@ -42,15 +42,15 @@ test_X = Variable(torch.Tensor(X_test).float())
 train_y = Variable(torch.Tensor(y_train).long())
 test_y = Variable(torch.Tensor(y_test).long())
 
-net = Net()
+model = Net()
 
 criterion = nn.CrossEntropyLoss()  # cross entropy loss
 
-optimizer = torch.optim.SGD(net.parameters(), lr=0.01)
+optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 
 for epoch in range(1000):
     optimizer.zero_grad()
-    out = net(train_X)
+    out = model(train_X)
     loss = criterion(out, train_y)
     loss.backward()
     optimizer.step()
@@ -58,18 +58,14 @@ for epoch in range(1000):
     if epoch % 100 == 0:
         print("number of epoch {} loss {}".format(epoch, loss))
 
-predict_out = net(test_X)
+predict_out = model(test_X)
 _, predict_y = torch.max(predict_out, 1)
 
 print("prediction accuracy {}".format(accuracy_score(test_y.data, predict_y.data)))
 
+# Convert to ONNX model format
 dummy_input = torch.randn(1, 4)
 
 torch.onnx.export(
-    net,
-    dummy_input,
-    "iris_pytorch.onnx",
-    verbose=True,
-    input_names=["input"],
-    output_names=["species"],
+    model, dummy_input, "iris_pytorch.onnx", input_names=["input"], output_names=["species"]
 )

@@ -17,6 +17,8 @@ limitations under the License.
 package context
 
 import (
+	"fmt"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
@@ -206,7 +208,7 @@ func (ctx *Context) PopulateWorkloadIDs(resourceWorkloadIDs map[string]string) {
 func (ctx *Context) CheckAllWorkloadIDsPopulated() error {
 	for _, res := range ctx.ComputedResources() {
 		if res.GetWorkloadID() == "" {
-			return errors.New(ctx.App.Name, "resource", res.GetID(), "workload ID is missing", res.GetName()) // unexpected
+			return errors.New(ctx.App.Name, "workload ID missing", fmt.Sprintf("%s (ID: %s)", res.GetName(), res.GetID())) // unexpected
 		}
 	}
 	return nil

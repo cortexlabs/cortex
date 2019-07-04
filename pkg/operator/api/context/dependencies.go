@@ -160,7 +160,7 @@ func (ctx *Context) apiDependencies(api *API) strset.Set {
 		dependencies.Add(model.ID)
 	}
 
-	if api.Requesthandler != nil {
+	if api.RequestHandler != nil {
 		for _, pythonPackage := range ctx.PythonPackages {
 			dependencies.Add(pythonPackage.GetID())
 		}

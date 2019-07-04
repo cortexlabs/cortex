@@ -282,6 +282,12 @@ class Context:
         except CortexException as e:
             e.wrap("api " + api_name, "request_handler")
             raise
+        
+        try:
+            _validate_impl(impl, REQUEST_HANDLER_IMPL_VALIDATION)
+        except CortexException as e:
+            e.wrap("api " + api_name, "request_handler " + api["request_handler"])
+            raise
 
         return (impl, impl_path)
 
@@ -677,7 +683,7 @@ TRANSFORMER_IMPL_VALIDATION = {
     ]
 }
 
-TRANSFORMER_IMPL_VALIDATION = {
+REQUEST_HANDLER_IMPL_VALIDATION = {
     "optional": [
         {"name": "preinference", "args": ["request", "metadata"]},
         {"name": "postinference", "args": ["response", "metadata"]},

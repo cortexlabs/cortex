@@ -174,10 +174,14 @@ def predict(app_name, api_name):
         except CortexException as e:
             e.wrap("error", "sample {}".format(i + 1))
             logger.error(str(e))
-            logger.exception("An error occurred, see `cx logs api {}` for more details.".format(1))
+            logger.exception(
+                "An error occurred, see `cx logs -v api {}` for more details.".format(api["name"])
+            )
             return prediction_failed(sample, str(e))
         except Exception as e:
-            logger.exception("An error occurred, see `cx logs api {}` for more details.".format(2))
+            logger.exception(
+                "An error occurred, see `cx logs -v api {}` for more details.".format(api["name"])
+            )
             return prediction_failed(sample, str(e))
 
         predictions.append(prediction)
