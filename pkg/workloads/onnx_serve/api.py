@@ -154,9 +154,7 @@ def predict(app_name, api_name):
                 sample = request_handler.preinference(sample, input_metadata)
 
             inference_input = convert_to_onnx_input(sample, input_metadata)
-            logger.info(inference_input)
             model_outputs = sess.run([], inference_input)
-            logger.info(model_outputs)
             result = []
             for model_output in model_outputs:
                 if type(model_output) is np.ndarray:
@@ -187,7 +185,6 @@ def predict(app_name, api_name):
 
 
 def start(args):
-    logger.info(args)
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
     api = ctx.apis_id_map[args.api]
 
@@ -197,7 +194,6 @@ def start(args):
         package.install_packages(ctx.python_packages, ctx.storage)
         local_cache["request_handler"], _ = ctx.get_request_handler_impl(api["name"])
 
-    logger.info(ctx)
     model_cache_path = os.path.join(args.model_dir, args.api)
     if not os.path.exists(model_cache_path):
         ctx.storage.download_file_external(api["model"], model_cache_path)
