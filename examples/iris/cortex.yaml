@@ -1,25 +1,32 @@
 - kind: deployment
   name: iris
 
-- kind: api
-  name: iris-tf-nn
-  model_type: tensorflow
-  model: s3://cortex-examples/iris-tensorflow.zip
+# - kind: api
+#   name: iris-tf-nn
+#   model_type: tensorflow
+#   model: s3://cortex-examples/iris-tensorflow.zip
+#   compute:
+#     max_replicas: 1
+
+# - kind: api
+#   name: iris-pytorch-nn
+#   model_type: onnx
+#   request_handler: inference_pytorch.py
+#   model: s3://data-vishal/iris_pytorch.onnx
+#   compute:
+#     max_replicas: 1
 
 - kind: api
-  name: iris-pytorch-nn
+  name: iris-xgb-classifier
   model_type: onnx
-  request_handler_path: inference_pytorch.py
-  model: s3://data-vishal/iris_pytorch.onnx
-
-- kind: api
-name: iris-xgb-classifier
-  model_type: onnx
-  request_handler_path: inference.py
   model: s3://data-vishal/iris_xgb.onnx
+  compute:
+    max_replicas: 1
 
 - kind: api
   name: iris-sklearn-logistic-regression
   model_type: onnx
-  request_handler_path: inference.py
+#   request_handler: inference.py
   model: s3://data-vishal/iris_sklearn_logreg.onnx
+  compute:
+    max_replicas: 1

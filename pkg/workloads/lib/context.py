@@ -677,6 +677,12 @@ TRANSFORMER_IMPL_VALIDATION = {
     ]
 }
 
+TRANSFORMER_IMPL_VALIDATION = {
+    "optional": [
+        {"name": "preinference", "args": ["request", "metadata"]},
+        {"name": "postinference", "args": ["response", "metadata"]},
+    ]
+}
 
 def _validate_impl(impl, impl_req):
     for optional_func in impl_req.get("optional", []):

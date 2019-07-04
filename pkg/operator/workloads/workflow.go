@@ -104,8 +104,6 @@ func Create(ctx *context.Context) (*awfv1.Workflow, error) {
 	for _, spec := range allSpecs {
 		var dependencyWorkloadIDs []string
 		for resourceID := range spec.ResourceIDs {
-			fmt.Println(spec.ResourceIDs)
-			fmt.Println(spec.Spec.GetName())
 			for dependencyResourceID := range ctx.AllComputedResourceDependencies(resourceID) {
 				workloadID := resourceWorkloadIDs[dependencyResourceID]
 				if workloadID != "" && workloadID != spec.WorkloadID {

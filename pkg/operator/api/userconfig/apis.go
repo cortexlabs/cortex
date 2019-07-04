@@ -33,11 +33,11 @@ type APIs []*API
 
 type API struct {
 	ResourceFields
-	Model              string      `json:"model" yaml:"model"`
-	ModelType          ModelType   `json:"model_type" yaml:"model_type"`
-	RequestHandlerPath *string     `json:"request_handler_path" yaml:"request_handler_path"`
-	Compute            *APICompute `json:"compute" yaml:"compute"`
-	Tags               Tags        `json:"tags" yaml:"tags"`
+	Model          string      `json:"model" yaml:"model"`
+	ModelType      ModelType   `json:"model_type" yaml:"model_type"`
+	Requesthandler *string     `json:"request_handler" yaml:"request_handler"`
+	Compute        *APICompute `json:"compute" yaml:"compute"`
+	Tags           Tags        `json:"tags" yaml:"tags"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -57,7 +57,7 @@ var apiValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField:         "RequestHandlerPath",
+			StructField:         "Requesthandler",
 			StringPtrValidation: &cr.StringPtrValidation{},
 		},
 		{
@@ -83,8 +83,8 @@ func (api *API) UserConfigStr() string {
 	if api.ModelType != UnknownModelType {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelTypeKey, api.ModelType.String()))
 	}
-	if api.RequestHandlerPath != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestHandlerPathKey, *api.RequestHandlerPath))
+	if api.Requesthandler != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", RequesthandlerKey, *api.Requesthandler))
 	}
 	if api.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))

@@ -48,14 +48,14 @@ func getAPIs(config *userconfig.Config,
 		buf.WriteString(apiConfig.Name)
 		buf.WriteString(apiConfig.ModelType.String())
 
-		if apiConfig.RequestHandlerPath != nil {
+		if apiConfig.Requesthandler != nil {
 			for _, pythonPackage := range pythonPackages {
 				buf.WriteString(pythonPackage.GetID())
 			}
 
-			impl, ok := impls[*apiConfig.RequestHandlerPath]
+			impl, ok := impls[*apiConfig.Requesthandler]
 			if !ok {
-				return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(*apiConfig.RequestHandlerPath), userconfig.Identify(apiConfig))
+				return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(*apiConfig.Requesthandler), userconfig.Identify(apiConfig))
 			}
 			implID := hash.Bytes(impl)
 			buf.WriteString(implID)
@@ -90,8 +90,8 @@ func getAPIs(config *userconfig.Config,
 			RequestHandlerImplKey: requestHandlerImplKey,
 		}
 
-		if apiConfig.RequestHandlerPath != nil {
-			uploadRequestHandlers(apis[apiConfig.Name], impls[*apiConfig.RequestHandlerPath])
+		if apiConfig.Requesthandler != nil {
+			uploadRequestHandlers(apis[apiConfig.Name], impls[*apiConfig.Requesthandler])
 		}
 	}
 	return apis, nil

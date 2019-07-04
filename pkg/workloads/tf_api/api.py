@@ -244,11 +244,16 @@ def parse_response_proto_raw(response_proto):
 
 
 def run_predict(sample):
-    preprocessed_sample = local_cache["request_handler"].preinference(
-        sample, local_cache["metadata"]["signatureDef"]
-    )
+    request_handler = local_cache.get("request_handler")
+
+    preprocessed_sample = sample
+    if request_handler is not None and util.has_function(request_handler, "preinference"):
+        preprocessed_sample = request_handler.preinference(
+            sample, local_cache["metadata"]["signatureDef"]
+        )
+
     if util.is_resource_ref(local_cache["api"]["model"]):
-        transformed_sample = transform_sample(sample)
+        transformed_sample = transform_sample(preprocessed_sample)
         prediction_request = create_prediction_request(transformed_sample)
         response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
         result = parse_response_proto(response_proto)
@@ -263,13 +268,16 @@ def run_predict(sample):
         result["transformed_sample"] = transformed_sample
 
     else:
-        prediction_request = create_raw_prediction_request(sample)
+        prediction_request = create_raw_prediction_request(preprocessed_sample)
         response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
         result = parse_response_proto_raw(response_proto)
         util.log_indent("Sample:", indent=4)
         util.log_pretty(sample, indent=6)
         util.log_indent("Prediction:", indent=4)
         util.log_pretty(result, indent=6)
+
+    if request_handler is not None and util.has_function(request_handler, "postinference"):
+        result = request_handler.postinference(result, local_cache["metadata"]["signatureDef"])
 
     return result
 
@@ -394,7 +402,7 @@ def start(args):
         local_cache["request_handler"], _ = ctx.get_request_handler_impl(api["name"])
 
     if not util.is_resource_ref(api["model"]):
-        if api.get("request_handler_path") is not None:
+        if api.get("request_handler") is not None:
             package.install_packages(ctx.python_packages, ctx.storage)
         if not os.path.isdir(args.model_dir):
             ctx.storage.download_and_unzip_external(api["model"], args.model_dir)

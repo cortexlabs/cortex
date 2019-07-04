@@ -23,7 +23,7 @@ from flask_api import status
 from waitress import serve
 import onnxruntime as rt
 from lib.storage import S3
-import numpy
+import numpy as np
 
 import consts
 from lib import util, package, Context
@@ -35,12 +35,27 @@ logger.propagate = False  # prevent double logging (flask modifies root logger)
 
 app = Flask(__name__)
 
+onnx_to_np = {
+    "tensor(float16)": "float16",
+    "tensor(float)": "float32",
+    "tensor(double)": "float64",
+    "tensor(int32)": "int32",
+    "tensor(int8)": "int8",
+    "tensor(uint8)": "uint8",
+    "tensor(int16)": "int16",
+    "tensor(uint16)": "uint16",
+    "tensor(int64)": "int64",
+    "tensor(uint64)": "uint64",
+    "tensor(bool)": "bool",
+    "tensor(string)": "string",
+}
+
 local_cache = {
     "ctx": None,
     "api": None,
     "sess": None,
-    "model_inputs": None,
-    "model_outputs": None,
+    "input_metadata": None,
+    "output_metadata": None,
     "request_handler": None,
 }
 
@@ -59,6 +74,47 @@ def health():
     return jsonify({"ok": True})
 
 
+def transform_to_numpy(input_pyobj, input_metadata):
+    target_dtype = onnx_to_np[input_metadata.type]
+    target_shape = input_metadata.shape
+
+    if type(input_pyobj) is not np.ndarray:
+        np_arr = np.array(input_pyobj, dtype=target_dtype)
+    else:
+        np_arr = input_pyobj
+    np_arr = np_arr.reshape(tuple(target_shape))
+    return np_arr
+
+
+def convert_to_onnx_input(sample, input_metadata_list):
+    sess = local_cache["sess"]
+
+    input_dict = {}
+    if len(input_metadata_list) == 1:
+        input_metadata = input_metadata_list[0]
+        if util.is_dict(sample):
+            if sample.get(input_metadata.name) is None:
+                raise ValueError("sample should be a dict containing key: " + input_metadata.name)
+            input_dict[input_metadata.name] = transform_to_numpy(
+                sample[input_metadata.name], input_metadata
+            )
+        else:
+            input_dict[input_metadata.name] = transform_to_numpy(sample, input_metadata)
+    else:
+        for input_metadata in input_metadata_list:
+            if not sample.is_dict(input_metadata):
+                expected_keys = [metadata.name for metadata in input_metadata_list]
+                raise ValueError(
+                    "sample should be a dict containing keys: " + ", ".join(expected_keys)
+                )
+
+            if sample.get(input_metadata.name) is None:
+                raise ValueError("sample should be a dict containing key: " + input_metadata.name)
+
+            input_dict[input_metadata.name] = transform_to_numpy(sample, input_metadata)
+    return input_dict
+
+
 @app.route("/<app_name>/<api_name>", methods=["POST"])
 def predict(app_name, api_name):
     try:
@@ -68,9 +124,9 @@ def predict(app_name, api_name):
 
     sess = local_cache["sess"]
     api = local_cache["api"]
-    request_handler = local_cache["request_handler"]
-    model_inputs = local_cache["model_inputs"]
-    model_outputs = local_cache["model_outputs"]
+    request_handler = local_cache.get("request_handler")
+    input_metadata = local_cache["input_metadata"]
+    output_metadata = local_cache["output_metadata"]
 
     response = {}
 
@@ -93,10 +149,23 @@ def predict(app_name, api_name):
         try:
             util.log_indent("Raw sample:", indent=4)
             util.log_pretty(sample, indent=6)
-            inference_input = request_handler.preinference(sample, model_inputs)
-            labels = [output_node.name for output_node in model_outputs]
-            inference = sess.run(labels, inference_input)
-            result = request_handler.postinference(inference, model_outputs)
+
+            if request_handler is not None and util.has_function(request_handler, "preinference"):
+                sample = request_handler.preinference(sample, input_metadata)
+
+            inference_input = convert_to_onnx_input(sample, input_metadata)
+            logger.info(inference_input)
+            model_outputs = sess.run([], inference_input)
+            logger.info(model_outputs)
+            result = []
+            for model_output in model_outputs:
+                if type(model_output) is np.ndarray:
+                    result.append(model_output.tolist())
+                else:
+                    result.append(model_output)
+
+            if request_handler is not None and util.has_function(request_handler, "postinference"):
+                result = request_handler.postinference(result, output_metadata)
             util.log_indent("Prediction:", indent=4)
             util.log_pretty(result, indent=6)
             prediction = {"prediction": result}
@@ -109,7 +178,7 @@ def predict(app_name, api_name):
             logger.exception("An error occurred, see `cx logs api {}` for more details.".format(2))
             return prediction_failed(sample, str(e))
 
-        predictions.append(result)
+        predictions.append(prediction)
 
     response["predictions"] = predictions
     response["resource_id"] = api["id"]
@@ -120,12 +189,12 @@ def predict(app_name, api_name):
 def start(args):
     logger.info(args)
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
-    package.install_packages(ctx.python_packages, ctx.storage)
     api = ctx.apis_id_map[args.api]
 
     local_cache["api"] = api
     local_cache["ctx"] = ctx
     if api.get("request_handler_impl_key") is not None:
+        package.install_packages(ctx.python_packages, ctx.storage)
         local_cache["request_handler"], _ = ctx.get_request_handler_impl(api["name"])
 
     logger.info(ctx)
@@ -135,8 +204,8 @@ def start(args):
 
     sess = rt.InferenceSession(model_cache_path)
     local_cache["sess"] = sess
-    local_cache["model_inputs"] = sess.get_inputs()
-    local_cache["model_outputs"] = sess.get_outputs()
+    local_cache["input_metadata"] = sess.get_inputs()
+    local_cache["output_metadata"] = sess.get_outputs()
     serve(app, listen="*:{}".format(args.port))
     logger.info("Serving model")
 
