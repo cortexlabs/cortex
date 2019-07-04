@@ -91,8 +91,8 @@ const (
 	ThrottleSecsKey              = "throttle_secs"
 
 	// API
-	ModelKey              = "model"
-	ModelTypeKey          = "model_type"
+	ModelKey          = "model"
+	ModelTypeKey      = "model_type"
 	RequesthandlerKey = "request_handler"
 
 	// compute

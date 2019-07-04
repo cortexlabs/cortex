@@ -246,14 +246,14 @@ def parse_response_proto_raw(response_proto):
 def run_predict(sample):
     request_handler = local_cache.get("request_handler")
 
-    preprocessed_sample = sample
+    prepared_sample = sample
     if request_handler is not None and util.has_function(request_handler, "preinference"):
-        preprocessed_sample = request_handler.preinference(
+        prepared_sample = request_handler.preinference(
             sample, local_cache["metadata"]["signatureDef"]
         )
 
     if util.is_resource_ref(local_cache["api"]["model"]):
-        transformed_sample = transform_sample(preprocessed_sample)
+        transformed_sample = transform_sample(prepared_sample)
         prediction_request = create_prediction_request(transformed_sample)
         response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
         result = parse_response_proto(response_proto)
@@ -268,7 +268,7 @@ def run_predict(sample):
         result["transformed_sample"] = transformed_sample
 
     else:
-        prediction_request = create_raw_prediction_request(preprocessed_sample)
+        prediction_request = create_raw_prediction_request(prepared_sample)
         response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
         result = parse_response_proto_raw(response_proto)
         util.log_indent("Sample:", indent=4)

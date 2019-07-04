@@ -53,7 +53,6 @@ func RespondError(w http.ResponseWriter, err error, strs ...string) {
 func RespondErrorCode(w http.ResponseWriter, code int, err error, strs ...string) {
 	err = errors.Wrap(err, strs...)
 	errors.PrintError(err)
-	errors.PrintStacktrace(err)
 
 	w.WriteHeader(code)
 	response := schema.ErrorResponse{
