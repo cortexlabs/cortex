@@ -79,7 +79,6 @@ const (
 	ErrImplDoesNotExist
 	ErrInvalidS3PathOrResourceReference
 	ErrExternalNotFound
-	ErrUnknownModelType
 )
 
 var errorKinds = []string{
@@ -132,7 +131,6 @@ var errorKinds = []string{
 	"err_impl_does_not_exist",
 	"err_invalid_s3_path_or_resource_reference",
 	"err_external_not_found",
-	"err_unknown_model_type",
 }
 
 var _ = [1]int{}[int(ErrExternalNotFound)-(len(errorKinds)-1)] // Ensure list length matches
@@ -604,12 +602,5 @@ func ErrorInvalidS3PathOrResourceReference(provided string) error {
 	return Error{
 		Kind:    ErrInvalidS3PathOrResourceReference,
 		message: s3ErrMsg + ", and is not a cortex resource reference (which starts with @)",
-	}
-}
-
-func ErrorUnknownModelType() error {
-	return Error{
-		Kind:    ErrUnknownModelType,
-		message: "Unknown model type encountered",
 	}
 }

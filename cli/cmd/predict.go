@@ -22,12 +22,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/cortexlabs/yaml"
+	"github.com/spf13/cobra"
 
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
@@ -52,7 +54,6 @@ type Prediction struct {
 	TransformedSample  interface{} `json:"transformed_sample"`
 	Response           interface{} `json:"response"`
 }
-
 
 // type PredictResponseExternalModel struct {
 // 	ResourceID  string        `json:"resource_id"`
@@ -103,7 +104,7 @@ var predictCmd = &cobra.Command{
 
 		apiID := predictResponse.ResourceID
 		api := resourcesRes.APIStatuses[apiID]
-		_, isExternalModel := yaml.ExtractAtSymbolText(resourcesRes.Context.APIs[apiName].model)
+		_, isModelReference := yaml.ExtractAtSymbolText(resourcesRes.Context.APIs[apiName].Model)
 
 		apiStart := libtime.LocalTimestampHuman(api.Start)
 		fmt.Println("\n" + apiName + " was last updated on " + apiStart + "\n")
@@ -115,17 +116,27 @@ var predictCmd = &cobra.Command{
 		}
 
 		for _, prediction := range predictResponse.Predictions {
-			if isExternalModel {
+			if !isModelReference {
 				prettyResp, err := json.Pretty(prediction)
 				if err != nil {
 					errors.Exit(err)
 				}
-	
+
 				fmt.Println(prettyResp)
 				continue
 			}
 
-			parsedPrediction = prediction.(Prediction)
+			predictionBytes, err := json.Marshal(prediction)
+			if err != nil {
+				errors.Exit(err)
+			}
+
+			var parsedPrediction Prediction
+			err = json.DecodeWithNumber(predictionBytes, &parsedPrediction)
+			if err != nil {
+				errors.Exit(err, "prediction response")
+			}
+
 			if parsedPrediction.Prediction == nil {
 				prettyResp, err := json.Pretty(parsedPrediction.Response)
 				if err != nil {
@@ -176,8 +187,6 @@ func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse
 
 	return &predictResponse, nil
 }
-
-
 
 // var predictCmd = &cobra.Command{
 // 	Use:   "predict API_NAME SAMPLES_FILE",

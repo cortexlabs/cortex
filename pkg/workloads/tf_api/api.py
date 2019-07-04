@@ -248,9 +248,7 @@ def run_predict(sample):
 
     prepared_sample = sample
     if request_handler is not None and util.has_function(request_handler, "preinference"):
-        prepared_sample = request_handler.preinference(
-            sample, local_cache["metadata"]["signatureDef"]
-        )
+        prepared_sample = request_handler.preinference(sample, local_cache["metadata"])
 
     if util.is_resource_ref(local_cache["api"]["model"]):
         transformed_sample = transform_sample(prepared_sample)
@@ -277,7 +275,7 @@ def run_predict(sample):
         util.log_pretty(result, indent=6)
 
     if request_handler is not None and util.has_function(request_handler, "postinference"):
-        result = request_handler.postinference(result, local_cache["metadata"]["signatureDef"])
+        result = request_handler.postinference(result, local_cache["metadata"])
 
     return result
 

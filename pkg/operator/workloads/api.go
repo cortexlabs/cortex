@@ -341,7 +341,7 @@ func apiWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 		case userconfig.ONNXModelType:
 			spec = onnxAPISpec(ctx, api, workloadID, desiredReplicas)
 		default:
-			return nil, userconfig.ErrorUnknownModelType()
+			return nil, errors.New(api.Name, "unknown model type countered") // unexpected
 		}
 
 		workloadSpecs = append(workloadSpecs, &WorkloadSpec{
