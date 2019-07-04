@@ -28,7 +28,7 @@ Specify `model` in an API, e.g.
 
 ## ONNX
 
-Convert your model to ONNX model format. 
+Convert your model to ONNX model format.
 
 ```Python
 # Convert PyTorch model to ONNX

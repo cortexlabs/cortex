@@ -1,3 +1,0 @@
-# Request Handlers
-
-Request handlers 

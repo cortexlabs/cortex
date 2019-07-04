@@ -28,6 +28,7 @@ See [packaging models](packaging-models.md) for how to create the zipped model.
 - kind: api
   name: my-api
   model: s3://my-bucket/my-model.zip
+  request_handler: inference.py
   compute:
     min_replicas: 5
     max_replicas: 20
@@ -38,40 +39,7 @@ See [packaging models](packaging-models.md) for how to create the zipped model.
 
 API endpoints can be customized by providing a request handler. Request handlers can be used to prepare request payloads before being passed to model for inference and modify model predictions before they are served.
 
-```python
-def preinference(sample, metadata):
-    """Prepare a sample before it is passed into the model.
-
-    Args:
-        sample: A single sample in the request payload converted from JSON to Python object.
-
-        metadata: Describes the expected shape and type of inputs to the model.
-            If API model_type is tensorflow the object is a map<string, SignatureDef>
-                https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/protobuf/meta_graph.proto
-            If API model_type is onnx the object is a list of [onnxruntime.NodeArg]
-                https://microsoft.github.io/onnxruntime/api_summary.html#onnxruntime.NodeArg
-
-    Returns:
-        If model only has one 1 input, return a python list or numpy array of expected type  and shape. If model has more than 1 input, return a dictionary mapping input names to python list or numpy array of expected type and shape.
-    """
-    pass
-
-def postinference(prediction, metadata):
-    """Modify prediction from model before adding it to response payload.
-
-    Args:
-        sample: A single sample in the request payload converted from JSON to Python object
-
-        metadata: Describes the output shape and type of outputs from the model.
-            If API model_type is tensorflow the object is a map<string, SignatureDef>
-                https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/protobuf/meta_graph.proto
-            If API model_type is onnx the object is a list of [onnxruntime.NodeArg]
-                https://microsoft.github.io/onnxruntime/api_summary.html#onnxruntime.NodeArg
-
-    Returns:
-        Python object that can be marshalled to JSON.
-    """
-```
+See [request handlers](request-handlers.md) for a detailed guide.
 
 ## Integration
 

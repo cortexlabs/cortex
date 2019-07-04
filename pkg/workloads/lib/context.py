@@ -282,7 +282,7 @@ class Context:
         except CortexException as e:
             e.wrap("api " + api_name, "request_handler")
             raise
-        
+
         try:
             _validate_impl(impl, REQUEST_HANDLER_IMPL_VALIDATION)
         except CortexException as e:
