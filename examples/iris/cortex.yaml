@@ -11,15 +11,15 @@
 - kind: api
   name: iris-pytorch-nn
   model_type: onnx
-  request_handler: inference_pytorch.py
-  model: s3://data-vishal/iris_pytorch.onnx
+  request_handler: inference_pytorch2.py
+  model: s3://cortex-examples/iris_pytorch.onnx
   compute:
     max_replicas: 1
 
 - kind: api
   name: iris-xgb-classifier
   model_type: onnx
-  model: s3://data-vishal/iris_xgb.onnx
+  model: s3://cortex-examples/iris_xgb.onnx
   compute:
     max_replicas: 1
 
@@ -27,6 +27,13 @@
   name: iris-sklearn-logistic-regression
   model_type: onnx
   request_handler: inference.py
-  model: s3://data-vishal/iris_sklearn_logreg.onnx
+  model: s3://cortex-examples/iris_sklearn_logreg.onnx
+  compute:
+    max_replicas: 1
+
+- kind: api
+  name: iris-keras
+  model_type: onnx
+  model: s3://data-vishal/iris_keras.onnx
   compute:
     max_replicas: 1

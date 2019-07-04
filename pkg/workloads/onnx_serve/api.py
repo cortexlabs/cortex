@@ -78,11 +78,15 @@ def transform_to_numpy(input_pyobj, input_metadata):
     target_dtype = onnx_to_np[input_metadata.type]
     target_shape = input_metadata.shape
 
+    for idx, dim in enumerate(target_shape):
+        if dim is None:
+            target_shape[idx] = 1
+
     if type(input_pyobj) is not np.ndarray:
         np_arr = np.array(input_pyobj, dtype=target_dtype)
     else:
         np_arr = input_pyobj
-    np_arr = np_arr.reshape(tuple(target_shape))
+    np_arr = np_arr.reshape(target_shape)
     return np_arr
 
 
