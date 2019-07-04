@@ -930,6 +930,7 @@ def extract_resource_refs(input):
 
     return set()
 
+
 def has_function(impl, fn_name):
     fn = getattr(impl, fn_name, None)
     if fn is None:

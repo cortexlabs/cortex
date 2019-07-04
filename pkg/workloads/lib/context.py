@@ -684,6 +684,7 @@ TRANSFORMER_IMPL_VALIDATION = {
     ]
 }
 
+
 def _validate_impl(impl, impl_req):
     for optional_func in impl_req.get("optional", []):
         _validate_optional_fn_args(impl, optional_func["name"], optional_func["args"])
