@@ -393,9 +393,11 @@ def predict(deployment_name, api_name):
 
 def valid_model_dir(model_dir):
     """
-    validates that model_dir has the expected directory tree, e.g:
+    validates that model_dir has the expected directory tree.
+    
+    For example (your TF serving version number may be different):
 
-    {TF serving version number}/
+    1562353043/   
         saved_model.pb
         variables/
             variables.data-00000-of-00001
