@@ -22,8 +22,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/cortexlabs/yaml"
+	"github.com/spf13/cobra"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
