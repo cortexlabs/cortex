@@ -50,6 +50,7 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/python-packager --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-train-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve-gpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/onnx-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/cluster-autoscaler --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/nvidia --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/metrics-server --region=$REGISTRY_REGION || true
@@ -130,7 +131,9 @@ elif [ "$cmd" = "update" ]; then
 
     cache_builder $ROOT/images/spark-operator spark-operator
     build_and_push $ROOT/images/spark-operator spark-operator latest
-
+    build_and_push $ROOT/images/spark spark latest
+    build_and_push $ROOT/images/tf-train tf-train latest
+    build_and_push $ROOT/images/tf-train-gpu tf-train-gpu latest
     build_and_push $ROOT/images/nginx-controller nginx-controller latest
     build_and_push $ROOT/images/nginx-backend nginx-backend latest
     build_and_push $ROOT/images/fluentd fluentd latest
@@ -144,10 +147,8 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/metrics-server metrics-server latest
   fi
 
-  build_and_push $ROOT/images/spark spark latest
-  build_and_push $ROOT/images/tf-train tf-train latest
-  build_and_push $ROOT/images/tf-train-gpu tf-train-gpu latest
   build_and_push $ROOT/images/tf-api tf-api latest
+  build_and_push $ROOT/images/onnx-serve onnx-serve latest
 
   cleanup
 fi
