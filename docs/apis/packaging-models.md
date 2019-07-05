@@ -5,7 +5,7 @@
 Zip the exported estimator output in your checkpoint directory:
 
 ```text
-$ ls export/estimator
+$ ls export/estimator/1560263597/
 saved_model.pb  variables/
 
 $ zip -r model.zip export/estimator

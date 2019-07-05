@@ -391,6 +391,30 @@ def predict(deployment_name, api_name):
     return jsonify(response)
 
 
+def validate_model_dir(model_dir):
+    """
+    validates that model_dir has the expected directory tree.
+
+    For example (your TF serving version number may be different):
+
+    1562353043/
+        saved_model.pb
+        variables/
+            variables.data-00000-of-00001
+            variables.index
+    """
+    version = os.listdir(model_dir)[0]
+    if not version.isdigit():
+        raise UserException(
+            "No versions of servable default found under base path in model_dir. See docs.cortex.dev for how to properly package your TensorFlow model"
+        )
+
+    if "saved_model.pb" not in os.listdir(os.path.join(model_dir, version)):
+        raise UserException(
+            'Expected packaged model to have a "saved_model.pb" file. See docs.cortex.dev for how to properly package your TensorFlow model'
+        )
+
+
 def start(args):
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
 
@@ -406,8 +430,7 @@ def start(args):
             package.install_packages(ctx.python_packages, ctx.storage)
         if not os.path.isdir(args.model_dir):
             ctx.storage.download_and_unzip_external(api["model"], args.model_dir)
-
-    if util.is_resource_ref(api["model"]):
+    else:
         package.install_packages(ctx.python_packages, ctx.storage)
         model_name = util.get_resource_ref(api["model"])
         model = ctx.models[model_name]
@@ -445,6 +468,12 @@ def start(args):
             local_cache["target_vocab_populated"] = ctx.populate_values(
                 model["input"]["target_vocab"], None, False
             )
+
+    try:
+        validate_model_dir(args.model_dir)
+    except Exception as e:
+        logger.exception(e)
+        sys.exit(1)
 
     channel = grpc.insecure_channel("localhost:" + str(args.tf_serve_port))
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)
