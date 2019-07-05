@@ -1,6 +1,6 @@
 # Request Handlers
 
-Request handlers are python files that can contain a `pre_inference` function and a `post_inference` function. Both functions are optional. 
+Request handlers are python files that can contain a `pre_inference` function and a `post_inference` function. Both functions are optional.
 
 ## Implementation
 
