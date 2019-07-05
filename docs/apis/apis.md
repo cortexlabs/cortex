@@ -8,6 +8,8 @@ Serve models at scale and use them to build smarter applications.
 - kind: api
   name: <string>  # API name (required)
   model: <string>  # path to a zipped model dir (e.g. s3://my-bucket/model.zip)
+  model_format: <string>  # model format, must be "tensorflow" or "onnx"
+  request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
   compute:
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
@@ -26,11 +28,18 @@ See [packaging models](packaging-models.md) for how to create the zipped model.
 - kind: api
   name: my-api
   model: s3://my-bucket/my-model.zip
+  request_handler: inference.py
   compute:
     min_replicas: 5
     max_replicas: 20
     cpu: "1"
 ```
+
+## Custom Request Handlers
+
+Request handlers are used to decouple the interface of an API endpoint from its model. A `pre_inference` request handler can be used to modify request payloads before they are sent to the model. A `post_inference` request handler can be used to modify model predictions in the server before they are sent to the client.
+
+See [request handlers](request-handlers.md) for a detailed guide.
 
 ## Integration
 

@@ -53,9 +53,11 @@ type CortexConfig struct {
 	PythonPackagerImage string `json:"python_packager_image"`
 	TFTrainImageGPU     string `json:"tf_train_image_gpu"`
 	TFServeImageGPU     string `json:"tf_serve_image_gpu"`
-	TelemetryURL        string `json:"telemetry_url"`
-	EnableTelemetry     bool   `json:"enable_telemetry"`
-	OperatorInCluster   bool   `json:"operator_in_cluster"`
+	ONNXServeImage      string `json:"onnx_serve_image"`
+
+	TelemetryURL      string `json:"telemetry_url"`
+	EnableTelemetry   bool   `json:"enable_telemetry"`
+	OperatorInCluster bool   `json:"operator_in_cluster"`
 }
 
 func Init() error {
@@ -73,9 +75,11 @@ func Init() error {
 		PythonPackagerImage: getStr("IMAGE_PYTHON_PACKAGER"),
 		TFTrainImageGPU:     getStr("IMAGE_TF_TRAIN_GPU"),
 		TFServeImageGPU:     getStr("IMAGE_TF_SERVE_GPU"),
-		TelemetryURL:        configreader.MustStringFromEnv("CONST_TELEMETRY_URL", &configreader.StringValidation{Required: false, Default: consts.TelemetryURL}),
-		EnableTelemetry:     getBool("ENABLE_TELEMETRY"),
-		OperatorInCluster:   configreader.MustBoolFromEnv("CONST_OPERATOR_IN_CLUSTER", &configreader.BoolValidation{Default: true}),
+		ONNXServeImage:      getStr("IMAGE_ONNX_SERVE"),
+
+		TelemetryURL:      configreader.MustStringFromEnv("CONST_TELEMETRY_URL", &configreader.StringValidation{Required: false, Default: consts.TelemetryURL}),
+		EnableTelemetry:   getBool("ENABLE_TELEMETRY"),
+		OperatorInCluster: configreader.MustBoolFromEnv("CONST_OPERATOR_IN_CLUSTER", &configreader.BoolValidation{Default: true}),
 	}
 	Cortex.ID = hash.String(Cortex.Bucket + Cortex.Region + Cortex.LogGroup)
 

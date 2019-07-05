@@ -72,6 +72,7 @@ func (ctx *Context) DirectComputedResourceDependencies(resourceID string) strset
 			return ctx.trainingDatasetDependencies(model)
 		}
 	}
+
 	for _, api := range ctx.APIs {
 		if api.ID == resourceID {
 			return ctx.apiDependencies(api)
@@ -151,12 +152,20 @@ func (ctx *Context) modelDependencies(model *Model) strset.Set {
 }
 
 func (ctx *Context) apiDependencies(api *API) strset.Set {
+	dependencies := strset.New()
+
 	modelName, ok := yaml.ExtractAtSymbolText(api.Model)
-	if !ok {
-		return strset.New()
+	if ok {
+		model := ctx.Models[modelName]
+		dependencies.Add(model.ID)
 	}
-	model := ctx.Models[modelName]
-	return strset.New(model.ID)
+
+	if api.RequestHandler != nil {
+		for _, pythonPackage := range ctx.PythonPackages {
+			dependencies.Add(pythonPackage.GetID())
+		}
+	}
+	return dependencies
 }
 
 func (ctx *Context) ExtractCortexResources(

@@ -270,6 +270,26 @@ class Context:
         self._estimator_impls[estimator_name] = (impl, impl_path)
         return (impl, impl_path)
 
+    def get_request_handler_impl(self, api_name):
+        api = self.apis[api_name]
+
+        module_prefix = "request_handler"
+
+        try:
+            impl, impl_path = self.load_module(
+                module_prefix, api["name"], api["request_handler_impl_key"]
+            )
+        except CortexException as e:
+            e.wrap("api " + api_name, "request_handler")
+            raise
+
+        try:
+            _validate_impl(impl, REQUEST_HANDLER_IMPL_VALIDATION)
+        except CortexException as e:
+            e.wrap("api " + api_name, "request_handler " + api["request_handler"])
+            raise
+        return impl
+
     # Mode must be "training" or "evaluation"
     def get_training_data_parts(self, model_name, mode, part_prefix="part"):
         training_dataset = self.models[model_name]["dataset"]
@@ -659,6 +679,13 @@ TRANSFORMER_IMPL_VALIDATION = {
         # it is possible to not define transform_python() if you are only using the transformation for training columns, and not for inference
         {"name": "transform_python", "args": ["input"]},
         {"name": "reverse_transform_python", "args": ["transformed_value", "input"]},
+    ]
+}
+
+REQUEST_HANDLER_IMPL_VALIDATION = {
+    "optional": [
+        {"name": "pre_inference", "args": ["sample", "metadata"]},
+        {"name": "post_inference", "args": ["prediction", "metadata"]},
     ]
 }
 
