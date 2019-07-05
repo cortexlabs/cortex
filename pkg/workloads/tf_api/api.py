@@ -379,6 +379,7 @@ def predict(deployment_name, api_name):
 
     return jsonify(response)
 
+
 def valid_model_dir(model_dir):
     """
     validates that model_dir has the expected directory tree, e.g:
@@ -444,7 +445,6 @@ def start(args):
     else:
         if not os.path.isdir(args.model_dir):
             ctx.storage.download_and_unzip_external(api["model"], args.model_dir)
-
 
     try:
         valid_model_dir(args.model_dir)
