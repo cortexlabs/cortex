@@ -8,17 +8,6 @@ import os
 
 EXPORT_DIR = "iris_tf_export"
 
-
-def get_all_file_paths(directory):
-    file_paths = []
-    for root, directories, files in os.walk(directory):
-        for filename in files:
-            filepath = os.path.join(root, filename)
-            file_paths.append(filepath)
-
-    return file_paths
-
-
 def input_fn(features, labels, batch_size, mode):
     """An input function for training"""
     dataset = tf.data.Dataset.from_tensor_slices((features, labels))
@@ -26,19 +15,19 @@ def input_fn(features, labels, batch_size, mode):
         dataset = dataset.shuffle(1000).repeat()
     dataset = dataset.batch(batch_size)
     dataset_it = dataset.make_one_shot_iterator()
-    images, labels = dataset_it.get_next()
-    return {"inputs": images}, labels
+    irises, labels = dataset_it.get_next()
+    return {"irises": irises}, labels
 
 
 def json_serving_input_fn():
     inputs = tf.placeholder(shape=[4], dtype=tf.float64)
-    features = {"inputs": tf.expand_dims(inputs, 0)}
+    features = {"irises": tf.expand_dims(inputs, 0)}
     return tf.estimator.export.ServingInputReceiver(features=features, receiver_tensors=inputs)
 
 
 def my_model(features, labels, mode, params):
     """DNN with three hidden layers and learning_rate=0.1."""
-    net = features["inputs"]
+    net = features["irises"]
     for units in params["hidden_units"]:
         net = tf.layers.dense(net, units=units, activation=tf.nn.relu)
 
