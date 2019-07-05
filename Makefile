@@ -152,7 +152,7 @@ ci-push-images:
 	@./build/push-image.sh tf-serve
 	@./build/push-image.sh tf-serve-gpu
 	@./build/push-image.sh tf-api
-	@./build/push-image.sh images/onnx-serve onnx-serve
+	@./build/push-image.sh onnx-serve
 	@./build/push-image.sh operator
 	@./build/push-image.sh fluentd
 	@./build/push-image.sh nginx-controller
