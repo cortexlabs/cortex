@@ -392,7 +392,14 @@ def valid_model_dir(model_dir):
     """
     version = os.listdir(model_dir)[0]
     if not version.isdigit():
-        raise UserException("No versions of servable default found under base path in model_dir")
+        raise UserException(
+            "No versions of servable default found under base path in model_dir. See docs.cortex.dev for how to properly package your TensorFlow model"
+        )
+
+    if "saved_model.pb" not in os.listdir(os.path.join(model_dir, version)):
+        raise UserException(
+            "Expected packaged model to have a \"saved_model.pb\" file. See docs.cortex.dev for how to properly package your TensorFlow model"
+        )
 
 
 def start(args):
