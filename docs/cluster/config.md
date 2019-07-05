@@ -20,7 +20,7 @@ export CORTEX_BUCKET="cortex-[RANDOM_ID]"
 # The AWS region Cortex will use
 export CORTEX_REGION="us-west-2"
 
-# The AWS zones Cortex will use
+# The AWS zones Cortex will use (e.g. "us-east-1a,us-east-1b")
 export CORTEX_ZONES=""
 
 # The name of the EKS cluster Cortex will use
