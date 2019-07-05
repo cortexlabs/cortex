@@ -391,7 +391,7 @@ def predict(deployment_name, api_name):
     return jsonify(response)
 
 
-def valid_model_dir(model_dir):
+def validate_model_dir(model_dir):
     """
     validates that model_dir has the expected directory tree.
     
@@ -470,7 +470,7 @@ def start(args):
             )
 
     try:
-        valid_model_dir(args.model_dir)
+        validate_model_dir(args.model_dir)
     except Exception as e:
         logger.exception(e)
         sys.exit(1)
