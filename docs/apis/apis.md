@@ -8,8 +8,8 @@ Serve models at scale and use them to build smarter applications.
 - kind: api
   name: <string>  # API name (required)
   model: <string>  # path to a zipped model dir (e.g. s3://my-bucket/model.zip)
-  model_type: <string>  # framework of model, currently support tensorflow and onnx
-  request_handler: <string>  # path to the implementation file, relative to the cortex root
+  model_format: <string>  # model format, currently support tensorflow and onnx
+  request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
   compute:
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)

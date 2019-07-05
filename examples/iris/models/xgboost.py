@@ -23,5 +23,5 @@ print("Test data accuracy of the xgb classifier is {:.2f}".format(xgb_model.scor
 
 # Convert to ONNX model format
 onnx_model = convert_xgboost(xgb_model, initial_types=[("input", FloatTensorType([1, 4]))])
-with open("iris_xgb.onnx", "wb") as f:
+with open("xgboost.onnx", "wb") as f:
     f.write(onnx_model.SerializeToString())

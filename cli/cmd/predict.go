@@ -55,11 +55,6 @@ type Prediction struct {
 	Response           interface{} `json:"response"`
 }
 
-// type PredictResponseExternalModel struct {
-// 	ResourceID  string        `json:"resource_id"`
-// 	Predictions []interface{} `json:"predictions"`
-// }
-
 var predictCmd = &cobra.Command{
 	Use:   "predict API_NAME SAMPLES_FILE",
 	Short: "make predictions",

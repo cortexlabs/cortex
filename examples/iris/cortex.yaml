@@ -2,38 +2,30 @@
   name: iris
 
 - kind: api
-  name: iris-tf-nn
-  model_type: tensorflow
-  model: s3://cortex-examples/iris-tensorflow.zip
-  compute:
-    max_replicas: 1
+  name: tensorflow
+  model_format: tensorflow
+  model: s3://cortex-examples/iris/tensorflow.zip
 
 - kind: api
-  name: iris-pytorch-nn
-  model_type: onnx
-  request_handler: inference_pytorch.py
-  model: s3://cortex-examples/iris_pytorch.onnx
-  compute:
-    max_replicas: 1
+  name: pytorch
+  model_format: onnx
+  request_handler: pytorch.py
+  model: s3://cortex-examples/iris/pytorch.onnx
 
 - kind: api
-  name: iris-xgb-classifier
-  model_type: onnx
-  model: s3://cortex-examples/iris_xgb.onnx
-  compute:
-    max_replicas: 1
+  name: xgboost
+  model_format: onnx
+  model: s3://cortex-examples/iris/xgboost.onnx
 
 - kind: api
-  name: iris-sklearn-logistic-regression
-  model_type: onnx
-  request_handler: inference.py
-  model: s3://cortex-examples/iris_sklearn_logreg.onnx
-  compute:
-    max_replicas: 1
+  name: sklearn
+  model_format: onnx
+  request_handler: sklearn.py
+  model: s3://cortex-examples/iris/sklearn.onnx
 
 - kind: api
-  name: iris-keras
-  model_type: onnx
-  model: s3://data-vishal/iris_keras.onnx
-  compute:
-    max_replicas: 1
+  name: keras
+  model_format: onnx
+  model: s3://cortex-examples/iris/keras.onnx
+
+# model_format -> model_format

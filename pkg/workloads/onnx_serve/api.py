@@ -154,8 +154,8 @@ def predict(app_name, api_name):
             util.log_indent("Raw sample:", indent=4)
             util.log_pretty(sample, indent=6)
 
-            if request_handler is not None and util.has_function(request_handler, "preinference"):
-                sample = request_handler.preinference(sample, input_metadata)
+            if request_handler is not None and util.has_function(request_handler, "pre_inference"):
+                sample = request_handler.pre_inference(sample, input_metadata)
 
             inference_input = convert_to_onnx_input(sample, input_metadata)
             model_outputs = sess.run([], inference_input)
@@ -166,8 +166,8 @@ def predict(app_name, api_name):
                 else:
                     result.append(model_output)
 
-            if request_handler is not None and util.has_function(request_handler, "postinference"):
-                result = request_handler.postinference(result, output_metadata)
+            if request_handler is not None and util.has_function(request_handler, "post_inference"):
+                result = request_handler.post_inference(result, output_metadata)
             util.log_indent("Prediction:", indent=4)
             util.log_pretty(result, indent=6)
             prediction = {"prediction": result}
@@ -200,7 +200,7 @@ def start(args):
     local_cache["ctx"] = ctx
     if api.get("request_handler_impl_key") is not None:
         package.install_packages(ctx.python_packages, ctx.storage)
-        local_cache["request_handler"], _ = ctx.get_request_handler_impl(api["name"])
+        local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
 
     model_cache_path = os.path.join(args.model_dir, args.api)
     if not os.path.exists(model_cache_path):

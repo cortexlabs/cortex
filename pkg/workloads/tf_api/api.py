@@ -247,8 +247,8 @@ def run_predict(sample):
     request_handler = local_cache.get("request_handler")
 
     prepared_sample = sample
-    if request_handler is not None and util.has_function(request_handler, "preinference"):
-        prepared_sample = request_handler.preinference(sample, local_cache["metadata"])
+    if request_handler is not None and util.has_function(request_handler, "pre_inference"):
+        prepared_sample = request_handler.pre_inference(sample, local_cache["metadata"])
 
     if util.is_resource_ref(local_cache["api"]["model"]):
         transformed_sample = transform_sample(prepared_sample)
@@ -274,8 +274,8 @@ def run_predict(sample):
         util.log_indent("Prediction:", indent=4)
         util.log_pretty(result, indent=6)
 
-    if request_handler is not None and util.has_function(request_handler, "postinference"):
-        result = request_handler.postinference(result, local_cache["metadata"])
+    if request_handler is not None and util.has_function(request_handler, "post_inference"):
+        result = request_handler.post_inference(result, local_cache["metadata"])
 
     return result
 
@@ -397,7 +397,7 @@ def start(args):
     local_cache["ctx"] = ctx
 
     if api.get("request_handler_impl_key") is not None:
-        local_cache["request_handler"], _ = ctx.get_request_handler_impl(api["name"])
+        local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
 
     if not util.is_resource_ref(api["model"]):
         if api.get("request_handler") is not None:

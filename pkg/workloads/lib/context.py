@@ -288,8 +288,7 @@ class Context:
         except CortexException as e:
             e.wrap("api " + api_name, "request_handler " + api["request_handler"])
             raise
-
-        return (impl, impl_path)
+        return impl
 
     # Mode must be "training" or "evaluation"
     def get_training_data_parts(self, model_name, mode, part_prefix="part"):
@@ -685,8 +684,8 @@ TRANSFORMER_IMPL_VALIDATION = {
 
 REQUEST_HANDLER_IMPL_VALIDATION = {
     "optional": [
-        {"name": "preinference", "args": ["request", "metadata"]},
-        {"name": "postinference", "args": ["response", "metadata"]},
+        {"name": "pre_inference", "args": ["payload", "metadata"]},
+        {"name": "post_inference", "args": ["prediction", "metadata"]},
     ]
 }
 

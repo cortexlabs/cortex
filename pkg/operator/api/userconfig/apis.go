@@ -34,7 +34,7 @@ type APIs []*API
 type API struct {
 	ResourceFields
 	Model          string      `json:"model" yaml:"model"`
-	ModelType      ModelType   `json:"model_type" yaml:"model_type"`
+	ModelType      ModelType   `json:"model_format" yaml:"model_format"`
 	RequestHandler *string     `json:"request_handler" yaml:"request_handler"`
 	Compute        *APICompute `json:"compute" yaml:"compute"`
 	Tags           Tags        `json:"tags" yaml:"tags"`

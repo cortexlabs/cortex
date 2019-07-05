@@ -32,5 +32,5 @@ print("\n%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
 
 # Convert to ONNX model format
 onnx_model = keras2onnx.convert_keras(model)
-with open("iris_keras.onnx", "wb") as f:
+with open("keras.onnx", "wb") as f:
     f.write(onnx_model.SerializeToString())

@@ -3,37 +3,37 @@
 ## Implementation
 
 ```python
-def preinference(sample, metadata):
+def pre_inference(sample, metadata):
     """Prepare a sample before it is passed into the model.
 
     Args:
-        sample: A single sample in the request payload converted from JSON to Python object.
+        sample: A sample from the request payload.
 
         metadata: Describes the expected shape and type of inputs to the model.
-            If API model_type is tensorflow the object is a map<string, SignatureDef>
+            If API model_format is tensorflow: map<string, SignatureDef>
                 https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/protobuf/meta_graph.proto
-            If API model_type is onnx the object is a list of [onnxruntime.NodeArg]
+            If API model_format is onnx: list<onnxruntime.NodeArg>
                 https://microsoft.github.io/onnxruntime/api_summary.html#onnxruntime.NodeArg
 
     Returns:
-        If model only has one 1 input, return a python list or numpy array of expected type  and shape. If model has more than 1 input, return a dictionary mapping input names to python list or numpy array of expected type and shape.
+        A dictionary of mapping model input name to a python list or array.
     """
     pass
 
-def postinference(prediction, metadata):
+def post_inference(prediction, metadata):
     """Modify prediction from model before adding it to response payload.
 
     Args:
-        sample: A single sample in the request payload converted from JSON to Python object
+        prediction: The output of the model.
 
         metadata: Describes the output shape and type of outputs from the model.
-            If API model_type is tensorflow the object is a map<string, SignatureDef>
+            If API model_format is tensorflow: map<string, SignatureDef>
                 https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/protobuf/meta_graph.proto
-            If API model_type is onnx the object is a list of [onnxruntime.NodeArg]
+            If API model_format is onnx: list<onnxruntime.NodeArg>
                 https://microsoft.github.io/onnxruntime/api_summary.html#onnxruntime.NodeArg
 
     Returns:
-        Python object that can be marshalled to JSON.
+        A python dictionary or list.
     """
 ```
 
@@ -44,19 +44,19 @@ import numpy as np
 
 iris_labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
 
-def preinference(request, metadata):
+def pre_inference(sample, metadata):
     return {
         metadata[0].name : [
-            request["sepal_length"],
-            request["sepal_width"],
-            request["petal_length"],
-            request["petal_width"],
+            sample["sepal_length"],
+            sample["sepal_width"],
+            sample["petal_length"],
+            sample["petal_width"],
         ]
     }
 
 
-def postinference(response, metadata):
-    predicted_class_id = response[0][0]
+def post_inference(prediction, metadata):
+    predicted_class_id = prediction[0][0]
     return {"class_label": iris_labels[predicted_class_id], "class_index": predicted_class_id}
 
 ```
