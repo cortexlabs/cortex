@@ -391,7 +391,7 @@ def valid_model_dir(model_dir):
     """
     version = os.listdir(model_dir)[0]
     if not version.isdigit():
-        raise "No versions of servable default found under base path in model_dir"
+        raise UserException("No versions of servable default found under base path in model_dir")
 
 
 def start(args):
