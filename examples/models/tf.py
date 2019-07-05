@@ -8,6 +8,7 @@ import os
 
 EXPORT_DIR = "iris_tf_export"
 
+
 def input_fn(features, labels, batch_size, mode):
     """An input function for training"""
     dataset = tf.data.Dataset.from_tensor_slices((features, labels))
