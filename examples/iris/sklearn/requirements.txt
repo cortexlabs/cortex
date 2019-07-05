@@ -1,0 +1,4 @@
+onnxmltools
+pandas
+scikit-learn
+skl2onnx

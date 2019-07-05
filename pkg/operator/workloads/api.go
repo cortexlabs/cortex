@@ -40,13 +40,12 @@ const (
 	tfServingContainerName = "serve"
 )
 
-func apiSpec(
+func tfAPISpec(
 	ctx *context.Context,
 	api *context.API,
 	workloadID string,
 	desiredReplicas int32,
 ) *appsv1b1.Deployment {
-
 	transformResourceList := corev1.ResourceList{}
 	tfServingResourceList := corev1.ResourceList{}
 	tfServingLimitsList := corev1.ResourceList{}
@@ -166,6 +165,87 @@ func apiSpec(
 	})
 }
 
+func onnxAPISpec(
+	ctx *context.Context,
+	api *context.API,
+	workloadID string,
+	desiredReplicas int32,
+) *appsv1b1.Deployment {
+	resourceList := corev1.ResourceList{}
+	resourceList[corev1.ResourceCPU] = api.Compute.CPU.Quantity
+
+	if api.Compute.Mem != nil {
+		resourceList[corev1.ResourceMemory] = api.Compute.Mem.Quantity
+	}
+
+	return k8s.Deployment(&k8s.DeploymentSpec{
+		Name:     internalAPIName(api.Name, ctx.App.Name),
+		Replicas: desiredReplicas,
+		Labels: map[string]string{
+			"appName":      ctx.App.Name,
+			"workloadType": WorkloadTypeAPI,
+			"apiName":      api.Name,
+			"resourceID":   ctx.APIs[api.Name].ID,
+			"workloadID":   workloadID,
+		},
+		Selector: map[string]string{
+			"appName":      ctx.App.Name,
+			"workloadType": WorkloadTypeAPI,
+			"apiName":      api.Name,
+		},
+		PodSpec: k8s.PodSpec{
+			Labels: map[string]string{
+				"appName":      ctx.App.Name,
+				"workloadType": WorkloadTypeAPI,
+				"apiName":      api.Name,
+				"resourceID":   ctx.APIs[api.Name].ID,
+				"workloadID":   workloadID,
+				"userFacing":   "true",
+			},
+			K8sPodSpec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:            apiContainerName,
+						Image:           config.Cortex.ONNXServeImage,
+						ImagePullPolicy: "Always",
+						Args: []string{
+							"--workload-id=" + workloadID,
+							"--port=" + defaultPortStr,
+							"--context=" + config.AWS.S3Path(ctx.Key),
+							"--api=" + ctx.APIs[api.Name].ID,
+							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
+							"--cache-dir=" + consts.ContextCacheDir,
+						},
+						Env:          k8s.AWSCredentials(),
+						VolumeMounts: k8s.DefaultVolumeMounts(),
+						ReadinessProbe: &corev1.Probe{
+							InitialDelaySeconds: 5,
+							TimeoutSeconds:      5,
+							PeriodSeconds:       5,
+							SuccessThreshold:    1,
+							FailureThreshold:    2,
+							Handler: corev1.Handler{
+								HTTPGet: &corev1.HTTPGetAction{
+									Path: "/healthz",
+									Port: intstr.IntOrString{
+										IntVal: defaultPortInt32,
+									},
+								},
+							},
+						},
+						Resources: corev1.ResourceRequirements{
+							Requests: resourceList,
+						},
+					},
+				},
+				Volumes:            k8s.DefaultVolumes(),
+				ServiceAccountName: "default",
+			},
+		},
+		Namespace: config.Cortex.Namespace,
+	})
+}
+
 func ingressSpec(ctx *context.Context, api *context.API) *k8s.IngressSpec {
 	return &k8s.IngressSpec{
 		Name:         internalAPIName(api.Name, ctx.App.Name),
@@ -253,10 +333,21 @@ func apiWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 			}
 		}
 
+		var spec metav1.Object
+
+		switch api.ModelFormat {
+		case userconfig.TensorFlowModelFormat:
+			spec = tfAPISpec(ctx, api, workloadID, desiredReplicas)
+		case userconfig.ONNXModelFormat:
+			spec = onnxAPISpec(ctx, api, workloadID, desiredReplicas)
+		default:
+			return nil, errors.New(api.Name, "unknown model format encountered") // unexpected
+		}
+
 		workloadSpecs = append(workloadSpecs, &WorkloadSpec{
 			WorkloadID:   workloadID,
 			ResourceIDs:  strset.New(api.ID),
-			K8sSpecs:     []metav1.Object{apiSpec(ctx, api, workloadID, desiredReplicas), hpaSpec(ctx, api)},
+			K8sSpecs:     []metav1.Object{spec, hpaSpec(ctx, api)},
 			K8sAction:    "apply",
 			WorkloadType: WorkloadTypeAPI,
 			// SuccessCondition: k8s.DeploymentSuccessConditionAll,  # Currently success conditions don't work for multi-resource config
