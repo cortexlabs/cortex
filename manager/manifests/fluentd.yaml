@@ -60,7 +60,7 @@ data:
     <source>
       @type tail
       enable_stat_watcher false
-      path /var/log/containers/**_$CORTEX_NAMESPACE}_**.lo
+      path /var/log/containers/**_${CORTEX_NAMESPACE}_**.lo
       pos_file /var/log/fluentd-containers.log.pos
       time_format %Y-%m-%dT%H:%M:%S.%NZ
       tag *
