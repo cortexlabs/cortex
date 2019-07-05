@@ -108,6 +108,7 @@ fi
 export CORTEX_LOG_GROUP="${CORTEX_LOG_GROUP:-cortex}"
 export CORTEX_BUCKET="${CORTEX_BUCKET:-""}"
 export CORTEX_REGION="${CORTEX_REGION:-us-west-2}"
+export CORTEX_ZONES="${CORTEX_ZONES:-""}"
 
 export CORTEX_CLUSTER="${CORTEX_CLUSTER:-cortex}"
 export CORTEX_NODE_TYPE="${CORTEX_NODE_TYPE:-t3.small}"
@@ -142,10 +143,12 @@ export CORTEX_ENABLE_TELEMETRY="${CORTEX_ENABLE_TELEMETRY:-""}"
 ##########################
 
 function install_eks() {
+  echo
   docker run --entrypoint /root/install_eks.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_REGION=$CORTEX_REGION \
     -e CORTEX_NODE_TYPE=$CORTEX_NODE_TYPE \
     -e CORTEX_NODES_MIN=$CORTEX_NODES_MIN \
     -e CORTEX_NODES_MAX=$CORTEX_NODES_MAX \
@@ -153,14 +156,17 @@ function install_eks() {
 }
 
 function uninstall_eks() {
+  echo
   docker run --entrypoint /root/uninstall_eks.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_REGION=$CORTEX_REGION \
     $CORTEX_IMAGE_MANAGER
 }
 
 function install_cortex() {
+  echo
   docker run --entrypoint /root/install_cortex.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
@@ -192,28 +198,34 @@ function install_cortex() {
 }
 
 function uninstall_cortex() {
+  echo
   docker run --entrypoint /root/uninstall_cortex.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_REGION=$CORTEX_REGION \
     -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
     $CORTEX_IMAGE_MANAGER
 }
 
 function uninstall_operator() {
+  echo
   docker run --entrypoint /root/uninstall_operator.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_REGION=$CORTEX_REGION \
     -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
     $CORTEX_IMAGE_MANAGER
 }
 
 function info() {
+  echo
   docker run --entrypoint /root/info.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_REGION=$CORTEX_REGION \
     -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
     $CORTEX_IMAGE_MANAGER
 }
