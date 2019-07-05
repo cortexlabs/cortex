@@ -50,7 +50,7 @@ def create_estimator(run_config, model_config):
 
 ## Pre-installed Packages
 
-You can import PyPI packages or your own Python packages to help create more complex models. See [Python Packages](../advanced/python-packages.md) for more details.
+You can import PyPI packages or your own Python packages to help create more complex models. See [Python Packages](python-packages.md) for more details.
 
 The following packages have been pre-installed and can be used in your implementations:
 
@@ -63,7 +63,7 @@ requirements-parser==0.2.0
 packaging==19.0.0
 ```
 
-You can install additional PyPI packages and import your own Python packages. See [Python Packages](../advanced/python-packages.md) for more details.
+You can install additional PyPI packages and import your own Python packages. See [Python Packages](python-packages.md) for more details.
 
 
 # Tensorflow Transformations

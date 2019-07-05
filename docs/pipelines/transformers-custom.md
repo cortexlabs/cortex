@@ -95,4 +95,4 @@ requirements-parser==0.2.0
 packaging==19.0.0
 ```
 
-You can install additional PyPI packages and import your own Python packages. See [Python Packages](../advanced/python-packages.md) for more details.
+You can install additional PyPI packages and import your own Python packages. See [Python Packages](python-packages.md) for more details.

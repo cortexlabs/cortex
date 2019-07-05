@@ -2,7 +2,7 @@
 
 An estimator defines how to train a model.
 
-Custom estimators can be implemented in Python or PySpark. See the [implementation docs](../implementations/estimators.md) for a detailed guide.
+Custom estimators can be implemented in Python or PySpark. See the [implementation docs](estimators.md) for a detailed guide.
 
 ## Config
 

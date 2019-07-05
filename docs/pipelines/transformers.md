@@ -2,7 +2,7 @@
 
 A transformer converts a set of columns and arbitrary values into a single transformed column. Each transformer has an input type and an output column type.
 
-Custom transformers can be implemented in Python or PySpark. See the [implementation docs](../implementations/transformers.md) for a detailed guide.
+Custom transformers can be implemented in Python or PySpark. See the [implementation docs](transformers.md) for a detailed guide.
 
 ## Config
 
