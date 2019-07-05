@@ -41,7 +41,7 @@ logreg_model.fit(X_train, y_train)
 onnx_model = onnxmltools.convert_sklearn(
     logreg_model, initial_types=[("input", onnxconverter_common.data_types.FloatTensorType([1, 4]))]
 )
-with open("sklearn.onnx", "wb") as f:
+with open("model.onnx", "wb") as f:
     f.write(onnx_model.SerializeToString())
 ```
 

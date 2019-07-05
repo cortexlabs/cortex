@@ -16,63 +16,63 @@ limitations under the License.
 
 package userconfig
 
-type ModelType int
+type ModelFormat int
 
 const (
-	UnknownModelType ModelType = iota
-	TensorFlowModelType
-	ONNXModelType
+	UnknownModelFormat ModelFormat = iota
+	TensorFlowModelFormat
+	ONNXModelFormat
 )
 
-var modelDataTypes = []string{
+var modelFormats = []string{
 	"unknown",
 	"tensorflow",
 	"onnx",
 }
 
-func ModelTypeFromString(s string) ModelType {
-	for i := 0; i < len(modelDataTypes); i++ {
-		if s == modelDataTypes[i] {
-			return ModelType(i)
+func ModelFormatFromString(s string) ModelFormat {
+	for i := 0; i < len(modelFormats); i++ {
+		if s == modelFormats[i] {
+			return ModelFormat(i)
 		}
 	}
-	return UnknownModelType
+	return UnknownModelFormat
 }
 
-func ModelTypeStrings() []string {
-	return modelDataTypes[1:]
+func ModelFormatStrings() []string {
+	return modelFormats[1:]
 }
 
-func (t ModelType) String() string {
-	return modelDataTypes[t]
+func (t ModelFormat) String() string {
+	return modelFormats[t]
 }
 
 // MarshalText satisfies TextMarshaler
-func (t ModelType) MarshalText() ([]byte, error) {
+func (t ModelFormat) MarshalText() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
 // UnmarshalText satisfies TextUnmarshaler
-func (t *ModelType) UnmarshalText(text []byte) error {
+func (t *ModelFormat) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(modelDataTypes); i++ {
-		if enum == modelDataTypes[i] {
-			*t = ModelType(i)
+	for i := 0; i < len(modelFormats); i++ {
+		if enum == modelFormats[i] {
+			*t = ModelFormat(i)
 			return nil
 		}
 	}
 
-	*t = UnknownModelType
+	*t = UnknownModelFormat
 	return nil
 }
 
 // UnmarshalBinary satisfies BinaryUnmarshaler
 // Needed for msgpack
-func (t *ModelType) UnmarshalBinary(data []byte) error {
+func (t *ModelFormat) UnmarshalBinary(data []byte) error {
 	return t.UnmarshalText(data)
 }
 
 // MarshalBinary satisfies BinaryMarshaler
-func (t ModelType) MarshalBinary() ([]byte, error) {
+func (t ModelFormat) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }

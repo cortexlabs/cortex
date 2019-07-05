@@ -34,7 +34,7 @@ type APIs []*API
 type API struct {
 	ResourceFields
 	Model          string      `json:"model" yaml:"model"`
-	ModelType      ModelType   `json:"model_format" yaml:"model_format"`
+	ModelFormat    ModelFormat `json:"model_format" yaml:"model_format"`
 	RequestHandler *string     `json:"request_handler" yaml:"request_handler"`
 	Compute        *APICompute `json:"compute" yaml:"compute"`
 	Tags           Tags        `json:"tags" yaml:"tags"`
@@ -61,13 +61,13 @@ var apiValidation = &cr.StructValidation{
 			StringPtrValidation: &cr.StringPtrValidation{},
 		},
 		{
-			StructField: "ModelType",
+			StructField: "ModelFormat",
 			StringValidation: &cr.StringValidation{
 				Required:      true,
-				AllowedValues: ModelTypeStrings(),
+				AllowedValues: ModelFormatStrings(),
 			},
 			Parser: func(str string) (interface{}, error) {
-				return ModelTypeFromString(str), nil
+				return ModelFormatFromString(str), nil
 			},
 		},
 		apiComputeFieldValidation,
@@ -81,8 +81,8 @@ func (api *API) UserConfigStr() string {
 	sb.WriteString(api.ResourceFields.UserConfigStr())
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, yaml.UnescapeAtSymbol(api.Model)))
 
-	if api.ModelType != UnknownModelType {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelFormatKey, api.ModelType.String()))
+	if api.ModelFormat != UnknownModelFormat {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelFormatKey, api.ModelFormat.String()))
 	}
 	if api.RequestHandler != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestHandlerKey, *api.RequestHandler))

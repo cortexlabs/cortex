@@ -47,7 +47,7 @@ func getAPIs(config *userconfig.Config,
 		var buf bytes.Buffer
 		var requestHandlerImplKey *string
 		buf.WriteString(apiConfig.Name)
-		buf.WriteString(apiConfig.ModelType.String())
+		buf.WriteString(apiConfig.ModelFormat.String())
 
 		if apiConfig.RequestHandler != nil {
 			for _, pythonPackage := range pythonPackages {

@@ -335,13 +335,13 @@ func apiWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 
 		var spec metav1.Object
 
-		switch api.ModelType {
-		case userconfig.TensorFlowModelType:
+		switch api.ModelFormat {
+		case userconfig.TensorFlowModelFormat:
 			spec = tfAPISpec(ctx, api, workloadID, desiredReplicas)
-		case userconfig.ONNXModelType:
+		case userconfig.ONNXModelFormat:
 			spec = onnxAPISpec(ctx, api, workloadID, desiredReplicas)
 		default:
-			return nil, errors.New(api.Name, "unknown model type countered") // unexpected
+			return nil, errors.New(api.Name, "unknown model format encountered") // unexpected
 		}
 
 		workloadSpecs = append(workloadSpecs, &WorkloadSpec{

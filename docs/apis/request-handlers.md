@@ -47,7 +47,7 @@ import numpy as np
 iris_labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
 
 def pre_inference(sample, metadata):
-    # Converts a key-value pairs of features to a flattened in list in the order expected by the model
+    # Converts a dictionary of features to a flattened in list in the order expected by the model
     return {
         metadata[0].name : [
             sample["sepal_length"],
@@ -59,7 +59,7 @@ def pre_inference(sample, metadata):
 
 
 def post_inference(prediction, metadata):
-    # Modify the model prediction to include the index and the label of the class predicted
+    # Modify the model prediction to include the index and the label of the predicted class
     probabilites = prediction[0][0]
     predicted_class_id = int(np.argmax(probabilites))
     return {
