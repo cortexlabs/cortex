@@ -47,7 +47,7 @@ import numpy as np
 iris_labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
 
 def pre_inference(sample, metadata):
-    # Converts a dictionary of features to a flattened in list in the order expected by the model
+    # Convert a dictionary of features to a flattened in list in the order expected by the model
     return {
         metadata[0].name : [
             sample["sepal_length"],
