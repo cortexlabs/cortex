@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
@@ -48,7 +47,7 @@ type PredictResponse struct {
 	Predictions []interface{} `json:"predictions"`
 }
 
-type Prediction struct {
+type DetailedPrediction struct {
 	Prediction         interface{} `json:"prediction"`
 	PredictionReversed interface{} `json:"prediction_reversed"`
 	TransformedSample  interface{} `json:"transformed_sample"`
@@ -99,7 +98,7 @@ var predictCmd = &cobra.Command{
 
 		apiID := predictResponse.ResourceID
 		api := resourcesRes.APIStatuses[apiID]
-		_, isModelReference := yaml.ExtractAtSymbolText(resourcesRes.Context.APIs[apiName].Model)
+		isExternalModel := resourcesRes.Context.APIs[apiName].IsServingExternalModel()
 
 		apiStart := libtime.LocalTimestampHuman(api.Start)
 		fmt.Println("\n" + apiName + " was last updated on " + apiStart + "\n")
@@ -111,7 +110,7 @@ var predictCmd = &cobra.Command{
 		}
 
 		for _, prediction := range predictResponse.Predictions {
-			if !isModelReference {
+			if isExternalModel {
 				prettyResp, err := json.Pretty(prediction)
 				if err != nil {
 					errors.Exit(err)
@@ -126,14 +125,14 @@ var predictCmd = &cobra.Command{
 				errors.Exit(err)
 			}
 
-			var parsedPrediction Prediction
-			err = json.DecodeWithNumber(predictionBytes, &parsedPrediction)
+			var detailedPrediction DetailedPrediction
+			err = json.DecodeWithNumber(predictionBytes, &detailedPrediction)
 			if err != nil {
 				errors.Exit(err, "prediction response")
 			}
 
-			if parsedPrediction.Prediction == nil {
-				prettyResp, err := json.Pretty(parsedPrediction.Response)
+			if detailedPrediction.Prediction == nil {
+				prettyResp, err := json.Pretty(detailedPrediction.Response)
 				if err != nil {
 					errors.Exit(err)
 				}
@@ -142,9 +141,9 @@ var predictCmd = &cobra.Command{
 				continue
 			}
 
-			value := parsedPrediction.Prediction
-			if parsedPrediction.PredictionReversed != nil {
-				value = parsedPrediction.PredictionReversed
+			value := detailedPrediction.Prediction
+			if detailedPrediction.PredictionReversed != nil {
+				value = detailedPrediction.PredictionReversed
 			}
 
 			if cast.IsFloatType(value) {

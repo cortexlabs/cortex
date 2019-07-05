@@ -37,7 +37,7 @@ See [packaging models](packaging-models.md) for how to create the zipped model.
 
 ## Custom Request Handlers
 
-API endpoints can be customized by providing a request handler. Request handlers can be used to prepare request payloads before being passed to model for inference and modify model predictions before they are served.
+Request handlers are used to decouple the interface of an API endpoint from its model. A `pre_inference` request handler can be used to modify request payloads before they is sent to the model. A `post_inference` request handler can be used to modify model predictions before they are served from the API endpoint.
 
 See [request handlers](request-handlers.md) for a detailed guide.
 

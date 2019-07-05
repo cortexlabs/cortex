@@ -1,5 +1,7 @@
 # Request Handlers
 
+Request handlers are python files that can contain a `pre_inference` function and a `post_inference` function. Both functions are optional. 
+
 ## Implementation
 
 ```python
@@ -16,7 +18,7 @@ def pre_inference(sample, metadata):
                 https://microsoft.github.io/onnxruntime/api_summary.html#onnxruntime.NodeArg
 
     Returns:
-        A dictionary of mapping model input name to a python list or array.
+        A dictionary containing model input names as keys and python lists or numpy arrays as values. If the model only has a single input, then a python list or numpy array can be returned instead of a dictionary with a single key.
     """
     pass
 
@@ -73,4 +75,4 @@ requirements-parser==0.2.0
 packaging==19.0.0
 ```
 
-You can install additional PyPI packages and import your own Python packages. See [Python Packages](../advanced/python-packages.md) for more details.
+You can install additional PyPI packages and import your own Python packages. See [Python Packages](../piplines/python-packages.md) for more details.

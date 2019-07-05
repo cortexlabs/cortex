@@ -6,10 +6,10 @@ iris_labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
 def pre_inference(sample, metadata):
     return {
         "input": [
-            payload["sepal_length"],
-            payload["sepal_width"],
-            payload["petal_length"],
-            payload["petal_width"],
+            sample["sepal_length"],
+            sample["sepal_width"],
+            sample["petal_length"],
+            sample["petal_width"],
         ]
     }
 

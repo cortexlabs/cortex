@@ -136,6 +136,12 @@ func (api *API) GetResourceType() resource.Type {
 	return resource.APIType
 }
 
+func (api *API) IsServingExternalModel() bool {
+	_, isModelReference := yaml.ExtractAtSymbolText(api.Model)
+
+	return !isModelReference
+}
+
 func (apis APIs) Names() []string {
 	names := make([]string, len(apis))
 	for i, api := range apis {

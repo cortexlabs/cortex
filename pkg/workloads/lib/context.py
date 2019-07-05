@@ -684,7 +684,7 @@ TRANSFORMER_IMPL_VALIDATION = {
 
 REQUEST_HANDLER_IMPL_VALIDATION = {
     "optional": [
-        {"name": "pre_inference", "args": ["payload", "metadata"]},
+        {"name": "pre_inference", "args": ["sample", "metadata"]},
         {"name": "post_inference", "args": ["prediction", "metadata"]},
     ]
 }

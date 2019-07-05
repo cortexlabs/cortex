@@ -44,7 +44,7 @@ test_y = Variable(torch.Tensor(y_test).long())
 
 model = Net()
 
-criterion = nn.CrossEntropyLoss()  # cross entropy loss
+criterion = nn.CrossEntropyLoss()
 
 optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 
