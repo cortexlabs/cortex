@@ -65,7 +65,7 @@ func getAPIs(config *userconfig.Config,
 
 			err := uploadRequestHandler(*requestHandlerImplKey, impls[*apiConfig.RequestHandler])
 			if err != nil {
-				return nil, errors.Wrap(err, userconfig.Identify(apiConfig), "upload")
+				return nil, errors.Wrap(err, userconfig.Identify(apiConfig))
 			}
 		}
 
@@ -101,13 +101,13 @@ func getAPIs(config *userconfig.Config,
 func uploadRequestHandler(implKey string, impl []byte) error {
 	isUploaded, err := config.AWS.IsS3File(implKey)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "upload")
 	}
 
 	if !isUploaded {
 		err = config.AWS.UploadBytesToS3(impl, implKey)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "upload")
 		}
 	}
 
