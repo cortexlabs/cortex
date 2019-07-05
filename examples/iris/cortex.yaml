@@ -5,37 +5,27 @@
   name: tensorflow
   model_format: tensorflow
   model: s3://cortex-examples/iris/tensorflow.zip
-  compute:
-    max_replicas: 1
 
 - kind: api
   name: pytorch
   model_format: onnx
-  request_handler: request_handlers/pytorch.py
+  request_handler: pytorch/request_handler.py
   model: s3://cortex-examples/iris/pytorch.onnx
-  compute:
-    max_replicas: 1
 
 - kind: api
   name: xgboost
   model_format: onnx
-  request_handler: request_handlers/xgboost.py
+  request_handler: xgboost/request_handler.py
   model: s3://cortex-examples/iris/xgboost.onnx
-  compute:
-    max_replicas: 1
 
 - kind: api
   name: sklearn
   model_format: onnx
-  request_handler: request_handlers/sklearn.py
+  request_handler: sklearn/request_handler.py
   model: s3://cortex-examples/iris/sklearn.onnx
-  compute:
-    max_replicas: 1
 
 - kind: api
   name: keras
   model_format: onnx
-  request_handler: request_handlers/keras.py
+  request_handler: keras/request_handler.py
   model: s3://cortex-examples/iris/keras.onnx
-  compute:
-    max_replicas: 1
