@@ -86,8 +86,7 @@ eval_spec = tf.estimator.EvalSpec(eval_input_fn, exporters=[exporter], name="est
 
 tf.estimator.train_and_evaluate(classifier, train_spec, eval_spec)
 
-# exported path looks like iris_tf_export/export/estimator/1562353043/variables
-# need to zip the versioned dir
+# zip the estimator export dir (the exported path looks like iris_tf_export/export/estimator/1562353043/)
 estimator_dir = EXPORT_DIR + "/export/estimator"
 shutil.make_archive("tensorflow", "zip", os.path.join(estimator_dir))
 
