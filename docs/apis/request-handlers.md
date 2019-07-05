@@ -18,12 +18,12 @@ def pre_inference(sample, metadata):
                 https://microsoft.github.io/onnxruntime/api_summary.html#onnxruntime.NodeArg
 
     Returns:
-        A dictionary containing model input names as keys and python lists or numpy arrays as values. If the model only has a single input, then a python list or numpy array can be returned instead of a dictionary with a single key.
+        A dictionary containing model input names as keys and python lists or numpy arrays as values. If the model only has a single input, then a python list or numpy array can be returned.
     """
     pass
 
 def post_inference(prediction, metadata):
-    """Modify prediction from model before adding it to response payload.
+    """Modify a prediction from the model before responding to the request.
 
     Args:
         prediction: The output of the model.
@@ -47,6 +47,7 @@ import numpy as np
 iris_labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
 
 def pre_inference(sample, metadata):
+    # Converts a key-value pairs of features to a flattened in list in the order expected by the model
     return {
         metadata[0].name : [
             sample["sepal_length"],
@@ -58,8 +59,14 @@ def pre_inference(sample, metadata):
 
 
 def post_inference(prediction, metadata):
-    predicted_class_id = prediction[0][0]
-    return {"class_label": iris_labels[predicted_class_id], "class_index": predicted_class_id}
+    # Modify the model prediction to include the index and the label of the class predicted
+    probabilites = prediction[0][0]
+    predicted_class_id = int(np.argmax(probabilites))
+    return {
+        "class_label": iris_labels[predicted_class_id],
+        "class_index": predicted_class_id,
+        "probabilities": probabilites,
+    }
 
 ```
 

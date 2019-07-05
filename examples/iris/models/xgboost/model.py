@@ -1,10 +1,3 @@
-"""
-Requirements.txt
-
-onnxmltools
-scikit-learn
-xgboost
-"""
 import numpy as np
 import xgboost as xgb
 from sklearn.datasets import load_iris

@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/cortexlabs/yaml"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -97,10 +98,10 @@ var predictCmd = &cobra.Command{
 		}
 
 		apiID := predictResponse.ResourceID
-		api := resourcesRes.APIStatuses[apiID]
-		isExternalModel := resourcesRes.Context.APIs[apiName].IsServingExternalModel()
+		apiStatus := resourcesRes.APIStatuses[apiID]
+		api := resourcesRes.Context.APIs[apiName]
 
-		apiStart := libtime.LocalTimestampHuman(api.Start)
+		apiStart := libtime.LocalTimestampHuman(apiStatus.Start)
 		fmt.Println("\n" + apiName + " was last updated on " + apiStart + "\n")
 
 		if len(predictResponse.Predictions) == 1 {
@@ -110,7 +111,7 @@ var predictCmd = &cobra.Command{
 		}
 
 		for _, prediction := range predictResponse.Predictions {
-			if isExternalModel {
+			if !yaml.StartsWithEscapedAtSymbol(api.Model) {
 				prettyResp, err := json.Pretty(prediction)
 				if err != nil {
 					errors.Exit(err)

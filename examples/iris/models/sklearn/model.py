@@ -1,17 +1,9 @@
-"""
-Requirements.txt
-
-onnxmltools
-pandas
-scikit-learn
-skl2onnx
-"""
 import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
-from onnxconverter_common.data_types import FloatTensorType
 from onnxmltools import convert_sklearn
+from onnxconverter_common.data_types import FloatTensorType
 
 iris = load_iris()
 X, y = iris.data, iris.target

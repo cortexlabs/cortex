@@ -4,14 +4,12 @@ iris_labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
 
 
 def pre_inference(sample, metadata):
-    return {
-        "input": [
-            sample["sepal_length"],
-            sample["sepal_width"],
-            sample["petal_length"],
-            sample["petal_width"],
-        ]
-    }
+    return [
+        sample["sepal_length"],
+        sample["sepal_width"],
+        sample["petal_length"],
+        sample["petal_width"],
+    ]
 
 
 def post_inference(prediction, metadata):

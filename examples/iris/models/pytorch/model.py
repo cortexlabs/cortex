@@ -1,9 +1,3 @@
-"""
-Requirements.txt
-
-scikit-learn
-torch
-"""
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.datasets import load_iris
@@ -11,9 +5,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-
-iris = load_iris()
-X, y = iris.data, iris.target
 
 
 class Net(nn.Module):
@@ -34,6 +25,8 @@ class Net(nn.Module):
         return X
 
 
+iris = load_iris()
+X, y = iris.data, iris.target
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.8, random_state=42)
 
 # wrap up with Variable in pytorch

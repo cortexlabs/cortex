@@ -82,7 +82,7 @@ func (api *API) UserConfigStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, yaml.UnescapeAtSymbol(api.Model)))
 
 	if api.ModelType != UnknownModelType {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelTypeKey, api.ModelType.String()))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelFormatKey, api.ModelType.String()))
 	}
 	if api.RequestHandler != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestHandlerKey, *api.RequestHandler))
@@ -134,12 +134,6 @@ func (api *API) Validate() error {
 
 func (api *API) GetResourceType() resource.Type {
 	return resource.APIType
-}
-
-func (api *API) IsServingExternalModel() bool {
-	_, isModelReference := yaml.ExtractAtSymbolText(api.Model)
-
-	return !isModelReference
 }
 
 func (apis APIs) Names() []string {

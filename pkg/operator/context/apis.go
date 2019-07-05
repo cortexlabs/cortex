@@ -64,7 +64,6 @@ func getAPIs(config *userconfig.Config,
 			requestHandlerImplKey = pointer.String(filepath.Join(consts.RequestHandlersDir, implID))
 
 			err := uploadRequestHandler(*requestHandlerImplKey, impls[*apiConfig.RequestHandler])
-
 			if err != nil {
 				return nil, errors.Wrap(err, userconfig.Identify(apiConfig), "upload")
 			}

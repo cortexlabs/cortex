@@ -1,11 +1,3 @@
-"""
-Requirements.txt
-
-scikit-learn
-keras
-keras2onnx
-tensorflow
-"""
 import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
@@ -15,8 +7,7 @@ from keras.utils import np_utils
 import keras2onnx
 
 iris = load_iris()
-X, y = iris.data, iris.target
-y = np_utils.to_categorical(y)
+X, y = iris.data, np_utils.to_categorical(iris.target)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 model = Sequential(name="iris")
