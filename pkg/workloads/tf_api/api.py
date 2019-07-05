@@ -379,6 +379,20 @@ def predict(deployment_name, api_name):
 
     return jsonify(response)
 
+def valid_model_dir(model_dir):
+    """
+    validates that model_dir has the expected directory tree, e.g:
+
+    {TF serving version number}/
+        saved_model.pb
+        variables/
+            variables.data-00000-of-00001
+            variables.index
+    """
+    version = os.listdir(model_dir)[0]
+    if not version.isdigit():
+        raise "No versions of servable default found under base path in model_dir"
+
 
 def start(args):
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
@@ -430,6 +444,13 @@ def start(args):
     else:
         if not os.path.isdir(args.model_dir):
             ctx.storage.download_and_unzip_external(api["model"], args.model_dir)
+
+
+    try:
+        valid_model_dir(args.model_dir)
+    except Exception as e:
+        logger.exception(e)
+        sys.exit(1)
 
     channel = grpc.insecure_channel("localhost:" + str(args.tf_serve_port))
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)
