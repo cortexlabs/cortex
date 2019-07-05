@@ -35,11 +35,11 @@ Cortex is actively maintained by Cortex Labs. We're a venture-backed team of inf
 ```python
 # handler.py
 
-def preprocess(payload):
+def pre_inference(sample, metadata):
   # Python code
 
 
-def postprocess(prediction):
+def post_inference(prediction, metadata):
   # Python code
 ```
 

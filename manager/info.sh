@@ -26,11 +26,10 @@ function get_apis_endpoint() {
   kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
 }
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER  | grep -v "saved kubeconfig as" || true
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" || true
 
 operator_endpoint=$(get_operator_endpoint)
 apis_endpoint=$(get_apis_endpoint)
 
-echo
 echo "Operator endpoint:  $operator_endpoint"
 echo "APIs endpoint:      $apis_endpoint"

@@ -108,6 +108,7 @@ fi
 export CORTEX_LOG_GROUP="${CORTEX_LOG_GROUP:-cortex}"
 export CORTEX_BUCKET="${CORTEX_BUCKET:-""}"
 export CORTEX_REGION="${CORTEX_REGION:-us-west-2}"
+export CORTEX_ZONES="${CORTEX_ZONES:-""}"
 
 export CORTEX_CLUSTER="${CORTEX_CLUSTER:-cortex}"
 export CORTEX_NODE_TYPE="${CORTEX_NODE_TYPE:-t3.small}"
@@ -130,6 +131,7 @@ export CORTEX_IMAGE_TF_API="${CORTEX_IMAGE_TF_API:-cortexlabs/tf-api:$CORTEX_VER
 export CORTEX_IMAGE_PYTHON_PACKAGER="${CORTEX_IMAGE_PYTHON_PACKAGER:-cortexlabs/python-packager:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_TF_SERVE_GPU="${CORTEX_IMAGE_TF_SERVE_GPU:-cortexlabs/tf-serve-gpu:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_TF_TRAIN_GPU="${CORTEX_IMAGE_TF_TRAIN_GPU:-cortexlabs/tf-train-gpu:$CORTEX_VERSION_STABLE}"
+export CORTEX_IMAGE_ONNX_SERVE="${CORTEX_IMAGE_ONNX_SERVE:-cortexlabs/onnx-serve:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_CLUSTER_AUTOSCALER="${CORTEX_IMAGE_CLUSTER_AUTOSCALER:-cortexlabs/cluster-autoscaler:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_NVIDIA="${CORTEX_IMAGE_NVIDIA:-cortexlabs/nvidia:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_METRICS_SERVER="${CORTEX_IMAGE_METRICS_SERVER:-cortexlabs/metrics-server:$CORTEX_VERSION_STABLE}"
@@ -141,10 +143,12 @@ export CORTEX_ENABLE_TELEMETRY="${CORTEX_ENABLE_TELEMETRY:-""}"
 ##########################
 
 function install_eks() {
+  echo
   docker run --entrypoint /root/install_eks.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_REGION=$CORTEX_REGION \
     -e CORTEX_NODE_TYPE=$CORTEX_NODE_TYPE \
     -e CORTEX_NODES_MIN=$CORTEX_NODES_MIN \
     -e CORTEX_NODES_MAX=$CORTEX_NODES_MAX \
@@ -152,14 +156,17 @@ function install_eks() {
 }
 
 function uninstall_eks() {
+  echo
   docker run --entrypoint /root/uninstall_eks.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_REGION=$CORTEX_REGION \
     $CORTEX_IMAGE_MANAGER
 }
 
 function install_cortex() {
+  echo
   docker run --entrypoint /root/install_cortex.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
@@ -182,6 +189,7 @@ function install_cortex() {
     -e CORTEX_IMAGE_PYTHON_PACKAGER=$CORTEX_IMAGE_PYTHON_PACKAGER \
     -e CORTEX_IMAGE_TF_SERVE_GPU=$CORTEX_IMAGE_TF_SERVE_GPU \
     -e CORTEX_IMAGE_TF_TRAIN_GPU=$CORTEX_IMAGE_TF_TRAIN_GPU \
+    -e CORTEX_IMAGE_ONNX_SERVE=$CORTEX_IMAGE_ONNX_SERVE \
     -e CORTEX_IMAGE_CLUSTER_AUTOSCALER=$CORTEX_IMAGE_CLUSTER_AUTOSCALER \
     -e CORTEX_IMAGE_NVIDIA=$CORTEX_IMAGE_NVIDIA \
     -e CORTEX_IMAGE_METRICS_SERVER=$CORTEX_IMAGE_METRICS_SERVER \
@@ -190,28 +198,34 @@ function install_cortex() {
 }
 
 function uninstall_cortex() {
+  echo
   docker run --entrypoint /root/uninstall_cortex.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_REGION=$CORTEX_REGION \
     -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
     $CORTEX_IMAGE_MANAGER
 }
 
 function uninstall_operator() {
+  echo
   docker run --entrypoint /root/uninstall_operator.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_REGION=$CORTEX_REGION \
     -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
     $CORTEX_IMAGE_MANAGER
 }
 
 function info() {
+  echo
   docker run --entrypoint /root/info.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_REGION=$CORTEX_REGION \
     -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
     $CORTEX_IMAGE_MANAGER
 }

@@ -18,7 +18,7 @@ set -e
 
 eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" || true
 
-echo -e "\nUninstalling Cortex ..."
+echo "Uninstalling Cortex ..."
 
 # Remove finalizers on sparkapplications (they sometimes create deadlocks)
 if kubectl get namespace $CORTEX_NAMESPACE >/dev/null 2>&1 && kubectl get customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1; then

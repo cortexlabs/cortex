@@ -20,6 +20,9 @@ export CORTEX_BUCKET="cortex-[RANDOM_ID]"
 # The AWS region Cortex will use
 export CORTEX_REGION="us-west-2"
 
+# The AWS zones Cortex will use (e.g. "us-east-1a,us-east-1b")
+export CORTEX_ZONES=""
+
 # The name of the EKS cluster Cortex will use
 export CORTEX_CLUSTER="cortex"
 
@@ -50,6 +53,7 @@ export CORTEX_IMAGE_TF_TRAIN="cortexlabs/tf-train:master"
 export CORTEX_IMAGE_TF_API="cortexlabs/tf-api:master"
 export CORTEX_IMAGE_TF_TRAIN_GPU="cortexlabs/tf-train-gpu:master"
 export CORTEX_IMAGE_TF_SERVE_GPU="cortexlabs/tf-serve-gpu:master"
+export CORTEX_IMAGE_ONNX_SERVE="cortexlabs/onnx-serve:master"
 export CORTEX_IMAGE_PYTHON_PACKAGER="cortexlabs/python-packager:master"
 export CORTEX_IMAGE_CLUSTER_AUTOSCALER="cortexlabs/cluster-autoscaler:master"
 export CORTEX_IMAGE_NVIDIA="cortexlabs/nvidia:master"

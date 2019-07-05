@@ -244,8 +244,16 @@ def parse_response_proto_raw(response_proto):
 
 
 def run_predict(sample):
+    request_handler = local_cache.get("request_handler")
+
+    prepared_sample = sample
+    if request_handler is not None and util.has_function(request_handler, "pre_inference"):
+        prepared_sample = request_handler.pre_inference(
+            sample, local_cache["metadata"]["signatureDef"]
+        )
+
     if util.is_resource_ref(local_cache["api"]["model"]):
-        transformed_sample = transform_sample(sample)
+        transformed_sample = transform_sample(prepared_sample)
         prediction_request = create_prediction_request(transformed_sample)
         response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
         result = parse_response_proto(response_proto)
@@ -260,13 +268,16 @@ def run_predict(sample):
         result["transformed_sample"] = transformed_sample
 
     else:
-        prediction_request = create_raw_prediction_request(sample)
+        prediction_request = create_raw_prediction_request(prepared_sample)
         response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
         result = parse_response_proto_raw(response_proto)
         util.log_indent("Sample:", indent=4)
         util.log_pretty(sample, indent=6)
         util.log_indent("Prediction:", indent=4)
         util.log_pretty(result, indent=6)
+
+    if request_handler is not None and util.has_function(request_handler, "post_inference"):
+        result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
 
     return result
 
@@ -382,14 +393,22 @@ def predict(deployment_name, api_name):
 
 def start(args):
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
-    package.install_packages(ctx.python_packages, ctx.storage)
 
     api = ctx.apis_id_map[args.api]
-
     local_cache["api"] = api
     local_cache["ctx"] = ctx
 
+    if api.get("request_handler_impl_key") is not None:
+        local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
+
+    if not util.is_resource_ref(api["model"]):
+        if api.get("request_handler") is not None:
+            package.install_packages(ctx.python_packages, ctx.storage)
+        if not os.path.isdir(args.model_dir):
+            ctx.storage.download_and_unzip_external(api["model"], args.model_dir)
+
     if util.is_resource_ref(api["model"]):
+        package.install_packages(ctx.python_packages, ctx.storage)
         model_name = util.get_resource_ref(api["model"])
         model = ctx.models[model_name]
         estimator = ctx.estimators[model["estimator"]]
@@ -426,10 +445,6 @@ def start(args):
             local_cache["target_vocab_populated"] = ctx.populate_values(
                 model["input"]["target_vocab"], None, False
             )
-
-    else:
-        if not os.path.isdir(args.model_dir):
-            ctx.storage.download_and_unzip_external(api["model"], args.model_dir)
 
     channel = grpc.insecure_channel("localhost:" + str(args.tf_serve_port))
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)

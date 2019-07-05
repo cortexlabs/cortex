@@ -20,7 +20,7 @@ set -e
 
 eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" || true
 
-echo -e "\nUninstalling the Cortex operator ..."
+echo "Uninstalling the Cortex operator ..."
 
 kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true deployment operator >/dev/null 2>&1
 
