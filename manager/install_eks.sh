@@ -16,7 +16,7 @@
 
 set -e
 
-echo -e "Spinning up the cluster ... (this will take about 15 minutes)\n"
+echo -e "\nSpinning up the cluster ... (this will take about 15 minutes)\n"
 
 eksctl create cluster --name=$CORTEX_CLUSTER \
                       --region=$CORTEX_REGION \

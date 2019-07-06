@@ -63,6 +63,7 @@ function setup_configmap() {
     --from-literal='IMAGE_SPARK'=$CORTEX_IMAGE_SPARK \
     --from-literal='IMAGE_TF_TRAIN'=$CORTEX_IMAGE_TF_TRAIN \
     --from-literal='IMAGE_TF_SERVE'=$CORTEX_IMAGE_TF_SERVE \
+    --from-literal='IMAGE_ONNX_SERVE'=$CORTEX_IMAGE_ONNX_SERVE \
     --from-literal='IMAGE_TF_API'=$CORTEX_IMAGE_TF_API \
     --from-literal='IMAGE_PYTHON_PACKAGER'=$CORTEX_IMAGE_PYTHON_PACKAGER \
     --from-literal='IMAGE_TF_TRAIN_GPU'=$CORTEX_IMAGE_TF_TRAIN_GPU \
