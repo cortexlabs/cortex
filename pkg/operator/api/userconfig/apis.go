@@ -63,8 +63,9 @@ var apiValidation = &cr.StructValidation{
 		{
 			StructField: "ModelFormat",
 			StringValidation: &cr.StringValidation{
-				Required:      true,
-				AllowedValues: ModelFormatStrings(),
+				Required:      false,
+				AllowEmpty:    true,
+				AllowedValues: append(ModelFormatStrings(), ""),
 			},
 			Parser: func(str string) (interface{}, error) {
 				return ModelFormatFromString(str), nil
@@ -115,7 +116,13 @@ func (apis APIs) Validate() error {
 }
 
 func (api *API) Validate() error {
-	if !yaml.StartsWithEscapedAtSymbol(api.Model) {
+	if yaml.StartsWithEscapedAtSymbol(api.Model) {
+		api.ModelFormat = TensorFlowModelFormat
+	} else {
+		if api.ModelFormat == UnknownModelFormat {
+			return errors.Wrap(cr.ErrorMustBeDefined(), Identify(api), ModelFormatKey)
+		}
+
 		if !aws.IsValidS3Path(api.Model) {
 			return errors.Wrap(ErrorInvalidS3PathOrResourceReference(api.Model), Identify(api), ModelKey)
 		}
