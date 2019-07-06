@@ -282,7 +282,7 @@ func (c *Client) StalledPods() ([]corev1.Pod, error) {
 		return nil, err
 	}
 	for _, pod := range pods {
-		if !libtime.OlderThanSeconds(pod.CreationTimestamp.Time, 60) {
+		if !libtime.OlderThanSeconds(pod.CreationTimestamp.Time, 3*60) {
 			continue
 		}
 		stalledPods = append(stalledPods, pod)
