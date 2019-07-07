@@ -7,7 +7,7 @@ Serve models at scale.
 ```yaml
 - kind: api
   name: <string>  # API name (required)
-  model: <string>  # path to a zipped model dir (e.g. s3://my-bucket/model.zip)
+  model: <string>  # path to an exported model (e.g. s3://my-bucket/model.zip)
   model_format: <string>  # model format, must be "tensorflow" or "onnx"
   request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
   compute:
