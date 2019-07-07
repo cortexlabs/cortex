@@ -177,8 +177,7 @@ envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/cluster-autoscaler.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
 
-instance_prefix=$(echo $CORTEX_NODE_TYPE | cut -c1-2)
-if [ "$instance_prefix" = "p2" ] || [ "$instance_prefix" = "p3" ] || [ "$instance_prefix" = "g3" ]; then
+if [[ "$CORTEX_NODE_TYPE" == p* ]] || [[ "$CORTEX_NODE_TYPE" == g* ]]; then
   envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
 fi
 
