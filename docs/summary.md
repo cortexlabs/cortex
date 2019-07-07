@@ -7,10 +7,12 @@
 
 ## Model Deployments
 
-* [Deployments](apis/deployment.md)
+* [Deployments](apis/deployments.md)
 * [APIs](apis/apis.md)
 * [Packaging Models](apis/packaging-models.md)
+* [Request Handlers](apis/request-handlers.md)
 * [Compute](apis/compute.md)
+* [Python Packages](apis/python-packages.md)
 * [CLI Commands](cluster/cli.md)
 * [Resource Statuses](apis/statuses.md)
 
@@ -26,7 +28,6 @@
 
 * [Overview](pipelines/overview.md)
 * [Tutorial](pipelines/tutorial.md)
-* [Deployments](pipelines/deployment.md)
 * [Environments](pipelines/environments.md)
 * [Raw Columns](pipelines/raw-columns.md)
 * [Aggregators](pipelines/aggregators.md)
@@ -38,12 +39,7 @@
 * [Estimators](pipelines/estimators.md)
 * [Custom Estimators](pipelines/estimators-custom.md)
 * [Models](pipelines/pipelines.md)
-* [APIs](pipelines/apis.md)
 * [Constants](pipelines/constants.md)
 * [Data Types](pipelines/data-types.md)
 * [Templates](pipelines/templates.md)
-* [Packaging Models](pipelines/packaging-models.md)
-* [Python Packages](pipelines/python-packages.md)
-* [Compute](pipelines/compute.md)
-* [CLI Commands](cluster/cli.md)
 * [Resource Statuses](pipelines/statuses.md)
