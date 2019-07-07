@@ -1,11 +1,11 @@
 # Compute
 
-Compute resource requests in Cortex follow the syntax and meaning of [compute resources in Kubernetes](https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/).
+Compute resource requests in Cortex follow the syntax and meaning of [compute resources in Kubernetes](https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container).
 
 For example:
 
 ```yaml
-- kind: model
+- kind: api
   ...
   compute:
     cpu: "2"

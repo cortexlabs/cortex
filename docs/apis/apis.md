@@ -1,6 +1,6 @@
 # APIs
 
-Serve models at scale and use them to build smarter applications.
+Serve models at scale.
 
 ## Config
 
@@ -40,17 +40,3 @@ See [packaging models](packaging-models.md) for how to create the zipped model.
 Request handlers are used to decouple the interface of an API endpoint from its model. A `pre_inference` request handler can be used to modify request payloads before they are sent to the model. A `post_inference` request handler can be used to modify model predictions in the server before they are sent to the client.
 
 See [request handlers](request-handlers.md) for a detailed guide.
-
-## Integration
-
-APIs can be integrated into other applications or services via their JSON endpoints. The endpoint for any API follows the following format: {apis_endpoint}/{deployment_name}/{api_name}.
-
-The fields in the request payload for a particular API should match the raw columns that were used to train the model that it is serving. Cortex automatically applies the same transformers that were used at training time when responding to prediction requests.
-
-## Horizontal Scalability
-
-APIs can be configured using `replicas` in the `compute` field. Replicas can be used to change the amount of computing resources allocated to service prediction requests for a particular API. APIs that have low request volumes should have a small number of replicas while APIs that handle large request volumes should have more replicas.
-
-## Rolling Updates
-
-When the model that an API is serving gets updated, Cortex will update the API with the new model without any downtime.
