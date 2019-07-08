@@ -210,8 +210,8 @@ def start(args):
     local_cache["sess"] = sess
     local_cache["input_metadata"] = sess.get_inputs()
     local_cache["output_metadata"] = sess.get_outputs()
+    logger.info("Serving model: {}".format(util.remove_resource_ref(api["model"])))
     serve(app, listen="*:{}".format(args.port))
-    logger.info("Serving model")
 
 
 def main():
