@@ -21,7 +21,7 @@ SHELL := /bin/bash
 # Cortex
 
 devstart:
-	@./dev/operator_local.sh || true
+	@kill $(shell pgrep -f rerun); ./dev/operator_local.sh || true
 
 killdev:
 	@kill $(shell pgrep -f rerun)
