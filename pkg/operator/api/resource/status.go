@@ -61,6 +61,7 @@ type GroupedReplicaCounts struct {
 	FailedUpdated      int32 `json:"failed_updated"`
 	FailedStaleModel   int32 `json:"failed_stale_model"`
 	FailedStaleCompute int32 `json:"failed_stale_compute"`
+	Requested          int32 `json:"requested"`
 }
 
 type Status interface {

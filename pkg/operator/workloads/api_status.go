@@ -336,10 +336,18 @@ func getGroupedReplicaCounts(apiStatuses []*resource.APIStatus, ctx *context.Con
 
 	for _, apiStatus := range apiStatuses {
 		if ctxAPI != nil && apiStatus.ResourceID == ctxAPI.ID {
-			groupedReplicaCounts.ReadyUpdated += apiStatus.ReadyUpdatedCompute
-			groupedReplicaCounts.ReadyStaleCompute += apiStatus.ReadyStaleCompute
-			groupedReplicaCounts.FailedUpdated += apiStatus.FailedUpdatedCompute
-			groupedReplicaCounts.FailedStaleCompute += apiStatus.FailedStaleCompute
+			groupedReplicaCounts.ReadyUpdated = apiStatus.ReadyUpdatedCompute
+			groupedReplicaCounts.ReadyStaleCompute = apiStatus.ReadyStaleCompute
+			groupedReplicaCounts.FailedUpdated = apiStatus.FailedUpdatedCompute
+			groupedReplicaCounts.FailedStaleCompute = apiStatus.FailedStaleCompute
+
+			groupedReplicaCounts.Requested = ctxAPI.Compute.InitReplicas
+			if apiStatus.K8sRequested > 0 {
+				groupedReplicaCounts.Requested = apiStatus.K8sRequested
+			}
+			if groupedReplicaCounts.Requested < ctxAPI.Compute.MinReplicas {
+				groupedReplicaCounts.Requested = ctxAPI.Compute.MinReplicas
+			}
 		} else {
 			groupedReplicaCounts.ReadyStaleModel += apiStatus.TotalReady()
 			groupedReplicaCounts.FailedStaleModel += apiStatus.TotalFailed()

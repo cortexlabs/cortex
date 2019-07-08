@@ -31,6 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
@@ -221,16 +222,16 @@ func pythonPackagesStr(dataStatuses map[string]*resource.DataStatus, ctx *contex
 		return ""
 	}
 
-	strings := make(map[string]string)
-	for name, pythonPackage := range ctx.PythonPackages {
-		strings[name] = dataResourceRow(name, pythonPackage, dataStatuses)
+	resources := make([]context.Resource, 0, len(ctx.PythonPackages))
+	for _, pythonPackage := range ctx.PythonPackages {
+		resources = append(resources, pythonPackage)
 	}
 
 	title := "\n"
 	if showTitle {
 		title = titleStr("Python Packages")
 	}
-	return title + dataResourcesHeader() + strMapToStr(strings)
+	return title + dataResourceTable(resources, dataStatuses) + "\n"
 }
 
 func rawColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context, showTitle bool) string {
@@ -238,16 +239,16 @@ func rawColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Co
 		return ""
 	}
 
-	strings := make(map[string]string)
-	for name, rawColumn := range ctx.RawColumns {
-		strings[name] = dataResourceRow(name, rawColumn, dataStatuses)
+	resources := make([]context.Resource, 0, len(ctx.RawColumns))
+	for _, rawColumn := range ctx.RawColumns {
+		resources = append(resources, rawColumn)
 	}
 
 	title := "\n"
 	if showTitle {
 		title = titleStr("Raw Columns")
 	}
-	return title + dataResourcesHeader() + strMapToStr(strings)
+	return title + dataResourceTable(resources, dataStatuses) + "\n"
 }
 
 func aggregatesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context, showTitle bool) string {
@@ -255,16 +256,16 @@ func aggregatesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Co
 		return ""
 	}
 
-	strings := make(map[string]string)
-	for name, aggregate := range ctx.Aggregates {
-		strings[name] = dataResourceRow(name, aggregate, dataStatuses)
+	resources := make([]context.Resource, 0, len(ctx.Aggregates))
+	for _, aggregate := range ctx.Aggregates {
+		resources = append(resources, aggregate)
 	}
 
 	title := "\n"
 	if showTitle {
 		title = titleStr("Aggregates")
 	}
-	return title + dataResourcesHeader() + strMapToStr(strings)
+	return title + dataResourceTable(resources, dataStatuses) + "\n"
 }
 
 func transformedColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context, showTitle bool) string {
@@ -272,16 +273,16 @@ func transformedColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *co
 		return ""
 	}
 
-	strings := make(map[string]string)
-	for name, transformedColumn := range ctx.TransformedColumns {
-		strings[name] = dataResourceRow(name, transformedColumn, dataStatuses)
+	resources := make([]context.Resource, 0, len(ctx.TransformedColumns))
+	for _, transformedColumn := range ctx.TransformedColumns {
+		resources = append(resources, transformedColumn)
 	}
 
 	title := "\n"
 	if showTitle {
 		title = titleStr("Transformed Columns")
 	}
-	return title + dataResourcesHeader() + strMapToStr(strings)
+	return title + dataResourceTable(resources, dataStatuses) + "\n"
 }
 
 func trainingDataStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context, showTitle bool) string {
@@ -289,17 +290,16 @@ func trainingDataStr(dataStatuses map[string]*resource.DataStatus, ctx *context.
 		return ""
 	}
 
-	strings := make(map[string]string)
+	resources := make([]context.Resource, 0, len(ctx.Models))
 	for _, model := range ctx.Models {
-		name := model.Dataset.Name
-		strings[name] = dataResourceRow(name, model.Dataset, dataStatuses)
+		resources = append(resources, model.Dataset)
 	}
 
 	title := "\n"
 	if showTitle {
 		title = titleStr("Training Datasets")
 	}
-	return title + dataResourcesHeader() + strMapToStr(strings)
+	return title + dataResourceTable(resources, dataStatuses) + "\n"
 }
 
 func modelsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context, showTitle bool) string {
@@ -307,16 +307,16 @@ func modelsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Contex
 		return ""
 	}
 
-	strings := make(map[string]string)
-	for name, model := range ctx.Models {
-		strings[name] = dataResourceRow(name, model, dataStatuses)
+	resources := make([]context.Resource, 0, len(ctx.Models))
+	for _, model := range ctx.Models {
+		resources = append(resources, model)
 	}
 
 	title := "\n"
 	if showTitle {
 		title = titleStr("Models")
 	}
-	return title + dataResourcesHeader() + strMapToStr(strings)
+	return title + dataResourceTable(resources, dataStatuses) + "\n"
 }
 
 func apisStr(apiGroupStatuses map[string]*resource.APIGroupStatus, showTitle bool) string {
@@ -324,16 +324,11 @@ func apisStr(apiGroupStatuses map[string]*resource.APIGroupStatus, showTitle boo
 		return ""
 	}
 
-	strings := make(map[string]string)
-	for name, apiGroupStatus := range apiGroupStatuses {
-		strings[name] = apiResourceRow(apiGroupStatus)
-	}
-
 	title := "\n"
 	if showTitle {
 		title = titleStr("APIs")
 	}
-	return title + apisHeader() + strMapToStr(strings)
+	return title + apiResourceTable(apiGroupStatuses)
 }
 
 func describePythonPackage(name string, resourcesRes *schema.GetResourcesResponse) (string, error) {
@@ -428,27 +423,11 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 	ctx := resourcesRes.Context
 	api := ctx.APIs[name]
 
-	var ctxAPIStatus *resource.APIStatus
-	if api != nil {
-		ctxAPIStatus = resourcesRes.APIStatuses[api.ID]
-	}
-
 	var anyAPIStatus *resource.APIStatus
 	for _, apiStatus := range resourcesRes.APIStatuses {
 		if apiStatus.APIName == name {
 			anyAPIStatus = apiStatus
 			break
-		}
-	}
-
-	var requestedReplicas int32
-	if ctxAPIStatus != nil {
-		requestedReplicas = api.Compute.InitReplicas
-		if ctxAPIStatus.K8sRequested > 0 {
-			requestedReplicas = ctxAPIStatus.K8sRequested
-		}
-		if requestedReplicas < api.Compute.MinReplicas {
-			requestedReplicas = api.Compute.MinReplicas
 		}
 	}
 
@@ -472,7 +451,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 	out += fmt.Sprintf("Available replicas:  %s\n", s.Int32(groupStatus.Available()))
 	out += fmt.Sprintf("  - Current model:   %s%s\n", s.Int32(groupStatus.UpToDate()), staleComputeStr)
 	out += fmt.Sprintf("  - Previous model:  %s\n", s.Int32(groupStatus.ReadyStaleModel))
-	out += fmt.Sprintf("Requested replicas:  %s\n", s.Int32(requestedReplicas))
+	out += fmt.Sprintf("Requested replicas:  %s\n", s.Int32(groupStatus.Requested))
 	out += fmt.Sprintf("Failed replicas:     %s\n", s.Int32(groupStatus.FailedUpdated))
 	out += "\n"
 	out += fmt.Sprintf("Created at:    %s\n", libtime.LocalTimestamp(groupStatus.Start))
@@ -537,40 +516,60 @@ func strMapToStr(strings map[string]string) string {
 	return out
 }
 
-func dataResourceRow(name string, resource context.Resource, dataStatuses map[string]*resource.DataStatus) string {
-	dataStatus := dataStatuses[resource.GetID()]
-	return resourceRow(name, dataStatus.Message(), dataStatus.End)
-}
-
-func apiResourceRow(groupStatus *resource.APIGroupStatus) string {
-	var updatedAt *time.Time
-	if groupStatus.ActiveStatus != nil {
-		updatedAt = groupStatus.ActiveStatus.Start
+func dataResourceTable(resources []context.Resource, dataStatuses map[string]*resource.DataStatus) string {
+	rows := make([][]interface{}, len(resources))
+	for rowNum, res := range resources {
+		dataStatus := dataStatuses[res.GetID()]
+		rows[rowNum] = []interface{}{
+			res.GetName(),
+			dataStatus.Message(),
+			libtime.Since(dataStatus.End),
+		}
 	}
-	return resourceRow(groupStatus.APIName, groupStatus.Message(), updatedAt)
-}
 
-func resourceRow(name string, status string, startTime *time.Time) string {
-	if len(name) > 33 {
-		name = name[0:30] + "..."
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "NAME", MinWidth: 32, MaxWidth: 32},
+			{Title: "STATUS", MaxWidth: 21, MinWidth: 21},
+			{Title: "AGE"},
+		},
+		Rows: rows,
 	}
-	if len(status) > 23 {
-		status = status[0:20] + "..."
+
+	return table.MustFormat(t)
+}
+
+func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
+	rows := make([][]interface{}, 0, len(apiGroupStatuses))
+	for name, groupStatus := range apiGroupStatuses {
+		var updatedAt *time.Time
+		if groupStatus.ActiveStatus != nil {
+			updatedAt = groupStatus.ActiveStatus.Start
+		}
+
+		rows = append(rows, []interface{}{
+			name,
+			groupStatus.Available(),
+			groupStatus.UpToDate(),
+			groupStatus.Requested,
+			groupStatus.FailedUpdated,
+			libtime.Since(updatedAt),
+		})
 	}
-	timeSince := libtime.Since(startTime)
-	return stringifyRow(name, status, timeSince)
-}
 
-func dataResourcesHeader() string {
-	return stringifyRow("NAME", "STATUS", "AGE") + "\n"
-}
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "NAME"},
+			{Title: "AVAILABLE"},
+			{Title: "UP-TO-DATE"},
+			{Title: "REQUESTED"},
+			{Title: "FAILED"},
+			{Title: "LAST UPDATE"},
+		},
+		Rows: rows,
+	}
 
-func apisHeader() string {
-	return stringifyRow("NAME", "STATUS", "LAST UPDATE") + "\n"
-}
-
-func stringifyRow(name string, status string, timeSince string) string {
-	return fmt.Sprintf("%-35s%-24s%s", name, status, timeSince)
+	return table.MustFormat(t)
 }
 
 func titleStr(title string) string {

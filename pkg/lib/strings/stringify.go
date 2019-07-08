@@ -317,6 +317,10 @@ func ObjFlat(val interface{}) string {
 	return strIndent(val, "", "", "", `"`)
 }
 
+func ObjFlatNoQuotes(val interface{}) string {
+	return strIndent(val, "", "", "", "")
+}
+
 func UserStr(val interface{}) string {
 	return strIndent(val, "", "", "", `"`)
 }
