@@ -41,7 +41,7 @@ Train TensorFlow models at scale.
     throttle_secs: <int>  # do not re-evaluate unless the last evaluation was started at least this many seconds ago (default: 600)
 
   compute:         # Resources for training and evaluations steps (TensorFlow)
-    cpu: <string>  # CPU request (default: 200m)
+    cpu: <string>  # CPU request (default: 400m)
     mem: <string>  # memory request (default: Null)
     gpu: <string>  # GPU request (default: 0)
 

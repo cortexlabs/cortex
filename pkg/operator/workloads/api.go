@@ -522,7 +522,7 @@ func APIsBaseURL() (string, error) {
 func APIPodComputeID(containers []corev1.Container) string {
 	cpu, mem, gpu := APIPodCompute(containers)
 	if cpu == nil {
-		cpu = &userconfig.Quantity{} // unexpected, since the default is 200m and 0 is disallowed
+		cpu = &userconfig.Quantity{} // unexpected, since 0 is disallowed
 	}
 	podAPICompute := userconfig.APICompute{
 		CPU: *cpu,

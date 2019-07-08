@@ -178,7 +178,7 @@ var tfComputeFieldValidation = &cr.StructFieldValidation{
 			{
 				StructField: "CPU",
 				StringValidation: &cr.StringValidation{
-					Default: "200m",
+					Default: "400m",
 				},
 				Parser: QuantityParser(&QuantityValidation{
 					GreaterThan: k8sQuantityPtr(k8sresource.MustParse("0")),
@@ -269,7 +269,7 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 			{
 				StructField: "CPU",
 				StringValidation: &cr.StringValidation{
-					Default: "200m",
+					Default: "400m",
 				},
 				Parser: QuantityParser(&QuantityValidation{
 					GreaterThan: k8sQuantityPtr(k8sresource.MustParse("0")),
