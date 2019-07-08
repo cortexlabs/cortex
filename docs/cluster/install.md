@@ -55,7 +55,7 @@ cortex deploy
 cortex get --watch
 
 # Classify a sample
-cortex predict iris-type irises.json
+cortex predict tensorflow tensorflow/irises.json
 ```
 
 ## Cleanup
