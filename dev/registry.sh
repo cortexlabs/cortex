@@ -117,6 +117,9 @@ env=${2:-""}
 if [ "$cmd" = "create" ]; then
   create_registry
 
+elif [ "$cmd" = "manager" ]; then
+  build $ROOT/images/manager manager latest
+
 elif [ "$cmd" = "update" ]; then
   if [ "$env" != "dev" ]; then
     build_and_push $ROOT/images/manager manager latest

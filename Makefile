@@ -31,6 +31,7 @@ kubectl:
 	@kubectl config set-context --current --namespace="cortex"
 
 cortex-up:
+	@./dev/registry.sh manager
 	@./cortex.sh -c=./dev/config/cortex.sh install
 	$(MAKE) kubectl
 
