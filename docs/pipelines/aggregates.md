@@ -23,7 +23,7 @@ Aggregate columns at scale.
 
 See [Data Types](data-types.md) for details about input values. Note: the `input` of the the aggregate must match the input type of the aggregator (if specified).
 
-See <!-- CORTEX_VERSION_MINOR -->[`aggregators.yaml`](https://github.com/cortexlabs/cortex/blob/master/pkg/aggregators/aggregators.yaml) for a list of built-in aggregators.
+See <!-- CORTEX_VERSION_MINOR -->[`aggregators.yaml`](https://github.com/cortexlabs/cortex/blob/0.6/pkg/aggregators/aggregators.yaml) for a list of built-in aggregators.
 
 ## Example
 

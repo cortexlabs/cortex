@@ -88,7 +88,7 @@ fi
 
 set -u
 
-export CORTEX_VERSION_STABLE=master
+export CORTEX_VERSION_STABLE=0.6.0
 
 # Defaults
 export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-""}"
