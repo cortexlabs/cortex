@@ -31,7 +31,7 @@ kubectl:
 	@kubectl config set-context --current --namespace="cortex"
 
 cortex-up:
-	@./dev/registry.sh manager
+	@$(MAKE) registry-all
 	@./cortex.sh -c=./dev/config/cortex.sh install
 	$(MAKE) kubectl
 
@@ -40,21 +40,21 @@ cortex-up-dev:
 	$(MAKE) operator-stop
 
 cortex-down:
-	$(MAKE) kubectl
 	@./cortex.sh -c=./dev/config/cortex.sh uninstall
 
 cortex-info:
-	$(MAKE) kubectl
 	@./cortex.sh -c=./dev/config/cortex.sh info
 
 cortex-update:
-	$(MAKE) kubectl
+	@$(MAKE) registry-all
 	@./cortex.sh -c=./dev/config/cortex.sh update
 
 operator-start:
+	@$(MAKE) registry-all
 	@./cortex.sh -c=./dev/config/cortex.sh update
 
 operator-update:
+	@$(MAKE) registry-all
 	@./cortex.sh -c=./dev/config/cortex.sh update
 
 operator-stop:
