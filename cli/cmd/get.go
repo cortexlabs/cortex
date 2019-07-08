@@ -529,8 +529,8 @@ func dataResourceTable(resources []context.Resource, dataStatuses map[string]*re
 
 	t := table.Table{
 		Headers: []table.Header{
-			{Title: "NAME", MinWidth: 32, MaxWidth: 32},
-			{Title: "STATUS", MaxWidth: 21, MinWidth: 21},
+			{Title: "NAME", MaxWidth: 32},
+			{Title: "STATUS", MaxWidth: 21},
 			{Title: "AGE"},
 		},
 		Rows: rows,
