@@ -31,17 +31,18 @@ Reference your `model` in an API:
 Export your trained model to an ONNX model format. An example of an sklearn model being exported to ONNX is shown below:
 
 ```Python
-...
-logreg_model = sklearn.linear_model.LogisticRegression(solver="lbfgs", multi_class="multinomial")
+from sklearn.linear_model import LogisticRegression
+from onnxmltools import convert_sklearn
+from onnxconverter_common.data_types import FloatTensorType
 
-# Train the model
+...
+
+logreg_model = LogisticRegression(solver="lbfgs", multi_class="multinomial")
 logreg_model.fit(X_train, y_train)
 
 # Convert to ONNX model format
-onnx_model = onnxmltools.convert_sklearn(
-    logreg_model, initial_types=[("input", onnxconverter_common.data_types.FloatTensorType([1, 4]))]
-)
-with open("model.onnx", "wb") as f:
+onnx_model = convert_sklearn(logreg_model, initial_types=[("input", FloatTensorType([1, 4]))])
+with open("sklearn.onnx", "wb") as f:
     f.write(onnx_model.SerializeToString())
 ```
 
@@ -63,6 +64,6 @@ Reference your `model` in an API:
 ```yaml
 - kind: api
   name: my-api
-  model_format: onnx
   model: s3://my-bucket/model.onnx
+  model_format: onnx
 ```
