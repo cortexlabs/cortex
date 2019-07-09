@@ -19,14 +19,15 @@ package k8s
 import (
 	"time"
 
+	kapps "k8s.io/api/apps/v1beta1"
+	kcore "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	appsv1b1 "k8s.io/api/apps/v1beta1"
-	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var deploymentTypeMeta = metav1.TypeMeta{
+var deploymentTypeMeta = kmeta.TypeMeta{
 	APIVersion: "apps/v1",
 	Kind:       "Deployment",
 }
@@ -42,7 +43,7 @@ type DeploymentSpec struct {
 	Selector  map[string]string
 }
 
-func Deployment(spec *DeploymentSpec) *appsv1b1.Deployment {
+func Deployment(spec *DeploymentSpec) *kapps.Deployment {
 	if spec.Namespace == "" {
 		spec.Namespace = "default"
 	}
@@ -56,24 +57,24 @@ func Deployment(spec *DeploymentSpec) *appsv1b1.Deployment {
 		spec.Selector = spec.PodSpec.Labels
 	}
 
-	deployment := &appsv1b1.Deployment{
+	deployment := &kapps.Deployment{
 		TypeMeta: deploymentTypeMeta,
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmeta.ObjectMeta{
 			Name:      spec.Name,
 			Namespace: spec.Namespace,
 			Labels:    spec.Labels,
 		},
-		Spec: appsv1b1.DeploymentSpec{
+		Spec: kapps.DeploymentSpec{
 			Replicas: &spec.Replicas,
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
+			Template: kcore.PodTemplateSpec{
+				ObjectMeta: kmeta.ObjectMeta{
 					Name:      spec.PodSpec.Name,
 					Namespace: spec.PodSpec.Namespace,
 					Labels:    spec.PodSpec.Labels,
 				},
 				Spec: spec.PodSpec.K8sPodSpec,
 			},
-			Selector: &metav1.LabelSelector{
+			Selector: &kmeta.LabelSelector{
 				MatchLabels: spec.Selector,
 			},
 		},
@@ -81,7 +82,7 @@ func Deployment(spec *DeploymentSpec) *appsv1b1.Deployment {
 	return deployment
 }
 
-func (c *Client) CreateDeployment(spec *DeploymentSpec) (*appsv1b1.Deployment, error) {
+func (c *Client) CreateDeployment(spec *DeploymentSpec) (*kapps.Deployment, error) {
 	deployment, err := c.deploymentClient.Create(Deployment(spec))
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -89,7 +90,7 @@ func (c *Client) CreateDeployment(spec *DeploymentSpec) (*appsv1b1.Deployment, e
 	return deployment, nil
 }
 
-func (c *Client) UpdateDeployment(deployment *appsv1b1.Deployment) (*appsv1b1.Deployment, error) {
+func (c *Client) UpdateDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
 	deployment, err := c.deploymentClient.Update(deployment)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -97,9 +98,9 @@ func (c *Client) UpdateDeployment(deployment *appsv1b1.Deployment) (*appsv1b1.De
 	return deployment, nil
 }
 
-func (c *Client) GetDeployment(name string) (*appsv1b1.Deployment, error) {
-	deployment, err := c.deploymentClient.Get(name, metav1.GetOptions{})
-	if k8serrors.IsNotFound(err) {
+func (c *Client) GetDeployment(name string) (*kapps.Deployment, error) {
+	deployment, err := c.deploymentClient.Get(name, kmeta.GetOptions{})
+	if kerrors.IsNotFound(err) {
 		return nil, nil
 	}
 	if err != nil {
@@ -111,7 +112,7 @@ func (c *Client) GetDeployment(name string) (*appsv1b1.Deployment, error) {
 
 func (c *Client) DeleteDeployment(name string) (bool, error) {
 	err := c.deploymentClient.Delete(name, deleteOpts)
-	if k8serrors.IsNotFound(err) {
+	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
 	if err != nil {
@@ -128,9 +129,9 @@ func (c *Client) DeploymentExists(name string) (bool, error) {
 	return deployment != nil, nil
 }
 
-func (c *Client) ListDeployments(opts *metav1.ListOptions) ([]appsv1b1.Deployment, error) {
+func (c *Client) ListDeployments(opts *kmeta.ListOptions) ([]kapps.Deployment, error) {
 	if opts == nil {
-		opts = &metav1.ListOptions{}
+		opts = &kmeta.ListOptions{}
 	}
 	deploymentList, err := c.deploymentClient.List(*opts)
 	if err != nil {
@@ -142,26 +143,26 @@ func (c *Client) ListDeployments(opts *metav1.ListOptions) ([]appsv1b1.Deploymen
 	return deploymentList.Items, nil
 }
 
-func (c *Client) ListDeploymentsByLabels(labels map[string]string) ([]appsv1b1.Deployment, error) {
-	opts := &metav1.ListOptions{
+func (c *Client) ListDeploymentsByLabels(labels map[string]string) ([]kapps.Deployment, error) {
+	opts := &kmeta.ListOptions{
 		LabelSelector: LabelSelector(labels),
 	}
 	return c.ListDeployments(opts)
 }
 
-func (c *Client) ListDeploymentsByLabel(labelKey string, labelValue string) ([]appsv1b1.Deployment, error) {
+func (c *Client) ListDeploymentsByLabel(labelKey string, labelValue string) ([]kapps.Deployment, error) {
 	return c.ListDeploymentsByLabels(map[string]string{labelKey: labelValue})
 }
 
-func DeploymentMap(deployments []appsv1b1.Deployment) map[string]appsv1b1.Deployment {
-	deploymentMap := map[string]appsv1b1.Deployment{}
+func DeploymentMap(deployments []kapps.Deployment) map[string]kapps.Deployment {
+	deploymentMap := map[string]kapps.Deployment{}
 	for _, deployment := range deployments {
 		deploymentMap[deployment.Name] = deployment
 	}
 	return deploymentMap
 }
 
-func DeploymentStartTime(deployment *appsv1b1.Deployment) *time.Time {
+func DeploymentStartTime(deployment *kapps.Deployment) *time.Time {
 	if deployment == nil {
 		return nil
 	}

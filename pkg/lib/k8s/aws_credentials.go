@@ -17,16 +17,16 @@ limitations under the License.
 package k8s
 
 import (
-	corev1 "k8s.io/api/core/v1"
+	kcore "k8s.io/api/core/v1"
 )
 
-func AWSCredentials() []corev1.EnvVar {
-	envVars := []corev1.EnvVar{
+func AWSCredentials() []kcore.EnvVar {
+	envVars := []kcore.EnvVar{
 		{
 			Name: "AWS_ACCESS_KEY_ID",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
+			ValueFrom: &kcore.EnvVarSource{
+				SecretKeyRef: &kcore.SecretKeySelector{
+					LocalObjectReference: kcore.LocalObjectReference{
 						Name: "aws-credentials",
 					},
 					Key: "AWS_ACCESS_KEY_ID",
@@ -35,9 +35,9 @@ func AWSCredentials() []corev1.EnvVar {
 		},
 		{
 			Name: "AWS_SECRET_ACCESS_KEY",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
+			ValueFrom: &kcore.EnvVarSource{
+				SecretKeyRef: &kcore.SecretKeySelector{
+					LocalObjectReference: kcore.LocalObjectReference{
 						Name: "aws-credentials",
 					},
 					Key: "AWS_SECRET_ACCESS_KEY",

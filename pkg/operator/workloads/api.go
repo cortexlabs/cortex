@@ -19,11 +19,11 @@ package workloads
 import (
 	"path"
 
-	appsv1b1 "k8s.io/api/apps/v1beta1"
-	autoscaling "k8s.io/api/autoscaling/v1"
-	corev1 "k8s.io/api/core/v1"
-	k8sresource "k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapps "k8s.io/api/apps/v1beta1"
+	kautoscaling "k8s.io/api/autoscaling/v1"
+	kcore "k8s.io/api/core/v1"
+	kresource "k8s.io/apimachinery/pkg/api/resource"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -45,26 +45,26 @@ func tfAPISpec(
 	api *context.API,
 	workloadID string,
 	desiredReplicas int32,
-) *appsv1b1.Deployment {
-	transformResourceList := corev1.ResourceList{}
-	tfServingResourceList := corev1.ResourceList{}
-	tfServingLimitsList := corev1.ResourceList{}
+) *kapps.Deployment {
+	transformResourceList := kcore.ResourceList{}
+	tfServingResourceList := kcore.ResourceList{}
+	tfServingLimitsList := kcore.ResourceList{}
 
 	q1, q2 := api.Compute.CPU.SplitInTwo()
-	transformResourceList[corev1.ResourceCPU] = *q1
-	tfServingResourceList[corev1.ResourceCPU] = *q2
+	transformResourceList[kcore.ResourceCPU] = *q1
+	tfServingResourceList[kcore.ResourceCPU] = *q2
 
 	if api.Compute.Mem != nil {
 		q1, q2 := api.Compute.Mem.SplitInTwo()
-		transformResourceList[corev1.ResourceMemory] = *q1
-		tfServingResourceList[corev1.ResourceMemory] = *q2
+		transformResourceList[kcore.ResourceMemory] = *q1
+		tfServingResourceList[kcore.ResourceMemory] = *q2
 	}
 
 	servingImage := config.Cortex.TFServeImage
 	if api.Compute.GPU > 0 {
 		servingImage = config.Cortex.TFServeImageGPU
-		tfServingResourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(api.Compute.GPU, k8sresource.DecimalSI)
-		tfServingLimitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(api.Compute.GPU, k8sresource.DecimalSI)
+		tfServingResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+		tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -91,8 +91,8 @@ func tfAPISpec(
 				"workloadID":   workloadID,
 				"userFacing":   "true",
 			},
-			K8sPodSpec: corev1.PodSpec{
-				Containers: []corev1.Container{
+			K8sPodSpec: kcore.PodSpec{
+				Containers: []kcore.Container{
 					{
 						Name:            apiContainerName,
 						Image:           config.Cortex.TFAPIImage,
@@ -108,14 +108,14 @@ func tfAPISpec(
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
-						ReadinessProbe: &corev1.Probe{
+						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
 							TimeoutSeconds:      5,
 							PeriodSeconds:       5,
 							SuccessThreshold:    1,
 							FailureThreshold:    2,
-							Handler: corev1.Handler{
-								HTTPGet: &corev1.HTTPGetAction{
+							Handler: kcore.Handler{
+								HTTPGet: &kcore.HTTPGetAction{
 									Path: "/healthz",
 									Port: intstr.IntOrString{
 										IntVal: defaultPortInt32,
@@ -123,7 +123,7 @@ func tfAPISpec(
 								},
 							},
 						},
-						Resources: corev1.ResourceRequirements{
+						Resources: kcore.ResourceRequirements{
 							Requests: transformResourceList,
 						},
 					},
@@ -137,21 +137,21 @@ func tfAPISpec(
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
-						ReadinessProbe: &corev1.Probe{
+						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
 							TimeoutSeconds:      5,
 							PeriodSeconds:       5,
 							SuccessThreshold:    1,
 							FailureThreshold:    2,
-							Handler: corev1.Handler{
-								TCPSocket: &corev1.TCPSocketAction{
+							Handler: kcore.Handler{
+								TCPSocket: &kcore.TCPSocketAction{
 									Port: intstr.IntOrString{
 										IntVal: tfServingPortInt32,
 									},
 								},
 							},
 						},
-						Resources: corev1.ResourceRequirements{
+						Resources: kcore.ResourceRequirements{
 							Requests: tfServingResourceList,
 							Limits:   tfServingLimitsList,
 						},
@@ -170,12 +170,12 @@ func onnxAPISpec(
 	api *context.API,
 	workloadID string,
 	desiredReplicas int32,
-) *appsv1b1.Deployment {
-	resourceList := corev1.ResourceList{}
-	resourceList[corev1.ResourceCPU] = api.Compute.CPU.Quantity
+) *kapps.Deployment {
+	resourceList := kcore.ResourceList{}
+	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
 
 	if api.Compute.Mem != nil {
-		resourceList[corev1.ResourceMemory] = api.Compute.Mem.Quantity
+		resourceList[kcore.ResourceMemory] = api.Compute.Mem.Quantity
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -202,8 +202,8 @@ func onnxAPISpec(
 				"workloadID":   workloadID,
 				"userFacing":   "true",
 			},
-			K8sPodSpec: corev1.PodSpec{
-				Containers: []corev1.Container{
+			K8sPodSpec: kcore.PodSpec{
+				Containers: []kcore.Container{
 					{
 						Name:            apiContainerName,
 						Image:           config.Cortex.ONNXServeImage,
@@ -218,14 +218,14 @@ func onnxAPISpec(
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
-						ReadinessProbe: &corev1.Probe{
+						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
 							TimeoutSeconds:      5,
 							PeriodSeconds:       5,
 							SuccessThreshold:    1,
 							FailureThreshold:    2,
-							Handler: corev1.Handler{
-								HTTPGet: &corev1.HTTPGetAction{
+							Handler: kcore.Handler{
+								HTTPGet: &kcore.HTTPGetAction{
 									Path: "/healthz",
 									Port: intstr.IntOrString{
 										IntVal: defaultPortInt32,
@@ -233,7 +233,7 @@ func onnxAPISpec(
 								},
 							},
 						},
-						Resources: corev1.ResourceRequirements{
+						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 						},
 					},
@@ -281,7 +281,7 @@ func serviceSpec(ctx *context.Context, api *context.API) *k8s.ServiceSpec {
 	}
 }
 
-func hpaSpec(ctx *context.Context, api *context.API) *autoscaling.HorizontalPodAutoscaler {
+func hpaSpec(ctx *context.Context, api *context.API) *kautoscaling.HorizontalPodAutoscaler {
 	return k8s.HPA(&k8s.HPASpec{
 		DeploymentName:       internalAPIName(api.Name, ctx.App.Name),
 		MinReplicas:          api.Compute.MinReplicas,
@@ -333,7 +333,7 @@ func apiWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 			}
 		}
 
-		var spec metav1.Object
+		var spec kmeta.Object
 
 		switch api.ModelFormat {
 		case userconfig.TensorFlowModelFormat:
@@ -347,7 +347,7 @@ func apiWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 		workloadSpecs = append(workloadSpecs, &WorkloadSpec{
 			WorkloadID:   workloadID,
 			ResourceIDs:  strset.New(api.ID),
-			K8sSpecs:     []metav1.Object{spec, hpaSpec(ctx, api)},
+			K8sSpecs:     []kmeta.Object{spec, hpaSpec(ctx, api)},
 			K8sAction:    "apply",
 			WorkloadType: WorkloadTypeAPI,
 			// SuccessCondition: k8s.DeploymentSuccessConditionAll,  # Currently success conditions don't work for multi-resource config
@@ -357,7 +357,7 @@ func apiWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	return workloadSpecs, nil
 }
 
-func apiComputeNeedsUpdating(api *context.API, deployment *appsv1b1.Deployment, hpa *autoscaling.HorizontalPodAutoscaler) bool {
+func apiComputeNeedsUpdating(api *context.API, deployment *kapps.Deployment, hpa *kautoscaling.HorizontalPodAutoscaler) bool {
 	if hpa == nil {
 		return true
 	}
@@ -456,7 +456,7 @@ func createServicesAndIngresses(ctx *context.Context) error {
 }
 
 // This returns map apiName -> deployment (not internalName -> deployment)
-func APIDeploymentMap(appName string) (map[string]*appsv1b1.Deployment, error) {
+func APIDeploymentMap(appName string) (map[string]*kapps.Deployment, error) {
 	deploymentList, err := config.Kubernetes.ListDeploymentsByLabels(map[string]string{
 		"appName":      appName,
 		"workloadType": WorkloadTypeAPI,
@@ -465,7 +465,7 @@ func APIDeploymentMap(appName string) (map[string]*appsv1b1.Deployment, error) {
 		return nil, errors.Wrap(err, appName)
 	}
 
-	deployments := make(map[string]*appsv1b1.Deployment, len(deploymentList))
+	deployments := make(map[string]*kapps.Deployment, len(deploymentList))
 	for _, deployment := range deploymentList {
 		addToDeploymentMap(deployments, deployment)
 	}
@@ -473,13 +473,13 @@ func APIDeploymentMap(appName string) (map[string]*appsv1b1.Deployment, error) {
 }
 
 // Avoid pointer in loop issues
-func addToDeploymentMap(deployments map[string]*appsv1b1.Deployment, deployment appsv1b1.Deployment) {
+func addToDeploymentMap(deployments map[string]*kapps.Deployment, deployment kapps.Deployment) {
 	apiName := deployment.Labels["apiName"]
 	deployments[apiName] = &deployment
 }
 
 // This returns map apiName -> hpa (not internalName -> hpa)
-func apiHPAMap(appName string) (map[string]*autoscaling.HorizontalPodAutoscaler, error) {
+func apiHPAMap(appName string) (map[string]*kautoscaling.HorizontalPodAutoscaler, error) {
 	hpaList, err := config.Kubernetes.ListHPAsByLabels(map[string]string{
 		"appName":      appName,
 		"workloadType": WorkloadTypeAPI,
@@ -488,7 +488,7 @@ func apiHPAMap(appName string) (map[string]*autoscaling.HorizontalPodAutoscaler,
 		return nil, errors.Wrap(err, appName)
 	}
 
-	hpas := make(map[string]*autoscaling.HorizontalPodAutoscaler, len(hpaList))
+	hpas := make(map[string]*kautoscaling.HorizontalPodAutoscaler, len(hpaList))
 	for _, hpa := range hpaList {
 		addToHPAMap(hpas, hpa)
 	}
@@ -496,7 +496,7 @@ func apiHPAMap(appName string) (map[string]*autoscaling.HorizontalPodAutoscaler,
 }
 
 // Avoid pointer in loop issues
-func addToHPAMap(hpas map[string]*autoscaling.HorizontalPodAutoscaler, hpa autoscaling.HorizontalPodAutoscaler) {
+func addToHPAMap(hpas map[string]*kautoscaling.HorizontalPodAutoscaler, hpa kautoscaling.HorizontalPodAutoscaler) {
 	apiName := hpa.Labels["apiName"]
 	hpas[apiName] = &hpa
 }
@@ -519,7 +519,7 @@ func APIsBaseURL() (string, error) {
 	return "https://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
 
-func APIPodComputeID(containers []corev1.Container) string {
+func APIPodComputeID(containers []kcore.Container) string {
 	cpu, mem, gpu := APIPodCompute(containers)
 	if cpu == nil {
 		cpu = &userconfig.Quantity{} // unexpected, since 0 is disallowed
@@ -532,7 +532,7 @@ func APIPodComputeID(containers []corev1.Container) string {
 	return podAPICompute.IDWithoutReplicas()
 }
 
-func APIPodCompute(containers []corev1.Container) (*userconfig.Quantity, *userconfig.Quantity, int64) {
+func APIPodCompute(containers []kcore.Container) (*userconfig.Quantity, *userconfig.Quantity, int64) {
 	var totalCPU *userconfig.Quantity
 	var totalMem *userconfig.Quantity
 	var totalGPU int64
@@ -547,13 +547,13 @@ func APIPodCompute(containers []corev1.Container) (*userconfig.Quantity, *userco
 			continue
 		}
 
-		if cpu, ok := requests[corev1.ResourceCPU]; ok {
+		if cpu, ok := requests[kcore.ResourceCPU]; ok {
 			if totalCPU == nil {
 				totalCPU = &userconfig.Quantity{}
 			}
 			totalCPU.Add(cpu)
 		}
-		if mem, ok := requests[corev1.ResourceMemory]; ok {
+		if mem, ok := requests[kcore.ResourceMemory]; ok {
 			if totalMem == nil {
 				totalMem = &userconfig.Quantity{}
 			}

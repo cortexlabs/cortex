@@ -20,11 +20,11 @@ import (
 	"strings"
 
 	sparkop "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/apis/sparkoperator.k8s.io/v1alpha1"
-	clientset "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/client/clientset/versioned"
-	clientsettyped "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/client/clientset/versioned/typed/sparkoperator.k8s.io/v1alpha1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
+	sparkopclientset "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/client/clientset/versioned"
+	sparkopclientapi "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/client/clientset/versioned/typed/sparkoperator.k8s.io/v1alpha1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclientrest "k8s.io/client-go/rest"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -32,8 +32,8 @@ import (
 )
 
 type Client struct {
-	sparkClientset clientset.Interface
-	sparkClient    clientsettyped.SparkApplicationInterface
+	sparkClientset sparkopclientset.Interface
+	sparkClient    sparkopclientapi.SparkApplicationInterface
 }
 
 var (
@@ -64,10 +64,10 @@ var (
 	FailureCondition = "status.applicationState.state in (" + strings.Join(failureStates, ",") + ")"
 )
 
-func New(restConfig *rest.Config, namespace string) (*Client, error) {
+func New(restConfig *kclientrest.Config, namespace string) (*Client, error) {
 	var err error
 	client := &Client{}
-	client.sparkClientset, err = clientset.NewForConfig(restConfig)
+	client.sparkClientset, err = sparkopclientset.NewForConfig(restConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "spark", "kubeconfig")
 	}
@@ -76,9 +76,9 @@ func New(restConfig *rest.Config, namespace string) (*Client, error) {
 	return client, nil
 }
 
-func (c *Client) List(opts *metav1.ListOptions) ([]sparkop.SparkApplication, error) {
+func (c *Client) List(opts *kmeta.ListOptions) ([]sparkop.SparkApplication, error) {
 	if opts == nil {
-		opts = &metav1.ListOptions{}
+		opts = &kmeta.ListOptions{}
 	}
 	sparkList, err := c.sparkClient.List(*opts)
 	if err != nil {
@@ -88,7 +88,7 @@ func (c *Client) List(opts *metav1.ListOptions) ([]sparkop.SparkApplication, err
 }
 
 func (c *Client) ListByLabels(labels map[string]string) ([]sparkop.SparkApplication, error) {
-	opts := &metav1.ListOptions{
+	opts := &kmeta.ListOptions{
 		LabelSelector: k8s.LabelSelector(labels),
 	}
 	return c.List(opts)
@@ -99,8 +99,8 @@ func (c *Client) ListByLabel(labelKey string, labelValue string) ([]sparkop.Spar
 }
 
 func (c *Client) Delete(appName string) (bool, error) {
-	err := c.sparkClient.Delete(appName, &metav1.DeleteOptions{})
-	if k8serrors.IsNotFound(err) {
+	err := c.sparkClient.Delete(appName, &kmeta.DeleteOptions{})
+	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
 	if err != nil {

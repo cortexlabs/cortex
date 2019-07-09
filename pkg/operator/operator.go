@@ -25,7 +25,7 @@ import (
 
 	"github.com/gorilla/mux"
 	cron "gopkg.in/robfig/cron.v2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -161,7 +161,7 @@ func runCron() {
 		errors.PrintError(err)
 	}
 
-	failedPods, err := config.Kubernetes.ListPods(&metav1.ListOptions{
+	failedPods, err := config.Kubernetes.ListPods(&kmeta.ListOptions{
 		FieldSelector: "status.phase=Failed",
 	})
 	if err != nil {

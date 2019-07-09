@@ -20,27 +20,28 @@ import (
 	"encoding/json"
 	"math"
 
+	kresource "k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
 type Quantity struct {
-	k8sresource.Quantity
+	kresource.Quantity
 	UserString string
 }
 
 type QuantityValidation struct {
-	GreaterThan          *k8sresource.Quantity
-	GreaterThanOrEqualTo *k8sresource.Quantity
-	LessThan             *k8sresource.Quantity
-	LessThanOrEqualTo    *k8sresource.Quantity
+	GreaterThan          *kresource.Quantity
+	GreaterThanOrEqualTo *kresource.Quantity
+	LessThan             *kresource.Quantity
+	LessThanOrEqualTo    *kresource.Quantity
 	Int                  bool
 }
 
 func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
 	return func(str string) (interface{}, error) {
-		k8sQuantity, err := k8sresource.ParseQuantity(str)
+		k8sQuantity, err := kresource.ParseQuantity(str)
 		if err != nil {
 			return Quantity{}, err
 		}
@@ -89,11 +90,11 @@ func (quantity *Quantity) ToKi() int64 {
 }
 
 // SplitInTwo divides the quantity in two and return both halves (ensuring they add up to the original value)
-func (quantity *Quantity) SplitInTwo() (*k8sresource.Quantity, *k8sresource.Quantity) {
+func (quantity *Quantity) SplitInTwo() (*kresource.Quantity, *kresource.Quantity) {
 	milliValue := quantity.MilliValue()
 	halfMilliValue := milliValue / 2
-	q1 := k8sresource.NewMilliQuantity(milliValue-halfMilliValue, k8sresource.DecimalSI)
-	q2 := k8sresource.NewMilliQuantity(halfMilliValue, k8sresource.DecimalSI)
+	q1 := kresource.NewMilliQuantity(milliValue-halfMilliValue, kresource.DecimalSI)
+	q2 := kresource.NewMilliQuantity(halfMilliValue, kresource.DecimalSI)
 	return q1, q2
 }
 
@@ -112,7 +113,7 @@ func (quantity *Quantity) ID() string {
 	return s.Int64(quantity.MilliValue())
 }
 
-func k8sQuantityPtr(k8sQuantity k8sresource.Quantity) *k8sresource.Quantity {
+func k8sQuantityPtr(k8sQuantity kresource.Quantity) *kresource.Quantity {
 	return &k8sQuantity
 }
 
@@ -134,7 +135,7 @@ func QuantityPtrsEqual(quantity *Quantity, quantity2 *Quantity) bool {
 }
 
 type quantityMarshalable struct {
-	Quantity   k8sresource.Quantity
+	Quantity   kresource.Quantity
 	UserString string
 }
 

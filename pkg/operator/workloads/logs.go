@@ -27,7 +27,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	corev1 "k8s.io/api/core/v1"
+	kcore "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -62,7 +62,7 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 				}
 			}
 
-			podMap := make(map[k8s.PodStatus][]corev1.Pod)
+			podMap := make(map[k8s.PodStatus][]kcore.Pod)
 			for _, pod := range pods {
 				podMap[k8s.GetPodStatus(&pod)] = append(podMap[k8s.GetPodStatus(&pod)], pod)
 			}
@@ -133,7 +133,7 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 	}
 }
 
-func getKubectlLogs(pod *corev1.Pod, verbose bool, wrotePending bool, previous bool, socket *websocket.Conn) {
+func getKubectlLogs(pod *kcore.Pod, verbose bool, wrotePending bool, previous bool, socket *websocket.Conn) {
 	cmdPath := "/usr/local/bin/kubectl"
 
 	if k8s.GetPodStatus(pod) == k8s.PodStatusPending {

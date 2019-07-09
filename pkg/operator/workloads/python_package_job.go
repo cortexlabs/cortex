@@ -19,9 +19,9 @@ package workloads
 import (
 	"strings"
 
-	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kbatch "k8s.io/api/batch/v1"
+	kcore "k8s.io/api/core/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/argo"
@@ -31,7 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-func pythonPackageJobSpec(ctx *context.Context, pythonPackages strset.Set, workloadID string) *batchv1.Job {
+func pythonPackageJobSpec(ctx *context.Context, pythonPackages strset.Set, workloadID string) *kbatch.Job {
 	spec := k8s.Job(&k8s.JobSpec{
 		Name: workloadID,
 		Labels: map[string]string{
@@ -46,9 +46,9 @@ func pythonPackageJobSpec(ctx *context.Context, pythonPackages strset.Set, workl
 				"workloadID":   workloadID,
 				"userFacing":   "true",
 			},
-			K8sPodSpec: corev1.PodSpec{
+			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
-				Containers: []corev1.Container{
+				Containers: []kcore.Container{
 					{
 						Name:            "python-packager",
 						Image:           config.Cortex.PythonPackagerImage,
@@ -98,7 +98,7 @@ func pythonPackageWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	workloadSpec := &WorkloadSpec{
 		WorkloadID:       workloadID,
 		ResourceIDs:      resourceIDs,
-		K8sSpecs:         []metav1.Object{spec},
+		K8sSpecs:         []kmeta.Object{spec},
 		K8sAction:        "create",
 		SuccessCondition: k8s.JobSuccessCondition,
 		FailureCondition: k8s.JobFailureCondition,

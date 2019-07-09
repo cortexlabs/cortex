@@ -19,15 +19,15 @@ package k8s
 import (
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kcore "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 )
 
-var podTypeMeta = metav1.TypeMeta{
+var podTypeMeta = kmeta.TypeMeta{
 	APIVersion: "v1",
 	Kind:       "Pod",
 }
@@ -55,17 +55,17 @@ var killStatuses = map[int32]bool{
 type PodSpec struct {
 	Name       string
 	Namespace  string
-	K8sPodSpec corev1.PodSpec
+	K8sPodSpec kcore.PodSpec
 	Labels     map[string]string
 }
 
-func Pod(spec *PodSpec) *corev1.Pod {
+func Pod(spec *PodSpec) *kcore.Pod {
 	if spec.Namespace == "" {
 		spec.Namespace = "default"
 	}
-	pod := &corev1.Pod{
+	pod := &kcore.Pod{
 		TypeMeta: podTypeMeta,
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmeta.ObjectMeta{
 			Name:      spec.Name,
 			Namespace: spec.Namespace,
 			Labels:    spec.Labels,
@@ -75,7 +75,7 @@ func Pod(spec *PodSpec) *corev1.Pod {
 	return pod
 }
 
-func (c *Client) CreatePod(spec *PodSpec) (*corev1.Pod, error) {
+func (c *Client) CreatePod(spec *PodSpec) (*kcore.Pod, error) {
 	pod, err := c.podClient.Create(Pod(spec))
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -83,7 +83,7 @@ func (c *Client) CreatePod(spec *PodSpec) (*corev1.Pod, error) {
 	return pod, nil
 }
 
-func (c *Client) UpdatePod(pod *corev1.Pod) (*corev1.Pod, error) {
+func (c *Client) UpdatePod(pod *kcore.Pod) (*kcore.Pod, error) {
 	pod, err := c.podClient.Update(pod)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -91,7 +91,7 @@ func (c *Client) UpdatePod(pod *corev1.Pod) (*corev1.Pod, error) {
 	return pod, nil
 }
 
-func GetPodLastContainerStartTime(pod *corev1.Pod) *time.Time {
+func GetPodLastContainerStartTime(pod *kcore.Pod) *time.Time {
 	var startTime *time.Time
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		if containerStatus.State.Running == nil {
@@ -105,17 +105,17 @@ func GetPodLastContainerStartTime(pod *corev1.Pod) *time.Time {
 	return startTime
 }
 
-func GetPodStatus(pod *corev1.Pod) PodStatus {
+func GetPodStatus(pod *kcore.Pod) PodStatus {
 	if pod == nil {
 		return PodStatusUnknown
 	}
 
 	switch pod.Status.Phase {
-	case corev1.PodPending:
+	case kcore.PodPending:
 		return PodStatusPending
-	case corev1.PodSucceeded:
+	case kcore.PodSucceeded:
 		return PodStatusSucceeded
-	case corev1.PodFailed:
+	case kcore.PodFailed:
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			if containerStatus.LastTerminationState.Terminated != nil {
 				exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
@@ -136,7 +136,7 @@ func GetPodStatus(pod *corev1.Pod) PodStatus {
 			}
 		}
 		return PodStatusFailed
-	case corev1.PodRunning:
+	case kcore.PodRunning:
 		if pod.ObjectMeta.DeletionTimestamp != nil {
 			return PodStatusTerminating
 		}
@@ -200,7 +200,7 @@ func (c *Client) WaitForPodRunning(name string, numSeconds int) error {
 		if err != nil {
 			return err
 		}
-		if pod != nil && pod.Status.Phase == corev1.PodRunning {
+		if pod != nil && pod.Status.Phase == kcore.PodRunning {
 			return nil
 		}
 		time.Sleep(time.Duration(numSeconds) * time.Second)
@@ -208,9 +208,9 @@ func (c *Client) WaitForPodRunning(name string, numSeconds int) error {
 	return nil
 }
 
-func (c *Client) GetPod(name string) (*corev1.Pod, error) {
-	pod, err := c.podClient.Get(name, metav1.GetOptions{})
-	if k8serrors.IsNotFound(err) {
+func (c *Client) GetPod(name string) (*kcore.Pod, error) {
+	pod, err := c.podClient.Get(name, kmeta.GetOptions{})
+	if kerrors.IsNotFound(err) {
 		return nil, nil
 	}
 	if err != nil {
@@ -222,7 +222,7 @@ func (c *Client) GetPod(name string) (*corev1.Pod, error) {
 
 func (c *Client) DeletePod(name string) (bool, error) {
 	err := c.podClient.Delete(name, deleteOpts)
-	if k8serrors.IsNotFound(err) {
+	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
 	if err != nil {
@@ -239,9 +239,9 @@ func (c *Client) PodExists(name string) (bool, error) {
 	return pod != nil, nil
 }
 
-func (c *Client) ListPods(opts *metav1.ListOptions) ([]corev1.Pod, error) {
+func (c *Client) ListPods(opts *kmeta.ListOptions) ([]kcore.Pod, error) {
 	if opts == nil {
-		opts = &metav1.ListOptions{}
+		opts = &kmeta.ListOptions{}
 	}
 	podList, err := c.podClient.List(*opts)
 	if err != nil {
@@ -253,29 +253,29 @@ func (c *Client) ListPods(opts *metav1.ListOptions) ([]corev1.Pod, error) {
 	return podList.Items, nil
 }
 
-func (c *Client) ListPodsByLabels(labels map[string]string) ([]corev1.Pod, error) {
-	opts := &metav1.ListOptions{
+func (c *Client) ListPodsByLabels(labels map[string]string) ([]kcore.Pod, error) {
+	opts := &kmeta.ListOptions{
 		LabelSelector: LabelSelector(labels),
 	}
 	return c.ListPods(opts)
 }
 
-func (c *Client) ListPodsByLabel(labelKey string, labelValue string) ([]corev1.Pod, error) {
+func (c *Client) ListPodsByLabel(labelKey string, labelValue string) ([]kcore.Pod, error) {
 	return c.ListPodsByLabels(map[string]string{labelKey: labelValue})
 }
 
-func PodMap(pods []corev1.Pod) map[string]corev1.Pod {
-	podMap := map[string]corev1.Pod{}
+func PodMap(pods []kcore.Pod) map[string]kcore.Pod {
+	podMap := map[string]kcore.Pod{}
 	for _, pod := range pods {
 		podMap[pod.Name] = pod
 	}
 	return podMap
 }
 
-func (c *Client) StalledPods() ([]corev1.Pod, error) {
-	var stalledPods []corev1.Pod
+func (c *Client) StalledPods() ([]kcore.Pod, error) {
+	var stalledPods []kcore.Pod
 
-	pods, err := c.ListPods(&metav1.ListOptions{
+	pods, err := c.ListPods(&kmeta.ListOptions{
 		FieldSelector: "status.phase=Pending",
 	})
 	if err != nil {

@@ -21,39 +21,39 @@ import (
 	"regexp"
 	"strings"
 
-	k8sresource "k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	tappsv1b1 "k8s.io/client-go/kubernetes/typed/apps/v1beta1"
-	tautoscaling "k8s.io/client-go/kubernetes/typed/autoscaling/v1"
-	tbatchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
-	tcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	textensionsv1b1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
+	kresource "k8s.io/apimachinery/pkg/api/resource"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclientset "k8s.io/client-go/kubernetes"
+	kclientapps "k8s.io/client-go/kubernetes/typed/apps/v1beta1"
+	kclientautoscaling "k8s.io/client-go/kubernetes/typed/autoscaling/v1"
+	kclientbatch "k8s.io/client-go/kubernetes/typed/batch/v1"
+	kclientcore "k8s.io/client-go/kubernetes/typed/core/v1"
+	kclientextensions "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
+	kclientrest "k8s.io/client-go/rest"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
+	kclienthomedir "k8s.io/client-go/util/homedir"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 var (
-	home         = homedir.HomeDir()
-	deletePolicy = metav1.DeletePropagationBackground
-	deleteOpts   = &metav1.DeleteOptions{
+	home         = kclienthomedir.HomeDir()
+	deletePolicy = kmeta.DeletePropagationBackground
+	deleteOpts   = &kmeta.DeleteOptions{
 		PropagationPolicy: &deletePolicy,
 	}
 )
 
 type Client struct {
-	RestConfig       *rest.Config
-	clientset        *kubernetes.Clientset
-	podClient        tcorev1.PodInterface
-	serviceClient    tcorev1.ServiceInterface
-	deploymentClient tappsv1b1.DeploymentInterface
-	jobClient        tbatchv1.JobInterface
-	ingressClient    textensionsv1b1.IngressInterface
-	hpaClient        tautoscaling.HorizontalPodAutoscalerInterface
+	RestConfig       *kclientrest.Config
+	clientset        *kclientset.Clientset
+	podClient        kclientcore.PodInterface
+	serviceClient    kclientcore.ServiceInterface
+	deploymentClient kclientapps.DeploymentInterface
+	jobClient        kclientbatch.JobInterface
+	ingressClient    kclientextensions.IngressInterface
+	hpaClient        kclientautoscaling.HorizontalPodAutoscalerInterface
 	Namespace        string
 }
 
@@ -63,17 +63,17 @@ func New(namespace string, inCluster bool) (*Client, error) {
 		Namespace: namespace,
 	}
 	if inCluster {
-		client.RestConfig, err = rest.InClusterConfig()
+		client.RestConfig, err = kclientrest.InClusterConfig()
 	} else {
 		kubeConfig := path.Join(home, ".kube", "config")
-		client.RestConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
+		client.RestConfig, err = kclientcmd.BuildConfigFromFlags("", kubeConfig)
 	}
 
 	if err != nil {
 		return nil, errors.Wrap(err, "kubeconfig")
 	}
 
-	client.clientset, err = kubernetes.NewForConfig(client.RestConfig)
+	client.clientset, err = kclientset.NewForConfig(client.RestConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "kubeconfig")
 	}
@@ -115,12 +115,12 @@ func ValidNameContainer(name string) string {
 	return name
 }
 
-func CPU(cpu string) k8sresource.Quantity {
-	return k8sresource.MustParse(cpu)
+func CPU(cpu string) kresource.Quantity {
+	return kresource.MustParse(cpu)
 }
 
-func Mem(mem string) k8sresource.Quantity {
-	return k8sresource.MustParse(mem)
+func Mem(mem string) kresource.Quantity {
+	return kresource.MustParse(mem)
 }
 
 func LabelSelector(labels map[string]string) string {

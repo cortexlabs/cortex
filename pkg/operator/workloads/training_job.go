@@ -17,10 +17,10 @@ limitations under the License.
 package workloads
 
 import (
-	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
-	k8sresource "k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kbatch "k8s.io/api/batch/v1"
+	kcore "k8s.io/api/core/v1"
+	kresource "k8s.io/apimachinery/pkg/api/resource"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/argo"
@@ -36,20 +36,20 @@ func trainingJobSpec(
 	modelID string,
 	workloadID string,
 	tfCompute *userconfig.TFCompute,
-) *batchv1.Job {
+) *kbatch.Job {
 
-	resourceList := corev1.ResourceList{}
-	limitsList := corev1.ResourceList{}
-	resourceList[corev1.ResourceCPU] = tfCompute.CPU.Quantity
+	resourceList := kcore.ResourceList{}
+	limitsList := kcore.ResourceList{}
+	resourceList[kcore.ResourceCPU] = tfCompute.CPU.Quantity
 	if tfCompute.Mem != nil {
-		resourceList[corev1.ResourceMemory] = tfCompute.Mem.Quantity
+		resourceList[kcore.ResourceMemory] = tfCompute.Mem.Quantity
 	}
 
 	trainImage := config.Cortex.TFTrainImage
 	if tfCompute.GPU > 0 {
 		trainImage = config.Cortex.TFTrainImageGPU
-		resourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(tfCompute.GPU, k8sresource.DecimalSI)
-		limitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(tfCompute.GPU, k8sresource.DecimalSI)
+		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(tfCompute.GPU, kresource.DecimalSI)
+		limitsList["nvidia.com/gpu"] = *kresource.NewQuantity(tfCompute.GPU, kresource.DecimalSI)
 	}
 
 	spec := k8s.Job(&k8s.JobSpec{
@@ -66,9 +66,9 @@ func trainingJobSpec(
 				"workloadID":   workloadID,
 				"userFacing":   "true",
 			},
-			K8sPodSpec: corev1.PodSpec{
+			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
-				Containers: []corev1.Container{
+				Containers: []kcore.Container{
 					{
 						Name:            "train",
 						Image:           trainImage,
@@ -81,7 +81,7 @@ func trainingJobSpec(
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
-						Resources: corev1.ResourceRequirements{
+						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   limitsList,
 						},
@@ -121,7 +121,7 @@ func trainingWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 		workloadSpecs = append(workloadSpecs, &WorkloadSpec{
 			WorkloadID:       workloadID,
 			ResourceIDs:      strset.New(modelID),
-			K8sSpecs:         []metav1.Object{trainingJobSpec(ctx, modelID, workloadID, tfCompute)},
+			K8sSpecs:         []kmeta.Object{trainingJobSpec(ctx, modelID, workloadID, tfCompute)},
 			K8sAction:        "create",
 			SuccessCondition: k8s.JobSuccessCondition,
 			FailureCondition: k8s.JobFailureCondition,

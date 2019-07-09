@@ -19,8 +19,8 @@ package workloads
 import (
 	"time"
 
-	appsv1b1 "k8s.io/api/apps/v1beta1"
-	corev1 "k8s.io/api/core/v1"
+	kapps "k8s.io/api/apps/v1beta1"
+	kcore "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -32,7 +32,7 @@ import (
 
 func GetCurrentAPIStatuses(
 	dataStatuses map[string]*resource.DataStatus,
-	deployments map[string]*appsv1b1.Deployment, // api.Name -> deployment
+	deployments map[string]*kapps.Deployment, // api.Name -> deployment
 	ctx *context.Context,
 ) (map[string]*resource.APIStatus, error) {
 
@@ -114,8 +114,8 @@ func GetCurrentAPIStatuses(
 }
 
 func getReplicaCountsMap(
-	podList []corev1.Pod,
-	deployments map[string]*appsv1b1.Deployment, // api.Name -> deployment
+	podList []kcore.Pod,
+	deployments map[string]*kapps.Deployment, // api.Name -> deployment
 	ctx *context.Context,
 ) map[string]resource.ReplicaCounts {
 
@@ -237,7 +237,7 @@ func updateAPIStatusCodeByParents(apiStatus *resource.APIStatus, dataStatuses ma
 
 func GetAPIGroupStatuses(
 	apiStatuses map[string]*resource.APIStatus,
-	deployments map[string]*appsv1b1.Deployment, // api.Name -> deployment
+	deployments map[string]*kapps.Deployment, // api.Name -> deployment
 	ctx *context.Context,
 ) (map[string]*resource.APIGroupStatus, error) {
 

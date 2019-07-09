@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	sparkop "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/apis/sparkoperator.k8s.io/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/argo"
@@ -76,11 +76,11 @@ func sparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 	}
 
 	return &sparkop.SparkApplication{
-		TypeMeta: metav1.TypeMeta{
+		TypeMeta: kmeta.TypeMeta{
 			APIVersion: "sparkoperator.k8s.io/v1alpha1",
 			Kind:       "SparkApplication",
 		},
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmeta.ObjectMeta{
 			Name:      workloadID,
 			Namespace: config.Cortex.Namespace,
 			Labels: map[string]string{
@@ -273,7 +273,7 @@ func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 	workloadSpec := &WorkloadSpec{
 		WorkloadID:       workloadID,
 		ResourceIDs:      resourceIDSet,
-		K8sSpecs:         []metav1.Object{spec},
+		K8sSpecs:         []kmeta.Object{spec},
 		K8sAction:        "create",
 		SuccessCondition: spark.SuccessCondition,
 		FailureCondition: spark.FailureCondition,

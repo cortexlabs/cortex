@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	corev1 "k8s.io/api/core/v1"
+	kcore "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -89,7 +89,7 @@ func getSavedLogPrefix(workloadID string, appName string, allowNil bool) (string
 	return logPrefix, nil
 }
 
-func UploadLogPrefixesFromAPIPods(pods []corev1.Pod) error {
+func UploadLogPrefixesFromAPIPods(pods []kcore.Pod) error {
 	logPrefixInfos := []*LogPrefixInfo{}
 	currentWorkloadIDs := make(map[string]strset.Set)
 	for _, pod := range pods {

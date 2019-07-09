@@ -19,9 +19,9 @@ package workloads
 import (
 	"time"
 
-	awfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	argowf "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	kcore "k8s.io/api/core/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/lib/argo"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -35,17 +35,17 @@ type WorkflowItem struct {
 	WorkloadType       string
 	StartedAt          *time.Time
 	FinishedAt         *time.Time
-	ArgoPhase          *awfv1.NodePhase
+	ArgoPhase          *argowf.NodePhase
 	DirectDependencies strset.Set
 	AllDependencies    strset.Set
 }
 
 type ParsedWorkflow struct {
 	Workloads map[string]*WorkflowItem // workloadID -> *WorkflowItem
-	Wf        *awfv1.Workflow
+	Wf        *argowf.Workflow
 }
 
-func parseWorkflow(wf *awfv1.Workflow) (*ParsedWorkflow, error) {
+func parseWorkflow(wf *argowf.Workflow) (*ParsedWorkflow, error) {
 	if wf == nil {
 		return nil, nil
 	}
@@ -104,7 +104,7 @@ func getAllDependencies(workloadID string, workloads map[string]*WorkflowItem) (
 }
 
 func getFailedArgoWorkloadIDs(appName string) (strset.Set, error) {
-	failedArgoPods, err := config.Kubernetes.ListPods(&metav1.ListOptions{
+	failedArgoPods, err := config.Kubernetes.ListPods(&kmeta.ListOptions{
 		FieldSelector: "status.phase=Failed",
 		LabelSelector: k8s.LabelSelector(map[string]string{
 			"appName": appName,
@@ -122,8 +122,8 @@ func getFailedArgoWorkloadIDs(appName string) (strset.Set, error) {
 	return failedWorkloadIDs, nil
 }
 
-func getFailedArgoPodForWorkload(workloadID string, appName string) (*corev1.Pod, error) {
-	failedArgoPods, err := config.Kubernetes.ListPods(&metav1.ListOptions{
+func getFailedArgoPodForWorkload(workloadID string, appName string) (*kcore.Pod, error) {
+	failedArgoPods, err := config.Kubernetes.ListPods(&kmeta.ListOptions{
 		FieldSelector: "status.phase=Failed",
 		LabelSelector: k8s.LabelSelector(map[string]string{
 			"appName":    appName,

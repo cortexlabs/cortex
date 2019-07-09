@@ -19,8 +19,8 @@ package workloads
 import (
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kcore "k8s.io/api/core/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -36,7 +36,7 @@ import (
 type WorkloadSpec struct {
 	WorkloadID       string
 	ResourceIDs      strset.Set
-	K8sSpecs         []metav1.Object
+	K8sSpecs         []kmeta.Object
 	K8sAction        string
 	SuccessCondition string
 	FailureCondition string
@@ -92,7 +92,7 @@ func getSavedWorkloadSpec(workloadID string, appName string) (*SavedWorkloadSpec
 	return &savedWorkloadSpec, nil
 }
 
-func UpdateDataWorkflowErrors(failedPods []corev1.Pod) error {
+func UpdateDataWorkflowErrors(failedPods []kcore.Pod) error {
 	checkedWorkloadIDs := strset.New()
 	nowTime := pointer.Time(time.Now())
 
