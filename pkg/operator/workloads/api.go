@@ -19,7 +19,7 @@ package workloads
 import (
 	"path"
 
-	kapps "k8s.io/api/apps/v1beta1"
+	kapps "k8s.io/api/apps/v1"
 	kautoscaling "k8s.io/api/autoscaling/v1"
 	kcore "k8s.io/api/core/v1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"

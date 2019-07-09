@@ -24,7 +24,7 @@ import (
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/client-go/kubernetes"
-	kclientapps "k8s.io/client-go/kubernetes/typed/apps/v1beta1"
+	kclientapps "k8s.io/client-go/kubernetes/typed/apps/v1"
 	kclientautoscaling "k8s.io/client-go/kubernetes/typed/autoscaling/v1"
 	kclientbatch "k8s.io/client-go/kubernetes/typed/batch/v1"
 	kclientcore "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -80,7 +80,7 @@ func New(namespace string, inCluster bool) (*Client, error) {
 
 	client.podClient = client.clientset.CoreV1().Pods(namespace)
 	client.serviceClient = client.clientset.CoreV1().Services(namespace)
-	client.deploymentClient = client.clientset.AppsV1beta1().Deployments(namespace)
+	client.deploymentClient = client.clientset.AppsV1().Deployments(namespace)
 	client.jobClient = client.clientset.BatchV1().Jobs(namespace)
 	client.ingressClient = client.clientset.ExtensionsV1beta1().Ingresses(namespace)
 	client.hpaClient = client.clientset.AutoscalingV1().HorizontalPodAutoscalers(namespace)

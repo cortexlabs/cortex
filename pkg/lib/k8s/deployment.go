@@ -19,7 +19,7 @@ package k8s
 import (
 	"time"
 
-	kapps "k8s.io/api/apps/v1beta1"
+	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"

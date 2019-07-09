@@ -19,7 +19,7 @@ package workloads
 import (
 	"time"
 
-	kapps "k8s.io/api/apps/v1beta1"
+	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
