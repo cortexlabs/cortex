@@ -18,6 +18,8 @@ package workloads
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -26,19 +28,21 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-
 	kcore "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 const (
-	writeWait        = 10 * time.Second
-	closeGracePeriod = 10 * time.Second
-	maxMessageSize   = 8192
+	writeWait             = 10 * time.Second
+	closeGracePeriod      = 10 * time.Second
+	maxMessageSize        = 8192
+	podCheckInterval      = 5 * time.Second
+	maxParallelPodLogging = 5
 )
 
 func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket.Conn) {
@@ -56,40 +60,46 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 		}
 
 		if len(pods) > 0 {
-			if len(pods) > 1 {
-				if !writeSocket(fmt.Sprintf("%d pods available, streaming logs for one of them:", len(pods)), socket) {
+			if len(pods) > maxParallelPodLogging {
+				if !writeSocket(fmt.Sprintf("%d pods available, streaming logs for %d of them:", len(pods), maxParallelPodLogging), socket) {
 					return
 				}
 			}
 
 			podMap := make(map[k8s.PodStatus][]kcore.Pod)
 			for _, pod := range pods {
-				podMap[k8s.GetPodStatus(&pod)] = append(podMap[k8s.GetPodStatus(&pod)], pod)
+				podStatus := k8s.GetPodStatus(&pod)
+				if len(podMap[podStatus]) < maxParallelPodLogging {
+					podMap[podStatus] = append(podMap[podStatus], pod)
+				}
 			}
 
 			switch {
 			case len(podMap[k8s.PodStatusSucceeded]) > 0:
-				getKubectlLogs(&podMap[k8s.PodStatusSucceeded][0], verbose, wrotePending, false, socket)
+				getKubectlLogs(podMap[k8s.PodStatusSucceeded], verbose, wrotePending, false, socket)
 			case len(podMap[k8s.PodStatusRunning]) > 0:
-				getKubectlLogs(&podMap[k8s.PodStatusRunning][0], verbose, wrotePending, false, socket)
+				getKubectlLogs(podMap[k8s.PodStatusRunning], verbose, wrotePending, false, socket)
 			case len(podMap[k8s.PodStatusPending]) > 0:
-				getKubectlLogs(&podMap[k8s.PodStatusPending][0], verbose, wrotePending, false, socket)
+				getKubectlLogs(podMap[k8s.PodStatusPending], verbose, wrotePending, false, socket)
 			case len(podMap[k8s.PodStatusKilled]) > 0:
-				getKubectlLogs(&podMap[k8s.PodStatusKilled][0], verbose, wrotePending, false, socket)
+				getKubectlLogs(podMap[k8s.PodStatusKilled], verbose, wrotePending, false, socket)
 			case len(podMap[k8s.PodStatusKilledOOM]) > 0:
-				getKubectlLogs(&podMap[k8s.PodStatusKilledOOM][0], verbose, wrotePending, false, socket)
+				getKubectlLogs(podMap[k8s.PodStatusKilledOOM], verbose, wrotePending, false, socket)
 			case len(podMap[k8s.PodStatusFailed]) > 0:
 				previous := false
 				if pods[0].Labels["workloadType"] == WorkloadTypeAPI {
 					previous = true
 				}
-				getKubectlLogs(&podMap[k8s.PodStatusFailed][0], verbose, wrotePending, previous, socket)
+				getKubectlLogs(podMap[k8s.PodStatusFailed], verbose, wrotePending, previous, socket)
 			case len(podMap[k8s.PodStatusTerminating]) > 0:
-				getKubectlLogs(&podMap[k8s.PodStatusTerminating][0], verbose, wrotePending, false, socket)
+				getKubectlLogs(podMap[k8s.PodStatusTerminating], verbose, wrotePending, false, socket)
 			case len(podMap[k8s.PodStatusUnknown]) > 0:
-				getKubectlLogs(&podMap[k8s.PodStatusUnknown][0], verbose, wrotePending, false, socket)
+				getKubectlLogs(podMap[k8s.PodStatusUnknown], verbose, wrotePending, false, socket)
 			default: // unexpected
-				getKubectlLogs(&pods[0], verbose, wrotePending, false, socket)
+				if len(pods) > maxParallelPodLogging {
+					pods = pods[:maxParallelPodLogging]
+				}
+				getKubectlLogs(pods, verbose, wrotePending, false, socket)
 			}
 			return
 		}
@@ -118,7 +128,7 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			if !writeSocket("\nFailed to start:\n", socket) {
 				return
 			}
-			getKubectlLogs(failedArgoPod, true, false, false, socket)
+			getKubectlLogs([]kcore.Pod{*failedArgoPod}, true, false, false, socket)
 			return
 		}
 
@@ -133,26 +143,19 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 	}
 }
 
-func getKubectlLogs(pod *kcore.Pod, verbose bool, wrotePending bool, previous bool, socket *websocket.Conn) {
-	cmdPath := "/usr/local/bin/kubectl"
-
-	if k8s.GetPodStatus(pod) == k8s.PodStatusPending {
-		if !wrotePending {
-			if !writeSocket("\nPending", socket) {
-				return
-			}
+func getKubectlLogs(pods []kcore.Pod, verbose bool, wrotePending bool, previous bool, socket *websocket.Conn) {
+	isAllPending := true
+	for _, pod := range pods {
+		if k8s.GetPodStatus(&pod) != k8s.PodStatusPending {
+			isAllPending = false
+			break
 		}
-		config.Kubernetes.WaitForPodRunning(pod.Name, 1)
 	}
 
-	args := []string{"kubectl", "-n=" + config.Cortex.Namespace, "logs", "--follow=true"}
-	if previous {
-		args = append(args, "--previous")
-	}
-
-	args = append(args, pod.Name)
-	if pod.Labels["workloadType"] == WorkloadTypeAPI && pod.Labels["userFacing"] == "true" {
-		args = append(args, apiContainerName)
+	if isAllPending {
+		if !writeSocket("\nPending", socket) {
+			return
+		}
 	}
 
 	outr, outw, err := os.Pipe()
@@ -160,25 +163,144 @@ func getKubectlLogs(pod *kcore.Pod, verbose bool, wrotePending bool, previous bo
 		errors.Panic(err, "logs", "kubectl", "os.pipe")
 	}
 	defer outr.Close()
-	defer outw.Close()
 
 	inr, inw, err := os.Pipe()
 	if err != nil {
 		errors.Panic(err, "logs", "kubectl", "os.pipe")
 	}
-	defer inr.Close()
 	defer inw.Close()
 
-	process, err := os.StartProcess(cmdPath, args, &os.ProcAttr{
-		Files: []*os.File{inr, outw, outw},
-	})
-	if err != nil {
-		errors.Panic(err, strings.Join(args, " "))
+	podCheckCancel := make(chan struct{})
+	defer close(podCheckCancel)
+	socketWriterError := make(chan error, 1)
+	go podCheck(podCheckCancel, socketWriterError, pods, previous, inr, outw)
+	go pumpStdout(socket, socketWriterError, outr, verbose, true)
+	pumpStdin(socket, inw)
+	podCheckCancel <- struct{}{}
+}
+
+func startKubectlProcess(pod kcore.Pod, previous bool, attrs *os.ProcAttr) (*os.Process, error) {
+	cmdPath := "/bin/bash"
+
+	kubectlArgs := []string{"kubectl", "-n=" + config.Cortex.Namespace, "logs", "--follow=true"}
+	if previous {
+		kubectlArgs = append(kubectlArgs, "--previous")
 	}
 
-	go pumpStdout(socket, outr, verbose, true)
-	pumpStdin(socket, inw)
-	stopProcess(process)
+	identifier := pod.Name
+	kubectlArgs = append(kubectlArgs, pod.Name)
+	if pod.Labels["workloadType"] == WorkloadTypeAPI && pod.Labels["userFacing"] == "true" {
+		kubectlArgs = append(kubectlArgs, apiContainerName)
+		kubectlArgs = append(kubectlArgs, "--since="+podCheckInterval.String())
+		identifier += " " + apiContainerName
+	}
+
+	labelLog := fmt.Sprintf(" | while read -r; do echo \"[%s] $REPLY \" | tail -n +1; done", identifier)
+	kubectlCmd := strings.Join(kubectlArgs, " ")
+	bashArgs := []string{"/bin/bash", "-c", kubectlCmd + labelLog}
+	process, err := os.StartProcess(cmdPath, bashArgs, attrs)
+	if err != nil {
+		return nil, errors.Wrap(err, strings.Join(bashArgs, " "))
+	}
+
+	return process, nil
+}
+
+func podCheck(podCheckChan chan struct{}, socketWriterError chan error, initialPodList []kcore.Pod, previous bool, inr *os.File, outw *os.File) {
+	defer inr.Close()
+	defer outw.Close()
+
+	timer := time.NewTimer(0)
+	defer timer.Stop()
+
+	processMap := make(map[string]*os.Process)
+	defer deleteProcesses(processMap)
+	labels := initialPodList[0].GetLabels()
+	appName := labels["appName"]
+	workloadID := labels["workloadID"]
+
+	for {
+		select {
+		case <-podCheckChan:
+			return
+		case <-timer.C:
+			pods, err := config.Kubernetes.ListPodsByLabels(map[string]string{
+				"appName":    appName,
+				"workloadID": workloadID,
+				"userFacing": "true",
+			})
+
+			if err != nil {
+				socketWriterError <- errors.Wrap(err, "pod check")
+				return
+			}
+
+			runningPodsMap := make(map[string]kcore.Pod)
+			latestRunningPods := strset.New()
+			for _, pod := range pods {
+				if k8s.GetPodStatus(&pod) != k8s.PodStatusPending {
+					latestRunningPods.Add(pod.GetName())
+					runningPodsMap[pod.GetName()] = pod
+				}
+			}
+
+			runningPods := strset.New()
+
+			for podName := range processMap {
+				runningPods.Add(podName)
+			}
+
+			newPods := strset.Difference(latestRunningPods, runningPods)
+			podsToDelete := strset.Difference(runningPods, latestRunningPods)
+			podsToKeep := strset.Intersection(runningPods, latestRunningPods)
+
+			// Prioritize adding running pods
+			podsToAdd := []string{}
+			podsToAddP2 := []string{}
+			for podName := range newPods {
+				pod := runningPodsMap[podName]
+				if k8s.GetPodStatus(&pod) == k8s.PodStatusRunning {
+					podsToAdd = append(podsToAdd, podName)
+				} else {
+					podsToAddP2 = append(podsToAddP2, podName)
+				}
+			}
+			podsToAdd = append(podsToAdd, podsToAddP2...)
+
+			for _, podName := range podsToAdd {
+				if len(podsToKeep) < maxParallelPodLogging {
+					process, err := startKubectlProcess(runningPodsMap[podName], previous, &os.ProcAttr{
+						Files: []*os.File{inr, outw, outw},
+					})
+					if err != nil {
+						socketWriterError <- err
+						return
+					}
+					processMap[podName] = process
+					podsToKeep.Add(podName)
+				} else {
+					break
+				}
+			}
+
+			deleteMap := make(map[string]*os.Process, len(podsToDelete))
+			for podName := range podsToDelete {
+				deleteMap[podName] = processMap[podName]
+			}
+			deleteProcesses(deleteMap)
+			timer.Reset(podCheckInterval)
+		}
+	}
+}
+
+func deleteProcesses(processMap map[string]*os.Process) {
+	for podName := range processMap {
+		processMap[podName].Signal(os.Interrupt)
+	}
+	time.Sleep(5 * time.Second)
+	for podName := range processMap {
+		processMap[podName].Signal(os.Kill)
+	}
 }
 
 func getCloudWatchLogs(prefix string, verbose bool, socket *websocket.Conn) {
@@ -196,7 +318,9 @@ func getCloudWatchLogs(prefix string, verbose bool, socket *websocket.Conn) {
 	} else {
 		logsReader = strings.NewReader(logs)
 	}
-	go pumpStdout(socket, logsReader, verbose, false)
+
+	socketWriterError := make(chan error)
+	go pumpStdout(socket, socketWriterError, logsReader, verbose, false)
 
 	inr, inw, err := os.Pipe()
 	if err != nil {
@@ -224,7 +348,7 @@ func pumpStdin(socket *websocket.Conn, writer io.Writer) {
 	}
 }
 
-func pumpStdout(socket *websocket.Conn, reader io.Reader, verbose bool, checkForLastLog bool) {
+func pumpStdout(socket *websocket.Conn, socketWriterError chan error, reader io.Reader, verbose bool, checkForLastLog bool) {
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		socket.SetWriteDeadline(time.Now().Add(writeWait))
@@ -243,14 +367,21 @@ func pumpStdout(socket *websocket.Conn, reader io.Reader, verbose bool, checkFor
 		}
 	}
 
+	select {
+	case err := <-socketWriterError:
+		writeSocket(err.Error(), socket)
+	default:
+	}
+
 	socket.SetWriteDeadline(time.Now().Add(writeWait))
 	socket.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 	time.Sleep(closeGracePeriod)
 	socket.Close()
 }
 
-var cortexRegex = regexp.MustCompile(`^?(DEBUG|INFO|WARNING|ERROR|CRITICAL):cortex:`)
-var tensorflowRegex = regexp.MustCompile(`^?(DEBUG|INFO|WARNING|ERROR|CRITICAL):tensorflow:`)
+var cortexRegex = regexp.MustCompile(`^\[.*\]?(DEBUG|INFO|WARNING|ERROR|CRITICAL):cortex:`)
+var tensorflowRegex = regexp.MustCompile(`^\[.*\]?(DEBUG|INFO|WARNING|ERROR|CRITICAL):tensorflow:`)
+var jsonPrefixRegex = regexp.MustCompile(`^\ *?(\{|\[)`)
 
 func formatHeader1(headerString string) *string {
 	headerBorder := "\n" + strings.Repeat("-", len(headerString)) + "\n"
@@ -297,6 +428,21 @@ func extractFromCortexLog(match string, loglevel string, logStr string) (*string
 		return formatHeader1(cutStr), false
 	case "Caching built packages":
 		return formatHeader3(cutStr), false
+	}
+
+	matches := jsonPrefixRegex.FindStringSubmatch(cutStr)
+	if len(matches) == 2 {
+		indent := len(matches[0]) - 1 // matches to curly or square bracket so remove the last char
+		indentStr := cutStr[:indent]
+		maybeJSON := cutStr[len(indentStr):]
+		jsonBytes := []byte(maybeJSON)
+		var obytes bytes.Buffer
+		err := json.Indent(&obytes, jsonBytes, indentStr, "  ")
+		if err == nil {
+			fmt.Println("pass json indent")
+			ostr := indentStr + string(obytes.String())
+			return &ostr, false
+		}
 	}
 
 	lastLogRe := regexp.MustCompile(`^workload: (\w+), completed: (\S+)`)

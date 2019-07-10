@@ -135,7 +135,7 @@ def predict(app_name, api_name):
     response = {}
 
     if not util.is_dict(payload) or "samples" not in payload:
-        util.log_pretty(payload, logging_func=logger.error)
+        util.log_pretty_flat(payload, logging_func=logger.error)
         return prediction_failed(payload, "top level `samples` key not found in request")
 
     logger.info("Predicting " + util.pluralize(len(payload["samples"]), "sample", "samples"))
@@ -143,7 +143,7 @@ def predict(app_name, api_name):
     predictions = []
     samples = payload["samples"]
     if not util.is_list(samples):
-        util.log_pretty(samples, logging_func=logger.error)
+        util.log_pretty_flat(samples, logging_func=logger.error)
         return prediction_failed(
             payload, "expected the value of key `samples` to be a list of json objects"
         )
@@ -152,7 +152,7 @@ def predict(app_name, api_name):
         util.log_indent("sample {}".format(i + 1), 2)
         try:
             util.log_indent("Raw sample:", indent=4)
-            util.log_pretty(sample, indent=6)
+            util.log_pretty_flat(sample, indent=6)
 
             if request_handler is not None and util.has_function(request_handler, "pre_inference"):
                 sample = request_handler.pre_inference(sample, input_metadata)
@@ -169,7 +169,7 @@ def predict(app_name, api_name):
             if request_handler is not None and util.has_function(request_handler, "post_inference"):
                 result = request_handler.post_inference(result, output_metadata)
             util.log_indent("Prediction:", indent=4)
-            util.log_pretty(result, indent=6)
+            util.log_pretty_flat(result, indent=6)
             prediction = {"prediction": result}
         except CortexException as e:
             e.wrap("error", "sample {}".format(i + 1))

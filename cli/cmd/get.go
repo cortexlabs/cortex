@@ -547,14 +547,16 @@ func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) stri
 			updatedAt = groupStatus.ActiveStatus.Start
 		}
 
-		rows = append(rows, []interface{}{
-			name,
-			groupStatus.Available(),
-			groupStatus.UpToDate(),
-			groupStatus.Requested,
-			groupStatus.FailedUpdated,
-			libtime.Since(updatedAt),
-		})
+		if groupStatus.Requested != 0 {
+			rows = append(rows, []interface{}{
+				name,
+				groupStatus.Available(),
+				groupStatus.UpToDate(),
+				groupStatus.Requested,
+				groupStatus.FailedUpdated,
+				libtime.Since(updatedAt),
+			})
+		}
 	}
 
 	t := table.Table{

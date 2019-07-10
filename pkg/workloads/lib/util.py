@@ -119,7 +119,7 @@ def log_pretty(obj, indent=0, logging_func=logger.info):
 
 
 def log_pretty_flat(obj, indent=0, logging_func=logger.info):
-    logging_func(pp_str_flat(obj), indent)
+    logging_func(pp_str_flat(obj, indent))
 
 
 def pluralize(num, singular, plural):
