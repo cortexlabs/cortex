@@ -59,6 +59,4 @@ var (
 	MetadataDir           = "metadata"
 
 	TelemetryURL = "https://telemetry.cortexlabs.dev"
-
-	MaxPodsPerLog = 5
 )
