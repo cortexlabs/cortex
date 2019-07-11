@@ -206,7 +206,7 @@ func startKubectlProcess(pod kcore.Pod, previous bool, attrs *os.ProcAttr) (*os.
 	return process, nil
 }
 
-func podCheck(podCheckChan chan struct{}, socketWriterError chan error, initialPodList []kcore.Pod, previous bool, inr *os.File, outw *os.File) {
+func podCheck(podCheckCancel chan struct{}, socketWriterError chan error, initialPodList []kcore.Pod, previous bool, inr *os.File, outw *os.File) {
 	defer inr.Close()
 	defer outw.Close()
 
@@ -221,7 +221,7 @@ func podCheck(podCheckChan chan struct{}, socketWriterError chan error, initialP
 
 	for {
 		select {
-		case <-podCheckChan:
+		case <-podCheckCancel:
 			return
 		case <-timer.C:
 			pods, err := config.Kubernetes.ListPodsByLabels(map[string]string{
@@ -235,41 +235,43 @@ func podCheck(podCheckChan chan struct{}, socketWriterError chan error, initialP
 				return
 			}
 
-			runningPodsMap := make(map[string]kcore.Pod)
+			latestRunningPodsMap := make(map[string]kcore.Pod)
 			latestRunningPods := strset.New()
 			for _, pod := range pods {
 				if k8s.GetPodStatus(&pod) != k8s.PodStatusPending {
 					latestRunningPods.Add(pod.GetName())
-					runningPodsMap[pod.GetName()] = pod
+					latestRunningPodsMap[pod.GetName()] = pod
 				}
 			}
 
-			runningPods := strset.New()
+			prevRunningPods := strset.New()
 
 			for podName := range processMap {
-				runningPods.Add(podName)
+				prevRunningPods.Add(podName)
 			}
 
-			newPods := strset.Difference(latestRunningPods, runningPods)
-			podsToDelete := strset.Difference(runningPods, latestRunningPods)
-			podsToKeep := strset.Intersection(runningPods, latestRunningPods)
+			newPods := strset.Difference(latestRunningPods, prevRunningPods)
+			podsToDelete := strset.Difference(prevRunningPods, latestRunningPods)
+			podsToKeep := strset.Intersection(prevRunningPods, latestRunningPods)
 
 			// Prioritize adding running pods
-			podsToAdd := []string{}
-			podsToAddP2 := []string{}
+			podsToAddRunning := []string{}
+			podsToAddNotRunning := []string{}
 			for podName := range newPods {
-				pod := runningPodsMap[podName]
+				pod := latestRunningPodsMap[podName]
 				if k8s.GetPodStatus(&pod) == k8s.PodStatusRunning {
-					podsToAdd = append(podsToAdd, podName)
+					podsToAddRunning = append(podsToAddRunning, podName)
 				} else {
-					podsToAddP2 = append(podsToAddP2, podName)
+					podsToAddNotRunning = append(podsToAddNotRunning, podName)
 				}
 			}
-			podsToAdd = append(podsToAdd, podsToAddP2...)
+			podsToAdd := append(podsToAddRunning, podsToAddNotRunning...)
 
-			for _, podName := range podsToAdd {
-				if len(podsToKeep) < maxParallelPodLogging {
-					process, err := startKubectlProcess(runningPodsMap[podName], previous, &os.ProcAttr{
+			numNewPods := maxParallelPodLogging - len(podsToKeep)
+
+			if numNewPods > 0 {
+				for _, podName := range podsToAdd[:numNewPods] {
+					process, err := startKubectlProcess(latestRunningPodsMap[podName], previous, &os.ProcAttr{
 						Files: []*os.File{inr, outw, outw},
 					})
 					if err != nil {
@@ -277,15 +279,13 @@ func podCheck(podCheckChan chan struct{}, socketWriterError chan error, initialP
 						return
 					}
 					processMap[podName] = process
-					podsToKeep.Add(podName)
-				} else {
-					break
 				}
 			}
 
 			deleteMap := make(map[string]*os.Process, len(podsToDelete))
 			for podName := range podsToDelete {
 				deleteMap[podName] = processMap[podName]
+				delete(processMap, podName)
 			}
 			deleteProcesses(deleteMap)
 			timer.Reset(podCheckInterval)
@@ -294,12 +294,12 @@ func podCheck(podCheckChan chan struct{}, socketWriterError chan error, initialP
 }
 
 func deleteProcesses(processMap map[string]*os.Process) {
-	for podName := range processMap {
-		processMap[podName].Signal(os.Interrupt)
+	for _, process := range processMap {
+		process.Signal(os.Interrupt)
 	}
 	time.Sleep(5 * time.Second)
-	for podName := range processMap {
-		processMap[podName].Signal(os.Kill)
+	for _, process := range processMap {
+		process.Signal(os.Kill)
 	}
 }
 
@@ -432,14 +432,13 @@ func extractFromCortexLog(match string, loglevel string, logStr string) (*string
 
 	matches := jsonPrefixRegex.FindStringSubmatch(cutStr)
 	if len(matches) == 2 {
-		indent := len(matches[0]) - 1 // matches to curly or square bracket so remove the last char
-		indentStr := cutStr[:indent]
-		maybeJSON := cutStr[len(indentStr):]
+		indentIndex := len(matches[0]) - 1 // matches to curly or square bracket so remove the last char
+		indentStr := cutStr[:indentIndex]
+		maybeJSON := cutStr[indentIndex:]
 		jsonBytes := []byte(maybeJSON)
 		var obytes bytes.Buffer
 		err := json.Indent(&obytes, jsonBytes, indentStr, "  ")
 		if err == nil {
-			fmt.Println("pass json indent")
 			ostr := indentStr + string(obytes.String())
 			return &ostr, false
 		}
