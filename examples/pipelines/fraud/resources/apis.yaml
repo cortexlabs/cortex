@@ -1,4 +1,3 @@
 - kind: api
   name: fraud
   model: @dnn
-  model_format: tensorflow
