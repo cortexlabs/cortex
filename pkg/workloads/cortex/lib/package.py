@@ -18,12 +18,12 @@ import argparse
 import glob
 from subprocess import run
 
-from lib import util, Context
-from lib.log import get_logger
-from lib.exceptions import UserException, CortexException
-
 import requirements
 from packaging.requirements import Requirement
+
+from cortex.lib import util, Context
+from cortex.lib.log import get_logger
+from cortex.lib.exceptions import UserException, CortexException
 
 logger = get_logger()
 

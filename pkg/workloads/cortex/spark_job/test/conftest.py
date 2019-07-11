@@ -19,12 +19,13 @@ import logging
 import pytest
 import uuid
 import os
+import shutil
 
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
-from lib import Context
-import consts
-import shutil
+
+from cortex.lib import Context
+from cortex import consts
 
 
 def quiet_py4j():

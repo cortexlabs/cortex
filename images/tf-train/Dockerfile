@@ -2,12 +2,12 @@ FROM cortexlabs/tf-base
 
 ENV PYTHONPATH="/src:${PYTHONPATH}"
 
-COPY pkg/workloads/lib/requirements.txt /src/lib/requirements.txt
-RUN pip3 install -r /src/lib/requirements.txt && \
+COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
+RUN pip3 install -r /src/cortex/lib/requirements.txt && \
     rm -rf /root/.cache/pip*
 
-COPY pkg/workloads/consts.py /src/
-COPY pkg/workloads/lib /src/lib
-COPY pkg/workloads/tf_train /src/tf_train
+COPY pkg/workloads/cortex/consts.py /src/cortex/
+COPY pkg/workloads/cortex/lib /src/cortex/lib
+COPY pkg/workloads/cortex/tf_train /src/cortex/tf_train
 
-ENTRYPOINT ["/usr/bin/python3", "/src/tf_train/train.py"]
+ENTRYPOINT ["/usr/bin/python3", "/src/cortex/tf_train/train.py"]

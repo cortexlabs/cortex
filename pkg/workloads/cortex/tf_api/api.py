@@ -28,11 +28,11 @@ from tensorflow_serving.apis import get_model_metadata_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 from google.protobuf import json_format
 
-import consts
-from lib import util, tf_lib, package, Context
-from lib.log import get_logger
-from lib.exceptions import CortexException, UserRuntimeException, UserException
-from lib.context import create_transformer_inputs_from_map
+from cortex import consts
+from cortex.lib import util, tf_lib, package, Context
+from cortex.lib.log import get_logger
+from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
+from cortex.lib.context import create_transformer_inputs_from_map
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)

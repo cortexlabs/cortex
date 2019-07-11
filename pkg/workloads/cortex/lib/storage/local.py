@@ -22,8 +22,8 @@ import msgpack
 from pathlib import Path
 import shutil
 
-from lib import util
-from lib.exceptions import CortexException
+from cortex.lib import util
+from cortex.lib.exceptions import CortexException
 
 
 class LocalStorage(object):

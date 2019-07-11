@@ -18,11 +18,11 @@ import argparse
 import traceback
 import tensorflow as tf
 
-from lib import util, package, Context
-from lib.exceptions import CortexException, UserRuntimeException
+from cortex.lib import util, package, Context
+from cortex.lib.exceptions import CortexException, UserRuntimeException
 import train_util
 
-from lib.log import get_logger
+from cortex.lib.log import get_logger
 
 logger = get_logger()
 

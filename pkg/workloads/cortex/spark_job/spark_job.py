@@ -19,14 +19,13 @@ import json
 import traceback
 
 from pyspark.sql import SparkSession
-
-from lib import util, Context
-from lib.log import get_logger
-from lib.exceptions import UserException, CortexException, UserRuntimeException
-import spark_util
 import pyspark.sql.functions as F
-import consts
 
+from cortex import consts
+from cortex.lib import util, Context
+from cortex.lib.log import get_logger
+from cortex.lib.exceptions import UserException, CortexException, UserRuntimeException
+from cortex.spark_job import spark_util
 
 logger = get_logger()
 

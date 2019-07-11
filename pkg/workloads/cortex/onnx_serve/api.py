@@ -22,13 +22,13 @@ from flask import Flask, request, jsonify
 from flask_api import status
 from waitress import serve
 import onnxruntime as rt
-from lib.storage import S3
 import numpy as np
 
-import consts
-from lib import util, package, Context
-from lib.log import get_logger
-from lib.exceptions import CortexException, UserRuntimeException, UserException
+from cortex.lib.storage import S3
+from cortex import consts
+from cortex.lib import util, package, Context
+from cortex.lib.log import get_logger
+from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
