@@ -1,5 +1,4 @@
 - kind: api
   name: fraud
   model: @dnn
-  compute:
-    replicas: 1
+  model_format: tensorflow

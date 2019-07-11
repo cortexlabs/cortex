@@ -95,7 +95,7 @@ func sparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 			Mode:                 sparkop.ClusterMode,
 			Image:                &config.Cortex.SparkImage,
 			ImagePullPolicy:      pointer.String("Always"),
-			MainApplicationFile:  pointer.String("local:///src/spark_job/spark_job.py"),
+			MainApplicationFile:  pointer.String("local:///src/cortex/spark_job/spark_job.py"),
 			RestartPolicy:        sparkop.RestartPolicy{Type: sparkop.Never},
 			MemoryOverheadFactor: memOverheadFactor,
 			Arguments: []string{
@@ -106,7 +106,7 @@ func sparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 						" " + strings.Join(args, " ")),
 			},
 			Deps: sparkop.Dependencies{
-				PyFiles: []string{"local:///src/spark_job/spark_util.py", "local:///src/lib/*.py"},
+				PyFiles: []string{"local:///src/cortex/spark_job/spark_util.py", "local:///src/cortex/lib/*.py"},
 			},
 			Driver: sparkop.DriverSpec{
 				SparkPodSpec: sparkop.SparkPodSpec{

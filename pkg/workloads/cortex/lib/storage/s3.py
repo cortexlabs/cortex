@@ -20,8 +20,8 @@ import pickle
 import json
 import msgpack
 
-from lib import util
-from lib.exceptions import CortexException
+from cortex.lib import util
+from cortex.lib.exceptions import CortexException
 
 
 class S3(object):

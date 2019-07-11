@@ -20,11 +20,11 @@ from pyspark.sql.types import *
 from pyspark.sql.dataframe import DataFrame
 import pyspark.sql.functions as F
 
-from lib import util
-from lib.context import create_transformer_inputs_from_map, create_transformer_inputs_from_lists
-from lib.exceptions import CortexException, UserException, UserRuntimeException
-from lib.log import get_logger
-import consts
+from cortex.lib import util
+from cortex.lib.context import create_transformer_inputs_from_map, create_transformer_inputs_from_lists
+from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
+from cortex.lib.log import get_logger
+from cortex import consts
 
 logger = get_logger()
 

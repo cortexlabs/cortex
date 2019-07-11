@@ -12,12 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-
-import spark_util
-from spark_job import spark_job
-from lib.exceptions import UserException
-from lib import Context
-from test.integration import insurance_context
+import os
 
 import pytest
 from pyspark.sql.types import *
@@ -26,7 +21,13 @@ import pyspark.sql.functions as F
 from mock import MagicMock, call
 from py4j.protocol import Py4JJavaError
 from pathlib import Path
-import os
+
+from cortex.spark_job import spark_util
+from cortex.spark_job import spark_job
+from cortex.lib.exceptions import UserException
+from cortex.lib import Context
+from cortex.spark_job.test.integration import insurance_context
+
 
 pytestmark = pytest.mark.usefixtures("spark")
 

@@ -13,10 +13,6 @@
 # limitations under the License.
 import math
 
-import spark_util
-import consts
-from lib.exceptions import UserException
-from lib import util
 import pytest
 from pyspark.sql.types import *
 from pyspark.sql import Row
@@ -24,6 +20,11 @@ import pyspark.sql.functions as F
 from mock import MagicMock, call
 from py4j.protocol import Py4JJavaError
 from datetime import datetime
+
+from cortex import consts
+from cortex.lib.exceptions import UserException
+from cortex.lib import util
+from cortex.spark_job import spark_util
 
 pytestmark = pytest.mark.usefixtures("spark")
 

@@ -18,13 +18,9 @@
 err=0
 trap 'err=1' ERR
 
-cd lib
-pytest
-cd ..
+pytest lib/test
 
-cd spark_job
-pytest test/unit
-pytest test/integration
-cd ..
+pytest spark_job/test/unit
+pytest spark_job/test/integration
 
 test $err = 0

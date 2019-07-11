@@ -29,9 +29,8 @@ import msgpack
 from copy import deepcopy
 from datetime import datetime
 
-import consts
-
-from lib.log import get_logger
+from cortex import consts
+from cortex.lib.log import get_logger
 
 logger = get_logger()
 

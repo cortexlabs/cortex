@@ -20,9 +20,9 @@ import multiprocessing
 import math
 import tensorflow as tf
 
-import consts
-from lib import util, tf_lib
-from lib.exceptions import UserRuntimeException
+from cortex import consts
+from cortex.lib import util, tf_lib
+from cortex.lib.exceptions import UserRuntimeException
 
 
 def get_input_placeholder(model_name, ctx, training=True):
