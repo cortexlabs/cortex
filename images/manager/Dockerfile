@@ -20,6 +20,11 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.15.0/b
     chmod +x ./kubectl && \
     mv ./kubectl /usr/local/bin/kubectl
 
+RUN curl -LO https://get.helm.sh/helm-v2.14.1-linux-amd64.tar.gz && \
+    tar -zxvf helm-v2.14.1-linux-amd64.tar.gz && \
+    chmod +x linux-amd64/helm && \
+    mv linux-amd64/helm /usr/local/bin/helm
+
 COPY manager /root
 
 ENTRYPOINT ["/bin/bash"]

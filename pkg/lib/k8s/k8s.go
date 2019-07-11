@@ -46,15 +46,16 @@ var (
 )
 
 type Client struct {
-	RestConfig       *rest.Config
-	clientset        *kubernetes.Clientset
-	podClient        tcorev1.PodInterface
-	serviceClient    tcorev1.ServiceInterface
-	deploymentClient tappsv1b1.DeploymentInterface
-	jobClient        tbatchv1.JobInterface
-	ingressClient    textensionsv1b1.IngressInterface
-	hpaClient        tautoscaling.HorizontalPodAutoscalerInterface
-	Namespace        string
+	RestConfig         *rest.Config
+	clientset          *kubernetes.Clientset
+	podClient          tcorev1.PodInterface
+	serviceClient      tcorev1.ServiceInterface
+	istioServiceClient tcorev1.ServiceInterface
+	deploymentClient   tappsv1b1.DeploymentInterface
+	jobClient          tbatchv1.JobInterface
+	ingressClient      textensionsv1b1.IngressInterface
+	hpaClient          tautoscaling.HorizontalPodAutoscalerInterface
+	Namespace          string
 }
 
 func New(namespace string, inCluster bool) (*Client, error) {
@@ -80,6 +81,7 @@ func New(namespace string, inCluster bool) (*Client, error) {
 
 	client.podClient = client.clientset.CoreV1().Pods(namespace)
 	client.serviceClient = client.clientset.CoreV1().Services(namespace)
+	client.istioServiceClient = client.clientset.CoreV1().Services("istio-system")
 	client.deploymentClient = client.clientset.AppsV1beta1().Deployments(namespace)
 	client.jobClient = client.clientset.BatchV1().Jobs(namespace)
 	client.ingressClient = client.clientset.ExtensionsV1beta1().Ingresses(namespace)

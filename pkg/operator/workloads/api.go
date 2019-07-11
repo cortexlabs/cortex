@@ -506,7 +506,7 @@ func internalAPIName(apiName string, appName string) string {
 }
 
 func APIsBaseURL() (string, error) {
-	service, err := config.Kubernetes.GetService("nginx-controller-apis")
+	service, err := config.Kubernetes.GetIstioService("istio-ingressgateway")
 	if err != nil {
 		return "", err
 	}

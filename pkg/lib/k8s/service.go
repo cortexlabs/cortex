@@ -93,6 +93,18 @@ func (c *Client) GetService(name string) (*corev1.Service, error) {
 	return service, nil
 }
 
+func (c *Client) GetIstioService(name string) (*corev1.Service, error) {
+	service, err := c.istioServiceClient.Get(name, metav1.GetOptions{})
+	if k8serrors.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	service.TypeMeta = serviceTypeMeta
+	return service, nil
+}
+
 func (c *Client) DeleteService(name string) (bool, error) {
 	err := c.serviceClient.Delete(name, deleteOpts)
 	if k8serrors.IsNotFound(err) {

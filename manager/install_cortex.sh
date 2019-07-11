@@ -107,34 +107,36 @@ function validate_cortex() {
     fi
 
     if [ "$operator_load_balancer" != "ready" ]; then
-      out=$(kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-operator -o json | tr -d '[:space:]')
+      out=$(kubectl -n=istio-system get service istio-ingressgateway -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
+        echo "operator loadbalancer not ready"
         continue
       fi
       operator_load_balancer="ready"
     fi
 
     if [ "$api_load_balancer" != "ready" ]; then
-      out=$(kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-apis -o json | tr -d '[:space:]')
+      out=$(kubectl -n=istio-system get service istio-ingressgateway -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
+        echo "api loadbalancer not ready"
         continue
       fi
       api_load_balancer="ready"
     fi
 
     if [ "$operator_endpoint" = "" ]; then
-      operator_endpoint=$(kubectl -n=$CORTEX_NAMESPACE get service nginx-controller-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
+      operator_endpoint=$(kubectl -n=istio-system get service istio-ingressgateway -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
     fi
 
     if [ "$operator_endpoint_reachable" != "ready" ]; then
-      if ! curl $operator_endpoint >/dev/null 2>&1; then
+      if ! curl $operator_endpoint/operattor >/dev/null 2>&1; then
         continue
       fi
       operator_endpoint_reachable="ready"
     fi
 
     if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
-      num_restart=$(kubectl -n=$CORTEX_NAMESPACE get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
+      num_restart=$(kubectl -n=istio-gateway get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
       if [[ $num_restart -ge 2 ]]; then
         echo -e "\n\nAn error occurred when starting the Cortex operator. View the logs with:"
         echo "  kubectl logs $operator_pod_name --namespace=$CORTEX_NAMESPACE"
@@ -171,8 +173,14 @@ setup_secrets
 
 envsubst < manifests/spark.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/argo.yaml | kubectl apply -f - >/dev/null
-envsubst < manifests/nginx.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
+
+kubectl create namespace istio-system
+helm template manifests/istio-init --name istio-init --namespace istio-system | kubectl apply -f -
+sleep 20
+helm template manifests/istio --name istio --namespace istio-system | kubectl apply -f -
+kubectl label namespace cortex istio-injection=enabled
+
 envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/cluster-autoscaler.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
