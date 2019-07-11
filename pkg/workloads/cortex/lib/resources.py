@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import collections
-
-from lib import util
 from copy import deepcopy
+
+from cortex.lib import util
 
 
 class ResourceMap(dict):

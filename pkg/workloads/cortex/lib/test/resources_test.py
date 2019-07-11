@@ -14,7 +14,7 @@
 
 import pytest
 
-from lib.resources import ResourceMap
+from cortex.lib.resources import ResourceMap
 
 
 def test_resource_map_empty_resource():

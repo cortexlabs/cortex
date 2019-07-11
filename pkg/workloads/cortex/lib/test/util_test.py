@@ -17,7 +17,7 @@ import os
 from copy import deepcopy
 import pytest
 
-from lib import util
+from cortex.lib import util
 import logging
 
 

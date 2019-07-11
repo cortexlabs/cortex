@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import consts
+from cortex import consts
 
 """
 HOW TO GENERATE CONTEXT
@@ -23,8 +23,8 @@ HOW TO GENERATE CONTEXT
 docker run -it --entrypoint "/bin/bash" cortexlabs/spark
 4. run the following in python3 shell
 
-from lib import util
-from lib.storage import S3
+from cortex.lib import util
+from cortex.lib.storage import S3
 
 bucket = "cortex-cluster-<name>"
 key = "apps/<app-name>/contexts/<context-id>.msgpack"

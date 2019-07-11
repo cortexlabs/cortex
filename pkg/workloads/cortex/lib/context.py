@@ -19,14 +19,14 @@ import inspect
 import importlib
 from datetime import datetime
 from copy import deepcopy
-
-import consts
-from lib import util
-from lib.storage import S3, LocalStorage
-from lib.exceptions import CortexException, UserException
 from botocore.exceptions import ClientError
-from lib.resources import ResourceMap
-from lib.log import get_logger
+
+from cortex import consts
+from cortex.lib import util
+from cortex.lib.storage import S3, LocalStorage
+from cortex.lib.exceptions import CortexException, UserException
+from cortex.lib.resources import ResourceMap
+from cortex.lib.log import get_logger
 
 logger = get_logger()
 

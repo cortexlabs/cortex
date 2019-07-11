@@ -14,10 +14,11 @@
 
 import os
 import sys
+
 import tensorflow as tf
 
-from lib import util
-import consts
+from cortex.lib import util
+from cortex import consts
 
 
 CORTEX_TYPE_TO_TF_TYPE = {

@@ -23,15 +23,15 @@ RUN apt-get update -qq && apt-get install -y -q \
         zlib1g-dev \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
-COPY pkg/workloads/consts.py /src/
-COPY pkg/workloads/lib /src/lib
+COPY pkg/workloads/cortex/consts.py /src/cortex/
+COPY pkg/workloads/cortex/lib /src/cortex/lib
 
-COPY pkg/workloads/tf_api/requirements.txt /src/tf_api/requirements.txt
+COPY pkg/workloads/cortex/tf_api/requirements.txt /src/cortex/tf_api/requirements.txt
 
-RUN pip3 install -r /src/lib/requirements.txt && \
-    pip3 install -r /src/tf_api/requirements.txt && \
+RUN pip3 install -r /src/cortex/lib/requirements.txt && \
+    pip3 install -r /src/cortex/tf_api/requirements.txt && \
     rm -rf /root/.cache/pip*
 
 ENV PYTHONPATH="/src:${PYTHONPATH}"
 
-ENTRYPOINT ["/usr/bin/python3", "/src/lib/package.py"]
+ENTRYPOINT ["/usr/bin/python3", "/src/cortex/lib/package.py"]
