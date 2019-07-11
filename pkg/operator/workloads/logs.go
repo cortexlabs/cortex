@@ -43,6 +43,7 @@ const (
 	maxMessageSize        = 8192
 	podCheckInterval      = 5 * time.Second
 	maxParallelPodLogging = 5
+	initLogTailLines      = 20
 )
 
 func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket.Conn) {
@@ -61,7 +62,7 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 
 		if len(pods) > 0 {
 			if len(pods) > maxParallelPodLogging {
-				if !writeSocket(fmt.Sprintf("%d pods available, streaming logs for %d of them:", len(pods), maxParallelPodLogging), socket) {
+				if !writeSocket(fmt.Sprintf("\n%d pods available, streaming logs for %d of them:", len(pods), maxParallelPodLogging), socket) {
 					return
 				}
 			}
@@ -158,23 +159,17 @@ func getKubectlLogs(pods []kcore.Pod, verbose bool, wrotePending bool, previous 
 		}
 	}
 
-	outr, outw, err := os.Pipe()
-	if err != nil {
-		errors.Panic(err, "logs", "kubectl", "os.pipe")
-	}
-	defer outr.Close()
-
 	inr, inw, err := os.Pipe()
 	if err != nil {
 		errors.Panic(err, "logs", "kubectl", "os.pipe")
 	}
 	defer inw.Close()
+	defer inr.Close()
 
 	podCheckCancel := make(chan struct{})
 	defer close(podCheckCancel)
-	socketWriterError := make(chan error, 1)
-	go podCheck(podCheckCancel, socketWriterError, pods, previous, inr, outw)
-	go pumpStdout(socket, socketWriterError, outr, verbose, true)
+
+	go podCheck(podCheckCancel, socket, pods, previous, verbose, inr)
 	pumpStdin(socket, inw)
 	podCheckCancel <- struct{}{}
 }
@@ -191,7 +186,7 @@ func startKubectlProcess(pod kcore.Pod, previous bool, attrs *os.ProcAttr) (*os.
 	kubectlArgs = append(kubectlArgs, pod.Name)
 	if pod.Labels["workloadType"] == WorkloadTypeAPI && pod.Labels["userFacing"] == "true" {
 		kubectlArgs = append(kubectlArgs, apiContainerName)
-		kubectlArgs = append(kubectlArgs, "--since="+podCheckInterval.String())
+		kubectlArgs = append(kubectlArgs, fmt.Sprintf("--tail=%d", initLogTailLines))
 		identifier += " " + apiContainerName
 	}
 
@@ -206,10 +201,7 @@ func startKubectlProcess(pod kcore.Pod, previous bool, attrs *os.ProcAttr) (*os.
 	return process, nil
 }
 
-func podCheck(podCheckCancel chan struct{}, socketWriterError chan error, initialPodList []kcore.Pod, previous bool, inr *os.File, outw *os.File) {
-	defer inr.Close()
-	defer outw.Close()
-
+func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodList []kcore.Pod, previous bool, verbose bool, inr *os.File) {
 	timer := time.NewTimer(0)
 	defer timer.Stop()
 
@@ -218,6 +210,18 @@ func podCheck(podCheckCancel chan struct{}, socketWriterError chan error, initia
 	labels := initialPodList[0].GetLabels()
 	appName := labels["appName"]
 	workloadID := labels["workloadID"]
+
+	outr, outw, err := os.Pipe()
+	if err != nil {
+		errors.Panic(err, "logs", "kubectl", "os.pipe")
+	}
+	defer outw.Close()
+	defer outr.Close()
+
+	socketWriterError := make(chan error, 1)
+	defer close(socketWriterError)
+
+	go pumpStdout(socket, socketWriterError, outr, verbose, true)
 
 	for {
 		select {
@@ -245,7 +249,6 @@ func podCheck(podCheckCancel chan struct{}, socketWriterError chan error, initia
 			}
 
 			prevRunningPods := strset.New()
-
 			for podName := range processMap {
 				prevRunningPods.Add(podName)
 			}
@@ -257,6 +260,7 @@ func podCheck(podCheckCancel chan struct{}, socketWriterError chan error, initia
 			// Prioritize adding running pods
 			podsToAddRunning := []string{}
 			podsToAddNotRunning := []string{}
+
 			for podName := range newPods {
 				pod := latestRunningPodsMap[podName]
 				if k8s.GetPodStatus(&pod) == k8s.PodStatusRunning {
@@ -267,22 +271,24 @@ func podCheck(podCheckCancel chan struct{}, socketWriterError chan error, initia
 			}
 			podsToAdd := append(podsToAddRunning, podsToAddNotRunning...)
 
-			numNewPods := maxParallelPodLogging - len(podsToKeep)
+			maxPodsToAdd := maxParallelPodLogging - len(podsToKeep)
+			if len(podsToAdd) < maxPodsToAdd {
+				maxPodsToAdd = len(podsToAdd)
+			}
 
-			if numNewPods > 0 {
-				for _, podName := range podsToAdd[:numNewPods] {
-					process, err := startKubectlProcess(latestRunningPodsMap[podName], previous, &os.ProcAttr{
-						Files: []*os.File{inr, outw, outw},
-					})
-					if err != nil {
-						socketWriterError <- err
-						return
-					}
-					processMap[podName] = process
+			for _, podName := range podsToAdd[:maxPodsToAdd] {
+				process, err := startKubectlProcess(latestRunningPodsMap[podName], previous, &os.ProcAttr{
+					Files: []*os.File{inr, outw, outw},
+				})
+				if err != nil {
+					socketWriterError <- err
+					return
 				}
+				processMap[podName] = process
 			}
 
 			deleteMap := make(map[string]*os.Process, len(podsToDelete))
+
 			for podName := range podsToDelete {
 				deleteMap[podName] = processMap[podName]
 				delete(processMap, podName)
@@ -320,6 +326,7 @@ func getCloudWatchLogs(prefix string, verbose bool, socket *websocket.Conn) {
 	}
 
 	socketWriterError := make(chan error)
+	close(socketWriterError)
 	go pumpStdout(socket, socketWriterError, logsReader, verbose, false)
 
 	inr, inw, err := os.Pipe()
@@ -369,7 +376,9 @@ func pumpStdout(socket *websocket.Conn, socketWriterError chan error, reader io.
 
 	select {
 	case err := <-socketWriterError:
-		writeSocket(err.Error(), socket)
+		if err != nil {
+			writeSocket(err.Error(), socket)
+		}
 	default:
 	}
 
