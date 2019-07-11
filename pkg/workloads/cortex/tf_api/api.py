@@ -259,11 +259,11 @@ def run_predict(sample):
         result = parse_response_proto(response_proto)
 
         util.log_indent("Raw sample:", indent=4)
-        util.log_pretty(sample, indent=6)
+        util.log_pretty_flat(sample, indent=6)
         util.log_indent("Transformed sample:", indent=4)
-        util.log_pretty(transformed_sample, indent=6)
+        util.log_pretty_flat(transformed_sample, indent=6)
         util.log_indent("Prediction:", indent=4)
-        util.log_pretty(result, indent=6)
+        util.log_pretty_flat(result, indent=6)
 
         result["transformed_sample"] = transformed_sample
 
@@ -272,9 +272,9 @@ def run_predict(sample):
         response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
         result = parse_response_proto_raw(response_proto)
         util.log_indent("Sample:", indent=4)
-        util.log_pretty(sample, indent=6)
+        util.log_pretty_flat(sample, indent=6)
         util.log_indent("Prediction:", indent=4)
-        util.log_pretty(result, indent=6)
+        util.log_pretty_flat(result, indent=6)
 
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
         result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
@@ -315,6 +315,7 @@ def health():
 
 @app.route("/<deployment_name>/<api_name>", methods=["POST"])
 def predict(deployment_name, api_name):
+
     try:
         payload = request.get_json()
     except Exception as e:
@@ -326,7 +327,7 @@ def predict(deployment_name, api_name):
     response = {}
 
     if not util.is_dict(payload) or "samples" not in payload:
-        util.log_pretty(payload, logging_func=logger.error)
+        util.log_pretty_flat(payload, logging_func=logger.error)
         return prediction_failed(payload, "top level `samples` key not found in request")
 
     logger.info("Predicting " + util.pluralize(len(payload["samples"]), "sample", "samples"))
@@ -334,7 +335,7 @@ def predict(deployment_name, api_name):
     predictions = []
     samples = payload["samples"]
     if not util.is_list(samples):
-        util.log_pretty(samples, logging_func=logger.error)
+        util.log_pretty_flat(samples, logging_func=logger.error)
         return prediction_failed(
             payload, "expected the value of key `samples` to be a list of json objects"
         )
