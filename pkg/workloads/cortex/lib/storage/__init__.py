@@ -12,5 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .local import LocalStorage
-from .s3 import S3
+from cortex.lib.storage.local import LocalStorage
+from cortex.lib.storage.s3 import S3
