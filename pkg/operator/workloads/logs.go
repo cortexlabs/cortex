@@ -326,7 +326,7 @@ func getCloudWatchLogs(prefix string, verbose bool, socket *websocket.Conn) {
 	}
 
 	socketWriterError := make(chan error)
-	close(socketWriterError)
+	defer close(socketWriterError)
 	go pumpStdout(socket, socketWriterError, logsReader, verbose, false)
 
 	inr, inw, err := os.Pipe()
