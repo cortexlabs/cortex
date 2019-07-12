@@ -145,17 +145,19 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 }
 
 func getKubectlLogs(pods []kcore.Pod, verbose bool, wrotePending bool, previous bool, socket *websocket.Conn) {
-	isAllPending := true
-	for _, pod := range pods {
-		if k8s.GetPodStatus(&pod) != k8s.PodStatusPending {
-			isAllPending = false
-			break
+	if !wrotePending {
+		isAllPending := true
+		for _, pod := range pods {
+			if k8s.GetPodStatus(&pod) != k8s.PodStatusPending {
+				isAllPending = false
+				break
+			}
 		}
-	}
 
-	if isAllPending {
-		if !writeSocket("\nPending", socket) {
-			return
+		if isAllPending {
+			if !writeSocket("\nPending", socket) {
+				return
+			}
 		}
 	}
 
