@@ -74,6 +74,7 @@ func main() {
 	router.Use(apiVersionCheckMiddleware)
 	router.Use(authMiddleware)
 
+	router.HandleFunc("/", Index).Methods("GET")
 	router.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
 	router.HandleFunc("/delete", endpoints.Delete).Methods("POST")
 	router.HandleFunc("/resources", endpoints.GetResources).Methods("GET")
@@ -82,6 +83,12 @@ func main() {
 
 	log.Print("Running on port " + operatorPortStr)
 	log.Fatal(http.ListenAndServe(":"+operatorPortStr, router))
+}
+
+func Index(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("."))
 }
 
 func panicMiddleware(next http.Handler) http.Handler {

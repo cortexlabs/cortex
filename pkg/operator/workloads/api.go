@@ -76,11 +76,15 @@ func tfAPISpec(
 			"apiName":      api.Name,
 			"resourceID":   ctx.APIs[api.Name].ID,
 			"workloadID":   workloadID,
+			"service":      WorkloadTypeAPI,
+			"app":          WorkloadTypeAPI,
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": WorkloadTypeAPI,
 			"apiName":      api.Name,
+			"service":      WorkloadTypeAPI,
+			"app":          WorkloadTypeAPI,
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
@@ -90,6 +94,8 @@ func tfAPISpec(
 				"resourceID":   ctx.APIs[api.Name].ID,
 				"workloadID":   workloadID,
 				"userFacing":   "true",
+				"service":      WorkloadTypeAPI,
+				"app":          WorkloadTypeAPI,
 			},
 			K8sPodSpec: corev1.PodSpec{
 				Containers: []corev1.Container{
@@ -187,11 +193,15 @@ func onnxAPISpec(
 			"apiName":      api.Name,
 			"resourceID":   ctx.APIs[api.Name].ID,
 			"workloadID":   workloadID,
+			"service":      WorkloadTypeAPI,
+			"app":          WorkloadTypeAPI,
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": WorkloadTypeAPI,
 			"apiName":      api.Name,
+			"service":      WorkloadTypeAPI,
+			"app":          WorkloadTypeAPI,
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
@@ -201,6 +211,8 @@ func onnxAPISpec(
 				"resourceID":   ctx.APIs[api.Name].ID,
 				"workloadID":   workloadID,
 				"userFacing":   "true",
+				"service":      WorkloadTypeAPI,
+				"app":          WorkloadTypeAPI,
 			},
 			K8sPodSpec: corev1.PodSpec{
 				Containers: []corev1.Container{
@@ -271,6 +283,8 @@ func serviceSpec(ctx *context.Context, api *context.API) *k8s.ServiceSpec {
 			"appName":      ctx.App.Name,
 			"workloadType": WorkloadTypeAPI,
 			"apiName":      api.Name,
+			"service":      WorkloadTypeAPI,
+			"app":          WorkloadTypeAPI,
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
@@ -430,25 +444,16 @@ func deleteOldAPIs(ctx *context.Context) {
 
 func createServicesAndIngresses(ctx *context.Context) error {
 	for _, api := range ctx.APIs {
-		ingressExists, err := config.Kubernetes.IngressExists(internalAPIName(api.Name, ctx.App.Name))
-		if err != nil {
-			return errors.Wrap(err, ctx.App.Name, "ingresses", api.Name, "create")
-		}
-		if !ingressExists {
-			_, err = config.Kubernetes.CreateIngress(ingressSpec(ctx, api))
-			if err != nil {
-				return errors.Wrap(err, ctx.App.Name, "ingresses", api.Name, "create")
-			}
-		}
-
 		serviceExists, err := config.Kubernetes.ServiceExists(internalAPIName(api.Name, ctx.App.Name))
 		if err != nil {
 			return errors.Wrap(err, ctx.App.Name, "services", api.Name, "create")
 		}
 		if !serviceExists {
-			_, err = config.Kubernetes.CreateService(serviceSpec(ctx, api))
-			if err != nil {
+			if _, err := config.Kubernetes.CreateService(serviceSpec(ctx, api)); err != nil {
 				return errors.Wrap(err, ctx.App.Name, "services", api.Name, "create")
+			}
+			if _, err := config.Kubernetes; err != nil {
+				return errors.Wrap(err, ctx.App.Name, "virtualservices", api.Name, "create")
 			}
 		}
 	}
@@ -506,7 +511,7 @@ func internalAPIName(apiName string, appName string) string {
 }
 
 func APIsBaseURL() (string, error) {
-	service, err := config.Kubernetes.GetIstioService("istio-ingressgateway")
+	service, err := config.Kubernetes.GetIstioService("apis-ingressgateway")
 	if err != nil {
 		return "", err
 	}

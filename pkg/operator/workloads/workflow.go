@@ -153,6 +153,8 @@ func Create(ctx *context.Context) (*awfv1.Workflow, error) {
 				"appName":      ctx.App.Name,
 				"workloadType": spec.WorkloadType,
 				"workloadID":   spec.WorkloadID,
+				"service":      spec.WorkloadType,
+				"app":          spec.WorkloadType,
 			},
 		})
 

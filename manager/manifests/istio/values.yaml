@@ -13,6 +13,92 @@
 #
 gateways:
   enabled: true
+  operator-ingressgateway:
+    namespace: istio-system
+    enabled: true
+    labels:
+      app: operator-istio-gateway
+      istio: operator-ingressgateway
+    replicaCount: 1
+    autoscaleMin: 1
+    autoscaleMax: 2
+    resources:
+      requests:
+       cpu: 100m
+       memory: 128Mi
+      limits:
+       cpu: 1800m
+       memory: 256Mi
+    type: LoadBalancer
+    ports:
+    - port: 80
+      targetPort: 80
+      name: http2
+    - port: 443
+      name: https
+    - port: 31400
+      name: tcp
+    - port: 15011
+      targetPort: 15011
+      name: tcp-pilot-grpc-tls
+    - port: 8060
+      targetPort: 8060
+      name: tcp-citadel-grpc-tls
+    - port: 15029
+      targetPort: 15029
+      name: http2-kiali
+    - port: 15030
+      targetPort: 15030
+      name: http2-prometheus
+    - port: 15031
+      targetPort: 15031
+      name: http2-grafana
+    - port: 15032
+      targetPort: 15032
+      name: http2-tracing
+    tracing:
+      enabled: true
+    secretVolumes:
+    - name: customgateway-certs
+      secretName: istio-customgateway-certs
+      mountPath: /etc/istio/customgateway-certs
+    - name: customgateway-ca-certs
+      secretName: istio-customgateway-ca-certs
+      mountPath: /etc/istio/customgateway-ca-certs
+  apis-ingressgateway:
+    namespace: istio-system
+    enabled: true
+    labels:
+      app: apis-istio-gateway
+      istio: apis-ingressgateway
+    replicaCount: 1
+    autoscaleMin: 1
+    autoscaleMax: 2
+    resources:
+      requests:
+       cpu: 100m
+       memory: 128Mi
+      limits:
+       cpu: 1800m
+       memory: 256Mi
+    type: LoadBalancer
+    ports:
+    - port: 80
+      targetPort: 80
+      name: http2
+    - port: 443
+      name: https
+    - port: 31400
+      name: tcp
+    tracing:
+      enabled: true
+    secretVolumes:
+    - name: customgateway-certs
+      secretName: istio-customgateway-certs
+      mountPath: /etc/istio/customgateway-certs
+    - name: customgateway-ca-certs
+      secretName: istio-customgateway-ca-certs
+      mountPath: /etc/istio/customgateway-ca-certs
 
 #
 # sidecar-injector webhook configuration, refer to the
@@ -87,7 +173,7 @@ kiali:
 #
 certmanager:
   enabled: false
-  
+
 #
 # Istio CNI plugin enabled
 #   This must be enabled to use the CNI plugin in Istio.  The CNI plugin is installed separately.
@@ -235,7 +321,7 @@ global:
     # available to scrape via the Envoy admin port at either /stats or /stats/prometheus.
     #
     # See https://www.envoyproxy.io/docs/envoy/latest/api-v2/config/metrics/v2/metrics_service.proto
-    # for details about Envoy's Metrics Service API. 
+    # for details about Envoy's Metrics Service API.
     #
     # Disabled by default.
     envoyMetricsService:
@@ -410,7 +496,7 @@ global:
   #   services or ServiceEntries for the destination port
   # REGISTRY_ONLY - restrict outbound traffic to services defined in the service registry as well
   #   as those defined through ServiceEntries
-  # ALLOW_ANY is the default in 1.1.  This means each pod will be able to make outbound requests 
+  # ALLOW_ANY is the default in 1.1.  This means each pod will be able to make outbound requests
   # to services outside of the mesh without any ServiceEntry.
   # REGISTRY_ONLY was the default in 1.0.  If this behavior is desired, set the value below to REGISTRY_ONLY.
   outboundTrafficPolicy:
@@ -425,7 +511,7 @@ global:
   # rules should be exported to. Currently only one value can be provided in this list. This value
   # should be one of the following two options:
   # * implies these objects are visible to all namespaces, enabling any sidecar to talk to any other sidecar.
-  # . implies these objects are visible to only to sidecars in the same namespace, or if imported as a Sidecar.egress.host  
+  # . implies these objects are visible to only to sidecars in the same namespace, or if imported as a Sidecar.egress.host
   #defaultConfigVisibilitySettings:
   #- '*'
 
