@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM nvidia/cuda:9.1-cudnn7-devel
 
 RUN apt-get update -qq && apt-get install -y -q \
         python3 \
@@ -30,7 +30,7 @@ COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
 COPY pkg/workloads/cortex/onnx_serve/requirements.txt /src/cortex/onnx_serve/requirements.txt
 RUN pip3 install -r /src/cortex/lib/requirements.txt && \
     pip3 install -r /src/cortex/onnx_serve/requirements.txt && \
-    pip3 install onnxruntime==0.4.0 && \
+    pip3 install onnxruntime-gpu==0.4.0 && \
     rm -rf /root/.cache/pip*
 
 COPY pkg/workloads/cortex/consts.py /src/cortex

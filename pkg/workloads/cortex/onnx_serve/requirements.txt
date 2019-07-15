@@ -1,5 +1,4 @@
 flask==1.0.2
 flask-api==1.1
 waitress==1.2.1
-onnxruntime==0.4.0
 numpy>=1.15.0
