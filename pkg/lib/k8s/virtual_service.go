@@ -56,6 +56,13 @@ func VirtualService(spec *VirtualServiceSpec) *unstructured.Unstructured {
 		"gateways": spec.Gateways,
 		"http": []map[string]interface{}{
 			map[string]interface{}{
+				"match": []map[string]interface{}{
+					map[string]interface{}{
+						"uri": map[string]interface{}{
+							"prefix": spec.Path,
+						},
+					},
+				},
 				"route": []map[string]interface{}{
 					map[string]interface{}{
 						"destination": map[string]interface{}{

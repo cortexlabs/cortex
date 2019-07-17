@@ -41,14 +41,14 @@ metadata:
   namespace: $CORTEX_NAMESPACE
   labels:
     workloadType: operator
-    workloadId: operator
+    workloadID: operator
     app: operator
     version: v1
 spec:
   replicas: 1
   selector:
     matchLabels:
-      workloadId: operator
+      workloadID: operator
       app: operator
       version: v1
   template:
@@ -56,7 +56,7 @@ spec:
       labels:
         app: operator
         version: v1
-        workloadId: operator
+        workloadID: operator
         workloadType: operator
     spec:
       serviceAccountName: operator
@@ -92,7 +92,7 @@ metadata:
   namespace: $CORTEX_NAMESPACE
   name: operator
   labels:
-    workloadId: operator
+    workloadID: operator
     workloadType: operator
     app: operator
     service: operator
@@ -102,7 +102,7 @@ spec:
     name: http
   selector:
     app: operator
-    workloadId: operator
+    workloadID: operator
 
 ---
 
@@ -135,8 +135,11 @@ spec:
   gateways:
   - operator-gateway
   http:
-    - route:
-      - destination:
-          host: operator
-          port:
-            number: 8888
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: operator
+        port:
+          number: 8888
