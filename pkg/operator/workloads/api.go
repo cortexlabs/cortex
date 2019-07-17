@@ -450,9 +450,6 @@ func deleteOldAPIs(ctx *context.Context) {
 
 func createServicesAndIngresses(ctx *context.Context) error {
 	for _, api := range ctx.APIs {
-		if api.ModelFormat != userconfig.TensorFlowModelFormat {
-			continue
-		}
 		serviceExists, err := config.Kubernetes.ServiceExists(internalAPIName(api.Name, ctx.App.Name))
 		if err != nil {
 			return errors.Wrap(err, ctx.App.Name, "services", api.Name, "create")

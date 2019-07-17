@@ -316,14 +316,6 @@ def health():
 def predict_index(deployment_name, api_name):
     return jsonify({"ok": True})
 
-@app.route("/", methods=["GET"])
-def index():
-    return jsonify({"ok": True})
-
-@app.errorhandler(404)
-def page_not_found(e):
-    return jsonify({"not_ok": True})
-
 @app.route("/<deployment_name>/<api_name>", methods=["POST"])
 def predict(deployment_name, api_name):
     try:
