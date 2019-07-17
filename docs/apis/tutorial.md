@@ -2,8 +2,8 @@
 
 ## Prerequisites
 
-1. A Kubernetes cluster running Cortex ([installation instructions](../cluster/install.md))
-2. The Cortex CLI
+1. A Cortex cluster ([installation instructions](../cluster/install.md))
+2. The Cortex CLI ([installation instructions](../cluster/install.md))
 
 ## Deployment
 
@@ -11,29 +11,23 @@
 
 ```text
 $ mkdir iris && cd iris
-$ touch cortex.yaml irises.json
+$ touch cortex.yaml
 ```
 
-Cortex requires a `cortex.yaml` file which defines a `deployment` resource. Other resources may be defined in arbitrarily named YAML files in the the directory which contains `cortex.yaml` or any subdirectories. We'll define all of our resources in `cortex.yaml` in this example.
-
-Add to `cortex.yaml`:
+Cortex requires a `cortex.yaml` file which defines a `deployment` resource. An `api` resource makes the model available as a live web service that can serve real-time predictions.
 
 ```yaml
+# cortex.yaml
+
 - kind: deployment
   name: iris
-```
 
-### Define an API
-
-An API makes your model available as a live web service that can serve real-time predictions. Cortex is able to read from any S3 bucket that your AWS credentials grant access to.
-
-Add to `cortex.yaml`:
-
-```yaml
 - kind: api
-  name: iris-type
+  name: classifier
   model: s3://cortex-examples/iris-tensorflow.zip
 ```
+
+Note: Cortex is able to deploy models from any S3 bucket that your AWS credentials grant access to.
 
 ### Deploy the API
 
@@ -49,33 +43,10 @@ $ cortex get --watch
 
 ### Test the iris classification service
 
-Define a sample in `irises.json`:
-
-```javascript
-{
-  "samples": [
-    {
-      "sepal_length": 5.2,
-      "sepal_width": 3.6,
-      "petal_length": 1.4,
-      "petal_width": 0.3
-    }
-  ]
-}
-```
-
-When the API is ready, request a prediction from the API:
-
-```text
-$ cortex predict iris-type irises.json
-```
-
-### Call the API from other clients (e.g. cURL)
-
 Get the API's endpoint:
 
 ```text
-$ cortex get iris-type
+$ cortex get classifier
 ```
 
 Use cURL to test the API:
@@ -93,5 +64,3 @@ Delete the deployment:
 ```text
 $ cortex delete iris
 ```
-
-See [uninstall](../cluster/uninstall.md) if you'd like to uninstall Cortex.
