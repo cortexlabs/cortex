@@ -45,7 +45,7 @@ func tfAPISpec(
 	api *context.API,
 	workloadID string,
 	desiredReplicas int32,
-) *appsv1b1.Deployment {
+) *k8s.DeploymentSpec {
 	transformResourceList := corev1.ResourceList{}
 	tfServingResourceList := corev1.ResourceList{}
 	tfServingLimitsList := corev1.ResourceList{}
@@ -66,36 +66,26 @@ func tfAPISpec(
 		tfServingResourceList["nvidia.com/gpu"] = *k8sresource.NewQuantity(api.Compute.GPU, k8sresource.DecimalSI)
 		tfServingLimitsList["nvidia.com/gpu"] = *k8sresource.NewQuantity(api.Compute.GPU, k8sresource.DecimalSI)
 	}
-
-	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:     internalAPIName(api.Name, ctx.App.Name),
+	spec := &k8s.DeploymentSpec{
+		Name:     WorkloadTypeAPI,
 		Replicas: desiredReplicas,
 		Labels: map[string]string{
-			"appName":      ctx.App.Name,
 			"workloadType": WorkloadTypeAPI,
-			"apiName":      api.Name,
-			"resourceID":   ctx.APIs[api.Name].ID,
-			"workloadID":   workloadID,
-			"service":      WorkloadTypeAPI,
+			"workloadId":   WorkloadTypeAPI,
 			"app":          WorkloadTypeAPI,
+			"version":      "v1",
 		},
 		Selector: map[string]string{
-			"appName":      ctx.App.Name,
 			"workloadType": WorkloadTypeAPI,
-			"apiName":      api.Name,
-			"service":      WorkloadTypeAPI,
 			"app":          WorkloadTypeAPI,
+			"version":      "v1",
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"appName":      ctx.App.Name,
 				"workloadType": WorkloadTypeAPI,
-				"apiName":      api.Name,
-				"resourceID":   ctx.APIs[api.Name].ID,
-				"workloadID":   workloadID,
-				"userFacing":   "true",
-				"service":      WorkloadTypeAPI,
+				"workloadId":   WorkloadTypeAPI,
 				"app":          WorkloadTypeAPI,
+				"version":      "v1",
 			},
 			K8sPodSpec: corev1.PodSpec{
 				Containers: []corev1.Container{
@@ -132,6 +122,11 @@ func tfAPISpec(
 						Resources: corev1.ResourceRequirements{
 							Requests: transformResourceList,
 						},
+						Ports: []corev1.ContainerPort{
+							{
+								ContainerPort: 8888,
+							},
+						},
 					},
 					{
 						Name:            tfServingContainerName,
@@ -161,14 +156,21 @@ func tfAPISpec(
 							Requests: tfServingResourceList,
 							Limits:   tfServingLimitsList,
 						},
+						Ports: []corev1.ContainerPort{
+							{
+								ContainerPort: tfServingPortInt32,
+							},
+						},
 					},
 				},
 				Volumes:            k8s.DefaultVolumes(),
-				ServiceAccountName: "default",
+				ServiceAccountName: "operator",
 			},
 		},
 		Namespace: config.Cortex.Namespace,
-	})
+	}
+	//return k8s.Deployment(spec)
+	return spec
 }
 
 func onnxAPISpec(
@@ -258,38 +260,29 @@ func onnxAPISpec(
 	})
 }
 
-func ingressSpec(ctx *context.Context, api *context.API) *k8s.IngressSpec {
-	return &k8s.IngressSpec{
-		Name:         internalAPIName(api.Name, ctx.App.Name),
-		ServiceName:  internalAPIName(api.Name, ctx.App.Name),
-		ServicePort:  defaultPortInt32,
-		Path:         context.APIPath(api.Name, ctx.App.Name),
-		IngressClass: "apis",
-		Labels: map[string]string{
-			"appName":      ctx.App.Name,
-			"workloadType": WorkloadTypeAPI,
-			"apiName":      api.Name,
-		},
-		Namespace: config.Cortex.Namespace,
+func virtualServiceSpec(ctx *context.Context, api *context.API) *k8s.VirtualServiceSpec {
+	return &k8s.VirtualServiceSpec{
+		Name:        WorkloadTypeAPI,
+		Namespace:   config.Cortex.Namespace,
+		Gateways:    []string{"apis-gateway"},
+		ServiceName: WorkloadTypeAPI,
+		ServicePort: defaultPortInt32,
+		Path:        context.APIPath(api.Name, ctx.App.Name),
 	}
 }
 
 func serviceSpec(ctx *context.Context, api *context.API) *k8s.ServiceSpec {
 	return &k8s.ServiceSpec{
-		Name:       internalAPIName(api.Name, ctx.App.Name),
-		Port:       defaultPortInt32,
-		TargetPort: defaultPortInt32,
+		Name: WorkloadTypeAPI,
+		Port: defaultPortInt32,
 		Labels: map[string]string{
-			"appName":      ctx.App.Name,
 			"workloadType": WorkloadTypeAPI,
-			"apiName":      api.Name,
+			"workloadId":   WorkloadTypeAPI,
 			"service":      WorkloadTypeAPI,
 			"app":          WorkloadTypeAPI,
 		},
 		Selector: map[string]string{
-			"appName":      ctx.App.Name,
-			"workloadType": WorkloadTypeAPI,
-			"apiName":      api.Name,
+			"app": WorkloadTypeAPI,
 		},
 		Namespace: config.Cortex.Namespace,
 	}
@@ -351,7 +344,7 @@ func apiWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
 
 		switch api.ModelFormat {
 		case userconfig.TensorFlowModelFormat:
-			spec = tfAPISpec(ctx, api, workloadID, desiredReplicas)
+			//spec = tfAPISpec(ctx, api, workloadID, desiredReplicas)
 		case userconfig.ONNXModelFormat:
 			spec = onnxAPISpec(ctx, api, workloadID, desiredReplicas)
 		default:
@@ -444,6 +437,9 @@ func deleteOldAPIs(ctx *context.Context) {
 
 func createServicesAndIngresses(ctx *context.Context) error {
 	for _, api := range ctx.APIs {
+		if api.ModelFormat != userconfig.TensorFlowModelFormat {
+			continue
+		}
 		serviceExists, err := config.Kubernetes.ServiceExists(internalAPIName(api.Name, ctx.App.Name))
 		if err != nil {
 			return errors.Wrap(err, ctx.App.Name, "services", api.Name, "create")
@@ -452,10 +448,16 @@ func createServicesAndIngresses(ctx *context.Context) error {
 			if _, err := config.Kubernetes.CreateService(serviceSpec(ctx, api)); err != nil {
 				return errors.Wrap(err, ctx.App.Name, "services", api.Name, "create")
 			}
-			if _, err := config.Kubernetes; err != nil {
+			if _, err := config.Kubernetes.CreateVirtualService(virtualServiceSpec(ctx, api)); err != nil {
 				return errors.Wrap(err, ctx.App.Name, "virtualservices", api.Name, "create")
 			}
 		}
+
+		spec := tfAPISpec(ctx, api, WorkloadTypeAPI, 1)
+		if _, err := config.Kubernetes.CreateDeployment(spec); err != nil {
+			return errors.Wrap(err, "yolo")
+		}
+
 	}
 	return nil
 }

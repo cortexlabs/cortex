@@ -23,6 +23,7 @@ import (
 
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	tappsv1b1 "k8s.io/client-go/kubernetes/typed/apps/v1beta1"
 	tautoscaling "k8s.io/client-go/kubernetes/typed/autoscaling/v1"
@@ -51,6 +52,7 @@ type Client struct {
 	podClient          tcorev1.PodInterface
 	serviceClient      tcorev1.ServiceInterface
 	istioServiceClient tcorev1.ServiceInterface
+	dynamicClient      dynamic.Interface
 	deploymentClient   tappsv1b1.DeploymentInterface
 	jobClient          tbatchv1.JobInterface
 	ingressClient      textensionsv1b1.IngressInterface
@@ -75,6 +77,11 @@ func New(namespace string, inCluster bool) (*Client, error) {
 	}
 
 	client.clientset, err = kubernetes.NewForConfig(client.RestConfig)
+	if err != nil {
+		return nil, errors.Wrap(err, "kubeconfig")
+	}
+
+	client.dynamicClient, err = dynamic.NewForConfig(client.RestConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "kubeconfig")
 	}

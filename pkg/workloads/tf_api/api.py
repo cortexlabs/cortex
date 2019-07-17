@@ -312,6 +312,17 @@ def prediction_failed(sample, reason=None):
 def health():
     return jsonify({"ok": True})
 
+@app.route("/<deployment_name>/<api_name>", methods=["GET"])
+def predict_index(deployment_name, api_name):
+    return jsonify({"ok": True})
+
+@app.route("/", methods=["GET"])
+def index():
+    return jsonify({"ok": True})
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return jsonify({"not_ok": True})
 
 @app.route("/<deployment_name>/<api_name>", methods=["POST"])
 def predict(deployment_name, api_name):
@@ -416,8 +427,9 @@ def validate_model_dir(model_dir):
 
 
 def start(args):
+    serve(app, listen="*:{}".format(args.port))
+    return
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
-
     api = ctx.apis_id_map[args.api]
     local_cache["api"] = api
     local_cache["ctx"] = ctx
@@ -497,7 +509,7 @@ def start(args):
 
     logger.info("Serving model: {}".format(util.remove_resource_ref(api["model"])))
     serve(app, listen="*:{}".format(args.port))
-
+    return
 
 def main():
     parser = argparse.ArgumentParser()

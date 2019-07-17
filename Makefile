@@ -28,7 +28,7 @@ killdev:
 
 kubectl:
 	@eksctl utils write-kubeconfig --name="cortex"
-	@kubectl config set-context --current --namespace="cortex"
+	@kubectl config set-context --current --namespace="default"
 
 cortex-up:
 	@$(MAKE) registry-all

@@ -122,7 +122,6 @@ spec:
     hosts:
     - "*"
 
-
 ---
 
 apiVersion: networking.istio.io/v1alpha3
@@ -136,11 +135,8 @@ spec:
   gateways:
   - operator-gateway
   http:
-  - match:
-    - uri:
-        prefix: /
-    route:
-    - destination:
-        host: operator
-        port:
-          number: 8888
+    - route:
+      - destination:
+          host: operator
+          port:
+            number: 8888

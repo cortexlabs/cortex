@@ -34,6 +34,7 @@ var deploymentTypeMeta = metav1.TypeMeta{
 const DeploymentSuccessConditionAll = "!status.unavailableReplicas"
 
 type DeploymentSpec struct {
+	Spec      *DeploymentSpec
 	Name      string
 	Namespace string
 	Replicas  int32

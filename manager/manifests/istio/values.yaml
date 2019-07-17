@@ -90,6 +90,24 @@ gateways:
       name: https
     - port: 31400
       name: tcp
+    - port: 15011
+      targetPort: 15011
+      name: tcp-pilot-grpc-tls
+    - port: 8060
+      targetPort: 8060
+      name: tcp-citadel-grpc-tls
+    - port: 15029
+      targetPort: 15029
+      name: http2-kiali
+    - port: 15030
+      targetPort: 15030
+      name: http2-prometheus
+    - port: 15031
+      targetPort: 15031
+      name: http2-grafana
+    - port: 15032
+      targetPort: 15032
+      name: http2-tracing
     tracing:
       enabled: true
     secretVolumes:

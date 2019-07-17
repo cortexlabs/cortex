@@ -166,7 +166,7 @@ echo "Installing Cortex ..."
 setup_bucket
 setup_cloudwatch_logs
 
-envsubst < manifests/namespace.yaml | kubectl apply -f - >/dev/null
+# envsubst < manifests/namespace.yaml | kubectl apply -f - >/dev/null
 
 setup_configmap
 setup_secrets
@@ -179,7 +179,7 @@ kubectl create namespace istio-system
 helm template manifests/istio-init --name istio-init --namespace istio-system | kubectl apply -f -
 sleep 20
 helm template manifests/istio --name istio --namespace istio-system | kubectl apply -f -
-kubectl label namespace cortex istio-injection=enabled
+# kubectl label namespace cortex istio-injection=enabled
 
 envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null

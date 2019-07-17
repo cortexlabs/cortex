@@ -21,7 +21,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	intstr "k8s.io/apimachinery/pkg/util/intstr"
 )
 
 var serviceTypeMeta = metav1.TypeMeta{
@@ -53,11 +52,8 @@ func Service(spec *ServiceSpec) *corev1.Service {
 			Selector: spec.Selector,
 			Ports: []corev1.ServicePort{
 				{
-					Protocol: corev1.ProtocolTCP,
-					Port:     spec.Port,
-					TargetPort: intstr.IntOrString{
-						IntVal: spec.TargetPort,
-					},
+					Port: spec.Port,
+					Name: "http",
 				},
 			},
 		},

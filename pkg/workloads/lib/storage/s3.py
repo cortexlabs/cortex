@@ -174,7 +174,7 @@ class S3(object):
             return local_path
         except Exception as e:
             raise CortexException(
-                'key "{}" in bucket "{}" could not be accessed; '.format(key, bucket)
+                'key "{}" in bucket "{}" could not be accessed; '.format(key, self.bucket)
                 + "it may not exist, or you may not have suffienct permissions"
             ) from e
 

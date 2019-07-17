@@ -199,10 +199,10 @@ func Run(wf *awfv1.Workflow, ctx *context.Context, existingWf *awfv1.Workflow) e
 		}
 	}
 
-	err = config.Argo.Run(wf)
-	if err != nil {
-		return errors.Wrap(err, ctx.App.Name)
-	}
+	// err = config.Argo.Run(wf)
+	// if err != nil {
+	// 	return errors.Wrap(err, ctx.App.Name)
+	// }
 
 	err = createServicesAndIngresses(ctx)
 	if err != nil {
