@@ -67,15 +67,17 @@ func extractWorkloads(ctx *context.Context) []Workload {
 }
 
 func ValidateDeploy(ctx *context.Context) error {
-	rawDatasetExists, err := config.AWS.IsS3File(filepath.Join(ctx.RawDataset.Key, "_SUCCESS"))
-	if err != nil {
-		return errors.Wrap(err, ctx.App.Name, "raw dataset")
-	}
-	if !rawDatasetExists {
-		externalPath := ctx.Environment.Data.GetPath()
-		externalDataExists, err := aws.IsS3aPathPrefixExternal(externalPath)
-		if !externalDataExists || err != nil {
-			return errors.Wrap(userconfig.ErrorExternalNotFound(externalPath), ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey)
+	if ctx.Environment != nil {
+		rawDatasetExists, err := config.AWS.IsS3File(filepath.Join(ctx.RawDataset.Key, "_SUCCESS"))
+		if err != nil {
+			return errors.Wrap(err, ctx.App.Name, "raw dataset")
+		}
+		if !rawDatasetExists {
+			externalPath := ctx.Environment.Data.GetPath()
+			externalDataExists, err := aws.IsS3aPathPrefixExternal(externalPath)
+			if !externalDataExists || err != nil {
+				return errors.Wrap(userconfig.ErrorExternalNotFound(externalPath), ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey)
+			}
 		}
 	}
 
