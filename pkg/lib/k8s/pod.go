@@ -17,11 +17,13 @@ limitations under the License.
 package k8s
 
 import (
+	"encoding/json"
 	"time"
 
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
@@ -75,8 +77,9 @@ func Pod(spec *PodSpec) *kcore.Pod {
 	return pod
 }
 
-func (c *Client) CreatePod(spec *PodSpec) (*kcore.Pod, error) {
-	pod, err := c.podClient.Create(Pod(spec))
+func (c *Client) CreatePod(pod *kcore.Pod) (*kcore.Pod, error) {
+	pod.TypeMeta = podTypeMeta
+	pod, err := c.podClient.Create(pod)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -84,11 +87,28 @@ func (c *Client) CreatePod(spec *PodSpec) (*kcore.Pod, error) {
 }
 
 func (c *Client) UpdatePod(pod *kcore.Pod) (*kcore.Pod, error) {
-	pod, err := c.podClient.Update(pod)
+	pod.TypeMeta = podTypeMeta
+	objBytes, err := json.Marshal(pod)
+	if err != nil {
+		return nil, err
+	}
+
+	pod, err = c.podClient.Patch(pod.Name, ktypes.MergePatchType, objBytes)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return pod, nil
+}
+
+func (c *Client) ApplyPod(pod *kcore.Pod) (*kcore.Pod, error) {
+	existing, err := c.GetPod(pod.Name)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return c.CreatePod(pod)
+	}
+	return c.UpdatePod(pod)
 }
 
 func GetPodLastContainerStartTime(pod *kcore.Pod) *time.Time {

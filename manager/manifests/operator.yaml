@@ -45,11 +45,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      workloadId: operator
+      workloadID: operator
   template:
     metadata:
       labels:
-        workloadId: operator
+        workloadID: operator
         workloadType: operator
     spec:
       containers:
@@ -86,7 +86,7 @@ metadata:
     workloadType: operator
 spec:
   selector:
-    workloadId: operator
+    workloadID: operator
   ports:
   - port: 8888
     targetPort: 8888

@@ -17,9 +17,12 @@ limitations under the License.
 package k8s
 
 import (
+	"encoding/json"
+
 	kextensions "k8s.io/api/extensions/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -80,8 +83,9 @@ func Ingress(spec *IngressSpec) *kextensions.Ingress {
 	return ingress
 }
 
-func (c *Client) CreateIngress(spec *IngressSpec) (*kextensions.Ingress, error) {
-	ingress, err := c.ingressClient.Create(Ingress(spec))
+func (c *Client) CreateIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
+	ingress.TypeMeta = ingressTypeMeta
+	ingress, err := c.ingressClient.Create(ingress)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -89,11 +93,28 @@ func (c *Client) CreateIngress(spec *IngressSpec) (*kextensions.Ingress, error) 
 }
 
 func (c *Client) UpdateIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
-	ingress, err := c.ingressClient.Update(ingress)
+	ingress.TypeMeta = ingressTypeMeta
+	objBytes, err := json.Marshal(ingress)
+	if err != nil {
+		return nil, err
+	}
+
+	ingress, err = c.ingressClient.Patch(ingress.Name, ktypes.MergePatchType, objBytes)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return ingress, nil
+}
+
+func (c *Client) ApplyIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
+	existing, err := c.GetIngress(ingress.Name)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return c.CreateIngress(ingress)
+	}
+	return c.UpdateIngress(ingress)
 }
 
 func (c *Client) GetIngress(name string) (*kextensions.Ingress, error) {

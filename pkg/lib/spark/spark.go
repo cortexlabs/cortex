@@ -17,52 +17,24 @@ limitations under the License.
 package spark
 
 import (
-	"strings"
+	"encoding/json"
 
 	sparkop "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/apis/sparkoperator.k8s.io/v1alpha1"
 	sparkopclientset "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/client/clientset/versioned"
 	sparkopclientapi "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/client/clientset/versioned/typed/sparkoperator.k8s.io/v1alpha1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	kclientrest "k8s.io/client-go/rest"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
 
 type Client struct {
 	sparkClientset sparkopclientset.Interface
 	sparkClient    sparkopclientapi.SparkApplicationInterface
 }
-
-var (
-	doneStates = []string{
-		string(sparkop.CompletedState),
-		string(sparkop.FailedState),
-		string(sparkop.FailedSubmissionState),
-		string(sparkop.UnknownState),
-	}
-
-	runningStates = []string{
-		string(sparkop.NewState),
-		string(sparkop.SubmittedState),
-		string(sparkop.RunningState),
-	}
-
-	successStates = []string{
-		string(sparkop.CompletedState),
-	}
-
-	failureStates = []string{
-		string(sparkop.FailedState),
-		string(sparkop.FailedSubmissionState),
-		string(sparkop.UnknownState),
-	}
-
-	SuccessCondition = "status.applicationState.state in (" + strings.Join(successStates, ",") + ")"
-	FailureCondition = "status.applicationState.state in (" + strings.Join(failureStates, ",") + ")"
-)
 
 func New(restConfig *kclientrest.Config, namespace string) (*Client, error) {
 	var err error
@@ -76,26 +48,77 @@ func New(restConfig *kclientrest.Config, namespace string) (*Client, error) {
 	return client, nil
 }
 
-func (c *Client) List(opts *kmeta.ListOptions) ([]sparkop.SparkApplication, error) {
-	if opts == nil {
-		opts = &kmeta.ListOptions{}
+var sparkAppTypeMeta = kmeta.TypeMeta{
+	APIVersion: "sparkoperator.k8s.io/v1alpha1",
+	Kind:       "SparkApplication",
+}
+
+type Spec struct {
+	Name      string
+	Namespace string
+	Spec      sparkop.SparkApplicationSpec
+	Labels    map[string]string
+}
+
+func App(spec *Spec) *sparkop.SparkApplication {
+	if spec.Namespace == "" {
+		spec.Namespace = "default"
 	}
-	sparkList, err := c.sparkClient.List(*opts)
+	return &sparkop.SparkApplication{
+		TypeMeta: sparkAppTypeMeta,
+		ObjectMeta: kmeta.ObjectMeta{
+			Name:      spec.Name,
+			Namespace: spec.Namespace,
+			Labels:    spec.Labels,
+		},
+		Spec: spec.Spec,
+	}
+}
+
+func (c *Client) Create(sparkApp *sparkop.SparkApplication) (*sparkop.SparkApplication, error) {
+	sparkApp.TypeMeta = sparkAppTypeMeta
+	sparkApp, err := c.sparkClient.Create(sparkApp)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return sparkList.Items, nil
+	return sparkApp, nil
 }
 
-func (c *Client) ListByLabels(labels map[string]string) ([]sparkop.SparkApplication, error) {
-	opts := &kmeta.ListOptions{
-		LabelSelector: k8s.LabelSelector(labels),
+func (c *Client) Update(sparkApp *sparkop.SparkApplication) (*sparkop.SparkApplication, error) {
+	sparkApp.TypeMeta = sparkAppTypeMeta
+	objBytes, err := json.Marshal(sparkApp)
+	if err != nil {
+		return nil, err
 	}
-	return c.List(opts)
+
+	sparkApp, err = c.sparkClient.Patch(sparkApp.Name, ktypes.MergePatchType, objBytes)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return sparkApp, nil
 }
 
-func (c *Client) ListByLabel(labelKey string, labelValue string) ([]sparkop.SparkApplication, error) {
-	return c.ListByLabels(map[string]string{labelKey: labelValue})
+func (c *Client) Apply(sparkApp *sparkop.SparkApplication) (*sparkop.SparkApplication, error) {
+	existing, err := c.Get(sparkApp.Name)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return c.Create(sparkApp)
+	}
+	return c.Update(sparkApp)
+}
+
+func (c *Client) Get(name string) (*sparkop.SparkApplication, error) {
+	sparkApp, err := c.sparkClient.Get(name, kmeta.GetOptions{})
+	if kerrors.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	sparkApp.TypeMeta = sparkAppTypeMeta
+	return sparkApp, nil
 }
 
 func (c *Client) Delete(appName string) (bool, error) {
@@ -109,6 +132,54 @@ func (c *Client) Delete(appName string) (bool, error) {
 	return true, nil
 }
 
-func IsDone(sparkApp *sparkop.SparkApplication) bool {
-	return slices.HasString(doneStates, string(sparkApp.Status.AppState.State))
+func (c *Client) Exists(name string) (bool, error) {
+	sparkApp, err := c.Get(name)
+	if err != nil {
+		return false, err
+	}
+	return sparkApp != nil, nil
+}
+
+func (c *Client) List(opts *kmeta.ListOptions) ([]sparkop.SparkApplication, error) {
+	if opts == nil {
+		opts = &kmeta.ListOptions{}
+	}
+	sparkAppList, err := c.sparkClient.List(*opts)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	for i := range sparkAppList.Items {
+		sparkAppList.Items[i].TypeMeta = sparkAppTypeMeta
+	}
+	return sparkAppList.Items, nil
+}
+
+func (c *Client) ListByLabels(labels map[string]string) ([]sparkop.SparkApplication, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: k8s.LabelSelector(labels),
+	}
+	return c.List(opts)
+}
+
+func (c *Client) ListByLabel(labelKey string, labelValue string) ([]sparkop.SparkApplication, error) {
+	return c.ListByLabels(map[string]string{labelKey: labelValue})
+}
+
+func Map(services []sparkop.SparkApplication) map[string]sparkop.SparkApplication {
+	sparkAppMap := map[string]sparkop.SparkApplication{}
+	for _, sparkApp := range services {
+		sparkAppMap[sparkApp.Name] = sparkApp
+	}
+	return sparkAppMap
+}
+
+func (c *Client) IsRunning(name string) (bool, error) {
+	sparkApp, err := c.Get(name)
+	if err != nil {
+		return false, err
+	}
+	if sparkApp == nil {
+		return false, nil
+	}
+	return sparkApp.Status.CompletionTime.IsZero(), nil
 }

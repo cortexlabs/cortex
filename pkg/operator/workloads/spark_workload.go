@@ -21,11 +21,8 @@ import (
 	"strings"
 
 	sparkop "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/apis/sparkoperator.k8s.io/v1alpha1"
-	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/argo"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -36,16 +33,112 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-func dataJobSpec(
-	ctx *context.Context,
-	shouldIngest bool,
-	rawColumns strset.Set,
-	aggregates strset.Set,
-	transformedColumns strset.Set,
-	trainingDatasets strset.Set,
-	workloadID string,
-	sparkCompute *userconfig.SparkCompute,
-) *sparkop.SparkApplication {
+type SparkWorkload struct {
+	BaseWorkload
+}
+
+func sparkResources(ctx *context.Context) []context.ComputedResource {
+	var sparkResources []context.ComputedResource
+	for _, rawColumn := range ctx.RawColumns {
+		sparkResources = append(sparkResources, rawColumn)
+	}
+	for _, aggregate := range ctx.Aggregates {
+		sparkResources = append(sparkResources, aggregate)
+	}
+	for _, transformedColumn := range ctx.TransformedColumns {
+		sparkResources = append(sparkResources, transformedColumn)
+	}
+	for _, model := range ctx.Models {
+		sparkResources = append(sparkResources, model.Dataset)
+	}
+	return sparkResources
+}
+
+func populateSparkWorkloadIDs(ctx *context.Context, latestResourceWorkloadIDs map[string]string) {
+	sparkWorkloadID := generateWorkloadID()
+	for _, res := range sparkResources(ctx) {
+		if res.GetWorkloadID() != "" {
+			continue
+		}
+		if workloadID := latestResourceWorkloadIDs[res.GetID()]; workloadID != "" {
+			res.SetWorkloadID(workloadID)
+			continue
+		}
+		res.SetWorkloadID(sparkWorkloadID)
+	}
+}
+
+func extractSparkWorkloads(ctx *context.Context) []Workload {
+	workloadMap := make(map[string]*SparkWorkload)
+
+	for _, res := range sparkResources(ctx) {
+		if _, ok := workloadMap[res.GetWorkloadID()]; !ok {
+			workloadMap[res.GetWorkloadID()] = &SparkWorkload{
+				emptyBaseWorkload(ctx.App.Name, res.GetWorkloadID(), workloadTypeSpark),
+			}
+		}
+		workloadMap[res.GetWorkloadID()].AddResource(res)
+	}
+
+	workloads := make([]Workload, 0, len(workloadMap))
+	for _, workload := range workloadMap {
+		workloads = append(workloads, workload)
+	}
+	return workloads
+}
+
+func (sw *SparkWorkload) Start(ctx *context.Context) error {
+	rawDatasetExists, err := config.AWS.IsS3File(filepath.Join(ctx.RawDataset.Key, "_SUCCESS"))
+	if err != nil {
+		return errors.Wrap(err, ctx.App.Name, "raw dataset")
+	}
+	shouldIngest := !rawDatasetExists
+
+	rawColumns := strset.New()
+	aggregates := strset.New()
+	transformedColumns := strset.New()
+	trainingDatasets := strset.New()
+
+	var sparkCompute *userconfig.SparkCompute
+
+	if shouldIngest {
+		for _, rawColumn := range ctx.RawColumns {
+			sparkCompute = userconfig.MaxSparkCompute(sparkCompute, rawColumn.GetCompute())
+		}
+	}
+
+	for _, rawColumn := range ctx.RawColumns {
+		if sw.CreatesResource(rawColumn.GetID()) {
+			rawColumns.Add(rawColumn.GetID())
+			sparkCompute = userconfig.MaxSparkCompute(sparkCompute, rawColumn.GetCompute())
+		}
+	}
+	for _, aggregate := range ctx.Aggregates {
+		if sw.CreatesResource(aggregate.ID) {
+			aggregates.Add(aggregate.ID)
+			sparkCompute = userconfig.MaxSparkCompute(sparkCompute, aggregate.Compute)
+		}
+	}
+	for _, transformedColumn := range ctx.TransformedColumns {
+		if sw.CreatesResource(transformedColumn.ID) {
+			transformedColumns.Add(transformedColumn.ID)
+			sparkCompute = userconfig.MaxSparkCompute(sparkCompute, transformedColumn.Compute)
+		}
+	}
+	for _, model := range ctx.Models {
+		dataset := model.Dataset
+		if sw.CreatesResource(dataset.ID) {
+			trainingDatasets.Add(dataset.ID)
+			sparkCompute = userconfig.MaxSparkCompute(sparkCompute, model.DatasetCompute)
+
+			dependencyIDs := ctx.AllComputedResourceDependencies(dataset.ID)
+			for _, transformedColumn := range ctx.TransformedColumns {
+				if _, ok := dependencyIDs[transformedColumn.ID]; ok {
+					sparkCompute = userconfig.MaxSparkCompute(sparkCompute, transformedColumn.Compute)
+				}
+			}
+		}
+	}
 
 	args := []string{
 		"--raw-columns=" + strings.Join(rawColumns.Slice(), ","),
@@ -56,12 +149,24 @@ func dataJobSpec(
 	if shouldIngest {
 		args = append(args, "--ingest")
 	}
-	spec := sparkSpec(workloadID, ctx, workloadTypeData, sparkCompute, args...)
-	argo.EnableGC(spec)
-	return spec
+
+	spec := sparkSpec(sw.WorkloadID, ctx, workloadTypeSpark, sparkCompute, args...)
+	_, err = config.Spark.Create(spec)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func sparkSpec(workloadID string, ctx *context.Context, workloadType string, sparkCompute *userconfig.SparkCompute, args ...string) *sparkop.SparkApplication {
+func sparkSpec(
+	workloadID string,
+	ctx *context.Context,
+	workloadType string,
+	sparkCompute *userconfig.SparkCompute,
+	args ...string,
+) *sparkop.SparkApplication {
+
 	var driverMemOverhead *string
 	if sparkCompute.DriverMemOverhead != nil {
 		driverMemOverhead = pointer.String(s.Int64(sparkCompute.DriverMemOverhead.ToKi()) + "k")
@@ -75,19 +180,13 @@ func sparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 		memOverheadFactor = pointer.String(s.Float64(*sparkCompute.MemOverheadFactor))
 	}
 
-	return &sparkop.SparkApplication{
-		TypeMeta: kmeta.TypeMeta{
-			APIVersion: "sparkoperator.k8s.io/v1alpha1",
-			Kind:       "SparkApplication",
-		},
-		ObjectMeta: kmeta.ObjectMeta{
-			Name:      workloadID,
-			Namespace: config.Cortex.Namespace,
-			Labels: map[string]string{
-				"workloadID":   workloadID,
-				"workloadType": workloadType,
-				"appName":      ctx.App.Name,
-			},
+	return spark.App(&spark.Spec{
+		Name:      workloadID,
+		Namespace: config.Cortex.Namespace,
+		Labels: map[string]string{
+			"workloadID":   workloadID,
+			"workloadType": workloadType,
+			"appName":      ctx.App.Name,
 		},
 		Spec: sparkop.SparkApplicationSpec{
 			Type:                 sparkop.PythonApplicationType,
@@ -169,115 +268,17 @@ func sparkSpec(workloadID string, ctx *context.Context, workloadType string, spa
 				Instances: &sparkCompute.Executors,
 			},
 		},
-	}
+	})
 }
 
-func dataWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
-	workloadID := generateWorkloadID()
+func (sw *SparkWorkload) IsRunning(ctx *context.Context) (bool, error) {
+	return config.Spark.IsRunning(sw.WorkloadID)
+}
 
-	rawFileExists, err := config.AWS.IsS3File(filepath.Join(ctx.RawDataset.Key, "_SUCCESS"))
-	if err != nil {
-		return nil, errors.Wrap(err, ctx.App.Name, "raw dataset")
-	}
+func (sw *SparkWorkload) CanRun(ctx *context.Context) (bool, error) {
+	return areDataDependenciesSucceeded(ctx, sw.GetResourceIDs())
+}
 
-	var allComputes []*userconfig.SparkCompute
-
-	shouldIngest := !rawFileExists
-	if shouldIngest {
-		externalPath := ctx.Environment.Data.GetPath()
-		externalDataExists, err := aws.IsS3aPathPrefixExternal(externalPath)
-		if !externalDataExists || err != nil {
-			return nil, errors.Wrap(userconfig.ErrorExternalNotFound(externalPath), ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey)
-		}
-		for _, rawColumn := range ctx.RawColumns {
-			allComputes = append(allComputes, rawColumn.GetCompute())
-		}
-	}
-
-	rawColumnIDs := strset.New()
-	var rawColumns []string
-	for rawColumnName, rawColumn := range ctx.RawColumns {
-		isCached, err := checkResourceCached(rawColumn, ctx)
-		if err != nil {
-			return nil, err
-		}
-		if isCached {
-			continue
-		}
-		rawColumns = append(rawColumns, rawColumnName)
-		rawColumnIDs.Add(rawColumn.GetID())
-		allComputes = append(allComputes, rawColumn.GetCompute())
-	}
-
-	aggregateIDs := strset.New()
-	var aggregates []string
-	for aggregateName, aggregate := range ctx.Aggregates {
-		isCached, err := checkResourceCached(aggregate, ctx)
-		if err != nil {
-			return nil, err
-		}
-		if isCached {
-			continue
-		}
-		aggregates = append(aggregates, aggregateName)
-		aggregateIDs.Add(aggregate.GetID())
-		allComputes = append(allComputes, aggregate.Compute)
-	}
-
-	transformedColumnIDs := strset.New()
-	var transformedColumns []string
-	for transformedColumnName, transformedColumn := range ctx.TransformedColumns {
-		isCached, err := checkResourceCached(transformedColumn, ctx)
-		if err != nil {
-			return nil, err
-		}
-		if isCached {
-			continue
-		}
-		transformedColumns = append(transformedColumns, transformedColumnName)
-		transformedColumnIDs.Add(transformedColumn.GetID())
-		allComputes = append(allComputes, transformedColumn.Compute)
-	}
-
-	trainingDatasetIDs := strset.New()
-	var trainingDatasets []string
-	for modelName, model := range ctx.Models {
-		dataset := model.Dataset
-		isCached, err := checkResourceCached(dataset, ctx)
-		if err != nil {
-			return nil, err
-		}
-		if isCached {
-			continue
-		}
-		trainingDatasets = append(trainingDatasets, modelName)
-		trainingDatasetIDs.Add(dataset.GetID())
-		dependencyIDs := ctx.AllComputedResourceDependencies(dataset.GetID())
-		for _, transformedColumn := range ctx.TransformedColumns {
-			if _, ok := dependencyIDs[transformedColumn.ID]; ok {
-				allComputes = append(allComputes, transformedColumn.Compute)
-			}
-		}
-		allComputes = append(allComputes, model.DatasetCompute)
-	}
-
-	resourceIDSet := strset.Union(rawColumnIDs, aggregateIDs, transformedColumnIDs, trainingDatasetIDs)
-
-	if !shouldIngest && len(resourceIDSet) == 0 {
-		return nil, nil
-	}
-
-	sparkCompute := userconfig.MaxSparkCompute(allComputes...)
-	spec := dataJobSpec(ctx, shouldIngest, rawColumnIDs, aggregateIDs, transformedColumnIDs, trainingDatasetIDs, workloadID, sparkCompute)
-
-	workloadSpec := &WorkloadSpec{
-		WorkloadID:       workloadID,
-		ResourceIDs:      resourceIDSet,
-		K8sSpecs:         []kmeta.Object{spec},
-		K8sAction:        "create",
-		SuccessCondition: spark.SuccessCondition,
-		FailureCondition: spark.FailureCondition,
-		WorkloadType:     workloadTypeData,
-	}
-	return []*WorkloadSpec{workloadSpec}, nil
+func (sw *SparkWorkload) IsSucceeded(ctx *context.Context) (bool, error) {
+	return areDataResourcesSucceeded(ctx, sw.GetResourceIDs())
 }

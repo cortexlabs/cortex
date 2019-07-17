@@ -36,9 +36,10 @@ import (
 )
 
 const (
-	writeWait        = 10 * time.Second
-	closeGracePeriod = 10 * time.Second
-	maxMessageSize   = 8192
+	pendingLogCheckInterval = 1 //seconds
+	writeWait               = 10 * time.Second
+	closeGracePeriod        = 10 * time.Second
+	maxMessageSize          = 8192
 )
 
 func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket.Conn) {
@@ -80,7 +81,7 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 				getKubectlLogs(&podMap[k8s.PodStatusKilledOOM][0], verbose, wrotePending, false, socket)
 			case len(podMap[k8s.PodStatusFailed]) > 0:
 				previous := false
-				if pods[0].Labels["workloadType"] == WorkloadTypeAPI {
+				if pods[0].Labels["workloadType"] == workloadTypeAPI {
 					previous = true
 				}
 				getKubectlLogs(&podMap[k8s.PodStatusFailed][0], verbose, wrotePending, previous, socket)
@@ -94,9 +95,12 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			return
 		}
 
-		wf, _ := GetWorkflow(appName)
-		pWf, _ := parseWorkflow(wf)
-		if pWf == nil || pWf.Workloads[workloadID] == nil {
+		isPending, err := IsWorkloadPending(appName, workloadID)
+		if err != nil {
+			writeSocket(err.Error(), socket)
+			return
+		}
+		if !isPending {
 			logPrefix, err := getSavedLogPrefix(workloadID, appName, true)
 			if err != nil {
 				writeSocket(err.Error(), socket)
@@ -109,19 +113,6 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			return
 		}
 
-		failedArgoPod, err := getFailedArgoPodForWorkload(workloadID, appName)
-		if err != nil {
-			writeSocket(err.Error(), socket)
-			return
-		}
-		if failedArgoPod != nil {
-			if !writeSocket("\nFailed to start:\n", socket) {
-				return
-			}
-			getKubectlLogs(failedArgoPod, true, false, false, socket)
-			return
-		}
-
 		if !wrotePending {
 			if !writeSocket("\nPending", socket) {
 				return
@@ -129,7 +120,7 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			wrotePending = true
 		}
 
-		time.Sleep(time.Duration(userFacingCheckInterval) * time.Second)
+		time.Sleep(time.Duration(pendingLogCheckInterval) * time.Second)
 	}
 }
 
@@ -151,7 +142,7 @@ func getKubectlLogs(pod *kcore.Pod, verbose bool, wrotePending bool, previous bo
 	}
 
 	args = append(args, pod.Name)
-	if pod.Labels["workloadType"] == WorkloadTypeAPI && pod.Labels["userFacing"] == "true" {
+	if pod.Labels["workloadType"] == workloadTypeAPI && pod.Labels["userFacing"] == "true" {
 		args = append(args, apiContainerName)
 	}
 

@@ -311,7 +311,7 @@ func LatestWorkloadIDKey(resourceID string, appName string) string {
 	)
 }
 
-func WorkloadSpecKey(workloadID string, appName string) string {
+func BaseWorkloadKey(workloadID string, appName string) string {
 	return filepath.Join(
 		consts.AppsDir,
 		appName,

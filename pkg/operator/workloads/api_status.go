@@ -30,19 +30,36 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-func GetCurrentAPIStatuses(
+func GetCurrentAPIAndGroupStatuses(
+	dataStatuses map[string]*resource.DataStatus,
+	ctx *context.Context,
+) (map[string]*resource.APIStatus, map[string]*resource.APIGroupStatus, error) {
+	deployments, err := apiDeploymentMap(ctx.App.Name)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	apiStatuses, err := getCurrentAPIStatuses(dataStatuses, deployments, ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	apiGroupStatuses, err := getAPIGroupStatuses(apiStatuses, deployments, ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return apiStatuses, apiGroupStatuses, nil
+}
+
+func getCurrentAPIStatuses(
 	dataStatuses map[string]*resource.DataStatus,
 	deployments map[string]*kapps.Deployment, // api.Name -> deployment
 	ctx *context.Context,
 ) (map[string]*resource.APIStatus, error) {
 
-	failedWorkloadIDs, err := getFailedArgoWorkloadIDs(ctx.App.Name)
-	if err != nil {
-		return nil, err
-	}
-
 	podList, err := config.Kubernetes.ListPodsByLabels(map[string]string{
-		"workloadType": WorkloadTypeAPI,
+		"workloadType": workloadTypeAPI,
 		"appName":      ctx.App.Name,
 		"userFacing":   "true",
 	})
@@ -99,7 +116,7 @@ func GetCurrentAPIStatuses(
 	for resourceID, apiStatus := range apiStatuses {
 		apiStatus.Path = context.APIPath(apiStatus.APIName, apiStatus.AppName)
 		apiStatus.ReplicaCounts = replicaCountsMap[resourceID]
-		apiStatus.Code = apiStatusCode(apiStatus, failedWorkloadIDs)
+		apiStatus.Code = apiStatusCode(apiStatus)
 	}
 
 	for _, apiStatus := range apiStatuses {
@@ -175,11 +192,7 @@ func getReplicaCountsMap(
 	return replicaCountsMap
 }
 
-func apiStatusCode(apiStatus *resource.APIStatus, failedWorkloadIDs strset.Set) resource.StatusCode {
-	if failedWorkloadIDs.Has(apiStatus.WorkloadID) {
-		return resource.StatusError
-	}
-
+func apiStatusCode(apiStatus *resource.APIStatus) resource.StatusCode {
 	if apiStatus.MaxReplicas == 0 {
 		if apiStatus.TotalReady() > 0 {
 			return resource.StatusStopping
@@ -235,7 +248,7 @@ func updateAPIStatusCodeByParents(apiStatus *resource.APIStatus, dataStatuses ma
 	}
 }
 
-func GetAPIGroupStatuses(
+func getAPIGroupStatuses(
 	apiStatuses map[string]*resource.APIStatus,
 	deployments map[string]*kapps.Deployment, // api.Name -> deployment
 	ctx *context.Context,

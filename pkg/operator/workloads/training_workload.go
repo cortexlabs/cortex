@@ -17,13 +17,10 @@ limitations under the License.
 package workloads
 
 import (
-	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
-	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/argo"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
@@ -31,12 +28,54 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-func trainingJobSpec(
-	ctx *context.Context,
-	modelID string,
-	workloadID string,
-	tfCompute *userconfig.TFCompute,
-) *kbatch.Job {
+type TrainingWorkload struct {
+	BaseWorkload
+}
+
+func populateTrainingWorkloadIDs(ctx *context.Context, latestResourceWorkloadIDs map[string]string) {
+	trainingWorkloadIDs := make(map[string]string)
+
+	for _, model := range ctx.Models {
+		if model.WorkloadID != "" {
+			continue
+		}
+		if workloadID := latestResourceWorkloadIDs[model.ID]; workloadID != "" {
+			model.WorkloadID = workloadID
+			continue
+		}
+		if workloadID, ok := trainingWorkloadIDs[model.ID]; ok {
+			// This is a duplicate model ID (different name)
+			model.WorkloadID = workloadID
+			continue
+		}
+		model.WorkloadID = generateWorkloadID()
+		trainingWorkloadIDs[model.ID] = model.WorkloadID
+	}
+}
+
+func extractTrainingWorkloads(ctx *context.Context) []Workload {
+	workloads := make([]Workload, 0, len(ctx.Models))
+	modelIDs := strset.New()
+
+	for _, model := range ctx.Models {
+		if !modelIDs.Has(model.ID) {
+			workloads = append(workloads, &TrainingWorkload{
+				singleBaseWorkload(model, ctx.App.Name, workloadTypeTrain),
+			})
+			modelIDs.Add(model.ID)
+		}
+	}
+
+	return workloads
+}
+
+func (tw *TrainingWorkload) Start(ctx *context.Context) error {
+	var tfCompute *userconfig.TFCompute
+	for _, model := range ctx.Models {
+		if tw.CreatesResource(model.ID) {
+			tfCompute = userconfig.MaxTFCompute(tfCompute, model.Compute)
+		}
+	}
 
 	resourceList := kcore.ResourceList{}
 	limitsList := kcore.ResourceList{}
@@ -52,18 +91,18 @@ func trainingJobSpec(
 		limitsList["nvidia.com/gpu"] = *kresource.NewQuantity(tfCompute.GPU, kresource.DecimalSI)
 	}
 
-	spec := k8s.Job(&k8s.JobSpec{
-		Name: workloadID,
+	spec := &k8s.JobSpec{
+		Name: tw.WorkloadID,
 		Labels: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeTrain,
-			"workloadID":   workloadID,
+			"workloadID":   tw.WorkloadID,
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"appName":      ctx.App.Name,
 				"workloadType": workloadTypeTrain,
-				"workloadID":   workloadID,
+				"workloadID":   tw.WorkloadID,
 				"userFacing":   "true",
 			},
 			K8sPodSpec: kcore.PodSpec{
@@ -74,10 +113,10 @@ func trainingJobSpec(
 						Image:           trainImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
-							"--workload-id=" + workloadID,
+							"--workload-id=" + tw.WorkloadID,
 							"--context=" + config.AWS.S3Path(ctx.Key),
 							"--cache-dir=" + consts.ContextCacheDir,
-							"--model=" + modelID,
+							"--model=" + tw.GetSingleResourceID(),
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
@@ -92,42 +131,23 @@ func trainingJobSpec(
 			},
 		},
 		Namespace: config.Cortex.Namespace,
-	})
-	argo.EnableGC(spec)
-	return spec
+	}
+
+	_, err := config.Kubernetes.CreateJob(k8s.Job(spec))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func trainingWorkloadSpecs(ctx *context.Context) ([]*WorkloadSpec, error) {
-	modelsToTrain := make(map[string]*userconfig.TFCompute)
-	for _, model := range ctx.Models {
-		modelCached, err := checkResourceCached(model, ctx)
-		if err != nil {
-			return nil, err
-		}
-		if modelCached {
-			continue
-		}
+func (tw *TrainingWorkload) IsRunning(ctx *context.Context) (bool, error) {
+	return config.Kubernetes.IsJobRunning(tw.WorkloadID)
+}
 
-		if tfCompute, ok := modelsToTrain[model.ID]; ok {
-			modelsToTrain[model.ID] = userconfig.MaxTFCompute(tfCompute, model.Compute)
-		} else {
-			modelsToTrain[model.ID] = model.Compute
-		}
-	}
+func (tw *TrainingWorkload) CanRun(ctx *context.Context) (bool, error) {
+	return areDataDependenciesSucceeded(ctx, tw.GetResourceIDs())
+}
 
-	var workloadSpecs []*WorkloadSpec
-	for modelID, tfCompute := range modelsToTrain {
-		workloadID := generateWorkloadID()
-		workloadSpecs = append(workloadSpecs, &WorkloadSpec{
-			WorkloadID:       workloadID,
-			ResourceIDs:      strset.New(modelID),
-			K8sSpecs:         []kmeta.Object{trainingJobSpec(ctx, modelID, workloadID, tfCompute)},
-			K8sAction:        "create",
-			SuccessCondition: k8s.JobSuccessCondition,
-			FailureCondition: k8s.JobFailureCondition,
-			WorkloadType:     workloadTypeTrain,
-		})
-	}
-
-	return workloadSpecs, nil
+func (tw *TrainingWorkload) IsSucceeded(ctx *context.Context) (bool, error) {
+	return areDataResourcesSucceeded(ctx, tw.GetResourceIDs())
 }

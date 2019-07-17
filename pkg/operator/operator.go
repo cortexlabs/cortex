@@ -17,38 +17,21 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gorilla/mux"
-	cron "gopkg.in/robfig/cron.v2"
-	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
-const (
-	operatorPortStr       = "8888"
-	workflowDeletionDelay = 60 // seconds
-	cronInterval          = 5  // seconds
-)
-
-var (
-	awsClient       *aws.Client
-	telemtryClient  *telemetry.Client
-	markedWorkflows = strset.New()
-)
+const operatorPortStr = "8888"
 
 func main() {
 	if err := config.Init(); err != nil {
@@ -67,7 +50,6 @@ func main() {
 	}
 
 	config.Telemetry.ReportEvent("operator.init")
-	startCron()
 
 	router := mux.NewRouter()
 	router.Use(panicMiddleware)
@@ -131,72 +113,4 @@ func apiVersionCheckMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
-}
-
-func startCron() {
-	cronRunner := cron.New()
-	cronInterval := fmt.Sprintf("@every %ds", cronInterval)
-	cronRunner.AddFunc(cronInterval, runCron)
-	cronRunner.Start()
-}
-
-func runCron() {
-	defer reportAndRecover("cron failed")
-	apiPods, err := config.Kubernetes.ListPodsByLabels(map[string]string{
-		"workloadType": workloads.WorkloadTypeAPI,
-		"userFacing":   "true",
-	})
-	if err != nil {
-		config.Telemetry.ReportError(err)
-		errors.PrintError(err)
-	}
-
-	if err := workloads.UpdateAPISavedStatuses(apiPods); err != nil {
-		config.Telemetry.ReportError(err)
-		errors.PrintError(err)
-	}
-
-	if err := workloads.UploadLogPrefixesFromAPIPods(apiPods); err != nil {
-		config.Telemetry.ReportError(err)
-		errors.PrintError(err)
-	}
-
-	failedPods, err := config.Kubernetes.ListPods(&kmeta.ListOptions{
-		FieldSelector: "status.phase=Failed",
-	})
-	if err != nil {
-		config.Telemetry.ReportError(err)
-		errors.PrintError(err)
-	}
-
-	if err := workloads.UpdateDataWorkflowErrors(failedPods); err != nil {
-		config.Telemetry.ReportError(err)
-		errors.PrintError(err)
-	}
-}
-
-func deleteWorkflowDelayed(wfName string) {
-	deletionDelay := time.Duration(workflowDeletionDelay) * time.Second
-	if !markedWorkflows.Has(wfName) {
-		markedWorkflows.Add(wfName)
-		time.Sleep(deletionDelay)
-		config.Argo.Delete(wfName)
-		go deleteMarkerDelayed(markedWorkflows, wfName)
-	}
-}
-
-// Wait some time before trying to delete again
-func deleteMarkerDelayed(markerMap strset.Set, key string) {
-	time.Sleep(20 * time.Second)
-	markerMap.Remove(key)
-}
-
-func reportAndRecover(strs ...string) error {
-	if errInterface := recover(); errInterface != nil {
-		err := errors.CastRecoverError(errInterface, strs...)
-		config.Telemetry.ReportError(err)
-		errors.PrintError(err)
-		return err
-	}
-	return nil
 }
