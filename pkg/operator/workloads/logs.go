@@ -42,8 +42,8 @@ const (
 	socketCloseGracePeriod  = 10 * time.Second
 	socketMaxMessageSize    = 8192
 
-	podCheckInterval        = 5 * time.Second
-	pendingLogCheckInterval = 1 * time.Second
+	pendingPodCheckInterval = 1 * time.Second
+	newPodCheckInterval     = 5 * time.Second
 	maxParallelPodLogging   = 5
 	initLogTailLines        = 20
 )
@@ -132,7 +132,7 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			wrotePending = true
 		}
 
-		time.Sleep(pendingLogCheckInterval)
+		time.Sleep(pendingPodCheckInterval)
 	}
 }
 
@@ -288,7 +288,7 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 				delete(processMap, podName)
 			}
 			deleteProcesses(deleteMap)
-			timer.Reset(podCheckInterval)
+			timer.Reset(newPodCheckInterval)
 		}
 	}
 }
