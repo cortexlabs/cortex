@@ -542,6 +542,10 @@ func dataResourceTable(resources []context.Resource, dataStatuses map[string]*re
 func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
 	rows := make([][]interface{}, 0, len(apiGroupStatuses))
 	for name, groupStatus := range apiGroupStatuses {
+		if groupStatus.Requested == 0 {
+			continue
+		}
+
 		var updatedAt *time.Time
 		if groupStatus.ActiveStatus != nil {
 			updatedAt = groupStatus.ActiveStatus.Start

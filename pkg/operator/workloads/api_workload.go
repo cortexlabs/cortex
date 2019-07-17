@@ -317,11 +317,19 @@ func onnxAPISpec(
 	workloadID string,
 	desiredReplicas int32,
 ) *kapps.Deployment {
+	servingImage := config.Cortex.ONNXServeImage
 	resourceList := kcore.ResourceList{}
+	resourceLimitsList := kcore.ResourceList{}
 	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
 
 	if api.Compute.Mem != nil {
 		resourceList[kcore.ResourceMemory] = api.Compute.Mem.Quantity
+	}
+
+	if api.Compute.GPU > 0 {
+		servingImage = config.Cortex.ONNXServeImageGPU
+		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -352,7 +360,7 @@ func onnxAPISpec(
 				Containers: []kcore.Container{
 					{
 						Name:            apiContainerName,
-						Image:           config.Cortex.ONNXServeImage,
+						Image:           servingImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--workload-id=" + workloadID,
@@ -381,6 +389,7 @@ func onnxAPISpec(
 						},
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
+							Limits:   resourceLimitsList,
 						},
 					},
 				},
