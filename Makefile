@@ -21,10 +21,10 @@ SHELL := /bin/bash
 # Cortex
 
 devstart:
-	@kill $(shell pgrep -f rerun); ./dev/operator_local.sh || true
+	@./dev/operator_local.sh || true
 
 killdev:
-	@kill $(shell pgrep -f rerun)
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 
 kubectl:
 	@eksctl utils write-kubeconfig --name="cortex"
