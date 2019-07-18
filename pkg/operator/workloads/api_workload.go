@@ -88,8 +88,11 @@ func (aw *APIWorkload) Start(ctx *context.Context) error {
 	if k8sDeloyment != nil && k8sDeloyment.Spec.Replicas != nil {
 		desiredReplicas = *k8sDeloyment.Spec.Replicas
 	}
-	if hpa != nil && hpa.Spec.MinReplicas != nil && *hpa.Spec.MinReplicas > desiredReplicas {
+	if hpa != nil && hpa.Spec.MinReplicas != nil && desiredReplicas < *hpa.Spec.MinReplicas {
 		desiredReplicas = *hpa.Spec.MinReplicas
+	}
+	if hpa != nil && desiredReplicas > hpa.Spec.MaxReplicas {
+		desiredReplicas = hpa.Spec.MaxReplicas
 	}
 
 	var deploymentSpec *kapps.Deployment

@@ -361,6 +361,9 @@ func getGroupedReplicaCounts(apiStatuses []*resource.APIStatus, ctx *context.Con
 			if groupedReplicaCounts.Requested < ctxAPI.Compute.MinReplicas {
 				groupedReplicaCounts.Requested = ctxAPI.Compute.MinReplicas
 			}
+			if groupedReplicaCounts.Requested > ctxAPI.Compute.MaxReplicas {
+				groupedReplicaCounts.Requested = ctxAPI.Compute.MaxReplicas
+			}
 		} else {
 			groupedReplicaCounts.ReadyStaleModel += apiStatus.TotalReady()
 			groupedReplicaCounts.FailedStaleModel += apiStatus.TotalFailed()
