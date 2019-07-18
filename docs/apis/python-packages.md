@@ -1,32 +1,26 @@
 # Python Packages
 
-Cortex allows you to install additional Python packages that can be made available to aggregators, transformers, and estimators.
+Cortex allows you to install additional Python packages to be used in any workload.
 
 ## PyPI Packages
 
-Cortex looks for a `requirements.txt` file in the top level cortex directory (in the same level as `cortex.yaml`). All packages listed in `requirements.txt` will be made available to aggregators, transformers, and estimators.
+Cortex looks for a `requirements.txt` file in the top level cortex directory (in the same level as `cortex.yaml`).
 
 ```text
 ./iris/
 ├── cortex.yaml
-├── requirements.txt
-├── samples.json
-├── implementations/
-└── resources/
+├── ...
+└── requirements.txt
 ```
 
 ## Custom Packages
 
 Cortex looks for your Python packages in the directory `./packages/<package name>`. The package must have a `setup.py` in the root of the package directory with the name set to your package name. Cortex will run `pip3 wheel -w wheelhouse ./packages/<package name>` to construct wheels for the Python Project.
 
-Cortex Directory
-
 ```text
 ./iris/
 ├── cortex.yaml
-├── samples.json
-├── implementations/
-├── resources/
+├── ...
 └── packages
     └── acme-util
         ├── acme-util/

@@ -19,7 +19,7 @@ package workloads
 import (
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
+	kcore "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -78,13 +78,13 @@ func getAPISavedStatus(resourceID string, workloadID string, appName string) (*r
 	return &savedStatus, nil
 }
 
-func calculateAPISavedStatuses(podList []corev1.Pod, appName string) ([]*resource.APISavedStatus, error) {
-	podMap := make(map[string]map[string][]corev1.Pod)
+func calculateAPISavedStatuses(podList []kcore.Pod, appName string) ([]*resource.APISavedStatus, error) {
+	podMap := make(map[string]map[string][]kcore.Pod)
 	for _, pod := range podList {
 		resourceID := pod.Labels["resourceID"]
 		workloadID := pod.Labels["workloadID"]
 		if _, ok := podMap[resourceID]; !ok {
-			podMap[resourceID] = make(map[string][]corev1.Pod)
+			podMap[resourceID] = make(map[string][]kcore.Pod)
 		}
 		podMap[resourceID][workloadID] = append(podMap[resourceID][workloadID], pod)
 	}
@@ -117,7 +117,7 @@ func calculateAPISavedStatuses(podList []corev1.Pod, appName string) ([]*resourc
 	return savedStatuses, nil
 }
 
-func updateAPISavedStatusStartTime(savedStatus *resource.APISavedStatus, pods []corev1.Pod) {
+func updateAPISavedStatusStartTime(savedStatus *resource.APISavedStatus, pods []kcore.Pod) {
 	if savedStatus.Start != nil {
 		return
 	}
@@ -137,8 +137,8 @@ func updateAPISavedStatusStartTime(savedStatus *resource.APISavedStatus, pods []
 	}
 }
 
-func UpdateAPISavedStatuses(allPods []corev1.Pod) error {
-	podMap := make(map[string][]corev1.Pod)
+func updateAPISavedStatuses(allPods []kcore.Pod) error {
+	podMap := make(map[string][]kcore.Pod)
 	for _, pod := range allPods {
 		appName := pod.Labels["appName"]
 		podMap[appName] = append(podMap[appName], pod)

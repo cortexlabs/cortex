@@ -17,14 +17,18 @@ limitations under the License.
 package k8s
 
 import (
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	v1beta1 "k8s.io/api/extensions/v1beta1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"encoding/json"
+
+	kextensions "k8s.io/api/extensions/v1beta1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-var ingressTypeMeta = metav1.TypeMeta{
+var ingressTypeMeta = kmeta.TypeMeta{
 	APIVersion: "extensions/v1beta1",
 	Kind:       "Ingress",
 }
@@ -39,13 +43,13 @@ type IngressSpec struct {
 	Labels       map[string]string
 }
 
-func Ingress(spec *IngressSpec) *v1beta1.Ingress {
+func Ingress(spec *IngressSpec) *kextensions.Ingress {
 	if spec.Namespace == "" {
 		spec.Namespace = "default"
 	}
-	ingress := &v1beta1.Ingress{
+	ingress := &kextensions.Ingress{
 		TypeMeta: ingressTypeMeta,
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmeta.ObjectMeta{
 			Name:      spec.Name,
 			Namespace: spec.Namespace,
 			Annotations: map[string]string{
@@ -54,15 +58,15 @@ func Ingress(spec *IngressSpec) *v1beta1.Ingress {
 			},
 			Labels: spec.Labels,
 		},
-		Spec: v1beta1.IngressSpec{
-			Rules: []v1beta1.IngressRule{
+		Spec: kextensions.IngressSpec{
+			Rules: []kextensions.IngressRule{
 				{
-					IngressRuleValue: v1beta1.IngressRuleValue{
-						HTTP: &v1beta1.HTTPIngressRuleValue{
-							Paths: []v1beta1.HTTPIngressPath{
+					IngressRuleValue: kextensions.IngressRuleValue{
+						HTTP: &kextensions.HTTPIngressRuleValue{
+							Paths: []kextensions.HTTPIngressPath{
 								{
 									Path: spec.Path,
-									Backend: v1beta1.IngressBackend{
+									Backend: kextensions.IngressBackend{
 										ServiceName: spec.ServiceName,
 										ServicePort: intstr.IntOrString{
 											IntVal: spec.ServicePort,
@@ -79,25 +83,43 @@ func Ingress(spec *IngressSpec) *v1beta1.Ingress {
 	return ingress
 }
 
-func (c *Client) CreateIngress(spec *IngressSpec) (*v1beta1.Ingress, error) {
-	ingress, err := c.ingressClient.Create(Ingress(spec))
+func (c *Client) CreateIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
+	ingress.TypeMeta = ingressTypeMeta
+	ingress, err := c.ingressClient.Create(ingress)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return ingress, nil
 }
 
-func (c *Client) UpdateIngress(ingress *v1beta1.Ingress) (*v1beta1.Ingress, error) {
-	ingress, err := c.ingressClient.Update(ingress)
+func (c *Client) UpdateIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
+	ingress.TypeMeta = ingressTypeMeta
+	objBytes, err := json.Marshal(ingress)
+	if err != nil {
+		return nil, err
+	}
+
+	ingress, err = c.ingressClient.Patch(ingress.Name, ktypes.MergePatchType, objBytes)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return ingress, nil
 }
 
-func (c *Client) GetIngress(name string) (*v1beta1.Ingress, error) {
-	ingress, err := c.ingressClient.Get(name, metav1.GetOptions{})
-	if k8serrors.IsNotFound(err) {
+func (c *Client) ApplyIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
+	existing, err := c.GetIngress(ingress.Name)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return c.CreateIngress(ingress)
+	}
+	return c.UpdateIngress(ingress)
+}
+
+func (c *Client) GetIngress(name string) (*kextensions.Ingress, error) {
+	ingress, err := c.ingressClient.Get(name, kmeta.GetOptions{})
+	if kerrors.IsNotFound(err) {
 		return nil, nil
 	}
 	if err != nil {
@@ -109,7 +131,7 @@ func (c *Client) GetIngress(name string) (*v1beta1.Ingress, error) {
 
 func (c *Client) DeleteIngress(name string) (bool, error) {
 	err := c.ingressClient.Delete(name, deleteOpts)
-	if k8serrors.IsNotFound(err) {
+	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
 	if err != nil {
@@ -126,9 +148,9 @@ func (c *Client) IngressExists(name string) (bool, error) {
 	return ingress != nil, nil
 }
 
-func (c *Client) ListIngresses(opts *metav1.ListOptions) ([]v1beta1.Ingress, error) {
+func (c *Client) ListIngresses(opts *kmeta.ListOptions) ([]kextensions.Ingress, error) {
 	if opts == nil {
-		opts = &metav1.ListOptions{}
+		opts = &kmeta.ListOptions{}
 	}
 	ingressList, err := c.ingressClient.List(*opts)
 	if err != nil {
@@ -140,19 +162,19 @@ func (c *Client) ListIngresses(opts *metav1.ListOptions) ([]v1beta1.Ingress, err
 	return ingressList.Items, nil
 }
 
-func (c *Client) ListIngressesByLabels(labels map[string]string) ([]v1beta1.Ingress, error) {
-	opts := &metav1.ListOptions{
+func (c *Client) ListIngressesByLabels(labels map[string]string) ([]kextensions.Ingress, error) {
+	opts := &kmeta.ListOptions{
 		LabelSelector: LabelSelector(labels),
 	}
 	return c.ListIngresses(opts)
 }
 
-func (c *Client) ListIngressesByLabel(labelKey string, labelValue string) ([]v1beta1.Ingress, error) {
+func (c *Client) ListIngressesByLabel(labelKey string, labelValue string) ([]kextensions.Ingress, error) {
 	return c.ListIngressesByLabels(map[string]string{labelKey: labelValue})
 }
 
-func IngressMap(ingresses []v1beta1.Ingress) map[string]v1beta1.Ingress {
-	ingressMap := map[string]v1beta1.Ingress{}
+func IngressMap(ingresses []kextensions.Ingress) map[string]kextensions.Ingress {
+	ingressMap := map[string]kextensions.Ingress{}
 	for _, ingress := range ingresses {
 		ingressMap[ingress.Name] = ingress
 	}

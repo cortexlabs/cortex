@@ -89,7 +89,7 @@ func getSavedLatestWorkloadIDs(resourceIDs strset.Set, appName string) (map[stri
 		return nil, err
 	}
 
-	workloadIDMap := map[string]string{}
+	workloadIDMap := make(map[string]string)
 	for i := range workloadIDList {
 		workloadIDMap[resourceIDList[i]] = workloadIDList[i]
 	}

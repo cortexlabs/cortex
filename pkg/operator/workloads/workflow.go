@@ -17,201 +17,90 @@ limitations under the License.
 package workloads
 
 import (
-	"fmt"
 	"path/filepath"
-	"strings"
-
-	awfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	ghodssyaml "github.com/ghodss/yaml"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/argo"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
 )
 
 func Init() error {
-	workflows, err := config.Argo.List(nil)
+	err := reloadCurrentContexts()
 	if err != nil {
-		return errors.Wrap(err, "init", "argo", "list")
+		return errors.Wrap(err, "init")
 	}
 
-	for _, wf := range workflows {
-		ctx, err := ocontext.DownloadContext(wf.Labels["ctxID"], wf.Labels["appName"])
-		if err != nil {
-			fmt.Println("Deleting stale workflow:", wf.Name)
-			config.Argo.Delete(wf.Name)
-		} else {
-			setCurrentContext(ctx)
-		}
-	}
+	go cronRunner()
 
 	return nil
 }
 
-func Create(ctx *context.Context) (*awfv1.Workflow, error) {
-	err := populateLatestWorkloadIDs(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	labels := map[string]string{
-		"appName": ctx.App.Name,
-		"ctxID":   ctx.ID,
-	}
-	wf := config.Argo.NewWorkflow(ctx.App.Name, labels)
-
-	var allSpecs []*WorkloadSpec
-
-	pythonPackageJobSpecs, err := pythonPackageWorkloadSpecs(ctx)
-	if err != nil {
-		return nil, err
-	}
-	allSpecs = append(allSpecs, pythonPackageJobSpecs...)
-
-	if ctx.Environment != nil {
-		dataJobSpecs, err := dataWorkloadSpecs(ctx)
-		if err != nil {
-			return nil, err
-		}
-		allSpecs = append(allSpecs, dataJobSpecs...)
-
-		trainingJobSpecs, err := trainingWorkloadSpecs(ctx)
-		if err != nil {
-			return nil, err
-		}
-		allSpecs = append(allSpecs, trainingJobSpecs...)
-	}
-
-	apiSpecs, err := apiWorkloadSpecs(ctx)
-	if err != nil {
-		return nil, err
-	}
-	allSpecs = append(allSpecs, apiSpecs...)
-
-	resourceWorkloadIDs := make(map[string]string)
-	for _, spec := range allSpecs {
-		for resourceID := range spec.ResourceIDs {
-			resourceWorkloadIDs[resourceID] = spec.WorkloadID
-		}
-	}
-	ctx.PopulateWorkloadIDs(resourceWorkloadIDs)
-
-	for _, spec := range allSpecs {
-		var dependencyWorkloadIDs []string
-		for resourceID := range spec.ResourceIDs {
-			for dependencyResourceID := range ctx.AllComputedResourceDependencies(resourceID) {
-				workloadID := resourceWorkloadIDs[dependencyResourceID]
-				if workloadID != "" && workloadID != spec.WorkloadID {
-					dependencyWorkloadIDs = append(dependencyWorkloadIDs, workloadID)
-				}
-			}
-		}
-
-		var combinedManifest string
-
-		switch len(spec.K8sSpecs) {
-		case 0:
-			return nil, errors.New("a kubernetes manifest must be specified") // unexpected internal error
-		case 1:
-			manifestBytes, err := json.Marshal(spec.K8sSpecs[0])
-			if err != nil {
-				return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID)
-			}
-			combinedManifest = string(manifestBytes)
-		default: // >1
-			if spec.SuccessCondition != "" || spec.FailureCondition != "" {
-				return nil, errors.New("success and failure conditions are not permitted with multiple manifests") // unexpected internal error
-			}
-			manifests := make([]string, len(spec.K8sSpecs))
-			for i, k8sSpec := range spec.K8sSpecs {
-				manifestJSON, err := json.Marshal(k8sSpec)
-				if err != nil {
-					return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID)
-				}
-				manifestYAML, err := ghodssyaml.JSONToYAML(manifestJSON)
-				if err != nil {
-					return nil, errors.Wrap(err, ctx.App.Name, "workloads", spec.WorkloadID)
-				}
-				manifests[i] = string(manifestYAML)
-			}
-			combinedManifest = strings.Join(manifests, "\n\n---\n\n")
-		}
-
-		argo.AddTask(wf, &argo.WorkflowTask{
-			Name:             spec.WorkloadID,
-			Action:           spec.K8sAction,
-			Manifest:         combinedManifest,
-			SuccessCondition: spec.SuccessCondition,
-			FailureCondition: spec.FailureCondition,
-			Dependencies:     slices.UniqueStrings(dependencyWorkloadIDs),
-			Labels: map[string]string{
-				"appName":      ctx.App.Name,
-				"workloadType": spec.WorkloadType,
-				"workloadID":   spec.WorkloadID,
-				"service":      spec.WorkloadType,
-				"app":          spec.WorkloadType,
-			},
-		})
-
-		err = uploadWorkloadSpec(spec, ctx)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return wf, nil
-}
-
-func populateLatestWorkloadIDs(ctx *context.Context) error {
+func PopulateWorkloadIDs(ctx *context.Context) error {
 	resourceIDs := ctx.ComputedResourceIDs()
-	resourceWorkloadIDs, err := getSavedLatestWorkloadIDs(resourceIDs, ctx.App.Name)
+	latestResourceWorkloadIDs, err := getSavedLatestWorkloadIDs(resourceIDs, ctx.App.Name)
 	if err != nil {
 		return err
-
 	}
-	ctx.PopulateWorkloadIDs(resourceWorkloadIDs)
+
+	populatePythonPackageWorkloadIDs(ctx, latestResourceWorkloadIDs)
+	populateSparkWorkloadIDs(ctx, latestResourceWorkloadIDs)
+	populateTrainingWorkloadIDs(ctx, latestResourceWorkloadIDs)
+	populateAPIWorkloadIDs(ctx, latestResourceWorkloadIDs)
+
+	if err := ctx.CheckAllWorkloadIDsPopulated(); err != nil {
+		return err
+	}
 	return nil
 }
 
-func Run(wf *awfv1.Workflow, ctx *context.Context, existingWf *awfv1.Workflow) error {
-	err := ctx.CheckAllWorkloadIDsPopulated()
-	if err != nil {
+func extractWorkloads(ctx *context.Context) []Workload {
+	var workloads []Workload
+	workloads = append(workloads, extractPythonPackageWorkloads(ctx)...)
+	workloads = append(workloads, extractSparkWorkloads(ctx)...)
+	workloads = append(workloads, extractTrainingWorkloads(ctx)...)
+	workloads = append(workloads, extractAPIWorkloads(ctx)...)
+	return workloads
+}
+
+func ValidateDeploy(ctx *context.Context) error {
+	if ctx.Environment != nil {
+		rawDatasetExists, err := config.AWS.IsS3File(filepath.Join(ctx.RawDataset.Key, "_SUCCESS"))
+		if err != nil {
+			return errors.Wrap(err, ctx.App.Name, "raw dataset")
+		}
+		if !rawDatasetExists {
+			externalPath := ctx.Environment.Data.GetPath()
+			externalDataExists, err := aws.IsS3aPathPrefixExternal(externalPath)
+			if !externalDataExists || err != nil {
+				return errors.Wrap(userconfig.ErrorExternalNotFound(externalPath), ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey)
+			}
+		}
+	}
+
+	return nil
+}
+
+func Run(ctx *context.Context) error {
+	if err := ctx.CheckAllWorkloadIDsPopulated(); err != nil {
 		return err
 	}
 
-	if existingWf != nil {
-		existingCtx := CurrentContext(ctx.App.Name)
-		if wf.Labels["appName"] != existingWf.Labels["appName"] {
-			return ErrorWorkflowAppMismatch()
-		}
-		if existingCtx != nil && ctx.App.Name != existingCtx.App.Name {
-			return ErrorContextAppMismatch()
-		}
-
-		err := Stop(existingWf, existingCtx)
-		if err != nil {
-			return err
-		}
-	}
-
-	// err = config.Argo.Run(wf)
-	// if err != nil {
-	// 	return errors.Wrap(err, ctx.App.Name)
-	// }
-
-	err = createServicesAndIngresses(ctx)
+	prevCtx := CurrentContext(ctx.App.Name)
+	err := deleteOldDataJobs(prevCtx)
 	if err != nil {
 		return err
 	}
 
 	deleteOldAPIs(ctx)
 
-	setCurrentContext(ctx)
+	err = setCurrentContext(ctx)
+	if err != nil {
+		return err
+	}
 
 	resourceWorkloadIDs := ctx.ComputedResourceResourceWorkloadIDs()
 	err = uploadLatestWorkloadIDs(resourceWorkloadIDs, ctx.App.Name)
@@ -222,20 +111,26 @@ func Run(wf *awfv1.Workflow, ctx *context.Context, existingWf *awfv1.Workflow) e
 	uncacheDataSavedStatuses(resourceWorkloadIDs, ctx.App.Name)
 	uncacheLatestWorkloadIDs(ctx.ComputedResourceIDs(), ctx.App.Name)
 
+	runCronNow()
+
 	return nil
 }
 
-func Stop(wf *awfv1.Workflow, ctx *context.Context) error {
-	if wf == nil {
+func deleteOldDataJobs(ctx *context.Context) error {
+	if ctx == nil {
 		return nil
 	}
 
-	_, err := config.Argo.Delete(wf.Name)
-	if err != nil {
-		return errors.Wrap(err, ctx.App.Name)
+	jobs, _ := config.Kubernetes.ListJobsByLabel("appName", ctx.App.Name)
+	for _, job := range jobs {
+		config.Kubernetes.DeleteJob(job.Name)
+	}
+	sparkApps, _ := config.Spark.ListByLabel("appName", ctx.App.Name)
+	for _, sparkApp := range sparkApps {
+		config.Spark.Delete(sparkApp.Name)
 	}
 
-	err = updateKilledDataSavedStatuses(ctx)
+	err := updateKilledDataSavedStatuses(ctx)
 	if err != nil {
 		return err
 	}
@@ -244,15 +139,6 @@ func Stop(wf *awfv1.Workflow, ctx *context.Context) error {
 }
 
 func DeleteApp(appName string, keepCache bool) bool {
-	ctx := CurrentContext(appName)
-	wasDeployed := false
-
-	if ctx != nil {
-		wf, _ := GetWorkflow(appName)
-		Stop(wf, ctx)
-		wasDeployed = true
-	}
-
 	deployments, _ := config.Kubernetes.ListDeploymentsByLabel("appName", appName)
 	for _, deployment := range deployments {
 		config.Kubernetes.DeleteDeployment(deployment.Name)
@@ -273,9 +159,19 @@ func DeleteApp(appName string, keepCache bool) bool {
 	for _, job := range jobs {
 		config.Kubernetes.DeleteJob(job.Name)
 	}
+	sparkApps, _ := config.Spark.ListByLabel("appName", appName)
+	for _, sparkApp := range sparkApps {
+		config.Spark.Delete(sparkApp.Name)
+	}
 	pods, _ := config.Kubernetes.ListPodsByLabel("appName", appName)
 	for _, pod := range pods {
 		config.Kubernetes.DeletePod(pod.Name)
+	}
+
+	wasDeployed := false
+	if ctx := CurrentContext(appName); ctx != nil {
+		updateKilledDataSavedStatuses(ctx)
+		wasDeployed = true
 	}
 
 	deleteCurrentContext(appName)
@@ -289,18 +185,113 @@ func DeleteApp(appName string, keepCache bool) bool {
 	return wasDeployed
 }
 
-func GetWorkflow(appName string) (*awfv1.Workflow, error) {
-	wfs, err := config.Argo.ListByLabel("appName", appName)
+func UpdateWorkflows() error {
+	currentWorkloadIDs := make(map[string]strset.Set)
+
+	for _, ctx := range CurrentContexts() {
+		err := updateWorkflow(ctx)
+		if err != nil {
+			return err
+		}
+
+		currentWorkloadIDs[ctx.App.Name] = ctx.ComputedResourceWorkloadIDs()
+	}
+
+	uncacheBaseWorkloads(currentWorkloadIDs)
+
+	return nil
+}
+
+func updateWorkflow(ctx *context.Context) error {
+	workloads := extractWorkloads(ctx)
+
+	err := uploadBaseWorkloadsFromWorkloads(workloads)
 	if err != nil {
-		return nil, errors.Wrap(err, appName)
-	}
-	if len(wfs) > 1 {
-		return nil, errors.Wrap(ErrorMoreThanOneWorkflow(), appName)
+		return err
 	}
 
-	if len(wfs) == 0 {
-		return nil, nil
+	for _, workload := range workloads {
+		isSucceeded, err := workload.IsSucceeded(ctx)
+		if err != nil {
+			return err
+		}
+		if isSucceeded {
+			continue
+		}
+
+		isRunning, err := workload.IsRunning(ctx)
+		if err != nil {
+			return err
+		}
+		if isRunning {
+			continue
+		}
+
+		canRun, err := workload.CanRun(ctx)
+		if err != nil {
+			return err
+		}
+		if !canRun {
+			continue
+		}
+
+		err = workload.Start(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
-	return &wfs[0], nil
+	return nil
+}
+
+func IsWorkloadPending(appName string, workloadID string) (bool, error) {
+	ctx := CurrentContext(appName)
+	if ctx == nil {
+		return false, nil
+	}
+
+	for _, workload := range extractWorkloads(ctx) {
+		if workload.GetWorkloadID() != workloadID {
+			continue
+		}
+
+		isSucceeded, err := workload.IsSucceeded(ctx)
+		if err != nil {
+			return false, err
+		}
+		if isSucceeded {
+			continue
+		}
+
+		isRunning, err := workload.IsRunning(ctx)
+		if err != nil {
+			return false, err
+		}
+		if isRunning {
+			continue
+		}
+
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func IsDeploymentUpdating(appName string) (bool, error) {
+	ctx := CurrentContext(appName)
+	if ctx == nil {
+		return false, nil
+	}
+
+	for _, workload := range extractWorkloads(ctx) {
+		isRunning, err := workload.IsRunning(ctx)
+		if err != nil {
+			return false, err
+		}
+		if isRunning {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

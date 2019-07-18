@@ -529,8 +529,8 @@ func dataResourceTable(resources []context.Resource, dataStatuses map[string]*re
 
 	t := table.Table{
 		Headers: []table.Header{
-			{Title: "NAME", MinWidth: 32, MaxWidth: 32},
-			{Title: "STATUS", MaxWidth: 21, MinWidth: 21},
+			{Title: "NAME", MaxWidth: 32},
+			{Title: "STATUS", MaxWidth: 21},
 			{Title: "AGE"},
 		},
 		Rows: rows,
@@ -542,6 +542,10 @@ func dataResourceTable(resources []context.Resource, dataStatuses map[string]*re
 func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
 	rows := make([][]interface{}, 0, len(apiGroupStatuses))
 	for name, groupStatus := range apiGroupStatuses {
+		if groupStatus.Requested == 0 {
+			continue
+		}
+
 		var updatedAt *time.Time
 		if groupStatus.ActiveStatus != nil {
 			updatedAt = groupStatus.ActiveStatus.Start

@@ -9,7 +9,7 @@ COPY pkg/estimators /estimators
 
 COPY images/test/run.sh /src/run.sh
 
-WORKDIR /src
+WORKDIR /src/cortex
 
 ENTRYPOINT ["/bin/bash"]
 CMD ["/src/run.sh"]

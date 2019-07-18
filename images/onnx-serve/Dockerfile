@@ -1,5 +1,7 @@
 FROM ubuntu:16.04
 
+ARG ONNXRUNTIME_VERSION="0.4.0"
+
 RUN apt-get update -qq && apt-get install -y -q \
         python3 \
         python3-dev \
@@ -26,14 +28,15 @@ RUN apt-get update -qq && apt-get install -y -q \
 
 ENV PYTHONPATH="/src:${PYTHONPATH}"
 
-COPY pkg/workloads/lib/requirements.txt /src/lib/requirements.txt
-COPY pkg/workloads/onnx_serve/requirements.txt /src/onnx_serve/requirements.txt
-RUN pip3 install -r /src/lib/requirements.txt && \
-    pip3 install -r /src/onnx_serve/requirements.txt && \
+COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
+COPY pkg/workloads/cortex/onnx_serve/requirements.txt /src/cortex/onnx_serve/requirements.txt
+RUN pip3 install -r /src/cortex/lib/requirements.txt && \
+    pip3 install -r /src/cortex/onnx_serve/requirements.txt && \
+    pip3 install onnxruntime==${ONNXRUNTIME_VERSION} && \
     rm -rf /root/.cache/pip*
 
-COPY pkg/workloads/consts.py /src/
-COPY pkg/workloads/lib /src/lib
-COPY pkg/workloads/onnx_serve /src/onnx_serve
+COPY pkg/workloads/cortex/consts.py /src/cortex
+COPY pkg/workloads/cortex/lib /src/cortex/lib
+COPY pkg/workloads/cortex/onnx_serve /src/cortex/onnx_serve
 
-ENTRYPOINT ["/usr/bin/python3", "/src/onnx_serve/api.py"]
+ENTRYPOINT ["/usr/bin/python3", "/src/cortex/onnx_serve/api.py"]

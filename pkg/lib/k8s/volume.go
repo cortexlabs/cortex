@@ -17,35 +17,35 @@ limitations under the License.
 package k8s
 
 import (
-	corev1 "k8s.io/api/core/v1"
+	kcore "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 )
 
-func EmptyDirVolume() corev1.Volume {
-	volume := corev1.Volume{
+func EmptyDirVolume() kcore.Volume {
+	volume := kcore.Volume{
 		Name: consts.EmptyDirVolumeName,
-		VolumeSource: corev1.VolumeSource{
-			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		VolumeSource: kcore.VolumeSource{
+			EmptyDir: &kcore.EmptyDirVolumeSource{},
 		},
 	}
 	return volume
 }
 
-func EmptyDirVolumeMount() corev1.VolumeMount {
-	volumeMount := corev1.VolumeMount{
+func EmptyDirVolumeMount() kcore.VolumeMount {
+	volumeMount := kcore.VolumeMount{
 		Name:      consts.EmptyDirVolumeName,
 		MountPath: consts.EmptyDirMountPath,
 	}
 	return volumeMount
 }
 
-func CortexConfigVolume() corev1.Volume {
-	volume := corev1.Volume{
+func CortexConfigVolume() kcore.Volume {
+	volume := kcore.Volume{
 		Name: consts.CortexConfigName,
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
+		VolumeSource: kcore.VolumeSource{
+			ConfigMap: &kcore.ConfigMapVolumeSource{
+				LocalObjectReference: kcore.LocalObjectReference{
 					Name: consts.CortexConfigName,
 				},
 			},
@@ -54,23 +54,23 @@ func CortexConfigVolume() corev1.Volume {
 	return volume
 }
 
-func CortexConfigVolumeMount() corev1.VolumeMount {
-	volumeMount := corev1.VolumeMount{
+func CortexConfigVolumeMount() kcore.VolumeMount {
+	volumeMount := kcore.VolumeMount{
 		Name:      consts.CortexConfigName,
 		MountPath: consts.CortexConfigPath,
 	}
 	return volumeMount
 }
 
-func DefaultVolumes() []corev1.Volume {
-	volumes := []corev1.Volume{
+func DefaultVolumes() []kcore.Volume {
+	volumes := []kcore.Volume{
 		EmptyDirVolume(),
 	}
 	return volumes
 }
 
-func DefaultVolumeMounts() []corev1.VolumeMount {
-	volumeMounts := []corev1.VolumeMount{
+func DefaultVolumeMounts() []kcore.VolumeMount {
+	volumeMounts := []kcore.VolumeMount{
 		EmptyDirVolumeMount(),
 	}
 	return volumeMounts

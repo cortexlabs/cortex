@@ -37,7 +37,7 @@ echo ""
 echo "Starting"
 echo ""
 
-/usr/bin/python3 /src/lib/package.py --workload-id=$CORTEX_WORKLOAD_ID --context=$CORTEX_CONTEXT_S3_PATH --cache-dir=$CORTEX_CACHE_DIR
+/usr/bin/python3 /src/cortex/lib/package.py --workload-id=$CORTEX_WORKLOAD_ID --context=$CORTEX_CONTEXT_S3_PATH --cache-dir=$CORTEX_CACHE_DIR
 
 # Run the intended command
 /opt/entrypoint.sh "$@"

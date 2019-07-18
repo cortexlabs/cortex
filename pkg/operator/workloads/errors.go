@@ -21,8 +21,6 @@ type ErrorKind int
 const (
 	ErrUnknown ErrorKind = iota
 	ErrMoreThanOneWorkflow
-	ErrContextAppMismatch
-	ErrWorkflowAppMismatch
 	ErrCortexInstallationBroken
 	ErrLoadBalancerInitializing
 	ErrNotFound
@@ -31,8 +29,6 @@ const (
 var errorKinds = []string{
 	"err_unknown",
 	"err_more_than_one_workflow",
-	"err_context_app_mismatch",
-	"err_workflow_app_mismatch",
 	"err_cortex_installation_broken",
 	"err_load_balancer_initializing",
 	"err_not_found",
@@ -87,20 +83,6 @@ func ErrorMoreThanOneWorkflow() error {
 	return Error{
 		Kind:    ErrMoreThanOneWorkflow,
 		message: "there is more than one workflow",
-	}
-}
-
-func ErrorContextAppMismatch() error {
-	return Error{
-		Kind:    ErrContextAppMismatch,
-		message: "context deployments do not match",
-	}
-}
-
-func ErrorWorkflowAppMismatch() error {
-	return Error{
-		Kind:    ErrWorkflowAppMismatch,
-		message: "workflow deployments do not match",
 	}
 }
 

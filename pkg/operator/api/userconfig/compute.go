@@ -28,7 +28,7 @@ import (
 	"fmt"
 	"strings"
 
-	k8sresource "k8s.io/apimachinery/pkg/api/resource"
+	kresource "k8s.io/apimachinery/pkg/api/resource"
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -62,7 +62,7 @@ var sparkComputeStructValidation = &cr.StructValidation{
 				Default: "1",
 			},
 			Parser: QuantityParser(&QuantityValidation{
-				GreaterThanOrEqualTo: k8sQuantityPtr(k8sresource.MustParse("1")),
+				GreaterThanOrEqualTo: k8sQuantityPtr(kresource.MustParse("1")),
 			}),
 		},
 		{
@@ -71,7 +71,7 @@ var sparkComputeStructValidation = &cr.StructValidation{
 				Default: "1",
 			},
 			Parser: QuantityParser(&QuantityValidation{
-				GreaterThanOrEqualTo: k8sQuantityPtr(k8sresource.MustParse("1")),
+				GreaterThanOrEqualTo: k8sQuantityPtr(kresource.MustParse("1")),
 				Int:                  true,
 			}),
 		},
@@ -81,7 +81,7 @@ var sparkComputeStructValidation = &cr.StructValidation{
 				Default: "500Mi",
 			},
 			Parser: QuantityParser(&QuantityValidation{
-				GreaterThanOrEqualTo: k8sQuantityPtr(k8sresource.MustParse("500Mi")),
+				GreaterThanOrEqualTo: k8sQuantityPtr(kresource.MustParse("500Mi")),
 			}),
 		},
 		{
@@ -90,7 +90,7 @@ var sparkComputeStructValidation = &cr.StructValidation{
 				Default: "500Mi",
 			},
 			Parser: QuantityParser(&QuantityValidation{
-				GreaterThanOrEqualTo: k8sQuantityPtr(k8sresource.MustParse("500Mi")),
+				GreaterThanOrEqualTo: k8sQuantityPtr(kresource.MustParse("500Mi")),
 			}),
 		},
 		{
@@ -99,7 +99,7 @@ var sparkComputeStructValidation = &cr.StructValidation{
 				Default: nil, // min(DriverMem * 0.4, 384Mi)
 			},
 			Parser: QuantityParser(&QuantityValidation{
-				GreaterThanOrEqualTo: k8sQuantityPtr(k8sresource.MustParse("0")),
+				GreaterThanOrEqualTo: k8sQuantityPtr(kresource.MustParse("0")),
 			}),
 		},
 		{
@@ -108,7 +108,7 @@ var sparkComputeStructValidation = &cr.StructValidation{
 				Default: nil, // min(ExecutorMem * 0.4, 384Mi)
 			},
 			Parser: QuantityParser(&QuantityValidation{
-				GreaterThanOrEqualTo: k8sQuantityPtr(k8sresource.MustParse("0")),
+				GreaterThanOrEqualTo: k8sQuantityPtr(kresource.MustParse("0")),
 			}),
 		},
 		{
@@ -178,10 +178,10 @@ var tfComputeFieldValidation = &cr.StructFieldValidation{
 			{
 				StructField: "CPU",
 				StringValidation: &cr.StringValidation{
-					Default: "200m",
+					Default: "400m",
 				},
 				Parser: QuantityParser(&QuantityValidation{
-					GreaterThan: k8sQuantityPtr(k8sresource.MustParse("0")),
+					GreaterThan: k8sQuantityPtr(kresource.MustParse("0")),
 				}),
 			},
 			{
@@ -190,7 +190,7 @@ var tfComputeFieldValidation = &cr.StructFieldValidation{
 					Default: nil,
 				},
 				Parser: QuantityParser(&QuantityValidation{
-					GreaterThan: k8sQuantityPtr(k8sresource.MustParse("0")),
+					GreaterThan: k8sQuantityPtr(kresource.MustParse("0")),
 				}),
 			},
 			{
@@ -269,10 +269,10 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 			{
 				StructField: "CPU",
 				StringValidation: &cr.StringValidation{
-					Default: "200m",
+					Default: "400m",
 				},
 				Parser: QuantityParser(&QuantityValidation{
-					GreaterThan: k8sQuantityPtr(k8sresource.MustParse("0")),
+					GreaterThan: k8sQuantityPtr(kresource.MustParse("0")),
 				}),
 			},
 			{
@@ -281,7 +281,7 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 					Default: nil,
 				},
 				Parser: QuantityParser(&QuantityValidation{
-					GreaterThan: k8sQuantityPtr(k8sresource.MustParse("0")),
+					GreaterThan: k8sQuantityPtr(kresource.MustParse("0")),
 				}),
 			},
 			{
@@ -354,6 +354,9 @@ func MaxSparkCompute(sparkComputes ...*SparkCompute) *SparkCompute {
 	aggregated := SparkCompute{}
 
 	for _, sparkCompute := range sparkComputes {
+		if sparkCompute == nil {
+			continue
+		}
 		if sparkCompute.Executors > aggregated.Executors {
 			aggregated.Executors = sparkCompute.Executors
 		}
@@ -393,6 +396,9 @@ func MaxTFCompute(tfComputes ...*TFCompute) *TFCompute {
 	aggregated := TFCompute{}
 
 	for _, tc := range tfComputes {
+		if tc == nil {
+			continue
+		}
 		if tc.CPU.Cmp(aggregated.CPU.Quantity) > 0 {
 			aggregated.CPU = tc.CPU
 		}

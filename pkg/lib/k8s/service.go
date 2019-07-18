@@ -17,13 +17,18 @@ limitations under the License.
 package k8s
 
 import (
+	"encoding/json"
+
+	kcore "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	intstr "k8s.io/apimachinery/pkg/util/intstr"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var serviceTypeMeta = metav1.TypeMeta{
+var serviceTypeMeta = kmeta.TypeMeta{
 	APIVersion: "v1",
 	Kind:       "Service",
 }
@@ -37,23 +42,27 @@ type ServiceSpec struct {
 	Selector   map[string]string
 }
 
-func Service(spec *ServiceSpec) *corev1.Service {
+func Service(spec *ServiceSpec) *kcore.Service {
 	if spec.Namespace == "" {
 		spec.Namespace = "default"
 	}
-	service := &corev1.Service{
+	service := &kcore.Service{
 		TypeMeta: serviceTypeMeta,
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmeta.ObjectMeta{
 			Name:      spec.Name,
 			Namespace: spec.Namespace,
 			Labels:    spec.Labels,
 		},
-		Spec: corev1.ServiceSpec{
+		Spec: kcore.ServiceSpec{
 			Selector: spec.Selector,
-			Ports: []corev1.ServicePort{
+			Ports: []kcore.ServicePort{
 				{
-					Port: spec.Port,
+					Protocol: kcore.ProtocolTCP,
 					Name: "http",
+					Port:     spec.Port,
+					TargetPort: intstr.IntOrString{
+						IntVal: spec.TargetPort,
+					},
 				},
 			},
 		},
@@ -61,25 +70,43 @@ func Service(spec *ServiceSpec) *corev1.Service {
 	return service
 }
 
-func (c *Client) CreateService(spec *ServiceSpec) (*corev1.Service, error) {
-	service, err := c.serviceClient.Create(Service(spec))
+func (c *Client) CreateService(service *kcore.Service) (*kcore.Service, error) {
+	service.TypeMeta = serviceTypeMeta
+	service, err := c.serviceClient.Create(service)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return service, nil
 }
 
-func (c *Client) UpdateService(service *corev1.Service) (*corev1.Service, error) {
-	service, err := c.serviceClient.Update(service)
+func (c *Client) UpdateService(service *kcore.Service) (*kcore.Service, error) {
+	service.TypeMeta = serviceTypeMeta
+	objBytes, err := json.Marshal(service)
+	if err != nil {
+		return nil, err
+	}
+
+	service, err = c.serviceClient.Patch(service.Name, ktypes.MergePatchType, objBytes)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return service, nil
 }
 
-func (c *Client) GetService(name string) (*corev1.Service, error) {
-	service, err := c.serviceClient.Get(name, metav1.GetOptions{})
-	if k8serrors.IsNotFound(err) {
+func (c *Client) ApplyService(service *kcore.Service) (*kcore.Service, error) {
+	existing, err := c.GetService(service.Name)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return c.CreateService(service)
+	}
+	return c.UpdateService(service)
+}
+
+func (c *Client) GetService(name string) (*kcore.Service, error) {
+	service, err := c.serviceClient.Get(name, kmeta.GetOptions{})
+	if kerrors.IsNotFound(err) {
 		return nil, nil
 	}
 	if err != nil {
@@ -103,7 +130,7 @@ func (c *Client) GetIstioService(name string) (*corev1.Service, error) {
 
 func (c *Client) DeleteService(name string) (bool, error) {
 	err := c.serviceClient.Delete(name, deleteOpts)
-	if k8serrors.IsNotFound(err) {
+	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
 	if err != nil {
@@ -120,9 +147,9 @@ func (c *Client) ServiceExists(name string) (bool, error) {
 	return service != nil, nil
 }
 
-func (c *Client) ListServices(opts *metav1.ListOptions) ([]corev1.Service, error) {
+func (c *Client) ListServices(opts *kmeta.ListOptions) ([]kcore.Service, error) {
 	if opts == nil {
-		opts = &metav1.ListOptions{}
+		opts = &kmeta.ListOptions{}
 	}
 	serviceList, err := c.serviceClient.List(*opts)
 	if err != nil {
@@ -134,19 +161,19 @@ func (c *Client) ListServices(opts *metav1.ListOptions) ([]corev1.Service, error
 	return serviceList.Items, nil
 }
 
-func (c *Client) ListServicesByLabels(labels map[string]string) ([]corev1.Service, error) {
-	opts := &metav1.ListOptions{
+func (c *Client) ListServicesByLabels(labels map[string]string) ([]kcore.Service, error) {
+	opts := &kmeta.ListOptions{
 		LabelSelector: LabelSelector(labels),
 	}
 	return c.ListServices(opts)
 }
 
-func (c *Client) ListServicesByLabel(labelKey string, labelValue string) ([]corev1.Service, error) {
+func (c *Client) ListServicesByLabel(labelKey string, labelValue string) ([]kcore.Service, error) {
 	return c.ListServicesByLabels(map[string]string{labelKey: labelValue})
 }
 
-func ServiceMap(services []corev1.Service) map[string]corev1.Service {
-	serviceMap := map[string]corev1.Service{}
+func ServiceMap(services []kcore.Service) map[string]kcore.Service {
+	serviceMap := map[string]kcore.Service{}
 	for _, service := range services {
 		serviceMap[service.Name] = service
 	}

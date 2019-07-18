@@ -97,6 +97,8 @@ metadata:
     app: operator
     service: operator
 spec:
+  selector:
+    workloadID: operator
   ports:
   - port: 8888
     name: http

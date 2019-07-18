@@ -30,7 +30,6 @@ fi
 
 kubectl delete --ignore-not-found=true customresourcedefinition scheduledsparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
 kubectl delete --ignore-not-found=true customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
-kubectl delete --ignore-not-found=true customresourcedefinition workflows.argoproj.io >/dev/null 2>&1
 kubectl delete --ignore-not-found=true namespace istio-system >/dev/null 2>&1
 kubectl delete --ignore-not-found=true namespace $CORTEX_NAMESPACE >/dev/null 2>&1
 

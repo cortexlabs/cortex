@@ -21,10 +21,10 @@ SHELL := /bin/bash
 # Cortex
 
 devstart:
-	@kill $(shell pgrep -f rerun); ./dev/operator_local.sh || true
+	@./dev/operator_local.sh || true
 
 killdev:
-	@kill $(shell pgrep -f rerun)
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 
 kubectl:
 	@eksctl utils write-kubeconfig --name="cortex"
@@ -133,10 +133,9 @@ ci-build-images:
 	@./build/build-image.sh images/tf-serve-gpu tf-serve-gpu
 	@./build/build-image.sh images/tf-api tf-api
 	@./build/build-image.sh images/onnx-serve onnx-serve
+	@./build/build-image.sh images/onnx-serve-gpu onnx-serve-gpu
 	@./build/build-image.sh images/operator operator
 	@./build/build-image.sh images/fluentd fluentd
-	@./build/build-image.sh images/argo-controller argo-controller
-	@./build/build-image.sh images/argo-executor argo-executor
 	@./build/build-image.sh images/python-packager python-packager
 	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
 	@./build/build-image.sh images/nvidia nvidia
@@ -152,10 +151,9 @@ ci-push-images:
 	@./build/push-image.sh tf-serve-gpu
 	@./build/push-image.sh tf-api
 	@./build/push-image.sh onnx-serve
+	@./build/push-image.sh onnx-serve-gpu
 	@./build/push-image.sh operator
 	@./build/push-image.sh fluentd
-	@./build/push-image.sh argo-controller
-	@./build/push-image.sh argo-executor
 	@./build/push-image.sh python-packager
 	@./build/push-image.sh cluster-autoscaler
 	@./build/push-image.sh nvidia

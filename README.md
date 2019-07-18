@@ -2,13 +2,13 @@
 
 <br>
 
-**Get started:** [Install](https://docs.cortex.dev/install) • [Tutorial](https://docs.cortex.dev/tutorial) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[Docs](https://docs.cortex.dev) • <!-- CORTEX_VERSION_MINOR_STABLE -->[Examples](https://github.com/cortexlabs/cortex/tree/0.5/examples)
+**Get started:** [Install](https://docs.cortex.dev/install) • [Tutorial](https://docs.cortex.dev/tutorial) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[Docs](https://docs.cortex.dev) • <!-- CORTEX_VERSION_MINOR_STABLE -->[Examples](https://github.com/cortexlabs/cortex/tree/0.6/examples)
 
 **Learn more:** [Website](https://cortex.dev) • [Blog](https://blog.cortex.dev) • [Subscribe](https://cortexlabs.us20.list-manage.com/subscribe?u=a1987373ab814f20961fd90b4&id=ae83491e1c) • [Twitter](https://twitter.com/cortex_deploy) • [Contact](mailto:hello@cortex.dev)
 
 <br>
 
-Cortex deploys your machine learning models to your cloud infrastructure. You define your deployment with simple declarative configuration, Cortex containerizes your models, deploys them as autoscaling JSON APIs, and manages their lifecycle in production.
+Cortex deploys your machine learning models to your cloud infrastructure. You define deployments with simple declarative configuration and Cortex deploys your models as JSON APIs on your AWS account. It also handles autoscaling, rolling updates, log streaming, inference on CPUs or GPUs, and more.
 
 Cortex is actively maintained by Cortex Labs. We're a venture-backed team of infrastructure engineers and [we're hiring](https://angel.co/cortex-labs-inc/jobs).
 
@@ -64,14 +64,14 @@ $ curl -d '{"a": 1, "b": 2, "c": 3}' https://amazonaws.com/my-api
 
 ## Key features
 
-- **Machine learning deployments as code:** Cortex deployments are defined using declarative configuration.
+- **Minimal declarative configuration:** Deployments can be defined in a single `cortex.yaml` file.
 
 - **Autoscaling:** Cortex can automatically scale APIs to handle production workloads.
 
-- **Multi framework support:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
-
-- **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
+- **Multi framework:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
 
 - **Rolling updates:** Cortex updates deployed APIs without any downtime.
 
-- **Cloud native:** Cortex can be deployed on any AWS account in minutes.
+- **Log streaming:** Cortex streams logs from your deployed models to your CLI.
+
+- **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.

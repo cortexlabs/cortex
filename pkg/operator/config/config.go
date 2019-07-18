@@ -20,7 +20,6 @@ import (
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/argo"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -34,7 +33,6 @@ var (
 	AWS        *aws.Client
 	Kubernetes *k8s.Client
 	Telemetry  *telemetry.Client
-	Argo       *argo.Client
 	Spark      *spark.Client
 )
 
@@ -54,6 +52,7 @@ type CortexConfig struct {
 	TFTrainImageGPU     string `json:"tf_train_image_gpu"`
 	TFServeImageGPU     string `json:"tf_serve_image_gpu"`
 	ONNXServeImage      string `json:"onnx_serve_image"`
+	ONNXServeImageGPU   string `json:"onnx_serve_gpu_image"`
 
 	TelemetryURL      string `json:"telemetry_url"`
 	EnableTelemetry   bool   `json:"enable_telemetry"`
@@ -76,6 +75,7 @@ func Init() error {
 		TFTrainImageGPU:     getStr("IMAGE_TF_TRAIN_GPU"),
 		TFServeImageGPU:     getStr("IMAGE_TF_SERVE_GPU"),
 		ONNXServeImage:      getStr("IMAGE_ONNX_SERVE"),
+		ONNXServeImageGPU:   getStr("IMAGE_ONNX_SERVE_GPU"),
 
 		TelemetryURL:      configreader.MustStringFromEnv("CONST_TELEMETRY_URL", &configreader.StringValidation{Required: false, Default: consts.TelemetryURL}),
 		EnableTelemetry:   getBool("ENABLE_TELEMETRY"),
@@ -90,8 +90,6 @@ func Init() error {
 	if Kubernetes, err = k8s.New(Cortex.Namespace, Cortex.OperatorInCluster); err != nil {
 		return err
 	}
-
-	Argo = argo.New(Kubernetes.RestConfig, Kubernetes.Namespace)
 
 	if Spark, err = spark.New(Kubernetes.RestConfig, Kubernetes.Namespace); err != nil {
 		return err

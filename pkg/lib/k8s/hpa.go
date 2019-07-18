@@ -17,13 +17,17 @@ limitations under the License.
 package k8s
 
 import (
+	"encoding/json"
+
+	kautoscaling "k8s.io/api/autoscaling/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	autoscaling "k8s.io/api/autoscaling/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var hpaTypeMeta = metav1.TypeMeta{
+var hpaTypeMeta = kmeta.TypeMeta{
 	APIVersion: "autoscaling/v1",
 	Kind:       "HorizontalPodAutoscaler",
 }
@@ -37,22 +41,22 @@ type HPASpec struct {
 	Labels               map[string]string
 }
 
-func HPA(spec *HPASpec) *autoscaling.HorizontalPodAutoscaler {
+func HPA(spec *HPASpec) *kautoscaling.HorizontalPodAutoscaler {
 	if spec.Namespace == "" {
 		spec.Namespace = "default"
 	}
-	hpa := &autoscaling.HorizontalPodAutoscaler{
+	hpa := &kautoscaling.HorizontalPodAutoscaler{
 		TypeMeta: hpaTypeMeta,
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmeta.ObjectMeta{
 			Name:      spec.DeploymentName,
 			Namespace: spec.Namespace,
 			Labels:    spec.Labels,
 		},
-		Spec: autoscaling.HorizontalPodAutoscalerSpec{
+		Spec: kautoscaling.HorizontalPodAutoscalerSpec{
 			MinReplicas:                    &spec.MinReplicas,
 			MaxReplicas:                    spec.MaxReplicas,
 			TargetCPUUtilizationPercentage: &spec.TargetCPUUtilization,
-			ScaleTargetRef: autoscaling.CrossVersionObjectReference{
+			ScaleTargetRef: kautoscaling.CrossVersionObjectReference{
 				Kind:       deploymentTypeMeta.Kind,
 				Name:       spec.DeploymentName,
 				APIVersion: deploymentTypeMeta.APIVersion,
@@ -62,25 +66,43 @@ func HPA(spec *HPASpec) *autoscaling.HorizontalPodAutoscaler {
 	return hpa
 }
 
-func (c *Client) CreateHPA(spec *HPASpec) (*autoscaling.HorizontalPodAutoscaler, error) {
-	hpa, err := c.hpaClient.Create(HPA(spec))
+func (c *Client) CreateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscaling.HorizontalPodAutoscaler, error) {
+	hpa.TypeMeta = hpaTypeMeta
+	hpa, err := c.hpaClient.Create(hpa)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return hpa, nil
 }
 
-func (c *Client) UpdateHPA(hpa *autoscaling.HorizontalPodAutoscaler) (*autoscaling.HorizontalPodAutoscaler, error) {
-	hpa, err := c.hpaClient.Update(hpa)
+func (c *Client) UpdateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscaling.HorizontalPodAutoscaler, error) {
+	hpa.TypeMeta = hpaTypeMeta
+	objBytes, err := json.Marshal(hpa)
+	if err != nil {
+		return nil, err
+	}
+
+	hpa, err = c.hpaClient.Patch(hpa.Name, ktypes.MergePatchType, objBytes)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return hpa, nil
 }
 
-func (c *Client) GetHPA(name string) (*autoscaling.HorizontalPodAutoscaler, error) {
-	hpa, err := c.hpaClient.Get(name, metav1.GetOptions{})
-	if k8serrors.IsNotFound(err) {
+func (c *Client) ApplyHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscaling.HorizontalPodAutoscaler, error) {
+	existing, err := c.GetHPA(hpa.Name)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return c.CreateHPA(hpa)
+	}
+	return c.UpdateHPA(hpa)
+}
+
+func (c *Client) GetHPA(name string) (*kautoscaling.HorizontalPodAutoscaler, error) {
+	hpa, err := c.hpaClient.Get(name, kmeta.GetOptions{})
+	if kerrors.IsNotFound(err) {
 		return nil, nil
 	}
 	if err != nil {
@@ -92,7 +114,7 @@ func (c *Client) GetHPA(name string) (*autoscaling.HorizontalPodAutoscaler, erro
 
 func (c *Client) DeleteHPA(name string) (bool, error) {
 	err := c.hpaClient.Delete(name, deleteOpts)
-	if k8serrors.IsNotFound(err) {
+	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
 	if err != nil {
@@ -109,9 +131,9 @@ func (c *Client) HPAExists(name string) (bool, error) {
 	return hpa != nil, nil
 }
 
-func (c *Client) ListHPAs(opts *metav1.ListOptions) ([]autoscaling.HorizontalPodAutoscaler, error) {
+func (c *Client) ListHPAs(opts *kmeta.ListOptions) ([]kautoscaling.HorizontalPodAutoscaler, error) {
 	if opts == nil {
-		opts = &metav1.ListOptions{}
+		opts = &kmeta.ListOptions{}
 	}
 	hpaList, err := c.hpaClient.List(*opts)
 	if err != nil {
@@ -123,19 +145,19 @@ func (c *Client) ListHPAs(opts *metav1.ListOptions) ([]autoscaling.HorizontalPod
 	return hpaList.Items, nil
 }
 
-func (c *Client) ListHPAsByLabels(labels map[string]string) ([]autoscaling.HorizontalPodAutoscaler, error) {
-	opts := &metav1.ListOptions{
+func (c *Client) ListHPAsByLabels(labels map[string]string) ([]kautoscaling.HorizontalPodAutoscaler, error) {
+	opts := &kmeta.ListOptions{
 		LabelSelector: LabelSelector(labels),
 	}
 	return c.ListHPAs(opts)
 }
 
-func (c *Client) ListHPAsByLabel(labelKey string, labelValue string) ([]autoscaling.HorizontalPodAutoscaler, error) {
+func (c *Client) ListHPAsByLabel(labelKey string, labelValue string) ([]kautoscaling.HorizontalPodAutoscaler, error) {
 	return c.ListHPAsByLabels(map[string]string{labelKey: labelValue})
 }
 
-func HPAMap(hpas []autoscaling.HorizontalPodAutoscaler) map[string]autoscaling.HorizontalPodAutoscaler {
-	hpaMap := map[string]autoscaling.HorizontalPodAutoscaler{}
+func HPAMap(hpas []kautoscaling.HorizontalPodAutoscaler) map[string]kautoscaling.HorizontalPodAutoscaler {
+	hpaMap := map[string]kautoscaling.HorizontalPodAutoscaler{}
 	for _, hpa := range hpas {
 		hpaMap[hpa.Name] = hpa
 	}

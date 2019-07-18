@@ -17,17 +17,18 @@ limitations under the License.
 package k8s
 
 import (
+	"encoding/json"
+
+	kbatch "k8s.io/api/batch/v1"
+	kcore "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const JobSuccessCondition = "status.succeeded > 0"
-const JobFailureCondition = "status.failed > 0"
-
-var jobTypeMeta = metav1.TypeMeta{
+var jobTypeMeta = kmeta.TypeMeta{
 	APIVersion: "batch/v1",
 	Kind:       "Job",
 }
@@ -39,7 +40,7 @@ type JobSpec struct {
 	Labels    map[string]string
 }
 
-func Job(spec *JobSpec) *batchv1.Job {
+func Job(spec *JobSpec) *kbatch.Job {
 	if spec.Namespace == "" {
 		spec.Namespace = "default"
 	}
@@ -54,19 +55,19 @@ func Job(spec *JobSpec) *batchv1.Job {
 	backoffLimit := int32(0)
 	completions := int32(1)
 
-	job := &batchv1.Job{
+	job := &kbatch.Job{
 		TypeMeta: jobTypeMeta,
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmeta.ObjectMeta{
 			Name:      spec.Name,
 			Namespace: spec.Namespace,
 			Labels:    spec.Labels,
 		},
-		Spec: batchv1.JobSpec{
+		Spec: kbatch.JobSpec{
 			BackoffLimit: &backoffLimit,
 			Parallelism:  &parallelism,
 			Completions:  &completions,
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
+			Template: kcore.PodTemplateSpec{
+				ObjectMeta: kmeta.ObjectMeta{
 					Name:      spec.PodSpec.Name,
 					Namespace: spec.PodSpec.Namespace,
 					Labels:    spec.PodSpec.Labels,
@@ -78,25 +79,43 @@ func Job(spec *JobSpec) *batchv1.Job {
 	return job
 }
 
-func (c *Client) CreateJob(spec *JobSpec) (*batchv1.Job, error) {
-	job, err := c.jobClient.Create(Job(spec))
+func (c *Client) CreateJob(job *kbatch.Job) (*kbatch.Job, error) {
+	job.TypeMeta = jobTypeMeta
+	job, err := c.jobClient.Create(job)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return job, nil
 }
 
-func (c *Client) UpdateJob(job *batchv1.Job) (*batchv1.Job, error) {
-	job, err := c.jobClient.Update(job)
+func (c *Client) UpdateJob(job *kbatch.Job) (*kbatch.Job, error) {
+	job.TypeMeta = jobTypeMeta
+	objBytes, err := json.Marshal(job)
+	if err != nil {
+		return nil, err
+	}
+
+	job, err = c.jobClient.Patch(job.Name, ktypes.MergePatchType, objBytes)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return job, nil
 }
 
-func (c *Client) GetJob(name string) (*batchv1.Job, error) {
-	job, err := c.jobClient.Get(name, metav1.GetOptions{})
-	if k8serrors.IsNotFound(err) {
+func (c *Client) ApplyJob(job *kbatch.Job) (*kbatch.Job, error) {
+	existing, err := c.GetJob(job.Name)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return c.CreateJob(job)
+	}
+	return c.UpdateJob(job)
+}
+
+func (c *Client) GetJob(name string) (*kbatch.Job, error) {
+	job, err := c.jobClient.Get(name, kmeta.GetOptions{})
+	if kerrors.IsNotFound(err) {
 		return nil, nil
 	}
 	if err != nil {
@@ -108,7 +127,7 @@ func (c *Client) GetJob(name string) (*batchv1.Job, error) {
 
 func (c *Client) DeleteJob(name string) (bool, error) {
 	err := c.jobClient.Delete(name, deleteOpts)
-	if k8serrors.IsNotFound(err) {
+	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
 	if err != nil {
@@ -125,9 +144,9 @@ func (c *Client) JobExists(name string) (bool, error) {
 	return job != nil, nil
 }
 
-func (c *Client) ListJobs(opts *metav1.ListOptions) ([]batchv1.Job, error) {
+func (c *Client) ListJobs(opts *kmeta.ListOptions) ([]kbatch.Job, error) {
 	if opts == nil {
-		opts = &metav1.ListOptions{}
+		opts = &kmeta.ListOptions{}
 	}
 	jobList, err := c.jobClient.List(*opts)
 	if err != nil {
@@ -139,21 +158,32 @@ func (c *Client) ListJobs(opts *metav1.ListOptions) ([]batchv1.Job, error) {
 	return jobList.Items, nil
 }
 
-func (c *Client) ListJobsByLabels(labels map[string]string) ([]batchv1.Job, error) {
-	opts := &metav1.ListOptions{
+func (c *Client) ListJobsByLabels(labels map[string]string) ([]kbatch.Job, error) {
+	opts := &kmeta.ListOptions{
 		LabelSelector: LabelSelector(labels),
 	}
 	return c.ListJobs(opts)
 }
 
-func (c *Client) ListJobsByLabel(labelKey string, labelValue string) ([]batchv1.Job, error) {
+func (c *Client) ListJobsByLabel(labelKey string, labelValue string) ([]kbatch.Job, error) {
 	return c.ListJobsByLabels(map[string]string{labelKey: labelValue})
 }
 
-func JobMap(jobs []batchv1.Job) map[string]batchv1.Job {
-	jobMap := map[string]batchv1.Job{}
+func JobMap(jobs []kbatch.Job) map[string]kbatch.Job {
+	jobMap := map[string]kbatch.Job{}
 	for _, job := range jobs {
 		jobMap[job.Name] = job
 	}
 	return jobMap
+}
+
+func (c *Client) IsJobRunning(name string) (bool, error) {
+	job, err := c.GetJob(name)
+	if err != nil {
+		return false, err
+	}
+	if job == nil {
+		return false, nil
+	}
+	return job.Status.CompletionTime == nil, nil
 }
