@@ -124,6 +124,12 @@ gateways:
 #
 sidecarInjectorWebhook:
   enabled: true
+  alwaysInjectSelector:
+    - matchLabels:
+        workloadType: api
+    - matchLabels:
+        workloadType: operator
+
 
 #
 # galley configuration, refer to charts/galley/values.yaml
@@ -321,7 +327,7 @@ global:
     excludeInboundPorts: ""
 
     # This controls the 'policy' in the sidecar injector.
-    autoInject: enabled
+    autoInject: disabled
 
     # Sets the destination Statsd in envoy (the value of the "--statsdUdpAddress" proxy argument
     # would be <host>:<port>).

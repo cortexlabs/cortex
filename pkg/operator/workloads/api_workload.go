@@ -19,10 +19,11 @@ package workloads
 import (
 	"path"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	kapps "k8s.io/api/apps/v1"
 	kautoscaling "k8s.io/api/autoscaling/v1"
 	kcore "k8s.io/api/core/v1"
-	kextensions "k8s.io/api/extensions/v1beta1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 
@@ -106,12 +107,12 @@ func (aw *APIWorkload) Start(ctx *context.Context) error {
 		return errors.New(api.Name, "unknown model format encountered") // unexpected
 	}
 
-	_, err = config.Kubernetes.ApplyIngress(ingressSpec(ctx, api))
+	_, err = config.Kubernetes.ApplyService(serviceSpec(ctx, api))
 	if err != nil {
 		return err
 	}
 
-	_, err = config.Kubernetes.ApplyService(serviceSpec(ctx, api))
+	_, err = config.Kubernetes.ApplyVirtualService(virtualServiceSpec(ctx, api))
 	if err != nil {
 		return err
 	}
@@ -234,6 +235,9 @@ func tfAPISpec(
 			"version":      "v1",
 			"apiName":      api.Name,
 		},
+		Annotations: map[string]string{
+			"sidecar.istio.io/inject": "true",
+		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"appName":      ctx.App.Name,
@@ -280,7 +284,7 @@ func tfAPISpec(
 						Resources: kcore.ResourceRequirements{
 							Requests: transformResourceList,
 						},
-						Ports: []corev1.ContainerPort{
+						Ports: []kcore.ContainerPort{
 							{
 								ContainerPort: defaultPortInt32,
 							},
@@ -314,7 +318,7 @@ func tfAPISpec(
 							Requests: tfServingResourceList,
 							Limits:   tfServingLimitsList,
 						},
-						Ports: []corev1.ContainerPort{
+						Ports: []kcore.ContainerPort{
 							{
 								ContainerPort: tfServingPortInt32,
 							},
@@ -327,8 +331,7 @@ func tfAPISpec(
 		},
 		Namespace: config.Cortex.Namespace,
 	}
-	//return k8s.Deployment(spec)
-	return spec
+	return k8s.Deployment(spec)
 }
 
 func onnxAPISpec(
@@ -361,15 +364,18 @@ func onnxAPISpec(
 			"apiName":      api.Name,
 			"resourceID":   ctx.APIs[api.Name].ID,
 			"workloadID":   workloadID,
-			"service":      WorkloadTypeAPI,
-			"app":          WorkloadTypeAPI,
+			"service":      workloadTypeAPI,
+			"app":          workloadTypeAPI,
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
-			"service":      WorkloadTypeAPI,
-			"app":          WorkloadTypeAPI,
+			"service":      workloadTypeAPI,
+			"app":          workloadTypeAPI,
+		},
+		Annotations: map[string]string{
+			"sidecar.istio.io/inject": "true",
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
@@ -379,8 +385,8 @@ func onnxAPISpec(
 				"resourceID":   ctx.APIs[api.Name].ID,
 				"workloadID":   workloadID,
 				"userFacing":   "true",
-				"service":      WorkloadTypeAPI,
-				"app":          WorkloadTypeAPI,
+				"service":      workloadTypeAPI,
+				"app":          workloadTypeAPI,
 			},
 			K8sPodSpec: kcore.PodSpec{
 				Containers: []kcore.Container{
@@ -427,19 +433,24 @@ func onnxAPISpec(
 	})
 }
 
-func virtualServiceSpec(ctx *context.Context, api *context.API) *k8s.VirtualServiceSpec {
-	return &k8s.VirtualServiceSpec{
+func virtualServiceSpec(ctx *context.Context, api *context.API) *unstructured.Unstructured {
+	return k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:        internalAPIName(api.Name, ctx.App.Name),
 		Namespace:   config.Cortex.Namespace,
 		Gateways:    []string{"apis-gateway"},
 		ServiceName: internalAPIName(api.Name, ctx.App.Name),
 		ServicePort: defaultPortInt32,
 		Path:        context.APIPath(api.Name, ctx.App.Name),
-	}
+		Labels: map[string]string{
+			"appName":      ctx.App.Name,
+			"workloadType": workloadTypeAPI,
+			"apiName":      api.Name,
+		},
+	})
 }
 
-func serviceSpec(ctx *context.Context, api *context.API) *k8s.ServiceSpec {
-	return &k8s.ServiceSpec{
+func serviceSpec(ctx *context.Context, api *context.API) *kcore.Service {
+	return k8s.Service(&k8s.ServiceSpec{
 		Name: internalAPIName(api.Name, ctx.App.Name),
 		Port: defaultPortInt32,
 		Labels: map[string]string{
@@ -504,13 +515,13 @@ func doesAPIComputeNeedsUpdating(api *context.API, deployment *kapps.Deployment,
 }
 
 func deleteOldAPIs(ctx *context.Context) {
-	ingresses, _ := config.Kubernetes.ListIngressesByLabels(map[string]string{
+	virtualServices, _ := config.Kubernetes.ListVirtualServicesByLabels(config.Cortex.Namespace, map[string]string{
 		"appName":      ctx.App.Name,
 		"workloadType": workloadTypeAPI,
 	})
-	for _, ingress := range ingresses {
-		if _, ok := ctx.APIs[ingress.Labels["apiName"]]; !ok {
-			config.Kubernetes.DeleteIngress(ingress.Name)
+	for _, virtualService := range virtualServices {
+		if _, ok := ctx.APIs[virtualService.GetLabels()["apiName"]]; !ok {
+			config.Kubernetes.DeleteVirtualService(config.Cortex.Namespace, virtualService.GetName())
 		}
 	}
 
@@ -543,30 +554,6 @@ func deleteOldAPIs(ctx *context.Context) {
 			config.Kubernetes.DeleteHPA(hpa.Name)
 		}
 	}
-}
-
-func createServicesAndIngresses(ctx *context.Context) error {
-	for _, api := range ctx.APIs {
-		serviceExists, err := config.Kubernetes.ServiceExists(internalAPIName(api.Name, ctx.App.Name))
-		if err != nil {
-			return errors.Wrap(err, ctx.App.Name, "services", api.Name, "create")
-		}
-		if !serviceExists {
-			if _, err := config.Kubernetes.CreateService(serviceSpec(ctx, api)); err != nil {
-				return errors.Wrap(err, ctx.App.Name, "services", api.Name, "create")
-			}
-			if _, err := config.Kubernetes.CreateVirtualService(virtualServiceSpec(ctx, api)); err != nil {
-				return errors.Wrap(err, ctx.App.Name, "virtualservices", api.Name, "create")
-			}
-		}
-
-		spec := tfAPISpec(ctx, api, generateWorkloadID(), 1)
-		if _, err := config.Kubernetes.CreateDeployment(spec); err != nil {
-			return errors.Wrap(err, "yolo")
-		}
-
-	}
-	return nil
 }
 
 // This returns map apiName -> deployment (not internalName -> deployment)

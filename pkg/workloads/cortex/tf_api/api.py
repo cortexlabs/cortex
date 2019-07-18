@@ -421,7 +421,6 @@ def validate_model_dir(model_dir):
 
 def start(args):
     serve(app, listen="*:{}".format(args.port))
-    return
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
     api = ctx.apis_id_map[args.api]
     local_cache["api"] = api

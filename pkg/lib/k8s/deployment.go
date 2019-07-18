@@ -35,13 +35,14 @@ var deploymentTypeMeta = kmeta.TypeMeta{
 }
 
 type DeploymentSpec struct {
-	Spec      *DeploymentSpec
-	Name      string
-	Namespace string
-	Replicas  int32
-	PodSpec   PodSpec
-	Labels    map[string]string
-	Selector  map[string]string
+	Spec        *DeploymentSpec
+	Name        string
+	Namespace   string
+	Replicas    int32
+	PodSpec     PodSpec
+	Labels      map[string]string
+	Annotations map[string]string
+	Selector    map[string]string
 }
 
 func Deployment(spec *DeploymentSpec) *kapps.Deployment {
@@ -61,9 +62,10 @@ func Deployment(spec *DeploymentSpec) *kapps.Deployment {
 	deployment := &kapps.Deployment{
 		TypeMeta: deploymentTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
-			Name:      spec.Name,
-			Namespace: spec.Namespace,
-			Labels:    spec.Labels,
+			Name:        spec.Name,
+			Namespace:   spec.Namespace,
+			Labels:      spec.Labels,
+			Annotations: spec.Annotations,
 		},
 		Spec: kapps.DeploymentSpec{
 			Replicas: &spec.Replicas,

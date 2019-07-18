@@ -58,6 +58,8 @@ spec:
         version: v1
         workloadID: operator
         workloadType: operator
+      annotations:
+        sidecar.istio.io/inject: "true"
     spec:
       serviceAccountName: operator
       containers:

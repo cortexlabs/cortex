@@ -58,7 +58,7 @@ func Service(spec *ServiceSpec) *kcore.Service {
 			Ports: []kcore.ServicePort{
 				{
 					Protocol: kcore.ProtocolTCP,
-					Name: "http",
+					Name:     "http",
 					Port:     spec.Port,
 					TargetPort: intstr.IntOrString{
 						IntVal: spec.TargetPort,
@@ -116,9 +116,9 @@ func (c *Client) GetService(name string) (*kcore.Service, error) {
 	return service, nil
 }
 
-func (c *Client) GetIstioService(name string) (*corev1.Service, error) {
-	service, err := c.istioServiceClient.Get(name, metav1.GetOptions{})
-	if k8serrors.IsNotFound(err) {
+func (c *Client) GetIstioService(name string) (*kcore.Service, error) {
+	service, err := c.istioServiceClient.Get(name, kmeta.GetOptions{})
+	if kerrors.IsNotFound(err) {
 		return nil, nil
 	}
 	if err != nil {

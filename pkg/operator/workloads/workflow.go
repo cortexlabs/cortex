@@ -143,9 +143,9 @@ func DeleteApp(appName string, keepCache bool) bool {
 	for _, deployment := range deployments {
 		config.Kubernetes.DeleteDeployment(deployment.Name)
 	}
-	ingresses, _ := config.Kubernetes.ListIngressesByLabel("appName", appName)
-	for _, ingress := range ingresses {
-		config.Kubernetes.DeleteIngress(ingress.Name)
+	virtualServices, _ := config.Kubernetes.ListVirtualServicesByLabel(config.Cortex.Namespace, "appName", appName)
+	for _, virtualService := range virtualServices {
+		config.Kubernetes.DeleteVirtualService(virtualService.GetName(), config.Cortex.Namespace)
 	}
 	services, _ := config.Kubernetes.ListServicesByLabel("appName", appName)
 	for _, service := range services {
