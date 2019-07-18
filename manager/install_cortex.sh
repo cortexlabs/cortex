@@ -130,7 +130,7 @@ function validate_cortex() {
     fi
 
     if [ "$operator_endpoint_reachable" != "ready" ]; then
-      if ! curl $operator_endpoint/operattor >/dev/null 2>&1; then
+      if ! curl $operator_endpoint >/dev/null 2>&1; then
         continue
       fi
       operator_endpoint_reachable="ready"
