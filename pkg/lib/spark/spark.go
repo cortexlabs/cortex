@@ -17,14 +17,11 @@ limitations under the License.
 package spark
 
 import (
-	"encoding/json"
-
 	sparkop "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/apis/sparkoperator.k8s.io/v1alpha1"
 	sparkopclientset "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/client/clientset/versioned"
 	sparkopclientapi "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/client/clientset/versioned/typed/sparkoperator.k8s.io/v1alpha1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ktypes "k8s.io/apimachinery/pkg/types"
 	kclientrest "k8s.io/client-go/rest"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -84,14 +81,9 @@ func (c *Client) Create(sparkApp *sparkop.SparkApplication) (*sparkop.SparkAppli
 	return sparkApp, nil
 }
 
-func (c *Client) Update(sparkApp *sparkop.SparkApplication) (*sparkop.SparkApplication, error) {
+func (c *Client) update(sparkApp *sparkop.SparkApplication) (*sparkop.SparkApplication, error) {
 	sparkApp.TypeMeta = sparkAppTypeMeta
-	objBytes, err := json.Marshal(sparkApp)
-	if err != nil {
-		return nil, err
-	}
-
-	sparkApp, err = c.sparkClient.Patch(sparkApp.Name, ktypes.MergePatchType, objBytes)
+	sparkApp, err := c.sparkClient.Update(sparkApp)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -106,7 +98,7 @@ func (c *Client) Apply(sparkApp *sparkop.SparkApplication) (*sparkop.SparkApplic
 	if existing == nil {
 		return c.Create(sparkApp)
 	}
-	return c.Update(sparkApp)
+	return c.update(sparkApp)
 }
 
 func (c *Client) Get(name string) (*sparkop.SparkApplication, error) {

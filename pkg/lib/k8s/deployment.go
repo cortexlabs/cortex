@@ -17,14 +17,12 @@ limitations under the License.
 package k8s
 
 import (
-	"encoding/json"
 	"time"
 
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ktypes "k8s.io/apimachinery/pkg/types"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
@@ -94,14 +92,9 @@ func (c *Client) CreateDeployment(deployment *kapps.Deployment) (*kapps.Deployme
 	return deployment, nil
 }
 
-func (c *Client) UpdateDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
+func (c *Client) updateDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
 	deployment.TypeMeta = deploymentTypeMeta
-	objBytes, err := json.Marshal(deployment)
-	if err != nil {
-		return nil, err
-	}
-
-	deployment, err = c.deploymentClient.Patch(deployment.Name, ktypes.MergePatchType, objBytes)
+	deployment, err := c.deploymentClient.Update(deployment)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -116,7 +109,7 @@ func (c *Client) ApplyDeployment(deployment *kapps.Deployment) (*kapps.Deploymen
 	if existing == nil {
 		return c.CreateDeployment(deployment)
 	}
-	return c.UpdateDeployment(deployment)
+	return c.updateDeployment(deployment)
 }
 
 func (c *Client) GetDeployment(name string) (*kapps.Deployment, error) {

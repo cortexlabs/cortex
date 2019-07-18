@@ -85,16 +85,7 @@ func (aw *APIWorkload) Start(ctx *context.Context) error {
 		return err
 	}
 
-	desiredReplicas := api.Compute.InitReplicas
-	if k8sDeloyment != nil && k8sDeloyment.Spec.Replicas != nil {
-		desiredReplicas = *k8sDeloyment.Spec.Replicas
-	}
-	if hpa != nil && hpa.Spec.MinReplicas != nil && desiredReplicas < *hpa.Spec.MinReplicas {
-		desiredReplicas = *hpa.Spec.MinReplicas
-	}
-	if hpa != nil && desiredReplicas > hpa.Spec.MaxReplicas {
-		desiredReplicas = hpa.Spec.MaxReplicas
-	}
+	desiredReplicas := getRequestedReplicasFromDeployment(api, k8sDeloyment, hpa)
 
 	var deploymentSpec *kapps.Deployment
 
@@ -151,7 +142,12 @@ func (aw *APIWorkload) IsSucceeded(ctx *context.Context) (bool, error) {
 		return false, nil
 	}
 
-	if k8sDeployment.Status.AvailableReplicas < api.Compute.MinReplicas || k8sDeployment.Status.UpdatedReplicas < api.Compute.MinReplicas {
+	updatedReplicas, err := numUpdatedReadyReplicas(ctx, api)
+	if err != nil {
+		return false, err
+	}
+	requestedReplicas := getRequestedReplicasFromDeployment(api, k8sDeployment, hpa)
+	if updatedReplicas < requestedReplicas {
 		return false, nil
 	}
 
@@ -179,7 +175,12 @@ func (aw *APIWorkload) IsRunning(ctx *context.Context) (bool, error) {
 		return false, nil
 	}
 
-	if k8sDeployment.Status.AvailableReplicas < api.Compute.MinReplicas || k8sDeployment.Status.UpdatedReplicas < api.Compute.MinReplicas {
+	updatedReplicas, err := numUpdatedReadyReplicas(ctx, api)
+	if err != nil {
+		return false, err
+	}
+	requestedReplicas := getRequestedReplicasFromDeployment(api, k8sDeployment, hpa)
+	if updatedReplicas < requestedReplicas {
 		return true, nil
 	}
 

@@ -61,16 +61,8 @@ func (c *Client) CreateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, 
 	return configMap, nil
 }
 
-func (c *Client) UpdateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, error) {
+func (c *Client) updateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, error) {
 	configMap.TypeMeta = configMapTypeMeta
-
-	// This didn't support deleting keys from configMap.Data
-	// objBytes, err := json.Marshal(configMap)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// configMap, err = c.configMapClient.Patch(configMap.Name, ktypes.MergePatchType, objBytes)
-
 	configMap, err := c.configMapClient.Update(configMap)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -86,7 +78,7 @@ func (c *Client) ApplyConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, e
 	if existing == nil {
 		return c.CreateConfigMap(configMap)
 	}
-	return c.UpdateConfigMap(configMap)
+	return c.updateConfigMap(configMap)
 }
 
 func (c *Client) GetConfigMap(name string) (*kcore.ConfigMap, error) {

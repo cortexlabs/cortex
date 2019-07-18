@@ -17,13 +17,11 @@ limitations under the License.
 package k8s
 
 import (
-	"encoding/json"
 	"time"
 
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ktypes "k8s.io/apimachinery/pkg/types"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
@@ -86,14 +84,9 @@ func (c *Client) CreatePod(pod *kcore.Pod) (*kcore.Pod, error) {
 	return pod, nil
 }
 
-func (c *Client) UpdatePod(pod *kcore.Pod) (*kcore.Pod, error) {
+func (c *Client) updatePod(pod *kcore.Pod) (*kcore.Pod, error) {
 	pod.TypeMeta = podTypeMeta
-	objBytes, err := json.Marshal(pod)
-	if err != nil {
-		return nil, err
-	}
-
-	pod, err = c.podClient.Patch(pod.Name, ktypes.MergePatchType, objBytes)
+	pod, err := c.podClient.Update(pod)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -108,7 +101,7 @@ func (c *Client) ApplyPod(pod *kcore.Pod) (*kcore.Pod, error) {
 	if existing == nil {
 		return c.CreatePod(pod)
 	}
-	return c.UpdatePod(pod)
+	return c.updatePod(pod)
 }
 
 func GetPodLastContainerStartTime(pod *kcore.Pod) *time.Time {

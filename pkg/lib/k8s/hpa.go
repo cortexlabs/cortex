@@ -17,12 +17,9 @@ limitations under the License.
 package k8s
 
 import (
-	"encoding/json"
-
 	kautoscaling "k8s.io/api/autoscaling/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ktypes "k8s.io/apimachinery/pkg/types"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
@@ -75,14 +72,9 @@ func (c *Client) CreateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautosca
 	return hpa, nil
 }
 
-func (c *Client) UpdateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscaling.HorizontalPodAutoscaler, error) {
+func (c *Client) updateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscaling.HorizontalPodAutoscaler, error) {
 	hpa.TypeMeta = hpaTypeMeta
-	objBytes, err := json.Marshal(hpa)
-	if err != nil {
-		return nil, err
-	}
-
-	hpa, err = c.hpaClient.Patch(hpa.Name, ktypes.MergePatchType, objBytes)
+	hpa, err := c.hpaClient.Update(hpa)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -97,7 +89,7 @@ func (c *Client) ApplyHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscal
 	if existing == nil {
 		return c.CreateHPA(hpa)
 	}
-	return c.UpdateHPA(hpa)
+	return c.updateHPA(hpa)
 }
 
 func (c *Client) GetHPA(name string) (*kautoscaling.HorizontalPodAutoscaler, error) {
