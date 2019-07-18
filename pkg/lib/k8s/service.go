@@ -17,12 +17,9 @@ limitations under the License.
 package k8s
 
 import (
-	"encoding/json"
-
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ktypes "k8s.io/apimachinery/pkg/types"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -78,14 +75,9 @@ func (c *Client) CreateService(service *kcore.Service) (*kcore.Service, error) {
 	return service, nil
 }
 
-func (c *Client) UpdateService(service *kcore.Service) (*kcore.Service, error) {
+func (c *Client) updateService(service *kcore.Service) (*kcore.Service, error) {
 	service.TypeMeta = serviceTypeMeta
-	objBytes, err := json.Marshal(service)
-	if err != nil {
-		return nil, err
-	}
-
-	service, err = c.serviceClient.Patch(service.Name, ktypes.MergePatchType, objBytes)
+	service, err := c.serviceClient.Update(service)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -100,7 +92,10 @@ func (c *Client) ApplyService(service *kcore.Service) (*kcore.Service, error) {
 	if existing == nil {
 		return c.CreateService(service)
 	}
-	return c.UpdateService(service)
+
+	service.Spec.ClusterIP = existing.Spec.ClusterIP
+	service.ResourceVersion = existing.ResourceVersion
+	return c.updateService(service)
 }
 
 func (c *Client) GetService(name string) (*kcore.Service, error) {

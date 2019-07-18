@@ -17,13 +17,10 @@ limitations under the License.
 package k8s
 
 import (
-	"encoding/json"
-
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ktypes "k8s.io/apimachinery/pkg/types"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
@@ -88,14 +85,9 @@ func (c *Client) CreateJob(job *kbatch.Job) (*kbatch.Job, error) {
 	return job, nil
 }
 
-func (c *Client) UpdateJob(job *kbatch.Job) (*kbatch.Job, error) {
+func (c *Client) updateJob(job *kbatch.Job) (*kbatch.Job, error) {
 	job.TypeMeta = jobTypeMeta
-	objBytes, err := json.Marshal(job)
-	if err != nil {
-		return nil, err
-	}
-
-	job, err = c.jobClient.Patch(job.Name, ktypes.MergePatchType, objBytes)
+	job, err := c.jobClient.Update(job)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -110,7 +102,7 @@ func (c *Client) ApplyJob(job *kbatch.Job) (*kbatch.Job, error) {
 	if existing == nil {
 		return c.CreateJob(job)
 	}
-	return c.UpdateJob(job)
+	return c.updateJob(job)
 }
 
 func (c *Client) GetJob(name string) (*kbatch.Job, error) {
