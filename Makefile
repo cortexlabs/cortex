@@ -23,9 +23,6 @@ SHELL := /bin/bash
 devstart:
 	@./dev/operator_local.sh || true
 
-killdev:
-	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-
 kubectl:
 	@eksctl utils write-kubeconfig --name="cortex"
 	@kubectl config set-context --current --namespace="cortex"
