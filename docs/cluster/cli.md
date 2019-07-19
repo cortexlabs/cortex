@@ -65,7 +65,7 @@ Flags:
   -w, --watch               re-run the command every 2 seconds
 ```
 
-The `get` command displays the current state of all resources on the cluster. Specifying a resource name provides the state of the particular resource. Accompanying a resource name with `-v` or `--verbose` flag provides a more detailed view of the configuration and additional metadata regarding the mentioned resource. Using the `-s` or `--summary` flag will show a summarized view of all resource statuses.
+The `get` command displays the current state of all resources on the cluster. Specifying a resource name provides the state of the particular resource. A detailed view of the configuration and additional metdata of a specific resource can be retrieved by adding the `-v` or `--verbose` flag. Using the `-s` or `--summary` flag will show a summarized view of all resource statuses.
 
 ## logs
 
