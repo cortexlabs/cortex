@@ -32,23 +32,6 @@ Flags:
 
 The `refresh` command behaves similarly to the `deploy` command. The key difference is that `refresh` doesn't use any cached resources.
 
-## predict
-
-```text
-Make predictions.
-
-Usage:
-  cortex predict API_NAME SAMPLES_FILE [flags]
-
-Flags:
-  -d, --deployment string   deployment name
-  -e, --env string          environment (default "dev")
-  -h, --help                help for predict
-  -j, --json                print the raw json response
-```
-
-The `predict` command converts samples from a JSON file into prediction requests and displays the response. This command is useful for quickly testing model output.
-
 ## delete
 
 ```text
