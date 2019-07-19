@@ -137,6 +137,7 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			}
 			wrotePending = true
 		}
+
 		time.Sleep(time.Duration(userFacingCheckInterval) * time.Second)
 	}
 }
