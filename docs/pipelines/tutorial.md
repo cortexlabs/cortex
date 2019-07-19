@@ -2,11 +2,10 @@
 
 ## Prerequisites
 
-1. An AWS account
-1. A Kubernetes cluster running the Cortex operator ([installation instructions](../cluster/install.md))
-1. The Cortex CLI
+1. A Cortex cluster ([installation instructions](../cluster/install.md))
+2. The Cortex CLI ([installation instructions](../cluster/install.md))
 
-## Build a machine learning application
+## Deployment
 
 Let's build and deploy a classifier using the famous [iris data set](https://archive.ics.uci.edu/ml/datasets/iris)! Below are a few samples of iris data:
 
@@ -18,11 +17,10 @@ Let's build and deploy a classifier using the famous [iris data set](https://arc
 
 Our goal is to build a web API that returns the type of iris given its measurements.
 
-#### cortex.yaml
+### cortex.yaml
 
 ```text
-mkdir iris && cd iris
-touch cortex.yaml irises.json
+mkdir iris && cd iris && touch cortex.yaml
 ```
 
 Cortex requires an `cortex.yaml` file which defines a `deployment` resource. Other resources may be defined in arbitrarily named YAML files in the the directory which contains `cortex.yaml` or any subdirectories. For this example, we will define all of our resources in `cortex.yaml`.
@@ -34,7 +32,7 @@ Add to `cortex.yaml`:
   name: iris
 ```
 
-#### Configure data ingestion
+### Configure data ingestion
 
 Add to `cortex.yaml`:
 
@@ -49,9 +47,9 @@ Add to `cortex.yaml`:
     schema: [@sepal_length, @sepal_width, @petal_length, @petal_width, @class]
 ```
 
-Cortex is able to read from any S3 bucket that your AWS credentials grant access to.
+Cortex is able to read from any S3 bucket that you have access to.
 
-#### Define the model
+### Define the model
 
 This configuration will generate a training dataset with the specified columns and train our classifier using the generated dataset. Here we're using a built-in estimator (which uses TensorFlow's [DNNClassifier](https://www.tensorflow.org/api_docs/python/tf/estimator/DNNClassifier)) but Cortex supports any TensorFlow code that adheres to the [tf.estimator API](https://www.tensorflow.org/guide/estimators).
 
@@ -74,7 +72,7 @@ Add to `cortex.yaml`:
     num_steps: 1000
 ```
 
-#### Define web APIs
+### Define web APIs
 
 This will make the model available as a live web service that can serve real-time predictions.
 
@@ -88,7 +86,7 @@ Add to `cortex.yaml`:
   model: @dnn
 ```
 
-## Deploy the application
+## Deploy the pipeline
 
 ```text
 $ cortex deploy
@@ -96,36 +94,13 @@ $ cortex deploy
 Deployment started
 ```
 
-You can get a summary of the status of resources using `cortex status`:
+You can get a summary of the status of resources using `cortex get`:
 
 ```text
-$ cortex status --watch
+$ cortex get --watch
 ```
 
-#### Test the iris classification service
-
-Define a sample in `irises.json`:
-
-```javascript
-{
-  "samples": [
-    {
-      "sepal_length": 5.2,
-      "sepal_width": 3.6,
-      "petal_length": 1.4,
-      "petal_width": 0.3
-    }
-  ]
-}
-```
-
-When the API is ready, request a prediction from the API:
-
-```text
-$ cortex predict iris-type irises.json
-```
-
-#### Call the API from other clients (e.g. cURL)
+### Test the API
 
 Get the API's endpoint:
 
@@ -152,5 +127,3 @@ $ cortex delete iris
 
 Deployment deleted
 ```
-
-See [uninstall](../cluster/uninstall.md) if you'd like to uninstall Cortex.
