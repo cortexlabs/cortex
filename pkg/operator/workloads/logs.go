@@ -107,12 +107,13 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			return
 		}
 
-		isPending, err := IsWorkloadPending(appName, workloadID)
+		isEnded, err := IsWorkloadEnded(appName, workloadID)
+
 		if err != nil {
 			writeSocket(err.Error(), socket)
 			return
 		}
-		if !isPending {
+		if isEnded {
 			logPrefix, err := getSavedLogPrefix(workloadID, appName, true)
 			if err != nil {
 				writeSocket(err.Error(), socket)

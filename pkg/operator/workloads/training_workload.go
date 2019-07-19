@@ -140,14 +140,22 @@ func (tw *TrainingWorkload) Start(ctx *context.Context) error {
 	return nil
 }
 
+func (tw *TrainingWorkload) IsStarted(ctx *context.Context) (bool, error) {
+	return config.Kubernetes.JobExists(tw.WorkloadID)
+}
+
 func (tw *TrainingWorkload) IsRunning(ctx *context.Context) (bool, error) {
 	return config.Kubernetes.IsJobRunning(tw.WorkloadID)
 }
 
 func (tw *TrainingWorkload) CanRun(ctx *context.Context) (bool, error) {
-	return areDataDependenciesSucceeded(ctx, tw.GetResourceIDs())
+	return areAllDataDependenciesSucceeded(ctx, tw.GetResourceIDs())
 }
 
 func (tw *TrainingWorkload) IsSucceeded(ctx *context.Context) (bool, error) {
-	return areDataResourcesSucceeded(ctx, tw.GetResourceIDs())
+	return areAllDataResourcesSucceeded(ctx, tw.GetResourceIDs())
+}
+
+func (tw *TrainingWorkload) IsFailed(ctx *context.Context) (bool, error) {
+	return areAnyDataResourcesFailed(ctx, tw.GetResourceIDs())
 }

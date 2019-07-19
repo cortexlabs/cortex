@@ -186,8 +186,56 @@ func (aw *APIWorkload) IsRunning(ctx *context.Context) (bool, error) {
 	return false, nil
 }
 
+func (aw *APIWorkload) IsStarted(ctx *context.Context) (bool, error) {
+	api := ctx.APIs.OneByID(aw.GetSingleResourceID())
+	k8sDeloymentName := internalAPIName(api.Name, ctx.App.Name)
+
+	k8sDeployment, err := config.Kubernetes.GetDeployment(k8sDeloymentName)
+	if err != nil {
+		return false, err
+	}
+	if k8sDeployment == nil || k8sDeployment.Labels["resourceID"] != api.ID || k8sDeployment.DeletionTimestamp != nil {
+		return false, nil
+	}
+
+	hpa, err := config.Kubernetes.GetHPA(k8sDeloymentName)
+	if err != nil {
+		return false, err
+	}
+
+	if doesAPIComputeNeedsUpdating(api, k8sDeployment, hpa) {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (aw *APIWorkload) CanRun(ctx *context.Context) (bool, error) {
-	return areDataDependenciesSucceeded(ctx, aw.GetResourceIDs())
+	return areAllDataDependenciesSucceeded(ctx, aw.GetResourceIDs())
+}
+
+func (aw *APIWorkload) IsFailed(ctx *context.Context) (bool, error) {
+	api := ctx.APIs.OneByID(aw.GetSingleResourceID())
+
+	pods, err := config.Kubernetes.ListPodsByLabels(map[string]string{
+		"appName":      ctx.App.Name,
+		"workloadType": workloadTypeAPI,
+		"apiName":      api.Name,
+		"resourceID":   api.ID,
+		"workloadID":   aw.GetWorkloadID(),
+		"userFacing":   "true",
+	})
+	if err != nil {
+		return false, err
+	}
+
+	for _, pod := range pods {
+		if k8s.GetPodStatus(&pod) == k8s.PodStatusFailed {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func tfAPISpec(

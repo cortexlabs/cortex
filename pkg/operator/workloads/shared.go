@@ -29,7 +29,7 @@ func generateWorkloadID() string {
 }
 
 // Check if all resourceIDs have succeeded (only data resource types)
-func areDataResourcesSucceeded(ctx *context.Context, resourceIDs strset.Set) (bool, error) {
+func areAllDataResourcesSucceeded(ctx *context.Context, resourceIDs strset.Set) (bool, error) {
 	resourceWorkloadIDs := ctx.DataResourceWorkloadIDs()
 	for resourceID := range resourceIDs {
 		workloadID := resourceWorkloadIDs[resourceID]
@@ -46,11 +46,34 @@ func areDataResourcesSucceeded(ctx *context.Context, resourceIDs strset.Set) (bo
 			return false, nil
 		}
 	}
+
 	return true, nil
 }
 
+// Check if any resourceIDs have succeeded (only data resource types)
+func areAnyDataResourcesFailed(ctx *context.Context, resourceIDs strset.Set) (bool, error) {
+	resourceWorkloadIDs := ctx.DataResourceWorkloadIDs()
+	for resourceID := range resourceIDs {
+		workloadID := resourceWorkloadIDs[resourceID]
+		if workloadID == "" {
+			continue
+		}
+
+		savedStatus, err := getDataSavedStatus(resourceID, workloadID, ctx.App.Name)
+		if err != nil {
+			return false, err
+		}
+
+		if savedStatus != nil && savedStatus.ExitCode != resource.ExitCodeDataSucceeded && savedStatus.ExitCode != resource.ExitCodeDataUnknown {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // Check if all dependencies of targetResourceIDs have succeeded (only data resource types)
-func areDataDependenciesSucceeded(ctx *context.Context, targetResourceIDs strset.Set) (bool, error) {
+func areAllDataDependenciesSucceeded(ctx *context.Context, targetResourceIDs strset.Set) (bool, error) {
 	dependencies := ctx.DirectComputedResourceDependencies(targetResourceIDs.Slice()...)
-	return areDataResourcesSucceeded(ctx, dependencies)
+	return areAllDataResourcesSucceeded(ctx, dependencies)
 }

@@ -219,11 +219,19 @@ func updateWorkflow(ctx *context.Context) error {
 			continue
 		}
 
-		isRunning, err := workload.IsRunning(ctx)
+		isFailed, err := workload.IsFailed(ctx)
 		if err != nil {
 			return err
 		}
-		if isRunning {
+		if isFailed {
+			continue
+		}
+
+		isStarted, err := workload.IsStarted(ctx)
+		if err != nil {
+			return err
+		}
+		if isStarted {
 			continue
 		}
 
@@ -244,37 +252,35 @@ func updateWorkflow(ctx *context.Context) error {
 	return nil
 }
 
-func IsWorkloadPending(appName string, workloadID string) (bool, error) {
+func IsWorkloadEnded(appName string, workloadID string) (bool, error) {
 	ctx := CurrentContext(appName)
 	if ctx == nil {
 		return false, nil
 	}
 
 	for _, workload := range extractWorkloads(ctx) {
-		if workload.GetWorkloadID() != workloadID {
-			continue
-		}
+		if workload.GetWorkloadID() == workloadID {
+			isSucceeded, err := workload.IsSucceeded(ctx)
+			if err != nil {
+				return false, err
+			}
+			if isSucceeded {
+				return true, nil
+			}
 
-		isSucceeded, err := workload.IsSucceeded(ctx)
-		if err != nil {
-			return false, err
-		}
-		if isSucceeded {
-			continue
-		}
+			isFailed, err := workload.IsFailed(ctx)
+			if err != nil {
+				return false, err
+			}
+			if isFailed {
+				return true, nil
+			}
 
-		isRunning, err := workload.IsRunning(ctx)
-		if err != nil {
-			return false, err
+			return false, nil
 		}
-		if isRunning {
-			continue
-		}
-
-		return true, nil
 	}
 
-	return false, nil
+	return false, errors.New("workload not found in the current context")
 }
 
 func IsDeploymentUpdating(appName string) (bool, error) {
@@ -284,13 +290,32 @@ func IsDeploymentUpdating(appName string) (bool, error) {
 	}
 
 	for _, workload := range extractWorkloads(ctx) {
-		isRunning, err := workload.IsRunning(ctx)
+		isSucceeded, err := workload.IsSucceeded(ctx)
 		if err != nil {
 			return false, err
 		}
-		if isRunning {
-			return true, nil
+		if isSucceeded {
+			continue
 		}
+
+		isFailed, err := workload.IsFailed(ctx)
+		if err != nil {
+			return false, err
+		}
+		if isFailed {
+			continue
+		}
+
+		canRun, err := workload.CanRun(ctx)
+		if err != nil {
+			return false, err
+		}
+		if !canRun {
+			continue
+		}
+
+		// It's either running or can run
+		return true, nil
 	}
 
 	return false, nil
