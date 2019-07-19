@@ -493,13 +493,13 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		out += "Payload:  " + samplesPlaceholderStr + "\n"
 	} else {
 		if groupStatus.Available() == 0 {
-			out += "Not available, waiting for API to be ready"
+			out += "Waiting for API to be ready"
 			return out, nil
 		}
 
 		modelInput, err := getModelInput(urls.Join(apiEndpoint, "signature"))
 		if err != nil {
-			out += "Not available, waiting for API to be ready"
+			out += "Waiting for API to be ready"
 			return out, nil
 		}
 
