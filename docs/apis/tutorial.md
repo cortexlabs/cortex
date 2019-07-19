@@ -7,11 +7,12 @@
 
 ## Deployment
 
+Let's deploy a classifier built using the famous [iris data set](https://archive.ics.uci.edu/ml/datasets/iris)!
+
 ### cortex.yaml
 
 ```text
-$ mkdir iris && cd iris
-$ touch cortex.yaml
+$ mkdir iris && cd iris && touch cortex.yaml
 ```
 
 Cortex requires a `cortex.yaml` file which defines a `deployment` resource. An `api` resource makes the model available as a live web service that can serve real-time predictions.
@@ -24,10 +25,11 @@ Cortex requires a `cortex.yaml` file which defines a `deployment` resource. An `
 
 - kind: api
   name: classifier
-  model: s3://cortex-examples/iris-tensorflow.zip
+  model: s3://cortex-examples/iris/tensorflow.zip
+  model_format: tensorflow
 ```
 
-Note: Cortex is able to deploy models from any S3 bucket that your AWS credentials grant access to.
+Cortex is able to read from any S3 bucket that you have access to.
 
 ### Deploy the API
 
@@ -41,7 +43,7 @@ You can get a summary of the status of resources using `cortex get`:
 $ cortex get --watch
 ```
 
-### Test the iris classification service
+### Test the API
 
 Get the API's endpoint:
 
