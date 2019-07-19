@@ -8,9 +8,9 @@
 
 <br>
 
-Cortex deploys your machine learning models to your cloud infrastructure. You define deployments with simple declarative configuration and Cortex deploys your models as JSON APIs on your AWS account. It also handles autoscaling, rolling updates, log streaming, inference on CPUs or GPUs, and more.
+Cortex is a machine learning model deployment platform that runs in your AWS account. You define deployments with simple declarative configuration and Cortex deploys your models as JSON APIs. It also handles autoscaling, rolling updates, log streaming, inference on CPUs or GPUs, and more.
 
-Cortex is actively maintained by Cortex Labs. We're a venture-backed team of infrastructure engineers and [we're hiring](https://angel.co/cortex-labs-inc/jobs).
+Cortex is actively maintained by a venture-backed team of infrastructure engineers and [we're hiring](https://angel.co/cortex-labs-inc/jobs).
 
 <br>
 
@@ -45,19 +45,38 @@ def post_inference(prediction, metadata):
 
 **Deploy** to your cloud infrastructure:
 
-```
+```bash
 $ cortex deploy
 
 Deploying ...
-Ready! https://amazonaws.com/my-api
+https://amazonaws.com/my-api  # Your API is ready!
 ```
 
 **Serve** real time predictions via scalable JSON APIs:
 
-```
+```bash
 $ curl -d '{"a": 1, "b": 2, "c": 3}' https://amazonaws.com/my-api
 
 { prediction: "def" }
+```
+
+<br>
+
+## Spinning up a Cortex cluster on your AWS account
+
+```bash
+# Download the install script
+curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh && chmod +x cortex.sh
+
+# Set your AWS credentials
+export AWS_ACCESS_KEY_ID=***
+export AWS_SECRET_ACCESS_KEY=***
+
+# Provision infrastructure on AWS and install Cortex
+./cortex.sh install
+
+# Install the Cortex CLI on your machine
+./cortex.sh install cli
 ```
 
 <br>

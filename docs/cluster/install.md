@@ -1,4 +1,4 @@
-# Install
+# Get Started
 
 ## Prerequisites
 
@@ -20,14 +20,14 @@ chmod +x cortex.sh
 export AWS_ACCESS_KEY_ID=***
 export AWS_SECRET_ACCESS_KEY=***
 
-# Install Cortex
+# Provision infrastructure on AWS and install Cortex
 ./cortex.sh install
 ```
 
-## Install the CLI
+## Install and configure the CLI
 
 ```bash
-# Install the Cortex CLI
+# Install the Cortex CLI on your machine
 ./cortex.sh install cli
 
 # Get the operator endpoint
