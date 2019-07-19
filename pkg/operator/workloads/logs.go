@@ -137,7 +137,6 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			}
 			wrotePending = true
 		}
-
 		time.Sleep(time.Duration(userFacingCheckInterval) * time.Second)
 	}
 }
@@ -190,7 +189,7 @@ func startKubectlProcess(pod kcore.Pod, previous bool, attrs *os.ProcAttr) (*os.
 		identifier += " " + apiContainerName
 	}
 
-	labelLog := fmt.Sprintf(" | while read -r; do echo \"[%s] $REPLY \" | tail -n +1; done", identifier)
+	labelLog := fmt.Sprintf(" | while read -r; do echo \"[%s] $REPLY\" | tail -n +1; done", identifier)
 	kubectlCmd := strings.Join(kubectlArgs, " ")
 	bashArgs := []string{"/bin/bash", "-c", kubectlCmd + labelLog}
 	process, err := os.StartProcess(cmdPath, bashArgs, attrs)
@@ -388,9 +387,9 @@ func pumpStdout(socket *websocket.Conn, socketWriterError chan error, reader io.
 	socket.Close()
 }
 
-var cortexRegex = regexp.MustCompile(`^\[.*\]?(DEBUG|INFO|WARNING|ERROR|CRITICAL):cortex:`)
-var tensorflowRegex = regexp.MustCompile(`^\[.*\]?(DEBUG|INFO|WARNING|ERROR|CRITICAL):tensorflow:`)
-var jsonPrefixRegex = regexp.MustCompile(`^\ *?(\{|\[)`)
+// Pod name is added when streaming from kubectl logs but not for cloudwatch logs, match it if it present and filter it out
+var cortexRegex = regexp.MustCompile(`^(\[[A-Za-z0-9\d\-_\s]*\]\ )?(DEBUG|INFO|WARNING|ERROR|CRITICAL):cortex:`)
+var tensorflowRegex = regexp.MustCompile(`^(\[[A-Za-z0-9\d\-_\s]*\]\ )?(DEBUG|INFO|WARNING|ERROR|CRITICAL):tensorflow:`)
 
 func formatHeader1(headerString string) *string {
 	headerBorder := "\n" + strings.Repeat("-", len(headerString)) + "\n"
@@ -509,13 +508,13 @@ func extractFromTensorflowLog(match string, loglevel string, logStr string) (*st
 
 func cleanLog(logStr string) (*string, bool) {
 	matches := cortexRegex.FindStringSubmatch(logStr)
-	if len(matches) == 2 {
-		return extractFromCortexLog(matches[0], matches[1], logStr)
+	if len(matches) == 3 {
+		return extractFromCortexLog(matches[0], matches[2], logStr)
 	}
 
 	matches = tensorflowRegex.FindStringSubmatch(logStr)
-	if len(matches) == 2 {
-		return extractFromTensorflowLog(matches[0], matches[1], logStr)
+	if len(matches) == 3 {
+		return extractFromTensorflowLog(matches[0], matches[2], logStr)
 	}
 
 	return nil, false

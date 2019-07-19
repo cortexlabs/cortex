@@ -33,6 +33,7 @@ import logging
 import json_tricks
 
 logger = get_logger()
+logger.propagate = False  # prevent double logging (flask modifies root logger)
 
 app = Flask(__name__)
 

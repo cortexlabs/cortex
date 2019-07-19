@@ -35,6 +35,7 @@ from cortex.lib.exceptions import CortexException, UserRuntimeException, UserExc
 from cortex.lib.context import create_transformer_inputs_from_map
 
 logger = get_logger()
+logger.propagate = False  # prevent double logging (flask modifies root logger)
 
 app = Flask(__name__)
 app.json_encoder = util.json_tricks_encoder
