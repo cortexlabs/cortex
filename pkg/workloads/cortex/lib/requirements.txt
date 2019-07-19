@@ -3,3 +3,4 @@ msgpack==0.6.1
 numpy>=1.13.3,<2
 requirements-parser==0.2.0
 packaging==19.0.0
+json_tricks==3.13.1

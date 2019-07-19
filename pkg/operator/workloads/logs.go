@@ -18,8 +18,6 @@ package workloads
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -43,7 +41,7 @@ const (
 	maxMessageSize        = 8192
 	podCheckInterval      = 5 * time.Second
 	maxParallelPodLogging = 5
-	initLogTailLines      = 20
+	initLogTailLines      = 100
 )
 
 func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket.Conn) {
@@ -441,20 +439,6 @@ func extractFromCortexLog(match string, loglevel string, logStr string) (*string
 		return formatHeader3(cutStr), false
 	}
 
-	matches := jsonPrefixRegex.FindStringSubmatch(cutStr)
-	if len(matches) == 2 {
-		indentIndex := len(matches[0]) - 1 // matches to curly or square bracket so remove the last char
-		indentStr := cutStr[:indentIndex]
-		maybeJSON := cutStr[indentIndex:]
-		jsonBytes := []byte(maybeJSON)
-		var obytes bytes.Buffer
-		err := json.Indent(&obytes, jsonBytes, indentStr, "  ")
-		if err == nil {
-			ostr := indentStr + string(obytes.String())
-			return &ostr, false
-		}
-	}
-
 	lastLogRe := regexp.MustCompile(`^workload: (\w+), completed: (\S+)`)
 	if lastLogRe.MatchString(cutStr) {
 		return &cutStr, true
@@ -491,6 +475,10 @@ func extractFromCortexLog(match string, loglevel string, logStr string) (*string
 
 	if strings.HasPrefix(cutStr, "An error occurred") {
 		return formatHeader3(cutStr), false
+	}
+
+	if strings.HasPrefix(cutStr, "sample: ") {
+		return pointer.String("\n" + cutStr), false
 	}
 
 	return &cutStr, false
