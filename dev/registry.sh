@@ -148,7 +148,7 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/nvidia nvidia latest
     build_and_push $ROOT/images/metrics-server metrics-server latest
   fi
-  build_and_push $ROOT/images/spark spark latest
+
   build_and_push $ROOT/images/tf-api tf-api latest
   build_and_push $ROOT/images/onnx-serve onnx-serve latest
 

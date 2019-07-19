@@ -38,6 +38,7 @@ app = Flask(__name__)
 
 app.json_encoder = util.json_tricks_encoder
 
+# https://github.com/microsoft/onnxruntime/blob/v0.4.0/onnxruntime/python/onnxruntime_pybind_mlvalue.cc
 ONNX_TO_NP_TYPE = {
     "tensor(float16)": "float16",
     "tensor(float)": "float32",
@@ -51,7 +52,7 @@ ONNX_TO_NP_TYPE = {
     "tensor(int64)": "int64",
     "tensor(uint64)": "uint64",
     "tensor(bool)": "bool",
-    "tensor(string)": "object",  # variable string lengths, numpy string types are fixed-length
+    "tensor(string)": "object",
 }
 
 local_cache = {
@@ -65,7 +66,7 @@ local_cache = {
 
 
 def prediction_failed(sample, reason=None):
-    message = "prediction failed for sample: {}".format(util.json_tricks_dump(sample))
+    message = "prediction failed for sample: {}".format(util.pp_str_flat(sample))
     if reason:
         message += " ({})".format(reason)
 
@@ -152,11 +153,11 @@ def predict(app_name, api_name):
 
     for i, sample in enumerate(payload["samples"]):
         try:
-            logger.info("sample: " + util.json_tricks_dump(sample))
+            logger.info("sample: " + util.pp_str_flat(sample))
             prepared_sample = sample
             if request_handler is not None and util.has_function(request_handler, "pre_inference"):
                 prepared_sample = request_handler.pre_inference(sample, input_metadata)
-                logger.info("pre_inference: " + util.json_tricks_dump(prepared_sample))
+                logger.info("pre_inference: " + util.pp_str_flat(prepared_sample))
 
             inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
             model_outputs = sess.run([], inference_input)
@@ -167,10 +168,10 @@ def predict(app_name, api_name):
                 else:
                     result.append(model_output)
 
-            logger.info("inference: " + util.json_tricks_dump(result))
+            logger.info("inference: " + util.pp_str_flat(result))
             if request_handler is not None and util.has_function(request_handler, "post_inference"):
                 result = request_handler.post_inference(result, output_metadata)
-                logger.info("post_inference: " + util.json_tricks_dump(result))
+                logger.info("post_inference: " + util.pp_str_flat(result))
 
             prediction = {"prediction": result}
         except CortexException as e:

@@ -246,35 +246,35 @@ def parse_response_proto_raw(response_proto):
 def run_predict(sample):
     request_handler = local_cache.get("request_handler")
 
-    logger.info("sample: " + util.json_tricks_dump(sample))
+    logger.info("sample: " + util.pp_str_flat(sample))
 
     prepared_sample = sample
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         prepared_sample = request_handler.pre_inference(
             sample, local_cache["metadata"]["signatureDef"]
         )
-        logger.info("pre_inference: " + util.json_tricks_dump(prepared_sample))
+        logger.info("pre_inference: " + util.pp_str_flat(prepared_sample))
 
     if util.is_resource_ref(local_cache["api"]["model"]):
         transformed_sample = transform_sample(prepared_sample)
-        logger.info("transformed_sample: " + util.json_tricks_dump(transformed_sample))
+        logger.info("transformed_sample: " + util.pp_str_flat(transformed_sample))
 
         prediction_request = create_prediction_request(transformed_sample)
         response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
         result = parse_response_proto(response_proto)
 
         result["transformed_sample"] = transformed_sample
-        logger.info("inference: " + util.json_tricks_dump(result))
+        logger.info("inference: " + util.pp_str_flat(result))
     else:
         prediction_request = create_raw_prediction_request(prepared_sample)
         response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
         result = parse_response_proto_raw(response_proto)
 
-        logger.info("inference: " + util.json_tricks_dump(result))
+        logger.info("inference: " + util.pp_str_flat(result))
 
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
         result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
-        logger.info("post_inference: " + util.json_tricks_dump(result))
+        logger.info("post_inference: " + util.pp_str_flat(result))
 
     return result
 
@@ -297,7 +297,7 @@ def is_valid_sample(sample):
 
 
 def prediction_failed(sample, reason=None):
-    message = "prediction failed for sample: {}".format(utils.json_tricks_dump(sample))
+    message = "prediction failed for sample: {}".format(utils.pp_str_flat(sample))
     if reason:
         message += " ({})".format(reason)
 

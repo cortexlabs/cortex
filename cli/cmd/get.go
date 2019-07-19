@@ -471,6 +471,8 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		out += titleStr("Configuration") + api.UserConfigStr()
 	}
 
+	out += titleStr("Model Input Signature")
+
 	if modelName, ok := yaml.ExtractAtSymbolText(api.Model); ok {
 		model := ctx.Models[modelName]
 		resIDs := strset.New()
@@ -490,16 +492,15 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"
 		out += "Payload:  " + samplesPlaceholderStr + "\n"
 	} else {
-		out += titleStr("Model Input Signature")
-
 		if groupStatus.Available() == 0 {
-			out += "Model "
+			out += "Not available, waiting for API to be ready"
 			return out, nil
 		}
 
 		modelInput, err := getModelInput(urls.Join(apiEndpoint, "signature"))
 		if err != nil {
-			return "", errors.Wrap(err, "")
+			out += "Not available, waiting for API to be ready"
+			return out, nil
 		}
 
 		rows := make([][]interface{}, len(modelInput.Signature))
@@ -510,7 +511,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 				if dim == 0 {
 					shapeStr[idx] = "?"
 				} else {
-					shapeStr[idx] = fmt.Sprintf("%d", dim)
+					shapeStr[idx] = s.Int(dim)
 				}
 			}
 			rows[rowNum] = []interface{}{
