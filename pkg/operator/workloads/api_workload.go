@@ -232,9 +232,9 @@ func tfAPISpec(
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
+			"apiName":      api.Name,
 			"app":          internalAPIName(api.Name, ctx.App.Name),
 			"version":      "v1",
-			"apiName":      api.Name,
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "true",
@@ -327,7 +327,7 @@ func tfAPISpec(
 					},
 				},
 				Volumes:            k8s.DefaultVolumes(),
-				ServiceAccountName: "operator",
+				ServiceAccountName: "default",
 			},
 		},
 		Namespace: config.Cortex.Namespace,
@@ -365,15 +365,15 @@ func onnxAPISpec(
 			"apiName":      api.Name,
 			"resourceID":   ctx.APIs[api.Name].ID,
 			"workloadID":   workloadID,
-			"service":      workloadTypeAPI,
-			"app":          workloadTypeAPI,
+			"app":          internalAPIName(api.Name, ctx.App.Name),
+			"version":      "v1",
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
-			"service":      workloadTypeAPI,
-			"app":          workloadTypeAPI,
+			"app":          internalAPIName(api.Name, ctx.App.Name),
+			"version":      "v1",
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "true",
@@ -385,9 +385,9 @@ func onnxAPISpec(
 				"apiName":      api.Name,
 				"resourceID":   ctx.APIs[api.Name].ID,
 				"workloadID":   workloadID,
+				"app":          internalAPIName(api.Name, ctx.App.Name),
+				"version":      "v1",
 				"userFacing":   "true",
-				"service":      workloadTypeAPI,
-				"app":          workloadTypeAPI,
 			},
 			K8sPodSpec: kcore.PodSpec{
 				Containers: []kcore.Container{

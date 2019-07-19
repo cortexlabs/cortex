@@ -103,7 +103,8 @@ spec:
     workloadID: operator
   ports:
   - port: 8888
-    name: http
+    name: tcp
+    protocol: TCP
   selector:
     app: operator
     workloadID: operator
@@ -123,6 +124,10 @@ spec:
       number: 80
       name: http
       protocol: HTTP
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
     hosts:
     - "*"
 
@@ -139,10 +144,7 @@ spec:
   gateways:
   - operator-gateway
   http:
-  - match:
-    - uri:
-        prefix: /
-    route:
+  - route:
     - destination:
         host: operator
         port:

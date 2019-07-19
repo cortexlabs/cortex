@@ -19,6 +19,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -168,9 +169,12 @@ func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse
 		return nil, errors.Wrap(err, errStrCantMakeRequest)
 	}
 
+	log.Println(apiURL)
+
 	req.Header.Set("Content-Type", "application/json")
 	httpResponse, err := makeRequest(req)
 	if err != nil {
+		log.Println("yolo")
 		return nil, err
 	}
 

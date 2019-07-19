@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -261,6 +262,7 @@ func makeRequest(request *http.Request) ([]byte, error) {
 	response, err := httpClient.Do(request)
 	if err != nil {
 		cliConfig := getValidCliConfig()
+		log.Println(err)
 		return nil, ErrorFailedToConnect(cliConfig.CortexURL)
 	}
 	defer response.Body.Close()
