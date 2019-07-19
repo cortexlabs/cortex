@@ -197,7 +197,6 @@ def predict(app_name, api_name):
 @app.route("/<app_name>/<api_name>/signature", methods=["GET"])
 def get_signature(app_name, api_name):
     metadata = {}
-    example_sample = {}
     input_metadata_list = local_cache["input_metadata"]
 
     for input_metadata in input_metadata_list:
