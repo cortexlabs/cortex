@@ -42,6 +42,7 @@ const (
 
 	pendingPodCheckInterval = 1 * time.Second
 	newPodCheckInterval     = 5 * time.Second
+	firstPodCheckInterval   = 500 * time.Millisecond
 	maxParallelPodLogging   = 5
 	initLogTailLines        = 100
 )
@@ -286,8 +287,14 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 				deleteMap[podName] = processMap[podName]
 				delete(processMap, podName)
 			}
-			deleteProcesses(deleteMap)
-			timer.Reset(newPodCheckInterval)
+
+			go deleteProcesses(deleteMap)
+
+			if len(processMap) == 0 {
+				timer.Reset(firstPodCheckInterval)
+			} else {
+				timer.Reset(newPodCheckInterval)
+			}
 		}
 	}
 }
