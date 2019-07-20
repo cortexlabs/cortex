@@ -25,9 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-const JobSuccessCondition = "status.succeeded > 0"
-const JobFailureCondition = "status.failed > 0"
-
 var jobTypeMeta = kmeta.TypeMeta{
 	APIVersion: "batch/v1",
 	Kind:       "Job",
@@ -79,20 +76,33 @@ func Job(spec *JobSpec) *kbatch.Job {
 	return job
 }
 
-func (c *Client) CreateJob(spec *JobSpec) (*kbatch.Job, error) {
-	job, err := c.jobClient.Create(Job(spec))
+func (c *Client) CreateJob(job *kbatch.Job) (*kbatch.Job, error) {
+	job.TypeMeta = jobTypeMeta
+	job, err := c.jobClient.Create(job)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return job, nil
 }
 
-func (c *Client) UpdateJob(job *kbatch.Job) (*kbatch.Job, error) {
+func (c *Client) updateJob(job *kbatch.Job) (*kbatch.Job, error) {
+	job.TypeMeta = jobTypeMeta
 	job, err := c.jobClient.Update(job)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return job, nil
+}
+
+func (c *Client) ApplyJob(job *kbatch.Job) (*kbatch.Job, error) {
+	existing, err := c.GetJob(job.Name)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return c.CreateJob(job)
+	}
+	return c.updateJob(job)
 }
 
 func (c *Client) GetJob(name string) (*kbatch.Job, error) {
@@ -157,4 +167,15 @@ func JobMap(jobs []kbatch.Job) map[string]kbatch.Job {
 		jobMap[job.Name] = job
 	}
 	return jobMap
+}
+
+func (c *Client) IsJobRunning(name string) (bool, error) {
+	job, err := c.GetJob(name)
+	if err != nil {
+		return false, err
+	}
+	if job == nil {
+		return false, nil
+	}
+	return job.Status.CompletionTime == nil, nil
 }

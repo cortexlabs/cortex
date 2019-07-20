@@ -354,6 +354,9 @@ func MaxSparkCompute(sparkComputes ...*SparkCompute) *SparkCompute {
 	aggregated := SparkCompute{}
 
 	for _, sparkCompute := range sparkComputes {
+		if sparkCompute == nil {
+			continue
+		}
 		if sparkCompute.Executors > aggregated.Executors {
 			aggregated.Executors = sparkCompute.Executors
 		}
@@ -393,6 +396,9 @@ func MaxTFCompute(tfComputes ...*TFCompute) *TFCompute {
 	aggregated := TFCompute{}
 
 	for _, tc := range tfComputes {
+		if tc == nil {
+			continue
+		}
 		if tc.CPU.Cmp(aggregated.CPU.Quantity) > 0 {
 			aggregated.CPU = tc.CPU
 		}

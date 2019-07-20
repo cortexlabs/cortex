@@ -32,8 +32,6 @@ var deploymentTypeMeta = kmeta.TypeMeta{
 	Kind:       "Deployment",
 }
 
-const DeploymentSuccessConditionAll = "!status.unavailableReplicas"
-
 type DeploymentSpec struct {
 	Name      string
 	Namespace string
@@ -82,20 +80,33 @@ func Deployment(spec *DeploymentSpec) *kapps.Deployment {
 	return deployment
 }
 
-func (c *Client) CreateDeployment(spec *DeploymentSpec) (*kapps.Deployment, error) {
-	deployment, err := c.deploymentClient.Create(Deployment(spec))
+func (c *Client) CreateDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
+	deployment.TypeMeta = deploymentTypeMeta
+	deployment, err := c.deploymentClient.Create(deployment)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return deployment, nil
 }
 
-func (c *Client) UpdateDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
+func (c *Client) updateDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
+	deployment.TypeMeta = deploymentTypeMeta
 	deployment, err := c.deploymentClient.Update(deployment)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return deployment, nil
+}
+
+func (c *Client) ApplyDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
+	existing, err := c.GetDeployment(deployment.Name)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return c.CreateDeployment(deployment)
+	}
+	return c.updateDeployment(deployment)
 }
 
 func (c *Client) GetDeployment(name string) (*kapps.Deployment, error) {

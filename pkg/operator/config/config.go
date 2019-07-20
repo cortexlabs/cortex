@@ -20,7 +20,6 @@ import (
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/argo"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -34,7 +33,6 @@ var (
 	AWS        *aws.Client
 	Kubernetes *k8s.Client
 	Telemetry  *telemetry.Client
-	Argo       *argo.Client
 	Spark      *spark.Client
 )
 
@@ -92,8 +90,6 @@ func Init() error {
 	if Kubernetes, err = k8s.New(Cortex.Namespace, Cortex.OperatorInCluster); err != nil {
 		return err
 	}
-
-	Argo = argo.New(Kubernetes.RestConfig, Kubernetes.Namespace)
 
 	if Spark, err = spark.New(Kubernetes.RestConfig, Kubernetes.Namespace); err != nil {
 		return err

@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/cortexlabs/yaml"
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -46,6 +47,14 @@ func Sppg(obj interface{}) string {
 
 func Ppj(obj interface{}) {
 	b, err := json.MarshalIndent(obj, "", " ")
+	if err != nil {
+		errors.PrintError(err)
+	}
+	fmt.Println(string(b))
+}
+
+func Ppy(obj interface{}) {
+	b, err := yaml.Marshal(obj)
 	if err != nil {
 		errors.PrintError(err)
 	}

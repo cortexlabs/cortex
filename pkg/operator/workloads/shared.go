@@ -18,27 +18,62 @@ package workloads
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/random"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
+// k8s needs all characters to be lower case, and the first to be a letter
 func generateWorkloadID() string {
-	// k8s needs all characters to be lower case, and the first to be a letter
 	return random.LowercaseLetters(1) + random.LowercaseString(19)
 }
 
-func checkResourceCached(res context.ComputedResource, ctx *context.Context) (bool, error) {
-	workloadID := res.GetWorkloadID()
-	if workloadID == "" {
-		return false, nil
+// Check if all resourceIDs have succeeded (only data resource types)
+func areAllDataResourcesSucceeded(ctx *context.Context, resourceIDs strset.Set) (bool, error) {
+	resourceWorkloadIDs := ctx.DataResourceWorkloadIDs()
+	for resourceID := range resourceIDs {
+		workloadID := resourceWorkloadIDs[resourceID]
+		if workloadID == "" {
+			continue
+		}
+
+		savedStatus, err := getDataSavedStatus(resourceID, workloadID, ctx.App.Name)
+		if err != nil {
+			return false, err
+		}
+
+		if savedStatus == nil || savedStatus.ExitCode != resource.ExitCodeDataSucceeded {
+			return false, nil
+		}
 	}
 
-	savedStatus, err := getDataSavedStatus(res.GetID(), workloadID, ctx.App.Name)
-	if err != nil {
-		return false, err
+	return true, nil
+}
+
+// Check if any resourceIDs have succeeded (only data resource types)
+func areAnyDataResourcesFailed(ctx *context.Context, resourceIDs strset.Set) (bool, error) {
+	resourceWorkloadIDs := ctx.DataResourceWorkloadIDs()
+	for resourceID := range resourceIDs {
+		workloadID := resourceWorkloadIDs[resourceID]
+		if workloadID == "" {
+			continue
+		}
+
+		savedStatus, err := getDataSavedStatus(resourceID, workloadID, ctx.App.Name)
+		if err != nil {
+			return false, err
+		}
+
+		if savedStatus != nil && savedStatus.ExitCode != resource.ExitCodeDataSucceeded && savedStatus.ExitCode != resource.ExitCodeDataUnknown {
+			return true, nil
+		}
 	}
-	if savedStatus != nil && savedStatus.ExitCode == resource.ExitCodeDataSucceeded {
-		return true, nil
-	}
+
 	return false, nil
+}
+
+// Check if all dependencies of targetResourceIDs have succeeded (only data resource types)
+func areAllDataDependenciesSucceeded(ctx *context.Context, targetResourceIDs strset.Set) (bool, error) {
+	dependencies := ctx.DirectComputedResourceDependencies(targetResourceIDs.Slice()...)
+	return areAllDataResourcesSucceeded(ctx, dependencies)
 }

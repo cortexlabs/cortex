@@ -20,6 +20,7 @@ import (
 	"time"
 
 	kapps "k8s.io/api/apps/v1"
+	kautoscaling "k8s.io/api/autoscaling/v1"
 	kcore "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -30,19 +31,36 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-func GetCurrentAPIStatuses(
+func GetCurrentAPIAndGroupStatuses(
+	dataStatuses map[string]*resource.DataStatus,
+	ctx *context.Context,
+) (map[string]*resource.APIStatus, map[string]*resource.APIGroupStatus, error) {
+	deployments, err := apiDeploymentMap(ctx.App.Name)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	apiStatuses, err := getCurrentAPIStatuses(dataStatuses, deployments, ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	apiGroupStatuses, err := getAPIGroupStatuses(apiStatuses, deployments, ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return apiStatuses, apiGroupStatuses, nil
+}
+
+func getCurrentAPIStatuses(
 	dataStatuses map[string]*resource.DataStatus,
 	deployments map[string]*kapps.Deployment, // api.Name -> deployment
 	ctx *context.Context,
 ) (map[string]*resource.APIStatus, error) {
 
-	failedWorkloadIDs, err := getFailedArgoWorkloadIDs(ctx.App.Name)
-	if err != nil {
-		return nil, err
-	}
-
 	podList, err := config.Kubernetes.ListPodsByLabels(map[string]string{
-		"workloadType": WorkloadTypeAPI,
+		"workloadType": workloadTypeAPI,
 		"appName":      ctx.App.Name,
 		"userFacing":   "true",
 	})
@@ -99,7 +117,7 @@ func GetCurrentAPIStatuses(
 	for resourceID, apiStatus := range apiStatuses {
 		apiStatus.Path = context.APIPath(apiStatus.APIName, apiStatus.AppName)
 		apiStatus.ReplicaCounts = replicaCountsMap[resourceID]
-		apiStatus.Code = apiStatusCode(apiStatus, failedWorkloadIDs)
+		apiStatus.Code = apiStatusCode(apiStatus)
 	}
 
 	for _, apiStatus := range apiStatuses {
@@ -175,11 +193,30 @@ func getReplicaCountsMap(
 	return replicaCountsMap
 }
 
-func apiStatusCode(apiStatus *resource.APIStatus, failedWorkloadIDs strset.Set) resource.StatusCode {
-	if failedWorkloadIDs.Has(apiStatus.WorkloadID) {
-		return resource.StatusError
+func numUpdatedReadyReplicas(ctx *context.Context, api *context.API) (int32, error) {
+	podList, err := config.Kubernetes.ListPodsByLabels(map[string]string{
+		"workloadType": workloadTypeAPI,
+		"appName":      ctx.App.Name,
+		"resourceID":   api.ID,
+		"userFacing":   "true",
+	})
+	if err != nil {
+		return 0, errors.Wrap(err, ctx.App.Name)
 	}
 
+	var readyReplicas int32
+	apiComputeID := api.Compute.IDWithoutReplicas()
+	for _, pod := range podList {
+		podStatus := k8s.GetPodStatus(&pod)
+		if podStatus == k8s.PodStatusRunning && APIPodComputeID(pod.Spec.Containers) == apiComputeID {
+			readyReplicas++
+		}
+	}
+
+	return readyReplicas, nil
+}
+
+func apiStatusCode(apiStatus *resource.APIStatus) resource.StatusCode {
 	if apiStatus.MaxReplicas == 0 {
 		if apiStatus.TotalReady() > 0 {
 			return resource.StatusStopping
@@ -235,7 +272,7 @@ func updateAPIStatusCodeByParents(apiStatus *resource.APIStatus, dataStatuses ma
 	}
 }
 
-func GetAPIGroupStatuses(
+func getAPIGroupStatuses(
 	apiStatuses map[string]*resource.APIStatus,
 	deployments map[string]*kapps.Deployment, // api.Name -> deployment
 	ctx *context.Context,
@@ -340,14 +377,7 @@ func getGroupedReplicaCounts(apiStatuses []*resource.APIStatus, ctx *context.Con
 			groupedReplicaCounts.ReadyStaleCompute = apiStatus.ReadyStaleCompute
 			groupedReplicaCounts.FailedUpdated = apiStatus.FailedUpdatedCompute
 			groupedReplicaCounts.FailedStaleCompute = apiStatus.FailedStaleCompute
-
-			groupedReplicaCounts.Requested = ctxAPI.Compute.InitReplicas
-			if apiStatus.K8sRequested > 0 {
-				groupedReplicaCounts.Requested = apiStatus.K8sRequested
-			}
-			if groupedReplicaCounts.Requested < ctxAPI.Compute.MinReplicas {
-				groupedReplicaCounts.Requested = ctxAPI.Compute.MinReplicas
-			}
+			groupedReplicaCounts.Requested = getRequestedReplicas(ctxAPI, apiStatus.K8sRequested, nil)
 		} else {
 			groupedReplicaCounts.ReadyStaleModel += apiStatus.TotalReady()
 			groupedReplicaCounts.FailedStaleModel += apiStatus.TotalFailed()
@@ -355,6 +385,36 @@ func getGroupedReplicaCounts(apiStatuses []*resource.APIStatus, ctx *context.Con
 	}
 
 	return groupedReplicaCounts
+}
+
+func getRequestedReplicas(api *context.API, k8sRequested int32, hpa *kautoscaling.HorizontalPodAutoscaler) int32 {
+	// In case HPA hasn't updated the k8s deployment yet. May not be common, so not necessary to pass in hpa
+	if hpa != nil && hpa.Spec.MinReplicas != nil && k8sRequested < *hpa.Spec.MinReplicas {
+		k8sRequested = *hpa.Spec.MinReplicas
+	}
+	if hpa != nil && k8sRequested > hpa.Spec.MaxReplicas {
+		k8sRequested = hpa.Spec.MaxReplicas
+	}
+
+	requestedReplicas := api.Compute.InitReplicas
+	if k8sRequested > 0 {
+		requestedReplicas = k8sRequested
+	}
+	if requestedReplicas < api.Compute.MinReplicas {
+		requestedReplicas = api.Compute.MinReplicas
+	}
+	if requestedReplicas > api.Compute.MaxReplicas {
+		requestedReplicas = api.Compute.MaxReplicas
+	}
+	return requestedReplicas
+}
+
+func getRequestedReplicasFromDeployment(api *context.API, k8sDeployment *kapps.Deployment, hpa *kautoscaling.HorizontalPodAutoscaler) int32 {
+	var k8sRequested int32
+	if k8sDeployment != nil && k8sDeployment.Spec.Replicas != nil {
+		k8sRequested = *k8sDeployment.Spec.Replicas
+	}
+	return getRequestedReplicas(api, k8sRequested, hpa)
 }
 
 func setInsufficientComputeAPIStatusCodes(apiStatuses map[string]*resource.APIStatus, ctx *context.Context) error {

@@ -75,20 +75,33 @@ func Pod(spec *PodSpec) *kcore.Pod {
 	return pod
 }
 
-func (c *Client) CreatePod(spec *PodSpec) (*kcore.Pod, error) {
-	pod, err := c.podClient.Create(Pod(spec))
+func (c *Client) CreatePod(pod *kcore.Pod) (*kcore.Pod, error) {
+	pod.TypeMeta = podTypeMeta
+	pod, err := c.podClient.Create(pod)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return pod, nil
 }
 
-func (c *Client) UpdatePod(pod *kcore.Pod) (*kcore.Pod, error) {
+func (c *Client) updatePod(pod *kcore.Pod) (*kcore.Pod, error) {
+	pod.TypeMeta = podTypeMeta
 	pod, err := c.podClient.Update(pod)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return pod, nil
+}
+
+func (c *Client) ApplyPod(pod *kcore.Pod) (*kcore.Pod, error) {
+	existing, err := c.GetPod(pod.Name)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return c.CreatePod(pod)
+	}
+	return c.updatePod(pod)
 }
 
 func GetPodLastContainerStartTime(pod *kcore.Pod) *time.Time {

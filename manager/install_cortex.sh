@@ -171,7 +171,6 @@ setup_configmap
 setup_secrets
 
 envsubst < manifests/spark.yaml | kubectl apply -f - >/dev/null
-envsubst < manifests/argo.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/nginx.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null

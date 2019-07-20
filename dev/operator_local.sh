@@ -26,6 +26,9 @@ export CONST_OPERATOR_TRANSFORMERS_DIR=$ROOT/pkg/transformers
 export CONST_OPERATOR_ESTIMATORS_DIR=$ROOT/pkg/estimators
 export CONST_OPERATOR_IN_CLUSTER=false
 
+kill $(pgrep -f rerun) >/dev/null 2>&1 || true
+
 rerun -watch $ROOT/pkg $ROOT/cli -ignore $ROOT/vendor $ROOT/bin -run sh -c \
 "go build -o $ROOT/bin/operator $ROOT/pkg/operator && go build -installsuffix cgo -o $ROOT/bin/cortex $ROOT/cli && $ROOT/bin/operator"
-# go run -race $ROOT/pkg/operator/operator.go
+
+# go run -race $ROOT/pkg/operator/operator.go  # Check for race conditions. Doesn't seem to catch them all?

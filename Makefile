@@ -21,10 +21,7 @@ SHELL := /bin/bash
 # Cortex
 
 devstart:
-	@kill $(shell pgrep -f rerun); ./dev/operator_local.sh || true
-
-killdev:
-	@kill $(shell pgrep -f rerun)
+	@./dev/operator_local.sh || true
 
 kubectl:
 	@eksctl utils write-kubeconfig --name="cortex"
@@ -138,8 +135,6 @@ ci-build-images:
 	@./build/build-image.sh images/fluentd fluentd
 	@./build/build-image.sh images/nginx-controller nginx-controller
 	@./build/build-image.sh images/nginx-backend nginx-backend
-	@./build/build-image.sh images/argo-controller argo-controller
-	@./build/build-image.sh images/argo-executor argo-executor
 	@./build/build-image.sh images/python-packager python-packager
 	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
 	@./build/build-image.sh images/nvidia nvidia
@@ -160,8 +155,6 @@ ci-push-images:
 	@./build/push-image.sh fluentd
 	@./build/push-image.sh nginx-controller
 	@./build/push-image.sh nginx-backend
-	@./build/push-image.sh argo-controller
-	@./build/push-image.sh argo-executor
 	@./build/push-image.sh python-packager
 	@./build/push-image.sh cluster-autoscaler
 	@./build/push-image.sh nvidia
