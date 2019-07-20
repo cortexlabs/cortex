@@ -1,4 +1,4 @@
-# Install
+# Get Started
 
 ## Prerequisites
 
@@ -20,14 +20,14 @@ chmod +x cortex.sh
 export AWS_ACCESS_KEY_ID=***
 export AWS_SECRET_ACCESS_KEY=***
 
-# Install Cortex
+# Provision infrastructure on AWS and install Cortex
 ./cortex.sh install
 ```
 
-## Install the CLI
+## Install and configure the CLI
 
 ```bash
-# Install the Cortex CLI
+# Install the Cortex CLI on your machine
 ./cortex.sh install cli
 
 # Get the operator endpoint
@@ -54,8 +54,13 @@ cortex deploy
 # View the status of the deployment
 cortex get --watch
 
+# Get the API's endpoint
+cortex get classifier
+
 # Classify a sample
-cortex predict tensorflow tensorflow/irises.json
+curl -k -X POST -H "Content-Type: application/json" \
+     -d '{ "samples": [ { "sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3 } ] }' \
+     <API endpoint>
 ```
 
 ## Cleanup

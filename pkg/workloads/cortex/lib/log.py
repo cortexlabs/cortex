@@ -13,12 +13,16 @@
 # limitations under the License.
 
 import logging
+from logging.config import dictConfig
 
-logger = logging.getLogger("cortex")
-handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT, None))
-logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
+dictConfig(
+    {
+        "version": 1,
+        "formatters": {"default": {"format": logging.BASIC_FORMAT}},
+        "handlers": {"sys_out": {"class": "logging.StreamHandler", "formatter": "default"}},
+        "root": {"level": "INFO", "handlers": ["sys_out"]},
+    }
+)
 
 
 def get_logger():

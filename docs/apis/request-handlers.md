@@ -83,3 +83,20 @@ packaging==19.0.0
 ```
 
 You can install additional PyPI packages and import your own Python packages. See [Python Packages](../piplines/python-packages.md) for more details.
+
+## Debugging
+
+A Cortex logger can be imported and used in request handlers.
+
+```
+from cortex.lib.log import get_logger
+
+logger = get_logger()
+
+def pre_inference(sample, metadata):
+    logger.info(sample)
+    logger.info(metadata)
+    ...
+```
+
+The output of these logs can be viewed using `cortex logs -v <api_name>`.

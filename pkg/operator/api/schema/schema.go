@@ -44,3 +44,12 @@ type GetResourcesResponse struct {
 type GetAggregateResponse struct {
 	Value []byte `json:"value"`
 }
+
+type FeatureSignature struct {
+	Shape []int  `json:"shape"`
+	Type  string `json:"type"`
+}
+
+type ModelInput struct {
+	Signature map[string]FeatureSignature `json:"signature"`
+}
