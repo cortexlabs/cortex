@@ -66,17 +66,17 @@ $ curl -d '{"a": 1, "b": 2, "c": 3}' https://amazonaws.com/my-api
 
 ```bash
 # Download the install script
-curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh && chmod +x cortex.sh
+$ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh && chmod +x cortex.sh
 
 # Set your AWS credentials
-export AWS_ACCESS_KEY_ID=***
-export AWS_SECRET_ACCESS_KEY=***
+$ export AWS_ACCESS_KEY_ID=***
+$ export AWS_SECRET_ACCESS_KEY=***
 
 # Provision infrastructure on AWS and install Cortex
-./cortex.sh install
+$ ./cortex.sh install
 
 # Install the Cortex CLI on your machine
-./cortex.sh install cli
+$ ./cortex.sh install cli
 ```
 
 <br>
