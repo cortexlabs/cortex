@@ -37,17 +37,20 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	force := getOptionalBoolQParam("force", false, r)
 
 	ctx, err := getContext(r, ignoreCache)
-	if RespondIfError(w, err) {
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
 
 	err = workloads.PopulateWorkloadIDs(ctx)
-	if RespondIfError(w, err) {
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
 
 	err = workloads.ValidateDeploy(ctx)
-	if RespondIfError(w, err) {
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
 
@@ -59,7 +62,8 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	isUpdating, err := workloads.IsDeploymentUpdating(ctx.App.Name)
-	if RespondIfError(w, err) {
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
 
@@ -75,12 +79,14 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = config.AWS.UploadMsgpackToS3(ctx.ToSerial(), ctx.Key)
-	if RespondIfError(w, err, ctx.App.Name, "upload context") {
+	if err != nil {
+		RespondError(w, err, ctx.App.Name, "upload context")
 		return
 	}
 
 	err = workloads.Run(ctx)
-	if RespondIfError(w, err) {
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
 

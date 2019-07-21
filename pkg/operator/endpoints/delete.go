@@ -28,7 +28,8 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	config.Telemetry.ReportEvent("endpoint.delete")
 
 	appName, err := getRequiredQueryParam("appName", r)
-	if RespondIfError(w, err) {
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
 
