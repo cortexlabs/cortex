@@ -58,14 +58,6 @@ func RespondErrorCode(w http.ResponseWriter, code int, err error, strs ...string
 	json.NewEncoder(w).Encode(response)
 }
 
-func RespondIfError(w http.ResponseWriter, err error, strs ...string) bool {
-	if err != nil {
-		RespondError(w, err, strs...)
-		return true
-	}
-	return false
-}
-
 func RecoverAndRespond(w http.ResponseWriter, strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
