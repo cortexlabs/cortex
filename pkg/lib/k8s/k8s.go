@@ -50,6 +50,7 @@ type Client struct {
 	clientset        *kclientset.Clientset
 	podClient        kclientcore.PodInterface
 	serviceClient    kclientcore.ServiceInterface
+	configMapClient  kclientcore.ConfigMapInterface
 	deploymentClient kclientapps.DeploymentInterface
 	jobClient        kclientbatch.JobInterface
 	ingressClient    kclientextensions.IngressInterface
@@ -80,6 +81,7 @@ func New(namespace string, inCluster bool) (*Client, error) {
 
 	client.podClient = client.clientset.CoreV1().Pods(namespace)
 	client.serviceClient = client.clientset.CoreV1().Services(namespace)
+	client.configMapClient = client.clientset.CoreV1().ConfigMaps(namespace)
 	client.deploymentClient = client.clientset.AppsV1().Deployments(namespace)
 	client.jobClient = client.clientset.BatchV1().Jobs(namespace)
 	client.ingressClient = client.clientset.ExtensionsV1beta1().Ingresses(namespace)

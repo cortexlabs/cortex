@@ -44,6 +44,7 @@ type APISavedStatus struct {
 type DataExitCode string
 
 const (
+	ExitCodeDataUnknown   DataExitCode = ""
 	ExitCodeDataSucceeded DataExitCode = "succeeded"
 	ExitCodeDataFailed    DataExitCode = "failed"
 	ExitCodeDataKilled    DataExitCode = "killed"

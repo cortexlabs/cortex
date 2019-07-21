@@ -137,7 +137,7 @@ func updateAPISavedStatusStartTime(savedStatus *resource.APISavedStatus, pods []
 	}
 }
 
-func UpdateAPISavedStatuses(allPods []kcore.Pod) error {
+func updateAPISavedStatuses(allPods []kcore.Pod) error {
 	podMap := make(map[string][]kcore.Pod)
 	for _, pod := range allPods {
 		appName := pod.Labels["appName"]

@@ -36,12 +36,15 @@ import (
 )
 
 const (
-	writeWait             = 10 * time.Second
-	closeGracePeriod      = 10 * time.Second
-	maxMessageSize        = 8192
-	podCheckInterval      = 5 * time.Second
-	maxParallelPodLogging = 5
-	initLogTailLines      = 100
+	socketWriteDeadlineWait = 10 * time.Second
+	socketCloseGracePeriod  = 10 * time.Second
+	socketMaxMessageSize    = 8192
+
+	pendingPodCheckInterval = 1 * time.Second
+	newPodCheckInterval     = 5 * time.Second
+	firstPodCheckInterval   = 500 * time.Millisecond
+	maxParallelPodLogging   = 5
+	initLogTailLines        = 100
 )
 
 func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket.Conn) {
@@ -86,7 +89,7 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 				getKubectlLogs(podMap[k8s.PodStatusKilledOOM], verbose, wrotePending, false, socket)
 			case len(podMap[k8s.PodStatusFailed]) > 0:
 				previous := false
-				if pods[0].Labels["workloadType"] == WorkloadTypeAPI {
+				if pods[0].Labels["workloadType"] == workloadTypeAPI {
 					previous = true
 				}
 				getKubectlLogs(podMap[k8s.PodStatusFailed], verbose, wrotePending, previous, socket)
@@ -103,9 +106,13 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			return
 		}
 
-		wf, _ := GetWorkflow(appName)
-		pWf, _ := parseWorkflow(wf)
-		if pWf == nil || pWf.Workloads[workloadID] == nil {
+		isEnded, err := IsWorkloadEnded(appName, workloadID)
+
+		if err != nil {
+			writeSocket(err.Error(), socket)
+			return
+		}
+		if isEnded {
 			logPrefix, err := getSavedLogPrefix(workloadID, appName, true)
 			if err != nil {
 				writeSocket(err.Error(), socket)
@@ -118,19 +125,6 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			return
 		}
 
-		failedArgoPod, err := getFailedArgoPodForWorkload(workloadID, appName)
-		if err != nil {
-			writeSocket(err.Error(), socket)
-			return
-		}
-		if failedArgoPod != nil {
-			if !writeSocket("\nFailed to start:\n", socket) {
-				return
-			}
-			getKubectlLogs([]kcore.Pod{*failedArgoPod}, true, false, false, socket)
-			return
-		}
-
 		if !wrotePending {
 			if !writeSocket("\nPending", socket) {
 				return
@@ -138,7 +132,7 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			wrotePending = true
 		}
 
-		time.Sleep(time.Duration(userFacingCheckInterval) * time.Second)
+		time.Sleep(pendingPodCheckInterval)
 	}
 }
 
@@ -184,7 +178,7 @@ func startKubectlProcess(pod kcore.Pod, previous bool, attrs *os.ProcAttr) (*os.
 
 	identifier := pod.Name
 	kubectlArgs = append(kubectlArgs, pod.Name)
-	if pod.Labels["workloadType"] == WorkloadTypeAPI && pod.Labels["userFacing"] == "true" {
+	if pod.Labels["workloadType"] == workloadTypeAPI && pod.Labels["userFacing"] == "true" {
 		kubectlArgs = append(kubectlArgs, apiContainerName)
 		kubectlArgs = append(kubectlArgs, fmt.Sprintf("--tail=%d", initLogTailLines))
 		identifier += " " + apiContainerName
@@ -293,8 +287,14 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 				deleteMap[podName] = processMap[podName]
 				delete(processMap, podName)
 			}
-			deleteProcesses(deleteMap)
-			timer.Reset(podCheckInterval)
+
+			go deleteProcesses(deleteMap)
+
+			if len(processMap) == 0 {
+				timer.Reset(firstPodCheckInterval)
+			} else {
+				timer.Reset(newPodCheckInterval)
+			}
 		}
 	}
 }
@@ -340,7 +340,7 @@ func getCloudWatchLogs(prefix string, verbose bool, socket *websocket.Conn) {
 }
 
 func pumpStdin(socket *websocket.Conn, writer io.Writer) {
-	socket.SetReadLimit(maxMessageSize)
+	socket.SetReadLimit(socketMaxMessageSize)
 	for {
 		_, message, err := socket.ReadMessage()
 		if err != nil {
@@ -358,7 +358,7 @@ func pumpStdin(socket *websocket.Conn, writer io.Writer) {
 func pumpStdout(socket *websocket.Conn, socketWriterError chan error, reader io.Reader, verbose bool, checkForLastLog bool) {
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
-		socket.SetWriteDeadline(time.Now().Add(writeWait))
+		socket.SetWriteDeadline(time.Now().Add(socketWriteDeadlineWait))
 		logBytes := scanner.Bytes()
 		isLastLog := false
 		if !verbose {
@@ -382,9 +382,9 @@ func pumpStdout(socket *websocket.Conn, socketWriterError chan error, reader io.
 	default:
 	}
 
-	socket.SetWriteDeadline(time.Now().Add(writeWait))
+	socket.SetWriteDeadline(time.Now().Add(socketWriteDeadlineWait))
 	socket.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-	time.Sleep(closeGracePeriod)
+	time.Sleep(socketCloseGracePeriod)
 	socket.Close()
 }
 

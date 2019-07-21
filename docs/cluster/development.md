@@ -56,8 +56,6 @@ export CORTEX_NODES_MAX="5"
 export CORTEX_NAMESPACE="cortex"
 
 export CORTEX_IMAGE_MANAGER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/manager:latest"
-export CORTEX_IMAGE_ARGO_CONTROLLER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/argo-controller:latest"
-export CORTEX_IMAGE_ARGO_EXECUTOR="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/argo-executor:latest"
 export CORTEX_IMAGE_FLUENTD="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/fluentd:latest"
 export CORTEX_IMAGE_NGINX_BACKEND="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/nginx-backend:latest"
 export CORTEX_IMAGE_NGINX_CONTROLLER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/nginx-controller:latest"

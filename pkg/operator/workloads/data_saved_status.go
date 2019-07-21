@@ -19,10 +19,14 @@ package workloads
 import (
 	"time"
 
+	kcore "k8s.io/api/core/v1"
+
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -88,7 +92,7 @@ func getDataSavedStatuses(resourceWorkloadIDs map[string]string, appName string)
 		return nil, err
 	}
 
-	savedStatusMap := map[string]*resource.DataSavedStatus{}
+	savedStatusMap := make(map[string]*resource.DataSavedStatus)
 	for _, savedStatus := range savedStatuses {
 		if savedStatus != nil {
 			savedStatusMap[savedStatus.ResourceID] = savedStatus
@@ -132,6 +136,89 @@ func updateKilledDataSavedStatuses(ctx *context.Context) error {
 	err = uploadDataSavedStatuses(savedStatusesToUpdate)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func updateDataWorkloadErrors(failedPods []kcore.Pod) error {
+	checkedWorkloadIDs := strset.New()
+	nowTime := pointer.Time(time.Now())
+
+	for _, pod := range failedPods {
+		appName, ok := pod.Labels["appName"]
+		if !ok {
+			continue
+		}
+		workloadID, ok := pod.Labels["workloadID"]
+		if !ok {
+			continue
+		}
+
+		if pod.Labels["workloadType"] == workloadTypeAPI {
+			continue
+		}
+
+		if checkedWorkloadIDs.Has(workloadID) {
+			continue
+		}
+		checkedWorkloadIDs.Add(workloadID)
+
+		savedWorkload, err := getSavedBaseWorkload(workloadID, appName)
+		if err != nil {
+			return err
+		}
+		if savedWorkload == nil {
+			continue
+		}
+
+		resourceWorkloadIDs := make(map[string]string, len(savedWorkload.Resources))
+		for _, resource := range savedWorkload.Resources {
+			resourceWorkloadIDs[resource.ID] = workloadID
+		}
+
+		savedStatuses, err := getDataSavedStatuses(resourceWorkloadIDs, appName)
+		if err != nil {
+			return err
+		}
+
+		var savedStatusesToUpload []*resource.DataSavedStatus
+		for resourceID, res := range savedWorkload.Resources {
+			savedStatus := savedStatuses[resourceID]
+
+			if savedStatus == nil {
+				savedStatus = &resource.DataSavedStatus{
+					BaseSavedStatus: resource.BaseSavedStatus{
+						ResourceID:   resourceID,
+						ResourceType: res.ResourceType,
+						WorkloadID:   workloadID,
+						AppName:      appName,
+					},
+				}
+			}
+
+			if savedStatus.End == nil {
+				savedStatus.End = nowTime
+				if savedStatus.Start == nil {
+					savedStatus.Start = nowTime
+				}
+
+				switch k8s.GetPodStatus(&pod) {
+				case k8s.PodStatusKilled:
+					savedStatus.ExitCode = resource.ExitCodeDataKilled
+				case k8s.PodStatusKilledOOM:
+					savedStatus.ExitCode = resource.ExitCodeDataOOM
+				default:
+					savedStatus.ExitCode = resource.ExitCodeDataFailed
+				}
+
+				savedStatusesToUpload = append(savedStatusesToUpload, savedStatus)
+			}
+		}
+
+		err = uploadDataSavedStatuses(savedStatusesToUpload)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

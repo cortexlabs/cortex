@@ -29,16 +29,13 @@ import (
 )
 
 const (
-	ResDeploymentStarted                              = "Deployment started"
-	ResDeploymentUpdated                              = "Deployment updated"
-	ResDeploymentDeleted                              = "Deployment deleted"
-	ResDeploymentUpToDate                             = "Deployment is up-to-date"
-	ResDeploymentRunning                              = "Deployment is already running"
-	ResDifferentDeploymentRunning                     = "Another deployment is running, use --force to override"
-	ResCachedDeletedDeploymentStarted                 = "Cache deleted, deployment started"
-	ResDeploymentStoppedDeploymentStarted             = "Running deployment stopped, new deployment started"
-	ResDeploymentStoppedCacheDeletedDeploymentStarted = "Running deployment stopped, cached deleted, new deployment started"
-	ResDeploymentStoppedDeploymentUpToDate            = "Running deployment stopped, new deployment is up-to-date"
+	ResDeploymentStarted              = "Deployment started"
+	ResDeploymentUpdated              = "Deployment updated"
+	ResDeploymentDeleted              = "Deployment deleted"
+	ResDeploymentUpToDate             = "Deployment is up-to-date"
+	ResDeploymentUpToDateUpdating     = "Deployment is already updating"
+	ResDifferentDeploymentUpdating    = "Previous deployment is currently updating, use --force to override"
+	ResCachedDeletedDeploymentStarted = "Cache deleted, deployment started"
 )
 
 func Respond(w http.ResponseWriter, response interface{}) {
@@ -59,14 +56,6 @@ func RespondErrorCode(w http.ResponseWriter, code int, err error, strs ...string
 		Error: err.Error(),
 	}
 	json.NewEncoder(w).Encode(response)
-}
-
-func RespondIfError(w http.ResponseWriter, err error, strs ...string) bool {
-	if err != nil {
-		RespondError(w, err, strs...)
-		return true
-	}
-	return false
 }
 
 func RecoverAndRespond(w http.ResponseWriter, strs ...string) {

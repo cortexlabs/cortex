@@ -19,7 +19,6 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/lib/argo"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
@@ -38,65 +37,74 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	force := getOptionalBoolQParam("force", false, r)
 
 	ctx, err := getContext(r, ignoreCache)
-	if RespondIfError(w, err) {
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
 
-	newWf, err := workloads.Create(ctx)
-	if RespondIfError(w, err) {
+	err = workloads.PopulateWorkloadIDs(ctx)
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
 
-	existingWf, err := workloads.GetWorkflow(ctx.App.Name)
-	if RespondIfError(w, err) {
+	err = workloads.ValidateDeploy(ctx)
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
-	isRunning := false
-	if existingWf != nil {
-		isRunning = argo.IsRunning(existingWf)
+
+	existingCtx := workloads.CurrentContext(ctx.App.Name)
+
+	fullCtxMatch := false
+	if existingCtx != nil && existingCtx.ID == ctx.ID && context.APIResourcesAndComputesMatch(ctx, existingCtx) {
+		fullCtxMatch = true
 	}
 
-	if isRunning {
-		if newWf.Labels["ctxID"] == existingWf.Labels["ctxID"] {
-			prevCtx := workloads.CurrentContext(ctx.App.Name)
-			if context.APIResourcesAndComputesMatch(ctx, prevCtx) {
-				respondDeploy(w, ResDeploymentRunning)
-				return
-			}
+	isUpdating, err := workloads.IsDeploymentUpdating(ctx.App.Name)
+	if err != nil {
+		RespondError(w, err)
+		return
+	}
+
+	if isUpdating {
+		if fullCtxMatch {
+			respondDeploy(w, ResDeploymentUpToDateUpdating)
+			return
 		}
 		if !force {
-			respondDeploy(w, ResDifferentDeploymentRunning)
+			respondDeploy(w, ResDifferentDeploymentUpdating)
 			return
 		}
 	}
 
 	err = config.AWS.UploadMsgpackToS3(ctx.ToSerial(), ctx.Key)
-	if RespondIfError(w, err, ctx.App.Name, "upload context") {
+	if err != nil {
+		RespondError(w, err, ctx.App.Name, "upload context")
 		return
 	}
 
-	err = workloads.Run(newWf, ctx, existingWf)
-	if RespondIfError(w, err) {
+	err = workloads.Run(ctx)
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
 
 	switch {
-	case isRunning && ignoreCache:
-		respondDeploy(w, ResDeploymentStoppedCacheDeletedDeploymentStarted)
-	case isRunning && !ignoreCache && argo.NumTasks(newWf) == 0:
-		respondDeploy(w, ResDeploymentStoppedDeploymentUpToDate)
-	case isRunning && !ignoreCache && argo.NumTasks(newWf) != 0:
-		respondDeploy(w, ResDeploymentStoppedDeploymentStarted)
-	case !isRunning && ignoreCache:
+	case isUpdating && ignoreCache:
 		respondDeploy(w, ResCachedDeletedDeploymentStarted)
-	case !isRunning && !ignoreCache && argo.NumTasks(newWf) == 0:
-		if existingWf != nil && existingWf.Labels["ctxID"] == newWf.Labels["ctxID"] {
-			respondDeploy(w, ResDeploymentUpToDate)
-			return
-		}
+	case isUpdating && !ignoreCache:
 		respondDeploy(w, ResDeploymentUpdated)
-	case !isRunning && !ignoreCache && argo.NumTasks(newWf) != 0:
+	case !isUpdating && ignoreCache:
+		respondDeploy(w, ResCachedDeletedDeploymentStarted)
+	case !isUpdating && !ignoreCache && existingCtx == nil:
 		respondDeploy(w, ResDeploymentStarted)
+	case !isUpdating && !ignoreCache && existingCtx != nil && !fullCtxMatch:
+		respondDeploy(w, ResDeploymentUpdated)
+	case !isUpdating && !ignoreCache && existingCtx != nil && fullCtxMatch:
+		respondDeploy(w, ResDeploymentUpToDate)
+	default:
+		respondDeploy(w, ResDeploymentUpdated) // unexpected
 	}
 }
 

@@ -25,7 +25,8 @@ import (
 
 func GetResources(w http.ResponseWriter, r *http.Request) {
 	appName, err := getRequiredQueryParam("appName", r)
-	if RespondIfError(w, err) {
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
 
@@ -36,27 +37,20 @@ func GetResources(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dataStatuses, err := workloads.GetCurrentDataStatuses(ctx)
-	if RespondIfError(w, err) {
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
 
-	deployments, err := workloads.APIDeploymentMap(ctx.App.Name)
-	if RespondIfError(w, err) {
-		return
-	}
-
-	apiStatuses, err := workloads.GetCurrentAPIStatuses(dataStatuses, deployments, ctx)
-	if RespondIfError(w, err) {
-		return
-	}
-
-	apiGroupStatuses, err := workloads.GetAPIGroupStatuses(apiStatuses, deployments, ctx)
-	if RespondIfError(w, err) {
+	apiStatuses, apiGroupStatuses, err := workloads.GetCurrentAPIAndGroupStatuses(dataStatuses, ctx)
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
 
 	apisBaseURL, err := workloads.APIsBaseURL()
-	if RespondIfError(w, err) {
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
 

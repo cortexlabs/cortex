@@ -80,20 +80,33 @@ func Ingress(spec *IngressSpec) *kextensions.Ingress {
 	return ingress
 }
 
-func (c *Client) CreateIngress(spec *IngressSpec) (*kextensions.Ingress, error) {
-	ingress, err := c.ingressClient.Create(Ingress(spec))
+func (c *Client) CreateIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
+	ingress.TypeMeta = ingressTypeMeta
+	ingress, err := c.ingressClient.Create(ingress)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return ingress, nil
 }
 
-func (c *Client) UpdateIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
+func (c *Client) updateIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
+	ingress.TypeMeta = ingressTypeMeta
 	ingress, err := c.ingressClient.Update(ingress)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return ingress, nil
+}
+
+func (c *Client) ApplyIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
+	existing, err := c.GetIngress(ingress.Name)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return c.CreateIngress(ingress)
+	}
+	return c.updateIngress(ingress)
 }
 
 func (c *Client) GetIngress(name string) (*kextensions.Ingress, error) {

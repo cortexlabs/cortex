@@ -196,15 +196,6 @@ func (ctx *Context) AllResourcesByName(name string) []Resource {
 	return resources
 }
 
-// Overwrites any existing workload IDs
-func (ctx *Context) PopulateWorkloadIDs(resourceWorkloadIDs map[string]string) {
-	for _, res := range ctx.ComputedResources() {
-		if workloadID, ok := resourceWorkloadIDs[res.GetID()]; ok {
-			res.SetWorkloadID(workloadID)
-		}
-	}
-}
-
 func (ctx *Context) CheckAllWorkloadIDsPopulated() error {
 	for _, res := range ctx.ComputedResources() {
 		if res.GetWorkloadID() == "" {

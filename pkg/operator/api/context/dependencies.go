@@ -27,9 +27,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
-func (ctx *Context) AllComputedResourceDependencies(resourceID string) strset.Set {
+// Get all dependencies for resourceID(s). Note: provided resourceIDs are not included in the dependency set
+func (ctx *Context) AllComputedResourceDependencies(resourceIDs ...string) strset.Set {
 	allDependencies := strset.New()
-	ctx.allComputedResourceDependenciesHelper(resourceID, allDependencies)
+	for _, resourceID := range resourceIDs {
+		ctx.allComputedResourceDependenciesHelper(resourceID, allDependencies)
+	}
+	allDependencies.Remove(resourceIDs...)
 	return allDependencies
 }
 
@@ -43,42 +47,46 @@ func (ctx *Context) allComputedResourceDependenciesHelper(resourceID string, all
 	}
 }
 
-func (ctx *Context) DirectComputedResourceDependencies(resourceID string) strset.Set {
-	for _, pythonPackage := range ctx.PythonPackages {
-		if pythonPackage.GetID() == resourceID {
-			return ctx.pythonPackageDependencies(pythonPackage)
+// Get all dependencies for resourceID(s). Note: provided resourceIDs are not included in the dependency set
+func (ctx *Context) DirectComputedResourceDependencies(resourceIDs ...string) strset.Set {
+	allDependencies := strset.New()
+	for _, resourceID := range resourceIDs {
+		for _, pythonPackage := range ctx.PythonPackages {
+			if pythonPackage.GetID() == resourceID {
+				allDependencies.Merge(ctx.pythonPackageDependencies(pythonPackage))
+			}
+		}
+		for _, rawColumn := range ctx.RawColumns {
+			if rawColumn.GetID() == resourceID {
+				allDependencies.Merge(ctx.rawColumnDependencies(rawColumn))
+			}
+		}
+		for _, aggregate := range ctx.Aggregates {
+			if aggregate.ID == resourceID {
+				allDependencies.Merge(ctx.aggregatesDependencies(aggregate))
+			}
+		}
+		for _, transformedColumn := range ctx.TransformedColumns {
+			if transformedColumn.ID == resourceID {
+				allDependencies.Merge(ctx.transformedColumnDependencies(transformedColumn))
+			}
+		}
+		for _, model := range ctx.Models {
+			if model.ID == resourceID {
+				allDependencies.Merge(ctx.modelDependencies(model))
+			}
+			if model.Dataset.ID == resourceID {
+				allDependencies.Merge(ctx.trainingDatasetDependencies(model))
+			}
+		}
+		for _, api := range ctx.APIs {
+			if api.ID == resourceID {
+				allDependencies.Merge(ctx.apiDependencies(api))
+			}
 		}
 	}
-	for _, rawColumn := range ctx.RawColumns {
-		if rawColumn.GetID() == resourceID {
-			return ctx.rawColumnDependencies(rawColumn)
-		}
-	}
-	for _, aggregate := range ctx.Aggregates {
-		if aggregate.ID == resourceID {
-			return ctx.aggregatesDependencies(aggregate)
-		}
-	}
-	for _, transformedColumn := range ctx.TransformedColumns {
-		if transformedColumn.ID == resourceID {
-			return ctx.transformedColumnDependencies(transformedColumn)
-		}
-	}
-	for _, model := range ctx.Models {
-		if model.ID == resourceID {
-			return ctx.modelDependencies(model)
-		}
-		if model.Dataset.ID == resourceID {
-			return ctx.trainingDatasetDependencies(model)
-		}
-	}
-
-	for _, api := range ctx.APIs {
-		if api.ID == resourceID {
-			return ctx.apiDependencies(api)
-		}
-	}
-	return strset.New()
+	allDependencies.Remove(resourceIDs...)
+	return allDependencies
 }
 
 func (ctx *Context) pythonPackageDependencies(pythonPackage *PythonPackage) strset.Set {

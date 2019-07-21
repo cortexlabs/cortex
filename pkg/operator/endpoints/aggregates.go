@@ -28,13 +28,17 @@ import (
 
 func GetAggregate(w http.ResponseWriter, r *http.Request) {
 	appName, err := getRequiredQueryParam("appName", r)
-	if RespondIfError(w, err) {
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
+
 	id, err := getRequiredPathParam("id", r)
-	if RespondIfError(w, err) {
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
+
 	ctx := workloads.CurrentContext(appName)
 	if ctx == nil {
 		RespondError(w, ErrorAppNotDeployed(appName))
@@ -49,7 +53,8 @@ func GetAggregate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	exists, err := config.AWS.IsS3File(aggregate.Key)
-	if RespondIfError(w, err, resource.AggregateType.String(), id) {
+	if err != nil {
+		RespondError(w, err, resource.AggregateType.String(), id)
 		return
 	}
 	if !exists {
@@ -58,7 +63,8 @@ func GetAggregate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bytes, err := config.AWS.ReadBytesFromS3(aggregate.Key)
-	if RespondIfError(w, err, resource.AggregateType.String(), id) {
+	if err != nil {
+		RespondError(w, err, resource.AggregateType.String(), id)
 		return
 	}
 

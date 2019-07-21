@@ -89,11 +89,11 @@ func getSavedLogPrefix(workloadID string, appName string, allowNil bool) (string
 	return logPrefix, nil
 }
 
-func UploadLogPrefixesFromAPIPods(pods []kcore.Pod) error {
+func uploadLogPrefixesFromAPIPods(pods []kcore.Pod) error {
 	logPrefixInfos := []*LogPrefixInfo{}
 	currentWorkloadIDs := make(map[string]strset.Set)
 	for _, pod := range pods {
-		if pod.Labels["workloadType"] != WorkloadTypeAPI {
+		if pod.Labels["workloadType"] != workloadTypeAPI {
 			continue
 		}
 
