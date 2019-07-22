@@ -17,7 +17,8 @@ limitations under the License.
 package k8s
 
 import (
-	kautoscaling "k8s.io/api/autoscaling/v1"
+	kautoscaling "k8s.io/api/autoscaling/v2beta2"
+	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -50,9 +51,20 @@ func HPA(spec *HPASpec) *kautoscaling.HorizontalPodAutoscaler {
 			Labels:    spec.Labels,
 		},
 		Spec: kautoscaling.HorizontalPodAutoscalerSpec{
-			MinReplicas:                    &spec.MinReplicas,
-			MaxReplicas:                    spec.MaxReplicas,
-			TargetCPUUtilizationPercentage: &spec.TargetCPUUtilization,
+			MinReplicas: &spec.MinReplicas,
+			MaxReplicas: spec.MaxReplicas,
+			Metrics: []kautoscaling.MetricSpec{
+				{
+					Type: kautoscaling.ResourceMetricSourceType,
+					Resource: &kautoscaling.ResourceMetricSource{
+						Name: kcore.ResourceCPU,
+						Target: kautoscaling.MetricTarget{
+							Type:               kautoscaling.UtilizationMetricType,
+							AverageUtilization: &spec.TargetCPUUtilization,
+						},
+					},
+				},
+			},
 			ScaleTargetRef: kautoscaling.CrossVersionObjectReference{
 				Kind:       deploymentTypeMeta.Kind,
 				Name:       spec.DeploymentName,
@@ -154,4 +166,37 @@ func HPAMap(hpas []kautoscaling.HorizontalPodAutoscaler) map[string]kautoscaling
 		hpaMap[hpa.Name] = hpa
 	}
 	return hpaMap
+}
+
+func IsHPAUpToDate(hpa *kautoscaling.HorizontalPodAutoscaler, minReplicas int32, maxReplicas int32, targetCPUUtilization int32) bool {
+	if hpa == nil {
+		return false
+	}
+
+	if hpa.Spec.MinReplicas == nil || *hpa.Spec.MinReplicas != minReplicas {
+		return false
+	}
+
+	if hpa.Spec.MaxReplicas != maxReplicas {
+		return false
+	}
+
+	if len(hpa.Spec.Metrics) != 1 {
+		return false
+	}
+	metric := hpa.Spec.Metrics[0]
+	if metric.Type != kautoscaling.ResourceMetricSourceType || metric.Resource == nil {
+		return false
+	}
+	if metric.Resource.Name != kcore.ResourceCPU {
+		return false
+	}
+	if metric.Resource.Target.Type != kautoscaling.UtilizationMetricType || metric.Resource.Target.AverageUtilization == nil {
+		return false
+	}
+	if *metric.Resource.Target.AverageUtilization != targetCPUUtilization {
+		return false
+	}
+
+	return true
 }
