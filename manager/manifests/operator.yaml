@@ -103,8 +103,7 @@ spec:
     workloadID: operator
   ports:
   - port: 8888
-    name: tcp
-    protocol: TCP
+    name: http
   selector:
     app: operator
     workloadID: operator
@@ -124,13 +123,8 @@ spec:
       number: 80
       name: http
       protocol: HTTP
-  - port:
-      number: 443
-      name: https
-      protocol: HTTPS
     hosts:
     - "*"
-
 ---
 
 apiVersion: networking.istio.io/v1alpha3
