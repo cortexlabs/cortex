@@ -38,6 +38,7 @@ logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
 
 app = Flask(__name__)
+app.json_encoder = util.json_tricks_encoder
 
 local_cache = {
     "ctx": None,
@@ -246,38 +247,35 @@ def parse_response_proto_raw(response_proto):
 def run_predict(sample):
     request_handler = local_cache.get("request_handler")
 
+    logger.info("sample: " + util.pp_str_flat(sample))
+
     prepared_sample = sample
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         prepared_sample = request_handler.pre_inference(
             sample, local_cache["metadata"]["signatureDef"]
         )
+        logger.info("pre_inference: " + util.pp_str_flat(prepared_sample))
 
     if util.is_resource_ref(local_cache["api"]["model"]):
         transformed_sample = transform_sample(prepared_sample)
+        logger.info("transformed_sample: " + util.pp_str_flat(transformed_sample))
+
         prediction_request = create_prediction_request(transformed_sample)
         response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
         result = parse_response_proto(response_proto)
 
-        util.log_indent("Raw sample:", indent=4)
-        util.log_pretty_flat(sample, indent=6)
-        util.log_indent("Transformed sample:", indent=4)
-        util.log_pretty_flat(transformed_sample, indent=6)
-        util.log_indent("Prediction:", indent=4)
-        util.log_pretty_flat(result, indent=6)
-
         result["transformed_sample"] = transformed_sample
-
+        logger.info("inference: " + util.pp_str_flat(result))
     else:
         prediction_request = create_raw_prediction_request(prepared_sample)
         response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
         result = parse_response_proto_raw(response_proto)
-        util.log_indent("Sample:", indent=4)
-        util.log_pretty_flat(sample, indent=6)
-        util.log_indent("Prediction:", indent=4)
-        util.log_pretty_flat(result, indent=6)
+
+        logger.info("inference: " + util.pp_str_flat(result))
 
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
         result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
+        logger.info("post_inference: " + util.pp_str_flat(result))
 
     return result
 
@@ -300,7 +298,7 @@ def is_valid_sample(sample):
 
 
 def prediction_failed(sample, reason=None):
-    message = "prediction failed for sample: {}".format(json.dumps(sample))
+    message = "prediction failed for sample: {}".format(utils.pp_str_flat(sample))
     if reason:
         message += " ({})".format(reason)
 
@@ -329,8 +327,6 @@ def predict(deployment_name, api_name):
         util.log_pretty_flat(payload, logging_func=logger.error)
         return prediction_failed(payload, "top level `samples` key not found in request")
 
-    logger.info("Predicting " + util.pluralize(len(payload["samples"]), "sample", "samples"))
-
     predictions = []
     samples = payload["samples"]
     if not util.is_list(samples):
@@ -340,8 +336,6 @@ def predict(deployment_name, api_name):
         )
 
     for i, sample in enumerate(payload["samples"]):
-        util.log_indent("sample {}".format(i + 1), 2)
-
         if util.is_resource_ref(api["model"]):
             is_valid, reason = is_valid_sample(sample)
             if not is_valid:
@@ -388,6 +382,24 @@ def predict(deployment_name, api_name):
     response["predictions"] = predictions
     response["resource_id"] = api["id"]
 
+    return jsonify(response)
+
+
+@app.route("/<app_name>/<api_name>/signature", methods=["GET"])
+def get_signature(app_name, api_name):
+    signature_def = local_cache["metadata"]["signatureDef"]
+
+    response = {}
+    if signature_def.get("predict") is None or signature_def["predict"].get("inputs") is None:
+        return "unable to get signature for model", status.HTTP_404_NOT_FOUND
+
+    metadata = {}
+    for input_name, input_metadata in signature_def["predict"]["inputs"].items():
+        metadata[input_name] = {
+            "shape": [int(dim["size"]) for dim in input_metadata["tensorShape"]["dim"]],
+            "type": DTYPE_TO_TF_TYPE[input_metadata["dtype"]].name,
+        }
+    response = {"signature": metadata}
     return jsonify(response)
 
 

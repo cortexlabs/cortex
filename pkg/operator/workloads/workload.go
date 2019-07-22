@@ -30,10 +30,12 @@ const (
 
 type Workload interface {
 	BaseWorkloadInterface
-	CanRun(*context.Context) (bool, error)
-	Start(*context.Context) error
-	IsRunning(*context.Context) (bool, error)
-	IsSucceeded(*context.Context) (bool, error)
+	CanRun(*context.Context) (bool, error)      // All of the dependencies are satisfied and the workload can be started
+	Start(*context.Context) error               // Start the workload
+	IsStarted(*context.Context) (bool, error)   // The workload was started on the most recent deploy (might be running, succeeded, or failed). It's ok if this doesn't remain accurate across cx deploys
+	IsRunning(*context.Context) (bool, error)   // The workload is currently running
+	IsSucceeded(*context.Context) (bool, error) // The workload succeeded
+	IsFailed(*context.Context) (bool, error)    // The workload failed
 }
 
 type BaseWorkload struct {

@@ -153,6 +153,7 @@ func getReplicaCountsMap(
 		resourceID := pod.Labels["resourceID"]
 		podAPIComputeID := APIPodComputeID(pod.Spec.Containers)
 		podStatus := k8s.GetPodStatus(&pod)
+		isReady := k8s.IsPodReady(&pod)
 
 		replicaCounts := replicaCountsMap[resourceID]
 
@@ -162,7 +163,7 @@ func getReplicaCountsMap(
 			computeMatches = true
 		}
 
-		if podStatus == k8s.PodStatusRunning {
+		if isReady {
 			if computeMatches {
 				replicaCounts.ReadyUpdatedCompute++
 			} else {
@@ -207,8 +208,7 @@ func numUpdatedReadyReplicas(ctx *context.Context, api *context.API) (int32, err
 	var readyReplicas int32
 	apiComputeID := api.Compute.IDWithoutReplicas()
 	for _, pod := range podList {
-		podStatus := k8s.GetPodStatus(&pod)
-		if podStatus == k8s.PodStatusRunning && APIPodComputeID(pod.Spec.Containers) == apiComputeID {
+		if k8s.IsPodReady(&pod) && APIPodComputeID(pod.Spec.Containers) == apiComputeID {
 			readyReplicas++
 		}
 	}
@@ -289,7 +289,6 @@ func getAPIGroupStatuses(
 	for apiName, apiStatuses := range statusMap {
 		apiGroupStatuses[apiName] = &resource.APIGroupStatus{
 			APIName:              apiName,
-			Start:                k8s.DeploymentStartTime(deployments[apiName]),
 			ActiveStatus:         getActiveAPIStatus(apiStatuses, ctx),
 			Code:                 apiGroupStatusCode(apiStatuses, ctx),
 			GroupedReplicaCounts: getGroupedReplicaCounts(apiStatuses, ctx),

@@ -29,17 +29,23 @@ from cortex import consts
 from cortex.lib import util, package, Context
 from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
+import logging
+import json_tricks
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
 
 app = Flask(__name__)
 
-onnx_to_np = {
+app.json_encoder = util.json_tricks_encoder
+
+# https://github.com/microsoft/onnxruntime/blob/v0.4.0/onnxruntime/python/onnxruntime_pybind_mlvalue.cc
+ONNX_TO_NP_TYPE = {
     "tensor(float16)": "float16",
     "tensor(float)": "float32",
     "tensor(double)": "float64",
     "tensor(int32)": "int32",
+    "tensor(uint32)": "uint32",
     "tensor(int8)": "int8",
     "tensor(uint8)": "uint8",
     "tensor(int16)": "int16",
@@ -47,7 +53,7 @@ onnx_to_np = {
     "tensor(int64)": "int64",
     "tensor(uint64)": "uint64",
     "tensor(bool)": "bool",
-    "tensor(string)": "string",
+    "tensor(string)": "object",
 }
 
 local_cache = {
@@ -61,7 +67,7 @@ local_cache = {
 
 
 def prediction_failed(sample, reason=None):
-    message = "prediction failed for sample: {}".format(json.dumps(sample))
+    message = "prediction failed for sample: {}".format(util.pp_str_flat(sample))
     if reason:
         message += " ({})".format(reason)
 
@@ -75,7 +81,7 @@ def health():
 
 
 def transform_to_numpy(input_pyobj, input_metadata):
-    target_dtype = onnx_to_np[input_metadata.type]
+    target_dtype = ONNX_TO_NP_TYPE[input_metadata.type]
     target_shape = input_metadata.shape
 
     for idx, dim in enumerate(target_shape):
@@ -106,7 +112,7 @@ def convert_to_onnx_input(sample, input_metadata_list):
             input_dict[input_metadata.name] = transform_to_numpy(sample, input_metadata)
     else:
         for input_metadata in input_metadata_list:
-            if not sample.is_dict(input_metadata):
+            if not util.is_dict(input_metadata):
                 expected_keys = [metadata.name for metadata in input_metadata_list]
                 raise ValueError(
                     "sample should be a dict containing keys: " + ", ".join(expected_keys)
@@ -138,8 +144,6 @@ def predict(app_name, api_name):
         util.log_pretty_flat(payload, logging_func=logger.error)
         return prediction_failed(payload, "top level `samples` key not found in request")
 
-    logger.info("Predicting " + util.pluralize(len(payload["samples"]), "sample", "samples"))
-
     predictions = []
     samples = payload["samples"]
     if not util.is_list(samples):
@@ -149,15 +153,14 @@ def predict(app_name, api_name):
         )
 
     for i, sample in enumerate(payload["samples"]):
-        util.log_indent("sample {}".format(i + 1), 2)
         try:
-            util.log_indent("Raw sample:", indent=4)
-            util.log_pretty_flat(sample, indent=6)
-
+            logger.info("sample: " + util.pp_str_flat(sample))
+            prepared_sample = sample
             if request_handler is not None and util.has_function(request_handler, "pre_inference"):
-                sample = request_handler.pre_inference(sample, input_metadata)
+                prepared_sample = request_handler.pre_inference(sample, input_metadata)
+                logger.info("pre_inference: " + util.pp_str_flat(prepared_sample))
 
-            inference_input = convert_to_onnx_input(sample, input_metadata)
+            inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
             model_outputs = sess.run([], inference_input)
             result = []
             for model_output in model_outputs:
@@ -166,10 +169,11 @@ def predict(app_name, api_name):
                 else:
                     result.append(model_output)
 
+            logger.info("inference: " + util.pp_str_flat(result))
             if request_handler is not None and util.has_function(request_handler, "post_inference"):
                 result = request_handler.post_inference(result, output_metadata)
-            util.log_indent("Prediction:", indent=4)
-            util.log_pretty_flat(result, indent=6)
+                logger.info("post_inference: " + util.pp_str_flat(result))
+
             prediction = {"prediction": result}
         except CortexException as e:
             e.wrap("error", "sample {}".format(i + 1))
@@ -192,25 +196,48 @@ def predict(app_name, api_name):
     return jsonify(response)
 
 
+@app.route("/<app_name>/<api_name>/signature", methods=["GET"])
+def get_signature(app_name, api_name):
+    metadata = {}
+    input_metadata_list = local_cache["input_metadata"]
+
+    for input_metadata in input_metadata_list:
+        numpy_type = ONNX_TO_NP_TYPE[input_metadata.type]
+        metadata[input_metadata.name] = {"shape": input_metadata.shape, "type": numpy_type}
+    response = {"signature": metadata}
+    return jsonify(response)
+
+
 def start(args):
-    ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
-    api = ctx.apis_id_map[args.api]
+    try:
+        ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
+        api = ctx.apis_id_map[args.api]
 
-    local_cache["api"] = api
-    local_cache["ctx"] = ctx
-    if api.get("request_handler_impl_key") is not None:
-        package.install_packages(ctx.python_packages, ctx.storage)
-        local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
+        local_cache["api"] = api
+        local_cache["ctx"] = ctx
+        if api.get("request_handler_impl_key") is not None:
+            package.install_packages(ctx.python_packages, ctx.storage)
+            local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
 
-    model_cache_path = os.path.join(args.model_dir, args.api)
-    if not os.path.exists(model_cache_path):
-        ctx.storage.download_file_external(api["model"], model_cache_path)
+        model_cache_path = os.path.join(args.model_dir, args.api)
+        if not os.path.exists(model_cache_path):
+            ctx.storage.download_file_external(api["model"], model_cache_path)
 
-    sess = rt.InferenceSession(model_cache_path)
-    local_cache["sess"] = sess
-    local_cache["input_metadata"] = sess.get_inputs()
-    local_cache["output_metadata"] = sess.get_outputs()
-    logger.info("Serving model: {}".format(util.remove_resource_ref(api["model"])))
+        sess = rt.InferenceSession(model_cache_path)
+        local_cache["sess"] = sess
+        local_cache["input_metadata"] = sess.get_inputs()
+        local_cache["output_metadata"] = sess.get_outputs()
+        logger.info("Serving model: {}".format(util.remove_resource_ref(api["model"])))
+    except CortexException as e:
+        e.wrap("error")
+        logger.error(str(e))
+        logger.exception(
+            "An error occured starting the api, see `cx logs -v api {}` for more details".format(
+                api["name"]
+            )
+        )
+        sys.exit(1)
+
     serve(app, listen="*:{}".format(args.port))
 
 

@@ -32,6 +32,9 @@ from datetime import datetime
 from cortex import consts
 from cortex.lib.log import get_logger
 
+import json_tricks
+
+
 logger = get_logger()
 
 resource_escape_seq = "🌝🌝🌝🌝🌝"
@@ -48,9 +51,19 @@ def indent_str(text, indent):
     return indent * " " + text.replace("\n", "\n" + indent * " ")
 
 
+def json_tricks_dump(obj, **kwargs):
+    return json_tricks.dumps(obj, primitives=True, **kwargs)
+
+
+def json_tricks_encoder(*args, **kwargs):
+    kwargs["primitives"] = True
+    kwargs["obj_encoders"] = json_tricks.nonp.DEFAULT_ENCODERS
+    return json_tricks.TricksEncoder(*args, **kwargs)
+
+
 def pp_str(obj, indent=0):
     try:
-        out = json.dumps(obj, sort_keys=True, indent=2)
+        out = json_tricks_dump(obj, sort_keys=True, indent=2)
     except:
         out = pprint.pformat(obj, width=120)
     out = out.replace(resource_escape_seq, "@")
@@ -64,7 +77,7 @@ def pp(obj, indent=0):
 
 def pp_str_flat(obj, indent=0):
     try:
-        out = json.dumps(obj, sort_keys=True)
+        out = json_tricks_dump(obj, sort_keys=True)
     except:
         out = str(obj).replace("\n", "")
     out = out.replace(resource_escape_seq, "@")

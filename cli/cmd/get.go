@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 	"time"
@@ -45,6 +46,7 @@ func init() {
 	addEnvFlag(getCmd)
 	addWatchFlag(getCmd)
 	addSummaryFlag(getCmd)
+	addVerboseFlag(getCmd)
 	// addResourceTypesToHelp(getCmd)
 }
 
@@ -92,7 +94,7 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 			return "", err
 		}
 
-		return resourceByNameStr(resourceNameOrType, resourcesRes)
+		return resourceByNameStr(resourceNameOrType, resourcesRes, flagVerbose)
 
 	case 2:
 		userResourceType := args[0]
@@ -101,7 +103,7 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 		if err != nil {
 			return "", resource.ErrorInvalidType(userResourceType)
 		}
-		return resourceByNameAndTypeStr(resourceName, resourceType, resourcesRes)
+		return resourceByNameAndTypeStr(resourceName, resourceType, resourcesRes, flagVerbose)
 	}
 
 	return "", errors.New("too many args") // unexpected
@@ -127,7 +129,7 @@ func getResourcesResponse() (*schema.GetResourcesResponse, error) {
 	return &resourcesRes, nil
 }
 
-func resourceByNameStr(resourceName string, resourcesRes *schema.GetResourcesResponse) (string, error) {
+func resourceByNameStr(resourceName string, resourcesRes *schema.GetResourcesResponse, flagVerbose bool) (string, error) {
 	rs, err := resourcesRes.Context.VisibleResourceByName(resourceName)
 	if err != nil {
 		return "", err
@@ -146,7 +148,7 @@ func resourceByNameStr(resourceName string, resourcesRes *schema.GetResourcesRes
 	case resource.ModelType:
 		return describeModel(resourceName, resourcesRes)
 	case resource.APIType:
-		return describeAPI(resourceName, resourcesRes)
+		return describeAPI(resourceName, resourcesRes, flagVerbose)
 	default:
 		return "", resource.ErrorInvalidType(resourceType.String())
 	}
@@ -173,7 +175,7 @@ func resourcesByTypeStr(resourceType resource.Type, resourcesRes *schema.GetReso
 	}
 }
 
-func resourceByNameAndTypeStr(resourceName string, resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) (string, error) {
+func resourceByNameAndTypeStr(resourceName string, resourceType resource.Type, resourcesRes *schema.GetResourcesResponse, flagVerbose bool) (string, error) {
 	switch resourceType {
 	case resource.PythonPackageType:
 		return describePythonPackage(resourceName, resourcesRes)
@@ -188,7 +190,7 @@ func resourceByNameAndTypeStr(resourceName string, resourceType resource.Type, r
 	case resource.ModelType:
 		return describeModel(resourceName, resourcesRes)
 	case resource.APIType:
-		return describeAPI(resourceName, resourcesRes)
+		return describeAPI(resourceName, resourcesRes, flagVerbose)
 	default:
 		return "", resource.ErrorInvalidType(resourceType.String())
 	}
@@ -414,7 +416,7 @@ func describeModel(name string, resourcesRes *schema.GetResourcesResponse) (stri
 	return out, nil
 }
 
-func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string, error) {
+func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVerbose bool) (string, error) {
 	groupStatus := resourcesRes.APIGroupStatuses[name]
 	if groupStatus == nil {
 		return "", userconfig.ErrorUndefinedResource(name, resource.APIType)
@@ -430,10 +432,9 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 			break
 		}
 	}
-
-	refreshedAt := groupStatus.Start
-	if groupStatus.ActiveStatus != nil && groupStatus.ActiveStatus.Start != nil {
-		refreshedAt = groupStatus.ActiveStatus.Start
+	var updatedAt *time.Time
+	if groupStatus.ActiveStatus != nil {
+		updatedAt = groupStatus.ActiveStatus.Start
 	}
 
 	var staleComputeStr = ""
@@ -445,22 +446,31 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 		staleComputeStr = fmt.Sprintf(" (%s %s previous compute)", s.Int32(groupStatus.ReadyStaleCompute), hasStr)
 	}
 
-	out := titleStr("Summary")
-	out += fmt.Sprintf("Status:  %s\n", groupStatus.Message())
+	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
+
+	out := "\nURL:      " + apiEndpoint + "\n"
+	out += fmt.Sprintf("cURL:     curl -k -X POST -H \"Content-Type: application/json\" %s -d @<json_file_path>\n", apiEndpoint)
 	out += "\n"
+	out += fmt.Sprintf("Status:              %s\n", groupStatus.Message())
 	out += fmt.Sprintf("Available replicas:  %s\n", s.Int32(groupStatus.Available()))
 	out += fmt.Sprintf("  - Current model:   %s%s\n", s.Int32(groupStatus.UpToDate()), staleComputeStr)
 	out += fmt.Sprintf("  - Previous model:  %s\n", s.Int32(groupStatus.ReadyStaleModel))
 	out += fmt.Sprintf("Requested replicas:  %s\n", s.Int32(groupStatus.Requested))
 	out += fmt.Sprintf("Failed replicas:     %s\n", s.Int32(groupStatus.FailedUpdated))
 	out += "\n"
-	out += fmt.Sprintf("Created at:    %s\n", libtime.LocalTimestamp(groupStatus.Start))
-	out += fmt.Sprintf("Refreshed at:  %s\n", libtime.LocalTimestamp(refreshedAt))
+	out += fmt.Sprintf("Updated at:  %s", libtime.LocalTimestamp(updatedAt))
 
-	out += titleStr("Endpoint")
-	out += "URL:      " + urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path) + "\n"
-	out += "Method:   POST\n"
-	out += `Header:   "Content-Type: application/json"` + "\n"
+	if !flagVerbose {
+		return out, nil
+	}
+
+	out += "\n"
+
+	if api != nil {
+		out += titleStr("Configuration") + api.UserConfigStr()
+	}
+
+	out += titleStr("Model Input Signature")
 
 	if modelName, ok := yaml.ExtractAtSymbolText(api.Model); ok {
 		model := ctx.Models[modelName]
@@ -480,12 +490,70 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse) (string
 		sort.Strings(samplePlaceholderFields)
 		samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"
 		out += "Payload:  " + samplesPlaceholderStr + "\n"
-	}
-	if api != nil {
-		out += titleStr("Configuration") + api.UserConfigStr()
+	} else {
+		if groupStatus.Available() == 0 {
+			out += "Waiting for API to be ready"
+			return out, nil
+		}
+
+		modelInput, err := getModelInput(urls.Join(apiEndpoint, "signature"))
+		if err != nil {
+			out += "Waiting for API to be ready"
+			return out, nil
+		}
+
+		rows := make([][]interface{}, len(modelInput.Signature))
+		rowNum := 0
+		for inputName, featureSignature := range modelInput.Signature {
+			shapeStr := make([]string, len(featureSignature.Shape))
+			for idx, dim := range featureSignature.Shape {
+				if dim == 0 {
+					shapeStr[idx] = "?"
+				} else {
+					shapeStr[idx] = s.Int(dim)
+				}
+			}
+			rows[rowNum] = []interface{}{
+				inputName,
+				featureSignature.Type,
+				s.ObjFlatNoQuotes(shapeStr),
+			}
+			rowNum++
+		}
+
+		t := table.Table{
+			Headers: []table.Header{
+				{Title: "FEATURE", MaxWidth: 32},
+				{Title: "TYPE", MaxWidth: 10},
+				{Title: "SHAPE", MaxWidth: 20},
+			},
+			Rows: rows,
+		}
+
+		out += table.MustFormat(t)
 	}
 
 	return out, nil
+}
+
+func getModelInput(infoAPIPath string) (*schema.ModelInput, error) {
+	req, err := http.NewRequest("GET", infoAPIPath, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to request model input")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	response, err := makeRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var modelInput schema.ModelInput
+	err = json.Unmarshal(response, &modelInput)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse model input response")
+	}
+
+	return &modelInput, nil
 }
 
 func dataStatusSummary(dataStatus *resource.DataStatus) string {

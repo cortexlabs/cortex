@@ -4,10 +4,6 @@
 
 If you are not using a sensitive AWS account and do not have a lot of experience with IAM configuration, attaching the existing policy `AdministratorAccess` to your IAM user will make getting started much easier.
 
-### eksctl
-
-See the [eksctl documentation](https://eksctl.io). This is the most extensive set of permissions and are only required for spinning up EKS.
-
 ### Operator
 
 The operator requires read permissions for any data sources, read and write permissions for the Cortex S3 bucket, and read and write permissions for the Cortex CloudWatch log group. The pre-defined `AmazonS3FullAccess` and `CloudWatchLogsFullAccess` policies cover these permissions, but you can create more limited policies manually.

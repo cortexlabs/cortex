@@ -28,9 +28,11 @@ import (
 
 func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	appName, err := getRequiredQueryParam("appName", r)
-	if RespondIfError(w, err) {
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
+
 	ctx := workloads.CurrentContext(appName)
 	if ctx == nil {
 		RespondError(w, ErrorAppNotDeployed(appName))
@@ -51,7 +53,8 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 
 	if resourceID != "" {
 		workloadID, err = workloads.GetLatestWorkloadID(resourceID, appName)
-		if RespondIfError(w, err) {
+		if err != nil {
+			RespondError(w, err)
 			return
 		}
 		if workloadID == "" {
@@ -69,7 +72,8 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 
 	if resourceType != "" {
 		resource, err := ctx.VisibleResourceByNameAndType(resourceName, resourceType)
-		if RespondIfError(w, err) {
+		if err != nil {
+			RespondError(w, err)
 			return
 		}
 		workloadID = resource.GetWorkloadID()
@@ -104,7 +108,8 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 func readLogs(w http.ResponseWriter, r *http.Request, workloadID string, appName string, verbose bool) {
 	upgrader := websocket.Upgrader{}
 	socket, err := upgrader.Upgrade(w, r, nil)
-	if RespondIfError(w, err) {
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
 	defer socket.Close()

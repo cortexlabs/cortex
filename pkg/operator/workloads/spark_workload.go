@@ -271,14 +271,22 @@ func sparkSpec(
 	})
 }
 
+func (sw *SparkWorkload) IsStarted(ctx *context.Context) (bool, error) {
+	return config.Spark.Exists(sw.WorkloadID)
+}
+
 func (sw *SparkWorkload) IsRunning(ctx *context.Context) (bool, error) {
 	return config.Spark.IsRunning(sw.WorkloadID)
 }
 
 func (sw *SparkWorkload) CanRun(ctx *context.Context) (bool, error) {
-	return areDataDependenciesSucceeded(ctx, sw.GetResourceIDs())
+	return areAllDataDependenciesSucceeded(ctx, sw.GetResourceIDs())
 }
 
 func (sw *SparkWorkload) IsSucceeded(ctx *context.Context) (bool, error) {
-	return areDataResourcesSucceeded(ctx, sw.GetResourceIDs())
+	return areAllDataResourcesSucceeded(ctx, sw.GetResourceIDs())
+}
+
+func (sw *SparkWorkload) IsFailed(ctx *context.Context) (bool, error) {
+	return areAnyDataResourcesFailed(ctx, sw.GetResourceIDs())
 }

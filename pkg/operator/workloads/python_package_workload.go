@@ -111,14 +111,22 @@ func (pyw *PythonPackagesWorkload) Start(ctx *context.Context) error {
 	return nil
 }
 
+func (pyw *PythonPackagesWorkload) IsStarted(ctx *context.Context) (bool, error) {
+	return config.Kubernetes.JobExists(pyw.WorkloadID)
+}
+
 func (pyw *PythonPackagesWorkload) IsRunning(ctx *context.Context) (bool, error) {
 	return config.Kubernetes.IsJobRunning(pyw.WorkloadID)
 }
 
 func (pyw *PythonPackagesWorkload) CanRun(ctx *context.Context) (bool, error) {
-	return areDataDependenciesSucceeded(ctx, pyw.GetResourceIDs())
+	return areAllDataDependenciesSucceeded(ctx, pyw.GetResourceIDs())
 }
 
 func (pyw *PythonPackagesWorkload) IsSucceeded(ctx *context.Context) (bool, error) {
-	return areDataResourcesSucceeded(ctx, pyw.GetResourceIDs())
+	return areAllDataResourcesSucceeded(ctx, pyw.GetResourceIDs())
+}
+
+func (pyw *PythonPackagesWorkload) IsFailed(ctx *context.Context) (bool, error) {
+	return areAnyDataResourcesFailed(ctx, pyw.GetResourceIDs())
 }

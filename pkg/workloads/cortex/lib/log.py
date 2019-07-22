@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+from logging.config import dictConfig
 
 logger = logging.getLogger("cortex")
 handler = logging.StreamHandler()

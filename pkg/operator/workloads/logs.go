@@ -18,8 +18,6 @@ package workloads
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -44,8 +42,9 @@ const (
 
 	pendingPodCheckInterval = 1 * time.Second
 	newPodCheckInterval     = 5 * time.Second
+	firstPodCheckInterval   = 500 * time.Millisecond
 	maxParallelPodLogging   = 5
-	initLogTailLines        = 20
+	initLogTailLines        = 100
 )
 
 func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket.Conn) {
@@ -107,12 +106,13 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			return
 		}
 
-		isPending, err := IsWorkloadPending(appName, workloadID)
+		isEnded, err := IsWorkloadEnded(appName, workloadID)
+
 		if err != nil {
 			writeSocket(err.Error(), socket)
 			return
 		}
-		if !isPending {
+		if isEnded {
 			logPrefix, err := getSavedLogPrefix(workloadID, appName, true)
 			if err != nil {
 				writeSocket(err.Error(), socket)
@@ -184,7 +184,7 @@ func startKubectlProcess(pod kcore.Pod, previous bool, attrs *os.ProcAttr) (*os.
 		identifier += " " + apiContainerName
 	}
 
-	labelLog := fmt.Sprintf(" | while read -r; do echo \"[%s] $REPLY \" | tail -n +1; done", identifier)
+	labelLog := fmt.Sprintf(" | while read -r; do echo \"[%s] $REPLY\" | tail -n +1; done", identifier)
 	kubectlCmd := strings.Join(kubectlArgs, " ")
 	bashArgs := []string{"/bin/bash", "-c", kubectlCmd + labelLog}
 	process, err := os.StartProcess(cmdPath, bashArgs, attrs)
@@ -287,8 +287,14 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 				deleteMap[podName] = processMap[podName]
 				delete(processMap, podName)
 			}
-			deleteProcesses(deleteMap)
-			timer.Reset(newPodCheckInterval)
+
+			go deleteProcesses(deleteMap)
+
+			if len(processMap) == 0 {
+				timer.Reset(firstPodCheckInterval)
+			} else {
+				timer.Reset(newPodCheckInterval)
+			}
 		}
 	}
 }
@@ -382,9 +388,9 @@ func pumpStdout(socket *websocket.Conn, socketWriterError chan error, reader io.
 	socket.Close()
 }
 
-var cortexRegex = regexp.MustCompile(`^\[.*\]?(DEBUG|INFO|WARNING|ERROR|CRITICAL):cortex:`)
-var tensorflowRegex = regexp.MustCompile(`^\[.*\]?(DEBUG|INFO|WARNING|ERROR|CRITICAL):tensorflow:`)
-var jsonPrefixRegex = regexp.MustCompile(`^\ *?(\{|\[)`)
+// Pod name is added when streaming from kubectl logs but not for cloudwatch logs, match it if it present and filter it out
+var cortexRegex = regexp.MustCompile(`^(\[[A-Za-z0-9\d\-_\s]*\]\ )?(DEBUG|INFO|WARNING|ERROR|CRITICAL):cortex:`)
+var tensorflowRegex = regexp.MustCompile(`^(\[[A-Za-z0-9\d\-_\s]*\]\ )?(DEBUG|INFO|WARNING|ERROR|CRITICAL):tensorflow:`)
 
 func formatHeader1(headerString string) *string {
 	headerBorder := "\n" + strings.Repeat("-", len(headerString)) + "\n"
@@ -433,20 +439,6 @@ func extractFromCortexLog(match string, loglevel string, logStr string) (*string
 		return formatHeader3(cutStr), false
 	}
 
-	matches := jsonPrefixRegex.FindStringSubmatch(cutStr)
-	if len(matches) == 2 {
-		indentIndex := len(matches[0]) - 1 // matches to curly or square bracket so remove the last char
-		indentStr := cutStr[:indentIndex]
-		maybeJSON := cutStr[indentIndex:]
-		jsonBytes := []byte(maybeJSON)
-		var obytes bytes.Buffer
-		err := json.Indent(&obytes, jsonBytes, indentStr, "  ")
-		if err == nil {
-			ostr := indentStr + string(obytes.String())
-			return &ostr, false
-		}
-	}
-
 	lastLogRe := regexp.MustCompile(`^workload: (\w+), completed: (\S+)`)
 	if lastLogRe.MatchString(cutStr) {
 		return &cutStr, true
@@ -485,6 +477,10 @@ func extractFromCortexLog(match string, loglevel string, logStr string) (*string
 		return formatHeader3(cutStr), false
 	}
 
+	if strings.HasPrefix(cutStr, "sample: ") {
+		return pointer.String("\n" + cutStr), false
+	}
+
 	return &cutStr, false
 }
 
@@ -513,13 +509,13 @@ func extractFromTensorflowLog(match string, loglevel string, logStr string) (*st
 
 func cleanLog(logStr string) (*string, bool) {
 	matches := cortexRegex.FindStringSubmatch(logStr)
-	if len(matches) == 2 {
-		return extractFromCortexLog(matches[0], matches[1], logStr)
+	if len(matches) == 3 {
+		return extractFromCortexLog(matches[0], matches[2], logStr)
 	}
 
 	matches = tensorflowRegex.FindStringSubmatch(logStr)
-	if len(matches) == 2 {
-		return extractFromTensorflowLog(matches[0], matches[1], logStr)
+	if len(matches) == 3 {
+		return extractFromTensorflowLog(matches[0], matches[2], logStr)
 	}
 
 	return nil, false
