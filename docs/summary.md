@@ -19,7 +19,7 @@
 ## Cluster
 
 * [AWS Credentials](cluster/aws.md)
-* [Config](cluster/config.md)
+* [Configuration](cluster/config.md)
 * [Security](cluster/security.md)
 * [Uninstall](cluster/uninstall.md)
 * [Development](cluster/development.md)

@@ -24,6 +24,8 @@ export AWS_SECRET_ACCESS_KEY=***
 ./cortex.sh install
 ```
 
+See [cluster configuration](config.md) options to customize your installation.
+
 ## Install and configure the CLI
 
 ```bash
