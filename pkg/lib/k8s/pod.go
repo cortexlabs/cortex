@@ -104,18 +104,27 @@ func (c *Client) ApplyPod(pod *kcore.Pod) (*kcore.Pod, error) {
 	return c.updatePod(pod)
 }
 
-func GetPodLastContainerStartTime(pod *kcore.Pod) *time.Time {
-	var startTime *time.Time
-	for _, containerStatus := range pod.Status.ContainerStatuses {
-		if containerStatus.State.Running == nil {
-			return nil
-		}
-		containerStartTime := containerStatus.State.Running.StartedAt.Time
-		if startTime == nil || containerStartTime.After(*startTime) {
-			startTime = &containerStartTime
+func IsPodReady(pod *kcore.Pod) bool {
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == "Ready" && condition.Status == "True" {
+			return true
 		}
 	}
-	return startTime
+
+	return false
+}
+
+func GetPodReadyTime(pod *kcore.Pod) *time.Time {
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == "Ready" && condition.Status == "True" {
+			if condition.LastTransitionTime.Time.IsZero() {
+				return nil
+			}
+			return &condition.LastTransitionTime.Time
+		}
+	}
+
+	return nil
 }
 
 func GetPodStatus(pod *kcore.Pod) PodStatus {

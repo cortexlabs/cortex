@@ -123,16 +123,12 @@ func updateAPISavedStatusStartTime(savedStatus *resource.APISavedStatus, pods []
 	}
 
 	for _, pod := range pods {
-		podStatus := k8s.GetPodStatus(&pod)
-		if podStatus != k8s.PodStatusRunning {
+		podReadyTime := k8s.GetPodReadyTime(&pod)
+		if podReadyTime == nil {
 			continue
 		}
-		podStartTime := k8s.GetPodLastContainerStartTime(&pod)
-		if podStartTime == nil {
-			podStartTime = pointer.Time(time.Now())
-		}
-		if savedStatus.Start == nil || (*podStartTime).Before(*savedStatus.Start) {
-			savedStatus.Start = podStartTime
+		if savedStatus.Start == nil || (*podReadyTime).Before(*savedStatus.Start) {
+			savedStatus.Start = podReadyTime
 		}
 	}
 }
