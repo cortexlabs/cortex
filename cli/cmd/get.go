@@ -432,9 +432,9 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 			break
 		}
 	}
-	refreshedAt := groupStatus.Start
-	if groupStatus.ActiveStatus != nil && groupStatus.ActiveStatus.Start != nil {
-		refreshedAt = groupStatus.ActiveStatus.Start
+	var updatedAt *time.Time
+	if groupStatus.ActiveStatus != nil {
+		updatedAt = groupStatus.ActiveStatus.Start
 	}
 
 	var staleComputeStr = ""
@@ -458,8 +458,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	out += fmt.Sprintf("Requested replicas:  %s\n", s.Int32(groupStatus.Requested))
 	out += fmt.Sprintf("Failed replicas:     %s\n", s.Int32(groupStatus.FailedUpdated))
 	out += "\n"
-	out += fmt.Sprintf("Created at:    %s\n", libtime.LocalTimestamp(groupStatus.Start))
-	out += fmt.Sprintf("Refreshed at:  %s", libtime.LocalTimestamp(refreshedAt))
+	out += fmt.Sprintf("Updated at:  %s", libtime.LocalTimestamp(updatedAt))
 
 	if !flagVerbose {
 		return out, nil

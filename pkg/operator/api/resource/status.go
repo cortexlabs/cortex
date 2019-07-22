@@ -16,10 +16,6 @@ limitations under the License.
 
 package resource
 
-import (
-	"time"
-)
-
 type DataStatus struct {
 	DataSavedStatus
 	Code StatusCode `json:"status_code"`
@@ -48,7 +44,6 @@ type ReplicaCounts struct {
 // There is one APIGroupStatus per API name/endpoint
 type APIGroupStatus struct {
 	APIName              string     `json:"api_name"`
-	Start                *time.Time `json:"start"`
 	ActiveStatus         *APIStatus `json:"active_status"` // The most recently ready API status, or the ctx API status if it's ready
 	Code                 StatusCode `json:"status_code"`
 	GroupedReplicaCounts `json:"grouped_replica_counts"`
