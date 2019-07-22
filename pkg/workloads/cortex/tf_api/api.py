@@ -497,17 +497,13 @@ def start(args):
         e.wrap("error")
         logger.error(str(e))
         logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(
-                api['name']
-            )
-        )        
+            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
+        )
         sys.exit(1)
     except Exception as e:
         logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(
-                api['name']
-            )
-        )        
+            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
+        )
         sys.exit(1)
 
     try:
