@@ -20,7 +20,7 @@ import (
 	"path"
 
 	kapps "k8s.io/api/apps/v1"
-	kautoscaling "k8s.io/api/autoscaling/v1"
+	kautoscaling "k8s.io/api/autoscaling/v2beta2"
 	kcore "k8s.io/api/core/v1"
 	kextensions "k8s.io/api/extensions/v1beta1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
@@ -504,17 +504,7 @@ func hpaSpec(ctx *context.Context, api *context.API) *kautoscaling.HorizontalPod
 }
 
 func doesAPIComputeNeedsUpdating(api *context.API, deployment *kapps.Deployment, hpa *kautoscaling.HorizontalPodAutoscaler) bool {
-	if hpa == nil {
-		return true
-	}
-
-	if hpa.Spec.MinReplicas != nil && api.Compute.MinReplicas != *hpa.Spec.MinReplicas {
-		return true
-	}
-	if api.Compute.MaxReplicas != hpa.Spec.MaxReplicas {
-		return true
-	}
-	if hpa.Spec.TargetCPUUtilizationPercentage != nil && api.Compute.TargetCPUUtilization != *hpa.Spec.TargetCPUUtilizationPercentage {
+	if !k8s.IsHPAUpToDate(hpa, api.Compute.MinReplicas, api.Compute.MaxReplicas, api.Compute.TargetCPUUtilization) {
 		return true
 	}
 
