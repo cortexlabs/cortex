@@ -42,7 +42,7 @@ aws ecr create-repository --repository-name=org/my-api --region=us-west-2
 # take note of repository url
 ```
 
-Build the image based on your Dockerfile and push to its repository in AWS ECR.
+Build the image based on your Dockerfile and push to its repository in AWS ECR:
 
 ```
 docker build . -t org/my-api:latest -t <repository_url>:latest
@@ -62,10 +62,11 @@ export CORTEX_IMAGE_ONNX_SERVE="<repository_url>:latest"
 
 ## Use System Package in Workloads
 
-Cortex will use your image to launch ONNX serving workloads. You will have access to any customizations you made.
+Cortex will use your image to launch ONNX serving workloads. You will have access to any customizations you made:
 
 ```
 # request_handler.py
+
 import subprocess
 
 def pre_inference(sample, metadata):
