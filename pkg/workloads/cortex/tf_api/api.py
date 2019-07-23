@@ -295,20 +295,20 @@ def validate_sample(sample):
         ctx = local_cache["ctx"]
         for column in local_cache["required_inputs"]:
             if column["name"] not in sample:
-                raise UserException('missing key in sample "{}"'.format(column["name"]))
+                raise UserException('missing key "{}"'.format(column["name"]))
             sample_val = sample[column["name"]]
             column_type = ctx.get_inferred_column_type(column["name"])
             is_valid = util.CORTEX_TYPE_TO_VALIDATOR[column_type](sample_val)
 
             if not is_valid:
                 raise UserException(
-                    'expected type of value for key "{}" is {}'.format(column["name"], column_type)
+                    'key "{}"'.format(column["name"]), "expected type " + column_type
                 )
     else:
         signature = extract_signature()
         for input_name, metadata in signature.items():
             if input_name not in sample:
-                raise UserException('missing key in sample "{}"'.format(input_name))
+                raise UserException('missing key "{}"'.format(input_name))
 
 
 def prediction_failed(sample, reason=None):

@@ -107,7 +107,7 @@ def convert_to_onnx_input(sample, input_metadata_list):
         input_metadata = input_metadata_list[0]
         if util.is_dict(sample):
             if sample.get(input_metadata.name) is None:
-                raise UserException('missing key in sample "{}"'.format(input_metadata.name))
+                raise UserException('missing key "{}"'.format(input_metadata.name))
             input_dict[input_metadata.name] = transform_to_numpy(
                 sample[input_metadata.name], input_metadata
             )
@@ -121,13 +121,13 @@ def convert_to_onnx_input(sample, input_metadata_list):
             if not util.is_dict(input_metadata):
                 expected_keys = [metadata.name for metadata in input_metadata_list]
                 raise UserException(
-                    "excepted sample to be a dictionary with keys ({})".format(
+                    "expected sample to be a dictionary with keys {}".format(
                         ", ".join('"' + key + '"' for key in expected_keys)
                     )
                 )
 
             if sample.get(input_metadata.name) is None:
-                raise UserException('missing key in sample "{}"'.format(input_metadata.name))
+                raise UserException('missing key "{}"'.format(input_metadata.name))
             try:
                 input_dict[input_metadata.name] = transform_to_numpy(sample, input_metadata)
             except CortexException as e:
