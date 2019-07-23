@@ -1,6 +1,5 @@
 # System Packages
 
-
 Cortex uses Docker images to run workloads. These Docker images can be replaced with custom images based on Cortex images and augmented with your system packages and libraries. Your custom images need to be pushed to a container registry (e.g. Docker Hub, ECR, GCR) that can be accessed by your cluster.
 
 See `Image paths` section in [cortex config](../cluster/config.md) for all images that can be customized.
@@ -15,7 +14,7 @@ Create a Dockerfile to build your custom image:
 mkdir my-api && cd my-api && touch Dockerfile
 ```
 
-Specify the base image you want to override followed by your customizations. The sample Dockerfile below inherits from Cortex's ONNX Serving image and installs the `imagemagick` system package.
+Specify the base image you want to override followed by your customizations. The sample Dockerfile below inherits from Cortex's ONNX Serving image and installs the `tree` system package.
 
 ```
 # Dockerfile
@@ -23,7 +22,7 @@ Specify the base image you want to override followed by your customizations. The
 FROM cortexlabs/onnx-serve
 
 RUN apt-get update \
-    && apt-get install -y imagemagick \
+    && apt-get install -y tree \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 ```
 
@@ -70,6 +69,6 @@ Cortex will use your image to launch ONNX serving workloads. You will have acces
 import subprocess
 
 def pre_inference(sample, metadata):
-    subprocess.run(["magick", "identify", sample["image_1"]])
+    subprocess.run(["tree"])
     ...
 ```
