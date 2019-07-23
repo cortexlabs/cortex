@@ -13,6 +13,7 @@
 * [Request Handlers](apis/request-handlers.md)
 * [Compute](apis/compute.md)
 * [Python Packages](apis/python-packages.md)
+* [System Packages](apis/system-packages.md)
 * [CLI Commands](cluster/cli.md)
 * [Resource Statuses](apis/statuses.md)
 
