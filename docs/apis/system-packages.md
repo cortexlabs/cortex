@@ -1,21 +1,24 @@
 # System Packages
 
-Custom system packages can be installed by overriding the default Docker images used by Cortex. Your custom images need to live in a container registry (DockerHub, ECR, GCR) that can be accessed by your cluster.
+Cortex uses Docker images to run workloads. These Docker images can be replaced with custom images based on Cortex Images and augmented with your system packages and libraries. Your custom images need to live in a container registry (DockerHub, ECR, GCR) that can be accessed by your cluster.
 
 See `Image paths` section in [cortex config](../cluster/config.md) for all images that can be customized.
 
-The example below showcases how to override a Cortex Docker image and configure Cortex to use it.
+The example below showcases how to create a custom Docker image and configure Cortex to use it.
 
 ## Create Custom Image
+
+Create a Dockerfile to build your custom image.
 
 ```
 mkdir my-api && cd my-api && touch Dockerfile
 ```
 
-In your Dockerfile, specify the base image you want to override followed by your customizations. In this example we install the `tree` system package.
-
+Specify the base image you want to override followed by your customizations. The sample Dockerfile below inherits from the ONNX Serving image and installs the `tree` system package.
 
 ```
+# Dockerfile
+
 FROM cortexlabs/onnx-serve
 
 RUN apt-get update \
@@ -25,9 +28,10 @@ RUN apt-get update \
 
 ## Build and Push to a Container Registry
 
-We will build a new image called `my-api` and push it to a repository in a container registry.
+Create a repository to store your image.
+
 ```
-# We will be pushing to AWS ECR in this example
+# We create a repository in AWS ECR
 
 export AWS_ACCESS_KEY_ID="***"
 export AWS_SECRET_ACCESS_KEY="***"
@@ -36,6 +40,11 @@ export AWS_SECRET_ACCESS_KEY="***"
 eval $(aws ecr get-login --no-include-email --region us-west-2)
 aws ecr create-repository --repository-name=org/my-api --region=us-west-2
 
+```
+
+Build your image based on your Dockerfile and push to its repository in AWS ECR.
+
+```
 
 docker build . -t org/my-api:latest -t <repository url>:latest
 
@@ -44,16 +53,18 @@ docker push <repository url>:latest
 
 ## Configure Cortex
 
-Set the environment variable of image you want to customize to your `my-api` image url.
+Set the environment variable of the image to your `my-api` image repository url.
+
 ```
 export CORTEX_IMAGE_ONNX_SERVE="<repository url>:latest"
 
 ./cortex.sh update
 ```
 
-## Use System Package
+## Use System Package in Workloads
 
-Cortex will now your image, instead of the default image.
+Cortex will use your image to launch ONNX serving workloads. You will have access to any customizations you made.
+
 ```
 # request_handler.py
 import subprocess
