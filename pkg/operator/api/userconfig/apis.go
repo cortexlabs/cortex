@@ -119,16 +119,22 @@ func (api *API) Validate() error {
 	if yaml.StartsWithEscapedAtSymbol(api.Model) {
 		api.ModelFormat = TensorFlowModelFormat
 	} else {
-		if api.ModelFormat == UnknownModelFormat {
-			return errors.Wrap(cr.ErrorMustBeDefined(), Identify(api), ModelFormatKey)
-		}
-
 		if !aws.IsValidS3Path(api.Model) {
 			return errors.Wrap(ErrorInvalidS3PathOrResourceReference(api.Model), Identify(api), ModelKey)
 		}
 
 		if ok, err := aws.IsS3PathFileExternal(api.Model); err != nil || !ok {
 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
+		}
+
+		if api.ModelFormat == UnknownModelFormat {
+			if strings.HasSuffix(api.Model, ".onnx") {
+				api.ModelFormat = ONNXModelFormat
+			} else if strings.HasSuffix(api.Model, ".zip") {
+				api.ModelFormat = TensorFlowModelFormat
+			} else {
+				return errors.Wrap(cr.ErrorMustBeDefined(), Identify(api), ModelFormatKey)
+			}
 		}
 	}
 

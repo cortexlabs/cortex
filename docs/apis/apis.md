@@ -8,7 +8,7 @@ Serve models at scale.
 - kind: api
   name: <string>  # API name (required)
   model: <string>  # path to an exported model (e.g. s3://my-bucket/model.zip)
-  model_format: <string>  # model format, must be "tensorflow" or "onnx"
+  model_format: <string>  # model format, must be "tensorflow" or "onnx" (default: "onnx" if model path ends with .onnx, "tensorflow" if model path ends with .zip)
   request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
   compute:
     min_replicas: <int>  # minimum number of replicas (default: 1)
