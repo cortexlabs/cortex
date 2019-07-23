@@ -100,8 +100,6 @@ def transform_to_numpy(input_pyobj, input_metadata):
 
 
 def convert_to_onnx_input(sample, input_metadata_list):
-    sess = local_cache["sess"]
-
     input_dict = {}
     if len(input_metadata_list) == 1:
         input_metadata = input_metadata_list[0]
@@ -116,6 +114,7 @@ def convert_to_onnx_input(sample, input_metadata_list):
                 input_dict[input_metadata.name] = transform_to_numpy(sample, input_metadata)
             except CortexException as e:
                 e.wrap("key {}".format(input_metadata.name))
+                raise
     else:
         for input_metadata in input_metadata_list:
             if not util.is_dict(input_metadata):
@@ -133,6 +132,7 @@ def convert_to_onnx_input(sample, input_metadata_list):
             except CortexException as e:
                 e.wrap("key {}".format(input_metadata.name))
                 raise
+    logger.info(input_dict)
     return input_dict
 
 
