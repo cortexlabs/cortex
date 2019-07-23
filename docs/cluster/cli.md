@@ -2,7 +2,6 @@
 
 ## deploy
 
-
 ```text
 Create or update a deployment.
 

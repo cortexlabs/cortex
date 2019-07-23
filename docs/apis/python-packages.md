@@ -1,6 +1,6 @@
 # Python Packages
 
-Cortex allows you to install additional Python packages to be used in any workload. If your Python packages require system packages to be installed see [system packages](system-packages.md) for more details.
+Cortex allows you to install additional Python packages to be used in any workload. If your Python packages require system packages to be installed, see [system packages](system-packages.md) for more details.
 
 ## PyPI Packages
 

@@ -1,6 +1,6 @@
 # System Packages
 
-Cortex uses Docker images to run workloads. These Docker images can be replaced with custom images based on Cortex Images and augmented with your system packages and libraries. Your custom images need to live in a container registry (DockerHub, ECR, GCR) that can be accessed by your cluster.
+Cortex uses Docker images to run workloads. These Docker images can be replaced with custom images based on Cortex images and augmented with your system packages and libraries. Your custom images need to live in a container registry (DockerHub, ECR, GCR) that can be accessed by your cluster.
 
 See `Image paths` section in [cortex config](../cluster/config.md) for all images that can be customized.
 
