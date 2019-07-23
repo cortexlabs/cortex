@@ -84,44 +84,55 @@ def transform_to_numpy(input_pyobj, input_metadata):
     target_dtype = ONNX_TO_NP_TYPE[input_metadata.type]
     target_shape = input_metadata.shape
 
-    for idx, dim in enumerate(target_shape):
-        if dim is None:
-            target_shape[idx] = 1
+    try:
+        for idx, dim in enumerate(target_shape):
+            if dim is None:
+                target_shape[idx] = 1
 
-    if type(input_pyobj) is not np.ndarray:
-        np_arr = np.array(input_pyobj, dtype=target_dtype)
-    else:
-        np_arr = input_pyobj
-    np_arr = np_arr.reshape(target_shape)
-    return np_arr
+        if type(input_pyobj) is not np.ndarray:
+            np_arr = np.array(input_pyobj, dtype=target_dtype)
+        else:
+            np_arr = input_pyobj
+        np_arr = np_arr.reshape(target_shape)
+        return np_arr
+    except Exception as e:
+        raise UserException(str(e)) from e
 
 
 def convert_to_onnx_input(sample, input_metadata_list):
-    sess = local_cache["sess"]
-
     input_dict = {}
     if len(input_metadata_list) == 1:
         input_metadata = input_metadata_list[0]
         if util.is_dict(sample):
             if sample.get(input_metadata.name) is None:
-                raise ValueError("sample should be a dict containing key: " + input_metadata.name)
+                raise UserException('missing key "{}"'.format(input_metadata.name))
             input_dict[input_metadata.name] = transform_to_numpy(
                 sample[input_metadata.name], input_metadata
             )
         else:
-            input_dict[input_metadata.name] = transform_to_numpy(sample, input_metadata)
+            try:
+                input_dict[input_metadata.name] = transform_to_numpy(sample, input_metadata)
+            except CortexException as e:
+                e.wrap("key {}".format(input_metadata.name))
+                raise
     else:
         for input_metadata in input_metadata_list:
             if not util.is_dict(input_metadata):
                 expected_keys = [metadata.name for metadata in input_metadata_list]
-                raise ValueError(
-                    "sample should be a dict containing keys: " + ", ".join(expected_keys)
+                raise UserException(
+                    "expected sample to be a dictionary with keys {}".format(
+                        ", ".join('"' + key + '"' for key in expected_keys)
+                    )
                 )
 
             if sample.get(input_metadata.name) is None:
-                raise ValueError("sample should be a dict containing key: " + input_metadata.name)
-
-            input_dict[input_metadata.name] = transform_to_numpy(sample, input_metadata)
+                raise UserException('missing key "{}"'.format(input_metadata.name))
+            try:
+                input_dict[input_metadata.name] = transform_to_numpy(sample, input_metadata)
+            except CortexException as e:
+                e.wrap("key {}".format(input_metadata.name))
+                raise
+    logger.info(input_dict)
     return input_dict
 
 
