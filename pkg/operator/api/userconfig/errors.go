@@ -602,7 +602,7 @@ func ErrorExternalNotFound(path string) error {
 func ErrorUnableToInferModelFormat() error {
 	return Error{
 		Kind:    ErrUnableToInferModelFormat,
-		message: "unable to infer " + ModelFormatKey + ", path to model should end in .zip for TensorFlow models, .onnx for ONNX models or " + ModelFormatKey + " key must be specified",
+		message: "unable to infer " + ModelFormatKey + ": path to model should end in .zip for TensorFlow models, .onnx for ONNX models, or the " + ModelFormatKey + " key must be specified",
 	}
 }
 
