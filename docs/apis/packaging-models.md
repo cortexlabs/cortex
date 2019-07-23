@@ -22,7 +22,6 @@ Reference your `model` in an API:
 ```yaml
 - kind: api
   name: my-api
-  model_format: tensorflow
   model: s3://my-bucket/model.zip
 ```
 
@@ -65,5 +64,4 @@ Reference your `model` in an API:
 - kind: api
   name: my-api
   model: s3://my-bucket/model.onnx
-  model_format: onnx
 ```
