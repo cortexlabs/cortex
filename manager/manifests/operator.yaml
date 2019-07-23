@@ -125,6 +125,17 @@ spec:
       protocol: HTTP
     hosts:
     - "*"
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    hosts:
+    - "*"
+    tls:
+      mode: SIMPLE
+      serverCertificate: /etc/istio/customgateway-certs/tls.crt
+      privateKey: /etc/istio/customgateway-certs/tls.key
+
 ---
 
 apiVersion: networking.istio.io/v1alpha3

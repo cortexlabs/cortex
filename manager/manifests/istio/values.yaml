@@ -13,16 +13,14 @@
 #
 gateways:
   enabled: true
+  istio-ingressgateway:
+    enabled: false
   operator-ingressgateway:
     namespace: istio-system
     enabled: true
     labels:
       app: operator-istio-gateway
       istio: operator-ingressgateway
-    serviceAnnotations:
-      service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "https"
-      service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
-      service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
     replicaCount: 1
     autoscaleMin: 1
     autoscaleMax: 2
@@ -75,10 +73,6 @@ gateways:
     labels:
       app: apis-istio-gateway
       istio: apis-ingressgateway
-    serviceAnnotations:
-      service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "https"
-      service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
-      service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
     replicaCount: 1
     autoscaleMin: 1
     autoscaleMax: 2
