@@ -69,12 +69,11 @@ func Execute() {
 	cobra.EnableCommandSorting = false
 
 	rootCmd.AddCommand(deployCmd)
+	rootCmd.AddCommand(getCmd)
+	rootCmd.AddCommand(logsCmd)
 	rootCmd.AddCommand(refreshCmd)
 	rootCmd.AddCommand(predictCmd)
 	rootCmd.AddCommand(deleteCmd)
-
-	rootCmd.AddCommand(getCmd)
-	rootCmd.AddCommand(logsCmd)
 
 	rootCmd.AddCommand(configureCmd)
 	rootCmd.AddCommand(completionCmd)
