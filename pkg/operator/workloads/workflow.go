@@ -63,6 +63,7 @@ func extractWorkloads(ctx *context.Context) []Workload {
 	workloads = append(workloads, extractSparkWorkloads(ctx)...)
 	workloads = append(workloads, extractTrainingWorkloads(ctx)...)
 	workloads = append(workloads, extractAPIWorkloads(ctx)...)
+	workloads = append(workloads, extractHPAWorkloads(ctx)...)
 	return workloads
 }
 
@@ -290,6 +291,12 @@ func IsDeploymentUpdating(appName string) (bool, error) {
 	}
 
 	for _, workload := range extractWorkloads(ctx) {
+
+		// Pending HPA workloads shouldn't block new deployments
+		if workload.GetWorkloadType() == workloadTypeHPA {
+			continue
+		}
+
 		isSucceeded, err := workload.IsSucceeded(ctx)
 		if err != nil {
 			return false, err
