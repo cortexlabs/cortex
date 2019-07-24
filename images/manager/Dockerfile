@@ -7,7 +7,7 @@ ENV PATH /root/.local/bin:$PATH
 RUN pip3 install awscli --upgrade --user && \
     rm -rf /root/.cache/pip*
 
-RUN apk add --no-cache bash curl gettext jq git openssl
+RUN apk add --no-cache bash curl gettext jq git openssl pwgen
 
 RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/0.1.40/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
     mv /tmp/eksctl /usr/local/bin
@@ -29,7 +29,7 @@ COPY manager /root
 
 RUN git clone https://github.com/nicholasjackson/mtls-go-example && \
     cd /root/mtls-go-example && \
-    yes | ./generate.sh cortex.example.com cortex && \
+    PW=$(pwgen -Bs1 12) && yes | ./generate.sh cortex.example.com $PW && \
     mkdir ../cortex.example.com && mv 1_root 2_intermediate 3_application 4_client ../cortex.example.com
 
 ENTRYPOINT ["/bin/bash"]
