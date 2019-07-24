@@ -20,12 +20,11 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-var virtualServiceTypeMeta = metav1.TypeMeta{
+var virtualServiceTypeMeta = kmeta.TypeMeta{
 	APIVersion: "v1alpha3",
 	Kind:       "VirtualService",
 }
@@ -94,7 +93,7 @@ func (c *Client) CreateVirtualService(spec *unstructured.Unstructured) (*unstruc
 	virtualService, err := c.dynamicClient.
 		Resource(virtualServiceGVR).
 		Namespace(spec.GetNamespace()).
-		Create(spec, metav1.CreateOptions{
+		Create(spec, kmeta.CreateOptions{
 			TypeMeta: virtualServiceTypeMeta,
 		})
 	if err != nil {
@@ -107,7 +106,7 @@ func (c *Client) UpdateVirtualService(spec *unstructured.Unstructured) (*unstruc
 	virtualService, err := c.dynamicClient.
 		Resource(virtualServiceGVR).
 		Namespace(spec.GetNamespace()).
-		Update(spec, metav1.UpdateOptions{
+		Update(spec, kmeta.UpdateOptions{
 			TypeMeta: virtualServiceTypeMeta,
 		})
 	if err != nil {
@@ -129,7 +128,7 @@ func (c *Client) ApplyVirtualService(spec *unstructured.Unstructured) (*unstruct
 }
 
 func (c *Client) GetVirtualService(name, namespace string) (*unstructured.Unstructured, error) {
-	virtualService, err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(namespace).Get(name, metav1.GetOptions{
+	virtualService, err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(namespace).Get(name, kmeta.GetOptions{
 		TypeMeta: virtualServiceTypeMeta,
 	})
 
@@ -143,7 +142,7 @@ func (c *Client) GetVirtualService(name, namespace string) (*unstructured.Unstru
 }
 
 func (c *Client) DeleteVirtualService(name, namespace string) (bool, error) {
-	err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(namespace).Delete(name, &metav1.DeleteOptions{
+	err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(namespace).Delete(name, &kmeta.DeleteOptions{
 		TypeMeta: virtualServiceTypeMeta,
 	})
 	if kerrors.IsNotFound(err) {

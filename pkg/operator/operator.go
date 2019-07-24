@@ -53,10 +53,11 @@ func main() {
 
 	router := mux.NewRouter()
 	router.Use(panicMiddleware)
+	router.HandleFunc("/", Index).Methods("GET")
+
 	router.Use(apiVersionCheckMiddleware)
 	router.Use(authMiddleware)
 
-	router.HandleFunc("/", Index).Methods("GET")
 	router.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
 	router.HandleFunc("/delete", endpoints.Delete).Methods("POST")
 	router.HandleFunc("/resources", endpoints.GetResources).Methods("GET")
@@ -70,7 +71,7 @@ func main() {
 func Index(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("."))
+	w.Write([]byte("🚀"))
 }
 
 func panicMiddleware(next http.Handler) http.Handler {

@@ -508,7 +508,6 @@ def start(args):
 
     logger.info("Serving model: {}".format(util.remove_resource_ref(api["model"])))
     serve(app, listen="*:{}".format(args.port))
-    return
 
 def main():
     parser = argparse.ArgumentParser()
