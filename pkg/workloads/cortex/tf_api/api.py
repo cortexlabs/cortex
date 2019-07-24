@@ -441,6 +441,7 @@ def validate_model_dir(model_dir):
 
 def start(args):
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
+
     api = ctx.apis_id_map[args.api]
     local_cache["api"] = api
     local_cache["ctx"] = ctx
