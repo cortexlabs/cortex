@@ -78,6 +78,7 @@ const (
 	ErrExtraResourcesWithExternalAPIs
 	ErrImplDoesNotExist
 	ErrInvalidS3PathOrResourceReference
+	ErrUnableToInferModelFormat
 	ErrExternalNotFound
 )
 
@@ -130,6 +131,7 @@ var errorKinds = []string{
 	"err_extra_resources_with_external_apis",
 	"err_impl_does_not_exist",
 	"err_invalid_s3_path_or_resource_reference",
+	"err_unable_to_infer_model_format",
 	"err_external_not_found",
 }
 
@@ -594,6 +596,13 @@ func ErrorExternalNotFound(path string) error {
 	return Error{
 		Kind:    ErrExternalNotFound,
 		message: fmt.Sprintf("%s: not found or insufficient permissions", path),
+	}
+}
+
+func ErrorUnableToInferModelFormat() error {
+	return Error{
+		Kind:    ErrUnableToInferModelFormat,
+		message: "unable to infer " + ModelFormatKey + ": path to model should end in .zip for TensorFlow models, .onnx for ONNX models, or the " + ModelFormatKey + " key must be specified",
 	}
 }
 
