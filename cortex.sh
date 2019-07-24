@@ -427,7 +427,7 @@ if [ "$arg1" = "install" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    prompt_for_telemetry && install_cortex && info
+    prompt_for_telemetry && install_eks && install_cortex && info
   elif [ "$arg2" = "cli" ]; then
     install_cli
   elif [ "$arg2" = "" ]; then
@@ -445,7 +445,7 @@ elif [ "$arg1" = "uninstall" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    uninstall_cortex
+    uninstall_cortex && uninstall_eks
   elif [ "$arg2" = "cli" ]; then
     uninstall_cli
   elif [ "$arg2" = "" ]; then
