@@ -43,19 +43,16 @@ metadata:
     workloadType: operator
     workloadID: operator
     app: operator
-    version: v1
 spec:
   replicas: 1
   selector:
     matchLabels:
       workloadID: operator
       app: operator
-      version: v1
   template:
     metadata:
       labels:
         app: operator
-        version: v1
         workloadID: operator
         workloadType: operator
       annotations:

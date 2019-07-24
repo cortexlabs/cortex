@@ -275,14 +275,12 @@ func tfAPISpec(
 			"resourceID":   ctx.APIs[api.Name].ID,
 			"workloadID":   workloadID,
 			"app":          internalAPIName(api.Name, ctx.App.Name),
-			"version":      "v1",
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
 			"app":          internalAPIName(api.Name, ctx.App.Name),
-			"version":      "v1",
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "true",
@@ -295,7 +293,6 @@ func tfAPISpec(
 				"resourceID":   ctx.APIs[api.Name].ID,
 				"workloadID":   workloadID,
 				"app":          internalAPIName(api.Name, ctx.App.Name),
-				"version":      "v1",
 				"userFacing":   "true",
 			},
 			K8sPodSpec: kcore.PodSpec{
@@ -414,14 +411,12 @@ func onnxAPISpec(
 			"resourceID":   ctx.APIs[api.Name].ID,
 			"workloadID":   workloadID,
 			"app":          internalAPIName(api.Name, ctx.App.Name),
-			"version":      "v1",
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
 			"app":          internalAPIName(api.Name, ctx.App.Name),
-			"version":      "v1",
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "true",
@@ -434,7 +429,6 @@ func onnxAPISpec(
 				"resourceID":   ctx.APIs[api.Name].ID,
 				"workloadID":   workloadID,
 				"app":          internalAPIName(api.Name, ctx.App.Name),
-				"version":      "v1",
 				"userFacing":   "true",
 			},
 			K8sPodSpec: kcore.PodSpec{
