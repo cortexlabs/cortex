@@ -32,5 +32,7 @@ kubectl delete --ignore-not-found=true customresourcedefinition scheduledsparkap
 kubectl delete --ignore-not-found=true customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
 kubectl delete --ignore-not-found=true namespace istio-system >/dev/null 2>&1
 kubectl delete --ignore-not-found=true namespace $CORTEX_NAMESPACE >/dev/null 2>&1
+helm del --purge istio-init 2>&1
+helm del --purge istio 2>&1
 
 echo "✓ Uninstalled Cortex"

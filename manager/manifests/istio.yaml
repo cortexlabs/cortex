@@ -1,16 +1,17 @@
-# Top level istio values file has the following sections.
+# Copyright 2019 Cortex Labs, Inc.
 #
-# global: This file is the authoritative and exhaustive source for the global section.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# chart sections: Every subdirectory inside the charts/ directory has a top level
-#       configuration key in this file. This file overrides the values specified
-#       by the charts/${chartname}/values.yaml.
-#       Check the chart level values file for exhaustive list of configuration options.
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-#
-# Gateways Configuration, refer to the charts/gateways/values.yaml
-# for detailed configuration
-#
 gateways:
   enabled: true
   istio-ingressgateway:
@@ -147,10 +148,10 @@ galley:
 mixer:
   policy:
     # if policy is enabled the global.disablePolicyChecks has affect.
-    enabled: true
+    enabled: false
 
   telemetry:
-    enabled: true
+    enabled: false
 #
 # pilot configuration
 #
@@ -180,7 +181,7 @@ grafana:
 # addon prometheus configuration
 #
 prometheus:
-  enabled: true
+  enabled: false
 
 #
 # addon jaeger tracing configuration

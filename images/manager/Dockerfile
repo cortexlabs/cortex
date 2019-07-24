@@ -20,16 +20,20 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.15.0/b
     chmod +x ./kubectl && \
     mv ./kubectl /usr/local/bin/kubectl
 
+COPY manager /root
+
 RUN curl -LO https://get.helm.sh/helm-v2.14.1-linux-amd64.tar.gz && \
     tar -zxvf helm-v2.14.1-linux-amd64.tar.gz && \
     chmod +x linux-amd64/helm && \
     mv linux-amd64/helm /usr/local/bin/helm
 
-COPY manager /root
-
 RUN git clone https://github.com/nicholasjackson/mtls-go-example && \
     cd /root/mtls-go-example && \
     PW=$(pwgen -Bs1 12) && yes | ./generate.sh cortex.example.com $PW && \
     mkdir ../cortex.example.com && mv 1_root 2_intermediate 3_application 4_client ../cortex.example.com
+
+RUN curl -L https://git.io/getLatestIstio | ISTIO_VERSION=1.2.2 sh - && \
+    mv ./istio-1.2.2/install/kubernetes/helm/istio ./manifests/ && \
+    mv ./istio-1.2.2/install/kubernetes/helm/istio-init ./manifests/
 
 ENTRYPOINT ["/bin/bash"]
