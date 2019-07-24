@@ -106,7 +106,7 @@ func (c *Client) ApplyPod(pod *kcore.Pod) (*kcore.Pod, error) {
 
 func IsPodReady(pod *kcore.Pod) bool {
 	for _, condition := range pod.Status.Conditions {
-		if condition.Type == "Ready" && condition.Status == "True" {
+		if condition.Type == "Ready" && condition.Status == kcore.ConditionTrue {
 			return true
 		}
 	}
@@ -116,7 +116,7 @@ func IsPodReady(pod *kcore.Pod) bool {
 
 func GetPodReadyTime(pod *kcore.Pod) *time.Time {
 	for _, condition := range pod.Status.Conditions {
-		if condition.Type == "Ready" && condition.Status == "True" {
+		if condition.Type == "Ready" && condition.Status == kcore.ConditionTrue {
 			if condition.LastTransitionTime.Time.IsZero() {
 				return nil
 			}
