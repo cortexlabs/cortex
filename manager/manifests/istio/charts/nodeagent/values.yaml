@@ -7,7 +7,7 @@ env:
   # name of authentication provider.
   CA_PROVIDER: ""
   # CA endpoint.
-  CA_ADDR: ""  
+  CA_ADDR: ""
   # names of authentication provider's plugins.
   Plugins: ""
 nodeSelector: {}

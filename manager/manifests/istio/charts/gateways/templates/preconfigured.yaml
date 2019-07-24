@@ -30,8 +30,8 @@ spec:
       privateKey: /etc/istio/ingress-certs/tls.key
     hosts:
     - "*"
-{{ end }}    
----    
+{{ end }}
+---
 {{ end }}
 
 {{- if .Values.global.meshExpansion.enabled }}

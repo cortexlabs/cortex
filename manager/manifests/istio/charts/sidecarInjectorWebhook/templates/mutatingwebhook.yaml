@@ -36,4 +36,3 @@ webhooks:
       matchLabels:
         istio-injection: enabled
 {{- end }}
-

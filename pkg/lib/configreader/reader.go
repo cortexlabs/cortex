@@ -527,7 +527,7 @@ func ReadInterfaceMapValue(name string, interMap map[string]interface{}) (interf
 // Prompt
 //
 
-var ui *input.UI = &input.UI{
+var ui = &input.UI{
 	Writer: os.Stdout,
 	Reader: os.Stdin,
 }

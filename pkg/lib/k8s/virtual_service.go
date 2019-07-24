@@ -1,5 +1,3 @@
-package k8s
-
 /*
 Copyright 2019 Cortex Labs, Inc.
 
@@ -16,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+package k8s
+
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -24,22 +24,24 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-var virtualServiceTypeMeta = kmeta.TypeMeta{
-	APIVersion: "v1alpha3",
-	Kind:       "VirtualService",
-}
+var (
+	virtualServiceTypeMeta = kmeta.TypeMeta{
+		APIVersion: "v1alpha3",
+		Kind:       "VirtualService",
+	}
 
-var virtualServiceGVR = schema.GroupVersionResource{
-	Group:    "networking.istio.io",
-	Version:  "v1alpha3",
-	Resource: "virtualservices",
-}
+	virtualServiceGVR = schema.GroupVersionResource{
+		Group:    "networking.istio.io",
+		Version:  "v1alpha3",
+		Resource: "virtualservices",
+	}
 
-var virtualServiceGVK = schema.GroupVersionKind{
-	Group:   "networking.istio.io",
-	Version: "v1alpha3",
-	Kind:    "VirtualService",
-}
+	virtualServiceGVK = schema.GroupVersionKind{
+		Group:   "networking.istio.io",
+		Version: "v1alpha3",
+		Kind:    "VirtualService",
+	}
+)
 
 type VirtualServiceSpec struct {
 	Name        string
@@ -64,16 +66,16 @@ func VirtualService(spec *VirtualServiceSpec) *unstructured.Unstructured {
 		"hosts":    []string{"*"},
 		"gateways": spec.Gateways,
 		"http": []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"match": []map[string]interface{}{
-					map[string]interface{}{
+					{
 						"uri": map[string]interface{}{
 							"prefix": spec.Path,
 						},
 					},
 				},
 				"route": []map[string]interface{}{
-					map[string]interface{}{
+					{
 						"destination": map[string]interface{}{
 							"host": spec.ServiceName,
 							"port": map[string]interface{}{
