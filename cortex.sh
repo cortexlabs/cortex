@@ -141,7 +141,7 @@ export CORTEX_ENABLE_TELEMETRY="${CORTEX_ENABLE_TELEMETRY:-""}"
 
 function install_eks() {
   echo
-  docker run --entrypoint /root/install_eks.sh \
+  docker run -it --entrypoint /root/install_eks.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
@@ -154,7 +154,7 @@ function install_eks() {
 
 function uninstall_eks() {
   echo
-  docker run --entrypoint /root/uninstall_eks.sh \
+  docker run -it --entrypoint /root/uninstall_eks.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
@@ -164,7 +164,7 @@ function uninstall_eks() {
 
 function install_cortex() {
   echo
-  docker run --entrypoint /root/install_cortex.sh \
+  docker run -it --entrypoint /root/install_cortex.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
@@ -194,7 +194,7 @@ function install_cortex() {
 
 function uninstall_cortex() {
   echo
-  docker run --entrypoint /root/uninstall_cortex.sh \
+  docker run -it --entrypoint /root/uninstall_cortex.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
@@ -205,7 +205,7 @@ function uninstall_cortex() {
 
 function uninstall_operator() {
   echo
-  docker run --entrypoint /root/uninstall_operator.sh \
+  docker run -it --entrypoint /root/uninstall_operator.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
@@ -216,7 +216,7 @@ function uninstall_operator() {
 
 function info() {
   echo
-  docker run --entrypoint /root/info.sh \
+  docker run -it --entrypoint /root/info.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \

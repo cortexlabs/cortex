@@ -280,7 +280,7 @@ class Context:
                 module_prefix, api["name"], api["request_handler_impl_key"]
             )
         except CortexException as e:
-            e.wrap("api " + api_name, "request_handler")
+            e.wrap("api " + api_name, "request_handler " + api["request_handler"])
             raise
 
         try:

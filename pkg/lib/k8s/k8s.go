@@ -26,7 +26,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	kclientset "k8s.io/client-go/kubernetes"
 	kclientapps "k8s.io/client-go/kubernetes/typed/apps/v1"
-	kclientautoscaling "k8s.io/client-go/kubernetes/typed/autoscaling/v1"
+	kclientautoscaling "k8s.io/client-go/kubernetes/typed/autoscaling/v2beta2"
 	kclientbatch "k8s.io/client-go/kubernetes/typed/batch/v1"
 	kclientcore "k8s.io/client-go/kubernetes/typed/core/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -91,7 +91,7 @@ func New(namespace string, inCluster bool) (*Client, error) {
 	client.configMapClient = client.clientset.CoreV1().ConfigMaps(namespace)
 	client.deploymentClient = client.clientset.AppsV1().Deployments(namespace)
 	client.jobClient = client.clientset.BatchV1().Jobs(namespace)
-	client.hpaClient = client.clientset.AutoscalingV1().HorizontalPodAutoscalers(namespace)
+	client.hpaClient = client.clientset.AutoscalingV2beta2().HorizontalPodAutoscalers(namespace)
 	return client, nil
 }
 

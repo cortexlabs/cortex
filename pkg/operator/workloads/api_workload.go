@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	kapps "k8s.io/api/apps/v1"
-	kautoscaling "k8s.io/api/autoscaling/v1"
 	kcore "k8s.io/api/core/v1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
@@ -113,7 +112,8 @@ func (aw *APIWorkload) Start(ctx *context.Context) error {
 		return err
 	}
 
-	_, err = config.Kubernetes.ApplyHPA(hpaSpec(ctx, api))
+	// Delete HPA while updating replicas to avoid unwanted autoscaling
+	_, err = config.Kubernetes.DeleteHPA(k8sDeloymentName)
 	if err != nil {
 		return err
 	}
@@ -133,12 +133,7 @@ func (aw *APIWorkload) IsSucceeded(ctx *context.Context) (bool, error) {
 		return false, nil
 	}
 
-	hpa, err := config.Kubernetes.GetHPA(k8sDeloymentName)
-	if err != nil {
-		return false, err
-	}
-
-	if doesAPIComputeNeedsUpdating(api, k8sDeployment, hpa) {
+	if doesAPIComputeNeedsUpdating(api, k8sDeployment) {
 		return false, nil
 	}
 
@@ -146,7 +141,7 @@ func (aw *APIWorkload) IsSucceeded(ctx *context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	requestedReplicas := getRequestedReplicasFromDeployment(api, k8sDeployment, hpa)
+	requestedReplicas := getRequestedReplicasFromDeployment(api, k8sDeployment, nil)
 	if updatedReplicas < requestedReplicas {
 		return false, nil
 	}
@@ -166,12 +161,7 @@ func (aw *APIWorkload) IsRunning(ctx *context.Context) (bool, error) {
 		return false, nil
 	}
 
-	hpa, err := config.Kubernetes.GetHPA(k8sDeloymentName)
-	if err != nil {
-		return false, err
-	}
-
-	if doesAPIComputeNeedsUpdating(api, k8sDeployment, hpa) {
+	if doesAPIComputeNeedsUpdating(api, k8sDeployment) {
 		return false, nil
 	}
 
@@ -179,7 +169,7 @@ func (aw *APIWorkload) IsRunning(ctx *context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	requestedReplicas := getRequestedReplicasFromDeployment(api, k8sDeployment, hpa)
+	requestedReplicas := getRequestedReplicasFromDeployment(api, k8sDeployment, nil)
 	if updatedReplicas < requestedReplicas {
 		return true, nil
 	}
@@ -199,12 +189,7 @@ func (aw *APIWorkload) IsStarted(ctx *context.Context) (bool, error) {
 		return false, nil
 	}
 
-	hpa, err := config.Kubernetes.GetHPA(k8sDeloymentName)
-	if err != nil {
-		return false, err
-	}
-
-	if doesAPIComputeNeedsUpdating(api, k8sDeployment, hpa) {
+	if doesAPIComputeNeedsUpdating(api, k8sDeployment) {
 		return false, nil
 	}
 
@@ -514,36 +499,7 @@ func serviceSpec(ctx *context.Context, api *context.API) *kcore.Service {
 	})
 }
 
-func hpaSpec(ctx *context.Context, api *context.API) *kautoscaling.HorizontalPodAutoscaler {
-	return k8s.HPA(&k8s.HPASpec{
-		DeploymentName:       internalAPIName(api.Name, ctx.App.Name),
-		MinReplicas:          api.Compute.MinReplicas,
-		MaxReplicas:          api.Compute.MaxReplicas,
-		TargetCPUUtilization: api.Compute.TargetCPUUtilization,
-		Labels: map[string]string{
-			"appName":      ctx.App.Name,
-			"workloadType": workloadTypeAPI,
-			"apiName":      api.Name,
-		},
-		Namespace: config.Cortex.Namespace,
-	})
-}
-
-func doesAPIComputeNeedsUpdating(api *context.API, deployment *kapps.Deployment, hpa *kautoscaling.HorizontalPodAutoscaler) bool {
-	if hpa == nil {
-		return true
-	}
-
-	if hpa.Spec.MinReplicas != nil && api.Compute.MinReplicas != *hpa.Spec.MinReplicas {
-		return true
-	}
-	if api.Compute.MaxReplicas != hpa.Spec.MaxReplicas {
-		return true
-	}
-	if hpa.Spec.TargetCPUUtilizationPercentage != nil && api.Compute.TargetCPUUtilization != *hpa.Spec.TargetCPUUtilizationPercentage {
-		return true
-	}
-
+func doesAPIComputeNeedsUpdating(api *context.API, deployment *kapps.Deployment) bool {
 	curCPU, curMem, curGPU := APIPodCompute(deployment.Spec.Template.Spec.Containers)
 	if !userconfig.QuantityPtrsEqual(curCPU, &api.Compute.CPU) {
 		return true
@@ -621,29 +577,6 @@ func apiDeploymentMap(appName string) (map[string]*kapps.Deployment, error) {
 func addToDeploymentMap(deployments map[string]*kapps.Deployment, deployment kapps.Deployment) {
 	apiName := deployment.Labels["apiName"]
 	deployments[apiName] = &deployment
-}
-
-// This returns map apiName -> hpa (not internalName -> hpa)
-func apiHPAMap(appName string) (map[string]*kautoscaling.HorizontalPodAutoscaler, error) {
-	hpaList, err := config.Kubernetes.ListHPAsByLabels(map[string]string{
-		"appName":      appName,
-		"workloadType": workloadTypeAPI,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, appName)
-	}
-
-	hpas := make(map[string]*kautoscaling.HorizontalPodAutoscaler, len(hpaList))
-	for _, hpa := range hpaList {
-		addToHPAMap(hpas, hpa)
-	}
-	return hpas, nil
-}
-
-// Avoid pointer in loop issues
-func addToHPAMap(hpas map[string]*kautoscaling.HorizontalPodAutoscaler, hpa kautoscaling.HorizontalPodAutoscaler) {
-	apiName := hpa.Labels["apiName"]
-	hpas[apiName] = &hpa
 }
 
 func internalAPIName(apiName string, appName string) string {

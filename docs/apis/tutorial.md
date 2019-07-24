@@ -26,7 +26,6 @@ Cortex requires a `cortex.yaml` file which defines a `deployment` resource. An `
 - kind: api
   name: classifier
   model: s3://cortex-examples/iris/tensorflow.zip
-  model_format: tensorflow
 ```
 
 Cortex is able to read from any S3 bucket that you have access to.
