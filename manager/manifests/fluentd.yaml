@@ -16,7 +16,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: fluentd
-  namespace: cortex
+  namespace: $CORTEX_NAMESPACE
   labels:
     app: fluentd
 ---
@@ -24,7 +24,7 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
   name: fluentd
-  namespace: cortex
+  namespace: $CORTEX_NAMESPACE
 rules:
 - apiGroups: [""]
   resources:
@@ -37,11 +37,11 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: fluentd
-  namespace: cortex
+  namespace: $CORTEX_NAMESPACE
 subjects:
 - kind: ServiceAccount
   name: fluentd
-  namespace: cortex
+  namespace: $CORTEX_NAMESPACE
 roleRef:
   kind: ClusterRole
   name: fluentd
@@ -52,7 +52,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: fluentd
-  namespace: cortex
+  namespace: $CORTEX_NAMESPACE
 data:
   fluent.conf: |
     @include containers.conf
@@ -65,7 +65,7 @@ data:
       @type tail
       @id in_tail_container_logs
       @label @containers
-      path /var/log/containers/*.log
+      path /var/log/containers/**_${CORTEX_NAMESPACE}_**.log
       pos_file /var/log/fluentd-containers.log.pos
       tag *
       read_from_head true
@@ -106,7 +106,7 @@ data:
       <match **>
         @type cloudwatch_logs
         region us-west-2
-        log_group_name "/aws/containerinsights/cortex/application"
+        log_group_name "#{ENV['LOG_GROUP_NAME']}"
         log_stream_name_key stream_name
         remove_log_stream_name_key true
         auto_create_stream true
@@ -138,6 +138,8 @@ data:
         enable_ruby
         <record>
           pod_name ${record.dig("kubernetes", "pod_name")}
+          container_name ${record.dig("kubernetes", "container_name")}
+          workload_id ${record.dig("kubernetes", "labels", "workloadID")}
           stream_name ${record.dig("kubernetes", "labels", "appName")}.${record.dig("kubernetes", "labels", "apiName")}
         </record>
         remove_keys kubernetes,api_name,app_name,workload_type
@@ -145,8 +147,8 @@ data:
       <match **>
         @type cloudwatch_logs
         @id out_cloudwatch_logs_containers2
-        region us-west-2
-        log_group_name "/aws/containerinsights/cortex/application2"
+        region "#{ENV['CORTEX_REGION']}"
+        log_group_name "#{ENV['LOG_GROUP_NAME']}"
         log_stream_name_key stream_name
         remove_log_stream_name_key true
         auto_create_stream true
@@ -164,7 +166,7 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: fluentd
-  namespace: cortex
+  namespace: $CORTEX_NAMESPACE
 spec:
   template:
     metadata:
@@ -183,13 +185,13 @@ spec:
               mountPath: /etc/fluentd
       containers:
       - name: fluentd
-        image: 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/fluentd:latest
+        image: $CORTEX_IMAGE_FLUENTD
         imagePullPolicy: Always
         env:
         - name: AWS_REGION
-          value: us-west-2
+          value: $CORTEX_REGION
         - name: LOG_GROUP_NAME
-          value: cortex
+          value: $CORTEX_LOG_GROUP
         - name: AWS_ACCESS_KEY_ID
           valueFrom:
             secretKeyRef:

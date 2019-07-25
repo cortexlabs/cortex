@@ -47,15 +47,11 @@ const (
 	initLogTailLines        = 100
 )
 
-func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket.Conn) {
+func ReadLogs(appName string, podLabels map[string]string, verbose bool, socket *websocket.Conn) {
 	wrotePending := false
 
 	for true {
-		pods, err := config.Kubernetes.ListPodsByLabels(map[string]string{
-			"appName":    appName,
-			"workloadID": workloadID,
-			"userFacing": "true",
-		})
+		pods, err := config.Kubernetes.ListPodsByLabels(podLabels)
 		if err != nil {
 			writeSocket(err.Error(), socket)
 			return
@@ -106,23 +102,17 @@ func ReadLogs(appName string, workloadID string, verbose bool, socket *websocket
 			return
 		}
 
-		isEnded, err := IsWorkloadEnded(appName, workloadID)
-
-		if err != nil {
-			writeSocket(err.Error(), socket)
-			return
-		}
-		if isEnded {
-			logPrefix, err := getSavedLogPrefix(workloadID, appName, true)
+		if workloadID, ok := podLabels["workloadID"]; ok {
+			isEnded, err := IsWorkloadEnded(appName, workloadID)
 			if err != nil {
 				writeSocket(err.Error(), socket)
 				return
 			}
-			if logPrefix == "" {
-				logPrefix = workloadID
+
+			if isEnded {
+				getCloudWatchLogs(workloadID, verbose, socket)
+				return
 			}
-			getCloudWatchLogs(logPrefix, verbose, socket)
-			return
 		}
 
 		if !wrotePending {
@@ -202,8 +192,17 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 	processMap := make(map[string]*os.Process)
 	defer deleteProcesses(processMap)
 	labels := initialPodList[0].GetLabels()
-	appName := labels["appName"]
-	workloadID := labels["workloadID"]
+	podSearchLabels := map[string]string{
+		"appName":      labels["appName"],
+		"workloadType": labels["workloadType"],
+		"userFacing":   "true",
+	}
+
+	if labels["workloadType"] == workloadTypeAPI {
+		podSearchLabels["apiName"] = labels["apiName"]
+	} else {
+		podSearchLabels["workloadID"] = labels["workloadID"]
+	}
 
 	outr, outw, err := os.Pipe()
 	if err != nil {
@@ -222,11 +221,7 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 		case <-podCheckCancel:
 			return
 		case <-timer.C:
-			pods, err := config.Kubernetes.ListPodsByLabels(map[string]string{
-				"appName":    appName,
-				"workloadID": workloadID,
-				"userFacing": "true",
-			})
+			pods, err := config.Kubernetes.ListPodsByLabels(podSearchLabels)
 
 			if err != nil {
 				socketWriterError <- errors.Wrap(err, "pod check")

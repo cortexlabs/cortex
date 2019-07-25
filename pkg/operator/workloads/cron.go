@@ -70,11 +70,6 @@ func runCron() {
 		errors.PrintError(err)
 	}
 
-	if err := uploadLogPrefixesFromAPIPods(apiPods); err != nil {
-		config.Telemetry.ReportError(err)
-		errors.PrintError(err)
-	}
-
 	failedPods, err := config.Kubernetes.ListPods(&kmeta.ListOptions{
 		FieldSelector: "status.phase=Failed",
 	})
