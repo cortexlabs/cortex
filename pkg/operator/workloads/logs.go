@@ -47,11 +47,11 @@ const (
 	initLogTailLines        = 100
 )
 
-func ReadLogs(appName string, podLabels map[string]string, verbose bool, socket *websocket.Conn) {
+func ReadLogs(appName string, podSearchLabels map[string]string, verbose bool, socket *websocket.Conn) {
 	wrotePending := false
 
 	for true {
-		pods, err := config.Kubernetes.ListPodsByLabels(podLabels)
+		pods, err := config.Kubernetes.ListPodsByLabels(podSearchLabels)
 		if err != nil {
 			writeSocket(err.Error(), socket)
 			return
@@ -102,7 +102,7 @@ func ReadLogs(appName string, podLabels map[string]string, verbose bool, socket 
 			return
 		}
 
-		if workloadID, ok := podLabels["workloadID"]; ok {
+		if workloadID, ok := podSearchLabels["workloadID"]; ok {
 			isEnded, err := IsWorkloadEnded(appName, workloadID)
 			if err != nil {
 				writeSocket(err.Error(), socket)
