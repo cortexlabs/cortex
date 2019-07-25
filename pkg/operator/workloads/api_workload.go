@@ -473,8 +473,13 @@ func serviceSpec(ctx *context.Context, api *context.API) *kcore.Service {
 	})
 }
 
-func doesAPIComputeNeedsUpdating(api *context.API, deployment *kapps.Deployment) bool {
-	curCPU, curMem, curGPU := APIPodCompute(deployment.Spec.Template.Spec.Containers)
+func doesAPIComputeNeedsUpdating(api *context.API, k8sDeployment *kapps.Deployment) bool {
+	requestedReplicas := getRequestedReplicasFromDeployment(api, k8sDeployment, nil)
+	if k8sDeployment.Spec.Replicas == nil || *k8sDeployment.Spec.Replicas != requestedReplicas {
+		return true
+	}
+
+	curCPU, curMem, curGPU := APIPodCompute(k8sDeployment.Spec.Template.Spec.Containers)
 	if !userconfig.QuantityPtrsEqual(curCPU, &api.Compute.CPU) {
 		return true
 	}
