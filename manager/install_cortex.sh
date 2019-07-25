@@ -178,8 +178,7 @@ envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
 kubectl create namespace istio-system
 kubectl create -n istio-system secret tls istio-customgateway-certs --key cortex.example.com/3_application/private/cortex.example.com.key.pem --cert cortex.example.com/3_application/certs/cortex.example.com.cert.pem
 helm template manifests/istio-init --name istio-init --namespace istio-system | kubectl apply -f -
-sleep 20
-helm template manifests/istio --values manifests/istio.yaml --name istio --namespace istio-system | kubectl apply -f -
+sleep 60 && helm template manifests/istio --values manifests/istio.yaml --name istio --namespace istio-system | kubectl apply -f -
 
 envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
