@@ -88,12 +88,12 @@ data:
           @label @by_pod
         </route>
         <route **>
-          copy # For fall-through. Without copy, routing is stopped here.
+          copy
           @label @by_endpoint
         </route>
       </match>
     </label>
-    
+
     <label @by_pod>
       <filter **>
         @type record_transformer
