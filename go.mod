@@ -24,7 +24,6 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/gorilla/websocket v1.4.0
 	github.com/imdario/mergo v0.3.7 // indirect
-	github.com/istio/api v0.0.0-20190711203913-5c33284f6906
 	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.8.1

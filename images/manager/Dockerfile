@@ -7,7 +7,7 @@ ENV PATH /root/.local/bin:$PATH
 RUN pip3 install awscli --upgrade --user && \
     rm -rf /root/.cache/pip*
 
-RUN apk add --no-cache bash curl gettext jq git openssl pwgen
+RUN apk add --no-cache bash curl gettext jq openssl pwgen
 
 RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/0.1.40/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
     mv /tmp/eksctl /usr/local/bin
@@ -25,15 +25,23 @@ COPY manager /root
 RUN curl -LO https://get.helm.sh/helm-v2.14.1-linux-amd64.tar.gz && \
     tar -zxvf helm-v2.14.1-linux-amd64.tar.gz && \
     chmod +x linux-amd64/helm && \
-    mv linux-amd64/helm /usr/local/bin/helm
+    mv linux-amd64/helm /usr/local/bin/helm && \
+    rm -rf linux-amd64 && \
+    rm helm-v2.14.1-linux-amd64.tar.gz
 
-RUN git clone https://github.com/nicholasjackson/mtls-go-example && \
-    cd /root/mtls-go-example && \
-    PW=$(pwgen -Bs1 12) && yes | ./generate.sh cortex.example.com $PW && \
-    mkdir ../cortex.example.com && mv 1_root 2_intermediate 3_application 4_client ../cortex.example.com
+RUN PW=$(pwgen -Bs1 12) && \
+    WEBSITE=cortex.example.com && \
+    openssl req \
+       -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=$WEBSITE" \
+       -newkey rsa:2048 -nodes -keyout $WEBSITE.key \
+       -x509 -days 3650 -out $WEBSITE.crt
+
+
+
 
 RUN curl -L https://git.io/getLatestIstio | ISTIO_VERSION=1.2.2 sh - && \
     mv ./istio-1.2.2/install/kubernetes/helm/istio ./manifests/ && \
-    mv ./istio-1.2.2/install/kubernetes/helm/istio-init ./manifests/
+    mv ./istio-1.2.2/install/kubernetes/helm/istio-init ./manifests/ && \
+    rm -rf ./istio-1.2.2
 
 ENTRYPOINT ["/bin/bash"]

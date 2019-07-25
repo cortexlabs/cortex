@@ -64,8 +64,6 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./bin/*" \
 ! -path "./.circleci/*" \
 ! -path "./.git/*" \
-! -path "./manager/manifests/istio/*" \
-! -path "./manager/manifests/istio-init/*" \
 ! -name LICENSE \
 ! -name requirements.txt \
 ! -name "go.*" \
