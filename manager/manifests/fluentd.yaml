@@ -223,9 +223,4 @@ spec:
       - name: config-volume
         configMap:
           name: fluentd
-      - name: runlogjournal
-        hostPath:
-          path: /run/log/journal
-      - name: dmesg
-        hostPath:
-          path: /var/log/dmesg
+
