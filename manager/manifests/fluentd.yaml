@@ -146,7 +146,7 @@ data:
       </filter>
       <match **>
         @type cloudwatch_logs
-        @id out_cloudwatch_logs_containers2
+        @id out_cloudwatch_logs_endpoints
         region "#{ENV['CORTEX_REGION']}"
         log_group_name "#{ENV['LOG_GROUP_NAME']}"
         log_stream_name_key stream_name
