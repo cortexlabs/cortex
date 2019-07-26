@@ -27,7 +27,7 @@ export CORTEX_ZONES=""
 export CORTEX_CLUSTER="cortex"
 
 # The AWS node type Cortex will use
-export CORTEX_NODE_TYPE="t3.medium"
+export CORTEX_NODE_TYPE="t3.large"
 
 # Minimum number of nodes in the cluster
 export CORTEX_NODES_MIN=2
