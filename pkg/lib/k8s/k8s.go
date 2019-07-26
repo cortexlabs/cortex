@@ -89,7 +89,6 @@ func New(namespace string, inCluster bool) (*Client, error) {
 
 	client.podClient = client.clientset.CoreV1().Pods(namespace)
 	client.serviceClient = client.clientset.CoreV1().Services(namespace)
-	client.istioServiceClient = client.clientset.CoreV1().Services("istio-system")
 	client.configMapClient = client.clientset.CoreV1().ConfigMaps(namespace)
 	client.deploymentClient = client.clientset.AppsV1().Deployments(namespace)
 	client.ingressClient = client.clientset.ExtensionsV1beta1().Ingresses(namespace)

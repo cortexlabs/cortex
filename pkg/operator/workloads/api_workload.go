@@ -19,11 +19,10 @@ package workloads
 import (
 	"path"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
+	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -250,7 +249,7 @@ func tfAPISpec(
 		tfServingResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
-	spec := &k8s.DeploymentSpec{
+	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:     internalAPIName(api.Name, ctx.App.Name),
 		Replicas: desiredReplicas,
 		Labels: map[string]string{
@@ -361,8 +360,7 @@ func tfAPISpec(
 			},
 		},
 		Namespace: config.Cortex.Namespace,
-	}
-	return k8s.Deployment(spec)
+	})
 }
 
 func onnxAPISpec(
@@ -461,7 +459,7 @@ func onnxAPISpec(
 	})
 }
 
-func virtualServiceSpec(ctx *context.Context, api *context.API) *unstructured.Unstructured {
+func virtualServiceSpec(ctx *context.Context, api *context.API) *kunstructured.Unstructured {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:        internalAPIName(api.Name, ctx.App.Name),
 		Namespace:   config.Cortex.Namespace,
@@ -469,11 +467,6 @@ func virtualServiceSpec(ctx *context.Context, api *context.API) *unstructured.Un
 		ServiceName: internalAPIName(api.Name, ctx.App.Name),
 		ServicePort: defaultPortInt32,
 		Path:        context.APIPath(api.Name, ctx.App.Name),
-		Labels: map[string]string{
-			"appName":      ctx.App.Name,
-			"workloadType": workloadTypeAPI,
-			"apiName":      api.Name,
-		},
 	})
 }
 
@@ -584,7 +577,7 @@ func internalAPIName(apiName string, appName string) string {
 }
 
 func APIsBaseURL() (string, error) {
-	service, err := config.Kubernetes.GetIstioService("apis-ingressgateway")
+	service, err := config.IstioKubernetes.GetService("apis-ingressgateway")
 	if err != nil {
 		return "", err
 	}
