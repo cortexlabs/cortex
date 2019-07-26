@@ -120,6 +120,8 @@ export CORTEX_IMAGE_MANAGER="${CORTEX_IMAGE_MANAGER:-cortexlabs/manager:$CORTEX_
 export CORTEX_IMAGE_FLUENTD="${CORTEX_IMAGE_FLUENTD:-cortexlabs/fluentd:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_NGINX_BACKEND="${CORTEX_IMAGE_NGINX_BACKEND:-cortexlabs/nginx-backend:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_NGINX_CONTROLLER="${CORTEX_IMAGE_NGINX_CONTROLLER:-cortexlabs/nginx-controller:$CORTEX_VERSION_STABLE}"
+export CORTEX_IMAGE_WEAVE_KUBE="${CORTEX_IMAGE_WEAVE_KUBE:-cortexlabs/weave-kube:$CORTEX_VERSION_STABLE}"
+export CORTEX_IMAGE_WEAVE_NPC="${CORTEX_IMAGE_WEAVE_NPC:-cortexlabs/weave-npc:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_OPERATOR="${CORTEX_IMAGE_OPERATOR:-cortexlabs/operator:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_SPARK="${CORTEX_IMAGE_SPARK:-cortexlabs/spark:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_SPARK_OPERATOR="${CORTEX_IMAGE_SPARK_OPERATOR:-cortexlabs/spark-operator:$CORTEX_VERSION_STABLE}"
@@ -151,6 +153,8 @@ function install_eks() {
     -e CORTEX_NODE_TYPE=$CORTEX_NODE_TYPE \
     -e CORTEX_NODES_MIN=$CORTEX_NODES_MIN \
     -e CORTEX_NODES_MAX=$CORTEX_NODES_MAX \
+    -e CORTEX_IMAGE_WEAVE_KUBE=$CORTEX_IMAGE_WEAVE_KUBE \
+    -e CORTEX_IMAGE_WEAVE_NPC=$CORTEX_IMAGE_WEAVE_NPC \
     $CORTEX_IMAGE_MANAGER
 }
 
@@ -193,17 +197,6 @@ function install_cortex() {
     -e CORTEX_IMAGE_NVIDIA=$CORTEX_IMAGE_NVIDIA \
     -e CORTEX_IMAGE_METRICS_SERVER=$CORTEX_IMAGE_METRICS_SERVER \
     -e CORTEX_ENABLE_TELEMETRY=$CORTEX_ENABLE_TELEMETRY \
-    $CORTEX_IMAGE_MANAGER
-}
-
-function uninstall_cortex() {
-  echo
-  docker run -it --entrypoint /root/uninstall_cortex.sh \
-    -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-    -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
-    -e CORTEX_REGION=$CORTEX_REGION \
-    -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
     $CORTEX_IMAGE_MANAGER
 }
 
@@ -449,7 +442,7 @@ elif [ "$arg1" = "uninstall" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    uninstall_cortex && uninstall_eks
+    uninstall_eks
   elif [ "$arg2" = "cli" ]; then
     uninstall_cli
   elif [ "$arg2" = "" ]; then
