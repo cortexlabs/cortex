@@ -105,7 +105,7 @@ data:
       </filter>
       <match **>
         @type cloudwatch_logs
-        region "#{ENV['CORTEX_REGION']}"
+        region "#{ENV['AWS_REGION']}"
         log_group_name "#{ENV['LOG_GROUP_NAME']}"
         log_stream_name_key stream_name
         remove_log_stream_name_key true
@@ -147,7 +147,7 @@ data:
       <match **>
         @type cloudwatch_logs
         @id out_cloudwatch_logs_endpoints
-        region "#{ENV['CORTEX_REGION']}"
+        region "#{ENV['AWS_REGION']}"
         log_group_name "#{ENV['LOG_GROUP_NAME']}"
         log_stream_name_key stream_name
         remove_log_stream_name_key true
