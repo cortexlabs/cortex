@@ -104,7 +104,7 @@ func (c *Client) CreateVirtualService(spec *kunstructured.Unstructured) (*kunstr
 	return virtualService, nil
 }
 
-func (c *Client) UpdateVirtualService(spec *kunstructured.Unstructured) (*kunstructured.Unstructured, error) {
+func (c *Client) updateVirtualService(spec *kunstructured.Unstructured) (*kunstructured.Unstructured, error) {
 	virtualService, err := c.dynamicClient.
 		Resource(virtualServiceGVR).
 		Namespace(spec.GetNamespace()).
