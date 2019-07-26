@@ -200,17 +200,6 @@ function install_cortex() {
     $CORTEX_IMAGE_MANAGER
 }
 
-function uninstall_cortex() {
-  echo
-  docker run -it --entrypoint /root/uninstall_cortex.sh \
-    -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-    -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
-    -e CORTEX_REGION=$CORTEX_REGION \
-    -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
-    $CORTEX_IMAGE_MANAGER
-}
-
 function uninstall_operator() {
   echo
   docker run -it --entrypoint /root/uninstall_operator.sh \
@@ -453,7 +442,7 @@ elif [ "$arg1" = "uninstall" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    uninstall_cortex && uninstall_eks
+    uninstall_eks
   elif [ "$arg2" = "cli" ]; then
     uninstall_cli
   elif [ "$arg2" = "" ]; then
