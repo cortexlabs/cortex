@@ -99,6 +99,7 @@ gateways:
 
 sidecarInjectorWebhook:
   enabled: true
+  image: $CORTEX_IMAGE_ISTIO_SIDECAR
   alwaysInjectSelector:
     - matchLabels:
         workloadType: api
@@ -106,6 +107,7 @@ sidecarInjectorWebhook:
         workloadType: operator
 
 galley:
+  image: $CORTEX_IMAGE_ISTIO_GALLEY
   enabled: true
 
 mixer:
@@ -116,9 +118,11 @@ mixer:
     enabled: false
 
 pilot:
+  image: $CORTEX_IMAGE_ISTIO_PILOT
   enabled: true
 
 security:
+  image: $CORTEX_IMAGE_ISTIO_CITADEL
   enabled: true
 
 nodeagent:
