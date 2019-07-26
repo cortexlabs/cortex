@@ -126,7 +126,7 @@ func (c *Client) ApplyVirtualService(spec *kunstructured.Unstructured) (*kunstru
 		return c.CreateVirtualService(spec)
 	}
 	spec.SetResourceVersion(existing.GetResourceVersion())
-	return c.UpdateVirtualService(spec)
+	return c.updateVirtualService(spec)
 }
 
 func (c *Client) GetVirtualService(name, namespace string) (*kunstructured.Unstructured, error) {
