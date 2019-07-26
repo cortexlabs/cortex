@@ -135,6 +135,8 @@ ci-build-images:
 	@./build/build-image.sh images/fluentd fluentd
 	@./build/build-image.sh images/nginx-controller nginx-controller
 	@./build/build-image.sh images/nginx-backend nginx-backend
+	@./build/build-image.sh images/weave-kube weave-kube
+	@./build/build-image.sh images/weave-npc weave-npc
 	@./build/build-image.sh images/python-packager python-packager
 	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
 	@./build/build-image.sh images/nvidia nvidia
@@ -155,6 +157,8 @@ ci-push-images:
 	@./build/push-image.sh fluentd
 	@./build/push-image.sh nginx-controller
 	@./build/push-image.sh nginx-backend
+	@./build/push-image.sh weave-kube
+	@./build/push-image.sh weave-npc
 	@./build/push-image.sh python-packager
 	@./build/push-image.sh cluster-autoscaler
 	@./build/push-image.sh nvidia
