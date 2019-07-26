@@ -451,7 +451,7 @@ func onnxAPISpec(
 						},
 						Ports: []kcore.ContainerPort{
 							{
-								ContainerPort: tfServingPortInt32,
+								ContainerPort: defaultPortInt32,
 							},
 						},
 					},
