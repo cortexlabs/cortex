@@ -41,8 +41,6 @@ export CORTEX_NAMESPACE="cortex"
 # Image paths
 export CORTEX_IMAGE_MANAGER="cortexlabs/manager:master"
 export CORTEX_IMAGE_FLUENTD="cortexlabs/fluentd:master"
-export CORTEX_IMAGE_WEAVE_KUBE="cortexlabs/weave-kube:master"
-export CORTEX_IMAGE_WEAVE_NPC="cortexlabs/weave-npc:master"
 export CORTEX_IMAGE_OPERATOR="cortexlabs/operator:master"
 export CORTEX_IMAGE_SPARK="cortexlabs/spark:master"
 export CORTEX_IMAGE_SPARK_OPERATOR="cortexlabs/spark-operator:master"
