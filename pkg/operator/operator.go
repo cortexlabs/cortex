@@ -53,8 +53,6 @@ func main() {
 
 	router := mux.NewRouter()
 	router.Use(panicMiddleware)
-	router.HandleFunc("/", Index).Methods("GET")
-
 	router.Use(apiVersionCheckMiddleware)
 	router.Use(authMiddleware)
 
@@ -66,12 +64,6 @@ func main() {
 
 	log.Print("Running on port " + operatorPortStr)
 	log.Fatal(http.ListenAndServe(":"+operatorPortStr, router))
-}
-
-func Index(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("🚀"))
 }
 
 func panicMiddleware(next http.Handler) http.Handler {

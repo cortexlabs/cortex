@@ -145,6 +145,14 @@ func (c *Client) GetVirtualService(name, namespace string) (*kunstructured.Unstr
 	return virtualService, nil
 }
 
+func (c *Client) VirtualServiceExists(name, namespace string) (bool, error) {
+	service, err := c.GetVirtualService(name, namespace)
+	if err != nil {
+		return false, err
+	}
+	return service != nil, nil
+}
+
 func (c *Client) DeleteVirtualService(name, namespace string) (bool, error) {
 	err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(namespace).Delete(name, &kmeta.DeleteOptions{
 		TypeMeta: virtualServiceTypeMeta,
