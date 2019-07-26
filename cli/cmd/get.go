@@ -472,6 +472,8 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	out += titleStr("Model Input Signature")
 
+	out += describeModelInput(groupStatus, apiEndpoint)
+
 	if modelName, ok := yaml.ExtractAtSymbolText(api.Model); ok {
 		model := ctx.Models[modelName]
 		resIDs := strset.New()
@@ -489,51 +491,51 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		}
 		sort.Strings(samplePlaceholderFields)
 		samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"
-		out += "Payload:  " + samplesPlaceholderStr + "\n"
-	} else {
-		if groupStatus.Available() == 0 {
-			out += "Waiting for API to be ready"
-			return out, nil
-		}
-
-		modelInput, err := getModelInput(urls.Join(apiEndpoint, "signature"))
-		if err != nil {
-			out += "Waiting for API to be ready"
-			return out, nil
-		}
-
-		rows := make([][]interface{}, len(modelInput.Signature))
-		rowNum := 0
-		for inputName, featureSignature := range modelInput.Signature {
-			shapeStr := make([]string, len(featureSignature.Shape))
-			for idx, dim := range featureSignature.Shape {
-				if dim == 0 {
-					shapeStr[idx] = "?"
-				} else {
-					shapeStr[idx] = s.Int(dim)
-				}
-			}
-			rows[rowNum] = []interface{}{
-				inputName,
-				featureSignature.Type,
-				s.ObjFlatNoQuotes(shapeStr),
-			}
-			rowNum++
-		}
-
-		t := table.Table{
-			Headers: []table.Header{
-				{Title: "FEATURE", MaxWidth: 32},
-				{Title: "TYPE", MaxWidth: 10},
-				{Title: "SHAPE", MaxWidth: 20},
-			},
-			Rows: rows,
-		}
-
-		out += table.MustFormat(t)
+		out += "\n\nPayload:  " + samplesPlaceholderStr
 	}
 
 	return out, nil
+}
+
+func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string) string {
+	if groupStatus.Available() == 0 {
+		return "Waiting for API to be ready"
+	}
+
+	modelInput, err := getModelInput(urls.Join(apiEndpoint, "signature"))
+	if err != nil {
+		return "Waiting for API to be ready"
+	}
+
+	rows := make([][]interface{}, len(modelInput.Signature))
+	rowNum := 0
+	for inputName, featureSignature := range modelInput.Signature {
+		shapeStr := make([]string, len(featureSignature.Shape))
+		for idx, dim := range featureSignature.Shape {
+			if dim == 0 {
+				shapeStr[idx] = "?"
+			} else {
+				shapeStr[idx] = s.Int(dim)
+			}
+		}
+		rows[rowNum] = []interface{}{
+			inputName,
+			featureSignature.Type,
+			"(" + strings.Join(shapeStr, ", ") + ")",
+		}
+		rowNum++
+	}
+
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "FEATURE", MaxWidth: 32},
+			{Title: "TYPE", MaxWidth: 10},
+			{Title: "SHAPE", MaxWidth: 20},
+		},
+		Rows: rows,
+	}
+
+	return table.MustFormat(t)
 }
 
 func getModelInput(infoAPIPath string) (*schema.ModelInput, error) {
