@@ -37,7 +37,6 @@ RUN PW=$(pwgen -Bs1 12) && \
        -x509 -days 3650 -out $WEBSITE.crt
 
 RUN ISTIO_VERSION=1.2.2 && curl -L "https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istio-${ISTIO_VERSION}-linux.tar.gz" | tar xz && \
-    ls && \
     mv ./istio-$ISTIO_VERSION/install/kubernetes/helm/istio ./manifests/ && \
     mv ./istio-$ISTIO_VERSION/install/kubernetes/helm/istio-init ./manifests/ && \
     rm -rf ./$ISTIO_VERSION
