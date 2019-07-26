@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	reslib "github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
@@ -46,8 +47,14 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	resourceName := getOptionalQParam("resourceName", r)
 	resourceType := getOptionalQParam("resourceType", r)
 
+	podLabels := map[string]string{
+		"appName":    appName,
+		"userFacing": "true",
+	}
+
 	if workloadID != "" {
-		readLogs(w, r, workloadID, appName, verbose)
+		podLabels["workloadID"] = workloadID
+		readLogs(w, r, podLabels, appName, verbose)
 		return
 	}
 
@@ -61,7 +68,9 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 			RespondError(w, errors.Wrap(workloads.ErrorNotFound(), appName, "latest workload ID", resourceID))
 			return
 		}
-		readLogs(w, r, workloadID, appName, verbose)
+
+		podLabels["workloadID"] = workloadID
+		readLogs(w, r, podLabels, appName, verbose)
 		return
 	}
 
@@ -76,8 +85,12 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 			RespondError(w, err)
 			return
 		}
-		workloadID = resource.GetWorkloadID()
-		readLogs(w, r, workloadID, appName, verbose)
+		if resource.GetResourceType() == reslib.APIType {
+			podLabels["apiName"] = resource.GetName()
+		} else {
+			podLabels["workloadID"] = resource.GetWorkloadID()
+		}
+		readLogs(w, r, podLabels, appName, verbose)
 		return
 	}
 
@@ -85,7 +98,12 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 
 	if err == nil {
 		workloadID = resource.GetWorkloadID()
-		readLogs(w, r, workloadID, appName, verbose)
+		if resource.GetResourceType() == reslib.APIType {
+			podLabels["apiName"] = resource.GetName()
+		} else {
+			podLabels["workloadID"] = resource.GetWorkloadID()
+		}
+		readLogs(w, r, podLabels, appName, verbose)
 		return
 	}
 
@@ -96,8 +114,8 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	workloadIDs = slices.UniqueStrings(workloadIDs)
 	if len(workloadIDs) == 1 {
-		workloadID = workloadIDs[0]
-		readLogs(w, r, workloadID, appName, verbose)
+		podLabels["workloadID"] = workloadIDs[0]
+		readLogs(w, r, podLabels, appName, verbose)
 		return
 	}
 
@@ -105,7 +123,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func readLogs(w http.ResponseWriter, r *http.Request, workloadID string, appName string, verbose bool) {
+func readLogs(w http.ResponseWriter, r *http.Request, podLabels map[string]string, appName string, verbose bool) {
 	upgrader := websocket.Upgrader{}
 	socket, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -114,5 +132,5 @@ func readLogs(w http.ResponseWriter, r *http.Request, workloadID string, appName
 	}
 	defer socket.Close()
 
-	workloads.ReadLogs(appName, workloadID, verbose, socket)
+	workloads.ReadLogs(appName, podLabels, verbose, socket)
 }

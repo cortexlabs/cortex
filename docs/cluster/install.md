@@ -57,7 +57,7 @@ cortex deploy
 cortex get --watch
 
 # Get the API's endpoint
-cortex get classifier
+cortex get tensorflow
 
 # Classify a sample
 curl -k -X POST -H "Content-Type: application/json" \

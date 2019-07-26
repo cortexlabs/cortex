@@ -133,6 +133,8 @@ ci-build-images:
 	@./build/build-image.sh images/onnx-serve-gpu onnx-serve-gpu
 	@./build/build-image.sh images/operator operator
 	@./build/build-image.sh images/fluentd fluentd
+	@./build/build-image.sh images/weave-kube weave-kube
+	@./build/build-image.sh images/weave-npc weave-npc
 	@./build/build-image.sh images/python-packager python-packager
 	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
 	@./build/build-image.sh images/nvidia nvidia
@@ -151,6 +153,8 @@ ci-push-images:
 	@./build/push-image.sh onnx-serve-gpu
 	@./build/push-image.sh operator
 	@./build/push-image.sh fluentd
+	@./build/push-image.sh weave-kube
+	@./build/push-image.sh weave-npc
 	@./build/push-image.sh python-packager
 	@./build/push-image.sh cluster-autoscaler
 	@./build/push-image.sh nvidia

@@ -44,8 +44,6 @@ type FluentdLog struct {
 }
 
 func (c *Client) GetLogs(prefix string, logGroup string) (string, error) {
-	logGroupNamePrefix := "var.log.containers."
-
 	ignoreLogStreamNameRegexes := []*regexp.Regexp{
 		regexp.MustCompile(`-exec-[0-9]+`),
 		regexp.MustCompile(`_spark-init-`),
@@ -55,7 +53,7 @@ func (c *Client) GetLogs(prefix string, logGroup string) (string, error) {
 	logStreamsOut, err := c.cloudWatchLogsClient.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
 		Limit:               aws.Int64(50),
 		LogGroupName:        aws.String(logGroup),
-		LogStreamNamePrefix: aws.String(logGroupNamePrefix + prefix),
+		LogStreamNamePrefix: aws.String(prefix),
 	})
 	if err != nil {
 		return "", errors.Wrap(err, "cloudwatch logs", prefix)

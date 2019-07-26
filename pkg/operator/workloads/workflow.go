@@ -164,10 +164,6 @@ func DeleteApp(appName string, keepCache bool) bool {
 	for _, sparkApp := range sparkApps {
 		config.Spark.Delete(sparkApp.Name)
 	}
-	pods, _ := config.Kubernetes.ListPodsByLabel("appName", appName)
-	for _, pod := range pods {
-		config.Kubernetes.DeletePod(pod.Name)
-	}
 
 	wasDeployed := false
 	if ctx := CurrentContext(appName); ctx != nil {

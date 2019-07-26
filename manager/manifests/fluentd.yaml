@@ -20,20 +20,21 @@ metadata:
   labels:
     app: fluentd
 ---
-
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
 metadata:
   name: fluentd
   namespace: $CORTEX_NAMESPACE
 rules:
 - apiGroups: [""]
-  resources: [pods]
+  resources:
+    - namespaces
+    - pods
+    - pods/logs
   verbs: [get, list, watch]
 ---
-
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
 metadata:
   name: fluentd
   namespace: $CORTEX_NAMESPACE
@@ -42,7 +43,7 @@ subjects:
   name: fluentd
   namespace: $CORTEX_NAMESPACE
 roleRef:
-  kind: Role
+  kind: ClusterRole
   name: fluentd
   apiGroup: rbac.authorization.k8s.io
 ---
@@ -54,25 +55,111 @@ metadata:
   namespace: $CORTEX_NAMESPACE
 data:
   fluent.conf: |
+    @include containers.conf
+
     <match fluent.**>
       @type null
     </match>
+  containers.conf: |
     <source>
       @type tail
-      enable_stat_watcher false
+      @id in_tail_container_logs
+      @label @containers
       path /var/log/containers/**_${CORTEX_NAMESPACE}_**.log
       pos_file /var/log/fluentd-containers.log.pos
-      time_format %Y-%m-%dT%H:%M:%S.%NZ
       tag *
-      format json
       read_from_head true
+      <parse>
+        @type json
+        time_format %Y-%m-%dT%H:%M:%S.%NZ
+      </parse>
     </source>
-    <match **>
-      @type cloudwatch_logs
-      log_group_name "#{ENV['LOG_GROUP_NAME']}"
-      auto_create_stream true
-      use_tag_as_stream true
-    </match>
+
+    <label @containers>
+      <filter **>
+        @type kubernetes_metadata
+        @id filter_kube_metadata
+      </filter>
+
+      <match **>
+        @type route
+        <route **>
+          copy
+          @label @by_pod
+        </route>
+        <route **>
+          copy
+          @label @by_endpoint
+        </route>
+      </match>
+    </label>
+
+    <label @by_pod>
+      <filter **>
+        @type record_transformer
+        @id filter_containers_stream_transformer
+        <record>
+          stream_name ${tag_parts[3]}
+        </record>
+        remove_keys kubernetes,docker,stream
+      </filter>
+      <match **>
+        @type cloudwatch_logs
+        region "#{ENV['AWS_REGION']}"
+        log_group_name "#{ENV['LOG_GROUP_NAME']}"
+        log_stream_name_key stream_name
+        remove_log_stream_name_key true
+        auto_create_stream true
+        <buffer>
+          flush_interval 5
+          chunk_limit_size 2m
+          queued_chunks_limit_size 32
+          retry_forever true
+        </buffer>
+      </match>
+    </label>
+
+    <label @by_endpoint>
+      <filter **>
+        @type record_transformer
+        enable_ruby
+        <record>
+          workload_type ${record.dig("kubernetes", "labels", "workloadType") || "unknown"}
+        </record>
+        remove_keys docker,stream
+      </filter>
+
+      <filter **>
+        @type grep
+        regexp1 workload_type api
+      </filter>
+      <filter **>
+        @type record_transformer
+        enable_ruby
+        <record>
+          pod_name ${record.dig("kubernetes", "pod_name")}
+          container_name ${record.dig("kubernetes", "container_name")}
+          workload_id ${record.dig("kubernetes", "labels", "workloadID")}
+          stream_name ${record.dig("kubernetes", "labels", "appName")}.${record.dig("kubernetes", "labels", "apiName")}
+        </record>
+        remove_keys kubernetes,api_name,app_name,workload_type
+      </filter>
+      <match **>
+        @type cloudwatch_logs
+        @id out_cloudwatch_logs_endpoints
+        region "#{ENV['AWS_REGION']}"
+        log_group_name "#{ENV['LOG_GROUP_NAME']}"
+        log_stream_name_key stream_name
+        remove_log_stream_name_key true
+        auto_create_stream true
+        <buffer>
+          flush_interval 5
+          chunk_limit_size 2m
+          queued_chunks_limit_size 32
+          retry_forever true
+        </buffer>
+      </match>
+    </label>
 ---
 
 apiVersion: extensions/v1beta1
