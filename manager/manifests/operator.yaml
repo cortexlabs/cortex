@@ -23,6 +23,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: operator
+  namespace: $CORTEX_NAMESPACE
 subjects:
 - kind: ServiceAccount
   name: operator
@@ -91,10 +92,8 @@ metadata:
   namespace: $CORTEX_NAMESPACE
   name: operator
   labels:
-    workloadID: operator
     workloadType: operator
     app: operator
-    service: operator
 spec:
   selector:
     workloadID: operator

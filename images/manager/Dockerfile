@@ -36,12 +36,10 @@ RUN PW=$(pwgen -Bs1 12) && \
        -newkey rsa:2048 -nodes -keyout $WEBSITE.key \
        -x509 -days 3650 -out $WEBSITE.crt
 
-
-
-
-RUN curl -L https://git.io/getLatestIstio | ISTIO_VERSION=1.2.2 sh - && \
-    mv ./istio-1.2.2/install/kubernetes/helm/istio ./manifests/ && \
-    mv ./istio-1.2.2/install/kubernetes/helm/istio-init ./manifests/ && \
-    rm -rf ./istio-1.2.2
+RUN ISTIO_VERSION=1.2.2 && curl -L "https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istio-${ISTIO_VERSION}-linux.tar.gz" | tar xz && \
+    ls && \
+    mv ./istio-$ISTIO_VERSION/install/kubernetes/helm/istio ./manifests/ && \
+    mv ./istio-$ISTIO_VERSION/install/kubernetes/helm/istio-init ./manifests/ && \
+    rm -rf ./$ISTIO_VERSION
 
 ENTRYPOINT ["/bin/bash"]

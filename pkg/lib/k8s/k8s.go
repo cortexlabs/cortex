@@ -23,12 +23,13 @@ import (
 
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/dynamic"
+	kclientdynamic "k8s.io/client-go/dynamic"
 	kclientset "k8s.io/client-go/kubernetes"
 	kclientapps "k8s.io/client-go/kubernetes/typed/apps/v1"
 	kclientautoscaling "k8s.io/client-go/kubernetes/typed/autoscaling/v2beta2"
 	kclientbatch "k8s.io/client-go/kubernetes/typed/batch/v1"
 	kclientcore "k8s.io/client-go/kubernetes/typed/core/v1"
+	kclientextensions "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	kclientrest "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
@@ -53,8 +54,9 @@ type Client struct {
 	istioServiceClient kclientcore.ServiceInterface
 	configMapClient    kclientcore.ConfigMapInterface
 	deploymentClient   kclientapps.DeploymentInterface
-	dynamicClient      dynamic.Interface
+	dynamicClient      kclientdynamic.Interface
 	jobClient          kclientbatch.JobInterface
+	ingressClient      kclientextensions.IngressInterface
 	hpaClient          kclientautoscaling.HorizontalPodAutoscalerInterface
 	Namespace          string
 }
@@ -80,7 +82,7 @@ func New(namespace string, inCluster bool) (*Client, error) {
 		return nil, errors.Wrap(err, "kubeconfig")
 	}
 
-	client.dynamicClient, err = dynamic.NewForConfig(client.RestConfig)
+	client.dynamicClient, err = kclientdynamic.NewForConfig(client.RestConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "kubeconfig")
 	}
@@ -90,6 +92,7 @@ func New(namespace string, inCluster bool) (*Client, error) {
 	client.istioServiceClient = client.clientset.CoreV1().Services("istio-system")
 	client.configMapClient = client.clientset.CoreV1().ConfigMaps(namespace)
 	client.deploymentClient = client.clientset.AppsV1().Deployments(namespace)
+	client.ingressClient = client.clientset.ExtensionsV1beta1().Ingresses(namespace)
 	client.jobClient = client.clientset.BatchV1().Jobs(namespace)
 	client.hpaClient = client.clientset.AutoscalingV2beta2().HorizontalPodAutoscalers(namespace)
 	return client, nil

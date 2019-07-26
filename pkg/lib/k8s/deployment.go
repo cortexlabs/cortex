@@ -33,7 +33,6 @@ var deploymentTypeMeta = kmeta.TypeMeta{
 }
 
 type DeploymentSpec struct {
-	Spec        *DeploymentSpec
 	Name        string
 	Namespace   string
 	Replicas    int32

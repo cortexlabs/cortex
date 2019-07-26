@@ -110,7 +110,6 @@ function validate_cortex() {
     if [ "$operator_load_balancer" != "ready" ]; then
       out=$(kubectl -n=istio-system get service operator-ingressgateway -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
-        echo "operator loadbalancer not ready"
         continue
       fi
       operator_load_balancer="ready"
@@ -119,7 +118,6 @@ function validate_cortex() {
     if [ "$api_load_balancer" != "ready" ]; then
       out=$(kubectl -n=istio-system get service apis-ingressgateway -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
-        echo "api loadbalancer not ready"
         continue
       fi
       api_load_balancer="ready"
