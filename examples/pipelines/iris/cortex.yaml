@@ -24,3 +24,6 @@
 - kind: api
   name: iris-type
   model: @dnn
+  compute:
+    max_replicas: 4
+    min_replicas: 4

@@ -102,6 +102,7 @@ func ReadLogs(appName string, podSearchLabels map[string]string, verbose bool, s
 			return
 		}
 
+		// WorkloadID is present when logging job pods and missing for APIs. Only go to cloudwatch for job pods.
 		if workloadID, ok := podSearchLabels["workloadID"]; ok {
 			isEnded, err := IsWorkloadEnded(appName, workloadID)
 			if err != nil {
