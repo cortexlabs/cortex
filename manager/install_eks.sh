@@ -21,19 +21,11 @@ echo -e "\nSpinning up the cluster ... (this will take about 15 minutes)\n"
 eksctl create cluster --name=$CORTEX_CLUSTER \
                       --region=$CORTEX_REGION \
                       --zones=$CORTEX_ZONES \
-                      --without-nodegroup \
-                      --version=1.13
-
-# Replace AWS CNI with weave-net
-kubectl delete daemonset aws-node -n kube-system >/dev/null
-envsubst < manifests/weave-net.yaml | kubectl apply -f - >/dev/null
-
-eksctl create nodegroup --cluster=$CORTEX_CLUSTER \
-                        --node-type=$CORTEX_NODE_TYPE \
-                        --nodes-min=$CORTEX_NODES_MIN \
-                        --nodes-max=$CORTEX_NODES_MAX \
-                        --node-ami=auto \
-                        --max-pods-per-node=1000 \
-                        --asg-access
+                      --node-type=$CORTEX_NODE_TYPE \
+                      --nodes-min=$CORTEX_NODES_MIN \
+                      --nodes-max=$CORTEX_NODES_MAX \
+                      --node-ami=auto \
+                      --version=1.13 \
+                      --asg-access
 
 echo -e "\n✓ Spun up the cluster"

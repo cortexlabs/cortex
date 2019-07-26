@@ -39,8 +39,6 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/fluentd --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/nginx-backend --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/nginx-controller --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/weave-kube --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/weave-npc --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/operator --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/spark --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/spark-operator --region=$REGISTRY_REGION || true
@@ -136,8 +134,6 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/tf-train tf-train latest
     build_and_push $ROOT/images/tf-train-gpu tf-train-gpu latest
     build_and_push $ROOT/images/nginx-controller nginx-controller latest
-    build_and_push $ROOT/images/weave-kube weave-kube latest
-    build_and_push $ROOT/images/weave-npc weave-npc latest
     build_and_push $ROOT/images/nginx-backend nginx-backend latest
     build_and_push $ROOT/images/fluentd fluentd latest
     build_and_push $ROOT/images/tf-serve tf-serve latest
