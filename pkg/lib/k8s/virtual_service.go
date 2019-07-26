@@ -51,6 +51,7 @@ type VirtualServiceSpec struct {
 	ServiceName string
 	ServicePort int32
 	Path        string
+	Labels      map[string]string
 }
 
 func VirtualService(spec *VirtualServiceSpec) *kunstructured.Unstructured {
@@ -61,6 +62,7 @@ func VirtualService(spec *VirtualServiceSpec) *kunstructured.Unstructured {
 	virtualServceConfig.Object["metadata"] = map[string]interface{}{
 		"name":      spec.Name,
 		"namespace": spec.Namespace,
+		"labels":    spec.Labels,
 	}
 	virtualServceConfig.Object["spec"] = map[string]interface{}{
 		"hosts":    []string{"*"},

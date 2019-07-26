@@ -143,6 +143,10 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/cluster-autoscaler cluster-autoscaler latest
     build_and_push $ROOT/images/nvidia nvidia latest
     build_and_push $ROOT/images/metrics-server metrics-server latest
+    build_and_push $ROOT/images/istio-citadel istio-citadel latest
+    build_and_push $ROOT/images/istio-pilot istio-pilot latest
+    build_and_push $ROOT/images/istio-galley istio-galley latest
+    build_and_push $ROOT/images/istio-sidecar istio-sidecar latest
   fi
 
   build_and_push $ROOT/images/tf-api tf-api latest

@@ -141,7 +141,5 @@ kiali:
   enabled: false
 
 global:
-  hub: docker.io/istio
-  tag: 1.2.2
   proxy:
     autoInject: disabled

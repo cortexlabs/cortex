@@ -449,6 +449,11 @@ func onnxAPISpec(
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
 						},
+						Ports: []kcore.ContainerPort{
+							{
+								ContainerPort: tfServingPortInt32,
+							},
+						},
 					},
 				},
 				Volumes:            k8s.DefaultVolumes(),
@@ -467,6 +472,11 @@ func virtualServiceSpec(ctx *context.Context, api *context.API) *kunstructured.U
 		ServiceName: internalAPIName(api.Name, ctx.App.Name),
 		ServicePort: defaultPortInt32,
 		Path:        context.APIPath(api.Name, ctx.App.Name),
+		Labels: map[string]string{
+			"appName":      ctx.App.Name,
+			"workloadType": workloadTypeAPI,
+			"apiName":      api.Name,
+		},
 	})
 }
 

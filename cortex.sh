@@ -132,6 +132,10 @@ export CORTEX_IMAGE_ONNX_SERVE_GPU="${CORTEX_IMAGE_ONNX_SERVE_GPU:-cortexlabs/on
 export CORTEX_IMAGE_CLUSTER_AUTOSCALER="${CORTEX_IMAGE_CLUSTER_AUTOSCALER:-cortexlabs/cluster-autoscaler:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_NVIDIA="${CORTEX_IMAGE_NVIDIA:-cortexlabs/nvidia:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_METRICS_SERVER="${CORTEX_IMAGE_METRICS_SERVER:-cortexlabs/metrics-server:$CORTEX_VERSION_STABLE}"
+export CORTEX_IMAGE_ISTIO_CITADEL="${CORTEX_IMAGE_ISTIO_CITADEL:-cortexlabs/istio-citadel:$CORTEX_VERSION_STABLE}"
+export CORTEX_IMAGE_ISTIO_GALLEY="${CORTEX_IMAGE_ISTIO_GALLEY:-cortexlabs/istio-galley:$CORTEX_VERSION_STABLE}"
+export CORTEX_IMAGE_ISTIO_PILOT="${CORTEX_IMAGE_ISTIO_PILOT:-cortexlabs/istio-pilot:$CORTEX_VERSION_STABLE}"
+export CORTEX_IMAGE_ISTIO_SIDECAR="${CORTEX_IMAGE_ISTIO_SIDECAR:-cortexlabs/istio-sidecar:$CORTEX_VERSION_STABLE}"
 
 export CORTEX_ENABLE_TELEMETRY="${CORTEX_ENABLE_TELEMETRY:-""}"
 
@@ -188,6 +192,10 @@ function install_cortex() {
     -e CORTEX_IMAGE_CLUSTER_AUTOSCALER=$CORTEX_IMAGE_CLUSTER_AUTOSCALER \
     -e CORTEX_IMAGE_NVIDIA=$CORTEX_IMAGE_NVIDIA \
     -e CORTEX_IMAGE_METRICS_SERVER=$CORTEX_IMAGE_METRICS_SERVER \
+    -e CORTEX_IMAGE_ISTIO_CITADEL=$CORTEX_IMAGE_ISTIO_CITADEL \
+    -e CORTEX_IMAGE_ISTIO_GALLEY=$CORTEX_IMAGE_ISTIO_GALLEY \
+    -e CORTEX_IMAGE_ISTIO_SIDECAR=$CORTEX_IMAGE_ISTIO_SIDECAR \
+    -e CORTEX_IMAGE_ISTIO_PILOT=$CORTEX_IMAGE_ISTIO_PILOT \
     -e CORTEX_ENABLE_TELEMETRY=$CORTEX_ENABLE_TELEMETRY \
     $CORTEX_IMAGE_MANAGER
 }
@@ -373,6 +381,17 @@ function prompt_for_telemetry() {
   fi
 }
 
+function uninstall_cortex() {
+  echo
+  docker run -it --entrypoint /root/uninstall_cortex.sh \
+    -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+    -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_REGION=$CORTEX_REGION \
+    -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
+    $CORTEX_IMAGE_MANAGER
+}
+
 ############
 ### HELP ###
 ############
@@ -417,6 +436,8 @@ if [ "$arg1" = "install" ]; then
     exit 1
   elif [ "$arg2" = "" ]; then
     prompt_for_telemetry && install_eks && install_cortex && info
+  elif [ "$arg2" = "cortex" ]; then
+    install_cortex && info
   elif [ "$arg2" = "cli" ]; then
     install_cli
   elif [ "$arg2" = "" ]; then
@@ -435,6 +456,8 @@ elif [ "$arg1" = "uninstall" ]; then
     exit 1
   elif [ "$arg2" = "" ]; then
     uninstall_eks
+  elif [ "$arg2" = "cortex" ]; then
+    uninstall_cortex
   elif [ "$arg2" = "cli" ]; then
     uninstall_cli
   elif [ "$arg2" = "" ]; then

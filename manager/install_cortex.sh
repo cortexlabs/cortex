@@ -174,9 +174,10 @@ envsubst < manifests/spark.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
 
 kubectl create namespace istio-system
-kubectl create -n istio-system secret tls istio-customgateway-certs --key cortex.example.com.key --cert cortex.example.com.crt
+kubectl create -n istio-system secret tls istio-customgateway-certs --key localhost.key --cert localhost.crt
 helm template manifests/istio-init --name istio-init --namespace istio-system | kubectl apply -f -
-sleep 60 && envsubst < manifests/fluentd.yaml | helm template manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f -
+sleep 60
+envsubst < manifests/istio.yaml | helm template manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f -
 
 envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null

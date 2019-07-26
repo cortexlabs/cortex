@@ -47,18 +47,17 @@ var (
 )
 
 type Client struct {
-	RestConfig         *kclientrest.Config
-	clientset          *kclientset.Clientset
-	podClient          kclientcore.PodInterface
-	serviceClient      kclientcore.ServiceInterface
-	istioServiceClient kclientcore.ServiceInterface
-	configMapClient    kclientcore.ConfigMapInterface
-	deploymentClient   kclientapps.DeploymentInterface
-	dynamicClient      kclientdynamic.Interface
-	jobClient          kclientbatch.JobInterface
-	ingressClient      kclientextensions.IngressInterface
-	hpaClient          kclientautoscaling.HorizontalPodAutoscalerInterface
-	Namespace          string
+	RestConfig       *kclientrest.Config
+	clientset        *kclientset.Clientset
+	podClient        kclientcore.PodInterface
+	serviceClient    kclientcore.ServiceInterface
+	configMapClient  kclientcore.ConfigMapInterface
+	deploymentClient kclientapps.DeploymentInterface
+	dynamicClient    kclientdynamic.Interface
+	jobClient        kclientbatch.JobInterface
+	ingressClient    kclientextensions.IngressInterface
+	hpaClient        kclientautoscaling.HorizontalPodAutoscalerInterface
+	Namespace        string
 }
 
 func New(namespace string, inCluster bool) (*Client, error) {

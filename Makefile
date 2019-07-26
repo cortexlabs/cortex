@@ -32,6 +32,14 @@ cortex-up:
 	@./cortex.sh -c=./dev/config/cortex.sh install
 	$(MAKE) kubectl
 
+cortex-install:
+	@$(MAKE) registry-all
+	@./cortex.sh -c=./dev/config/cortex.sh install cortex
+	$(MAKE) kubectl
+
+cortex-uninstall:
+	@./cortex.sh -c=./dev/config/cortex.sh uninstall cortex
+
 cortex-up-dev:
 	$(MAKE) cortex-up
 	$(MAKE) operator-stop
@@ -137,6 +145,10 @@ ci-build-images:
 	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
 	@./build/build-image.sh images/nvidia nvidia
 	@./build/build-image.sh images/metrics-server metrics-server
+	@./build/build-image.sh images/istio-citadel istio-citadel
+	@./build/build-image.sh images/istio-galley istio-galley
+	@./build/build-image.sh images/istio-pilot istio-pilot
+	@./build/build-image.sh images/istio-sidecar istio-sidecar
 
 ci-push-images:
 	@./build/push-image.sh manager
@@ -155,6 +167,10 @@ ci-push-images:
 	@./build/push-image.sh cluster-autoscaler
 	@./build/push-image.sh nvidia
 	@./build/push-image.sh metrics-server
+	@./build/push-image.sh istio-citadel
+	@./build/push-image.sh istio-galley
+	@./build/push-image.sh istio-pilot
+	@./build/push-image.sh istio-sidecar
 
 
 ci-build-cli:

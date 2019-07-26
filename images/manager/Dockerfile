@@ -30,15 +30,16 @@ RUN curl -LO https://get.helm.sh/helm-v2.14.1-linux-amd64.tar.gz && \
     rm helm-v2.14.1-linux-amd64.tar.gz
 
 RUN PW=$(pwgen -Bs1 12) && \
-    WEBSITE=cortex.example.com && \
+    WEBSITE=localhost && \
     openssl req \
-       -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=$WEBSITE" \
+       -subj "/C=US/CN=$WEBSITE" \
        -newkey rsa:2048 -nodes -keyout $WEBSITE.key \
        -x509 -days 3650 -out $WEBSITE.crt
 
-RUN ISTIO_VERSION=1.2.2 && curl -L "https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istio-${ISTIO_VERSION}-linux.tar.gz" | tar xz && \
-    mv ./istio-$ISTIO_VERSION/install/kubernetes/helm/istio ./manifests/ && \
-    mv ./istio-$ISTIO_VERSION/install/kubernetes/helm/istio-init ./manifests/ && \
-    rm -rf ./$ISTIO_VERSION
+RUN ISTIO_VERSION=1.2.2 && \
+  curl -L "https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istio-${ISTIO_VERSION}-linux.tar.gz" | tar xz && \
+  mv "./istio-${ISTIO_VERSION}/install/kubernetes/helm/istio" ./manifests/ && \
+  mv "./istio-${ISTIO_VERSION}/install/kubernetes/helm/istio-init" ./manifests/ && \
+  rm -rf "./istio-${ISTIO_VERSION}"
 
 ENTRYPOINT ["/bin/bash"]

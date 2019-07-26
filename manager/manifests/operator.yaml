@@ -94,6 +94,7 @@ metadata:
   labels:
     workloadType: operator
     app: operator
+    service: operator
 spec:
   selector:
     workloadID: operator
