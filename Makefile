@@ -34,11 +34,11 @@ cortex-up:
 
 cortex-install:
 	@$(MAKE) registry-all
-	@./cortex.sh -c=./dev/config/cortex.sh install cortex
+	@./dev/cortex.sh install
 	$(MAKE) kubectl
 
 cortex-uninstall:
-	@./cortex.sh -c=./dev/config/cortex.sh uninstall cortex
+	@./dev/cortex.sh uninstall
 
 cortex-up-dev:
 	$(MAKE) cortex-up

@@ -381,17 +381,6 @@ function prompt_for_telemetry() {
   fi
 }
 
-function uninstall_cortex() {
-  echo
-  docker run -it --entrypoint /root/uninstall_cortex.sh \
-    -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-    -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
-    -e CORTEX_REGION=$CORTEX_REGION \
-    -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
-    $CORTEX_IMAGE_MANAGER
-}
-
 ############
 ### HELP ###
 ############
@@ -436,8 +425,6 @@ if [ "$arg1" = "install" ]; then
     exit 1
   elif [ "$arg2" = "" ]; then
     prompt_for_telemetry && install_eks && install_cortex && info
-  elif [ "$arg2" = "cortex" ]; then
-    install_cortex && info
   elif [ "$arg2" = "cli" ]; then
     install_cli
   elif [ "$arg2" = "" ]; then
@@ -456,8 +443,6 @@ elif [ "$arg1" = "uninstall" ]; then
     exit 1
   elif [ "$arg2" = "" ]; then
     uninstall_eks
-  elif [ "$arg2" = "cortex" ]; then
-    uninstall_cortex
   elif [ "$arg2" = "cli" ]; then
     uninstall_cli
   elif [ "$arg2" = "" ]; then
