@@ -108,7 +108,7 @@ func addSummaryFlag(cmd *cobra.Command) {
 }
 
 func addActiveDeploymentsFlag(cmd *cobra.Command) {
-	getCmd.PersistentFlags().BoolVarP(&flagActiveDeployments, "active-deployments", "a", false, "list active Cortex deployments")
+	getCmd.PersistentFlags().BoolVarP(&flagActiveDeployments, "active-deployments", "a", false, "list active deployments")
 }
 
 var resourceTypesHelp = fmt.Sprintf("\nResource Types:\n  %s\n", strings.Join(resource.VisibleTypes.StringList(), "\n  "))

@@ -294,7 +294,7 @@ func GetDeploymentStatus(appName string) (resource.DeploymentStatus, error) {
 			return resource.UnknownDeploymentStatus, err
 		}
 		if isFailed {
-			return resource.FailedDeploymentStatus, err
+			return resource.FailedDeploymentStatus, nil
 		}
 
 		isSucceeded, err := workload.IsSucceeded(ctx)
