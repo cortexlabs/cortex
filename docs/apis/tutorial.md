@@ -32,27 +32,22 @@ Cortex is able to read from any S3 bucket that you have access to.
 
 ### Deploy the API
 
-```text
+```bash
 $ cortex deploy
-```
 
-You can get a summary of the status of resources using `cortex get`:
-
-```text
+# Get a summary of resource statuses
 $ cortex get --watch
 ```
 
 ### Test the API
 
-Get the API's endpoint:
-
-```text
+```bash
+# Get the endpoint
 $ cortex get classifier
 ```
 
-Use cURL to test the API:
-
-```text
+```bash
+# Test the API
 $ curl -k -X POST -H "Content-Type: application/json" \
        -d '{ "samples": [ { "sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3 } ] }' \
        <API endpoint>
@@ -60,8 +55,7 @@ $ curl -k -X POST -H "Content-Type: application/json" \
 
 ### Cleanup
 
-Delete the deployment:
-
-```text
-$ cortex delete iris
+```bash
+# Delete the deployment
+cortex delete iris
 ```
