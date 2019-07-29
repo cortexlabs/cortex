@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
@@ -278,6 +279,38 @@ func IsWorkloadEnded(appName string, workloadID string) (bool, error) {
 	}
 
 	return false, errors.New("workload not found in the current context")
+}
+
+func GetDeploymentStatus(appName string) (resource.DeploymentStatus, error) {
+	ctx := CurrentContext(appName)
+	if ctx == nil {
+		return resource.UnknownDeploymentStatus, nil
+	}
+
+	allSuccess := true
+	for _, workload := range extractWorkloads(ctx) {
+		isFailed, err := workload.IsFailed(ctx)
+		if err != nil {
+			return resource.UnknownDeploymentStatus, err
+		}
+		if isFailed {
+			return resource.FailedDeploymentStatus, err
+		}
+
+		isSucceeded, err := workload.IsSucceeded(ctx)
+		if err != nil {
+			return resource.UnknownDeploymentStatus, err
+		}
+		if !isSucceeded {
+			allSuccess = false
+		}
+	}
+
+	if allSuccess {
+		return resource.UpdatedDeploymentStatus, nil
+	}
+
+	return resource.UpdatingDeploymentStatus, nil
 }
 
 func IsDeploymentUpdating(appName string) (bool, error) {

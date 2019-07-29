@@ -25,6 +25,7 @@ Usage:
   cortex get [RESOURCE_TYPE] [RESOURCE_NAME] [flags]
 
 Flags:
+  -a, --active-deployments     list active Cortex deployments
   -d, --deployment string   deployment name
   -e, --env string          environment (default "dev")
   -h, --help                help for get
@@ -33,7 +34,7 @@ Flags:
   -w, --watch               re-run the command every 2 seconds
 ```
 
-The `get` command displays the current state of all resources on the cluster. Specifying a resource name provides the state of the particular resource. A detailed view of the configuration and additional metdata of a specific resource can be retrieved by adding the `-v` or `--verbose` flag. Using the `-s` or `--summary` flag will show a summarized view of all resource statuses.
+The `get` command displays the current state of all resources on the cluster. Specifying a resource name provides the state of the particular resource. A detailed view of the configuration and additional metdata of a specific resource can be retrieved by adding the `-v` or `--verbose` flag. Using the `-s` or `--summary` flag will show a summarized view of all resource statuses. A list of active Cortex deployments can be displayed by specifying the `-a` or `--active-deployments` flag.
 
 ## logs
 
