@@ -176,7 +176,9 @@ envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
 kubectl create namespace istio-system
 kubectl create -n istio-system secret tls istio-customgateway-certs --key localhost.key --cert localhost.crt
 helm template manifests/istio-init --name istio-init --namespace istio-system | kubectl apply -f -
-sleep 60
+while [ ! $(kubectl api-resources | grep virtualservice) ]; do
+  sleep 1
+done
 envsubst < manifests/istio.yaml | helm template manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f -
 
 envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
