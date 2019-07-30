@@ -489,8 +489,8 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
 
-	out := "\nURL:      " + apiEndpoint + "\n"
-	out += fmt.Sprintf("cURL:     curl -k -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n", apiEndpoint)
+	out := "\nURL: " + apiEndpoint + "\n"
+	out += fmt.Sprintf("cURL: curl -k -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n", apiEndpoint)
 	out += "\n"
 	out += fmt.Sprintf("Status:              %s\n", groupStatus.Message())
 	out += fmt.Sprintf("Available replicas:  %s\n", s.Int32(groupStatus.Available()))
