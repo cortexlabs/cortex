@@ -287,7 +287,6 @@ func GetDeploymentStatus(appName string) (resource.DeploymentStatus, error) {
 		return resource.UnknownDeploymentStatus, nil
 	}
 
-	failedCount := 0
 	updatingCount := 0
 	for _, workload := range extractWorkloads(ctx) {
 
@@ -309,8 +308,7 @@ func GetDeploymentStatus(appName string) (resource.DeploymentStatus, error) {
 			return resource.UnknownDeploymentStatus, err
 		}
 		if isFailed {
-			failedCount++
-			continue
+			return resource.ErrorDeploymentStatus, nil
 		}
 
 		canRun, err := workload.CanRun(ctx)
@@ -323,9 +321,6 @@ func GetDeploymentStatus(appName string) (resource.DeploymentStatus, error) {
 		updatingCount++
 	}
 
-	if failedCount > 0 {
-		return resource.ErrorDeploymentStatus, nil
-	}
 	if updatingCount > 0 {
 		return resource.UpdatingDeploymentStatus, nil
 	}
