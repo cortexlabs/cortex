@@ -28,7 +28,7 @@ def create_estimator(run_config, model_config):
 
 See the [tf.estimator.RunConfig](https://www.tensorflow.org/api_docs/python/tf/estimator/RunConfig) and [tf.estimator.Estimator](https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator) documentation for more information.
 
-See Cortex's built-in <!-- CORTEX_VERSION_MINOR -->[estimators](https://github.com/cortexlabs/cortex/blob/master/pkg/estimators) for example implementations.
+See Cortex's built-in <!-- CORTEX_VERSION_MINOR -->[estimators](https://github.com/cortexlabs/cortex/blob/0.7/pkg/estimators) for example implementations.
 
 ## Example
 

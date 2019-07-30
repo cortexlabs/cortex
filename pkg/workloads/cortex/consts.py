@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CORTEX_VERSION = "master"
+CORTEX_VERSION = "0.7.0"
 
 COLUMN_TYPE_INT = "INT_COLUMN"
 COLUMN_TYPE_FLOAT = "FLOAT_COLUMN"
