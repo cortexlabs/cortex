@@ -179,8 +179,8 @@ helm template manifests/istio-init --name istio-init --namespace istio-system | 
 while [ ! $(kubectl api-resources | grep virtualservice) ]; do
   sleep 1
 done
-envsubst < manifests/istio.yaml | helm template manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f -
-
+envsubst < manifests/istio-values.yaml | helm template manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f -
+envsubst < manifests/istio-metrics.yaml | kubectl apply -f -
 envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/cluster-autoscaler.yaml | kubectl apply -f - >/dev/null
