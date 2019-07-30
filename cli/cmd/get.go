@@ -142,12 +142,12 @@ func getDeploymentsResponse() (string, error) {
 		Headers: []table.Header{
 			{Title: "NAME", MaxWidth: 32},
 			{Title: "STATUS", MaxWidth: 21},
-			{Title: "LAST UPDATED"},
+			{Title: "LAST UPDATE"},
 		},
 		Rows: rows,
 	}
 
-	return table.MustFormat(t), nil
+	return "\n" + table.MustFormat(t), nil
 }
 
 func getResourcesResponse() (*schema.GetResourcesResponse, error) {
