@@ -287,10 +287,10 @@ func GetDeploymentStatus(appName string) (resource.DeploymentStatus, error) {
 		return resource.UnknownDeploymentStatus, nil
 	}
 
-	updatingCount := 0
+	isUpdating := false
 	for _, workload := range extractWorkloads(ctx) {
 
-		// Pending HPA workloads shouldn't block new deployments
+		// HPA workloads don't really count
 		if workload.GetWorkloadType() == workloadTypeHPA {
 			continue
 		}
@@ -318,10 +318,10 @@ func GetDeploymentStatus(appName string) (resource.DeploymentStatus, error) {
 		if !canRun {
 			continue
 		}
-		updatingCount++
+		isUpdating = true
 	}
 
-	if updatingCount > 0 {
+	if isUpdating {
 		return resource.UpdatingDeploymentStatus, nil
 	}
 	return resource.UpdatedDeploymentStatus, nil
