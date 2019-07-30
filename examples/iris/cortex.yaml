@@ -8,19 +8,19 @@
 - kind: api
   name: pytorch
   model: s3://cortex-examples/iris/pytorch.onnx
-  request_handler: pytorch/handler.py
+  request_handler: handlers/pytorch.py
 
 - kind: api
   name: xgboost
   model: s3://cortex-examples/iris/xgboost.onnx
-  request_handler: xgboost/handler.py
+  request_handler: handlers/xgboost.py
 
 - kind: api
   name: sklearn
   model: s3://cortex-examples/iris/sklearn.onnx
-  request_handler: sklearn/handler.py
+  request_handler: handlers/sklearn.py
 
 - kind: api
   name: keras
   model: s3://cortex-examples/iris/keras.onnx
-  request_handler: keras/handler.py
+  request_handler: handlers/keras.py
