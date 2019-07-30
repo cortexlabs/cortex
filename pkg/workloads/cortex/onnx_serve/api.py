@@ -132,7 +132,6 @@ def convert_to_onnx_input(sample, input_metadata_list):
             except CortexException as e:
                 e.wrap("key {}".format(input_metadata.name))
                 raise
-    logger.info(input_dict)
     return input_dict
 
 
