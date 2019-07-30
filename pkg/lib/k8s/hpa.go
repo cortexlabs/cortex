@@ -37,6 +37,7 @@ type HPASpec struct {
 	MaxReplicas          int32
 	TargetCPUUtilization int32
 	Labels               map[string]string
+	Annotations          map[string]string
 }
 
 func HPA(spec *HPASpec) *kautoscaling.HorizontalPodAutoscaler {
@@ -46,9 +47,10 @@ func HPA(spec *HPASpec) *kautoscaling.HorizontalPodAutoscaler {
 	hpa := &kautoscaling.HorizontalPodAutoscaler{
 		TypeMeta: hpaTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
-			Name:      spec.DeploymentName,
-			Namespace: spec.Namespace,
-			Labels:    spec.Labels,
+			Name:        spec.DeploymentName,
+			Namespace:   spec.Namespace,
+			Labels:      spec.Labels,
+			Annotations: spec.Annotations,
 		},
 		Spec: kautoscaling.HorizontalPodAutoscalerSpec{
 			MinReplicas: &spec.MinReplicas,

@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -61,11 +62,13 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		fullCtxMatch = true
 	}
 
-	isUpdating, err := workloads.IsDeploymentUpdating(ctx.App.Name)
+	deploymentStatus, err := workloads.GetDeploymentStatus(ctx.App.Name)
 	if err != nil {
 		RespondError(w, err)
 		return
 	}
+
+	isUpdating := deploymentStatus == resource.UpdatingDeploymentStatus
 
 	if isUpdating {
 		if fullCtxMatch {
