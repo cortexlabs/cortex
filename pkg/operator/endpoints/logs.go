@@ -23,7 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	reslib "github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
@@ -80,28 +80,28 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resourceType != "" {
-		resource, err := ctx.VisibleResourceByNameAndType(resourceName, resourceType)
+		res, err := ctx.VisibleResourceByNameAndType(resourceName, resourceType)
 		if err != nil {
 			RespondError(w, err)
 			return
 		}
-		if resource.GetResourceType() == reslib.APIType {
-			podLabels["apiName"] = resource.GetName()
+		if res.GetResourceType() == resource.APIType {
+			podLabels["apiName"] = res.GetName()
 		} else {
-			podLabels["workloadID"] = resource.GetWorkloadID()
+			podLabels["workloadID"] = res.GetWorkloadID()
 		}
 		readLogs(w, r, podLabels, appName, verbose)
 		return
 	}
 
-	resource, err := ctx.VisibleResourceByName(resourceName)
+	res, err := ctx.VisibleResourceByName(resourceName)
 
 	if err == nil {
-		workloadID = resource.GetWorkloadID()
-		if resource.GetResourceType() == reslib.APIType {
-			podLabels["apiName"] = resource.GetName()
+		workloadID = res.GetWorkloadID()
+		if res.GetResourceType() == resource.APIType {
+			podLabels["apiName"] = res.GetName()
 		} else {
-			podLabels["workloadID"] = resource.GetWorkloadID()
+			podLabels["workloadID"] = res.GetWorkloadID()
 		}
 		readLogs(w, r, podLabels, appName, verbose)
 		return
@@ -109,8 +109,8 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 
 	// Check for duplicate resources with same workload ID
 	var workloadIDs []string
-	for _, resource := range ctx.VisibleResourcesByName(resourceName) {
-		workloadIDs = append(workloadIDs, resource.GetWorkloadID())
+	for _, res := range ctx.VisibleResourcesByName(resourceName) {
+		workloadIDs = append(workloadIDs, res.GetWorkloadID())
 	}
 	workloadIDs = slices.UniqueStrings(workloadIDs)
 	if len(workloadIDs) == 1 {
