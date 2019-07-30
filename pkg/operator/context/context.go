@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -122,6 +123,7 @@ func New(
 	ignoreCache bool,
 ) (*context.Context, error) {
 	ctx := &context.Context{}
+	ctx.CreatedEpoch = time.Now().Unix()
 
 	ctx.CortexConfig = config.Cortex
 

@@ -40,6 +40,7 @@ var flagWatch bool
 var flagAppName string
 var flagVerbose bool
 var flagSummary bool
+var flagAllDeployments bool
 
 var configFileExts = []string{"yaml", "yml"}
 
@@ -104,6 +105,10 @@ func addVerboseFlag(cmd *cobra.Command) {
 
 func addSummaryFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVarP(&flagSummary, "summary", "s", false, "show summarized output")
+}
+
+func addAllDeploymentsFlag(cmd *cobra.Command) {
+	getCmd.PersistentFlags().BoolVarP(&flagAllDeployments, "all-deployments", "a", false, "list all deployments")
 }
 
 var resourceTypesHelp = fmt.Sprintf("\nResource Types:\n  %s\n", strings.Join(resource.VisibleTypes.StringList(), "\n  "))
