@@ -31,12 +31,13 @@ var serviceTypeMeta = kmeta.TypeMeta{
 }
 
 type ServiceSpec struct {
-	Name       string
-	Namespace  string
-	Port       int32
-	TargetPort int32
-	Labels     map[string]string
-	Selector   map[string]string
+	Name        string
+	Namespace   string
+	Port        int32
+	TargetPort  int32
+	Selector    map[string]string
+	Labels      map[string]string
+	Annotations map[string]string
 }
 
 func Service(spec *ServiceSpec) *kcore.Service {
@@ -46,9 +47,10 @@ func Service(spec *ServiceSpec) *kcore.Service {
 	service := &kcore.Service{
 		TypeMeta: serviceTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
-			Name:      spec.Name,
-			Namespace: spec.Namespace,
-			Labels:    spec.Labels,
+			Name:        spec.Name,
+			Namespace:   spec.Namespace,
+			Labels:      spec.Labels,
+			Annotations: spec.Annotations,
 		},
 		Spec: kcore.ServiceSpec{
 			Selector: spec.Selector,

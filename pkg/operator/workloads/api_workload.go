@@ -450,6 +450,9 @@ func ingressSpec(ctx *context.Context, api *context.API) *kextensions.Ingress {
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
 		},
+		Annotations: map[string]string{
+			"service.beta.kubernetes.io/aws-load-balancer-backend-protocol": "https",
+		},
 		Namespace: config.Cortex.Namespace,
 	})
 }

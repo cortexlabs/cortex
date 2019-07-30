@@ -30,10 +30,11 @@ var configMapTypeMeta = kmeta.TypeMeta{
 }
 
 type ConfigMapSpec struct {
-	Name      string
-	Namespace string
-	Data      map[string]string
-	Labels    map[string]string
+	Name        string
+	Namespace   string
+	Data        map[string]string
+	Labels      map[string]string
+	Annotations map[string]string
 }
 
 func ConfigMap(spec *ConfigMapSpec) *kcore.ConfigMap {
@@ -43,9 +44,10 @@ func ConfigMap(spec *ConfigMapSpec) *kcore.ConfigMap {
 	configMap := &kcore.ConfigMap{
 		TypeMeta: configMapTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
-			Name:      spec.Name,
-			Namespace: spec.Namespace,
-			Labels:    spec.Labels,
+			Name:        spec.Name,
+			Namespace:   spec.Namespace,
+			Labels:      spec.Labels,
+			Annotations: spec.Annotations,
 		},
 		Data: spec.Data,
 	}

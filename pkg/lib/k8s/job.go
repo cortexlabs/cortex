@@ -31,10 +31,11 @@ var jobTypeMeta = kmeta.TypeMeta{
 }
 
 type JobSpec struct {
-	Name      string
-	Namespace string
-	PodSpec   PodSpec
-	Labels    map[string]string
+	Name        string
+	Namespace   string
+	PodSpec     PodSpec
+	Labels      map[string]string
+	Annotations map[string]string
 }
 
 func Job(spec *JobSpec) *kbatch.Job {
@@ -55,9 +56,10 @@ func Job(spec *JobSpec) *kbatch.Job {
 	job := &kbatch.Job{
 		TypeMeta: jobTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
-			Name:      spec.Name,
-			Namespace: spec.Namespace,
-			Labels:    spec.Labels,
+			Name:        spec.Name,
+			Namespace:   spec.Namespace,
+			Labels:      spec.Labels,
+			Annotations: spec.Annotations,
 		},
 		Spec: kbatch.JobSpec{
 			BackoffLimit: &backoffLimit,
