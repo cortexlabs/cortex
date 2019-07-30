@@ -141,10 +141,16 @@ func deleteOldDataJobs(ctx *context.Context) error {
 }
 
 func DeleteApp(appName string, keepCache bool) bool {
-	deployments, _ := config.Kubernetes.ListDeploymentsByLabel("appName", appName)
-	for _, deployment := range deployments {
-		config.Kubernetes.DeleteDeployment(deployment.Name)
+	wasDeployed := false
+	if ctx := CurrentContext(appName); ctx != nil {
+		updateKilledDataSavedStatuses(ctx)
+		wasDeployed = true
 	}
+
+	deleteCurrentContext(appName)
+	uncacheDataSavedStatuses(nil, appName)
+	uncacheLatestWorkloadIDs(nil, appName)
+
 	ingresses, _ := config.Kubernetes.ListIngressesByLabel("appName", appName)
 	for _, ingress := range ingresses {
 		config.Kubernetes.DeleteIngress(ingress.Name)
@@ -165,16 +171,10 @@ func DeleteApp(appName string, keepCache bool) bool {
 	for _, sparkApp := range sparkApps {
 		config.Spark.Delete(sparkApp.Name)
 	}
-
-	wasDeployed := false
-	if ctx := CurrentContext(appName); ctx != nil {
-		updateKilledDataSavedStatuses(ctx)
-		wasDeployed = true
+	deployments, _ := config.Kubernetes.ListDeploymentsByLabel("appName", appName)
+	for _, deployment := range deployments {
+		config.Kubernetes.DeleteDeployment(deployment.Name)
 	}
-
-	deleteCurrentContext(appName)
-	uncacheDataSavedStatuses(nil, appName)
-	uncacheLatestWorkloadIDs(nil, appName)
 
 	if !keepCache {
 		config.AWS.DeleteFromS3ByPrefix(filepath.Join(consts.AppsDir, appName), true)

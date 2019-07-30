@@ -92,7 +92,7 @@ func addEnvFlag(cmd *cobra.Command) {
 }
 
 func addWatchFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().BoolVarP(&flagWatch, "watch", "w", false, "re-run the command every 2 seconds")
+	cmd.PersistentFlags().BoolVarP(&flagWatch, "watch", "w", false, "re-run the command every second")
 }
 
 func addAppNameFlag(cmd *cobra.Command) {
