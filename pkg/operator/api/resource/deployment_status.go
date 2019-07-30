@@ -22,14 +22,14 @@ const (
 	UnknownDeploymentStatus DeploymentStatus = iota
 	UpdatedDeploymentStatus
 	UpdatingDeploymentStatus
-	FailedDeploymentStatus
+	ErrorDeploymentStatus
 )
 
 var deploymentStatuses = []string{
 	"unknown",
 	"updated",
 	"updating",
-	"failed",
+	"error",
 }
 
 func DeploymentStatusFromString(s string) DeploymentStatus {

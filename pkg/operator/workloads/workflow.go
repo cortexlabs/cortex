@@ -287,38 +287,8 @@ func GetDeploymentStatus(appName string) (resource.DeploymentStatus, error) {
 		return resource.UnknownDeploymentStatus, nil
 	}
 
-	allSuccess := true
-	for _, workload := range extractWorkloads(ctx) {
-		isFailed, err := workload.IsFailed(ctx)
-		if err != nil {
-			return resource.UnknownDeploymentStatus, err
-		}
-		if isFailed {
-			return resource.FailedDeploymentStatus, nil
-		}
-
-		isSucceeded, err := workload.IsSucceeded(ctx)
-		if err != nil {
-			return resource.UnknownDeploymentStatus, err
-		}
-		if !isSucceeded {
-			allSuccess = false
-		}
-	}
-
-	if allSuccess {
-		return resource.UpdatedDeploymentStatus, nil
-	}
-
-	return resource.UpdatingDeploymentStatus, nil
-}
-
-func IsDeploymentUpdating(appName string) (bool, error) {
-	ctx := CurrentContext(appName)
-	if ctx == nil {
-		return false, nil
-	}
-
+	failedCount := 0
+	updatingCount := 0
 	for _, workload := range extractWorkloads(ctx) {
 
 		// Pending HPA workloads shouldn't block new deployments
@@ -328,7 +298,7 @@ func IsDeploymentUpdating(appName string) (bool, error) {
 
 		isSucceeded, err := workload.IsSucceeded(ctx)
 		if err != nil {
-			return false, err
+			return resource.UnknownDeploymentStatus, err
 		}
 		if isSucceeded {
 			continue
@@ -336,23 +306,28 @@ func IsDeploymentUpdating(appName string) (bool, error) {
 
 		isFailed, err := workload.IsFailed(ctx)
 		if err != nil {
-			return false, err
+			return resource.UnknownDeploymentStatus, err
 		}
 		if isFailed {
+			failedCount++
 			continue
 		}
 
 		canRun, err := workload.CanRun(ctx)
 		if err != nil {
-			return false, err
+			return resource.UnknownDeploymentStatus, err
 		}
 		if !canRun {
 			continue
 		}
-
-		// It's either running or can run
-		return true, nil
+		updatingCount++
 	}
 
-	return false, nil
+	if failedCount > 0 {
+		return resource.ErrorDeploymentStatus, nil
+	}
+	if updatingCount > 0 {
+		return resource.UpdatingDeploymentStatus, nil
+	}
+	return resource.UpdatedDeploymentStatus, nil
 }

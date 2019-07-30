@@ -2,6 +2,8 @@ import numpy as np
 
 iris_labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
 
+raise Exception("hi")
+
 
 def pre_inference(sample, metadata):
     return {

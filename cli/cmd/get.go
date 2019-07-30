@@ -47,7 +47,7 @@ func init() {
 	addWatchFlag(getCmd)
 	addSummaryFlag(getCmd)
 	addVerboseFlag(getCmd)
-	addActiveDeploymentsFlag(getCmd)
+	addAllDeploymentsFlag(getCmd)
 	// addResourceTypesToHelp(getCmd)
 }
 
@@ -64,7 +64,7 @@ var getCmd = &cobra.Command{
 }
 
 func runGet(cmd *cobra.Command, args []string) (string, error) {
-	if flagActiveDeployments || !IsAppNameSpecified() {
+	if flagAllDeployments || !IsAppNameSpecified() {
 		return getDeploymentsResponse()
 	}
 
@@ -126,7 +126,7 @@ func getDeploymentsResponse() (string, error) {
 	}
 
 	if len(resourcesRes.Deployments) == 0 {
-		return "No active Cortex deployments found", nil
+		return "No deployments found", nil
 	}
 
 	rows := make([][]interface{}, len(resourcesRes.Deployments))
@@ -134,7 +134,7 @@ func getDeploymentsResponse() (string, error) {
 		rows[idx] = []interface{}{
 			deployment.Name,
 			deployment.Status.String(),
-			libtime.Since(&deployment.LastUpdated) + " ago",
+			libtime.Since(&deployment.LastUpdated),
 		}
 	}
 

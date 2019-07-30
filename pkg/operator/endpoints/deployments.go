@@ -25,14 +25,13 @@ import (
 )
 
 func GetDeployments(w http.ResponseWriter, r *http.Request) {
-
 	currentContexts := workloads.CurrentContexts()
 	deployments := make([]schema.Deployment, len(currentContexts))
-	for idx, ctx := range currentContexts {
-		deployments[idx].Name = ctx.App.Name
+	for i, ctx := range currentContexts {
+		deployments[i].Name = ctx.App.Name
 		status, _ := workloads.GetDeploymentStatus(ctx.App.Name)
-		deployments[idx].Status = status
-		deployments[idx].LastUpdated = time.Unix(ctx.CreatedEpoch, 0)
+		deployments[i].Status = status
+		deployments[i].LastUpdated = time.Unix(ctx.CreatedEpoch, 0)
 	}
 
 	response := schema.GetDeploymentsResponse{
