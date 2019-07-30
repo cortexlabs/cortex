@@ -47,6 +47,7 @@ func init() {
 	addWatchFlag(getCmd)
 	addSummaryFlag(getCmd)
 	addVerboseFlag(getCmd)
+	addAllDeploymentsFlag(getCmd)
 	// addResourceTypesToHelp(getCmd)
 }
 
@@ -63,6 +64,10 @@ var getCmd = &cobra.Command{
 }
 
 func runGet(cmd *cobra.Command, args []string) (string, error) {
+	if flagAllDeployments || !IsAppNameSpecified() {
+		return getDeploymentsResponse()
+	}
+
 	resourcesRes, err := getResourcesResponse()
 	if err != nil {
 		return "", err
@@ -107,6 +112,42 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 	}
 
 	return "", errors.New("too many args") // unexpected
+}
+
+func getDeploymentsResponse() (string, error) {
+	httpResponse, err := HTTPGet("/deployments", map[string]string{})
+	if err != nil {
+		return "", err
+	}
+
+	var resourcesRes schema.GetDeploymentsResponse
+	if err = json.Unmarshal(httpResponse, &resourcesRes); err != nil {
+		return "", err
+	}
+
+	if len(resourcesRes.Deployments) == 0 {
+		return "No deployments found", nil
+	}
+
+	rows := make([][]interface{}, len(resourcesRes.Deployments))
+	for idx, deployment := range resourcesRes.Deployments {
+		rows[idx] = []interface{}{
+			deployment.Name,
+			deployment.Status.String(),
+			libtime.Since(&deployment.LastUpdated),
+		}
+	}
+
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "NAME", MaxWidth: 32},
+			{Title: "STATUS", MaxWidth: 21},
+			{Title: "LAST UPDATED"},
+		},
+		Rows: rows,
+	}
+
+	return table.MustFormat(t), nil
 }
 
 func getResourcesResponse() (*schema.GetResourcesResponse, error) {

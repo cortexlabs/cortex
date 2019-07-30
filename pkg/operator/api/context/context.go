@@ -29,6 +29,7 @@ import (
 type Context struct {
 	ID                 string               `json:"id"`
 	Key                string               `json:"key"`
+	CreatedEpoch       int64                `json:"created_epoch"`
 	CortexConfig       *config.CortexConfig `json:"cortex_config"`
 	DatasetVersion     string               `json:"dataset_version"`
 	Root               string               `json:"root"`
