@@ -1,1 +1,1 @@
-FROM docker.io/istio/galley:1.2.0
+FROM docker.io/istio/galley:1.2.2

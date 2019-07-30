@@ -87,11 +87,12 @@ galley:
   enabled: true
 
 mixer:
+  image: $CORTEX_IMAGE_ISTIO_MIXER
   policy:
-    enabled: false
+    enabled: true
 
   telemetry:
-    enabled: false
+    enabled: true
 
 pilot:
   image: $CORTEX_IMAGE_ISTIO_PILOT
@@ -119,3 +120,6 @@ kiali:
 global:
   proxy:
     autoInject: disabled
+    image: $CORTEX_IMAGE_ISTIO_PROXY
+  proxy_init:
+    image: $CORTEX_IMAGE_ISTIO_PROXY_INIT
