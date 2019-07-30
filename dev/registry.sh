@@ -44,7 +44,6 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/istio-proxy --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/istio-proxy-init --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/istio-mixer --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/kubectl --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/operator --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/spark --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/spark-operator --region=$REGISTRY_REGION || true

@@ -20,13 +20,25 @@ source $ROOT/dev/config/cortex.sh
 
 
 function uninstall_cortex() {
-  $ROOT/dev/uninstall_cortex.sh \
-    -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-    -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
-    -e CORTEX_REGION=$CORTEX_REGION \
-    -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
-    $CORTEX_IMAGE_MANAGER
+  set -e
+  eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" || true
+
+  echo "Uninstalling Cortex ..."
+
+  # Remove finalizers on sparkapplications (they sometimes create deadlocks)
+  if kubectl get namespace $CORTEX_NAMESPACE >/dev/null 2>&1 && kubectl get customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1; then
+    set +e
+    kubectl -n=$CORTEX_NAMESPACE get sparkapplications.sparkoperator.k8s.io -o name | xargs -L1 \
+      kubectl -n=$CORTEX_NAMESPACE patch -p '{"metadata":{"finalizers": []}}' --type=merge >/dev/null 2>&1
+    set -e
+  fi
+
+  kubectl delete --ignore-not-found=true customresourcedefinition scheduledsparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
+  kubectl delete --ignore-not-found=true customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
+  kubectl delete --ignore-not-found=true namespace istio-system >/dev/null 2>&1
+  kubectl delete --ignore-not-found=true namespace $CORTEX_NAMESPACE >/dev/null 2>&1
+
+  echo "✓ Uninstalled Cortex"
 }
 
 function info() {

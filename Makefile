@@ -177,7 +177,6 @@ ci-push-images:
 	@./build/push-image.sh istio-proxy
 	@./build/push-image.sh istio-proxy-init
 	@./build/push-image.sh istio-mixer
-	@./build/push-image.sh kubectl
 
 
 ci-build-cli:
