@@ -174,7 +174,12 @@ envsubst < manifests/spark.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
 
 kubectl create namespace istio-system
-kubectl create -n istio-system secret tls istio-customgateway-certs --key localhost.key --cert localhost.crt
+WEBSITE=localhost && \
+openssl req \
+    -subj "/C=US/CN=$WEBSITE" \
+    -newkey rsa:2048 -nodes -keyout $WEBSITE.key \
+    -x509 -days 3650 -out $WEBSITE.crt
+kubectl create -n istio-system secret tls istio-customgateway-certs --key $WEBSITE.key --cert $WEBSITE.crt
 helm template manifests/istio-init --name istio-init --namespace istio-system | kubectl apply -f -
 while [ ! $(kubectl api-resources | grep virtualservice) ]; do
   sleep 1

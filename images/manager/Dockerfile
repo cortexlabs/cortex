@@ -29,12 +29,6 @@ RUN curl -LO https://get.helm.sh/helm-v2.14.1-linux-amd64.tar.gz && \
     rm -rf linux-amd64 && \
     rm helm-v2.14.1-linux-amd64.tar.gz
 
-RUN WEBSITE=localhost && \
-    openssl req \
-       -subj "/C=US/CN=$WEBSITE" \
-       -newkey rsa:2048 -nodes -keyout $WEBSITE.key \
-       -x509 -days 3650 -out $WEBSITE.crt
-
 RUN ISTIO_VERSION=1.2.2 && \
   curl -L "https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istio-${ISTIO_VERSION}-linux.tar.gz" | tar xz && \
   mv "./istio-${ISTIO_VERSION}/install/kubernetes/helm/istio" ./manifests/ && \
