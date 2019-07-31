@@ -433,6 +433,8 @@ if [ "$arg1" = "install" ]; then
     prompt_for_telemetry && install_eks && install_cortex && info
   elif [ "$arg2" = "cli" ]; then
     install_cli
+  elif [ "$arg2" = "cortex" ]; then # Undocumented (just for dev)
+    install_cortex && info
   elif [ "$arg2" = "" ]; then
     echo -e "\nerror: missing subcommand for install"
     show_help

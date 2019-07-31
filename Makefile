@@ -32,14 +32,6 @@ cortex-up:
 	@./cortex.sh -c=./dev/config/cortex.sh install
 	@$(MAKE) kubectl
 
-cortex-install:
-	@$(MAKE) registry-all
-	@./dev/cortex.sh install
-	$(MAKE) kubectl
-
-cortex-uninstall:
-	@./dev/cortex.sh uninstall
-
 cortex-up-dev:
 	@$(MAKE) cortex-up
 	@$(MAKE) operator-stop
@@ -47,6 +39,14 @@ cortex-up-dev:
 cortex-down:
 	@$(MAKE) manager-local
 	@./cortex.sh -c=./dev/config/cortex.sh uninstall
+
+cortex-install:
+	@$(MAKE) registry-all
+	@./cortex.sh -c=./dev/config/cortex.sh install cortex
+	@$(MAKE) kubectl
+
+cortex-uninstall:
+	@./dev/uninstall_cortex.sh
 
 cortex-info:
 	@$(MAKE) manager-local
