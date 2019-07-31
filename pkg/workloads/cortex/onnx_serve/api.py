@@ -219,6 +219,7 @@ def get_signature(app_name, api_name):
 
 
 def start(args):
+    api = None
     try:
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
         api = ctx.apis_id_map[args.api]
@@ -240,11 +241,12 @@ def start(args):
     except CortexException as e:
         e.wrap("error")
         logger.error(str(e))
-        logger.exception(
-            "An error occured starting the api, see `cx logs -v api {}` for more details".format(
-                api["name"]
+        if api is not None:
+            logger.exception(
+                "An error occured starting the api, see `cx logs -v api {}` for more details".format(
+                    api["name"]
+                )
             )
-        )
         sys.exit(1)
 
     serve(app, listen="*:{}".format(args.port))
