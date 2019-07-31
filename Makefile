@@ -45,9 +45,11 @@ cortex-up-dev:
 	@$(MAKE) operator-stop
 
 cortex-down:
+	@$(MAKE) manager-local
 	@./cortex.sh -c=./dev/config/cortex.sh uninstall
 
 cortex-info:
+	@$(MAKE) manager-local
 	@./cortex.sh -c=./dev/config/cortex.sh info
 
 cortex-update:
@@ -76,6 +78,9 @@ registry-dev:
 
 registry-create:
 	@./dev/registry.sh create
+
+manager-local:
+	@./dev/registry.sh update-manager-local
 
 # Misc
 
