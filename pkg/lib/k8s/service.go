@@ -57,6 +57,7 @@ func Service(spec *ServiceSpec) *kcore.Service {
 			Ports: []kcore.ServicePort{
 				{
 					Protocol: kcore.ProtocolTCP,
+					Name:     "http",
 					Port:     spec.Port,
 					TargetPort: intstr.IntOrString{
 						IntVal: spec.TargetPort,

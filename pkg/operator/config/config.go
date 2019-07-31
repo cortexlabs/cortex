@@ -29,11 +29,12 @@ import (
 )
 
 var (
-	Cortex     *CortexConfig
-	AWS        *aws.Client
-	Kubernetes *k8s.Client
-	Telemetry  *telemetry.Client
-	Spark      *spark.Client
+	Cortex          *CortexConfig
+	AWS             *aws.Client
+	Kubernetes      *k8s.Client
+	IstioKubernetes *k8s.Client
+	Telemetry       *telemetry.Client
+	Spark           *spark.Client
 )
 
 type CortexConfig struct {
@@ -88,6 +89,10 @@ func Init() error {
 
 	var err error
 	if Kubernetes, err = k8s.New(Cortex.Namespace, Cortex.OperatorInCluster); err != nil {
+		return err
+	}
+
+	if IstioKubernetes, err = k8s.New("istio-system", Cortex.OperatorInCluster); err != nil {
 		return err
 	}
 

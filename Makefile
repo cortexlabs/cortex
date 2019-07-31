@@ -32,6 +32,14 @@ cortex-up:
 	@./cortex.sh -c=./dev/config/cortex.sh install
 	@$(MAKE) kubectl
 
+cortex-install:
+	@$(MAKE) registry-all
+	@./dev/cortex.sh install
+	$(MAKE) kubectl
+
+cortex-uninstall:
+	@./dev/cortex.sh uninstall
+
 cortex-up-dev:
 	@$(MAKE) cortex-up
 	@$(MAKE) operator-stop
@@ -133,12 +141,17 @@ ci-build-images:
 	@./build/build-image.sh images/onnx-serve-gpu onnx-serve-gpu
 	@./build/build-image.sh images/operator operator
 	@./build/build-image.sh images/fluentd fluentd
-	@./build/build-image.sh images/nginx-controller nginx-controller
-	@./build/build-image.sh images/nginx-backend nginx-backend
 	@./build/build-image.sh images/python-packager python-packager
 	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
 	@./build/build-image.sh images/nvidia nvidia
 	@./build/build-image.sh images/metrics-server metrics-server
+	@./build/build-image.sh images/istio-citadel istio-citadel
+	@./build/build-image.sh images/istio-galley istio-galley
+	@./build/build-image.sh images/istio-pilot istio-pilot
+	@./build/build-image.sh images/istio-sidecar istio-sidecar
+	@./build/build-image.sh images/istio-proxy istio-proxy
+	@./build/build-image.sh images/istio-proxy-init istio-proxy-init
+	@./build/build-image.sh images/istio-mixer istio-mixer
 
 ci-push-images:
 	@./build/push-image.sh manager
@@ -153,12 +166,17 @@ ci-push-images:
 	@./build/push-image.sh onnx-serve-gpu
 	@./build/push-image.sh operator
 	@./build/push-image.sh fluentd
-	@./build/push-image.sh nginx-controller
-	@./build/push-image.sh nginx-backend
 	@./build/push-image.sh python-packager
 	@./build/push-image.sh cluster-autoscaler
 	@./build/push-image.sh nvidia
 	@./build/push-image.sh metrics-server
+	@./build/push-image.sh istio-citadel
+	@./build/push-image.sh istio-galley
+	@./build/push-image.sh istio-pilot
+	@./build/push-image.sh istio-sidecar
+	@./build/push-image.sh istio-proxy
+	@./build/push-image.sh istio-proxy-init
+	@./build/push-image.sh istio-mixer
 
 
 ci-build-cli:

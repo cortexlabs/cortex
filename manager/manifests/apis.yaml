@@ -12,9 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: v1
-kind: Namespace
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
 metadata:
-  name: $CORTEX_NAMESPACE
-  labels:
-    istio-injection: enabled
+  name: apis-gateway
+  namespace: $CORTEX_NAMESPACE
+spec:
+  selector:
+    istio: apis-ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    hosts:
+    - "*"
+    tls:
+      mode: SIMPLE
+      serverCertificate: /etc/istio/customgateway-certs/tls.crt
+      privateKey: /etc/istio/customgateway-certs/tls.key
+
+---

@@ -23,6 +23,7 @@ import (
 
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclientdynamic "k8s.io/client-go/dynamic"
 	kclientset "k8s.io/client-go/kubernetes"
 	kclientapps "k8s.io/client-go/kubernetes/typed/apps/v1"
 	kclientautoscaling "k8s.io/client-go/kubernetes/typed/autoscaling/v2beta2"
@@ -48,6 +49,7 @@ var (
 type Client struct {
 	RestConfig       *kclientrest.Config
 	clientset        *kclientset.Clientset
+	dynamicClient    kclientdynamic.Interface
 	podClient        kclientcore.PodInterface
 	serviceClient    kclientcore.ServiceInterface
 	configMapClient  kclientcore.ConfigMapInterface
@@ -75,6 +77,11 @@ func New(namespace string, inCluster bool) (*Client, error) {
 	}
 
 	client.clientset, err = kclientset.NewForConfig(client.RestConfig)
+	if err != nil {
+		return nil, errors.Wrap(err, "kubeconfig")
+	}
+
+	client.dynamicClient, err = kclientdynamic.NewForConfig(client.RestConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "kubeconfig")
 	}

@@ -20,7 +20,7 @@ metadata:
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
   name: operator
   namespace: $CORTEX_NAMESPACE
@@ -32,6 +32,7 @@ roleRef:
   kind: ClusterRole
   name: cluster-admin
   apiGroup: rbac.authorization.k8s.io
+
 ---
 
 apiVersion: apps/v1
@@ -41,21 +42,30 @@ metadata:
   namespace: $CORTEX_NAMESPACE
   labels:
     workloadType: operator
+    workloadID: operator
+    app: operator
 spec:
   replicas: 1
   selector:
     matchLabels:
       workloadID: operator
+      app: operator
   template:
     metadata:
       labels:
+        app: operator
         workloadID: operator
         workloadType: operator
+      annotations:
+        sidecar.istio.io/inject: "true"
     spec:
+      serviceAccountName: operator
       containers:
       - name: operator
         image: $CORTEX_IMAGE_OPERATOR
         imagePullPolicy: Always
+        ports:
+          - containerPort: 8888
         env:
           - name: AWS_ACCESS_KEY_ID
             valueFrom:
@@ -74,38 +84,70 @@ spec:
         - name: cortex-config
           configMap:
             name: cortex-config
-      serviceAccountName: operator
 ---
 
-kind: Service
 apiVersion: v1
+kind: Service
 metadata:
-  name: operator
   namespace: $CORTEX_NAMESPACE
+  name: operator
   labels:
     workloadType: operator
+    app: operator
+    service: operator
 spec:
   selector:
     workloadID: operator
   ports:
   - port: 8888
-    targetPort: 8888
+    name: http
+  selector:
+    app: operator
+    workloadID: operator
+
 ---
 
-apiVersion: extensions/v1beta1
-kind: Ingress
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: operator-gateway
+  namespace: $CORTEX_NAMESPACE
+spec:
+  selector:
+    istio: operator-ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    hosts:
+    - "*"
+    tls:
+      mode: SIMPLE
+      serverCertificate: /etc/istio/customgateway-certs/tls.crt
+      privateKey: /etc/istio/customgateway-certs/tls.key
+
+---
+
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
 metadata:
   name: operator
   namespace: $CORTEX_NAMESPACE
-  labels:
-    workloadType: operator
-  annotations:
-    kubernetes.io/ingress.class: operator
 spec:
-  rules:
-  - http:
-      paths:
-      - path: /
-        backend:
-          serviceName: operator
-          servicePort: 8888
+  hosts:
+  - "*"
+  gateways:
+  - operator-gateway
+  http:
+  - route:
+    - destination:
+        host: operator
+        port:
+          number: 8888

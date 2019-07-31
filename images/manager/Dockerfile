@@ -7,7 +7,7 @@ ENV PATH /root/.local/bin:$PATH
 RUN pip3 install awscli --upgrade --user && \
     rm -rf /root/.cache/pip*
 
-RUN apk add --no-cache bash curl gettext jq
+RUN apk add --no-cache bash curl gettext jq openssl
 
 RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/0.2.1/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
     mv /tmp/eksctl /usr/local/bin
@@ -21,5 +21,18 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.15.0/b
     mv ./kubectl /usr/local/bin/kubectl
 
 COPY manager /root
+
+RUN curl -LO https://get.helm.sh/helm-v2.14.1-linux-amd64.tar.gz && \
+    tar -zxvf helm-v2.14.1-linux-amd64.tar.gz && \
+    chmod +x linux-amd64/helm && \
+    mv linux-amd64/helm /usr/local/bin/helm && \
+    rm -rf linux-amd64 && \
+    rm helm-v2.14.1-linux-amd64.tar.gz
+
+RUN ISTIO_VERSION=1.2.2 && \
+  curl -L "https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istio-${ISTIO_VERSION}-linux.tar.gz" | tar xz && \
+  mv "./istio-${ISTIO_VERSION}/install/kubernetes/helm/istio" ./manifests/ && \
+  mv "./istio-${ISTIO_VERSION}/install/kubernetes/helm/istio-init" ./manifests/ && \
+  rm -rf "./istio-${ISTIO_VERSION}"
 
 ENTRYPOINT ["/bin/bash"]

@@ -21,8 +21,8 @@ import (
 
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
-	kextensions "k8s.io/api/extensions/v1beta1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
+	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -96,12 +96,12 @@ func (aw *APIWorkload) Start(ctx *context.Context) error {
 		return errors.New(api.Name, "unknown model format encountered") // unexpected
 	}
 
-	_, err = config.Kubernetes.ApplyIngress(ingressSpec(ctx, api))
+	_, err = config.Kubernetes.ApplyService(serviceSpec(ctx, api))
 	if err != nil {
 		return err
 	}
 
-	_, err = config.Kubernetes.ApplyService(serviceSpec(ctx, api))
+	_, err = config.Kubernetes.ApplyVirtualService(virtualServiceSpec(ctx, api))
 	if err != nil {
 		return err
 	}
@@ -259,11 +259,16 @@ func tfAPISpec(
 			"apiName":      api.Name,
 			"resourceID":   ctx.APIs[api.Name].ID,
 			"workloadID":   workloadID,
+			"app":          internalAPIName(api.Name, ctx.App.Name),
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
+			"app":          internalAPIName(api.Name, ctx.App.Name),
+		},
+		Annotations: map[string]string{
+			"sidecar.istio.io/inject": "true",
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
@@ -272,6 +277,7 @@ func tfAPISpec(
 				"apiName":      api.Name,
 				"resourceID":   ctx.APIs[api.Name].ID,
 				"workloadID":   workloadID,
+				"app":          internalAPIName(api.Name, ctx.App.Name),
 				"userFacing":   "true",
 			},
 			K8sPodSpec: kcore.PodSpec{
@@ -309,6 +315,11 @@ func tfAPISpec(
 						Resources: kcore.ResourceRequirements{
 							Requests: transformResourceList,
 						},
+						Ports: []kcore.ContainerPort{
+							{
+								ContainerPort: defaultPortInt32,
+							},
+						},
 					},
 					{
 						Name:            tfServingContainerName,
@@ -337,6 +348,11 @@ func tfAPISpec(
 						Resources: kcore.ResourceRequirements{
 							Requests: tfServingResourceList,
 							Limits:   tfServingLimitsList,
+						},
+						Ports: []kcore.ContainerPort{
+							{
+								ContainerPort: tfServingPortInt32,
+							},
 						},
 					},
 				},
@@ -378,11 +394,16 @@ func onnxAPISpec(
 			"apiName":      api.Name,
 			"resourceID":   ctx.APIs[api.Name].ID,
 			"workloadID":   workloadID,
+			"app":          internalAPIName(api.Name, ctx.App.Name),
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
+			"app":          internalAPIName(api.Name, ctx.App.Name),
+		},
+		Annotations: map[string]string{
+			"sidecar.istio.io/inject": "true",
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
@@ -391,6 +412,7 @@ func onnxAPISpec(
 				"apiName":      api.Name,
 				"resourceID":   ctx.APIs[api.Name].ID,
 				"workloadID":   workloadID,
+				"app":          internalAPIName(api.Name, ctx.App.Name),
 				"userFacing":   "true",
 			},
 			K8sPodSpec: kcore.PodSpec{
@@ -428,6 +450,11 @@ func onnxAPISpec(
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
 						},
+						Ports: []kcore.ContainerPort{
+							{
+								ContainerPort: defaultPortInt32,
+							},
+						},
 					},
 				},
 				Volumes:            k8s.DefaultVolumes(),
@@ -438,22 +465,19 @@ func onnxAPISpec(
 	})
 }
 
-func ingressSpec(ctx *context.Context, api *context.API) *kextensions.Ingress {
-	return k8s.Ingress(&k8s.IngressSpec{
-		Name:         internalAPIName(api.Name, ctx.App.Name),
-		ServiceName:  internalAPIName(api.Name, ctx.App.Name),
-		ServicePort:  defaultPortInt32,
-		Path:         context.APIPath(api.Name, ctx.App.Name),
-		IngressClass: "apis",
+func virtualServiceSpec(ctx *context.Context, api *context.API) *kunstructured.Unstructured {
+	return k8s.VirtualService(&k8s.VirtualServiceSpec{
+		Name:        internalAPIName(api.Name, ctx.App.Name),
+		Namespace:   config.Cortex.Namespace,
+		Gateways:    []string{"apis-gateway"},
+		ServiceName: internalAPIName(api.Name, ctx.App.Name),
+		ServicePort: defaultPortInt32,
+		Path:        context.APIPath(api.Name, ctx.App.Name),
 		Labels: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
 		},
-		Annotations: map[string]string{
-			"service.beta.kubernetes.io/aws-load-balancer-backend-protocol": "https",
-		},
-		Namespace: config.Cortex.Namespace,
 	})
 }
 
@@ -466,11 +490,14 @@ func serviceSpec(ctx *context.Context, api *context.API) *kcore.Service {
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
+			"service":      internalAPIName(api.Name, ctx.App.Name),
+			"app":          internalAPIName(api.Name, ctx.App.Name),
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
+			"app":          internalAPIName(api.Name, ctx.App.Name),
 		},
 		Namespace: config.Cortex.Namespace,
 	})
@@ -497,13 +524,13 @@ func doesAPIComputeNeedsUpdating(api *context.API, k8sDeployment *kapps.Deployme
 }
 
 func deleteOldAPIs(ctx *context.Context) {
-	ingresses, _ := config.Kubernetes.ListIngressesByLabels(map[string]string{
+	virtualServices, _ := config.Kubernetes.ListVirtualServicesByLabels(config.Cortex.Namespace, map[string]string{
 		"appName":      ctx.App.Name,
 		"workloadType": workloadTypeAPI,
 	})
-	for _, ingress := range ingresses {
-		if _, ok := ctx.APIs[ingress.Labels["apiName"]]; !ok {
-			config.Kubernetes.DeleteIngress(ingress.Name)
+	for _, virtualService := range virtualServices {
+		if _, ok := ctx.APIs[virtualService.GetLabels()["apiName"]]; !ok {
+			config.Kubernetes.DeleteVirtualService(config.Cortex.Namespace, virtualService.GetName())
 		}
 	}
 
@@ -566,7 +593,7 @@ func internalAPIName(apiName string, appName string) string {
 }
 
 func APIsBaseURL() (string, error) {
-	service, err := config.Kubernetes.GetService("nginx-controller-apis")
+	service, err := config.IstioKubernetes.GetService("apis-ingressgateway")
 	if err != nil {
 		return "", err
 	}
