@@ -40,8 +40,6 @@ spec:
     value: connection.received.bytes | 0 # uses a TCP-specific attribute
     dimensions:
       source_service: source.workload.name | "unknown"
-      source_version: source.labels["version"] | "unknown"
-      destination_version: destination.labels["version"] | "unknown"
     monitoredResourceType: '"UNSPECIFIED"'
 ---
 # Configuration for a Prometheus handler
@@ -70,7 +68,7 @@ metadata:
   name: operatorcloudwatch
   namespace: $CORTEX_NAMESPACE
 spec:
-  match: context.protocol == "tcp"
+  match: context.protocol == "tcp" || context.protocol == "https"
   actions:
   - handler: operatorhandler
     instances:
