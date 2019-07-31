@@ -55,6 +55,13 @@ export CORTEX_IMAGE_PYTHON_PACKAGER="cortexlabs/python-packager:master"
 export CORTEX_IMAGE_CLUSTER_AUTOSCALER="cortexlabs/cluster-autoscaler:master"
 export CORTEX_IMAGE_NVIDIA="cortexlabs/nvidia:master"
 export CORTEX_IMAGE_METRICS_SERVER="cortexlabs/metrics-server:master"
+export CORTEX_IMAGE_ISTIO_PROXY="cortexlabs/istio-proxy:master"
+export CORTEX_IMAGE_ISTIO_PROXY_INIT="cortexlabs/istio-proxy-init:master"
+export CORTEX_IMAGE_ISTIO_MIXER="cortexlabs/istio-mixer:master"
+export CORTEX_IMAGE_ISTIO_PILOT="cortexlabs/istio-pilot:master"
+export CORTEX_IMAGE_ISTIO_SIDECAR="cortexlabs/istio-sidecar:master"
+export CORTEX_IMAGE_ISTIO_CITADEL="cortexlabs/istio-citadel:master"
+export CORTEX_IMAGE_ISTIO_GALLEY="cortexlabs/istio-galley:master"
 
 # Flag to enable collecting error reports and usage stats. If flag is not set to either "true" or "false", you will be prompted.
 export CORTEX_ENABLE_TELEMETRY=""

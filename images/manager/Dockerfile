@@ -7,7 +7,7 @@ ENV PATH /root/.local/bin:$PATH
 RUN pip3 install awscli --upgrade --user && \
     rm -rf /root/.cache/pip*
 
-RUN apk add --no-cache bash curl gettext jq openssl pwgen
+RUN apk add --no-cache bash curl gettext jq openssl
 
 RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/0.2.1/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
     mv /tmp/eksctl /usr/local/bin
@@ -29,8 +29,7 @@ RUN curl -LO https://get.helm.sh/helm-v2.14.1-linux-amd64.tar.gz && \
     rm -rf linux-amd64 && \
     rm helm-v2.14.1-linux-amd64.tar.gz
 
-RUN PW=$(pwgen -Bs1 12) && \
-    WEBSITE=localhost && \
+RUN WEBSITE=localhost && \
     openssl req \
        -subj "/C=US/CN=$WEBSITE" \
        -newkey rsa:2048 -nodes -keyout $WEBSITE.key \
