@@ -117,7 +117,7 @@ func ReadLogs(appName string, podSearchLabels map[string]string, verbose bool, s
 		}
 
 		if !wrotePending {
-			if !writeSocket("\nPending", socket) {
+			if !writeSocket("\nPending...", socket) {
 				return
 			}
 			wrotePending = true
@@ -138,9 +138,10 @@ func getKubectlLogs(pods []kcore.Pod, verbose bool, wrotePending bool, previous 
 		}
 
 		if isAllPending {
-			if !writeSocket("\nPending", socket) {
+			if !writeSocket("\nPending...", socket) {
 				return
 			}
+			wrotePending = true
 		}
 	}
 
@@ -154,7 +155,7 @@ func getKubectlLogs(pods []kcore.Pod, verbose bool, wrotePending bool, previous 
 	podCheckCancel := make(chan struct{})
 	defer close(podCheckCancel)
 
-	go podCheck(podCheckCancel, socket, pods, previous, verbose, inr)
+	go podCheck(podCheckCancel, socket, pods, previous, verbose, wrotePending, inr)
 	pumpStdin(socket, inw)
 	podCheckCancel <- struct{}{}
 }
@@ -186,7 +187,7 @@ func startKubectlProcess(pod kcore.Pod, previous bool, attrs *os.ProcAttr) (*os.
 	return process, nil
 }
 
-func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodList []kcore.Pod, previous bool, verbose bool, inr *os.File) {
+func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodList []kcore.Pod, previous bool, verbose bool, wrotePending bool, inr *os.File) {
 	timer := time.NewTimer(0)
 	defer timer.Stop()
 
@@ -264,6 +265,13 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 			maxPodsToAdd := maxParallelPodLogging - len(podsToKeep)
 			if len(podsToAdd) < maxPodsToAdd {
 				maxPodsToAdd = len(podsToAdd)
+			}
+
+			if wrotePending && len(latestRunningPods) > 0 {
+				if !writeSocket("Streaming logs:", socket) {
+					return
+				}
+				wrotePending = false
 			}
 
 			for _, podName := range podsToAdd[:maxPodsToAdd] {
@@ -450,10 +458,6 @@ func extractFromCortexLog(match string, loglevel string, logStr string) (*string
 	}
 
 	if strings.HasPrefix(cutStr, "Reading") {
-		return formatHeader3(cutStr), false
-	}
-
-	if strings.HasPrefix(cutStr, "Serving model") {
 		return formatHeader3(cutStr), false
 	}
 

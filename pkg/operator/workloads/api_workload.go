@@ -249,6 +249,7 @@ func tfAPISpec(
 		tfServingResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
+
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:     internalAPIName(api.Name, ctx.App.Name),
 		Replicas: desiredReplicas,

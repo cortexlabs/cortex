@@ -132,7 +132,6 @@ def convert_to_onnx_input(sample, input_metadata_list):
             except CortexException as e:
                 e.wrap("key {}".format(input_metadata.name))
                 raise
-    logger.info(input_dict)
     return input_dict
 
 
@@ -238,7 +237,6 @@ def start(args):
         local_cache["sess"] = sess
         local_cache["input_metadata"] = sess.get_inputs()
         local_cache["output_metadata"] = sess.get_outputs()
-        logger.info("Serving model: {}".format(util.remove_resource_ref(api["model"])))
     except CortexException as e:
         e.wrap("error")
         logger.error(str(e))

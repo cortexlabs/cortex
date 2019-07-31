@@ -17,6 +17,8 @@ limitations under the License.
 package schema
 
 import (
+	"time"
+
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
@@ -39,6 +41,16 @@ type GetResourcesResponse struct {
 	APIStatuses      map[string]*resource.APIStatus      `json:"api_statuses"`
 	APIGroupStatuses map[string]*resource.APIGroupStatus `json:"api_name_statuses"`
 	APIsBaseURL      string                              `json:"apis_base_url"`
+}
+
+type Deployment struct {
+	Name        string                    `json:"name"`
+	Status      resource.DeploymentStatus `json:"status"`
+	LastUpdated time.Time                 `json:"last_updated"`
+}
+
+type GetDeploymentsResponse struct {
+	Deployments []Deployment `json:"deployments"`
 }
 
 type GetAggregateResponse struct {
