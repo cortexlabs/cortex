@@ -174,7 +174,7 @@ envsubst < manifests/spark.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
 
 kubectl create namespace istio-system
-WEBSITE=localhost && \
+WEBSITE=localhost
 openssl req \
     -subj "/C=US/CN=$WEBSITE" \
     -newkey rsa:2048 -nodes -keyout $WEBSITE.key \
