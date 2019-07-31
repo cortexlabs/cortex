@@ -87,12 +87,27 @@ galley:
   enabled: true
 
 mixer:
+  useAdapterCRDs: true
   image: $CORTEX_IMAGE_ISTIO_MIXER
   policy:
     enabled: true
 
   telemetry:
     enabled: true
+  env:
+    AWS_REGION: $CORTEX_REGION
+    LOG_GROUP_NAME: $CORTEX_LOG_GROUP
+    AWS_ACCESS_KEY_ID: |
+      valueFrom:
+        secretKeyRef: |
+          name: aws-credentials
+          key: AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY:
+      valueFrom:
+        secretKeyRef:
+          name: aws-credentials
+          key: AWS_SECRET_ACCESS_KEY
+
 
 pilot:
   image: $CORTEX_IMAGE_ISTIO_PILOT

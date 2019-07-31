@@ -25,8 +25,6 @@ spec:
     value: connection.sent.bytes | 0 # uses a TCP-specific attribute
     dimensions:
       source_service: source.workload.name | "unknown"
-      source_version: source.labels["version"] | "unknown"
-      destination_version: destination.labels["version"] | "unknown"
     monitoredResourceType: '"UNSPECIFIED"'
 ---
 # Configuration for a metric measuring bytes sent from a client
@@ -34,7 +32,7 @@ spec:
 apiVersion: config.istio.io/v1alpha2
 kind: instance
 metadata:
-  name: operatoreceivedbytes
+  name: operatorreceivedbytes
   namespace: $CORTEX_NAMESPACE
 spec:
   compiledTemplate: metric
@@ -45,29 +43,6 @@ spec:
       source_version: source.labels["version"] | "unknown"
       destination_version: destination.labels["version"] | "unknown"
     monitoredResourceType: '"UNSPECIFIED"'
----
-apiVersion: "config.istio.io/v1alpha2"
-kind: instance
-metadata:
-  name: accesslog
-  namespace: $CORTEX_NAMESPACE
-spec:
-  compiledTemplate: logentry
-  params:
-    severity: '"Default"'
-    timestamp: request.time
-    variables:
-      sourceIp: source.ip | ip("0.0.0.0")
-      destinationIp: destination.ip | ip("0.0.0.0")
-      sourceUser: source.principal | ""
-      method: request.method | ""
-      url: request.path | ""
-      protocol: request.scheme | "http"
-      responseCode: response.code | 0
-      responseSize: response.size | 0
-      requestSize: request.size | 0
-      latency: response.duration | "0ms"
-    monitored_resource_type: '"UNSPECIFIED"'
 ---
 # Configuration for a Prometheus handler
 apiVersion: config.istio.io/v1alpha2
@@ -86,24 +61,7 @@ spec:
         unit: Bytes
       operatorreceivedbytes.instance.cortex:
         unit: Bytes
-    logs:
-      accesslog.instance.cortex:
-        payloadTemplate: ".sourceIp"
-
-    #   name: operator_sent_bytes # Prometheus metric name
-    #   instance_name: operatorsentbytes.instance.$CORTEX_NAMESPACE # Mixer instance name (fully-qualified)
-    #   kind: COUNTER
-    #   label_names:
-    #   - source_service
-    #   - source_version
-    #   - destination_version
-    # - name: operator_received_bytes # Prometheus metric name
-    #   instance_name: operatorreceivedbytes.instance.$CORTEX_NAMESPACE # Mixer instance name (fully-qualified)
-    #   kind: COUNTER
-    #   label_names:
-    #   - source_service
-    #   - source_version
-    #   - destination_version
+    logs: {}
 ---
 # Rule to send metric instances to a Prometheus handler
 apiVersion: config.istio.io/v1alpha2
@@ -113,7 +71,6 @@ metadata:
   namespace: $CORTEX_NAMESPACE
 spec:
   match: context.protocol == "tcp"
-         && destination.service.host == "operator.$CORTEX_NAMESPACE.svc.cluster.local"
   actions:
   - handler: operatorhandler
     instances:
