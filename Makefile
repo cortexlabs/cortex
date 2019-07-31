@@ -30,11 +30,11 @@ kubectl:
 cortex-up:
 	@$(MAKE) registry-all
 	@./cortex.sh -c=./dev/config/cortex.sh install
-	$(MAKE) kubectl
+	@$(MAKE) kubectl
 
 cortex-up-dev:
-	$(MAKE) cortex-up
-	$(MAKE) operator-stop
+	@$(MAKE) cortex-up
+	@$(MAKE) operator-stop
 
 cortex-down:
 	@./cortex.sh -c=./dev/config/cortex.sh uninstall
@@ -55,7 +55,7 @@ operator-update:
 	@./cortex.sh -c=./dev/config/cortex.sh update
 
 operator-stop:
-	$(MAKE) kubectl
+	@$(MAKE) kubectl
 	@kubectl delete --namespace="cortex" --ignore-not-found=true deployment operator
 
 # Docker images
@@ -110,7 +110,7 @@ find-missing-version:
 	@./build/find-missing-version.sh
 
 test-examples:
-	$(MAKE) registry-all
+	@$(MAKE) registry-all
 	@./build/test-examples.sh
 
 ###############
