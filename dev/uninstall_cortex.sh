@@ -14,23 +14,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" || true
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
+
+source $ROOT/dev/config/cortex.sh
+
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION
 
 echo "Uninstalling Cortex ..."
 
 # Remove finalizers on sparkapplications (they sometimes create deadlocks)
 if kubectl get namespace $CORTEX_NAMESPACE >/dev/null 2>&1 && kubectl get customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1; then
-  set +e
   kubectl -n=$CORTEX_NAMESPACE get sparkapplications.sparkoperator.k8s.io -o name | xargs -L1 \
     kubectl -n=$CORTEX_NAMESPACE patch -p '{"metadata":{"finalizers": []}}' --type=merge >/dev/null 2>&1
-  set -e
 fi
 
-kubectl delete --ignore-not-found=true customresourcedefinition scheduledsparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
-kubectl delete --ignore-not-found=true customresourcedefinition sparkapplications.sparkoperator.k8s.io >/dev/null 2>&1
-kubectl delete --ignore-not-found=true namespace istio-system >/dev/null 2>&1
-kubectl delete --ignore-not-found=true namespace $CORTEX_NAMESPACE >/dev/null 2>&1
+kubectl delete --ignore-not-found=true customresourcedefinition scheduledsparkapplications.sparkoperator.k8s.io
+kubectl delete --ignore-not-found=true customresourcedefinition sparkapplications.sparkoperator.k8s.io
+kubectl delete --ignore-not-found=true namespace istio-system
+kubectl delete --ignore-not-found=true namespace $CORTEX_NAMESPACE
 
 echo "✓ Uninstalled Cortex"

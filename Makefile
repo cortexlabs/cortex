@@ -45,9 +45,19 @@ cortex-up-dev:
 	@$(MAKE) operator-stop
 
 cortex-down:
+	@$(MAKE) manager-local
 	@./cortex.sh -c=./dev/config/cortex.sh uninstall
 
+cortex-install:
+	@$(MAKE) registry-all
+	@./cortex.sh -c=./dev/config/cortex.sh install cortex
+	@$(MAKE) kubectl
+
+cortex-uninstall:
+	@./dev/uninstall_cortex.sh
+
 cortex-info:
+	@$(MAKE) manager-local
 	@./cortex.sh -c=./dev/config/cortex.sh info
 
 cortex-update:
@@ -76,6 +86,9 @@ registry-dev:
 
 registry-create:
 	@./dev/registry.sh create
+
+manager-local:
+	@./dev/registry.sh update-manager-local
 
 # Misc
 
@@ -177,7 +190,6 @@ ci-push-images:
 	@./build/push-image.sh istio-proxy
 	@./build/push-image.sh istio-proxy-init
 	@./build/push-image.sh istio-mixer
-	@./build/push-image.sh kubectl
 
 
 ci-build-cli:

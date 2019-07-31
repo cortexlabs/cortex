@@ -49,6 +49,7 @@ var (
 type Client struct {
 	RestConfig       *kclientrest.Config
 	clientset        *kclientset.Clientset
+	dynamicClient    kclientdynamic.Interface
 	podClient        kclientcore.PodInterface
 	serviceClient    kclientcore.ServiceInterface
 	configMapClient  kclientcore.ConfigMapInterface
