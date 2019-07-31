@@ -532,7 +532,6 @@ def start(args):
 
         time.sleep(1)
 
-    logger.info("Serving model: {}".format(util.remove_resource_ref(api["model"])))
     serve(app, listen="*:{}".format(args.port))
 
 

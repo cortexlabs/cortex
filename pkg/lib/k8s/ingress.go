@@ -38,22 +38,26 @@ type IngressSpec struct {
 	ServicePort  int32
 	Path         string
 	Labels       map[string]string
+	Annotations  map[string]string
 }
 
 func Ingress(spec *IngressSpec) *kextensions.Ingress {
 	if spec.Namespace == "" {
 		spec.Namespace = "default"
 	}
+
+	if spec.Annotations == nil {
+		spec.Annotations = make(map[string]string)
+	}
+	spec.Annotations["kubernetes.io/ingress.class"] = spec.IngressClass
+
 	ingress := &kextensions.Ingress{
 		TypeMeta: ingressTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
-			Name:      spec.Name,
-			Namespace: spec.Namespace,
-			Annotations: map[string]string{
-				"kubernetes.io/ingress.class":                                   spec.IngressClass,
-				"service.beta.kubernetes.io/aws-load-balancer-backend-protocol": "https",
-			},
-			Labels: spec.Labels,
+			Name:        spec.Name,
+			Namespace:   spec.Namespace,
+			Annotations: spec.Annotations,
+			Labels:      spec.Labels,
 		},
 		Spec: kextensions.IngressSpec{
 			Rules: []kextensions.IngressRule{

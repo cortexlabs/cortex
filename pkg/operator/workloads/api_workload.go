@@ -477,6 +477,10 @@ func virtualServiceSpec(ctx *context.Context, api *context.API) *kunstructured.U
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
 		},
+		Annotations: map[string]string{
+			"service.beta.kubernetes.io/aws-load-balancer-backend-protocol": "https",
+		},
+		Namespace: config.Cortex.Namespace,
 	})
 }
 

@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
@@ -140,10 +141,16 @@ func deleteOldDataJobs(ctx *context.Context) error {
 }
 
 func DeleteApp(appName string, keepCache bool) bool {
-	deployments, _ := config.Kubernetes.ListDeploymentsByLabel("appName", appName)
-	for _, deployment := range deployments {
-		config.Kubernetes.DeleteDeployment(deployment.Name)
+	wasDeployed := false
+	if ctx := CurrentContext(appName); ctx != nil {
+		updateKilledDataSavedStatuses(ctx)
+		wasDeployed = true
 	}
+
+	deleteCurrentContext(appName)
+	uncacheDataSavedStatuses(nil, appName)
+	uncacheLatestWorkloadIDs(nil, appName)
+
 	virtualServices, _ := config.Kubernetes.ListVirtualServicesByLabel(config.Cortex.Namespace, "appName", appName)
 	for _, virtualService := range virtualServices {
 		config.Kubernetes.DeleteVirtualService(virtualService.GetName(), config.Cortex.Namespace)
@@ -164,16 +171,10 @@ func DeleteApp(appName string, keepCache bool) bool {
 	for _, sparkApp := range sparkApps {
 		config.Spark.Delete(sparkApp.Name)
 	}
-
-	wasDeployed := false
-	if ctx := CurrentContext(appName); ctx != nil {
-		updateKilledDataSavedStatuses(ctx)
-		wasDeployed = true
+	deployments, _ := config.Kubernetes.ListDeploymentsByLabel("appName", appName)
+	for _, deployment := range deployments {
+		config.Kubernetes.DeleteDeployment(deployment.Name)
 	}
-
-	deleteCurrentContext(appName)
-	uncacheDataSavedStatuses(nil, appName)
-	uncacheLatestWorkloadIDs(nil, appName)
 
 	if !keepCache {
 		config.AWS.DeleteFromS3ByPrefix(filepath.Join(consts.AppsDir, appName), true)
@@ -280,22 +281,23 @@ func IsWorkloadEnded(appName string, workloadID string) (bool, error) {
 	return false, errors.New("workload not found in the current context")
 }
 
-func IsDeploymentUpdating(appName string) (bool, error) {
+func GetDeploymentStatus(appName string) (resource.DeploymentStatus, error) {
 	ctx := CurrentContext(appName)
 	if ctx == nil {
-		return false, nil
+		return resource.UnknownDeploymentStatus, nil
 	}
 
+	isUpdating := false
 	for _, workload := range extractWorkloads(ctx) {
 
-		// Pending HPA workloads shouldn't block new deployments
+		// HPA workloads don't really count
 		if workload.GetWorkloadType() == workloadTypeHPA {
 			continue
 		}
 
 		isSucceeded, err := workload.IsSucceeded(ctx)
 		if err != nil {
-			return false, err
+			return resource.UnknownDeploymentStatus, err
 		}
 		if isSucceeded {
 			continue
@@ -303,23 +305,24 @@ func IsDeploymentUpdating(appName string) (bool, error) {
 
 		isFailed, err := workload.IsFailed(ctx)
 		if err != nil {
-			return false, err
+			return resource.UnknownDeploymentStatus, err
 		}
 		if isFailed {
-			continue
+			return resource.ErrorDeploymentStatus, nil
 		}
 
 		canRun, err := workload.CanRun(ctx)
 		if err != nil {
-			return false, err
+			return resource.UnknownDeploymentStatus, err
 		}
 		if !canRun {
 			continue
 		}
-
-		// It's either running or can run
-		return true, nil
+		isUpdating = true
 	}
 
-	return false, nil
+	if isUpdating {
+		return resource.UpdatingDeploymentStatus, nil
+	}
+	return resource.UpdatedDeploymentStatus, nil
 }

@@ -106,3 +106,7 @@ func AppNameFromFlagOrConfig() (string, error) {
 
 	return appName, nil
 }
+
+func IsAppNameSpecified() bool {
+	return flagAppName != "" || appRootOrBlank() != ""
+}

@@ -37,9 +37,9 @@ type DeploymentSpec struct {
 	Namespace   string
 	Replicas    int32
 	PodSpec     PodSpec
+	Selector    map[string]string
 	Labels      map[string]string
 	Annotations map[string]string
-	Selector    map[string]string
 }
 
 func Deployment(spec *DeploymentSpec) *kapps.Deployment {

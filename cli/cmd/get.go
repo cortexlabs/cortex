@@ -47,6 +47,7 @@ func init() {
 	addWatchFlag(getCmd)
 	addSummaryFlag(getCmd)
 	addVerboseFlag(getCmd)
+	addAllDeploymentsFlag(getCmd)
 	// addResourceTypesToHelp(getCmd)
 }
 
@@ -63,6 +64,10 @@ var getCmd = &cobra.Command{
 }
 
 func runGet(cmd *cobra.Command, args []string) (string, error) {
+	if flagAllDeployments || !IsAppNameSpecified() {
+		return getDeploymentsResponse()
+	}
+
 	resourcesRes, err := getResourcesResponse()
 	if err != nil {
 		return "", err
@@ -107,6 +112,42 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 	}
 
 	return "", errors.New("too many args") // unexpected
+}
+
+func getDeploymentsResponse() (string, error) {
+	httpResponse, err := HTTPGet("/deployments", map[string]string{})
+	if err != nil {
+		return "", err
+	}
+
+	var resourcesRes schema.GetDeploymentsResponse
+	if err = json.Unmarshal(httpResponse, &resourcesRes); err != nil {
+		return "", err
+	}
+
+	if len(resourcesRes.Deployments) == 0 {
+		return "No deployments found", nil
+	}
+
+	rows := make([][]interface{}, len(resourcesRes.Deployments))
+	for idx, deployment := range resourcesRes.Deployments {
+		rows[idx] = []interface{}{
+			deployment.Name,
+			deployment.Status.String(),
+			libtime.Since(&deployment.LastUpdated),
+		}
+	}
+
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "NAME", MaxWidth: 32},
+			{Title: "STATUS", MaxWidth: 21},
+			{Title: "LAST UPDATE"},
+		},
+		Rows: rows,
+	}
+
+	return "\n" + table.MustFormat(t), nil
 }
 
 func getResourcesResponse() (*schema.GetResourcesResponse, error) {
@@ -448,8 +489,8 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
 
-	out := "\nURL:      " + apiEndpoint + "\n"
-	out += fmt.Sprintf("cURL:     curl -k -X POST -H \"Content-Type: application/json\" %s -d @<json_file_path>\n", apiEndpoint)
+	out := "\nURL: " + apiEndpoint + "\n"
+	out += fmt.Sprintf("cURL: curl -k -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n", apiEndpoint)
 	out += "\n"
 	out += fmt.Sprintf("Status:              %s\n", groupStatus.Message())
 	out += fmt.Sprintf("Available replicas:  %s\n", s.Int32(groupStatus.Available()))
