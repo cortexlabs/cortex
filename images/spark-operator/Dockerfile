@@ -2,7 +2,7 @@ FROM golang:1.10.2-alpine as builder
 
 ARG DEP_VERSION="0.4.1"
 RUN apk add --no-cache bash git
-ADD https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 /usr/bin/dep
+RUN wget -O /usr/bin/dep https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64
 RUN chmod +x /usr/bin/dep
 
 RUN git clone https://github.com/GoogleCloudPlatform/spark-on-k8s-operator.git /spark-on-k8s-operator
