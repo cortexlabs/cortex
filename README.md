@@ -25,9 +25,6 @@ Cortex is actively maintained by a venture-backed team of infrastructure enginee
   name: my-api
   model: s3://my-bucket/my-model.zip
   request_handler: handler.py
-  compute:
-    min_replicas: 5
-    max_replicas: 20
 ```
 
 **Customize** request handling (optional):
