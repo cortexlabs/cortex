@@ -54,7 +54,6 @@ type Client struct {
 	serviceClient    kclientcore.ServiceInterface
 	configMapClient  kclientcore.ConfigMapInterface
 	deploymentClient kclientapps.DeploymentInterface
-	dynamicClient    kclientdynamic.Interface
 	jobClient        kclientbatch.JobInterface
 	ingressClient    kclientextensions.IngressInterface
 	hpaClient        kclientautoscaling.HorizontalPodAutoscalerInterface
