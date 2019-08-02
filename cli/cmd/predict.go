@@ -74,7 +74,7 @@ var predictCmd = &cobra.Command{
 		// Check for prefix match
 		if apiGroupStatus == nil {
 			var matchedName string
-			for name, _ := range resourcesRes.APIGroupStatuses {
+			for name := range resourcesRes.APIGroupStatuses {
 				if strings.HasPrefix(name, apiName) {
 					if matchedName != "" {
 						errors.Exit(ErrorAPINotFound(apiName)) // duplicates
