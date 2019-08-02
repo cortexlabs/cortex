@@ -25,8 +25,8 @@ devstart:
 	@./dev/operator_local.sh || true
 
 kubectl:
-	@eksctl utils write-kubeconfig --name="cortex"
-	@kubectl config set-context --current --namespace="cortex"
+	@eksctl utils write-kubeconfig --name="cortex" >/dev/null
+	@kubectl config set-context --current --namespace="cortex" >/dev/null
 
 cortex-up:
 	@$(MAKE) registry-all
