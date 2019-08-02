@@ -15,7 +15,7 @@
   model: s3://cortex-examples/iris/xgboost.onnx
   request_handler: handlers/xgboost.py
 
-- kind: api
+- kind: apir
   name: sklearn
   model: s3://cortex-examples/iris/sklearn.onnx
   request_handler: handlers/sklearn.py

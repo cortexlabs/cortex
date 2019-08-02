@@ -30,6 +30,7 @@ spec:
       path: request.url_path | "unknown"
       origin_ip: origin.ip
       response_duration: response.duration
+      response_code: response.code
       request_time: request.time
     monitoredResourceType: '"UNSPECIFIED"'
 ---
@@ -96,3 +97,30 @@ spec:
     - cortex-request-count
     - cortex-response-time
 ---
+apiVersion: config.istio.io/v1alpha2
+kind: rule
+metadata:
+  name: cortex-apis-errors
+  namespace: $CORTEX_NAMESPACE
+spec:
+  match: source.workload.name == "apis-ingressgateway" && response.code >= 400
+  actions:
+  - handler: cortex-request-handler
+    instances:
+    - cortex-request-count
+    - cortex-response-time
+---
+apiVersion: config.istio.io/v1alpha2
+kind: rule
+metadata:
+  name: cortex-operator-errors
+  namespace: $CORTEX_NAMESPACE
+spec:
+  match: source.workload.name == "operator-ingressgateway" && response.code >= 400
+  actions:
+  - handler: cortex-request-handler
+    instances:
+    - cortex-request-count
+    - cortex-response-time
+---
+
