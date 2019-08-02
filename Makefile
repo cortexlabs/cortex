@@ -21,6 +21,7 @@ SHELL := /bin/bash
 # Cortex
 
 devstart:
+	@$(MAKE) operator-stop
 	@./dev/operator_local.sh || true
 
 kubectl:
@@ -29,6 +30,7 @@ kubectl:
 
 cortex-up:
 	@$(MAKE) registry-all
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./cortex.sh -c=./dev/config/cortex.sh install
 	@$(MAKE) kubectl
 
@@ -38,10 +40,12 @@ cortex-up-dev:
 
 cortex-down:
 	@$(MAKE) manager-local
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./cortex.sh -c=./dev/config/cortex.sh uninstall
 
 cortex-install:
 	@$(MAKE) registry-all
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./cortex.sh -c=./dev/config/cortex.sh install cortex
 	@$(MAKE) kubectl
 
@@ -54,14 +58,17 @@ cortex-info:
 
 cortex-update:
 	@$(MAKE) registry-all
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./cortex.sh -c=./dev/config/cortex.sh update
 
 operator-start:
 	@$(MAKE) registry-all
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./cortex.sh -c=./dev/config/cortex.sh update
 
 operator-update:
 	@$(MAKE) registry-all
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./cortex.sh -c=./dev/config/cortex.sh update
 
 operator-stop:
