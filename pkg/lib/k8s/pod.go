@@ -170,16 +170,7 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 		numFailed := 0
 		numKilled := 0
 		for _, containerStatus := range pod.Status.ContainerStatuses {
-			if containerStatus.LastTerminationState.Terminated != nil {
-				exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
-				if exitCode == 0 {
-					numSucceeded++
-				} else if killStatuses[exitCode] {
-					numKilled++
-				} else {
-					numFailed++
-				}
-			} else if containerStatus.State.Waiting != nil {
+			if containerStatus.State.Waiting != nil {
 				numWaiting++
 			} else if containerStatus.State.Running != nil {
 				if containerStatus.Ready {
@@ -189,6 +180,15 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 				}
 			} else if containerStatus.State.Terminated != nil {
 				exitCode := containerStatus.State.Terminated.ExitCode
+				if exitCode == 0 {
+					numSucceeded++
+				} else if killStatuses[exitCode] {
+					numKilled++
+				} else {
+					numFailed++
+				}
+			} else if containerStatus.LastTerminationState.Terminated != nil {
+				exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
 				if exitCode == 0 {
 					numSucceeded++
 				} else if killStatuses[exitCode] {
