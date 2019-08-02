@@ -258,13 +258,11 @@ func tfAPISpec(
 			"apiName":      api.Name,
 			"resourceID":   ctx.APIs[api.Name].ID,
 			"workloadID":   workloadID,
-			"app":          internalAPIName(api.Name, ctx.App.Name),
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
-			"app":          internalAPIName(api.Name, ctx.App.Name),
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "true",
@@ -276,7 +274,6 @@ func tfAPISpec(
 				"apiName":      api.Name,
 				"resourceID":   ctx.APIs[api.Name].ID,
 				"workloadID":   workloadID,
-				"app":          internalAPIName(api.Name, ctx.App.Name),
 				"userFacing":   "true",
 			},
 			K8sPodSpec: kcore.PodSpec{
@@ -393,13 +390,11 @@ func onnxAPISpec(
 			"apiName":      api.Name,
 			"resourceID":   ctx.APIs[api.Name].ID,
 			"workloadID":   workloadID,
-			"app":          internalAPIName(api.Name, ctx.App.Name),
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
-			"app":          internalAPIName(api.Name, ctx.App.Name),
 		},
 		Annotations: map[string]string{
 			"sidecar.istio.io/inject": "true",
@@ -411,7 +406,6 @@ func onnxAPISpec(
 				"apiName":      api.Name,
 				"resourceID":   ctx.APIs[api.Name].ID,
 				"workloadID":   workloadID,
-				"app":          internalAPIName(api.Name, ctx.App.Name),
 				"userFacing":   "true",
 			},
 			K8sPodSpec: kcore.PodSpec{
@@ -489,14 +483,11 @@ func serviceSpec(ctx *context.Context, api *context.API) *kcore.Service {
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
-			"service":      internalAPIName(api.Name, ctx.App.Name),
-			"app":          internalAPIName(api.Name, ctx.App.Name),
 		},
 		Selector: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
-			"app":          internalAPIName(api.Name, ctx.App.Name),
 		},
 		Namespace: config.Cortex.Namespace,
 	})

@@ -70,9 +70,25 @@ var predictCmd = &cobra.Command{
 		}
 
 		apiGroupStatus := resourcesRes.APIGroupStatuses[apiName]
+
+		// Check for prefix match
 		if apiGroupStatus == nil {
-			errors.Exit(ErrorAPINotFound(apiName))
+			var matchedName string
+			for name := range resourcesRes.APIGroupStatuses {
+				if strings.HasPrefix(name, apiName) {
+					if matchedName != "" {
+						errors.Exit(ErrorAPINotFound(apiName)) // duplicates
+					}
+					matchedName = name
+				}
+			}
+			if matchedName == "" {
+				errors.Exit(ErrorAPINotFound(apiName))
+			}
+			apiName = matchedName
+			apiGroupStatus = resourcesRes.APIGroupStatuses[apiName]
 		}
+
 		if apiGroupStatus.ActiveStatus == nil {
 			errors.Exit(ErrorAPINotReady(apiName, apiGroupStatus.Message()))
 		}

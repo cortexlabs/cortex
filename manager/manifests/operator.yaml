@@ -17,6 +17,7 @@ kind: ServiceAccount
 metadata:
   name: operator
   namespace: $CORTEX_NAMESPACE
+
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1
@@ -43,17 +44,14 @@ metadata:
   labels:
     workloadType: operator
     workloadID: operator
-    app: operator
 spec:
   replicas: 1
   selector:
     matchLabels:
       workloadID: operator
-      app: operator
   template:
     metadata:
       labels:
-        app: operator
         workloadID: operator
         workloadType: operator
       annotations:
@@ -84,6 +82,7 @@ spec:
         - name: cortex-config
           configMap:
             name: cortex-config
+
 ---
 
 apiVersion: v1
@@ -93,8 +92,6 @@ metadata:
   name: operator
   labels:
     workloadType: operator
-    app: operator
-    service: operator
 spec:
   selector:
     workloadID: operator
@@ -102,7 +99,6 @@ spec:
   - port: 8888
     name: http
   selector:
-    app: operator
     workloadID: operator
 
 ---

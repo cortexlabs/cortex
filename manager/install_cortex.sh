@@ -24,7 +24,6 @@ function setup_bucket() {
 
   if ! aws s3api head-bucket --bucket $CORTEX_BUCKET --output json 2>/dev/null; then
     if aws s3 ls "s3://$CORTEX_BUCKET" --output json 2>&1 | grep -q 'NoSuchBucket'; then
-      echo "✓ Creating an S3 bucket: $CORTEX_BUCKET"
       if [ "$CORTEX_REGION" == "us-east-1" ]; then
         aws s3api create-bucket --bucket $CORTEX_BUCKET \
                                 --region $CORTEX_REGION \
@@ -35,21 +34,22 @@ function setup_bucket() {
                                 --create-bucket-configuration LocationConstraint=$CORTEX_REGION \
                                 >/dev/null
       fi
+      echo "✓ Created S3 bucket: $CORTEX_BUCKET"
     else
-      echo "A bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
+      echo "error: a bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
       exit 1
     fi
   else
-    echo "✓ Using an existing S3 bucket: $CORTEX_BUCKET"
+    echo "✓ Using existing S3 bucket: $CORTEX_BUCKET"
   fi
 }
 
 function setup_cloudwatch_logs() {
   if ! aws logs list-tags-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION --output json 2>&1 | grep -q "\"tags\":"; then
-    echo "✓ Creating a CloudWatch log group: $CORTEX_LOG_GROUP"
     aws logs create-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION
+    echo "✓ Created CloudWatch log group: $CORTEX_LOG_GROUP"
   else
-    echo "✓ Using an existing CloudWatch log group: $CORTEX_LOG_GROUP"
+    echo "✓ Using existing CloudWatch log group: $CORTEX_LOG_GROUP"
   fi
 }
 
@@ -80,10 +80,31 @@ function setup_secrets() {
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 
+function setup_istio() {
+  echo -n "."
+  envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
+
+  if ! kubectl get secret -n istio-system | grep -q istio-customgateway-certs; then
+    WEBSITE=localhost
+    openssl req -subj "/C=US/CN=$WEBSITE" -newkey rsa:2048 -nodes -keyout $WEBSITE.key -x509 -days 3650 -out $WEBSITE.crt >/dev/null 2>&1
+    kubectl create -n istio-system secret tls istio-customgateway-certs --key $WEBSITE.key --cert $WEBSITE.crt >/dev/null
+  fi
+
+  helm template istio-manifests/istio-init --name istio-init --namespace istio-system | kubectl apply -f - >/dev/null
+  until kubectl api-resources | grep -q virtualservice; do
+    echo -n "."
+    sleep 5
+  done
+
+  echo -n "."
+  envsubst < manifests/istio.yaml | helm template istio-manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f - >/dev/null
+  envsubst < manifests/istio-metrics.yaml | kubectl apply -f - >/dev/null
+}
+
 function validate_cortex() {
   set +e
 
-  echo -en "\nWaiting for Cortex to be ready "
+  echo -en "￮ Waiting for load balancers "
 
   operator_load_balancer="waiting"
   api_load_balancer="waiting"
@@ -151,16 +172,10 @@ function validate_cortex() {
     break
   done
 
-  echo -e "\n✓ Cortex is ready!"
-
-  if command -v cortex >/dev/null; then
-    echo -e "\nPlease run \`cortex configure\` to make sure your CLI is configured correctly"
-  fi
+  echo -e "\n✓ Load balancers are ready"
 }
 
 eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" || true
-
-echo "Installing Cortex ..."
 
 setup_bucket
 setup_cloudwatch_logs
@@ -169,30 +184,32 @@ envsubst < manifests/namespace.yaml | kubectl apply -f - >/dev/null
 
 setup_configmap
 setup_secrets
+echo "✓ Updated cluster configuration"
+
+echo -en "￮ Configuring networking "
+setup_istio
+envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
+echo -e "\n✓ Configured networking"
+
+envsubst < manifests/cluster-autoscaler.yaml | kubectl apply -f - >/dev/null
+echo "✓ Configured autoscaling"
+
+envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
+echo "✓ Configured logging"
+
+envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
+echo "✓ Configured metrics"
 
 envsubst < manifests/spark.yaml | kubectl apply -f - >/dev/null
-envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
-
-kubectl create namespace istio-system >/dev/null
-WEBSITE=localhost
-openssl req \
-    -subj "/C=US/CN=$WEBSITE" \
-    -newkey rsa:2048 -nodes -keyout $WEBSITE.key \
-    -x509 -days 3650 -out $WEBSITE.crt >/dev/null
-kubectl create -n istio-system secret tls istio-customgateway-certs --key $WEBSITE.key --cert $WEBSITE.crt >/dev/null
-helm template manifests/istio-init --name istio-init --namespace istio-system | kubectl apply -f - >/dev/null
-while [ ! "$(kubectl api-resources | grep virtualservice)" ]; do
-  sleep 1
-done
-envsubst < manifests/istio-values.yaml | helm template manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f - >/dev/null
-envsubst < manifests/istio-metrics.yaml | kubectl apply -f - >/dev/null
-envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
-envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
-envsubst < manifests/cluster-autoscaler.yaml | kubectl apply -f - >/dev/null
-envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
 
 if [[ "$CORTEX_NODE_TYPE" == p* ]] || [[ "$CORTEX_NODE_TYPE" == g* ]]; then
   envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
+  echo "✓ Configured GPU support"
 fi
 
+envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
+echo "✓ Started Cortex operator"
+
 validate_cortex
+
+echo -e "\n✓ Cortex is ready!"
