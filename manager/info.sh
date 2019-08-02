@@ -33,3 +33,5 @@ apis_endpoint=$(get_apis_endpoint)
 
 echo "Operator endpoint:  $operator_endpoint"
 echo "APIs endpoint:      $apis_endpoint"
+
+echo -e "\nRun \`cortex configure\` to configure your CLI"

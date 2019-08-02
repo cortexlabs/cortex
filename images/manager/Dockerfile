@@ -20,8 +20,6 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.15.0/b
     chmod +x ./kubectl && \
     mv ./kubectl /usr/local/bin/kubectl
 
-COPY manager /root
-
 RUN curl -LO https://get.helm.sh/helm-v2.14.1-linux-amd64.tar.gz && \
     tar -zxvf helm-v2.14.1-linux-amd64.tar.gz && \
     chmod +x linux-amd64/helm && \
@@ -31,8 +29,11 @@ RUN curl -LO https://get.helm.sh/helm-v2.14.1-linux-amd64.tar.gz && \
 
 RUN ISTIO_VERSION=1.2.2 && \
   curl -L "https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istio-${ISTIO_VERSION}-linux.tar.gz" | tar xz && \
-  mv "./istio-${ISTIO_VERSION}/install/kubernetes/helm/istio" ./manifests/ && \
-  mv "./istio-${ISTIO_VERSION}/install/kubernetes/helm/istio-init" ./manifests/ && \
+  mkdir ./istio-manifests && \
+  mv "./istio-${ISTIO_VERSION}/install/kubernetes/helm/istio" ./istio-manifests/ && \
+  mv "./istio-${ISTIO_VERSION}/install/kubernetes/helm/istio-init" ./istio-manifests/ && \
   rm -rf "./istio-${ISTIO_VERSION}"
+
+COPY manager /root
 
 ENTRYPOINT ["/bin/bash"]
