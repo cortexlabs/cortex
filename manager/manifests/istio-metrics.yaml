@@ -17,36 +17,26 @@
 apiVersion: config.istio.io/v1alpha2
 kind: instance
 metadata:
-  name: operatorsentbytes
+  name: cortex-request-count
   namespace: $CORTEX_NAMESPACE
 spec:
   compiledTemplate: metric
   params:
-    value: connection.sent.bytes | 0 # uses a TCP-specific attribute
+    value: "1"
     dimensions:
+      reporter: conditional((context.reporter.kind | "inbound") == "outbound", "client", "server")
       source_service: source.workload.name | "unknown"
+      namespace: source.namespace | "unknown"
+      path: request.url_path | "unknown"
+      origin_ip: origin.ip
+      response_duration: response.duration
+      request_time: request.time
     monitoredResourceType: '"UNSPECIFIED"'
 ---
-# Configuration for a metric measuring bytes sent from a client
-# to a server
-apiVersion: config.istio.io/v1alpha2
-kind: instance
-metadata:
-  name: operatorreceivedbytes
-  namespace: $CORTEX_NAMESPACE
-spec:
-  compiledTemplate: metric
-  params:
-    value: connection.received.bytes | 0 # uses a TCP-specific attribute
-    dimensions:
-      source_service: source.workload.name | "unknown"
-    monitoredResourceType: '"UNSPECIFIED"'
----
-# Configuration for a Prometheus handler
 apiVersion: config.istio.io/v1alpha2
 kind: handler
 metadata:
-  name: operatorhandler
+  name: cortex-request-handler
   namespace: $CORTEX_NAMESPACE
 spec:
   compiledAdapter: cloudwatch
@@ -55,22 +45,31 @@ spec:
     logGroupName: $CORTEX_LOG_GROUP
     logStreamName: $CORTEX_LOG_GROUP
     metricInfo:
-      operatorsentbytes.instance.cortex:
-        unit: Bytes
-      operatorreceivedbytes.instance.cortex:
-        unit: Bytes
+      cortex-request-count.instance.cortex:
+        unit: Count
     logs: {}
 ---
-# Rule to send metric instances to a Prometheus handler
 apiVersion: config.istio.io/v1alpha2
 kind: rule
 metadata:
-  name: operatorcloudwatch
+  name: cortex-operator-requests
   namespace: $CORTEX_NAMESPACE
 spec:
-  match: context.protocol == "tcp" || context.protocol == "https"
+  match: source.workload.name == "operator-ingressgateway"
   actions:
-  - handler: operatorhandler
+  - handler: cortex-request-handler
     instances:
-    - operatorreceivedbytes
-    - operatorsentbytes
+    - cortex-request-count
+---
+apiVersion: config.istio.io/v1alpha2
+kind: rule
+metadata:
+  name: cortex-apis-requests
+  namespace: $CORTEX_NAMESPACE
+spec:
+  match: source.workload.name == "apis-ingressgateway"
+  actions:
+  - handler: cortex-request-handler
+    instances:
+    - cortex-request-count
+---
