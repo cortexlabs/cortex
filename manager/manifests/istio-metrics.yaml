@@ -123,4 +123,3 @@ spec:
     - cortex-request-count
     - cortex-response-time
 ---
-

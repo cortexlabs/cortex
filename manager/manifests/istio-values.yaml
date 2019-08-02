@@ -129,4 +129,3 @@ global:
     image: $CORTEX_IMAGE_ISTIO_PROXY
   proxy_init:
     image: $CORTEX_IMAGE_ISTIO_PROXY_INIT
-
