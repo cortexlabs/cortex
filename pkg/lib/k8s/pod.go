@@ -172,9 +172,7 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 		numFailed := 0
 		numKilled := 0
 		for _, containerStatus := range pod.Status.ContainerStatuses {
-			if containerStatus.State.Waiting != nil {
-				numWaiting++
-			} else if containerStatus.State.Running != nil {
+			if containerStatus.State.Running != nil {
 				if containerStatus.Ready {
 					numRunning++
 				} else {
@@ -199,7 +197,8 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 					numFailed++
 				}
 			} else {
-				return PodStatusUnknown
+				// either containerStatus.State.Waiting != nil or all containerStatus.States are nil (which implies waiting)
+				numWaiting++
 			}
 		}
 		if numKilled > 0 {
