@@ -4,13 +4,13 @@
 
 **Get started:** [Install](https://docs.cortex.dev/install) • [Tutorial](https://docs.cortex.dev/tutorial) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[Docs](https://docs.cortex.dev/v/0.7) • <!-- CORTEX_VERSION_MINOR_STABLE -->[Examples](https://github.com/cortexlabs/cortex/tree/0.7/examples)
 
-**Learn more:** [Website](https://cortex.dev) • [Blog](https://blog.cortex.dev) • [Subscribe](https://cortexlabs.us20.list-manage.com/subscribe?u=a1987373ab814f20961fd90b4&id=ae83491e1c) • [Contact](mailto:hello@cortex.dev)
+**Learn more:** [Website](https://cortex.dev) • [Blog](https://medium.com/cortex-labs) • [Subscribe](https://cortexlabs.us20.list-manage.com/subscribe?u=a1987373ab814f20961fd90b4&id=ae83491e1c) • [Contact](mailto:hello@cortex.dev)
 
 <br>
 
-Cortex is a self-hosted machine learning deployment platform. You define deployments with simple declarative configuration and Cortex deploys your models as web APIs. It also handles autoscaling, rolling updates, log streaming, inference on CPUs or GPUs, and more.
+Cortex is a machine learning deployment platform that runs in your AWS account. You define deployments with simple declarative configuration and Cortex deploys your models as web APIs. It also handles autoscaling, rolling updates, log streaming, inference on CPUs or GPUs, and more.
 
-Cortex is actively maintained by a venture-backed team of infrastructure engineers and [we're hiring](https://angel.co/cortex-labs-inc/jobs).
+Cortex is maintained by a venture-backed team of infrastructure engineers and [we're hiring](https://angel.co/cortex-labs-inc/jobs).
 
 <br>
 
@@ -40,7 +40,7 @@ def post_inference(prediction, metadata):
   # Python code
 ```
 
-**Deploy** to your cloud infrastructure:
+**Deploy** to AWS:
 
 ```bash
 $ cortex deploy
