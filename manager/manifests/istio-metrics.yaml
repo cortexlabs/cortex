@@ -24,7 +24,6 @@ spec:
   params:
     value: "1"
     dimensions:
-      API_ID: source.uid | "unknown"
       APP_NAME: source.labels["appName"] | "unknown"
       API_NAME: source.labels["apiName"] | "unknown"
       WORKLOAD_TYPE: source.labels["workloadType"] | "unknown"
@@ -40,7 +39,6 @@ spec:
   params:
     value: response.duration
     dimensions:
-      API_ID: source.uid | "unknown"
       APP_NAME: source.labels["appName"] | "unknown"
       API_NAME: source.labels["apiName"] | "unknown"
       WORKLOAD_TYPE: source.labels["workloadType"] | "unknown"
