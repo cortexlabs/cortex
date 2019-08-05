@@ -17,20 +17,6 @@
 apiVersion: config.istio.io/v1alpha2
 kind: instance
 metadata:
-  name: cortex-request-count
-  namespace: $CORTEX_NAMESPACE
-spec:
-  compiledTemplate: metric
-  params:
-    value: "1"
-    dimensions:
-      APP_NAME: source.labels["appName"] | "unknown"
-      API_NAME: source.labels["apiName"] | "unknown"
-    monitoredResourceType: '"UNSPECIFIED"'
----
-apiVersion: config.istio.io/v1alpha2
-kind: instance
-metadata:
   name: cortex-response-time
   namespace: $CORTEX_NAMESPACE
 spec:
@@ -38,8 +24,9 @@ spec:
   params:
     value: response.duration
     dimensions:
-      APP_NAME: source.labels["appName"] | "unknown"
-      API_NAME: source.labels["apiName"] | "unknown"
+      SOURCE_NAME: source.workload.name | "unknown"
+      REQUEST_PATH: request.url_path | "unknown"
+      DESTINATION_NAME: destination.service.name | "unknown"
     monitoredResourceType: '"UNSPECIFIED"'
 ---
 apiVersion: config.istio.io/v1alpha2
@@ -54,8 +41,6 @@ spec:
     logGroupName: $CORTEX_LOG_GROUP
     logStreamName: $CORTEX_LOG_GROUP
     metricInfo:
-      cortex-request-count.instance.cortex:
-        unit: Count
       cortex-response-time.instance.cortex:
         unit: Milliseconds
     logs: {}
@@ -70,6 +55,5 @@ spec:
   actions:
   - handler: cortex-request-handler
     instances:
-    - cortex-request-count
     - cortex-response-time
 ---
