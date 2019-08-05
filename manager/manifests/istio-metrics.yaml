@@ -24,14 +24,26 @@ spec:
   params:
     value: "1"
     dimensions:
-      reporter: conditional((context.reporter.kind | "inbound") == "outbound", "client", "server")
-      source_service: source.workload.name | "unknown"
-      namespace: source.namespace | "unknown"
-      path: request.url_path | "unknown"
-      origin_ip: origin.ip
-      response_duration: response.duration
-      response_code: response.code
-      request_time: request.time
+      API_ID: source.uid | "unknown"
+      APP_NAME: source.labels["appName"] | "unknown"
+      API_NAME: source.labels["apiName"] | "unknown"
+      WORKLOAD_TYPE: source.labels["workloadType"] | "unknown"
+    monitoredResourceType: '"UNSPECIFIED"'
+---
+apiVersion: config.istio.io/v1alpha2
+kind: instance
+metadata:
+  name: cortex-response-time
+  namespace: $CORTEX_NAMESPACE
+spec:
+  compiledTemplate: metric
+  params:
+    value: response.duration
+    dimensions:
+      API_ID: source.uid | "unknown"
+      APP_NAME: source.labels["appName"] | "unknown"
+      API_NAME: source.labels["apiName"] | "unknown"
+      WORKLOAD_TYPE: source.labels["workloadType"] | "unknown"
     monitoredResourceType: '"UNSPECIFIED"'
 ---
 apiVersion: config.istio.io/v1alpha2
@@ -48,24 +60,14 @@ spec:
     metricInfo:
       cortex-request-count.instance.cortex:
         unit: Count
+      cortex-response-time.instance.cortex:
+        unit: Milliseconds
     logs: {}
 ---
 apiVersion: config.istio.io/v1alpha2
 kind: rule
 metadata:
-  name: cortex-operator-requests
-  namespace: $CORTEX_NAMESPACE
-spec:
-  match: source.workload.name == "operator-ingressgateway"
-  actions:
-  - handler: cortex-request-handler
-    instances:
-    - cortex-request-count
----
-apiVersion: config.istio.io/v1alpha2
-kind: rule
-metadata:
-  name: cortex-apis-requests
+  name: cortex-api-requests
   namespace: $CORTEX_NAMESPACE
 spec:
   match: source.workload.name == "apis-ingressgateway"
@@ -73,28 +75,5 @@ spec:
   - handler: cortex-request-handler
     instances:
     - cortex-request-count
----
-apiVersion: config.istio.io/v1alpha2
-kind: rule
-metadata:
-  name: cortex-apis-errors
-  namespace: $CORTEX_NAMESPACE
-spec:
-  match: source.workload.name == "apis-ingressgateway" && response.code >= 400
-  actions:
-  - handler: cortex-request-handler
-    instances:
-    - cortex-request-count
----
-apiVersion: config.istio.io/v1alpha2
-kind: rule
-metadata:
-  name: cortex-operator-errors
-  namespace: $CORTEX_NAMESPACE
-spec:
-  match: source.workload.name == "operator-ingressgateway" && response.code >= 400
-  actions:
-  - handler: cortex-request-handler
-    instances:
-    - cortex-request-count
+    - cortex-response-time
 ---
