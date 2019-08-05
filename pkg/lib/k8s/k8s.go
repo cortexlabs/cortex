@@ -90,8 +90,8 @@ func New(namespace string, inCluster bool) (*Client, error) {
 	client.serviceClient = client.clientset.CoreV1().Services(namespace)
 	client.configMapClient = client.clientset.CoreV1().ConfigMaps(namespace)
 	client.deploymentClient = client.clientset.AppsV1().Deployments(namespace)
-	client.ingressClient = client.clientset.ExtensionsV1beta1().Ingresses(namespace)
 	client.jobClient = client.clientset.BatchV1().Jobs(namespace)
+	client.ingressClient = client.clientset.ExtensionsV1beta1().Ingresses(namespace)
 	client.hpaClient = client.clientset.AutoscalingV2beta2().HorizontalPodAutoscalers(namespace)
 	return client, nil
 }
