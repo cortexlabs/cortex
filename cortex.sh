@@ -174,7 +174,6 @@ function install_cortex() {
   docker run -it --entrypoint /root/install_cortex.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e ISTIO_HUB=$ISTIO_HUB \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
     -e CORTEX_REGION=$CORTEX_REGION \
     -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
