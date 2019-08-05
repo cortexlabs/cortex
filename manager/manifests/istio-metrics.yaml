@@ -26,7 +26,6 @@ spec:
     dimensions:
       APP_NAME: source.labels["appName"] | "unknown"
       API_NAME: source.labels["apiName"] | "unknown"
-      WORKLOAD_TYPE: source.labels["workloadType"] | "unknown"
     monitoredResourceType: '"UNSPECIFIED"'
 ---
 apiVersion: config.istio.io/v1alpha2
@@ -41,7 +40,6 @@ spec:
     dimensions:
       APP_NAME: source.labels["appName"] | "unknown"
       API_NAME: source.labels["apiName"] | "unknown"
-      WORKLOAD_TYPE: source.labels["workloadType"] | "unknown"
     monitoredResourceType: '"UNSPECIFIED"'
 ---
 apiVersion: config.istio.io/v1alpha2
