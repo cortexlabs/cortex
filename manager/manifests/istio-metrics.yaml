@@ -35,25 +35,6 @@ spec:
     monitoredResourceType: '"UNSPECIFIED"'
 ---
 apiVersion: config.istio.io/v1alpha2
-kind: instance
-metadata:
-  name: cortex-response-time
-  namespace: $CORTEX_NAMESPACE
-spec:
-  compiledTemplate: metric
-  params:
-    value: response.duration
-    dimensions:
-      reporter: conditional((context.reporter.kind | "inbound") == "outbound", "client", "server")
-      source_service: source.workload.name | "unknown"
-      namespace: source.namespace | "unknown"
-      path: request.url_path | "unknown"
-      origin_ip: origin.ip
-      response_duration: response.duration
-      request_time: request.time
-    monitoredResourceType: '"UNSPECIFIED"'
----
-apiVersion: config.istio.io/v1alpha2
 kind: handler
 metadata:
   name: cortex-request-handler
@@ -67,8 +48,6 @@ spec:
     metricInfo:
       cortex-request-count.instance.cortex:
         unit: Count
-      cortex-response-time.instance.cortex:
-        unit: Milliseconds
     logs: {}
 ---
 apiVersion: config.istio.io/v1alpha2
@@ -82,7 +61,6 @@ spec:
   - handler: cortex-request-handler
     instances:
     - cortex-request-count
-    - cortex-response-time
 ---
 apiVersion: config.istio.io/v1alpha2
 kind: rule
@@ -95,7 +73,6 @@ spec:
   - handler: cortex-request-handler
     instances:
     - cortex-request-count
-    - cortex-response-time
 ---
 apiVersion: config.istio.io/v1alpha2
 kind: rule
@@ -108,7 +85,6 @@ spec:
   - handler: cortex-request-handler
     instances:
     - cortex-request-count
-    - cortex-response-time
 ---
 apiVersion: config.istio.io/v1alpha2
 kind: rule
@@ -121,5 +97,4 @@ spec:
   - handler: cortex-request-handler
     instances:
     - cortex-request-count
-    - cortex-response-time
 ---

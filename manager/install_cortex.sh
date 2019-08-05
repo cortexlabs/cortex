@@ -97,8 +97,10 @@ function setup_istio() {
   done
 
   echo -n "."
-  envsubst < manifests/istio.yaml | helm template istio-manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f - >/dev/null
+  envsubst < manifests/istio-values.yaml | helm template istio-manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f - >/dev/null
   envsubst < manifests/istio-metrics.yaml | kubectl apply -f - >/dev/null
+  kubectl patch deployment istio-policy -n istio-system --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/env/-", "value": {"name": "AWS_ACCESS_KEY_ID", "valueFrom": {"secretKeyRef": {"name": "aws-credentials", "key": AWS_ACCESS_KEY_ID}}}}]'
+  kubectl patch deployment istio-policy -n istio-system --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/env/-", "value": {"name": "AWS_SECRET_ACCESS_KEY", "valueFrom": {"secretKeyRef": {"name": "aws-credentials", "key": AWS_SECRET_ACCESS_KEY}}}}]'
 }
 
 function validate_cortex() {
