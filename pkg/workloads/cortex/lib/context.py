@@ -371,7 +371,7 @@ class Context:
 
     def get_resource_status(self, resource):
         key = self.resource_status_key(resource)
-        return self.storage.get_json(key)
+        return self.storage.get_json(key, num_retries=5)
 
     def upload_resource_status_start(self, *resources):
         timestamp = util.now_timestamp_rfc_3339()
