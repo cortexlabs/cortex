@@ -97,6 +97,9 @@ function setup_istio() {
   done
 
   echo -n "."
+  helm template istio-manifests/istio-cni --name istio-cni --namespace kube-system | kubectl apply -f - >/dev/null
+  echo -n "."
+
   envsubst < manifests/istio.yaml | helm template istio-manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f - >/dev/null
 }
 
