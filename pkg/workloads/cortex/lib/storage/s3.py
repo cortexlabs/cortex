@@ -19,6 +19,7 @@ import botocore
 import pickle
 import json
 import msgpack
+import time
 
 from cortex.lib import util
 from cortex.lib.exceptions import CortexException
@@ -114,7 +115,21 @@ class S3(object):
     def _upload_string_to_s3(self, string, key):
         self.s3.put_object(Bucket=self.bucket, Key=key, Body=string)
 
-    def _read_bytes_from_s3(self, key, allow_missing=False, ext_bucket=None):
+    def _read_bytes_from_s3(
+        self, key, allow_missing=False, ext_bucket=None, num_retries=0, retry_delay_sec=2
+    ):
+        while True:
+            try:
+                return self._read_bytes_from_s3_single(
+                    key, allow_missing=allow_missing, ext_bucket=ext_bucket
+                )
+            except:
+                if num_retries <= 0:
+                    raise
+                num_retries -= 1
+                time.sleep(retry_delay_sec)
+
+    def _read_bytes_from_s3_single(self, key, allow_missing=False, ext_bucket=None):
         bucket = self.bucket
         if ext_bucket is not None:
             bucket = ext_bucket
@@ -122,10 +137,10 @@ class S3(object):
         try:
             try:
                 byte_array = self.s3.get_object(Bucket=bucket, Key=key)["Body"].read()
-            except self.s3.exceptions.NoSuchKey as e:
+            except self.s3.exceptions.NoSuchKey:
                 if allow_missing:
                     return None
-                raise e
+                raise
         except Exception as e:
             raise CortexException(
                 'key "{}" in bucket "{}" could not be accessed; '.format(key, bucket)
@@ -140,8 +155,13 @@ class S3(object):
     def put_json(self, obj, key):
         self._upload_string_to_s3(json.dumps(obj), key)
 
-    def get_json(self, key, allow_missing=False):
-        obj = self._read_bytes_from_s3(key, allow_missing)
+    def get_json(self, key, allow_missing=False, num_retries=0, retry_delay_sec=2):
+        obj = self._read_bytes_from_s3(
+            key,
+            allow_missing=allow_missing,
+            num_retries=num_retries,
+            retry_delay_sec=retry_delay_sec,
+        )
         if obj is None:
             return None
         return json.loads(obj.decode("utf-8"))
@@ -149,8 +169,13 @@ class S3(object):
     def put_msgpack(self, obj, key):
         self._upload_string_to_s3(msgpack.dumps(obj), key)
 
-    def get_msgpack(self, key, allow_missing=False):
-        obj = self._read_bytes_from_s3(key, allow_missing)
+    def get_msgpack(self, key, allow_missing=False, num_retries=0, retry_delay_sec=2):
+        obj = self._read_bytes_from_s3(
+            key,
+            allow_missing=allow_missing,
+            num_retries=num_retries,
+            retry_delay_sec=retry_delay_sec,
+        )
         if obj == None:
             return None
         return msgpack.loads(obj, raw=False)
@@ -158,8 +183,13 @@ class S3(object):
     def put_pyobj(self, obj, key):
         self._upload_string_to_s3(pickle.dumps(obj), key)
 
-    def get_pyobj(self, key, allow_missing=False):
-        obj = self._read_bytes_from_s3(key, allow_missing)
+    def get_pyobj(self, key, allow_missing=False, num_retries=0, retry_delay_sec=2):
+        obj = self._read_bytes_from_s3(
+            key,
+            allow_missing=allow_missing,
+            num_retries=num_retries,
+            retry_delay_sec=retry_delay_sec,
+        )
         if obj is None:
             return None
         return pickle.loads(obj)
@@ -207,9 +237,15 @@ class S3(object):
                 + "it may not exist, or you may not have suffienct permissions"
             ) from e
 
-    def get_json_external(self, s3_path):
+    def get_json_external(self, s3_path, num_retries=0, retry_delay_sec=2):
         bucket, key = self.deconstruct_s3_path(s3_path)
-        obj = self._read_bytes_from_s3(key, ext_bucket=bucket)
+        obj = self._read_bytes_from_s3(
+            key,
+            allow_missing=False,
+            ext_bucket=bucket,
+            num_retries=num_retries,
+            retry_delay_sec=retry_delay_sec,
+        )
         if obj is None:
             return None
         return json.loads(obj.decode("utf-8"))
