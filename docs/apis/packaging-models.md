@@ -2,22 +2,36 @@
 
 ## TensorFlow
 
-Zip the exported estimator output in your checkpoint directory:
+Export your trained model and zip the model directory. An example of a model being exported and zipped is shown below (here is the [complete example](https://github.com/cortexlabs/cortex/blob/master/examples/iris/models/tensorflow_model.py)):
 
-```text
-$ ls export/estimator/1560263597/
-saved_model.pb  variables/
+```Python
+import tensorflow as tf
+import shutil
+import os
 
-$ zip -r model.zip export/estimator
+...
+
+classifier = tf.estimator.Estimator(
+    model_fn=my_model, model_dir="iris", params={"hidden_units": [10, 10], "n_classes": 3}
+)
+
+exporter = tf.estimator.FinalExporter("estimator", serving_input_fn, as_text=False)
+train_spec = tf.estimator.TrainSpec(train_input_fn, max_steps=1000)
+eval_spec = tf.estimator.EvalSpec(eval_input_fn, exporters=[exporter], name="estimator-eval")
+
+tf.estimator.train_and_evaluate(classifier, train_spec, eval_spec)
+
+# zip the estimator export dir (the exported path looks like iris/export/estimator/1562353043/)
+shutil.make_archive("tensorflow", "zip", os.path.join("iris/export/estimator"))
 ```
 
-Upload the zipped file to Amazon S3:
+Upload the zipped file to Amazon S3 using the AWS web console or CLI:
 
 ```text
 $ aws s3 cp model.zip s3://my-bucket/model.zip
 ```
 
-Reference your `model` in an API:
+Reference your model in an `api`:
 
 ```yaml
 - kind: api
@@ -45,20 +59,20 @@ with open("sklearn.onnx", "wb") as f:
     f.write(onnx_model.SerializeToString())
 ```
 
-Here are examples of converting models from some of the common ML frameworks to ONNX:
+Here are complete examples of converting models from some of the common ML frameworks to ONNX:
 
 * [PyTorch](https://github.com/cortexlabs/cortex/blob/master/examples/iris/models/pytorch_model.py)
 * [Sklearn](https://github.com/cortexlabs/cortex/blob/master/examples/iris/models/sklearn_model.py)
 * [XGBoost](https://github.com/cortexlabs/cortex/blob/master/examples/iris/models/xgboost_model.py)
 * [Keras](https://github.com/cortexlabs/cortex/blob/master/examples/iris/models/keras_model.py)
 
-Upload your trained model in ONNX format to Amazon S3:
+Upload your trained model in ONNX format to Amazon S3 using the AWS web console or CLI:
 
 ```text
 $ aws s3 cp model.onnx s3://my-bucket/model.onnx
 ```
 
-Reference your `model` in an API:
+Reference your model in an `api`:
 
 ```yaml
 - kind: api
