@@ -12,22 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Configuration for a metric measuring bytes sent from a server
-# to a client
 apiVersion: config.istio.io/v1alpha2
 kind: instance
 metadata:
-  name: cortex-response-time
+  name: response-time
   namespace: $CORTEX_NAMESPACE
 spec:
   compiledTemplate: metric
   params:
     value: response.duration
     dimensions:
-      SOURCE_NAME: source.workload.name | "unknown"
       REQUEST_PATH: request.url_path | "unknown"
-      DESTINATION_NAME: destination.service.name | "unknown"
-    monitoredResourceType: '"UNSPECIFIED"'
 ---
 apiVersion: config.istio.io/v1alpha2
 kind: handler
@@ -41,7 +36,7 @@ spec:
     logGroupName: $CORTEX_LOG_GROUP
     logStreamName: $CORTEX_LOG_GROUP
     metricInfo:
-      cortex-response-time.instance.cortex:
+      response-time.instance.cortex:
         unit: Milliseconds
     logs: {}
 ---
@@ -55,5 +50,5 @@ spec:
   actions:
   - handler: cortex-request-handler
     instances:
-    - cortex-response-time
+    - response-time
 ---
