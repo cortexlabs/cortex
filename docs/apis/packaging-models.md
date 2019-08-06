@@ -2,7 +2,7 @@
 
 ## TensorFlow
 
-Export your trained model and zip the model directory. An example of a model being exported and zipped is shown below (here is the [complete example](https://github.com/cortexlabs/cortex/blob/master/examples/iris/models/tensorflow_model.py)):
+Export your trained model and zip the model directory. An example is shown below (here is the [complete example](https://github.com/cortexlabs/cortex/blob/master/examples/iris/models/tensorflow_model.py)):
 
 ```Python
 import tensorflow as tf
