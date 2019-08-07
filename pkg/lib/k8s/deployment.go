@@ -68,9 +68,10 @@ func Deployment(spec *DeploymentSpec) *kapps.Deployment {
 			Replicas: &spec.Replicas,
 			Template: kcore.PodTemplateSpec{
 				ObjectMeta: kmeta.ObjectMeta{
-					Name:      spec.PodSpec.Name,
-					Namespace: spec.PodSpec.Namespace,
-					Labels:    spec.PodSpec.Labels,
+					Name:        spec.PodSpec.Name,
+					Namespace:   spec.PodSpec.Namespace,
+					Labels:      spec.PodSpec.Labels,
+					Annotations: spec.PodSpec.Annotations,
 				},
 				Spec: spec.PodSpec.K8sPodSpec,
 			},
