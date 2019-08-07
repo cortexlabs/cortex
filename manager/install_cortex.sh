@@ -102,7 +102,7 @@ function setup_istio() {
   kubectl -n=istio-system create secret generic 'aws-credentials' \
     --from-literal='AWS_ACCESS_KEY_ID'=$AWS_ACCESS_KEY_ID \
     --from-literal='AWS_SECRET_ACCESS_KEY'=$AWS_SECRET_ACCESS_KEY \
-    -o yaml --dry-run | kubectl apply -f - >/dev/nulls
+    -o yaml --dry-run | kubectl apply -f - >/dev/null
   istio_patch="[
     {\"op\": \"add\", \"path\": \"/spec/template/spec/containers/0/env/-\", \"value\": {\"name\": \"AWS_ACCESS_KEY_ID\", \"valueFrom\": {\"secretKeyRef\": {\"name\": \"aws-credentials\", \"key\": \"AWS_ACCESS_KEY_ID\"}}}},\
     {\"op\": \"add\", \"path\": \"/spec/template/spec/containers/0/env/-\", \"value\": {\"name\": \"AWS_SECRET_ACCESS_KEY\", \"valueFrom\": {\"secretKeyRef\": {\"name\": \"aws-credentials\", \"key\": \"AWS_SECRET_ACCESS_KEY\"}}}},\
