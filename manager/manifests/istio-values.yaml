@@ -15,6 +15,8 @@
 # Images which are not mirrored in Cortex Dockerhub repo (because the Helm template does not currently support overriding):
 #   - docker.io/istio/kubectl
 
+# All options: https://istio.io/docs/reference/config/installation-options/
+
 gateways:
   enabled: true
   istio-ingressgateway:
@@ -93,7 +95,6 @@ mixer:
   image: $CORTEX_IMAGE_ISTIO_MIXER
   policy:
     enabled: true
-
   telemetry:
     enabled: true
   env:
