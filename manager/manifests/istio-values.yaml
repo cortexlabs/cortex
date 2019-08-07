@@ -89,7 +89,7 @@ galley:
 mixer:
   image: $CORTEX_IMAGE_ISTIO_MIXER
   policy:
-    enabled: true
+    enabled: false
   telemetry:
     enabled: true
   env:
