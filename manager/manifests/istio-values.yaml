@@ -96,6 +96,9 @@ mixer:
 
   telemetry:
     enabled: true
+  env:
+    AWS_REGION: $CORTEX_REGION
+    LOG_GROUP_NAME: $CORTEX_LOG_GROUP
 
 pilot:
   image: $CORTEX_IMAGE_ISTIO_PILOT
