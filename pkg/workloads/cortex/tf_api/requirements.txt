@@ -2,3 +2,5 @@ flask==1.0.2
 flask-api==1.1
 waitress==1.2.1
 tensorflow-serving-api==1.13.0
+tensorflow_hub==0.5.0
+bert-tensorflow==1.0.0
