@@ -447,10 +447,9 @@ def start(args):
     local_cache["ctx"] = ctx
 
     try:
-
         if api.get("request_handler") is not None or util.is_resource_ref(api["model"]):
             package.install_packages(ctx.python_packages, ctx.storage)
-        
+
         if api.get("request_handler") is not None:
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
 
