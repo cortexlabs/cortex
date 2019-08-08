@@ -1,0 +1,10 @@
+{
+  "samples": [
+    {
+      "sepal_length": 5.6,
+      "sepal_width": 2.8,
+      "petal_length": 4.9,
+      "petal_width": 2
+    }
+  ]
+}

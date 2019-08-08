@@ -59,7 +59,7 @@ func uploadAPISavedStatusFunc(savedStatus *resource.APISavedStatus) func() error
 	}
 }
 
-func getAPISavedStatus(resourceID string, workloadID string, appName string) (*resource.APISavedStatus, error) {
+func GetAPISavedStatus(resourceID string, workloadID string, appName string) (*resource.APISavedStatus, error) {
 	if cachedSavedStatus, ok := getCachedAPISavedStatus(resourceID, workloadID, appName); ok {
 		return cachedSavedStatus, nil
 	}
