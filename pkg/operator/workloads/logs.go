@@ -160,8 +160,8 @@ func getKubectlLogs(pods []kcore.Pod, verbose bool, wrotePending bool, previous 
 	podCheckCancel <- struct{}{}
 }
 
-func startKubectlProcess(pod kcore.Pod, previous bool, attrs *os.ProcAttr) (*os.Process, error) {
-	cmdPath := "/bin/bash"
+func startKubectlProcess(pod kcore.Pod, previous bool, attrs *os.ProcAttr) ([]*os.Process, error) {
+	processList := []*os.Process{}
 
 	kubectlArgs := []string{"kubectl", "-n=" + config.Cortex.Namespace, "logs", "--follow=true"}
 	if previous {
@@ -171,19 +171,47 @@ func startKubectlProcess(pod kcore.Pod, previous bool, attrs *os.ProcAttr) (*os.
 	identifier := pod.Name
 	kubectlArgs = append(kubectlArgs, pod.Name)
 	if pod.Labels["workloadType"] == workloadTypeAPI && pod.Labels["userFacing"] == "true" {
-		kubectlArgs = append(kubectlArgs, apiContainerName)
-		kubectlArgs = append(kubectlArgs, fmt.Sprintf("--tail=%d", initLogTailLines))
+
+		for _, container := range pod.Spec.Containers {
+			if container.Name == tfServingContainerName {
+				tfServingArgs := make([]string, len(kubectlArgs))
+				copy(tfServingArgs, kubectlArgs)
+				tfServingArgs = append(tfServingArgs, tfServingContainerName)
+				tfServingIdentifier := pod.Name + " " + tfServingContainerName
+				process, err := createKubectlProcess(tfServingArgs, tfServingIdentifier, attrs)
+				if err != nil {
+					return nil, err
+				}
+				processList = append(processList, process)
+			}
+		}
 		identifier += " " + apiContainerName
+		kubectlArgs = append(kubectlArgs, apiContainerName)
 	}
 
+	process, err := createKubectlProcess(kubectlArgs, identifier, attrs)
+	if err != nil {
+		for _, processToKill := range processList {
+			processToKill.Kill()
+		}
+		return nil, err
+	}
+
+	processList = append(processList, process)
+	return processList, nil
+}
+
+func createKubectlProcess(kubectlArgs []string, identifier string, attrs *os.ProcAttr) (*os.Process, error) {
+	cmdPath := "/bin/bash"
+
+	kubectlArgs = append(kubectlArgs, fmt.Sprintf("--tail=%d", initLogTailLines))
 	labelLog := fmt.Sprintf(" | while read -r; do echo \"[%s] $REPLY\" | tail -n +1; done", identifier)
-	kubectlCmd := strings.Join(kubectlArgs, " ")
-	bashArgs := []string{"/bin/bash", "-c", kubectlCmd + labelLog}
+	kubectlArgsCmd := strings.Join(kubectlArgs, " ")
+	bashArgs := []string{"/bin/bash", "-c", kubectlArgsCmd + labelLog}
 	process, err := os.StartProcess(cmdPath, bashArgs, attrs)
 	if err != nil {
 		return nil, errors.Wrap(err, strings.Join(bashArgs, " "))
 	}
-
 	return process, nil
 }
 
@@ -191,7 +219,7 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 	timer := time.NewTimer(0)
 	defer timer.Stop()
 
-	processMap := make(map[string]*os.Process)
+	processMap := make(map[string][]*os.Process)
 	defer deleteProcesses(processMap)
 	labels := initialPodList[0].GetLabels()
 	podSearchLabels := map[string]string{
@@ -275,17 +303,17 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 			}
 
 			for _, podName := range podsToAdd[:maxPodsToAdd] {
-				process, err := startKubectlProcess(latestRunningPodsMap[podName], previous, &os.ProcAttr{
+				processList, err := startKubectlProcess(latestRunningPodsMap[podName], previous, &os.ProcAttr{
 					Files: []*os.File{inr, outw, outw},
 				})
 				if err != nil {
 					socketWriterError <- err
 					return
 				}
-				processMap[podName] = process
+				processMap[podName] = processList
 			}
 
-			deleteMap := make(map[string]*os.Process, len(podsToDelete))
+			deleteMap := make(map[string][]*os.Process, len(podsToDelete))
 
 			for podName := range podsToDelete {
 				deleteMap[podName] = processMap[podName]
@@ -303,13 +331,17 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 	}
 }
 
-func deleteProcesses(processMap map[string]*os.Process) {
-	for _, process := range processMap {
-		process.Signal(os.Interrupt)
+func deleteProcesses(processMap map[string][]*os.Process) {
+	for _, processes := range processMap {
+		for _, process := range processes {
+			process.Signal(os.Interrupt)
+		}
 	}
 	time.Sleep(5 * time.Second)
-	for _, process := range processMap {
-		process.Signal(os.Kill)
+	for _, processes := range processMap {
+		for _, process := range processes {
+			process.Signal(os.Kill)
+		}
 	}
 }
 
