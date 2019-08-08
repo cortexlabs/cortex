@@ -171,11 +171,7 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 		numKilled := 0
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			if containerStatus.State.Running != nil {
-				if containerStatus.Ready {
-					numRunning++
-				} else {
-					numWaiting++
-				}
+				numRunning++
 			} else if containerStatus.State.Terminated != nil {
 				exitCode := containerStatus.State.Terminated.ExitCode
 				if exitCode == 0 {
