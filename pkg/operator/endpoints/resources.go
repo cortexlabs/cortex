@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
+//AWS
 func GetResources(w http.ResponseWriter, r *http.Request) {
 	appName, err := getRequiredQueryParam("appName", r)
 	if err != nil {

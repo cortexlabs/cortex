@@ -18,12 +18,13 @@ import json
 import argparse
 import traceback
 import time
+
 from flask import Flask, request, jsonify
 from flask_api import status
 from waitress import serve
 import onnxruntime as rt
 import numpy as np
-
+from flask import Flask, request, g
 from cortex.lib.storage import S3
 from cortex import consts
 from cortex.lib import util, package, Context
@@ -31,6 +32,7 @@ from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 import logging
 import json_tricks
+import boto3
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
@@ -64,6 +66,85 @@ local_cache = {
     "output_metadata": None,
     "request_handler": None,
 }
+
+
+# @app.before_request
+# def before_request():
+#     g.start_time = time.time()
+
+
+@app.after_request
+def after_request(response):
+    if "predictions" not in g:
+        return response
+    predictions = g.predictions
+
+    if len(predictions) == 0:
+        return
+
+    api = local_cache["api"]
+    ctx = local_cache["ctx"]
+    tracker = api.get("tracker")
+
+    if tracker is None:
+        return response
+
+    if ctx.monitoring is None:
+        raise CortexException("monitoring client not initialized")  # unexpected
+
+    common_dimensions = [
+        {"Name": "AppName", "Value": ctx.app["name"]},
+        {"Name": "APIName", "Value": api["name"]},
+        {"Name": "APIID", "Value": api["id"]},
+    ]
+
+    metric_list = []
+    for prediction in predictions:
+        dimensions = common_dimensions.copy()
+        predicted_value = prediction["prediction"][tracker["key"]]
+        if tracker["model_type"] == "classification":
+            dimensions.append({"Name": "Class", "Value": prediction["prediction"][tracker["key"]]})
+            metric = {
+                "MetricName": "Prediction",
+                "Dimensions": dimensions,
+                "Unit": "Count",
+                "Value": 1,
+            }
+
+            metric_list.append(metric)
+
+        else:
+            metric = {
+                "MetricName": "Prediction",
+                "Dimensions": dimensions,
+                "Value": prediction["prediction"][tracker["key"]],
+            }
+            metric_list.append(metric)
+
+    prediction_per_request_metrics = {
+        "MetricName": "PredictionsPerRequest",
+        "Dimensions": common_dimensions,
+        "Value": len(predictions),
+    }
+    metric_list.append(prediction_per_request_metrics)
+
+    status_code_dimensions = common_dimensions.copy()
+    status_code_series = int(response.status_code / 100)
+    status_code_dimensions.append({"Name": "Code", "Value": "{}XX".format(status_code_series)})
+    status_code_metrics = {
+        "MetricName": "StatusCode",
+        "Dimensions": status_code_dimensions,
+        "Unit": "Count",
+        "Value": 1,
+    }
+
+    metric_list.append(status_code_metrics)
+    logger.info(metric_list)
+    cloudwatch_response = ctx.monitoring.put_metric_data(
+        MetricData=metric_list, Namespace=ctx.cortex_config["log_group"]
+    )
+
+    return response
 
 
 def prediction_failed(sample, reason=None):
@@ -144,6 +225,7 @@ def predict(app_name, api_name):
 
     sess = local_cache["sess"]
     api = local_cache["api"]
+    ctx = local_cache["ctx"]
     request_handler = local_cache.get("request_handler")
     input_metadata = local_cache["input_metadata"]
     output_metadata = local_cache["output_metadata"]
@@ -181,7 +263,7 @@ def predict(app_name, api_name):
 
             logger.info("inference: " + util.pp_str_flat(result))
             if request_handler is not None and util.has_function(request_handler, "post_inference"):
-                result = request_handler.post_inference(result, output_metadata)
+                result = request_handler.post_inference(result, api)
                 logger.info("post_inference: " + util.pp_str_flat(result))
 
             prediction = {"prediction": result}
@@ -199,7 +281,7 @@ def predict(app_name, api_name):
             return prediction_failed(sample, str(e))
 
         predictions.append(prediction)
-
+    g.predictions = predictions
     response["predictions"] = predictions
     response["resource_id"] = api["id"]
 

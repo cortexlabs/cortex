@@ -1,3 +1,4 @@
 - kind: api
   name: cost
   model: @dnn
+  request_handler: 

@@ -17,8 +17,11 @@ import json
 import imp
 import inspect
 import importlib
+import time
 from datetime import datetime
 from copy import deepcopy
+import boto3
+
 from botocore.exceptions import ClientError
 
 from cortex import consts
@@ -82,6 +85,7 @@ class Context:
         self.apis = self.ctx["apis"] or {}
         self.training_datasets = {k: v["dataset"] for k, v in self.models.items()}
         self.api_version = self.cortex_config["api_version"]
+        self.monitoring = None
 
         if "local_storage_path" in kwargs:
             self.storage = LocalStorage(base_dir=kwargs["local_storage_path"])
@@ -91,6 +95,7 @@ class Context:
                 region=self.cortex_config["region"],
                 client_config={},
             )
+            self.monitoring = boto3.client("cloudwatch",  region_name=self.cortex_config["region"])
 
         if self.api_version != consts.CORTEX_VERSION:
             raise ValueError(
@@ -621,6 +626,47 @@ class Context:
             )
         return cast_compound_type(input, input_schema["_type"])
 
+    def publish_prediction(self, api_name, prediction):
+        api = self.apis[api_name]
+        tracker = api.get("tracker")
+
+        if tracker is None:
+            return
+
+        start = time.time()
+        
+        if self.monitoring is None:
+            raise CortexException("monitoring client not initialized") # unexpected
+        
+        prediction_metric =  {
+            "MetricName": "PREDICTION",
+            "Dimensions": [
+                {"Name": "APP_NAME", "Value": self.app["name"]},
+                {"Name": "API_NAME", "Value": api_name},
+                {"Name": "API_ID", "Value": api["id"]},
+            ]
+        }
+
+        if tracker["model_type"] == "classification":
+            prediction_metric["Dimensions"].append({"Name": "CLASS", "Value": prediction[tracker["prediction_key"]]})
+            prediction_metric["Unit"] = "Count"
+            prediction_metric["Value"] = 1
+
+            response = self.monitoring.put_metric_data(
+                MetricData=[prediction_metric],
+                Namespace=self.cortex_config["log_group"],
+            )
+            logger.info(response)
+        else:
+            prediction_metric["Value"] = prediction[tracker["prediction_key"]]
+            response = self.monitoring.put_metric_data(
+                MetricData=[prediction_metric],
+                Namespace=self.cortex_config["log_group"],
+            )
+            logger.info(response)
+    
+        end = time.time()
+        logger.info(end - start)
 
 def input_schema_from_type_schema(type_schema):
     return {

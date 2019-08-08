@@ -65,3 +65,26 @@ type FeatureSignature struct {
 type ModelInput struct {
 	Signature map[string]FeatureSignature `json:"signature"`
 }
+
+type RegressionStats struct {
+	Min *float64 `json:"min"`
+	Max *float64 `json:"max"`
+	Avg *float64 `json:"avg"`
+	SampleCount *int `json:"sample_count"`
+}
+
+type NetworkStats struct {
+	StatusCodes *StatusCodes `json:"status_codes"`
+}
+
+type StatusCodes struct {
+	Code2XX int `json:"code_2xx"` 
+	Code4XX int `json:"code_4xx"` 
+	Code5XX int `json:"code_5xx"` 
+}
+
+type APIMetrics struct {
+	NetworkStats *NetworkStats `json:"network_stats`
+	ClassDistribution map[string]int `json:"class_distribution"`
+	RegressionStats *RegressionStats `json:"regression_stats"`
+}

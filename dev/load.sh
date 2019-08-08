@@ -15,10 +15,12 @@
 # limitations under the License.
 
 
-SLEEP="0"  # seconds
+SLEEP="1"  # seconds
 
 # Iris
-URL="https://a5a5afc3ba1bb11e9a4d20ab58369843-145237363.us-west-2.elb.amazonaws.com/iris/tensorflow"
+URL1="https://aab1ed1b7b83e11e998a40213282a280-1138182975.us-west-2.elb.amazonaws.com/iris/sklearn"
+URL2="https://aab1ed1b7b83e11e998a40213282a280-1138182975.us-west-2.elb.amazonaws.com/iris/xgboost"
+
 DATA='{ "samples": [ { "sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3 } ] }'
 
 # Insurance
@@ -31,14 +33,20 @@ function ctrl_c() {
   exit 0
 }
 
-function make_request() {
-  curl --silent --show-error -k -X POST -H "Content-Type: application/json" -d "${DATA}" "${URL}"
+function make_request1() {
+  curl --silent --show-error -k -X POST -H "Content-Type: application/json" -d "${DATA}" "${URL1}"
 }
 
-resp=$(make_request)
+function make_request2() {
+  curl --silent --show-error -k -X POST -H "Content-Type: application/json" -d "${DATA}" "${URL2}"
+}
+
+resp=$(make_request1)
+resp=$(make_request2)
 echo -n "."
 
 while eval "sleep ${SLEEP}"; do
-  resp=$(make_request)
+  resp=$(make_request1)
+  resp=$(make_request2)
   echo -n "."
 done

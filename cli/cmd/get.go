@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
@@ -500,6 +501,8 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	out += fmt.Sprintf("Failed replicas:     %s\n", s.Int32(groupStatus.FailedUpdated))
 	out += "\n"
 	out += fmt.Sprintf("Updated at:  %s", libtime.LocalTimestamp(updatedAt))
+	out += "\n\n"
+	out += getPredictionMetrics(ctx.App.Name, api)
 
 	if !flagVerbose {
 		return out, nil
@@ -536,6 +539,128 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	}
 
 	return out, nil
+}
+
+func getPredictionMetrics(appName string, api *context.API) string {
+	out := titleStr("Metrics")
+
+	if api.Tracker == nil {
+		return out + "/nNot configured"
+	}
+
+	params := map[string]string{"appName": appName, "apiName": api.Name}
+	httpResponse, err := HTTPGet("/metrics", params)
+	if err != nil {
+		errors.Exit(err)
+	}
+
+	var metrics schema.APIMetrics
+	err = json.Unmarshal(httpResponse, &metrics)
+	if err != nil {
+		errors.Exit(err)
+	}
+
+	total := 0
+	total += metrics.NetworkStats.StatusCodes.Code2XX
+	total += metrics.NetworkStats.StatusCodes.Code4XX
+	total += metrics.NetworkStats.StatusCodes.Code5XX
+	
+	rows := [][]interface{}{[]interface{}{
+			metrics.NetworkStats.StatusCodes.Code2XX,
+			metrics.NetworkStats.StatusCodes.Code4XX,
+			metrics.NetworkStats.StatusCodes.Code5XX,
+			total,
+			30,
+		},
+	}
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "2XX"},
+			{Title: "4XX"},
+			{Title: "5XX"},
+			{Title: "TOTAL"},
+			{Title: "AVG Latency"},
+		},
+		Rows: rows,
+	}
+
+	out += "Network Metrics\n"
+	out += table.MustFormat(t)
+	out += "\n\n"
+
+	
+	if api.Tracker == nil {
+		out += "Prediction Metrics\n"
+		return out + "Tracker not configured"
+	}
+
+	if *api.Tracker.ModelType == "regression" {
+		out += "Prediction Metrics\n"
+		rows := [][]interface{}{[]interface{}{
+				metrics.RegressionStats.Avg,
+				metrics.RegressionStats.Min,
+				metrics.RegressionStats.Max,
+			},
+		}
+
+		for idx := range rows[0] {
+			if rows[0][idx] == nil {
+				rows[0][idx] = "-"
+			} else {
+				rows[0][idx] = fmt.Sprintf("%.9g", *(rows[0][idx].(*float64)))
+			}
+		}
+	
+		t := table.Table{
+			Headers: []table.Header{
+				{Title: "AVG", MaxWidth: 10},
+				{Title: "MIN", MaxWidth: 10},
+				{Title: "MAX", MaxWidth: 10},
+			},
+			Rows: rows,
+		}
+	
+		out += table.MustFormat(t)
+	} else {
+		debug.Pp(metrics.ClassDistribution)
+		if len(metrics.ClassDistribution) < 2 {
+			row := []interface{}{}
+			headers:= []table.Header{}
+			for inputName, count := range metrics.ClassDistribution {
+				headers = append(headers, table.Header{Title: s.TruncateElipses(inputName, 17), MaxWidth: 20})
+				row = append(row, int(count))
+			}
+		
+			t := table.Table{
+				Headers: headers,
+				Rows: [][]interface{}{row},
+			}
+	
+			out += table.MustFormat(t)
+		} else {
+			rows := make([][]interface{}, len(metrics.ClassDistribution))
+			rowNum := 0
+			for inputName, count := range metrics.ClassDistribution {
+				rows[rowNum] = []interface{}{
+					inputName,
+					int(count),
+				}
+				rowNum++
+			}
+		
+			t := table.Table{
+				Headers: []table.Header{
+					{Title: "Prediction Metrics", MaxWidth: 40},
+					{Title: "", MaxWidth: 20},
+				},
+				Rows: rows,
+			}
+
+			out += table.MustFormat(t)
+		}
+	}
+
+	return out
 }
 
 func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string) string {

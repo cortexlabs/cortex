@@ -1,26 +1,85 @@
 - kind: deployment
   name: iris
 
-- kind: api
-  name: tensorflow
-  model: s3://cortex-examples/iris/tensorflow.zip
+# - kind: api
+#   name: tensorflow
+#   model: s3://cortex-examples/iris/tensorflow.zip
 
-- kind: api
-  name: pytorch
-  model: s3://cortex-examples/iris/pytorch.onnx
-  request_handler: handlers/pytorch.py
+# - kind: api
+#   name: pytorch
+#   model: s3://cortex-examples/iris/pytorch.onnx
+#   request_handler: handlers/pytorch.py
 
 - kind: api
   name: xgboost
   model: s3://cortex-examples/iris/xgboost.onnx
   request_handler: handlers/xgboost.py
+  tracker:
+    key: class_label            # key
+    model_type: regression      # optional in a different ticket
 
 - kind: api
   name: sklearn
   model: s3://cortex-examples/iris/sklearn.onnx
   request_handler: handlers/sklearn.py
+#   tracker:
+#     key: class_label
+#     model_type: classification
 
-- kind: api
-  name: keras
-  model: s3://cortex-examples/iris/keras.onnx
-  request_handler: handlers/keras.py
+# - kind: api
+#   name: keras
+#   model: s3://cortex-examples/iris/keras.onnx
+#   request_handler: handlers/keras.py
+
+
+# Network Metrics
+
+# 2XX 4XX 5XX Total
+# 1   1   1   3
+
+# Average Latency: 30ms
+
+# // Lifetime 
+
+
+# // Classification
+# -------
+# Metrics
+# -------
+
+# Metrics aggregated from 2019-08-06 21:09:00 UTC to 2019-08-06 21:14:00 UTC
+
+# 2XX 4XX 5XX Total Latency
+# 1   1   1   3     30ms
+
+
+# // Go across based on # of classes
+# CLASSES           COUNT
+# Iris-setosa       90
+# Iris-versicolor   94
+# Iris-virginica    89
+
+
+# // Regression
+# -------
+# Metrics
+# -------
+
+# Metrics aggregated from 2019-08-06 21:09:00 UTC to 2019-08-06 21:14:00 UTC
+
+# 2XX 4XX 5XX Total Latency
+# 1   1   1   3     30ms
+
+# AVG     MIN     MAX    
+# 99.618  99.618  99.618
+
+
+# Metrics
+
+# Network Metrics
+# 2XX          4XX          5XX          TOTAL        AVG Latency
+# 2            0            0            2            30
+
+# Prediction Metrics
+# AVG          MIN          MAX
+# 182.489374   181.440912   183.537837

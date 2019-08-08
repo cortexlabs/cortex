@@ -2,10 +2,36 @@
   name: sentiment-dnn
   model: @sentiment_dnn
 
-- kind: api
-  name: sentiment-linear
-  model: @sentiment_linear
+- kind: model
+  name: sentiment_dnn
+  estimator_path: implementations/models/sentiment_dnn.py
+  target_column: @label_indexed
+  input:
+    embedding_input: @embedding_input
+    vocab: @reviews_vocab
+  hparams:
+    learning_rate: 0.01
+  data_partition_ratio:
+    training: 0.8
+    evaluation: 0.2
+  training:
+    batch_size: 64
+    num_steps: 5000
 
 - kind: api
-  name: sentiment-t2t
-  model: @transformer
+  name: sentiment-dnn
+  model:
+    path: sentiment_dnn
+    estimator_path: implementations/models/sentiment_dnn.py
+    target_column: @label_indexed
+    input:
+      embedding_input: @embedding_input
+      vocab: @reviews_vocab
+    hparams:
+      learning_rate: 0.01
+    data_partition_ratio:
+      training: 0.8
+      evaluation: 0.2
+    training:
+      batch_size: 64
+      num_steps: 5000

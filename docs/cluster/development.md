@@ -46,6 +46,7 @@ export AWS_ACCESS_KEY_ID="XXXXXX"
 export AWS_SECRET_ACCESS_KEY="XXXXXX"
 
 export CORTEX_LOG_GROUP="cortex"
+export CORTEX_METRICS_NAMESPACE="cortex"
 export CORTEX_BUCKET="cortex-cluster-<your_name>"
 export CORTEX_REGION="us-west-2"
 

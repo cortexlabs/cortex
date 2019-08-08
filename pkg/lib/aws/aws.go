@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -33,6 +34,7 @@ type Client struct {
 	s3Client             *s3.S3
 	stsClient            *sts.STS
 	cloudWatchLogsClient *cloudwatchlogs.CloudWatchLogs
+	CloudWatchMetrics    *cloudwatch.CloudWatch
 	awsAccountID         string
 	HashedAccountID      string
 }
@@ -48,6 +50,7 @@ func New(region, bucket string) *Client {
 		Region:               region,
 		s3Client:             s3.New(sess),
 		stsClient:            sts.New(sess),
+		CloudWatchMetrics: 	  cloudwatch.New(sess),
 		cloudWatchLogsClient: cloudwatchlogs.New(sess),
 	}
 	response, err := awsClient.stsClient.GetCallerIdentity(nil)
