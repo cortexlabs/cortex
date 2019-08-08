@@ -455,6 +455,7 @@ def start(args):
                 ctx.storage.download_and_unzip_external(api["model"], args.model_dir)
         else:
             package.install_packages(ctx.python_packages, ctx.storage)
+            local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
             model_name = util.get_resource_ref(api["model"])
             model = ctx.models[model_name]
             estimator = ctx.estimators[model["estimator"]]
