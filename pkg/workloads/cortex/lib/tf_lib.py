@@ -31,9 +31,12 @@ CORTEX_TYPE_TO_TF_TYPE = {
 }
 
 
+CPP_LOG_LEVEL = {"DEBUG": "1", "INFO": "2", "WARN": "3", "ERROR": "4", "FATAL": "5"}
+
+
 def set_logging_verbosity(verbosity):
     tf.logging.set_verbosity(verbosity)
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = str(tf.logging.__dict__[verbosity] / 10)
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = CPP_LOG_LEVEL[verbosity]
 
 
 def get_column_tf_types(model_name, ctx, training=True):
