@@ -12,7 +12,7 @@ RUN mkdir -p /opt
 
 ARG HADOOP_VERSION="2.9.2"
 ARG SPARK_VERSION="2.4.2"
-ARG TF_VERSION="1.13.1"
+ARG TF_VERSION="1.14.0"
 # Required for building tensorflow spark connector
 ARG SCALA_VERSION="2.12"
 # Scalatest version from https://github.com/apache/spark/blob/v2.4.2/pom.xml

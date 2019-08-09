@@ -447,16 +447,16 @@ def start(args):
     local_cache["ctx"] = ctx
 
     try:
-        if api.get("request_handler_impl_key") is not None:
+        if api.get("request_handler") is not None or util.is_resource_ref(api["model"]):
+            package.install_packages(ctx.python_packages, ctx.storage)
+
+        if api.get("request_handler") is not None:
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
 
         if not util.is_resource_ref(api["model"]):
-            if api.get("request_handler") is not None:
-                package.install_packages(ctx.python_packages, ctx.storage)
             if not os.path.isdir(args.model_dir):
                 ctx.storage.download_and_unzip_external(api["model"], args.model_dir)
         else:
-            package.install_packages(ctx.python_packages, ctx.storage)
             model_name = util.get_resource_ref(api["model"])
             model = ctx.models[model_name]
             estimator = ctx.estimators[model["estimator"]]

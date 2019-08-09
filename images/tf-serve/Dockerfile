@@ -1,6 +1,6 @@
 FROM cortexlabs/tf-base
 
-ARG TF_SERV_VERSION="1.13.0"
+ARG TF_SERV_VERSION="1.14.0"
 
 RUN apt-get update -qq && apt-get install -y -q \
         curl \
