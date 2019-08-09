@@ -55,7 +55,7 @@ You can import PyPI packages or your own Python packages to help create more com
 The following packages have been pre-installed and can be used in your implementations:
 
 ```text
-tensorflow==1.13.1
+tensorflow==1.14.0
 boto3==1.9.78
 msgpack==0.6.1
 numpy>=1.13.3,<2

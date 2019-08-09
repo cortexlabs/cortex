@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:1.13.1-gpu-py3
+FROM tensorflow/tensorflow:1.14.0-gpu-py3
 
 RUN apt-get update -qq && apt-get install -y -q \
         zlib1g-dev \
