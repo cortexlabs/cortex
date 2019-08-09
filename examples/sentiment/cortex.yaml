@@ -1,5 +1,5 @@
 - kind: deployment
-  name: bert-sentiment
+  name: sentiment
 
 - kind: api
   name: sentiment

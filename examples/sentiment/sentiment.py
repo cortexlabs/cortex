@@ -1,12 +1,10 @@
 import numpy as np
-import json
-from cortex.lib.log import get_logger
 import tensorflow as tf
 import tensorflow_hub as hub
 import bert
+from bert import run_classifier
 from bert import tokenization
 
-logger = get_logger()
 labels = ["Negative", "Positive"]
 
 BERT_MODEL_HUB = "https://tfhub.dev/google/bert_uncased_L-12_H-768_A-12/1"
@@ -30,21 +28,9 @@ tokenizer = create_tokenizer_from_hub_module()
 
 
 def pre_inference(sample, metadata):
-    tokens_a = tokenizer.tokenize(sample["input"][0])
-    if len(tokens_a) > max_seq_length - 2:
-        tokens_a = tokens_a[0 : (max_seq_length - 2)]
-    tokens = []
-    tokens.append("[CLS]")
-    for token in tokens_a:
-        tokens.append(token)
-    tokens.append("[SEP]")
-    input_ids = tokenizer.convert_tokens_to_ids(tokens)
-
-    # Zero-pad up to the sequence length.
-    while len(input_ids) < max_seq_length:
-        input_ids.append(0)
-
-    return {"input": input_ids}
+    input_examples = [run_classifier.InputExample(guid="", text_a = x, text_b = None, label = 0) for x in sample["input"]]
+    input_features = bert.run_classifier.convert_examples_to_features(input_examples, [0, 1], 128, tokenizer)
+    return {"input": [{input_features[0]}]}
 
 
 def post_inference(prediction, metadata):
