@@ -257,7 +257,7 @@ def run_predict(sample):
         )
         logger.info("pre_inference: " + util.pp_str_flat(prepared_sample))
 
-    validate_sample(sample)
+    validate_sample(prepared_sample)
 
     if util.is_resource_ref(local_cache["api"]["model"]):
         for column in local_cache["required_inputs"]:
@@ -447,15 +447,16 @@ def start(args):
     local_cache["ctx"] = ctx
 
     try:
+        if api.get("request_handler_impl_key") is not None:
+            local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
+
         if not util.is_resource_ref(api["model"]):
             if api.get("request_handler") is not None:
                 package.install_packages(ctx.python_packages, ctx.storage)
-                local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
             if not os.path.isdir(args.model_dir):
                 ctx.storage.download_and_unzip_external(api["model"], args.model_dir)
         else:
             package.install_packages(ctx.python_packages, ctx.storage)
-            local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
             model_name = util.get_resource_ref(api["model"])
             model = ctx.models[model_name]
             estimator = ctx.estimators[model["estimator"]]

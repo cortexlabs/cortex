@@ -30,7 +30,8 @@ tokenizer = create_tokenizer_from_hub_module()
 def pre_inference(sample, metadata):
     input_examples = [run_classifier.InputExample(guid="", text_a = x, text_b = None, label = 0) for x in sample["input"]]
     input_features = bert.run_classifier.convert_examples_to_features(input_examples, [0, 1], 128, tokenizer)
-    return {"input": [{input_features[0]}]}
+    return {'input_ids': input_features[0].input_ids, 'input_mask': input_features[0].input_mask, 'segment_ids': input_features[0].segment_ids,
+                     'label_ids': input_features[0].label_id}
 
 
 def post_inference(prediction, metadata):
