@@ -94,15 +94,25 @@ export CORTEX_VERSION_STABLE=master
 export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-""}"
 
 if [ "$AWS_ACCESS_KEY_ID" = "" ]; then
-  echo -e "\nPlease set AWS_ACCESS_KEY_ID"
-  exit 1
+  if command -v aws >/dev/null; then
+    export AWS_ACCESS_KEY_ID=$(aws --profile default configure get aws_access_key_id)
+  fi
+  if [ "$AWS_ACCESS_KEY_ID" = "" ]; then
+    echo -e "\nPlease set AWS_ACCESS_KEY_ID"
+    exit 1
+  fi
 fi
 
 export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-""}"
 
 if [ "$AWS_SECRET_ACCESS_KEY" = "" ]; then
-  echo -e "\nPlease set AWS_SECRET_ACCESS_KEY"
-  exit 1
+  if command -v aws >/dev/null; then
+    export AWS_SECRET_ACCESS_KEY=$(aws --profile default configure get aws_secret_access_key)
+  fi
+  if [ "$AWS_SECRET_ACCESS_KEY" = "" ]; then
+    echo -e "\nPlease set AWS_SECRET_ACCESS_KEY"
+    exit 1
+  fi
 fi
 
 export CORTEX_LOG_GROUP="${CORTEX_LOG_GROUP:-cortex}"
