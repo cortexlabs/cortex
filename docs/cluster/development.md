@@ -12,8 +12,14 @@
 Clone the project:
 
 ```bash
-git clone git@github.com:cortexlabs/cortex.git
+git clone https://github.com/cortexlabs/cortex.git
 cd cortex
+```
+
+Run the tests:
+
+```bash
+make test
 ```
 
 Create the AWS Elastic Container Registry:
