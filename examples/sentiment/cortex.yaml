@@ -3,5 +3,5 @@
 
 - kind: api
   name: sentiment
-  model: s3://cortex-ivan/model.zip
+  model: s3://cortex-examples/sentiment/model.zip
   request_handler: sentiment.py
