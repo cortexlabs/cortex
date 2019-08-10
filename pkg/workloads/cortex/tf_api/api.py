@@ -119,7 +119,9 @@ def create_prediction_request(transformed_sample):
         shape = []
         for dim in signature_def[signature_key]["tensorShape"]["dim"]:
             shape.append(int(dim["size"]))
-        tensor_proto = tf.make_tensor_proto(np.array(value).reshape(shape), dtype=data_type, shape=shape)
+        tensor_proto = tf.make_tensor_proto(
+            np.array(value).reshape(shape), dtype=data_type, shape=shape
+        )
         prediction_request.inputs[column_name].CopyFrom(tensor_proto)
 
     return prediction_request
@@ -137,7 +139,9 @@ def create_raw_prediction_request(sample):
         for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
             shape.append(int(dim["size"]))
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
-        tensor_proto = tf.make_tensor_proto(np.array(value).reshape(shape), dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape)
+        tensor_proto = tf.make_tensor_proto(
+            np.array(value).reshape(shape), dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape
+        )
         prediction_request.inputs[column_name].CopyFrom(tensor_proto)
 
     return prediction_request
