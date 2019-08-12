@@ -162,7 +162,6 @@ ci-build-images:
 	@./build/build-image.sh images/istio-pilot istio-pilot
 	@./build/build-image.sh images/istio-sidecar istio-sidecar
 	@./build/build-image.sh images/istio-proxy istio-proxy
-	@./build/build-image.sh images/istio-proxy-init istio-proxy-init
 	@./build/build-image.sh images/istio-mixer istio-mixer
 
 ci-push-images:
@@ -187,7 +186,6 @@ ci-push-images:
 	@./build/push-image.sh istio-pilot
 	@./build/push-image.sh istio-sidecar
 	@./build/push-image.sh istio-proxy
-	@./build/push-image.sh istio-proxy-init
 	@./build/push-image.sh istio-mixer
 
 

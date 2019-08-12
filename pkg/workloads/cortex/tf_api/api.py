@@ -19,6 +19,7 @@ import argparse
 import tensorflow as tf
 import traceback
 import time
+import numpy as np
 from flask import Flask, request, jsonify
 from flask_api import status
 from waitress import serve
@@ -115,10 +116,12 @@ def create_prediction_request(transformed_sample):
     for column_name, value in transformed_sample.items():
         column_type = ctx.get_inferred_column_type(column_name)
         data_type = tf_lib.CORTEX_TYPE_TO_TF_TYPE[column_type]
-        shape = [1]
-        if util.is_list(value):
-            shape = [len(value)]
-        tensor_proto = tf.make_tensor_proto([value], dtype=data_type, shape=shape)
+        shape = []
+        for dim in signature_def[signature_key]["tensorShape"]["dim"]:
+            shape.append(int(dim["size"]))
+        tensor_proto = tf.make_tensor_proto(
+            np.array(value).reshape(shape), dtype=data_type, shape=shape
+        )
         prediction_request.inputs[column_name].CopyFrom(tensor_proto)
 
     return prediction_request
@@ -132,11 +135,13 @@ def create_raw_prediction_request(sample):
     prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in sample.items():
-        shape = [1]
-        if util.is_list(value):
-            shape = [len(value)]
+        shape = []
+        for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
+            shape.append(int(dim["size"]))
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
-        tensor_proto = tf.make_tensor_proto([value], dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape)
+        tensor_proto = tf.make_tensor_proto(
+            np.array(value).reshape(shape), dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape
+        )
         prediction_request.inputs[column_name].CopyFrom(tensor_proto)
 
     return prediction_request
@@ -257,7 +262,7 @@ def run_predict(sample):
         )
         logger.info("pre_inference: " + util.pp_str_flat(prepared_sample))
 
-    validate_sample(sample)
+    validate_sample(prepared_sample)
 
     if util.is_resource_ref(local_cache["api"]["model"]):
         for column in local_cache["required_inputs"]:

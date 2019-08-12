@@ -96,10 +96,15 @@ function setup_istio() {
     sleep 5
   done
   echo -n "."
+
+  helm template istio-manifests/istio-cni --name istio-cni --namespace kube-system | kubectl apply -f - >/dev/null
+  echo -n "."
+
   envsubst < manifests/istio-values.yaml | helm template istio-manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f - >/dev/null
   helm template istio-manifests/istio-cni --name istio-cni --namespace kube-system | kubectl apply -f - >/dev/null
   echo -n "."
   envsubst < manifests/istio-metrics.yaml | kubectl apply -f - >/dev/null
+
   kubectl -n=istio-system create secret generic 'aws-credentials' \
     --from-literal='AWS_ACCESS_KEY_ID'=$AWS_ACCESS_KEY_ID \
     --from-literal='AWS_SECRET_ACCESS_KEY'=$AWS_SECRET_ACCESS_KEY \

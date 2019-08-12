@@ -304,7 +304,7 @@ func tfAPISpec(
 					{
 						Name:            apiContainerName,
 						Image:           config.Cortex.TFAPIImage,
-						ImagePullPolicy: "Always",
+						ImagePullPolicy: kcore.PullAlways,
 						Args: []string{
 							"--workload-id=" + workloadID,
 							"--port=" + defaultPortStr,
@@ -343,7 +343,7 @@ func tfAPISpec(
 					{
 						Name:            tfServingContainerName,
 						Image:           servingImage,
-						ImagePullPolicy: "Always",
+						ImagePullPolicy: kcore.PullAlways,
 						Args: []string{
 							"--port=" + tfServingPortStr,
 							"--model_base_path=" + path.Join(consts.EmptyDirMountPath, "model"),
@@ -455,7 +455,7 @@ func onnxAPISpec(
 					{
 						Name:            apiContainerName,
 						Image:           servingImage,
-						ImagePullPolicy: "Always",
+						ImagePullPolicy: kcore.PullAlways,
 						Args: []string{
 							"--workload-id=" + workloadID,
 							"--port=" + defaultPortStr,
