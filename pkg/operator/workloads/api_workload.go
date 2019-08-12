@@ -431,6 +431,24 @@ func onnxAPISpec(
 				"sidecar.istio.io/inject": "true",
 			},
 			K8sPodSpec: kcore.PodSpec{
+				InitContainers: []kcore.Container{
+					{
+						Name:            "model-download",
+						Image:           servingImage,
+						ImagePullPolicy: "Always",
+						Args: []string{
+							"--workload-id=" + workloadID,
+							"--port=" + defaultPortStr,
+							"--context=" + config.AWS.S3Path(ctx.Key),
+							"--api=" + ctx.APIs[api.Name].ID,
+							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
+							"--cache-dir=" + consts.ContextCacheDir,
+							"--only-download=true",
+						},
+						Env:          k8s.AWSCredentials(),
+						VolumeMounts: k8s.DefaultVolumeMounts(),
+					},
+				},
 				Containers: []kcore.Container{
 					{
 						Name:            apiContainerName,

@@ -224,15 +224,18 @@ def start(args):
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
         api = ctx.apis_id_map[args.api]
 
+        model_cache_path = os.path.join(args.model_dir, args.api)
+        if not os.path.exists(model_cache_path):
+            ctx.storage.download_file_external(api["model"], model_cache_path)
+
+        if args.only_download:
+            return
+
         local_cache["api"] = api
         local_cache["ctx"] = ctx
         if api.get("request_handler") is not None:
             package.install_packages(ctx.python_packages, ctx.storage)
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
-
-        model_cache_path = os.path.join(args.model_dir, args.api)
-        if not os.path.exists(model_cache_path):
-            ctx.storage.download_file_external(api["model"], model_cache_path)
 
         sess = rt.InferenceSession(model_cache_path)
         local_cache["sess"] = sess
@@ -265,6 +268,13 @@ def main():
     na.add_argument("--api", required=True, help="Resource id of api to serve")
     na.add_argument("--model-dir", required=True, help="Directory to download the model to")
     na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
+    na.add_argument(
+        "--only-download",
+        required=False,
+        help="Only download model (for init-containers)",
+        default=False,
+    )
+
     parser.set_defaults(func=start)
 
     args = parser.parse_args()
