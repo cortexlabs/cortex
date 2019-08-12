@@ -34,8 +34,9 @@ import (
 )
 
 const (
-	apiContainerName       = "api"
-	tfServingContainerName = "serve"
+	apiContainerName               = "api"
+	tfServingContainerName         = "serve"
+	modelDownloadInitContainerName = "model-download"
 
 	defaultPortInt32, defaultPortStr     = int32(8888), "8888"
 	tfServingPortInt32, tfServingPortStr = int32(9000), "9000"
@@ -276,12 +277,13 @@ func tfAPISpec(
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
+				"sidecar.istio.io/inject":                          "true",
 			},
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Always",
 				InitContainers: []kcore.Container{
 					{
-						Name:            consts.ModelDownloadInitContainerName,
+						Name:            modelDownloadInitContainerName,
 						Image:           config.Cortex.TFAPIImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
@@ -428,11 +430,12 @@ func onnxAPISpec(
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
+				"sidecar.istio.io/inject":                          "true",
 			},
 			K8sPodSpec: kcore.PodSpec{
 				InitContainers: []kcore.Container{
 					{
-						Name:            consts.ModelDownloadInitContainerName,
+						Name:            modelDownloadInitContainerName,
 						Image:           servingImage,
 						ImagePullPolicy: "Always",
 						Args: []string{

@@ -466,7 +466,6 @@ def start(args):
 
             if not os.path.isdir(args.model_dir):
                 ctx.storage.download_and_unzip(model["key"], args.model_dir)
-                return
 
             if args.only_download:
                 return

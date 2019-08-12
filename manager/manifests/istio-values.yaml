@@ -14,7 +14,7 @@
 
 # Images which are not mirrored in Cortex Dockerhub repo (because the Helm template does not currently support overriding):
 #   - docker.io/istio/kubectl
-
+#   - docker.io/istio/install-cni
 # All options: https://istio.io/docs/reference/config/installation-options/
 
 gateways:
