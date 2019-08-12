@@ -287,6 +287,8 @@ func tfAPISpec(
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--workload-id=" + workloadID,
+							"--port=" + defaultPortStr,
+							"--tf-serve-port=" + tfServingPortStr,
 							"--context=" + config.AWS.S3Path(ctx.Key),
 							"--api=" + ctx.APIs[api.Name].ID,
 							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
@@ -436,6 +438,8 @@ func onnxAPISpec(
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--workload-id=" + workloadID,
+							"--port=" + defaultPortStr,
+							"--tf-serve-port=" + tfServingPortStr,
 							"--context=" + config.AWS.S3Path(ctx.Key),
 							"--api=" + ctx.APIs[api.Name].ID,
 							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
