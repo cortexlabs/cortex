@@ -275,7 +275,8 @@ func tfAPISpec(
 				"userFacing":   "true",
 			},
 			Annotations: map[string]string{
-				"sidecar.istio.io/inject": "true",
+				"sidecar.istio.io/inject":                          "true",
+				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
 			},
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Always",
@@ -292,6 +293,7 @@ func tfAPISpec(
 							"--api=" + ctx.APIs[api.Name].ID,
 							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
 							"--cache-dir=" + consts.ContextCacheDir,
+							"--only-download=true",
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),

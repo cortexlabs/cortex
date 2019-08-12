@@ -119,6 +119,11 @@ tracing:
 kiali:
   enabled: false
 
+istio_cni:
+  enabled: true
+  excludeNamespaces:
+    - istio-system
+
 global:
   proxy:
     autoInject: disabled
