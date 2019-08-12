@@ -80,6 +80,7 @@ metadata:
   namespace: $CORTEX_NAMESPACE
 data:
   use-proxy-protocol: "true"
+  proxy-body-size: "0"
 ---
 
 apiVersion: apps/v1
