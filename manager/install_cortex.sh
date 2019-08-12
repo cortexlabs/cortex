@@ -101,8 +101,6 @@ function setup_istio() {
   echo -n "."
 
   envsubst < manifests/istio-values.yaml | helm template istio-manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f - >/dev/null
-  helm template istio-manifests/istio-cni --name istio-cni --namespace kube-system | kubectl apply -f - >/dev/null
-  echo -n "."
   envsubst < manifests/istio-metrics.yaml | kubectl apply -f - >/dev/null
 
   kubectl -n=istio-system create secret generic 'aws-credentials' \
