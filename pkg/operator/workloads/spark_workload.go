@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	sparkop "github.com/GoogleCloudPlatform/spark-on-k8s-operator/pkg/apis/sparkoperator.k8s.io/v1alpha1"
+	kcore "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -193,7 +194,7 @@ func sparkSpec(
 			PythonVersion:        pointer.String("3"),
 			Mode:                 sparkop.ClusterMode,
 			Image:                &config.Cortex.SparkImage,
-			ImagePullPolicy:      pointer.String("Always"),
+			ImagePullPolicy:      pointer.String(string(kcore.PullAlways)),
 			MainApplicationFile:  pointer.String("local:///src/cortex/spark_job/spark_job.py"),
 			RestartPolicy:        sparkop.RestartPolicy{Type: sparkop.Never},
 			MemoryOverheadFactor: memOverheadFactor,

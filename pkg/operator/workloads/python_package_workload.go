@@ -85,7 +85,7 @@ func (pyw *PythonPackagesWorkload) Start(ctx *context.Context) error {
 					{
 						Name:            "python-packager",
 						Image:           config.Cortex.PythonPackagerImage,
-						ImagePullPolicy: "Always",
+						ImagePullPolicy: kcore.PullAlways,
 						Args: []string{
 							"--workload-id=" + pyw.WorkloadID,
 							"--context=" + config.AWS.S3Path(ctx.Key),
