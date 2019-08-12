@@ -27,9 +27,10 @@ var (
 	SingleTypeStrRegex   = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?"`)
 	CompoundTypeStrRegex = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?(\|(INT|FLOAT|STRING|BOOL)(_COLUMN)?)+"`)
 
-	ContextCacheDir    = "/mnt/context"
-	EmptyDirMountPath  = "/mnt"
-	EmptyDirVolumeName = "mnt"
+	ContextCacheDir                = "/mnt/context"
+	EmptyDirMountPath              = "/mnt"
+	EmptyDirVolumeName             = "mnt"
+	ModelDownloadInitContainerName = "model-download"
 
 	CortexConfigPath = "/configs/cortex"
 	CortexConfigName = "cortex-config"

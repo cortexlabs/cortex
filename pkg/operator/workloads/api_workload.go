@@ -275,14 +275,13 @@ func tfAPISpec(
 				"userFacing":   "true",
 			},
 			Annotations: map[string]string{
-				"sidecar.istio.io/inject":                          "true",
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
 			},
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Always",
 				InitContainers: []kcore.Container{
 					{
-						Name:            "model-download",
+						Name:            consts.ModelDownloadInitContainerName,
 						Image:           config.Cortex.TFAPIImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
@@ -428,18 +427,17 @@ func onnxAPISpec(
 				"userFacing":   "true",
 			},
 			Annotations: map[string]string{
-				"sidecar.istio.io/inject": "true",
+				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
 			},
 			K8sPodSpec: kcore.PodSpec{
 				InitContainers: []kcore.Container{
 					{
-						Name:            "model-download",
+						Name:            consts.ModelDownloadInitContainerName,
 						Image:           servingImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--workload-id=" + workloadID,
 							"--port=" + defaultPortStr,
-							"--tf-serve-port=" + tfServingPortStr,
 							"--context=" + config.AWS.S3Path(ctx.Key),
 							"--api=" + ctx.APIs[api.Name].ID,
 							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
