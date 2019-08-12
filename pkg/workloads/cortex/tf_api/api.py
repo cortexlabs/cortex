@@ -257,7 +257,7 @@ def run_predict(sample):
         )
         logger.info("pre_inference: " + util.pp_str_flat(prepared_sample))
 
-    validate_sample(sample)
+    validate_sample(prepared_sample)
 
     if util.is_resource_ref(local_cache["api"]["model"]):
         for column in local_cache["required_inputs"]:
