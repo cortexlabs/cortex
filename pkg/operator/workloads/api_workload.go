@@ -297,14 +297,6 @@ func tfAPISpec(
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
-						Resources: kcore.ResourceRequirements{
-							Requests: transformResourceList,
-						},
-						Ports: []kcore.ContainerPort{
-							{
-								ContainerPort: defaultPortInt32,
-							},
-						},
 					},
 				},
 				Containers: []kcore.Container{
