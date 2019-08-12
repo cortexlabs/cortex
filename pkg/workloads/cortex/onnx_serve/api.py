@@ -308,7 +308,7 @@ def start(args):
 
         local_cache["api"] = api
         local_cache["ctx"] = ctx
-        if api.get("request_handler_impl_key") is not None:
+        if api.get("request_handler") is not None:
             package.install_packages(ctx.python_packages, ctx.storage)
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
 
