@@ -278,6 +278,33 @@ func tfAPISpec(
 				"sidecar.istio.io/inject": "true",
 			},
 			K8sPodSpec: kcore.PodSpec{
+				RestartPolicy: "Always",
+				InitContainers: []kcore.Container{
+					{
+						Name:            "model-download",
+						Image:           config.Cortex.TFAPIImage,
+						ImagePullPolicy: "Always",
+						Args: []string{
+							"--workload-id=" + workloadID,
+							"--port=" + defaultPortStr,
+							"--tf-serve-port=" + tfServingPortStr,
+							"--context=" + config.AWS.S3Path(ctx.Key),
+							"--api=" + ctx.APIs[api.Name].ID,
+							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
+							"--cache-dir=" + consts.ContextCacheDir,
+						},
+						Env:          k8s.AWSCredentials(),
+						VolumeMounts: k8s.DefaultVolumeMounts(),
+						Resources: kcore.ResourceRequirements{
+							Requests: transformResourceList,
+						},
+						Ports: []kcore.ContainerPort{
+							{
+								ContainerPort: defaultPortInt32,
+							},
+						},
+					},
+				},
 				Containers: []kcore.Container{
 					{
 						Name:            apiContainerName,
