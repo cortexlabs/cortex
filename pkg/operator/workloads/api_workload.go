@@ -276,8 +276,8 @@ func tfAPISpec(
 				"userFacing":   "true",
 			},
 			Annotations: map[string]string{
-				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
 				"sidecar.istio.io/inject":                          "true",
+				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
 			},
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Always",
@@ -429,8 +429,8 @@ func onnxAPISpec(
 				"userFacing":   "true",
 			},
 			Annotations: map[string]string{
-				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
 				"sidecar.istio.io/inject":                          "true",
+				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
 			},
 			K8sPodSpec: kcore.PodSpec{
 				InitContainers: []kcore.Container{
