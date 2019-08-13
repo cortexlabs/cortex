@@ -461,10 +461,19 @@ def start(args):
         if not util.is_resource_ref(api["model"]):
             if not os.path.isdir(args.model_dir):
                 ctx.storage.download_and_unzip_external(api["model"], args.model_dir)
+
+            if args.only_download:
+                return
         else:
             model_name = util.get_resource_ref(api["model"])
             model = ctx.models[model_name]
             estimator = ctx.estimators[model["estimator"]]
+
+            if not os.path.isdir(args.model_dir):
+                ctx.storage.download_and_unzip(model["key"], args.model_dir)
+
+            if args.only_download:
+                return
 
             local_cache["model"] = model
             local_cache["estimator"] = estimator
@@ -477,9 +486,6 @@ def start(args):
             if ctx.environment is not None and ctx.environment.get("log_level") is not None:
                 log_level = ctx.environment["log_level"].get("tensorflow", "DEBUG")
             tf_lib.set_logging_verbosity(log_level)
-
-            if not os.path.isdir(args.model_dir):
-                ctx.storage.download_and_unzip(model["key"], args.model_dir)
 
             for column_name in ctx.extract_column_names([model["input"], model["target_column"]]):
                 if ctx.is_transformed_column(column_name):
@@ -556,6 +562,12 @@ def main():
     na.add_argument("--api", required=True, help="Resource id of api to serve")
     na.add_argument("--model-dir", required=True, help="Directory to download the model to")
     na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
+    na.add_argument(
+        "--only-download",
+        required=False,
+        help="Only download model (for init-containers)",
+        default=False,
+    )
     parser.set_defaults(func=start)
 
     args = parser.parse_args()
