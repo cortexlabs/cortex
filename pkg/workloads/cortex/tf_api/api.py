@@ -29,9 +29,8 @@ from tensorflow_serving.apis import get_model_metadata_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 from google.protobuf import json_format
 
-from cortex.lib import api_utils
 from cortex import consts
-from cortex.lib import util, tf_lib, package, Context
+from cortex.lib import util, tf_lib, package, Context, api_utils
 from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 from cortex.lib.context import create_transformer_inputs_from_map

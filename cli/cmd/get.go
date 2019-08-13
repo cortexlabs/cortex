@@ -556,9 +556,9 @@ func getPredictionMetrics(appName string, api *context.API) string {
 	}
 
 	total := 0
-	total += metrics.NetworkStats.StatusCodes.Code2XX
-	total += metrics.NetworkStats.StatusCodes.Code4XX
-	total += metrics.NetworkStats.StatusCodes.Code5XX
+	total += metrics.NetworkStats.Code2XX
+	total += metrics.NetworkStats.Code4XX
+	total += metrics.NetworkStats.Code5XX
 
 	var latency string
 	if metrics.NetworkStats.Latency != nil {
@@ -568,9 +568,9 @@ func getPredictionMetrics(appName string, api *context.API) string {
 	}
 
 	rows := [][]interface{}{[]interface{}{
-		metrics.NetworkStats.StatusCodes.Code2XX,
-		metrics.NetworkStats.StatusCodes.Code4XX,
-		metrics.NetworkStats.StatusCodes.Code5XX,
+		metrics.NetworkStats.Code2XX,
+		metrics.NetworkStats.Code4XX,
+		metrics.NetworkStats.Code5XX,
 		total,
 		latency,
 	}}

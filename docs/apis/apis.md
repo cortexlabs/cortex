@@ -10,6 +10,9 @@ Serve models at scale.
   model: <string>  # path to an exported model (e.g. s3://my-bucket/model.zip)
   model_format: <string>  # model format, must be "tensorflow" or "onnx" (default: "onnx" if model path ends with .onnx, "tensorflow" if model path ends with .zip)
   request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
+  tracker:
+    key: <string> # the key to the prediction in the response payload
+    model_type: <string> # model type, must be "classification" or "regression"
   compute:
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
