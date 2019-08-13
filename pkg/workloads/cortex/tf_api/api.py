@@ -247,7 +247,7 @@ def create_get_model_metadata_request():
 
 def run_get_model_metadata():
     request = create_get_model_metadata_request()
-    resp = local_cache["stub"].GetModelMetadata(request, timeout=10.0)
+    resp = local_cache["stub"].GetModelMetadata(request, timeout=30.0)
     sigAny = resp.metadata["signature_def"]
     signature_def_map = get_model_metadata_pb2.SignatureDefMap()
     sigAny.Unpack(signature_def_map)
@@ -289,14 +289,14 @@ def run_predict(sample):
 
         transformed_sample = transform_sample(prepared_sample)
         prediction_request = create_prediction_request(transformed_sample)
-        response_proto = local_cache["stub"].Predict(prediction_request, timeout=30.0)
+        response_proto = local_cache["stub"].Predict(prediction_request, timeout=100.0)
         result = parse_response_proto(response_proto)
 
         result["transformed_sample"] = transformed_sample
         logger.info("inference: " + util.pp_str_flat(result))
     else:
         prediction_request = create_raw_prediction_request(prepared_sample)
-        response_proto = local_cache["stub"].Predict(prediction_request, timeout=30.0)
+        response_proto = local_cache["stub"].Predict(prediction_request, timeout=100.0)
         result = parse_response_proto_raw(response_proto)
 
         logger.info("inference: " + util.pp_str_flat(result))
