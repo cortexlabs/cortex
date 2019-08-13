@@ -1,0 +1,12 @@
+- kind: deployment
+  name: spell
+
+- kind: api
+  name: spell
+  model: s3://cortex-yolo/spell197.zip
+  compute:
+    min_replicas: 1
+    max_replicas: 1
+    cpu: "3"
+    gpu: 1
+    mem: "48Gi"

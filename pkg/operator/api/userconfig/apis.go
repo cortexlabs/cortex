@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/models"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
@@ -126,7 +127,7 @@ func (api *API) Validate() error {
 		if api.ModelFormat == UnknownModelFormat {
 			if strings.HasSuffix(api.Model, ".onnx") {
 				api.ModelFormat = ONNXModelFormat
-			} else if strings.HasSuffix(api.Model, ".zip") {
+			} else if models.IsValidS3Directory(api.Model) {
 				api.ModelFormat = TensorFlowModelFormat
 			} else {
 				return errors.Wrap(ErrorUnableToInferModelFormat(), Identify(api))
