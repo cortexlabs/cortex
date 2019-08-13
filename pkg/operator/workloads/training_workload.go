@@ -111,7 +111,7 @@ func (tw *TrainingWorkload) Start(ctx *context.Context) error {
 					{
 						Name:            "train",
 						Image:           trainImage,
-						ImagePullPolicy: "Always",
+						ImagePullPolicy: kcore.PullAlways,
 						Args: []string{
 							"--workload-id=" + tw.WorkloadID,
 							"--context=" + config.AWS.S3Path(ctx.Key),

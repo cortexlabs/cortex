@@ -78,7 +78,6 @@ export CORTEX_IMAGE_CLUSTER_AUTOSCALER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com
 export CORTEX_IMAGE_NVIDIA="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/nvidia:latest"
 export CORTEX_IMAGE_METRICS_SERVER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/metrics-server:latest"
 export CORTEX_IMAGE_ISTIO_PROXY="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-proxy:latest"
-export CORTEX_IMAGE_ISTIO_PROXY_INIT="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-proxy-init:latest"
 export CORTEX_IMAGE_ISTIO_MIXER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-mixer:latest"
 export CORTEX_IMAGE_ISTIO_PILOT="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-pilot:latest"
 export CORTEX_IMAGE_ISTIO_SIDECAR="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-sidecar:latest"

@@ -14,6 +14,7 @@
 
 # Images which are not mirrored in Cortex Dockerhub repo (because the Helm template does not currently support overriding):
 #   - docker.io/istio/kubectl
+#   - docker.io/istio/install-cni
 
 # All options: https://istio.io/docs/reference/config/installation-options/
 
@@ -82,6 +83,11 @@ sidecarInjectorWebhook:
   enabled: true
   image: $CORTEX_IMAGE_ISTIO_SIDECAR
 
+istio_cni:
+  enabled: true
+  excludeNamespaces:
+    - istio-system
+
 galley:
   image: $CORTEX_IMAGE_ISTIO_GALLEY
   enabled: true
@@ -123,5 +129,3 @@ global:
   proxy:
     autoInject: disabled
     image: $CORTEX_IMAGE_ISTIO_PROXY
-  proxy_init:
-    image: $CORTEX_IMAGE_ISTIO_PROXY_INIT

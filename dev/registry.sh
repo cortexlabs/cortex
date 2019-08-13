@@ -42,7 +42,6 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/istio-galley --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/istio-sidecar --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/istio-proxy --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/istio-proxy-init --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/istio-mixer --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/operator --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/spark --region=$REGISTRY_REGION || true
@@ -154,7 +153,6 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/istio-galley istio-galley latest
     build_and_push $ROOT/images/istio-sidecar istio-sidecar latest
     build_and_push $ROOT/images/istio-proxy istio-proxy latest
-    build_and_push $ROOT/images/istio-proxy-init istio-proxy-init latest
     build_and_push $ROOT/images/istio-mixer istio-mixer latest
   fi
 
