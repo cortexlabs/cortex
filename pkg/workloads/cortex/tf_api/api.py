@@ -368,7 +368,7 @@ def predict(deployment_name, api_name):
     predictions = []
     samples = payload["samples"]
     if not util.is_list(samples):
-        return prediction_failed("expected the value of key `samples` to be a list of json objects")
+        return prediction_failed('expected the value of key "samples" to be a list of json objects')
 
     for i, sample in enumerate(payload["samples"]):
         try:
