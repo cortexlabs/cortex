@@ -159,7 +159,6 @@ def create_raw_prediction_request(sample):
         else:
             shape = [1]
             value = [value]
-
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
         tensor_proto = tf.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape)
         prediction_request.inputs[column_name].CopyFrom(tensor_proto)
