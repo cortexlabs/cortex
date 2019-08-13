@@ -626,47 +626,16 @@ class Context:
             )
         return cast_compound_type(input, input_schema["_type"])
 
-    def publish_prediction(self, api_name, prediction):
-        api = self.apis[api_name]
-        tracker = api.get("tracker")
-
-        if tracker is None:
-            return
-
-        start = time.time()
-        
+    def publish_metrics(self, metrics):
         if self.monitoring is None:
             raise CortexException("monitoring client not initialized") # unexpected
         
-        prediction_metric =  {
-            "MetricName": "PREDICTION",
-            "Dimensions": [
-                {"Name": "APP_NAME", "Value": self.app["name"]},
-                {"Name": "API_NAME", "Value": api_name},
-                {"Name": "API_ID", "Value": api["id"]},
-            ]
-        }
+        response = self.monitoring.put_metric_data(
+            MetricData=metrics,
+            Namespace=self.cortex_config["log_group"],
+        )
+        logger.info(response)
 
-        if tracker["model_type"] == "classification":
-            prediction_metric["Dimensions"].append({"Name": "CLASS", "Value": prediction[tracker["prediction_key"]]})
-            prediction_metric["Unit"] = "Count"
-            prediction_metric["Value"] = 1
-
-            response = self.monitoring.put_metric_data(
-                MetricData=[prediction_metric],
-                Namespace=self.cortex_config["log_group"],
-            )
-            logger.info(response)
-        else:
-            prediction_metric["Value"] = prediction[tracker["prediction_key"]]
-            response = self.monitoring.put_metric_data(
-                MetricData=[prediction_metric],
-                Namespace=self.cortex_config["log_group"],
-            )
-            logger.info(response)
-    
-        end = time.time()
-        logger.info(end - start)
 
 def input_schema_from_type_schema(type_schema):
     return {

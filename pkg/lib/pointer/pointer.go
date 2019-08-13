@@ -42,7 +42,7 @@ func Int64(val int64) *int64 {
 }
 
 func Float64(val float64) *float64 {
-	return &val
+	return &val 
 }
 
 func Float32(val float32) *float32 {

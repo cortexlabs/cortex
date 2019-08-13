@@ -15,16 +15,16 @@
   model: s3://cortex-examples/iris/xgboost.onnx
   request_handler: handlers/xgboost.py
   tracker:
-    key: class_label            # key
-    model_type: regression      # optional in a different ticket
+    key: class_label                # key
+    model_type: classification      # optional in a different ticket
 
 - kind: api
   name: sklearn
   model: s3://cortex-examples/iris/sklearn.onnx
   request_handler: handlers/sklearn.py
-#   tracker:
-#     key: class_label
-#     model_type: classification
+  tracker:
+    key: class_label
+    model_type: classification
 
 # - kind: api
 #   name: keras

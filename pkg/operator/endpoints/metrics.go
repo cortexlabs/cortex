@@ -19,6 +19,7 @@ package endpoints
 import (
 	"fmt"
 	"strings"
+
 	// "strconv"
 	"net/http"
 	"time"
@@ -26,9 +27,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
 
 func GetMetrics(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +42,7 @@ func GetMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := workloads.CurrentContext(appName)
-	err := workloads.PopulateWorkloadIDs(ctx)
+	err = workloads.PopulateWorkloadIDs(ctx)
 	if err != nil {
 		RespondError(w, err)
 		return
@@ -50,7 +53,6 @@ func GetMetrics(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, err)
 		return
 	}
-
 	api := ctx.APIs[apiName]
 	apiSavedStatus, err := workloads.GetAPISavedStatus(api.ID, api.WorkloadID, appName)
 	if err != nil {
@@ -59,22 +61,40 @@ func GetMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	endTime := time.Now()
-	twoWeeksAgo := endTime.Add(- 14 * 24 * time.Hour)
+	twoWeeksAgo := endTime.Add(-14 * 24 * time.Hour)
 	metricsStartTime := apiSavedStatus.Start
-	if twoWeeksAgo
+	var startTime *time.Time
+	if twoWeeksAgo.Before(*metricsStartTime) {
+		startTime = metricsStartTime
+	} else {
+		startTime = &twoWeeksAgo
+	}
 
 	period := int64(60 * 60)
 
-	if *ctx.APIs[apiName].Tracker.ModelType == "classification" {
-		metrics := GetClassificationMetrics(appName, apiName, ctx.APIs[apiName].ID, period, &endTime)
-		Respond(w, metrics)
-	} else {
-		metrics := GetRegressionMetrics(appName, apiName, ctx.APIs[apiName].ID, period, &endTime)
-		Respond(w, metrics)
+	metricDataResults := QueryMetrics(appName, api, period, &endTime, startTime)
+
+	var apiMetrics schema.APIMetrics
+
+	ExtractNetworkMetrics(metricDataResults, &apiMetrics)
+	debug.Pp(metricDataResults)
+
+	if api.Tracker != nil {
+		if api.Tracker.ModelType == userconfig.RegressionModelType {
+			ExtractRegressionMetrics(metricDataResults, &apiMetrics)
+		} else {
+			ExtractClassificationMetrics(metricDataResults, &apiMetrics)
+		}
 	}
+	debug.Pp(apiMetrics)
+	Respond(w, apiMetrics)
 }
 
 func SumInt(floats ...*float64) *int {
+	if len(floats) == 0 {
+		return nil
+	}
+
 	sum := 0
 	for _, num := range floats {
 		sum += int(*num)
@@ -83,6 +103,10 @@ func SumInt(floats ...*float64) *int {
 }
 
 func SumFloat(floats ...*float64) *float64 {
+	if len(floats) == 0 {
+		return nil
+	}
+
 	sum := 0.0
 	for _, num := range floats {
 		sum += *num
@@ -90,7 +114,7 @@ func SumFloat(floats ...*float64) *float64 {
 	return &sum
 }
 
-func Min(floats ...*float64) *float64{
+func Min(floats ...*float64) *float64 {
 	if len(floats) == 0 {
 		return nil
 	}
@@ -136,76 +160,38 @@ func Avg(values []*float64, counts []*float64) *float64 {
 	return &avg
 }
 
-func GetClassificationMetrics(appName string, apiName string, apiID string, period int64, endTime *time.Time) *schema.APIMetrics {
-	startTime := endTime.Add(-7 * 24 * 60 * 60 * time.Second)
+func QueryMetrics(appName string, api *context.API, period int64, endTime *time.Time, startTime *time.Time) []*cloudwatch.MetricDataResult {
+	networkDataQueries := GetNetworkStatsDef(appName, api, period)
+	latencyMetrics := GetLatencyMetricsDef(api.Path, period)
+	allMetrics := append(latencyMetrics, networkDataQueries...)
 
-	networkDataQueries := GetNetworkStatsDef(appName, apiName, apiID, period)
-	classMetrics, _ := GetClassesMetricDef(appName, apiName, apiID, period)
-
-	metricsDataQuery := cloudwatch.GetMetricDataInput{
-		EndTime:           endTime,
-		StartTime:         &startTime,
-		MetricDataQueries: append(networkDataQueries, classMetrics...),
-	}
-
-	output, err := config.AWS.CloudWatchMetrics.GetMetricData(&metricsDataQuery)
-	debug.Pp(output)
-	debug.Pp(err)
-
-	var apiMetrics schema.APIMetrics
-	classDistribution := map[string]int{}
-	var statusCodes  schema.StatusCodes
-	var networkStats schema.NetworkStats
-	for _, metricData := range output.MetricDataResults {
-		if metricData.Values == nil {
-			continue
+	if api.Tracker != nil {
+		if api.Tracker.ModelType == userconfig.ClassificationModelType {
+			classMetrics, _ := GetClassesMetricDef(appName, api, period)
+			allMetrics = append(allMetrics, classMetrics...)
+		} else {
+			regressionMetrics := GetRegressionMetricDef(appName, api, period)
+			allMetrics = append(allMetrics, regressionMetrics...)
 		}
-
-		switch {
-		case *metricData.Label == "2XX":
-			statusCodes.Code2XX = *SumInt(metricData.Values...)
-		case *metricData.Label == "4XX":
-			statusCodes.Code4XX = *SumInt(metricData.Values...)
-		case *metricData.Label == "5XX":
-			statusCodes.Code5XX = *SumInt(metricData.Values...)
-		case strings.HasPrefix(*metricData.Label, "class_"):
-			className := (*metricData.Label)[6:]
-			classDistribution[className] = *SumInt(metricData.Values...)
-		}	
 	}
-	networkStats.StatusCodes = &statusCodes
-	apiMetrics.NetworkStats = &networkStats
-	apiMetrics.ClassDistribution = classDistribution
-	return &apiMetrics
-}
-
-func GetLatencyMetricsDef(routeName string, period int64, endTime *time.Time) {
-	
-}
-
-func GetRegressionMetrics(appName string, apiName string, apiID string, period int64, endTime *time.Time) *schema.APIMetrics {
-	startTime := endTime.Add(-7 * 24 * 60 * 60 * time.Second)
-
-	networkDataQueries := GetNetworkStatsDef(appName, apiName, apiID, period)
-	regressionMetricQueries := GetRegressionMetricDef(appName, apiName, apiID, period)
-
 
 	metricsDataQuery := cloudwatch.GetMetricDataInput{
 		EndTime:           endTime,
-		StartTime:         &startTime,
-		MetricDataQueries: append(networkDataQueries, regressionMetricQueries...),
+		StartTime:         startTime,
+		MetricDataQueries: allMetrics,
 	}
-
 	output, _ := config.AWS.CloudWatchMetrics.GetMetricData(&metricsDataQuery)
 
-	var apiMetrics schema.APIMetrics
-	var regressionStats schema.RegressionStats
-	var statusCodes  schema.StatusCodes
-	var networkStats schema.NetworkStats
-	var sampleCount []*float64
-	var avgValues []*float64
+	return output.MetricDataResults
+}
 
-	for _, metricData := range output.MetricDataResults {
+func ExtractNetworkMetrics(metricsDataResults []*cloudwatch.MetricDataResult, apiMetrics *schema.APIMetrics) {
+	var statusCodes schema.StatusCodes
+	var networkStats schema.NetworkStats
+	var requestCount []*float64
+	var latencyAvg []*float64
+
+	for _, metricData := range metricsDataResults {
 		if metricData.Values == nil {
 			continue
 		}
@@ -217,27 +203,322 @@ func GetRegressionMetrics(appName string, apiName string, apiID string, period i
 			statusCodes.Code4XX = *SumInt(metricData.Values...)
 		case *metricData.Label == "5XX":
 			statusCodes.Code5XX = *SumInt(metricData.Values...)
-		case *metricData.Label == "min":
-			regressionStats.Min = Min(metricData.Values...)
-		case *metricData.Label == "max":
-			regressionStats.Max = Max(metricData.Values...)
-		case *metricData.Label == "count":
-			regressionStats.SampleCount = SumInt(metricData.Values...)
-			sampleCount = metricData.Values
-		case *metricData.Label == "avg":
-			avgValues = metricData.Values
+		case *metricData.Label == "Latency":
+			latencyAvg = metricData.Values
+		case *metricData.Label == "RequestCount":
+			requestCount = metricData.Values
 		}
 	}
 
-	regressionStats.Avg = Avg(avgValues, sampleCount)
-
+	networkStats.Latency = Avg(latencyAvg, requestCount)
 	networkStats.StatusCodes = &statusCodes
 	apiMetrics.NetworkStats = &networkStats
-	apiMetrics.RegressionStats = &regressionStats
-	return &apiMetrics
 }
 
-func GetRegressionMetricDef(appName string, apiName string, apiID string, period int64) []*cloudwatch.MetricDataQuery {
+func ExtractClassificationMetrics(metricsDataResults []*cloudwatch.MetricDataResult, apiMetrics *schema.APIMetrics) {
+	for _, metricData := range metricsDataResults {
+		if metricData.Values == nil {
+			continue
+		}
+
+		switch {
+		case strings.HasPrefix(*metricData.Label, "class_"):
+			className := (*metricData.Label)[6:]
+			apiMetrics.ClassDistribution[className] = *SumInt(metricData.Values...)
+		}
+	}
+}
+
+func ExtractRegressionMetrics(metricsDataResults []*cloudwatch.MetricDataResult, apiMetrics *schema.APIMetrics) {
+	var regressionStats schema.RegressionStats
+	var predictionAvg []*float64
+	var requestCount []*float64
+
+	for _, metricData := range metricsDataResults {
+		if metricData.Values == nil {
+			continue
+		}
+
+		switch {
+		case *metricData.Label == "Min":
+			min := Min(metricData.Values...)
+			if min != nil {
+				regressionStats.Min = *min
+			}
+		case *metricData.Label == "Max":
+			max := Max(metricData.Values...)
+			if max != nil {
+				regressionStats.Max = *max
+			}
+		case *metricData.Label == "RequestCount":
+			count := SumInt(metricData.Values...)
+			if count != nil {
+				regressionStats.SampleCount = *count
+			}
+			requestCount = metricData.Values
+		case *metricData.Label == "Avg":
+			predictionAvg = metricData.Values
+		}
+	}
+
+	avg := Avg(predictionAvg, requestCount)
+	if avg != nil {
+		regressionStats.Avg = *avg
+	}
+	if regressionStats.SampleCount > 0 {
+		apiMetrics.RegressionStats = &regressionStats
+	}
+}
+
+// func GetAPIMetrics(appName string, api *context.API, period int64, endTime *time.Time, startTime *time.Time) *schema.APIMetrics {
+// 	networkDataQueries := GetNetworkStatsDef(appName, api, period)
+// 	latencyMetrics := GetLatencyMetricsDef(api.Path, period)
+// 	allMetrics := append(latencyMetrics, networkDataQueries...)
+
+// 	if api.Tracker != nil {
+// 		if *api.Tracker.ModelType == "classification" {
+// 			classMetrics, _ := GetClassesMetricDef(appName, api, period)
+// 			allMetrics = append(allMetrics, classMetrics...)
+// 		} else {
+// 			regressionMetrics := GetRegressionMetricDef(appName, api, period)
+// 			allMetrics = append(allMetrics, regressionMetrics...)
+// 		}
+// 	}
+
+// 	metricsDataQuery := cloudwatch.GetMetricDataInput{
+// 		EndTime:           endTime,
+// 		StartTime:         startTime,
+// 		MetricDataQueries: allMetrics,
+// 	}
+
+// 	output, err := config.AWS.CloudWatchMetrics.GetMetricData(&metricsDataQuery)
+// 	debug.Pp(output)
+// 	debug.Pp(err)
+
+// 	var apiMetrics schema.APIMetrics
+// 	var statusCodes schema.StatusCodes
+// 	var networkStats schema.NetworkStats
+// 	var requestCount []*float64
+// 	var latencyAvg []*float64
+// 	var predictionAvg []*float64
+// 	var regressionStats schema.RegressionStats
+
+// 	for _, metricData := range output.MetricDataResults {
+// 		if metricData.Values == nil {
+// 			continue
+// 		}
+
+// 		switch {
+// 		case *metricData.Label == "2XX":
+// 			statusCodes.Code2XX = *SumInt(metricData.Values...)
+// 		case *metricData.Label == "4XX":
+// 			statusCodes.Code4XX = *SumInt(metricData.Values...)
+// 		case *metricData.Label == "5XX":
+// 			statusCodes.Code5XX = *SumInt(metricData.Values...)
+// 		case strings.HasPrefix(*metricData.Label, "class_"):
+// 			className := (*metricData.Label)[6:]
+// 			apiMetrics.ClassDistribution[className] = *SumInt(metricData.Values...)
+// 		case *metricData.Label == "Min":
+// 			min := Min(metricData.Values...)
+// 			if min != nil {
+// 				regressionStats.Min = *min
+// 			}
+// 		case *metricData.Label == "Max":
+// 			max := Max(metricData.Values...)
+// 			if max != nil {
+// 				regressionStats.Min = *max
+// 			}
+// 		case *metricData.Label == "RequestCount":
+// 			if *api.Tracker.ModelType == "regression" {
+// 				count := SumInt(metricData.Values...)
+// 				if count != nil {
+// 					regressionStats.SampleCount = *count
+// 				}
+// 			}
+// 			requestCount = metricData.Values
+// 		case *metricData.Label == "Avg":
+// 			predictionAvg = metricData.Values
+// 		case *metricData.Label == "Latency":
+// 			latencyAvg = metricData.Values
+// 		case *metricData.Label == "RequestCount":
+// 			requestCount = metricData.Values
+// 		}
+// 	}
+
+// 	if api.Tracker != nil && *api.Tracker.ModelType == "regression" {
+
+// 		avg := Avg(predictionAvg, requestCount)
+// 		if avg != nil {
+// 			regressionStats.Avg = *avg
+// 		}
+// 		if regressionStats.SampleCount > 0 {
+// 			apiMetrics.RegressionStats = &regressionStats
+// 		} else {
+// 			apiMetrics.RegressionStats = nil
+// 		}
+// 	}
+
+// 	networkStats.Latency = Avg(latencyAvg, requestCount)
+// 	networkStats.StatusCodes = &statusCodes
+// 	apiMetrics.NetworkStats = &networkStats
+// 	debug.Pp(apiMetrics)
+// 	return &apiMetrics
+// }
+
+// func GetClassificationMetrics(appName string, api *context.API, period int64, endTime *time.Time, startTime *time.Time) *schema.APIMetrics {
+// 	networkDataQueries := GetNetworkStatsDef(appName, api, period)
+// 	classMetrics, _ := GetClassesMetricDef(appName, api, period)
+// 	latencyMetrics := GetLatencyMetricsDef(api.Path, period)
+// 	totalMetrics := append(latencyMetrics, classMetrics...)
+// 	totalMetrics = append(totalMetrics, networkDataQueries...)
+
+// 	metricsDataQuery := cloudwatch.GetMetricDataInput{
+// 		EndTime:           endTime,
+// 		StartTime:         startTime,
+// 		MetricDataQueries: totalMetrics,
+// 	}
+
+// 	output, err := config.AWS.CloudWatchMetrics.GetMetricData(&metricsDataQuery)
+// 	debug.Pp(output)
+// 	debug.Pp(err)
+
+// 	var apiMetrics schema.APIMetrics
+// 	classDistribution := map[string]int{}
+// 	var statusCodes schema.StatusCodes
+// 	var networkStats schema.NetworkStats
+// 	var requestCount []*float64
+// 	var latencyAvg []*float64
+
+// 	for _, metricData := range output.MetricDataResults {
+// 		if metricData.Values == nil {
+// 			continue
+// 		}
+
+// 		switch {
+// 		case *metricData.Label == "2XX":
+// 			statusCodes.Code2XX = *SumInt(metricData.Values...)
+// 		case *metricData.Label == "4XX":
+// 			statusCodes.Code4XX = *SumInt(metricData.Values...)
+// 		case *metricData.Label == "5XX":
+// 			statusCodes.Code5XX = *SumInt(metricData.Values...)
+// 		case strings.HasPrefix(*metricData.Label, "class_"):
+// 			className := (*metricData.Label)[6:]
+// 			classDistribution[className] = *SumInt(metricData.Values...)
+// 		case *metricData.Label == "Latency":
+// 			latencyAvg = metricData.Values
+// 		case *metricData.Label == "RequestCount":
+// 			requestCount = metricData.Values
+// 		}
+// 	}
+
+// 	networkStats.Latency = Avg(latencyAvg, requestCount)
+// 	networkStats.StatusCodes = &statusCodes
+// 	apiMetrics.NetworkStats = &networkStats
+// 	apiMetrics.ClassDistribution = classDistribution
+// 	return &apiMetrics
+// }
+
+// func GetRegressionMetrics(appName string, api *context.API, period int64, endTime *time.Time, startTime *time.Time) *schema.APIMetrics {
+// 	networkDataQueries := GetNetworkStatsDef(appName, api, period)
+// 	regressionMetricQueries := GetRegressionMetricDef(appName, api, period)
+// 	latencyMetrics := GetLatencyMetricsDef(api.Path, period)
+// 	totalMetrics := append(latencyMetrics, regressionMetricQueries...)
+// 	totalMetrics = append(totalMetrics, networkDataQueries...)
+
+// 	metricsDataQuery := cloudwatch.GetMetricDataInput{
+// 		EndTime:           endTime,
+// 		StartTime:         startTime,
+// 		MetricDataQueries: append(networkDataQueries, regressionMetricQueries...),
+// 	}
+
+// 	output, _ := config.AWS.CloudWatchMetrics.GetMetricData(&metricsDataQuery)
+
+// 	var apiMetrics schema.APIMetrics
+// 	var regressionStats schema.RegressionStats
+// 	var statusCodes schema.StatusCodes
+// 	var networkStats schema.NetworkStats
+// 	var requestCount []*float64
+// 	var latencyAvg []*float64
+// 	var predictionAvg []*float64
+
+// 	for _, metricData := range output.MetricDataResults {
+// 		if metricData.Values == nil {
+// 			continue
+// 		}
+
+// 		switch {
+// 		case *metricData.Label == "2XX":
+// 			statusCodes.Code2XX = *SumInt(metricData.Values...)
+// 		case *metricData.Label == "4XX":
+// 			statusCodes.Code4XX = *SumInt(metricData.Values...)
+// 		case *metricData.Label == "5XX":
+// 			statusCodes.Code5XX = *SumInt(metricData.Values...)
+// 		case *metricData.Label == "Min":
+// 			regressionStats.Min = Min(metricData.Values...)
+// 		case *metricData.Label == "Max":
+// 			regressionStats.Max = Max(metricData.Values...)
+// 		case *metricData.Label == "RequestCount":
+// 			regressionStats.SampleCount = SumInt(metricData.Values...)
+// 			requestCount = metricData.Values
+// 		case *metricData.Label == "Avg":
+// 			predictionAvg = metricData.Values
+// 		case *metricData.Label == "Latency":
+// 			latencyAvg = metricData.Values
+// 		}
+// 	}
+
+// 	regressionStats.Avg = Avg(predictionAvg, requestCount)
+// 	networkStats.Latency = Avg(latencyAvg, requestCount)
+// 	networkStats.StatusCodes = &statusCodes
+// 	apiMetrics.NetworkStats = &networkStats
+// 	apiMetrics.RegressionStats = &regressionStats
+// 	return &apiMetrics
+// }
+
+func GetLatencyMetricsDef(routeName string, period int64) []*cloudwatch.MetricDataQuery {
+	networkDataQueries := []*cloudwatch.MetricDataQuery{
+		&cloudwatch.MetricDataQuery{
+			Id:    aws.String("latency"),
+			Label: aws.String("Latency"),
+			MetricStat: &cloudwatch.MetricStat{
+				Metric: &cloudwatch.Metric{
+					Namespace:  aws.String("cortex"),
+					MetricName: aws.String("response-time.instance.cortex"),
+					Dimensions: []*cloudwatch.Dimension{
+						&cloudwatch.Dimension{
+							Name:  aws.String("RequestPath"),
+							Value: aws.String(routeName),
+						},
+					},
+				},
+				Stat:   aws.String("Average"),
+				Period: aws.Int64(period),
+			},
+		},
+		&cloudwatch.MetricDataQuery{
+			Id:    aws.String("request_count"),
+			Label: aws.String("RequestCount"),
+			MetricStat: &cloudwatch.MetricStat{
+				Metric: &cloudwatch.Metric{
+					Namespace:  aws.String("cortex"),
+					MetricName: aws.String("response-time.instance.cortex"),
+					Dimensions: []*cloudwatch.Dimension{
+						&cloudwatch.Dimension{
+							Name:  aws.String("RequestPath"),
+							Value: aws.String(routeName),
+						},
+					},
+				},
+				Stat:   aws.String("SampleCount"),
+				Period: aws.Int64(period),
+			},
+		},
+	}
+
+	return networkDataQueries
+}
+
+func GetRegressionMetricDef(appName string, api *context.API, period int64) []*cloudwatch.MetricDataQuery {
 	metric := &cloudwatch.Metric{
 		Namespace:  aws.String("cortex"),
 		MetricName: aws.String("Prediction"),
@@ -248,18 +529,18 @@ func GetRegressionMetricDef(appName string, apiName string, apiID string, period
 			},
 			&cloudwatch.Dimension{
 				Name:  aws.String("APIName"),
-				Value: aws.String(apiName),
+				Value: aws.String(api.Name),
 			},
 			&cloudwatch.Dimension{
 				Name:  aws.String("APIID"),
-				Value: aws.String(apiID),
+				Value: aws.String(api.ID),
 			},
 		},
 	}
 	regressionMetric := []*cloudwatch.MetricDataQuery{
 		&cloudwatch.MetricDataQuery{
 			Id:    aws.String("min"),
-			Label: aws.String("min"),
+			Label: aws.String("Min"),
 			MetricStat: &cloudwatch.MetricStat{
 				Metric: metric,
 				Stat:   aws.String("Minimum"),
@@ -268,7 +549,7 @@ func GetRegressionMetricDef(appName string, apiName string, apiID string, period
 		},
 		&cloudwatch.MetricDataQuery{
 			Id:    aws.String("max"),
-			Label: aws.String("max"),
+			Label: aws.String("Max"),
 			MetricStat: &cloudwatch.MetricStat{
 				Metric: metric,
 				Stat:   aws.String("Maximum"),
@@ -277,20 +558,11 @@ func GetRegressionMetricDef(appName string, apiName string, apiID string, period
 		},
 		&cloudwatch.MetricDataQuery{
 			Id:    aws.String("avg"),
-			Label: aws.String("avg"),
+			Label: aws.String("Avg"),
 			MetricStat: &cloudwatch.MetricStat{
 				Metric: metric,
 				Period: aws.Int64(period),
 				Stat:   aws.String("Average"),
-			},
-		},
-		&cloudwatch.MetricDataQuery{
-			Id:    aws.String("count"),
-			Label: aws.String("count"),
-			MetricStat: &cloudwatch.MetricStat{
-				Metric: metric,
-				Period: aws.Int64(period),
-				Stat:   aws.String("SampleCount"),
 			},
 		},
 	}
@@ -298,7 +570,7 @@ func GetRegressionMetricDef(appName string, apiName string, apiID string, period
 	return regressionMetric
 }
 
-func GetNetworkStatsDef(appName string, apiName string, apiID string, period int64) []*cloudwatch.MetricDataQuery {
+func GetNetworkStatsDef(appName string, api *context.API, period int64) []*cloudwatch.MetricDataQuery {
 	dimensions := []*cloudwatch.Dimension{
 		&cloudwatch.Dimension{
 			Name:  aws.String("AppName"),
@@ -306,11 +578,11 @@ func GetNetworkStatsDef(appName string, apiName string, apiID string, period int
 		},
 		&cloudwatch.Dimension{
 			Name:  aws.String("APIName"),
-			Value: aws.String(apiName),
+			Value: aws.String(api.Name),
 		},
 		&cloudwatch.Dimension{
 			Name:  aws.String("APIID"),
-			Value: aws.String(apiID),
+			Value: aws.String(api.ID),
 		},
 	}
 
@@ -375,7 +647,7 @@ func GetNetworkStatsDef(appName string, apiName string, apiID string, period int
 	return networkDataQueries
 }
 
-func GetClassesMetricDef(appName string, apiName string, apiID string, period int64) ([]*cloudwatch.MetricDataQuery, error) {
+func GetClassesMetricDef(appName string, api *context.API, period int64) ([]*cloudwatch.MetricDataQuery, error) {
 	maxClasses := 20
 	classMetricQueries := []*cloudwatch.MetricDataQuery{}
 	listMetricsInput := &cloudwatch.ListMetricsInput{
@@ -388,11 +660,11 @@ func GetClassesMetricDef(appName string, apiName string, apiID string, period in
 			},
 			&cloudwatch.DimensionFilter{
 				Name:  aws.String("APIName"),
-				Value: aws.String(apiName),
+				Value: aws.String(api.Name),
 			},
 			&cloudwatch.DimensionFilter{
 				Name:  aws.String("APIID"),
-				Value: aws.String(apiID),
+				Value: aws.String(api.ID),
 			},
 		},
 	}

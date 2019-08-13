@@ -19,7 +19,8 @@ import argparse
 import tensorflow as tf
 import traceback
 import time
-from flask import Flask, request, jsonify
+
+from flask import Flask, request, jsonify, g
 from flask_api import status
 from waitress import serve
 import grpc
@@ -28,6 +29,7 @@ from tensorflow_serving.apis import get_model_metadata_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 from google.protobuf import json_format
 
+from cortex.lib import api_utils
 from cortex import consts
 from cortex.lib import util, tf_lib, package, Context
 from cortex.lib.log import get_logger
@@ -73,6 +75,21 @@ DTYPE_TO_TF_TYPE = {
     "DT_STRING": tf.string,
     "DT_BOOL": tf.bool,
 }
+
+
+@app.after_request
+def after_request(response):
+    api = local_cache["api"]
+    ctx = local_cache["ctx"]
+
+    if request.path == "/{}/{}".format(ctx.app["name"], api["name"]):
+        logger.info(request.path)
+        predictions = None
+        if "predictions" in g:
+            predictions = g.predictions
+        api_utils.post_request_metrics(ctx, api, response, predictions)
+
+    return response
 
 
 def transform_sample(sample):
@@ -371,7 +388,7 @@ def predict(deployment_name, api_name):
             return prediction_failed(sample, str(e))
 
         predictions.append(result)
-
+    g.predictions = predictions
     response["predictions"] = predictions
     response["resource_id"] = api["id"]
 

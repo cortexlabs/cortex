@@ -13,7 +13,19 @@
 # limitations under the License.
 
 
-from cortex.lib.exceptions import UserException
+from cortex.lib.exceptions import UserException, CortexException
+from cortex.lib.log import get_logger
+
+logger = get_logger()
+
+
+def api_metric_dimensions(ctx, api_name):
+    api = ctx.apis[api_name]
+    return [
+        {"Name": "AppName", "Value": ctx.app["name"]},
+        {"Name": "APIName", "Value": api["name"]},
+        {"Name": "APIID", "Value": api["id"]},
+    ]
 
 
 def status_code_metric(dimensions, status_code):
@@ -72,3 +84,27 @@ def prediction_metrics(dimensions, api, predictions):
             }
             metric_list.append(metric)
     return metric_list
+
+
+def post_request_metrics(ctx, api, response, predictions):
+    try:
+        api_name = api["name"]
+
+        api_dimensions = api_metric_dimensions(ctx, api_name)
+        metrics_list = []
+
+        metrics_list += status_code_metric(api_dimensions.copy(), response.status_code)
+
+        if predictions is not None:
+            metrics_list += predictions_per_request_metric(api_dimensions.copy(), len(predictions))
+
+            if api.get("tracker") is not None:
+                metrics_list += prediction_metrics(api_dimensions.copy(), api, predictions)
+        logger.info(metrics_list)
+        ctx.publish_metrics(metrics_list)
+
+    except CortexException as e:
+        e.wrap("error")
+        logger.warn(str(e))
+    except Exception as e:
+        logger.warn(str(e))

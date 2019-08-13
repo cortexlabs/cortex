@@ -92,7 +92,7 @@ func calculateAPISavedStatuses(podList []kcore.Pod, appName string) ([]*resource
 	var savedStatuses []*resource.APISavedStatus
 	for resourceID := range podMap {
 		for workloadID, pods := range podMap[resourceID] {
-			savedStatus, err := getAPISavedStatus(resourceID, workloadID, appName)
+			savedStatus, err := GetAPISavedStatus(resourceID, workloadID, appName)
 			if err != nil {
 				return nil, err
 			}
