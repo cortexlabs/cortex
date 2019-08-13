@@ -19,7 +19,6 @@ import argparse
 import tensorflow as tf
 import traceback
 import time
-import numpy as np
 from flask import Flask, request, jsonify
 from flask_api import status
 from waitress import serve
@@ -153,13 +152,18 @@ def create_raw_prediction_request(sample):
     prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in sample.items():
-        shape = []
-        for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
-            shape.append(int(dim["size"]))
+
+        if util.is_list(value):
+            shape = [len(value)]
+            for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"][
+                1:
+            ]:
+                shape.append(int(dim["size"]))
+        else:
+            shape = [1]
+            value = [value]
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
-        tensor_proto = tf.make_tensor_proto(
-            np.array(value).reshape(shape), dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape
-        )
+        tensor_proto = tf.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape)
         prediction_request.inputs[column_name].CopyFrom(tensor_proto)
 
     return prediction_request
