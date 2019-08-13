@@ -149,7 +149,7 @@ def predict(app_name, api_name):
     response = {}
 
     if not util.is_dict(payload) or "samples" not in payload:
-        return prediction_failed("top level `samples` key not found in request")
+        return prediction_failed('top level "samples" key not found in request')
 
     predictions = []
     samples = payload["samples"]
