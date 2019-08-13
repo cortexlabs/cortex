@@ -171,7 +171,7 @@ def create_raw_prediction_request(sample):
             prediction_request.inputs[column_name].CopyFrom(tensor_proto)
         except Exception as e:
             raise UserException(
-                "key {}".format(column_name), "expected shape {}".format(shape)
+                'key "{}"'.format(column_name), "expected shape {}".format(shape)
             ) from e
 
     return prediction_request
