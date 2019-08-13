@@ -150,11 +150,16 @@ def create_raw_prediction_request(sample):
     prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in sample.items():
-        shape = [1]
         if util.is_list(value):
             shape = [len(value)]
+            for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"][1:]:
+                shape.append(int(dim["size"]))
+        else:
+            shape = [1]
+            value = [value]
+
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
-        tensor_proto = tf.make_tensor_proto([value], dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape)
+        tensor_proto = tf.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape)
         prediction_request.inputs[column_name].CopyFrom(tensor_proto)
 
     return prediction_request
@@ -266,8 +271,6 @@ def run_predict(sample):
     ctx = local_cache["ctx"]
     request_handler = local_cache.get("request_handler")
 
-    logger.info("sample: " + util.pp_str_flat(sample))
-
     prepared_sample = sample
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         prepared_sample = request_handler.pre_inference(
@@ -285,17 +288,15 @@ def run_predict(sample):
             )
 
         transformed_sample = transform_sample(prepared_sample)
-        logger.info("transformed_sample: " + util.pp_str_flat(transformed_sample))
-
         prediction_request = create_prediction_request(transformed_sample)
-        response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
+        response_proto = local_cache["stub"].Predict(prediction_request, timeout=30.0)
         result = parse_response_proto(response_proto)
 
         result["transformed_sample"] = transformed_sample
         logger.info("inference: " + util.pp_str_flat(result))
     else:
         prediction_request = create_raw_prediction_request(prepared_sample)
-        response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
+        response_proto = local_cache["stub"].Predict(prediction_request, timeout=30.0)
         result = parse_response_proto_raw(response_proto)
 
         logger.info("inference: " + util.pp_str_flat(result))
@@ -330,7 +331,7 @@ def validate_sample(sample):
 
 
 def prediction_failed(sample, reason=None):
-    message = "prediction failed for sample: {}".format(util.pp_str_flat(sample))
+    message = "prediction failed"
     if reason:
         message += " ({})".format(reason)
 
@@ -357,13 +358,11 @@ def predict(deployment_name, api_name):
     response = {}
 
     if not util.is_dict(payload) or "samples" not in payload:
-        util.log_pretty_flat(payload, logging_func=logger.error)
         return prediction_failed(payload, "top level `samples` key not found in request")
 
     predictions = []
     samples = payload["samples"]
     if not util.is_list(samples):
-        util.log_pretty_flat(samples, logging_func=logger.error)
         return prediction_failed(
             payload, "expected the value of key `samples` to be a list of json objects"
         )
