@@ -156,8 +156,8 @@ def create_raw_prediction_request(sample):
         if util.is_list(value):
             shape = [len(value)]
             for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"][
-                    1:
-                ]:
+                1:
+            ]:
                 shape.append(int(dim["size"]))
         else:
             shape = [1]
