@@ -385,6 +385,21 @@ function prompt_for_telemetry() {
   fi
 }
 
+function confirm_for_uninstall() {
+  while true
+  do
+    echo
+    read -p "Are you sure you want to uninstall Cortex? Your cluster will be spun down and all resources will be deleted. [Y/n] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      break
+    elif [[ $REPLY =~ ^[Nn]$ ]]; then
+      exit 0
+    fi
+    echo "Unexpected value: $REPLY. Please enter \"Y\" or \"n\""
+  done
+}
+
 ############
 ### HELP ###
 ############
@@ -448,7 +463,7 @@ elif [ "$arg1" = "uninstall" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    uninstall_eks
+    confirm_for_uninstall && uninstall_eks
   elif [ "$arg2" = "cli" ]; then
     uninstall_cli
   elif [ "$arg2" = "" ]; then
