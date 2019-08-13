@@ -67,11 +67,29 @@ DTYPE_TO_VALUE_KEY = {
 }
 
 DTYPE_TO_TF_TYPE = {
-    "DT_INT32": tf.int32,
-    "DT_INT64": tf.int64,
     "DT_FLOAT": tf.float32,
+    "DT_DOUBLE": tf.float64,
+    "DT_INT32": tf.int32,
+    "DT_UINT8": tf.uint8,
+    "DT_INT16": tf.int16,
+    "DT_INT8": tf.int8,
     "DT_STRING": tf.string,
+    "DT_COMPLEX64": tf.complex64,
+    "DT_INT64": tf.int64,
     "DT_BOOL": tf.bool,
+    "DT_QINT8": tf.qint8,
+    "DT_QUINT8": tf.quint8,
+    "DT_QINT32": tf.qint32,
+    "DT_BFLOAT16": tf.bfloat16,
+    "DT_QINT16": tf.qint16,
+    "DT_QUINT16": tf.quint16,
+    "DT_UINT16": tf.uint16,
+    "DT_COMPLEX128": tf.complex128,
+    "DT_HALF": tf.float16,
+    "DT_RESOURCE": tf.resource,
+    "DT_VARIANT": tf.variant,
+    "DT_UINT32": tf.uint32,
+    "DT_UINT64": tf.uint64,
 }
 
 
