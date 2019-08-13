@@ -16,7 +16,7 @@ tokenizer = tokenization.FullTokenizer(vocab_file=vocab_file, do_lower_case=do_l
 def pre_inference(sample, metadata):
     input_example = run_classifier.InputExample(guid="", text_a=sample["input"], label=0)
     input_feature = run_classifier.convert_single_example(0, input_example, [0, 1], 128, tokenizer)
-    return {"input_ids": input_feature.input_ids}
+    return {"input_ids": [input_feature.input_ids]}
 
 
 def post_inference(prediction, metadata):
