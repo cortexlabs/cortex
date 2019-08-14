@@ -466,6 +466,20 @@ def validate_model_dir(model_dir):
         )
 
 
+@app.after_request
+def after_request(response):
+    if request.full_path.startswith("/healthz"):
+        return response
+    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
+    return response
+
+
+@app.errorhandler(Exception)
+def exceptions(e):
+    logger.exception(e)
+    return jsonify(error=str(e)), 500
+
+
 def start(args):
     ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
 
