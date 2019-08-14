@@ -23,7 +23,7 @@ Cortex is maintained by a venture-backed team of infrastructure engineers and [w
 
 - kind: api
   name: my-api
-  model: s3://my-bucket/my-model.zip
+  model: s3://my-bucket/my-model.onnx
   request_handler: handler.py
 ```
 
@@ -46,13 +46,13 @@ def post_inference(prediction, metadata):
 $ cortex deploy
 
 Deploying ...
-https://amazonaws.com/my-api  # Your API is ready!
+https://***.amazonaws.com/my-api  # Your API is ready!
 ```
 
 **Serve** real time predictions via scalable JSON APIs:
 
 ```bash
-$ curl -d '{"a": 1, "b": 2, "c": 3}' https://amazonaws.com/my-api
+$ curl -d '{"a": 1, "b": 2, "c": 3}' https://***.amazonaws.com/my-api
 
 { prediction: "def" }
 ```

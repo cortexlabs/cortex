@@ -94,15 +94,25 @@ export CORTEX_VERSION_STABLE=master
 export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-""}"
 
 if [ "$AWS_ACCESS_KEY_ID" = "" ]; then
-  echo -e "\nPlease set AWS_ACCESS_KEY_ID"
-  exit 1
+  if command -v aws >/dev/null; then
+    export AWS_ACCESS_KEY_ID=$(aws --profile default configure get aws_access_key_id)
+  fi
+  if [ "$AWS_ACCESS_KEY_ID" = "" ]; then
+    echo -e "\nPlease set AWS_ACCESS_KEY_ID"
+    exit 1
+  fi
 fi
 
 export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-""}"
 
 if [ "$AWS_SECRET_ACCESS_KEY" = "" ]; then
-  echo -e "\nPlease set AWS_SECRET_ACCESS_KEY"
-  exit 1
+  if command -v aws >/dev/null; then
+    export AWS_SECRET_ACCESS_KEY=$(aws --profile default configure get aws_secret_access_key)
+  fi
+  if [ "$AWS_SECRET_ACCESS_KEY" = "" ]; then
+    echo -e "\nPlease set AWS_SECRET_ACCESS_KEY"
+    exit 1
+  fi
 fi
 
 export CORTEX_LOG_GROUP="${CORTEX_LOG_GROUP:-cortex}"
@@ -137,7 +147,6 @@ export CORTEX_IMAGE_ISTIO_GALLEY="${CORTEX_IMAGE_ISTIO_GALLEY:-cortexlabs/istio-
 export CORTEX_IMAGE_ISTIO_PILOT="${CORTEX_IMAGE_ISTIO_PILOT:-cortexlabs/istio-pilot:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_ISTIO_SIDECAR="${CORTEX_IMAGE_ISTIO_SIDECAR:-cortexlabs/istio-sidecar:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_ISTIO_PROXY="${CORTEX_IMAGE_ISTIO_PROXY:-cortexlabs/istio-proxy:$CORTEX_VERSION_STABLE}"
-export CORTEX_IMAGE_ISTIO_PROXY_INIT="${CORTEX_IMAGE_ISTIO_PROXY_INIT:-cortexlabs/istio-proxy-init:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_ISTIO_MIXER="${CORTEX_IMAGE_ISTIO_MIXER:-cortexlabs/istio-mixer:$CORTEX_VERSION_STABLE}"
 
 export CORTEX_ENABLE_TELEMETRY="${CORTEX_ENABLE_TELEMETRY:-""}"
@@ -200,7 +209,6 @@ function install_cortex() {
     -e CORTEX_IMAGE_ISTIO_SIDECAR=$CORTEX_IMAGE_ISTIO_SIDECAR \
     -e CORTEX_IMAGE_ISTIO_PILOT=$CORTEX_IMAGE_ISTIO_PILOT \
     -e CORTEX_IMAGE_ISTIO_PROXY=$CORTEX_IMAGE_ISTIO_PROXY \
-    -e CORTEX_IMAGE_ISTIO_PROXY_INIT=$CORTEX_IMAGE_ISTIO_PROXY_INIT \
     -e CORTEX_IMAGE_ISTIO_MIXER=$CORTEX_IMAGE_ISTIO_MIXER \
     -e CORTEX_ENABLE_TELEMETRY=$CORTEX_ENABLE_TELEMETRY \
     $CORTEX_IMAGE_MANAGER
@@ -387,6 +395,21 @@ function prompt_for_telemetry() {
   fi
 }
 
+function confirm_for_uninstall() {
+  while true
+  do
+    echo
+    read -p "Are you sure you want to uninstall Cortex? Your cluster will be spun down and all resources will be deleted. [Y/n] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      break
+    elif [[ $REPLY =~ ^[Nn]$ ]]; then
+      exit 0
+    fi
+    echo "Unexpected value: $REPLY. Please enter \"Y\" or \"n\""
+  done
+}
+
 ############
 ### HELP ###
 ############
@@ -450,7 +473,7 @@ elif [ "$arg1" = "uninstall" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    uninstall_eks
+    confirm_for_uninstall && uninstall_eks
   elif [ "$arg2" = "cli" ]; then
     uninstall_cli
   elif [ "$arg2" = "" ]; then

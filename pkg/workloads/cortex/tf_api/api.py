@@ -68,11 +68,29 @@ DTYPE_TO_VALUE_KEY = {
 }
 
 DTYPE_TO_TF_TYPE = {
-    "DT_INT32": tf.int32,
-    "DT_INT64": tf.int64,
     "DT_FLOAT": tf.float32,
+    "DT_DOUBLE": tf.float64,
+    "DT_INT32": tf.int32,
+    "DT_UINT8": tf.uint8,
+    "DT_INT16": tf.int16,
+    "DT_INT8": tf.int8,
     "DT_STRING": tf.string,
+    "DT_COMPLEX64": tf.complex64,
+    "DT_INT64": tf.int64,
     "DT_BOOL": tf.bool,
+    "DT_QINT8": tf.qint8,
+    "DT_QUINT8": tf.quint8,
+    "DT_QINT32": tf.qint32,
+    "DT_BFLOAT16": tf.bfloat16,
+    "DT_QINT16": tf.qint16,
+    "DT_QUINT16": tf.quint16,
+    "DT_UINT16": tf.uint16,
+    "DT_COMPLEX128": tf.complex128,
+    "DT_HALF": tf.float16,
+    "DT_RESOURCE": tf.resource,
+    "DT_VARIANT": tf.variant,
+    "DT_UINT32": tf.uint32,
+    "DT_UINT64": tf.uint64,
 }
 
 
@@ -131,10 +149,12 @@ def create_prediction_request(transformed_sample):
     for column_name, value in transformed_sample.items():
         column_type = ctx.get_inferred_column_type(column_name)
         data_type = tf_lib.CORTEX_TYPE_TO_TF_TYPE[column_type]
-        shape = [1]
-        if util.is_list(value):
-            shape = [len(value)]
-        tensor_proto = tf.make_tensor_proto([value], dtype=data_type, shape=shape)
+        shape = []
+        for dim in signature_def[signature_key]["tensorShape"]["dim"]:
+            shape.append(int(dim["size"]))
+        tensor_proto = tf.make_tensor_proto(
+            np.array(value).reshape(shape), dtype=data_type, shape=shape
+        )
         prediction_request.inputs[column_name].CopyFrom(tensor_proto)
 
     return prediction_request
@@ -148,11 +168,18 @@ def create_raw_prediction_request(sample):
     prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in sample.items():
-        shape = [1]
+
         if util.is_list(value):
             shape = [len(value)]
+            for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"][
+                1:
+            ]:
+                shape.append(int(dim["size"]))
+        else:
+            shape = [1]
+            value = [value]
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
-        tensor_proto = tf.make_tensor_proto([value], dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape)
+        tensor_proto = tf.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape)
         prediction_request.inputs[column_name].CopyFrom(tensor_proto)
 
     return prediction_request
@@ -273,7 +300,7 @@ def run_predict(sample):
         )
         logger.info("pre_inference: " + util.pp_str_flat(prepared_sample))
 
-    validate_sample(sample)
+    validate_sample(prepared_sample)
 
     if util.is_resource_ref(local_cache["api"]["model"]):
         for column in local_cache["required_inputs"]:
@@ -472,10 +499,19 @@ def start(args):
         if not util.is_resource_ref(api["model"]):
             if not os.path.isdir(args.model_dir):
                 ctx.storage.download_and_unzip_external(api["model"], args.model_dir)
+
+            if args.only_download:
+                return
         else:
             model_name = util.get_resource_ref(api["model"])
             model = ctx.models[model_name]
             estimator = ctx.estimators[model["estimator"]]
+
+            if not os.path.isdir(args.model_dir):
+                ctx.storage.download_and_unzip(model["key"], args.model_dir)
+
+            if args.only_download:
+                return
 
             local_cache["model"] = model
             local_cache["estimator"] = estimator
@@ -488,9 +524,6 @@ def start(args):
             if ctx.environment is not None and ctx.environment.get("log_level") is not None:
                 log_level = ctx.environment["log_level"].get("tensorflow", "DEBUG")
             tf_lib.set_logging_verbosity(log_level)
-
-            if not os.path.isdir(args.model_dir):
-                ctx.storage.download_and_unzip(model["key"], args.model_dir)
 
             for column_name in ctx.extract_column_names([model["input"], model["target_column"]]):
                 if ctx.is_transformed_column(column_name):
@@ -567,6 +600,12 @@ def main():
     na.add_argument("--api", required=True, help="Resource id of api to serve")
     na.add_argument("--model-dir", required=True, help="Directory to download the model to")
     na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
+    na.add_argument(
+        "--only-download",
+        required=False,
+        help="Only download model (for init-containers)",
+        default=False,
+    )
     parser.set_defaults(func=start)
 
     args = parser.parse_args()

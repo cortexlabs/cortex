@@ -1,0 +1,7 @@
+- kind: deployment
+  name: sentiment
+
+- kind: api
+  name: classifier
+  model: s3://cortex-examples/sentiment/bert.zip
+  request_handler: sentiment.py
