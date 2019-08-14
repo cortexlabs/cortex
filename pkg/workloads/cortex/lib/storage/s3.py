@@ -249,3 +249,19 @@ class S3(object):
         if obj is None:
             return None
         return json.loads(obj.decode("utf-8"))
+
+    def download_dir_external(self, s3_path, local_path):
+        util.mkdir_p(local_path)
+        bucket_name, key = self.deconstruct_s3_path(s3_path)
+        objects = self.s3.list_objects(
+            Bucket=bucket_name,
+            Prefix=key,
+        )["Contents"]
+        for obj in objects:
+            if not os.path.exists(os.path.dirname(obj["Key"])):
+                util.mkdir_p(os.path.join(local_path, os.path.dirname(obj["Key"])))
+
+            if obj["Key"][-1] == "/":
+                continue
+
+            self.s3.download_file(bucket_name, obj["Key"], os.path.join(local_path, obj["Key"]))

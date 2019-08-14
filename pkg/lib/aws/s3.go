@@ -360,3 +360,24 @@ func IsS3PathFileExternal(s3Path string) (bool, error) {
 
 	return IsS3FileExternal(bucket, key)
 }
+
+func ListObjectsExternal(s3Path string) (*s3.ListObjectsV2Output, error) {
+	bucket, key, err := SplitS3Path(s3Path)
+	if err != nil {
+		return nil, err
+	}
+
+	region, err := GetBucketRegion(bucket)
+	if err != nil {
+		return nil, err
+	}
+
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(region),
+	}))
+
+	return s3.New(sess).ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket: aws.String(bucket),
+		Prefix: aws.String(key),
+	})
+}

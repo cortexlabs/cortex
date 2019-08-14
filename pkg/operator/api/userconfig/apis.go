@@ -119,24 +119,27 @@ func (apis APIs) Validate() error {
 func (api *API) Validate() error {
 	if yaml.StartsWithEscapedAtSymbol(api.Model) {
 		api.ModelFormat = TensorFlowModelFormat
-	} else {
-		if !aws.IsValidS3Path(api.Model) {
-			return errors.Wrap(ErrorInvalidS3PathOrResourceReference(api.Model), Identify(api), ModelKey)
+		if err := api.Compute.Validate(); err != nil {
+			return errors.Wrap(err, Identify(api), ComputeKey)
 		}
 
-		if api.ModelFormat == UnknownModelFormat {
-			if strings.HasSuffix(api.Model, ".onnx") {
-				api.ModelFormat = ONNXModelFormat
-			} else if models.IsValidS3Directory(api.Model) {
-				api.ModelFormat = TensorFlowModelFormat
-			} else {
-				return errors.Wrap(ErrorUnableToInferModelFormat(), Identify(api))
-			}
-		}
+		return nil
+	}
 
+	if !aws.IsValidS3Path(api.Model) {
+		return errors.Wrap(ErrorInvalidS3PathOrResourceReference(api.Model), Identify(api), ModelKey)
+	}
+
+	switch {
+	case strings.HasSuffix(api.Model, ".onnx"):
+		api.ModelFormat = ONNXModelFormat
 		if ok, err := aws.IsS3PathFileExternal(api.Model); err != nil || !ok {
 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
 		}
+	case models.IsValidS3Directory(api.Model):
+		api.ModelFormat = TensorFlowModelFormat
+	default:
+		return errors.Wrap(ErrorUnableToInferModelFormat(), Identify(api))
 	}
 
 	if err := api.Compute.Validate(); err != nil {

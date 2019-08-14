@@ -480,13 +480,11 @@ def start(args):
         if api.get("request_handler") is not None:
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
 
-        if not util.is_resource_ref(api["model"]):
-            if not os.path.isdir(args.model_dir):
-                ctx.storage.download_and_unzip_external(api["model"], args.model_dir)
+        if args.only_download:
+            ctx.storage.download_dir_external(api["model"], args.model_dir)
+            return
 
-            if args.only_download:
-                return
-        else:
+        if util.is_resource_ref(api["model"]):
             model_name = util.get_resource_ref(api["model"])
             model = ctx.models[model_name]
             estimator = ctx.estimators[model["estimator"]]
