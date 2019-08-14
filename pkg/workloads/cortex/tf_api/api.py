@@ -127,7 +127,7 @@ def create_prediction_request(transformed_sample):
     signature_def = local_cache["metadata"]["signatureDef"]
     signature_key = list(signature_def.keys())[0]
     prediction_request = predict_pb2.PredictRequest()
-    prediction_request.model_spec.name = "default"
+    prediction_request.model_spec.name = "model"
     prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in transformed_sample.items():
@@ -150,7 +150,7 @@ def create_raw_prediction_request(sample):
     signature_def = local_cache["metadata"]["signatureDef"]
     signature_key = list(signature_def.keys())[0]
     prediction_request = predict_pb2.PredictRequest()
-    prediction_request.model_spec.name = "default"
+    prediction_request.model_spec.name = "model"
     prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in sample.items():
@@ -252,7 +252,7 @@ def parse_response_proto(response_proto):
 
 def create_get_model_metadata_request():
     get_model_metadata_request = get_model_metadata_pb2.GetModelMetadataRequest()
-    get_model_metadata_request.model_spec.name = "default"
+    get_model_metadata_request.model_spec.name = "model"
     get_model_metadata_request.metadata_field.append("signature_def")
     return get_model_metadata_request
 
