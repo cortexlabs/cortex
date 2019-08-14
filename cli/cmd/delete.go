@@ -66,6 +66,6 @@ var deleteCmd = &cobra.Command{
 		if err != nil {
 			errors.Exit(err, "/delete", "response", string(httpResponse))
 		}
-		fmt.Println(console.Bold(deleteResponse.Message))
+		fmt.Println("\n" + console.Bold(deleteResponse.Message))
 	},
 }

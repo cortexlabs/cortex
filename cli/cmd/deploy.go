@@ -78,5 +78,5 @@ func deploy(force bool, ignoreCache bool) {
 		errors.Exit(err, "/deploy", "response", string(response))
 	}
 
-	fmt.Println(console.Bold(deployResponse.Message))
+	fmt.Println("\n" + console.Bold(deployResponse.Message))
 }

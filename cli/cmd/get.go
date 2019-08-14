@@ -31,7 +31,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	// "github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
@@ -262,7 +261,7 @@ func pythonPackagesStr(dataStatuses map[string]*resource.DataStatus, ctx *contex
 		resources = append(resources, pythonPackage)
 	}
 
-	return "\n" + dataResourceTable(resources, dataStatuses, "python package") + "\n"
+	return "\n" + dataResourceTable(resources, dataStatuses, "python packages") + "\n"
 }
 
 func rawColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
@@ -483,8 +482,10 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
 
-	out := "\n" + console.Bold("URL: ") + apiEndpoint + "\n"
-	out += fmt.Sprintf("%s curl -k -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n", console.Bold("cURL:"), apiEndpoint)
+	out := "\n" + console.Bold("url:  ") + apiEndpoint + "\n"
+	out += fmt.Sprintf("%s curl -k -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n\n", console.Bold("curl:"), apiEndpoint)
+	out += fmt.Sprintf(console.Bold("updated at:") + " %s\n", libtime.LocalTimestamp(updatedAt))
+
 	out += "\n"
 	t := table.Table{
 		Headers: headers,
@@ -493,20 +494,12 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		},
 	}
 	out += table.MustFormat(t)
-	out += "\n\n"
-	out += fmt.Sprintf("updated at:  %s", libtime.LocalTimestamp(updatedAt))
 
 	if !flagVerbose {
 		return out, nil
 	}
 
-	out += "\n"
-
-	if api != nil {
-		out += titleStr("configuration") + api.UserConfigStr() + "\n"
-	}
-
-	out += describeModelInput(groupStatus, apiEndpoint)
+	out += "\n\n" + describeModelInput(groupStatus, apiEndpoint)
 
 	if modelName, ok := yaml.ExtractAtSymbolText(api.Model); ok {
 		model := ctx.Models[modelName]
@@ -526,6 +519,11 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		sort.Strings(samplePlaceholderFields)
 		samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"
 		out += "\n\n" + console.Bold("payload:  ") + samplesPlaceholderStr
+	}
+
+
+	if api != nil {
+		out += "\n" + titleStr("configuration") + api.UserConfigStr()
 	}
 
 	return out, nil
@@ -593,11 +591,22 @@ func getModelInput(infoAPIPath string) (*schema.ModelInput, error) {
 }
 
 func dataStatusSummary(dataStatus *resource.DataStatus) string {
-	out := titleStr("summary")
-	out += "status:               " + dataStatus.Message() + "\n"
-	out += "workload started at:  " + libtime.LocalTimestamp(dataStatus.Start) + "\n"
-	out += "workload ended at:    " + libtime.LocalTimestamp(dataStatus.End) + "\n"
-	return out
+	headers := []table.Header{
+		{Title: "status"},
+		{Title: "start"},
+		{Title: "end"},
+	}
+	row := []interface{}{
+		dataStatus.Message(),
+		libtime.LocalTimestamp(dataStatus.Start),
+		libtime.LocalTimestamp(dataStatus.End),
+	}
+
+	t := table.Table{
+		Headers: headers,
+		Rows: [][]interface{}{row},
+	}
+	return "\n" + table.MustFormat(t)
 }
 
 func valueStr(value interface{}) string {
