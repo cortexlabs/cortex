@@ -2,20 +2,20 @@
 
 * [README](../README.md)
 * [Install](cluster/install.md)
-* [Tutorial](apis/tutorial.md)
+* [Tutorial](deployments/tutorial.md)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
 
 ## Model Deployments
 
-* [Deployments](apis/deployments.md)
-* [APIs](apis/apis.md)
-* [Packaging Models](apis/packaging-models.md)
-* [Request Handlers](apis/request-handlers.md)
-* [Compute](apis/compute.md)
-* [Python Packages](apis/python-packages.md)
-* [System Packages](apis/system-packages.md)
+* [Deployments](deployments/deployments.md)
+* [APIs](deployments/apis.md)
+* [Packaging Models](deployments/packaging-models.md)
+* [Request Handlers](deployments/request-handlers.md)
+* [Compute](deployments/compute.md)
+* [Python Packages](deployments/python-packages.md)
+* [System Packages](deployments/system-packages.md)
 * [CLI Commands](cluster/cli.md)
-* [Resource Statuses](apis/statuses.md)
+* [Resource Statuses](deployments/statuses.md)
 
 ## Cluster
 
