@@ -398,6 +398,21 @@ def predict(deployment_name, api_name):
     return jsonify(response)
 
 
+@app.after_request
+def after_request(response):
+    if request.full_path.startswith("/healthz"):
+        return response
+
+    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
+    return response
+
+
+@app.errorhandler(Exception)
+def exceptions(e):
+    logger.exception(e)
+    return jsonify(error=str(e)), 500
+
+
 def extract_signature():
     signature_def = local_cache["metadata"]["signatureDef"]
     if signature_def.get("predict") is None or signature_def["predict"].get("inputs") is None:
