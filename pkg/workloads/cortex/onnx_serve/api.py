@@ -201,7 +201,7 @@ def predict(app_name, api_name):
 
             logger.info("inference: " + util.pp_str_flat(result))
             if request_handler is not None and util.has_function(request_handler, "post_inference"):
-                result = request_handler.post_inference(result, api)
+                result = request_handler.post_inference(result, output_metadata)
                 logger.info("post_inference: " + util.pp_str_flat(result))
 
             prediction = {"prediction": result}
