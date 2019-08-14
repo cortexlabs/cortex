@@ -254,10 +254,9 @@ class S3(object):
         util.mkdir_p(local_path)
         bucket_name, prefix = self.deconstruct_s3_path(s3_path)
         objects = self.s3.list_objects(Bucket=bucket_name, Prefix=prefix)["Contents"]
-
         timestamp = prefix.split("/")[-1]
         for obj in objects:
-            local_key = obj["Key"].lstrip(prefix[: len(timestamp)])
+            local_key = obj["Key"].lstrip(prefix[: -len(timestamp)])
             if not os.path.exists(os.path.dirname(local_key)):
                 util.mkdir_p(os.path.join(local_path, os.path.dirname(local_key)))
 
