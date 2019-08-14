@@ -252,16 +252,19 @@ class S3(object):
 
     def download_dir_external(self, s3_path, local_path):
         util.mkdir_p(local_path)
-        bucket_name, key = self.deconstruct_s3_path(s3_path)
+        bucket_name, prefix = self.deconstruct_s3_path(s3_path)
         objects = self.s3.list_objects(
             Bucket=bucket_name,
-            Prefix=key,
+            Prefix=prefix,
         )["Contents"]
+
+        timestampDir = prefix.split("/")[-1]
         for obj in objects:
-            if not os.path.exists(os.path.dirname(obj["Key"])):
-                util.mkdir_p(os.path.join(local_path, os.path.dirname(obj["Key"])))
+            local_key = obj["Key"].lstrip(prefix[:len(timestampDir)])
+            if not os.path.exists(os.path.dirname(local_key)):
+                util.mkdir_p(os.path.join(local_path, os.path.dirname(local_key)))
 
             if obj["Key"][-1] == "/":
                 continue
 
-            self.s3.download_file(bucket_name, obj["Key"], os.path.join(local_path, obj["Key"]))
+            self.s3.download_file(bucket_name, obj["Key"], os.path.join(local_path, local_key))

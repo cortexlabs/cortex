@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 
@@ -15,7 +16,7 @@ import (
 // 		- saved_model.pb
 //		- variables/
 //			- variables.index
-//			- variables.data-00000-of-00001
+//			- variables.data-00000-of-00001 (there are a variable number of these files)
 func IsValidS3Directory(path string) bool {
 	listOut, err := aws.ListObjectsExternal(path)
 	if err != nil {
@@ -27,18 +28,23 @@ func IsValidS3Directory(path string) bool {
 	}
 
 	prefix := *listOut.Prefix
-	if _, err := strconv.ParseInt(prefix, 10, 64); err != nil {
+	prefixParts := strings.Split(prefix, "/")
+	timestamp := prefixParts[len(prefixParts)-1]
+	if _, err := strconv.ParseInt(timestamp, 10, 64); err != nil {
 		return false
 	}
 
+	var containsVariableDataFile bool
 	objects := strset.New()
 	for _, o := range listOut.Contents {
+		if strings.Contains(*o.Key, "variables/variables.data-00000-of") {
+			containsVariableDataFile = true
+		}
 		objects.Add(*o.Key)
 	}
 
 	return objects.Has(
 		fmt.Sprintf("%s/saved_model.pb", prefix),
 		fmt.Sprintf("%s/variables/variables.index", prefix),
-		fmt.Sprintf("%s/variables/variables.data-00000-of-00001", prefix),
-	)
+	) && containsVariableDataFile
 }
