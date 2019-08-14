@@ -634,7 +634,7 @@ class Context:
             MetricData=metrics, Namespace=self.cortex_config["namespace"]
         )
 
-        if int(response['ResponseMetadata']['HTTPStatusCode'] / 100) != 2:
+        if int(response["ResponseMetadata"]["HTTPStatusCode"] / 100) != 2:
             logger.warn(response)
             raise Exception("failed to publish metrics, not successful status code encountered")
 

@@ -647,7 +647,7 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 
 	classList := []string{}
 
-	for inputName, _ := range apiMetrics.ClassDistribution {
+	for inputName := range apiMetrics.ClassDistribution {
 		classList = append(classList, inputName)
 	}
 	sort.Strings(classList)
