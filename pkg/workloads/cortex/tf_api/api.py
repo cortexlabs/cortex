@@ -297,14 +297,14 @@ def run_predict(sample):
         logger.info("transformed_sample: " + util.pp_str_flat(transformed_sample))
 
         prediction_request = create_prediction_request(transformed_sample)
-        response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
+        response_proto = local_cache["stub"].Predict(prediction_request, timeout=300.0)
         result = parse_response_proto(response_proto)
 
         result["transformed_sample"] = transformed_sample
         logger.info("inference: " + util.pp_str_flat(result))
     else:
         prediction_request = create_raw_prediction_request(prepared_sample)
-        response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
+        response_proto = local_cache["stub"].Predict(prediction_request, timeout=300.0)
         result = parse_response_proto_raw(response_proto)
 
         logger.info("inference: " + util.pp_str_flat(result))
