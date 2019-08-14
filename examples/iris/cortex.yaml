@@ -4,7 +4,6 @@
 - kind: api
   name: tensorflow
   model: s3://cortex-examples/iris/tensorflow.zip
-  request_handler: handlers/tensorflow.py
 
 - kind: api
   name: pytorch
