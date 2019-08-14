@@ -113,7 +113,7 @@ def convert_to_onnx_input(sample, input_metadata_list):
             try:
                 input_dict[input_metadata.name] = transform_to_numpy(sample, input_metadata)
             except CortexException as e:
-                e.wrap("key {}".format(input_metadata.name))
+                e.wrap('key "{}"'.format(input_metadata.name))
                 raise
     else:
         for input_metadata in input_metadata_list:
@@ -130,7 +130,7 @@ def convert_to_onnx_input(sample, input_metadata_list):
             try:
                 input_dict[input_metadata.name] = transform_to_numpy(sample, input_metadata)
             except CortexException as e:
-                e.wrap("key {}".format(input_metadata.name))
+                e.wrap('key "{}"'.format(input_metadata.name))
                 raise
     return input_dict
 
