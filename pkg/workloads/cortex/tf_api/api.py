@@ -442,6 +442,24 @@ def get_signature(app_name, api_name):
     return jsonify(response)
 
 
+def download_dir_external(ctx, s3_path, local_path):
+    util.mkdir_p(local_path)
+    bucket_name, prefix = ctx.storage.deconstruct_s3_path(s3_path)
+    objects = ctx.storage.list_objects(s3_path)["Contents"]
+    version = prefix.split("/")[-1]
+    for obj in objects:
+        local_key = obj["Key"].lstrip(prefix[: -len(version)])
+        if not os.path.exists(os.path.dirname(local_key)):
+            util.mkdir_p(os.path.join(local_path, os.path.dirname(local_key)))
+
+        if obj["Key"][-1] == "/":
+            continue
+
+        ctx.storage.download_file_external(
+            bucket_name + "/" + obj["Key"], os.path.join(local_path, local_key)
+        )
+
+
 def validate_model_dir(model_dir):
     """
     validates that model_dir has the expected directory tree.
@@ -481,7 +499,7 @@ def start(args):
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
 
         if args.only_download:
-            ctx.storage.download_dir_external(api["model"], args.model_dir)
+            download_dir_external(ctx, api["model"], args.model_dir)
             return
 
         if util.is_resource_ref(api["model"]):

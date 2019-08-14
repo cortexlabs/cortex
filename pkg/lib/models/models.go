@@ -12,7 +12,7 @@ import (
 
 // IsValidS3Directory checks that the path contains a valid S3 directory for Tensorflow models
 // Must contain the following structure:
-// - 1523423423/ (timestamped prefix)
+// - 1523423423/ (version prefix, usually a timestamp)
 // 		- saved_model.pb
 //		- variables/
 //			- variables.index
@@ -29,8 +29,8 @@ func IsValidS3Directory(path string) bool {
 
 	prefix := *listOut.Prefix
 	prefixParts := strings.Split(prefix, "/")
-	timestamp := prefixParts[len(prefixParts)-1]
-	if _, err := strconv.ParseInt(timestamp, 10, 64); err != nil {
+	version := prefixParts[len(prefixParts)-1]
+	if _, err := strconv.ParseInt(version, 10, 64); err != nil {
 		return false
 	}
 

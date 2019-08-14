@@ -22,7 +22,7 @@ eval_spec = tf.estimator.EvalSpec(eval_input_fn, exporters=[exporter], name="est
 tf.estimator.train_and_evaluate(classifier, train_spec, eval_spec)
 ```
 
-Upload the exported timestamp directory to Amazon S3 using the AWS web console or CLI:
+Upload the exported version directory to Amazon S3 using the AWS web console or CLI:
 
 ```text
 $ aws s3 sync ./iris/export/estimator/156293432 s3://my-bucket/156293432
