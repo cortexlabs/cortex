@@ -5,7 +5,7 @@
 1. [AWS credentials](aws.md)
 2. [Docker](https://docs.docker.com/install)
 
-## Spin up Cortex in your AWS account
+## Installing Cortex in your AWS account
 
 <!-- CORTEX_VERSION_MINOR -->
 
@@ -26,7 +26,7 @@ export AWS_SECRET_ACCESS_KEY=***
 
 See [cluster configuration](config.md) options to customize your installation.
 
-## Install and configure the CLI
+## Installing and configuring the CLI
 
 ```bash
 # Install the Cortex CLI on your machine
@@ -39,7 +39,7 @@ See [cluster configuration](config.md) options to customize your installation.
 cortex configure
 ```
 
-## Create a deployment
+## Creating a deployment
 
 <!-- CORTEX_VERSION_MINOR -->
 
