@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -119,21 +120,22 @@ func Format(t Table) (string, error) {
 		headerStr += header.Title
 		if colNum != lastColIndex {
 			headerStr += strings.Repeat(" ", maxColWidths[colNum]+t.Spacing-len(header.Title))
+	}	
 		}
-	}
+	}	
 
-	elipses := "..."
+	ellipses := "..."
 	rowStrs := make([]string, len(rows))
 	for rowNum, row := range rows {
 		var rowStr string
 		for colNum, val := range row {
 			if len(val) > maxColWidths[colNum] {
 				val = val[0:maxColWidths[colNum]]
-				// Ensure at least one space after elipses
-				for len(val)+len(elipses) > maxColWidths[colNum]+t.Spacing-1 {
+				// Ensure at least one space after ellipses
+				for len(val)+len(ellipses) > maxColWidths[colNum]+t.Spacing-1 {
 					val = val[0 : len(val)-1]
 				}
-				val += elipses
+				val += ellipses
 			}
 			rowStr += val
 			if colNum != lastColIndex {
