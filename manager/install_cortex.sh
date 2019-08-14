@@ -53,7 +53,6 @@ function setup_cloudwatch_logs() {
   fi
 }
 
-
 function setup_configmap() {
   kubectl -n=$CORTEX_NAMESPACE create configmap 'cortex-config' \
     --from-literal='LOG_GROUP'=$CORTEX_LOG_GROUP \

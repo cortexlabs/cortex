@@ -35,7 +35,6 @@ from cortex.lib import util, package, Context
 from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 
-
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
 
