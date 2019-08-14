@@ -14,9 +14,6 @@ export AWS_SECRET_ACCESS_KEY="***"
 # The name of the CloudWatch log group Cortex will use
 export CORTEX_LOG_GROUP="cortex"
 
-# The namespace in CloudWatch that Cortex will publish metrics to
-export CORTEX_METRICS_NAMESPACE="cortex"
-
 # The name of the S3 bucket Cortex will use
 export CORTEX_BUCKET="cortex-[RANDOM_ID]"
 

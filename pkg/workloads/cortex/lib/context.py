@@ -95,7 +95,7 @@ class Context:
                 region=self.cortex_config["region"],
                 client_config={},
             )
-            self.monitoring = boto3.client("cloudwatch",  region_name=self.cortex_config["region"])
+            self.monitoring = boto3.client("cloudwatch", region_name=self.cortex_config["region"])
 
         if self.api_version != consts.CORTEX_VERSION:
             raise ValueError(
@@ -628,11 +628,10 @@ class Context:
 
     def publish_metrics(self, metrics):
         if self.monitoring is None:
-            raise CortexException("monitoring client not initialized") # unexpected
-        
+            raise CortexException("monitoring client not initialized")  # unexpected
+
         response = self.monitoring.put_metric_data(
-            MetricData=metrics,
-            Namespace=self.cortex_config["log_group"],
+            MetricData=metrics, Namespace=self.cortex_config["namespace"]
         )
         logger.info(response)
 

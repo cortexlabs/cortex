@@ -133,8 +133,8 @@ elif [ "$cmd" = "update" ]; then
     build_base $ROOT/images/tf-base tf-base
     build_base $ROOT/images/tf-base-gpu tf-base-gpu
 
-    # cache_builder $ROOT/images/operator operator
-    # build_and_push $ROOT/images/operator operator latest
+    cache_builder $ROOT/images/operator operator
+    build_and_push $ROOT/images/operator operator latest
 
     cache_builder $ROOT/images/spark-operator spark-operator
     build_and_push $ROOT/images/spark-operator spark-operator latest
@@ -154,7 +154,6 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/istio-galley istio-galley latest
     build_and_push $ROOT/images/istio-sidecar istio-sidecar latest
     build_and_push $ROOT/images/istio-proxy istio-proxy latest
-    build_and_push $ROOT/images/istio-proxy-init istio-proxy-init latest
     build_and_push $ROOT/images/istio-mixer istio-mixer latest
   fi
 

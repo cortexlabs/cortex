@@ -74,14 +74,14 @@ type RegressionStats struct {
 }
 
 type NetworkStats struct {
-	Latency     *float64     `json"latency"`
-	Code2XX int `json:"code_2xx"`
-	Code4XX int `json:"code_4xx"`
-	Code5XX int `json:"code_5xx"`
+	Latency *float64 `json:"latency"`
+	Code2XX int      `json:"code_2xx"`
+	Code4XX int      `json:"code_4xx"`
+	Code5XX int      `json:"code_5xx"`
 }
 
 type APIMetrics struct {
-	NetworkStats      *NetworkStats    `json:"network_stats`
+	NetworkStats      *NetworkStats    `json:"network_stats"`
 	ClassDistribution map[string]int   `json:"class_distribution"`
 	RegressionStats   *RegressionStats `json:"regression_stats"`
 }

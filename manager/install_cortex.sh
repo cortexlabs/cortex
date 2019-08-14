@@ -53,19 +53,10 @@ function setup_cloudwatch_logs() {
   fi
 }
 
-function setup_cloudwatch_metrics() {
-  if aws cloudwatch list-metrics --namespace "$CORTEX_METRICS_NAMESPACE" --region $CORTEX_REGION --output json 2>&1 | grep -q "\"Metrics\": []"; then
-    echo "✓ Creating a CloudWatch metrics namespace: $CORTEX_METRICS_NAMESPACE"
-    aws cloudwatch create-log-group --log-group-name $CORTEX_METRICS_NAMESPACE --region $CORTEX_REGION
-  else
-    echo "✓ Using an existing CloudWatch metrics namespace: $CORTEX_METRICS_NAMESPACE"
-  fi
-}
 
 function setup_configmap() {
   kubectl -n=$CORTEX_NAMESPACE create configmap 'cortex-config' \
     --from-literal='LOG_GROUP'=$CORTEX_LOG_GROUP \
-    --from-literal='METRICS_NAMESPACE'=$CORTEX_METRICS_NAMESPACE \
     --from-literal='BUCKET'=$CORTEX_BUCKET \
     --from-literal='REGION'=$CORTEX_REGION \
     --from-literal='NAMESPACE'=$CORTEX_NAMESPACE \

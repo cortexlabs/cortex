@@ -62,7 +62,7 @@ def prediction_metrics(dimensions, api, predictions):
             dimensions_with_class.append({"Name": "Class", "Value": str(predicted_value)})
             metric = {
                 "MetricName": "Prediction",
-                "Dimensions": dimensions,
+                "Dimensions": dimensions_with_class,
                 "Unit": "Count",
                 "Value": 1,
             }

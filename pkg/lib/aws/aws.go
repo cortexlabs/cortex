@@ -19,10 +19,10 @@ package aws
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -50,7 +50,7 @@ func New(region, bucket string) *Client {
 		Region:               region,
 		s3Client:             s3.New(sess),
 		stsClient:            sts.New(sess),
-		CloudWatchMetrics: 	  cloudwatch.New(sess),
+		CloudWatchMetrics:    cloudwatch.New(sess),
 		cloudWatchLogsClient: cloudwatchlogs.New(sess),
 	}
 	response, err := awsClient.stsClient.GetCallerIdentity(nil)

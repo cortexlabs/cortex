@@ -501,7 +501,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	out += "\n"
 	out += fmt.Sprintf("Updated at:  %s", libtime.LocalTimestamp(updatedAt))
 	out += "\n"
-	out += getPredictionMetrics(ctx.App.Name, api)
+	out += apiMetricsTable(ctx.App.Name, api)
 
 	if !flagVerbose {
 		return out, nil
@@ -540,7 +540,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	return out, nil
 }
 
-func getPredictionMetrics(appName string, api *context.API) string {
+func apiMetricsTable(appName string, api *context.API) string {
 	out := titleStr("Metrics")
 
 	params := map[string]string{"appName": appName, "apiName": api.Name}
@@ -549,31 +549,48 @@ func getPredictionMetrics(appName string, api *context.API) string {
 		errors.Exit(err)
 	}
 
-	var metrics schema.APIMetrics
-	err = json.Unmarshal(httpResponse, &metrics)
+	var apiMetrics schema.APIMetrics
+	err = json.Unmarshal(httpResponse, &apiMetrics)
 	if err != nil {
 		errors.Exit(err)
 	}
 
+	out += networkMetricsTable(&apiMetrics)
+	out += "\n\n"
+	if api.Tracker == nil {
+		out += "tracker not configured to record predictions"
+		return out
+	}
+	if api.Tracker.ModelType == userconfig.ClassificationModelType {
+		out += classificationMetricsTable(&apiMetrics)
+	} else {
+		out += regressionMetricsTable(&apiMetrics)
+	}
+	return out
+}
+
+func networkMetricsTable(apiMetrics *schema.APIMetrics) string {
 	total := 0
-	total += metrics.NetworkStats.Code2XX
-	total += metrics.NetworkStats.Code4XX
-	total += metrics.NetworkStats.Code5XX
+	total += apiMetrics.NetworkStats.Code2XX
+	total += apiMetrics.NetworkStats.Code4XX
+	total += apiMetrics.NetworkStats.Code5XX
 
 	var latency string
-	if metrics.NetworkStats.Latency != nil {
-		latency = fmt.Sprintf("%.9g", *(metrics.NetworkStats.Latency))
+	if apiMetrics.NetworkStats.Latency != nil {
+		latency = fmt.Sprintf("%.9g", *(apiMetrics.NetworkStats.Latency))
 	} else {
 		latency = "-"
 	}
 
-	rows := [][]interface{}{[]interface{}{
-		metrics.NetworkStats.Code2XX,
-		metrics.NetworkStats.Code4XX,
-		metrics.NetworkStats.Code5XX,
-		total,
-		latency,
-	}}
+	rows := [][]interface{}{
+		{
+			apiMetrics.NetworkStats.Code2XX,
+			apiMetrics.NetworkStats.Code4XX,
+			apiMetrics.NetworkStats.Code5XX,
+			total,
+			latency,
+		},
+	}
 
 	t := table.Table{
 		Headers: []table.Header{
@@ -586,26 +603,73 @@ func getPredictionMetrics(appName string, api *context.API) string {
 		Rows: rows,
 	}
 
-	out += "Network Metrics\n"
+	out := "Network Metrics\n"
 	out += table.MustFormat(t)
-	out += "\n\n"
+	return out
+}
 
-	if api.Tracker == nil {
-		return out + "Tracker not configured for predictions"
+func regressionMetricsTable(apiMetrics *schema.APIMetrics) string {
+	out := "Regression Metrics\n"
+	rows := [][]interface{}{}
+	if apiMetrics.RegressionStats != nil {
+		rows = append(rows, []interface{}{
+			fmt.Sprintf("%.9g", apiMetrics.RegressionStats.Min),
+			fmt.Sprintf("%.9g", apiMetrics.RegressionStats.Max),
+			fmt.Sprintf("%.9g", apiMetrics.RegressionStats.Avg),
+		})
+	} else {
+		rows = append(rows, []interface{}{
+			"-",
+			"-",
+			"-",
+		})
 	}
 
-	if api.Tracker.ModelType == userconfig.RegressionModelType {
-		out += "Regression Metrics\n"
-		rows := [][]interface{}{}
-		if metrics.RegressionStats != nil {
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "MIN", MaxWidth: 10},
+			{Title: "MAX", MaxWidth: 10},
+			{Title: "AVG", MaxWidth: 10},
+		},
+		Rows: rows,
+	}
+
+	out += table.MustFormat(t)
+	return out
+}
+
+func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
+	var out string
+
+	if len(apiMetrics.ClassDistribution) > 0 && len(apiMetrics.ClassDistribution) < 4 {
+		out += "Classification Metrics\n"
+		row := []interface{}{}
+		headers := []table.Header{}
+
+		for inputName, count := range apiMetrics.ClassDistribution {
+			headers = append(headers, table.Header{Title: s.TruncateElipses(inputName, 17), MaxWidth: 20})
+			row = append(row, int(count))
+		}
+
+		t := table.Table{
+			Headers: headers,
+			Rows:    [][]interface{}{row},
+		}
+
+		out += table.MustFormat(t)
+	} else {
+		rows := make([][]interface{}, len(apiMetrics.ClassDistribution))
+		rowNum := 0
+		for inputName, count := range apiMetrics.ClassDistribution {
+			rows[rowNum] = []interface{}{
+				inputName,
+				int(count),
+			}
+			rowNum++
+		}
+
+		if len(apiMetrics.ClassDistribution) == 0 {
 			rows = append(rows, []interface{}{
-				fmt.Sprintf("%.9g", metrics.RegressionStats.Min),
-				fmt.Sprintf("%.9g", metrics.RegressionStats.Max),
-				fmt.Sprintf("%.9g", metrics.RegressionStats.Avg),
-			})
-		} else {
-			rows = append(rows, []interface{}{
-				"-",
 				"-",
 				"-",
 			})
@@ -613,61 +677,18 @@ func getPredictionMetrics(appName string, api *context.API) string {
 
 		t := table.Table{
 			Headers: []table.Header{
-				{Title: "MIN", MaxWidth: 10},
-				{Title: "MAX", MaxWidth: 10},
-				{Title: "AVG", MaxWidth: 10},
+				{Title: "Classification Metrics", MaxWidth: 40},
+				{Title: "", MaxWidth: 20},
 			},
 			Rows: rows,
 		}
 
 		out += table.MustFormat(t)
-	} else {
-		if len(metrics.ClassDistribution) > 0 && len(metrics.ClassDistribution) < 4 {
-			out += "Classification Metrics\n"
-			row := []interface{}{}
-			headers := []table.Header{}
 
-			for inputName, count := range metrics.ClassDistribution {
-				headers = append(headers, table.Header{Title: s.TruncateElipses(inputName, 17), MaxWidth: 20})
-				row = append(row, int(count))
-			}
-
-			t := table.Table{
-				Headers: headers,
-				Rows:    [][]interface{}{row},
-			}
-
-			out += table.MustFormat(t)
-		} else {
-			rows := make([][]interface{}, len(metrics.ClassDistribution))
-			rowNum := 0
-			for inputName, count := range metrics.ClassDistribution {
-				rows[rowNum] = []interface{}{
-					inputName,
-					int(count),
-				}
-				rowNum++
-			}
-
-			if len(metrics.ClassDistribution) == 0 {
-				rows = append(rows, []interface{}{
-					"-",
-					"-",
-				})
-			}
-
-			t := table.Table{
-				Headers: []table.Header{
-					{Title: "Classification Metrics", MaxWidth: 40},
-					{Title: "", MaxWidth: 20},
-				},
-				Rows: rows,
-			}
-
-			out += table.MustFormat(t)
+		if len(apiMetrics.ClassDistribution) == 20 {
+			out += "\n\nlisted at most 20 classes, go to your cloudwatch dashboard more details"
 		}
 	}
-
 	return out
 }
 
