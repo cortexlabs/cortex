@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	maxClasses        = 20
+	maxClasses        = 50
 	aggregationPeriod = int64(60 * 60) // 1 hour
 )
 
@@ -173,7 +173,6 @@ func ExtractClassificationMetrics(metricsDataResults []*cloudwatch.MetricDataRes
 
 		if strings.HasPrefix(*metricData.Label, "class_") {
 			className := (*metricData.Label)[6:]
-			fmt.Println(*metricData.Label)
 			apiMetrics.ClassDistribution[className] = *SumInt(metricData.Values...)
 		}
 	}
@@ -417,8 +416,10 @@ func GetClassesMetricDef(appName string, api *context.API, period int64) ([]*clo
 	if listMetricsOutput.Metrics == nil {
 		return classMetricQueries, nil
 	}
+
+	classCount := 0
 	for i, metric := range listMetricsOutput.Metrics {
-		if i >= maxClasses+1 {
+		if classCount >= maxClasses {
 			break
 		}
 
@@ -427,6 +428,10 @@ func GetClassesMetricDef(appName string, api *context.API, period int64) ([]*clo
 			if *dim.Name == "Class" {
 				className = *dim.Value
 			}
+		}
+
+		if len(className) == 0 {
+			continue
 		}
 
 		classMetricQueries = append(classMetricQueries, &cloudwatch.MetricDataQuery{
@@ -438,6 +443,7 @@ func GetClassesMetricDef(appName string, api *context.API, period int64) ([]*clo
 			},
 			Label: aws.String("class_" + className),
 		})
+		classCount++
 	}
 	return classMetricQueries, nil
 }

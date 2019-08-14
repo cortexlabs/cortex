@@ -100,7 +100,6 @@ def after_request(response):
     ctx = local_cache["ctx"]
 
     if request.path == "/{}/{}".format(ctx.app["name"], api["name"]):
-        logger.info(request.path)
         predictions = None
         if "predictions" in g:
             predictions = g.predictions

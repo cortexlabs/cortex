@@ -41,6 +41,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
+const (
+	maxClassesToDisplay = 20
+)
+
 func init() {
 	addAppNameFlag(getCmd)
 	addEnvFlag(getCmd)
@@ -641,14 +645,21 @@ func regressionMetricsTable(apiMetrics *schema.APIMetrics) string {
 func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 	var out string
 
+	classList := []string{}
+
+	for inputName, _ := range apiMetrics.ClassDistribution {
+		classList = append(classList, inputName)
+	}
+	sort.Strings(classList)
+
 	if len(apiMetrics.ClassDistribution) > 0 && len(apiMetrics.ClassDistribution) < 4 {
 		out += "Classification Metrics\n"
 		row := []interface{}{}
 		headers := []table.Header{}
 
-		for inputName, count := range apiMetrics.ClassDistribution {
-			headers = append(headers, table.Header{Title: s.TruncateElipses(inputName, 17), MaxWidth: 20})
-			row = append(row, int(count))
+		for _, className := range classList {
+			headers = append(headers, table.Header{Title: s.TruncateElipses(className, 17), MaxWidth: 20})
+			row = append(row, int(apiMetrics.ClassDistribution[className]))
 		}
 
 		t := table.Table{
@@ -660,10 +671,10 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 	} else {
 		rows := make([][]interface{}, len(apiMetrics.ClassDistribution))
 		rowNum := 0
-		for inputName, count := range apiMetrics.ClassDistribution {
+		for _, className := range classList {
 			rows[rowNum] = []interface{}{
-				inputName,
-				int(count),
+				className,
+				int(apiMetrics.ClassDistribution[className]),
 			}
 			rowNum++
 		}
@@ -685,8 +696,8 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 
 		out += table.MustFormat(t)
 
-		if len(apiMetrics.ClassDistribution) == 20 {
-			out += "\n\nlisted at most 20 classes, go to your cloudwatch dashboard more details"
+		if len(apiMetrics.ClassDistribution) > maxClassesToDisplay {
+			out += fmt.Sprintf("\n\nlisting at most %d classes, the complete list can be found in your cloudwatch dashboard", maxClassesToDisplay)
 		}
 	}
 	return out

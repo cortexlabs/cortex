@@ -633,7 +633,10 @@ class Context:
         response = self.monitoring.put_metric_data(
             MetricData=metrics, Namespace=self.cortex_config["namespace"]
         )
-        logger.info(response)
+
+        if int(response['ResponseMetadata']['HTTPStatusCode'] / 100) != 2:
+            logger.warn(response)
+            raise Exception("failed to publish metrics, not successful status code encountered")
 
 
 def input_schema_from_type_schema(type_schema):

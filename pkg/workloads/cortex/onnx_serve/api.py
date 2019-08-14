@@ -75,7 +75,6 @@ def after_request(response):
     ctx = local_cache["ctx"]
 
     if request.path == "/{}/{}".format(ctx.app["name"], api["name"]):
-        logger.info(request.path)
         predictions = None
         if "predictions" in g:
             predictions = g.predictions
@@ -203,7 +202,6 @@ def predict(app_name, api_name):
                 result = request_handler.post_inference(result, output_metadata)
                 logger.info("post_inference: " + util.pp_str_flat(result))
 
-            prediction = {"prediction": result}
         except CortexException as e:
             e.wrap("error", "sample {}".format(i + 1))
             logger.error(str(e))
@@ -217,7 +215,7 @@ def predict(app_name, api_name):
             )
             return prediction_failed(sample, str(e))
 
-        predictions.append(prediction)
+        predictions.append(result)
     g.predictions = predictions
     response["predictions"] = predictions
     response["resource_id"] = api["id"]
