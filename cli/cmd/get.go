@@ -479,12 +479,11 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		row = append(row, s.Int32(groupStatus.FailedUpdated))
 	}
 
-
 	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
 
 	out := "\n" + console.Bold("url:  ") + apiEndpoint + "\n"
 	out += fmt.Sprintf("%s curl -k -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n\n", console.Bold("curl:"), apiEndpoint)
-	out += fmt.Sprintf(console.Bold("updated at:") + " %s\n", libtime.LocalTimestamp(updatedAt))
+	out += fmt.Sprintf(console.Bold("updated at:")+" %s\n", libtime.LocalTimestamp(updatedAt))
 
 	out += "\n"
 	t := table.Table{
@@ -520,7 +519,6 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"
 		out += "\n\n" + console.Bold("payload:  ") + samplesPlaceholderStr
 	}
-
 
 	if api != nil {
 		out += "\n" + titleStr("configuration") + api.UserConfigStr()
@@ -604,7 +602,7 @@ func dataStatusSummary(dataStatus *resource.DataStatus) string {
 
 	t := table.Table{
 		Headers: headers,
-		Rows: [][]interface{}{row},
+		Rows:    [][]interface{}{row},
 	}
 	return "\n" + table.MustFormat(t)
 }
@@ -738,7 +736,10 @@ func resourceStatusesStr(resourcesRes *schema.GetResourcesResponse) string {
 	for i, title := range titles {
 		paddingWidth := maxTitleLen - len(title) + 3
 		padding := strings.Repeat(" ", paddingWidth)
-		out += title + ":" + padding + values[i] + "\n"
+		out += title + ":" + padding + values[i]
+		if i != len(titles)-1 {
+			out += "\n"
+		}
 	}
 
 	return out

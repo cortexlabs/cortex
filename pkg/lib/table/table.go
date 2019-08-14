@@ -117,12 +117,9 @@ func Format(t Table) (string, error) {
 
 	var headerStr string
 	for colNum, header := range t.Headers {
-		headerStr += header.Title
-		if colNum != lastColIndex {
-			headerStr += strings.Repeat(" ", maxColWidths[colNum]+t.Spacing-len(header.Title))
-	}	
-		}
-	}	
+		headerStr += console.Bold(header.Title)
+		headerStr += strings.Repeat(" ", maxColWidths[colNum]+t.Spacing-len(header.Title))
+	}
 
 	ellipses := "..."
 	rowStrs := make([]string, len(rows))

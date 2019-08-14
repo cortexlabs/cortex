@@ -21,10 +21,9 @@ import (
 )
 
 var (
-    bold = color.New(color.Bold).SprintFunc()
+	bold = color.New(color.Bold).SprintFunc()
 )
 
 func Bold(a ...interface{}) string {
 	return bold(a...)
 }
-
