@@ -300,13 +300,13 @@ def run_predict(sample):
 
         transformed_sample = transform_sample(prepared_sample)
         prediction_request = create_prediction_request(transformed_sample)
-        response_proto = local_cache["stub"].Predict(prediction_request, timeout=100.0)
+        response_proto = local_cache["stub"].Predict(prediction_request, timeout=1000.0)
         result = parse_response_proto(response_proto)
 
         result["transformed_sample"] = transformed_sample
     else:
         prediction_request = create_raw_prediction_request(prepared_sample)
-        response_proto = local_cache["stub"].Predict(prediction_request, timeout=100.0)
+        response_proto = local_cache["stub"].Predict(prediction_request, timeout=1000.0)
         result = parse_response_proto_raw(response_proto)
 
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
