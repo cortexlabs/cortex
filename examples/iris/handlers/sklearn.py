@@ -1,7 +1,8 @@
-from cortex.lib.log import get_logger
 import numpy as np
 import boto3
 import json
+
+from cortex.lib.log import get_logger
 
 logger = get_logger()
 s3 = boto3.client("s3")
