@@ -21,9 +21,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 // IsValidS3Directory checks that the path contains a valid S3 directory for Tensorflow models

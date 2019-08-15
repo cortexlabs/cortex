@@ -448,7 +448,7 @@ def download_dir_external(ctx, s3_path, local_path):
     objects = ctx.storage.list_objects(s3_path)["Contents"]
     version = prefix.split("/")[-1]
     for obj in objects:
-        local_key = obj["Key"].lstrip(prefix[: -len(version)])
+        local_key = obj["Key"][len(prefix)-len(version):]
         if not os.path.exists(os.path.dirname(local_key)):
             util.mkdir_p(os.path.join(local_path, os.path.dirname(local_key)))
 
