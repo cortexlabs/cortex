@@ -7,7 +7,7 @@ labels = requests.get(
 
 
 def pre_inference(sample, metadata):
-    return {"images": [np.zeros((1, 299, 299, 3))]}
+    return {"images": [np.zeros((299, 299, 3)).tolist()]}
 
 
 def post_inference(prediction, metadata):
