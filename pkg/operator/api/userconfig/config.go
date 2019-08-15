@@ -19,7 +19,6 @@ package userconfig
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 
 	"github.com/cortexlabs/yaml"
 
@@ -121,7 +120,6 @@ func (config *Config) ValidatePartial() error {
 		}
 	}
 	if config.APIs != nil {
-		log.Println(config.APIs)
 		if err := config.APIs.Validate(); err != nil {
 			return err
 		}
