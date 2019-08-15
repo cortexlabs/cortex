@@ -574,26 +574,11 @@ func apiMetricsTable(appName string, api *context.API) string {
 }
 
 func networkMetricsTable(apiMetrics *schema.APIMetrics) string {
-	total := 0
-	total += apiMetrics.NetworkStats.Code2XX
-	total += apiMetrics.NetworkStats.Code4XX
-	total += apiMetrics.NetworkStats.Code5XX
+	total := apiMetrics.NetworkStats.Code2XX + apiMetrics.NetworkStats.Code4XX + apiMetrics.NetworkStats.Code5XX
 
-	var latency string
+	latency := "-"
 	if apiMetrics.NetworkStats.Latency != nil {
 		latency = fmt.Sprintf("%.9g", *(apiMetrics.NetworkStats.Latency))
-	} else {
-		latency = "-"
-	}
-
-	rows := [][]interface{}{
-		{
-			apiMetrics.NetworkStats.Code2XX,
-			apiMetrics.NetworkStats.Code4XX,
-			apiMetrics.NetworkStats.Code5XX,
-			total,
-			latency,
-		},
 	}
 
 	t := table.Table{
@@ -604,7 +589,15 @@ func networkMetricsTable(apiMetrics *schema.APIMetrics) string {
 			{Title: "TOTAL"},
 			{Title: "AVG Latency"},
 		},
-		Rows: rows,
+		Rows: [][]interface{}{
+			{
+				apiMetrics.NetworkStats.Code2XX,
+				apiMetrics.NetworkStats.Code4XX,
+				apiMetrics.NetworkStats.Code5XX,
+				total,
+				latency,
+			},
+		},
 	}
 
 	out := "Network Metrics\n"
@@ -645,21 +638,22 @@ func regressionMetricsTable(apiMetrics *schema.APIMetrics) string {
 func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 	var out string
 
-	classList := []string{}
+	classList := make([]string, len(apiMetrics.ClassDistribution))
 
+	i := 0
 	for inputName := range apiMetrics.ClassDistribution {
-		classList = append(classList, inputName)
+		classList[i] = inputName
 	}
 	sort.Strings(classList)
 
-	if len(apiMetrics.ClassDistribution) > 0 && len(apiMetrics.ClassDistribution) < 4 {
+	if len(classList) > 0 && len(classList) < 4 {
 		out += "Classification Metrics\n"
 		row := []interface{}{}
 		headers := []table.Header{}
 
 		for _, className := range classList {
-			headers = append(headers, table.Header{Title: s.TruncateElipses(className, 17), MaxWidth: 20})
-			row = append(row, int(apiMetrics.ClassDistribution[className]))
+			headers = append(headers, table.Header{Title: s.TruncateEllipses(className, 17), MaxWidth: 20})
+			row = append(row, apiMetrics.ClassDistribution[className])
 		}
 
 		t := table.Table{
@@ -669,17 +663,15 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 
 		out += table.MustFormat(t)
 	} else {
-		rows := make([][]interface{}, len(apiMetrics.ClassDistribution))
-		rowNum := 0
-		for _, className := range classList {
+		rows := make([][]interface{}, len(classList))
+		for rowNum, className := range classList {
 			rows[rowNum] = []interface{}{
 				className,
-				int(apiMetrics.ClassDistribution[className]),
+				apiMetrics.ClassDistribution[className],
 			}
-			rowNum++
 		}
 
-		if len(apiMetrics.ClassDistribution) == 0 {
+		if len(classList) == 0 {
 			rows = append(rows, []interface{}{
 				"-",
 				"-",

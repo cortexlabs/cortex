@@ -374,10 +374,10 @@ func Indent(str string, indent string) string {
 	return out[:len(out)-1]
 }
 
-func TruncateElipses(str string, length int) string {
+func TruncateEllipses(str string, maxLength int) string {
 	elipses := "..."
-	if len(str) > length {
-		str = str[:length-len(elipses)]
+	if len(str) > maxLength {
+		str = str[:maxLength-len(elipses)]
 		str += elipses
 	}
 	return str
