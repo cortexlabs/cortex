@@ -2,9 +2,9 @@
 
 <br>
 
-**Get started:** [Install](https://docs.cortex.dev/install) • [Tutorial](https://docs.cortex.dev/tutorial) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[Docs](https://docs.cortex.dev) • <!-- CORTEX_VERSION_MINOR_STABLE -->[Examples](https://github.com/cortexlabs/cortex/tree/0.7/examples)
+**Get started:** [install](https://docs.cortex.dev/install) • [tutorial](https://docs.cortex.dev/tutorial) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[docs](https://docs.cortex.dev) • <!-- CORTEX_VERSION_MINOR_STABLE -->[examples](https://github.com/cortexlabs/cortex/tree/0.7/examples)
 
-**Learn more:** [Website](https://cortex.dev) • [Blog](https://medium.com/cortex-labs) • [Subscribe](https://cortexlabs.us20.list-manage.com/subscribe?u=a1987373ab814f20961fd90b4&id=ae83491e1c) • [Contact](mailto:hello@cortex.dev)
+**Learn more:** [website](https://cortex.dev) • [blog](https://medium.com/cortex-labs) • [subscribe](https://cortexlabs.us20.list-manage.com/subscribe?u=a1987373ab814f20961fd90b4&id=ae83491e1c) • [contact](mailto:hello@cortex.dev)
 
 <br>
 

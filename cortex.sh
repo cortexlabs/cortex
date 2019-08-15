@@ -260,11 +260,6 @@ function check_dep_curl() {
 function install_cli() {
   set -e
 
-  if command -v cortex >/dev/null; then
-    echo "The Cortex CLI is already installed"
-    return
-  fi
-
   check_dep_curl
 
   echo -e "\nInstalling the Cortex CLI (/usr/local/bin/cortex) ..."
@@ -275,10 +270,10 @@ function install_cli() {
   chmod +x $CORTEX_SH_TMP_DIR/cortex
 
   if [ $(id -u) = 0 ]; then
-    mv $CORTEX_SH_TMP_DIR/cortex /usr/local/bin/cortex
+    mv -f $CORTEX_SH_TMP_DIR/cortex /usr/local/bin/cortex
   else
     ask_sudo
-    sudo mv $CORTEX_SH_TMP_DIR/cortex /usr/local/bin/cortex
+    sudo mv -f $CORTEX_SH_TMP_DIR/cortex /usr/local/bin/cortex
   fi
 
   rm -rf $CORTEX_SH_TMP_DIR

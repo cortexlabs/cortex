@@ -5,7 +5,7 @@
 1. [AWS credentials](aws.md)
 2. [Docker](https://docs.docker.com/install)
 
-## Uninstall Cortex
+## Uninstalling Cortex
 
 <!-- CORTEX_VERSION_MINOR -->
 
@@ -20,18 +20,18 @@ chmod +x cortex.sh
 export AWS_ACCESS_KEY_ID=***
 export AWS_SECRET_ACCESS_KEY=***
 
-# Uninstall
+# Uninstall Cortex
 ./cortex.sh uninstall
 ```
 
-## Uninstall the CLI
+## Uninstalling the CLI
 
 ```bash
 # Uninstall the Cortex CLI
 ./cortex.sh uninstall cli
 ```
 
-## Clean up AWS
+## Cleaning up AWS
 
 ```bash
 # Set AWS credentials
