@@ -32,6 +32,11 @@ Cortex is maintained by a venture-backed team of infrastructure engineers and [w
 ```python
 # handler.py
 
+
+# Load data for preprocessing or postprocessing. For example:
+labels = download_my_labels_from_s3()
+
+
 def pre_inference(sample, metadata):
   # Python code
 
