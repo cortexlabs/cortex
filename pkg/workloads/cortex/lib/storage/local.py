@@ -141,3 +141,6 @@ class LocalStorage(object):
         local_zip = os.path.join(local_dir, "zip.zip")
         self.download_file(key, local_zip)
         util.extract_zip(local_zip, delete_zip_file=True)
+
+    def list_objects(self, path):
+        return os.listdir(path)

@@ -445,18 +445,18 @@ def get_signature(app_name, api_name):
 def download_dir_external(ctx, s3_path, local_path):
     util.mkdir_p(local_path)
     bucket_name, prefix = ctx.storage.deconstruct_s3_path(s3_path)
-    objects = ctx.storage.list_objects(s3_path)["Contents"]
+    objects = ctx.storage.list_objects(s3_path)
     version = prefix.split("/")[-1]
     for obj in objects:
-        local_key = obj["Key"][len(prefix)-len(version):]
+        local_key = obj[len(prefix)-len(version):]
         if not os.path.exists(os.path.dirname(local_key)):
             util.mkdir_p(os.path.join(local_path, os.path.dirname(local_key)))
 
-        if obj["Key"][-1] == "/":
+        if obj[-1] == "/":
             continue
 
         ctx.storage.download_file_external(
-            bucket_name + "/" + obj["Key"], os.path.join(local_path, local_key)
+            bucket_name + "/" + obj, os.path.join(local_path, local_key)
         )
 
 

@@ -250,6 +250,6 @@ class S3(object):
             return None
         return json.loads(obj.decode("utf-8"))
 
-    def list_objects(self, s3_path):
-        bucket, prefix = self.deconstruct_s3_path(s3_path)
-        return self.s3.list_objects(Bucket=bucket, Prefix=prefix)
+    def list_objects(self, path):
+        bucket, prefix = self.deconstruct_s3_path(path)
+        return [obj["Key"] for obj in self.s3.list_objects(Bucket=bucket, Prefix=prefix)["Contents"]]
