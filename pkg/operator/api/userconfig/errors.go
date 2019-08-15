@@ -600,9 +600,18 @@ func ErrorExternalNotFound(path string) error {
 }
 
 func ErrorUnableToInferModelFormat() error {
+	message := "unable to infer " + ModelFormatKey + ": path to model should end in .onnx for ONNX models, or the " + ModelFormatKey + " key must be specified\n"
+	message += "For TF models, the path should be a directory with the following structure: \n\n"
+	message += "1523423423/ (version prefix, usually a timestamp)\n"
+	message += "\tsaved_model.pb\n"
+	message += "\tvariables/\n"
+	message += "\t\tvariables.index\n"
+	message += "\t\tvariables.data-00000-of-00003\n"
+	message += "\t\tvariables.data-00001-of-00003\n"
+	message += "\t\tvariables.data-00002-of-...\n\n"
 	return Error{
 		Kind:    ErrUnableToInferModelFormat,
-		message: "unable to infer " + ModelFormatKey + ": path to model should end in .zip for TensorFlow models, .onnx for ONNX models, or the " + ModelFormatKey + " key must be specified",
+		message: message,
 	}
 }
 
