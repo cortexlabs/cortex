@@ -1,7 +1,10 @@
 import requests
 import numpy as np
 
-labels = requests.get("https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt")
+labels = requests.get(
+    "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
+)
+
 
 def pre_inference(sample, metadata):
     return {"images": [np.zeros((1, 299, 299, 3))]}
