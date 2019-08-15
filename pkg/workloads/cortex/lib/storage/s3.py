@@ -252,4 +252,6 @@ class S3(object):
 
     def list_objects(self, path):
         bucket, prefix = self.deconstruct_s3_path(path)
-        return [obj["Key"] for obj in self.s3.list_objects(Bucket=bucket, Prefix=prefix)["Contents"]]
+        return [
+            obj["Key"] for obj in self.s3.list_objects(Bucket=bucket, Prefix=prefix)["Contents"]
+        ]

@@ -608,7 +608,7 @@ func ErrorUnableToInferModelFormat() error {
 	message += "\t\tvariables.index\n"
 	message += "\t\tvariables.data-00000-of-00003\n"
 	message += "\t\tvariables.data-00001-of-00003\n"
-	message += "\t\tvariables.data-00002-of-...\n\n"
+	message += "\t\tvariables.data-00002-of-...\n"
 	return Error{
 		Kind:    ErrUnableToInferModelFormat,
 		message: message,
