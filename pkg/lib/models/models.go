@@ -18,11 +18,8 @@ package models
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 // IsValidS3Directory checks that the path contains a valid S3 directory for Tensorflow models
@@ -33,33 +30,17 @@ import (
 //			- variables.index
 //			- variables.data-00000-of-00001 (there are a variable number of these files)
 func IsValidS3Directory(path string) bool {
-	listOut, err := aws.ListObjectsExternal(path)
-	if err != nil {
+	if valid, err := aws.IsS3PathFileExternal(
+		fmt.Sprintf("%s/saved_model.pb", path),
+		fmt.Sprintf("%s/variables/variables.index", path),
+	); err != nil || !valid {
 		return false
 	}
 
-	if listOut.Prefix == nil {
+	if valid, err := aws.IsS3PathPrefixExternal(
+		fmt.Sprintf("%s/variables/variables.data-00000-of", path),
+	); err != nil || !valid {
 		return false
 	}
-
-	prefix := *listOut.Prefix
-	prefixParts := strings.Split(prefix, "/")
-	version := prefixParts[len(prefixParts)-1]
-	if _, err := strconv.ParseInt(version, 10, 64); err != nil {
-		return false
-	}
-
-	var containsVariableDataFile bool
-	objects := strset.New()
-	for _, o := range listOut.Contents {
-		if strings.Contains(*o.Key, "variables/variables.data-00000-of") {
-			containsVariableDataFile = true
-		}
-		objects.Add(*o.Key)
-	}
-
-	return objects.Has(
-		fmt.Sprintf("%s/saved_model.pb", prefix),
-		fmt.Sprintf("%s/variables/variables.index", prefix),
-	) && containsVariableDataFile
+	return true
 }

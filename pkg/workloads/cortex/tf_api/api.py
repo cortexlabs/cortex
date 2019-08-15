@@ -452,9 +452,6 @@ def download_dir_external(ctx, s3_path, local_path):
         if not os.path.exists(os.path.dirname(local_key)):
             util.mkdir_p(os.path.join(local_path, os.path.dirname(local_key)))
 
-        if obj[-1] == "/":
-            continue
-
         ctx.storage.download_file_external(
             bucket_name + "/" + obj, os.path.join(local_path, local_key)
         )
@@ -499,19 +496,16 @@ def start(args):
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
 
         if args.only_download:
-            download_dir_external(ctx, api["model"], args.model_dir)
+            if util.is_resource_ref(api["model"]):
+                ctx.storage.download_and_unzip(model["key"], args.model_dir)
+            else:
+                download_dir_external(ctx, api["model"], args.model_dir)
             return
 
         if util.is_resource_ref(api["model"]):
             model_name = util.get_resource_ref(api["model"])
             model = ctx.models[model_name]
             estimator = ctx.estimators[model["estimator"]]
-
-            if not os.path.isdir(args.model_dir):
-                ctx.storage.download_and_unzip(model["key"], args.model_dir)
-
-            if args.only_download:
-                return
 
             local_cache["model"] = model
             local_cache["estimator"] = estimator

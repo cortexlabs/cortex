@@ -130,16 +130,28 @@ func (api *API) Validate() error {
 		return errors.Wrap(ErrorInvalidS3PathOrResourceReference(api.Model), Identify(api), ModelKey)
 	}
 
-	switch {
-	case strings.HasSuffix(api.Model, ".onnx"):
-		api.ModelFormat = ONNXModelFormat
+	switch api.ModelFormat {
+	case ONNXModelFormat:
 		if ok, err := aws.IsS3PathFileExternal(api.Model); err != nil || !ok {
 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
 		}
-	case models.IsValidS3Directory(api.Model):
-		api.ModelFormat = TensorFlowModelFormat
+	case TensorFlowModelFormat:
+		if !models.IsValidS3Directory(api.Model) {
+			return errors.Wrap(ErrorInvalidTensorflowDir(api.Model), Identify(api), ModelKey)
+		}
 	default:
-		return errors.Wrap(ErrorUnableToInferModelFormat(), Identify(api))
+		switch {
+		case strings.HasSuffix(api.Model, ".onnx"):
+			api.ModelFormat = ONNXModelFormat
+			if ok, err := aws.IsS3PathFileExternal(api.Model); err != nil || !ok {
+				return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
+			}
+		case models.IsValidS3Directory(api.Model):
+			api.ModelFormat = TensorFlowModelFormat
+		default:
+			return errors.Wrap(ErrorUnableToInferModelFormat(), Identify(api))
+		}
+
 	}
 
 	if err := api.Compute.Validate(); err != nil {
