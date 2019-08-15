@@ -1,0 +1,7 @@
+- kind: deployment
+  name: inception
+
+- kind: api
+  name: classifier
+  model: s3://cortex-examples/imagenet/inception.zip
+  request_handler: imagenet.py
