@@ -601,7 +601,7 @@ func ErrorExternalNotFound(path string) error {
 	}
 }
 
-var tfExpectedStructMessage string = `
+var tfExpectedStructMessage = `
     For TF models, the path should be a directory with the following structure: \n\n
 	1523423423/ (version prefix, usually a timestamp)\n
 	\tsaved_model.pb\n
