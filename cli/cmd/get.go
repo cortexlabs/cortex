@@ -261,7 +261,7 @@ func pythonPackagesStr(dataStatuses map[string]*resource.DataStatus, ctx *contex
 		resources = append(resources, pythonPackage)
 	}
 
-	return "\n" + dataResourceTable(resources, dataStatuses, "python packages") + "\n"
+	return "\n" + dataResourceTable(resources, dataStatuses, resource.PythonPackageType) + "\n"
 }
 
 func rawColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
@@ -274,7 +274,7 @@ func rawColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Co
 		resources = append(resources, rawColumn)
 	}
 
-	return "\n" + dataResourceTable(resources, dataStatuses, "raw column") + "\n"
+	return "\n" + dataResourceTable(resources, dataStatuses, resource.RawColumnType) + "\n"
 }
 
 func aggregatesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
@@ -287,7 +287,7 @@ func aggregatesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Co
 		resources = append(resources, aggregate)
 	}
 
-	return "\n" + dataResourceTable(resources, dataStatuses, "aggregate") + "\n"
+	return "\n" + dataResourceTable(resources, dataStatuses, resource.AggregateType) + "\n"
 }
 
 func transformedColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
@@ -300,7 +300,7 @@ func transformedColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *co
 		resources = append(resources, transformedColumn)
 	}
 
-	return "\n" + dataResourceTable(resources, dataStatuses, "transformed column") + "\n"
+	return "\n" + dataResourceTable(resources, dataStatuses, resource.TransformedColumnType) + "\n"
 }
 
 func trainingDataStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
@@ -313,7 +313,7 @@ func trainingDataStr(dataStatuses map[string]*resource.DataStatus, ctx *context.
 		resources = append(resources, model.Dataset)
 	}
 
-	return "\n" + dataResourceTable(resources, dataStatuses, "training dataset") + "\n"
+	return "\n" + dataResourceTable(resources, dataStatuses, resource.TrainingDatasetType) + "\n"
 }
 
 func modelsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
@@ -326,7 +326,7 @@ func modelsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Contex
 		resources = append(resources, model)
 	}
 
-	return "\n" + dataResourceTable(resources, dataStatuses, "model") + "\n"
+	return "\n" + dataResourceTable(resources, dataStatuses, resource.ModelType) + "\n"
 }
 
 func apisStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
@@ -353,7 +353,7 @@ func describeRawColumn(name string, resourcesRes *schema.GetResourcesResponse) (
 	}
 	dataStatus := resourcesRes.DataStatuses[rawColumn.GetID()]
 	out := dataStatusSummary(dataStatus)
-	out += titleStr("configuration") + rawColumn.UserConfigStr()
+	out += "\n" + titleStr("configuration") + rawColumn.UserConfigStr()
 	return out, nil
 }
 
@@ -385,7 +385,7 @@ func describeAggregate(name string, resourcesRes *schema.GetResourcesResponse) (
 		out += valueStr(obj)
 	}
 
-	out += titleStr("configuration") + aggregate.UserConfigStr()
+	out += "\n" + titleStr("configuration") + aggregate.UserConfigStr()
 	return out, nil
 }
 
@@ -396,7 +396,7 @@ func describeTransformedColumn(name string, resourcesRes *schema.GetResourcesRes
 	}
 	dataStatus := resourcesRes.DataStatuses[transformedColumn.ID]
 	out := dataStatusSummary(dataStatus)
-	out += titleStr("configuration") + transformedColumn.UserConfigStr()
+	out += "\n" + titleStr("configuration") + transformedColumn.UserConfigStr()
 	return out, nil
 }
 
@@ -416,7 +416,7 @@ func describeModel(name string, resourcesRes *schema.GetResourcesResponse) (stri
 	}
 	dataStatus := resourcesRes.DataStatuses[model.ID]
 	out := dataStatusSummary(dataStatus)
-	out += titleStr("configuration") + model.UserConfigStr()
+	out += "\n" + titleStr("configuration") + model.UserConfigStr()
 	return out, nil
 }
 
@@ -441,42 +441,24 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		updatedAt = groupStatus.ActiveStatus.Start
 	}
 
-	headers := []table.Header{
-		{Title: "status"},
-		{Title: "requested"},
-		{Title: "available"},
-		{Title: "up-to-date"},
-	}
-
 	row := []interface{}{
 		groupStatus.Message(),
 		s.Int32(groupStatus.Requested),
 		s.Int32(groupStatus.Available()),
 		s.Int32(groupStatus.ReadyUpdated),
+		s.Int32(groupStatus.ReadyStaleCompute),
+		s.Int32(groupStatus.ReadyStaleModel),
+		s.Int32(groupStatus.FailedUpdated),
 	}
 
-	if groupStatus.ReadyStaleCompute != 0 {
-		headers = append(headers, table.Header{
-			Title: "stale compute",
-		})
-
-		row = append(row, s.Int32(groupStatus.ReadyStaleCompute))
-	}
-
-	if groupStatus.ReadyStaleModel != 0 {
-		headers = append(headers, table.Header{
-			Title: "stale model",
-		})
-
-		row = append(row, s.Int32(groupStatus.ReadyStaleModel))
-	}
-
-	if groupStatus.FailedUpdated != 0 {
-		headers = append(headers, table.Header{
-			Title: "failed",
-		})
-
-		row = append(row, s.Int32(groupStatus.FailedUpdated))
+	headers := []table.Header{
+		{Title: "status"},
+		{Title: "requested"},
+		{Title: "available"},
+		{Title: "up-to-date"},
+		{Title: "stale compute", Hidden: groupStatus.ReadyStaleCompute == 0},
+		{Title: "stale model", Hidden: groupStatus.ReadyStaleModel == 0},
+		{Title: "failed", Hidden: groupStatus.FailedUpdated == 0},
 	}
 
 	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
@@ -488,9 +470,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	out += "\n"
 	t := table.Table{
 		Headers: headers,
-		Rows: [][]interface{}{
-			row,
-		},
+		Rows:    [][]interface{}{row},
 	}
 	out += table.MustFormat(t)
 
@@ -627,7 +607,7 @@ func strMapToStr(strings map[string]string) string {
 	return out
 }
 
-func dataResourceTable(resources []context.Resource, dataStatuses map[string]*resource.DataStatus, title string) string {
+func dataResourceTable(resources []context.Resource, dataStatuses map[string]*resource.DataStatus, resourceType resource.Type) string {
 	rows := make([][]interface{}, len(resources))
 	for rowNum, res := range resources {
 		dataStatus := dataStatuses[res.GetID()]
@@ -636,6 +616,11 @@ func dataResourceTable(resources []context.Resource, dataStatuses map[string]*re
 			dataStatus.Message(),
 			libtime.Since(dataStatus.End),
 		}
+	}
+
+	title := resourceType.UserFacing()
+	if resourceType == resource.PythonPackageType {
+		title = resourceType.UserFacingPlural()
 	}
 
 	t := table.Table{
@@ -652,6 +637,8 @@ func dataResourceTable(resources []context.Resource, dataStatuses map[string]*re
 
 func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
 	rows := make([][]interface{}, 0, len(apiGroupStatuses))
+
+	totalFailed := 0
 	for name, groupStatus := range apiGroupStatuses {
 		if groupStatus.Requested == 0 {
 			continue
@@ -670,15 +657,17 @@ func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) stri
 			groupStatus.FailedUpdated,
 			libtime.Since(updatedAt),
 		})
+
+		totalFailed += int(groupStatus.FailedUpdated)
 	}
 
 	t := table.Table{
 		Headers: []table.Header{
-			{Title: "api"},
+			{Title: resource.APIType.UserFacing()},
 			{Title: "available"},
 			{Title: "up-to-date"},
 			{Title: "requested"},
-			{Title: "failed"},
+			{Title: "failed", Hidden: totalFailed == 0},
 			{Title: "last update"},
 		},
 		Rows: rows,
@@ -696,37 +685,37 @@ func resourceStatusesStr(resourcesRes *schema.GetResourcesResponse) string {
 	var titles, values []string
 
 	if len(ctx.PythonPackages) != 0 {
-		titles = append(titles, "python packages")
+		titles = append(titles, resource.PythonPackageType.UserFacingPlural())
 		values = append(values, pythonPackageStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
 	}
 
 	if len(ctx.RawColumns) != 0 {
-		titles = append(titles, "raw columns")
+		titles = append(titles, resource.RawColumnType.UserFacingPlural())
 		values = append(values, rawColumnStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
 	}
 
 	if len(ctx.Aggregates) != 0 {
-		titles = append(titles, "aggregates")
+		titles = append(titles, resource.AggregateType.UserFacingPlural())
 		values = append(values, aggregateStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
 	}
 
 	if len(ctx.TransformedColumns) != 0 {
-		titles = append(titles, "transformed columns")
+		titles = append(titles, resource.TransformedColumnType.UserFacingPlural())
 		values = append(values, transformedColumnStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
 	}
 
 	if len(ctx.Models) != 0 {
-		titles = append(titles, "training datasets")
+		titles = append(titles, resource.TrainingDatasetType.UserFacingPlural())
 		values = append(values, trainingDatasetStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
 	}
 
 	if len(ctx.Models) != 0 {
-		titles = append(titles, "models")
+		titles = append(titles, resource.ModelType.UserFacingPlural())
 		values = append(values, modelStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
 	}
 
 	if len(resourcesRes.APIGroupStatuses) != 0 {
-		titles = append(titles, "apis")
+		titles = append(titles, resource.APIType.UserFacingPlural())
 		values = append(values, apiStatusesStr(resourcesRes.APIGroupStatuses))
 	}
 

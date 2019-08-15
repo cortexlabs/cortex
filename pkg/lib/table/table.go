@@ -37,6 +37,7 @@ type Header struct {
 	Title    string
 	MaxWidth int // Max width of the text (not including spacing). Items that are longer will be truncated to less than MaxWidth to fit the elipses. If 0 is provided, it defaults to no max.
 	MinWidth int // Min width of the text (not including spacing)
+	Hidden   bool
 }
 
 func validate(t Table) error {
@@ -117,8 +118,13 @@ func Format(t Table) (string, error) {
 
 	var headerStr string
 	for colNum, header := range t.Headers {
+		if header.Hidden {
+			continue
+		}
 		headerStr += console.Bold(header.Title)
-		headerStr += strings.Repeat(" ", maxColWidths[colNum]+t.Spacing-len(header.Title))
+		if colNum != lastColIndex {
+			headerStr += strings.Repeat(" ", maxColWidths[colNum]+t.Spacing-len(header.Title))
+		}
 	}
 
 	ellipses := "..."
@@ -126,6 +132,9 @@ func Format(t Table) (string, error) {
 	for rowNum, row := range rows {
 		var rowStr string
 		for colNum, val := range row {
+			if t.Headers[colNum].Hidden {
+				continue
+			}
 			if len(val) > maxColWidths[colNum] {
 				val = val[0:maxColWidths[colNum]]
 				// Ensure at least one space after ellipses
