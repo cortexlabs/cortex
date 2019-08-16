@@ -115,6 +115,7 @@ if [ "$AWS_SECRET_ACCESS_KEY" = "" ]; then
   fi
 fi
 
+export CONST_TELEMETRY_URL="${CONST_TELEMETRY_URL:-"https://telemetry.cortexlabs.dev"}"
 export CORTEX_LOG_GROUP="${CORTEX_LOG_GROUP:-cortex}"
 export CORTEX_BUCKET="${CORTEX_BUCKET:-""}"
 export CORTEX_REGION="${CORTEX_REGION:-us-west-2}"
@@ -388,6 +389,16 @@ function prompt_for_telemetry() {
       echo "Unexpected value, please enter \"Y\" or \"n\""
     done
   fi
+}
+
+function prompt_for_support() {
+  while true
+  do
+    echo
+    read -p "Please give your email address?"
+    echo
+    curl -k -X POST -H "Content-Type: application/json" $CONST_TELEMETRY_URL/emails -d '{"email_address": '"$REPLY"', "source": "signup"}'
+  done
 }
 
 function confirm_for_uninstall() {
