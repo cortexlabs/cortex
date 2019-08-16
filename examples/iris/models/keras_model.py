@@ -20,7 +20,6 @@ model.fit(X_train, y_train, epochs=100)
 scores = model.evaluate(X_test, y_test)
 print("\n%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
 
-# Convert to ONNX model format
 onnx_model = keras2onnx.convert_keras(model)
 with open("keras.onnx", "wb") as f:
     f.write(onnx_model.SerializeToString())
