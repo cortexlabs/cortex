@@ -407,7 +407,7 @@ def predict(deployment_name, api_name):
 def extract_signature():
     signature_def = local_cache["metadata"]["signatureDef"]
     if signature_def.get("predict") is None or signature_def["predict"].get("inputs") is None:
-        raise UserException("unable to find signature definition for model")
+        raise UserException('unable to find "predict" in model\'s signature definition')
 
     metadata = {}
     for input_name, input_metadata in signature_def["predict"]["inputs"].items():
