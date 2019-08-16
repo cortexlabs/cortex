@@ -150,4 +150,4 @@ class LocalStorage(object):
             for name in dirs:
                 objects.append(os.path.join(root, name))
 
-        return os.listdir(path)
+        return objects
