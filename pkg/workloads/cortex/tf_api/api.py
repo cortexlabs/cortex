@@ -128,7 +128,7 @@ def create_prediction_request(transformed_sample):
     signature_def = local_cache["metadata"]["signatureDef"]
     signature_key = list(signature_def.keys())[0]
     prediction_request = predict_pb2.PredictRequest()
-    prediction_request.model_spec.name = "default"
+    prediction_request.model_spec.name = "model"
     prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in transformed_sample.items():
@@ -137,10 +137,16 @@ def create_prediction_request(transformed_sample):
         shape = []
         for dim in signature_def[signature_key]["tensorShape"]["dim"]:
             shape.append(int(dim["size"]))
-        tensor_proto = tf.make_tensor_proto(
-            np.array(value).reshape(shape), dtype=data_type, shape=shape
-        )
-        prediction_request.inputs[column_name].CopyFrom(tensor_proto)
+
+        try:
+            tensor_proto = tf.make_tensor_proto(
+                np.array(value).reshape(shape), dtype=data_type, shape=shape
+            )
+            prediction_request.inputs[column_name].CopyFrom(tensor_proto)
+        except Exception as e:
+            raise UserException(
+                'key "{}"'.format(column_name), "expected shape {}".format(shape)
+            ) from e
 
     return prediction_request
 
@@ -149,7 +155,7 @@ def create_raw_prediction_request(sample):
     signature_def = local_cache["metadata"]["signatureDef"]
     signature_key = list(signature_def.keys())[0]
     prediction_request = predict_pb2.PredictRequest()
-    prediction_request.model_spec.name = "default"
+    prediction_request.model_spec.name = "model"
     prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in sample.items():
@@ -164,8 +170,16 @@ def create_raw_prediction_request(sample):
             shape = [1]
             value = [value]
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
-        tensor_proto = tf.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape)
-        prediction_request.inputs[column_name].CopyFrom(tensor_proto)
+
+        try:
+            tensor_proto = tf.make_tensor_proto(
+                value, dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape
+            )
+            prediction_request.inputs[column_name].CopyFrom(tensor_proto)
+        except Exception as e:
+            raise UserException(
+                'key "{}"'.format(column_name), "expected shape {}".format(shape)
+            ) from e
 
     return prediction_request
 
@@ -245,7 +259,7 @@ def parse_response_proto(response_proto):
 
 def create_get_model_metadata_request():
     get_model_metadata_request = get_model_metadata_pb2.GetModelMetadataRequest()
-    get_model_metadata_request.model_spec.name = "default"
+    get_model_metadata_request.model_spec.name = "model"
     get_model_metadata_request.metadata_field.append("signature_def")
     return get_model_metadata_request
 
@@ -276,14 +290,11 @@ def run_predict(sample):
     ctx = local_cache["ctx"]
     request_handler = local_cache.get("request_handler")
 
-    logger.info("sample: " + util.pp_str_flat(sample))
-
     prepared_sample = sample
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         prepared_sample = request_handler.pre_inference(
             sample, local_cache["metadata"]["signatureDef"]
         )
-        logger.info("pre_inference: " + util.pp_str_flat(prepared_sample))
 
     validate_sample(prepared_sample)
 
@@ -295,24 +306,18 @@ def run_predict(sample):
             )
 
         transformed_sample = transform_sample(prepared_sample)
-        logger.info("transformed_sample: " + util.pp_str_flat(transformed_sample))
 
         prediction_request = create_prediction_request(transformed_sample)
-        response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
+        response_proto = local_cache["stub"].Predict(prediction_request, timeout=300.0)
         result = parse_response_proto(response_proto)
-
         result["transformed_sample"] = transformed_sample
-        logger.info("inference: " + util.pp_str_flat(result))
     else:
         prediction_request = create_raw_prediction_request(prepared_sample)
-        response_proto = local_cache["stub"].Predict(prediction_request, timeout=10.0)
+        response_proto = local_cache["stub"].Predict(prediction_request, timeout=300.0)
         result = parse_response_proto_raw(response_proto)
-
-        logger.info("inference: " + util.pp_str_flat(result))
 
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
         result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
-        logger.info("post_inference: " + util.pp_str_flat(result))
 
     return result
 
@@ -339,10 +344,8 @@ def validate_sample(sample):
                 raise UserException('missing key "{}"'.format(input_name))
 
 
-def prediction_failed(sample, reason=None):
-    message = "prediction failed for sample: {}".format(util.pp_str_flat(sample))
-    if reason:
-        message += " ({})".format(reason)
+def prediction_failed(reason):
+    message = "prediction failed: " + reason
 
     logger.error(message)
     return message, status.HTTP_406_NOT_ACCEPTABLE
@@ -367,16 +370,12 @@ def predict(deployment_name, api_name):
     response = {}
 
     if not util.is_dict(payload) or "samples" not in payload:
-        util.log_pretty_flat(payload, logging_func=logger.error)
-        return prediction_failed(payload, "top level `samples` key not found in request")
+        return prediction_failed('top level "samples" key not found in request')
 
     predictions = []
     samples = payload["samples"]
     if not util.is_list(samples):
-        util.log_pretty_flat(samples, logging_func=logger.error)
-        return prediction_failed(
-            payload, "expected the value of key `samples` to be a list of json objects"
-        )
+        return prediction_failed('expected the value of key "samples" to be a list of json objects')
 
     for i, sample in enumerate(payload["samples"]):
         try:
@@ -389,14 +388,14 @@ def predict(deployment_name, api_name):
                     api["name"]
                 )
             )
-            return prediction_failed(sample, str(e))
+            return prediction_failed(str(e))
         except Exception as e:
             logger.exception(
                 "An error occurred, see `cortex logs -v api {}` for more details.".format(
                     api["name"]
                 )
             )
-            return prediction_failed(sample, str(e))
+            return prediction_failed(str(e))
 
         predictions.append(result)
 
@@ -409,7 +408,7 @@ def predict(deployment_name, api_name):
 def extract_signature():
     signature_def = local_cache["metadata"]["signatureDef"]
     if signature_def.get("predict") is None or signature_def["predict"].get("inputs") is None:
-        raise UserException("unable to find signature definition for model")
+        raise UserException('unable to find "predict" in model\'s signature definition')
 
     metadata = {}
     for input_name, input_metadata in signature_def["predict"]["inputs"].items():
@@ -481,6 +480,20 @@ def validate_model_dir(model_dir):
         raise UserException(
             'Expected packaged model to have a "saved_model.pb" file. See docs.cortex.dev for how to properly package your TensorFlow model'
         )
+
+
+@app.after_request
+def after_request(response):
+    if request.full_path.startswith("/healthz"):
+        return response
+    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
+    return response
+
+
+@app.errorhandler(Exception)
+def exceptions(e):
+    logger.exception(e)
+    return jsonify(error=str(e)), 500
 
 
 def start(args):

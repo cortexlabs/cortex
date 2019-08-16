@@ -66,11 +66,8 @@ local_cache = {
 }
 
 
-def prediction_failed(sample, reason=None):
-    message = "prediction failed for sample: {}".format(util.pp_str_flat(sample))
-    if reason:
-        message += " ({})".format(reason)
-
+def prediction_failed(reason):
+    message = "prediction failed: " + reason
     logger.error(message)
     return message, status.HTTP_406_NOT_ACCEPTABLE
 
@@ -113,7 +110,7 @@ def convert_to_onnx_input(sample, input_metadata_list):
             try:
                 input_dict[input_metadata.name] = transform_to_numpy(sample, input_metadata)
             except CortexException as e:
-                e.wrap("key {}".format(input_metadata.name))
+                e.wrap('key "{}"'.format(input_metadata.name))
                 raise
     else:
         for input_metadata in input_metadata_list:
@@ -130,7 +127,7 @@ def convert_to_onnx_input(sample, input_metadata_list):
             try:
                 input_dict[input_metadata.name] = transform_to_numpy(sample, input_metadata)
             except CortexException as e:
-                e.wrap("key {}".format(input_metadata.name))
+                e.wrap('key "{}"'.format(input_metadata.name))
                 raise
     return input_dict
 
@@ -151,24 +148,18 @@ def predict(app_name, api_name):
     response = {}
 
     if not util.is_dict(payload) or "samples" not in payload:
-        util.log_pretty_flat(payload, logging_func=logger.error)
-        return prediction_failed(payload, "top level `samples` key not found in request")
+        return prediction_failed('top level "samples" key not found in request')
 
     predictions = []
     samples = payload["samples"]
     if not util.is_list(samples):
-        util.log_pretty_flat(samples, logging_func=logger.error)
-        return prediction_failed(
-            payload, "expected the value of key `samples` to be a list of json objects"
-        )
+        return prediction_failed('expected the value of key "samples" to be a list of json objects')
 
     for i, sample in enumerate(payload["samples"]):
         try:
-            logger.info("sample: " + util.pp_str_flat(sample))
             prepared_sample = sample
             if request_handler is not None and util.has_function(request_handler, "pre_inference"):
                 prepared_sample = request_handler.pre_inference(sample, input_metadata)
-                logger.info("pre_inference: " + util.pp_str_flat(prepared_sample))
 
             inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
             model_outputs = sess.run([], inference_input)
@@ -179,10 +170,8 @@ def predict(app_name, api_name):
                 else:
                     result.append(model_output)
 
-            logger.info("inference: " + util.pp_str_flat(result))
             if request_handler is not None and util.has_function(request_handler, "post_inference"):
                 result = request_handler.post_inference(result, output_metadata)
-                logger.info("post_inference: " + util.pp_str_flat(result))
 
             prediction = {"prediction": result}
         except CortexException as e:
@@ -191,12 +180,12 @@ def predict(app_name, api_name):
             logger.exception(
                 "An error occurred, see `cx logs -v api {}` for more details.".format(api["name"])
             )
-            return prediction_failed(sample, str(e))
+            return prediction_failed(str(e))
         except Exception as e:
             logger.exception(
                 "An error occurred, see `cx logs -v api {}` for more details.".format(api["name"])
             )
-            return prediction_failed(sample, str(e))
+            return prediction_failed(str(e))
 
         predictions.append(prediction)
 
@@ -216,6 +205,20 @@ def get_signature(app_name, api_name):
         metadata[input_metadata.name] = {"shape": input_metadata.shape, "type": numpy_type}
     response = {"signature": metadata}
     return jsonify(response)
+
+
+@app.after_request
+def after_request(response):
+    if request.full_path.startswith("/healthz"):
+        return response
+    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
+    return response
+
+
+@app.errorhandler(Exception)
+def exceptions(e):
+    logger.exception(e)
+    return jsonify(error=str(e)), 500
 
 
 def start(args):
