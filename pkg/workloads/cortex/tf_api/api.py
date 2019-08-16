@@ -517,7 +517,7 @@ def start(args):
                 ctx.storage.download_and_unzip(model["key"], args.model_dir)
             else:
                 download_dir_external(ctx, api["model"], args.model_dir)
-       
+
             if args.only_download:
                 return
 
