@@ -166,9 +166,7 @@ def create_raw_prediction_request(sample):
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
 
         try:
-            tensor_proto = tf.make_tensor_proto(
-                value, dtype=DTYPE_TO_TF_TYPE[sig_type]
-            )
+            tensor_proto = tf.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type])
             prediction_request.inputs[column_name].CopyFrom(tensor_proto)
         except Exception as e:
             raise UserException(
