@@ -25,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/models"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
@@ -76,6 +75,29 @@ var apiValidation = &cr.StructValidation{
 		tagsFieldValidation,
 		typeFieldValidation,
 	},
+}
+
+// IsValidS3Directory checks that the path contains a valid S3 directory for Tensorflow models
+// Must contain the following structure:
+// - 1523423423/ (version prefix, usually a timestamp)
+// 		- saved_model.pb
+//		- variables/
+//			- variables.index
+//			- variables.data-00000-of-00001 (there are a variable number of these files)
+func IsValidS3Directory(path string) bool {
+	if valid, err := aws.IsS3PathFileExternal(
+		fmt.Sprintf("%s/saved_model.pb", path),
+		fmt.Sprintf("%s/variables/variables.index", path),
+	); err != nil || !valid {
+		return false
+	}
+
+	if valid, err := aws.IsS3PathPrefixExternal(
+		fmt.Sprintf("%s/variables/variables.data-00000-of", path),
+	); err != nil || !valid {
+		return false
+	}
+	return true
 }
 
 func (api *API) UserConfigStr() string {
@@ -136,7 +158,7 @@ func (api *API) Validate() error {
 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
 		}
 	case TensorFlowModelFormat:
-		if !models.IsValidS3Directory(api.Model) {
+		if !IsValidS3Directory(api.Model) {
 			return errors.Wrap(ErrorInvalidTensorflowDir(api.Model), Identify(api), ModelKey)
 		}
 	default:
@@ -146,7 +168,7 @@ func (api *API) Validate() error {
 			if ok, err := aws.IsS3PathFileExternal(api.Model); err != nil || !ok {
 				return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
 			}
-		case models.IsValidS3Directory(api.Model):
+		case IsValidS3Directory(api.Model):
 			api.ModelFormat = TensorFlowModelFormat
 		default:
 			return errors.Wrap(ErrorUnableToInferModelFormat(), Identify(api))

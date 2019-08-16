@@ -143,4 +143,11 @@ class LocalStorage(object):
         util.extract_zip(local_zip, delete_zip_file=True)
 
     def list_objects(self, path):
+        objects = []
+        for root, dirs, files in os.walk(path):
+            for name in files:
+                objects.append(os.path.join(root, name))
+            for name in dirs:
+                objects.append(os.path.join(root, name))
+
         return os.listdir(path)
