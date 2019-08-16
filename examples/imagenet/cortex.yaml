@@ -1,5 +1,5 @@
 - kind: deployment
-  name: inception
+  name: imagenet
 
 - kind: api
   name: classifier
