@@ -13,7 +13,6 @@ logreg_model.fit(X_train, y_train)
 
 print("Test data accuracy: {:.2f}".format(logreg_model.score(X_test, y_test)))
 
-# Convert to ONNX model format
 onnx_model = convert_sklearn(logreg_model, initial_types=[("input", FloatTensorType([1, 4]))])
 with open("sklearn.onnx", "wb") as f:
     f.write(onnx_model.SerializeToString())

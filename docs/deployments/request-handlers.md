@@ -44,7 +44,7 @@ def post_inference(prediction, metadata):
 ```python
 import numpy as np
 
-iris_labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
+labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
 
 def pre_inference(sample, metadata):
     # Convert a dictionary of features to a flattened in list in the order expected by the model
@@ -63,7 +63,7 @@ def post_inference(prediction, metadata):
     probabilites = prediction[0][0]
     predicted_class_id = int(np.argmax(probabilites))
     return {
-        "class_label": iris_labels[predicted_class_id],
+        "class_label": labels[predicted_class_id],
         "class_index": predicted_class_id,
         "probabilities": probabilites,
     }
