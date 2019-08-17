@@ -165,7 +165,7 @@ def create_raw_prediction_request(sample):
                 shape.append(int(dim["size"]))
         else:
             shape = [1]
-            
+
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
 
         try:
