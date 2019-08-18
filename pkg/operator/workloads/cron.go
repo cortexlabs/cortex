@@ -89,6 +89,7 @@ func reportAndRecover(strs ...string) error {
 		err := errors.CastRecoverError(errInterface, strs...)
 		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
+		errors.PrintStacktrace(err)
 		return err
 	}
 	return nil

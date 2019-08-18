@@ -99,11 +99,15 @@ def after_request(response):
     api = local_cache["api"]
     ctx = local_cache["ctx"]
 
-    if request.path == "/{}/{}".format(ctx.app["name"], api["name"]):
-        predictions = None
-        if "predictions" in g:
-            predictions = g.predictions
-        api_utils.post_request_metrics(ctx, api, response, predictions)
+    if request.path != "/{}/{}".format(ctx.app["name"], api["name"]):
+        return response
+
+    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
+
+    predictions = None
+    if "predictions" in g:
+        predictions = g.predictions
+    api_utils.post_request_metrics(ctx, api, response, predictions)
 
     return response
 
@@ -478,14 +482,6 @@ def validate_model_dir(model_dir):
         raise UserException(
             'Expected packaged model to have a "saved_model.pb" file. See docs.cortex.dev for how to properly package your TensorFlow model'
         )
-
-
-@app.after_request
-def after_request(response):
-    if request.full_path.startswith("/healthz"):
-        return response
-    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
-    return response
 
 
 @app.errorhandler(Exception)

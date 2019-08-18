@@ -30,8 +30,10 @@ def api_metric_dimensions(ctx, api_name):
 
 def status_code_metric(dimensions, status_code):
     status_code_series = int(status_code / 100)
-    dimensions.append({"Name": "Code", "Value": "{}XX".format(status_code_series)})
-    return [{"MetricName": "StatusCode", "Dimensions": dimensions, "Value": 1}]
+    status_code_dimensions = dimensions + [
+        {"Name": "Code", "Value": "{}XX".format(status_code_series)}
+    ]
+    return [{"MetricName": "StatusCode", "Dimensions": status_code_dimensions, "Value": 1}]
 
 
 def predictions_per_request_metric(dimensions, prediction_count):
@@ -41,6 +43,7 @@ def predictions_per_request_metric(dimensions, prediction_count):
 
 
 def prediction_metrics(dimensions, api, predictions):
+
     metric_list = []
     tracker = api.get("tracker")
     for prediction in predictions:
@@ -49,36 +52,38 @@ def prediction_metrics(dimensions, api, predictions):
             raise UserException("key {} not found in prediction".format(tracker["key"]))
 
         if tracker["model_type"] == "classification":
-            if type(predicted_value) != str:
+            if type(predicted_value) == str or type(predicted_value) == int:
+                dimensions_with_class = dimensions + [
+                    {"Name": "Class", "Value": str(predicted_value)}
+                ]
+                metric = {
+                    "MetricName": "Prediction",
+                    "Dimensions": dimensions_with_class,
+                    "Unit": "Count",
+                    "Value": 1,
+                }
+
+                metric_list.append(metric)
+            else:
                 raise UserException(
-                    "expected type 'str' but found '{}' when tracking key '{}'".format(
+                    "expected type 'str' or 'int' but found '{}' when tracking key '{}'".format(
                         type(predicted_value), tracker["key"]
                     )
                 )
-            dimensions_with_class = dimensions.copy()
-            dimensions_with_class.append({"Name": "Class", "Value": str(predicted_value)})
-            metric = {
-                "MetricName": "Prediction",
-                "Dimensions": dimensions_with_class,
-                "Unit": "Count",
-                "Value": 1,
-            }
-
-            metric_list.append(metric)
-
         else:
-            if type(predicted_value) != float:
+            if type(predicted_value) == float or type(predicted_value) == int:  # allow ints
+                metric = {
+                    "MetricName": "Prediction",
+                    "Dimensions": dimensions,
+                    "Value": float(predicted_value),
+                }
+                metric_list.append(metric)
+            else:
                 raise UserException(
-                    "expected type 'float' but found '{}' when tracking key '{}'".format(
+                    "expected type 'float' or 'int' but found '{}' when tracking key '{}'".format(
                         type(predicted_value), tracker["key"]
                     )
                 )
-            metric = {
-                "MetricName": "Prediction",
-                "Dimensions": dimensions,
-                "Value": predicted_value,
-            }
-            metric_list.append(metric)
     return metric_list
 
 
@@ -88,14 +93,13 @@ def post_request_metrics(ctx, api, response, predictions):
 
         api_dimensions = api_metric_dimensions(ctx, api_name)
         metrics_list = []
-
-        metrics_list += status_code_metric(api_dimensions.copy(), response.status_code)
+        metrics_list += status_code_metric(api_dimensions, response.status_code)
 
         if predictions is not None:
-            metrics_list += predictions_per_request_metric(api_dimensions.copy(), len(predictions))
+            metrics_list += predictions_per_request_metric(api_dimensions, len(predictions))
 
             if api.get("tracker") is not None:
-                metrics_list += prediction_metrics(api_dimensions.copy(), api, predictions)
+                metrics_list += prediction_metrics(api_dimensions, api, predictions)
         ctx.publish_metrics(metrics_list)
 
     except CortexException as e:

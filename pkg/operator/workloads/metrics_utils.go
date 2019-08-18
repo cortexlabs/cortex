@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package endpoints
+package workloads
 
 import (
 	"fmt"
@@ -22,11 +22,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
+// For adding integer values in cloudwatch metrics
 func SumInt(floats ...*float64) *int {
-	if len(floats) == 0 {
-		return nil
-	}
-
 	sum := 0
 	for _, num := range floats {
 		sum += int(*num)
@@ -34,23 +31,7 @@ func SumInt(floats ...*float64) *int {
 	return &sum
 }
 
-func SumFloat(floats ...*float64) *float64 {
-	if len(floats) == 0 {
-		return nil
-	}
-
-	sum := 0.0
-	for _, num := range floats {
-		sum += *num
-	}
-	return &sum
-}
-
 func Min(floats ...*float64) *float64 {
-	if len(floats) == 0 {
-		return nil
-	}
-
 	min := *floats[0]
 	for _, num := range floats {
 		if min > *num {
@@ -61,10 +42,6 @@ func Min(floats ...*float64) *float64 {
 }
 
 func Max(floats ...*float64) *float64 {
-	if len(floats) == 0 {
-		return nil
-	}
-
 	max := *floats[0]
 	for _, num := range floats {
 		if max < *num {
@@ -74,26 +51,22 @@ func Max(floats ...*float64) *float64 {
 	return &max
 }
 
-func Avg(values []*float64, counts []*float64) (*float64, error) {
-	if len(values) == 0 || len(counts) == 0 {
-		return nil, nil
-	}
-
-	if len(values) != len(counts) {
+func Avg(values []*float64, weights []*float64) (*float64, error) {
+	if len(values) != len(weights) {
 		return nil, errors.New("length of values is not equal to length of weights")
 	}
 
-	total := float64(*SumInt(counts...))
+	total := *SumInt(weights...)
 	avg := 0.0
 	for idx, valPtr := range values {
-		weight := *counts[idx]
+		weight := *weights[idx]
 
 		if weight <= 0 {
-			return nil, errors.New(fmt.Sprintf("weight %g must be greater", weight))
+			return nil, errors.New(fmt.Sprintf("weight %g must be greater than 0.0", weight))
 		}
 
 		value := *valPtr
-		avg += value * weight / total
+		avg += value * weight / float64(total)
 	}
 
 	return &avg, nil

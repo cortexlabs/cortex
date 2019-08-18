@@ -17,7 +17,6 @@ import json
 import imp
 import inspect
 import importlib
-import time
 from datetime import datetime
 from copy import deepcopy
 import boto3
