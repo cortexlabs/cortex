@@ -1,6 +1,6 @@
 import numpy as np
 
-labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
+labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
 def pre_inference(sample, metadata):

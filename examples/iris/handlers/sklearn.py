@@ -7,7 +7,7 @@ from cortex.lib.log import get_logger
 logger = get_logger()
 s3 = boto3.client("s3")
 
-labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
+labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 scalars_obj = s3.get_object(Bucket="cortex-examples", Key="iris/scalars.json")
 scalars = json.loads(scalars_obj["Body"].read().decode("utf-8"))

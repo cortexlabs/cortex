@@ -1,4 +1,4 @@
-labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
+labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
 def post_inference(prediction, metadata):
