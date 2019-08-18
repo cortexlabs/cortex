@@ -65,7 +65,7 @@ var getCmd = &cobra.Command{
 
 func runGet(cmd *cobra.Command, args []string) (string, error) {
 	if flagAllDeployments || !IsAppNameSpecified() {
-		return getDeploymentsResponse()
+		return allDeploymentsStr()
 	}
 
 	resourcesRes, err := getResourcesResponse()
@@ -114,7 +114,7 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 	return "", errors.New("too many args") // unexpected
 }
 
-func getDeploymentsResponse() (string, error) {
+func allDeploymentsStr() (string, error) {
 	httpResponse, err := HTTPGet("/deployments", map[string]string{})
 	if err != nil {
 		return "", err
