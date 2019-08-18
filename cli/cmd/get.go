@@ -591,22 +591,6 @@ func valueStr(value interface{}) string {
 	return titleStr("value") + s.Obj(value) + "\n"
 }
 
-func strMapToStr(strings map[string]string) string {
-	var keys []string
-	for key := range strings {
-		keys = append(keys, key)
-	}
-
-	sort.Strings(keys)
-
-	out := ""
-	for _, key := range keys {
-		out += strings[key] + "\n"
-	}
-
-	return out
-}
-
 func dataResourceTable(resources []context.Resource, dataStatuses map[string]*resource.DataStatus, resourceType resource.Type) string {
 	rows := make([][]interface{}, len(resources))
 	for rowNum, res := range resources {
