@@ -136,6 +136,8 @@ var (
 		"tds":  TrainingDatasetType,
 		"ct":   ConstantType,
 		"cts":  ConstantType,
+		"py":   PythonPackageType,
+		"pys":  PythonPackageType,
 		"pp":   PythonPackageType,
 		"pps":  PythonPackageType,
 	}
