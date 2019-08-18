@@ -7,7 +7,7 @@ from cortex.lib.log import get_logger
 logger = get_logger()
 s3 = boto3.client("s3")
 
-iris_labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
+labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 scalars_obj = s3.get_object(Bucket="cortex-examples", Key="iris/scalars.json")
 scalars = json.loads(scalars_obj["Body"].read().decode("utf-8"))
@@ -28,4 +28,4 @@ def pre_inference(sample, metadata):
 
 def post_inference(prediction, metadata):
     predicted_class_id = prediction[0][0]
-    return {"class_label": iris_labels[predicted_class_id], "class_index": predicted_class_id}
+    return {"class_label": labels[predicted_class_id], "class_index": predicted_class_id}
