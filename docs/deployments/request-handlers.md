@@ -44,7 +44,7 @@ def post_inference(prediction, metadata):
 ```python
 import numpy as np
 
-labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
+labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 def pre_inference(sample, metadata):
     # Convert a dictionary of features to a flattened in list in the order expected by the model
