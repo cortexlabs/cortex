@@ -108,8 +108,8 @@ function setup_istio() {
     --from-literal='AWS_SECRET_ACCESS_KEY'=$CORTEX_AWS_SECRET_ACCESS_KEY \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
   istio_patch="[
-    {\"op\": \"add\", \"path\": \"/spec/template/spec/containers/0/env/-\", \"value\": {\"name\": \"CORTEX_AWS_ACCESS_KEY_ID\", \"valueFrom\": {\"secretKeyRef\": {\"name\": \"aws-credentials\", \"key\": \"CORTEX_AWS_ACCESS_KEY_ID\"}}}},\
-    {\"op\": \"add\", \"path\": \"/spec/template/spec/containers/0/env/-\", \"value\": {\"name\": \"CORTEX_AWS_SECRET_ACCESS_KEY\", \"valueFrom\": {\"secretKeyRef\": {\"name\": \"aws-credentials\", \"key\": \"CORTEX_AWS_SECRET_ACCESS_KEY\"}}}},\
+    {\"op\": \"add\", \"path\": \"/spec/template/spec/containers/0/env/-\", \"value\": {\"name\": \"AWS_ACCESS_KEY_ID\", \"valueFrom\": {\"secretKeyRef\": {\"name\": \"aws-credentials\", \"key\": \"AWS_ACCESS_KEY_ID\"}}}},\
+    {\"op\": \"add\", \"path\": \"/spec/template/spec/containers/0/env/-\", \"value\": {\"name\": \"AWS_SECRET_ACCESS_KEY\", \"valueFrom\": {\"secretKeyRef\": {\"name\": \"aws-credentials\", \"key\": \"AWS_SECRET_ACCESS_KEY\"}}}},\
   ]"
   kubectl patch deployment istio-telemetry -n istio-system --type='json' -p="$istio_patch" >/dev/null
 }
