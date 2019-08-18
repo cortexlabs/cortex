@@ -147,6 +147,7 @@ var (
 		TrainingDatasetType,
 		ModelType,
 		APIType,
+		PythonPackageType,
 	}
 )
 
