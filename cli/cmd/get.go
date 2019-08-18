@@ -26,11 +26,11 @@ import (
 	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 
+	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
@@ -130,7 +130,7 @@ func getDeploymentsResponse() (string, error) {
 	}
 
 	if len(resourcesRes.Deployments) == 0 {
-		return "No deployments found", nil
+		return "no deployments found", nil
 	}
 
 	rows := make([][]interface{}, len(resourcesRes.Deployments))
@@ -144,9 +144,9 @@ func getDeploymentsResponse() (string, error) {
 
 	t := table.Table{
 		Headers: []table.Header{
-			{Title: "NAME", MaxWidth: 32},
-			{Title: "STATUS", MaxWidth: 21},
-			{Title: "LAST UPDATE"},
+			{Title: "name", MaxWidth: 32},
+			{Title: "status", MaxWidth: 21},
+			{Title: "last updated"},
 		},
 		Rows: rows,
 	}
@@ -202,19 +202,19 @@ func resourceByNameStr(resourceName string, resourcesRes *schema.GetResourcesRes
 func resourcesByTypeStr(resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	switch resourceType {
 	case resource.PythonPackageType:
-		return pythonPackagesStr(resourcesRes.DataStatuses, resourcesRes.Context, false), nil
+		return pythonPackagesStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.RawColumnType:
-		return rawColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context, false), nil
+		return rawColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.AggregateType:
-		return aggregatesStr(resourcesRes.DataStatuses, resourcesRes.Context, false), nil
+		return aggregatesStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.TransformedColumnType:
-		return transformedColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context, false), nil
+		return transformedColumnsStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.TrainingDatasetType:
-		return trainingDataStr(resourcesRes.DataStatuses, resourcesRes.Context, false), nil
+		return trainingDataStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.ModelType:
-		return modelsStr(resourcesRes.DataStatuses, resourcesRes.Context, false), nil
+		return modelsStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.APIType:
-		return apisStr(resourcesRes.APIGroupStatuses, false), nil
+		return apisStr(resourcesRes.APIGroupStatuses), nil
 	default:
 		return "", resource.ErrorInvalidType(resourceType.String())
 	}
@@ -244,27 +244,18 @@ func resourceByNameAndTypeStr(resourceName string, resourceType resource.Type, r
 func allResourcesStr(resourcesRes *schema.GetResourcesResponse) string {
 	ctx := resourcesRes.Context
 
-	showTitle := false
-	if slices.AreNGreaterThanZero(2,
-		len(ctx.PythonPackages), len(ctx.RawColumns), len(ctx.Aggregates),
-		len(ctx.TransformedColumns), len(ctx.Models), len(ctx.Models), // Models occurs twice because of training datasets
-		len(resourcesRes.APIGroupStatuses),
-	) {
-		showTitle = true
-	}
-
 	out := ""
-	out += pythonPackagesStr(resourcesRes.DataStatuses, ctx, showTitle)
-	out += rawColumnsStr(resourcesRes.DataStatuses, ctx, showTitle)
-	out += aggregatesStr(resourcesRes.DataStatuses, ctx, showTitle)
-	out += transformedColumnsStr(resourcesRes.DataStatuses, ctx, showTitle)
-	out += trainingDataStr(resourcesRes.DataStatuses, ctx, showTitle)
-	out += modelsStr(resourcesRes.DataStatuses, ctx, showTitle)
-	out += apisStr(resourcesRes.APIGroupStatuses, showTitle)
+	out += pythonPackagesStr(resourcesRes.DataStatuses, ctx)
+	out += rawColumnsStr(resourcesRes.DataStatuses, ctx)
+	out += aggregatesStr(resourcesRes.DataStatuses, ctx)
+	out += transformedColumnsStr(resourcesRes.DataStatuses, ctx)
+	out += trainingDataStr(resourcesRes.DataStatuses, ctx)
+	out += modelsStr(resourcesRes.DataStatuses, ctx)
+	out += apisStr(resourcesRes.APIGroupStatuses)
 	return out
 }
 
-func pythonPackagesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context, showTitle bool) string {
+func pythonPackagesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.PythonPackages) == 0 {
 		return ""
 	}
@@ -274,14 +265,10 @@ func pythonPackagesStr(dataStatuses map[string]*resource.DataStatus, ctx *contex
 		resources = append(resources, pythonPackage)
 	}
 
-	title := "\n"
-	if showTitle {
-		title = titleStr("Python Packages")
-	}
-	return title + dataResourceTable(resources, dataStatuses) + "\n"
+	return "\n" + dataResourceTable(resources, dataStatuses, resource.PythonPackageType) + "\n"
 }
 
-func rawColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context, showTitle bool) string {
+func rawColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.RawColumns) == 0 {
 		return ""
 	}
@@ -291,14 +278,10 @@ func rawColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Co
 		resources = append(resources, rawColumn)
 	}
 
-	title := "\n"
-	if showTitle {
-		title = titleStr("Raw Columns")
-	}
-	return title + dataResourceTable(resources, dataStatuses) + "\n"
+	return "\n" + dataResourceTable(resources, dataStatuses, resource.RawColumnType) + "\n"
 }
 
-func aggregatesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context, showTitle bool) string {
+func aggregatesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.Aggregates) == 0 {
 		return ""
 	}
@@ -308,14 +291,10 @@ func aggregatesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Co
 		resources = append(resources, aggregate)
 	}
 
-	title := "\n"
-	if showTitle {
-		title = titleStr("Aggregates")
-	}
-	return title + dataResourceTable(resources, dataStatuses) + "\n"
+	return "\n" + dataResourceTable(resources, dataStatuses, resource.AggregateType) + "\n"
 }
 
-func transformedColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context, showTitle bool) string {
+func transformedColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.TransformedColumns) == 0 {
 		return ""
 	}
@@ -325,14 +304,10 @@ func transformedColumnsStr(dataStatuses map[string]*resource.DataStatus, ctx *co
 		resources = append(resources, transformedColumn)
 	}
 
-	title := "\n"
-	if showTitle {
-		title = titleStr("Transformed Columns")
-	}
-	return title + dataResourceTable(resources, dataStatuses) + "\n"
+	return "\n" + dataResourceTable(resources, dataStatuses, resource.TransformedColumnType) + "\n"
 }
 
-func trainingDataStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context, showTitle bool) string {
+func trainingDataStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.Models) == 0 {
 		return ""
 	}
@@ -342,14 +317,10 @@ func trainingDataStr(dataStatuses map[string]*resource.DataStatus, ctx *context.
 		resources = append(resources, model.Dataset)
 	}
 
-	title := "\n"
-	if showTitle {
-		title = titleStr("Training Datasets")
-	}
-	return title + dataResourceTable(resources, dataStatuses) + "\n"
+	return "\n" + dataResourceTable(resources, dataStatuses, resource.TrainingDatasetType) + "\n"
 }
 
-func modelsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context, showTitle bool) string {
+func modelsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
 	if len(ctx.Models) == 0 {
 		return ""
 	}
@@ -359,23 +330,15 @@ func modelsStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Contex
 		resources = append(resources, model)
 	}
 
-	title := "\n"
-	if showTitle {
-		title = titleStr("Models")
-	}
-	return title + dataResourceTable(resources, dataStatuses) + "\n"
+	return "\n" + dataResourceTable(resources, dataStatuses, resource.ModelType) + "\n"
 }
 
-func apisStr(apiGroupStatuses map[string]*resource.APIGroupStatus, showTitle bool) string {
+func apisStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
 	if len(apiGroupStatuses) == 0 {
 		return ""
 	}
 
-	title := "\n"
-	if showTitle {
-		title = titleStr("APIs")
-	}
-	return title + apiResourceTable(apiGroupStatuses)
+	return "\n" + apiResourceTable(apiGroupStatuses)
 }
 
 func describePythonPackage(name string, resourcesRes *schema.GetResourcesResponse) (string, error) {
@@ -394,7 +357,7 @@ func describeRawColumn(name string, resourcesRes *schema.GetResourcesResponse) (
 	}
 	dataStatus := resourcesRes.DataStatuses[rawColumn.GetID()]
 	out := dataStatusSummary(dataStatus)
-	out += titleStr("Configuration") + rawColumn.UserConfigStr()
+	out += "\n" + titleStr("configuration") + rawColumn.UserConfigStr()
 	return out, nil
 }
 
@@ -426,7 +389,7 @@ func describeAggregate(name string, resourcesRes *schema.GetResourcesResponse) (
 		out += valueStr(obj)
 	}
 
-	out += titleStr("Configuration") + aggregate.UserConfigStr()
+	out += "\n" + titleStr("configuration") + aggregate.UserConfigStr()
 	return out, nil
 }
 
@@ -437,7 +400,7 @@ func describeTransformedColumn(name string, resourcesRes *schema.GetResourcesRes
 	}
 	dataStatus := resourcesRes.DataStatuses[transformedColumn.ID]
 	out := dataStatusSummary(dataStatus)
-	out += titleStr("Configuration") + transformedColumn.UserConfigStr()
+	out += "\n" + titleStr("configuration") + transformedColumn.UserConfigStr()
 	return out, nil
 }
 
@@ -457,7 +420,7 @@ func describeModel(name string, resourcesRes *schema.GetResourcesResponse) (stri
 	}
 	dataStatus := resourcesRes.DataStatuses[model.ID]
 	out := dataStatusSummary(dataStatus)
-	out += titleStr("Configuration") + model.UserConfigStr()
+	out += "\n" + titleStr("configuration") + model.UserConfigStr()
 	return out, nil
 }
 
@@ -482,44 +445,46 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		updatedAt = groupStatus.ActiveStatus.Start
 	}
 
-	var staleComputeStr = ""
-	if groupStatus.ReadyStaleCompute != 0 {
-		hasStr := "has"
-		if groupStatus.ReadyStaleCompute > 1 {
-			hasStr = "have"
-		}
-		staleComputeStr = fmt.Sprintf(" (%s %s previous compute)", s.Int32(groupStatus.ReadyStaleCompute), hasStr)
+	row := []interface{}{
+		groupStatus.Message(),
+		s.Int32(groupStatus.Requested),
+		s.Int32(groupStatus.Available()),
+		s.Int32(groupStatus.ReadyUpdated),
+		s.Int32(groupStatus.ReadyStaleCompute),
+		s.Int32(groupStatus.ReadyStaleModel),
+		s.Int32(groupStatus.FailedUpdated),
+	}
+
+	headers := []table.Header{
+		{Title: "status"},
+		{Title: "requested"},
+		{Title: "available"},
+		{Title: "up-to-date"},
+		{Title: "stale compute", Hidden: groupStatus.ReadyStaleCompute == 0},
+		{Title: "stale model", Hidden: groupStatus.ReadyStaleModel == 0},
+		{Title: "failed", Hidden: groupStatus.FailedUpdated == 0},
 	}
 
 	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
 
-	out := "\nURL: " + apiEndpoint + "\n"
-	out += fmt.Sprintf("cURL: curl -k -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n", apiEndpoint)
+	out := "\n" + console.Bold("url:  ") + apiEndpoint + "\n"
+	out += fmt.Sprintf("%s curl -k -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n\n", console.Bold("curl:"), apiEndpoint)
+	out += fmt.Sprintf(console.Bold("updated at:")+" %s\n", libtime.LocalTimestamp(updatedAt))
+
+	t := table.Table{
+		Headers: headers,
+		Rows:    [][]interface{}{row},
+	}
+	out += "\n" + table.MustFormat(t)
+
 	out += "\n"
-	out += fmt.Sprintf("Status:              %s\n", groupStatus.Message())
-	out += fmt.Sprintf("Available replicas:  %s\n", s.Int32(groupStatus.Available()))
-	out += fmt.Sprintf("  - Current model:   %s%s\n", s.Int32(groupStatus.UpToDate()), staleComputeStr)
-	out += fmt.Sprintf("  - Previous model:  %s\n", s.Int32(groupStatus.ReadyStaleModel))
-	out += fmt.Sprintf("Requested replicas:  %s\n", s.Int32(groupStatus.Requested))
-	out += fmt.Sprintf("Failed replicas:     %s\n", s.Int32(groupStatus.FailedUpdated))
-	out += "\n"
-	out += fmt.Sprintf("Updated at:  %s", libtime.LocalTimestamp(updatedAt))
-	out += "\n"
-	out += apiMetricsTable(ctx.App.Name, api)
+	out += "\n" + apiMetricsTable(ctx.App.Name, api)
 
 	if !flagVerbose {
 		return out, nil
 	}
 
-	out += "\n"
-
-	if api != nil {
-		out += titleStr("Configuration") + api.UserConfigStr()
-	}
-
-	out += titleStr("Model Input Signature")
-
-	out += describeModelInput(groupStatus, apiEndpoint)
+	out += "\n\n" + describeModelInput(groupStatus, apiEndpoint)
 
 	if modelName, ok := yaml.ExtractAtSymbolText(api.Model); ok {
 		model := ctx.Models[modelName]
@@ -538,15 +503,17 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		}
 		sort.Strings(samplePlaceholderFields)
 		samplesPlaceholderStr := `{ "samples": [ { ` + strings.Join(samplePlaceholderFields, ", ") + " } ] }"
-		out += "\n\nPayload:  " + samplesPlaceholderStr
+		out += "\n\n" + console.Bold("payload:  ") + samplesPlaceholderStr
+	}
+
+	if api != nil {
+		out += "\n" + titleStr("configuration") + api.UserConfigStr()
 	}
 
 	return out, nil
 }
 
 func apiMetricsTable(appName string, api *context.API) string {
-	out := titleStr("Metrics")
-
 	params := map[string]string{"appName": appName, "apiName": api.Name}
 	httpResponse, err := HTTPGet("/metrics", params)
 	if err != nil {
@@ -559,9 +526,10 @@ func apiMetricsTable(appName string, api *context.API) string {
 		errors.Exit(err)
 	}
 
-	out += networkMetricsTable(&apiMetrics)
+	out := networkMetricsTable(&apiMetrics)
 	out += "\n\n"
 	if api.Tracker == nil {
+		out += titleStr("prediction metrics")
 		out += "tracker not configured to record predictions"
 		return out
 	}
@@ -574,11 +542,9 @@ func apiMetricsTable(appName string, api *context.API) string {
 }
 
 func networkMetricsTable(apiMetrics *schema.APIMetrics) string {
-	total := apiMetrics.NetworkStats.Code2XX + apiMetrics.NetworkStats.Code4XX + apiMetrics.NetworkStats.Code5XX
-
 	latency := "-"
 	if apiMetrics.NetworkStats.Latency != nil {
-		latency = fmt.Sprintf("%.9g", *(apiMetrics.NetworkStats.Latency))
+		latency = fmt.Sprintf("%.9g", *apiMetrics.NetworkStats.Latency)
 	}
 
 	t := table.Table{
@@ -586,53 +552,53 @@ func networkMetricsTable(apiMetrics *schema.APIMetrics) string {
 			{Title: "2XX"},
 			{Title: "4XX"},
 			{Title: "5XX"},
-			{Title: "TOTAL"},
-			{Title: "AVG Latency"},
+			{Title: "total"},
+			{Title: "avg latency"},
 		},
 		Rows: [][]interface{}{
 			{
 				apiMetrics.NetworkStats.Code2XX,
 				apiMetrics.NetworkStats.Code4XX,
 				apiMetrics.NetworkStats.Code5XX,
-				total,
+				apiMetrics.NetworkStats.Total,
 				latency,
 			},
 		},
 	}
 
-	out := "Network Metrics\n"
-	out += table.MustFormat(t)
-	return out
+	return table.MustFormat(t)
 }
 
 func regressionMetricsTable(apiMetrics *schema.APIMetrics) string {
-	out := "Regression Metrics\n"
-	rows := [][]interface{}{}
-	if apiMetrics.RegressionStats != nil {
-		rows = append(rows, []interface{}{
-			fmt.Sprintf("%.9g", apiMetrics.RegressionStats.Min),
-			fmt.Sprintf("%.9g", apiMetrics.RegressionStats.Max),
-			fmt.Sprintf("%.9g", apiMetrics.RegressionStats.Avg),
-		})
-	} else {
-		rows = append(rows, []interface{}{
-			"-",
-			"-",
-			"-",
-		})
+	minStr := "-"
+	if apiMetrics.RegressionStats.Min != nil {
+		minStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Min)
+	}
+
+	maxStr := "-"
+	if apiMetrics.RegressionStats.Max != nil {
+		maxStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Max)
+	}
+
+	avgStr := "-"
+	if apiMetrics.RegressionStats.Avg != nil {
+		avgStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Avg)
 	}
 
 	t := table.Table{
 		Headers: []table.Header{
-			{Title: "MIN", MaxWidth: 10},
-			{Title: "MAX", MaxWidth: 10},
-			{Title: "AVG", MaxWidth: 10},
+			{Title: "min", MaxWidth: 10},
+			{Title: "max", MaxWidth: 10},
+			{Title: "avg", MaxWidth: 10},
 		},
-		Rows: rows,
+		Rows: [][]interface{}{
+			{
+				minStr, maxStr, avgStr,
+			},
+		},
 	}
 
-	out += table.MustFormat(t)
-	return out
+	return table.MustFormat(t)
 }
 
 func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
@@ -643,11 +609,11 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 	i := 0
 	for inputName := range apiMetrics.ClassDistribution {
 		classList[i] = inputName
+		i++
 	}
 	sort.Strings(classList)
 
 	if len(classList) > 0 && len(classList) < 4 {
-		out += "Classification Metrics\n"
 		row := []interface{}{}
 		headers := []table.Header{}
 
@@ -680,8 +646,8 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 
 		t := table.Table{
 			Headers: []table.Header{
-				{Title: "Classification Metrics", MaxWidth: 40},
-				{Title: "", MaxWidth: 20},
+				{Title: "classes", MaxWidth: 40},
+				{Title: "count", MaxWidth: 20},
 			},
 			Rows: rows,
 		}
@@ -697,12 +663,12 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 
 func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string) string {
 	if groupStatus.Available() == 0 {
-		return "Waiting for API to be ready"
+		return "waiting for api to be ready"
 	}
 
 	modelInput, err := getModelInput(urls.Join(apiEndpoint, "signature"))
 	if err != nil {
-		return "Waiting for API to be ready"
+		return "waiting for api to be ready"
 	}
 
 	rows := make([][]interface{}, len(modelInput.Signature))
@@ -726,9 +692,9 @@ func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string
 
 	t := table.Table{
 		Headers: []table.Header{
-			{Title: "FEATURE", MaxWidth: 32},
-			{Title: "TYPE", MaxWidth: 10},
-			{Title: "SHAPE", MaxWidth: 20},
+			{Title: "model input", MaxWidth: 32},
+			{Title: "type", MaxWidth: 10},
+			{Title: "shape", MaxWidth: 20},
 		},
 		Rows: rows,
 	}
@@ -757,15 +723,26 @@ func getModelInput(infoAPIPath string) (*schema.ModelInput, error) {
 }
 
 func dataStatusSummary(dataStatus *resource.DataStatus) string {
-	out := titleStr("Summary")
-	out += "Status:               " + dataStatus.Message() + "\n"
-	out += "Workload started at:  " + libtime.LocalTimestamp(dataStatus.Start) + "\n"
-	out += "Workload ended at:    " + libtime.LocalTimestamp(dataStatus.End) + "\n"
-	return out
+	headers := []table.Header{
+		{Title: "status"},
+		{Title: "start"},
+		{Title: "end"},
+	}
+	row := []interface{}{
+		dataStatus.Message(),
+		libtime.LocalTimestamp(dataStatus.Start),
+		libtime.LocalTimestamp(dataStatus.End),
+	}
+
+	t := table.Table{
+		Headers: headers,
+		Rows:    [][]interface{}{row},
+	}
+	return "\n" + table.MustFormat(t)
 }
 
 func valueStr(value interface{}) string {
-	return titleStr("Value") + s.Obj(value) + "\n"
+	return titleStr("value") + s.Obj(value) + "\n"
 }
 
 func strMapToStr(strings map[string]string) string {
@@ -784,7 +761,7 @@ func strMapToStr(strings map[string]string) string {
 	return out
 }
 
-func dataResourceTable(resources []context.Resource, dataStatuses map[string]*resource.DataStatus) string {
+func dataResourceTable(resources []context.Resource, dataStatuses map[string]*resource.DataStatus, resourceType resource.Type) string {
 	rows := make([][]interface{}, len(resources))
 	for rowNum, res := range resources {
 		dataStatus := dataStatuses[res.GetID()]
@@ -795,11 +772,16 @@ func dataResourceTable(resources []context.Resource, dataStatuses map[string]*re
 		}
 	}
 
+	title := resourceType.UserFacing()
+	if resourceType == resource.PythonPackageType {
+		title = resourceType.UserFacingPlural()
+	}
+
 	t := table.Table{
 		Headers: []table.Header{
-			{Title: "NAME", MaxWidth: 32},
-			{Title: "STATUS", MaxWidth: 21},
-			{Title: "AGE"},
+			{Title: title, MaxWidth: 32},
+			{Title: "status", MaxWidth: 21},
+			{Title: "age"},
 		},
 		Rows: rows,
 	}
@@ -809,6 +791,8 @@ func dataResourceTable(resources []context.Resource, dataStatuses map[string]*re
 
 func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
 	rows := make([][]interface{}, 0, len(apiGroupStatuses))
+
+	totalFailed := 0
 	for name, groupStatus := range apiGroupStatuses {
 		if groupStatus.Requested == 0 {
 			continue
@@ -822,21 +806,23 @@ func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) stri
 		rows = append(rows, []interface{}{
 			name,
 			groupStatus.Available(),
-			groupStatus.UpToDate(),
+			groupStatus.ReadyUpdated,
 			groupStatus.Requested,
 			groupStatus.FailedUpdated,
 			libtime.Since(updatedAt),
 		})
+
+		totalFailed += int(groupStatus.FailedUpdated)
 	}
 
 	t := table.Table{
 		Headers: []table.Header{
-			{Title: "NAME"},
-			{Title: "AVAILABLE"},
-			{Title: "UP-TO-DATE"},
-			{Title: "REQUESTED"},
-			{Title: "FAILED"},
-			{Title: "LAST UPDATE"},
+			{Title: resource.APIType.UserFacing()},
+			{Title: "available"},
+			{Title: "up-to-date"},
+			{Title: "requested"},
+			{Title: "failed", Hidden: totalFailed == 0},
+			{Title: "last update"},
 		},
 		Rows: rows,
 	}
@@ -845,10 +831,7 @@ func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) stri
 }
 
 func titleStr(title string) string {
-	titleLength := len(title)
-	top := strings.Repeat("-", titleLength)
-	bottom := strings.Repeat("-", titleLength)
-	return "\n" + top + "\n" + title + "\n" + bottom + "\n\n"
+	return "\n" + console.Bold(title) + "\n"
 }
 
 func resourceStatusesStr(resourcesRes *schema.GetResourcesResponse) string {
@@ -856,37 +839,37 @@ func resourceStatusesStr(resourcesRes *schema.GetResourcesResponse) string {
 	var titles, values []string
 
 	if len(ctx.PythonPackages) != 0 {
-		titles = append(titles, "Python Packages")
+		titles = append(titles, resource.PythonPackageType.UserFacingPlural())
 		values = append(values, pythonPackageStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
 	}
 
 	if len(ctx.RawColumns) != 0 {
-		titles = append(titles, "Raw Columns")
+		titles = append(titles, resource.RawColumnType.UserFacingPlural())
 		values = append(values, rawColumnStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
 	}
 
 	if len(ctx.Aggregates) != 0 {
-		titles = append(titles, "Aggregates")
+		titles = append(titles, resource.AggregateType.UserFacingPlural())
 		values = append(values, aggregateStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
 	}
 
 	if len(ctx.TransformedColumns) != 0 {
-		titles = append(titles, "Transformed Columns")
+		titles = append(titles, resource.TransformedColumnType.UserFacingPlural())
 		values = append(values, transformedColumnStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
 	}
 
 	if len(ctx.Models) != 0 {
-		titles = append(titles, "Training Datasets")
+		titles = append(titles, resource.TrainingDatasetType.UserFacingPlural())
 		values = append(values, trainingDatasetStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
 	}
 
 	if len(ctx.Models) != 0 {
-		titles = append(titles, "Models")
+		titles = append(titles, resource.ModelType.UserFacingPlural())
 		values = append(values, modelStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
 	}
 
 	if len(resourcesRes.APIGroupStatuses) != 0 {
-		titles = append(titles, "APIs")
+		titles = append(titles, resource.APIType.UserFacingPlural())
 		values = append(values, apiStatusesStr(resourcesRes.APIGroupStatuses))
 	}
 
@@ -896,7 +879,10 @@ func resourceStatusesStr(resourcesRes *schema.GetResourcesResponse) string {
 	for i, title := range titles {
 		paddingWidth := maxTitleLen - len(title) + 3
 		padding := strings.Repeat(" ", paddingWidth)
-		out += title + ":" + padding + values[i] + "\n"
+		out += title + ":" + padding + values[i]
+		if i != len(titles)-1 {
+			out += "\n"
+		}
 	}
 
 	return out

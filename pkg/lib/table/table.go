@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -36,6 +37,7 @@ type Header struct {
 	Title    string
 	MaxWidth int // Max width of the text (not including spacing). Items that are longer will be truncated to less than MaxWidth to fit the elipses. If 0 is provided, it defaults to no max.
 	MinWidth int // Min width of the text (not including spacing)
+	Hidden   bool
 }
 
 func validate(t Table) error {
@@ -116,24 +118,30 @@ func Format(t Table) (string, error) {
 
 	var headerStr string
 	for colNum, header := range t.Headers {
-		headerStr += header.Title
+		if header.Hidden {
+			continue
+		}
+		headerStr += console.Bold(header.Title)
 		if colNum != lastColIndex {
 			headerStr += strings.Repeat(" ", maxColWidths[colNum]+t.Spacing-len(header.Title))
 		}
 	}
 
-	elipses := "..."
+	ellipses := "..."
 	rowStrs := make([]string, len(rows))
 	for rowNum, row := range rows {
 		var rowStr string
 		for colNum, val := range row {
+			if t.Headers[colNum].Hidden {
+				continue
+			}
 			if len(val) > maxColWidths[colNum] {
 				val = val[0:maxColWidths[colNum]]
-				// Ensure at least one space after elipses
-				for len(val)+len(elipses) > maxColWidths[colNum]+t.Spacing-1 {
+				// Ensure at least one space after ellipses
+				for len(val)+len(ellipses) > maxColWidths[colNum]+t.Spacing-1 {
 					val = val[0 : len(val)-1]
 				}
-				val += elipses
+				val += ellipses
 			}
 			rowStr += val
 			if colNum != lastColIndex {
