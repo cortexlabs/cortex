@@ -6,7 +6,7 @@ If you are not using a sensitive AWS account and do not have a lot of experience
 
 ### Operator
 
-The operator requires read permissions for any data sources, read and write permissions for the Cortex S3 bucket, and read and write permissions for the Cortex CloudWatch log group. The policy below may be used to restrict the Operator's access:
+The operator requires read permissions for any S3 bucket containing exported models, read and write permissions for the Cortex S3 bucket, read and write permissions for the Cortex CloudWatch log group, and read and write permissions for CloudWatch metrics. The policy below may be used to restrict the Operator's access:
 
 ```json
 {

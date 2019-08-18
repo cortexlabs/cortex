@@ -1,4 +1,4 @@
-# Upgrade
+# Update
 
 ## Prerequisites
 
@@ -22,10 +22,10 @@ chmod +x cortex.sh
 export AWS_ACCESS_KEY_ID=***
 export AWS_SECRET_ACCESS_KEY=***
 
-# Upgrade Cortex
-./cortex.sh upgrade
+# Update Cortex
+./cortex.sh update
 
-# Upgrade the CLI
+# Update the CLI
 ./cortex.sh install cli
 
 # Confirm version
