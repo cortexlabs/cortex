@@ -24,7 +24,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
@@ -39,13 +38,9 @@ const (
 
 func GetMetrics(appName, apiName string) (*schema.APIMetrics, error) {
 	ctx := CurrentContext(appName)
-
 	api := ctx.APIs[apiName]
-	debug.Pp(api)
+
 	apiSavedStatus, err := getAPISavedStatus(api.ID, api.WorkloadID, appName)
-	debug.Pp(apiSavedStatus)
-	debug.Pp(err)
-	debug.Pp(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -88,16 +83,12 @@ func GetMetrics(appName, apiName string) (*schema.APIMetrics, error) {
 		}
 	}
 
-	debug.Pp(realTimeMetrics)
-	debug.Pp(batchMetrics)
-
 	mergedMetrics := realTimeMetrics.Merge(batchMetrics)
 	return &mergedMetrics, nil
 }
 
 func getAPIMetrics(appName string, api *context.API, period int64, startTime *time.Time, endTime *time.Time, apiMetrics *schema.APIMetrics) func() error {
 	return func() error {
-		begin := time.Now()
 		metricDataResults, err := queryMetrics(appName, api, period, startTime, endTime)
 		if err != nil {
 			return err
@@ -119,7 +110,6 @@ func getAPIMetrics(appName string, api *context.API, period int64, startTime *ti
 				apiMetrics.RegressionStats = regressionStats
 			}
 		}
-		debug.Pp(time.Now().Sub(begin))
 		return nil
 	}
 }

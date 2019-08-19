@@ -478,7 +478,12 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	out += "\n" + table.MustFormat(t)
 
 	out += "\n"
-	out += "\n" + apiMetricsTable(ctx.App.Name, api)
+
+	if groupStatus.ReadyUpdated == groupStatus.Requested && groupStatus.Requested == groupStatus.Available() {
+		out += "\n" + apiMetricsTable(ctx.App.Name, api)
+	} else {
+		out += "\nmetrics not available while api is updating"
+	}
 
 	if !flagVerbose {
 		return out, nil
@@ -527,12 +532,14 @@ func apiMetricsTable(appName string, api *context.API) string {
 	}
 
 	out := networkMetricsTable(&apiMetrics)
-	out += "\n\n"
+	out += "\n"
 	if api.Tracker == nil {
 		out += titleStr("prediction metrics")
 		out += "tracker not configured to record predictions"
 		return out
 	}
+
+	out += "\n"
 	if api.Tracker.ModelType == userconfig.ClassificationModelType {
 		out += classificationMetricsTable(&apiMetrics)
 	} else {

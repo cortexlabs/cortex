@@ -18,14 +18,11 @@ package endpoints
 
 import (
 	"net/http"
-	"time"
 
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
 func GetMetrics(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
 	appName, err := getRequiredQueryParam("appName", r)
 	if err != nil {
 		RespondError(w, err)
@@ -43,6 +40,6 @@ func GetMetrics(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, err)
 		return
 	}
-	debug.Pp(time.Now().Sub(start))
+
 	Respond(w, apiMetrics)
 }
