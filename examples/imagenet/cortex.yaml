@@ -3,5 +3,5 @@
 
 - kind: api
   name: classifier
-  model: s3://cortex-examples/imagenet/156923432.zip
+  model: s3://cortex-examples/imagenet/1566492692
   request_handler: imagenet.py
