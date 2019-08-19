@@ -115,8 +115,17 @@ if [ "$AWS_SECRET_ACCESS_KEY" = "" ]; then
   fi
 fi
 
-export CORTEX_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-export CORTEX_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+export CORTEX_AWS_ACCESS_KEY_ID="${CORTEX_AWS_ACCESS_KEY_ID:-""}"
+
+if [ "$CORTEX_AWS_ACCESS_KEY_ID" = "" ]; then
+  export CORTEX_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+fi
+
+export CORTEX_AWS_SECRET_ACCESS_KEY="${CORTEX_AWS_SECRET_ACCESS_KEY:-""}"
+
+if [ "$CORTEX_AWS_SECRET_ACCESS_KEY" = "" ]; then
+  export CORTEX_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+fi
 
 export CORTEX_LOG_GROUP="${CORTEX_LOG_GROUP:-cortex}"
 export CORTEX_BUCKET="${CORTEX_BUCKET:-""}"
@@ -376,28 +385,6 @@ function ask_sudo() {
   fi
 }
 
-function prompt_for_credentials() {
-    while true
-    do
-      echo
-      read -p "Would you like to provide different credentials for Cortex to use? [NOT RECOMMENDED] [Y/n] " -n 1 -r
-      echo
-      if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo
-        read -p "AWS_ACCESS_KEY_ID="
-        export CORTEX_AWS_ACCESS_KEY_ID=$REPLY
-
-        read -p "AWS_SECRET_ACCESS_KEY="
-        export CORTEX_AWS_SECRET_ACCESS_KEY=$REPLY
-
-        break
-      elif [[ $REPLY =~ ^[Nn]$ ]]; then
-        break
-      fi
-      echo "Unexpected value, please enter \"Y\" or \"n\""
-    done
-}
-
 function prompt_for_telemetry() {
   if [ "$CORTEX_ENABLE_TELEMETRY" != "true" ] && [ "$CORTEX_ENABLE_TELEMETRY" != "false" ]; then
     while true
@@ -513,7 +500,7 @@ elif [ "$arg1" = "update" ]; then
     show_help
     exit 1
   else
-    prompt_for_credentials && uninstall_operator && install_cortex
+    uninstall_operator && install_cortex
   fi
 elif [ "$arg1" = "info" ]; then
   if [ ! "$arg2" = "" ]; then

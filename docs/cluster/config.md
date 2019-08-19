@@ -11,6 +11,10 @@ These environment variables can be modified and exported before running `cortex.
 export AWS_ACCESS_KEY_ID="***"
 export AWS_SECRET_ACCESS_KEY="***"
 
+# Operator AWS credentials (may be used to restrict the Operator's AWS access)
+export CORTEX_AWS_ACCESS_KEY_ID="***"
+export CORTEX_AWS_SECRET_ACCESS_KEY="***"
+
 # The name of the CloudWatch log group Cortex will use
 export CORTEX_LOG_GROUP="cortex"
 
