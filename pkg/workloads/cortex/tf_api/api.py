@@ -162,7 +162,7 @@ def create_raw_prediction_request(sample):
 
         shape = []
         for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
-            shape.append(int(dim["size"])
+            shape.append(int(dim["size"]))
     
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
 
