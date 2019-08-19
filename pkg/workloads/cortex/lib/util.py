@@ -599,23 +599,6 @@ def extract_zip(zip_path, dest_dir=None, delete_zip_file=False):
         rm_file(zip_path)
 
 
-# The order for maps is deterministic. Returns a list
-def flatten_all_values(obj):
-    if is_list(obj):
-        flattened_values = []
-        for e in obj:
-            flattened_values += flatten_all_values(e)
-        return flattened_values
-
-    if is_dict(obj):
-        flattened_values = []
-        for key in sorted(obj.keys()):
-            flattened_values += flatten_all_values(obj[key])
-        return flattened_values
-
-    return [obj]
-
-
 def print_samples_horiz(
     samples, truncate=20, sep=",", first_sep=":", pad=1, first_pad=None, key_list=None
 ):
@@ -734,21 +717,6 @@ def cast(value, cortex_type):
     if upcaster:
         return upcaster(value)
     return value
-
-
-def validate_cortex_type(value, cortex_type):
-    if value is None:
-        return True
-
-    if not is_str(cortex_type):
-        raise
-
-    valid_types = cortex_type.split("|")
-    for valid_type in valid_types:
-        if CORTEX_TYPE_TO_VALIDATOR[valid_type](value):
-            return True
-
-    return False
 
 
 def validate_output_type(value, output_type):
