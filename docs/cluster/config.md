@@ -11,7 +11,7 @@ These environment variables can be modified and exported before running `cortex.
 export AWS_ACCESS_KEY_ID="***"
 export AWS_SECRET_ACCESS_KEY="***"
 
-# Operator AWS credentials (may be used to restrict the Operator's AWS access)
+# Optional AWS credentials for the Operator which may be used to restrict its AWS access (defaults to the AWS credentials set above)
 export CORTEX_AWS_ACCESS_KEY_ID="***"
 export CORTEX_AWS_SECRET_ACCESS_KEY="***"
 
