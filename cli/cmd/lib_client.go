@@ -42,13 +42,19 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
 
-var httpTransport = &http.Transport{
+var insecureTransport = &http.Transport{
 	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 }
 
-var httpClient = &http.Client{
-	Timeout:   time.Second * 20,
-	Transport: httpTransport,
+var defaultClient = &cortexClient{
+	Client: &http.Client{
+		Timeout:   time.Second * 20,
+		Transport: insecureTransport,
+	},
+}
+
+type cortexClient struct {
+	*http.Client
 }
 
 func HTTPGet(endpoint string, qParams ...map[string]string) ([]byte, error) {
@@ -254,11 +260,11 @@ func operatorRequest(method string, endpoint string, body io.Reader, qParams []m
 	return req, nil
 }
 
-func makeRequest(request *http.Request) ([]byte, error) {
+func (c cortexClient) makeRequest(request *http.Request) ([]byte, error) {
 	request.Header.Set("Authorization", authHeader())
 	request.Header.Set("CortexAPIVersion", consts.CortexVersion)
 
-	response, err := httpClient.Do(request)
+	response, err := c.Do(request)
 	if err != nil {
 		cliConfig := getValidCliConfig()
 		return nil, ErrorFailedToConnect(cliConfig.CortexURL)
@@ -285,6 +291,10 @@ func makeRequest(request *http.Request) ([]byte, error) {
 		return nil, errors.Wrap(err, errStrRead)
 	}
 	return bodyBytes, nil
+}
+
+func makeRequest(request *http.Request) ([]byte, error) {
+	return defaultClient.makeRequest(request)
 }
 
 func authHeader() string {
