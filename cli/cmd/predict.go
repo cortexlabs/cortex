@@ -169,7 +169,7 @@ func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	httpResponse, err := makeRequest(req)
+	httpResponse, err := httpClient.makeRequest(req)
 	if err != nil {
 		return nil, err
 	}
