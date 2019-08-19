@@ -395,7 +395,6 @@ def predict(deployment_name, api_name):
         predictions.append(result)
 
     response["predictions"] = predictions
-    response["resource_id"] = api["id"]
 
     return jsonify(response)
 
