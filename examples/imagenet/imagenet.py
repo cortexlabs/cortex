@@ -14,8 +14,8 @@ labels = requests.get(
 
 
 def pre_inference(sample, metadata):
-    decoded = base64.b64decode(sample["image"])
-    decoded_image = np.asarray(Image.open(BytesIO(decoded)), dtype=np.float32) / 255
+    response = requests.get(sample["link"])
+    decoded_image = np.asarray(Image.open(BytesIO(response.content)), dtype=np.float32) / 255
     logger.info(decoded_image)
     return {"images": [decoded_image.tolist()]}
 
