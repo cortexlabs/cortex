@@ -468,7 +468,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
 
 	out := "\n" + console.Bold("url:  ") + apiEndpoint + "\n"
-	out += fmt.Sprintf("%s curl -k -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n", console.Bold("curl:"), apiEndpoint)
+	out += fmt.Sprintf("%s curl -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n", console.Bold("curl:"), apiEndpoint)
 	out += fmt.Sprintf(console.Bold("updated at:")+" %s\n\n", libtime.LocalTimestamp(updatedAt))
 
 	t := table.Table{
@@ -480,7 +480,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	if err != nil {
 		out += table.MustFormat(t)
 		out += "\n\nmetrics are not available yet"
-	} 
+	}
 
 	if apiMetrics != nil {
 		out += apiMetricsTable(t, apiMetrics, api)
@@ -571,7 +571,7 @@ func networkMetricsTable(apiTable table.Table, apiMetrics *schema.APIMetrics) st
 		apiMetrics.NetworkStats.Code4XX,
 		apiMetrics.NetworkStats.Code5XX,
 	}
-	
+
 	apiTable.Headers = append(apiTable.Headers, headers...)
 	apiTable.Rows[0] = append(apiTable.Rows[0], row...)
 
@@ -631,37 +631,37 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 		}
 
 		return table.MustFormat(t)
-	} else {
-		rows := make([][]interface{}, len(classList))
-		for rowNum, className := range classList {
-			rows[rowNum] = []interface{}{
-				className,
-				apiMetrics.ClassDistribution[className],
-			}
-		}
-
-		if len(classList) == 0 {
-			rows = append(rows, []interface{}{
-				"-",
-				"-",
-			})
-		}
-
-		t := table.Table{
-			Headers: []table.Header{
-				{Title: "classes", MaxWidth: 40},
-				{Title: "count", MaxWidth: 20},
-			},
-			Rows: rows,
-		}
-
-		out := table.MustFormat(t)
-
-		if len(classList) == maxClassesToDisplay {
-			out += fmt.Sprintf("\n\nlisting at most %d classes, the complete list can be found in your cloudwatch dashboard", maxClassesToDisplay)
-		}
-		return out
 	}
+
+	rows := make([][]interface{}, len(classList))
+	for rowNum, className := range classList {
+		rows[rowNum] = []interface{}{
+			className,
+			apiMetrics.ClassDistribution[className],
+		}
+	}
+
+	if len(classList) == 0 {
+		rows = append(rows, []interface{}{
+			"-",
+			"-",
+		})
+	}
+
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "classes", MaxWidth: 40},
+			{Title: "count", MaxWidth: 20},
+		},
+		Rows: rows,
+	}
+
+	out := table.MustFormat(t)
+
+	if len(classList) == maxClassesToDisplay {
+		out += fmt.Sprintf("\n\nlisting at most %d classes, the complete list can be found in your cloudwatch dashboard", maxClassesToDisplay)
+	}
+	return out
 }
 
 func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string) string {
@@ -711,7 +711,7 @@ func getModelInput(infoAPIPath string) (*schema.ModelInput, error) {
 		return nil, errors.Wrap(err, "unable to request model input")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	response, err := makeRequest(req)
+	response, err := httpsNoVerifyClient.makeRequest(req)
 	if err != nil {
 		return nil, err
 	}

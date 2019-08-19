@@ -318,7 +318,7 @@ func IsS3PrefixExternal(bucket string, prefix string) (bool, error) {
 	return hasPrefix, nil
 }
 
-func IsS3FileExternal(bucket string, key string) (bool, error) {
+func IsS3FileExternal(bucket string, keys ...string) (bool, error) {
 	region, err := GetBucketRegion(bucket)
 	if err != nil {
 		return false, err
@@ -328,17 +328,19 @@ func IsS3FileExternal(bucket string, key string) (bool, error) {
 		Region: aws.String(region),
 	}))
 
-	_, err = s3.New(sess).HeadObject(&s3.HeadObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	})
+	for _, key := range keys {
+		_, err = s3.New(sess).HeadObject(&s3.HeadObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		})
 
-	if IsNotFoundErr(err) {
-		return false, nil
-	}
+		if IsNotFoundErr(err) {
+			return false, nil
+		}
 
-	if err != nil {
-		return false, errors.Wrap(err, bucket, key)
+		if err != nil {
+			return false, errors.Wrap(err, bucket, key)
+		}
 	}
 
 	return true, nil
@@ -352,11 +354,29 @@ func IsS3aPathPrefixExternal(s3aPath string) (bool, error) {
 	return IsS3PrefixExternal(bucket, prefix)
 }
 
-func IsS3PathFileExternal(s3Path string) (bool, error) {
-	bucket, key, err := SplitS3Path(s3Path)
+func IsS3PathPrefixExternal(s3Path string) (bool, error) {
+	bucket, prefix, err := SplitS3Path(s3Path)
 	if err != nil {
 		return false, err
 	}
+	return IsS3PrefixExternal(bucket, prefix)
+}
 
-	return IsS3FileExternal(bucket, key)
+func IsS3PathFileExternal(s3Paths ...string) (bool, error) {
+	for _, s3Path := range s3Paths {
+		bucket, key, err := SplitS3Path(s3Path)
+		if err != nil {
+			return false, err
+		}
+		exists, err := IsS3FileExternal(bucket, key)
+		if err != nil {
+			return false, err
+		}
+
+		if !exists {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }

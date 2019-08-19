@@ -22,7 +22,7 @@
 * [AWS Credentials](cluster/aws.md)
 * [Configuration](cluster/config.md)
 * [Security](cluster/security.md)
-* [Upgrade](cluster/upgrade.md)
+* [Update](cluster/update.md)
 * [Uninstall](cluster/uninstall.md)
 * [Development](cluster/development.md)
 

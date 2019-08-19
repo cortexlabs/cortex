@@ -635,7 +635,7 @@ func APIsBaseURL() (string, error) {
 	if len(service.Status.LoadBalancer.Ingress) == 0 {
 		return "", ErrorLoadBalancerInitializing()
 	}
-	return "https://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
+	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
 
 func APIPodComputeID(containers []kcore.Container) string {

@@ -20,15 +20,12 @@ train_spec = tf.estimator.TrainSpec(train_input_fn, max_steps=1000)
 eval_spec = tf.estimator.EvalSpec(eval_input_fn, exporters=[exporter], name="estimator-eval")
 
 tf.estimator.train_and_evaluate(classifier, train_spec, eval_spec)
-
-# zip the estimator export dir (the exported path looks like iris/export/estimator/1562353043/)
-shutil.make_archive("tensorflow", "zip", os.path.join("iris/export/estimator"))
 ```
 
-Upload the zipped file to Amazon S3 using the AWS web console or CLI:
+Upload the exported version directory to Amazon S3 using the AWS web console or CLI:
 
 ```text
-$ aws s3 cp model.zip s3://my-bucket/model.zip
+$ aws s3 sync ./iris/export/estimator/156293432 s3://my-bucket/iris/156293432
 ```
 
 Reference your model in an `api`:
@@ -36,7 +33,7 @@ Reference your model in an `api`:
 ```yaml
 - kind: api
   name: my-api
-  model: s3://my-bucket/model.zip
+  model: s3://my-bucket/iris/156293432
 ```
 
 ## ONNX
