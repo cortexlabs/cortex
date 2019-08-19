@@ -443,7 +443,8 @@ def download_dir_external(ctx, s3_path, local_path):
     bucket_name, prefix = ctx.storage.deconstruct_s3_path(s3_path)
     storage_client = S3(bucket_name, client_config={})
     objects = [obj[len(prefix) + 1 :] for obj in storage_client.search(prefix=prefix)]
-    version = prefix.rstrip("/").split("/")[-1]
+    prefix = prefix + "/" if prefix[-1] != "/" else prefix
+    version = prefix.split("/")[-2]
     local_path = os.path.join(local_path, version)
     for obj in objects:
         if not os.path.exists(os.path.dirname(obj)):
