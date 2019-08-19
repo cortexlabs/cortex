@@ -37,11 +37,6 @@ import (
 )
 
 var predictPrintJSON bool
-var apiClient = &cortexClient{
-	Client: &http.Client{
-		Timeout: time.Second * 20,
-	},
-}
 
 func init() {
 	predictCmd.PersistentFlags().BoolVarP(&predictPrintJSON, "json", "j", false, "print the raw json response")
@@ -191,7 +186,10 @@ func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	httpResponse, err := apiClient.makeRequest(req)
+	var predictionClient = &http.Client{
+		Timeout: time.Second * 20,
+	}
+	httpResponse, err := makeRequest(req, predictionClient)
 	if err != nil {
 		return nil, err
 	}
