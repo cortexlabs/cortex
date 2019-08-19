@@ -12,8 +12,12 @@ labels = requests.get(
 
 
 def pre_inference(sample, metadata):
-    response = requests.get(sample["link"])
-    decoded_image = np.asarray(Image.open(BytesIO(response.content)), dtype=np.float32) / 255
+    if "url" in sample:
+        image = requests.get(sample["url"]).content
+    elif "base64" in sample:
+        image = base64.b64decode(sample["base64"])
+
+    decoded_image = np.asarray(Image.open(BytesIO(image)), dtype=np.float32) / 255
     return {"images": [decoded_image.tolist()]}
 
 
