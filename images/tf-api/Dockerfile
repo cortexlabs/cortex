@@ -1,9 +1,22 @@
 FROM cortexlabs/tf-base
 
 ENV PYTHONPATH="/src:${PYTHONPATH}"
+RUN apt-get update -qq && apt-get install -y -q \
+        build-essential \
+        curl \
+        libfreetype6-dev \
+        libpng-dev \
+        libzmq3-dev \
+        pkg-config \
+        rsync \
+        software-properties-common \
+        unzip \
+        zlib1g-dev \
+    && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
 COPY pkg/workloads/cortex/tf_api/requirements.txt /src/cortex/tf_api/requirements.txt
+RUN pip3 install pillow 
 RUN pip3 install -r /src/cortex/lib/requirements.txt && \
     pip3 install -r /src/cortex/tf_api/requirements.txt && \
     rm -rf /root/.cache/pip*
