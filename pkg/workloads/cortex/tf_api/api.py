@@ -16,10 +16,9 @@ import sys
 import os
 import json
 import argparse
-import tensorflow as tf
-import traceback
 import time
 
+import tensorflow as tf
 from flask import Flask, request, jsonify, g
 from flask_api import status
 from waitress import serve

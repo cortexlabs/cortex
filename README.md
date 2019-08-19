@@ -93,6 +93,8 @@ $ ./cortex.sh install cli
 
 - **Rolling updates:** Cortex updates deployed APIs without any downtime.
 
-- **Prediction metrics:** Cortex can record predictions and track API network metrics.
+- **Log streaming:** Cortex streams logs from your deployed models to your CLI.
+
+- **Prediction Monitoring:** Cortex can monitor network metrics and track predictions.
 
 - **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.

@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package workloads
 
 import (
@@ -69,7 +68,6 @@ func getAPISavedStatus(resourceID string, workloadID string, appName string) (*r
 	var savedStatus resource.APISavedStatus
 	err := config.AWS.ReadJSONFromS3(&savedStatus, key)
 	if aws.IsNoSuchKeyErr(err) {
-		cacheNilAPISavedStatus(resourceID, workloadID, appName)
 		return nil, nil
 	}
 	if err != nil {

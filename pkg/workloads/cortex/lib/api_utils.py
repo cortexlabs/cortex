@@ -43,7 +43,6 @@ def predictions_per_request_metric(dimensions, prediction_count):
 
 
 def prediction_metrics(dimensions, api, predictions):
-
     metric_list = []
     tracker = api.get("tracker")
     for prediction in predictions:
@@ -65,11 +64,12 @@ def prediction_metrics(dimensions, api, predictions):
 
                 metric_list.append(metric)
             else:
-                raise UserException(
-                    "expected type 'str' or 'int' but found '{}' when tracking key '{}'".format(
-                        type(predicted_value), tracker["key"]
+                logger.warn(
+                    "expected type 'str' or 'int' but found '{}' of type '{}' when tracking key '{}'".format(
+                        str(predicted_value), type(predicted_value), tracker["key"]
                     )
                 )
+                return []
         else:
             if type(predicted_value) == float or type(predicted_value) == int:  # allow ints
                 metric = {
@@ -79,11 +79,12 @@ def prediction_metrics(dimensions, api, predictions):
                 }
                 metric_list.append(metric)
             else:
-                raise UserException(
-                    "expected type 'float' or 'int' but found '{}' when tracking key '{}'".format(
-                        type(predicted_value), tracker["key"]
+                logger.warn(
+                    "expected type 'float' or 'int' but found '{}' of type '{}' when tracking key '{}'".format(
+                        str(predicted_value), type(predicted_value), tracker["key"]
                     )
                 )
+                return []
     return metric_list
 
 

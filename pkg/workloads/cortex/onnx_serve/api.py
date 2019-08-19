@@ -16,9 +16,6 @@ import sys
 import os
 import json
 import argparse
-import traceback
-import time
-import logging
 
 from flask import Flask, request, jsonify, g
 from flask_api import status

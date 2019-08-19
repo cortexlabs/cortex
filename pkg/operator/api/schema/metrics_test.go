@@ -26,20 +26,20 @@ import (
 func TestMergeAvg(t *testing.T) {
 	floatNilPtr := (*float64)(nil)
 
-	require.Equal(t, floatNilPtr, mergeAvg(nil, nil, 0, 0))
-	require.Equal(t, floatNilPtr, mergeAvg(nil, nil, 1, 0))
+	require.Equal(t, floatNilPtr, mergeAvg(nil, 0, nil, 0))
+	require.Equal(t, floatNilPtr, mergeAvg(nil, 1, nil, 0))
 
-	require.Equal(t, float64(1), *mergeAvg(pointer.Float64(1), nil, 1, 1))
-	require.Equal(t, pointer.Float64(1), mergeAvg(nil, pointer.Float64(1), 1, 1))
+	require.Equal(t, float64(1), *mergeAvg(pointer.Float64(1), 1, nil, 1))
+	require.Equal(t, pointer.Float64(1), mergeAvg(nil, 1, pointer.Float64(1), 1))
 
-	require.Equal(t, floatNilPtr, mergeAvg(pointer.Float64(1), nil, 0, 1))
-	require.Equal(t, floatNilPtr, mergeAvg(nil, pointer.Float64(1), 1, 0))
+	require.Equal(t, floatNilPtr, mergeAvg(pointer.Float64(1), 0, nil, 1))
+	require.Equal(t, floatNilPtr, mergeAvg(nil, 1, pointer.Float64(1), 0))
 
-	require.Equal(t, float64(1.25), *mergeAvg(pointer.Float64(1.25), nil, 5, 0))
-	require.Equal(t, float64(1.25), *mergeAvg(nil, pointer.Float64(1.25), 0, 5))
+	require.Equal(t, float64(1.25), *mergeAvg(pointer.Float64(1.25), 5, nil, 0))
+	require.Equal(t, float64(1.25), *mergeAvg(nil, 0, pointer.Float64(1.25), 5))
 
-	require.Equal(t, float64(1.25), *mergeAvg(pointer.Float64(1), pointer.Float64(2), 3, 1))
-	require.Equal(t, float64(1.25), *mergeAvg(pointer.Float64(2), pointer.Float64(1), 1, 3))
+	require.Equal(t, float64(1.25), *mergeAvg(pointer.Float64(1), 3, pointer.Float64(2), 1))
+	require.Equal(t, float64(1.25), *mergeAvg(pointer.Float64(2), 1, pointer.Float64(1), 3))
 }
 
 func TestRegressionStatsMerge(t *testing.T) {

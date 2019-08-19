@@ -16,6 +16,12 @@ limitations under the License.
 
 package schema
 
+import (
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+
+)
+
 type RegressionStats struct {
 	Min         *float64 `json:"min"`
 	Max         *float64 `json:"max"`
@@ -23,39 +29,13 @@ type RegressionStats struct {
 	SampleCount int      `json:"sample_count"`
 }
 
-func (metricsLeft RegressionStats) Merge(metricsRight RegressionStats) RegressionStats {
-	var mergedMin *float64
-	switch {
-	case metricsLeft.Min != nil && metricsRight.Min != nil:
-		mergedMin = metricsLeft.Min
-		if *metricsRight.Min < *metricsLeft.Min {
-			mergedMin = metricsRight.Min
-		}
-	case metricsLeft.Min != nil:
-		mergedMin = metricsLeft.Min
-	case metricsRight.Min != nil:
-		mergedMin = metricsRight.Min
-	}
-
-	var mergedMax *float64
-	switch {
-	case metricsLeft.Max != nil && metricsRight.Max != nil:
-		mergedMax = metricsLeft.Max
-		if *metricsRight.Max > *metricsLeft.Max {
-			mergedMax = metricsRight.Max
-		}
-	case metricsLeft.Max != nil:
-		mergedMax = metricsLeft.Max
-	case metricsRight.Max != nil:
-		mergedMax = metricsRight.Max
-	}
-
-	totalSampleCount := metricsLeft.SampleCount + metricsRight.SampleCount
+func (left RegressionStats) Merge(right RegressionStats) RegressionStats {
+	totalSampleCount := left.SampleCount + right.SampleCount
 
 	return RegressionStats{
-		Min:         mergedMin,
-		Max:         mergedMax,
-		Avg:         mergeAvg(metricsLeft.Avg, metricsRight.Avg, metricsLeft.SampleCount, metricsRight.SampleCount),
+		Min:         slices.Float64PtrMin(left.Min, right.Min),
+		Max:         slices.Float64PtrMax(left.Max, right.Max),
+		Avg:         mergeAvg(left.Avg, left.SampleCount, right.Avg, right.SampleCount),
 		SampleCount: totalSampleCount,
 	}
 }
@@ -68,13 +48,13 @@ type NetworkStats struct {
 	Total   int      `json:"total"`
 }
 
-func (metricsLeft NetworkStats) Merge(metricsRight NetworkStats) NetworkStats {
+func (left NetworkStats) Merge(right NetworkStats) NetworkStats {
 	return NetworkStats{
-		Latency: mergeAvg(metricsLeft.Latency, metricsRight.Latency, metricsLeft.Total, metricsRight.Total),
-		Code2XX: metricsLeft.Code2XX + metricsRight.Code2XX,
-		Code4XX: metricsLeft.Code4XX + metricsRight.Code4XX,
-		Code5XX: metricsLeft.Code5XX + metricsRight.Code5XX,
-		Total:   metricsLeft.Total + metricsRight.Total,
+		Latency: mergeAvg(left.Latency, left.Total, right.Latency, right.Total),
+		Code2XX: left.Code2XX + right.Code2XX,
+		Code4XX: left.Code4XX + right.Code4XX,
+		Code5XX: left.Code5XX + right.Code5XX,
+		Total:   left.Total + right.Total,
 	}
 }
 
@@ -84,41 +64,43 @@ type APIMetrics struct {
 	RegressionStats   *RegressionStats `json:"regression_stats"`
 }
 
-func (metricsLeft APIMetrics) Merge(metricsRight APIMetrics) APIMetrics {
-	mergedClassDistribution := metricsLeft.ClassDistribution
+func (left APIMetrics) Merge(right APIMetrics) APIMetrics {
+	mergedClassDistribution := left.ClassDistribution
 
-	if mergedClassDistribution == nil && metricsRight.ClassDistribution != nil {
-		mergedClassDistribution = make(map[string]int, len(metricsRight.ClassDistribution))
-	}
-
-	for className, count := range metricsRight.ClassDistribution {
-		if _, ok := mergedClassDistribution[className]; ok {
-			mergedClassDistribution[className] += count
+	if right.ClassDistribution != nil {
+		if left.ClassDistribution == nil {
+			mergedClassDistribution = right.ClassDistribution
 		} else {
-			mergedClassDistribution[className] = count
+			for className, count := range right.ClassDistribution {
+				if _, ok := mergedClassDistribution[className]; ok {
+					mergedClassDistribution[className] += count
+				} else {
+					mergedClassDistribution[className] = count
+				}
+			}
 		}
 	}
 
 	var mergedNetworkStats *NetworkStats
 	switch {
-	case metricsLeft.NetworkStats != nil && metricsRight.NetworkStats != nil:
-		merged := (*metricsLeft.NetworkStats).Merge(*metricsRight.NetworkStats)
+	case left.NetworkStats != nil && right.NetworkStats != nil:
+		merged := (*left.NetworkStats).Merge(*right.NetworkStats)
 		mergedNetworkStats = &merged
-	case metricsLeft.NetworkStats != nil:
-		mergedNetworkStats = metricsLeft.NetworkStats
-	case metricsRight.NetworkStats != nil:
-		mergedNetworkStats = metricsRight.NetworkStats
+	case left.NetworkStats != nil:
+		mergedNetworkStats = left.NetworkStats
+	case right.NetworkStats != nil:
+		mergedNetworkStats = right.NetworkStats
 	}
 
 	var mergedRegressionStats *RegressionStats
 	switch {
-	case metricsLeft.RegressionStats != nil && metricsRight.RegressionStats != nil:
-		merged := (*metricsLeft.RegressionStats).Merge(*metricsRight.RegressionStats)
+	case left.RegressionStats != nil && right.RegressionStats != nil:
+		merged := (*left.RegressionStats).Merge(*right.RegressionStats)
 		mergedRegressionStats = &merged
-	case metricsLeft.RegressionStats != nil:
-		mergedRegressionStats = metricsLeft.RegressionStats
-	case metricsRight.RegressionStats != nil:
-		mergedRegressionStats = metricsRight.RegressionStats
+	case left.RegressionStats != nil:
+		mergedRegressionStats = left.RegressionStats
+	case right.RegressionStats != nil:
+		mergedRegressionStats = right.RegressionStats
 	}
 
 	return APIMetrics{
@@ -128,30 +110,10 @@ func (metricsLeft APIMetrics) Merge(metricsRight APIMetrics) APIMetrics {
 	}
 }
 
-func mergeAvg(left *float64, right *float64, leftCount int, rightCount int) *float64 {
-	total := 0
+func mergeAvg(left *float64, leftCount int, right *float64, rightCount int) *float64 {
+	leftCountFloat64Ptr := pointer.Float64(float64(leftCount))
+	rightCountFloat64Ptr := pointer.Float64(float64(rightCount))
 
-	if left != nil {
-		total += leftCount
-	}
-
-	if right != nil {
-		total += rightCount
-	}
-
-	if total == 0 {
-		return nil
-	}
-
-	var mergedAvg float64
-
-	if left != nil {
-		mergedAvg += (*left) * float64(leftCount) / float64(total)
-	}
-
-	if right != nil {
-		mergedAvg += (*right) * float64(rightCount) / float64(total)
-	}
-
-	return &mergedAvg
+	avg, _ := slices.Float64PtrAvg([]*float64{left, right}, []*float64{leftCountFloat64Ptr, rightCountFloat64Ptr})
+	return avg
 }

@@ -630,12 +630,12 @@ class Context:
             raise CortexException("monitoring client not initialized")  # unexpected
 
         response = self.monitoring.put_metric_data(
-            MetricData=metrics, Namespace=self.cortex_config["namespace"]
+            MetricData=metrics, Namespace=self.cortex_config["log_group"]
         )
 
         if int(response["ResponseMetadata"]["HTTPStatusCode"] / 100) != 2:
             logger.warn(response)
-            raise Exception("failed to publish metrics, not successful status code encountered")
+            raise Exception("failed to publish metrics")
 
 
 def input_schema_from_type_schema(type_schema):

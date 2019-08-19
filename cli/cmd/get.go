@@ -42,7 +42,7 @@ import (
 )
 
 const (
-	maxClassesToDisplay = 20
+	maxClassesToDisplay = 75
 )
 
 func init() {
@@ -130,7 +130,7 @@ func allDeploymentsStr() (string, error) {
 	}
 
 	if len(resourcesRes.Deployments) == 0 {
-		return "no deployments found", nil
+		return console.Bold("\nno deployments found"), nil
 	}
 
 	rows := make([][]interface{}, len(resourcesRes.Deployments))
@@ -468,22 +468,15 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
 
 	out := "\n" + console.Bold("url:  ") + apiEndpoint + "\n"
-	out += fmt.Sprintf("%s curl -k -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n\n", console.Bold("curl:"), apiEndpoint)
+	out += fmt.Sprintf("%s curl -k -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n", console.Bold("curl:"), apiEndpoint)
 	out += fmt.Sprintf(console.Bold("updated at:")+" %s\n", libtime.LocalTimestamp(updatedAt))
 
 	t := table.Table{
 		Headers: headers,
 		Rows:    [][]interface{}{row},
 	}
-	out += "\n" + table.MustFormat(t)
 
-	out += "\n"
-
-	if groupStatus.ReadyUpdated == groupStatus.Requested && groupStatus.Requested == groupStatus.Available() {
-		out += "\n" + apiMetricsTable(ctx.App.Name, api)
-	} else {
-		out += "\nmetrics not available while api is updating"
-	}
+	out += "\n" + apiMetricsTable(t, ctx.App.Name, api)
 
 	if !flagVerbose {
 		return out, nil
@@ -518,24 +511,27 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	return out, nil
 }
 
-func apiMetricsTable(appName string, api *context.API) string {
+func apiMetricsTable(apiTable table.Table, appName string, api *context.API) string {
 	params := map[string]string{"appName": appName, "apiName": api.Name}
 	httpResponse, err := HTTPGet("/metrics", params)
 	if err != nil {
-		errors.Exit(err)
+		out := table.MustFormat(apiTable)
+		out += "\n\nmetrics are not available yet"
+		return out
 	}
 
 	var apiMetrics schema.APIMetrics
 	err = json.Unmarshal(httpResponse, &apiMetrics)
 	if err != nil {
-		errors.Exit(err)
+		out := table.MustFormat(apiTable)
+		out += "\n\nunable able to parse metrics"
+		return out
 	}
 
-	out := networkMetricsTable(&apiMetrics)
+	out := networkMetricsTable(apiTable, &apiMetrics)
 	out += "\n"
 	if api.Tracker == nil {
-		out += titleStr("prediction metrics")
-		out += "tracker not configured to record predictions"
+		out += "\na tracker has not configured to record predictions"
 		return out
 	}
 
@@ -548,32 +544,39 @@ func apiMetricsTable(appName string, api *context.API) string {
 	return out
 }
 
-func networkMetricsTable(apiMetrics *schema.APIMetrics) string {
+func networkMetricsTable(apiTable table.Table, apiMetrics *schema.APIMetrics) string {
 	latency := "-"
 	if apiMetrics.NetworkStats.Latency != nil {
 		latency = fmt.Sprintf("%.9g", *apiMetrics.NetworkStats.Latency)
 	}
 
-	t := table.Table{
-		Headers: []table.Header{
-			{Title: "2XX"},
-			{Title: "4XX"},
-			{Title: "5XX"},
-			{Title: "total"},
-			{Title: "avg latency"},
-		},
-		Rows: [][]interface{}{
-			{
-				apiMetrics.NetworkStats.Code2XX,
-				apiMetrics.NetworkStats.Code4XX,
-				apiMetrics.NetworkStats.Code5XX,
-				apiMetrics.NetworkStats.Total,
-				latency,
-			},
-		},
+	headers := []table.Header{
+		{Title: "avg latency"},
 	}
 
-	return table.MustFormat(t)
+	row := []interface{}{
+		latency,
+	}
+
+	if apiMetrics.NetworkStats.Code2XX != 0 {
+		headers = append(headers, table.Header{Title: "2XX"})
+		row = append(row, apiMetrics.NetworkStats.Code2XX)
+	}
+
+	if apiMetrics.NetworkStats.Code4XX != 0 {
+		headers = append(headers, table.Header{Title: "4XX"})
+		row = append(row, apiMetrics.NetworkStats.Code4XX)
+	}
+	
+	if apiMetrics.NetworkStats.Code5XX != 0 {
+		headers = append(headers, table.Header{Title: "5XX"})
+		row = append(row, apiMetrics.NetworkStats.Code5XX)
+	}
+	
+	apiTable.Headers = append(apiTable.Headers, headers...)
+	apiTable.Rows[0] = append(apiTable.Rows[0], row...)
+
+	return table.MustFormat(apiTable)
 }
 
 func regressionMetricsTable(apiMetrics *schema.APIMetrics) string {
@@ -598,18 +601,16 @@ func regressionMetricsTable(apiMetrics *schema.APIMetrics) string {
 			{Title: "max", MaxWidth: 10},
 			{Title: "avg", MaxWidth: 10},
 		},
-		Rows: [][]interface{}{
-			{
-				minStr, maxStr, avgStr,
-			},
-		},
+		Rows: [][]interface{}{{minStr, maxStr, avgStr}},
 	}
 
 	return table.MustFormat(t)
 }
 
 func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
-	var out string
+	if len(apiMetrics.ClassDistribution) == 0 {
+		return ""
+	}
 
 	classList := make([]string, len(apiMetrics.ClassDistribution))
 
@@ -620,12 +621,12 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 	}
 	sort.Strings(classList)
 
-	if len(classList) > 0 && len(classList) < 4 {
+	if len(classList) < 4 {
 		row := []interface{}{}
 		headers := []table.Header{}
 
 		for _, className := range classList {
-			headers = append(headers, table.Header{Title: s.TruncateEllipses(className, 17), MaxWidth: 20})
+			headers = append(headers, table.Header{Title: s.TruncateEllipses(className, 20), MaxWidth: 20})
 			row = append(row, apiMetrics.ClassDistribution[className])
 		}
 
@@ -634,7 +635,7 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 			Rows:    [][]interface{}{row},
 		}
 
-		out += table.MustFormat(t)
+		return table.MustFormat(t)
 	} else {
 		rows := make([][]interface{}, len(classList))
 		for rowNum, className := range classList {
@@ -642,13 +643,6 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 				className,
 				apiMetrics.ClassDistribution[className],
 			}
-		}
-
-		if len(classList) == 0 {
-			rows = append(rows, []interface{}{
-				"-",
-				"-",
-			})
 		}
 
 		t := table.Table{
@@ -659,13 +653,13 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 			Rows: rows,
 		}
 
-		out += table.MustFormat(t)
+		out := table.MustFormat(t)
 
-		if len(apiMetrics.ClassDistribution) > maxClassesToDisplay {
+		if len(classList) == maxClassesToDisplay {
 			out += fmt.Sprintf("\n\nlisting at most %d classes, the complete list can be found in your cloudwatch dashboard", maxClassesToDisplay)
 		}
+		return out
 	}
-	return out
 }
 
 func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string) string {
