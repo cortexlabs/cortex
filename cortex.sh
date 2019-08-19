@@ -115,6 +115,9 @@ if [ "$AWS_SECRET_ACCESS_KEY" = "" ]; then
   fi
 fi
 
+export CORTEX_AWS_ACCESS_KEY_ID="${CORTEX_AWS_ACCESS_KEY_ID:-$AWS_ACCESS_KEY_ID}"
+export CORTEX_AWS_SECRET_ACCESS_KEY="${CORTEX_AWS_SECRET_ACCESS_KEY:-$AWS_SECRET_ACCESS_KEY}"
+
 export CORTEX_LOG_GROUP="${CORTEX_LOG_GROUP:-cortex}"
 export CORTEX_BUCKET="${CORTEX_BUCKET:-""}"
 export CORTEX_REGION="${CORTEX_REGION:-us-west-2}"
@@ -179,6 +182,8 @@ function install_cortex() {
   docker run -it --entrypoint /root/install_cortex.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+    -e CORTEX_AWS_ACCESS_KEY_ID=$CORTEX_AWS_ACCESS_KEY_ID \
+    -e CORTEX_AWS_SECRET_ACCESS_KEY=$CORTEX_AWS_SECRET_ACCESS_KEY \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
     -e CORTEX_REGION=$CORTEX_REGION \
     -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
@@ -386,7 +391,7 @@ function confirm_for_uninstall() {
   while true
   do
     echo
-    read -p "Are you sure you want to uninstall Cortex? Your cluster will be spun down and all resources will be deleted. [Y/n] " -n 1 -r
+    read -p "Are you sure you want to uninstall Cortex? (Your cluster will be spun down and all resources will be deleted) [Y/n] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
       break

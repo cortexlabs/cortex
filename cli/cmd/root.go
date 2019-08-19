@@ -79,6 +79,8 @@ func Execute() {
 	rootCmd.AddCommand(configureCmd)
 	rootCmd.AddCommand(completionCmd)
 
+	rootCmd.SetVersionTemplate(`{{printf "%s\n" .Version}}`)
+
 	rootCmd.Execute()
 }
 

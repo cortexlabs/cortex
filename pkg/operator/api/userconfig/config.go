@@ -104,11 +104,6 @@ func (config *Config) ValidatePartial() error {
 }
 
 func (config *Config) Validate(envName string) error {
-	err := config.ValidatePartial()
-	if err != nil {
-		return err
-	}
-
 	if config.App == nil {
 		return ErrorMissingAppDefinition()
 	}

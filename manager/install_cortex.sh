@@ -72,8 +72,8 @@ function setup_configmap() {
 
 function setup_secrets() {
   kubectl -n=$CORTEX_NAMESPACE create secret generic 'aws-credentials' \
-    --from-literal='AWS_ACCESS_KEY_ID'=$AWS_ACCESS_KEY_ID \
-    --from-literal='AWS_SECRET_ACCESS_KEY'=$AWS_SECRET_ACCESS_KEY \
+    --from-literal='AWS_ACCESS_KEY_ID'=$CORTEX_AWS_ACCESS_KEY_ID \
+    --from-literal='AWS_SECRET_ACCESS_KEY'=$CORTEX_AWS_SECRET_ACCESS_KEY \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 
@@ -101,8 +101,8 @@ function setup_istio() {
   envsubst < manifests/istio-metrics.yaml | kubectl apply -f - >/dev/null
 
   kubectl -n=istio-system create secret generic 'aws-credentials' \
-    --from-literal='AWS_ACCESS_KEY_ID'=$AWS_ACCESS_KEY_ID \
-    --from-literal='AWS_SECRET_ACCESS_KEY'=$AWS_SECRET_ACCESS_KEY \
+    --from-literal='AWS_ACCESS_KEY_ID'=$CORTEX_AWS_ACCESS_KEY_ID \
+    --from-literal='AWS_SECRET_ACCESS_KEY'=$CORTEX_AWS_SECRET_ACCESS_KEY \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
   istio_patch="[
     {\"op\": \"add\", \"path\": \"/spec/template/spec/containers/0/env/-\", \"value\": {\"name\": \"AWS_ACCESS_KEY_ID\", \"valueFrom\": {\"secretKeyRef\": {\"name\": \"aws-credentials\", \"key\": \"AWS_ACCESS_KEY_ID\"}}}},\

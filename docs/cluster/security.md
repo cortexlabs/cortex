@@ -6,9 +6,36 @@ If you are not using a sensitive AWS account and do not have a lot of experience
 
 ### Operator
 
-The operator requires read permissions for any data sources, read and write permissions for the Cortex S3 bucket, and read and write permissions for the Cortex CloudWatch log group. The pre-defined `AmazonS3FullAccess` and `CloudWatchLogsFullAccess` policies cover these permissions, but you can create more limited policies manually.
+The operator requires read permissions for any S3 bucket containing exported models, read and write permissions for the Cortex S3 bucket, read and write permissions for the Cortex CloudWatch log group, and read and write permissions for CloudWatch metrics. The policy below may be used to restrict the Operator's access:
 
-If you don't already have a Cortex S3 bucket and/or Cortex CloudWatch log group, you will need to add create permissions during installation.
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "sts:GetCallerIdentity"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "s3:*",
+            "Resource": "*"
+        },
+        {
+            "Action": [
+                "cloudwatch:*",
+                "logs:*"
+            ],
+            "Effect": "Allow",
+            "Resource": "*"
+        }
+    ]
+}
+```
 
 ### CLI
 

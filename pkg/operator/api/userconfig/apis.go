@@ -76,6 +76,29 @@ var apiValidation = &cr.StructValidation{
 	},
 }
 
+// IsValidS3Directory checks that the path contains a valid S3 directory for Tensorflow models
+// Must contain the following structure:
+// - 1523423423/ (version prefix, usually a timestamp)
+// 		- saved_model.pb
+//		- variables/
+//			- variables.index
+//			- variables.data-00000-of-00001 (there are a variable number of these files)
+func IsValidS3Directory(path string) bool {
+	if valid, err := aws.IsS3PathFileExternal(
+		fmt.Sprintf("%s/saved_model.pb", path),
+		fmt.Sprintf("%s/variables/variables.index", path),
+	); err != nil || !valid {
+		return false
+	}
+
+	if valid, err := aws.IsS3PathPrefixExternal(
+		fmt.Sprintf("%s/variables/variables.data-00000-of", path),
+	); err != nil || !valid {
+		return false
+	}
+	return true
+}
+
 func (api *API) UserConfigStr() string {
 	var sb strings.Builder
 	sb.WriteString(api.ResourceFields.UserConfigStr())
@@ -117,24 +140,39 @@ func (apis APIs) Validate() error {
 func (api *API) Validate() error {
 	if yaml.StartsWithEscapedAtSymbol(api.Model) {
 		api.ModelFormat = TensorFlowModelFormat
-	} else {
-		if !aws.IsValidS3Path(api.Model) {
-			return errors.Wrap(ErrorInvalidS3Path(api.Model), Identify(api), ModelKey)
+		if err := api.Compute.Validate(); err != nil {
+			return errors.Wrap(err, Identify(api), ComputeKey)
 		}
 
-		if api.ModelFormat == UnknownModelFormat {
-			if strings.HasSuffix(api.Model, ".onnx") {
-				api.ModelFormat = ONNXModelFormat
-			} else if strings.HasSuffix(api.Model, ".zip") {
-				api.ModelFormat = TensorFlowModelFormat
-			} else {
-				return errors.Wrap(ErrorUnableToInferModelFormat(), Identify(api))
-			}
-		}
+		return nil
+	}
 
+	if !aws.IsValidS3Path(api.Model) {
+		return errors.Wrap(ErrorInvalidS3Path(api.Model), Identify(api), ModelKey)
+	}
+
+	switch api.ModelFormat {
+	case ONNXModelFormat:
 		if ok, err := aws.IsS3PathFileExternal(api.Model); err != nil || !ok {
 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
 		}
+	case TensorFlowModelFormat:
+		if !IsValidS3Directory(api.Model) {
+			return errors.Wrap(ErrorInvalidTensorflowDir(api.Model), Identify(api), ModelKey)
+		}
+	default:
+		switch {
+		case strings.HasSuffix(api.Model, ".onnx"):
+			api.ModelFormat = ONNXModelFormat
+			if ok, err := aws.IsS3PathFileExternal(api.Model); err != nil || !ok {
+				return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
+			}
+		case IsValidS3Directory(api.Model):
+			api.ModelFormat = TensorFlowModelFormat
+		default:
+			return errors.Wrap(ErrorUnableToInferModelFormat(), Identify(api))
+		}
+
 	}
 
 	if err := api.Compute.Validate(); err != nil {

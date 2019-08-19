@@ -88,7 +88,3 @@ tf.estimator.train_and_evaluate(classifier, train_spec, eval_spec)
 
 # zip the estimator export dir (the exported path looks like iris_tf_export/export/estimator/1562353043/)
 estimator_dir = EXPORT_DIR + "/export/estimator"
-shutil.make_archive("tensorflow", "zip", os.path.join(estimator_dir))
-
-# clean up
-shutil.rmtree(EXPORT_DIR)
