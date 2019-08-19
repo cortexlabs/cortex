@@ -64,23 +64,14 @@ class Context:
         self.id = self.ctx["id"]
         self.key = self.ctx["key"]
         self.cortex_config = self.ctx["cortex_config"]
-        self.dataset_version = self.ctx["dataset_version"]
+        self.deployment_version = self.ctx["deployment_version"]
         self.root = self.ctx["root"]
-        self.raw_dataset = self.ctx["raw_dataset"]
         self.status_prefix = self.ctx["status_prefix"]
         self.app = self.ctx["app"]
         self.environment = self.ctx["environment"]
         self.python_packages = self.ctx["python_packages"] or {}
-        self.raw_columns = self.ctx["raw_columns"] or {}
-        self.transformed_columns = self.ctx["transformed_columns"] or {}
-        self.transformers = self.ctx["transformers"] or {}
-        self.aggregators = self.ctx["aggregators"] or {}
-        self.aggregates = self.ctx["aggregates"] or {}
         self.constants = self.ctx["constants"] or {}
-        self.models = self.ctx["models"] or {}
-        self.estimators = self.ctx["estimators"] or {}
         self.apis = self.ctx["apis"] or {}
-        self.training_datasets = {k: v["dataset"] for k, v in self.models.items()}
         self.api_version = self.cortex_config["api_version"]
 
         if "local_storage_path" in kwargs:
@@ -99,54 +90,23 @@ class Context:
                 )
             )
 
-        self.columns = util.merge_dicts_overwrite(self.raw_columns, self.transformed_columns)
-
-        self.raw_column_names = list(self.raw_columns.keys())
-        self.transformed_column_names = list(self.transformed_columns.keys())
-        self.column_names = list(self.columns.keys())
-
         # Internal caches
-        self._transformer_impls = {}
-        self._aggregator_impls = {}
-        self._estimator_impls = {}
         self._metadatas = {}
         self._obj_cache = {}
-        self.spark_uploaded_impls = {}
 
         # This affects Tensorflow S3 access
         os.environ["AWS_REGION"] = self.cortex_config.get("region", "")
 
         # Id map
         self.pp_id_map = ResourceMap(self.python_packages) if self.python_packages else None
-        self.rf_id_map = ResourceMap(self.raw_columns) if self.raw_columns else None
-        self.ag_id_map = ResourceMap(self.aggregates) if self.aggregates else None
-        self.tf_id_map = ResourceMap(self.transformed_columns) if self.transformed_columns else None
-        self.td_id_map = ResourceMap(self.training_datasets) if self.training_datasets else None
-        self.models_id_map = ResourceMap(self.models) if self.models else None
         self.apis_id_map = ResourceMap(self.apis) if self.apis else None
         self.constants_id_map = ResourceMap(self.constants) if self.constants else None
         self.id_map = util.merge_dicts_overwrite(
-            self.pp_id_map,
-            self.rf_id_map,
-            self.ag_id_map,
-            self.tf_id_map,
-            self.td_id_map,
-            self.models_id_map,
-            self.apis_id_map,
-            self.constants_id_map,
+            self.pp_id_map, self.apis_id_map, self.constants_id_map
         )
-
-    def is_raw_column(self, name):
-        return name in self.raw_columns
-
-    def is_transformed_column(self, name):
-        return name in self.transformed_columns
 
     def is_constant(self, name):
         return name in self.constants
-
-    def is_aggregate(self, name):
-        return name in self.aggregates
 
     def download_file(self, impl_key, cache_impl_path):
         if not os.path.isfile(cache_impl_path):
@@ -183,93 +143,6 @@ class Context:
 
         return impl, impl_path
 
-    def get_aggregator_impl(self, aggregate_name):
-        aggregator_name = self.aggregates[aggregate_name]["aggregator"]
-        if aggregator_name in self._aggregator_impls:
-            return self._aggregator_impls[aggregator_name]
-
-        aggregator = self.aggregators[aggregator_name]
-
-        module_prefix = "aggregator"
-        if "namespace" in aggregator and aggregator.get("namespace", None) is not None:
-            module_prefix += "_" + aggregator["namespace"]
-
-        try:
-            impl, impl_path = self.load_module(
-                module_prefix, aggregator["name"], aggregator["impl_key"]
-            )
-        except CortexException as e:
-            e.wrap("aggregate " + aggregate_name, "aggregator")
-            raise
-
-        try:
-            _validate_impl(impl, AGGREGATOR_IMPL_VALIDATION)
-        except CortexException as e:
-            e.wrap("aggregate " + aggregate_name, "aggregator " + aggregator["name"])
-            raise
-
-        self._aggregator_impls[aggregator_name] = (impl, impl_path)
-        return (impl, impl_path)
-
-    def get_transformer_impl(self, column_name):
-        if self.is_transformed_column(column_name) is not True:
-            return None, None
-
-        transformer_name = self.transformed_columns[column_name]["transformer"]
-        if transformer_name in self._transformer_impls:
-            return self._transformer_impls[transformer_name]
-
-        transformer = self.transformers[transformer_name]
-
-        module_prefix = "transformer"
-        if "namespace" in transformer and transformer.get("namespace", None) is not None:
-            module_prefix += "_" + transformer["namespace"]
-
-        try:
-            impl, impl_path = self.load_module(
-                module_prefix, transformer["name"], transformer["impl_key"]
-            )
-        except CortexException as e:
-            e.wrap("transformed column " + column_name, "transformer")
-            raise
-
-        try:
-            _validate_impl(impl, TRANSFORMER_IMPL_VALIDATION)
-        except CortexException as e:
-            e.wrap("transformed column " + column_name, "transformer " + transformer["name"])
-            raise
-
-        self._transformer_impls[transformer_name] = (impl, impl_path)
-        return (impl, impl_path)
-
-    def get_estimator_impl(self, model_name):
-        estimator_name = self.models[model_name]["estimator"]
-        if estimator_name in self._estimator_impls:
-            return self._estimator_impls[estimator_name]
-
-        estimator = self.estimators[estimator_name]
-
-        module_prefix = "estimator"
-        if "namespace" in estimator and estimator.get("namespace", None) is not None:
-            module_prefix += "_" + estimator["namespace"]
-
-        try:
-            impl, impl_path = self.load_module(
-                module_prefix, estimator["name"], estimator["impl_key"]
-            )
-        except CortexException as e:
-            e.wrap("model " + model_name, "estimator")
-            raise
-
-        try:
-            _validate_impl(impl, MODEL_IMPL_VALIDATION)
-        except CortexException as e:
-            e.wrap("model " + model_name, "estimator " + estimator["name"])
-            raise
-
-        self._estimator_impls[estimator_name] = (impl, impl_path)
-        return (impl, impl_path)
-
     def get_request_handler_impl(self, api_name):
         api = self.apis[api_name]
 
@@ -289,85 +162,6 @@ class Context:
             e.wrap("api " + api_name, "request_handler " + api["request_handler"])
             raise
         return impl
-
-    # Mode must be "training" or "evaluation"
-    def get_training_data_parts(self, model_name, mode, part_prefix="part"):
-        training_dataset = self.models[model_name]["dataset"]
-        if mode == "training":
-            data_key = training_dataset["train_key"]
-        elif mode == "evaluation":
-            data_key = training_dataset["eval_key"]
-        else:
-            raise CortexException(
-                "unrecognized training/evaluation mode {} must be one of (train_key, eval_key)".format(
-                    mode
-                )
-            )
-
-        training_data_parts_prefix = os.path.join(data_key, part_prefix)
-        return self.storage.search(prefix=training_data_parts_prefix)
-
-    def store_aggregate_result(self, result, aggregate):
-        self.storage.put_msgpack(result, aggregate["key"])
-
-    def extract_column_names(self, input):
-        column_names = set()
-        for resource_name in util.extract_resource_refs(input):
-            if resource_name in self.columns:
-                column_names.add(resource_name)
-        return column_names
-
-    def model_config(self, model_name):
-        model = self.models[model_name]
-        if model is None:
-            return None
-        estimator = self.estimators[model["estimator"]]
-        target_column = self.columns[util.get_resource_ref(model["target_column"])]
-
-        if estimator.get("target_column") is not None:
-            target_col_type = self.get_inferred_column_type(target_column["name"])
-            if target_col_type not in estimator["target_column"]:
-                raise UserException(
-                    "model " + model_name,
-                    "target_column",
-                    target_column["name"],
-                    "unsupported type (expected type {}, got type {})".format(
-                        util.data_type_str(estimator["target_column"]),
-                        util.data_type_str(target_col_type),
-                    ),
-                )
-
-        model_config = deepcopy(model)
-        config_keys = [
-            "name",
-            "estimator"
-            "estimator_path"
-            "target_column"
-            "input"
-            "training_input"
-            "hparams"
-            "prediction_key"
-            "data_partition_ratio"
-            "training"
-            "evaluation"
-            "tags",
-        ]
-        util.keep_dict_keys(model_config, config_keys)
-
-        model_config["target_column"] = target_column["name"]
-        model_config["input"] = self.populate_values(
-            model["input"], estimator["input"], preserve_column_refs=False
-        )
-        if model.get("training_input") is not None:
-            model_config["training_input"] = self.populate_values(
-                model["training_input"], estimator["training_input"], preserve_column_refs=False
-            )
-        if model.get("hparams") is not None:
-            model_config["hparams"] = self.populate_values(
-                model["hparams"], estimator["hparams"], preserve_column_refs=False
-            )
-
-        return model_config
 
     def get_resource_status(self, resource):
         key = self.resource_status_key(resource)
@@ -439,188 +233,6 @@ class Context:
         self._metadatas[resource_id] = metadata
         return metadata
 
-    def get_inferred_column_type(self, column_name):
-        column = self.columns[column_name]
-        column_type = self.columns[column_name]["type"]
-        if column_type == consts.COLUMN_TYPE_INFERRED:
-            column_type = self.get_metadata(column["id"])["type"]
-            self.columns[column_name]["type"] = column_type
-
-        return column_type
-
-    # Replace aggregates and constants with their values, and columns with their names (unless preserve_column_refs == False)
-    # Also validate against input_schema (if not None)
-    def populate_values(self, input, input_schema, preserve_column_refs):
-        if input is None:
-            if input_schema is None:
-                return None
-            if input_schema.get("_allow_null") == True:
-                return None
-            raise UserException("Null value is not allowed")
-
-        if util.is_resource_ref(input):
-            res_name = util.get_resource_ref(input)
-            if res_name in self.constants:
-                if self.constants[res_name].get("value") is not None:
-                    const_val = self.constants[res_name]["value"]
-                elif self.constants[res_name].get("path") is not None:
-                    const_val = self.storage.get_json_external(self.constants[res_name]["path"])
-                try:
-                    return self.populate_values(const_val, input_schema, preserve_column_refs)
-                except CortexException as e:
-                    e.wrap("constant " + res_name)
-                    raise
-
-            if res_name in self.aggregates:
-                agg_val = self.get_obj(self.aggregates[res_name]["key"])
-                try:
-                    return self.populate_values(agg_val, input_schema, preserve_column_refs)
-                except CortexException as e:
-                    e.wrap("aggregate " + res_name)
-                    raise
-
-            if res_name in self.columns:
-                if input_schema is not None:
-                    col_type = self.get_inferred_column_type(res_name)
-                    if col_type not in input_schema["_type"]:
-                        raise UserException(
-                            "column {}: unsupported input type (expected type {}, got type {})".format(
-                                res_name,
-                                util.data_type_str(input_schema["_type"]),
-                                util.data_type_str(col_type),
-                            )
-                        )
-                if preserve_column_refs:
-                    return input
-                else:
-                    return res_name
-
-        if util.is_list(input):
-            elem_schema = None
-            if input_schema is not None:
-                if not util.is_list(input_schema["_type"]):
-                    raise UserException(
-                        "unsupported input type (expected type {}, got {})".format(
-                            util.data_type_str(input_schema["_type"]), util.user_obj_str(input)
-                        )
-                    )
-                elem_schema = input_schema["_type"][0]
-
-                min_count = input_schema.get("_min_count")
-                if min_count is not None and len(input) < min_count:
-                    raise UserException(
-                        "list has length {}, but the minimum allowed length is {}".format(
-                            len(input), min_count
-                        )
-                    )
-
-                max_count = input_schema.get("_max_count")
-                if max_count is not None and len(input) > max_count:
-                    raise UserException(
-                        "list has length {}, but the maximum allowed length is {}".format(
-                            len(input), max_count
-                        )
-                    )
-
-            casted = []
-            for i, elem in enumerate(input):
-                try:
-                    casted.append(self.populate_values(elem, elem_schema, preserve_column_refs))
-                except CortexException as e:
-                    e.wrap("index " + i)
-                    raise
-            return casted
-
-        if util.is_dict(input):
-            if input_schema is None:
-                casted = {}
-                for key, val in input.items():
-                    key_casted = self.populate_values(key, None, preserve_column_refs)
-                    try:
-                        val_casted = self.populate_values(val, None, preserve_column_refs)
-                    except CortexException as e:
-                        e.wrap(util.user_obj_str(key))
-                        raise
-                    casted[key_casted] = val_casted
-                return casted
-
-            if not util.is_dict(input_schema["_type"]):
-                raise UserException(
-                    "unsupported input type (expected type {}, got {})".format(
-                        util.data_type_str(input_schema["_type"]), util.user_obj_str(input)
-                    )
-                )
-
-            min_count = input_schema.get("_min_count")
-            if min_count is not None and len(input) < min_count:
-                raise UserException(
-                    "map has length {}, but the minimum allowed length is {}".format(
-                        len(input), min_count
-                    )
-                )
-
-            max_count = input_schema.get("_max_count")
-            if max_count is not None and len(input) > max_count:
-                raise UserException(
-                    "map has length {}, but the maximum allowed length is {}".format(
-                        len(input), max_count
-                    )
-                )
-
-            is_generic_map = False
-            if len(input_schema["_type"]) == 1:
-                input_type_key = next(iter(input_schema["_type"].keys()))
-                if is_compound_type(input_type_key):
-                    is_generic_map = True
-                    generic_map_key_schema = input_schema_from_type_schema(input_type_key)
-                    generic_map_value = input_schema["_type"][input_type_key]
-
-            if is_generic_map:
-                casted = {}
-                for key, val in input.items():
-                    key_casted = self.populate_values(
-                        key, generic_map_key_schema, preserve_column_refs
-                    )
-                    try:
-                        val_casted = self.populate_values(
-                            val, generic_map_value, preserve_column_refs
-                        )
-                    except CortexException as e:
-                        e.wrap(util.user_obj_str(key))
-                        raise
-                    casted[key_casted] = val_casted
-                return casted
-
-            # fixed map
-            casted = {}
-            for key, val_schema in input_schema["_type"].items():
-                if key in input:
-                    val = input[key]
-                else:
-                    if val_schema.get("_optional") is not True:
-                        raise UserException("missing key: " + util.user_obj_str(key))
-                    if val_schema.get("_default") is None:
-                        continue
-                    val = val_schema["_default"]
-
-                try:
-                    val_casted = self.populate_values(val, val_schema, preserve_column_refs)
-                except CortexException as e:
-                    e.wrap(util.user_obj_str(key))
-                    raise
-                casted[key] = val_casted
-            return casted
-
-        if input_schema is None:
-            return input
-        if not util.is_str(input_schema["_type"]):
-            raise UserException(
-                "unsupported input type (expected type {}, got {})".format(
-                    util.data_type_str(input_schema["_type"]), util.user_obj_str(input)
-                )
-            )
-        return cast_compound_type(input, input_schema["_type"])
-
 
 def input_schema_from_type_schema(type_schema):
     return {
@@ -665,22 +277,6 @@ def cast_compound_type(value, type_str):
         )
     )
 
-
-MODEL_IMPL_VALIDATION = {
-    "required": [{"name": "create_estimator", "args": ["run_config", "model_config"]}],
-    "optional": [{"name": "transform_tensorflow", "args": ["features", "labels", "model_config"]}],
-}
-
-AGGREGATOR_IMPL_VALIDATION = {"required": [{"name": "aggregate_spark", "args": ["data", "input"]}]}
-
-TRANSFORMER_IMPL_VALIDATION = {
-    "optional": [
-        {"name": "transform_spark", "args": ["data", "input", "transformed_column_name"]},
-        # it is possible to not define transform_python() if you are only using the transformation for training columns, and not for inference
-        {"name": "transform_python", "args": ["input"]},
-        {"name": "reverse_transform_python", "args": ["transformed_value", "input"]},
-    ]
-}
 
 REQUEST_HANDLER_IMPL_VALIDATION = {
     "optional": [
@@ -747,37 +343,3 @@ def _deserialize_raw_ctx(raw_ctx):
             raise CortexException("expected csv_data or parquet_data but found " + data_split)
 
     return raw_ctx
-
-
-# input should already have non-column arguments replaced, and all types validated
-def create_transformer_inputs_from_map(input, col_value_map):
-    if util.is_str(input):
-        if util.is_resource_ref(input):
-            res_name = util.get_resource_ref(input)
-            return col_value_map[res_name]
-        return input
-
-    if util.is_list(input):
-        replaced = []
-        for item in input:
-            replaced.append(create_transformer_inputs_from_map(item, col_value_map))
-        return replaced
-
-    if util.is_dict(input):
-        replaced = {}
-        for key, val in input.items():
-            key_replaced = create_transformer_inputs_from_map(key, col_value_map)
-            val_replaced = create_transformer_inputs_from_map(val, col_value_map)
-            replaced[key_replaced] = val_replaced
-        return replaced
-
-    return input
-
-
-# input should already have non-column arguments replaced, and all types validated
-def create_transformer_inputs_from_lists(input, input_cols_sorted, col_values):
-    col_value_map = {}
-    for col_name, col_value in zip(input_cols_sorted, col_values):
-        col_value_map[col_name] = col_value
-
-    return create_transformer_inputs_from_map(input, col_value_map)

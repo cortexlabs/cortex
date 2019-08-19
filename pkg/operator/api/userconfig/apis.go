@@ -52,8 +52,7 @@ var apiValidation = &cr.StructValidation{
 		{
 			StructField: "Model",
 			StringValidation: &cr.StringValidation{
-				Required:             true,
-				AllowCortexResources: true,
+				Required: true,
 			},
 		},
 		{
@@ -120,7 +119,7 @@ func (api *API) Validate() error {
 		api.ModelFormat = TensorFlowModelFormat
 	} else {
 		if !aws.IsValidS3Path(api.Model) {
-			return errors.Wrap(ErrorInvalidS3PathOrResourceReference(api.Model), Identify(api), ModelKey)
+			return errors.Wrap(ErrorInvalidS3Path(api.Model), Identify(api), ModelKey)
 		}
 
 		if api.ModelFormat == UnknownModelFormat {

@@ -1,6 +1,0 @@
-- kind: transformed_column
-  name: quality_bucketized
-  transformer: cortex.bucketize
-  input:
-    col: @quality
-    bucket_boundaries: [0, 5, 10]

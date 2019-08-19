@@ -36,7 +36,6 @@ type QuantityValidation struct {
 	GreaterThanOrEqualTo *kresource.Quantity
 	LessThan             *kresource.Quantity
 	LessThanOrEqualTo    *kresource.Quantity
-	Int                  bool
 }
 
 func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
@@ -64,12 +63,6 @@ func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
 		if v.LessThanOrEqualTo != nil {
 			if k8sQuantity.Cmp(*v.LessThanOrEqualTo) > 0 {
 				return nil, configreader.ErrorMustBeLessThanOrEqualTo(str, *v.LessThanOrEqualTo)
-			}
-		}
-
-		if v.Int {
-			if k8sQuantity.MilliValue() != k8sQuantity.Value()*1000 {
-				return nil, ErrorK8sQuantityMustBeInt(str)
 			}
 		}
 

@@ -37,7 +37,6 @@ const (
 	ErrParseConfig
 	ErrReadConfig
 	ErrMissingAppDefinition
-	ErrRawColumnNotInEnv
 	ErrUndefinedResource
 	ErrResourceWrongType
 	ErrSpecifyAllOrNone
@@ -47,9 +46,6 @@ const (
 	ErrTemplateMissingArg
 	ErrInvalidCompoundType
 	ErrDuplicateTypeInTypeString
-	ErrCannotMixValueAndColumnTypes
-	ErrColumnTypeLiteral
-	ErrColumnTypeNotAllowed
 	ErrCompoundTypeInOutputType
 	ErrUserKeysCannotStartWithUnderscore
 	ErrMixedInputArgOptionsAndUserKeys
@@ -68,14 +64,10 @@ const (
 	ErrTypeListLength
 	ErrTypeMapZeroLength
 	ErrGenericTypeMapLength
-	ErrK8sQuantityMustBeInt
 	ErrMinReplicasGreaterThanMax
 	ErrInitReplicasGreaterThanMax
 	ErrInitReplicasLessThanMin
-	ErrPredictionKeyOnModelWithEstimator
 	ErrSpecifyOnlyOneMissing
-	ErrEnvSchemaMismatch
-	ErrExtraResourcesWithExternalAPIs
 	ErrImplDoesNotExist
 	ErrInvalidS3PathOrResourceReference
 	ErrUnableToInferModelFormat
@@ -90,7 +82,6 @@ var errorKinds = []string{
 	"err_parse_config",
 	"err_read_config",
 	"err_missing_app_definition",
-	"err_raw_column_not_in_env",
 	"err_undefined_resource",
 	"err_resource_wrong_type",
 	"err_specify_all_or_none",
@@ -100,9 +91,6 @@ var errorKinds = []string{
 	"err_template_missing_arg",
 	"err_invalid_compound_type",
 	"err_duplicate_type_in_type_string",
-	"err_cannot_mix_value_and_column_types",
-	"err_column_type_literal",
-	"err_column_type_not_allowed",
 	"err_compound_type_in_output_type",
 	"err_user_keys_cannot_start_with_underscore",
 	"err_mixed_input_arg_options_and_user_keys",
@@ -121,14 +109,10 @@ var errorKinds = []string{
 	"err_type_list_length",
 	"err_type_map_zero_length",
 	"err_generic_type_map_length",
-	"err_k8s_quantity_must_be_int",
 	"err_min_replicas_greater_than_max",
 	"err_init_replicas_greater_than_max",
 	"err_init_replicas_less_than_min",
-	"err_prediction_key_on_model_with_estimator",
 	"err_specify_only_one_missing",
-	"err_env_schema_mismatch",
-	"err_extra_resources_with_external_apis",
 	"err_impl_does_not_exist",
 	"err_invalid_s3_path_or_resource_reference",
 	"err_unable_to_infer_model_format",
@@ -260,13 +244,6 @@ func ErrorMissingAppDefinition() error {
 	}
 }
 
-func ErrorRawColumnNotInEnv(envName string) error {
-	return Error{
-		Kind:    ErrRawColumnNotInEnv,
-		message: fmt.Sprintf("not defined in the schema for the %s %s", s.UserStr(envName), resource.EnvironmentType.String()),
-	}
-}
-
 func ErrorUndefinedResource(resourceName string, resourceTypes ...resource.Type) error {
 	message := fmt.Sprintf("%s is not defined", s.UserStr(resourceName))
 
@@ -353,7 +330,7 @@ func ErrorTemplateMissingArg(template *Template, argName string) error {
 func ErrorInvalidCompoundType(provided interface{}) error {
 	return Error{
 		Kind:    ErrInvalidCompoundType,
-		message: fmt.Sprintf("invalid type (got %s, expected %s, or a combination of these types (separated by |)", DataTypeUserStr(provided), strings.Join(s.UserStrs(append(ValueTypeStrings(), ValidColumnTypeStrings()...)), ", ")),
+		message: fmt.Sprintf("invalid type (got %s, expected %s, or a combination of these types (separated by |)", DataTypeUserStr(provided), strings.Join(s.UserStrs(ValueTypeStrings()), ", ")),
 	}
 }
 
@@ -361,31 +338,6 @@ func ErrorDuplicateTypeInTypeString(duplicated string, provided string) error {
 	return Error{
 		Kind:    ErrDuplicateTypeInTypeString,
 		message: fmt.Sprintf("invalid type (%s is duplicated in %s)", DataTypeUserStr(duplicated), DataTypeUserStr(provided)),
-	}
-}
-
-func ErrorCannotMixValueAndColumnTypes(provided interface{}) error {
-	return Error{
-		Kind:    ErrCannotMixValueAndColumnTypes,
-		message: fmt.Sprintf("invalid type (%s contains both column and value types)", DataTypeUserStr(provided)),
-	}
-}
-
-func ErrorColumnTypeLiteral(provided interface{}) error {
-	colName := "column_name"
-	if providedStr, ok := provided.(string); ok {
-		colName = providedStr
-	}
-	return Error{
-		Kind:    ErrColumnTypeLiteral,
-		message: fmt.Sprintf("%s: literal values cannot be provided for column input types (use a reference to a column, e.g. \"@%s\")", s.UserStrStripped(provided), colName),
-	}
-}
-
-func ErrorColumnTypeNotAllowed(provided interface{}) error {
-	return Error{
-		Kind:    ErrColumnTypeNotAllowed,
-		message: fmt.Sprintf("%s: column types cannot be used in this context, only value types are allowed (e.g. INT)", DataTypeUserStr(provided)),
 	}
 }
 
@@ -441,7 +393,7 @@ func ErrorTooFewElements(t configreader.PrimitiveType, minCount int64) error {
 func ErrorInvalidInputType(provided interface{}) error {
 	return Error{
 		Kind:    ErrInvalidInputType,
-		message: fmt.Sprintf("invalid type (got %s, expected %s, a combination of these types (separated by |), or a list or map containing these types", DataTypeUserStr(provided), strings.Join(s.UserStrs(append(ValueTypeStrings(), ValidColumnTypeStrings()...)), ", ")),
+		message: fmt.Sprintf("invalid type (got %s, expected %s, a combination of these types (separated by |), or a list or map containing these types", DataTypeUserStr(provided), strings.Join(s.UserStrs(ValueTypeStrings()), ", ")),
 	}
 }
 
@@ -519,13 +471,6 @@ func ErrorGenericTypeMapLength(provided interface{}) error {
 	}
 }
 
-func ErrorK8sQuantityMustBeInt(quantityStr string) error {
-	return Error{
-		Kind:    ErrK8sQuantityMustBeInt,
-		message: fmt.Sprintf("resource compute quantity must be an integer-valued string, e.g. \"2\") (got %s)", DataTypeStr(quantityStr)),
-	}
-}
-
 func ErrorMinReplicasGreaterThanMax(min int32, max int32) error {
 	return Error{
 		Kind:    ErrMinReplicasGreaterThanMax,
@@ -547,13 +492,6 @@ func ErrorInitReplicasLessThanMin(init int32, min int32) error {
 	}
 }
 
-func ErrorPredictionKeyOnModelWithEstimator() error {
-	return Error{
-		Kind:    ErrPredictionKeyOnModelWithEstimator,
-		message: fmt.Sprintf("models which use a pre-defined \"%s\" cannot define \"%s\" themselves (\"%s\" should be defined on the \"%s\", not the \"%s\")", EstimatorKey, PredictionKeyKey, PredictionKeyKey, resource.EstimatorType.String(), resource.ModelType.String()),
-	}
-}
-
 func ErrorSpecifyOnlyOneMissing(vals ...string) error {
 	message := fmt.Sprintf("please specify one of %s", s.UserStrsOr(vals))
 	if len(vals) == 2 {
@@ -563,25 +501,6 @@ func ErrorSpecifyOnlyOneMissing(vals ...string) error {
 	return Error{
 		Kind:    ErrSpecifyOnlyOneMissing,
 		message: message,
-	}
-}
-
-func ErrorEnvSchemaMismatch(env1, env2 *Environment) error {
-	return Error{
-		Kind: ErrEnvSchemaMismatch,
-		message: fmt.Sprintf("schemas diverge between environments (%s lists %s, and %s lists %s)",
-			env1.Name,
-			s.StrsAnd(env1.Data.GetIngestedColumnNames()),
-			env2.Name,
-			s.StrsAnd(env2.Data.GetIngestedColumnNames()),
-		),
-	}
-}
-
-func ErrorExtraResourcesWithExternalAPIs(res Resource) error {
-	return Error{
-		Kind:    ErrExtraResourcesWithExternalAPIs,
-		message: fmt.Sprintf("only apis can be defined if environment is not defined (found %s)", Identify(res)),
 	}
 }
 

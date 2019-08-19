@@ -56,29 +56,6 @@ func (ctx *Context) DirectComputedResourceDependencies(resourceIDs ...string) st
 				allDependencies.Merge(ctx.pythonPackageDependencies(pythonPackage))
 			}
 		}
-		for _, rawColumn := range ctx.RawColumns {
-			if rawColumn.GetID() == resourceID {
-				allDependencies.Merge(ctx.rawColumnDependencies(rawColumn))
-			}
-		}
-		for _, aggregate := range ctx.Aggregates {
-			if aggregate.ID == resourceID {
-				allDependencies.Merge(ctx.aggregatesDependencies(aggregate))
-			}
-		}
-		for _, transformedColumn := range ctx.TransformedColumns {
-			if transformedColumn.ID == resourceID {
-				allDependencies.Merge(ctx.transformedColumnDependencies(transformedColumn))
-			}
-		}
-		for _, model := range ctx.Models {
-			if model.ID == resourceID {
-				allDependencies.Merge(ctx.modelDependencies(model))
-			}
-			if model.Dataset.ID == resourceID {
-				allDependencies.Merge(ctx.trainingDatasetDependencies(model))
-			}
-		}
 		for _, api := range ctx.APIs {
 			if api.ID == resourceID {
 				allDependencies.Merge(ctx.apiDependencies(api))
@@ -93,80 +70,8 @@ func (ctx *Context) pythonPackageDependencies(pythonPackage *PythonPackage) strs
 	return strset.New()
 }
 
-func (ctx *Context) rawColumnDependencies(rawColumn RawColumn) strset.Set {
-	// Currently python packages are a dependency on raw features because raw features share
-	// the same workload as transformed features and aggregates.
-	dependencies := strset.New()
-	for _, pythonPackage := range ctx.PythonPackages {
-		dependencies.Add(pythonPackage.GetID())
-	}
-	return dependencies
-}
-
-func (ctx *Context) aggregatesDependencies(aggregate *Aggregate) strset.Set {
-	dependencies := strset.New()
-
-	for _, pythonPackage := range ctx.PythonPackages {
-		dependencies.Add(pythonPackage.GetID())
-	}
-
-	for _, res := range ctx.ExtractCortexResources(aggregate.Input, resource.RawColumnType) {
-		dependencies.Add(res.GetID())
-	}
-
-	return dependencies
-}
-
-func (ctx *Context) transformedColumnDependencies(transformedColumn *TransformedColumn) strset.Set {
-	dependencies := strset.New()
-
-	for _, pythonPackage := range ctx.PythonPackages {
-		dependencies.Add(pythonPackage.GetID())
-	}
-
-	for _, res := range ctx.ExtractCortexResources(transformedColumn.Input, resource.RawColumnType, resource.AggregateType) {
-		dependencies.Add(res.GetID())
-	}
-
-	return dependencies
-}
-
-func (ctx *Context) trainingDatasetDependencies(model *Model) strset.Set {
-	dependencies := strset.New()
-
-	combinedInput := []interface{}{model.Input, model.TrainingInput, model.TargetColumn}
-	for _, column := range ctx.ExtractCortexResources(combinedInput, resource.RawColumnType, resource.TransformedColumnType) {
-		dependencies.Add(column.GetID())
-	}
-
-	return dependencies
-}
-
-func (ctx *Context) modelDependencies(model *Model) strset.Set {
-	dependencies := strset.New()
-
-	for _, pythonPackage := range ctx.PythonPackages {
-		dependencies.Add(pythonPackage.GetID())
-	}
-
-	dependencies.Add(model.Dataset.ID)
-
-	combinedInput := []interface{}{model.Input, model.TrainingInput, model.TargetColumn}
-	for _, res := range ctx.ExtractCortexResources(combinedInput, resource.RawColumnType, resource.AggregateType, resource.TransformedColumnType) {
-		dependencies.Add(res.GetID())
-	}
-
-	return dependencies
-}
-
 func (ctx *Context) apiDependencies(api *API) strset.Set {
 	dependencies := strset.New()
-
-	modelName, ok := yaml.ExtractAtSymbolText(api.Model)
-	if ok {
-		model := ctx.Models[modelName]
-		dependencies.Add(model.ID)
-	}
 
 	if api.RequestHandler != nil {
 		for _, pythonPackage := range ctx.PythonPackages {

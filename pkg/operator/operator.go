@@ -60,7 +60,6 @@ func main() {
 	router.HandleFunc("/delete", endpoints.Delete).Methods("POST")
 	router.HandleFunc("/deployments", endpoints.GetDeployments).Methods("GET")
 	router.HandleFunc("/resources", endpoints.GetResources).Methods("GET")
-	router.HandleFunc("/aggregate/{id}", endpoints.GetAggregate).Methods("GET")
 	router.HandleFunc("/logs/read", endpoints.ReadLogs)
 
 	log.Print("Running on port " + operatorPortStr)

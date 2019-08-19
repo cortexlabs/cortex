@@ -16,9 +16,7 @@ limitations under the License.
 
 package consts
 
-import (
-	"regexp"
-)
+import "regexp"
 
 var (
 	CortexVersion = "master" // CORTEX_VERSION
@@ -37,25 +35,17 @@ var (
 	RequirementsTxt = "requirements.txt"
 	PackageDir      = "packages"
 
-	AppsDir               = "apps"
-	APIsDir               = "apis"
-	DataDir               = "data"
-	RawDataDir            = "data_raw"
-	TrainingDataDir       = "data_training"
-	AggregatorsDir        = "aggregators"
-	AggregatesDir         = "aggregates"
-	TransformersDir       = "transformers"
-	EstimatorsDir         = "estimators"
-	PythonPackagesDir     = "python_packages"
-	RequestHandlersDir    = "request_handlers"
-	ModelsDir             = "models"
-	ConstantsDir          = "constants"
-	ContextsDir           = "contexts"
-	ResourceStatusesDir   = "resource_statuses"
-	WorkloadSpecsDir      = "workload_specs"
-	RawColumnsDir         = "raw_columns"
-	TransformedColumnsDir = "transformed_columns"
-	MetadataDir           = "metadata"
+	AppsDir             = "apps"
+	APIsDir             = "apis"
+	DataDir             = "data"
+	RawDataDir          = "data_raw"
+	PythonPackagesDir   = "python_packages"
+	RequestHandlersDir  = "request_handlers"
+	ConstantsDir        = "constants"
+	ContextsDir         = "contexts"
+	ResourceStatusesDir = "resource_statuses"
+	WorkloadSpecsDir    = "workload_specs"
+	MetadataDir         = "metadata"
 
 	TelemetryURL = "https://telemetry.cortexlabs.dev"
 )

@@ -93,33 +93,33 @@ DTYPE_TO_TF_TYPE = {
 }
 
 
-def transform_sample(sample):
-    ctx = local_cache["ctx"]
-    model = local_cache["model"]
+# def transform_sample(sample):
+#     ctx = local_cache["ctx"]
+#     model = local_cache["model"]
 
-    transformed_sample = {}
+#     transformed_sample = {}
 
-    for column_name in ctx.extract_column_names(model["input"]):
-        if ctx.is_raw_column(column_name):
-            transformed_value = sample[column_name]
-        else:
-            transformed_column = ctx.transformed_columns[column_name]
-            trans_impl = local_cache["trans_impls"][column_name]
-            if not hasattr(trans_impl, "transform_python"):
-                raise UserException(
-                    "transformed column " + column_name,
-                    "transformer " + transformed_column["transformer"],
-                    "transform_python function is missing",
-                )
-            input = ctx.populate_values(
-                transformed_column["input"], None, preserve_column_refs=True
-            )
-            transformer_input = create_transformer_inputs_from_map(input, sample)
-            transformed_value = trans_impl.transform_python(transformer_input)
+#     for column_name in ctx.extract_column_names(model["input"]):
+#         if ctx.is_raw_column(column_name):
+#             transformed_value = sample[column_name]
+#         else:
+#             transformed_column = ctx.transformed_columns[column_name]
+#             trans_impl = local_cache["trans_impls"][column_name]
+#             if not hasattr(trans_impl, "transform_python"):
+#                 raise UserException(
+#                     "transformed column " + column_name,
+#                     "transformer " + transformed_column["transformer"],
+#                     "transform_python function is missing",
+#                 )
+#             input = ctx.populate_values(
+#                 transformed_column["input"], None, preserve_column_refs=True
+#             )
+#             transformer_input = create_transformer_inputs_from_map(input, sample)
+#             transformed_value = trans_impl.transform_python(transformer_input)
 
-        transformed_sample[column_name] = transformed_value
+#         transformed_sample[column_name] = transformed_value
 
-    return transformed_sample
+#     return transformed_sample
 
 
 def create_prediction_request(transformed_sample):
@@ -179,24 +179,24 @@ def create_raw_prediction_request(sample):
     return prediction_request
 
 
-def reverse_transform(value):
-    ctx = local_cache["ctx"]
-    model = local_cache["model"]
-    target_col = local_cache["target_col"]
+# def reverse_transform(value):
+#     ctx = local_cache["ctx"]
+#     model = local_cache["model"]
+#     target_col = local_cache["target_col"]
 
-    trans_impl = local_cache["trans_impls"].get(target_col["name"])
-    if not (trans_impl and hasattr(trans_impl, "reverse_transform_python")):
-        return None
+#     trans_impl = local_cache["trans_impls"].get(target_col["name"])
+#     if not (trans_impl and hasattr(trans_impl, "reverse_transform_python")):
+#         return None
 
-    input = ctx.populate_values(target_col["input"], None, preserve_column_refs=False)
-    try:
-        result = trans_impl.reverse_transform_python(value, input)
-    except Exception as e:
-        raise UserRuntimeException(
-            "transformer " + target_col["transformer"], "function reverse_transform_python"
-        ) from e
+#     input = ctx.populate_values(target_col["input"], None, preserve_column_refs=False)
+#     try:
+#         result = trans_impl.reverse_transform_python(value, input)
+#     except Exception as e:
+#         raise UserRuntimeException(
+#             "transformer " + target_col["transformer"], "function reverse_transform_python"
+#         ) from e
 
-    return result
+#     return result
 
 
 def parse_response_proto(response_proto):

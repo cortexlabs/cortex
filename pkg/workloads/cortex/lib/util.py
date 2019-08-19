@@ -243,20 +243,6 @@ class Tempdir:
         rm_dir(self.temp_dir)
 
 
-def get_timestamp_from_datetime(dt, delimiter="-"):
-    time_format = delimiter.join(["%Y", "%m", "%d", "%H", "%M", "%S", "%f"])
-    return dt.strftime(time_format)
-
-
-def format_datetime(dt):
-    time_format = "%Y-%m-%d %H:%M:%S"
-    return dt.strftime(time_format)
-
-
-def get_now_formatted():
-    return format_datetime(datetime.utcnow())
-
-
 def now_timestamp_rfc_3339():
     return datetime.utcnow().isoformat("T") + "Z"
 
@@ -729,43 +715,18 @@ def log_job_finished(workload_id):
 
 
 CORTEX_TYPE_TO_VALIDATOR = {
-    consts.COLUMN_TYPE_INT: is_int,
-    consts.COLUMN_TYPE_INT_LIST: is_int_list,
-    consts.COLUMN_TYPE_FLOAT: is_float_or_int,
-    consts.COLUMN_TYPE_FLOAT_LIST: is_float_or_int_list,
-    consts.COLUMN_TYPE_STRING: is_str,
-    consts.COLUMN_TYPE_STRING_LIST: is_str_list,
     consts.VALUE_TYPE_INT: is_int,
     consts.VALUE_TYPE_FLOAT: is_float_or_int,
     consts.VALUE_TYPE_STRING: is_str,
     consts.VALUE_TYPE_BOOL: is_bool,
 }
 
-CORTEX_TYPE_TO_UPCASTER = {
-    consts.VALUE_TYPE_FLOAT: lambda x: float(x),
-    consts.COLUMN_TYPE_FLOAT: lambda x: float(x),
-    consts.COLUMN_TYPE_FLOAT_LIST: lambda ls: [float(item) for item in ls],
-}
-
 CORTEX_TYPE_TO_CASTER = {
-    consts.COLUMN_TYPE_INT: lambda x: int(x),
-    consts.COLUMN_TYPE_INT_LIST: lambda ls: [int(item) for item in ls],
-    consts.COLUMN_TYPE_FLOAT: lambda x: float(x),
-    consts.COLUMN_TYPE_FLOAT_LIST: lambda ls: [float(item) for item in ls],
-    consts.COLUMN_TYPE_STRING: lambda x: str(x),
-    consts.COLUMN_TYPE_STRING_LIST: lambda ls: [str(item) for item in ls],
     consts.VALUE_TYPE_INT: lambda x: int(x),
     consts.VALUE_TYPE_FLOAT: lambda x: float(x),
     consts.VALUE_TYPE_STRING: lambda x: str(x),
     consts.VALUE_TYPE_BOOL: lambda x: bool(x),
 }
-
-
-def upcast(value, cortex_type):
-    upcaster = CORTEX_TYPE_TO_UPCASTER.get(cortex_type, None)
-    if upcaster:
-        return upcaster(value)
-    return value
 
 
 def cast(value, cortex_type):
@@ -781,9 +742,6 @@ def validate_cortex_type(value, cortex_type):
 
     if not is_str(cortex_type):
         raise
-
-    if cortex_type == consts.COLUMN_TYPE_INFERRED:
-        return True
 
     valid_types = cortex_type.split("|")
     for valid_type in valid_types:

@@ -24,40 +24,24 @@ type Type int
 type Types []Type
 
 const (
-	UnknownType           Type = iota // 0
-	AppType                           // 1
-	RawColumnType                     // 2
-	TransformedColumnType             // 3
-	AggregateType                     // 4
-	APIType                           // 5
-	ModelType                         // 6
-	EnvironmentType                   // 7
-	AggregatorType                    // 8
-	TransformerType                   // 9
-	EstimatorType                     // 10
-	TemplateType                      // 11
-	EmbedType                         // 12
-	TrainingDatasetType               // 13
-	ConstantType                      // 14
-	PythonPackageType                 // 15
+	UnknownType       Type = iota // 0
+	AppType                       // 1
+	APIType                       // 2
+	EnvironmentType               // 3
+	TemplateType                  // 4
+	EmbedType                     // 5
+	ConstantType                  // 6
+	PythonPackageType             // 7
 )
 
 var (
 	types = []string{
 		"unknown",
 		"deployment",
-		"raw_column",
-		"transformed_column",
-		"aggregate",
 		"api",
-		"model",
 		"environment",
-		"aggregator",
-		"transformer",
-		"estimator",
 		"template",
 		"embed",
-		"training_dataset",
 		"constant",
 		"python_package",
 	}
@@ -65,18 +49,10 @@ var (
 	typePlurals = []string{
 		"unknown",
 		"deployments",
-		"raw_columns",
-		"transformed_columns",
-		"aggregates",
 		"apis",
-		"models",
 		"environments",
-		"aggregators",
-		"transformers",
-		"estimators",
 		"templates",
 		"embeds",
-		"training_datasets",
 		"constants",
 		"python_packages",
 	}
@@ -84,18 +60,10 @@ var (
 	userFacing = []string{
 		"unknown",
 		"deployment",
-		"raw column",
-		"transformed column",
-		"aggregate",
 		"api",
-		"model",
 		"environment",
-		"aggregator",
-		"transformer",
-		"estimator",
 		"template",
 		"embed",
-		"training dataset",
 		"constant",
 		"python package",
 	}
@@ -103,37 +71,17 @@ var (
 	userFacingPlural = []string{
 		"unknowns",
 		"deployments",
-		"raw columns",
-		"transformed columns",
-		"aggregates",
 		"apis",
-		"models",
 		"environments",
-		"aggregators",
-		"transformers",
-		"estimators",
 		"templates",
 		"embeds",
-		"training datasets",
 		"constants",
 		"python packages",
 	}
 
 	typeAcronyms = map[string]Type{
-		"rc":   RawColumnType,
-		"rcs":  RawColumnType,
-		"tc":   TransformedColumnType,
-		"tcs":  TransformedColumnType,
-		"agg":  AggregateType,
-		"aggs": AggregateType,
-		"m":    ModelType,
-		"ms":   ModelType,
 		"env":  EnvironmentType,
 		"envs": EnvironmentType,
-		"tr":   TransformerType,
-		"trs":  TransformerType,
-		"td":   TrainingDatasetType,
-		"tds":  TrainingDatasetType,
 		"ct":   ConstantType,
 		"cts":  ConstantType,
 		"py":   PythonPackageType,
@@ -143,11 +91,6 @@ var (
 	}
 
 	VisibleTypes = Types{
-		RawColumnType,
-		AggregateType,
-		TransformedColumnType,
-		TrainingDatasetType,
-		ModelType,
 		APIType,
 		PythonPackageType,
 	}

@@ -20,12 +20,10 @@ import (
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
-	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
@@ -48,8 +46,6 @@ func PopulateWorkloadIDs(ctx *context.Context) error {
 	}
 
 	populatePythonPackageWorkloadIDs(ctx, latestResourceWorkloadIDs)
-	populateSparkWorkloadIDs(ctx, latestResourceWorkloadIDs)
-	populateTrainingWorkloadIDs(ctx, latestResourceWorkloadIDs)
 	populateAPIWorkloadIDs(ctx, latestResourceWorkloadIDs)
 
 	if err := ctx.CheckAllWorkloadIDsPopulated(); err != nil {
@@ -61,29 +57,9 @@ func PopulateWorkloadIDs(ctx *context.Context) error {
 func extractWorkloads(ctx *context.Context) []Workload {
 	var workloads []Workload
 	workloads = append(workloads, extractPythonPackageWorkloads(ctx)...)
-	workloads = append(workloads, extractSparkWorkloads(ctx)...)
-	workloads = append(workloads, extractTrainingWorkloads(ctx)...)
 	workloads = append(workloads, extractAPIWorkloads(ctx)...)
 	workloads = append(workloads, extractHPAWorkloads(ctx)...)
 	return workloads
-}
-
-func ValidateDeploy(ctx *context.Context) error {
-	if ctx.Environment != nil {
-		rawDatasetExists, err := config.AWS.IsS3File(filepath.Join(ctx.RawDataset.Key, "_SUCCESS"))
-		if err != nil {
-			return errors.Wrap(err, ctx.App.Name, "raw dataset")
-		}
-		if !rawDatasetExists {
-			externalPath := ctx.Environment.Data.GetPath()
-			externalDataExists, err := aws.IsS3aPathPrefixExternal(externalPath)
-			if !externalDataExists || err != nil {
-				return errors.Wrap(userconfig.ErrorExternalNotFound(externalPath), ctx.App.Name, userconfig.Identify(ctx.Environment), userconfig.DataKey, userconfig.PathKey)
-			}
-		}
-	}
-
-	return nil
 }
 
 func Run(ctx *context.Context) error {
@@ -127,10 +103,6 @@ func deleteOldDataJobs(ctx *context.Context) error {
 	for _, job := range jobs {
 		config.Kubernetes.DeleteJob(job.Name)
 	}
-	sparkApps, _ := config.Spark.ListByLabel("appName", ctx.App.Name)
-	for _, sparkApp := range sparkApps {
-		config.Spark.Delete(sparkApp.Name)
-	}
 
 	err := updateKilledDataSavedStatuses(ctx)
 	if err != nil {
@@ -166,10 +138,6 @@ func DeleteApp(appName string, keepCache bool) bool {
 	jobs, _ := config.Kubernetes.ListJobsByLabel("appName", appName)
 	for _, job := range jobs {
 		config.Kubernetes.DeleteJob(job.Name)
-	}
-	sparkApps, _ := config.Spark.ListByLabel("appName", appName)
-	for _, sparkApp := range sparkApps {
-		config.Spark.Delete(sparkApp.Name)
 	}
 	deployments, _ := config.Kubernetes.ListDeploymentsByLabel("appName", appName)
 	for _, deployment := range deployments {

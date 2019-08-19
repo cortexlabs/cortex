@@ -218,20 +218,6 @@ func (code StatusCode) SortBucket() int {
 }
 
 func (status *DataStatus) Message() string {
-	if status.Code == StatusRunning {
-		switch status.ResourceType {
-		case RawColumnType:
-			return RawColumnRunningMessage
-		case AggregateType:
-			return AggregatorRunningMessage
-		case TransformedColumnType:
-			return TransformerRunningMessage
-		case TrainingDatasetType:
-			return TrainingDatasetRunningMessage
-		case ModelType:
-			return ModelRunningMessage
-		}
-	}
 	return status.Code.Message()
 }
 

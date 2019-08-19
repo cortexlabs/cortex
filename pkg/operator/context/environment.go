@@ -27,16 +27,16 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
-func getEnvironment(config *userconfig.Config, datasetVersion string) *context.Environment {
+func getEnvironment(config *userconfig.Config, deploymentVersion string) *context.Environment {
 	return &context.Environment{
 		Environment: config.Environment,
-		ID:          dataID(config, datasetVersion),
+		ID:          dataID(config, deploymentVersion),
 	}
 }
 
-func dataID(config *userconfig.Config, datasetVersion string) string {
+func dataID(config *userconfig.Config, deploymentVersion string) string {
 	var buf bytes.Buffer
-	buf.WriteString(datasetVersion)
+	buf.WriteString(deploymentVersion)
 
 	rawColumnTypeMap := make(map[string]userconfig.ColumnType, len(config.RawColumns))
 	for _, rawColumnConfig := range config.RawColumns {

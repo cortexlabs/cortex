@@ -29,14 +29,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/yaml"
 )
 
 var uploadedRequestHandlers = strset.New()
 
 func getAPIs(config *userconfig.Config,
-	models context.Models,
-	datasetVersion string,
+	deploymentVersion string,
 	impls map[string][]byte,
 	pythonPackages context.PythonPackages,
 ) (context.APIs, error) {
@@ -69,17 +67,8 @@ func getAPIs(config *userconfig.Config,
 			}
 		}
 
-		if yaml.StartsWithEscapedAtSymbol(apiConfig.Model) {
-			modelName, _ := yaml.ExtractAtSymbolText(apiConfig.Model)
-			model := models[modelName]
-			if model == nil {
-				return nil, errors.Wrap(userconfig.ErrorUndefinedResource(modelName, resource.ModelType), userconfig.Identify(apiConfig), userconfig.ModelKey)
-			}
-			buf.WriteString(model.ID)
-		} else {
-			buf.WriteString(datasetVersion)
-			buf.WriteString(apiConfig.Model)
-		}
+		buf.WriteString(deploymentVersion)
+		buf.WriteString(apiConfig.Model)
 
 		id := hash.Bytes(buf.Bytes())
 

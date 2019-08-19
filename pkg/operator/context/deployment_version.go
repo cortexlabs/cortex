@@ -27,32 +27,32 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-func getOrSetDatasetVersion(appName string, ignoreCache bool) (string, error) {
-	datasetVersionFileKey := filepath.Join(
+func getOrSetDeploymentVersion(appName string, ignoreCache bool) (string, error) {
+	deploymentVersionFileKey := filepath.Join(
 		consts.AppsDir,
 		appName,
-		"dataset_version",
+		"deployment_version",
 	)
 
 	if ignoreCache {
-		datasetVersion := libtime.Timestamp(time.Now())
-		err := config.AWS.UploadStringToS3(datasetVersion, datasetVersionFileKey)
+		deploymentVersion := libtime.Timestamp(time.Now())
+		err := config.AWS.UploadStringToS3(deploymentVersion, deploymentVersionFileKey)
 		if err != nil {
-			return "", errors.Wrap(err, "dataset version") // unexpected error
+			return "", errors.Wrap(err, "deployment version") // unexpected error
 		}
-		return datasetVersion, nil
+		return deploymentVersion, nil
 	}
 
-	datasetVersion, err := config.AWS.ReadStringFromS3(datasetVersionFileKey)
+	deploymentVersion, err := config.AWS.ReadStringFromS3(deploymentVersionFileKey)
 	if err != nil {
 		if !aws.IsNoSuchKeyErr(err) {
-			return "", errors.Wrap(err, "dataset version") // unexpected error
+			return "", errors.Wrap(err, "deployment version") // unexpected error
 		}
-		datasetVersion = libtime.Timestamp(time.Now())
-		err := config.AWS.UploadStringToS3(datasetVersion, datasetVersionFileKey)
+		deploymentVersion = libtime.Timestamp(time.Now())
+		err := config.AWS.UploadStringToS3(deploymentVersion, deploymentVersionFileKey)
 		if err != nil {
-			return "", errors.Wrap(err, "dataset version") // unexpected error
+			return "", errors.Wrap(err, "deployment version") // unexpected error
 		}
 	}
-	return datasetVersion, nil
+	return deploymentVersion, nil
 }
