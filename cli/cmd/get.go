@@ -65,7 +65,7 @@ var getCmd = &cobra.Command{
 
 func runGet(cmd *cobra.Command, args []string) (string, error) {
 	if flagAllDeployments || !IsAppNameSpecified() {
-		return getDeploymentsResponse()
+		return allDeploymentsStr()
 	}
 
 	resourcesRes, err := getResourcesResponse()
@@ -114,7 +114,7 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 	return "", errors.New("too many args") // unexpected
 }
 
-func getDeploymentsResponse() (string, error) {
+func allDeploymentsStr() (string, error) {
 	httpResponse, err := HTTPGet("/deployments", map[string]string{})
 	if err != nil {
 		return "", err
@@ -589,22 +589,6 @@ func dataStatusSummary(dataStatus *resource.DataStatus) string {
 
 func valueStr(value interface{}) string {
 	return titleStr("value") + s.Obj(value) + "\n"
-}
-
-func strMapToStr(strings map[string]string) string {
-	var keys []string
-	for key := range strings {
-		keys = append(keys, key)
-	}
-
-	sort.Strings(keys)
-
-	out := ""
-	for _, key := range keys {
-		out += strings[key] + "\n"
-	}
-
-	return out
 }
 
 func dataResourceTable(resources []context.Resource, dataStatuses map[string]*resource.DataStatus, resourceType resource.Type) string {

@@ -1,6 +1,6 @@
 import numpy as np
 
-iris_labels = ["Iris-setosa", "Iris-versicolor", "Iris-virginica"]
+labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
 def pre_inference(sample, metadata):
@@ -17,7 +17,7 @@ def pre_inference(sample, metadata):
 def post_inference(prediction, metadata):
     predicted_class_id = int(np.argmax(prediction[0][0]))
     return {
-        "class_label": iris_labels[predicted_class_id],
+        "class_label": labels[predicted_class_id],
         "class_index": predicted_class_id,
         "probabilites": prediction[0][0],
     }

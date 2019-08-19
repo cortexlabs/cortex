@@ -53,7 +53,6 @@ var (
 	ContextsDir           = "contexts"
 	ResourceStatusesDir   = "resource_statuses"
 	WorkloadSpecsDir      = "workload_specs"
-	LogPrefixesDir        = "log_prefixes"
 	RawColumnsDir         = "raw_columns"
 	TransformedColumnsDir = "transformed_columns"
 	MetadataDir           = "metadata"
