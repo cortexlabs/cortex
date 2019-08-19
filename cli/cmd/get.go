@@ -554,7 +554,7 @@ func getModelInput(infoAPIPath string) (*schema.ModelInput, error) {
 		return nil, errors.Wrap(err, "unable to request model input")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	response, err := makeOperatorRequest(req)
+	response, err := httpsNoVerifyClient.makeRequest(req)
 	if err != nil {
 		return nil, err
 	}

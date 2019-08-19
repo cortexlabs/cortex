@@ -42,10 +42,22 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
 
-var operatorClient = &http.Client{
-	Timeout: time.Second * 20,
-	Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+type cortexClient struct {
+	*http.Client
+}
+
+var httpClient = &cortexClient{
+	Client: &http.Client{
+		Timeout: time.Second * 20,
+	},
+}
+
+var httpsNoVerifyClient = &cortexClient{
+	Client: &http.Client{
+		Timeout: time.Second * 20,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
 	},
 }
 
@@ -54,7 +66,7 @@ func HTTPGet(endpoint string, qParams ...map[string]string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return makeOperatorRequest(req)
+	return httpsNoVerifyClient.makeRequest(req)
 }
 
 func HTTPPostJSONData(endpoint string, requestData interface{}, qParams ...map[string]string) ([]byte, error) {
@@ -72,7 +84,7 @@ func HTTPPostJSON(endpoint string, jsonRequestData []byte, qParams ...map[string
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	return makeOperatorRequest(req)
+	return httpsNoVerifyClient.makeRequest(req)
 }
 
 type HTTPUploadInput struct {
@@ -112,7 +124,7 @@ func HTTPUpload(endpoint string, input *HTTPUploadInput, qParams ...map[string]s
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	return makeOperatorRequest(req)
+	return httpsNoVerifyClient.makeRequest(req)
 }
 
 func addFileToMultipart(fileName string, writer *multipart.Writer, reader io.Reader) error {
@@ -252,11 +264,7 @@ func operatorRequest(method string, endpoint string, body io.Reader, qParams []m
 	return req, nil
 }
 
-func makeOperatorRequest(request *http.Request) ([]byte, error) {
-	return makeRequest(request, operatorClient)
-}
-
-func makeRequest(request *http.Request, client *http.Client) ([]byte, error) {
+func (client *cortexClient) makeRequest(request *http.Request) ([]byte, error) {
 	request.Header.Set("Authorization", authHeader())
 	request.Header.Set("CortexAPIVersion", consts.CortexVersion)
 

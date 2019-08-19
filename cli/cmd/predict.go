@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
@@ -186,10 +185,7 @@ func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	var predictionClient = &http.Client{
-		Timeout: time.Second * 20,
-	}
-	httpResponse, err := makeRequest(req, predictionClient)
+	httpResponse, err := httpClient.makeRequest(req)
 	if err != nil {
 		return nil, err
 	}
