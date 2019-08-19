@@ -17,9 +17,8 @@ limitations under the License.
 package schema
 
 import (
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
 
 type RegressionStats struct {
