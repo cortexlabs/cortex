@@ -122,7 +122,6 @@ var predictCmd = &cobra.Command{
 
 			fmt.Println(prettyResp)
 			continue
-
 		}
 	},
 }
