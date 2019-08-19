@@ -56,7 +56,6 @@ _, predict_y = torch.max(predict_out, 1)
 
 print("prediction accuracy {}".format(accuracy_score(test_y.data, predict_y.data)))
 
-# Convert to ONNX model format
 placeholder = torch.randn(1, 4)
 torch.onnx.export(
     model, placeholder, "pytorch.onnx", input_names=["input"], output_names=["species"]

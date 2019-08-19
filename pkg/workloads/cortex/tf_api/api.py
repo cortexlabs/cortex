@@ -31,6 +31,7 @@ from google.protobuf import json_format
 from cortex import consts
 from cortex.lib import util, tf_lib, package, Context
 from cortex.lib.log import get_logger
+from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 from cortex.lib.context import create_transformer_inputs_from_map
 
@@ -159,10 +160,10 @@ def create_raw_prediction_request(sample):
 
     for column_name, value in sample.items():
 
-        if util.is_list(value):
-            shape = []
-            for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
-                shape.append(int(dim["size"]))
+        shape = []
+        for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
+            shape.append(int(dim["size"])
+    
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
 
         try:
@@ -400,7 +401,7 @@ def predict(deployment_name, api_name):
 def extract_signature():
     signature_def = local_cache["metadata"]["signatureDef"]
     if signature_def.get("predict") is None or signature_def["predict"].get("inputs") is None:
-        raise UserException("unable to find signature definition for model")
+        raise UserException('unable to find "predict" in model\'s signature definition')
 
     metadata = {}
     for input_name, input_metadata in signature_def["predict"]["inputs"].items():
@@ -432,6 +433,23 @@ def get_signature(app_name, api_name):
 
     response = {"signature": metadata}
     return jsonify(response)
+
+
+def download_dir_external(ctx, s3_path, local_path):
+    util.mkdir_p(local_path)
+    bucket_name, prefix = ctx.storage.deconstruct_s3_path(s3_path)
+    storage_client = S3(bucket_name, client_config={})
+    objects = [obj[len(prefix) + 1 :] for obj in storage_client.search(prefix=prefix)]
+    prefix = prefix + "/" if prefix[-1] != "/" else prefix
+    version = prefix.split("/")[-2]
+    local_path = os.path.join(local_path, version)
+    for obj in objects:
+        if not os.path.exists(os.path.dirname(obj)):
+            util.mkdir_p(os.path.join(local_path, os.path.dirname(obj)))
+
+        ctx.storage.download_file_external(
+            bucket_name + "/" + os.path.join(prefix, obj), os.path.join(local_path, obj)
+        )
 
 
 def validate_model_dir(model_dir):
@@ -490,22 +508,21 @@ def start(args):
         if api.get("request_handler") is not None:
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
 
-        if not util.is_resource_ref(api["model"]):
-            if not os.path.isdir(args.model_dir):
-                ctx.storage.download_and_unzip_external(api["model"], args.model_dir)
+        if not os.path.isdir(args.model_dir):
+            if util.is_resource_ref(api["model"]):
+                model_name = util.get_resource_ref(api["model"])
+                model = ctx.models[model_name]
+                ctx.storage.download_and_unzip(model["key"], args.model_dir)
+            else:
+                download_dir_external(ctx, api["model"], args.model_dir)
 
-            if args.only_download:
-                return
-        else:
+        if args.only_download:
+            return
+
+        if util.is_resource_ref(api["model"]):
             model_name = util.get_resource_ref(api["model"])
             model = ctx.models[model_name]
             estimator = ctx.estimators[model["estimator"]]
-
-            if not os.path.isdir(args.model_dir):
-                ctx.storage.download_and_unzip(model["key"], args.model_dir)
-
-            if args.only_download:
-                return
 
             local_cache["model"] = model
             local_cache["estimator"] = estimator

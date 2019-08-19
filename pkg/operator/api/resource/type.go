@@ -81,6 +81,44 @@ var (
 		"python_packages",
 	}
 
+	userFacing = []string{
+		"unknown",
+		"deployment",
+		"raw column",
+		"transformed column",
+		"aggregate",
+		"api",
+		"model",
+		"environment",
+		"aggregator",
+		"transformer",
+		"estimator",
+		"template",
+		"embed",
+		"training dataset",
+		"constant",
+		"python package",
+	}
+
+	userFacingPlural = []string{
+		"unknowns",
+		"deployments",
+		"raw columns",
+		"transformed columns",
+		"aggregates",
+		"apis",
+		"models",
+		"environments",
+		"aggregators",
+		"transformers",
+		"estimators",
+		"templates",
+		"embeds",
+		"training datasets",
+		"constants",
+		"python packages",
+	}
+
 	typeAcronyms = map[string]Type{
 		"rc":   RawColumnType,
 		"rcs":  RawColumnType,
@@ -109,6 +147,7 @@ var (
 		TrainingDatasetType,
 		ModelType,
 		APIType,
+		PythonPackageType,
 	}
 )
 
@@ -168,6 +207,14 @@ func (t Type) String() string {
 
 func (t Type) Plural() string {
 	return typePlurals[t]
+}
+
+func (t Type) UserFacing() string {
+	return userFacing[t]
+}
+
+func (t Type) UserFacingPlural() string {
+	return userFacingPlural[t]
 }
 
 // MarshalText satisfies TextMarshaler

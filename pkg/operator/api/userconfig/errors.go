@@ -80,6 +80,7 @@ const (
 	ErrInvalidS3PathOrResourceReference
 	ErrUnableToInferModelFormat
 	ErrExternalNotFound
+	ErrInvalidTensorflowDir
 )
 
 var errorKinds = []string{
@@ -133,9 +134,10 @@ var errorKinds = []string{
 	"err_invalid_s3_path_or_resource_reference",
 	"err_unable_to_infer_model_format",
 	"err_external_not_found",
+	"err_invalid_tensorflow_dir",
 }
 
-var _ = [1]int{}[int(ErrExternalNotFound)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrInvalidTensorflowDir)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -599,10 +601,30 @@ func ErrorExternalNotFound(path string) error {
 	}
 }
 
+var onnxExpectedStructMessage = `For ONNX models, the path should end in .onnx`
+
+var tfExpectedStructMessage = `For TensorFlow models, the path should be a directory with the following structure:
+  1523423423/ (version prefix, usually a timestamp)
+  ├── saved_model.pb
+  └── variables/
+      ├── variables.index
+      ├── variables.data-00000-of-00003
+      ├── variables.data-00001-of-00003
+      └── variables.data-00002-of-...`
+
 func ErrorUnableToInferModelFormat() error {
+	message := ModelFormatKey + " not specified, and could not be inferred\n" + onnxExpectedStructMessage + "\n" + tfExpectedStructMessage
 	return Error{
 		Kind:    ErrUnableToInferModelFormat,
-		message: "unable to infer " + ModelFormatKey + ": path to model should end in .zip for TensorFlow models, .onnx for ONNX models, or the " + ModelFormatKey + " key must be specified",
+		message: message,
+	}
+}
+func ErrorInvalidTensorflowDir(path string) error {
+	message := "invalid TF export directory.\n"
+	message += tfExpectedStructMessage
+	return Error{
+		Kind:    ErrInvalidTensorflowDir,
+		message: message,
 	}
 }
 

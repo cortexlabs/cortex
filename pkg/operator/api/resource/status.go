@@ -76,11 +76,6 @@ func (grc *GroupedReplicaCounts) Available() int32 {
 	return grc.ReadyUpdated + grc.ReadyStaleModel + grc.ReadyStaleCompute
 }
 
-// Number of replicas with the up-to-date model (includes stale compute)
-func (grc *GroupedReplicaCounts) UpToDate() int32 {
-	return grc.ReadyUpdated + grc.ReadyStaleCompute
-}
-
 func (status *DataStatus) GetCode() StatusCode {
 	return status.Code
 }

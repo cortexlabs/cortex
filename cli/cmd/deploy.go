@@ -21,6 +21,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -77,5 +78,5 @@ func deploy(force bool, ignoreCache bool) {
 		errors.Exit(err, "/deploy", "response", string(response))
 	}
 
-	fmt.Println(deployResponse.Message)
+	fmt.Println("\n" + console.Bold(deployResponse.Message))
 }
