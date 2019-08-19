@@ -442,7 +442,7 @@ def download_dir_external(ctx, s3_path, local_path):
     util.mkdir_p(local_path)
     bucket_name, prefix = ctx.storage.deconstruct_s3_path(s3_path)
     storage_client = S3(bucket_name, client_config={})
-    objects = [obj[len(prefix) + 1:] for obj in storage_client.search(prefix=prefix)]
+    objects = [obj[len(prefix) + 1 :] for obj in storage_client.search(prefix=prefix)]
     version = prefix.rstrip("/").split("/")[-1]
     local_path = os.path.join(local_path, version)
     for obj in objects:
@@ -505,7 +505,7 @@ def start(args):
 
         if api.get("request_handler") is not None:
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
-        
+
         if not os.path.isdir(args.model_dir):
             if util.is_resource_ref(api["model"]):
                 model_name = util.get_resource_ref(api["model"])
@@ -516,7 +516,7 @@ def start(args):
 
         if args.only_download:
             return
-            
+
         if util.is_resource_ref(api["model"]):
             model_name = util.get_resource_ref(api["model"])
             model = ctx.models[model_name]
