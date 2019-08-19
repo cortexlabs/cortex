@@ -173,13 +173,11 @@ func extractNetworkMetrics(metricsDataResults []*cloudwatch.MetricDataResult) (*
 		}
 	}
 
-	if len(latencyAvgs) != 0 && len(requestCounts) != 0 {
-		avg, err := slices.Float64PtrAvg(latencyAvgs, requestCounts)
-		if err != nil {
-			return nil, err
-		}
-		networkStats.Latency = avg
+	avg, err := slices.Float64PtrAvg(latencyAvgs, requestCounts)
+	if err != nil {
+		return nil, err
 	}
+	networkStats.Latency = avg
 
 	networkStats.Total = networkStats.Code2XX + networkStats.Code4XX + networkStats.Code5XX
 	return &networkStats, nil

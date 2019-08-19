@@ -469,14 +469,22 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	out := "\n" + console.Bold("url:  ") + apiEndpoint + "\n"
 	out += fmt.Sprintf("%s curl -k -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n", console.Bold("curl:"), apiEndpoint)
-	out += fmt.Sprintf(console.Bold("updated at:")+" %s\n", libtime.LocalTimestamp(updatedAt))
+	out += fmt.Sprintf(console.Bold("updated at:")+" %s\n\n", libtime.LocalTimestamp(updatedAt))
 
 	t := table.Table{
 		Headers: headers,
 		Rows:    [][]interface{}{row},
 	}
 
-	out += "\n" + apiMetricsTable(t, ctx.App.Name, api)
+	apiMetrics, err := getAPIMetrics(ctx.App.Name, api.Name)
+	if err != nil {
+		out += table.MustFormat(t)
+		out += "\n\nmetrics are not available yet"
+	} 
+
+	if apiMetrics != nil {
+		out += apiMetricsTable(t, apiMetrics, api)
+	}
 
 	if !flagVerbose {
 		return out, nil
@@ -511,24 +519,24 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	return out, nil
 }
 
-func apiMetricsTable(apiTable table.Table, appName string, api *context.API) string {
-	params := map[string]string{"appName": appName, "apiName": api.Name}
+func getAPIMetrics(appName, apiName string) (*schema.APIMetrics, error) {
+	params := map[string]string{"appName": appName, "apiName": apiName}
 	httpResponse, err := HTTPGet("/metrics", params)
 	if err != nil {
-		out := table.MustFormat(apiTable)
-		out += "\n\nmetrics are not available yet"
-		return out
+		return nil, err
 	}
 
 	var apiMetrics schema.APIMetrics
 	err = json.Unmarshal(httpResponse, &apiMetrics)
 	if err != nil {
-		out := table.MustFormat(apiTable)
-		out += "\n\nunable able to parse metrics"
-		return out
+		return nil, err
 	}
 
-	out := networkMetricsTable(apiTable, &apiMetrics)
+	return &apiMetrics, nil
+}
+
+func apiMetricsTable(apiTable table.Table, apiMetrics *schema.APIMetrics, api *context.API) string {
+	out := networkMetricsTable(apiTable, apiMetrics)
 	out += "\n"
 	if api.Tracker == nil {
 		out += "\na tracker has not configured to record predictions"
@@ -537,9 +545,9 @@ func apiMetricsTable(apiTable table.Table, appName string, api *context.API) str
 
 	out += "\n"
 	if api.Tracker.ModelType == userconfig.ClassificationModelType {
-		out += classificationMetricsTable(&apiMetrics)
+		out += classificationMetricsTable(apiMetrics)
 	} else {
-		out += regressionMetricsTable(&apiMetrics)
+		out += regressionMetricsTable(apiMetrics)
 	}
 	return out
 }
@@ -552,25 +560,16 @@ func networkMetricsTable(apiTable table.Table, apiMetrics *schema.APIMetrics) st
 
 	headers := []table.Header{
 		{Title: "avg latency"},
+		{Title: "2XX", Hidden: apiMetrics.NetworkStats.Code2XX == 0},
+		{Title: "4XX", Hidden: apiMetrics.NetworkStats.Code4XX == 0},
+		{Title: "5XX", Hidden: apiMetrics.NetworkStats.Code5XX == 0},
 	}
 
 	row := []interface{}{
 		latency,
-	}
-
-	if apiMetrics.NetworkStats.Code2XX != 0 {
-		headers = append(headers, table.Header{Title: "2XX"})
-		row = append(row, apiMetrics.NetworkStats.Code2XX)
-	}
-
-	if apiMetrics.NetworkStats.Code4XX != 0 {
-		headers = append(headers, table.Header{Title: "4XX"})
-		row = append(row, apiMetrics.NetworkStats.Code4XX)
-	}
-	
-	if apiMetrics.NetworkStats.Code5XX != 0 {
-		headers = append(headers, table.Header{Title: "5XX"})
-		row = append(row, apiMetrics.NetworkStats.Code5XX)
+		apiMetrics.NetworkStats.Code2XX,
+		apiMetrics.NetworkStats.Code4XX,
+		apiMetrics.NetworkStats.Code5XX,
 	}
 	
 	apiTable.Headers = append(apiTable.Headers, headers...)
@@ -608,10 +607,6 @@ func regressionMetricsTable(apiMetrics *schema.APIMetrics) string {
 }
 
 func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
-	if len(apiMetrics.ClassDistribution) == 0 {
-		return ""
-	}
-
 	classList := make([]string, len(apiMetrics.ClassDistribution))
 
 	i := 0
@@ -621,7 +616,7 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 	}
 	sort.Strings(classList)
 
-	if len(classList) < 4 {
+	if len(classList) > 0 && len(classList) < 4 {
 		row := []interface{}{}
 		headers := []table.Header{}
 
@@ -643,6 +638,13 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 				className,
 				apiMetrics.ClassDistribution[className],
 			}
+		}
+
+		if len(classList) == 0 {
+			rows = append(rows, []interface{}{
+				"-",
+				"-",
+			})
 		}
 
 		t := table.Table{
