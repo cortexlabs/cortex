@@ -34,7 +34,7 @@ Cortex is maintained by a venture-backed team of infrastructure engineers and [w
 
 
 # Load data for preprocessing or postprocessing. For example:
-labels = download_my_labels_from_s3()
+labels = download_labels_from_s3()
 
 
 def pre_inference(sample, metadata):
@@ -51,13 +51,13 @@ def post_inference(prediction, metadata):
 $ cortex deploy
 
 Deploying ...
-https://amazonaws.com/my-api  # Your API is ready!
+http://***.amazonaws.com/my-api  # Your API is ready!
 ```
 
 **Serve** real time predictions via scalable JSON APIs:
 
 ```bash
-$ curl -d '{"a": 1, "b": 2, "c": 3}' https://amazonaws.com/my-api
+$ curl -d '{"a": 1, "b": 2, "c": 3}' http://***.amazonaws.com/my-api
 
 { prediction: "def" }
 ```
