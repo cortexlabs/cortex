@@ -498,10 +498,6 @@ def start(args):
     local_cache["ctx"] = ctx
 
     try:
-        if args.only_download:
-            ctx.storage.download_and_unzip_external(api["model"], args.model_dir)
-            return
-
         if api.get("request_handler") is not None or util.is_resource_ref(api["model"]):
             package.install_packages(ctx.python_packages, ctx.storage)
 
