@@ -159,7 +159,6 @@ def create_raw_prediction_request(sample):
     prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in sample.items():
-
         shape = []
         for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
             shape.append(int(dim["size"]))
