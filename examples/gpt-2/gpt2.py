@@ -6,6 +6,7 @@ from functools import lru_cache
 import requests
 import boto3
 
+# start of code from https://github.com/openai/gpt-2/
 @lru_cache()
 def bytes_to_unicode():
     """
@@ -105,7 +106,9 @@ class Encoder:
         text = ''.join([self.decoder[token] for token in tokens])
         text = bytearray([self.byte_decoder[c] for c in text]).decode('utf-8', errors=self.errors)
         return text
+# end of code from https://github.com/openai/gpt-2/
 
+# start of modified code from https://github.com/openai/gpt-2/
 def get_encoder():
     s3 = boto3.client('s3')
     encoder = json.load(s3.get_object(Bucket="cortex-yolo", Key="encoder.json")['Body'])
@@ -115,6 +118,7 @@ def get_encoder():
         encoder=encoder,
         bpe_merges=bpe_merges,
     )
+# end of modified code from https://github.com/openai/gpt-2/
 
 enc = get_encoder()
 def pre_inference(sample, metadata):
