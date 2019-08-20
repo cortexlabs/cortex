@@ -173,13 +173,13 @@ class Context:
         try:
             impl_path = self.download_python_file(impl_key, full_module_name)
         except CortexException as e:
-            e.wrap("unable to find python file " + module_name)
+            e.wrap("unable to find python file")
             raise
 
         try:
             impl = imp.load_source(full_module_name, impl_path)
         except Exception as e:
-            raise UserException("unable to load python module " + module_name) from e
+            raise UserException("unable to load python file") from e
 
         return impl, impl_path
 
