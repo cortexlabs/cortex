@@ -154,20 +154,14 @@ def create_raw_prediction_request(sample):
     prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in sample.items():
-        if util.is_list(value):
-            shape = [len(value)]
-            for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"][
-                1:
-            ]:
-                shape.append(int(dim["size"]))
-        else:
-            shape = [1]
-            value = [value]
+        shape = []
+        for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
+            shape.append(int(dim["size"]))
+
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
+
         try:
-            tensor_proto = tf.make_tensor_proto(
-                value, dtype=DTYPE_TO_TF_TYPE[sig_type], shape=shape
-            )
+            tensor_proto = tf.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type])
             prediction_request.inputs[column_name].CopyFrom(tensor_proto)
         except Exception as e:
             raise UserException(
