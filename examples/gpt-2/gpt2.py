@@ -3,7 +3,8 @@ import os
 import json
 import regex as re
 from functools import lru_cache
-
+import requests
+import boto3
 
 @lru_cache()
 def bytes_to_unicode():
@@ -105,22 +106,22 @@ class Encoder:
         text = bytearray([self.byte_decoder[c] for c in text]).decode('utf-8', errors=self.errors)
         return text
 
-def get_encoder(model_name, models_dir):
-    with open(os.path.join(models_dir, model_name, 'encoder.json'), 'r') as f:
-        encoder = json.load(f)
-    with open(os.path.join(models_dir, model_name, 'vocab.bpe'), 'r', encoding="utf-8") as f:
-        bpe_data = f.read()
+def get_encoder():
+    s3 = boto3.resource('s3')
+    encoder = json.load(s3.Object("cortex-yolo", "encoder.json").get()['Body'].read().decode('utf-8') )
+    bpe_data = s3.Object("cortex-yolo", "vocab.bpe").get()['Body'].read()
     bpe_merges = [tuple(merge_str.split()) for merge_str in bpe_data.split('\n')[1:-1]]
     return Encoder(
         encoder=encoder,
         bpe_merges=bpe_merges,
     )
 
+enc = get_encoder()
 def pre_inference(sample, metadata):
-    input_example = run_classifier.InputExample(guid="", text_a=sample["input"], label=0)
-    input_feature = run_classifier.convert_single_example(0, input_example, [0, 1], 128, tokenizer)
-    return {"context": [input_feature.input_ids]}
+    context = enc.encode(sample["text"])
+    return {"context": [context]}
 
 
 def post_inference(prediction, metadata):
-    return labels[prediction["response"]["labels"][0]]
+    return {"sample": enc.decode(prediction["response"]["sample"])}
+
