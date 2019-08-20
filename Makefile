@@ -21,7 +21,7 @@ SHELL := /bin/bash
 # Cortex
 
 devstart:
-	@$(MAKE) operator-stop
+	@$(MAKE) operator-stop || true
 	@./dev/operator_local.sh || true
 
 kubectl:
