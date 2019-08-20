@@ -117,13 +117,13 @@ def get_encoder():
     return Encoder(encoder=encoder, bpe_merges=bpe_merges)
 
 
-enc = get_encoder()
+encoder = get_encoder()
 
 
 def pre_inference(sample, metadata):
-    context = enc.encode(sample["text"])
+    context = encoder.encode(sample["text"])
     return {"context": [context]}
 
 
 def post_inference(prediction, metadata):
-    return {enc.decode(prediction["response"]["sample"])}
+    return {encoder.decode(prediction["response"]["sample"])}
