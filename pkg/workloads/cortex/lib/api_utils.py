@@ -48,7 +48,9 @@ def prediction_metrics(dimensions, api, predictions):
     for prediction in predictions:
         predicted_value = prediction.get(tracker["key"])
         if predicted_value is None:
-            logger.warn("key {} not found in response payload".format(tracker["key"]))
+            logger.warn(
+                "failed to track key '{}': not found in response payload".format(tracker["key"])
+            )
             return []
 
         if tracker["model_type"] == "classification":
