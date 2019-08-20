@@ -111,8 +111,8 @@ class Encoder:
 # start of modified code from https://github.com/openai/gpt-2/
 def get_encoder():
     s3 = boto3.client('s3')
-    encoder = json.load(s3.get_object(Bucket="cortex-yolo", Key="encoder.json")['Body'])
-    bpe_data = s3.get_object(Bucket="cortex-yolo", Key="vocab.bpe")['Body'].read().decode('utf-8')
+    encoder = json.load(s3.get_object(Bucket="cortex-examples", Key="gpt-2/774M/encoder.json")['Body'])
+    bpe_data = s3.get_object(Bucket="cortex-examples", Key="gpt-2/774M/vocab.bpe")['Body'].read().decode('utf-8')
     bpe_merges = [tuple(merge_str.split()) for merge_str in bpe_data.split('\n')[1:-1]]
     return Encoder(
         encoder=encoder,
