@@ -1,0 +1,7 @@
+- kind: deployment
+  name: gpt2
+
+- kind: api
+  name: generator
+  model: s3://cortex-yolo/156025972
+  request_handler: gpt2.py
