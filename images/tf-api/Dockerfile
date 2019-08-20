@@ -2,16 +2,13 @@ FROM cortexlabs/tf-base
 
 ENV PYTHONPATH="/src:${PYTHONPATH}"
 RUN apt-get update -qq && apt-get install -y -q \
-        build-essential \
-        curl \
-        libfreetype6-dev \
-        libpng-dev \
-        libzmq3-dev \
-        pkg-config \
-        rsync \
-        software-properties-common \
-        unzip \
-        zlib1g-dev \
+    build-essential \
+    libfreetype6-dev \
+    libpng-dev \
+    libzmq3-dev \
+    pkg-config \
+    software-properties-common \
+    zlib1g-dev \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
