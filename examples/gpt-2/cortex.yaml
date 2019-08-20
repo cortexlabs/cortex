@@ -1,7 +1,0 @@
-- kind: deployment
-  name: gpt2
-
-- kind: api
-  name: generator
-  model: s3://cortex-examples/gpt-2/774M/1539234541.zip
-  request_handler: gpt2.py

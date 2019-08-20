@@ -1,0 +1,9 @@
+- kind: deployment
+  name: text-generation
+
+- kind: api
+  name: generator
+  model: s3://cortex-examples/gpt-2/124M/1539234124.zip
+  request_handler: encoder.py
+  compute:
+    gpu: 1
