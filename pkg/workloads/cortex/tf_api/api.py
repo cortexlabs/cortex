@@ -177,13 +177,9 @@ def create_raw_prediction_request(sample):
     prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in sample.items():
-
-        if util.is_list(value):
-            shape = [len(value)]
-            for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
-                shape.append(int(dim["size"]))
-        else:
-            shape = [1]
+        shape = []
+        for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
+            shape.append(int(dim["size"]))
 
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
 

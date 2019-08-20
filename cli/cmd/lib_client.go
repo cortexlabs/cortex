@@ -48,7 +48,7 @@ type cortexClient struct {
 
 var httpClient = &cortexClient{
 	Client: &http.Client{
-		Timeout: time.Second * 20,
+		Timeout: time.Second * 300,
 	},
 }
 
