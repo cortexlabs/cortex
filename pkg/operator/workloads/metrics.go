@@ -44,11 +44,11 @@ func GetMetrics(appName, apiName string) (*schema.APIMetrics, error) {
 	}
 
 	if apiSavedStatus == nil {
-		return nil, errors.New(apiName, "not started yet")
+		return nil, errors.Wrap(ErrorAPIInitializing(), api.Name)
 	}
 
 	if apiSavedStatus.Start == nil {
-		return nil, errors.New(apiName, "not started yet")
+		return nil, errors.Wrap(ErrorAPIInitializing(), api.Name)
 	}
 
 	apiStartTime := apiSavedStatus.Start.Truncate(time.Second)

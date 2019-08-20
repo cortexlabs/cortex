@@ -24,6 +24,7 @@ const (
 	ErrCortexInstallationBroken
 	ErrLoadBalancerInitializing
 	ErrNotFound
+	ErrAPIInitializing
 )
 
 var errorKinds = []string{
@@ -32,9 +33,10 @@ var errorKinds = []string{
 	"err_cortex_installation_broken",
 	"err_load_balancer_initializing",
 	"err_not_found",
+	"err_api_initilizing",
 }
 
-var _ = [1]int{}[int(ErrNotFound)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrAPIInitializing)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -104,5 +106,12 @@ func ErrorNotFound() error {
 	return Error{
 		Kind:    ErrNotFound,
 		message: "not found",
+	}
+}
+
+func ErrorAPIInitializing() error {
+	return Error{
+		Kind:    ErrAPIInitializing,
+		message: "api is still initializing",
 	}
 }
