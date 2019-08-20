@@ -50,6 +50,7 @@ requirements-parser==0.2.0
 packaging==19.0.0
 pillow==6.1.0
 regex==2017.4.5
+requests==2.21.0
 ```
 
 You can install additional PyPI packages and import your own Python packages. See [Python Packages](python-packages.md) for more details.
