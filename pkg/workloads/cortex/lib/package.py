@@ -39,7 +39,7 @@ def get_build_order(python_packages):
 
 
 def get_restricted_packages():
-    req_list = ["pyspark==2.4.2", "tensorflow==1.14.0"]
+    req_list = ["tensorflow==1.14.0"]
     req_files = glob.glob("/src/**/requirements.txt", recursive=True)
 
     for req_file in req_files:
