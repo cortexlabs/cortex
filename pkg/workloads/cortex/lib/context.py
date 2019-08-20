@@ -179,7 +179,7 @@ class Context:
         try:
             impl = imp.load_source(full_module_name, impl_path)
         except Exception as e:
-            raise UserException("unable to load python module") from e
+            raise UserException("unable to load python file") from e
 
         return impl, impl_path
 
