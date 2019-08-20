@@ -71,11 +71,7 @@ func (left APIMetrics) Merge(right APIMetrics) APIMetrics {
 			mergedClassDistribution = right.ClassDistribution
 		} else {
 			for className, count := range right.ClassDistribution {
-				if _, ok := mergedClassDistribution[className]; ok {
-					mergedClassDistribution[className] += count
-				} else {
-					mergedClassDistribution[className] = count
-				}
+				mergedClassDistribution[className] += count
 			}
 		}
 	}

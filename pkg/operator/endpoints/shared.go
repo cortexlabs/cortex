@@ -62,7 +62,6 @@ func RecoverAndRespond(w http.ResponseWriter, strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
 		config.Telemetry.ReportError(err)
-		errors.PrintStacktrace(err)
 		RespondError(w, err)
 	}
 }

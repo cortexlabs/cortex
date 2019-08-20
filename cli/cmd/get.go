@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
@@ -39,10 +40,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
-)
-
-const (
-	maxClassesToDisplay = 75
 )
 
 func init() {
@@ -480,10 +477,10 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	if err != nil {
 		out += table.MustFormat(t)
 		out += "\n\nmetrics are not available yet"
-	}
-
-	if apiMetrics != nil {
-		out += apiMetricsTable(t, apiMetrics, api)
+	} else if apiMetrics != nil {
+		out += appendNetworkMetrics(t, apiMetrics)
+		out += "\n"
+		out += predictionMetrics(apiMetrics, api)
 	}
 
 	if !flagVerbose {
@@ -535,24 +532,7 @@ func getAPIMetrics(appName, apiName string) (*schema.APIMetrics, error) {
 	return &apiMetrics, nil
 }
 
-func apiMetricsTable(apiTable table.Table, apiMetrics *schema.APIMetrics, api *context.API) string {
-	out := networkMetricsTable(apiTable, apiMetrics)
-	out += "\n"
-	if api.Tracker == nil {
-		out += "\na tracker has not configured to record predictions"
-		return out
-	}
-
-	out += "\n"
-	if api.Tracker.ModelType == userconfig.ClassificationModelType {
-		out += classificationMetricsTable(apiMetrics)
-	} else {
-		out += regressionMetricsTable(apiMetrics)
-	}
-	return out
-}
-
-func networkMetricsTable(apiTable table.Table, apiMetrics *schema.APIMetrics) string {
+func appendNetworkMetrics(apiTable table.Table, apiMetrics *schema.APIMetrics) string {
 	latency := "-"
 	if apiMetrics.NetworkStats.Latency != nil {
 		latency = fmt.Sprintf("%.9g", *apiMetrics.NetworkStats.Latency)
@@ -576,6 +556,20 @@ func networkMetricsTable(apiTable table.Table, apiMetrics *schema.APIMetrics) st
 	apiTable.Rows[0] = append(apiTable.Rows[0], row...)
 
 	return table.MustFormat(apiTable)
+}
+
+func predictionMetrics(apiMetrics *schema.APIMetrics, api *context.API) string {
+	if api.Tracker == nil {
+		return "\na tracker has not been configured to record predictions"
+	} 
+
+	out := "\n"
+	if api.Tracker.ModelType == userconfig.ClassificationModelType {
+		out += classificationMetricsTable(apiMetrics)
+	} else {
+		out += regressionMetricsTable(apiMetrics)
+	}
+	return out
 }
 
 func regressionMetricsTable(apiMetrics *schema.APIMetrics) string {
@@ -650,7 +644,7 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 
 	t := table.Table{
 		Headers: []table.Header{
-			{Title: "classes", MaxWidth: 40},
+			{Title: "class", MaxWidth: 40},
 			{Title: "count", MaxWidth: 20},
 		},
 		Rows: rows,
@@ -658,8 +652,8 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 
 	out := table.MustFormat(t)
 
-	if len(classList) == maxClassesToDisplay {
-		out += fmt.Sprintf("\n\nlisting at most %d classes, the complete list can be found in your cloudwatch dashboard", maxClassesToDisplay)
+	if len(classList) == consts.MaxClassesPerRequest {
+		out += fmt.Sprintf("\n\nlisting at most %d classes, the complete list can be found in your cloudwatch dashboard", consts.MaxClassesPerRequest)
 	}
 	return out
 }

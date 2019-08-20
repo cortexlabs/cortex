@@ -31,10 +31,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-)
+	"github.com/cortexlabs/cortex/pkg/consts"
 
-const (
-	maxClasses = 75 // GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats
 )
 
 func GetMetrics(appName, apiName string) (*schema.APIMetrics, error) {
@@ -47,11 +45,11 @@ func GetMetrics(appName, apiName string) (*schema.APIMetrics, error) {
 	}
 
 	if apiSavedStatus == nil {
-		return nil, errors.Wrap(ErrorNotFound(), apiName)
+		return nil, errors.New(apiName, "not started yet")
 	}
 
 	if apiSavedStatus.Start == nil {
-		return nil, errors.Wrap(ErrorNotFound(), apiName, "start time")
+		return nil, errors.New(apiName, "not started yet")
 	}
 
 	apiStartTime := apiSavedStatus.Start.Truncate(time.Second)
@@ -65,7 +63,7 @@ func GetMetrics(appName, apiName string) (*schema.APIMetrics, error) {
 
 	requestList := []func() error{}
 	if realTimeStart.Before(realTimeEnd) {
-		requestList = append(requestList, getAPIMetrics(appName, api, 1, &realTimeStart, &realTimeEnd, &realTimeMetrics))
+		requestList = append(requestList, getAPIMetricsFunc(appName, api, 1, &realTimeStart, &realTimeEnd, &realTimeMetrics))
 	}
 
 	if apiStartTime.Before(realTimeStart) {
@@ -78,7 +76,7 @@ func GetMetrics(appName, apiName string) (*schema.APIMetrics, error) {
 		} else {
 			batchStart = twoWeeksAgo
 		}
-		requestList = append(requestList, getAPIMetrics(appName, api, 60*60, &batchStart, &batchEnd, &batchMetrics))
+		requestList = append(requestList, getAPIMetricsFunc(appName, api, 60*60, &batchStart, &batchEnd, &batchMetrics))
 	}
 
 	if len(requestList) != 0 {
@@ -92,7 +90,7 @@ func GetMetrics(appName, apiName string) (*schema.APIMetrics, error) {
 	return &mergedMetrics, nil
 }
 
-func getAPIMetrics(appName string, api *context.API, period int64, startTime *time.Time, endTime *time.Time, apiMetrics *schema.APIMetrics) func() error {
+func getAPIMetricsFunc(appName string, api *context.API, period int64, startTime *time.Time, endTime *time.Time, apiMetrics *schema.APIMetrics) func() error {
 	return func() error {
 		metricDataResults, err := queryMetrics(appName, api, period, startTime, endTime)
 		if err != nil {
@@ -433,7 +431,7 @@ func getClassesMetricDef(appName string, api *context.API, period int64) ([]*clo
 
 	classCount := 0
 	for i, metric := range listMetricsOutput.Metrics {
-		if classCount >= maxClasses {
+		if classCount >= consts.MaxClassesPerRequest {
 			break
 		}
 
