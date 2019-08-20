@@ -18,10 +18,7 @@ package userconfig
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
@@ -38,38 +35,16 @@ const (
 	ErrReadConfig
 	ErrMissingAppDefinition
 	ErrUndefinedResource
-	ErrResourceWrongType
 	ErrSpecifyAllOrNone
 	ErrSpecifyOnlyOne
 	ErrOneOfPrerequisitesNotDefined
-	ErrTemplateExtraArg
-	ErrTemplateMissingArg
-	ErrInvalidCompoundType
-	ErrDuplicateTypeInTypeString
-	ErrCompoundTypeInOutputType
-	ErrUserKeysCannotStartWithUnderscore
-	ErrMixedInputArgOptionsAndUserKeys
-	ErrOptionOnNonIterable
-	ErrMinCountGreaterThanMaxCount
-	ErrTooManyElements
-	ErrTooFewElements
-	ErrInvalidInputType
-	ErrInvalidOutputType
-	ErrUnsupportedLiteralType
-	ErrUnsupportedLiteralMapKey
-	ErrUnsupportedOutputType
-	ErrMustBeDefined
 	ErrCannotBeNull
 	ErrUnsupportedConfigKey
-	ErrTypeListLength
-	ErrTypeMapZeroLength
-	ErrGenericTypeMapLength
 	ErrMinReplicasGreaterThanMax
 	ErrInitReplicasGreaterThanMax
 	ErrInitReplicasLessThanMin
 	ErrSpecifyOnlyOneMissing
 	ErrImplDoesNotExist
-	ErrInvalidS3PathOrResourceReference
 	ErrUnableToInferModelFormat
 	ErrExternalNotFound
 	ErrInvalidTensorflowDir
@@ -84,38 +59,16 @@ var errorKinds = []string{
 	"err_read_config",
 	"err_missing_app_definition",
 	"err_undefined_resource",
-	"err_resource_wrong_type",
 	"err_specify_all_or_none",
 	"err_specify_only_one",
 	"err_one_of_prerequisites_not_defined",
-	"err_template_extra_arg",
-	"err_template_missing_arg",
-	"err_invalid_compound_type",
-	"err_duplicate_type_in_type_string",
-	"err_compound_type_in_output_type",
-	"err_user_keys_cannot_start_with_underscore",
-	"err_mixed_input_arg_options_and_user_keys",
-	"err_option_on_non_iterable",
-	"err_min_count_greater_than_max_count",
-	"err_too_many_elements",
-	"err_too_few_elements",
-	"err_invalid_input_type",
-	"err_invalid_output_type",
-	"err_unsupported_literal_type",
-	"err_unsupported_literal_map_key",
-	"err_unsupported_output_type",
-	"err_must_be_defined",
 	"err_cannot_be_null",
-	"error_unsupported_config_key",
-	"err_type_list_length",
-	"err_type_map_zero_length",
-	"err_generic_type_map_length",
+	"err_unsupported_config_key",
 	"err_min_replicas_greater_than_max",
 	"err_init_replicas_greater_than_max",
 	"err_init_replicas_less_than_min",
 	"err_specify_only_one_missing",
 	"err_impl_does_not_exist",
-	"err_invalid_s3_path_or_resource_reference",
 	"err_unable_to_infer_model_format",
 	"err_external_not_found",
 	"err_invalid_tensorflow_dir",
@@ -168,42 +121,16 @@ func (e Error) Error() string {
 
 func ErrorDuplicateResourceName(resources ...Resource) error {
 	filePaths := strset.New()
-	embededFilePaths := strset.New()
-	templates := strset.New()
 	resourceTypes := strset.New()
 
 	for _, res := range resources {
 		resourceTypes.Add(res.GetResourceType().Plural())
-		if emb := res.GetEmbed(); emb != nil {
-			embededFilePaths.Add(res.GetFilePath())
-			templates.Add(emb.Template)
-		} else {
-			filePaths.Add(res.GetFilePath())
-		}
+		filePaths.Add(res.GetFilePath())
 	}
-
-	var pathStrs []string
-
-	if len(filePaths) > 0 {
-		pathStrs = append(pathStrs, "defined in "+s.StrsAnd(filePaths.Slice()))
-	}
-
-	if len(embededFilePaths) > 0 {
-		embStr := "embedded in " + s.StrsAnd(embededFilePaths.Slice())
-		if len(templates) > 1 {
-			embStr += " via templates "
-		} else {
-			embStr += " via template "
-		}
-		embStr += s.UserStrsAnd(templates.Slice())
-		pathStrs = append(pathStrs, embStr)
-	}
-
-	pathStr := strings.Join(pathStrs, ", ")
 
 	return Error{
 		Kind:    ErrDuplicateResourceName,
-		message: fmt.Sprintf("name %s must be unique across %s (%s)", s.UserStr(resources[0].GetName()), s.StrsAnd(resourceTypes.Slice()), pathStr),
+		message: fmt.Sprintf("name %s must be unique across %s (defined in %s)", s.UserStr(resources[0].GetName()), s.StrsAnd(resourceTypes.Slice()), s.StrsAnd(filePaths.Slice())),
 	}
 }
 
@@ -255,30 +182,9 @@ func ErrorUndefinedResource(resourceName string, resourceTypes ...resource.Type)
 		message = fmt.Sprintf("%s is not defined as a %s", s.UserStr(resourceName), s.StrsOr(resource.Types(resourceTypes).StringList()))
 	}
 
-	if strings.HasPrefix(resourceName, "cortex.") {
-		if len(resourceTypes) == 0 {
-			message = fmt.Sprintf("%s is not defined in the Cortex namespace", s.UserStr(resourceName))
-		} else {
-			message = fmt.Sprintf("%s is not defined as a built-in %s in the Cortex namespace", s.UserStr(resourceName), s.StrsOr(resource.Types(resourceTypes).StringList()))
-		}
-	}
-
 	return Error{
 		Kind:    ErrUndefinedResource,
 		message: message,
-	}
-}
-
-func ErrorResourceWrongType(resources []Resource, validResourceTypes ...resource.Type) error {
-	name := resources[0].GetName()
-	resourceTypeStrs := make([]string, len(resources))
-	for i, res := range resources {
-		resourceTypeStrs[i] = res.GetResourceType().String()
-	}
-
-	return Error{
-		Kind:    ErrResourceWrongType,
-		message: fmt.Sprintf("%s is a %s, but only %s are allowed in this context", s.UserStr(name), s.StrsAnd(resourceTypeStrs), s.StrsOr(resource.Types(validResourceTypes).PluralList())),
 	}
 }
 
@@ -315,129 +221,6 @@ func ErrorOneOfPrerequisitesNotDefined(argName string, prerequisites ...string) 
 	}
 }
 
-func ErrorTemplateExtraArg(template *Template, argName string) error {
-	return Error{
-		Kind:    ErrTemplateExtraArg,
-		message: fmt.Sprintf("%s %s does not support an arg named %s", resource.TemplateType.String(), s.UserStr(template.Name), s.UserStr(argName)),
-	}
-}
-
-func ErrorTemplateMissingArg(template *Template, argName string) error {
-	return Error{
-		Kind:    ErrTemplateMissingArg,
-		message: fmt.Sprintf("%s %s requires an arg named %s", resource.TemplateType.String(), s.UserStr(template.Name), s.UserStr(argName)),
-	}
-}
-
-func ErrorInvalidCompoundType(provided interface{}) error {
-	return Error{
-		Kind:    ErrInvalidCompoundType,
-		message: fmt.Sprintf("invalid type (got %s, expected %s, or a combination of these types (separated by |)", DataTypeUserStr(provided), strings.Join(s.UserStrs(ValueTypeStrings()), ", ")),
-	}
-}
-
-func ErrorDuplicateTypeInTypeString(duplicated string, provided string) error {
-	return Error{
-		Kind:    ErrDuplicateTypeInTypeString,
-		message: fmt.Sprintf("invalid type (%s is duplicated in %s)", DataTypeUserStr(duplicated), DataTypeUserStr(provided)),
-	}
-}
-
-func ErrorCompoundTypeInOutputType(provided interface{}) error {
-	return Error{
-		Kind:    ErrCompoundTypeInOutputType,
-		message: fmt.Sprintf("%s: compound types (i.e. multiple types separated by \"|\") cannot be used in output type schemas", DataTypeUserStr(provided)),
-	}
-}
-
-func ErrorUserKeysCannotStartWithUnderscore(key string) error {
-	return Error{
-		Kind:    ErrUserKeysCannotStartWithUnderscore,
-		message: fmt.Sprintf("%s: keys cannot start with underscores", key),
-	}
-}
-
-func ErrorMixedInputArgOptionsAndUserKeys() error {
-	return Error{
-		Kind:    ErrMixedInputArgOptionsAndUserKeys,
-		message: "input arguments cannot contain both Cortex argument options (which start with underscores) and user-provided keys (which don't start with underscores)",
-	}
-}
-
-func ErrorOptionOnNonIterable(key string) error {
-	return Error{
-		Kind:    ErrOptionOnNonIterable,
-		message: fmt.Sprintf("the %s option can only be used on list or maps", key),
-	}
-}
-
-func ErrorMinCountGreaterThanMaxCount() error {
-	return Error{
-		Kind:    ErrMinCountGreaterThanMaxCount,
-		message: fmt.Sprintf("the value provided for %s cannot be greater than the value provided for %s", MinCountOptKey, MaxCountOptKey),
-	}
-}
-
-func ErrorTooManyElements(t configreader.PrimitiveType, maxCount int64) error {
-	return Error{
-		Kind:    ErrTooManyElements,
-		message: fmt.Sprintf("the provided %s contains more than the maximum allowed number of elements (%s), which is specified via %s", string(t), s.Int64(maxCount), MaxCountOptKey),
-	}
-}
-
-func ErrorTooFewElements(t configreader.PrimitiveType, minCount int64) error {
-	return Error{
-		Kind:    ErrTooFewElements,
-		message: fmt.Sprintf("the provided %s contains fewer than the minimum allowed number of elements (%s), which is specified via %s", string(t), s.Int64(minCount), MinCountOptKey),
-	}
-}
-
-func ErrorInvalidInputType(provided interface{}) error {
-	return Error{
-		Kind:    ErrInvalidInputType,
-		message: fmt.Sprintf("invalid type (got %s, expected %s, a combination of these types (separated by |), or a list or map containing these types", DataTypeUserStr(provided), strings.Join(s.UserStrs(ValueTypeStrings()), ", ")),
-	}
-}
-
-func ErrorInvalidOutputType(provided interface{}) error {
-	return Error{
-		Kind:    ErrInvalidOutputType,
-		message: fmt.Sprintf("invalid type (got %s, expected %s, or a list or map containing these types", DataTypeUserStr(provided), strings.Join(s.UserStrs(ValueTypeStrings()), ", ")),
-	}
-}
-
-func ErrorUnsupportedLiteralType(provided interface{}, allowedType interface{}) error {
-	message := fmt.Sprintf("input value's type is not supported by the schema (got %s, expected input with type %s)", DataTypeStr(provided), DataTypeStr(allowedType))
-	if str, ok := provided.(string); ok {
-		message += fmt.Sprintf(" (note: if you are trying to reference a Cortex resource named %s, use \"@%s\")", str, str)
-	}
-	return Error{
-		Kind:    ErrUnsupportedLiteralType,
-		message: message,
-	}
-}
-
-func ErrorUnsupportedLiteralMapKey(key interface{}, allowedType interface{}) error {
-	return Error{
-		Kind:    ErrUnsupportedLiteralMapKey,
-		message: fmt.Sprintf("%s: map key is not supported by the schema (%s)", s.UserStrStripped(key), DataTypeStr(allowedType)),
-	}
-}
-
-func ErrorUnsupportedOutputType(provided interface{}, allowedType interface{}) error {
-	return Error{
-		Kind:    ErrUnsupportedOutputType,
-		message: fmt.Sprintf("unsupported type (got %s, expected %s)", DataTypeStr(provided), DataTypeStr(allowedType)),
-	}
-}
-
-func ErrorMustBeDefined(allowedType interface{}) error {
-	return Error{
-		Kind:    ErrMustBeDefined,
-		message: fmt.Sprintf("must be defined (and it's value must fit the schema %s)", DataTypeStr(allowedType)),
-	}
-}
-
 func ErrorCannotBeNull() error {
 	return Error{
 		Kind:    ErrCannotBeNull,
@@ -449,27 +232,6 @@ func ErrorUnsupportedConfigKey() error {
 	return Error{
 		Kind:    ErrUnsupportedConfigKey,
 		message: "is not supported for this resource",
-	}
-}
-
-func ErrorTypeListLength(provided interface{}) error {
-	return Error{
-		Kind:    ErrTypeListLength,
-		message: fmt.Sprintf("type lists must contain exactly one element (i.e. the desired data type) (got %s)", DataTypeStr(provided)),
-	}
-}
-
-func ErrorTypeMapZeroLength(provided interface{}) error {
-	return Error{
-		Kind:    ErrTypeMapZeroLength,
-		message: fmt.Sprintf("type maps must cannot have zero length (got %s)", DataTypeStr(provided)),
-	}
-}
-
-func ErrorGenericTypeMapLength(provided interface{}) error {
-	return Error{
-		Kind:    ErrGenericTypeMapLength,
-		message: fmt.Sprintf("maps with type keys (e.g. \"STRING\") must contain exactly one element (got %s)", DataTypeStr(provided)),
 	}
 }
 
@@ -538,19 +300,12 @@ func ErrorUnableToInferModelFormat() error {
 		message: message,
 	}
 }
+
 func ErrorInvalidTensorflowDir(path string) error {
 	message := "invalid TF export directory.\n"
 	message += tfExpectedStructMessage
 	return Error{
 		Kind:    ErrInvalidTensorflowDir,
 		message: message,
-	}
-}
-
-func ErrorInvalidS3PathOrResourceReference(provided string) error {
-	s3ErrMsg := aws.ErrorInvalidS3Path(provided).Error()
-	return Error{
-		Kind:    ErrInvalidS3PathOrResourceReference,
-		message: s3ErrMsg + ", and is not a cortex resource reference (which starts with @)",
 	}
 }

@@ -36,10 +36,8 @@ type Context struct {
 	MetadataRoot      string               `json:"metadata_root"`
 	StatusPrefix      string               `json:"status_prefix"`
 	App               *App                 `json:"app"`
-	Environment       *Environment         `json:"environment"`
 	PythonPackages    PythonPackages       `json:"python_packages"`
 	APIs              APIs                 `json:"apis"`
-	Constants         Constants            `json:"constants"`
 }
 
 type Resource interface {
@@ -109,9 +107,6 @@ func (ctx *Context) AllResources() []Resource {
 	var resources []Resource
 	for _, res := range ctx.ComputedResources() {
 		resources = append(resources, res)
-	}
-	for _, constant := range ctx.Constants {
-		resources = append(resources, constant)
 	}
 	return resources
 }

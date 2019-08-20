@@ -163,15 +163,6 @@ var statusCodeMessages = []string{
 
 var _ = [1]int{}[int(StatusStopped)-(len(statusCodeMessages)-1)] // Ensure list length matches
 
-// StatusDataRunning aliases
-const (
-	RawColumnRunningMessage       = "ingesting"
-	AggregatorRunningMessage      = "aggregating"
-	TransformerRunningMessage     = "transforming"
-	TrainingDatasetRunningMessage = "generating"
-	ModelRunningMessage           = "training"
-)
-
 var statusSortBuckets = []int{
 	999, // StatusUnknown
 

@@ -17,14 +17,7 @@ limitations under the License.
 package context
 
 import (
-	"sort"
-
-	"github.com/cortexlabs/yaml"
-
-	"github.com/cortexlabs/cortex/pkg/lib/cast"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
 // Get all dependencies for resourceID(s). Note: provided resourceIDs are not included in the dependency set
@@ -79,86 +72,4 @@ func (ctx *Context) apiDependencies(api *API) strset.Set {
 		}
 	}
 	return dependencies
-}
-
-func (ctx *Context) ExtractCortexResources(
-	input interface{},
-	resourceTypes ...resource.Type, // indicates which resource types to include in the query; if none are passed in, no filter is applied
-) []Resource {
-
-	return ExtractCortexResources(input, ctx.AllResources(), resourceTypes...)
-}
-
-func ExtractCortexResources(
-	input interface{},
-	validResources []Resource,
-	resourceTypes ...resource.Type, // indicates which resource types to include in the query; if none are passed in, no filter is applied
-) []Resource {
-
-	resourceTypeFilter := make(map[resource.Type]bool)
-	for _, resourceType := range resourceTypes {
-		resourceTypeFilter[resourceType] = true
-	}
-
-	validResourcesMap := make(map[string][]Resource)
-	for _, res := range validResources {
-		validResourcesMap[res.GetName()] = append(validResourcesMap[res.GetName()], res)
-	}
-
-	resources := make(map[string]Resource)
-	extractCortexResourcesHelper(input, validResourcesMap, resourceTypeFilter, resources)
-
-	// convert to slice and sort by ID
-	var resourceIDs []string
-	for resourceID := range resources {
-		resourceIDs = append(resourceIDs, resourceID)
-	}
-	sort.Strings(resourceIDs)
-	resoucesSlice := make([]Resource, len(resources))
-	for i, resourceID := range resourceIDs {
-		resoucesSlice[i] = resources[resourceID]
-	}
-
-	return resoucesSlice
-}
-
-func extractCortexResourcesHelper(
-	input interface{},
-	validResourcesMap map[string][]Resource, // key is resource name
-	resourceTypeFilter map[resource.Type]bool,
-	collectedResources map[string]Resource,
-) {
-
-	if input == nil {
-		return
-	}
-
-	if resourceName, ok := yaml.ExtractAtSymbolTextInter(input); ok {
-		for _, res := range validResourcesMap[resourceName] {
-			foundMatch := false
-			if len(resourceTypeFilter) == 0 || resourceTypeFilter[res.GetResourceType()] == true {
-				if foundMatch {
-					errors.Panic("found multiple resources with the same name", resourceName) // unexpected
-				}
-				collectedResources[res.GetID()] = res
-				foundMatch = true
-			}
-		}
-		return
-	}
-
-	if inputSlice, ok := cast.InterfaceToInterfaceSlice(input); ok {
-		for _, elem := range inputSlice {
-			extractCortexResourcesHelper(elem, validResourcesMap, resourceTypeFilter, collectedResources)
-		}
-		return
-	}
-
-	if inputMap, ok := cast.InterfaceToInterfaceInterfaceMap(input); ok {
-		for key, val := range inputMap {
-			extractCortexResourcesHelper(key, validResourcesMap, resourceTypeFilter, collectedResources)
-			extractCortexResourcesHelper(val, validResourcesMap, resourceTypeFilter, collectedResources)
-		}
-		return
-	}
 }

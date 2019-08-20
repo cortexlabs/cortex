@@ -30,7 +30,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
@@ -426,20 +425,7 @@ func pumpStdout(socket *websocket.Conn, socketWriterError chan error, reader io.
 
 // Pod name is added when streaming from kubectl logs but not for cloudwatch logs, match it if it present and filter it out
 var cortexRegex = regexp.MustCompile(`^(\[[A-Za-z0-9\d\-_\s]*\]\ )?(DEBUG|INFO|WARNING|ERROR|CRITICAL):cortex:`)
-var tensorflowRegex = regexp.MustCompile(`^(\[[A-Za-z0-9\d\-_\s]*\]\ )?(DEBUG|INFO|WARNING|ERROR|CRITICAL):tensorflow:`)
-
-func formatHeader1(headerString string) *string {
-	headerBorder := "\n" + strings.Repeat("-", len(headerString)) + "\n"
-	return pointer.String(headerBorder + strings.Title(headerString) + headerBorder)
-}
-
-func formatHeader2(headerString string) *string {
-	return pointer.String("\n" + strings.ToUpper(string(headerString[0])) + headerString[1:] + "\n")
-}
-
-func formatHeader3(headerString string) *string {
-	return pointer.String("\n" + strings.ToUpper(string(headerString[0])) + headerString[1:])
-}
+var lastLogRe = regexp.MustCompile(`^workload: (\w+), completed: (\S+)`)
 
 func extractFromCortexLog(match string, loglevel string, logStr string) (*string, bool) {
 	if loglevel == "DEBUG" {
@@ -448,106 +434,18 @@ func extractFromCortexLog(match string, loglevel string, logStr string) (*string
 
 	cutStr := logStr[len(match):]
 
-	switch cutStr {
-	case "Starting":
-		return formatHeader3(cutStr), false
-	case "Aggregates:":
-		return formatHeader2(cutStr), false
-	case "Ingesting":
-		return formatHeader1(cutStr), false
-	case "Aggregating":
-		return formatHeader1(cutStr), false
-	case "Validating Transformers":
-		return formatHeader1(cutStr), false
-	case "Generating Training Datasets":
-		return formatHeader1(cutStr), false
-	case "Caching":
-		return formatHeader1(cutStr), false
-	case "Training":
-		return formatHeader1(cutStr), false
-	case "Evaluating":
-		return formatHeader1(cutStr), false
-	case "Setting up packages":
-		return formatHeader1(cutStr), false
-	case "Validating packages":
-		return formatHeader1(cutStr), false
-	case "Caching built packages":
-		return formatHeader3(cutStr), false
-	}
-
-	lastLogRe := regexp.MustCompile(`^workload: (\w+), completed: (\S+)`)
+	isLastLog := false
 	if lastLogRe.MatchString(cutStr) {
-		return &cutStr, true
+		isLastLog = true
 	}
 
-	samplesRe := regexp.MustCompile(`^First (\d+) samples:`)
-	if samplesRe.MatchString(cutStr) {
-		return formatHeader2(cutStr), false
-	}
-
-	if strings.HasPrefix(cutStr, "Transforming ") {
-		return formatHeader3(cutStr), false
-	}
-
-	if strings.HasPrefix(cutStr, "Reading") {
-		return formatHeader3(cutStr), false
-	}
-
-	if strings.HasPrefix(cutStr, "Prediction failed") {
-		return formatHeader2(cutStr), false
-	}
-
-	if strings.HasPrefix(cutStr, "Predicting") {
-		return formatHeader3(cutStr), false
-	}
-
-	if strings.HasPrefix(cutStr, "error:") {
-		return pointer.String("\n" + cutStr), false
-	}
-
-	if strings.HasPrefix(cutStr, "An error occurred") {
-		return formatHeader3(cutStr), false
-	}
-
-	if strings.HasPrefix(cutStr, "sample: ") {
-		return pointer.String("\n" + cutStr), false
-	}
-
-	return &cutStr, false
-}
-
-func extractFromTensorflowLog(match string, loglevel string, logStr string) (*string, bool) {
-	if loglevel == "DEBUG" || loglevel == "WARNING" {
-		return nil, false
-	}
-
-	cutStr := logStr[len(match):]
-	if strings.HasPrefix(cutStr, "loss = ") {
-		return pointer.String(cutStr), false
-	}
-	if strings.HasPrefix(cutStr, "Starting evaluation") {
-		return formatHeader1("Evaluating"), false
-	}
-	if strings.HasPrefix(cutStr, "Saving dict for global step") {
-		metricsStr := cutStr[strings.Index(cutStr, ":")+1:]
-		metricsStr = strings.TrimSpace(metricsStr)
-		metrics := strings.Split(metricsStr, ", ")
-		outStr := strings.Join(metrics, "\n")
-		return pointer.String(outStr), false
-	}
-
-	return nil, false
+	return &cutStr, isLastLog
 }
 
 func cleanLog(logStr string) (*string, bool) {
 	matches := cortexRegex.FindStringSubmatch(logStr)
 	if len(matches) == 3 {
 		return extractFromCortexLog(matches[0], matches[2], logStr)
-	}
-
-	matches = tensorflowRegex.FindStringSubmatch(logStr)
-	if len(matches) == 3 {
-		return extractFromTensorflowLog(matches[0], matches[2], logStr)
 	}
 
 	return nil, false

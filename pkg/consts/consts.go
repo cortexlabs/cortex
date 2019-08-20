@@ -16,14 +16,8 @@ limitations under the License.
 
 package consts
 
-import "regexp"
-
 var (
 	CortexVersion = "master" // CORTEX_VERSION
-
-	TypeStrRegex         = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?(\|(INT|FLOAT|STRING|BOOL)(_COLUMN)?)*"`)
-	SingleTypeStrRegex   = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?"`)
-	CompoundTypeStrRegex = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?(\|(INT|FLOAT|STRING|BOOL)(_COLUMN)?)+"`)
 
 	ContextCacheDir    = "/mnt/context"
 	EmptyDirMountPath  = "/mnt"
@@ -36,12 +30,10 @@ var (
 	PackageDir      = "packages"
 
 	AppsDir             = "apps"
+	DeploymentsDir      = "deployments"
 	APIsDir             = "apis"
-	DataDir             = "data"
-	RawDataDir          = "data_raw"
 	PythonPackagesDir   = "python_packages"
 	RequestHandlersDir  = "request_handlers"
-	ConstantsDir        = "constants"
 	ContextsDir         = "contexts"
 	ResourceStatusesDir = "resource_statuses"
 	WorkloadSpecsDir    = "workload_specs"

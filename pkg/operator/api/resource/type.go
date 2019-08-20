@@ -27,11 +27,7 @@ const (
 	UnknownType       Type = iota // 0
 	AppType                       // 1
 	APIType                       // 2
-	EnvironmentType               // 3
-	TemplateType                  // 4
-	EmbedType                     // 5
-	ConstantType                  // 6
-	PythonPackageType             // 7
+	PythonPackageType             // 3
 )
 
 var (
@@ -39,10 +35,6 @@ var (
 		"unknown",
 		"deployment",
 		"api",
-		"environment",
-		"template",
-		"embed",
-		"constant",
 		"python_package",
 	}
 
@@ -50,10 +42,6 @@ var (
 		"unknown",
 		"deployments",
 		"apis",
-		"environments",
-		"templates",
-		"embeds",
-		"constants",
 		"python_packages",
 	}
 
@@ -61,10 +49,6 @@ var (
 		"unknown",
 		"deployment",
 		"api",
-		"environment",
-		"template",
-		"embed",
-		"constant",
 		"python package",
 	}
 
@@ -72,22 +56,14 @@ var (
 		"unknowns",
 		"deployments",
 		"apis",
-		"environments",
-		"templates",
-		"embeds",
-		"constants",
 		"python packages",
 	}
 
 	typeAcronyms = map[string]Type{
-		"env":  EnvironmentType,
-		"envs": EnvironmentType,
-		"ct":   ConstantType,
-		"cts":  ConstantType,
-		"py":   PythonPackageType,
-		"pys":  PythonPackageType,
-		"pp":   PythonPackageType,
-		"pps":  PythonPackageType,
+		"py":  PythonPackageType,
+		"pys": PythonPackageType,
+		"pp":  PythonPackageType,
+		"pps": PythonPackageType,
 	}
 
 	VisibleTypes = Types{

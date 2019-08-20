@@ -18,31 +18,10 @@ package userconfig
 
 const (
 	// Shared
-	UnknownKey    = "unknown"
-	NameKey       = "name"
-	KindKey       = "kind"
-	InputKey      = "input"
-	TypeKey       = "type"
-	PathKey       = "path"
-	OutputTypeKey = "output_type"
-	TagsKey       = "tags"
-
-	// input schema options
-	OptionalOptKey = "_optional"
-	DefaultOptKey  = "_default"
-	MinCountOptKey = "_min_count"
-	MaxCountOptKey = "_max_count"
-
-	// environment
-	LogLevelKey = "log_level"
-
-	// templates / embeds
-	TemplateKey = "template"
-	YAMLKey     = "yaml"
-	ArgsKey     = "args"
-
-	// constants
-	ValueKey = "value"
+	UnknownKey = "unknown"
+	NameKey    = "name"
+	KindKey    = "kind"
+	TagsKey    = "tags"
 
 	// API
 	ModelKey          = "model"

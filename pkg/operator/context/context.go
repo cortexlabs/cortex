@@ -34,6 +34,7 @@ func New(
 	files map[string][]byte,
 	ignoreCache bool,
 ) (*context.Context, error) {
+
 	ctx := &context.Context{}
 	ctx.CreatedEpoch = time.Now().Unix()
 
@@ -47,23 +48,12 @@ func New(
 	}
 	ctx.DeploymentVersion = deploymentVersion
 
-	if userconf.Environment != nil {
-		ctx.Environment = getEnvironment(userconf, deploymentVersion)
-	}
-
 	ctx.Root = filepath.Join(
 		consts.AppsDir,
 		ctx.App.Name,
-		consts.DataDir,
+		consts.DeploymentsDir,
 		ctx.DeploymentVersion,
 	)
-
-	if ctx.Environment != nil {
-		ctx.Root = filepath.Join(
-			ctx.Root,
-			ctx.Environment.ID,
-		)
-	}
 
 	ctx.MetadataRoot = filepath.Join(
 		ctx.Root,
@@ -77,12 +67,6 @@ func New(
 		return nil, err
 	}
 	ctx.PythonPackages = pythonPackages
-
-	constants, err := getConstants(userconf.Constants)
-	if err != nil {
-		return nil, err
-	}
-	ctx.Constants = constants
 
 	apis, err := getAPIs(userconf, ctx.DeploymentVersion, files, pythonPackages)
 	if err != nil {
@@ -116,9 +100,6 @@ func calculateID(ctx *context.Context) string {
 	ids = append(ids, ctx.Root)
 	ids = append(ids, ctx.StatusPrefix)
 	ids = append(ids, ctx.App.ID)
-	if ctx.Environment != nil {
-		ids = append(ids, ctx.Environment.ID)
-	}
 
 	for _, resource := range ctx.AllResources() {
 		ids = append(ids, resource.GetID())
@@ -130,13 +111,13 @@ func calculateID(ctx *context.Context) string {
 
 func DownloadContext(ctxID string, appName string) (*context.Context, error) {
 	s3Key := ctxKey(ctxID, appName)
-	var serial context.Serial
+	var ctx context.Context
 
-	if err := config.AWS.ReadMsgpackFromS3(&serial, s3Key); err != nil {
+	if err := config.AWS.ReadMsgpackFromS3(&ctx, s3Key); err != nil {
 		return nil, err
 	}
 
-	return serial.ContextFromSerial()
+	return &ctx, nil
 }
 
 func StatusPrefix(appName string) string {

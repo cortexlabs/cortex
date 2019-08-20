@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/cortexlabs/yaml"
-
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -32,14 +30,9 @@ import (
 )
 
 type Config struct {
-	App          *App         `json:"app" yaml:"app"`
-	Environments Environments `json:"environments" yaml:"environments"`
-	Environment  *Environment `json:"environment" yaml:"environment"`
-	APIs         APIs         `json:"apis" yaml:"apis"`
-	Constants    Constants    `json:"constants" yaml:"constants"`
-	Templates    Templates    `json:"templates" yaml:"templates"`
-	Embeds       Embeds       `json:"embeds" yaml:"embeds"`
-	Resources    map[string][]Resource
+	App       *App `json:"app" yaml:"app"`
+	APIs      APIs `json:"apis" yaml:"apis"`
+	Resources map[string][]Resource
 }
 
 var typeFieldValidation = &cr.StructFieldValidation{
@@ -48,11 +41,7 @@ var typeFieldValidation = &cr.StructFieldValidation{
 }
 
 func mergeConfigs(target *Config, source *Config) error {
-	target.Environments = append(target.Environments, source.Environments...)
 	target.APIs = append(target.APIs, source.APIs...)
-	target.Constants = append(target.Constants, source.Constants...)
-	target.Templates = append(target.Templates, source.Templates...)
-	target.Embeds = append(target.Embeds, source.Embeds...)
 
 	if source.App != nil {
 		if target.App != nil {
@@ -79,23 +68,8 @@ func (config *Config) ValidatePartial() error {
 			return err
 		}
 	}
-	if config.Environments != nil {
-		if err := config.Environments.Validate(); err != nil {
-			return err
-		}
-	}
 	if config.APIs != nil {
 		if err := config.APIs.Validate(); err != nil {
-			return err
-		}
-	}
-	if config.Constants != nil {
-		if err := config.Constants.Validate(); err != nil {
-			return err
-		}
-	}
-	if config.Templates != nil {
-		if err := config.Templates.Validate(); err != nil {
 			return err
 		}
 	}
@@ -108,47 +82,16 @@ func (config *Config) Validate(envName string) error {
 		return ErrorMissingAppDefinition()
 	}
 
-	for _, env := range config.Environments {
-		if env.Name == envName {
-			config.Environment = env
-		}
-	}
-
-	apisAllExternal := true
-	for _, api := range config.APIs {
-		if yaml.StartsWithEscapedAtSymbol(api.Model) {
-			apisAllExternal = false
-			break
-		}
-	}
-
-	if config.Environment == nil {
-		if !apisAllExternal || len(config.APIs) == 0 {
-			return ErrorUndefinedResource(envName, resource.EnvironmentType)
-		}
-
-		for _, resources := range config.Resources {
-			for _, res := range resources {
-				if res.GetResourceType() != resource.APIType {
-					return ErrorExtraResourcesWithExternalAPIs(res)
-				}
-			}
-		}
-	}
-
 	return nil
 }
 
-func (config *Config) MergeBytes(configBytes []byte, filePath string, emb *Embed, template *Template) (*Config, error) {
+func (config *Config) MergeBytes(configBytes []byte, filePath string) (*Config, error) {
 	sliceData, err := cr.ReadYAMLBytes(configBytes)
 	if err != nil {
-		if emb == nil {
-			return nil, errors.Wrap(err, filePath)
-		}
-		return nil, errors.Wrap(err, Identify(template), YAMLKey)
+		return nil, errors.Wrap(err, filePath)
 	}
 
-	subConfig, err := newPartial(sliceData, filePath, emb, template)
+	subConfig, err := newPartial(sliceData, filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -160,24 +103,21 @@ func (config *Config) MergeBytes(configBytes []byte, filePath string, emb *Embed
 	return config, nil
 }
 
-func newPartial(configData interface{}, filePath string, emb *Embed, template *Template) (*Config, error) {
+func newPartial(configData interface{}, filePath string) (*Config, error) {
 	configDataSlice, ok := cast.InterfaceToStrInterfaceMapSlice(configData)
 	if !ok {
-		if emb == nil {
-			return nil, errors.Wrap(ErrorMalformedConfig(), filePath)
-		}
-		return nil, errors.Wrap(ErrorMalformedConfig(), Identify(template), YAMLKey)
+		return nil, errors.Wrap(ErrorMalformedConfig(), filePath)
 	}
 
 	config := &Config{}
 	for i, data := range configDataSlice {
 		kindInterface, ok := data[KindKey]
 		if !ok {
-			return nil, errors.Wrap(configreader.ErrorMustBeDefined(), identify(filePath, resource.UnknownType, "", i, emb), KindKey)
+			return nil, errors.Wrap(configreader.ErrorMustBeDefined(), identify(filePath, resource.UnknownType, "", i), KindKey)
 		}
 		kindStr, ok := kindInterface.(string)
 		if !ok {
-			return nil, errors.Wrap(configreader.ErrorInvalidPrimitiveType(kindInterface, configreader.PrimTypeString), identify(filePath, resource.UnknownType, "", i, emb), KindKey)
+			return nil, errors.Wrap(configreader.ErrorInvalidPrimitiveType(kindInterface, configreader.PrimTypeString), identify(filePath, resource.UnknownType, "", i), KindKey)
 		}
 
 		var errs []error
@@ -188,57 +128,24 @@ func newPartial(configData interface{}, filePath string, emb *Embed, template *T
 			app := &App{}
 			errs = cr.Struct(app, data, appValidation)
 			config.App = app
-		case resource.ConstantType:
-			newResource = &Constant{}
-			errs = cr.Struct(newResource, data, constantValidation)
-			if !errors.HasErrors(errs) {
-				config.Constants = append(config.Constants, newResource.(*Constant))
-			}
 		case resource.APIType:
 			newResource = &API{}
 			errs = cr.Struct(newResource, data, apiValidation)
 			if !errors.HasErrors(errs) {
 				config.APIs = append(config.APIs, newResource.(*API))
 			}
-		case resource.EnvironmentType:
-			newResource = &Environment{}
-			errs = cr.Struct(newResource, data, environmentValidation)
-			if !errors.HasErrors(errs) {
-				config.Environments = append(config.Environments, newResource.(*Environment))
-			}
-		case resource.TemplateType:
-			if emb != nil {
-				errs = []error{resource.ErrorTemplateInTemplate()}
-			} else {
-				newResource = &Template{}
-				errs = cr.Struct(newResource, data, templateValidation)
-				if !errors.HasErrors(errs) {
-					config.Templates = append(config.Templates, newResource.(*Template))
-				}
-			}
-		case resource.EmbedType:
-			if emb != nil {
-				errs = []error{resource.ErrorEmbedInTemplate()}
-			} else {
-				newResource = &Embed{}
-				errs = cr.Struct(newResource, data, embedValidation)
-				if !errors.HasErrors(errs) {
-					config.Embeds = append(config.Embeds, newResource.(*Embed))
-				}
-			}
 		default:
-			return nil, errors.Wrap(resource.ErrorUnknownKind(kindStr), identify(filePath, resource.UnknownType, "", i, emb))
+			return nil, errors.Wrap(resource.ErrorUnknownKind(kindStr), identify(filePath, resource.UnknownType, "", i))
 		}
 
 		if errors.HasErrors(errs) {
 			name, _ := data[NameKey].(string)
-			return nil, errors.Wrap(errors.FirstError(errs...), identify(filePath, resourceType, name, i, emb))
+			return nil, errors.Wrap(errors.FirstError(errs...), identify(filePath, resourceType, name, i))
 		}
 
 		if newResource != nil {
 			newResource.SetIndex(i)
 			newResource.SetFilePath(filePath)
-			newResource.SetEmbed(emb)
 			if config.Resources == nil {
 				config.Resources = make(map[string][]Resource)
 			}
@@ -264,7 +171,7 @@ func NewPartialPath(filePath string) (*Config, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, filePath, ErrorParseConfig().Error())
 	}
-	return newPartial(configData, filePath, nil, nil)
+	return newPartial(configData, filePath)
 }
 
 func New(configs map[string][]byte, envName string) (*Config, error) {
@@ -274,25 +181,7 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 		if !files.IsFilePathYAML(filePath) {
 			continue
 		}
-		config, err = config.MergeBytes(configBytes, filePath, nil, nil)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	templates := config.Templates.Map()
-	for _, emb := range config.Embeds {
-		template, ok := templates[emb.Template]
-		if !ok {
-			return nil, errors.Wrap(ErrorUndefinedResource(emb.Template, resource.TemplateType), Identify(emb))
-		}
-
-		populatedTemplate, err := template.Populate(emb)
-		if err != nil {
-			return nil, errors.Wrap(err, Identify(emb))
-		}
-
-		config, err = config.MergeBytes([]byte(populatedTemplate), emb.FilePath, emb, template)
+		config, err = config.MergeBytes(configBytes, filePath)
 		if err != nil {
 			return nil, err
 		}

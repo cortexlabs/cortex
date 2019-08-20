@@ -41,7 +41,6 @@ func getAPIs(config *userconfig.Config,
 	apis := context.APIs{}
 
 	for _, apiConfig := range config.APIs {
-
 		var buf bytes.Buffer
 		var requestHandlerImplKey *string
 		buf.WriteString(apiConfig.Name)

@@ -26,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/context"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
@@ -35,11 +34,6 @@ const operatorPortStr = "8888"
 
 func main() {
 	if err := config.Init(); err != nil {
-		config.Telemetry.ReportErrorBlocking(err)
-		errors.Exit(err)
-	}
-
-	if err := context.Init(); err != nil {
 		config.Telemetry.ReportErrorBlocking(err)
 		errors.Exit(err)
 	}
