@@ -33,7 +33,7 @@ var errorKinds = []string{
 	"err_cortex_installation_broken",
 	"err_load_balancer_initializing",
 	"err_not_found",
-	"err_api_initilizing",
+	"err_api_initializing",
 }
 
 var _ = [1]int{}[int(ErrAPIInitializing)-(len(errorKinds)-1)] // Ensure list length matches
