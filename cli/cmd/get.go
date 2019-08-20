@@ -468,20 +468,22 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	out += fmt.Sprintf("%s curl -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n", console.Bold("curl:"), apiEndpoint)
 	out += fmt.Sprintf(console.Bold("updated at:")+" %s\n\n", libtime.LocalTimestamp(updatedAt))
 
-	t := table.Table{
+	statusTable := table.Table{
 		Headers: headers,
 		Rows:    [][]interface{}{row},
 	}
 
+	var predictionMetrics string
 	apiMetrics, err := getAPIMetrics(ctx.App.Name, api.Name)
-	if err != nil {
-		out += table.MustFormat(t)
-		out += "\n\nmetrics are not available yet"
-	} else if apiMetrics != nil {
-		out += appendNetworkMetrics(t, apiMetrics)
-		out += "\n"
-		out += predictionMetrics(apiMetrics, api)
+	if err != nil || apiMetrics == nil {
+		predictionMetrics = "\n\nmetrics are not available yet"
+	} else {
+		statusTable = appendNetworkMetrics(statusTable, apiMetrics)
+		predictionMetrics = "\n\n" + predictionMetricsTable(apiMetrics, api)
 	}
+
+	out += table.MustFormat(statusTable)
+	out += predictionMetrics
 
 	if !flagVerbose {
 		return out, nil
@@ -532,7 +534,7 @@ func getAPIMetrics(appName, apiName string) (*schema.APIMetrics, error) {
 	return &apiMetrics, nil
 }
 
-func appendNetworkMetrics(apiTable table.Table, apiMetrics *schema.APIMetrics) string {
+func appendNetworkMetrics(apiTable table.Table, apiMetrics *schema.APIMetrics) table.Table {
 	latency := "-"
 	if apiMetrics.NetworkStats.Latency != nil {
 		latency = fmt.Sprintf("%.9g", *apiMetrics.NetworkStats.Latency)
@@ -555,21 +557,18 @@ func appendNetworkMetrics(apiTable table.Table, apiMetrics *schema.APIMetrics) s
 	apiTable.Headers = append(apiTable.Headers, headers...)
 	apiTable.Rows[0] = append(apiTable.Rows[0], row...)
 
-	return table.MustFormat(apiTable)
+	return apiTable
 }
 
-func predictionMetrics(apiMetrics *schema.APIMetrics, api *context.API) string {
+func predictionMetricsTable(apiMetrics *schema.APIMetrics, api *context.API) string {
 	if api.Tracker == nil {
-		return "\na tracker has not been configured to record predictions"
+		return "a tracker has not been configured to record predictions"
 	}
 
-	out := "\n"
 	if api.Tracker.ModelType == userconfig.ClassificationModelType {
-		out += classificationMetricsTable(apiMetrics)
-	} else {
-		out += regressionMetricsTable(apiMetrics)
+		return classificationMetricsTable(apiMetrics)
 	}
-	return out
+	return regressionMetricsTable(apiMetrics)
 }
 
 func regressionMetricsTable(apiMetrics *schema.APIMetrics) string {

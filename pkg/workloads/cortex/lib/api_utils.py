@@ -48,7 +48,8 @@ def prediction_metrics(dimensions, api, predictions):
     for prediction in predictions:
         predicted_value = prediction.get(tracker["key"])
         if predicted_value is None:
-            raise UserException("key {} not found in prediction".format(tracker["key"]))
+            logger.warn("key {} not found in response payload".format(tracker["key"]))
+            return []
 
         if tracker["model_type"] == "classification":
             if type(predicted_value) == str or type(predicted_value) == int:
@@ -65,8 +66,8 @@ def prediction_metrics(dimensions, api, predictions):
                 metric_list.append(metric)
             else:
                 logger.warn(
-                    "expected type 'str' or 'int' but found '{}' of type '{}' when tracking key '{}'".format(
-                        str(predicted_value), type(predicted_value), tracker["key"]
+                    "failed to track key '{}': expected type 'str' or 'int' but encountered '{}'".format(
+                        tracker["key"], type(predicted_value)
                     )
                 )
                 return []
@@ -80,8 +81,8 @@ def prediction_metrics(dimensions, api, predictions):
                 metric_list.append(metric)
             else:
                 logger.warn(
-                    "expected type 'float' or 'int' but found '{}' of type '{}' when tracking key '{}'".format(
-                        str(predicted_value), type(predicted_value), tracker["key"]
+                    "failed to track key '{}': expected type 'float' or 'int' but encountered '{}'".format(
+                        tracker["key"], type(predicted_value)
                     )
                 )
                 return []
