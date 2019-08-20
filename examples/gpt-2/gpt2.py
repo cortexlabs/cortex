@@ -107,9 +107,9 @@ class Encoder:
         return text
 
 def get_encoder():
-    s3 = boto3.resource('s3')
-    encoder = json.load(s3.Object("cortex-yolo", "encoder.json").get()['Body'].read().decode('utf-8') )
-    bpe_data = s3.Object("cortex-yolo", "vocab.bpe").get()['Body'].read()
+    s3 = boto3.client('s3')
+    encoder = json.load(s3.get_object(Bucket="cortex-yolo", Key="encoder.json")['Body'])
+    bpe_data = s3.get_object(Bucket="cortex-yolo", Key="vocab.bpe")['Body'].read().decode('utf-8')
     bpe_merges = [tuple(merge_str.split()) for merge_str in bpe_data.split('\n')[1:-1]]
     return Encoder(
         encoder=encoder,
