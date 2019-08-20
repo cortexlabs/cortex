@@ -42,23 +42,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
 
-type cortexClient struct {
-	*http.Client
+var httpTransport = &http.Transport{
+	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 }
 
-var httpClient = &cortexClient{
-	Client: &http.Client{
-		Timeout: time.Second * 20,
-	},
-}
-
-var httpsNoVerifyClient = &cortexClient{
-	Client: &http.Client{
-		Timeout: time.Second * 20,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	},
+var httpClient = &http.Client{
+	Timeout:   time.Second * 20,
+	Transport: httpTransport,
 }
 
 func HTTPGet(endpoint string, qParams ...map[string]string) ([]byte, error) {
@@ -66,7 +56,7 @@ func HTTPGet(endpoint string, qParams ...map[string]string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return httpsNoVerifyClient.makeRequest(req)
+	return makeRequest(req)
 }
 
 func HTTPPostJSONData(endpoint string, requestData interface{}, qParams ...map[string]string) ([]byte, error) {
@@ -84,7 +74,7 @@ func HTTPPostJSON(endpoint string, jsonRequestData []byte, qParams ...map[string
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	return httpsNoVerifyClient.makeRequest(req)
+	return makeRequest(req)
 }
 
 type HTTPUploadInput struct {
@@ -124,7 +114,7 @@ func HTTPUpload(endpoint string, input *HTTPUploadInput, qParams ...map[string]s
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	return httpsNoVerifyClient.makeRequest(req)
+	return makeRequest(req)
 }
 
 func addFileToMultipart(fileName string, writer *multipart.Writer, reader io.Reader) error {
@@ -264,11 +254,11 @@ func operatorRequest(method string, endpoint string, body io.Reader, qParams []m
 	return req, nil
 }
 
-func (client *cortexClient) makeRequest(request *http.Request) ([]byte, error) {
+func makeRequest(request *http.Request) ([]byte, error) {
 	request.Header.Set("Authorization", authHeader())
 	request.Header.Set("CortexAPIVersion", consts.CortexVersion)
 
-	response, err := client.Do(request)
+	response, err := httpClient.Do(request)
 	if err != nil {
 		cliConfig := getValidCliConfig()
 		return nil, ErrorFailedToConnect(cliConfig.CortexURL)
