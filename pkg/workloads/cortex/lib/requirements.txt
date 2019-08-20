@@ -5,3 +5,4 @@ requirements-parser==0.2.0
 packaging==19.0.0
 json_tricks==3.13.1
 pillow==6.1.0
+regex==2017.4.5
