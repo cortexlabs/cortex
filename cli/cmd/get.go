@@ -561,7 +561,7 @@ func appendNetworkMetrics(apiTable table.Table, apiMetrics *schema.APIMetrics) s
 func predictionMetrics(apiMetrics *schema.APIMetrics, api *context.API) string {
 	if api.Tracker == nil {
 		return "\na tracker has not been configured to record predictions"
-	} 
+	}
 
 	out := "\n"
 	if api.Tracker.ModelType == userconfig.ClassificationModelType {
