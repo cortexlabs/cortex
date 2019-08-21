@@ -29,6 +29,7 @@ jobs:
       - image: circleci/python:3.7.2-stretch
     steps:
       - checkout
+      - setup_remote_docker
       - install-go
       - run: go get -u -v golang.org/x/lint/golint
       - run: sudo pip3 install black
@@ -53,9 +54,9 @@ jobs:
     docker:
       - image: circleci/python:3.7.2-stretch
     steps:
+      - checkout
       - setup_remote_docker
       - install-go
-      - checkout
       - run: make ci-build-images
       - run: make ci-build-cli
       - return-if-not-deployed-branch
