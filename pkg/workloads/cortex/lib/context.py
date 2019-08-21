@@ -91,7 +91,6 @@ class Context:
 
         # Internal caches
         self._metadatas = {}
-        self._obj_cache = {}
 
         # This affects Tensorflow S3 access
         os.environ["AWS_REGION"] = self.cortex_config.get("region", "")
@@ -110,15 +109,6 @@ class Context:
         cache_impl_path = os.path.join(self.cache_dir, "{}.py".format(module_name))
         self.download_file(impl_key, cache_impl_path)
         return cache_impl_path
-
-    def get_obj(self, key):
-        if key in self._obj_cache:
-            return self._obj_cache[key]
-
-        cache_path = os.path.join(self.cache_dir, key)
-        self.download_file(key, cache_path)
-        self._obj_cache[key] = util.read_msgpack(cache_path)
-        return self._obj_cache[key]
 
     def load_module(self, module_prefix, module_name, impl_key):
         full_module_name = "{}_{}".format(module_prefix, module_name)
