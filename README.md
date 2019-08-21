@@ -66,9 +66,11 @@ $ curl -d '{"a": 1, "b": 2, "c": 3}' https://***.amazonaws.com/my-api
 
 ## Hosting Cortex on AWS
 
+<!-- CORTEX_VERSION_MINOR_STABLE -->
+
 ```bash
 # Download the install script
-$ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh && chmod +x cortex.sh
+$ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/0.7/cortex.sh && chmod +x cortex.sh
 
 # Set your AWS credentials
 $ export AWS_ACCESS_KEY_ID=***
