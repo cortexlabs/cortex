@@ -14,7 +14,6 @@
 
 import sys
 import os
-import json
 import argparse
 
 from flask import Flask, request, jsonify, g
@@ -22,13 +21,8 @@ from flask_api import status
 from waitress import serve
 import onnxruntime as rt
 import numpy as np
-import json_tricks
-import boto3
 
-from cortex.lib.storage import S3
-from cortex.lib import api_utils
-from cortex import consts
-from cortex.lib import util, package, Context
+from cortex.lib import util, package, Context, api_utils
 from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 

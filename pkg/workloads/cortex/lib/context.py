@@ -13,15 +13,9 @@
 # limitations under the License.
 
 import os
-import json
 import imp
 import inspect
-import importlib
-from datetime import datetime
-from copy import deepcopy
 import boto3
-
-from botocore.exceptions import ClientError
 
 from cortex import consts
 from cortex.lib import util

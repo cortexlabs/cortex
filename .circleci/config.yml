@@ -38,6 +38,9 @@ jobs:
       - run:
           name: Go Tests
           command: make test-go
+      - run:
+          name: Python Tests
+          command: make test-python
   test-release:
     docker:
       - image: circleci/python:3.7.2-stretch
@@ -55,7 +58,6 @@ jobs:
       - checkout
       - run: make ci-build-images
       - run: make ci-build-cli
-      - run: make test-python
       - return-if-not-deployed-branch
       - run: sudo pip3 install awscli
       - run: make ci-push-images

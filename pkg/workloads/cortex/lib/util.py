@@ -15,7 +15,6 @@
 import os
 import errno
 import shutil
-import sys
 import stat
 import pprint
 import pickle
@@ -24,12 +23,10 @@ import collections
 import tempfile
 import zipfile
 import hashlib
-import marshal
 import msgpack
 from copy import deepcopy
 from datetime import datetime
 
-from cortex import consts
 from cortex.lib.log import get_logger
 
 import json_tricks

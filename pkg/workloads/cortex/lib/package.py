@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import sys
 import argparse
 import glob
 from subprocess import run
