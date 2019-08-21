@@ -23,14 +23,14 @@ Serve models at scale.
     mem: <string>  # memory request per replica (default: Null)
 ```
 
-See [packaging models](packaging-models.md) for how to create the zipped model.
+See [packaging models](packaging-models.md) for how to export the model.
 
 ## Example
 
 ```yaml
 - kind: api
   name: my-api
-  model: s3://my-bucket/my-model.zip
+  model: s3://my-bucket/my-model.onnx
   request_handler: inference.py
   compute:
     min_replicas: 5

@@ -30,9 +30,8 @@ import (
 )
 
 type Config struct {
-	App       *App `json:"app" yaml:"app"`
-	APIs      APIs `json:"apis" yaml:"apis"`
-	Resources map[string][]Resource
+	App  *App `json:"app" yaml:"app"`
+	APIs APIs `json:"apis" yaml:"apis"`
 }
 
 var typeFieldValidation = &cr.StructFieldValidation{
@@ -48,15 +47,6 @@ func mergeConfigs(target *Config, source *Config) error {
 			return ErrorDuplicateConfig(resource.AppType)
 		}
 		target.App = source.App
-	}
-
-	if target.Resources == nil {
-		target.Resources = make(map[string][]Resource)
-	}
-	for resourceName, resources := range source.Resources {
-		for _, res := range resources {
-			target.Resources[resourceName] = append(target.Resources[resourceName], res)
-		}
 	}
 
 	return nil
@@ -77,7 +67,7 @@ func (config *Config) ValidatePartial() error {
 	return nil
 }
 
-func (config *Config) Validate(envName string) error {
+func (config *Config) Validate() error {
 	if config.App == nil {
 		return ErrorMissingAppDefinition()
 	}
@@ -146,10 +136,6 @@ func newPartial(configData interface{}, filePath string) (*Config, error) {
 		if newResource != nil {
 			newResource.SetIndex(i)
 			newResource.SetFilePath(filePath)
-			if config.Resources == nil {
-				config.Resources = make(map[string][]Resource)
-			}
-			config.Resources[newResource.GetName()] = append(config.Resources[newResource.GetName()], newResource)
 		}
 	}
 
@@ -174,7 +160,7 @@ func NewPartialPath(filePath string) (*Config, error) {
 	return newPartial(configData, filePath)
 }
 
-func New(configs map[string][]byte, envName string) (*Config, error) {
+func New(configs map[string][]byte) (*Config, error) {
 	var err error
 	config := &Config{}
 	for filePath, configBytes := range configs {
@@ -187,7 +173,7 @@ func New(configs map[string][]byte, envName string) (*Config, error) {
 		}
 	}
 
-	if err := config.Validate(envName); err != nil {
+	if err := config.Validate(); err != nil {
 		return nil, err
 	}
 	return config, nil

@@ -53,7 +53,6 @@ func loadPythonPackages(files map[string][]byte, deploymentVersion string) (cont
 	if reqFileBytes, ok := files[consts.RequirementsTxt]; ok {
 		var buf bytes.Buffer
 		buf.Write(reqFileBytes)
-		// Invalidate cached packages when refreshed without depending on environment ID
 		buf.WriteString(deploymentVersion)
 		id := hash.Bytes(buf.Bytes())
 		pythonPackage := context.PythonPackage{
@@ -82,7 +81,6 @@ func loadPythonPackages(files map[string][]byte, deploymentVersion string) (cont
 	for _, packageName := range customPackages {
 		zipBytesInputs := []zip.BytesInput{}
 		var buf bytes.Buffer
-		// Invalidate cached packages when refreshed without depending on environment ID
 		buf.WriteString(deploymentVersion)
 		for filePath, fileBytes := range files {
 			if strings.HasPrefix(filePath, filepath.Join(consts.PackageDir, packageName)) {
