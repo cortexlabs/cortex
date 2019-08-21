@@ -254,28 +254,28 @@ def is_compound_type(type_str):
     return True
 
 
-def cast_compound_type(value, type_str):
-    allowed_types = type_str.split("|")
-    if consts.VALUE_TYPE_INT in allowed_types:
-        if util.is_int(value):
-            return value
-    if consts.VALUE_TYPE_FLOAT in allowed_types:
-        if util.is_int(value):
-            return float(value)
-        if util.is_float(value):
-            return value
-    if consts.VALUE_TYPE_STRING in allowed_types:
-        if util.is_str(value):
-            return value
-    if consts.VALUE_TYPE_BOOL in allowed_types:
-        if util.is_bool(value):
-            return value
+# def cast_compound_type(value, type_str):
+#     allowed_types = type_str.split("|")
+#     if consts.VALUE_TYPE_INT in allowed_types:
+#         if util.is_int(value):
+#             return value
+#     if consts.VALUE_TYPE_FLOAT in allowed_types:
+#         if util.is_int(value):
+#             return float(value)
+#         if util.is_float(value):
+#             return value
+#     if consts.VALUE_TYPE_STRING in allowed_types:
+#         if util.is_str(value):
+#             return value
+#     if consts.VALUE_TYPE_BOOL in allowed_types:
+#         if util.is_bool(value):
+#             return value
 
-    raise UserException(
-        "unsupported input type (expected type {}, got {})".format(
-            util.data_type_str(type_str), util.user_obj_str(value)
-        )
-    )
+#     raise UserException(
+#         "unsupported input type (expected type {}, got {})".format(
+#             util.data_type_str(type_str), util.user_obj_str(value)
+#         )
+#     )
 
 
 REQUEST_HANDLER_IMPL_VALIDATION = {

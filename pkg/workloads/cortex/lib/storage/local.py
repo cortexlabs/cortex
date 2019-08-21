@@ -57,9 +57,6 @@ class LocalStorage(object):
             raise KeyError(p + " not found in local storage")
         return p
 
-    def hadoop_path(self, key):
-        return os.path.join(self.base_dir, key)
-
     def blob_path(self, key):
         return os.path.join(self.base_dir, key)
 

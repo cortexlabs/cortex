@@ -37,9 +37,6 @@ import json_tricks
 
 logger = get_logger()
 
-resource_escape_seq = "🌝🌝🌝🌝🌝"
-resource_escape_seq_raw = r"\ud83c\udf1d\ud83c\udf1d\ud83c\udf1d\ud83c\udf1d\ud83c\udf1d"
-
 
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
     return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
@@ -83,33 +80,6 @@ def pp_str_flat(obj, indent=0):
     out = out.replace(resource_escape_seq, "@")
     out = out.replace(resource_escape_seq_raw, "@")
     return indent_str(out, indent)
-
-
-def data_type_str(data_type):
-    data_type_str = pp_str_flat(flatten_type_schema(data_type))
-    for t in consts.ALL_TYPES:
-        data_type_str = data_type_str.replace('"' + t, t)
-        data_type_str = data_type_str.replace(t + '"', t)
-    return data_type_str
-
-
-def flatten_type_schema(data_type):
-    if is_list(data_type):
-        flattened = []
-        for item in data_type:
-            flattened.append(flatten_type_schema(item))
-        return flattened
-
-    if is_dict(data_type):
-        if "_type" in data_type:
-            return flatten_type_schema(data_type["_type"])
-
-        flattened = {}
-        for key, val in data_type.items():
-            flattened[key] = flatten_type_schema(val)
-        return flattened
-
-    return data_type
 
 
 def user_obj_str(obj):

@@ -56,9 +56,6 @@ class S3(object):
         key = os.path.join(*path.split("/")[1:])
         return (bucket, key)
 
-    def hadoop_path(self, key):
-        return os.path.join("s3a://", self.bucket, key)
-
     def blob_path(self, key):
         return os.path.join("s3://", self.bucket, key)
 
