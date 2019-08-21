@@ -19,6 +19,8 @@ import inspect
 import importlib
 from datetime import datetime
 from copy import deepcopy
+import boto3
+
 from botocore.exceptions import ClientError
 
 from cortex import consts
@@ -73,6 +75,7 @@ class Context:
         self.constants = self.ctx["constants"] or {}
         self.apis = self.ctx["apis"] or {}
         self.api_version = self.cortex_config["api_version"]
+        self.monitoring = None
 
         if "local_storage_path" in kwargs:
             self.storage = LocalStorage(base_dir=kwargs["local_storage_path"])
@@ -82,6 +85,7 @@ class Context:
                 region=self.cortex_config["region"],
                 client_config={},
             )
+            self.monitoring = boto3.client("cloudwatch", region_name=self.cortex_config["region"])
 
         if self.api_version != consts.CORTEX_VERSION:
             raise ValueError(
@@ -232,6 +236,18 @@ class Context:
         metadata = self.storage.get_json(self.get_metadata_url(resource_id), allow_missing=True)
         self._metadatas[resource_id] = metadata
         return metadata
+
+    def publish_metrics(self, metrics):
+        if self.monitoring is None:
+            raise CortexException("monitoring client not initialized")  # unexpected
+
+        response = self.monitoring.put_metric_data(
+            MetricData=metrics, Namespace=self.cortex_config["log_group"]
+        )
+
+        if int(response["ResponseMetadata"]["HTTPStatusCode"] / 100) != 2:
+            logger.warn(response)
+            raise Exception("failed to publish metrics")
 
 
 def input_schema_from_type_schema(type_schema):

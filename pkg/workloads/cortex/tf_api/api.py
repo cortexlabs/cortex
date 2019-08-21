@@ -16,10 +16,10 @@ import sys
 import os
 import json
 import argparse
-import tensorflow as tf
-import traceback
 import time
-from flask import Flask, request, jsonify
+
+import tensorflow as tf
+from flask import Flask, request, jsonify, g
 from flask_api import status
 from waitress import serve
 import grpc
@@ -29,7 +29,7 @@ from tensorflow_serving.apis import prediction_service_pb2_grpc
 from google.protobuf import json_format
 
 from cortex import consts
-from cortex.lib import util, tf_lib, package, Context
+from cortex.lib import util, tf_lib, package, Context, api_utils
 from cortex.lib.log import get_logger
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
@@ -94,33 +94,51 @@ DTYPE_TO_TF_TYPE = {
 }
 
 
-# def transform_sample(sample):
-#     ctx = local_cache["ctx"]
-#     model = local_cache["model"]
+@app.after_request
+def after_request(response):
+    api = local_cache["api"]
+    ctx = local_cache["ctx"]
 
-#     transformed_sample = {}
+    if request.path != "/{}/{}".format(ctx.app["name"], api["name"]):
+        return response
 
-#     for column_name in ctx.extract_column_names(model["input"]):
-#         if ctx.is_raw_column(column_name):
-#             transformed_value = sample[column_name]
-#         else:
-#             transformed_column = ctx.transformed_columns[column_name]
-#             trans_impl = local_cache["trans_impls"][column_name]
-#             if not hasattr(trans_impl, "transform_python"):
-#                 raise UserException(
-#                     "transformed column " + column_name,
-#                     "transformer " + transformed_column["transformer"],
-#                     "transform_python function is missing",
-#                 )
-#             input = ctx.populate_values(
-#                 transformed_column["input"], None, preserve_column_refs=True
-#             )
-#             transformer_input = create_transformer_inputs_from_map(input, sample)
-#             transformed_value = trans_impl.transform_python(transformer_input)
+    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
 
-#         transformed_sample[column_name] = transformed_value
+    predictions = None
+    if "predictions" in g:
+        predictions = g.predictions
+    api_utils.post_request_metrics(ctx, api, response, predictions)
 
-#     return transformed_sample
+    return response
+
+
+def transform_sample(sample):
+    ctx = local_cache["ctx"]
+    model = local_cache["model"]
+
+    transformed_sample = {}
+
+    for column_name in ctx.extract_column_names(model["input"]):
+        if ctx.is_raw_column(column_name):
+            transformed_value = sample[column_name]
+        else:
+            transformed_column = ctx.transformed_columns[column_name]
+            trans_impl = local_cache["trans_impls"][column_name]
+            if not hasattr(trans_impl, "transform_python"):
+                raise UserException(
+                    "transformed column " + column_name,
+                    "transformer " + transformed_column["transformer"],
+                    "transform_python function is missing",
+                )
+            input = ctx.populate_values(
+                transformed_column["input"], None, preserve_column_refs=True
+            )
+            transformer_input = create_transformer_inputs_from_map(input, sample)
+            transformed_value = trans_impl.transform_python(transformer_input)
+
+        transformed_sample[column_name] = transformed_value
+
+    return transformed_sample
 
 
 def create_prediction_request(transformed_sample):
@@ -390,7 +408,7 @@ def predict(deployment_name, api_name):
             return prediction_failed(str(e))
 
         predictions.append(result)
-
+    g.predictions = predictions
     response["predictions"] = predictions
     response["resource_id"] = api["id"]
 
@@ -473,14 +491,6 @@ def validate_model_dir(model_dir):
         raise UserException(
             'Expected packaged model to have a "saved_model.pb" file. See docs.cortex.dev for how to properly package your TensorFlow model'
         )
-
-
-@app.after_request
-def after_request(response):
-    if request.full_path.startswith("/healthz"):
-        return response
-    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
-    return response
 
 
 @app.errorhandler(Exception)

@@ -53,6 +53,7 @@ func main() {
 	router.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
 	router.HandleFunc("/delete", endpoints.Delete).Methods("POST")
 	router.HandleFunc("/deployments", endpoints.GetDeployments).Methods("GET")
+	router.HandleFunc("/metrics", endpoints.GetMetrics).Methods("GET")
 	router.HandleFunc("/resources", endpoints.GetResources).Methods("GET")
 	router.HandleFunc("/logs/read", endpoints.ReadLogs)
 
