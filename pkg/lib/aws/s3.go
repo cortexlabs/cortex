@@ -59,6 +59,14 @@ func (c *Client) S3Path(key string) string {
 	return "s3://" + filepath.Join(c.Bucket, key)
 }
 
+func S3PathJoin(paths ...string) string {
+	if len(paths) == 0 {
+		return ""
+	}
+	paths[0] = paths[0][5:]
+	return "s3://" + filepath.Join(paths...)
+}
+
 func (c *Client) IsS3File(key string) (bool, error) {
 	_, err := c.s3Client.HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(c.Bucket),
