@@ -14,7 +14,6 @@
 
 import sys
 import os
-import json
 import argparse
 import time
 
@@ -28,12 +27,10 @@ from tensorflow_serving.apis import get_model_metadata_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 from google.protobuf import json_format
 
-from cortex import consts
-from cortex.lib import util, tf_lib, package, Context, api_utils
+from cortex.lib import util, package, Context, api_utils
+from cortex.lib.storage import S3
 from cortex.lib.log import get_logger
-from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
-from cortex.lib.context import create_transformer_inputs_from_map
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
@@ -41,20 +38,9 @@ logger.propagate = False  # prevent double logging (flask modifies root logger)
 app = Flask(__name__)
 app.json_encoder = util.json_tricks_encoder
 
-local_cache = {
-    "ctx": None,
-    "model": None,
-    "estimator": None,
-    "target_col": None,
-    "target_col_type": None,
-    "stub": None,
-    "api": None,
-    "trans_impls": {},
-    "required_inputs": None,
-    "metadata": None,
-    "target_vocab_populated": None,
-    "class_set": set(),
-}
+
+local_cache = {"ctx": None, "stub": None, "api": None, "metadata": None, "request_handler": None, "class_set": set()}
+
 
 DTYPE_TO_VALUE_KEY = {
     "DT_INT32": "intVal",
@@ -113,64 +99,7 @@ def after_request(response):
     return response
 
 
-def transform_sample(sample):
-    ctx = local_cache["ctx"]
-    model = local_cache["model"]
-
-    transformed_sample = {}
-
-    for column_name in ctx.extract_column_names(model["input"]):
-        if ctx.is_raw_column(column_name):
-            transformed_value = sample[column_name]
-        else:
-            transformed_column = ctx.transformed_columns[column_name]
-            trans_impl = local_cache["trans_impls"][column_name]
-            if not hasattr(trans_impl, "transform_python"):
-                raise UserException(
-                    "transformed column " + column_name,
-                    "transformer " + transformed_column["transformer"],
-                    "transform_python function is missing",
-                )
-            input = ctx.populate_values(
-                transformed_column["input"], None, preserve_column_refs=True
-            )
-            transformer_input = create_transformer_inputs_from_map(input, sample)
-            transformed_value = trans_impl.transform_python(transformer_input)
-
-        transformed_sample[column_name] = transformed_value
-
-    return transformed_sample
-
-
-def create_prediction_request(transformed_sample):
-    ctx = local_cache["ctx"]
-    signature_def = local_cache["metadata"]["signatureDef"]
-    signature_key = list(signature_def.keys())[0]
-    prediction_request = predict_pb2.PredictRequest()
-    prediction_request.model_spec.name = "model"
-    prediction_request.model_spec.signature_name = signature_key
-
-    for column_name, value in transformed_sample.items():
-        column_type = ctx.get_inferred_column_type(column_name)
-        data_type = tf_lib.CORTEX_TYPE_TO_TF_TYPE[column_type]
-        shape = []
-        for dim in signature_def[signature_key]["tensorShape"]["dim"]:
-            shape.append(int(dim["size"]))
-
-        try:
-            tensor_proto = tf.make_tensor_proto(
-                np.array(value).reshape(shape), dtype=data_type, shape=shape
-            )
-            prediction_request.inputs[column_name].CopyFrom(tensor_proto)
-        except Exception as e:
-            raise UserException(
-                'key "{}"'.format(column_name), "expected shape {}".format(shape)
-            ) from e
-
-    return prediction_request
-
-
-def create_raw_prediction_request(sample):
+def create_prediction_request(sample):
     signature_def = local_cache["metadata"]["signatureDef"]
     signature_key = list(signature_def.keys())[0]
     prediction_request = predict_pb2.PredictRequest()
@@ -195,79 +124,6 @@ def create_raw_prediction_request(sample):
     return prediction_request
 
 
-def reverse_transform(value):
-    ctx = local_cache["ctx"]
-    model = local_cache["model"]
-    target_col = local_cache["target_col"]
-
-    trans_impl = local_cache["trans_impls"].get(target_col["name"])
-    if not (trans_impl and hasattr(trans_impl, "reverse_transform_python")):
-        return None
-
-    input = ctx.populate_values(target_col["input"], None, preserve_column_refs=False)
-    try:
-        result = trans_impl.reverse_transform_python(value, input)
-    except Exception as e:
-        raise UserRuntimeException(
-            "transformer " + target_col["transformer"], "function reverse_transform_python"
-        ) from e
-
-    return result
-
-
-def parse_response_proto(response_proto):
-    """
-    response_proto is type tensorflow_serving.apis.predict_pb2.PredictResponse
-
-    https://developers.google.com/protocol-buffers/docs/reference/python-generated
-    https://github.com/tensorflow/serving/blob/master/tensorflow_serving/apis/predict.proto
-    Also see GRPC docs
-    response_proto.result() may be necessary (TF > 1.2?)
-    """
-    model = local_cache["model"]
-    estimator = local_cache["estimator"]
-    target_col_type = local_cache["target_col_type"]
-
-    if target_col_type in {consts.COLUMN_TYPE_STRING, consts.COLUMN_TYPE_INT}:
-        prediction_key = "class_ids"
-    else:
-        prediction_key = "predictions"
-
-    if estimator["prediction_key"]:
-        prediction_key = estimator["prediction_key"]
-
-    results_dict = json_format.MessageToDict(response_proto)
-    outputs = results_dict["outputs"]
-    value_key = DTYPE_TO_VALUE_KEY[outputs[prediction_key]["dtype"]]
-    prediction = outputs[prediction_key][value_key][0]
-
-    target_vocab_estimators = {
-        "dnn_classifier",
-        "linear_classifier",
-        "dnn_linear_combined_classifier",
-        "boosted_trees_classifier",
-    }
-    if (
-        estimator["namespace"] == "cortex"
-        and estimator["name"] in target_vocab_estimators
-        and model["input"].get("target_vocab") is not None
-    ):
-        prediction = local_cache["target_vocab_populated"][int(prediction)]
-    else:
-        prediction = util.cast(prediction, target_col_type)
-
-    result = {}
-    result["prediction"] = prediction
-    result["prediction_reversed"] = reverse_transform(prediction)
-
-    result["response"] = {}
-    for key in outputs.keys():
-        value_key = DTYPE_TO_VALUE_KEY[outputs[key]["dtype"]]
-        result["response"][key] = outputs[key][value_key]
-
-    return result
-
-
 def create_get_model_metadata_request():
     get_model_metadata_request = get_model_metadata_pb2.GetModelMetadataRequest()
     get_model_metadata_request.model_spec.name = "model"
@@ -285,7 +141,7 @@ def run_get_model_metadata():
     return sigmap
 
 
-def parse_response_proto_raw(response_proto):
+def parse_response_proto(response_proto):
     results_dict = json_format.MessageToDict(response_proto)
     outputs = results_dict["outputs"]
 
@@ -309,23 +165,9 @@ def run_predict(sample):
 
     validate_sample(prepared_sample)
 
-    if util.is_resource_ref(local_cache["api"]["model"]):
-        for column in local_cache["required_inputs"]:
-            column_type = ctx.get_inferred_column_type(column["name"])
-            prepared_sample[column["name"]] = util.upcast(
-                prepared_sample[column["name"]], column_type
-            )
-
-        transformed_sample = transform_sample(prepared_sample)
-
-        prediction_request = create_prediction_request(transformed_sample)
-        response_proto = local_cache["stub"].Predict(prediction_request, timeout=300.0)
-        result = parse_response_proto(response_proto)
-        result["transformed_sample"] = transformed_sample
-    else:
-        prediction_request = create_raw_prediction_request(prepared_sample)
-        response_proto = local_cache["stub"].Predict(prediction_request, timeout=300.0)
-        result = parse_response_proto_raw(response_proto)
+    prediction_request = create_prediction_request(prepared_sample)
+    response_proto = local_cache["stub"].Predict(prediction_request, timeout=300.0)
+    result = parse_response_proto(response_proto)
 
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
         result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
@@ -334,25 +176,10 @@ def run_predict(sample):
 
 
 def validate_sample(sample):
-    api = local_cache["api"]
-    if util.is_resource_ref(api["model"]):
-        ctx = local_cache["ctx"]
-        for column in local_cache["required_inputs"]:
-            if column["name"] not in sample:
-                raise UserException('missing key "{}"'.format(column["name"]))
-            sample_val = sample[column["name"]]
-            column_type = ctx.get_inferred_column_type(column["name"])
-            is_valid = util.CORTEX_TYPE_TO_VALIDATOR[column_type](sample_val)
-
-            if not is_valid:
-                raise UserException(
-                    'key "{}"'.format(column["name"]), "expected type " + column_type
-                )
-    else:
-        signature = extract_signature()
-        for input_name, metadata in signature.items():
-            if input_name not in sample:
-                raise UserException('missing key "{}"'.format(input_name))
+    signature = extract_signature()
+    for input_name, metadata in signature.items():
+        if input_name not in sample:
+            raise UserException('missing key "{}"'.format(input_name))
 
 
 def prediction_failed(reason):
@@ -369,7 +196,6 @@ def health():
 
 @app.route("/<deployment_name>/<api_name>", methods=["POST"])
 def predict(deployment_name, api_name):
-
     try:
         payload = request.get_json()
     except Exception as e:
@@ -411,7 +237,6 @@ def predict(deployment_name, api_name):
         predictions.append(result)
     g.predictions = predictions
     response["predictions"] = predictions
-    response["resource_id"] = api["id"]
 
     return jsonify(response)
 
@@ -453,23 +278,6 @@ def get_signature(app_name, api_name):
     return jsonify(response)
 
 
-def download_dir_external(ctx, s3_path, local_path):
-    util.mkdir_p(local_path)
-    bucket_name, prefix = ctx.storage.deconstruct_s3_path(s3_path)
-    storage_client = S3(bucket_name, client_config={})
-    objects = [obj[len(prefix) + 1 :] for obj in storage_client.search(prefix=prefix)]
-    prefix = prefix + "/" if prefix[-1] != "/" else prefix
-    version = prefix.split("/")[-2]
-    local_path = os.path.join(local_path, version)
-    for obj in objects:
-        if not os.path.exists(os.path.dirname(obj)):
-            util.mkdir_p(os.path.join(local_path, os.path.dirname(obj)))
-
-        ctx.storage.download_file_external(
-            bucket_name + "/" + os.path.join(prefix, obj), os.path.join(local_path, obj)
-        )
-
-
 def validate_model_dir(model_dir):
     """
     validates that model_dir has the expected directory tree.
@@ -501,64 +309,24 @@ def exceptions(e):
 
 
 def start(args):
-    ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
-
-    api = ctx.apis_id_map[args.api]
-    local_cache["api"] = api
-    local_cache["ctx"] = ctx
-
+    api = None
     try:
-        if api.get("request_handler") is not None or util.is_resource_ref(api["model"]):
-            package.install_packages(ctx.python_packages, ctx.storage)
-
-        if api.get("request_handler") is not None:
-            local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
+        ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
+        api = ctx.apis_id_map[args.api]
+        local_cache["api"] = api
+        local_cache["ctx"] = ctx
 
         if not os.path.isdir(args.model_dir):
-            if util.is_resource_ref(api["model"]):
-                model_name = util.get_resource_ref(api["model"])
-                model = ctx.models[model_name]
-                ctx.storage.download_and_unzip(model["key"], args.model_dir)
-            else:
-                download_dir_external(ctx, api["model"], args.model_dir)
+            bucket_name, prefix = ctx.storage.deconstruct_s3_path(api["model"])
+            storage_client = S3(bucket_name, client_config={})
+            storage_client.download_dir(prefix, args.model_dir)
 
         if args.only_download:
             return
 
-        if util.is_resource_ref(api["model"]):
-            model_name = util.get_resource_ref(api["model"])
-            model = ctx.models[model_name]
-            estimator = ctx.estimators[model["estimator"]]
-
-            local_cache["model"] = model
-            local_cache["estimator"] = estimator
-            local_cache["target_col"] = ctx.columns[util.get_resource_ref(model["target_column"])]
-            local_cache["target_col_type"] = ctx.get_inferred_column_type(
-                util.get_resource_ref(model["target_column"])
-            )
-
-            log_level = "DEBUG"
-            if ctx.environment is not None and ctx.environment.get("log_level") is not None:
-                log_level = ctx.environment["log_level"].get("tensorflow", "DEBUG")
-            tf_lib.set_logging_verbosity(log_level)
-
-            for column_name in ctx.extract_column_names([model["input"], model["target_column"]]):
-                if ctx.is_transformed_column(column_name):
-                    trans_impl, _ = ctx.get_transformer_impl(column_name)
-                    local_cache["trans_impls"][column_name] = trans_impl
-                    transformed_column = ctx.transformed_columns[column_name]
-
-                    # cache aggregate values
-                    for resource_name in util.extract_resource_refs(transformed_column["input"]):
-                        if resource_name in ctx.aggregates:
-                            ctx.get_obj(ctx.aggregates[resource_name]["key"])
-
-            local_cache["required_inputs"] = tf_lib.get_base_input_columns(model["name"], ctx)
-
-            if util.is_dict(model["input"]) and model["input"].get("target_vocab") is not None:
-                local_cache["target_vocab_populated"] = ctx.populate_values(
-                    model["input"]["target_vocab"], None, False
-                )
+        if api.get("request_handler") is not None:
+            package.install_packages(ctx.python_packages, ctx.storage)
+            local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
     except CortexException as e:
         e.wrap("error")
         logger.error(str(e))

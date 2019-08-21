@@ -22,37 +22,22 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
-var predictPrintJSON bool
-
 func init() {
-	predictCmd.PersistentFlags().BoolVarP(&predictPrintJSON, "json", "j", false, "print the raw json response")
 	addAppNameFlag(predictCmd)
 	addEnvFlag(predictCmd)
 }
 
 type PredictResponse struct {
-	ResourceID  string        `json:"resource_id"`
 	Predictions []interface{} `json:"predictions"`
-}
-
-type DetailedPrediction struct {
-	Prediction         interface{} `json:"prediction"`
-	PredictionReversed interface{} `json:"prediction_reversed"`
-	TransformedSample  interface{} `json:"transformed_sample"`
-	Response           interface{} `json:"response"`
 }
 
 var predictCmd = &cobra.Command{
@@ -103,73 +88,11 @@ var predictCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		if predictPrintJSON {
-			prettyResp, err := json.Pretty(predictResponse)
-			if err != nil {
-				errors.Exit(err)
-			}
-
-			fmt.Println(prettyResp)
-			return
+		prettyResp, err := json.Pretty(predictResponse)
+		if err != nil {
+			errors.Exit(err)
 		}
-
-		apiID := predictResponse.ResourceID
-		apiStatus := resourcesRes.APIStatuses[apiID]
-		api := resourcesRes.Context.APIs[apiName]
-
-		apiStart := libtime.LocalTimestampHuman(apiStatus.Start)
-		fmt.Println("\n" + apiName + " was last updated on " + apiStart + "\n")
-
-		if len(predictResponse.Predictions) == 1 {
-			fmt.Println("Prediction:")
-		} else {
-			fmt.Println("Predictions:")
-		}
-
-		for _, prediction := range predictResponse.Predictions {
-			if !yaml.StartsWithEscapedAtSymbol(api.Model) {
-				prettyResp, err := json.Pretty(prediction)
-				if err != nil {
-					errors.Exit(err)
-				}
-
-				fmt.Println(prettyResp)
-				continue
-			}
-
-			predictionBytes, err := json.Marshal(prediction)
-			if err != nil {
-				errors.Exit(err)
-			}
-
-			var detailedPrediction DetailedPrediction
-			err = json.DecodeWithNumber(predictionBytes, &detailedPrediction)
-			if err != nil {
-				errors.Exit(err, "prediction response")
-			}
-
-			if detailedPrediction.Prediction == nil {
-				prettyResp, err := json.Pretty(detailedPrediction.Response)
-				if err != nil {
-					errors.Exit(err)
-				}
-
-				fmt.Println(prettyResp)
-				continue
-			}
-
-			value := detailedPrediction.Prediction
-			if detailedPrediction.PredictionReversed != nil {
-				value = detailedPrediction.PredictionReversed
-			}
-
-			if cast.IsFloatType(value) {
-				casted, _ := cast.InterfaceToFloat64(value)
-				fmt.Println(s.Round(casted, 2, true))
-			} else {
-				fmt.Println(s.UserStrStripped(value))
-			}
-		}
+		fmt.Println(prettyResp)
 	},
 }
 

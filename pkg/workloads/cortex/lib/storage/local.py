@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import os
-import boto3
-import botocore
 import pickle
 import json
 import msgpack
@@ -56,9 +53,6 @@ class LocalStorage(object):
         elif not p.exists() and not allow_missing:
             raise KeyError(p + " not found in local storage")
         return p
-
-    def hadoop_path(self, key):
-        return os.path.join(self.base_dir, key)
 
     def blob_path(self, key):
         return os.path.join(self.base_dir, key)

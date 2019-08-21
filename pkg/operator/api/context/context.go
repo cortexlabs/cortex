@@ -27,31 +27,17 @@ import (
 )
 
 type Context struct {
-	ID                 string               `json:"id"`
-	Key                string               `json:"key"`
-	CreatedEpoch       int64                `json:"created_epoch"`
-	CortexConfig       *config.CortexConfig `json:"cortex_config"`
-	DatasetVersion     string               `json:"dataset_version"`
-	Root               string               `json:"root"`
-	MetadataRoot       string               `json:"metadata_root"`
-	RawDataset         RawDataset           `json:"raw_dataset"`
-	StatusPrefix       string               `json:"status_prefix"`
-	App                *App                 `json:"app"`
-	Environment        *Environment         `json:"environment"`
-	PythonPackages     PythonPackages       `json:"python_packages"`
-	RawColumns         RawColumns           `json:"-"`
-	Aggregates         Aggregates           `json:"aggregates"`
-	TransformedColumns TransformedColumns   `json:"transformed_columns"`
-	Models             Models               `json:"models"`
-	APIs               APIs                 `json:"apis"`
-	Constants          Constants            `json:"constants"`
-	Aggregators        Aggregators          `json:"aggregators"`
-	Transformers       Transformers         `json:"transformers"`
-	Estimators         Estimators           `json:"estimators"`
-}
-
-type RawDataset struct {
-	Key string `json:"key"`
+	ID                string               `json:"id"`
+	Key               string               `json:"key"`
+	CreatedEpoch      int64                `json:"created_epoch"`
+	CortexConfig      *config.CortexConfig `json:"cortex_config"`
+	DeploymentVersion string               `json:"deployment_version"`
+	Root              string               `json:"root"`
+	MetadataRoot      string               `json:"metadata_root"`
+	StatusPrefix      string               `json:"status_prefix"`
+	App               *App                 `json:"app"`
+	PythonPackages    PythonPackages       `json:"python_packages"`
+	APIs              APIs                 `json:"apis"`
 }
 
 type Resource interface {
@@ -100,18 +86,6 @@ func (ctx *Context) DataComputedResources() []ComputedResource {
 	for _, pythonPackage := range ctx.PythonPackages {
 		resources = append(resources, pythonPackage)
 	}
-	for _, rawColumn := range ctx.RawColumns {
-		resources = append(resources, rawColumn)
-	}
-	for _, aggregate := range ctx.Aggregates {
-		resources = append(resources, aggregate)
-	}
-	for _, transformedColumn := range ctx.TransformedColumns {
-		resources = append(resources, transformedColumn)
-	}
-	for _, model := range ctx.Models {
-		resources = append(resources, model, model.Dataset)
-	}
 	return resources
 }
 
@@ -133,18 +107,6 @@ func (ctx *Context) AllResources() []Resource {
 	var resources []Resource
 	for _, res := range ctx.ComputedResources() {
 		resources = append(resources, res)
-	}
-	for _, constant := range ctx.Constants {
-		resources = append(resources, constant)
-	}
-	for _, aggregator := range ctx.Aggregators {
-		resources = append(resources, aggregator)
-	}
-	for _, transformer := range ctx.Transformers {
-		resources = append(resources, transformer)
-	}
-	for _, estimator := range ctx.Estimators {
-		resources = append(resources, estimator)
 	}
 	return resources
 }
@@ -211,19 +173,6 @@ func (ctx *Context) VisibleResourcesMap() map[string][]ComputedResource {
 	for name, pythonPackage := range ctx.PythonPackages {
 		resources[name] = append(resources[name], pythonPackage)
 	}
-	for name, rawColumn := range ctx.RawColumns {
-		resources[name] = append(resources[name], rawColumn)
-	}
-	for name, aggregate := range ctx.Aggregates {
-		resources[name] = append(resources[name], aggregate)
-	}
-	for name, transformedColumn := range ctx.TransformedColumns {
-		resources[name] = append(resources[name], transformedColumn)
-	}
-	for name, model := range ctx.Models {
-		resources[name] = append(resources[name], model)
-		resources[model.Dataset.Name] = append(resources[model.Dataset.Name], model.Dataset)
-	}
 	for name, api := range ctx.APIs {
 		resources[name] = append(resources[name], api)
 	}
@@ -256,30 +205,6 @@ func (ctx *Context) VisibleResourceByNameAndType(name string, resourceTypeStr st
 	switch resourceType {
 	case resource.PythonPackageType:
 		res := ctx.PythonPackages[name]
-		if res == nil {
-			return nil, resource.ErrorNotFound(name, resourceType)
-		}
-		return res, nil
-	case resource.RawColumnType:
-		res := ctx.RawColumns[name]
-		if res == nil {
-			return nil, resource.ErrorNotFound(name, resourceType)
-		}
-		return res, nil
-	case resource.AggregateType:
-		res := ctx.Aggregates[name]
-		if res == nil {
-			return nil, resource.ErrorNotFound(name, resourceType)
-		}
-		return res, nil
-	case resource.TransformedColumnType:
-		res := ctx.TransformedColumns[name]
-		if res == nil {
-			return nil, resource.ErrorNotFound(name, resourceType)
-		}
-		return res, nil
-	case resource.ModelType:
-		res := ctx.Models[name]
 		if res == nil {
 			return nil, resource.ErrorNotFound(name, resourceType)
 		}

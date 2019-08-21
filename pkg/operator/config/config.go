@@ -24,7 +24,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/spark"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
@@ -34,7 +33,6 @@ var (
 	Kubernetes      *k8s.Client
 	IstioKubernetes *k8s.Client
 	Telemetry       *telemetry.Client
-	Spark           *spark.Client
 )
 
 type CortexConfig struct {
@@ -45,12 +43,9 @@ type CortexConfig struct {
 	Region              string `json:"region"`
 	Namespace           string `json:"namespace"`
 	OperatorImage       string `json:"operator_image"`
-	SparkImage          string `json:"spark_image"`
-	TFTrainImage        string `json:"tf_train_image"`
 	TFServeImage        string `json:"tf_serve_image"`
 	TFAPIImage          string `json:"tf_api_image"`
 	PythonPackagerImage string `json:"python_packager_image"`
-	TFTrainImageGPU     string `json:"tf_train_image_gpu"`
 	TFServeImageGPU     string `json:"tf_serve_image_gpu"`
 	ONNXServeImage      string `json:"onnx_serve_image"`
 	ONNXServeImageGPU   string `json:"onnx_serve_gpu_image"`
@@ -68,12 +63,9 @@ func Init() error {
 		Region:              getStr("REGION"),
 		Namespace:           getStr("NAMESPACE"),
 		OperatorImage:       getStr("IMAGE_OPERATOR"),
-		SparkImage:          getStr("IMAGE_SPARK"),
-		TFTrainImage:        getStr("IMAGE_TF_TRAIN"),
 		TFServeImage:        getStr("IMAGE_TF_SERVE"),
 		TFAPIImage:          getStr("IMAGE_TF_API"),
 		PythonPackagerImage: getStr("IMAGE_PYTHON_PACKAGER"),
-		TFTrainImageGPU:     getStr("IMAGE_TF_TRAIN_GPU"),
 		TFServeImageGPU:     getStr("IMAGE_TF_SERVE_GPU"),
 		ONNXServeImage:      getStr("IMAGE_ONNX_SERVE"),
 		ONNXServeImageGPU:   getStr("IMAGE_ONNX_SERVE_GPU"),
@@ -93,10 +85,6 @@ func Init() error {
 	}
 
 	if IstioKubernetes, err = k8s.New("istio-system", Cortex.OperatorInCluster); err != nil {
-		return err
-	}
-
-	if Spark, err = spark.New(Kubernetes.RestConfig, Kubernetes.Namespace); err != nil {
 		return err
 	}
 

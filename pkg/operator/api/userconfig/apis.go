@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cortexlabs/yaml"
-
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -58,8 +56,8 @@ var apiValidation = &cr.StructValidation{
 		{
 			StructField: "Model",
 			StringValidation: &cr.StringValidation{
-				Required:             true,
-				AllowCortexResources: true,
+				Required:  true,
+				Validator: cr.GetS3PathValidator(),
 			},
 		},
 		{
@@ -108,14 +106,14 @@ var apiValidation = &cr.StructValidation{
 	},
 }
 
-// IsValidS3Directory checks that the path contains a valid S3 directory for Tensorflow models
+// IsValidTensorFlowS3Directory checks that the path contains a valid S3 directory for Tensorflow models
 // Must contain the following structure:
 // - 1523423423/ (version prefix, usually a timestamp)
 // 		- saved_model.pb
 //		- variables/
 //			- variables.index
 //			- variables.data-00000-of-00001 (there are a variable number of these files)
-func IsValidS3Directory(path string) bool {
+func IsValidTensorFlowS3Directory(path string) bool {
 	if valid, err := aws.IsS3PathFileExternal(
 		fmt.Sprintf("%s/saved_model.pb", path),
 		fmt.Sprintf("%s/variables/variables.index", path),
@@ -134,8 +132,7 @@ func IsValidS3Directory(path string) bool {
 func (api *API) UserConfigStr() string {
 	var sb strings.Builder
 	sb.WriteString(api.ResourceFields.UserConfigStr())
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, yaml.UnescapeAtSymbol(api.Model)))
-
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, api.Model))
 	if api.ModelFormat != UnknownModelFormat {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelFormatKey, api.ModelFormat.String()))
 	}
@@ -170,26 +167,13 @@ func (apis APIs) Validate() error {
 }
 
 func (api *API) Validate() error {
-	if yaml.StartsWithEscapedAtSymbol(api.Model) {
-		api.ModelFormat = TensorFlowModelFormat
-		if err := api.Compute.Validate(); err != nil {
-			return errors.Wrap(err, Identify(api), ComputeKey)
-		}
-
-		return nil
-	}
-
-	if !aws.IsValidS3Path(api.Model) {
-		return errors.Wrap(ErrorInvalidS3PathOrResourceReference(api.Model), Identify(api), ModelKey)
-	}
-
 	switch api.ModelFormat {
 	case ONNXModelFormat:
 		if ok, err := aws.IsS3PathFileExternal(api.Model); err != nil || !ok {
 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
 		}
 	case TensorFlowModelFormat:
-		if !IsValidS3Directory(api.Model) {
+		if !IsValidTensorFlowS3Directory(api.Model) {
 			return errors.Wrap(ErrorInvalidTensorflowDir(api.Model), Identify(api), ModelKey)
 		}
 	default:
@@ -199,12 +183,11 @@ func (api *API) Validate() error {
 			if ok, err := aws.IsS3PathFileExternal(api.Model); err != nil || !ok {
 				return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
 			}
-		case IsValidS3Directory(api.Model):
+		case IsValidTensorFlowS3Directory(api.Model):
 			api.ModelFormat = TensorFlowModelFormat
 		default:
 			return errors.Wrap(ErrorUnableToInferModelFormat(), Identify(api))
 		}
-
 	}
 
 	if err := api.Compute.Validate(); err != nil {
