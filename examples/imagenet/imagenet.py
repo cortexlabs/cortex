@@ -18,7 +18,7 @@ def pre_inference(sample, metadata):
         image = base64.b64decode(sample["base64"])
 
     decoded_image = np.asarray(Image.open(BytesIO(image)), dtype=np.float32) / 255
-    return {"images": [decoded_image]}
+    return {"images": [decoded_image.tolist()]}
 
 
 def post_inference(prediction, metadata):
