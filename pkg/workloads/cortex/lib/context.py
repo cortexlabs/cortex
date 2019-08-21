@@ -19,6 +19,8 @@ import inspect
 import importlib
 from datetime import datetime
 from copy import deepcopy
+import boto3
+
 from botocore.exceptions import ClientError
 
 from cortex import consts
@@ -82,6 +84,7 @@ class Context:
         self.apis = self.ctx["apis"] or {}
         self.training_datasets = {k: v["dataset"] for k, v in self.models.items()}
         self.api_version = self.cortex_config["api_version"]
+        self.monitoring = None
 
         if "local_storage_path" in kwargs:
             self.storage = LocalStorage(base_dir=kwargs["local_storage_path"])
@@ -91,6 +94,7 @@ class Context:
                 region=self.cortex_config["region"],
                 client_config={},
             )
+            self.monitoring = boto3.client("cloudwatch", region_name=self.cortex_config["region"])
 
         if self.api_version != consts.CORTEX_VERSION:
             raise ValueError(
@@ -173,13 +177,13 @@ class Context:
         try:
             impl_path = self.download_python_file(impl_key, full_module_name)
         except CortexException as e:
-            e.wrap("unable to find python file " + module_name)
+            e.wrap("unable to find python file")
             raise
 
         try:
             impl = imp.load_source(full_module_name, impl_path)
         except Exception as e:
-            raise UserException("unable to load python module " + module_name) from e
+            raise UserException("unable to load python file") from e
 
         return impl, impl_path
 
@@ -620,6 +624,18 @@ class Context:
                 )
             )
         return cast_compound_type(input, input_schema["_type"])
+
+    def publish_metrics(self, metrics):
+        if self.monitoring is None:
+            raise CortexException("monitoring client not initialized")  # unexpected
+
+        response = self.monitoring.put_metric_data(
+            MetricData=metrics, Namespace=self.cortex_config["log_group"]
+        )
+
+        if int(response["ResponseMetadata"]["HTTPStatusCode"] / 100) != 2:
+            logger.warn(response)
+            raise Exception("failed to publish metrics")
 
 
 def input_schema_from_type_schema(type_schema):

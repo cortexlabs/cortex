@@ -22,7 +22,7 @@ spec:
   params:
     value: response.duration
     dimensions:
-      REQUEST_PATH: request.url_path | "unknown"
+      RequestPath: request.url_path | "unknown"
 ---
 apiVersion: config.istio.io/v1alpha2
 kind: handler

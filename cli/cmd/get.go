@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
@@ -126,7 +127,7 @@ func allDeploymentsStr() (string, error) {
 	}
 
 	if len(resourcesRes.Deployments) == 0 {
-		return "no deployments found", nil
+		return console.Bold("\nno deployments found"), nil
 	}
 
 	rows := make([][]interface{}, len(resourcesRes.Deployments))
@@ -464,15 +465,25 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
 
 	out := "\n" + console.Bold("url:  ") + apiEndpoint + "\n"
-	out += fmt.Sprintf("%s curl -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n\n", console.Bold("curl:"), apiEndpoint)
-	out += fmt.Sprintf(console.Bold("updated at:")+" %s\n", libtime.LocalTimestamp(updatedAt))
+	out += fmt.Sprintf("%s curl -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n", console.Bold("curl:"), apiEndpoint)
+	out += fmt.Sprintf(console.Bold("updated at:")+" %s\n\n", libtime.LocalTimestamp(updatedAt))
 
-	out += "\n"
-	t := table.Table{
+	statusTable := table.Table{
 		Headers: headers,
 		Rows:    [][]interface{}{row},
 	}
-	out += table.MustFormat(t)
+
+	var predictionMetrics string
+	apiMetrics, err := getAPIMetrics(ctx.App.Name, api.Name)
+	if err != nil || apiMetrics == nil {
+		predictionMetrics = "\n\nmetrics are not available yet"
+	} else {
+		statusTable = appendNetworkMetrics(statusTable, apiMetrics)
+		predictionMetrics = "\n\n" + predictionMetricsTable(apiMetrics, api)
+	}
+
+	out += table.MustFormat(statusTable)
+	out += predictionMetrics
 
 	if !flagVerbose {
 		return out, nil
@@ -505,6 +516,145 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	}
 
 	return out, nil
+}
+
+func getAPIMetrics(appName, apiName string) (*schema.APIMetrics, error) {
+	params := map[string]string{"appName": appName, "apiName": apiName}
+	httpResponse, err := HTTPGet("/metrics", params)
+	if err != nil {
+		return nil, err
+	}
+
+	var apiMetrics schema.APIMetrics
+	err = json.Unmarshal(httpResponse, &apiMetrics)
+	if err != nil {
+		return nil, err
+	}
+
+	return &apiMetrics, nil
+}
+
+func appendNetworkMetrics(apiTable table.Table, apiMetrics *schema.APIMetrics) table.Table {
+	latency := "-"
+	if apiMetrics.NetworkStats.Latency != nil {
+		latency = fmt.Sprintf("%.9g", *apiMetrics.NetworkStats.Latency)
+	}
+
+	headers := []table.Header{
+		{Title: "avg latency"},
+		{Title: "2XX", Hidden: apiMetrics.NetworkStats.Code2XX == 0},
+		{Title: "4XX", Hidden: apiMetrics.NetworkStats.Code4XX == 0},
+		{Title: "5XX", Hidden: apiMetrics.NetworkStats.Code5XX == 0},
+	}
+
+	row := []interface{}{
+		latency,
+		apiMetrics.NetworkStats.Code2XX,
+		apiMetrics.NetworkStats.Code4XX,
+		apiMetrics.NetworkStats.Code5XX,
+	}
+
+	apiTable.Headers = append(apiTable.Headers, headers...)
+	apiTable.Rows[0] = append(apiTable.Rows[0], row...)
+
+	return apiTable
+}
+
+func predictionMetricsTable(apiMetrics *schema.APIMetrics, api *context.API) string {
+	if api.Tracker == nil {
+		return "a tracker has not been configured to record predictions"
+	}
+
+	if api.Tracker.ModelType == userconfig.ClassificationModelType {
+		return classificationMetricsTable(apiMetrics)
+	}
+	return regressionMetricsTable(apiMetrics)
+}
+
+func regressionMetricsTable(apiMetrics *schema.APIMetrics) string {
+	minStr := "-"
+	if apiMetrics.RegressionStats.Min != nil {
+		minStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Min)
+	}
+
+	maxStr := "-"
+	if apiMetrics.RegressionStats.Max != nil {
+		maxStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Max)
+	}
+
+	avgStr := "-"
+	if apiMetrics.RegressionStats.Avg != nil {
+		avgStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Avg)
+	}
+
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "min", MaxWidth: 10},
+			{Title: "max", MaxWidth: 10},
+			{Title: "avg", MaxWidth: 10},
+		},
+		Rows: [][]interface{}{{minStr, maxStr, avgStr}},
+	}
+
+	return table.MustFormat(t)
+}
+
+func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
+	classList := make([]string, len(apiMetrics.ClassDistribution))
+
+	i := 0
+	for inputName := range apiMetrics.ClassDistribution {
+		classList[i] = inputName
+		i++
+	}
+	sort.Strings(classList)
+
+	if len(classList) > 0 && len(classList) < 4 {
+		row := []interface{}{}
+		headers := []table.Header{}
+
+		for _, className := range classList {
+			headers = append(headers, table.Header{Title: s.TruncateEllipses(className, 20), MaxWidth: 20})
+			row = append(row, apiMetrics.ClassDistribution[className])
+		}
+
+		t := table.Table{
+			Headers: headers,
+			Rows:    [][]interface{}{row},
+		}
+
+		return table.MustFormat(t)
+	}
+
+	rows := make([][]interface{}, len(classList))
+	for rowNum, className := range classList {
+		rows[rowNum] = []interface{}{
+			className,
+			apiMetrics.ClassDistribution[className],
+		}
+	}
+
+	if len(classList) == 0 {
+		rows = append(rows, []interface{}{
+			"-",
+			"-",
+		})
+	}
+
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "class", MaxWidth: 40},
+			{Title: "count", MaxWidth: 20},
+		},
+		Rows: rows,
+	}
+
+	out := table.MustFormat(t)
+
+	if len(classList) == consts.MaxClassesPerRequest {
+		out += fmt.Sprintf("\n\nlisting at most %d classes, the complete list can be found in your cloudwatch dashboard", consts.MaxClassesPerRequest)
+	}
+	return out
 }
 
 func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string) string {

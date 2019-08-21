@@ -57,12 +57,6 @@ func cacheAPISavedStatus(savedStatus *resource.APISavedStatus) {
 		savedStatus.AppName, savedStatus.Copy(), apiStatusCache.m)
 }
 
-func cacheNilAPISavedStatus(resourceID string, workloadID string, appName string) {
-	apiStatusCache.Lock()
-	defer apiStatusCache.Unlock()
-	setAPISavedStatusMap(resourceID, workloadID, appName, nil, apiStatusCache.m)
-}
-
 func apiSavedStatusesToMap(
 	savedStatuses []*resource.APISavedStatus,
 ) map[string]map[string]map[string]*resource.APISavedStatus {
@@ -83,7 +77,6 @@ func getStaleAPISavedStatuses(
 
 	apiStatusCache.RLock()
 	defer apiStatusCache.RUnlock()
-
 	var staleSavedStatuses []*resource.APISavedStatus
 	for appName := range apiStatusCache.m {
 		for resourceID := range apiStatusCache.m[appName] {
