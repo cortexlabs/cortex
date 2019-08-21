@@ -36,7 +36,6 @@ var uploadedRequestHandlers = strset.New()
 
 func getAPIs(config *userconfig.Config,
 	metadataRoot string,
-	datasetVersion string,
 	deploymentVersion string,
 	impls map[string][]byte,
 	pythonPackages context.PythonPackages,

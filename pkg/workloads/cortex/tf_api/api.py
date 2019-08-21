@@ -39,7 +39,14 @@ app = Flask(__name__)
 app.json_encoder = util.json_tricks_encoder
 
 
-local_cache = {"ctx": None, "stub": None, "api": None, "metadata": None, "request_handler": None, "class_set": set()}
+local_cache = {
+    "ctx": None,
+    "stub": None,
+    "api": None,
+    "metadata": None,
+    "request_handler": None,
+    "class_set": set(),
+}
 
 
 DTYPE_TO_VALUE_KEY = {
