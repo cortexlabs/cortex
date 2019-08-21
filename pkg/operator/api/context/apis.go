@@ -27,6 +27,7 @@ type API struct {
 	*ComputedResourceFields
 	Path                  string  `json:"path"`
 	RequestHandlerImplKey *string `json:"request_handler_impl_key"`
+	MetadataKey           string  `json:"metadata_key"`
 }
 
 func APIPath(apiName string, appName string) string {

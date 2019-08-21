@@ -17,7 +17,9 @@ limitations under the License.
 package workloads
 
 import (
+	"encoding/base64"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -398,49 +400,28 @@ func getNetworkStatsDef(appName string, api *context.API, period int64) []*cloud
 }
 
 func getClassesMetricDef(appName string, api *context.API, period int64) ([]*cloudwatch.MetricDataQuery, error) {
-	listMetricsInput := &cloudwatch.ListMetricsInput{
-		Namespace:  aws.String(config.Cortex.LogGroup),
-		MetricName: aws.String("Prediction"),
-		Dimensions: []*cloudwatch.DimensionFilter{
-			{
-				Name:  aws.String("AppName"),
-				Value: aws.String(appName),
-			},
-			{
-				Name:  aws.String("APIName"),
-				Value: aws.String(api.Name),
-			},
-			{
-				Name:  aws.String("APIID"),
-				Value: aws.String(api.ID),
-			},
-		},
-	}
-
-	listMetricsOutput, err := config.AWS.CloudWatchMetrics.ListMetrics(listMetricsInput)
+	prefix := filepath.Join(api.MetadataKey, "classes")
+	classes, err := config.AWS.ListPrefix(prefix, int64(consts.MaxClassesPerRequest))
 	if err != nil {
 		return nil, err
 	}
 
-	if listMetricsOutput.Metrics == nil {
+	if len(classes) == 0 {
 		return nil, nil
 	}
 
 	classMetricQueries := []*cloudwatch.MetricDataQuery{}
 
-	classCount := 0
-	for i, metric := range listMetricsOutput.Metrics {
-		if classCount >= consts.MaxClassesPerRequest {
-			break
+	for i, classObj := range classes {
+		classKey := *classObj.Key
+		urlSplit := strings.Split(classKey, "/")
+		encodedClassName := urlSplit[len(urlSplit)-1]
+		decodedBytes, err := base64.URLEncoding.DecodeString(encodedClassName)
+		if err != nil {
+			return nil, errors.Wrap(err, "encoded class name", encodedClassName)
 		}
 
-		var className string
-		for _, dim := range metric.Dimensions {
-			if *dim.Name == "Class" {
-				className = *dim.Value
-			}
-		}
-
+		className := string(decodedBytes)
 		if len(className) == 0 {
 			continue
 		}
@@ -448,13 +429,19 @@ func getClassesMetricDef(appName string, api *context.API, period int64) ([]*clo
 		classMetricQueries = append(classMetricQueries, &cloudwatch.MetricDataQuery{
 			Id: aws.String(fmt.Sprintf("id_%d", i)),
 			MetricStat: &cloudwatch.MetricStat{
-				Metric: metric,
+				Metric: &cloudwatch.Metric{
+					Namespace:  aws.String(config.Cortex.LogGroup),
+					MetricName: aws.String("Prediction"),
+					Dimensions: append(getAPIDimensions(appName, api), &cloudwatch.Dimension{
+						Name:  aws.String("Class"),
+						Value: aws.String(className),
+					}),
+				},
 				Stat:   aws.String("Sum"),
 				Period: aws.Int64(period),
 			},
 			Label: aws.String("class_" + className),
 		})
-		classCount++
 	}
 	return classMetricQueries, nil
 }

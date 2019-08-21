@@ -196,6 +196,21 @@ func (c *Client) ReadBytesFromS3(key string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func (c *Client) ListPrefix(prefix string, maxResults int64) ([]*s3.Object, error) {
+	listObjectsInput := &s3.ListObjectsV2Input{
+		Bucket:  aws.String(c.Bucket),
+		Prefix:  aws.String(prefix),
+		MaxKeys: aws.Int64(maxResults),
+	}
+
+	output, err := c.s3Client.ListObjectsV2(listObjectsInput)
+	if err != nil {
+		return nil, errors.Wrap(err, prefix)
+	}
+
+	return output.Contents, nil
+}
+
 func (c *Client) DeleteFromS3ByPrefix(prefix string, continueIfFailure bool) error {
 	listObjectsInput := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(c.Bucket),

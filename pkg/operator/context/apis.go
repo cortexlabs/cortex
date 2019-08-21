@@ -37,6 +37,7 @@ var uploadedRequestHandlers = strset.New()
 
 func getAPIs(config *userconfig.Config,
 	models context.Models,
+	metadataRoot string,
 	datasetVersion string,
 	impls map[string][]byte,
 	pythonPackages context.PythonPackages,
@@ -95,6 +96,7 @@ func getAPIs(config *userconfig.Config,
 			API:                   apiConfig,
 			Path:                  context.APIPath(apiConfig.Name, config.App.Name),
 			RequestHandlerImplKey: requestHandlerImplKey,
+			MetadataKey:           filepath.Join(metadataRoot, id),
 		}
 	}
 	return apis, nil
