@@ -58,4 +58,6 @@ var (
 	MetadataDir           = "metadata"
 
 	TelemetryURL = "https://telemetry.cortexlabs.dev"
+
+	MaxClassesPerRequest = 75 // cloudwatch.GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats
 )

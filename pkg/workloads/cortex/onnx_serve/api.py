@@ -16,21 +16,21 @@ import sys
 import os
 import json
 import argparse
-import traceback
-import time
-from flask import Flask, request, jsonify
+
+from flask import Flask, request, jsonify, g
 from flask_api import status
 from waitress import serve
 import onnxruntime as rt
 import numpy as np
+import json_tricks
+import boto3
 
 from cortex.lib.storage import S3
+from cortex.lib import api_utils
 from cortex import consts
 from cortex.lib import util, package, Context
 from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
-import logging
-import json_tricks
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
@@ -64,6 +64,24 @@ local_cache = {
     "output_metadata": None,
     "request_handler": None,
 }
+
+
+@app.after_request
+def after_request(response):
+    api = local_cache["api"]
+    ctx = local_cache["ctx"]
+
+    if request.path != "/{}/{}".format(ctx.app["name"], api["name"]):
+        return response
+
+    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
+
+    predictions = None
+    if "predictions" in g:
+        predictions = g.predictions
+    api_utils.post_request_metrics(ctx, api, response, predictions)
+
+    return response
 
 
 def prediction_failed(reason):
@@ -141,6 +159,7 @@ def predict(app_name, api_name):
 
     sess = local_cache["sess"]
     api = local_cache["api"]
+    ctx = local_cache["ctx"]
     request_handler = local_cache.get("request_handler")
     input_metadata = local_cache["input_metadata"]
     output_metadata = local_cache["output_metadata"]
@@ -173,7 +192,6 @@ def predict(app_name, api_name):
             if request_handler is not None and util.has_function(request_handler, "post_inference"):
                 result = request_handler.post_inference(result, output_metadata)
 
-            prediction = {"prediction": result}
         except CortexException as e:
             e.wrap("error", "sample {}".format(i + 1))
             logger.error(str(e))
@@ -187,8 +205,8 @@ def predict(app_name, api_name):
             )
             return prediction_failed(str(e))
 
-        predictions.append(prediction)
-
+        predictions.append(result)
+    g.predictions = predictions
     response["predictions"] = predictions
     response["resource_id"] = api["id"]
 
@@ -205,14 +223,6 @@ def get_signature(app_name, api_name):
         metadata[input_metadata.name] = {"shape": input_metadata.shape, "type": numpy_type}
     response = {"signature": metadata}
     return jsonify(response)
-
-
-@app.after_request
-def after_request(response):
-    if request.full_path.startswith("/healthz"):
-        return response
-    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
-    return response
 
 
 @app.errorhandler(Exception)

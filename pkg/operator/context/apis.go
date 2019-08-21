@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
@@ -47,6 +48,7 @@ func getAPIs(config *userconfig.Config,
 		var buf bytes.Buffer
 		var requestHandlerImplKey *string
 		buf.WriteString(apiConfig.Name)
+		buf.WriteString(s.Obj(apiConfig.Tracker))
 		buf.WriteString(apiConfig.ModelFormat.String())
 
 		if apiConfig.RequestHandler != nil {

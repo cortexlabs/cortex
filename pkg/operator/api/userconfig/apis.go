@@ -35,9 +35,15 @@ type API struct {
 	ResourceFields
 	Model          string      `json:"model" yaml:"model"`
 	ModelFormat    ModelFormat `json:"model_format" yaml:"model_format"`
+	Tracker        *Tracker    `json:"tracker" yaml:"tracker"`
 	RequestHandler *string     `json:"request_handler" yaml:"request_handler"`
 	Compute        *APICompute `json:"compute" yaml:"compute"`
 	Tags           Tags        `json:"tags" yaml:"tags"`
+}
+
+type Tracker struct {
+	Key       string    `json:"key" yaml:"key"`
+	ModelType ModelType `json:"model_type" yaml:"model_type"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -54,6 +60,31 @@ var apiValidation = &cr.StructValidation{
 			StringValidation: &cr.StringValidation{
 				Required:             true,
 				AllowCortexResources: true,
+			},
+		},
+		{
+			StructField: "Tracker",
+			StructValidation: &cr.StructValidation{
+				DefaultNil: true,
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "Key",
+						StringValidation: &cr.StringValidation{
+							Required: true,
+						},
+					},
+					{
+						StructField: "ModelType",
+						StringValidation: &cr.StringValidation{
+							Required:      false,
+							AllowEmpty:    true,
+							AllowedValues: ModelTypeStrings(),
+						},
+						Parser: func(str string) (interface{}, error) {
+							return ModelTypeFromString(str), nil
+						},
+					},
+				},
 			},
 		},
 		{
