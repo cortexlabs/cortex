@@ -28,6 +28,7 @@ from tensorflow_serving.apis import prediction_service_pb2_grpc
 from google.protobuf import json_format
 
 from cortex.lib import util, package, Context, api_utils
+from cortex.lib.storage import S3
 from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 
@@ -276,23 +277,6 @@ def get_signature(app_name, api_name):
     return jsonify(response)
 
 
-def download_dir_external(ctx, s3_path, local_path):
-    util.mkdir_p(local_path)
-    bucket_name, prefix = ctx.storage.deconstruct_s3_path(s3_path)
-    storage_client = S3(bucket_name, client_config={})
-    objects = [obj[len(prefix) + 1 :] for obj in storage_client.search(prefix=prefix)]
-    prefix = prefix + "/" if prefix[-1] != "/" else prefix
-    version = prefix.split("/")[-2]
-    local_path = os.path.join(local_path, version)
-    for obj in objects:
-        if not os.path.exists(os.path.dirname(obj)):
-            util.mkdir_p(os.path.join(local_path, os.path.dirname(obj)))
-
-        ctx.storage.download_file_external(
-            bucket_name + "/" + os.path.join(prefix, obj), os.path.join(local_path, obj)
-        )
-
-
 def validate_model_dir(model_dir):
     """
     validates that model_dir has the expected directory tree.
@@ -332,7 +316,9 @@ def start(args):
         local_cache["ctx"] = ctx
 
         if not os.path.isdir(args.model_dir):
-            download_dir_external(ctx, api["model"], args.model_dir)
+            bucket_name, prefix = ctx.storage.deconstruct_s3_path(api["model"])
+            storage_client = S3(bucket_name, client_config={})
+            storage_client.download_dir(prefix, args.model_dir)
 
         if args.only_download:
             return

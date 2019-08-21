@@ -58,14 +58,6 @@ class S3(object):
     def blob_path(self, key):
         return os.path.join("s3://", self.bucket, key)
 
-    def _get_dir(self, prefix, local_dir):
-        prefix = util.add_suffix_unless_present(prefix, "/")
-        util.mkdir_p(local_dir)
-        for key in self._get_matching_s3_keys_generator(prefix):
-            rel_path = util.remove_prefix_if_present(key, prefix)
-            local_dest_path = os.path.join(local_dir, rel_path)
-            self.download_file(key, local_dest_path)
-
     def _file_exists(self, key):
         try:
             self.s3.head_object(Bucket=self.bucket, Key=key)
@@ -203,6 +195,18 @@ class S3(object):
                 'key "{}" in bucket "{}" could not be accessed; '.format(key, self.bucket)
                 + "it may not exist, or you may not have suffienct permissions"
             ) from e
+
+    def download_dir(self, prefix, local_dir):
+        dir_name = util.remove_suffix_if_present(prefix, "/").split("/")[-1]
+        return self.download_dir_contents(prefix, os.path.join(local_dir, dir_name))
+
+    def download_dir_contents(self, prefix, local_dir):
+        util.mkdir_p(local_dir)
+        prefix = util.add_suffix_unless_present(prefix, "/")
+        for key in self._get_matching_s3_keys_generator(prefix):
+            rel_path = util.remove_prefix_if_present(key, prefix)
+            local_dest_path = os.path.join(local_dir, rel_path)
+            self.download_file(key, local_dest_path)
 
     def zip_and_upload(self, local_path, key):
         util.zip_dir(local_path, "temp.zip")
