@@ -329,7 +329,7 @@ func (c *Client) ExractS3PathPrefixes(s3Paths ...string) ([]string, error) {
 			return nil, err
 		}
 		if bucket != c.Bucket {
-			return nil, errors.New(fmt.Sprintf("bucket of S3 path %s does not match client bucket (%s)", s3Path, c.Bucket))
+			return nil, errors.New(fmt.Sprintf("bucket of S3 path %s does not match client bucket (%s)", s3Path, c.Bucket)) // unexpected
 		}
 		prefixes[i] = prefix
 	}
@@ -340,7 +340,7 @@ func GetBucketRegion(bucket string) (string, error) {
 	sess := session.Must(session.NewSession())
 	region, err := s3manager.GetBucketRegion(aws.BackgroundContext(), sess, bucket, endpoints.UsWest2RegionID)
 	if err != nil {
-		return "", errors.Wrap(err, bucket)
+		return "", ErrorBucketInaccessible(bucket)
 	}
 	return region, nil
 }
