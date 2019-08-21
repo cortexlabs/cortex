@@ -27,7 +27,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
-	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
@@ -38,7 +37,6 @@ func init() {
 }
 
 type PredictResponse struct {
-	ResourceID  string        `json:"resource_id"`
 	Predictions []interface{} `json:"predictions"`
 }
 
@@ -89,12 +87,6 @@ var predictCmd = &cobra.Command{
 			}
 			errors.Exit(err)
 		}
-
-		apiID := predictResponse.ResourceID
-		apiStatus := resourcesRes.APIStatuses[apiID]
-
-		apiStart := libtime.LocalTimestampHuman(apiStatus.Start)
-		fmt.Println("\n" + apiName + " was last updated on " + apiStart + "\n")
 
 		prettyResp, err := json.Pretty(predictResponse)
 		if err != nil {
