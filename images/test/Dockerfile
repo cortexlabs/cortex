@@ -1,5 +1,7 @@
 FROM python:3.7
 
+ENV PYTHONPATH="/src:${PYTHONPATH}"
+
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
 RUN pip3 install -r /src/cortex/lib/requirements.txt && \
     pip3 install pytest mock && \
