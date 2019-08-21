@@ -202,7 +202,6 @@ def predict(app_name, api_name):
         predictions.append(result)
     g.predictions = predictions
     response["predictions"] = predictions
-    response["resource_id"] = api["id"]
 
     return jsonify(response)
 
