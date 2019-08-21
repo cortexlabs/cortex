@@ -5,7 +5,7 @@
 * [Tutorial](deployments/tutorial.md)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
 
-## Model Deployments
+## Deployments
 
 * [Deployments](deployments/deployments.md)
 * [APIs](deployments/apis.md)
@@ -22,26 +22,6 @@
 * [AWS Credentials](cluster/aws.md)
 * [Configuration](cluster/config.md)
 * [Security](cluster/security.md)
-* [Upgrade](cluster/upgrade.md)
+* [Update](cluster/update.md)
 * [Uninstall](cluster/uninstall.md)
 * [Development](cluster/development.md)
-
-## Pipeline Deployments
-
-* [Overview](pipelines/overview.md)
-* [Tutorial](pipelines/tutorial.md)
-* [Environments](pipelines/environments.md)
-* [Raw Columns](pipelines/raw-columns.md)
-* [Aggregators](pipelines/aggregators.md)
-* [Custom Aggregators](pipelines/aggregators-custom.md)
-* [Aggregates](pipelines/aggregates.md)
-* [Transformers](pipelines/transformers.md)
-* [Custom Transformers](pipelines/transformers-custom.md)
-* [Transformed Columns](pipelines/transformed-columns.md)
-* [Estimators](pipelines/estimators.md)
-* [Custom Estimators](pipelines/estimators-custom.md)
-* [Models](pipelines/pipelines.md)
-* [Constants](pipelines/constants.md)
-* [Data Types](pipelines/data-types.md)
-* [Templates](pipelines/templates.md)
-* [Resource Statuses](pipelines/statuses.md)

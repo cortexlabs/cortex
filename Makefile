@@ -21,7 +21,7 @@ SHELL := /bin/bash
 # Cortex
 
 devstart:
-	@$(MAKE) operator-stop
+	@$(MAKE) operator-stop || true
 	@./dev/operator_local.sh || true
 
 kubectl:
@@ -139,13 +139,6 @@ test-examples:
 
 ci-build-images:
 	@./build/build-image.sh images/manager manager
-	@./build/build-image.sh images/spark-base spark-base
-	@./build/build-image.sh images/tf-base tf-base
-	@./build/build-image.sh images/tf-base-gpu tf-base-gpu
-	@./build/build-image.sh images/spark spark
-	@./build/build-image.sh images/spark-operator spark-operator
-	@./build/build-image.sh images/tf-train tf-train
-	@./build/build-image.sh images/tf-train-gpu tf-train-gpu
 	@./build/build-image.sh images/tf-serve tf-serve
 	@./build/build-image.sh images/tf-serve-gpu tf-serve-gpu
 	@./build/build-image.sh images/tf-api tf-api
@@ -166,10 +159,6 @@ ci-build-images:
 
 ci-push-images:
 	@./build/push-image.sh manager
-	@./build/push-image.sh spark
-	@./build/push-image.sh spark-operator
-	@./build/push-image.sh tf-train
-	@./build/push-image.sh tf-train-gpu
 	@./build/push-image.sh tf-serve
 	@./build/push-image.sh tf-serve-gpu
 	@./build/push-image.sh tf-api

@@ -20,34 +20,18 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/cortexlabs/yaml"
-
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
 type Config struct {
-	App                *App               `json:"app" yaml:"app"`
-	Environments       Environments       `json:"environments" yaml:"environments"`
-	Environment        *Environment       `json:"environment" yaml:"environment"`
-	RawColumns         RawColumns         `json:"raw_columns" yaml:"raw_columns"`
-	Aggregates         Aggregates         `json:"aggregates" yaml:"aggregates"`
-	TransformedColumns TransformedColumns `json:"transformed_columns" yaml:"transformed_columns"`
-	Models             Models             `json:"models" yaml:"models"`
-	APIs               APIs               `json:"apis" yaml:"apis"`
-	Aggregators        Aggregators        `json:"aggregators" yaml:"aggregators"`
-	Transformers       Transformers       `json:"transformers" yaml:"transformers"`
-	Estimators         Estimators         `json:"estimators" yaml:"estimators"`
-	Constants          Constants          `json:"constants" yaml:"constants"`
-	Templates          Templates          `json:"templates" yaml:"templates"`
-	Embeds             Embeds             `json:"embeds" yaml:"embeds"`
-	Resources          map[string][]Resource
+	App  *App `json:"app" yaml:"app"`
+	APIs APIs `json:"apis" yaml:"apis"`
 }
 
 var typeFieldValidation = &cr.StructFieldValidation{
@@ -56,33 +40,13 @@ var typeFieldValidation = &cr.StructFieldValidation{
 }
 
 func mergeConfigs(target *Config, source *Config) error {
-	target.Environments = append(target.Environments, source.Environments...)
-	target.RawColumns = append(target.RawColumns, source.RawColumns...)
-	target.Aggregates = append(target.Aggregates, source.Aggregates...)
-	target.TransformedColumns = append(target.TransformedColumns, source.TransformedColumns...)
-	target.Models = append(target.Models, source.Models...)
 	target.APIs = append(target.APIs, source.APIs...)
-	target.Aggregators = append(target.Aggregators, source.Aggregators...)
-	target.Transformers = append(target.Transformers, source.Transformers...)
-	target.Estimators = append(target.Estimators, source.Estimators...)
-	target.Constants = append(target.Constants, source.Constants...)
-	target.Templates = append(target.Templates, source.Templates...)
-	target.Embeds = append(target.Embeds, source.Embeds...)
 
 	if source.App != nil {
 		if target.App != nil {
 			return ErrorDuplicateConfig(resource.AppType)
 		}
 		target.App = source.App
-	}
-
-	if target.Resources == nil {
-		target.Resources = make(map[string][]Resource)
-	}
-	for resourceName, resources := range source.Resources {
-		for _, res := range resources {
-			target.Resources[resourceName] = append(target.Resources[resourceName], res)
-		}
 	}
 
 	return nil
@@ -94,149 +58,30 @@ func (config *Config) ValidatePartial() error {
 			return err
 		}
 	}
-	if config.Environments != nil {
-		if err := config.Environments.Validate(); err != nil {
-			return err
-		}
-	}
-	if config.RawColumns != nil {
-		if err := config.RawColumns.Validate(); err != nil {
-			return err
-		}
-	}
-	if config.Aggregates != nil {
-		if err := config.Aggregates.Validate(); err != nil {
-			return err
-		}
-	}
-	if config.TransformedColumns != nil {
-		if err := config.TransformedColumns.Validate(); err != nil {
-			return err
-		}
-	}
-	if config.Models != nil {
-		if err := config.Models.Validate(); err != nil {
-			return err
-		}
-	}
 	if config.APIs != nil {
 		if err := config.APIs.Validate(); err != nil {
 			return err
 		}
 	}
-	if config.Aggregators != nil {
-		if err := config.Aggregators.Validate(); err != nil {
-			return err
-		}
-	}
-	if config.Transformers != nil {
-		if err := config.Transformers.Validate(); err != nil {
-			return err
-		}
-	}
-	if config.Estimators != nil {
-		if err := config.Estimators.Validate(); err != nil {
-			return err
-		}
-	}
-	if config.Constants != nil {
-		if err := config.Constants.Validate(); err != nil {
-			return err
-		}
-	}
-	if config.Templates != nil {
-		if err := config.Templates.Validate(); err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
 
-func (config *Config) Validate(envName string) error {
-	err := config.ValidatePartial()
-	if err != nil {
-		return err
-	}
-
+func (config *Config) Validate() error {
 	if config.App == nil {
 		return ErrorMissingAppDefinition()
 	}
 
-	// Check for duplicate names across types that must have unique names
-	var resources []Resource
-	for _, res := range config.RawColumns {
-		resources = append(resources, res)
-	}
-	for _, res := range config.TransformedColumns {
-		resources = append(resources, res)
-	}
-	for _, res := range config.Constants {
-		resources = append(resources, res)
-	}
-	for _, res := range config.Aggregates {
-		resources = append(resources, res)
-	}
-	dups := FindDuplicateResourceName(resources...)
-	if len(dups) > 0 {
-		return ErrorDuplicateResourceName(dups...)
-	}
-
-	// Check ingested columns match raw columns
-	rawColumnNames := config.RawColumns.Names()
-	for _, env := range config.Environments {
-		ingestedColumnNames := env.Data.GetIngestedColumnNames()
-		missingColumnNames := slices.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
-		if len(missingColumnNames) > 0 {
-			return errors.Wrap(ErrorRawColumnNotInEnv(env.Name), Identify(config.RawColumns.Get(missingColumnNames[0])))
-		}
-		extraColumns := slices.SubtractStrSlice(rawColumnNames, ingestedColumnNames)
-		if len(extraColumns) > 0 {
-			return errors.Wrap(ErrorUndefinedResource(extraColumns[0], resource.RawColumnType), Identify(env), DataKey, SchemaKey)
-		}
-	}
-
-	for _, env := range config.Environments {
-		if env.Name == envName {
-			config.Environment = env
-		}
-	}
-
-	apisAllExternal := true
-	for _, api := range config.APIs {
-		if yaml.StartsWithEscapedAtSymbol(api.Model) {
-			apisAllExternal = false
-			break
-		}
-	}
-
-	if config.Environment == nil {
-		if !apisAllExternal || len(config.APIs) == 0 {
-			return ErrorUndefinedResource(envName, resource.EnvironmentType)
-		}
-
-		for _, resources := range config.Resources {
-			for _, res := range resources {
-				if res.GetResourceType() != resource.APIType {
-					return ErrorExtraResourcesWithExternalAPIs(res)
-				}
-			}
-		}
-	}
-
 	return nil
 }
 
-func (config *Config) MergeBytes(configBytes []byte, filePath string, emb *Embed, template *Template) (*Config, error) {
+func (config *Config) MergeBytes(configBytes []byte, filePath string) (*Config, error) {
 	sliceData, err := cr.ReadYAMLBytes(configBytes)
 	if err != nil {
-		if emb == nil {
-			return nil, errors.Wrap(err, filePath)
-		}
-		return nil, errors.Wrap(err, Identify(template), YAMLKey)
+		return nil, errors.Wrap(err, filePath)
 	}
 
-	subConfig, err := newPartial(sliceData, filePath, emb, template)
+	subConfig, err := newPartial(sliceData, filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -248,24 +93,21 @@ func (config *Config) MergeBytes(configBytes []byte, filePath string, emb *Embed
 	return config, nil
 }
 
-func newPartial(configData interface{}, filePath string, emb *Embed, template *Template) (*Config, error) {
+func newPartial(configData interface{}, filePath string) (*Config, error) {
 	configDataSlice, ok := cast.InterfaceToStrInterfaceMapSlice(configData)
 	if !ok {
-		if emb == nil {
-			return nil, errors.Wrap(ErrorMalformedConfig(), filePath)
-		}
-		return nil, errors.Wrap(ErrorMalformedConfig(), Identify(template), YAMLKey)
+		return nil, errors.Wrap(ErrorMalformedConfig(), filePath)
 	}
 
 	config := &Config{}
 	for i, data := range configDataSlice {
 		kindInterface, ok := data[KindKey]
 		if !ok {
-			return nil, errors.Wrap(configreader.ErrorMustBeDefined(), identify(filePath, resource.UnknownType, "", i, emb), KindKey)
+			return nil, errors.Wrap(configreader.ErrorMustBeDefined(), identify(filePath, resource.UnknownType, "", i), KindKey)
 		}
 		kindStr, ok := kindInterface.(string)
 		if !ok {
-			return nil, errors.Wrap(configreader.ErrorInvalidPrimitiveType(kindInterface, configreader.PrimTypeString), identify(filePath, resource.UnknownType, "", i, emb), KindKey)
+			return nil, errors.Wrap(configreader.ErrorInvalidPrimitiveType(kindInterface, configreader.PrimTypeString), identify(filePath, resource.UnknownType, "", i), KindKey)
 		}
 
 		var errs []error
@@ -276,104 +118,24 @@ func newPartial(configData interface{}, filePath string, emb *Embed, template *T
 			app := &App{}
 			errs = cr.Struct(app, data, appValidation)
 			config.App = app
-		case resource.RawColumnType:
-			var rawColumnInter interface{}
-			rawColumnInter, errs = cr.InterfaceStruct(data, rawColumnValidation)
-			if !errors.HasErrors(errs) && rawColumnInter != nil {
-				newResource = rawColumnInter.(RawColumn)
-				config.RawColumns = append(config.RawColumns, newResource.(RawColumn))
-			}
-		case resource.TransformedColumnType:
-			newResource = &TransformedColumn{}
-			errs = cr.Struct(newResource, data, transformedColumnValidation)
-			if !errors.HasErrors(errs) {
-				config.TransformedColumns = append(config.TransformedColumns, newResource.(*TransformedColumn))
-			}
-		case resource.AggregateType:
-			newResource = &Aggregate{}
-			errs = cr.Struct(newResource, data, aggregateValidation)
-			if !errors.HasErrors(errs) {
-				config.Aggregates = append(config.Aggregates, newResource.(*Aggregate))
-			}
-		case resource.ConstantType:
-			newResource = &Constant{}
-			errs = cr.Struct(newResource, data, constantValidation)
-			if !errors.HasErrors(errs) {
-				config.Constants = append(config.Constants, newResource.(*Constant))
-			}
 		case resource.APIType:
 			newResource = &API{}
 			errs = cr.Struct(newResource, data, apiValidation)
 			if !errors.HasErrors(errs) {
 				config.APIs = append(config.APIs, newResource.(*API))
 			}
-		case resource.ModelType:
-			newResource = &Model{}
-			errs = cr.Struct(newResource, data, modelValidation)
-			if !errors.HasErrors(errs) {
-				config.Models = append(config.Models, newResource.(*Model))
-			}
-		case resource.EnvironmentType:
-			newResource = &Environment{}
-			errs = cr.Struct(newResource, data, environmentValidation)
-			if !errors.HasErrors(errs) {
-				config.Environments = append(config.Environments, newResource.(*Environment))
-			}
-		case resource.AggregatorType:
-			newResource = &Aggregator{}
-			errs = cr.Struct(newResource, data, aggregatorValidation)
-			if !errors.HasErrors(errs) {
-				config.Aggregators = append(config.Aggregators, newResource.(*Aggregator))
-			}
-		case resource.TransformerType:
-			newResource = &Transformer{}
-			errs = cr.Struct(newResource, data, transformerValidation)
-			if !errors.HasErrors(errs) {
-				config.Transformers = append(config.Transformers, newResource.(*Transformer))
-			}
-		case resource.EstimatorType:
-			newResource = &Estimator{}
-			errs = cr.Struct(newResource, data, estimatorValidation)
-			if !errors.HasErrors(errs) {
-				config.Estimators = append(config.Estimators, newResource.(*Estimator))
-			}
-		case resource.TemplateType:
-			if emb != nil {
-				errs = []error{resource.ErrorTemplateInTemplate()}
-			} else {
-				newResource = &Template{}
-				errs = cr.Struct(newResource, data, templateValidation)
-				if !errors.HasErrors(errs) {
-					config.Templates = append(config.Templates, newResource.(*Template))
-				}
-			}
-		case resource.EmbedType:
-			if emb != nil {
-				errs = []error{resource.ErrorEmbedInTemplate()}
-			} else {
-				newResource = &Embed{}
-				errs = cr.Struct(newResource, data, embedValidation)
-				if !errors.HasErrors(errs) {
-					config.Embeds = append(config.Embeds, newResource.(*Embed))
-				}
-			}
 		default:
-			return nil, errors.Wrap(resource.ErrorUnknownKind(kindStr), identify(filePath, resource.UnknownType, "", i, emb))
+			return nil, errors.Wrap(resource.ErrorUnknownKind(kindStr), identify(filePath, resource.UnknownType, "", i))
 		}
 
 		if errors.HasErrors(errs) {
 			name, _ := data[NameKey].(string)
-			return nil, errors.Wrap(errors.FirstError(errs...), identify(filePath, resourceType, name, i, emb))
+			return nil, errors.Wrap(errors.FirstError(errs...), identify(filePath, resourceType, name, i))
 		}
 
 		if newResource != nil {
 			newResource.SetIndex(i)
 			newResource.SetFilePath(filePath)
-			newResource.SetEmbed(emb)
-			if config.Resources == nil {
-				config.Resources = make(map[string][]Resource)
-			}
-			config.Resources[newResource.GetName()] = append(config.Resources[newResource.GetName()], newResource)
 		}
 	}
 
@@ -395,57 +157,23 @@ func NewPartialPath(filePath string) (*Config, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, filePath, ErrorParseConfig().Error())
 	}
-	return newPartial(configData, filePath, nil, nil)
+	return newPartial(configData, filePath)
 }
 
-func New(configs map[string][]byte, envName string) (*Config, error) {
+func New(configs map[string][]byte) (*Config, error) {
 	var err error
 	config := &Config{}
 	for filePath, configBytes := range configs {
 		if !files.IsFilePathYAML(filePath) {
 			continue
 		}
-		config, err = config.MergeBytes(configBytes, filePath, nil, nil)
+		config, err = config.MergeBytes(configBytes, filePath)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	templates := config.Templates.Map()
-	for _, emb := range config.Embeds {
-		template, ok := templates[emb.Template]
-		if !ok {
-			return nil, errors.Wrap(ErrorUndefinedResource(emb.Template, resource.TemplateType), Identify(emb))
-		}
-
-		populatedTemplate, err := template.Populate(emb)
-		if err != nil {
-			return nil, errors.Wrap(err, Identify(emb))
-		}
-
-		config, err = config.MergeBytes([]byte(populatedTemplate), emb.FilePath, emb, template)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	for _, env := range config.Environments {
-		ingestedColumnNames := env.Data.GetIngestedColumnNames()
-		missingColumnNames := slices.SubtractStrSlice(ingestedColumnNames, config.RawColumns.Names())
-		for _, inferredColumnName := range missingColumnNames {
-			inferredRawColumn := &RawInferredColumn{
-				ResourceFields: ResourceFields{
-					Name: inferredColumnName,
-				},
-				Type:    InferredColumnType,
-				Compute: &SparkCompute{},
-			}
-			cr.Struct(inferredRawColumn.Compute, make(map[string]interface{}), sparkComputeStructValidation)
-			config.RawColumns = append(config.RawColumns, inferredRawColumn)
-		}
-	}
-
-	if err := config.Validate(envName); err != nil {
+	if err := config.Validate(); err != nil {
 		return nil, err
 	}
 	return config, nil

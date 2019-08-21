@@ -24,8 +24,6 @@ import (
 const (
 	workloadTypeAPI            = "api"
 	workloadTypeHPA            = "hpa"
-	workloadTypeSpark          = "spark-job"
-	workloadTypeTrain          = "training-job"
 	workloadTypePythonPackager = "python-packager"
 )
 

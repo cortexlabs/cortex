@@ -44,13 +44,9 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/istio-proxy --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/istio-mixer --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/operator --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/spark --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/spark-operator --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tf-train --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-api --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/python-packager --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tf-train-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve-gpu --region=$REGISTRY_REGION || true
@@ -127,19 +123,9 @@ elif [ "$cmd" = "update" ]; then
   if [ "$env" != "dev" ]; then
     build_and_push $ROOT/images/manager manager latest
 
-    cache_builder $ROOT/images/spark-base spark-base
-    build_base $ROOT/images/spark-base spark-base
-    build_base $ROOT/images/tf-base tf-base
-    build_base $ROOT/images/tf-base-gpu tf-base-gpu
-
     cache_builder $ROOT/images/operator operator
     build_and_push $ROOT/images/operator operator latest
 
-    cache_builder $ROOT/images/spark-operator spark-operator
-    build_and_push $ROOT/images/spark-operator spark-operator latest
-    build_and_push $ROOT/images/spark spark latest
-    build_and_push $ROOT/images/tf-train tf-train latest
-    build_and_push $ROOT/images/tf-train-gpu tf-train-gpu latest
     build_and_push $ROOT/images/fluentd fluentd latest
     build_and_push $ROOT/images/tf-serve tf-serve latest
     build_and_push $ROOT/images/tf-serve-gpu tf-serve-gpu latest

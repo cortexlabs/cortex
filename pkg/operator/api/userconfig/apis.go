@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cortexlabs/yaml"
-
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -35,9 +33,15 @@ type API struct {
 	ResourceFields
 	Model          string      `json:"model" yaml:"model"`
 	ModelFormat    ModelFormat `json:"model_format" yaml:"model_format"`
+	Tracker        *Tracker    `json:"tracker" yaml:"tracker"`
 	RequestHandler *string     `json:"request_handler" yaml:"request_handler"`
 	Compute        *APICompute `json:"compute" yaml:"compute"`
 	Tags           Tags        `json:"tags" yaml:"tags"`
+}
+
+type Tracker struct {
+	Key       string    `json:"key" yaml:"key"`
+	ModelType ModelType `json:"model_type" yaml:"model_type"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -52,8 +56,33 @@ var apiValidation = &cr.StructValidation{
 		{
 			StructField: "Model",
 			StringValidation: &cr.StringValidation{
-				Required:             true,
-				AllowCortexResources: true,
+				Required:  true,
+				Validator: cr.GetS3PathValidator(),
+			},
+		},
+		{
+			StructField: "Tracker",
+			StructValidation: &cr.StructValidation{
+				DefaultNil: true,
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "Key",
+						StringValidation: &cr.StringValidation{
+							Required: true,
+						},
+					},
+					{
+						StructField: "ModelType",
+						StringValidation: &cr.StringValidation{
+							Required:      false,
+							AllowEmpty:    true,
+							AllowedValues: ModelTypeStrings(),
+						},
+						Parser: func(str string) (interface{}, error) {
+							return ModelTypeFromString(str), nil
+						},
+					},
+				},
 			},
 		},
 		{
@@ -77,11 +106,33 @@ var apiValidation = &cr.StructValidation{
 	},
 }
 
+// IsValidTensorFlowS3Directory checks that the path contains a valid S3 directory for Tensorflow models
+// Must contain the following structure:
+// - 1523423423/ (version prefix, usually a timestamp)
+// 		- saved_model.pb
+//		- variables/
+//			- variables.index
+//			- variables.data-00000-of-00001 (there are a variable number of these files)
+func IsValidTensorFlowS3Directory(path string) bool {
+	if valid, err := aws.IsS3PathFileExternal(
+		fmt.Sprintf("%s/saved_model.pb", path),
+		fmt.Sprintf("%s/variables/variables.index", path),
+	); err != nil || !valid {
+		return false
+	}
+
+	if valid, err := aws.IsS3PathPrefixExternal(
+		fmt.Sprintf("%s/variables/variables.data-00000-of", path),
+	); err != nil || !valid {
+		return false
+	}
+	return true
+}
+
 func (api *API) UserConfigStr() string {
 	var sb strings.Builder
 	sb.WriteString(api.ResourceFields.UserConfigStr())
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, yaml.UnescapeAtSymbol(api.Model)))
-
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, api.Model))
 	if api.ModelFormat != UnknownModelFormat {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelFormatKey, api.ModelFormat.String()))
 	}
@@ -116,25 +167,26 @@ func (apis APIs) Validate() error {
 }
 
 func (api *API) Validate() error {
-	if yaml.StartsWithEscapedAtSymbol(api.Model) {
-		api.ModelFormat = TensorFlowModelFormat
-	} else {
-		if !aws.IsValidS3Path(api.Model) {
-			return errors.Wrap(ErrorInvalidS3PathOrResourceReference(api.Model), Identify(api), ModelKey)
-		}
-
-		if api.ModelFormat == UnknownModelFormat {
-			if strings.HasSuffix(api.Model, ".onnx") {
-				api.ModelFormat = ONNXModelFormat
-			} else if strings.HasSuffix(api.Model, ".zip") {
-				api.ModelFormat = TensorFlowModelFormat
-			} else {
-				return errors.Wrap(ErrorUnableToInferModelFormat(), Identify(api))
-			}
-		}
-
+	switch api.ModelFormat {
+	case ONNXModelFormat:
 		if ok, err := aws.IsS3PathFileExternal(api.Model); err != nil || !ok {
 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
+		}
+	case TensorFlowModelFormat:
+		if !IsValidTensorFlowS3Directory(api.Model) {
+			return errors.Wrap(ErrorInvalidTensorflowDir(api.Model), Identify(api), ModelKey)
+		}
+	default:
+		switch {
+		case strings.HasSuffix(api.Model, ".onnx"):
+			api.ModelFormat = ONNXModelFormat
+			if ok, err := aws.IsS3PathFileExternal(api.Model); err != nil || !ok {
+				return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
+			}
+		case IsValidTensorFlowS3Directory(api.Model):
+			api.ModelFormat = TensorFlowModelFormat
+		default:
+			return errors.Wrap(ErrorUnableToInferModelFormat(), Identify(api))
 		}
 	}
 

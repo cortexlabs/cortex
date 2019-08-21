@@ -21,9 +21,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 source $ROOT/dev/config/cortex.sh
 
-export CONST_OPERATOR_AGGREGATORS_DIR=$ROOT/pkg/aggregators
-export CONST_OPERATOR_TRANSFORMERS_DIR=$ROOT/pkg/transformers
-export CONST_OPERATOR_ESTIMATORS_DIR=$ROOT/pkg/estimators
 export CONST_OPERATOR_IN_CLUSTER=false
 
 kill $(pgrep -f rerun) >/dev/null 2>&1 || true

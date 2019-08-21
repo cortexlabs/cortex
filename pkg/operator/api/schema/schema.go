@@ -53,10 +53,6 @@ type GetDeploymentsResponse struct {
 	Deployments []Deployment `json:"deployments"`
 }
 
-type GetAggregateResponse struct {
-	Value []byte `json:"value"`
-}
-
 type FeatureSignature struct {
 	Shape []int  `json:"shape"`
 	Type  string `json:"type"`

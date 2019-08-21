@@ -16,16 +16,8 @@ limitations under the License.
 
 package consts
 
-import (
-	"regexp"
-)
-
 var (
 	CortexVersion = "master" // CORTEX_VERSION
-
-	TypeStrRegex         = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?(\|(INT|FLOAT|STRING|BOOL)(_COLUMN)?)*"`)
-	SingleTypeStrRegex   = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?"`)
-	CompoundTypeStrRegex = regexp.MustCompile(`"(INT|FLOAT|STRING|BOOL)(_COLUMN)?(\|(INT|FLOAT|STRING|BOOL)(_COLUMN)?)+"`)
 
 	ContextCacheDir    = "/mnt/context"
 	EmptyDirMountPath  = "/mnt"
@@ -37,25 +29,17 @@ var (
 	RequirementsTxt = "requirements.txt"
 	PackageDir      = "packages"
 
-	AppsDir               = "apps"
-	APIsDir               = "apis"
-	DataDir               = "data"
-	RawDataDir            = "data_raw"
-	TrainingDataDir       = "data_training"
-	AggregatorsDir        = "aggregators"
-	AggregatesDir         = "aggregates"
-	TransformersDir       = "transformers"
-	EstimatorsDir         = "estimators"
-	PythonPackagesDir     = "python_packages"
-	RequestHandlersDir    = "request_handlers"
-	ModelsDir             = "models"
-	ConstantsDir          = "constants"
-	ContextsDir           = "contexts"
-	ResourceStatusesDir   = "resource_statuses"
-	WorkloadSpecsDir      = "workload_specs"
-	RawColumnsDir         = "raw_columns"
-	TransformedColumnsDir = "transformed_columns"
-	MetadataDir           = "metadata"
+	AppsDir             = "apps"
+	DeploymentsDir      = "deployments"
+	APIsDir             = "apis"
+	PythonPackagesDir   = "python_packages"
+	RequestHandlersDir  = "request_handlers"
+	ContextsDir         = "contexts"
+	ResourceStatusesDir = "resource_statuses"
+	WorkloadSpecsDir    = "workload_specs"
+	MetadataDir         = "metadata"
 
 	TelemetryURL = "https://telemetry.cortexlabs.dev"
+
+	MaxClassesPerRequest = 75 // cloudwatch.GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats
 )

@@ -33,15 +33,12 @@ type Resource interface {
 	SetIndex(int)
 	GetFilePath() string
 	SetFilePath(string)
-	GetEmbed() *Embed
-	SetEmbed(*Embed)
 }
 
 type ResourceFields struct {
 	Name     string `json:"name" yaml:"name"`
 	Index    int    `json:"index" yaml:"-"`
 	FilePath string `json:"file_path" yaml:"-"`
-	Embed    *Embed `json:"embed" yaml:"-"`
 }
 
 func (resourceFields *ResourceFields) GetName() string {
@@ -64,14 +61,6 @@ func (resourceFields *ResourceFields) SetFilePath(filePath string) {
 	resourceFields.FilePath = filePath
 }
 
-func (resourceFields *ResourceFields) GetEmbed() *Embed {
-	return resourceFields.Embed
-}
-
-func (resourceFields *ResourceFields) SetEmbed(embed *Embed) {
-	resourceFields.Embed = embed
-}
-
 func (resourceFields *ResourceFields) UserConfigStr() string {
 	var sb strings.Builder
 	if resourceFields.FilePath == "" {
@@ -79,19 +68,15 @@ func (resourceFields *ResourceFields) UserConfigStr() string {
 	} else {
 		sb.WriteString(fmt.Sprintf("file: %s\n", resourceFields.FilePath))
 	}
-	if resourceFields.Embed == nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, resourceFields.Name))
-	} else {
-		sb.WriteString(fmt.Sprintf("%s: %s (embedded at index %d)\n", NameKey, resourceFields.Name, resourceFields.Embed.Index))
-	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, resourceFields.Name))
 	return sb.String()
 }
 
 func Identify(r Resource) string {
-	return identify(r.GetFilePath(), r.GetResourceType(), r.GetName(), r.GetIndex(), r.GetEmbed())
+	return identify(r.GetFilePath(), r.GetResourceType(), r.GetName(), r.GetIndex())
 }
 
-func identify(filePath string, resourceType resource.Type, name string, index int, embed *Embed) string {
+func identify(filePath string, resourceType resource.Type, name string, index int) string {
 	name = yaml.UnescapeAtSymbol(name)
 
 	resourceTypeStr := resourceType.String()
@@ -103,14 +88,6 @@ func identify(filePath string, resourceType resource.Type, name string, index in
 
 	if filePath != "" {
 		str += filePath + ": "
-	}
-
-	if embed != nil {
-		if embed.Index >= 0 {
-			str += fmt.Sprintf("%s at %s (%s \"%s\"): ", resource.EmbedType.String(), s.Index(embed.Index), resource.TemplateType.String(), embed.Template)
-		} else {
-			str += fmt.Sprintf("%s (%s \"%s\"): ", resource.EmbedType.String(), resource.TemplateType.String(), embed.Template)
-		}
 	}
 
 	if name != "" {

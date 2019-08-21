@@ -34,7 +34,7 @@ Cortex is maintained by a venture-backed team of infrastructure engineers and [w
 
 
 # Load data for preprocessing or postprocessing. For example:
-labels = download_my_labels_from_s3()
+labels = download_labels_from_s3()
 
 
 def pre_inference(sample, metadata):
@@ -51,13 +51,13 @@ def post_inference(prediction, metadata):
 $ cortex deploy
 
 Deploying ...
-https://***.amazonaws.com/my-api  # Your API is ready!
+http://***.amazonaws.com/my-api  # Your API is ready!
 ```
 
 **Serve** real time predictions via scalable JSON APIs:
 
 ```bash
-$ curl -d '{"a": 1, "b": 2, "c": 3}' https://***.amazonaws.com/my-api
+$ curl -d '{"a": 1, "b": 2, "c": 3}' http://***.amazonaws.com/my-api
 
 { prediction: "def" }
 ```
@@ -66,9 +66,11 @@ $ curl -d '{"a": 1, "b": 2, "c": 3}' https://***.amazonaws.com/my-api
 
 ## Hosting Cortex on AWS
 
+<!-- CORTEX_VERSION_MINOR_STABLE -->
+
 ```bash
 # Download the install script
-$ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh && chmod +x cortex.sh
+$ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/0.7/cortex.sh && chmod +x cortex.sh
 
 # Set your AWS credentials
 $ export AWS_ACCESS_KEY_ID=***
@@ -94,5 +96,7 @@ $ ./cortex.sh install cli
 - **Rolling updates:** Cortex updates deployed APIs without any downtime.
 
 - **Log streaming:** Cortex streams logs from your deployed models to your CLI.
+
+- **Prediction Monitoring:** Cortex can monitor network metrics and track predictions.
 
 - **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.

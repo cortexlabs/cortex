@@ -31,23 +31,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
-var predictPrintJSON bool
-
 func init() {
-	predictCmd.PersistentFlags().BoolVarP(&predictPrintJSON, "json", "j", false, "print the raw json response")
 	addAppNameFlag(predictCmd)
 	addEnvFlag(predictCmd)
 }
 
 type PredictResponse struct {
 	Predictions []interface{} `json:"predictions"`
-}
-
-type DetailedPrediction struct {
-	Prediction         interface{} `json:"prediction"`
-	PredictionReversed interface{} `json:"prediction_reversed"`
-	TransformedSample  interface{} `json:"transformed_sample"`
-	Response           interface{} `json:"response"`
 }
 
 var predictCmd = &cobra.Command{
@@ -98,31 +88,11 @@ var predictCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		if predictPrintJSON {
-			prettyResp, err := json.Pretty(predictResponse)
-			if err != nil {
-				errors.Exit(err)
-			}
-
-			fmt.Println(prettyResp)
-			return
+		prettyResp, err := json.Pretty(predictResponse)
+		if err != nil {
+			errors.Exit(err)
 		}
-
-		if len(predictResponse.Predictions) == 1 {
-			fmt.Println("Prediction:")
-		} else {
-			fmt.Println("Predictions:")
-		}
-
-		for _, prediction := range predictResponse.Predictions {
-			prettyResp, err := json.Pretty(prediction)
-			if err != nil {
-				errors.Exit(err)
-			}
-
-			fmt.Println(prettyResp)
-			continue
-		}
+		fmt.Println(prettyResp)
 	},
 }
 
@@ -138,7 +108,7 @@ func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	httpResponse, err := makeRequest(req)
+	httpResponse, err := httpClient.makeRequest(req)
 	if err != nil {
 		return nil, err
 	}

@@ -230,17 +230,17 @@ func tfAPISpec(
 	workloadID string,
 	desiredReplicas int32,
 ) *kapps.Deployment {
-	transformResourceList := kcore.ResourceList{}
+	apiResourceList := kcore.ResourceList{}
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
 
 	q1, q2 := api.Compute.CPU.SplitInTwo()
-	transformResourceList[kcore.ResourceCPU] = *q1
+	apiResourceList[kcore.ResourceCPU] = *q1
 	tfServingResourceList[kcore.ResourceCPU] = *q2
 
 	if api.Compute.Mem != nil {
 		q1, q2 := api.Compute.Mem.SplitInTwo()
-		transformResourceList[kcore.ResourceMemory] = *q1
+		apiResourceList[kcore.ResourceMemory] = *q1
 		tfServingResourceList[kcore.ResourceMemory] = *q2
 	}
 
@@ -332,7 +332,7 @@ func tfAPISpec(
 							},
 						},
 						Resources: kcore.ResourceRequirements{
-							Requests: transformResourceList,
+							Requests: apiResourceList,
 						},
 						Ports: []kcore.ContainerPort{
 							{
@@ -635,7 +635,7 @@ func APIsBaseURL() (string, error) {
 	if len(service.Status.LoadBalancer.Ingress) == 0 {
 		return "", ErrorLoadBalancerInitializing()
 	}
-	return "https://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
+	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
 
 func APIPodComputeID(containers []kcore.Container) string {

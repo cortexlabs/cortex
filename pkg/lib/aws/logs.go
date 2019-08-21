@@ -19,13 +19,11 @@ package aws
 import (
 	"bytes"
 	"encoding/json"
-	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/regex"
 )
 
 type FluentdLog struct {
@@ -44,12 +42,6 @@ type FluentdLog struct {
 }
 
 func (c *Client) GetLogs(prefix string, logGroup string) (string, error) {
-	ignoreLogStreamNameRegexes := []*regexp.Regexp{
-		regexp.MustCompile(`-exec-[0-9]+`),
-		regexp.MustCompile(`_spark-init-`),
-		regexp.MustCompile(`_cortex_serve-`),
-	}
-
 	logStreamsOut, err := c.cloudWatchLogsClient.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
 		Limit:               aws.Int64(50),
 		LogGroupName:        aws.String(logGroup),
@@ -62,30 +54,28 @@ func (c *Client) GetLogs(prefix string, logGroup string) (string, error) {
 	var allLogsBuf bytes.Buffer
 
 	for i, logStream := range logStreamsOut.LogStreams {
-		if !regex.MatchAnyRegex(*logStream.LogStreamName, ignoreLogStreamNameRegexes) {
-			getLogEventsInput := &cloudwatchlogs.GetLogEventsInput{
-				LogGroupName:  &logGroup,
-				LogStreamName: logStream.LogStreamName,
-				StartFromHead: aws.Bool(true),
-			}
+		getLogEventsInput := &cloudwatchlogs.GetLogEventsInput{
+			LogGroupName:  &logGroup,
+			LogStreamName: logStream.LogStreamName,
+			StartFromHead: aws.Bool(true),
+		}
 
-			err := c.cloudWatchLogsClient.GetLogEventsPages(getLogEventsInput, func(logEventsOut *cloudwatchlogs.GetLogEventsOutput, lastPage bool) bool {
-				for _, logEvent := range logEventsOut.Events {
-					var log FluentdLog
-					// millis := *logEvent.Timestamp
-					// timestamp := time.Unix(0, millis*int64(time.Millisecond))
-					json.Unmarshal([]byte(*logEvent.Message), &log)
-					allLogsBuf.WriteString(log.Log)
-				}
-				return true
-			})
-			if err != nil {
-				return "", errors.Wrap(err, "cloudwatch logs", prefix)
+		err := c.cloudWatchLogsClient.GetLogEventsPages(getLogEventsInput, func(logEventsOut *cloudwatchlogs.GetLogEventsOutput, lastPage bool) bool {
+			for _, logEvent := range logEventsOut.Events {
+				var log FluentdLog
+				// millis := *logEvent.Timestamp
+				// timestamp := time.Unix(0, millis*int64(time.Millisecond))
+				json.Unmarshal([]byte(*logEvent.Message), &log)
+				allLogsBuf.WriteString(log.Log)
 			}
+			return true
+		})
+		if err != nil {
+			return "", errors.Wrap(err, "cloudwatch logs", prefix)
+		}
 
-			if i < len(logStreamsOut.LogStreams)-1 {
-				allLogsBuf.WriteString("\n----------\n\n")
-			}
+		if i < len(logStreamsOut.LogStreams)-1 {
+			allLogsBuf.WriteString("\n----------\n\n")
 		}
 	}
 

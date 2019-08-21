@@ -49,12 +49,6 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = workloads.ValidateDeploy(ctx)
-	if err != nil {
-		RespondError(w, err)
-		return
-	}
-
 	existingCtx := workloads.CurrentContext(ctx.App.Name)
 
 	fullCtxMatch := false
@@ -81,7 +75,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = config.AWS.UploadMsgpackToS3(ctx.ToSerial(), ctx.Key)
+	err = config.AWS.UploadMsgpackToS3(ctx, ctx.Key)
 	if err != nil {
 		RespondError(w, err, ctx.App.Name, "upload context")
 		return
@@ -117,11 +111,6 @@ func respondDeploy(w http.ResponseWriter, message string) {
 }
 
 func getContext(r *http.Request, ignoreCache bool) (*context.Context, error) {
-	envName, err := getRequiredQueryParam("environment", r)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
 	zipBytes, err := files.ReadReqFile(r, "config.zip")
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -135,7 +124,7 @@ func getContext(r *http.Request, ignoreCache bool) (*context.Context, error) {
 		return nil, errors.Wrap(err, "form file", "config.zip")
 	}
 
-	config, err := userconfig.New(zipContents, envName)
+	config, err := userconfig.New(zipContents)
 	if err != nil {
 		return nil, err
 	}

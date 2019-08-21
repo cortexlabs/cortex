@@ -117,44 +117,8 @@ func updateDataStatusCodeByParents(dataStatus *resource.DataStatus, dataStatuses
 }
 
 func setSkippedDataStatusCodes(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
-	if !didSparkShortCircuit(dataStatuses, ctx) {
-		return
-	}
-	for _, dataStatus := range dataStatuses {
-		if dataStatus.Code == resource.StatusPending || dataStatus.Code == resource.StatusWaiting || dataStatus.Code == resource.StatusPendingCompute || dataStatus.Code == resource.StatusUnknown {
-			dataStatus.Code = resource.StatusSkipped
-		}
-	}
-}
-
-func sparkGeneratedResources(ctx *context.Context) map[string]context.Resource {
-	resources := make(map[string]context.Resource)
-	for _, rawColumn := range ctx.RawColumns {
-		resources[rawColumn.GetID()] = rawColumn
-	}
-	for _, aggregate := range ctx.Aggregates {
-		resources[aggregate.ID] = aggregate
-	}
-	for _, transformedColumn := range ctx.TransformedColumns {
-		resources[transformedColumn.ID] = transformedColumn
-	}
-	for _, model := range ctx.Models {
-		resources[model.Dataset.ID] = model.Dataset
-	}
-	return resources
-}
-
-func didSparkShortCircuit(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) bool {
-	sparkResources := sparkGeneratedResources(ctx)
-	for _, dataStatus := range dataStatuses {
-		if _, ok := sparkResources[dataStatus.ResourceID]; !ok {
-			continue
-		}
-		if dataStatus.Code == resource.StatusError || dataStatus.Code == resource.StatusKilled {
-			return true
-		}
-	}
-	return false
+	// Currently there are no dependent data jobs
+	return
 }
 
 func setInsufficientComputeDataStatusCodes(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) error {
