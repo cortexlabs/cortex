@@ -1,3 +1,0 @@
-- kind: api
-  name: fraud
-  model: @dnn

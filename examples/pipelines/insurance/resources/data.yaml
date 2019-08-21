@@ -1,6 +1,0 @@
-- kind: environment
-  name: dev
-  data:
-    type: csv
-    path: s3a://cortex-examples/insurance.csv
-    schema: [@age, @sex, @bmi, @children, @smoker, @region, @charges]

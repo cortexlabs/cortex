@@ -63,7 +63,6 @@ func deploy(force bool, ignoreCache bool) {
 	}
 
 	params := map[string]string{
-		"environment": flagEnv,
 		"force":       s.Bool(force),
 		"ignoreCache": s.Bool(ignoreCache),
 	}

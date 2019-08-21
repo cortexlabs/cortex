@@ -51,7 +51,7 @@ Flags:
   -v, --verbose             show verbose output
 ```
 
-The `logs` command streams logs from the workload corresponding to the specified resource. For example, `cortex logs models dnn` will get the Cortex logs from the most recent training workload for `dnn`. Using the `-v` or `--verbose` flag will show all of the logs for the workload (not just Cortex's logs).
+The `logs` command streams logs from the workload corresponding to the specified resource. For example, `cortex logs api my-api` will stream the logs from the most recent api named `my-api`. `RESOURCE_TYPE` is optional (unless there are name colisions), so `cortex logs my-api` will also work. Using the `-v` or `--verbose` flag will show all of the logs for the workload (not just Cortex's logs).
 
 ## refresh
 
@@ -82,7 +82,7 @@ Flags:
   -j, --json                print the raw json response
 ```
 
-The `predict` command converts samples from a JSON file into prediction requests and displays the response. This command is useful for quickly testing model output.
+The `predict` command converts samples from a JSON file into prediction requests and displays the response. This command is useful for quickly testing predictions.
 
 ## delete
 

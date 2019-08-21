@@ -14,7 +14,6 @@
 
 import sys
 import os
-import json
 import argparse
 
 from flask import Flask, request, jsonify, g
@@ -22,13 +21,8 @@ from flask_api import status
 from waitress import serve
 import onnxruntime as rt
 import numpy as np
-import json_tricks
-import boto3
 
-from cortex.lib.storage import S3
-from cortex.lib import api_utils
-from cortex import consts
-from cortex.lib import util, package, Context
+from cortex.lib import util, package, Context, api_utils
 from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 
@@ -236,6 +230,8 @@ def start(args):
     try:
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
         api = ctx.apis_id_map[args.api]
+        local_cache["api"] = api
+        local_cache["ctx"] = ctx
 
         model_cache_path = os.path.join(args.model_dir, args.api)
         if not os.path.exists(model_cache_path):
@@ -244,8 +240,6 @@ def start(args):
         if args.only_download:
             return
 
-        local_cache["api"] = api
-        local_cache["ctx"] = ctx
         if api.get("request_handler") is not None:
             package.install_packages(ctx.python_packages, ctx.storage)
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])

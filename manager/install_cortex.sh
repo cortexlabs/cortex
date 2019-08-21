@@ -60,14 +60,11 @@ function setup_configmap() {
     --from-literal='REGION'=$CORTEX_REGION \
     --from-literal='NAMESPACE'=$CORTEX_NAMESPACE \
     --from-literal='IMAGE_OPERATOR'=$CORTEX_IMAGE_OPERATOR \
-    --from-literal='IMAGE_SPARK'=$CORTEX_IMAGE_SPARK \
-    --from-literal='IMAGE_TF_TRAIN'=$CORTEX_IMAGE_TF_TRAIN \
     --from-literal='IMAGE_TF_SERVE'=$CORTEX_IMAGE_TF_SERVE \
     --from-literal='IMAGE_ONNX_SERVE'=$CORTEX_IMAGE_ONNX_SERVE \
     --from-literal='IMAGE_ONNX_SERVE_GPU'=$CORTEX_IMAGE_ONNX_SERVE_GPU \
     --from-literal='IMAGE_TF_API'=$CORTEX_IMAGE_TF_API \
     --from-literal='IMAGE_PYTHON_PACKAGER'=$CORTEX_IMAGE_PYTHON_PACKAGER \
-    --from-literal='IMAGE_TF_TRAIN_GPU'=$CORTEX_IMAGE_TF_TRAIN_GPU \
     --from-literal='IMAGE_TF_SERVE_GPU'=$CORTEX_IMAGE_TF_SERVE_GPU \
     --from-literal='ENABLE_TELEMETRY'=$CORTEX_ENABLE_TELEMETRY \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
@@ -212,8 +209,6 @@ echo "✓ Configured logging"
 
 envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
 echo "✓ Configured metrics"
-
-envsubst < manifests/spark.yaml | kubectl apply -f - >/dev/null
 
 if [[ "$CORTEX_NODE_TYPE" == p* ]] || [[ "$CORTEX_NODE_TYPE" == g* ]]; then
   envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
