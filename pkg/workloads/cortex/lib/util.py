@@ -214,25 +214,25 @@ def now_timestamp_rfc_3339():
     return datetime.utcnow().isoformat("T") + "Z"
 
 
-def remove_prefix_if_present(string, prefix):
+def trim_prefix(string, prefix):
     if string.startswith(prefix):
         return string[len(prefix) :]
     return string
 
 
-def add_prefix_unless_present(string, prefix):
+def ensure_prefix(string, prefix):
     if string.startswith(prefix):
         return string
     return prefix + string
 
 
-def remove_suffix_if_present(string, suffix):
+def trim_suffix(string, suffix):
     if string.endswith(suffix):
         return string[: -len(suffix)]
     return string
 
 
-def add_suffix_unless_present(string, suffix):
+def ensure_suffix(string, suffix):
     if string.endswith(suffix):
         return string
     return string + suffix
@@ -469,8 +469,8 @@ def zip_files(
     allow_missing_files=False,
 ):
     """src_files is a list of strings (path_to_file/dir)"""
-    dest_path = add_suffix_unless_present(dest_path, ".zip")
-    add_prefix = remove_prefix_if_present(add_prefix, "/")
+    dest_path = ensure_suffix(dest_path, ".zip")
+    add_prefix = trim_prefix(add_prefix, "/")
 
     if remove_prefix != "" and not remove_prefix.endswith("/"):
         remove_prefix = remove_prefix + "/"
@@ -486,7 +486,7 @@ def zip_files(
 
     with zipfile.ZipFile(dest_path, "w", zipfile.ZIP_DEFLATED) as myzip:
         for empty_file_path in empty_files:
-            empty_file_path = remove_prefix_if_present(empty_file_path, "/")
+            empty_file_path = trim_prefix(empty_file_path, "/")
             myzip.writestr(empty_file_path, "")
 
         for src_file in src_files:
@@ -494,8 +494,8 @@ def zip_files(
                 zip_name = os.path.basename(src_file)
             else:
                 zip_name = src_file
-                zip_name = remove_prefix_if_present(zip_name, remove_prefix)
-                zip_name = remove_prefix_if_present(zip_name, common_prefix)
+                zip_name = trim_prefix(zip_name, remove_prefix)
+                zip_name = trim_prefix(zip_name, common_prefix)
 
             zip_name = os.path.join(add_prefix, zip_name)
             if allow_missing_files:
@@ -509,26 +509,26 @@ def zip_dispersed_files(
     src_files, dest_path, add_prefix="", empty_files=[], ignore=None, allow_missing_files=False
 ):
     """src_files is a list of tuples (path_to_file/dir, path_in_zip)"""
-    dest_path = add_suffix_unless_present(dest_path, ".zip")
-    add_prefix = remove_prefix_if_present(add_prefix, "/")
+    dest_path = ensure_suffix(dest_path, ".zip")
+    add_prefix = trim_prefix(add_prefix, "/")
 
     src_dirs = [(f, p) for f, p in src_files if f and os.path.isdir(f)]
     src_files = [(f, p) for f, p in src_files if f and os.path.isfile(f)]
     for src_dir, zip_name in src_dirs:
         for src_file in list_files_recursive(src_dir, ignore=ignore):
             common_prefix = os.path.commonprefix([src_dir, src_file])
-            rel_src_file = remove_prefix_if_present(src_file, common_prefix)
-            rel_src_file = remove_prefix_if_present(rel_src_file, "/")
+            rel_src_file = trim_prefix(src_file, common_prefix)
+            rel_src_file = trim_prefix(rel_src_file, "/")
             updated_zip_name = os.path.join(zip_name, rel_src_file)
             src_files.append((src_file, updated_zip_name))
 
     with zipfile.ZipFile(dest_path, "w", zipfile.ZIP_DEFLATED) as myzip:
         for empty_file_path in empty_files:
-            empty_file_path = remove_prefix_if_present(empty_file_path, "/")
+            empty_file_path = trim_prefix(empty_file_path, "/")
             myzip.writestr(empty_file_path, "")
 
         for src_file, zip_name in src_files:
-            zip_name = remove_prefix_if_present(zip_name, "/")
+            zip_name = trim_prefix(zip_name, "/")
             zip_name = os.path.join(add_prefix, zip_name)
             if allow_missing_files:
                 if os.path.isfile(src_file):

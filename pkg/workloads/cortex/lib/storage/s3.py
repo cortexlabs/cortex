@@ -50,7 +50,7 @@ class S3(object):
 
     @staticmethod
     def deconstruct_s3_path(s3_path):
-        path = util.remove_prefix_if_present(s3_path, "s3://")
+        path = util.trim_prefix(s3_path, "s3://")
         bucket = path.split("/")[0]
         key = os.path.join(*path.split("/")[1:])
         return (bucket, key)
@@ -73,7 +73,7 @@ class S3(object):
         return response["KeyCount"] > 0
 
     def _is_s3_dir(self, dir_path):
-        prefix = util.add_suffix_unless_present(dir_path, "/")
+        prefix = util.ensure_suffix(dir_path, "/")
         return self._is_s3_prefix(prefix)
 
     def _get_matching_s3_objects_generator(self, prefix="", suffix=""):
@@ -197,14 +197,14 @@ class S3(object):
             ) from e
 
     def download_dir(self, prefix, local_dir):
-        dir_name = util.remove_suffix_if_present(prefix, "/").split("/")[-1]
+        dir_name = util.trim_suffix(prefix, "/").split("/")[-1]
         return self.download_dir_contents(prefix, os.path.join(local_dir, dir_name))
 
     def download_dir_contents(self, prefix, local_dir):
         util.mkdir_p(local_dir)
-        prefix = util.add_suffix_unless_present(prefix, "/")
+        prefix = util.ensure_suffix(prefix, "/")
         for key in self._get_matching_s3_keys_generator(prefix):
-            rel_path = util.remove_prefix_if_present(key, prefix)
+            rel_path = util.trim_prefix(key, prefix)
             local_dest_path = os.path.join(local_dir, rel_path)
             self.download_file(key, local_dest_path)
 
