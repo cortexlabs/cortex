@@ -117,11 +117,8 @@ func updateDataStatusCodeByParents(dataStatus *resource.DataStatus, dataStatuses
 }
 
 func setSkippedDataStatusCodes(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
-	for _, dataStatus := range dataStatuses {
-		if dataStatus.Code == resource.StatusPending || dataStatus.Code == resource.StatusWaiting || dataStatus.Code == resource.StatusPendingCompute || dataStatus.Code == resource.StatusUnknown {
-			dataStatus.Code = resource.StatusSkipped
-		}
-	}
+	// Currently there are no dependent data jobs
+	return
 }
 
 func setInsufficientComputeDataStatusCodes(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) error {
