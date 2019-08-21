@@ -326,13 +326,6 @@ def flatten(var):
         return [var]
 
 
-def keep_dict_keys(d, keys):
-    key_set = set(keys)
-    for key in list(d.keys()):
-        if key not in key_set:
-            del d[key]
-
-
 def create_multi_map(d, key_func):
     """Create a dictionary that returns a list of values for a specific key.
 
@@ -455,16 +448,6 @@ def get_json(json_path):
 def read_msgpack(msgpack_path):
     with open(msgpack_path, "rb") as msgpack_file:
         return msgpack.load(msgpack_file, raw=False)
-
-
-def hash_str(string, alg="sha256"):
-    hashing_alg = getattr(hashlib, alg)
-    return hashing_alg(string).hexdigest()
-
-
-def hash_file(file_path, alg="sha256"):
-    file_str = read_file(file_path)
-    return hash_str(file_str, alg)
 
 
 def zip_dir(src_dir, dest_path, nest_dir=False, ignore=None):
@@ -665,178 +648,6 @@ def is_number_col(items):
 def log_job_finished(workload_id):
     timestamp = now_timestamp_rfc_3339()
     logger.info("workload: {}, completed: {}".format(workload_id, timestamp))
-
-
-CORTEX_TYPE_TO_VALIDATOR = {
-    consts.VALUE_TYPE_INT: is_int,
-    consts.VALUE_TYPE_FLOAT: is_float_or_int,
-    consts.VALUE_TYPE_STRING: is_str,
-    consts.VALUE_TYPE_BOOL: is_bool,
-}
-
-CORTEX_TYPE_TO_CASTER = {
-    consts.VALUE_TYPE_INT: lambda x: int(x),
-    consts.VALUE_TYPE_FLOAT: lambda x: float(x),
-    consts.VALUE_TYPE_STRING: lambda x: str(x),
-    consts.VALUE_TYPE_BOOL: lambda x: bool(x),
-}
-
-
-def cast(value, cortex_type):
-    upcaster = CORTEX_TYPE_TO_CASTER.get(cortex_type, None)
-    if upcaster:
-        return upcaster(value)
-    return value
-
-
-def validate_output_type(value, output_type):
-    if value is None:
-        return True
-
-    if is_str(output_type):
-        valid_types = output_type.split("|")
-
-        for valid_type in valid_types:
-            if CORTEX_TYPE_TO_VALIDATOR[valid_type](value):
-                return True
-
-        return False
-
-    if is_list(output_type):
-        if not is_list(value):
-            return False
-        for value_item in value:
-            if not validate_output_type(value_item, output_type[0]):
-                return False
-        return True
-
-    if is_dict(output_type):
-        if not is_dict(value):
-            return False
-
-        is_generic_map = False
-        if len(output_type) == 1:
-            output_type_key = next(iter(output_type.keys()))
-            if output_type_key in consts.VALUE_TYPES:
-                is_generic_map = True
-                generic_map_key = output_type_key
-                generic_map_value = output_type[output_type_key]
-
-        if is_generic_map:
-            for value_key, value_val in value.items():
-                if not validate_output_type(value_key, generic_map_key):
-                    return False
-                if not validate_output_type(value_val, generic_map_value):
-                    return False
-            return True
-
-        # Fixed map
-        for type_key, type_val in output_type.items():
-            if type_key not in value:
-                return False
-            if not validate_output_type(value[type_key], type_val):
-                return False
-        return True
-
-    return False  # unexpected
-
-
-# value is assumed to be already validated against output_type
-def cast_output_type(value, output_type):
-    if is_str(output_type):
-        if (
-            is_int(value)
-            and consts.VALUE_TYPE_FLOAT in output_type
-            and consts.VALUE_TYPE_INT not in output_type
-        ):
-            return float(value)
-        return value
-
-    if is_list(output_type):
-        casted = []
-        for item in value:
-            casted.append(cast_output_type(item, output_type[0]))
-        return casted
-
-    if is_dict(output_type):
-        is_generic_map = False
-        if len(output_type) == 1:
-            output_type_key = next(iter(output_type.keys()))
-            if output_type_key in consts.VALUE_TYPES:
-                is_generic_map = True
-                generic_map_key = output_type_key
-                generic_map_value = output_type[output_type_key]
-
-        if is_generic_map:
-            casted = {}
-            for value_key, value_val in value.items():
-                casted_key = cast_output_type(value_key, generic_map_key)
-                casted_val = cast_output_type(value_val, generic_map_value)
-                casted[casted_key] = casted_val
-            return casted
-
-        # Fixed map
-        casted = {}
-        for output_type_key, output_type_val in output_type.items():
-            casted_val = cast_output_type(value[output_type_key], output_type_val)
-            casted[output_type_key] = casted_val
-        return casted
-
-    return value
-
-
-def is_resource_ref(obj):
-    if not is_str(obj):
-        return False
-    return obj.startswith(resource_escape_seq) or obj.startswith(resource_escape_seq_raw)
-
-
-def get_resource_ref(string):
-    if not is_str(string):
-        raise ValueError("expected input of type string but received " + str(type(string)))
-    if string.startswith(resource_escape_seq):
-        return string[len(resource_escape_seq) :]
-    elif string.startswith(resource_escape_seq_raw):
-        return string[len(resource_escape_seq_raw) :]
-    raise ValueError("expected a resource reference but got " + string)
-
-
-def unescape_resource_ref(string):
-    if not is_str(string):
-        raise ValueError("expected input of type string but received " + str(type(string)))
-    out = string.replace(resource_escape_seq, "@")
-    out = out.replace(resource_escape_seq_raw, "@")
-    return out
-
-
-def remove_resource_ref(string):
-    if not is_str(string):
-        raise ValueError("expected input of type string but received " + str(type(string)))
-    out = string.replace(resource_escape_seq, "")
-    out = out.replace(resource_escape_seq_raw, "")
-    return out
-
-
-def extract_resource_refs(input):
-    if is_str(input):
-        if is_resource_ref(input):
-            return {get_resource_ref(input)}
-        return set()
-
-    if is_list(input):
-        resources = set()
-        for item in input:
-            resources = resources.union(extract_resource_refs(item))
-        return resources
-
-    if is_dict(input):
-        resources = set()
-        for key, val in input.items():
-            resources = resources.union(extract_resource_refs(key))
-            resources = resources.union(extract_resource_refs(val))
-        return resources
-
-    return set()
 
 
 def has_function(impl, fn_name):

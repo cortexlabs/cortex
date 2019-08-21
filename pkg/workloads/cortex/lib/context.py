@@ -45,19 +45,16 @@ class Context:
         util.mkdir_p(self.cache_dir)
 
         if "local_path" in kwargs:
-            ctx_raw = util.read_msgpack(kwargs["local_path"])
-            self.ctx = _deserialize_raw_ctx(ctx_raw)
+            self.ctx = util.read_msgpack(kwargs["local_path"])
         elif "obj" in kwargs:
             self.ctx = kwargs["obj"]
         elif "raw_obj" in kwargs:
-            ctx_raw = kwargs["raw_obj"]
-            self.ctx = _deserialize_raw_ctx(ctx_raw)
+            self.ctx = kwargs["raw_obj"]
         elif "s3_path":
             local_ctx_path = os.path.join(self.cache_dir, "context.msgpack")
             bucket, key = S3.deconstruct_s3_path(kwargs["s3_path"])
             S3(bucket, client_config={}).download_file(key, local_ctx_path)
-            ctx_raw = util.read_msgpack(local_ctx_path)
-            self.ctx = _deserialize_raw_ctx(ctx_raw)
+            self.ctx = util.read_msgpack(local_ctx_path)
         else:
             raise ValueError("invalid context args: " + kwargs)
 
@@ -70,9 +67,7 @@ class Context:
         self.root = self.ctx["root"]
         self.status_prefix = self.ctx["status_prefix"]
         self.app = self.ctx["app"]
-        self.environment = self.ctx["environment"]
         self.python_packages = self.ctx["python_packages"] or {}
-        self.constants = self.ctx["constants"] or {}
         self.apis = self.ctx["apis"] or {}
         self.api_version = self.cortex_config["api_version"]
         self.monitoring = None
@@ -101,16 +96,10 @@ class Context:
         # This affects Tensorflow S3 access
         os.environ["AWS_REGION"] = self.cortex_config.get("region", "")
 
-        # Id map
+        # ID maps
         self.pp_id_map = ResourceMap(self.python_packages) if self.python_packages else None
         self.apis_id_map = ResourceMap(self.apis) if self.apis else None
-        self.constants_id_map = ResourceMap(self.constants) if self.constants else None
-        self.id_map = util.merge_dicts_overwrite(
-            self.pp_id_map, self.apis_id_map, self.constants_id_map
-        )
-
-    def is_constant(self, name):
-        return name in self.constants
+        self.id_map = util.merge_dicts_overwrite(self.pp_id_map, self.apis_id_map)
 
     def download_file(self, impl_key, cache_impl_path):
         if not os.path.isfile(cache_impl_path):
@@ -250,50 +239,6 @@ class Context:
             raise Exception("failed to publish metrics")
 
 
-def input_schema_from_type_schema(type_schema):
-    return {
-        "_type": type_schema,
-        "_optional": False,
-        "_default": None,
-        "_allow_null": False,
-        "_min_count": None,
-        "_max_count": None,
-    }
-
-
-def is_compound_type(type_str):
-    if not util.is_str(type_str):
-        return False
-    for subtype in type_str.split("|"):
-        if subtype not in consts.ALL_TYPES:
-            return False
-    return True
-
-
-# def cast_compound_type(value, type_str):
-#     allowed_types = type_str.split("|")
-#     if consts.VALUE_TYPE_INT in allowed_types:
-#         if util.is_int(value):
-#             return value
-#     if consts.VALUE_TYPE_FLOAT in allowed_types:
-#         if util.is_int(value):
-#             return float(value)
-#         if util.is_float(value):
-#             return value
-#     if consts.VALUE_TYPE_STRING in allowed_types:
-#         if util.is_str(value):
-#             return value
-#     if consts.VALUE_TYPE_BOOL in allowed_types:
-#         if util.is_bool(value):
-#             return value
-
-#     raise UserException(
-#         "unsupported input type (expected type {}, got {})".format(
-#             util.data_type_str(type_str), util.user_obj_str(value)
-#         )
-#     )
-
-
 REQUEST_HANDLER_IMPL_VALIDATION = {
     "optional": [
         {"name": "pre_inference", "args": ["sample", "metadata"]},
@@ -342,20 +287,3 @@ def _validate_required_fn_args(impl, fn_name, args):
                     ", ".join(args), ", ".join(argspec.args)
                 ),
             )
-
-
-def _deserialize_raw_ctx(raw_ctx):
-    if raw_ctx.get("environment") is not None:
-        raw_columns = raw_ctx["raw_columns"]
-        raw_ctx["raw_columns"] = util.merge_dicts_overwrite(*raw_columns.values())
-
-        data_split = raw_ctx["environment_data"]
-
-        if data_split["csv_data"] is not None and data_split["parquet_data"] is None:
-            raw_ctx["environment"]["data"] = data_split["csv_data"]
-        elif data_split["parquet_data"] is not None and data_split["csv_data"] is None:
-            raw_ctx["environment"]["data"] = data_split["parquet_data"]
-        else:
-            raise CortexException("expected csv_data or parquet_data but found " + data_split)
-
-    return raw_ctx

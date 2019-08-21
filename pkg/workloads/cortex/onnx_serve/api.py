@@ -236,6 +236,8 @@ def start(args):
     try:
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
         api = ctx.apis_id_map[args.api]
+        local_cache["api"] = api
+        local_cache["ctx"] = ctx
 
         model_cache_path = os.path.join(args.model_dir, args.api)
         if not os.path.exists(model_cache_path):
@@ -244,8 +246,6 @@ def start(args):
         if args.only_download:
             return
 
-        local_cache["api"] = api
-        local_cache["ctx"] = ctx
         if api.get("request_handler") is not None:
             package.install_packages(ctx.python_packages, ctx.storage)
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
