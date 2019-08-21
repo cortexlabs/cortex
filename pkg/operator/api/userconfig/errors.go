@@ -293,8 +293,8 @@ var tfExpectedStructMessage = `For TensorFlow models, the path should be a direc
       ├── variables.data-00001-of-00003
       └── variables.data-00002-of-...`
 
-func ErrorUnableToInferModelFormat() error {
-	message := ModelFormatKey + " not specified, and could not be inferred\n" + onnxExpectedStructMessage + "\n" + tfExpectedStructMessage
+func ErrorUnableToInferModelFormat(path string) error {
+	message := fmt.Sprintf("%s not specified, and could not be inferred from %s path (%s)\n%s\n%s", ModelFormatKey, ModelKey, path, onnxExpectedStructMessage, tfExpectedStructMessage)
 	return Error{
 		Kind:    ErrUnableToInferModelFormat,
 		message: message,
