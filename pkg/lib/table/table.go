@@ -35,7 +35,7 @@ type Table struct {
 
 type Header struct {
 	Title    string
-	MaxWidth int // Max width of the text (not including spacing). Items that are longer will be truncated to less than MaxWidth to fit the elipses. If 0 is provided, it defaults to no max.
+	MaxWidth int // Max width of the text (not including spacing). Items that are longer will be truncated to less than MaxWidth to fit the ellipses. If 0 is provided, it defaults to no max.
 	MinWidth int // Min width of the text (not including spacing)
 	Hidden   bool
 }

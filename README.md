@@ -95,4 +95,6 @@ $ ./cortex.sh install cli
 
 - **Log streaming:** Cortex streams logs from your deployed models to your CLI.
 
+- **Prediction Monitoring:** Cortex can monitor network metrics and track predictions.
+
 - **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
