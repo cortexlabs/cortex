@@ -242,8 +242,13 @@ def predict(deployment_name, api_name):
 def extract_signature():
     signature_def = local_cache["metadata"]["signatureDef"]
     signature_key = local_cache["api"]["tf_serving"]["signature_key"]
-    if signature_def.get(signature_key) is None or signature_def[signature_key].get("inputs") is None:
-        raise UserException('unable to find "'+signature_key+'" in model\'s signature definition')
+    if (
+        signature_def.get(signature_key) is None
+        or signature_def[signature_key].get("inputs") is None
+    ):
+        raise UserException(
+            'unable to find "' + signature_key + "\" in model's signature definition"
+        )
 
     metadata = {}
     for input_name, input_metadata in signature_def[signature_key]["inputs"].items():
