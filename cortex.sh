@@ -373,10 +373,10 @@ function ask_sudo() {
 
 function prompt_for_email() {
   echo
-  read -p "Email address: [press enter to skip]"
+  read -p "Email address: [press enter to skip]: "
 
   if [[ ! -z "$REPLY" ]]; then
-    curl --silent --output /dev/null -k -X POST -H "Content-Type: application/json" $CORTEX_TELEMETRY_URL/support -d '{"email_address": "'$REPLY'", "source": "cortex.sh"}' >/dev/null 2>&1 || true
+    curl -k -X POST -H "Content-Type: application/json" $CORTEX_TELEMETRY_URL/support -d '{"email_address": "'$REPLY'", "source": "cortex.sh"}' >/dev/null 2>&1 || true
   fi
 }
 
