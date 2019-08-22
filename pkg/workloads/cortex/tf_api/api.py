@@ -151,15 +151,22 @@ def parse_response_proto(response_proto):
     return {"response": outputs_simplified}
 
 
-def run_predict(sample):
+def run_predict(sample, debug=False):
     ctx = local_cache["ctx"]
     request_handler = local_cache.get("request_handler")
 
     prepared_sample = sample
+    
+    if debug:
+        logger.info("sample: {}".format(util.pp_str_flat(sample)))
+
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         prepared_sample = request_handler.pre_inference(
             sample, local_cache["metadata"]["signatureDef"]
         )
+        
+        if debug:
+            logger.info("pre_inference: {}".format(util.pp_str_flat(prepared_sample)))
 
     validate_sample(prepared_sample)
 
@@ -167,22 +174,27 @@ def run_predict(sample):
     response_proto = local_cache["stub"].Predict(prediction_request, timeout=300.0)
     result = parse_response_proto(response_proto)
 
+    if debug:
+        logger.info("inference: {}".format(util.pp_str_flat(result)))
+
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
         result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
+
+        if debug:
+            logger.info("post_inference: {}".format(util.pp_str_flat(result)))
 
     return result
 
 
 def validate_sample(sample):
-    signature = extract_signature()
-    for input_name, metadata in signature.items():
+    signature = extract_signature(local_cache["metadata"]["signatureDef"])
+    for input_name, _ in signature.items():
         if input_name not in sample:
             raise UserException('missing key "{}"'.format(input_name))
 
 
 def prediction_failed(reason):
-    message = "prediction failed: " + reason
-
+    message = "prediction failed: {}".format(reason)
     logger.error(message)
     return message, status.HTTP_406_NOT_ACCEPTABLE
 
@@ -194,6 +206,8 @@ def health():
 
 @app.route("/<deployment_name>/<api_name>", methods=["POST"])
 def predict(deployment_name, api_name):
+    debug = request.args.get('debug') is not None
+
     try:
         payload = request.get_json()
     except Exception as e:
@@ -205,7 +219,10 @@ def predict(deployment_name, api_name):
     response = {}
 
     if not util.is_dict(payload) or "samples" not in payload:
-        return prediction_failed('top level "samples" key not found in request')
+        message = 'top level "samples" key not found in request'
+        if debug:
+            message += "(payload: {})".format(util.pp_str_flat(payload))
+        return prediction_failed(message)
 
     predictions = []
     samples = payload["samples"]
@@ -214,7 +231,7 @@ def predict(deployment_name, api_name):
 
     for i, sample in enumerate(payload["samples"]):
         try:
-            result = run_predict(sample)
+            result = run_predict(sample, debug)
         except CortexException as e:
             e.wrap("error", "sample {}".format(i + 1))
             logger.error(str(e))
@@ -239,8 +256,7 @@ def predict(deployment_name, api_name):
     return jsonify(response)
 
 
-def extract_signature():
-    signature_def = local_cache["metadata"]["signatureDef"]
+def extract_signature(signature_def):
     if signature_def.get("predict") is None or signature_def["predict"].get("inputs") is None:
         raise UserException('unable to find "predict" in model\'s signature definition')
 
@@ -363,7 +379,7 @@ def start(args):
                 sys.exit(1)
 
         time.sleep(1)
-
+    logger.info("model_signature: {}".format(extract_signature(local_cache["metadata"]["signatureDef"])))
     serve(app, listen="*:{}".format(args.port))
 
 

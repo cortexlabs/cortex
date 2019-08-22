@@ -80,7 +80,7 @@ def after_request(response):
 
 
 def prediction_failed(reason):
-    message = "prediction failed: " + reason
+    message = "prediction failed: {}".format(reason)
     logger.error(message)
     return message, status.HTTP_406_NOT_ACCEPTABLE
 
@@ -147,6 +147,8 @@ def convert_to_onnx_input(sample, input_metadata_list):
 
 @app.route("/<app_name>/<api_name>", methods=["POST"])
 def predict(app_name, api_name):
+    debug = request.args.get('debug') is not None
+
     try:
         payload = request.get_json()
     except Exception as e:
@@ -162,7 +164,10 @@ def predict(app_name, api_name):
     response = {}
 
     if not util.is_dict(payload) or "samples" not in payload:
-        return prediction_failed('top level "samples" key not found in request')
+        message = 'top level "samples" key not found in request'
+        if debug:
+            message += " (payload: {})".format(util.pp_str_flat(payload))
+        return prediction_failed(message)
 
     predictions = []
     samples = payload["samples"]
@@ -171,9 +176,14 @@ def predict(app_name, api_name):
 
     for i, sample in enumerate(payload["samples"]):
         try:
+            if debug:
+                logger.info("sample: {}".format(util.pp_str_flat(sample)))
+
             prepared_sample = sample
             if request_handler is not None and util.has_function(request_handler, "pre_inference"):
                 prepared_sample = request_handler.pre_inference(sample, input_metadata)
+                if debug:
+                    logger.info("pre_inference: {}".format(util.pp_str_flat(prepared_sample)))
 
             inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
             model_outputs = sess.run([], inference_input)
@@ -183,9 +193,14 @@ def predict(app_name, api_name):
                     result.append(model_output.tolist())
                 else:
                     result.append(model_output)
+            if debug:
+                logger.info("inference: {}".format(util.pp_str_flat(result)))
 
             if request_handler is not None and util.has_function(request_handler, "post_inference"):
                 result = request_handler.post_inference(result, output_metadata)
+                
+                if debug:
+                    logger.info("post_inference: {}".format(util.pp_str_flat(result)))
 
         except CortexException as e:
             e.wrap("error", "sample {}".format(i + 1))
@@ -207,16 +222,17 @@ def predict(app_name, api_name):
     return jsonify(response)
 
 
+def extract_signature(metadata_list):
+    metadata = {}
+    for meta in metadata_list:
+        numpy_type = ONNX_TO_NP_TYPE.get(meta.type, meta.type)
+        metadata[meta.name] = {"shape": meta.shape, "type": numpy_type}
+
+    return metadata
+
 @app.route("/<app_name>/<api_name>/signature", methods=["GET"])
 def get_signature(app_name, api_name):
-    metadata = {}
-    input_metadata_list = local_cache["input_metadata"]
-
-    for input_metadata in input_metadata_list:
-        numpy_type = ONNX_TO_NP_TYPE[input_metadata.type]
-        metadata[input_metadata.name] = {"shape": input_metadata.shape, "type": numpy_type}
-    response = {"signature": metadata}
-    return jsonify(response)
+    return jsonify({"signature": extract_signature(local_cache["input_metadata"])})
 
 
 @app.errorhandler(Exception)
@@ -249,7 +265,9 @@ def start(args):
         sess = rt.InferenceSession(model_path)
         local_cache["sess"] = sess
         local_cache["input_metadata"] = sess.get_inputs()
+        logger.info("input_metadata: {}".format(util.pp_str_flat(extract_signature(local_cache["input_metadata"]))))
         local_cache["output_metadata"] = sess.get_outputs()
+        logger.info("output_metadata: {}".format(util.pp_str_flat(extract_signature(local_cache["output_metadata"]))))
     except CortexException as e:
         e.wrap("error")
         logger.error(str(e))
