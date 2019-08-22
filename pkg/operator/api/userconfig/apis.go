@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -35,9 +36,9 @@ type API struct {
 	ModelFormat    ModelFormat       `json:"model_format" yaml:"model_format"`
 	Tracker        *Tracker          `json:"tracker" yaml:"tracker"`
 	RequestHandler *string           `json:"request_handler" yaml:"request_handler"`
+	TFServing      *TFServingOptions `json:"tf_serving" yaml:"tf_serving"`
 	Compute        *APICompute       `json:"compute" yaml:"compute"`
 	Tags           Tags              `json:"tags" yaml:"tags"`
-	TFServing      *TFServingOptions `json:"tf_serving" yaml:"tf_serving"`
 }
 
 type Tracker struct {
@@ -108,12 +109,12 @@ var apiValidation = &cr.StructValidation{
 		{
 			StructField: "TFServing",
 			StructValidation: &cr.StructValidation{
+				DefaultNil: true,
 				StructFieldValidations: []*cr.StructFieldValidation{
 					{
 						StructField: "SignatureKey",
 						StringValidation: &cr.StringValidation{
-							AllowEmpty: true,
-							Default:    "predict",
+							Default: "predict",
 						},
 					},
 				},
@@ -212,6 +213,16 @@ func (api *API) Validate() error {
 		default:
 			return errors.Wrap(ErrorUnableToInferModelFormat(api.Model), Identify(api))
 		}
+	}
+
+	if api.ModelFormat == TensorFlowModelFormat && api.TFServing == nil {
+		api.TFServing = &TFServingOptions{
+			SignatureKey: consts.DefaultTFServingSignatureKey,
+		}
+	}
+
+	if api.ModelFormat != TensorFlowModelFormat && api.TFServing != nil {
+		return errors.Wrap(ErrorTFServingOptionsForTFOnly(api.ModelFormat), Identify(api))
 	}
 
 	if err := api.Compute.Validate(); err != nil {
