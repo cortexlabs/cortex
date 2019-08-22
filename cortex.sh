@@ -117,6 +117,7 @@ fi
 
 export CORTEX_AWS_ACCESS_KEY_ID="${CORTEX_AWS_ACCESS_KEY_ID:-$AWS_ACCESS_KEY_ID}"
 export CORTEX_AWS_SECRET_ACCESS_KEY="${CORTEX_AWS_SECRET_ACCESS_KEY:-$AWS_SECRET_ACCESS_KEY}"
+
 export CORTEX_LOG_GROUP="${CORTEX_LOG_GROUP:-cortex}"
 export CORTEX_BUCKET="${CORTEX_BUCKET:-""}"
 export CORTEX_REGION="${CORTEX_REGION:-us-west-2}"
@@ -370,10 +371,13 @@ function ask_sudo() {
   fi
 }
 
-function prompt_for_support() {
-    echo
-    read -p "If you would like to get support or provide feedback to the dev team, please provide your email address: [press enter to skip]"
-    curl --silent --output /dev/null -k -X POST -H "Content-Type: application/json" $CORTEX_TELEMETRY_URL/support -d '{"email_address": "'$REPLY'", "source": "signup"}'
+function prompt_for_email() {
+  echo
+  read -p "Email address: [press enter to skip]"
+
+  if [[ ! -z "$REPLY" ]]; then
+    curl --silent --output /dev/null -k -X POST -H "Content-Type: application/json" $CORTEX_TELEMETRY_URL/support -d '{"email_address": "'$REPLY'", "source": "cortex.sh"}' >/dev/null 2>&1 || true
+  fi
 }
 
 function prompt_for_telemetry() {
@@ -453,7 +457,7 @@ if [ "$arg1" = "install" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    prompt_for_support && prompt_for_telemetry && install_eks && install_cortex && info
+    prompt_for_email && prompt_for_telemetry && install_eks && install_cortex && info
   elif [ "$arg2" = "cli" ]; then
     install_cli
   elif [ "$arg2" = "cortex" ]; then # Undocumented (just for dev)
@@ -491,7 +495,6 @@ elif [ "$arg1" = "update" ]; then
     show_help
     exit 1
   else
-    echo "here"
     uninstall_operator && install_cortex
   fi
 elif [ "$arg1" = "info" ]; then
