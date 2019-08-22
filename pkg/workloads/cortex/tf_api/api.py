@@ -316,8 +316,8 @@ def start(args):
 
         if not os.path.isdir(args.model_dir):
             bucket_name, prefix = ctx.storage.deconstruct_s3_path(api["model"])
-            storage_client = S3(bucket_name, client_config={})
-            storage_client.download_dir(prefix, args.model_dir)
+            s3_client = S3(bucket_name, client_config={})
+            s3_client.download_dir(prefix, args.model_dir)
 
         if args.only_download:
             return
