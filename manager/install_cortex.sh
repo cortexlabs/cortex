@@ -188,7 +188,7 @@ function validate_cortex() {
 eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" || true
 
 # https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
-kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.5.2/config/v1.5/aws-k8s-cni.yaml >/dev/null
+kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.5.3/config/v1.5/aws-k8s-cni.yaml >/dev/null
 
 setup_bucket
 setup_cloudwatch_logs
