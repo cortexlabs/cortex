@@ -23,6 +23,7 @@ import onnxruntime as rt
 import numpy as np
 
 from cortex.lib import util, package, Context, api_utils
+from cortex.lib.storage import S3
 from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 
@@ -233,9 +234,11 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
-        model_cache_path = os.path.join(args.model_dir, args.api)
-        if not os.path.exists(model_cache_path):
-            ctx.storage.download_file_external(api["model"], model_cache_path)
+        bucket_name, prefix = ctx.storage.deconstruct_s3_path(api["model"])
+        model_path = os.path.join(args.model_dir, os.path.basename(prefix))
+        if not os.path.exists(model_path):
+            s3_client = S3(bucket_name, client_config={})
+            s3_client.download_file(prefix, model_path)
 
         if args.only_download:
             return
@@ -244,7 +247,7 @@ def start(args):
             package.install_packages(ctx.python_packages, ctx.storage)
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
 
-        sess = rt.InferenceSession(model_cache_path)
+        sess = rt.InferenceSession(model_path)
         local_cache["sess"] = sess
         local_cache["input_metadata"] = sess.get_inputs()
         local_cache["output_metadata"] = sess.get_outputs()

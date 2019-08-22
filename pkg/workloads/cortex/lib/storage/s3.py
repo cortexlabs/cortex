@@ -188,6 +188,10 @@ class S3(object):
     def upload_file(self, local_path, key):
         self.s3.upload_file(local_path, self.bucket, key)
 
+    def download_file_to_dir(self, key, local_dir_path):
+        filename = os.path.basename(key)
+        return self.download_file(key, os.path.join(local_dir_path, filename))
+
     def download_file(self, key, local_path):
         util.mkdir_p(os.path.dirname(local_path))
         try:
@@ -221,34 +225,3 @@ class S3(object):
         local_zip = os.path.join(local_dir, "zip.zip")
         self.download_file(key, local_zip)
         util.extract_zip(local_zip, delete_zip_file=True)
-
-    def download_and_unzip_external(self, s3_path, local_dir):
-        util.mkdir_p(local_dir)
-        local_zip = os.path.join(local_dir, "zip.zip")
-        self.download_file_external(s3_path, local_zip)
-        util.extract_zip(local_zip, delete_zip_file=True)
-
-    def download_file_external(self, s3_path, local_path):
-        util.mkdir_p(os.path.dirname(local_path))
-        bucket, key = self.deconstruct_s3_path(s3_path)
-        try:
-            self.s3.download_file(bucket, key, local_path)
-            return local_path
-        except Exception as e:
-            raise CortexException(
-                'key "{}" in bucket "{}" could not be accessed; '.format(key, bucket)
-                + "it may not exist, or you may not have suffienct permissions"
-            ) from e
-
-    def get_json_external(self, s3_path, num_retries=0, retry_delay_sec=2):
-        bucket, key = self.deconstruct_s3_path(s3_path)
-        obj = self._read_bytes_from_s3(
-            key,
-            allow_missing=False,
-            ext_bucket=bucket,
-            num_retries=num_retries,
-            retry_delay_sec=retry_delay_sec,
-        )
-        if obj is None:
-            return None
-        return json.loads(obj.decode("utf-8"))
