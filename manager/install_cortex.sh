@@ -16,6 +16,10 @@
 
 set -e
 
+function ping_install() {
+  curl --output /dev/null -k -X POST -H "Content-Type: application/json" $CORTEX_TELEMETRY_URL/events -d '{"timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'", "event": "setup.install_start", "version": "'$CORTEX_VERSION_STABLE'"}'
+}
+
 function setup_bucket() {
   if [ "$CORTEX_BUCKET" == "" ]; then
     account_id_hash=$(aws sts get-caller-identity | jq .Account | sha256sum | cut -f1 -d" " | cut -c -10)
@@ -184,6 +188,8 @@ function validate_cortex() {
 
   echo -e "\n✓ Load balancers are ready"
 }
+
+ping_install
 
 eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" || true
 

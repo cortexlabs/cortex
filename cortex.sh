@@ -148,6 +148,7 @@ export CORTEX_IMAGE_ISTIO_PROXY="${CORTEX_IMAGE_ISTIO_PROXY:-cortexlabs/istio-pr
 export CORTEX_IMAGE_ISTIO_MIXER="${CORTEX_IMAGE_ISTIO_MIXER:-cortexlabs/istio-mixer:$CORTEX_VERSION_STABLE}"
 
 export CORTEX_ENABLE_TELEMETRY="${CORTEX_ENABLE_TELEMETRY:-""}"
+export CORTEX_TELEMETRY_URL="${CORTEX_TELEMETRY_URL:-"https://telemetry.cortexlabs.dev"}"
 
 ##########################
 ### TOP-LEVEL COMMANDS ###
@@ -183,6 +184,7 @@ function install_cortex() {
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_AWS_ACCESS_KEY_ID=$CORTEX_AWS_ACCESS_KEY_ID \
     -e CORTEX_AWS_SECRET_ACCESS_KEY=$CORTEX_AWS_SECRET_ACCESS_KEY \
+    -e CORTEX_VERSION_STABLE=$CORTEX_VERSION_STABLE \
     -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
     -e CORTEX_REGION=$CORTEX_REGION \
     -e CORTEX_NAMESPACE=$CORTEX_NAMESPACE \
@@ -207,6 +209,7 @@ function install_cortex() {
     -e CORTEX_IMAGE_ISTIO_PROXY=$CORTEX_IMAGE_ISTIO_PROXY \
     -e CORTEX_IMAGE_ISTIO_MIXER=$CORTEX_IMAGE_ISTIO_MIXER \
     -e CORTEX_ENABLE_TELEMETRY=$CORTEX_ENABLE_TELEMETRY \
+    -e CORTEX_TELEMETRY_URL=$CORTEX_TELEMETRY_URL \
     $CORTEX_IMAGE_MANAGER
 }
 
@@ -367,12 +370,18 @@ function ask_sudo() {
   fi
 }
 
+function prompt_for_support() {
+    echo
+    read -p "If you would like to get support or provide feedback to the dev team, please provide your email address: [press enter to skip]"
+    curl --silent --output /dev/null -k -X POST -H "Content-Type: application/json" $CORTEX_TELEMETRY_URL/support -d '{"email_address": "'$REPLY'", "source": "signup"}'
+}
+
 function prompt_for_telemetry() {
   if [ "$CORTEX_ENABLE_TELEMETRY" != "true" ] && [ "$CORTEX_ENABLE_TELEMETRY" != "false" ]; then
     while true
     do
       echo
-      read -p "Would you like to help improve Cortex by anonymously sending error reports and usage stats to the dev team? [Y/n] " -n 1 -r
+      read -p "Would you like to help improve Cortex by anonymously sending error reports and cluster usage stats to the dev team? [Y/n] " -n 1 -r
       echo
       if [[ $REPLY =~ ^[Yy]$ ]]; then
         export CORTEX_ENABLE_TELEMETRY=true
@@ -384,16 +393,6 @@ function prompt_for_telemetry() {
       echo "Unexpected value, please enter \"Y\" or \"n\""
     done
   fi
-}
-
-function prompt_for_support() {
-  while true
-  do
-    echo
-    read -p "Please give your email address?"
-    echo
-    curl -k -X POST -H "Content-Type: application/json" $CONST_TELEMETRY_URL/emails -d '{"email_address": '"$REPLY"', "source": "signup"}'
-  done
 }
 
 function confirm_for_uninstall() {
@@ -454,7 +453,7 @@ if [ "$arg1" = "install" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    prompt_for_telemetry && install_eks && install_cortex && info
+    prompt_for_support && prompt_for_telemetry && install_eks && install_cortex && info
   elif [ "$arg2" = "cli" ]; then
     install_cli
   elif [ "$arg2" = "cortex" ]; then # Undocumented (just for dev)
@@ -492,6 +491,7 @@ elif [ "$arg1" = "update" ]; then
     show_help
     exit 1
   else
+    echo "here"
     uninstall_operator && install_cortex
   fi
 elif [ "$arg1" = "info" ]; then
