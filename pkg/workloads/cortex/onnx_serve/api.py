@@ -147,7 +147,7 @@ def convert_to_onnx_input(sample, input_metadata_list):
 
 @app.route("/<app_name>/<api_name>", methods=["POST"])
 def predict(app_name, api_name):
-    debug = request.args.get('debug') is not None
+    debug = request.args.get("debug") is not None
 
     try:
         payload = request.get_json()
@@ -198,7 +198,7 @@ def predict(app_name, api_name):
 
             if request_handler is not None and util.has_function(request_handler, "post_inference"):
                 result = request_handler.post_inference(result, output_metadata)
-                
+
                 if debug:
                     logger.info("post_inference: {}".format(util.pp_str_flat(result)))
 
@@ -229,6 +229,7 @@ def extract_signature(metadata_list):
         metadata[meta.name] = {"shape": meta.shape, "type": numpy_type}
 
     return metadata
+
 
 @app.route("/<app_name>/<api_name>/signature", methods=["GET"])
 def get_signature(app_name, api_name):
@@ -265,9 +266,17 @@ def start(args):
         sess = rt.InferenceSession(model_path)
         local_cache["sess"] = sess
         local_cache["input_metadata"] = sess.get_inputs()
-        logger.info("input_metadata: {}".format(util.pp_str_flat(extract_signature(local_cache["input_metadata"]))))
+        logger.info(
+            "input_metadata: {}".format(
+                util.pp_str_flat(extract_signature(local_cache["input_metadata"]))
+            )
+        )
         local_cache["output_metadata"] = sess.get_outputs()
-        logger.info("output_metadata: {}".format(util.pp_str_flat(extract_signature(local_cache["output_metadata"]))))
+        logger.info(
+            "output_metadata: {}".format(
+                util.pp_str_flat(extract_signature(local_cache["output_metadata"]))
+            )
+        )
     except CortexException as e:
         e.wrap("error")
         logger.error(str(e))

@@ -156,7 +156,7 @@ def run_predict(sample, debug=False):
     request_handler = local_cache.get("request_handler")
 
     prepared_sample = sample
-    
+
     if debug:
         logger.info("sample: {}".format(util.pp_str_flat(sample)))
 
@@ -164,7 +164,7 @@ def run_predict(sample, debug=False):
         prepared_sample = request_handler.pre_inference(
             sample, local_cache["metadata"]["signatureDef"]
         )
-        
+
         if debug:
             logger.info("pre_inference: {}".format(util.pp_str_flat(prepared_sample)))
 
@@ -206,7 +206,7 @@ def health():
 
 @app.route("/<deployment_name>/<api_name>", methods=["POST"])
 def predict(deployment_name, api_name):
-    debug = request.args.get('debug') is not None
+    debug = request.args.get("debug") is not None
 
     try:
         payload = request.get_json()
@@ -379,7 +379,9 @@ def start(args):
                 sys.exit(1)
 
         time.sleep(1)
-    logger.info("model_signature: {}".format(extract_signature(local_cache["metadata"]["signatureDef"])))
+    logger.info(
+        "model_signature: {}".format(extract_signature(local_cache["metadata"]["signatureDef"]))
+    )
     serve(app, listen="*:{}".format(args.port))
 
 
