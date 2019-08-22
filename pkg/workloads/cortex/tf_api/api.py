@@ -99,7 +99,7 @@ def after_request(response):
 
 def create_prediction_request(sample):
     signature_def = local_cache["metadata"]["signatureDef"]
-    signature_key = list(signature_def.keys())[0]
+    signature_key = local_cache["api"]["tf_serving"]["signature_key"]
     prediction_request = predict_pb2.PredictRequest()
     prediction_request.model_spec.name = "model"
     prediction_request.model_spec.signature_name = signature_key
@@ -241,11 +241,12 @@ def predict(deployment_name, api_name):
 
 def extract_signature():
     signature_def = local_cache["metadata"]["signatureDef"]
-    if signature_def.get("predict") is None or signature_def["predict"].get("inputs") is None:
-        raise UserException('unable to find "predict" in model\'s signature definition')
+    signature_key = local_cache["api"]["tf_serving"]["signature_key"]
+    if signature_def.get(signature_key) is None or signature_def[signature_key].get("inputs") is None:
+        raise UserException('unable to find "'+signature_key+'" in model\'s signature definition')
 
     metadata = {}
-    for input_name, input_metadata in signature_def["predict"]["inputs"].items():
+    for input_name, input_metadata in signature_def[signature_key]["inputs"].items():
         metadata[input_name] = {
             "shape": [int(dim["size"]) for dim in input_metadata["tensorShape"]["dim"]],
             "type": DTYPE_TO_TF_TYPE[input_metadata["dtype"]].name,

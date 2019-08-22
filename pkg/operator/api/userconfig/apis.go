@@ -31,17 +31,22 @@ type APIs []*API
 
 type API struct {
 	ResourceFields
-	Model          string      `json:"model" yaml:"model"`
-	ModelFormat    ModelFormat `json:"model_format" yaml:"model_format"`
-	Tracker        *Tracker    `json:"tracker" yaml:"tracker"`
-	RequestHandler *string     `json:"request_handler" yaml:"request_handler"`
-	Compute        *APICompute `json:"compute" yaml:"compute"`
-	Tags           Tags        `json:"tags" yaml:"tags"`
+	Model          string            `json:"model" yaml:"model"`
+	ModelFormat    ModelFormat       `json:"model_format" yaml:"model_format"`
+	Tracker        *Tracker          `json:"tracker" yaml:"tracker"`
+	RequestHandler *string           `json:"request_handler" yaml:"request_handler"`
+	Compute        *APICompute       `json:"compute" yaml:"compute"`
+	Tags           Tags              `json:"tags" yaml:"tags"`
+	TFServing      *TFServingOptions `json:"tf_serving" yaml:"tf_serving"`
 }
 
 type Tracker struct {
 	Key       string    `json:"key" yaml:"key"`
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
+}
+
+type TFServingOptions struct {
+	SignatureKey string `json:"signature_key" yaml:"signature_key"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -98,6 +103,20 @@ var apiValidation = &cr.StructValidation{
 			},
 			Parser: func(str string) (interface{}, error) {
 				return ModelFormatFromString(str), nil
+			},
+		},
+		{
+			StructField: "TFServing",
+			StructValidation: &cr.StructValidation{
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "SignatureKey",
+						StringValidation: &cr.StringValidation{
+							AllowEmpty: true,
+							Default:    "predict",
+						},
+					},
+				},
 			},
 		},
 		apiComputeFieldValidation,
