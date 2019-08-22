@@ -115,14 +115,14 @@ var apiValidation = &cr.StructValidation{
 //			- variables.data-00000-of-00001 (there are a variable number of these files)
 func IsValidTensorFlowS3Directory(path string) bool {
 	if valid, err := aws.IsS3PathFileExternal(
-		fmt.Sprintf("%s/saved_model.pb", path),
-		fmt.Sprintf("%s/variables/variables.index", path),
+		aws.S3PathJoin(path, "saved_model.pb"),
+		aws.S3PathJoin(path, "variables/variables.index"),
 	); err != nil || !valid {
 		return false
 	}
 
 	if valid, err := aws.IsS3PathPrefixExternal(
-		fmt.Sprintf("%s/variables/variables.data-00000-of", path),
+		aws.S3PathJoin(path, "variables/variables.data-00000-of"),
 	); err != nil || !valid {
 		return false
 	}
@@ -186,7 +186,7 @@ func (api *API) Validate() error {
 		case IsValidTensorFlowS3Directory(api.Model):
 			api.ModelFormat = TensorFlowModelFormat
 		default:
-			return errors.Wrap(ErrorUnableToInferModelFormat(), Identify(api))
+			return errors.Wrap(ErrorUnableToInferModelFormat(api.Model), Identify(api))
 		}
 	}
 

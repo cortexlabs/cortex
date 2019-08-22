@@ -83,6 +83,7 @@ packaging==19.0.0
 pillow==6.1.0
 regex==2017.4.5
 requests==2.21.0
+tensorflow==1.14.0  # In TensorFlow model formats only
 ```
 
 You can install additional PyPI packages and import your own Python packages. See [Python Packages](../piplines/python-packages.md) for more details.

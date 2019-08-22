@@ -19,6 +19,7 @@ package context
 import (
 	"bytes"
 	"path/filepath"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -70,7 +71,7 @@ func getAPIs(config *userconfig.Config,
 		}
 
 		buf.WriteString(deploymentVersion)
-		buf.WriteString(apiConfig.Model)
+		buf.WriteString(strings.TrimSuffix(apiConfig.Model, "/"))
 
 		id := hash.Bytes(buf.Bytes())
 
