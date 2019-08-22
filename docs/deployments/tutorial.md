@@ -46,7 +46,7 @@ $ cortex get --watch
 $ cortex get classifier
 
 # Test the API
-$ curl -k -X POST -H "Content-Type: application/json" \
+$ curl -X POST -H "Content-Type: application/json" \
        -d '{ "samples": [ { "sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3 } ] }' \
        <API endpoint>
 ```

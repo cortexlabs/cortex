@@ -20,7 +20,4 @@ trap 'err=1' ERR
 
 pytest lib/test
 
-pytest spark_job/test/unit
-pytest spark_job/test/integration
-
 test $err = 0

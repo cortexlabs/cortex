@@ -3,7 +3,6 @@
 //   rm go.mod go.sum
 //   go mod tidy
 //   replace these lines in go.mod:
-//     github.com/GoogleCloudPlatform/spark-on-k8s-operator v1alpha1-0.5-2.4.0
 //     github.com/cortexlabs/yaml v2.2.4
 //     k8s.io/client-go v12.0.0
 //     k8s.io/api 7525909cc6da
@@ -17,7 +16,6 @@ module github.com/cortexlabs/cortex
 go 1.12
 
 require (
-	github.com/GoogleCloudPlatform/spark-on-k8s-operator v0.0.0-20181208011959-62db1d66dafa
 	github.com/aws/aws-sdk-go v1.20.20
 	github.com/cortexlabs/yaml v0.0.0-20190626164117-202ab3a3d475
 	github.com/davecgh/go-spew v1.1.1

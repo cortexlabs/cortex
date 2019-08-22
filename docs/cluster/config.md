@@ -11,6 +11,10 @@ These environment variables can be modified and exported before running `cortex.
 export AWS_ACCESS_KEY_ID="***"
 export AWS_SECRET_ACCESS_KEY="***"
 
+# Optional AWS credentials for the Operator which may be used to restrict its AWS access (defaults to the AWS credentials set above)
+export CORTEX_AWS_ACCESS_KEY_ID="***"
+export CORTEX_AWS_SECRET_ACCESS_KEY="***"
+
 # The name of the CloudWatch log group Cortex will use
 export CORTEX_LOG_GROUP="cortex"
 
@@ -42,12 +46,8 @@ export CORTEX_NAMESPACE="cortex"
 export CORTEX_IMAGE_MANAGER="cortexlabs/manager:master"
 export CORTEX_IMAGE_FLUENTD="cortexlabs/fluentd:master"
 export CORTEX_IMAGE_OPERATOR="cortexlabs/operator:master"
-export CORTEX_IMAGE_SPARK="cortexlabs/spark:master"
-export CORTEX_IMAGE_SPARK_OPERATOR="cortexlabs/spark-operator:master"
 export CORTEX_IMAGE_TF_SERVE="cortexlabs/tf-serve:master"
-export CORTEX_IMAGE_TF_TRAIN="cortexlabs/tf-train:master"
 export CORTEX_IMAGE_TF_API="cortexlabs/tf-api:master"
-export CORTEX_IMAGE_TF_TRAIN_GPU="cortexlabs/tf-train-gpu:master"
 export CORTEX_IMAGE_TF_SERVE_GPU="cortexlabs/tf-serve-gpu:master"
 export CORTEX_IMAGE_ONNX_SERVE="cortexlabs/onnx-serve:master"
 export CORTEX_IMAGE_ONNX_SERVE_GPU="cortexlabs/onnx-serve-gpu:master"

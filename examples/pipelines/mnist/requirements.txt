@@ -1,2 +1,0 @@
-pillow==5.4.1
-tensor2tensor==1.10.0

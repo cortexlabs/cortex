@@ -15,7 +15,6 @@
 import os
 import errno
 import shutil
-import sys
 import stat
 import pprint
 import pickle
@@ -24,21 +23,16 @@ import collections
 import tempfile
 import zipfile
 import hashlib
-import marshal
 import msgpack
 from copy import deepcopy
 from datetime import datetime
 
-from cortex import consts
 from cortex.lib.log import get_logger
 
 import json_tricks
 
 
 logger = get_logger()
-
-resource_escape_seq = "🌝🌝🌝🌝🌝"
-resource_escape_seq_raw = r"\ud83c\udf1d\ud83c\udf1d\ud83c\udf1d\ud83c\udf1d\ud83c\udf1d"
 
 
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
@@ -83,33 +77,6 @@ def pp_str_flat(obj, indent=0):
     out = out.replace(resource_escape_seq, "@")
     out = out.replace(resource_escape_seq_raw, "@")
     return indent_str(out, indent)
-
-
-def data_type_str(data_type):
-    data_type_str = pp_str_flat(flatten_type_schema(data_type))
-    for t in consts.ALL_TYPES:
-        data_type_str = data_type_str.replace('"' + t, t)
-        data_type_str = data_type_str.replace(t + '"', t)
-    return data_type_str
-
-
-def flatten_type_schema(data_type):
-    if is_list(data_type):
-        flattened = []
-        for item in data_type:
-            flattened.append(flatten_type_schema(item))
-        return flattened
-
-    if is_dict(data_type):
-        if "_type" in data_type:
-            return flatten_type_schema(data_type["_type"])
-
-        flattened = {}
-        for key, val in data_type.items():
-            flattened[key] = flatten_type_schema(val)
-        return flattened
-
-    return data_type
 
 
 def user_obj_str(obj):
@@ -243,43 +210,29 @@ class Tempdir:
         rm_dir(self.temp_dir)
 
 
-def get_timestamp_from_datetime(dt, delimiter="-"):
-    time_format = delimiter.join(["%Y", "%m", "%d", "%H", "%M", "%S", "%f"])
-    return dt.strftime(time_format)
-
-
-def format_datetime(dt):
-    time_format = "%Y-%m-%d %H:%M:%S"
-    return dt.strftime(time_format)
-
-
-def get_now_formatted():
-    return format_datetime(datetime.utcnow())
-
-
 def now_timestamp_rfc_3339():
     return datetime.utcnow().isoformat("T") + "Z"
 
 
-def remove_prefix_if_present(string, prefix):
+def trim_prefix(string, prefix):
     if string.startswith(prefix):
         return string[len(prefix) :]
     return string
 
 
-def add_prefix_unless_present(string, prefix):
+def ensure_prefix(string, prefix):
     if string.startswith(prefix):
         return string
     return prefix + string
 
 
-def remove_suffix_if_present(string, suffix):
+def trim_suffix(string, suffix):
     if string.endswith(suffix):
         return string[: -len(suffix)]
     return string
 
 
-def add_suffix_unless_present(string, suffix):
+def ensure_suffix(string, suffix):
     if string.endswith(suffix):
         return string
     return string + suffix
@@ -368,13 +321,6 @@ def flatten(var):
         return [a for i in var for a in flatten(i)]
     else:
         return [var]
-
-
-def keep_dict_keys(d, keys):
-    key_set = set(keys)
-    for key in list(d.keys()):
-        if key not in key_set:
-            del d[key]
 
 
 def create_multi_map(d, key_func):
@@ -501,16 +447,6 @@ def read_msgpack(msgpack_path):
         return msgpack.load(msgpack_file, raw=False)
 
 
-def hash_str(string, alg="sha256"):
-    hashing_alg = getattr(hashlib, alg)
-    return hashing_alg(string).hexdigest()
-
-
-def hash_file(file_path, alg="sha256"):
-    file_str = read_file(file_path)
-    return hash_str(file_str, alg)
-
-
 def zip_dir(src_dir, dest_path, nest_dir=False, ignore=None):
     """Note: files are added at the root level of the zip, unless nest_dir=True"""
     if nest_dir:
@@ -533,8 +469,8 @@ def zip_files(
     allow_missing_files=False,
 ):
     """src_files is a list of strings (path_to_file/dir)"""
-    dest_path = add_suffix_unless_present(dest_path, ".zip")
-    add_prefix = remove_prefix_if_present(add_prefix, "/")
+    dest_path = ensure_suffix(dest_path, ".zip")
+    add_prefix = trim_prefix(add_prefix, "/")
 
     if remove_prefix != "" and not remove_prefix.endswith("/"):
         remove_prefix = remove_prefix + "/"
@@ -550,7 +486,7 @@ def zip_files(
 
     with zipfile.ZipFile(dest_path, "w", zipfile.ZIP_DEFLATED) as myzip:
         for empty_file_path in empty_files:
-            empty_file_path = remove_prefix_if_present(empty_file_path, "/")
+            empty_file_path = trim_prefix(empty_file_path, "/")
             myzip.writestr(empty_file_path, "")
 
         for src_file in src_files:
@@ -558,8 +494,8 @@ def zip_files(
                 zip_name = os.path.basename(src_file)
             else:
                 zip_name = src_file
-                zip_name = remove_prefix_if_present(zip_name, remove_prefix)
-                zip_name = remove_prefix_if_present(zip_name, common_prefix)
+                zip_name = trim_prefix(zip_name, remove_prefix)
+                zip_name = trim_prefix(zip_name, common_prefix)
 
             zip_name = os.path.join(add_prefix, zip_name)
             if allow_missing_files:
@@ -573,26 +509,26 @@ def zip_dispersed_files(
     src_files, dest_path, add_prefix="", empty_files=[], ignore=None, allow_missing_files=False
 ):
     """src_files is a list of tuples (path_to_file/dir, path_in_zip)"""
-    dest_path = add_suffix_unless_present(dest_path, ".zip")
-    add_prefix = remove_prefix_if_present(add_prefix, "/")
+    dest_path = ensure_suffix(dest_path, ".zip")
+    add_prefix = trim_prefix(add_prefix, "/")
 
     src_dirs = [(f, p) for f, p in src_files if f and os.path.isdir(f)]
     src_files = [(f, p) for f, p in src_files if f and os.path.isfile(f)]
     for src_dir, zip_name in src_dirs:
         for src_file in list_files_recursive(src_dir, ignore=ignore):
             common_prefix = os.path.commonprefix([src_dir, src_file])
-            rel_src_file = remove_prefix_if_present(src_file, common_prefix)
-            rel_src_file = remove_prefix_if_present(rel_src_file, "/")
+            rel_src_file = trim_prefix(src_file, common_prefix)
+            rel_src_file = trim_prefix(rel_src_file, "/")
             updated_zip_name = os.path.join(zip_name, rel_src_file)
             src_files.append((src_file, updated_zip_name))
 
     with zipfile.ZipFile(dest_path, "w", zipfile.ZIP_DEFLATED) as myzip:
         for empty_file_path in empty_files:
-            empty_file_path = remove_prefix_if_present(empty_file_path, "/")
+            empty_file_path = trim_prefix(empty_file_path, "/")
             myzip.writestr(empty_file_path, "")
 
         for src_file, zip_name in src_files:
-            zip_name = remove_prefix_if_present(zip_name, "/")
+            zip_name = trim_prefix(zip_name, "/")
             zip_name = os.path.join(add_prefix, zip_name)
             if allow_missing_files:
                 if os.path.isfile(src_file):
@@ -611,23 +547,6 @@ def extract_zip(zip_path, dest_dir=None, delete_zip_file=False):
 
     if delete_zip_file:
         rm_file(zip_path)
-
-
-# The order for maps is deterministic. Returns a list
-def flatten_all_values(obj):
-    if is_list(obj):
-        flattened_values = []
-        for e in obj:
-            flattened_values += flatten_all_values(e)
-        return flattened_values
-
-    if is_dict(obj):
-        flattened_values = []
-        for key in sorted(obj.keys()):
-            flattened_values += flatten_all_values(obj[key])
-        return flattened_values
-
-    return [obj]
 
 
 def print_samples_horiz(
@@ -726,221 +645,6 @@ def is_number_col(items):
 def log_job_finished(workload_id):
     timestamp = now_timestamp_rfc_3339()
     logger.info("workload: {}, completed: {}".format(workload_id, timestamp))
-
-
-CORTEX_TYPE_TO_VALIDATOR = {
-    consts.COLUMN_TYPE_INT: is_int,
-    consts.COLUMN_TYPE_INT_LIST: is_int_list,
-    consts.COLUMN_TYPE_FLOAT: is_float_or_int,
-    consts.COLUMN_TYPE_FLOAT_LIST: is_float_or_int_list,
-    consts.COLUMN_TYPE_STRING: is_str,
-    consts.COLUMN_TYPE_STRING_LIST: is_str_list,
-    consts.VALUE_TYPE_INT: is_int,
-    consts.VALUE_TYPE_FLOAT: is_float_or_int,
-    consts.VALUE_TYPE_STRING: is_str,
-    consts.VALUE_TYPE_BOOL: is_bool,
-}
-
-CORTEX_TYPE_TO_UPCASTER = {
-    consts.VALUE_TYPE_FLOAT: lambda x: float(x),
-    consts.COLUMN_TYPE_FLOAT: lambda x: float(x),
-    consts.COLUMN_TYPE_FLOAT_LIST: lambda ls: [float(item) for item in ls],
-}
-
-CORTEX_TYPE_TO_CASTER = {
-    consts.COLUMN_TYPE_INT: lambda x: int(x),
-    consts.COLUMN_TYPE_INT_LIST: lambda ls: [int(item) for item in ls],
-    consts.COLUMN_TYPE_FLOAT: lambda x: float(x),
-    consts.COLUMN_TYPE_FLOAT_LIST: lambda ls: [float(item) for item in ls],
-    consts.COLUMN_TYPE_STRING: lambda x: str(x),
-    consts.COLUMN_TYPE_STRING_LIST: lambda ls: [str(item) for item in ls],
-    consts.VALUE_TYPE_INT: lambda x: int(x),
-    consts.VALUE_TYPE_FLOAT: lambda x: float(x),
-    consts.VALUE_TYPE_STRING: lambda x: str(x),
-    consts.VALUE_TYPE_BOOL: lambda x: bool(x),
-}
-
-
-def upcast(value, cortex_type):
-    upcaster = CORTEX_TYPE_TO_UPCASTER.get(cortex_type, None)
-    if upcaster:
-        return upcaster(value)
-    return value
-
-
-def cast(value, cortex_type):
-    upcaster = CORTEX_TYPE_TO_CASTER.get(cortex_type, None)
-    if upcaster:
-        return upcaster(value)
-    return value
-
-
-def validate_cortex_type(value, cortex_type):
-    if value is None:
-        return True
-
-    if not is_str(cortex_type):
-        raise
-
-    if cortex_type == consts.COLUMN_TYPE_INFERRED:
-        return True
-
-    valid_types = cortex_type.split("|")
-    for valid_type in valid_types:
-        if CORTEX_TYPE_TO_VALIDATOR[valid_type](value):
-            return True
-
-    return False
-
-
-def validate_output_type(value, output_type):
-    if value is None:
-        return True
-
-    if is_str(output_type):
-        valid_types = output_type.split("|")
-
-        for valid_type in valid_types:
-            if CORTEX_TYPE_TO_VALIDATOR[valid_type](value):
-                return True
-
-        return False
-
-    if is_list(output_type):
-        if not is_list(value):
-            return False
-        for value_item in value:
-            if not validate_output_type(value_item, output_type[0]):
-                return False
-        return True
-
-    if is_dict(output_type):
-        if not is_dict(value):
-            return False
-
-        is_generic_map = False
-        if len(output_type) == 1:
-            output_type_key = next(iter(output_type.keys()))
-            if output_type_key in consts.VALUE_TYPES:
-                is_generic_map = True
-                generic_map_key = output_type_key
-                generic_map_value = output_type[output_type_key]
-
-        if is_generic_map:
-            for value_key, value_val in value.items():
-                if not validate_output_type(value_key, generic_map_key):
-                    return False
-                if not validate_output_type(value_val, generic_map_value):
-                    return False
-            return True
-
-        # Fixed map
-        for type_key, type_val in output_type.items():
-            if type_key not in value:
-                return False
-            if not validate_output_type(value[type_key], type_val):
-                return False
-        return True
-
-    return False  # unexpected
-
-
-# value is assumed to be already validated against output_type
-def cast_output_type(value, output_type):
-    if is_str(output_type):
-        if (
-            is_int(value)
-            and consts.VALUE_TYPE_FLOAT in output_type
-            and consts.VALUE_TYPE_INT not in output_type
-        ):
-            return float(value)
-        return value
-
-    if is_list(output_type):
-        casted = []
-        for item in value:
-            casted.append(cast_output_type(item, output_type[0]))
-        return casted
-
-    if is_dict(output_type):
-        is_generic_map = False
-        if len(output_type) == 1:
-            output_type_key = next(iter(output_type.keys()))
-            if output_type_key in consts.VALUE_TYPES:
-                is_generic_map = True
-                generic_map_key = output_type_key
-                generic_map_value = output_type[output_type_key]
-
-        if is_generic_map:
-            casted = {}
-            for value_key, value_val in value.items():
-                casted_key = cast_output_type(value_key, generic_map_key)
-                casted_val = cast_output_type(value_val, generic_map_value)
-                casted[casted_key] = casted_val
-            return casted
-
-        # Fixed map
-        casted = {}
-        for output_type_key, output_type_val in output_type.items():
-            casted_val = cast_output_type(value[output_type_key], output_type_val)
-            casted[output_type_key] = casted_val
-        return casted
-
-    return value
-
-
-def is_resource_ref(obj):
-    if not is_str(obj):
-        return False
-    return obj.startswith(resource_escape_seq) or obj.startswith(resource_escape_seq_raw)
-
-
-def get_resource_ref(string):
-    if not is_str(string):
-        raise ValueError("expected input of type string but received " + str(type(string)))
-    if string.startswith(resource_escape_seq):
-        return string[len(resource_escape_seq) :]
-    elif string.startswith(resource_escape_seq_raw):
-        return string[len(resource_escape_seq_raw) :]
-    raise ValueError("expected a resource reference but got " + string)
-
-
-def unescape_resource_ref(string):
-    if not is_str(string):
-        raise ValueError("expected input of type string but received " + str(type(string)))
-    out = string.replace(resource_escape_seq, "@")
-    out = out.replace(resource_escape_seq_raw, "@")
-    return out
-
-
-def remove_resource_ref(string):
-    if not is_str(string):
-        raise ValueError("expected input of type string but received " + str(type(string)))
-    out = string.replace(resource_escape_seq, "")
-    out = out.replace(resource_escape_seq_raw, "")
-    return out
-
-
-def extract_resource_refs(input):
-    if is_str(input):
-        if is_resource_ref(input):
-            return {get_resource_ref(input)}
-        return set()
-
-    if is_list(input):
-        resources = set()
-        for item in input:
-            resources = resources.union(extract_resource_refs(item))
-        return resources
-
-    if is_dict(input):
-        resources = set()
-        for key, val in input.items():
-            resources = resources.union(extract_resource_refs(key))
-            resources = resources.union(extract_resource_refs(val))
-        return resources
-
-    return set()
 
 
 def has_function(impl, fn_name):

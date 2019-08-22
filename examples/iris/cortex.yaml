@@ -3,12 +3,18 @@
 
 - kind: api
   name: tensorflow
-  model: s3://cortex-examples/iris/tensorflow.zip
+  model: s3://cortex-examples/iris/tensorflow/1560263532
+  request_handler: handlers/tensorflow.py
 
 - kind: api
   name: pytorch
   model: s3://cortex-examples/iris/pytorch.onnx
   request_handler: handlers/pytorch.py
+
+- kind: api
+  name: keras
+  model: s3://cortex-examples/iris/keras.onnx
+  request_handler: handlers/keras.py
 
 - kind: api
   name: xgboost
@@ -19,8 +25,3 @@
   name: sklearn
   model: s3://cortex-examples/iris/sklearn.onnx
   request_handler: handlers/sklearn.py
-
-- kind: api
-  name: keras
-  model: s3://cortex-examples/iris/keras.onnx
-  request_handler: handlers/keras.py

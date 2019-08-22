@@ -1,9 +1,0 @@
-- kind: environment
-  name: dev
-  data:
-    type: csv
-    path: s3a://cortex-examples/wine-quality.csv
-    csv_config:
-      header: true
-      sep: ';'
-    schema: [@fixed_acidity, @volatile_acidity, @citric_acid, @residual_sugar, @chlorides, @free_sulfur_dioxide, @total_sulfur_dioxide, @density, @pH, @sulphates, @alcohol, @quality]

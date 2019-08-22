@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import os
 import boto3
 import botocore
@@ -51,24 +50,13 @@ class S3(object):
 
     @staticmethod
     def deconstruct_s3_path(s3_path):
-        path = util.remove_prefix_if_present(s3_path, "s3://")
+        path = util.trim_prefix(s3_path, "s3://")
         bucket = path.split("/")[0]
         key = os.path.join(*path.split("/")[1:])
         return (bucket, key)
 
-    def hadoop_path(self, key):
-        return os.path.join("s3a://", self.bucket, key)
-
     def blob_path(self, key):
         return os.path.join("s3://", self.bucket, key)
-
-    def _get_dir(self, prefix, local_dir):
-        prefix = util.add_suffix_unless_present(prefix, "/")
-        util.mkdir_p(local_dir)
-        for key in self._get_matching_s3_keys_generator(prefix):
-            rel_path = util.remove_prefix_if_present(key, prefix)
-            local_dest_path = os.path.join(local_dir, rel_path)
-            self.download_file(key, local_dest_path)
 
     def _file_exists(self, key):
         try:
@@ -85,7 +73,7 @@ class S3(object):
         return response["KeyCount"] > 0
 
     def _is_s3_dir(self, dir_path):
-        prefix = util.add_suffix_unless_present(dir_path, "/")
+        prefix = util.ensure_suffix(dir_path, "/")
         return self._is_s3_prefix(prefix)
 
     def _get_matching_s3_objects_generator(self, prefix="", suffix=""):
@@ -207,6 +195,18 @@ class S3(object):
                 'key "{}" in bucket "{}" could not be accessed; '.format(key, self.bucket)
                 + "it may not exist, or you may not have suffienct permissions"
             ) from e
+
+    def download_dir(self, prefix, local_dir):
+        dir_name = util.trim_suffix(prefix, "/").split("/")[-1]
+        return self.download_dir_contents(prefix, os.path.join(local_dir, dir_name))
+
+    def download_dir_contents(self, prefix, local_dir):
+        util.mkdir_p(local_dir)
+        prefix = util.ensure_suffix(prefix, "/")
+        for key in self._get_matching_s3_keys_generator(prefix):
+            rel_path = util.trim_prefix(key, prefix)
+            local_dest_path = os.path.join(local_dir, rel_path)
+            self.download_file(key, local_dest_path)
 
     def zip_and_upload(self, local_path, key):
         util.zip_dir(local_path, "temp.zip")
