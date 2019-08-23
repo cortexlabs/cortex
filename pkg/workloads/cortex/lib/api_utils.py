@@ -46,7 +46,10 @@ def prediction_metrics(dimensions, api, predictions):
     metric_list = []
     tracker = api.get("tracker")
     for prediction in predictions:
-        predicted_value = prediction.get(tracker["key"])
+        predicted_value = prediction
+        if tracker.get("key") is None:
+            predicted_value = prediction
+
         if predicted_value is None:
             logger.warn(
                 "failed to track key '{}': not found in response payload".format(tracker["key"])
