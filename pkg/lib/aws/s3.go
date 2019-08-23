@@ -18,6 +18,7 @@ package aws
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -67,39 +68,73 @@ func S3PathJoin(paths ...string) string {
 	return "s3://" + filepath.Join(paths...)
 }
 
-func (c *Client) IsS3File(key string) (bool, error) {
-	_, err := c.s3Client.HeadObject(&s3.HeadObjectInput{
-		Bucket: aws.String(c.Bucket),
-		Key:    aws.String(key),
-	})
+func (c *Client) IsS3File(keys ...string) (bool, error) {
+	for _, key := range keys {
+		_, err := c.s3Client.HeadObject(&s3.HeadObjectInput{
+			Bucket: aws.String(c.Bucket),
+			Key:    aws.String(key),
+		})
 
-	if IsNotFoundErr(err) {
-		return false, nil
-	}
-	if err != nil {
-		return false, errors.Wrap(err, key)
+		if IsNotFoundErr(err) {
+			return false, nil
+		}
+		if err != nil {
+			return false, errors.Wrap(err, key)
+		}
 	}
 
 	return true, nil
 }
 
-func (c *Client) IsS3Dir(dirPath string) (bool, error) {
-	prefix := s.EnsureSuffix(dirPath, "/")
-	return c.IsS3Prefix(prefix)
-}
+func (c *Client) IsS3Prefix(prefixes ...string) (bool, error) {
+	for _, prefix := range prefixes {
+		out, err := c.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
+			Bucket: aws.String(c.Bucket),
+			Prefix: aws.String(prefix),
+		})
 
-func (c *Client) IsS3Prefix(prefix string) (bool, error) {
-	out, err := c.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
-		Bucket: aws.String(c.Bucket),
-		Prefix: aws.String(prefix),
-	})
+		if err != nil {
+			return false, errors.Wrap(err, prefix)
+		}
 
-	if err != nil {
-		return false, errors.Wrap(err, prefix)
+		if *out.KeyCount == 0 {
+			return false, nil
+		}
 	}
 
-	hasPrefix := *out.KeyCount > 0
-	return hasPrefix, nil
+	return true, nil
+}
+
+func (c *Client) IsS3Dir(dirPaths ...string) (bool, error) {
+	fullDirPaths := make([]string, len(dirPaths))
+	for i, dirPath := range dirPaths {
+		fullDirPaths[i] = s.EnsureSuffix(dirPath, "/")
+	}
+	return c.IsS3Prefix(fullDirPaths...)
+}
+
+func (c *Client) IsS3PathFile(s3Paths ...string) (bool, error) {
+	keys, err := c.ExractS3PathPrefixes(s3Paths...)
+	if err != nil {
+		return false, err
+	}
+	return c.IsS3File(keys...)
+}
+
+func (c *Client) IsS3PathPrefix(s3Paths ...string) (bool, error) {
+	prefixes, err := c.ExractS3PathPrefixes(s3Paths...)
+	if err != nil {
+		return false, err
+	}
+	return c.IsS3Prefix(prefixes...)
+}
+
+func (c *Client) IsS3PathDir(s3Paths ...string) (bool, error) {
+	dirPaths, err := c.ExractS3PathPrefixes(s3Paths...)
+	if err != nil {
+		return false, err
+	}
+	return c.IsS3Prefix(dirPaths...)
 }
 
 func (c *Client) UploadBytesToS3(data []byte, key string) error {
@@ -204,6 +239,21 @@ func (c *Client) ReadBytesFromS3(key string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func (c *Client) ListPrefix(prefix string, maxResults int64) ([]*s3.Object, error) {
+	listObjectsInput := &s3.ListObjectsV2Input{
+		Bucket:  aws.String(c.Bucket),
+		Prefix:  aws.String(prefix),
+		MaxKeys: aws.Int64(maxResults),
+	}
+
+	output, err := c.s3Client.ListObjectsV2(listObjectsInput)
+	if err != nil {
+		return nil, errors.Wrap(err, prefix)
+	}
+
+	return output.Contents, nil
+}
+
 func (c *Client) DeleteFromS3ByPrefix(prefix string, continueIfFailure bool) error {
 	listObjectsInput := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(c.Bucket),
@@ -294,97 +344,26 @@ func SplitS3Path(s3Path string) (string, string, error) {
 	return bucket, key, nil
 }
 
+func (c *Client) ExractS3PathPrefixes(s3Paths ...string) ([]string, error) {
+	prefixes := make([]string, len(s3Paths))
+	for i, s3Path := range s3Paths {
+		bucket, prefix, err := SplitS3Path(s3Path)
+		if err != nil {
+			return nil, err
+		}
+		if bucket != c.Bucket {
+			return nil, errors.New(fmt.Sprintf("bucket of S3 path %s does not match client bucket (%s)", s3Path, c.Bucket)) // unexpected
+		}
+		prefixes[i] = prefix
+	}
+	return prefixes, nil
+}
+
 func GetBucketRegion(bucket string) (string, error) {
 	sess := session.Must(session.NewSession())
 	region, err := s3manager.GetBucketRegion(aws.BackgroundContext(), sess, bucket, endpoints.UsWest2RegionID)
 	if err != nil {
-		return "", errors.Wrap(err, bucket)
+		return "", ErrorBucketInaccessible(bucket)
 	}
 	return region, nil
-}
-
-func IsS3PrefixExternal(bucket string, prefix string) (bool, error) {
-	region, err := GetBucketRegion(bucket)
-	if err != nil {
-		return false, err
-	}
-
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	}))
-
-	out, err := s3.New(sess).ListObjectsV2(&s3.ListObjectsV2Input{
-		Bucket: aws.String(bucket),
-		Prefix: aws.String(prefix),
-	})
-
-	if err != nil {
-		return false, errors.Wrap(err, bucket, prefix)
-	}
-
-	hasPrefix := *out.KeyCount > 0
-	return hasPrefix, nil
-}
-
-func IsS3FileExternal(bucket string, keys ...string) (bool, error) {
-	region, err := GetBucketRegion(bucket)
-	if err != nil {
-		return false, err
-	}
-
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	}))
-
-	for _, key := range keys {
-		_, err = s3.New(sess).HeadObject(&s3.HeadObjectInput{
-			Bucket: aws.String(bucket),
-			Key:    aws.String(key),
-		})
-
-		if IsNotFoundErr(err) {
-			return false, nil
-		}
-
-		if err != nil {
-			return false, errors.Wrap(err, bucket, key)
-		}
-	}
-
-	return true, nil
-}
-
-func IsS3aPathPrefixExternal(s3aPath string) (bool, error) {
-	bucket, prefix, err := SplitS3aPath(s3aPath)
-	if err != nil {
-		return false, err
-	}
-	return IsS3PrefixExternal(bucket, prefix)
-}
-
-func IsS3PathPrefixExternal(s3Path string) (bool, error) {
-	bucket, prefix, err := SplitS3Path(s3Path)
-	if err != nil {
-		return false, err
-	}
-	return IsS3PrefixExternal(bucket, prefix)
-}
-
-func IsS3PathFileExternal(s3Paths ...string) (bool, error) {
-	for _, s3Path := range s3Paths {
-		bucket, key, err := SplitS3Path(s3Path)
-		if err != nil {
-			return false, err
-		}
-		exists, err := IsS3FileExternal(bucket, key)
-		if err != nil {
-			return false, err
-		}
-
-		if !exists {
-			return false, nil
-		}
-	}
-
-	return true, nil
 }

@@ -39,7 +39,7 @@ type Client struct {
 	HashedAccountID      string
 }
 
-func New(region, bucket string) *Client {
+func New(region string, bucket string, withAccountID bool) (*Client, error) {
 	sess := session.Must(session.NewSession(&aws.Config{
 		Region:     aws.String(region),
 		DisableSSL: aws.Bool(false),
@@ -53,12 +53,29 @@ func New(region, bucket string) *Client {
 		CloudWatchMetrics:    cloudwatch.New(sess),
 		cloudWatchLogsClient: cloudwatchlogs.New(sess),
 	}
-	response, err := awsClient.stsClient.GetCallerIdentity(nil)
-	if err != nil {
-		errors.Exit(err, ErrorAuth())
-	}
-	awsClient.awsAccountID = *response.Account
-	awsClient.HashedAccountID = hash.String(awsClient.awsAccountID)
 
-	return awsClient
+	if withAccountID {
+		response, err := awsClient.stsClient.GetCallerIdentity(nil)
+		if err != nil {
+			return nil, errors.Wrap(err, ErrorAuth().Error())
+		}
+		awsClient.awsAccountID = *response.Account
+		awsClient.HashedAccountID = hash.String(awsClient.awsAccountID)
+	}
+
+	return awsClient, nil
+}
+
+func NewFromS3Path(s3Path string, withAccountID bool) (*Client, error) {
+	bucket, _, err := SplitS3Path(s3Path)
+	if err != nil {
+		return nil, err
+	}
+
+	region, err := GetBucketRegion(bucket)
+	if err != nil {
+		return nil, err
+	}
+
+	return New(region, bucket, withAccountID)
 }

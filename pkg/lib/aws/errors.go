@@ -31,6 +31,7 @@ const (
 	ErrInvalidS3aPath
 	ErrInvalidS3Path
 	ErrAuth
+	ErrBucketInaccessible
 )
 
 var errorKinds = []string{
@@ -38,9 +39,10 @@ var errorKinds = []string{
 	"err_invalid_s3a_path",
 	"err_invalid_s3_path",
 	"err_auth",
+	"err_bucket_inaccessible",
 }
 
-var _ = [1]int{}[int(ErrAuth)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrBucketInaccessible)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -122,5 +124,12 @@ func ErrorAuth() error {
 	return Error{
 		Kind:    ErrAuth,
 		message: "unable to authenticate with AWS",
+	}
+}
+
+func ErrorBucketInaccessible(bucket string) error {
+	return Error{
+		Kind:    ErrBucketInaccessible,
+		message: fmt.Sprintf("bucket \"%s\" not found or insufficient permissions", bucket),
 	}
 }

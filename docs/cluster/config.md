@@ -58,7 +58,6 @@ export CORTEX_IMAGE_METRICS_SERVER="cortexlabs/metrics-server:master"
 export CORTEX_IMAGE_ISTIO_PROXY="cortexlabs/istio-proxy:master"
 export CORTEX_IMAGE_ISTIO_MIXER="cortexlabs/istio-mixer:master"
 export CORTEX_IMAGE_ISTIO_PILOT="cortexlabs/istio-pilot:master"
-export CORTEX_IMAGE_ISTIO_SIDECAR="cortexlabs/istio-sidecar:master"
 export CORTEX_IMAGE_ISTIO_CITADEL="cortexlabs/istio-citadel:master"
 export CORTEX_IMAGE_ISTIO_GALLEY="cortexlabs/istio-galley:master"
 

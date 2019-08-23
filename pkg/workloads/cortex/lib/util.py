@@ -60,8 +60,6 @@ def pp_str(obj, indent=0):
         out = json_tricks_dump(obj, sort_keys=True, indent=2)
     except:
         out = pprint.pformat(obj, width=120)
-    out = out.replace(resource_escape_seq, "@")
-    out = out.replace(resource_escape_seq_raw, "@")
     return indent_str(out, indent)
 
 
@@ -74,8 +72,6 @@ def pp_str_flat(obj, indent=0):
         out = json_tricks_dump(obj, sort_keys=True)
     except:
         out = str(obj).replace("\n", "")
-    out = out.replace(resource_escape_seq, "@")
-    out = out.replace(resource_escape_seq_raw, "@")
     return indent_str(out, indent)
 
 

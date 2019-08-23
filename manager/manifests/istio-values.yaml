@@ -80,8 +80,7 @@ gateways:
       mountPath: /etc/istio/customgateway-ca-certs
 
 sidecarInjectorWebhook:
-  enabled: true
-  image: $CORTEX_IMAGE_ISTIO_SIDECAR
+  enabled: false
 
 istio_cni:
   enabled: true

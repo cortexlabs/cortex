@@ -113,15 +113,15 @@ var apiValidation = &cr.StructValidation{
 //		- variables/
 //			- variables.index
 //			- variables.data-00000-of-00001 (there are a variable number of these files)
-func IsValidTensorFlowS3Directory(path string) bool {
-	if valid, err := aws.IsS3PathFileExternal(
+func IsValidTensorFlowS3Directory(path string, awsClient *aws.Client) bool {
+	if valid, err := awsClient.IsS3PathFile(
 		aws.S3PathJoin(path, "saved_model.pb"),
 		aws.S3PathJoin(path, "variables/variables.index"),
 	); err != nil || !valid {
 		return false
 	}
 
-	if valid, err := aws.IsS3PathPrefixExternal(
+	if valid, err := awsClient.IsS3PathPrefix(
 		aws.S3PathJoin(path, "variables/variables.data-00000-of"),
 	); err != nil || !valid {
 		return false
@@ -167,23 +167,28 @@ func (apis APIs) Validate() error {
 }
 
 func (api *API) Validate() error {
+	awsClient, err := aws.NewFromS3Path(api.Model, false)
+	if err != nil {
+		return err
+	}
+
 	switch api.ModelFormat {
 	case ONNXModelFormat:
-		if ok, err := aws.IsS3PathFileExternal(api.Model); err != nil || !ok {
+		if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
 		}
 	case TensorFlowModelFormat:
-		if !IsValidTensorFlowS3Directory(api.Model) {
+		if !IsValidTensorFlowS3Directory(api.Model, awsClient) {
 			return errors.Wrap(ErrorInvalidTensorflowDir(api.Model), Identify(api), ModelKey)
 		}
 	default:
 		switch {
 		case strings.HasSuffix(api.Model, ".onnx"):
 			api.ModelFormat = ONNXModelFormat
-			if ok, err := aws.IsS3PathFileExternal(api.Model); err != nil || !ok {
+			if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
 				return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
 			}
-		case IsValidTensorFlowS3Directory(api.Model):
+		case IsValidTensorFlowS3Directory(api.Model, awsClient):
 			api.ModelFormat = TensorFlowModelFormat
 		default:
 			return errors.Wrap(ErrorUnableToInferModelFormat(api.Model), Identify(api))
