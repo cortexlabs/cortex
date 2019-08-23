@@ -114,7 +114,7 @@ var apiValidation = &cr.StructValidation{
 					{
 						StructField: "SignatureKey",
 						StringValidation: &cr.StringValidation{
-							Default: "predict",
+							Default: consts.DefaultTFServingSignatureKey,
 						},
 					},
 				},
