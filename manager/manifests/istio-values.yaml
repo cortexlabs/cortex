@@ -104,6 +104,7 @@ mixer:
 pilot:
   image: $CORTEX_IMAGE_ISTIO_PILOT
   enabled: true
+  sidecar: false
 
 security:
   image: $CORTEX_IMAGE_ISTIO_CITADEL
