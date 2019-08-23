@@ -372,11 +372,13 @@ function ask_sudo() {
 }
 
 function prompt_for_email() {
-  echo
-  read -p "Email address: [press enter to skip]: "
+  if [ "$CORTEX_ENABLE_TELEMETRY" != "false" ]; then
+    echo
+    read -p "Email address: [press enter to skip]: "
 
-  if [[ ! -z "$REPLY" ]]; then
-    curl -k -X POST -H "Content-Type: application/json" $CORTEX_TELEMETRY_URL/support -d '{"email_address": "'$REPLY'", "source": "cortex.sh"}' >/dev/null 2>&1 || true
+    if [[ ! -z "$REPLY" ]]; then
+      curl -k -X POST -H "Content-Type: application/json" $CORTEX_TELEMETRY_URL/support -d '{"email_address": "'$REPLY'", "source": "cortex.sh"}' >/dev/null 2>&1 || true
+    fi
   fi
 }
 
