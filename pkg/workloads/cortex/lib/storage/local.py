@@ -70,9 +70,15 @@ class LocalStorage(object):
                     files.append(filename)
         return files
 
-    def put_json(self, obj, key):
+    def _put_str(self, str_val, key):
         f = self._get_or_create_path(key)
-        f.write_text(json.dumps(obj))
+        f.write_text(str_val)
+
+    def put_str(self, str_val, key):
+        self._put_str(str_val, key)
+
+    def put_json(self, obj, key):
+        self._put_str(json.dumps(obj), key)
 
     def get_json(self, key, allow_missing=False, num_retries=0, retry_delay_sec=2):
         f = self._get_path_if_exists(
