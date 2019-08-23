@@ -322,7 +322,11 @@ def start(args):
             if not folder.isdigit():
                 cur_dir = os.path.join(args.model_dir, folder)
                 rename_dir = os.path.join(args.model_dir, "1")
-                util.logger.info("{} is not a servable version directory, will rename to {}".format(cur_dir, rename_dir))
+                util.logger.info(
+                    "{} is not a servable version directory, will rename to {}".format(
+                        cur_dir, rename_dir
+                    )
+                )
                 os.rename(cur_dir, rename_dir)
             return
 
