@@ -185,17 +185,6 @@ function validate_cortex() {
   echo -e "\n✓ Load balancers are ready"
 }
 
-function ping_install_start() {
-  curl -k -X POST -H "Content-Type: application/json" $CORTEX_TELEMETRY_URL/events -d '{"timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'", "event": "manager.install_start", "version": "'$CORTEX_VERSION_STABLE'"}' >/dev/null 2>&1 || true
-}
-
-function ping_install_complete() {
-  curl -k -X POST -H "Content-Type: application/json" $CORTEX_TELEMETRY_URL/events -d '{"timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'", "event": "manager.install_complete", "version": "'$CORTEX_VERSION_STABLE'"}' >/dev/null 2>&1 || true
-}
-
-
-ping_install_start
-
 eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" || true
 
 setup_bucket
@@ -232,5 +221,3 @@ echo "✓ Started Cortex operator"
 validate_cortex
 
 echo -e "\n✓ Cortex is ready!"
-
-ping_install_complete
