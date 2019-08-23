@@ -206,7 +206,7 @@ def health():
 
 @app.route("/<deployment_name>/<api_name>", methods=["POST"])
 def predict(deployment_name, api_name):
-    debug = request.args.get("debug") is not None
+    debug = request.args.get("debug").lower() in ["true", "True"]
 
     try:
         payload = request.get_json()
@@ -221,7 +221,7 @@ def predict(deployment_name, api_name):
     if not util.is_dict(payload) or "samples" not in payload:
         message = 'top level "samples" key not found in request'
         if debug:
-            message += "(payload: {})".format(util.pp_str_flat(payload))
+            message += "; payload: {}".format(util.pp_str_flat(payload))
         return prediction_failed(message)
 
     predictions = []
