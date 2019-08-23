@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cortexlabs/yaml"
-
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
@@ -77,8 +75,6 @@ func Identify(r Resource) string {
 }
 
 func identify(filePath string, resourceType resource.Type, name string, index int) string {
-	name = yaml.UnescapeAtSymbol(name)
-
 	resourceTypeStr := resourceType.String()
 	if resourceType == resource.UnknownType {
 		resourceTypeStr = "resource"
