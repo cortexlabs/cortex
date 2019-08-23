@@ -24,7 +24,7 @@ logger = get_logger()
 
 def get_classes(ctx, api_name):
     api = ctx.apis[api_name]
-    prefix = os.path.join(api["metadata_key"], "classes")
+    prefix = os.path.join(ctx.metadata_root, api["id"], "classes")
     class_paths = ctx.storage.search(prefix=prefix)
     class_set = set()
     for class_path in class_paths:
@@ -39,7 +39,7 @@ def upload_class(ctx, api_name, class_name):
     try:
         ascii_encoded = class_name.encode("ascii")  # cloudwatch only supports ascii
         encoded_class_name = base64.urlsafe_b64encode(ascii_encoded)
-        key = os.path.join(api["metadata_key"], "classes", encoded_class_name.decode())
+        key = os.path.join(ctx.metadata_root, api["id"], "classes", encoded_class_name.decode())
         ctx.storage.put_json("", key)
     except Exception as e:
         raise ValueError("unable to store class {}".format(class_name)) from e

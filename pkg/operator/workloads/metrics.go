@@ -64,7 +64,7 @@ func GetMetrics(appName, apiName string) (*schema.APIMetrics, error) {
 
 	requestList := []func() error{}
 	if realTimeStart.Before(realTimeEnd) {
-		requestList = append(requestList, getAPIMetricsFunc(appName, api, 1, &realTimeStart, &realTimeEnd, &realTimeMetrics))
+		requestList = append(requestList, getAPIMetricsFunc(ctx, api, 1, &realTimeStart, &realTimeEnd, &realTimeMetrics))
 	}
 
 	if apiStartTime.Before(realTimeStart) {
@@ -77,7 +77,7 @@ func GetMetrics(appName, apiName string) (*schema.APIMetrics, error) {
 		} else {
 			batchStart = twoWeeksAgo
 		}
-		requestList = append(requestList, getAPIMetricsFunc(appName, api, 60*60, &batchStart, &batchEnd, &batchMetrics))
+		requestList = append(requestList, getAPIMetricsFunc(ctx, api, 60*60, &batchStart, &batchEnd, &batchMetrics))
 	}
 
 	if len(requestList) != 0 {
@@ -91,9 +91,9 @@ func GetMetrics(appName, apiName string) (*schema.APIMetrics, error) {
 	return &mergedMetrics, nil
 }
 
-func getAPIMetricsFunc(appName string, api *context.API, period int64, startTime *time.Time, endTime *time.Time, apiMetrics *schema.APIMetrics) func() error {
+func getAPIMetricsFunc(ctx *context.Context, api *context.API, period int64, startTime *time.Time, endTime *time.Time, apiMetrics *schema.APIMetrics) func() error {
 	return func() error {
-		metricDataResults, err := queryMetrics(appName, api, period, startTime, endTime)
+		metricDataResults, err := queryMetrics(ctx, api, period, startTime, endTime)
 		if err != nil {
 			return err
 		}
@@ -118,20 +118,20 @@ func getAPIMetricsFunc(appName string, api *context.API, period int64, startTime
 	}
 }
 
-func queryMetrics(appName string, api *context.API, period int64, startTime *time.Time, endTime *time.Time) ([]*cloudwatch.MetricDataResult, error) {
-	networkDataQueries := getNetworkStatsDef(appName, api, period)
+func queryMetrics(ctx *context.Context, api *context.API, period int64, startTime *time.Time, endTime *time.Time) ([]*cloudwatch.MetricDataResult, error) {
+	networkDataQueries := getNetworkStatsDef(ctx.App.Name, api, period)
 	latencyMetrics := getLatencyMetricsDef(api.Path, period)
 	allMetrics := append(latencyMetrics, networkDataQueries...)
 
 	if api.Tracker != nil {
 		if api.Tracker.ModelType == userconfig.ClassificationModelType {
-			classMetrics, err := getClassesMetricDef(appName, api, period)
+			classMetrics, err := getClassesMetricDef(ctx, api, period)
 			if err != nil {
 				return nil, err
 			}
 			allMetrics = append(allMetrics, classMetrics...)
 		} else {
-			regressionMetrics := getRegressionMetricDef(appName, api, period)
+			regressionMetrics := getRegressionMetricDef(ctx.App.Name, api, period)
 			allMetrics = append(allMetrics, regressionMetrics...)
 		}
 	}
@@ -399,8 +399,8 @@ func getNetworkStatsDef(appName string, api *context.API, period int64) []*cloud
 	return networkDataQueries
 }
 
-func getClassesMetricDef(appName string, api *context.API, period int64) ([]*cloudwatch.MetricDataQuery, error) {
-	prefix := filepath.Join(api.MetadataKey, "classes")
+func getClassesMetricDef(ctx *context.Context, api *context.API, period int64) ([]*cloudwatch.MetricDataQuery, error) {
+	prefix := filepath.Join(ctx.MetadataRoot, api.ID, "classes")
 	classes, err := config.AWS.ListPrefix(prefix, int64(consts.MaxClassesPerRequest))
 	if err != nil {
 		return nil, err
@@ -432,7 +432,7 @@ func getClassesMetricDef(appName string, api *context.API, period int64) ([]*clo
 				Metric: &cloudwatch.Metric{
 					Namespace:  aws.String(config.Cortex.LogGroup),
 					MetricName: aws.String("Prediction"),
-					Dimensions: append(getAPIDimensions(appName, api), &cloudwatch.Dimension{
+					Dimensions: append(getAPIDimensions(ctx.App.Name, api), &cloudwatch.Dimension{
 						Name:  aws.String("Class"),
 						Value: aws.String(className),
 					}),
