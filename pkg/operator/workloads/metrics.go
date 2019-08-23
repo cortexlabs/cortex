@@ -400,7 +400,7 @@ func getNetworkStatsDef(appName string, api *context.API, period int64) []*cloud
 }
 
 func getClassesMetricDef(ctx *context.Context, api *context.API, period int64) ([]*cloudwatch.MetricDataQuery, error) {
-	prefix := filepath.Join(ctx.MetadataRoot, api.ID, "classes")
+	prefix := filepath.Join(ctx.MetadataRoot, api.ID, "classes/")
 	classes, err := config.AWS.ListPrefix(prefix, int64(consts.MaxClassesPerRequest))
 	if err != nil {
 		return nil, err
