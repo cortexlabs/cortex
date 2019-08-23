@@ -284,8 +284,8 @@ func ErrorExternalNotFound(path string) error {
 
 var onnxExpectedStructMessage = `For ONNX models, the path should end in .onnx`
 
-var tfExpectedStructMessage = `For TensorFlow models, the path should be a directory with the following structure:
-  1523423423/ (version prefix, usually a timestamp)
+var tfExpectedStructMessage = `For TensorFlow models, the path contain a directory with the following structure:
+  1523423423/ (Version prefix, usually a timestamp. If this is not present we'll make this 1 for you)
   ├── saved_model.pb
   └── variables/
       ├── variables.index

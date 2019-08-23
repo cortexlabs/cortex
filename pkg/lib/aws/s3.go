@@ -70,7 +70,7 @@ func S3PathJoin(paths ...string) string {
 
 func (c *Client) IsS3File(keys ...string) (bool, error) {
 	for _, key := range keys {
-		_, err := c.s3Client.HeadObject(&s3.HeadObjectInput{
+		_, err := c.S3.HeadObject(&s3.HeadObjectInput{
 			Bucket: aws.String(c.Bucket),
 			Key:    aws.String(key),
 		})
@@ -88,7 +88,7 @@ func (c *Client) IsS3File(keys ...string) (bool, error) {
 
 func (c *Client) IsS3Prefix(prefixes ...string) (bool, error) {
 	for _, prefix := range prefixes {
-		out, err := c.s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
+		out, err := c.S3.ListObjectsV2(&s3.ListObjectsV2Input{
 			Bucket: aws.String(c.Bucket),
 			Prefix: aws.String(prefix),
 		})
@@ -138,7 +138,7 @@ func (c *Client) IsS3PathDir(s3Paths ...string) (bool, error) {
 }
 
 func (c *Client) UploadBytesToS3(data []byte, key string) error {
-	_, err := c.s3Client.PutObject(&s3.PutObjectInput{
+	_, err := c.S3.PutObject(&s3.PutObjectInput{
 		Body:                 bytes.NewReader(data),
 		Key:                  aws.String(key),
 		Bucket:               aws.String(c.Bucket),
@@ -210,7 +210,7 @@ func (c *Client) ReadMsgpackFromS3(objPtr interface{}, key string) error {
 }
 
 func (c *Client) ReadStringFromS3(key string) (string, error) {
-	response, err := c.s3Client.GetObject(&s3.GetObjectInput{
+	response, err := c.S3.GetObject(&s3.GetObjectInput{
 		Key:    aws.String(key),
 		Bucket: aws.String(c.Bucket),
 	})
@@ -225,7 +225,7 @@ func (c *Client) ReadStringFromS3(key string) (string, error) {
 }
 
 func (c *Client) ReadBytesFromS3(key string) ([]byte, error) {
-	response, err := c.s3Client.GetObject(&s3.GetObjectInput{
+	response, err := c.S3.GetObject(&s3.GetObjectInput{
 		Key:    aws.String(key),
 		Bucket: aws.String(c.Bucket),
 	})
@@ -248,7 +248,7 @@ func (c *Client) DeleteFromS3ByPrefix(prefix string, continueIfFailure bool) err
 
 	var subErr error
 
-	err := c.s3Client.ListObjectsV2Pages(listObjectsInput,
+	err := c.S3.ListObjectsV2Pages(listObjectsInput,
 		func(listObjectsOutput *s3.ListObjectsV2Output, lastPage bool) bool {
 			deleteObjects := make([]*s3.ObjectIdentifier, len(listObjectsOutput.Contents))
 			for i, object := range listObjectsOutput.Contents {
@@ -261,7 +261,7 @@ func (c *Client) DeleteFromS3ByPrefix(prefix string, continueIfFailure bool) err
 					Quiet:   aws.Bool(true),
 				},
 			}
-			_, newSubErr := c.s3Client.DeleteObjects(deleteObjectsInput)
+			_, newSubErr := c.S3.DeleteObjects(deleteObjectsInput)
 			if newSubErr != nil {
 				subErr = newSubErr
 				if !continueIfFailure {

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -129,6 +130,33 @@ func IsValidTensorFlowS3Directory(path string, awsClient *aws.Client) bool {
 	return true
 }
 
+func GetTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, error) {
+	if IsValidTensorFlowS3Directory(path, awsClient) {
+		return "", nil
+	}
+
+	bucket, prefix, err := aws.SplitS3Path(path)
+	if err != nil {
+		return "", err
+	}
+
+	possiblePaths := make([]string, 0)
+	resp, _ := awsClient.S3.ListObjects(&s3.ListObjectsInput{
+		Bucket: &bucket,
+		Prefix: &prefix,
+	})
+	for _, key := range resp.Contents {
+		keyParts := strings.Split(*key.Key, "/")
+		possiblePath := bucket + "/" + strings.Join(keyParts[:len(keyParts)-1], "/")
+		if keyParts[len(keyParts)-1] == "saved_model.pb" &&
+			IsValidTensorFlowS3Directory(possiblePath, awsClient) {
+			possiblePaths = append(possiblePaths, possiblePath)
+		}
+	}
+
+	return possiblePaths[0], nil
+}
+
 func (api *API) UserConfigStr() string {
 	var sb strings.Builder
 	sb.WriteString(api.ResourceFields.UserConfigStr())
@@ -178,7 +206,8 @@ func (api *API) Validate() error {
 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
 		}
 	case TensorFlowModelFormat:
-		if !IsValidTensorFlowS3Directory(api.Model, awsClient) {
+		path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
+		if path == "" || err != nil {
 			return errors.Wrap(ErrorInvalidTensorflowDir(api.Model), Identify(api), ModelKey)
 		}
 	default:
@@ -191,7 +220,15 @@ func (api *API) Validate() error {
 		case IsValidTensorFlowS3Directory(api.Model, awsClient):
 			api.ModelFormat = TensorFlowModelFormat
 		default:
-			return errors.Wrap(ErrorUnableToInferModelFormat(api.Model), Identify(api))
+			path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
+			if err != nil {
+				return errors.Wrap(err, Identify(api), ModelKey)
+			}
+			if path == "" {
+				return errors.Wrap(ErrorUnableToInferModelFormat(api.Model), Identify(api))
+			}
+			api.ModelFormat = TensorFlowModelFormat
+			api.Model = path
 		}
 	}
 

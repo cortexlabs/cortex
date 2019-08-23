@@ -314,12 +314,16 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
-        if not os.path.isdir(args.model_dir):
+        if args.only_download:
             bucket_name, prefix = ctx.storage.deconstruct_s3_path(api["model"])
             s3_client = S3(bucket_name, client_config={})
             s3_client.download_dir(prefix, args.model_dir)
-
-        if args.only_download:
+            folder = os.listdir(args.model_dir)[0]
+            if not folder.isdigit():
+                cur_dir = os.path.join(args.model_dir, folder)
+                rename_dir = os.path.join(args.model_dir, "1")
+                util.logger.info("{} is not a servable version directory, will rename to {}".format(cur_dir, rename_dir))
+                os.rename(cur_dir, rename_dir)
             return
 
         if api.get("request_handler") is not None:
