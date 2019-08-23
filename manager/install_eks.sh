@@ -28,7 +28,4 @@ eksctl create cluster --name=$CORTEX_CLUSTER \
                       --version=1.13 \
                       --asg-access
 
-# https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
-kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.5.2/config/v1.5/aws-k8s-cni.yaml >/dev/null
-
 echo -e "\n✓ Spun up the cluster"
