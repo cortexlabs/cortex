@@ -56,6 +56,12 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		fullCtxMatch = true
 	}
 
+	err = workloads.ValidateDeploy(ctx)
+	if err != nil {
+		RespondError(w, err)
+		return
+	}
+
 	deploymentStatus, err := workloads.GetDeploymentStatus(ctx.App.Name)
 	if err != nil {
 		RespondError(w, err)

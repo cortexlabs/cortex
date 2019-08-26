@@ -17,6 +17,7 @@ limitations under the License.
 package workloads
 
 import (
+	"log"
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -293,4 +294,9 @@ func GetDeploymentStatus(appName string) (resource.DeploymentStatus, error) {
 		return resource.UpdatingDeploymentStatus, nil
 	}
 	return resource.UpdatedDeploymentStatus, nil
+}
+
+func ValidateDeploy(ctx *context.Context) error {
+	log.Println(config.Kubernetes.ListPods(nil))
+	return nil
 }
