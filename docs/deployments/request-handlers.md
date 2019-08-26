@@ -80,10 +80,9 @@ msgpack==0.6.1
 numpy>=1.13.3,<2
 requirements-parser==0.2.0
 packaging==19.0.0
-pillow==6.1.0
-regex==2017.4.5
 requests==2.21.0
-tensorflow==1.14.0  # In TensorFlow model formats only
+tensorflow==1.14.0  # In TensorFlow serving images only
+onnxruntime==0.5.0  # In ONNX serving images only
 ```
 
 You can install additional PyPI packages and import your own Python packages. See [Python Packages](../piplines/python-packages.md) for more details.
