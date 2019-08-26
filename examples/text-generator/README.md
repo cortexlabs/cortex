@@ -1,6 +1,6 @@
 # Deploy GPT-2 as a service
 
-This example demonstrates how to self-host OpenAI's GPT-2 model as a service on AWS.
+This example shows how to self-host OpenAI's GPT-2 model as a service on AWS.
 
 ## Define a deployment
 
@@ -20,10 +20,11 @@ Define a `deployment` and an `api` resource. A `deployment` specifies a set of r
 
 ## Add request handling
 
-The model requires encoded data for inference, but the API should accept strings of natural language as input. It should also decode the model’s prediction before responding to the client. This can be implemented in a request handler file using the pre_inference and post_inference functions.
+The model requires encoded data for inference, but the API should accept strings of natural language as input. It should also decode the model’s prediction before responding to the client. This can be implemented in a request handler file using the pre_inference and post_inference functions. See [encoder.py](encoder.py) for the complete code.
 
 ```python
-# ...
+# encoder = ...
+
 
 def pre_inference(sample, metadata):
     context = encoder.encode(sample)
@@ -34,17 +35,28 @@ def post_inference(prediction, metadata):
     return {encoder.decode(prediction["response"]["sample"])}
 ```
 
-See [encoder.py](encoder.py) for the complete code.
-
 ## Deploy to AWS
 
 `cortex deploy` takes the declarative configuration from cortex.yaml and creates it on the cluster.
 
 ```bash
 $ cortex deploy
+
+Deployment started
 ```
 
 Behind the scenes, Cortex containerizes the model, makes it servable using TensorFlow Serving, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+
+You can track the status of a deployment using cortex get:
+
+```bash
+$ cortex get --watch
+
+api            replicas     last update
+classifier     1/1          8s
+```
+
+The output above indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
 
 ## Serve real-time predictions
 
