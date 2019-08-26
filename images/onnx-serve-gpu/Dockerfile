@@ -1,6 +1,6 @@
-FROM nvidia/cuda:9.1-cudnn7-devel
+FROM nvidia/cuda:10.0-cudnn7-devel
 
-ARG ONNXRUNTIME_VERSION="0.4.0"
+ARG ONNXRUNTIME_VERSION="0.5.0"
 
 RUN apt-get update -qq && apt-get install -y -q \
         python3 \

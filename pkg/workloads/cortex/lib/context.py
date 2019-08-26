@@ -56,6 +56,7 @@ class Context:
 
         self.id = self.ctx["id"]
         self.key = self.ctx["key"]
+        self.metadata_root = self.ctx["metadata_root"]
         self.cortex_config = self.ctx["cortex_config"]
         self.deployment_version = self.ctx["deployment_version"]
         self.root = self.ctx["root"]
@@ -82,9 +83,6 @@ class Context:
                     self.api_version, consts.CORTEX_VERSION
                 )
             )
-
-        # Internal caches
-        self._metadatas = {}
 
         # This affects Tensorflow S3 access
         os.environ["AWS_REGION"] = self.cortex_config.get("region", "")
@@ -191,24 +189,6 @@ class Context:
 
     def resource_status_key(self, resource):
         return os.path.join(self.status_prefix, resource["id"], resource["workload_id"])
-
-    def get_metadata_url(self, resource_id):
-        return os.path.join(self.ctx["metadata_root"], resource_id + ".json")
-
-    def write_metadata(self, resource_id, metadata):
-        if resource_id in self._metadatas and self._metadatas[resource_id] == metadata:
-            return
-
-        self._metadatas[resource_id] = metadata
-        self.storage.put_json(metadata, self.get_metadata_url(resource_id))
-
-    def get_metadata(self, resource_id, use_cache=True):
-        if use_cache and resource_id in self._metadatas:
-            return self._metadatas[resource_id]
-
-        metadata = self.storage.get_json(self.get_metadata_url(resource_id), allow_missing=True)
-        self._metadatas[resource_id] = metadata
-        return metadata
 
     def publish_metrics(self, metrics):
         if self.monitoring is None:

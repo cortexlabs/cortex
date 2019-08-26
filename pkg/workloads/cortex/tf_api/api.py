@@ -38,7 +38,16 @@ logger.propagate = False  # prevent double logging (flask modifies root logger)
 app = Flask(__name__)
 app.json_encoder = util.json_tricks_encoder
 
-local_cache = {"ctx": None, "stub": None, "api": None, "metadata": None, "request_handler": None}
+
+local_cache = {
+    "ctx": None,
+    "stub": None,
+    "api": None,
+    "metadata": None,
+    "request_handler": None,
+    "class_set": set(),
+}
+
 
 DTYPE_TO_VALUE_KEY = {
     "DT_INT32": "intVal",
@@ -92,7 +101,7 @@ def after_request(response):
     predictions = None
     if "predictions" in g:
         predictions = g.predictions
-    api_utils.post_request_metrics(ctx, api, response, predictions)
+    api_utils.post_request_metrics(ctx, api, response, predictions, local_cache["class_set"])
 
     return response
 
@@ -343,6 +352,12 @@ def start(args):
     except Exception as e:
         logger.exception(e)
         sys.exit(1)
+
+    if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
+        try:
+            local_cache["class_set"] = api_utils.get_classes(ctx, api["name"])
+        except Exception as e:
+            logger.warn("An error occurred while attempting to load classes", exc_info=True)
 
     channel = grpc.insecure_channel("localhost:" + str(args.tf_serve_port))
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)
