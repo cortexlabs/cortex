@@ -1,6 +1,6 @@
-# Deploy an iris classifier
+# Deploy a BERT sentiment analysis API
 
-This example shows how to deploy a classifier trained on the famous [iris data set](https://archive.ics.uci.edu/ml/datasets/iris).
+This example shows how to deploy a sentiment analysis classifier trained using [BERT](https://github.com/google-research/bert).
 
 ## Define a deployment
 
@@ -11,8 +11,9 @@ Define a `deployment` and an `api` resource in `cortex.yaml`. A `deployment` spe
   name: sentiment
 
 - kind: api
-  name: analysis
-  model: s3://cortex-examples/sentiment-analysis/bert.zip
+  name: classifier
+  model: s3://cortex-examples/sentiment/1565392692
+  request_handler: sentiment.py
 ```
 
 ## Add request handling
