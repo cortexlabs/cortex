@@ -1,6 +1,6 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
-ARG ONNXRUNTIME_VERSION="0.4.0"
+ARG ONNXRUNTIME_VERSION="0.5.0"
 
 RUN apt-get update -qq && apt-get install -y -q \
         python3 \
