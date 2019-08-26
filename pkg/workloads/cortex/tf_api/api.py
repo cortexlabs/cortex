@@ -16,6 +16,7 @@ import sys
 import os
 import argparse
 import time
+import builtins
 
 import tensorflow as tf
 from flask import Flask, request, jsonify, g
@@ -29,10 +30,13 @@ from google.protobuf import json_format
 
 from cortex.lib import util, package, Context, api_utils
 from cortex.lib.storage import S3
-from cortex.lib.log import get_logger, cortex_print
+from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 
-import builtins
+
+def cortex_print(*args, **kwargs):
+    logger.info(*args)
+
 
 builtins.print = cortex_print
 
