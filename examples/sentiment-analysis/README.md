@@ -18,7 +18,7 @@ Define a `deployment` and an `api` resource in `cortex.yaml`. A `deployment` spe
 
 ## Add request handling
 
-The API should convert the model’s prediction to a human readable label before responding to the client. This can be implemented in a request handler file:
+The model requires tokenized input for inference, but the API should accept strings of natural language as input. It should also map the model’s integer predictions to the actual sentiment label. This can be implemented in a request handler file. Define a `pre_inference` function to tokenize request payloads and a `post_inference` function to map inference output to labels before responding to the client:
 
 ```python
 import tensorflow as tf
