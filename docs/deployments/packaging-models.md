@@ -2,7 +2,7 @@
 
 ## TensorFlow
 
-Export your trained model and zip the model directory. An example is shown below (here is the [complete example](https://github.com/cortexlabs/cortex/blob/master/examples/iris/models/tensorflow_model.py)):
+Export your trained model and upload the checkpoint directory. An example is shown below (here is the [complete example](https://github.com/cortexlabs/cortex/blob/master/examples/iris/models/tensorflow_model.py)):
 
 ```Python
 import tensorflow as tf
@@ -22,10 +22,10 @@ eval_spec = tf.estimator.EvalSpec(eval_input_fn, exporters=[exporter], name="est
 tf.estimator.train_and_evaluate(classifier, train_spec, eval_spec)
 ```
 
-Upload the exported version directory to Amazon S3 using the AWS web console or CLI:
+Upload the checkpoint directory to Amazon S3 using the AWS web console or CLI:
 
 ```text
-$ aws s3 sync ./iris/export/estimator/156293432 s3://my-bucket/iris/156293432
+$ aws s3 sync ./iris s3://my-bucket/iris
 ```
 
 Reference your model in an `api`:
@@ -33,7 +33,7 @@ Reference your model in an `api`:
 ```yaml
 - kind: api
   name: my-api
-  model: s3://my-bucket/iris/156293432
+  model: s3://my-bucket/iris
 ```
 
 ## ONNX
