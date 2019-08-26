@@ -12,7 +12,7 @@ Define a `deployment` and an `api` resource. A `deployment` specifies a set of r
 
 - kind: api
   name: generator
-  model: s3://cortex-examples/gpt-2/774
+  model: s3://cortex-examples/text-generator/774
   request_handler: encoder.py
   compute:
     gpu: 1
@@ -68,4 +68,4 @@ $ curl http://***.amazonaws.com/text/generator \
 Machine learning, with more than one thousand researchers around the world today, are looking to create computer-driven machine learning algorithms that can also be applied to human and social problems, such as education, health care, employment, medicine, politics, or the environment...
 ```
 
-Any questions? [contact us](hello@cortex.dev) (we'll respond quickly)
+Any questions? [contact us](hello@cortex.dev) (we'll respond quickly).
