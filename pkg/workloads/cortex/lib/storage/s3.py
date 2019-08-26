@@ -140,6 +140,9 @@ class S3(object):
     def search(self, prefix="", suffix=""):
         return list(self._get_matching_s3_keys_generator(prefix, suffix))
 
+    def put_str(self, str_val, key):
+        self._upload_string_to_s3(str_val, key)
+
     def put_json(self, obj, key):
         self._upload_string_to_s3(json.dumps(obj), key)
 

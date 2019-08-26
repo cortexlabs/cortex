@@ -69,6 +69,7 @@ func New(
 	ctx.PythonPackages = pythonPackages
 
 	apis, err := getAPIs(userconf, ctx.DeploymentVersion, files, pythonPackages)
+
 	if err != nil {
 		return nil, err
 	}
