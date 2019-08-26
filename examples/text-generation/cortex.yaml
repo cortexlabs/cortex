@@ -1,17 +1,9 @@
 - kind: deployment
-  name: text-generation
+  name: text
 
 - kind: api
-  name: generator-124
-  model: s3://cortex-examples/gpt-2/124
-  request_handler: encoder.py
-
-- kind: api
-  name: generator-355
-  model: s3://cortex-examples/gpt-2/355
-  request_handler: encoder.py
-
-- kind: api
-  name: generator-774
+  name: generator
   model: s3://cortex-examples/gpt-2/774
   request_handler: encoder.py
+  compute:
+    gpu: 1

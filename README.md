@@ -2,9 +2,9 @@
 
 <br>
 
-**Get started:** [install](https://docs.cortex.dev/install) • [tutorial](https://docs.cortex.dev/tutorial) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[docs](https://docs.cortex.dev) • [examples](examples)
+**Get started:** [install](https://docs.cortex.dev/install) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[docs](https://docs.cortex.dev) • [examples](examples)
 
-**Learn more:** [website](https://cortex.dev) • [blog](https://medium.com/cortex-labs) • [subscribe](https://cortexlabs.us20.list-manage.com/subscribe?u=a1987373ab814f20961fd90b4&id=ae83491e1c) • [contact](mailto:hello@cortex.dev)
+**Learn more:** [website](https://cortex.dev) • [blog](https://medium.com/cortex-labs) • [contact](mailto:hello@cortex.dev)
 
 <br>
 
@@ -25,9 +25,11 @@ Cortex is maintained by a venture-backed team of infrastructure engineers and [w
   name: my-api
   model: s3://my-bucket/my-model.onnx
   request_handler: handler.py
+  compute:
+    gpu: 1
 ```
 
-**Customize** request handling (optional):
+**Customize** request handling:
 
 ```python
 # handler.py
@@ -54,10 +56,10 @@ Deploying ...
 http://***.amazonaws.com/my-api  # Your API is ready!
 ```
 
-**Serve** real time predictions via scalable JSON APIs:
+**Serve** real-time predictions via scalable JSON APIs:
 
 ```bash
-$ curl -d '{"a": 1, "b": 2, "c": 3}' http://***.amazonaws.com/my-api
+$ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
 
 { prediction: "def" }
 ```
