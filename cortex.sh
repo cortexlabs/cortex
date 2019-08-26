@@ -148,6 +148,7 @@ export CORTEX_IMAGE_ISTIO_PROXY="${CORTEX_IMAGE_ISTIO_PROXY:-cortexlabs/istio-pr
 export CORTEX_IMAGE_ISTIO_MIXER="${CORTEX_IMAGE_ISTIO_MIXER:-cortexlabs/istio-mixer:$CORTEX_VERSION_STABLE}"
 
 export CORTEX_ENABLE_TELEMETRY="${CORTEX_ENABLE_TELEMETRY:-""}"
+export CORTEX_TELEMETRY_URL="${CORTEX_TELEMETRY_URL:-"https://telemetry.cortexlabs.dev"}"
 
 ##########################
 ### TOP-LEVEL COMMANDS ###
@@ -366,12 +367,23 @@ function ask_sudo() {
   fi
 }
 
+function prompt_for_email() {
+  if [ "$CORTEX_ENABLE_TELEMETRY" != "false" ]; then
+    echo
+    read -p "Email address: [press enter to skip]: "
+
+    if [[ ! -z "$REPLY" ]]; then
+      curl -k -X POST -H "Content-Type: application/json" $CORTEX_TELEMETRY_URL/support -d '{"email_address": "'$REPLY'", "source": "cortex.sh"}' >/dev/null 2>&1 || true
+    fi
+  fi
+}
+
 function prompt_for_telemetry() {
   if [ "$CORTEX_ENABLE_TELEMETRY" != "true" ] && [ "$CORTEX_ENABLE_TELEMETRY" != "false" ]; then
     while true
     do
       echo
-      read -p "Would you like to help improve Cortex by anonymously sending error reports and usage stats to the dev team? [Y/n] " -n 1 -r
+      read -p "Would you like to help improve Cortex by anonymously sending error reports and cluster usage stats to the dev team? [Y/n] " -n 1 -r
       echo
       if [[ $REPLY =~ ^[Yy]$ ]]; then
         export CORTEX_ENABLE_TELEMETRY=true
@@ -443,7 +455,7 @@ if [ "$arg1" = "install" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    prompt_for_telemetry && install_eks && install_cortex && info
+    prompt_for_email && prompt_for_telemetry && install_eks && install_cortex && info
   elif [ "$arg2" = "cli" ]; then
     install_cli
   elif [ "$arg2" = "cortex" ]; then # Undocumented (just for dev)
