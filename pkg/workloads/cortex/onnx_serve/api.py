@@ -58,6 +58,7 @@ local_cache = {
     "input_metadata": None,
     "output_metadata": None,
     "request_handler": None,
+    "class_set": set(),
 }
 
 
@@ -74,7 +75,7 @@ def after_request(response):
     predictions = None
     if "predictions" in g:
         predictions = g.predictions
-    api_utils.post_request_metrics(ctx, api, response, predictions)
+    api_utils.post_request_metrics(ctx, api, response, predictions, local_cache["class_set"])
 
     return response
 
@@ -287,6 +288,12 @@ def start(args):
                 )
             )
         sys.exit(1)
+
+    if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
+        try:
+            local_cache["class_set"] = api_utils.get_classes(ctx, api["name"])
+        except Exception as e:
+            logger.warn("An error occurred while attempting to load classes", exc_info=True)
 
     serve(app, listen="*:{}".format(args.port))
 
