@@ -17,7 +17,6 @@ limitations under the License.
 package workloads
 
 import (
-	"log"
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -25,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
@@ -297,6 +297,33 @@ func GetDeploymentStatus(appName string) (resource.DeploymentStatus, error) {
 }
 
 func ValidateDeploy(ctx *context.Context) error {
-	log.Println(config.Kubernetes.ListPods(nil))
+	nodes, err := config.Kubernetes.ListNodes(nil)
+	if err != nil {
+		return err
+	}
+
+	maxCPU, _ := nodes[0].Status.Capacity.Cpu().AsInt64()
+	maxMem, _ := nodes[0].Status.Capacity.Memory().AsInt64()
+	maxGPUQuantity, ok := nodes[0].Status.Allocatable["nvidia.com/gpu"]
+	var maxGPU int64
+	if ok {
+		maxGPU, _ = maxGPUQuantity.AsInt64()
+	}
+	for _, api := range ctx.APIs {
+		cpu, _ := api.Compute.CPU.AsInt64()
+		if cpu > maxCPU {
+			return errors.Wrap(ErrorNoAvailableNodeComputeLimit("CPU", cpu, maxCPU), userconfig.Identify(api))
+		}
+		if api.Compute.Mem != nil {
+			mem, _ := api.Compute.Mem.AsInt64()
+			if mem > maxMem {
+				return errors.Wrap(ErrorNoAvailableNodeComputeLimit("Mem", mem, maxMem), userconfig.Identify(api))
+			}
+		}
+		gpu := api.Compute.GPU
+		if gpu > maxGPU {
+			return errors.Wrap(ErrorNoAvailableNodeComputeLimit("GPU", gpu, maxGPU), userconfig.Identify(api))
+		}
+	}
 	return nil
 }

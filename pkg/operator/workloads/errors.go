@@ -16,6 +16,8 @@ limitations under the License.
 
 package workloads
 
+import "fmt"
+
 type ErrorKind int
 
 const (
@@ -25,6 +27,7 @@ const (
 	ErrLoadBalancerInitializing
 	ErrNotFound
 	ErrAPIInitializing
+	ErrNoAvailableNodeComputeLimit
 )
 
 var errorKinds = []string{
@@ -34,9 +37,10 @@ var errorKinds = []string{
 	"err_load_balancer_initializing",
 	"err_not_found",
 	"err_api_initializing",
+	"err_no_available_node_compute_limit",
 }
 
-var _ = [1]int{}[int(ErrAPIInitializing)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrNoAvailableNodeComputeLimit)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -113,5 +117,12 @@ func ErrorAPIInitializing() error {
 	return Error{
 		Kind:    ErrAPIInitializing,
 		message: "api is still initializing",
+	}
+}
+
+func ErrorNoAvailableNodeComputeLimit(resource string, req, max int64) error {
+	return Error{
+		Kind:    ErrNoAvailableNodeComputeLimit,
+		message: fmt.Sprintf("there are not available nodes that can satisfy the requested %s resource quantity - requested %d but nodes only have %d", resource, req, max),
 	}
 }
