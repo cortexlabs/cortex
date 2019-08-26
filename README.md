@@ -4,7 +4,7 @@
 
 **Get started:** [install](https://docs.cortex.dev/install) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[docs](https://docs.cortex.dev) • [examples](examples)
 
-**Learn more:** [website](https://cortex.dev) • [blog](https://medium.com/cortex-labs) • [contact](mailto:hello@cortex.dev)
+**Learn more:** [website](https://cortex.dev) • [blog](https://medium.com/cortex-labs) • [contact](mailto:hello@cortex.dev) (we'll respond quickly)
 
 <br>
 
