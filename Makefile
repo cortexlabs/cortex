@@ -155,6 +155,7 @@ ci-build-images:
 	@./build/build-image.sh images/istio-pilot istio-pilot
 	@./build/build-image.sh images/istio-proxy istio-proxy
 	@./build/build-image.sh images/istio-mixer istio-mixer
+	@./build/build-image.sh images/model-download model-download
 
 ci-push-images:
 	@./build/push-image.sh manager
@@ -174,6 +175,7 @@ ci-push-images:
 	@./build/push-image.sh istio-pilot
 	@./build/push-image.sh istio-proxy
 	@./build/push-image.sh istio-mixer
+	@./build/push-image.sh model-download
 
 
 ci-build-cli:

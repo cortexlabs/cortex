@@ -314,22 +314,6 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
-        if args.only_download:
-            bucket_name, prefix = ctx.storage.deconstruct_s3_path(api["model"])
-            s3_client = S3(bucket_name, client_config={})
-            s3_client.download_dir(prefix, args.model_dir)
-            folder = os.listdir(args.model_dir)[0]
-            if not folder.isdigit():
-                cur_dir = os.path.join(args.model_dir, folder)
-                rename_dir = os.path.join(args.model_dir, "1")
-                util.logger.info(
-                    "{} is not a servable version directory, will rename to {}".format(
-                        cur_dir, rename_dir
-                    )
-                )
-                os.rename(cur_dir, rename_dir)
-            return
-
         if api.get("request_handler") is not None:
             package.install_packages(ctx.python_packages, ctx.storage)
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
@@ -391,12 +375,6 @@ def main():
     na.add_argument("--api", required=True, help="Resource id of api to serve")
     na.add_argument("--model-dir", required=True, help="Directory to download the model to")
     na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
-    na.add_argument(
-        "--only-download",
-        required=False,
-        help="Only download model (for init-containers)",
-        default=False,
-    )
     parser.set_defaults(func=start)
 
     args = parser.parse_args()

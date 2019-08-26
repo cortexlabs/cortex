@@ -78,6 +78,7 @@ export CORTEX_IMAGE_ISTIO_MIXER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortex
 export CORTEX_IMAGE_ISTIO_PILOT="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-pilot:latest"
 export CORTEX_IMAGE_ISTIO_CITADEL="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-citadel:latest"
 export CORTEX_IMAGE_ISTIO_GALLEY="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-galley:latest"
+export CORTEX_IMAGE_MODEL_DOWNLOAD="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/model-download:latest"
 
 export CORTEX_ENABLE_TELEMETRY="false"
 ```

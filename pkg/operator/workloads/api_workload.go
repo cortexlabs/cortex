@@ -283,17 +283,14 @@ func tfAPISpec(
 				InitContainers: []kcore.Container{
 					{
 						Name:            modelDownloadInitContainerName,
-						Image:           config.Cortex.TFAPIImage,
+						Image:           config.Cortex.ModelDownloadImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--workload-id=" + workloadID,
-							"--port=" + defaultPortStr,
-							"--tf-serve-port=" + tfServingPortStr,
 							"--context=" + config.AWS.S3Path(ctx.Key),
 							"--api=" + ctx.APIs[api.Name].ID,
 							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
 							"--cache-dir=" + consts.ContextCacheDir,
-							"--only-download=true",
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
