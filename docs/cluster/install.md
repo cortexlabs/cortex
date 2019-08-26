@@ -20,6 +20,9 @@ chmod +x cortex.sh
 export AWS_ACCESS_KEY_ID=***
 export AWS_SECRET_ACCESS_KEY=***
 
+# Set the AWS instance type (at least 4GB memory)
+export CORTEX_NODE_TYPE="p2.xlarge"
+
 # Provision infrastructure on AWS and install Cortex
 ./cortex.sh install
 ```
