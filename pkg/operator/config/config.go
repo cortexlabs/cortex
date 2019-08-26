@@ -71,7 +71,7 @@ func Init() error {
 		ONNXServeImage:      getStr("IMAGE_ONNX_SERVE"),
 		ONNXServeImageGPU:   getStr("IMAGE_ONNX_SERVE_GPU"),
 
-		TelemetryURL:      configreader.MustStringFromEnv("TELEMETRY_URL", &configreader.StringValidation{Required: false, Default: consts.TelemetryURL}),
+		TelemetryURL:      configreader.MustStringFromEnv("CORTEX_TELEMETRY_URL", &configreader.StringValidation{Required: false, Default: consts.TelemetryURL}),
 		EnableTelemetry:   getBool("ENABLE_TELEMETRY", false),
 		OperatorInCluster: getBool("OPERATOR_IN_CLUSTER", true),
 	}
