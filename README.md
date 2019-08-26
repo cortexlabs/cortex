@@ -2,7 +2,7 @@
 
 <br>
 
-**Get started:** [install](https://docs.cortex.dev/install) • [tutorial](https://docs.cortex.dev/tutorial) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[docs](https://docs.cortex.dev) • <!-- CORTEX_VERSION_MINOR_STABLE -->[examples](https://github.com/cortexlabs/cortex/tree/0.7/examples)
+**Get started:** [install](https://docs.cortex.dev/install) • [tutorial](https://docs.cortex.dev/tutorial) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[docs](https://docs.cortex.dev) • [examples](examples)
 
 **Learn more:** [website](https://cortex.dev) • [blog](https://medium.com/cortex-labs) • [subscribe](https://cortexlabs.us20.list-manage.com/subscribe?u=a1987373ab814f20961fd90b4&id=ae83491e1c) • [contact](mailto:hello@cortex.dev)
 
@@ -100,3 +100,13 @@ $ ./cortex.sh install cli
 - **Prediction Monitoring:** Cortex can monitor network metrics and track predictions.
 
 - **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
+
+<br>
+
+## Examples
+
+- [Text generation](examples/text-generation) with GPT-2
+
+- [Sentiment analysis](examples/sentiment) with BERT
+
+- [Image classification](examples/imagenet) with ImageNet
