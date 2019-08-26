@@ -76,6 +76,9 @@ $ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/0.7/cortex.sh && c
 $ export AWS_ACCESS_KEY_ID=***
 $ export AWS_SECRET_ACCESS_KEY=***
 
+# Set the AWS instance type
+export CORTEX_NODE_TYPE="p2.xlarge"
+
 # Provision infrastructure on AWS and install Cortex
 $ ./cortex.sh install
 
