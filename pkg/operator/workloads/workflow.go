@@ -302,13 +302,28 @@ func ValidateDeploy(ctx *context.Context) error {
 		return err
 	}
 
-	maxCPU, _ := nodes[0].Status.Capacity.Cpu().AsInt64()
-	maxMem, _ := nodes[0].Status.Capacity.Memory().AsInt64()
-	maxGPUQuantity, ok := nodes[0].Status.Allocatable["nvidia.com/gpu"]
-	var maxGPU int64
-	if ok {
-		maxGPU, _ = maxGPUQuantity.AsInt64()
+	var maxCPU, maxMem, maxGPU int64
+	for _, node := range nodes {
+		curCPU, _ := node.Status.Capacity.Cpu().AsInt64()
+		curMem, _ := node.Status.Capacity.Memory().AsInt64()
+		var curGPU int64
+		if GPUQuantity, ok := node.Status.Allocatable["nvidia.com/gpu"]; ok {
+			curGPU, _ = GPUQuantity.AsInt64()
+		}
+
+		if curCPU > maxCPU {
+			maxCPU = curCPU
+		}
+
+		if curMem > maxMem {
+			maxMem = curMem
+		}
+
+		if curGPU > maxGPU {
+			maxGPU = curGPU
+		}
 	}
+
 	for _, api := range ctx.APIs {
 		cpu, _ := api.Compute.CPU.AsInt64()
 		if cpu > maxCPU {
