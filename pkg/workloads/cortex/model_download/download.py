@@ -27,6 +27,7 @@ logger.propagate = False  # prevent double logging (flask modifies root logger)
 
 local_cache = {"ctx": None, "stub": None, "api": None, "metadata": None, "request_handler": None}
 
+
 def start(args):
     api = None
     try:
