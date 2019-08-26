@@ -20,6 +20,8 @@ handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT, None))
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
+def cortex_print(*args, **kwargs):
+    logger.info(*args)
 
 def get_logger():
     return logging.getLogger("cortex")

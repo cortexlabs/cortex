@@ -29,8 +29,11 @@ from google.protobuf import json_format
 
 from cortex.lib import util, package, Context, api_utils
 from cortex.lib.storage import S3
-from cortex.lib.log import get_logger
+from cortex.lib.log import get_logger, cortex_print
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
+
+import builtins
+builtins.print = cortex_print
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
