@@ -67,7 +67,8 @@ var apiValidation = &cr.StructValidation{
 				StructFieldValidations: []*cr.StructFieldValidation{
 					{
 						StructField: "Key",
-						StringValidation: &cr.StringValidation{},
+						StringPtrValidation: &cr.StringPtrValidation{
+						},
 					},
 					{
 						StructField: "ModelType",
