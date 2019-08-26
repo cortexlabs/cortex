@@ -65,5 +65,7 @@ $ curl http://***.amazonaws.com/text/generator \
     -X POST -H "Content-Type: application/json" \
     -d '{"samples": [{"machine learning"}]}'
 
-# "Machine learning, with more than one thousand researchers around the world today, are looking to create computer-driven machine learning algorithms that can also be applied to human and social problems, such as education, health care, employment, medicine, politics, or the environment..."
+Machine learning, with more than one thousand researchers around the world today, are looking to create computer-driven machine learning algorithms that can also be applied to human and social problems, such as education, health care, employment, medicine, politics, or the environment...
 ```
+
+Any questions? [contact us](hello@cortex.dev) (we'll respond quickly)
