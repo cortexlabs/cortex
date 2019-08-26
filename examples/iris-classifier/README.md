@@ -65,3 +65,5 @@ $ curl http://***.amazonaws.com/iris/classifier \
 
 iris-setosa
 ```
+
+Any questions? [contact us](hello@cortex.dev) (we'll respond quickly).
