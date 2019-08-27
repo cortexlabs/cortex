@@ -332,7 +332,7 @@ func ValidateDeploy(ctx *context.Context) error {
 		if api.Compute.Mem != nil {
 			mem, _ := api.Compute.Mem.AsInt64()
 			if mem > maxMem {
-				return errors.Wrap(ErrorNoAvailableNodeComputeLimit("Mem", mem, maxMem), userconfig.Identify(api))
+				return errors.Wrap(ErrorNoAvailableNodeComputeLimit("Memory", mem, maxMem), userconfig.Identify(api))
 			}
 		}
 		gpu := api.Compute.GPU
