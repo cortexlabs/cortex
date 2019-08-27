@@ -48,6 +48,7 @@ const (
 	ErrUnableToInferModelFormat
 	ErrExternalNotFound
 	ErrInvalidTensorflowDir
+	ErrTFServingOptionsForTFOnly
 )
 
 var errorKinds = []string{
@@ -72,9 +73,10 @@ var errorKinds = []string{
 	"err_unable_to_infer_model_format",
 	"err_external_not_found",
 	"err_invalid_tensorflow_dir",
+	"err_tf_serving_options_for_tf_only",
 }
 
-var _ = [1]int{}[int(ErrInvalidTensorflowDir)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrTFServingOptionsForTFOnly)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -307,5 +309,12 @@ func ErrorInvalidTensorflowDir(path string) error {
 	return Error{
 		Kind:    ErrInvalidTensorflowDir,
 		message: message,
+	}
+}
+
+func ErrorTFServingOptionsForTFOnly(format ModelFormat) error {
+	return Error{
+		Kind:    ErrTFServingOptionsForTFOnly,
+		message: fmt.Sprintf("TensorFlow serving options were provided but the model format is %s", format.String()),
 	}
 }

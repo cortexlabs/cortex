@@ -38,7 +38,16 @@ logger.propagate = False  # prevent double logging (flask modifies root logger)
 app = Flask(__name__)
 app.json_encoder = util.json_tricks_encoder
 
-local_cache = {"ctx": None, "stub": None, "api": None, "metadata": None, "request_handler": None}
+
+local_cache = {
+    "ctx": None,
+    "stub": None,
+    "api": None,
+    "metadata": None,
+    "request_handler": None,
+    "class_set": set(),
+}
+
 
 DTYPE_TO_VALUE_KEY = {
     "DT_INT32": "intVal",
@@ -92,14 +101,14 @@ def after_request(response):
     predictions = None
     if "predictions" in g:
         predictions = g.predictions
-    api_utils.post_request_metrics(ctx, api, response, predictions)
+    api_utils.post_request_metrics(ctx, api, response, predictions, local_cache["class_set"])
 
     return response
 
 
 def create_prediction_request(sample):
     signature_def = local_cache["metadata"]["signatureDef"]
-    signature_key = list(signature_def.keys())[0]
+    signature_key = local_cache["api"]["tf_serving"]["signature_key"]
     prediction_request = predict_pb2.PredictRequest()
     prediction_request.model_spec.name = "model"
     prediction_request.model_spec.signature_name = signature_key
@@ -241,11 +250,17 @@ def predict(deployment_name, api_name):
 
 def extract_signature():
     signature_def = local_cache["metadata"]["signatureDef"]
-    if signature_def.get("predict") is None or signature_def["predict"].get("inputs") is None:
-        raise UserException('unable to find "predict" in model\'s signature definition')
+    signature_key = local_cache["api"]["tf_serving"]["signature_key"]
+    if (
+        signature_def.get(signature_key) is None
+        or signature_def[signature_key].get("inputs") is None
+    ):
+        raise UserException(
+            'unable to find "' + signature_key + "\" in model's signature definition"
+        )
 
     metadata = {}
-    for input_name, input_metadata in signature_def["predict"]["inputs"].items():
+    for input_name, input_metadata in signature_def[signature_key]["inputs"].items():
         metadata[input_name] = {
             "shape": [int(dim["size"]) for dim in input_metadata["tensorShape"]["dim"]],
             "type": DTYPE_TO_TF_TYPE[input_metadata["dtype"]].name,
@@ -335,6 +350,12 @@ def start(args):
     except Exception as e:
         logger.exception(e)
         sys.exit(1)
+
+    if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
+        try:
+            local_cache["class_set"] = api_utils.get_classes(ctx, api["name"])
+        except Exception as e:
+            logger.warn("An error occurred while attempting to load classes", exc_info=True)
 
     channel = grpc.insecure_channel("localhost:" + str(args.tf_serve_port))
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)

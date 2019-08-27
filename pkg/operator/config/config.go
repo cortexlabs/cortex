@@ -73,9 +73,9 @@ func Init() error {
 		ONNXServeImage:      getStr("IMAGE_ONNX_SERVE"),
 		ONNXServeImageGPU:   getStr("IMAGE_ONNX_SERVE_GPU"),
 
-		TelemetryURL:      configreader.MustStringFromEnv("CONST_TELEMETRY_URL", &configreader.StringValidation{Required: false, Default: consts.TelemetryURL}),
-		EnableTelemetry:   getBool("ENABLE_TELEMETRY"),
-		OperatorInCluster: configreader.MustBoolFromEnv("CONST_OPERATOR_IN_CLUSTER", &configreader.BoolValidation{Default: true}),
+		TelemetryURL:      configreader.MustStringFromEnv("CORTEX_TELEMETRY_URL", &configreader.StringValidation{Required: false, Default: consts.TelemetryURL}),
+		EnableTelemetry:   getBool("ENABLE_TELEMETRY", false),
+		OperatorInCluster: getBool("OPERATOR_IN_CLUSTER", true),
 	}
 	Cortex.ID = hash.String(Cortex.Bucket + Cortex.Region + Cortex.LogGroup)
 
@@ -104,14 +104,20 @@ func getPaths(name string) (string, string) {
 	return envVarName, filePath
 }
 
-func getStr(name string) string {
+func getStrDefault(name string, defaultVal string) string {
+	v := &configreader.StringValidation{Required: false, Default: defaultVal}
 	envVarName, filePath := getPaths(name)
-	v := &configreader.StringValidation{Required: true}
 	return configreader.MustStringFromEnvOrFile(envVarName, filePath, v)
 }
 
-func getBool(name string) bool {
+func getStr(name string) string {
+	v := &configreader.StringValidation{Required: true}
 	envVarName, filePath := getPaths(name)
-	v := &configreader.BoolValidation{Default: false}
+	return configreader.MustStringFromEnvOrFile(envVarName, filePath, v)
+}
+
+func getBool(name string, defaultVal bool) bool {
+	envVarName, filePath := getPaths(name)
+	v := &configreader.BoolValidation{Default: defaultVal}
 	return configreader.MustBoolFromEnvOrFile(envVarName, filePath, v)
 }

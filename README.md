@@ -2,9 +2,7 @@
 
 <br>
 
-**Get started:** [install](https://docs.cortex.dev/install) • [tutorial](https://docs.cortex.dev/tutorial) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[docs](https://docs.cortex.dev) • <!-- CORTEX_VERSION_MINOR_STABLE -->[examples](https://github.com/cortexlabs/cortex/tree/0.7/examples)
-
-**Learn more:** [website](https://cortex.dev) • [blog](https://medium.com/cortex-labs) • [subscribe](https://cortexlabs.us20.list-manage.com/subscribe?u=a1987373ab814f20961fd90b4&id=ae83491e1c) • [contact](mailto:hello@cortex.dev)
+[install](https://docs.cortex.dev/install) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[docs](https://docs.cortex.dev) • [examples](examples) • [contact](mailto:hello@cortex.dev) (we'll respond quickly)
 
 <br>
 
@@ -25,9 +23,11 @@ Cortex is maintained by a venture-backed team of infrastructure engineers and [w
   name: my-api
   model: s3://my-bucket/my-model.onnx
   request_handler: handler.py
+  compute:
+    gpu: 1
 ```
 
-**Customize** request handling (optional):
+**Customize** request handling:
 
 ```python
 # handler.py
@@ -54,10 +54,10 @@ Deploying ...
 http://***.amazonaws.com/my-api  # Your API is ready!
 ```
 
-**Serve** real time predictions via scalable JSON APIs:
+**Serve** real-time predictions via scalable JSON APIs:
 
 ```bash
-$ curl -d '{"a": 1, "b": 2, "c": 3}' http://***.amazonaws.com/my-api
+$ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
 
 { prediction: "def" }
 ```
@@ -75,6 +75,9 @@ $ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/0.7/cortex.sh && c
 # Set your AWS credentials
 $ export AWS_ACCESS_KEY_ID=***
 $ export AWS_SECRET_ACCESS_KEY=***
+
+# Set the AWS instance type
+export CORTEX_NODE_TYPE="p2.xlarge"
 
 # Provision infrastructure on AWS and install Cortex
 $ ./cortex.sh install
@@ -100,3 +103,13 @@ $ ./cortex.sh install cli
 - **Prediction Monitoring:** Cortex can monitor network metrics and track predictions.
 
 - **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
+
+<br>
+
+## Examples
+
+- [Text generation](examples/text-generation) with GPT-2
+
+- [Sentiment analysis](examples/sentiment) with BERT
+
+- [Image classification](examples/imagenet) with ImageNet
