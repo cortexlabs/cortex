@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import logging
-from .util import pp_str_flat
 
 TRUNCATE_LIMIT = 75
 
@@ -22,6 +21,20 @@ handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT, None))
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
+
+def indent_str(text, indent):
+    if not isinstance(text, str):
+        text = repr(text)
+    return indent * " " + text.replace("\n", "\n" + indent * " ")
+
+
+def pp_str_flat(obj, indent=0):
+    try:
+        out = json_tricks_dump(obj, sort_keys=True)
+    except:
+        out = str(obj).replace("\n", "")
+    return indent_str(out, indent)
+
 
 def truncate_obj(d):
     if not isinstance(d, dict):
