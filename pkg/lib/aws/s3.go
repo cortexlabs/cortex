@@ -246,7 +246,7 @@ func (c *Client) ListPrefix(prefix string, maxResults int64) ([]*s3.Object, erro
 		MaxKeys: aws.Int64(maxResults),
 	}
 
-	output, err := c.s3Client.ListObjectsV2(listObjectsInput)
+	output, err := c.S3.ListObjectsV2(listObjectsInput)
 	if err != nil {
 		return nil, errors.Wrap(err, prefix)
 	}
