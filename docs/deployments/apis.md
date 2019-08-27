@@ -46,8 +46,10 @@ See [request handlers](request-handlers.md) for a detailed guide.
 
 ## Debugging
 
-You can log more information about each request by adding a `debug=true` parameter to your requests. This will print information about the following:
-- input value
-- preinference value
-- output value
-- posthandler value
+You can log more information about each request by adding a `debug=true` parameter to your requests. This will print:
+
+1. The raw sample
+2. The value after running the `pre_inference` function (if applicable)
+3. The value after running inference
+4. The value after running the `post_inference` function (if applicable)
+5. The model's input/output signature
