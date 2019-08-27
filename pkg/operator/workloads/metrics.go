@@ -119,9 +119,7 @@ func getAPIMetricsFunc(ctx *context.Context, api *context.API, period int64, sta
 }
 
 func queryMetrics(ctx *context.Context, api *context.API, period int64, startTime *time.Time, endTime *time.Time) ([]*cloudwatch.MetricDataResult, error) {
-	networkDataQueries := getNetworkStatsDef(ctx.App.Name, api, period)
-	latencyMetrics := getLatencyMetricsDef(api.Path, period)
-	allMetrics := append(latencyMetrics, networkDataQueries...)
+	allMetrics := getNetworkStatsDef(ctx.App.Name, api, period)
 
 	if api.Tracker != nil {
 		if api.Tracker.ModelType == userconfig.ClassificationModelType {
@@ -244,49 +242,6 @@ func getAPIDimensions(appName string, api *context.API) []*cloudwatch.Dimension 
 			Value: aws.String(api.ID),
 		},
 	}
-}
-
-func getLatencyMetricsDef(routeName string, period int64) []*cloudwatch.MetricDataQuery {
-	networkDataQueries := []*cloudwatch.MetricDataQuery{
-		{
-			Id:    aws.String("latency"),
-			Label: aws.String("Latency"),
-			MetricStat: &cloudwatch.MetricStat{
-				Metric: &cloudwatch.Metric{
-					Namespace:  aws.String(config.Cortex.LogGroup),
-					MetricName: aws.String("response-time.instance.cortex"),
-					Dimensions: []*cloudwatch.Dimension{
-						{
-							Name:  aws.String("RequestPath"),
-							Value: aws.String(routeName),
-						},
-					},
-				},
-				Stat:   aws.String("Average"),
-				Period: aws.Int64(period),
-			},
-		},
-		{
-			Id:    aws.String("request_count"),
-			Label: aws.String("RequestCount"),
-			MetricStat: &cloudwatch.MetricStat{
-				Metric: &cloudwatch.Metric{
-					Namespace:  aws.String(config.Cortex.LogGroup),
-					MetricName: aws.String("response-time.instance.cortex"),
-					Dimensions: []*cloudwatch.Dimension{
-						{
-							Name:  aws.String("RequestPath"),
-							Value: aws.String(routeName),
-						},
-					},
-				},
-				Stat:   aws.String("SampleCount"),
-				Period: aws.Int64(period),
-			},
-		},
-	}
-
-	return networkDataQueries
 }
 
 func getRegressionMetricDef(appName string, api *context.API, period int64) []*cloudwatch.MetricDataQuery {

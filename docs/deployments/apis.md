@@ -11,14 +11,14 @@ Serve models at scale.
   model_format: <string>  # model format, must be "tensorflow" or "onnx" (default: "onnx" if model path ends with .onnx, "tensorflow" if model path ends with .zip)
   request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
   tracker:
-    key: <string> # json key to track in the response payload
+    key: <string> # json key to track if the response payload is a dictionary
     model_type: <string> # model type, must be "classification" or "regression"
   compute:
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
     init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
     target_cpu_utilization: <int>  # CPU utilization threshold (as a percentage) to trigger scaling (default: 80)
-    cpu: <string>  # CPU request per replica (default: 400m)
+    cpu: <string>  # CPU request per replica (default: 200m)
     gpu: <string>  # gpu request per replica (default: 0)
     mem: <string>  # memory request per replica (default: Null)
 ```
