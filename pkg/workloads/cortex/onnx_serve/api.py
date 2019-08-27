@@ -15,6 +15,7 @@
 import sys
 import os
 import argparse
+import builtins
 
 from flask import Flask, request, jsonify, g
 from flask_api import status
@@ -26,6 +27,13 @@ from cortex.lib import util, package, Context, api_utils
 from cortex.lib.storage import S3
 from cortex.lib.log import get_logger, print_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
+
+
+def cortex_print(*args, **kwargs):
+    logger.info(*args)
+
+
+builtins.print = cortex_print
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
@@ -181,8 +189,13 @@ def predict(app_name, api_name):
 
             prepared_sample = sample
             if request_handler is not None and util.has_function(request_handler, "pre_inference"):
-                prepared_sample = request_handler.pre_inference(sample, input_metadata)
-                print_obj("pre_inference", prepared_sample, debug)
+                try:
+                    prepared_sample = request_handler.pre_inference(sample, input_metadata)
+                    print_obj("pre_inference", prepared_sample, debug)
+                except Exception as e:
+                    raise UserRuntimeException(
+                        api["request_handler"], "pre_inference request handler"
+                    ) from e
 
             inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
             model_outputs = sess.run([], inference_input)
@@ -196,7 +209,12 @@ def predict(app_name, api_name):
             print_obj("inference", result, debug)
 
             if request_handler is not None and util.has_function(request_handler, "post_inference"):
-                result = request_handler.post_inference(result, output_metadata)
+                try:
+                    result = request_handler.post_inference(result, output_metadata)
+                except Exception as e:
+                    raise UserRuntimeException(
+                        api["request_handler"], "post_inference request handler"
+                    ) from e
 
                 print_obj("post_inference", result, debug)
 
