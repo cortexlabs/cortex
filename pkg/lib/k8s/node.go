@@ -31,8 +31,5 @@ func (c *Client) ListNodes(opts *kmeta.ListOptions) ([]kcore.Node, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	for i := range podList.Items {
-		podList.Items[i].TypeMeta = podTypeMeta
-	}
 	return podList.Items, nil
 }
