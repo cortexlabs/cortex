@@ -168,15 +168,9 @@ def truncate_obj(d):
 
     data = {}
     for key in d:
-        if isinstance(d[key], dict):
-            data[key] = truncate_obj(d[key])
-        else:
-            data[key] = util.pp_str_flat(d[key])
+        data[key] = truncate_obj(d[key])
 
-        if len(data[key]) > TRUNCATE_LIMIT:
-            data[key] = data[key][:TRUNCATE_LIMIT] + "..."
-
-    return util.pp_str_flat(data)
+    return data
 
 
 def print_obj(name, sample, debug=False):
@@ -302,7 +296,7 @@ def get_signature(app_name, api_name):
     api = local_cache["api"]
 
     try:
-        metadata = extract_signature()
+        metadata = extract_signature(local_cache["metadata"]["signatureDef"])
     except CortexException as e:
         logger.error(str(e))
         logger.exception(
