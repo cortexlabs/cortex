@@ -162,13 +162,19 @@ def parse_response_proto(response_proto):
 
 def run_predict(sample):
     ctx = local_cache["ctx"]
+    api = local_cache["api"]
     request_handler = local_cache.get("request_handler")
 
     prepared_sample = sample
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
-        prepared_sample = request_handler.pre_inference(
-            sample, local_cache["metadata"]["signatureDef"]
-        )
+        try:
+            prepared_sample = request_handler.pre_inference(
+                sample, local_cache["metadata"]["signatureDef"]
+            )
+        except Exception as e:
+            raise UserRuntimeException(
+                api["request_handler"], "pre_inference request handler"
+            ) from e
 
     validate_sample(prepared_sample)
 
@@ -177,7 +183,12 @@ def run_predict(sample):
     result = parse_response_proto(response_proto)
 
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
-        result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
+        try:
+            result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
+        except Exception as e:
+            raise UserRuntimeException(
+                api["request_handler"], "post_inference request handler"
+            ) from e
 
     return result
 
