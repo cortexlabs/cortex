@@ -162,6 +162,7 @@ def parse_response_proto(response_proto):
 
 def run_predict(sample):
     ctx = local_cache["ctx"]
+    api = local_cache["api"]
     request_handler = local_cache.get("request_handler")
 
     prepared_sample = sample
@@ -171,7 +172,9 @@ def run_predict(sample):
                 sample, local_cache["metadata"]["signatureDef"]
             )
         except Exception as e:
-            raise UserRuntimeException("pre_inference request handler") from e
+            raise UserRuntimeException(
+                api["request_handler"], "pre_inference request handler"
+            ) from e
 
     validate_sample(prepared_sample)
 
@@ -183,7 +186,9 @@ def run_predict(sample):
         try:
             result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
         except Exception as e:
-            raise UserRuntimeException("post_inference request handler") from e
+            raise UserRuntimeException(
+                api["request_handler"], "post_inference request handler"
+            ) from e
 
     return result
 
