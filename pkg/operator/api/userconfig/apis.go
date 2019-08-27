@@ -18,6 +18,7 @@ package userconfig
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -168,7 +169,7 @@ func GetTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 		}
 
 		keyParts := strings.Split(*key.Key, "/")
-		possiblePath := bucket + "/" + strings.Join(keyParts[:len(keyParts)-1], "/")
+		possiblePath := "s3://" + filepath.Join(bucket, filepath.Join(keyParts[:len(keyParts)-1]...))
 		if IsValidTensorFlowS3Directory(possiblePath, awsClient) {
 			return possiblePath, nil
 		}
