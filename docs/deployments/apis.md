@@ -52,4 +52,3 @@ You can log more information about each request by adding a `debug=true` paramet
 2. The value after running the `pre_inference` function (if applicable)
 3. The value after running inference
 4. The value after running the `post_inference` function (if applicable)
-5. The model's input/output signature
