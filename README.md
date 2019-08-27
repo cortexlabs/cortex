@@ -79,8 +79,10 @@ $ ./cortex.sh install cli
 $ export AWS_ACCESS_KEY_ID=***
 $ export AWS_SECRET_ACCESS_KEY=***
 
-# Set the AWS instance type
+# Configure AWS instance settings
 $ export CORTEX_NODE_TYPE="p2.xlarge"
+$ export CORTEX_NODES_MIN="1"
+$ export CORTEX_NODES_MAX="3"
 
 # Provision infrastructure on AWS and install Cortex
 $ ./cortex.sh install
