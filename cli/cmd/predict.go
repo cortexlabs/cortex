@@ -44,10 +44,15 @@ var predictCmd = &cobra.Command{
 	Use:   "predict API_NAME SAMPLES_FILE",
 	Short: "make predictions",
 	Long:  "Make predictions.",
-	Args:  cobra.ExactArgs(2),
+	Args:  cobra.RangeArgs(2, 3),
 	Run: func(cmd *cobra.Command, args []string) {
 		apiName := args[0]
 		samplesJSONPath := args[1]
+
+		var debug bool
+		if len(args) > 2 {
+			debug = args[2] != "true"
+		}
 
 		resourcesRes, err := getResourcesResponse()
 		if err != nil {
@@ -80,6 +85,9 @@ var predictCmd = &cobra.Command{
 
 		apiPath := apiGroupStatus.ActiveStatus.Path
 		apiURL := urls.Join(resourcesRes.APIsBaseURL, apiPath)
+		if debug {
+			apiURL += "?debug=true"
+		}
 		predictResponse, err := makePredictRequest(apiURL, samplesJSONPath)
 		if err != nil {
 			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {

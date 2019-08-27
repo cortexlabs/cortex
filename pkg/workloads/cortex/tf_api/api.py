@@ -121,7 +121,7 @@ def create_prediction_request(sample):
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
 
         try:
-            tensor_proto = tf.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type])
+            tensor_proto = tf.contrib.util.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type])
             prediction_request.inputs[column_name].CopyFrom(tensor_proto)
         except Exception as e:
             raise UserException(
@@ -159,6 +159,24 @@ def parse_response_proto(response_proto):
 
     return {"response": outputs_simplified}
 
+def print_data(name, sample, debug=False):
+    truncate_limit = 75
+    if not debug:
+        return
+
+    if not isinstance(sample, dict):
+        data = util.pp_str_flat(sample)
+        data = (sample[:truncate_limit] + '...') if len(sample) > truncate_limit else sample
+    else:
+        data = {}
+        for key in sample:
+            data[key] = util.pp_str_flat(sample[key])
+            if len(data[key]) > truncate_limit:
+                data[key] = data[key][:truncate_limit] + "..."
+
+            data = util.pp_str_flat(data)
+
+    logger.info("{}: {}".format(name, data))
 
 def run_predict(sample, debug=False):
     ctx = local_cache["ctx"]
@@ -166,31 +184,24 @@ def run_predict(sample, debug=False):
 
     prepared_sample = sample
 
-    if debug:
-        logger.info("sample: {}".format(util.pp_str_flat(sample)))
-
+    print_data("sample", sample, debug)
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         prepared_sample = request_handler.pre_inference(
             sample, local_cache["metadata"]["signatureDef"]
         )
 
-        if debug:
-            logger.info("pre_inference: {}".format(util.pp_str_flat(prepared_sample)))
+        print_data("pre_inference", prepared_sample, debug)
 
     validate_sample(prepared_sample)
 
     prediction_request = create_prediction_request(prepared_sample)
     response_proto = local_cache["stub"].Predict(prediction_request, timeout=300.0)
     result = parse_response_proto(response_proto)
-
-    if debug:
-        logger.info("inference: {}".format(util.pp_str_flat(result)))
+    print_data("inference", result, debug)
 
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
         result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
-
-        if debug:
-            logger.info("post_inference: {}".format(util.pp_str_flat(result)))
+        print_data("post_inference", result, debug)
 
     return result
 
@@ -215,7 +226,7 @@ def health():
 
 @app.route("/<deployment_name>/<api_name>", methods=["POST"])
 def predict(deployment_name, api_name):
-    debug = request.args.get("debug").lower() == "true"
+    debug = request.args.get("debug") is not None and request.args.get("debug").lower() == "true"
 
     try:
         payload = request.get_json()
