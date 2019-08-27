@@ -209,7 +209,9 @@ def run_predict(sample, debug=False):
 
 
 def validate_sample(sample):
-    signature = extract_signature(local_cache["metadata"]["signatureDef"])
+    signature = extract_signature(
+        local_cache["metadata"]["signatureDef"], local_cache["api"]["tf_serving"]["signature_key"]
+    )
     for input_name, _ in signature.items():
         if input_name not in sample:
             raise UserException('missing key "{}"'.format(input_name))
@@ -278,8 +280,7 @@ def predict(deployment_name, api_name):
     return jsonify(response)
 
 
-def extract_signature(signature_def):
-    signature_key = signature_def["api"]["tf_serving"]["signature_key"]
+def extract_signature(signature_def, signature_key):
     if (
         signature_def.get(signature_key) is None
         or signature_def[signature_key].get("inputs") is None
@@ -303,7 +304,10 @@ def get_signature(app_name, api_name):
     api = local_cache["api"]
 
     try:
-        metadata = extract_signature(local_cache["metadata"]["signatureDef"])
+        metadata = extract_signature(
+            local_cache["metadata"]["signatureDef"],
+            local_cache["api"]["tf_serving"]["signature_key"],
+        )
     except CortexException as e:
         logger.error(str(e))
         logger.exception(
@@ -414,7 +418,12 @@ def start(args):
 
         time.sleep(1)
     logger.info(
-        "model_signature: {}".format(extract_signature(local_cache["metadata"]["signatureDef"]))
+        "model_signature: {}".format(
+            extract_signature(
+                local_cache["metadata"]["signatureDef"],
+                local_cache["api"]["tf_serving"]["signature_key"],
+            )
+        )
     )
     serve(app, listen="*:{}".format(args.port))
 
