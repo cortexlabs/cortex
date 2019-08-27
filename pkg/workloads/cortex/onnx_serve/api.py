@@ -108,10 +108,18 @@ def transform_to_numpy(input_pyobj, input_metadata):
             if dim is None:
                 target_shape[idx] = 1
 
-        if type(input_pyobj) is not np.ndarray:
-            np_arr = np.array(input_pyobj, dtype=target_dtype)
-        else:
+        if type(input_pyobj) is np.ndarray:
             np_arr = input_pyobj
+            if np.issubdtype(np_arr.dtype, np.number) == np.issubdtype(target_dtype, np.number):
+                if str(np_arr.dtype) != target_dtype:
+                    np_arr = np_arr.astype(target_dtype)
+            else:
+                raise ValueError(
+                    "expected dtype '{}' but found '{}'".format(target_dtype, np_arr.dtype)
+                )
+        else:
+            np_arr = np.array(input_pyobj, dtype=target_dtype)
+
         np_arr = np_arr.reshape(target_shape)
         return np_arr
     except Exception as e:
