@@ -132,7 +132,7 @@ func IsValidTensorFlowS3Directory(path string, awsClient *aws.Client) bool {
 
 func GetTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, error) {
 	if IsValidTensorFlowS3Directory(path, awsClient) {
-		return "", nil
+		return path, nil
 	}
 
 	bucket, prefix, err := aws.SplitS3Path(path)
@@ -140,21 +140,23 @@ func GetTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 		return "", err
 	}
 
-	possiblePaths := make([]string, 0)
 	resp, _ := awsClient.S3.ListObjects(&s3.ListObjectsInput{
 		Bucket: &bucket,
 		Prefix: &prefix,
 	})
 	for _, key := range resp.Contents {
+		if !strings.HasSuffix(*key.Key, "saved_model.pb") {
+			continue
+		}
+
 		keyParts := strings.Split(*key.Key, "/")
 		possiblePath := bucket + "/" + strings.Join(keyParts[:len(keyParts)-1], "/")
-		if keyParts[len(keyParts)-1] == "saved_model.pb" &&
-			IsValidTensorFlowS3Directory(possiblePath, awsClient) {
-			possiblePaths = append(possiblePaths, possiblePath)
+		if IsValidTensorFlowS3Directory(possiblePath, awsClient) {
+			return possiblePath, nil
 		}
 	}
 
-	return possiblePaths[0], nil
+	return "", nil
 }
 
 func (api *API) UserConfigStr() string {
@@ -217,8 +219,6 @@ func (api *API) Validate() error {
 			if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
 				return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
 			}
-		case IsValidTensorFlowS3Directory(api.Model, awsClient):
-			api.ModelFormat = TensorFlowModelFormat
 		default:
 			path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
 			if err != nil {

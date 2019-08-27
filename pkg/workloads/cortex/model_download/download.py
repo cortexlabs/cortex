@@ -25,20 +25,16 @@ from cortex.lib.exceptions import UserRuntimeException, UserException
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
 
-local_cache = {"ctx": None, "stub": None, "api": None, "metadata": None, "request_handler": None}
-
 
 def start(args):
     api = None
     try:
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
         api = ctx.apis_id_map[args.api]
-        local_cache["ctx"] = ctx
 
-        if not os.path.isdir(args.model_dir):
-            bucket_name, prefix = ctx.storage.deconstruct_s3_path(api["model"])
-            s3_client = S3(bucket_name, client_config={})
-            s3_client.download_dir(prefix, args.model_dir)
+        bucket_name, prefix = ctx.storage.deconstruct_s3_path(api["model"])
+        s3_client = S3(bucket_name, client_config={})
+        s3_client.download_dir(prefix, args.model_dir)
 
     except Exception as e:
         logger.exception(
