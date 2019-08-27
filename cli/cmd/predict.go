@@ -51,7 +51,7 @@ var predictCmd = &cobra.Command{
 
 		var debug bool
 		if len(args) > 2 {
-			debug = args[2] != "true"
+			debug = args[2] == "debug"
 		}
 
 		resourcesRes, err := getResourcesResponse()

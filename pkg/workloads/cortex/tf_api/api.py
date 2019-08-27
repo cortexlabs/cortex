@@ -38,6 +38,7 @@ logger.propagate = False  # prevent double logging (flask modifies root logger)
 app = Flask(__name__)
 app.json_encoder = util.json_tricks_encoder
 
+TRUNCATE_LIMIT = 75
 
 local_cache = {
     "ctx": None,
@@ -121,7 +122,7 @@ def create_prediction_request(sample):
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
 
         try:
-            tensor_proto = tf.contrib.util.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type])
+            tensor_proto = tf.compat.v1.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type])
             prediction_request.inputs[column_name].CopyFrom(tensor_proto)
         except Exception as e:
             raise UserException(
@@ -159,24 +160,30 @@ def parse_response_proto(response_proto):
 
     return {"response": outputs_simplified}
 
-def print_data(name, sample, debug=False):
-    truncate_limit = 75
+
+def truncate_obj(d):
+    if not isinstance(d, dict):
+        data = util.pp_str_flat(d)
+        return (data[:TRUNCATE_LIMIT] + '...') if len(data) > TRUNCATE_LIMIT else data
+
+    data = {}
+    for key in d:
+        if isinstance(d[key], dict):
+            data[key] = truncate_obj(d[key])
+        else:
+            data[key] = util.pp_str_flat(d[key])
+
+        if len(data[key]) > TRUNCATE_LIMIT:
+            data[key] = data[key][:TRUNCATE_LIMIT] + "..."
+
+    return util.pp_str_flat(data)
+
+
+def print_obj(name, sample, debug=False):
     if not debug:
         return
 
-    if not isinstance(sample, dict):
-        data = util.pp_str_flat(sample)
-        data = (sample[:truncate_limit] + '...') if len(sample) > truncate_limit else sample
-    else:
-        data = {}
-        for key in sample:
-            data[key] = util.pp_str_flat(sample[key])
-            if len(data[key]) > truncate_limit:
-                data[key] = data[key][:truncate_limit] + "..."
-
-            data = util.pp_str_flat(data)
-
-    logger.info("{}: {}".format(name, data))
+    logger.info("{}: {}".format(name, truncate_obj(sample)))
 
 def run_predict(sample, debug=False):
     ctx = local_cache["ctx"]
@@ -184,24 +191,24 @@ def run_predict(sample, debug=False):
 
     prepared_sample = sample
 
-    print_data("sample", sample, debug)
+    print_obj("sample", sample, debug)
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         prepared_sample = request_handler.pre_inference(
             sample, local_cache["metadata"]["signatureDef"]
         )
 
-        print_data("pre_inference", prepared_sample, debug)
+        print_obj("pre_inference", prepared_sample, debug)
 
     validate_sample(prepared_sample)
 
     prediction_request = create_prediction_request(prepared_sample)
     response_proto = local_cache["stub"].Predict(prediction_request, timeout=300.0)
     result = parse_response_proto(response_proto)
-    print_data("inference", result, debug)
+    print_obj("inference", result, debug)
 
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
         result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
-        print_data("post_inference", result, debug)
+        print_obj("post_inference", result, debug)
 
     return result
 
