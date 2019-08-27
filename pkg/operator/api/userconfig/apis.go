@@ -42,7 +42,7 @@ type API struct {
 }
 
 type Tracker struct {
-	Key       string    `json:"key" yaml:"key"`
+	Key       *string   `json:"key" yaml:"key"`
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
 }
 
@@ -72,10 +72,8 @@ var apiValidation = &cr.StructValidation{
 				DefaultNil: true,
 				StructFieldValidations: []*cr.StructFieldValidation{
 					{
-						StructField: "Key",
-						StringValidation: &cr.StringValidation{
-							Required: true,
-						},
+						StructField:         "Key",
+						StringPtrValidation: &cr.StringPtrValidation{},
 					},
 					{
 						StructField: "ModelType",

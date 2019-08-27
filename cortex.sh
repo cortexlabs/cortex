@@ -90,29 +90,45 @@ set -u
 
 export CORTEX_VERSION_STABLE=master
 
-# Defaults
 export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-""}"
-
-if [ "$AWS_ACCESS_KEY_ID" = "" ]; then
-  if command -v aws >/dev/null; then
-    export AWS_ACCESS_KEY_ID=$(aws --profile default configure get aws_access_key_id)
-  fi
-  if [ "$AWS_ACCESS_KEY_ID" = "" ]; then
-    echo -e "\nPlease set AWS_ACCESS_KEY_ID"
-    exit 1
-  fi
-fi
-
 export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-""}"
 
-if [ "$AWS_SECRET_ACCESS_KEY" = "" ]; then
+function set_aws_credentials_from_cli() {
+  if ! command -v aws >/dev/null; then
+    return
+  fi
+  if [ ! -f $HOME/.aws/credentials ]; then
+    return
+  fi
+  if ! grep -Fxq "[default]" "$HOME/.aws/credentials"; then
+    return
+  fi
+
+  export AWS_ACCESS_KEY_ID=$(aws --profile default configure get aws_access_key_id)
+  export AWS_SECRET_ACCESS_KEY=$(aws --profile default configure get aws_secret_access_key)
+}
+
+if [ "$AWS_ACCESS_KEY_ID" == "" ] && [ "$AWS_SECRET_ACCESS_KEY" != "" ]; then
+  echo -e "\nPlease set your AWS access key ID (export AWS_ACCESS_KEY_ID=***)"
+  exit 1
+fi
+
+if [ "$AWS_ACCESS_KEY_ID" != "" ] && [ "$AWS_SECRET_ACCESS_KEY" == "" ]; then
+  echo -e "\nPlease set your AWS secret access key (export AWS_SECRET_ACCESS_KEY=***)"
+  exit 1
+fi
+
+if [ "$AWS_ACCESS_KEY_ID" == "" ] || [ "$AWS_SECRET_ACCESS_KEY" == "" ]; then
+  set_aws_credentials_from_cli
+fi
+
+if [ "$AWS_ACCESS_KEY_ID" == "" ] || [ "$AWS_SECRET_ACCESS_KEY" == "" ]; then
   if command -v aws >/dev/null; then
-    export AWS_SECRET_ACCESS_KEY=$(aws --profile default configure get aws_secret_access_key)
+    echo -e "\nPlease set your AWS credentials via environment variables (export AWS_ACCESS_KEY_ID=***; export AWS_SECRET_ACCESS_KEY=***) or via the AWS CLI (aws configure)"
+  else
+    echo -e "\nPlease set your AWS credentials (export AWS_ACCESS_KEY_ID=***; export AWS_SECRET_ACCESS_KEY=***)"
   fi
-  if [ "$AWS_SECRET_ACCESS_KEY" = "" ]; then
-    echo -e "\nPlease set AWS_SECRET_ACCESS_KEY"
-    exit 1
-  fi
+  exit 1
 fi
 
 export CORTEX_AWS_ACCESS_KEY_ID="${CORTEX_AWS_ACCESS_KEY_ID:-$AWS_ACCESS_KEY_ID}"
