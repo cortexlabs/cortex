@@ -187,7 +187,6 @@ def run_predict(sample, debug=False):
                 api["request_handler"], "pre_inference request handler"
             ) from e
 
-
     validate_sample(prepared_sample)
 
     prediction_request = create_prediction_request(prepared_sample)

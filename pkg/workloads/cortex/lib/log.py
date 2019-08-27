@@ -22,6 +22,7 @@ handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT, None))
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
+
 def indent_str(text, indent):
     if not isinstance(text, str):
         text = repr(text)
