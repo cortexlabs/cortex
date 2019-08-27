@@ -27,34 +27,16 @@ logger.propagate = False  # prevent double logging (flask modifies root logger)
 
 
 def start(args):
-    api = None
-    try:
-        ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
-        api = ctx.apis_id_map[args.api]
-
-        bucket_name, prefix = ctx.storage.deconstruct_s3_path(api["model"])
-        s3_client = S3(bucket_name, client_config={})
-        s3_client.download_dir(prefix, args.model_dir)
-
-    except Exception as e:
-        logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
-        )
-        sys.exit(1)
+    bucket_name, prefix = S3.deconstruct_s3_path(args.download_from)
+    s3_client = S3(bucket_name, client_config={})
+    s3_client.download(prefix, args.download_to)
 
 
 def main():
     parser = argparse.ArgumentParser()
     na = parser.add_argument_group("required named arguments")
-    na.add_argument("--workload-id", required=True, help="Workload ID")
-    na.add_argument(
-        "--context",
-        required=True,
-        help="S3 path to context (e.g. s3://bucket/path/to/context.json)",
-    )
-    na.add_argument("--api", required=True, help="Resource id of api to serve")
-    na.add_argument("--model-dir", required=True, help="Directory to download the model to")
-    na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
+    na.add_argument("--download_from", required=True, help="Storage Path to download the file from")
+    na.add_argument("--download_to", required=True, help="Directory to download the file to")
     parser.set_defaults(func=start)
 
     args = parser.parse_args()

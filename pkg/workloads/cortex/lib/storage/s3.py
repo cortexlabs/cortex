@@ -225,3 +225,9 @@ class S3(object):
         local_zip = os.path.join(local_dir, "zip.zip")
         self.download_file(key, local_zip)
         util.extract_zip(local_zip, delete_zip_file=True)
+
+    def download(self, prefix, local_dir):
+        if self._is_s3_dir(prefix):
+            self.download_dir(prefix, local_dir)
+        else:
+            self.download_file_to_dir(prefix, local_dir)

@@ -18,6 +18,6 @@ RUN pip3 install -r /src/cortex/lib/requirements.txt && \
 
 COPY pkg/workloads/cortex/consts.py /src/cortex/
 COPY pkg/workloads/cortex/lib /src/cortex/lib
-COPY pkg/workloads/cortex/model_download /src/cortex/model_download
+COPY pkg/workloads/cortex/downloader /src/cortex/downloader
 
-ENTRYPOINT ["/usr/bin/python3", "/src/cortex/model_download/download.py"]
+ENTRYPOINT ["/usr/bin/python3", "/src/cortex/downloader/download.py"]

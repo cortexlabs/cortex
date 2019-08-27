@@ -59,7 +59,7 @@ export CORTEX_IMAGE_ISTIO_PROXY="cortexlabs/istio-proxy:master"
 export CORTEX_IMAGE_ISTIO_PILOT="cortexlabs/istio-pilot:master"
 export CORTEX_IMAGE_ISTIO_CITADEL="cortexlabs/istio-citadel:master"
 export CORTEX_IMAGE_ISTIO_GALLEY="cortexlabs/istio-galley:master"
-export CORTEX_IMAGE_MODEL_DOWNLOAD="cortexlabs/model-download:master"
+export CORTEX_IMAGE_DOWNLOADER="cortexlabs/downloader:master"
 
 # Flag to enable collecting error reports and usage stats. If flag is not set to either "true" or "false", you will be prompted.
 export CORTEX_ENABLE_TELEMETRY=""

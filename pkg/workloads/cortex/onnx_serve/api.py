@@ -234,15 +234,8 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
-        bucket_name, prefix = ctx.storage.deconstruct_s3_path(api["model"])
+        _, prefix = ctx.storage.deconstruct_s3_path(api["model"])
         model_path = os.path.join(args.model_dir, os.path.basename(prefix))
-        if not os.path.exists(model_path):
-            s3_client = S3(bucket_name, client_config={})
-            s3_client.download_file(prefix, model_path)
-
-        if args.only_download:
-            return
-
         if api.get("request_handler") is not None:
             package.install_packages(ctx.python_packages, ctx.storage)
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])

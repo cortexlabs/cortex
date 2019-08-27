@@ -51,7 +51,7 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/cluster-autoscaler --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/nvidia --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/metrics-server --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/model-download --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/downloader --region=$REGISTRY_REGION || true
 }
 
 ### HELPERS ###
@@ -140,7 +140,7 @@ elif [ "$cmd" = "update" ]; then
   fi
 
   build_and_push $ROOT/images/tf-api tf-api latest
-  build_and_push $ROOT/images/model-download model-download latest
+  build_and_push $ROOT/images/downloader downloader latest
   build_and_push $ROOT/images/onnx-serve onnx-serve latest
 
   cleanup

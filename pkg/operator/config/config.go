@@ -46,7 +46,7 @@ type CortexConfig struct {
 	OperatorImage       string `json:"operator_image"`
 	TFServeImage        string `json:"tf_serve_image"`
 	TFAPIImage          string `json:"tf_api_image"`
-	ModelDownloadImage  string `json:"model_download_image"`
+	DownloaderImage     string `json:"downloader_image"`
 	PythonPackagerImage string `json:"python_packager_image"`
 	TFServeImageGPU     string `json:"tf_serve_image_gpu"`
 	ONNXServeImage      string `json:"onnx_serve_image"`
@@ -67,7 +67,7 @@ func Init() error {
 		OperatorImage:       getStr("IMAGE_OPERATOR"),
 		TFServeImage:        getStr("IMAGE_TF_SERVE"),
 		TFAPIImage:          getStr("IMAGE_TF_API"),
-		ModelDownloadImage:  getStr("IMAGE_MODEL_DOWNLOAD"),
+		DownloaderImage:     getStr("IMAGE_DOWNLOADER"),
 		PythonPackagerImage: getStr("IMAGE_PYTHON_PACKAGER"),
 		TFServeImageGPU:     getStr("IMAGE_TF_SERVE_GPU"),
 		ONNXServeImage:      getStr("IMAGE_ONNX_SERVE"),
