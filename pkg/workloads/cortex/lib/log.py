@@ -13,12 +13,33 @@
 # limitations under the License.
 
 import logging
+from .util import pp_str_flat
+
+TRUNCATE_LIMIT = 75
 
 logger = logging.getLogger("cortex")
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT, None))
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
+
+def truncate_obj(d):
+    if not isinstance(d, dict):
+        data = pp_str_flat(d)
+        return (data[:TRUNCATE_LIMIT] + "...") if len(data) > TRUNCATE_LIMIT else data
+
+    data = {}
+    for key in d:
+        data[key] = truncate_obj(d[key])
+
+    return data
+
+
+def print_obj(name, sample, debug=False):
+    if not debug:
+        return
+
+    logger.info("{}: {}".format(name, truncate_obj(sample)))
 
 
 def get_logger():

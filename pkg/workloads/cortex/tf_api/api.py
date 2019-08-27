@@ -29,7 +29,7 @@ from google.protobuf import json_format
 
 from cortex.lib import util, package, Context, api_utils
 from cortex.lib.storage import S3
-from cortex.lib.log import get_logger
+from cortex.lib.log import get_logger, print_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 
 logger = get_logger()
@@ -38,7 +38,6 @@ logger.propagate = False  # prevent double logging (flask modifies root logger)
 app = Flask(__name__)
 app.json_encoder = util.json_tricks_encoder
 
-TRUNCATE_LIMIT = 75
 
 local_cache = {
     "ctx": None,
@@ -159,25 +158,6 @@ def parse_response_proto(response_proto):
         outputs_simplified[key] = outputs[key][value_key]
 
     return {"response": outputs_simplified}
-
-
-def truncate_obj(d):
-    if not isinstance(d, dict):
-        data = util.pp_str_flat(d)
-        return (data[:TRUNCATE_LIMIT] + "...") if len(data) > TRUNCATE_LIMIT else data
-
-    data = {}
-    for key in d:
-        data[key] = truncate_obj(d[key])
-
-    return data
-
-
-def print_obj(name, sample, debug=False):
-    if not debug:
-        return
-
-    logger.info("{}: {}".format(name, truncate_obj(sample)))
 
 
 def run_predict(sample, debug=False):

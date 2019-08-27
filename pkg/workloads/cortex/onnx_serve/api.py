@@ -24,7 +24,7 @@ import numpy as np
 
 from cortex.lib import util, package, Context, api_utils
 from cortex.lib.storage import S3
-from cortex.lib.log import get_logger
+from cortex.lib.log import get_logger, print_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 
 logger = get_logger()
@@ -177,14 +177,12 @@ def predict(app_name, api_name):
 
     for i, sample in enumerate(payload["samples"]):
         try:
-            if debug:
-                logger.info("sample: {}".format(util.pp_str_flat(sample)))
+            print_obj("sample", sample, debug)
 
             prepared_sample = sample
             if request_handler is not None and util.has_function(request_handler, "pre_inference"):
                 prepared_sample = request_handler.pre_inference(sample, input_metadata)
-                if debug:
-                    logger.info("pre_inference: {}".format(util.pp_str_flat(prepared_sample)))
+                print_obj("pre_inference", prepared_sample, debug)
 
             inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
             model_outputs = sess.run([], inference_input)
@@ -194,14 +192,13 @@ def predict(app_name, api_name):
                     result.append(model_output.tolist())
                 else:
                     result.append(model_output)
-            if debug:
-                logger.info("inference: {}".format(util.pp_str_flat(result)))
+
+            print_obj("inference", result, debug)
 
             if request_handler is not None and util.has_function(request_handler, "post_inference"):
                 result = request_handler.post_inference(result, output_metadata)
 
-                if debug:
-                    logger.info("post_inference: {}".format(util.pp_str_flat(result)))
+                print_obj("post_inference", result, debug)
 
         except CortexException as e:
             e.wrap("error", "sample {}".format(i + 1))
