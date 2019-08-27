@@ -1,6 +1,6 @@
-# Deploy GPT-2 as a service
+# Self-host OpenAI's GPT-2 as a service
 
-This example shows how to self-host OpenAI's GPT-2 model as a service on AWS.
+This example shows how to deploy OpenAI's GPT-2 model as a service on AWS.
 
 ## Define a deployment
 
@@ -32,12 +32,13 @@ def pre_inference(sample, metadata):
 
 
 def post_inference(prediction, metadata):
-    return {encoder.decode(prediction["response"]["sample"])}
+    response = prediction["response"]["sample"]
+    return {encoder.decode(response)}
 ```
 
 ## Deploy to AWS
 
-`cortex deploy` takes the declarative configuration from cortex.yaml and creates it on the cluster.
+`cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on the cluster.
 
 ```bash
 $ cortex deploy

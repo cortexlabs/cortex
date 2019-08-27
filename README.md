@@ -6,7 +6,7 @@
 
 <br>
 
-Cortex is a machine learning deployment platform that runs in your AWS account. It takes exported models from S3 and deploys them as web APIs. It also handles autoscaling, rolling updates, log streaming, inference on CPUs or GPUs, and more.
+Cortex is a machine learning deployment platform that runs in your AWS account. It takes exported models from S3 and deploys them as web APIs. It handles autoscaling, rolling updates, log streaming, inference on CPUs or GPUs, and more.
 
 Cortex is maintained by a venture-backed team of infrastructure engineers and [we're hiring](https://angel.co/cortex-labs-inc/jobs).
 
@@ -54,7 +54,7 @@ Deploying ...
 http://***.amazonaws.com/my-api  # Your API is ready!
 ```
 
-**Serve** real-time predictions via scalable JSON APIs:
+**Serve** real-time predictions via autoscaling JSON APIs:
 
 ```bash
 $ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
@@ -77,7 +77,7 @@ $ export AWS_ACCESS_KEY_ID=***
 $ export AWS_SECRET_ACCESS_KEY=***
 
 # Set the AWS instance type
-export CORTEX_NODE_TYPE="p2.xlarge"
+$ export CORTEX_NODE_TYPE="p2.xlarge"
 
 # Provision infrastructure on AWS and install Cortex
 $ ./cortex.sh install
