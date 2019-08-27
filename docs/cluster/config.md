@@ -34,7 +34,7 @@ export CORTEX_CLUSTER="cortex"
 export CORTEX_NODE_TYPE="t3.large"
 
 # Minimum number of nodes in the cluster
-export CORTEX_NODES_MIN=2
+export CORTEX_NODES_MIN=1
 
 # Maximum number of nodes in the cluster
 export CORTEX_NODES_MAX=5

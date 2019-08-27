@@ -453,9 +453,9 @@ if [ "$arg1" = "install" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    prompt_for_email && prompt_for_telemetry && install_eks && install_cortex && info
+    prompt_for_telemetry && install_eks && install_cortex && info
   elif [ "$arg2" = "cli" ]; then
-    install_cli
+    prompt_for_email && install_cli
   elif [ "$arg2" = "cortex" ]; then # Undocumented (just for dev)
     install_cortex && info
   elif [ "$arg2" = "" ]; then

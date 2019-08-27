@@ -72,15 +72,15 @@ $ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
 # Download the install script
 $ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/0.7/cortex.sh && chmod +x cortex.sh
 
+# Install the Cortex CLI on your machine
+$ ./cortex.sh install cli
+
 # Set your AWS credentials
 $ export AWS_ACCESS_KEY_ID=***
 $ export AWS_SECRET_ACCESS_KEY=***
 
 # Set the AWS instance type
 $ export CORTEX_NODE_TYPE="p2.xlarge"
-
-# Install the Cortex CLI on your machine
-$ ./cortex.sh install cli
 
 # Provision infrastructure on AWS and install Cortex
 $ ./cortex.sh install
