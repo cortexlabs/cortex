@@ -164,7 +164,7 @@ def parse_response_proto(response_proto):
 def truncate_obj(d):
     if not isinstance(d, dict):
         data = util.pp_str_flat(d)
-        return (data[:TRUNCATE_LIMIT] + '...') if len(data) > TRUNCATE_LIMIT else data
+        return (data[:TRUNCATE_LIMIT] + "...") if len(data) > TRUNCATE_LIMIT else data
 
     data = {}
     for key in d:
@@ -178,6 +178,7 @@ def print_obj(name, sample, debug=False):
         return
 
     logger.info("{}: {}".format(name, truncate_obj(sample)))
+
 
 def run_predict(sample, debug=False):
     ctx = local_cache["ctx"]
