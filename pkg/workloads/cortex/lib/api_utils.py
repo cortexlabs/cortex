@@ -73,23 +73,34 @@ def extract_predicted_values(api, predictions):
 
     tracker = api.get("tracker")
     for prediction in predictions:
-        predicted_value = prediction.get(tracker["key"])
-        if predicted_value is None:
-            raise ValueError(
-                "failed to track key '{}': not found in response payload".format(tracker["key"])
-            )
+        if tracker.get("key") is not None:
+            key = tracker["key"]
+            if type(prediction) != dict:
+                raise ValueError(
+                    "failed to track key '{}': expected prediction to be of type dict but found '{}'".format(
+                        key, type(prediction)
+                    )
+                )
+            if prediction.get(key) is None:
+                raise ValueError(
+                    "failed to track key '{}': not found in prediction".format(tracker["key"])
+                )
+            predicted_value = prediction[key]
+        else:
+            predicted_value = prediction
+
         if tracker["model_type"] == "classification":
             if type(predicted_value) != str and type(predicted_value) != int:
                 raise ValueError(
-                    "failed to track key '{}': expected type 'str' or 'int' but encountered '{}'".format(
-                        tracker["key"], type(predicted_value)
+                    "failed to track classification prediction: expected type 'str' or 'int' but encountered '{}'".format(
+                        type(predicted_value)
                     )
                 )
         else:
             if type(predicted_value) != float and type(predicted_value) != int:  # allow ints
                 raise ValueError(
-                    "failed to track key '{}': expected type 'float' or 'int' but encountered '{}'".format(
-                        tracker["key"], type(predicted_value)
+                    "failed to track regression prediction: expected type 'float' or 'int' but encountered '{}'".format(
+                        type(predicted_value)
                     )
                 )
         predicted_values.append(predicted_value)
