@@ -341,7 +341,7 @@ def exceptions(e):
 
 
 def start(args):
-    util.extract_zip(args.project_dir+"project.zip",  delete_zip_file=True)
+    util.extract_zip(os.path.join(args.project_dir, "project.zip"),  delete_zip_file=True)
     api = None
     try:
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)

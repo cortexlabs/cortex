@@ -4,7 +4,7 @@ RUN apt-get update -qq && apt-get install -y -q \
         zlib1g-dev \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
-ENV PYTHONPATH="/src:${PYTHONPATH}"
+ENV PYTHONPATH "${PYTHONPATH}:/src:/mnt/project"
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
         libfreetype6-dev \

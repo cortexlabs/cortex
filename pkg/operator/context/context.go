@@ -81,7 +81,7 @@ func New(
 	}
 
 	ctx.ProjectID = hash.Bytes(projectBytes)
-	ctx.ProjectKey = filepath.Join(consts.ProjectDir, ctx.ProjectID)
+	ctx.ProjectKey = filepath.Join(consts.ProjectDir, ctx.ProjectID, "project.zip")
 	if err = config.AWS.UploadBytesToS3(projectBytes, ctx.ProjectKey); err != nil {
 		return nil, err
 	}
