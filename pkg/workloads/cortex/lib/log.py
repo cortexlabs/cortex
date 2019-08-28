@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import logging
-import stringify
+from cortex.lib import stringify
 
 logger = logging.getLogger("cortex")
 handler = logging.StreamHandler()

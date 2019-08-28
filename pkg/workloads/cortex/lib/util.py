@@ -27,7 +27,8 @@ from copy import deepcopy
 from datetime import datetime
 
 from cortex.lib.log import get_logger
-import cortex.lib.stringify as stringify
+from cortex.lib import stringify
+import json_tricks
 
 
 logger = get_logger()
@@ -36,24 +37,10 @@ logger = get_logger()
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
     return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
-
-def log_indent(obj, indent=0, logging_func=logger.info):
-    if not is_str(obj):
-        text = repr(obj)
-    else:
-        text = obj
-    logging_func(stringify.indent_str(text, indent))
-
-
-def log_pretty(obj, indent=0, logging_func=logger.info):
-    formatted_str = stringify.to_string(obj, indent)
-    for line in formatted_str.split("\n"):
-        logging_func(line)
-
-
-def log_pretty_flat(obj, indent=0, logging_func=logger.info):
-    logging_func(stringify.to_string(obj, indent, flat=True))
-
+def json_tricks_encoder(*args, **kwargs):
+    kwargs["primitives"] = True
+    kwargs["obj_encoders"] = json_tricks.nonp.DEFAULT_ENCODERS
+    return json_tricks.TricksEncoder(*args, **kwargs)
 
 def pluralize(num, singular, plural):
     if num == 1:

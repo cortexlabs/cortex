@@ -36,7 +36,7 @@ var predictDebug bool
 func init() {
 	addAppNameFlag(predictCmd)
 	addEnvFlag(predictCmd)
-	predictCmd.Flags().BoolVarP(&predictDebug, "debug", "s", false, "Predict with debug mode")
+	predictCmd.Flags().BoolVar(&predictDebug, "debug", false, "Predict with debug mode")
 }
 
 type PredictResponse struct {

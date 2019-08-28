@@ -1,49 +1,37 @@
-import json_tricks
+# Copyright 2019 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
 import pprint
 
 
-def indent_str(text, indent):
-    if isinstance(text, str):
-        text = repr(text)
-    return indent * " " + text.replace("\n", "\n" + indent * " ")
+def truncate(item, length=75):
+    trim = length - 3
 
-
-def json_tricks_dump(obj, **kwargs):
-    return json_tricks.dumps(obj, primitives=True, **kwargs)
-
-
-def json_tricks_encoder(*args, **kwargs):
-    kwargs["primitives"] = True
-    kwargs["obj_encoders"] = json_tricks.nonp.DEFAULT_ENCODERS
-    return json_tricks.TricksEncoder(*args, **kwargs)
-
-
-def to_string(obj, indent=0, flat=False):
-    if not flat:
-        try:
-            out = json_tricks_dump(obj, sort_keys=True, indent=2)
-        except:
-            out = pprint.pformat(obj, width=120)
-    else:
-        try:
-            out = json_tricks_dump(obj, sort_keys=True)
-        except:
-            out = str(obj).replace("\n", "")
-    return indent_str(out, indent)
-
-
-def truncate(item, truncate=75):
-    trim = truncate - 3
-
-    if isinstance(item, str) and truncate > 3 and len(item) > truncate:
+    if isinstance(item, str) and length > 3 and len(item) > length:
         return item[:trim] + "..."
 
-    if not isinstance(item, dict):
-        data = to_string(item, flat=True)
-        return (data[:trim] + "...") if truncate > 3 and len(data) > truncate else data
+    if isinstance(item, dict):
+        s = "{"
+        s += ",".join(["'{}': {}".format(key, truncate(item[key])) for key in item])
+        s += "}"
+        return s
 
-    data = {}
-    for key in item:
-        data[key] = truncate(item[key])
+    data = str(item).replace("\n", "")
+    data = (data[:trim] + "...") if length > 3 and len(data) > length else data
+    if isinstance(item, list) or hasattr(item, "tolist"):
+        data += "]"
 
     return data
+
