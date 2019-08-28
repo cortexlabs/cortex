@@ -27,7 +27,7 @@ def print_obj(name, sample, debug=False):
     if not debug:
         return
 
-    logger.info("{}: {}".format(name, stringify.truncate_obj(sample)))
+    logger.info("{}: {}".format(name, stringify.truncate(sample)))
 
 
 def get_logger():

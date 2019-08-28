@@ -34,30 +34,20 @@ def to_string(obj, indent=0, flat=False):
             out = str(obj).replace("\n", "")
     return indent_str(out, indent)
 
-def truncate_obj(d):
-    if not isinstance(d, dict):
-        data = to_string(d, flat=True)
-        return (data[:TRUNCATE_LIMIT] + "...") if len(data) > TRUNCATE_LIMIT else data
+def truncate(item, truncate=75):
+    trim = truncate - 3
+
+    if isinstance(item, str) and truncate > 3 and len(item) > truncate:
+        return item[:trim] + "..."
+
+    if not isinstance(item, dict) :
+        data = to_string(item, flat=True)
+        return (data[:trim] + "...") if truncate > 3  and len(data) > truncate else data
 
     data = {}
-    for key in d:
-        data[key] = truncate_obj(d[key])
+    for key in item:
+        data[key] = truncate(item[key])
 
     return data
 
-def str_rep(item, truncate=20, round=2):
-    if item is None:
-        return ""
-    if isinstance(item, float):
-        out = "{0:.2f}".format(item)
-    else:
-        out = str(item)
 
-    return truncate_str(out, truncate)
-
-
-def truncate_str(item, truncate=20):
-    if isinstance(item, str) and truncate is not None and truncate > 3 and len(item) > truncate:
-        trim = truncate - 3
-        return item[:trim] + "..."
-    return item
