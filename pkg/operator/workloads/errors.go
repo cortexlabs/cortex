@@ -120,9 +120,9 @@ func ErrorAPIInitializing() error {
 	}
 }
 
-func ErrorNoAvailableNodeComputeLimit(resource string, req, max int64) error {
+func ErrorNoAvailableNodeComputeLimit(resource, reqStr, maxStr string) error {
 	return Error{
 		Kind:    ErrNoAvailableNodeComputeLimit,
-		message: fmt.Sprintf("there are no available nodes that can satisfy the requested %s quantity - requested %d but nodes only have %d", resource, req, max),
+		message: fmt.Sprintf("there are no available nodes that can satisfy the requested %s quantity - requested %s but nodes only have %s", resource, reqStr, maxStr),
 	}
 }

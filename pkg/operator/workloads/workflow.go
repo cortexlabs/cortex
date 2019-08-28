@@ -17,7 +17,10 @@ limitations under the License.
 package workloads
 
 import (
+	"fmt"
 	"path/filepath"
+
+	kresource "k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -302,21 +305,23 @@ func ValidateDeploy(ctx *context.Context) error {
 		return err
 	}
 
-	var maxCPU, maxMem, maxGPU int64
+	var maxCPU, maxMem kresource.Quantity
+	var maxGPU int64
 	for _, node := range nodes {
-		curCPU, _ := node.Status.Capacity.Cpu().AsInt64()
-		curMem, _ := node.Status.Capacity.Memory().AsInt64()
+		curCPU := node.Status.Capacity.Cpu()
+		curMem := node.Status.Capacity.Memory()
+
 		var curGPU int64
 		if GPUQuantity, ok := node.Status.Allocatable["nvidia.com/gpu"]; ok {
 			curGPU, _ = GPUQuantity.AsInt64()
 		}
 
-		if curCPU > maxCPU {
-			maxCPU = curCPU
+		if curCPU != nil && maxCPU.Cmp(*curCPU) == -1 {
+			maxCPU = *curCPU
 		}
 
-		if curMem > maxMem {
-			maxMem = curMem
+		if curMem != nil && maxMem.Cmp(*curMem) == -1 {
+			maxMem = *curMem
 		}
 
 		if curGPU > maxGPU {
@@ -325,19 +330,17 @@ func ValidateDeploy(ctx *context.Context) error {
 	}
 
 	for _, api := range ctx.APIs {
-		cpu, _ := api.Compute.CPU.AsInt64()
-		if cpu > maxCPU {
-			return errors.Wrap(ErrorNoAvailableNodeComputeLimit("CPU", cpu, maxCPU), userconfig.Identify(api))
+		if maxCPU.Cmp(api.Compute.CPU.Quantity) == -1 {
+			return errors.Wrap(ErrorNoAvailableNodeComputeLimit("CPU", api.Compute.CPU.String(), maxCPU.String()), userconfig.Identify(api))
 		}
 		if api.Compute.Mem != nil {
-			mem, _ := api.Compute.Mem.AsInt64()
-			if mem > maxMem {
-				return errors.Wrap(ErrorNoAvailableNodeComputeLimit("Memory", mem, maxMem), userconfig.Identify(api))
+			if maxMem.Cmp(api.Compute.Mem.Quantity) == -1 {
+				return errors.Wrap(ErrorNoAvailableNodeComputeLimit("Memory", api.Compute.Mem.String(), maxMem.String()), userconfig.Identify(api))
 			}
 		}
 		gpu := api.Compute.GPU
 		if gpu > maxGPU {
-			return errors.Wrap(ErrorNoAvailableNodeComputeLimit("GPU", gpu, maxGPU), userconfig.Identify(api))
+			return errors.Wrap(ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", gpu), fmt.Sprintf("%d", maxGPU)), userconfig.Identify(api))
 		}
 	}
 	return nil

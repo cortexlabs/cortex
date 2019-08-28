@@ -27,9 +27,9 @@ func (c *Client) ListNodes(opts *kmeta.ListOptions) ([]kcore.Node, error) {
 	if opts == nil {
 		opts = &kmeta.ListOptions{}
 	}
-	podList, err := c.nodeClient.List(*opts)
+	nodeList, err := c.nodeClient.List(*opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return podList.Items, nil
+	return nodeList.Items, nil
 }
