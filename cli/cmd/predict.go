@@ -47,7 +47,7 @@ var predictCmd = &cobra.Command{
 	Use:   "predict API_NAME SAMPLES_FILE",
 	Short: "make predictions",
 	Long:  "Make predictions.",
-	Args:  cobra.RangeArgs(2, 3),
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		apiName := args[0]
 		samplesJSONPath := args[1]
