@@ -52,5 +52,4 @@ def truncate(item, max_elements=10, max_str_len=500):
     s = str(item)
     if max_str_len > 3 and len(s) > max_str_len:
         s = s[: max_str_len - 3] + "..."
-
     return s
