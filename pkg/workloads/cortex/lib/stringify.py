@@ -51,18 +51,8 @@ def truncate(item, max_elements=50, max_str_len=1000):
         return "[" + ", ".join(item_strs) + "]"
 
     # Fallback
-    s = str(item).replace("\n", "")
+    s = str(item)
     if max_str_len > 3 and len(s) > max_str_len:
-        first_char = s[0]
-        last_char = s[-1]
-
         s = s[: max_str_len - 3] + "..."
-
-        if (
-            (first_char == "[" and last_char == "]")
-            or (first_char == "{" and last_char == "}")
-            or (first_char == "(" and last_char == ")")
-        ):
-            s += last_char
 
     return s
