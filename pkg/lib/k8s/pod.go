@@ -35,14 +35,15 @@ var podTypeMeta = kmeta.TypeMeta{
 type PodStatus string
 
 const (
-	PodStatusUnknown     PodStatus = "Unknown"
-	PodStatusPending     PodStatus = "Pending"
-	PodStatusRunning     PodStatus = "Running"
-	PodStatusTerminating PodStatus = "Terminating"
-	PodStatusSucceeded   PodStatus = "Succeeded"
-	PodStatusFailed      PodStatus = "Failed"
-	PodStatusKilled      PodStatus = "Killed"
-	PodStatusKilledOOM   PodStatus = "Out of Memory"
+	PodStatusUnknown      PodStatus = "Unknown"
+	PodStatusPending      PodStatus = "Pending"
+	PodStatusInitializing PodStatus = "Initializing"
+	PodStatusRunning      PodStatus = "Running"
+	PodStatusTerminating  PodStatus = "Terminating"
+	PodStatusSucceeded    PodStatus = "Succeeded"
+	PodStatusFailed       PodStatus = "Failed"
+	PodStatusKilled       PodStatus = "Killed"
+	PodStatusKilledOOM    PodStatus = "Out of Memory"
 )
 
 var killStatuses = map[int32]bool{
@@ -136,7 +137,11 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 
 	switch pod.Status.Phase {
 	case kcore.PodPending:
-		return PodStatusPending
+		pendingPodStatus := PodStatusFromContainerStatuses(pod.Status.InitContainerStatuses)
+		if pendingPodStatus == PodStatusRunning {
+			return PodStatusInitializing
+		}
+		return pendingPodStatus
 	case kcore.PodSucceeded:
 		return PodStatusSucceeded
 	case kcore.PodFailed:
@@ -164,52 +169,55 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 		if pod.ObjectMeta.DeletionTimestamp != nil {
 			return PodStatusTerminating
 		}
-
-		numContainers := len(pod.Status.ContainerStatuses)
-		numWaiting := 0
-		numRunning := 0
-		numSucceeded := 0
-		numFailed := 0
-		numKilled := 0
-		for _, containerStatus := range pod.Status.ContainerStatuses {
-			if containerStatus.State.Running != nil {
-				numRunning++
-			} else if containerStatus.State.Terminated != nil {
-				exitCode := containerStatus.State.Terminated.ExitCode
-				if exitCode == 0 {
-					numSucceeded++
-				} else if killStatuses[exitCode] {
-					numKilled++
-				} else {
-					numFailed++
-				}
-			} else if containerStatus.LastTerminationState.Terminated != nil {
-				exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
-				if exitCode == 0 {
-					numSucceeded++
-				} else if killStatuses[exitCode] {
-					numKilled++
-				} else {
-					numFailed++
-				}
-			} else {
-				// either containerStatus.State.Waiting != nil or all containerStatus.States are nil (which implies waiting)
-				numWaiting++
-			}
-		}
-		if numKilled > 0 {
-			return PodStatusKilled
-		} else if numFailed > 0 {
-			return PodStatusFailed
-		} else if numWaiting > 0 {
-			return PodStatusPending
-		} else if numSucceeded == numContainers {
-			return PodStatusSucceeded
-		} else {
-			return PodStatusRunning
-		}
+		return PodStatusFromContainerStatuses(pod.Status.ContainerStatuses)
 	default:
 		return PodStatusUnknown
+	}
+}
+
+func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) PodStatus {
+	numContainers := len(containerStatuses)
+	numWaiting := 0
+	numRunning := 0
+	numSucceeded := 0
+	numFailed := 0
+	numKilled := 0
+	for _, containerStatus := range containerStatuses {
+		if containerStatus.State.Running != nil {
+			numRunning++
+		} else if containerStatus.State.Terminated != nil {
+			exitCode := containerStatus.State.Terminated.ExitCode
+			if exitCode == 0 {
+				numSucceeded++
+			} else if killStatuses[exitCode] {
+				numKilled++
+			} else {
+				numFailed++
+			}
+		} else if containerStatus.LastTerminationState.Terminated != nil {
+			exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
+			if exitCode == 0 {
+				numSucceeded++
+			} else if killStatuses[exitCode] {
+				numKilled++
+			} else {
+				numFailed++
+			}
+		} else {
+			// either containerStatus.State.Waiting != nil or all containerStatus.States are nil (which implies waiting)
+			numWaiting++
+		}
+	}
+	if numKilled > 0 {
+		return PodStatusKilled
+	} else if numFailed > 0 {
+		return PodStatusFailed
+	} else if numWaiting > 0 {
+		return PodStatusPending
+	} else if numSucceeded == numContainers {
+		return PodStatusSucceeded
+	} else {
+		return PodStatusRunning
 	}
 }
 

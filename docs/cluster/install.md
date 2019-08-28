@@ -5,7 +5,9 @@
 1. [AWS credentials](aws.md)
 2. [Docker](https://docs.docker.com/install)
 
-## Installing Cortex in your AWS account
+## Hosting Cortex on AWS
+
+See [cluster configuration](config.md) to customize your installation.
 
 <!-- CORTEX_VERSION_MINOR -->
 
@@ -16,21 +18,20 @@ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh
 # Change permissions
 chmod +x cortex.sh
 
+# Install the Cortex CLI on your machine
+./cortex.sh install cli
+
 # Set AWS credentials
 export AWS_ACCESS_KEY_ID=***
 export AWS_SECRET_ACCESS_KEY=***
 
+# Configure AWS instance settings (at least 4GB memory)
+export CORTEX_NODE_TYPE="p2.xlarge"
+export CORTEX_NODES_MIN="1"
+export CORTEX_NODES_MAX="3"
+
 # Provision infrastructure on AWS and install Cortex
 ./cortex.sh install
-```
-
-See [cluster configuration](config.md) to customize your installation.
-
-## Installing and configuring the CLI
-
-```bash
-# Install the Cortex CLI on your machine
-./cortex.sh install cli
 
 # Get the operator endpoint
 ./cortex.sh info
@@ -39,7 +40,7 @@ See [cluster configuration](config.md) to customize your installation.
 cortex configure
 ```
 
-## Creating a deployment
+## Create a deployment
 
 <!-- CORTEX_VERSION_MINOR -->
 

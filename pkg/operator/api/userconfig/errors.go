@@ -39,7 +39,6 @@ const (
 	ErrSpecifyOnlyOne
 	ErrOneOfPrerequisitesNotDefined
 	ErrCannotBeNull
-	ErrUnsupportedConfigKey
 	ErrMinReplicasGreaterThanMax
 	ErrInitReplicasGreaterThanMax
 	ErrInitReplicasLessThanMin
@@ -48,6 +47,7 @@ const (
 	ErrUnableToInferModelFormat
 	ErrExternalNotFound
 	ErrInvalidTensorflowDir
+	ErrTFServingOptionsForTFOnly
 )
 
 var errorKinds = []string{
@@ -63,7 +63,6 @@ var errorKinds = []string{
 	"err_specify_only_one",
 	"err_one_of_prerequisites_not_defined",
 	"err_cannot_be_null",
-	"err_unsupported_config_key",
 	"err_min_replicas_greater_than_max",
 	"err_init_replicas_greater_than_max",
 	"err_init_replicas_less_than_min",
@@ -72,9 +71,10 @@ var errorKinds = []string{
 	"err_unable_to_infer_model_format",
 	"err_external_not_found",
 	"err_invalid_tensorflow_dir",
+	"err_tf_serving_options_for_tf_only",
 }
 
-var _ = [1]int{}[int(ErrInvalidTensorflowDir)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrTFServingOptionsForTFOnly)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -228,13 +228,6 @@ func ErrorCannotBeNull() error {
 	}
 }
 
-func ErrorUnsupportedConfigKey() error {
-	return Error{
-		Kind:    ErrUnsupportedConfigKey,
-		message: "is not supported for this resource",
-	}
-}
-
 func ErrorMinReplicasGreaterThanMax(min int32, max int32) error {
 	return Error{
 		Kind:    ErrMinReplicasGreaterThanMax,
@@ -307,5 +300,12 @@ func ErrorInvalidTensorflowDir(path string) error {
 	return Error{
 		Kind:    ErrInvalidTensorflowDir,
 		message: message,
+	}
+}
+
+func ErrorTFServingOptionsForTFOnly(format ModelFormat) error {
+	return Error{
+		Kind:    ErrTFServingOptionsForTFOnly,
+		message: fmt.Sprintf("TensorFlow serving options were provided but the model format is %s", format.String()),
 	}
 }

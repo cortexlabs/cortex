@@ -15,6 +15,7 @@
 import sys
 import os
 import argparse
+import builtins
 
 from flask import Flask, request, jsonify, g
 from flask_api import status
@@ -26,6 +27,13 @@ from cortex.lib import util, package, Context, api_utils
 from cortex.lib.storage import S3
 from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
+
+
+def cortex_print(*args, **kwargs):
+    logger.info(*args)
+
+
+builtins.print = cortex_print
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
@@ -100,10 +108,18 @@ def transform_to_numpy(input_pyobj, input_metadata):
             if dim is None:
                 target_shape[idx] = 1
 
-        if type(input_pyobj) is not np.ndarray:
-            np_arr = np.array(input_pyobj, dtype=target_dtype)
-        else:
+        if type(input_pyobj) is np.ndarray:
             np_arr = input_pyobj
+            if np.issubdtype(np_arr.dtype, np.number) == np.issubdtype(target_dtype, np.number):
+                if str(np_arr.dtype) != target_dtype:
+                    np_arr = np_arr.astype(target_dtype)
+            else:
+                raise ValueError(
+                    "expected dtype '{}' but found '{}'".format(target_dtype, np_arr.dtype)
+                )
+        else:
+            np_arr = np.array(input_pyobj, dtype=target_dtype)
+
         np_arr = np_arr.reshape(target_shape)
         return np_arr
     except Exception as e:
@@ -174,7 +190,12 @@ def predict(app_name, api_name):
         try:
             prepared_sample = sample
             if request_handler is not None and util.has_function(request_handler, "pre_inference"):
-                prepared_sample = request_handler.pre_inference(sample, input_metadata)
+                try:
+                    prepared_sample = request_handler.pre_inference(sample, input_metadata)
+                except Exception as e:
+                    raise UserRuntimeException(
+                        api["request_handler"], "pre_inference request handler"
+                    ) from e
 
             inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
             model_outputs = sess.run([], inference_input)
@@ -186,7 +207,12 @@ def predict(app_name, api_name):
                     result.append(model_output)
 
             if request_handler is not None and util.has_function(request_handler, "post_inference"):
-                result = request_handler.post_inference(result, output_metadata)
+                try:
+                    result = request_handler.post_inference(result, output_metadata)
+                except Exception as e:
+                    raise UserRuntimeException(
+                        api["request_handler"], "post_inference request handler"
+                    ) from e
 
         except CortexException as e:
             e.wrap("error", "sample {}".format(i + 1))

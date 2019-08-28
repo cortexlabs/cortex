@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -31,17 +32,22 @@ type APIs []*API
 
 type API struct {
 	ResourceFields
-	Model          string      `json:"model" yaml:"model"`
-	ModelFormat    ModelFormat `json:"model_format" yaml:"model_format"`
-	Tracker        *Tracker    `json:"tracker" yaml:"tracker"`
-	RequestHandler *string     `json:"request_handler" yaml:"request_handler"`
-	Compute        *APICompute `json:"compute" yaml:"compute"`
-	Tags           Tags        `json:"tags" yaml:"tags"`
+	Model          string            `json:"model" yaml:"model"`
+	ModelFormat    ModelFormat       `json:"model_format" yaml:"model_format"`
+	Tracker        *Tracker          `json:"tracker" yaml:"tracker"`
+	RequestHandler *string           `json:"request_handler" yaml:"request_handler"`
+	TFServing      *TFServingOptions `json:"tf_serving" yaml:"tf_serving"`
+	Compute        *APICompute       `json:"compute" yaml:"compute"`
+	Tags           Tags              `json:"tags" yaml:"tags"`
 }
 
 type Tracker struct {
-	Key       string    `json:"key" yaml:"key"`
+	Key       *string   `json:"key" yaml:"key"`
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
+}
+
+type TFServingOptions struct {
+	SignatureKey string `json:"signature_key" yaml:"signature_key"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -66,10 +72,8 @@ var apiValidation = &cr.StructValidation{
 				DefaultNil: true,
 				StructFieldValidations: []*cr.StructFieldValidation{
 					{
-						StructField: "Key",
-						StringValidation: &cr.StringValidation{
-							Required: true,
-						},
+						StructField:         "Key",
+						StringPtrValidation: &cr.StringPtrValidation{},
 					},
 					{
 						StructField: "ModelType",
@@ -98,6 +102,20 @@ var apiValidation = &cr.StructValidation{
 			},
 			Parser: func(str string) (interface{}, error) {
 				return ModelFormatFromString(str), nil
+			},
+		},
+		{
+			StructField: "TFServing",
+			StructValidation: &cr.StructValidation{
+				DefaultNil: true,
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "SignatureKey",
+						StringValidation: &cr.StringValidation{
+							Default: consts.DefaultTFServingSignatureKey,
+						},
+					},
+				},
 			},
 		},
 		apiComputeFieldValidation,
@@ -193,6 +211,16 @@ func (api *API) Validate() error {
 		default:
 			return errors.Wrap(ErrorUnableToInferModelFormat(api.Model), Identify(api))
 		}
+	}
+
+	if api.ModelFormat == TensorFlowModelFormat && api.TFServing == nil {
+		api.TFServing = &TFServingOptions{
+			SignatureKey: consts.DefaultTFServingSignatureKey,
+		}
+	}
+
+	if api.ModelFormat != TensorFlowModelFormat && api.TFServing != nil {
+		return errors.Wrap(ErrorTFServingOptionsForTFOnly(api.ModelFormat), Identify(api))
 	}
 
 	if err := api.Compute.Validate(); err != nil {

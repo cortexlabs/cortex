@@ -16,6 +16,7 @@ import sys
 import os
 import argparse
 import time
+import builtins
 
 import tensorflow as tf
 from flask import Flask, request, jsonify, g
@@ -31,6 +32,13 @@ from cortex.lib import util, package, Context, api_utils
 from cortex.lib.storage import S3
 from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
+
+
+def cortex_print(*args, **kwargs):
+    logger.info(*args)
+
+
+builtins.print = cortex_print
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
@@ -108,7 +116,7 @@ def after_request(response):
 
 def create_prediction_request(sample):
     signature_def = local_cache["metadata"]["signatureDef"]
-    signature_key = list(signature_def.keys())[0]
+    signature_key = local_cache["api"]["tf_serving"]["signature_key"]
     prediction_request = predict_pb2.PredictRequest()
     prediction_request.model_spec.name = "model"
     prediction_request.model_spec.signature_name = signature_key
@@ -162,13 +170,19 @@ def parse_response_proto(response_proto):
 
 def run_predict(sample):
     ctx = local_cache["ctx"]
+    api = local_cache["api"]
     request_handler = local_cache.get("request_handler")
 
     prepared_sample = sample
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
-        prepared_sample = request_handler.pre_inference(
-            sample, local_cache["metadata"]["signatureDef"]
-        )
+        try:
+            prepared_sample = request_handler.pre_inference(
+                sample, local_cache["metadata"]["signatureDef"]
+            )
+        except Exception as e:
+            raise UserRuntimeException(
+                api["request_handler"], "pre_inference request handler"
+            ) from e
 
     validate_sample(prepared_sample)
 
@@ -177,7 +191,12 @@ def run_predict(sample):
     result = parse_response_proto(response_proto)
 
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
-        result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
+        try:
+            result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
+        except Exception as e:
+            raise UserRuntimeException(
+                api["request_handler"], "post_inference request handler"
+            ) from e
 
     return result
 
@@ -250,11 +269,17 @@ def predict(deployment_name, api_name):
 
 def extract_signature():
     signature_def = local_cache["metadata"]["signatureDef"]
-    if signature_def.get("predict") is None or signature_def["predict"].get("inputs") is None:
-        raise UserException('unable to find "predict" in model\'s signature definition')
+    signature_key = local_cache["api"]["tf_serving"]["signature_key"]
+    if (
+        signature_def.get(signature_key) is None
+        or signature_def[signature_key].get("inputs") is None
+    ):
+        raise UserException(
+            'unable to find "' + signature_key + "\" in model's signature definition"
+        )
 
     metadata = {}
-    for input_name, input_metadata in signature_def["predict"]["inputs"].items():
+    for input_name, input_metadata in signature_def[signature_key]["inputs"].items():
         metadata[input_name] = {
             "shape": [int(dim["size"]) for dim in input_metadata["tensorShape"]["dim"]],
             "type": DTYPE_TO_TF_TYPE[input_metadata["dtype"]].name,

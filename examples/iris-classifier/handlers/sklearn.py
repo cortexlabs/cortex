@@ -23,7 +23,7 @@ def pre_inference(sample, metadata):
             sample["petal_width"],
         ]
     )
-    return ((x - scalars["mean"]) / scalars["stddev"]).astype(np.float32)
+    return (x - scalars["mean"]) / scalars["stddev"]
 
 
 def post_inference(prediction, metadata):
