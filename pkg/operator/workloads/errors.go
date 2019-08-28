@@ -123,6 +123,6 @@ func ErrorAPIInitializing() error {
 func ErrorNoAvailableNodeComputeLimit(resource, reqStr, maxStr string) error {
 	return Error{
 		Kind:    ErrNoAvailableNodeComputeLimit,
-		message: fmt.Sprintf("there are no available nodes that can satisfy the requested %s quantity - requested %s but nodes only have %s", resource, reqStr, maxStr),
+		message: fmt.Sprintf("no available nodes can satisfy the requested %s quantity - requested %s %s but nodes only have %s %s", resource, reqStr, resource, maxStr, resource),
 	}
 }
