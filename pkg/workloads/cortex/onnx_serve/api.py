@@ -277,12 +277,6 @@ def main():
     na.add_argument("--api", required=True, help="Resource id of api to serve")
     na.add_argument("--model-dir", required=True, help="Directory to download the model to")
     na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
-    na.add_argument(
-        "--only-download",
-        required=False,
-        help="Only download model (for init-containers)",
-        default=False,
-    )
 
     parser.set_defaults(func=start)
 

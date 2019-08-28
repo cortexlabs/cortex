@@ -12,18 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-import os
 import argparse
-import time
 
-from cortex.lib import Context, api_utils
 from cortex.lib.storage import S3
 from cortex.lib.log import get_logger
-from cortex.lib.exceptions import UserRuntimeException, UserException
 
 logger = get_logger()
-logger.propagate = False  # prevent double logging (flask modifies root logger)
 
 
 def start(args):
