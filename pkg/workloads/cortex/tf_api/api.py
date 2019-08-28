@@ -30,8 +30,9 @@ from google.protobuf import json_format
 
 from cortex.lib import util, package, Context, api_utils
 from cortex.lib.storage import S3
-from cortex.lib.log import get_logger
+from cortex.lib.log import get_logger, debug_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
+from cortex.lib.stringify import truncate
 
 
 def cortex_print(*args, **kwargs):
@@ -129,7 +130,7 @@ def create_prediction_request(sample):
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
 
         try:
-            tensor_proto = tf.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type])
+            tensor_proto = tf.compat.v1.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type])
             prediction_request.inputs[column_name].CopyFrom(tensor_proto)
         except Exception as e:
             raise UserException(
@@ -168,17 +169,20 @@ def parse_response_proto(response_proto):
     return {"response": outputs_simplified}
 
 
-def run_predict(sample):
+def run_predict(sample, debug=False):
     ctx = local_cache["ctx"]
     api = local_cache["api"]
     request_handler = local_cache.get("request_handler")
 
     prepared_sample = sample
+
+    debug_obj("sample", sample, debug)
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         try:
             prepared_sample = request_handler.pre_inference(
                 sample, local_cache["metadata"]["signatureDef"]
             )
+            debug_obj("pre_inference", prepared_sample, debug)
         except Exception as e:
             raise UserRuntimeException(
                 api["request_handler"], "pre_inference request handler"
@@ -189,10 +193,12 @@ def run_predict(sample):
     prediction_request = create_prediction_request(prepared_sample)
     response_proto = local_cache["stub"].Predict(prediction_request, timeout=300.0)
     result = parse_response_proto(response_proto)
+    debug_obj("inference", result, debug)
 
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
         try:
             result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
+            debug_obj("post_inference", result, debug)
         except Exception as e:
             raise UserRuntimeException(
                 api["request_handler"], "post_inference request handler"
@@ -202,15 +208,16 @@ def run_predict(sample):
 
 
 def validate_sample(sample):
-    signature = extract_signature()
-    for input_name, metadata in signature.items():
+    signature = extract_signature(
+        local_cache["metadata"]["signatureDef"], local_cache["api"]["tf_serving"]["signature_key"]
+    )
+    for input_name, _ in signature.items():
         if input_name not in sample:
             raise UserException('missing key "{}"'.format(input_name))
 
 
 def prediction_failed(reason):
-    message = "prediction failed: " + reason
-
+    message = "prediction failed: {}".format(reason)
     logger.error(message)
     return message, status.HTTP_406_NOT_ACCEPTABLE
 
@@ -222,6 +229,8 @@ def health():
 
 @app.route("/<deployment_name>/<api_name>", methods=["POST"])
 def predict(deployment_name, api_name):
+    debug = request.args.get("debug") is not None and request.args.get("debug").lower() == "true"
+
     try:
         payload = request.get_json()
     except Exception as e:
@@ -233,7 +242,10 @@ def predict(deployment_name, api_name):
     response = {}
 
     if not util.is_dict(payload) or "samples" not in payload:
-        return prediction_failed('top level "samples" key not found in request')
+        message = 'top level "samples" key not found in request'
+        if debug:
+            message += "; payload: {}".format(truncate(payload))
+        return prediction_failed(message)
 
     predictions = []
     samples = payload["samples"]
@@ -242,7 +254,7 @@ def predict(deployment_name, api_name):
 
     for i, sample in enumerate(payload["samples"]):
         try:
-            result = run_predict(sample)
+            result = run_predict(sample, debug)
         except CortexException as e:
             e.wrap("error", "sample {}".format(i + 1))
             logger.error(str(e))
@@ -267,9 +279,7 @@ def predict(deployment_name, api_name):
     return jsonify(response)
 
 
-def extract_signature():
-    signature_def = local_cache["metadata"]["signatureDef"]
-    signature_key = local_cache["api"]["tf_serving"]["signature_key"]
+def extract_signature(signature_def, signature_key):
     if (
         signature_def.get(signature_key) is None
         or signature_def[signature_key].get("inputs") is None
@@ -293,7 +303,10 @@ def get_signature(app_name, api_name):
     api = local_cache["api"]
 
     try:
-        metadata = extract_signature()
+        metadata = extract_signature(
+            local_cache["metadata"]["signatureDef"],
+            local_cache["api"]["tf_serving"]["signature_key"],
+        )
     except CortexException as e:
         logger.error(str(e))
         logger.exception(
@@ -395,7 +408,14 @@ def start(args):
                 sys.exit(1)
 
         time.sleep(1)
-
+    logger.info(
+        "model_signature: {}".format(
+            extract_signature(
+                local_cache["metadata"]["signatureDef"],
+                local_cache["api"]["tf_serving"]["signature_key"],
+            )
+        )
+    )
     serve(app, listen="*:{}".format(args.port))
 
 

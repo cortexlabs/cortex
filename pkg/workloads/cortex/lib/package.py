@@ -132,7 +132,8 @@ def build(args):
     ctx.upload_resource_status_start(*python_packages_list)
     try:
         build_packages(python_packages, ctx.storage)
-        util.log_job_finished(ctx.workload_id)
+        timestamp = util.now_timestamp_rfc_3339()
+        logger.info("workload: {}, completed: {}".format(ctx.workload_id, timestamp))
     except CortexException as e:
         e.wrap("error")
         logger.exception(e)
