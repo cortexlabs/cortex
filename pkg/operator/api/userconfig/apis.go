@@ -18,8 +18,11 @@ package userconfig
 
 import (
 	"fmt"
+	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -147,6 +150,45 @@ func IsValidTensorFlowS3Directory(path string, awsClient *aws.Client) bool {
 	return true
 }
 
+func GetTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, error) {
+	if IsValidTensorFlowS3Directory(path, awsClient) {
+		return path, nil
+	}
+
+	bucket, prefix, err := aws.SplitS3Path(path)
+	if err != nil {
+		return "", err
+	}
+
+	resp, _ := awsClient.S3.ListObjects(&s3.ListObjectsInput{
+		Bucket: &bucket,
+		Prefix: &prefix,
+	})
+
+	highestVersion := int64(0)
+	var highestPath string
+	for _, key := range resp.Contents {
+		if !strings.HasSuffix(*key.Key, "saved_model.pb") {
+			continue
+		}
+
+		keyParts := strings.Split(*key.Key, "/")
+		versionStr := keyParts[len(keyParts)-1]
+		version, err := strconv.ParseInt(versionStr, 10, 64)
+		if err != nil {
+			version = 0
+		}
+
+		possiblePath := "s3://" + filepath.Join(bucket, filepath.Join(keyParts[:len(keyParts)-1]...))
+		if version >= highestVersion && IsValidTensorFlowS3Directory(possiblePath, awsClient) {
+			highestVersion = version
+			highestPath = possiblePath
+		}
+	}
+
+	return highestPath, nil
+}
+
 func (api *API) UserConfigStr() string {
 	var sb strings.Builder
 	sb.WriteString(api.ResourceFields.UserConfigStr())
@@ -190,27 +232,31 @@ func (api *API) Validate() error {
 		return err
 	}
 
-	switch api.ModelFormat {
-	case ONNXModelFormat:
+	switch {
+	case api.ModelFormat == ONNXModelFormat:
 		if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
 		}
-	case TensorFlowModelFormat:
-		if !IsValidTensorFlowS3Directory(api.Model, awsClient) {
+	case api.ModelFormat == TensorFlowModelFormat:
+		path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
+		if path == "" || err != nil {
 			return errors.Wrap(ErrorInvalidTensorflowDir(api.Model), Identify(api), ModelKey)
 		}
+	case strings.HasSuffix(api.Model, ".onnx"):
+		api.ModelFormat = ONNXModelFormat
+		if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
+			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
+		}
 	default:
-		switch {
-		case strings.HasSuffix(api.Model, ".onnx"):
-			api.ModelFormat = ONNXModelFormat
-			if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
-				return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
-			}
-		case IsValidTensorFlowS3Directory(api.Model, awsClient):
-			api.ModelFormat = TensorFlowModelFormat
-		default:
+		path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
+		if err != nil {
+			return errors.Wrap(err, Identify(api), ModelKey)
+		}
+		if path == "" {
 			return errors.Wrap(ErrorUnableToInferModelFormat(api.Model), Identify(api))
 		}
+		api.ModelFormat = TensorFlowModelFormat
+		api.Model = path
 	}
 
 	if api.ModelFormat == TensorFlowModelFormat && api.TFServing == nil {

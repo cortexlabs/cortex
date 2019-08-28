@@ -31,7 +31,7 @@ import (
 type Client struct {
 	Region               string
 	Bucket               string
-	s3Client             *s3.S3
+	S3                   *s3.S3
 	stsClient            *sts.STS
 	cloudWatchLogsClient *cloudwatchlogs.CloudWatchLogs
 	CloudWatchMetrics    *cloudwatch.CloudWatch
@@ -48,7 +48,7 @@ func New(region string, bucket string, withAccountID bool) (*Client, error) {
 	awsClient := &Client{
 		Bucket:               bucket,
 		Region:               region,
-		s3Client:             s3.New(sess),
+		S3:                   s3.New(sess),
 		stsClient:            sts.New(sess),
 		CloudWatchMetrics:    cloudwatch.New(sess),
 		cloudWatchLogsClient: cloudwatchlogs.New(sess),

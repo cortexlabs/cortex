@@ -56,6 +56,12 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		fullCtxMatch = true
 	}
 
+	err = workloads.ValidateDeploy(ctx)
+	if err != nil {
+		RespondError(w, err)
+		return
+	}
+
 	deploymentStatus, err := workloads.GetDeploymentStatus(ctx.App.Name)
 	if err != nil {
 		RespondError(w, err)
@@ -124,7 +130,7 @@ func getContext(r *http.Request, ignoreCache bool) (*context.Context, error) {
 		return nil, errors.Wrap(err, "form file", "config.zip")
 	}
 
-	config, err := userconfig.New(zipContents)
+	config, err := userconfig.New("cortex.yaml", zipContents["cortex.yaml"], true)
 	if err != nil {
 		return nil, err
 	}

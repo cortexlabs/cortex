@@ -2,7 +2,7 @@
 
 ## TensorFlow
 
-Export your trained model and zip the model directory. An example is shown below (here is the [complete example](https://github.com/cortexlabs/cortex/blob/master/examples/iris/models/tensorflow_model.py)):
+Export your trained model and upload the export directory, or checkpoint directory containing the export directory, which is usually the case if you used `estimator.train_and_evaluate`. An example is shown below (here is the [complete example](https://github.com/cortexlabs/cortex/blob/master/examples/sentiment)):
 
 ```Python
 import tensorflow as tf
@@ -10,22 +10,27 @@ import shutil
 import os
 
 ...
+OUPUT_DIR="bert"
+estimator = tf.estimator.Estimator(model_fn=model_fn...)
 
-classifier = tf.estimator.Estimator(
-    model_fn=my_model, model_dir="iris", params={"hidden_units": [10, 10], "n_classes": 3}
-)
+# TF Serving requires a special input_fn used at serving time
+def serving_input_fn():
+    inputs = tf.placeholder(shape=[128], dtype=tf.int32)
+    features = {
+        "input_ids": tf.expand_dims(inputs, 0),
+        "input_mask": tf.expand_dims(inputs, 0),
+        "segment_ids": tf.expand_dims(inputs, 0),
+        "label_ids": tf.placeholder(shape=[0], dtype=tf.int32),
+    }
+    return tf.estimator.export.ServingInputReceiver(features=features, receiver_tensors=inputs)
 
-exporter = tf.estimator.FinalExporter("estimator", serving_input_fn, as_text=False)
-train_spec = tf.estimator.TrainSpec(train_input_fn, max_steps=1000)
-eval_spec = tf.estimator.EvalSpec(eval_input_fn, exporters=[exporter], name="estimator-eval")
-
-tf.estimator.train_and_evaluate(classifier, train_spec, eval_spec)
+estimator.export_savedmodel(OUPUT_DIR, serving_input_fn, strip_default_attrs=True)
 ```
 
-Upload the exported version directory to Amazon S3 using the AWS web console or CLI:
+Upload the checkpoint directory to Amazon S3 using the AWS web console or CLI:
 
 ```text
-$ aws s3 sync ./iris/export/estimator/156293432 s3://my-bucket/iris/156293432
+$ aws s3 sync ./bert s3://my-bucket/bert
 ```
 
 Reference your model in an `api`:
@@ -33,7 +38,7 @@ Reference your model in an `api`:
 ```yaml
 - kind: api
   name: my-api
-  model: s3://my-bucket/iris/156293432
+  model: s3://my-bucket/bert
 ```
 
 ## ONNX
