@@ -180,7 +180,7 @@ func GetTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 		}
 
 		possiblePath := "s3://" + filepath.Join(bucket, filepath.Join(keyParts[:len(keyParts)-1]...))
-		if IsValidTensorFlowS3Directory(possiblePath, awsClient) && version >= highestVersion {
+		if version >= highestVersion && IsValidTensorFlowS3Directory(possiblePath, awsClient) {
 			highestVersion = version
 			highestPath = possiblePath
 		}
