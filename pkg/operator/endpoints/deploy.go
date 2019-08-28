@@ -124,7 +124,7 @@ func getContext(r *http.Request, ignoreCache bool) (*context.Context, error) {
 		return nil, errors.Wrap(err, "form file", "config.zip")
 	}
 
-	config, err := userconfig.New(zipContents)
+	config, err := userconfig.New("cortex.yaml", zipContents["cortex.yaml"], true)
 	if err != nil {
 		return nil, err
 	}

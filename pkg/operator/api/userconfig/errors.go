@@ -39,7 +39,6 @@ const (
 	ErrSpecifyOnlyOne
 	ErrOneOfPrerequisitesNotDefined
 	ErrCannotBeNull
-	ErrUnsupportedConfigKey
 	ErrMinReplicasGreaterThanMax
 	ErrInitReplicasGreaterThanMax
 	ErrInitReplicasLessThanMin
@@ -64,7 +63,6 @@ var errorKinds = []string{
 	"err_specify_only_one",
 	"err_one_of_prerequisites_not_defined",
 	"err_cannot_be_null",
-	"err_unsupported_config_key",
 	"err_min_replicas_greater_than_max",
 	"err_init_replicas_greater_than_max",
 	"err_init_replicas_less_than_min",
@@ -227,13 +225,6 @@ func ErrorCannotBeNull() error {
 	return Error{
 		Kind:    ErrCannotBeNull,
 		message: "cannot be null",
-	}
-}
-
-func ErrorUnsupportedConfigKey() error {
-	return Error{
-		Kind:    ErrUnsupportedConfigKey,
-		message: "is not supported for this resource",
 	}
 }
 
