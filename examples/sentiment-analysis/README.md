@@ -62,8 +62,8 @@ You can track the status of a deployment using `cortex get`:
 ```bash
 $ cortex get --watch
 
-api          replicas     last update
-analysis     1/1          8s
+api         available   up-to-date   requested   last update
+analysis    1           1            1           8s
 ```
 
 The output above indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
@@ -71,7 +71,7 @@ The output above indicates that one replica of the API was requested and one rep
 ## Serve real-time predictions
 
 ```bash
-$ cortex get classifier
+$ cortex get analysis
 
 url: http://***.amazonaws.com/sentiment/analysis
 
