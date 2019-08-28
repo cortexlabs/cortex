@@ -22,7 +22,6 @@ logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
 
-
 def print_obj(name, sample, debug=False):
     if not debug:
         return

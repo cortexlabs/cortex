@@ -1,4 +1,3 @@
-
 import json_tricks
 import pprint
 
@@ -32,20 +31,19 @@ def to_string(obj, indent=0, flat=False):
             out = str(obj).replace("\n", "")
     return indent_str(out, indent)
 
+
 def truncate(item, truncate=75):
     trim = truncate - 3
 
     if isinstance(item, str) and truncate > 3 and len(item) > truncate:
         return item[:trim] + "..."
 
-    if not isinstance(item, dict) :
+    if not isinstance(item, dict):
         data = to_string(item, flat=True)
-        return (data[:trim] + "...") if truncate > 3  and len(data) > truncate else data
+        return (data[:trim] + "...") if truncate > 3 and len(data) > truncate else data
 
     data = {}
     for key in item:
         data[key] = truncate(item[key])
 
     return data
-
-

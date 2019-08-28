@@ -30,7 +30,6 @@ from cortex.lib.log import get_logger
 import cortex.lib.stringify as stringify
 
 
-
 logger = get_logger()
 
 
@@ -532,6 +531,7 @@ def is_number_col(items):
             return False
 
     return True
+
 
 def has_function(impl, fn_name):
     fn = getattr(impl, fn_name, None)
