@@ -38,15 +38,13 @@ def truncate(item, max_elements=50, max_str_len=1000):
         return "{" + ", ".join(item_strs) + "}"
 
     if isinstance(item, Iterable) and hasattr(item, "__getitem__"):
-        count = 0
         item_strs = []
-        for element in item:
-            if max_elements > 0 and count >= max_elements:
-                item_strs.append("...")
-                break
 
+        for element in item[:max_elements]:
             item_strs.append(truncate(element, max_elements, max_str_len))
-            count += 1
+
+        if max_elements > 0 and len(item) > max_elements:
+            item_strs.append("...")
 
         return "[" + ", ".join(item_strs) + "]"
 
