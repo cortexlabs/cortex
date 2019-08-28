@@ -17,15 +17,11 @@ limitations under the License.
 package userconfig
 
 import (
-	"fmt"
-	"io/ioutil"
-
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -39,25 +35,11 @@ var typeFieldValidation = &cr.StructFieldValidation{
 	Nil: true,
 }
 
-func mergeConfigs(target *Config, source *Config) error {
-	target.APIs = append(target.APIs, source.APIs...)
-
-	if source.App != nil {
-		if target.App != nil {
-			return ErrorDuplicateConfig(resource.AppType)
-		}
-		target.App = source.App
+func (config *Config) Validate() error {
+	if err := config.App.Validate(); err != nil {
+		return err
 	}
 
-	return nil
-}
-
-func (config *Config) ValidatePartial() error {
-	if config.App != nil {
-		if err := config.App.Validate(); err != nil {
-			return err
-		}
-	}
 	if config.APIs != nil {
 		if err := config.APIs.Validate(); err != nil {
 			return err
@@ -67,33 +49,14 @@ func (config *Config) ValidatePartial() error {
 	return nil
 }
 
-func (config *Config) Validate() error {
-	if config.App == nil {
-		return ErrorMissingAppDefinition()
-	}
+func New(filePath string, configBytes []byte, validate bool) (*Config, error) {
+	var err error
 
-	return nil
-}
-
-func (config *Config) MergeBytes(configBytes []byte, filePath string) (*Config, error) {
-	sliceData, err := cr.ReadYAMLBytes(configBytes)
+	configData, err := cr.ReadYAMLBytes(configBytes)
 	if err != nil {
-		return nil, errors.Wrap(err, filePath)
+		return nil, errors.Wrap(err, filePath, ErrorParseConfig().Error())
 	}
 
-	subConfig, err := newPartial(sliceData, filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	err = mergeConfigs(config, subConfig)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
-}
-
-func newPartial(configData interface{}, filePath string) (*Config, error) {
 	configDataSlice, ok := cast.InterfaceToStrInterfaceMapSlice(configData)
 	if !ok {
 		return nil, errors.Wrap(ErrorMalformedConfig(), filePath)
@@ -115,6 +78,9 @@ func newPartial(configData interface{}, filePath string) (*Config, error) {
 		var newResource Resource
 		switch resourceType {
 		case resource.AppType:
+			if config.App != nil {
+				return nil, errors.Wrap(ErrorDuplicateConfig(resource.AppType), filePath)
+			}
 			app := &App{}
 			errs = cr.Struct(app, data, appValidation)
 			config.App = app
@@ -139,42 +105,14 @@ func newPartial(configData interface{}, filePath string) (*Config, error) {
 		}
 	}
 
-	err := config.ValidatePartial()
-	if err != nil {
-		return nil, err
+	if config.App == nil {
+		return nil, ErrorMissingAppDefinition()
 	}
 
-	return config, nil
-}
-
-func NewPartialPath(filePath string) (*Config, error) {
-	configBytes, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return nil, errors.Wrap(err, filePath, ErrorReadConfig().Error())
-	}
-
-	configData, err := cr.ReadYAMLBytes(configBytes)
-	if err != nil {
-		return nil, errors.Wrap(err, filePath, ErrorParseConfig().Error())
-	}
-	return newPartial(configData, filePath)
-}
-
-func New(configs map[string][]byte) (*Config, error) {
-	var err error
-	config := &Config{}
-	for filePath, configBytes := range configs {
-		if !files.IsFilePathYAML(filePath) {
-			continue
-		}
-		config, err = config.MergeBytes(configBytes, filePath)
-		if err != nil {
+	if validate {
+		if err := config.Validate(); err != nil {
 			return nil, err
 		}
-	}
-
-	if err := config.Validate(); err != nil {
-		return nil, err
 	}
 	return config, nil
 }
@@ -182,49 +120,13 @@ func New(configs map[string][]byte) (*Config, error) {
 func ReadAppName(filePath string, relativePath string) (string, error) {
 	configBytes, err := files.ReadFileBytes(filePath)
 	if err != nil {
-		return "", errors.Wrap(err, ErrorReadConfig().Error(), relativePath)
+		return "", errors.Wrap(err, relativePath, ErrorReadConfig().Error())
 	}
-	configData, err := cr.ReadYAMLBytes(configBytes)
+
+	config, err := New(relativePath, configBytes, false)
 	if err != nil {
-		return "", errors.Wrap(err, ErrorParseConfig().Error(), relativePath)
-	}
-	configDataSlice, ok := cast.InterfaceToStrInterfaceMapSlice(configData)
-	if !ok {
-		return "", errors.Wrap(ErrorMalformedConfig(), relativePath)
+		return "", err
 	}
 
-	if len(configDataSlice) == 0 {
-		return "", errors.Wrap(ErrorMissingAppDefinition(), relativePath)
-	}
-
-	var appName string
-	for i, configItem := range configDataSlice {
-		kindStr, _ := configItem[KindKey].(string)
-		if resource.TypeFromKindString(kindStr) == resource.AppType {
-			if appName != "" {
-				return "", errors.Wrap(ErrorDuplicateConfig(resource.AppType), relativePath)
-			}
-
-			wrapStr := fmt.Sprintf("%s at %s", resource.AppType.String(), s.Index(i))
-
-			appNameInter, ok := configItem[NameKey]
-			if !ok {
-				return "", errors.Wrap(configreader.ErrorMustBeDefined(), relativePath, wrapStr, NameKey)
-			}
-
-			appName, ok = appNameInter.(string)
-			if !ok {
-				return "", errors.Wrap(configreader.ErrorInvalidPrimitiveType(appNameInter, configreader.PrimTypeString), relativePath, wrapStr)
-			}
-			if appName == "" {
-				return "", errors.Wrap(configreader.ErrorCannotBeEmpty(), relativePath, wrapStr)
-			}
-		}
-	}
-
-	if appName == "" {
-		return "", errors.Wrap(ErrorMissingAppDefinition(), relativePath)
-	}
-
-	return appName, nil
+	return config.App.Name, nil
 }

@@ -87,7 +87,6 @@ func (aw *APIWorkload) Start(ctx *context.Context) error {
 	desiredReplicas := getRequestedReplicasFromDeployment(api, k8sDeloyment, hpa)
 
 	var deploymentSpec *kapps.Deployment
-
 	switch api.ModelFormat {
 	case userconfig.TensorFlowModelFormat:
 		deploymentSpec = tfAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)

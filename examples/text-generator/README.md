@@ -1,6 +1,6 @@
-# Deploy GPT-2 as a service
+# Self-host OpenAI's GPT-2 as a service
 
-This example shows how to self-host OpenAI's GPT-2 model as a service on AWS.
+This example shows how to deploy OpenAI's GPT-2 model as a service on AWS.
 
 ## Define a deployment
 
@@ -32,12 +32,13 @@ def pre_inference(sample, metadata):
 
 
 def post_inference(prediction, metadata):
-    return {encoder.decode(prediction["response"]["sample"])}
+    response = prediction["response"]["sample"]
+    return {encoder.decode(response)}
 ```
 
 ## Deploy to AWS
 
-`cortex deploy` takes the declarative configuration from cortex.yaml and creates it on the cluster.
+`cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on the cluster.
 
 ```bash
 $ cortex deploy
@@ -52,8 +53,8 @@ You can track the status of a deployment using cortex get:
 ```bash
 $ cortex get --watch
 
-api            replicas     last update
-classifier     1/1          8s
+api         available   up-to-date   requested   last update
+generator   1           1            1           8s
 ```
 
 The output above indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
@@ -63,7 +64,7 @@ The output above indicates that one replica of the API was requested and one rep
 ```bash
 $ curl http://***.amazonaws.com/text/generator \
     -X POST -H "Content-Type: application/json" \
-    -d '{"samples": [{"machine learning"}]}'
+    -d '{"samples": [{"text": "machine learning"}]}'
 
 Machine learning, with more than one thousand researchers around the world today, are looking to create computer-driven machine learning algorithms that can also be applied to human and social problems, such as education, health care, employment, medicine, politics, or the environment...
 ```
