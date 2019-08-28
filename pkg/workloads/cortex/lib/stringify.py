@@ -13,9 +13,6 @@
 # limitations under the License.
 
 
-import pprint
-
-
 def truncate(item, length=75):
     trim = length - 3
 
