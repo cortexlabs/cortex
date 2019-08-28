@@ -15,7 +15,7 @@
 from collections.abc import Iterable
 
 
-def truncate(item, max_elements=50, max_str_len=1000):
+def truncate(item, max_elements=10, max_str_len=500):
     if isinstance(item, str):
         s = item
         if max_str_len > 3 and len(s) > max_str_len:
