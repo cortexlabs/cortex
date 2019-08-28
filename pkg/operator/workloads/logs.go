@@ -189,20 +189,18 @@ func CurrentLoggingProcesses(logProcesses map[string]*os.Process) strset.Set {
 	return set
 }
 
-func GetContainerLogs(pod kcore.Pod) strset.Set {
-	containerStatuses := pod.Status.InitContainerStatuses
-	containerStatuses = append(containerStatuses, pod.Status.ContainerStatuses...)
-	set := strset.New()
+func GetLogKeys(pod kcore.Pod) strset.Set {
+	containerStatuses := append(pod.Status.InitContainerStatuses, pod.Status.ContainerStatuses...)
+	logKeys := strset.New()
 	for _, status := range containerStatuses {
 		if status.State.Terminated != nil && (status.State.Terminated.ExitCode != 0 || status.State.Terminated.StartedAt.After(time.Now().Add(-newPodCheckInterval))) {
-			set.Add(GetLogKey(pod, status).String())
-		}
-		if status.State.Running != nil {
-			set.Add(GetLogKey(pod, status).String())
+			logKeys.Add(GetLogKey(pod, status).String())
+		} else if status.State.Running != nil {
+			logKeys.Add(GetLogKey(pod, status).String())
 		}
 	}
 
-	return set
+	return logKeys
 }
 
 func createKubectlProcess(logKey LogKey, attrs *os.ProcAttr) (*os.Process, error) {
@@ -287,7 +285,7 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 				if i >= maxParallelPodLogging {
 					break
 				}
-				expectedLogProcesses.Merge(GetContainerLogs(latestRunningPodsMap[podName]))
+				expectedLogProcesses.Merge(GetLogKeys(latestRunningPodsMap[podName]))
 			}
 
 			processesToDelete := strset.Difference(runningLogProcesses, expectedLogProcesses)
