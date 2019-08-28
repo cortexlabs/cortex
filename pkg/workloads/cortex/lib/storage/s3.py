@@ -29,22 +29,11 @@ class S3(object):
         self.bucket = bucket
         self.region = region
 
-        default_config = {
-            "use_ssl": True,
-            "verify": True,
-            "region_name": None,
-            "aws_access_key_id": None,
-            "aws_secret_access_key": None,
-            "aws_session_token": None,
-        }
-
         if client_config is None:
             client_config = {}
 
         if region is not None:
             client_config["region_name"] = region
-
-        merged_client_config = util.merge_dicts_in_place_no_overwrite(client_config, default_config)
 
         self.s3 = boto3.client("s3", **client_config)
 

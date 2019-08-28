@@ -23,6 +23,7 @@ logger = get_logger()
 def start(args):
     bucket_name, prefix = S3.deconstruct_s3_path(args.download_from)
     s3_client = S3(bucket_name, client_config={})
+    logger.info(args.download_to)
     s3_client.download(prefix, args.download_to)
 
 

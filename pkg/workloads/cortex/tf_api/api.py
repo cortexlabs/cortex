@@ -341,6 +341,7 @@ def exceptions(e):
 
 
 def start(args):
+    util.extract_zip(args.project_dir+"project.zip",  delete_zip_file=True)
     api = None
     try:
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
@@ -415,6 +416,7 @@ def main():
     na.add_argument("--api", required=True, help="Resource id of api to serve")
     na.add_argument("--model-dir", required=True, help="Directory to download the model to")
     na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
+    na.add_argument("--project-dir", required=True, help="Local path for the project zip file")
     parser.set_defaults(func=start)
 
     args = parser.parse_args()

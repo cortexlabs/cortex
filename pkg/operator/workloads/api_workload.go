@@ -281,12 +281,23 @@ func tfAPISpec(
 				RestartPolicy: "Always",
 				InitContainers: []kcore.Container{
 					{
-						Name:            downloaderInitContainerName,
+						Name:            downloaderInitContainerName + "-model",
 						Image:           config.Cortex.DownloaderImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--download_from=" + ctx.APIs[api.Name].Model,
 							"--download_to=" + path.Join(consts.EmptyDirMountPath, "model"),
+						},
+						Env:          k8s.AWSCredentials(),
+						VolumeMounts: k8s.DefaultVolumeMounts(),
+					},
+					{
+						Name:            downloaderInitContainerName + "-project",
+						Image:           config.Cortex.DownloaderImage,
+						ImagePullPolicy: "Always",
+						Args: []string{
+							"--download_from=" + config.AWS.S3Path(ctx.ProjectKey),
+							"--download_to=" + path.Join(consts.EmptyDirMountPath, "project", "project.zip"),
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
