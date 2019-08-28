@@ -16,7 +16,6 @@ import os
 import errno
 import shutil
 import stat
-import pprint
 import pickle
 import json
 import collections
@@ -28,8 +27,8 @@ from copy import deepcopy
 from datetime import datetime
 
 from cortex.lib.log import get_logger
+import cortex.lib.stringify as stringify
 
-import json_tricks
 
 
 logger = get_logger()
@@ -39,62 +38,22 @@ def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
     return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
 
-def indent_str(text, indent):
-    if not is_str(text):
-        text = repr(text)
-    return indent * " " + text.replace("\n", "\n" + indent * " ")
-
-
-def json_tricks_dump(obj, **kwargs):
-    return json_tricks.dumps(obj, primitives=True, **kwargs)
-
-
-def json_tricks_encoder(*args, **kwargs):
-    kwargs["primitives"] = True
-    kwargs["obj_encoders"] = json_tricks.nonp.DEFAULT_ENCODERS
-    return json_tricks.TricksEncoder(*args, **kwargs)
-
-
-def pp_str(obj, indent=0):
-    try:
-        out = json_tricks_dump(obj, sort_keys=True, indent=2)
-    except:
-        out = pprint.pformat(obj, width=120)
-    return indent_str(out, indent)
-
-
-def pp(obj, indent=0):
-    print(pp_str(obj, indent))
-
-
-def pp_str_flat(obj, indent=0):
-    try:
-        out = json_tricks_dump(obj, sort_keys=True)
-    except:
-        out = str(obj).replace("\n", "")
-    return indent_str(out, indent)
-
-
-def user_obj_str(obj):
-    return truncate_str(pp_str_flat(obj), 1000)
-
-
 def log_indent(obj, indent=0, logging_func=logger.info):
     if not is_str(obj):
         text = repr(obj)
     else:
         text = obj
-    logging_func(indent_str(text, indent))
+    logging_func(stringify.indent_str(text, indent))
 
 
 def log_pretty(obj, indent=0, logging_func=logger.info):
-    formatted_str = pp_str(obj, indent)
+    formatted_str = stringify.to_string(obj, indent)
     for line in formatted_str.split("\n"):
         logging_func(line)
 
 
 def log_pretty_flat(obj, indent=0, logging_func=logger.info):
-    logging_func(pp_str_flat(obj, indent))
+    logging_func(stringify.to_string(obj, indent, flat=True))
 
 
 def pluralize(num, singular, plural):
@@ -545,51 +504,6 @@ def extract_zip(zip_path, dest_dir=None, delete_zip_file=False):
         rm_file(zip_path)
 
 
-def print_samples_horiz(
-    samples, truncate=20, sep=",", first_sep=":", pad=1, first_pad=None, key_list=None
-):
-    if first_pad is None:
-        first_pad = pad
-
-    if not key_list:
-        field_names = sorted(list(set(flatten([list(sample.keys()) for sample in samples]))))
-    else:
-        field_names = key_list
-
-    rows = []
-    for field_name in field_names:
-        rows.append([field_name] + [sample.get(field_name, None) for sample in samples])
-
-    rows_strs = []
-    for row in rows:
-        row_strs = []
-        for i, item in enumerate(row):
-            row_strs.append(str_rep(item, truncate))
-        rows_strs.append(row_strs)
-
-    max_lens = []
-    for i in range(len(rows_strs[0])):
-        max_lens.append(max_len([row[i] for row in rows_strs]))
-
-    types = []
-    for i in range(len(rows[0])):
-        types.append(is_number_col([row[i] for row in rows]))
-
-    for row_strs in rows_strs:
-        row_str = ""
-        for i, item in enumerate(row_strs):
-            if i == 0:
-                row_str += pad_smart(item + first_sep, max_lens[i] + len(first_sep), types[i])
-                row_str += " " * first_pad
-            elif i == len(row_strs) - 1:
-                row_str += pad_smart(item, max_lens[i], types[i]).rstrip()
-            else:
-                row_str += pad_smart(item + sep, max_lens[i] + len(sep), types[i])
-                row_str += " " * pad
-
-        logger.info(row_str.strip())
-
-
 def max_len(strings):
     return max(len(s) for s in strings)
 
@@ -609,24 +523,6 @@ def pad_left(string, width):
     return string.rjust(width)
 
 
-def str_rep(item, truncate=20, round=2):
-    if item is None:
-        return ""
-    if is_float(item):
-        out = "{0:.2f}".format(item)
-    else:
-        out = str(item)
-
-    return truncate_str(out, truncate)
-
-
-def truncate_str(item, truncate=20):
-    if is_str(item) and truncate is not None and truncate > 3 and len(item) > truncate:
-        trim = truncate - 3
-        return item[:trim] + "..."
-    return item
-
-
 def is_number_col(items):
     if all(item is None for item in items):
         return False
@@ -636,12 +532,6 @@ def is_number_col(items):
             return False
 
     return True
-
-
-def log_job_finished(workload_id):
-    timestamp = now_timestamp_rfc_3339()
-    logger.info("workload: {}, completed: {}".format(workload_id, timestamp))
-
 
 def has_function(impl, fn_name):
     fn = getattr(impl, fn_name, None)

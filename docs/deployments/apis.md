@@ -46,7 +46,7 @@ See [request handlers](request-handlers.md) for a detailed guide.
 
 ## Debugging
 
-You can log more information about each request by adding a `debug=true` parameter to your requests. This will print:
+You can log more information about each request by adding a `?debug=true` parameter to your requests. This will print:
 
 1. The raw sample
 2. The value after running the `pre_inference` function (if applicable)

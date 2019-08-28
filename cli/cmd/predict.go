@@ -31,9 +31,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
+var predictDebug bool
+
 func init() {
 	addAppNameFlag(predictCmd)
 	addEnvFlag(predictCmd)
+	predictCmd.Flags().BoolVarP(&predictDebug, "debug", "s", false, "Predict with debug mode")
 }
 
 type PredictResponse struct {
@@ -48,11 +51,6 @@ var predictCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		apiName := args[0]
 		samplesJSONPath := args[1]
-
-		var debug bool
-		if len(args) > 2 {
-			debug = args[2] == "debug"
-		}
 
 		resourcesRes, err := getResourcesResponse()
 		if err != nil {
@@ -85,7 +83,7 @@ var predictCmd = &cobra.Command{
 
 		apiPath := apiGroupStatus.ActiveStatus.Path
 		apiURL := urls.Join(resourcesRes.APIsBaseURL, apiPath)
-		if debug {
+		if predictDebug {
 			apiURL += "?debug=true"
 		}
 		predictResponse, err := makePredictRequest(apiURL, samplesJSONPath)

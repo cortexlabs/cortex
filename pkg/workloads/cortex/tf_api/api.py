@@ -32,6 +32,7 @@ from cortex.lib import util, package, Context, api_utils
 from cortex.lib.storage import S3
 from cortex.lib.log import get_logger, print_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
+from cortex.lib.stringify import json_tricks_encoder, print_obj, to_string
 
 
 def cortex_print(*args, **kwargs):
@@ -44,7 +45,7 @@ logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
 
 app = Flask(__name__)
-app.json_encoder = util.json_tricks_encoder
+app.json_encoder = json_tricks_encoder
 
 
 local_cache = {
@@ -243,7 +244,7 @@ def predict(deployment_name, api_name):
     if not util.is_dict(payload) or "samples" not in payload:
         message = 'top level "samples" key not found in request'
         if debug:
-            message += "; payload: {}".format(util.pp_str_flat(payload))
+            message += "; payload: {}".format(to_string(payload, flat=True))
         return prediction_failed(message)
 
     predictions = []

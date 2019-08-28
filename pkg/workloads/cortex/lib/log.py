@@ -13,8 +13,7 @@
 # limitations under the License.
 
 import logging
-
-TRUNCATE_LIMIT = 75
+import stringify
 
 logger = logging.getLogger("cortex")
 handler = logging.StreamHandler()
@@ -23,37 +22,12 @@ logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
 
-def indent_str(text, indent):
-    if not isinstance(text, str):
-        text = repr(text)
-    return indent * " " + text.replace("\n", "\n" + indent * " ")
-
-
-def pp_str_flat(obj, indent=0):
-    try:
-        out = json_tricks_dump(obj, sort_keys=True)
-    except:
-        out = str(obj).replace("\n", "")
-    return indent_str(out, indent)
-
-
-def truncate_obj(d):
-    if not isinstance(d, dict):
-        data = pp_str_flat(d)
-        return (data[:TRUNCATE_LIMIT] + "...") if len(data) > TRUNCATE_LIMIT else data
-
-    data = {}
-    for key in d:
-        data[key] = truncate_obj(d[key])
-
-    return data
-
 
 def print_obj(name, sample, debug=False):
     if not debug:
         return
 
-    logger.info("{}: {}".format(name, truncate_obj(sample)))
+    logger.info("{}: {}".format(name, stringify.truncate_obj(sample)))
 
 
 def get_logger():
