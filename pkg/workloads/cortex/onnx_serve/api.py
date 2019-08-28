@@ -284,9 +284,7 @@ def start(args):
         local_cache["sess"] = sess
         local_cache["input_metadata"] = sess.get_inputs()
         logger.info(
-            "input_metadata: {}".format(
-                truncate(extract_signature(local_cache["input_metadata"]))
-            )
+            "input_metadata: {}".format(truncate(extract_signature(local_cache["input_metadata"])))
         )
         local_cache["output_metadata"] = sess.get_outputs()
         logger.info(

@@ -19,8 +19,11 @@ import pprint
 def truncate(item, length=75):
     trim = length - 3
 
-    if isinstance(item, str) and length > 3 and len(item) > length:
-        return item[:trim] + "..."
+    if isinstance(item, str):
+        data = "'{}'".format(item[:trim])
+        if length > 3 and len(item) > length:
+            data += "..."
+        return data
 
     if isinstance(item, dict):
         s = "{"
@@ -29,9 +32,8 @@ def truncate(item, length=75):
         return s
 
     data = str(item).replace("\n", "")
-    data = (data[:trim] + "...") if length > 3 and len(data) > length else data
+    data = "{}...".format(data[:trim]) if length > 3 and len(data) > length else data
     if isinstance(item, list) or hasattr(item, "tolist"):
         data += "]"
 
     return data
-

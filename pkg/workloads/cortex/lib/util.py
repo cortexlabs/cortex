@@ -37,10 +37,12 @@ logger = get_logger()
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
     return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
+
 def json_tricks_encoder(*args, **kwargs):
     kwargs["primitives"] = True
     kwargs["obj_encoders"] = json_tricks.nonp.DEFAULT_ENCODERS
     return json_tricks.TricksEncoder(*args, **kwargs)
+
 
 def pluralize(num, singular, plural):
     if num == 1:
