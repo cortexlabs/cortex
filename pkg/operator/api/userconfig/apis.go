@@ -173,7 +173,7 @@ func GetTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 		}
 
 		keyParts := strings.Split(*key.Key, "/")
-		versionStr := keyParts[len(keyParts)]
+		versionStr := keyParts[len(keyParts)-1]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
 			version = 0
