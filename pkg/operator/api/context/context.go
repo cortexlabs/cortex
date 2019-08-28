@@ -38,6 +38,8 @@ type Context struct {
 	App               *App                 `json:"app"`
 	PythonPackages    PythonPackages       `json:"python_packages"`
 	APIs              APIs                 `json:"apis"`
+	ProjectID         string               `json:"project_id"`
+	ProjectKey        string               `json:"project_key"`
 }
 
 type Resource interface {

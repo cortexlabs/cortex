@@ -25,15 +25,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
-
-var uploadedRequestHandlers = strset.New()
 
 func getAPIs(config *userconfig.Config,
 	deploymentVersion string,
@@ -102,6 +99,5 @@ func uploadRequestHandler(implKey string, impl []byte) error {
 		}
 	}
 
-	uploadedRequestHandlers.Add(implKey)
 	return nil
 }

@@ -34,6 +34,7 @@ var (
 	APIsDir             = "apis"
 	PythonPackagesDir   = "python_packages"
 	RequestHandlersDir  = "request_handlers"
+	ProjectDir          = "project"
 	ContextsDir         = "contexts"
 	ResourceStatusesDir = "resource_statuses"
 	WorkloadSpecsDir    = "workload_specs"

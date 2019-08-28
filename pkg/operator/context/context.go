@@ -32,6 +32,7 @@ import (
 func New(
 	userconf *userconfig.Config,
 	files map[string][]byte,
+	projectBytes []byte,
 	ignoreCache bool,
 ) (*context.Context, error) {
 
@@ -61,7 +62,6 @@ func New(
 	)
 
 	ctx.StatusPrefix = StatusPrefix(ctx.App.Name)
-
 	pythonPackages, err := loadPythonPackages(files, ctx.DeploymentVersion)
 	if err != nil {
 		return nil, err
@@ -80,6 +80,11 @@ func New(
 		return nil, err
 	}
 
+	ctx.ProjectID = hash.Bytes(projectBytes)
+	ctx.ProjectKey = filepath.Join(consts.ProjectDir, ctx.ProjectID)
+	if err = config.AWS.UploadBytesToS3(projectBytes, ctx.ProjectKey); err != nil {
+		return nil, err
+	}
 	ctx.ID = calculateID(ctx)
 	ctx.Key = ctxKey(ctx.ID, ctx.App.Name)
 	return ctx, nil
@@ -101,6 +106,7 @@ func calculateID(ctx *context.Context) string {
 	ids = append(ids, ctx.Root)
 	ids = append(ids, ctx.StatusPrefix)
 	ids = append(ids, ctx.App.ID)
+	ids = append(ids, ctx.ProjectID)
 
 	for _, resource := range ctx.AllResources() {
 		ids = append(ids, resource.GetID())

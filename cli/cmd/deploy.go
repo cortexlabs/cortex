@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
@@ -53,21 +54,49 @@ func deploy(force bool, ignoreCache bool) {
 		errors.Exit(err)
 	}
 
-	zipInput := &zip.Input{
+	params := map[string]string{
+		"force":       s.Bool(force),
+		"ignoreCache": s.Bool(ignoreCache),
+	}
+
+	zipBytes, err := zip.ToMem(&zip.Input{
 		FileLists: []zip.FileListInput{
 			{
 				Sources:      allConfigPaths(root),
 				RemovePrefix: root,
 			},
 		},
+	})
+
+	if err != nil {
+		errors.Exit(errors.Wrap(err, "failed to zip configuration file"))
 	}
 
-	params := map[string]string{
-		"force":       s.Bool(force),
-		"ignoreCache": s.Bool(ignoreCache),
+	projectPaths, err := files.ListDirRecursive(root, false, files.IgnoreCortexYAML, files.IgnoreHiddenFiles)
+	if err != nil {
+		errors.Exit(err)
+	}
+	projectZipBytes, err := zip.ToMem(&zip.Input{
+		FileLists: []zip.FileListInput{
+			{
+				Sources:      projectPaths,
+				RemovePrefix: root,
+			},
+		},
+	})
+
+	if err != nil {
+		errors.Exit(errors.Wrap(err, "failed to zip configuration file"))
 	}
 
-	response, err := HTTPUploadZip("/deploy", zipInput, "config.zip", params)
+	uploadInput := &HTTPUploadInput{
+		Bytes: map[string][]byte{
+			"config.zip":  zipBytes,
+			"project.zip": projectZipBytes,
+		},
+	}
+
+	response, err := HTTPUpload("/deploy", uploadInput, params)
 	if err != nil {
 		errors.Exit(err)
 	}
