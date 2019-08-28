@@ -161,6 +161,7 @@ export CORTEX_IMAGE_ISTIO_CITADEL="${CORTEX_IMAGE_ISTIO_CITADEL:-cortexlabs/isti
 export CORTEX_IMAGE_ISTIO_GALLEY="${CORTEX_IMAGE_ISTIO_GALLEY:-cortexlabs/istio-galley:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_ISTIO_PILOT="${CORTEX_IMAGE_ISTIO_PILOT:-cortexlabs/istio-pilot:$CORTEX_VERSION_STABLE}"
 export CORTEX_IMAGE_ISTIO_PROXY="${CORTEX_IMAGE_ISTIO_PROXY:-cortexlabs/istio-proxy:$CORTEX_VERSION_STABLE}"
+export CORTEX_IMAGE_DOWNLOADER="${CORTEX_IMAGE_DOWNLOADER:-cortexlabs/downloader:$CORTEX_VERSION_STABLE}"
 
 export CORTEX_ENABLE_TELEMETRY="${CORTEX_ENABLE_TELEMETRY:-""}"
 export CORTEX_TELEMETRY_URL="${CORTEX_TELEMETRY_URL:-"https://telemetry.cortexlabs.dev"}"
@@ -220,6 +221,7 @@ function install_cortex() {
     -e CORTEX_IMAGE_ISTIO_GALLEY=$CORTEX_IMAGE_ISTIO_GALLEY \
     -e CORTEX_IMAGE_ISTIO_PILOT=$CORTEX_IMAGE_ISTIO_PILOT \
     -e CORTEX_IMAGE_ISTIO_PROXY=$CORTEX_IMAGE_ISTIO_PROXY \
+    -e CORTEX_IMAGE_DOWNLOADER=$CORTEX_IMAGE_DOWNLOADER \
     -e CORTEX_ENABLE_TELEMETRY=$CORTEX_ENABLE_TELEMETRY \
     $CORTEX_IMAGE_MANAGER
 }
@@ -384,7 +386,7 @@ function ask_sudo() {
 function prompt_for_email() {
   if [ "$CORTEX_ENABLE_TELEMETRY" != "false" ]; then
     echo
-    read -p "Email address: [press enter to skip]: "
+    read -p "Email address [press enter to skip]: "
 
     if [[ ! -z "$REPLY" ]]; then
       curl -k -X POST -H "Content-Type: application/json" $CORTEX_TELEMETRY_URL/support -d '{"email_address": "'$REPLY'", "source": "cortex.sh"}' >/dev/null 2>&1 || true
@@ -469,9 +471,9 @@ if [ "$arg1" = "install" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    prompt_for_email && prompt_for_telemetry && install_eks && install_cortex && info
+    prompt_for_telemetry && install_eks && install_cortex && info
   elif [ "$arg2" = "cli" ]; then
-    install_cli
+    prompt_for_email && install_cli
   elif [ "$arg2" = "cortex" ]; then # Undocumented (just for dev)
     install_cortex && info
   elif [ "$arg2" = "" ]; then

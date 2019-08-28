@@ -34,9 +34,9 @@ import (
 )
 
 const (
-	apiContainerName               = "api"
-	tfServingContainerName         = "serve"
-	modelDownloadInitContainerName = "model-download"
+	apiContainerName            = "api"
+	tfServingContainerName      = "serve"
+	downloaderInitContainerName = "downloader"
 
 	defaultPortInt32, defaultPortStr     = int32(8888), "8888"
 	tfServingPortInt32, tfServingPortStr = int32(9000), "9000"
@@ -87,7 +87,6 @@ func (aw *APIWorkload) Start(ctx *context.Context) error {
 	desiredReplicas := getRequestedReplicasFromDeployment(api, k8sDeloyment, hpa)
 
 	var deploymentSpec *kapps.Deployment
-
 	switch api.ModelFormat {
 	case userconfig.TensorFlowModelFormat:
 		deploymentSpec = tfAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
@@ -282,18 +281,12 @@ func tfAPISpec(
 				RestartPolicy: "Always",
 				InitContainers: []kcore.Container{
 					{
-						Name:            modelDownloadInitContainerName,
-						Image:           config.Cortex.TFAPIImage,
+						Name:            downloaderInitContainerName,
+						Image:           config.Cortex.DownloaderImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
-							"--workload-id=" + workloadID,
-							"--port=" + defaultPortStr,
-							"--tf-serve-port=" + tfServingPortStr,
-							"--context=" + config.AWS.S3Path(ctx.Key),
-							"--api=" + ctx.APIs[api.Name].ID,
-							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
-							"--cache-dir=" + consts.ContextCacheDir,
-							"--only-download=true",
+							"--download_from=" + ctx.APIs[api.Name].Model,
+							"--download_to=" + path.Join(consts.EmptyDirMountPath, "model"),
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
@@ -433,17 +426,12 @@ func onnxAPISpec(
 			K8sPodSpec: kcore.PodSpec{
 				InitContainers: []kcore.Container{
 					{
-						Name:            modelDownloadInitContainerName,
-						Image:           servingImage,
+						Name:            downloaderInitContainerName,
+						Image:           config.Cortex.DownloaderImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
-							"--workload-id=" + workloadID,
-							"--port=" + defaultPortStr,
-							"--context=" + config.AWS.S3Path(ctx.Key),
-							"--api=" + ctx.APIs[api.Name].ID,
-							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
-							"--cache-dir=" + consts.ContextCacheDir,
-							"--only-download=true",
+							"--download_from=" + ctx.APIs[api.Name].Model,
+							"--download_to=" + path.Join(consts.EmptyDirMountPath, "model"),
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),

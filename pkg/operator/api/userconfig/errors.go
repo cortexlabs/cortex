@@ -39,7 +39,6 @@ const (
 	ErrSpecifyOnlyOne
 	ErrOneOfPrerequisitesNotDefined
 	ErrCannotBeNull
-	ErrUnsupportedConfigKey
 	ErrMinReplicasGreaterThanMax
 	ErrInitReplicasGreaterThanMax
 	ErrInitReplicasLessThanMin
@@ -64,7 +63,6 @@ var errorKinds = []string{
 	"err_specify_only_one",
 	"err_one_of_prerequisites_not_defined",
 	"err_cannot_be_null",
-	"err_unsupported_config_key",
 	"err_min_replicas_greater_than_max",
 	"err_init_replicas_greater_than_max",
 	"err_init_replicas_less_than_min",
@@ -230,13 +228,6 @@ func ErrorCannotBeNull() error {
 	}
 }
 
-func ErrorUnsupportedConfigKey() error {
-	return Error{
-		Kind:    ErrUnsupportedConfigKey,
-		message: "is not supported for this resource",
-	}
-}
-
 func ErrorMinReplicasGreaterThanMax(min int32, max int32) error {
 	return Error{
 		Kind:    ErrMinReplicasGreaterThanMax,
@@ -286,8 +277,8 @@ func ErrorExternalNotFound(path string) error {
 
 var onnxExpectedStructMessage = `For ONNX models, the path should end in .onnx`
 
-var tfExpectedStructMessage = `For TensorFlow models, the path should be a directory with the following structure:
-  1523423423/ (version prefix, usually a timestamp)
+var tfExpectedStructMessage = `For TensorFlow models, the path must contain a directory with the following structure:
+  1523423423/ (Version prefix, usually a timestamp)
   ├── saved_model.pb
   └── variables/
       ├── variables.index

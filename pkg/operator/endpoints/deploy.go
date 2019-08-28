@@ -54,7 +54,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userconf, err := userconfig.New(zipContents)
+	userconf, err := userconfig.New("cortex.yaml", zipContents["cortex.yaml"], true)
 	if err != nil {
 		RespondError(w, err)
 		return
@@ -88,6 +88,12 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	fullCtxMatch := false
 	if existingCtx != nil && existingCtx.ID == ctx.ID && context.APIResourcesAndComputesMatch(ctx, existingCtx) {
 		fullCtxMatch = true
+	}
+
+	err = workloads.ValidateDeploy(ctx)
+	if err != nil {
+		RespondError(w, err)
+		return
 	}
 
 	deploymentStatus, err := workloads.GetDeploymentStatus(ctx.App.Name)
