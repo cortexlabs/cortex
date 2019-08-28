@@ -30,7 +30,7 @@ from google.protobuf import json_format
 
 from cortex.lib import util, package, Context, api_utils
 from cortex.lib.storage import S3
-from cortex.lib.log import get_logger, print_obj
+from cortex.lib.log import get_logger, debug_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 from cortex.lib.stringify import truncate
 
@@ -176,13 +176,13 @@ def run_predict(sample, debug=False):
 
     prepared_sample = sample
 
-    print_obj("sample", sample, debug)
+    debug_obj("sample", sample, debug)
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         try:
             prepared_sample = request_handler.pre_inference(
                 sample, local_cache["metadata"]["signatureDef"]
             )
-            print_obj("pre_inference", prepared_sample, debug)
+            debug_obj("pre_inference", prepared_sample, debug)
         except Exception as e:
             raise UserRuntimeException(
                 api["request_handler"], "pre_inference request handler"
@@ -193,12 +193,12 @@ def run_predict(sample, debug=False):
     prediction_request = create_prediction_request(prepared_sample)
     response_proto = local_cache["stub"].Predict(prediction_request, timeout=300.0)
     result = parse_response_proto(response_proto)
-    print_obj("inference", result, debug)
+    debug_obj("inference", result, debug)
 
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
         try:
             result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
-            print_obj("post_inference", result, debug)
+            debug_obj("post_inference", result, debug)
         except Exception as e:
             raise UserRuntimeException(
                 api["request_handler"], "post_inference request handler"

@@ -25,7 +25,7 @@ import numpy as np
 
 from cortex.lib import util, package, Context, api_utils
 from cortex.lib.storage import S3
-from cortex.lib.log import get_logger, print_obj
+from cortex.lib.log import get_logger, debug_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 from cortex.lib.stringify import truncate
 
@@ -194,13 +194,13 @@ def predict(app_name, api_name):
 
     for i, sample in enumerate(payload["samples"]):
         try:
-            print_obj("sample", sample, debug)
+            debug_obj("sample", sample, debug)
 
             prepared_sample = sample
             if request_handler is not None and util.has_function(request_handler, "pre_inference"):
                 try:
                     prepared_sample = request_handler.pre_inference(sample, input_metadata)
-                    print_obj("pre_inference", prepared_sample, debug)
+                    debug_obj("pre_inference", prepared_sample, debug)
                 except Exception as e:
                     raise UserRuntimeException(
                         api["request_handler"], "pre_inference request handler"
@@ -215,7 +215,7 @@ def predict(app_name, api_name):
                 else:
                     result.append(model_output)
 
-            print_obj("inference", result, debug)
+            debug_obj("inference", result, debug)
 
             if request_handler is not None and util.has_function(request_handler, "post_inference"):
                 try:
@@ -225,7 +225,7 @@ def predict(app_name, api_name):
                         api["request_handler"], "post_inference request handler"
                     ) from e
 
-                print_obj("post_inference", result, debug)
+                debug_obj("post_inference", result, debug)
 
         except CortexException as e:
             e.wrap("error", "sample {}".format(i + 1))
