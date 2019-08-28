@@ -12,26 +12,57 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections.abc import Iterable
 
-def truncate(item, length=75):
-    trim = length - 3
 
+def truncate(item, max_elements=50, max_str_len=1000):
     if isinstance(item, str):
-        data = "'{}".format(item[:trim])
-        if length > 3 and len(item) > length:
-            data += "..."
-        data += "'"
-        return data
+        s = item
+        if max_str_len > 3 and len(s) > max_str_len:
+            s = s[: max_str_len - 3] + "..."
+        return '"{}"'.format(s)
 
     if isinstance(item, dict):
-        s = "{"
-        s += ",".join(["'{}': {}".format(key, truncate(item[key])) for key in item])
-        s += "}"
-        return s
+        count = 0
+        item_strs = []
+        for key in item:
+            if max_elements > 0 and count >= max_elements:
+                item_strs.append("...")
+                break
 
-    data = str(item).replace("\n", "")
-    data = "{}...".format(data[:trim]) if length > 3 and len(data) > length else data
-    if isinstance(item, list) or hasattr(item, "tolist"):
-        data += "]"
+            key_str = truncate(key, max_elements, max_str_len)
+            val_str = truncate(item[key], max_elements, max_str_len)
+            item_strs.append("{}: {}".format(key_str, val_str))
+            count += 1
 
-    return data
+        return "{" + ", ".join(item_strs) + "}"
+
+    if isinstance(item, Iterable) and hasattr(item, "__getitem__"):
+        count = 0
+        item_strs = []
+        for element in item:
+            if max_elements > 0 and count >= max_elements:
+                item_strs.append("...")
+                break
+
+            item_strs.append(truncate(element, max_elements, max_str_len))
+            count += 1
+
+        return "[" + ", ".join(item_strs) + "]"
+
+    # Fallback
+    s = str(item).replace("\n", "")
+    if max_str_len > 3 and len(s) > max_str_len:
+        first_char = s[0]
+        last_char = s[-1]
+
+        s = s[: max_str_len - 3] + "..."
+
+        if (
+            (first_char == "[" and last_char == "]")
+            or (first_char == "{" and last_char == "}")
+            or (first_char == "(" and last_char == ")")
+        ):
+            s += last_char
+
+    return s
