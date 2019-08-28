@@ -316,11 +316,11 @@ func ValidateDeploy(ctx *context.Context) error {
 			curGPU, _ = GPUQuantity.AsInt64()
 		}
 
-		if curCPU != nil && maxCPU.Cmp(*curCPU) == -1 {
+		if curCPU != nil && maxCPU.Cmp(*curCPU) < 0 {
 			maxCPU = *curCPU
 		}
 
-		if curMem != nil && maxMem.Cmp(*curMem) == -1 {
+		if curMem != nil && maxMem.Cmp(*curMem) < 0 {
 			maxMem = *curMem
 		}
 
@@ -330,11 +330,11 @@ func ValidateDeploy(ctx *context.Context) error {
 	}
 
 	for _, api := range ctx.APIs {
-		if maxCPU.Cmp(api.Compute.CPU.Quantity) == -1 {
+		if maxCPU.Cmp(api.Compute.CPU.Quantity) < 0 {
 			return errors.Wrap(ErrorNoAvailableNodeComputeLimit("CPU", api.Compute.CPU.String(), maxCPU.String()), userconfig.Identify(api))
 		}
 		if api.Compute.Mem != nil {
-			if maxMem.Cmp(api.Compute.Mem.Quantity) == -1 {
+			if maxMem.Cmp(api.Compute.Mem.Quantity) < 0 {
 				return errors.Wrap(ErrorNoAvailableNodeComputeLimit("Memory", api.Compute.Mem.String(), maxMem.String()), userconfig.Identify(api))
 			}
 		}
