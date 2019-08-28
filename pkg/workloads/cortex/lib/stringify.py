@@ -20,9 +20,10 @@ def truncate(item, length=75):
     trim = length - 3
 
     if isinstance(item, str):
-        data = "'{}'".format(item[:trim])
+        data = "'{}".format(item[:trim])
         if length > 3 and len(item) > length:
             data += "..."
+        data += "'"
         return data
 
     if isinstance(item, dict):
