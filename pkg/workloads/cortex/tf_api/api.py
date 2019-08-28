@@ -393,21 +393,27 @@ def start(args):
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)
 
     # wait a bit for tf serving to start before querying metadata
-    limit = 300
+    limit = 60
     for i in range(limit):
         try:
             local_cache["metadata"] = run_get_model_metadata()
             break
         except Exception as e:
+            if i > 6:
+                logger.exception(
+                    "An error occurred when reading model metadata, retrying... See `cortex logs -v api {}` for more details.".format(
+                        api["name"]
+                    )
+                )
             if i == limit - 1:
                 logger.exception(
-                    "An error occurred, see `cortex logs -v api {}` for more details.".format(
+                    "An error occurred when reading model metadata, retry limit exceeded. See `cortex logs -v api {}` for more details.".format(
                         api["name"]
                     )
                 )
                 sys.exit(1)
 
-        time.sleep(1)
+        time.sleep(5)
     logger.info(
         "model_signature: {}".format(
             extract_signature(
