@@ -2,8 +2,6 @@
 import json_tricks
 import pprint
 
-TRUNCATE_LIMIT = 75
-
 
 def indent_str(text, indent):
     if isinstance(text, str):
