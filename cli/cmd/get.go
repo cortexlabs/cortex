@@ -518,10 +518,6 @@ func dataResourceTable(resources []context.Resource, dataStatuses map[string]*re
 	}
 
 	title := resourceType.UserFacing()
-	if resourceType == resource.PythonPackageType {
-		title = resourceType.UserFacingPlural()
-	}
-
 	t := table.Table{
 		Headers: []table.Header{
 			{Title: title, MaxWidth: 32},

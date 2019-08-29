@@ -24,10 +24,9 @@ type Type int
 type Types []Type
 
 const (
-	UnknownType       Type = iota // 0
-	AppType                       // 1
-	APIType                       // 2
-	PythonPackageType             // 3
+	UnknownType Type = iota // 0
+	AppType                 // 1
+	APIType                 // 2
 )
 
 var (
@@ -35,7 +34,6 @@ var (
 		"unknown",
 		"deployment",
 		"api",
-		"python_package",
 	}
 
 	typePlurals = []string{
@@ -48,26 +46,16 @@ var (
 		"unknown",
 		"deployment",
 		"api",
-		"python package",
 	}
 
 	userFacingPlural = []string{
 		"unknowns",
 		"deployments",
 		"apis",
-		"python packages",
-	}
-
-	typeAcronyms = map[string]Type{
-		"py":  PythonPackageType,
-		"pys": PythonPackageType,
-		"pp":  PythonPackageType,
-		"pps": PythonPackageType,
 	}
 
 	VisibleTypes = Types{
 		APIType,
-		PythonPackageType,
 	}
 )
 
@@ -79,10 +67,6 @@ func TypeFromString(s string) Type {
 
 		if s == typePlurals[i] {
 			return Type(i)
-		}
-
-		if t, ok := typeAcronyms[s]; ok {
-			return t
 		}
 	}
 	return UnknownType

@@ -44,7 +44,6 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/operator --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-api --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/python-packager --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve-gpu --region=$REGISTRY_REGION || true
@@ -129,7 +128,6 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/tf-serve tf-serve latest
     build_and_push $ROOT/images/tf-serve-gpu tf-serve-gpu latest
     build_and_push $ROOT/images/onnx-serve-gpu onnx-serve-gpu latest
-    build_and_push $ROOT/images/python-packager python-packager latest
     build_and_push $ROOT/images/cluster-autoscaler cluster-autoscaler latest
     build_and_push $ROOT/images/nvidia nvidia latest
     build_and_push $ROOT/images/metrics-server metrics-server latest

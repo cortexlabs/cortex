@@ -37,20 +37,19 @@ var (
 )
 
 type CortexConfig struct {
-	ID                  string `json:"id"`
-	APIVersion          string `json:"api_version"`
-	Bucket              string `json:"bucket"`
-	LogGroup            string `json:"log_group"`
-	Region              string `json:"region"`
-	Namespace           string `json:"namespace"`
-	OperatorImage       string `json:"operator_image"`
-	TFServeImage        string `json:"tf_serve_image"`
-	TFAPIImage          string `json:"tf_api_image"`
-	DownloaderImage     string `json:"downloader_image"`
-	PythonPackagerImage string `json:"python_packager_image"`
-	TFServeImageGPU     string `json:"tf_serve_image_gpu"`
-	ONNXServeImage      string `json:"onnx_serve_image"`
-	ONNXServeImageGPU   string `json:"onnx_serve_gpu_image"`
+	ID                string `json:"id"`
+	APIVersion        string `json:"api_version"`
+	Bucket            string `json:"bucket"`
+	LogGroup          string `json:"log_group"`
+	Region            string `json:"region"`
+	Namespace         string `json:"namespace"`
+	OperatorImage     string `json:"operator_image"`
+	TFServeImage      string `json:"tf_serve_image"`
+	TFAPIImage        string `json:"tf_api_image"`
+	DownloaderImage   string `json:"downloader_image"`
+	TFServeImageGPU   string `json:"tf_serve_image_gpu"`
+	ONNXServeImage    string `json:"onnx_serve_image"`
+	ONNXServeImageGPU string `json:"onnx_serve_gpu_image"`
 
 	TelemetryURL      string `json:"telemetry_url"`
 	EnableTelemetry   bool   `json:"enable_telemetry"`
@@ -59,19 +58,18 @@ type CortexConfig struct {
 
 func Init() error {
 	Cortex = &CortexConfig{
-		APIVersion:          consts.CortexVersion,
-		Bucket:              getStr("BUCKET"),
-		LogGroup:            getStr("LOG_GROUP"),
-		Region:              getStr("REGION"),
-		Namespace:           getStr("NAMESPACE"),
-		OperatorImage:       getStr("IMAGE_OPERATOR"),
-		TFServeImage:        getStr("IMAGE_TF_SERVE"),
-		TFAPIImage:          getStr("IMAGE_TF_API"),
-		DownloaderImage:     getStr("IMAGE_DOWNLOADER"),
-		PythonPackagerImage: getStr("IMAGE_PYTHON_PACKAGER"),
-		TFServeImageGPU:     getStr("IMAGE_TF_SERVE_GPU"),
-		ONNXServeImage:      getStr("IMAGE_ONNX_SERVE"),
-		ONNXServeImageGPU:   getStr("IMAGE_ONNX_SERVE_GPU"),
+		APIVersion:        consts.CortexVersion,
+		Bucket:            getStr("BUCKET"),
+		LogGroup:          getStr("LOG_GROUP"),
+		Region:            getStr("REGION"),
+		Namespace:         getStr("NAMESPACE"),
+		OperatorImage:     getStr("IMAGE_OPERATOR"),
+		TFServeImage:      getStr("IMAGE_TF_SERVE"),
+		TFAPIImage:        getStr("IMAGE_TF_API"),
+		DownloaderImage:   getStr("IMAGE_DOWNLOADER"),
+		TFServeImageGPU:   getStr("IMAGE_TF_SERVE_GPU"),
+		ONNXServeImage:    getStr("IMAGE_ONNX_SERVE"),
+		ONNXServeImageGPU: getStr("IMAGE_ONNX_SERVE_GPU"),
 
 		TelemetryURL:      configreader.MustStringFromEnv("CORTEX_TELEMETRY_URL", &configreader.StringValidation{Required: false, Default: consts.TelemetryURL}),
 		EnableTelemetry:   getBool("ENABLE_TELEMETRY", false),
