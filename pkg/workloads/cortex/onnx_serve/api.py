@@ -25,8 +25,9 @@ import numpy as np
 
 from cortex.lib import util, package, Context, api_utils
 from cortex.lib.storage import S3
-from cortex.lib.log import get_logger
+from cortex.lib.log import get_logger, debug_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
+from cortex.lib.stringify import truncate
 
 
 def cortex_print(*args, **kwargs):
@@ -89,7 +90,7 @@ def after_request(response):
 
 
 def prediction_failed(reason):
-    message = "prediction failed: " + reason
+    message = "prediction failed: {}".format(reason)
     logger.error(message)
     return message, status.HTTP_406_NOT_ACCEPTABLE
 
@@ -164,6 +165,8 @@ def convert_to_onnx_input(sample, input_metadata_list):
 
 @app.route("/<app_name>/<api_name>", methods=["POST"])
 def predict(app_name, api_name):
+    debug = request.args.get("debug").lower() == "true"
+
     try:
         payload = request.get_json()
     except Exception as e:
@@ -179,7 +182,10 @@ def predict(app_name, api_name):
     response = {}
 
     if not util.is_dict(payload) or "samples" not in payload:
-        return prediction_failed('top level "samples" key not found in request')
+        message = 'top level "samples" key not found in request'
+        if debug:
+            message += "; payload: {}".format(truncate(payload))
+        return prediction_failed(message)
 
     predictions = []
     samples = payload["samples"]
@@ -188,10 +194,13 @@ def predict(app_name, api_name):
 
     for i, sample in enumerate(payload["samples"]):
         try:
+            debug_obj("sample", sample, debug)
+
             prepared_sample = sample
             if request_handler is not None and util.has_function(request_handler, "pre_inference"):
                 try:
                     prepared_sample = request_handler.pre_inference(sample, input_metadata)
+                    debug_obj("pre_inference", prepared_sample, debug)
                 except Exception as e:
                     raise UserRuntimeException(
                         api["request_handler"], "pre_inference request handler"
@@ -206,6 +215,8 @@ def predict(app_name, api_name):
                 else:
                     result.append(model_output)
 
+            debug_obj("inference", result, debug)
+
             if request_handler is not None and util.has_function(request_handler, "post_inference"):
                 try:
                     result = request_handler.post_inference(result, output_metadata)
@@ -213,6 +224,8 @@ def predict(app_name, api_name):
                     raise UserRuntimeException(
                         api["request_handler"], "post_inference request handler"
                     ) from e
+
+                debug_obj("post_inference", result, debug)
 
         except CortexException as e:
             e.wrap("error", "sample {}".format(i + 1))
@@ -234,16 +247,18 @@ def predict(app_name, api_name):
     return jsonify(response)
 
 
+def extract_signature(metadata_list):
+    metadata = {}
+    for meta in metadata_list:
+        numpy_type = ONNX_TO_NP_TYPE.get(meta.type, meta.type)
+        metadata[meta.name] = {"shape": meta.shape, "type": numpy_type}
+
+    return metadata
+
+
 @app.route("/<app_name>/<api_name>/signature", methods=["GET"])
 def get_signature(app_name, api_name):
-    metadata = {}
-    input_metadata_list = local_cache["input_metadata"]
-
-    for input_metadata in input_metadata_list:
-        numpy_type = ONNX_TO_NP_TYPE[input_metadata.type]
-        metadata[input_metadata.name] = {"shape": input_metadata.shape, "type": numpy_type}
-    response = {"signature": metadata}
-    return jsonify(response)
+    return jsonify({"signature": extract_signature(local_cache["input_metadata"])})
 
 
 @app.errorhandler(Exception)
@@ -260,15 +275,8 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
-        bucket_name, prefix = ctx.storage.deconstruct_s3_path(api["model"])
+        _, prefix = ctx.storage.deconstruct_s3_path(api["model"])
         model_path = os.path.join(args.model_dir, os.path.basename(prefix))
-        if not os.path.exists(model_path):
-            s3_client = S3(bucket_name, client_config={})
-            s3_client.download_file(prefix, model_path)
-
-        if args.only_download:
-            return
-
         if api.get("request_handler") is not None:
             package.install_packages(ctx.python_packages, ctx.storage)
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
@@ -276,7 +284,15 @@ def start(args):
         sess = rt.InferenceSession(model_path)
         local_cache["sess"] = sess
         local_cache["input_metadata"] = sess.get_inputs()
+        logger.info(
+            "input_metadata: {}".format(truncate(extract_signature(local_cache["input_metadata"])))
+        )
         local_cache["output_metadata"] = sess.get_outputs()
+        logger.info(
+            "output_metadata: {}".format(
+                truncate(extract_signature(local_cache["output_metadata"]))
+            )
+        )
     except CortexException as e:
         e.wrap("error")
         logger.error(str(e))
@@ -310,12 +326,6 @@ def main():
     na.add_argument("--api", required=True, help="Resource id of api to serve")
     na.add_argument("--model-dir", required=True, help="Directory to download the model to")
     na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
-    na.add_argument(
-        "--only-download",
-        required=False,
-        help="Only download model (for init-containers)",
-        default=False,
-    )
 
     parser.set_defaults(func=start)
 

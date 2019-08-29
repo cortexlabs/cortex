@@ -31,9 +31,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
+var predictDebug bool
+
 func init() {
 	addAppNameFlag(predictCmd)
 	addEnvFlag(predictCmd)
+	predictCmd.Flags().BoolVar(&predictDebug, "debug", false, "Predict with debug mode")
 }
 
 type PredictResponse struct {
@@ -80,6 +83,9 @@ var predictCmd = &cobra.Command{
 
 		apiPath := apiGroupStatus.ActiveStatus.Path
 		apiURL := urls.Join(resourcesRes.APIsBaseURL, apiPath)
+		if predictDebug {
+			apiURL += "?debug=true"
+		}
 		predictResponse, err := makePredictRequest(apiURL, samplesJSONPath)
 		if err != nil {
 			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {

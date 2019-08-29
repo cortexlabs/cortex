@@ -51,6 +51,7 @@ type Client struct {
 	clientset        *kclientset.Clientset
 	dynamicClient    kclientdynamic.Interface
 	podClient        kclientcore.PodInterface
+	nodeClient       kclientcore.NodeInterface
 	serviceClient    kclientcore.ServiceInterface
 	configMapClient  kclientcore.ConfigMapInterface
 	deploymentClient kclientapps.DeploymentInterface
@@ -87,6 +88,7 @@ func New(namespace string, inCluster bool) (*Client, error) {
 	}
 
 	client.podClient = client.clientset.CoreV1().Pods(namespace)
+	client.nodeClient = client.clientset.CoreV1().Nodes()
 	client.serviceClient = client.clientset.CoreV1().Services(namespace)
 	client.configMapClient = client.clientset.CoreV1().ConfigMaps(namespace)
 	client.deploymentClient = client.clientset.AppsV1().Deployments(namespace)

@@ -13,12 +13,20 @@
 # limitations under the License.
 
 import logging
+from cortex.lib import stringify
 
 logger = logging.getLogger("cortex")
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT, None))
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
+
+
+def debug_obj(name, sample, debug):
+    if not debug:
+        return
+
+    logger.info("{}: {}".format(name, stringify.truncate(sample)))
 
 
 def get_logger():
