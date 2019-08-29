@@ -167,10 +167,6 @@ func (l LogKey) String() string {
 	return fmt.Sprintf("%s,%s,%d", l.PodName, l.ContainerName, l.RestartCount)
 }
 
-func (l LogKey) KubeIdentifier() string {
-	return fmt.Sprintf("%s %s", l.PodName, l.ContainerName)
-}
-
 func StringToLogKey(str string) LogKey {
 	split := strings.Split(str, ",")
 	restartCount, _ := s.ParseInt32(split[2])
@@ -204,19 +200,17 @@ func GetLogKeys(pod kcore.Pod) strset.Set {
 }
 
 func createKubectlProcess(logKey LogKey, attrs *os.ProcAttr) (*os.Process, error) {
-	cmdPath := "/bin/bash"
+	cmdPath := "/usr/local/bin/kubectl"
 
 	kubectlArgs := []string{"kubectl", "-n=" + config.Cortex.Namespace, "logs", "--follow=true", logKey.PodName, logKey.ContainerName}
 
-	identifier := logKey.KubeIdentifier()
-
 	kubectlArgs = append(kubectlArgs, fmt.Sprintf("--tail=%d", initLogTailLines))
-	labelLog := fmt.Sprintf(" | while read -r; do echo \"[%s] $REPLY\" | tail -n +1; done", identifier)
-	kubectlArgsCmd := strings.Join(kubectlArgs, " ")
-	bashArgs := []string{"/bin/bash", "-c", kubectlArgsCmd + labelLog}
-	process, err := os.StartProcess(cmdPath, bashArgs, attrs)
+	// kubectlArgsCmd := strings.Join(kubectlArgs, " ")
+	// bashArgs := []string{"/bin/bash", "-c", kubectlArgsCmd + labelLog}
+	fmt.Println(kubectlArgs)
+	process, err := os.StartProcess(cmdPath, kubectlArgs, attrs)
 	if err != nil {
-		return nil, errors.Wrap(err, strings.Join(bashArgs, " "))
+		return nil, errors.Wrap(err, strings.Join(kubectlArgs, " "))
 	}
 	return process, nil
 }
