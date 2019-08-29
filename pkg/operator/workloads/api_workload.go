@@ -438,7 +438,7 @@ func onnxAPISpec(
 			K8sPodSpec: kcore.PodSpec{
 				InitContainers: []kcore.Container{
 					{
-						Name:            downloaderInitContainerName+"-model",
+						Name:            downloaderInitContainerName + "-model",
 						Image:           config.Cortex.DownloaderImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
