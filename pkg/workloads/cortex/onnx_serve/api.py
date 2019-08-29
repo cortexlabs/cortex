@@ -229,15 +229,10 @@ def predict(app_name, api_name):
 
         except CortexException as e:
             e.wrap("error", "sample {}".format(i + 1))
-            logger.error(str(e))
-            logger.exception(
-                "An error occurred, see `cx logs -v api {}` for more details.".format(api["name"])
-            )
+            logger.exception(str(e))
             return prediction_failed(str(e))
         except Exception as e:
-            logger.exception(
-                "An error occurred, see `cx logs -v api {}` for more details.".format(api["name"])
-            )
+            logger.exception(str(e))
             return prediction_failed(str(e))
 
         predictions.append(result)
@@ -296,19 +291,13 @@ def start(args):
     except CortexException as e:
         e.wrap("error")
         logger.error(str(e))
-        if api is not None:
-            logger.exception(
-                "An error occured starting the api, see `cx logs -v api {}` for more details".format(
-                    api["name"]
-                )
-            )
         sys.exit(1)
 
     if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
         try:
             local_cache["class_set"] = api_utils.get_classes(ctx, api["name"])
         except Exception as e:
-            logger.warn("An error occurred while attempting to load classes", exc_info=True)
+            logger.warn("an error occurred while attempting to load classes", exc_info=True)
 
     serve(app, listen="*:{}".format(args.port))
 

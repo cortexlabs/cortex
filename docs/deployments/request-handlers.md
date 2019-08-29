@@ -102,4 +102,4 @@ def pre_inference(sample, metadata):
     ...
 ```
 
-The output of these logs can be viewed using `cortex logs -v <api_name>`.
+The output of these logs can be viewed using `cortex logs <api_name>`.
