@@ -39,18 +39,14 @@ func init() {
 	predictCmd.Flags().BoolVar(&predictDebug, "debug", false, "Predict with debug mode")
 }
 
-type PredictResponse struct {
-	Predictions []interface{} `json:"predictions"`
-}
-
 var predictCmd = &cobra.Command{
-	Use:   "predict API_NAME SAMPLES_FILE",
+	Use:   "predict API_NAME SAMPLE_FILE",
 	Short: "make predictions",
 	Long:  "Make predictions.",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		apiName := args[0]
-		samplesJSONPath := args[1]
+		sampleJSONPath := args[1]
 
 		resourcesRes, err := getResourcesResponse()
 		if err != nil {
@@ -86,7 +82,7 @@ var predictCmd = &cobra.Command{
 		if predictDebug {
 			apiURL += "?debug=true"
 		}
-		predictResponse, err := makePredictRequest(apiURL, samplesJSONPath)
+		predictResponse, err := makePredictRequest(apiURL, sampleJSONPath)
 		if err != nil {
 			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
 				errors.Exit(ErrorAPINotReady(apiName, resource.StatusCreating.Message()))
@@ -102,12 +98,12 @@ var predictCmd = &cobra.Command{
 	},
 }
 
-func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse, error) {
-	samplesBytes, err := files.ReadFileBytes(samplesJSONPath)
+func makePredictRequest(apiURL string, sampleJSONPath string) (interface{}, error) {
+	sampleBytes, err := files.ReadFileBytes(sampleJSONPath)
 	if err != nil {
 		errors.Exit(err)
 	}
-	payload := bytes.NewBuffer(samplesBytes)
+	payload := bytes.NewBuffer(sampleBytes)
 	req, err := http.NewRequest("POST", apiURL, payload)
 	if err != nil {
 		return nil, errors.Wrap(err, errStrCantMakeRequest)
@@ -119,11 +115,11 @@ func makePredictRequest(apiURL string, samplesJSONPath string) (*PredictResponse
 		return nil, err
 	}
 
-	var predictResponse PredictResponse
+	var predictResponse interface{}
 	err = json.DecodeWithNumber(httpResponse, &predictResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "prediction response")
 	}
 
-	return &predictResponse, nil
+	return predictResponse, nil
 }

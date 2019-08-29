@@ -62,104 +62,87 @@ def status_code_metric(dimensions, status_code):
     return [{"MetricName": "StatusCode", "Dimensions": status_code_dimensions, "Value": 1}]
 
 
-def predictions_per_request_metric(dimensions, prediction_count):
-    return [
-        {"MetricName": "PredictionsPerRequest", "Dimensions": dimensions, "Value": prediction_count}
-    ]
-
-
-def extract_predicted_values(api, predictions):
-    predicted_values = []
-
+def extract_prediction(api, prediction):
     tracker = api.get("tracker")
-    for prediction in predictions:
-        if tracker.get("key") is not None:
-            key = tracker["key"]
-            if type(prediction) != dict:
-                raise ValueError(
-                    "failed to track key '{}': expected prediction to be of type dict but found '{}'".format(
-                        key, type(prediction)
-                    )
+    if tracker.get("key") is not None:
+        key = tracker["key"]
+        if type(prediction) != dict:
+            raise ValueError(
+                "failed to track key '{}': expected prediction to be of type dict but found '{}'".format(
+                    key, type(prediction)
                 )
-            if prediction.get(key) is None:
-                raise ValueError(
-                    "failed to track key '{}': not found in prediction".format(tracker["key"])
-                )
-            predicted_value = prediction[key]
-        else:
-            predicted_value = prediction
+            )
+        if prediction.get(key) is None:
+            raise ValueError(
+                "failed to track key '{}': not found in prediction".format(tracker["key"])
+            )
+        predicted_value = prediction[key]
+    else:
+        predicted_value = prediction
 
-        if tracker["model_type"] == "classification":
-            if type(predicted_value) != str and type(predicted_value) != int:
-                raise ValueError(
-                    "failed to track classification prediction: expected type 'str' or 'int' but encountered '{}'".format(
-                        type(predicted_value)
-                    )
+    if tracker["model_type"] == "classification":
+        if type(predicted_value) != str and type(predicted_value) != int:
+            raise ValueError(
+                "failed to track classification prediction: expected type 'str' or 'int' but encountered '{}'".format(
+                    type(predicted_value)
                 )
-        else:
-            if type(predicted_value) != float and type(predicted_value) != int:  # allow ints
-                raise ValueError(
-                    "failed to track regression prediction: expected type 'float' or 'int' but encountered '{}'".format(
-                        type(predicted_value)
-                    )
+            )
+    else:
+        if type(predicted_value) != float and type(predicted_value) != int:  # allow ints
+            raise ValueError(
+                "failed to track regression prediction: expected type 'float' or 'int' but encountered '{}'".format(
+                    type(predicted_value)
                 )
-        predicted_values.append(predicted_value)
-
-    return predicted_values
+            )
+    return predicted_value
 
 
-def prediction_metrics(dimensions, api, predicted_values):
+def prediction_metrics(dimensions, api, prediction):
     metric_list = []
     tracker = api.get("tracker")
-    for predicted_value in predicted_values:
-        if tracker["model_type"] == "classification":
-            dimensions_with_class = dimensions + [{"Name": "Class", "Value": str(predicted_value)}]
-            metric = {
-                "MetricName": "Prediction",
-                "Dimensions": dimensions_with_class,
-                "Unit": "Count",
-                "Value": 1,
-            }
+    if tracker["model_type"] == "classification":
+        dimensions_with_class = dimensions + [{"Name": "Class", "Value": str(prediction)}]
+        metric = {
+            "MetricName": "Prediction",
+            "Dimensions": dimensions_with_class,
+            "Unit": "Count",
+            "Value": 1,
+        }
 
-            metric_list.append(metric)
-        else:
-            metric = {
-                "MetricName": "Prediction",
-                "Dimensions": dimensions,
-                "Value": float(predicted_value),
-            }
-            metric_list.append(metric)
+        metric_list.append(metric)
+    else:
+        metric = {"MetricName": "Prediction", "Dimensions": dimensions, "Value": float(prediction)}
+        metric_list.append(metric)
     return metric_list
 
 
-def cache_classes(ctx, api, predicted_values, class_set):
-    for predicted_value in predicted_values:
-        if predicted_value not in class_set:
-            upload_class(ctx, api["name"], predicted_value)
-            class_set.add(predicted_value)
+def cache_classes(ctx, api, prediction, class_set):
+    if prediction not in class_set:
+        upload_class(ctx, api["name"], prediction)
+        logger.info(class_set)
+        class_set.add(prediction)
 
 
-def post_request_metrics(ctx, api, response, predictions, class_set):
+def post_request_metrics(ctx, api, response, prediction_payload, class_set):
     api_name = api["name"]
     api_dimensions = api_metric_dimensions(ctx, api_name)
     metrics_list = []
     metrics_list += status_code_metric(api_dimensions, response.status_code)
 
-    if predictions is not None:
-        metrics_list += predictions_per_request_metric(api_dimensions, len(predictions))
-
+    if prediction_payload is not None:
         if api.get("tracker") is not None:
             try:
-                predicted_values = extract_predicted_values(api, predictions)
+                prediction = extract_prediction(api, prediction_payload)
 
                 if api["tracker"]["model_type"] == "classification":
-                    cache_classes(ctx, api, predicted_values, class_set)
+                    cache_classes(ctx, api, prediction, class_set)
 
-                metrics_list += prediction_metrics(api_dimensions, api, predicted_values)
+                metrics_list += prediction_metrics(api_dimensions, api, prediction)
             except Exception as e:
                 logger.warn(str(e), exc_info=True)
 
     try:
+        logger.info(metrics_list)
         ctx.publish_metrics(metrics_list)
     except Exception as e:
         logger.warn(str(e), exc_info=True)
