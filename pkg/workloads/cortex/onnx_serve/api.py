@@ -253,7 +253,7 @@ def exceptions(e):
 
 
 def start(args):
-    util.extract_zip(os.path.join(args.project_dir, "project.zip"),  delete_zip_file=True)
+    util.extract_zip(os.path.join(args.project_dir, "project.zip"), delete_zip_file=True)
 
     api = None
     try:
