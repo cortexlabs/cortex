@@ -120,7 +120,7 @@ var fileValidation = &cr.StructValidation{
 }
 
 func configPath() string {
-	return filepath.Join(localDir, "cx.json")
+	return filepath.Join(localDir, flagEnv+".json")
 }
 
 func readCLIConfig() (*CLIConfig, []error) {

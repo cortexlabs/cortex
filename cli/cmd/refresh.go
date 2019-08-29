@@ -24,6 +24,7 @@ var flagRefreshForce bool
 
 func init() {
 	refreshCmd.PersistentFlags().BoolVarP(&flagRefreshForce, "force", "f", false, "stop all running jobs")
+	addEnvFlag(refreshCmd)
 }
 
 var refreshCmd = &cobra.Command{
