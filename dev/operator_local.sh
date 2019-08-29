@@ -24,7 +24,7 @@ source $ROOT/dev/config/cortex.sh
 export CORTEX_OPERATOR_IN_CLUSTER=false
 
 kill $(pgrep -f rerun) >/dev/null 2>&1 || true
-
+cx config -cortexURL=http://localhost:8888
 rerun -watch $ROOT/pkg $ROOT/cli -ignore $ROOT/vendor $ROOT/bin -run sh -c \
 "go build -o $ROOT/bin/operator $ROOT/pkg/operator && go build -installsuffix cgo -o $ROOT/bin/cortex $ROOT/cli && $ROOT/bin/operator"
 
