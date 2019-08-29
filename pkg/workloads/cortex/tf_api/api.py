@@ -259,16 +259,12 @@ def predict(deployment_name, api_name):
             e.wrap("error", "sample {}".format(i + 1))
             logger.error(str(e))
             logger.exception(
-                "An error occurred, see `cortex logs -v api {}` for more details.".format(
-                    api["name"]
-                )
+                "An error occurred, see `cortex logs api {}` for more details.".format(api["name"])
             )
             return prediction_failed(str(e))
         except Exception as e:
             logger.exception(
-                "An error occurred, see `cortex logs -v api {}` for more details.".format(
-                    api["name"]
-                )
+                "An error occurred, see `cortex logs api {}` for more details.".format(api["name"])
             )
             return prediction_failed(str(e))
 
@@ -310,12 +306,12 @@ def get_signature(app_name, api_name):
     except CortexException as e:
         logger.error(str(e))
         logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
+            "An error occurred, see `cortex logs api {}` for more details.".format(api["name"])
         )
         return str(e), HTTP_404_NOT_FOUND
     except Exception as e:
         logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
+            "An error occurred, see `cortex logs api {}` for more details.".format(api["name"])
         )
         return str(e), HTTP_404_NOT_FOUND
 
@@ -368,12 +364,12 @@ def start(args):
         e.wrap("error")
         logger.error(str(e))
         logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
+            "An error occurred, see `cortex logs api {}` for more details.".format(api["name"])
         )
         sys.exit(1)
     except Exception as e:
         logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
+            "An error occurred, see `cortex logs api {}` for more details.".format(api["name"])
         )
         sys.exit(1)
 
@@ -401,7 +397,7 @@ def start(args):
         except Exception as e:
             if i == limit - 1:
                 logger.exception(
-                    "An error occurred, see `cortex logs -v api {}` for more details.".format(
+                    "An error occurred, see `cortex logs api {}` for more details.".format(
                         api["name"]
                     )
                 )

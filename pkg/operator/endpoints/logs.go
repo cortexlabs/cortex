@@ -40,8 +40,6 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	verbose := getOptionalBoolQParam("verbose", false, r)
-
 	workloadID := getOptionalQParam("workloadID", r)
 	resourceID := getOptionalQParam("resourceID", r)
 	resourceName := getOptionalQParam("resourceName", r)
@@ -54,7 +52,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 
 	if workloadID != "" {
 		podLabels["workloadID"] = workloadID
-		readLogs(w, r, podLabels, appName, verbose)
+		readLogs(w, r, podLabels, appName)
 		return
 	}
 
@@ -70,7 +68,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		}
 
 		podLabels["workloadID"] = workloadID
-		readLogs(w, r, podLabels, appName, verbose)
+		readLogs(w, r, podLabels, appName)
 		return
 	}
 
@@ -90,7 +88,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		} else {
 			podLabels["workloadID"] = res.GetWorkloadID()
 		}
-		readLogs(w, r, podLabels, appName, verbose)
+		readLogs(w, r, podLabels, appName)
 		return
 	}
 
@@ -103,7 +101,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		} else {
 			podLabels["workloadID"] = res.GetWorkloadID()
 		}
-		readLogs(w, r, podLabels, appName, verbose)
+		readLogs(w, r, podLabels, appName)
 		return
 	}
 
@@ -115,7 +113,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	workloadIDs = slices.UniqueStrings(workloadIDs)
 	if len(workloadIDs) == 1 {
 		podLabels["workloadID"] = workloadIDs[0]
-		readLogs(w, r, podLabels, appName, verbose)
+		readLogs(w, r, podLabels, appName)
 		return
 	}
 
@@ -123,7 +121,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func readLogs(w http.ResponseWriter, r *http.Request, podLabels map[string]string, appName string, verbose bool) {
+func readLogs(w http.ResponseWriter, r *http.Request, podLabels map[string]string, appName string) {
 	upgrader := websocket.Upgrader{}
 	socket, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -132,5 +130,5 @@ func readLogs(w http.ResponseWriter, r *http.Request, podLabels map[string]strin
 	}
 	defer socket.Close()
 
-	workloads.ReadLogs(appName, podLabels, verbose, socket)
+	workloads.ReadLogs(appName, podLabels, socket)
 }

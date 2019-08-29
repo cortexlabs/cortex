@@ -231,12 +231,12 @@ def predict(app_name, api_name):
             e.wrap("error", "sample {}".format(i + 1))
             logger.error(str(e))
             logger.exception(
-                "An error occurred, see `cx logs -v api {}` for more details.".format(api["name"])
+                "An error occurred, see `cx logs api {}` for more details.".format(api["name"])
             )
             return prediction_failed(str(e))
         except Exception as e:
             logger.exception(
-                "An error occurred, see `cx logs -v api {}` for more details.".format(api["name"])
+                "An error occurred, see `cx logs api {}` for more details.".format(api["name"])
             )
             return prediction_failed(str(e))
 
@@ -298,7 +298,7 @@ def start(args):
         logger.error(str(e))
         if api is not None:
             logger.exception(
-                "An error occured starting the api, see `cx logs -v api {}` for more details".format(
+                "An error occured starting the api, see `cx logs api {}` for more details".format(
                     api["name"]
                 )
             )

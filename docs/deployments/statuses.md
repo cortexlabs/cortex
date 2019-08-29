@@ -9,7 +9,7 @@
 | creating             | API is being created |
 | stopping             | API is stopping |
 | stopped              | API is stopped |
-| error                | API was not created due to an error; run `cortex logs -v <name>` to view the logs |
+| error                | API was not created due to an error; run `cortex logs <name>` to view the logs |
 | skipped              | API was not created due to an error in another resource |
 | upstream error       | API was not created due to an error in one of its dependencies; a previous version of this API may be ready |
 | upstream termination | API was not created because one of its dependencies was terminated; a previous version of this API may be ready |
