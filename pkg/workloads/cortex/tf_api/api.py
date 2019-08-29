@@ -341,14 +341,15 @@ def exceptions(e):
 
 
 def start(args):
-    util.extract_zip(os.path.join(args.project_dir, "project.zip"))
     api = None
     try:
-        packages.install(args.project_dir)
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
         api = ctx.apis_id_map[args.api]
         local_cache["api"] = api
         local_cache["ctx"] = ctx
+
+        util.extract_zip(os.path.join(args.project_dir, ctx.project_key.split("/")[-1]))
+        packages.install(args.project_dir)
 
         if api.get("request_handler") is not None:
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])

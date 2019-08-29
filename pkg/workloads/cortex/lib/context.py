@@ -65,6 +65,8 @@ class Context:
         self.apis = self.ctx["apis"] or {}
         self.api_version = self.cortex_config["api_version"]
         self.monitoring = None
+        self.project_id = self.ctx["project_id"]
+        self.project_key = self.ctx["project_key"]
 
         if "local_storage_path" in kwargs:
             self.storage = LocalStorage(base_dir=kwargs["local_storage_path"])

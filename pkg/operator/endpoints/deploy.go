@@ -36,14 +36,14 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	ignoreCache := getOptionalBoolQParam("ignoreCache", false, r)
 	force := getOptionalBoolQParam("force", false, r)
 
-	configBytes, err := files.ReadReqFile(r, "config.yaml")
+	configBytes, err := files.ReadReqFile(r, "cortex.yaml")
 	if err != nil {
 		RespondError(w, errors.WithStack(err))
 		return
 	}
 
 	if len(configBytes) == 0 {
-		RespondError(w, ErrorFormFileMustBeProvided("config.yaml"))
+		RespondError(w, ErrorFormFileMustBeProvided("cortex.yaml"))
 		return
 	}
 

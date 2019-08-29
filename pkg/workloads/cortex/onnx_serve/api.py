@@ -253,15 +253,16 @@ def exceptions(e):
 
 
 def start(args):
-    util.extract_zip(os.path.join(args.project_dir, "project.zip"), delete_zip_file=True)
 
     api = None
     try:
-        packages.install(args.project_dir)
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
         api = ctx.apis_id_map[args.api]
         local_cache["api"] = api
         local_cache["ctx"] = ctx
+
+        util.extract_zip(os.path.join(args.project_dir, ctx.project_key.split("/")[-1]))
+        packages.install(args.project_dir)
 
         _, prefix = ctx.storage.deconstruct_s3_path(api["model"])
         model_path = os.path.join(args.model_dir, os.path.basename(prefix))

@@ -29,6 +29,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
 var flagDeployForce bool
@@ -62,7 +63,7 @@ func deploy(force bool, ignoreCache bool) {
 
 	configBytes, err := ioutil.ReadFile("cortex.yaml")
 	if err != nil {
-		errors.Exit(errors.Wrap(err, "failed to read configuration file"))
+		errors.Exit(errors.Wrap(err, userconfig.ErrorReadConfig().Error()))
 	}
 
 	projectPaths, err := files.ListDirRecursive(root, false,
@@ -85,12 +86,12 @@ func deploy(force bool, ignoreCache bool) {
 	})
 
 	if err != nil {
-		errors.Exit(errors.Wrap(err, "failed to zip configuration file"))
+		errors.Exit(errors.Wrap(err, "failed to zip project folder"))
 	}
 
 	uploadInput := &HTTPUploadInput{
 		Bytes: map[string][]byte{
-			"config.yaml": configBytes,
+			"cortex.yaml": configBytes,
 			"project.zip": projectZipBytes,
 		},
 	}

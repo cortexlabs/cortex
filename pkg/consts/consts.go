@@ -32,7 +32,7 @@ var (
 	DeploymentsDir      = "deployments"
 	APIsDir             = "apis"
 	RequestHandlersDir  = "request_handlers"
-	ProjectDir          = "projects"
+	ProjectsDir         = "projects"
 	ContextsDir         = "contexts"
 	ResourceStatusesDir = "resource_statuses"
 	WorkloadSpecsDir    = "workload_specs"
