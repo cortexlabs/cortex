@@ -249,7 +249,7 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 	socketWriterError := make(chan error, 1)
 	defer close(socketWriterError)
 
-	go pumpStdout(socket, socketWriterError, outr, true)
+	go pumpStdout(socket, socketWriterError, outr)
 
 	for {
 		select {
@@ -354,7 +354,7 @@ func getCloudWatchLogs(prefix string, socket *websocket.Conn) {
 
 	socketWriterError := make(chan error)
 	defer close(socketWriterError)
-	go pumpStdout(socket, socketWriterError, logsReader, false)
+	go pumpStdout(socket, socketWriterError, logsReader)
 
 	inr, inw, err := os.Pipe()
 	if err != nil {
@@ -382,20 +382,16 @@ func pumpStdin(socket *websocket.Conn, writer io.Writer) {
 	}
 }
 
-func pumpStdout(socket *websocket.Conn, socketWriterError chan error, reader io.Reader, checkForLastLog bool) {
+func pumpStdout(socket *websocket.Conn, socketWriterError chan error, reader io.Reader) {
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		socket.SetWriteDeadline(time.Now().Add(socketWriteDeadlineWait))
 		logBytes := scanner.Bytes()
-		isLastLog := false
 
 		if logBytes != nil {
 			if !writeSocketBytes(logBytes, socket) {
 				break
 			}
-		}
-		if isLastLog && checkForLastLog {
-			break
 		}
 	}
 
