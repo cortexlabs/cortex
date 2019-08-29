@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"github.com/spf13/cobra"
 
@@ -59,23 +60,21 @@ func deploy(force bool, ignoreCache bool) {
 		"ignoreCache": s.Bool(ignoreCache),
 	}
 
-	zipBytes, err := zip.ToMem(&zip.Input{
-		FileLists: []zip.FileListInput{
-			{
-				Sources:      allConfigPaths(root),
-				RemovePrefix: root,
-			},
-		},
-	})
-
+	configBytes, err := ioutil.ReadFile("cortex.yaml")
 	if err != nil {
-		errors.Exit(errors.Wrap(err, "failed to zip configuration file"))
+		errors.Exit(errors.Wrap(err, "failed to read configuration file"))
 	}
 
-	projectPaths, err := files.ListDirRecursive(root, false, files.IgnoreCortexYAML, files.IgnoreHiddenFiles)
+	projectPaths, err := files.ListDirRecursive(root, false,
+		files.IgnoreCortexYAML,
+		files.IgnoreHiddenFiles,
+		files.IgnoreHiddenFolders,
+		files.IgnorePythonGeneratedFiles,
+	)
 	if err != nil {
 		errors.Exit(err)
 	}
+
 	projectZipBytes, err := zip.ToMem(&zip.Input{
 		FileLists: []zip.FileListInput{
 			{
@@ -91,7 +90,7 @@ func deploy(force bool, ignoreCache bool) {
 
 	uploadInput := &HTTPUploadInput{
 		Bytes: map[string][]byte{
-			"config.zip":  zipBytes,
+			"config.yaml": configBytes,
 			"project.zip": projectZipBytes,
 		},
 	}

@@ -21,7 +21,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
@@ -37,26 +36,14 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	ignoreCache := getOptionalBoolQParam("ignoreCache", false, r)
 	force := getOptionalBoolQParam("force", false, r)
 
-	zipBytes, err := files.ReadReqFile(r, "config.zip")
+	configBytes, err := files.ReadReqFile(r, "config.yaml")
 	if err != nil {
 		RespondError(w, errors.WithStack(err))
 		return
 	}
 
-	if len(zipBytes) == 0 {
-		RespondError(w, ErrorFormFileMustBeProvided("config.zip"))
-		return
-	}
-
-	zipContents, err := zip.UnzipMemToMem(zipBytes)
-	if err != nil {
-		RespondError(w, errors.Wrap(err, "form file", "config.zip"))
-		return
-	}
-
-	userconf, err := userconfig.New("cortex.yaml", zipContents["cortex.yaml"], true)
-	if err != nil {
-		RespondError(w, err)
+	if len(configBytes) == 0 {
+		RespondError(w, ErrorFormFileMustBeProvided("config.yaml"))
 		return
 	}
 
@@ -66,7 +53,13 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, err := ocontext.New(userconf, zipContents, projectBytes, ignoreCache)
+	userconf, err := userconfig.New("cortex.yaml", configBytes, true)
+	if err != nil {
+		RespondError(w, err)
+		return
+	}
+
+	ctx, err := ocontext.New(userconf, projectBytes, ignoreCache)
 	if err != nil {
 		RespondError(w, err)
 		return

@@ -24,6 +24,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -31,10 +32,13 @@ import (
 
 func New(
 	userconf *userconfig.Config,
-	files map[string][]byte,
 	projectBytes []byte,
 	ignoreCache bool,
 ) (*context.Context, error) {
+	files, err := zip.UnzipMemToMem(projectBytes)
+	if err != nil {
+		return nil, err
+	}
 
 	ctx := &context.Context{}
 	ctx.CreatedEpoch = time.Now().Unix()
