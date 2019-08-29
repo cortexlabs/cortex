@@ -257,15 +257,10 @@ def predict(deployment_name, api_name):
             result = run_predict(sample, debug)
         except CortexException as e:
             e.wrap("error", "sample {}".format(i + 1))
-            logger.error(str(e))
-            logger.exception(
-                "An error occurred, see `cortex logs api {}` for more details.".format(api["name"])
-            )
+            logger.exception(str(e))
             return prediction_failed(str(e))
         except Exception as e:
-            logger.exception(
-                "An error occurred, see `cortex logs api {}` for more details.".format(api["name"])
-            )
+            logger.exception(str(e))
             return prediction_failed(str(e))
 
         predictions.append(result)
@@ -304,15 +299,10 @@ def get_signature(app_name, api_name):
             local_cache["api"]["tf_serving"]["signature_key"],
         )
     except CortexException as e:
-        logger.error(str(e))
-        logger.exception(
-            "An error occurred, see `cortex logs api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         return str(e), HTTP_404_NOT_FOUND
     except Exception as e:
-        logger.exception(
-            "An error occurred, see `cortex logs api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         return str(e), HTTP_404_NOT_FOUND
 
     response = {"signature": metadata}
@@ -362,15 +352,10 @@ def start(args):
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
     except CortexException as e:
         e.wrap("error")
-        logger.error(str(e))
-        logger.exception(
-            "An error occurred, see `cortex logs api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         sys.exit(1)
     except Exception as e:
-        logger.exception(
-            "An error occurred, see `cortex logs api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         sys.exit(1)
 
     try:
@@ -396,11 +381,7 @@ def start(args):
             break
         except Exception as e:
             if i == limit - 1:
-                logger.exception(
-                    "An error occurred, see `cortex logs api {}` for more details.".format(
-                        api["name"]
-                    )
-                )
+                logger.exception(str(e))
                 sys.exit(1)
 
         time.sleep(1)
