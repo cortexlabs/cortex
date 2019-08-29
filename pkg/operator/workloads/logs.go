@@ -201,12 +201,7 @@ func GetLogKeys(pod kcore.Pod) strset.Set {
 func createKubectlProcess(logKey LogKey, attrs *os.ProcAttr) (*os.Process, error) {
 	cmdPath := "/usr/local/bin/kubectl"
 
-	kubectlArgs := []string{"kubectl", "-n=" + config.Cortex.Namespace, "logs", "--follow=true", logKey.PodName, logKey.ContainerName}
-
-	kubectlArgs = append(kubectlArgs, fmt.Sprintf("--tail=%d", initLogTailLines))
-	// kubectlArgsCmd := strings.Join(kubectlArgs, " ")
-	// bashArgs := []string{"/bin/bash", "-c", kubectlArgsCmd + labelLog}
-	fmt.Println(kubectlArgs)
+	kubectlArgs := []string{"kubectl", "-n=" + config.Cortex.Namespace, "logs", "--follow=true", logKey.PodName, logKey.ContainerName, fmt.Sprintf("--tail=%d", initLogTailLines)}
 	process, err := os.StartProcess(cmdPath, kubectlArgs, attrs)
 	if err != nil {
 		return nil, errors.Wrap(err, strings.Join(kubectlArgs, " "))
