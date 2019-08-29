@@ -28,7 +28,7 @@ from tensorflow_serving.apis import get_model_metadata_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 from google.protobuf import json_format
 
-from cortex.lib import util, package, Context, api_utils
+from cortex.lib import util, packages, Context, api_utils
 from cortex.lib.storage import S3
 from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
@@ -341,16 +341,16 @@ def exceptions(e):
 
 
 def start(args):
-    util.extract_zip(os.path.join(args.project_dir, "project.zip"), delete_zip_file=True)
+    util.extract_zip(os.path.join(args.project_dir, "project.zip"))
     api = None
     try:
+        packages.install(args.project_dir)
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
         api = ctx.apis_id_map[args.api]
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
         if api.get("request_handler") is not None:
-            package.install_packages(ctx.python_packages, ctx.storage)
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
     except CortexException as e:
         e.wrap("error")

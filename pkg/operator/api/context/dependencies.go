@@ -44,11 +44,6 @@ func (ctx *Context) allComputedResourceDependenciesHelper(resourceID string, all
 func (ctx *Context) DirectComputedResourceDependencies(resourceIDs ...string) strset.Set {
 	allDependencies := strset.New()
 	for _, resourceID := range resourceIDs {
-		for _, pythonPackage := range ctx.PythonPackages {
-			if pythonPackage.GetID() == resourceID {
-				allDependencies.Merge(ctx.pythonPackageDependencies(pythonPackage))
-			}
-		}
 		for _, api := range ctx.APIs {
 			if api.ID == resourceID {
 				allDependencies.Merge(ctx.apiDependencies(api))
@@ -59,17 +54,7 @@ func (ctx *Context) DirectComputedResourceDependencies(resourceIDs ...string) st
 	return allDependencies
 }
 
-func (ctx *Context) pythonPackageDependencies(pythonPackage *PythonPackage) strset.Set {
-	return strset.New()
-}
-
 func (ctx *Context) apiDependencies(api *API) strset.Set {
 	dependencies := strset.New()
-
-	if api.RequestHandler != nil {
-		for _, pythonPackage := range ctx.PythonPackages {
-			dependencies.Add(pythonPackage.GetID())
-		}
-	}
 	return dependencies
 }

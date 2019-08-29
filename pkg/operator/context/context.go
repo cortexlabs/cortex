@@ -66,13 +66,7 @@ func New(
 	)
 
 	ctx.StatusPrefix = statusPrefix(ctx.App.Name)
-	pythonPackages, err := loadPythonPackages(files, ctx.DeploymentVersion)
-	if err != nil {
-		return nil, err
-	}
-	ctx.PythonPackages = pythonPackages
-
-	apis, err := getAPIs(userconf, ctx.DeploymentVersion, files, pythonPackages)
+	apis, err := getAPIs(userconf, ctx.DeploymentVersion, files)
 
 	if err != nil {
 		return nil, err

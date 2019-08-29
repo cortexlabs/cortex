@@ -23,7 +23,7 @@ from waitress import serve
 import onnxruntime as rt
 import numpy as np
 
-from cortex.lib import util, package, Context, api_utils
+from cortex.lib import util, packages, Context, api_utils
 from cortex.lib.storage import S3
 from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
@@ -257,6 +257,7 @@ def start(args):
 
     api = None
     try:
+        packages.install(args.project_dir)
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
         api = ctx.apis_id_map[args.api]
         local_cache["api"] = api
@@ -265,7 +266,6 @@ def start(args):
         _, prefix = ctx.storage.deconstruct_s3_path(api["model"])
         model_path = os.path.join(args.model_dir, os.path.basename(prefix))
         if api.get("request_handler") is not None:
-            package.install_packages(ctx.python_packages, ctx.storage)
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
 
         sess = rt.InferenceSession(model_path)

@@ -62,7 +62,6 @@ class Context:
         self.root = self.ctx["root"]
         self.status_prefix = self.ctx["status_prefix"]
         self.app = self.ctx["app"]
-        self.python_packages = self.ctx["python_packages"] or {}
         self.apis = self.ctx["apis"] or {}
         self.api_version = self.cortex_config["api_version"]
         self.monitoring = None
@@ -88,9 +87,7 @@ class Context:
         os.environ["AWS_REGION"] = self.cortex_config.get("region", "")
 
         # ID maps
-        self.pp_id_map = ResourceMap(self.python_packages) if self.python_packages else None
         self.apis_id_map = ResourceMap(self.apis) if self.apis else None
-        self.id_map = util.merge_dicts_overwrite(self.pp_id_map, self.apis_id_map)
 
     def download_file(self, impl_key, cache_impl_path):
         if not os.path.isfile(cache_impl_path):

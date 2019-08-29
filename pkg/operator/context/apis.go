@@ -35,7 +35,6 @@ import (
 func getAPIs(config *userconfig.Config,
 	deploymentVersion string,
 	impls map[string][]byte,
-	pythonPackages context.PythonPackages,
 ) (context.APIs, error) {
 	apis := context.APIs{}
 
@@ -47,10 +46,6 @@ func getAPIs(config *userconfig.Config,
 		buf.WriteString(apiConfig.ModelFormat.String())
 
 		if apiConfig.RequestHandler != nil {
-			for _, pythonPackage := range pythonPackages {
-				buf.WriteString(pythonPackage.GetID())
-			}
-
 			impl, ok := impls[*apiConfig.RequestHandler]
 			if !ok {
 				return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(*apiConfig.RequestHandler), userconfig.Identify(apiConfig), userconfig.RequestHandlerKey)

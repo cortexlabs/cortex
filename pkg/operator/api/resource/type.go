@@ -42,7 +42,6 @@ var (
 		"unknown",
 		"deployments",
 		"apis",
-		"python_packages",
 	}
 
 	userFacing = []string{
