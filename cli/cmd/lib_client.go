@@ -181,7 +181,7 @@ func StreamLogs(appName string, resourceName string, resourceType string, verbos
 
 	connection, response, err := dialer.Dial(wsURL, header)
 	if response == nil {
-		cliConfig := getValidCliConfig()
+		cliConfig := getValidCLIConfig()
 		return ErrorFailedToConnect(strings.Replace(cliConfig.CortexURL, "http", "ws", 1))
 	}
 	defer response.Body.Close()
@@ -189,7 +189,7 @@ func StreamLogs(appName string, resourceName string, resourceType string, verbos
 	if err != nil {
 		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil || bodyBytes == nil || string(bodyBytes) == "" {
-			cliConfig := getValidCliConfig()
+			cliConfig := getValidCLIConfig()
 			return ErrorFailedToConnect(strings.Replace(cliConfig.CortexURL, "http", "ws", 1))
 		}
 		var output schema.ErrorResponse
@@ -247,7 +247,7 @@ func closeConnection(connection *websocket.Conn, done chan struct{}, interrupt c
 }
 
 func operatorRequest(method string, endpoint string, body io.Reader, qParams []map[string]string) (*http.Request, error) {
-	cliConfig := getValidCliConfig()
+	cliConfig := getValidCLIConfig()
 	req, err := http.NewRequest(method, cliConfig.CortexURL+endpoint, body)
 	if err != nil {
 		return nil, errors.Wrap(err, errStrCantMakeRequest)
@@ -270,7 +270,7 @@ func (client *cortexClient) makeRequest(request *http.Request) ([]byte, error) {
 
 	response, err := client.Do(request)
 	if err != nil {
-		cliConfig := getValidCliConfig()
+		cliConfig := getValidCLIConfig()
 		return nil, ErrorFailedToConnect(cliConfig.CortexURL)
 	}
 	defer response.Body.Close()
@@ -298,6 +298,6 @@ func (client *cortexClient) makeRequest(request *http.Request) ([]byte, error) {
 }
 
 func authHeader() string {
-	cliConfig := getValidCliConfig()
+	cliConfig := getValidCLIConfig()
 	return fmt.Sprintf("CortexAWS %s|%s", cliConfig.AWSAccessKeyID, cliConfig.AWSSecretAccessKey)
 }

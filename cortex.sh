@@ -195,7 +195,8 @@ function uninstall_eks() {
 
 function install_cortex() {
   echo
-  docker run -it --entrypoint /root/install_cortex.sh \
+  mkdir -p /tmp/.cortex_install
+  docker run -it -v /tmp/.cortex_install:/tmp --entrypoint /root/install_cortex.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_AWS_ACCESS_KEY_ID=$CORTEX_AWS_ACCESS_KEY_ID \
@@ -224,6 +225,8 @@ function install_cortex() {
     -e CORTEX_IMAGE_DOWNLOADER=$CORTEX_IMAGE_DOWNLOADER \
     -e CORTEX_ENABLE_TELEMETRY=$CORTEX_ENABLE_TELEMETRY \
     $CORTEX_IMAGE_MANAGER
+  cortex configure --cortexURL=$(cat .cortex_install/cortexURL)
+  rm -rf /tmp/.cortex_install
 }
 
 function uninstall_operator() {

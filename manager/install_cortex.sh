@@ -153,6 +153,7 @@ function validate_cortex() {
         continue
       fi
       operator_endpoint_reachable="ready"
+      echo $operator_endpoint > /tmp/cortexURL
     fi
 
     if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then

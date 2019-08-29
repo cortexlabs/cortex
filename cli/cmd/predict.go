@@ -33,7 +33,6 @@ import (
 
 func init() {
 	addAppNameFlag(predictCmd)
-	addEnvFlag(predictCmd)
 }
 
 type PredictResponse struct {

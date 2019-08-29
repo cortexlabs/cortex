@@ -41,7 +41,6 @@ import (
 
 func init() {
 	addAppNameFlag(getCmd)
-	addEnvFlag(getCmd)
 	addWatchFlag(getCmd)
 	addSummaryFlag(getCmd)
 	addVerboseFlag(getCmd)

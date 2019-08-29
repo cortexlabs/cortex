@@ -35,7 +35,6 @@ import (
 
 var cmdStr string
 
-var flagEnv string
 var flagWatch bool
 var flagAppName string
 var flagVerbose bool
@@ -87,10 +86,6 @@ func Execute() {
 func setConfigFlag(flagStr string, description string, flag *string, cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(flag, flagStr+"-config", "", "", description)
 	cmd.PersistentFlags().SetAnnotation(flagStr+"-config", cobra.BashCompFilenameExt, configFileExts)
-}
-
-func addEnvFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&flagEnv, "env", "e", "dev", "environment")
 }
 
 func addWatchFlag(cmd *cobra.Command) {

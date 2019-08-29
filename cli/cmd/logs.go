@@ -25,7 +25,6 @@ import (
 
 func init() {
 	addAppNameFlag(logsCmd)
-	addEnvFlag(logsCmd)
 	addVerboseFlag(logsCmd)
 	// addResourceTypesToHelp(logsCmd)
 }
