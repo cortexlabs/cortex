@@ -361,7 +361,7 @@ def start(args):
     try:
         validate_model_dir(args.model_dir)
     except Exception as e:
-        logger.exception(e)
+        logger.exception("failed to validate model")
         sys.exit(1)
 
     if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
@@ -374,17 +374,21 @@ def start(args):
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)
 
     # wait a bit for tf serving to start before querying metadata
-    limit = 300
+    limit = 60
     for i in range(limit):
         try:
             local_cache["metadata"] = run_get_model_metadata()
             break
         except Exception as e:
+            if i > 6:
+                logger.warn("an error occurred when reading model metadata, retrying...")
             if i == limit - 1:
-                logger.exception(str(e))
+                logger.exception(
+                    "an error occurred when reading model metadata: retry limit exceeded"
+                )
                 sys.exit(1)
 
-        time.sleep(1)
+        time.sleep(5)
     logger.info(
         "model_signature: {}".format(
             extract_signature(
