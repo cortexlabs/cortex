@@ -79,7 +79,7 @@ def after_request(response):
     if request.path != "/{}/{}".format(ctx.app["name"], api["name"]):
         return response
 
-    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
+    logger.info(response.status)
 
     prediction = None
     if "prediction" in g:
@@ -215,18 +215,12 @@ def predict(app_name, api_name):
                 ) from e
 
             debug_obj("post_inference", result, debug)
-
     except CortexException as e:
         e.wrap("error")
-        logger.error(str(e))
-        logger.exception(
-            "An error occurred, see `cx logs -v api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         return prediction_failed(str(e))
     except Exception as e:
-        logger.exception(
-            "An error occurred, see `cx logs -v api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         return prediction_failed(str(e))
 
     g.prediction = result
@@ -282,19 +276,13 @@ def start(args):
     except CortexException as e:
         e.wrap("error")
         logger.error(str(e))
-        if api is not None:
-            logger.exception(
-                "An error occured starting the api, see `cx logs -v api {}` for more details".format(
-                    api["name"]
-                )
-            )
         sys.exit(1)
 
     if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
         try:
             local_cache["class_set"] = api_utils.get_classes(ctx, api["name"])
         except Exception as e:
-            logger.warn("An error occurred while attempting to load classes", exc_info=True)
+            logger.warn("an error occurred while attempting to load classes", exc_info=True)
 
     serve(app, listen="*:{}".format(args.port))
 

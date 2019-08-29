@@ -105,7 +105,7 @@ def after_request(response):
     if request.path != "/{}/{}".format(ctx.app["name"], api["name"]):
         return response
 
-    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
+    logger.info(response.status)
 
     prediction = None
     if "prediction" in g:
@@ -248,15 +248,10 @@ def predict(deployment_name, api_name):
         result = run_predict(sample, debug)
     except CortexException as e:
         e.wrap("error")
-        logger.error(str(e))
-        logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         return prediction_failed(str(e))
     except Exception as e:
-        logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         return prediction_failed(str(e))
 
     g.prediction = result
@@ -293,15 +288,10 @@ def get_signature(app_name, api_name):
             local_cache["api"]["tf_serving"]["signature_key"],
         )
     except CortexException as e:
-        logger.error(str(e))
-        logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         return str(e), HTTP_404_NOT_FOUND
     except Exception as e:
-        logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         return str(e), HTTP_404_NOT_FOUND
 
     response = {"signature": metadata}
@@ -351,21 +341,16 @@ def start(args):
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
     except CortexException as e:
         e.wrap("error")
-        logger.error(str(e))
-        logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         sys.exit(1)
     except Exception as e:
-        logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         sys.exit(1)
 
     try:
         validate_model_dir(args.model_dir)
     except Exception as e:
-        logger.exception(e)
+        logger.exception("failed to validate model")
         sys.exit(1)
 
     if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
@@ -378,21 +363,21 @@ def start(args):
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)
 
     # wait a bit for tf serving to start before querying metadata
-    limit = 300
+    limit = 60
     for i in range(limit):
         try:
             local_cache["metadata"] = run_get_model_metadata()
             break
         except Exception as e:
+            if i > 6:
+                logger.warn("an error occurred when reading model metadata, retrying...")
             if i == limit - 1:
                 logger.exception(
-                    "An error occurred, see `cortex logs -v api {}` for more details.".format(
-                        api["name"]
-                    )
+                    "an error occurred when reading model metadata: retry limit exceeded"
                 )
                 sys.exit(1)
 
-        time.sleep(1)
+        time.sleep(5)
     logger.info(
         "model_signature: {}".format(
             extract_signature(

@@ -48,10 +48,9 @@ Flags:
   -d, --deployment string   deployment name
   -e, --env string          environment (default "dev")
   -h, --help                help for logs
-  -v, --verbose             show verbose output
 ```
 
-The `logs` command streams logs from the workload corresponding to the specified resource. For example, `cortex logs api my-api` will stream the logs from the most recent api named `my-api`. `RESOURCE_TYPE` is optional (unless there are name colisions), so `cortex logs my-api` will also work. Using the `-v` or `--verbose` flag will show all of the logs for the workload (not just Cortex's logs).
+The `logs` command streams logs from the workload corresponding to the specified resource. For example, `cortex logs api my-api` will stream the logs from the most recent api named `my-api`. `RESOURCE_TYPE` is optional (unless there are name colisions), so `cortex logs my-api` will also work.
 
 ## refresh
 

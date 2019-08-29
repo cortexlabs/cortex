@@ -27,7 +27,6 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -153,7 +152,7 @@ func HTTPUploadZip(endpoint string, zipInput *zip.Input, fileName string, qParam
 	return HTTPUpload(endpoint, uploadInput, qParams...)
 }
 
-func StreamLogs(appName string, resourceName string, resourceType string, verbose bool) error {
+func StreamLogs(appName string, resourceName string, resourceType string) error {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
@@ -166,7 +165,6 @@ func StreamLogs(appName string, resourceName string, resourceType string, verbos
 	values.Set("resourceName", resourceName)
 	values.Set("resourceType", resourceType)
 	values.Set("appName", appName)
-	values.Set("verbose", strconv.FormatBool(verbose))
 	req.URL.RawQuery = values.Encode()
 	wsURL := req.URL.String()
 	wsURL = strings.Replace(wsURL, "http", "ws", 1)

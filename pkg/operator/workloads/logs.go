@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -48,7 +47,7 @@ const (
 	initLogTailLines        = 100
 )
 
-func ReadLogs(appName string, podSearchLabels map[string]string, verbose bool, socket *websocket.Conn) {
+func ReadLogs(appName string, podSearchLabels map[string]string, socket *websocket.Conn) {
 	wrotePending := false
 
 	for true {
@@ -75,26 +74,26 @@ func ReadLogs(appName string, podSearchLabels map[string]string, verbose bool, s
 
 			switch {
 			case len(podMap[k8s.PodStatusSucceeded]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusSucceeded], verbose, wrotePending, socket)
+				getKubectlLogs(podMap[k8s.PodStatusSucceeded], wrotePending, socket)
 			case len(podMap[k8s.PodStatusRunning]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusRunning], verbose, wrotePending, socket)
+				getKubectlLogs(podMap[k8s.PodStatusRunning], wrotePending, socket)
 			case len(podMap[k8s.PodStatusPending]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusPending], verbose, wrotePending, socket)
+				getKubectlLogs(podMap[k8s.PodStatusPending], wrotePending, socket)
 			case len(podMap[k8s.PodStatusKilled]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusKilled], verbose, wrotePending, socket)
+				getKubectlLogs(podMap[k8s.PodStatusKilled], wrotePending, socket)
 			case len(podMap[k8s.PodStatusKilledOOM]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusKilledOOM], verbose, wrotePending, socket)
+				getKubectlLogs(podMap[k8s.PodStatusKilledOOM], wrotePending, socket)
 			case len(podMap[k8s.PodStatusFailed]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusFailed], verbose, wrotePending, socket)
+				getKubectlLogs(podMap[k8s.PodStatusFailed], wrotePending, socket)
 			case len(podMap[k8s.PodStatusTerminating]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusTerminating], verbose, wrotePending, socket)
+				getKubectlLogs(podMap[k8s.PodStatusTerminating], wrotePending, socket)
 			case len(podMap[k8s.PodStatusUnknown]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusUnknown], verbose, wrotePending, socket)
+				getKubectlLogs(podMap[k8s.PodStatusUnknown], wrotePending, socket)
 			default: // unexpected
 				if len(pods) > maxParallelPodLogging {
 					pods = pods[:maxParallelPodLogging]
 				}
-				getKubectlLogs(pods, verbose, wrotePending, socket)
+				getKubectlLogs(pods, wrotePending, socket)
 			}
 			return
 		}
@@ -108,7 +107,7 @@ func ReadLogs(appName string, podSearchLabels map[string]string, verbose bool, s
 			}
 
 			if isEnded {
-				getCloudWatchLogs(workloadID, verbose, socket)
+				getCloudWatchLogs(workloadID, socket)
 				return
 			}
 		}
@@ -124,7 +123,7 @@ func ReadLogs(appName string, podSearchLabels map[string]string, verbose bool, s
 	}
 }
 
-func getKubectlLogs(pods []kcore.Pod, verbose bool, wrotePending bool, socket *websocket.Conn) {
+func getKubectlLogs(pods []kcore.Pod, wrotePending bool, socket *websocket.Conn) {
 	if !wrotePending {
 		isAllPending := true
 		for _, pod := range pods {
@@ -152,7 +151,7 @@ func getKubectlLogs(pods []kcore.Pod, verbose bool, wrotePending bool, socket *w
 	podCheckCancel := make(chan struct{})
 	defer close(podCheckCancel)
 
-	go podCheck(podCheckCancel, socket, pods, verbose, wrotePending, inr)
+	go podCheck(podCheckCancel, socket, pods, wrotePending, inr)
 	pumpStdin(socket, inw)
 	podCheckCancel <- struct{}{}
 }
@@ -165,10 +164,6 @@ type LogKey struct {
 
 func (l LogKey) String() string {
 	return fmt.Sprintf("%s,%s,%d", l.PodName, l.ContainerName, l.RestartCount)
-}
-
-func (l LogKey) KubeIdentifier() string {
-	return fmt.Sprintf("%s %s", l.PodName, l.ContainerName)
 }
 
 func StringToLogKey(str string) LogKey {
@@ -204,24 +199,17 @@ func GetLogKeys(pod kcore.Pod) strset.Set {
 }
 
 func createKubectlProcess(logKey LogKey, attrs *os.ProcAttr) (*os.Process, error) {
-	cmdPath := "/bin/bash"
+	cmdPath := "/usr/local/bin/kubectl"
 
-	kubectlArgs := []string{"kubectl", "-n=" + config.Cortex.Namespace, "logs", "--follow=true", logKey.PodName, logKey.ContainerName}
-
-	identifier := logKey.KubeIdentifier()
-
-	kubectlArgs = append(kubectlArgs, fmt.Sprintf("--tail=%d", initLogTailLines))
-	labelLog := fmt.Sprintf(" | while read -r; do echo \"[%s] $REPLY\" | tail -n +1; done", identifier)
-	kubectlArgsCmd := strings.Join(kubectlArgs, " ")
-	bashArgs := []string{"/bin/bash", "-c", kubectlArgsCmd + labelLog}
-	process, err := os.StartProcess(cmdPath, bashArgs, attrs)
+	kubectlArgs := []string{"kubectl", "-n=" + config.Cortex.Namespace, "logs", "--follow=true", logKey.PodName, logKey.ContainerName, fmt.Sprintf("--tail=%d", initLogTailLines)}
+	process, err := os.StartProcess(cmdPath, kubectlArgs, attrs)
 	if err != nil {
-		return nil, errors.Wrap(err, strings.Join(bashArgs, " "))
+		return nil, errors.Wrap(err, strings.Join(kubectlArgs, " "))
 	}
 	return process, nil
 }
 
-func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodList []kcore.Pod, verbose bool, wrotePending bool, inr *os.File) {
+func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodList []kcore.Pod, wrotePending bool, inr *os.File) {
 	timer := time.NewTimer(0)
 	defer timer.Stop()
 
@@ -250,7 +238,7 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 	socketWriterError := make(chan error, 1)
 	defer close(socketWriterError)
 
-	go pumpStdout(socket, socketWriterError, outr, verbose, true)
+	go pumpStdout(socket, socketWriterError, outr)
 
 	for {
 		select {
@@ -337,7 +325,7 @@ func deleteProcesses(processMap map[string]*os.Process) {
 	}
 }
 
-func getCloudWatchLogs(prefix string, verbose bool, socket *websocket.Conn) {
+func getCloudWatchLogs(prefix string, socket *websocket.Conn) {
 	logs, err := config.AWS.GetLogs(prefix, config.Cortex.LogGroup)
 	if err != nil {
 		config.Telemetry.ReportError(err)
@@ -355,7 +343,7 @@ func getCloudWatchLogs(prefix string, verbose bool, socket *websocket.Conn) {
 
 	socketWriterError := make(chan error)
 	defer close(socketWriterError)
-	go pumpStdout(socket, socketWriterError, logsReader, verbose, false)
+	go pumpStdout(socket, socketWriterError, logsReader)
 
 	inr, inw, err := os.Pipe()
 	if err != nil {
@@ -383,22 +371,16 @@ func pumpStdin(socket *websocket.Conn, writer io.Writer) {
 	}
 }
 
-func pumpStdout(socket *websocket.Conn, socketWriterError chan error, reader io.Reader, verbose bool, checkForLastLog bool) {
+func pumpStdout(socket *websocket.Conn, socketWriterError chan error, reader io.Reader) {
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		socket.SetWriteDeadline(time.Now().Add(socketWriteDeadlineWait))
 		logBytes := scanner.Bytes()
-		isLastLog := false
-		if !verbose {
-			logBytes, isLastLog = cleanLogBytes(logBytes)
-		}
+
 		if logBytes != nil {
 			if !writeSocketBytes(logBytes, socket) {
 				break
 			}
-		}
-		if isLastLog && checkForLastLog && !verbose {
-			break
 		}
 	}
 
@@ -414,43 +396,6 @@ func pumpStdout(socket *websocket.Conn, socketWriterError chan error, reader io.
 	socket.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 	time.Sleep(socketCloseGracePeriod)
 	socket.Close()
-}
-
-// Pod name is added when streaming from kubectl logs but not for cloudwatch logs, match it if it present and filter it out
-var cortexRegex = regexp.MustCompile(`^(\[[A-Za-z0-9\d\-_\s]*\]\ )?(DEBUG|INFO|WARNING|ERROR|CRITICAL):cortex:`)
-var lastLogRe = regexp.MustCompile(`^workload: (\w+), completed: (\S+)`)
-
-func extractFromCortexLog(match string, loglevel string, logStr string) (*string, bool) {
-	if loglevel == "DEBUG" {
-		return nil, false
-	}
-
-	cutStr := logStr[len(match):]
-
-	isLastLog := false
-	if lastLogRe.MatchString(cutStr) {
-		isLastLog = true
-	}
-
-	return &cutStr, isLastLog
-}
-
-func cleanLog(logStr string) (*string, bool) {
-	matches := cortexRegex.FindStringSubmatch(logStr)
-	if len(matches) == 3 {
-		return extractFromCortexLog(matches[0], matches[2], logStr)
-	}
-
-	return nil, false
-}
-
-func cleanLogBytes(logBytes []byte) ([]byte, bool) {
-	logStr := string(logBytes)
-	cleanLogStr, isLastLog := cleanLog(logStr)
-	if cleanLogStr == nil {
-		return nil, isLastLog
-	}
-	return []byte(*cleanLogStr), isLastLog
 }
 
 func stopProcess(process *os.Process) {
