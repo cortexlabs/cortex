@@ -17,7 +17,9 @@ from cortex.lib import stringify
 
 logger = logging.getLogger("cortex")
 handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT, None))
+handler.setFormatter(
+    logging.Formatter("%(asctime)s:%(name)s:%(levelname)s:%(message)s", "'%Y-%m-%d %H:%M:%S.%f'")
+)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 

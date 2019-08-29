@@ -105,7 +105,7 @@ def after_request(response):
     if request.path != "/{}/{}".format(ctx.app["name"], api["name"]):
         return response
 
-    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
+    logger.info(response.status)
 
     predictions = None
     if "predictions" in g:
