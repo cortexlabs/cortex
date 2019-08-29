@@ -229,10 +229,7 @@ def health():
 
 @app.route("/<deployment_name>/<api_name>", methods=["POST"])
 def predict(deployment_name, api_name):
-    debug = (
-        request.args.get("debug", "false") is not None
-        and request.args.get("debug").lower() == "true"
-    )
+    debug = request.args.get("debug", "false").lower() == "true"
 
     try:
         sample = request.get_json()

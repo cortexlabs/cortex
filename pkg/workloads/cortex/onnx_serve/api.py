@@ -165,10 +165,7 @@ def convert_to_onnx_input(sample, input_metadata_list):
 
 @app.route("/<app_name>/<api_name>", methods=["POST"])
 def predict(app_name, api_name):
-    debug = (
-        request.args.get("debug", "false") is not None
-        and request.args.get("debug").lower() == "true"
-    )
+    debug = request.args.get("debug", "false").lower() == "true"
 
     try:
         sample = request.get_json()
