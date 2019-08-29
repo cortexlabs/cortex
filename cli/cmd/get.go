@@ -140,7 +140,7 @@ func allDeploymentsStr() (string, error) {
 		Headers: []table.Header{
 			{Title: "name", MaxWidth: 32},
 			{Title: "status", MaxWidth: 21},
-			{Title: "last updated"},
+			{Title: "last update"},
 		},
 		Rows: rows,
 	}
@@ -273,6 +273,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		s.Int32(groupStatus.ReadyStaleCompute),
 		s.Int32(groupStatus.ReadyStaleModel),
 		s.Int32(groupStatus.FailedUpdated),
+		libtime.Since(updatedAt),
 	}
 
 	headers := []table.Header{
@@ -283,14 +284,14 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		{Title: "stale compute", Hidden: groupStatus.ReadyStaleCompute == 0},
 		{Title: "stale model", Hidden: groupStatus.ReadyStaleModel == 0},
 		{Title: "failed", Hidden: groupStatus.FailedUpdated == 0},
+		{Title: "last update"},
 	}
 
 	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
 
-	out := "\n" + console.Bold("url:  ") + apiEndpoint + "\n"
-	out += "\n" + console.Bold("debug url:  ") + apiEndpoint + "?debug=true" + "\n\n"
-	out += fmt.Sprintf("%s curl -X POST -H \"Content-Type: application/json\" %s -d @samples.json\n", console.Bold("curl:"), apiEndpoint)
-	out += fmt.Sprintf(console.Bold("updated at:")+" %s\n\n", libtime.LocalTimestamp(updatedAt))
+	out := "\n" + console.Bold("url:        ") + apiEndpoint
+	out += "\n" + console.Bold("debug url:  ") + apiEndpoint + "?debug=true"
+	out += fmt.Sprintf("\n%s  curl %s -X POST -H \"Content-Type: application/json\"  -d @samples.json", console.Bold("curl:"), apiEndpoint)
 
 	statusTable := table.Table{
 		Headers: headers,
@@ -303,10 +304,12 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		predictionMetrics = "\n\nmetrics are not available yet"
 	} else {
 		statusTable = appendNetworkMetrics(statusTable, apiMetrics)
-		predictionMetrics = "\n\n" + predictionMetricsTable(apiMetrics, api)
+		if api.Tracker != nil {
+			predictionMetrics = "\n\n" + predictionMetricsTable(apiMetrics, api)
+		}
 	}
 
-	out += table.MustFormat(statusTable)
+	out += "\n\n" + table.MustFormat(statusTable)
 	out += predictionMetrics
 
 	if !flagVerbose {
@@ -359,7 +362,7 @@ func appendNetworkMetrics(apiTable table.Table, apiMetrics *schema.APIMetrics) t
 
 func predictionMetricsTable(apiMetrics *schema.APIMetrics, api *context.API) string {
 	if api.Tracker == nil {
-		return "a tracker has not been configured to record predictions"
+		return ""
 	}
 
 	if api.Tracker.ModelType == userconfig.ClassificationModelType {
