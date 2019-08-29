@@ -65,7 +65,7 @@ func New(
 		consts.MetadataDir,
 	)
 
-	ctx.StatusPrefix = StatusPrefix(ctx.App.Name)
+	ctx.StatusPrefix = statusPrefix(ctx.App.Name)
 	pythonPackages, err := loadPythonPackages(files, ctx.DeploymentVersion)
 	if err != nil {
 		return nil, err
@@ -131,7 +131,7 @@ func DownloadContext(ctxID string, appName string) (*context.Context, error) {
 	return &ctx, nil
 }
 
-func StatusPrefix(appName string) string {
+func statusPrefix(appName string) string {
 	return filepath.Join(
 		consts.AppsDir,
 		appName,
@@ -141,7 +141,7 @@ func StatusPrefix(appName string) string {
 
 func StatusKey(resourceID string, workloadID string, appName string) string {
 	return filepath.Join(
-		StatusPrefix(appName),
+		statusPrefix(appName),
 		resourceID,
 		workloadID,
 	)
@@ -149,7 +149,7 @@ func StatusKey(resourceID string, workloadID string, appName string) string {
 
 func LatestWorkloadIDKey(resourceID string, appName string) string {
 	return filepath.Join(
-		StatusPrefix(appName),
+		statusPrefix(appName),
 		resourceID,
 		"latest",
 	)
