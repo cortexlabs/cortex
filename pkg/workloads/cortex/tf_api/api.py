@@ -257,19 +257,10 @@ def predict(deployment_name, api_name):
             result = run_predict(sample, debug)
         except CortexException as e:
             e.wrap("error", "sample {}".format(i + 1))
-            logger.error(str(e))
-            logger.exception(
-                "An error occurred, see `cortex logs -v api {}` for more details.".format(
-                    api["name"]
-                )
-            )
+            logger.exception(str(e))
             return prediction_failed(str(e))
         except Exception as e:
-            logger.exception(
-                "An error occurred, see `cortex logs -v api {}` for more details.".format(
-                    api["name"]
-                )
-            )
+            logger.exception(str(e))
             return prediction_failed(str(e))
 
         predictions.append(result)
@@ -308,15 +299,10 @@ def get_signature(app_name, api_name):
             local_cache["api"]["tf_serving"]["signature_key"],
         )
     except CortexException as e:
-        logger.error(str(e))
-        logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         return str(e), HTTP_404_NOT_FOUND
     except Exception as e:
-        logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         return str(e), HTTP_404_NOT_FOUND
 
     response = {"signature": metadata}
@@ -366,21 +352,16 @@ def start(args):
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
     except CortexException as e:
         e.wrap("error")
-        logger.error(str(e))
-        logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         sys.exit(1)
     except Exception as e:
-        logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         sys.exit(1)
 
     try:
         validate_model_dir(args.model_dir)
     except Exception as e:
-        logger.exception(e)
+        logger.exception("failed to validate model")
         sys.exit(1)
 
     if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
@@ -400,16 +381,10 @@ def start(args):
             break
         except Exception as e:
             if i > 6:
-                logger.exception(
-                    "An error occurred when reading model metadata, retrying... See `cortex logs -v api {}` for more details.".format(
-                        api["name"]
-                    )
-                )
+                logger.warn("an error occurred when reading model metadata, retrying...")
             if i == limit - 1:
                 logger.exception(
-                    "An error occurred when reading model metadata, retry limit exceeded. See `cortex logs -v api {}` for more details.".format(
-                        api["name"]
-                    )
+                    "an error occurred when reading model metadata: retry limit exceeded"
                 )
                 sys.exit(1)
 
