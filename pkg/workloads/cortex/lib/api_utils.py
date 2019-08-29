@@ -119,7 +119,6 @@ def prediction_metrics(dimensions, api, prediction):
 def cache_classes(ctx, api, prediction, class_set):
     if prediction not in class_set:
         upload_class(ctx, api["name"], prediction)
-        logger.info(class_set)
         class_set.add(prediction)
 
 
@@ -142,7 +141,6 @@ def post_request_metrics(ctx, api, response, prediction_payload, class_set):
                 logger.warn(str(e), exc_info=True)
 
     try:
-        logger.info(metrics_list)
         ctx.publish_metrics(metrics_list)
     except Exception as e:
         logger.warn(str(e), exc_info=True)

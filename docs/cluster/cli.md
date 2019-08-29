@@ -82,7 +82,7 @@ Flags:
   -h, --help                help for predict
 ```
 
-The `predict` command converts sample from a JSON file into prediction requests and displays the response. This command is useful for quickly testing predictions.
+The `predict` command converts a sample from a JSON file into a prediction request and displays the response. This command is useful for quickly testing predictions.
 
 ## delete
 
