@@ -225,7 +225,7 @@ function install_cortex() {
     -e CORTEX_IMAGE_DOWNLOADER=$CORTEX_IMAGE_DOWNLOADER \
     -e CORTEX_ENABLE_TELEMETRY=$CORTEX_ENABLE_TELEMETRY \
     $CORTEX_IMAGE_MANAGER
-  cortex configure --cortexURL=$(cat .cortex_install/cortexURL)
+  cortex configure --cortexURL=$(cat /tmp/.cortex_install/cortexURL)
   rm -rf /tmp/.cortex_install
 }
 
