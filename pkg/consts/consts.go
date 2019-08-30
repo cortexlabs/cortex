@@ -26,8 +26,6 @@ var (
 	CortexConfigPath = "/configs/cortex"
 	CortexConfigName = "cortex-config"
 
-	PackageDir = "packages"
-
 	AppsDir             = "apps"
 	DeploymentsDir      = "deployments"
 	APIsDir             = "apis"

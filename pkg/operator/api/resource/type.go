@@ -57,6 +57,8 @@ var (
 	VisibleTypes = Types{
 		APIType,
 	}
+
+	typeAcronyms = map[string]Type{}
 )
 
 func TypeFromString(s string) Type {
@@ -67,6 +69,10 @@ func TypeFromString(s string) Type {
 
 		if s == typePlurals[i] {
 			return Type(i)
+		}
+
+		if t, ok := typeAcronyms[s]; ok {
+			return t
 		}
 	}
 	return UnknownType

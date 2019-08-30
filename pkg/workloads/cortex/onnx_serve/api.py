@@ -23,7 +23,7 @@ from waitress import serve
 import onnxruntime as rt
 import numpy as np
 
-from cortex.lib import util, packages, Context, api_utils
+from cortex.lib import util, Context, api_utils
 from cortex.lib.storage import S3
 from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
@@ -261,13 +261,10 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
-        util.extract_zip(os.path.join(args.project_dir, ctx.project_key.split("/")[-1]))
-        packages.install(args.project_dir)
-
         _, prefix = ctx.storage.deconstruct_s3_path(api["model"])
         model_path = os.path.join(args.model_dir, os.path.basename(prefix))
         if api.get("request_handler") is not None:
-            local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
+            local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"], args.project_dir)
 
         sess = rt.InferenceSession(model_path)
         local_cache["sess"] = sess

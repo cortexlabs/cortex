@@ -24,7 +24,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -35,11 +34,6 @@ func New(
 	projectBytes []byte,
 	ignoreCache bool,
 ) (*context.Context, error) {
-	files, err := zip.UnzipMemToMem(projectBytes)
-	if err != nil {
-		return nil, err
-	}
-
 	ctx := &context.Context{}
 	ctx.CreatedEpoch = time.Now().Unix()
 
@@ -65,8 +59,14 @@ func New(
 		consts.MetadataDir,
 	)
 
+	ctx.ProjectID = hash.Bytes(projectBytes)
+	ctx.ProjectKey = filepath.Join(consts.ProjectsDir, ctx.ProjectID+".zip")
+	if err = config.AWS.UploadBytesToS3(projectBytes, ctx.ProjectKey); err != nil {
+		return nil, err
+	}
+
 	ctx.StatusPrefix = statusPrefix(ctx.App.Name)
-	apis, err := getAPIs(userconf, ctx.DeploymentVersion, files)
+	apis, err := getAPIs(userconf, ctx.DeploymentVersion, ctx.ProjectID)
 
 	if err != nil {
 		return nil, err
@@ -78,11 +78,6 @@ func New(
 		return nil, err
 	}
 
-	ctx.ProjectID = hash.Bytes(projectBytes)
-	ctx.ProjectKey = filepath.Join(consts.ProjectsDir, ctx.ProjectID+".zip")
-	if err = config.AWS.UploadBytesToS3(projectBytes, ctx.ProjectKey); err != nil {
-		return nil, err
-	}
 	ctx.ID = calculateID(ctx)
 	ctx.Key = ctxKey(ctx.ID, ctx.App.Name)
 	return ctx, nil

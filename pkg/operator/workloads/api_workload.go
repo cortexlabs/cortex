@@ -17,6 +17,7 @@ limitations under the License.
 package workloads
 
 import (
+	"fmt"
 	"path"
 
 	kapps "k8s.io/api/apps/v1"
@@ -281,23 +282,16 @@ func tfAPISpec(
 				RestartPolicy: "Always",
 				InitContainers: []kcore.Container{
 					{
-						Name:            downloaderInitContainerName + "-model",
+						Name:            downloaderInitContainerName,
 						Image:           config.Cortex.DownloaderImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
-							"--download_from=" + ctx.APIs[api.Name].Model,
-							"--download_to=" + path.Join(consts.EmptyDirMountPath, "model"),
-						},
-						Env:          k8s.AWSCredentials(),
-						VolumeMounts: k8s.DefaultVolumeMounts(),
-					},
-					{
-						Name:            downloaderInitContainerName + "-project",
-						Image:           config.Cortex.DownloaderImage,
-						ImagePullPolicy: "Always",
-						Args: []string{
-							"--download_from=" + config.AWS.S3Path(ctx.ProjectKey),
-							"--download_to=" + path.Join(consts.EmptyDirMountPath, "project"),
+							fmt.Sprintf(
+								"--download=%s;%s,%s;%s",
+								ctx.APIs[api.Name].Model, path.Join(consts.EmptyDirMountPath, "model"),
+								config.AWS.S3Path(ctx.ProjectKey), path.Join(consts.EmptyDirMountPath, "project"),
+							),
+							"--unzip=True",
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
@@ -438,23 +432,16 @@ func onnxAPISpec(
 			K8sPodSpec: kcore.PodSpec{
 				InitContainers: []kcore.Container{
 					{
-						Name:            downloaderInitContainerName + "-model",
+						Name:            downloaderInitContainerName,
 						Image:           config.Cortex.DownloaderImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
-							"--download_from=" + ctx.APIs[api.Name].Model,
-							"--download_to=" + path.Join(consts.EmptyDirMountPath, "model"),
-						},
-						Env:          k8s.AWSCredentials(),
-						VolumeMounts: k8s.DefaultVolumeMounts(),
-					},
-					{
-						Name:            downloaderInitContainerName + "-project",
-						Image:           config.Cortex.DownloaderImage,
-						ImagePullPolicy: "Always",
-						Args: []string{
-							"--download_from=" + config.AWS.S3Path(ctx.ProjectKey),
-							"--download_to=" + path.Join(consts.EmptyDirMountPath, "project"),
+							fmt.Sprintf(
+								"--download=%s;%s,%s;%s",
+								ctx.APIs[api.Name].Model, path.Join(consts.EmptyDirMountPath, "model"),
+								config.AWS.S3Path(ctx.ProjectKey), path.Join(consts.EmptyDirMountPath, "project"),
+							),
+							"--unzip=True",
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),

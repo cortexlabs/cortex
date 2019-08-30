@@ -47,15 +47,20 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userconf, err := userconfig.New("cortex.yaml", configBytes, true)
+	if err != nil {
+		RespondError(w, err)
+		return
+	}
+
 	projectBytes, err := files.ReadReqFile(r, "project.zip")
 	if err != nil {
 		RespondError(w, errors.WithStack(err))
 		return
 	}
 
-	userconf, err := userconfig.New("cortex.yaml", configBytes, true)
-	if err != nil {
-		RespondError(w, err)
+	if len(projectBytes) == 0 {
+		RespondError(w, ErrorFormFileMustBeProvided("project.zip"))
 		return
 	}
 

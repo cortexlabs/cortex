@@ -18,13 +18,10 @@ package context
 
 import (
 	"bytes"
-	"path/filepath"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
@@ -34,34 +31,17 @@ import (
 
 func getAPIs(config *userconfig.Config,
 	deploymentVersion string,
-	impls map[string][]byte,
+	projectID string,
 ) (context.APIs, error) {
 	apis := context.APIs{}
 
 	for _, apiConfig := range config.APIs {
 		var buf bytes.Buffer
-		var requestHandlerImplKey *string
 		buf.WriteString(apiConfig.Name)
 		buf.WriteString(s.Obj(apiConfig.Tracker))
 		buf.WriteString(apiConfig.ModelFormat.String())
-
-		if apiConfig.RequestHandler != nil {
-			impl, ok := impls[*apiConfig.RequestHandler]
-			if !ok {
-				return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(*apiConfig.RequestHandler), userconfig.Identify(apiConfig), userconfig.RequestHandlerKey)
-			}
-			implID := hash.Bytes(impl)
-			buf.WriteString(implID)
-
-			requestHandlerImplKey = pointer.String(filepath.Join(consts.RequestHandlersDir, implID))
-
-			err := uploadRequestHandler(*requestHandlerImplKey, impls[*apiConfig.RequestHandler])
-			if err != nil {
-				return nil, errors.Wrap(err, userconfig.Identify(apiConfig))
-			}
-		}
-
 		buf.WriteString(deploymentVersion)
+		buf.WriteString(projectID)
 		buf.WriteString(strings.TrimSuffix(apiConfig.Model, "/"))
 
 		id := hash.Bytes(buf.Bytes())
@@ -73,9 +53,8 @@ func getAPIs(config *userconfig.Config,
 					ResourceType: resource.APIType,
 				},
 			},
-			API:                   apiConfig,
-			Path:                  context.APIPath(apiConfig.Name, config.App.Name),
-			RequestHandlerImplKey: requestHandlerImplKey,
+			API:  apiConfig,
+			Path: context.APIPath(apiConfig.Name, config.App.Name),
 		}
 	}
 	return apis, nil

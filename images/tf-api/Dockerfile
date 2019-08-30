@@ -25,4 +25,4 @@ COPY pkg/workloads/cortex/consts.py /src/cortex/
 COPY pkg/workloads/cortex/lib /src/cortex/lib
 COPY pkg/workloads/cortex/tf_api /src/cortex/tf_api
 
-ENTRYPOINT ["/usr/bin/python3", "/src/cortex/tf_api/api.py"]
+ENTRYPOINT ["/src/cortex/tf_api/run.sh"]

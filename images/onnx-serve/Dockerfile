@@ -39,4 +39,4 @@ COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib
 COPY pkg/workloads/cortex/onnx_serve /src/cortex/onnx_serve
 
-ENTRYPOINT ["/usr/bin/python3", "/src/cortex/onnx_serve/api.py"]
+ENTRYPOINT ["/src/cortex/tf_api/run.sh"]

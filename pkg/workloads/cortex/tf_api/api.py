@@ -28,7 +28,7 @@ from tensorflow_serving.apis import get_model_metadata_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 from google.protobuf import json_format
 
-from cortex.lib import util, packages, Context, api_utils
+from cortex.lib import util, Context, api_utils
 from cortex.lib.storage import S3
 from cortex.lib.log import get_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
@@ -348,11 +348,8 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
-        util.extract_zip(os.path.join(args.project_dir, ctx.project_key.split("/")[-1]))
-        packages.install(args.project_dir)
-
         if api.get("request_handler") is not None:
-            local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
+            local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"], args.project_dir)
     except CortexException as e:
         e.wrap("error")
         logger.error(str(e))

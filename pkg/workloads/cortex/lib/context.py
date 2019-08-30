@@ -90,6 +90,7 @@ class Context:
 
         # ID maps
         self.apis_id_map = ResourceMap(self.apis) if self.apis else None
+        self.id_map = self.apis_id_map
 
     def download_file(self, impl_key, cache_impl_path):
         if not os.path.isfile(cache_impl_path):
@@ -101,30 +102,19 @@ class Context:
         self.download_file(impl_key, cache_impl_path)
         return cache_impl_path
 
-    def load_module(self, module_prefix, module_name, impl_key):
-        full_module_name = "{}_{}".format(module_prefix, module_name)
-
+    def load_module(self, impl_path):
         try:
-            impl_path = self.download_python_file(impl_key, full_module_name)
-        except CortexException as e:
-            e.wrap("unable to find python file")
-            raise
-
-        try:
-            impl = imp.load_source(full_module_name, impl_path)
+            impl = imp.load_source(os.path.basename(impl_path).rstrip(".py"), impl_path)
         except Exception as e:
             raise UserException("unable to load python file") from e
 
         return impl, impl_path
 
-    def get_request_handler_impl(self, api_name):
+    def get_request_handler_impl(self, api_name, project_dir):
         api = self.apis[api_name]
-
-        module_prefix = "request_handler"
-
         try:
-            impl, impl_path = self.load_module(
-                module_prefix, api["name"], api["request_handler_impl_key"]
+            impl = self.load_module(
+                os.path.join(project_dir, api["request_handler"])
             )
         except CortexException as e:
             e.wrap("api " + api_name, "request_handler " + api["request_handler"])

@@ -63,7 +63,7 @@ func deploy(force bool, ignoreCache bool) {
 
 	configBytes, err := ioutil.ReadFile("cortex.yaml")
 	if err != nil {
-		errors.Exit(errors.Wrap(err, userconfig.ErrorReadConfig().Error()))
+		errors.Exit(errors.Wrap(err, "cortex.yaml", userconfig.ErrorReadConfig().Error()))
 	}
 
 	projectPaths, err := files.ListDirRecursive(root, false,

@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2019 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,12 +15,8 @@
 # limitations under the License.
 
 
-from subprocess import run
+if [ -f "/mnt/project/requirements.txt" ]; then
+    pip3 install -r /mnt/project/requirements.txt
+fi
+/usr/bin/python3 /src/cortex/tf_api/api.py $@
 
-from cortex.lib.exceptions import UserException, CortexException
-
-
-def install(project_path):
-    completed_process = run("pip3 install -r {}/requirements.txt".format(project_path).split())
-    if completed_process.returncode != 0:
-        raise UserException("installing packages")
