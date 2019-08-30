@@ -114,7 +114,7 @@ class Context:
         try:
             impl = imp.load_source(full_module_name, impl_path)
         except Exception as e:
-            raise UserException("unable to load python file") from e
+            raise UserException("unable to load python file", str(e)) from e
 
         return impl, impl_path
 
@@ -200,7 +200,7 @@ class Context:
 
         if int(response["ResponseMetadata"]["HTTPStatusCode"] / 100) != 2:
             logger.warn(response)
-            raise Exception("failed to publish metrics")
+            raise Exception("cloudwatch returned a non-200 status")
 
 
 REQUEST_HANDLER_IMPL_VALIDATION = {
