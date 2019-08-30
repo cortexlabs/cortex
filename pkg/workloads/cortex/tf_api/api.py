@@ -134,7 +134,7 @@ def create_prediction_request(sample):
             prediction_request.inputs[column_name].CopyFrom(tensor_proto)
         except Exception as e:
             raise UserException(
-                'key "{}"'.format(column_name), "expected shape {}".format(shape)
+                'key "{}"'.format(column_name), "expected shape {}".format(shape), str(e)
             ) from e
 
     return prediction_request
@@ -185,7 +185,7 @@ def run_predict(sample, debug=False):
             debug_obj("pre_inference", prepared_sample, debug)
         except Exception as e:
             raise UserRuntimeException(
-                api["request_handler"], "pre_inference request handler"
+                api["request_handler"], "pre_inference request handler", str(e)
             ) from e
 
     validate_sample(prepared_sample)
@@ -201,7 +201,7 @@ def run_predict(sample, debug=False):
             debug_obj("post_inference", result, debug)
         except Exception as e:
             raise UserRuntimeException(
-                api["request_handler"], "post_inference request handler"
+                api["request_handler"], "post_inference request handler", str(e)
             ) from e
 
     return result
@@ -343,7 +343,7 @@ def start(args):
         try:
             local_cache["class_set"] = api_utils.get_classes(ctx, api["name"])
         except Exception as e:
-            logger.warn("An error occurred while attempting to load classes", exc_info=True)
+            logger.warn("an error occurred while attempting to load classes", exc_info=True)
 
     channel = grpc.insecure_channel("localhost:" + str(args.tf_serve_port))
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)

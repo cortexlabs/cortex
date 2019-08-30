@@ -124,7 +124,7 @@ def transform_to_numpy(input_pyobj, input_metadata):
         np_arr = np_arr.reshape(target_shape)
         return np_arr
     except Exception as e:
-        raise UserException(str(e)) from e
+        raise UserException("failed to convert to numpy array", str(e)) from e
 
 
 def convert_to_onnx_input(sample, input_metadata_list):
@@ -189,7 +189,7 @@ def predict(app_name, api_name):
                 debug_obj("pre_inference", prepared_sample, debug)
             except Exception as e:
                 raise UserRuntimeException(
-                    api["request_handler"], "pre_inference request handler"
+                    api["request_handler"], "pre_inference request handler", str(e)
                 ) from e
 
         inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
@@ -208,7 +208,7 @@ def predict(app_name, api_name):
                 result = request_handler.post_inference(result, output_metadata)
             except Exception as e:
                 raise UserRuntimeException(
-                    api["request_handler"], "post_inference request handler"
+                    api["request_handler"], "post_inference request handler", str(e)
                 ) from e
 
             debug_obj("post_inference", result, debug)
@@ -268,7 +268,7 @@ def start(args):
         )
 
     except Exception as e:
-        logger.error("failed to start api")
+        logger.exception("failed to start api")
         sys.exit(1)
 
     if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
