@@ -20,6 +20,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func init() {
+	addEnvFlag(configureCmd)
+}
+
 var configureCmd = &cobra.Command{
 	Use:   "configure",
 	Short: "configure the CLI",

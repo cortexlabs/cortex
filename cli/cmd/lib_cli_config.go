@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -149,6 +150,7 @@ func readCLIConfig() (*CLIConfig, []error) {
 func getValidCLIConfig() *CLIConfig {
 	cliConfig, errs := readCLIConfig()
 	if len(errs) > 0 {
+		fmt.Printf("configuring %s environment:\n", flagEnv)
 		cliConfig = configure()
 	}
 	return cliConfig
@@ -176,11 +178,11 @@ func getDefaults() *CLIConfig {
 func configure() *CLIConfig {
 	defaults := getDefaults()
 	cachedCLIConfig = &CLIConfig{}
+	fmt.Println("\nEnvironment: " + flagEnv + "\n")
 	err := cr.ReadPrompt(cachedCLIConfig, getPromptValidation(defaults))
 	if err != nil {
 		errors.Exit(err)
 	}
-
 	if err := json.WriteJSON(cachedCLIConfig, configPath()); err != nil {
 		errors.Exit(err)
 	}
