@@ -200,7 +200,7 @@ class Context:
 
         if int(response["ResponseMetadata"]["HTTPStatusCode"] / 100) != 2:
             logger.warn(response)
-            raise Exception("failed to publish metrics")
+            raise Exception("cloudwatch returned a non-200 status")
 
 
 REQUEST_HANDLER_IMPL_VALIDATION = {

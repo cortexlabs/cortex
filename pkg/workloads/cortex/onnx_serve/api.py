@@ -170,7 +170,7 @@ def predict(app_name, api_name):
     try:
         sample = request.get_json()
     except Exception as e:
-        return "Malformed JSON", status.HTTP_400_BAD_REQUEST
+        return "malformed json", status.HTTP_400_BAD_REQUEST
 
     sess = local_cache["sess"]
     api = local_cache["api"]
@@ -213,11 +213,7 @@ def predict(app_name, api_name):
 
             debug_obj("post_inference", result, debug)
     except CortexException as e:
-        e.wrap("error")
-        logger.exception(str(e))
-        return prediction_failed(str(e))
-    except Exception as e:
-        logger.exception(str(e))
+        logger.exception("prediction failed")
         return prediction_failed(str(e))
 
     g.prediction = result
@@ -270,9 +266,9 @@ def start(args):
                 truncate(extract_signature(local_cache["output_metadata"]))
             )
         )
-    except CortexException as e:
-        e.wrap("error")
-        logger.error(str(e))
+
+    except Exception as e:
+        logger.error("failed to start api")
         sys.exit(1)
 
     if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":

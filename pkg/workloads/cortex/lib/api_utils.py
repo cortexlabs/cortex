@@ -138,9 +138,9 @@ def post_request_metrics(ctx, api, response, prediction_payload, class_set):
 
                 metrics_list += prediction_metrics(api_dimensions, api, prediction)
             except Exception as e:
-                logger.warn(str(e), exc_info=True)
+                logger.warn("unable to record prediction metric", exc_info=True)
 
     try:
         ctx.publish_metrics(metrics_list)
     except Exception as e:
-        logger.warn(str(e), exc_info=True)
+        logger.warn("failure encountered while publishing metrics", exc_info=True)

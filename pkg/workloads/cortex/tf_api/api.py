@@ -244,11 +244,7 @@ def predict(deployment_name, api_name):
     try:
         result = run_predict(sample, debug)
     except CortexException as e:
-        e.wrap("error")
-        logger.exception(str(e))
-        return prediction_failed(str(e))
-    except Exception as e:
-        logger.exception(str(e))
+        logger.exception("prediction failed")
         return prediction_failed(str(e))
 
     g.prediction = result
@@ -337,11 +333,7 @@ def start(args):
             package.install_packages(ctx.python_packages, ctx.storage)
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
     except CortexException as e:
-        e.wrap("error")
-        logger.exception(str(e))
-        sys.exit(1)
-    except Exception as e:
-        logger.exception(str(e))
+        logger.exception("failed to start api")
         sys.exit(1)
 
     try:
