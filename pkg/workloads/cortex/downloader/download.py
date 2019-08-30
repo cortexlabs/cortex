@@ -14,6 +14,8 @@
 
 import argparse
 import os
+import base64
+import json
 
 from cortex.lib import util
 from cortex.lib.storage import S3
@@ -23,10 +25,10 @@ logger = get_logger()
 
 
 def start(args):
-    for download_arg in args.download:
-        paths = download_arg.split(";")
-        from_path = paths[0]
-        to_path = paths[1]
+    download = json.loads(base64.urlsafe_b64decode(args.download))
+    for download_arg in download:
+        from_path = download_arg["from"]
+        to_path = download_arg["to"]
         bucket_name, prefix = S3.deconstruct_s3_path(from_path)
         s3_client = S3(bucket_name, client_config={})
         s3_client.download(prefix, to_path)
@@ -43,7 +45,6 @@ def main():
         "--download",
         required=True,
         help="path_to_download_from;path_to_download_to",
-        action='append'
     )
     na.add_argument("--unzip", default=False, help="unzip contents")
     parser.set_defaults(func=start)

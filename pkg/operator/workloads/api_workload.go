@@ -17,8 +17,10 @@ limitations under the License.
 package workloads
 
 import (
-	"fmt"
+	"encoding/base64"
 	"path"
+
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
@@ -224,6 +226,11 @@ func (aw *APIWorkload) IsFailed(ctx *context.Context) (bool, error) {
 	return false, nil
 }
 
+type downloadContainerArg struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
 func tfAPISpec(
 	ctx *context.Context,
 	api *context.API,
@@ -251,6 +258,19 @@ func tfAPISpec(
 		tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
+	downloadArgs := []downloadContainerArg{
+		{
+			From: ctx.APIs[api.Name].Model,
+			To:   path.Join(consts.EmptyDirMountPath, "model"),
+		},
+		{
+			From: config.AWS.S3Path(ctx.ProjectKey),
+			To:   path.Join(consts.EmptyDirMountPath, "project"),
+		},
+	}
+
+	downloadArgsStr, _ := json.MarshalJSONStr(downloadArgs)
+	downloadArgsStr = base64.URLEncoding.EncodeToString([]byte(downloadArgsStr))
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:     internalAPIName(api.Name, ctx.App.Name),
 		Replicas: desiredReplicas,
@@ -286,14 +306,7 @@ func tfAPISpec(
 						Image:           config.Cortex.DownloaderImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
-							fmt.Sprintf("--download=%s;%s",
-								ctx.APIs[api.Name].Model,
-								path.Join(consts.EmptyDirMountPath, "model"),
-							),
-							fmt.Sprintf("--download=%s;%s",
-								config.AWS.S3Path(ctx.ProjectKey),
-								path.Join(consts.EmptyDirMountPath, "project"),
-							),
+							"--download=" + downloadArgsStr,
 							"--unzip=True",
 						},
 						Env:          k8s.AWSCredentials(),
@@ -405,6 +418,20 @@ func onnxAPISpec(
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
+	downloadArgs := []downloadContainerArg{
+		{
+			From: ctx.APIs[api.Name].Model,
+			To:   path.Join(consts.EmptyDirMountPath, "model"),
+		},
+		{
+			From: config.AWS.S3Path(ctx.ProjectKey),
+			To:   path.Join(consts.EmptyDirMountPath, "project"),
+		},
+	}
+
+	downloadArgsStr, _ := json.MarshalJSONStr(downloadArgs)
+	downloadArgsStr = base64.URLEncoding.EncodeToString([]byte(downloadArgsStr))
+
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:     internalAPIName(api.Name, ctx.App.Name),
 		Replicas: desiredReplicas,
@@ -439,14 +466,7 @@ func onnxAPISpec(
 						Image:           config.Cortex.DownloaderImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
-							fmt.Sprintf("--download=%s;%s",
-								ctx.APIs[api.Name].Model,
-								path.Join(consts.EmptyDirMountPath, "model"),
-							),
-							fmt.Sprintf("--download=%s;%s",
-								config.AWS.S3Path(ctx.ProjectKey),
-								path.Join(consts.EmptyDirMountPath, "project"),
-							),
+							"--download=" + downloadArgsStr,
 							"--unzip=True",
 						},
 						Env:          k8s.AWSCredentials(),
