@@ -22,9 +22,8 @@ import (
 )
 
 const (
-	workloadTypeAPI            = "api"
-	workloadTypeHPA            = "hpa"
-	workloadTypePythonPackager = "python-packager"
+	workloadTypeAPI = "api"
+	workloadTypeHPA = "hpa"
 )
 
 type Workload interface {

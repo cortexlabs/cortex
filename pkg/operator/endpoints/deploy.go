@@ -21,7 +21,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
@@ -37,7 +36,40 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	ignoreCache := getOptionalBoolQParam("ignoreCache", false, r)
 	force := getOptionalBoolQParam("force", false, r)
 
-	ctx, err := getContext(r, ignoreCache)
+	configBytes, err := files.ReadReqFile(r, "cortex.yaml")
+	if err != nil {
+		RespondError(w, errors.WithStack(err))
+		return
+	}
+
+	if len(configBytes) == 0 {
+		RespondError(w, ErrorFormFileMustBeProvided("cortex.yaml"))
+		return
+	}
+
+	userconf, err := userconfig.New("cortex.yaml", configBytes, true)
+	if err != nil {
+		RespondError(w, err)
+		return
+	}
+
+	projectBytes, err := files.ReadReqFile(r, "project.zip")
+	if err != nil {
+		RespondError(w, errors.WithStack(err))
+		return
+	}
+
+	if len(projectBytes) == 0 {
+		RespondError(w, ErrorFormFileMustBeProvided("project.zip"))
+		return
+	}
+
+	ctx, err := ocontext.New(userconf, projectBytes, ignoreCache)
+	if err != nil {
+		RespondError(w, err)
+		return
+	}
+
 	if err != nil {
 		RespondError(w, err)
 		return
@@ -72,11 +104,11 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	if isUpdating {
 		if fullCtxMatch {
-			respondDeploy(w, ResDeploymentUpToDateUpdating)
+			Respond(w, schema.DeployResponse{Message: ResDeploymentUpToDateUpdating})
 			return
 		}
 		if !force {
-			respondDeploy(w, ResDifferentDeploymentUpdating)
+			Respond(w, schema.DeployResponse{Message: ResDifferentDeploymentUpdating})
 			return
 		}
 	}
@@ -95,50 +127,18 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	switch {
 	case isUpdating && ignoreCache:
-		respondDeploy(w, ResCachedDeletedDeploymentStarted)
+		Respond(w, schema.DeployResponse{Message: ResCachedDeletedDeploymentStarted})
 	case isUpdating && !ignoreCache:
-		respondDeploy(w, ResDeploymentUpdated)
+		Respond(w, schema.DeployResponse{Message: ResDeploymentUpdated})
 	case !isUpdating && ignoreCache:
-		respondDeploy(w, ResCachedDeletedDeploymentStarted)
+		Respond(w, schema.DeployResponse{Message: ResCachedDeletedDeploymentStarted})
 	case !isUpdating && !ignoreCache && existingCtx == nil:
-		respondDeploy(w, ResDeploymentStarted)
+		Respond(w, schema.DeployResponse{Message: ResDeploymentStarted})
 	case !isUpdating && !ignoreCache && existingCtx != nil && !fullCtxMatch:
-		respondDeploy(w, ResDeploymentUpdated)
+		Respond(w, schema.DeployResponse{Message: ResDeploymentUpdated})
 	case !isUpdating && !ignoreCache && existingCtx != nil && fullCtxMatch:
-		respondDeploy(w, ResDeploymentUpToDate)
+		Respond(w, schema.DeployResponse{Message: ResDeploymentUpToDate})
 	default:
-		respondDeploy(w, ResDeploymentUpdated) // unexpected
+		Respond(w, schema.DeployResponse{Message: ResDeploymentUpdated})
 	}
-}
-
-func respondDeploy(w http.ResponseWriter, message string) {
-	response := schema.DeployResponse{Message: message}
-	Respond(w, response)
-}
-
-func getContext(r *http.Request, ignoreCache bool) (*context.Context, error) {
-	zipBytes, err := files.ReadReqFile(r, "config.zip")
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	if len(zipBytes) == 0 {
-		return nil, ErrorFormFileMustBeProvided("config.zip")
-	}
-
-	zipContents, err := zip.UnzipMemToMem(zipBytes)
-	if err != nil {
-		return nil, errors.Wrap(err, "form file", "config.zip")
-	}
-
-	config, err := userconfig.New("cortex.yaml", zipContents["cortex.yaml"], true)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx, err := ocontext.New(config, zipContents, ignoreCache)
-	if err != nil {
-		return nil, err
-	}
-
-	return ctx, nil
 }

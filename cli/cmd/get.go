@@ -174,8 +174,6 @@ func resourceByNameStr(resourceName string, resourcesRes *schema.GetResourcesRes
 		return "", err
 	}
 	switch resourceType := rs.GetResourceType(); resourceType {
-	case resource.PythonPackageType:
-		return describePythonPackage(resourceName, resourcesRes)
 	case resource.APIType:
 		return describeAPI(resourceName, resourcesRes, flagVerbose)
 	default:
@@ -185,8 +183,6 @@ func resourceByNameStr(resourceName string, resourcesRes *schema.GetResourcesRes
 
 func resourcesByTypeStr(resourceType resource.Type, resourcesRes *schema.GetResourcesResponse) (string, error) {
 	switch resourceType {
-	case resource.PythonPackageType:
-		return pythonPackagesStr(resourcesRes.DataStatuses, resourcesRes.Context), nil
 	case resource.APIType:
 		return apisStr(resourcesRes.APIGroupStatuses), nil
 	default:
@@ -196,8 +192,6 @@ func resourcesByTypeStr(resourceType resource.Type, resourcesRes *schema.GetReso
 
 func resourceByNameAndTypeStr(resourceName string, resourceType resource.Type, resourcesRes *schema.GetResourcesResponse, flagVerbose bool) (string, error) {
 	switch resourceType {
-	case resource.PythonPackageType:
-		return describePythonPackage(resourceName, resourcesRes)
 	case resource.APIType:
 		return describeAPI(resourceName, resourcesRes, flagVerbose)
 	default:
@@ -206,25 +200,9 @@ func resourceByNameAndTypeStr(resourceName string, resourceType resource.Type, r
 }
 
 func allResourcesStr(resourcesRes *schema.GetResourcesResponse) string {
-	ctx := resourcesRes.Context
-
 	out := ""
-	out += pythonPackagesStr(resourcesRes.DataStatuses, ctx)
 	out += apisStr(resourcesRes.APIGroupStatuses)
 	return out
-}
-
-func pythonPackagesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
-	if len(ctx.PythonPackages) == 0 {
-		return ""
-	}
-
-	resources := make([]context.Resource, 0, len(ctx.PythonPackages))
-	for _, pythonPackage := range ctx.PythonPackages {
-		resources = append(resources, pythonPackage)
-	}
-
-	return "\n" + dataResourceTable(resources, dataStatuses, resource.PythonPackageType) + "\n"
 }
 
 func apisStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
@@ -233,15 +211,6 @@ func apisStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
 	}
 
 	return "\n" + apiResourceTable(apiGroupStatuses)
-}
-
-func describePythonPackage(name string, resourcesRes *schema.GetResourcesResponse) (string, error) {
-	pythonPackage := resourcesRes.Context.PythonPackages[name]
-	if pythonPackage == nil {
-		return "", userconfig.ErrorUndefinedResource(name, resource.PythonPackageType)
-	}
-	dataStatus := resourcesRes.DataStatuses[pythonPackage.GetID()]
-	return dataStatusSummary(dataStatus), nil
 }
 
 func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVerbose bool) (string, error) {
@@ -553,10 +522,6 @@ func dataResourceTable(resources []context.Resource, dataStatuses map[string]*re
 	}
 
 	title := resourceType.UserFacing()
-	if resourceType == resource.PythonPackageType {
-		title = resourceType.UserFacingPlural()
-	}
-
 	t := table.Table{
 		Headers: []table.Header{
 			{Title: title, MaxWidth: 32},
@@ -615,13 +580,7 @@ func titleStr(title string) string {
 }
 
 func resourceStatusesStr(resourcesRes *schema.GetResourcesResponse) string {
-	ctx := resourcesRes.Context
 	var titles, values []string
-
-	if len(ctx.PythonPackages) != 0 {
-		titles = append(titles, resource.PythonPackageType.UserFacingPlural())
-		values = append(values, pythonPackageStatusesStr(resourcesRes.DataStatuses, resourcesRes.Context))
-	}
 
 	if len(resourcesRes.APIGroupStatuses) != 0 {
 		titles = append(titles, resource.APIType.UserFacingPlural())
@@ -641,16 +600,6 @@ func resourceStatusesStr(resourcesRes *schema.GetResourcesResponse) string {
 	}
 
 	return out
-}
-
-func pythonPackageStatusesStr(dataStatuses map[string]*resource.DataStatus, ctx *context.Context) string {
-	var statuses = make([]resource.Status, len(ctx.PythonPackages))
-	i := 0
-	for _, pythonPackage := range ctx.PythonPackages {
-		statuses[i] = dataStatuses[pythonPackage.GetID()]
-		i++
-	}
-	return StatusStr(statuses)
 }
 
 func apiStatusesStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string {

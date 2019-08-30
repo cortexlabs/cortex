@@ -69,7 +69,6 @@ export CORTEX_IMAGE_OPERATOR="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlab
 export CORTEX_IMAGE_TF_SERVE="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve:latest"
 export CORTEX_IMAGE_TF_SERVE_GPU="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve-gpu:latest"
 export CORTEX_IMAGE_TF_API="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-api:latest"
-export CORTEX_IMAGE_PYTHON_PACKAGER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-packager:latest"
 export CORTEX_IMAGE_CLUSTER_AUTOSCALER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/cluster-autoscaler:latest"
 export CORTEX_IMAGE_NVIDIA="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/nvidia:latest"
 export CORTEX_IMAGE_METRICS_SERVER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/metrics-server:latest"

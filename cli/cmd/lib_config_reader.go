@@ -20,10 +20,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
@@ -66,27 +64,6 @@ func pythonPaths(dir string) []string {
 		errors.Exit(err)
 	}
 	return pyPaths
-}
-
-func allConfigPaths(root string) []string {
-	exportPaths := strset.New()
-	requirementsPath := filepath.Join(root, consts.RequirementsTxt)
-	if err := files.CheckFile(requirementsPath); err == nil {
-		exportPaths.Add(requirementsPath)
-	}
-
-	customPackagesRoot := filepath.Join(root, consts.PackageDir)
-	if err := files.CheckDir(customPackagesRoot); err == nil {
-		customPackagesPaths, err := files.ListDirRecursive(customPackagesRoot, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders, files.IgnorePythonGeneratedFiles)
-		if err != nil {
-			errors.Exit(err)
-		}
-		exportPaths.Add(customPackagesPaths...)
-	}
-	exportPaths.Add(yamlPaths(root)...)
-	exportPaths.Add(pythonPaths(root)...)
-
-	return exportPaths.Slice()
 }
 
 func appNameFromConfig() (string, error) {

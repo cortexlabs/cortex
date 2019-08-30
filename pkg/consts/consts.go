@@ -26,14 +26,11 @@ var (
 	CortexConfigPath = "/configs/cortex"
 	CortexConfigName = "cortex-config"
 
-	RequirementsTxt = "requirements.txt"
-	PackageDir      = "packages"
-
 	AppsDir             = "apps"
 	DeploymentsDir      = "deployments"
 	APIsDir             = "apis"
-	PythonPackagesDir   = "python_packages"
 	RequestHandlersDir  = "request_handlers"
+	ProjectsDir         = "projects"
 	ContextsDir         = "contexts"
 	ResourceStatusesDir = "resource_statuses"
 	WorkloadSpecsDir    = "workload_specs"

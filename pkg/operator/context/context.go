@@ -31,10 +31,9 @@ import (
 
 func New(
 	userconf *userconfig.Config,
-	files map[string][]byte,
+	projectBytes []byte,
 	ignoreCache bool,
 ) (*context.Context, error) {
-
 	ctx := &context.Context{}
 	ctx.CreatedEpoch = time.Now().Unix()
 
@@ -60,15 +59,14 @@ func New(
 		consts.MetadataDir,
 	)
 
-	ctx.StatusPrefix = StatusPrefix(ctx.App.Name)
-
-	pythonPackages, err := loadPythonPackages(files, ctx.DeploymentVersion)
-	if err != nil {
+	ctx.ProjectID = hash.Bytes(projectBytes)
+	ctx.ProjectKey = filepath.Join(consts.ProjectsDir, ctx.ProjectID+".zip")
+	if err = config.AWS.UploadBytesToS3(projectBytes, ctx.ProjectKey); err != nil {
 		return nil, err
 	}
-	ctx.PythonPackages = pythonPackages
 
-	apis, err := getAPIs(userconf, ctx.DeploymentVersion, files, pythonPackages)
+	ctx.StatusPrefix = statusPrefix(ctx.App.Name)
+	apis, err := getAPIs(userconf, ctx.DeploymentVersion, ctx.ProjectID)
 
 	if err != nil {
 		return nil, err
@@ -101,6 +99,7 @@ func calculateID(ctx *context.Context) string {
 	ids = append(ids, ctx.Root)
 	ids = append(ids, ctx.StatusPrefix)
 	ids = append(ids, ctx.App.ID)
+	ids = append(ids, ctx.ProjectID)
 
 	for _, resource := range ctx.AllResources() {
 		ids = append(ids, resource.GetID())
@@ -121,7 +120,7 @@ func DownloadContext(ctxID string, appName string) (*context.Context, error) {
 	return &ctx, nil
 }
 
-func StatusPrefix(appName string) string {
+func statusPrefix(appName string) string {
 	return filepath.Join(
 		consts.AppsDir,
 		appName,
@@ -131,7 +130,7 @@ func StatusPrefix(appName string) string {
 
 func StatusKey(resourceID string, workloadID string, appName string) string {
 	return filepath.Join(
-		StatusPrefix(appName),
+		statusPrefix(appName),
 		resourceID,
 		workloadID,
 	)
@@ -139,7 +138,7 @@ func StatusKey(resourceID string, workloadID string, appName string) string {
 
 func LatestWorkloadIDKey(resourceID string, appName string) string {
 	return filepath.Join(
-		StatusPrefix(appName),
+		statusPrefix(appName),
 		resourceID,
 		"latest",
 	)

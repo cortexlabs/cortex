@@ -13,7 +13,11 @@
 # limitations under the License.
 
 import argparse
+import os
+import base64
+import json
 
+from cortex.lib import util
 from cortex.lib.storage import S3
 from cortex.lib.log import get_logger
 
@@ -21,16 +25,27 @@ logger = get_logger()
 
 
 def start(args):
-    bucket_name, prefix = S3.deconstruct_s3_path(args.download_from)
-    s3_client = S3(bucket_name, client_config={})
-    s3_client.download(prefix, args.download_to)
+    download = json.loads(base64.urlsafe_b64decode(args.download))
+    for download_arg in download:
+        from_path = download_arg["from"]
+        to_path = download_arg["to"]
+        bucket_name, prefix = S3.deconstruct_s3_path(from_path)
+        s3_client = S3(bucket_name, client_config={})
+        s3_client.download(prefix, to_path)
+        if download_arg["unzip"]:
+            util.extract_zip(
+                os.path.join(to_path, os.path.basename(from_path)), delete_zip_file=True
+            )
 
 
 def main():
     parser = argparse.ArgumentParser()
     na = parser.add_argument_group("required named arguments")
-    na.add_argument("--download_from", required=True, help="Storage Path to download the file from")
-    na.add_argument("--download_to", required=True, help="Directory to download the file to")
+    na.add_argument(
+        "--download",
+        required=True,
+        help="a base64 encoded json array of download arg objects (see api_workloads.go for the structure)",
+    )
     parser.set_defaults(func=start)
 
     args = parser.parse_args()

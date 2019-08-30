@@ -26,7 +26,7 @@ RUN apt-get update -qq && apt-get install -y -q \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 
-ENV PYTHONPATH="/src:${PYTHONPATH}"
+ENV PYTHONPATH "${PYTHONPATH}:/src:/mnt/project"
 
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
 COPY pkg/workloads/cortex/onnx_serve/requirements.txt /src/cortex/onnx_serve/requirements.txt
@@ -39,4 +39,4 @@ COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib
 COPY pkg/workloads/cortex/onnx_serve /src/cortex/onnx_serve
 
-ENTRYPOINT ["/usr/bin/python3", "/src/cortex/onnx_serve/api.py"]
+ENTRYPOINT ["/src/cortex/onnx_serve/run.sh"]

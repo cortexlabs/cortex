@@ -146,7 +146,6 @@ ci-build-images:
 	@./build/build-image.sh images/onnx-serve-gpu onnx-serve-gpu
 	@./build/build-image.sh images/operator operator
 	@./build/build-image.sh images/fluentd fluentd
-	@./build/build-image.sh images/python-packager python-packager
 	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
 	@./build/build-image.sh images/nvidia nvidia
 	@./build/build-image.sh images/metrics-server metrics-server
@@ -165,7 +164,6 @@ ci-push-images:
 	@./build/push-image.sh onnx-serve-gpu
 	@./build/push-image.sh operator
 	@./build/push-image.sh fluentd
-	@./build/push-image.sh python-packager
 	@./build/push-image.sh cluster-autoscaler
 	@./build/push-image.sh nvidia
 	@./build/push-image.sh metrics-server

@@ -4,6 +4,6 @@
 - kind: api
   name: generator
   model: s3://cortex-examples/gpt-2/774
-  request_handler: encoder.py
+  request_handler: handler.py
   compute:
     gpu: 1

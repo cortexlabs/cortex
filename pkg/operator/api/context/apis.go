@@ -25,8 +25,7 @@ type APIs map[string]*API
 type API struct {
 	*userconfig.API
 	*ComputedResourceFields
-	Path                  string  `json:"path"`
-	RequestHandlerImplKey *string `json:"request_handler_impl_key"`
+	Path string `json:"path"`
 }
 
 func APIPath(apiName string, appName string) string {

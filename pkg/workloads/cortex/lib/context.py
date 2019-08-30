@@ -62,10 +62,11 @@ class Context:
         self.root = self.ctx["root"]
         self.status_prefix = self.ctx["status_prefix"]
         self.app = self.ctx["app"]
-        self.python_packages = self.ctx["python_packages"] or {}
         self.apis = self.ctx["apis"] or {}
         self.api_version = self.cortex_config["api_version"]
         self.monitoring = None
+        self.project_id = self.ctx["project_id"]
+        self.project_key = self.ctx["project_key"]
 
         if "local_storage_path" in kwargs:
             self.storage = LocalStorage(base_dir=kwargs["local_storage_path"])
@@ -88,9 +89,8 @@ class Context:
         os.environ["AWS_REGION"] = self.cortex_config.get("region", "")
 
         # ID maps
-        self.pp_id_map = ResourceMap(self.python_packages) if self.python_packages else None
         self.apis_id_map = ResourceMap(self.apis) if self.apis else None
-        self.id_map = util.merge_dicts_overwrite(self.pp_id_map, self.apis_id_map)
+        self.id_map = self.apis_id_map
 
     def download_file(self, impl_key, cache_impl_path):
         if not os.path.isfile(cache_impl_path):
@@ -102,30 +102,20 @@ class Context:
         self.download_file(impl_key, cache_impl_path)
         return cache_impl_path
 
-    def load_module(self, module_prefix, module_name, impl_key):
+    def load_module(self, module_prefix, module_name, impl_path):
         full_module_name = "{}_{}".format(module_prefix, module_name)
-
-        try:
-            impl_path = self.download_python_file(impl_key, full_module_name)
-        except CortexException as e:
-            e.wrap("unable to find python file")
-            raise
-
         try:
             impl = imp.load_source(full_module_name, impl_path)
         except Exception as e:
             raise UserException("unable to load python file", str(e)) from e
 
-        return impl, impl_path
+        return impl
 
-    def get_request_handler_impl(self, api_name):
+    def get_request_handler_impl(self, api_name, project_dir):
         api = self.apis[api_name]
-
-        module_prefix = "request_handler"
-
         try:
-            impl, impl_path = self.load_module(
-                module_prefix, api["name"], api["request_handler_impl_key"]
+            impl = self.load_module(
+                "request_handler", api["name"], os.path.join(project_dir, api["request_handler"])
             )
         except CortexException as e:
             e.wrap("api " + api_name, "request_handler " + api["request_handler"])

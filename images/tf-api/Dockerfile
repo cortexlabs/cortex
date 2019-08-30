@@ -4,7 +4,7 @@ RUN apt-get update -qq && apt-get install -y -q \
         zlib1g-dev \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
-ENV PYTHONPATH="/src:${PYTHONPATH}"
+ENV PYTHONPATH "${PYTHONPATH}:/src:/mnt/project"
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
         libfreetype6-dev \
@@ -25,4 +25,4 @@ COPY pkg/workloads/cortex/consts.py /src/cortex/
 COPY pkg/workloads/cortex/lib /src/cortex/lib
 COPY pkg/workloads/cortex/tf_api /src/cortex/tf_api
 
-ENTRYPOINT ["/usr/bin/python3", "/src/cortex/tf_api/api.py"]
+ENTRYPOINT ["/src/cortex/tf_api/run.sh"]

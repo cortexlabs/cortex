@@ -23,7 +23,7 @@ from waitress import serve
 import onnxruntime as rt
 import numpy as np
 
-from cortex.lib import util, package, Context, api_utils
+from cortex.lib import util, Context, api_utils
 from cortex.lib.storage import S3
 from cortex.lib.log import get_logger, debug_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
@@ -234,6 +234,7 @@ def exceptions(e):
 
 
 def start(args):
+
     api = None
     try:
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
@@ -244,8 +245,9 @@ def start(args):
         _, prefix = ctx.storage.deconstruct_s3_path(api["model"])
         model_path = os.path.join(args.model_dir, os.path.basename(prefix))
         if api.get("request_handler") is not None:
-            package.install_packages(ctx.python_packages, ctx.storage)
-            local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
+            local_cache["request_handler"] = ctx.get_request_handler_impl(
+                api["name"], args.project_dir
+            )
 
         sess = rt.InferenceSession(model_path)
         local_cache["sess"] = sess
@@ -286,6 +288,7 @@ def main():
     na.add_argument("--api", required=True, help="Resource id of api to serve")
     na.add_argument("--model-dir", required=True, help="Directory to download the model to")
     na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
+    na.add_argument("--project-dir", required=True, help="Local path for the project zip file")
 
     parser.set_defaults(func=start)
 

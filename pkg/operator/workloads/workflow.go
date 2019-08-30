@@ -49,7 +49,6 @@ func PopulateWorkloadIDs(ctx *context.Context) error {
 		return err
 	}
 
-	populatePythonPackageWorkloadIDs(ctx, latestResourceWorkloadIDs)
 	populateAPIWorkloadIDs(ctx, latestResourceWorkloadIDs)
 
 	if err := ctx.CheckAllWorkloadIDsPopulated(); err != nil {
@@ -60,7 +59,6 @@ func PopulateWorkloadIDs(ctx *context.Context) error {
 
 func extractWorkloads(ctx *context.Context) []Workload {
 	var workloads []Workload
-	workloads = append(workloads, extractPythonPackageWorkloads(ctx)...)
 	workloads = append(workloads, extractAPIWorkloads(ctx)...)
 	workloads = append(workloads, extractHPAWorkloads(ctx)...)
 	return workloads

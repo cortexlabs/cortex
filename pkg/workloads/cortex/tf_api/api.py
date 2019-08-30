@@ -28,7 +28,7 @@ from tensorflow_serving.apis import get_model_metadata_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 from google.protobuf import json_format
 
-from cortex.lib import util, package, Context, api_utils
+from cortex.lib import util, Context, api_utils
 from cortex.lib.storage import S3
 from cortex.lib.log import get_logger, debug_obj
 from cortex.lib.exceptions import UserRuntimeException, UserException
@@ -320,8 +320,9 @@ def start(args):
         local_cache["ctx"] = ctx
 
         if api.get("request_handler") is not None:
-            package.install_packages(ctx.python_packages, ctx.storage)
-            local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
+            local_cache["request_handler"] = ctx.get_request_handler_impl(
+                api["name"], args.project_dir
+            )
     except Exception as e:
         logger.exception("failed to start api")
         sys.exit(1)
@@ -384,6 +385,7 @@ def main():
     na.add_argument("--api", required=True, help="Resource id of api to serve")
     na.add_argument("--model-dir", required=True, help="Directory to download the model to")
     na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
+    na.add_argument("--project-dir", required=True, help="Local path for the project zip file")
     parser.set_defaults(func=start)
 
     args = parser.parse_args()

@@ -18,15 +18,18 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"github.com/spf13/cobra"
 
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
 var flagDeployForce bool
@@ -53,21 +56,47 @@ func deploy(force bool, ignoreCache bool) {
 		errors.Exit(err)
 	}
 
-	zipInput := &zip.Input{
-		FileLists: []zip.FileListInput{
-			{
-				Sources:      allConfigPaths(root),
-				RemovePrefix: root,
-			},
-		},
-	}
-
 	params := map[string]string{
 		"force":       s.Bool(force),
 		"ignoreCache": s.Bool(ignoreCache),
 	}
 
-	response, err := HTTPUploadZip("/deploy", zipInput, "config.zip", params)
+	configBytes, err := ioutil.ReadFile("cortex.yaml")
+	if err != nil {
+		errors.Exit(errors.Wrap(err, "cortex.yaml", userconfig.ErrorReadConfig().Error()))
+	}
+
+	projectPaths, err := files.ListDirRecursive(root, false,
+		files.IgnoreCortexYAML,
+		files.IgnoreHiddenFiles,
+		files.IgnoreHiddenFolders,
+		files.IgnorePythonGeneratedFiles,
+	)
+	if err != nil {
+		errors.Exit(err)
+	}
+
+	projectZipBytes, err := zip.ToMem(&zip.Input{
+		FileLists: []zip.FileListInput{
+			{
+				Sources:      projectPaths,
+				RemovePrefix: root,
+			},
+		},
+	})
+
+	if err != nil {
+		errors.Exit(errors.Wrap(err, "failed to zip project folder"))
+	}
+
+	uploadInput := &HTTPUploadInput{
+		Bytes: map[string][]byte{
+			"cortex.yaml": configBytes,
+			"project.zip": projectZipBytes,
+		},
+	}
+
+	response, err := HTTPUpload("/deploy", uploadInput, params)
 	if err != nil {
 		errors.Exit(err)
 	}

@@ -18,58 +18,25 @@ package context
 
 import (
 	"bytes"
-	"path/filepath"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-var uploadedRequestHandlers = strset.New()
-
-func getAPIs(config *userconfig.Config,
-	deploymentVersion string,
-	impls map[string][]byte,
-	pythonPackages context.PythonPackages,
-) (context.APIs, error) {
+func getAPIs(config *userconfig.Config, deploymentVersion string, projectID string) (context.APIs, error) {
 	apis := context.APIs{}
 
 	for _, apiConfig := range config.APIs {
 		var buf bytes.Buffer
-		var requestHandlerImplKey *string
 		buf.WriteString(apiConfig.Name)
 		buf.WriteString(s.Obj(apiConfig.Tracker))
 		buf.WriteString(apiConfig.ModelFormat.String())
-
-		if apiConfig.RequestHandler != nil {
-			for _, pythonPackage := range pythonPackages {
-				buf.WriteString(pythonPackage.GetID())
-			}
-
-			impl, ok := impls[*apiConfig.RequestHandler]
-			if !ok {
-				return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(*apiConfig.RequestHandler), userconfig.Identify(apiConfig), userconfig.RequestHandlerKey)
-			}
-			implID := hash.Bytes(impl)
-			buf.WriteString(implID)
-
-			requestHandlerImplKey = pointer.String(filepath.Join(consts.RequestHandlersDir, implID))
-
-			err := uploadRequestHandler(*requestHandlerImplKey, impls[*apiConfig.RequestHandler])
-			if err != nil {
-				return nil, errors.Wrap(err, userconfig.Identify(apiConfig))
-			}
-		}
-
 		buf.WriteString(deploymentVersion)
+		buf.WriteString(projectID)
 		buf.WriteString(strings.TrimSuffix(apiConfig.Model, "/"))
 
 		id := hash.Bytes(buf.Bytes())
@@ -81,27 +48,9 @@ func getAPIs(config *userconfig.Config,
 					ResourceType: resource.APIType,
 				},
 			},
-			API:                   apiConfig,
-			Path:                  context.APIPath(apiConfig.Name, config.App.Name),
-			RequestHandlerImplKey: requestHandlerImplKey,
+			API:  apiConfig,
+			Path: context.APIPath(apiConfig.Name, config.App.Name),
 		}
 	}
 	return apis, nil
-}
-
-func uploadRequestHandler(implKey string, impl []byte) error {
-	isUploaded, err := config.AWS.IsS3File(implKey)
-	if err != nil {
-		return errors.Wrap(err, "upload")
-	}
-
-	if !isUploaded {
-		err = config.AWS.UploadBytesToS3(impl, implKey)
-		if err != nil {
-			return errors.Wrap(err, "upload")
-		}
-	}
-
-	uploadedRequestHandlers.Add(implKey)
-	return nil
 }

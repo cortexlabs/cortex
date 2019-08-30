@@ -241,6 +241,13 @@ func IgnoreHiddenFiles(path string, fi os.FileInfo) (bool, error) {
 	return false, nil
 }
 
+func IgnoreCortexYAML(path string, fi os.FileInfo) (bool, error) {
+	if !fi.IsDir() && fi.Name() == "cortex.yaml" {
+		return true, nil
+	}
+	return false, nil
+}
+
 func IgnoreHiddenFolders(path string, fi os.FileInfo) (bool, error) {
 	if fi.IsDir() && strings.HasPrefix(fi.Name(), ".") {
 		return true, nil

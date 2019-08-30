@@ -17,7 +17,10 @@ limitations under the License.
 package workloads
 
 import (
+	"encoding/base64"
 	"path"
+
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
@@ -223,6 +226,12 @@ func (aw *APIWorkload) IsFailed(ctx *context.Context) (bool, error) {
 	return false, nil
 }
 
+type downloadContainerArg struct {
+	From  string `json:"from"`
+	To    string `json:"to"`
+	Unzip bool   `json:"unzip"`
+}
+
 func tfAPISpec(
 	ctx *context.Context,
 	api *context.API,
@@ -250,6 +259,20 @@ func tfAPISpec(
 		tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
+	downloadArgs := []downloadContainerArg{
+		{
+			From: ctx.APIs[api.Name].Model,
+			To:   path.Join(consts.EmptyDirMountPath, "model"),
+		},
+		{
+			From:  config.AWS.S3Path(ctx.ProjectKey),
+			To:    path.Join(consts.EmptyDirMountPath, "project"),
+			Unzip: true,
+		},
+	}
+
+	downloadArgsBytes, _ := json.Marshal(downloadArgs)
+	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:     internalAPIName(api.Name, ctx.App.Name),
 		Replicas: desiredReplicas,
@@ -285,8 +308,7 @@ func tfAPISpec(
 						Image:           config.Cortex.DownloaderImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
-							"--download_from=" + ctx.APIs[api.Name].Model,
-							"--download_to=" + path.Join(consts.EmptyDirMountPath, "model"),
+							"--download=" + downloadArgsStr,
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
@@ -305,6 +327,7 @@ func tfAPISpec(
 							"--api=" + ctx.APIs[api.Name].ID,
 							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
 							"--cache-dir=" + consts.ContextCacheDir,
+							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
@@ -396,6 +419,20 @@ func onnxAPISpec(
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
+	downloadArgs := []downloadContainerArg{
+		{
+			From: ctx.APIs[api.Name].Model,
+			To:   path.Join(consts.EmptyDirMountPath, "model"),
+		},
+		{
+			From:  config.AWS.S3Path(ctx.ProjectKey),
+			To:    path.Join(consts.EmptyDirMountPath, "project"),
+			Unzip: true,
+		},
+	}
+
+	downloadArgsBytes, _ := json.Marshal(downloadArgs)
+	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:     internalAPIName(api.Name, ctx.App.Name),
 		Replicas: desiredReplicas,
@@ -430,8 +467,7 @@ func onnxAPISpec(
 						Image:           config.Cortex.DownloaderImage,
 						ImagePullPolicy: "Always",
 						Args: []string{
-							"--download_from=" + ctx.APIs[api.Name].Model,
-							"--download_to=" + path.Join(consts.EmptyDirMountPath, "model"),
+							"--download=" + downloadArgsStr,
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
@@ -449,6 +485,7 @@ func onnxAPISpec(
 							"--api=" + ctx.APIs[api.Name].ID,
 							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
 							"--cache-dir=" + consts.ContextCacheDir,
+							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),

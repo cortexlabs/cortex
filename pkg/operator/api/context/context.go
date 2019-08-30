@@ -36,8 +36,9 @@ type Context struct {
 	MetadataRoot      string               `json:"metadata_root"`
 	StatusPrefix      string               `json:"status_prefix"`
 	App               *App                 `json:"app"`
-	PythonPackages    PythonPackages       `json:"python_packages"`
 	APIs              APIs                 `json:"apis"`
+	ProjectID         string               `json:"project_id"`
+	ProjectKey        string               `json:"project_key"`
 }
 
 type Resource interface {
@@ -83,9 +84,6 @@ func ExtractResourceWorkloadIDs(resources []ComputedResource) map[string]string 
 
 func (ctx *Context) DataComputedResources() []ComputedResource {
 	var resources []ComputedResource
-	for _, pythonPackage := range ctx.PythonPackages {
-		resources = append(resources, pythonPackage)
-	}
 	return resources
 }
 
@@ -170,9 +168,6 @@ func (ctx *Context) CheckAllWorkloadIDsPopulated() error {
 
 func (ctx *Context) VisibleResourcesMap() map[string][]ComputedResource {
 	resources := make(map[string][]ComputedResource)
-	for name, pythonPackage := range ctx.PythonPackages {
-		resources[name] = append(resources[name], pythonPackage)
-	}
 	for name, api := range ctx.APIs {
 		resources[name] = append(resources[name], api)
 	}
@@ -203,12 +198,6 @@ func (ctx *Context) VisibleResourceByNameAndType(name string, resourceTypeStr st
 	resourceType := resource.TypeFromString(resourceTypeStr)
 
 	switch resourceType {
-	case resource.PythonPackageType:
-		res := ctx.PythonPackages[name]
-		if res == nil {
-			return nil, resource.ErrorNotFound(name, resourceType)
-		}
-		return res, nil
 	case resource.APIType:
 		res := ctx.APIs[name]
 		if res == nil {
