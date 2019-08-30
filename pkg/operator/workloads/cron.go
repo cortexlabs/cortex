@@ -84,12 +84,13 @@ func runCron() {
 	}
 }
 
-func reportAndRecover(strs ...string) error {
+func reportAndRecover(strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
 		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
-		return err
 	}
-	return nil
+
+	time.Sleep(10)
+	runCron()
 }
