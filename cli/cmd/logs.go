@@ -26,7 +26,6 @@ import (
 func init() {
 	addAppNameFlag(logsCmd)
 	addEnvFlag(logsCmd)
-	addVerboseFlag(logsCmd)
 	// addResourceTypesToHelp(logsCmd)
 }
 
@@ -59,7 +58,7 @@ var logsCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		err = StreamLogs(appName, resourceName, resourceTypeStr, flagVerbose)
+		err = StreamLogs(appName, resourceName, resourceTypeStr)
 		if err != nil {
 			errors.Exit(err)
 		}

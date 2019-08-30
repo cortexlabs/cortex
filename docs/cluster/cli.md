@@ -48,10 +48,9 @@ Flags:
   -d, --deployment string   deployment name
   -e, --env string          environment (default "dev")
   -h, --help                help for logs
-  -v, --verbose             show verbose output
 ```
 
-The `logs` command streams logs from the workload corresponding to the specified resource. For example, `cortex logs api my-api` will stream the logs from the most recent api named `my-api`. `RESOURCE_TYPE` is optional (unless there are name colisions), so `cortex logs my-api` will also work. Using the `-v` or `--verbose` flag will show all of the logs for the workload (not just Cortex's logs).
+The `logs` command streams logs from the workload corresponding to the specified resource. For example, `cortex logs api my-api` will stream the logs from the most recent api named `my-api`. `RESOURCE_TYPE` is optional (unless there are name colisions), so `cortex logs my-api` will also work.
 
 ## refresh
 
@@ -72,17 +71,17 @@ The `refresh` command behaves similarly to the `deploy` command. The key differe
 ## predict
 
 ```text
-Make predictions.
 Usage:
-  cortex predict API_NAME SAMPLES_FILE [flags]
+  cortex predict API_NAME SAMPLE_FILE [flags]
+
 Flags:
+      --debug               Predict with debug mode
   -d, --deployment string   deployment name
   -e, --env string          environment (default "dev")
   -h, --help                help for predict
-  -j, --json                print the raw json response
 ```
 
-The `predict` command converts samples from a JSON file into prediction requests and displays the response. This command is useful for quickly testing predictions.
+The `predict` command converts a sample from a JSON file into a prediction request and displays the response. This command is useful for quickly testing predictions.
 
 ## delete
 

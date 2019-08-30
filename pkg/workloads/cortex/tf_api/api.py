@@ -30,8 +30,9 @@ from google.protobuf import json_format
 
 from cortex.lib import util, package, Context, api_utils
 from cortex.lib.storage import S3
-from cortex.lib.log import get_logger
+from cortex.lib.log import get_logger, debug_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
+from cortex.lib.stringify import truncate
 
 
 def cortex_print(*args, **kwargs):
@@ -104,12 +105,12 @@ def after_request(response):
     if request.path != "/{}/{}".format(ctx.app["name"], api["name"]):
         return response
 
-    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
+    logger.info(response.status)
 
-    predictions = None
-    if "predictions" in g:
-        predictions = g.predictions
-    api_utils.post_request_metrics(ctx, api, response, predictions, local_cache["class_set"])
+    prediction = None
+    if "prediction" in g:
+        prediction = g.prediction
+    api_utils.post_request_metrics(ctx, api, response, prediction, local_cache["class_set"])
 
     return response
 
@@ -129,7 +130,7 @@ def create_prediction_request(sample):
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
 
         try:
-            tensor_proto = tf.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type])
+            tensor_proto = tf.compat.v1.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type])
             prediction_request.inputs[column_name].CopyFrom(tensor_proto)
         except Exception as e:
             raise UserException(
@@ -168,17 +169,20 @@ def parse_response_proto(response_proto):
     return {"response": outputs_simplified}
 
 
-def run_predict(sample):
+def run_predict(sample, debug=False):
     ctx = local_cache["ctx"]
     api = local_cache["api"]
     request_handler = local_cache.get("request_handler")
 
     prepared_sample = sample
+
+    debug_obj("sample", sample, debug)
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         try:
             prepared_sample = request_handler.pre_inference(
                 sample, local_cache["metadata"]["signatureDef"]
             )
+            debug_obj("pre_inference", prepared_sample, debug)
         except Exception as e:
             raise UserRuntimeException(
                 api["request_handler"], "pre_inference request handler"
@@ -189,10 +193,12 @@ def run_predict(sample):
     prediction_request = create_prediction_request(prepared_sample)
     response_proto = local_cache["stub"].Predict(prediction_request, timeout=300.0)
     result = parse_response_proto(response_proto)
+    debug_obj("inference", result, debug)
 
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
         try:
             result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
+            debug_obj("post_inference", result, debug)
         except Exception as e:
             raise UserRuntimeException(
                 api["request_handler"], "post_inference request handler"
@@ -202,15 +208,16 @@ def run_predict(sample):
 
 
 def validate_sample(sample):
-    signature = extract_signature()
-    for input_name, metadata in signature.items():
+    signature = extract_signature(
+        local_cache["metadata"]["signatureDef"], local_cache["api"]["tf_serving"]["signature_key"]
+    )
+    for input_name, _ in signature.items():
         if input_name not in sample:
             raise UserException('missing key "{}"'.format(input_name))
 
 
 def prediction_failed(reason):
-    message = "prediction failed: " + reason
-
+    message = "prediction failed: {}".format(reason)
     logger.error(message)
     return message, status.HTTP_406_NOT_ACCEPTABLE
 
@@ -222,8 +229,10 @@ def health():
 
 @app.route("/<deployment_name>/<api_name>", methods=["POST"])
 def predict(deployment_name, api_name):
+    debug = request.args.get("debug", "false").lower() == "true"
+
     try:
-        payload = request.get_json()
+        sample = request.get_json()
     except Exception as e:
         return "Malformed JSON", status.HTTP_400_BAD_REQUEST
 
@@ -232,44 +241,22 @@ def predict(deployment_name, api_name):
 
     response = {}
 
-    if not util.is_dict(payload) or "samples" not in payload:
-        return prediction_failed('top level "samples" key not found in request')
+    try:
+        result = run_predict(sample, debug)
+    except CortexException as e:
+        e.wrap("error")
+        logger.exception(str(e))
+        return prediction_failed(str(e))
+    except Exception as e:
+        logger.exception(str(e))
+        return prediction_failed(str(e))
 
-    predictions = []
-    samples = payload["samples"]
-    if not util.is_list(samples):
-        return prediction_failed('expected the value of key "samples" to be a list of json objects')
+    g.prediction = result
 
-    for i, sample in enumerate(payload["samples"]):
-        try:
-            result = run_predict(sample)
-        except CortexException as e:
-            e.wrap("error", "sample {}".format(i + 1))
-            logger.error(str(e))
-            logger.exception(
-                "An error occurred, see `cortex logs -v api {}` for more details.".format(
-                    api["name"]
-                )
-            )
-            return prediction_failed(str(e))
-        except Exception as e:
-            logger.exception(
-                "An error occurred, see `cortex logs -v api {}` for more details.".format(
-                    api["name"]
-                )
-            )
-            return prediction_failed(str(e))
-
-        predictions.append(result)
-    g.predictions = predictions
-    response["predictions"] = predictions
-
-    return jsonify(response)
+    return jsonify(result)
 
 
-def extract_signature():
-    signature_def = local_cache["metadata"]["signatureDef"]
-    signature_key = local_cache["api"]["tf_serving"]["signature_key"]
+def extract_signature(signature_def, signature_key):
     if (
         signature_def.get(signature_key) is None
         or signature_def[signature_key].get("inputs") is None
@@ -293,17 +280,15 @@ def get_signature(app_name, api_name):
     api = local_cache["api"]
 
     try:
-        metadata = extract_signature()
-    except CortexException as e:
-        logger.error(str(e))
-        logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
+        metadata = extract_signature(
+            local_cache["metadata"]["signatureDef"],
+            local_cache["api"]["tf_serving"]["signature_key"],
         )
+    except CortexException as e:
+        logger.exception(str(e))
         return str(e), HTTP_404_NOT_FOUND
     except Exception as e:
-        logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         return str(e), HTTP_404_NOT_FOUND
 
     response = {"signature": metadata}
@@ -353,21 +338,16 @@ def start(args):
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
     except CortexException as e:
         e.wrap("error")
-        logger.error(str(e))
-        logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         sys.exit(1)
     except Exception as e:
-        logger.exception(
-            "An error occurred, see `cortex logs -v api {}` for more details.".format(api["name"])
-        )
+        logger.exception(str(e))
         sys.exit(1)
 
     try:
         validate_model_dir(args.model_dir)
     except Exception as e:
-        logger.exception(e)
+        logger.exception("failed to validate model")
         sys.exit(1)
 
     if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
@@ -380,22 +360,29 @@ def start(args):
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)
 
     # wait a bit for tf serving to start before querying metadata
-    limit = 300
+    limit = 60
     for i in range(limit):
         try:
             local_cache["metadata"] = run_get_model_metadata()
             break
         except Exception as e:
+            if i > 6:
+                logger.warn("an error occurred when reading model metadata, retrying...")
             if i == limit - 1:
                 logger.exception(
-                    "An error occurred, see `cortex logs -v api {}` for more details.".format(
-                        api["name"]
-                    )
+                    "an error occurred when reading model metadata: retry limit exceeded"
                 )
                 sys.exit(1)
 
-        time.sleep(1)
-
+        time.sleep(5)
+    logger.info(
+        "model_signature: {}".format(
+            extract_signature(
+                local_cache["metadata"]["signatureDef"],
+                local_cache["api"]["tf_serving"]["signature_key"],
+            )
+        )
+    )
     serve(app, listen="*:{}".format(args.port))
 
 

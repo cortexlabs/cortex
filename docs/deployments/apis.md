@@ -43,3 +43,12 @@ See [packaging models](packaging-models.md) for how to export the model.
 Request handlers are used to decouple the interface of an API endpoint from its model. A `pre_inference` request handler can be used to modify request payloads before they are sent to the model. A `post_inference` request handler can be used to modify model predictions in the server before they are sent to the client.
 
 See [request handlers](request-handlers.md) for a detailed guide.
+
+## Debugging
+
+You can log more information about each request by adding a `?debug=true` parameter to your requests. This will print:
+
+1. The raw sample
+2. The value after running the `pre_inference` function (if applicable)
+3. The value after running inference
+4. The value after running the `post_inference` function (if applicable)
