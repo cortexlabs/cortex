@@ -260,7 +260,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	out := "\n" + console.Bold("url:        ") + apiEndpoint
 	out += "\n" + console.Bold("debug url:  ") + apiEndpoint + "?debug=true"
-	out += fmt.Sprintf("\n%s  curl %s -X POST -H \"Content-Type: application/json\"  -d @sample.json", console.Bold("curl:"), apiEndpoint)
+	out += fmt.Sprintf("\n%s  curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json", console.Bold("curl:"), apiEndpoint)
 
 	statusTable := table.Table{
 		Headers: headers,
