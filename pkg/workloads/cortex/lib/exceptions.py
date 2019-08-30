@@ -17,19 +17,20 @@ from collections import deque
 
 class CortexException(Exception):
     def __init__(self, *messages):
-        super().__init__(self.stringify(messages))
-
+        super().__init__(": ".join(messages))
         self.errors = deque(messages)
 
     def wrap(self, *messages):
         self.errors.extendleft(reversed(messages))
 
     def __str__(self):
-        return self.stringify(self.errors)
+        return self.stringify()
 
-    @staticmethod
-    def stringify(str_list):
-        return ": ".join(str_list)
+    def __repr__(self):
+        return self.stringify()
+
+    def stringify(self):
+        return "error: " + ": ".join(self.errors)
 
 
 class UserException(CortexException):

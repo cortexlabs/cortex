@@ -124,7 +124,7 @@ def transform_to_numpy(input_pyobj, input_metadata):
         np_arr = np_arr.reshape(target_shape)
         return np_arr
     except Exception as e:
-        raise UserException(str(e)) from e
+        raise UserException("failed to convert to numpy array", str(e)) from e
 
 
 def convert_to_onnx_input(sample, input_metadata_list):
@@ -170,7 +170,7 @@ def predict(app_name, api_name):
     try:
         sample = request.get_json()
     except Exception as e:
-        return "Malformed JSON", status.HTTP_400_BAD_REQUEST
+        return "malformed json", status.HTTP_400_BAD_REQUEST
 
     sess = local_cache["sess"]
     api = local_cache["api"]
@@ -189,7 +189,7 @@ def predict(app_name, api_name):
                 debug_obj("pre_inference", prepared_sample, debug)
             except Exception as e:
                 raise UserRuntimeException(
-                    api["request_handler"], "pre_inference request handler"
+                    api["request_handler"], "pre_inference request handler", str(e)
                 ) from e
 
         inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
@@ -208,16 +208,12 @@ def predict(app_name, api_name):
                 result = request_handler.post_inference(result, output_metadata)
             except Exception as e:
                 raise UserRuntimeException(
-                    api["request_handler"], "post_inference request handler"
+                    api["request_handler"], "post_inference request handler", str(e)
                 ) from e
 
             debug_obj("post_inference", result, debug)
-    except CortexException as e:
-        e.wrap("error")
-        logger.exception(str(e))
-        return prediction_failed(str(e))
     except Exception as e:
-        logger.exception(str(e))
+        logger.exception("prediction failed")
         return prediction_failed(str(e))
 
     g.prediction = result
@@ -272,9 +268,9 @@ def start(args):
                 truncate(extract_signature(local_cache["output_metadata"]))
             )
         )
-    except CortexException as e:
-        e.wrap("error")
-        logger.error(str(e))
+
+    except Exception as e:
+        logger.exception("failed to start api")
         sys.exit(1)
 
     if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
