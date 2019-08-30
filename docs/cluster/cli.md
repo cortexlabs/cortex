@@ -9,7 +9,7 @@ Usage:
   cortex deploy [flags]
 
 Flags:
-  -e, --env string   environment (default "dev")
+  -e, --env string   environment (default "default")
   -f, --force        stop all running jobs
   -h, --help         help for deploy
 ```
@@ -27,7 +27,7 @@ Usage:
 Flags:
   -a, --all-deployments     list all deployments
   -d, --deployment string   deployment name
-  -e, --env string          environment (default "dev")
+  -e, --env string          environment (default "default")
   -h, --help                help for get
   -s, --summary             show summarized output
   -v, --verbose             show verbose output
@@ -46,7 +46,7 @@ Usage:
 
 Flags:
   -d, --deployment string   deployment name
-  -e, --env string          environment (default "dev")
+  -e, --env string          environment (default "default")
   -h, --help                help for logs
 ```
 
@@ -61,7 +61,7 @@ Usage:
   cortex refresh [flags]
 
 Flags:
-  -e, --env string   environment (default "dev")
+  -e, --env string   environment (default "default")
   -f, --force        stop all running jobs
   -h, --help         help for refresh
 ```
@@ -77,7 +77,7 @@ Usage:
 Flags:
       --debug               Predict with debug mode
   -d, --deployment string   deployment name
-  -e, --env string          environment (default "dev")
+  -e, --env string          environment (default "default")
   -h, --help                help for predict
 ```
 
@@ -92,7 +92,7 @@ Usage:
   cortex delete [DEPLOYMENT_NAME] [flags]
 
 Flags:
-  -e, --env string   environment (default "dev")
+  -e, --env string   environment (default "default")
   -h, --help         help for delete
   -c, --keep-cache   keep cached data for the deployment
 ```
@@ -108,7 +108,7 @@ Usage:
   cortex configure [flags]
 
 Flags:
-  -e, --env string   environment (default "dev")
+  -e, --env string   environment (default "default")
   -h, --help         help for configure
 ```
 
