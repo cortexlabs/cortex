@@ -7,7 +7,9 @@ COPY go.mod go.sum /go/src/github.com/cortexlabs/cortex/
 WORKDIR /go/src/github.com/cortexlabs/cortex
 RUN go mod download
 
-COPY pkg /go/src/github.com/cortexlabs/cortex/pkg
+COPY pkg/consts /go/src/github.com/cortexlabs/cortex/pkg/consts
+COPY pkg/lib /go/src/github.com/cortexlabs/cortex/pkg/lib
+COPY pkg/operator /go/src/github.com/cortexlabs/cortex/pkg/operator
 WORKDIR /go/src/github.com/cortexlabs/cortex/pkg/operator
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -installsuffix cgo -o operator .
 
