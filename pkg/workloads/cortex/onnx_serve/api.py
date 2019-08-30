@@ -79,12 +79,12 @@ def after_request(response):
     if request.path != "/{}/{}".format(ctx.app["name"], api["name"]):
         return response
 
-    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
+    logger.info(response.status)
 
-    predictions = None
-    if "predictions" in g:
-        predictions = g.predictions
-    api_utils.post_request_metrics(ctx, api, response, predictions, local_cache["class_set"])
+    prediction = None
+    if "prediction" in g:
+        prediction = g.prediction
+    api_utils.post_request_metrics(ctx, api, response, prediction, local_cache["class_set"])
 
     return response
 
@@ -165,10 +165,10 @@ def convert_to_onnx_input(sample, input_metadata_list):
 
 @app.route("/<app_name>/<api_name>", methods=["POST"])
 def predict(app_name, api_name):
-    debug = request.args.get("debug").lower() == "true"
+    debug = request.args.get("debug", "false").lower() == "true"
 
     try:
-        payload = request.get_json()
+        sample = request.get_json()
     except Exception as e:
         return "Malformed JSON", status.HTTP_400_BAD_REQUEST
 
@@ -179,67 +179,49 @@ def predict(app_name, api_name):
     input_metadata = local_cache["input_metadata"]
     output_metadata = local_cache["output_metadata"]
 
-    response = {}
+    try:
+        debug_obj("sample", sample, debug)
 
-    if not util.is_dict(payload) or "samples" not in payload:
-        message = 'top level "samples" key not found in request'
-        if debug:
-            message += "; payload: {}".format(truncate(payload))
-        return prediction_failed(message)
+        prepared_sample = sample
+        if request_handler is not None and util.has_function(request_handler, "pre_inference"):
+            try:
+                prepared_sample = request_handler.pre_inference(sample, input_metadata)
+                debug_obj("pre_inference", prepared_sample, debug)
+            except Exception as e:
+                raise UserRuntimeException(
+                    api["request_handler"], "pre_inference request handler"
+                ) from e
 
-    predictions = []
-    samples = payload["samples"]
-    if not util.is_list(samples):
-        return prediction_failed('expected the value of key "samples" to be a list of json objects')
+        inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
+        model_outputs = sess.run([], inference_input)
+        result = []
+        for model_output in model_outputs:
+            if type(model_output) is np.ndarray:
+                result.append(model_output.tolist())
+            else:
+                result.append(model_output)
 
-    for i, sample in enumerate(payload["samples"]):
-        try:
-            debug_obj("sample", sample, debug)
+        debug_obj("inference", result, debug)
 
-            prepared_sample = sample
-            if request_handler is not None and util.has_function(request_handler, "pre_inference"):
-                try:
-                    prepared_sample = request_handler.pre_inference(sample, input_metadata)
-                    debug_obj("pre_inference", prepared_sample, debug)
-                except Exception as e:
-                    raise UserRuntimeException(
-                        api["request_handler"], "pre_inference request handler"
-                    ) from e
+        if request_handler is not None and util.has_function(request_handler, "post_inference"):
+            try:
+                result = request_handler.post_inference(result, output_metadata)
+            except Exception as e:
+                raise UserRuntimeException(
+                    api["request_handler"], "post_inference request handler"
+                ) from e
 
-            inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
-            model_outputs = sess.run([], inference_input)
-            result = []
-            for model_output in model_outputs:
-                if type(model_output) is np.ndarray:
-                    result.append(model_output.tolist())
-                else:
-                    result.append(model_output)
+            debug_obj("post_inference", result, debug)
+    except CortexException as e:
+        e.wrap("error")
+        logger.exception(str(e))
+        return prediction_failed(str(e))
+    except Exception as e:
+        logger.exception(str(e))
+        return prediction_failed(str(e))
 
-            debug_obj("inference", result, debug)
-
-            if request_handler is not None and util.has_function(request_handler, "post_inference"):
-                try:
-                    result = request_handler.post_inference(result, output_metadata)
-                except Exception as e:
-                    raise UserRuntimeException(
-                        api["request_handler"], "post_inference request handler"
-                    ) from e
-
-                debug_obj("post_inference", result, debug)
-
-        except CortexException as e:
-            e.wrap("error", "sample {}".format(i + 1))
-            logger.exception(str(e))
-            return prediction_failed(str(e))
-        except Exception as e:
-            logger.exception(str(e))
-            return prediction_failed(str(e))
-
-        predictions.append(result)
-    g.predictions = predictions
-    response["predictions"] = predictions
-
-    return jsonify(response)
+    g.prediction = result
+    return jsonify(result)
 
 
 def extract_signature(metadata_list):
