@@ -350,11 +350,9 @@ def start(args):
             break
         except Exception as e:
             if i > 6:
-                logger.warn("an error occurred when reading model metadata, retrying...")
+                logger.warn("unable to read model metadata - model is still loading. Retrying...")
             if i == limit - 1:
-                logger.exception(
-                    "an error occurred when reading model metadata: retry limit exceeded"
-                )
+                logger.exception("retry limit exceeded")
                 sys.exit(1)
 
         time.sleep(5)
