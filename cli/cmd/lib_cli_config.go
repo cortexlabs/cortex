@@ -29,8 +29,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 )
 
-var cachedCliConfig *CliConfig
-var cachedCliConfigErrs []error
+var cachedCLIConfig *CLIConfig
+var cachedCLIConfigErrs []error
 var localDir string
 
 func init() {
@@ -45,13 +45,13 @@ func init() {
 	}
 }
 
-type CliConfig struct {
+type CLIConfig struct {
 	CortexURL          string `json:"cortex_url"`
 	AWSAccessKeyID     string `json:"aws_access_key_id"`
 	AWSSecretAccessKey string `json:"aws_secret_access_key"`
 }
 
-func getPromptValidation(defaults *CliConfig) *cr.PromptValidation {
+func getPromptValidation(defaults *CLIConfig) *cr.PromptValidation {
 	return &cr.PromptValidation{
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
@@ -124,13 +124,13 @@ func configPath() string {
 	return filepath.Join(localDir, flagEnv+".json")
 }
 
-func readCliConfig() (*CliConfig, []error) {
-	if cachedCliConfig != nil {
-		return cachedCliConfig, cachedCliConfigErrs
+func readCLIConfig() (*CLIConfig, []error) {
+	if cachedCLIConfig != nil {
+		return cachedCLIConfig, cachedCLIConfigErrs
 	}
 
 	configPath := configPath()
-	cachedCliConfig = &CliConfig{}
+	cachedCLIConfig = &CLIConfig{}
 
 	configBytes, err := files.ReadFileBytes(configPath)
 	if err != nil {
@@ -139,27 +139,26 @@ func readCliConfig() (*CliConfig, []error) {
 
 	cliConfigData, err := cr.ReadJSONBytes(configBytes)
 	if err != nil {
-		cachedCliConfigErrs = []error{err}
-		return cachedCliConfig, cachedCliConfigErrs
+		cachedCLIConfigErrs = []error{err}
+		return cachedCLIConfig, cachedCLIConfigErrs
 	}
 
-	cachedCliConfigErrs = cr.Struct(cachedCliConfig, cliConfigData, fileValidation)
-	return cachedCliConfig, errors.WrapMultiple(cachedCliConfigErrs, configPath)
+	cachedCLIConfigErrs = cr.Struct(cachedCLIConfig, cliConfigData, fileValidation)
+	return cachedCLIConfig, errors.WrapMultiple(cachedCLIConfigErrs, configPath)
 }
 
-func getValidCliConfig() *CliConfig {
-	cliConfig, errs := readCliConfig()
+func getValidCLIConfig() *CLIConfig {
+	cliConfig, errs := readCLIConfig()
 	if len(errs) > 0 {
-		fmt.Printf("Environment \"%s\" is not configured, configuring now:\n", flagEnv)
 		cliConfig = configure()
 	}
 	return cliConfig
 }
 
-func getDefaults() *CliConfig {
-	defaults, _ := readCliConfig()
+func getDefaults() *CLIConfig {
+	defaults, _ := readCLIConfig()
 	if defaults == nil {
-		defaults = &CliConfig{}
+		defaults = &CLIConfig{}
 	}
 
 	if defaults.AWSAccessKeyID == "" && os.Getenv("AWS_ACCESS_KEY_ID") != "" {
@@ -175,21 +174,18 @@ func getDefaults() *CliConfig {
 	return defaults
 }
 
-func configure() *CliConfig {
+func configure() *CLIConfig {
 	defaults := getDefaults()
-
-	cachedCliConfig = &CliConfig{}
+	cachedCLIConfig = &CLIConfig{}
 	fmt.Println("\nEnvironment: " + flagEnv + "\n")
-	err := cr.ReadPrompt(cachedCliConfig, getPromptValidation(defaults))
+	err := cr.ReadPrompt(cachedCLIConfig, getPromptValidation(defaults))
 	if err != nil {
 		errors.Exit(err)
 	}
-
-	err = json.WriteJSON(cachedCliConfig, configPath())
-	if err != nil {
+	if err := json.WriteJSON(cachedCLIConfig, configPath()); err != nil {
 		errors.Exit(err)
 	}
-	cachedCliConfigErrs = nil
+	cachedCLIConfigErrs = nil
 
-	return cachedCliConfig
+	return cachedCLIConfig
 }

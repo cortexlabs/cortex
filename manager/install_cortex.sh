@@ -153,6 +153,8 @@ function validate_cortex() {
         continue
       fi
       operator_endpoint_reachable="ready"
+      echo "{\"cortex_url\": \"$operator_endpoint\", \"aws_access_key_id\": \"$CORTEX_AWS_ACCESS_KEY_ID\", \"aws_secret_access_key\": \"$CORTEX_AWS_SECRET_ACCESS_KEY\"}" > /.cortex/dev.json
+      echo -e "\n✓ Configured CLI"
     fi
 
     if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
