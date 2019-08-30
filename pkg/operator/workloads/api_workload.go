@@ -271,8 +271,8 @@ func tfAPISpec(
 		},
 	}
 
-	downloadArgsStr, _ := json.MarshalJSONStr(downloadArgs)
-	downloadArgsStr = base64.URLEncoding.EncodeToString([]byte(downloadArgsStr))
+	downloadArgsBytes, _ := json.Marshal(downloadArgs)
+	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:     internalAPIName(api.Name, ctx.App.Name),
 		Replicas: desiredReplicas,
@@ -431,9 +431,8 @@ func onnxAPISpec(
 		},
 	}
 
-	downloadArgsStr, _ := json.MarshalJSONStr(downloadArgs)
-	downloadArgsStr = base64.URLEncoding.EncodeToString([]byte(downloadArgsStr))
-
+	downloadArgsBytes, _ := json.Marshal(downloadArgs)
+	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:     internalAPIName(api.Name, ctx.App.Name),
 		Replicas: desiredReplicas,
