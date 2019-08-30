@@ -71,17 +71,17 @@ The `refresh` command behaves similarly to the `deploy` command. The key differe
 ## predict
 
 ```text
-Make predictions.
 Usage:
-  cortex predict API_NAME SAMPLES_FILE [flags]
+  cortex predict API_NAME SAMPLE_FILE [flags]
+
 Flags:
+      --debug               Predict with debug mode
   -d, --deployment string   deployment name
   -e, --env string          environment (default "dev")
   -h, --help                help for predict
-  -j, --json                print the raw json response
 ```
 
-The `predict` command converts samples from a JSON file into prediction requests and displays the response. This command is useful for quickly testing predictions.
+The `predict` command converts a sample from a JSON file into a prediction request and displays the response. This command is useful for quickly testing predictions.
 
 ## delete
 

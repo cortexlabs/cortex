@@ -107,10 +107,10 @@ def after_request(response):
 
     logger.info(response.status)
 
-    predictions = None
-    if "predictions" in g:
-        predictions = g.predictions
-    api_utils.post_request_metrics(ctx, api, response, predictions, local_cache["class_set"])
+    prediction = None
+    if "prediction" in g:
+        prediction = g.prediction
+    api_utils.post_request_metrics(ctx, api, response, prediction, local_cache["class_set"])
 
     return response
 
@@ -229,10 +229,10 @@ def health():
 
 @app.route("/<deployment_name>/<api_name>", methods=["POST"])
 def predict(deployment_name, api_name):
-    debug = request.args.get("debug") is not None and request.args.get("debug").lower() == "true"
+    debug = request.args.get("debug", "false").lower() == "true"
 
     try:
-        payload = request.get_json()
+        sample = request.get_json()
     except Exception as e:
         return "Malformed JSON", status.HTTP_400_BAD_REQUEST
 
@@ -241,33 +241,19 @@ def predict(deployment_name, api_name):
 
     response = {}
 
-    if not util.is_dict(payload) or "samples" not in payload:
-        message = 'top level "samples" key not found in request'
-        if debug:
-            message += "; payload: {}".format(truncate(payload))
-        return prediction_failed(message)
+    try:
+        result = run_predict(sample, debug)
+    except CortexException as e:
+        e.wrap("error")
+        logger.exception(str(e))
+        return prediction_failed(str(e))
+    except Exception as e:
+        logger.exception(str(e))
+        return prediction_failed(str(e))
 
-    predictions = []
-    samples = payload["samples"]
-    if not util.is_list(samples):
-        return prediction_failed('expected the value of key "samples" to be a list of json objects')
+    g.prediction = result
 
-    for i, sample in enumerate(payload["samples"]):
-        try:
-            result = run_predict(sample, debug)
-        except CortexException as e:
-            e.wrap("error", "sample {}".format(i + 1))
-            logger.exception(str(e))
-            return prediction_failed(str(e))
-        except Exception as e:
-            logger.exception(str(e))
-            return prediction_failed(str(e))
-
-        predictions.append(result)
-    g.predictions = predictions
-    response["predictions"] = predictions
-
-    return jsonify(response)
+    return jsonify(result)
 
 
 def extract_signature(signature_def, signature_key):

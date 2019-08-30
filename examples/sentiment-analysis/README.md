@@ -77,7 +77,7 @@ url: http://***.amazonaws.com/sentiment/analysis
 
 $ curl http://***.amazonaws.com/sentiment/analysis \
     -X POST -H "Content-Type: application/json" \
-    -d '{ "samples": [{"input": "The movie was great!"}]}'
+    -d '{"input": "The movie was great!"}'
 
 positive
 ```

@@ -64,7 +64,7 @@ The output above indicates that one replica of the API was requested and one rep
 ```bash
 $ curl http://***.amazonaws.com/text/generator \
     -X POST -H "Content-Type: application/json" \
-    -d '{"samples": [{"text": "machine learning"}]}'
+    -d '{"text": "machine learning"}'
 
 Machine learning, with more than one thousand researchers around the world today, are looking to create computer-driven machine learning algorithms that can also be applied to human and social problems, such as education, health care, employment, medicine, politics, or the environment...
 ```
