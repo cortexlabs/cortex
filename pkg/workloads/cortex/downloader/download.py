@@ -41,11 +41,7 @@ def start(args):
 def main():
     parser = argparse.ArgumentParser()
     na = parser.add_argument_group("required named arguments")
-    na.add_argument(
-        "--download",
-        required=True,
-        help="path_to_download_from;path_to_download_to",
-    )
+    na.add_argument("--download", required=True, help="path_to_download_from;path_to_download_to")
     na.add_argument("--unzip", default=False, help="unzip contents")
     parser.set_defaults(func=start)
 
