@@ -74,10 +74,19 @@ for arg in "$@"; do
   fi
 done
 
+arg1=${1:-""}
+arg2=${2:-""}
+arg3=${3:-""}
+
+set -u
+
 #####################
 ### CONFIGURATION ###
 #####################
 
+export CORTEX_VERSION_STABLE=master
+
+export CORTEX_CONFIG="${CORTEX_CONFIG:-""}"
 if [ "$CORTEX_CONFIG" != "" ]; then
   if [ ! -f "$CORTEX_CONFIG" ]; then
     echo "Cortex config file does not exist: $CORTEX_CONFIG"
@@ -85,10 +94,6 @@ if [ "$CORTEX_CONFIG" != "" ]; then
   fi
   source $CORTEX_CONFIG
 fi
-
-set -u
-
-export CORTEX_VERSION_STABLE=master
 
 export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-""}"
 export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-""}"
@@ -136,13 +141,15 @@ function set_aws_credentials() {
   fi
 }
 
-set_aws_credentials
+if [ "$arg2" != "cli" ]; then
+  set_aws_credentials
 
-if [ "$CORTEX_AWS_ACCESS_KEY_ID" != "" ] && [ "$CORTEX_AWS_SECRET_ACCESS_KEY" != "" ]; then
-  echo "✓ Operator will use AWS_ACCESS_KEY_ID=$CORTEX_AWS_ACCESS_KEY_ID (from environment variable)"
-elif [ "$CORTEX_AWS_ACCESS_KEY_ID" != "" ] || [ "$CORTEX_AWS_SECRET_ACCESS_KEY" != "" ]; then
-  echo -e "\nPlease export both CORTEX_AWS_ACCESS_KEY_ID and CORTEX_AWS_SECRET_ACCESS_KEY"
-  exit 1
+  if [ "$CORTEX_AWS_ACCESS_KEY_ID" != "" ] && [ "$CORTEX_AWS_SECRET_ACCESS_KEY" != "" ]; then
+    echo "✓ Operator will use AWS_ACCESS_KEY_ID=$CORTEX_AWS_ACCESS_KEY_ID (from environment variable)"
+  elif [ "$CORTEX_AWS_ACCESS_KEY_ID" != "" ] || [ "$CORTEX_AWS_SECRET_ACCESS_KEY" != "" ]; then
+    echo -e "\nPlease export both CORTEX_AWS_ACCESS_KEY_ID and CORTEX_AWS_SECRET_ACCESS_KEY"
+    exit 1
+  fi
 fi
 
 export CORTEX_AWS_ACCESS_KEY_ID="${CORTEX_AWS_ACCESS_KEY_ID:-$AWS_ACCESS_KEY_ID}"
@@ -469,10 +476,6 @@ Flags:
 ######################
 ### ARG PROCESSING ###
 ######################
-
-arg1=${1:-""}
-arg2=${2:-""}
-arg3=${3:-""}
 
 if [ -z "$arg1" ]; then
   show_help
