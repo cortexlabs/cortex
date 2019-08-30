@@ -149,7 +149,7 @@ func readCLIConfig() (*CLIConfig, []error) {
 func getValidCLIConfig() *CLIConfig {
 	cliConfig, errs := readCLIConfig()
 	if len(errs) > 0 {
-		cliConfig = configure(nil)
+		cliConfig = configure()
 	}
 	return cliConfig
 }
@@ -173,27 +173,12 @@ func getDefaults() *CLIConfig {
 	return defaults
 }
 
-func configure(override *CLIConfig) *CLIConfig {
-	if override == nil {
-		defaults := getDefaults()
-		cachedCLIConfig = &CLIConfig{}
-		err := cr.ReadPrompt(cachedCLIConfig, getPromptValidation(defaults))
-		if err != nil {
-			errors.Exit(err)
-		}
-	} else {
-		cachedCLIConfig = getDefaults()
-		if override.CortexURL != "" {
-			cachedCLIConfig.CortexURL = override.CortexURL
-		}
-
-		if override.AWSAccessKeyID != "" {
-			cachedCLIConfig.AWSAccessKeyID = override.AWSAccessKeyID
-		}
-
-		if override.AWSSecretAccessKey != "" {
-			cachedCLIConfig.AWSSecretAccessKey = override.AWSSecretAccessKey
-		}
+func configure() *CLIConfig {
+	defaults := getDefaults()
+	cachedCLIConfig = &CLIConfig{}
+	err := cr.ReadPrompt(cachedCLIConfig, getPromptValidation(defaults))
+	if err != nil {
+		errors.Exit(err)
 	}
 
 	if err := json.WriteJSON(cachedCLIConfig, configPath()); err != nil {

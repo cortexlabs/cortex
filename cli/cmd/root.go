@@ -92,6 +92,7 @@ func setConfigFlag(flagStr string, description string, flag *string, cmd *cobra.
 func addEnvFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&flagEnv, "env", "e", "dev", "environment")
 }
+
 func addWatchFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVarP(&flagWatch, "watch", "w", false, "re-run the command every second")
 }

@@ -33,6 +33,7 @@ var flagDeployForce bool
 
 func init() {
 	deployCmd.PersistentFlags().BoolVarP(&flagDeployForce, "force", "f", false, "stop all running jobs")
+	addEnvFlag(deployCmd)
 }
 
 var deployCmd = &cobra.Command{

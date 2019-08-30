@@ -20,42 +20,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	cortexURL          string
-	awsAccessKeyID     string
-	awsSecretAccessKey string
-)
-
-func init() {
-	configureCmd.PersistentFlags().StringVar(&cortexURL, "cortexURL", "", "set Cortex URL")
-	configureCmd.PersistentFlags().StringVar(&awsAccessKeyID, "awsAccessKeyID", "", "set AWS_ACCESS_KEY_ID")
-	configureCmd.PersistentFlags().StringVar(&awsSecretAccessKey, "awsSecretAccessKey", "", "set SECRET_ACCESS_KEY")
-}
-
 var configureCmd = &cobra.Command{
 	Use:   "configure",
 	Short: "configure the CLI",
 	Long:  "Configure the CLI.",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		var override bool
-		conf := &CLIConfig{}
-		if cortexURL != "" {
-			conf.CortexURL = cortexURL
-			override = true
-		}
-		if awsAccessKeyID != "" {
-			conf.AWSAccessKeyID = awsAccessKeyID
-			override = true
-		}
-		if awsSecretAccessKey != "" {
-			conf.AWSSecretAccessKey = awsSecretAccessKey
-			override = true
-		}
-
-		if !override {
-			conf = nil
-		}
-		configure(conf)
+		configure()
 	},
 }
