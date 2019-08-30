@@ -34,13 +34,6 @@ from cortex.lib.log import get_logger, debug_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 from cortex.lib.stringify import truncate
 
-
-def cortex_print(*args, **kwargs):
-    logger.info(*args)
-
-
-builtins.print = cortex_print
-
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
 
