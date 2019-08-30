@@ -27,7 +27,6 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -38,6 +37,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
+	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
 
@@ -138,7 +138,21 @@ func addFileToMultipart(fileName string, writer *multipart.Writer, reader io.Rea
 	return nil
 }
 
-func StreamLogs(appName string, resourceName string, resourceType string, verbose bool) error {
+func HTTPUploadZip(endpoint string, zipInput *zip.Input, fileName string, qParams ...map[string]string) ([]byte, error) {
+	zipBytes, err := zip.ToMem(zipInput)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to zip configuration file")
+	}
+
+	uploadInput := &HTTPUploadInput{
+		Bytes: map[string][]byte{
+			fileName: zipBytes,
+		},
+	}
+	return HTTPUpload(endpoint, uploadInput, qParams...)
+}
+
+func StreamLogs(appName string, resourceName string, resourceType string) error {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
@@ -151,7 +165,6 @@ func StreamLogs(appName string, resourceName string, resourceType string, verbos
 	values.Set("resourceName", resourceName)
 	values.Set("resourceType", resourceType)
 	values.Set("appName", appName)
-	values.Set("verbose", strconv.FormatBool(verbose))
 	req.URL.RawQuery = values.Encode()
 	wsURL := req.URL.String()
 	wsURL = strings.Replace(wsURL, "http", "ws", 1)

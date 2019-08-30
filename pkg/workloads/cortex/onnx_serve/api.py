@@ -25,8 +25,9 @@ import numpy as np
 
 from cortex.lib import util, Context, api_utils
 from cortex.lib.storage import S3
-from cortex.lib.log import get_logger
+from cortex.lib.log import get_logger, debug_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
+from cortex.lib.stringify import truncate
 
 
 def cortex_print(*args, **kwargs):
@@ -78,18 +79,18 @@ def after_request(response):
     if request.path != "/{}/{}".format(ctx.app["name"], api["name"]):
         return response
 
-    logger.info("[%s] %s", util.now_timestamp_rfc_3339(), response.status)
+    logger.info(response.status)
 
-    predictions = None
-    if "predictions" in g:
-        predictions = g.predictions
-    api_utils.post_request_metrics(ctx, api, response, predictions, local_cache["class_set"])
+    prediction = None
+    if "prediction" in g:
+        prediction = g.prediction
+    api_utils.post_request_metrics(ctx, api, response, prediction, local_cache["class_set"])
 
     return response
 
 
 def prediction_failed(reason):
-    message = "prediction failed: " + reason
+    message = "prediction failed: {}".format(reason)
     logger.error(message)
     return message, status.HTTP_406_NOT_ACCEPTABLE
 
@@ -164,8 +165,10 @@ def convert_to_onnx_input(sample, input_metadata_list):
 
 @app.route("/<app_name>/<api_name>", methods=["POST"])
 def predict(app_name, api_name):
+    debug = request.args.get("debug", "false").lower() == "true"
+
     try:
-        payload = request.get_json()
+        sample = request.get_json()
     except Exception as e:
         return "Malformed JSON", status.HTTP_400_BAD_REQUEST
 
@@ -176,74 +179,63 @@ def predict(app_name, api_name):
     input_metadata = local_cache["input_metadata"]
     output_metadata = local_cache["output_metadata"]
 
-    response = {}
+    try:
+        debug_obj("sample", sample, debug)
 
-    if not util.is_dict(payload) or "samples" not in payload:
-        return prediction_failed('top level "samples" key not found in request')
+        prepared_sample = sample
+        if request_handler is not None and util.has_function(request_handler, "pre_inference"):
+            try:
+                prepared_sample = request_handler.pre_inference(sample, input_metadata)
+                debug_obj("pre_inference", prepared_sample, debug)
+            except Exception as e:
+                raise UserRuntimeException(
+                    api["request_handler"], "pre_inference request handler"
+                ) from e
 
-    predictions = []
-    samples = payload["samples"]
-    if not util.is_list(samples):
-        return prediction_failed('expected the value of key "samples" to be a list of json objects')
+        inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
+        model_outputs = sess.run([], inference_input)
+        result = []
+        for model_output in model_outputs:
+            if type(model_output) is np.ndarray:
+                result.append(model_output.tolist())
+            else:
+                result.append(model_output)
 
-    for i, sample in enumerate(payload["samples"]):
-        try:
-            prepared_sample = sample
-            if request_handler is not None and util.has_function(request_handler, "pre_inference"):
-                try:
-                    prepared_sample = request_handler.pre_inference(sample, input_metadata)
-                except Exception as e:
-                    raise UserRuntimeException(
-                        api["request_handler"], "pre_inference request handler"
-                    ) from e
+        debug_obj("inference", result, debug)
 
-            inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
-            model_outputs = sess.run([], inference_input)
-            result = []
-            for model_output in model_outputs:
-                if type(model_output) is np.ndarray:
-                    result.append(model_output.tolist())
-                else:
-                    result.append(model_output)
+        if request_handler is not None and util.has_function(request_handler, "post_inference"):
+            try:
+                result = request_handler.post_inference(result, output_metadata)
+            except Exception as e:
+                raise UserRuntimeException(
+                    api["request_handler"], "post_inference request handler"
+                ) from e
 
-            if request_handler is not None and util.has_function(request_handler, "post_inference"):
-                try:
-                    result = request_handler.post_inference(result, output_metadata)
-                except Exception as e:
-                    raise UserRuntimeException(
-                        api["request_handler"], "post_inference request handler"
-                    ) from e
+            debug_obj("post_inference", result, debug)
+    except CortexException as e:
+        e.wrap("error")
+        logger.exception(str(e))
+        return prediction_failed(str(e))
+    except Exception as e:
+        logger.exception(str(e))
+        return prediction_failed(str(e))
 
-        except CortexException as e:
-            e.wrap("error", "sample {}".format(i + 1))
-            logger.error(str(e))
-            logger.exception(
-                "An error occurred, see `cx logs -v api {}` for more details.".format(api["name"])
-            )
-            return prediction_failed(str(e))
-        except Exception as e:
-            logger.exception(
-                "An error occurred, see `cx logs -v api {}` for more details.".format(api["name"])
-            )
-            return prediction_failed(str(e))
+    g.prediction = result
+    return jsonify(result)
 
-        predictions.append(result)
-    g.predictions = predictions
-    response["predictions"] = predictions
 
-    return jsonify(response)
+def extract_signature(metadata_list):
+    metadata = {}
+    for meta in metadata_list:
+        numpy_type = ONNX_TO_NP_TYPE.get(meta.type, meta.type)
+        metadata[meta.name] = {"shape": meta.shape, "type": numpy_type}
+
+    return metadata
 
 
 @app.route("/<app_name>/<api_name>/signature", methods=["GET"])
 def get_signature(app_name, api_name):
-    metadata = {}
-    input_metadata_list = local_cache["input_metadata"]
-
-    for input_metadata in input_metadata_list:
-        numpy_type = ONNX_TO_NP_TYPE[input_metadata.type]
-        metadata[input_metadata.name] = {"shape": input_metadata.shape, "type": numpy_type}
-    response = {"signature": metadata}
-    return jsonify(response)
+    return jsonify({"signature": extract_signature(local_cache["input_metadata"])})
 
 
 @app.errorhandler(Exception)
@@ -271,23 +263,25 @@ def start(args):
         sess = rt.InferenceSession(model_path)
         local_cache["sess"] = sess
         local_cache["input_metadata"] = sess.get_inputs()
+        logger.info(
+            "input_metadata: {}".format(truncate(extract_signature(local_cache["input_metadata"])))
+        )
         local_cache["output_metadata"] = sess.get_outputs()
+        logger.info(
+            "output_metadata: {}".format(
+                truncate(extract_signature(local_cache["output_metadata"]))
+            )
+        )
     except CortexException as e:
         e.wrap("error")
         logger.error(str(e))
-        if api is not None:
-            logger.exception(
-                "An error occured starting the api, see `cx logs -v api {}` for more details".format(
-                    api["name"]
-                )
-            )
         sys.exit(1)
 
     if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
         try:
             local_cache["class_set"] = api_utils.get_classes(ctx, api["name"])
         except Exception as e:
-            logger.warn("An error occurred while attempting to load classes", exc_info=True)
+            logger.warn("an error occurred while attempting to load classes", exc_info=True)
 
     serve(app, listen="*:{}".format(args.port))
 

@@ -208,7 +208,7 @@ if [[ "$CORTEX_NODE_TYPE" == p* ]] || [[ "$CORTEX_NODE_TYPE" == g* ]]; then
 fi
 
 envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
-echo "✓ Started Cortex operator"
+echo "✓ Started operator"
 
 validate_cortex
 
