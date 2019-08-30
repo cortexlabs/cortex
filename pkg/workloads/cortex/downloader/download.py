@@ -23,8 +23,7 @@ logger = get_logger()
 
 
 def start(args):
-    download_args = args.download.split(",")
-    for download_arg in download_args:
+    for download_arg in args.download:
         paths = download_arg.split(";")
         from_path = paths[0]
         to_path = paths[1]
@@ -43,7 +42,8 @@ def main():
     na.add_argument(
         "--download",
         required=True,
-        help="comma separated list of path_to_download_from;path_to_download_to",
+        help="path_to_download_from;path_to_download_to",
+        action='append'
     )
     na.add_argument("--unzip", default=False, help="unzip contents")
     parser.set_defaults(func=start)

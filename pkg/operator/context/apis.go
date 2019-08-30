@@ -20,13 +20,11 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 func getAPIs(config *userconfig.Config,
@@ -58,20 +56,4 @@ func getAPIs(config *userconfig.Config,
 		}
 	}
 	return apis, nil
-}
-
-func uploadRequestHandler(implKey string, impl []byte) error {
-	isUploaded, err := config.AWS.IsS3File(implKey)
-	if err != nil {
-		return errors.Wrap(err, "upload")
-	}
-
-	if !isUploaded {
-		err = config.AWS.UploadBytesToS3(impl, implKey)
-		if err != nil {
-			return errors.Wrap(err, "upload")
-		}
-	}
-
-	return nil
 }
