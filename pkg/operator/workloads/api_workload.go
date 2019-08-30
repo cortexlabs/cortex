@@ -227,8 +227,9 @@ func (aw *APIWorkload) IsFailed(ctx *context.Context) (bool, error) {
 }
 
 type downloadContainerArg struct {
-	From string `json:"from"`
-	To   string `json:"to"`
+	From  string `json:"from"`
+	To    string `json:"to"`
+	Unzip bool   `json:"unzip"`
 }
 
 func tfAPISpec(
@@ -264,8 +265,9 @@ func tfAPISpec(
 			To:   path.Join(consts.EmptyDirMountPath, "model"),
 		},
 		{
-			From: config.AWS.S3Path(ctx.ProjectKey),
-			To:   path.Join(consts.EmptyDirMountPath, "project"),
+			From:  config.AWS.S3Path(ctx.ProjectKey),
+			To:    path.Join(consts.EmptyDirMountPath, "project"),
+			Unzip: true,
 		},
 	}
 
@@ -307,7 +309,6 @@ func tfAPISpec(
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--download=" + downloadArgsStr,
-							"--unzip=True",
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
@@ -424,8 +425,9 @@ func onnxAPISpec(
 			To:   path.Join(consts.EmptyDirMountPath, "model"),
 		},
 		{
-			From: config.AWS.S3Path(ctx.ProjectKey),
-			To:   path.Join(consts.EmptyDirMountPath, "project"),
+			From:  config.AWS.S3Path(ctx.ProjectKey),
+			To:    path.Join(consts.EmptyDirMountPath, "project"),
+			Unzip: true,
 		},
 	}
 
@@ -467,7 +469,6 @@ func onnxAPISpec(
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--download=" + downloadArgsStr,
-							"--unzip=True",
 						},
 						Env:          k8s.AWSCredentials(),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
