@@ -150,7 +150,6 @@ func readCLIConfig() (*CLIConfig, []error) {
 func getValidCLIConfig() *CLIConfig {
 	cliConfig, errs := readCLIConfig()
 	if len(errs) > 0 {
-		fmt.Printf("configuring %s environment:\n", flagEnv)
 		cliConfig = configure()
 	}
 	return cliConfig
