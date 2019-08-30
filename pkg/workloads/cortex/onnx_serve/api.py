@@ -264,7 +264,9 @@ def start(args):
         _, prefix = ctx.storage.deconstruct_s3_path(api["model"])
         model_path = os.path.join(args.model_dir, os.path.basename(prefix))
         if api.get("request_handler") is not None:
-            local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"], args.project_dir)
+            local_cache["request_handler"] = ctx.get_request_handler_impl(
+                api["name"], args.project_dir
+            )
 
         sess = rt.InferenceSession(model_path)
         local_cache["sess"] = sess

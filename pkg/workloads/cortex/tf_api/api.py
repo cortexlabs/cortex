@@ -349,7 +349,9 @@ def start(args):
         local_cache["ctx"] = ctx
 
         if api.get("request_handler") is not None:
-            local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"], args.project_dir)
+            local_cache["request_handler"] = ctx.get_request_handler_impl(
+                api["name"], args.project_dir
+            )
     except CortexException as e:
         e.wrap("error")
         logger.error(str(e))

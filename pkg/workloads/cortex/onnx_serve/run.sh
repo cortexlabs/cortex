@@ -19,4 +19,3 @@ if [ -f "/mnt/project/requirements.txt" ]; then
     pip3 install -r /mnt/project/requirements.txt
 fi
 /usr/bin/python3 /src/cortex/tf_api/api.py $@
-

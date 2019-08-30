@@ -102,19 +102,20 @@ class Context:
         self.download_file(impl_key, cache_impl_path)
         return cache_impl_path
 
-    def load_module(self, impl_path):
+    def load_module(self, module_prefix, module_name, impl_path):
+        full_module_name = "{}_{}".format(module_prefix, module_name)
         try:
-            impl = imp.load_source(os.path.basename(impl_path).rstrip(".py"), impl_path)
+            impl = imp.load_source(full_module_name, impl_path)
         except Exception as e:
             raise UserException("unable to load python file") from e
 
-        return impl, impl_path
+        return impl
 
     def get_request_handler_impl(self, api_name, project_dir):
         api = self.apis[api_name]
         try:
             impl = self.load_module(
-                os.path.join(project_dir, api["request_handler"])
+                "request_handler", api["name"], os.path.join(project_dir, api["request_handler"])
             )
         except CortexException as e:
             e.wrap("api " + api_name, "request_handler " + api["request_handler"])
