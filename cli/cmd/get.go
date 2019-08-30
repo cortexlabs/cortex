@@ -267,9 +267,9 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	row := []interface{}{
 		groupStatus.Message(),
-		s.Int32(groupStatus.Requested),
-		s.Int32(groupStatus.Available()),
 		s.Int32(groupStatus.ReadyUpdated),
+		s.Int32(groupStatus.Available()),
+		s.Int32(groupStatus.Requested),
 		s.Int32(groupStatus.ReadyStaleCompute),
 		s.Int32(groupStatus.ReadyStaleModel),
 		s.Int32(groupStatus.FailedUpdated),
@@ -278,9 +278,9 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	headers := []table.Header{
 		{Title: "status"},
-		{Title: "requested"},
-		{Title: "available"},
 		{Title: "up-to-date"},
+		{Title: "available"},
+		{Title: "requested"},
 		{Title: "stale compute", Hidden: groupStatus.ReadyStaleCompute == 0},
 		{Title: "stale model", Hidden: groupStatus.ReadyStaleModel == 0},
 		{Title: "failed", Hidden: groupStatus.FailedUpdated == 0},
@@ -585,8 +585,8 @@ func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) stri
 
 		rows = append(rows, []interface{}{
 			name,
-			groupStatus.Available(),
 			groupStatus.ReadyUpdated,
+			groupStatus.Available(),
 			groupStatus.Requested,
 			groupStatus.FailedUpdated,
 			libtime.Since(updatedAt),
@@ -598,8 +598,8 @@ func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) stri
 	t := table.Table{
 		Headers: []table.Header{
 			{Title: resource.APIType.UserFacing()},
-			{Title: "available"},
 			{Title: "up-to-date"},
+			{Title: "available"},
 			{Title: "requested"},
 			{Title: "failed", Hidden: totalFailed == 0},
 			{Title: "last update"},
