@@ -27,10 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
-func getAPIs(config *userconfig.Config,
-	deploymentVersion string,
-	projectID string,
-) (context.APIs, error) {
+func getAPIs(config *userconfig.Config, deploymentVersion string, projectID string) (context.APIs, error) {
 	apis := context.APIs{}
 
 	for _, apiConfig := range config.APIs {
