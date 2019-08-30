@@ -212,7 +212,7 @@ def predict(app_name, api_name):
                 ) from e
 
             debug_obj("post_inference", result, debug)
-    except CortexException as e:
+    except Exception as e:
         logger.exception("prediction failed")
         return prediction_failed(str(e))
 

@@ -31,7 +31,7 @@ from google.protobuf import json_format
 from cortex.lib import util, package, Context, api_utils
 from cortex.lib.storage import S3
 from cortex.lib.log import get_logger, debug_obj
-from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
+from cortex.lib.exceptions import UserRuntimeException, UserException
 from cortex.lib.stringify import truncate
 
 
@@ -243,7 +243,7 @@ def predict(deployment_name, api_name):
 
     try:
         result = run_predict(sample, debug)
-    except CortexException as e:
+    except Exception as e:
         logger.exception("prediction failed")
         return prediction_failed(str(e))
 
@@ -280,12 +280,9 @@ def get_signature(app_name, api_name):
             local_cache["metadata"]["signatureDef"],
             local_cache["api"]["tf_serving"]["signature_key"],
         )
-    except CortexException as e:
-        logger.exception(str(e))
-        return str(e), HTTP_404_NOT_FOUND
     except Exception as e:
-        logger.exception(str(e))
-        return str(e), HTTP_404_NOT_FOUND
+        logger.exception("failed to get signature")
+        return jsonify(error=str(e)), 404
 
     response = {"signature": metadata}
     return jsonify(response)
@@ -332,7 +329,7 @@ def start(args):
         if api.get("request_handler") is not None:
             package.install_packages(ctx.python_packages, ctx.storage)
             local_cache["request_handler"] = ctx.get_request_handler_impl(api["name"])
-    except CortexException as e:
+    except Exception as e:
         logger.exception("failed to start api")
         sys.exit(1)
 
