@@ -215,7 +215,7 @@ function uninstall_eks() {
 
 function install_cortex() {
   echo
-  docker run -it --entrypoint /root/install_cortex.sh \
+  docker run -it -v $HOME/.cortex:/.cortex --entrypoint /root/install_cortex.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_AWS_ACCESS_KEY_ID=$CORTEX_AWS_ACCESS_KEY_ID \
