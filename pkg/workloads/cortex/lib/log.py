@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import logging
+import sys
+
 from cortex.lib import stringify
 import datetime as dt
 
@@ -20,18 +22,14 @@ import datetime as dt
 class MyFormatter(logging.Formatter):
     converter = dt.datetime.fromtimestamp
 
-    def formatTime(self, record, datefmt=None):
+    def formatTime(self, record, datefmt):
         ct = self.converter(record.created)
-        if datefmt:
-            s = ct.strftime(datefmt)
-        else:
-            t = ct.strftime("%Y-%m-%d %H:%M:%S")
-            s = "%s,%03d" % (t, record.msecs)
+        s = ct.strftime(datefmt)
         return s
 
 
 logger = logging.getLogger("cortex")
-handler = logging.StreamHandler()
+handler = logging.StreamHandler(stream=sys.stdout)
 formatter = MyFormatter(
     fmt="%(asctime)s:%(name)s:%(levelname)s:%(message)s", datefmt="%Y-%m-%d,%H:%M:%S.%f"
 )
