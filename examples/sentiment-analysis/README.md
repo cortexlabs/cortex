@@ -4,8 +4,6 @@ This example shows how to deploy a sentiment analysis classifier trained using [
 
 ## Define a deployment
 
-Define a `deployment` and an `api` resource in `cortex.yaml`. A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. This configuration will download the model from the `cortex-examples` S3 bucket.
-
 ```yaml
 - kind: deployment
   name: sentiment
@@ -15,6 +13,8 @@ Define a `deployment` and an `api` resource in `cortex.yaml`. A `deployment` spe
   model: s3://cortex-examples/sentiment/1565392692
   request_handler: sentiment.py
 ```
+
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. This configuration will download the model from the `cortex-examples` S3 bucket and preprocess the payload and postprocess the inference with functions defined in `sentiment.py`.
 
 ## Add request handling
 
@@ -52,7 +52,7 @@ def post_inference(prediction, metadata):
 ```bash
 $ cortex deploy
 
-Deployment started
+deployment started
 ```
 
 Behind the scenes, Cortex containerizes the model, makes it servable using TensorFlow Serving, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
@@ -79,7 +79,7 @@ $ curl http://***.amazonaws.com/sentiment/analysis \
     -X POST -H "Content-Type: application/json" \
     -d '{"input": "The movie was great!"}'
 
-positive
+"positive"
 ```
 
 Any questions? [contact us](hello@cortex.dev) (we'll respond quickly).

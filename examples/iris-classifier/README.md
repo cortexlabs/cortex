@@ -36,7 +36,7 @@ def post_inference(prediction, metadata):
 ```bash
 $ cortex deploy
 
-Deployment started
+deployment started
 ```
 
 Behind the scenes, Cortex containerizes the model, makes it servable using TensorFlow Serving, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
