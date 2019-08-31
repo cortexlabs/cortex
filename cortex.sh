@@ -114,12 +114,12 @@ function set_aws_credentials_from_cli() {
   export AWS_ACCESS_KEY_ID=$(aws --profile default configure get aws_access_key_id)
   export AWS_SECRET_ACCESS_KEY=$(aws --profile default configure get aws_secret_access_key)
 
-  echo -e "\n✓ Installation will use AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID (from AWS CLI's default profile)"
+  echo -e "\n✓ Using AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID (from AWS CLI's default profile)"
 }
 
 function set_aws_credentials() {
   if [ "$AWS_ACCESS_KEY_ID" != "" ] && [ "$AWS_SECRET_ACCESS_KEY" != "" ]; then
-    echo -e "\n✓ Installation will use AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID (from environment variable)"
+    echo -e "\n✓ Using AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID (from environment variable)"
     return
   fi
 
@@ -486,11 +486,11 @@ if [ "$arg1" = "install" ]; then
     show_help
     exit 1
   elif [ "$arg2" = "" ]; then
-    prompt_for_telemetry && install_eks && install_cortex && info
+    prompt_for_telemetry && install_eks && install_cortex
   elif [ "$arg2" = "cli" ]; then
     prompt_for_email && install_cli
   elif [ "$arg2" = "cortex" ]; then # Undocumented (just for dev)
-    install_cortex && info
+    install_cortex
   elif [ "$arg2" = "" ]; then
     echo -e "\nerror: missing subcommand for install"
     show_help
