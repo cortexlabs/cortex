@@ -23,4 +23,7 @@
 * [Security](cluster/security.md)
 * [Update](cluster/update.md)
 * [Uninstall](cluster/uninstall.md)
-* [Development](cluster/development.md)
+
+## Contributing
+
+* [Development](development.md)
