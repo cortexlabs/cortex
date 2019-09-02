@@ -18,8 +18,8 @@ Serve models at scale.
     max_replicas: <int>  # maximum number of replicas (default: 100)
     init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
     target_cpu_utilization: <int>  # CPU utilization threshold (as a percentage) to trigger scaling (default: 80)
-    cpu: <string>  # CPU request per replica (default: 200m)
-    gpu: <string>  # gpu request per replica (default: 0)
+    cpu: <string | int | float>  # CPU request per replica (default: 200m)
+    gpu: <int>  # gpu request per replica (default: 0)
     mem: <string>  # memory request per replica (default: Null)
 ```
 

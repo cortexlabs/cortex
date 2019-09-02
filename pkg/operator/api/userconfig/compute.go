@@ -82,7 +82,8 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 			{
 				StructField: "CPU",
 				StringValidation: &cr.StringValidation{
-					Default: "200m",
+					Default:     "200m",
+					CastNumeric: true,
 				},
 				Parser: QuantityParser(&QuantityValidation{
 					GreaterThan: k8sQuantityPtr(kresource.MustParse("0")),

@@ -21,9 +21,11 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
@@ -38,6 +40,8 @@ type StringValidation struct {
 	AlphaNumericDashUnderscore           bool
 	DNS1035                              bool
 	DNS1123                              bool
+	CastNumeric                          bool
+	CastScalar                           bool
 	AllowCortexResources                 bool
 	RequireCortexResources               bool
 	Validator                            func(string) (string, error)
@@ -53,7 +57,19 @@ func String(inter interface{}, v *StringValidation) (string, error) {
 	}
 	casted, castOk := inter.(string)
 	if !castOk {
-		return "", ErrorInvalidPrimitiveType(inter, PrimTypeString)
+		if v.CastScalar {
+			if !cast.IsScalarType(inter) {
+				return "", ErrorInvalidPrimitiveType(inter, PrimTypeString, PrimTypeInt, PrimTypeFloat, PrimTypeBool)
+			}
+			casted = s.ObjFlatNoQuotes(inter)
+		} else if v.CastNumeric {
+			if !cast.IsNumericType(inter) {
+				return "", ErrorInvalidPrimitiveType(inter, PrimTypeString, PrimTypeInt, PrimTypeFloat)
+			}
+			casted = s.ObjFlatNoQuotes(inter)
+		} else {
+			return "", ErrorInvalidPrimitiveType(inter, PrimTypeString)
+		}
 	}
 	return ValidateString(casted, v)
 }
