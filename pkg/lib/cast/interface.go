@@ -733,30 +733,21 @@ func IsFloatType(in interface{}) bool {
 	return false
 }
 
-func IsFloatOrIntType(in interface{}) bool {
+func IsNumericType(in interface{}) bool {
 	return IsIntType(in) || IsFloatType(in)
 }
 
 func IsScalarType(in interface{}) bool {
+	if IsNumericType(in) {
+		return true
+	}
+
 	switch in.(type) {
-	case int8:
-		return true
-	case int16:
-		return true
-	case int32:
-		return true
-	case int64:
-		return true
-	case int:
-		return true
-	case float32:
-		return true
-	case float64:
-		return true
 	case string:
 		return true
 	case bool:
 		return true
 	}
+
 	return false
 }

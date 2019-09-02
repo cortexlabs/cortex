@@ -19,7 +19,9 @@ package configreader
 import (
 	"io/ioutil"
 
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type StringPtrValidation struct {
@@ -33,6 +35,8 @@ type StringPtrValidation struct {
 	AlphaNumericDashUnderscore    bool
 	DNS1035                       bool
 	DNS1123                       bool
+	CastScalar                    bool
+	CastNumeric                   bool
 	AllowCortexResources          bool
 	RequireCortexResources        bool
 	Validator                     func(string) (string, error)
@@ -47,6 +51,8 @@ func makeStringValValidation(v *StringPtrValidation) *StringValidation {
 		AlphaNumericDashUnderscore:    v.AlphaNumericDashUnderscore,
 		DNS1035:                       v.DNS1035,
 		DNS1123:                       v.DNS1123,
+		CastScalar:                    v.CastScalar,
+		CastNumeric:                   v.CastNumeric,
 		AllowCortexResources:          v.AllowCortexResources,
 		RequireCortexResources:        v.RequireCortexResources,
 	}
@@ -58,8 +64,21 @@ func StringPtr(inter interface{}, v *StringPtrValidation) (*string, error) {
 	}
 	casted, castOk := inter.(string)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeString)
+		if v.CastScalar {
+			if !cast.IsScalarType(inter) {
+				return nil, ErrorInvalidPrimitiveType(inter, PrimTypeString, PrimTypeInt, PrimTypeFloat, PrimTypeBool)
+			}
+			casted = s.ObjFlatNoQuotes(inter)
+		} else if v.CastNumeric {
+			if !cast.IsNumericType(inter) {
+				return nil, ErrorInvalidPrimitiveType(inter, PrimTypeString, PrimTypeInt, PrimTypeFloat)
+			}
+			casted = s.ObjFlatNoQuotes(inter)
+		} else {
+			return nil, ErrorInvalidPrimitiveType(inter, PrimTypeString)
+		}
 	}
+
 	return ValidateStringPtrProvided(&casted, v)
 }
 
