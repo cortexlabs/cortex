@@ -49,7 +49,7 @@ cortex configure
 git clone -b master https://github.com/cortexlabs/cortex.git
 
 # Navigate to the iris classification example
-cd cortex/examples/iris
+cd cortex/examples/iris-classifier
 
 # Deploy the model to the cluster
 cortex deploy

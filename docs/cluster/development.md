@@ -126,7 +126,7 @@ make cortex-down
 ### Deployment an Example
 
 ```bash
-cd examples/iris
+cd examples/iris-classifier
 path/to/cortex/bin/cortex deploy
 ```
 
