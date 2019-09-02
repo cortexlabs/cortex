@@ -2,7 +2,7 @@
 
 <br>
 
-[install](https://docs.cortex.dev/install) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[docs](https://docs.cortex.dev) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [contact](mailto:hello@cortex.dev) (we'll respond quickly)
+[install](https://docs.cortex.dev/install) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[docs](https://docs.cortex.dev) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
 <br>
 
