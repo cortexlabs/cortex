@@ -30,7 +30,6 @@ Cortex is a machine learning deployment platform that runs in your AWS account. 
 ```python
 # handler.py
 
-
 # Load data for preprocessing or postprocessing. For example:
 labels = download_labels_from_s3()
 
