@@ -1,4 +1,4 @@
-# Development
+# Development Environment
 
 ## Prerequisites
 
@@ -34,7 +34,7 @@ Create the S3 buckets:
 
 ```bash
 aws s3 mb s3://cortex-cluster-<your_name>
-aws s3 mb s3://cortex-cli-<your_name> # (if you'll be uploading your compiled CLI)
+aws s3 mb s3://cortex-cli-<your_name>  # if you'll be uploading your compiled CLI
 ```
 
 ### Configuration
