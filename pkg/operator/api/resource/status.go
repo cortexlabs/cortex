@@ -16,6 +16,10 @@ limitations under the License.
 
 package resource
 
+import (
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+)
+
 type DataStatus struct {
 	DataSavedStatus
 	Code StatusCode `json:"status_code"`
@@ -30,7 +34,8 @@ type APIStatus struct {
 	InitReplicas         int32  `json:"init_replicas"`
 	TargetCPUUtilization int32  `json:"target_cpu_utilization"`
 	ReplicaCounts        `json:"replica_counts"`
-	Code                 StatusCode `json:"status_code"`
+	PodStatuses          []k8s.PodStatus `json:"pod_statuses"`
+	Code                 StatusCode      `json:"status_code"`
 }
 
 type ReplicaCounts struct {
@@ -142,14 +147,14 @@ var _ = [1]int{}[int(StatusStopped)-(len(statusCodes)-1)] // Ensure list length 
 var statusCodeMessages = []string{
 	"unknown", // StatusUnknown
 
-	"pending",                 // StatusPending
-	"compute unavailable",     // StatusPendingCompute
-	"pending",                 // StatusWaiting
-	"skipped",                 // StatusSkipped
-	"error",                   // StatusError
-	"upstream error",          // StatusParentFailed
-	"upstream termination",    // StatusParentKilled
-	"terminated (out of mem)", // StatusDataOOM
+	"pending",               // StatusPending
+	"compute unavailable",   // StatusPendingCompute
+	"pending",               // StatusWaiting
+	"skipped",               // StatusSkipped
+	"error",                 // StatusError
+	"upstream error",        // StatusParentFailed
+	"upstream termination",  // StatusParentKilled
+	"error (out of memory)", // StatusKilledOOM
 
 	"running",    // StatusRunning
 	"ready",      // StatusSucceeded

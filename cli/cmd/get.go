@@ -236,12 +236,12 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	row := []interface{}{
 		groupStatus.Message(),
-		s.Int32(groupStatus.ReadyUpdated),
-		s.Int32(groupStatus.Available()),
-		s.Int32(groupStatus.Requested),
-		s.Int32(groupStatus.ReadyStaleCompute),
-		s.Int32(groupStatus.ReadyStaleModel),
-		s.Int32(groupStatus.FailedUpdated),
+		groupStatus.ReadyUpdated,
+		groupStatus.Available(),
+		groupStatus.Requested,
+		groupStatus.ReadyStaleCompute,
+		groupStatus.ReadyStaleModel,
+		groupStatus.FailedUpdated,
 		libtime.Since(updatedAt),
 	}
 
@@ -259,7 +259,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
 
 	out := "\n" + console.Bold("url:        ") + apiEndpoint
-	out += "\n" + console.Bold("debug url:  ") + apiEndpoint + "?debug=true"
+	out += "\n" + console.Bold("url (debug):  ") + apiEndpoint + "?debug=true"
 	out += fmt.Sprintf("\n%s  curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json", console.Bold("curl:"), apiEndpoint)
 
 	statusTable := table.Table{
@@ -550,6 +550,7 @@ func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) stri
 
 		rows = append(rows, []interface{}{
 			name,
+			groupStatus.Message(),
 			groupStatus.ReadyUpdated,
 			groupStatus.Available(),
 			groupStatus.Requested,
@@ -563,6 +564,7 @@ func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) stri
 	t := table.Table{
 		Headers: []table.Header{
 			{Title: resource.APIType.UserFacing()},
+			{Title: "status"},
 			{Title: "up-to-date"},
 			{Title: "available"},
 			{Title: "requested"},
