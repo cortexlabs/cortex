@@ -147,14 +147,14 @@ var _ = [1]int{}[int(StatusStopped)-(len(statusCodes)-1)] // Ensure list length 
 var statusCodeMessages = []string{
 	"unknown", // StatusUnknown
 
-	"pending",                    // StatusPending
-	"compute unavailable",        // StatusPendingCompute
-	"pending",                    // StatusWaiting
-	"skipped",                    // StatusSkipped
-	"error",                      // StatusError
-	"upstream error",             // StatusParentFailed
-	"upstream termination",       // StatusParentKilled
-	"terminated (out of memory)", // StatusDataOOM
+	"pending",               // StatusPending
+	"compute unavailable",   // StatusPendingCompute
+	"pending",               // StatusWaiting
+	"skipped",               // StatusSkipped
+	"error",                 // StatusError
+	"upstream error",        // StatusParentFailed
+	"upstream termination",  // StatusParentKilled
+	"error (out of memory)", // StatusKilledOOM
 
 	"running",    // StatusRunning
 	"ready",      // StatusSucceeded
