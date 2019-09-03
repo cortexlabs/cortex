@@ -64,4 +64,3 @@ def json_serving_input_fn():
 
 
 classifier.export_savedmodel("export", json_serving_input_fn, strip_default_attrs=True)
-
