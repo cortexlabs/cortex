@@ -293,7 +293,7 @@ function install_cli() {
 
   check_dep_curl
 
-  echo -e "\nInstalling the Cortex CLI (/usr/local/bin/cortex) ..."
+  echo -e "\nInstalling CLI (/usr/local/bin/cortex) ..."
 
   CORTEX_SH_TMP_DIR="$HOME/.cortex-sh-tmp"
   rm -rf $CORTEX_SH_TMP_DIR && mkdir -p $CORTEX_SH_TMP_DIR
@@ -308,7 +308,7 @@ function install_cli() {
   fi
 
   rm -rf $CORTEX_SH_TMP_DIR
-  echo "✓ Installed the Cortex CLI"
+  echo -e "\n✓ Installed CLI"
 
   bash_profile_path=$(get_bash_profile)
   if [ ! "$bash_profile_path" = "" ]; then

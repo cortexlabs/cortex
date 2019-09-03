@@ -32,12 +32,6 @@ export CORTEX_NODES_MAX="3"
 
 # Provision infrastructure on AWS and install Cortex
 ./cortex.sh install
-
-# Get the operator endpoint
-./cortex.sh info
-
-# Configure the CLI
-cortex configure
 ```
 
 ## Create a deployment
