@@ -152,35 +152,43 @@ func rerun(f func() (string, error)) {
 	if flagWatch {
 		print("\033[H\033[2J") // clear the screen
 
-		prevLines := 0
-		nextLines := 0
+		var prevStrSlice []string
 
 		for true {
-			str, err := f()
+			nextStr, err := f()
 			if err != nil {
 				fmt.Println()
 				errors.Exit(err)
 			}
 
-			str = watchHeader() + "\n" + str
-			str = strings.TrimRight(str, "\n") + "\n" // ensure a single new line at the end
-			strSlice := strings.Split(str, "\n")
-			nextLines = len(strSlice)
+			nextStr = watchHeader() + "\n" + nextStr
+			nextStr = strings.TrimRight(nextStr, "\n") + "\n" // ensure a single new line at the end
+			nextStrSlice := strings.Split(nextStr, "\n")
 
-			for prevLines > nextLines {
-				fmt.Printf("\033[%dA\033[2K", 1) // move the cursor up and clear the line
-				prevLines--
+			terminalWidth := getTerminalWidth()
+
+			nextNumLines := 0
+			for _, strLine := range nextStrSlice {
+				nextNumLines += (len(strLine)-1)/terminalWidth + 1
+			}
+			prevNumLines := 0
+			for _, strLine := range prevStrSlice {
+				prevNumLines += (len(strLine)-1)/terminalWidth + 1
 			}
 
-			for i := 0; i < prevLines; i++ {
+			for i := prevNumLines; i > nextNumLines; i-- {
+				fmt.Printf("\033[%dA\033[2K", 1) // move the cursor up and clear the line
+			}
+
+			for i := 0; i < prevNumLines; i++ {
 				fmt.Printf("\033[%dA", 1) // move the cursor up
 			}
 
-			prevLines = nextLines
-
-			for _, strLine := range strSlice {
+			for _, strLine := range nextStrSlice {
 				fmt.Printf("\033[2K%s\n", strLine) // clear the line and print the new line
 			}
+
+			prevStrSlice = nextStrSlice
 
 			time.Sleep(time.Second)
 		}
