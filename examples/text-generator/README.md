@@ -23,11 +23,13 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
 The model requires encoded data for inference, but the API should accept strings of natural language as input. It should also decode the model’s prediction before responding to the client. This can be implemented in a request handler file using the pre_inference and post_inference functions. See [encoder.py](encoder.py) for the complete code.
 
 ```python
-# encoder = ...
+from encoder import get_encoder
+
+encoder = get_encoder()
 
 
 def pre_inference(sample, metadata):
-    context = encoder.encode(sample)
+    context = encoder.encode(sample["text"])
     return {"context": [context]}
 
 

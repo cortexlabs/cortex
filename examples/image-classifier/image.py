@@ -23,4 +23,4 @@ def pre_inference(sample, metadata):
 
 def post_inference(prediction, metadata):
     classes = prediction["response"]["classes"]
-    return {"class": labels[np.argmax(classes)]}
+    return labels[np.argmax(classes)]
