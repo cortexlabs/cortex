@@ -31,7 +31,7 @@ class MyFormatter(logging.Formatter):
 logger = logging.getLogger("cortex")
 handler = logging.StreamHandler(stream=sys.stdout)
 formatter = MyFormatter(
-    fmt="%(asctime)s:%(name)s:%(levelname)s:%(message)s", datefmt="%Y-%m-%d,%H:%M:%S.%f"
+    fmt="%(asctime)s:%(name)s:%(levelname)s:%(message)s", datefmt="%Y-%m-%d %H:%M:%S.%f"
 )
 handler.setFormatter(formatter)
 
