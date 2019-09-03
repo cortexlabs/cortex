@@ -3,7 +3,7 @@
 
 - kind: api
   name: tensorflow
-  model: s3://cortex-examples/iris/tensorflow/1560263532
+  model: s3://cortex-examples/iris/tensorflow
   request_handler: handlers/tensorflow.py
 
 - kind: api

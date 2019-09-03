@@ -2,12 +2,10 @@
 
 ## TensorFlow
 
-Export your trained model and upload the export directory, or checkpoint directory containing the export directory, which is usually the case if you used `estimator.train_and_evaluate`. An example is shown below (here is the [complete example](https://github.com/cortexlabs/cortex/blob/master/examples/sentiment)):
+Export your trained model and upload the export directory, or checkpoint directory containing the export directory, which is usually the case if you used `estimator.train_and_evaluate`. An example is shown below (here is the [complete example](https://github.com/cortexlabs/cortex/blob/master/examples/sentiment-analysis)):
 
 ```Python
 import tensorflow as tf
-import shutil
-import os
 
 ...
 OUPUT_DIR="bert"
@@ -43,7 +41,7 @@ Reference your model in an `api`:
 
 ## ONNX
 
-Export your trained model to an ONNX model format. An example of an sklearn model being exported to ONNX is shown below:
+Export your trained model to ONNX model format. An example of an sklearn model being exported to ONNX is shown below:
 
 ```Python
 from sklearn.linear_model import LogisticRegression
