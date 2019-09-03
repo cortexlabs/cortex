@@ -218,7 +218,8 @@ func (aw *APIWorkload) IsFailed(ctx *context.Context) (bool, error) {
 	}
 
 	for _, pod := range pods {
-		if k8s.GetPodStatus(&pod) == k8s.PodStatusFailed {
+		podStatus := k8s.GetPodStatus(&pod)
+		if podStatus == k8s.PodStatusFailed || podStatus == k8s.PodStatusKilled || podStatus == k8s.PodStatusKilledOOM {
 			return true, nil
 		}
 	}
