@@ -6,7 +6,7 @@
 
 <br>
 
-Cortex is a machine learning deployment platform that runs in your AWS account. It takes exported models from S3 and deploys them as web APIs. It handles autoscaling, rolling updates, log streaming, inference on CPUs or GPUs, and more.
+Cortex is a machine learning deployment platform that you can self-host on AWS. It combines TensorFlow Serving, ONNX Runtime, and Flask into a single tool that takes models from S3 and deploys them as JSON prediction APIs. It also uses Docker and Kubernetes behind the scenes to autoscale, run rolling updates, and support CPU and GPU inference.
 
 <br>
 
