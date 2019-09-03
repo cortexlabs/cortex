@@ -1,3 +1,5 @@
+# sources copied/modified from https://github.com/tensorflow/models/blob/master/samples/core/get_started/
+
 import tensorflow as tf
 from sklearn import datasets, metrics
 from sklearn.metrics import classification_report, confusion_matrix
@@ -59,6 +61,7 @@ def json_serving_input_fn():
     return tf.estimator.export.ServingInputReceiver(
         features=features, receiver_tensors=placeholders
     )
+
 
 classifier.export_savedmodel("export", json_serving_input_fn, strip_default_attrs=True)
 
