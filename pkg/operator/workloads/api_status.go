@@ -68,7 +68,7 @@ func getCurrentAPIStatuses(
 		return nil, errors.Wrap(err, "api statuses", ctx.App.Name)
 	}
 
-	replicaCountsMap := getReplicaCountsMap(podList, deployments, ctx)
+	replicaCountsMap, podStatusMap := getReplicaCountsMap(podList, deployments, ctx)
 
 	currentResourceWorkloadIDs := ctx.APIResourceWorkloadIDs()
 
@@ -117,6 +117,7 @@ func getCurrentAPIStatuses(
 	for resourceID, apiStatus := range apiStatuses {
 		apiStatus.Path = context.APIPath(apiStatus.APIName, apiStatus.AppName)
 		apiStatus.ReplicaCounts = replicaCountsMap[resourceID]
+		apiStatus.PodStatuses = podStatusMap[resourceID]
 		apiStatus.Code = apiStatusCode(apiStatus)
 	}
 
@@ -135,7 +136,7 @@ func getReplicaCountsMap(
 	podList []kcore.Pod,
 	deployments map[string]*kapps.Deployment, // api.Name -> deployment
 	ctx *context.Context,
-) map[string]resource.ReplicaCounts {
+) (map[string]resource.ReplicaCounts, map[string][]k8s.PodStatus) {
 
 	apiComputeIDMap := make(map[string]string)
 	for _, api := range ctx.APIs {
@@ -149,6 +150,7 @@ func getReplicaCountsMap(
 	}
 
 	replicaCountsMap := make(map[string]resource.ReplicaCounts)
+	podStatusMap := make(map[string][]k8s.PodStatus)
 	for _, pod := range podList {
 		resourceID := pod.Labels["resourceID"]
 		podAPIComputeID := APIPodComputeID(pod.Spec.Containers)
@@ -170,7 +172,7 @@ func getReplicaCountsMap(
 				replicaCounts.ReadyStaleCompute++
 			}
 		}
-		if podStatus == k8s.PodStatusFailed {
+		if podStatus == k8s.PodStatusFailed || podStatus == k8s.PodStatusKilled || podStatus == k8s.PodStatusKilledOOM {
 			if computeMatches {
 				replicaCounts.FailedUpdatedCompute++
 			} else {
@@ -179,6 +181,7 @@ func getReplicaCountsMap(
 		}
 
 		replicaCountsMap[resourceID] = replicaCounts
+		podStatusMap[resourceID] = append(podStatusMap[resourceID], podStatus)
 	}
 
 	for _, deployment := range deployments {
@@ -191,7 +194,7 @@ func getReplicaCountsMap(
 		replicaCountsMap[resourceID] = replicaCounts
 	}
 
-	return replicaCountsMap
+	return replicaCountsMap, podStatusMap
 }
 
 func numUpdatedReadyReplicas(ctx *context.Context, api *context.API) (int32, error) {
@@ -229,6 +232,18 @@ func apiStatusCode(apiStatus *resource.APIStatus) resource.StatusCode {
 	}
 
 	if apiStatus.TotalFailed() > 0 {
+		for _, podStatus := range apiStatus.PodStatuses {
+			if podStatus == k8s.PodStatusKilledOOM {
+				return resource.StatusKilledOOM
+			}
+		}
+
+		for _, podStatus := range apiStatus.PodStatuses {
+			if podStatus == k8s.PodStatusKilled {
+				return resource.StatusKilled
+			}
+		}
+
 		return resource.StatusError
 	}
 

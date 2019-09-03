@@ -59,8 +59,8 @@ func init() {
 var rootCmd = &cobra.Command{
 	Use:     "cortex",
 	Aliases: []string{"cx"},
-	Short:   "machine learning infrastructure for developers",
-	Long:    "Machine learning infrastructure for developers",
+	Short:   "deploy machine learning models in production",
+	Long:    "Deploy machine learning models in production",
 	Version: consts.CortexVersion,
 }
 

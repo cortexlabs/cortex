@@ -1,7 +1,7 @@
 - kind: deployment
-  name: imagenet
+  name: image
 
 - kind: api
   name: classifier
   model: s3://cortex-examples/imagenet
-  request_handler: imagenet.py
+  request_handler: image.py

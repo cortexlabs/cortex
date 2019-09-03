@@ -3,5 +3,5 @@
 
 - kind: api
   name: classifier
-  model: s3://cortex-examples/sentiment
+  model: s3://cortex-examples/bert
   request_handler: sentiment.py

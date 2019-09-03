@@ -182,13 +182,16 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 	numSucceeded := 0
 	numFailed := 0
 	numKilled := 0
+	numKilledOOM := 0
 	for _, containerStatus := range containerStatuses {
-		if containerStatus.State.Running != nil {
+		if containerStatus.State.Running != nil && containerStatus.RestartCount == 0 {
 			numRunning++
 		} else if containerStatus.State.Terminated != nil {
 			exitCode := containerStatus.State.Terminated.ExitCode
 			if exitCode == 0 {
 				numSucceeded++
+			} else if exitCode == 137 {
+				numKilledOOM++
 			} else if killStatuses[exitCode] {
 				numKilled++
 			} else {
@@ -198,6 +201,8 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 			exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
 			if exitCode == 0 {
 				numSucceeded++
+			} else if exitCode == 137 {
+				numKilledOOM++
 			} else if killStatuses[exitCode] {
 				numKilled++
 			} else {
@@ -208,7 +213,9 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 			numWaiting++
 		}
 	}
-	if numKilled > 0 {
+	if numKilledOOM > 0 {
+		return PodStatusKilledOOM
+	} else if numKilled > 0 {
 		return PodStatusKilled
 	} else if numFailed > 0 {
 		return PodStatusFailed

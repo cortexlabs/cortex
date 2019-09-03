@@ -99,7 +99,7 @@ def transform_to_numpy(input_pyobj, input_metadata):
 
     try:
         for idx, dim in enumerate(target_shape):
-            if dim is None:
+            if type(dim) is not int:
                 target_shape[idx] = 1
 
         if type(input_pyobj) is np.ndarray:
@@ -113,7 +113,6 @@ def transform_to_numpy(input_pyobj, input_metadata):
                 )
         else:
             np_arr = np.array(input_pyobj, dtype=target_dtype)
-
         np_arr = np_arr.reshape(target_shape)
         return np_arr
     except Exception as e:
