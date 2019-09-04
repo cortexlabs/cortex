@@ -25,6 +25,7 @@ echo "Uninstalling the Cortex operator ..."
 kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true deployment operator >/dev/null 2>&1
 
 # Pods in DaemonSets cannot be modified
+kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true daemonset cloudwatch-agent-statsd >/dev/null 2>&1
 kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true daemonset fluentd >/dev/null 2>&1
 kubectl -n=$CORTEX_NAMESPACE delete --ignore-not-found=true daemonset nvidia-device-plugin-daemonset >/dev/null 2>&1
 

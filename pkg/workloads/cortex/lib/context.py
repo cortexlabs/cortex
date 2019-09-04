@@ -16,6 +16,7 @@ import os
 import imp
 import inspect
 import boto3
+import datadog
 
 from cortex import consts
 from cortex.lib import util
@@ -76,7 +77,10 @@ class Context:
                 region=self.cortex_config["region"],
                 client_config={},
             )
-            self.monitoring = boto3.client("cloudwatch", region_name=self.cortex_config["region"])
+
+        host_ip = os.environ["HOST_IP"]
+        datadog.initialize(statsd_host=host_ip, statsd_port="8125")
+        self.statsd = datadog.statsd
 
         if self.api_version != consts.CORTEX_VERSION:
             raise ValueError(
@@ -181,16 +185,15 @@ class Context:
         return os.path.join(self.status_prefix, resource["id"], resource["workload_id"])
 
     def publish_metrics(self, metrics):
-        if self.monitoring is None:
-            raise CortexException("monitoring client not initialized")  # unexpected
+        if self.statsd is None:
+            raise CortexException("statsd client not initialized")  # unexpected
 
-        response = self.monitoring.put_metric_data(
-            MetricData=metrics, Namespace=self.cortex_config["log_group"]
-        )
-
-        if int(response["ResponseMetadata"]["HTTPStatusCode"] / 100) != 2:
-            logger.warn(response)
-            raise Exception("cloudwatch returned a non-200 status")
+        for metric in metrics:
+            tags = ["{}:{}".format(dim["Name"], dim["Value"]) for dim in metric["Dimensions"]]
+            if metric.get("Unit") == "Count":
+                self.statsd.increment(metric["MetricName"], value=metric["Value"], tags=tags)
+            else:
+                self.statsd.histogram(metric["MetricName"], value=metric["Value"], tags=tags)
 
 
 REQUEST_HANDLER_IMPL_VALIDATION = {

@@ -59,7 +59,14 @@ def status_code_metric(dimensions, status_code):
     status_code_dimensions = dimensions + [
         {"Name": "Code", "Value": "{}XX".format(status_code_series)}
     ]
-    return [{"MetricName": "StatusCode", "Dimensions": status_code_dimensions, "Value": 1}]
+    return [
+        {
+            "MetricName": "StatusCode",
+            "Dimensions": status_code_dimensions,
+            "Value": 1,
+            "Unit": "Count",
+        }
+    ]
 
 
 def extract_prediction(api, prediction):
