@@ -330,14 +330,18 @@ func tfAPISpec(
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
 						},
-						Env: append(k8s.AWSCredentials(), kcore.EnvVar{
-							Name: "HOST_IP",
-							ValueFrom: &kcore.EnvVarSource{
-								FieldRef: &kcore.ObjectFieldSelector{
-									FieldPath: "status.hostIP",
+						Env: append(
+							k8s.AWSCredentials(),
+							kcore.EnvVar{
+								Name: "HOST_IP",
+								ValueFrom: &kcore.EnvVarSource{
+									FieldRef: &kcore.ObjectFieldSelector{
+										FieldPath: "status.hostIP",
+									},
 								},
 							},
-						}), VolumeMounts: k8s.DefaultVolumeMounts(),
+						),
+						VolumeMounts: k8s.DefaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
 							TimeoutSeconds:      5,
@@ -494,14 +498,17 @@ func onnxAPISpec(
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
 						},
-						Env: append(k8s.AWSCredentials(), kcore.EnvVar{
-							Name: "HOST_IP",
-							ValueFrom: &kcore.EnvVarSource{
-								FieldRef: &kcore.ObjectFieldSelector{
-									FieldPath: "status.hostIP",
+						Env: append(
+							k8s.AWSCredentials(),
+							kcore.EnvVar{
+								Name: "HOST_IP",
+								ValueFrom: &kcore.EnvVarSource{
+									FieldRef: &kcore.ObjectFieldSelector{
+										FieldPath: "status.hostIP",
+									},
 								},
 							},
-						}),
+						),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,

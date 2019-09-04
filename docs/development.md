@@ -63,6 +63,7 @@ export CORTEX_NAMESPACE="cortex"
 
 export CORTEX_IMAGE_MANAGER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/manager:latest"
 export CORTEX_IMAGE_FLUENTD="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/fluentd:latest"
+export CORTEX_IMAGE_STATSD="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/statsd:latest"
 export CORTEX_IMAGE_ONNX_SERVE="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/onnx-serve:latest"
 export CORTEX_IMAGE_ONNX_SERVE_GPU="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/onnx-serve-gpu:latest"
 export CORTEX_IMAGE_OPERATOR="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/operator:latest"

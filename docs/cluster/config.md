@@ -45,6 +45,7 @@ export CORTEX_NAMESPACE="cortex"
 # Image paths
 export CORTEX_IMAGE_MANAGER="cortexlabs/manager:master"
 export CORTEX_IMAGE_FLUENTD="cortexlabs/fluentd:master"
+export CORTEX_IMAGE_STATSD="cortexlabs/statsd:master"
 export CORTEX_IMAGE_OPERATOR="cortexlabs/operator:master"
 export CORTEX_IMAGE_TF_SERVE="cortexlabs/tf-serve:master"
 export CORTEX_IMAGE_TF_API="cortexlabs/tf-api:master"
