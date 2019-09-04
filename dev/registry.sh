@@ -37,7 +37,7 @@ function ecr_login() {
 function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/manager --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/fluentd --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/statsd --region=$REGISTRY_REGION || true  
+  aws ecr create-repository --repository-name=cortexlabs/statsd --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/istio-citadel --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/istio-pilot --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/istio-galley --region=$REGISTRY_REGION || true
@@ -127,6 +127,8 @@ elif [ "$cmd" = "update" ]; then
 
     build_and_push $ROOT/images/tf-serve tf-serve latest
     build_and_push $ROOT/images/tf-serve-gpu tf-serve-gpu latest
+
+    build_and_push $ROOT/images/onnx-serve-gpu onnx-serve-gpu latest
 
     build_and_push $ROOT/images/fluentd fluentd latest
     build_and_push $ROOT/images/statsd statsd latest
