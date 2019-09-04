@@ -77,10 +77,9 @@ class Context:
                 region=self.cortex_config["region"],
                 client_config={},
             )
-            logger.info(os.environ["POD_IP"])
 
-        pod_ip = os.environ["POD_IP"]
-        datadog.initialize(statsd_host=pod_ip, statsd_port="8125")
+        host_ip = os.environ["HOST_IP"]
+        datadog.initialize(statsd_host=host_ip, statsd_port="8125")
         self.statsd = datadog.statsd
 
         if self.api_version != consts.CORTEX_VERSION:
@@ -190,17 +189,11 @@ class Context:
             raise CortexException("statsd client not initialized")  # unexpected
 
         for metric in metrics:
-            logger.info(metric["Dimensions"])
             tags = ["{}:{}".format(dim["Name"], dim["Value"]) for dim in metric["Dimensions"]]
-            logger.info(self.statsd)
             if metric.get("Unit") == "Count":
                 self.statsd.increment(metric["MetricName"], value=metric["Value"], tags=tags)
             else:
                 self.statsd.histogram(metric["MetricName"], value=metric["Value"], tags=tags)
-
-        # if int(response["ResponseMetadata"]["HTTPStatusCode"] / 100) != 2:
-        #     logger.warn(response)
-        #     raise Exception("cloudwatch returned a non-200 status")
 
 
 REQUEST_HANDLER_IMPL_VALIDATION = {
@@ -251,42 +244,3 @@ def _validate_required_fn_args(impl, fn_name, args):
                     ", ".join(args), ", ".join(argspec.args)
                 ),
             )
-
-
-"""
-import statsd
-
-c = statsd.StatsClient("192.168.48.224", 8125)
-
-c.incr("foo|#APIID=id,APIName=name")
-
-
-c.incr("foo")
-
-import datetime
-import boto3
-
-client = boto3.client("cloudwatch", region_name="us-west-2")
-
-client.get_metric_data(
-    MetricDataQueries=[
-        {
-            "Id": "sample",
-            "MetricStat": {
-                "Metric": {
-                    "Namespace": "CWAgent",
-                    "MetricName": "foo",
-                    "Dimensions": [{"Name": "metric_type", "Value": "counter"}],
-                },
-                "Period": 1,
-                "Stat": "SampleCount",
-            },
-        }
-    ],
-    StartTime=datetime.datetime.now() - datetime.timedelta(seconds=60),
-    EndTime=datetime.datetime.now(),
-)
-
-
-client.list_metrics(Namespace="CWAgent", MetricName="foo")
-"""
