@@ -1,0 +1,20 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: $CORTEX_CLUSTER
+  region: $CORTEX_REGION
+  version: "1.13"
+
+availabilityZones: $CORTEX_ZONES
+
+nodeGroups:
+  - name: ng-1
+    instanceType: $CORTEX_NODE_TYPE
+    minSize: $CORTEX_NODES_MIN
+    maxSize: $CORTEX_NODES_MAX
+    desiredCapacity: $CORTEX_NODES_MIN
+    ami: auto
+    iam:
+      withAddonPolicies:
+        autoScaler: true

@@ -18,14 +18,6 @@ set -e
 
 echo -e "\nSpinning up the cluster ... (this will take about 15 minutes)\n"
 
-eksctl create cluster --name=$CORTEX_CLUSTER \
-                      --region=$CORTEX_REGION \
-                      --zones=$CORTEX_ZONES \
-                      --node-type=$CORTEX_NODE_TYPE \
-                      --nodes-min=$CORTEX_NODES_MIN \
-                      --nodes-max=$CORTEX_NODES_MAX \
-                      --node-ami=auto \
-                      --version=1.13 \
-                      --asg-access
+envsubst < eks.yaml | eksctl create cluster -f -
 
 echo -e "\n✓ Spun up the cluster"
