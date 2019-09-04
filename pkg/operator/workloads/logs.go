@@ -188,9 +188,7 @@ func GetLogKeys(pod kcore.Pod) strset.Set {
 	containerStatuses := append(pod.Status.InitContainerStatuses, pod.Status.ContainerStatuses...)
 	logKeys := strset.New()
 	for _, status := range containerStatuses {
-		if status.State.Terminated != nil {
-			logKeys.Add(GetLogKey(pod, status).String())
-		} else if status.State.Running != nil {
+		if status.State.Terminated != nil || status.State.Running != nil {
 			logKeys.Add(GetLogKey(pod, status).String())
 		}
 	}
