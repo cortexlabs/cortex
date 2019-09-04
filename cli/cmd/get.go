@@ -258,9 +258,8 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
 
-	out := "\n" + console.Bold("url:        ") + apiEndpoint
-	out += "\n" + console.Bold("url (debug):  ") + apiEndpoint + "?debug=true"
-	out += fmt.Sprintf("\n%s  curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json", console.Bold("curl:"), apiEndpoint)
+	out := "\n" + console.Bold("url:   ") + apiEndpoint
+	out += fmt.Sprintf("\n%s  curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json", console.Bold("curl:"), apiEndpoint)
 
 	statusTable := table.Table{
 		Headers: headers,

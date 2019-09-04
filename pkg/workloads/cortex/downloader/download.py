@@ -29,10 +29,17 @@ def start(args):
     for download_arg in download:
         from_path = download_arg["from"]
         to_path = download_arg["to"]
+        item_name = download_arg.get("item_name", "")
         bucket_name, prefix = S3.deconstruct_s3_path(from_path)
         s3_client = S3(bucket_name, client_config={})
+
+        if item_name != "":
+            logger.info("downloading {} from {}".format(item_name, from_path))
         s3_client.download(prefix, to_path)
+
         if download_arg["unzip"]:
+            if item_name != "":
+                logger.info("unzipping {}".format(item_name))
             util.extract_zip(
                 os.path.join(to_path, os.path.basename(from_path)), delete_zip_file=True
             )
@@ -44,7 +51,7 @@ def main():
     na.add_argument(
         "--download",
         required=True,
-        help="a base64 encoded json array of download arg objects (see api_workloads.go for the structure)",
+        help="a base64 encoded json array of download arg objects (see api_workload.go for the structure)",
     )
     parser.set_defaults(func=start)
 
