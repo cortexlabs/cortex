@@ -433,7 +433,7 @@ func pumpStdout(socket *websocket.Conn, socketWriterError chan error, reader io.
 	select {
 	case err := <-socketWriterError:
 		if err != nil {
-			writeSocket(err.Error(), socket)
+			writeSocket(err.Error()+"\n", socket)
 		}
 	default:
 	}
