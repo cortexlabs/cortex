@@ -315,11 +315,7 @@ func getRegressionMetricDef(appName string, api *context.API, period int64) []*c
 
 func getNetworkStatsDef(appName string, api *context.API, period int64) []*cloudwatch.MetricDataQuery {
 	statusCodes := []string{"2XX", "4XX", "5XX"}
-<<<<<<< HEAD
 	networkDataQueries := make([]*cloudwatch.MetricDataQuery, len(statusCodes)+2)
-=======
-	networkDataQueries := make([]*cloudwatch.MetricDataQuery, len(statusCodes))
->>>>>>> master
 
 	for i, code := range statusCodes {
 		dimensions := getAPIDimensionsCounter(appName, api)
@@ -338,7 +334,6 @@ func getNetworkStatsDef(appName string, api *context.API, period int64) []*cloud
 				},
 				Stat:   aws.String("Sum"),
 				Period: aws.Int64(period),
-<<<<<<< HEAD
 			},
 		}
 	}
@@ -369,10 +364,6 @@ func getNetworkStatsDef(appName string, api *context.API, period int64) []*cloud
 			Stat:   aws.String("SampleCount"),
 			Period: aws.Int64(period),
 		},
-=======
-			},
-		}
->>>>>>> master
 	}
 	return networkDataQueries
 }
