@@ -19,7 +19,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 source $ROOT/dev/config/cortex.sh
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" || true
 
 echo "Uninstalling Cortex ..."
 
