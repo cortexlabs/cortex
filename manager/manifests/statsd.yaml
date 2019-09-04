@@ -53,7 +53,7 @@ spec:
     spec:
       containers:
         - name: cloudwatch-agent
-          image: amazon/cloudwatch-agent:latest
+          image: $CORTEX_IMAGE_STATSD
           imagePullPolicy: Always
           ports:
             # containerPort should be consistent with the listen port defined in configmap
@@ -65,7 +65,7 @@ spec:
               cpu:  200m
               memory: 100Mi
             requests:
-              cpu: 200m
+              cpu: 100m
               memory: 100Mi
           # Please don't change the env
           env:

@@ -245,17 +245,23 @@ func getAPIDimensions(appName string, api *context.API) []*cloudwatch.Dimension 
 }
 
 func getAPIDimensionsCounter(appName string, api *context.API) []*cloudwatch.Dimension {
-	return append(getAPIDimensions(appName, api), &cloudwatch.Dimension{
-		Name:  aws.String("metric_type"),
-		Value: aws.String("counter"),
-	})
+	return append(
+		getAPIDimensions(appName, api),
+		&cloudwatch.Dimension{
+			Name:  aws.String("metric_type"),
+			Value: aws.String("counter"),
+		},
+	)
 }
 
 func getAPIDimensionsHistogram(appName string, api *context.API) []*cloudwatch.Dimension {
-	return append(getAPIDimensions(appName, api), &cloudwatch.Dimension{
-		Name:  aws.String("metric_type"),
-		Value: aws.String("histogram"),
-	})
+	return append(
+		getAPIDimensions(appName, api),
+		&cloudwatch.Dimension{
+			Name:  aws.String("metric_type"),
+			Value: aws.String("histogram"),
+		},
+	)
 }
 
 func getRegressionMetricDef(appName string, api *context.API, period int64) []*cloudwatch.MetricDataQuery {

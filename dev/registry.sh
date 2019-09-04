@@ -37,6 +37,7 @@ function ecr_login() {
 function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/manager --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/fluentd --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/statsd --region=$REGISTRY_REGION || true  
   aws ecr create-repository --repository-name=cortexlabs/istio-citadel --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/istio-pilot --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/istio-galley --region=$REGISTRY_REGION || true
@@ -128,6 +129,7 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/tf-serve-gpu tf-serve-gpu latest
 
     build_and_push $ROOT/images/fluentd fluentd latest
+    build_and_push $ROOT/images/statsd statsd latest
     build_and_push $ROOT/images/cluster-autoscaler cluster-autoscaler latest
     build_and_push $ROOT/images/nvidia nvidia latest
     build_and_push $ROOT/images/metrics-server metrics-server latest
@@ -137,10 +139,10 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/istio-proxy istio-proxy latest
   fi
 
+  build_and_push $ROOT/images/manager manager latest
   build_and_push $ROOT/images/downloader downloader latest
   build_and_push $ROOT/images/tf-api tf-api latest
   build_and_push $ROOT/images/onnx-serve onnx-serve latest
-  build_and_push $ROOT/images/onnx-serve-gpu onnx-serve-gpu latest
 
   cleanup
 fi
