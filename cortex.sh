@@ -345,12 +345,12 @@ function uninstall_cli() {
   rm -rf $HOME/.cortex
 
   if ! command -v cortex >/dev/null; then
-    echo -e "\nThe Cortex CLI is not installed"
+    echo -e "\nThe CLI is not installed"
     return
   fi
 
   if [[ ! -f /usr/local/bin/cortex ]]; then
-    echo -e "\nThe Cortex CLI was not found at /usr/local/bin/cortex, please uninstall it manually"
+    echo -e "\nThe CLI was not found at /usr/local/bin/cortex, please uninstall it manually"
     return
   fi
 
@@ -360,7 +360,7 @@ function uninstall_cli() {
     ask_sudo
     sudo rm /usr/local/bin/cortex
   fi
-  echo -e "\n✓ Uninstalled the Cortex CLI"
+  echo -e "\n✓ Uninstalled CLI"
 
   bash_profile_path=$(get_bash_profile)
   if [ ! "$bash_profile_path" = "" ]; then
