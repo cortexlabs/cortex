@@ -35,7 +35,7 @@ See [packaging models](packaging-models.md) for how to export the model.
   compute:
     min_replicas: 5
     max_replicas: 20
-    cpu: "1"
+    gpu: 1
 ```
 
 ## Custom Request Handlers
