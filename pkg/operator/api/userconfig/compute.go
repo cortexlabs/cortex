@@ -124,7 +124,7 @@ func (ac *APICompute) UserConfigStr() string {
 	if ac.Mem != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, ac.Mem.UserString))
 	}
-	return sb.String()
+	return strings.TrimSpace(sb.String())
 }
 
 func (ac *APICompute) Validate() error {
