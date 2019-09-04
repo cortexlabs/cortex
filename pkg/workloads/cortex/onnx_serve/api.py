@@ -15,7 +15,7 @@
 import sys
 import os
 import argparse
-import builtins
+import time
 
 from flask import Flask, request, jsonify, g
 from flask_api import status
@@ -64,6 +64,11 @@ local_cache = {
 }
 
 
+@app.before_request
+def before_request():
+    g.start_time = time.time()
+
+
 @app.after_request
 def after_request(response):
     api = local_cache["api"]
@@ -77,7 +82,9 @@ def after_request(response):
     prediction = None
     if "prediction" in g:
         prediction = g.prediction
-    api_utils.post_request_metrics(ctx, api, response, prediction, local_cache["class_set"])
+    api_utils.post_request_metrics(
+        ctx, api, response, prediction, g.start_time, local_cache["class_set"]
+    )
 
     return response
 

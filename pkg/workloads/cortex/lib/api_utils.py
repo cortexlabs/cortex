@@ -15,6 +15,7 @@
 
 import os
 import base64
+import time
 
 from cortex.lib.exceptions import UserException, CortexException
 from cortex.lib.log import get_logger
@@ -65,6 +66,16 @@ def status_code_metric(dimensions, status_code):
             "Dimensions": status_code_dimensions,
             "Value": 1,
             "Unit": "Count",
+        }
+    ]
+
+
+def latency_metric(dimensions, start_time):
+    return [
+        {
+            "MetricName": "Latency",
+            "Dimensions": dimensions,
+            "Value": (time.time() - start_time) * 1000,  # milliseconds
         }
     ]
 
@@ -129,7 +140,7 @@ def cache_classes(ctx, api, prediction, class_set):
         class_set.add(prediction)
 
 
-def post_request_metrics(ctx, api, response, prediction_payload, class_set):
+def post_request_metrics(ctx, api, response, prediction_payload, start_time, class_set):
     api_name = api["name"]
     api_dimensions = api_metric_dimensions(ctx, api_name)
     metrics_list = []
@@ -147,6 +158,7 @@ def post_request_metrics(ctx, api, response, prediction_payload, class_set):
             except Exception as e:
                 logger.warn("unable to record prediction metric", exc_info=True)
 
+    metrics_list += latency_metric(api_dimensions, start_time)
     try:
         ctx.publish_metrics(metrics_list)
     except Exception as e:
