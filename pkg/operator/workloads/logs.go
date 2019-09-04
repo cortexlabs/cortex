@@ -235,6 +235,10 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 	defer outw.Close()
 	defer outr.Close()
 
+	procAttr := os.ProcAttr{
+		Files: []*os.File{inr, outw, outw},
+	}
+
 	socketWriterError := make(chan error, 1)
 	defer close(socketWriterError)
 
@@ -299,13 +303,14 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 					tfServingProcesses.Add(logProcess)
 				case apiContainerName:
 					apiProcesses.Add(logProcess)
+				default:
+					socketWriterError <- errors.New("unexpected container type encountered " + logKey.ContainerName) // unexpected
+					return
 				}
 			}
 
 			for logProcess := range initProcesses {
-				process, err := createKubectlProcess(StringToLogKey(logProcess), &os.ProcAttr{
-					Files: []*os.File{inr, outw, outw},
-				})
+				process, err := createKubectlProcess(StringToLogKey(logProcess), &procAttr)
 				if err != nil {
 					socketWriterError <- err
 					return
@@ -318,9 +323,7 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 			}
 
 			for logProcess := range tfServingProcesses {
-				process, err := createKubectlProcess(StringToLogKey(logProcess), &os.ProcAttr{
-					Files: []*os.File{inr, outw, outw},
-				})
+				process, err := createKubectlProcess(StringToLogKey(logProcess), &procAttr)
 				if err != nil {
 					socketWriterError <- err
 					return
@@ -333,9 +336,7 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 			}
 
 			for logProcess := range apiProcesses {
-				process, err := createKubectlProcess(StringToLogKey(logProcess), &os.ProcAttr{
-					Files: []*os.File{inr, outw, outw},
-				})
+				process, err := createKubectlProcess(StringToLogKey(logProcess), &procAttr)
 				if err != nil {
 					socketWriterError <- err
 					return
