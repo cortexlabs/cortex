@@ -200,6 +200,7 @@ envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
 echo "✓ Configured logging"
 
 envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
+envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
 echo "✓ Configured metrics"
 
 if [[ "$CORTEX_NODE_TYPE" == p* ]] || [[ "$CORTEX_NODE_TYPE" == g* ]]; then

@@ -1,0 +1,86 @@
+apiVersion: v1
+data:
+  # Configuration is in Json format. No matter what configure change you make,
+  # please keep the Json blob valid.
+  cwagentconfig.json: |
+    {
+      "agent": {
+        "omit_hostname": true,
+        "debug": true,
+        "region": "us-west-2",
+        "force_flush_interval": 1
+      },
+      "metrics": {
+        "metrics_collected": {
+          "statsd": {
+            "service_address":":8125",
+            "metrics_collection_interval": 1,
+            "metrics_aggregation_interval": 1
+          }
+        },
+        "namespace": "$CORTEX_LOG_GROUP",
+        "force_flush_interval": 1
+      }
+    }
+kind: ConfigMap
+metadata:
+  name: cwagentstatsdconfig
+  namespace: $CORTEX_NAMESPACE
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cloudwatch-agent-statsd
+  namespace: $CORTEX_NAMESPACE
+spec:
+  selector:
+    matchLabels:
+      name: cloudwatch-agent-statsd
+  template:
+    metadata:
+      labels:
+        name: cloudwatch-agent-statsd
+    spec:
+      containers:
+        - name: cloudwatch-agent
+          image: amazon/cloudwatch-agent:latest
+          imagePullPolicy: Always
+          ports:
+            # containerPort should be consistent with the listen port defined in configmap
+            - containerPort: 8125
+              hostPort: 8125
+              protocol: UDP
+          resources:
+            limits:
+              cpu:  200m
+              memory: 100Mi
+            requests:
+              cpu: 200m
+              memory: 100Mi
+          # Please don't change the env
+          env:
+            - name: HOST_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: AWS_REGION
+              value: $CORTEX_REGION
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: AWS_SECRET_ACCESS_KEY
+          # Please don't change the mountPath
+          volumeMounts:
+            - name: cwagentconfig
+              mountPath: /etc/cwagentconfig
+      volumes:
+        - name: cwagentconfig
+          configMap:
+            name: cwagentstatsdconfig
+      terminationGracePeriodSeconds: 60

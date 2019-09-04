@@ -364,7 +364,14 @@ func tfAPISpec(
 							"--port=" + tfServingPortStr,
 							"--model_base_path=" + path.Join(consts.EmptyDirMountPath, "model"),
 						},
-						Env:          k8s.AWSCredentials(),
+						Env: append(k8s.AWSCredentials(), kcore.EnvVar{
+							Name: "POD_IP",
+							ValueFrom: &kcore.EnvVarSource{
+								FieldRef: &kcore.ObjectFieldSelector{
+									FieldPath: "status.podIP",
+								},
+							},
+						}),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
@@ -488,7 +495,14 @@ func onnxAPISpec(
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
 						},
-						Env:          k8s.AWSCredentials(),
+						Env: append(k8s.AWSCredentials(), kcore.EnvVar{
+							Name: "POD_IP",
+							ValueFrom: &kcore.EnvVarSource{
+								FieldRef: &kcore.ObjectFieldSelector{
+									FieldPath: "status.hostIP",
+								},
+							},
+						}),
 						VolumeMounts: k8s.DefaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
