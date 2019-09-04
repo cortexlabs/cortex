@@ -174,7 +174,7 @@ function validate_cortex() {
   echo -e "\n✓ Load balancers are ready"
 }
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" || true
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" || true
 
 # https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
 kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.5.3/config/v1.5/aws-k8s-cni.yaml >/dev/null
