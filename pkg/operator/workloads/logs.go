@@ -188,7 +188,7 @@ func GetLogKeys(pod kcore.Pod) strset.Set {
 	containerStatuses := append(pod.Status.InitContainerStatuses, pod.Status.ContainerStatuses...)
 	logKeys := strset.New()
 	for _, status := range containerStatuses {
-		if status.State.Terminated != nil && (status.State.Terminated.ExitCode != 0 || status.State.Terminated.StartedAt.After(time.Now().Add(-newPodCheckInterval))) {
+		if status.State.Terminated != nil {
 			logKeys.Add(GetLogKey(pod, status).String())
 		} else if status.State.Running != nil {
 			logKeys.Add(GetLogKey(pod, status).String())
@@ -286,7 +286,53 @@ func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodLi
 				wrotePending = false
 			}
 
+			initProcesses := strset.New()
+			tfServingProcesses := strset.New()
+			apiProcesses := strset.New()
+
 			for logProcess := range processesToAdd {
+				logKey := StringToLogKey(logProcess)
+				switch logKey.ContainerName {
+				case downloaderInitContainerName:
+					initProcesses.Add(logProcess)
+				case tfServingContainerName:
+					tfServingProcesses.Add(logProcess)
+				case apiContainerName:
+					apiProcesses.Add(logProcess)
+				}
+			}
+
+			for logProcess := range initProcesses {
+				process, err := createKubectlProcess(StringToLogKey(logProcess), &os.ProcAttr{
+					Files: []*os.File{inr, outw, outw},
+				})
+				if err != nil {
+					socketWriterError <- err
+					return
+				}
+				processMap[logProcess] = process
+			}
+
+			if len(tfServingProcesses) != 0 && len(initProcesses) != 0 {
+				time.Sleep(100 * time.Millisecond)
+			}
+
+			for logProcess := range tfServingProcesses {
+				process, err := createKubectlProcess(StringToLogKey(logProcess), &os.ProcAttr{
+					Files: []*os.File{inr, outw, outw},
+				})
+				if err != nil {
+					socketWriterError <- err
+					return
+				}
+				processMap[logProcess] = process
+			}
+
+			if len(apiProcesses) != 0 && (len(tfServingProcesses) != 0 || len(initProcesses) != 0) {
+				time.Sleep(100 * time.Millisecond)
+			}
+
+			for logProcess := range apiProcesses {
 				process, err := createKubectlProcess(StringToLogKey(logProcess), &os.ProcAttr{
 					Files: []*os.File{inr, outw, outw},
 				})
