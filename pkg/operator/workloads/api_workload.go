@@ -228,9 +228,10 @@ func (aw *APIWorkload) IsFailed(ctx *context.Context) (bool, error) {
 }
 
 type downloadContainerArg struct {
-	From  string `json:"from"`
-	To    string `json:"to"`
-	Unzip bool   `json:"unzip"`
+	From     string `json:"from"`
+	To       string `json:"to"`
+	Unzip    bool   `json:"unzip"`
+	ItemName string `json:"item_name"` // name of the item being downloaded, just for logging (if "" nothing will be logged)
 }
 
 func tfAPISpec(
@@ -262,13 +263,15 @@ func tfAPISpec(
 
 	downloadArgs := []downloadContainerArg{
 		{
-			From: ctx.APIs[api.Name].Model,
-			To:   path.Join(consts.EmptyDirMountPath, "model"),
+			From:     ctx.APIs[api.Name].Model,
+			To:       path.Join(consts.EmptyDirMountPath, "model"),
+			ItemName: "model",
 		},
 		{
-			From:  config.AWS.S3Path(ctx.ProjectKey),
-			To:    path.Join(consts.EmptyDirMountPath, "project"),
-			Unzip: true,
+			From:     config.AWS.S3Path(ctx.ProjectKey),
+			To:       path.Join(consts.EmptyDirMountPath, "project"),
+			Unzip:    true,
+			ItemName: "project code",
 		},
 	}
 
@@ -432,13 +435,15 @@ func onnxAPISpec(
 
 	downloadArgs := []downloadContainerArg{
 		{
-			From: ctx.APIs[api.Name].Model,
-			To:   path.Join(consts.EmptyDirMountPath, "model"),
+			From:     ctx.APIs[api.Name].Model,
+			To:       path.Join(consts.EmptyDirMountPath, "model"),
+			ItemName: "model",
 		},
 		{
-			From:  config.AWS.S3Path(ctx.ProjectKey),
-			To:    path.Join(consts.EmptyDirMountPath, "project"),
-			Unzip: true,
+			From:     config.AWS.S3Path(ctx.ProjectKey),
+			To:       path.Join(consts.EmptyDirMountPath, "project"),
+			Unzip:    true,
+			ItemName: "project code",
 		},
 	}
 
