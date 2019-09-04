@@ -315,7 +315,7 @@ func getRegressionMetricDef(appName string, api *context.API, period int64) []*c
 
 func getNetworkStatsDef(appName string, api *context.API, period int64) []*cloudwatch.MetricDataQuery {
 	statusCodes := []string{"2XX", "4XX", "5XX"}
-	networkDataQueries := make([]*cloudwatch.MetricDataQuery, len(statusCodes))
+	networkDataQueries := make([]*cloudwatch.MetricDataQuery, len(statusCodes)+2)
 
 	for i, code := range statusCodes {
 		dimensions := getAPIDimensionsCounter(appName, api)
@@ -338,6 +338,33 @@ func getNetworkStatsDef(appName string, api *context.API, period int64) []*cloud
 		}
 	}
 
+	networkDataQueries[3] = &cloudwatch.MetricDataQuery{
+		Id:    aws.String("latency"),
+		Label: aws.String("Latency"),
+		MetricStat: &cloudwatch.MetricStat{
+			Metric: &cloudwatch.Metric{
+				Namespace:  aws.String(config.Cortex.LogGroup),
+				MetricName: aws.String("Latency"),
+				Dimensions: getAPIDimensionsHistogram(appName, api),
+			},
+			Stat:   aws.String("Average"),
+			Period: aws.Int64(period),
+		},
+	}
+
+	networkDataQueries[4] = &cloudwatch.MetricDataQuery{
+		Id:    aws.String("request_count"),
+		Label: aws.String("RequestCount"),
+		MetricStat: &cloudwatch.MetricStat{
+			Metric: &cloudwatch.Metric{
+				Namespace:  aws.String(config.Cortex.LogGroup),
+				MetricName: aws.String("Latency"),
+				Dimensions: getAPIDimensionsHistogram(appName, api),
+			},
+			Stat:   aws.String("SampleCount"),
+			Period: aws.Int64(period),
+		},
+	}
 	return networkDataQueries
 }
 
