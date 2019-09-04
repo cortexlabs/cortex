@@ -139,7 +139,6 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/istio-proxy istio-proxy latest
   fi
 
-  build_and_push $ROOT/images/manager manager latest
   build_and_push $ROOT/images/downloader downloader latest
   build_and_push $ROOT/images/tf-api tf-api latest
   build_and_push $ROOT/images/onnx-serve onnx-serve latest
