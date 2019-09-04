@@ -312,12 +312,23 @@ func getAPIMetrics(appName, apiName string) (*schema.APIMetrics, error) {
 
 func appendNetworkMetrics(apiTable table.Table, apiMetrics *schema.APIMetrics) table.Table {
 	headers := []table.Header{
+		{Title: "avg latency", Hidden: apiMetrics.NetworkStats.Latency == nil},
 		{Title: "2XX", Hidden: apiMetrics.NetworkStats.Code2XX == 0},
 		{Title: "4XX", Hidden: apiMetrics.NetworkStats.Code4XX == 0},
 		{Title: "5XX", Hidden: apiMetrics.NetworkStats.Code5XX == 0},
 	}
 
+	latency := ""
+	if apiMetrics.NetworkStats.Latency != nil {
+		if *apiMetrics.NetworkStats.Latency < 1000 {
+			latency = fmt.Sprintf("%.6g ms", *apiMetrics.NetworkStats.Latency)
+		} else {
+			latency = fmt.Sprintf("%.6g s", (*apiMetrics.NetworkStats.Latency)*1000)
+		}
+	}
+
 	row := []interface{}{
+		latency,
 		apiMetrics.NetworkStats.Code2XX,
 		apiMetrics.NetworkStats.Code4XX,
 		apiMetrics.NetworkStats.Code5XX,
