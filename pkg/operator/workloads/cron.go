@@ -83,7 +83,6 @@ func runCron() {
 	}
 
 	if err := deleteEvictedPods(failedPods); err != nil {
-		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
 
