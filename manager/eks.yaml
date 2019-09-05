@@ -37,7 +37,7 @@ nodeGroups:
         cpu: 150m
         memory: 300Mi
         ephemeral-storage: 1Gi
-      # kubeReservedCgroup: /kube-reserved
+      kubeReservedCgroup: /kube-reserved
       systemReserved:
         cpu: 150m
         memory: 300Mi
