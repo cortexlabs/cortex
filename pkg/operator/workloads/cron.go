@@ -83,9 +83,7 @@ func runCron() {
 		errors.PrintError(err)
 	}
 
-	if err := deleteEvictedPods(failedPods); err != nil {
-		errors.PrintError(err)
-	}
+	deleteEvictedPods(failedPods)
 
 	if err := updateDataWorkloadErrors(failedPods); err != nil {
 		config.Telemetry.ReportError(err)
@@ -103,7 +101,7 @@ func reportAndRecover(strs ...string) error {
 	return nil
 }
 
-func deleteEvictedPods(failedPods []kcore.Pod) error {
+func deleteEvictedPods(failedPods []kcore.Pod) {
 	evictedPods := []kcore.Pod{}
 	for _, pod := range failedPods {
 		if pod.Status.Reason == k8s.ReasonEvicted {
@@ -125,15 +123,10 @@ func deleteEvictedPods(failedPods []kcore.Pod) error {
 					continue
 				}
 			}
-			isSuccessful, err := config.Kubernetes.DeletePod(pod.Name)
+			_, err := config.Kubernetes.DeletePod(pod.Name)
 			if err != nil {
-				return err
-			}
-			if !isSuccessful {
-				return errors.New("failed to delete evicted pod " + pod.Name)
+				errors.PrintError(err)
 			}
 		}
 	}
-
-	return nil
 }
