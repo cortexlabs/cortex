@@ -19,9 +19,12 @@ package workloads
 import (
 	"time"
 
+	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
@@ -60,6 +63,7 @@ func runCron() {
 		"workloadType": workloadTypeAPI,
 		"userFacing":   "true",
 	})
+
 	if err != nil {
 		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
@@ -73,10 +77,13 @@ func runCron() {
 	failedPods, err := config.Kubernetes.ListPods(&kmeta.ListOptions{
 		FieldSelector: "status.phase=Failed",
 	})
+
 	if err != nil {
 		config.Telemetry.ReportError(err)
 		errors.PrintError(err)
 	}
+
+	deleteEvictedPods(failedPods)
 
 	if err := updateDataWorkloadErrors(failedPods); err != nil {
 		config.Telemetry.ReportError(err)
@@ -92,4 +99,34 @@ func reportAndRecover(strs ...string) error {
 		return err
 	}
 	return nil
+}
+
+func deleteEvictedPods(failedPods []kcore.Pod) {
+	evictedPods := []kcore.Pod{}
+	for _, pod := range failedPods {
+		if pod.Status.Reason == k8s.ReasonEvicted {
+			evictedPods = append(evictedPods, pod)
+		}
+	}
+
+	if len(evictedPods) > 0 {
+		savedEvictedPods := map[string]kcore.Pod{}
+		currentWorkloadIDs := strset.New()
+		for _, ctx := range CurrentContexts() {
+			currentWorkloadIDs.Merge(ctx.ComputedResourceWorkloadIDs())
+		}
+
+		for _, pod := range evictedPods {
+			if currentWorkloadIDs.Has(pod.Labels["workloadID"]) {
+				if _, ok := savedEvictedPods[pod.Labels["resourceID"]]; !ok {
+					savedEvictedPods[pod.Labels["resourceID"]] = pod
+					continue
+				}
+			}
+			_, err := config.Kubernetes.DeletePod(pod.Name)
+			if err != nil {
+				errors.PrintError(err)
+			}
+		}
+	}
 }

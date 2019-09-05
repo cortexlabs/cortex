@@ -32,3 +32,16 @@ nodeGroups:
     iam:
       withAddonPolicies:
         autoScaler: true
+    kubeletExtraConfig:
+      kubeReserved:
+        cpu: 150m
+        memory: 300Mi
+        ephemeral-storage: 1Gi
+      kubeReservedCgroup: /kube-reserved
+      systemReserved:
+        cpu: 150m
+        memory: 300Mi
+        ephemeral-storage: 1Gi
+      evictionHard:
+        memory.available:  200Mi
+        nodefs.available: 5%

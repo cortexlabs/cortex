@@ -17,6 +17,7 @@ limitations under the License.
 package k8s
 
 import (
+	"regexp"
 	"time"
 
 	kcore "k8s.io/api/core/v1"
@@ -31,6 +32,8 @@ var podTypeMeta = kmeta.TypeMeta{
 	APIVersion: "v1",
 	Kind:       "Pod",
 }
+
+const ReasonEvicted = "Evicted"
 
 type PodStatus string
 
@@ -130,6 +133,8 @@ func GetPodReadyTime(pod *kcore.Pod) *time.Time {
 	return nil
 }
 
+var evictedMemoryMessageRegex = regexp.MustCompile(`(?i)low\W+on\W+resource\W+memory`)
+
 func GetPodStatus(pod *kcore.Pod) PodStatus {
 	if pod == nil {
 		return PodStatusUnknown
@@ -145,6 +150,10 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 	case kcore.PodSucceeded:
 		return PodStatusSucceeded
 	case kcore.PodFailed:
+		if pod.Status.Reason == ReasonEvicted && evictedMemoryMessageRegex.MatchString(pod.Status.Message) {
+			return PodStatusKilledOOM
+		}
+
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			if containerStatus.LastTerminationState.Terminated != nil {
 				exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
