@@ -145,6 +145,10 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 	case kcore.PodSucceeded:
 		return PodStatusSucceeded
 	case kcore.PodFailed:
+		if pod.Status.Reason == "Evicted" {
+			return PodStatusKilledOOM
+		}
+
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			if containerStatus.LastTerminationState.Terminated != nil {
 				exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
