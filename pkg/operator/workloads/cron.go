@@ -23,6 +23,7 @@ import (
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
@@ -105,7 +106,7 @@ func reportAndRecover(strs ...string) error {
 func deleteEvictedPods(failedPods []kcore.Pod) error {
 	evictedPods := []kcore.Pod{}
 	for _, pod := range failedPods {
-		if pod.Status.Reason == "Evicted" {
+		if pod.Status.Reason == k8s.ReasonEvicted {
 			evictedPods = append(evictedPods, pod)
 		}
 	}
