@@ -132,9 +132,6 @@ export CORTEX_IMAGE_DOWNLOADER="${CORTEX_IMAGE_DOWNLOADER:-cortexlabs/downloader
 export CORTEX_ENABLE_TELEMETRY="${CORTEX_ENABLE_TELEMETRY:-""}"
 export CORTEX_TELEMETRY_URL="${CORTEX_TELEMETRY_URL:-"https://telemetry.cortexlabs.dev"}"
 
-AWS_KEY_SOURCE_STR=""
-OPERATOR_AWS_KEY_SOURCE_STR=""
-
 function set_aws_credentials_from_cli() {
   if ! command -v aws >/dev/null; then
     return
@@ -148,13 +145,11 @@ function set_aws_credentials_from_cli() {
 
   export AWS_ACCESS_KEY_ID=$(aws --profile default configure get aws_access_key_id)
   export AWS_SECRET_ACCESS_KEY=$(aws --profile default configure get aws_secret_access_key)
-
-  AWS_KEY_SOURCE_STR=" (from AWS CLI's default profile)"
 }
 
 function set_aws_credentials() {
   if [ "$AWS_ACCESS_KEY_ID" != "" ] && [ "$AWS_SECRET_ACCESS_KEY" != "" ]; then
-    AWS_KEY_SOURCE_STR=" (from environment variable)"
+    true
   elif [ "$AWS_ACCESS_KEY_ID" == "" ] && [ "$AWS_SECRET_ACCESS_KEY" != "" ]; then
     echo -e "\nPlease run \`export AWS_ACCESS_KEY_ID=***\`"
     exit 1
@@ -171,7 +166,7 @@ function set_aws_credentials() {
   fi
 
   if [ "$CORTEX_AWS_ACCESS_KEY_ID" != "" ] && [ "$CORTEX_AWS_SECRET_ACCESS_KEY" != "" ]; then
-    OPERATOR_AWS_KEY_SOURCE_STR=" (from environment variable)"
+    true
   elif [ "$CORTEX_AWS_ACCESS_KEY_ID" != "" ] || [ "$CORTEX_AWS_SECRET_ACCESS_KEY" != "" ]; then
     echo -e "\nPlease export both CORTEX_AWS_ACCESS_KEY_ID and CORTEX_AWS_SECRET_ACCESS_KEY"
     exit 1
@@ -186,19 +181,30 @@ if [ "$arg2" != "cli" ]; then
 fi
 
 if [ "$arg1" = "install" ] && [ "$arg2" = "" ] && [ "$arg3" = "" ]; then
-  echo -e "\nConfiguration"
-  echo "  ￮ cluster name: $CORTEX_CLUSTER"
-  echo "  ￮ region: $CORTEX_REGION"
-  echo "  ￮ instance type: $CORTEX_NODE_TYPE"
-  echo "  ￮ min nodes: $CORTEX_NODES_MIN"
-  echo "  ￮ max nodes: $CORTEX_NODES_MAX"
-  echo "  ￮ bucket: $CORTEX_BUCKET"
-  echo "  ￮ log group: $CORTEX_LOG_GROUP"
-  echo "  ￮ AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}${AWS_KEY_SOURCE_STR}"
-
+  echo
+  echo "￮ cluster name: $CORTEX_CLUSTER"
+  echo "￮ region: $CORTEX_REGION"
+  echo "￮ bucket: "${CORTEX_BUCKET:-autogenerate}""
+  echo "￮ log group: $CORTEX_LOG_GROUP"
+  echo "￮ instance type: $CORTEX_NODE_TYPE"
+  echo "￮ min nodes: $CORTEX_NODES_MIN"
+  echo "￮ max nodes: $CORTEX_NODES_MAX"
+  echo "￮ AWS access key ID: ${AWS_ACCESS_KEY_ID}"
   if [ "$CORTEX_AWS_ACCESS_KEY_ID" != "$AWS_ACCESS_KEY_ID" ]; then
-    echo "  ￮ Operator AWS_ACCESS_KEY_ID: ${CORTEX_AWS_ACCESS_KEY_ID}${OPERATOR_AWS_KEY_SOURCE_STR}"
+    echo "￮ Operator AWS access key ID: ${CORTEX_AWS_ACCESS_KEY_ID}"
   fi
+
+  while true; do
+    echo
+    read -p "Is the configuration above correct? [Y/n] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      break
+    elif [[ $REPLY =~ ^[Nn]$ ]]; then
+      exit 1
+    fi
+    echo "Unexpected value, please enter \"Y\" or \"n\""
+  done
 fi
 
 ##########################
@@ -432,8 +438,7 @@ function prompt_for_email() {
 
 function prompt_for_telemetry() {
   if [ "$CORTEX_ENABLE_TELEMETRY" != "true" ] && [ "$CORTEX_ENABLE_TELEMETRY" != "false" ]; then
-    while true
-    do
+    while true; do
       echo
       read -p "Would you like to help improve Cortex by anonymously sending error reports and cluster usage stats to the dev team? [Y/n] " -n 1 -r
       echo
@@ -450,8 +455,7 @@ function prompt_for_telemetry() {
 }
 
 function confirm_for_uninstall() {
-  while true
-  do
+  while true; do
     echo
     read -p "Are you sure you want to uninstall Cortex? (Your cluster will be spun down and all APIs will be deleted) [Y/n] " -n 1 -r
     echo
