@@ -39,8 +39,6 @@ function setup_bucket() {
       echo "error: a bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
       exit 1
     fi
-  else
-    echo "✓ Using existing S3 bucket: $CORTEX_BUCKET"
   fi
 }
 
@@ -48,8 +46,6 @@ function setup_cloudwatch_logs() {
   if ! aws logs list-tags-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION --output json 2>&1 | grep -q "\"tags\":"; then
     aws logs create-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION
     echo "✓ Created CloudWatch log group: $CORTEX_LOG_GROUP"
-  else
-    echo "✓ Using existing CloudWatch log group: $CORTEX_LOG_GROUP"
   fi
 }
 

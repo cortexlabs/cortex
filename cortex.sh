@@ -84,6 +84,8 @@ set -u
 ### CONFIGURATION ###
 #####################
 
+echo ""
+
 export CORTEX_VERSION_STABLE=master
 
 export CORTEX_CONFIG="${CORTEX_CONFIG:-""}"
@@ -99,61 +101,6 @@ export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-""}"
 export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-""}"
 export CORTEX_AWS_ACCESS_KEY_ID="${CORTEX_AWS_ACCESS_KEY_ID:-""}"
 export CORTEX_AWS_SECRET_ACCESS_KEY="${CORTEX_AWS_SECRET_ACCESS_KEY:-""}"
-
-function set_aws_credentials_from_cli() {
-  if ! command -v aws >/dev/null; then
-    return
-  fi
-  if [ ! -f $HOME/.aws/credentials ]; then
-    return
-  fi
-  if ! grep -Fxq "[default]" "$HOME/.aws/credentials"; then
-    return
-  fi
-
-  export AWS_ACCESS_KEY_ID=$(aws --profile default configure get aws_access_key_id)
-  export AWS_SECRET_ACCESS_KEY=$(aws --profile default configure get aws_secret_access_key)
-
-  echo -e "\n✓ Using AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID (from AWS CLI's default profile)"
-}
-
-function set_aws_credentials() {
-  if [ "$AWS_ACCESS_KEY_ID" != "" ] && [ "$AWS_SECRET_ACCESS_KEY" != "" ]; then
-    echo -e "\n✓ Using AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID (from environment variable)"
-    return
-  fi
-
-  if [ "$AWS_ACCESS_KEY_ID" == "" ] && [ "$AWS_SECRET_ACCESS_KEY" != "" ]; then
-    echo -e "\nPlease run \`export AWS_ACCESS_KEY_ID=***\`"
-    exit 1
-  fi
-
-  if [ "$AWS_ACCESS_KEY_ID" != "" ] && [ "$AWS_SECRET_ACCESS_KEY" == "" ]; then
-    echo -e "\nPlease run \`export AWS_SECRET_ACCESS_KEY=***\`"
-    exit 1
-  fi
-
-  set_aws_credentials_from_cli
-
-  if [ "$AWS_ACCESS_KEY_ID" == "" ] || [ "$AWS_SECRET_ACCESS_KEY" == "" ]; then
-    echo -e "\nPlease run \`export AWS_ACCESS_KEY_ID=***; export AWS_SECRET_ACCESS_KEY=***\`"
-    exit 1
-  fi
-}
-
-if [ "$arg2" != "cli" ]; then
-  set_aws_credentials
-
-  if [ "$CORTEX_AWS_ACCESS_KEY_ID" != "" ] && [ "$CORTEX_AWS_SECRET_ACCESS_KEY" != "" ]; then
-    echo "✓ Operator will use AWS_ACCESS_KEY_ID=$CORTEX_AWS_ACCESS_KEY_ID (from environment variable)"
-  elif [ "$CORTEX_AWS_ACCESS_KEY_ID" != "" ] || [ "$CORTEX_AWS_SECRET_ACCESS_KEY" != "" ]; then
-    echo -e "\nPlease export both CORTEX_AWS_ACCESS_KEY_ID and CORTEX_AWS_SECRET_ACCESS_KEY"
-    exit 1
-  fi
-fi
-
-export CORTEX_AWS_ACCESS_KEY_ID="${CORTEX_AWS_ACCESS_KEY_ID:-$AWS_ACCESS_KEY_ID}"
-export CORTEX_AWS_SECRET_ACCESS_KEY="${CORTEX_AWS_SECRET_ACCESS_KEY:-$AWS_SECRET_ACCESS_KEY}"
 
 export CORTEX_LOG_GROUP="${CORTEX_LOG_GROUP:-cortex}"
 export CORTEX_BUCKET="${CORTEX_BUCKET:-""}"
@@ -186,6 +133,75 @@ export CORTEX_IMAGE_DOWNLOADER="${CORTEX_IMAGE_DOWNLOADER:-cortexlabs/downloader
 
 export CORTEX_ENABLE_TELEMETRY="${CORTEX_ENABLE_TELEMETRY:-""}"
 export CORTEX_TELEMETRY_URL="${CORTEX_TELEMETRY_URL:-"https://telemetry.cortexlabs.dev"}"
+
+AWS_KEY_SOURCE_STR=""
+OPERATOR_AWS_KEY_SOURCE_STR=""
+
+function set_aws_credentials_from_cli() {
+  if ! command -v aws >/dev/null; then
+    return
+  fi
+  if [ ! -f $HOME/.aws/credentials ]; then
+    return
+  fi
+  if ! grep -Fxq "[default]" "$HOME/.aws/credentials"; then
+    return
+  fi
+
+  export AWS_ACCESS_KEY_ID=$(aws --profile default configure get aws_access_key_id)
+  export AWS_SECRET_ACCESS_KEY=$(aws --profile default configure get aws_secret_access_key)
+
+  AWS_KEY_SOURCE_STR=" (from AWS CLI's default profile)"
+}
+
+function set_aws_credentials() {
+  if [ "$AWS_ACCESS_KEY_ID" != "" ] && [ "$AWS_SECRET_ACCESS_KEY" != "" ]; then
+    AWS_KEY_SOURCE_STR=" (from environment variable)"
+  elif [ "$AWS_ACCESS_KEY_ID" == "" ] && [ "$AWS_SECRET_ACCESS_KEY" != "" ]; then
+    echo -e "\nPlease run \`export AWS_ACCESS_KEY_ID=***\`"
+    exit 1
+  elif [ "$AWS_ACCESS_KEY_ID" != "" ] && [ "$AWS_SECRET_ACCESS_KEY" == "" ]; then
+    echo -e "\nPlease run \`export AWS_SECRET_ACCESS_KEY=***\`"
+    exit 1
+  else
+    set_aws_credentials_from_cli
+  fi
+
+  if [ "$AWS_ACCESS_KEY_ID" == "" ] || [ "$AWS_SECRET_ACCESS_KEY" == "" ]; then
+    echo -e "\nPlease run \`export AWS_ACCESS_KEY_ID=***; export AWS_SECRET_ACCESS_KEY=***\`"
+    exit 1
+  fi
+
+  if [ "$CORTEX_AWS_ACCESS_KEY_ID" != "" ] && [ "$CORTEX_AWS_SECRET_ACCESS_KEY" != "" ]; then
+    OPERATOR_AWS_KEY_SOURCE_STR=" (from environment variable)"
+  elif [ "$CORTEX_AWS_ACCESS_KEY_ID" != "" ] || [ "$CORTEX_AWS_SECRET_ACCESS_KEY" != "" ]; then
+    echo -e "\nPlease export both CORTEX_AWS_ACCESS_KEY_ID and CORTEX_AWS_SECRET_ACCESS_KEY"
+    exit 1
+  fi
+
+  export CORTEX_AWS_ACCESS_KEY_ID="${CORTEX_AWS_ACCESS_KEY_ID:-$AWS_ACCESS_KEY_ID}"
+  export CORTEX_AWS_SECRET_ACCESS_KEY="${CORTEX_AWS_SECRET_ACCESS_KEY:-$AWS_SECRET_ACCESS_KEY}"
+}
+
+if [ "$arg2" != "cli" ]; then
+  set_aws_credentials
+fi
+
+if [ "$arg1" = "install" ] && [ "$arg2" = "" ] && [ "$arg3" = "" ]; then
+  echo "Configuration"
+  echo "  ￮ cluster name: $CORTEX_CLUSTER"
+  echo "  ￮ region: $CORTEX_REGION"
+  echo "  ￮ instance type: $CORTEX_NODE_TYPE"
+  echo "  ￮ min nodes: $CORTEX_NODES_MIN"
+  echo "  ￮ max nodes: $CORTEX_NODES_MAX"
+  echo "  ￮ bucket: $CORTEX_BUCKET"
+  echo "  ￮ log group: $CORTEX_LOG_GROUP"
+  echo "  ￮ AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}${AWS_KEY_SOURCE_STR}"
+
+  if [ "$CORTEX_AWS_ACCESS_KEY_ID" != "$AWS_ACCESS_KEY_ID" ]; then
+    echo "  ￮ Operator AWS_ACCESS_KEY_ID: ${CORTEX_AWS_ACCESS_KEY_ID}${OPERATOR_AWS_KEY_SOURCE_STR}"
+  fi
+fi
 
 ##########################
 ### TOP-LEVEL COMMANDS ###
