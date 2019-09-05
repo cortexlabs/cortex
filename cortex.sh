@@ -182,16 +182,17 @@ fi
 
 if [ "$arg1" = "install" ] && [ "$arg2" = "" ] && [ "$arg3" = "" ]; then
   echo
-  echo "￮ cluster name: $CORTEX_CLUSTER"
-  echo "￮ region: $CORTEX_REGION"
-  echo "￮ bucket: "${CORTEX_BUCKET:-autogenerate}""
-  echo "￮ log group: $CORTEX_LOG_GROUP"
-  echo "￮ instance type: $CORTEX_NODE_TYPE"
-  echo "￮ min nodes: $CORTEX_NODES_MIN"
-  echo "￮ max nodes: $CORTEX_NODES_MAX"
-  echo "￮ AWS access key ID: ${AWS_ACCESS_KEY_ID}"
+  echo "￮ cluster name:      $CORTEX_CLUSTER"
+  echo "￮ region:            $CORTEX_REGION"
+  echo "￮ bucket:            "${CORTEX_BUCKET:-autogenerate}""
+  echo "￮ log group:         $CORTEX_LOG_GROUP"
+  echo "￮ instance type:     $CORTEX_NODE_TYPE"
+  echo "￮ min nodes:         $CORTEX_NODES_MIN"
+  echo "￮ max nodes:         $CORTEX_NODES_MAX"
+  echo "￮ AWS access key ID: ****************${AWS_ACCESS_KEY_ID:16}"
+
   if [ "$CORTEX_AWS_ACCESS_KEY_ID" != "$AWS_ACCESS_KEY_ID" ]; then
-    echo "￮ Operator AWS access key ID: ${CORTEX_AWS_ACCESS_KEY_ID}"
+    echo "￮ AWS access key ID: ****************${CORTEX_AWS_ACCESS_KEY_ID:16} (Operator)"
   fi
 
   while true; do
