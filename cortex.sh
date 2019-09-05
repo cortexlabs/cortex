@@ -84,8 +84,6 @@ set -u
 ### CONFIGURATION ###
 #####################
 
-echo ""
-
 export CORTEX_VERSION_STABLE=master
 
 export CORTEX_CONFIG="${CORTEX_CONFIG:-""}"
@@ -188,7 +186,7 @@ if [ "$arg2" != "cli" ]; then
 fi
 
 if [ "$arg1" = "install" ] && [ "$arg2" = "" ] && [ "$arg3" = "" ]; then
-  echo "Configuration"
+  echo -e "\nConfiguration"
   echo "  ￮ cluster name: $CORTEX_CLUSTER"
   echo "  ￮ region: $CORTEX_REGION"
   echo "  ￮ instance type: $CORTEX_NODE_TYPE"
@@ -309,9 +307,9 @@ function check_dep_curl() {
 function install_cli() {
   set -e
 
-  check_dep_curl
+  echo -e "Installing CLI (/usr/local/bin/cortex) ..."
 
-  echo -e "\nInstalling CLI (/usr/local/bin/cortex) ..."
+  check_dep_curl
 
   CORTEX_SH_TMP_DIR="$HOME/.cortex-sh-tmp"
   rm -rf $CORTEX_SH_TMP_DIR && mkdir -p $CORTEX_SH_TMP_DIR
@@ -424,6 +422,7 @@ function prompt_for_email() {
   if [ "$CORTEX_ENABLE_TELEMETRY" != "false" ]; then
     echo
     read -p "Email address [press enter to skip]: "
+    echo
 
     if [[ ! -z "$REPLY" ]]; then
       curl -k -X POST -H "Content-Type: application/json" $CORTEX_TELEMETRY_URL/support -d '{"email_address": "'$REPLY'", "source": "cortex.sh"}' >/dev/null 2>&1 || true
