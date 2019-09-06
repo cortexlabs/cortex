@@ -8,6 +8,7 @@ Export your trained model and upload the export directory, or checkpoint directo
 import tensorflow as tf
 
 ...
+
 OUPUT_DIR="bert"
 estimator = tf.estimator.Estimator(model_fn=model_fn...)
 
