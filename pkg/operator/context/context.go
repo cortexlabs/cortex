@@ -24,7 +24,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -61,10 +60,6 @@ func New(
 	)
 
 	ctx.ProjectID = hash.Bytes(projectBytes)
-	unzippedProject, err := zip.UnzipMemToMem(projectBytes)
-	if err != nil {
-		return nil, err
-	}
 
 	ctx.ProjectKey = filepath.Join(consts.ProjectsDir, ctx.ProjectID+".zip")
 	if err = config.AWS.UploadBytesToS3(projectBytes, ctx.ProjectKey); err != nil {
@@ -72,7 +67,7 @@ func New(
 	}
 
 	ctx.StatusPrefix = statusPrefix(ctx.App.Name)
-	apis, err := getAPIs(userconf, ctx.DeploymentVersion, ctx.ProjectID, unzippedProject)
+	apis, err := getAPIs(userconf, ctx.DeploymentVersion, ctx.ProjectID)
 
 	if err != nil {
 		return nil, err

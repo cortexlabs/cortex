@@ -47,15 +47,21 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userconf, err := userconfig.New("cortex.yaml", configBytes, true)
+	projectBytes, err := files.ReadReqFile(r, "project.zip")
+	if err != nil {
+		RespondError(w, errors.WithStack(err))
+		return
+	}
+
+	userconf, err := userconfig.New("cortex.yaml", configBytes)
 	if err != nil {
 		RespondError(w, err)
 		return
 	}
 
-	projectBytes, err := files.ReadReqFile(r, "project.zip")
+	err = userconf.Validate(projectBytes)
 	if err != nil {
-		RespondError(w, errors.WithStack(err))
+		RespondError(w, err)
 		return
 	}
 

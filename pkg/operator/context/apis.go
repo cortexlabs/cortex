@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
@@ -28,7 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
-func getAPIs(config *userconfig.Config, deploymentVersion string, projectID string, projectFiles map[string][]byte) (context.APIs, error) {
+func getAPIs(config *userconfig.Config, deploymentVersion string, projectID string) (context.APIs, error) {
 	apis := context.APIs{}
 
 	for _, apiConfig := range config.APIs {
@@ -41,12 +40,7 @@ func getAPIs(config *userconfig.Config, deploymentVersion string, projectID stri
 
 		if apiConfig.RequestHandler != nil {
 			buf.WriteString(projectID)
-
-			fileBytes, ok := projectFiles[*apiConfig.RequestHandler]
-			if !ok {
-				return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(*apiConfig.RequestHandler), resource.APIType.String(), apiConfig.Name, userconfig.RequestHandlerKey)
-			}
-			buf.Write(fileBytes)
+			buf.WriteString(*apiConfig.RequestHandler)
 		}
 
 		id := hash.Bytes(buf.Bytes())
