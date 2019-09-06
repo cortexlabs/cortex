@@ -42,11 +42,11 @@ func getAPIs(config *userconfig.Config, deploymentVersion string, projectID stri
 		if apiConfig.RequestHandler != nil {
 			buf.WriteString(projectID)
 
-			if val, ok := projectFiles[*apiConfig.RequestHandler]; !ok {
+			fileBytes, ok := projectFiles[*apiConfig.RequestHandler]
+			if !ok {
 				return nil, errors.Wrap(userconfig.ErrorImplDoesNotExist(*apiConfig.RequestHandler), resource.APIType.String(), apiConfig.Name, userconfig.RequestHandlerKey)
-			} else {
-				buf.Write(val)
 			}
+			buf.Write(fileBytes)
 		}
 
 		id := hash.Bytes(buf.Bytes())
