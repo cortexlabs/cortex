@@ -114,8 +114,8 @@ const (
 	StatusKilled
 
 	// API statuses
-	StatusCreating
 	StatusLive
+	StatusUpdating
 	StatusStopping
 	StatusStopped
 )
@@ -136,8 +136,8 @@ var statusCodes = []string{
 	"status_succeeded",
 	"status_killed",
 
-	"status_creating",
 	"status_live",
+	"status_updating",
 	"status_stopping",
 	"status_stopped",
 }
@@ -160,8 +160,8 @@ var statusCodeMessages = []string{
 	"ready",      // StatusSucceeded
 	"terminated", // StatusKilled
 
-	"creating", // StatusCreating
 	"live",     // StatusLive
+	"updating", // StatusUpdating
 	"stopping", // StatusStopping
 	"stopped",  // StatusStopped
 }
@@ -184,8 +184,8 @@ var statusSortBuckets = []int{
 	0, // StatusSucceeded
 	1, // StatusKilled
 
-	3, // StatusCreating
 	0, // StatusLive
+	0, // StatusUpdating
 	3, // StatusStopping
 	1, // StatusStopped
 }
