@@ -270,7 +270,6 @@ func (api *API) Validate(projectFileMap map[string][]byte) error {
 	}
 
 	if api.RequestHandler != nil {
-		fmt.Println(projectFileMap[*api.RequestHandler])
 		if _, ok := projectFileMap[*api.RequestHandler]; !ok {
 			return errors.Wrap(ErrorImplDoesNotExist(*api.RequestHandler), Identify(api), RequestHandlerKey)
 		}
