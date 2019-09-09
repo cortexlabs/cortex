@@ -227,11 +227,7 @@ func apiStatusCode(apiStatus *resource.APIStatus) resource.StatusCode {
 		return resource.StatusStopped
 	}
 
-	if apiStatus.TotalReady() > 0 {
-		return resource.StatusLive
-	}
-
-	if apiStatus.TotalFailed() > 0 {
+	if apiStatus.FailedUpdatedCompute > 0 {
 		for _, podStatus := range apiStatus.PodStatuses {
 			if podStatus == k8s.PodStatusKilledOOM {
 				return resource.StatusKilledOOM
@@ -247,8 +243,12 @@ func apiStatusCode(apiStatus *resource.APIStatus) resource.StatusCode {
 		return resource.StatusError
 	}
 
+	if apiStatus.ReadyUpdatedCompute >= apiStatus.MinReplicas {
+		return resource.StatusLive
+	}
+
 	if apiStatus.K8sRequested != 0 {
-		return resource.StatusCreating
+		return resource.StatusUpdating
 	}
 
 	return resource.StatusPending
@@ -283,7 +283,7 @@ func updateAPIStatusCodeByParents(apiStatus *resource.APIStatus, dataStatuses ma
 	}
 
 	if numSucceeded == len(allDependencies) {
-		apiStatus.Code = resource.StatusCreating
+		apiStatus.Code = resource.StatusUpdating
 	}
 }
 
@@ -302,11 +302,13 @@ func getAPIGroupStatuses(
 	}
 
 	for apiName, apiStatuses := range statusMap {
+		groupedReplicaCounts := getGroupedReplicaCounts(apiStatuses, ctx)
+
 		apiGroupStatuses[apiName] = &resource.APIGroupStatus{
 			APIName:              apiName,
 			ActiveStatus:         getActiveAPIStatus(apiStatuses, ctx),
-			Code:                 apiGroupStatusCode(apiStatuses, ctx),
-			GroupedReplicaCounts: getGroupedReplicaCounts(apiStatuses, ctx),
+			Code:                 apiGroupStatusCode(apiStatuses, groupedReplicaCounts, ctx),
+			GroupedReplicaCounts: groupedReplicaCounts,
 		}
 	}
 
@@ -343,36 +345,27 @@ func getActiveAPIStatus(apiStatuses []*resource.APIStatus, ctx *context.Context)
 	return latestAPIStatus
 }
 
-func apiGroupStatusCode(apiStatuses []*resource.APIStatus, ctx *context.Context) resource.StatusCode {
-	if len(apiStatuses) == 0 {
-		return resource.StatusStopped
-	}
-
+func apiGroupStatusCode(apiStatuses []*resource.APIStatus, groupedReplicaCounts resource.GroupedReplicaCounts, ctx *context.Context) resource.StatusCode {
 	apiName := apiStatuses[0].APIName
 	ctxAPI := ctx.APIs[apiName]
 
-	if ctxAPI == nil {
+	var currentAPIStatus *resource.APIStatus
+	if ctxAPI != nil {
 		for _, apiStatus := range apiStatuses {
-			if apiStatus.TotalReady() > 0 {
-				return resource.StatusStopping
+			if apiStatus.ResourceID == ctxAPI.ID {
+				currentAPIStatus = apiStatus
 			}
+		}
+	}
+
+	if ctxAPI == nil || currentAPIStatus == nil || groupedReplicaCounts.Requested == 0 {
+		if groupedReplicaCounts.Available() > 0 {
+			return resource.StatusStopping
 		}
 		return resource.StatusStopped
 	}
 
-	for _, apiStatus := range apiStatuses {
-		if apiStatus.TotalReady() > 0 {
-			return resource.StatusLive
-		}
-	}
-
-	for _, apiStatus := range apiStatuses {
-		if apiStatus.ResourceID == ctxAPI.ID {
-			return apiStatus.Code
-		}
-	}
-
-	return resource.StatusUnknown
+	return currentAPIStatus.Code
 }
 
 func getGroupedReplicaCounts(apiStatuses []*resource.APIStatus, ctx *context.Context) resource.GroupedReplicaCounts {
@@ -442,7 +435,7 @@ func setInsufficientComputeAPIStatusCodes(apiStatuses map[string]*resource.APISt
 	}
 
 	for _, apiStatus := range apiStatuses {
-		if apiStatus.Code == resource.StatusPending || apiStatus.Code == resource.StatusWaiting || apiStatus.Code == resource.StatusCreating {
+		if apiStatus.Code == resource.StatusPending || apiStatus.Code == resource.StatusWaiting || apiStatus.Code == resource.StatusUpdating {
 			if _, ok := stalledWorkloads[apiStatus.WorkloadID]; ok {
 				apiStatus.Code = resource.StatusPendingCompute
 			}

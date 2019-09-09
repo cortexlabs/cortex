@@ -258,11 +258,6 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
 
-	out := "\n" + console.Bold("url:   ") + apiEndpoint
-	if flagVerbose {
-		out += fmt.Sprintf("\n%s  curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json", console.Bold("curl:"), apiEndpoint)
-	}
-
 	statusTable := table.Table{
 		Headers: headers,
 		Rows:    [][]interface{}{row},
@@ -271,20 +266,24 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	var predictionMetrics string
 	apiMetrics, err := getAPIMetrics(ctx.App.Name, api.Name)
 	if err != nil || apiMetrics == nil {
-		predictionMetrics = "\n\nmetrics are not available yet"
+		predictionMetrics = "\nmetrics are not available yet\n"
 	} else {
 		statusTable = appendNetworkMetrics(statusTable, apiMetrics)
 		if api.Tracker != nil {
-			predictionMetrics = "\n\n" + predictionMetricsTable(apiMetrics, api)
+			predictionMetrics = "\n" + predictionMetricsTable(apiMetrics, api) + "\n"
 		}
 	}
 
-	out += "\n\n" + table.MustFormat(statusTable)
+	out := "\n" + table.MustFormat(statusTable) + "\n"
 	out += predictionMetrics
+
+	out += "\n" + console.Bold("url: ") + apiEndpoint
 
 	if !flagVerbose {
 		return out, nil
 	}
+
+	out += fmt.Sprintf("\n%s  curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json", console.Bold("curl:"), apiEndpoint)
 
 	out += "\n\n" + describeModelInput(groupStatus, apiEndpoint)
 
@@ -551,10 +550,6 @@ func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) stri
 
 	totalFailed := 0
 	for name, groupStatus := range apiGroupStatuses {
-		if groupStatus.Requested == 0 {
-			continue
-		}
-
 		var updatedAt *time.Time
 		if groupStatus.ActiveStatus != nil {
 			updatedAt = groupStatus.ActiveStatus.Start

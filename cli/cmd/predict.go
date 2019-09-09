@@ -28,7 +28,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
 var predictDebug bool
@@ -85,7 +84,7 @@ var predictCmd = &cobra.Command{
 		predictResponse, err := makePredictRequest(apiURL, sampleJSONPath)
 		if err != nil {
 			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
-				errors.Exit(ErrorAPINotReady(apiName, resource.StatusCreating.Message()))
+				errors.Exit(ErrorAPINotReady(apiName, "creating"))
 			}
 			errors.Exit(err)
 		}
