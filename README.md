@@ -107,8 +107,8 @@ $ ./cortex.sh install
 
 ## Examples
 
-- [Text generation](examples/text-generation) with GPT-2
+- [Text generation](examples/text-generator) with GPT-2
 
-- [Sentiment analysis](examples/sentiment) with BERT
+- [Sentiment analysis](examples/sentiment-analysis) with BERT
 
-- [Image classification](examples/imagenet) with ImageNet
+- [Image classification](examples/image-classifier) with ImageNet
