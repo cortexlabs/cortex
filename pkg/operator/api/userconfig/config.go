@@ -22,6 +22,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -35,13 +36,18 @@ var typeFieldValidation = &cr.StructFieldValidation{
 	Nil: true,
 }
 
-func (config *Config) Validate() error {
+func (config *Config) Validate(projectBytes []byte) error {
 	if err := config.App.Validate(); err != nil {
 		return err
 	}
 
+	projectFileMap, err := zip.UnzipMemToMem(projectBytes)
+	if err != nil {
+		return err
+	}
+
 	if config.APIs != nil {
-		if err := config.APIs.Validate(); err != nil {
+		if err := config.APIs.Validate(projectFileMap); err != nil {
 			return err
 		}
 	}
@@ -49,7 +55,7 @@ func (config *Config) Validate() error {
 	return nil
 }
 
-func New(filePath string, configBytes []byte, validate bool) (*Config, error) {
+func New(filePath string, configBytes []byte) (*Config, error) {
 	var err error
 
 	configData, err := cr.ReadYAMLBytes(configBytes)
@@ -109,11 +115,6 @@ func New(filePath string, configBytes []byte, validate bool) (*Config, error) {
 		return nil, ErrorMissingAppDefinition()
 	}
 
-	if validate {
-		if err := config.Validate(); err != nil {
-			return nil, err
-		}
-	}
 	return config, nil
 }
 
@@ -123,7 +124,7 @@ func ReadAppName(filePath string, relativePath string) (string, error) {
 		return "", errors.Wrap(err, relativePath, ErrorReadConfig().Error())
 	}
 
-	config, err := New(relativePath, configBytes, false)
+	config, err := New(relativePath, configBytes)
 	if err != nil {
 		return "", err
 	}

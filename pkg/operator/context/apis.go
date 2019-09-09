@@ -36,8 +36,12 @@ func getAPIs(config *userconfig.Config, deploymentVersion string, projectID stri
 		buf.WriteString(s.Obj(apiConfig.Tracker))
 		buf.WriteString(apiConfig.ModelFormat.String())
 		buf.WriteString(deploymentVersion)
-		buf.WriteString(projectID)
 		buf.WriteString(strings.TrimSuffix(apiConfig.Model, "/"))
+
+		if apiConfig.RequestHandler != nil {
+			buf.WriteString(projectID)
+			buf.WriteString(*apiConfig.RequestHandler)
+		}
 
 		id := hash.Bytes(buf.Bytes())
 

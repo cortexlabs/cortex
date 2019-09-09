@@ -206,9 +206,9 @@ func (api *API) UserConfigStr() string {
 	return sb.String()
 }
 
-func (apis APIs) Validate() error {
+func (apis APIs) Validate(projectFileMap map[string][]byte) error {
 	for _, api := range apis {
-		if err := api.Validate(); err != nil {
+		if err := api.Validate(projectFileMap); err != nil {
 			return err
 		}
 	}
@@ -226,7 +226,7 @@ func (apis APIs) Validate() error {
 	return nil
 }
 
-func (api *API) Validate() error {
+func (api *API) Validate(projectFileMap map[string][]byte) error {
 	awsClient, err := aws.NewFromS3Path(api.Model, false)
 	if err != nil {
 		return err
@@ -267,6 +267,12 @@ func (api *API) Validate() error {
 
 	if api.ModelFormat != TensorFlowModelFormat && api.TFServing != nil {
 		return errors.Wrap(ErrorTFServingOptionsForTFOnly(api.ModelFormat), Identify(api))
+	}
+
+	if api.RequestHandler != nil {
+		if _, ok := projectFileMap[*api.RequestHandler]; !ok {
+			return errors.Wrap(ErrorImplDoesNotExist(*api.RequestHandler), Identify(api), RequestHandlerKey)
+		}
 	}
 
 	if err := api.Compute.Validate(); err != nil {
