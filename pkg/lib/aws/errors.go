@@ -79,14 +79,14 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 }
 
 func IsNoSuchKeyErr(err error) bool {
-	return CheckErrCode(err, "NoSuchKey")
+	return checkErrCode(err, "NoSuchKey")
 }
 
 func IsNotFoundErr(err error) bool {
-	return CheckErrCode(err, "NotFound")
+	return checkErrCode(err, "NotFound")
 }
 
-func CheckErrCode(err error, errorCode string) bool {
+func checkErrCode(err error, errorCode string) bool {
 	awsErr, ok := errors.Cause(err).(awserr.Error)
 	if !ok {
 		return false
