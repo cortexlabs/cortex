@@ -37,13 +37,13 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resourceName, err := getRequiredQueryParam("resourceName", r)
+	apiName, err := getRequiredQueryParam("resourceName", r)
 	if err != nil {
 		RespondError(w, err)
 		return
 	}
 
-	readLogs(w, r, appName, resourceName)
+	readLogs(w, r, appName, apiName)
 }
 
 func readLogs(w http.ResponseWriter, r *http.Request, appName string, apiName string) {

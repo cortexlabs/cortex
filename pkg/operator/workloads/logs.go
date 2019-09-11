@@ -21,11 +21,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/gorilla/websocket"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -75,7 +74,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, apiName 
 		"apiName": apiName,
 	}
 
-	var latestContextID string
+	var currentContextID string
 	var podTemplateHash string
 	var ctx *context.Context
 
@@ -91,21 +90,20 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, apiName 
 			if ctx == nil {
 				writeString(socket, "\ndeployment "+appName+"not found")
 				closeSocket(socket)
-				return
+				continue
 			}
 
 			if _, ok := ctx.APIs[apiName]; !ok {
 				writeString(socket, "\napi "+apiName+" was not found in latest deployment")
 				closeSocket(socket)
-				return
+				continue
 			}
 
-			if len(latestContextID) != 0 && ctx.ID != latestContextID {
-				writeString(socket, "\na new deployment was detected, streaming logs from the latest deployment")
-			}
-
-			if ctx.ID != latestContextID {
-				latestContextID = ctx.ID
+			if ctx.ID != currentContextID {
+				if len(currentContextID) != 0 {
+					writeString(socket, "\na new deployment was detected, streaming logs from the latest deployment")
+				}
+				currentContextID = ctx.ID
 				podSearchLabels["workloadID"] = ctx.APIs[apiName].WorkloadID
 				podTemplateHash = ""
 				wrotePending = false
@@ -121,7 +119,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, apiName 
 				if err != nil {
 					writeString(socket, err.Error())
 					closeSocket(socket)
-					return
+					continue
 				}
 			}
 
@@ -141,8 +139,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, apiName 
 			})
 
 			if err != nil {
-				awsErr := errors.Cause(err).(awserr.Error)
-				if awsErr.Code() == "ResourceNotFoundException" {
+				if awslib.CheckErrCode(err, "ResourceNotFoundException") {
 					if !wrotePending {
 						writeString(socket, "pending...")
 						wrotePending = true
@@ -193,10 +190,12 @@ func getPodTemplateHash(labels map[string]string) (string, error) {
 }
 
 func writeString(socket *websocket.Conn, message string) {
+	socket.SetWriteDeadline(time.Now().Add(socketWriteDeadlineWait))
 	socket.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
 func closeSocket(socket *websocket.Conn) {
+	socket.SetWriteDeadline(time.Now().Add(socketWriteDeadlineWait))
 	socket.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 	time.Sleep(socketCloseGracePeriod)
 }
