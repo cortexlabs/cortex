@@ -269,12 +269,15 @@ func tfAPISpec(
 			To:       path.Join(consts.EmptyDirMountPath, "model"),
 			ItemName: "model",
 		},
-		{
+	}
+
+	if len(ctx.ProjectKey) != 0 {
+		downloadArgs = append(downloadArgs, downloadContainerArg{
 			From:     config.AWS.S3Path(ctx.ProjectKey),
 			To:       path.Join(consts.EmptyDirMountPath, "project"),
 			Unzip:    true,
 			ItemName: "project code",
-		},
+		})
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadArgs)
@@ -441,12 +444,15 @@ func onnxAPISpec(
 			To:       path.Join(consts.EmptyDirMountPath, "model"),
 			ItemName: "model",
 		},
-		{
+	}
+
+	if len(ctx.ProjectKey) != 0 {
+		downloadArgs = append(downloadArgs, downloadContainerArg{
 			From:     config.AWS.S3Path(ctx.ProjectKey),
 			To:       path.Join(consts.EmptyDirMountPath, "project"),
 			Unzip:    true,
 			ItemName: "project code",
-		},
+		})
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadArgs)
