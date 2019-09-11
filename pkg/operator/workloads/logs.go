@@ -25,7 +25,6 @@ import (
 	"github.com/gorilla/websocket"
 
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -75,9 +74,8 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 	var currentContextID string
 	var prefix string
 	var ctx *context.Context
-
 	var err error
-	debug.Pp(podLabels)
+
 	for {
 		select {
 		case <-podCheckCancel:
@@ -154,7 +152,6 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 				EndTime:             aws.Int64(time.Now().Unix() * 1000), // requires milliseconds
 				Limit:               aws.Int64(int64(maxLogLinesPerRequest)),
 			})
-			debug.Pp(logEventsOutput)
 
 			if err != nil {
 				if awslib.CheckErrCode(err, "ResourceNotFoundException") {
