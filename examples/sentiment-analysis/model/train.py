@@ -382,7 +382,11 @@ def model_fn_builder(num_labels, learning_rate, num_train_steps, num_warmup_step
             )
 
             predictions = {"probabilities": log_probs, "labels": predicted_labels}
-            return tf.estimator.EstimatorSpec(mode, predictions=predictions)
+            return tf.estimator.EstimatorSpec(
+                mode,
+                export_outputs={"predict": tf.estimator.export.PredictOutput(predictions)},
+                predictions=predictions,
+            )
 
     # Return the actual model function in the closure
     return model_fn
