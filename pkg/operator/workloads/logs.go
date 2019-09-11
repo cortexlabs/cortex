@@ -18,7 +18,6 @@ package workloads
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -37,11 +36,9 @@ const (
 	socketCloseGracePeriod  = 10 * time.Second
 	socketMaxMessageSize    = 8192
 
-	pendingPodCheckInterval = 1 * time.Second
-	newPodCheckInterval     = 5 * time.Second
-	firstPodCheckInterval   = 500 * time.Millisecond
-	maxParallelPodLogging   = 5
-	initLogTailLines        = 100
+	maxParallelPodLogging = 5
+	maxLogLinesPerRequest = 10000
+	pollPeriod            = 250 * time.Second
 )
 
 func ReadLogs(appName string, apiName string, socket *websocket.Conn) {
@@ -69,18 +66,20 @@ type FluentdLog struct {
 func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, apiName string, socket *websocket.Conn) {
 	timer := time.NewTimer(0)
 	defer timer.Stop()
-	lastTimestamp := int64(0)
 
+	lastTimestamp := int64(0)
 	previousEvents := strset.New()
 	wrotePending := false
-
-	var ctx *context.Context
-	var latestContextID string
-	var podTemplatehash string
 	podSearchLabels := map[string]string{
 		"appName": appName,
 		"apiName": apiName,
 	}
+
+	var latestContextID string
+	var podTemplateHash string
+	var ctx *context.Context
+
+	var err error
 
 	for {
 		select {
@@ -90,7 +89,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, apiName 
 			ctx = CurrentContext(appName)
 
 			if ctx == nil {
-				writeString(socket, "\nunable to find running deployments")
+				writeString(socket, "\ndeployment "+appName+"not found")
 				closeSocket(socket)
 				return
 			}
@@ -108,7 +107,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, apiName 
 			if ctx.ID != latestContextID {
 				latestContextID = ctx.ID
 				podSearchLabels["workloadID"] = ctx.APIs[apiName].WorkloadID
-				podTemplatehash = ""
+				podTemplateHash = ""
 				wrotePending = false
 			}
 
@@ -117,39 +116,28 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, apiName 
 				wrotePending = true
 			}
 
-			if len(podTemplatehash) == 0 {
-				podTemplatehash, _ = getPodTemplateHash(podSearchLabels)
+			if len(podTemplateHash) == 0 {
+				podTemplateHash, err = getPodTemplateHash(podSearchLabels)
+				if err != nil {
+					writeString(socket, err.Error())
+					closeSocket(socket)
+					return
+				}
 			}
 
-			if len(podTemplatehash) == 0 {
+			if len(podTemplateHash) == 0 {
 				timer.Reset(250 * time.Millisecond)
 				continue
 			}
 
-			prefix := internalAPIName(apiName, appName) + "-" + podTemplatehash
-
-			pods, err := config.Kubernetes.ListPodsByLabels(podSearchLabels)
-
-			streamNames := []string{}
-			for i, pod := range pods {
-				if i >= 5 {
-					return
-				}
-				containers := pod.Spec.InitContainers
-				containers = append(containers, pod.Spec.Containers...)
-
-				for _, container := range containers {
-					streamName := fmt.Sprintf("%s_%s", pod.Name, container.Name)
-					streamNames = append(streamNames, streamName)
-				}
-			}
+			prefix := internalAPIName(apiName, appName) + "-" + podTemplateHash
 
 			logEventsOutput, err := config.AWS.CloudWatchLogsClient.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
 				LogGroupName:        aws.String(config.Cortex.LogGroup),
 				LogStreamNamePrefix: aws.String(prefix),
 				StartTime:           aws.Int64(lastTimestamp),
-				EndTime:             aws.Int64(time.Now().Unix() * 1000),
-				Limit:               aws.Int64(10000),
+				EndTime:             aws.Int64(time.Now().Unix() * 1000), // requires milliseconds
+				Limit:               aws.Int64(int64(maxLogLinesPerRequest)),
 			})
 
 			if err != nil {
@@ -160,7 +148,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, apiName 
 						wrotePending = true
 					}
 				} else {
-					writeString(socket, "error encountered while fetching logs from cloudwatch")
+					writeString(socket, "error encountered while fetching logs from cloudwatch: "+err.Error())
 					closeSocket(socket)
 					continue
 				}
@@ -181,12 +169,12 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, apiName 
 				newEvents.Add(*logEvent.EventId)
 			}
 
-			if len(logEventsOutput.Events) == 10000 {
-				socket.WriteMessage(websocket.TextMessage, []byte("---- showing at most 10 000 lines navigate to cloudwatch for the complete logstream ---- "))
+			if len(logEventsOutput.Events) == maxLogLinesPerRequest {
+				socket.WriteMessage(websocket.TextMessage, []byte("---- showing at most 10 000 lines, search for \""+prefix+"\" in log group \""+config.Cortex.LogGroup+"\" on AWS cloudwatch logs console for a complete set of logs  ----"))
 			}
 
 			previousEvents = newEvents
-			timer.Reset(250 * time.Millisecond)
+			timer.Reset(pollPeriod)
 		}
 	}
 }
