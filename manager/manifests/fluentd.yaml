@@ -69,7 +69,7 @@ data:
       pos_file /var/log/fluentd-containers.log.pos
       tag *
       read_from_head true
-      refresh_interval 2
+      refresh_interval 1
       <parse>
         @type json
         time_format %Y-%m-%dT%H:%M:%S.%NZ
@@ -99,7 +99,9 @@ data:
         remove_log_stream_name_key true
         auto_create_stream true
         <buffer>
-          flush_mode immediate
+          flush_interval 2
+          chunk_limit_size 2m
+          queued_chunks_limit_size 32
           retry_forever true
         </buffer>
       </match>
