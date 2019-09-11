@@ -143,8 +143,7 @@ func (aw *APIWorkload) IsSucceeded(ctx *context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	requestedReplicas := getRequestedReplicasFromDeployment(api, k8sDeployment, nil)
-	if updatedReplicas < requestedReplicas {
+	if updatedReplicas < api.Compute.MinReplicas {
 		return false, nil
 	}
 
@@ -171,8 +170,7 @@ func (aw *APIWorkload) IsRunning(ctx *context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	requestedReplicas := getRequestedReplicasFromDeployment(api, k8sDeployment, nil)
-	if updatedReplicas < requestedReplicas {
+	if updatedReplicas < api.Compute.MinReplicas {
 		return true, nil
 	}
 
