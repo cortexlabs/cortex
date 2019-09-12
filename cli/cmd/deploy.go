@@ -32,6 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
+var MaxProjectSize = 1024 * 1024 * 50
 var flagDeployForce bool
 
 func init() {
@@ -73,7 +74,7 @@ func deploy(force bool, ignoreCache bool) {
 		files.IgnorePythonGeneratedFiles,
 	)
 	if err != nil {
-		errors.Exit(err)
+		errors.Exit(errors.New("zipped project folder exceeds 50 MB"))
 	}
 
 	projectZipBytes, err := zip.ToMem(&zip.Input{
@@ -87,6 +88,10 @@ func deploy(force bool, ignoreCache bool) {
 
 	if err != nil {
 		errors.Exit(errors.Wrap(err, "failed to zip project folder"))
+	}
+
+	if len(projectZipBytes) != MaxProjectSize {
+		errors.Exit(errors.New(""))
 	}
 
 	uploadInput := &HTTPUploadInput{
