@@ -109,6 +109,10 @@ func (aw *APIWorkload) Start(ctx *context.Context) error {
 		return err
 	}
 
+	if k8sDeloyment != nil && k8sDeloyment.Status.ReadyReplicas == 0 {
+		config.Kubernetes.DeleteDeployment(k8sDeloymentName)
+	}
+
 	_, err = config.Kubernetes.ApplyDeployment(deploymentSpec)
 	if err != nil {
 		return err
@@ -143,8 +147,7 @@ func (aw *APIWorkload) IsSucceeded(ctx *context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	requestedReplicas := getRequestedReplicasFromDeployment(api, k8sDeployment, nil)
-	if updatedReplicas < requestedReplicas {
+	if updatedReplicas < api.Compute.MinReplicas {
 		return false, nil
 	}
 
@@ -171,8 +174,7 @@ func (aw *APIWorkload) IsRunning(ctx *context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	requestedReplicas := getRequestedReplicasFromDeployment(api, k8sDeployment, nil)
-	if updatedReplicas < requestedReplicas {
+	if updatedReplicas < api.Compute.MinReplicas {
 		return true, nil
 	}
 

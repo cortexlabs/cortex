@@ -283,7 +283,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		return out, nil
 	}
 
-	out += fmt.Sprintf("\n%s  curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json", console.Bold("curl:"), apiEndpoint)
+	out += fmt.Sprintf("\n%s curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json", console.Bold("curl:"), apiEndpoint)
 
 	out += "\n\n" + describeModelInput(groupStatus, apiEndpoint)
 
