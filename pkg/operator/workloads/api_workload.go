@@ -19,6 +19,7 @@ package workloads
 import (
 	"encoding/base64"
 	"path"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 
@@ -267,6 +268,7 @@ func tfAPISpec(
 		{
 			From:     ctx.APIs[api.Name].Model,
 			To:       path.Join(consts.EmptyDirMountPath, "model"),
+			Unzip:    strings.HasSuffix(ctx.APIs[api.Name].Model, ".zip"),
 			ItemName: "model",
 		},
 		{
