@@ -271,7 +271,7 @@ func tfAPISpec(
 		},
 	}
 
-	if len(ctx.ProjectKey) != 0 {
+	if api.RequestHandler != nil {
 		downloadArgs = append(downloadArgs, downloadContainerArg{
 			From:     config.AWS.S3Path(ctx.ProjectKey),
 			To:       path.Join(consts.EmptyDirMountPath, "project"),
@@ -446,7 +446,7 @@ func onnxAPISpec(
 		},
 	}
 
-	if len(ctx.ProjectKey) != 0 {
+	if api.RequestHandler != nil {
 		downloadArgs = append(downloadArgs, downloadContainerArg{
 			From:     config.AWS.S3Path(ctx.ProjectKey),
 			To:       path.Join(consts.EmptyDirMountPath, "project"),
