@@ -69,7 +69,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 
 	lastTimestamp := int64(0)
 	previousEvents := strset.New()
-	writePending := true
+	wrotePending := false
 
 	var currentContextID string
 	var prefix string
@@ -115,20 +115,22 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 					continue
 				}
 
-				writePending = true
+				allPodsPending := true
 				for _, pod := range pods {
 					if k8s.GetPodStatus(&pod) != k8s.PodStatusPending {
-						writePending = false
+						allPodsPending = false
 						break
 					}
 				}
 
-				prefix = ""
-			}
+				if allPodsPending {
+					writeString(socket, "\npending...")
+					wrotePending = true
+				} else {
+					wrotePending = false
+				}
 
-			if writePending {
-				writeString(socket, "\npending...")
-				writePending = false
+				prefix = ""
 			}
 
 			if len(prefix) == 0 {
@@ -155,9 +157,9 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 
 			if err != nil {
 				if awslib.CheckErrCode(err, "ResourceNotFoundException") {
-					if !writePending {
+					if !wrotePending {
 						writeString(socket, "pending...")
-						writePending = true
+						wrotePending = true
 					}
 				} else {
 					writeString(socket, "error encountered while fetching logs from cloudwatch: "+err.Error())
@@ -182,7 +184,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 			}
 
 			if len(logEventsOutput.Events) == maxLogLinesPerRequest {
-				socket.WriteMessage(websocket.TextMessage, []byte("---- Showing at most "+s.Int64(maxLogLinesPerRequest)+" lines. Visit AWS cloudwatch logs console and search for \""+prefix+"\" in log group \""+config.Cortex.LogGroup+"\" for complete logs ----"))
+				socket.WriteMessage(websocket.TextMessage, []byte("---- Showing at most "+s.Int(maxLogLinesPerRequest)+" lines. Visit AWS cloudwatch logs console and search for \""+prefix+"\" in log group \""+config.Cortex.LogGroup+"\" for complete logs ----"))
 			}
 
 			previousEvents = newEvents
