@@ -84,7 +84,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 			ctx = CurrentContext(appName)
 
 			if ctx == nil {
-				writeString(socket, "\ndeployment "+appName+"not found")
+				writeString(socket, "\ndeployment "+appName+" not found")
 				closeSocket(socket)
 				continue
 			}
