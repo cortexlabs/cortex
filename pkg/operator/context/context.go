@@ -59,20 +59,26 @@ func New(
 		consts.MetadataDir,
 	)
 
-	ctx.ProjectID = hash.Bytes(projectBytes)
-
-	ctx.ProjectKey = filepath.Join(consts.ProjectsDir, ctx.ProjectID+".zip")
-	if err = config.AWS.UploadBytesToS3(projectBytes, ctx.ProjectKey); err != nil {
-		return nil, err
-	}
+	projectID := hash.Bytes(projectBytes)
 
 	ctx.StatusPrefix = statusPrefix(ctx.App.Name)
-	apis, err := getAPIs(userconf, ctx.DeploymentVersion, ctx.ProjectID)
+	apis, err := getAPIs(userconf, ctx.DeploymentVersion, projectID)
 
 	if err != nil {
 		return nil, err
 	}
 	ctx.APIs = apis
+
+	for _, api := range ctx.APIs {
+		if api.RequestHandler != nil {
+			ctx.ProjectID = projectID
+			ctx.ProjectKey = filepath.Join(consts.ProjectsDir, ctx.ProjectID+".zip")
+			if err = config.AWS.UploadBytesToS3(projectBytes, ctx.ProjectKey); err != nil {
+				return nil, err
+			}
+			break
+		}
+	}
 
 	err = ctx.Validate()
 	if err != nil {

@@ -17,21 +17,18 @@ limitations under the License.
 package workloads
 
 import (
-	"bufio"
-	"fmt"
-	"io"
-	"os"
-	"sort"
-	"strings"
+	"encoding/json"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/gorilla/websocket"
-	kcore "k8s.io/api/core/v1"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
@@ -40,423 +37,189 @@ const (
 	socketCloseGracePeriod  = 10 * time.Second
 	socketMaxMessageSize    = 8192
 
-	pendingPodCheckInterval = 1 * time.Second
-	newPodCheckInterval     = 5 * time.Second
-	firstPodCheckInterval   = 500 * time.Millisecond
-	maxParallelPodLogging   = 5
-	initLogTailLines        = 100
+	maxLogLinesPerRequest = 500
+	pollPeriod            = 250 * time.Millisecond
 )
 
-func ReadLogs(appName string, podSearchLabels map[string]string, socket *websocket.Conn) {
-	wrotePending := false
-
-	for true {
-		pods, err := config.Kubernetes.ListPodsByLabels(podSearchLabels)
-		if err != nil {
-			writeSocket(err.Error(), socket)
-			return
-		}
-
-		if len(pods) > 0 {
-			if len(pods) > maxParallelPodLogging {
-				if !writeSocket(fmt.Sprintf("\n%d pods available, streaming logs for %d of them:", len(pods), maxParallelPodLogging), socket) {
-					return
-				}
-			}
-
-			podMap := make(map[k8s.PodStatus][]kcore.Pod)
-			for _, pod := range pods {
-				podStatus := k8s.GetPodStatus(&pod)
-				if len(podMap[podStatus]) < maxParallelPodLogging {
-					podMap[podStatus] = append(podMap[podStatus], pod)
-				}
-			}
-
-			switch {
-			case len(podMap[k8s.PodStatusSucceeded]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusSucceeded], wrotePending, socket)
-			case len(podMap[k8s.PodStatusRunning]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusRunning], wrotePending, socket)
-			case len(podMap[k8s.PodStatusPending]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusPending], wrotePending, socket)
-			case len(podMap[k8s.PodStatusKilled]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusKilled], wrotePending, socket)
-			case len(podMap[k8s.PodStatusKilledOOM]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusKilledOOM], wrotePending, socket)
-			case len(podMap[k8s.PodStatusFailed]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusFailed], wrotePending, socket)
-			case len(podMap[k8s.PodStatusTerminating]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusTerminating], wrotePending, socket)
-			case len(podMap[k8s.PodStatusUnknown]) > 0:
-				getKubectlLogs(podMap[k8s.PodStatusUnknown], wrotePending, socket)
-			default: // unexpected
-				if len(pods) > maxParallelPodLogging {
-					pods = pods[:maxParallelPodLogging]
-				}
-				getKubectlLogs(pods, wrotePending, socket)
-			}
-			return
-		}
-
-		// WorkloadID is present when logging job pods and missing for APIs. Only go to cloudwatch for job pods.
-		if workloadID, ok := podSearchLabels["workloadID"]; ok {
-			isEnded, err := IsWorkloadEnded(appName, workloadID)
-			if err != nil {
-				writeSocket(err.Error(), socket)
-				return
-			}
-
-			if isEnded {
-				getCloudWatchLogs(workloadID, socket)
-				return
-			}
-		}
-
-		if !wrotePending {
-			if !writeSocket("\nPending...", socket) {
-				return
-			}
-			wrotePending = true
-		}
-
-		time.Sleep(pendingPodCheckInterval)
-	}
-}
-
-func getKubectlLogs(pods []kcore.Pod, wrotePending bool, socket *websocket.Conn) {
-	if !wrotePending {
-		isAllPending := true
-		for _, pod := range pods {
-			if k8s.GetPodStatus(&pod) != k8s.PodStatusPending {
-				isAllPending = false
-				break
-			}
-		}
-
-		if isAllPending {
-			if !writeSocket("\nPending...", socket) {
-				return
-			}
-			wrotePending = true
-		}
-	}
-
-	inr, inw, err := os.Pipe()
-	if err != nil {
-		errors.Panic(err, "logs", "kubectl", "os.pipe")
-	}
-	defer inw.Close()
-	defer inr.Close()
-
+func ReadLogs(appName string, podLabels map[string]string, socket *websocket.Conn) {
 	podCheckCancel := make(chan struct{})
 	defer close(podCheckCancel)
-
-	go podCheck(podCheckCancel, socket, pods, wrotePending, inr)
-	pumpStdin(socket, inw)
+	go StreamFromCloudWatch(podCheckCancel, appName, podLabels, socket)
+	pumpStdin(socket)
 	podCheckCancel <- struct{}{}
 }
 
-type LogKey struct {
-	PodName       string
-	ContainerName string
-	RestartCount  int32
-}
-
-func (l LogKey) String() string {
-	return fmt.Sprintf("%s,%s,%d", l.PodName, l.ContainerName, l.RestartCount)
-}
-
-func StringToLogKey(str string) LogKey {
-	split := strings.Split(str, ",")
-	restartCount, _ := s.ParseInt32(split[2])
-	return LogKey{PodName: split[0], ContainerName: split[1], RestartCount: restartCount}
-}
-
-func GetLogKey(pod kcore.Pod, status kcore.ContainerStatus) LogKey {
-	return LogKey{PodName: pod.Name, ContainerName: status.Name, RestartCount: status.RestartCount}
-}
-
-func CurrentLoggingProcesses(logProcesses map[string]*os.Process) strset.Set {
-	set := strset.New()
-	for identifier := range logProcesses {
-		set.Add(identifier)
-	}
-	return set
-}
-
-func GetLogKeys(pod kcore.Pod) strset.Set {
-	containerStatuses := append(pod.Status.InitContainerStatuses, pod.Status.ContainerStatuses...)
-	logKeys := strset.New()
-	for _, status := range containerStatuses {
-		if status.State.Terminated != nil || status.State.Running != nil || (status.State.Waiting != nil && status.RestartCount != 0) {
-			logKeys.Add(GetLogKey(pod, status).String())
+func pumpStdin(socket *websocket.Conn) {
+	socket.SetReadLimit(socketMaxMessageSize)
+	for {
+		_, _, err := socket.ReadMessage()
+		if err != nil {
+			break
 		}
 	}
-
-	return logKeys
 }
 
-func createKubectlProcess(logKey LogKey, attrs *os.ProcAttr) (*os.Process, error) {
-	cmdPath := "/usr/local/bin/kubectl"
-
-	kubectlArgs := []string{"kubectl", "-n=" + config.Cortex.Namespace, "logs", "--follow=true", logKey.PodName, logKey.ContainerName, fmt.Sprintf("--tail=%d", initLogTailLines)}
-	process, err := os.StartProcess(cmdPath, kubectlArgs, attrs)
-	if err != nil {
-		return nil, errors.Wrap(err, strings.Join(kubectlArgs, " "))
-	}
-	return process, nil
+type FluentdLog struct {
+	Log string `json:"log"`
 }
 
-func podCheck(podCheckCancel chan struct{}, socket *websocket.Conn, initialPodList []kcore.Pod, wrotePending bool, inr *os.File) {
+func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabels map[string]string, socket *websocket.Conn) {
 	timer := time.NewTimer(0)
 	defer timer.Stop()
 
-	processMap := make(map[string]*os.Process)
-	defer deleteProcesses(processMap)
-	labels := initialPodList[0].GetLabels()
-	podSearchLabels := map[string]string{
-		"appName":      labels["appName"],
-		"workloadType": labels["workloadType"],
-		"userFacing":   "true",
-	}
+	lastTimestamp := int64(0)
+	previousEvents := strset.New()
+	wrotePending := false
 
-	if labels["workloadType"] == workloadTypeAPI {
-		podSearchLabels["apiName"] = labels["apiName"]
-	} else {
-		podSearchLabels["workloadID"] = labels["workloadID"]
-	}
-
-	outr, outw, err := os.Pipe()
-	if err != nil {
-		errors.Panic(err, "logs", "kubectl", "os.pipe")
-	}
-	defer outw.Close()
-	defer outr.Close()
-
-	procAttr := os.ProcAttr{
-		Files: []*os.File{inr, outw, outw},
-	}
-
-	socketWriterError := make(chan error, 1)
-	defer close(socketWriterError)
-
-	go pumpStdout(socket, socketWriterError, outr)
+	var currentContextID string
+	var prefix string
+	var ctx *context.Context
+	var err error
 
 	for {
 		select {
 		case <-podCheckCancel:
 			return
 		case <-timer.C:
-			pods, err := config.Kubernetes.ListPodsByLabels(podSearchLabels)
+			ctx = CurrentContext(appName)
 
-			if err != nil {
-				socketWriterError <- errors.Wrap(err, "pod check")
-				return
+			if ctx == nil {
+				writeString(socket, "\ndeployment "+appName+" not found")
+				closeSocket(socket)
+				continue
 			}
 
-			latestRunningPodsMap := make(map[string]kcore.Pod)
-			latestRunningPods := strset.New()
-			for _, pod := range pods {
-				if k8s.GetPodStatus(&pod) != k8s.PodStatusPending {
-					latestRunningPods.Add(pod.GetName())
-					latestRunningPodsMap[pod.GetName()] = pod
+			if ctx.ID != currentContextID {
+				if len(currentContextID) != 0 {
+					if apiName, ok := podLabels["apiName"]; ok {
+						if _, ok := ctx.APIs[apiName]; !ok {
+							writeString(socket, "\napi "+apiName+" was not found in latest deployment")
+							closeSocket(socket)
+							continue
+						}
+						podLabels["workloadID"] = ctx.APIs[apiName].WorkloadID
+						writeString(socket, "\na new deployment was detected, streaming logs from the latest deployment")
+					} else {
+						writeString(socket, "\nnew deployment detected, shutting down log stream") // unexpected for now, should only occur when logging non api resources
+						closeSocket(socket)
+						continue
+					}
+				}
+
+				currentContextID = ctx.ID
+
+				pods, err := config.Kubernetes.ListPodsByLabels(podLabels)
+				if err != nil {
+					writeString(socket, err.Error())
+					closeSocket(socket)
+					continue
+				}
+
+				allPodsPending := true
+				for _, pod := range pods {
+					if k8s.GetPodStatus(&pod) != k8s.PodStatusPending {
+						allPodsPending = false
+						break
+					}
+				}
+
+				if allPodsPending {
+					writeString(socket, "\npending...")
+					wrotePending = true
+				} else {
+					wrotePending = false
+				}
+
+				prefix = ""
+			}
+
+			if len(prefix) == 0 {
+				prefix, err = getPrefix(podLabels)
+				if err != nil {
+					writeString(socket, err.Error())
+					closeSocket(socket)
+					continue
 				}
 			}
 
-			runningLogProcesses := CurrentLoggingProcesses(processMap)
+			if len(prefix) == 0 {
+				timer.Reset(pollPeriod)
+				continue
+			}
 
-			sortedPods := latestRunningPods.Slice()
-			sort.Slice(sortedPods, func(i, j int) bool {
-				return latestRunningPodsMap[sortedPods[i]].CreationTimestamp.After(latestRunningPodsMap[sortedPods[j]].CreationTimestamp.Time)
+			logEventsOutput, err := config.AWS.CloudWatchLogsClient.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
+				LogGroupName:        aws.String(config.Cortex.LogGroup),
+				LogStreamNamePrefix: aws.String(prefix),
+				StartTime:           aws.Int64(lastTimestamp),
+				EndTime:             aws.Int64(time.Now().Unix() * 1000), // requires milliseconds
+				Limit:               aws.Int64(int64(maxLogLinesPerRequest)),
 			})
 
-			expectedLogProcesses := strset.New()
-			for i, podName := range sortedPods {
-				if i >= maxParallelPodLogging {
-					break
-				}
-				expectedLogProcesses.Merge(GetLogKeys(latestRunningPodsMap[podName]))
-			}
-
-			processesToDelete := strset.Difference(runningLogProcesses, expectedLogProcesses)
-			processesToAdd := strset.Difference(expectedLogProcesses, runningLogProcesses)
-
-			if wrotePending && len(latestRunningPods) > 0 {
-				if !writeSocket("Streaming logs:", socket) {
-					return
-				}
-				wrotePending = false
-			}
-
-			initProcesses := strset.New()
-			tfServingProcesses := strset.New()
-			apiProcesses := strset.New()
-
-			for logProcess := range processesToAdd {
-				logKey := StringToLogKey(logProcess)
-				switch logKey.ContainerName {
-				case downloaderInitContainerName:
-					initProcesses.Add(logProcess)
-				case tfServingContainerName:
-					tfServingProcesses.Add(logProcess)
-				case apiContainerName:
-					apiProcesses.Add(logProcess)
-				default:
-					socketWriterError <- errors.New("unexpected container type encountered " + logKey.ContainerName) // unexpected
-					return
+			if err != nil {
+				if awslib.CheckErrCode(err, "ResourceNotFoundException") {
+					if !wrotePending {
+						writeString(socket, "pending...")
+						wrotePending = true
+					}
+				} else {
+					writeString(socket, "error encountered while fetching logs from cloudwatch: "+err.Error())
+					closeSocket(socket)
+					continue
 				}
 			}
 
-			for logProcess := range initProcesses {
-				process, err := createKubectlProcess(StringToLogKey(logProcess), &procAttr)
-				if err != nil {
-					socketWriterError <- err
-					return
+			newEvents := strset.New()
+			for _, logEvent := range logEventsOutput.Events {
+				var log FluentdLog
+				json.Unmarshal([]byte(*logEvent.Message), &log)
+
+				if !previousEvents.Has(*logEvent.EventId) {
+					socket.WriteMessage(websocket.TextMessage, []byte(log.Log))
+
+					if *logEvent.Timestamp > lastTimestamp {
+						lastTimestamp = *logEvent.Timestamp
+					}
 				}
-				processMap[logProcess] = process
+				newEvents.Add(*logEvent.EventId)
 			}
 
-			if len(tfServingProcesses) != 0 && len(initProcesses) != 0 {
-				time.Sleep(100 * time.Millisecond)
+			if len(logEventsOutput.Events) == maxLogLinesPerRequest {
+				socket.WriteMessage(websocket.TextMessage, []byte("---- Showing at most "+s.Int(maxLogLinesPerRequest)+" lines. Visit AWS cloudwatch logs console and search for \""+prefix+"\" in log group \""+config.Cortex.LogGroup+"\" for complete logs ----"))
 			}
 
-			for logProcess := range tfServingProcesses {
-				process, err := createKubectlProcess(StringToLogKey(logProcess), &procAttr)
-				if err != nil {
-					socketWriterError <- err
-					return
-				}
-				processMap[logProcess] = process
-			}
-
-			if len(apiProcesses) != 0 && (len(tfServingProcesses) != 0 || len(initProcesses) != 0) {
-				time.Sleep(100 * time.Millisecond)
-			}
-
-			for logProcess := range apiProcesses {
-				process, err := createKubectlProcess(StringToLogKey(logProcess), &procAttr)
-				if err != nil {
-					socketWriterError <- err
-					return
-				}
-				processMap[logProcess] = process
-			}
-
-			deleteMap := make(map[string]*os.Process, len(processesToDelete))
-
-			for podName := range processesToDelete {
-				deleteMap[podName] = processMap[podName]
-				delete(processMap, podName)
-			}
-
-			go deleteProcesses(deleteMap)
-
-			if len(processMap) == 0 {
-				timer.Reset(firstPodCheckInterval)
-			} else {
-				timer.Reset(newPodCheckInterval)
-			}
+			previousEvents = newEvents
+			timer.Reset(pollPeriod)
 		}
 	}
 }
 
-func deleteProcesses(processMap map[string]*os.Process) {
-	for _, process := range processMap {
-		process.Signal(os.Interrupt)
-	}
-	time.Sleep(3 * time.Second)
-	for _, process := range processMap {
-		process.Signal(os.Kill)
-	}
-}
-
-func getCloudWatchLogs(prefix string, socket *websocket.Conn) {
-	logs, err := config.AWS.GetLogs(prefix, config.Cortex.LogGroup)
+func getPrefix(searchLabels map[string]string) (string, error) {
+	pods, err := config.Kubernetes.ListPodsByLabels(searchLabels)
 	if err != nil {
-		config.Telemetry.ReportError(err)
-		errors.PrintError(err)
+		return "", err
 	}
 
-	var logsReader *strings.Reader
-	if err != nil {
-		logsReader = strings.NewReader(err.Error())
-	} else if logs == "" {
-		logsReader = strings.NewReader(prefix + " not found")
-	} else {
-		logsReader = strings.NewReader(logs)
+	if len(pods) == 0 {
+		return "", nil
 	}
 
-	socketWriterError := make(chan error)
-	defer close(socketWriterError)
-	go pumpStdout(socket, socketWriterError, logsReader)
-
-	inr, inw, err := os.Pipe()
-	if err != nil {
-		errors.Panic(err, "logs", "cloudwatch", "os.pipe")
+	podLabels := pods[0].GetLabels()
+	if apiName, ok := podLabels["apiName"]; ok {
+		if podTemplateHash, ok := podLabels["pod-template-hash"]; ok {
+			return internalAPIName(apiName, podLabels["appName"]) + "-" + podTemplateHash, nil
+		}
+		return "", nil // unexpected, pod template hash not set yet
 	}
-	defer inr.Close()
-	defer inw.Close()
-
-	pumpStdin(socket, inw)
+	return pods[0].Name, nil // unexpected, logging non api resources
 }
 
-func pumpStdin(socket *websocket.Conn, writer io.Writer) {
-	socket.SetReadLimit(socketMaxMessageSize)
-	for {
-		_, message, err := socket.ReadMessage()
-		if err != nil {
-			break
-		}
-
-		message = append(message, '\n')
-		_, err = writer.Write(message)
-		if err != nil {
-			break
-		}
-	}
+func writeString(socket *websocket.Conn, message string) {
+	socket.SetWriteDeadline(time.Now().Add(socketWriteDeadlineWait))
+	socket.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
-func pumpStdout(socket *websocket.Conn, socketWriterError chan error, reader io.Reader) {
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		socket.SetWriteDeadline(time.Now().Add(socketWriteDeadlineWait))
-		logBytes := scanner.Bytes()
-
-		if logBytes != nil {
-			if !writeSocketBytes(logBytes, socket) {
-				break
-			}
-		}
-	}
-
-	select {
-	case err := <-socketWriterError:
-		if err != nil {
-			writeSocket(err.Error()+"\n", socket)
-		}
-	default:
-	}
-
+func closeSocket(socket *websocket.Conn) {
 	socket.SetWriteDeadline(time.Now().Add(socketWriteDeadlineWait))
 	socket.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 	time.Sleep(socketCloseGracePeriod)
-	socket.Close()
-}
-
-func stopProcess(process *os.Process) {
-	process.Signal(os.Interrupt)
-	time.Sleep(5 * time.Second)
-	process.Signal(os.Kill)
-}
-
-func writeSocket(message string, socket *websocket.Conn) bool {
-	return writeSocketBytes([]byte(message), socket)
-}
-
-func writeSocketBytes(message []byte, socket *websocket.Conn) bool {
-	err := socket.WriteMessage(websocket.TextMessage, message)
-	if err != nil {
-		return false
-	}
-	return true
 }
