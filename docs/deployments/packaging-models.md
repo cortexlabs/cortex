@@ -28,8 +28,8 @@ estimator.export_savedmodel(OUPUT_DIR, serving_input_fn, strip_default_attrs=Tru
 
 Upload the checkpoint directory to Amazon S3 using the AWS web console or CLI:
 
-```text
-$ aws s3 sync ./bert s3://my-bucket/bert
+```bash
+aws s3 sync ./bert s3://my-bucket/bert
 ```
 
 Reference your model in an `api`:
@@ -38,6 +38,22 @@ Reference your model in an `api`:
 - kind: api
   name: my-api
   model: s3://my-bucket/bert
+```
+
+You may also zip the export directory before uploading it:
+
+```bash
+cd bert/1568244606  # Your version number will be different
+zip -r bert.zip 1568244606
+aws s3 cp bert.zip s3://my-bucket/bert.zip --profile prod
+```
+
+Reference the zipped model in an `api`:
+
+```yaml
+- kind: api
+  name: my-api
+  model: s3://my-bucket/bert.zip
 ```
 
 ## ONNX
@@ -69,8 +85,8 @@ Here are complete examples of converting models from some of the common ML frame
 
 Upload your trained model in ONNX format to Amazon S3 using the AWS web console or CLI:
 
-```text
-$ aws s3 cp model.onnx s3://my-bucket/model.onnx
+```bash
+aws s3 cp model.onnx s3://my-bucket/model.onnx
 ```
 
 Reference your model in an `api`:
