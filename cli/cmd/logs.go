@@ -30,35 +30,19 @@ func init() {
 }
 
 var logsCmd = &cobra.Command{
-	Use:   "logs [RESOURCE_TYPE] RESOURCE_NAME",
+	Use:   "logs RESOURCE_NAME",
 	Short: "get logs for a resource",
 	Long:  "Get logs for a resource.",
-	Args:  cobra.RangeArgs(1, 2),
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		resourceName, resourceTypeStr := "", ""
-		switch len(args) {
-		case 1:
-			resourceName = args[0]
-		case 2:
-			userResourceType := args[0]
-			resourceName = args[1]
-
-			if userResourceType != "" {
-				resourceType, err := resource.VisibleResourceTypeFromPrefix(userResourceType)
-				if err != nil {
-					errors.Exit(err)
-				}
-
-				resourceTypeStr = resourceType.String()
-			}
-		}
+		resourceName := args[0]
 
 		appName, err := AppNameFromFlagOrConfig()
 		if err != nil {
 			errors.Exit(err)
 		}
 
-		err = StreamLogs(appName, resourceName, resourceTypeStr)
+		err = StreamLogs(appName, resourceName, resource.APIType.String())
 		if err != nil {
 			errors.Exit(err)
 		}
