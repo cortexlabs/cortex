@@ -52,7 +52,7 @@ var deployCmd = &cobra.Command{
 
 func deploy(force bool, ignoreCache bool) {
 	root := mustAppRoot()
-	_, err := appNameFromConfig() // Check proper cortex.yaml
+	config, err := readConfig() // Check proper cortex.yaml
 	if err != nil {
 		errors.Exit(err)
 	}
@@ -67,38 +67,52 @@ func deploy(force bool, ignoreCache bool) {
 		errors.Exit(errors.Wrap(err, "cortex.yaml", userconfig.ErrorReadConfig().Error()))
 	}
 
-	projectPaths, err := files.ListDirRecursive(root, false,
-		files.IgnoreCortexYAML,
-		files.IgnoreHiddenFiles,
-		files.IgnoreHiddenFolders,
-		files.IgnorePythonGeneratedFiles,
-	)
-	if err != nil {
-		errors.Exit(errors.New("zipped project folder exceeds 50 MB"))
+	uploadBytes := map[string][]byte{
+		"cortex.yaml": configBytes,
 	}
 
-	projectZipBytes, err := zip.ToMem(&zip.Input{
-		FileLists: []zip.FileListInput{
-			{
-				Sources:      projectPaths,
-				RemovePrefix: root,
+	isProjectZipRequired := false
+	for _, api := range config.APIs {
+		if api.RequestHandler != nil {
+			isProjectZipRequired = true
+			break
+		}
+	}
+
+	if isProjectZipRequired {
+		fmt.Println("isProjectZipRequired")
+		projectPaths, err := files.ListDirRecursive(root, false,
+			files.IgnoreCortexYAML,
+			files.IgnoreHiddenFiles,
+			files.IgnoreHiddenFolders,
+			files.IgnorePythonGeneratedFiles,
+		)
+		if err != nil {
+			errors.Exit(errors.New("zipped project folder exceeds 50 MB"))
+		}
+
+		projectZipBytes, err := zip.ToMem(&zip.Input{
+			FileLists: []zip.FileListInput{
+				{
+					Sources:      projectPaths,
+					RemovePrefix: root,
+				},
 			},
-		},
-	})
+		})
 
-	if err != nil {
-		errors.Exit(errors.Wrap(err, "failed to zip project folder"))
-	}
+		if err != nil {
+			errors.Exit(errors.Wrap(err, "failed to zip project folder"))
+		}
 
-	if len(projectZipBytes) != MaxProjectSize {
-		errors.Exit(errors.New(""))
+		if len(projectZipBytes) != MaxProjectSize {
+			errors.Exit(errors.New(""))
+		}
+
+		uploadBytes["project.zip"] = projectZipBytes
 	}
 
 	uploadInput := &HTTPUploadInput{
-		Bytes: map[string][]byte{
-			"cortex.yaml": configBytes,
-			"project.zip": projectZipBytes,
-		},
+		Bytes: uploadBytes,
 	}
 
 	response, err := HTTPUpload("/deploy", uploadInput, params)

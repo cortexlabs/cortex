@@ -118,16 +118,16 @@ func New(filePath string, configBytes []byte) (*Config, error) {
 	return config, nil
 }
 
-func ReadAppName(filePath string, relativePath string) (string, error) {
+func ReadConfigFile(filePath string, relativePath string) (*Config, error) {
 	configBytes, err := files.ReadFileBytes(filePath)
 	if err != nil {
-		return "", errors.Wrap(err, relativePath, ErrorReadConfig().Error())
+		return nil, errors.Wrap(err, relativePath, ErrorReadConfig().Error())
 	}
 
 	config, err := New(relativePath, configBytes)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return config.App.Name, nil
+	return config, nil
 }

@@ -66,9 +66,13 @@ func pythonPaths(dir string) []string {
 	return pyPaths
 }
 
-func appNameFromConfig() (string, error) {
+func readConfig() (*userconfig.Config, error) {
 	appRoot := mustAppRoot()
-	return userconfig.ReadAppName(filepath.Join(appRoot, "cortex.yaml"), "cortex.yaml")
+	config, err := userconfig.ReadConfigFile(filepath.Join(appRoot, "cortex.yaml"), "cortex.yaml")
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
 }
 
 func AppNameFromFlagOrConfig() (string, error) {
@@ -76,12 +80,12 @@ func AppNameFromFlagOrConfig() (string, error) {
 		return flagAppName, nil
 	}
 
-	appName, err := appNameFromConfig()
+	config, err := readConfig()
 	if err != nil {
 		return "", err
 	}
 
-	return appName, nil
+	return config.App.Name, nil
 }
 
 func IsAppNameSpecified() bool {

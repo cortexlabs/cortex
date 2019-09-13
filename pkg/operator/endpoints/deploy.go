@@ -17,6 +17,7 @@ limitations under the License.
 package endpoints
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -47,10 +48,15 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	projectBytes, err := files.ReadReqFile(r, "project.zip")
-	if err != nil {
-		RespondError(w, errors.WithStack(err))
-		return
+	projectBytes := []byte{}
+
+	if _, ok := r.Form["project.zip"]; ok {
+		fmt.Println("print.zip")
+		projectBytes, err = files.ReadReqFile(r, "project.zip")
+		if err != nil {
+			RespondError(w, errors.WithStack(err))
+			return
+		}
 	}
 
 	userconf, err := userconfig.New("cortex.yaml", configBytes)
@@ -59,15 +65,12 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = userconf.Validate(projectBytes)
-	if err != nil {
-		RespondError(w, err)
-		return
-	}
-
 	if len(projectBytes) == 0 {
-		RespondError(w, ErrorFormFileMustBeProvided("project.zip"))
-		return
+		err = userconf.Validate(projectBytes)
+		if err != nil {
+			RespondError(w, err)
+			return
+		}
 	}
 
 	ctx, err := ocontext.New(userconf, projectBytes, ignoreCache)

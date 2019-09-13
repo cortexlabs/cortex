@@ -46,10 +46,11 @@ var deleteCmd = &cobra.Command{
 		if len(args) == 1 {
 			appName = args[0]
 		} else {
-			appName, err = appNameFromConfig()
+			config, err := readConfig()
 			if err != nil {
 				errors.Exit(err)
 			}
+			appName = config.App.Name
 		}
 
 		params := map[string]string{
