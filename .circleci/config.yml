@@ -26,7 +26,7 @@ commands:
 jobs:
   test:
     docker:
-      - image: circleci/python:3.6-buster
+      - image: circleci/python:3.6
     steps:
       - checkout
       - setup_remote_docker
@@ -44,7 +44,7 @@ jobs:
           command: make test-python
   test-release:
     docker:
-      - image: circleci/python:3.6-buster
+      - image: circleci/python:3.6
     steps:
       - checkout
       - run:
@@ -52,7 +52,7 @@ jobs:
           command: make find-missing-version
   build-and-deploy:
     docker:
-      - image: circleci/python:3.6-buster
+      - image: circleci/python:3.6
     steps:
       - checkout
       - setup_remote_docker
