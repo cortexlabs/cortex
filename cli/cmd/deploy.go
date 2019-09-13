@@ -32,6 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
+var MaxProjectSize = 1024 * 1024 * 50
 var flagDeployForce bool
 
 func init() {
@@ -51,7 +52,7 @@ var deployCmd = &cobra.Command{
 
 func deploy(force bool, ignoreCache bool) {
 	root := mustAppRoot()
-	_, err := appNameFromConfig() // Check proper cortex.yaml
+	config, err := readConfig() // Check proper cortex.yaml
 	if err != nil {
 		errors.Exit(err)
 	}
@@ -66,34 +67,43 @@ func deploy(force bool, ignoreCache bool) {
 		errors.Exit(errors.Wrap(err, "cortex.yaml", userconfig.ErrorReadConfig().Error()))
 	}
 
-	projectPaths, err := files.ListDirRecursive(root, false,
-		files.IgnoreCortexYAML,
-		files.IgnoreHiddenFiles,
-		files.IgnoreHiddenFolders,
-		files.IgnorePythonGeneratedFiles,
-	)
-	if err != nil {
-		errors.Exit(err)
+	uploadBytes := map[string][]byte{
+		"cortex.yaml": configBytes,
 	}
 
-	projectZipBytes, err := zip.ToMem(&zip.Input{
-		FileLists: []zip.FileListInput{
-			{
-				Sources:      projectPaths,
-				RemovePrefix: root,
-			},
-		},
-	})
+	if config.AreProjectFilesRequired() {
+		projectPaths, err := files.ListDirRecursive(root, false,
+			files.IgnoreCortexYAML,
+			files.IgnoreHiddenFiles,
+			files.IgnoreHiddenFolders,
+			files.IgnorePythonGeneratedFiles,
+		)
+		if err != nil {
+			errors.Exit(err)
+		}
 
-	if err != nil {
-		errors.Exit(errors.Wrap(err, "failed to zip project folder"))
+		projectZipBytes, err := zip.ToMem(&zip.Input{
+			FileLists: []zip.FileListInput{
+				{
+					Sources:      projectPaths,
+					RemovePrefix: root,
+				},
+			},
+		})
+
+		if err != nil {
+			errors.Exit(errors.Wrap(err, "failed to zip project folder"))
+		}
+
+		if len(projectZipBytes) > MaxProjectSize {
+			errors.Exit(errors.New("zipped project folder exceeds " + s.Int(MaxProjectSize) + " bytes"))
+		}
+
+		uploadBytes["project.zip"] = projectZipBytes
 	}
 
 	uploadInput := &HTTPUploadInput{
-		Bytes: map[string][]byte{
-			"cortex.yaml": configBytes,
-			"project.zip": projectZipBytes,
-		},
+		Bytes: uploadBytes,
 	}
 
 	response, err := HTTPUpload("/deploy", uploadInput, params)
