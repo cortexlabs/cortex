@@ -1,10 +1,10 @@
-FROM python:3.7
+FROM python:3.6
 
 ENV PYTHONPATH="/src:${PYTHONPATH}"
 
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
-RUN pip3 install -r /src/cortex/lib/requirements.txt && \
-    pip3 install pytest mock && \
+RUN pip install -r /src/cortex/lib/requirements.txt && \
+    pip install pytest mock && \
     rm -rf /root/.cache/pip*
 
 COPY pkg/workloads /src

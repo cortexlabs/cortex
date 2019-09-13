@@ -23,7 +23,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./build/find-missing-version.sh" \
 ! -path "./.git/*" \
 ! -name ".*" \
--exec grep -R -A 50 -e "CORTEX_VERSION" {} \+)
+-exec grep -R -A 50 -e "CORTEX_VERSION" {} \;)
 
 output=$(echo "$output" | grep -e "master")
 

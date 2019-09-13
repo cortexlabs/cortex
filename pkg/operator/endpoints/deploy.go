@@ -48,10 +48,6 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	projectBytes, err := files.ReadReqFile(r, "project.zip")
-	if err != nil {
-		RespondError(w, errors.WithStack(err))
-		return
-	}
 
 	userconf, err := userconfig.New("cortex.yaml", configBytes)
 	if err != nil {
@@ -65,17 +61,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(projectBytes) == 0 {
-		RespondError(w, ErrorFormFileMustBeProvided("project.zip"))
-		return
-	}
-
 	ctx, err := ocontext.New(userconf, projectBytes, ignoreCache)
-	if err != nil {
-		RespondError(w, err)
-		return
-	}
-
 	if err != nil {
 		RespondError(w, err)
 		return
