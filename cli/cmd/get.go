@@ -50,10 +50,10 @@ func init() {
 }
 
 var getCmd = &cobra.Command{
-	Use:   "get [RESOURCE_TYPE] [RESOURCE_NAME]",
+	Use:   "get [RESOURCE_NAME]",
 	Short: "get information about resources",
 	Long:  "Get information about resources.",
-	Args:  cobra.RangeArgs(0, 2),
+	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		rerun(func() (string, error) {
 			return runGet(cmd, args)
@@ -79,34 +79,12 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 		return allResourcesStr(resourcesRes), nil
 
 	case 1:
-		resourceNameOrType := args[0]
-
-		resourceType, err := resource.VisibleResourceTypeFromPrefix(resourceNameOrType)
-		if err != nil {
-			if rerr, ok := err.(resource.Error); ok && rerr.Kind != resource.ErrInvalidType {
-				return "", err
-			}
-		} else {
-			return resourcesByTypeStr(resourceType, resourcesRes)
-		}
-
-		if _, err = resourcesRes.Context.VisibleResourceByName(resourceNameOrType); err != nil {
-			if rerr, ok := err.(resource.Error); ok && rerr.Kind == resource.ErrNameNotFound {
-				return "", resource.ErrorNameOrTypeNotFound(resourceNameOrType)
-			}
+		resourceName := args[0]
+		if _, err = resourcesRes.Context.VisibleResourceByName(resourceName); err != nil {
 			return "", err
 		}
 
-		return resourceByNameStr(resourceNameOrType, resourcesRes, flagVerbose)
-
-	case 2:
-		userResourceType := args[0]
-		resourceName := args[1]
-		resourceType, err := resource.VisibleResourceTypeFromPrefix(userResourceType)
-		if err != nil {
-			return "", resource.ErrorInvalidType(userResourceType)
-		}
-		return resourceByNameAndTypeStr(resourceName, resourceType, resourcesRes, flagVerbose)
+		return resourceByNameStr(resourceName, resourcesRes, flagVerbose)
 	}
 
 	return "", errors.New("too many args") // unexpected

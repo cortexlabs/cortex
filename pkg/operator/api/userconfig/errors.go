@@ -46,6 +46,7 @@ const (
 	ErrImplDoesNotExist
 	ErrUnableToInferModelFormat
 	ErrExternalNotFound
+	ErrONNXDoesntSupportZip
 	ErrInvalidTensorflowDir
 	ErrTFServingOptionsForTFOnly
 )
@@ -70,6 +71,7 @@ var errorKinds = []string{
 	"err_impl_does_not_exist",
 	"err_unable_to_infer_model_format",
 	"err_external_not_found",
+	"err_onnx_doesnt_support_zip",
 	"err_invalid_tensorflow_dir",
 	"err_tf_serving_options_for_tf_only",
 }
@@ -272,6 +274,13 @@ func ErrorExternalNotFound(path string) error {
 	return Error{
 		Kind:    ErrExternalNotFound,
 		message: fmt.Sprintf("%s: not found or insufficient permissions", path),
+	}
+}
+
+func ErrorONNXDoesntSupportZip() error {
+	return Error{
+		Kind:    ErrONNXDoesntSupportZip,
+		message: fmt.Sprintf("zip files are not supported for ONNX models"),
 	}
 }
 

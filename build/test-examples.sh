@@ -28,7 +28,7 @@ for example in $ROOT/examples/*/cortex.yaml; do
   echo "Deploying $example_base_dir"
   $CORTEX refresh
 
-  api_names="$($CORTEX get api | sed '1,2d' | sed '/^$/d' | tr -s ' ' | cut -f 1 -d " ")"
+  api_names="$($CORTEX get | sed '1,2d' | sed '/^$/d' | tr -s ' ' | cut -f 1 -d " ")"
   sample="$(find . -name "*.json")"
 
   while true; do
@@ -41,8 +41,8 @@ for example in $ROOT/examples/*/cortex.yaml; do
       exit 1
     fi
 
-    ready_count="$($CORTEX get api | sed '1,2d' | sed '/^$/d' | { grep "ready" || test $? = 1; } | wc -l)"
-    total_count="$($CORTEX get api | sed '1,2d' | sed '/^$/d' | wc -l)"
+    ready_count="$($CORTEX get | sed '1,2d' | sed '/^$/d' | { grep "ready" || test $? = 1; } | wc -l)"
+    total_count="$($CORTEX get | sed '1,2d' | sed '/^$/d' | wc -l)"
 
     sleep 15 # account for API startup delay
 
