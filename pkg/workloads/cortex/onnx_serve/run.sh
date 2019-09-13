@@ -16,6 +16,6 @@
 
 
 if [ -f "/mnt/project/requirements.txt" ]; then
-    pip3 install -r /mnt/project/requirements.txt
+    pip install -r /mnt/project/requirements.txt
 fi
-/usr/bin/python3 /src/cortex/onnx_serve/api.py "$@"
+/usr/bin/python3.6 /src/cortex/onnx_serve/api.py "$@"

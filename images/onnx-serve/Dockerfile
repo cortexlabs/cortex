@@ -3,16 +3,6 @@ FROM ubuntu:18.04
 ARG ONNXRUNTIME_VERSION="0.5.0"
 
 RUN apt-get update -qq && apt-get install -y -q \
-        python3 \
-        python3-dev \
-        python3-pip \
-    && apt-get clean -qq && rm -rf /var/lib/apt/lists/* && \
-    pip3 install --upgrade \
-        pip \
-        setuptools \
-    && rm -rf /root/.cache/pip*
-
-RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
         curl \
         libfreetype6-dev \
@@ -23,16 +13,20 @@ RUN apt-get update -qq && apt-get install -y -q \
         software-properties-common \
         unzip \
         zlib1g-dev \
-    && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
-
+        python3.6-dev \
+        python3.6-distutils \
+    && apt-get clean -qq && rm -rf /var/lib/apt/lists/* && \
+    curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
+    python3.6 get-pip.py && \
+    rm -rf /root/.cache/pip*
 
 ENV PYTHONPATH "${PYTHONPATH}:/src:/mnt/project"
 
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
 COPY pkg/workloads/cortex/onnx_serve/requirements.txt /src/cortex/onnx_serve/requirements.txt
-RUN pip3 install -r /src/cortex/lib/requirements.txt && \
-    pip3 install -r /src/cortex/onnx_serve/requirements.txt && \
-    pip3 install onnxruntime==${ONNXRUNTIME_VERSION} && \
+RUN pip install -r /src/cortex/lib/requirements.txt && \
+    pip install -r /src/cortex/onnx_serve/requirements.txt && \
+    pip install onnxruntime==${ONNXRUNTIME_VERSION} && \
     rm -rf /root/.cache/pip*
 
 COPY pkg/workloads/cortex/consts.py /src/cortex
