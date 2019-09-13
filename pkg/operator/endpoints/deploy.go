@@ -47,15 +47,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	projectBytes := []byte{}
-
-	if _, ok := r.MultipartForm.File["project.zip"]; ok {
-		projectBytes, err = files.ReadReqFile(r, "project.zip")
-		if err != nil {
-			RespondError(w, errors.WithStack(err))
-			return
-		}
-	}
+	projectBytes, err := files.ReadReqFile(r, "project.zip")
 
 	userconf, err := userconfig.New("cortex.yaml", configBytes)
 	if err != nil {

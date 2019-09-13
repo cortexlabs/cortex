@@ -43,9 +43,9 @@ func (config *Config) Validate(projectBytes []byte) error {
 		return err
 	}
 
-	projectFileMap := map[string][]byte{}
+	projectFileMap := make(map[string][]byte)
 
-	if config.APIs.AreProjectFilesRequired() {
+	if config.AreProjectFilesRequired() {
 		projectFileMap, err = zip.UnzipMemToMem(projectBytes)
 		if err != nil {
 			return err
@@ -59,6 +59,10 @@ func (config *Config) Validate(projectBytes []byte) error {
 	}
 
 	return nil
+}
+
+func (config *Config) AreProjectFilesRequired() bool {
+	return config.APIs.AreProjectFilesRequired()
 }
 
 func New(filePath string, configBytes []byte) (*Config, error) {

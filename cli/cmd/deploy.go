@@ -71,7 +71,7 @@ func deploy(force bool, ignoreCache bool) {
 		"cortex.yaml": configBytes,
 	}
 
-	if config.APIs.AreProjectFilesRequired() {
+	if config.AreProjectFilesRequired() {
 		projectPaths, err := files.ListDirRecursive(root, false,
 			files.IgnoreCortexYAML,
 			files.IgnoreHiddenFiles,
