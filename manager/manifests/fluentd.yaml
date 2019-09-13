@@ -69,6 +69,7 @@ data:
       pos_file /var/log/fluentd-containers.log.pos
       tag *
       read_from_head true
+      refresh_interval 1
       <parse>
         @type json
         time_format %Y-%m-%dT%H:%M:%S.%NZ
@@ -81,25 +82,12 @@ data:
         @id filter_kube_metadata
       </filter>
 
-      <match **>
-        @type route
-        <route **>
-          copy
-          @label @by_pod
-        </route>
-        <route **>
-          copy
-          @label @by_endpoint
-        </route>
-      </match>
-    </label>
-
-    <label @by_pod>
       <filter **>
         @type record_transformer
-        @id filter_containers_stream_transformer
+        enable_ruby
         <record>
-          stream_name ${tag_parts[3]}
+          stream_name ${record.dig("kubernetes", "pod_name")}_${record.dig("kubernetes", "container_name")}
+          log ${record.dig("log").rstrip}
         </record>
         remove_keys kubernetes,docker,stream
       </filter>
@@ -111,49 +99,7 @@ data:
         remove_log_stream_name_key true
         auto_create_stream true
         <buffer>
-          flush_interval 5
-          chunk_limit_size 2m
-          queued_chunks_limit_size 32
-          retry_forever true
-        </buffer>
-      </match>
-    </label>
-
-    <label @by_endpoint>
-      <filter **>
-        @type record_transformer
-        enable_ruby
-        <record>
-          workload_type ${record.dig("kubernetes", "labels", "workloadType") || "unknown"}
-        </record>
-        remove_keys docker,stream
-      </filter>
-
-      <filter **>
-        @type grep
-        regexp1 workload_type api
-      </filter>
-      <filter **>
-        @type record_transformer
-        enable_ruby
-        <record>
-          pod_name ${record.dig("kubernetes", "pod_name")}
-          container_name ${record.dig("kubernetes", "container_name")}
-          workload_id ${record.dig("kubernetes", "labels", "workloadID")}
-          stream_name ${record.dig("kubernetes", "labels", "appName")}.${record.dig("kubernetes", "labels", "apiName")}
-        </record>
-        remove_keys kubernetes,api_name,app_name,workload_type
-      </filter>
-      <match **>
-        @type cloudwatch_logs
-        @id out_cloudwatch_logs_endpoints
-        region "#{ENV['AWS_REGION']}"
-        log_group_name "#{ENV['LOG_GROUP_NAME']}"
-        log_stream_name_key stream_name
-        remove_log_stream_name_key true
-        auto_create_stream true
-        <buffer>
-          flush_interval 5
+          flush_interval 2
           chunk_limit_size 2m
           queued_chunks_limit_size 32
           retry_forever true

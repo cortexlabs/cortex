@@ -33,7 +33,7 @@ type Client struct {
 	Bucket               string
 	S3                   *s3.S3
 	stsClient            *sts.STS
-	cloudWatchLogsClient *cloudwatchlogs.CloudWatchLogs
+	CloudWatchLogsClient *cloudwatchlogs.CloudWatchLogs
 	CloudWatchMetrics    *cloudwatch.CloudWatch
 	awsAccountID         string
 	HashedAccountID      string
@@ -51,7 +51,7 @@ func New(region string, bucket string, withAccountID bool) (*Client, error) {
 		S3:                   s3.New(sess),
 		stsClient:            sts.New(sess),
 		CloudWatchMetrics:    cloudwatch.New(sess),
-		cloudWatchLogsClient: cloudwatchlogs.New(sess),
+		CloudWatchLogsClient: cloudwatchlogs.New(sess),
 	}
 
 	if withAccountID {
