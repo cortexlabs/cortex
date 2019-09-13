@@ -32,7 +32,7 @@ jobs:
       - setup_remote_docker
       - install-go
       - run: go get -u -v golang.org/x/lint/golint
-      - run: sudo pip3 install black
+      - run: sudo pip install black
       - run:
           name: Lint
           command: make lint
@@ -60,7 +60,7 @@ jobs:
       - run: make ci-build-images
       - run: make ci-build-cli
       - return-if-not-deployed-branch
-      - run: sudo pip3 install awscli
+      - run: sudo pip install awscli
       - run: make ci-push-images
       - run: make ci-build-and-upload-cli
 
