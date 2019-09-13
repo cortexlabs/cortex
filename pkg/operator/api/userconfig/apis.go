@@ -234,29 +234,47 @@ func (api *API) Validate(projectFileMap map[string][]byte) error {
 
 	switch {
 	case api.ModelFormat == ONNXModelFormat:
+		if strings.HasSuffix(api.Model, ".zip") {
+			return errors.Wrap(ErrorONNXDoesntSupportZip(), Identify(api), ModelKey)
+		}
 		if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
 		}
 	case api.ModelFormat == TensorFlowModelFormat:
-		path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
-		if path == "" || err != nil {
-			return errors.Wrap(ErrorInvalidTensorflowDir(api.Model), Identify(api), ModelKey)
-		}
-	case strings.HasSuffix(api.Model, ".onnx"):
-		api.ModelFormat = ONNXModelFormat
-		if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
-			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
+		if strings.HasSuffix(api.Model, ".zip") {
+			if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
+				return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
+			}
+		} else {
+			path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
+			if path == "" || err != nil {
+				return errors.Wrap(ErrorInvalidTensorflowDir(api.Model), Identify(api), ModelKey)
+			}
+			api.Model = path
 		}
 	default:
-		path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
-		if err != nil {
-			return errors.Wrap(err, Identify(api), ModelKey)
+		switch {
+		case strings.HasSuffix(api.Model, ".onnx"):
+			api.ModelFormat = ONNXModelFormat
+			if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
+				return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
+			}
+		case strings.HasSuffix(api.Model, ".zip"):
+			api.ModelFormat = TensorFlowModelFormat
+			if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
+				return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
+			}
+		default:
+			path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
+			if err != nil {
+				return errors.Wrap(err, Identify(api), ModelKey)
+			}
+			if path == "" {
+				return errors.Wrap(ErrorUnableToInferModelFormat(api.Model), Identify(api))
+			}
+			api.ModelFormat = TensorFlowModelFormat
+			api.Model = path
 		}
-		if path == "" {
-			return errors.Wrap(ErrorUnableToInferModelFormat(api.Model), Identify(api))
-		}
-		api.ModelFormat = TensorFlowModelFormat
-		api.Model = path
 	}
 
 	if api.ModelFormat == TensorFlowModelFormat && api.TFServing == nil {

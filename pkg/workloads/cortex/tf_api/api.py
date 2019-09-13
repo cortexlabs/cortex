@@ -287,28 +287,51 @@ def get_signature(app_name, api_name):
     return jsonify(response)
 
 
+tf_expected_dir_structure = """TensorFlow model directories must have the following structure:
+  1523423423/ (Version prefix, usually a timestamp)
+  ├── saved_model.pb
+  └── variables/
+      ├── variables.index
+      ├── variables.data-00000-of-00003
+      ├── variables.data-00001-of-00003
+      └── variables.data-00002-of-...`"""
+
+
 def validate_model_dir(model_dir):
-    """
-    validates that model_dir has the expected directory tree.
+    version = None
+    for file_name in os.listdir(model_dir):
+        if file_name.isdigit():
+            version = file_name
+            break
 
-    For example (your TF serving version number may be different):
+    if version is None:
+        logger.error(tf_expected_dir_structure)
+        raise UserException("no top-level version folder found")
 
-    1562353043/
-        saved_model.pb
-        variables/
-            variables.data-00000-of-00001
-            variables.index
-    """
-    version = os.listdir(model_dir)[0]
-    if not version.isdigit():
-        raise UserException(
-            "No versions of servable default found under base path in model_dir. See docs.cortex.dev for how to properly package your TensorFlow model"
-        )
+    if not os.path.isdir(os.path.join(model_dir, version)):
+        logger.error(tf_expected_dir_structure)
+        raise UserException("no top-level version folder found")
 
-    if "saved_model.pb" not in os.listdir(os.path.join(model_dir, version)):
-        raise UserException(
-            'Expected packaged model to have a "saved_model.pb" file. See docs.cortex.dev for how to properly package your TensorFlow model'
-        )
+    if not os.path.isfile(os.path.join(model_dir, version, "saved_model.pb")):
+        logger.error(tf_expected_dir_structure)
+        raise UserException('expected a "saved_model.pb" file')
+
+    if not os.path.isdir(os.path.join(model_dir, version, "variables")):
+        logger.error(tf_expected_dir_structure)
+        raise UserException('expected a "variables" directory')
+
+    if not os.path.isfile(os.path.join(model_dir, version, "variables", "variables.index")):
+        logger.error(tf_expected_dir_structure)
+        raise UserException('expected a "variables/variables.index" file')
+
+    for file_name in os.listdir(os.path.join(model_dir, version, "variables")):
+        if file_name.startswith("variables.data-00000-of"):
+            return
+
+    logger.error(tf_expected_dir_structure)
+    raise UserException(
+        'expected at least one variables data file, starting with "variables.data-00000-of-"'
+    )
 
 
 @app.errorhandler(Exception)
