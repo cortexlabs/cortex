@@ -26,13 +26,13 @@ commands:
 jobs:
   test:
     docker:
-      - image: circleci/python:3.6-buster
+      - image: circleci/python:3.7.2-stretch
     steps:
       - checkout
       - setup_remote_docker
       - install-go
       - run: go get -u -v golang.org/x/lint/golint
-      - run: sudo pip install black
+      - run: sudo pip3 install black
       - run:
           name: Lint
           command: make lint
@@ -44,7 +44,7 @@ jobs:
           command: make test-python
   test-release:
     docker:
-      - image: circleci/python:3.6-buster
+      - image: circleci/python:3.7.2-stretch
     steps:
       - checkout
       - run:
@@ -52,7 +52,7 @@ jobs:
           command: make find-missing-version
   build-and-deploy:
     docker:
-      - image: circleci/python:3.6-buster
+      - image: circleci/python:3.7.2-stretch
     steps:
       - checkout
       - setup_remote_docker
@@ -60,7 +60,7 @@ jobs:
       - run: make ci-build-images
       - run: make ci-build-cli
       - return-if-not-deployed-branch
-      - run: sudo pip install awscli
+      - run: sudo pip3 install awscli
       - run: make ci-push-images
       - run: make ci-build-and-upload-cli
 
