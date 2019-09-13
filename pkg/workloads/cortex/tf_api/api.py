@@ -298,8 +298,13 @@ tf_expected_dir_structure = """TensorFlow model directories must have the follow
 
 
 def validate_model_dir(model_dir):
-    version = os.listdir(model_dir)[0]
-    if not version.isdigit():
+    version = None
+    for file_name in os.listdir(model_dir):
+        if file_name.isdigit():
+            version = file_name
+            break
+
+    if version is None:
         logger.error(tf_expected_dir_structure)
         raise UserException("no top-level version folder found")
 
@@ -322,6 +327,7 @@ def validate_model_dir(model_dir):
     for file_name in os.listdir(os.path.join(model_dir, version, "variables")):
         if file_name.startswith("variables.data-00000-of"):
             return
+
     logger.error(tf_expected_dir_structure)
     raise UserException(
         'expected at least one variables data file, starting with "variables.data-00000-of-"'
