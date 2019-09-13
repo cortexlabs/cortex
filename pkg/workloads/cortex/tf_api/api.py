@@ -44,6 +44,8 @@ local_cache = {
     "ctx": None,
     "stub": None,
     "api": None,
+    "signature_key": None,
+    "signature": None,
     "metadata": None,
     "request_handler": None,
     "class_set": set(),
@@ -116,7 +118,7 @@ def after_request(response):
 
 def create_prediction_request(sample):
     signature_def = local_cache["metadata"]["signatureDef"]
-    signature_key = local_cache["api"]["tf_serving"]["signature_key"]
+    signature_key = local_cache["signature_key"]
     prediction_request = predict_pb2.PredictRequest()
     prediction_request.model_spec.name = "model"
     prediction_request.model_spec.signature_name = signature_key
@@ -207,9 +209,7 @@ def run_predict(sample, debug=False):
 
 
 def validate_sample(sample):
-    signature = extract_signature(
-        local_cache["metadata"]["signatureDef"], local_cache["api"]["tf_serving"]["signature_key"]
-    )
+    signature = local_cache["signature"]
     for input_name, _ in signature.items():
         if input_name not in sample:
             raise UserException('missing key "{}"'.format(input_name))
@@ -252,38 +252,57 @@ def predict(deployment_name, api_name):
 
 
 def extract_signature(signature_def, signature_key):
-    if (
-        signature_def.get(signature_key) is None
-        or signature_def[signature_key].get("inputs") is None
-    ):
-        raise UserException(
-            'unable to find "' + signature_key + "\" in model's signature definition"
-        )
+    logger.info("signature defs found in model: {}".format(signature_def))
+
+    available_keys = list(signature_def.keys())
+    if len(available_keys) == 0:
+        raise UserException("unable to find signature defs in model")
+
+    if signature_key is None:
+        if len(available_keys) == 1:
+            logger.info(
+                "signature_key was not configured by user, using signature key '{}' found in signature def map".format(
+                    available_keys[0]
+                )
+            )
+            signature_key = available_keys[0]
+        else:
+            raise UserException(
+                "signature_key was not configured by user, please specify one the following keys '{}' found in signature def map".format(
+                    "', '".join(available_keys)
+                )
+            )
+    else:
+        if signature_def.get(signature_key) is None:
+            raise UserException(
+                "signature_key '{}' was not found, please specify one the following keys '{}' found in signature def map".format(
+                    signature_key, "', '".join(available_keys)
+                )
+            )
+
+    signature_def_val = signature_def.get(signature_key)
+
+    if signature_def_val.get("inputs") is None:
+        raise UserException("unable to find 'inputs' in signature def '{}'".format(signature_key))
 
     metadata = {}
-    for input_name, input_metadata in signature_def[signature_key]["inputs"].items():
+    for input_name, input_metadata in signature_def_val["inputs"].items():
         metadata[input_name] = {
             "shape": [int(dim["size"]) for dim in input_metadata["tensorShape"]["dim"]],
             "type": DTYPE_TO_TF_TYPE[input_metadata["dtype"]].name,
         }
-    return metadata
+    return signature_key, metadata
 
 
 @app.route("/<app_name>/<api_name>/signature", methods=["GET"])
 def get_signature(app_name, api_name):
-    ctx = local_cache["ctx"]
-    api = local_cache["api"]
-
     try:
-        metadata = extract_signature(
-            local_cache["metadata"]["signatureDef"],
-            local_cache["api"]["tf_serving"]["signature_key"],
-        )
+        signature = local_cache["signature"]
     except Exception as e:
         logger.exception("failed to get signature")
         return jsonify(error=str(e)), 404
 
-    response = {"signature": metadata}
+    response = {"signature": signature}
     return jsonify(response)
 
 
@@ -385,14 +404,16 @@ def start(args):
                 sys.exit(1)
 
         time.sleep(5)
-    logger.info(
-        "model_signature: {}".format(
-            extract_signature(
-                local_cache["metadata"]["signatureDef"],
-                local_cache["api"]["tf_serving"]["signature_key"],
-            )
-        )
-    )
+
+    signature_key = None
+    if api.get("tf_serving") is not None and api["tf_serving"].get("signature_key") is not None:
+        signature_key = api["tf_serving"]["signature_key"]
+
+    key, metadata = extract_signature(local_cache["metadata"]["signatureDef"], signature_key)
+
+    local_cache["signature_key"] = key
+    local_cache["signature"] = metadata
+    logger.info("model_signature: {}".format(local_cache["signature"]))
     serve(app, listen="*:{}".format(args.port))
 
 
