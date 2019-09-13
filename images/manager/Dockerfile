@@ -1,10 +1,10 @@
-FROM python:3.7-alpine3.10
+FROM python:3.6-alpine3.10
 
 WORKDIR /root
 
 ENV PATH /root/.local/bin:$PATH
 
-RUN pip3 install awscli --upgrade --user && \
+RUN pip install awscli --upgrade --user && \
     rm -rf /root/.cache/pip*
 
 RUN apk add --no-cache bash curl gettext jq openssl

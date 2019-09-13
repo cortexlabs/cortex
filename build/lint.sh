@@ -70,7 +70,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -name "*.md" \
 ! -name ".*" \
 ! -name "Dockerfile" \
--exec grep -L "Copyright 2019 Cortex Labs, Inc" {} \+)
+-exec grep -L "Copyright 2019 Cortex Labs, Inc" {} \;)
 if [[ $output ]]; then
   echo "File(s) are missing Cortex license:"
   echo "$output"
