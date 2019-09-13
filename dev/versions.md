@@ -21,5 +21,5 @@
 
 ### Update go client
 
-1. go to the commit for the client-go release and browse to Godeps/Godeps.json to find the SHAs for k8s.io/api and k8s.io/apimachinery
+1. go to the commit for the [client-go](https://github.com/kubernetes/client-go) release and browse to Godeps/Godeps.json to find the SHAs for k8s.io/api and k8s.io/apimachinery
 1. Follow the "Update non-versioned modules" instructions, inserting the applicable versions for `k8s.io/*`
