@@ -287,7 +287,7 @@ def get_signature(app_name, api_name):
     return jsonify(response)
 
 
-tf_epected_dir_structure = """TensorFlow model directories must have the following structure:
+tf_expected_dir_structure = """TensorFlow model directories must have the following structure:
   1523423423/ (Version prefix, usually a timestamp)
   ├── saved_model.pb
   └── variables/
@@ -300,28 +300,31 @@ tf_epected_dir_structure = """TensorFlow model directories must have the followi
 def validate_model_dir(model_dir):
     version = os.listdir(model_dir)[0]
     if not version.isdigit():
-        raise UserException("no top-level version folder found. " + tf_epected_dir_structure)
+        logger.error(tf_expected_dir_structure)
+        raise UserException("no top-level version folder found")
 
     if not os.path.isdir(os.path.join(model_dir, version)):
-        raise UserException("no top-level version folder found. " + tf_epected_dir_structure)
+        logger.error(tf_expected_dir_structure)
+        raise UserException("no top-level version folder found")
 
     if not os.path.isfile(os.path.join(model_dir, version, "saved_model.pb")):
-        raise UserException('expected a "saved_model.pb" file. ' + tf_epected_dir_structure)
+        logger.error(tf_expected_dir_structure)
+        raise UserException('expected a "saved_model.pb" file')
 
     if not os.path.isdir(os.path.join(model_dir, version, "variables")):
-        raise UserException('expected a "variables" directory. ' + tf_epected_dir_structure)
+        logger.error(tf_expected_dir_structure)
+        raise UserException('expected a "variables" directory')
 
     if not os.path.isfile(os.path.join(model_dir, version, "variables", "variables.index")):
-        raise UserException(
-            'expected a "variables/variables.index" file. ' + tf_epected_dir_structure
-        )
+        logger.error(tf_expected_dir_structure)
+        raise UserException('expected a "variables/variables.index" file')
 
     for file_name in os.listdir(os.path.join(model_dir, version, "variables")):
         if file_name.startswith("variables.data-00000-of"):
             return
+    logger.error(tf_expected_dir_structure)
     raise UserException(
-        'expected at least one variables data file, starting with "variables.data-00000-of". '
-        + tf_epected_dir_structure
+        'expected at least one variables data file, starting with "variables.data-00000-of-"'
     )
 
 
