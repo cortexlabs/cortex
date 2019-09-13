@@ -72,7 +72,6 @@ func deploy(force bool, ignoreCache bool) {
 	}
 
 	if config.APIs.AreProjectFilesRequired() {
-		fmt.Println("isProjectZipRequired")
 		projectPaths, err := files.ListDirRecursive(root, false,
 			files.IgnoreCortexYAML,
 			files.IgnoreHiddenFiles,
