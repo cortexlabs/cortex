@@ -69,14 +69,11 @@ func New(
 	}
 	ctx.APIs = apis
 
-	for _, api := range ctx.APIs {
-		if api.RequestHandler != nil {
-			ctx.ProjectID = projectID
-			ctx.ProjectKey = filepath.Join(consts.ProjectsDir, ctx.ProjectID+".zip")
-			if err = config.AWS.UploadBytesToS3(projectBytes, ctx.ProjectKey); err != nil {
-				return nil, err
-			}
-			break
+	if userconf.APIs.AreProjectFilesRequired() {
+		ctx.ProjectID = projectID
+		ctx.ProjectKey = filepath.Join(consts.ProjectsDir, ctx.ProjectID+".zip")
+		if err = config.AWS.UploadBytesToS3(projectBytes, ctx.ProjectKey); err != nil {
+			return nil, err
 		}
 	}
 

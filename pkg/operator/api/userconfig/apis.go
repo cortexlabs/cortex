@@ -282,6 +282,10 @@ func (api *API) Validate(projectFileMap map[string][]byte) error {
 	return nil
 }
 
+func (api *API) AreProjectFilesRequired() bool {
+	return api.RequestHandler != nil
+}
+
 func (api *API) GetResourceType() resource.Type {
 	return resource.APIType
 }
@@ -292,4 +296,13 @@ func (apis APIs) Names() []string {
 		names[i] = api.Name
 	}
 	return names
+}
+
+func (apis APIs) AreProjectFilesRequired() bool {
+	for _, api := range apis {
+		if api.AreProjectFilesRequired() {
+			return true
+		}
+	}
+	return false
 }

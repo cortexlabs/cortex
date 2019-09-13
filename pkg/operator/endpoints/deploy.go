@@ -17,7 +17,6 @@ limitations under the License.
 package endpoints
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -50,8 +49,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	projectBytes := []byte{}
 
-	if _, ok := r.Form["project.zip"]; ok {
-		fmt.Println("print.zip")
+	if _, ok := r.MultipartForm.File["project.zip"]; ok {
 		projectBytes, err = files.ReadReqFile(r, "project.zip")
 		if err != nil {
 			RespondError(w, errors.WithStack(err))
@@ -65,20 +63,13 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(projectBytes) == 0 {
-		err = userconf.Validate(projectBytes)
-		if err != nil {
-			RespondError(w, err)
-			return
-		}
-	}
-
-	ctx, err := ocontext.New(userconf, projectBytes, ignoreCache)
+	err = userconf.Validate(projectBytes)
 	if err != nil {
 		RespondError(w, err)
 		return
 	}
 
+	ctx, err := ocontext.New(userconf, projectBytes, ignoreCache)
 	if err != nil {
 		RespondError(w, err)
 		return

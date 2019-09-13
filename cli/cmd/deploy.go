@@ -71,15 +71,7 @@ func deploy(force bool, ignoreCache bool) {
 		"cortex.yaml": configBytes,
 	}
 
-	isProjectZipRequired := false
-	for _, api := range config.APIs {
-		if api.RequestHandler != nil {
-			isProjectZipRequired = true
-			break
-		}
-	}
-
-	if isProjectZipRequired {
+	if config.APIs.AreProjectFilesRequired() {
 		fmt.Println("isProjectZipRequired")
 		projectPaths, err := files.ListDirRecursive(root, false,
 			files.IgnoreCortexYAML,
@@ -88,7 +80,7 @@ func deploy(force bool, ignoreCache bool) {
 			files.IgnorePythonGeneratedFiles,
 		)
 		if err != nil {
-			errors.Exit(errors.New("zipped project folder exceeds 50 MB"))
+			errors.Exit(err)
 		}
 
 		projectZipBytes, err := zip.ToMem(&zip.Input{
@@ -104,8 +96,8 @@ func deploy(force bool, ignoreCache bool) {
 			errors.Exit(errors.Wrap(err, "failed to zip project folder"))
 		}
 
-		if len(projectZipBytes) != MaxProjectSize {
-			errors.Exit(errors.New(""))
+		if len(projectZipBytes) > MaxProjectSize {
+			errors.Exit(errors.New("zipped project folder exceeds " + s.Int(MaxProjectSize) + " bytes"))
 		}
 
 		uploadBytes["project.zip"] = projectZipBytes
