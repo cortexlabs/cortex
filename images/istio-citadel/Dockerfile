@@ -1,1 +1,1 @@
-FROM docker.io/istio/citadel:1.2.2
+FROM docker.io/istio/citadel:1.3.0
