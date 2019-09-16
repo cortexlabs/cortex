@@ -13,12 +13,6 @@
 # limitations under the License.
 
 # Source: https://github.com/kubernetes-incubator/metrics-server/tree/v0.3.3/deploy/1.8+
-# Can confirm it's running with:
-#   kubectl get deployment metrics-server -n kube-system
-#   kubectl get apiservice v1beta1.metrics.k8s.io -o yaml
-# The metrics server is required for horizontal pod autoscaling
-#   * Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not supported (https://github.com/awslabs/amazon-eks-ami/issues/176)
-#   * Can list horizontal pod autoscalers with: kubectl get hpa
 
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1

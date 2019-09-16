@@ -1,16 +1,3 @@
-// to update all:
-//   go clean -modcache (optional)
-//   rm go.mod go.sum
-//   go mod tidy
-//   replace these lines in go.mod:
-//     github.com/cortexlabs/yaml v2.2.4
-//     k8s.io/client-go v12.0.0
-//     k8s.io/api 7525909cc6da
-//     k8s.io/apimachinery 1799e75a0719
-//       (note: go to the commit for the client-go release and browse to Godeps/Godeps.json to find the SHAs for k8s.io/api and k8s.io/apimachinery)
-//   go mod tidy
-//   check the diff in this file
-
 module github.com/cortexlabs/cortex
 
 go 1.12
