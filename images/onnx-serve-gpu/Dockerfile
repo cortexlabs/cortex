@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.1-cudnn7-devel
+FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04
 
 ARG ONNXRUNTIME_VERSION="0.5.0"
 
