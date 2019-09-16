@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
@@ -89,7 +90,8 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 
 			if ctx.ID != currentContextID {
 				if len(currentContextID) != 0 {
-					if apiName, ok := podLabels["apiName"]; ok {
+					if podLabels["workloadType"] == resource.APIType.String() {
+						apiName := podLabels["apiName"]
 						if _, ok := ctx.APIs[apiName]; !ok {
 							writeString(socket, "\napi "+apiName+" was not found in latest deployment")
 							closeSocket(socket)
@@ -105,8 +107,8 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 					lastTimestamp = ctx.CreatedEpoch * 1000
 				}
 
-				if apiName, ok := podLabels["apiName"]; ok {
-					podLabels["workloadID"] = ctx.APIs[apiName].WorkloadID
+				if podLabels["workloadType"] == resource.APIType.String() {
+					podLabels["workloadID"] = ctx.APIs[podLabels["apiName"]].WorkloadID
 				}
 
 				currentContextID = ctx.ID
