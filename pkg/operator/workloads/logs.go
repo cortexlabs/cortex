@@ -25,7 +25,6 @@ import (
 	"github.com/gorilla/websocket"
 
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
@@ -38,7 +37,7 @@ const (
 	socketMaxMessageSize    = 8192
 
 	maxLogLinesPerRequest = 500
-	pollPeriod            = 250 * time.Millisecond
+	pollPeriod            = 250 // milliseconds
 )
 
 func ReadLogs(appName string, podLabels map[string]string, socket *websocket.Conn) {
@@ -69,7 +68,6 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 
 	lastTimestamp := int64(0)
 	previousEvents := strset.New()
-	wrotePending := false
 
 	var currentContextID string
 	var prefix string
@@ -97,39 +95,23 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 							closeSocket(socket)
 							continue
 						}
-						podLabels["workloadID"] = ctx.APIs[apiName].WorkloadID
 						writeString(socket, "\na new deployment was detected, streaming logs from the latest deployment")
 					} else {
 						writeString(socket, "\nnew deployment detected, shutting down log stream") // unexpected for now, should only occur when logging non api resources
 						closeSocket(socket)
 						continue
 					}
+				} else {
+					lastTimestamp = ctx.CreatedEpoch * 1000
+				}
+
+				if apiName, ok := podLabels["apiName"]; ok {
+					podLabels["workloadID"] = ctx.APIs[apiName].WorkloadID
 				}
 
 				currentContextID = ctx.ID
 
-				pods, err := config.Kubernetes.ListPodsByLabels(podLabels)
-				if err != nil {
-					writeString(socket, err.Error())
-					closeSocket(socket)
-					continue
-				}
-
-				allPodsPending := true
-				for _, pod := range pods {
-					if k8s.GetPodStatus(&pod) != k8s.PodStatusPending {
-						allPodsPending = false
-						break
-					}
-				}
-
-				if allPodsPending {
-					writeString(socket, "\npending...")
-					wrotePending = true
-				} else {
-					wrotePending = false
-				}
-
+				writeString(socket, "\nretrieving logs...")
 				prefix = ""
 			}
 
@@ -147,21 +129,18 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 				continue
 			}
 
+			endTime := time.Now().Unix() * 1000
+			startTime := lastTimestamp - pollPeriod
 			logEventsOutput, err := config.AWS.CloudWatchLogsClient.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
 				LogGroupName:        aws.String(config.Cortex.LogGroup),
 				LogStreamNamePrefix: aws.String(prefix),
-				StartTime:           aws.Int64(lastTimestamp),
-				EndTime:             aws.Int64(time.Now().Unix() * 1000), // requires milliseconds
+				StartTime:           aws.Int64(startTime),
+				EndTime:             aws.Int64(endTime), // requires milliseconds
 				Limit:               aws.Int64(int64(maxLogLinesPerRequest)),
 			})
 
 			if err != nil {
-				if awslib.CheckErrCode(err, "ResourceNotFoundException") {
-					if !wrotePending {
-						writeString(socket, "pending...")
-						wrotePending = true
-					}
-				} else {
+				if !awslib.CheckErrCode(err, "ResourceNotFoundException") {
 					writeString(socket, "error encountered while fetching logs from cloudwatch: "+err.Error())
 					closeSocket(socket)
 					continue
@@ -175,7 +154,6 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 
 				if !previousEvents.Has(*logEvent.EventId) {
 					socket.WriteMessage(websocket.TextMessage, []byte(log.Log))
-
 					if *logEvent.Timestamp > lastTimestamp {
 						lastTimestamp = *logEvent.Timestamp
 					}
@@ -185,10 +163,11 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 
 			if len(logEventsOutput.Events) == maxLogLinesPerRequest {
 				socket.WriteMessage(websocket.TextMessage, []byte("---- Showing at most "+s.Int(maxLogLinesPerRequest)+" lines. Visit AWS cloudwatch logs console and search for \""+prefix+"\" in log group \""+config.Cortex.LogGroup+"\" for complete logs ----"))
+				lastTimestamp = endTime
 			}
 
 			previousEvents = newEvents
-			timer.Reset(pollPeriod)
+			timer.Reset(pollPeriod * time.Millisecond)
 		}
 	}
 }
@@ -214,7 +193,6 @@ func getPrefix(searchLabels map[string]string) (string, error) {
 }
 
 func writeString(socket *websocket.Conn, message string) {
-	socket.SetWriteDeadline(time.Now().Add(socketWriteDeadlineWait))
 	socket.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
