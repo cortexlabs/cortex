@@ -54,8 +54,8 @@ type GetDeploymentsResponse struct {
 }
 
 type FeatureSignature struct {
-	Shape []int  `json:"shape"`
-	Type  string `json:"type"`
+	Shape []interface{} `json:"shape"`
+	Type  string        `json:"type"`
 }
 
 type ModelInput struct {

@@ -391,6 +391,30 @@ func JSONNumberToIntOrFloat(in interface{}) (interface{}, bool) {
 	return nil, false
 }
 
+func CastJSONNumber(in interface{}) interface{} {
+	number, ok := in.(json.Number)
+	if !ok {
+		return in
+	}
+	inInt, err := number.Int64()
+	if err == nil {
+		return inInt
+	}
+	inFloat, err := number.Float64()
+	if err == nil {
+		return inFloat
+	}
+	return in // unexpected
+}
+
+func CastJSONNumbers(in []interface{}) []interface{} {
+	casted := make([]interface{}, len(in))
+	for i, element := range in {
+		casted[i] = CastJSONNumber(element)
+	}
+	return casted
+}
+
 func InterfaceToInterfaceSlice(in interface{}) ([]interface{}, bool) {
 	if in == nil {
 		return nil, true
