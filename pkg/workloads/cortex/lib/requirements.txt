@@ -1,8 +1,6 @@
-boto3==1.9.78
+boto3==1.9.228
 msgpack==0.6.1
-numpy>=1.13.3,<2
-requirements-parser==0.2.0
-packaging==19.0.0
-json_tricks==3.13.1
-requests==2.21.0
-datadog==0.29.3
+numpy==1.17.2
+json_tricks==3.13.2
+requests==2.22.0
+datadog==0.30.0

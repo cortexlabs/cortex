@@ -75,12 +75,10 @@ def post_inference(prediction, metadata):
 The following packages have been pre-installed and can be used in your implementations:
 
 ```text
-boto3==1.9.78
+boto3==1.9.228
 msgpack==0.6.1
-numpy>=1.13.3,<2
-requirements-parser==0.2.0
-packaging==19.0.0
-requests==2.21.0
+numpy==1.17.2
+requests==2.22.0
 tensorflow==1.14.0  # In TensorFlow serving images only
 onnxruntime==0.5.0  # In ONNX serving images only
 ```

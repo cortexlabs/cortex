@@ -18,7 +18,7 @@ kind: ClusterConfig
 metadata:
   name: $CORTEX_CLUSTER
   region: $CORTEX_REGION
-  version: "1.13"
+  version: "1.14"
 
 availabilityZones: $CORTEX_ZONES
 
