@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -115,7 +114,7 @@ var apiValidation = &cr.StructValidation{
 					{
 						StructField: "SignatureKey",
 						StringValidation: &cr.StringValidation{
-							Default: consts.DefaultTFServingSignatureKey,
+							Required: true,
 						},
 					},
 				},
@@ -274,12 +273,6 @@ func (api *API) Validate(projectFileMap map[string][]byte) error {
 			}
 			api.ModelFormat = TensorFlowModelFormat
 			api.Model = path
-		}
-	}
-
-	if api.ModelFormat == TensorFlowModelFormat && api.TFServing == nil {
-		api.TFServing = &TFServingOptions{
-			SignatureKey: consts.DefaultTFServingSignatureKey,
 		}
 	}
 
