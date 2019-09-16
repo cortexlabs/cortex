@@ -45,8 +45,8 @@ local_cache = {
     "stub": None,
     "api": None,
     "signature_key": None,
-    "signature": None,
-    "metadata": None,
+    "parsed_signature": None,
+    "model_metadata": None,
     "request_handler": None,
     "class_set": set(),
 }
@@ -117,7 +117,7 @@ def after_request(response):
 
 
 def create_prediction_request(sample):
-    signature_def = local_cache["metadata"]["signatureDef"]
+    signature_def = local_cache["model_metadata"]["signatureDef"]
     signature_key = local_cache["signature_key"]
     prediction_request = predict_pb2.PredictRequest()
     prediction_request.model_spec.name = "model"
@@ -181,7 +181,7 @@ def run_predict(sample, debug=False):
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         try:
             prepared_sample = request_handler.pre_inference(
-                sample, local_cache["metadata"]["signatureDef"]
+                sample, local_cache["model_metadata"]["signatureDef"]
             )
             debug_obj("pre_inference", prepared_sample, debug)
         except Exception as e:
@@ -198,7 +198,9 @@ def run_predict(sample, debug=False):
 
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
         try:
-            result = request_handler.post_inference(result, local_cache["metadata"]["signatureDef"])
+            result = request_handler.post_inference(
+                result, local_cache["model_metadata"]["signatureDef"]
+            )
             debug_obj("post_inference", result, debug)
         except Exception as e:
             raise UserRuntimeException(
@@ -209,7 +211,7 @@ def run_predict(sample, debug=False):
 
 
 def validate_sample(sample):
-    signature = local_cache["signature"]
+    signature = local_cache["parsed_signature"]
     for input_name, _ in signature.items():
         if input_name not in sample:
             raise UserException('missing key "{}"'.format(input_name))
@@ -274,9 +276,13 @@ def extract_signature(signature_def, signature_key):
             )
     else:
         if signature_def.get(signature_key) is None:
+            possibilities_str = "key '{}'".format(available_keys[0])
+            if len(available_keys) > 1:
+                possibilities_str = "keys '{}'".format("', '".join(available_keys))
+
             raise UserException(
-                "signature_key '{}' was not found, please specify one the following keys '{}' found in signature def map".format(
-                    signature_key, "', '".join(available_keys)
+                "signature_key '{}' was not found in signature def map, but found the following {}".format(
+                    signature_key, possibilities_str
                 )
             )
 
@@ -285,23 +291,18 @@ def extract_signature(signature_def, signature_key):
     if signature_def_val.get("inputs") is None:
         raise UserException("unable to find 'inputs' in signature def '{}'".format(signature_key))
 
-    metadata = {}
+    parsed_signature = {}
     for input_name, input_metadata in signature_def_val["inputs"].items():
-        metadata[input_name] = {
+        parsed_signature[input_name] = {
             "shape": [int(dim["size"]) for dim in input_metadata["tensorShape"]["dim"]],
             "type": DTYPE_TO_TF_TYPE[input_metadata["dtype"]].name,
         }
-    return signature_key, metadata
+    return signature_key, parsed_signature
 
 
 @app.route("/<app_name>/<api_name>/signature", methods=["GET"])
 def get_signature(app_name, api_name):
-    try:
-        signature = local_cache["signature"]
-    except Exception as e:
-        logger.exception("failed to get signature")
-        return jsonify(error=str(e)), 404
-
+    signature = local_cache["parsed_signature"]
     response = {"signature": signature}
     return jsonify(response)
 
@@ -394,7 +395,7 @@ def start(args):
     limit = 60
     for i in range(limit):
         try:
-            local_cache["metadata"] = run_get_model_metadata()
+            local_cache["model_metadata"] = run_get_model_metadata()
             break
         except Exception as e:
             if i > 6:
@@ -409,11 +410,13 @@ def start(args):
     if api.get("tf_serving") is not None and api["tf_serving"].get("signature_key") is not None:
         signature_key = api["tf_serving"]["signature_key"]
 
-    key, metadata = extract_signature(local_cache["metadata"]["signatureDef"], signature_key)
+    key, parsed_signature = extract_signature(
+        local_cache["model_metadata"]["signatureDef"], signature_key
+    )
 
     local_cache["signature_key"] = key
-    local_cache["signature"] = metadata
-    logger.info("model_signature: {}".format(local_cache["signature"]))
+    local_cache["parsed_signature"] = parsed_signature
+    logger.info("model_signature: {}".format(local_cache["parsed_signature"]))
     serve(app, listen="*:{}".format(args.port))
 
 
