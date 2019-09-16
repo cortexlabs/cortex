@@ -99,7 +99,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 						}
 						writeString(socket, "\na new deployment was detected, streaming logs from the latest deployment")
 					} else {
-						writeString(socket, "\nnew deployment detected, shutting down log stream") // unexpected for now, should only occur when logging non api resources
+						writeString(socket, "\nlogging non-api workloads is not supported") // unexpected
 						closeSocket(socket)
 						continue
 					}
