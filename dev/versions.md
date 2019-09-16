@@ -49,7 +49,7 @@
 
 ### Kubernetes client
 
-1. Find the minor version of the latest stable release from the [README](https://github.com/kubernetes/client-go), and/or find the lastest tagged patch version from [releases](https://github.com/kubernetes/client-go/releases)
+1. Find the minor version of the latest stable release from the [README](https://github.com/kubernetes/client-go), and/or find the latest tagged patch version from [releases](https://github.com/kubernetes/client-go/releases)
 1. Follow the "Update non-versioned modules" instructions using the updated version for `k8s.io/client-go`
 
 ### cortexlabs/yaml
@@ -58,7 +58,7 @@
 
 ## TensorFlow / TensorFlow Serving / Python / Python base operating system
 
-The Python version in the base images for `tf-api` and `onnx-serve-gpu` determines the Python version used thorughout Cortex.
+The Python version in the base images for `tf-api` and `onnx-serve-gpu` determines the Python version used throughout Cortex.
 
 1. Update the `tensorflow/tensorflow` base image in `images/tf-api/Dockerfile` to the desired version ([Dockerhub](https://hub.docker.com/r/tensorflow/tensorflow))
 1. Update the `nvidia/cuda` base image in `images/onnx-serve-gpu/Dockerfile` to the desired version ([Dockerhub](https://hub.docker.com/r/nvidia/cuda))
@@ -117,7 +117,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 1. Find the latest release on [GitHub](https://github.com/kubernetes-incubator/metrics-server/releases) and check the changelog
 1. Update the version in `images/metrics-server/Dockerfile`
-1. In the [GitHub Repo](https://github.com/kubernetes-incubator/metrics-server), find the latest release and go to this diectory (replacing the version number): <https://github.com/kubernetes-incubator/metrics-server/tree/v0.3.4/deploy/1.8+>
+1. In the [GitHub Repo](https://github.com/kubernetes-incubator/metrics-server), find the latest release and go to this directory (replacing the version number): <https://github.com/kubernetes-incubator/metrics-server/tree/v0.3.4/deploy/1.8+>
 1. Copy the contents of all of the files in that directory into `manager/manifests/metrics-server.yaml`
    1. Update this line of config:
 
@@ -189,5 +189,5 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 
 ## Alpine base images
 
-1. Find the lates release on [Dockerhub](https://hub.docker.com/_/alpine)
+1. Find the latest release on [Dockerhub](https://hub.docker.com/_/alpine)
 1. Search the codebase for `alpine` and update accordingly
