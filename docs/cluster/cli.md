@@ -22,7 +22,7 @@ The `deploy` command sends all deployment configuration and code to Cortex. If v
 Get information about resources.
 
 Usage:
-  cortex get [RESOURCE_TYPE] [RESOURCE_NAME] [flags]
+  cortex get [RESOURCE_NAME] [flags]
 
 Flags:
   -a, --all-deployments     list all deployments
@@ -42,7 +42,7 @@ The `get` command displays the current state of all resources on the cluster. Sp
 Get logs for a resource.
 
 Usage:
-  cortex logs [RESOURCE_TYPE] RESOURCE_NAME [flags]
+  cortex logs RESOURCE_NAME [flags]
 
 Flags:
   -d, --deployment string   deployment name
@@ -50,7 +50,7 @@ Flags:
   -h, --help                help for logs
 ```
 
-The `logs` command streams logs from the workload corresponding to the specified resource. For example, `cortex logs api my-api` will stream the logs from the most recent api named `my-api`. `RESOURCE_TYPE` is optional (unless there are name colisions), so `cortex logs my-api` will also work.
+The `logs` command streams logs from the workload corresponding to the specified resource. For example, `cortex logs my-api` will stream the logs from the most recent api named `my-api`.
 
 ## refresh
 

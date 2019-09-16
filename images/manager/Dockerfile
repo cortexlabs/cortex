@@ -1,10 +1,10 @@
-FROM python:3.7-alpine3.10
+FROM python:3.6-alpine3.10
 
 WORKDIR /root
 
 ENV PATH /root/.local/bin:$PATH
 
-RUN pip3 install awscli --upgrade --user && \
+RUN pip install awscli --upgrade --user && \
     rm -rf /root/.cache/pip*
 
 RUN apk add --no-cache bash curl gettext jq openssl
@@ -28,10 +28,10 @@ RUN curl -LO https://get.helm.sh/helm-v2.14.1-linux-amd64.tar.gz && \
     rm helm-v2.14.1-linux-amd64.tar.gz
 
 RUN ISTIO_VERSION=1.2.2 && \
-  curl -L "https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istio-${ISTIO_VERSION}-linux.tar.gz" | tar xz && \
-  mkdir ./istio-manifests && \
-  mv ./istio-${ISTIO_VERSION}/install/kubernetes/helm/* ./istio-manifests/ && \
-  rm -rf ./istio-${ISTIO_VERSION}
+    curl -L "https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istio-${ISTIO_VERSION}-linux.tar.gz" | tar xz && \
+    mkdir ./istio-manifests && \
+    mv ./istio-${ISTIO_VERSION}/install/kubernetes/helm/* ./istio-manifests/ && \
+    rm -rf ./istio-${ISTIO_VERSION}
 
 COPY manager /root
 

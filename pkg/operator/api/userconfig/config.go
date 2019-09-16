@@ -37,13 +37,19 @@ var typeFieldValidation = &cr.StructFieldValidation{
 }
 
 func (config *Config) Validate(projectBytes []byte) error {
-	if err := config.App.Validate(); err != nil {
+	err := config.App.Validate()
+
+	if err != nil {
 		return err
 	}
 
-	projectFileMap, err := zip.UnzipMemToMem(projectBytes)
-	if err != nil {
-		return err
+	projectFileMap := make(map[string][]byte)
+
+	if config.AreProjectFilesRequired() {
+		projectFileMap, err = zip.UnzipMemToMem(projectBytes)
+		if err != nil {
+			return err
+		}
 	}
 
 	if config.APIs != nil {
@@ -53,6 +59,10 @@ func (config *Config) Validate(projectBytes []byte) error {
 	}
 
 	return nil
+}
+
+func (config *Config) AreProjectFilesRequired() bool {
+	return config.APIs.AreProjectFilesRequired()
 }
 
 func New(filePath string, configBytes []byte) (*Config, error) {
@@ -118,16 +128,16 @@ func New(filePath string, configBytes []byte) (*Config, error) {
 	return config, nil
 }
 
-func ReadAppName(filePath string, relativePath string) (string, error) {
+func ReadConfigFile(filePath string, relativePath string) (*Config, error) {
 	configBytes, err := files.ReadFileBytes(filePath)
 	if err != nil {
-		return "", errors.Wrap(err, relativePath, ErrorReadConfig().Error())
+		return nil, errors.Wrap(err, relativePath, ErrorReadConfig().Error())
 	}
 
 	config, err := New(relativePath, configBytes)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return config.App.Name, nil
+	return config, nil
 }
