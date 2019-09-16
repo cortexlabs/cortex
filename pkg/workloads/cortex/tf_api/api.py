@@ -276,9 +276,9 @@ def extract_signature(signature_def, signature_key):
             )
     else:
         if signature_def.get(signature_key) is None:
-            possibilities_str = "key '{}'".format(available_keys[0])
+            possibilities_str = "key: '{}'".format(available_keys[0])
             if len(available_keys) > 1:
-                possibilities_str = "keys '{}'".format("', '".join(available_keys))
+                possibilities_str = "keys: '{}'".format("', '".join(available_keys))
 
             raise UserException(
                 "signature_key '{}' was not found in signature def map, but found the following {}".format(
