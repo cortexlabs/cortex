@@ -391,7 +391,7 @@ func JSONNumberToIntOrFloat(in interface{}) (interface{}, bool) {
 	return nil, false
 }
 
-func CastJSONNumber(in interface{}) interface{} {
+func JSONNumber(in interface{}) interface{} {
 	number, ok := in.(json.Number)
 	if !ok {
 		return in
@@ -407,10 +407,10 @@ func CastJSONNumber(in interface{}) interface{} {
 	return in // unexpected
 }
 
-func CastJSONNumbers(in []interface{}) []interface{} {
+func JSONNumbers(in []interface{}) []interface{} {
 	casted := make([]interface{}, len(in))
 	for i, element := range in {
-		casted[i] = CastJSONNumber(element)
+		casted[i] = JSONNumber(element)
 	}
 	return casted
 }

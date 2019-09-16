@@ -471,7 +471,7 @@ func getModelInput(infoAPIPath string) (*schema.ModelInput, error) {
 	}
 
 	for _, featureSignature := range modelInput.Signature {
-		featureSignature.Shape = cast.CastJSONNumbers(featureSignature.Shape)
+		featureSignature.Shape = cast.JSONNumbers(featureSignature.Shape)
 	}
 
 	return &modelInput, nil
