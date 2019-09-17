@@ -91,7 +91,7 @@ $ ./cortex.sh install
 
 - **Minimal declarative configuration:** Deployments can be defined in a single `cortex.yaml` file.
 
-- **Autoscaling:** Cortex can automatically scale APIs to handle production workloads.
+- **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
 
 - **Multi framework:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
 

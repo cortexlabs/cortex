@@ -5,3 +5,5 @@
   name: classifier
   model: s3://cortex-examples/bert
   request_handler: sentiment.py
+  tracker:
+    model_type: classification
