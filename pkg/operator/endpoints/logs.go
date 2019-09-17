@@ -46,8 +46,9 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	resourceType := getOptionalQParam("resourceType", r)
 
 	podLabels := map[string]string{
-		"appName":    appName,
-		"userFacing": "true",
+		"appName":      appName,
+		"userFacing":   "true",
+		"workloadType": resource.APIType.String(),
 	}
 
 	if workloadID != "" {
