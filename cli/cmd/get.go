@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
@@ -417,12 +418,12 @@ func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
 
 func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string) string {
 	if groupStatus.Available() == 0 {
-		return "waiting for api to be ready"
+		return "the model's input schema will be available when the API is live"
 	}
 
 	modelInput, err := getModelInput(urls.Join(apiEndpoint, "signature"))
 	if err != nil {
-		return "waiting for api to be ready"
+		return "error retreiving the model's input schema: " + err.Error()
 	}
 
 	rows := make([][]interface{}, len(modelInput.Signature))
@@ -430,11 +431,7 @@ func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string
 	for inputName, featureSignature := range modelInput.Signature {
 		shapeStr := make([]string, len(featureSignature.Shape))
 		for idx, dim := range featureSignature.Shape {
-			if dim == 0 {
-				shapeStr[idx] = "?"
-			} else {
-				shapeStr[idx] = s.Int(dim)
-			}
+			shapeStr[idx] = s.ObjFlatNoQuotes(dim)
 		}
 		rows[rowNum] = []interface{}{
 			inputName,
@@ -468,9 +465,13 @@ func getModelInput(infoAPIPath string) (*schema.ModelInput, error) {
 	}
 
 	var modelInput schema.ModelInput
-	err = json.Unmarshal(response, &modelInput)
+	err = json.DecodeWithNumber(response, &modelInput)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to parse model input response")
+	}
+
+	for _, featureSignature := range modelInput.Signature {
+		featureSignature.Shape = cast.JSONNumbers(featureSignature.Shape)
 	}
 
 	return &modelInput, nil
