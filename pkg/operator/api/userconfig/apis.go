@@ -193,6 +193,19 @@ func (api *API) UserConfigStr() string {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
 		sb.WriteString(s.Indent(api.Compute.UserConfigStr(), "  "))
 	}
+	if api.Tracker != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", TrackerKey))
+		sb.WriteString(s.Indent(api.Tracker.UserConfigStr(), "  "))
+	}
+	return sb.String()
+}
+
+func (tracker *Tracker) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelTypeKey, tracker.ModelType.String()))
+	if tracker.Key != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", KeyKey, *tracker.Key))
+	}
 	return sb.String()
 }
 

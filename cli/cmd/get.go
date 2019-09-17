@@ -267,7 +267,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	out += "\n\n" + describeModelInput(groupStatus, apiEndpoint)
 
 	if api != nil {
-		out += "\n" + titleStr("configuration") + api.UserConfigStr()
+		out += "\n" + titleStr("configuration") + strings.TrimSpace(api.UserConfigStr())
 	}
 
 	return out, nil

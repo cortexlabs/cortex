@@ -28,6 +28,9 @@ const (
 	ModelFormatKey    = "model_format"
 	RequestHandlerKey = "request_handler"
 	TFSignatureKeyKey = "tf_signature_key"
+	TrackerKey        = "tracker"
+	ModelTypeKey      = "model_type"
+	KeyKey            = "key"
 
 	// compute
 	ComputeKey              = "compute"
