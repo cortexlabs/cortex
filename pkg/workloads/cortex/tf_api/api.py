@@ -406,15 +406,11 @@ def start(args):
 
         time.sleep(5)
 
-    signature_key = None
-    if api.get("tf_serving") is not None and api["tf_serving"].get("signature_key") is not None:
-        signature_key = api["tf_serving"]["signature_key"]
-
-    key, parsed_signature = extract_signature(
-        local_cache["model_metadata"]["signatureDef"], signature_key
+    signature_key, parsed_signature = extract_signature(
+        local_cache["model_metadata"]["signatureDef"], api["tf_signature_key"]
     )
 
-    local_cache["signature_key"] = key
+    local_cache["signature_key"] = signature_key
     local_cache["parsed_signature"] = parsed_signature
     logger.info("model_signature: {}".format(local_cache["parsed_signature"]))
     serve(app, listen="*:{}".format(args.port))

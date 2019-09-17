@@ -34,22 +34,18 @@ type APIs []*API
 
 type API struct {
 	ResourceFields
-	Model          string            `json:"model" yaml:"model"`
-	ModelFormat    ModelFormat       `json:"model_format" yaml:"model_format"`
-	Tracker        *Tracker          `json:"tracker" yaml:"tracker"`
-	RequestHandler *string           `json:"request_handler" yaml:"request_handler"`
-	TFServing      *TFServingOptions `json:"tf_serving" yaml:"tf_serving"`
-	Compute        *APICompute       `json:"compute" yaml:"compute"`
-	Tags           Tags              `json:"tags" yaml:"tags"`
+	Model          string      `json:"model" yaml:"model"`
+	ModelFormat    ModelFormat `json:"model_format" yaml:"model_format"`
+	Tracker        *Tracker    `json:"tracker" yaml:"tracker"`
+	RequestHandler *string     `json:"request_handler" yaml:"request_handler"`
+	TFSignatureKey *string     `json:"tf_signature_key" yaml:"tf_signature_key"`
+	Compute        *APICompute `json:"compute" yaml:"compute"`
+	Tags           Tags        `json:"tags" yaml:"tags"`
 }
 
 type Tracker struct {
 	Key       *string   `json:"key" yaml:"key"`
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
-}
-
-type TFServingOptions struct {
-	SignatureKey string `json:"signature_key" yaml:"signature_key"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -107,17 +103,9 @@ var apiValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "TFServing",
-			StructValidation: &cr.StructValidation{
-				DefaultNil: true,
-				StructFieldValidations: []*cr.StructFieldValidation{
-					{
-						StructField: "SignatureKey",
-						StringValidation: &cr.StringValidation{
-							Required: true,
-						},
-					},
-				},
+			StructField: "TFSignatureKey",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Required: false,
 			},
 		},
 		apiComputeFieldValidation,
@@ -198,6 +186,9 @@ func (api *API) UserConfigStr() string {
 	if api.RequestHandler != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestHandlerKey, *api.RequestHandler))
 	}
+	if api.TFSignatureKey != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", TFSignatureKeyKey, *api.TFSignatureKey))
+	}
 	if api.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
 		sb.WriteString(s.Indent(api.Compute.UserConfigStr(), "  "))
@@ -276,8 +267,8 @@ func (api *API) Validate(projectFileMap map[string][]byte) error {
 		}
 	}
 
-	if api.ModelFormat != TensorFlowModelFormat && api.TFServing != nil {
-		return errors.Wrap(ErrorTFServingOptionsForTFOnly(api.ModelFormat), Identify(api))
+	if api.ModelFormat != TensorFlowModelFormat && api.TFSignatureKey != nil {
+		return errors.Wrap(ErrorIncompatibleWithModelFormat(TFSignatureKeyKey, api.ModelFormat), Identify(api))
 	}
 
 	if api.RequestHandler != nil {
