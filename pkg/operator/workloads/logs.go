@@ -177,7 +177,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 				continue
 			}
 
-			endTime := time.Now().Unix() * 1000
+			endTime := TimeToMillis(time.Now())
 
 			logEventsOutput, err := config.AWS.CloudWatchLogsClient.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
 				LogGroupName:   aws.String(logGroupName),
@@ -198,7 +198,6 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 			for _, logEvent := range logEventsOutput.Events {
 				var log FluentdLog
 				json.Unmarshal([]byte(*logEvent.Message), &log)
-
 				if !eventCache.Has(*logEvent.EventId) {
 					socket.WriteMessage(websocket.TextMessage, []byte(log.Log))
 					if *logEvent.Timestamp > lastLogTimestampMillis {
@@ -208,7 +207,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 				}
 			}
 
-			lastLogTime = MillisToTime(endTime)
+			lastLogTime = MillisToTime(lastLogTimestampMillis)
 			if len(logEventsOutput.Events) == maxLogLinesPerRequest {
 				writeString(socket, "---- Showing at most "+s.Int(maxLogLinesPerRequest)+" lines. Visit AWS cloudwatch logs console and search for \""+prefix+"\" in log group \""+config.Cortex.LogGroup+"\" for complete logs ----")
 				lastLogTime = MillisToTime(endTime)
@@ -220,11 +219,13 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 }
 
 func MillisToTime(epochMillis int64) time.Time {
-	return time.Unix(epochMillis/1000, (epochMillis%1000)*1000)
+	seconds := epochMillis / 1000
+	millis := epochMillis % 1000
+	return time.Unix(seconds, millis*int64(time.Millisecond))
 }
 
 func TimeToMillis(t time.Time) int64 {
-	return t.UnixNano() / 1000
+	return t.UnixNano() / int64(time.Millisecond)
 }
 
 func getLogStreams(logGroupName string) (strset.Set, error) {
