@@ -87,7 +87,7 @@ data:
         <record>
           default_group_name "#{ENV['LOG_GROUP_NAME']}"
           group_name  ${record.dig("kubernetes", "labels", "logGroupName") || record["default_group_name"]}
-          stream_name ${record.dig("kubernetes", "pod_name")}_${record.dig("kubernetes", "container_name")}          
+          stream_name ${record.dig("kubernetes", "pod_name")}_${record.dig("kubernetes", "container_name")}
           log ${record.dig("log").rstrip}
         </record>
         remove_keys kubernetes,docker,stream,default_group_name

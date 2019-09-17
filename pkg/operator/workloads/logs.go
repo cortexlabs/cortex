@@ -50,7 +50,7 @@ type eventCache struct {
 	eventQueue *deque.Deque
 }
 
-func NewEventCache(cacheSize int) eventCache {
+func newEventCache(cacheSize int) eventCache {
 	return eventCache{
 		size:       cacheSize,
 		seen:       strset.New(),
@@ -111,7 +111,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 	var err error
 
 	var ctx = CurrentContext(appName)
-	eventCache := NewEventCache(10000)
+	eventCache := newEventCache(10000)
 
 	if ctx == nil {
 		writeAndCloseSocket(socket, "\ndeployment "+appName+" not found")
