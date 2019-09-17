@@ -263,14 +263,19 @@ def extract_signature(signature_def, signature_key):
     if signature_key is None:
         if len(available_keys) == 1:
             logger.info(
-                "signature_key was not configured by user, using signature key '{}' found in signature def map".format(
+                "tf_signature_key was not configured by user, using signature key '{}' (found in the signature def map)".format(
                     available_keys[0]
                 )
             )
             signature_key = available_keys[0]
+        elif "predict" in signature_def:
+            logger.info(
+                "tf_signature_key was not configured by user, using signature key 'predict' (found in the signature def map)"
+            )
+            signature_key = "predict"
         else:
             raise UserException(
-                "signature_key was not configured by user, please specify one the following keys '{}' found in signature def map".format(
+                "tf_signature_key was not configured by user, please specify one the following keys '{}' (found in the signature def map)".format(
                     "', '".join(available_keys)
                 )
             )
@@ -281,7 +286,7 @@ def extract_signature(signature_def, signature_key):
                 possibilities_str = "keys: '{}'".format("', '".join(available_keys))
 
             raise UserException(
-                "signature_key '{}' was not found in signature def map, but found the following {}".format(
+                "tf_signature_key '{}' was not found in signature def map, but found the following {}".format(
                     signature_key, possibilities_str
                 )
             )
