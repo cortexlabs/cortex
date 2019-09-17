@@ -61,11 +61,6 @@ func (resourceFields *ResourceFields) SetFilePath(filePath string) {
 
 func (resourceFields *ResourceFields) UserConfigStr() string {
 	var sb strings.Builder
-	if resourceFields.FilePath == "" {
-		sb.WriteString("file: <none>\n")
-	} else {
-		sb.WriteString(fmt.Sprintf("file: %s\n", resourceFields.FilePath))
-	}
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, resourceFields.Name))
 	return sb.String()
 }
