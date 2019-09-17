@@ -186,6 +186,9 @@ func (api *API) UserConfigStr() string {
 	if api.RequestHandler != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestHandlerKey, *api.RequestHandler))
 	}
+	if api.TFSignatureKey != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", TFSignatureKeyKey, *api.TFSignatureKey))
+	}
 	if api.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
 		sb.WriteString(s.Indent(api.Compute.UserConfigStr(), "  "))
