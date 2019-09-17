@@ -10,6 +10,7 @@ Serve models at scale.
   model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model)
   model_format: <string>  # model format, must be "tensorflow" or "onnx" (default: "onnx" if model path ends with .onnx, "tensorflow" if model path ends with .zip or is a directory)
   request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
+  tf_signature_key: <string> # The name of the SignatureDef to use for prediction (optional if your model has only one SignatureDef key)
   tracker:
     key: <string> # json key to track if the response payload is a dictionary
     model_type: <string> # model type, must be "classification" or "regression"
