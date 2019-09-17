@@ -34,8 +34,8 @@ func Marshal(obj interface{}) ([]byte, error) {
 	return jsonBytes, nil
 }
 
-func Unmarshal(data []byte, dst interface{}) error {
-	if err := json.Unmarshal(data, dst); err != nil {
+func Unmarshal(jsonBytes []byte, dst interface{}) error {
+	if err := json.Unmarshal(jsonBytes, dst); err != nil {
 		return errors.Wrap(err, errStrUnmarshalJSON)
 	}
 	return nil
