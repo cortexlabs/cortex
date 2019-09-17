@@ -109,3 +109,13 @@ func LocalHourNow() string {
 func OlderThanSeconds(t time.Time, secs float64) bool {
 	return time.Since(t).Seconds() > secs
 }
+
+func MillisToTime(epochMillis int64) time.Time {
+	seconds := epochMillis / 1000
+	millis := epochMillis % 1000
+	return time.Unix(seconds, millis*int64(time.Millisecond))
+}
+
+func ToMillis(t time.Time) int64 {
+	return t.UnixNano() / int64(time.Millisecond)
+}

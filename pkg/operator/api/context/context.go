@@ -209,6 +209,11 @@ func (ctx *Context) VisibleResourceByNameAndType(name string, resourceTypeStr st
 	return nil, resource.ErrorInvalidType(resourceTypeStr)
 }
 
+func (ctx *Context) LogGroupName(apiName string) string {
+	name := ctx.CortexConfig.LogGroup + "." + ctx.App.Name + "." + apiName
+	return name
+}
+
 func (ctx *Context) Validate() error {
 	return nil
 }
