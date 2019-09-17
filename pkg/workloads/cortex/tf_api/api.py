@@ -263,14 +263,19 @@ def extract_signature(signature_def, signature_key):
     if signature_key is None:
         if len(available_keys) == 1:
             logger.info(
-                "signature_key was not configured by user, using signature key '{}' found in signature def map".format(
+                "tf_signature_key was not configured by user, using signature key '{}' (found in the signature def map)".format(
                     available_keys[0]
                 )
             )
             signature_key = available_keys[0]
+        elif "predict" in signature_def:
+            logger.info(
+                "tf_signature_key was not configured by user, using signature key 'predict' (found in the signature def map)"
+            )
+            signature_key = "predict"
         else:
             raise UserException(
-                "signature_key was not configured by user, please specify one the following keys '{}' found in signature def map".format(
+                "tf_signature_key was not configured by user, please specify one the following keys '{}' (found in the signature def map)".format(
                     "', '".join(available_keys)
                 )
             )
@@ -281,7 +286,7 @@ def extract_signature(signature_def, signature_key):
                 possibilities_str = "keys: '{}'".format("', '".join(available_keys))
 
             raise UserException(
-                "signature_key '{}' was not found in signature def map, but found the following {}".format(
+                "tf_signature_key '{}' was not found in signature def map, but found the following {}".format(
                     signature_key, possibilities_str
                 )
             )
@@ -406,15 +411,11 @@ def start(args):
 
         time.sleep(5)
 
-    signature_key = None
-    if api.get("tf_serving") is not None and api["tf_serving"].get("signature_key") is not None:
-        signature_key = api["tf_serving"]["signature_key"]
-
-    key, parsed_signature = extract_signature(
-        local_cache["model_metadata"]["signatureDef"], signature_key
+    signature_key, parsed_signature = extract_signature(
+        local_cache["model_metadata"]["signatureDef"], api["tf_signature_key"]
     )
 
-    local_cache["signature_key"] = key
+    local_cache["signature_key"] = signature_key
     local_cache["parsed_signature"] = parsed_signature
     logger.info("model_signature: {}".format(local_cache["parsed_signature"]))
     serve(app, listen="*:{}".format(args.port))

@@ -10,16 +10,17 @@ Serve models at scale.
   model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model)
   model_format: <string>  # model format, must be "tensorflow" or "onnx" (default: "onnx" if model path ends with .onnx, "tensorflow" if model path ends with .zip or is a directory)
   request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
+  tf_signature_key: <string> # name of the signature def to use for prediction (required if your model has more than one signature def)
   tracker:
-    key: <string> # json key to track if the response payload is a dictionary
-    model_type: <string> # model type, must be "classification" or "regression"
+    key: <string>  # json key to track if the response payload is a dictionary
+    model_type: <string>  # model type, must be "classification" or "regression"
   compute:
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
     init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
     target_cpu_utilization: <int>  # CPU utilization threshold (as a percentage) to trigger scaling (default: 80)
     cpu: <string | int | float>  # CPU request per replica (default: 200m)
-    gpu: <int>  # gpu request per replica (default: 0)
+    gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica (default: Null)
 ```
 
@@ -31,10 +32,8 @@ See [packaging models](packaging-models.md) for how to export the model.
 - kind: api
   name: my-api
   model: s3://my-bucket/my-model.onnx
-  request_handler: inference.py
+  request_handler: handler.py
   compute:
-    min_replicas: 5
-    max_replicas: 20
     gpu: 1
 ```
 
@@ -52,3 +51,11 @@ You can log more information about each request by adding a `?debug=true` parame
 2. The value after running the `pre_inference` function (if applicable)
 3. The value after running inference
 4. The value after running the `post_inference` function (if applicable)
+
+## Autoscaling replicas
+
+Cortex adjusts the number of replicas that are serving predictions by monitoring the compute resource usage of each API. The number of replicas will be at least `min_replicas` and no more than `max_replicas`.
+
+## Autoscaling nodes
+
+Cortex spins up and down nodes based on the aggregate resource requests of all APIs. The number of nodes will be at least `$CORTEX_NODES_MIN` and no more than `$CORTEX_NODES_MAX` (configured during installation and modifiable via the [AWS console](https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-manual-scaling.html)).

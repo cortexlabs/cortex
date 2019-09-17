@@ -8,7 +8,7 @@ For example:
 - kind: api
   ...
   compute:
-    cpu: "2"
+    cpu: 2
     mem: "1Gi"
     gpu: 1
 ```
