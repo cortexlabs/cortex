@@ -116,6 +116,6 @@ func MillisToTime(epochMillis int64) time.Time {
 	return time.Unix(seconds, millis*int64(time.Millisecond))
 }
 
-func TimeToMillis(t time.Time) int64 {
+func ToMillis(t time.Time) int64 {
 	return t.UnixNano() / int64(time.Millisecond)
 }

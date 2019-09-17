@@ -175,12 +175,12 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 				continue
 			}
 
-			endTime := timelib.TimeToMillis(time.Now())
+			endTime := timelib.ToMillis(time.Now())
 
 			logEventsOutput, err := config.AWS.CloudWatchLogsClient.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
 				LogGroupName:   aws.String(logGroupName),
 				LogStreamNames: aws.StringSlice(logStreamNamesSet.Slice()),
-				StartTime:      aws.Int64(timelib.TimeToMillis(lastLogTime.Add(-pollPeriod))),
+				StartTime:      aws.Int64(timelib.ToMillis(lastLogTime.Add(-pollPeriod))),
 				EndTime:        aws.Int64(endTime),
 				Limit:          aws.Int64(int64(maxLogLinesPerRequest)),
 			})
@@ -192,7 +192,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 				}
 			}
 
-			lastLogTimestampMillis := timelib.TimeToMillis(lastLogTime)
+			lastLogTimestampMillis := timelib.ToMillis(lastLogTime)
 			for _, logEvent := range logEventsOutput.Events {
 				var log FluentdLog
 				json.Unmarshal([]byte(*logEvent.Message), &log)
