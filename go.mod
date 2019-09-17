@@ -18,6 +18,7 @@ require (
 	github.com/tcnksm/go-input v0.0.0-20180404061846-548a7d7a8ee8
 	github.com/ugorji/go/codec v1.1.7
 	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca
+	gopkg.in/karalabe/cookiejar.v1 v1.0.0-20141109175019-e1490cae028c
 	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
 	k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab

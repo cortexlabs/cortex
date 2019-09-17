@@ -83,20 +83,22 @@ data:
       </filter>
 
       <filter **>
-        @type record_transformer
-        enable_ruby
+        @type record_modifier
         <record>
-          stream_name ${record.dig("kubernetes", "pod_name")}_${record.dig("kubernetes", "container_name")}
+          default_group_name "#{ENV['LOG_GROUP_NAME']}"
+          group_name  ${record.dig("kubernetes", "labels", "logGroupName") || record["default_group_name"]}
+          stream_name ${record.dig("kubernetes", "pod_name")}_${record.dig("kubernetes", "container_name")}          
           log ${record.dig("log").rstrip}
         </record>
-        remove_keys kubernetes,docker,stream
+        remove_keys kubernetes,docker,stream,default_group_name
       </filter>
       <match **>
         @type cloudwatch_logs
         region "#{ENV['AWS_REGION']}"
-        log_group_name "#{ENV['LOG_GROUP_NAME']}"
+        log_group_name_key group_name
         log_stream_name_key stream_name
         remove_log_stream_name_key true
+        remove_log_group_name_key true
         auto_create_stream true
         <buffer>
           flush_interval 2

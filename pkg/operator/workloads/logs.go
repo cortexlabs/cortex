@@ -18,13 +18,16 @@ package workloads
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/gorilla/websocket"
+	"gopkg.in/karalabe/cookiejar.v1/collections/deque"
 
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
@@ -38,8 +41,40 @@ const (
 	socketMaxMessageSize    = 8192
 
 	maxLogLinesPerRequest = 500
-	pollPeriod            = 250 // milliseconds
+	pollPeriod            = 250 * time.Millisecond
+	streamRefreshPeriod   = 2 * time.Second
 )
+
+type eventCache struct {
+	size       int
+	seen       strset.Set
+	eventQueue *deque.Deque
+}
+
+func NewEventCache(cacheSize int) eventCache {
+	return eventCache{
+		size:       cacheSize,
+		seen:       strset.New(),
+		eventQueue: deque.New(),
+	}
+}
+
+func (c *eventCache) Has(eventID string) bool {
+	return c.seen.Has(eventID)
+}
+
+func (c *eventCache) PopLeft() {
+	eventID := c.eventQueue.PopLeft().(string)
+	c.seen.Remove(eventID)
+}
+
+func (c *eventCache) Add(eventID string) {
+	if c.eventQueue.Size() == c.size {
+		c.PopLeft()
+	}
+	c.seen.Add(eventID)
+	c.eventQueue.PushRight(eventID)
+}
 
 func ReadLogs(appName string, podLabels map[string]string, socket *websocket.Conn) {
 	podCheckCancel := make(chan struct{})
@@ -67,13 +102,28 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 	timer := time.NewTimer(0)
 	defer timer.Stop()
 
-	lastTimestamp := int64(0)
-	previousEvents := strset.New()
+	lastLogTime := time.Now()
+	lastLogStreamUpdateTime := time.Now().Add(-1 * streamRefreshPeriod)
 
+	logStreamNames := []string{}
+	logStreamSet := strset.New()
 	var currentContextID string
 	var prefix string
-	var ctx *context.Context
 	var err error
+
+	var ctx = CurrentContext(appName)
+	eventCache := NewEventCache(10000)
+
+	if ctx == nil {
+		writeAndCloseSocket(socket, "\ndeployment "+appName+" not found")
+		return
+	}
+
+	logGroupName, err := getLogGroupName(ctx, podLabels)
+	if err != nil {
+		writeAndCloseSocket(socket, err.Error()) // unexpected
+		return
+	}
 
 	for {
 		select {
@@ -83,8 +133,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 			ctx = CurrentContext(appName)
 
 			if ctx == nil {
-				writeString(socket, "\ndeployment "+appName+" not found")
-				closeSocket(socket)
+				writeAndCloseSocket(socket, "\ndeployment "+appName+" not found")
 				continue
 			}
 
@@ -93,105 +142,139 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 					if podLabels["workloadType"] == resource.APIType.String() {
 						apiName := podLabels["apiName"]
 						if _, ok := ctx.APIs[apiName]; !ok {
-							writeString(socket, "\napi "+apiName+" was not found in latest deployment")
-							closeSocket(socket)
+							writeAndCloseSocket(socket, "\napi "+apiName+" was not found in latest deployment")
 							continue
 						}
 						writeString(socket, "\na new deployment was detected, streaming logs from the latest deployment")
 					} else {
-						writeString(socket, "\nlogging non-api workloads is not supported") // unexpected
-						closeSocket(socket)
+						writeAndCloseSocket(socket, "\nlogging non-api workloads is not supported") // unexpected
 						continue
 					}
 				} else {
-					lastTimestamp = ctx.CreatedEpoch * 1000
-				}
-
-				if podLabels["workloadType"] == resource.APIType.String() {
-					podLabels["workloadID"] = ctx.APIs[podLabels["apiName"]].WorkloadID
+					lastLogTime, _ = getPodStartTime(podLabels)
 				}
 
 				currentContextID = ctx.ID
-
 				writeString(socket, "\nretrieving logs...")
-				prefix = ""
 			}
 
-			if len(prefix) == 0 {
-				prefix, err = getPrefix(podLabels)
+			if lastLogStreamUpdateTime.Add(streamRefreshPeriod).Before(time.Now()) {
+				newLogStreamSet, err := getLogStreams(logGroupName)
 				if err != nil {
-					writeString(socket, err.Error())
-					closeSocket(socket)
+					writeAndCloseSocket(socket, "error encountered while searching for log streams: "+err.Error())
 					continue
 				}
+
+				if !logStreamSet.IsEqual(newLogStreamSet) {
+					lastLogTime = lastLogTime.Add(-streamRefreshPeriod)
+					logStreamNames = newLogStreamSet.Slice()
+				}
+
+				lastLogStreamUpdateTime = time.Now()
 			}
 
-			if len(prefix) == 0 {
+			if len(logStreamNames) == 0 {
 				timer.Reset(pollPeriod)
 				continue
 			}
 
 			endTime := time.Now().Unix() * 1000
-			startTime := lastTimestamp - pollPeriod
+
 			logEventsOutput, err := config.AWS.CloudWatchLogsClient.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
-				LogGroupName:        aws.String(config.Cortex.LogGroup),
-				LogStreamNamePrefix: aws.String(prefix),
-				StartTime:           aws.Int64(startTime),
-				EndTime:             aws.Int64(endTime), // requires milliseconds
-				Limit:               aws.Int64(int64(maxLogLinesPerRequest)),
+				LogGroupName:   aws.String(logGroupName),
+				LogStreamNames: aws.StringSlice(logStreamNames),
+				StartTime:      aws.Int64(TimeToMillis(lastLogTime.Add(-pollPeriod))),
+				EndTime:        aws.Int64(endTime), // requires milliseconds
+				Limit:          aws.Int64(int64(maxLogLinesPerRequest)),
 			})
 
 			if err != nil {
-				if !awslib.CheckErrCode(err, "ResourceNotFoundException") {
-					writeString(socket, "error encountered while fetching logs from cloudwatch: "+err.Error())
-					closeSocket(socket)
+				if !awslib.CheckErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) {
+					writeAndCloseSocket(socket, "error encountered while fetching logs from cloudwatch: "+err.Error())
 					continue
 				}
 			}
 
-			newEvents := strset.New()
+			lastLogTimestampMillis := TimeToMillis(lastLogTime)
 			for _, logEvent := range logEventsOutput.Events {
 				var log FluentdLog
 				json.Unmarshal([]byte(*logEvent.Message), &log)
 
-				if !previousEvents.Has(*logEvent.EventId) {
-					socket.WriteMessage(websocket.TextMessage, []byte(log.Log))
-					if *logEvent.Timestamp > lastTimestamp {
-						lastTimestamp = *logEvent.Timestamp
+				if !eventCache.Has(*logEvent.EventId) {
+					socket.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("%s %s", *logEvent.LogStreamName, log.Log)))
+					if *logEvent.Timestamp > lastLogTimestampMillis {
+						lastLogTimestampMillis = *logEvent.Timestamp
 					}
+					eventCache.Add(*logEvent.EventId)
 				}
-				newEvents.Add(*logEvent.EventId)
 			}
 
+			lastLogTime = MillisToTime(endTime)
 			if len(logEventsOutput.Events) == maxLogLinesPerRequest {
-				socket.WriteMessage(websocket.TextMessage, []byte("---- Showing at most "+s.Int(maxLogLinesPerRequest)+" lines. Visit AWS cloudwatch logs console and search for \""+prefix+"\" in log group \""+config.Cortex.LogGroup+"\" for complete logs ----"))
-				lastTimestamp = endTime
+				writeString(socket, "---- Showing at most "+s.Int(maxLogLinesPerRequest)+" lines. Visit AWS cloudwatch logs console and search for \""+prefix+"\" in log group \""+config.Cortex.LogGroup+"\" for complete logs ----")
+				lastLogTime = MillisToTime(endTime)
 			}
 
-			previousEvents = newEvents
-			timer.Reset(pollPeriod * time.Millisecond)
+			timer.Reset(pollPeriod)
 		}
 	}
 }
 
-func getPrefix(searchLabels map[string]string) (string, error) {
+func MillisToTime(epochMillis int64) time.Time {
+	return time.Unix(epochMillis/1000, (epochMillis%1000)*1000)
+}
+
+func TimeToMillis(t time.Time) int64 {
+	return t.UnixNano() / 1000
+}
+
+func getLogStreams(logGroupName string) (strset.Set, error) {
+	describeLogStreamsOnput, err := config.AWS.CloudWatchLogsClient.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
+		Descending:   aws.Bool(true),
+		LogGroupName: aws.String(logGroupName),
+		OrderBy:      aws.String(cloudwatchlogs.OrderByLastEventTime),
+		Limit:        aws.Int64(50),
+	})
+	if err != nil {
+		if !awslib.CheckErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) {
+			return nil, err
+		}
+		return nil, nil
+	}
+
+	streams := strset.New()
+
+	for _, stream := range describeLogStreamsOnput.LogStreams {
+		streams.Add(*stream.LogStreamName)
+	}
+	return streams, nil
+}
+
+func getPodStartTime(searchLabels map[string]string) (time.Time, error) {
 	pods, err := config.Kubernetes.ListPodsByLabels(searchLabels)
 	if err != nil {
-		return "", err
+		return time.Now(), err
 	}
 
 	if len(pods) == 0 {
-		return "", nil
+		return time.Now(), nil
 	}
 
-	podLabels := pods[0].GetLabels()
-	if apiName, ok := podLabels["apiName"]; ok {
-		if podTemplateHash, ok := podLabels["pod-template-hash"]; ok {
-			return internalAPIName(apiName, podLabels["appName"]) + "-" + podTemplateHash, nil
+	startTime := pods[0].CreationTimestamp.Time
+	for _, pod := range pods[1:] {
+		if pod.CreationTimestamp.Time.Before(startTime) {
+			startTime = pod.CreationTimestamp.Time
 		}
-		return "", nil // unexpected, pod template hash not set yet
 	}
-	return pods[0].Name, nil // unexpected, logging non api resources
+
+	return startTime, nil
+}
+
+func getLogGroupName(ctx *context.Context, searchLabels map[string]string) (string, error) {
+	if searchLabels["workloadType"] == resource.APIType.String() {
+		return ctx.LogGroupName(searchLabels["apiName"]), nil
+	}
+	return "nil", errors.New("unsupported workload type") // unexpected
 }
 
 func writeString(socket *websocket.Conn, message string) {
@@ -202,4 +285,9 @@ func closeSocket(socket *websocket.Conn) {
 	socket.SetWriteDeadline(time.Now().Add(socketWriteDeadlineWait))
 	socket.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 	time.Sleep(socketCloseGracePeriod)
+}
+
+func writeAndCloseSocket(socket *websocket.Conn, message string) {
+	writeString(socket, message)
+	closeSocket(socket)
 }
