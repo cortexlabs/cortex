@@ -29,7 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	timelib "github.com/cortexlabs/cortex/pkg/lib/time"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -103,7 +103,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 	lastLogTime := time.Now()
 	lastLogStreamUpdateTime := time.Now().Add(-1 * streamRefreshPeriod)
 
-	logStreamNamesSet := strset.New()
+	logStreamNames := strset.New()
 
 	var currentContextID string
 	var prefix string
@@ -157,30 +157,30 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 			}
 
 			if lastLogStreamUpdateTime.Add(streamRefreshPeriod).Before(time.Now()) {
-				newLogStreamNamesSet, err := getLogStreams(logGroupName)
+				newLogStreamNames, err := getLogStreams(logGroupName)
 				if err != nil {
 					writeAndCloseSocket(socket, "error encountered while searching for log streams: "+err.Error())
 					continue
 				}
 
-				if !logStreamNamesSet.IsEqual(newLogStreamNamesSet) {
+				if !logStreamNames.IsEqual(newLogStreamNames) {
 					lastLogTime = lastLogTime.Add(-streamRefreshPeriod)
-					logStreamNamesSet = newLogStreamNamesSet
+					logStreamNames = newLogStreamNames
 				}
 				lastLogStreamUpdateTime = time.Now()
 			}
 
-			if len(logStreamNamesSet) == 0 {
+			if len(logStreamNames) == 0 {
 				timer.Reset(pollPeriod)
 				continue
 			}
 
-			endTime := timelib.ToMillis(time.Now())
+			endTime := libtime.ToMillis(time.Now())
 
 			logEventsOutput, err := config.AWS.CloudWatchLogsClient.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
 				LogGroupName:   aws.String(logGroupName),
-				LogStreamNames: aws.StringSlice(logStreamNamesSet.Slice()),
-				StartTime:      aws.Int64(timelib.ToMillis(lastLogTime.Add(-pollPeriod))),
+				LogStreamNames: aws.StringSlice(logStreamNames.Slice()),
+				StartTime:      aws.Int64(libtime.ToMillis(lastLogTime.Add(-pollPeriod))),
 				EndTime:        aws.Int64(endTime),
 				Limit:          aws.Int64(int64(maxLogLinesPerRequest)),
 			})
@@ -192,7 +192,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 				}
 			}
 
-			lastLogTimestampMillis := timelib.ToMillis(lastLogTime)
+			lastLogTimestampMillis := libtime.ToMillis(lastLogTime)
 			for _, logEvent := range logEventsOutput.Events {
 				var log FluentdLog
 				json.Unmarshal([]byte(*logEvent.Message), &log)
@@ -205,10 +205,10 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 				}
 			}
 
-			lastLogTime = timelib.MillisToTime(lastLogTimestampMillis)
+			lastLogTime = libtime.MillisToTime(lastLogTimestampMillis)
 			if len(logEventsOutput.Events) == maxLogLinesPerRequest {
 				writeString(socket, "---- Showing at most "+s.Int(maxLogLinesPerRequest)+" lines. Visit AWS cloudwatch logs console and search for \""+prefix+"\" in log group \""+config.Cortex.LogGroup+"\" for complete logs ----")
-				lastLogTime = timelib.MillisToTime(endTime)
+				lastLogTime = libtime.MillisToTime(endTime)
 			}
 
 			timer.Reset(pollPeriod)
@@ -245,7 +245,7 @@ func getPodStartTime(searchLabels map[string]string) (time.Time, error) {
 	}
 
 	if len(pods) == 0 {
-		return time.Time{}, nil
+		return time.Now(), nil
 	}
 
 	startTime := pods[0].CreationTimestamp.Time
