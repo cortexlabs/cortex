@@ -10,9 +10,9 @@ Serve models at scale.
   model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model)
   model_format: <string>  # model format, must be "tensorflow" or "onnx" (default: "onnx" if model path ends with .onnx, "tensorflow" if model path ends with .zip or is a directory)
   request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
-  tf_signature_key: <string> # name of the signature def to use for prediction (required if your model has more than one signature def)
+  tf_signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
   tracker:
-    key: <string>  # json key to track if the response payload is a dictionary
+    key: <string>  # key to track, only required if the response payload is a json object
     model_type: <string>  # model type, must be "classification" or "regression"
   compute:
     min_replicas: <int>  # minimum number of replicas (default: 1)
@@ -42,6 +42,10 @@ See [packaging models](packaging-models.md) for how to export the model.
 Request handlers are used to decouple the interface of an API endpoint from its model. A `pre_inference` request handler can be used to modify request payloads before they are sent to the model. A `post_inference` request handler can be used to modify model predictions in the server before they are sent to the client.
 
 See [request handlers](request-handlers.md) for a detailed guide.
+
+## Prediction Monitoring
+
+The `tracker` can be configured to collect API prediction metrics and display real time stats in `cortex get <api_name>`. The tracker looks for scalar values in the response payload (after the execution of `post_inference` request handler). If the response payload is a json object, the `key` can be set to extract the desired scalar value. For regression models, the tracker should be configured with `model_type: regression` to collect float values and display regreission stats such as min, max and avg. For classification models, the tracker should be configured with `model_type: classification` to collect integer or string values and display the class distribution.
 
 ## Debugging
 
