@@ -43,5 +43,5 @@ aws s3 ls
 aws s3 rb --force s3://<bucket-name>
 
 # Delete the log group
-aws logs delete-log-group --log-group-name cortex --region us-west-2
+aws logs describe-log-groups --log-group-name-prefix=cortex --query logGroups[*].[logGroupName] --output text | xargs -I {} aws logs delete-log-group --log-group-name {}
 ```

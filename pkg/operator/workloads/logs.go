@@ -23,12 +23,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/gorilla/websocket"
-	"gopkg.in/karalabe/cookiejar.v1/collections/deque"
+	"gopkg.in/karalabe/cookiejar.v2/collections/deque"
 
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	timelib "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -39,7 +40,9 @@ const (
 	socketCloseGracePeriod  = 10 * time.Second
 	socketMaxMessageSize    = 8192
 
+	maxCacheSize          = 10000
 	maxLogLinesPerRequest = 500
+	maxStreamsPerRequest  = 50
 	pollPeriod            = 250 * time.Millisecond
 	streamRefreshPeriod   = 2 * time.Second
 )
@@ -62,14 +65,10 @@ func (c *eventCache) Has(eventID string) bool {
 	return c.seen.Has(eventID)
 }
 
-func (c *eventCache) PopLeft() {
-	eventID := c.eventQueue.PopLeft().(string)
-	c.seen.Remove(eventID)
-}
-
 func (c *eventCache) Add(eventID string) {
 	if c.eventQueue.Size() == c.size {
-		c.PopLeft()
+		eventID := c.eventQueue.PopLeft().(string)
+		c.seen.Remove(eventID)
 	}
 	c.seen.Add(eventID)
 	c.eventQueue.PushRight(eventID)
@@ -104,14 +103,14 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 	lastLogTime := time.Now()
 	lastLogStreamUpdateTime := time.Now().Add(-1 * streamRefreshPeriod)
 
-	logStreamNames := []string{}
-	logStreamSet := strset.New()
+	logStreamNamesSet := strset.New()
+
 	var currentContextID string
 	var prefix string
 	var err error
 
 	var ctx = CurrentContext(appName)
-	eventCache := newEventCache(10000)
+	eventCache := newEventCache(maxCacheSize)
 
 	if ctx == nil {
 		writeAndCloseSocket(socket, "\ndeployment "+appName+" not found")
@@ -158,32 +157,31 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 			}
 
 			if lastLogStreamUpdateTime.Add(streamRefreshPeriod).Before(time.Now()) {
-				newLogStreamSet, err := getLogStreams(logGroupName)
+				newLogStreamNamesSet, err := getLogStreams(logGroupName)
 				if err != nil {
 					writeAndCloseSocket(socket, "error encountered while searching for log streams: "+err.Error())
 					continue
 				}
 
-				if !logStreamSet.IsEqual(newLogStreamSet) {
+				if !logStreamNamesSet.IsEqual(newLogStreamNamesSet) {
 					lastLogTime = lastLogTime.Add(-streamRefreshPeriod)
-					logStreamNames = newLogStreamSet.Slice()
+					logStreamNamesSet = newLogStreamNamesSet
 				}
-
 				lastLogStreamUpdateTime = time.Now()
 			}
 
-			if len(logStreamNames) == 0 {
+			if len(logStreamNamesSet) == 0 {
 				timer.Reset(pollPeriod)
 				continue
 			}
 
-			endTime := TimeToMillis(time.Now())
+			endTime := timelib.TimeToMillis(time.Now())
 
 			logEventsOutput, err := config.AWS.CloudWatchLogsClient.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
 				LogGroupName:   aws.String(logGroupName),
-				LogStreamNames: aws.StringSlice(logStreamNames),
-				StartTime:      aws.Int64(TimeToMillis(lastLogTime.Add(-pollPeriod))),
-				EndTime:        aws.Int64(endTime), // requires milliseconds
+				LogStreamNames: aws.StringSlice(logStreamNamesSet.Slice()),
+				StartTime:      aws.Int64(timelib.TimeToMillis(lastLogTime.Add(-pollPeriod))),
+				EndTime:        aws.Int64(endTime),
 				Limit:          aws.Int64(int64(maxLogLinesPerRequest)),
 			})
 
@@ -194,7 +192,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 				}
 			}
 
-			lastLogTimestampMillis := TimeToMillis(lastLogTime)
+			lastLogTimestampMillis := timelib.TimeToMillis(lastLogTime)
 			for _, logEvent := range logEventsOutput.Events {
 				var log FluentdLog
 				json.Unmarshal([]byte(*logEvent.Message), &log)
@@ -207,10 +205,10 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 				}
 			}
 
-			lastLogTime = MillisToTime(lastLogTimestampMillis)
+			lastLogTime = timelib.MillisToTime(lastLogTimestampMillis)
 			if len(logEventsOutput.Events) == maxLogLinesPerRequest {
 				writeString(socket, "---- Showing at most "+s.Int(maxLogLinesPerRequest)+" lines. Visit AWS cloudwatch logs console and search for \""+prefix+"\" in log group \""+config.Cortex.LogGroup+"\" for complete logs ----")
-				lastLogTime = MillisToTime(endTime)
+				lastLogTime = timelib.MillisToTime(endTime)
 			}
 
 			timer.Reset(pollPeriod)
@@ -218,22 +216,12 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 	}
 }
 
-func MillisToTime(epochMillis int64) time.Time {
-	seconds := epochMillis / 1000
-	millis := epochMillis % 1000
-	return time.Unix(seconds, millis*int64(time.Millisecond))
-}
-
-func TimeToMillis(t time.Time) int64 {
-	return t.UnixNano() / int64(time.Millisecond)
-}
-
 func getLogStreams(logGroupName string) (strset.Set, error) {
-	describeLogStreamsOnput, err := config.AWS.CloudWatchLogsClient.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
+	describeLogStreamsOutput, err := config.AWS.CloudWatchLogsClient.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
+		OrderBy:      aws.String(cloudwatchlogs.OrderByLastEventTime),
 		Descending:   aws.Bool(true),
 		LogGroupName: aws.String(logGroupName),
-		OrderBy:      aws.String(cloudwatchlogs.OrderByLastEventTime),
-		Limit:        aws.Int64(50),
+		Limit:        aws.Int64(maxStreamsPerRequest),
 	})
 	if err != nil {
 		if !awslib.CheckErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) {
@@ -244,7 +232,7 @@ func getLogStreams(logGroupName string) (strset.Set, error) {
 
 	streams := strset.New()
 
-	for _, stream := range describeLogStreamsOnput.LogStreams {
+	for _, stream := range describeLogStreamsOutput.LogStreams {
 		streams.Add(*stream.LogStreamName)
 	}
 	return streams, nil
@@ -253,11 +241,11 @@ func getLogStreams(logGroupName string) (strset.Set, error) {
 func getPodStartTime(searchLabels map[string]string) (time.Time, error) {
 	pods, err := config.Kubernetes.ListPodsByLabels(searchLabels)
 	if err != nil {
-		return time.Now(), err
+		return time.Time{}, err
 	}
 
 	if len(pods) == 0 {
-		return time.Now(), nil
+		return time.Time{}, nil
 	}
 
 	startTime := pods[0].CreationTimestamp.Time

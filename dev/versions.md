@@ -151,6 +151,7 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 
 1. Find the latest release on [Dockerhub](https://hub.docker.com/r/fluent/fluentd-kubernetes-daemonset/)
 1. Update the base image version in `images/fluentd/Dockerfile`
+1. Update fluent-gem versions to latest
 1. Update `fluentd.yaml` as necessary (make sure to maintain all Cortex environment variables)
 
 ## Statsd

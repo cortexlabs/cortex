@@ -85,8 +85,7 @@ data:
       <filter **>
         @type record_modifier
         <record>
-          default_group_name "#{ENV['LOG_GROUP_NAME']}"
-          group_name  ${record.dig("kubernetes", "labels", "logGroupName") || record["default_group_name"]}
+          group_name  ${record.dig("kubernetes", "labels", "logGroupName") || ENV['LOG_GROUP_NAME']}
           stream_name ${record.dig("kubernetes", "pod_name")}_${record.dig("kubernetes", "container_name")}
           log ${record.dig("log").rstrip}
         </record>
