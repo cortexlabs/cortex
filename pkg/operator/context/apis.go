@@ -37,7 +37,7 @@ func getAPIs(config *userconfig.Config, deploymentVersion string, projectID stri
 		buf.WriteString(apiConfig.ModelFormat.String())
 		buf.WriteString(deploymentVersion)
 		buf.WriteString(strings.TrimSuffix(apiConfig.Model, "/"))
-		buf.WriteString(s.Obj(apiConfig.TFServing))
+		buf.WriteString(s.Obj(apiConfig.TFSignatureKey))
 
 		if apiConfig.RequestHandler != nil {
 			buf.WriteString(projectID)
