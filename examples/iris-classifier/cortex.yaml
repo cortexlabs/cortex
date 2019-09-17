@@ -5,23 +5,33 @@
   name: tensorflow
   model: s3://cortex-examples/iris/tensorflow
   request_handler: handlers/tensorflow.py
+  tracker:
+    model_type: classification
 
 - kind: api
   name: pytorch
   model: s3://cortex-examples/iris/pytorch.onnx
   request_handler: handlers/pytorch.py
+  tracker:
+    model_type: classification
 
 - kind: api
   name: keras
   model: s3://cortex-examples/iris/keras.onnx
   request_handler: handlers/keras.py
+  tracker:
+    model_type: classification
 
 - kind: api
   name: xgboost
   model: s3://cortex-examples/iris/xgboost.onnx
   request_handler: handlers/xgboost.py
+  tracker:
+    model_type: classification
 
 - kind: api
   name: sklearn
   model: s3://cortex-examples/iris/sklearn.onnx
   request_handler: handlers/sklearn.py
+  tracker:
+    model_type: classification
