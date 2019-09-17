@@ -18,7 +18,6 @@ package workloads
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -201,7 +200,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 				json.Unmarshal([]byte(*logEvent.Message), &log)
 
 				if !eventCache.Has(*logEvent.EventId) {
-					socket.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("%s %s", *logEvent.LogStreamName, log.Log)))
+					socket.WriteMessage(websocket.TextMessage, []byte(log.Log))
 					if *logEvent.Timestamp > lastLogTimestampMillis {
 						lastLogTimestampMillis = *logEvent.Timestamp
 					}
