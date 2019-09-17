@@ -48,7 +48,7 @@ const (
 	ErrExternalNotFound
 	ErrONNXDoesntSupportZip
 	ErrInvalidTensorflowDir
-	ErrInvalidModelConfigOption
+	ErrIncompatibleWithModelFormat
 )
 
 var errorKinds = []string{
@@ -76,7 +76,7 @@ var errorKinds = []string{
 	"err_tf_serving_options_for_tf_only",
 }
 
-var _ = [1]int{}[int(ErrInvalidModelConfigOption)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrIncompatibleWithModelFormat)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -312,9 +312,9 @@ func ErrorInvalidTensorflowDir(path string) error {
 	}
 }
 
-func ErrorInvalidModelConfigOption(configKey string, format ModelFormat) error {
+func ErrorIncompatibleWithModelFormat(configKey string, format ModelFormat) error {
 	return Error{
-		Kind:    ErrInvalidModelConfigOption,
+		Kind:    ErrIncompatibleWithModelFormat,
 		message: fmt.Sprintf("\"%s\" was specified, but is not supported by the %s model format", configKey, format.String()),
 	}
 }

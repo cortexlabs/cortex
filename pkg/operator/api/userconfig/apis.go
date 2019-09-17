@@ -268,7 +268,7 @@ func (api *API) Validate(projectFileMap map[string][]byte) error {
 	}
 
 	if api.ModelFormat != TensorFlowModelFormat && api.TFSignatureKey != nil {
-		return errors.Wrap(ErrorInvalidModelConfigOption(TFSignatureKeyKey, api.ModelFormat), Identify(api))
+		return errors.Wrap(ErrorIncompatibleWithModelFormat(TFSignatureKeyKey, api.ModelFormat), Identify(api))
 	}
 
 	if api.RequestHandler != nil {
