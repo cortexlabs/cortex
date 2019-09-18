@@ -274,29 +274,29 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	return out, nil
 }
 
-func getAPIMetrics(appName, apiName string) (*schema.APIMetrics, error) {
+func getAPIMetrics(appName, apiName string) (schema.APIMetrics, error) {
 	params := map[string]string{"appName": appName, "apiName": apiName}
 	httpResponse, err := HTTPGet("/metrics", params)
 	if err != nil {
-		return nil, err
+		return schema.APIMetrics{}, err
 	}
 
 	var apiMetrics schema.APIMetrics
 	err = json.Unmarshal(httpResponse, &apiMetrics)
 	if err != nil {
-		return nil, err
+		return schema.APIMetrics{}, err
 	}
 
-	return &apiMetrics, nil
+	return apiMetrics, nil
 }
 
-func appendNetworkMetrics(apiTable table.Table, apiMetrics *schema.APIMetrics) table.Table {
+func appendNetworkMetrics(apiTable table.Table, apiMetrics schema.APIMetrics) table.Table {
 	latency := "-"
 	code2XX := "-"
 	code4XX := 0
 	code5XX := 0
 
-	if apiMetrics != nil && apiMetrics.NetworkStats != nil {
+	if apiMetrics.NetworkStats != nil {
 		code4XX = apiMetrics.NetworkStats.Code4XX
 		code5XX = apiMetrics.NetworkStats.Code5XX
 		if apiMetrics.NetworkStats.Latency != nil {
@@ -331,24 +331,23 @@ func appendNetworkMetrics(apiTable table.Table, apiMetrics *schema.APIMetrics) t
 	return apiTable
 }
 
-func predictionMetricsTable(apiMetrics *schema.APIMetrics, api *context.API) string {
+func predictionMetricsTable(apiMetrics schema.APIMetrics, api *context.API) string {
 	if api.Tracker == nil {
 		return ""
 	}
 
 	if api.Tracker.ModelType == userconfig.ClassificationModelType {
-
 		return classificationMetricsTable(apiMetrics)
 	}
 	return regressionMetricsTable(apiMetrics)
 }
 
-func regressionMetricsTable(apiMetrics *schema.APIMetrics) string {
+func regressionMetricsTable(apiMetrics schema.APIMetrics) string {
 	minStr := "-"
 	maxStr := "-"
 	avgStr := "-"
 
-	if apiMetrics != nil && apiMetrics.RegressionStats != nil {
+	if apiMetrics.RegressionStats != nil {
 		if apiMetrics.RegressionStats.Min != nil {
 			minStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Min)
 		}
@@ -374,12 +373,8 @@ func regressionMetricsTable(apiMetrics *schema.APIMetrics) string {
 	return table.MustFormat(t)
 }
 
-func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
-	numClasses := 0
-	if apiMetrics != nil {
-		numClasses = len(apiMetrics.ClassDistribution)
-	}
-	classList := make([]string, numClasses)
+func classificationMetricsTable(apiMetrics schema.APIMetrics) string {
+	classList := make([]string, len(apiMetrics.ClassDistribution))
 
 	i := 0
 	for inputName := range apiMetrics.ClassDistribution {
