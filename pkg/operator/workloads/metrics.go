@@ -36,21 +36,21 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-func GetMetrics(appName, apiName string) (*schema.APIMetrics, error) {
+func GetMetrics(appName, apiName string) (schema.APIMetrics, error) {
 	ctx := CurrentContext(appName)
 	api := ctx.APIs[apiName]
 
 	apiSavedStatus, err := getAPISavedStatus(api.ID, api.WorkloadID, appName)
 	if err != nil {
-		return nil, err
+		return schema.APIMetrics{}, err
 	}
 
 	if apiSavedStatus == nil {
-		return nil, errors.Wrap(ErrorAPIInitializing(), api.Name)
+		return schema.APIMetrics{}, errors.Wrap(ErrorAPIInitializing(), api.Name)
 	}
 
 	if apiSavedStatus.Start == nil {
-		return nil, errors.Wrap(ErrorAPIInitializing(), api.Name)
+		return schema.APIMetrics{}, errors.Wrap(ErrorAPIInitializing(), api.Name)
 	}
 
 	apiStartTime := apiSavedStatus.Start.Truncate(time.Second)
@@ -83,12 +83,12 @@ func GetMetrics(appName, apiName string) (*schema.APIMetrics, error) {
 	if len(requestList) != 0 {
 		err = parallel.RunFirstErr(requestList...)
 		if err != nil {
-			return nil, err
+			return schema.APIMetrics{}, err
 		}
 	}
 
 	mergedMetrics := realTimeMetrics.Merge(batchMetrics)
-	return &mergedMetrics, nil
+	return mergedMetrics, nil
 }
 
 func getAPIMetricsFunc(ctx *context.Context, api *context.API, period int64, startTime *time.Time, endTime *time.Time, apiMetrics *schema.APIMetrics) func() error {
