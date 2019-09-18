@@ -302,7 +302,7 @@ func appendNetworkMetrics(apiTable table.Table, apiMetrics *schema.APIMetrics) t
 		if *apiMetrics.NetworkStats.Latency < 1000 {
 			latency = fmt.Sprintf("%.6g ms", *apiMetrics.NetworkStats.Latency)
 		} else {
-			latency = fmt.Sprintf("%.6g s", (*apiMetrics.NetworkStats.Latency)*1000)
+			latency = fmt.Sprintf("%.6g s", (*apiMetrics.NetworkStats.Latency)/1000)
 		}
 	}
 
