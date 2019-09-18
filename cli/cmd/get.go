@@ -230,7 +230,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		{Title: "available"},
 		{Title: "requested"},
 		{Title: "stale compute", Hidden: groupStatus.ReadyStaleCompute == 0},
-		{Title: "stale model", Hidden: groupStatus.ReadyStaleModel == 0},
+		{Title: "stale", Hidden: groupStatus.ReadyStaleModel == 0},
 		{Title: "failed", Hidden: groupStatus.FailedUpdated == 0},
 		{Title: "last update"},
 	}
