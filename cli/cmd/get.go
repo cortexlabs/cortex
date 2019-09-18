@@ -51,10 +51,12 @@ func init() {
 }
 
 var getCmd = &cobra.Command{
-	Use:   "get [RESOURCE_NAME]",
-	Short: "get information about resources",
-	Long:  "Get information about resources.",
-	Args:  cobra.RangeArgs(0, 1),
+	Use:   "get [API_NAME]",
+	Short: "get information about APIs",
+	Long: `
+This command displays information about APIs.
+Adding the -v or --verbose flag displays additonal information.`,
+	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		rerun(func() (string, error) {
 			return runGet(cmd, args)
