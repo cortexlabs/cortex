@@ -6,13 +6,13 @@
 
 <br>
 
-Cortex is a machine learning deployment platform that you can self-host on AWS. It combines TensorFlow Serving, ONNX Runtime, and Flask into a single tool that takes models from S3 and deploys them as JSON prediction APIs. It also uses Docker and Kubernetes behind the scenes to autoscale, run rolling updates, and support CPU and GPU inference.
+Cortex is a machine learning deployment platform that you can self-host on AWS. It combines TensorFlow Serving, ONNX Runtime, and Flask into a single tool that takes models from S3 and deploys them as REST APIs. It also uses Docker and Kubernetes behind the scenes to autoscale, run rolling updates, and support CPU and GPU inference.
 
 <br>
 
 ## How it works
 
-**Define** your deployment using declarative configuration:
+Define your deployment using declarative configuration:
 
 ```yaml
 # cortex.yaml
@@ -25,7 +25,7 @@ Cortex is a machine learning deployment platform that you can self-host on AWS. 
     gpu: 1
 ```
 
-**Customize** request handling:
+Customize request handling:
 
 ```python
 # handler.py
@@ -42,7 +42,7 @@ def post_inference(prediction, metadata):
   # Python code
 ```
 
-**Deploy** to AWS:
+Deploy to AWS:
 
 ```bash
 $ cortex deploy
@@ -51,7 +51,7 @@ Deploying ...
 http://***.amazonaws.com/my-api  # Your API is ready!
 ```
 
-**Serve** real-time predictions via autoscaling JSON APIs:
+Serve real-time predictions via autoscaling JSON APIs:
 
 ```bash
 $ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
@@ -99,7 +99,7 @@ $ ./cortex.sh install
 
 - **Log streaming:** Cortex streams logs from your deployed models to your CLI.
 
-- **Prediction Monitoring:** Cortex can monitor network metrics and track predictions.
+- **Prediction monitoring:** Cortex can monitor network metrics and track predictions.
 
 - **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
 
