@@ -33,7 +33,7 @@ var refreshCmd = &cobra.Command{
 	Long: `
 This command sends all deployment configuration and code to Cortex.
 If validations pass, Cortex will attempt to create the desired state,
-and perform forced rolling updates for already existing APIs.`,
+and override any existing deployment.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		deploy(flagRefreshForce, true)
