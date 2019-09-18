@@ -249,13 +249,18 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	statusTable = appendNetworkMetrics(statusTable, apiMetrics) // adds blank stats when there is an error
 	out = "\n" + table.MustFormat(statusTable) + "\n"
 
+	var predictionMetrics string
 	if err != nil {
 		if !strings.Contains(err.Error(), "api is still initializing") {
-			out += fmt.Sprintf("\nerror fetching metrics: %s\n", err.Error())
+			predictionMetrics = fmt.Sprintf("\nerror fetching metrics: %s\n", err.Error())
 		}
-	} else if api.Tracker != nil {
-		out += "\n" + predictionMetricsTable(apiMetrics, api) + "\n"
 	}
+
+	if api.Tracker != nil && len(predictionMetrics) != 0 {
+		predictionMetrics = "\n" + predictionMetricsTable(apiMetrics, api) + "\n"
+	}
+
+	out += predictionMetrics
 
 	out += "\n" + console.Bold("url: ") + apiEndpoint
 
