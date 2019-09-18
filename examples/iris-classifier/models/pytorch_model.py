@@ -1,6 +1,7 @@
-from sklearn.model_selection import train_test_split
+# from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score
-from sklearn.datasets import load_iris
+
+# from sklearn.datasets import load_iris
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -25,9 +26,9 @@ class Net(nn.Module):
         return X
 
 
-iris = load_iris()
-X, y = iris.data, iris.target
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.8, random_state=42)
+# iris = load_iris()
+# X, y = iris.data, iris.target
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.8, random_state=42)
 
 # wrap up with Variable in pytorch
 train_X = Variable(torch.Tensor(X_train).float())
