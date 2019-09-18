@@ -7,3 +7,4 @@
   request_handler: handler.py
   compute:
     gpu: 1
+    cpu: 2
