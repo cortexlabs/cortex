@@ -29,8 +29,8 @@ var configureCmd = &cobra.Command{
 	Short: "configure the CLI",
 	Long: `
 This command configures the Cortex URL and AWS credentials
-in order to send and authenticate requests to Cortex.
-The data is stored in ~/.cortex.`,
+in order to authenticate and send requests to Cortex.
+The configuration is stored in ~/.cortex.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		configure()
