@@ -256,7 +256,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		}
 	}
 
-	if api.Tracker != nil && len(predictionMetrics) != 0 {
+	if api.Tracker != nil && len(predictionMetrics) == 0 {
 		predictionMetrics = "\n" + predictionMetricsTable(apiMetrics, api) + "\n"
 	}
 
