@@ -45,7 +45,7 @@ var deployCmd = &cobra.Command{
 	Short: "create or update a deployment",
 	Long:  `
 This command sends all deployment configuration and code to Cortex.
-If validations pass, Cortex will attempt to create the desired state on the cluster.`,
+If validations pass, Cortex will attempt to create the desired state.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		deploy(flagDeployForce, false)
