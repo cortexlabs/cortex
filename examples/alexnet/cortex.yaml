@@ -1,0 +1,7 @@
+- kind: deployment
+  name: image
+
+- kind: api
+  name: classifier
+  model: s3://data-vishal/alexnet.onnx
+  request_handler: image.py
