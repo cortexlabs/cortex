@@ -63,11 +63,11 @@ $ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
 
 ## What's in the box?
 
-**Cortex CLI**
+### Cortex CLI
 
 The CLI installs on your machine and is used to send deployment configuration and code to the Cortex cluster. Multiple CLIs can connect to one cluster and requests are authenticated using AWS credentials.
 
-**Cortex cluster**
+### Cortex cluster
 
 The cluster runs in your AWS account and is responsible for hosting the real-time prediction APIs.
 
