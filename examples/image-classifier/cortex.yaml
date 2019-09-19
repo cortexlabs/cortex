@@ -5,3 +5,5 @@
   name: classifier
   model: s3://cortex-examples/imagenet
   request_handler: image.py
+  tracker:
+    model_type: classification
