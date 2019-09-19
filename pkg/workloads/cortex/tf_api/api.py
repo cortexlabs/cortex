@@ -254,7 +254,7 @@ def predict(deployment_name, api_name):
 
 
 def extract_signature(signature_def, signature_key):
-    logger.info("signature defs found in model: {}".format(list(signature_def.keys())))
+    logger.info("signature defs found in model: {}".format(signature_def))
 
     available_keys = list(signature_def.keys())
     if len(available_keys) == 0:
@@ -381,21 +381,17 @@ def start(args):
 
         if request_handler is not None and util.has_function(request_handler, "pre_inference"):
             logger.info(
-                "registered pre_inference request handler provided in {}".format(
-                    api["request_handler"]
-                )
+                "using pre_inference request handler provided in {}".format(api["request_handler"])
             )
         else:
-            logger.info("pre_inference request handler not registered")
+            logger.info("pre_inference request handler not found")
 
         if request_handler is not None and util.has_function(request_handler, "post_inference"):
             logger.info(
-                "registered post_inference request handler provided in {}".format(
-                    api["request_handler"]
-                )
+                "using post_inference request handler provided in {}".format(api["request_handler"])
             )
         else:
-            logger.info("post_inference request handler not registered")
+            logger.info("post_inference request handler not found")
 
     except Exception as e:
         logger.exception("failed to start api")
