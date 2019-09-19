@@ -248,6 +248,25 @@ def start(args):
             local_cache["request_handler"] = ctx.get_request_handler_impl(
                 api["name"], args.project_dir
             )
+        request_handler = local_cache.get("request_handler")
+
+        if request_handler is not None and util.has_function(request_handler, "pre_inference"):
+            logger.info(
+                "registered pre_inference request handler provided in {}".format(
+                    api["request_handler"]
+                )
+            )
+        else:
+            logger.info("pre_inference request handler not registered")
+
+        if request_handler is not None and util.has_function(request_handler, "post_inference"):
+            logger.info(
+                "registered post_inference request handler provided in {}".format(
+                    api["request_handler"]
+                )
+            )
+        else:
+            logger.info("post_inference request handler not registered")
 
         sess = rt.InferenceSession(model_path)
         local_cache["sess"] = sess

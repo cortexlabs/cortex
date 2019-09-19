@@ -254,7 +254,7 @@ def predict(deployment_name, api_name):
 
 
 def extract_signature(signature_def, signature_key):
-    logger.info("signature defs found in model: {}".format(signature_def))
+    logger.info("signature defs found in model: {}".format(list(signature_def.keys())))
 
     available_keys = list(signature_def.keys())
     if len(available_keys) == 0:
@@ -377,6 +377,26 @@ def start(args):
             local_cache["request_handler"] = ctx.get_request_handler_impl(
                 api["name"], args.project_dir
             )
+        request_handler = local_cache.get("request_handler")
+
+        if request_handler is not None and util.has_function(request_handler, "pre_inference"):
+            logger.info(
+                "registered pre_inference request handler provided in {}".format(
+                    api["request_handler"]
+                )
+            )
+        else:
+            logger.info("pre_inference request handler not registered")
+
+        if request_handler is not None and util.has_function(request_handler, "post_inference"):
+            logger.info(
+                "registered post_inference request handler provided in {}".format(
+                    api["request_handler"]
+                )
+            )
+        else:
+            logger.info("post_inference request handler not registered")
+
     except Exception as e:
         logger.exception("failed to start api")
         sys.exit(1)
