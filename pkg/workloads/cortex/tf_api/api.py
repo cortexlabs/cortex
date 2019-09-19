@@ -161,13 +161,11 @@ def run_get_model_metadata():
 def parse_response_proto(response_proto):
     results_dict = json_format.MessageToDict(response_proto)
     outputs = results_dict["outputs"]
-
     outputs_simplified = {}
-    for key in outputs.keys():
+    for key in outputs:
         value_key = DTYPE_TO_VALUE_KEY[outputs[key]["dtype"]]
         outputs_simplified[key] = outputs[key][value_key]
-
-    return {"response": outputs_simplified}
+    return outputs_simplified
 
 
 def run_predict(sample, debug=False):
