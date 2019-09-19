@@ -50,13 +50,13 @@ deployment started
 
 Behind the scenes, Cortex containerizes the model, makes it servable using TensorFlow Serving, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
-You can track the status of a deployment using cortex get:
+You can track the status of a deployment using `cortex get`:
 
 ```bash
-$ cortex get --watch
+$ cortex get generator --watch
 
-api         available   up-to-date   requested   last update
-generator   1           1            1           8s
+status   up-to-date   available   requested   last update   avg latency
+live     1            1           1           8s            -          
 ```
 
 The output above indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.

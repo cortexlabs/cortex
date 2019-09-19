@@ -12,7 +12,7 @@ Define a `deployment` and an `api` resource in `cortex.yaml`. A `deployment` spe
 
 - kind: api
   name: classifier
-  model: s3://cortex-examples/iris/tensorflow/1560263532
+  model: s3://cortex-examples/iris/tensorflow
   request_handler: handlers/tensorflow.py
 ```
 
@@ -44,10 +44,10 @@ Behind the scenes, Cortex containerizes the model, makes it servable using Tenso
 You can track the status of a deployment using `cortex get`:
 
 ```bash
-$ cortex get --watch
+$ cortex get classifier --watch
 
-api          available   up-to-date   requested   last update
-classifier   1           1            1           8s
+status   up-to-date   available   requested   last update   avg latency
+live     1            1           1           8s            -          
 ```
 
 The output above indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
@@ -63,7 +63,7 @@ $ curl http://***.amazonaws.com/iris/classifier \
     -X POST -H "Content-Type: application/json" \
     -d '{"sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3}'
 
-iris-setosa
+"iris-setosa"
 ```
 
 Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).
