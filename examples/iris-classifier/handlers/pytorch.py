@@ -15,5 +15,5 @@ def pre_inference(sample, metadata):
 
 
 def post_inference(prediction, metadata):
-    predicted_class_id = int(np.argmax(prediction[0][0]))
+    predicted_class_id = int(np.argmax(prediction[0].squeeze()))
     return labels[predicted_class_id]
