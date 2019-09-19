@@ -29,9 +29,12 @@ func init() {
 
 var refreshCmd = &cobra.Command{
 	Use:   "refresh",
-	Short: "delete cached resources and deploy",
-	Long:  "Delete cached resources and deploy.",
-	Args:  cobra.NoArgs,
+	Short: "deploy and override existing deployment",
+	Long: `
+This command sends all deployment configuration and code to Cortex.
+If validations pass, Cortex will attempt to create the desired state,
+and override the existing deployment.`,
+	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		deploy(flagRefreshForce, true)
 	},

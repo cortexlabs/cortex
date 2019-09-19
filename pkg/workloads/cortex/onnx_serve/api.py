@@ -192,19 +192,13 @@ def predict(app_name, api_name):
                 ) from e
 
         inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
-        model_outputs = sess.run([], inference_input)
-        result = []
-        for model_output in model_outputs:
-            if type(model_output) is np.ndarray:
-                result.append(model_output.tolist())
-            else:
-                result.append(model_output)
+        model_output = sess.run([], inference_input)
 
-        debug_obj("inference", result, debug)
-
+        debug_obj("inference", model_output, debug)
+        result = model_output
         if request_handler is not None and util.has_function(request_handler, "post_inference"):
             try:
-                result = request_handler.post_inference(result, output_metadata)
+                result = request_handler.post_inference(model_output, output_metadata)
             except Exception as e:
                 raise UserRuntimeException(
                     api["request_handler"], "post_inference request handler", str(e)
@@ -254,6 +248,21 @@ def start(args):
             local_cache["request_handler"] = ctx.get_request_handler_impl(
                 api["name"], args.project_dir
             )
+        request_handler = local_cache.get("request_handler")
+
+        if request_handler is not None and util.has_function(request_handler, "pre_inference"):
+            logger.info(
+                "using pre_inference request handler provided in {}".format(api["request_handler"])
+            )
+        else:
+            logger.info("pre_inference request handler not found")
+
+        if request_handler is not None and util.has_function(request_handler, "post_inference"):
+            logger.info(
+                "using post_inference request handler provided in {}".format(api["request_handler"])
+            )
+        else:
+            logger.info("post_inference request handler not found")
 
         sess = rt.InferenceSession(model_path)
         local_cache["sess"] = sess

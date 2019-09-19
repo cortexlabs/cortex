@@ -12,7 +12,7 @@ Cortex is a machine learning deployment platform that you can self-host on AWS. 
 
 ## How it works
 
-Define your deployment using declarative configuration:
+**Define your deployment using declarative configuration**
 
 ```yaml
 # cortex.yaml
@@ -25,7 +25,7 @@ Define your deployment using declarative configuration:
     gpu: 1
 ```
 
-Customize request handling:
+**Customize request handling**
 
 ```python
 # handler.py
@@ -42,7 +42,7 @@ def post_inference(prediction, metadata):
   # Python code
 ```
 
-Deploy to AWS:
+**Deploy to AWS using the CLI**
 
 ```bash
 $ cortex deploy
@@ -51,7 +51,7 @@ Deploying ...
 http://***.amazonaws.com/my-api  # Your API is ready!
 ```
 
-Serve real-time predictions via autoscaling JSON APIs:
+**Serve real-time predictions via autoscaling JSON APIs running on AWS**
 
 ```bash
 $ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
@@ -61,7 +61,19 @@ $ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
 
 <br>
 
-## Hosting Cortex on AWS
+## What's in the box?
+
+### Cortex CLI
+
+The CLI installs on your machine and is used to send deployment configuration and code to the Cortex cluster. Multiple CLIs can connect to one cluster and requests are authenticated using AWS credentials.
+
+### Cortex cluster
+
+The cluster runs in your AWS account and is responsible for hosting the real-time prediction APIs.
+
+<br>
+
+## Spinning up a Cortex cluster on AWS
 
 <!-- CORTEX_VERSION_MINOR_STABLE -->
 

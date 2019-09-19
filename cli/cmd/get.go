@@ -51,10 +51,12 @@ func init() {
 }
 
 var getCmd = &cobra.Command{
-	Use:   "get [RESOURCE_NAME]",
-	Short: "get information about resources",
-	Long:  "Get information about resources.",
-	Args:  cobra.RangeArgs(0, 1),
+	Use:   "get [API_NAME]",
+	Short: "get information about APIs",
+	Long: `
+This command displays information about APIs.
+Adding the -v or --verbose flag displays additonal information.`,
+	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		rerun(func() (string, error) {
 			return runGet(cmd, args)
@@ -230,7 +232,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		{Title: "available"},
 		{Title: "requested"},
 		{Title: "stale compute", Hidden: groupStatus.ReadyStaleCompute == 0},
-		{Title: "stale model", Hidden: groupStatus.ReadyStaleModel == 0},
+		{Title: "stale", Hidden: groupStatus.ReadyStaleModel == 0},
 		{Title: "failed", Hidden: groupStatus.FailedUpdated == 0},
 		{Title: "last update"},
 	}
@@ -242,18 +244,22 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		Rows:    [][]interface{}{row},
 	}
 
-	var predictionMetrics string
+	var out string
 	apiMetrics, err := getAPIMetrics(ctx.App.Name, api.Name)
-	if err != nil || apiMetrics == nil {
-		predictionMetrics = "\nmetrics are not available yet\n"
-	} else {
-		statusTable = appendNetworkMetrics(statusTable, apiMetrics)
-		if api.Tracker != nil {
-			predictionMetrics = "\n" + predictionMetricsTable(apiMetrics, api) + "\n"
+	statusTable = appendNetworkMetrics(statusTable, apiMetrics) // adds blank stats when there is an error
+	out = "\n" + table.MustFormat(statusTable) + "\n"
+
+	var predictionMetrics string
+	if err != nil {
+		if !strings.Contains(err.Error(), "api is still initializing") {
+			predictionMetrics = fmt.Sprintf("\nerror fetching metrics: %s\n", err.Error())
 		}
 	}
 
-	out := "\n" + table.MustFormat(statusTable) + "\n"
+	if api.Tracker != nil && len(predictionMetrics) == 0 {
+		predictionMetrics = "\n" + predictionMetricsTable(apiMetrics, api) + "\n"
+	}
+
 	out += predictionMetrics
 
 	out += "\n" + console.Bold("url: ") + apiEndpoint
@@ -273,44 +279,55 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	return out, nil
 }
 
-func getAPIMetrics(appName, apiName string) (*schema.APIMetrics, error) {
+func getAPIMetrics(appName, apiName string) (schema.APIMetrics, error) {
 	params := map[string]string{"appName": appName, "apiName": apiName}
 	httpResponse, err := HTTPGet("/metrics", params)
 	if err != nil {
-		return nil, err
+		return schema.APIMetrics{}, err
 	}
 
 	var apiMetrics schema.APIMetrics
 	err = json.Unmarshal(httpResponse, &apiMetrics)
 	if err != nil {
-		return nil, err
+		return schema.APIMetrics{}, err
 	}
 
-	return &apiMetrics, nil
+	return apiMetrics, nil
 }
 
-func appendNetworkMetrics(apiTable table.Table, apiMetrics *schema.APIMetrics) table.Table {
-	headers := []table.Header{
-		{Title: "avg latency", Hidden: apiMetrics.NetworkStats.Latency == nil},
-		{Title: "2XX", Hidden: apiMetrics.NetworkStats.Code2XX == 0},
-		{Title: "4XX", Hidden: apiMetrics.NetworkStats.Code4XX == 0},
-		{Title: "5XX", Hidden: apiMetrics.NetworkStats.Code5XX == 0},
+func appendNetworkMetrics(apiTable table.Table, apiMetrics schema.APIMetrics) table.Table {
+	latency := "-"
+	code2XX := "-"
+	code4XX := 0
+	code5XX := 0
+
+	if apiMetrics.NetworkStats != nil {
+		code4XX = apiMetrics.NetworkStats.Code4XX
+		code5XX = apiMetrics.NetworkStats.Code5XX
+		if apiMetrics.NetworkStats.Latency != nil {
+			if *apiMetrics.NetworkStats.Latency < 1000 {
+				latency = fmt.Sprintf("%.6g ms", *apiMetrics.NetworkStats.Latency)
+			} else {
+				latency = fmt.Sprintf("%.6g s", (*apiMetrics.NetworkStats.Latency)/1000)
+			}
+		}
+		if apiMetrics.NetworkStats.Code2XX != 0 {
+			code2XX = s.Int(apiMetrics.NetworkStats.Code2XX)
+		}
 	}
 
-	latency := ""
-	if apiMetrics.NetworkStats.Latency != nil {
-		if *apiMetrics.NetworkStats.Latency < 1000 {
-			latency = fmt.Sprintf("%.6g ms", *apiMetrics.NetworkStats.Latency)
-		} else {
-			latency = fmt.Sprintf("%.6g s", (*apiMetrics.NetworkStats.Latency)/1000)
-		}
+	headers := []table.Header{
+		{Title: "avg latency"},
+		{Title: "2XX"},
+		{Title: "4XX", Hidden: code4XX == 0},
+		{Title: "5XX", Hidden: code5XX == 0},
 	}
 
 	row := []interface{}{
 		latency,
-		apiMetrics.NetworkStats.Code2XX,
-		apiMetrics.NetworkStats.Code4XX,
-		apiMetrics.NetworkStats.Code5XX,
+		code2XX,
+		code4XX,
+		code5XX,
 	}
 
 	apiTable.Headers = append(apiTable.Headers, headers...)
@@ -319,7 +336,7 @@ func appendNetworkMetrics(apiTable table.Table, apiMetrics *schema.APIMetrics) t
 	return apiTable
 }
 
-func predictionMetricsTable(apiMetrics *schema.APIMetrics, api *context.API) string {
+func predictionMetricsTable(apiMetrics schema.APIMetrics, api *context.API) string {
 	if api.Tracker == nil {
 		return ""
 	}
@@ -330,20 +347,23 @@ func predictionMetricsTable(apiMetrics *schema.APIMetrics, api *context.API) str
 	return regressionMetricsTable(apiMetrics)
 }
 
-func regressionMetricsTable(apiMetrics *schema.APIMetrics) string {
+func regressionMetricsTable(apiMetrics schema.APIMetrics) string {
 	minStr := "-"
-	if apiMetrics.RegressionStats.Min != nil {
-		minStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Min)
-	}
-
 	maxStr := "-"
-	if apiMetrics.RegressionStats.Max != nil {
-		maxStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Max)
-	}
-
 	avgStr := "-"
-	if apiMetrics.RegressionStats.Avg != nil {
-		avgStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Avg)
+
+	if apiMetrics.RegressionStats != nil {
+		if apiMetrics.RegressionStats.Min != nil {
+			minStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Min)
+		}
+
+		if apiMetrics.RegressionStats.Max != nil {
+			maxStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Max)
+		}
+
+		if apiMetrics.RegressionStats.Avg != nil {
+			avgStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Avg)
+		}
 	}
 
 	t := table.Table{
@@ -358,7 +378,7 @@ func regressionMetricsTable(apiMetrics *schema.APIMetrics) string {
 	return table.MustFormat(t)
 }
 
-func classificationMetricsTable(apiMetrics *schema.APIMetrics) string {
+func classificationMetricsTable(apiMetrics schema.APIMetrics) string {
 	classList := make([]string, len(apiMetrics.ClassDistribution))
 
 	i := 0

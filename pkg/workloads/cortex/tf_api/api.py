@@ -161,13 +161,11 @@ def run_get_model_metadata():
 def parse_response_proto(response_proto):
     results_dict = json_format.MessageToDict(response_proto)
     outputs = results_dict["outputs"]
-
     outputs_simplified = {}
-    for key in outputs.keys():
+    for key in outputs:
         value_key = DTYPE_TO_VALUE_KEY[outputs[key]["dtype"]]
         outputs_simplified[key] = outputs[key][value_key]
-
-    return {"response": outputs_simplified}
+    return outputs_simplified
 
 
 def run_predict(sample, debug=False):
@@ -377,6 +375,22 @@ def start(args):
             local_cache["request_handler"] = ctx.get_request_handler_impl(
                 api["name"], args.project_dir
             )
+        request_handler = local_cache.get("request_handler")
+
+        if request_handler is not None and util.has_function(request_handler, "pre_inference"):
+            logger.info(
+                "using pre_inference request handler provided in {}".format(api["request_handler"])
+            )
+        else:
+            logger.info("pre_inference request handler not found")
+
+        if request_handler is not None and util.has_function(request_handler, "post_inference"):
+            logger.info(
+                "using post_inference request handler provided in {}".format(api["request_handler"])
+            )
+        else:
+            logger.info("post_inference request handler not found")
+
     except Exception as e:
         logger.exception("failed to start api")
         sys.exit(1)
