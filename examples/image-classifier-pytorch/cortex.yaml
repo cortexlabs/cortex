@@ -4,4 +4,4 @@
 - kind: api
   name: classifier
   model: s3://cortex-examples/image-classifier-pytorch/alexnet.onnx
-  request_handler: image.py
+  request_handler: handler.py
