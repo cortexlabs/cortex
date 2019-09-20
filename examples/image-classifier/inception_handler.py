@@ -22,3 +22,4 @@ def pre_inference(sample, metadata):
 
 def post_inference(prediction, metadata):
     return labels[np.argmax(prediction["classes"])]
+

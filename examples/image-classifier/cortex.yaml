@@ -2,8 +2,15 @@
   name: image
 
 - kind: api
-  name: classifier
-  model: s3://cortex-examples/inception
-  request_handler: handler.py
+  name: classifier-inception
+  model: s3://cortex-examples/image-classifier/inception
+  request_handler: inception_handler.py
+  tracker:
+    model_type: classification
+
+- kind: api
+  name: classifier-alexnet
+  model: s3://cortex-examples/image-classifier/alexnet.onnx
+  request_handler: alexnet_handler.py
   tracker:
     model_type: classification
