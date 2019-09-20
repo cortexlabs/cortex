@@ -10,7 +10,7 @@ This example shows how to deploy a sentiment analysis classifier trained using [
 
 - kind: api
   name: classifier
-  model: s3://cortex-examples/sentiment
+  model: s3://cortex-examples/sentiment-analysis/bert
   request_handler: sentiment.py
 ```
 

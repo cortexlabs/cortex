@@ -3,7 +3,7 @@
 
 - kind: api
   name: generator
-  model: s3://cortex-examples/gpt-2/124M
+  model: s3://cortex-examples/text-generator/gpt-2/124M
   request_handler: handler.py
   compute:
     gpu: 1

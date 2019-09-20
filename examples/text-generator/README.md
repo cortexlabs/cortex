@@ -10,13 +10,13 @@ This example shows how to deploy OpenAI's GPT-2 model as a service on AWS.
 
 - kind: api
   name: generator
-  model: s3://cortex-examples/gpt-2/774
+  model: s3://cortex-examples/text-generator/gpt-2/124M
   request_handler: encoder.py
   compute:
     gpu: 1
 ```
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. This configuration will download the 774M GPT-2 model from the `cortex-examples` S3 bucket, preprocess the payload and postprocess the inference with functions defined in `encoder.py` and deploy each replica of the API on 1 GPU.
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. This configuration will download the 124M GPT-2 model from the `cortex-examples` S3 bucket, preprocess the payload and postprocess the inference with functions defined in `encoder.py` and deploy each replica of the API on 1 GPU.
 
 ## Add request handling
 
