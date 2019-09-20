@@ -2,6 +2,7 @@
 
 ## TensorFlow
 
+<!-- CORTEX_VERSION_MINOR -->
 Export your trained model and upload the export directory, or checkpoint directory containing the export directory, which is usually the case if you used `estimator.train_and_evaluate`. An example is shown below (here is the [complete example](https://github.com/cortexlabs/cortex/blob/master/examples/sentiment-analysis)):
 
 ```Python
@@ -76,6 +77,7 @@ with open("sklearn.onnx", "wb") as f:
     f.write(onnx_model.SerializeToString())
 ```
 
+<!-- CORTEX_VERSION_MINOR -->
 Here are complete examples of converting models from some of the common ML frameworks to ONNX:
 
 * [PyTorch](https://github.com/cortexlabs/cortex/blob/master/examples/iris-classifier/models/pytorch_model.py)
