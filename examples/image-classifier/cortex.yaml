@@ -5,3 +5,5 @@
   name: classifier
   model: s3://cortex-examples/inception
   request_handler: handler.py
+  tracker:
+    model_type: classification
