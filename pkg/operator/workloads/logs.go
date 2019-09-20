@@ -106,7 +106,6 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 	logStreamNames := strset.New()
 
 	var currentContextID string
-	var prefix string
 	var err error
 
 	var ctx = CurrentContext(appName)
@@ -207,7 +206,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 
 			lastLogTime = libtime.MillisToTime(lastLogTimestampMillis)
 			if len(logEventsOutput.Events) == maxLogLinesPerRequest {
-				writeString(socket, "---- Showing at most "+s.Int(maxLogLinesPerRequest)+" lines. Visit AWS cloudwatch logs console and search for \""+prefix+"\" in log group \""+config.Cortex.LogGroup+"\" for complete logs ----")
+				writeString(socket, "---- Showing at most "+s.Int(maxLogLinesPerRequest)+" lines. Visit AWS cloudwatch logs console and navigate to log group \""+logGroupName+"\" for complete logs ----")
 				lastLogTime = libtime.MillisToTime(endTime)
 			}
 

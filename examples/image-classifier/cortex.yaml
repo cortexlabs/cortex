@@ -3,7 +3,7 @@
 
 - kind: api
   name: classifier
-  model: s3://cortex-examples/imagenet
-  request_handler: image.py
+  model: s3://cortex-examples/inception
+  request_handler: handler.py
   tracker:
     model_type: classification

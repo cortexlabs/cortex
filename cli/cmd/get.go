@@ -388,23 +388,6 @@ func classificationMetricsTable(apiMetrics schema.APIMetrics) string {
 	}
 	sort.Strings(classList)
 
-	if len(classList) > 0 && len(classList) < 4 {
-		row := []interface{}{}
-		headers := []table.Header{}
-
-		for _, className := range classList {
-			headers = append(headers, table.Header{Title: s.TruncateEllipses(className, 20), MaxWidth: 20})
-			row = append(row, apiMetrics.ClassDistribution[className])
-		}
-
-		t := table.Table{
-			Headers: headers,
-			Rows:    [][]interface{}{row},
-		}
-
-		return table.MustFormat(t)
-	}
-
 	rows := make([][]interface{}, len(classList))
 	for rowNum, className := range classList {
 		rows[rowNum] = []interface{}{
