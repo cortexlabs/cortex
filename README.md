@@ -61,18 +61,6 @@ $ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
 
 <br>
 
-## What's in the box?
-
-### Cortex CLI
-
-The CLI installs on your machine and is used to send deployment configuration and code to the Cortex cluster. Multiple CLIs can connect to one cluster and requests are authenticated using AWS credentials.
-
-### Cortex cluster
-
-The cluster runs in your AWS account and is responsible for hosting the real-time prediction APIs.
-
-<br>
-
 ## Spinning up a Cortex cluster on AWS
 
 <!-- CORTEX_VERSION_MINOR_STABLE -->
@@ -81,7 +69,7 @@ The cluster runs in your AWS account and is responsible for hosting the real-tim
 # Download the install script
 $ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/0.7/cortex.sh && chmod +x cortex.sh
 
-# Install the Cortex CLI on your machine
+# Install the Cortex CLI on your machine: the CLI sends configuration and code to the Cortex cluster
 $ ./cortex.sh install cli
 
 # Set your AWS credentials
@@ -93,7 +81,7 @@ $ export CORTEX_NODE_TYPE="p2.xlarge"
 $ export CORTEX_NODES_MIN="1"
 $ export CORTEX_NODES_MAX="3"
 
-# Provision infrastructure on AWS and install Cortex
+# Install the Cortex cluster in your AWS account: the cluster is responsible for hosting your APIs
 $ ./cortex.sh install
 ```
 
