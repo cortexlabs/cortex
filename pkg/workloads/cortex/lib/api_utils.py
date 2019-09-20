@@ -105,6 +105,7 @@ def extract_prediction(api, prediction):
                     type(predicted_value)
                 )
             )
+        return str(predicted_value)
     else:
         if type(predicted_value) != float and type(predicted_value) != int:  # allow ints
             raise ValueError(
