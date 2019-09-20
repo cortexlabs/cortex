@@ -109,14 +109,14 @@ func (e Error) Error() string {
 func ErrorInvalidS3aPath(provided string) error {
 	return Error{
 		Kind:    ErrInvalidS3aPath,
-		message: fmt.Sprintf("%s is not a valid s3a path (e.g. s3a://cortex-examples/iris.csv is a valid s3a path)", s.UserStr(provided)),
+		message: fmt.Sprintf("%s is not a valid s3a path (e.g. s3a://cortex-examples/iris-classifier/tensorflow is a valid s3a path)", s.UserStr(provided)),
 	}
 }
 
 func ErrorInvalidS3Path(provided string) error {
 	return Error{
 		Kind:    ErrInvalidS3Path,
-		message: fmt.Sprintf("%s is not a valid s3 path (e.g. s3://cortex-examples/iris-tensorflow.zip is a valid s3 path)", s.UserStr(provided)),
+		message: fmt.Sprintf("%s is not a valid s3 path (e.g. s3://cortex-examples/iris-classifier/tensorflow is a valid s3 path)", s.UserStr(provided)),
 	}
 }
 

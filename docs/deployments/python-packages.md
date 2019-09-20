@@ -7,7 +7,7 @@ Cortex allows you to install additional Python packages to be used in any worklo
 Cortex looks for a `requirements.txt` file in the top level cortex directory (in the same level as `cortex.yaml`).
 
 ```text
-./iris/
+./iris-classifier/
 ├── cortex.yaml
 ├── ...
 └── requirements.txt
