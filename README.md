@@ -111,4 +111,4 @@ $ ./cortex.sh install
 
 - [Sentiment analysis](examples/sentiment-analysis) with BERT
 
-- [Image classification](examples/image-classifier) with ImageNet
+- [Image classification](examples/image-classifier) with Inception v3
