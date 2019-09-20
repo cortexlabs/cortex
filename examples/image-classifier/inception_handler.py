@@ -4,7 +4,6 @@ import base64
 from PIL import Image
 from io import BytesIO
 
-
 labels = requests.get(
     "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
 ).text.split("\n")
