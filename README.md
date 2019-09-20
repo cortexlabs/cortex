@@ -12,7 +12,7 @@ Cortex is a machine learning deployment platform that you can self-host on AWS. 
 
 ## How it works
 
-Define your deployment using declarative configuration:
+**Define your deployment using declarative configuration**
 
 ```yaml
 # cortex.yaml
@@ -25,7 +25,7 @@ Define your deployment using declarative configuration:
     gpu: 1
 ```
 
-Customize request handling:
+**Customize request handling**
 
 ```python
 # handler.py
@@ -42,7 +42,7 @@ def post_inference(prediction, metadata):
   # Python code
 ```
 
-Deploy to AWS:
+**Deploy to AWS using the CLI**
 
 ```bash
 $ cortex deploy
@@ -51,7 +51,7 @@ Deploying ...
 http://***.amazonaws.com/my-api  # Your API is ready!
 ```
 
-Serve real-time predictions via autoscaling JSON APIs:
+**Serve real-time predictions via autoscaling JSON APIs running on AWS**
 
 ```bash
 $ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
@@ -61,7 +61,7 @@ $ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
 
 <br>
 
-## Hosting Cortex on AWS
+## Spinning up a Cortex cluster on AWS
 
 <!-- CORTEX_VERSION_MINOR_STABLE -->
 
@@ -69,7 +69,7 @@ $ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
 # Download the install script
 $ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/0.7/cortex.sh && chmod +x cortex.sh
 
-# Install the Cortex CLI on your machine
+# Install the Cortex CLI on your machine: the CLI sends configuration and code to the Cortex cluster
 $ ./cortex.sh install cli
 
 # Set your AWS credentials
@@ -81,7 +81,7 @@ $ export CORTEX_NODE_TYPE="p2.xlarge"
 $ export CORTEX_NODES_MIN="1"
 $ export CORTEX_NODES_MAX="3"
 
-# Provision infrastructure on AWS and install Cortex
+# Install the Cortex cluster in your AWS account: the cluster is responsible for hosting your APIs
 $ ./cortex.sh install
 ```
 
@@ -111,4 +111,4 @@ $ ./cortex.sh install
 
 - [Sentiment analysis](examples/sentiment-analysis) with BERT
 
-- [Image classification](examples/image-classifier) with ImageNet
+- [Image classification](examples/image-classifier) with Inception v3
