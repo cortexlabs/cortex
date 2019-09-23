@@ -1,7 +1,5 @@
 ![Cortex demo](https://cortex-public.s3-us-west-2.amazonaws.com/demo_v0.8.gif)
 
-<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='88'>
-
 <br>
 
 <!-- CORTEX_VERSION_MINOR_STABLE x2 -->
@@ -12,6 +10,8 @@
 Cortex is a machine learning deployment platform that you can self-host on AWS. It combines TensorFlow Serving, ONNX Runtime, and Flask into a single tool that takes models from S3 and deploys them as REST APIs. It also uses Docker and Kubernetes behind the scenes to autoscale, run rolling updates, and support CPU and GPU inference.
 
 <br>
+
+<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='88'>
 
 ## How it works
 
