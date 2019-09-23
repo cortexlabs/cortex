@@ -77,7 +77,7 @@ with open("sklearn.onnx", "wb") as f:
     f.write(onnx_model.SerializeToString())
 ```
 
-<!-- CORTEX_VERSION_MINOR -->
+<!-- CORTEX_VERSION_MINOR x4 -->
 Here are complete examples of converting models from some of the common ML frameworks to ONNX:
 
 * [PyTorch](https://github.com/cortexlabs/cortex/blob/master/examples/iris-classifier/models/pytorch_model.py)

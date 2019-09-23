@@ -1,7 +1,7 @@
 <img src='https://cortex-public.s3-us-west-2.amazonaws.com/logo.png' height='88'>
 
-<!-- CORTEX_VERSION_MINOR_STABLE x2 -->
-[install](https://docs.cortex.dev/v/master/install) • [docs](https://docs.cortex.dev/v/master) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
+<!-- CORTEX_VERSION_MINOR x2 (e.g. docs.cortex.dev/v/0.8/...) -->
+[install](https://docs.cortex.dev/install) • [docs](https://docs.cortex.dev) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
 <br>
 
@@ -88,8 +88,8 @@ $ export CORTEX_NODES_MAX="3"
 $ ./cortex.sh install
 ```
 
-<!-- CORTEX_VERSION_MINOR_STABLE -->
-See [installation instructions](https://docs.cortex.dev/v/master/cluster/install) for more details.
+<!-- CORTEX_VERSION_MINOR (e.g. docs.cortex.dev/v/0.8/...) -->
+See [installation instructions](https://docs.cortex.dev/cluster/install) for more details.
 
 <br>
 
@@ -113,11 +113,9 @@ See [installation instructions](https://docs.cortex.dev/v/master/cluster/install
 
 ## Examples
 
-<!-- CORTEX_VERSION_MINOR_STABLE -->
-- [Text generation](https://github.com/cortexlabs/cortex/tree/master/examples/text-generator) with GPT-2
+<!-- CORTEX_VERSION_MINOR_STABLE x3 -->
+- [Text generation](https://github.com/cortexlabs/cortex/tree/0.7/examples/text-generator) with GPT-2
 
-<!-- CORTEX_VERSION_MINOR_STABLE -->
-- [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/master/examples/sentiment-analysis) with BERT
+- [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.7/examples/sentiment-analysis) with BERT
 
-<!-- CORTEX_VERSION_MINOR_STABLE -->
-- [Image classification](https://github.com/cortexlabs/cortex/tree/master/examples/image-classifier) with Inception v3
+- [Image classification](https://github.com/cortexlabs/cortex/tree/0.7/examples/image-classifier) with Inception v3
