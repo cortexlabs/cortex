@@ -4,6 +4,8 @@ This example shows how to deploy a sentiment analysis classifier trained using [
 
 ## Define a deployment
 
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. This configuration will download the model from the `cortex-examples` S3 bucket and preprocess the payload and postprocess the inference with functions defined in `sentiment.py`.
+
 ```yaml
 - kind: deployment
   name: sentiment
@@ -13,8 +15,9 @@ This example shows how to deploy a sentiment analysis classifier trained using [
   model: s3://cortex-examples/sentiment-analysis/bert
   request_handler: sentiment.py
 ```
+<!-- CORTEX_VERSION_MINOR -->
+You can update and run the code that generated the exported models [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/sentiment-analysis/bert.ipynb).
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. This configuration will download the model from the `cortex-examples` S3 bucket and preprocess the payload and postprocess the inference with functions defined in `sentiment.py`.
 
 ## Add request handling
 

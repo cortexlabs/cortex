@@ -4,6 +4,8 @@ This example shows how to deploy an Image Classifier made with Pytorch. The Pyto
 
 ## Define a deployment
 
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. This configuration will download the model from the `cortex-examples` S3 bucket, preprocess the request payload and postprocess the model inference with the functions defined in `alexnet_handler.py`.
+
 ```yaml
 - kind: deployment
   name: image-classifier
@@ -13,8 +15,11 @@ This example shows how to deploy an Image Classifier made with Pytorch. The Pyto
   model: s3://cortex-examples/image-classifier/alexnet.onnx
   request_handler: alexnet_handler.py
 ```
+<!-- CORTEX_VERSION_MINOR -->
+You can update and run the code that generated the exported models used in this example folder here:
+- [Pytorch Alexnet](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/image-classifier/alexnet.ipynb)
+- [Tensorflow Inception V3](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/image-classifier/inception.ipynb)
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. This configuration will download the model from the `cortex-examples` S3 bucket, preprocess the request payload and postprocess the model inference with the functions defined in `alexnet_handler.py`.
 
 ## Add request handling
 
