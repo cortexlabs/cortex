@@ -26,7 +26,7 @@ export AWS_ACCESS_KEY_ID=***
 export AWS_SECRET_ACCESS_KEY=***
 
 # Configure AWS instance settings (at least 4GB memory)
-export CORTEX_NODE_TYPE="p2.xlarge"
+export CORTEX_NODE_TYPE="m5.large"
 export CORTEX_NODES_MIN="1"
 export CORTEX_NODES_MAX="3"
 
@@ -34,7 +34,7 @@ export CORTEX_NODES_MAX="3"
 ./cortex.sh install
 ```
 
-This will create resources in your AWS account which aren't included in the free teir, e.g. an EKS cluster, two Elastic Load Balancers, and EC2 instances (quantity and type as specified above). To use GPU nodes, you may need to [file a support ticket](https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances) to enable them in your AWS account.
+This will create resources in your AWS account which aren't included in the free teir, e.g. an EKS cluster, two Elastic Load Balancers, and EC2 instances (quantity and type as specified above). To use GPU nodes, you may need to subscribe to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) and [file an AWS support ticket](https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances) to incease the limit for your desired instance type.
 
 ## Create a deployment
 

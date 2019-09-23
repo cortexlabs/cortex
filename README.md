@@ -80,7 +80,7 @@ $ export AWS_ACCESS_KEY_ID=***
 $ export AWS_SECRET_ACCESS_KEY=***
 
 # Configure AWS instance settings
-$ export CORTEX_NODE_TYPE="p2.xlarge"
+$ export CORTEX_NODE_TYPE="m5.large"
 $ export CORTEX_NODES_MIN="1"
 $ export CORTEX_NODES_MAX="3"
 
