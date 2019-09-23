@@ -85,6 +85,8 @@ $ export CORTEX_NODES_MAX="3"
 $ ./cortex.sh install
 ```
 
+See [installation instructions](docs/cluster/install.md) for more details.
+
 <br>
 
 ## Key features
