@@ -1,4 +1,4 @@
-![Cortex demo](https://cortex-public.s3-us-west-2.amazonaws.com/demo_v0.8.gif)
+<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='88'>
 
 <br>
 
@@ -11,7 +11,7 @@ Cortex is a machine learning deployment platform that you can self-host on AWS. 
 
 <br>
 
-<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='88'>
+![Cortex demo](https://cortex-public.s3-us-west-2.amazonaws.com/demo_v0.8.gif)
 
 ## How it works
 
