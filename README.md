@@ -1,11 +1,11 @@
-<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='88'>
+<img src='https://cortex-public.s3-us-west-2.amazonaws.com/logo.png' height='88'>
 
 <!-- CORTEX_VERSION_MINOR_STABLE x2 -->
 [install](https://docs.cortex.dev/v/master/install) • [docs](https://docs.cortex.dev/v/master) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
 <br>
 
-![Cortex demo](http://cortex-public.s3-website-us-west-2.amazonaws.com/demo_v0.8.gif)
+![Cortex demo](https://cortex-public.s3-us-west-2.amazonaws.com/demo/gif/v0.8.gif)
 
 <br>
 
