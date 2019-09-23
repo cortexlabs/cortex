@@ -5,7 +5,7 @@
 
 <br>
 
-![Cortex demo](https://s3-us-west-2.amazonaws.com/cortex-public/5fps.gif)
+![Cortex demo](http://cortex-public.s3-website-us-west-2.amazonaws.com/demo_v0.8.gif)
 
 <br>
 
