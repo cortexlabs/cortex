@@ -15,8 +15,8 @@ Define a `deployment` and an `api` resource in `cortex.yaml`. A `deployment` spe
   model: s3://cortex-examples/iris-classifier/tensorflow
   request_handler: handlers/tensorflow.py
 ```
-<!-- CORTEX_VERSION_MINOR -->
-You can update and run the code that generated the exported models used in this folder example here:
+<!-- CORTEX_VERSION_MINOR x5 -->
+You can run the code that generated the exported models used in this folder example here:
 - [Tensorflow](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/iris-classifier/models/tensorflow.ipynb)
 - [Pytorch](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/iris-classifier/models/pytorch.ipynb)
 - [Keras](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/iris-classifier/models/keras.ipynb)
