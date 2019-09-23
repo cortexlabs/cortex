@@ -1,7 +1,5 @@
 <img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='88'>
 
-<br>
-
 <!-- CORTEX_VERSION_MINOR_STABLE x2 -->
 [install](https://docs.cortex.dev/v/master/install) • [docs](https://docs.cortex.dev/v/master) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
