@@ -14,7 +14,7 @@ This example shows how to deploy an Image Classifier made with Pytorch. The Pyto
   request_handler: alexnet_handler.py
 ```
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. This configuration will download the model from the `cortex-examples` S3 bucket preprocess the request payload and postprocess the model inference with the functions defined in `alexnet_handler.py`.
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. This configuration will download the model from the `cortex-examples` S3 bucket, preprocess the request payload and postprocess the model inference with the functions defined in `alexnet_handler.py`.
 
 ## Add request handling
 
