@@ -34,6 +34,8 @@ export CORTEX_NODES_MAX="3"
 ./cortex.sh install
 ```
 
+This will create resources in your AWS account which aren't included in the free teir, e.g. an EKS cluster, two Elastic Load Balancers, and EC2 instances (quantity and type as specified above). To use GPU nodes, you may need to [file a support ticket](https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances) to enable them in your AWS account.
+
 ## Create a deployment
 
 <!-- CORTEX_VERSION_MINOR -->
