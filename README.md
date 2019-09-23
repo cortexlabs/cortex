@@ -2,7 +2,8 @@
 
 <br>
 
-[install](https://docs.cortex.dev/install) • <!-- CORTEX_VERSION_MINOR_STABLE e.g. https://docs.cortex.dev/v/0.2/ -->[docs](https://docs.cortex.dev) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
+<!-- CORTEX_VERSION_MINOR_STABLE x2 -->
+[install](https://docs.cortex.dev/v/master/install) • [docs](https://docs.cortex.dev/v/master) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
 <br>
 
@@ -85,7 +86,8 @@ $ export CORTEX_NODES_MAX="3"
 $ ./cortex.sh install
 ```
 
-See [installation instructions](docs/cluster/install.md) for more details.
+<!-- CORTEX_VERSION_MINOR_STABLE -->
+See [installation instructions](https://docs.cortex.dev/v/master/cluster/install) for more details.
 
 <br>
 
@@ -109,8 +111,11 @@ See [installation instructions](docs/cluster/install.md) for more details.
 
 ## Examples
 
-- [Text generation](examples/text-generator) with GPT-2
+<!-- CORTEX_VERSION_MINOR_STABLE -->
+- [Text generation](https://github.com/cortexlabs/cortex/tree/master/examples/text-generator) with GPT-2
 
-- [Sentiment analysis](examples/sentiment-analysis) with BERT
+<!-- CORTEX_VERSION_MINOR_STABLE -->
+- [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/master/examples/sentiment-analysis) with BERT
 
-- [Image classification](examples/image-classifier) with Inception v3
+<!-- CORTEX_VERSION_MINOR_STABLE -->
+- [Image classification](https://github.com/cortexlabs/cortex/tree/master/examples/image-classifier) with Inception v3
