@@ -6,5 +6,5 @@
   model: s3://cortex-examples/text-generator/gpt-2/124M
   request_handler: handler.py
   compute:
+    cpu: 1
     gpu: 1
-    cpu: 2
