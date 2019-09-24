@@ -101,8 +101,8 @@ $ export AWS_SECRET_ACCESS_KEY=***
 
 # Configure AWS instance settings
 $ export CORTEX_NODE_TYPE="m5.large"
-$ export CORTEX_NODES_MIN="1"
-$ export CORTEX_NODES_MAX="3"
+$ export CORTEX_NODES_MIN="2"
+$ export CORTEX_NODES_MAX="5"
 
 # Install the Cortex cluster in your AWS account: the cluster is responsible for hosting your APIs
 $ ./cortex.sh install
