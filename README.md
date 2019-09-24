@@ -1,5 +1,7 @@
 <img src='https://cortex-public.s3-us-west-2.amazonaws.com/logo.png' height='88'>
 
+Deploy machine learning models as REST APIs on AWS
+
 <!-- CORTEX_VERSION_MINOR x2 (e.g. docs.cortex.dev/v/0.8/...) -->
 [install](https://docs.cortex.dev/install) • [docs](https://docs.cortex.dev) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
@@ -10,7 +12,25 @@
 
 <br>
 
-Cortex is a machine learning deployment platform that you can self-host on AWS. It combines TensorFlow Serving, ONNX Runtime, and Flask into a single tool that takes models from S3 and deploys them as REST APIs. It also uses Docker and Kubernetes behind the scenes to autoscale, run rolling updates, and support CPU and GPU inference.
+Cortex is a machine learning deployment platform that you can self-host on AWS. It combines TensorFlow Serving, ONNX Runtime, and Flask into a single tool that takes models from S3 and deploys them as REST APIs. It also uses Docker and Kubernetes behind the scenes to autoscale, run rolling updates, and support CPU and GPU inference. The project is maintained by a venture-backed team of infrastructure engineers with backgrounds from Google, Illumio, and Berkeley.
+
+<br>
+
+## Key features
+
+- **Minimal declarative configuration:** Deployments can be defined in a single `cortex.yaml` file.
+
+- **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
+
+- **Multi framework:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
+
+- **Rolling updates:** Cortex updates deployed APIs without any downtime.
+
+- **Log streaming:** Cortex streams logs from your deployed models to your CLI.
+
+- **Prediction monitoring:** Cortex can monitor network metrics and track predictions.
+
+- **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
 
 <br>
 
@@ -91,24 +111,6 @@ $ ./cortex.sh install
 
 <!-- CORTEX_VERSION_MINOR (e.g. docs.cortex.dev/v/0.8/...) -->
 See [installation instructions](https://docs.cortex.dev/cluster/install) for more details.
-
-<br>
-
-## Key features
-
-- **Minimal declarative configuration:** Deployments can be defined in a single `cortex.yaml` file.
-
-- **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
-
-- **Multi framework:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
-
-- **Rolling updates:** Cortex updates deployed APIs without any downtime.
-
-- **Log streaming:** Cortex streams logs from your deployed models to your CLI.
-
-- **Prediction monitoring:** Cortex can monitor network metrics and track predictions.
-
-- **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
 
 <br>
 
