@@ -18,7 +18,7 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
     gpu: 1
 ```
 <!-- CORTEX_VERSION_MINOR -->
-You can run the code that generated the exported GPT-2 model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/text-generator/gpt-2.ipynb).
+You can run the code that generated the exported GPT-2 model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/0.8/examples/text-generator/gpt-2.ipynb).
 
 ## Add request handling
 

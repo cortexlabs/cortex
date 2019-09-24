@@ -84,7 +84,7 @@ set -u
 ### CONFIGURATION ###
 #####################
 
-export CORTEX_VERSION_STABLE=master
+export CORTEX_VERSION_STABLE=0.8.0
 
 export CORTEX_CONFIG="${CORTEX_CONFIG:-""}"
 if [ "$CORTEX_CONFIG" != "" ]; then

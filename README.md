@@ -1,7 +1,7 @@
 <img src='https://cortex-public.s3-us-west-2.amazonaws.com/logo.png' height='88'>
 
 <!-- CORTEX_VERSION_MINOR x2 (e.g. docs.cortex.dev/v/0.8/...) -->
-[install](https://docs.cortex.dev/install) • [docs](https://docs.cortex.dev) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
+[install](https://docs.cortex.dev/v/0.8/install) • [docs](https://docs.cortex.dev/v/0.8) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
 <br>
 
@@ -70,7 +70,7 @@ $ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
 
 ```bash
 # Download the install script
-$ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/0.7/cortex.sh && chmod +x cortex.sh
+$ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/0.8/cortex.sh && chmod +x cortex.sh
 
 # Install the Cortex CLI on your machine: the CLI sends configuration and code to the Cortex cluster
 $ ./cortex.sh install cli
@@ -89,7 +89,7 @@ $ ./cortex.sh install
 ```
 
 <!-- CORTEX_VERSION_MINOR (e.g. docs.cortex.dev/v/0.8/...) -->
-See [installation instructions](https://docs.cortex.dev/cluster/install) for more details.
+See [installation instructions](https://docs.cortex.dev/v/0.8/cluster/install) for more details.
 
 <br>
 
@@ -114,8 +114,8 @@ See [installation instructions](https://docs.cortex.dev/cluster/install) for mor
 ## Examples
 
 <!-- CORTEX_VERSION_MINOR_STABLE x3 -->
-- [Text generation](https://github.com/cortexlabs/cortex/tree/0.7/examples/text-generator) with GPT-2
+- [Text generation](https://github.com/cortexlabs/cortex/tree/0.8/examples/text-generator) with GPT-2
 
-- [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.7/examples/sentiment-analysis) with BERT
+- [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.8/examples/sentiment-analysis) with BERT
 
-- [Image classification](https://github.com/cortexlabs/cortex/tree/0.7/examples/image-classifier) with Inception v3
+- [Image classification](https://github.com/cortexlabs/cortex/tree/0.8/examples/image-classifier) with Inception v3

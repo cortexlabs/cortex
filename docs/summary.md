@@ -2,7 +2,7 @@
 
 * [README](../README.md)
 * [Install](cluster/install.md)
-* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
+* [Examples](https://github.com/cortexlabs/cortex/tree/0.8/examples)  <!-- CORTEX_VERSION_MINOR -->
 
 ## Deployments
 
