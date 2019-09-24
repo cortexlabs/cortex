@@ -30,6 +30,7 @@ kubectl:
 
 cortex-up:
 	@$(MAKE) registry-all
+	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./cortex.sh -c=./dev/config/cortex.sh install
 	@$(MAKE) kubectl
@@ -45,6 +46,7 @@ cortex-down:
 
 cortex-install:
 	@$(MAKE) registry-all
+	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./cortex.sh -c=./dev/config/cortex.sh install cortex
 	@$(MAKE) kubectl
@@ -58,16 +60,19 @@ cortex-info:
 
 cortex-update:
 	@$(MAKE) registry-all
+	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./cortex.sh -c=./dev/config/cortex.sh update
 
 operator-start:
 	@$(MAKE) registry-all
+	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./cortex.sh -c=./dev/config/cortex.sh update
 
 operator-update:
 	@$(MAKE) registry-all
+	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./cortex.sh -c=./dev/config/cortex.sh update
 
