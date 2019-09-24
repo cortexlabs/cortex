@@ -5,6 +5,7 @@
 
 <br>
 
+<!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
 ![Cortex demo](https://cortex-public.s3-us-west-2.amazonaws.com/demo/gif/v0.8.gif)
 
 <br>
