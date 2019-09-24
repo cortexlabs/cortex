@@ -8,13 +8,16 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
 
 ```yaml
 - kind: deployment
-  name: image-classifier
+  name: image
 
 - kind: api
-  name: alexnet
+  name: classifier
   model: s3://cortex-examples/image-classifier/alexnet.onnx
   request_handler: alexnet_handler.py
+  tracker:
+    model_type: classification
 ```
+
 <!-- CORTEX_VERSION_MINOR x2 -->
 You can run the code that generated the exported models used in this example folder here:
 - [Pytorch Alexnet](https://colab.research.google.com/github/cortexlabs/cortex/blob/0.8/examples/image-classifier/alexnet.ipynb)
@@ -76,7 +79,7 @@ Behind the scenes, Cortex containerizes the models, makes them servable using ON
 You can track the statuses of the APIs using `cortex get`:
 
 ```bash
-$ cortex get alexnet --watch
+$ cortex get classifier --watch
 
 status   up-to-date   available   requested   last update   avg latency
 live     1            1           1           12s           -
@@ -87,11 +90,11 @@ The output above indicates that one replica of the API was requested and one rep
 ## Serve real-time predictions
 
 ```bash
-$ cortex get alexnet
+$ cortex get classifier
 
-url: http://***.amazonaws.com/image-classifier/alexnet
+url: http://***.amazonaws.com/image/classifier
 
-$ curl http://***.amazonaws.com/image-classifier/alexnet \
+$ curl http://***.amazonaws.com/image/classifier \
     -X POST -H "Content-Type: application/json" \
     -d '{"url": "https://bowwowinsurance.com.au/wp-content/uploads/2018/10/akita-700x700.jpg"}'
 
