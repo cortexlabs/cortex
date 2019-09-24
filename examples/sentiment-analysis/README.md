@@ -4,7 +4,7 @@ This example shows how to deploy a sentiment analysis classifier trained using [
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. This configuration will download the model from the `cortex-examples` S3 bucket and preprocess the payload and postprocess the inference with functions defined in `sentiment.py`.
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. This configuration will download the model from the `cortex-examples` S3 bucket and preprocess the payload and postprocess the inference with functions defined in `handler.py`.
 
 ```yaml
 - kind: deployment
@@ -13,8 +13,11 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
 - kind: api
   name: classifier
   model: s3://cortex-examples/sentiment-analysis/bert
-  request_handler: sentiment.py
+  request_handler: handler.py
+  tracker:
+    model_type: classification
 ```
+
 <!-- CORTEX_VERSION_MINOR -->
 You can run the code that generated the exported BERT model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/sentiment-analysis/bert.ipynb).
 
@@ -74,11 +77,11 @@ The output above indicates that one replica of the API was requested and one rep
 ## Serve real-time predictions
 
 ```bash
-$ cortex get analysis
+$ cortex get classifier
 
-url: http://***.amazonaws.com/sentiment/analysis
+url: http://***.amazonaws.com/sentiment/classifier
 
-$ curl http://***.amazonaws.com/sentiment/analysis \
+$ curl http://***.amazonaws.com/sentiment/classifier \
     -X POST -H "Content-Type: application/json" \
     -d '{"review": "The movie was great!"}'
 
