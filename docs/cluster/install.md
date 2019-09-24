@@ -27,8 +27,8 @@ export AWS_SECRET_ACCESS_KEY=***
 
 # Configure AWS instance settings (at least 4GB memory)
 export CORTEX_NODE_TYPE="m5.large"
-export CORTEX_NODES_MIN="1"
-export CORTEX_NODES_MAX="3"
+export CORTEX_NODES_MIN="2"
+export CORTEX_NODES_MAX="5"
 
 # Provision infrastructure on AWS and install Cortex
 ./cortex.sh install
