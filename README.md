@@ -91,7 +91,7 @@ $ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
 
 ```bash
 # Download the install script
-$ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/0.7/cortex.sh && chmod +x cortex.sh
+$ curl -O https://raw.githubusercontent.com/cortexlabs/cortex/0.8/cortex.sh && chmod +x cortex.sh
 
 # Install the Cortex CLI on your machine: the CLI sends configuration and code to the Cortex cluster
 $ ./cortex.sh install cli
@@ -117,8 +117,8 @@ See [installation instructions](https://docs.cortex.dev/cluster/install) for mor
 ## Examples
 
 <!-- CORTEX_VERSION_MINOR_STABLE x3 -->
-- [Text generation](https://github.com/cortexlabs/cortex/tree/0.7/examples/text-generator) with GPT-2
+- [Text generation](https://github.com/cortexlabs/cortex/tree/0.8/examples/text-generator) with GPT-2
 
-- [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.7/examples/sentiment-analysis) with BERT
+- [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.8/examples/sentiment-analysis) with BERT
 
-- [Image classification](https://github.com/cortexlabs/cortex/tree/0.7/examples/image-classifier) with Inception v3
+- [Image classification](https://github.com/cortexlabs/cortex/tree/0.8/examples/image-classifier) with Inception v3
