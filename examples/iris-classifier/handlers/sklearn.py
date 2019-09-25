@@ -6,7 +6,7 @@ import json
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 s3 = boto3.client("s3")
-scalars_obj = s3.get_object(Bucket="cortex-examples", Key="iris/scalars.json")
+scalars_obj = s3.get_object(Bucket="cortex-examples", Key="iris-classifier/scalars.json")
 scalars = json.loads(scalars_obj["Body"].read().decode("utf-8"))
 print("downloaded scalars: {}".format(scalars))
 
