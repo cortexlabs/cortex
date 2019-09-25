@@ -87,7 +87,7 @@ $ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
 
 ## Spinning up a Cortex cluster on AWS
 
-<!-- CORTEX_VERSION_MINOR_STABLE -->
+<!-- CORTEX_VERSION_README_MINOR -->
 
 ```bash
 # Download the install script
@@ -116,7 +116,7 @@ See [installation instructions](https://docs.cortex.dev/cluster/install) for mor
 
 ## Examples
 
-<!-- CORTEX_VERSION_MINOR_STABLE x3 -->
+<!-- CORTEX_VERSION_README_MINOR x3 -->
 - [Text generation](https://github.com/cortexlabs/cortex/tree/0.8/examples/text-generator) with GPT-2
 
 - [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.8/examples/sentiment-analysis) with BERT
