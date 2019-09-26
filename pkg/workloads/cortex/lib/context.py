@@ -15,8 +15,10 @@
 import os
 import imp
 import inspect
+
 import boto3
 import datadog
+import dill
 
 from cortex import consts
 from cortex.lib import util
@@ -108,10 +110,22 @@ class Context:
 
     def load_module(self, module_prefix, module_name, impl_path):
         full_module_name = "{}_{}".format(module_prefix, module_name)
-        try:
-            impl = imp.load_source(full_module_name, impl_path)
-        except Exception as e:
-            raise UserException("unable to load python file", str(e)) from e
+
+        if impl_path.endswith("pickle"):
+            impl = imp.new_module(full_module_name)
+
+            logger.info(impl_path)
+            with open(impl_path, "rb") as pickle_file:
+                pickled_dict = dill.load(pickle_file)
+                logger.info(pickled_dict)
+                for key in pickled_dict:
+                    logger.info(key)
+                    setattr(impl, key, pickled_dict[key])
+        else:
+            try:
+                impl = imp.load_source(full_module_name, impl_path)
+            except Exception as e:
+                raise UserException("unable to load python file", str(e)) from e
 
         return impl
 
