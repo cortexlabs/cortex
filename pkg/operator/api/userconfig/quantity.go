@@ -23,6 +23,7 @@ import (
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -42,7 +43,7 @@ func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
 	return func(str string) (interface{}, error) {
 		k8sQuantity, err := kresource.ParseQuantity(str)
 		if err != nil {
-			return Quantity{}, err
+			return Quantity{}, k8s.ErrorParseQuantity(str)
 		}
 
 		if v.GreaterThan != nil {
