@@ -20,7 +20,7 @@ setup(
     description="",
     author="Cortex Labs",
     author_email="dev@cortexlabs.com",
-    install_requires=["dill==0.3.0", "requests==2.21.0"],
+    install_requires=["dill==0.3.0", "requests==2.21.0", "msgpack==0.6.1"],
     setup_requires=["setuptools"],
     packages=find_packages(),
 )

@@ -24,6 +24,7 @@ import urllib.parse
 import dill
 import requests
 from requests.exceptions import HTTPError
+import msgpack
 
 
 class Client(object):
@@ -113,6 +114,7 @@ class Client(object):
             resp.raise_for_status()
 
             resources = resp.json()
+            print(resources)
             return urllib.parse.urljoin(
                 resources["apis_base_url"],
                 resources["api_name_statuses"][api_name]["active_status"]["path"],
