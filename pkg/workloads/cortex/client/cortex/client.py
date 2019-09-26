@@ -98,7 +98,7 @@ class Client(object):
                     raise Exception(resp.json()["error"]) from err
                 raise
 
-            if resp.status_code / 100 == 2:
+            if resp.status_code == 200:
                 return self.get_endpoint(deployment_name, api_name)
 
             return None

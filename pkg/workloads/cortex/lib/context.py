@@ -114,12 +114,9 @@ class Context:
         if impl_path.endswith("pickle"):
             impl = imp.new_module(full_module_name)
 
-            logger.info(impl_path)
             with open(impl_path, "rb") as pickle_file:
                 pickled_dict = dill.load(pickle_file)
-                logger.info(pickled_dict)
                 for key in pickled_dict:
-                    logger.info(key)
                     setattr(impl, key, pickled_dict[key])
         else:
             try:
