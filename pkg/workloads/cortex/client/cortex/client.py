@@ -20,6 +20,7 @@ import sys
 import shutil
 import yaml
 import urllib.parse
+import base64
 
 import dill
 import requests
@@ -97,30 +98,27 @@ class Client(object):
                 raise
 
             if resp.status_code == 200:
-                return self.get_endpoint(deployment_name, api_name)
+                queries = {"appName": deployment_name}
+
+                try:
+                    resp = requests.get(
+                        urllib.parse.urljoin(self.operator_url, "resources"),
+                        params=queries,
+                        headers=self.headers,
+                        verify=False,
+                    )
+                    resp.raise_for_status()
+                    resources = resp.json()
+                    b64_encoded_context = resources["context"]
+                    context_msgpack_bytestring = base64.b64decode(b64_encoded_context)
+                    ctx = msgpack.loads(context_msgpack_bytestring, raw=False)
+                    return urllib.parse.urljoin(
+                        resources["apis_base_url"], ctx["apis"][api_name]["path"]
+                    )
+                except HTTPError as err:
+                    resp = err.response
+                    if "error" in resp.json():
+                        raise Exception(resp.json()["error"]) from err
+                    raise
 
             return None
-
-    def get_endpoint(self, deployment_name, api_name):
-        queries = {"appName": deployment_name}
-
-        try:
-            resp = requests.get(
-                urllib.parse.urljoin(self.operator_url, "resources"),
-                params=queries,
-                headers=self.headers,
-                verify=False,
-            )
-            resp.raise_for_status()
-
-            resources = resp.json()
-            print(resources)
-            return urllib.parse.urljoin(
-                resources["apis_base_url"],
-                resources["api_name_statuses"][api_name]["active_status"]["path"],
-            )
-        except HTTPError as err:
-            resp = err.response
-            if "error" in resp.json():
-                raise Exception(resp.json()["error"]) from err
-            raise
