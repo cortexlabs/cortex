@@ -13,15 +13,9 @@ import requests
 
 class Client(object):
     def __init__(
-        self,
-        aws_access_key_id,
-        aws_secret_access_key,
-        operator_url,
-        deployment_name,
-        workspace="./workspace",
+        self, aws_access_key_id, aws_secret_access_key, operator_url, workspace="./workspace"
     ):
         self.operator_url = operator_url
-        self.deployment_name = deployment_name
         self.workspace = workspace
         self.aws_access_key_id = aws_access_key_id
         self.aws_secret_access_key = aws_secret_access_key
@@ -34,8 +28,8 @@ class Client(object):
 
         pathlib.Path(self.workspace).mkdir(parents=True, exist_ok=True)
 
-    def deploy(self, api_name, model_path, pre_inference, post_inference):
-        working_dir = os.path.join(self.workspace, self.deployment_name)
+    def deploy(self, deployment_name, api_name, model_path, pre_inference, post_inference):
+        working_dir = os.path.join(self.workspace, deployment_name)
         api_working_dir = os.path.join(working_dir, api_name)
         pathlib.Path(api_working_dir).mkdir(parents=True, exist_ok=True)
 
@@ -50,7 +44,7 @@ class Client(object):
             )
 
         cortex_config = [
-            {"kind": "deployment", "name": self.deployment_name},
+            {"kind": "deployment", "name": deployment_name},
             {
                 "kind": "api",
                 "model": model_path,
@@ -63,16 +57,16 @@ class Client(object):
         with open(cortex_yaml_path, "w") as f:
             f.write(yaml.dump(cortex_config))
 
-        print(api_working_dir)
         project_zip_path = os.path.join(working_dir, "project")
         shutil.make_archive(project_zip_path, "zip", api_working_dir)
         project_zip_path += ".zip"
 
         queries = {"force": "false", "ignoreCache": "false"}
 
+        deployment_status = {}
+
         with open(cortex_yaml_path, "rb") as config, open(project_zip_path, "rb") as project:
             files = {"cortex.yaml": config, "project.zip": project}
-            print(urllib.parse.urljoin(self.operator_url, "deploy"))
             resp = requests.post(
                 urllib.parse.urljoin(self.operator_url, "deploy"),
                 params=queries,
@@ -80,10 +74,28 @@ class Client(object):
                 headers=self.headers,
                 verify=False,
             )
-            print(resp.json())
+            deployment_status = resp.json()
 
-    def get_endpoint(self, api_name):
-        queries = {"appName": self.deployment_name}
+            if resp.status_code / 100 != 2:
+                return deployment_status
+
+            if resp.status_code / 100 == 2:
+                print(deployment_status["message"])
+                endpoint_response = self.get_endpoint(deployment_name, api_name)
+
+                if endpoint_response.status_code / 100 != 2:
+                    return endpoint_response
+
+                resources = endpoint_response.json()
+                return {
+                    "url": urllib.parse.urljoin(
+                        resources["apis_base_url"],
+                        resources["api_name_statuses"][api_name]["active_status"]["path"],
+                    )
+                }
+
+    def get_endpoint(self, deployment_name, api_name):
+        queries = {"appName": deployment_name}
 
         resp = requests.get(
             urllib.parse.urljoin(self.operator_url, "resources"),
@@ -91,11 +103,4 @@ class Client(object):
             headers=self.headers,
             verify=False,
         )
-        print(resp)
-        resources = resp.json()
-        print(
-            urllib.parse.urljoin(
-                resources["apis_base_url"],
-                resources["api_name_statuses"][api_name]["active_status"]["path"],
-            )
-        )
+        return resp
