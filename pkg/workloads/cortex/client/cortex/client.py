@@ -1,17 +1,3 @@
-# Copyright 2019 Cortex Labs, Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import pathlib
 import os
 import types
@@ -77,8 +63,10 @@ class Client(object):
         with open(cortex_yaml_path, "w") as f:
             f.write(yaml.dump(cortex_config))
 
-        shutil.make_archive("project", "zip", api_working_dir)
-        project_zip_path = os.path.join(working_dir, "project.zip")
+        print(api_working_dir)
+        project_zip_path = os.path.join(working_dir, "project")
+        shutil.make_archive(project_zip_path, "zip", api_working_dir)
+        project_zip_path += ".zip"
 
         queries = {"force": "false", "ignoreCache": "false"}
 
@@ -94,16 +82,20 @@ class Client(object):
             )
             print(resp.json())
 
-
-    def get(self, api_name):
+    def get_endpoint(self, api_name):
         queries = {"appName": self.deployment_name}
 
         resp = requests.get(
-            urllib.parse.urljoin(self.operator_url, "get"),
+            urllib.parse.urljoin(self.operator_url, "resources"),
             params=queries,
             headers=self.headers,
             verify=False,
         )
-
+        print(resp)
         resources = resp.json()
-        urllib.parse.urljoin(resources['apis_base_url'], resources[])
+        print(
+            urllib.parse.urljoin(
+                resources["apis_base_url"],
+                resources["api_name_statuses"][api_name]["active_status"]["path"],
+            )
+        )
