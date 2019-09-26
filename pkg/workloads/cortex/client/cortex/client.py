@@ -23,6 +23,7 @@ import urllib.parse
 
 import dill
 import requests
+from requests.exceptions import HTTPError
 
 
 class Client(object):
@@ -81,40 +82,46 @@ class Client(object):
 
         with open(cortex_yaml_path, "rb") as config, open(project_zip_path, "rb") as project:
             files = {"cortex.yaml": config, "project.zip": project}
-            resp = requests.post(
-                urllib.parse.urljoin(self.operator_url, "deploy"),
-                params=queries,
-                files=files,
-                headers=self.headers,
-                verify=False,
-            )
-            deployment_status = resp.json()
-
-            if resp.status_code / 100 != 2:
-                return deployment_status
+            try:
+                resp = requests.post(
+                    urllib.parse.urljoin(self.operator_url, "deploy"),
+                    params=queries,
+                    files=files,
+                    headers=self.headers,
+                    verify=False,
+                )
+                resp.raise_for_status()
+                deployment_status = resp.json()
+            except HTTPError as err:
+                resp = err.response
+                if "error" in resp.json():
+                    raise Exception(resp.json()["error"]) from err
+                raise
 
             if resp.status_code / 100 == 2:
-                print(deployment_status["message"])
-                endpoint_response = self.get_endpoint(deployment_name, api_name)
+                return self.get_endpoint(deployment_name, api_name)
 
-                if endpoint_response.status_code / 100 != 2:
-                    return endpoint_response
-
-                resources = endpoint_response.json()
-                return {
-                    "url": urllib.parse.urljoin(
-                        resources["apis_base_url"],
-                        resources["api_name_statuses"][api_name]["active_status"]["path"],
-                    )
-                }
+            return None
 
     def get_endpoint(self, deployment_name, api_name):
         queries = {"appName": deployment_name}
 
-        resp = requests.get(
-            urllib.parse.urljoin(self.operator_url, "resources"),
-            params=queries,
-            headers=self.headers,
-            verify=False,
-        )
-        return resp
+        try:
+            resp = requests.get(
+                urllib.parse.urljoin(self.operator_url, "resources"),
+                params=queries,
+                headers=self.headers,
+                verify=False,
+            )
+            resp.raise_for_status()
+
+            resources = resp.json()
+            return urllib.parse.urljoin(
+                resources["apis_base_url"],
+                resources["api_name_statuses"][api_name]["active_status"]["path"],
+            )
+        except HTTPError as err:
+            resp = err.response
+            if "error" in resp.json():
+                raise Exception(resp.json()["error"]) from err
+            raise
