@@ -78,8 +78,6 @@ class Client(object):
 
         queries = {"force": "false", "ignoreCache": "false"}
 
-        deployment_status = {}
-
         with open(cortex_yaml_path, "rb") as config, open(project_zip_path, "rb") as project:
             files = {"cortex.yaml": config, "project.zip": project}
             try:
@@ -91,7 +89,6 @@ class Client(object):
                     verify=False,
                 )
                 resp.raise_for_status()
-                deployment_status = resp.json()
             except HTTPError as err:
                 resp = err.response
                 if "error" in resp.json():
