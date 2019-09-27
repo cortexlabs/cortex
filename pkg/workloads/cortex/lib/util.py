@@ -23,6 +23,7 @@ import tempfile
 import zipfile
 import hashlib
 import msgpack
+import pathlib
 from copy import deepcopy
 from datetime import datetime
 
@@ -62,13 +63,7 @@ def snake_to_camel(input, sep="_", lower=True):
 
 
 def mkdir_p(dir_path):
-    try:
-        os.makedirs(dir_path)
-    except OSError as e:
-        if e.errno == errno.EEXIST and os.path.isdir(dir_path):
-            pass
-        else:
-            raise
+    pathlib.Path(dir_path).mkdir(parents=True, exist_ok=True)
 
 
 def rm_dir(dir_path):
