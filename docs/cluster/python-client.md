@@ -19,11 +19,11 @@ cortex = Client(
 )
 
 api_url = cortex.deploy(
-    deployment_name="<string>",  # Deployment name (required)
+    deployment_name="<string>",  # deployment name (required)
     api_name="<string>",  # API name (required)
     model_path="<string>",  # S3 path to an exported model (required)
-    pre_inference=callable,  # a function used to prepare requests for model input
-    post_inference=callable,  # a function used to prepare model output for response
+    pre_inference=callable,  # function used to prepare requests for model input
+    post_inference=callable,  # function used to prepare model output for response
     model_format="<string>",  # model format, must be "tensorflow" or "onnx" (default: "onnx" if model path ends with .onnx, "tensorflow" if model path ends with .zip or is a directory)
     tf_serving_key="<string>"  # name of the signature def to use for prediction (required if your model has more than one signature def)
 )
