@@ -19,7 +19,6 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -32,12 +31,36 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 )
 
-type Support struct {
+type SupportRequest struct {
 	Timestamp    time.Time `json:"timestamp"`
 	EmailAddress string    `json:"email_address"`
 	ID           string    `json:"support_id"`
 	Source       string    `json:"source"`
 	Body         string    `json:"body"`
+}
+
+var supportPrompValidation = &cr.PromptValidation{
+	PromptItemValidations: []*cr.PromptItemValidation{
+		{
+			StructField: "Body",
+			PromptOpts: &cr.PromptOptions{
+				Prompt: "What is your question or issue?",
+			},
+			StringValidation: &cr.StringValidation{
+				Required: true,
+			},
+		},
+		{
+			StructField: "EmailAddress",
+			PromptOpts: &cr.PromptOptions{
+				Prompt: "What is your email address?",
+			},
+			StringValidation: &cr.StringValidation{
+				Required:  true,
+				Validator: cr.EmailValidator(),
+			},
+		},
+	},
 }
 
 var supportCmd = &cobra.Command{
@@ -46,8 +69,8 @@ var supportCmd = &cobra.Command{
 	Long: `
 This command sends a support request to Cortex developers.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		support := &Support{}
-		err := cr.ReadPrompt(support, getSupportRequest())
+		support := &SupportRequest{}
+		err := cr.ReadPrompt(support, supportPrompValidation)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -66,37 +89,10 @@ This command sends a support request to Cortex developers.`,
 		defer resp.Body.Close()
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			if byteArray, err := ioutil.ReadAll(resp.Body); err == nil {
-				fmt.Println(string(byteArray))
-				return
-			}
+			fmt.Println("Your request for support has been sent, Cortex developers will get back to you soon at: " + support.EmailAddress)
+			return
 		}
-		fmt.Println("Request for support has been sent, Cortex developers will get back to you at: " + support.EmailAddress)
-	},
-}
 
-func getSupportRequest() *cr.PromptValidation {
-	return &cr.PromptValidation{
-		PromptItemValidations: []*cr.PromptItemValidation{
-			{
-				StructField: "Body",
-				PromptOpts: &cr.PromptOptions{
-					Prompt: "Enter a brief description of the issue or question",
-				},
-				StringValidation: &cr.StringValidation{
-					Required: true,
-				},
-			},
-			{
-				StructField: "EmailAddress",
-				PromptOpts: &cr.PromptOptions{
-					Prompt: "Enter the contact email address",
-				},
-				StringValidation: &cr.StringValidation{
-					Required:  true,
-					Validator: cr.EmailValidator(),
-				},
-			},
-		},
-	}
+		fmt.Println("Failed to send support request, please file an issue in our GitHub: https://github.com/cortexlabs/cortex")
+	},
 }
