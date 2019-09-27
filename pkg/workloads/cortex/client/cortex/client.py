@@ -65,11 +65,11 @@ class Client(object):
         """Deploy an API
         
         Args:
-            deployment_name (string): Deployment name
+            deployment_name (string): deployment name
             api_name (string): API name
             model_path (string): S3 path to an exported model
-            pre_inference (function, optional): a function used to prepare requests for model input. Defaults to None.
-            post_inference (function, optional): a function used to prepare model output for response. Defaults to None.
+            pre_inference (function, optional): function used to prepare requests for model input. Defaults to None.
+            post_inference (function, optional): function used to prepare model output for response. Defaults to None.
             model_format (string, optional): model format, must be "tensorflow" or "onnx" (default: "onnx" if model path ends with .onnx, "tensorflow" if model path ends with .zip or is a directory)
             tf_serving_key (string, optional): name of the signature def to use for prediction (required if your model has more than one signature def)
         
