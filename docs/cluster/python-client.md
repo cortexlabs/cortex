@@ -1,23 +1,21 @@
 # Python Client
 
-Python Client can be used to programmatically deploy to a Cortex Cluster.
+The Python client can be used to programmatically deploy models to a Cortex Cluster.
 
 <!-- CORTEX_VERSION_MINOR -->
 ```
 pip install git+https://github.com/cortexlabs/cortex.git@master#egg=cortex\&subdirectory=pkg/workloads/cortex/client
 ```
 
-Python client needs to be initialized with AWS credentials and a url to the operator your Cortex cluster.
-
-The Operator URL can be retrieved by running `./cortex.sh endpoints`
+The Python client needs to be initialized with AWS credentials and an operator URL for your Cortex cluster. You can find the operator URL by running `./cortex.sh endpoints`.
 
 ```python
 from cortex import Client
 
 cortex = Client(
-    aws_access_key_id="<string>",  # AWS access key associated with the account that created the Cortex cluster
-    aws_secret_access_key="<string>",  # AWS secrey key associated with the provided AWS access key  
-    operator_url="<string>" # Operator URL of your cortex cluster
+    aws_access_key_id="<string>",  # AWS access key associated with the account that the cluster is running on
+    aws_secret_access_key="<string>",  # AWS secret key associated with the AWS access key
+    operator_url="<string>" # operator URL of your cluster
 )
 
 api_url = cortex.deploy(
@@ -31,16 +29,17 @@ api_url = cortex.deploy(
 )
 ```
 
-`api_url` contains the url to the deployed API. It accepts JSON POST requests.
+`api_url` contains the URL of the deployed API. The API accepts JSON POST requests.
 
 ```python
 import requests
 
 sample = {
-    "feature_1" [0,1,2]
+  "feature_1": 'a',
+  "feature_2": 'b',
+  "feature_3": 'c'
 }
 
 resp = requests.post(api_url, json=sample)
-
-resp.json() # your model prediction
+resp.json()
 ```
