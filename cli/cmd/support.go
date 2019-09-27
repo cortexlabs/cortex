@@ -44,7 +44,7 @@ var supportPrompValidation = &cr.PromptValidation{
 		{
 			StructField: "Body",
 			PromptOpts: &cr.PromptOptions{
-				Prompt: "What is your question or issue?",
+				Prompt: "What is your question or issue",
 			},
 			StringValidation: &cr.StringValidation{
 				Required: true,
@@ -53,7 +53,7 @@ var supportPrompValidation = &cr.PromptValidation{
 		{
 			StructField: "EmailAddress",
 			PromptOpts: &cr.PromptOptions{
-				Prompt: "What is your email address?",
+				Prompt: "What is your email address",
 			},
 			StringValidation: &cr.StringValidation{
 				Required:  true,
@@ -65,11 +65,12 @@ var supportPrompValidation = &cr.PromptValidation{
 
 var supportCmd = &cobra.Command{
 	Use:   "support",
-	Short: "request support from cortex developers",
+	Short: "request support from Cortex maintainers",
 	Long: `
-This command sends a support request to Cortex developers.`,
+This command sends a support request to Cortex maintainers.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		support := &SupportRequest{}
+		fmt.Println("")
 		err := cr.ReadPrompt(support, supportPrompValidation)
 		if err != nil {
 			errors.Exit(err)
@@ -89,10 +90,10 @@ This command sends a support request to Cortex developers.`,
 		defer resp.Body.Close()
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			fmt.Println("Your request for support has been sent, Cortex developers will get back to you soon at: " + support.EmailAddress)
+			fmt.Println("Thanks for letting us know, we will get back to you soon at " + support.EmailAddress)
 			return
 		}
 
-		fmt.Println("Failed to send support request, please file an issue in our GitHub: https://github.com/cortexlabs/cortex")
+		fmt.Println("Failed to send request, please file an issue on GitHub: https://github.com/cortexlabs/cortex")
 	},
 }
