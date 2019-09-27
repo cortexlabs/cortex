@@ -32,10 +32,10 @@ import msgpack
 class Client(object):
     def __init__(self, aws_access_key_id, aws_secret_access_key, operator_url):
         """Initialize a Client to a Cortex Operator
-        
+
         Args:
             aws_access_key_id (string): AWS access key associated with the account that created the Cortex Cluster
-            aws_secret_access_key (string): AWS secrey key associated with the provided AWS access key  
+            aws_secret_access_key (string): AWS secrey key associated with the provided AWS access key
             operator_url (string): Operator URL of your cortex cluster
         """
 
@@ -63,16 +63,16 @@ class Client(object):
         tf_serving_key=None,
     ):
         """Deploy an API
-        
+
         Args:
             deployment_name (string): deployment name
             api_name (string): API name
             model_path (string): S3 path to an exported model
-            pre_inference (function, optional): function used to prepare requests for model input. Defaults to None.
-            post_inference (function, optional): function used to prepare model output for response. Defaults to None.
+            pre_inference (function, optional): function used to prepare requests for model input
+            post_inference (function, optional): function used to prepare model output for response
             model_format (string, optional): model format, must be "tensorflow" or "onnx" (default: "onnx" if model path ends with .onnx, "tensorflow" if model path ends with .zip or is a directory)
             tf_serving_key (string, optional): name of the signature def to use for prediction (required if your model has more than one signature def)
-        
+
         Returns:
             string: url to the deployed API
         """
