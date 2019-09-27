@@ -9,6 +9,8 @@ pip install git+https://github.com/cortexlabs/cortex.git@master#egg=cortex\&subd
 
 Python client needs to be initialized with AWS credentials and a url to the operator your Cortex cluster.
 
+The Operator URL can be retrieved by running `./cortex.sh endpoints`
+
 ```python
 from cortex import Client
 
@@ -29,7 +31,7 @@ api_url = cortex.deploy(
 )
 ```
 
-`api_url` is the url to the deployed API, it accepts JSON POST requests.
+`api_url` contains the url to the deployed API. It accepts JSON POST requests.
 
 ```python
 import requests
