@@ -103,6 +103,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
    * [flask](https://pypi.org/project/flask/)
    * [flask-api](https://pypi.org/project/flask-api/)
    * [waitress](https://pypi.org/project/waitress/)
+   * [dill](https://pypi.org/project/dill/)
 1. Update the versions listed in "Pre-installed Packages" in `request-handlers.py`
 
 ## Istio

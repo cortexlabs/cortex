@@ -24,7 +24,9 @@ import (
 )
 
 type DeployResponse struct {
-	Message string `json:"message"`
+	Message     string           `json:"message"`
+	Context     *context.Context `json:"context"`
+	APIsBaseURL string           `json:"apis_base_url"`
 }
 
 type DeleteResponse struct {

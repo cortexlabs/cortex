@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pathlib
+from pathlib import Path
 import os
 import types
 import subprocess
@@ -29,11 +30,17 @@ import msgpack
 
 
 class Client(object):
-    def __init__(
-        self, aws_access_key_id, aws_secret_access_key, operator_url, workspace="./workspace"
-    ):
+    def __init__(self, aws_access_key_id, aws_secret_access_key, operator_url):
+        """Initialize a Client to a Cortex Operator
+        
+        Args:
+            aws_access_key_id (string): AWS access key associated with the account that created the Cortex Cluster
+            aws_secret_access_key (string): AWS secrey key associated with the provided AWS access key  
+            operator_url (string): Operator URL of your cortex cluster
+        """
+
         self.operator_url = operator_url
-        self.workspace = workspace
+        self.workspace = str(Path.home() / ".cortex" / "workspace")
         self.aws_access_key_id = aws_access_key_id
         self.aws_secret_access_key = aws_secret_access_key
         self.headers = {
@@ -45,30 +52,63 @@ class Client(object):
 
         pathlib.Path(self.workspace).mkdir(parents=True, exist_ok=True)
 
-    def deploy(self, deployment_name, api_name, model_path, pre_inference, post_inference):
+    def deploy(
+        self,
+        deployment_name,
+        api_name,
+        model_path,
+        pre_inference=None,
+        post_inference=None,
+        model_format=None,
+        tf_serving_key=None,
+    ):
+        """Deploy an API
+        
+        Args:
+            deployment_name (string): Deployment name
+            api_name (string): API name
+            model_path (string): S3 path to an exported model
+            pre_inference (function, optional): a function used to prepare requests for model input. Defaults to None.
+            post_inference (function, optional): a function used to prepare model output for response. Defaults to None.
+            model_format (string, optional): model format, must be "tensorflow" or "onnx" (default: "onnx" if model path ends with .onnx, "tensorflow" if model path ends with .zip or is a directory)
+            tf_serving_key (string, optional): name of the signature def to use for prediction (required if your model has more than one signature def)
+        
+        Returns:
+            string: url to the deployed API
+        """
+
         working_dir = os.path.join(self.workspace, deployment_name)
         api_working_dir = os.path.join(working_dir, api_name)
         pathlib.Path(api_working_dir).mkdir(parents=True, exist_ok=True)
 
-        reqs = subprocess.check_output([sys.executable, "-m", "pip", "freeze"])
+        api_config = {
+            "kind": "api",
+            "model": model_path,
+            "name": api_name,
+            "model_format": model_format,
+            "tf_serving_key": tf_serving_key,
+        }
 
-        with open(os.path.join(api_working_dir, "requirements.txt"), "w") as f:
-            f.writelines(reqs.decode())
+        if pre_inference is not None or post_inference is not None:
+            reqs = subprocess.check_output([sys.executable, "-m", "pip", "freeze"])
 
-        with open(os.path.join(api_working_dir, "request_handler.pickle"), "wb") as f:
-            dill.dump(
-                {"pre_inference": pre_inference, "post_inference": post_inference}, f, recurse=True
-            )
+            with open(os.path.join(api_working_dir, "requirements.txt"), "w") as f:
+                f.writelines(reqs.decode())
 
-        cortex_config = [
-            {"kind": "deployment", "name": deployment_name},
-            {
-                "kind": "api",
-                "model": model_path,
-                "name": api_name,
-                "request_handler": "request_handler.pickle",
-            },
-        ]
+            handlers = {}
+
+            if pre_inference is not None:
+                handlers["pre_inference"] = pre_inference
+
+            if post_inference is not None:
+                handlers["post_inference"] = post_inference
+
+            with open(os.path.join(api_working_dir, "request_handler.pickle"), "wb") as f:
+                dill.dump(handlers, f, recurse=True)
+
+            api_config["request_handler"] = "request_handler.pickle"
+
+        cortex_config = [{"kind": "deployment", "name": deployment_name}, api_config]
 
         cortex_yaml_path = os.path.join(working_dir, "cortex.yaml")
         with open(cortex_yaml_path, "w") as f:
@@ -91,34 +131,14 @@ class Client(object):
                     verify=False,
                 )
                 resp.raise_for_status()
+                resources = resp.json()
             except HTTPError as err:
                 resp = err.response
                 if "error" in resp.json():
                     raise Exception(resp.json()["error"]) from err
                 raise
 
-            if resp.status_code == 200:
-                queries = {"appName": deployment_name}
-
-                try:
-                    resp = requests.get(
-                        urllib.parse.urljoin(self.operator_url, "resources"),
-                        params=queries,
-                        headers=self.headers,
-                        verify=False,
-                    )
-                    resp.raise_for_status()
-                    resources = resp.json()
-                    b64_encoded_context = resources["context"]
-                    context_msgpack_bytestring = base64.b64decode(b64_encoded_context)
-                    ctx = msgpack.loads(context_msgpack_bytestring, raw=False)
-                    return urllib.parse.urljoin(
-                        resources["apis_base_url"], ctx["apis"][api_name]["path"]
-                    )
-                except HTTPError as err:
-                    resp = err.response
-                    if "error" in resp.json():
-                        raise Exception(resp.json()["error"]) from err
-                    raise
-
-            return None
+            b64_encoded_context = resources["context"]
+            context_msgpack_bytestring = base64.b64decode(b64_encoded_context)
+            ctx = msgpack.loads(context_msgpack_bytestring, raw=False)
+            return urllib.parse.urljoin(resources["apis_base_url"], ctx["apis"][api_name]["path"])

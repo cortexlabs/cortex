@@ -111,13 +111,16 @@ class Context:
     def load_module(self, module_prefix, module_name, impl_path):
         full_module_name = "{}_{}".format(module_prefix, module_name)
 
-        if impl_path.endswith("pickle"):
-            impl = imp.new_module(full_module_name)
+        if impl_path.endswith(".pickle"):
+            try:
+                impl = imp.new_module(full_module_name)
 
-            with open(impl_path, "rb") as pickle_file:
-                pickled_dict = dill.load(pickle_file)
-                for key in pickled_dict:
-                    setattr(impl, key, pickled_dict[key])
+                with open(impl_path, "rb") as pickle_file:
+                    pickled_dict = dill.load(pickle_file)
+                    for key in pickled_dict:
+                        setattr(impl, key, pickled_dict[key])
+            except Exception as e:
+                raise UserException("unable to load pickle", str(e)) from e
         else:
             try:
                 impl = imp.load_source(full_module_name, impl_path)
