@@ -76,6 +76,8 @@ gateways:
       limits:
        cpu: 2000m
        memory: 1024Mi
+    serviceAnnotations:
+      service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: 10 * 60 # 10 minutes
     type: LoadBalancer
     ports:
     - port: 80
