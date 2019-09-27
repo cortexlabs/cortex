@@ -90,7 +90,7 @@ This command sends a support request to Cortex maintainers.`,
 		defer resp.Body.Close()
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			fmt.Println("Failed to send request, please file an issue on GitHub: https://github.com/cortexlabs/cortex")
+			fmt.Println("Failed to send request, please file an issue on GitHub (https://github.com/cortexlabs/cortex) or email us at hello@cortex.dev")
 			return
 		}
 
