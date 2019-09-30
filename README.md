@@ -4,8 +4,8 @@ Cortex is an open source machine learning deployment platform that makes it simp
 
 <br>
 
-<!-- CORTEX_VERSION_MINOR x2 (e.g. docs.cortex.dev/v/0.8/...) -->
-[install](https://docs.cortex.dev/install) • [docs](https://docs.cortex.dev) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
+<!-- CORTEX_VERSION_MINOR x2 (e.g. www.cortex.dev/v/0.8/...) -->
+[install](https://www.cortex.dev/install) • [docs](https://www.cortex.dev) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
 <br>
 
@@ -107,8 +107,8 @@ $ export CORTEX_NODES_MAX="5"
 $ ./cortex.sh install
 ```
 
-<!-- CORTEX_VERSION_MINOR (e.g. docs.cortex.dev/v/0.8/...) -->
-See [installation instructions](https://docs.cortex.dev/cluster/install) for more details.
+<!-- CORTEX_VERSION_MINOR (e.g. www.cortex.dev/v/0.8/...) -->
+See [installation instructions](https://www.cortex.dev/cluster/install) for more details.
 
 <br>
 
