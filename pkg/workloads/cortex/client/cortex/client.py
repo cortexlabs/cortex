@@ -84,7 +84,7 @@ class Client(object):
         api_config = {"kind": "api", "model": model_path, "name": api_name}
 
         if tf_serving_key is not None:
-            api_config["model_format"] = tf_serving_key
+            api_config["tf_serving_key"] = tf_serving_key
 
         if model_format is not None:
             api_config["model_format"] = model_format
