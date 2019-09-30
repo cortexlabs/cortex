@@ -108,6 +108,18 @@ Flags:
   -h, --help         help for configure
 ```
 
+## support
+
+```text
+This command sends a support request to Cortex developers.
+
+Usage:
+  cortex support [flags]
+
+Flags:
+  -h, --help   help for support
+```
+
 ## completion
 
 ```text
