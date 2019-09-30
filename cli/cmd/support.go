@@ -69,17 +69,17 @@ var supportCmd = &cobra.Command{
 	Long: `
 This command sends a support request to Cortex maintainers.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		support := &SupportRequest{}
+		supportRequest := &SupportRequest{}
 		fmt.Println("")
-		err := cr.ReadPrompt(support, supportPrompValidation)
+		err := cr.ReadPrompt(supportRequest, supportPrompValidation)
 		if err != nil {
 			errors.Exit(err)
 		}
-		support.Timestamp = time.Now()
-		support.Source = "cli.support"
-		support.ID = uuid.New().String()
+		supportRequest.Timestamp = time.Now()
+		supportRequest.Source = "cli.support"
+		supportRequest.ID = uuid.New().String()
 
-		byteArray, _ := json.Marshal(support)
+		byteArray, _ := json.Marshal(supportRequest)
 
 		resp, err := http.Post(consts.TelemetryURL+"/support", "application/json", bytes.NewReader(byteArray))
 		if err != nil {
@@ -94,6 +94,6 @@ This command sends a support request to Cortex maintainers.`,
 			return
 		}
 
-		fmt.Println("Thanks for letting us know, we will get back to you soon at " + support.EmailAddress)
+		fmt.Println("Thanks for letting us know, we will get back to you soon at " + supportRequest.EmailAddress)
 	},
 }
