@@ -1,4 +1,4 @@
-# Python Client
+# Python client
 
 The Python client can be used to programmatically deploy models to a Cortex Cluster.
 

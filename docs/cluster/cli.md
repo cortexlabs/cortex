@@ -1,4 +1,4 @@
-# CLI Commands
+# CLI commands
 
 ## deploy
 

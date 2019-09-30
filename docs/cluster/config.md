@@ -1,4 +1,4 @@
-# Cluster Configuration
+# Cluster configuration
 
 These environment variables can be modified and exported before running `cortex.sh` commands. Alternatively, a configuration file may be provided to `cortex.sh` via the `--config` flag (e.g. `cortex.sh --config=./config.sh install`). Default values are shown.
 

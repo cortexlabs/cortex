@@ -1,4 +1,4 @@
-# AWS Credentials
+# AWS credentials
 
 As of now, Cortex only runs on AWS. We plan to support other cloud providers in the future. If you don't have an AWS account you can get started with one [here](https://portal.aws.amazon.com/billing/signup#/start).
 

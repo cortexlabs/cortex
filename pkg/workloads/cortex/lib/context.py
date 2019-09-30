@@ -91,7 +91,7 @@ class Context:
                 )
             )
 
-        # This affects Tensorflow S3 access
+        # This affects TensorFlow S3 access
         os.environ["AWS_REGION"] = self.cortex_config.get("region", "")
 
         # ID maps

@@ -1,6 +1,8 @@
-<img src='https://cortex-public.s3-us-west-2.amazonaws.com/logo.png' height='88'>
+# Deploy machine learning models in production
 
-Deploy machine learning models as REST APIs on AWS
+Cortex is an open source machine learning deployment platform that makes it simple to deploy your machine learning models as web APIs on AWS. It combines TensorFlow Serving, ONNX Runtime, and Flask into a single tool that takes models from S3 and deploys them as web APIs. It also uses Docker and Kubernetes behind the scenes to autoscale, run rolling updates, and support CPU and GPU inference. The project is maintained by a venture-backed team of infrastructure engineers with backgrounds from Google, Illumio, and Berkeley.
+
+<br>
 
 <!-- CORTEX_VERSION_MINOR x2 (e.g. docs.cortex.dev/v/0.8/...) -->
 [install](https://docs.cortex.dev/install) • [docs](https://docs.cortex.dev) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
@@ -9,10 +11,6 @@ Deploy machine learning models as REST APIs on AWS
 
 <!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
 ![Cortex demo](https://cortex-public.s3-us-west-2.amazonaws.com/demo/gif/v0.8.gif)
-
-<br>
-
-Cortex is a machine learning deployment platform that you can self-host on AWS. It combines TensorFlow Serving, ONNX Runtime, and Flask into a single tool that takes models from S3 and deploys them as REST APIs. It also uses Docker and Kubernetes behind the scenes to autoscale, run rolling updates, and support CPU and GPU inference. The project is maintained by a venture-backed team of infrastructure engineers with backgrounds from Google, Illumio, and Berkeley.
 
 <br>
 
@@ -85,7 +83,7 @@ $ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'
 
 <br>
 
-## Spinning up a Cortex cluster on AWS
+## Installation
 
 <!-- CORTEX_VERSION_README_MINOR -->
 
