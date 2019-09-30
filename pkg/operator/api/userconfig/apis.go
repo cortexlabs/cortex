@@ -114,7 +114,7 @@ var apiValidation = &cr.StructValidation{
 	},
 }
 
-// IsValidTensorFlowS3Directory checks that the path contains a valid S3 directory for Tensorflow models
+// IsValidTensorFlowS3Directory checks that the path contains a valid S3 directory for TensorFlow models
 // Must contain the following structure:
 // - 1523423423/ (version prefix, usually a timestamp)
 // 		- saved_model.pb
@@ -251,7 +251,7 @@ func (api *API) Validate(projectFileMap map[string][]byte) error {
 		} else {
 			path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
 			if path == "" || err != nil {
-				return errors.Wrap(ErrorInvalidTensorflowDir(api.Model), Identify(api), ModelKey)
+				return errors.Wrap(ErrorInvalidTensorFlowDir(api.Model), Identify(api), ModelKey)
 			}
 			api.Model = path
 		}

@@ -47,7 +47,7 @@ const (
 	ErrUnableToInferModelFormat
 	ErrExternalNotFound
 	ErrONNXDoesntSupportZip
-	ErrInvalidTensorflowDir
+	ErrInvalidTensorFlowDir
 	ErrIncompatibleWithModelFormat
 )
 
@@ -303,11 +303,11 @@ func ErrorUnableToInferModelFormat(path string) error {
 	}
 }
 
-func ErrorInvalidTensorflowDir(path string) error {
+func ErrorInvalidTensorFlowDir(path string) error {
 	message := "invalid TF export directory.\n"
 	message += tfExpectedStructMessage
 	return Error{
-		Kind:    ErrInvalidTensorflowDir,
+		Kind:    ErrInvalidTensorFlowDir,
 		message: message,
 	}
 }
