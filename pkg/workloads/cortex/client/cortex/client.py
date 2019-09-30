@@ -81,13 +81,13 @@ class Client(object):
         api_working_dir = os.path.join(working_dir, api_name)
         pathlib.Path(api_working_dir).mkdir(parents=True, exist_ok=True)
 
-        api_config = {
-            "kind": "api",
-            "model": model_path,
-            "name": api_name,
-            "model_format": model_format,
-            "tf_serving_key": tf_serving_key,
-        }
+        api_config = {"kind": "api", "model": model_path, "name": api_name}
+
+        if tf_serving_key is not None:
+            api_config["model_format"] = tf_serving_key
+
+        if model_format is not None:
+            api_config["model_format"] = model_format
 
         if pre_inference is not None or post_inference is not None:
             reqs = subprocess.check_output([sys.executable, "-m", "pip", "freeze"])
