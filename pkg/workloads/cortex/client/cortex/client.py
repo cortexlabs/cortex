@@ -34,9 +34,9 @@ class Client(object):
         """Initialize a Client to a Cortex Operator
 
         Args:
-            aws_access_key_id (string): AWS access key associated with the account that created the Cortex Cluster
-            aws_secret_access_key (string): AWS secrey key associated with the provided AWS access key
-            operator_url (string): Operator URL of your cortex cluster
+            aws_access_key_id (string): AWS access key associated with the account that the cluster is running on
+            aws_secret_access_key (string): AWS secret key associated with the AWS access key
+            operator_url (string): operator URL of your cluster
         """
 
         self.operator_url = operator_url
