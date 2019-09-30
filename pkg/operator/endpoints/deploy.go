@@ -117,20 +117,29 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	apisBaseURL, err := workloads.APIsBaseURL()
+	if err != nil {
+		RespondError(w, err)
+		return
+	}
+
+	deployResponse := schema.DeployResponse{Context: ctx, APIsBaseURL: apisBaseURL}
 	switch {
 	case isUpdating && ignoreCache:
-		Respond(w, schema.DeployResponse{Message: ResCachedDeletedDeploymentStarted})
+		deployResponse.Message = ResCachedDeletedDeploymentStarted
 	case isUpdating && !ignoreCache:
-		Respond(w, schema.DeployResponse{Message: ResDeploymentUpdated})
+		deployResponse.Message = ResDeploymentUpdated
 	case !isUpdating && ignoreCache:
-		Respond(w, schema.DeployResponse{Message: ResCachedDeletedDeploymentStarted})
+		deployResponse.Message = ResCachedDeletedDeploymentStarted
 	case !isUpdating && !ignoreCache && existingCtx == nil:
-		Respond(w, schema.DeployResponse{Message: ResDeploymentStarted})
+		deployResponse.Message = ResDeploymentStarted
 	case !isUpdating && !ignoreCache && existingCtx != nil && !fullCtxMatch:
-		Respond(w, schema.DeployResponse{Message: ResDeploymentUpdated})
+		deployResponse.Message = ResDeploymentUpdated
 	case !isUpdating && !ignoreCache && existingCtx != nil && fullCtxMatch:
-		Respond(w, schema.DeployResponse{Message: ResDeploymentUpToDate})
+		deployResponse.Message = ResDeploymentUpToDate
 	default:
-		Respond(w, schema.DeployResponse{Message: ResDeploymentUpdated})
+		deployResponse.Message = ResDeploymentUpdated
 	}
+
+	Respond(w, deployResponse)
 }
