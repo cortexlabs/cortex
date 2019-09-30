@@ -1,11 +1,11 @@
-# Get Started
+# Install
 
 ## Prerequisites
 
 1. [AWS credentials](aws.md)
 2. [Docker](https://docs.docker.com/install)
 
-## Hosting Cortex on AWS
+## Installation
 
 See [cluster configuration](config.md) to customize your installation.
 

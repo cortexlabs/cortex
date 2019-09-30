@@ -1,4 +1,4 @@
-# Request Handlers
+# Request handlers
 
 Request handlers are python files that can contain a `pre_inference` function and a `post_inference` function. Both functions are optional.
 
@@ -70,7 +70,7 @@ def post_inference(prediction, metadata):
 
 ```
 
-## Pre-installed Packages
+## Pre-installed packages
 
 The following packages have been pre-installed and can be used in your implementations:
 

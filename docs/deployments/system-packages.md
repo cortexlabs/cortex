@@ -1,4 +1,4 @@
-# System Packages
+# System packages
 
 Cortex uses Docker images to run workloads. These Docker images can be replaced with custom images based on Cortex images and augmented with your system packages and libraries. Your custom images need to be pushed to a container registry (e.g. Docker Hub, ECR, GCR) that can be accessed by your cluster.
 
@@ -6,7 +6,7 @@ See `Image paths` section in [cortex config](../cluster/config.md) for all image
 
 The example below demonstrates how to create a custom Docker image and configure Cortex to use it.
 
-## Create Custom Image
+## Create a custom image
 
 Create a Dockerfile to build your custom image:
 
@@ -26,7 +26,7 @@ RUN apt-get update \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 ```
 
-## Build and Push to a Container Registry
+## Build and push to a container registry
 
 Create a repository to store your image:
 
@@ -60,7 +60,7 @@ export CORTEX_IMAGE_ONNX_SERVE="<repository_url>:latest"
 ./cortex.sh update
 ```
 
-## Use System Package in Workloads
+## Use system packages in workloads
 
 Cortex will use your image to launch ONNX serving workloads. You will have access to any customizations you made:
 

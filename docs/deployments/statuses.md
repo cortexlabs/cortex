@@ -1,4 +1,4 @@
-# Resource Statuses
+# Resource statuses
 
 ## Statuses
 

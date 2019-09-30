@@ -20,7 +20,7 @@ Define a `deployment` and an `api` resource in `cortex.yaml`. A `deployment` spe
 
 <!-- CORTEX_VERSION_MINOR x5 -->
 You can run the code that generated the exported models used in this folder example here:
-- [Tensorflow](https://colab.research.google.com/github/cortexlabs/cortex/blob/0.8/examples/iris-classifier/models/tensorflow.ipynb)
+- [TensorFlow](https://colab.research.google.com/github/cortexlabs/cortex/blob/0.8/examples/iris-classifier/models/tensorflow.ipynb)
 - [Pytorch](https://colab.research.google.com/github/cortexlabs/cortex/blob/0.8/examples/iris-classifier/models/pytorch.ipynb)
 - [Keras](https://colab.research.google.com/github/cortexlabs/cortex/blob/0.8/examples/iris-classifier/models/keras.ipynb)
 - [XGBoost](https://colab.research.google.com/github/cortexlabs/cortex/blob/0.8/examples/iris-classifier/models/xgboost.ipynb)
