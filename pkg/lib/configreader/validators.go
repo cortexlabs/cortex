@@ -21,14 +21,18 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
 var portRe *regexp.Regexp
+var emailRegex *regexp.Regexp
 
 func init() {
 	portRe = regexp.MustCompile(`:[0-9]+$`)
+	emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+
 }
 
 func GetFilePathValidator(baseDir string) func(string) (string, error) {
@@ -56,6 +60,20 @@ func GetS3PathValidator() func(string) (string, error) {
 		if !aws.IsValidS3Path(val) {
 			return "", aws.ErrorInvalidS3Path(val)
 		}
+		return val, nil
+	}
+}
+
+func EmailValidator() func(string) (string, error) {
+	return func(val string) (string, error) {
+		if len(val) > 320 {
+			return "", errors.New("email exceeds max-length")
+		}
+
+		if !emailRegex.MatchString(val) {
+			return "", errors.New("invalid email address")
+		}
+
 		return val, nil
 	}
 }

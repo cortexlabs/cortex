@@ -7,6 +7,7 @@ require (
 	github.com/cortexlabs/yaml v0.0.0-20190626164117-202ab3a3d475
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.7.0
+	github.com/google/uuid v1.0.0
 	github.com/gorilla/mux v1.7.3
 	github.com/gorilla/websocket v1.4.1
 	github.com/mattn/go-colorable v0.1.2 // indirect
