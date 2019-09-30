@@ -8,6 +8,6 @@ Checklist:
 - [ ] Update documentation (add any new files to `summary.md`)
 - [ ] Merge to master
 - [ ] Cherry-pick into release branches if it's a bugfix
-- [ ] Check [gitbook](https://docs.cortex.dev/v/master/) that docs look good and links function properly
+- [ ] Check [gitbook](https://www.cortex.dev/v/master/) that docs look good and links function properly
 - [ ] Alert team if dev environment changed
 - [ ] Delete the branch once it's merged
