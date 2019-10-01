@@ -5,7 +5,7 @@ Cortex is an open source machine learning deployment platform that makes it simp
 <br>
 
 <!-- CORTEX_VERSION_MINOR x2 (e.g. www.cortex.dev/v/0.8/...) -->
-[install](https://www.cortex.dev/v/0.8/install) • [docs](https://www.cortex.dev/v/0.8) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
+[install](https://www.cortex.dev/v/0.8/install) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
 <br>
 
