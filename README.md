@@ -10,7 +10,7 @@ Cortex is an open source machine learning deployment platform that makes it simp
 <br>
 
 <!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
-![Cortex demo](https://cortex-public.s3-us-west-2.amazonaws.com/demo/gif/v0.8.gif)
+![Demo](https://cortex-public.s3-us-west-2.amazonaws.com/demo/gif/v0.8.gif)
 
 <br>
 
@@ -34,7 +34,7 @@ Cortex is an open source machine learning deployment platform that makes it simp
 
 ## How it works
 
-**Define your deployment using declarative configuration**
+### Define your deployment using declarative configuration
 
 ```yaml
 # cortex.yaml
@@ -47,7 +47,7 @@ Cortex is an open source machine learning deployment platform that makes it simp
     gpu: 1
 ```
 
-**Customize request handling**
+### Customize request handling
 
 ```python
 # handler.py
@@ -64,7 +64,7 @@ def post_inference(prediction, metadata):
   # Python code
 ```
 
-**Deploy to AWS using the CLI**
+### Deploy to AWS using the CLI
 
 ```bash
 $ cortex deploy
@@ -73,7 +73,7 @@ Deploying ...
 http://***.amazonaws.com/my-api  # Your API is ready!
 ```
 
-**Serve real-time predictions via autoscaling JSON APIs running on AWS**
+### Serve real-time predictions via autoscaling JSON APIs running on AWS
 
 ```bash
 $ curl http://***.amazonaws.com/my-api -d '{"a": 1, "b": 2, "c": 3}'

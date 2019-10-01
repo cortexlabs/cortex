@@ -3,7 +3,9 @@
 * [Deploy machine learning models in production](../README.md)
 * [GitHub](https://github.com/cortexlabs/cortex/tree/master)  <!-- CORTEX_VERSION_MINOR -->
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
-* [Install](cluster/install.md)
+* [We're hiring](https://angel.co/cortex-labs-inc/jobs)
+* [Email us](mailto:hello@cortex.dev)
+* [Chat with us](https://gitter.im/cortexlabs/cortex)
 
 ## Deployments
 
