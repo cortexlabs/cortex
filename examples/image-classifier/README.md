@@ -26,7 +26,7 @@ You can run the code that generated the exported models used in this example fol
 
 ## Add request handling
 
-The Alexnet model requires a 2 dimensional array of 3 valued tuples representing the RGB values for each pixel in the image, but the API should accept a simple input format such as a URL to an image. Instead of returning the model's output consinsting of an array of probabilities, the API should return the class name with the highest probability. Define a `pre_inference` function to download the image from the specified URL and convert it to the expected model input and a `post_inference` function to return the name of the class with the highest probability:
+The Alexnet model requires a 2 dimensional array of 3 valued tuples representing the RGB values for each pixel in the image, but the API should accept a simple input format such as a URL to an image. Instead of returning the model's output consisting of an array of probabilities, the API should return the class name with the highest probability. Define a `pre_inference` function to download the image from the specified URL and convert it to the expected model input and a `post_inference` function to return the name of the class with the highest probability:
 
 ```python
 import requests
