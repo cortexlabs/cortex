@@ -9,12 +9,7 @@ Cortex is an open source machine learning deployment platform that makes it simp
 
 <br>
 
-<<<<<<< HEAD
-![Cortex demo](https://cortex-public.s3-us-west-2.amazonaws.com/demo/gif/v0.8.gif)
-=======
-<!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
 ![Demo](https://cortex-public.s3-us-west-2.amazonaws.com/demo/gif/v0.8.gif)
->>>>>>> 6a2fad0... Update docs
 
 <br>
 
