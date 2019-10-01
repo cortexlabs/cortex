@@ -1,8 +1,9 @@
 # Summary
 
 * [Deploy machine learning models in production](../README.md)
-* [Install](cluster/install.md)
+* [GitHub](https://github.com/cortexlabs/cortex/tree/0.8)  <!-- CORTEX_VERSION_MINOR -->
 * [Examples](https://github.com/cortexlabs/cortex/tree/0.8/examples)  <!-- CORTEX_VERSION_MINOR -->
+* [Install](cluster/install.md)
 
 ## Deployments
 
