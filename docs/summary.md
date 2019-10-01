@@ -6,6 +6,7 @@
 * [We're hiring](https://angel.co/cortex-labs-inc/jobs)
 * [Email us](mailto:hello@cortex.dev)
 * [Chat with us](https://gitter.im/cortexlabs/cortex)
+* [Install](cluster/install.md)
 
 ## Deployments
 
