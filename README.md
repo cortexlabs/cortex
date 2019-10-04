@@ -1,6 +1,8 @@
 # Deploy machine learning models in production
 
-Cortex is an open source machine learning deployment platform that makes it simple to deploy your machine learning models as web APIs on AWS. It combines TensorFlow Serving, ONNX Runtime, and Flask into a single tool that takes models from S3 and deploys them as web APIs. It also uses Docker and Kubernetes behind the scenes to autoscale, run rolling updates, and support CPU and GPU inference. The project is maintained by a venture-backed team of infrastructure engineers with backgrounds from Google, Illumio, and Berkeley.
+Cortex is an open source platform that makes it simple to deploy your machine learning models as web APIs on AWS. 
+
+Cortex combines TensorFlow Serving, ONNX Runtime, and Flask into a single tool that takes models from S3 and deploys them as web APIs. It also uses Docker and Kubernetes behind the scenes to autoscale, run rolling updates, and support CPU and GPU inference. The project is maintained by a venture-backed team of infrastructure engineers with backgrounds from Google, Illumio, and Berkeley.
 
 <br>
 
