@@ -99,9 +99,6 @@ func updateContextConfigMap() error {
 }
 
 func reloadCurrentContexts() error {
-	currentCtxs.Lock()
-	defer currentCtxs.Unlock()
-
 	configMap, err := config.Kubernetes.GetConfigMap(configMapName)
 	if err != nil {
 		return err
@@ -113,7 +110,7 @@ func reloadCurrentContexts() error {
 	for appName, ctxID := range configMap.Data {
 		ctx, err := ocontext.DownloadContext(ctxID, appName)
 		if err != nil {
-			fmt.Printf("Deleting stale workflow: %s", appName)
+			fmt.Printf("Deleting stale workflow: %s\n", appName)
 			DeleteApp(appName, true)
 		} else if ctx != nil {
 			currentCtxs.m[appName] = ctx
