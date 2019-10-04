@@ -171,7 +171,9 @@ func updateFinishedAPISavedStatuses(allSavedStatuses []*resource.APISavedStatus)
 
 	err := uploadAPISavedStatuses(staleSavedStatuses)
 	if err != nil {
-		return err
+		if !aws.IsGenericNotFoundErr(err) {
+			return err
+		}
 	}
 
 	uncacheFinishedAPISavedStatuses(allSavedStatuses)

@@ -78,12 +78,20 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
+func IsNotFoundErr(err error) bool {
+	return CheckErrCode(err, "NotFound")
+}
+
 func IsNoSuchKeyErr(err error) bool {
 	return CheckErrCode(err, "NoSuchKey")
 }
 
-func IsNotFoundErr(err error) bool {
-	return CheckErrCode(err, "NotFound")
+func IsNoSuchBucketErr(err error) bool {
+	return CheckErrCode(err, "NoSuchBucket")
+}
+
+func IsGenericNotFoundErr(err error) bool {
+	return IsNotFoundErr(err) || IsNoSuchKeyErr(err) || IsNoSuchBucketErr(err)
 }
 
 func CheckErrCode(err error, errorCode string) bool {
