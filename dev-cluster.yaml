@@ -6,45 +6,45 @@ metadata:
   region: us-west-2
   version: "1.14"
 
-# nodeGroups:
-#   # spot workers NG - multi AZ, scale from 3
-#   - name: ng-4
-#     ami: auto
-#     instanceType: mixed
-#     minSize: 1
-#     maxSize: 5
-#     volumeSize: 100
-#     volumeType: gp2
-#     volumeEncrypted: true
-#     iam:
-#       withAddonPolicies:a
-#         autoScaler: true
-#     instancesDistribution:
-#       instanceTypes: [t3.medium, t3.large]
-#       onDemandPercentageAboveBaseCapacity: 0
-#       spotInstancePools: 2
-#     taints:
-#       workload: "true:NoSchedule"
-#     tags:
-#       k8s.io/cluster-autoscaler/enabled: 'true'
-#       k8s.io/cluster-autoscaler/node-template/taint/dedicated: workload=true
-#       k8s.io/cluster-autoscaler/node-template/label/workload: 'true'
-#       k8s.io/cluster-autoscaler/node-template/label/lifecycle: 'Ec2Spot'
-#     labels:
-#       lifecycle: Ec2Spot
-#     kubeletExtraConfig:
-#       kubeReserved:
-#         cpu: 150m
-#         memory: 300Mi
-#         ephemeral-storage: 1Gi
-#       kubeReservedCgroup: /kube-reserved
-#       systemReserved:
-#         cpu: 150m
-#         memory: 300Mi
-#         ephemeral-storage: 1Gi
-#       evictionHard:
-#         memory.available:  200Mi
-#         nodefs.available: 5%
+nodeGroups:
+  # spot workers NG - multi AZ, scale from 3
+  - name: ng-3
+    ami: auto
+    instanceType: mixed
+    minSize: 0
+    maxSize: 5
+    volumeSize: 100
+    volumeType: gp2
+    volumeEncrypted: true
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+    instancesDistribution:
+      instanceTypes: [t3.medium, t3.large]
+      onDemandPercentageAboveBaseCapacity: 0
+      spotInstancePools: 2
+    taints:
+      workload: "true:NoSchedule"
+    tags:
+      k8s.io/cluster-autoscaler/enabled: 'true'
+      k8s.io/cluster-autoscaler/node-template/taint/dedicated: workload=true
+      k8s.io/cluster-autoscaler/node-template/label/workload: 'true'
+      k8s.io/cluster-autoscaler/node-template/label/lifecycle: 'Ec2Spot'
+    labels:
+      lifecycle: Ec2Spot
+    kubeletExtraConfig:
+      kubeReserved:
+        cpu: 150m
+        memory: 300Mi
+        ephemeral-storage: 1Gi
+      kubeReservedCgroup: /kube-reserved
+      systemReserved:
+        cpu: 150m
+        memory: 300Mi
+        ephemeral-storage: 1Gi
+      evictionHard:
+        memory.available:  200Mi
+        nodefs.available: 5%
 
 
 # nodeGroups:
