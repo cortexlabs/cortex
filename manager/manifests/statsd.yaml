@@ -93,8 +93,17 @@ spec:
           volumeMounts:
             - name: cwagentconfig
               mountPath: /etc/cwagentconfig
+      nodeSelector:
+        lifecycle: "Ec2Spot"
       volumes:
         - name: cwagentconfig
           configMap:
             name: cwagentstatsdconfig
       terminationGracePeriodSeconds: 60
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      - key: workload
+        operator: Exists
+        effect: NoSchedule

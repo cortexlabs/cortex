@@ -40,6 +40,9 @@ spec:
       - key: nvidia.com/gpu
         operator: Exists
         effect: NoSchedule
+      - key: workload
+        operator: Exists
+        effect: NoSchedule
       containers:
       - image: $CORTEX_IMAGE_NVIDIA
         name: nvidia-device-plugin-ctr
