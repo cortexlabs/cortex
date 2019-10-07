@@ -20,8 +20,6 @@ metadata:
   region: $CORTEX_REGION
   version: "1.14"
 
-availabilityZones: $CORTEX_ZONES
-
 nodeGroups:
   - name: ng-1
     instanceType: $CORTEX_NODE_TYPE
