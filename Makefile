@@ -35,10 +35,6 @@ cortex-up:
 	@./cortex.sh -c=./dev/config/cortex.sh install
 	@$(MAKE) kubectl
 
-cortex-up-dev:
-	@$(MAKE) cortex-up
-	@$(MAKE) operator-stop
-
 cortex-down:
 	@$(MAKE) manager-local
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
