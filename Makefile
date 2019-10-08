@@ -26,7 +26,7 @@ devstart:
 
 kubectl:
 	@source ./dev/config/cortex.sh && eksctl utils write-kubeconfig --name="$$CORTEX_CLUSTER" | grep -v "saved kubeconfig as" | grep -v "using region" || true
-	@source ./dev/config/cortex.sh && kubectl config set-context --current --namespace="$$CORTEX_CLUSTER" >/dev/null
+	@source ./dev/config/cortex.sh && kubectl config set-context --current --namespace="$$CORTEX_NAMESPACE" >/dev/null
 
 cortex-up:
 	@$(MAKE) registry-all
@@ -78,7 +78,7 @@ operator-update:
 
 operator-stop:
 	@$(MAKE) kubectl
-	@source ./dev/config/cortex.sh && kubectl delete --namespace="$$CORTEX_CLUSTER" --ignore-not-found=true deployment operator
+	@source ./dev/config/cortex.sh && kubectl delete --namespace="$$CORTEX_NAMESPACE" --ignore-not-found=true deployment operator
 
 # Docker images
 
