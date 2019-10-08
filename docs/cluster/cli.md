@@ -106,6 +106,7 @@ Usage:
 Flags:
   -e, --env string   environment (default "default")
   -h, --help         help for configure
+  -p, --print        print the configuration
 ```
 
 ## support
