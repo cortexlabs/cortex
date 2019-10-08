@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"net/url"
 
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -31,11 +32,12 @@ type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
-	ErrCliAlreadyInAppDir
+	ErrCLIAlreadyInAppDir
 	ErrAPINotReady
 	ErrAPINotFound
-	ErrFailedToConnect
-	ErrCliNotInAppDir
+	ErrFailedToConnectURL
+	ErrFailedToConnectOperator
+	ErrCLINotInAppDir
 )
 
 var errorKinds = []string{
@@ -43,11 +45,12 @@ var errorKinds = []string{
 	"err_cli_already_in_app_dir",
 	"err_api_not_ready",
 	"err_api_not_found",
-	"err_failed_to_connect",
+	"err_failed_to_connect_url",
+	"err_failed_to_connect_operator",
 	"err_cli_not_in_app_dir",
 }
 
-var _ = [1]int{}[int(ErrCliNotInAppDir)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrCLINotInAppDir)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -94,7 +97,7 @@ func (e Error) Error() string {
 
 func ErrorCliAlreadyInAppDir(dirPath string) error {
 	return Error{
-		Kind:    ErrCliAlreadyInAppDir,
+		Kind:    ErrCLIAlreadyInAppDir,
 		message: fmt.Sprintf("your current working directory is already in a cortex directory (%s)", dirPath),
 	}
 }
@@ -113,16 +116,24 @@ func ErrorAPINotFound(apiName string) error {
 	}
 }
 
-func ErrorFailedToConnect(urlStr string) error {
+func ErrorFailedConnectURL(url url.URL) error {
+	url.RawQuery = ""
 	return Error{
-		Kind:    ErrFailedToConnect,
+		Kind:    ErrFailedToConnectURL,
+		message: "failed to connect to " + url.String(),
+	}
+}
+
+func ErrorFailedToConnectOperator(urlStr string) error {
+	return Error{
+		Kind:    ErrFailedToConnectOperator,
 		message: fmt.Sprintf("failed to connect to the operator (%s), run `cortex configure` if you need to update the operator URL", urlStr),
 	}
 }
 
 func ErrorCliNotInAppDir() error {
 	return Error{
-		Kind:    ErrCliNotInAppDir,
+		Kind:    ErrCLINotInAppDir,
 		message: "your current working directory is not in or under a cortex directory (identified via a top-level cortex.yaml file)",
 	}
 }
