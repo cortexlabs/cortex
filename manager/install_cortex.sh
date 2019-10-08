@@ -199,10 +199,12 @@ envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
 echo "✓ Configured metrics"
 
-if [[ "$CORTEX_NODE_TYPE" == p* ]] || [[ "$CORTEX_NODE_TYPE" == g* ]]; then
-  envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
-  echo "✓ Configured GPU support"
-fi
+envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
+echo "✓ Configured GPU support"
+
+# if [[ "$CORTEX_NODE_TYPE" == p* ]] || [[ "$CORTEX_NODE_TYPE" == g* ]]; then
+
+# fi
 
 envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
 echo "✓ Started operator"

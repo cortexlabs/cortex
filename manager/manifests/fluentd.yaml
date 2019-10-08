@@ -157,6 +157,13 @@ spec:
           readOnly: true
         - name: config
           mountPath: /fluentd/etc
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      - key: workload
+        operator: Exists
+        effect: NoSchedule
       terminationGracePeriodSeconds: 30
       volumes:
       - name: varlog
