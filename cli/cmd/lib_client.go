@@ -271,9 +271,8 @@ func (client *cortexClient) makeRequest(request *http.Request) ([]byte, error) {
 		cliConfig := getValidCLIConfig()
 		if strings.HasPrefix(request.URL.String(), cliConfig.CortexURL) {
 			return nil, ErrorFailedToConnectOperator(cliConfig.CortexURL)
-		} else {
-			return nil, ErrorFailedConnectURL(*request.URL)
 		}
+		return nil, ErrorFailedConnectURL(*request.URL)
 	}
 	defer response.Body.Close()
 
