@@ -17,6 +17,7 @@ limitations under the License.
 package workloads
 
 import (
+	"fmt"
 	"path/filepath"
 
 	kresource "k8s.io/apimachinery/pkg/api/resource"
@@ -26,8 +27,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
+
+var cortexCPUReserve = kresource.MustParse("800m")   // FluentD (200), Nvidia (50), StatsD (100), Kube Procy, (100) Node capacity - Node availability 300 CPU
+var cortexMemReserve = kresource.MustParse("1500Mi") // FluentD (200), Nvidia (50), StatsD (100), KubeReserved (800), AWS node memory - Node capacity (200)
 
 func Init() error {
 	err := reloadCurrentContexts()
@@ -296,48 +301,25 @@ func GetDeploymentStatus(appName string) (resource.DeploymentStatus, error) {
 }
 
 func ValidateDeploy(ctx *context.Context) error {
-	nodes, err := config.Kubernetes.ListNodes(nil)
-	if err != nil {
-		return err
-	}
+	maxCPU := config.Cortex.NodeCPU.Copy()
+	maxCPU.Sub(cortexCPUReserve)
+	maxMem := config.Cortex.NodeMem.Copy()
+	maxMem.Sub(cortexMemReserve)
+	maxGPU := config.Cortex.NodeGPU.Copy()
 
-	var maxCPU, maxMem kresource.Quantity
-	var maxGPU int64
-	for _, node := range nodes {
-		curCPU := node.Status.Capacity.Cpu()
-		curMem := node.Status.Capacity.Memory()
-
-		var curGPU int64
-		if GPUQuantity, ok := node.Status.Allocatable["nvidia.com/gpu"]; ok {
-			curGPU, _ = GPUQuantity.AsInt64()
+	for _, api := range ctx.APIs {
+		if maxCPU.Cmp(api.Compute.CPU.Quantity) < 0 {
+			return errors.Wrap(ErrorNoAvailableNodeComputeLimit("CPU", api.Compute.CPU.String(), maxCPU.String()), userconfig.Identify(api))
 		}
-
-		if curCPU != nil && maxCPU.Cmp(*curCPU) < 0 {
-			maxCPU = *curCPU
+		if api.Compute.Mem != nil {
+			if maxMem.Cmp(api.Compute.Mem.Quantity) < 0 {
+				return errors.Wrap(ErrorNoAvailableNodeComputeLimit("Memory", api.Compute.Mem.String(), maxMem.String()), userconfig.Identify(api))
+			}
 		}
-
-		if curMem != nil && maxMem.Cmp(*curMem) < 0 {
-			maxMem = *curMem
-		}
-
-		if curGPU > maxGPU {
-			maxGPU = curGPU
+		gpu := api.Compute.GPU
+		if gpu > maxGPU.Value() {
+			return errors.Wrap(ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", gpu), fmt.Sprintf("%d", maxGPU.Value())), userconfig.Identify(api))
 		}
 	}
-
-	// for _, api := range ctx.APIs {
-	// 	if maxCPU.Cmp(api.Compute.CPU.Quantity) < 0 {
-	// 		return errors.Wrap(ErrorNoAvailableNodeComputeLimit("CPU", api.Compute.CPU.String(), maxCPU.String()), userconfig.Identify(api))
-	// 	}
-	// 	if api.Compute.Mem != nil {
-	// 		if maxMem.Cmp(api.Compute.Mem.Quantity) < 0 {
-	// 			return errors.Wrap(ErrorNoAvailableNodeComputeLimit("Memory", api.Compute.Mem.String(), maxMem.String()), userconfig.Identify(api))
-	// 		}
-	// 	}
-	// 	gpu := api.Compute.GPU
-	// 	if gpu > maxGPU {
-	// 		return errors.Wrap(ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", gpu), fmt.Sprintf("%d", maxGPU)), userconfig.Identify(api))
-	// 	}
-	// }
 	return nil
 }

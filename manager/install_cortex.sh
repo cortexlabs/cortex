@@ -63,6 +63,10 @@ function setup_configmap() {
     --from-literal='IMAGE_DOWNLOADER'=$CORTEX_IMAGE_DOWNLOADER \
     --from-literal='IMAGE_TF_SERVE_GPU'=$CORTEX_IMAGE_TF_SERVE_GPU \
     --from-literal='ENABLE_TELEMETRY'=$CORTEX_ENABLE_TELEMETRY \
+    --from-literal='NODE_TYPE'=$CORTEX_NODE_TYPE \
+    --from-literal='NODE_MEM'=$CORTEX_NODE_MEM \
+    --from-literal='NODE_CPU'=$CORTEX_NODE_CPU \
+    --from-literal='NODE_GPU'=$CORTEX_NODE_GPU \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 
@@ -170,6 +174,14 @@ function validate_cortex() {
   echo -e "\n✓ Load balancers are ready"
 }
 
+export CORTEX_NODE_CPU=$(python instance_metadata.py --region=$CORTEX_REGION --instance-type=$CORTEX_NODE_TYPE --cache-dir="./metadata.json" --feature="cpu")
+export CORTEX_NODE_MEM=$(python instance_metadata.py --region=$CORTEX_REGION --instance-type=$CORTEX_NODE_TYPE --cache-dir="./metadata.json" --feature="mem")
+export CORTEX_NODE_GPU=$(python instance_metadata.py --region=$CORTEX_REGION --instance-type=$CORTEX_NODE_TYPE --cache-dir="./metadata.json" --feature="gpu")
+
+echo $CORTEX_NODE_CPU
+echo $CORTEX_NODE_MEM
+echo $CORTEX_NODE_GPU
+
 eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" || true
 
 # https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
@@ -199,12 +211,10 @@ envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
 echo "✓ Configured metrics"
 
-envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
-echo "✓ Configured GPU support"
-
-# if [[ "$CORTEX_NODE_TYPE" == p* ]] || [[ "$CORTEX_NODE_TYPE" == g* ]]; then
-
-# fi
+if [[ "$CORTEX_NODE_TYPE" == p* ]] || [[ "$CORTEX_NODE_TYPE" == g* ]]; then
+  envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
+  echo "✓ Configured GPU support"
+fi
 
 envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
 echo "✓ Started operator"

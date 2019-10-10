@@ -149,6 +149,13 @@ spec:
             secretKeyRef:
               name: aws-credentials
               key: AWS_SECRET_ACCESS_KEY
+        resources:
+          limits:
+            cpu:  200m
+            memory: 200Mi
+          requests:
+            cpu: 200m
+            memory: 200Mi
         volumeMounts:
         - name: varlog
           mountPath: /var/log

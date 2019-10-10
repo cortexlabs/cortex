@@ -213,6 +213,10 @@ fi
 
 function install_eks() {
   echo
+  export CORTEX_DESIRED_COUNT= $CORTEX_NODES_MIN
+  if [ $CORTEX_DESIRED_COUNT -lt 1 ]; then
+    export $CORTEX_DESIRED_COUNT=1
+  fi
   docker run -it --entrypoint /root/install_eks.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
@@ -221,6 +225,7 @@ function install_eks() {
     -e CORTEX_NODE_TYPE=$CORTEX_NODE_TYPE \
     -e CORTEX_NODES_MIN=$CORTEX_NODES_MIN \
     -e CORTEX_NODES_MAX=$CORTEX_NODES_MAX \
+    -e CORTEX_DESIRED_COUNT=$CORTEX_DESIRED_COUNT \
     $CORTEX_IMAGE_MANAGER
 }
 

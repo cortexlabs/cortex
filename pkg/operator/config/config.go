@@ -19,6 +19,8 @@ package config
 import (
 	"path/filepath"
 
+	kresource "k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -37,12 +39,17 @@ var (
 )
 
 type CortexConfig struct {
-	ID                string `json:"id"`
-	APIVersion        string `json:"api_version"`
-	Bucket            string `json:"bucket"`
-	LogGroup          string `json:"log_group"`
-	Region            string `json:"region"`
-	Namespace         string `json:"namespace"`
+	ID         string             `json:"id"`
+	APIVersion string             `json:"api_version"`
+	Bucket     string             `json:"bucket"`
+	LogGroup   string             `json:"log_group"`
+	Region     string             `json:"region"`
+	Namespace  string             `json:"namespace"`
+	NodeType   string             `json:"node_type"`
+	NodeCPU    kresource.Quantity `json:"node_cpu"`
+	NodeMem    kresource.Quantity `json:"node_mem"`
+	NodeGPU    kresource.Quantity `json:"node_gpu"`
+
 	OperatorImage     string `json:"operator_image"`
 	TFServeImage      string `json:"tf_serve_image"`
 	TFAPIImage        string `json:"tf_api_image"`
@@ -58,11 +65,16 @@ type CortexConfig struct {
 
 func Init() error {
 	Cortex = &CortexConfig{
-		APIVersion:        consts.CortexVersion,
-		Bucket:            getStr("BUCKET"),
-		LogGroup:          getStr("LOG_GROUP"),
-		Region:            getStr("REGION"),
-		Namespace:         getStr("NAMESPACE"),
+		APIVersion: consts.CortexVersion,
+		Bucket:     getStr("BUCKET"),
+		LogGroup:   getStr("LOG_GROUP"),
+		Region:     getStr("REGION"),
+		Namespace:  getStr("NAMESPACE"),
+		NodeType:   getStr("NODE_TYPE"),
+		NodeCPU:    getQuantity("NODE_CPU"),
+		NodeMem:    getQuantity("NODE_MEM"),
+		NodeGPU:    getQuantity("NODE_GPU"),
+
 		OperatorImage:     getStr("IMAGE_OPERATOR"),
 		TFServeImage:      getStr("IMAGE_TF_SERVE"),
 		TFAPIImage:        getStr("IMAGE_TF_API"),
@@ -75,6 +87,7 @@ func Init() error {
 		EnableTelemetry:   getBool("ENABLE_TELEMETRY", false),
 		OperatorInCluster: getBool("OPERATOR_IN_CLUSTER", true),
 	}
+
 	Cortex.ID = hash.String(Cortex.Bucket + Cortex.Region + Cortex.LogGroup)
 
 	var err error
@@ -112,6 +125,14 @@ func getStr(name string) string {
 	v := &configreader.StringValidation{Required: true}
 	envVarName, filePath := getPaths(name)
 	return configreader.MustStringFromEnvOrFile(envVarName, filePath, v)
+}
+
+func getQuantity(name string) kresource.Quantity {
+	v := &configreader.StringValidation{Required: true}
+	envVarName, filePath := getPaths(name)
+	value := configreader.MustStringFromEnvOrFile(envVarName, filePath, v)
+
+	return kresource.MustParse(value)
 }
 
 func getBool(name string, defaultVal bool) bool {

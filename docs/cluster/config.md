@@ -27,13 +27,13 @@ export CORTEX_REGION="us-west-2"
 # The name of the EKS cluster Cortex will use
 export CORTEX_CLUSTER="cortex"
 
-# The AWS node type Cortex will use
+# The AWS node type Cortex will use for worker nodes
 export CORTEX_NODE_TYPE="m5.large"
 
-# Minimum number of nodes in the cluster
+# Minimum number of worker nodes in the cluster
 export CORTEX_NODES_MIN=2
 
-# Maximum number of nodes in the cluster
+# Maximum number of worker nodes in the cluster
 export CORTEX_NODES_MAX=5
 
 # The name of the Kubernetes namespace Cortex will use

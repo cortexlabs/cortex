@@ -21,15 +21,47 @@ metadata:
   version: "1.14"
 
 nodeGroups:
-  - name: ng-1
-    instanceType: $CORTEX_NODE_TYPE
-    minSize: $CORTEX_NODES_MIN
-    maxSize: $CORTEX_NODES_MAX
-    desiredCapacity: $CORTEX_NODES_MIN
+  - name: ng-cortex-operator
+    instanceType: t3.medium
+    minSize: 2
+    maxSize: 2
+    desiredCapacity: 2
     ami: auto
     iam:
       withAddonPolicies:
         autoScaler: true
+    kubeletExtraConfig:
+      kubeReserved:
+        cpu: 150m
+        memory: 300Mi
+        ephemeral-storage: 1Gi
+      kubeReservedCgroup: /kube-reserved
+      systemReserved:
+        cpu: 150m
+        memory: 300Mi
+        ephemeral-storage: 1Gi
+      evictionHard:
+        memory.available:  200Mi
+        nodefs.available: 5%
+
+  - name: ng-cortex-workers
+    ami: auto
+    instanceType: $CORTEX_NODE_TYPE
+    minSize: $CORTEX_NODES_MIN
+    maxSize: $CORTEX_NODES_MAX
+    desiredCapacity: $CORTEX_DESIRED_COUNT
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+    taints:
+      workload: "true:NoSchedule"
+    tags:
+      k8s.io/cluster-autoscaler/enabled: 'true'
+      k8s.io/cluster-autoscaler/node-template/taint/dedicated: workload=true
+      k8s.io/cluster-autoscaler/node-template/label/workload: 'true'
+      k8s.io/cluster-autoscaler/node-template/label/lifecycle: 'Ec2Spot'
+    labels:
+      lifecycle: Ec2Spot
     kubeletExtraConfig:
       kubeReserved:
         cpu: 150m

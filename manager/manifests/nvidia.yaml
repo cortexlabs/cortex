@@ -53,6 +53,13 @@ spec:
         volumeMounts:
           - name: device-plugin
             mountPath: /var/lib/kubelet/device-plugins
+        resources: # https://github.com/kubernetes/kubernetes/blob/master/cluster/addons/device-plugins/nvidia-gpu/daemonset.yaml#L44
+          requests:
+            cpu: 50m
+            memory: 10Mi
+          limits:
+            cpu: 50m
+            memory: 10Mi
       volumes:
         - name: device-plugin
           hostPath:

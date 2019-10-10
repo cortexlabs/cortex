@@ -35,4 +35,6 @@ RUN ISTIO_VERSION=1.3.0 && \
 
 COPY manager /root
 
+RUN pip install -r /root/requirements.txt
+
 ENTRYPOINT ["/bin/bash"]
