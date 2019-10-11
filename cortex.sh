@@ -181,7 +181,7 @@ fi
 
 function validate_install() {
   if [[ $CORTEX_NODE_TYPE == *nano ]] || [[ $CORTEX_NODE_TYPE == *micro ]] || [[ $CORTEX_NODE_TYPE == *small ]] || [[ $CORTEX_NODE_TYPE == *medium ]]; then
-    echo -e "\nCortex may not work correcly on nano, micro, small, or medium instances - please specify a larger instance type"
+    echo -e "\nCortex may not work correctly on nano, micro, small, or medium instances - please specify a larger instance type"
     exit 1
   fi
 }
