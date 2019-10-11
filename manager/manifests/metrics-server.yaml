@@ -108,14 +108,9 @@ spec:
       - name: metrics-server
         image: $CORTEX_IMAGE_METRICS_SERVER
         imagePullPolicy: Always
-        command:
-          - /metrics-server
-          - --kubelet-insecure-tls
-          - --kubelet-preferred-address-types=InternalIP
         volumeMounts:
         - name: tmp-dir
           mountPath: /tmp
-      hostNetwork: true
 
 ---
 
