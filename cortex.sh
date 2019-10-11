@@ -179,7 +179,16 @@ if [ "$arg2" != "cli" ]; then
   set_aws_credentials
 fi
 
+function validate_install() {
+  if [[ $CORTEX_NODE_TYPE == *nano ]] || [[ $CORTEX_NODE_TYPE == *micro ]] || [[ $CORTEX_NODE_TYPE == *small ]] || [[ $CORTEX_NODE_TYPE == *medium ]]; then
+    echo -e "\nCortex may not work correcly on nano, micro, small, or medium instances - please specify a larger instance type"
+    exit 1
+  fi
+}
+
 if [ "$arg1" = "install" ] && [ "$arg2" = "" ] && [ "$arg3" = "" ]; then
+  validate_install
+
   echo
   echo "￮ cluster name:      $CORTEX_CLUSTER"
   echo "￮ region:            $CORTEX_REGION"
