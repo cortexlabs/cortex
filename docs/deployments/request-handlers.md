@@ -67,7 +67,6 @@ def post_inference(prediction, metadata):
         "class_index": predicted_class_id,
         "probabilities": probabilites,
     }
-
 ```
 
 ## Pre-installed packages
@@ -89,7 +88,7 @@ You can install additional PyPI packages and import your own Python packages. Se
 
 A Cortex logger can be imported and used in request handlers.
 
-```
+```python
 from cortex.lib.log import get_logger
 
 logger = get_logger()

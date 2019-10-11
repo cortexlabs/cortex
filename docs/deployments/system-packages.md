@@ -10,13 +10,13 @@ The example below demonstrates how to create a custom Docker image and configure
 
 Create a Dockerfile to build your custom image:
 
-```
+```bash
 mkdir my-api && cd my-api && touch Dockerfile
 ```
 
 Specify the base image you want to override followed by your customizations. The sample Dockerfile below inherits from Cortex's ONNX Serving image and installs the `tree` system package.
 
-```
+```dockerfile
 # Dockerfile
 
 FROM cortexlabs/onnx-serve
@@ -30,7 +30,7 @@ RUN apt-get update \
 
 Create a repository to store your image:
 
-```
+```bash
 # We create a repository in AWS ECR
 
 export AWS_ACCESS_KEY_ID="***"
@@ -44,7 +44,7 @@ aws ecr create-repository --repository-name=org/my-api --region=us-west-2
 
 Build the image based on your Dockerfile and push to its repository in AWS ECR:
 
-```
+```bash
 docker build . -t org/my-api:latest -t <repository_url>:latest
 
 docker push <repository_url>:latest
@@ -54,7 +54,7 @@ docker push <repository_url>:latest
 
 Set the environment variable of the image to your `my-api` image repository url:
 
-```
+```bash
 export CORTEX_IMAGE_ONNX_SERVE="<repository_url>:latest"
 
 ./cortex.sh update
@@ -64,7 +64,7 @@ export CORTEX_IMAGE_ONNX_SERVE="<repository_url>:latest"
 
 Cortex will use your image to launch ONNX serving workloads. You will have access to any customizations you made:
 
-```
+```python
 # request_handler.py
 
 import subprocess
