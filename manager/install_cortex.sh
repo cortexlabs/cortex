@@ -91,7 +91,7 @@ function setup_istio() {
   echo -n "."
 
   helm template istio-manifests/istio-cni --name istio-cni --namespace kube-system | kubectl apply -f - >/dev/null
-  until [ "$(kubectl get daemonset istio-cni-node -n kube-system -o 'jsonpath={.status.updatedNumberScheduled}')" == "$(kubectl get daemonset istio-cni-node -n kube-system -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
+  until [ "$(kubectl get daemonset istio-cni-node -n kube-system -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset istio-cni-node -n kube-system -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
     echo -n "."
     sleep 5
   done
