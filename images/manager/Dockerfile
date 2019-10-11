@@ -27,7 +27,7 @@ RUN curl -LO https://get.helm.sh/helm-v2.14.3-linux-amd64.tar.gz && \
     rm -rf linux-amd64 && \
     rm helm-v2.14.3-linux-amd64.tar.gz
 
-RUN ISTIO_VERSION=1.3.0 && \
+RUN ISTIO_VERSION=1.3.2 && \
     curl -L "https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istio-${ISTIO_VERSION}-linux.tar.gz" | tar xz && \
     mkdir ./istio-manifests && \
     mv ./istio-${ISTIO_VERSION}/install/kubernetes/helm/* ./istio-manifests/ && \
