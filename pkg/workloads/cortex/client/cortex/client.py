@@ -44,7 +44,7 @@ class Client(object):
         self.aws_access_key_id = aws_access_key_id
         self.aws_secret_access_key = aws_secret_access_key
         self.headers = {
-            "CortexAPIVersion": "master",
+            "CortexAPIVersion": "master",  # CORTEX_VERSION
             "Authorization": "CortexAWS {}|{}".format(
                 self.aws_access_key_id, self.aws_secret_access_key
             ),
