@@ -3,7 +3,7 @@
 ## deploy
 
 ```text
-This command sends all deployment configuration and code to Cortex.
+This command sends all project configuration and code to Cortex.
 If validations pass, Cortex will attempt to create the desired state.
 
 Usage:
@@ -50,7 +50,7 @@ Flags:
 ## refresh
 
 ```text
-This command sends all deployment configuration and code to Cortex.
+This command sends all project configuration and code to Cortex.
 If validations pass, Cortex will attempt to create the desired state,
 and override the existing deployment.
 

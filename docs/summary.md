@@ -15,7 +15,6 @@
 * [Packaging models](deployments/packaging-models.md)
 * [Request handlers](deployments/request-handlers.md)
 * [Compute](deployments/compute.md)
-* [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
 * [CLI commands](cluster/cli.md)
 * [Resource statuses](deployments/statuses.md)
