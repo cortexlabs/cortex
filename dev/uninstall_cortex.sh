@@ -25,5 +25,12 @@ echo "Uninstalling Cortex ..."
 
 kubectl delete --ignore-not-found=true namespace istio-system
 kubectl delete --ignore-not-found=true namespace $CORTEX_NAMESPACE
+kubectl delete --ignore-not-found=true -n kube-system deployment cluster-autoscaler
+kubectl delete --ignore-not-found=true apiservice v1beta1.metrics.k8s.io
+kubectl delete --ignore-not-found=true -n kube-system deployment metrics-server
+kubectl delete --ignore-not-found=true -n kube-system service metrics-server
+kubectl delete --ignore-not-found=true -n kube-system daemonset istio-cni-node
+kubectl delete --ignore-not-found=true -n kube-system daemonset aws-node
+kubectl delete --all crds
 
 echo "✓ Uninstalled Cortex"
