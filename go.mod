@@ -3,15 +3,15 @@ module github.com/cortexlabs/cortex
 go 1.12
 
 require (
-	github.com/aws/aws-sdk-go v1.23.21
+	github.com/aws/aws-sdk-go v1.25.12
 	github.com/cortexlabs/yaml v0.0.0-20190626164117-202ab3a3d475
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.7.0
 	github.com/google/uuid v1.0.0
 	github.com/gorilla/mux v1.7.3
 	github.com/gorilla/websocket v1.4.1
-	github.com/mattn/go-colorable v0.1.2 // indirect
-	github.com/mattn/go-isatty v0.0.9 // indirect
+	github.com/mattn/go-colorable v0.1.4 // indirect
+	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/cobra v0.0.5
