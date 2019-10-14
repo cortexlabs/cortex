@@ -40,11 +40,12 @@
 
 ### Non-versioned modules
 
-1. `go clean -modcache`
 1. `rm go.mod go.sum`
 1. `go mod init`
+1. `go clean -modcache`
 1. `go get k8s.io/client-go@v12.0.0`
 1. `go get github.com/cortexlabs/yaml@v2.2.4`
+1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.0' >> go.mod`
 1. `go mod tidy`
 1. Check that the diff in `go.mod` is reasonable
 
@@ -52,6 +53,11 @@
 
 1. Find the minor version of the latest stable release from the [README](https://github.com/kubernetes/client-go), and/or find the latest tagged patch version from [releases](https://github.com/kubernetes/client-go/releases)
 1. Follow the "Update non-versioned modules" instructions using the updated version for `k8s.io/client-go`
+
+### docker/engine/client
+
+1. Find the latest tag from [releases](https://github.com/docker/engine/releases)
+1. Follow the "Update non-versioned modules" instructions using the updated version for `docker/engine`
 
 ### cortexlabs/yaml
 
