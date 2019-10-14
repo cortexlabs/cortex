@@ -1,0 +1,72 @@
+/*
+Copyright 2019 Cortex Labs, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package cmd
+
+import (
+	"context"
+	"fmt"
+
+	dockertypes "github.com/docker/docker/api/types"
+	dockerclient "github.com/docker/docker/client"
+	"github.com/spf13/cobra"
+
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
+)
+
+const CORTEX_VERSION_BRANCH_STABLE = "master"
+
+var flagCortexConfig string
+
+func init() {
+	installCmd.PersistentFlags().StringVarP(&flagCortexConfig, "config", "c", "", "path to a Cortex config file")
+}
+
+var installCmd = &cobra.Command{
+	Use:   "install",
+	Short: "install Cortex",
+	Long: `
+This command installs Cortex on your AWS account.`,
+	Args: cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		if flagCortexConfig != "" {
+			cortexConfigPath := files.UserPath(flagCortexConfig)
+			if err := files.CheckFile(cortexConfigPath); err != nil {
+				errors.Exit(flagCortexConfig, "Cortex config file does not exist")
+			}
+
+			// TODO read yaml file
+		}
+
+		docker, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
+		if err != nil {
+			errors.Exit(err)
+		}
+
+		docker.NegotiateAPIVersion(context.Background())
+
+		containers, err := docker.ContainerList(context.Background(), dockertypes.ContainerListOptions{})
+		if err != nil {
+			panic(err)
+		}
+
+		for _, container := range containers {
+			fmt.Printf("%s %s\n", container.ID[:10], container.Image)
+		}
+
+	},
+}

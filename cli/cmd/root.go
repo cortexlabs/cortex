@@ -69,6 +69,8 @@ func Execute() {
 	rootCmd.SetHelpCommand(&cobra.Command{Hidden: true})
 	cobra.EnableCommandSorting = false
 
+	rootCmd.AddCommand(installCmd)
+
 	rootCmd.AddCommand(deployCmd)
 	rootCmd.AddCommand(getCmd)
 	rootCmd.AddCommand(logsCmd)

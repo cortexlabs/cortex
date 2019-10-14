@@ -14,86 +14,88 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+# set -e
 
 ####################
 ### FLAG PARSING ###
 ####################
 
-flag_help=false
-positional_args=()
+# flag_help=false
+# positional_args=()
 
-while [[ $# -gt 0 ]]; do
-  key="$1"
-  case $key in
-    -c|--config)
-    export CORTEX_CONFIG="$2"
-    shift
-    shift
-    ;;
-    -h|--help)
-    flag_help="true"
-    shift
-    ;;
-    *)
-    positional_args+=("$1")
-    shift
-    ;;
-  esac
-done
+# while [[ $# -gt 0 ]]; do
+#   key="$1"
+#   case $key in
+#     -c|--config)
+#     export CORTEX_CONFIG="$2"
+#     shift
+#     shift
+#     ;;
+#     -h|--help)
+#     flag_help="true"
+#     shift
+#     ;;
+#     *)
+#     positional_args+=("$1")
+#     shift
+#     ;;
+#   esac
+# done
 
-set -- "${positional_args[@]}"
-positional_args=()
-for i in "$@"; do
-  case $i in
-    -c=*|--config=*)
-    export CORTEX_CONFIG="${i#*=}"
-    shift
-    ;;
-    -h=*|--help=*)
-    flag_help="true"
-    ;;
-    *)
-    positional_args+=("$1")
-    shift
-    ;;
-  esac
-done
+# set -- "${positional_args[@]}"
+# positional_args=()
+# for i in "$@"; do
+#   case $i in
+#     -c=*|--config=*)
+#     export CORTEX_CONFIG="${i#*=}"
+#     shift
+#     ;;
+#     -h=*|--help=*)
+#     flag_help="true"
+#     ;;
+#     *)
+#     positional_args+=("$1")
+#     shift
+#     ;;
+#   esac
+# done
 
-set -- "${positional_args[@]}"
-if [ "$flag_help" == "true" ]; then
-  show_help
-  exit 0
-fi
+# set -- "${positional_args[@]}"
+# if [ "$flag_help" == "true" ]; then
+#   show_help
+#   exit 0
+# fi
 
-for arg in "$@"; do
-  if [[ "$arg" == -* ]]; then
-    echo "unknown flag: $arg"
-    show_help
-    exit 1
-  fi
-done
+# for arg in "$@"; do
+#   if [[ "$arg" == -* ]]; then
+#     echo "unknown flag: $arg"
+#     show_help
+#     exit 1
+#   fi
+# done
 
-arg1=${1:-""}
-arg2=${2:-""}
-arg3=${3:-""}
+# arg1=${1:-""}
+# arg2=${2:-""}
+# arg3=${3:-""}
 
-set -u
+# set -u
 
 #####################
 ### CONFIGURATION ###
 #####################
 
-export CORTEX_VERSION_BRANCH_STABLE=master
+# export CORTEX_VERSION_BRANCH_STABLE=master
 
-export CORTEX_CONFIG="${CORTEX_CONFIG:-""}"
-if [ "$CORTEX_CONFIG" != "" ]; then
-  if [ ! -f "$CORTEX_CONFIG" ]; then
-    echo "Cortex config file does not exist: $CORTEX_CONFIG"
-    exit 1
-  fi
-  source $CORTEX_CONFIG
-fi
+# export CORTEX_CONFIG="${CORTEX_CONFIG:-""}"
+# if [ "$CORTEX_CONFIG" != "" ]; then
+#   if [ ! -f "$CORTEX_CONFIG" ]; then
+#     echo "Cortex config file does not exist: $CORTEX_CONFIG"
+#     exit 1
+#   fi
+#   source $CORTEX_CONFIG
+# fi
+
+source $CORTEX_CONFIG
 
 export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-""}"
 export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-""}"
