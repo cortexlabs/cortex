@@ -21,7 +21,7 @@ Below, we'll walk through how to use Cortex to deploy OpenAI's GPT-2 model as a 
 
 ### Step 1. configure your deployment
 
-Define a `deployment` and an `api` resource as shown below:
+Define a `deployment` and an `api` resource:
 
 ```yaml
 # cortex.yaml
