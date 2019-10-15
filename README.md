@@ -37,7 +37,7 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
 <!-- CORTEX_VERSION_MINOR -->
 You can run the code that generated the exported GPT-2 model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/text-generator/gpt-2.ipynb).
 
-<br><br>
+<br>
 
 ### Step 2. Add request handling
 
@@ -59,7 +59,7 @@ def post_inference(prediction, metadata):
     return {encoder.decode(response)}
 ```
 
-<br><br>
+<br>
 
 ### Step 3. Deploy to AWS
 
@@ -84,7 +84,7 @@ live     1            1           1           8s            124ms
 
 The output above indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
 
-<br><br>
+<br>
 
 ### Step 4. Serve real-time predictions
 
@@ -107,7 +107,7 @@ Machine learning, with more than one thousand researchers around the world today
 
 Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).
 
-<br><br>
+<br>
 
 ## More Examples
 
