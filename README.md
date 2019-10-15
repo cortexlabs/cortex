@@ -19,7 +19,7 @@ Below, we'll walk through how to use Cortex to deploy OpenAI's GPT-2 model as a 
 
 <br>
 
-### Step 1. Configure your deployment
+### Step 1. configure your deployment
 
 Define a `deployment` and an `api` resource as shown below:
 
@@ -41,7 +41,7 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
 
 <br>
 
-### Step 2. Add request handling
+### Step 2. add request handling
 
 The model requires encoded data for inference, but the API should accept strings of natural language as input. It should also decode the inference output. This can be implemented in a request handler file using the `pre_inference` and `post_inference` functions:
 
@@ -64,7 +64,7 @@ def post_inference(prediction, metadata):
 
 <br>
 
-### Step 3. Deploy to AWS
+### Step 3. deploy to AWS
 
 Deploying to AWS is as simple as running `cortex deploy` from your CLI. `cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on the cluster:
 
@@ -91,7 +91,7 @@ The output above indicates that one replica of the API was requested and one rep
 
 <br>
 
-### Step 4. Serve real-time predictions
+### Step 4. serve real-time predictions
 
 Once you have your endpoint, you can make requests:
 
@@ -107,7 +107,7 @@ Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).
 
 <br>
 
-## More Examples
+## More examples
 
 <!-- CORTEX_VERSION_README_MINOR x3 -->
 - [Iris classification](https://github.com/cortexlabs/cortex/tree/master/examples/iris-classifier)
