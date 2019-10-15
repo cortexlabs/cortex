@@ -1,6 +1,6 @@
 # Deploy machine learning models in production
 
-Cortex is an open source platform that takes machine learning models—trained with nearly **any framework**—and turns them into **production web APIs** in one command. <br>
+Cortex is an open source platform that takes machine learning models—trained with nearly any framework—and turns them into production web APIs in one command. <br>
 
 <!-- CORTEX_VERSION_MINOR x2 (e.g. www.cortex.dev/v/0.8/...) -->
 [install](https://www.cortex.dev/install) • [docs](https://www.cortex.dev) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
