@@ -21,7 +21,9 @@ Below, we'll walk through how to use Cortex to deploy OpenAI's GPT-2 model as a 
 
 ### Step 1. configure your deployment
 
-Define a `deployment` and an `api` resource:
+<!-- CORTEX_VERSION_MINOR -->
+
+Define a `deployment` and an `api` resource. A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. The above example configuration will download the model from the `cortex-examples` S3 bucket. You can run the code that generated the exported GPT-2 model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/text-generator/gpt-2.ipynb).
 
 ```yaml
 # cortex.yaml
@@ -34,10 +36,6 @@ Define a `deployment` and an `api` resource:
   model: s3://cortex-examples/text-generator/gpt-2/124M
   request_handler: handler.py
 ```
-
-<!-- CORTEX_VERSION_MINOR -->
-
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. The above example configuration will download the model from the `cortex-examples` S3 bucket. You can run the code that generated the exported GPT-2 model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/text-generator/gpt-2.ipynb).
 
 <br>
 
