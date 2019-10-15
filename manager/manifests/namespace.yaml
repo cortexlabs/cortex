@@ -15,4 +15,4 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: $CORTEX_NAMESPACE
+  name: cortex

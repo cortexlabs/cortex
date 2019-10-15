@@ -16,7 +16,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: fluentd
-  namespace: $CORTEX_NAMESPACE
+  namespace: cortex
   labels:
     app: fluentd
 ---
@@ -24,7 +24,7 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
   name: fluentd
-  namespace: $CORTEX_NAMESPACE
+  namespace: cortex
 rules:
 - apiGroups: [""]
   resources:
@@ -37,11 +37,11 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: fluentd
-  namespace: $CORTEX_NAMESPACE
+  namespace: cortex
 subjects:
 - kind: ServiceAccount
   name: fluentd
-  namespace: $CORTEX_NAMESPACE
+  namespace: cortex
 roleRef:
   kind: ClusterRole
   name: fluentd
@@ -52,7 +52,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: fluentd
-  namespace: $CORTEX_NAMESPACE
+  namespace: cortex
 data:
   fluent.conf: |
     @include containers.conf
@@ -65,7 +65,7 @@ data:
       @type tail
       @id in_tail_container_logs
       @label @containers
-      path /var/log/containers/**_${CORTEX_NAMESPACE}_**.log
+      path /var/log/containers/**_cortex_**.log
       pos_file /var/log/fluentd-containers.log.pos
       tag *
       read_from_head true
@@ -113,7 +113,7 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: fluentd
-  namespace: $CORTEX_NAMESPACE
+  namespace: cortex
 spec:
   template:
     metadata:

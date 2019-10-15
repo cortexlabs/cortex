@@ -50,11 +50,11 @@ function setup_cloudwatch_logs() {
 }
 
 function setup_configmap() {
-  kubectl -n=$CORTEX_NAMESPACE create configmap 'cortex-config' \
+  kubectl -n=cortex create configmap 'cortex-config' \
     --from-literal='LOG_GROUP'=$CORTEX_LOG_GROUP \
     --from-literal='BUCKET'=$CORTEX_BUCKET \
     --from-literal='REGION'=$CORTEX_REGION \
-    --from-literal='NAMESPACE'=$CORTEX_NAMESPACE \
+    --from-literal='NAMESPACE'=cortex \
     --from-literal='IMAGE_OPERATOR'=$CORTEX_IMAGE_OPERATOR \
     --from-literal='IMAGE_TF_SERVE'=$CORTEX_IMAGE_TF_SERVE \
     --from-literal='IMAGE_ONNX_SERVE'=$CORTEX_IMAGE_ONNX_SERVE \
@@ -67,7 +67,7 @@ function setup_configmap() {
 }
 
 function setup_secrets() {
-  kubectl -n=$CORTEX_NAMESPACE create secret generic 'aws-credentials' \
+  kubectl -n=cortex create secret generic 'aws-credentials' \
     --from-literal='AWS_ACCESS_KEY_ID'=$CORTEX_AWS_ACCESS_KEY_ID \
     --from-literal='AWS_SECRET_ACCESS_KEY'=$CORTEX_AWS_SECRET_ACCESS_KEY \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
@@ -114,11 +114,11 @@ function validate_cortex() {
     echo -n "."
     sleep 5
 
-    operator_pod_name=$(kubectl -n=$CORTEX_NAMESPACE get pods -o=name --sort-by=.metadata.creationTimestamp | grep "^pod/operator-" | tail -1)
+    operator_pod_name=$(kubectl -n=cortex get pods -o=name --sort-by=.metadata.creationTimestamp | grep "^pod/operator-" | tail -1)
     if [ "$operator_pod_name" == "" ]; then
       operator_pod_ready_cycles=0
     else
-      is_ready=$(kubectl -n=$CORTEX_NAMESPACE get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].ready}')
+      is_ready=$(kubectl -n=cortex get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].ready}')
       if [ "$is_ready" == "true" ]; then
         ((operator_pod_ready_cycles++))
       else
@@ -154,10 +154,10 @@ function validate_cortex() {
     fi
 
     if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
-      num_restart=$(kubectl -n=$CORTEX_NAMESPACE get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
+      num_restart=$(kubectl -n=cortex get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
       if [[ $num_restart -ge 2 ]]; then
         echo -e "\n\nAn error occurred when starting the Cortex operator. View the logs with:"
-        echo "  kubectl logs $operator_pod_name --namespace=$CORTEX_NAMESPACE"
+        echo "  kubectl logs $operator_pod_name --namespace=cortex"
         exit 1
       fi
       continue

@@ -16,7 +16,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: operator
-  namespace: $CORTEX_NAMESPACE
+  namespace: cortex
 
 ---
 
@@ -24,11 +24,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: operator
-  namespace: $CORTEX_NAMESPACE
+  namespace: cortex
 subjects:
 - kind: ServiceAccount
   name: operator
-  namespace: $CORTEX_NAMESPACE
+  namespace: cortex
 roleRef:
   kind: ClusterRole
   name: cluster-admin
@@ -40,7 +40,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: operator
-  namespace: $CORTEX_NAMESPACE
+  namespace: cortex
   labels:
     workloadType: operator
     workloadID: operator
@@ -93,7 +93,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: $CORTEX_NAMESPACE
+  namespace: cortex
   name: operator
   labels:
     workloadType: operator
@@ -112,7 +112,7 @@ apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   name: operator-gateway
-  namespace: $CORTEX_NAMESPACE
+  namespace: cortex
 spec:
   selector:
     istio: operator-ingressgateway
@@ -140,7 +140,7 @@ apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
   name: operator
-  namespace: $CORTEX_NAMESPACE
+  namespace: cortex
 spec:
   hosts:
   - "*"
