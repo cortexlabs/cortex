@@ -12,10 +12,10 @@ Cortex is an open source platform that takes machine learning models—trained w
 
 <br>
 
-## Cortex quickstart
+## Quickstart
 
 <!-- CORTEX_VERSION_MINOR x2 (e.g. www.cortex.dev/v/0.8/...) -->
-Below, we'll walkthrough how to use Cortex to deploy OpenAI's GPT-2 model as a service on AWS. You'll need to [install Cortex](https://www.cortex.dev/install) on your [AWS account](aws.com) before getting started.
+Below, we'll walk through how to use Cortex to deploy OpenAI's GPT-2 model as a service on AWS. You'll need to [install Cortex](https://www.cortex.dev/install) on your [AWS account](aws.com) before getting started.
 
 <br>
 
