@@ -15,7 +15,7 @@ What you'll need:
 
 - An AWS account ([you can set one up for free here](aws.com))
 - Cortex installed on your machine ([see instructions here](https://www.cortex.dev/v/0.8/install))
-<br><br>
+<br>
 
 ### Step 1. Configure your deployment
 
