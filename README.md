@@ -2,7 +2,6 @@
 
 Cortex is an open source platform that takes machine learning models—trained with nearly any framework—and turns them into production web APIs in one command. <br>
 
-<!-- CORTEX_VERSION_MINOR x2 (e.g. www.cortex.dev/v/0.8/...) -->
 [install](https://www.cortex.dev/install) • [docs](https://www.cortex.dev) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
 <br>
@@ -14,7 +13,6 @@ Cortex is an open source platform that takes machine learning models—trained w
 
 ## Quickstart
 
-<!-- CORTEX_VERSION_MINOR (e.g. www.cortex.dev/v/0.8/...) -->
 Below, we'll walk through how to use Cortex to deploy OpenAI's GPT-2 model as a service on AWS. You'll need to [install Cortex](https://www.cortex.dev/install) on your AWS account before getting started.
 
 <br>
@@ -22,7 +20,7 @@ Below, we'll walk through how to use Cortex to deploy OpenAI's GPT-2 model as a 
 ### Step 1: Configure your deployment
 
 <!-- CORTEX_VERSION_MINOR -->
-Define a `deployment` and an `api` resource. A `deployment` specifies a set of APIs that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. The configuration below will download the model from the `cortex-examples` S3 bucket. You can run the code that generated the exported GPT-2 model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/text-generator/gpt-2.ipynb).
+Define a `deployment` and an `api` resource. A `deployment` specifies a set of APIs that are deployed together. An `api` makes a model available as a web service that can serve real-time predictions. The configuration below will download the model from the `cortex-examples` S3 bucket. You can run the code that generated the model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/text-generator/gpt-2.ipynb).
 
 ```yaml
 # cortex.yaml
@@ -56,7 +54,7 @@ def pre_inference(sample, metadata):
 
 def post_inference(prediction, metadata):
     response = prediction["sample"]
-    return {encoder.decode(response)}
+    return encoder.decode(response)
 ```
 
 <br>
