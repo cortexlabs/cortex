@@ -21,9 +21,11 @@ Below, we'll walkthrough how to use Cortex to deploy OpenAI's GPT-2 model as a s
 
 ### Step 1. Configure your deployment
 
-Create a `cortex.yaml` file and define a `deployment` and an `api` resource as shown below:
+Define a `deployment` and an `api` resource as shown below:
 
 ```yaml
+# cortex.yaml
+
 - kind: deployment
   name: text
 
@@ -33,18 +35,19 @@ Create a `cortex.yaml` file and define a `deployment` and an `api` resource as s
   request_handler: handler.py
 ```
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. The above example configuration will download the model from the `cortex-examples` S3 bucket.
-
 <!-- CORTEX_VERSION_MINOR -->
-You can run the code that generated the exported GPT-2 model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/text-generator/gpt-2.ipynb).
+
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. The above example configuration will download the model from the `cortex-examples` S3 bucket. You can run the code that generated the exported GPT-2 model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/text-generator/gpt-2.ipynb).
 
 <br>
 
 ### Step 2. Add request handling
 
-The model requires encoded data for inference, but the API should accept strings of natural language as input. It should also translate the model’s prediction to make it more readable. This can be implemented in a request handler file (which we defined in `cortex.yaml` as `handler.py`) using the pre_inference and post_inference functions. Create a file called `handler.py`, and add this code:
+The model requires encoded data for inference, but the API should accept strings of natural language as input. It should also decode the inference output. This can be implemented in a request handler file using the `pre_inference` and `post_inference` functions:
 
 ```python
+# handler.py
+
 from encoder import get_encoder
 encoder = get_encoder()
 
