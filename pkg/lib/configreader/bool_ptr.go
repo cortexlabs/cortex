@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -124,8 +125,8 @@ func BoolPtrFromEnvOrFile(envVarName string, filePath string, v *BoolPtrValidati
 	return BoolPtrFromFile(filePath, v)
 }
 
-func BoolPtrFromPrompt(promptOpts *PromptOptions, v *BoolPtrValidation) (*bool, error) {
-	valStr := prompt(promptOpts)
+func BoolPtrFromPrompt(promptOpts *prompt.PromptOptions, v *BoolPtrValidation) (*bool, error) {
+	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {
 		return ValidateBoolPtrMissing(v)
 	}

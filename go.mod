@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.4.14 // indirect
+	github.com/VojtechVitek/rerun v0.0.0-20170516160920-33da2e511f2a // indirect
 	github.com/aws/aws-sdk-go v1.25.12
 	github.com/cortexlabs/yaml v0.0.0-20190626164117-202ab3a3d475
 	github.com/davecgh/go-spew v1.1.1
@@ -29,6 +30,9 @@ require (
 	github.com/tcnksm/go-input v0.0.0-20180404061846-548a7d7a8ee8
 	github.com/ugorji/go/codec v1.1.7
 	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca
+	golang.org/x/lint v0.0.0-20190930215403-16217165b5de // indirect
+	golang.org/x/sys v0.0.0-20191010194322-b09406accb47 // indirect
+	golang.org/x/tools v0.0.0-20191015150414-f936694f27bf // indirect
 	google.golang.org/grpc v1.24.0 // indirect
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gotest.tools v2.2.0+incompatible // indirect

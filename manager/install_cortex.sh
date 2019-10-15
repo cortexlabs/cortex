@@ -173,7 +173,7 @@ function validate_cortex() {
   echo -e "\n✓ Load balancers are ready"
 }
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" || true
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" || true
 
 setup_bucket
 setup_cloudwatch_logs

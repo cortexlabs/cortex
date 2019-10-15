@@ -16,7 +16,7 @@ apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
 metadata:
-  name: $CORTEX_CLUSTER
+  name: $CORTEX_CLUSTER_NAME
   region: $CORTEX_REGION
   version: "1.14"
 

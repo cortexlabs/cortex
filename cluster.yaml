@@ -1,0 +1,4 @@
+cluster_name: beans
+node_type: t3.small
+nodes_min: 1
+nodes_max: 5

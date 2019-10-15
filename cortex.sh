@@ -106,7 +106,7 @@ export CORTEX_LOG_GROUP="${CORTEX_LOG_GROUP:-cortex}"
 export CORTEX_BUCKET="${CORTEX_BUCKET:-""}"
 export CORTEX_REGION="${CORTEX_REGION:-us-west-2}"
 
-export CORTEX_CLUSTER="${CORTEX_CLUSTER:-cortex}"
+export CORTEX_CLUSTER_NAME="${CORTEX_CLUSTER_NAME:-cortex}"
 export CORTEX_NODE_TYPE="${CORTEX_NODE_TYPE:-m5.large}"
 export CORTEX_NODES_MIN="${CORTEX_NODES_MIN:-2}"
 export CORTEX_NODES_MAX="${CORTEX_NODES_MAX:-5}"
@@ -191,7 +191,7 @@ if [ "$arg1" = "install" ] && [ "$arg2" = "" ] && [ "$arg3" = "" ]; then
   validate_install
 
   echo
-  echo "￮ cluster name:      $CORTEX_CLUSTER"
+  echo "￮ cluster name:      $CORTEX_CLUSTER_NAME"
   echo "￮ region:            $CORTEX_REGION"
   echo "￮ bucket:            "${CORTEX_BUCKET:-autogenerate}""
   echo "￮ log group:         $CORTEX_LOG_GROUP"
@@ -226,7 +226,7 @@ function install_eks() {
   docker run -it --entrypoint /root/install_eks.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_CLUSTER_NAME=$CORTEX_CLUSTER_NAME \
     -e CORTEX_REGION=$CORTEX_REGION \
     -e CORTEX_NODE_TYPE=$CORTEX_NODE_TYPE \
     -e CORTEX_NODES_MIN=$CORTEX_NODES_MIN \
@@ -239,7 +239,7 @@ function uninstall_eks() {
   docker run -it --entrypoint /root/uninstall_eks.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_CLUSTER_NAME=$CORTEX_CLUSTER_NAME \
     -e CORTEX_REGION=$CORTEX_REGION \
     $CORTEX_IMAGE_MANAGER
 }
@@ -251,7 +251,7 @@ function install_cortex() {
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e CORTEX_AWS_ACCESS_KEY_ID=$CORTEX_AWS_ACCESS_KEY_ID \
     -e CORTEX_AWS_SECRET_ACCESS_KEY=$CORTEX_AWS_SECRET_ACCESS_KEY \
-    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_CLUSTER_NAME=$CORTEX_CLUSTER_NAME \
     -e CORTEX_REGION=$CORTEX_REGION \
     -e CORTEX_NODE_TYPE=$CORTEX_NODE_TYPE \
     -e CORTEX_LOG_GROUP=$CORTEX_LOG_GROUP \
@@ -281,7 +281,7 @@ function uninstall_operator() {
   docker run -it --entrypoint /root/uninstall_operator.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_CLUSTER_NAME=$CORTEX_CLUSTER_NAME \
     -e CORTEX_REGION=$CORTEX_REGION \
     $CORTEX_IMAGE_MANAGER
 }
@@ -291,7 +291,7 @@ function info() {
   docker run -it --entrypoint /root/info.sh \
     -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
     -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e CORTEX_CLUSTER=$CORTEX_CLUSTER \
+    -e CORTEX_CLUSTER_NAME=$CORTEX_CLUSTER_NAME \
     -e CORTEX_REGION=$CORTEX_REGION \
     $CORTEX_IMAGE_MANAGER
 }

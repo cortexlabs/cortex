@@ -29,6 +29,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 )
 
 type SupportRequest struct {
@@ -43,7 +44,7 @@ var supportPrompValidation = &cr.PromptValidation{
 	PromptItemValidations: []*cr.PromptItemValidation{
 		{
 			StructField: "Body",
-			PromptOpts: &cr.PromptOptions{
+			PromptOpts: &prompt.PromptOptions{
 				Prompt: "What is your question or issue",
 			},
 			StringValidation: &cr.StringValidation{
@@ -52,7 +53,7 @@ var supportPrompValidation = &cr.PromptValidation{
 		},
 		{
 			StructField: "EmailAddress",
-			PromptOpts: &cr.PromptOptions{
+			PromptOpts: &prompt.PromptOptions{
 				Prompt: "What is your email address",
 			},
 			StringValidation: &cr.StringValidation{

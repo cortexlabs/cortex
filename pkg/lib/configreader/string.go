@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -151,9 +152,9 @@ func StringFromEnvOrFile(envVarName string, filePath string, v *StringValidation
 	return StringFromFile(filePath, v)
 }
 
-func StringFromPrompt(promptOpts *PromptOptions, v *StringValidation) (string, error) {
-	promptOpts.defaultStr = v.Default
-	valStr := prompt(promptOpts)
+func StringFromPrompt(promptOpts *prompt.PromptOptions, v *StringValidation) (string, error) {
+	promptOpts.DefaultStr = v.Default
+	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" { // Treat empty prompt value as missing
 		return ValidateStringMissing(v)
 	}

@@ -25,7 +25,7 @@ export CORTEX_BUCKET="cortex-[RANDOM_ID]"
 export CORTEX_REGION="us-west-2"
 
 # The name of the EKS cluster Cortex will use
-export CORTEX_CLUSTER="cortex"
+export CORTEX_CLUSTER_NAME="cortex"
 
 # The AWS node type Cortex will use
 export CORTEX_NODE_TYPE="m5.large"

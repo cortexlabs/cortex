@@ -25,7 +25,7 @@ devstart:
 	@./dev/operator_local.sh || true
 
 kubectl:
-	@source ./dev/config/cortex.sh && eksctl utils write-kubeconfig --name="$$CORTEX_CLUSTER" | grep -v "saved kubeconfig as" | grep -v "using region" || true
+	@source ./dev/config/cortex.sh && eksctl utils write-kubeconfig --name="$$CORTEX_CLUSTER_NAME" | grep -v "saved kubeconfig as" | grep -v "using region" || true
 	@source ./dev/config/cortex.sh && kubectl config set-context --current --namespace=cortex >/dev/null
 
 cortex-up:

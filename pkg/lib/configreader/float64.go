@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -131,9 +132,9 @@ func Float64FromEnvOrFile(envVarName string, filePath string, v *Float64Validati
 	return Float64FromFile(filePath, v)
 }
 
-func Float64FromPrompt(promptOpts *PromptOptions, v *Float64Validation) (float64, error) {
-	promptOpts.defaultStr = s.Float64(v.Default)
-	valStr := prompt(promptOpts)
+func Float64FromPrompt(promptOpts *prompt.PromptOptions, v *Float64Validation) (float64, error) {
+	promptOpts.DefaultStr = s.Float64(v.Default)
+	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {
 		return ValidateFloat64Missing(v)
 	}

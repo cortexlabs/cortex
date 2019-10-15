@@ -55,7 +55,7 @@ export CORTEX_LOG_GROUP="cortex"
 export CORTEX_BUCKET="cortex-cluster-<your_name>"
 export CORTEX_REGION="us-west-2"
 
-export CORTEX_CLUSTER="cortex"
+export CORTEX_CLUSTER_NAME="cortex"
 export CORTEX_NODE_TYPE="t3.medium"
 export CORTEX_NODES_MIN="2"
 export CORTEX_NODES_MAX="5"

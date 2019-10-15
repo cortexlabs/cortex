@@ -23,13 +23,13 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/yaml"
-	input "github.com/tcnksm/go-input"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -527,14 +527,9 @@ func ReadInterfaceMapValue(name string, interMap map[string]interface{}) (interf
 // Prompt
 //
 
-var ui = &input.UI{
-	Writer: os.Stdout,
-	Reader: os.Stdin,
-}
-
 type PromptItemValidation struct {
-	StructField string         // Required
-	PromptOpts  *PromptOptions // Required
+	StructField string                // Required
+	PromptOpts  *prompt.PromptOptions // Required
 
 	// Provide one of the following:
 	StringValidation  *StringValidation
@@ -587,44 +582,6 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 	}
 
 	return nil
-}
-
-type PromptOptions struct {
-	Prompt        string
-	MaskDefault   bool
-	HideTyping    bool
-	MaskTyping    bool
-	TypingMaskVal string
-	defaultStr    string
-}
-
-func prompt(opts *PromptOptions) string {
-	prompt := opts.Prompt
-
-	if opts.defaultStr != "" {
-		defaultStr := opts.defaultStr
-		if opts.MaskDefault {
-			defaultStr = s.MaskString(defaultStr, 4)
-		}
-		prompt = fmt.Sprintf("%s [%s]", opts.Prompt, defaultStr)
-	}
-
-	val, err := ui.Ask(prompt, &input.Options{
-		Default:     opts.defaultStr,
-		Hide:        opts.HideTyping,
-		Mask:        opts.MaskTyping,
-		MaskVal:     opts.TypingMaskVal,
-		Required:    false,
-		HideDefault: true,
-		HideOrder:   true,
-		Loop:        false,
-	})
-
-	if err != nil {
-		errors.Panic(err)
-	}
-
-	return val
 }
 
 //

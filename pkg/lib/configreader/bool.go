@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -123,9 +124,9 @@ func BoolFromEnvOrFile(envVarName string, filePath string, v *BoolValidation) (b
 	return BoolFromFile(filePath, v)
 }
 
-func BoolFromPrompt(promptOpts *PromptOptions, v *BoolValidation) (bool, error) {
-	promptOpts.defaultStr = s.Bool(v.Default)
-	valStr := prompt(promptOpts)
+func BoolFromPrompt(promptOpts *prompt.PromptOptions, v *BoolValidation) (bool, error) {
+	promptOpts.DefaultStr = s.Bool(v.Default)
+	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {
 		return ValidateBoolMissing(v)
 	}

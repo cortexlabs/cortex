@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 )
 
 var cachedCLIConfig *CLIConfig
@@ -56,7 +57,7 @@ func getPromptValidation(defaults *CLIConfig) *cr.PromptValidation {
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
 				StructField: "CortexURL",
-				PromptOpts: &cr.PromptOptions{
+				PromptOpts: &prompt.PromptOptions{
 					Prompt: "Enter Cortex operator endpoint",
 				},
 				StringValidation: &cr.StringValidation{
@@ -67,7 +68,7 @@ func getPromptValidation(defaults *CLIConfig) *cr.PromptValidation {
 			},
 			{
 				StructField: "AWSAccessKeyID",
-				PromptOpts: &cr.PromptOptions{
+				PromptOpts: &prompt.PromptOptions{
 					Prompt: "Enter AWS Access Key ID",
 				},
 				StringValidation: &cr.StringValidation{
@@ -77,7 +78,7 @@ func getPromptValidation(defaults *CLIConfig) *cr.PromptValidation {
 			},
 			{
 				StructField: "AWSSecretAccessKey",
-				PromptOpts: &cr.PromptOptions{
+				PromptOpts: &prompt.PromptOptions{
 					Prompt:      "Enter AWS Secret Access Key",
 					MaskDefault: true,
 					HideTyping:  true,

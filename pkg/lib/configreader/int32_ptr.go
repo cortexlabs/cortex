@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -141,8 +142,8 @@ func Int32PtrFromEnvOrFile(envVarName string, filePath string, v *Int32PtrValida
 	return Int32PtrFromFile(filePath, v)
 }
 
-func Int32PtrFromPrompt(promptOpts *PromptOptions, v *Int32PtrValidation) (*int32, error) {
-	valStr := prompt(promptOpts)
+func Int32PtrFromPrompt(promptOpts *prompt.PromptOptions, v *Int32PtrValidation) (*int32, error) {
+	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {
 		return ValidateInt32PtrMissing(v)
 	}

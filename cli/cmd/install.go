@@ -24,8 +24,12 @@ import (
 	dockerclient "github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
 const CORTEX_VERSION_BRANCH_STABLE = "master"
@@ -36,6 +40,42 @@ func init() {
 	installCmd.PersistentFlags().StringVarP(&flagCortexConfig, "config", "c", "", "path to a Cortex config file")
 }
 
+type ClusterConfig struct {
+	ClusterName *string `json:"cluster_name"`
+	NodeType    *string `json:"node_type"`
+	NodesMin    *int64  `json:"nodes_min"`
+	NodesMax    *int64  `json:"nodes_max"`
+}
+
+var clusterConfigValidation = &cr.StructValidation{
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			Key:                 "cluster_name",
+			StructField:         "ClusterName",
+			StringPtrValidation: &cr.StringPtrValidation{},
+		},
+		{
+			Key:                 "node_type",
+			StructField:         "NodeType",
+			StringPtrValidation: &cr.StringPtrValidation{},
+		},
+		{
+			Key:         "nodes_min",
+			StructField: "NodesMin",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				GreaterThan: pointer.Int64(0),
+			},
+		},
+		{
+			Key:         "nodes_max",
+			StructField: "NodesMax",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				GreaterThan: pointer.Int64(0),
+			},
+		},
+	},
+}
+
 var installCmd = &cobra.Command{
 	Use:   "install",
 	Short: "install Cortex",
@@ -43,14 +83,47 @@ var installCmd = &cobra.Command{
 This command installs Cortex on your AWS account.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		clusterConfig := &ClusterConfig{}
+
 		if flagCortexConfig != "" {
 			cortexConfigPath := files.UserPath(flagCortexConfig)
 			if err := files.CheckFile(cortexConfigPath); err != nil {
 				errors.Exit(flagCortexConfig, "Cortex config file does not exist")
 			}
 
-			// TODO read yaml file
+			clusterConfigBytes, err := files.ReadFileBytes(flagCortexConfig)
+			if err != nil {
+				errors.Exit(err, flagCortexConfig, userconfig.ErrorReadConfig().Error())
+			}
+
+			clusterConfigData, err := cr.ReadYAMLBytes(clusterConfigBytes)
+			if err != nil {
+				errors.Exit(err, flagCortexConfig, userconfig.ErrorParseConfig().Error())
+			}
+
+			errs := cr.Struct(clusterConfig, clusterConfigData, clusterConfigValidation)
+
+			if errors.HasErrors(errs) {
+				errors.Exit(errors.FirstError(errs...), flagCortexConfig)
+			}
 		}
+
+		fmt.Printf("cluster name:      %s\n", *clusterConfig.ClusterName)
+		fmt.Printf("instance type:     %s\n", *clusterConfig.NodeType)
+		fmt.Printf("min nodes:         %d\n", *clusterConfig.NodesMin)
+		fmt.Printf("max nodes:         %d\n", *clusterConfig.NodesMax)
+
+		str := prompt.Prompt(&prompt.PromptOptions{
+			Prompt:      "Is the configuration above correct? [Y/n]",
+			DefaultStr:  "Y",
+			HideDefault: true,
+		})
+
+		fmt.Println(str)
+
+		prompt.Prompt(&prompt.PromptOptions{
+			Prompt: "Press [ENTER] to continue",
+		})
 
 		docker, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 		if err != nil {

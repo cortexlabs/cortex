@@ -150,7 +150,7 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
        - image: $CORTEX_IMAGE_CLUSTER_AUTOSCALER
        ```
 
-   1. Replace `<YOUR CLUSTER NAME>` with `$CORTEX_CLUSTER`
+   1. Replace `<YOUR CLUSTER NAME>` with `$CORTEX_CLUSTER_NAME`
    1. Update the link at the top of the file to the URL you copied from
    1. Check that your diff is reasonable
 1. Update the version of the base image in `images/cluster-autoscaler/Dockerfile` to the tag of the chosen release
