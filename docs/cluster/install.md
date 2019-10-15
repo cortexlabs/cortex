@@ -13,7 +13,7 @@ See [cluster configuration](config.md) to customize your installation.
 
 ```bash
 # Download
-curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh
+curl -O https://raw.githubusercontent.com/cortexlabs/cortex/0.9/cortex.sh
 
 # Change permissions
 chmod +x cortex.sh
@@ -42,7 +42,7 @@ This will create resources in your AWS account which aren't included in the free
 
 ```bash
 # Clone the Cortex repository
-git clone -b master https://github.com/cortexlabs/cortex.git
+git clone -b 0.9 https://github.com/cortexlabs/cortex.git
 
 # Navigate to the iris classification example
 cd cortex/examples/iris-classifier
