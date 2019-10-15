@@ -63,7 +63,7 @@ def post_inference(prediction, metadata):
 
 ### Step 3: Deploy to AWS
 
-Deploying to AWS is as simple as running `cortex deploy` from your CLI. `cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on the cluster. Behind the scenes, Cortex will containerize the model, make it servable using TensorFlow Serving, expose the endpoint with a load balancer, and orchestrate the workload on Kubernetes.
+Deploying to AWS is as simple as running `cortex deploy` from your CLI. `cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on the cluster. Behind the scenes, Cortex containerizes the model, makes it servable using TensorFlow Serving, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
 ```bash
 $ cortex deploy
