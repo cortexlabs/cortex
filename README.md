@@ -2,7 +2,9 @@
 
 Cortex is an open source platform that takes machine learning models—trained with nearly any framework—and turns them into production web APIs in one command. <br>
 
-[install](https://www.cortex.dev/install) • [docs](https://www.cortex.dev) • [examples](examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
+<!-- Delete on release branches -->
+<!-- CORTEX_VERSION_README_MINOR x1 -->
+[install](https://www.cortex.dev/install) • [docs](https://www.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.8/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
 <br>
 
@@ -19,8 +21,8 @@ Below, we'll walk through how to use Cortex to deploy OpenAI's GPT-2 model as a 
 
 ### Step 1: Configure your deployment
 
-<!-- CORTEX_VERSION_MINOR -->
-Define a `deployment` and an `api` resource. A `deployment` specifies a set of APIs that are deployed together. An `api` makes a model available as a web service that can serve real-time predictions. The configuration below will download the model from the `cortex-examples` S3 bucket. You can run the code that generated the model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/text-generator/gpt-2.ipynb).
+<!-- CORTEX_VERSION_README_MINOR -->
+Define a `deployment` and an `api` resource. A `deployment` specifies a set of APIs that are deployed together. An `api` makes a model available as a web service that can serve real-time predictions. The configuration below will download the model from the `cortex-examples` S3 bucket. You can run the code that generated the model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/0.8/examples/text-generator/gpt-2.ipynb).
 
 ```yaml
 # cortex.yaml
@@ -101,11 +103,11 @@ Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).
 ## More examples
 
 <!-- CORTEX_VERSION_README_MINOR x3 -->
-- [Iris classification](https://github.com/cortexlabs/cortex/tree/master/examples/iris-classifier)
+- [Iris classification](https://github.com/cortexlabs/cortex/tree/0.8/examples/iris-classifier)
 
-- [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/master/examples/sentiment-analysis) with BERT
+- [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.8/examples/sentiment-analysis) with BERT
 
-- [Image classification](https://github.com/cortexlabs/cortex/tree/master/examples/image-classifier) with Inception v3 and AlexNet
+- [Image classification](https://github.com/cortexlabs/cortex/tree/0.8/examples/image-classifier) with Inception v3 and AlexNet
 
 <br>
 
