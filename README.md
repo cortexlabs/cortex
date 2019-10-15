@@ -14,16 +14,15 @@ Cortex is an open source platform that takes machine learning models—trained w
 
 ## Quickstart
 
-<!-- CORTEX_VERSION_MINOR x2 (e.g. www.cortex.dev/v/0.8/...) -->
-Below, we'll walk through how to use Cortex to deploy OpenAI's GPT-2 model as a service on AWS. You'll need to [install Cortex](https://www.cortex.dev/install) on your [AWS account](aws.com) before getting started.
+<!-- CORTEX_VERSION_MINOR (e.g. www.cortex.dev/v/0.8/...) -->
+Below, we'll walk through how to use Cortex to deploy OpenAI's GPT-2 model as a service on AWS. You'll need to [install Cortex](https://www.cortex.dev/install) on your AWS account before getting started.
 
 <br>
 
-### Step 1. configure your deployment
+### Step 1: Configure your deployment
 
 <!-- CORTEX_VERSION_MINOR -->
-
-Define a `deployment` and an `api` resource. A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. The above example configuration will download the model from the `cortex-examples` S3 bucket. You can run the code that generated the exported GPT-2 model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/text-generator/gpt-2.ipynb).
+Define a `deployment` and an `api` resource. A `deployment` specifies a set of APIs that are deployed as a single unit. An `api` makes a model available as a web service that can serve real-time predictions. The configuration below will download the model from the `cortex-examples` S3 bucket. You can run the code that generated the exported GPT-2 model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/text-generator/gpt-2.ipynb).
 
 ```yaml
 # cortex.yaml
@@ -39,7 +38,7 @@ Define a `deployment` and an `api` resource. A `deployment` specifies a set of r
 
 <br>
 
-### Step 2. add request handling
+### Step 2: Add request handling
 
 The model requires encoded data for inference, but the API should accept strings of natural language as input. It should also decode the inference output. This can be implemented in a request handler file using the `pre_inference` and `post_inference` functions:
 
@@ -62,7 +61,7 @@ def post_inference(prediction, metadata):
 
 <br>
 
-### Step 3. deploy to AWS
+### Step 3: Deploy to AWS
 
 Deploying to AWS is as simple as running `cortex deploy` from your CLI. `cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on the cluster:
 
@@ -89,7 +88,7 @@ The output above indicates that one replica of the API was requested and one rep
 
 <br>
 
-### Step 4. serve real-time predictions
+### Step 4: Serve real-time predictions
 
 Once you have your endpoint, you can make requests:
 
@@ -112,22 +111,22 @@ Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).
 
 - [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/master/examples/sentiment-analysis) with BERT
 
-- [Image classification](https://github.com/cortexlabs/cortex/tree/master/examples/image-classifier) with Inception v3
+- [Image classification](https://github.com/cortexlabs/cortex/tree/master/examples/image-classifier) with Inception v3 and AlexNet
 
 <br>
 
 ## Key features
 
-- **Minimal declarative configuration:** Deployments can be defined in a single `cortex.yaml` file.
-
 - **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
 
 - **Multi framework:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
 
+- **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
+
 - **Rolling updates:** Cortex updates deployed APIs without any downtime.
 
-- **Log streaming:** Cortex streams logs from your deployed models to your CLI.
+- **Log streaming:** Cortex streams logs from deployed models to your CLI.
 
-- **Prediction monitoring:** Cortex can monitor network metrics and track predictions.
+- **Prediction monitoring:** Cortex monitors network metrics and tracks predictions.
 
-- **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
+- **Minimal declarative configuration:** Deployments are defined in a single `cortex.yaml` file.
