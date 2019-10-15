@@ -28,7 +28,6 @@ The model requires encoded data for inference, but the API should accept strings
 
 ```python
 from encoder import get_encoder
-
 encoder = get_encoder()
 
 
@@ -39,7 +38,7 @@ def pre_inference(sample, metadata):
 
 def post_inference(prediction, metadata):
     response = prediction["sample"]
-    return {encoder.decode(response)}
+    return encoder.decode(response)
 ```
 
 ## Deploy to AWS
