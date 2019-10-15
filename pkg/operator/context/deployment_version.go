@@ -22,7 +22,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
@@ -38,7 +37,10 @@ func getOrSetDeploymentVersion(appName string, ignoreCache bool) (string, error)
 		deploymentVersion := libtime.Timestamp(time.Now())
 		err := config.AWS.UploadStringToS3(deploymentVersion, deploymentVersionFileKey)
 		if err != nil {
-			return "", errors.Wrap(err, "deployment version") // unexpected error
+			if aws.IsNoSuchBucketErr(err) {
+				return "", aws.ErrorBucketInaccessible(config.AWS.Bucket)
+			}
+			return "", err
 		}
 		return deploymentVersion, nil
 	}
@@ -46,12 +48,18 @@ func getOrSetDeploymentVersion(appName string, ignoreCache bool) (string, error)
 	deploymentVersion, err := config.AWS.ReadStringFromS3(deploymentVersionFileKey)
 	if err != nil {
 		if !aws.IsNoSuchKeyErr(err) {
-			return "", errors.Wrap(err, "deployment version") // unexpected error
+			if aws.IsNoSuchBucketErr(err) {
+				return "", aws.ErrorBucketInaccessible(config.AWS.Bucket)
+			}
+			return "", err
 		}
 		deploymentVersion = libtime.Timestamp(time.Now())
 		err := config.AWS.UploadStringToS3(deploymentVersion, deploymentVersionFileKey)
 		if err != nil {
-			return "", errors.Wrap(err, "deployment version") // unexpected error
+			if aws.IsNoSuchBucketErr(err) {
+				return "", aws.ErrorBucketInaccessible(config.AWS.Bucket)
+			}
+			return "", err
 		}
 	}
 	return deploymentVersion, nil
