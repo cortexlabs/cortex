@@ -24,7 +24,7 @@ eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | g
 echo "Uninstalling Cortex ..."
 
 kubectl delete --ignore-not-found=true namespace istio-system
-kubectl delete --ignore-not-found=true namespace $CORTEX_NAMESPACE
+kubectl delete --ignore-not-found=true namespace cortex
 kubectl delete --ignore-not-found=true -n kube-system deployment cluster-autoscaler
 kubectl delete --ignore-not-found=true apiservice v1beta1.metrics.k8s.io
 kubectl delete --ignore-not-found=true -n kube-system deployment metrics-server

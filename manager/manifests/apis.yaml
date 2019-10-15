@@ -16,7 +16,7 @@ apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   name: apis-gateway
-  namespace: $CORTEX_NAMESPACE
+  namespace: cortex
 spec:
   selector:
     istio: apis-ingressgateway

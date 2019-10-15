@@ -59,7 +59,6 @@ export CORTEX_CLUSTER="cortex"
 export CORTEX_NODE_TYPE="t3.medium"
 export CORTEX_NODES_MIN="2"
 export CORTEX_NODES_MAX="5"
-export CORTEX_NAMESPACE="cortex"
 
 export CORTEX_IMAGE_MANAGER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/manager:latest"
 export CORTEX_IMAGE_FLUENTD="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/fluentd:latest"

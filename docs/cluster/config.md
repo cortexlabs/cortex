@@ -36,9 +36,6 @@ export CORTEX_NODES_MIN=2
 # Maximum number of nodes in the cluster
 export CORTEX_NODES_MAX=5
 
-# The name of the Kubernetes namespace Cortex will use
-export CORTEX_NAMESPACE="cortex"
-
 # Image paths
 export CORTEX_IMAGE_MANAGER="cortexlabs/manager:master"
 export CORTEX_IMAGE_FLUENTD="cortexlabs/fluentd:master"
