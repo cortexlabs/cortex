@@ -63,7 +63,7 @@ def post_inference(prediction, metadata):
 
 ### Step 3: Deploy to AWS
 
-Deploying to AWS is as simple as running `cortex deploy` from your CLI. `cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on the cluster:
+Deploying to AWS is as simple as running `cortex deploy` from your CLI. `cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on the cluster. Behind the scenes, Cortex will containerize the model, make it servable using TensorFlow Serving, expose the endpoint with a load balancer, and orchestrate the workload on Kubernetes.
 
 ```bash
 $ cortex deploy
@@ -71,9 +71,7 @@ $ cortex deploy
 deployment started
 ```
 
-Behind the scenes, Cortex containerizes the model, makes it servable using TensorFlow Serving, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
-
-You can track the status of a deployment using `cortex get`:
+You can track the status of a deployment using `cortex get`. The output below indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
 
 ```bash
 $ cortex get generator --watch
@@ -83,8 +81,6 @@ live     1            1           1           8s            123ms
 
 url: http://***.amazonaws.com/text/generator
 ```
-
-The output above indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
 
 <br>
 
