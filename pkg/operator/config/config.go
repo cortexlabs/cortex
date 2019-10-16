@@ -51,9 +51,8 @@ type CortexConfig struct {
 	ONNXServeImage    string `json:"onnx_serve_image"`
 	ONNXServeImageGPU string `json:"onnx_serve_gpu_image"`
 
-	TelemetryURL      string `json:"telemetry_url"`
-	EnableTelemetry   bool   `json:"enable_telemetry"`
-	OperatorInCluster bool   `json:"operator_in_cluster"`
+	EnableTelemetry   bool `json:"enable_telemetry"`
+	OperatorInCluster bool `json:"operator_in_cluster"`
 }
 
 func Init() error {
@@ -71,7 +70,6 @@ func Init() error {
 		ONNXServeImage:    getStr("IMAGE_ONNX_SERVE"),
 		ONNXServeImageGPU: getStr("IMAGE_ONNX_SERVE_GPU"),
 
-		TelemetryURL:      configreader.MustStringFromEnv("CORTEX_TELEMETRY_URL", &configreader.StringValidation{Required: false, Default: consts.TelemetryURL}),
 		EnableTelemetry:   getBool("ENABLE_TELEMETRY", false),
 		OperatorInCluster: getBool("OPERATOR_IN_CLUSTER", true),
 	}
@@ -83,7 +81,7 @@ func Init() error {
 	if err != nil {
 		errors.Exit(err)
 	}
-	Telemetry = telemetry.New(Cortex.TelemetryURL, AWS.HashedAccountID, Cortex.EnableTelemetry)
+	Telemetry = telemetry.New(consts.TelemetryURL, AWS.HashedAccountID, Cortex.EnableTelemetry)
 
 	if Kubernetes, err = k8s.New(Cortex.Namespace, Cortex.OperatorInCluster); err != nil {
 		return err

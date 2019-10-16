@@ -143,6 +143,9 @@ func Float64PtrFromEnvOrFile(envVarName string, filePath string, v *Float64PtrVa
 }
 
 func Float64PtrFromPrompt(promptOpts *prompt.PromptOptions, v *Float64PtrValidation) (*float64, error) {
+	if v.Default != nil && promptOpts.DefaultStr == "" {
+		promptOpts.DefaultStr = s.Float64(*v.Default)
+	}
 	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {
 		return ValidateFloat64PtrMissing(v)

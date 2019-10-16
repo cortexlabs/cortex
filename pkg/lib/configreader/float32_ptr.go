@@ -143,6 +143,9 @@ func Float32PtrFromEnvOrFile(envVarName string, filePath string, v *Float32PtrVa
 }
 
 func Float32PtrFromPrompt(promptOpts *prompt.PromptOptions, v *Float32PtrValidation) (*float32, error) {
+	if v.Default != nil && promptOpts.DefaultStr == "" {
+		promptOpts.DefaultStr = s.Float32(*v.Default)
+	}
 	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {
 		return ValidateFloat32PtrMissing(v)

@@ -143,6 +143,9 @@ func Int64PtrFromEnvOrFile(envVarName string, filePath string, v *Int64PtrValida
 }
 
 func Int64PtrFromPrompt(promptOpts *prompt.PromptOptions, v *Int64PtrValidation) (*int64, error) {
+	if v.Default != nil && promptOpts.DefaultStr == "" {
+		promptOpts.DefaultStr = s.Int64(*v.Default)
+	}
 	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {
 		return ValidateInt64PtrMissing(v)

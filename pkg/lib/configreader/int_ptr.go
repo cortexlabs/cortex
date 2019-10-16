@@ -143,6 +143,9 @@ func IntPtrFromEnvOrFile(envVarName string, filePath string, v *IntPtrValidation
 }
 
 func IntPtrFromPrompt(promptOpts *prompt.PromptOptions, v *IntPtrValidation) (*int, error) {
+	if v.Default != nil && promptOpts.DefaultStr == "" {
+		promptOpts.DefaultStr = s.Int(*v.Default)
+	}
 	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {
 		return ValidateIntPtrMissing(v)

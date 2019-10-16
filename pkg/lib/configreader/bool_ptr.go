@@ -126,6 +126,9 @@ func BoolPtrFromEnvOrFile(envVarName string, filePath string, v *BoolPtrValidati
 }
 
 func BoolPtrFromPrompt(promptOpts *prompt.PromptOptions, v *BoolPtrValidation) (*bool, error) {
+	if v.Default != nil && promptOpts.DefaultStr == "" {
+		promptOpts.DefaultStr = s.Bool(*v.Default)
+	}
 	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {
 		return ValidateBoolPtrMissing(v)

@@ -161,6 +161,9 @@ func StringPtrFromEnvOrFile(envVarName string, filePath string, v *StringPtrVali
 }
 
 func StringPtrFromPrompt(promptOpts *prompt.PromptOptions, v *StringPtrValidation) (*string, error) {
+	if v.Default != nil && promptOpts.DefaultStr == "" {
+		promptOpts.DefaultStr = *v.Default
+	}
 	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" { // Treat empty prompt value as missing
 		ValidateStringPtrMissing(v)

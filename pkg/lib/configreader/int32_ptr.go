@@ -143,6 +143,9 @@ func Int32PtrFromEnvOrFile(envVarName string, filePath string, v *Int32PtrValida
 }
 
 func Int32PtrFromPrompt(promptOpts *prompt.PromptOptions, v *Int32PtrValidation) (*int32, error) {
+	if v.Default != nil && promptOpts.DefaultStr == "" {
+		promptOpts.DefaultStr = s.Int32(*v.Default)
+	}
 	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {
 		return ValidateInt32PtrMissing(v)
