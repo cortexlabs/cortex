@@ -33,14 +33,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
-var cmdStr string
+const CORTEX_VERSION_BRANCH_STABLE = "master"
 
-var flagEnv string
-var flagWatch bool
-var flagAppName string
-var flagVerbose bool
-var flagSummary bool
-var flagAllDeployments bool
+var cmdStr string
 
 var configFileExts = []string{"yaml", "yml"}
 
@@ -87,33 +82,20 @@ func Execute() {
 	rootCmd.Execute()
 }
 
-func setConfigFlag(flagStr string, description string, flag *string, cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(flag, flagStr+"-config", "", "", description)
-	cmd.PersistentFlags().SetAnnotation(flagStr+"-config", cobra.BashCompFilenameExt, configFileExts)
-}
+var flagEnv string
+var flagAppName string
+var flagClusterConfig string
 
 func addEnvFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&flagEnv, "env", "e", "default", "environment")
-}
-
-func addWatchFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().BoolVarP(&flagWatch, "watch", "w", false, "re-run the command every second")
 }
 
 func addAppNameFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&flagAppName, "deployment", "d", "", "deployment name")
 }
 
-func addVerboseFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().BoolVarP(&flagVerbose, "verbose", "v", false, "show verbose output")
-}
-
-func addSummaryFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().BoolVarP(&flagSummary, "summary", "s", false, "show summarized output")
-}
-
-func addAllDeploymentsFlag(cmd *cobra.Command) {
-	getCmd.PersistentFlags().BoolVarP(&flagAllDeployments, "all-deployments", "a", false, "list all deployments")
+func addClusterConfigFlag(cmd *cobra.Command) {
+	cmd.PersistentFlags().StringVarP(&flagClusterConfig, "config", "c", "", "path to a Cortex cluster configuration file")
 }
 
 var resourceTypesHelp = fmt.Sprintf("\nResource Types:\n  %s\n", strings.Join(resource.VisibleTypes.StringList(), "\n  "))

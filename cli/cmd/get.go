@@ -40,13 +40,18 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
+var flagWatch bool
+var flagVerbose bool
+var flagSummary bool
+var flagAllDeployments bool
+
 func init() {
 	addAppNameFlag(getCmd)
 	addEnvFlag(getCmd)
-	addWatchFlag(getCmd)
-	addSummaryFlag(getCmd)
-	addVerboseFlag(getCmd)
-	addAllDeploymentsFlag(getCmd)
+	getCmd.PersistentFlags().BoolVarP(&flagWatch, "watch", "w", false, "re-run the command every second")
+	getCmd.PersistentFlags().BoolVarP(&flagSummary, "summary", "s", false, "show summarized output")
+	getCmd.PersistentFlags().BoolVarP(&flagVerbose, "verbose", "v", false, "show verbose output")
+	getCmd.PersistentFlags().BoolVarP(&flagAllDeployments, "all-deployments", "a", false, "list all deployments")
 	// addResourceTypesToHelp(getCmd)
 }
 
