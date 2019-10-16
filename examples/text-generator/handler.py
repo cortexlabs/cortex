@@ -10,4 +10,4 @@ def pre_inference(sample, metadata):
 
 def post_inference(prediction, metadata):
     response = prediction["sample"]
-    return {encoder.decode(response)}
+    return encoder.decode(response)
