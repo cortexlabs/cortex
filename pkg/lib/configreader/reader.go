@@ -532,17 +532,25 @@ type PromptItemValidation struct {
 	PromptOpts  *prompt.PromptOptions // Required
 
 	// Provide one of the following:
-	StringValidation  *StringValidation
-	BoolValidation    *BoolValidation
-	IntValidation     *IntValidation
-	Int32Validation   *Int32Validation
-	Int64Validation   *Int64Validation
-	Float32Validation *Float32Validation
-	Float64Validation *Float64Validation
+	StringValidation     *StringValidation
+	StringPtrValidation  *StringPtrValidation
+	BoolValidation       *BoolValidation
+	BoolPtrValidation    *BoolPtrValidation
+	IntValidation        *IntValidation
+	IntPtrValidation     *IntPtrValidation
+	Int32Validation      *Int32Validation
+	Int32PtrValidation   *Int32PtrValidation
+	Int64Validation      *Int64Validation
+	Int64PtrValidation   *Int64PtrValidation
+	Float32Validation    *Float32Validation
+	Float32PtrValidation *Float32PtrValidation
+	Float64Validation    *Float64Validation
+	Float64PtrValidation *Float64PtrValidation
 }
 
 type PromptValidation struct {
 	PromptItemValidations []*PromptItemValidation
+	SkipPopulatedFields   bool
 }
 
 func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
@@ -550,21 +558,42 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 	var err error
 
 	for _, promptItemValidation := range promptValidation.PromptItemValidations {
+		if promptValidation.SkipPopulatedFields {
+			v := reflect.ValueOf(dest).Elem().FieldByName(promptItemValidation.StructField)
+			if v.Kind() == reflect.Ptr && !v.IsNil() {
+				continue
+			}
+		}
+
 		for {
 			if promptItemValidation.StringValidation != nil {
 				val, err = StringFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.StringValidation)
+			} else if promptItemValidation.StringPtrValidation != nil {
+				val, err = StringPtrFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.StringPtrValidation)
 			} else if promptItemValidation.BoolValidation != nil {
 				val, err = BoolFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.BoolValidation)
+			} else if promptItemValidation.BoolPtrValidation != nil {
+				val, err = BoolPtrFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.BoolPtrValidation)
 			} else if promptItemValidation.IntValidation != nil {
 				val, err = IntFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.IntValidation)
+			} else if promptItemValidation.IntPtrValidation != nil {
+				val, err = IntPtrFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.IntPtrValidation)
 			} else if promptItemValidation.Int32Validation != nil {
 				val, err = Int32FromPrompt(promptItemValidation.PromptOpts, promptItemValidation.Int32Validation)
+			} else if promptItemValidation.Int32PtrValidation != nil {
+				val, err = Int32PtrFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.Int32PtrValidation)
 			} else if promptItemValidation.Int64Validation != nil {
 				val, err = Int64FromPrompt(promptItemValidation.PromptOpts, promptItemValidation.Int64Validation)
+			} else if promptItemValidation.Int64PtrValidation != nil {
+				val, err = Int64PtrFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.Int64PtrValidation)
 			} else if promptItemValidation.Float32Validation != nil {
 				val, err = Float32FromPrompt(promptItemValidation.PromptOpts, promptItemValidation.Float32Validation)
+			} else if promptItemValidation.Float32PtrValidation != nil {
+				val, err = Float32PtrFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.Float32PtrValidation)
 			} else if promptItemValidation.Float64Validation != nil {
 				val, err = Float64FromPrompt(promptItemValidation.PromptOpts, promptItemValidation.Float64Validation)
+			} else if promptItemValidation.Float64PtrValidation != nil {
+				val, err = Float64PtrFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.Float64PtrValidation)
 			} else {
 				errors.Panic("Undefined or unsupported validation type for ReadPrompt")
 			}
@@ -575,7 +604,12 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 			fmt.Println(err.Error())
 		}
 
-		err = setField(val, dest, promptItemValidation.StructField)
+		if val == nil {
+			err = setFieldNil(dest, promptItemValidation.StructField)
+		} else {
+			err = setField(val, dest, promptItemValidation.StructField)
+		}
+
 		if err != nil {
 			return err
 		}

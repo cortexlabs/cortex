@@ -64,6 +64,7 @@ var clusterConfigValidation = &cr.StructValidation{
 			StructField: "NodesMin",
 			Int64PtrValidation: &cr.Int64PtrValidation{
 				GreaterThan: pointer.Int64(0),
+				Default:     pointer.Int64(1),
 			},
 		},
 		{
@@ -71,6 +72,33 @@ var clusterConfigValidation = &cr.StructValidation{
 			StructField: "NodesMax",
 			Int64PtrValidation: &cr.Int64PtrValidation{
 				GreaterThan: pointer.Int64(0),
+				Default:     pointer.Int64(3),
+			},
+		},
+	},
+}
+
+var clusterConfigPrompts = &cr.PromptValidation{
+	SkipPopulatedFields: true,
+	PromptItemValidations: []*cr.PromptItemValidation{
+		{
+			StructField: "ClusterName",
+			PromptOpts: &prompt.PromptOptions{
+				Prompt: "Enter Cortex cluster name",
+			},
+			StringPtrValidation: &cr.StringPtrValidation{
+				Required: true,
+				Default:  pointer.String("cortex"),
+			},
+		},
+		{
+			StructField: "NodeType",
+			PromptOpts: &prompt.PromptOptions{
+				Prompt: "Enter AWS instance type",
+			},
+			StringPtrValidation: &cr.StringPtrValidation{
+				Required: true,
+				Default:  pointer.String("m5.large"),
 			},
 		},
 	},
@@ -108,6 +136,11 @@ This command installs Cortex on your AWS account.`,
 			}
 		}
 
+		err := cr.ReadPrompt(clusterConfig, clusterConfigPrompts)
+		if err != nil {
+			errors.Exit(err)
+		}
+
 		fmt.Printf("cluster name:      %s\n", *clusterConfig.ClusterName)
 		fmt.Printf("instance type:     %s\n", *clusterConfig.NodeType)
 		fmt.Printf("min nodes:         %d\n", *clusterConfig.NodesMin)
@@ -118,7 +151,6 @@ This command installs Cortex on your AWS account.`,
 			DefaultStr:  "Y",
 			HideDefault: true,
 		})
-
 		fmt.Println(str)
 
 		prompt.Prompt(&prompt.PromptOptions{

@@ -1,4 +1,4 @@
-cluster_name: beans
+cluster_name: cortex222
 node_type: t3.small
-nodes_min: 1
-nodes_max: 5
+# nodes_min: 2
+# nodes_max: 5
