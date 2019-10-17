@@ -1,23 +1,5 @@
 #!/bin/bash
 
-
-function set_aws_credentials() {
-
-  if [ "$CORTEX_AWS_ACCESS_KEY_ID" != "" ] && [ "$CORTEX_AWS_SECRET_ACCESS_KEY" != "" ]; then
-    true
-  elif [ "$CORTEX_AWS_ACCESS_KEY_ID" != "" ] || [ "$CORTEX_AWS_SECRET_ACCESS_KEY" != "" ]; then
-    echo -e "\nPlease export both CORTEX_AWS_ACCESS_KEY_ID and CORTEX_AWS_SECRET_ACCESS_KEY"
-    exit 1
-  fi
-
-  export CORTEX_AWS_ACCESS_KEY_ID="${CORTEX_AWS_ACCESS_KEY_ID:-$AWS_ACCESS_KEY_ID}"
-  export CORTEX_AWS_SECRET_ACCESS_KEY="${CORTEX_AWS_SECRET_ACCESS_KEY:-$AWS_SECRET_ACCESS_KEY}"
-}
-
-if [ "$arg2" != "cli" ]; then
-  set_aws_credentials
-fi
-
 function validate_install() {
   if [[ $CORTEX_NODE_TYPE == *nano ]] || [[ $CORTEX_NODE_TYPE == *micro ]] || [[ $CORTEX_NODE_TYPE == *small ]] || [[ $CORTEX_NODE_TYPE == *medium ]]; then
     echo -e "\nCortex does not support nano, micro, small, or medium instances - please specify a larger instance type"

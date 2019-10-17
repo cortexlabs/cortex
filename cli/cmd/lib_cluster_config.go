@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -64,24 +65,34 @@ type ClusterConfig struct {
 var clusterConfigValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
-			StructField:      "AWSAccessKeyID",
-			StringValidation: &cr.StringValidation{},
+			StructField: "AWSAccessKeyID",
+			StringValidation: &cr.StringValidation{
+				AllowEmpty: true,
+			},
 		},
 		{
-			StructField:      "AWSSecretAccessKey",
-			StringValidation: &cr.StringValidation{},
+			StructField: "AWSSecretAccessKey",
+			StringValidation: &cr.StringValidation{
+				AllowEmpty: true,
+			},
 		},
 		{
-			StructField:      "CortexAWSAccessKeyID",
-			StringValidation: &cr.StringValidation{},
+			StructField: "CortexAWSAccessKeyID",
+			StringValidation: &cr.StringValidation{
+				AllowEmpty: true,
+			},
 		},
 		{
-			StructField:      "CortexAWSSecretAccessKey",
-			StringValidation: &cr.StringValidation{},
+			StructField: "CortexAWSSecretAccessKey",
+			StringValidation: &cr.StringValidation{
+				AllowEmpty: true,
+			},
 		},
 		{
-			StructField:         "InstanceType",
-			StringPtrValidation: &cr.StringPtrValidation{},
+			StructField: "InstanceType",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Validator: validateInstanceType,
+			},
 		},
 		{
 			StructField: "MinInstances",
@@ -240,8 +251,9 @@ var clusterConfigPrompt = &cr.PromptValidation{
 				Prompt: "AWS instance type",
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
-				Required: true,
-				Default:  pointer.String("m5.large"),
+				Required:  true,
+				Default:   pointer.String("m5.large"),
+				Validator: validateInstanceType,
 			},
 		},
 		{
@@ -292,6 +304,16 @@ var awsCredentialsPrompt = &cr.PromptValidation{
 			},
 		},
 	},
+}
+
+func validateInstanceType(instanceType string) (string, error) {
+	if strings.HasSuffix(instanceType, "nano") ||
+		strings.HasSuffix(instanceType, "micro") ||
+		strings.HasSuffix(instanceType, "small") ||
+		strings.HasSuffix(instanceType, "medium") {
+		return "", errors.New("Cortex does not support nano, micro, small, or medium instances - please specify a larger instance type")
+	}
+	return instanceType, nil
 }
 
 func readClusterConfigYAML() (interface{}, error) {
