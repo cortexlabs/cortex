@@ -198,14 +198,17 @@ echo -e "\n✓ Configured networking"
 envsubst < manifests/cluster-autoscaler.yaml | kubectl apply -f - >/dev/null
 echo "✓ Configured autoscaling"
 
+kubectl -n=cortex delete --ignore-not-found=true daemonset fluentd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
 envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
 echo "✓ Configured logging"
 
+kubectl -n=cortex delete --ignore-not-found=true daemonset cloudwatch-agent-statsd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
 envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
 echo "✓ Configured metrics"
 
 if [[ "$CORTEX_NODE_TYPE" == p* ]] || [[ "$CORTEX_NODE_TYPE" == g* ]]; then
+  kubectl -n=cortex delete --ignore-not-found=true daemonset nvidia-device-plugin-daemonset >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
   envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
   echo "✓ Configured GPU support"
 fi
