@@ -1,5 +1,5 @@
 cluster_name: cortex222
-# instance_type: t3.small
+instance_type: t3.large
 min_instances: 3
 max_instances: 4
 telemetry: false

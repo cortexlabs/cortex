@@ -213,6 +213,7 @@ if [[ "$CORTEX_NODE_TYPE" == p* ]] || [[ "$CORTEX_NODE_TYPE" == g* ]]; then
   echo "✓ Configured GPU support"
 fi
 
+kubectl -n=cortex delete --ignore-not-found=true deployment operator >/dev/null 2>&1
 envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
 echo "✓ Started operator"
 

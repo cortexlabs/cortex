@@ -19,12 +19,16 @@ limitations under the License.
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	dockertypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 
@@ -78,27 +82,6 @@ This command spins up a Cortex cluster on your AWS account.`,
 	},
 }
 
-var updateCmd = &cobra.Command{
-	Use:   "update",
-	Short: "update a Cortex cluster",
-	Long: `
-This command updates a Cortex cluster.`,
-	Args: cobra.NoArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		clusterConfig, err := getClusterConfig(true)
-		if err != nil {
-			errors.Exit(err)
-		}
-
-		confirmClusterConfig(clusterConfig)
-
-		err = installCortex(clusterConfig)
-		if err != nil {
-			errors.Exit(err)
-		}
-	},
-}
-
 var infoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "get information about a Cortex cluster",
@@ -114,6 +97,27 @@ This command gets information about a Cortex cluster.`,
 		confirmClusterConfig(clusterConfig) // TODO just need subset, read from file saved on install?
 
 		err = clusterInfo(clusterConfig)
+		if err != nil {
+			errors.Exit(err)
+		}
+	},
+}
+
+var updateCmd = &cobra.Command{
+	Use:   "update",
+	Short: "update a Cortex cluster",
+	Long: `
+This command updates a Cortex cluster.`,
+	Args: cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		clusterConfig, err := getClusterConfig(true)
+		if err != nil {
+			errors.Exit(err)
+		}
+
+		confirmClusterConfig(clusterConfig)
+
+		err = installCortex(clusterConfig)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -172,6 +176,8 @@ func confirmClusterConfig(clusterConfig *ClusterConfig) {
 	}
 	fmt.Println()
 
+	return
+
 	for true {
 		str := prompt.Prompt(&prompt.PromptOptions{
 			Prompt:      "Is the configuration above correct? [y/n]",
@@ -197,14 +203,74 @@ func installEKS(clusterConfig *ClusterConfig) error {
 		return err
 	}
 
-	containers, err := docker.ContainerList(context.Background(), dockertypes.ContainerListOptions{})
+	ctx := context.Background()
+
+	// pullOut, err := docker.ImagePull(ctx, "debian:bullseye-20191014", dockertypes.ImagePullOptions{})
+	// if err != nil {
+	// 	return err
+	// }
+	// defer pullOut.Close()
+
+	// io.Copy(os.Stdout, pullOut)
+
+	containerConfig := &container.Config{
+		Image:        clusterConfig.ImageManager,
+		Entrypoint:   []string{"/bin/bash", "-c"},
+		Cmd:          []string{"ls && sleep 5 && ls"},
+		Tty:          true,
+		AttachStdout: true,
+		AttachStderr: true,
+	}
+	containerInfo, err := docker.ContainerCreate(ctx, containerConfig, nil, nil, "")
 	if err != nil {
-		panic(err)
+		errors.Exit(err)
 	}
 
-	for _, container := range containers {
-		fmt.Printf("%s %s\n", container.ID[:10], container.Image)
+	cleanup := func() {
+		fmt.Println("CLEANUP")
+		docker.ContainerRemove(ctx, containerInfo.ID, dockertypes.ContainerRemoveOptions{
+			RemoveVolumes: true,
+			Force:         true,
+		})
+		fmt.Println("done cleanup")
 	}
+
+	defer cleanup()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("caught")
+		cleanup()
+		fmt.Println("trying to exit")
+		os.Exit(1)
+	}()
+
+	err = docker.ContainerStart(ctx, containerInfo.ID, dockertypes.ContainerStartOptions{})
+	if err != nil {
+		return err
+	}
+
+	logOpts := dockertypes.ContainerLogsOptions{
+		ShowStderr: true,
+		ShowStdout: true,
+		Follow:     true,
+	}
+	logsOut, err := docker.ContainerLogs(ctx, containerInfo.ID, logOpts)
+	if err != nil {
+		return err
+	}
+	defer logsOut.Close()
+
+	scanner := bufio.NewScanner(logsOut)
+	for scanner.Scan() {
+		fmt.Println(scanner.Text())
+	}
+
+	// io.Copy(os.Stdout, logsOut)
+
+	fmt.Println("HERE")
 
 	return nil
 }
