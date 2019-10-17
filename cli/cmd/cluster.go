@@ -37,7 +37,9 @@ var flagClusterConfig string
 
 func init() {
 	addClusterConfigFlag(upCmd)
+	addClusterConfigFlag(downCmd)
 	clusterCmd.AddCommand(upCmd)
+	clusterCmd.AddCommand(downCmd)
 }
 
 func addClusterConfigFlag(cmd *cobra.Command) {
@@ -68,6 +70,69 @@ This command spins up a Cortex cluster on your AWS account.`,
 		if err != nil {
 			errors.Exit(err)
 		}
+
+		err = installCortex(clusterConfig)
+		if err != nil {
+			errors.Exit(err)
+		}
+	},
+}
+
+var updateCmd = &cobra.Command{
+	Use:   "update",
+	Short: "update a Cortex cluster",
+	Long: `
+This command updates a Cortex cluster.`,
+	Args: cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		clusterConfig, err := getClusterConfig(true)
+		if err != nil {
+			errors.Exit(err)
+		}
+
+		confirmClusterConfig(clusterConfig)
+
+		err = installCortex(clusterConfig)
+		if err != nil {
+			errors.Exit(err)
+		}
+	},
+}
+
+var infoCmd = &cobra.Command{
+	Use:   "info",
+	Short: "get information about a Cortex cluster",
+	Long: `
+This command gets information about a Cortex cluster.`,
+	Args: cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		clusterConfig, err := getClusterConfig(true)
+		if err != nil {
+			errors.Exit(err)
+		}
+
+		confirmClusterConfig(clusterConfig) // TODO just need subset, read from file saved on install?
+
+		err = clusterInfo(clusterConfig)
+		if err != nil {
+			errors.Exit(err)
+		}
+	},
+}
+
+var downCmd = &cobra.Command{
+	Use:   "down",
+	Short: "spin down a Cortex cluster",
+	Long: `
+This command spins down a Cortex cluster.`,
+	Args: cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		clusterConfig, err := getClusterConfig(true)
+		if err != nil {
+			errors.Exit(err)
+		}
+
+		confirmClusterConfig(clusterConfig) // TODO just need subset, read from file saved on install?
 	},
 }
 
@@ -127,6 +192,42 @@ func confirmClusterConfig(clusterConfig *ClusterConfig) {
 }
 
 func installEKS(clusterConfig *ClusterConfig) error {
+	docker, err := getDockerClient()
+	if err != nil {
+		return err
+	}
+
+	containers, err := docker.ContainerList(context.Background(), dockertypes.ContainerListOptions{})
+	if err != nil {
+		panic(err)
+	}
+
+	for _, container := range containers {
+		fmt.Printf("%s %s\n", container.ID[:10], container.Image)
+	}
+
+	return nil
+}
+
+func installCortex(clusterConfig *ClusterConfig) error {
+	docker, err := getDockerClient()
+	if err != nil {
+		return err
+	}
+
+	containers, err := docker.ContainerList(context.Background(), dockertypes.ContainerListOptions{})
+	if err != nil {
+		panic(err)
+	}
+
+	for _, container := range containers {
+		fmt.Printf("%s %s\n", container.ID[:10], container.Image)
+	}
+
+	return nil
+}
+
+func clusterInfo(clusterConfig *ClusterConfig) error {
 	docker, err := getDockerClient()
 	if err != nil {
 		return err
