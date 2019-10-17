@@ -19,14 +19,16 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 
 	dockertypes "github.com/docker/docker/api/types"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 func init() {
@@ -45,23 +47,7 @@ This command installs Cortex on your AWS account.`,
 			errors.Exit(err)
 		}
 
-		// fmt.Printf("cluster name:      %s\n", *clusterConfig.ClusterName)
-		// fmt.Printf("instance type:     %s\n", *clusterConfig.NodeType)
-		// fmt.Printf("min nodes:         %d\n", *clusterConfig.NodesMin)
-		// fmt.Printf("max nodes:         %d\n", *clusterConfig.NodesMax)
-
-		debug.Ppg(clusterConfig)
-
-		str := prompt.Prompt(&prompt.PromptOptions{
-			Prompt:      "Is the configuration above correct? [Y/n]",
-			DefaultStr:  "Y",
-			HideDefault: true,
-		})
-		fmt.Println(str)
-
-		prompt.Prompt(&prompt.PromptOptions{
-			Prompt: "Press [ENTER] to continue",
-		})
+		confirmClusterConfig(clusterConfig)
 
 		docker, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 		if err != nil {
@@ -80,4 +66,41 @@ This command installs Cortex on your AWS account.`,
 		}
 
 	},
+}
+
+func confirmClusterConfig(clusterConfig *ClusterConfig) {
+	displayBucket := clusterConfig.Bucket
+	if displayBucket == "" {
+		displayBucket = "(autogenerate)"
+	}
+
+	fmt.Printf("instance type:     %s\n", *clusterConfig.InstanceType)
+	fmt.Printf("min instances:     %d\n", *clusterConfig.MinInstances)
+	fmt.Printf("max instances:     %d\n", *clusterConfig.MaxInstances)
+	fmt.Printf("cluster name:      %s\n", clusterConfig.ClusterName)
+	fmt.Printf("region:            %s\n", clusterConfig.Region)
+	fmt.Printf("bucket:            %s\n", displayBucket)
+	fmt.Printf("log group:         %s\n", clusterConfig.LogGroup)
+	fmt.Printf("AWS access key ID: %s\n", s.MaskString(clusterConfig.AWSAccessKeyID, 4))
+	if clusterConfig.CortexAWSAccessKeyID != clusterConfig.AWSAccessKeyID {
+		fmt.Printf("AWS access key ID: %s\n (cortex)", s.MaskString(clusterConfig.CortexAWSAccessKeyID, 4))
+	}
+	fmt.Println()
+
+	for true {
+		str := prompt.Prompt(&prompt.PromptOptions{
+			Prompt:      "Is the configuration above correct? [y/n]",
+			HideDefault: true,
+		})
+
+		if strings.ToLower(str) == "y" {
+			return
+		}
+
+		if strings.ToLower(str) == "n" {
+			os.Exit(1)
+		}
+
+		fmt.Println("please enter \"y\" or \"n\"")
+	}
 }

@@ -1,42 +1,5 @@
 #!/bin/bash
 
-function validate_install() {
-  if [[ $CORTEX_NODE_TYPE == *nano ]] || [[ $CORTEX_NODE_TYPE == *micro ]] || [[ $CORTEX_NODE_TYPE == *small ]] || [[ $CORTEX_NODE_TYPE == *medium ]]; then
-    echo -e "\nCortex does not support nano, micro, small, or medium instances - please specify a larger instance type"
-    exit 1
-  fi
-}
-
-if [ "$arg1" = "install" ] && [ "$arg2" = "" ] && [ "$arg3" = "" ]; then
-  validate_install
-
-  echo
-  echo "￮ cluster name:      $CORTEX_CLUSTER_NAME"
-  echo "￮ region:            $CORTEX_REGION"
-  echo "￮ bucket:            "${CORTEX_BUCKET:-autogenerate}""
-  echo "￮ log group:         $CORTEX_LOG_GROUP"
-  echo "￮ instance type:     $CORTEX_NODE_TYPE"
-  echo "￮ min nodes:         $CORTEX_NODES_MIN"
-  echo "￮ max nodes:         $CORTEX_NODES_MAX"
-  echo "￮ AWS access key ID: ****************${AWS_ACCESS_KEY_ID:16}"
-
-  if [ "$CORTEX_AWS_ACCESS_KEY_ID" != "$AWS_ACCESS_KEY_ID" ]; then
-    echo "￮ AWS access key ID: ****************${CORTEX_AWS_ACCESS_KEY_ID:16} (Operator)"
-  fi
-
-  while true; do
-    echo
-    read -p "Is the configuration above correct? [Y/n] " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-      break
-    elif [[ $REPLY =~ ^[Nn]$ ]]; then
-      exit 1
-    fi
-    echo "Unexpected value, please enter \"Y\" or \"n\""
-  done
-fi
-
 ##########################
 ### TOP-LEVEL COMMANDS ###
 ##########################
