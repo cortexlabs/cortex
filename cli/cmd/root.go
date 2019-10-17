@@ -33,8 +33,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
-const CORTEX_VERSION_BRANCH_STABLE = "master"
-
 var cmdStr string
 
 var configFileExts = []string{"yaml", "yml"}

@@ -2,6 +2,8 @@
 
 # TODO get_cli.sh
 
+# CORTEX_VERSION_BRANCH_STABLE in get_cli.sh
+
 case "$OSTYPE" in
   darwin*)  PARSED_OS="darwin" ;;
   linux*)   PARSED_OS="linux" ;;

@@ -21,6 +21,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -109,7 +110,7 @@ var clusterConfigValidation = &cr.StructValidation{
 		{
 			StructField: "ClusterName",
 			StringValidation: &cr.StringValidation{
-				Default: "cortex",
+				Default: "cortex:" + consts.CortexVersion,
 			},
 		},
 		{
@@ -128,7 +129,7 @@ var clusterConfigValidation = &cr.StructValidation{
 		{
 			StructField: "LogGroup",
 			StringValidation: &cr.StringValidation{
-				Default: "cortex",
+				Default: "cortex:" + consts.CortexVersion,
 			},
 		},
 		{
@@ -140,103 +141,103 @@ var clusterConfigValidation = &cr.StructValidation{
 		{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/manager",
+				Default: "cortexlabs/manager:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageFluentd",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/fluentd",
+				Default: "cortexlabs/fluentd:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageStatsd",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/statsd",
+				Default: "cortexlabs/statsd:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageOperator",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/operator",
+				Default: "cortexlabs/operator:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageTFServe",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/tf-serve",
+				Default: "cortexlabs/tf-serve:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageTFApi",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/tf-api",
+				Default: "cortexlabs/tf-api:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageTFServeGpu",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/tf-serve-gpu",
+				Default: "cortexlabs/tf-serve-gpu:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageOnnxServe",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/onnx-serve",
+				Default: "cortexlabs/onnx-serve:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageOnnxServeGpu",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/onnx-serve-gpu",
+				Default: "cortexlabs/onnx-serve-gpu:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageClusterAutoscaler",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/cluster-autoscaler",
+				Default: "cortexlabs/cluster-autoscaler:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageNvidia",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/nvidia",
+				Default: "cortexlabs/nvidia:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageMetricsServer",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/metrics-server",
+				Default: "cortexlabs/metrics-server:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioCitadel",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/istio-citadel",
+				Default: "cortexlabs/istio-citadel:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioGalley",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/istio-galley",
+				Default: "cortexlabs/istio-galley:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioPilot",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/istio-pilot",
+				Default: "cortexlabs/istio-pilot:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioProxy",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/istio-proxy",
+				Default: "cortexlabs/istio-proxy:" + consts.CortexVersion,
 			},
 		},
 		{
 			StructField: "ImageDownloader",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/downloader",
+				Default: "cortexlabs/downloader:" + consts.CortexVersion,
 			},
 		},
 	},

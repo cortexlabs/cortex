@@ -19,18 +19,10 @@ limitations under the License.
 package cmd
 
 import (
-	"context"
 	"fmt"
-	"io"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
-	"time"
 
-	dockertypes "github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	dockerclient "github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -141,23 +133,6 @@ This command spins down a Cortex cluster.`,
 	},
 }
 
-var cachedDocker *dockerclient.Client
-
-func getDockerClient() (*dockerclient.Client, error) {
-	if cachedDocker != nil {
-		return cachedDocker, nil
-	}
-
-	var err error
-	cachedDocker, err = dockerclient.NewClientWithOpts(dockerclient.FromEnv)
-	if err != nil {
-		return nil, err
-	}
-
-	cachedDocker.NegotiateAPIVersion(context.Background())
-	return cachedDocker, nil
-}
-
 func confirmClusterConfig(clusterConfig *ClusterConfig) {
 	displayBucket := clusterConfig.Bucket
 	if displayBucket == "" {
@@ -196,119 +171,4 @@ func confirmClusterConfig(clusterConfig *ClusterConfig) {
 		fmt.Println("please enter \"y\" or \"n\"")
 		fmt.Println()
 	}
-}
-
-func installEKS(clusterConfig *ClusterConfig) error {
-	docker, err := getDockerClient()
-	if err != nil {
-		return err
-	}
-
-	ctx := context.Background()
-
-	// pullOut, err := docker.ImagePull(ctx, "debian:bullseye-20191014", dockertypes.ImagePullOptions{})
-	// if err != nil {
-	// 	return err
-	// }
-	// defer pullOut.Close()
-
-	// io.Copy(os.Stdout, pullOut)
-
-	containerConfig := &container.Config{
-		Image:        clusterConfig.ImageManager,
-		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{"ls && sleep 5 && ls"},
-		Tty:          true,
-		AttachStdout: true,
-		AttachStderr: true,
-	}
-	containerInfo, err := docker.ContainerCreate(ctx, containerConfig, nil, nil, "")
-	if err != nil {
-		errors.Exit(err)
-	}
-
-	removeContainer := func() {
-		docker.ContainerRemove(ctx, containerInfo.ID, dockertypes.ContainerRemoveOptions{
-			RemoveVolumes: true,
-			Force:         true,
-		})
-	}
-
-	defer removeContainer()
-
-	// Make sure to remove container immediately on ctrl+c
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	caughtCtrlC := false
-	go func() {
-		<-c
-		caughtCtrlC = true
-		removeContainer()
-		os.Exit(1)
-	}()
-
-	err = docker.ContainerStart(ctx, containerInfo.ID, dockertypes.ContainerStartOptions{})
-	if err != nil {
-		return err
-	}
-
-	logOpts := dockertypes.ContainerLogsOptions{
-		ShowStderr: true,
-		ShowStdout: true,
-		Follow:     true,
-	}
-	logsOut, err := docker.ContainerLogs(ctx, containerInfo.ID, logOpts)
-	if err != nil {
-		return err
-	}
-	defer logsOut.Close()
-
-	_, err = io.Copy(os.Stdout, logsOut)
-	if err != nil {
-		return err
-	}
-
-	// Let the ctrl+C hanlder run its course
-	if caughtCtrlC {
-		time.Sleep(time.Second)
-		return nil
-	}
-
-	return nil
-}
-
-func installCortex(clusterConfig *ClusterConfig) error {
-	docker, err := getDockerClient()
-	if err != nil {
-		return err
-	}
-
-	containers, err := docker.ContainerList(context.Background(), dockertypes.ContainerListOptions{})
-	if err != nil {
-		panic(err)
-	}
-
-	for _, container := range containers {
-		fmt.Printf("%s %s\n", container.ID[:10], container.Image)
-	}
-
-	return nil
-}
-
-func clusterInfo(clusterConfig *ClusterConfig) error {
-	docker, err := getDockerClient()
-	if err != nil {
-		return err
-	}
-
-	containers, err := docker.ContainerList(context.Background(), dockertypes.ContainerListOptions{})
-	if err != nil {
-		panic(err)
-	}
-
-	for _, container := range containers {
-		fmt.Printf("%s %s\n", container.ID[:10], container.Image)
-	}
-
-	return nil
 }
