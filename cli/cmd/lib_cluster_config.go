@@ -231,7 +231,7 @@ var clusterConfigValidation = &cr.StructValidation{
 	},
 }
 
-var clusterConfigPrompts = &cr.PromptValidation{
+var clusterConfigPrompt = &cr.PromptValidation{
 	SkipPopulatedFields: true,
 	PromptItemValidations: []*cr.PromptItemValidation{
 		{
@@ -264,6 +264,31 @@ var clusterConfigPrompts = &cr.PromptValidation{
 				Required:    true,
 				GreaterThan: pointer.Int64(0),
 				Default:     pointer.Int64(5),
+			},
+		},
+	},
+}
+
+var awsCredentialsPrompt = &cr.PromptValidation{
+	PromptItemValidations: []*cr.PromptItemValidation{
+		{
+			StructField: "AWSAccessKeyID",
+			PromptOpts: &prompt.PromptOptions{
+				Prompt: "Enter AWS Access Key ID",
+			},
+			StringValidation: &cr.StringValidation{
+				Required: true,
+			},
+		},
+		{
+			StructField: "AWSSecretAccessKey",
+			PromptOpts: &prompt.PromptOptions{
+				Prompt:      "Enter AWS Secret Access Key",
+				MaskDefault: true,
+				HideTyping:  true,
+			},
+			StringValidation: &cr.StringValidation{
+				Required: true,
 			},
 		},
 	},
@@ -322,17 +347,54 @@ func setClusterPrimaryAWSCredentials(clusterConfig *ClusterConfig) error {
 	}
 
 	// Prompt
+	err = cr.ReadPrompt(clusterConfig, awsCredentialsPrompt)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func setClusterCortexAWSCredentials(clusterConfig *ClusterConfig) error {
+	// First check env vars
+	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") != "" {
+		clusterConfig.CortexAWSAccessKeyID = os.Getenv("CORTEX_AWS_ACCESS_KEY_ID")
+		clusterConfig.CortexAWSSecretAccessKey = os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY")
+		return nil
+	}
+	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") == "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") != "" {
+		return errors.New("Only $CORTEX_AWS_SECRET_ACCESS_KEY is set; please run `export CORTEX_AWS_ACCESS_KEY_ID=***`")
+	}
+	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") == "" {
+		return errors.New("Only $CORTEX_AWS_ACCESS_KEY_ID is set; please run `export CORTEX_AWS_SECRET_ACCESS_KEY=***`")
+	}
 
+	// Next check cluster config yaml
+	if clusterConfig.CortexAWSAccessKeyID != "" && clusterConfig.CortexAWSSecretAccessKey != "" {
+		return nil
+	}
+	if clusterConfig.CortexAWSAccessKeyID == "" && clusterConfig.CortexAWSSecretAccessKey != "" {
+		return errors.New(fmt.Sprintf("Only cortex_aws_secret_access_key is set in %s; please set cortex_aws_access_key_id as well", flagClusterConfig))
+	}
+	if clusterConfig.CortexAWSAccessKeyID != "" && clusterConfig.CortexAWSSecretAccessKey == "" {
+		return errors.New(fmt.Sprintf("Only cortex_aws_access_key_id is set in %s; please set cortex_aws_secret_access_key as well", flagClusterConfig))
+	}
+
+	// Default to primary AWS credentials
+	clusterConfig.CortexAWSAccessKeyID = clusterConfig.AWSAccessKeyID
+	clusterConfig.CortexAWSSecretAccessKey = clusterConfig.AWSSecretAccessKey
+	return nil
 }
 
 func setClusterAWSCredentials(clusterConfig *ClusterConfig) error {
-	if os.Getenv("AWS_ACCESS_KEY_ID") != "" {
+	err := setClusterPrimaryAWSCredentials(clusterConfig)
+	if err != nil {
+		return err
+	}
 
+	err = setClusterCortexAWSCredentials(clusterConfig)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -360,7 +422,7 @@ func getClusterConfig(includeAWSCredentials bool) (*ClusterConfig, error) {
 		}
 	}
 
-	err := cr.ReadPrompt(clusterConfig, clusterConfigPrompts)
+	err := cr.ReadPrompt(clusterConfig, clusterConfigPrompt)
 	if err != nil {
 		return nil, err
 	}
