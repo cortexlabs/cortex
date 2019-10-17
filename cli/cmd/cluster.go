@@ -19,13 +19,14 @@ limitations under the License.
 package cmd
 
 import (
-	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -226,24 +227,23 @@ func installEKS(clusterConfig *ClusterConfig) error {
 		errors.Exit(err)
 	}
 
-	cleanup := func() {
-		fmt.Println("CLEANUP")
+	removeContainer := func() {
 		docker.ContainerRemove(ctx, containerInfo.ID, dockertypes.ContainerRemoveOptions{
 			RemoveVolumes: true,
 			Force:         true,
 		})
-		fmt.Println("done cleanup")
 	}
 
-	defer cleanup()
+	defer removeContainer()
 
+	// Make sure to remove container immediately on ctrl+c
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	caughtCtrlC := false
 	go func() {
 		<-c
-		fmt.Println("caught")
-		cleanup()
-		fmt.Println("trying to exit")
+		caughtCtrlC = true
+		removeContainer()
 		os.Exit(1)
 	}()
 
@@ -263,14 +263,16 @@ func installEKS(clusterConfig *ClusterConfig) error {
 	}
 	defer logsOut.Close()
 
-	scanner := bufio.NewScanner(logsOut)
-	for scanner.Scan() {
-		fmt.Println(scanner.Text())
+	_, err = io.Copy(os.Stdout, logsOut)
+	if err != nil {
+		return err
 	}
 
-	// io.Copy(os.Stdout, logsOut)
-
-	fmt.Println("HERE")
+	// Let the ctrl+C hanlder run its course
+	if caughtCtrlC {
+		time.Sleep(time.Second)
+		return nil
+	}
 
 	return nil
 }
