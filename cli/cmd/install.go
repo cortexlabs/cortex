@@ -49,23 +49,28 @@ This command installs Cortex on your AWS account.`,
 
 		confirmClusterConfig(clusterConfig)
 
-		docker, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
+		err = installEKS(clusterConfig)
 		if err != nil {
 			errors.Exit(err)
 		}
-
-		docker.NegotiateAPIVersion(context.Background())
-
-		containers, err := docker.ContainerList(context.Background(), dockertypes.ContainerListOptions{})
-		if err != nil {
-			panic(err)
-		}
-
-		for _, container := range containers {
-			fmt.Printf("%s %s\n", container.ID[:10], container.Image)
-		}
-
 	},
+}
+
+var cachedDocker *dockerclient.Client
+
+func getDockerClient() (*dockerclient.Client, error) {
+	if cachedDocker != nil {
+		return cachedDocker, nil
+	}
+
+	var err error
+	cachedDocker, err = dockerclient.NewClientWithOpts(dockerclient.FromEnv)
+	if err != nil {
+		return nil, err
+	}
+
+	cachedDocker.NegotiateAPIVersion(context.Background())
+	return cachedDocker, nil
 }
 
 func confirmClusterConfig(clusterConfig *ClusterConfig) {
@@ -103,4 +108,22 @@ func confirmClusterConfig(clusterConfig *ClusterConfig) {
 
 		fmt.Println("please enter \"y\" or \"n\"")
 	}
+}
+
+func installEKS(clusterConfig *ClusterConfig) error {
+	docker, err := getDockerClient()
+	if err != nil {
+		return err
+	}
+
+	containers, err := docker.ContainerList(context.Background(), dockertypes.ContainerListOptions{})
+	if err != nil {
+		panic(err)
+	}
+
+	for _, container := range containers {
+		fmt.Printf("%s %s\n", container.ID[:10], container.Image)
+	}
+
+	return nil
 }
