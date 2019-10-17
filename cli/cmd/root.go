@@ -64,7 +64,7 @@ func Execute() {
 	rootCmd.SetHelpCommand(&cobra.Command{Hidden: true})
 	cobra.EnableCommandSorting = false
 
-	rootCmd.AddCommand(installCmd)
+	rootCmd.AddCommand(clusterCmd)
 
 	rootCmd.AddCommand(deployCmd)
 	rootCmd.AddCommand(getCmd)
@@ -84,7 +84,6 @@ func Execute() {
 
 var flagEnv string
 var flagAppName string
-var flagClusterConfig string
 
 func addEnvFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&flagEnv, "env", "e", "default", "environment")
@@ -92,10 +91,6 @@ func addEnvFlag(cmd *cobra.Command) {
 
 func addAppNameFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&flagAppName, "deployment", "d", "", "deployment name")
-}
-
-func addClusterConfigFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&flagClusterConfig, "config", "c", "", "path to a Cortex cluster configuration file")
 }
 
 var resourceTypesHelp = fmt.Sprintf("\nResource Types:\n  %s\n", strings.Join(resource.VisibleTypes.StringList(), "\n  "))

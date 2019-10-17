@@ -601,7 +601,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 			if err == nil {
 				break
 			}
-			fmt.Println(err.Error())
+			fmt.Println(err.Error() + "\n")
 		}
 
 		if val == nil {

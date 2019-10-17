@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// cx cluster up/down
+
 package cmd
 
 import (
@@ -31,15 +33,28 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
+var flagClusterConfig string
+
 func init() {
-	addClusterConfigFlag(installCmd)
+	addClusterConfigFlag(upCmd)
+	clusterCmd.AddCommand(upCmd)
 }
 
-var installCmd = &cobra.Command{
-	Use:   "install",
-	Short: "install Cortex",
+func addClusterConfigFlag(cmd *cobra.Command) {
+	cmd.PersistentFlags().StringVarP(&flagClusterConfig, "config", "c", "", "path to a Cortex cluster configuration file")
+}
+
+var clusterCmd = &cobra.Command{
+	Use:   "cluster",
+	Short: "manage a Cortex cluster",
+	Long:  "Manage a Cortex cluster",
+}
+
+var upCmd = &cobra.Command{
+	Use:   "up",
+	Short: "spin up a Cortex cluster",
 	Long: `
-This command installs Cortex on your AWS account.`,
+This command spins up a Cortex cluster on your AWS account.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		clusterConfig, err := getClusterConfig(true)
@@ -107,6 +122,7 @@ func confirmClusterConfig(clusterConfig *ClusterConfig) {
 		}
 
 		fmt.Println("please enter \"y\" or \"n\"")
+		fmt.Println()
 	}
 }
 
