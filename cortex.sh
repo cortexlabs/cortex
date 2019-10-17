@@ -1,37 +1,7 @@
 #!/bin/bash
 
-function set_aws_credentials_from_cli() {
-  if ! command -v aws >/dev/null; then
-    return
-  fi
-  if [ ! -f $HOME/.aws/credentials ]; then
-    return
-  fi
-  if ! grep -Fxq "[default]" "$HOME/.aws/credentials"; then
-    return
-  fi
-
-  export AWS_ACCESS_KEY_ID=$(aws --profile default configure get aws_access_key_id)
-  export AWS_SECRET_ACCESS_KEY=$(aws --profile default configure get aws_secret_access_key)
-}
 
 function set_aws_credentials() {
-  if [ "$AWS_ACCESS_KEY_ID" != "" ] && [ "$AWS_SECRET_ACCESS_KEY" != "" ]; then
-    true
-  elif [ "$AWS_ACCESS_KEY_ID" == "" ] && [ "$AWS_SECRET_ACCESS_KEY" != "" ]; then
-    echo -e "\nPlease run \`export AWS_ACCESS_KEY_ID=***\`"
-    exit 1
-  elif [ "$AWS_ACCESS_KEY_ID" != "" ] && [ "$AWS_SECRET_ACCESS_KEY" == "" ]; then
-    echo -e "\nPlease run \`export AWS_SECRET_ACCESS_KEY=***\`"
-    exit 1
-  else
-    set_aws_credentials_from_cli
-  fi
-
-  if [ "$AWS_ACCESS_KEY_ID" == "" ] || [ "$AWS_SECRET_ACCESS_KEY" == "" ]; then
-    echo -e "\nPlease run \`export AWS_ACCESS_KEY_ID=***; export AWS_SECRET_ACCESS_KEY=***\`"
-    exit 1
-  fi
 
   if [ "$CORTEX_AWS_ACCESS_KEY_ID" != "" ] && [ "$CORTEX_AWS_SECRET_ACCESS_KEY" != "" ]; then
     true

@@ -17,6 +17,10 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -26,10 +30,10 @@ import (
 )
 
 type ClusterConfig struct {
-	AWSAccessKeyID           *string `json:"aws_access_key_id"`
-	AWSSecretAccessKey       *string `json:"aws_secret_access_key"`
-	CortexAWSAccessKeyID     *string `json:"cortex_aws_access_key_id"`
-	CortexAWSSecretAccessKey *string `json:"cortex_aws_secret_access_key"`
+	AWSAccessKeyID           string  `json:"aws_access_key_id"`
+	AWSSecretAccessKey       string  `json:"aws_secret_access_key"`
+	CortexAWSAccessKeyID     string  `json:"cortex_aws_access_key_id"`
+	CortexAWSSecretAccessKey string  `json:"cortex_aws_secret_access_key"`
 	InstanceType             *string `json:"instance_type"`
 	MinInstances             *int64  `json:"min_instances"`
 	MaxInstances             *int64  `json:"max_instances"`
@@ -59,6 +63,22 @@ type ClusterConfig struct {
 
 var clusterConfigValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField:      "AWSAccessKeyID",
+			StringValidation: &cr.StringValidation{},
+		},
+		{
+			StructField:      "AWSSecretAccessKey",
+			StringValidation: &cr.StringValidation{},
+		},
+		{
+			StructField:      "CortexAWSAccessKeyID",
+			StringValidation: &cr.StringValidation{},
+		},
+		{
+			StructField:      "CortexAWSSecretAccessKey",
+			StringValidation: &cr.StringValidation{},
+		},
 		{
 			StructField:         "InstanceType",
 			StringPtrValidation: &cr.StringPtrValidation{},
@@ -268,6 +288,56 @@ func readClusterConfigYAML() (interface{}, error) {
 	return clusterConfigInterface, nil
 }
 
+func setClusterPrimaryAWSCredentials(clusterConfig *ClusterConfig) error {
+	// First check env vars
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
+		clusterConfig.AWSAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
+		clusterConfig.AWSSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
+		return nil
+	}
+	if os.Getenv("AWS_ACCESS_KEY_ID") == "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
+		return errors.New("Only $AWS_SECRET_ACCESS_KEY is set; please run `export AWS_ACCESS_KEY_ID=***`")
+	}
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
+		return errors.New("Only $AWS_ACCESS_KEY_ID is set; please run `export AWS_SECRET_ACCESS_KEY=***`")
+	}
+
+	// Next check cluster config yaml
+	if clusterConfig.AWSAccessKeyID != "" && clusterConfig.AWSSecretAccessKey != "" {
+		return nil
+	}
+	if clusterConfig.AWSAccessKeyID == "" && clusterConfig.AWSSecretAccessKey != "" {
+		return errors.New(fmt.Sprintf("Only aws_secret_access_key is set in %s; please set aws_access_key_id as well", flagClusterConfig))
+	}
+	if clusterConfig.AWSAccessKeyID != "" && clusterConfig.AWSSecretAccessKey == "" {
+		return errors.New(fmt.Sprintf("Only aws_access_key_id is set in %s; please set aws_secret_access_key as well", flagClusterConfig))
+	}
+
+	// Next check AWS CLI config file
+	accessKeyID, secretAccessKey, err := aws.GetCredentialsFromCLIConfigFile()
+	if err == nil {
+		clusterConfig.AWSAccessKeyID = accessKeyID
+		clusterConfig.AWSSecretAccessKey = secretAccessKey
+		return nil
+	}
+
+	// Prompt
+
+	return nil
+}
+
+func setClusterCortexAWSCredentials(clusterConfig *ClusterConfig) error {
+
+}
+
+func setClusterAWSCredentials(clusterConfig *ClusterConfig) error {
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" {
+
+	}
+
+	return nil
+}
+
 func getClusterConfig(includeAWSCredentials bool) (*ClusterConfig, error) {
 	clusterConfig := &ClusterConfig{}
 
@@ -280,6 +350,13 @@ func getClusterConfig(includeAWSCredentials bool) (*ClusterConfig, error) {
 		errs := cr.Struct(clusterConfig, clusterConfigInterface, clusterConfigValidation)
 		if errors.HasErrors(errs) {
 			return nil, errors.Wrap(errors.FirstError(errs...), flagClusterConfig)
+		}
+	}
+
+	if includeAWSCredentials {
+		err := setClusterAWSCredentials(clusterConfig)
+		if err != nil {
+			return nil, err
 		}
 	}
 
