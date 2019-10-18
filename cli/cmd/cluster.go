@@ -56,40 +56,17 @@ var upCmd = &cobra.Command{
 This command spins up a Cortex cluster on your AWS account.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		clusterConfig, err := getClusterConfig(true)
+		clusterConfig, err := getInstallClusterConfig()
 		if err != nil {
 			errors.Exit(err)
 		}
 
-		confirmClusterConfig(clusterConfig)
-
-		err = installEKS(clusterConfig)
+		err = runManagerCommand("/root/install_eks.sh", clusterConfig)
 		if err != nil {
 			errors.Exit(err)
 		}
 
-		err = installCortex(clusterConfig)
-		if err != nil {
-			errors.Exit(err)
-		}
-	},
-}
-
-var infoCmd = &cobra.Command{
-	Use:   "info",
-	Short: "get information about a Cortex cluster",
-	Long: `
-This command gets information about a Cortex cluster.`,
-	Args: cobra.NoArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		clusterConfig, err := getClusterConfig(true)
-		if err != nil {
-			errors.Exit(err)
-		}
-
-		confirmClusterConfig(clusterConfig) // TODO just need subset, read from file saved on install?
-
-		err = clusterInfo(clusterConfig)
+		err = runManagerCommand("/root/install_cortex.sh", clusterConfig)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -103,14 +80,31 @@ var updateCmd = &cobra.Command{
 This command updates a Cortex cluster.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		clusterConfig, err := getClusterConfig(true)
+		clusterConfig, err := getInstallClusterConfig()
 		if err != nil {
 			errors.Exit(err)
 		}
 
-		confirmClusterConfig(clusterConfig)
+		err = runManagerCommand("/root/install_cortex.sh", clusterConfig)
+		if err != nil {
+			errors.Exit(err)
+		}
+	},
+}
 
-		err = installCortex(clusterConfig)
+var infoCmd = &cobra.Command{
+	Use:   "info",
+	Short: "get information about a Cortex cluster",
+	Long: `
+This command gets information about a Cortex cluster.`,
+	Args: cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		clusterConfig, err := getAccessClusterConfig()
+		if err != nil {
+			errors.Exit(err)
+		}
+
+		err = runManagerCommand("/root/info.sh", clusterConfig)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -124,12 +118,15 @@ var downCmd = &cobra.Command{
 This command spins down a Cortex cluster.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		clusterConfig, err := getClusterConfig(true)
+		clusterConfig, err := getAccessClusterConfig()
 		if err != nil {
 			errors.Exit(err)
 		}
 
-		confirmClusterConfig(clusterConfig) // TODO just need subset, read from file saved on install?
+		err = runManagerCommand("/root/uninstall_eks.sh", clusterConfig)
+		if err != nil {
+			errors.Exit(err)
+		}
 	},
 }
 
@@ -148,11 +145,9 @@ func confirmClusterConfig(clusterConfig *ClusterConfig) {
 	fmt.Printf("log group:         %s\n", clusterConfig.LogGroup)
 	fmt.Printf("AWS access key ID: %s\n", s.MaskString(clusterConfig.AWSAccessKeyID, 4))
 	if clusterConfig.CortexAWSAccessKeyID != clusterConfig.AWSAccessKeyID {
-		fmt.Printf("AWS access key ID: %s\n (cortex)", s.MaskString(clusterConfig.CortexAWSAccessKeyID, 4))
+		fmt.Printf("AWS access key ID: %s (cortex)\n", s.MaskString(clusterConfig.CortexAWSAccessKeyID, 4))
 	}
 	fmt.Println()
-
-	return
 
 	for true {
 		str := prompt.Prompt(&prompt.PromptOptions{

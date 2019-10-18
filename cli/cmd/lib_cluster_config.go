@@ -317,23 +317,28 @@ func validateInstanceType(instanceType string) (string, error) {
 	return instanceType, nil
 }
 
-func readClusterConfigYAML() (interface{}, error) {
+func readClusterConfigYAML(clusterConfig *ClusterConfig) error {
 	clusterConfigPath := files.UserPath(flagClusterConfig)
 	if err := files.CheckFile(clusterConfigPath); err != nil {
-		return nil, errors.New(flagClusterConfig, "Cortex cluster configuration file does not exist")
+		return errors.New(flagClusterConfig, "Cortex cluster configuration file does not exist")
 	}
 
 	clusterConfigBytes, err := files.ReadFileBytes(flagClusterConfig)
 	if err != nil {
-		return nil, errors.Wrap(err, flagClusterConfig, userconfig.ErrorReadConfig().Error())
+		return errors.Wrap(err, flagClusterConfig, userconfig.ErrorReadConfig().Error())
 	}
 
 	clusterConfigInterface, err := cr.ReadYAMLBytes(clusterConfigBytes)
 	if err != nil {
-		return nil, errors.Wrap(err, flagClusterConfig, userconfig.ErrorParseConfig().Error())
+		return errors.Wrap(err, flagClusterConfig, userconfig.ErrorParseConfig().Error())
 	}
 
-	return clusterConfigInterface, nil
+	errs := cr.Struct(clusterConfig, clusterConfigInterface, clusterConfigValidation)
+	if errors.HasErrors(errs) {
+		return errors.Wrap(errors.FirstError(errs...), flagClusterConfig)
+	}
+
+	return nil
 }
 
 func setClusterPrimaryAWSCredentials(clusterConfig *ClusterConfig) error {
@@ -366,6 +371,14 @@ func setClusterPrimaryAWSCredentials(clusterConfig *ClusterConfig) error {
 	if err == nil {
 		clusterConfig.AWSAccessKeyID = accessKeyID
 		clusterConfig.AWSSecretAccessKey = secretAccessKey
+		return nil
+	}
+
+	// Next check Cortex CLI config file
+	cliConfig, errs := readCLIConfig()
+	if !errors.HasErrors(errs) && cliConfig != nil && cliConfig.AWSAccessKeyID != "" && cliConfig.AWSSecretAccessKey != "" {
+		clusterConfig.AWSAccessKeyID = cliConfig.AWSAccessKeyID
+		clusterConfig.AWSSecretAccessKey = cliConfig.AWSSecretAccessKey
 		return nil
 	}
 
@@ -409,43 +422,48 @@ func setClusterCortexAWSCredentials(clusterConfig *ClusterConfig) error {
 	return nil
 }
 
-func setClusterAWSCredentials(clusterConfig *ClusterConfig) error {
-	err := setClusterPrimaryAWSCredentials(clusterConfig)
-	if err != nil {
-		return err
-	}
-
-	err = setClusterCortexAWSCredentials(clusterConfig)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func getClusterConfig(includeAWSCredentials bool) (*ClusterConfig, error) {
+func getInstallClusterConfig() (*ClusterConfig, error) {
 	clusterConfig := &ClusterConfig{}
 
 	if flagClusterConfig != "" {
-		clusterConfigInterface, err := readClusterConfigYAML()
-		if err != nil {
-			return nil, err
-		}
-
-		errs := cr.Struct(clusterConfig, clusterConfigInterface, clusterConfigValidation)
-		if errors.HasErrors(errs) {
-			return nil, errors.Wrap(errors.FirstError(errs...), flagClusterConfig)
-		}
-	}
-
-	if includeAWSCredentials {
-		err := setClusterAWSCredentials(clusterConfig)
+		err := readClusterConfigYAML(clusterConfig)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	err := cr.ReadPrompt(clusterConfig, clusterConfigPrompt)
+	if err != nil {
+		return nil, err
+	}
+
+	err = setClusterPrimaryAWSCredentials(clusterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	err = setClusterCortexAWSCredentials(clusterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	confirmClusterConfig(clusterConfig)
+
+	return clusterConfig, nil
+}
+
+// This just ensures that cluster name, cluster region, and primary AWS credentails are set
+func getAccessClusterConfig() (*ClusterConfig, error) {
+	clusterConfig := &ClusterConfig{}
+
+	if flagClusterConfig != "" {
+		err := readClusterConfigYAML(clusterConfig)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err := setClusterPrimaryAWSCredentials(clusterConfig)
 	if err != nil {
 		return nil, err
 	}

@@ -4,5 +4,4 @@ min_instances: 3
 max_instances: 4
 telemetry: false
 
-# TODO nested?
 image_manager: 764403040460.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/manager:latest

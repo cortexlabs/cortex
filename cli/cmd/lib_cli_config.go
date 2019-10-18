@@ -32,14 +32,16 @@ import (
 
 var cachedCLIConfig *CLIConfig
 var cachedCLIConfigErrs []error
+var homeDir string
 var localDir string
 
 func init() {
-	dir, err := homedir.Dir()
+	var err error
+	homeDir, err = homedir.Dir()
 	if err != nil {
 		errors.Exit(err)
 	}
-	localDir = filepath.Join(dir, ".cortex")
+	localDir = filepath.Join(homeDir, ".cortex")
 	err = os.MkdirAll(localDir, os.ModePerm)
 	if err != nil {
 		errors.Exit(err)
@@ -150,7 +152,7 @@ func readCLIConfig() (*CLIConfig, []error) {
 
 func getValidCLIConfig() *CLIConfig {
 	cliConfig, errs := readCLIConfig()
-	if len(errs) > 0 {
+	if errors.HasErrors(errs) {
 		cliConfig = configure()
 	}
 	return cliConfig

@@ -20,7 +20,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"os/signal"
@@ -30,6 +29,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/term"
@@ -130,7 +130,18 @@ func runManagerCommand(entrypoint string, clusterConfig *ClusterConfig) error {
 			"CORTEX_IMAGE_DOWNLOADER=" + clusterConfig.ImageDownloader,
 		},
 	}
-	containerInfo, err := docker.ContainerCreate(context.Background(), containerConfig, nil, nil, "")
+
+	hostConfig := &container.HostConfig{
+		Mounts: []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: localDir,
+				Target: "/.cortex",
+			},
+		},
+	}
+
+	containerInfo, err := docker.ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
 	if err != nil {
 		errors.Exit(err)
 	}
@@ -180,51 +191,6 @@ func runManagerCommand(entrypoint string, clusterConfig *ClusterConfig) error {
 	if caughtCtrlC {
 		time.Sleep(time.Second)
 		return nil
-	}
-
-	return nil
-}
-
-func installEKS(clusterConfig *ClusterConfig) error {
-	err := runManagerCommand("/root/install_eks.sh", clusterConfig)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func installCortex(clusterConfig *ClusterConfig) error {
-	docker, err := getDockerClient()
-	if err != nil {
-		return err
-	}
-
-	containers, err := docker.ContainerList(context.Background(), dockertypes.ContainerListOptions{})
-	if err != nil {
-		panic(err)
-	}
-
-	for _, container := range containers {
-		fmt.Printf("%s %s\n", container.ID[:10], container.Image)
-	}
-
-	return nil
-}
-
-func clusterInfo(clusterConfig *ClusterConfig) error {
-	docker, err := getDockerClient()
-	if err != nil {
-		return err
-	}
-
-	containers, err := docker.ContainerList(context.Background(), dockertypes.ContainerListOptions{})
-	if err != nil {
-		panic(err)
-	}
-
-	for _, container := range containers {
-		fmt.Printf("%s %s\n", container.ID[:10], container.Image)
 	}
 
 	return nil
