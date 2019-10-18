@@ -28,13 +28,13 @@ export CORTEX_REGION="us-west-2"
 export CORTEX_CLUSTER_NAME="cortex"
 
 # The AWS node type Cortex will use
-export CORTEX_NODE_TYPE="m5.large"
+export CORTEX_INSTANCE_TYPE="m5.large"
 
 # Minimum number of nodes in the cluster
-export CORTEX_NODES_MIN=2
+export CORTEX_MIN_INSTANCES=2
 
 # Maximum number of nodes in the cluster
-export CORTEX_NODES_MAX=5
+export CORTEX_MAX_INSTANCES=5
 
 # Image paths
 export CORTEX_IMAGE_MANAGER="cortexlabs/manager:master"
@@ -56,5 +56,5 @@ export CORTEX_IMAGE_ISTIO_GALLEY="cortexlabs/istio-galley:master"
 export CORTEX_IMAGE_DOWNLOADER="cortexlabs/downloader:master"
 
 # Flag to enable collecting error reports and usage stats. If flag is not set to either "true" or "false", you will be prompted.
-export CORTEX_ENABLE_TELEMETRY=""
+export CORTEX_TELEMETRY=""
 ```

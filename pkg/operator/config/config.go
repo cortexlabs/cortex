@@ -70,7 +70,7 @@ func Init() error {
 		ONNXServeImage:    getStr("IMAGE_ONNX_SERVE"),
 		ONNXServeImageGPU: getStr("IMAGE_ONNX_SERVE_GPU"),
 
-		EnableTelemetry:   getBool("ENABLE_TELEMETRY", false),
+		EnableTelemetry:   getBool("TELEMETRY", false),
 		OperatorInCluster: getBool("OPERATOR_IN_CLUSTER", true),
 	}
 	Cortex.ID = hash.String(Cortex.Bucket + Cortex.Region + Cortex.LogGroup)

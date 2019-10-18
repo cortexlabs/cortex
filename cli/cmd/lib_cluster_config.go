@@ -49,10 +49,10 @@ type ClusterConfig struct {
 	ImageStatsd              string  `json:"image_statsd"`
 	ImageOperator            string  `json:"image_operator"`
 	ImageTFServe             string  `json:"image_tf_serve"`
-	ImageTFApi               string  `json:"image_tf_api"`
-	ImageTFServeGpu          string  `json:"image_tf_serve_gpu"`
+	ImageTFAPI               string  `json:"image_tf_api"`
+	ImageTFServeGPU          string  `json:"image_tf_serve_gpu"`
 	ImageOnnxServe           string  `json:"image_onnx_serve"`
-	ImageOnnxServeGpu        string  `json:"image_onnx_serve_gpu"`
+	ImageOnnxServeGPU        string  `json:"image_onnx_serve_gpu"`
 	ImageClusterAutoscaler   string  `json:"image_cluster_autoscaler"`
 	ImageNvidia              string  `json:"image_nvidia"`
 	ImageMetricsServer       string  `json:"image_metrics_server"`
@@ -169,13 +169,13 @@ var clusterConfigValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "ImageTFApi",
+			StructField: "ImageTFAPI",
 			StringValidation: &cr.StringValidation{
 				Default: "cortexlabs/tf-api:" + consts.CortexVersion,
 			},
 		},
 		{
-			StructField: "ImageTFServeGpu",
+			StructField: "ImageTFServeGPU",
 			StringValidation: &cr.StringValidation{
 				Default: "cortexlabs/tf-serve-gpu:" + consts.CortexVersion,
 			},
@@ -187,7 +187,7 @@ var clusterConfigValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "ImageOnnxServeGpu",
+			StructField: "ImageOnnxServeGPU",
 			StringValidation: &cr.StringValidation{
 				Default: "cortexlabs/onnx-serve-gpu:" + consts.CortexVersion,
 			},

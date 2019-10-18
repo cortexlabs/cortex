@@ -56,9 +56,9 @@ export CORTEX_BUCKET="cortex-cluster-<your_name>"
 export CORTEX_REGION="us-west-2"
 
 export CORTEX_CLUSTER_NAME="cortex"
-export CORTEX_NODE_TYPE="t3.medium"
-export CORTEX_NODES_MIN="2"
-export CORTEX_NODES_MAX="5"
+export CORTEX_INSTANCE_TYPE="t3.medium"
+export CORTEX_MIN_INSTANCES="2"
+export CORTEX_MAX_INSTANCES="5"
 
 export CORTEX_IMAGE_MANAGER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/manager:latest"
 export CORTEX_IMAGE_FLUENTD="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/fluentd:latest"
@@ -78,7 +78,7 @@ export CORTEX_IMAGE_ISTIO_CITADEL="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cort
 export CORTEX_IMAGE_ISTIO_GALLEY="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-galley:latest"
 export CORTEX_IMAGE_DOWNLOADER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/downloader:latest"
 
-export CORTEX_ENABLE_TELEMETRY="false"
+export CORTEX_TELEMETRY="false"
 ```
 
 Create `dev/config/build.sh`. Paste the following config, and update `CLI_BUCKET_NAME`, `CLI_BUCKET_REGION`, `REGISTRY_URL`, and `REGISTRY_REGION` accordingly:

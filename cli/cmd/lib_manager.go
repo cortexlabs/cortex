@@ -27,6 +27,7 @@ import (
 	"syscall"
 	"time"
 
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	dockerclient "github.com/docker/docker/client"
@@ -84,31 +85,58 @@ func pullManager(clusterConfig *ClusterConfig) error {
 	return nil
 }
 
-func installEKS(clusterConfig *ClusterConfig) error {
+func runManagerCommand(entrypoint string, clusterConfig *ClusterConfig) error {
 	docker, err := getDockerClient()
 	if err != nil {
 		return err
 	}
 
-	ctx := context.Background()
-
 	pullManager(clusterConfig)
 
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
-		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{"ls && sleep 5 && ls"},
+		Entrypoint:   []string{entrypoint},
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
+		Env: []string{
+			"AWS_ACCESS_KEY_ID=" + clusterConfig.AWSAccessKeyID,
+			"AWS_SECRET_ACCESS_KEY=" + clusterConfig.AWSSecretAccessKey,
+			"CORTEX_AWS_ACCESS_KEY_ID=" + clusterConfig.CortexAWSAccessKeyID,
+			"CORTEX_AWS_SECRET_ACCESS_KEY=" + clusterConfig.CortexAWSSecretAccessKey,
+			"CORTEX_INSTANCE_TYPE=" + *clusterConfig.InstanceType,
+			"CORTEX_MIN_INSTANCES=" + s.Int64(*clusterConfig.MinInstances),
+			"CORTEX_MAX_INSTANCES=" + s.Int64(*clusterConfig.MaxInstances),
+			"CORTEX_CLUSTER_NAME=" + clusterConfig.ClusterName,
+			"CORTEX_REGION=" + clusterConfig.Region,
+			"CORTEX_BUCKET=" + clusterConfig.Bucket,
+			"CORTEX_LOG_GROUP=" + clusterConfig.LogGroup,
+			"CORTEX_TELEMETRY=" + s.Bool(clusterConfig.Telemetry),
+			"CORTEX_IMAGE_FLUENTD=" + clusterConfig.ImageFluentd,
+			"CORTEX_IMAGE_STATSD=" + clusterConfig.ImageStatsd,
+			"CORTEX_IMAGE_OPERATOR=" + clusterConfig.ImageOperator,
+			"CORTEX_IMAGE_TF_SERVE=" + clusterConfig.ImageTFServe,
+			"CORTEX_IMAGE_TF_API=" + clusterConfig.ImageTFAPI,
+			"CORTEX_IMAGE_TF_SERVE_GPU=" + clusterConfig.ImageTFServeGPU,
+			"CORTEX_IMAGE_ONNX_SERVE=" + clusterConfig.ImageOnnxServe,
+			"CORTEX_IMAGE_ONNX_SERVE_GPU=" + clusterConfig.ImageOnnxServeGPU,
+			"CORTEX_IMAGE_CLUSTER_AUTOSCALER=" + clusterConfig.ImageClusterAutoscaler,
+			"CORTEX_IMAGE_NVIDIA=" + clusterConfig.ImageNvidia,
+			"CORTEX_IMAGE_METRICS_SERVER=" + clusterConfig.ImageMetricsServer,
+			"CORTEX_IMAGE_ISTIO_CITADEL=" + clusterConfig.ImageIstioCitadel,
+			"CORTEX_IMAGE_ISTIO_GALLEY=" + clusterConfig.ImageIstioGalley,
+			"CORTEX_IMAGE_ISTIO_PILOT=" + clusterConfig.ImageIstioPilot,
+			"CORTEX_IMAGE_ISTIO_PROXY=" + clusterConfig.ImageIstioProxy,
+			"CORTEX_IMAGE_DOWNLOADER=" + clusterConfig.ImageDownloader,
+		},
 	}
-	containerInfo, err := docker.ContainerCreate(ctx, containerConfig, nil, nil, "")
+	containerInfo, err := docker.ContainerCreate(context.Background(), containerConfig, nil, nil, "")
 	if err != nil {
 		errors.Exit(err)
 	}
 
 	removeContainer := func() {
-		docker.ContainerRemove(ctx, containerInfo.ID, dockertypes.ContainerRemoveOptions{
+		docker.ContainerRemove(context.Background(), containerInfo.ID, dockertypes.ContainerRemoveOptions{
 			RemoveVolumes: true,
 			Force:         true,
 		})
@@ -127,7 +155,7 @@ func installEKS(clusterConfig *ClusterConfig) error {
 		os.Exit(1)
 	}()
 
-	err = docker.ContainerStart(ctx, containerInfo.ID, dockertypes.ContainerStartOptions{})
+	err = docker.ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
 		return err
 	}
@@ -137,7 +165,7 @@ func installEKS(clusterConfig *ClusterConfig) error {
 		ShowStdout: true,
 		Follow:     true,
 	}
-	logsOutput, err := docker.ContainerLogs(ctx, containerInfo.ID, logOpts)
+	logsOutput, err := docker.ContainerLogs(context.Background(), containerInfo.ID, logOpts)
 	if err != nil {
 		return err
 	}
@@ -152,6 +180,15 @@ func installEKS(clusterConfig *ClusterConfig) error {
 	if caughtCtrlC {
 		time.Sleep(time.Second)
 		return nil
+	}
+
+	return nil
+}
+
+func installEKS(clusterConfig *ClusterConfig) error {
+	err := runManagerCommand("/root/install_eks.sh", clusterConfig)
+	if err != nil {
+		return err
 	}
 
 	return nil

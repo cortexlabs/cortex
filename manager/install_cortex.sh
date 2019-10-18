@@ -62,7 +62,7 @@ function setup_configmap() {
     --from-literal='IMAGE_TF_API'=$CORTEX_IMAGE_TF_API \
     --from-literal='IMAGE_DOWNLOADER'=$CORTEX_IMAGE_DOWNLOADER \
     --from-literal='IMAGE_TF_SERVE_GPU'=$CORTEX_IMAGE_TF_SERVE_GPU \
-    --from-literal='ENABLE_TELEMETRY'=$CORTEX_ENABLE_TELEMETRY \
+    --from-literal='TELEMETRY'=$CORTEX_TELEMETRY \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 
@@ -207,7 +207,7 @@ envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
 envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
 echo "✓ Configured metrics"
 
-if [[ "$CORTEX_NODE_TYPE" == p* ]] || [[ "$CORTEX_NODE_TYPE" == g* ]]; then
+if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
   kubectl -n=cortex delete --ignore-not-found=true daemonset nvidia-device-plugin-daemonset >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
   envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
   echo "✓ Configured GPU support"

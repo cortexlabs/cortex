@@ -22,10 +22,10 @@ metadata:
 
 nodeGroups:
   - name: ng-1
-    instanceType: $CORTEX_NODE_TYPE
-    minSize: $CORTEX_NODES_MIN
-    maxSize: $CORTEX_NODES_MAX
-    desiredCapacity: $CORTEX_NODES_MIN
+    instanceType: $CORTEX_INSTANCE_TYPE
+    minSize: $CORTEX_MIN_INSTANCES
+    maxSize: $CORTEX_MAX_INSTANCES
+    desiredCapacity: $CORTEX_MIN_INSTANCES
     ami: auto
     iam:
       withAddonPolicies:
