@@ -144,17 +144,3 @@ function prompt_for_email() {
     fi
   fi
 }
-
-function confirm_for_uninstall() {
-  while true; do
-    echo
-    read -p "Are you sure you want to uninstall Cortex? (Your cluster will be spun down and all APIs will be deleted) [Y/n] " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-      break
-    elif [[ $REPLY =~ ^[Nn]$ ]]; then
-      exit 0
-    fi
-    echo "Unexpected value: $REPLY. Please enter \"Y\" or \"n\""
-  done
-}

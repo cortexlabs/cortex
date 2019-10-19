@@ -19,13 +19,18 @@ limitations under the License.
 package cmd
 
 import (
+	"bytes"
 	"fmt"
-	"os"
-	"strings"
+	"net/http"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -56,6 +61,8 @@ var upCmd = &cobra.Command{
 This command spins up a Cortex cluster on your AWS account.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		promptForEmail()
+
 		clusterConfig, err := getInstallClusterConfig()
 		if err != nil {
 			errors.Exit(err)
@@ -118,6 +125,8 @@ var downCmd = &cobra.Command{
 This command spins down a Cortex cluster.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		prompt.ForceYes("Are you sure you want to uninstall Cortex? (Your cluster will be spun down and all APIs will be deleted)")
+
 		clusterConfig, err := getAccessClusterConfig()
 		if err != nil {
 			errors.Exit(err)
@@ -149,21 +158,52 @@ func confirmClusterConfig(clusterConfig *ClusterConfig) {
 	}
 	fmt.Println()
 
-	for true {
-		str := prompt.Prompt(&prompt.PromptOptions{
-			Prompt:      "Is the configuration above correct? [y/n]",
-			HideDefault: true,
-		})
+	prompt.ForceYes("Is the configuration above correct?")
+}
 
-		if strings.ToLower(str) == "y" {
-			return
+// TODO anonymous struct?
+type EmailAddressContainer struct {
+	EmailAddress *string
+}
+
+var emailPrompValidation = &cr.PromptValidation{
+	PromptItemValidations: []*cr.PromptItemValidation{
+		{
+			StructField: "EmailAddress",
+			PromptOpts: &prompt.PromptOptions{
+				Prompt: "Email address [press enter to skip]",
+			},
+			StringPtrValidation: &cr.StringPtrValidation{
+				Required:  false,
+				Validator: cr.EmailValidator(),
+			},
+		},
+	},
+}
+
+func promptForEmail() {
+	fmt.Println("")
+	emailAddressContainer := &EmailAddressContainer{}
+	err := cr.ReadPrompt(emailAddressContainer, emailPrompValidation)
+	if err != nil {
+		errors.Exit(err)
+	}
+
+	if emailAddressContainer.EmailAddress != nil {
+		supportRequest := &SupportRequest{
+			Timestamp:    time.Now(),
+			Source:       "cli.cluster.install",
+			ID:           uuid.New().String(),
+			EmailAddress: *emailAddressContainer.EmailAddress,
 		}
 
-		if strings.ToLower(str) == "n" {
-			os.Exit(1)
-		}
+		byteArray, _ := json.Marshal(supportRequest)
 
-		fmt.Println("please enter \"y\" or \"n\"")
-		fmt.Println()
+		go func() {
+			resp, err := http.Post(consts.TelemetryURL+"/support", "application/json", bytes.NewReader(byteArray))
+			if err == nil {
+				defer resp.Body.Close()
+			}
+		}()
 	}
 }

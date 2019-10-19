@@ -166,7 +166,7 @@ func StringPtrFromPrompt(promptOpts *prompt.PromptOptions, v *StringPtrValidatio
 	}
 	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" { // Treat empty prompt value as missing
-		ValidateStringPtrMissing(v)
+		return ValidateStringPtrMissing(v)
 	}
 	return StringPtrFromStr(valStr, v)
 }

@@ -286,7 +286,7 @@ func ErrorMustBeDefined() error {
 }
 
 func ErrorMapMustBeDefined(keys ...string) error {
-	message := fmt.Sprintf("must be defined")
+	message := "must be defined"
 	if len(keys) > 0 {
 		message = fmt.Sprintf("must be defined, and contain the following keys: %s", s.UserStrsAnd(keys))
 	}

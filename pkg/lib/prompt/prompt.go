@@ -19,6 +19,7 @@ package prompt
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	input "github.com/tcnksm/go-input"
 
@@ -68,4 +69,24 @@ func Prompt(opts *PromptOptions) string {
 	}
 
 	return val
+}
+
+func ForceYes(prompt string) {
+	for true {
+		str := Prompt(&PromptOptions{
+			Prompt:      prompt + " [y/n]",
+			HideDefault: true,
+		})
+
+		if strings.ToLower(str) == "y" {
+			return
+		}
+
+		if strings.ToLower(str) == "n" {
+			os.Exit(1)
+		}
+
+		fmt.Println("please enter \"y\" or \"n\"")
+		fmt.Println()
+	}
 }
