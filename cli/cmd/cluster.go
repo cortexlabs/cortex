@@ -192,7 +192,7 @@ func promptForEmail() {
 	if emailAddressContainer.EmailAddress != nil {
 		supportRequest := &SupportRequest{
 			Timestamp:    time.Now(),
-			Source:       "cli.cluster.install",
+			Source:       "cli.cluster.install", // TODO add notificaton for this
 			ID:           uuid.New().String(),
 			EmailAddress: *emailAddressContainer.EmailAddress,
 		}
