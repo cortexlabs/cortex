@@ -20,9 +20,9 @@ function main() {
   if ! eksctl utils describe-stacks --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION >/dev/null 2>&1; then
     echo -e "Spinning up the cluster ... (this will take about 15 minutes)\n"
     envsubst < eks.yaml | eksctl create cluster -f -
-    echo -e "✓ Spun up the cluster"
+    echo "✓ Spun up the cluster"
   else
-    echo -e "✓ Cluster is running"
+    echo "✓ Cluster is running"
   fi
 
   eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" || true
@@ -36,16 +36,15 @@ function main() {
   setup_secrets
   echo "✓ Updated cluster configuration"
 
-  echo -en "￮ Configuring networking "
+  echo "￮ Configuring networking... (may take a few minutes)"
   # https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
   kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.5.4/config/v1.5/aws-k8s-cni.yaml >/dev/null
   until [ "$(kubectl get daemonset aws-node -n kube-system -o 'jsonpath={.status.updatedNumberScheduled}')" == "$(kubectl get daemonset aws-node -n kube-system -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
-    echo -n "."
-    sleep 5
+    sleep 1
   done
   setup_istio
   envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
-  echo -e "\n✓ Configured networking"
+  echo "✓ Configured networking"
 
   envsubst < manifests/cluster-autoscaler.yaml | kubectl apply -f - >/dev/null
   echo "✓ Configured autoscaling"
@@ -72,7 +71,7 @@ function main() {
   validate_cortex
 
   echo "{\"cortex_url\": \"$operator_endpoint\", \"aws_access_key_id\": \"$CORTEX_AWS_ACCESS_KEY_ID\", \"aws_secret_access_key\": \"$CORTEX_AWS_SECRET_ACCESS_KEY\"}" > /.cortex/default.json
-  echo -e "✓ Configured CLI"
+  echo "✓ Configured CLI"
 
   echo -e "\n✓ Cortex is ready!"
 }
@@ -124,7 +123,6 @@ function setup_secrets() {
 }
 
 function setup_istio() {
-  echo -n "."
   envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
 
   if ! kubectl get secret -n istio-system | grep -q istio-customgateway-certs; then
@@ -135,15 +133,12 @@ function setup_istio() {
 
   helm template istio-manifests/istio-init --name istio-init --namespace istio-system | kubectl apply -f - >/dev/null
   until kubectl api-resources | grep -q virtualservice; do
-    echo -n "."
-    sleep 5
+    sleep 1
   done
-  echo -n "."
 
   helm template istio-manifests/istio-cni --name istio-cni --namespace kube-system | kubectl apply -f - >/dev/null
   until [ "$(kubectl get daemonset istio-cni-node -n kube-system -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset istio-cni-node -n kube-system -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
-    echo -n "."
-    sleep 5
+    sleep 1
   done
 
   envsubst < manifests/istio-values.yaml | helm template istio-manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f - >/dev/null
@@ -152,7 +147,7 @@ function setup_istio() {
 function validate_cortex() {
   set +e
 
-  echo -en "￮ Waiting for load balancers "
+  echo "￮ Waiting for load balancers... (may take a few minutes)"
 
   operator_load_balancer="waiting"
   api_load_balancer="waiting"
@@ -161,8 +156,7 @@ function validate_cortex() {
   operator_endpoint=""
 
   while true; do
-    echo -n "."
-    sleep 5
+    sleep 1
 
     operator_pod_name=$(kubectl -n=cortex get pods -o=name --sort-by=.metadata.creationTimestamp | grep "^pod/operator-" | tail -1)
     if [ "$operator_pod_name" == "" ]; then
@@ -206,7 +200,7 @@ function validate_cortex() {
     if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
       num_restart=$(kubectl -n=cortex get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
       if [[ $num_restart -ge 2 ]]; then
-        echo -e "\n\nAn error occurred when starting the Cortex operator. View the logs with:"
+        echo -e "\nAn error occurred when starting the Cortex operator. View the logs with:"
         echo "  kubectl logs $operator_pod_name --namespace=cortex"
         exit 1
       fi
@@ -220,7 +214,7 @@ function validate_cortex() {
     break
   done
 
-  echo -e "\n✓ Load balancers are ready"
+  echo "✓ Load balancers are ready"
 }
 
 main
