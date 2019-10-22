@@ -27,9 +27,11 @@ export AWS_SECRET_ACCESS_KEY=***
 ## Uninstalling the CLI
 
 ```bash
-# Uninstall the Cortex CLI
-./cortex.sh uninstall cli
+sudo rm /usr/local/bin/cortex
+rm -rf ~/.cortex
 ```
+
+If you modified your bash profile, you may also wish to remove `source <(cortex completion)` from it.
 
 ## Cleaning up AWS
 

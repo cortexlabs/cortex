@@ -16,6 +16,69 @@
 
 set -e
 
+function main() {
+  if ! eksctl utils describe-stacks --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION >/dev/null 2>&1; then
+    echo -e "Spinning up the cluster ... (this will take about 15 minutes)\n"
+    envsubst < eks.yaml | eksctl create cluster -f -
+    echo -e "✓ Spun up the cluster"
+  else
+    echo -e "✓ Cluster is running"
+  fi
+
+  exit 0 # TODO
+
+  eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" || true
+
+  setup_bucket
+  setup_cloudwatch_logs
+
+  envsubst < manifests/namespace.yaml | kubectl apply -f - >/dev/null
+
+  setup_configmap
+  setup_secrets
+  echo "✓ Updated cluster configuration"
+
+  echo -en "￮ Configuring networking "
+  # https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
+  kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.5.4/config/v1.5/aws-k8s-cni.yaml >/dev/null
+  until [ "$(kubectl get daemonset aws-node -n kube-system -o 'jsonpath={.status.updatedNumberScheduled}')" == "$(kubectl get daemonset aws-node -n kube-system -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
+    echo -n "."
+    sleep 5
+  done
+  setup_istio
+  envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
+  echo -e "\n✓ Configured networking"
+
+  envsubst < manifests/cluster-autoscaler.yaml | kubectl apply -f - >/dev/null
+  echo "✓ Configured autoscaling"
+
+  kubectl -n=cortex delete --ignore-not-found=true daemonset fluentd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
+  envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
+  echo "✓ Configured logging"
+
+  kubectl -n=cortex delete --ignore-not-found=true daemonset cloudwatch-agent-statsd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
+  envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
+  envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
+  echo "✓ Configured metrics"
+
+  if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
+    kubectl -n=cortex delete --ignore-not-found=true daemonset nvidia-device-plugin-daemonset >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
+    envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
+    echo "✓ Configured GPU support"
+  fi
+
+  kubectl -n=cortex delete --ignore-not-found=true deployment operator >/dev/null 2>&1
+  envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
+  echo "✓ Started operator"
+
+  validate_cortex
+
+  echo "{\"cortex_url\": \"$operator_endpoint\", \"aws_access_key_id\": \"$CORTEX_AWS_ACCESS_KEY_ID\", \"aws_secret_access_key\": \"$CORTEX_AWS_SECRET_ACCESS_KEY\"}" > /.cortex/default.json
+  echo -e "✓ Configured CLI"
+
+  echo -e "\n✓ Cortex is ready!"
+}
+
 function setup_bucket() {
   if [ "$CORTEX_BUCKET" == "" ]; then
     account_id_hash=$(aws sts get-caller-identity | jq .Account | sha256sum | cut -f1 -d" " | cut -c -10)
@@ -51,18 +114,30 @@ function setup_cloudwatch_logs() {
 
 function setup_configmap() {
   kubectl -n=cortex create configmap 'cortex-config' \
-    --from-literal='LOG_GROUP'=$CORTEX_LOG_GROUP \
-    --from-literal='BUCKET'=$CORTEX_BUCKET \
-    --from-literal='REGION'=$CORTEX_REGION \
-    --from-literal='NAMESPACE'=cortex \
-    --from-literal='IMAGE_OPERATOR'=$CORTEX_IMAGE_OPERATOR \
-    --from-literal='IMAGE_TF_SERVE'=$CORTEX_IMAGE_TF_SERVE \
-    --from-literal='IMAGE_ONNX_SERVE'=$CORTEX_IMAGE_ONNX_SERVE \
-    --from-literal='IMAGE_ONNX_SERVE_GPU'=$CORTEX_IMAGE_ONNX_SERVE_GPU \
-    --from-literal='IMAGE_TF_API'=$CORTEX_IMAGE_TF_API \
-    --from-literal='IMAGE_DOWNLOADER'=$CORTEX_IMAGE_DOWNLOADER \
-    --from-literal='IMAGE_TF_SERVE_GPU'=$CORTEX_IMAGE_TF_SERVE_GPU \
-    --from-literal='TELEMETRY'=$CORTEX_TELEMETRY \
+    --from-literal='instance_type'=$CORTEX_INSTANCE_TYPE \
+    --from-literal='min_instances'=$CORTEX_MIN_INSTANCES \
+    --from-literal='max_instances'=$CORTEX_MAX_INSTANCES \
+    --from-literal='cluster_name'=$CORTEX_CLUSTER_NAME \
+    --from-literal='region'=$CORTEX_REGION \
+    --from-literal='bucket'=$CORTEX_BUCKET \
+    --from-literal='log_group'=$CORTEX_LOG_GROUP \
+    --from-literal='telemetry'=$CORTEX_TELEMETRY \
+    --from-literal='image_fluentd'=$CORTEX_IMAGE_FLUENTD \
+    --from-literal='image_statsd'=$CORTEX_IMAGE_STATSD \
+    --from-literal='image_operator'=$CORTEX_IMAGE_OPERATOR \
+    --from-literal='image_tf_serve'=$CORTEX_IMAGE_TF_SERVE \
+    --from-literal='image_tf_api'=$CORTEX_IMAGE_TF_API \
+    --from-literal='image_tf_serve_gpu'=$CORTEX_IMAGE_TF_SERVE_GPU \
+    --from-literal='image_onnx_serve'=$CORTEX_IMAGE_ONNX_SERVE \
+    --from-literal='image_onnx_serve_gpu'=$CORTEX_IMAGE_ONNX_SERVE_GPU \
+    --from-literal='image_cluster_autoscaler'=$CORTEX_IMAGE_CLUSTER_AUTOSCALER \
+    --from-literal='image_nvidia'=$CORTEX_IMAGE_NVIDIA \
+    --from-literal='image_metrics_server'=$CORTEX_IMAGE_METRICS_SERVER \
+    --from-literal='image_istio_citadel'=$CORTEX_IMAGE_ISTIO_CITADEL \
+    --from-literal='image_istio_galley'=$CORTEX_IMAGE_ISTIO_GALLEY \
+    --from-literal='image_istio_pilot'=$CORTEX_IMAGE_ISTIO_PILOT \
+    --from-literal='image_istio_proxy'=$CORTEX_IMAGE_ISTIO_PROXY \
+    --from-literal='image_downloader'=$CORTEX_IMAGE_DOWNLOADER \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 
@@ -173,53 +248,4 @@ function validate_cortex() {
   echo -e "\n✓ Load balancers are ready"
 }
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" || true
-
-setup_bucket
-setup_cloudwatch_logs
-
-envsubst < manifests/namespace.yaml | kubectl apply -f - >/dev/null
-
-setup_configmap
-setup_secrets
-echo "✓ Updated cluster configuration"
-
-echo -en "￮ Configuring networking "
-# https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
-kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.5.4/config/v1.5/aws-k8s-cni.yaml >/dev/null
-until [ "$(kubectl get daemonset aws-node -n kube-system -o 'jsonpath={.status.updatedNumberScheduled}')" == "$(kubectl get daemonset aws-node -n kube-system -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
-  echo -n "."
-  sleep 5
-done
-setup_istio
-envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
-echo -e "\n✓ Configured networking"
-
-envsubst < manifests/cluster-autoscaler.yaml | kubectl apply -f - >/dev/null
-echo "✓ Configured autoscaling"
-
-kubectl -n=cortex delete --ignore-not-found=true daemonset fluentd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
-envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
-echo "✓ Configured logging"
-
-kubectl -n=cortex delete --ignore-not-found=true daemonset cloudwatch-agent-statsd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
-envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
-envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
-echo "✓ Configured metrics"
-
-if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
-  kubectl -n=cortex delete --ignore-not-found=true daemonset nvidia-device-plugin-daemonset >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
-  envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
-  echo "✓ Configured GPU support"
-fi
-
-kubectl -n=cortex delete --ignore-not-found=true deployment operator >/dev/null 2>&1
-envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
-echo "✓ Started operator"
-
-validate_cortex
-
-echo "{\"cortex_url\": \"$operator_endpoint\", \"aws_access_key_id\": \"$CORTEX_AWS_ACCESS_KEY_ID\", \"aws_secret_access_key\": \"$CORTEX_AWS_SECRET_ACCESS_KEY\"}" > /.cortex/default.json
-echo -e "✓ Configured CLI"
-
-echo -e "\n✓ Cortex is ready!"
+main
