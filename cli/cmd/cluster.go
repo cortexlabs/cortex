@@ -137,11 +137,6 @@ This command spins down a Cortex cluster.`,
 	},
 }
 
-// TODO anonymous struct?
-type EmailAddressContainer struct {
-	EmailAddress *string
-}
-
 var emailPrompValidation = &cr.PromptValidation{
 	PromptItemValidations: []*cr.PromptItemValidation{
 		{
@@ -159,7 +154,9 @@ var emailPrompValidation = &cr.PromptValidation{
 
 func promptForEmail() {
 	fmt.Println("")
-	emailAddressContainer := &EmailAddressContainer{}
+	emailAddressContainer := &struct {
+		EmailAddress *string
+	}{}
 	err := cr.ReadPrompt(emailAddressContainer, emailPrompValidation)
 	if err != nil {
 		errors.Exit(err)
