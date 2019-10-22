@@ -107,7 +107,7 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{"eval $(python /root/cluster_config_env.py /.cortex/cluster.yaml) && " + entrypoint},
+		Cmd:          []string{"sleep 0.1 && eval $(python /root/cluster_config_env.py /.cortex/cluster.yaml) && " + entrypoint},
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
@@ -159,18 +159,18 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 		return err
 	}
 
-	logOpts := dockertypes.ContainerLogsOptions{
-		ShowStderr: true,
-		ShowStdout: true,
-		Follow:     true,
-	}
-	logsOutput, err := docker.ContainerLogs(context.Background(), containerInfo.ID, logOpts)
+	// There is a slight delay between the container starting at attaching to it, hence the sleep in Cmd
+	logsOutput, err := docker.ContainerAttach(context.Background(), containerInfo.ID, dockertypes.ContainerAttachOptions{
+		Stream: true,
+		Stdout: true,
+		Stderr: true,
+	})
 	if err != nil {
 		return err
 	}
 	defer logsOutput.Close()
 
-	_, err = io.Copy(os.Stdout, logsOutput)
+	_, err = io.Copy(os.Stdout, logsOutput.Reader)
 	if err != nil {
 		return err
 	}

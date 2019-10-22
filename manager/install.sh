@@ -36,15 +36,16 @@ function main() {
   setup_secrets
   echo "✓ Updated cluster configuration"
 
-  echo "￮ Configuring networking... (may take a few minutes)"
+  echo -n "￮ Configuring networking "
   # https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
   kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.5.4/config/v1.5/aws-k8s-cni.yaml >/dev/null
   until [ "$(kubectl get daemonset aws-node -n kube-system -o 'jsonpath={.status.updatedNumberScheduled}')" == "$(kubectl get daemonset aws-node -n kube-system -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
-    sleep 1
+    echo -n "."
+    sleep 3
   done
   setup_istio
   envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
-  echo "✓ Configured networking"
+  echo -e "\n✓ Configured networking"
 
   envsubst < manifests/cluster-autoscaler.yaml | kubectl apply -f - >/dev/null
   echo "✓ Configured autoscaling"
@@ -123,6 +124,7 @@ function setup_secrets() {
 }
 
 function setup_istio() {
+  echo -n "."
   envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
 
   if ! kubectl get secret -n istio-system | grep -q istio-customgateway-certs; then
@@ -133,12 +135,15 @@ function setup_istio() {
 
   helm template istio-manifests/istio-init --name istio-init --namespace istio-system | kubectl apply -f - >/dev/null
   until kubectl api-resources | grep -q virtualservice; do
-    sleep 1
+    echo -n "."
+    sleep 3
   done
+  echo -n "."
 
   helm template istio-manifests/istio-cni --name istio-cni --namespace kube-system | kubectl apply -f - >/dev/null
   until [ "$(kubectl get daemonset istio-cni-node -n kube-system -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset istio-cni-node -n kube-system -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
-    sleep 1
+    echo -n "."
+    sleep 3
   done
 
   envsubst < manifests/istio-values.yaml | helm template istio-manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f - >/dev/null
@@ -147,7 +152,7 @@ function setup_istio() {
 function validate_cortex() {
   set +e
 
-  echo "￮ Waiting for load balancers... (may take a few minutes)"
+  echo -n "￮ Waiting for load balancers "
 
   operator_load_balancer="waiting"
   api_load_balancer="waiting"
@@ -156,7 +161,8 @@ function validate_cortex() {
   operator_endpoint=""
 
   while true; do
-    sleep 1
+    echo -n "."
+    sleep 3
 
     operator_pod_name=$(kubectl -n=cortex get pods -o=name --sort-by=.metadata.creationTimestamp | grep "^pod/operator-" | tail -1)
     if [ "$operator_pod_name" == "" ]; then
@@ -200,7 +206,7 @@ function validate_cortex() {
     if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
       num_restart=$(kubectl -n=cortex get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
       if [[ $num_restart -ge 2 ]]; then
-        echo -e "\nAn error occurred when starting the Cortex operator. View the logs with:"
+        echo -e "\n\nAn error occurred when starting the Cortex operator. View the logs with:"
         echo "  kubectl logs $operator_pod_name --namespace=cortex"
         exit 1
       fi
@@ -214,7 +220,7 @@ function validate_cortex() {
     break
   done
 
-  echo "✓ Load balancers are ready"
+  echo -e "\n✓ Load balancers are ready"
 }
 
 main
