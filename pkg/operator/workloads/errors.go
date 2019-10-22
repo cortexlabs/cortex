@@ -95,7 +95,7 @@ func ErrorMoreThanOneWorkflow() error {
 func ErrorCortexInstallationBroken() error {
 	return Error{
 		Kind:    ErrCortexInstallationBroken,
-		message: "cortex is out of date, or not installed properly on your cluster; run `./path/to/cortex.sh update`",
+		message: "cortex is out of date, or not installed properly on your cluster; run `cortex cluster update`",
 	}
 }
 

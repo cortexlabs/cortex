@@ -52,12 +52,20 @@ docker push <repository_url>:latest
 
 ## Configure Cortex
 
-Set the environment variable of the image to your `my-api` image repository url:
+Update your cluster configuration file to point to your image:
+
+```yaml
+# cluster.yaml
+
+# ...
+image_onnx_serve: <repository_url>:latest
+# ...
+```
+
+And update the cluster for the change to take effect:
 
 ```bash
-export CORTEX_IMAGE_ONNX_SERVE="<repository_url>:latest"
-
-./cortex.sh update
+cortex cluster update --config=cluster.yaml
 ```
 
 ## Use system packages in workloads

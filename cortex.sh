@@ -130,17 +130,3 @@ function uninstall_cli() {
     fi
   fi
 }
-
-#############################
-
-function prompt_for_email() {
-  if [ "$CORTEX_TELEMETRY" != "false" ]; then
-    echo
-    read -p "Email address [press enter to skip]: "
-    echo
-
-    if [[ ! -z "$REPLY" ]]; then
-      curl -k -X POST -H "Content-Type: application/json" $CORTEX_TELEMETRY_URL/support -d '{"email_address": "'$REPLY'", "source": "cortex.sh"}' >/dev/null 2>&1 || true
-    fi
-  fi
-}

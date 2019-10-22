@@ -37,7 +37,7 @@ func New(
 	ctx := &context.Context{}
 	ctx.CreatedEpoch = time.Now().Unix()
 
-	ctx.CortexConfig = config.Cortex
+	ctx.ClusterConfig = config.Cluster
 
 	ctx.App = getApp(userconf.App)
 

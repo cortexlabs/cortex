@@ -32,7 +32,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 var flagClusterConfig string
@@ -63,17 +62,17 @@ This command spins up a Cortex cluster on your AWS account.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		promptForEmail()
 
-		clusterConfig, err := getInstallClusterConfig()
+		clusterConfig, awsCreds, err := getInstallClusterConfig()
 		if err != nil {
 			errors.Exit(err)
 		}
 
-		err = runManagerCommand("/root/install_eks.sh", clusterConfig)
+		err = runManagerCommand("/root/install_eks.sh", clusterConfig, awsCreds)
 		if err != nil {
 			errors.Exit(err)
 		}
 
-		err = runManagerCommand("/root/install_cortex.sh", clusterConfig)
+		err = runManagerCommand("/root/install_cortex.sh", clusterConfig, awsCreds)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -87,12 +86,12 @@ var updateCmd = &cobra.Command{
 This command updates a Cortex cluster.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		clusterConfig, err := getInstallClusterConfig()
+		clusterConfig, awsCreds, err := getInstallClusterConfig()
 		if err != nil {
 			errors.Exit(err)
 		}
 
-		err = runManagerCommand("/root/install_cortex.sh", clusterConfig)
+		err = runManagerCommand("/root/install_cortex.sh", clusterConfig, awsCreds)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -106,12 +105,12 @@ var infoCmd = &cobra.Command{
 This command gets information about a Cortex cluster.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		clusterConfig, err := getAccessClusterConfig()
+		clusterConfig, awsCreds, err := getAccessClusterConfig()
 		if err != nil {
 			errors.Exit(err)
 		}
 
-		err = runManagerCommand("/root/info.sh", clusterConfig)
+		err = runManagerCommand("/root/info.sh", clusterConfig, awsCreds)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -127,38 +126,16 @@ This command spins down a Cortex cluster.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		prompt.ForceYes("Are you sure you want to uninstall Cortex? (Your cluster will be spun down and all APIs will be deleted)")
 
-		clusterConfig, err := getAccessClusterConfig()
+		clusterConfig, awsCreds, err := getAccessClusterConfig()
 		if err != nil {
 			errors.Exit(err)
 		}
 
-		err = runManagerCommand("/root/uninstall_eks.sh", clusterConfig)
+		err = runManagerCommand("/root/uninstall_eks.sh", clusterConfig, awsCreds)
 		if err != nil {
 			errors.Exit(err)
 		}
 	},
-}
-
-func confirmClusterConfig(clusterConfig *ClusterConfig) {
-	displayBucket := clusterConfig.Bucket
-	if displayBucket == "" {
-		displayBucket = "(autogenerate)"
-	}
-
-	fmt.Printf("instance type:     %s\n", *clusterConfig.InstanceType)
-	fmt.Printf("min instances:     %d\n", *clusterConfig.MinInstances)
-	fmt.Printf("max instances:     %d\n", *clusterConfig.MaxInstances)
-	fmt.Printf("cluster name:      %s\n", clusterConfig.ClusterName)
-	fmt.Printf("region:            %s\n", clusterConfig.Region)
-	fmt.Printf("bucket:            %s\n", displayBucket)
-	fmt.Printf("log group:         %s\n", clusterConfig.LogGroup)
-	fmt.Printf("AWS access key ID: %s\n", s.MaskString(clusterConfig.AWSAccessKeyID, 4))
-	if clusterConfig.CortexAWSAccessKeyID != clusterConfig.AWSAccessKeyID {
-		fmt.Printf("AWS access key ID: %s (cortex)\n", s.MaskString(clusterConfig.CortexAWSAccessKeyID, 4))
-	}
-	fmt.Println()
-
-	prompt.ForceYes("Is the configuration above correct?")
 }
 
 // TODO anonymous struct?

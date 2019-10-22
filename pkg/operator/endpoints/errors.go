@@ -118,7 +118,7 @@ func ErrorAuthHeaderMalformed() error {
 func ErrorAuthAPIError() error {
 	return Error{
 		Kind:    ErrAuthAPIError,
-		message: "the operator is unable to verify user's credentials using AWS STS; export AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, and run `./cortex.sh update` to update the operator's AWS credentials",
+		message: "the operator is unable to verify user's credentials using AWS STS; export AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, and run `cortex cluster update` to update the operator's AWS credentials",
 	}
 }
 

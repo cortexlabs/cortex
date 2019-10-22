@@ -19,6 +19,7 @@ package configreader
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -27,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
@@ -283,7 +285,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 				if interMapVal == nil {
 					val = nil // If the object was nil, set val to nil rather than a pointer to the initialized zero value
 				}
-				errs = errors.WrapMultiple(errs, key)
+				errs = errors.WrapAll(errs, key)
 			}
 
 		} else if structFieldValidation.StructListValidation != nil {
@@ -296,7 +298,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			} else {
 				val = reflect.Indirect(reflect.New(nestedType)).Interface()
 				val, errs = StructList(val, interMapVal, &validation)
-				errs = errors.WrapMultiple(errs, key)
+				errs = errors.WrapAll(errs, key)
 			}
 
 		} else if structFieldValidation.InterfaceStructValidation != nil {
@@ -307,7 +309,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else {
 				val, errs = InterfaceStruct(interMapVal, &validation)
-				errs = errors.WrapMultiple(errs, key)
+				errs = errors.WrapAll(errs, key)
 			}
 
 		} else if structFieldValidation.InterfaceStructListValidation != nil {
@@ -320,11 +322,11 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			} else {
 				val = reflect.Indirect(reflect.New(nestedType)).Interface()
 				val, errs = InterfaceStructList(val, interMapVal, &validation)
-				errs = errors.WrapMultiple(errs, key)
+				errs = errors.WrapAll(errs, key)
 			}
 
 		} else {
-			errors.Panic("Undefined or unsupported validation type for ReadInterfaceMap")
+			errors.Panic("Undefined or unsupported validation type")
 		}
 
 		allErrs, _ = errors.AddError(allErrs, err)
@@ -618,6 +620,223 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 	return nil
 }
 
+// Reads a string map into a struct
+func StructFromStringMap(dest interface{}, strMap map[string]string, v *StructValidation) []error {
+	allowedFields := []string{}
+	allErrs := []error{}
+	var ok bool
+
+	if strMap == nil {
+		if !v.AllowExplicitNull {
+			return []error{ErrorCannotBeNull()}
+		}
+		return nil
+	}
+
+	for _, structFieldValidation := range v.StructFieldValidations {
+		key := inferKey(reflect.TypeOf(dest), structFieldValidation.StructField, structFieldValidation.Key)
+		allowedFields = append(allowedFields, key)
+
+		if structFieldValidation.Nil == true {
+			continue
+		}
+
+		strMapVal, keyExists := strMap[key]
+
+		var err error
+		var errs []error
+		var val interface{}
+
+		if structFieldValidation.StringValidation != nil {
+			validation := *structFieldValidation.StringValidation
+			updateValidation(&validation, dest, structFieldValidation)
+			if keyExists {
+				val, err = StringFromStr(strMapVal, &validation)
+			} else {
+				val, err = ValidateStringMissing(&validation)
+			}
+			if err == nil && structFieldValidation.Parser != nil {
+				val, err = structFieldValidation.Parser(val.(string))
+			}
+		} else if structFieldValidation.StringPtrValidation != nil {
+			validation := *structFieldValidation.StringPtrValidation
+			updateValidation(&validation, dest, structFieldValidation)
+			if keyExists {
+				val, err = StringPtrFromStr(strMapVal, &validation)
+			} else {
+				val, err = ValidateStringPtrMissing(&validation)
+			}
+			if err == nil && structFieldValidation.Parser != nil {
+				if val.(*string) == nil {
+					val = nil
+				} else {
+					val, err = structFieldValidation.Parser(*val.(*string))
+					if err == nil && val != nil {
+						valValue := reflect.ValueOf(val)
+						valPtrValue := reflect.New(valValue.Type())
+						valPtrValue.Elem().Set(valValue)
+						val = valPtrValue.Interface()
+					} else {
+						val = nil
+					}
+				}
+			}
+		} else if structFieldValidation.BoolValidation != nil {
+			validation := *structFieldValidation.BoolValidation
+			updateValidation(&validation, dest, structFieldValidation)
+			if keyExists {
+				val, err = BoolFromStr(strMapVal, &validation)
+			} else {
+				val, err = ValidateBoolMissing(&validation)
+			}
+		} else if structFieldValidation.BoolPtrValidation != nil {
+			validation := *structFieldValidation.BoolPtrValidation
+			updateValidation(&validation, dest, structFieldValidation)
+			if keyExists {
+				val, err = BoolPtrFromStr(strMapVal, &validation)
+			} else {
+				val, err = ValidateBoolPtrMissing(&validation)
+			}
+		} else if structFieldValidation.IntValidation != nil {
+			validation := *structFieldValidation.IntValidation
+			updateValidation(&validation, dest, structFieldValidation)
+			if keyExists {
+				val, err = IntFromStr(strMapVal, &validation)
+			} else {
+				val, err = ValidateIntMissing(&validation)
+			}
+		} else if structFieldValidation.IntPtrValidation != nil {
+			validation := *structFieldValidation.IntPtrValidation
+			updateValidation(&validation, dest, structFieldValidation)
+			if keyExists {
+				val, err = IntPtrFromStr(strMapVal, &validation)
+			} else {
+				val, err = ValidateIntPtrMissing(&validation)
+			}
+		} else if structFieldValidation.Int32Validation != nil {
+			validation := *structFieldValidation.Int32Validation
+			updateValidation(&validation, dest, structFieldValidation)
+			if keyExists {
+				val, err = Int32FromStr(strMapVal, &validation)
+			} else {
+				val, err = ValidateInt32Missing(&validation)
+			}
+		} else if structFieldValidation.Int32PtrValidation != nil {
+			validation := *structFieldValidation.Int32PtrValidation
+			updateValidation(&validation, dest, structFieldValidation)
+			if keyExists {
+				val, err = Int32PtrFromStr(strMapVal, &validation)
+			} else {
+				val, err = ValidateInt32PtrMissing(&validation)
+			}
+		} else if structFieldValidation.Int64Validation != nil {
+			validation := *structFieldValidation.Int64Validation
+			updateValidation(&validation, dest, structFieldValidation)
+			if keyExists {
+				val, err = Int64FromStr(strMapVal, &validation)
+			} else {
+				val, err = ValidateInt64Missing(&validation)
+			}
+		} else if structFieldValidation.Int64PtrValidation != nil {
+			validation := *structFieldValidation.Int64PtrValidation
+			updateValidation(&validation, dest, structFieldValidation)
+			if keyExists {
+				val, err = Int64PtrFromStr(strMapVal, &validation)
+			} else {
+				val, err = ValidateInt64PtrMissing(&validation)
+			}
+		} else if structFieldValidation.Float32Validation != nil {
+			validation := *structFieldValidation.Float32Validation
+			updateValidation(&validation, dest, structFieldValidation)
+			if keyExists {
+				val, err = Float32FromStr(strMapVal, &validation)
+			} else {
+				val, err = ValidateFloat32Missing(&validation)
+			}
+		} else if structFieldValidation.Float32PtrValidation != nil {
+			validation := *structFieldValidation.Float32PtrValidation
+			updateValidation(&validation, dest, structFieldValidation)
+			if keyExists {
+				val, err = Float32PtrFromStr(strMapVal, &validation)
+			} else {
+				val, err = ValidateFloat32PtrMissing(&validation)
+			}
+		} else if structFieldValidation.Float64Validation != nil {
+			validation := *structFieldValidation.Float64Validation
+			updateValidation(&validation, dest, structFieldValidation)
+			if keyExists {
+				val, err = Float64FromStr(strMapVal, &validation)
+			} else {
+				val, err = ValidateFloat64Missing(&validation)
+			}
+		} else if structFieldValidation.Float64PtrValidation != nil {
+			validation := *structFieldValidation.Float64PtrValidation
+			updateValidation(&validation, dest, structFieldValidation)
+			if keyExists {
+				val, err = Float64PtrFromStr(strMapVal, &validation)
+			} else {
+				val, err = ValidateFloat64PtrMissing(&validation)
+			}
+		} else {
+			errors.Panic("Undefined or unsupported validation type")
+		}
+
+		err = errors.Wrap(err, key)
+		errs = errors.WrapAll(errs, key)
+
+		allErrs, _ = errors.AddError(allErrs, err)
+		allErrs, _ = errors.AddErrors(allErrs, errs)
+		if errors.HasErrors(allErrs) {
+			if v.ShortCircuit {
+				return allErrs
+			}
+			continue
+		}
+
+		if val == nil {
+			err = setFieldNil(dest, structFieldValidation.StructField)
+		} else {
+			err = setField(val, dest, structFieldValidation.StructField)
+		}
+		if allErrs, ok = errors.AddError(allErrs, err, key); ok {
+			if v.ShortCircuit {
+				return allErrs
+			}
+		}
+	}
+
+	if !v.AllowExtraFields {
+		extraFields := slices.SubtractStrSlice(maps.StrMapKeys(strMap), allowedFields)
+		for _, extraField := range extraFields {
+			allErrs = append(allErrs, ErrorUnsupportedKey(extraField))
+		}
+	}
+	if errors.HasErrors(allErrs) {
+		return allErrs
+	}
+	return nil
+}
+
+// Reads a directory of files into a struct, where each file name is the key and the contents is the value
+func StructFromFiles(dest interface{}, dirPath string, v *StructValidation) []error {
+	strMap := map[string]string{}
+
+	fileNames, err := files.ListDir(dirPath, true)
+	if err != nil {
+		return []error{err}
+	}
+
+	for _, fileName := range fileNames {
+		fileBytes, err := files.ReadFileBytes(filepath.Join(dirPath, fileName))
+		if err != nil {
+			return []error{err}
+		}
+		strMap[fileName] = strings.TrimSpace(string(fileBytes))
+	}
+
+	return StructFromStringMap(dest, strMap, v)
+}
+
 //
 // Environment variable
 //
@@ -633,6 +852,34 @@ func ReadEnvVar(envVarName string) *string {
 //
 // JSON and YAML Config
 //
+
+func ParseYAMLFile(dest interface{}, validation *StructValidation, filePath string) []error {
+	fileInterface, err := ReadYAMLFile(filePath)
+	if err != nil {
+		return []error{err}
+	}
+
+	errs := Struct(dest, fileInterface, validation)
+	if errors.HasErrors(errs) {
+		return errors.WrapAll(errs, filePath)
+	}
+
+	return nil
+}
+
+func ReadYAMLFile(filePath string) (interface{}, error) {
+	fileBytes, err := files.ReadFileBytes(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	fileInterface, err := ReadYAMLBytes(fileBytes)
+	if err != nil {
+		return nil, errors.Wrap(err, filePath)
+	}
+
+	return fileInterface, nil
+}
 
 func ReadYAMLBytes(yamlBytes []byte) (interface{}, error) {
 	if len(yamlBytes) == 0 {

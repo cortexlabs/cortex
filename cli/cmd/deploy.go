@@ -22,6 +22,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -29,7 +30,6 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
-	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
 var MaxProjectSize = 1024 * 1024 * 50
@@ -66,7 +66,7 @@ func deploy(force bool, ignoreCache bool) {
 
 	configBytes, err := ioutil.ReadFile("cortex.yaml")
 	if err != nil {
-		errors.Exit(errors.Wrap(err, "cortex.yaml", userconfig.ErrorReadConfig().Error()))
+		errors.Exit(errors.Wrap(err, "cortex.yaml", cr.ErrorReadConfig().Error()))
 	}
 
 	uploadBytes := map[string][]byte{

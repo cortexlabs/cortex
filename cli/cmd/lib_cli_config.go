@@ -147,7 +147,7 @@ func readCLIConfig() (*CLIConfig, []error) {
 	}
 
 	cachedCLIConfigErrs = cr.Struct(cachedCLIConfig, cliConfigData, fileValidation)
-	return cachedCLIConfig, errors.WrapMultiple(cachedCLIConfigErrs, configPath)
+	return cachedCLIConfig, errors.WrapAll(cachedCLIConfigErrs, configPath)
 }
 
 func getValidCLIConfig() *CLIConfig {

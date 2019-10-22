@@ -72,7 +72,7 @@ func AddErrors(errs []error, newErrs []error, strs ...string) ([]error, bool) {
 	return errs, ok
 }
 
-func WrapMultiple(errs []error, strs ...string) []error {
+func WrapAll(errs []error, strs ...string) []error {
 	if !HasErrors(errs) {
 		return nil
 	}

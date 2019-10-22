@@ -49,6 +49,10 @@ func OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
 	return file, err
 }
 func ReadFileBytes(path string) ([]byte, error) {
+	if err := CheckFile(path); err != nil {
+		return nil, err
+	}
+
 	fileBytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, errors.Wrap(err, ErrorReadFile(path).Error())
@@ -66,8 +70,8 @@ func CreateFile(path string) (*os.File, error) {
 	return file, nil
 }
 
-func WriteFile(filename string, data []byte, perm os.FileMode) error {
-	if err := ioutil.WriteFile(filename, data, perm); err != nil {
+func WriteFile(filename string, data []byte) error {
+	if err := ioutil.WriteFile(filename, data, 0664); err != nil {
 		return errors.Wrap(err, ErrorCreateFile(filename).Error())
 	}
 
@@ -126,7 +130,7 @@ func CheckDir(path string) error {
 func CheckFile(path string) error {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return errors.Wrap(err, ErrorFileDoesNotExist(path).Error())
+		return ErrorFileDoesNotExist(path)
 	}
 	if fileInfo.IsDir() {
 		return ErrorNotAFile(path)

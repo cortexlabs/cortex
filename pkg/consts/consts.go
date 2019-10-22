@@ -23,8 +23,8 @@ var (
 	EmptyDirMountPath  = "/mnt"
 	EmptyDirVolumeName = "mnt"
 
-	CortexConfigPath = "/configs/cortex"
-	CortexConfigName = "cortex-config"
+	ClusterConfigPath = "/configs/cluster"
+	ClusterConfigName = "cluster-config"
 
 	AppsDir             = "apps"
 	DeploymentsDir      = "deployments"

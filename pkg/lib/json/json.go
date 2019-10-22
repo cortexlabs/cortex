@@ -68,7 +68,7 @@ func WriteJSON(obj interface{}, outPath string) error {
 		return err
 	}
 
-	if err := files.WriteFile(outPath, jsonBytes, 0644); err != nil {
+	if err := files.WriteFile(outPath, jsonBytes); err != nil {
 		return err
 	}
 	return nil

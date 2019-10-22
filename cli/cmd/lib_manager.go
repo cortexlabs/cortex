@@ -23,10 +23,13 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path"
 	"syscall"
 	"time"
 
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/yaml"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -54,7 +57,7 @@ func getDockerClient() (*dockerclient.Client, error) {
 	return cachedDocker, nil
 }
 
-func pullManager(clusterConfig *ClusterConfig) error {
+func pullManager(clusterConfig *clusterconfig.ClusterConfig) error {
 	docker, err := getDockerClient()
 	if err != nil {
 		return err
@@ -85,7 +88,7 @@ func pullManager(clusterConfig *ClusterConfig) error {
 	return nil
 }
 
-func runManagerCommand(entrypoint string, clusterConfig *ClusterConfig) error {
+func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) error {
 	docker, err := getDockerClient()
 	if err != nil {
 		return err
@@ -93,41 +96,26 @@ func runManagerCommand(entrypoint string, clusterConfig *ClusterConfig) error {
 
 	pullManager(clusterConfig)
 
+	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
+	if err != nil {
+		return err
+	}
+	if err := files.WriteFile(path.Join(localDir, "cluster.yaml"), clusterConfigBytes); err != nil {
+		return err
+	}
+
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
-		Entrypoint:   []string{entrypoint},
+		Entrypoint:   []string{"/bin/bash", "-c"},
+		Cmd:          []string{"eval $(python /root/cluster_config_env.py /.cortex/cluster.yaml) && " + entrypoint},
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"AWS_ACCESS_KEY_ID=" + clusterConfig.AWSAccessKeyID,
-			"AWS_SECRET_ACCESS_KEY=" + clusterConfig.AWSSecretAccessKey,
-			"CORTEX_AWS_ACCESS_KEY_ID=" + clusterConfig.CortexAWSAccessKeyID,
-			"CORTEX_AWS_SECRET_ACCESS_KEY=" + clusterConfig.CortexAWSSecretAccessKey,
-			"CORTEX_INSTANCE_TYPE=" + *clusterConfig.InstanceType,
-			"CORTEX_MIN_INSTANCES=" + s.Int64(*clusterConfig.MinInstances),
-			"CORTEX_MAX_INSTANCES=" + s.Int64(*clusterConfig.MaxInstances),
-			"CORTEX_CLUSTER_NAME=" + clusterConfig.ClusterName,
-			"CORTEX_REGION=" + clusterConfig.Region,
-			"CORTEX_BUCKET=" + clusterConfig.Bucket,
-			"CORTEX_LOG_GROUP=" + clusterConfig.LogGroup,
-			"CORTEX_TELEMETRY=" + s.Bool(clusterConfig.Telemetry),
-			"CORTEX_IMAGE_FLUENTD=" + clusterConfig.ImageFluentd,
-			"CORTEX_IMAGE_STATSD=" + clusterConfig.ImageStatsd,
-			"CORTEX_IMAGE_OPERATOR=" + clusterConfig.ImageOperator,
-			"CORTEX_IMAGE_TF_SERVE=" + clusterConfig.ImageTFServe,
-			"CORTEX_IMAGE_TF_API=" + clusterConfig.ImageTFAPI,
-			"CORTEX_IMAGE_TF_SERVE_GPU=" + clusterConfig.ImageTFServeGPU,
-			"CORTEX_IMAGE_ONNX_SERVE=" + clusterConfig.ImageOnnxServe,
-			"CORTEX_IMAGE_ONNX_SERVE_GPU=" + clusterConfig.ImageOnnxServeGPU,
-			"CORTEX_IMAGE_CLUSTER_AUTOSCALER=" + clusterConfig.ImageClusterAutoscaler,
-			"CORTEX_IMAGE_NVIDIA=" + clusterConfig.ImageNvidia,
-			"CORTEX_IMAGE_METRICS_SERVER=" + clusterConfig.ImageMetricsServer,
-			"CORTEX_IMAGE_ISTIO_CITADEL=" + clusterConfig.ImageIstioCitadel,
-			"CORTEX_IMAGE_ISTIO_GALLEY=" + clusterConfig.ImageIstioGalley,
-			"CORTEX_IMAGE_ISTIO_PILOT=" + clusterConfig.ImageIstioPilot,
-			"CORTEX_IMAGE_ISTIO_PROXY=" + clusterConfig.ImageIstioProxy,
-			"CORTEX_IMAGE_DOWNLOADER=" + clusterConfig.ImageDownloader,
+			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
+			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
+			"CORTEX_AWS_ACCESS_KEY_ID=" + awsCreds.CortexAWSAccessKeyID,
+			"CORTEX_AWS_SECRET_ACCESS_KEY=" + awsCreds.CortexAWSSecretAccessKey,
 		},
 	}
 
