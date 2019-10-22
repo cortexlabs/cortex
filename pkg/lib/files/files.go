@@ -32,30 +32,35 @@ import (
 )
 
 func Open(path string) (*os.File, error) {
-	fileBytes, err := os.Open(path)
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, errors.Wrap(err, ErrorReadFile(path).Error())
 	}
 
-	return fileBytes, nil
+	return file, nil
 }
 
-func OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
-	file, err := os.OpenFile(name, flag, perm)
+func OpenFile(path string, flag int, perm os.FileMode) (*os.File, error) {
+	file, err := os.OpenFile(path, flag, perm)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorCreateFile(name).Error())
+		return nil, errors.Wrap(err, ErrorCreateFile(path).Error())
 	}
 
 	return file, err
 }
+
 func ReadFileBytes(path string) ([]byte, error) {
-	if err := CheckFile(path); err != nil {
+	return ReadFileBytesErrPath(path, path)
+}
+
+func ReadFileBytesErrPath(path string, errMsgPath string) ([]byte, error) {
+	if err := CheckFileErrPath(path, errMsgPath); err != nil {
 		return nil, err
 	}
 
 	fileBytes, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorReadFile(path).Error())
+		return nil, errors.Wrap(err, ErrorReadFile(errMsgPath).Error())
 	}
 
 	return fileBytes, nil
@@ -70,16 +75,16 @@ func CreateFile(path string) (*os.File, error) {
 	return file, nil
 }
 
-func WriteFile(filename string, data []byte) error {
-	if err := ioutil.WriteFile(filename, data, 0664); err != nil {
-		return errors.Wrap(err, ErrorCreateFile(filename).Error())
+func WriteFile(data []byte, path string) error {
+	if err := ioutil.WriteFile(path, data, 0664); err != nil {
+		return errors.Wrap(err, ErrorCreateFile(path).Error())
 	}
 
 	return nil
 }
 
-func MkdirAll(path string, perm os.FileMode) error {
-	if err := os.MkdirAll(path, perm); err != nil {
+func MkdirAll(path string) error {
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		return errors.Wrap(err, ErrorCreateDir(path).Error())
 	}
 
@@ -114,13 +119,18 @@ func IsFileOrDir(path string) bool {
 }
 
 // CheckDir returns nil if the path is a directory
-func CheckDir(path string) error {
-	fileInfo, err := os.Stat(path)
+func CheckDir(dirPath string) error {
+	return CheckDirErrPath(dirPath, dirPath)
+}
+
+// CheckDir returns nil if the path is a directory
+func CheckDirErrPath(dirPath string, errMsgPath string) error {
+	fileInfo, err := os.Stat(dirPath)
 	if err != nil {
-		return errors.Wrap(err, ErrorDirDoesNotExist(path).Error())
+		return errors.Wrap(err, ErrorDirDoesNotExist(errMsgPath).Error())
 	}
 	if !fileInfo.IsDir() {
-		return ErrorNotADir(path)
+		return ErrorNotADir(errMsgPath)
 	}
 
 	return nil
@@ -128,12 +138,17 @@ func CheckDir(path string) error {
 
 // CheckFile returns nil if the path is a file
 func CheckFile(path string) error {
+	return CheckFileErrPath(path, path)
+}
+
+// CheckFile returns nil if the path is a file
+func CheckFileErrPath(path string, errMsgPath string) error {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return ErrorFileDoesNotExist(path)
+		return ErrorFileDoesNotExist(errMsgPath)
 	}
 	if fileInfo.IsDir() {
-		return ErrorNotAFile(path)
+		return ErrorNotAFile(errMsgPath)
 	}
 
 	return nil

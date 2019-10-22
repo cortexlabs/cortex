@@ -100,7 +100,7 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 	if err != nil {
 		return err
 	}
-	if err := files.WriteFile(path.Join(localDir, "cluster.yaml"), clusterConfigBytes); err != nil {
+	if err := files.WriteFile(clusterConfigBytes, path.Join(localDir, "cluster.yaml")); err != nil {
 		return err
 	}
 

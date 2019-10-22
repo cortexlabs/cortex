@@ -70,7 +70,7 @@ func New(filePath string, configBytes []byte) (*Config, error) {
 
 	configData, err := cr.ReadYAMLBytes(configBytes)
 	if err != nil {
-		return nil, errors.Wrap(err, filePath, ErrorParseConfig().Error())
+		return nil, errors.Wrap(err, filePath)
 	}
 
 	configDataSlice, ok := cast.InterfaceToStrInterfaceMapSlice(configData)
@@ -129,9 +129,9 @@ func New(filePath string, configBytes []byte) (*Config, error) {
 }
 
 func ReadConfigFile(filePath string, relativePath string) (*Config, error) {
-	configBytes, err := files.ReadFileBytes(filePath)
+	configBytes, err := files.ReadFileBytesErrPath(filePath, relativePath)
 	if err != nil {
-		return nil, errors.Wrap(err, relativePath, ErrorReadConfig().Error())
+		return nil, err
 	}
 
 	config, err := New(relativePath, configBytes)
