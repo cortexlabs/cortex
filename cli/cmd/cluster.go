@@ -38,8 +38,12 @@ var flagClusterConfig string
 
 func init() {
 	addClusterConfigFlag(upCmd)
+	addClusterConfigFlag(updateCmd)
+	addClusterConfigFlag(infoCmd)
 	addClusterConfigFlag(downCmd)
 	clusterCmd.AddCommand(upCmd)
+	clusterCmd.AddCommand(updateCmd)
+	clusterCmd.AddCommand(infoCmd)
 	clusterCmd.AddCommand(downCmd)
 }
 
