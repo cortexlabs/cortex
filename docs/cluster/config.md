@@ -12,8 +12,8 @@ aws_access_key_id: ***
 aws_secret_access_key: ***
 
 # Optional AWS credentials for the Operator which may be used to restrict its AWS access (defaults to the AWS credentials set above)
-aws_access_key_id: ***
-aws_secret_access_key: ***
+cortex_aws_access_key_id: ***
+cortex_aws_secret_access_key: ***
 
 # The AWS instance type Cortex will use
 instance_type: m5.large
@@ -35,7 +35,7 @@ log_group: cortex
 cluster_name: cortex
 
 # Flag to enable collecting error reports and usage stats
-telemetry: false
+telemetry: true
 
 # Image paths
 # TODO reorder here and everwhere
@@ -51,7 +51,6 @@ image_tf_serve_gpu: cortexlabs/tf-serve-gpu:master
 image_onnx_serve: cortexlabs/onnx-serve:master
 image_onnx_serve_gpu: cortexlabs/onnx-serve-gpu:master
 image_tf_api: cortexlabs/tf-api:master
-image_python_packager: cortexlabs/python-packager:master
 image_cluster_autoscaler: cortexlabs/cluster-autoscaler:master
 image_nvidia: cortexlabs/nvidia:master
 image_metrics_server: cortexlabs/metrics-server:master

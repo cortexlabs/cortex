@@ -12,21 +12,11 @@ See [cluster configuration](config.md) to customize your installation.
 <!-- CORTEX_VERSION_MINOR -->
 
 ```bash
-# Download
-curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh
-
-# Change permissions
-chmod +x cortex.sh
-
-# Set AWS credentials
-export AWS_ACCESS_KEY_ID=***
-export AWS_SECRET_ACCESS_KEY=***
-
-# Update Cortex
-./cortex.sh update
-
-# Update the CLI
+# Update the CLI TODO
 ./cortex.sh install cli
+
+# Update the cluster
+cortex cluster update
 
 # Confirm version
 cortex --version

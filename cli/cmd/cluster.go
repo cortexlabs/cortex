@@ -86,7 +86,7 @@ This command updates a Cortex cluster.`,
 			errors.Exit(err)
 		}
 
-		err = runManagerCommand("/root/install_cortex.sh", clusterConfig, awsCreds)
+		err = runManagerCommand("/root/install.sh", clusterConfig, awsCreds)
 		if err != nil {
 			errors.Exit(err)
 		}

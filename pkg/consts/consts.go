@@ -23,7 +23,7 @@ var (
 	EmptyDirMountPath  = "/mnt"
 	EmptyDirVolumeName = "mnt"
 
-	ClusterConfigPath = "/configs/cluster"
+	ClusterConfigPath = "/configs/cluster/cluster.yaml"
 	ClusterConfigName = "cluster-config"
 
 	AppsDir             = "apps"
@@ -35,6 +35,8 @@ var (
 	ResourceStatusesDir = "resource_statuses"
 	WorkloadSpecsDir    = "workload_specs"
 	MetadataDir         = "metadata"
+
+	K8sNamespace = "cortex"
 
 	TelemetryURL = "https://telemetry.cortexlabs.dev"
 

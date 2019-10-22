@@ -25,56 +25,39 @@ devstart:
 	@./dev/operator_local.sh || true
 
 kubectl:
-	@source ./dev/config/cortex.sh && eksctl utils write-kubeconfig --name="$$CORTEX_CLUSTER_NAME" | grep -v "saved kubeconfig as" | grep -v "using region" || true
-	@source ./dev/config/cortex.sh && kubectl config set-context --current --namespace=cortex >/dev/null
+	@eval $$(python ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --name="$$CORTEX_CLUSTER_NAME" | grep -v "saved kubeconfig as" | grep -v "using region" || true
+	@kubectl config set-context --current --namespace=cortex >/dev/null
 
 cortex-up:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./cortex.sh -c=./dev/config/cortex.sh install
+	@cortex -c=./dev/config/cluster.yaml cluster up
 	@$(MAKE) kubectl
 
 cortex-down:
 	@$(MAKE) manager-local
-	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./cortex.sh -c=./dev/config/cortex.sh uninstall
-
-cortex-install:
-	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./cortex.sh -c=./dev/config/cortex.sh install cortex
-	@$(MAKE) kubectl
+	@cortex -c=./dev/config/cluster.yaml cluster down
 
 cortex-uninstall:
 	@./dev/uninstall_cortex.sh
 
 cortex-info:
 	@$(MAKE) manager-local
-	@./cortex.sh -c=./dev/config/cortex.sh info
+	@$(MAKE) cli
+	@cortex -c=./dev/config/cluster.yaml cluster info
 
 cortex-update:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./cortex.sh -c=./dev/config/cortex.sh update
-
-operator-start:
-	@$(MAKE) registry-all
-	@$(MAKE) cli
-	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./cortex.sh -c=./dev/config/cortex.sh update
-
-operator-update:
-	@$(MAKE) registry-all
-	@$(MAKE) cli
-	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./cortex.sh -c=./dev/config/cortex.sh update
+	@cortex -c=./dev/config/cluster.yaml cluster update
 
 operator-stop:
 	@$(MAKE) kubectl
-	@source ./dev/config/cortex.sh && kubectl delete --namespace=cortex --ignore-not-found=true deployment operator
+	@kubectl delete --namespace=cortex --ignore-not-found=true deployment operator
 
 # Docker images
 

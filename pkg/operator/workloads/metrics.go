@@ -266,7 +266,7 @@ func getAPIDimensionsHistogram(appName string, api *context.API) []*cloudwatch.D
 
 func getRegressionMetricDef(appName string, api *context.API, period int64) []*cloudwatch.MetricDataQuery {
 	metric := &cloudwatch.Metric{
-		Namespace:  aws.String(config.Cortex.LogGroup),
+		Namespace:  aws.String(config.Cluster.LogGroup),
 		MetricName: aws.String("Prediction"),
 		Dimensions: getAPIDimensionsHistogram(appName, api),
 	}
@@ -328,7 +328,7 @@ func getNetworkStatsDef(appName string, api *context.API, period int64) []*cloud
 			Label: aws.String(code),
 			MetricStat: &cloudwatch.MetricStat{
 				Metric: &cloudwatch.Metric{
-					Namespace:  aws.String(config.Cortex.LogGroup),
+					Namespace:  aws.String(config.Cluster.LogGroup),
 					MetricName: aws.String("StatusCode"),
 					Dimensions: statusCodeDimensions,
 				},
@@ -343,7 +343,7 @@ func getNetworkStatsDef(appName string, api *context.API, period int64) []*cloud
 		Label: aws.String("Latency"),
 		MetricStat: &cloudwatch.MetricStat{
 			Metric: &cloudwatch.Metric{
-				Namespace:  aws.String(config.Cortex.LogGroup),
+				Namespace:  aws.String(config.Cluster.LogGroup),
 				MetricName: aws.String("Latency"),
 				Dimensions: getAPIDimensionsHistogram(appName, api),
 			},
@@ -357,7 +357,7 @@ func getNetworkStatsDef(appName string, api *context.API, period int64) []*cloud
 		Label: aws.String("RequestCount"),
 		MetricStat: &cloudwatch.MetricStat{
 			Metric: &cloudwatch.Metric{
-				Namespace:  aws.String(config.Cortex.LogGroup),
+				Namespace:  aws.String(config.Cluster.LogGroup),
 				MetricName: aws.String("Latency"),
 				Dimensions: getAPIDimensionsHistogram(appName, api),
 			},
@@ -399,7 +399,7 @@ func getClassesMetricDef(ctx *context.Context, api *context.API, period int64) (
 			Id: aws.String(fmt.Sprintf("id_%d", i)),
 			MetricStat: &cloudwatch.MetricStat{
 				Metric: &cloudwatch.Metric{
-					Namespace:  aws.String(config.Cortex.LogGroup),
+					Namespace:  aws.String(config.Cluster.LogGroup),
 					MetricName: aws.String("Prediction"),
 					Dimensions: append(getAPIDimensionsCounter(ctx.App.Name, api), &cloudwatch.Dimension{
 						Name:  aws.String("Class"),

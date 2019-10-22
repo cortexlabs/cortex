@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -86,7 +87,7 @@ func updateContextConfigMap() error {
 
 	configMap := k8s.ConfigMap(&k8s.ConfigMapSpec{
 		Name:      configMapName,
-		Namespace: config.Cortex.Namespace,
+		Namespace: consts.K8sNamespace,
 		Data:      configMapData,
 	})
 

@@ -20,7 +20,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 source $ROOT/dev/config/build.sh
-source $ROOT/dev/config/cortex.sh
+eval $(python ./manager/cluster_config_env.py $ROOT/dev/config/cluster.yaml)
 source $ROOT/dev/util.sh
 
 if [ "$1" = "clear-bucket" ]; then

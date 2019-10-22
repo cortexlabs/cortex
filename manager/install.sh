@@ -25,8 +25,6 @@ function main() {
     echo -e "✓ Cluster is running"
   fi
 
-  exit 0 # TODO
-
   eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" || true
 
   setup_bucket
@@ -113,31 +111,8 @@ function setup_cloudwatch_logs() {
 }
 
 function setup_configmap() {
-  kubectl -n=cortex create configmap 'cortex-config' \
-    --from-literal='instance_type'=$CORTEX_INSTANCE_TYPE \
-    --from-literal='min_instances'=$CORTEX_MIN_INSTANCES \
-    --from-literal='max_instances'=$CORTEX_MAX_INSTANCES \
-    --from-literal='cluster_name'=$CORTEX_CLUSTER_NAME \
-    --from-literal='region'=$CORTEX_REGION \
-    --from-literal='bucket'=$CORTEX_BUCKET \
-    --from-literal='log_group'=$CORTEX_LOG_GROUP \
-    --from-literal='telemetry'=$CORTEX_TELEMETRY \
-    --from-literal='image_fluentd'=$CORTEX_IMAGE_FLUENTD \
-    --from-literal='image_statsd'=$CORTEX_IMAGE_STATSD \
-    --from-literal='image_operator'=$CORTEX_IMAGE_OPERATOR \
-    --from-literal='image_tf_serve'=$CORTEX_IMAGE_TF_SERVE \
-    --from-literal='image_tf_api'=$CORTEX_IMAGE_TF_API \
-    --from-literal='image_tf_serve_gpu'=$CORTEX_IMAGE_TF_SERVE_GPU \
-    --from-literal='image_onnx_serve'=$CORTEX_IMAGE_ONNX_SERVE \
-    --from-literal='image_onnx_serve_gpu'=$CORTEX_IMAGE_ONNX_SERVE_GPU \
-    --from-literal='image_cluster_autoscaler'=$CORTEX_IMAGE_CLUSTER_AUTOSCALER \
-    --from-literal='image_nvidia'=$CORTEX_IMAGE_NVIDIA \
-    --from-literal='image_metrics_server'=$CORTEX_IMAGE_METRICS_SERVER \
-    --from-literal='image_istio_citadel'=$CORTEX_IMAGE_ISTIO_CITADEL \
-    --from-literal='image_istio_galley'=$CORTEX_IMAGE_ISTIO_GALLEY \
-    --from-literal='image_istio_pilot'=$CORTEX_IMAGE_ISTIO_PILOT \
-    --from-literal='image_istio_proxy'=$CORTEX_IMAGE_ISTIO_PROXY \
-    --from-literal='image_downloader'=$CORTEX_IMAGE_DOWNLOADER \
+  kubectl -n=cortex create configmap 'cluster-config' \
+    --from-file='cluster.yaml'='/.cortex/cluster.yaml' \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 

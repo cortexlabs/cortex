@@ -98,7 +98,7 @@ func ctxKey(ctxID string, appName string) string {
 
 func calculateID(ctx *context.Context) string {
 	ids := []string{}
-	ids = append(ids, config.Cortex.ID)
+	ids = append(ids, config.Cluster.ID)
 	ids = append(ids, ctx.DeploymentVersion)
 	ids = append(ids, ctx.Root)
 	ids = append(ids, ctx.StatusPrefix)

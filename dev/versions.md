@@ -16,7 +16,7 @@
 ## AWS CNI
 
 1. Find the latest release on [GitHub](https://github.com/aws/amazon-vpc-cni-k8s/releases) and check the changelog
-1. Update the version in `manager/install_cortex.sh`
+1. Update the version in `manager/install.sh`
 
 ## Go
 
@@ -119,7 +119,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Update the version in all `images/istio-*` Dockerfiles
 1. Update the version in `images/manager/Dockerfile`
 1. Update `istio-values.yaml`, `apis.yaml`, and `operator.yaml` as necessary (make sure to maintain all Cortex environment variables)
-1. Update `setup_istio()` in `install_cortex.sh` as necessary
+1. Update `setup_istio()` in `install.sh` as necessary
 
 ## Metrics server
 

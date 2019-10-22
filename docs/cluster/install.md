@@ -10,7 +10,7 @@
 See [cluster configuration](config.md) to customize your installation.
 
 <!-- CORTEX_VERSION_MINOR -->
-
+<!-- TODO -->
 ```bash
 # Download
 curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh
