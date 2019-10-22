@@ -32,14 +32,14 @@ cortex-up:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@cortex -c=./dev/config/cluster.yaml cluster up
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster up
 	@$(MAKE) kubectl
 
 cortex-down:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@cortex -c=./dev/config/cluster.yaml cluster down
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster down
 
 cortex-uninstall:
 	@./dev/uninstall_cortex.sh
@@ -47,13 +47,13 @@ cortex-uninstall:
 cortex-info:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
-	@cortex -c=./dev/config/cluster.yaml cluster info
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster info
 
 cortex-update:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@cortex -c=./dev/config/cluster.yaml cluster update
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster update
 
 operator-stop:
 	@$(MAKE) kubectl
