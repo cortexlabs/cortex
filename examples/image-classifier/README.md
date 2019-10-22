@@ -1,6 +1,6 @@
 # Deploy Image Classification as an API
 
-This example shows how to deploy an Image Classifier made with Pytorch. The Pytorch Image Classifier implementation will be using a pretrained Alexnet model from Torchvision that has been exported to ONNX format.
+This example shows how to deploy an Image Classifier made with PyTorch. The PyTorch Image Classifier implementation will be using a pretrained Alexnet model from Torchvision that has been exported to ONNX format.
 
 ## Define a deployment
 
@@ -20,7 +20,7 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
 
 <!-- CORTEX_VERSION_MINOR x2 -->
 You can run the code that generated the exported models used in this example folder here:
-- [Pytorch Alexnet](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/image-classifier/alexnet.ipynb)
+- [PyTorch Alexnet](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/image-classifier/alexnet.ipynb)
 - [TensorFlow Inception V3](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/image-classifier/inception.ipynb)
 
 
