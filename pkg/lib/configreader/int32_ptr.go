@@ -142,7 +142,7 @@ func Int32PtrFromEnvOrFile(envVarName string, filePath string, v *Int32PtrValida
 	return Int32PtrFromFile(filePath, v)
 }
 
-func Int32PtrFromPrompt(promptOpts *prompt.PromptOptions, v *Int32PtrValidation) (*int32, error) {
+func Int32PtrFromPrompt(promptOpts *prompt.Options, v *Int32PtrValidation) (*int32, error) {
 	if v.Default != nil && promptOpts.DefaultStr == "" {
 		promptOpts.DefaultStr = s.Int32(*v.Default)
 	}

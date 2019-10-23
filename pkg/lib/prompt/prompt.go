@@ -32,7 +32,7 @@ var ui = &input.UI{
 	Reader: os.Stdin,
 }
 
-type PromptOptions struct {
+type Options struct {
 	Prompt        string
 	DefaultStr    string
 	HideDefault   bool
@@ -42,7 +42,7 @@ type PromptOptions struct {
 	TypingMaskVal string
 }
 
-func Prompt(opts *PromptOptions) string {
+func Prompt(opts *Options) string {
 	prompt := opts.Prompt
 
 	if opts.DefaultStr != "" && !opts.HideDefault {
@@ -73,7 +73,7 @@ func Prompt(opts *PromptOptions) string {
 
 func ForceYes(prompt string, exitMessage string) {
 	for true {
-		str := Prompt(&PromptOptions{
+		str := Prompt(&Options{
 			Prompt:      prompt + " [y/n]",
 			HideDefault: true,
 		})

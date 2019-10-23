@@ -132,7 +132,7 @@ func Int32FromEnvOrFile(envVarName string, filePath string, v *Int32Validation) 
 	return Int32FromFile(filePath, v)
 }
 
-func Int32FromPrompt(promptOpts *prompt.PromptOptions, v *Int32Validation) (int32, error) {
+func Int32FromPrompt(promptOpts *prompt.Options, v *Int32Validation) (int32, error) {
 	promptOpts.DefaultStr = s.Int32(v.Default)
 	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {

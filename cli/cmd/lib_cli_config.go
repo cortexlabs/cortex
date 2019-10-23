@@ -59,7 +59,7 @@ func getPromptValidation(defaults *CLIConfig) *cr.PromptValidation {
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
 				StructField: "CortexURL",
-				PromptOpts: &prompt.PromptOptions{
+				PromptOpts: &prompt.Options{
 					Prompt: "Enter Cortex operator endpoint",
 				},
 				StringValidation: &cr.StringValidation{
@@ -70,7 +70,7 @@ func getPromptValidation(defaults *CLIConfig) *cr.PromptValidation {
 			},
 			{
 				StructField: "AWSAccessKeyID",
-				PromptOpts: &prompt.PromptOptions{
+				PromptOpts: &prompt.Options{
 					Prompt: "Enter AWS Access Key ID",
 				},
 				StringValidation: &cr.StringValidation{
@@ -80,7 +80,7 @@ func getPromptValidation(defaults *CLIConfig) *cr.PromptValidation {
 			},
 			{
 				StructField: "AWSSecretAccessKey",
-				PromptOpts: &prompt.PromptOptions{
+				PromptOpts: &prompt.Options{
 					Prompt:      "Enter AWS Secret Access Key",
 					MaskDefault: true,
 					HideTyping:  true,

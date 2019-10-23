@@ -239,7 +239,7 @@ var PromptValidation = &cr.PromptValidation{
 	PromptItemValidations: []*cr.PromptItemValidation{
 		{
 			StructField: "InstanceType",
-			PromptOpts: &prompt.PromptOptions{
+			PromptOpts: &prompt.Options{
 				Prompt: "AWS instance type",
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
@@ -250,7 +250,7 @@ var PromptValidation = &cr.PromptValidation{
 		},
 		{
 			StructField: "MinInstances",
-			PromptOpts: &prompt.PromptOptions{
+			PromptOpts: &prompt.Options{
 				Prompt: "Min instances",
 			},
 			Int64PtrValidation: &cr.Int64PtrValidation{
@@ -261,7 +261,7 @@ var PromptValidation = &cr.PromptValidation{
 		},
 		{
 			StructField: "MaxInstances",
-			PromptOpts: &prompt.PromptOptions{
+			PromptOpts: &prompt.Options{
 				Prompt: "Max instances",
 			},
 			Int64PtrValidation: &cr.Int64PtrValidation{

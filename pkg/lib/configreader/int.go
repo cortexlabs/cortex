@@ -132,7 +132,7 @@ func IntFromEnvOrFile(envVarName string, filePath string, v *IntValidation) (int
 	return IntFromFile(filePath, v)
 }
 
-func IntFromPrompt(promptOpts *prompt.PromptOptions, v *IntValidation) (int, error) {
+func IntFromPrompt(promptOpts *prompt.Options, v *IntValidation) (int, error) {
 	promptOpts.DefaultStr = s.Int(v.Default)
 	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {

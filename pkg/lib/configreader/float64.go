@@ -132,7 +132,7 @@ func Float64FromEnvOrFile(envVarName string, filePath string, v *Float64Validati
 	return Float64FromFile(filePath, v)
 }
 
-func Float64FromPrompt(promptOpts *prompt.PromptOptions, v *Float64Validation) (float64, error) {
+func Float64FromPrompt(promptOpts *prompt.Options, v *Float64Validation) (float64, error) {
 	promptOpts.DefaultStr = s.Float64(v.Default)
 	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {

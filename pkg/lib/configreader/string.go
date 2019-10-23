@@ -152,7 +152,7 @@ func StringFromEnvOrFile(envVarName string, filePath string, v *StringValidation
 	return StringFromFile(filePath, v)
 }
 
-func StringFromPrompt(promptOpts *prompt.PromptOptions, v *StringValidation) (string, error) {
+func StringFromPrompt(promptOpts *prompt.Options, v *StringValidation) (string, error) {
 	promptOpts.DefaultStr = v.Default
 	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" { // Treat empty prompt value as missing

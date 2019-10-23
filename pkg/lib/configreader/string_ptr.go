@@ -160,7 +160,7 @@ func StringPtrFromEnvOrFile(envVarName string, filePath string, v *StringPtrVali
 	return StringPtrFromFile(filePath, v)
 }
 
-func StringPtrFromPrompt(promptOpts *prompt.PromptOptions, v *StringPtrValidation) (*string, error) {
+func StringPtrFromPrompt(promptOpts *prompt.Options, v *StringPtrValidation) (*string, error) {
 	if v.Default != nil && promptOpts.DefaultStr == "" {
 		promptOpts.DefaultStr = *v.Default
 	}

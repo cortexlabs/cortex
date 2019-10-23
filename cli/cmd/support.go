@@ -44,7 +44,7 @@ var supportPrompValidation = &cr.PromptValidation{
 	PromptItemValidations: []*cr.PromptItemValidation{
 		{
 			StructField: "Body",
-			PromptOpts: &prompt.PromptOptions{
+			PromptOpts: &prompt.Options{
 				Prompt: "What is your question or issue",
 			},
 			StringValidation: &cr.StringValidation{
@@ -53,7 +53,7 @@ var supportPrompValidation = &cr.PromptValidation{
 		},
 		{
 			StructField: "EmailAddress",
-			PromptOpts: &prompt.PromptOptions{
+			PromptOpts: &prompt.Options{
 				Prompt: "What is your email address",
 			},
 			StringValidation: &cr.StringValidation{

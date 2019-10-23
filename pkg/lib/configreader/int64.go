@@ -132,7 +132,7 @@ func Int64FromEnvOrFile(envVarName string, filePath string, v *Int64Validation) 
 	return Int64FromFile(filePath, v)
 }
 
-func Int64FromPrompt(promptOpts *prompt.PromptOptions, v *Int64Validation) (int64, error) {
+func Int64FromPrompt(promptOpts *prompt.Options, v *Int64Validation) (int64, error) {
 	promptOpts.DefaultStr = s.Int64(v.Default)
 	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {

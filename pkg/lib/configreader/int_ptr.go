@@ -142,7 +142,7 @@ func IntPtrFromEnvOrFile(envVarName string, filePath string, v *IntPtrValidation
 	return IntPtrFromFile(filePath, v)
 }
 
-func IntPtrFromPrompt(promptOpts *prompt.PromptOptions, v *IntPtrValidation) (*int, error) {
+func IntPtrFromPrompt(promptOpts *prompt.Options, v *IntPtrValidation) (*int, error) {
 	if v.Default != nil && promptOpts.DefaultStr == "" {
 		promptOpts.DefaultStr = s.Int(*v.Default)
 	}

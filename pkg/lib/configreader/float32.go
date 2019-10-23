@@ -132,7 +132,7 @@ func Float32FromEnvOrFile(envVarName string, filePath string, v *Float32Validati
 	return Float32FromFile(filePath, v)
 }
 
-func Float32FromPrompt(promptOpts *prompt.PromptOptions, v *Float32Validation) (float32, error) {
+func Float32FromPrompt(promptOpts *prompt.Options, v *Float32Validation) (float32, error) {
 	promptOpts.DefaultStr = s.Float32(v.Default)
 	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {

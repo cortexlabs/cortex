@@ -530,8 +530,8 @@ func ReadInterfaceMapValue(name string, interMap map[string]interface{}) (interf
 //
 
 type PromptItemValidation struct {
-	StructField string                // Required
-	PromptOpts  *prompt.PromptOptions // Required
+	StructField string          // Required
+	PromptOpts  *prompt.Options // Required
 
 	// Provide one of the following:
 	StringValidation     *StringValidation

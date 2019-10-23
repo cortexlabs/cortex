@@ -141,7 +141,7 @@ var emailPrompValidation = &cr.PromptValidation{
 	PromptItemValidations: []*cr.PromptItemValidation{
 		{
 			StructField: "EmailAddress",
-			PromptOpts: &prompt.PromptOptions{
+			PromptOpts: &prompt.Options{
 				Prompt: "Email address [press enter to skip]",
 			},
 			StringPtrValidation: &cr.StringPtrValidation{

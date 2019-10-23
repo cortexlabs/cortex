@@ -124,7 +124,7 @@ func BoolFromEnvOrFile(envVarName string, filePath string, v *BoolValidation) (b
 	return BoolFromFile(filePath, v)
 }
 
-func BoolFromPrompt(promptOpts *prompt.PromptOptions, v *BoolValidation) (bool, error) {
+func BoolFromPrompt(promptOpts *prompt.Options, v *BoolValidation) (bool, error) {
 	promptOpts.DefaultStr = s.Bool(v.Default)
 	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {
