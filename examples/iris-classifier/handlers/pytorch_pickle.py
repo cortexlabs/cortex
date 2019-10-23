@@ -1,8 +1,7 @@
 import numpy as np
 import os
 import torch
-
-from model import Net
+import dill
 
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
@@ -10,8 +9,7 @@ labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 def model_init(ctx, api):
     _, prefix = ctx.storage.deconstruct_s3_path(api["model"])
     model_path = os.path.join("/mnt/model", os.path.basename(prefix))
-    model = Net()
-    model.load_state_dict(torch.load(model_path))
+    model = torch.load(model_path, pickle_module=dill)
     return model
 
 

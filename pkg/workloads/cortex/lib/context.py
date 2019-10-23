@@ -146,6 +146,25 @@ class Context:
             raise
         return impl
 
+    def get_inference_handler_impl(self, api_name, project_dir):
+        api = self.apis[api_name]
+        try:
+            impl = self.load_module(
+                "inference_handler",
+                api["name"],
+                os.path.join(project_dir, api["inference_handler"]),
+            )
+        except CortexException as e:
+            e.wrap("api " + api_name, "inference_handler " + api["inference_handler"])
+            raise
+
+        try:
+            _validate_impl(impl, REQUEST_HANDLER_IMPL_VALIDATION)
+        except CortexException as e:
+            e.wrap("api " + api_name, "inference_handler " + api["inference_handler"])
+            raise
+        return impl
+
     def get_resource_status(self, resource):
         key = self.resource_status_key(resource)
         return self.storage.get_json(key, num_retries=5)
@@ -214,6 +233,13 @@ REQUEST_HANDLER_IMPL_VALIDATION = {
     "optional": [
         {"name": "pre_inference", "args": ["sample", "metadata"]},
         {"name": "post_inference", "args": ["prediction", "metadata"]},
+    ]
+}
+
+INFERENCE_HANDLER_IMPL_VALIDATION = {
+    "required": [
+        {"name": "model_init", "args": ["model_path"]},
+        {"name": "inference", "args": ["model", "sample"]},
     ]
 }
 

@@ -39,9 +39,15 @@ func getAPIs(config *userconfig.Config, deploymentVersion string, projectID stri
 		buf.WriteString(strings.TrimSuffix(apiConfig.Model, "/"))
 		buf.WriteString(s.Obj(apiConfig.TFSignatureKey))
 
-		if apiConfig.RequestHandler != nil {
+		if apiConfig.AreProjectFilesRequired() {
 			buf.WriteString(projectID)
+		}
+
+		switch {
+		case apiConfig.RequestHandler != nil:
 			buf.WriteString(*apiConfig.RequestHandler)
+		case apiConfig.InferenceHandler != nil:
+			buf.WriteString(*apiConfig.InferenceHandler)
 		}
 
 		id := hash.Bytes(buf.Bytes())

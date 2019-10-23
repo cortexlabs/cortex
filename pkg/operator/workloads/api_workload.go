@@ -94,6 +94,8 @@ func (aw *APIWorkload) Start(ctx *context.Context) error {
 	switch api.ModelFormat {
 	case userconfig.TensorFlowModelFormat:
 		deploymentSpec = tfAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
+	case userconfig.PythonModelFormat:
+		deploymentSpec = pytorchAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
 	case userconfig.ONNXModelFormat:
 		deploymentSpec = onnxAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
 	default:
@@ -408,6 +410,152 @@ func tfAPISpec(
 						Ports: []kcore.ContainerPort{
 							{
 								ContainerPort: tfServingPortInt32,
+							},
+						},
+					},
+				},
+				Volumes:            k8s.DefaultVolumes(),
+				ServiceAccountName: "default",
+			},
+		},
+		Namespace: config.Cortex.Namespace,
+	})
+}
+
+// 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/pytorch:latest
+func pytorchAPISpec(
+	ctx *context.Context,
+	api *context.API,
+	workloadID string,
+	desiredReplicas int32,
+) *kapps.Deployment {
+	servingImage := config.Cortex.PytorchImage
+	resourceList := kcore.ResourceList{}
+	resourceLimitsList := kcore.ResourceList{}
+	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
+
+	if api.Compute.Mem != nil {
+		resourceList[kcore.ResourceMemory] = api.Compute.Mem.Quantity
+	}
+
+	if api.Compute.GPU > 0 {
+		servingImage = config.Cortex.PytorchImageGPU
+		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+	}
+
+	downloadArgs := []downloadContainerArg{
+		{
+			From:     ctx.APIs[api.Name].Model,
+			To:       path.Join(consts.EmptyDirMountPath, "model"),
+			ItemName: "model",
+		},
+	}
+
+	if api.AreProjectFilesRequired() {
+		downloadArgs = append(downloadArgs, downloadContainerArg{
+			From:     config.AWS.S3Path(ctx.ProjectKey),
+			To:       path.Join(consts.EmptyDirMountPath, "project"),
+			Unzip:    true,
+			ItemName: "project code",
+		})
+	}
+
+	downloadArgsBytes, _ := json.Marshal(downloadArgs)
+	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
+	return k8s.Deployment(&k8s.DeploymentSpec{
+		Name:     internalAPIName(api.Name, ctx.App.Name),
+		Replicas: desiredReplicas,
+		Labels: map[string]string{
+			"appName":      ctx.App.Name,
+			"workloadType": workloadTypeAPI,
+			"apiName":      api.Name,
+			"resourceID":   ctx.APIs[api.Name].ID,
+			"workloadID":   workloadID,
+		},
+		Selector: map[string]string{
+			"appName":      ctx.App.Name,
+			"workloadType": workloadTypeAPI,
+			"apiName":      api.Name,
+		},
+		PodSpec: k8s.PodSpec{
+			Labels: map[string]string{
+				"appName":      ctx.App.Name,
+				"workloadType": workloadTypeAPI,
+				"apiName":      api.Name,
+				"resourceID":   ctx.APIs[api.Name].ID,
+				"workloadID":   workloadID,
+				"userFacing":   "true",
+				"logGroupName": ctx.LogGroupName(api.Name),
+			},
+			Annotations: map[string]string{
+				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
+			},
+			K8sPodSpec: kcore.PodSpec{
+				InitContainers: []kcore.Container{
+					{
+						Name:            downloaderInitContainerName,
+						Image:           config.Cortex.DownloaderImage,
+						ImagePullPolicy: "Always",
+						Args: []string{
+							"--download=" + downloadArgsStr,
+						},
+						Env:          k8s.AWSCredentials(),
+						VolumeMounts: k8s.DefaultVolumeMounts(),
+					},
+				},
+				Containers: []kcore.Container{
+					{
+						Name:            apiContainerName,
+						Image:           servingImage,
+						ImagePullPolicy: kcore.PullAlways,
+						Args: []string{
+							"--workload-id=" + workloadID,
+							"--port=" + defaultPortStr,
+							"--context=" + config.AWS.S3Path(ctx.Key),
+							"--api=" + ctx.APIs[api.Name].ID,
+							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
+							"--cache-dir=" + consts.ContextCacheDir,
+							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
+						},
+						Env: append(
+							k8s.AWSCredentials(),
+							kcore.EnvVar{
+								Name:  "PYTHON_ROOT",
+								Value: ctx.App.PythonRoot,
+							},
+							kcore.EnvVar{
+								Name: "HOST_IP",
+								ValueFrom: &kcore.EnvVarSource{
+									FieldRef: &kcore.ObjectFieldSelector{
+										FieldPath: "status.hostIP",
+									},
+								},
+							},
+						),
+						VolumeMounts: k8s.DefaultVolumeMounts(),
+						ReadinessProbe: &kcore.Probe{
+							InitialDelaySeconds: 5,
+							TimeoutSeconds:      5,
+							PeriodSeconds:       5,
+							SuccessThreshold:    1,
+							FailureThreshold:    2,
+							Handler: kcore.Handler{
+								HTTPGet: &kcore.HTTPGetAction{
+									Path: "/healthz",
+									Port: intstr.IntOrString{
+										IntVal: defaultPortInt32,
+									},
+								},
+							},
+						},
+						Resources: kcore.ResourceRequirements{
+							Requests: resourceList,
+							Limits:   resourceLimitsList,
+						},
+						Ports: []kcore.ContainerPort{
+							{
+								ContainerPort: defaultPortInt32,
 							},
 						},
 					},

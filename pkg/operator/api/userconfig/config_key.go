@@ -23,14 +23,18 @@ const (
 	KindKey    = "kind"
 	TagsKey    = "tags"
 
+	// App
+	PythonRootKey = "python_root"
+
 	// API
-	ModelKey          = "model"
-	ModelFormatKey    = "model_format"
-	RequestHandlerKey = "request_handler"
-	TFSignatureKeyKey = "tf_signature_key"
-	TrackerKey        = "tracker"
-	ModelTypeKey      = "model_type"
-	KeyKey            = "key"
+	ModelKey            = "model"
+	ModelFormatKey      = "model_format"
+	InferenceHandlerKey = "inference_handler"
+	RequestHandlerKey   = "request_handler"
+	TFSignatureKeyKey   = "tf_signature_key"
+	TrackerKey          = "tracker"
+	ModelTypeKey        = "model_type"
+	KeyKey              = "key"
 
 	// compute
 	ComputeKey              = "compute"

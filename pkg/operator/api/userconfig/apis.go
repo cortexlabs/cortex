@@ -34,13 +34,14 @@ type APIs []*API
 
 type API struct {
 	ResourceFields
-	Model          string      `json:"model" yaml:"model"`
-	ModelFormat    ModelFormat `json:"model_format" yaml:"model_format"`
-	Tracker        *Tracker    `json:"tracker" yaml:"tracker"`
-	RequestHandler *string     `json:"request_handler" yaml:"request_handler"`
-	TFSignatureKey *string     `json:"tf_signature_key" yaml:"tf_signature_key"`
-	Compute        *APICompute `json:"compute" yaml:"compute"`
-	Tags           Tags        `json:"tags" yaml:"tags"`
+	Model            string      `json:"model" yaml:"model"`
+	ModelFormat      ModelFormat `json:"model_format" yaml:"model_format"`
+	Tracker          *Tracker    `json:"tracker" yaml:"tracker"`
+	RequestHandler   *string     `json:"request_handler" yaml:"request_handler"`
+	InferenceHandler *string     `json:"inference_handler" yaml:"inference_handler"`
+	TFSignatureKey   *string     `json:"tf_signature_key" yaml:"tf_signature_key"`
+	Compute          *APICompute `json:"compute" yaml:"compute"`
+	Tags             Tags        `json:"tags" yaml:"tags"`
 }
 
 type Tracker struct {
@@ -89,6 +90,10 @@ var apiValidation = &cr.StructValidation{
 		},
 		{
 			StructField:         "RequestHandler",
+			StringPtrValidation: &cr.StringPtrValidation{},
+		},
+		{
+			StructField:         "InferenceHandler",
 			StringPtrValidation: &cr.StringPtrValidation{},
 		},
 		{
@@ -230,58 +235,70 @@ func (apis APIs) Validate(projectFileMap map[string][]byte) error {
 }
 
 func (api *API) Validate(projectFileMap map[string][]byte) error {
-	awsClient, err := aws.NewFromS3Path(api.Model, false)
-	if err != nil {
-		return err
-	}
+	// awsClient, err := aws.NewFromS3Path(api.Model, false)
+	// if err != nil {
+	// 	return err
+	// }
 
-	switch {
-	case api.ModelFormat == ONNXModelFormat:
-		if strings.HasSuffix(api.Model, ".zip") {
-			return errors.Wrap(ErrorONNXDoesntSupportZip(), Identify(api), ModelKey)
-		}
-		if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
-			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
-		}
-	case api.ModelFormat == TensorFlowModelFormat:
-		if strings.HasSuffix(api.Model, ".zip") {
-			if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
-				return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
-			}
-		} else {
-			path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
-			if path == "" || err != nil {
-				return errors.Wrap(ErrorInvalidTensorFlowDir(api.Model), Identify(api), ModelKey)
-			}
-			api.Model = path
-		}
-	default:
-		switch {
-		case strings.HasSuffix(api.Model, ".onnx"):
-			api.ModelFormat = ONNXModelFormat
-			if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
-				return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
-			}
-		case strings.HasSuffix(api.Model, ".zip"):
-			api.ModelFormat = TensorFlowModelFormat
-			if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
-				return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
-			}
-		default:
-			path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
-			if err != nil {
-				return errors.Wrap(err, Identify(api), ModelKey)
-			}
-			if path == "" {
-				return errors.Wrap(ErrorUnableToInferModelFormat(api.Model), Identify(api))
-			}
-			api.ModelFormat = TensorFlowModelFormat
-			api.Model = path
-		}
-	}
+	// switch {
+	// case api.ModelFormat == PythonModelFormat:
+	// 	api.ModelFormat = PythonModelFormat
+	// case api.ModelFormat == ONNXModelFormat:
+	// 	if strings.HasSuffix(api.Model, ".zip") {
+	// 		return errors.Wrap(ErrorONNXDoesntSupportZip(), Identify(api), ModelKey)
+	// 	}
+	// 	if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
+	// 		return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
+	// 	}
+	// case api.ModelFormat == TensorFlowModelFormat:
+	// 	if strings.HasSuffix(api.Model, ".zip") {
+	// 		if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
+	// 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
+	// 		}
+	// 	} else {
+	// 		path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
+	// 		if path == "" || err != nil {
+	// 			return errors.Wrap(ErrorInvalidTensorFlowDir(api.Model), Identify(api), ModelKey)
+	// 		}
+	// 		api.Model = path
+	// 	}
+	// default:
+	// 	switch {
+	// 	case strings.HasSuffix(api.Model, ".onnx"):
+	// 		api.ModelFormat = ONNXModelFormat
+	// 		if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
+	// 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
+	// 		}
+	// 	case strings.HasSuffix(api.Model, ".zip"):
+	// 		api.ModelFormat = TensorFlowModelFormat
+	// 		if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
+	// 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
+	// 		}
+	// 	default:
+	// 		path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
+	// 		if err != nil {
+	// 			return errors.Wrap(err, Identify(api), ModelKey)
+	// 		}
+	// 		if path == "" {
+	// 			return errors.Wrap(ErrorUnableToInferModelFormat(api.Model), Identify(api))
+	// 		}
+	// 		api.ModelFormat = TensorFlowModelFormat
+	// 		api.Model = path
+	// 	}
+	// }
 
 	if api.ModelFormat != TensorFlowModelFormat && api.TFSignatureKey != nil {
 		return errors.Wrap(ErrorIncompatibleWithModelFormat(TFSignatureKeyKey, api.ModelFormat), Identify(api))
+	}
+
+	if api.InferenceHandler != nil {
+		fmt.Println(*api.InferenceHandler)
+		for key := range projectFileMap {
+			fmt.Println(key)
+		}
+		if _, ok := projectFileMap[*api.InferenceHandler]; !ok {
+			return errors.Wrap(ErrorImplDoesNotExist(*api.InferenceHandler), Identify(api), InferenceHandlerKey)
+		}
 	}
 
 	if api.RequestHandler != nil {
@@ -298,7 +315,7 @@ func (api *API) Validate(projectFileMap map[string][]byte) error {
 }
 
 func (api *API) AreProjectFilesRequired() bool {
-	return api.RequestHandler != nil
+	return api.RequestHandler != nil || api.InferenceHandler != nil
 }
 
 func (api *API) GetResourceType() resource.Type {

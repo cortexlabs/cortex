@@ -37,12 +37,7 @@ var typeFieldValidation = &cr.StructFieldValidation{
 }
 
 func (config *Config) Validate(projectBytes []byte) error {
-	err := config.App.Validate()
-
-	if err != nil {
-		return err
-	}
-
+	var err error
 	projectFileMap := make(map[string][]byte)
 
 	if config.AreProjectFilesRequired() {
@@ -50,6 +45,11 @@ func (config *Config) Validate(projectBytes []byte) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	err = config.App.Validate(projectFileMap)
+	if err != nil {
+		return err
 	}
 
 	if config.APIs != nil {

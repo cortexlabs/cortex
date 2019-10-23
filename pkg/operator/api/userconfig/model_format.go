@@ -21,12 +21,14 @@ type ModelFormat int
 const (
 	UnknownModelFormat ModelFormat = iota
 	TensorFlowModelFormat
+	PythonModelFormat
 	ONNXModelFormat
 )
 
 var modelFormats = []string{
 	"unknown",
 	"tensorflow",
+	"python",
 	"onnx",
 }
 

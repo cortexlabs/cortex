@@ -48,6 +48,8 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/tf-serve-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve-gpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/pytorch --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/pytorch-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/cluster-autoscaler --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/nvidia --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/metrics-server --region=$REGISTRY_REGION || true
@@ -122,8 +124,8 @@ elif [ "$cmd" = "update" ]; then
   if [ "$env" != "dev" ]; then
     build_and_push $ROOT/images/manager manager latest
 
-    cache_builder $ROOT/images/operator operator
-    build_and_push $ROOT/images/operator operator latest
+    # cache_builder $ROOT/images/operator operator
+    # build_and_push $ROOT/images/operator operator latest
 
     build_and_push $ROOT/images/tf-serve tf-serve latest
     build_and_push $ROOT/images/tf-serve-gpu tf-serve-gpu latest
@@ -141,6 +143,8 @@ elif [ "$cmd" = "update" ]; then
 
   build_and_push $ROOT/images/downloader downloader latest
   build_and_push $ROOT/images/tf-api tf-api latest
+  build_and_push $ROOT/images/pytorch pytorch latest
+  build_and_push $ROOT/images/pytorch-gpu pytorch-gpu latest
   build_and_push $ROOT/images/onnx-serve onnx-serve latest
   build_and_push $ROOT/images/onnx-serve-gpu onnx-serve-gpu latest
 
