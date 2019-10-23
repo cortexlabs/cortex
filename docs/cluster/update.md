@@ -12,8 +12,8 @@ See [cluster configuration](config.md) to customize your installation.
 <!-- CORTEX_VERSION_MINOR -->
 
 ```bash
-# Update the CLI TODO
-./cortex.sh install cli
+# Update the CLI
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get_cli.sh)"
 
 # Update the cluster
 cortex cluster update

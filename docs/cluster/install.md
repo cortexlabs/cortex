@@ -10,28 +10,12 @@
 See [cluster configuration](config.md) to customize your installation.
 
 <!-- CORTEX_VERSION_MINOR -->
-<!-- TODO -->
 ```bash
-# Download
-curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh
-
-# Change permissions
-chmod +x cortex.sh
-
 # Install the Cortex CLI on your machine
-./cortex.sh install cli
-
-# Set AWS credentials
-export AWS_ACCESS_KEY_ID=***
-export AWS_SECRET_ACCESS_KEY=***
-
-# Configure AWS instance settings (at least 4GB memory)
-export CORTEX_INSTANCE_TYPE="m5.large"
-export CORTEX_MIN_INSTANCES="2"
-export CORTEX_MAX_INSTANCES="5"
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get_cli.sh)"
 
 # Provision infrastructure on AWS and install Cortex
-./cortex.sh install
+cortex cluster install
 ```
 
 This will create resources in your AWS account which aren't included in the free teir, e.g. an EKS cluster, two Elastic Load Balancers, and EC2 instances (quantity and type as specified above). To use GPU nodes, you may need to subscribe to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) and [file an AWS support ticket](https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances) to incease the limit for your desired instance type.
