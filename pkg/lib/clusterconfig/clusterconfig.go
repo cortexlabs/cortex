@@ -35,23 +35,23 @@ type ClusterConfig struct {
 	Bucket                 string  `json:"bucket" yaml:"bucket"`
 	LogGroup               string  `json:"log_group" yaml:"log_group"`
 	Telemetry              bool    `json:"telemetry" yaml:"telemetry"`
-	ImageManager           string  `json:"image_manager" yaml:"image_manager"`
-	ImageFluentd           string  `json:"image_fluentd" yaml:"image_fluentd"`
-	ImageStatsd            string  `json:"image_statsd" yaml:"image_statsd"`
-	ImageOperator          string  `json:"image_operator" yaml:"image_operator"`
 	ImageTFServe           string  `json:"image_tf_serve" yaml:"image_tf_serve"`
-	ImageTFAPI             string  `json:"image_tf_api" yaml:"image_tf_api"`
 	ImageTFServeGPU        string  `json:"image_tf_serve_gpu" yaml:"image_tf_serve_gpu"`
 	ImageOnnxServe         string  `json:"image_onnx_serve" yaml:"image_onnx_serve"`
 	ImageOnnxServeGPU      string  `json:"image_onnx_serve_gpu" yaml:"image_onnx_serve_gpu"`
+	ImageOperator          string  `json:"image_operator" yaml:"image_operator"`
+	ImageManager           string  `json:"image_manager" yaml:"image_manager"`
+	ImageTFAPI             string  `json:"image_tf_api" yaml:"image_tf_api"`
+	ImageDownloader        string  `json:"image_downloader" yaml:"image_downloader"`
 	ImageClusterAutoscaler string  `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
-	ImageNvidia            string  `json:"image_nvidia" yaml:"image_nvidia"`
 	ImageMetricsServer     string  `json:"image_metrics_server" yaml:"image_metrics_server"`
+	ImageNvidia            string  `json:"image_nvidia" yaml:"image_nvidia"`
+	ImageFluentd           string  `json:"image_fluentd" yaml:"image_fluentd"`
+	ImageStatsd            string  `json:"image_statsd" yaml:"image_statsd"`
+	ImageIstioProxy        string  `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot        string  `json:"image_istio_pilot" yaml:"image_istio_pilot"`
 	ImageIstioCitadel      string  `json:"image_istio_citadel" yaml:"image_istio_citadel"`
 	ImageIstioGalley       string  `json:"image_istio_galley" yaml:"image_istio_galley"`
-	ImageIstioPilot        string  `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImageIstioProxy        string  `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageDownloader        string  `json:"image_downloader" yaml:"image_downloader"`
 }
 
 type InternalClusterConfig struct {
@@ -113,39 +113,9 @@ var Validation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "ImageManager",
-			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/manager:" + consts.CortexVersion,
-			},
-		},
-		{
-			StructField: "ImageFluentd",
-			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/fluentd:" + consts.CortexVersion,
-			},
-		},
-		{
-			StructField: "ImageStatsd",
-			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/statsd:" + consts.CortexVersion,
-			},
-		},
-		{
-			StructField: "ImageOperator",
-			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/operator:" + consts.CortexVersion,
-			},
-		},
-		{
 			StructField: "ImageTFServe",
 			StringValidation: &cr.StringValidation{
 				Default: "cortexlabs/tf-serve:" + consts.CortexVersion,
-			},
-		},
-		{
-			StructField: "ImageTFAPI",
-			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/tf-api:" + consts.CortexVersion,
 			},
 		},
 		{
@@ -167,9 +137,39 @@ var Validation = &cr.StructValidation{
 			},
 		},
 		{
+			StructField: "ImageOperator",
+			StringValidation: &cr.StringValidation{
+				Default: "cortexlabs/operator:" + consts.CortexVersion,
+			},
+		},
+		{
+			StructField: "ImageManager",
+			StringValidation: &cr.StringValidation{
+				Default: "cortexlabs/manager:" + consts.CortexVersion,
+			},
+		},
+		{
+			StructField: "ImageTFAPI",
+			StringValidation: &cr.StringValidation{
+				Default: "cortexlabs/tf-api:" + consts.CortexVersion,
+			},
+		},
+		{
+			StructField: "ImageDownloader",
+			StringValidation: &cr.StringValidation{
+				Default: "cortexlabs/downloader:" + consts.CortexVersion,
+			},
+		},
+		{
 			StructField: "ImageClusterAutoscaler",
 			StringValidation: &cr.StringValidation{
 				Default: "cortexlabs/cluster-autoscaler:" + consts.CortexVersion,
+			},
+		},
+		{
+			StructField: "ImageMetricsServer",
+			StringValidation: &cr.StringValidation{
+				Default: "cortexlabs/metrics-server:" + consts.CortexVersion,
 			},
 		},
 		{
@@ -179,9 +179,27 @@ var Validation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "ImageMetricsServer",
+			StructField: "ImageFluentd",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/metrics-server:" + consts.CortexVersion,
+				Default: "cortexlabs/fluentd:" + consts.CortexVersion,
+			},
+		},
+		{
+			StructField: "ImageStatsd",
+			StringValidation: &cr.StringValidation{
+				Default: "cortexlabs/statsd:" + consts.CortexVersion,
+			},
+		},
+		{
+			StructField: "ImageIstioProxy",
+			StringValidation: &cr.StringValidation{
+				Default: "cortexlabs/istio-proxy:" + consts.CortexVersion,
+			},
+		},
+		{
+			StructField: "ImageIstioPilot",
+			StringValidation: &cr.StringValidation{
+				Default: "cortexlabs/istio-pilot:" + consts.CortexVersion,
 			},
 		},
 		{
@@ -194,24 +212,6 @@ var Validation = &cr.StructValidation{
 			StructField: "ImageIstioGalley",
 			StringValidation: &cr.StringValidation{
 				Default: "cortexlabs/istio-galley:" + consts.CortexVersion,
-			},
-		},
-		{
-			StructField: "ImageIstioPilot",
-			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/istio-pilot:" + consts.CortexVersion,
-			},
-		},
-		{
-			StructField: "ImageIstioProxy",
-			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/istio-proxy:" + consts.CortexVersion,
-			},
-		},
-		{
-			StructField: "ImageDownloader",
-			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/downloader:" + consts.CortexVersion,
 			},
 		},
 		// Extra keys from user cluster config files

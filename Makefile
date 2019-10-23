@@ -122,43 +122,42 @@ test-examples:
 ###############
 
 ci-build-images:
-	@./build/build-image.sh images/manager manager
 	@./build/build-image.sh images/tf-serve tf-serve
 	@./build/build-image.sh images/tf-serve-gpu tf-serve-gpu
-	@./build/build-image.sh images/tf-api tf-api
 	@./build/build-image.sh images/onnx-serve onnx-serve
 	@./build/build-image.sh images/onnx-serve-gpu onnx-serve-gpu
 	@./build/build-image.sh images/operator operator
+	@./build/build-image.sh images/manager manager
+	@./build/build-image.sh images/tf-api tf-api
+	@./build/build-image.sh images/downloader downloader
+	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
+	@./build/build-image.sh images/metrics-server metrics-server
+	@./build/build-image.sh images/nvidia nvidia
 	@./build/build-image.sh images/fluentd fluentd
 	@./build/build-image.sh images/statsd statsd
-	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
-	@./build/build-image.sh images/nvidia nvidia
-	@./build/build-image.sh images/metrics-server metrics-server
+	@./build/build-image.sh images/istio-proxy istio-proxy
+	@./build/build-image.sh images/istio-pilot istio-pilot
 	@./build/build-image.sh images/istio-citadel istio-citadel
 	@./build/build-image.sh images/istio-galley istio-galley
-	@./build/build-image.sh images/istio-pilot istio-pilot
-	@./build/build-image.sh images/istio-proxy istio-proxy
-	@./build/build-image.sh images/downloader downloader
 
 ci-push-images:
-	@./build/push-image.sh manager
 	@./build/push-image.sh tf-serve
 	@./build/push-image.sh tf-serve-gpu
-	@./build/push-image.sh tf-api
 	@./build/push-image.sh onnx-serve
 	@./build/push-image.sh onnx-serve-gpu
 	@./build/push-image.sh operator
+	@./build/push-image.sh manager
+	@./build/push-image.sh tf-api
+	@./build/push-image.sh downloader
+	@./build/push-image.sh cluster-autoscaler
+	@./build/push-image.sh metrics-server
+	@./build/push-image.sh nvidia
 	@./build/push-image.sh fluentd
 	@./build/push-image.sh statsd
-	@./build/push-image.sh cluster-autoscaler
-	@./build/push-image.sh nvidia
-	@./build/push-image.sh metrics-server
+	@./build/push-image.sh istio-proxy
+	@./build/push-image.sh istio-pilot
 	@./build/push-image.sh istio-citadel
 	@./build/push-image.sh istio-galley
-	@./build/push-image.sh istio-pilot
-	@./build/push-image.sh istio-proxy
-	@./build/push-image.sh downloader
-
 
 ci-build-cli:
 	@./build/cli.sh

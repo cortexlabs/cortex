@@ -38,21 +38,21 @@ cluster_name: cortex
 telemetry: true
 
 # Image paths
-image_manager: cortexlabs/manager:master
-image_fluentd: cortexlabs/fluentd:master
-image_istio_citadel: cortexlabs/istio-citadel:master
-image_istio_galley: cortexlabs/istio-galley:master
-image_istio_pilot: cortexlabs/istio-pilot:master
-image_istio_proxy: cortexlabs/istio-proxy:master
-image_operator: cortexlabs/operator:master
 image_tf_serve: cortexlabs/tf-serve:master
 image_tf_serve_gpu: cortexlabs/tf-serve-gpu:master
 image_onnx_serve: cortexlabs/onnx-serve:master
 image_onnx_serve_gpu: cortexlabs/onnx-serve-gpu:master
+image_operator: cortexlabs/operator:master
+image_manager: cortexlabs/manager:master
 image_tf_api: cortexlabs/tf-api:master
-image_cluster_autoscaler: cortexlabs/cluster-autoscaler:master
-image_nvidia: cortexlabs/nvidia:master
-image_metrics_server: cortexlabs/metrics-server:master
 image_downloader: cortexlabs/downloader:master
+image_cluster_autoscaler: cortexlabs/cluster-autoscaler:master
+image_metrics_server: cortexlabs/metrics-server:master
+image_nvidia: cortexlabs/nvidia:master
+image_fluentd: cortexlabs/fluentd:master
 image_statsd: cortexlabs/statsd:master
+image_istio_proxy: cortexlabs/istio-proxy:master
+image_istio_pilot: cortexlabs/istio-pilot:master
+image_istio_citadel: cortexlabs/istio-citadel:master
+image_istio_galley: cortexlabs/istio-galley:master
 ```
