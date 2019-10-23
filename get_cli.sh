@@ -94,3 +94,5 @@ function update_bash_profile() {
     echo "Note: \`bash_completion\` must be installed on your system for cortex command completion to function properly"
   fi
 }
+
+main
