@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -223,7 +224,10 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 	}
 	fmt.Println()
 
-	prompt.ForceYes("Is the configuration above correct?")
+	exitMessage := fmt.Sprintf("Cluster configuration can be modified via config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersion)
+	prompt.ForceYes("Is the configuration above correct?", exitMessage)
+
+	os.Exit(0)
 }
 
 func getInstallClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, error) {

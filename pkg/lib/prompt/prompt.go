@@ -71,7 +71,7 @@ func Prompt(opts *PromptOptions) string {
 	return val
 }
 
-func ForceYes(prompt string) {
+func ForceYes(prompt string, exitMessage string) {
 	for true {
 		str := Prompt(&PromptOptions{
 			Prompt:      prompt + " [y/n]",
@@ -83,6 +83,9 @@ func ForceYes(prompt string) {
 		}
 
 		if strings.ToLower(str) == "n" {
+			if exitMessage != "" {
+				fmt.Println(exitMessage + "\n")
+			}
 			os.Exit(1)
 		}
 
