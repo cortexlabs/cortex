@@ -24,7 +24,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -72,8 +71,6 @@ func Init() error {
 		errors.Exit(err)
 	}
 	Telemetry = telemetry.New(consts.TelemetryURL, AWS.HashedAccountID, Cluster.Telemetry)
-
-	debug.Ppg(Cluster) // TODO
 
 	return nil
 }

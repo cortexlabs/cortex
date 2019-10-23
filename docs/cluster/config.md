@@ -38,7 +38,6 @@ cluster_name: cortex
 telemetry: true
 
 # Image paths
-# TODO reorder here and everwhere
 image_manager: cortexlabs/manager:master
 image_fluentd: cortexlabs/fluentd:master
 image_istio_citadel: cortexlabs/istio-citadel:master
