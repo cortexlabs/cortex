@@ -141,3 +141,55 @@ Usage:
 Flags:
   -h, --help   help for completion
 ```
+
+## cluster up
+
+```text
+This command spins up a Cortex cluster on your AWS account.
+
+Usage:
+  cortex cluster up [flags]
+
+Flags:
+  -c, --config string   path to a Cortex cluster configuration file
+  -h, --help            help for up
+```
+
+## cluster info
+
+```text
+This command gets information about a Cortex cluster.
+
+Usage:
+  cortex cluster info [flags]
+
+Flags:
+  -c, --config string   path to a Cortex cluster configuration file
+  -h, --help            help for info
+```
+
+## cluster update
+
+```text
+This command updates a Cortex cluster.
+
+Usage:
+  cortex cluster update [flags]
+
+Flags:
+  -c, --config string   path to a Cortex cluster configuration file
+  -h, --help            help for update
+```
+
+## cluster down
+
+```text
+This command spins down a Cortex cluster.
+
+Usage:
+  cortex cluster down [flags]
+
+Flags:
+  -c, --config string   path to a Cortex cluster configuration file
+  -h, --help            help for down
+```

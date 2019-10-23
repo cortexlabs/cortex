@@ -7,7 +7,7 @@
 
 ## Installation
 
-See [cluster configuration](config.md) to customize your installation.
+See [cluster configuration](config.md) for how to customize your installation.
 
 <!-- CORTEX_VERSION_MINOR -->
 ```bash

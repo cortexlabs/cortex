@@ -1,6 +1,6 @@
 # Cluster configuration
 
-The Cortex cluster may be configured by providing a configuration file to `cortex cluster install` or `cortex cluster update` via the  `--config` flag (e.g. `cortex cluster install --config=cluster.yaml`). Below is the schema for the cluster configuration file (default values are shown):
+The Cortex cluster may be configured by providing a configuration file to `cortex cluster install` or `cortex cluster update` via the  `--config` flag (e.g. `cortex cluster install --config=cluster.yaml`). Below is the schema for the cluster configuration file, with default values shown:
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 
@@ -15,26 +15,26 @@ aws_secret_access_key: ***
 cortex_aws_access_key_id: ***
 cortex_aws_secret_access_key: ***
 
-# The AWS instance type Cortex will use
+# Instance type Cortex will use
 instance_type: m5.large
 
 # Minimum and maximum number of instances in the cluster
 min_instances: 2
 max_instances: 5
 
-# The name of the S3 bucket Cortex will use
+# Name of the S3 bucket Cortex will use
 bucket: cortex-[RANDOM_ID]
 
-# The AWS region Cortex will use
+# Region Cortex will use
 region: us-west-2
 
-# The name of the CloudWatch log group Cortex will use
+# Name of the CloudWatch log group Cortex will use
 log_group: cortex
 
-# The name of the EKS cluster Cortex will use
+# Name of the EKS cluster Cortex will create
 cluster_name: cortex
 
-# Flag to enable collecting error reports and usage stats
+# Flag to enable collection of anonymous usage stats and error reports
 telemetry: true
 
 # Image paths

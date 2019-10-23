@@ -4,6 +4,7 @@
 
 1. [AWS credentials](aws.md)
 2. [Docker](https://docs.docker.com/install)
+3. [Cortex CLI](install.md)
 
 ## Uninstalling Cortex
 
@@ -18,7 +19,7 @@ sudo rm /usr/local/bin/cortex
 rm -rf ~/.cortex
 ```
 
-If you modified your bash profile, you may also wish to remove `source <(cortex completion)` from it.
+If you modified your bash profile, you may also wish to remove `source <(cortex completion)`.
 
 ## Cleaning up AWS
 
