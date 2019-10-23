@@ -130,7 +130,7 @@ This command spins down a Cortex cluster.`,
 			errors.Exit(err)
 		}
 
-		err = runManagerCommand("/root/uninstall_eks.sh", clusterConfig, awsCreds)
+		err = runManagerCommand("/root/uninstall.sh", clusterConfig, awsCreds)
 		if err != nil {
 			errors.Exit(err)
 		}
