@@ -12,7 +12,7 @@ See [cluster configuration](config.md) to customize your installation.
 <!-- CORTEX_VERSION_MINOR -->
 ```bash
 # Install the Cortex CLI on your machine
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get_cli.sh)"
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
 
 # Provision infrastructure on AWS and install Cortex
 cortex cluster install

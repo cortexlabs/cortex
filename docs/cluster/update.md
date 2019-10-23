@@ -13,7 +13,7 @@ See [cluster configuration](config.md) to customize your installation.
 
 ```bash
 # Update the CLI
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get_cli.sh)"
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
 
 # Update the cluster
 cortex cluster update
