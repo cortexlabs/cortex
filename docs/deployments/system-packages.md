@@ -62,7 +62,7 @@ image_onnx_serve: <repository_url>:latest
 # ...
 ```
 
-And update the cluster for the change to take effect:
+Update your cluster for the change to take effect:
 
 ```bash
 cortex cluster update --config=cluster.yaml

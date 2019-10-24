@@ -46,14 +46,6 @@ func Init() error {
 		OperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 	}
 
-	if Kubernetes, err = k8s.New(consts.K8sNamespace, Cluster.OperatorInCluster); err != nil {
-		return err
-	}
-
-	if IstioKubernetes, err = k8s.New("istio-system", Cluster.OperatorInCluster); err != nil {
-		return err
-	}
-
 	clusterConfigPath := os.Getenv("CORTEX_CLUSTER_CONFIG_PATH")
 	if clusterConfigPath == "" {
 		clusterConfigPath = consts.ClusterConfigPath
@@ -62,6 +54,14 @@ func Init() error {
 	errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath, clusterConfigPath)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
+	}
+
+	if Kubernetes, err = k8s.New(consts.K8sNamespace, Cluster.OperatorInCluster); err != nil {
+		return err
+	}
+
+	if IstioKubernetes, err = k8s.New("istio-system", Cluster.OperatorInCluster); err != nil {
+		return err
 	}
 
 	Cluster.ID = hash.String(Cluster.Bucket + Cluster.Region + Cluster.LogGroup)

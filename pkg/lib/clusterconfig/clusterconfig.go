@@ -214,7 +214,7 @@ var Validation = &cr.StructValidation{
 				Default: "cortexlabs/istio-galley:" + consts.CortexVersion,
 			},
 		},
-		// Extra keys from user cluster config files
+		// Extra keys that exist in the cluster config file
 		{
 			Key: "aws_access_key_id",
 			Nil: true,

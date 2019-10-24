@@ -24,15 +24,13 @@ import (
 )
 
 func defaultVolumes() []kcore.Volume {
-	volumes := []kcore.Volume{
+	return []kcore.Volume{
 		k8s.EmptyDirVolume(consts.EmptyDirVolumeName),
 	}
-	return volumes
 }
 
 func defaultVolumeMounts() []kcore.VolumeMount {
-	volumeMounts := []kcore.VolumeMount{
+	return []kcore.VolumeMount{
 		k8s.EmptyDirVolumeMount(consts.EmptyDirVolumeName, consts.EmptyDirMountPath),
 	}
-	return volumeMounts
 }

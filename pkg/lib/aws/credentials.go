@@ -18,21 +18,21 @@ package aws
 
 import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 func GetCredentialsFromCLIConfigFile() (string, string, error) {
 	creds := credentials.NewSharedCredentials("", "")
 	if creds == nil {
-		return "", "", errors.New("unable to read AWS credentials from credentials file")
+		return "", "", ErrorReadCredentials()
 	}
+
 	value, err := creds.Get()
 	if err != nil {
 		return "", "", err
 	}
 
 	if value.AccessKeyID == "" || value.SecretAccessKey == "" {
-		return "", "", errors.New("unable to read AWS credentials from credentials file")
+		return "", "", ErrorReadCredentials()
 	}
 
 	return value.AccessKeyID, value.SecretAccessKey, nil

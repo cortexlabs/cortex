@@ -92,14 +92,14 @@ function get_bash_profile_path() {
 
 function guess_if_bash_completion_installed() {
   if [ -f $HOME/.bash_profile ]; then
-    if grep -q -e "^\s*[^#]*bash-completion" -e "^\s*[^#]*bash_completion" "$HOME/.bash_profile"; then
+    if grep -q -e "^[^#]*bash-completion" -e "^[^#]*bash_completion" "$HOME/.bash_profile"; then
       echo "true"
       return
     fi
   fi
 
   if [ -f $HOME/.bashrc ]; then
-    if grep -q -e "^\s*[^#]*bash-completion" -e "^\s*[^#]*bash_completion" "$HOME/.bashrc"; then
+    if grep -q -e "^[^#]*bash-completion" -e "^[^#]*bash_completion" "$HOME/.bashrc"; then
       echo "true"
       return
     fi

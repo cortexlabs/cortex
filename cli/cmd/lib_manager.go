@@ -27,8 +27,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
-	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/yaml"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -37,24 +35,26 @@ import (
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/term"
 
+	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
 
-var cachedDocker *dockerclient.Client
+var cachedDockerClient *dockerclient.Client
 
 func getDockerClient() (*dockerclient.Client, error) {
-	if cachedDocker != nil {
-		return cachedDocker, nil
+	if cachedDockerClient != nil {
+		return cachedDockerClient, nil
 	}
 
 	var err error
-	cachedDocker, err = dockerclient.NewClientWithOpts(dockerclient.FromEnv)
+	cachedDockerClient, err = dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 	if err != nil {
 		return nil, err
 	}
 
-	cachedDocker.NegotiateAPIVersion(context.Background())
-	return cachedDocker, nil
+	cachedDockerClient.NegotiateAPIVersion(context.Background())
+	return cachedDockerClient, nil
 }
 
 func pullManager(clusterConfig *clusterconfig.ClusterConfig) error {

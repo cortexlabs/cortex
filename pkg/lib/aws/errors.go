@@ -32,6 +32,7 @@ const (
 	ErrInvalidS3Path
 	ErrAuth
 	ErrBucketInaccessible
+	ErrReadCredentials
 )
 
 var errorKinds = []string{
@@ -40,9 +41,10 @@ var errorKinds = []string{
 	"err_invalid_s3_path",
 	"err_auth",
 	"err_bucket_inaccessible",
+	"err_read_credentials",
 }
 
-var _ = [1]int{}[int(ErrBucketInaccessible)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrReadCredentials)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -139,5 +141,12 @@ func ErrorBucketInaccessible(bucket string) error {
 	return Error{
 		Kind:    ErrBucketInaccessible,
 		message: fmt.Sprintf("bucket \"%s\" not found or insufficient permissions", bucket),
+	}
+}
+
+func ErrorReadCredentials() error {
+	return Error{
+		Kind:    ErrReadCredentials,
+		message: "unable to read AWS credentials from credentials file",
 	}
 }

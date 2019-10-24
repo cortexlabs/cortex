@@ -122,7 +122,7 @@ func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
 		return errors.New("Only $AWS_ACCESS_KEY_ID is set; please run `export AWS_SECRET_ACCESS_KEY=***`")
 	}
 
-	// Next what was read from cluster config YAML
+	// Next check what was read from cluster config YAML
 	if awsCreds.AWSAccessKeyID != "" && awsCreds.AWSSecretAccessKey != "" {
 		return nil
 	}
@@ -158,7 +158,7 @@ func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
 	return nil
 }
 
-// awsCreds is what was read from the cluster config YAML
+// awsCreds is what was read from the cluster config YAML, after being passed through setInstallAWSCredentials() (so those credentials should be set)
 func setOperatorAWSCredentials(awsCreds *AWSCredentials) error {
 	// First check env vars
 	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") != "" {
@@ -173,7 +173,7 @@ func setOperatorAWSCredentials(awsCreds *AWSCredentials) error {
 		return errors.New("Only $CORTEX_AWS_ACCESS_KEY_ID is set; please run `export CORTEX_AWS_SECRET_ACCESS_KEY=***`")
 	}
 
-	// Next what was read from cluster config YAML
+	// Next check what was read from cluster config YAML
 	if awsCreds.CortexAWSAccessKeyID != "" && awsCreds.CortexAWSSecretAccessKey != "" {
 		return nil
 	}
@@ -224,7 +224,7 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 	}
 	fmt.Println()
 
-	exitMessage := fmt.Sprintf("Cluster configuration can be modified via config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersion)
+	exitMessage := fmt.Sprintf("Cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersion)
 	prompt.ForceYes("Is the configuration above correct?", exitMessage)
 }
 
