@@ -20,6 +20,7 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -31,18 +32,23 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
 
 var flagClusterConfig string
 
 func init() {
-	addClusterConfigFlag(upCmd)
 	addClusterConfigFlag(updateCmd)
-	addClusterConfigFlag(infoCmd)
-	addClusterConfigFlag(downCmd)
-	clusterCmd.AddCommand(upCmd)
 	clusterCmd.AddCommand(updateCmd)
+
+	addClusterConfigFlag(infoCmd)
+	addEnvFlag(infoCmd)
 	clusterCmd.AddCommand(infoCmd)
+
+	addClusterConfigFlag(upCmd)
+	clusterCmd.AddCommand(upCmd)
+
+	addClusterConfigFlag(downCmd)
 	clusterCmd.AddCommand(downCmd)
 }
 
@@ -110,6 +116,19 @@ var infoCmd = &cobra.Command{
 		if err != nil {
 			errors.Exit(err)
 		}
+
+		fmt.Println()
+
+		httpResponse, err := HTTPGet("/info")
+		if err != nil {
+			errors.Exit(err)
+		}
+		var infoResponse schema.InfoResponse
+		err = json.Unmarshal(httpResponse, &infoResponse)
+		if err != nil {
+			errors.Exit(err, "/info", string(httpResponse))
+		}
+		fmt.Println(infoResponse.ClusterConfig.String())
 	},
 }
 

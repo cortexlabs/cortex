@@ -50,6 +50,7 @@ func main() {
 	router.Use(apiVersionCheckMiddleware)
 	router.Use(authMiddleware)
 
+	router.HandleFunc("/info", endpoints.Info).Methods("GET")
 	router.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
 	router.HandleFunc("/delete", endpoints.Delete).Methods("POST")
 	router.HandleFunc("/deployments", endpoints.GetDeployments).Methods("GET")
@@ -101,6 +102,11 @@ func authMiddleware(next http.Handler) http.Handler {
 
 func apiVersionCheckMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/info" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		clientVersion := r.Header.Get("CortexAPIVersion")
 		if clientVersion != consts.CortexVersion {
 			endpoints.RespondError(w, ErrorAPIVersionMismatch(consts.CortexVersion, clientVersion))

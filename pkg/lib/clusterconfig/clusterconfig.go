@@ -297,3 +297,24 @@ func validateInstanceType(instanceType string) (string, error) {
 	}
 	return instanceType, nil
 }
+
+// This does not set defaults for fields that are prompted from the user
+func SetFileDefaults(clusterConfig *ClusterConfig) error {
+	var emtpyMap interface{} = map[interface{}]interface{}{}
+	errs := cr.Struct(clusterConfig, emtpyMap, Validation)
+	if errors.HasErrors(errs) {
+		return errors.FirstError(errs...)
+	}
+	return nil
+}
+
+// This does not set defaults for fields that are prompted from the user
+func GetFileDefaults() (*ClusterConfig, error) {
+	clusterConfig := &ClusterConfig{}
+	err := SetFileDefaults(clusterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return clusterConfig, nil
+}

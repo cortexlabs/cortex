@@ -19,9 +19,14 @@ package schema
 import (
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
+
+type InfoResponse struct {
+	ClusterConfig *clusterconfig.InternalClusterConfig `json:"cluster_config"`
+}
 
 type DeployResponse struct {
 	Message     string           `json:"message"`

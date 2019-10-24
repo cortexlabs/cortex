@@ -113,7 +113,7 @@ func deploy(force bool, ignoreCache bool) {
 
 	var deployResponse schema.DeployResponse
 	if err := json.Unmarshal(response, &deployResponse); err != nil {
-		errors.Exit(err, "/deploy", "response", string(response))
+		errors.Exit(err, "/deploy", string(response))
 	}
 
 	fmt.Println(console.Bold(deployResponse.Message))

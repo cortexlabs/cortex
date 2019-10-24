@@ -65,7 +65,7 @@ var deleteCmd = &cobra.Command{
 		var deleteResponse schema.DeleteResponse
 		err = json.Unmarshal(httpResponse, &deleteResponse)
 		if err != nil {
-			errors.Exit(err, "/delete", "response", string(httpResponse))
+			errors.Exit(err, "/delete", string(httpResponse))
 		}
 		fmt.Println(console.Bold(deleteResponse.Message))
 	},

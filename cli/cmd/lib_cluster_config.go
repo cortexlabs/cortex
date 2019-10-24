@@ -91,16 +91,6 @@ var awsCredentialsPromptValidation = &cr.PromptValidation{
 	},
 }
 
-// This does not set defaults for fields that are prompted from the user
-func setClusterConfigFileDefaults(clusterConfig *clusterconfig.ClusterConfig) error {
-	var emtpyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(clusterConfig, emtpyMap, clusterconfig.Validation)
-	if errors.HasErrors(errs) {
-		return errors.FirstError(errs...)
-	}
-	return nil
-}
-
 func readClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials, path string) error {
 	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, path)
 	if errors.HasErrors(errs) {
@@ -241,7 +231,7 @@ func getInstallClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, e
 	awsCreds := &AWSCredentials{}
 
 	if flagClusterConfig == "" {
-		err := setClusterConfigFileDefaults(clusterConfig)
+		err := clusterconfig.SetFileDefaults(clusterConfig)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -272,7 +262,7 @@ func getUpdateClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, er
 	awsCreds := &AWSCredentials{}
 
 	if flagClusterConfig == "" {
-		err := setClusterConfigFileDefaults(clusterConfig)
+		err := clusterconfig.SetFileDefaults(clusterConfig)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -311,7 +301,7 @@ func getAccessClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, er
 	awsCreds := &AWSCredentials{}
 
 	if flagClusterConfig == "" {
-		err := setClusterConfigFileDefaults(clusterConfig)
+		err := clusterconfig.SetFileDefaults(clusterConfig)
 		if err != nil {
 			return nil, nil, err
 		}
