@@ -65,7 +65,10 @@ func Prompt(opts *Options) string {
 	})
 
 	if err != nil {
-		errors.Panic(err)
+		if err.Error() == "interrupted" {
+			errors.Exit()
+		}
+		errors.Exit(err)
 	}
 
 	return val
