@@ -35,7 +35,7 @@ app = Flask(__name__)
 
 app.json_encoder = util.json_tricks_encoder
 
-local_cache = {"ctx": None, "api": None, "inference_handler": None, "class_set": set()}
+local_cache = {"ctx": None, "api": None, "class_set": set()}
 
 
 @app.before_request
@@ -76,14 +76,22 @@ def health():
 
 @app.route("/<app_name>/<api_name>", methods=["POST"])
 def predict(app_name, api_name):
+    debug = request.args.get("debug", "false").lower() == "true"
+
     try:
         sample = request.get_json()
     except:
         return "malformed json", status.HTTP_400_BAD_REQUEST
+    api = local_cache["api"]
+    inference = local_cache["inference"]
+    try:
+        debug_obj("sample", sample, debug)
+        output = inference.inference(sample, api["metadata"])
+        debug_obj("post_inference", output, debug)
+    except Exception as e:
+        logger.exception("prediction failed")
+        return prediction_failed(str(e))
 
-    inference_handler = local_cache["inference_handler"]
-    model = local_cache["model"]
-    output = inference_handler.inference(model, sample)
     g.prediction = output
     return jsonify(output)
 
@@ -95,7 +103,6 @@ def exceptions(e):
 
 
 def start(args):
-
     api = None
     try:
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
@@ -106,13 +113,10 @@ def start(args):
         _, prefix = ctx.storage.deconstruct_s3_path(api["model"])
         model_path = os.path.join(args.model_dir, os.path.basename(prefix))
 
-        if api.get("inference_handler") is not None:
-            local_cache["inference_handler"] = ctx.get_inference_handler_impl(
-                api["name"], args.project_dir
-            )
+        if api["python"].get("inference") is not None:
+            local_cache["inference"] = ctx.get_inference_impl(api["name"], args.project_dir)
 
-        model = local_cache["inference_handler"].model_init(model_path)
-        local_cache["model"] = model
+        local_cache["inference"].init(api["metadata"])
     except:
         logger.exception("failed to start api")
         sys.exit(1)

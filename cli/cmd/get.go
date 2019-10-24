@@ -270,7 +270,9 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	out += fmt.Sprintf("\n%s curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json", console.Bold("curl:"), apiEndpoint)
 
-	out += "\n\n" + describeModelInput(groupStatus, apiEndpoint)
+	if api.Python != nil {
+		out += "\n\n" + describeModelInput(groupStatus, apiEndpoint)
+	}
 
 	if api != nil {
 		out += "\n" + titleStr("configuration") + strings.TrimSpace(api.UserConfigStr())

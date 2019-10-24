@@ -27,14 +27,16 @@ const (
 	PythonRootKey = "python_root"
 
 	// API
-	ModelKey            = "model"
-	ModelFormatKey      = "model_format"
-	InferenceHandlerKey = "inference_handler"
-	RequestHandlerKey   = "request_handler"
-	TFSignatureKeyKey   = "tf_signature_key"
-	TrackerKey          = "tracker"
-	ModelTypeKey        = "model_type"
-	KeyKey              = "key"
+	ModelKey          = "model"
+	InferenceKey      = "inference"
+	RequestHandlerKey = "request_handler"
+	SignatureKeyKey   = "signature_key"
+	TrackerKey        = "tracker"
+	ModelTypeKey      = "model_type"
+	KeyKey            = "key"
+	TensorflowKey     = "tensorflow"
+	ONNXKey           = "onnx"
+	PythonKey         = "python"
 
 	// compute
 	ComputeKey              = "compute"

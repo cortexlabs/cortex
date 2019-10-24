@@ -91,13 +91,13 @@ func (aw *APIWorkload) Start(ctx *context.Context) error {
 	desiredReplicas := getRequestedReplicasFromDeployment(api, k8sDeloyment, hpa)
 
 	var deploymentSpec *kapps.Deployment
-	switch api.ModelFormat {
-	case userconfig.TensorFlowModelFormat:
+	switch {
+	case api.Tensorflow != nil:
 		deploymentSpec = tfAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
-	case userconfig.PythonModelFormat:
-		deploymentSpec = pytorchAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
-	case userconfig.ONNXModelFormat:
+	case api.ONNX != nil:
 		deploymentSpec = onnxAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
+	case api.Python != nil:
+		deploymentSpec = pythonAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
 	default:
 		return errors.New(api.Name, "unknown model format encountered") // unexpected
 	}
@@ -268,14 +268,14 @@ func tfAPISpec(
 
 	downloadArgs := []downloadContainerArg{
 		{
-			From:     ctx.APIs[api.Name].Model,
+			From:     ctx.APIs[api.Name].Tensorflow.Model,
 			To:       path.Join(consts.EmptyDirMountPath, "model"),
-			Unzip:    strings.HasSuffix(ctx.APIs[api.Name].Model, ".zip"),
+			Unzip:    strings.HasSuffix(ctx.APIs[api.Name].Tensorflow.Model, ".zip"),
 			ItemName: "model",
 		},
 	}
 
-	if api.RequestHandler != nil {
+	if api.Tensorflow.RequestHandler != nil {
 		downloadArgs = append(downloadArgs, downloadContainerArg{
 			From:     config.AWS.S3Path(ctx.ProjectKey),
 			To:       path.Join(consts.EmptyDirMountPath, "project"),
@@ -423,13 +423,13 @@ func tfAPISpec(
 }
 
 // 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/pytorch:latest
-func pytorchAPISpec(
+func pythonAPISpec(
 	ctx *context.Context,
 	api *context.API,
 	workloadID string,
 	desiredReplicas int32,
 ) *kapps.Deployment {
-	servingImage := config.Cortex.PytorchImage
+	servingImage := config.Cortex.PythonServeImage
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
@@ -439,26 +439,18 @@ func pytorchAPISpec(
 	}
 
 	if api.Compute.GPU > 0 {
-		servingImage = config.Cortex.PytorchImageGPU
+		servingImage = config.Cortex.PythonServeImageGPU
 		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
 	downloadArgs := []downloadContainerArg{
 		{
-			From:     ctx.APIs[api.Name].Model,
-			To:       path.Join(consts.EmptyDirMountPath, "model"),
-			ItemName: "model",
-		},
-	}
-
-	if api.AreProjectFilesRequired() {
-		downloadArgs = append(downloadArgs, downloadContainerArg{
 			From:     config.AWS.S3Path(ctx.ProjectKey),
 			To:       path.Join(consts.EmptyDirMountPath, "project"),
 			Unzip:    true,
 			ItemName: "project code",
-		})
+		},
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadArgs)
@@ -591,13 +583,13 @@ func onnxAPISpec(
 
 	downloadArgs := []downloadContainerArg{
 		{
-			From:     ctx.APIs[api.Name].Model,
+			From:     ctx.APIs[api.Name].ONNX.Model,
 			To:       path.Join(consts.EmptyDirMountPath, "model"),
 			ItemName: "model",
 		},
 	}
 
-	if api.RequestHandler != nil {
+	if api.ONNX.RequestHandler != nil {
 		downloadArgs = append(downloadArgs, downloadContainerArg{
 			From:     config.AWS.S3Path(ctx.ProjectKey),
 			To:       path.Join(consts.EmptyDirMountPath, "project"),

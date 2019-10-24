@@ -179,7 +179,7 @@ def run_predict(sample, debug=False):
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         try:
             prepared_sample = request_handler.pre_inference(
-                sample, local_cache["model_metadata"]["signatureDef"]
+                sample, local_cache["model_metadata"]["signatureDef"], api["metadata"]
             )
             debug_obj("pre_inference", prepared_sample, debug)
         except Exception as e:
@@ -197,7 +197,7 @@ def run_predict(sample, debug=False):
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
         try:
             result = request_handler.post_inference(
-                result, local_cache["model_metadata"]["signatureDef"]
+                result, local_cache["model_metadata"]["signatureDef"], api["metadata"]
             )
             debug_obj("post_inference", result, debug)
         except Exception as e:
@@ -371,7 +371,7 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
-        if api.get("request_handler") is not None:
+        if api["tensorflow"].get("request_handler") is not None:
             local_cache["request_handler"] = ctx.get_request_handler_impl(
                 api["name"], args.project_dir
             )
@@ -426,7 +426,7 @@ def start(args):
         time.sleep(5)
 
     signature_key, parsed_signature = extract_signature(
-        local_cache["model_metadata"]["signatureDef"], api["tf_signature_key"]
+        local_cache["model_metadata"]["signatureDef"], api["tensorflow"]["signature_key"]
     )
 
     local_cache["signature_key"] = signature_key

@@ -29,6 +29,7 @@ type InterfaceMapValidation struct {
 	AllowEmpty             bool
 	ScalarsOnly            bool
 	StringLeavesOnly       bool
+	StringKeysOnly         bool // Allow nesting
 	AllowedLeafValues      []string
 	AllowCortexResources   bool
 	RequireCortexResources bool
@@ -114,6 +115,26 @@ func validateInterfaceMap(val map[string]interface{}, v *InterfaceMapValidation)
 			if !slices.HasString(v.AllowedLeafValues, leafVal) {
 				return nil, ErrorInvalidStr(leafVal, v.AllowedLeafValues...)
 			}
+		}
+	}
+
+	if v.StringKeysOnly && !v.ScalarsOnly {
+		for _, leafVal := range val {
+			m, ok := cast.InterfaceToInterfaceInterfaceMap(leafVal)
+			if !ok {
+				continue
+			}
+
+			stringToIntMap := map[string]interface{}{}
+			for kInterface, vInterface := range m {
+				kString, ok := kInterface.(string)
+				if !ok {
+					return nil, ErrorNonStringKeyFound(kString)
+				}
+				stringToIntMap[kString] = vInterface
+			}
+
+			return validateInterfaceMap(stringToIntMap, v)
 		}
 	}
 

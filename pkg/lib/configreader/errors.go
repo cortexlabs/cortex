@@ -43,6 +43,7 @@ const (
 	ErrMustBeLessThan
 	ErrMustBeGreaterThanOrEqualTo
 	ErrMustBeGreaterThan
+	ErrNonStringKeyFound
 	ErrInvalidPrimitiveType
 	ErrDuplicatedValue
 	ErrCannotSetStructField
@@ -73,6 +74,7 @@ var errorKinds = []string{
 	"err_must_be_less_than",
 	"err_must_be_greater_than_or_equal_to",
 	"err_must_be_greater_than",
+	"err_non_string_key_found",
 	"err_invalid_primitive_type",
 	"err_duplicated_value",
 	"err_cannot_set_struct_field",
@@ -240,6 +242,13 @@ func ErrorMustBeGreaterThan(provided interface{}, boundary interface{}) error {
 	return Error{
 		Kind:    ErrMustBeGreaterThan,
 		message: fmt.Sprintf("%s must be greater than %s", s.UserStr(provided), s.UserStr(boundary)),
+	}
+}
+
+func ErrorNonStringKeyFound(key interface{}) error {
+	return Error{
+		Kind:    ErrNonStringKeyFound,
+		message: fmt.Sprintf("non string key found: %s", key),
 	}
 }
 

@@ -7,10 +7,16 @@ Serve models at scale.
 ```yaml
 - kind: api
   name: <string>  # API name (required)
-  model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model)
-  model_format: <string>  # model format, must be "tensorflow" or "onnx" (default: "onnx" if model path ends with .onnx, "tensorflow" if model path ends with .zip or is a directory)
-  request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
-  tf_signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
+  model: 
+  tensorflow:
+    model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model)
+    request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
+    signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
+  onnx:
+    model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model)
+    request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
+  python:
+    inference: <string>  # path to the inference implementation python file, relative to the cortex root
   tracker:
     key: <string>  # key to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression"
@@ -22,6 +28,7 @@ Serve models at scale.
     cpu: <string | int | float>  # CPU request per replica (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica (default: Null)
+  metadata:
 ```
 
 See [packaging models](packaging-models.md) for how to export the model.
@@ -31,8 +38,9 @@ See [packaging models](packaging-models.md) for how to export the model.
 ```yaml
 - kind: api
   name: my-api
-  model: s3://my-bucket/my-model.onnx
-  request_handler: handler.py
+  onnx:
+    model: s3://my-bucket/my-model.onnx
+    request_handler: handler.py
   compute:
     gpu: 1
 ```

@@ -34,19 +34,37 @@ type APIs []*API
 
 type API struct {
 	ResourceFields
-	Model            string      `json:"model" yaml:"model"`
-	ModelFormat      ModelFormat `json:"model_format" yaml:"model_format"`
-	Tracker          *Tracker    `json:"tracker" yaml:"tracker"`
-	RequestHandler   *string     `json:"request_handler" yaml:"request_handler"`
-	InferenceHandler *string     `json:"inference_handler" yaml:"inference_handler"`
-	TFSignatureKey   *string     `json:"tf_signature_key" yaml:"tf_signature_key"`
-	Compute          *APICompute `json:"compute" yaml:"compute"`
-	Tags             Tags        `json:"tags" yaml:"tags"`
+	Tensorflow *Tensorflow            `json:"tensorflow" yaml:"tensorflow"`
+	ONNX       *ONNX                  `json:"onnx" yaml:"onnx"`
+	Python     *Python                `json:"python" yaml:"python"`
+	Tracker    *Tracker               `json:"tracker" yaml:"tracker"`
+	Compute    *APICompute            `json:"compute" yaml:"compute"`
+	Tags       Tags                   `json:"tags" yaml:"tags"`
+	Metadata   map[string]interface{} `json:"metadata" yaml:"metadata"`
+}
+
+type Validatable interface {
+	Validate(projectFileMap map[string][]byte) error
 }
 
 type Tracker struct {
 	Key       *string   `json:"key" yaml:"key"`
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
+}
+
+type Tensorflow struct {
+	Model          string  `json:"model" yaml:"model"`
+	RequestHandler *string `json:"request_handler" yaml:"request_handler"`
+	SignatureKey   *string `json:"signature_key" yaml:"signature_key"`
+}
+
+type ONNX struct {
+	Model          string  `json:"model" yaml:"model"`
+	RequestHandler *string `json:"request_handler" yaml:"request_handler"`
+}
+
+type Python struct {
+	Inference string `json:"inference" yaml:"inference"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -56,13 +74,6 @@ var apiValidation = &cr.StructValidation{
 			StringValidation: &cr.StringValidation{
 				Required: true,
 				DNS1035:  true,
-			},
-		},
-		{
-			StructField: "Model",
-			StringValidation: &cr.StringValidation{
-				Required:  true,
-				Validator: cr.GetS3PathValidator(),
 			},
 		},
 		{
@@ -89,28 +100,65 @@ var apiValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField:         "RequestHandler",
-			StringPtrValidation: &cr.StringPtrValidation{},
-		},
-		{
-			StructField:         "InferenceHandler",
-			StringPtrValidation: &cr.StringPtrValidation{},
-		},
-		{
-			StructField: "ModelFormat",
-			StringValidation: &cr.StringValidation{
-				Required:      false,
-				AllowEmpty:    true,
-				AllowedValues: append(ModelFormatStrings(), ""),
+			StructField: "Tensorflow",
+			StructValidation: &cr.StructValidation{
+				DefaultNil: true,
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "Model",
+						StringValidation: &cr.StringValidation{
+							Required:  true,
+							Validator: cr.GetS3PathValidator(),
+						},
+					},
+					{
+						StructField:         "RequestHandler",
+						StringPtrValidation: &cr.StringPtrValidation{},
+					},
+					{
+						StructField:         "SignatureKey",
+						StringPtrValidation: &cr.StringPtrValidation{},
+					},
+				},
 			},
-			Parser: func(str string) (interface{}, error) {
-				return ModelFormatFromString(str), nil
+		},
+		{
+			StructField: "ONNX",
+			StructValidation: &cr.StructValidation{
+				DefaultNil: true,
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "Model",
+						StringValidation: &cr.StringValidation{
+							Required:  true,
+							Validator: cr.GetS3PathValidator(),
+						},
+					},
+					{
+						StructField:         "RequestHandler",
+						StringPtrValidation: &cr.StringPtrValidation{},
+					},
+				},
 			},
 		},
 		{
-			StructField: "TFSignatureKey",
-			StringPtrValidation: &cr.StringPtrValidation{
-				Required: false,
+			StructField: "Python",
+			StructValidation: &cr.StructValidation{
+				DefaultNil: true,
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "Inference",
+						StringValidation: &cr.StringValidation{
+							Required: true,
+						},
+					},
+				},
+			},
+		},
+		{
+			StructField: "Metadata",
+			InterfaceMapValidation: &cr.InterfaceMapValidation{
+				StringKeysOnly: true,
 			},
 		},
 		apiComputeFieldValidation,
@@ -184,15 +232,17 @@ func GetTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 func (api *API) UserConfigStr() string {
 	var sb strings.Builder
 	sb.WriteString(api.ResourceFields.UserConfigStr())
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, api.Model))
-	if api.ModelFormat != UnknownModelFormat {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelFormatKey, api.ModelFormat.String()))
+	if api.Tensorflow != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", TensorflowKey))
+		sb.WriteString(s.Indent(api.Tensorflow.UserConfigStr(), "  "))
 	}
-	if api.RequestHandler != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestHandlerKey, *api.RequestHandler))
+	if api.ONNX != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ONNXKey))
+		sb.WriteString(s.Indent(api.ONNX.UserConfigStr(), "  "))
 	}
-	if api.TFSignatureKey != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", TFSignatureKeyKey, *api.TFSignatureKey))
+	if api.Python != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", PythonKey))
+		sb.WriteString(s.Indent(api.Python.UserConfigStr(), "  "))
 	}
 	if api.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
@@ -234,76 +284,105 @@ func (apis APIs) Validate(projectFileMap map[string][]byte) error {
 	return nil
 }
 
+func (tf *Tensorflow) Validate(projectFileMap map[string][]byte) error {
+	awsClient, err := aws.NewFromS3Path(tf.Model, false)
+	if err != nil {
+		return err
+	}
+	if strings.HasSuffix(tf.Model, ".zip") {
+		if ok, err := awsClient.IsS3PathFile(tf.Model); err != nil || !ok {
+			return errors.Wrap(ErrorExternalNotFound(tf.Model), TensorflowKey, ModelKey)
+		}
+	} else {
+		path, err := GetTFServingExportFromS3Path(tf.Model, awsClient)
+		if path == "" || err != nil {
+			return errors.Wrap(ErrorInvalidTensorFlowDir(tf.Model), TensorflowKey, ModelKey)
+		}
+		api.Model = path
+	}
+	if tf.RequestHandler != nil {
+		if _, ok := projectFileMap[*tf.RequestHandler]; !ok {
+			return errors.Wrap(ErrorImplDoesNotExist(*tf.RequestHandler), TensorflowKey, RequestHandlerKey)
+		}
+	}
+	return nil
+}
+
+func (tf *Tensorflow) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, tf.Model)
+	if tf.RequestHandler != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestHandlerKey, *tracker.RequestHandler))
+	}
+	if tf.SignatureKey != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *tracker.SignatureKey))
+	}
+	return sb.String()
+}
+
+func (onnx *ONNX) Validate(projectFileMap map[string][]byte) error {
+	awsClient, err := aws.NewFromS3Path(onnx.Model, false)
+	if err != nil {
+		return err
+	}
+	if ok, err := awsClient.IsS3PathFile(onnx.Model); err != nil || !ok {
+		return errors.Wrap(ErrorExternalNotFound(onnx.Model), ONNXKey, ModelKey)
+	}
+	if onnx.RequestHandler != nil {
+		if _, ok := projectFileMap[*onnx.RequestHandler]; !ok {
+			return errors.Wrap(ErrorImplDoesNotExist(*onnx.RequestHandler), ONNXKey, RequestHandlerKey)
+		}
+	}
+	return nil
+}
+
+func (onnx *ONNX) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, onnx.Model)
+	if onnx.RequestHandler != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestHandlerKey, *tracker.RequestHandler))
+	}
+	return sb.String()
+}
+
+func (python *Python) Validate(projectFileMap map[string][]byte) error {
+	if _, ok := projectFileMap[python.Inference]; !ok {
+		return errors.Wrap(ErrorImplDoesNotExist(python.Inference), PythonKey, RequestHandlerKey)
+	}
+	return nil
+}
+
+func (python *Python) UserConfigStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", InferenceKey, python.Inference)
+	return sb.String()
+}
+
 func (api *API) Validate(projectFileMap map[string][]byte) error {
-	// awsClient, err := aws.NewFromS3Path(api.Model, false)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// switch {
-	// case api.ModelFormat == PythonModelFormat:
-	// 	api.ModelFormat = PythonModelFormat
-	// case api.ModelFormat == ONNXModelFormat:
-	// 	if strings.HasSuffix(api.Model, ".zip") {
-	// 		return errors.Wrap(ErrorONNXDoesntSupportZip(), Identify(api), ModelKey)
-	// 	}
-	// 	if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
-	// 		return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
-	// 	}
-	// case api.ModelFormat == TensorFlowModelFormat:
-	// 	if strings.HasSuffix(api.Model, ".zip") {
-	// 		if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
-	// 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
-	// 		}
-	// 	} else {
-	// 		path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
-	// 		if path == "" || err != nil {
-	// 			return errors.Wrap(ErrorInvalidTensorFlowDir(api.Model), Identify(api), ModelKey)
-	// 		}
-	// 		api.Model = path
-	// 	}
-	// default:
-	// 	switch {
-	// 	case strings.HasSuffix(api.Model, ".onnx"):
-	// 		api.ModelFormat = ONNXModelFormat
-	// 		if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
-	// 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
-	// 		}
-	// 	case strings.HasSuffix(api.Model, ".zip"):
-	// 		api.ModelFormat = TensorFlowModelFormat
-	// 		if ok, err := awsClient.IsS3PathFile(api.Model); err != nil || !ok {
-	// 			return errors.Wrap(ErrorExternalNotFound(api.Model), Identify(api), ModelKey)
-	// 		}
-	// 	default:
-	// 		path, err := GetTFServingExportFromS3Path(api.Model, awsClient)
-	// 		if err != nil {
-	// 			return errors.Wrap(err, Identify(api), ModelKey)
-	// 		}
-	// 		if path == "" {
-	// 			return errors.Wrap(ErrorUnableToInferModelFormat(api.Model), Identify(api))
-	// 		}
-	// 		api.ModelFormat = TensorFlowModelFormat
-	// 		api.Model = path
-	// 	}
-	// }
-
-	if api.ModelFormat != TensorFlowModelFormat && api.TFSignatureKey != nil {
-		return errors.Wrap(ErrorIncompatibleWithModelFormat(TFSignatureKeyKey, api.ModelFormat), Identify(api))
+	modelFormat := map[string]Validatable
+	if api.TensorFlow != nil {
+		modelFormat[TensorflowKey] = api.TensorFlow
+	}
+	if api.ONNX != nil {
+		modelFormat[ONNXKey] = api.ONNX
+	}
+	if api.Python != nil {
+		modelFormat[PythonKey] = api.PythonFlow
 	}
 
-	if api.InferenceHandler != nil {
-		fmt.Println(*api.InferenceHandler)
-		for key := range projectFileMap {
-			fmt.Println(key)
+	if len(modelFormats) == 0 {
+		return ErrorSpecifyOnlyOne(TensorflowKey, ONNXKey, PythonKey)
+	} else if len(modelFormats) > 1 {
+		keys := make([]string, len(modelFormat))
+		for key := range modelFormat {
+			keys = append(keys, key)
 		}
-		if _, ok := projectFileMap[*api.InferenceHandler]; !ok {
-			return errors.Wrap(ErrorImplDoesNotExist(*api.InferenceHandler), Identify(api), InferenceHandlerKey)
-		}
-	}
-
-	if api.RequestHandler != nil {
-		if _, ok := projectFileMap[*api.RequestHandler]; !ok {
-			return errors.Wrap(ErrorImplDoesNotExist(*api.RequestHandler), Identify(api), RequestHandlerKey)
+		return ErrorFoundMultipleSpecifyOnlyOne(keys, TensorflowKey, ONNXKey, PythonKey)
+	} else {
+		for _, val := range modelFormat {
+			if err := val.Validate(); err != nil {
+				return errors.Wrap(err, Identify(api), ComputeKey)
+			}
 		}
 	}
 
@@ -315,7 +394,16 @@ func (api *API) Validate(projectFileMap map[string][]byte) error {
 }
 
 func (api *API) AreProjectFilesRequired() bool {
-	return api.RequestHandler != nil || api.InferenceHandler != nil
+	switch {
+	case api.Tensorflow != nil && api.Tensorflow.RequestHandler != nil:
+		return true
+	case api.ONNX != nil && api.ONNX.RequestHandler != nil:
+		return true
+	case api.Python != nil:
+		return true
+	default:
+		return false
+	}
 }
 
 func (api *API) GetResourceType() resource.Type {

@@ -145,8 +145,8 @@ ci-build-images:
 	@./build/build-image.sh images/tf-api tf-api
 	@./build/build-image.sh images/onnx-serve onnx-serve
 	@./build/build-image.sh images/onnx-serve-gpu onnx-serve-gpu
-	@./build/build-image.sh images/pytorch pytorch
-	@./build/build-image.sh images/pytorch-gpu pytorch-gpu
+	@./build/build-image.sh images/python-serve python-serve
+	@./build/build-image.sh images/python-serve-gpu python-serve-gpu
 	@./build/build-image.sh images/operator operator
 	@./build/build-image.sh images/fluentd fluentd
 	@./build/build-image.sh images/statsd statsd
@@ -166,8 +166,8 @@ ci-push-images:
 	@./build/push-image.sh tf-api
 	@./build/push-image.sh onnx-serve
 	@./build/push-image.sh onnx-serve-gpu
-	@./build/push-image.sh pytorch
-	@./build/push-image.sh pytorch-gpu
+	@./build/push-image.sh python-serve
+	@./build/push-image.sh python-serve-gpu
 	@./build/push-image.sh operator
 	@./build/push-image.sh fluentd
 	@./build/push-image.sh statsd

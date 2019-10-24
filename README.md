@@ -30,8 +30,9 @@ Define a `deployment` and an `api` resource. A `deployment` specifies a set of A
 
 - kind: api
   name: generator
-  model: s3://cortex-examples/text-generator/gpt-2/124M
-  request_handler: handler.py
+  tensorflow:
+    model: s3://cortex-examples/text-generator/gpt-2/124M
+    request_handler: handler.py
 ```
 
 <br>

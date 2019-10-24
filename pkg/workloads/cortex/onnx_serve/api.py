@@ -184,7 +184,9 @@ def predict(app_name, api_name):
         prepared_sample = sample
         if request_handler is not None and util.has_function(request_handler, "pre_inference"):
             try:
-                prepared_sample = request_handler.pre_inference(sample, input_metadata)
+                prepared_sample = request_handler.pre_inference(
+                    sample, input_metadata, api["metadata"]
+                )
                 debug_obj("pre_inference", prepared_sample, debug)
             except Exception as e:
                 raise UserRuntimeException(
@@ -198,7 +200,9 @@ def predict(app_name, api_name):
         result = model_output
         if request_handler is not None and util.has_function(request_handler, "post_inference"):
             try:
-                result = request_handler.post_inference(model_output, output_metadata)
+                result = request_handler.post_inference(
+                    model_output, output_metadata, api["metadata"]
+                )
             except Exception as e:
                 raise UserRuntimeException(
                     api["request_handler"], "post_inference request handler", str(e)
@@ -244,7 +248,7 @@ def start(args):
 
         _, prefix = ctx.storage.deconstruct_s3_path(api["model"])
         model_path = os.path.join(args.model_dir, os.path.basename(prefix))
-        if api.get("request_handler") is not None:
+        if api["onnx"].get("request_handler") is not None:
             local_cache["request_handler"] = ctx.get_request_handler_impl(
                 api["name"], args.project_dir
             )

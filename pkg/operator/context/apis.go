@@ -18,7 +18,6 @@ package context
 
 import (
 	"bytes"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -34,20 +33,14 @@ func getAPIs(config *userconfig.Config, deploymentVersion string, projectID stri
 		var buf bytes.Buffer
 		buf.WriteString(apiConfig.Name)
 		buf.WriteString(s.Obj(apiConfig.Tracker))
-		buf.WriteString(apiConfig.ModelFormat.String())
 		buf.WriteString(deploymentVersion)
-		buf.WriteString(strings.TrimSuffix(apiConfig.Model, "/"))
-		buf.WriteString(s.Obj(apiConfig.TFSignatureKey))
+		buf.WriteString(s.Obj(apiConfig.Tensorflow))
+		buf.WriteString(s.Obj(apiConfig.ONNX))
+		buf.WriteString(s.Obj(apiConfig.Python))
+		buf.WriteString(s.Obj(apiConfig.Metadata))
 
 		if apiConfig.AreProjectFilesRequired() {
 			buf.WriteString(projectID)
-		}
-
-		switch {
-		case apiConfig.RequestHandler != nil:
-			buf.WriteString(*apiConfig.RequestHandler)
-		case apiConfig.InferenceHandler != nil:
-			buf.WriteString(*apiConfig.InferenceHandler)
 		}
 
 		id := hash.Bytes(buf.Bytes())

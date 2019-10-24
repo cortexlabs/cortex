@@ -231,15 +231,15 @@ class Context:
 
 REQUEST_HANDLER_IMPL_VALIDATION = {
     "optional": [
-        {"name": "pre_inference", "args": ["sample", "metadata"]},
-        {"name": "post_inference", "args": ["prediction", "metadata"]},
+        {"name": "pre_inference", "args": ["sample", "signature", "metadata"]},
+        {"name": "post_inference", "args": ["prediction", "signature", "metadata"]},
     ]
 }
 
 INFERENCE_HANDLER_IMPL_VALIDATION = {
     "required": [
-        {"name": "model_init", "args": ["model_path"]},
-        {"name": "inference", "args": ["model", "sample"]},
+        {"name": "init", "args": ["metadata"]},
+        {"name": "inference", "args": ["sample", "metadata"]},
     ]
 }
 

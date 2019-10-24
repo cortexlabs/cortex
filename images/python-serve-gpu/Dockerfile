@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04
 
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
@@ -21,13 +21,13 @@ RUN apt-get update -qq && apt-get install -y -q \
 ENV PYTHONPATH "${PYTHONPATH}:/src:/mnt/project"
 
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
-COPY pkg/workloads/cortex/pytorch/requirements.txt /src/cortex/pytorch/requirements.txt
+COPY pkg/workloads/cortex/python_serve/requirements.txt /src/cortex/python_serve/requirements.txt
 RUN pip install -r /src/cortex/lib/requirements.txt && \
-    pip install -r /src/cortex/pytorch/requirements.txt && \
+    pip install -r /src/cortex/python_serve/requirements.txt && \
     rm -rf /root/.cache/pip*
 
 COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib
-COPY pkg/workloads/cortex/pytorch /src/cortex/pytorch
+COPY pkg/workloads/cortex/python_serve /src/cortex/python_serve
 
-ENTRYPOINT ["/src/cortex/pytorch/run.sh"]
+ENTRYPOINT ["/src/cortex/python_serve/run.sh"]

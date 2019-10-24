@@ -43,6 +43,7 @@ const (
 	ErrInitReplicasGreaterThanMax
 	ErrInitReplicasLessThanMin
 	ErrSpecifyOnlyOneMissing
+	ErrFoundMultipleSpecifyOnlyOne
 	ErrImplDoesNotExist
 	ErrUnableToInferModelFormat
 	ErrExternalNotFound
@@ -67,7 +68,8 @@ var errorKinds = []string{
 	"err_min_replicas_greater_than_max",
 	"err_init_replicas_greater_than_max",
 	"err_init_replicas_less_than_min",
-	"err_specify_only_one_missing",
+	"err_specify_only_one",
+	"err_found_multiple_specify_only_one",
 	"err_impl_does_not_exist",
 	"err_unable_to_infer_model_format",
 	"err_external_not_found",
@@ -203,13 +205,17 @@ func ErrorSpecifyAllOrNone(vals ...string) error {
 }
 
 func ErrorSpecifyOnlyOne(vals ...string) error {
-	message := fmt.Sprintf("please specify exactly one of %s", s.UserStrsOr(vals))
-	if len(vals) == 2 {
-		message = fmt.Sprintf("please specify either %s or %s, but not both", s.UserStr(vals[0]), s.UserStr(vals[1]))
-	}
-
+	message := fmt.Sprintf("please specify %s, but not more than one of them", s.UserStrsOr(vals))
 	return Error{
 		Kind:    ErrSpecifyOnlyOne,
+		message: message,
+	}
+}
+
+func ErrorFoundMultipleSpecifyOnlyOne(found []string, vals ...string) error {
+	message := fmt.Sprintf("specified (%s), please specify %s, but not more than one of them", s.UserStrsAnd(found), s.UserStrsOr(vals))
+	return Error{
+		Kind:    ErrFoundMultipleSpecifyOnlyOne,
 		message: message,
 	}
 }
@@ -248,18 +254,6 @@ func ErrorInitReplicasLessThanMin(init int32, min int32) error {
 	return Error{
 		Kind:    ErrInitReplicasLessThanMin,
 		message: fmt.Sprintf("%s cannot be less than %s (%d < %d)", InitReplicasKey, MinReplicasKey, init, min),
-	}
-}
-
-func ErrorSpecifyOnlyOneMissing(vals ...string) error {
-	message := fmt.Sprintf("please specify one of %s", s.UserStrsOr(vals))
-	if len(vals) == 2 {
-		message = fmt.Sprintf("please specify either %s or %s", s.UserStr(vals[0]), s.UserStr(vals[1]))
-	}
-
-	return Error{
-		Kind:    ErrSpecifyOnlyOneMissing,
-		message: message,
 	}
 }
 
