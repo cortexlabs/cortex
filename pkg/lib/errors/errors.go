@@ -136,6 +136,7 @@ func Exit(items ...interface{}) {
 	}
 	err := MergeErrItems(items...)
 	PrintError(err)
+	fmt.Println()
 	os.Exit(1)
 }
 
