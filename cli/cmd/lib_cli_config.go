@@ -21,8 +21,6 @@ import (
 	"os"
 	"path/filepath"
 
-	homedir "github.com/mitchellh/go-homedir"
-
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -32,21 +30,6 @@ import (
 
 var cachedCLIConfig *CLIConfig
 var cachedCLIConfigErrs []error
-var homeDir string
-var localDir string
-
-func init() {
-	var err error
-	homeDir, err = homedir.Dir()
-	if err != nil {
-		errors.Exit(err)
-	}
-	localDir = filepath.Join(homeDir, ".cortex")
-	err = os.MkdirAll(localDir, os.ModePerm)
-	if err != nil {
-		errors.Exit(err)
-	}
-}
 
 type CLIConfig struct {
 	CortexURL          string `json:"cortex_url"`

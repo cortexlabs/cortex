@@ -20,9 +20,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -37,7 +39,23 @@ var cmdStr string
 
 var configFileExts = []string{"yaml", "yml"}
 
+var localDir string
+var cachedClusterConfigPath string
+
 func init() {
+	homeDir, err := homedir.Dir()
+	if err != nil {
+		errors.Exit(err)
+	}
+
+	localDir = filepath.Join(homeDir, ".cortex")
+	err = os.MkdirAll(localDir, os.ModePerm)
+	if err != nil {
+		errors.Exit(err)
+	}
+
+	cachedClusterConfigPath = filepath.Join(localDir, "cluster.yaml")
+
 	cobra.EnablePrefixMatching = true
 
 	cmdStr = "cortex"

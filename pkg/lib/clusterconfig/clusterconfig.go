@@ -234,43 +234,58 @@ var Validation = &cr.StructValidation{
 	},
 }
 
-var PromptValidation = &cr.PromptValidation{
-	SkipPopulatedFields: true,
-	PromptItemValidations: []*cr.PromptItemValidation{
-		{
-			StructField: "InstanceType",
-			PromptOpts: &prompt.Options{
-				Prompt: "AWS instance type",
+func PromptValidation(skipPopulatedFields bool, defaults *ClusterConfig) *cr.PromptValidation {
+	if defaults == nil {
+		defaults = &ClusterConfig{}
+	}
+	if defaults.InstanceType == nil {
+		defaults.InstanceType = pointer.String("m5.large")
+	}
+	if defaults.MinInstances == nil {
+		defaults.MinInstances = pointer.Int64(2)
+	}
+	if defaults.MaxInstances == nil {
+		defaults.MaxInstances = pointer.Int64(5)
+	}
+
+	return &cr.PromptValidation{
+		SkipPopulatedFields: skipPopulatedFields,
+		PromptItemValidations: []*cr.PromptItemValidation{
+			{
+				StructField: "InstanceType",
+				PromptOpts: &prompt.Options{
+					Prompt: "AWS instance type",
+				},
+				StringPtrValidation: &cr.StringPtrValidation{
+					Required:  true,
+					Default:   defaults.InstanceType,
+					Validator: validateInstanceType,
+				},
 			},
-			StringPtrValidation: &cr.StringPtrValidation{
-				Required:  true,
-				Default:   pointer.String("m5.large"),
-				Validator: validateInstanceType,
+			{
+				StructField: "MinInstances",
+				PromptOpts: &prompt.Options{
+					Prompt: "Min instances",
+				},
+				Int64PtrValidation: &cr.Int64PtrValidation{
+					Required:    true,
+					Default:     defaults.MinInstances,
+					GreaterThan: pointer.Int64(0),
+				},
+			},
+			{
+				StructField: "MaxInstances",
+				PromptOpts: &prompt.Options{
+					Prompt: "Max instances",
+				},
+				Int64PtrValidation: &cr.Int64PtrValidation{
+					Required:    true,
+					Default:     defaults.MaxInstances,
+					GreaterThan: pointer.Int64(0),
+				},
 			},
 		},
-		{
-			StructField: "MinInstances",
-			PromptOpts: &prompt.Options{
-				Prompt: "Min instances",
-			},
-			Int64PtrValidation: &cr.Int64PtrValidation{
-				Required:    true,
-				GreaterThan: pointer.Int64(0),
-				Default:     pointer.Int64(2),
-			},
-		},
-		{
-			StructField: "MaxInstances",
-			PromptOpts: &prompt.Options{
-				Prompt: "Max instances",
-			},
-			Int64PtrValidation: &cr.Int64PtrValidation{
-				Required:    true,
-				GreaterThan: pointer.Int64(0),
-				Default:     pointer.Int64(5),
-			},
-		},
-	},
+	}
 }
 
 func validateInstanceType(instanceType string) (string, error) {

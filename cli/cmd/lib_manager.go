@@ -23,7 +23,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"path"
 	"syscall"
 	"time"
 
@@ -100,7 +99,7 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 	if err != nil {
 		return err
 	}
-	if err := files.WriteFile(clusterConfigBytes, path.Join(localDir, "cluster.yaml")); err != nil {
+	if err := files.WriteFile(clusterConfigBytes, cachedClusterConfigPath); err != nil {
 		return err
 	}
 

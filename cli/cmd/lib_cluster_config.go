@@ -25,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -92,25 +91,23 @@ var awsCredentialsPromptValidation = &cr.PromptValidation{
 	},
 }
 
-var emtpyMap interface{} = map[interface{}]interface{}{}
-
-// Read a user-provided cluster config file, or set defaults if not provided
-func readClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) error {
-	if flagClusterConfig == "" {
-		errs := cr.Struct(clusterConfig, emtpyMap, clusterconfig.Validation)
-		if errors.HasErrors(errs) {
-			return errors.FirstError(errs...)
-		}
-		return nil
+// This does not set defaults for fields that are prompted from the user
+func setClusterConfigFileDefaults(clusterConfig *clusterconfig.ClusterConfig) error {
+	var emtpyMap interface{} = map[interface{}]interface{}{}
+	errs := cr.Struct(clusterConfig, emtpyMap, clusterconfig.Validation)
+	if errors.HasErrors(errs) {
+		return errors.FirstError(errs...)
 	}
+	return nil
+}
 
-	clusterConfigPath := files.UserPath(flagClusterConfig)
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, clusterConfigPath, flagClusterConfig)
+func readClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials, path string) error {
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, path)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}
 
-	errs = cr.ParseYAMLFile(awsCreds, awsCredentialsValidation, clusterConfigPath, flagClusterConfig)
+	errs = cr.ParseYAMLFile(awsCreds, awsCredentialsValidation, path)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}
@@ -243,12 +240,19 @@ func getInstallClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, e
 	clusterConfig := &clusterconfig.ClusterConfig{}
 	awsCreds := &AWSCredentials{}
 
-	err := readClusterConfigFile(clusterConfig, awsCreds)
-	if err != nil {
-		return nil, nil, err
+	if flagClusterConfig == "" {
+		err := setClusterConfigFileDefaults(clusterConfig)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		err := readClusterConfigFile(clusterConfig, awsCreds, flagClusterConfig)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
-	err = cr.ReadPrompt(clusterConfig, clusterconfig.PromptValidation)
+	err := cr.ReadPrompt(clusterConfig, clusterconfig.PromptValidation(true, nil))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -263,17 +267,63 @@ func getInstallClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, e
 	return clusterConfig, awsCreds, nil
 }
 
-// This just ensures that cluster name, cluster region, and AWS credentails are set
-func getAccessClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, error) {
+func getUpdateClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, error) {
 	clusterConfig := &clusterconfig.ClusterConfig{}
 	awsCreds := &AWSCredentials{}
 
-	err := readClusterConfigFile(clusterConfig, awsCreds)
+	if flagClusterConfig == "" {
+		err := setClusterConfigFileDefaults(clusterConfig)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		readClusterConfigFile(clusterConfig, awsCreds, cachedClusterConfigPath)
+
+		err = cr.ReadPrompt(clusterConfig, clusterconfig.PromptValidation(false, clusterConfig))
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		err := readClusterConfigFile(clusterConfig, awsCreds, flagClusterConfig)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = cr.ReadPrompt(clusterConfig, clusterconfig.PromptValidation(true, nil))
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	err := setAWSCredentials(awsCreds)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	err = setAWSCredentials(awsCreds)
+	confirmClusterConfig(clusterConfig, awsCreds)
+
+	return clusterConfig, awsCreds, nil
+}
+
+// This will only prompt for AWS credentials (if missing)
+func getAccessClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, error) {
+	clusterConfig := &clusterconfig.ClusterConfig{}
+	awsCreds := &AWSCredentials{}
+
+	if flagClusterConfig == "" {
+		err := setClusterConfigFileDefaults(clusterConfig)
+		if err != nil {
+			return nil, nil, err
+		}
+		readClusterConfigFile(clusterConfig, awsCreds, cachedClusterConfigPath)
+	} else {
+		err := readClusterConfigFile(clusterConfig, awsCreds, flagClusterConfig)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	err := setAWSCredentials(awsCreds)
 	if err != nil {
 		return nil, nil, err
 	}

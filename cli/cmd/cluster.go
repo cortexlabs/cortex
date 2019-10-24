@@ -49,6 +49,7 @@ func init() {
 
 func addClusterConfigFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&flagClusterConfig, "config", "c", "", "path to a Cortex cluster configuration file")
+	cmd.PersistentFlags().SetAnnotation("config", cobra.BashCompFilenameExt, configFileExts)
 }
 
 var clusterCmd = &cobra.Command{
@@ -85,7 +86,7 @@ var updateCmd = &cobra.Command{
 This command updates a Cortex cluster.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		clusterConfig, awsCreds, err := getInstallClusterConfig()
+		clusterConfig, awsCreds, err := getUpdateClusterConfig()
 		if err != nil {
 			errors.Exit(err)
 		}

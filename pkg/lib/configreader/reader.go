@@ -853,29 +853,29 @@ func ReadEnvVar(envVarName string) *string {
 // JSON and YAML Config
 //
 
-func ParseYAMLFile(dest interface{}, validation *StructValidation, filePath string, errMsgPath string) []error {
-	fileInterface, err := ReadYAMLFile(filePath, errMsgPath)
+func ParseYAMLFile(dest interface{}, validation *StructValidation, filePath string) []error {
+	fileInterface, err := ReadYAMLFile(filePath)
 	if err != nil {
 		return []error{err}
 	}
 
 	errs := Struct(dest, fileInterface, validation)
 	if errors.HasErrors(errs) {
-		return errors.WrapAll(errs, errMsgPath)
+		return errors.WrapAll(errs, filePath)
 	}
 
 	return nil
 }
 
-func ReadYAMLFile(filePath string, errMsgPath string) (interface{}, error) {
-	fileBytes, err := files.ReadFileBytesErrPath(filePath, errMsgPath)
+func ReadYAMLFile(filePath string) (interface{}, error) {
+	fileBytes, err := files.ReadFileBytes(filePath)
 	if err != nil {
 		return nil, err
 	}
 
 	fileInterface, err := ReadYAMLBytes(fileBytes)
 	if err != nil {
-		return nil, errors.Wrap(err, errMsgPath)
+		return nil, errors.Wrap(err, filePath)
 	}
 
 	return fileInterface, nil
