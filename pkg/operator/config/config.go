@@ -51,7 +51,7 @@ func Init() error {
 		clusterConfigPath = consts.ClusterConfigPath
 	}
 
-	errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath, clusterConfigPath)
+	errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}
