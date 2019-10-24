@@ -75,9 +75,28 @@ var rootCmd = &cobra.Command{
 	Version: consts.CortexVersion,
 }
 
+// Copied from https://github.com/spf13/cobra/blob/master/command.go
+var helpCmd = &cobra.Command{
+	Use:   "help [command]",
+	Short: "help about any command",
+	Long: `help provides help for any command in the CLI.
+Type ` + rootCmd.Name() + ` help [path to command] for full details.`,
+	Run: func(c *cobra.Command, args []string) {
+		cmd, _, e := c.Root().Find(args)
+		if cmd == nil || e != nil {
+			c.Printf("Unknown help topic %#q\n", args)
+			c.Root().Usage()
+		} else {
+			cmd.InitDefaultHelpFlag()
+			cmd.Help()
+		}
+	},
+}
+
 func Execute() {
 	defer errors.RecoverAndExit()
-	rootCmd.SetHelpCommand(&cobra.Command{Hidden: true})
+	rootCmd.SetHelpCommand(helpCmd)
+
 	cobra.EnableCommandSorting = false
 
 	rootCmd.AddCommand(clusterCmd)
