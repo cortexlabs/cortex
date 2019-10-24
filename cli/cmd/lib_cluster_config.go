@@ -92,7 +92,18 @@ var awsCredentialsPromptValidation = &cr.PromptValidation{
 	},
 }
 
-func readClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) error {
+var emtpyMap interface{} = map[interface{}]interface{}{}
+
+// Read a user-provided cluster config file, or set defaults if not provided
+func readClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) error {
+	if flagClusterConfig == "" {
+		errs := cr.Struct(clusterConfig, emtpyMap, clusterconfig.Validation)
+		if errors.HasErrors(errs) {
+			return errors.FirstError(errs...)
+		}
+		return nil
+	}
+
 	clusterConfigPath := files.UserPath(flagClusterConfig)
 	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, clusterConfigPath, flagClusterConfig)
 	if errors.HasErrors(errs) {
@@ -232,14 +243,12 @@ func getInstallClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, e
 	clusterConfig := &clusterconfig.ClusterConfig{}
 	awsCreds := &AWSCredentials{}
 
-	if flagClusterConfig != "" {
-		err := readClusterConfig(clusterConfig, awsCreds)
-		if err != nil {
-			return nil, nil, err
-		}
+	err := readClusterConfigFile(clusterConfig, awsCreds)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	err := cr.ReadPrompt(clusterConfig, clusterconfig.PromptValidation)
+	err = cr.ReadPrompt(clusterConfig, clusterconfig.PromptValidation)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -259,14 +268,12 @@ func getAccessClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, er
 	clusterConfig := &clusterconfig.ClusterConfig{}
 	awsCreds := &AWSCredentials{}
 
-	if flagClusterConfig != "" {
-		err := readClusterConfig(clusterConfig, awsCreds)
-		if err != nil {
-			return nil, nil, err
-		}
+	err := readClusterConfigFile(clusterConfig, awsCreds)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	err := setAWSCredentials(awsCreds)
+	err = setAWSCredentials(awsCreds)
 	if err != nil {
 		return nil, nil, err
 	}
