@@ -20,7 +20,6 @@ package cmd
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -61,9 +60,8 @@ var clusterCmd = &cobra.Command{
 var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "spin up a Cortex cluster",
-	Long: `
-This command spins up a Cortex cluster on your AWS account.`,
-	Args: cobra.NoArgs,
+	Long:  `This command spins up a Cortex cluster on your AWS account.`,
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		promptForEmail()
 
@@ -82,9 +80,8 @@ This command spins up a Cortex cluster on your AWS account.`,
 var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "update a Cortex cluster",
-	Long: `
-This command updates a Cortex cluster.`,
-	Args: cobra.NoArgs,
+	Long:  `This command updates a Cortex cluster.`,
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		clusterConfig, awsCreds, err := getUpdateClusterConfig()
 		if err != nil {
@@ -101,9 +98,8 @@ This command updates a Cortex cluster.`,
 var infoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "get information about a Cortex cluster",
-	Long: `
-This command gets information about a Cortex cluster.`,
-	Args: cobra.NoArgs,
+	Long:  `This command gets information about a Cortex cluster.`,
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		clusterConfig, awsCreds, err := getAccessClusterConfig()
 		if err != nil {
@@ -120,9 +116,8 @@ This command gets information about a Cortex cluster.`,
 var downCmd = &cobra.Command{
 	Use:   "down",
 	Short: "spin down a Cortex cluster",
-	Long: `
-This command spins down a Cortex cluster.`,
-	Args: cobra.NoArgs,
+	Long:  `This command spins down a Cortex cluster.`,
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		prompt.ForceYes("Are you sure you want to uninstall Cortex? (Your cluster will be spun down and all APIs will be deleted)", "exiting...")
 
@@ -154,7 +149,6 @@ var emailPrompValidation = &cr.PromptValidation{
 }
 
 func promptForEmail() {
-	fmt.Println("")
 	emailAddressContainer := &struct {
 		EmailAddress *string
 	}{}

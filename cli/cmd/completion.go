@@ -26,8 +26,7 @@ import (
 var completionCmd = &cobra.Command{
 	Use:   "completion",
 	Short: "generate bash completion scripts",
-	Long: `
-Generate bash completion scripts.
+	Long: `Generate bash completion scripts.
 
 Add this to your bashrc or bash profile:
   source <(cortex completion)

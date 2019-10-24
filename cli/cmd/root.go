@@ -71,7 +71,7 @@ var rootCmd = &cobra.Command{
 	Use:     "cortex",
 	Aliases: []string{"cx"},
 	Short:   "deploy machine learning models in production",
-	Long:    "Deploy machine learning models in production",
+	Long:    `Deploy machine learning models in production`,
 	Version: consts.CortexVersion,
 }
 
@@ -95,7 +95,17 @@ func Execute() {
 
 	rootCmd.SetVersionTemplate(`{{printf "%s\n" .Version}}`)
 
+	printLeadingNewLine()
 	rootCmd.Execute()
+}
+
+func printLeadingNewLine() {
+	for _, arg := range os.Args[1:] {
+		if arg == "completion" {
+			return
+		}
+	}
+	fmt.Println("")
 }
 
 var flagEnv string
@@ -157,7 +167,7 @@ func rerun(f func() (string, error)) {
 				errors.Exit(err)
 			}
 
-			nextStr = watchHeader() + "\n" + nextStr
+			nextStr = watchHeader() + "\n\n" + nextStr
 			nextStr = strings.TrimRight(nextStr, "\n") + "\n" // ensure a single new line at the end
 			nextStrSlice := strings.Split(nextStr, "\n")
 

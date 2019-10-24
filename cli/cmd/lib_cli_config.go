@@ -163,7 +163,7 @@ func getDefaults() *CLIConfig {
 func configure() *CLIConfig {
 	defaults := getDefaults()
 	cachedCLIConfig = &CLIConfig{}
-	fmt.Println("\nEnvironment: " + flagEnv + "\n")
+	fmt.Println("Environment: " + flagEnv + "\n")
 	err := cr.ReadPrompt(cachedCLIConfig, getPromptValidation(defaults))
 	if err != nil {
 		errors.Exit(err)

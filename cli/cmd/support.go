@@ -67,11 +67,9 @@ var supportPrompValidation = &cr.PromptValidation{
 var supportCmd = &cobra.Command{
 	Use:   "support",
 	Short: "request support from Cortex maintainers",
-	Long: `
-This command sends a support request to Cortex maintainers.`,
+	Long:  `This command sends a support request to Cortex maintainers.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		supportRequest := &SupportRequest{}
-		fmt.Println("")
 		err := cr.ReadPrompt(supportRequest, supportPrompValidation)
 		if err != nil {
 			errors.Exit(err)

@@ -38,9 +38,8 @@ func init() {
 var deleteCmd = &cobra.Command{
 	Use:   "delete [DEPLOYMENT_NAME]",
 	Short: "delete a deployment",
-	Long: `
-This command deletes a deployment from the cluster.`,
-	Args: cobra.MaximumNArgs(1),
+	Long:  `This command deletes a deployment from the cluster.`,
+	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var appName string
 		var err error
@@ -68,6 +67,6 @@ This command deletes a deployment from the cluster.`,
 		if err != nil {
 			errors.Exit(err, "/delete", "response", string(httpResponse))
 		}
-		fmt.Println("\n" + console.Bold(deleteResponse.Message))
+		fmt.Println(console.Bold(deleteResponse.Message))
 	},
 }
