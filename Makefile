@@ -28,32 +28,32 @@ kubectl:
 	@eval $$(python ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --name="$$CORTEX_CLUSTER_NAME" | grep -v "saved kubeconfig as" | grep -v "using region" || true
 	@kubectl config set-context --current --namespace=cortex >/dev/null
 
-cortex-up:
+cluster-up:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster up
 	@$(MAKE) kubectl
 
-cortex-down:
+cluster-down:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster down
 
-cortex-uninstall:
-	@./dev/uninstall_cortex.sh
-
-cortex-info:
+cluster-info:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster info
 
-cortex-update:
+cluster-update:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster update
+
+cortex-uninstall:
+	@./dev/uninstall_cortex.sh
 
 operator-stop:
 	@$(MAKE) kubectl
