@@ -204,17 +204,12 @@ func setAWSCredentials(awsCreds *AWSCredentials) error {
 }
 
 func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) {
-	displayBucket := clusterConfig.Bucket
-	if displayBucket == "" {
-		displayBucket = "(autogenerate)"
-	}
-
 	fmt.Printf("instance type:     %s\n", *clusterConfig.InstanceType)
 	fmt.Printf("min instances:     %d\n", *clusterConfig.MinInstances)
 	fmt.Printf("max instances:     %d\n", *clusterConfig.MaxInstances)
 	fmt.Printf("cluster name:      %s\n", clusterConfig.ClusterName)
 	fmt.Printf("region:            %s\n", clusterConfig.Region)
-	fmt.Printf("bucket:            %s\n", displayBucket)
+	fmt.Printf("bucket:            %s\n", clusterConfig.Bucket)
 	fmt.Printf("log group:         %s\n", clusterConfig.LogGroup)
 	fmt.Printf("AWS access key ID: %s\n", s.MaskString(awsCreds.AWSAccessKeyID, 4))
 	if awsCreds.CortexAWSAccessKeyID != awsCreds.AWSAccessKeyID {
