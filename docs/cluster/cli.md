@@ -109,39 +109,6 @@ Flags:
   -p, --print        print the configuration
 ```
 
-## support
-
-```text
-This command sends a support request to Cortex developers.
-
-Usage:
-  cortex support [flags]
-
-Flags:
-  -h, --help   help for support
-```
-
-## completion
-
-```text
-Generate bash completion scripts.
-
-Add this to your bashrc or bash profile:
-  source <(cortex completion)
-Or run:
-  echo 'source <(cortex completion)' >> ~/.bash_profile  # Mac
-  echo 'source <(cortex completion)' >> ~/.bashrc  # Linux
-
-This will also add the "cx" alias.
-Note: Cortex CLI completion requires the bash_completion package to be installed on your system.
-
-Usage:
-  cortex completion [flags]
-
-Flags:
-  -h, --help   help for completion
-```
-
 ## cluster up
 
 ```text
@@ -192,6 +159,39 @@ Usage:
 Flags:
   -c, --config string   path to a Cortex cluster configuration file
   -h, --help            help for down
+```
+
+## completion
+
+```text
+Generate bash completion scripts.
+
+Add this to your bashrc or bash profile:
+  source <(cortex completion)
+Or run:
+  echo 'source <(cortex completion)' >> ~/.bash_profile  # Mac
+  echo 'source <(cortex completion)' >> ~/.bashrc  # Linux
+
+This will also add the "cx" alias.
+Note: Cortex CLI completion requires the bash_completion package to be installed on your system.
+
+Usage:
+  cortex completion [flags]
+
+Flags:
+  -h, --help   help for completion
+```
+
+## support
+
+```text
+This command sends a support request to Cortex developers.
+
+Usage:
+  cortex support [flags]
+
+Flags:
+  -h, --help   help for support
 ```
 
 ## version

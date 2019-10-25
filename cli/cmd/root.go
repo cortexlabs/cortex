@@ -97,8 +97,6 @@ func Execute() {
 
 	cobra.EnableCommandSorting = false
 
-	rootCmd.AddCommand(clusterCmd)
-
 	rootCmd.AddCommand(deployCmd)
 	rootCmd.AddCommand(getCmd)
 	rootCmd.AddCommand(logsCmd)
@@ -107,9 +105,10 @@ func Execute() {
 	rootCmd.AddCommand(deleteCmd)
 
 	rootCmd.AddCommand(configureCmd)
-	rootCmd.AddCommand(supportCmd)
-	rootCmd.AddCommand(completionCmd)
+	rootCmd.AddCommand(clusterCmd)
 
+	rootCmd.AddCommand(completionCmd)
+	rootCmd.AddCommand(supportCmd)
 	rootCmd.AddCommand(versionCmd)
 
 	printLeadingNewLine()
