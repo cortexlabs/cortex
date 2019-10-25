@@ -94,7 +94,7 @@ var updateCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		err = runManagerCommand("/root/install.sh", clusterConfig, awsCreds)
+		err = runManagerCommand("/root/install.sh --update", clusterConfig, awsCreds)
 		if err != nil {
 			errors.Exit(err)
 		}

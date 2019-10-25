@@ -16,14 +16,26 @@
 
 set -e
 
-function main() {
-  if ! eksctl utils describe-stacks --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION >/dev/null 2>&1; then
-    echo -e "Spinning up the cluster ... (this will take about 15 minutes)\n"
-    envsubst < eks.yaml | eksctl create cluster -f -
-    echo "✓ Spun up the cluster"
-  else
+arg1="$1"
+
+function ensure_eks() {
+  if eksctl utils describe-stacks --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION >/dev/null 2>&1; then
     echo "✓ Cluster is running"
+    return
   fi
+
+  if [ "$arg1" = "--update" ]; then
+    echo "error: there isn't a Cortex cluster called \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION; please update your configuration to point to an existing Cortex cluster or run \`cortex cluster install\`"
+    exit 1
+  fi
+
+  echo -e "Spinning up the cluster ... (this will take about 15 minutes)\n"
+  envsubst < eks.yaml | eksctl create cluster -f -
+  echo "✓ Spun up the cluster"
+}
+
+function main() {
+  ensure_eks
 
   eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" || true
 
