@@ -116,10 +116,8 @@ func Execute() {
 }
 
 func printLeadingNewLine() {
-	for _, arg := range os.Args[1:] {
-		if arg == "completion" {
-			return
-		}
+	if len(os.Args) == 2 && os.Args[1] == "completion" {
+		return
 	}
 	fmt.Println("")
 }
