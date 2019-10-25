@@ -19,19 +19,46 @@ set -e
 arg1="$1"
 
 function ensure_eks() {
-  if eksctl utils describe-stacks --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION >/dev/null 2>&1; then
-    echo "✓ Cluster is running"
+  if ! eksctl utils describe-stacks --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION >/dev/null 2>&1; then
+    if [ "$arg1" = "--update" ]; then
+      echo "error: there isn't a Cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION; please update your configuration to point to an existing Cortex cluster or create a Cortex cluster with \`cortex cluster install\`"
+      exit 1
+    fi
+
+    echo -e "￮ Spinning up the cluster ... (this will take about 15 minutes)\n"
+    envsubst < eks.yaml | eksctl create cluster -f -
+    echo "\n✓ Spun up the cluster"
     return
   fi
 
-  if [ "$arg1" = "--update" ]; then
-    echo "error: there isn't a Cortex cluster called \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION; please update your configuration to point to an existing Cortex cluster or run \`cortex cluster install\`"
-    exit 1
+  echo "✓ Cluster is running"
+
+  # Check if instance type changed
+  ng_info=$(eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --name ng-1 -o json)
+  ng_instance_type=$(echo "$ng_info" | jq -r ".[] | select( .Cluster == \"$CORTEX_CLUSTER_NAME\" ) | select( .Name == \"ng-1\" ) | .InstanceType")
+  if [ "$ng_instance_type" != "$CORTEX_INSTANCE_TYPE" ]; then
+    echo -e "￮ Deleting previous node group ... (this may take a few minutes) \n"
+    eksctl delete nodegroup --wait --name=ng-1 --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION
+    echo -e "\n✓ Previous node group deleted"
+    echo -e "￮ Creating node group ... (this will take a few minutes) \n"
+    envsubst < eks.yaml | eksctl create nodegroup -f -
+    echo -e "\n✓ Node group created"
+    return
   fi
 
-  echo -e "Spinning up the cluster ... (this will take about 15 minutes)\n"
-  envsubst < eks.yaml | eksctl create cluster -f -
-  echo "✓ Spun up the cluster"
+  # Check for change in min/max instances
+  asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query 'AutoScalingGroups[?contains(Tags[?Key==`alpha.eksctl.io/nodegroup-name`].Value, `ng-1`)]')
+  asg_name=$(echo "$asg_info" | jq -r 'first | .AutoScalingGroupName')
+  asg_min_size=$(echo "$asg_info" | jq -r 'first | .MinSize')
+  asg_max_size=$(echo "$asg_info" | jq -r 'first | .MaxSize')
+  if [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ]; then
+    aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_name --min-size=$CORTEX_MIN_INSTANCES
+    echo "✓ Updated min instances to $CORTEX_MIN_INSTANCES"
+  fi
+  if [ "$asg_max_size" != "$CORTEX_MAX_INSTANCES" ]; then
+    aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_name --max-size=$CORTEX_MAX_INSTANCES
+    echo "✓ Updated max instances to $CORTEX_MAX_INSTANCES"
+  fi
 }
 
 function main() {
@@ -107,6 +134,8 @@ function setup_bucket() {
       echo "error: a bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
       exit 1
     fi
+  else
+    echo "✓ Using existing S3 bucket: $CORTEX_BUCKET"
   fi
 }
 
@@ -114,6 +143,8 @@ function setup_cloudwatch_logs() {
   if ! aws logs list-tags-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION --output json 2>&1 | grep -q "\"tags\":"; then
     aws logs create-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION
     echo "✓ Created CloudWatch log group: $CORTEX_LOG_GROUP"
+  else
+    echo "✓ Using existing CloudWatch log group: $CORTEX_LOG_GROUP"
   fi
 }
 
