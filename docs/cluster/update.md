@@ -19,5 +19,5 @@ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/g
 cortex cluster update
 
 # Confirm version
-cortex --version
+cortex version
 ```

@@ -27,7 +27,6 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -72,7 +71,6 @@ var rootCmd = &cobra.Command{
 	Aliases: []string{"cx"},
 	Short:   "deploy machine learning models in production",
 	Long:    `Deploy machine learning models in production`,
-	Version: consts.CortexVersion,
 }
 
 // Copied from https://github.com/spf13/cobra/blob/master/command.go
@@ -112,7 +110,7 @@ func Execute() {
 	rootCmd.AddCommand(supportCmd)
 	rootCmd.AddCommand(completionCmd)
 
-	rootCmd.SetVersionTemplate(`{{printf "%s\n" .Version}}`)
+	rootCmd.AddCommand(versionCmd)
 
 	printLeadingNewLine()
 	rootCmd.Execute()

@@ -193,3 +193,14 @@ Flags:
   -c, --config string   path to a Cortex cluster configuration file
   -h, --help            help for down
 ```
+
+## version
+
+This command prints the version of the Cortex CLI and cluster
+
+Usage:
+  cortex version [flags]
+
+Flags:
+  -e, --env string   environment (default "default")
+  -h, --help         help for version
