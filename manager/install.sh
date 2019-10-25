@@ -78,11 +78,6 @@ function main() {
 }
 
 function setup_bucket() {
-  if [ "$CORTEX_BUCKET" == "" ]; then
-    account_id_hash=$(aws sts get-caller-identity | jq .Account | sha256sum | cut -f1 -d" " | cut -c -10)
-    CORTEX_BUCKET="cortex-${account_id_hash}"
-  fi
-
   if ! aws s3api head-bucket --bucket $CORTEX_BUCKET --output json 2>/dev/null; then
     if aws s3 ls "s3://$CORTEX_BUCKET" --output json 2>&1 | grep -q 'NoSuchBucket'; then
       if [ "$CORTEX_REGION" == "us-east-1" ]; then

@@ -26,26 +26,28 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-func (c *Client) AuthUser(accessKeyID string, secretAccessKey string) (bool, error) {
+// Returns account ID, whether the credentials were valid, any other error that occured
+func AccountID(accessKeyID string, secretAccessKey string, region string) (string, bool, error) {
 	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(c.Region),
+		Region:      aws.String(region),
 		DisableSSL:  aws.Bool(false),
 		Credentials: credentials.NewStaticCredentials(accessKeyID, secretAccessKey, ""),
 	})
 	if err != nil {
-		return false, errors.WithStack(err)
+		return "", false, errors.WithStack(err)
 	}
-	userSTSClient := sts.New(sess)
 
-	response, err := userSTSClient.GetCallerIdentity(nil)
+	stsClient := sts.New(sess)
+
+	response, err := stsClient.GetCallerIdentity(nil)
 	if awsErr, ok := err.(awserr.RequestFailure); ok {
 		if awsErr.StatusCode() == 403 {
-			return false, nil
+			return "", false, nil
 		}
 	}
 	if err != nil {
-		return false, errors.WithStack(err)
+		return "", false, errors.WithStack(err)
 	}
 
-	return *response.Account == c.awsAccountID, nil
+	return *response.Account, true, nil
 }

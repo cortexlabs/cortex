@@ -252,6 +252,11 @@ func getInstallClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, e
 		return nil, nil, err
 	}
 
+	err = clusterConfig.SetBucket(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	confirmClusterConfig(clusterConfig, awsCreds)
 
 	return clusterConfig, awsCreds, nil
@@ -286,6 +291,11 @@ func getUpdateClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, er
 	}
 
 	err := setAWSCredentials(awsCreds)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = clusterConfig.SetBucket(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
 	if err != nil {
 		return nil, nil, err
 	}

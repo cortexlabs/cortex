@@ -20,8 +20,10 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 )
@@ -317,4 +319,21 @@ func GetFileDefaults() (*ClusterConfig, error) {
 	}
 
 	return clusterConfig, nil
+}
+
+func (cc *ClusterConfig) SetBucket(awsAccessKeyID string, awsSecretAccessKey string) error {
+	if cc.Bucket != "" {
+		return nil
+	}
+
+	awsAccountID, validCreds, err := aws.AccountID(awsAccessKeyID, awsSecretAccessKey, cc.Region)
+	if err != nil {
+		return err
+	}
+	if !validCreds {
+		return ErrorInvalidAWSCredentials()
+	}
+
+	cc.Bucket = "cortex-" + hash.String(awsAccountID)[:10]
+	return nil
 }
