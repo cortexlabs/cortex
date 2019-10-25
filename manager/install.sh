@@ -37,13 +37,8 @@ function ensure_eks() {
   ng_info=$(eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --name ng-1 -o json)
   ng_instance_type=$(echo "$ng_info" | jq -r ".[] | select( .Cluster == \"$CORTEX_CLUSTER_NAME\" ) | select( .Name == \"ng-1\" ) | .InstanceType")
   if [ "$ng_instance_type" != "$CORTEX_INSTANCE_TYPE" ]; then
-    echo -e "￮ Deleting previous node group ... (this may take a few minutes) \n"
-    eksctl delete nodegroup --wait --name=ng-1 --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION
-    echo -e "\n✓ Previous node group deleted"
-    echo -e "￮ Creating node group ... (this will take a few minutes) \n"
-    envsubst < eks.yaml | eksctl create nodegroup -f -
-    echo -e "\n✓ Node group created"
-    return
+    echo "error: Cortex does not currently support changing the instance type of a running cluster; please run \`cortex cluster down\` followed by \`cortex cluster up\` to create a new cluster"
+    exit 1
   fi
 
   # Check for change in min/max instances
