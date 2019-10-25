@@ -19,7 +19,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 eval $(python $ROOT/manager/cluster_config_env.py $ROOT/dev/config/cluster.yaml)
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" || true
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 
 echo "Uninstalling Cortex ..."
 

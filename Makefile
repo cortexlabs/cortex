@@ -25,7 +25,7 @@ devstart:
 	@./dev/operator_local.sh || true
 
 kubectl:
-	@eval $$(python ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --name="$$CORTEX_CLUSTER_NAME" | grep -v "saved kubeconfig as" | grep -v "using region" || true
+	@eval $$(python ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --name="$$CORTEX_CLUSTER_NAME" | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 	@kubectl config set-context --current --namespace=cortex >/dev/null
 
 cluster-up:

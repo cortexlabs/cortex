@@ -26,7 +26,7 @@ function get_apis_endpoint() {
   kubectl -n=istio-system get service apis-ingressgateway -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
 }
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" || true
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 
 operator_endpoint=$(get_operator_endpoint)
 apis_endpoint=$(get_apis_endpoint)

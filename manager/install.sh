@@ -37,7 +37,7 @@ function ensure_eks() {
 function main() {
   ensure_eks
 
-  eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" || true
+  eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 
   setup_bucket
   setup_cloudwatch_logs
