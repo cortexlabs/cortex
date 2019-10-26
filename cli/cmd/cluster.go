@@ -138,7 +138,7 @@ var downCmd = &cobra.Command{
 	Long:  `This command spins down a Cortex cluster.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		prompt.ForceYes("Are you sure you want to uninstall Cortex? (Your cluster will be spun down and all APIs will be deleted)", "exiting...")
+		prompt.YesOrExit("Are you sure you want to uninstall Cortex? (Your cluster will be spun down and all APIs will be deleted)", "exiting...")
 
 		clusterConfig, awsCreds, err := getAccessClusterConfig()
 		if err != nil {

@@ -39,8 +39,8 @@ type ClusterConfig struct {
 	Telemetry              bool    `json:"telemetry" yaml:"telemetry"`
 	ImageTFServe           string  `json:"image_tf_serve" yaml:"image_tf_serve"`
 	ImageTFServeGPU        string  `json:"image_tf_serve_gpu" yaml:"image_tf_serve_gpu"`
-	ImageOnnxServe         string  `json:"image_onnx_serve" yaml:"image_onnx_serve"`
-	ImageOnnxServeGPU      string  `json:"image_onnx_serve_gpu" yaml:"image_onnx_serve_gpu"`
+	ImageONNXServe         string  `json:"image_onnx_serve" yaml:"image_onnx_serve"`
+	ImageONNXServeGPU      string  `json:"image_onnx_serve_gpu" yaml:"image_onnx_serve_gpu"`
 	ImageOperator          string  `json:"image_operator" yaml:"image_operator"`
 	ImageManager           string  `json:"image_manager" yaml:"image_manager"`
 	ImageTFAPI             string  `json:"image_tf_api" yaml:"image_tf_api"`
@@ -127,13 +127,13 @@ var Validation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "ImageOnnxServe",
+			StructField: "ImageONNXServe",
 			StringValidation: &cr.StringValidation{
 				Default: "cortexlabs/onnx-serve:" + consts.CortexVersion,
 			},
 		},
 		{
-			StructField: "ImageOnnxServeGPU",
+			StructField: "ImageONNXServeGPU",
 			StringValidation: &cr.StringValidation{
 				Default: "cortexlabs/onnx-serve-gpu:" + consts.CortexVersion,
 			},
@@ -295,8 +295,9 @@ func validateInstanceType(instanceType string) (string, error) {
 		strings.HasSuffix(instanceType, "micro") ||
 		strings.HasSuffix(instanceType, "small") ||
 		strings.HasSuffix(instanceType, "medium") {
-		return "", errors.New("Cortex does not support nano, micro, small, or medium instances - please specify a larger instance type")
+		return "", ErrorInstanceTypeTooSmall()
 	}
+
 	return instanceType, nil
 }
 

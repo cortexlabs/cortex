@@ -41,11 +41,11 @@ func (cc *InternalClusterConfig) String() string {
 	if cc.ImageTFServeGPU != defaultCC.ImageTFServeGPU {
 		items = append(items, table.KV{K: "image_tf_serve_gpu", V: cc.ImageTFServeGPU})
 	}
-	if cc.ImageOnnxServe != defaultCC.ImageOnnxServe {
-		items = append(items, table.KV{K: "image_onnx_serve", V: cc.ImageOnnxServe})
+	if cc.ImageONNXServe != defaultCC.ImageONNXServe {
+		items = append(items, table.KV{K: "image_onnx_serve", V: cc.ImageONNXServe})
 	}
-	if cc.ImageOnnxServeGPU != defaultCC.ImageOnnxServeGPU {
-		items = append(items, table.KV{K: "image_onnx_serve_gpu", V: cc.ImageOnnxServeGPU})
+	if cc.ImageONNXServeGPU != defaultCC.ImageONNXServeGPU {
+		items = append(items, table.KV{K: "image_onnx_serve_gpu", V: cc.ImageONNXServeGPU})
 	}
 	if cc.ImageOperator != defaultCC.ImageOperator {
 		items = append(items, table.KV{K: "image_operator", V: cc.ImageOperator})

@@ -426,7 +426,7 @@ func onnxAPISpec(
 	workloadID string,
 	desiredReplicas int32,
 ) *kapps.Deployment {
-	servingImage := config.Cluster.ImageOnnxServe
+	servingImage := config.Cluster.ImageONNXServe
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
@@ -436,7 +436,7 @@ func onnxAPISpec(
 	}
 
 	if api.Compute.GPU > 0 {
-		servingImage = config.Cluster.ImageOnnxServeGPU
+		servingImage = config.Cluster.ImageONNXServeGPU
 		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}

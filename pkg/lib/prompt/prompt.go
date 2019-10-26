@@ -74,7 +74,7 @@ func Prompt(opts *Options) string {
 	return val
 }
 
-func ForceYes(prompt string, exitMessage string) {
+func YesOrExit(prompt string, exitMessage string) {
 	for true {
 		str := Prompt(&Options{
 			Prompt:      prompt + " [y/n]",

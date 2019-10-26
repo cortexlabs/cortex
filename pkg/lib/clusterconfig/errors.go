@@ -20,12 +20,14 @@ type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
+	ErrInstanceTypeTooSmall
 	ErrInvalidAWSCredentials
 )
 
 var (
 	errorKinds = []string{
 		"err_unknown",
+		"err_instance_type_too_small",
 		"err_invalid_aws_credentials",
 	}
 )
@@ -73,6 +75,13 @@ type Error struct {
 
 func (e Error) Error() string {
 	return e.message
+}
+
+func ErrorInstanceTypeTooSmall() error {
+	return Error{
+		Kind:    ErrInstanceTypeTooSmall,
+		message: "Cortex does not support nano, micro, small, or medium instances - please specify a larger instance type",
+	}
 }
 
 func ErrorInvalidAWSCredentials() error {
