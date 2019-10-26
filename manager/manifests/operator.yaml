@@ -81,12 +81,12 @@ spec:
                 name: aws-credentials
                 key: AWS_SECRET_ACCESS_KEY
         volumeMounts:
-          - name: cortex-config
-            mountPath: /configs/cortex
+          - name: cluster-config
+            mountPath: /configs/cluster
       volumes:
-        - name: cortex-config
+        - name: cluster-config
           configMap:
-            name: cortex-config
+            name: cluster-config
 
 ---
 

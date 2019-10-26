@@ -23,6 +23,7 @@ import (
 	kautoscaling "k8s.io/api/autoscaling/v2beta2"
 	kcore "k8s.io/api/core/v1"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -129,6 +130,6 @@ func hpaSpec(ctx *context.Context, api *context.API) *kautoscaling.HorizontalPod
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
 		},
-		Namespace: config.Cortex.Namespace,
+		Namespace: consts.K8sNamespace,
 	})
 }

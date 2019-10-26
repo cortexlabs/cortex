@@ -7,27 +7,17 @@
 
 ## Upgrading Cortex
 
-See [cluster configuration](config.md) to customize your installation.
+See [cluster configuration](config.md) for how to customize your installation.
 
 <!-- CORTEX_VERSION_MINOR -->
 
 ```bash
-# Download
-curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh
-
-# Change permissions
-chmod +x cortex.sh
-
-# Set AWS credentials
-export AWS_ACCESS_KEY_ID=***
-export AWS_SECRET_ACCESS_KEY=***
-
-# Update Cortex
-./cortex.sh update
-
 # Update the CLI
-./cortex.sh install cli
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
+
+# Update the cluster
+cortex cluster update
 
 # Confirm version
-cortex --version
+cortex version
 ```

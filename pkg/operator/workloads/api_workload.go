@@ -257,9 +257,9 @@ func tfAPISpec(
 		tfServingResourceList[kcore.ResourceMemory] = *q2
 	}
 
-	servingImage := config.Cortex.TFServeImage
+	servingImage := config.Cluster.ImageTFServe
 	if api.Compute.GPU > 0 {
-		servingImage = config.Cortex.TFServeImageGPU
+		servingImage = config.Cluster.ImageTFServeGPU
 		tfServingResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
@@ -317,19 +317,19 @@ func tfAPISpec(
 				InitContainers: []kcore.Container{
 					{
 						Name:            downloaderInitContainerName,
-						Image:           config.Cortex.DownloaderImage,
+						Image:           config.Cluster.ImageDownloader,
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--download=" + downloadArgsStr,
 						},
 						Env:          k8s.AWSCredentials(),
-						VolumeMounts: k8s.DefaultVolumeMounts(),
+						VolumeMounts: defaultVolumeMounts(),
 					},
 				},
 				Containers: []kcore.Container{
 					{
 						Name:            apiContainerName,
-						Image:           config.Cortex.TFAPIImage,
+						Image:           config.Cluster.ImageTFAPI,
 						ImagePullPolicy: kcore.PullAlways,
 						Args: []string{
 							"--workload-id=" + workloadID,
@@ -352,7 +352,7 @@ func tfAPISpec(
 								},
 							},
 						),
-						VolumeMounts: k8s.DefaultVolumeMounts(),
+						VolumeMounts: defaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
 							TimeoutSeconds:      5,
@@ -386,7 +386,7 @@ func tfAPISpec(
 							"--model_base_path=" + path.Join(consts.EmptyDirMountPath, "model"),
 						},
 						Env:          k8s.AWSCredentials(),
-						VolumeMounts: k8s.DefaultVolumeMounts(),
+						VolumeMounts: defaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
 							TimeoutSeconds:      5,
@@ -412,11 +412,11 @@ func tfAPISpec(
 						},
 					},
 				},
-				Volumes:            k8s.DefaultVolumes(),
+				Volumes:            defaultVolumes(),
 				ServiceAccountName: "default",
 			},
 		},
-		Namespace: config.Cortex.Namespace,
+		Namespace: consts.K8sNamespace,
 	})
 }
 
@@ -426,7 +426,7 @@ func onnxAPISpec(
 	workloadID string,
 	desiredReplicas int32,
 ) *kapps.Deployment {
-	servingImage := config.Cortex.ONNXServeImage
+	servingImage := config.Cluster.ImageONNXServe
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
@@ -436,7 +436,7 @@ func onnxAPISpec(
 	}
 
 	if api.Compute.GPU > 0 {
-		servingImage = config.Cortex.ONNXServeImageGPU
+		servingImage = config.Cluster.ImageONNXServeGPU
 		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
@@ -492,13 +492,13 @@ func onnxAPISpec(
 				InitContainers: []kcore.Container{
 					{
 						Name:            downloaderInitContainerName,
-						Image:           config.Cortex.DownloaderImage,
+						Image:           config.Cluster.ImageDownloader,
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--download=" + downloadArgsStr,
 						},
 						Env:          k8s.AWSCredentials(),
-						VolumeMounts: k8s.DefaultVolumeMounts(),
+						VolumeMounts: defaultVolumeMounts(),
 					},
 				},
 				Containers: []kcore.Container{
@@ -526,7 +526,7 @@ func onnxAPISpec(
 								},
 							},
 						),
-						VolumeMounts: k8s.DefaultVolumeMounts(),
+						VolumeMounts: defaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
 							TimeoutSeconds:      5,
@@ -553,18 +553,18 @@ func onnxAPISpec(
 						},
 					},
 				},
-				Volumes:            k8s.DefaultVolumes(),
+				Volumes:            defaultVolumes(),
 				ServiceAccountName: "default",
 			},
 		},
-		Namespace: config.Cortex.Namespace,
+		Namespace: consts.K8sNamespace,
 	})
 }
 
 func virtualServiceSpec(ctx *context.Context, api *context.API) *kunstructured.Unstructured {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:        internalAPIName(api.Name, ctx.App.Name),
-		Namespace:   config.Cortex.Namespace,
+		Namespace:   consts.K8sNamespace,
 		Gateways:    []string{"apis-gateway"},
 		ServiceName: internalAPIName(api.Name, ctx.App.Name),
 		ServicePort: defaultPortInt32,
@@ -592,7 +592,7 @@ func serviceSpec(ctx *context.Context, api *context.API) *kcore.Service {
 			"workloadType": workloadTypeAPI,
 			"apiName":      api.Name,
 		},
-		Namespace: config.Cortex.Namespace,
+		Namespace: consts.K8sNamespace,
 	})
 }
 
@@ -617,13 +617,13 @@ func doesAPIComputeNeedsUpdating(api *context.API, k8sDeployment *kapps.Deployme
 }
 
 func deleteOldAPIs(ctx *context.Context) {
-	virtualServices, _ := config.Kubernetes.ListVirtualServicesByLabels(config.Cortex.Namespace, map[string]string{
+	virtualServices, _ := config.Kubernetes.ListVirtualServicesByLabels(consts.K8sNamespace, map[string]string{
 		"appName":      ctx.App.Name,
 		"workloadType": workloadTypeAPI,
 	})
 	for _, virtualService := range virtualServices {
 		if _, ok := ctx.APIs[virtualService.GetLabels()["apiName"]]; !ok {
-			config.Kubernetes.DeleteVirtualService(config.Cortex.Namespace, virtualService.GetName())
+			config.Kubernetes.DeleteVirtualService(virtualService.GetName(), consts.K8sNamespace)
 		}
 	}
 

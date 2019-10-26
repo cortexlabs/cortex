@@ -27,6 +27,8 @@ type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
+	ErrParseConfig
+	ErrReadConfig
 	ErrUnsupportedKey
 	ErrInvalidYAML
 	ErrAlphaNumericDashUnderscore
@@ -57,6 +59,8 @@ const (
 
 var errorKinds = []string{
 	"err_unknown",
+	"err_parse_config",
+	"err_read_config",
 	"err_unsupported_key",
 	"err_invalid_yaml",
 	"err_alpha_numeric_dash_underscore",
@@ -128,6 +132,20 @@ type Error struct {
 
 func (e Error) Error() string {
 	return e.message
+}
+
+func ErrorParseConfig() error {
+	return Error{
+		Kind:    ErrParseConfig,
+		message: fmt.Sprintf("failed to parse config file"),
+	}
+}
+
+func ErrorReadConfig() error {
+	return Error{
+		Kind:    ErrReadConfig,
+		message: fmt.Sprintf("failed to read config file"),
+	}
 }
 
 func ErrorUnsupportedKey(key interface{}) error {
@@ -286,7 +304,7 @@ func ErrorMustBeDefined() error {
 }
 
 func ErrorMapMustBeDefined(keys ...string) error {
-	message := fmt.Sprintf("must be defined")
+	message := "must be defined"
 	if len(keys) > 0 {
 		message = fmt.Sprintf("must be defined, and contain the following keys: %s", s.UserStrsAnd(keys))
 	}

@@ -22,6 +22,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -29,7 +30,6 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
-	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
 var MaxProjectSize = 1024 * 1024 * 50
@@ -43,8 +43,7 @@ func init() {
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "create or update a deployment",
-	Long: `
-This command sends all project configuration and code to Cortex.
+	Long: `This command sends all project configuration and code to Cortex.
 If validations pass, Cortex will attempt to create the desired state.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -66,7 +65,7 @@ func deploy(force bool, ignoreCache bool) {
 
 	configBytes, err := ioutil.ReadFile("cortex.yaml")
 	if err != nil {
-		errors.Exit(errors.Wrap(err, "cortex.yaml", userconfig.ErrorReadConfig().Error()))
+		errors.Exit(errors.Wrap(err, "cortex.yaml", cr.ErrorReadConfig().Error()))
 	}
 
 	uploadBytes := map[string][]byte{
@@ -114,8 +113,8 @@ func deploy(force bool, ignoreCache bool) {
 
 	var deployResponse schema.DeployResponse
 	if err := json.Unmarshal(response, &deployResponse); err != nil {
-		errors.Exit(err, "/deploy", "response", string(response))
+		errors.Exit(err, "/deploy", string(response))
 	}
 
-	fmt.Println("\n" + console.Bold(deployResponse.Message))
+	fmt.Println(console.Bold(deployResponse.Message))
 }

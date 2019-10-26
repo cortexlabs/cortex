@@ -109,16 +109,56 @@ Flags:
   -p, --print        print the configuration
 ```
 
-## support
+## cluster up
 
 ```text
-This command sends a support request to Cortex developers.
+This command spins up a Cortex cluster on your AWS account.
 
 Usage:
-  cortex support [flags]
+  cortex cluster up [flags]
 
 Flags:
-  -h, --help   help for support
+  -c, --config string   path to a Cortex cluster configuration file
+  -h, --help            help for up
+```
+
+## cluster info
+
+```text
+This command gets information about a Cortex cluster.
+
+Usage:
+  cortex cluster info [flags]
+
+Flags:
+  -c, --config string   path to a Cortex cluster configuration file
+  -h, --help            help for info
+```
+
+## cluster update
+
+```text
+This command updates a Cortex cluster.
+
+Usage:
+  cortex cluster update [flags]
+
+Flags:
+  -c, --config string   path to a Cortex cluster configuration file
+  -h, --help            help for update
+```
+
+## cluster down
+
+```text
+This command spins down a Cortex cluster.
+
+Usage:
+  cortex cluster down [flags]
+
+Flags:
+  -c, --config string   path to a Cortex cluster configuration file
+  -h, --help            help for down
 ```
 
 ## completion
@@ -141,3 +181,26 @@ Usage:
 Flags:
   -h, --help   help for completion
 ```
+
+## support
+
+```text
+This command sends a support request to Cortex developers.
+
+Usage:
+  cortex support [flags]
+
+Flags:
+  -h, --help   help for support
+```
+
+## version
+
+This command prints the version of the Cortex CLI and cluster
+
+Usage:
+  cortex version [flags]
+
+Flags:
+  -e, --env string   environment (default "default")
+  -h, --help         help for version

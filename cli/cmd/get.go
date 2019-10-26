@@ -40,21 +40,25 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
+var flagWatch bool
+var flagVerbose bool
+var flagSummary bool
+var flagAllDeployments bool
+
 func init() {
 	addAppNameFlag(getCmd)
 	addEnvFlag(getCmd)
-	addWatchFlag(getCmd)
-	addSummaryFlag(getCmd)
-	addVerboseFlag(getCmd)
-	addAllDeploymentsFlag(getCmd)
+	getCmd.PersistentFlags().BoolVarP(&flagWatch, "watch", "w", false, "re-run the command every second")
+	getCmd.PersistentFlags().BoolVarP(&flagSummary, "summary", "s", false, "show summarized output")
+	getCmd.PersistentFlags().BoolVarP(&flagVerbose, "verbose", "v", false, "show verbose output")
+	getCmd.PersistentFlags().BoolVarP(&flagAllDeployments, "all-deployments", "a", false, "list all deployments")
 	// addResourceTypesToHelp(getCmd)
 }
 
 var getCmd = &cobra.Command{
 	Use:   "get [API_NAME]",
 	Short: "get information about APIs",
-	Long: `
-This command displays information about APIs.
+	Long: `This command displays information about APIs.
 Adding the -v or --verbose flag displays additonal information.`,
 	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -126,7 +130,7 @@ func allDeploymentsStr() (string, error) {
 		Rows: rows,
 	}
 
-	return "\n" + table.MustFormat(t), nil
+	return table.MustFormat(t), nil
 }
 
 func getResourcesResponse() (*schema.GetResourcesResponse, error) {
@@ -191,7 +195,7 @@ func apisStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
 		return ""
 	}
 
-	return "\n" + apiResourceTable(apiGroupStatuses)
+	return apiResourceTable(apiGroupStatuses)
 }
 
 func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVerbose bool) (string, error) {
@@ -247,7 +251,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	var out string
 	apiMetrics, err := getAPIMetrics(ctx.App.Name, api.Name)
 	statusTable = appendNetworkMetrics(statusTable, apiMetrics) // adds blank stats when there is an error
-	out = "\n" + table.MustFormat(statusTable) + "\n"
+	out = table.MustFormat(statusTable) + "\n"
 
 	var predictionMetrics string
 	if err != nil {
@@ -580,7 +584,7 @@ func resourceStatusesStr(resourcesRes *schema.GetResourcesResponse) string {
 
 	maxTitleLen := s.MaxLen(titles...)
 
-	out := "\n"
+	out := ""
 	for i, title := range titles {
 		paddingWidth := maxTitleLen - len(title) + 3
 		padding := strings.Repeat(" ", paddingWidth)

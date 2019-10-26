@@ -29,7 +29,8 @@ const (
 	ErrAuthHeaderMissing
 	ErrAuthHeaderMalformed
 	ErrAuthAPIError
-	ErrAuthForbidden
+	ErrAuthInvalid
+	ErrAuthOtherAccount
 	ErrAppNotDeployed
 	ErrFormFileMustBeProvided
 	ErrQueryParamRequired
@@ -45,7 +46,8 @@ var (
 		"err_auth_header_missing",
 		"err_auth_header_malformed",
 		"err_auth_api_error",
-		"err_auth_forbidden",
+		"err_auth_invalid",
+		"err_auth_other_account",
 		"err_app_not_deployed",
 		"err_form_file_must_be_provided",
 		"err_query_param_required",
@@ -118,20 +120,27 @@ func ErrorAuthHeaderMalformed() error {
 func ErrorAuthAPIError() error {
 	return Error{
 		Kind:    ErrAuthAPIError,
-		message: "the operator is unable to verify user's credentials using AWS STS; export AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, and run `./cortex.sh update` to update the operator's AWS credentials",
+		message: "the operator is unable to verify user's credentials using AWS STS; export AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, and run `cortex cluster update` to update the operator's AWS credentials",
 	}
 }
 
-func ErrorAuthForbidden() error {
+func ErrorAuthInvalid() error {
 	return Error{
-		Kind:    ErrAuthForbidden,
+		Kind:    ErrAuthInvalid,
 		message: "invalid AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as the operator",
+	}
+}
+
+func ErrorAuthOtherAccount() error {
+	return Error{
+		Kind:    ErrAuthOtherAccount,
+		message: "AWS account associated with CLI AWS credentials differs from account associated with cluster AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as your cluster",
 	}
 }
 
 func ErrorAppNotDeployed(appName string) error {
 	return Error{
-		Kind:    ErrAuthForbidden,
+		Kind:    ErrAppNotDeployed,
 		message: fmt.Sprintf("%s is not deployed", s.UserStr(appName)),
 	}
 }

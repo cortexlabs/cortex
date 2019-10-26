@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -131,9 +132,9 @@ func IntFromEnvOrFile(envVarName string, filePath string, v *IntValidation) (int
 	return IntFromFile(filePath, v)
 }
 
-func IntFromPrompt(promptOpts *PromptOptions, v *IntValidation) (int, error) {
-	promptOpts.defaultStr = s.Int(v.Default)
-	valStr := prompt(promptOpts)
+func IntFromPrompt(promptOpts *prompt.Options, v *IntValidation) (int, error) {
+	promptOpts.DefaultStr = s.Int(v.Default)
+	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {
 		return ValidateIntMissing(v)
 	}

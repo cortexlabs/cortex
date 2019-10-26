@@ -31,8 +31,6 @@ const (
 	ErrDuplicateResourceName
 	ErrDuplicateConfig
 	ErrMalformedConfig
-	ErrParseConfig
-	ErrReadConfig
 	ErrMissingAppDefinition
 	ErrUndefinedResource
 	ErrSpecifyAllOrNone
@@ -56,8 +54,6 @@ var errorKinds = []string{
 	"err_duplicate_resource_name",
 	"err_duplicate_config",
 	"err_malformed_config",
-	"err_parse_config",
-	"err_read_config",
 	"err_missing_app_definition",
 	"err_undefined_resource",
 	"err_specify_all_or_none",
@@ -148,24 +144,6 @@ func ErrorMalformedConfig() error {
 		Kind:    ErrMalformedConfig,
 		message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps"),
 	}
-}
-
-func ErrorParseConfig() error {
-	parseErr := Error{
-		Kind:    ErrParseConfig,
-		message: fmt.Sprintf("failed to parse config file"),
-	}
-
-	return parseErr
-}
-
-func ErrorReadConfig() error {
-	readErr := Error{
-		Kind:    ErrReadConfig,
-		message: fmt.Sprintf("failed to read config file"),
-	}
-
-	return readErr
 }
 
 func ErrorMissingAppDefinition() error {

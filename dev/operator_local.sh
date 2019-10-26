@@ -19,13 +19,12 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-source $ROOT/dev/config/cortex.sh
-
 export CORTEX_OPERATOR_IN_CLUSTER=false
+export CORTEX_CLUSTER_CONFIG_PATH=$ROOT/dev/config/cluster.yaml
 
 kill $(pgrep -f rerun) >/dev/null 2>&1 || true
-updated_config=$(cat $HOME/.cortex/default.json | jq '.cortex_url = "http://localhost:8888"') && echo $updated_config > $HOME/.cortex/default.json
-rerun -watch $ROOT/pkg $ROOT/cli -ignore $ROOT/vendor $ROOT/bin -run sh -c \
+updated_cli_config=$(cat $HOME/.cortex/default.json | jq '.cortex_url = "http://localhost:8888"') && echo $updated_cli_config > $HOME/.cortex/default.json
+rerun -watch $ROOT/pkg $ROOT/cli $ROOT/dev/config -ignore $ROOT/vendor $ROOT/bin -run sh -c \
 "go build -o $ROOT/bin/operator $ROOT/pkg/operator && go build -installsuffix cgo -o $ROOT/bin/cortex $ROOT/cli && $ROOT/bin/operator"
 
 # go run -race $ROOT/pkg/operator/operator.go  # Check for race conditions. Doesn't seem to catch them all?

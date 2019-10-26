@@ -45,7 +45,7 @@ assignees: ''
 
 ### Version
 
-[e.g. `0.2.2` or `master` (find with `cortex --version`)]
+[e.g. `0.2.2` or `master` (find with `cortex version`)]
 
 ### Additional Context
 

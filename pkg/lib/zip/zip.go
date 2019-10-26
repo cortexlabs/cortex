@@ -276,12 +276,12 @@ func UnzipToFile(src string, destPath string) ([]string, error) {
 		filenames = append(filenames, fpath)
 
 		if f.FileInfo().IsDir() {
-			err := files.MkdirAll(fpath, os.ModePerm)
+			err := files.MkdirAll(fpath)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			err := files.MkdirAll(filepath.Dir(fpath), os.ModePerm)
+			err := files.MkdirAll(filepath.Dir(fpath))
 			if err != nil {
 				return nil, err
 			}
