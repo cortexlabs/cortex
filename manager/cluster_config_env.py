@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Copyright 2019 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+import sys
+import yaml
 
-echo -e "\nSpinning up the cluster ... (this will take about 15 minutes)\n"
+cluster_conifg_path = sys.argv[1]
 
-envsubst < eks.yaml | eksctl create cluster -f -
+with open(cluster_conifg_path, "r") as cluster_conifg_file:
+    cluster_conifg = yaml.safe_load(cluster_conifg_file)
 
-echo -e "\n✓ Spun up the cluster"
+for key, value in cluster_conifg.items():
+    print("export CORTEX_{}={}".format(key.upper(), value))

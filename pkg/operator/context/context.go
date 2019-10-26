@@ -37,7 +37,7 @@ func New(
 	ctx := &context.Context{}
 	ctx.CreatedEpoch = time.Now().Unix()
 
-	ctx.CortexConfig = config.Cortex
+	ctx.ClusterConfig = config.Cluster
 
 	ctx.App = getApp(userconf.App)
 
@@ -98,7 +98,7 @@ func ctxKey(ctxID string, appName string) string {
 
 func calculateID(ctx *context.Context) string {
 	ids := []string{}
-	ids = append(ids, config.Cortex.ID)
+	ids = append(ids, config.Cluster.ID)
 	ids = append(ids, ctx.DeploymentVersion)
 	ids = append(ids, ctx.Root)
 	ids = append(ids, ctx.StatusPrefix)

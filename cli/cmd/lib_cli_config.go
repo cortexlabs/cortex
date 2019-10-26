@@ -21,29 +21,15 @@ import (
 	"os"
 	"path/filepath"
 
-	homedir "github.com/mitchellh/go-homedir"
-
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 )
 
 var cachedCLIConfig *CLIConfig
 var cachedCLIConfigErrs []error
-var localDir string
-
-func init() {
-	dir, err := homedir.Dir()
-	if err != nil {
-		errors.Exit(err)
-	}
-	localDir = filepath.Join(dir, ".cortex")
-	err = os.MkdirAll(localDir, os.ModePerm)
-	if err != nil {
-		errors.Exit(err)
-	}
-}
 
 type CLIConfig struct {
 	CortexURL          string `json:"cortex_url"`
@@ -56,7 +42,7 @@ func getPromptValidation(defaults *CLIConfig) *cr.PromptValidation {
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
 				StructField: "CortexURL",
-				PromptOpts: &cr.PromptOptions{
+				PromptOpts: &prompt.Options{
 					Prompt: "Enter Cortex operator endpoint",
 				},
 				StringValidation: &cr.StringValidation{
@@ -67,7 +53,7 @@ func getPromptValidation(defaults *CLIConfig) *cr.PromptValidation {
 			},
 			{
 				StructField: "AWSAccessKeyID",
-				PromptOpts: &cr.PromptOptions{
+				PromptOpts: &prompt.Options{
 					Prompt: "Enter AWS Access Key ID",
 				},
 				StringValidation: &cr.StringValidation{
@@ -77,7 +63,7 @@ func getPromptValidation(defaults *CLIConfig) *cr.PromptValidation {
 			},
 			{
 				StructField: "AWSSecretAccessKey",
-				PromptOpts: &cr.PromptOptions{
+				PromptOpts: &prompt.Options{
 					Prompt:      "Enter AWS Secret Access Key",
 					MaskDefault: true,
 					HideTyping:  true,
@@ -144,12 +130,12 @@ func readCLIConfig() (*CLIConfig, []error) {
 	}
 
 	cachedCLIConfigErrs = cr.Struct(cachedCLIConfig, cliConfigData, fileValidation)
-	return cachedCLIConfig, errors.WrapMultiple(cachedCLIConfigErrs, configPath)
+	return cachedCLIConfig, errors.WrapAll(cachedCLIConfigErrs, configPath)
 }
 
 func getValidCLIConfig() *CLIConfig {
 	cliConfig, errs := readCLIConfig()
-	if len(errs) > 0 {
+	if errors.HasErrors(errs) {
 		cliConfig = configure()
 	}
 	return cliConfig
@@ -177,7 +163,7 @@ func getDefaults() *CLIConfig {
 func configure() *CLIConfig {
 	defaults := getDefaults()
 	cachedCLIConfig = &CLIConfig{}
-	fmt.Println("\nEnvironment: " + flagEnv + "\n")
+	fmt.Println("Environment: " + flagEnv + "\n")
 	err := cr.ReadPrompt(cachedCLIConfig, getPromptValidation(defaults))
 	if err != nil {
 		errors.Exit(err)

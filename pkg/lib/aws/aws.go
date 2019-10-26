@@ -35,7 +35,7 @@ type Client struct {
 	stsClient            *sts.STS
 	CloudWatchLogsClient *cloudwatchlogs.CloudWatchLogs
 	CloudWatchMetrics    *cloudwatch.CloudWatch
-	awsAccountID         string
+	AccountID            string
 	HashedAccountID      string
 }
 
@@ -59,8 +59,8 @@ func New(region string, bucket string, withAccountID bool) (*Client, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, ErrorAuth().Error())
 		}
-		awsClient.awsAccountID = *response.Account
-		awsClient.HashedAccountID = hash.String(awsClient.awsAccountID)
+		awsClient.AccountID = *response.Account
+		awsClient.HashedAccountID = hash.String(awsClient.AccountID)
 	}
 
 	return awsClient, nil

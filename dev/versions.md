@@ -16,7 +16,7 @@
 ## AWS CNI
 
 1. Find the latest release on [GitHub](https://github.com/aws/amazon-vpc-cni-k8s/releases) and check the changelog
-1. Update the version in `manager/install_cortex.sh`
+1. Update the version in `manager/install.sh`
 
 ## Go
 
@@ -40,11 +40,12 @@
 
 ### Non-versioned modules
 
-1. `go clean -modcache`
 1. `rm go.mod go.sum`
 1. `go mod init`
+1. `go clean -modcache`
 1. `go get k8s.io/client-go@v12.0.0`
 1. `go get github.com/cortexlabs/yaml@v2.2.4`
+1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.0' >> go.mod`
 1. `go mod tidy`
 1. Check that the diff in `go.mod` is reasonable
 
@@ -52,6 +53,11 @@
 
 1. Find the minor version of the latest stable release from the [README](https://github.com/kubernetes/client-go), and/or find the latest tagged patch version from [releases](https://github.com/kubernetes/client-go/releases)
 1. Follow the "Update non-versioned modules" instructions using the updated version for `k8s.io/client-go`
+
+### docker/engine/client
+
+1. Find the latest tag from [releases](https://github.com/docker/engine/releases)
+1. Follow the "Update non-versioned modules" instructions using the updated version for `docker/engine`
 
 ### cortexlabs/yaml
 
@@ -113,7 +119,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Update the version in all `images/istio-*` Dockerfiles
 1. Update the version in `images/manager/Dockerfile`
 1. Update `istio-values.yaml`, `apis.yaml`, and `operator.yaml` as necessary (make sure to maintain all Cortex environment variables)
-1. Update `setup_istio()` in `install_cortex.sh` as necessary
+1. Update `setup_istio()` in `install.sh` as necessary
 
 ## Metrics server
 
@@ -144,7 +150,7 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
        - image: $CORTEX_IMAGE_CLUSTER_AUTOSCALER
        ```
 
-   1. Replace `<YOUR CLUSTER NAME>` with `$CORTEX_CLUSTER`
+   1. Replace `<YOUR CLUSTER NAME>` with `$CORTEX_CLUSTER_NAME`
    1. Update the link at the top of the file to the URL you copied from
    1. Check that your diff is reasonable
 1. Update the version of the base image in `images/cluster-autoscaler/Dockerfile` to the tag of the chosen release

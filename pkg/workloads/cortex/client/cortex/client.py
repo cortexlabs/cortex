@@ -108,11 +108,11 @@ class Client(object):
 
             api_config["request_handler"] = "request_handler.pickle"
 
-        cortex_config = [{"kind": "deployment", "name": deployment_name}, api_config]
+        deployment_config = [{"kind": "deployment", "name": deployment_name}, api_config]
 
         cortex_yaml_path = os.path.join(working_dir, "cortex.yaml")
         with open(cortex_yaml_path, "w") as f:
-            f.write(yaml.dump(cortex_config))
+            f.write(yaml.dump(deployment_config))
 
         project_zip_path = os.path.join(working_dir, "project")
         shutil.make_archive(project_zip_path, "zip", api_working_dir)

@@ -32,7 +32,6 @@ var emailRegex *regexp.Regexp
 func init() {
 	portRe = regexp.MustCompile(`:[0-9]+$`)
 	emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
-
 }
 
 func GetFilePathValidator(baseDir string) func(string) (string, error) {

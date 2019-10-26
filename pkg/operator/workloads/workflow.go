@@ -125,9 +125,9 @@ func DeleteApp(appName string, keepCache bool) bool {
 	uncacheDataSavedStatuses(nil, appName)
 	uncacheLatestWorkloadIDs(nil, appName)
 
-	virtualServices, _ := config.Kubernetes.ListVirtualServicesByLabel(config.Cortex.Namespace, "appName", appName)
+	virtualServices, _ := config.Kubernetes.ListVirtualServicesByLabel(consts.K8sNamespace, "appName", appName)
 	for _, virtualService := range virtualServices {
-		config.Kubernetes.DeleteVirtualService(virtualService.GetName(), config.Cortex.Namespace)
+		config.Kubernetes.DeleteVirtualService(virtualService.GetName(), consts.K8sNamespace)
 	}
 	services, _ := config.Kubernetes.ListServicesByLabel("appName", appName)
 	for _, service := range services {

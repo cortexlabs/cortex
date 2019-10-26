@@ -19,7 +19,6 @@ package json
 import (
 	"bytes"
 	"encoding/json"
-	"os"
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -64,11 +63,11 @@ func WriteJSON(obj interface{}, outPath string) error {
 	if err != nil {
 		return err
 	}
-	if err := files.MkdirAll(filepath.Dir(outPath), os.ModePerm); err != nil {
+	if err := files.MkdirAll(filepath.Dir(outPath)); err != nil {
 		return err
 	}
 
-	if err := files.WriteFile(outPath, jsonBytes, 0644); err != nil {
+	if err := files.WriteFile(jsonBytes, outPath); err != nil {
 		return err
 	}
 	return nil

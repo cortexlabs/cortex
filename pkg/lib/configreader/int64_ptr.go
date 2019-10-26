@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -141,8 +142,11 @@ func Int64PtrFromEnvOrFile(envVarName string, filePath string, v *Int64PtrValida
 	return Int64PtrFromFile(filePath, v)
 }
 
-func Int64PtrFromPrompt(promptOpts *PromptOptions, v *Int64PtrValidation) (*int64, error) {
-	valStr := prompt(promptOpts)
+func Int64PtrFromPrompt(promptOpts *prompt.Options, v *Int64PtrValidation) (*int64, error) {
+	if v.Default != nil && promptOpts.DefaultStr == "" {
+		promptOpts.DefaultStr = s.Int64(*v.Default)
+	}
+	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" {
 		return ValidateInt64PtrMissing(v)
 	}

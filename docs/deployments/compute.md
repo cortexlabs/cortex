@@ -27,5 +27,5 @@ One unit of memory is one byte. Memory can be expressed as an integer or by usin
 
 1. Make sure your AWS account is subscribed to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM).
 2. You may need to [file an AWS support ticket](https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances) to incease the limit for your desired instance type.
-3. Set CORTEX_NODE_TYPE to an AWS GPU instance (e.g. p2.xlarge) before installing Cortex.
+3. Set instance type to an AWS GPU instance (e.g. p2.xlarge) when installing Cortex.
 4. Note that one unit of GPU corresponds to one virtual GPU on AWS. Fractional requests are not allowed.

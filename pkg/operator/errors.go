@@ -80,6 +80,6 @@ func (e Error) Error() string {
 func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error {
 	return Error{
 		Kind:    ErrAPIVersionMismatch,
-		message: fmt.Sprintf("API version mismatch (Operator: %s; Client: %s)", operatorVersion, clientVersion),
+		message: fmt.Sprintf("API version mismatch (Cluster: %s; Client: %s)", operatorVersion, clientVersion),
 	}
 }

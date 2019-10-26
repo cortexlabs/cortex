@@ -72,7 +72,7 @@ func AddErrors(errs []error, newErrs []error, strs ...string) ([]error, bool) {
 	return errs, ok
 }
 
-func WrapMultiple(errs []error, strs ...string) []error {
+func WrapAll(errs []error, strs ...string) []error {
 	if !HasErrors(errs) {
 		return nil
 	}
@@ -132,7 +132,7 @@ func MergeErrItems(items ...interface{}) error {
 
 func Exit(items ...interface{}) {
 	if len(items) == 0 {
-		items = append(items, "empty exit")
+		os.Exit(1)
 	}
 	err := MergeErrItems(items...)
 	PrintError(err)
@@ -141,7 +141,7 @@ func Exit(items ...interface{}) {
 
 func Panic(items ...interface{}) {
 	if len(items) == 0 {
-		items = append(items, "empty panic")
+		os.Exit(1)
 	}
 	err := MergeErrItems(items...)
 	// PrintStacktrace(err)
