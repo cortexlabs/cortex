@@ -1,15 +1,39 @@
 # Deploy machine learning models in production
 
 Cortex is an open source platform that takes machine learning models—trained with nearly any framework—and turns them into production web APIs in one command. <br><br>
-Cortex combines TensorFlow Serving, ONNX Runtime, and Flask into a single tool that takes models from S3 and deploys them as REST APIs. It also uses Docker and Kubernetes behind the scenes to autoscale, run rolling updates, and support CPU and GPU inference.
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR x1 -->
-[install](https://www.cortex.dev/install) • [docs](https://www.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.9/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
+[quickstart](https://github.com/cortexlabs/cortex/blob/master/README.md#quickstart) • [how it works](https://github.com/cortexlabs/cortex/blob/master/README.md#how-cortex-works) • [docs](https://www.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.9/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
 
 <!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
 ![Demo](https://cortex-public.s3-us-west-2.amazonaws.com/demo/gif/v0.8.gif)<br>
 
 <br>
+
+## How Cortex works
+
+Under the hood, Cortex uses a variety of tools to deploy your models. When you run `cortex deploy`, the following all happens automatically, without any manual input from you:
+
+- Models are served using a combination of TensorFlow Serving, ONNX Runtime, and Flask to create an accessible API.
+- Each individual model is containerized using Docker, which enables autoscaling, simplifies resource scheduling, and streamlines logging.
+- A Kubernetes cluster is spun up to manage your Docker containers, making things like autoscaling and rolling updates possible.
+- Amazon’s Elastic Kubernetes Service (EKS) is launched in order to manage your Kubernetes cluster.
+
+By tapping into these tools, Cortex is able to deliver features like:
+
+- **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
+
+- **Multi framework:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
+
+- **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
+
+- **Rolling updates:** Cortex updates deployed APIs without any downtime.
+
+- **Log streaming:** Cortex streams logs from deployed models to your CLI.
+
+- **Prediction monitoring:** Cortex monitors network metrics and tracks predictions.
+
+- **Minimal declarative configuration:** Deployments are defined in a single `cortex.yaml` file.
 
 ## Quickstart
 
@@ -108,19 +132,3 @@ Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).
 - [Image classification](https://github.com/cortexlabs/cortex/tree/0.9/examples/image-classifier) with Inception v3 and AlexNet
 
 <br>
-
-## Key features
-
-- **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
-
-- **Multi framework:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
-
-- **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
-
-- **Rolling updates:** Cortex updates deployed APIs without any downtime.
-
-- **Log streaming:** Cortex streams logs from deployed models to your CLI.
-
-- **Prediction monitoring:** Cortex monitors network metrics and tracks predictions.
-
-- **Minimal declarative configuration:** Deployments are defined in a single `cortex.yaml` file.
