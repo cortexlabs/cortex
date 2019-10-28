@@ -10,31 +10,6 @@ Cortex is an open source platform that takes machine learning models—trained w
 
 <br>
 
-## How Cortex works
-
-Under the hood, Cortex uses a variety of tools to deploy your models. When you run `cortex deploy`, the following all happens automatically, without any manual input from you:
-
-- Models are served using a combination of TensorFlow Serving, ONNX Runtime, and Flask to create an accessible API.
-- Each individual model is containerized using Docker, which enables autoscaling, simplifies resource scheduling, and streamlines logging.
-- A Kubernetes cluster is spun up to manage your Docker containers, making things like autoscaling and rolling updates possible.
-- Amazon’s Elastic Kubernetes Service (EKS) is launched in order to manage your Kubernetes cluster.
-
-By tapping into these tools, Cortex is able to deliver features like:
-
-- **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
-
-- **Multi framework:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
-
-- **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
-
-- **Rolling updates:** Cortex updates deployed APIs without any downtime.
-
-- **Log streaming:** Cortex streams logs from deployed models to your CLI.
-
-- **Prediction monitoring:** Cortex monitors network metrics and tracks predictions.
-
-- **Minimal declarative configuration:** Deployments are defined in a single `cortex.yaml` file.
-
 ## Quickstart
 
 Below, we'll walk through how to use Cortex to deploy OpenAI's GPT-2 model as a service on AWS. You'll need to [install Cortex](https://www.cortex.dev/install) on your AWS account before getting started.
@@ -44,7 +19,7 @@ Below, we'll walk through how to use Cortex to deploy OpenAI's GPT-2 model as a 
 ### Step 1: Configure your deployment
 
 <!-- CORTEX_VERSION_README_MINOR -->
-Define a `deployment` and an `api` resource. A `deployment` specifies a set of APIs that are deployed together. An `api` makes a model available as a web service that can serve real-time predictions. The configuration below will download the model from the `cortex-examples` S3 bucket. You can run the code that generated the model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/0.9/examples/text-generator/gpt-2.ipynb).
+The configuration below will download the model from the `cortex-examples` S3 bucket.
 
 ```yaml
 # cortex.yaml
@@ -57,12 +32,12 @@ Define a `deployment` and an `api` resource. A `deployment` specifies a set of A
   model: s3://cortex-examples/text-generator/gpt-2/124M
   request_handler: handler.py
 ```
-
+ You can run the code that generated the model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/0.9/examples/text-generator/gpt-2.ipynb).
 <br>
 
 ### Step 2: Add request handling
 
-The model requires encoded data for inference, but the API should accept strings of natural language as input. It should also decode the inference output. This can be implemented in a request handler file using the `pre_inference` and `post_inference` functions:
+The API should accept strings of natural language as input. It should also decode the inference output. This can be implemented in a request handler file using the `pre_inference` and `post_inference` functions:
 
 ```python
 # handler.py
@@ -85,7 +60,7 @@ def post_inference(prediction, metadata):
 
 ### Step 3: Deploy to AWS
 
-Deploying to AWS is as simple as running `cortex deploy` from your CLI. `cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on the cluster. Behind the scenes, Cortex containerizes the model, makes it servable using TensorFlow Serving, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+Deploying to AWS is as simple as running `cortex deploy` from your CLI. `cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on the cluster. 
 
 ```bash
 $ cortex deploy
@@ -93,7 +68,7 @@ $ cortex deploy
 deployment started
 ```
 
-You can track the status of a deployment using `cortex get`. The output below indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
+You can track the status of a deployment using `cortex get`.
 
 ```bash
 $ cortex get generator --watch
@@ -132,3 +107,30 @@ Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).
 - [Image classification](https://github.com/cortexlabs/cortex/tree/0.9/examples/image-classifier) with Inception v3 and AlexNet
 
 <br>
+
+## How Cortex works
+
+Under the hood, Cortex uses a variety of tools to deploy your models. When you run `cortex deploy`, the following all happens automatically, without any manual input from you:
+
+- Models are served using a combination of TensorFlow Serving, ONNX Runtime, and Flask to create an accessible API.
+
+- Each individual model is containerized using Docker, which enables autoscaling, simplifies resource scheduling, and streamlines logging.
+
+- A Kubernetes cluster is spun up to manage your Docker containers, making things like autoscaling and rolling updates possible. The cluster is managed using Amazon’s Elastic Kubernetes Service (EKS).
+
+Again, all of these tools are launched and managed by Cortex. None of them require direct interface with you, the user. By tapping into these tools, Cortex is able to deliver features like:
+
+- **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
+
+- **Multi framework:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
+
+- **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
+
+- **Rolling updates:** Cortex updates deployed APIs without any downtime.
+
+- **Log streaming:** Cortex streams logs from deployed models to your CLI.
+
+- **Prediction monitoring:** Cortex monitors network metrics and tracks predictions.
+
+- **Minimal declarative configuration:** Deployments are defined in a single `cortex.yaml` file.
+
