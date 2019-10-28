@@ -1,7 +1,7 @@
 # Deploy machine learning models in production
 
-Cortex is an open source platform that takes machine learning models—trained with nearly any framework—and turns them into production web APIs in one command. <br>
-
+Cortex is an open source platform that takes machine learning models—trained with nearly any framework—and turns them into production web APIs in one command. <br><br>
+Cortex combines TensorFlow Serving, ONNX Runtime, and Flask into a single tool that takes models from S3 and deploys them as REST APIs. It also uses Docker and Kubernetes behind the scenes to autoscale, run rolling updates, and support CPU and GPU inference.
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR x1 -->
 [install](https://www.cortex.dev/install) • [docs](https://www.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.9/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
