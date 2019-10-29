@@ -8,6 +8,7 @@ Serve models at scale.
 - kind: api
   name: <string>  # API name (required)
   model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model)
+  endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
   model_format: <string>  # model format, must be "tensorflow" or "onnx" (default: "onnx" if model path ends with .onnx, "tensorflow" if model path ends with .zip or is a directory)
   request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
   tf_signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)

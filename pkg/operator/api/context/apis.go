@@ -25,11 +25,6 @@ type APIs map[string]*API
 type API struct {
 	*userconfig.API
 	*ComputedResourceFields
-	Path string `json:"path"`
-}
-
-func APIPath(apiName string, appName string) string {
-	return "/" + appName + "/" + apiName
 }
 
 func (apis APIs) OneByID(id string) *API {

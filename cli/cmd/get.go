@@ -207,13 +207,6 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	ctx := resourcesRes.Context
 	api := ctx.APIs[name]
 
-	var anyAPIStatus *resource.APIStatus
-	for _, apiStatus := range resourcesRes.APIStatuses {
-		if apiStatus.APIName == name {
-			anyAPIStatus = apiStatus
-			break
-		}
-	}
 	var updatedAt *time.Time
 	if groupStatus.ActiveStatus != nil {
 		updatedAt = groupStatus.ActiveStatus.Start
@@ -241,7 +234,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		{Title: "last update"},
 	}
 
-	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
+	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, *api.Endpoint)
 
 	statusTable := table.Table{
 		Headers: headers,

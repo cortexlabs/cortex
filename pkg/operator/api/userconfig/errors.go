@@ -47,6 +47,7 @@ const (
 	ErrONNXDoesntSupportZip
 	ErrInvalidTensorFlowDir
 	ErrIncompatibleWithModelFormat
+	ErrDuplicateEndpoints
 )
 
 var errorKinds = []string{
@@ -70,9 +71,10 @@ var errorKinds = []string{
 	"err_onnx_doesnt_support_zip",
 	"err_invalid_tensorflow_dir",
 	"err_tf_serving_options_for_tf_only",
+	"err_duplicate_endpoints",
 }
 
-var _ = [1]int{}[int(ErrIncompatibleWithModelFormat)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrDuplicateEndpoints)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -294,5 +296,12 @@ func ErrorIncompatibleWithModelFormat(configKey string, format ModelFormat) erro
 	return Error{
 		Kind:    ErrIncompatibleWithModelFormat,
 		message: fmt.Sprintf("\"%s\" was specified, but is not supported by the %s model format", configKey, format.String()),
+	}
+}
+
+func ErrorDuplicateEndpoints(endpoint string, apiNames ...string) error {
+	return Error{
+		Kind:    ErrDuplicateEndpoints,
+		message: fmt.Sprintf("multiple APIs specifiy the same endpoint (endpoint %s is used by the %s APIs)", s.UserStr(endpoint), s.UserStrsAnd(apiNames)),
 	}
 }
