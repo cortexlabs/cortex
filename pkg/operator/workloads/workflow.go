@@ -350,7 +350,10 @@ func ValidateDeploy(ctx *context.Context) error {
 }
 
 func CheckAPIEndpointCollisions(ctx *context.Context) error {
-	existingEndpoints := map[string]string{} // endpoint -> k8s name
+	apiEndpoints := map[string]string{} // endpoint -> API identifiction string
+	for _, api := range ctx.APIs {
+		apiEndpoints[*api.Endpoint] = userconfig.Identify(api)
+	}
 
 	virtualServices, err := config.Kubernetes.ListVirtualServices(consts.K8sNamespace, nil)
 	if err != nil {
@@ -362,8 +365,13 @@ func CheckAPIEndpointCollisions(ctx *context.Context) error {
 		if err != nil {
 			return err
 		}
-
 		if !gateways.Has("apis-gateway") {
+			continue
+		}
+
+		// Collisions within a deployment will already have been caught by config validation
+		labels := virtualService.GetLabels()
+		if labels["appName"] == ctx.App.Name {
 			continue
 		}
 
@@ -373,14 +381,8 @@ func CheckAPIEndpointCollisions(ctx *context.Context) error {
 		}
 
 		for endpoint := range endpoints {
-			existingEndpoints[endpoint] = virtualService.GetName()
-		}
-	}
-
-	for _, api := range ctx.APIs {
-		if k8sName, ok := existingEndpoints[*api.Endpoint]; ok {
-			if k8sName != internalAPIName(api.Name, ctx.App.Name) {
-				return errors.Wrap(ErrorDuplicateAPIEndpoint(), userconfig.Identify(api), userconfig.EndpointKey, *api.Endpoint)
+			if apiIdentifier, ok := apiEndpoints[endpoint]; ok {
+				return errors.Wrap(ErrorDuplicateEndpointOtherDeployment(labels["appName"], labels["apiName"]), apiIdentifier, userconfig.EndpointKey, endpoint)
 			}
 		}
 	}

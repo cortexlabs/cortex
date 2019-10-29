@@ -226,6 +226,14 @@ func (apis APIs) Validate(deploymentName string, projectFileMap map[string][]byt
 		}
 	}
 
+	endpoints := map[string]string{} // endpoint -> API name
+	for _, api := range apis {
+		if dupAPIName, ok := endpoints[*api.Endpoint]; ok {
+			return ErrorDuplicateEndpoints(*api.Endpoint, dupAPIName, api.Name)
+		}
+		endpoints[*api.Endpoint] = api.Name
+	}
+
 	resources := make([]Resource, len(apis))
 	for i, res := range apis {
 		resources[i] = res

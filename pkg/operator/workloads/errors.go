@@ -16,7 +16,11 @@ limitations under the License.
 
 package workloads
 
-import "fmt"
+import (
+	"fmt"
+
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+)
 
 type ErrorKind int
 
@@ -28,7 +32,7 @@ const (
 	ErrNotFound
 	ErrAPIInitializing
 	ErrNoAvailableNodeComputeLimit
-	ErrDuplicateAPIEndpoint
+	ErrDuplicateEndpointOtherDeployment
 )
 
 var errorKinds = []string{
@@ -39,10 +43,10 @@ var errorKinds = []string{
 	"err_not_found",
 	"err_api_initializing",
 	"err_no_available_node_compute_limit",
-	"err_duplicate_api_endpoint",
+	"err_duplicate_endpoint_other_deployment",
 }
 
-var _ = [1]int{}[int(ErrDuplicateAPIEndpoint)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrDuplicateEndpointOtherDeployment)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -133,9 +137,9 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 	}
 }
 
-func ErrorDuplicateAPIEndpoint() error {
+func ErrorDuplicateEndpointOtherDeployment(appName string, apiName string) error {
 	return Error{
-		Kind:    ErrDuplicateAPIEndpoint,
-		message: "endpoint is already in use by another API",
+		Kind:    ErrDuplicateEndpointOtherDeployment,
+		message: fmt.Sprintf("endpoint is already in use by an API named %s in the %s deployment", s.UserStr(apiName), s.UserStr(appName)),
 	}
 }
