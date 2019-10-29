@@ -25,6 +25,7 @@ const (
 
 	// API
 	ModelKey          = "model"
+	EndpointKey       = "endpoint"
 	ModelFormatKey    = "model_format"
 	RequestHandlerKey = "request_handler"
 	TFSignatureKeyKey = "tf_signature_key"

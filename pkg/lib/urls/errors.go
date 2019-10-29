@@ -29,6 +29,9 @@ const (
 	ErrInvalidURL
 	ErrDNS1035
 	ErrDNS1123
+	ErrEndpoint
+	ErrEndpointEmptyPath
+	ErrEndpointDoubleSlash
 )
 
 var errorKinds = []string{
@@ -36,9 +39,12 @@ var errorKinds = []string{
 	"err_invalid_url",
 	"err_dns1035",
 	"err_dns1123",
+	"err_endpoint",
+	"err_endpoint_empty_path",
+	"err_endpoint_double_slash",
 }
 
-var _ = [1]int{}[int(ErrDNS1123)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrEndpointDoubleSlash)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -101,5 +107,26 @@ func ErrorDNS1123(provided string) error {
 	return Error{
 		Kind:    ErrDNS1123,
 		message: fmt.Sprintf("%s must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character", s.UserStr(provided)),
+	}
+}
+
+func ErrorEndpoint(provided string) error {
+	return Error{
+		Kind:    ErrEndpoint,
+		message: fmt.Sprintf("%s must consist of lower case alphanumeric characters, '/', '-', '_', or '.'", s.UserStr(provided)),
+	}
+}
+
+func ErrorEndpointEmptyPath() error {
+	return Error{
+		Kind:    ErrEndpointEmptyPath,
+		message: fmt.Sprintf("%s is not allowed (a path must be specified)", s.UserStr("/")),
+	}
+}
+
+func ErrorEndpointDoubleSlash(provided string) error {
+	return Error{
+		Kind:    ErrEndpointDoubleSlash,
+		message: fmt.Sprintf("%s cannot contain adjacent slashes", s.UserStr(provided)),
 	}
 }

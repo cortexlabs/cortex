@@ -28,11 +28,10 @@ type DataStatus struct {
 // There is one APIStatus per API resource ID (including stale/removed models). There is always an APIStatus for APIs currently in the context.
 type APIStatus struct {
 	APISavedStatus
-	Path                 string `json:"path"`
-	MinReplicas          int32  `json:"min_replicas"`
-	MaxReplicas          int32  `json:"max_replicas"`
-	InitReplicas         int32  `json:"init_replicas"`
-	TargetCPUUtilization int32  `json:"target_cpu_utilization"`
+	MinReplicas          int32 `json:"min_replicas"`
+	MaxReplicas          int32 `json:"max_replicas"`
+	InitReplicas         int32 `json:"init_replicas"`
+	TargetCPUUtilization int32 `json:"target_cpu_utilization"`
 	ReplicaCounts        `json:"replica_counts"`
 	PodStatuses          []k8s.PodStatus `json:"pod_statuses"`
 	Code                 StatusCode      `json:"status_code"`

@@ -24,6 +24,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
@@ -298,6 +299,10 @@ func GetDeploymentStatus(appName string) (resource.DeploymentStatus, error) {
 }
 
 func ValidateDeploy(ctx *context.Context) error {
+	if err := CheckAPIEndpointCollisions(ctx); err != nil {
+		return err
+	}
+
 	nodes, err := config.Kubernetes.ListNodes(nil)
 	if err != nil {
 		return err
@@ -341,5 +346,46 @@ func ValidateDeploy(ctx *context.Context) error {
 			return errors.Wrap(ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", gpu), fmt.Sprintf("%d", maxGPU)), userconfig.Identify(api))
 		}
 	}
+	return nil
+}
+
+func CheckAPIEndpointCollisions(ctx *context.Context) error {
+	apiEndpoints := map[string]string{} // endpoint -> API identifiction string
+	for _, api := range ctx.APIs {
+		apiEndpoints[*api.Endpoint] = userconfig.Identify(api)
+	}
+
+	virtualServices, err := config.Kubernetes.ListVirtualServices(consts.K8sNamespace, nil)
+	if err != nil {
+		return err
+	}
+
+	for _, virtualService := range virtualServices {
+		gateways, err := k8s.GetVirtualServiceGateways(&virtualService)
+		if err != nil {
+			return err
+		}
+		if !gateways.Has("apis-gateway") {
+			continue
+		}
+
+		// Collisions within a deployment will already have been caught by config validation
+		labels := virtualService.GetLabels()
+		if labels["appName"] == ctx.App.Name {
+			continue
+		}
+
+		endpoints, err := k8s.GetVirtualServiceEndpoints(&virtualService)
+		if err != nil {
+			return err
+		}
+
+		for endpoint := range endpoints {
+			if apiIdentifier, ok := apiEndpoints[endpoint]; ok {
+				return errors.Wrap(ErrorDuplicateEndpointOtherDeployment(labels["appName"], labels["apiName"]), apiIdentifier, userconfig.EndpointKey, endpoint)
+			}
+		}
+	}
+
 	return nil
 }

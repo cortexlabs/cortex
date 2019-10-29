@@ -162,8 +162,8 @@ def convert_to_onnx_input(sample, input_metadata_list):
     return input_dict
 
 
-@app.route("/<app_name>/<api_name>", methods=["POST"])
-def predict(app_name, api_name):
+@app.route("/predict", methods=["POST"])
+def predict():
     debug = request.args.get("debug", "false").lower() == "true"
 
     try:
@@ -222,8 +222,8 @@ def extract_signature(metadata_list):
     return metadata
 
 
-@app.route("/<app_name>/<api_name>/signature", methods=["GET"])
-def get_signature(app_name, api_name):
+@app.route("/predict/signature", methods=["GET"])
+def get_signature():
     return jsonify({"signature": extract_signature(local_cache["input_metadata"])})
 
 
@@ -234,7 +234,6 @@ def exceptions(e):
 
 
 def start(args):
-
     api = None
     try:
         ctx = Context(s3_path=args.context, cache_dir=args.cache_dir, workload_id=args.workload_id)
