@@ -47,7 +47,6 @@ const (
 	ErrExternalNotFound
 	ErrONNXDoesntSupportZip
 	ErrInvalidTensorFlowDir
-	ErrIncompatibleWithModelFormat
 )
 
 var errorKinds = []string{
@@ -71,10 +70,9 @@ var errorKinds = []string{
 	"err_external_not_found",
 	"err_onnx_doesnt_support_zip",
 	"err_invalid_tensorflow_dir",
-	"err_tf_serving_options_for_tf_only",
 }
 
-var _ = [1]int{}[int(ErrIncompatibleWithModelFormat)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrInvalidTensorFlowDir)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -182,16 +180,16 @@ func ErrorSpecifyAllOrNone(vals ...string) error {
 	}
 }
 
-func ErrorSpecifyOnlyOne(vals ...string) error {
-	message := fmt.Sprintf("please specify %s, but not more than one of them", s.UserStrsOr(vals))
+func ErrorSpecifyOne(vals ...string) error {
+	message := fmt.Sprintf("please specify one model type (%s)", s.UserStrsOr(vals))
 	return Error{
 		Kind:    ErrSpecifyOnlyOne,
 		message: message,
 	}
 }
 
-func ErrorFoundMultipleSpecifyOnlyOne(found []string, vals ...string) error {
-	message := fmt.Sprintf("specified (%s), please specify %s, but not more than one of them", s.UserStrsAnd(found), s.UserStrsOr(vals))
+func ErrorFoundMultipleSpecifyOnlyOneModelType(found []string, vals ...string) error {
+	message := fmt.Sprintf("specified (%s), please specify only one model type (%s)", s.UserStrsAnd(found), s.UserStrsOr(vals))
 	return Error{
 		Kind:    ErrFoundMultipleSpecifyOnlyOne,
 		message: message,
@@ -267,26 +265,11 @@ var tfExpectedStructMessage = `For TensorFlow models, the path must contain a di
       ├── variables.data-00001-of-00003
       └── variables.data-00002-of-...`
 
-func ErrorUnableToInferModelFormat(path string) error {
-	message := fmt.Sprintf("%s not specified, and could not be inferred from %s path (%s)\n%s\n%s", ModelFormatKey, ModelKey, path, onnxExpectedStructMessage, tfExpectedStructMessage)
-	return Error{
-		Kind:    ErrUnableToInferModelFormat,
-		message: message,
-	}
-}
-
 func ErrorInvalidTensorFlowDir(path string) error {
 	message := "invalid TF export directory.\n"
 	message += tfExpectedStructMessage
 	return Error{
 		Kind:    ErrInvalidTensorFlowDir,
 		message: message,
-	}
-}
-
-func ErrorIncompatibleWithModelFormat(configKey string, format ModelFormat) error {
-	return Error{
-		Kind:    ErrIncompatibleWithModelFormat,
-		message: fmt.Sprintf("\"%s\" was specified, but is not supported by the %s model format", configKey, format.String()),
 	}
 }

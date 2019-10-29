@@ -429,7 +429,7 @@ func pythonAPISpec(
 	workloadID string,
 	desiredReplicas int32,
 ) *kapps.Deployment {
-	servingImage := config.Cortex.PythonServeImage
+	servingImage := config.Cluster.ImagePythonServe
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
@@ -439,7 +439,7 @@ func pythonAPISpec(
 	}
 
 	if api.Compute.GPU > 0 {
-		servingImage = config.Cortex.PythonServeImageGPU
+		servingImage = config.Cluster.ImagePythonServeGPU
 		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
@@ -484,16 +484,17 @@ func pythonAPISpec(
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
 			},
 			K8sPodSpec: kcore.PodSpec{
+				RestartPolicy: "Always",
 				InitContainers: []kcore.Container{
 					{
 						Name:            downloaderInitContainerName,
-						Image:           config.Cortex.DownloaderImage,
+						Image:           config.Cluster.ImageDownloader,
 						ImagePullPolicy: "Always",
 						Args: []string{
 							"--download=" + downloadArgsStr,
 						},
 						Env:          k8s.AWSCredentials(),
-						VolumeMounts: k8s.DefaultVolumeMounts(),
+						VolumeMounts: defaultVolumeMounts(),
 					},
 				},
 				Containers: []kcore.Container{
@@ -525,7 +526,7 @@ func pythonAPISpec(
 								},
 							},
 						),
-						VolumeMounts: k8s.DefaultVolumeMounts(),
+						VolumeMounts: defaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
 							TimeoutSeconds:      5,
@@ -552,11 +553,11 @@ func pythonAPISpec(
 						},
 					},
 				},
-				Volumes:            k8s.DefaultVolumes(),
+				Volumes:            defaultVolumes(),
 				ServiceAccountName: "default",
 			},
 		},
-		Namespace: config.Cortex.Namespace,
+		Namespace: consts.K8sNamespace,
 	})
 }
 

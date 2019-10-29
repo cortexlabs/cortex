@@ -110,8 +110,8 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
-        _, prefix = ctx.storage.deconstruct_s3_path(api["model"])
-        model_path = os.path.join(args.model_dir, os.path.basename(prefix))
+        if api.get("python") is None:
+            raise CortexException(api["name"], "python key not configured")
 
         if api["python"].get("inference") is not None:
             local_cache["inference"] = ctx.get_inference_impl(api["name"], args.project_dir)

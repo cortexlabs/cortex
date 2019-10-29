@@ -15,7 +15,7 @@ def model_init(ctx, api):
     return model
 
 
-def pre_inference(sample, metadata):
+def pre_inference(sample, signature, metadata):
     return torch.FloatTensor(
         [
             [
@@ -28,7 +28,7 @@ def pre_inference(sample, metadata):
     )
 
 
-def post_inference(prediction, metadata):
+def post_inference(prediction, signature, metadata):
     _, index = prediction.max(1)
     return labels[index]
 

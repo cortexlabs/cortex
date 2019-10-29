@@ -266,7 +266,7 @@ func ErrorMustBeGreaterThan(provided interface{}, boundary interface{}) error {
 func ErrorNonStringKeyFound(key interface{}) error {
 	return Error{
 		Kind:    ErrNonStringKeyFound,
-		message: fmt.Sprintf("non string key found: %s", key),
+		message: fmt.Sprintf("non string key found: %s", s.ObjFlat(key)),
 	}
 }
 

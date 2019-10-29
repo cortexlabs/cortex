@@ -246,7 +246,10 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
-        _, prefix = ctx.storage.deconstruct_s3_path(api["model"])
+        if api.get("onnx") is None:
+            raise CortexException(api["name"], "onnx key not configured")
+
+        _, prefix = ctx.storage.deconstruct_s3_path(api["onnx"]["model"])
         model_path = os.path.join(args.model_dir, os.path.basename(prefix))
         if api["onnx"].get("request_handler") is not None:
             local_cache["request_handler"] = ctx.get_request_handler_impl(
@@ -256,14 +259,18 @@ def start(args):
 
         if request_handler is not None and util.has_function(request_handler, "pre_inference"):
             logger.info(
-                "using pre_inference request handler provided in {}".format(api["request_handler"])
+                "using pre_inference request handler provided in {}".format(
+                    api["onnx"]["request_handler"]
+                )
             )
         else:
             logger.info("pre_inference request handler not found")
 
         if request_handler is not None and util.has_function(request_handler, "post_inference"):
             logger.info(
-                "using post_inference request handler provided in {}".format(api["request_handler"])
+                "using post_inference request handler provided in {}".format(
+                    api["onnx"]["request_handler"]
+                )
             )
         else:
             logger.info("post_inference request handler not found")

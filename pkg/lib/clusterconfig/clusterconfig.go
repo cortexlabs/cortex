@@ -37,6 +37,8 @@ type ClusterConfig struct {
 	Bucket                 string  `json:"bucket" yaml:"bucket"`
 	LogGroup               string  `json:"log_group" yaml:"log_group"`
 	Telemetry              bool    `json:"telemetry" yaml:"telemetry"`
+	ImagePythonServe       string  `json:"image_python_serve" yaml:"image_python_serve"`
+	ImagePythonServeGPU    string  `json:"image_python_serve_gpu" yaml:"image_python_serve_gpu"`
 	ImageTFServe           string  `json:"image_tf_serve" yaml:"image_tf_serve"`
 	ImageTFServeGPU        string  `json:"image_tf_serve_gpu" yaml:"image_tf_serve_gpu"`
 	ImageONNXServe         string  `json:"image_onnx_serve" yaml:"image_onnx_serve"`
@@ -124,6 +126,18 @@ var Validation = &cr.StructValidation{
 			StructField: "ImageTFServeGPU",
 			StringValidation: &cr.StringValidation{
 				Default: "cortexlabs/tf-serve-gpu:" + consts.CortexVersion,
+			},
+		},
+		{
+			StructField: "ImagePythonServe",
+			StringValidation: &cr.StringValidation{
+				Default: "cortexlabs/python-serve:" + consts.CortexVersion,
+			},
+		},
+		{
+			StructField: "ImagePythonServeGPU",
+			StringValidation: &cr.StringValidation{
+				Default: "cortexlabs/python-serve-gpu:" + consts.CortexVersion,
 			},
 		},
 		{

@@ -77,7 +77,7 @@ Cortex will use your image to launch ONNX serving workloads. You will have acces
 
 import subprocess
 
-def pre_inference(sample, metadata):
+def pre_inference(sample, signature, metadata):
     subprocess.run(["tree"])
     ...
 ```

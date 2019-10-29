@@ -9,7 +9,7 @@ labels = requests.get(
 ).text.split("\n")
 
 
-def pre_inference(sample, metadata):
+def pre_inference(sample, signature, metadata):
     if "url" in sample:
         image = requests.get(sample["url"]).content
     elif "base64" in sample:
@@ -19,5 +19,5 @@ def pre_inference(sample, metadata):
     return {"images": np.expand_dims(decoded_image, axis=0)}
 
 
-def post_inference(prediction, metadata):
+def post_inference(prediction, signature, metadata):
     return labels[np.argmax(prediction["classes"])]

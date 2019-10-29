@@ -20,4 +20,4 @@ export PYTHON_PATH=$PYTHON_PATH:$PYTHON_ROOT
 if [ -f "/mnt/project/requirements.txt" ]; then
     pip install -r /mnt/project/requirements.txt
 fi
-/usr/bin/python3.6 /src/cortex/pytorch/api.py "$@"
+/usr/bin/python3.6 /src/cortex/python_serve/api.py "$@"

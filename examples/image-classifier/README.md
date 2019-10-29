@@ -12,8 +12,9 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
 
 - kind: api
   name: classifier
-  model: s3://cortex-examples/image-classifier/alexnet.onnx
-  request_handler: alexnet_handler.py
+  onnx:
+    model: s3://cortex-examples/image-classifier/alexnet.onnx
+    request_handler: alexnet_handler.py
   tracker:
     model_type: classification
 ```
@@ -48,7 +49,7 @@ preprocess = transforms.Compose(
 )
 
 
-def pre_inference(sample, metadata):
+def pre_inference(sample, signature, metadata):
     if "url" in sample:
         image = requests.get(sample["url"]).content
     elif "base64" in sample:
@@ -60,7 +61,7 @@ def pre_inference(sample, metadata):
     return img_tensor.numpy()
 
 
-def post_inference(prediction, metadata):
+def post_inference(prediction, signature, metadata):
     return labels[np.argmax(np.array(prediction).squeeze())]
 ```
 

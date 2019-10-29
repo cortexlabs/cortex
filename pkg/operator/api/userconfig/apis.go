@@ -252,6 +252,7 @@ func (api *API) UserConfigStr() string {
 		sb.WriteString(fmt.Sprintf("%s:\n", TrackerKey))
 		sb.WriteString(s.Indent(api.Tracker.UserConfigStr(), "  "))
 	}
+	sb.WriteString(s.Indent(s.Obj(api.Metadata), "  "))
 	return sb.String()
 }
 
@@ -298,7 +299,7 @@ func (tf *Tensorflow) Validate(projectFileMap map[string][]byte) error {
 		if path == "" || err != nil {
 			return errors.Wrap(ErrorInvalidTensorFlowDir(tf.Model), TensorflowKey, ModelKey)
 		}
-		api.Model = path
+		tf.Model = path
 	}
 	if tf.RequestHandler != nil {
 		if _, ok := projectFileMap[*tf.RequestHandler]; !ok {
@@ -310,12 +311,12 @@ func (tf *Tensorflow) Validate(projectFileMap map[string][]byte) error {
 
 func (tf *Tensorflow) UserConfigStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, tf.Model)
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, tf.Model))
 	if tf.RequestHandler != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestHandlerKey, *tracker.RequestHandler))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestHandlerKey, *tf.RequestHandler))
 	}
 	if tf.SignatureKey != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *tracker.SignatureKey))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *tf.SignatureKey))
 	}
 	return sb.String()
 }
@@ -338,9 +339,9 @@ func (onnx *ONNX) Validate(projectFileMap map[string][]byte) error {
 
 func (onnx *ONNX) UserConfigStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, onnx.Model)
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, onnx.Model))
 	if onnx.RequestHandler != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestHandlerKey, *tracker.RequestHandler))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestHandlerKey, *onnx.RequestHandler))
 	}
 	return sb.String()
 }
@@ -354,33 +355,33 @@ func (python *Python) Validate(projectFileMap map[string][]byte) error {
 
 func (python *Python) UserConfigStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", InferenceKey, python.Inference)
+	sb.WriteString(fmt.Sprintf("%s: %s\n", InferenceKey, python.Inference))
 	return sb.String()
 }
 
 func (api *API) Validate(projectFileMap map[string][]byte) error {
-	modelFormat := map[string]Validatable
-	if api.TensorFlow != nil {
-		modelFormat[TensorflowKey] = api.TensorFlow
+	modelFormat := map[string]Validatable{}
+	if api.Tensorflow != nil {
+		modelFormat[TensorflowKey] = api.Tensorflow
 	}
 	if api.ONNX != nil {
 		modelFormat[ONNXKey] = api.ONNX
 	}
 	if api.Python != nil {
-		modelFormat[PythonKey] = api.PythonFlow
+		modelFormat[PythonKey] = api.Python
 	}
 
-	if len(modelFormats) == 0 {
-		return ErrorSpecifyOnlyOne(TensorflowKey, ONNXKey, PythonKey)
-	} else if len(modelFormats) > 1 {
-		keys := make([]string, len(modelFormat))
+	if len(modelFormat) == 0 {
+		return ErrorSpecifyOne(TensorflowKey, ONNXKey, PythonKey)
+	} else if len(modelFormat) > 1 {
+		keys := []string{}
 		for key := range modelFormat {
 			keys = append(keys, key)
 		}
-		return ErrorFoundMultipleSpecifyOnlyOne(keys, TensorflowKey, ONNXKey, PythonKey)
+		return ErrorFoundMultipleSpecifyOnlyOneModelType(keys, TensorflowKey, ONNXKey, PythonKey)
 	} else {
 		for _, val := range modelFormat {
-			if err := val.Validate(); err != nil {
+			if err := val.Validate(projectFileMap); err != nil {
 				return errors.Wrap(err, Identify(api), ComputeKey)
 			}
 		}

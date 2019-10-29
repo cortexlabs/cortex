@@ -12,8 +12,9 @@ Define a `deployment` and an `api` resource in `cortex.yaml`. A `deployment` spe
 
 - kind: api
   name: classifier
-  model: s3://cortex-examples/iris-classifier/tensorflow
-  request_handler: handlers/tensorflow.py
+  tensorflow:
+    model: s3://cortex-examples/iris-classifier/tensorflow
+    request_handler: handlers/tensorflow.py
   tracker:
     model_type: classification
 ```

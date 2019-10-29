@@ -11,7 +11,7 @@ scalars = json.loads(scalars_obj["Body"].read().decode("utf-8"))
 print("downloaded scalars: {}".format(scalars))
 
 
-def pre_inference(sample, metadata):
+def pre_inference(sample, signature, metadata):
     x = np.array(
         [
             sample["sepal_length"],
@@ -23,6 +23,6 @@ def pre_inference(sample, metadata):
     return (x - scalars["mean"]) / scalars["stddev"]
 
 
-def post_inference(prediction, metadata):
+def post_inference(prediction, signature, metadata):
     predicted_class_id = prediction[0][0]
     return labels[predicted_class_id]

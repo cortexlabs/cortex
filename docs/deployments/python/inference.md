@@ -1,26 +1,18 @@
-# Request handlers
+# Python
 
-Request handlers are python files that can contain a `pre_inference` function and a `post_inference` function. Both functions are optional. Request handlers can be provided for `tensorflow` or `onnx` exported models. For any other model format (e.g. PyTorch) see [Custom Models](./custom-models.md)
+
 
 ## Implementation
 
 ```python
-def pre_inference(sample, signature, metadata):
-    """Prepare a sample before it is passed into the model.
+def init(sample, signature, metadata):
+    """Initialize models 
 
     Args:
         sample: A sample from the request payload.
 
-        signature: Describes the expected shape and type of inputs to the model.
-            If API model_format is tensorflow: map<string, SignatureDef>
-                https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/protobuf/meta_graph.proto
-            If API model_format is onnx: list<onnxruntime.NodeArg>
-                https://microsoft.github.io/onnxruntime/api_summary.html#onnxruntime.NodeArg
-        
         metadata: Custom dictionary specified by user in API configuration.
 
-    Returns:
-        A dictionary containing model input names as keys and python lists or numpy arrays as values. If the model only has a single input, then a python list or numpy array can be returned.
     """
     pass
 
@@ -28,14 +20,8 @@ def post_inference(prediction, signature, metadata):
     """Modify a prediction from the model before responding to the request.
 
     Args:
-        prediction: The output of the model.
+        sample: A sample from the request payload.
 
-        signature: Describes the output shape and type of outputs from the model.
-            If API model_format is tensorflow: map<string, SignatureDef>
-                https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/protobuf/meta_graph.proto
-            If API model_format is onnx: list<onnxruntime.NodeArg>
-                https://microsoft.github.io/onnxruntime/api_summary.html#onnxruntime.NodeArg
-        
         metadata: Custom dictionary specified by user in API configuration.
 
     Returns:

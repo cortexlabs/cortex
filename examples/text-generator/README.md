@@ -12,8 +12,9 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
 
 - kind: api
   name: generator
-  model: s3://cortex-examples/text-generator/gpt-2/124M
-  request_handler: handler.py
+  tensorflow:
+    model: s3://cortex-examples/text-generator/gpt-2/124M
+    request_handler: handler.py
   compute:
     cpu: 1
     gpu: 1
@@ -31,12 +32,12 @@ from encoder import get_encoder
 encoder = get_encoder()
 
 
-def pre_inference(sample, metadata):
+def pre_inference(sample, signature, metadata):
     context = encoder.encode(sample["text"])
     return {"context": [context]}
 
 
-def post_inference(prediction, metadata):
+def post_inference(prediction, signature, metadata):
     response = prediction["sample"]
     return encoder.decode(response)
 ```

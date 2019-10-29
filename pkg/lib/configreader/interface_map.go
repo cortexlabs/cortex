@@ -129,7 +129,7 @@ func validateInterfaceMap(val map[string]interface{}, v *InterfaceMapValidation)
 			for kInterface, vInterface := range m {
 				kString, ok := kInterface.(string)
 				if !ok {
-					return nil, ErrorNonStringKeyFound(kString)
+					return nil, ErrorNonStringKeyFound(kInterface)
 				}
 				stringToIntMap[kString] = vInterface
 			}
