@@ -17,7 +17,7 @@ Below, we'll walk through how to use Cortex to deploy OpenAI's GPT-2 model as a 
 
 <br>
 
-### Step 1: Configure your deployment
+### Step 1: Define your deployment
 
 The configuration below will download the model from the `cortex-examples` S3 bucket and deploy it as a web service that can serve real-time predictions.
 
