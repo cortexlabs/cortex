@@ -1,6 +1,6 @@
 # Cluster configuration
 
-The Cortex cluster may be configured by providing a configuration file to `cortex cluster install` or `cortex cluster update` via the  `--config` flag (e.g. `cortex cluster install --config=cluster.yaml`). Below is the schema for the cluster configuration file, with default values shown:
+The Cortex cluster may be configured by providing a configuration file to `cortex cluster up` or `cortex cluster update` via the  `--config` flag (e.g. `cortex cluster up --config=cluster.yaml`). Below is the schema for the cluster configuration file, with default values shown:
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 
