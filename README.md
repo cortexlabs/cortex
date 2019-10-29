@@ -82,6 +82,8 @@ live     1            1           1           8s            123ms
 url: http://***.amazonaws.com/text/generator
 ```
 
+Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
+
 <br>
 
 ### Step 4: Serve real-time predictions
