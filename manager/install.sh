@@ -27,7 +27,7 @@ function ensure_eks() {
 
     echo -e "￮ Spinning up the cluster ... (this will take about 15 minutes)\n"
     envsubst < eks.yaml | eksctl create cluster -f -
-    echo "\n✓ Spun up the cluster"
+    echo -e "\n✓ Spun up the cluster"
     return
   fi
 
