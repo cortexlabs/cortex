@@ -41,7 +41,7 @@ const (
 	ErrInitReplicasGreaterThanMax
 	ErrInitReplicasLessThanMin
 	ErrSpecifyOnlyOneMissing
-	ErrFoundMultipleSpecifyOnlyOne
+	ErrFoundMultipleSpecifyOnlyOneModelFormat
 	ErrImplDoesNotExist
 	ErrExternalNotFound
 	ErrONNXDoesntSupportZip
@@ -63,7 +63,7 @@ var errorKinds = []string{
 	"err_init_replicas_greater_than_max",
 	"err_init_replicas_less_than_min",
 	"err_specify_only_one",
-	"err_found_multiple_specify_only_one",
+	"err_found_multiple_specify_only_one_model_format",
 	"err_impl_does_not_exist",
 	"err_external_not_found",
 	"err_onnx_doesnt_support_zip",
@@ -179,17 +179,17 @@ func ErrorSpecifyAllOrNone(vals ...string) error {
 }
 
 func ErrorSpecifyOne(vals ...string) error {
-	message := fmt.Sprintf("please specify one model type (%s)", s.UserStrsOr(vals))
+	message := fmt.Sprintf("please specify one model format (%s)", s.UserStrsOr(vals))
 	return Error{
 		Kind:    ErrSpecifyOnlyOne,
 		message: message,
 	}
 }
 
-func ErrorFoundMultipleSpecifyOnlyOneModelType(found []string, vals ...string) error {
-	message := fmt.Sprintf("specified (%s), please specify only one model type (%s)", s.UserStrsAnd(found), s.UserStrsOr(vals))
+func ErrorFoundMultipleSpecifyOnlyOneModelFormat(found []string, vals ...string) error {
+	message := fmt.Sprintf("specified (%s), please specify only one model format (%s)", s.UserStrsAnd(found), s.UserStrsOr(vals))
 	return Error{
-		Kind:    ErrFoundMultipleSpecifyOnlyOne,
+		Kind:    ErrFoundMultipleSpecifyOnlyOneModelFormat,
 		message: message,
 	}
 }

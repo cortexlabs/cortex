@@ -24,7 +24,6 @@ import onnxruntime as rt
 import numpy as np
 
 from cortex.lib import util, Context, api_utils
-from cortex.lib.storage import S3
 from cortex.lib.log import get_logger, debug_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 from cortex.lib.stringify import truncate

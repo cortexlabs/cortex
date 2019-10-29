@@ -383,7 +383,7 @@ func (api *API) Validate(projectFileMap map[string][]byte) error {
 		for key := range modelFormat {
 			keys = append(keys, key)
 		}
-		return ErrorFoundMultipleSpecifyOnlyOneModelType(keys, TensorflowKey, ONNXKey, PythonKey)
+		return ErrorFoundMultipleSpecifyOnlyOneModelFormat(keys, TensorflowKey, ONNXKey, PythonKey)
 	} else {
 		for _, val := range modelFormat {
 			if err := val.Validate(projectFileMap); err != nil {

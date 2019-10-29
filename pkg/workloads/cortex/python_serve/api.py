@@ -13,20 +13,16 @@
 # limitations under the License.
 
 import sys
-import os
 import argparse
 import time
 
 from flask import Flask, request, jsonify, g
 from flask_api import status
 from waitress import serve
-import numpy as np
 
 from cortex.lib import util, Context, api_utils
-from cortex.lib.storage import S3
 from cortex.lib.log import get_logger, debug_obj
-from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
-from cortex.lib.stringify import truncate
+from cortex.lib.exceptions import CortexException, UserRuntimeException
 
 logger = get_logger()
 logger.propagate = False  # prevent double logging (flask modifies root logger)
@@ -82,12 +78,17 @@ def predict(app_name, api_name):
         sample = request.get_json()
     except:
         return "malformed json", status.HTTP_400_BAD_REQUEST
+
     api = local_cache["api"]
     inference = local_cache["inference"]
+
     try:
-        debug_obj("sample", sample, debug)
-        output = inference.predict(sample, api["metadata"])
-        debug_obj("prediction", output, debug)
+        try:
+            debug_obj("sample", sample, debug)
+            output = inference.predict(sample, api["metadata"])
+            debug_obj("prediction", output, debug)
+        except Exception as e:
+            raise UserRuntimeException(api["python"]["inference"], "predict", str(e)) from e
     except Exception as e:
         logger.exception("prediction failed")
         return prediction_failed(str(e))

@@ -28,7 +28,6 @@ from tensorflow_serving.apis import prediction_service_pb2_grpc
 from google.protobuf import json_format
 
 from cortex.lib import util, Context, api_utils
-from cortex.lib.storage import S3
 from cortex.lib.log import get_logger, debug_obj
 from cortex.lib.exceptions import UserRuntimeException, UserException, CortexException
 from cortex.lib.stringify import truncate
