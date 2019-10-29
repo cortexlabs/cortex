@@ -17,10 +17,9 @@ Below, we'll walk through how to use Cortex to deploy OpenAI's GPT-2 model as a 
 
 <br>
 
-### Step 1: Configure your deployment
+### Step 1: Define your deployment
 
-<!-- CORTEX_VERSION_README_MINOR -->
-Define a `deployment` and an `api` resource. A `deployment` specifies a set of APIs that are deployed together. An `api` makes a model available as a web service that can serve real-time predictions. The configuration below will download the model from the `cortex-examples` S3 bucket. You can run the code that generated the model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/0.9/examples/text-generator/gpt-2.ipynb).
+The configuration below will download the model from the `cortex-examples` S3 bucket and deploy it as a web service that can serve real-time predictions.
 
 ```yaml
 # cortex.yaml
@@ -34,11 +33,14 @@ Define a `deployment` and an `api` resource. A `deployment` specifies a set of A
   request_handler: handler.py
 ```
 
+<!-- CORTEX_VERSION_README_MINOR -->
+You can run the code that generated the model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/0.9/examples/text-generator/gpt-2.ipynb).
+
 <br>
 
 ### Step 2: Add request handling
 
-The model requires encoded data for inference, but the API should accept strings of natural language as input. It should also decode the inference output. This can be implemented in a request handler file using the `pre_inference` and `post_inference` functions:
+The model requires encoded data for inference, but the API should accept strings of natural language as input. It should also decode the inference output.
 
 ```python
 # handler.py
@@ -61,7 +63,7 @@ def post_inference(prediction, metadata):
 
 ### Step 3: Deploy to AWS
 
-Deploying to AWS is as simple as running `cortex deploy` from your CLI. `cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on the cluster. Behind the scenes, Cortex containerizes the model, makes it servable using TensorFlow Serving, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+`cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on the cluster.
 
 ```bash
 $ cortex deploy
@@ -69,7 +71,7 @@ $ cortex deploy
 deployment started
 ```
 
-You can track the status of a deployment using `cortex get`. The output below indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
+You can track the status of a deployment using `cortex get`.
 
 ```bash
 $ cortex get generator --watch
@@ -80,11 +82,13 @@ live     1            1           1           8s            123ms
 url: http://***.amazonaws.com/text/generator
 ```
 
+Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
+
 <br>
 
 ### Step 4: Serve real-time predictions
 
-Once you have your endpoint, you can make requests:
+Once you have your endpoint, you can make requests.
 
 ```bash
 $ curl http://***.amazonaws.com/text/generator \
@@ -95,6 +99,12 @@ Machine learning, with more than one thousand researchers around the world today
 ```
 
 Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).
+
+<br>
+
+## How Cortex works
+
+The CLI sends configuration and code to the cluster every time you run `cortex deploy`. Each model is loaded from S3 into a Docker container, along with any Python packages and request handling code. The model is exposed as a web service using Elastic Load Balancing (ELB), Flask, TensorFlow Serving, and ONNX Runtime. The containers are orchestrated on Elastic Kubernetes Service (EKS) while logs and metrics are streamed to CloudWatch.
 
 <br>
 
@@ -123,4 +133,4 @@ Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).
 
 - **Prediction monitoring:** Cortex monitors network metrics and tracks predictions.
 
-- **Minimal declarative configuration:** Deployments are defined in a single `cortex.yaml` file.
+- **Minimal configuration:** Deployments are defined in a single `cortex.yaml` file.
