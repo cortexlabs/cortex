@@ -422,7 +422,6 @@ func tfAPISpec(
 	})
 }
 
-// 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/pytorch:latest
 func pythonAPISpec(
 	ctx *context.Context,
 	api *context.API,
@@ -507,7 +506,6 @@ func pythonAPISpec(
 							"--port=" + defaultPortStr,
 							"--context=" + config.AWS.S3Path(ctx.Key),
 							"--api=" + ctx.APIs[api.Name].ID,
-							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
 						},
@@ -515,7 +513,7 @@ func pythonAPISpec(
 							k8s.AWSCredentials(),
 							kcore.EnvVar{
 								Name:  "PYTHON_ROOT",
-								Value: ctx.App.PythonRoot,
+								Value: path.Join(consts.EmptyDirMountPath, "project", ctx.App.PythonRoot),
 							},
 							kcore.EnvVar{
 								Name: "HOST_IP",

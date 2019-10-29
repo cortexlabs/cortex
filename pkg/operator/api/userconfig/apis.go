@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cortexlabs/yaml"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -252,7 +253,11 @@ func (api *API) UserConfigStr() string {
 		sb.WriteString(fmt.Sprintf("%s:\n", TrackerKey))
 		sb.WriteString(s.Indent(api.Tracker.UserConfigStr(), "  "))
 	}
-	sb.WriteString(s.Indent(s.Obj(api.Metadata), "  "))
+	if len(api.Metadata) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", MetadataKey))
+		d, _ := yaml.Marshal(&api.Metadata)
+		sb.WriteString(s.Indent(string(d), "  "))
+	}
 	return sb.String()
 }
 

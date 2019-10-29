@@ -9,12 +9,12 @@ def pre_inference(sample, signature, metadata):
     """Prepare a sample before it is passed into the model.
 
     Args:
-        sample: A sample from the request payload.
+        sample: A python object parsed from a JSON payload of request.
 
         signature: Describes the expected shape and type of inputs to the model.
-            If API model_format is tensorflow: map<string, SignatureDef>
+            If API model format is tensorflow: map<string, SignatureDef>
                 https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/protobuf/meta_graph.proto
-            If API model_format is onnx: list<onnxruntime.NodeArg>
+            If API model format is onnx: list<onnxruntime.NodeArg>
                 https://microsoft.github.io/onnxruntime/api_summary.html#onnxruntime.NodeArg
         
         metadata: Custom dictionary specified by user in API configuration.
@@ -31,9 +31,9 @@ def post_inference(prediction, signature, metadata):
         prediction: The output of the model.
 
         signature: Describes the output shape and type of outputs from the model.
-            If API model_format is tensorflow: map<string, SignatureDef>
+            If API model format is tensorflow: map<string, SignatureDef>
                 https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/protobuf/meta_graph.proto
-            If API model_format is onnx: list<onnxruntime.NodeArg>
+            If API model format is onnx: list<onnxruntime.NodeArg>
                 https://microsoft.github.io/onnxruntime/api_summary.html#onnxruntime.NodeArg
         
         metadata: Custom dictionary specified by user in API configuration.

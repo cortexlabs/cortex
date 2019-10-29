@@ -86,8 +86,8 @@ def predict(app_name, api_name):
     inference = local_cache["inference"]
     try:
         debug_obj("sample", sample, debug)
-        output = inference.inference(sample, api["metadata"])
-        debug_obj("post_inference", output, debug)
+        output = inference.predict(sample, api["metadata"])
+        debug_obj("prediction", output, debug)
     except Exception as e:
         logger.exception("prediction failed")
         return prediction_failed(str(e))
@@ -117,6 +117,7 @@ def start(args):
             local_cache["inference"] = ctx.get_inference_impl(api["name"], args.project_dir)
 
         local_cache["inference"].init(api["metadata"])
+        logger.info("init ran successfully")
     except:
         logger.exception("failed to start api")
         sys.exit(1)
@@ -141,7 +142,6 @@ def main():
         help="S3 path to context (e.g. s3://bucket/path/to/context.json)",
     )
     na.add_argument("--api", required=True, help="Resource id of api to serve")
-    na.add_argument("--model-dir", required=True, help="Directory to download the model to")
     na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
     na.add_argument("--project-dir", required=True, help="Local path for the project zip file")
 

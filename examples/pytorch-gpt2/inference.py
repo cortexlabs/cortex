@@ -78,44 +78,18 @@ def sample_sequence(
     return generated
 
 
-tokenizer = None
-model = None
+model = GPT2LMHeadModel.from_pretrained("distilgpt2")
+tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
 
-def init(model_path):
-    model = GPT2LMHeadModel.from_pretrained("distilgpt2")
-    tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
+
+def init(metadata):
     model.eval()
-    return model
 
 
-def inference(model, sample):
-    print(sample)
+def predict(sample, metadata):
     indexed_tokens = tokenizer.encode(sample["text"])
-    output = sample_sequence(model, 20, indexed_tokens)
+    output = sample_sequence(model, metadata.get("word_length", 20), indexed_tokens)
     out2 = output[0, 0:].tolist()
     return tokenizer.decode(
         out2.tolist(), clean_up_tokenization_spaces=True, skip_special_tokens=True
     )
-
-
-
-#1 python
-def init(metadata):
-    return torch.load(api_config.get_model_path())
-
-def inference(sample):
-# ---------------------------------
-#2 python
-pytorch = None
-def init(metadata):
-    model = torch.load(metadata['model'])
-
-def inference(sample):
-# ---------------------------------
-
-
-# export
-def pre_inference(sample, signature, metadata):
-
-def post_inference(prediction, signature, metadata):
-    

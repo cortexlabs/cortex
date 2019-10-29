@@ -17,14 +17,14 @@ preprocess = transforms.Compose(
     [transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor(), normalize]
 )
 
+model = torchvision.models.alexnet(pretrained=True)
 
-def model_init(model_path):
-    model = torchvision.models.alexnet(pretrained=True)
+
+def init(metadata):
     model.eval()
-    return model
 
 
-def inference(model, sample):
+def predict(sample, metadata):
     if "url" in sample:
         image = requests.get(sample["url"]).content
     elif "base64" in sample:

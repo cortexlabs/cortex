@@ -43,7 +43,6 @@ const (
 	ErrSpecifyOnlyOneMissing
 	ErrFoundMultipleSpecifyOnlyOne
 	ErrImplDoesNotExist
-	ErrUnableToInferModelFormat
 	ErrExternalNotFound
 	ErrONNXDoesntSupportZip
 	ErrInvalidTensorFlowDir
@@ -66,7 +65,6 @@ var errorKinds = []string{
 	"err_specify_only_one",
 	"err_found_multiple_specify_only_one",
 	"err_impl_does_not_exist",
-	"err_unable_to_infer_model_format",
 	"err_external_not_found",
 	"err_onnx_doesnt_support_zip",
 	"err_invalid_tensorflow_dir",

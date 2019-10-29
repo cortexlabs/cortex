@@ -37,6 +37,7 @@ const (
 	TensorflowKey     = "tensorflow"
 	ONNXKey           = "onnx"
 	PythonKey         = "python"
+	MetadataKey       = "metadata"
 
 	// compute
 	ComputeKey              = "compute"

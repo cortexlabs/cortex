@@ -81,7 +81,7 @@ func deploy(force bool, ignoreCache bool) {
 		if err != nil {
 			errors.Exit(err)
 		}
-		fmt.Println(projectPaths)
+
 		projectZipBytes, err := zip.ToMem(&zip.Input{
 			FileLists: []zip.FileListInput{
 				{

@@ -1,16 +1,6 @@
 - kind: deployment
   name: iris
-
-  #- kind: api
-  #  name: classifier
-  # model: s3://models-vishal/pytorch.onnx
-
-  #- kind: api
-  #name: classifier
-  #model: s3://models-vishal/pytorch.onnx
-  #request_handler: src/handler.py
-  #compute:
-  #  cpu: 1
+  python_root: src/
 
 - kind: api
   name: classifier
@@ -20,13 +10,3 @@
     region: "us-west-2"
     bucket: "data-vishal"
     key: "iris_model.pth"
-
-
-# - kind: api
-#   name: classifier
-#   model: s3://models-vishal/pytorch.onnx
-#   request_handler: src/handler.py
-#   tracker:
-#     model_type: classification
-#   compute:
-#     cpu: 1

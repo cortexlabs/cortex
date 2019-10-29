@@ -1,32 +1,9 @@
 - kind: deployment
-  name: pytorch
+  name: gpt2
 
-# make model_format mandatory
 - kind: api
-  name: gpt-2
-  metadata:
-    model: iris.pth
-    word_length: 
-  tensorflow:
-    model_path:
-    request_handler:
-  onnx:
-    model_path:
-    request_handler:
+  name: text-gen
   python:
-    inference: inference.py <required>
-
-- kind: api
-  name: gpt-2
-  model_format: tensorflow | onnx
-  model: <required>
-  request_handler: handler.py <optional>
-  inference_handler: inference.py <disallowed>
-
-
-- kind: api
-  name: gpt-2
-  model_format: tensorflow | onnx
-  model: <required>
-  handler: handler.py <optional>  
-
+    inference: inference.py
+  metadata:
+    word_length: 20

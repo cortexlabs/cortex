@@ -15,7 +15,7 @@
 # limitations under the License.
 
 
-export PYTHON_PATH=$PYTHON_PATH:$PYTHON_ROOT
+export PYTHONPATH=$PYTHONPATH:$PYTHON_ROOT
 
 if [ -f "/mnt/project/requirements.txt" ]; then
     pip install -r /mnt/project/requirements.txt

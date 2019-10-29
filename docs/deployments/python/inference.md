@@ -1,31 +1,29 @@
-# Python
+# Inference
 
-
+A python file that intializes a model and describes how to use the model to make predictions on data from JSON request payloads.
 
 ## Implementation
 
 ```python
-def init(sample, signature, metadata):
-    """Initialize models 
+def init(metadata):
+    """Called once before API is made available. Setup for model serving such as initializing the model or downloading vocabulary should be done here.
 
     Args:
-        sample: A sample from the request payload.
-
         metadata: Custom dictionary specified by user in API configuration.
 
     """
     pass
 
-def post_inference(prediction, signature, metadata):
-    """Modify a prediction from the model before responding to the request.
+def predict(sample, metadata):
+    """Called once per request. Model prediction including any preprocessing of request payload and postprocessing of model output should be done here.
 
     Args:
-        sample: A sample from the request payload.
+        sample: A python object parsed from a JSON payload of request.
 
         metadata: Custom dictionary specified by user in API configuration.
 
     Returns:
-        A python dictionary or list.
+        A prediction
     """
 ```
 
@@ -33,31 +31,39 @@ def post_inference(prediction, signature, metadata):
 
 ```python
 import numpy as np
+import boto3
+from my_models import MyNet
 
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
-def pre_inference(sample, signature, metadata):
-    # Convert a dictionary of features to a flattened in list in the order expected by the model
-    return {
-        signature[0].name : [
-            sample["sepal_length"],
-            sample["sepal_width"],
-            sample["petal_length"],
-            sample["petal_width"],
+model = MyNet()
+
+def init(metadata):
+    # Download model/model weights from S3 specified in your api metadata and initialize your model.
+    s3 = boto3.client("s3", region_name=metadata["region"])
+    s3.download_file(metadata["bucket"], metadata["key"], "iris_model.pth")
+    model.load_state_dict(torch.load("iris_model.pth"))
+    model.eval()
+
+
+def predict(sample, metadata):
+    # Convert dictionary of features passed from payload to tensor and pass it in to your model. Convert the model output to a label.
+    input_tensor = torch.FloatTensor(
+        [
+            [
+                sample["sepal_length"],
+                sample["sepal_width"],
+                sample["petal_length"],
+                sample["petal_width"],
+            ]
         ]
-    }
+    )
 
-
-def post_inference(prediction, signature, metadata):
-    # Update the model prediction to include the index and the label of the predicted class
-    probabilites = prediction[0][0]
-    predicted_class_id = int(np.argmax(probabilites))
-    return {
-        "class_label": labels[predicted_class_id],
-        "class_index": predicted_class_id,
-        "probabilities": probabilites,
-    }
+    output = model(input_tensor)
+    return labels[torch.argmax(output[0])]
 ```
+
+See [iris-pytorch]() for full example.
 
 ## Pre-installed packages
 
@@ -68,8 +74,6 @@ boto3==1.9.228
 msgpack==0.6.1
 numpy==1.17.2
 requests==2.22.0
-tensorflow==1.14.0  # For TensorFlow models only
-onnxruntime==0.5.0  # For ONNX models only
 ```
 
 ## PyPI packages
@@ -79,7 +83,7 @@ You can install additional PyPI packages and import them your handlers. Cortex l
 ```text
 ./iris-classifier/
 ├── cortex.yaml
-├── handler.py
+├── inference.py
 ├── ...
 └── requirements.txt
 ```

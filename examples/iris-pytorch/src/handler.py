@@ -1,5 +1,5 @@
 import torch
-from src.model import Net
+from model import Net
 import boto3
 
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
@@ -15,7 +15,7 @@ def init(metadata):
     model.eval()
 
 
-def inference(sample, metadata):
+def predict(sample, metadata):
     input_tensor = torch.FloatTensor(
         [
             [

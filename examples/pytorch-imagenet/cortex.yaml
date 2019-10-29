@@ -1,44 +1,7 @@
 - kind: deployment
-  name: pytorch
-
-# make model_format mandatory
-- kind: api
-  name: alexnet
-  model_format: open
-  inference_handler: pretrained_alexnet.py
-  model: # optional
-  request_handler: 
-
-- kind: api
-  name: iris
-  model_format: open
-  inference_handler: inference.py
-  model: s3://data-vishal/iris.pth
-
-- kind: api
-  name: classifier-inception
-  model_format: tensorflow
-  model: s3://cortex-examples/image-classifier/inception
-  request_handler: inception_handler.py
-
-
-- kind: api
-  name: classifier-inception
-  model: s3://cortex-examples/image-classifier/inception
-  inference_handler: inception_handler.py
-
+  name: imagenet
 
 - kind: api
   name: alexnet
-  model: pretrained_alexnet.py
-  model_weight: asdfasdf
-
-- kind: api
-  name: iris
-  model: inference.py
-  model_weight: s3://data-vishal/iris.pth
-
-- kind: api
-  name: classifier-inception
-  model: s3://cortex-examples/image-classifier/inception
-  request_handler: inception_handler.py
+  python:
+    inference: inference.py

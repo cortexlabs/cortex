@@ -1,4 +1,4 @@
-## Packaging ONNX models
+# Packaging ONNX models
 
 Export your trained model to ONNX model format. An example of an sklearn model being exported to ONNX is shown below:
 

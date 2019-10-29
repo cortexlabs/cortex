@@ -9,14 +9,13 @@
   tracker:
     model_type: classification
 
-# - kind: api
-#   name: pytorch
-#   model: s3://data-vishal/iris_model1.pickle
-#   request_handler: handlers/pytorch_pickle.py
-#   model_format: python
-  
-  # tracker:
-  #   model_type: classification
+- kind: api
+  name: pytorch
+  onnx:
+    model: s3://cortex-examples/iris-classifier/pytorch.onnx
+    request_handler: handlers/pytorch.py
+  tracker:
+    model_type: classification
 
 - kind: api
   name: keras
@@ -26,16 +25,18 @@
   tracker:
     model_type: classification
 
-# - kind: api
-#   name: xgboost
-#   model: s3://cortex-examples/iris-classifier/xgboost.onnx
-#   request_handler: handlers/xgboost.py
-#   tracker:
-#     model_type: classification
+- kind: api
+  name: xgboost
+  onnx:
+    model: s3://cortex-examples/iris-classifier/xgboost.onnx
+    request_handler: handlers/xgboost.py
+  tracker:
+    model_type: classification
 
-# - kind: api
-#   name: sklearn
-#   model: s3://cortex-examples/iris-classifier/sklearn.onnx
-#   request_handler: handlers/sklearn.py
-#   tracker:
-#     model_type: classification
+- kind: api
+  name: sklearn
+  onnx:
+    model: s3://cortex-examples/iris-classifier/sklearn.onnx
+    request_handler: handlers/sklearn.py
+  tracker:
+    model_type: classification

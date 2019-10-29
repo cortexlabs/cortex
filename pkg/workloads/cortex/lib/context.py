@@ -136,7 +136,7 @@ class Context:
         if model_type is None:
             model_type = api.get("onnx")
 
-        if model_type is None:
+        if model_type is None:  # unexpected
             raise CortexException(
                 api_name, "failed to load request handler", "missing `tensorflow` or `onnx` key"
             )
@@ -246,10 +246,8 @@ REQUEST_HANDLER_IMPL_VALIDATION = {
 }
 
 INFERENCE_IMPL_VALIDATION = {
-    "required": [
-        {"name": "init", "args": ["metadata"]},
-        {"name": "inference", "args": ["sample", "metadata"]},
-    ]
+    "optional": [{"name": "init", "args": ["metadata"]}],
+    "required": [{"name": "predict", "args": ["sample", "metadata"]}],
 }
 
 
