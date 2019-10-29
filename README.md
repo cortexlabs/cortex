@@ -100,6 +100,12 @@ Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).
 
 <br>
 
+## How Cortex works
+
+The CLI sends configuration and code to the cluster every time you run `cortex deploy`. Each model is loaded from S3 into a Docker container, along with any Python packages and request handling code. The model is exposed as a web service using Elastic Load Balancing (ELB), Flask, TensorFlow Serving, and ONNX Runtime. The containers are orchestrated on Elastic Kubernetes Service (EKS) while logs and metrics are streamed to CloudWatch.
+
+<br>
+
 ## More examples
 
 <!-- CORTEX_VERSION_README_MINOR x3 -->
@@ -126,9 +132,3 @@ Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).
 - **Prediction monitoring:** Cortex monitors network metrics and tracks predictions.
 
 - **Minimal configuration:** Deployments are defined in a single `cortex.yaml` file.
-
-<br>
-
-## How Cortex works
-
-The CLI sends configuration and code to the cluster every time you run `cortex deploy`. Each model is loaded from S3 into a Docker container, along with any Python packages and request handling code. The model is exposed as a web service using Elastic Load Balancing (ELB), Flask, TensorFlow Serving, and ONNX Runtime. The containers are orchestrated on Elastic Kubernetes Service (EKS) while logs and metrics are streamed to CloudWatch.
