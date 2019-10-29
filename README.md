@@ -88,7 +88,7 @@ Cortex will automatically launch more replicas if the load increases and spin do
 
 ### Step 4: Serve real-time predictions
 
-Once you have your endpoint, you can make requests:
+Once you have your endpoint, you can make requests.
 
 ```bash
 $ curl http://***.amazonaws.com/text/generator \
