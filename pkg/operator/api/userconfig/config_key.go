@@ -39,7 +39,7 @@ const (
 	PythonKey         = "python"
 	MetadataKey       = "metadata"
 
-	// compute
+	// Compute
 	ComputeKey              = "compute"
 	MinReplicasKey          = "min_replicas"
 	MaxReplicasKey          = "max_replicas"

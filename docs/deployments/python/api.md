@@ -8,7 +8,7 @@ A python implementation to enable flexible model serving at scale.
 - kind: api
   name: <string>  # API name (required)
   python:
-    inference: <string>  # path to the inference implementation python file, relative to the cortex root
+    inference: <string>  # path to the inference implementation python file, relative to the cortex root (required)
   tracker:
     key: <string>  # key to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression"
@@ -20,11 +20,8 @@ A python implementation to enable flexible model serving at scale.
     cpu: <string | int | float>  # CPU request per replica (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica (default: Null)
-  metadata:
-    
+  metadata: <string: value>  # dictionary that can be used to configure custom values    
 ```
-
-See [packaging onnx models](./packaging.md) for how to export a Tensorflow model.
 
 ## Example
 
@@ -39,6 +36,9 @@ See [packaging onnx models](./packaging.md) for how to export a Tensorflow model
 
 ## Inference
 
+An Python implementation that defines how to initialize a model and use it to make predictions on requests. An `init` function can be defined to perform setup such as downloading a model or configuring a tokenizer. The `predict` function definition is required to make a prediction on the data passed in the request. The `predict` function can be used to 
+
+See [inference](./inference.md) for a detailed guide.
 
 
 ## Prediction Monitoring
@@ -47,7 +47,7 @@ See [packaging onnx models](./packaging.md) for how to export a Tensorflow model
 
 ## Debugging
 
-You can log more information about each request by adding a `?debug=true` parameter to your requests. This will print:
+You can log information about each request by adding a `?debug=true` parameter to your requests. This will print:
 
 1. The raw sample
 2. The value after running the `predict` function

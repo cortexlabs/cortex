@@ -8,7 +8,7 @@ Serve Tensorflow models at scale.
 - kind: api
   name: <string>  # API name (required)
   tensorflow:
-    model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model)
+    model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model) (required)
     request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
     signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
   tracker:
@@ -22,8 +22,7 @@ Serve Tensorflow models at scale.
     cpu: <string | int | float>  # CPU request per replica (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica (default: Null)
-  metadata:
-    
+  metadata: <string: value>  # dictionary that can be used to configure custom values
 ```
 
 See [packaging tensorflow models](./packaging.md) for how to export a Tensorflow model.

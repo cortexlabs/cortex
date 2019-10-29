@@ -8,7 +8,7 @@ Serve ONNX models at scale.
 - kind: api
   name: <string>  # API name (required)
   onnx:
-    model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model)
+    model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model) (required)
     request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
   tracker:
     key: <string>  # key to track (required if the response payload is a JSON object)
@@ -21,11 +21,10 @@ Serve ONNX models at scale.
     cpu: <string | int | float>  # CPU request per replica (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica (default: Null)
-  metadata:
-    
+  metadata: <string: value>  # dictionary that can be used to configure custom values    
 ```
 
-See [packaging onnx models](./packaging.md) for how to export a Tensorflow model.
+See [packaging onnx models](./packaging.md) for how to export an ONNX model.
 
 ## Example
 
