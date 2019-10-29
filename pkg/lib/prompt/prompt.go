@@ -87,7 +87,7 @@ func YesOrExit(prompt string, exitMessage string) {
 
 		if strings.ToLower(str) == "n" {
 			if exitMessage != "" {
-				fmt.Println(exitMessage + "\n")
+				fmt.Println(exitMessage)
 			}
 			os.Exit(1)
 		}

@@ -109,7 +109,7 @@ func allDeploymentsStr() (string, error) {
 	}
 
 	if len(resourcesRes.Deployments) == 0 {
-		return console.Bold("\nno deployments found"), nil
+		return console.Bold("no deployments found"), nil
 	}
 
 	rows := make([][]interface{}, len(resourcesRes.Deployments))
@@ -493,7 +493,7 @@ func dataStatusSummary(dataStatus *resource.DataStatus) string {
 		Headers: headers,
 		Rows:    [][]interface{}{row},
 	}
-	return "\n" + table.MustFormat(t)
+	return table.MustFormat(t) + "\n"
 }
 
 func valueStr(value interface{}) string {

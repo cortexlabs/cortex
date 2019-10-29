@@ -96,7 +96,7 @@ You can install additional PyPI packages and import them your handlers. Cortex l
 
 ## Project files
 
-Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available to pre and post inference handlers. Python generated files and files and folders that start with `.` are excluded.
+Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available to pre and post inference handlers. Python generated files and files, folders that start with `.`, and `cortex.yaml` are excluded.
 
 The contents of the project directory is available in `/mnt/project/` in the API containers. For example, if this is your project directory:
 

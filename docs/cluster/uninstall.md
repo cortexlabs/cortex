@@ -9,12 +9,10 @@
 ## Uninstalling Cortex
 
 ```bash
+# Spin down the cluster
 cortex cluster down
-```
 
-## Uninstalling the CLI
-
-```bash
+# Uninstall the CLI
 sudo rm /usr/local/bin/cortex
 rm -rf ~/.cortex
 ```

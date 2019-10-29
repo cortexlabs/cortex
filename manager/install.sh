@@ -21,13 +21,13 @@ arg1="$1"
 function ensure_eks() {
   if ! eksctl utils describe-stacks --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION >/dev/null 2>&1; then
     if [ "$arg1" = "--update" ]; then
-      echo "error: there isn't a Cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION; please update your configuration to point to an existing Cortex cluster or create a Cortex cluster with \`cortex cluster install\`"
+      echo "error: there isn't a Cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION; please update your configuration to point to an existing Cortex cluster or create a Cortex cluster with \`cortex cluster up\`"
       exit 1
     fi
 
     echo -e "￮ Spinning up the cluster ... (this will take about 15 minutes)\n"
     envsubst < eks.yaml | eksctl create cluster -f -
-    echo "\n✓ Spun up the cluster"
+    echo -e "\n✓ Spun up the cluster"
     return
   fi
 

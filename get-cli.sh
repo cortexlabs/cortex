@@ -25,15 +25,7 @@ case "$OSTYPE" in
 esac
 
 function main() {
-  echo -e "\nCortex CLI will be installed at /usr/local/bin/cortex\n"
-  read -p "[press ENTER to continue] " -r
-  echo
-  if [[ "$REPLY" != "" ]]; then
-    echo "exiting..."
-    exit 1
-  fi
-
-  echo -e "Installing CLI...\n"
+  echo -e "\nInstalling CLI (/usr/local/bin/cortex) ...\n"
 
   cortex_sh_tmp_dir="$HOME/.cortex-sh-tmp"
   rm -rf $cortex_sh_tmp_dir && mkdir -p $cortex_sh_tmp_dir
