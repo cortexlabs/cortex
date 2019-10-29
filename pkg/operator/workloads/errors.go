@@ -28,6 +28,7 @@ const (
 	ErrNotFound
 	ErrAPIInitializing
 	ErrNoAvailableNodeComputeLimit
+	ErrDuplicateAPIEndpoint
 )
 
 var errorKinds = []string{
@@ -38,9 +39,10 @@ var errorKinds = []string{
 	"err_not_found",
 	"err_api_initializing",
 	"err_no_available_node_compute_limit",
+	"err_duplicate_api_endpoint",
 }
 
-var _ = [1]int{}[int(ErrNoAvailableNodeComputeLimit)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrDuplicateAPIEndpoint)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -128,5 +130,12 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 	return Error{
 		Kind:    ErrNoAvailableNodeComputeLimit,
 		message: message,
+	}
+}
+
+func ErrorDuplicateAPIEndpoint() error {
+	return Error{
+		Kind:    ErrDuplicateAPIEndpoint,
+		message: "endpoint is already in use by another API",
 	}
 }

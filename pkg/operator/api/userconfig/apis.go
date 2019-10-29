@@ -26,7 +26,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -35,6 +37,7 @@ type APIs []*API
 type API struct {
 	ResourceFields
 	Model          string      `json:"model" yaml:"model"`
+	Endpoint       *string     `json:"endpoint" yaml:"endpoint"`
 	ModelFormat    ModelFormat `json:"model_format" yaml:"model_format"`
 	Tracker        *Tracker    `json:"tracker" yaml:"tracker"`
 	RequestHandler *string     `json:"request_handler" yaml:"request_handler"`
@@ -62,6 +65,12 @@ var apiValidation = &cr.StructValidation{
 			StringValidation: &cr.StringValidation{
 				Required:  true,
 				Validator: cr.GetS3PathValidator(),
+			},
+		},
+		{
+			StructField: "Endpoint",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Validator: urls.ValidateEndpoint,
 			},
 		},
 		{
@@ -180,6 +189,7 @@ func (api *API) UserConfigStr() string {
 	var sb strings.Builder
 	sb.WriteString(api.ResourceFields.UserConfigStr())
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, api.Model))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
 	if api.ModelFormat != UnknownModelFormat {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelFormatKey, api.ModelFormat.String()))
 	}
@@ -209,9 +219,9 @@ func (tracker *Tracker) UserConfigStr() string {
 	return sb.String()
 }
 
-func (apis APIs) Validate(projectFileMap map[string][]byte) error {
+func (apis APIs) Validate(deploymentName string, projectFileMap map[string][]byte) error {
 	for _, api := range apis {
-		if err := api.Validate(projectFileMap); err != nil {
+		if err := api.Validate(deploymentName, projectFileMap); err != nil {
 			return err
 		}
 	}
@@ -229,7 +239,11 @@ func (apis APIs) Validate(projectFileMap map[string][]byte) error {
 	return nil
 }
 
-func (api *API) Validate(projectFileMap map[string][]byte) error {
+func (api *API) Validate(deploymentName string, projectFileMap map[string][]byte) error {
+	if api.Endpoint == nil {
+		api.Endpoint = pointer.String("/" + deploymentName + "/" + api.Name)
+	}
+
 	awsClient, err := aws.NewFromS3Path(api.Model, false)
 	if err != nil {
 		return err
