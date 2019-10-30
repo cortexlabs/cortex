@@ -1,10 +1,12 @@
 # Inference
 
-A python file that intializes a model and describes how to use the model to make predictions on data from JSON request payloads.
+A python file that describes how to intializes a model use the model to make predictions on data from JSON request payloads.
 
 ## Implementation
 
 ```python
+# Initialization code can be added here to global scope
+
 def init(metadata):
     """Called once before API is made available. Setup for model serving such as initializing the model or downloading vocabulary should be done here.
 
@@ -63,7 +65,7 @@ def predict(sample, metadata):
     return labels[torch.argmax(output[0])]
 ```
 
-See [iris-pytorch]() for full example.
+See [iris-pytorch](https://github.com/cortexlabs/cortex/blob/master/examples/iris-pytorch) for full example.
 
 ## Pre-installed packages
 
@@ -98,12 +100,12 @@ The contents of the project directory is available in `/mnt/project/` in the API
 ./iris-classifier/
 ├── cortex.yaml
 ├── config.json
-├── handler.py
+├── inference.py
 ├── ...
 └── requirements.txt
 ```
 
-You can access `config.json` in `handler.py` like this:
+You can access `config.json` in `inference.py` like this:
 
 ```python
 import json

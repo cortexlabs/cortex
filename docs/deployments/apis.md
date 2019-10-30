@@ -1,12 +1,31 @@
 # APIs
 
-Serve your models as an API at scale. Specify a python implementation describing how to load your model and run inferences on HTTP requests. 
+Deploy your model as an API at scale. 
 
-If you have an exported TensorFlow or ONNX model that you would like to serve, 
-- **TensorFlow:** A tensorflow saved model
-- **ONNX:** A model exported to ONNX format
+A python interface below can be implemented to deploy most models with Cortex. Specify a python `inference` file that describes how to load your model and use it to make predictions. Cortex uses the `inference` file to deploy multiple replicas that can serve your model as an API. Deployment parameters such as minimum replica count, maximum replica count, enabling prediction monitoring can be configured using yaml.
+
+Besides providing a python interface, Cortex can serve the following exported model formats:
+- [TensorFlow saved model](./tensorflow/api.md)
+- [ONNX](./onnx/api.md)
+
+
+## Inference
+Model initialization and other setup such as downloading vocabulary or initializing a tokenizer can be defined in the `init` function. The `predict` function is responsible for making an inference on a request and returning a prediction. The preprocessing of a request and postprocessing of model output can be done in the predict function.
+
+```python
+import ...
+
+def init(metadata):
+  # run more initializations here that may require metadata that you define in your yaml
+
+def predict(sample, metadata):
+  # run your model on the sample in an HTTP request and respond with a prediction
+```
+
+See [inference](./inference.md) for a detailed guide.
 
 ## Config
+Configure the details of your API deployment using the configuration schema below and add it to your `cortex.yaml`
 
 ```yaml
 - kind: api
@@ -27,7 +46,7 @@ If you have an exported TensorFlow or ONNX model that you would like to serve,
   metadata: <string: value>  # dictionary that can be used to configure custom values    
 ```
 
-## Example
+### Example
 
 ```yaml
 - kind: api
@@ -37,13 +56,6 @@ If you have an exported TensorFlow or ONNX model that you would like to serve,
   compute:
     gpu: 1
 ```
-
-## Inference
-
-An Python implementation that defines how to initialize your model and use it to make predictions on requests. The `init` function can be defined to perform setup such as downloading your model or configuring a tokenizer. The `predict` function is responsible for making an inference on a request and returning a prediction. The preprocessing of a request and postprocessing of model output can be done in the predict function.
-
-See [inference](./inference.md) for a detailed guide.
-
 
 ## Prediction Monitoring
 

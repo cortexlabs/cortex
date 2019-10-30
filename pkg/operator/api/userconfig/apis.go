@@ -40,8 +40,8 @@ type API struct {
 	Python     *Python                `json:"python" yaml:"python"`
 	Tracker    *Tracker               `json:"tracker" yaml:"tracker"`
 	Compute    *APICompute            `json:"compute" yaml:"compute"`
-	Tags       Tags                   `json:"tags" yaml:"tags"`
 	Metadata   map[string]interface{} `json:"metadata" yaml:"metadata"`
+	Tags       Tags                   `json:"tags" yaml:"tags"`
 }
 
 type Tracker struct {

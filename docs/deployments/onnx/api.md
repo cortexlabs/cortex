@@ -7,8 +7,6 @@ Serve ONNX models at scale.
 ```yaml
 - kind: api
   name: <string>  # API name (required)
-  python:
-    inference: <string>  # path to the inference implementation python file, relative to the cortex root (required)
   onnx:
     model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model) (required)
     request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
@@ -33,7 +31,7 @@ See [packaging onnx models](./packaging.md) for how to export an ONNX model.
 ```yaml
 - kind: api
   name: my-api
-  tensorflow:
+  onnx:
     model: s3://my-bucket/my-model.zip
     request_handler: handler.py
   compute:
