@@ -13,6 +13,7 @@
 * [Deployments](deployments/deployments.md)
 * [APIs](deployments/apis.md)
 * [Packaging models](deployments/packaging-models.md)
+* [Inference](deployments/inference.md)
 * [Request handlers](deployments/request-handlers.md)
 * [Compute](deployments/compute.md)
 * [System packages](deployments/system-packages.md)

@@ -1,6 +1,6 @@
 # Request handlers
 
-Request handlers are python files that can contain a `pre_inference` function and a `post_inference` function. Both functions are optional. Request handlers can be provided for `tensorflow` or `onnx` exported models. For any other model format (e.g. PyTorch) see [Custom Models](./custom-models.md)
+Request handlers are python files that can contain a `pre_inference` function and a `post_inference` function. Both functions are optional. Request handlers can be provided for `tensorflow` or `onnx` exported models.
 
 ## Implementation
 
