@@ -47,8 +47,7 @@ func (config *Config) Validate(projectBytes []byte) error {
 		}
 	}
 
-	err = config.App.Validate(projectFileMap)
-	if err != nil {
+	if err := config.App.Validate(projectFileMap); err != nil {
 		return err
 	}
 

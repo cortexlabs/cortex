@@ -44,10 +44,6 @@ type API struct {
 	Metadata   map[string]interface{} `json:"metadata" yaml:"metadata"`
 }
 
-type Validatable interface {
-	Validate(projectFileMap map[string][]byte) error
-}
-
 type Tracker struct {
 	Key       *string   `json:"key" yaml:"key"`
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
@@ -109,7 +105,7 @@ var apiValidation = &cr.StructValidation{
 						StructField: "Model",
 						StringValidation: &cr.StringValidation{
 							Required:  true,
-							Validator: cr.GetS3PathValidator(),
+							Validator: cr.S3PathValidator(),
 						},
 					},
 					{
@@ -132,7 +128,7 @@ var apiValidation = &cr.StructValidation{
 						StructField: "Model",
 						StringValidation: &cr.StringValidation{
 							Required:  true,
-							Validator: cr.GetS3PathValidator(),
+							Validator: cr.S3PathValidator(),
 						},
 					},
 					{
@@ -365,29 +361,34 @@ func (python *Python) UserConfigStr() string {
 }
 
 func (api *API) Validate(projectFileMap map[string][]byte) error {
-	modelFormat := map[string]Validatable{}
+	specifiedModelFormats := []string{}
 	if api.Tensorflow != nil {
-		modelFormat[TensorflowKey] = api.Tensorflow
+		specifiedModelFormats = append(specifiedModelFormats, TensorflowKey)
 	}
 	if api.ONNX != nil {
-		modelFormat[ONNXKey] = api.ONNX
+		specifiedModelFormats = append(specifiedModelFormats, ONNXKey)
 	}
 	if api.Python != nil {
-		modelFormat[PythonKey] = api.Python
+		specifiedModelFormats = append(specifiedModelFormats, PythonKey)
 	}
 
-	if len(modelFormat) == 0 {
-		return ErrorSpecifyOne(TensorflowKey, ONNXKey, PythonKey)
-	} else if len(modelFormat) > 1 {
-		keys := []string{}
-		for key := range modelFormat {
-			keys = append(keys, key)
-		}
-		return ErrorFoundMultipleSpecifyOnlyOneModelFormat(keys, TensorflowKey, ONNXKey, PythonKey)
+	if len(specifiedModelFormats) == 0 {
+		return ErrorSpecifyOneModelFormatFoundNone(TensorflowKey, ONNXKey, PythonKey)
+	} else if len(specifiedModelFormats) > 1 {
+		return ErrorSpecifyOneModelFormatFoundMultiple(specifiedModelFormats, TensorflowKey, ONNXKey, PythonKey)
 	} else {
-		for _, val := range modelFormat {
-			if err := val.Validate(projectFileMap); err != nil {
-				return errors.Wrap(err, Identify(api), ComputeKey)
+		switch specifiedModelFormats[0] {
+		case TensorflowKey:
+			if err := api.Tensorflow.Validate(projectFileMap); err != nil {
+				return errors.Wrap(err, Identify(api))
+			}
+		case ONNXKey:
+			if err := api.ONNX.Validate(projectFileMap); err != nil {
+				return errors.Wrap(err, Identify(api))
+			}
+		case PythonKey:
+			if err := api.Python.Validate(projectFileMap); err != nil {
+				return errors.Wrap(err, Identify(api))
 			}
 		}
 	}
@@ -407,9 +408,8 @@ func (api *API) AreProjectFilesRequired() bool {
 		return true
 	case api.Python != nil:
 		return true
-	default:
-		return false
 	}
+	return false
 }
 
 func (api *API) GetResourceType() resource.Type {

@@ -68,7 +68,7 @@ class Client(object):
             deployment_name (string): deployment name
             api_name (string): API name
             model_path (string): S3 path to an exported model
-            model_format (string): model format, must be "tensorflow" or "onnx" (default: "onnx" if model path ends with .onnx, "tensorflow" if model path ends with .zip or is a directory)
+            model_format (string): model format, must be "tensorflow" or "onnx"
             pre_inference (function, optional): function used to prepare requests for model input
             post_inference (function, optional): function used to prepare model output for response
             tf_serving_key (string, optional): name of the signature def to use for prediction (required if your model has more than one signature def)
@@ -83,7 +83,7 @@ class Client(object):
 
         api_config = {"kind": "api", "name": api_name}
 
-        if model_format != "tensorflow" or model_format != "onnx":
+        if model_format != "tensorflow" and model_format != "onnx":
             raise Exception("invalid model_format specified, please specify tensorflow or onnx")
 
         api_config[model_format] = {}

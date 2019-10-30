@@ -117,18 +117,6 @@ var Validation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "ImageTFServe",
-			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/tf-serve:" + consts.CortexVersion,
-			},
-		},
-		{
-			StructField: "ImageTFServeGPU",
-			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/tf-serve-gpu:" + consts.CortexVersion,
-			},
-		},
-		{
 			StructField: "ImagePythonServe",
 			StringValidation: &cr.StringValidation{
 				Default: "cortexlabs/python-serve:" + consts.CortexVersion,
@@ -138,6 +126,18 @@ var Validation = &cr.StructValidation{
 			StructField: "ImagePythonServeGPU",
 			StringValidation: &cr.StringValidation{
 				Default: "cortexlabs/python-serve-gpu:" + consts.CortexVersion,
+			},
+		},
+		{
+			StructField: "ImageTFServe",
+			StringValidation: &cr.StringValidation{
+				Default: "cortexlabs/tf-serve:" + consts.CortexVersion,
+			},
+		},
+		{
+			StructField: "ImageTFServeGPU",
+			StringValidation: &cr.StringValidation{
+				Default: "cortexlabs/tf-serve-gpu:" + consts.CortexVersion,
 			},
 		},
 		{

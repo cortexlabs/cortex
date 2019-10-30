@@ -54,7 +54,4 @@ if __name__ == "__main__":
 
     print("prediction accuracy {}".format(accuracy_score(test_y.data, predict_y.data)))
 
-    placeholder = torch.randn(1, 4)
-    torch.onnx.export(
-        model, placeholder, "pytorch.onnx", input_names=["input"], output_names=["species"]
-    )
+    torch.save(model.state_dict(), "iris_model.pth")

@@ -19,6 +19,7 @@ package userconfig
 import (
 	"strings"
 
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
@@ -52,15 +53,18 @@ var appValidation = &cr.StructValidation{
 func (app *App) Validate(projectFileMap map[string][]byte) error {
 	if len(app.PythonRoot) > 0 {
 		validPythonRoot := false
+		app.PythonRoot = s.EnsureSuffix(app.PythonRoot, "/")
 		for fileKey := range projectFileMap {
 			if strings.HasPrefix(fileKey, app.PythonRoot) {
 				validPythonRoot = true
 				break
 			}
 		}
+		
 		if !validPythonRoot {
 			return errors.Wrap(ErrorImplDoesNotExist(app.PythonRoot), "app", PythonRootKey)
 		}
+
 	}
 	return nil
 }

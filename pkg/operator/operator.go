@@ -35,9 +35,11 @@ const operatorPortStr = "8888"
 
 func main() {
 	if err := config.Init(); err != nil {
+		if config.Telemetry != nil {
+			config.Telemetry.ReportErrorBlocking(err)
+		}
 		errors.Exit(err)
 	}
-
 	if err := workloads.Init(); err != nil {
 		config.Telemetry.ReportErrorBlocking(err)
 		errors.Exit(err)

@@ -35,6 +35,8 @@ function ecr_login() {
 }
 
 function create_registry() {
+  aws ecr create-repository --repository-name=cortexlabs/python-serve --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/python-serve-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve --region=$REGISTRY_REGION || true
@@ -44,8 +46,6 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/tf-api --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/downloader --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/cluster-autoscaler --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/python-serve --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/python-serve-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/metrics-server --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/nvidia --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/fluentd --region=$REGISTRY_REGION || true
@@ -141,12 +141,12 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/istio-galley istio-galley latest
   fi
 
-  build_and_push $ROOT/images/downloader downloader latest
   build_and_push $ROOT/images/python-serve python-serve latest
   build_and_push $ROOT/images/python-serve-gpu python-serve-gpu latest
+  build_and_push $ROOT/images/tf-api tf-api latest
   build_and_push $ROOT/images/onnx-serve onnx-serve latest
   build_and_push $ROOT/images/onnx-serve-gpu onnx-serve-gpu latest
-  build_and_push $ROOT/images/tf-api tf-api latest
+  build_and_push $ROOT/images/downloader downloader latest
 
   cleanup
 fi

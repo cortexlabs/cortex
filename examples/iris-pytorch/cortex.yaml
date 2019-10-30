@@ -7,6 +7,5 @@
   python:
     inference: src/handler.py
   metadata:
-    region: "us-west-2"
-    bucket: "data-vishal"
-    key: "iris_model.pth"
+    bucket: data-vishal
+    key: iris_model.pth

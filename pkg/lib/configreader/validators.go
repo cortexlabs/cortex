@@ -54,7 +54,7 @@ func GetS3aPathValidator() func(string) (string, error) {
 	}
 }
 
-func GetS3PathValidator() func(string) (string, error) {
+func S3PathValidator() func(string) (string, error) {
 	return func(val string) (string, error) {
 		if !aws.IsValidS3Path(val) {
 			return "", aws.ErrorInvalidS3Path(val)

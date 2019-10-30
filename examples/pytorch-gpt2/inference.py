@@ -8,7 +8,10 @@ import torch.nn.functional as F
 import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
+model = GPT2LMHeadModel.from_pretrained("distilgpt2")
+tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
 
+# adapted from: https://github.com/huggingface/transformers/blob/master/examples/run_generation.py
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float("Inf")):
     """ Filter a distribution of logits using top-k and/or nucleus (top-p) filtering
         Args:
@@ -78,17 +81,13 @@ def sample_sequence(
     return generated
 
 
-model = GPT2LMHeadModel.from_pretrained("distilgpt2")
-tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
-
-
 def init(metadata):
     model.eval()
 
 
 def predict(sample, metadata):
     indexed_tokens = tokenizer.encode(sample["text"])
-    output = sample_sequence(model, metadata.get("word_length", 20), indexed_tokens)
+    output = sample_sequence(model, metadata.get("num_words", 20), indexed_tokens)
     out2 = output[0, 0:].tolist()
     return tokenizer.decode(
         out2.tolist(), clean_up_tokenization_spaces=True, skip_special_tokens=True

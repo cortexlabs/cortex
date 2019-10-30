@@ -8,8 +8,7 @@ model = Net()
 
 
 def init(metadata):
-    print(metadata)
-    s3 = boto3.client("s3", region_name=metadata["region"])
+    s3 = boto3.client("s3")
     s3.download_file(metadata["bucket"], metadata["key"], "iris_model.pth")
     model.load_state_dict(torch.load("iris_model.pth"))
     model.eval()

@@ -1,6 +1,8 @@
 # APIs
 
-A python implementation to enable flexible model serving at scale.
+A python implementation to enable flexible model serving at scale. 
+
+If you have an Tensorflow exported model or an ONNX model go here.
 
 ## Config
 

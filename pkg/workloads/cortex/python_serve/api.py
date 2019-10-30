@@ -114,9 +114,7 @@ def start(args):
         if api.get("python") is None:
             raise CortexException(api["name"], "python key not configured")
 
-        if api["python"].get("inference") is not None:
-            local_cache["inference"] = ctx.get_inference_impl(api["name"], args.project_dir)
-
+        local_cache["inference"] = ctx.get_inference_impl(api["name"], args.project_dir)
         local_cache["inference"].init(api["metadata"])
         logger.info("init ran successfully")
     except:
