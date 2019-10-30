@@ -11,6 +11,24 @@ Cortex is an open source platform that takes machine learning models—trained w
 
 <br>
 
+## Key features
+
+- **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
+
+- **Multi framework:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
+
+- **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
+
+- **Rolling updates:** Cortex updates deployed APIs without any downtime.
+
+- **Log streaming:** Cortex streams logs from deployed models to your CLI.
+
+- **Prediction monitoring:** Cortex monitors network metrics and tracks predictions.
+
+- **Minimal configuration:** Deployments are defined in a single `cortex.yaml` file.
+
+<br>
+
 ## Quickstart
 
 Below, we'll walk through how to use Cortex to deploy OpenAI's GPT-2 model as a service on AWS. You'll need to [install Cortex](https://www.cortex.dev/install) on your AWS account before getting started.
@@ -116,21 +134,3 @@ The CLI sends configuration and code to the cluster every time you run `cortex d
 - [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.9/examples/sentiment-analysis) with BERT
 
 - [Image classification](https://github.com/cortexlabs/cortex/tree/0.9/examples/image-classifier) with Inception v3 and AlexNet
-
-<br>
-
-## Key features
-
-- **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
-
-- **Multi framework:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
-
-- **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
-
-- **Rolling updates:** Cortex updates deployed APIs without any downtime.
-
-- **Log streaming:** Cortex streams logs from deployed models to your CLI.
-
-- **Prediction monitoring:** Cortex monitors network metrics and tracks predictions.
-
-- **Minimal configuration:** Deployments are defined in a single `cortex.yaml` file.
