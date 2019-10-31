@@ -70,17 +70,18 @@ def before_request():
 
 @app.after_request
 def after_request(response):
+    if request.path != "/predict":
+        return response
+
     api = local_cache["api"]
     ctx = local_cache["ctx"]
-
-    if request.path != "/{}/{}".format(ctx.app["name"], api["name"]):
-        return response
 
     logger.info(response.status)
 
     prediction = None
     if "prediction" in g:
         prediction = g.prediction
+
     api_utils.post_request_metrics(
         ctx, api, response, prediction, g.start_time, local_cache["class_set"]
     )

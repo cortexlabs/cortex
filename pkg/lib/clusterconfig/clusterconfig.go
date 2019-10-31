@@ -316,8 +316,7 @@ func PromptValidation(skipPopulatedFields bool, promptInstanceType bool, default
 func validateInstanceType(instanceType string) (string, error) {
 	if strings.HasSuffix(instanceType, "nano") ||
 		strings.HasSuffix(instanceType, "micro") ||
-		strings.HasSuffix(instanceType, "small") ||
-		strings.HasSuffix(instanceType, "medium") {
+		strings.HasSuffix(instanceType, "small") {
 		return "", ErrorInstanceTypeTooSmall()
 	}
 
