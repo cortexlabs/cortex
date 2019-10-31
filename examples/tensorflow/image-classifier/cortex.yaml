@@ -1,0 +1,10 @@
+- kind: deployment
+  name: image
+
+- kind: api
+  name: classifier-inception
+  tensorflow:
+    model: s3://cortex-examples/image-classifier/inception
+    request_handler: inception_handler.py
+  tracker:
+    model_type: classification

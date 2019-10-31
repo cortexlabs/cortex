@@ -2,14 +2,6 @@
   name: image
 
 - kind: api
-  name: classifier-inception
-  tensorflow:
-    model: s3://cortex-examples/image-classifier/inception
-    request_handler: inception_handler.py
-  tracker:
-    model_type: classification
-
-- kind: api
   name: classifier-alexnet
   onnx:
     model: s3://cortex-examples/image-classifier/alexnet.onnx

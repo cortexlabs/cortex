@@ -1,0 +1,10 @@
+- kind: deployment
+  name: iris
+
+- kind: api
+  name: xgboost
+  onnx:
+    model: s3://cortex-examples/iris-classifier/xgboost.onnx
+    request_handler: xgboost.py
+  tracker:
+    model_type: classification

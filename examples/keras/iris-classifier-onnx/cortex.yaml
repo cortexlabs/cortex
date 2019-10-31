@@ -1,0 +1,10 @@
+- kind: deployment
+  name: iris
+
+- kind: api
+  name: keras
+  onnx:
+    model: s3://cortex-examples/iris-classifier/keras.onnx
+    request_handler: keras.py
+  tracker:
+    model_type: classification

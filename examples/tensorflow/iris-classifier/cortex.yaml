@@ -1,0 +1,10 @@
+- kind: deployment
+  name: iris
+
+- kind: api
+  name: tensorflow
+  tensorflow:
+    model: s3://cortex-examples/iris-classifier/tensorflow
+    request_handler: tensorflow.py
+  tracker:
+    model_type: classification
