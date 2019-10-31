@@ -1,8 +1,8 @@
 - kind: deployment
-  name: gpt2
+  name: text
 
 - kind: api
-  name: text-gen
+  name: generator
   python:
     predictor: predictor.py
   metadata:
