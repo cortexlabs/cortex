@@ -7,6 +7,7 @@ Serve Tensorflow models at scale.
 ```yaml
 - kind: api
   name: <string>  # API name (required)
+  endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
   tensorflow:
     model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model) (required)
     request_handler: <string>  # path to the request handler implementation file, relative to the cortex root (optional)

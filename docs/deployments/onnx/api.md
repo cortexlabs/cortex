@@ -7,6 +7,7 @@ Serve ONNX models at scale.
 ```yaml
 - kind: api
   name: <string>  # API name (required)
+  endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
   onnx:
     model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
     request_handler: <string>  # path to the request handler implementation file, relative to the cortex root (optional)
