@@ -1,8 +1,8 @@
 # Request handlers
 
-Request handlers are python files that can contain a `pre_inference` function and a `post_inference` function. Both functions are optional. Request handlers can be provided for `tensorflow` or `onnx` exported models. 
+Request handlers are Python files that can contain a `pre_inference` function and a `post_inference` function. Both functions are optional. Request handlers can be provided for `tensorflow` or `onnx` exported models.
 
-Global variables can be used and shared across functions safely because each replica handles one request at a time.
+Each replica handles one request at a time, so you can use global variables to share state between functions.
 
 ## Implementation
 
@@ -129,7 +129,3 @@ def pre_inference(sample, signature, metadata):
   print(config)
   ...
 ```
-
-## System packages
-
-You can also install additional system packages. See [System Packages](system-packages.md) for more details.

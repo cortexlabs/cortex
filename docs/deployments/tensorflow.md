@@ -1,6 +1,6 @@
 # APIs
 
-Deploy ONNX models as webservices at scale.
+Deploy TensorFlow models as web services.
 
 ## Config
 
@@ -9,9 +9,10 @@ Deploy ONNX models as webservices at scale.
   name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
   python_path: <string>  # path to the root of your python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  onnx:
-    model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
+  tensorflow:
+    model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model) (required)
     request_handler: <string>  # path to the request handler implementation file, relative to the cortex root (optional)
+    signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
   tracker:
     key: <string>  # key to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
@@ -26,15 +27,15 @@ Deploy ONNX models as webservices at scale.
   metadata: <string: value>  # dictionary that can be used to configure custom values (optional)
 ```
 
-See [packaging onnx models](./packaging.md) for how to export an ONNX model.
+See [packaging TensorFlow models](../packaging/tensorflow.md) for how to export a TensorFlow model.
 
 ## Example
 
 ```yaml
 - kind: api
   name: my-api
-  onnx:
-    model: s3://my-bucket/my-model.onnx
+  tensorflow:
+    model: s3://my-bucket/my-model
     request_handler: handler.py
   compute:
     gpu: 1
@@ -44,7 +45,7 @@ See [packaging onnx models](./packaging.md) for how to export an ONNX model.
 
 Request handlers are used to decouple the interface of an API endpoint from its model. A `pre_inference` request handler can be used to modify request payloads before they are sent to the model. A `post_inference` request handler can be used to modify model predictions in the server before they are sent to the client.
 
-See [request handlers](../request-handlers.md) for a detailed guide.
+See [request handlers](request-handlers.md) for a detailed guide.
 
 ## Debugging
 
@@ -54,11 +55,3 @@ You can log information about each request by adding a `?debug=true` parameter t
 2. The value after running the `pre_inference` function (if applicable)
 3. The value after running inference
 4. The value after running the `post_inference` function (if applicable)
-
-## Prediction Monitoring
-
-You can track your predictions by configuring a `tracker`. See [Prediction Monitoring](./prediction-monitoring.md) for more information.
-
-## Autoscaling
-
-Cortex automatically scales your webservices. See [Autoscaling](./autoscaling.md) for more information.

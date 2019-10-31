@@ -1,10 +1,8 @@
 # System packages
 
-Cortex uses Docker images to run workloads. These Docker images can be replaced with custom images based on Cortex images and augmented with your system packages and libraries. Your custom images need to be pushed to a container registry (e.g. Docker Hub, ECR, GCR) that can be accessed by your cluster.
+Cortex uses Docker images to deploy your models. These images can be replaced with custom images that you can augment with your system packages and libraries. You will need to push your custom images to a container registry (e.g. Docker Hub or AWS ECR) that your cluster has access to.
 
-See `Image paths` section in [cortex config](../cluster/config.md) for all images that can be customized.
-
-The example below demonstrates how to create a custom Docker image and configure Cortex to use it.
+See the `Image paths` section in [cluster configuration](../cluster/config.md) for a complete list of customizable images.
 
 ## Create a custom image
 
@@ -14,7 +12,7 @@ Create a Dockerfile to build your custom image:
 mkdir my-api && cd my-api && touch Dockerfile
 ```
 
-Specify the base image you want to override followed by your customizations. The sample Dockerfile below inherits from Cortex's ONNX Serving image and installs the `tree` system package.
+Specify the base image you want to override followed by your customizations. The sample Dockerfile below inherits from Cortex's ONNX serving image and installs the `tree` system package.
 
 ```dockerfile
 # Dockerfile
@@ -31,7 +29,7 @@ RUN apt-get update \
 Create a repository to store your image:
 
 ```bash
-# We create a repository in AWS ECR
+# We create a repository in ECR
 
 export AWS_ACCESS_KEY_ID="***"
 export AWS_SECRET_ACCESS_KEY="***"
@@ -42,7 +40,7 @@ aws ecr create-repository --repository-name=org/my-api --region=us-west-2
 # take note of repository url
 ```
 
-Build the image based on your Dockerfile and push to its repository in AWS ECR:
+Build the image based on your Dockerfile and push to its repository in ECR:
 
 ```bash
 docker build . -t org/my-api:latest -t <repository_url>:latest
@@ -70,7 +68,7 @@ cortex cluster update --config=cluster.yaml
 
 ## Use system packages in workloads
 
-Cortex will use your image to launch ONNX serving workloads. You will have access to any customizations you made:
+Cortex will use your image to launch ONNX serving workloads and you will have access to any packages you added:
 
 ```python
 # request_handler.py

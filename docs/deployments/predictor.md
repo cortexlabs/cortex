@@ -1,8 +1,8 @@
 # Predictor
 
-Predictor is a Python file that describes how to intialize a model and use the model to make a prediction on a sample in a request.
+Predictor is a Python file that describes how to initialize a model and use the model to make a prediction on a sample in a request.
 
-The lifecycle of a replica running an Predictor starts with loading the implementation and executing code living in the global scope. Once the implementation is loaded, Cortex calls the `init` function with metadata to do any additional preparations. The `init` function is typically used to download and initialize models because it receives a metadata object which normally contains the path to the exported/pickled model. Once the `init` function is executed, the replica is available to accept requests. Upon recieving a request, the replica calls the `predict` function with a python dictionary of the JSON payload and the metadata object. The `predict` function is responsible for preprocessing input, applying the model, postprocessing the model output and responding with a prediction.
+The lifecycle of a replica running an Predictor starts with loading the implementation and executing code living in the global scope. Once the implementation is loaded, Cortex calls the `init` function with metadata to do any additional preparations. The `init` function is typically used to download and initialize models because it receives a metadata object which normally contains the path to the exported/pickled model. Once the `init` function is executed, the replica is available to accept requests. Upon receiving a request, the replica calls the `predict` function with a python dictionary of the JSON payload and the metadata object. The `predict` function is responsible for preprocessing input, applying the model, postprocessing the model output and responding with a prediction.
 
 Global variables can be used and shared across functions safely because each replica handles one request at a time.
 
@@ -118,23 +118,5 @@ with open('/mnt/project/config.json', 'r') as config_file:
 
 def pre_inference(sample, signature, metadata):
   print(config)
-  ...
-```
-
-## System packages
-
-You can also install additional system packages. See [System Packages](system-packages.md) for more details.
-
-
-```python
-import ...
-ctx = {}
-
-def pre_inference(sample, metadata):
-  ...
-  ctx['tokenized_input'] = tokenized_input
-
-def post_inference(prediction, metadata):
-  tokenized_input = ctx['tokenized_input']
   ...
 ```

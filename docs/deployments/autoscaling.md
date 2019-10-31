@@ -1,6 +1,6 @@
 # Autoscaling
 
-Cortex autoscales your webservices within the boundaries you specify.
+Cortex autoscales your web services based on your configuration.
 
 ## Autoscaling Replicas
 

@@ -1,6 +1,6 @@
 # Deployments
 
-Deployments are used to group a set of resources that can be deployed as a single unit. It must be defined in every Cortex directory in a top-level `cortex.yaml` file.
+Deployments are used to group a set of resources that are deployed together. It must be defined in every Cortex directory in a top-level `cortex.yaml` file.
 
 ## Configuration
 

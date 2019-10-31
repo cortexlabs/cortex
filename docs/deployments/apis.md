@@ -1,17 +1,13 @@
 # APIs
 
-Deploy your models as webservices at scale.
+The Python Predictor implementation describes how to load your model and how to use it to make predictions. Cortex uses the Predictor to deploy your model as a web service. In addition to the Predictor interface, Cortex can serve the following model formats:
 
-Specify a Python Predictor implementation that describes how to load your model and how to use it to make predictions. Cortex uses the Predictor to deploy multiple replicas that can serve your model as an API. Deployment parameters such as minimum replica count, maximum replica count, and prediction monitoring can be configured using YAML.
-
-Besides providing a Predictor interface, Cortex can directly serve the following model formats:
-
-- [TensorFlow saved model](./tensorflow-api.md)
-- [ONNX](./onnx-api.md)
+- [TensorFlow](tensorflow.md)
+- [ONNX](onnx.md)
 
 ## Predictor
 
-The Predictor interface consists of an `init` function and a `predict` function. The `init` function is reponsible for preparing the model for serving, downloading vocabulary files, aggregates etc. The `predict` function is called when a request received and is responsible for responding with a prediction.
+The Predictor interface consists of an `init` function and a `predict` function. The `init` function is responsible for preparing the model for serving, downloading vocabulary files, aggregates etc. The `predict` function is called when a request received and is responsible for responding with a prediction.
 
 ```python
 import ...
@@ -75,11 +71,3 @@ You can log information about each request by adding a `?debug=true` parameter t
 
 1. The raw sample
 2. The value after running the `predict` function
-
-## Prediction Monitoring
-
-You can track your predictions by configuring a `tracker`. See [Prediction Monitoring](./prediction-monitoring.md) for more information.
-
-## Autoscaling
-
-Cortex automatically scales your webservices. See [Autoscaling](./autoscaling.md) for more information.
