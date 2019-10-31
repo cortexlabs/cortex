@@ -225,8 +225,8 @@ def health():
     return jsonify({"ok": True})
 
 
-@app.route("/<deployment_name>/<api_name>", methods=["POST"])
-def predict(deployment_name, api_name):
+@app.route("/predict", methods=["POST"])
+def predict():
     debug = request.args.get("debug", "false").lower() == "true"
 
     try:
@@ -302,8 +302,8 @@ def extract_signature(signature_def, signature_key):
     return signature_key, parsed_signature
 
 
-@app.route("/<app_name>/<api_name>/signature", methods=["GET"])
-def get_signature(app_name, api_name):
+@app.route("/predict/signature", methods=["GET"])
+def get_signature():
     signature = local_cache["parsed_signature"]
     response = {"signature": signature}
     return jsonify(response)

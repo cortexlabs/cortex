@@ -109,7 +109,7 @@ func allDeploymentsStr() (string, error) {
 	}
 
 	if len(resourcesRes.Deployments) == 0 {
-		return console.Bold("\nno deployments found"), nil
+		return console.Bold("no deployments found"), nil
 	}
 
 	rows := make([][]interface{}, len(resourcesRes.Deployments))
@@ -207,13 +207,6 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	ctx := resourcesRes.Context
 	api := ctx.APIs[name]
 
-	var anyAPIStatus *resource.APIStatus
-	for _, apiStatus := range resourcesRes.APIStatuses {
-		if apiStatus.APIName == name {
-			anyAPIStatus = apiStatus
-			break
-		}
-	}
 	var updatedAt *time.Time
 	if groupStatus.ActiveStatus != nil {
 		updatedAt = groupStatus.ActiveStatus.Start
@@ -241,7 +234,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		{Title: "last update"},
 	}
 
-	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
+	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, *api.Endpoint)
 
 	statusTable := table.Table{
 		Headers: headers,
@@ -502,7 +495,7 @@ func dataStatusSummary(dataStatus *resource.DataStatus) string {
 		Headers: headers,
 		Rows:    [][]interface{}{row},
 	}
-	return "\n" + table.MustFormat(t)
+	return table.MustFormat(t) + "\n"
 }
 
 func valueStr(value interface{}) string {

@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"os"
@@ -85,20 +86,20 @@ func pullManager(clusterConfig *clusterconfig.ClusterConfig) error {
 	return nil
 }
 
-func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) error {
+func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (string, error) {
 	docker, err := getDockerClient()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	pullManager(clusterConfig)
 
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if err := files.WriteFile(clusterConfigBytes, cachedClusterConfigPath); err != nil {
-		return err
+		return "", err
 	}
 
 	containerConfig := &container.Config{
@@ -153,7 +154,7 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 
 	err = docker.ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// There is a slight delay between the container starting at attaching to it, hence the sleep in Cmd
@@ -163,20 +164,25 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 		Stderr: true,
 	})
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer logsOutput.Close()
 
-	_, err = io.Copy(os.Stdout, logsOutput.Reader)
+	var outputBuffer bytes.Buffer
+	tee := io.TeeReader(logsOutput.Reader, &outputBuffer)
+
+	_, err = io.Copy(os.Stdout, tee)
 	if err != nil {
-		return err
+		return "", err
 	}
+
+	output := outputBuffer.String()
 
 	// Let the ctrl+C hanlder run its course
 	if caughtCtrlC {
 		time.Sleep(time.Second)
-		return nil
+		return output, nil
 	}
 
-	return nil
+	return output, nil
 }

@@ -74,6 +74,7 @@ func deploy(force bool, ignoreCache bool) {
 
 	if config.AreProjectFilesRequired() {
 		projectPaths, err := files.ListDirRecursive(root, false,
+			files.IgnoreCortexYAML,
 			files.IgnoreHiddenFiles,
 			files.IgnoreHiddenFolders,
 			files.IgnorePythonGeneratedFiles,

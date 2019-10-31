@@ -34,6 +34,7 @@ Configure the details of your API deployment using the configuration schema belo
 ```yaml
 - kind: api
   name: <string>  # API name (required)
+  endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
   python:
     inference: <string>  # path to the inference implementation python file, relative to the cortex root (required)
   tracker:

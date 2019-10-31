@@ -66,19 +66,29 @@ a JSON file and displays the response.`,
 					matchedName = name
 				}
 			}
+
 			if matchedName == "" {
 				errors.Exit(ErrorAPINotFound(apiName))
 			}
+
+			if resourcesRes.Context.APIs[matchedName] == nil {
+				errors.Exit(ErrorAPINotFound(apiName))
+			}
+
+			apiGroupStatus = resourcesRes.APIGroupStatuses[matchedName]
 			apiName = matchedName
-			apiGroupStatus = resourcesRes.APIGroupStatuses[apiName]
+		}
+
+		api := resourcesRes.Context.APIs[apiName]
+		if api == nil {
+			errors.Exit(ErrorAPINotFound(apiName))
 		}
 
 		if apiGroupStatus.ActiveStatus == nil {
 			errors.Exit(ErrorAPINotReady(apiName, apiGroupStatus.Message()))
 		}
 
-		apiPath := apiGroupStatus.ActiveStatus.Path
-		apiURL := urls.Join(resourcesRes.APIsBaseURL, apiPath)
+		apiURL := urls.Join(resourcesRes.APIsBaseURL, *api.Endpoint)
 		if predictDebug {
 			apiURL += "?debug=true"
 		}

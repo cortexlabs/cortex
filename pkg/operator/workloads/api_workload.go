@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
@@ -707,7 +708,8 @@ func virtualServiceSpec(ctx *context.Context, api *context.API) *kunstructured.U
 		Gateways:    []string{"apis-gateway"},
 		ServiceName: internalAPIName(api.Name, ctx.App.Name),
 		ServicePort: defaultPortInt32,
-		Path:        context.APIPath(api.Name, ctx.App.Name),
+		Path:        *api.Endpoint,
+		Rewrite:     pointer.String("predict"),
 		Labels: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,

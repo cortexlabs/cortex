@@ -29,6 +29,7 @@ const (
 	// API
 	ModelKey          = "model"
 	InferenceKey      = "inference"
+	EndpointKey       = "endpoint"
 	RequestHandlerKey = "request_handler"
 	SignatureKeyKey   = "signature_key"
 	TrackerKey        = "tracker"

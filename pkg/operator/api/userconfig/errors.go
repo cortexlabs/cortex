@@ -46,6 +46,7 @@ const (
 	ErrExternalNotFound
 	ErrONNXDoesntSupportZip
 	ErrInvalidTensorFlowDir
+	ErrDuplicateEndpoints
 )
 
 var errorKinds = []string{
@@ -68,9 +69,10 @@ var errorKinds = []string{
 	"err_external_not_found",
 	"err_onnx_doesnt_support_zip",
 	"err_invalid_tensorflow_dir",
+	"err_duplicate_endpoints",
 }
 
-var _ = [1]int{}[int(ErrInvalidTensorFlowDir)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrDuplicateEndpoints)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -269,5 +271,12 @@ func ErrorInvalidTensorFlowDir(path string) error {
 	return Error{
 		Kind:    ErrInvalidTensorFlowDir,
 		message: message,
+	}
+}
+
+func ErrorDuplicateEndpoints(endpoint string, apiNames ...string) error {
+	return Error{
+		Kind:    ErrDuplicateEndpoints,
+		message: fmt.Sprintf("multiple APIs specifiy the same endpoint (endpoint %s is used by the %s APIs)", s.UserStr(endpoint), s.UserStrsAnd(apiNames)),
 	}
 }

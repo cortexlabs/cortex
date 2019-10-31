@@ -26,7 +26,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/yaml"
 )
@@ -35,6 +37,7 @@ type APIs []*API
 
 type API struct {
 	ResourceFields
+	Endpoint   *string                `json:"endpoint" yaml:"endpoint"`
 	Tensorflow *Tensorflow            `json:"tensorflow" yaml:"tensorflow"`
 	ONNX       *ONNX                  `json:"onnx" yaml:"onnx"`
 	Python     *Python                `json:"python" yaml:"python"`
@@ -71,6 +74,12 @@ var apiValidation = &cr.StructValidation{
 			StringValidation: &cr.StringValidation{
 				Required: true,
 				DNS1035:  true,
+			},
+		},
+		{
+			StructField: "Endpoint",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Validator: urls.ValidateEndpoint,
 			},
 		},
 		{
@@ -229,6 +238,8 @@ func GetTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 func (api *API) UserConfigStr() string {
 	var sb strings.Builder
 	sb.WriteString(api.ResourceFields.UserConfigStr())
+	sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
+
 	if api.Tensorflow != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", TensorflowKey))
 		sb.WriteString(s.Indent(api.Tensorflow.UserConfigStr(), "  "))
@@ -266,11 +277,19 @@ func (tracker *Tracker) UserConfigStr() string {
 	return sb.String()
 }
 
-func (apis APIs) Validate(projectFileMap map[string][]byte) error {
+func (apis APIs) Validate(deploymentName string, projectFileMap map[string][]byte) error {
 	for _, api := range apis {
-		if err := api.Validate(projectFileMap); err != nil {
+		if err := api.Validate(deploymentName, projectFileMap); err != nil {
 			return err
 		}
+	}
+
+	endpoints := map[string]string{} // endpoint -> API name
+	for _, api := range apis {
+		if dupAPIName, ok := endpoints[*api.Endpoint]; ok {
+			return ErrorDuplicateEndpoints(*api.Endpoint, dupAPIName, api.Name)
+		}
+		endpoints[*api.Endpoint] = api.Name
 	}
 
 	resources := make([]Resource, len(apis))
@@ -361,6 +380,10 @@ func (python *Python) UserConfigStr() string {
 }
 
 func (api *API) Validate(projectFileMap map[string][]byte) error {
+	if api.Endpoint == nil {
+		api.Endpoint = pointer.String("/" + deploymentName + "/" + api.Name)
+	}
+
 	specifiedModelFormats := []string{}
 	if api.Tensorflow != nil {
 		specifiedModelFormats = append(specifiedModelFormats, TensorflowKey)

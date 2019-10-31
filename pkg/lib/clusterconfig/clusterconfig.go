@@ -250,7 +250,7 @@ var Validation = &cr.StructValidation{
 	},
 }
 
-func PromptValidation(skipPopulatedFields bool, defaults *ClusterConfig) *cr.PromptValidation {
+func PromptValidation(skipPopulatedFields bool, promptInstanceType bool, defaults *ClusterConfig) *cr.PromptValidation {
 	if defaults == nil {
 		defaults = &ClusterConfig{}
 	}
@@ -264,10 +264,11 @@ func PromptValidation(skipPopulatedFields bool, defaults *ClusterConfig) *cr.Pro
 		defaults.MaxInstances = pointer.Int64(5)
 	}
 
-	return &cr.PromptValidation{
-		SkipPopulatedFields: skipPopulatedFields,
-		PromptItemValidations: []*cr.PromptItemValidation{
-			{
+	var promptItemValidations []*cr.PromptItemValidation
+
+	if promptInstanceType {
+		promptItemValidations = append(promptItemValidations,
+			&cr.PromptItemValidation{
 				StructField: "InstanceType",
 				PromptOpts: &prompt.Options{
 					Prompt: "AWS instance type",
@@ -278,29 +279,37 @@ func PromptValidation(skipPopulatedFields bool, defaults *ClusterConfig) *cr.Pro
 					Validator: validateInstanceType,
 				},
 			},
-			{
-				StructField: "MinInstances",
-				PromptOpts: &prompt.Options{
-					Prompt: "Min instances",
-				},
-				Int64PtrValidation: &cr.Int64PtrValidation{
-					Required:    true,
-					Default:     defaults.MinInstances,
-					GreaterThan: pointer.Int64(0),
-				},
+		)
+	}
+
+	promptItemValidations = append(promptItemValidations,
+		&cr.PromptItemValidation{
+			StructField: "MinInstances",
+			PromptOpts: &prompt.Options{
+				Prompt: "Min instances",
 			},
-			{
-				StructField: "MaxInstances",
-				PromptOpts: &prompt.Options{
-					Prompt: "Max instances",
-				},
-				Int64PtrValidation: &cr.Int64PtrValidation{
-					Required:    true,
-					Default:     defaults.MaxInstances,
-					GreaterThan: pointer.Int64(0),
-				},
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				Required:    true,
+				Default:     defaults.MinInstances,
+				GreaterThan: pointer.Int64(0),
 			},
 		},
+		&cr.PromptItemValidation{
+			StructField: "MaxInstances",
+			PromptOpts: &prompt.Options{
+				Prompt: "Max instances",
+			},
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				Required:    true,
+				Default:     defaults.MaxInstances,
+				GreaterThan: pointer.Int64(0),
+			},
+		},
+	)
+
+	return &cr.PromptValidation{
+		SkipPopulatedFields:   skipPopulatedFields,
+		PromptItemValidations: promptItemValidations,
 	}
 }
 

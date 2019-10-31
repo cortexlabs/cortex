@@ -17,12 +17,14 @@ limitations under the License.
 package k8s
 
 import (
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kschema "k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
 var (
@@ -51,6 +53,7 @@ type VirtualServiceSpec struct {
 	ServiceName string
 	ServicePort int32
 	Path        string
+	Rewrite     *string
 	Labels      map[string]string
 	Annotations map[string]string
 }
@@ -66,30 +69,37 @@ func VirtualService(spec *VirtualServiceSpec) *kunstructured.Unstructured {
 		"labels":      spec.Labels,
 		"annotations": spec.Annotations,
 	}
-	virtualServceConfig.Object["spec"] = map[string]interface{}{
-		"hosts":    []string{"*"},
-		"gateways": spec.Gateways,
-		"http": []map[string]interface{}{
+
+	httpSpec := map[string]interface{}{
+		"match": []map[string]interface{}{
 			{
-				"match": []map[string]interface{}{
-					{
-						"uri": map[string]interface{}{
-							"prefix": spec.Path,
-						},
-					},
+				"uri": map[string]interface{}{
+					"prefix": urls.CannonicalizeEndpoint(spec.Path),
 				},
-				"route": []map[string]interface{}{
-					{
-						"destination": map[string]interface{}{
-							"host": spec.ServiceName,
-							"port": map[string]interface{}{
-								"number": spec.ServicePort,
-							},
-						},
+			},
+		},
+		"route": []map[string]interface{}{
+			{
+				"destination": map[string]interface{}{
+					"host": spec.ServiceName,
+					"port": map[string]interface{}{
+						"number": spec.ServicePort,
 					},
 				},
 			},
 		},
+	}
+
+	if spec.Rewrite != nil && urls.CannonicalizeEndpoint(*spec.Rewrite) != urls.CannonicalizeEndpoint(spec.Path) {
+		httpSpec["rewrite"] = map[string]interface{}{
+			"uri": urls.CannonicalizeEndpoint(*spec.Rewrite),
+		}
+	}
+
+	virtualServceConfig.Object["spec"] = map[string]interface{}{
+		"hosts":    []string{"*"},
+		"gateways": spec.Gateways,
+		"http":     []map[string]interface{}{httpSpec},
 	}
 
 	return virtualServceConfig
@@ -192,4 +202,95 @@ func (c *Client) ListVirtualServicesByLabels(namespace string, labels map[string
 
 func (c *Client) ListVirtualServicesByLabel(namespace string, labelKey string, labelValue string) ([]kunstructured.Unstructured, error) {
 	return c.ListVirtualServicesByLabels(namespace, map[string]string{labelKey: labelValue})
+}
+
+func GetVirtualServiceGateways(virtualService *kunstructured.Unstructured) (strset.Set, error) {
+	spec, ok := virtualService.UnstructuredContent()["spec"].(map[string]interface{})
+	if !ok {
+		return nil, errors.New("virtual service spec is not a map[string]interface{}") // unexpected
+	}
+
+	gatewaysInterface, ok := spec["gateways"]
+	if !ok {
+		return strset.New(), nil
+	}
+	gateways, ok := gatewaysInterface.([]interface{})
+	if !ok {
+		return nil, errors.New("gateways is not a []interface{}") // unexpected
+	}
+
+	gatewayStrs := strset.New()
+
+	for _, gatewayInterface := range gateways {
+		gateway, ok := gatewayInterface.(string)
+		if !ok {
+			return nil, errors.New("gateway is not a string") // unexpected
+		}
+		gatewayStrs.Add(gateway)
+	}
+
+	return gatewayStrs, nil
+}
+
+func GetVirtualServiceEndpoints(virtualService *kunstructured.Unstructured) (strset.Set, error) {
+	spec, ok := virtualService.UnstructuredContent()["spec"].(map[string]interface{})
+	if !ok {
+		return nil, errors.New("virtual service spec is not a map[string]interface{}") // unexpected
+	}
+
+	httpConfigsInterface, ok := spec["http"]
+	if !ok {
+		return strset.New("/"), nil
+	}
+	httpConfigs, ok := httpConfigsInterface.([]interface{})
+	if !ok {
+		return nil, errors.New("http is not a []interface{}") // unexpected
+	}
+
+	endpoints := strset.New()
+
+	for _, httpConfigInterface := range httpConfigs {
+		httpConfig, ok := httpConfigInterface.(map[string]interface{})
+		if !ok {
+			return nil, errors.New("http item is not a map[string]interface{}") // unexpected
+		}
+
+		matchesInterface, ok := httpConfig["match"]
+		if !ok {
+			return strset.New("/"), nil
+		}
+		matches, ok := matchesInterface.([]interface{})
+		if !ok {
+			return nil, errors.New("match is not a []interface{}") // unexpected
+		}
+
+		for _, matchInterface := range matches {
+			match, ok := matchInterface.(map[string]interface{})
+			if !ok {
+				return nil, errors.New("match item is not a map[string]interface{}") // unexpected
+			}
+
+			uriInterface, ok := match["uri"]
+			if !ok {
+				return strset.New("/"), nil
+			}
+			uri, ok := uriInterface.(map[string]interface{})
+			if !ok {
+				return nil, errors.New("uri is not a map[string]interface{}") // unexpected
+			}
+
+			prefixInferface, ok := uri["prefix"]
+			if !ok {
+				return strset.New("/"), nil
+			}
+			prefix, ok := prefixInferface.(string)
+			if !ok {
+				return nil, errors.New("prefix is not a string") // unexpected
+			}
+
+			endpoints.Add(urls.CannonicalizeEndpoint(prefix))
+		}
+	}
+
+	return endpoints, nil
 }

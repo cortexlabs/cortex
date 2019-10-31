@@ -32,6 +32,7 @@ func getAPIs(config *userconfig.Config, deploymentVersion string, projectID stri
 	for _, apiConfig := range config.APIs {
 		var buf bytes.Buffer
 		buf.WriteString(apiConfig.Name)
+		buf.WriteString(*apiConfig.Endpoint)
 		buf.WriteString(s.Obj(apiConfig.Tracker))
 		buf.WriteString(deploymentVersion)
 		buf.WriteString(s.Obj(apiConfig.Tensorflow))
@@ -52,8 +53,7 @@ func getAPIs(config *userconfig.Config, deploymentVersion string, projectID stri
 					ResourceType: resource.APIType,
 				},
 			},
-			API:  apiConfig,
-			Path: context.APIPath(apiConfig.Name, config.App.Name),
+			API: apiConfig,
 		}
 	}
 	return apis, nil

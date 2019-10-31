@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -76,7 +77,7 @@ var upCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		err = runManagerCommand("/root/install.sh", clusterConfig, awsCreds)
+		_, err = runManagerCommand("/root/install.sh", clusterConfig, awsCreds)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -94,7 +95,7 @@ var updateCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		err = runManagerCommand("/root/install.sh --update", clusterConfig, awsCreds)
+		_, err = runManagerCommand("/root/install.sh --update", clusterConfig, awsCreds)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -112,9 +113,12 @@ var infoCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		err = runManagerCommand("/root/info.sh", clusterConfig, awsCreds)
+		out, err := runManagerCommand("/root/info.sh", clusterConfig, awsCreds)
 		if err != nil {
 			errors.Exit(err)
+		}
+		if strings.Contains(out, "there isn't a Cortex cluster") {
+			errors.Exit()
 		}
 
 		fmt.Println()
@@ -138,14 +142,14 @@ var downCmd = &cobra.Command{
 	Long:  `This command spins down a Cortex cluster.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		prompt.YesOrExit("Are you sure you want to uninstall Cortex? (Your cluster will be spun down and all APIs will be deleted)", "exiting...")
+		prompt.YesOrExit("Are you sure you want to uninstall Cortex? (Your cluster will be spun down and all APIs will be deleted)", "")
 
 		clusterConfig, awsCreds, err := getAccessClusterConfig()
 		if err != nil {
 			errors.Exit(err)
 		}
 
-		err = runManagerCommand("/root/uninstall.sh", clusterConfig, awsCreds)
+		_, err = runManagerCommand("/root/uninstall.sh", clusterConfig, awsCreds)
 		if err != nil {
 			errors.Exit(err)
 		}

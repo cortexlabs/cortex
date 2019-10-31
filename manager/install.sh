@@ -21,13 +21,13 @@ arg1="$1"
 function ensure_eks() {
   if ! eksctl utils describe-stacks --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION >/dev/null 2>&1; then
     if [ "$arg1" = "--update" ]; then
-      echo "error: there isn't a Cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION; please update your configuration to point to an existing Cortex cluster or create a Cortex cluster with \`cortex cluster install\`"
+      echo "error: there isn't a Cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION; please update your configuration to point to an existing Cortex cluster or create a Cortex cluster with \`cortex cluster up\`"
       exit 1
     fi
 
     echo -e "￮ Spinning up the cluster ... (this will take about 15 minutes)\n"
     envsubst < eks.yaml | eksctl create cluster -f -
-    echo "\n✓ Spun up the cluster"
+    echo -e "\n✓ Spun up the cluster"
     return
   fi
 
@@ -71,12 +71,6 @@ function main() {
   echo "✓ Updated cluster configuration"
 
   echo -n "￮ Configuring networking "
-  # https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
-  kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.5.4/config/v1.5/aws-k8s-cni.yaml >/dev/null
-  until [ "$(kubectl get daemonset aws-node -n kube-system -o 'jsonpath={.status.updatedNumberScheduled}')" == "$(kubectl get daemonset aws-node -n kube-system -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
-    echo -n "."
-    sleep 3
-  done
   setup_istio
   envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
   echo -e "\n✓ Configured networking"
@@ -171,6 +165,8 @@ function setup_istio() {
     echo -n "."
     sleep 3
   done
+  echo -n "."
+  sleep 3  # Sleep a bit longer to be safe, since there are multiple Istio initialization containers
   echo -n "."
 
   helm template istio-manifests/istio-cni --name istio-cni --namespace kube-system | kubectl apply -f - >/dev/null
