@@ -40,12 +40,6 @@ See [packaging ONNX models](../packaging/onnx.md) for information about exportin
     gpu: 1
 ```
 
-## Request Handlers
-
-Request handlers are used to decouple the interface of an API endpoint from its model. A `pre_inference` request handler can be used to modify request payloads before they are sent to the model. A `post_inference` request handler can be used to modify model predictions in the server before they are sent to the client.
-
-See [request handlers](request-handlers.md) for a detailed guide.
-
 ## Debugging
 
 You can log information about each request by adding a `?debug=true` parameter to your requests. This will print:

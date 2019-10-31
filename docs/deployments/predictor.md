@@ -34,17 +34,18 @@ def predict(sample, metadata):
 ## Example
 
 ```python
-from my_model import IrisNet
 import boto3
+from my_model import IrisNet
 
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
-
-model = IrisNet() # Declare the model in global scope so that it can be used in init and predict functions
+model = IrisNet()
 
 def init(metadata):
-    # Download model/model weights from S3 (location specified in api configuration metadata) and initialize your model.
+    # Download model from S3 (location specified in api configuration metadata)
     s3 = boto3.client("s3")
     s3.download_file(metadata["bucket"], metadata["key"], "iris_model.pth")
+
+    # Initialize the model
     model.load_state_dict(torch.load("iris_model.pth"))
     model.eval()
 
@@ -64,59 +65,4 @@ def predict(sample, metadata):
 
     output = model(input_tensor)
     return labels[torch.argmax(output[0])]
-```
-
-<!-- CORTEX_VERSION_MINOR -->
-See [iris-classifier](https://github.com/cortexlabs/cortex/blob/master/pytorch/examples/iris-classifier) for the full example.
-
-
-## Pre-installed packages
-
-The following packages have been pre-installed and can be used in your implementations:
-
-```text
-boto3==1.9.228
-msgpack==0.6.1
-numpy==1.17.2
-requests==2.22.0
-```
-
-## PyPI packages
-
-You can install additional PyPI packages and import them in your handlers. Cortex looks for a `requirements.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
-
-```text
-./iris-classifier/
-├── cortex.yaml
-├── inference.py
-├── ...
-└── requirements.txt
-```
-
-## Project files
-
-Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available to pre and post inference handlers. Python generated files, files and folders that start with `.`, and `cortex.yaml` are excluded.
-
-The contents of the project directory is available in `/mnt/project/` in the API containers. For example, if this is your project directory:
-
-```text
-./iris-classifier/
-├── cortex.yaml
-├── config.json
-├── inference.py
-├── ...
-└── requirements.txt
-```
-
-You can access `config.json` in `inference.py` like this:
-
-```python
-import json
-
-with open('/mnt/project/config.json', 'r') as config_file:
-  config = json.load(config_file)
-
-def pre_inference(sample, signature, metadata):
-  print(config)
-  ...
 ```
