@@ -60,6 +60,8 @@ log_group: cortex
 cluster_name: cortex
 telemetry: false
 
+image_python_serve: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-serve:latest
+image_python_serve_gpu: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-serve-gpu:latest
 image_tf_serve: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve:latest
 image_tf_serve_gpu: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve-gpu:latest
 image_onnx_serve: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/onnx-serve:latest
