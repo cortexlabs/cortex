@@ -6,8 +6,8 @@ Specify a python inference implementation that describes how to load your model 
 
 Besides providing a Python interface, Cortex can directly serve the following model formats:
 
-- [TensorFlow saved model](./tensorflow/api.md)
-- [ONNX](./onnx/api.md)
+- [TensorFlow saved model](./tensorflow-api.md)
+- [ONNX](./onnx-api.md)
 
 ## Inference
 
