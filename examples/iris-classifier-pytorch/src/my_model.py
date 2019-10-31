@@ -7,9 +7,9 @@ from torch.autograd import Variable
 from sklearn.metrics import accuracy_score
 
 
-class Net(nn.Module):
+class IrisNet(nn.Module):
     def __init__(self):
-        super(Net, self).__init__()
+        super(IrisNet, self).__init__()
         self.fc1 = nn.Linear(4, 100)
         self.fc2 = nn.Linear(100, 100)
         self.fc3 = nn.Linear(100, 3)
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     train_y = Variable(torch.Tensor(y_train).long())
     test_y = Variable(torch.Tensor(y_test).long())
 
-    model = Net()
+    model = IrisNet()
 
     criterion = nn.CrossEntropyLoss()
 

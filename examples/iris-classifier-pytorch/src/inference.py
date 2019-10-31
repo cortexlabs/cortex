@@ -1,10 +1,10 @@
 import torch
-from model import Net
+from my_model import IrisNet
 import boto3
 
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
-model = Net()
+model = IrisNet()
 
 
 def init(metadata):

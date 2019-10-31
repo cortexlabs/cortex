@@ -347,6 +347,10 @@ func tfAPISpec(
 						Env: append(
 							k8s.AWSCredentials(),
 							kcore.EnvVar{
+								Name:  "PYTHON_ROOT",
+								Value: path.Join(consts.EmptyDirMountPath, "project", ctx.App.PythonRoot),
+							},
+							kcore.EnvVar{
 								Name: "HOST_IP",
 								ValueFrom: &kcore.EnvVarSource{
 									FieldRef: &kcore.ObjectFieldSelector{
@@ -657,6 +661,10 @@ func onnxAPISpec(
 						},
 						Env: append(
 							k8s.AWSCredentials(),
+							kcore.EnvVar{
+								Name:  "PYTHON_ROOT",
+								Value: path.Join(consts.EmptyDirMountPath, "project", ctx.App.PythonRoot),
+							},
 							kcore.EnvVar{
 								Name: "HOST_IP",
 								ValueFrom: &kcore.EnvVarSource{

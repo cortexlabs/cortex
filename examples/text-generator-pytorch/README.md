@@ -1,6 +1,6 @@
 # Self-host HuggingFace's GPT-2 as a service
 
-This example shows how to deploy HuggingFace's DistilGPT2 (Based on OpenAI's GPT-2) model as a service on AWS.
+This example shows how to deploy [HuggingFace's DistilGPT2](https://github.com/huggingface/transformers/tree/master/examples/distillation) model as a service on AWS. DistilGPT2 is a compressed version of OpenAI's GPT-2.
 
 
 ## Inference
@@ -31,7 +31,7 @@ def predict(sample, metadata):
     )
 ```
 
-See `inference.py` for more details.
+See [inference.py](./inference.py) for the complete code.
 
 ## Define a deployment
 
@@ -59,7 +59,7 @@ $ cortex deploy
 deployment started
 ```
 
-Behind the scenes, Cortex containerizes the model, makes it servable using TensorFlow Serving, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+Behind the scenes, Cortex containerizes the python inference implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
 You can track the status of a deployment using `cortex get`:
 
@@ -77,9 +77,9 @@ The output above indicates that one replica of the API was requested and one rep
 ```bash
 $ cortex get text-gen
 
-url: http://***.amazonaws.com/text/generator
+url: http://***.amazonaws.com/gpt2/text-gen
 
-$ curl http://***.amazonaws.com/text/generator \
+$ curl http://***.amazonaws.com/gpt2/text-gen \
     -X POST -H "Content-Type: application/json" \
     -d '{"text": "machine learning"}'
 

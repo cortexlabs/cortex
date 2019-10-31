@@ -8,7 +8,7 @@ We implement Cortex's python inference interface that describes how to load the 
 
 ### Initialization
 
-Cortex executes the python implementation once per replica startup. We cane can place our initializations in the body of the implementation. Let us download the pretrained Alexnet model and set it to evaluation:
+Cortex executes the python implementation once per replica startup. We can place our initializations in the body of the implementation. Let us download the pretrained Alexnet model and set it to evaluation:
 ```
 model = torchvision.models.alexnet(pretrained=True)
 model.eval()
@@ -16,7 +16,6 @@ model.eval()
 
 We declare the necessary image preprocessing:
 ```
-# https://github.com/pytorch/examples/blob/447974f6337543d4de6b888e244a964d3c9b71f6/imagenet/main.py#L198-L199
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 preprocess = transforms.Compose(
     [transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor(), normalize]
@@ -50,12 +49,12 @@ def predict(sample, metadata):
     return labels[index]
 ```
 
-See `inference.py` for more details.
+See [inference.py](./inference.py) for the complete code.
 
 ## Define a deployment
 
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. This configuration will deploy the implentation specified in `inference.py` and trigger the `predict` function once per request. The predictions made by the web service will be tracked.
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. This configuration will deploy the implentation specified in `inference.py` and trigger the `predict` function once per request.
 
 ```yaml
 - kind: deployment
@@ -79,7 +78,7 @@ $ cortex deploy
 deployment started
 ```
 
-Behind the scenes, Cortex containerizes the models, makes them servable using ONNX Runtime, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+Behind the scenes, Cortex containerizes the python inference implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
 You can track the statuses of the APIs using `cortex get`:
 

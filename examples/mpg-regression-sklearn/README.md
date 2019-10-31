@@ -21,7 +21,7 @@ def init(metadata):
 ```
 
 ### Predict
-The `predict` function will be triggered once per request to run the text generation model on a prompt provided in the request. In the `predict` function, we extract the features from the sample sent in the request and respond with a prediction.
+The `predict` function will be triggered once per request to run the text generation model on a prompt provided in the request. In the `predict` function, we extract the features from the sample sent in the request and respond with a predicted mpg.
 
 ```python
 def predict(sample, metadata):
@@ -36,11 +36,11 @@ def predict(sample, metadata):
     return np.asscalar(result)
 ```
 
-See `inference.py` for more details.
+See [inference.py](./inference.py) for the complete code.
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions.  This configuration will deploy the implentation specified in `inference.py` and generates 20 words per request.
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will passed into the `init` function in `inference.py` for model initialization. Once the model is initialized the `predict` function in `inference.py` will be triggered every time a request is made to the API.
 
 ```yaml
 - kind: deployment
@@ -67,12 +67,12 @@ $ cortex deploy
 deployment started
 ```
 
-Behind the scenes, Cortex containerizes the model, makes it servable using TensorFlow Serving, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+Behind the scenes, Cortex containerizes the python inference implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
 You can track the status of a deployment using `cortex get`:
 
 ```bash
-$ cortex get text-gen --watch
+$ cortex get mpg --watch
 
 status   up-to-date   available   requested   last update   avg latency
 live     1            1           1           9m            -
@@ -83,15 +83,15 @@ The output above indicates that one replica of the API was requested and one rep
 ## Serve real-time predictions
 
 ```bash
-$ cortex get text-gen
+$ cortex get mpg
 
-url: http://***.amazonaws.com/text/generator
+url: http://***.amazonaws.com/auto/mpg
 
-$ curl http://***.amazonaws.com/text/generator \
+$ curl http://***.amazonaws.com/auto/mpg \
     -X POST -H "Content-Type: application/json" \
-    -d '{"text": "machine learning"}'
+    -d '{"cylinders": 4, "displacement": 135, "horsepower": 84, "weight": 2490, "acceleration": 15.7}'
 
-machine learning and simulated engine testing platform. The model can be applied in this article. We are implementing a workflow...
+26.929889872154185
 ```
 
 Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).

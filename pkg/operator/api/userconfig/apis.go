@@ -379,7 +379,7 @@ func (python *Python) UserConfigStr() string {
 	return sb.String()
 }
 
-func (api *API) Validate(projectFileMap map[string][]byte) error {
+func (api *API) Validate(deploymentName string, projectFileMap map[string][]byte) error {
 	if api.Endpoint == nil {
 		api.Endpoint = pointer.String("/" + deploymentName + "/" + api.Name)
 	}
