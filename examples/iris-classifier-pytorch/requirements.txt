@@ -1,2 +1,2 @@
-torch==1.2.* 
-scikit-learn==0.21.* 
+torch==1.2.*
+scikit-learn==0.21.*

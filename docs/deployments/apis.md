@@ -1,16 +1,17 @@
 # APIs
 
-Deploy your model as an API at scale. 
+Deploy your model as an API at scale.
 
-A python interface below can be implemented to deploy most models with Cortex. Specify a python `inference` file that describes how to load your model and use it to make predictions. Cortex uses the `inference` file to deploy multiple replicas that can serve your model as an API. Deployment parameters such as minimum replica count, maximum replica count, enabling prediction monitoring can be configured using yaml.
+Most models can be deployed by implmenting the Python interface below. Specify a Python `inference` file that describes how to load your model and how to use it to make predictions. Cortex uses the `inference` file to deploy multiple replicas that can serve your model as an API. Deployment parameters such as minimum replica count, maximum replica count, and prediction monitoring can be configured using yaml.
 
-Besides providing a python interface, Cortex can serve the following exported model formats:
+Besides providing a Python interface, Cortex can directly serve the following exported model formats:
+
 - [TensorFlow saved model](./tensorflow/api.md)
 - [ONNX](./onnx/api.md)
 
-
 ## Inference
-Model initialization and other setup such as downloading vocabulary or initializing a tokenizer can be defined in the `init` function. The `predict` function is responsible for making an inference on a request and returning a prediction. The preprocessing of a request and postprocessing of model output can be done in the predict function.
+
+The `init` function can be used for model initialization and other setup such as downloading a vocabulary or initializing a tokenizer. The `predict` function is responsible for making an inference on a request and returning a prediction. The preprocessing of a request and postprocessing of model output can also be done in the predict function.
 
 ```python
 import ...
@@ -24,8 +25,9 @@ def predict(sample, metadata):
 
 See [inference](./inference.md) for a detailed guide.
 
-## Config
-Configure the details of your API deployment using the configuration schema below and add it to your `cortex.yaml`
+## Configuration
+
+Configure the details of your API deployment using the configuration schema below and add it to your `cortex.yaml`:
 
 ```yaml
 - kind: api
@@ -34,7 +36,7 @@ Configure the details of your API deployment using the configuration schema belo
     inference: <string>  # path to the inference implementation python file, relative to the cortex root (required)
   tracker:
     key: <string>  # key to track (required if the response payload is a JSON object)
-    model_type: <string>  # model type, must be "classification" or "regression"
+    model_type: <string>  # model type, must be "classification" or "regression" (required)
   compute:
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
@@ -43,7 +45,7 @@ Configure the details of your API deployment using the configuration schema belo
     cpu: <string | int | float>  # CPU request per replica (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica (default: Null)
-  metadata: <string: value>  # dictionary that can be used to configure custom values    
+  metadata: <string: value>  # dictionary that can be used to configure custom values (optional)
 ```
 
 ### Example

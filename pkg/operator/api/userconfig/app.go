@@ -19,9 +19,9 @@ package userconfig
 import (
 	"strings"
 
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type App struct {
@@ -60,7 +60,7 @@ func (app *App) Validate(projectFileMap map[string][]byte) error {
 				break
 			}
 		}
-		
+
 		if !validPythonRoot {
 			return errors.Wrap(ErrorImplDoesNotExist(app.PythonRoot), "app", PythonRootKey)
 		}

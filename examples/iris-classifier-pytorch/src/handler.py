@@ -28,4 +28,3 @@ def predict(sample, metadata):
 
     output = model(input_tensor)
     return labels[torch.argmax(output[0])]
-

@@ -22,13 +22,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cortexlabs/yaml"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	"github.com/cortexlabs/yaml"
 )
 
 type APIs []*API

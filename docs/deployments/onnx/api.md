@@ -8,11 +8,11 @@ Serve ONNX models at scale.
 - kind: api
   name: <string>  # API name (required)
   onnx:
-    model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model) (required)
-    request_handler: <string>  # path to the request handler implementation file, relative to the cortex root
+    model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
+    request_handler: <string>  # path to the request handler implementation file, relative to the cortex root (optional)
   tracker:
     key: <string>  # key to track (required if the response payload is a JSON object)
-    model_type: <string>  # model type, must be "classification" or "regression"
+    model_type: <string>  # model type, must be "classification" or "regression" (required)
   compute:
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
@@ -21,7 +21,7 @@ Serve ONNX models at scale.
     cpu: <string | int | float>  # CPU request per replica (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica (default: Null)
-  metadata: <string: value>  # dictionary that can be used to configure custom values    
+  metadata: <string: value>  # dictionary that can be used to configure custom values (optional)
 ```
 
 See [packaging onnx models](./packaging.md) for how to export an ONNX model.
@@ -32,7 +32,7 @@ See [packaging onnx models](./packaging.md) for how to export an ONNX model.
 - kind: api
   name: my-api
   onnx:
-    model: s3://my-bucket/my-model.zip
+    model: s3://my-bucket/my-model.onnx
     request_handler: handler.py
   compute:
     gpu: 1
@@ -43,12 +43,6 @@ See [packaging onnx models](./packaging.md) for how to export an ONNX model.
 Request handlers are used to decouple the interface of an API endpoint from its model. A `pre_inference` request handler can be used to modify request payloads before they are sent to the model. A `post_inference` request handler can be used to modify model predictions in the server before they are sent to the client.
 
 See [request handlers](../request-handlers.md) for a detailed guide.
---------------
-## Inference
-
-An Python implementation that defines how to initialize a model and use it to make predictions on requests. An `init` function can be defined to perform setup such as downloading a model or configuring a tokenizer. The `predict` function definition is required to make a prediction on the data passed in the request. The `predict` function can be used to 
-
-See [inference](./inference.md) for a detailed guide.
 
 ## Prediction Monitoring
 
@@ -56,21 +50,12 @@ See [inference](./inference.md) for a detailed guide.
 
 ## Debugging
 
-You can log more information about each request by adding a `?debug=true` parameter to your requests. This will print:
+You can log information about each request by adding a `?debug=true` parameter to your requests. This will print:
 
 1. The raw sample
 2. The value after running the `pre_inference` function (if applicable)
 3. The value after running inference
 4. The value after running the `post_inference` function (if applicable)
-
----------------
-
-## Debugging
-
-You can log information about each request by adding a `?debug=true` parameter to your requests. This will print:
-
-1. The raw sample
-2. The value after running the `predict` function
 
 ## Autoscaling Replicas
 

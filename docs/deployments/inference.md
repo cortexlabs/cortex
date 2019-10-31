@@ -1,6 +1,6 @@
 # Inference
 
-A python file that describes how to intializes a model use the model to make predictions on data from JSON request payloads.
+A python file that describes how to intializes a model and use the model to make predictions on data from JSON request payloads.
 
 ## Implementation
 
@@ -8,20 +8,18 @@ A python file that describes how to intializes a model use the model to make pre
 # Initialization code can be added here to global scope
 
 def init(metadata):
-    """Called once before API is made available. Setup for model serving such as initializing the model or downloading vocabulary should be done here.
+    """Called once before the API is made available. Setup for model serving such as initializing the model or downloading vocabulary can be done here.
 
     Args:
         metadata: Custom dictionary specified by user in API configuration.
-
     """
     pass
 
 def predict(sample, metadata):
-    """Called once per request. Model prediction including any preprocessing of request payload and postprocessing of model output should be done here.
+    """Called once per request. Model prediction should be done here, including any preprocessing of the request payload and postprocessing of the model output.
 
     Args:
-        sample: A python object parsed from a JSON payload of request.
-
+        sample: A Python object parsed from a JSON request payload.
         metadata: Custom dictionary specified by user in API configuration.
 
     Returns:
@@ -41,7 +39,7 @@ labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 model = MyNet()
 
 def init(metadata):
-    # Download model/model weights from S3 specified in your api metadata and initialize your model.
+    # Download model/model weights from S3 (location specified in api configuration metadata) and initialize your model.
     s3 = boto3.client("s3", region_name=metadata["region"])
     s3.download_file(metadata["bucket"], metadata["key"], "iris_model.pth")
     model.load_state_dict(torch.load("iris_model.pth"))
@@ -65,7 +63,8 @@ def predict(sample, metadata):
     return labels[torch.argmax(output[0])]
 ```
 
-See [iris-pytorch](https://github.com/cortexlabs/cortex/blob/master/examples/iris-pytorch) for full example.
+<!-- CORTEX_VERSION_MINOR -->
+See [iris-pytorch](https://github.com/cortexlabs/cortex/blob/master/examples/iris-pytorch) for the full example.
 
 ## Pre-installed packages
 
@@ -80,7 +79,7 @@ requests==2.22.0
 
 ## PyPI packages
 
-You can install additional PyPI packages and import them your handlers. Cortex looks for a `requirements.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
+You can install additional PyPI packages and import them in your handlers. Cortex looks for a `requirements.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
 
 ```text
 ./iris-classifier/
@@ -92,7 +91,7 @@ You can install additional PyPI packages and import them your handlers. Cortex l
 
 ## Project files
 
-Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available to pre and post inference handlers. Python generated files and files and folders that start with `.` are excluded.
+Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available to pre and post inference handlers. Python generated files, files and folders that start with `.`, and `cortex.yaml` are excluded.
 
 The contents of the project directory is available in `/mnt/project/` in the API containers. For example, if this is your project directory:
 

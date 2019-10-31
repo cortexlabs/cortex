@@ -37,4 +37,3 @@ def predict(sample, metadata):
         prediction = model(img_tensor)
     _, index = prediction[0].max(0)
     return labels[index]
-
