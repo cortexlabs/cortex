@@ -1,6 +1,6 @@
 # APIs
 
-Serve ONNX models at scale.
+Deploy TensorFlow models as webservices at scale.
 
 ## Config
 
@@ -8,9 +8,10 @@ Serve ONNX models at scale.
 - kind: api
   name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
-  onnx:
-    model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
+  tensorflow:
+    model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model) (required)
     request_handler: <string>  # path to the request handler implementation file, relative to the cortex root (optional)
+    signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
   tracker:
     key: <string>  # key to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
@@ -25,15 +26,15 @@ Serve ONNX models at scale.
   metadata: <string: value>  # dictionary that can be used to configure custom values (optional)
 ```
 
-See [packaging onnx models](./packaging.md) for how to export an ONNX model.
+See [packaging tensorflow models](./packaging.md) for how to export a TensorFlow model.
 
 ## Example
 
 ```yaml
 - kind: api
   name: my-api
-  onnx:
-    model: s3://my-bucket/my-model.onnx
+  tensorflow:
+    model: s3://my-bucket/my-model
     request_handler: handler.py
   compute:
     gpu: 1
@@ -45,10 +46,6 @@ Request handlers are used to decouple the interface of an API endpoint from its 
 
 See [request handlers](../request-handlers.md) for a detailed guide.
 
-## Prediction Monitoring
-
-`tracker` can be configured to collect API prediction metrics and display real-time stats in `cortex get <api_name>`. The tracker looks for scalar values in the response payload (after the execution of the `post_inference` request handler, if provided). If the response payload is a JSON object, `key` can be set to extract the desired scalar value. For regression models, the tracker should be configured with `model_type: regression` to collect float values and display regression stats such as min, max and average. For classification models, the tracker should be configured with `model_type: classification` to collect integer or string values and display the class distribution.
-
 ## Debugging
 
 You can log information about each request by adding a `?debug=true` parameter to your requests. This will print:
@@ -58,10 +55,11 @@ You can log information about each request by adding a `?debug=true` parameter t
 3. The value after running inference
 4. The value after running the `post_inference` function (if applicable)
 
-## Autoscaling Replicas
+## Prediction Monitoring
 
-Cortex adjusts the number of replicas that are serving predictions by monitoring the compute resource usage of each API. The number of replicas will be at least `min_replicas` and no more than `max_replicas`.
+You can track your predictions by configuring a `tracker`. See [Prediction Monitoring](./prediction-monitoring.md) for more information.
 
-## Autoscaling Nodes
+## Autoscaling
 
-Cortex spins up and down nodes based on the aggregate resource requests of all APIs. The number of nodes will be at least `min_instances` and no more than `max_instances` (configured during installation and modifiable via the [AWS console](https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-manual-scaling.html)).
+Cortex automatically scales your webservices. See [Autoscaling](./autoscaling.md) for more information.
+

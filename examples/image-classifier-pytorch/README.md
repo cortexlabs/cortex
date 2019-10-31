@@ -53,8 +53,7 @@ See [inference.py](./inference.py) for the complete code.
 
 ## Define a deployment
 
-
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. This configuration will deploy the implentation specified in `inference.py` and trigger the `predict` function once per request.
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. This configuration will deploy the implementation specified in `inference.py` and trigger the `predict` function once per request.
 
 ```yaml
 - kind: deployment

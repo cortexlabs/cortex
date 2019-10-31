@@ -1,35 +1,41 @@
 # APIs
 
-Deploy your model as an API at scale.
+Deploy your models as webservices at scale.
 
-Most models can be deployed by implmenting the Python interface below. Specify a python inference implementation that describes how to load your model and how to use it to make predictions. Cortex uses the `inference` file to deploy multiple replicas that can serve your model as an API. Deployment parameters such as minimum replica count, maximum replica count, and prediction monitoring can be configured using yaml.
+Specify a python inference implementation that describes how to load your model and how to use it to make predictions. Cortex uses the `inference` file to deploy multiple replicas that can serve your model as an API. Deployment parameters such as minimum replica count, maximum replica count, and prediction monitoring can be configured using YAML.
 
-Besides providing a Python interface, Cortex can directly serve the following exported model formats:
+Besides providing a Python interface, Cortex can directly serve the following model formats:
 
 - [TensorFlow saved model](./tensorflow/api.md)
 - [ONNX](./onnx/api.md)
 
 ## Inference
 
-A python implementation of the Inference interface defining an `init` function for preparing a model for serving and a `predict` function that applies the model to the sample provided in the request needs to be provided. Cortex uses this implementation to load and serve models as an API of autoscaling replicas. 
+The Inference interface consists of an `init` function and a `predict` function. The `init` function is reponsible for preparing the model for serving, downloading vocabulary files, aggregates etc. 
 
 ```python
 import ...
 
-# run initializations here (e.g. loading your model or creating a tokenizer)
+# declare variables in global scope
+model = MyModel()
+tokenizer = Tokenizer.init()
+labels = requests.get('https://...')
 
 def init(metadata):
-  # run initializations more here that may require metadata that you define in your yaml (e.g. )
+  # download models and perform any additional setup here
+  model_weight = download_weights_from_s3(metadata["model_path"])
+  model.load(model_weight)
 
 def predict(sample, metadata):
-  # run your model on the sample in an HTTP request and respond with a prediction
+  # apply your model here, preprocessing and postprocessing can be done here
+  tokens = tokenizer.encode(sample["text"])
+  output = model(tokens)
+  return labels[np.argmax(output)]
 ```
 
 See [inference](./inference.md) for a detailed guide.
 
 ## Configuration
-
-Configure the details of your API deployment using the configuration schema below and add it to your `cortex.yaml`:
 
 ```yaml
 - kind: api
@@ -62,10 +68,6 @@ Configure the details of your API deployment using the configuration schema belo
     gpu: 1
 ```
 
-## Prediction Monitoring
-
-`tracker` can be configured to collect API prediction metrics and display real-time stats in `cortex get <api_name>`. The tracker looks for scalar values in the response payload (after the execution of the `post_inference` request handler, if provided). If the response payload is a JSON object, `key` can be set to extract the desired scalar value. For regression models, the tracker should be configured with `model_type: regression` to collect float values and display regression stats such as min, max and average. For classification models, the tracker should be configured with `model_type: classification` to collect integer or string values and display the class distribution.
-
 ## Debugging
 
 You can log information about each request by adding a `?debug=true` parameter to your requests. This will print:
@@ -73,10 +75,10 @@ You can log information about each request by adding a `?debug=true` parameter t
 1. The raw sample
 2. The value after running the `predict` function
 
-## Autoscaling Replicas
+## Prediction Monitoring
 
-Cortex adjusts the number of replicas that are serving predictions by monitoring the compute resource usage of each API. The number of replicas will be at least `min_replicas` and no more than `max_replicas`.
+You can track your predictions by configuring a `tracker`. See [Prediction Monitoring](./prediction-monitoring.md) for more information.
 
-## Autoscaling Nodes
+## Autoscaling
 
-Cortex spins up and down nodes based on the aggregate resource requests of all APIs. The number of nodes will be at least `min_instances` and no more than `max_instances` (configured during installation and modifiable via the [AWS console](https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-manual-scaling.html)).
+Cortex automatically scales your webservices. See [Autoscaling](./autoscaling.md) for more information.

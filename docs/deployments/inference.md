@@ -1,6 +1,6 @@
 # Inference
 
-Inference is a python file that describes how to intializes a model and use the model to make a prediction on a sample in a request.
+Inference is a Python file that describes how to intialize a model and use the model to make a prediction on a sample in a request.
 
 The lifecycle of a replica running an inference implementation starts with loading the implementation and running any code living in the global scope. Once the implementation is loaded, Cortex calls the `init` function with metadata to do any additional preparations. The `init` function is typically used to download and initialize models because it receives a metadata object which normally contains the path to the exported/pickled model. Once the `init` function is executed, the replica is available to accept requests. The `predict` function is called when a request is recieved. The JSON payload of a request is parsed into a sample dictionary and is passed to the `predict` function along with metadata. The `predict` function is responsible for passing the sample into the model and returning a prediction.
 
@@ -39,7 +39,7 @@ import boto3
 
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
-model = IrisNet() # Declare the model in global scope so that it can be used in init and prediction functions
+model = IrisNet() # Declare the model in global scope so that it can be used in init and predict functions
 
 def init(metadata):
     # Download model/model weights from S3 (location specified in api configuration metadata) and initialize your model.

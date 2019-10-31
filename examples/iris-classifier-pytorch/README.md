@@ -2,7 +2,6 @@
 
 This example shows how to deploy a classifier trained on the famous [iris data set](https://archive.ics.uci.edu/ml/datasets/iris) in PyTorch. The PyTorch model being deployed can be found [here](./src/model.py).
 
-
 ## Inference
 
 We implement Cortex's python inference interface that describes how to load the model and make predictions using the model. Cortex will use this implementation to serve your model as an API of autoscaling replicas. We specify a `requirements.txt` to install dependencies necessary to implement the Cortex inference interface.
@@ -29,7 +28,7 @@ def init(metadata):
 
 ### Predict
 
-The `predict` function will be triggered once per request to run the Iris model on the request payload and respond with a prediction. In the `predict` function, we extract the iris features from the sample sent in the request and respond with a human readable label.
+The `predict` function will be triggered once per request to run the Iris model on the request payload and respond with a prediction. In the `predict` function, we extract the iris features from the sample sent in the request and respond with a human-readable label.
 
 ```python
 def predict(sample, metadata):
@@ -52,7 +51,7 @@ See `inference.py` for the complete code.
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will passed into the `init` function in `inference.py` for model initialization. We specify the `python_root` in the deployment so that we can import our model as `from my_model import IrisNet` instead of `from src.my_model import IristNet` in `inference.py`.
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will be passed into the `init` function in `inference.py` for model initialization. We specify the `python_root` in the deployment so that we can import our model as `from my_model import IrisNet` instead of `from src.my_model import IristNet` in `inference.py`.
 
 ```yaml
 - kind: deployment

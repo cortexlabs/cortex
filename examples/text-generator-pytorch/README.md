@@ -2,7 +2,6 @@
 
 This example shows how to deploy [HuggingFace's DistilGPT2](https://github.com/huggingface/transformers/tree/master/examples/distillation) model as a service on AWS. DistilGPT2 is a compressed version of OpenAI's GPT-2.
 
-
 ## Inference
 
 We implement Cortex's python inference interface that describes how to load the model and make predictions using the model. Cortex will use this implementation to serve your model as an API of autoscaling replicas. We specify a `requirements.txt` to install dependencies necessary to implement the Cortex inference interface.
@@ -17,12 +16,9 @@ tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
 ```
 
 ### Predict
-The `predict` function will be triggered once per request to run the text generation model on a prompt provided in the request. We tokenize the prompt and and generate the number of words specified in the deployment definition `cortex.yaml`. We decode the output of the model and respond with readable generated text.
+The `predict` function will be triggered once per request to run the text generation model on a prompt provided in the request. We tokenize the prompt and generate the number of words specified in the deployment definition `cortex.yaml`. We decode the output of the model and respond with readable generated text.
 
 ```python
-def sample_sequence(model, lenght, context, **kwargs):
-    #...
-
 def predict(sample, metadata):
     indexed_tokens = tokenizer.encode(sample["text"])
     output = sample_sequence(model, metadata['num_words'], indexed_tokens)
@@ -35,7 +31,7 @@ See [inference.py](./inference.py) for the complete code.
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions.  This configuration will deploy the implentation specified in `inference.py` and generates 20 words per request.
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions.  This configuration will deploy the implementation specified in `inference.py` and generates 20 words per request.
 
 ```yaml
 - kind: deployment
@@ -82,8 +78,6 @@ url: http://***.amazonaws.com/gpt2/text-gen
 $ curl http://***.amazonaws.com/gpt2/text-gen \
     -X POST -H "Content-Type: application/json" \
     -d '{"text": "machine learning"}'
-
-machine learning and simulated engine testing platform. The model can be applied in this article. We are implementing a workflow...
 ```
 
 Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).

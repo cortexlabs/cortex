@@ -12,7 +12,6 @@ Cortex executes the python implementation and calls the `init` function once on 
 ```python
 model = None
 
-
 def init(metadata):
     global model
     s3 = boto3.client("s3")
@@ -40,7 +39,7 @@ See [inference.py](./inference.py) for the complete code.
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will passed into the `init` function in `inference.py` for model initialization. Once the model is initialized the `predict` function in `inference.py` will be triggered every time a request is made to the API.
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will be passed into the `init` function in `inference.py` for model initialization. Once the model is initialized the `predict` function in `inference.py` will be triggered every time a request is made to the API.
 
 ```yaml
 - kind: deployment
