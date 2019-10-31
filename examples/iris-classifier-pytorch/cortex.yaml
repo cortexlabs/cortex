@@ -1,11 +1,11 @@
 - kind: deployment
   name: iris
-  python_root: src/
 
 - kind: api
   name: classifier
+  python_path: src/
   python:
-    inference: src/inference.py
+    predictor: src/predictor.py
   metadata:
     bucket: data-vishal
     key: iris_model.pth

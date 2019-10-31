@@ -2,9 +2,9 @@
 
 This example shows how to deploy a sklearn linear regression model trained on the MPG dataset.
 
-## Inference
+## Predictor
 
-We implement Cortex's python inference interface that describes how to load the model and make predictions using the model. Cortex will use this implementation to serve your model as an API of autoscaling replicas. We specify a `requirements.txt` to install dependencies necessary to implement the Cortex inference interface.
+We implement Cortex's Python Predictor interface that describes how to load the model and make predictions using the model. Cortex will use this implementation to serve your model as an API of autoscaling replicas. We specify a `requirements.txt` to install dependencies necessary to implement the Cortex Predictor interface.
 
 ### Initialization
 
@@ -35,11 +35,11 @@ def predict(sample, metadata):
     return np.asscalar(result)
 ```
 
-See [inference.py](./inference.py) for the complete code.
+See [predictor.py](./src/predictor.py) for the complete code.
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will be passed into the `init` function in `inference.py` for model initialization. Once the model is initialized the `predict` function in `inference.py` will be triggered every time a request is made to the API.
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will be passed into the `init` function in `predictor.py` for model initialization. Once the model is initialized the `predict` function in `predictor.py` will be triggered every time a request is made to the API.
 
 ```yaml
 - kind: deployment
@@ -48,7 +48,7 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
 - kind: api
   name: mpg
   python:
-    inference: src/inference.py
+    predictor: src/predictor.py
   tracker:
     model_type: regression
   metadata:
@@ -66,7 +66,7 @@ $ cortex deploy
 deployment started
 ```
 
-Behind the scenes, Cortex containerizes the python inference implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+Behind the scenes, Cortex containerizes the Predictor implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
 You can track the status of a deployment using `cortex get`:
 

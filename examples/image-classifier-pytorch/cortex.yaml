@@ -4,4 +4,4 @@
 - kind: api
   name: alexnet
   python:
-    inference: inference.py
+    predictor: predictor.py

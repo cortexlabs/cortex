@@ -12,7 +12,7 @@
 
 * [Deployments](deployments/deployments.md)
 * [APIs](deployments/apis.md)
-* [Inference](deployments/inference.md)
+* [Predictor](deployments/inference.md)
 * [Autoscaling](deployments/autoscaling.md)
 * [Prediction Monitoring](deployments/prediction-monitoring.md)
 * [TensorFlow APIs](deployments/tensorflow-api.md)

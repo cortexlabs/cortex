@@ -8,6 +8,7 @@ Deploy TensorFlow models as webservices at scale.
 - kind: api
   name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
+  python_path: <string>  # path to the root of your python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
   tensorflow:
     model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model) (required)
     request_handler: <string>  # path to the request handler implementation file, relative to the cortex root (optional)

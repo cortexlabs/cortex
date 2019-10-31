@@ -157,20 +157,20 @@ class Context:
             raise
         return impl
 
-    def get_inference_impl(self, api_name, project_dir):
+    def get_predictor_impl(self, api_name, project_dir):
         api = self.apis[api_name]
         try:
             impl = self.load_module(
-                "inference", api["name"], os.path.join(project_dir, api["python"]["inference"])
+                "predictor", api["name"], os.path.join(project_dir, api["python"]["predictor"])
             )
         except CortexException as e:
-            e.wrap("api " + api_name, "inference " + api["python"]["inference"])
+            e.wrap("api " + api_name, "predictor " + api["python"]["predictor"])
             raise
 
         try:
             _validate_impl(impl, INFERENCE_IMPL_VALIDATION)
         except CortexException as e:
-            e.wrap("api " + api_name, "inference " + api["python"]["inference"])
+            e.wrap("api " + api_name, "predictor " + api["python"]["predictor"])
             raise
         return impl
 

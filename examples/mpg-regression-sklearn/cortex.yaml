@@ -4,7 +4,7 @@
 - kind: api
   name: mpg
   python:
-    inference: src/inference.py
+    predictor: src/predictor.py
   tracker:
     model_type: regression
   metadata:

@@ -3,7 +3,8 @@
 
 - kind: api
   name: classifier
-  model: s3://cortex-examples/sentiment-analysis/bert
-  request_handler: handler.py
+  tensorflow:
+    model: s3://cortex-examples/sentiment-analysis/bert
+    request_handler: handler.py
   tracker:
     model_type: classification

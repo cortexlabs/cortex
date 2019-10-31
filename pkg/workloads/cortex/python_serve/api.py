@@ -80,15 +80,15 @@ def predict():
         return "malformed json", status.HTTP_400_BAD_REQUEST
 
     api = local_cache["api"]
-    inference = local_cache["inference"]
+    predictor = local_cache["predictor"]
 
     try:
         try:
             debug_obj("sample", sample, debug)
-            output = inference.predict(sample, api["metadata"])
+            output = predictor.predict(sample, api["metadata"])
             debug_obj("prediction", output, debug)
         except Exception as e:
-            raise UserRuntimeException(api["python"]["inference"], "predict", str(e)) from e
+            raise UserRuntimeException(api["python"]["predictor"], "predict", str(e)) from e
     except Exception as e:
         logger.exception("prediction failed")
         return prediction_failed(str(e))
@@ -114,10 +114,10 @@ def start(args):
         if api.get("python") is None:
             raise CortexException(api["name"], "python key not configured")
 
-        local_cache["inference"] = ctx.get_inference_impl(api["name"], args.project_dir)
+        local_cache["predictor"] = ctx.get_predictor_impl(api["name"], args.project_dir)
 
-        if util.has_function(local_cache["inference"], "init"):
-            local_cache["inference"].init(api["metadata"])
+        if util.has_function(local_cache["predictor"], "init"):
+            local_cache["predictor"].init(api["metadata"])
         logger.info("init ran successfully")
     except:
         logger.exception("failed to start api")

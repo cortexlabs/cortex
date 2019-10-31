@@ -47,10 +47,6 @@ func (config *Config) Validate(projectBytes []byte) error {
 		}
 	}
 
-	if err := config.App.Validate(projectFileMap); err != nil {
-		return err
-	}
-
 	if config.APIs != nil {
 		if err := config.APIs.Validate(config.App.Name, projectFileMap); err != nil {
 			return err

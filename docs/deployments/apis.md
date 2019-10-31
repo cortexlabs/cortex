@@ -2,21 +2,21 @@
 
 Deploy your models as webservices at scale.
 
-Specify a python inference implementation that describes how to load your model and how to use it to make predictions. Cortex uses the `inference` file to deploy multiple replicas that can serve your model as an API. Deployment parameters such as minimum replica count, maximum replica count, and prediction monitoring can be configured using YAML.
+Specify a Python Predictor implementation that describes how to load your model and how to use it to make predictions. Cortex uses the Predictor to deploy multiple replicas that can serve your model as an API. Deployment parameters such as minimum replica count, maximum replica count, and prediction monitoring can be configured using YAML.
 
-Besides providing a Python interface, Cortex can directly serve the following model formats:
+Besides providing a Predictor interface, Cortex can directly serve the following model formats:
 
 - [TensorFlow saved model](./tensorflow-api.md)
 - [ONNX](./onnx-api.md)
 
-## Inference
+## Predictor
 
-The Inference interface consists of an `init` function and a `predict` function. The `init` function is reponsible for preparing the model for serving, downloading vocabulary files, aggregates etc. 
+The Predictor interface consists of an `init` function and a `predict` function. The `init` function is reponsible for preparing the model for serving, downloading vocabulary files, aggregates etc. The `predict` function is called when a request received and is responsible for responding with a prediction.
 
 ```python
 import ...
 
-# declare variables in global scope
+# variables declared in global scope can be used safely in both functions, one replica handles one request at a time
 model = MyModel()
 tokenizer = Tokenizer.init()
 labels = requests.get('https://...')
@@ -27,13 +27,13 @@ def init(metadata):
   model.load(model_weight)
 
 def predict(sample, metadata):
-  # apply your model here, preprocessing and postprocessing can be done here
+  # apply your model, preprocess the input and postprocess model output here
   tokens = tokenizer.encode(sample["text"])
   output = model(tokens)
   return labels[np.argmax(output)]
 ```
 
-See [inference](./inference.md) for a detailed guide.
+See [predictor](./predictor.md) for a detailed guide.
 
 ## Configuration
 
@@ -41,8 +41,9 @@ See [inference](./inference.md) for a detailed guide.
 - kind: api
   name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
+  python_path: <string>  # path to the root of your python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
   python:
-    inference: <string>  # path to the inference implementation python file, relative to the cortex root (required)
+    predictor: <string>  # path to the inference implementation python file, relative to the cortex root (required)
   tracker:
     key: <string>  # key to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)

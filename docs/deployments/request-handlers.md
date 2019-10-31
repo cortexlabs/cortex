@@ -7,6 +7,8 @@ Global variables can be used and shared across functions safely because each rep
 ## Implementation
 
 ```python
+# variables declared in global scope can be used safely in both functions, one replica handles one request at a time
+
 def pre_inference(sample, signature, metadata):
     """Prepare a sample before it is passed into the model.
 

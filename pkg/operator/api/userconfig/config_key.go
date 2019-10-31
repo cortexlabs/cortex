@@ -24,11 +24,11 @@ const (
 	TagsKey    = "tags"
 
 	// App
-	PythonRootKey = "python_root"
+	PythonPathKey = "python_path"
 
 	// API
 	ModelKey          = "model"
-	InferenceKey      = "inference"
+	PredictorKey      = "predictor"
 	EndpointKey       = "endpoint"
 	RequestHandlerKey = "request_handler"
 	SignatureKeyKey   = "signature_key"

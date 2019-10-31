@@ -2,9 +2,9 @@
 
 This example shows how to deploy a Pretrained Image Classifier from TorchVision.
 
-## Inference
+## Predictor
 
-We implement Cortex's python inference interface that describes how to load the model and make predictions using the model. Cortex will use this implementation to serve your model as an API of autoscaling replicas. We specify a `requirements.txt` to install dependencies necessary to implement the Cortex inference interface.
+We implement Cortex's Python Predictor interface that describes how to load the model and make predictions using the model. Cortex will use this implementation to serve your model as an API of autoscaling replicas. We specify a `requirements.txt` to install dependencies necessary to implement the Cortex Predictor interface.
 
 ### Initialization
 
@@ -49,7 +49,7 @@ def predict(sample, metadata):
     return labels[index]
 ```
 
-See [inference.py](./inference.py) for the complete code.
+See [predictor.py](./predictor.py) for the complete code.
 
 ## Define a deployment
 
@@ -62,7 +62,7 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
 - kind: api
   name: classifier
   python:
-    inference: inference.py
+    predictor: predictor.py
   tracker:
     model_type: classification
 ```
@@ -77,7 +77,7 @@ $ cortex deploy
 deployment started
 ```
 
-Behind the scenes, Cortex containerizes the python inference implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+Behind the scenes, Cortex containerizes the Predictor implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
 You can track the statuses of the APIs using `cortex get`:
 

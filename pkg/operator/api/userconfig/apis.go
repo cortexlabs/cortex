@@ -37,6 +37,7 @@ type APIs []*API
 
 type API struct {
 	ResourceFields
+	PythonPath string                 `json:"python_path" yaml:"python_path"`
 	Endpoint   *string                `json:"endpoint" yaml:"endpoint"`
 	TensorFlow *TensorFlow            `json:"tensorflow" yaml:"tensorflow"`
 	ONNX       *ONNX                  `json:"onnx" yaml:"onnx"`
@@ -64,7 +65,7 @@ type ONNX struct {
 }
 
 type Python struct {
-	Inference string `json:"inference" yaml:"inference"`
+	Predictor string `json:"predictor" yaml:"predictor"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -74,6 +75,12 @@ var apiValidation = &cr.StructValidation{
 			StringValidation: &cr.StringValidation{
 				Required: true,
 				DNS1035:  true,
+			},
+		},
+		{
+			StructField: "PythonPath",
+			StringValidation: &cr.StringValidation{
+				AllowEmpty: true,
 			},
 		},
 		{
@@ -153,7 +160,7 @@ var apiValidation = &cr.StructValidation{
 				DefaultNil: true,
 				StructFieldValidations: []*cr.StructFieldValidation{
 					{
-						StructField: "Inference",
+						StructField: "Predictor",
 						StringValidation: &cr.StringValidation{
 							Required: true,
 						},
@@ -367,21 +374,35 @@ func (onnx *ONNX) UserConfigStr() string {
 }
 
 func (python *Python) Validate(projectFileMap map[string][]byte) error {
-	if _, ok := projectFileMap[python.Inference]; !ok {
-		return errors.Wrap(ErrorImplDoesNotExist(python.Inference), PythonKey, RequestHandlerKey)
+	if _, ok := projectFileMap[python.Predictor]; !ok {
+		return errors.Wrap(ErrorImplDoesNotExist(python.Predictor), PythonKey, RequestHandlerKey)
 	}
 	return nil
 }
 
 func (python *Python) UserConfigStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", InferenceKey, python.Inference))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", PredictorKey, python.Predictor))
 	return sb.String()
 }
 
 func (api *API) Validate(deploymentName string, projectFileMap map[string][]byte) error {
 	if api.Endpoint == nil {
 		api.Endpoint = pointer.String("/" + deploymentName + "/" + api.Name)
+	}
+
+	if len(api.PythonPath) > 0 {
+		validPythonPath := false
+		api.PythonPath = s.EnsureSuffix(api.PythonPath, "/")
+		for fileKey := range projectFileMap {
+			if strings.HasPrefix(fileKey, api.PythonPath) {
+				validPythonPath = true
+				break
+			}
+		}
+		if !validPythonPath {
+			return errors.Wrap(ErrorImplDoesNotExist(api.PythonPath), Identify(api), PythonPathKey)
+		}
 	}
 
 	specifiedModelFormats := []string{}

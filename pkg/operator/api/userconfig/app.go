@@ -17,16 +17,11 @@ limitations under the License.
 package userconfig
 
 import (
-	"strings"
-
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type App struct {
-	Name       string `json:"name" yaml:"name"`
-	PythonRoot string `json:"python_root" yaml:"python_root"`
+	Name string `json:"name" yaml:"name"`
 }
 
 var appValidation = &cr.StructValidation{
@@ -40,31 +35,6 @@ var appValidation = &cr.StructValidation{
 				DNS1123:                    true,
 			},
 		},
-		{
-			StructField: "PythonRoot",
-			StringValidation: &cr.StringValidation{
-				AllowEmpty: true,
-			},
-		},
 		typeFieldValidation,
 	},
-}
-
-func (app *App) Validate(projectFileMap map[string][]byte) error {
-	if len(app.PythonRoot) > 0 {
-		validPythonRoot := false
-		app.PythonRoot = s.EnsureSuffix(app.PythonRoot, "/")
-		for fileKey := range projectFileMap {
-			if strings.HasPrefix(fileKey, app.PythonRoot) {
-				validPythonRoot = true
-				break
-			}
-		}
-
-		if !validPythonRoot {
-			return errors.Wrap(ErrorImplDoesNotExist(app.PythonRoot), "app", PythonRootKey)
-		}
-
-	}
-	return nil
 }

@@ -2,9 +2,9 @@
 
 This example shows how to deploy a classifier trained on the famous [iris data set](https://archive.ics.uci.edu/ml/datasets/iris) in PyTorch. The PyTorch model being deployed can be found [here](./src/model.py).
 
-## Inference
+## Predictor
 
-We implement Cortex's python inference interface that describes how to load the model and make predictions using the model. Cortex will use this implementation to serve your model as an API of autoscaling replicas. We specify a `requirements.txt` to install dependencies necessary to implement the Cortex inference interface.
+We implement Cortex's Python Predictor interface that describes how to load the model and make predictions using the model. Cortex will use this implementation to serve your model as an API of autoscaling replicas. We specify a `requirements.txt` to install dependencies necessary to implement the Cortex Predictor interface.
 
 ### Initialization
 
@@ -47,21 +47,21 @@ def predict(sample, metadata):
     return labels[torch.argmax(output[0])]
 ```
 
-See `inference.py` for the complete code.
+See `./src/predictor.py` for the complete code.
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will be passed into the `init` function in `inference.py` for model initialization. We specify the `python_root` in the deployment so that we can import our model as `from my_model import IrisNet` instead of `from src.my_model import IristNet` in `inference.py`.
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will be passed into the `init` function in `predictor.py` for model initialization. We specify the `python_path` in the deployment so that we can import our model as `from my_model import IrisNet` instead of `from src.my_model import IristNet` in `predictor.py`.
 
 ```yaml
 - kind: deployment
   name: iris
-  python_root: src/
+  python_path: src/
 
 - kind: api
   name: classifier
   python:
-    inference: src/inference.py
+    predictor: src/predictor.py
   metadata:
     bucket: data-vishal
     key: iris_model.pth
@@ -77,7 +77,7 @@ $ cortex deploy
 deployment started
 ```
 
-Behind the scenes, Cortex containerizes the python inference implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+Behind the scenes, Cortex containerizes the Predictor implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
 You can track the status of a deployment using `cortex get`:
 

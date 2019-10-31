@@ -4,6 +4,6 @@
 - kind: api
   name: text-gen
   python:
-    inference: inference.py
+    predictor: predictor.py
   metadata:
     num_words: 20

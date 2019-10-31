@@ -33,6 +33,7 @@ func getAPIs(config *userconfig.Config, deploymentVersion string, projectID stri
 		var buf bytes.Buffer
 		buf.WriteString(apiConfig.Name)
 		buf.WriteString(*apiConfig.Endpoint)
+		buf.WriteString(apiConfig.PythonPath)
 		buf.WriteString(s.Obj(apiConfig.Tracker))
 		buf.WriteString(deploymentVersion)
 		buf.WriteString(s.Obj(apiConfig.TensorFlow))
@@ -45,7 +46,6 @@ func getAPIs(config *userconfig.Config, deploymentVersion string, projectID stri
 		}
 
 		id := hash.Bytes(buf.Bytes())
-
 		apis[apiConfig.Name] = &context.API{
 			ComputedResourceFields: &context.ComputedResourceFields{
 				ResourceFields: &context.ResourceFields{

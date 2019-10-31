@@ -2,9 +2,9 @@
 
 This example shows how to deploy [HuggingFace's DistilGPT2](https://github.com/huggingface/transformers/tree/master/examples/distillation) model as a service on AWS. DistilGPT2 is a compressed version of OpenAI's GPT-2.
 
-## Inference
+## Predictor
 
-We implement Cortex's python inference interface that describes how to load the model and make predictions using the model. Cortex will use this implementation to serve your model as an API of autoscaling replicas. We specify a `requirements.txt` to install dependencies necessary to implement the Cortex inference interface.
+We implement Cortex's Python Predictor interface that describes how to load the model and make predictions using the model. Cortex will use this implementation to serve your model as an API of autoscaling replicas. We specify a `requirements.txt` to install dependencies necessary to implement the Cortex Predictor interface.
 
 ### Initialization
 
@@ -27,11 +27,11 @@ def predict(sample, metadata):
     )
 ```
 
-See [inference.py](./inference.py) for the complete code.
+See [predictor.py](./predictor.py) for the complete code.
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions.  This configuration will deploy the implementation specified in `inference.py` and generates 20 words per request.
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions.  This configuration will deploy the implementation specified in `predictor.py` and generates 20 words per request.
 
 ```yaml
 - kind: deployment
@@ -40,7 +40,7 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
 - kind: api
   name: text-gen
   python:
-    inference: inference.py
+    predictor: predictor.py
   metadata:
     num_words: 20
 ```
@@ -55,7 +55,7 @@ $ cortex deploy
 deployment started
 ```
 
-Behind the scenes, Cortex containerizes the python inference implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+Behind the scenes, Cortex containerizes the Predictor implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
 You can track the status of a deployment using `cortex get`:
 

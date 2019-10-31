@@ -347,8 +347,8 @@ func tfAPISpec(
 						Env: append(
 							k8s.AWSCredentials(),
 							kcore.EnvVar{
-								Name:  "PYTHON_ROOT",
-								Value: path.Join(consts.EmptyDirMountPath, "project", ctx.App.PythonRoot),
+								Name:  "PYTHON_PATH",
+								Value: path.Join(consts.EmptyDirMountPath, "project", api.PythonPath),
 							},
 							kcore.EnvVar{
 								Name: "HOST_IP",
@@ -517,8 +517,8 @@ func pythonAPISpec(
 						Env: append(
 							k8s.AWSCredentials(),
 							kcore.EnvVar{
-								Name:  "PYTHON_ROOT",
-								Value: path.Join(consts.EmptyDirMountPath, "project", ctx.App.PythonRoot),
+								Name:  "PYTHON_PATH",
+								Value: path.Join(consts.EmptyDirMountPath, "project", api.PythonPath),
 							},
 							kcore.EnvVar{
 								Name: "HOST_IP",
@@ -662,8 +662,8 @@ func onnxAPISpec(
 						Env: append(
 							k8s.AWSCredentials(),
 							kcore.EnvVar{
-								Name:  "PYTHON_ROOT",
-								Value: path.Join(consts.EmptyDirMountPath, "project", ctx.App.PythonRoot),
+								Name:  "PYTHON_PATH",
+								Value: path.Join(consts.EmptyDirMountPath, "project", api.PythonPath),
 							},
 							kcore.EnvVar{
 								Name: "HOST_IP",

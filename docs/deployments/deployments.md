@@ -7,7 +7,6 @@ Deployments are used to group a set of resources that can be deployed as a singl
 ```yaml
 - kind: deployment
   name: <string>  # deployment name (required)
-  python_root: <string>  # path to the root of your python folder that will be appended to PYTHONPATH
 ```
 
 ## Example
