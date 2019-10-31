@@ -70,7 +70,7 @@ def before_request():
 
 
 @app.after_request
-def handle_prediction_response(response):
+def after_request(response):
     if request.path != "/predict":
         return response
 
