@@ -8,22 +8,30 @@
 * [Email us](mailto:hello@cortex.dev)
 * [Chat with us](https://gitter.im/cortexlabs/cortex)
 
-## Deployment docs
+## Deployments
 
 * [Deployments](deployments/deployments.md)
 * [APIs](deployments/apis.md)
-* [Predictor](deployments/inference.md)
+* [Predictor](deployments/predictor.md)
+* [TensorFlow](deployments/tensorflow.md)
+* [ONNX](deployments/onnx.md)
+* [Request handlers](deployments/request-handlers.md)
 * [Autoscaling](deployments/autoscaling.md)
 * [Prediction Monitoring](deployments/prediction-monitoring.md)
-* [TensorFlow APIs](deployments/tensorflow-api.md)
-* [Packaging TensorFlow](deployments/tensorflow-packaging.md)
-* [ONNX APIs](deployments/onnx-api.md)
-* [Packaging ONNX](deployments/onnx-packaging.md)
-* [Request handlers](deployments/request-handlers.md)
 * [Compute](deployments/compute.md)
-* [System packages](deployments/system-packages.md)
 * [CLI commands](cluster/cli.md)
+* [Python client](deployments/python-client.md)
 * [Resource statuses](deployments/statuses.md)
+
+## Dependency management
+
+* [Python packages](dependencies/python-packages.md)
+* [System packages](dependencies/system-packages.md)
+
+## Packaging models
+
+* [TensorFlow](packaging/tensorflow.md)
+* [ONNX](packaging/onnx.md)
 
 ## Cluster management
 
