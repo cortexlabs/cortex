@@ -98,6 +98,9 @@ def before_request():
 
 @app.after_request
 def after_request(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+
     api = local_cache["api"]
     ctx = local_cache["ctx"]
 
