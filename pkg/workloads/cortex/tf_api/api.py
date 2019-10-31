@@ -97,7 +97,10 @@ def before_request():
 
 @app.after_request
 def after_request(response):
-    if request.path != "/predict":
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+
+    if not (request.path == "/predict" and request.method == "POST"):
         return response
 
     api = local_cache["api"]
