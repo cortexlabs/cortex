@@ -18,7 +18,7 @@
 * [TensorFlow APIs](deployments/tensorflow-api.md)
 * [Packaging TensorFlow](deployments/tensorflow-packaging.md)
 * [ONNX APIs](deployments/onnx-api.md)
-* [Packaging ONNX](deployments/ONNX-packaging.md)
+* [Packaging ONNX](deployments/onnx-packaging.md)
 * [Request handlers](deployments/request-handlers.md)
 * [Compute](deployments/compute.md)
 * [System packages](deployments/system-packages.md)
