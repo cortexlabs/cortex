@@ -1,14 +1,18 @@
 # Inference
 
-A python file that describes how to intializes a model and use the model to make predictions on data from JSON request payloads.
+Inference is a python file that describes how to intializes a model and use the model to make a prediction on a sample in a request.
+
+The lifecycle of a replica running an inference implementation starts with loading the implementation and running any code living in the global scope. Once the implementation is loaded, Cortex calls the `init` function with metadata to do any additional preparations. The `init` function is typically used to download and initialize models because it receives a metadata object which normally contains the path to the exported/pickled model. Once the `init` function is executed, the replica is available to accept requests. The `predict` function is called when a request is recieved. The JSON payload of a request is parsed into a sample dictionary and is passed to the `predict` function along with metadata. The `predict` function is responsible for passing the sample into the model and returning a prediction.
+
+Global variables can be used and shared across functions safely because each replica handles one request at a time.
 
 ## Implementation
 
 ```python
-# Initialization code can be added here to global scope
+# Initialization code and variables can be declared here in global scope
 
 def init(metadata):
-    """Called once before the API is made available. Setup for model serving such as initializing the model or downloading vocabulary can be done here.
+    """Called once before the API is made available. Setup for model serving such as initializing the model or downloading vocabulary can be done here. Optional.
 
     Args:
         metadata: Custom dictionary specified by user in API configuration.
@@ -16,7 +20,7 @@ def init(metadata):
     pass
 
 def predict(sample, metadata):
-    """Called once per request. Model prediction should be done here, including any preprocessing of the request payload and postprocessing of the model output.
+    """Called once per request. Model prediction should be done here, including any preprocessing of the request payload and postprocessing of the model output. Required.
 
     Args:
         sample: A Python object parsed from a JSON request payload.
@@ -30,17 +34,16 @@ def predict(sample, metadata):
 ## Example
 
 ```python
-import numpy as np
+from my_model import IrisNet
 import boto3
-from my_models import MyNet
 
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
-model = MyNet()
+model = IrisNet() # Declare the model in global scope so that it can be used in init and prediction functions
 
 def init(metadata):
     # Download model/model weights from S3 (location specified in api configuration metadata) and initialize your model.
-    s3 = boto3.client("s3", region_name=metadata["region"])
+    s3 = boto3.client("s3")
     s3.download_file(metadata["bucket"], metadata["key"], "iris_model.pth")
     model.load_state_dict(torch.load("iris_model.pth"))
     model.eval()
@@ -64,7 +67,8 @@ def predict(sample, metadata):
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-See [iris-pytorch](https://github.com/cortexlabs/cortex/blob/master/examples/iris-pytorch) for the full example.
+See [iris-classifier-pytorch](https://github.com/cortexlabs/cortex/blob/master/examples/iris-classifier-pytorch) for the full example.
+
 
 ## Pre-installed packages
 

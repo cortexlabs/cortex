@@ -2,7 +2,7 @@
 
 Deploy your model as an API at scale.
 
-Most models can be deployed by implmenting the Python interface below. Specify a Python `inference` file that describes how to load your model and how to use it to make predictions. Cortex uses the `inference` file to deploy multiple replicas that can serve your model as an API. Deployment parameters such as minimum replica count, maximum replica count, and prediction monitoring can be configured using yaml.
+Most models can be deployed by implmenting the Python interface below. Specify a python inference implementation that describes how to load your model and how to use it to make predictions. Cortex uses the `inference` file to deploy multiple replicas that can serve your model as an API. Deployment parameters such as minimum replica count, maximum replica count, and prediction monitoring can be configured using yaml.
 
 Besides providing a Python interface, Cortex can directly serve the following exported model formats:
 
@@ -11,7 +11,7 @@ Besides providing a Python interface, Cortex can directly serve the following ex
 
 ## Inference
 
-The `init` function can be used for model initialization and other setup such as downloading a vocabulary or initializing a tokenizer. The `predict` function is responsible for making an inference on a request and returning a prediction. The preprocessing of a request and postprocessing of model output can also be done in the predict function.
+A python implementation of the Inference interface defining an `init` function for preparing a model for serving and a `predict` function that applies the model to the sample provided in the request needs to be provided. Cortex uses this implementation to load and serve models as an API of autoscaling replicas. 
 
 ```python
 import ...
