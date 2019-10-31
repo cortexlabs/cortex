@@ -20,7 +20,7 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-You can run the code that generated the exported BERT model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/sentiment-analysis/bert.ipynb).
+You can run the code that generated the exported BERT model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/tensorflow/sentiment-analysis/bert.ipynb).
 
 
 ## Add request handling

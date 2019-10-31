@@ -19,10 +19,9 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
     model_type: classification
 ```
 
-<!-- CORTEX_VERSION_MINOR x2 -->
+<!-- CORTEX_VERSION_MINOR -->
 You can run the code that generated the exported models used in this example folder here:
-- [PyTorch Alexnet](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/image-classifier/alexnet.ipynb)
-- [TensorFlow Inception V3](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/image-classifier/inception.ipynb)
+- [PyTorch Alexnet](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/pytorch/image-classifier/alexnet.ipynb)
 
 
 ## Add request handling

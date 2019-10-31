@@ -21,10 +21,10 @@ with open("sklearn.onnx", "wb") as f:
 <!-- CORTEX_VERSION_MINOR x4 -->
 Here are complete examples of converting models from some of the common ML frameworks to ONNX:
 
-* [PyTorch](https://github.com/cortexlabs/cortex/blob/master/examples/iris-classifier/models/pytorch_model.py)
-* [Sklearn](https://github.com/cortexlabs/cortex/blob/master/examples/iris-classifier/models/sklearn_model.py)
-* [XGBoost](https://github.com/cortexlabs/cortex/blob/master/examples/iris-classifier/models/xgboost_model.py)
-* [Keras](https://github.com/cortexlabs/cortex/blob/master/examples/iris-classifier/models/keras_model.py)
+* [PyTorch](https://github.com/cortexlabs/cortex/blob/master/examples/pytorch/iris-classifier-onnx/pytorch.py)
+* [Sklearn](https://github.com/cortexlabs/cortex/blob/master/examples/sklearn/iris-classifier-onnx/sklearn.py)
+* [XGBoost](https://github.com/cortexlabs/cortex/blob/master/examples/xgboost/iris-classifier-onnx/xgboost.py)
+* [Keras](https://github.com/cortexlabs/cortex/blob/master/examples/keras/iris-classifier-onnx/keras.py)
 
 Upload your trained model in ONNX format to Amazon S3 using the AWS web console or CLI:
 

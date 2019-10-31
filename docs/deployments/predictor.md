@@ -67,7 +67,7 @@ def predict(sample, metadata):
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-See [iris-classifier-pytorch](https://github.com/cortexlabs/cortex/blob/master/examples/iris-classifier-pytorch) for the full example.
+See [iris-classifier](https://github.com/cortexlabs/cortex/blob/master/pytorch/examples/iris-classifier) for the full example.
 
 
 ## Pre-installed packages
