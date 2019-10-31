@@ -93,7 +93,7 @@ func (aw *APIWorkload) Start(ctx *context.Context) error {
 
 	var deploymentSpec *kapps.Deployment
 	switch {
-	case api.Tensorflow != nil:
+	case api.TensorFlow != nil:
 		deploymentSpec = tfAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
 	case api.ONNX != nil:
 		deploymentSpec = onnxAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
@@ -269,14 +269,14 @@ func tfAPISpec(
 
 	downloadArgs := []downloadContainerArg{
 		{
-			From:     ctx.APIs[api.Name].Tensorflow.Model,
+			From:     ctx.APIs[api.Name].TensorFlow.Model,
 			To:       path.Join(consts.EmptyDirMountPath, "model"),
-			Unzip:    strings.HasSuffix(ctx.APIs[api.Name].Tensorflow.Model, ".zip"),
+			Unzip:    strings.HasSuffix(ctx.APIs[api.Name].TensorFlow.Model, ".zip"),
 			ItemName: "model",
 		},
 	}
 
-	if api.Tensorflow.RequestHandler != nil {
+	if api.TensorFlow.RequestHandler != nil {
 		downloadArgs = append(downloadArgs, downloadContainerArg{
 			From:     config.AWS.S3Path(ctx.ProjectKey),
 			To:       path.Join(consts.EmptyDirMountPath, "project"),

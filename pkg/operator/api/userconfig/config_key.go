@@ -35,7 +35,7 @@ const (
 	TrackerKey        = "tracker"
 	ModelTypeKey      = "model_type"
 	KeyKey            = "key"
-	TensorflowKey     = "tensorflow"
+	TensorFlowKey     = "tensorflow"
 	ONNXKey           = "onnx"
 	PythonKey         = "python"
 	MetadataKey       = "metadata"

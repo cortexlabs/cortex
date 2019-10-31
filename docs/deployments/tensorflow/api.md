@@ -1,6 +1,6 @@
 # APIs
 
-Serve Tensorflow models at scale.
+Serve TensorFlow models at scale.
 
 ## Config
 

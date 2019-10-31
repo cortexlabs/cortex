@@ -267,7 +267,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	out += fmt.Sprintf("\n%s curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json", console.Bold("curl:"), apiEndpoint)
 
-	if api.Tensorflow != nil || api.ONNX != nil {
+	if api.TensorFlow != nil || api.ONNX != nil {
 		out += "\n\n" + describeModelInput(groupStatus, apiEndpoint)
 	}
 

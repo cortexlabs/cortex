@@ -38,7 +38,7 @@ type APIs []*API
 type API struct {
 	ResourceFields
 	Endpoint   *string                `json:"endpoint" yaml:"endpoint"`
-	Tensorflow *Tensorflow            `json:"tensorflow" yaml:"tensorflow"`
+	TensorFlow *TensorFlow            `json:"tensorflow" yaml:"tensorflow"`
 	ONNX       *ONNX                  `json:"onnx" yaml:"onnx"`
 	Python     *Python                `json:"python" yaml:"python"`
 	Tracker    *Tracker               `json:"tracker" yaml:"tracker"`
@@ -52,7 +52,7 @@ type Tracker struct {
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
 }
 
-type Tensorflow struct {
+type TensorFlow struct {
 	Model          string  `json:"model" yaml:"model"`
 	RequestHandler *string `json:"request_handler" yaml:"request_handler"`
 	SignatureKey   *string `json:"signature_key" yaml:"signature_key"`
@@ -106,7 +106,7 @@ var apiValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "Tensorflow",
+			StructField: "TensorFlow",
 			StructValidation: &cr.StructValidation{
 				DefaultNil: true,
 				StructFieldValidations: []*cr.StructFieldValidation{
@@ -240,9 +240,9 @@ func (api *API) UserConfigStr() string {
 	sb.WriteString(api.ResourceFields.UserConfigStr())
 	sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
 
-	if api.Tensorflow != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", TensorflowKey))
-		sb.WriteString(s.Indent(api.Tensorflow.UserConfigStr(), "  "))
+	if api.TensorFlow != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", TensorFlowKey))
+		sb.WriteString(s.Indent(api.TensorFlow.UserConfigStr(), "  "))
 	}
 	if api.ONNX != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ONNXKey))
@@ -305,31 +305,31 @@ func (apis APIs) Validate(deploymentName string, projectFileMap map[string][]byt
 	return nil
 }
 
-func (tf *Tensorflow) Validate(projectFileMap map[string][]byte) error {
+func (tf *TensorFlow) Validate(projectFileMap map[string][]byte) error {
 	awsClient, err := aws.NewFromS3Path(tf.Model, false)
 	if err != nil {
 		return err
 	}
 	if strings.HasSuffix(tf.Model, ".zip") {
 		if ok, err := awsClient.IsS3PathFile(tf.Model); err != nil || !ok {
-			return errors.Wrap(ErrorExternalNotFound(tf.Model), TensorflowKey, ModelKey)
+			return errors.Wrap(ErrorExternalNotFound(tf.Model), TensorFlowKey, ModelKey)
 		}
 	} else {
 		path, err := GetTFServingExportFromS3Path(tf.Model, awsClient)
 		if path == "" || err != nil {
-			return errors.Wrap(ErrorInvalidTensorFlowDir(tf.Model), TensorflowKey, ModelKey)
+			return errors.Wrap(ErrorInvalidTensorFlowDir(tf.Model), TensorFlowKey, ModelKey)
 		}
 		tf.Model = path
 	}
 	if tf.RequestHandler != nil {
 		if _, ok := projectFileMap[*tf.RequestHandler]; !ok {
-			return errors.Wrap(ErrorImplDoesNotExist(*tf.RequestHandler), TensorflowKey, RequestHandlerKey)
+			return errors.Wrap(ErrorImplDoesNotExist(*tf.RequestHandler), TensorFlowKey, RequestHandlerKey)
 		}
 	}
 	return nil
 }
 
-func (tf *Tensorflow) UserConfigStr() string {
+func (tf *TensorFlow) UserConfigStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, tf.Model))
 	if tf.RequestHandler != nil {
@@ -385,8 +385,8 @@ func (api *API) Validate(deploymentName string, projectFileMap map[string][]byte
 	}
 
 	specifiedModelFormats := []string{}
-	if api.Tensorflow != nil {
-		specifiedModelFormats = append(specifiedModelFormats, TensorflowKey)
+	if api.TensorFlow != nil {
+		specifiedModelFormats = append(specifiedModelFormats, TensorFlowKey)
 	}
 	if api.ONNX != nil {
 		specifiedModelFormats = append(specifiedModelFormats, ONNXKey)
@@ -396,13 +396,13 @@ func (api *API) Validate(deploymentName string, projectFileMap map[string][]byte
 	}
 
 	if len(specifiedModelFormats) == 0 {
-		return ErrorSpecifyOneModelFormatFoundNone(TensorflowKey, ONNXKey, PythonKey)
+		return ErrorSpecifyOneModelFormatFoundNone(TensorFlowKey, ONNXKey, PythonKey)
 	} else if len(specifiedModelFormats) > 1 {
-		return ErrorSpecifyOneModelFormatFoundMultiple(specifiedModelFormats, TensorflowKey, ONNXKey, PythonKey)
+		return ErrorSpecifyOneModelFormatFoundMultiple(specifiedModelFormats, TensorFlowKey, ONNXKey, PythonKey)
 	} else {
 		switch specifiedModelFormats[0] {
-		case TensorflowKey:
-			if err := api.Tensorflow.Validate(projectFileMap); err != nil {
+		case TensorFlowKey:
+			if err := api.TensorFlow.Validate(projectFileMap); err != nil {
 				return errors.Wrap(err, Identify(api))
 			}
 		case ONNXKey:
@@ -425,7 +425,7 @@ func (api *API) Validate(deploymentName string, projectFileMap map[string][]byte
 
 func (api *API) AreProjectFilesRequired() bool {
 	switch {
-	case api.Tensorflow != nil && api.Tensorflow.RequestHandler != nil:
+	case api.TensorFlow != nil && api.TensorFlow.RequestHandler != nil:
 		return true
 	case api.ONNX != nil && api.ONNX.RequestHandler != nil:
 		return true
