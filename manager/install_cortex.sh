@@ -187,12 +187,6 @@ setup_secrets
 echo "✓ Updated cluster configuration"
 
 echo -en "￮ Configuring networking "
-# https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
-kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.5.4/config/v1.5/aws-k8s-cni.yaml >/dev/null
-until [ "$(kubectl get daemonset aws-node -n kube-system -o 'jsonpath={.status.updatedNumberScheduled}')" == "$(kubectl get daemonset aws-node -n kube-system -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
-  echo -n "."
-  sleep 5
-done
 setup_istio
 envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
 echo -e "\n✓ Configured networking"
