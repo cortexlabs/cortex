@@ -74,7 +74,9 @@ def after_request(response):
     api = local_cache["api"]
     ctx = local_cache["ctx"]
 
-    if request.path != "/{}/{}".format(ctx.app["name"], api["name"]):
+    if not (
+        request.path == "/{}/{}".format(ctx.app["name"], api["name"]) and request.method == "POST"
+    ):
         return response
 
     logger.info(response.status)
