@@ -47,6 +47,9 @@ func (cc *InternalClusterConfig) String() string {
 	if cc.ImageTFServeGPU != defaultCC.ImageTFServeGPU {
 		items = append(items, table.KV{K: "image_tf_serve_gpu", V: cc.ImageTFServeGPU})
 	}
+	if cc.ImageTFAPI != defaultCC.ImageTFAPI {
+		items = append(items, table.KV{K: "image_tf_api", V: cc.ImageTFAPI})
+	}
 	if cc.ImageONNXServe != defaultCC.ImageONNXServe {
 		items = append(items, table.KV{K: "image_onnx_serve", V: cc.ImageONNXServe})
 	}
@@ -58,9 +61,6 @@ func (cc *InternalClusterConfig) String() string {
 	}
 	if cc.ImageManager != defaultCC.ImageManager {
 		items = append(items, table.KV{K: "image_manager", V: cc.ImageManager})
-	}
-	if cc.ImageTFAPI != defaultCC.ImageTFAPI {
-		items = append(items, table.KV{K: "image_tf_api", V: cc.ImageTFAPI})
 	}
 	if cc.ImageDownloader != defaultCC.ImageDownloader {
 		items = append(items, table.KV{K: "image_downloader", V: cc.ImageDownloader})
