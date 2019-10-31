@@ -1,0 +1,12 @@
+- kind: deployment
+  name: auto
+
+- kind: api
+  name: mpg
+  python:
+    inference: src/inference.py
+  tracker:
+    model_type: regression
+  metadata:
+    bucket: data-vishal
+    key: mpg.joblib

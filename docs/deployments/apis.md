@@ -16,8 +16,10 @@ The `init` function can be used for model initialization and other setup such as
 ```python
 import ...
 
+# run initializations here (e.g. loading your model or creating a tokenizer)
+
 def init(metadata):
-  # run more initializations here that may require metadata that you define in your yaml
+  # run initializations more here that may require metadata that you define in your yaml (e.g. )
 
 def predict(sample, metadata):
   # run your model on the sample in an HTTP request and respond with a prediction

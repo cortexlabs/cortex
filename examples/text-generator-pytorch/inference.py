@@ -9,6 +9,7 @@ import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
 model = GPT2LMHeadModel.from_pretrained("distilgpt2")
+model.eval()
 tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
 
 # adapted from: https://github.com/huggingface/transformers/blob/master/examples/run_generation.py
@@ -81,14 +82,9 @@ def sample_sequence(
     return generated
 
 
-def init(metadata):
-    model.eval()
-
-
 def predict(sample, metadata):
     indexed_tokens = tokenizer.encode(sample["text"])
     output = sample_sequence(model, metadata.get("num_words", 20), indexed_tokens)
-    out2 = output[0, 0:].tolist()
     return tokenizer.decode(
-        out2.tolist(), clean_up_tokenization_spaces=True, skip_special_tokens=True
+        output[0, 0:].tolist(), clean_up_tokenization_spaces=True, skip_special_tokens=True
     )

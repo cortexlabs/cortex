@@ -1,0 +1,97 @@
+# Deploy a Sklearn Linear Regression model
+
+This example shows how to deploy a sklearn linear regression model trained on the MPG dataset.
+
+## Inference
+
+We implement Cortex's python inference interface that describes how to load the model and make predictions using the model. Cortex will use this implementation to serve your model as an API of autoscaling replicas. We specify a `requirements.txt` to install dependencies necessary to implement the Cortex inference interface.
+
+### Initialization
+
+Cortex executes the python implementation and calls the `init` function once on startup. We download the model from S3 based on the location specified in the `metadata` key of our deployment configuration.
+```python
+model = None
+
+
+def init(metadata):
+    global model
+    s3 = boto3.client("s3")
+    s3.download_file(metadata["bucket"], metadata["key"], "mpg.joblib")
+    model = load("mpg.joblib")
+```
+
+### Predict
+The `predict` function will be triggered once per request to run the text generation model on a prompt provided in the request. In the `predict` function, we extract the features from the sample sent in the request and respond with a prediction.
+
+```python
+def predict(sample, metadata):
+    arr = [
+        sample["cylinders"],
+        sample["displacement"],
+        sample["horsepower"],
+        sample["weight"],
+        sample["acceleration"],
+    ]
+    result = model.predict([arr])
+    return np.asscalar(result)
+```
+
+See `inference.py` for more details.
+
+## Define a deployment
+
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions.  This configuration will deploy the implentation specified in `inference.py` and generates 20 words per request.
+
+```yaml
+- kind: deployment
+  name: auto
+
+- kind: api
+  name: mpg
+  python:
+    inference: src/inference.py
+  tracker:
+    model_type: regression
+  metadata:
+    bucket: data-vishal
+    key: mpg.joblib
+```
+
+## Deploy to AWS
+
+`cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on the cluster.
+
+```bash
+$ cortex deploy
+
+deployment started
+```
+
+Behind the scenes, Cortex containerizes the model, makes it servable using TensorFlow Serving, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+
+You can track the status of a deployment using `cortex get`:
+
+```bash
+$ cortex get text-gen --watch
+
+status   up-to-date   available   requested   last update   avg latency
+live     1            1           1           9m            -
+```
+
+The output above indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
+
+## Serve real-time predictions
+
+```bash
+$ cortex get text-gen
+
+url: http://***.amazonaws.com/text/generator
+
+$ curl http://***.amazonaws.com/text/generator \
+    -X POST -H "Content-Type: application/json" \
+    -d '{"text": "machine learning"}'
+
+machine learning and simulated engine testing platform. The model can be applied in this article. We are implementing a workflow...
+```
+
+Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).

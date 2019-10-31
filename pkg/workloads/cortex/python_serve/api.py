@@ -115,7 +115,9 @@ def start(args):
             raise CortexException(api["name"], "python key not configured")
 
         local_cache["inference"] = ctx.get_inference_impl(api["name"], args.project_dir)
-        local_cache["inference"].init(api["metadata"])
+
+        if util.has_function(local_cache["inference"], "init"):
+            local_cache["inference"].init(api["metadata"])
         logger.info("init ran successfully")
     except:
         logger.exception("failed to start api")

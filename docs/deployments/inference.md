@@ -120,3 +120,17 @@ def pre_inference(sample, signature, metadata):
 ## System packages
 
 You can also install additional system packages. See [System Packages](system-packages.md) for more details.
+
+
+```python
+import ...
+ctx = {}
+
+def pre_inference(sample, metadata):
+  ...
+  ctx['tokenized_input'] = tokenized_input
+
+def post_inference(prediction, metadata):
+  tokenized_input = ctx['tokenized_input']
+  ...
+```

@@ -1,6 +1,6 @@
-# Deploy an ONNX Image Classification as an API
+# Deploy Image Classification as an API
 
-This example shows how to deploy an Image Classifier made with PyTorch. The PyTorch Image Classifier implementation will be using a pretrained Alexnet model from TorchVision that has been exported to ONNX format.
+This example shows how to deploy an Image Classifier made with PyTorch. The PyTorch Image Classifier implementation will be using a pretrained Alexnet model from Torchvision that has been exported to ONNX format.
 
 ## Define a deployment
 
