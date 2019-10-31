@@ -22,4 +22,3 @@ if __name__ == "__main__":
     regression_model = LinearRegression()
     regression_model.fit(X_train, y_train)
     dump(regression_model, "mpg.joblib")
-
