@@ -4,7 +4,7 @@ The Python client can be used to programmatically deploy models to a Cortex Clus
 
 <!-- CORTEX_VERSION_BRANCH_STABLE, e.g. v0.9.0 -->
 ```bash
-pip install git+https://github.com/cortexlabs/cortex.git@v0.9.1#egg=cortex\&subdirectory=pkg/workloads/cortex/client
+pip install git+https://github.com/cortexlabs/cortex.git@v0.9.2#egg=cortex\&subdirectory=pkg/workloads/cortex/client
 ```
 
 The Python client needs to be initialized with AWS credentials and an operator URL for your Cortex cluster. You can find the operator URL by running `./cortex.sh info`.

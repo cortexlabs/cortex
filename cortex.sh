@@ -84,7 +84,7 @@ set -u
 ### CONFIGURATION ###
 #####################
 
-export CORTEX_VERSION_BRANCH_STABLE=0.9.1
+export CORTEX_VERSION_BRANCH_STABLE=0.9.2
 
 export CORTEX_CONFIG="${CORTEX_CONFIG:-""}"
 if [ "$CORTEX_CONFIG" != "" ]; then
