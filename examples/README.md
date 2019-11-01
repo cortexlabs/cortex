@@ -1,19 +1,19 @@
 # Examples
 
-| Example | Description |
-|----------------------------------------|---|
-| [Keras Iris Classifier](keras/iris-classifier-onnx) | Inception V3 in TensorFlow and Alexnet model from TorchVision exported to ONNX |
-| [PyTorch Iris Classifier](./pytorch/iris-classifier-onnx) | Inception V3 in TensorFlow and Alexnet model from TorchVision exported to ONNX |
-| [Sklearn Iris Classifier](./sklearn/iris-classifier-onnx) | Inception V3 in TensorFlow and Alexnet model from TorchVision exported to ONNX |
-| [TensorFlow Iris Classifier](./tensorflow/iris-classifier) | Inception V3 in TensorFlow and Alexnet model from TorchVision exported to ONNX |
-| [XGBoost Iris Classifier](./xgboost/iris-classifier-onnx) | Inception V3 in TensorFlow and Alexnet model from TorchVision exported to ONNX |
-<!-- 
-| [XGBoost Iris Classifier](./xgboost/iris-classifier-onnx) | Inception V3 in TensorFlow and Alexnet model from TorchVision exported to ONNX |
+Example models that are ready to be deployed with Cortex and showcase various functionality.
 
-| [Image Classifier PyTorch](./image-classifier) | Pre Trained Alexnet from TorchVision |
-| [Iris Classifier Assorted](./image-classifier) | Iris classifier models made in TensorFlow, PyTorch exported to ONNX, Keras exported ONNX, Sklearn exported to ONNX and XGBoost exported to ONNX |
-| [Iris Classifier Pytorch](./image-classifier) | Iris classifier model made with PyTorch |
-| [MPG Regression Sklearn](./image-classifier) | MPG regression model made with Sklearn and exported using Joblib |
-| [Sentiment Analysis](./image-classifier) | Sentiment analysis model using BERT |
-| [Text Generator](./image-classifier) | OpenAI's GPT-2 text generation |
-| [Text Generator PyTorch](./image-classifier) | HuggingFace's DistilGPT2 | -->
+| Example | Packaging |
+|:--- | :--- |
+| [BERT Sentiment Analysis](tensorflow/sentiment-analysis) </br> Demonstrates how to deploy a BERT for sentiment analysis with text preprocessing on requests. | TensorFlow |
+| [DistilGPT2 Text Generation](pytorch/text-generator) </br> Demonstrates how to deploy HuggingFace's DistilGPT2 model. HuggingFace's tokenizers are used to encode incoming text and decode generate text. Model is sampled consecutively times to generate a response of desired length. | Cortex Predictor |
+| [GPT-2 Text Generation](tensorflow/text-generator) </br> Demonstrates how to deploy a OpenAI's GPT-2 to generate text with text encoding and decoding. | TensorFlow |
+| [Alexnet Image Classifier](pytorch/image-classifier) </br> Demonstrates how to deploy a pretrained Alexnet model from TorchVision with image preprocessing. | Cortex Predictor |
+| [MPG Linear Regression](sklearn/mpg-regression) </br> Demonstrates how to deploy an Sklearn Linear Regression model. Pickled model is downloaded from S3 and served. | Cortex Predictor |
+| [Inception V3 Image Classifier](tensorflow/image-classifier) </br> Demonstrates how to deploy an Inception V3 Image Classifier with image preprocessing on requests. | TensorFlow |
+| [Alexnet Image Classifier](pytorch/image-classifier-onnx) </br> Demonstrates how to export a pretrained Alexnet from TorchVision to ONNX and deploy it. | ONNX |
+| [Iris Classifier](pytorch/iris-classifier) </br> Demonstrates how to deploy a PyTorch model using Cortex Predictor. Model state is downloaded from S3 and and loaded into an IrisNet PyTorch Class for serving. | Cortex Predictor |
+| [Iris Classifier](keras/iris-classifier-onnx) </br> Iris classifier written in Keras and exported to ONNX | ONNX |
+| [Iris Classifier](pytorch/iris-classifier-onnx) </br> Iris classifier written in PyTorch and exported to ONNX | ONNX |
+| [Iris Classifier](sklearn/iris-classifier-onnx) </br> Iris classifier written in Sklearn and exported to ONNX | ONNX |
+| [Iris Classifier](tensorflow/iris-classifier) </br> Iris classifier written in TensorFlow | TensorFlow |
+| [Iris Classifier](xgboost/iris-classifier-onnx) </br> Iris classifier written in XGBoost and exported to ONNX | ONNX |
