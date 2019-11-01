@@ -1,5 +1,5 @@
 - kind: deployment
-  name: iris
+  name: pytorch-iris-classifier
 
 - kind: api
   name: classifier
@@ -8,4 +8,6 @@
     predictor: src/predictor.py
   metadata:
     bucket: cortex-examples
-    key: iris-classifier/iris_pytorch.pth
+    key: pytorch/iris-classifier/nn.pth
+  tracker:
+    model_type: classification

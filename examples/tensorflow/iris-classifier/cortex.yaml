@@ -1,10 +1,10 @@
 - kind: deployment
-  name: iris
+  name: tensorflow-iris-classifier
 
 - kind: api
-  name: tensorflow
+  name: classifier
   tensorflow:
-    model: s3://cortex-examples/iris-classifier/tensorflow
-    request_handler: tensorflow.py
+    model: s3://cortex-examples/tensorflow/iris-classifier/nn
+    request_handler: handler.py
   tracker:
     model_type: classification

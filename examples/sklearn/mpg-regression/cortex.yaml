@@ -9,4 +9,4 @@
     model_type: regression
   metadata:
     bucket: cortex-examples
-    key: mpg-regression/mpg.joblib
+    key: sklearn/mpg-regression/linreg.joblib

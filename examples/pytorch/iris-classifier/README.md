@@ -1,6 +1,6 @@
-# Deploy an iris classifier in PyTorch
+# Deploy a PyTorch iris classifier
 
-This example shows how to deploy a classifier trained on the famous [iris data set](https://archive.ics.uci.edu/ml/datasets/iris) in PyTorch. The PyTorch model being deployed can be found [here](./src/model.py).
+This example shows how to deploy a classifier trained on the famous [iris data set](https://archive.ics.uci.edu/ml/datasets/iris) in PyTorch. The PyTorch model being deployed can be found [here](./src/my_model.py).
 
 ## Predictor
 
@@ -53,7 +53,7 @@ See `./src/predictor.py` for the complete code.
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will be passed into the `init` function in `predictor.py` for model initialization. We specify the `python_path` in the deployment so that we can import our model as `from my_model import IrisNet` instead of `from src.my_model import IristNet` in `predictor.py`.
+A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will be passed into the `init` function in `predictor.py` for model initialization. We specify the `python_path` in the deployment so that we can import our model as `from my_model import IrisNet` instead of `from src.my_model import IrisNet` in `predictor.py`.
 
 ```yaml
 - kind: deployment
@@ -66,7 +66,9 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
     predictor: src/predictor.py
   metadata:
     bucket: cortex-examples
-    key: iris-classifier/iris_pytorch.pth
+    key: pytorch/iris-classifier/nn.pth
+  tracker:
+    model_type: classification
 ```
 
 ## Deploy to AWS

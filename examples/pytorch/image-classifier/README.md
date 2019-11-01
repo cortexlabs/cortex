@@ -66,8 +66,6 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
   name: classifier
   python:
     predictor: predictor.py
-  tracker:
-    model_type: classification
 ```
 
 ## Deploy to AWS

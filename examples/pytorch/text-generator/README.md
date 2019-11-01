@@ -37,10 +37,10 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
 
 ```yaml
 - kind: deployment
-  name: gpt2
+  name: text
 
 - kind: api
-  name: text-gen
+  name: generator
   python:
     predictor: predictor.py
   metadata:
@@ -62,7 +62,7 @@ Behind the scenes, Cortex containerizes the Predictor implementation, makes it s
 You can track the status of a deployment using `cortex get`:
 
 ```bash
-$ cortex get text-gen --watch
+$ cortex get generator --watch
 
 status   up-to-date   available   requested   last update   avg latency
 live     1            1           1           9m            -
@@ -73,11 +73,11 @@ The output above indicates that one replica of the API was requested and one rep
 ## Serve real-time predictions
 
 ```bash
-$ cortex get text-gen
+$ cortex get generator
 
-url: http://***.amazonaws.com/gpt2/text-gen
+url: http://***.amazonaws.com/text/generator
 
-$ curl http://***.amazonaws.com/gpt2/text-gen \
+$ curl http://***.amazonaws.com/text/generator \
     -X POST -H "Content-Type: application/json" \
     -d '{"text": "machine learning"}'
 ```

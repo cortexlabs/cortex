@@ -13,7 +13,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
 - kind: api
   name: classifier
   onnx:
-    model: s3://cortex-examples/image-classifier/alexnet.onnx
+    model: s3://cortex-examples/pytorch/image-classifier-onnx/alexnet.onnx
     request_handler: alexnet_handler.py
   tracker:
     model_type: classification

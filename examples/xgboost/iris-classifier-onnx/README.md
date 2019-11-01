@@ -11,10 +11,10 @@ Define a `deployment` and an `api` resource in `cortex.yaml`. A `deployment` spe
   name: iris
 
 - kind: api
-  name: classifier
+  name: xgboost
   onnx:
-    model: s3://cortex-examples/iris-classifier/xgboost.onnx
-    request_handler: xgboost.py
+    model: s3://cortex-examples/xgboost/iris-classifier-onnx/gbtree.onnx
+    request_handler: handler.py
   tracker:
     model_type: classification
 ```

@@ -13,8 +13,8 @@ Define a `deployment` and an `api` resource in `cortex.yaml`. A `deployment` spe
 - kind: api
   name: classifier
   onnx:
-    model: s3://cortex-examples/iris-classifier/pytorch.onnx
-    request_handler: pytorch.py
+    model: s3://cortex-examples/pytorch/iris-classifier-onnx/nn.onnx
+    request_handler: handler.py
   tracker:
     model_type: classification
 ```

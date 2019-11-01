@@ -1,10 +1,10 @@
 - kind: deployment
-  name: sentiment
+  name: tensorflow-sentiment-analysis
 
 - kind: api
   name: classifier
   tensorflow:
-    model: s3://cortex-examples/sentiment-analysis/bert
+    model: s3://cortex-examples/tensorflow/sentiment-analysis/bert
     request_handler: handler.py
   tracker:
     model_type: classification

@@ -13,7 +13,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
 - kind: api
   name: classifier
   tensorflow:
-    model: s3://cortex-examples/sentiment-analysis/bert
+    model: s3://cortex-examples/tensorflow/sentiment-analysis/bert
     request_handler: handler.py
   tracker:
     model_type: classification

@@ -54,7 +54,7 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
     model_type: regression
   metadata:
     bucket: cortex-examples
-    key: mpg-regression/mpg.joblib
+    key: sklearn/mpg-regression/linreg.joblib
 ```
 
 ## Deploy to AWS

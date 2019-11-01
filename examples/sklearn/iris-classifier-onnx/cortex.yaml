@@ -1,10 +1,10 @@
 - kind: deployment
-  name: iris
+  name: sklearn-iris-classifier-onnx
 
 - kind: api
-  name: sklearn
+  name: classifier
   onnx:
-    model: s3://cortex-examples/iris-classifier/sklearn.onnx
-    request_handler: handlers/sklearn.py
+    model: s3://cortex-examples/sklearn/iris-classifier-onnx/logreg.onnx
+    request_handler: handler.py
   tracker:
     model_type: classification
