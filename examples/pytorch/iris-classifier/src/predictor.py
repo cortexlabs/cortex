@@ -1,6 +1,7 @@
 import torch
 from my_model import IrisNet
 import boto3
+import re
 
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
@@ -9,7 +10,8 @@ model = IrisNet()
 
 def init(metadata):
     s3 = boto3.client("s3")
-    s3.download_file(metadata["bucket"], metadata["key"], "iris_model.pth")
+    bucket, key = re.match(r"s3:\/\/(.+?)\/(.+)", metadata["model"]).groups()
+    s3.download_file(bucket, key, "iris_model.pth")
     model.load_state_dict(torch.load("iris_model.pth"))
     model.eval()
 

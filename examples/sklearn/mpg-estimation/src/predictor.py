@@ -1,6 +1,7 @@
 from joblib import load
 import boto3
 import numpy as np
+import re
 
 
 model = None
@@ -9,7 +10,8 @@ model = None
 def init(metadata):
     global model
     s3 = boto3.client("s3")
-    s3.download_file(metadata["bucket"], metadata["key"], "mpg.joblib")
+    bucket, key = re.match(r"s3:\/\/(.+?)\/(.+)", metadata["model"]).groups()
+    s3.download_file(bucket, key, "mpg.joblib")
     model = load("mpg.joblib")
 
 

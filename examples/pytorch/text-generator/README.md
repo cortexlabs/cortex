@@ -17,6 +17,7 @@ tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
 ```
 
 We want to load the model onto a GPU:
+
 ```python
 def init(metadata):
     model.to(metadata["device"])

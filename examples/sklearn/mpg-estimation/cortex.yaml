@@ -6,7 +6,6 @@
   predictor:
     path: src/predictor.py
     metadata:
-      bucket: cortex-examples
-      key: sklearn/mpg-estimation/linreg.joblib
+      model: s3://cortex-examples/sklearn/mpg-estimation/linreg.joblib
   tracker:
     model_type: regression

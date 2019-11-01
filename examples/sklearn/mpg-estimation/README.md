@@ -16,11 +16,13 @@ model = None
 def init(metadata):
     global model
     s3 = boto3.client("s3")
-    s3.download_file(metadata["bucket"], metadata["key"], "mpg.joblib")
+    bucket, key = re.match(r"s3:\/\/(.+?)\/(.+)", metadata["model"]).groups()
+    s3.download_file(bucket, key, "mpg.joblib")
     model = load("mpg.joblib")
 ```
 
 ### Predict
+
 The `predict` function will be triggered once per request to run the text generation model on a prompt provided in the request. In the `predict` function, we extract the features from the sample sent in the request and respond with a predicted mpg.
 
 ```python
@@ -51,8 +53,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
   predictor:
     path: src/predictor.py
     metadata:
-      bucket: cortex-examples
-      key: sklearn/mpg-estimation/linreg.joblib
+      model: s3://cortex-examples/sklearn/mpg-estimation/linreg.joblib
   tracker:
     model_type: regression
 ```
