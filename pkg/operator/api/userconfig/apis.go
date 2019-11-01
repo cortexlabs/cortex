@@ -246,7 +246,9 @@ func (api *API) UserConfigStr() string {
 	var sb strings.Builder
 	sb.WriteString(api.ResourceFields.UserConfigStr())
 	sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, api.PythonPath))
+	if len(api.PythonPath) > 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, api.PythonPath))
+	}
 
 	if api.TensorFlow != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", TensorFlowKey))
