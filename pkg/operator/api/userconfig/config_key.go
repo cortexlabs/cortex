@@ -36,6 +36,7 @@ const (
 	ONNXKey           = "onnx"
 	PredictorKey      = "predictor"
 	MetadataKey       = "metadata"
+	PythonPathKey     = "python_path"
 
 	// Compute
 	ComputeKey              = "compute"
