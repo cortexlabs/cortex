@@ -1,13 +1,13 @@
 # Examples
 
-| Example | Packaging |
-|:--- | :--- |
-| [BERT Sentiment Analysis](tensorflow/sentiment-analysis) </br> Demonstrates how to deploy a BERT for sentiment analysis with text preprocessing on requests. | TensorFlow |
-| [DistilGPT2 Text Generation](pytorch/text-generator) </br> Demonstrates how to deploy HuggingFace's DistilGPT2 model. HuggingFace's tokenizers are used to encode incoming text and decode generate text. Model is sampled consecutively times to generate a response of desired length. | Cortex Predictor |
-| [GPT-2 Text Generation](tensorflow/text-generator) </br> Demonstrates how to deploy a OpenAI's GPT-2 to generate text with text encoding and decoding. | TensorFlow |
-| [Alexnet Image Classifier](pytorch/image-classifier) </br> Demonstrates how to deploy a pretrained Alexnet model from TorchVision with image preprocessing. | Cortex Predictor |
-| [MPG Linear Regression](sklearn/mpg-regression) </br> Demonstrates how to deploy an Sklearn Linear Regression model. Pickled model is downloaded from S3 and served. | Cortex Predictor |
-| [Inception V3 Image Classifier](tensorflow/image-classifier) </br> Demonstrates how to deploy an Inception V3 Image Classifier with image preprocessing on requests. | TensorFlow |
-| [Iris Classifier](pytorch/iris-classifier) </br> Demonstrates how to deploy a PyTorch model using Cortex Predictor. Model state is downloaded from S3 and and loaded into an IrisNet PyTorch Class for serving. | Cortex Predictor |
-| [Iris Classifier](tensorflow/iris-classifier) </br> Iris classifier written in TensorFlow | TensorFlow |
-| [Iris Classifier](xgboost/iris-classifier-onnx) </br> Iris classifier written in XGBoost and exported to ONNX | ONNX |
+| Example |
+|:--- |
+| [Text Generation with GPT-2](tensorflow/text-generator) </br> Deploy OpenAI's GPT-2 to generate text. |
+| [Text Generation with DistilGPT2](pytorch/text-generator) </br> Deploy Hugging Face's DistilGPT2 model to generate text. |
+| [Image classification with Inception V3](tensorflow/image-classifier) </br> Deploy an Inception V3 model to classify images. 
+| [Image Classification with AlexNet](pytorch/image-classifier) </br> Deploy an AlexNet model from TorchVision to classify images. |
+| [Sentiment analysis with BERT](tensorflow/sentiment-analysis) </br> Deploy a BERT model for sentiment classification. |
+| [MPG estimation](sklearn/mpg-estimation) </br> Deploy a scikit-learn linear regression model. |
+| [Iris Classifier](pytorch/iris-classifier) </br> Deploy a PyTorch model for iris classification. |
+| [Iris Classifier](tensorflow/iris-classifier) </br> Deploy a TensorFlow model for iris classification. |
+| [Iris Classifier](xgboost/iris-classifier-onnx) </br> Deploy an XGBoost model exported to ONNX for iris classifcation. |
