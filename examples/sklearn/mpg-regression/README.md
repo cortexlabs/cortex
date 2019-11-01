@@ -40,7 +40,7 @@ See [predictor.py](./src/predictor.py) for the complete code.
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will be passed into the `init` function in `predictor.py` for model initialization. Once the model is initialized the `predict` function in `predictor.py` will be triggered every time a request is made to the API.
+A `deployment` specifies a set of resources that are deployed together. An `api` makes the Predictor implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will be passed into the `init` function in `predictor.py` for model initialization. Once the model is initialized the `predict` function in `predictor.py` will be triggered every time a request is made to the API.
 
 ```yaml
 - kind: deployment

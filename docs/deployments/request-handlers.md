@@ -9,7 +9,7 @@ def pre_inference(sample, signature, metadata):
     """Prepare a sample before it is passed into the model.
 
     Args:
-        sample: A Python object parsed from a JSON request payload.
+        sample: The JSON request payload (parsed as a Python object).
 
         signature: Describes the expected shape and type of inputs to the model.
             If API model format is tensorflow: map<string, SignatureDef>

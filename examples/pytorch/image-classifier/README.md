@@ -56,7 +56,7 @@ See [predictor.py](./predictor.py) for the complete code.
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. This configuration will deploy the implementation specified in `predictor.py` and trigger the `predict` function once per request.
+A `deployment` specifies a set of resources that are deployed together. An `api` makes the Predictor implementation available as a web service that can serve real-time predictions. This configuration will deploy the implementation specified in `predictor.py` and trigger the `predict` function once per request.
 
 ```yaml
 - kind: deployment

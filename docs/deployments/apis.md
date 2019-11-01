@@ -1,35 +1,11 @@
-# Python APIs
+# APIs
 
-The Python Predictor implementation describes how to load your model and use it to make predictions. Cortex uses the Predictor to deploy your model as a web service. In addition to the Predictor interface, Cortex can serve the following exported model formats:
+You can deploy models from any Python modeling framework by implementing Cortex's Predictor interface. The interface consists of an `init()` function and a `predict()` function. The `init()` function is responsible for preparing the model for serving, downloading vocabulary files, etc. The `predict()` function is called on every request and is responsible for responding with a prediction. See [predictor](./predictor.md) for more details.
+
+In addition to supporting Python models via the Predictor interface, Cortex can serve the following exported model formats:
 
 - [TensorFlow](tensorflow.md)
 - [ONNX](onnx.md)
-
-## Predictor
-
-The Predictor interface consists of an `init()` function and a `predict()` function. The `init()` function is responsible for preparing the model for serving, downloading vocabulary files, aggregates etc. The `predict()` function is called on every request and is responsible for responding with a prediction.
-
-```python
-import ...
-
-# variables declared in global scope can be used safely in both functions (one replica handles one request at a time)
-model = MyModel()
-tokenizer = Tokenizer.init()
-labels = requests.get('https://...')
-
-def init(metadata):
-  # download models and perform any additional setup here
-  model_weight = download_weights_from_s3(metadata["model_path"])
-  model.load(model_weight)
-
-def predict(sample, metadata):
-  # process the input, apply your model, and postprocess model output here
-  tokens = tokenizer.encode(sample["text"])
-  output = model(tokens)
-  return labels[np.argmax(output)]
-```
-
-See [predictor](./predictor.md) for a detailed guide.
 
 ## Configuration
 
