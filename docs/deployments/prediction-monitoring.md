@@ -7,12 +7,12 @@
   name: <string>  # API name (required)
   ...
   tracker:
-    key: <string>  # key to track (required if the response payload is a JSON object)
+    key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
   ...
 ```
 
-For regression models, the tracker should be configured with `model_type: regression` to collect float values and display regression stats such as min, max and average. For classification models, the tracker should be configured with `model_type: classification` to collect integer or string values and display the class distribution.
+For classification models, the tracker should be configured with `model_type: classification` to collect integer or string values and display the class distribution. For regression models, the tracker should be configured with `model_type: regression` to collect float values and display regression stats such as min, max and average.
 
 ## Example
 
@@ -20,7 +20,7 @@ For regression models, the tracker should be configured with `model_type: regres
 - kind: api
   name: iris
   python:
-    inference: inference.py
+    predictor: predictor.py
   tracker:
     model_type: classification
 ```

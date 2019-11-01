@@ -1,4 +1,4 @@
-# APIs
+# ONNX APIs
 
 Deploy ONNX models as web services.
 
@@ -8,12 +8,12 @@ Deploy ONNX models as web services.
 - kind: api
   name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
-  python_path: <string>  # path to the root of your python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
+  python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
   onnx:
-    model: <string>  # path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
-    request_handler: <string>  # path to the request handler implementation file, relative to the cortex root (optional)
+    model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
+    request_handler: <string>  # path to the request handler implementation file, relative to the Cortex root (optional)
   tracker:
-    key: <string>  # key to track (required if the response payload is a JSON object)
+    key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
   compute:
     min_replicas: <int>  # minimum number of replicas (default: 1)
@@ -45,6 +45,6 @@ See [packaging ONNX models](../packaging/onnx.md) for information about exportin
 You can log information about each request by adding a `?debug=true` parameter to your requests. This will print:
 
 1. The raw sample
-2. The value after running the `pre_inference` function (if applicable)
+2. The value after running the `pre_inference` function (if provided)
 3. The value after running inference
-4. The value after running the `post_inference` function (if applicable)
+4. The value after running the `post_inference` function (if provided)

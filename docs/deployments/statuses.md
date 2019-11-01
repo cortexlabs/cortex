@@ -1,4 +1,4 @@
-# Statuses
+# API Statuses
 
 | Status                | Meaning |
 |-----------------------|---|

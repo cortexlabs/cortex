@@ -1,6 +1,6 @@
 # Packaging ONNX models
 
-Export your trained model to ONNX model format. An example of an sklearn model being exported to ONNX is shown below:
+Export your trained model to the ONNX model format. Here is an example of an sklearn model being exported to ONNX:
 
 ```Python
 from sklearn.linear_model import LogisticRegression
@@ -26,7 +26,7 @@ Here are complete examples of converting models from some of the common ML frame
 * [XGBoost](https://github.com/cortexlabs/cortex/blob/master/examples/xgboost/iris-classifier-onnx/xgboost.py)
 * [Keras](https://github.com/cortexlabs/cortex/blob/master/examples/keras/iris-classifier-onnx/keras.py)
 
-Upload your trained model in ONNX format to Amazon S3 using the AWS web console or CLI:
+Upload your exported model to Amazon S3 using the AWS web console or CLI:
 
 ```bash
 aws s3 cp model.onnx s3://my-bucket/model.onnx

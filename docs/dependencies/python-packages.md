@@ -15,7 +15,7 @@ onnxruntime==0.5.0  # For ONNX models only
 
 ## PyPI packages
 
-You can install additional PyPI packages and import them your handlers. Cortex looks for a `requirements.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
+You can install additional PyPI packages and import them in your Python files. Cortex looks for a `requirements.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
 
 ```text
 ./iris-classifier/

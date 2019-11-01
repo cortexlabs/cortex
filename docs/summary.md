@@ -21,7 +21,7 @@
 * [Compute](deployments/compute.md)
 * [CLI commands](cluster/cli.md)
 * [Python client](deployments/python-client.md)
-* [Resource statuses](deployments/statuses.md)
+* [API statuses](deployments/statuses.md)
 
 ## Dependency management
 
@@ -35,8 +35,8 @@
 
 ## Cluster management
 
-* [AWS credentials](cluster/aws.md)
 * [Cluster configuration](cluster/config.md)
+* [AWS credentials](cluster/aws.md)
 * [Security](cluster/security.md)
 * [Update](cluster/update.md)
 * [Uninstall](cluster/uninstall.md)

@@ -1,18 +1,18 @@
-# APIs
+# Python APIs
 
-The Python Predictor implementation describes how to load your model and how to use it to make predictions. Cortex uses the Predictor to deploy your model as a web service. In addition to the Predictor interface, Cortex can serve the following model formats:
+The Python Predictor implementation describes how to load your model and use it to make predictions. Cortex uses the Predictor to deploy your model as a web service. In addition to the Predictor interface, Cortex can serve the following exported model formats:
 
 - [TensorFlow](tensorflow.md)
 - [ONNX](onnx.md)
 
 ## Predictor
 
-The Predictor interface consists of an `init` function and a `predict` function. The `init` function is responsible for preparing the model for serving, downloading vocabulary files, aggregates etc. The `predict` function is called when a request received and is responsible for responding with a prediction.
+The Predictor interface consists of an `init()` function and a `predict()` function. The `init()` function is responsible for preparing the model for serving, downloading vocabulary files, aggregates etc. The `predict()` function is called on every request and is responsible for responding with a prediction.
 
 ```python
 import ...
 
-# variables declared in global scope can be used safely in both functions, one replica handles one request at a time
+# variables declared in global scope can be used safely in both functions (one replica handles one request at a time)
 model = MyModel()
 tokenizer = Tokenizer.init()
 labels = requests.get('https://...')
@@ -23,7 +23,7 @@ def init(metadata):
   model.load(model_weight)
 
 def predict(sample, metadata):
-  # apply your model, preprocess the input and postprocess model output here
+  # process the input, apply your model, and postprocess model output here
   tokens = tokenizer.encode(sample["text"])
   output = model(tokens)
   return labels[np.argmax(output)]
@@ -37,11 +37,11 @@ See [predictor](./predictor.md) for a detailed guide.
 - kind: api
   name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
-  python_path: <string>  # path to the root of your python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
+  python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
   python:
-    predictor: <string>  # path to the inference implementation python file, relative to the cortex root (required)
+    predictor: <string>  # path to the predictor Python file, relative to the Cortex root (required)
   tracker:
-    key: <string>  # key to track (required if the response payload is a JSON object)
+    key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
   compute:
     min_replicas: <int>  # minimum number of replicas (default: 1)
@@ -60,7 +60,7 @@ See [predictor](./predictor.md) for a detailed guide.
 - kind: api
   name: my-api
   python:
-    inference: inference.py
+    predictor: predictor.py
   compute:
     gpu: 1
 ```

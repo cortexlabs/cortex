@@ -1,8 +1,8 @@
 # System packages
 
-Cortex uses Docker images to deploy your models. These images can be replaced with custom images that you can augment with your system packages and libraries. You will need to push your custom images to a container registry (e.g. Docker Hub or AWS ECR) that your cluster has access to.
+Cortex uses Docker images to deploy your models. These images can be replaced with custom images that you can augment with your system packages and libraries. You will need to push your custom images to a container registry that your cluster has access to (e.g. [Docker Hub](https://hub.docker.com/) or [AWS ECR](https://aws.amazon.com/ecr/)).
 
-See the `Image paths` section in [cluster configuration](../cluster/config.md) for a complete list of customizable images.
+See the `image paths` section in [cluster configuration](../cluster/config.md) for a complete list of customizable images.
 
 ## Create a custom image
 
@@ -12,12 +12,12 @@ Create a Dockerfile to build your custom image:
 mkdir my-api && cd my-api && touch Dockerfile
 ```
 
-Specify the base image you want to override followed by your customizations. The sample Dockerfile below inherits from Cortex's ONNX serving image and installs the `tree` system package.
+Specify the base image you want to override followed by your customizations. The sample Dockerfile below inherits from Cortex's Python serving image and installs the `tree` system package.
 
 ```dockerfile
 # Dockerfile
 
-FROM cortexlabs/onnx-serve
+FROM cortexlabs/python-serve
 
 RUN apt-get update \
     && apt-get install -y tree \
@@ -56,7 +56,7 @@ Update your cluster configuration file to point to your image:
 # cluster.yaml
 
 # ...
-image_onnx_serve: <repository_url>:latest
+image_python_serve: <repository_url>:latest
 # ...
 ```
 
@@ -68,14 +68,14 @@ cortex cluster update --config=cluster.yaml
 
 ## Use system packages in workloads
 
-Cortex will use your image to launch ONNX serving workloads and you will have access to any packages you added:
+Cortex will use your image to launch Python serving workloads and you will have access to any packages you added:
 
 ```python
-# request_handler.py
+# predictor.py
 
 import subprocess
 
-def pre_inference(sample, signature, metadata):
+def predict(sample, metadata):
     subprocess.run(["tree"])
     ...
 ```

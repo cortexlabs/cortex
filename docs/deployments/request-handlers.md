@@ -1,6 +1,6 @@
 # Request handlers
 
-Request handlers are useful for `tensorflow` or `onnx` exported models. They contain a `pre_inference` function and a `post_inference` function that can be used to process data before and after running an inference. Global variables can be used safely in both functions because each replica handles one request at a time.
+Request handlers can be used with `tensorflow` or `onnx` exported models. They contain a `pre_inference()` function and/or a `post_inference()` function that are to process data before and after running an inference. Global variables can be used safely in both functions because each replica handles one request at a time.
 
 ## Implementation
 
@@ -17,7 +17,7 @@ def pre_inference(sample, signature, metadata):
             If API model format is onnx: list<onnxruntime.NodeArg>
                 https://microsoft.github.io/onnxruntime/api_summary.html#onnxruntime.NodeArg
 
-        metadata: Custom dictionary specified by user in API configuration.
+        metadata: Custom dictionary specified by the user in API configuration.
 
     Returns:
         A dictionary containing model input names as keys and python lists or numpy arrays as values. If the model only has a single input, then a python list or numpy array can be returned.
@@ -25,7 +25,7 @@ def pre_inference(sample, signature, metadata):
     pass
 
 def post_inference(prediction, signature, metadata):
-    """Modify a prediction from the model before responding to the request.
+    """Modify model output before responding to the request.
 
     Args:
         prediction: The output of the model.
@@ -36,7 +36,7 @@ def post_inference(prediction, signature, metadata):
             If API model format is onnx: list<onnxruntime.NodeArg>
                 https://microsoft.github.io/onnxruntime/api_summary.html#onnxruntime.NodeArg
 
-        metadata: Custom dictionary specified by user in API configuration.
+        metadata: Custom dictionary specified by the user in API configuration.
 
     Returns:
         A python dictionary or list.
@@ -51,8 +51,8 @@ import numpy as np
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
-# Convert the request payload to a flattened list
 def pre_inference(sample, signature, metadata):
+    # Convert the request payload to a flattened list
     return {
         signature[0].name: [
             sample["sepal_length"],
@@ -62,8 +62,8 @@ def pre_inference(sample, signature, metadata):
         ]
     }
 
-# Respond with a string label
 def post_inference(prediction, signature, metadata):
+    # Respond with a string label
     predicted_class_id = prediction[0][0]
     return labels[predicted_class_id]
 ```
