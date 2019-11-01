@@ -64,8 +64,8 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
 
 - kind: api
   name: classifier
-  python:
-    predictor: predictor.py
+  predictor:
+    path: predictor.py
 ```
 
 ## Deploy to AWS

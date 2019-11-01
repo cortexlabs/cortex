@@ -61,12 +61,12 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
 
 - kind: api
   name: classifier
-  python_path: src/
-  python:
-    predictor: src/predictor.py
-  metadata:
-    bucket: cortex-examples
-    key: pytorch/iris-classifier/nn.pth
+  predictor:
+    path: src/predictor.py
+    python_path: src/
+    metadata:
+      bucket: cortex-examples
+      key: pytorch/iris-classifier/nn.pth
   tracker:
     model_type: classification
 ```

@@ -8,10 +8,11 @@ Deploy ONNX models as web services.
 - kind: api
   name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
-  python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
   onnx:
     model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
     request_handler: <string>  # path to the request handler implementation file, relative to the Cortex root (optional)
+    python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
+    metadata: <string: value>  # dictionary that can be used to configure custom values (optional)
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
@@ -23,7 +24,6 @@ Deploy ONNX models as web services.
     cpu: <string | int | float>  # CPU request per replica (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica (default: Null)
-  metadata: <string: value>  # dictionary that can be used to configure custom values (optional)
 ```
 
 See [packaging ONNX models](../packaging/onnx.md) for information about exporting ONNX models.

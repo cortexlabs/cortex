@@ -47,11 +47,11 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
 
 - kind: api
   name: generator
-  python:
-    predictor: predictor.py
-  metadata:
-    num_words: 20
-    device: cuda
+  predictor:
+    path: predictor.py
+    metadata:
+      num_words: 20
+      device: cuda
   compute:
     gpu: 1
     cpu: 1

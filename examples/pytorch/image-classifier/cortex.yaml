@@ -3,5 +3,5 @@
 
 - kind: api
   name: classifier
-  python:
-    predictor: predictor.py
+  predictor:
+    path: predictor.py

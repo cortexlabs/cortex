@@ -13,9 +13,10 @@ In addition to supporting Python models via the Predictor interface, Cortex can 
 - kind: api
   name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
-  python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  python:
-    predictor: <string>  # path to the predictor Python file, relative to the Cortex root (required)
+  predictor:
+    path: <string>  # path to the predictor Python file, relative to the Cortex root (required)
+    python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
+    metadata: <string: value>  # dictionary that can be used to configure custom values (optional)
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
@@ -27,7 +28,6 @@ In addition to supporting Python models via the Predictor interface, Cortex can 
     cpu: <string | int | float>  # CPU request per replica (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica (default: Null)
-  metadata: <string: value>  # dictionary that can be used to configure custom values (optional)
 ```
 
 ### Example
@@ -35,8 +35,8 @@ In addition to supporting Python models via the Predictor interface, Cortex can 
 ```yaml
 - kind: api
   name: my-api
-  python:
-    predictor: predictor.py
+  predictor:
+    path: predictor.py
   compute:
     gpu: 1
 ```

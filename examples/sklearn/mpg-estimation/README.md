@@ -48,13 +48,13 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
 
 - kind: api
   name: mpg
-  python:
-    predictor: src/predictor.py
+  predictor:
+    path: src/predictor.py
+    metadata:
+      bucket: cortex-examples
+      key: sklearn/mpg-regression/linreg.joblib
   tracker:
     model_type: regression
-  metadata:
-    bucket: cortex-examples
-    key: sklearn/mpg-regression/linreg.joblib
 ```
 
 ## Deploy to AWS
