@@ -89,10 +89,10 @@ def predict():
     try:
         try:
             debug_obj("sample", sample, debug)
-            output = predictor.predict(sample, api["metadata"])
+            output = predictor.predict(sample, api["predictor"]["metadata"])
             debug_obj("prediction", output, debug)
         except Exception as e:
-            raise UserRuntimeException(api["python"]["predictor"], "predict", str(e)) from e
+            raise UserRuntimeException(api["predictor"]["path"], "predict", str(e)) from e
     except Exception as e:
         logger.exception("prediction failed")
         return prediction_failed(str(e))
@@ -115,16 +115,16 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
-        if api.get("python") is None:
-            raise CortexException(api["name"], "python key not configured")
+        if api.get("predictor") is None:
+            raise CortexException(api["name"], "predictor key not configured")
 
         local_cache["predictor"] = ctx.get_predictor_impl(api["name"], args.project_dir)
 
         if util.has_function(local_cache["predictor"], "init"):
             try:
-                local_cache["predictor"].init(api["metadata"])
+                local_cache["predictor"].init(api["predictor"]["metadata"])
             except Exception as e:
-                raise UserRuntimeException(api["python"]["predictor"], "init", str(e)) from e
+                raise UserRuntimeException(api["predictor"]["path"], "init", str(e)) from e
         logger.info("init ran successfully")
     except:
         logger.exception("failed to start api")

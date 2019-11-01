@@ -17,7 +17,7 @@ Specify the base image you want to override followed by your customizations. The
 ```dockerfile
 # Dockerfile
 
-FROM cortexlabs/python-serve
+FROM cortexlabs/predictor-serve
 
 RUN apt-get update \
     && apt-get install -y tree \
@@ -56,7 +56,7 @@ Update your cluster configuration file to point to your image:
 # cluster.yaml
 
 # ...
-image_python_serve: <repository_url>:latest
+image_predictor_serve: <repository_url>:latest
 # ...
 ```
 

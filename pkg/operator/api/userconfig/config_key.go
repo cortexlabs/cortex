@@ -28,7 +28,7 @@ const (
 
 	// API
 	ModelKey          = "model"
-	PredictorKey      = "predictor"
+	PathKey           = "path"
 	EndpointKey       = "endpoint"
 	RequestHandlerKey = "request_handler"
 	SignatureKeyKey   = "signature_key"
@@ -37,7 +37,7 @@ const (
 	KeyKey            = "key"
 	TensorFlowKey     = "tensorflow"
 	ONNXKey           = "onnx"
-	PythonKey         = "python"
+	PredictorKey      = "predictor"
 	MetadataKey       = "metadata"
 
 	// Compute

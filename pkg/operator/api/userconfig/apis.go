@@ -37,15 +37,13 @@ type APIs []*API
 
 type API struct {
 	ResourceFields
-	PythonPath string                 `json:"python_path" yaml:"python_path"`
-	Endpoint   *string                `json:"endpoint" yaml:"endpoint"`
-	TensorFlow *TensorFlow            `json:"tensorflow" yaml:"tensorflow"`
-	ONNX       *ONNX                  `json:"onnx" yaml:"onnx"`
-	Python     *Python                `json:"python" yaml:"python"`
-	Tracker    *Tracker               `json:"tracker" yaml:"tracker"`
-	Compute    *APICompute            `json:"compute" yaml:"compute"`
-	Metadata   map[string]interface{} `json:"metadata" yaml:"metadata"`
-	Tags       Tags                   `json:"tags" yaml:"tags"`
+	Endpoint   *string     `json:"endpoint" yaml:"endpoint"`
+	TensorFlow *TensorFlow `json:"tensorflow" yaml:"tensorflow"`
+	ONNX       *ONNX       `json:"onnx" yaml:"onnx"`
+	Predictor  *Predictor  `json:"predictor" yaml:"predictor"`
+	Tracker    *Tracker    `json:"tracker" yaml:"tracker"`
+	Compute    *APICompute `json:"compute" yaml:"compute"`
+	Tags       Tags        `json:"tags" yaml:"tags"`
 }
 
 type Tracker struct {
@@ -53,19 +51,44 @@ type Tracker struct {
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
 }
 
+var metadataValidation = &cr.StructFieldValidation{
+	StructField: "Metadata",
+	InterfaceMapValidation: &cr.InterfaceMapValidation{
+		StringKeysOnly: true,
+	},
+}
+
+func ensurePythonPathSuffix(path string) (string, error) {
+	return s.EnsureSuffix(path, "/"), nil
+}
+
+var pythonPathValidation = &cr.StructFieldValidation{
+	StructField: "PythonPath",
+	StringPtrValidation: &cr.StringPtrValidation{
+		AllowEmpty: true,
+		Validator:  ensurePythonPathSuffix,
+	},
+}
+
 type TensorFlow struct {
-	Model          string  `json:"model" yaml:"model"`
-	RequestHandler *string `json:"request_handler" yaml:"request_handler"`
-	SignatureKey   *string `json:"signature_key" yaml:"signature_key"`
+	Model          string                 `json:"model" yaml:"model"`
+	RequestHandler *string                `json:"request_handler" yaml:"request_handler"`
+	SignatureKey   *string                `json:"signature_key" yaml:"signature_key"`
+	PythonPath     *string                `json:"python_path" yaml:"python_path"`
+	Metadata       map[string]interface{} `json:"metadata" yaml:"metadata"`
 }
 
 type ONNX struct {
-	Model          string  `json:"model" yaml:"model"`
-	RequestHandler *string `json:"request_handler" yaml:"request_handler"`
+	Model          string                 `json:"model" yaml:"model"`
+	RequestHandler *string                `json:"request_handler" yaml:"request_handler"`
+	PythonPath     *string                `json:"python_path" yaml:"python_path"`
+	Metadata       map[string]interface{} `json:"metadata" yaml:"metadata"`
 }
 
-type Python struct {
-	Predictor string `json:"predictor" yaml:"predictor"`
+type Predictor struct {
+	Path       string                 `json:"path" yaml:"path"`
+	PythonPath *string                `json:"python_path" yaml:"python_path"`
+	Metadata   map[string]interface{} `json:"metadata" yaml:"metadata"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -75,12 +98,6 @@ var apiValidation = &cr.StructValidation{
 			StringValidation: &cr.StringValidation{
 				Required: true,
 				DNS1035:  true,
-			},
-		},
-		{
-			StructField: "PythonPath",
-			StringValidation: &cr.StringValidation{
-				AllowEmpty: true,
 			},
 		},
 		{
@@ -132,6 +149,8 @@ var apiValidation = &cr.StructValidation{
 						StructField:         "SignatureKey",
 						StringPtrValidation: &cr.StringPtrValidation{},
 					},
+					pythonPathValidation,
+					metadataValidation,
 				},
 			},
 		},
@@ -151,27 +170,25 @@ var apiValidation = &cr.StructValidation{
 						StructField:         "RequestHandler",
 						StringPtrValidation: &cr.StringPtrValidation{},
 					},
+					pythonPathValidation,
+					metadataValidation,
 				},
 			},
 		},
 		{
-			StructField: "Python",
+			StructField: "Predictor",
 			StructValidation: &cr.StructValidation{
 				DefaultNil: true,
 				StructFieldValidations: []*cr.StructFieldValidation{
 					{
-						StructField: "Predictor",
+						StructField: "Path",
 						StringValidation: &cr.StringValidation{
 							Required: true,
 						},
 					},
+					pythonPathValidation,
+					metadataValidation,
 				},
-			},
-		},
-		{
-			StructField: "Metadata",
-			InterfaceMapValidation: &cr.InterfaceMapValidation{
-				StringKeysOnly: true,
 			},
 		},
 		apiComputeFieldValidation,
@@ -242,13 +259,24 @@ func GetTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 	return highestPath, nil
 }
 
+func ValidatePythonPath(path string, projectFileMap map[string][]byte) error {
+	validPythonPath := false
+	for fileKey := range projectFileMap {
+		if strings.HasPrefix(fileKey, path) {
+			validPythonPath = true
+			break
+		}
+	}
+	if !validPythonPath {
+		return errors.Wrap(ErrorImplDoesNotExist(path), PythonPathKey)
+	}
+	return nil
+}
+
 func (api *API) UserConfigStr() string {
 	var sb strings.Builder
 	sb.WriteString(api.ResourceFields.UserConfigStr())
 	sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
-	if len(api.PythonPath) > 0 {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, api.PythonPath))
-	}
 
 	if api.TensorFlow != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", TensorFlowKey))
@@ -258,9 +286,9 @@ func (api *API) UserConfigStr() string {
 		sb.WriteString(fmt.Sprintf("%s:\n", ONNXKey))
 		sb.WriteString(s.Indent(api.ONNX.UserConfigStr(), "  "))
 	}
-	if api.Python != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", PythonKey))
-		sb.WriteString(s.Indent(api.Python.UserConfigStr(), "  "))
+	if api.Predictor != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
+		sb.WriteString(s.Indent(api.Predictor.UserConfigStr(), "  "))
 	}
 	if api.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
@@ -269,11 +297,6 @@ func (api *API) UserConfigStr() string {
 	if api.Tracker != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", TrackerKey))
 		sb.WriteString(s.Indent(api.Tracker.UserConfigStr(), "  "))
-	}
-	if len(api.Metadata) > 0 {
-		sb.WriteString(fmt.Sprintf("%s:\n", MetadataKey))
-		d, _ := yaml.Marshal(&api.Metadata)
-		sb.WriteString(s.Indent(string(d), "  "))
 	}
 	return sb.String()
 }
@@ -336,17 +359,30 @@ func (tf *TensorFlow) Validate(projectFileMap map[string][]byte) error {
 			return errors.Wrap(ErrorImplDoesNotExist(*tf.RequestHandler), TensorFlowKey, RequestHandlerKey)
 		}
 	}
+	if tf.PythonPath != nil {
+		if err := ValidatePythonPath(*tf.PythonPath, projectFileMap); err != nil {
+			return errors.Wrap(err, TensorFlowKey)
+		}
+	}
 	return nil
 }
 
 func (tf *TensorFlow) UserConfigStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, tf.Model))
+	if tf.PythonPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *tf.PythonPath))
+	}
 	if tf.RequestHandler != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestHandlerKey, *tf.RequestHandler))
 	}
 	if tf.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *tf.SignatureKey))
+	}
+	if len(tf.Metadata) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", MetadataKey))
+		d, _ := yaml.Marshal(&tf.Metadata)
+		sb.WriteString(s.Indent(string(d), "  "))
 	}
 	return sb.String()
 }
@@ -364,48 +400,60 @@ func (onnx *ONNX) Validate(projectFileMap map[string][]byte) error {
 			return errors.Wrap(ErrorImplDoesNotExist(*onnx.RequestHandler), ONNXKey, RequestHandlerKey)
 		}
 	}
+	if onnx.PythonPath != nil {
+		if err := ValidatePythonPath(*onnx.PythonPath, projectFileMap); err != nil {
+			return errors.Wrap(err, ONNXKey)
+		}
+	}
 	return nil
 }
 
 func (onnx *ONNX) UserConfigStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, onnx.Model))
+	if onnx.PythonPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *onnx.PythonPath))
+	}
 	if onnx.RequestHandler != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestHandlerKey, *onnx.RequestHandler))
+	}
+	if len(onnx.Metadata) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", MetadataKey))
+		d, _ := yaml.Marshal(&onnx.Metadata)
+		sb.WriteString(s.Indent(string(d), "  "))
 	}
 	return sb.String()
 }
 
-func (python *Python) Validate(projectFileMap map[string][]byte) error {
-	if _, ok := projectFileMap[python.Predictor]; !ok {
-		return errors.Wrap(ErrorImplDoesNotExist(python.Predictor), PythonKey, RequestHandlerKey)
+func (predictor *Predictor) Validate(projectFileMap map[string][]byte) error {
+	if _, ok := projectFileMap[predictor.Path]; !ok {
+		return errors.Wrap(ErrorImplDoesNotExist(predictor.Path), PredictorKey, PathKey)
+	}
+	if predictor.PythonPath != nil {
+		if err := ValidatePythonPath(*predictor.PythonPath, projectFileMap); err != nil {
+			return errors.Wrap(err, PredictorKey)
+		}
 	}
 	return nil
 }
 
-func (python *Python) UserConfigStr() string {
+func (predictor *Predictor) UserConfigStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", PredictorKey, python.Predictor))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, predictor.Path))
+	if predictor.PythonPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
+	}
+	if len(predictor.Metadata) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", MetadataKey))
+		d, _ := yaml.Marshal(&predictor.Metadata)
+		sb.WriteString(s.Indent(string(d), "  "))
+	}
 	return sb.String()
 }
 
 func (api *API) Validate(deploymentName string, projectFileMap map[string][]byte) error {
 	if api.Endpoint == nil {
 		api.Endpoint = pointer.String("/" + deploymentName + "/" + api.Name)
-	}
-
-	if len(api.PythonPath) > 0 {
-		validPythonPath := false
-		api.PythonPath = s.EnsureSuffix(api.PythonPath, "/")
-		for fileKey := range projectFileMap {
-			if strings.HasPrefix(fileKey, api.PythonPath) {
-				validPythonPath = true
-				break
-			}
-		}
-		if !validPythonPath {
-			return errors.Wrap(ErrorImplDoesNotExist(api.PythonPath), Identify(api), PythonPathKey)
-		}
 	}
 
 	specifiedModelFormats := []string{}
@@ -415,14 +463,14 @@ func (api *API) Validate(deploymentName string, projectFileMap map[string][]byte
 	if api.ONNX != nil {
 		specifiedModelFormats = append(specifiedModelFormats, ONNXKey)
 	}
-	if api.Python != nil {
-		specifiedModelFormats = append(specifiedModelFormats, PythonKey)
+	if api.Predictor != nil {
+		specifiedModelFormats = append(specifiedModelFormats, PredictorKey)
 	}
 
 	if len(specifiedModelFormats) == 0 {
-		return ErrorSpecifyOneModelFormatFoundNone(TensorFlowKey, ONNXKey, PythonKey)
+		return ErrorSpecifyOneModelFormatFoundNone(TensorFlowKey, ONNXKey, PredictorKey)
 	} else if len(specifiedModelFormats) > 1 {
-		return ErrorSpecifyOneModelFormatFoundMultiple(specifiedModelFormats, TensorFlowKey, ONNXKey, PythonKey)
+		return ErrorSpecifyOneModelFormatFoundMultiple(specifiedModelFormats, TensorFlowKey, ONNXKey, PredictorKey)
 	} else {
 		switch specifiedModelFormats[0] {
 		case TensorFlowKey:
@@ -433,8 +481,8 @@ func (api *API) Validate(deploymentName string, projectFileMap map[string][]byte
 			if err := api.ONNX.Validate(projectFileMap); err != nil {
 				return errors.Wrap(err, Identify(api))
 			}
-		case PythonKey:
-			if err := api.Python.Validate(projectFileMap); err != nil {
+		case PredictorKey:
+			if err := api.Predictor.Validate(projectFileMap); err != nil {
 				return errors.Wrap(err, Identify(api))
 			}
 		}
@@ -453,7 +501,7 @@ func (api *API) AreProjectFilesRequired() bool {
 		return true
 	case api.ONNX != nil && api.ONNX.RequestHandler != nil:
 		return true
-	case api.Python != nil:
+	case api.Predictor != nil:
 		return true
 	}
 	return false

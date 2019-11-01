@@ -38,8 +38,8 @@ cluster_name: cortex
 telemetry: true
 
 # Image paths
-image_python_serve: cortexlabs/python-serve:master
-image_python_serve_gpu: cortexlabs/python-serve-gpu:master
+image_predictor_serve: cortexlabs/predictor-serve:master
+image_predictor_serve_gpu: cortexlabs/predictor-serve-gpu:master
 image_tf_serve: cortexlabs/tf-serve:master
 image_tf_serve_gpu: cortexlabs/tf-serve-gpu:master
 image_tf_api: cortexlabs/tf-api:master

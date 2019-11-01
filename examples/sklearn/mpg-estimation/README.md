@@ -52,7 +52,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
     path: src/predictor.py
     metadata:
       bucket: cortex-examples
-      key: sklearn/mpg-regression/linreg.joblib
+      key: sklearn/mpg-estimation/linreg.joblib
   tracker:
     model_type: regression
 ```

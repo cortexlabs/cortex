@@ -97,8 +97,8 @@ func (aw *APIWorkload) Start(ctx *context.Context) error {
 		deploymentSpec = tfAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
 	case api.ONNX != nil:
 		deploymentSpec = onnxAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
-	case api.Python != nil:
-		deploymentSpec = pythonAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
+	case api.Predictor != nil:
+		deploymentSpec = predictorAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
 	default:
 		return errors.New(api.Name, "unknown model format encountered") // unexpected
 	}
@@ -285,6 +285,24 @@ func tfAPISpec(
 		})
 	}
 
+	envVars := append(
+		k8s.AWSCredentials(),
+		kcore.EnvVar{
+			Name: "HOST_IP",
+			ValueFrom: &kcore.EnvVarSource{
+				FieldRef: &kcore.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		},
+	)
+	if api.TensorFlow.PythonPath != nil {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  "PYTHON_PATH",
+			Value: path.Join(consts.EmptyDirMountPath, "project", *api.TensorFlow.PythonPath),
+		})
+	}
+
 	downloadArgsBytes, _ := json.Marshal(downloadArgs)
 	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -344,21 +362,7 @@ func tfAPISpec(
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
 						},
-						Env: append(
-							k8s.AWSCredentials(),
-							kcore.EnvVar{
-								Name:  "PYTHON_PATH",
-								Value: path.Join(consts.EmptyDirMountPath, "project", api.PythonPath),
-							},
-							kcore.EnvVar{
-								Name: "HOST_IP",
-								ValueFrom: &kcore.EnvVarSource{
-									FieldRef: &kcore.ObjectFieldSelector{
-										FieldPath: "status.hostIP",
-									},
-								},
-							},
-						),
+						Env:          envVars,
 						VolumeMounts: defaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
@@ -427,13 +431,13 @@ func tfAPISpec(
 	})
 }
 
-func pythonAPISpec(
+func predictorAPISpec(
 	ctx *context.Context,
 	api *context.API,
 	workloadID string,
 	desiredReplicas int32,
 ) *kapps.Deployment {
-	servingImage := config.Cluster.ImagePythonServe
+	servingImage := config.Cluster.ImagePredictorServe
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
@@ -443,7 +447,7 @@ func pythonAPISpec(
 	}
 
 	if api.Compute.GPU > 0 {
-		servingImage = config.Cluster.ImagePythonServeGPU
+		servingImage = config.Cluster.ImagePredictorServeGPU
 		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
@@ -459,6 +463,25 @@ func pythonAPISpec(
 
 	downloadArgsBytes, _ := json.Marshal(downloadArgs)
 	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
+
+	envVars := append(
+		k8s.AWSCredentials(),
+		kcore.EnvVar{
+			Name: "HOST_IP",
+			ValueFrom: &kcore.EnvVarSource{
+				FieldRef: &kcore.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		},
+	)
+	if api.Predictor.PythonPath != nil {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  "PYTHON_PATH",
+			Value: path.Join(consts.EmptyDirMountPath, "project", *api.Predictor.PythonPath),
+		})
+	}
+
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:     internalAPIName(api.Name, ctx.App.Name),
 		Replicas: desiredReplicas,
@@ -514,21 +537,7 @@ func pythonAPISpec(
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
 						},
-						Env: append(
-							k8s.AWSCredentials(),
-							kcore.EnvVar{
-								Name:  "PYTHON_PATH",
-								Value: path.Join(consts.EmptyDirMountPath, "project", api.PythonPath),
-							},
-							kcore.EnvVar{
-								Name: "HOST_IP",
-								ValueFrom: &kcore.EnvVarSource{
-									FieldRef: &kcore.ObjectFieldSelector{
-										FieldPath: "status.hostIP",
-									},
-								},
-							},
-						),
+						Env:          envVars,
 						VolumeMounts: defaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
@@ -602,6 +611,24 @@ func onnxAPISpec(
 		})
 	}
 
+	envVars := append(
+		k8s.AWSCredentials(),
+		kcore.EnvVar{
+			Name: "HOST_IP",
+			ValueFrom: &kcore.EnvVarSource{
+				FieldRef: &kcore.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		},
+	)
+	if api.ONNX.PythonPath != nil {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  "PYTHON_PATH",
+			Value: path.Join(consts.EmptyDirMountPath, "project", *api.ONNX.PythonPath),
+		})
+	}
+
 	downloadArgsBytes, _ := json.Marshal(downloadArgs)
 	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -659,21 +686,7 @@ func onnxAPISpec(
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
 						},
-						Env: append(
-							k8s.AWSCredentials(),
-							kcore.EnvVar{
-								Name:  "PYTHON_PATH",
-								Value: path.Join(consts.EmptyDirMountPath, "project", api.PythonPath),
-							},
-							kcore.EnvVar{
-								Name: "HOST_IP",
-								ValueFrom: &kcore.EnvVarSource{
-									FieldRef: &kcore.ObjectFieldSelector{
-										FieldPath: "status.hostIP",
-									},
-								},
-							},
-						),
+						Env:          envVars,
 						VolumeMounts: defaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,

@@ -161,16 +161,16 @@ class Context:
         api = self.apis[api_name]
         try:
             impl = self.load_module(
-                "predictor", api["name"], os.path.join(project_dir, api["python"]["predictor"])
+                "predictor", api["name"], os.path.join(project_dir, api["predictor"]["path"])
             )
         except CortexException as e:
-            e.wrap("api " + api_name, "failed to load predictor", api["python"]["predictor"])
+            e.wrap("api " + api_name, "failed to load predictor", api["predictor"]["path"])
             raise
 
         try:
             _validate_impl(impl, INFERENCE_IMPL_VALIDATION)
         except CortexException as e:
-            e.wrap("api " + api_name, "predictor " + api["python"]["predictor"])
+            e.wrap("api " + api_name, "predictor " + api["predictor"]["path"])
             raise
         return impl
 

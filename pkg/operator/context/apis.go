@@ -33,13 +33,11 @@ func getAPIs(config *userconfig.Config, deploymentVersion string, projectID stri
 		var buf bytes.Buffer
 		buf.WriteString(apiConfig.Name)
 		buf.WriteString(*apiConfig.Endpoint)
-		buf.WriteString(apiConfig.PythonPath)
 		buf.WriteString(s.Obj(apiConfig.Tracker))
 		buf.WriteString(deploymentVersion)
 		buf.WriteString(s.Obj(apiConfig.TensorFlow))
 		buf.WriteString(s.Obj(apiConfig.ONNX))
-		buf.WriteString(s.Obj(apiConfig.Python))
-		buf.WriteString(s.Obj(apiConfig.Metadata))
+		buf.WriteString(s.Obj(apiConfig.Predictor))
 
 		if apiConfig.AreProjectFilesRequired() {
 			buf.WriteString(projectID)

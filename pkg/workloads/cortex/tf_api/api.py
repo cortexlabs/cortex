@@ -182,7 +182,7 @@ def run_predict(sample, debug=False):
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         try:
             prepared_sample = request_handler.pre_inference(
-                sample, local_cache["model_metadata"]["signatureDef"], api["metadata"]
+                sample, local_cache["model_metadata"]["signatureDef"], api["tensorflow"]["metadata"]
             )
             debug_obj("pre_inference", prepared_sample, debug)
         except Exception as e:
@@ -200,7 +200,7 @@ def run_predict(sample, debug=False):
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
         try:
             result = request_handler.post_inference(
-                result, local_cache["model_metadata"]["signatureDef"], api["metadata"]
+                result, local_cache["model_metadata"]["signatureDef"], api["tensorflow"]["metadata"]
             )
             debug_obj("post_inference", result, debug)
         except Exception as e:

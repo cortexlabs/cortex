@@ -35,11 +35,11 @@ func (cc *InternalClusterConfig) String() string {
 	items = append(items, table.KV{K: "log group", V: cc.LogGroup})
 	items = append(items, table.KV{K: "telemetry", V: cc.Telemetry})
 
-	if cc.ImagePythonServe != defaultCC.ImagePythonServe {
-		items = append(items, table.KV{K: "image_python_serve", V: cc.ImagePythonServe})
+	if cc.ImagePredictorServe != defaultCC.ImagePredictorServe {
+		items = append(items, table.KV{K: "image_predictor_serve", V: cc.ImagePredictorServe})
 	}
-	if cc.ImagePythonServeGPU != defaultCC.ImagePythonServeGPU {
-		items = append(items, table.KV{K: "image_python_serve_gpu", V: cc.ImagePythonServeGPU})
+	if cc.ImagePredictorServeGPU != defaultCC.ImagePredictorServeGPU {
+		items = append(items, table.KV{K: "image_predictor_serve_gpu", V: cc.ImagePredictorServeGPU})
 	}
 	if cc.ImageTFServe != defaultCC.ImageTFServe {
 		items = append(items, table.KV{K: "image_tf_serve", V: cc.ImageTFServe})

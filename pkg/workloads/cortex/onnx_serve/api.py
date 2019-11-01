@@ -188,7 +188,7 @@ def predict():
         if request_handler is not None and util.has_function(request_handler, "pre_inference"):
             try:
                 prepared_sample = request_handler.pre_inference(
-                    sample, input_metadata, api["metadata"]
+                    sample, input_metadata, api["onnx"]["metadata"]
                 )
                 debug_obj("pre_inference", prepared_sample, debug)
             except Exception as e:
@@ -204,7 +204,7 @@ def predict():
         if request_handler is not None and util.has_function(request_handler, "post_inference"):
             try:
                 result = request_handler.post_inference(
-                    model_output, output_metadata, api["metadata"]
+                    model_output, output_metadata, api["onnx"]["metadata"]
                 )
             except Exception as e:
                 raise UserRuntimeException(
