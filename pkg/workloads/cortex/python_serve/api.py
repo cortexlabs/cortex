@@ -121,7 +121,10 @@ def start(args):
         local_cache["predictor"] = ctx.get_predictor_impl(api["name"], args.project_dir)
 
         if util.has_function(local_cache["predictor"], "init"):
-            local_cache["predictor"].init(api["metadata"])
+            try:
+                local_cache["predictor"].init(api["metadata"])
+            raise Exception as e:
+                raise UserRuntimeException(api["python"]["predictor"], "init", str(e)) from e
         logger.info("init ran successfully")
     except:
         logger.exception("failed to start api")
