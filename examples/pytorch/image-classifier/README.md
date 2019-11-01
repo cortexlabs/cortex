@@ -8,7 +8,7 @@ We implement Cortex's Python Predictor interface that describes how to load the 
 
 ### Initialization
 
-Cortex executes the Python implementation once per replica startup. We can place our initializations in the body of the implementation. Let us download the pretrained Alexnet model and set it to evaluation:
+Cortex executes the Python implementation once per replica startup. We can place our initializations in the body of the implementation. Let us download the pretrained AlexNet model and set it to evaluation:
 
 ```python
 model = torchvision.models.alexnet(pretrained=True)
@@ -34,7 +34,7 @@ labels = requests.get(
 
 ### Predict
 
-The `predict` function will be triggered once per request to run the Alexnet model on the request payload and respond with a prediction. The Alexnet model requires a 2 dimensional array of 3 valued tuples representing the RGB values for each pixel in the image, but the API should accept a simple input format such as a URL to an image. Instead of returning the model's output consisting of an array of probabilities, the API should return the class name with the highest probability. We define the `predict` function to download the image specified by the url in the request, process it, feed it to the model, convert the model output weights to a label and return the label.
+The `predict` function will be triggered once per request to run the AlexNet model on the request payload and respond with a prediction. The AlexNet model requires a 2 dimensional array of 3 valued tuples representing the RGB values for each pixel in the image, but the API should accept a simple input format such as a URL to an image. Instead of returning the model's output consisting of an array of probabilities, the API should return the class name with the highest probability. We define the `predict` function to download the image specified by the url in the request, process it, feed it to the model, convert the model output weights to a label and return the label.
 
 ```python
 def predict(sample, metadata):
