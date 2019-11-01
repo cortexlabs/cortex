@@ -8,7 +8,8 @@ We implement Cortex's Python Predictor interface that describes how to load the 
 
 ### Initialization
 
-Cortex executes the python implementation and calls the `init` function once on startup. We download the model from S3 based on the location specified in the `metadata` key of our deployment configuration.
+Cortex executes the Python implementation and calls the `init` function once on startup. We download the model from S3 based on the location specified in the `metadata` key of our deployment configuration.
+
 ```python
 model = None
 

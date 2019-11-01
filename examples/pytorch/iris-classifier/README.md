@@ -8,8 +8,9 @@ We implement Cortex's Python Predictor interface that describes how to load the 
 
 ### Initialization
 
-Cortex executes the python implementation once per replica startup. We can place our initializations in the body of the implementation. The PyTorch model class is defined in [src/my_model.py](./src/my_model.py). Let us instantiate our model and define the labels.
-```
+Cortex executes the Python implementation once per replica startup. We can place our initializations in the body of the implementation. The PyTorch model class is defined in [src/my_model.py](./src/my_model.py). Let us instantiate our model and define the labels.
+
+```python
 from my_model import IrisNet
 
 model = IrisNet()
@@ -18,7 +19,8 @@ labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 ```
 
 Let's assume that we have already trained a model uploaded the state_dict (weights) to S3. We get the location of the weights from the metadata in the configuration and initialize our model with weights from S3 in the `init` function. Cortex calls the `init` once per replica startup.
-```
+
+```python
 def init(metadata):
     s3 = boto3.client("s3")
     s3.download_file(metadata["bucket"], metadata["key"], "iris_model.pth")

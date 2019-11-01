@@ -8,14 +8,16 @@ We implement Cortex's Python Predictor interface that describes how to load the 
 
 ### Initialization
 
-Cortex executes the python implementation once per replica startup. We can place our initializations in the body of the implementation. Let us download the pretrained DistilGPT2 model and set it to evaluation:
-```
+Cortex executes the Python implementation once per replica startup. We can place our initializations in the body of the implementation. Let us download the pretrained DistilGPT2 model and set it to evaluation:
+
+```python
 model = GPT2LMHeadModel.from_pretrained("distilgpt2")
 model.eval()
 tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
 ```
 
 ### Predict
+
 The `predict` function will be triggered once per request to run the text generation model on a prompt provided in the request. We tokenize the prompt and generate the number of words specified in the deployment definition `cortex.yaml`. We decode the output of the model and respond with readable generated text.
 
 ```python

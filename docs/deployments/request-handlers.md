@@ -20,7 +20,7 @@ def pre_inference(sample, signature, metadata):
         metadata: Custom dictionary specified by the user in API configuration.
 
     Returns:
-        A dictionary containing model input names as keys and python lists or numpy arrays as values. If the model only has a single input, then a python list or numpy array can be returned.
+        A dictionary containing model input names as keys and Python lists or numpy arrays as values. If the model only has a single input, then a Python list or numpy array can be returned.
     """
     pass
 
@@ -39,7 +39,7 @@ def post_inference(prediction, signature, metadata):
         metadata: Custom dictionary specified by the user in API configuration.
 
     Returns:
-        A python dictionary or list.
+        A Python dictionary or list.
     """
 ```
 

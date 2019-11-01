@@ -8,14 +8,16 @@ We implement Cortex's Python Predictor interface that describes how to load the 
 
 ### Initialization
 
-Cortex executes the python implementation once per replica startup. We can place our initializations in the body of the implementation. Let us download the pretrained Alexnet model and set it to evaluation:
-```
+Cortex executes the Python implementation once per replica startup. We can place our initializations in the body of the implementation. Let us download the pretrained Alexnet model and set it to evaluation:
+
+```python
 model = torchvision.models.alexnet(pretrained=True)
 model.eval()
 ```
 
 We declare the necessary image preprocessing:
-```
+
+```python
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 preprocess = transforms.Compose(
     [transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor(), normalize]
@@ -23,7 +25,8 @@ preprocess = transforms.Compose(
 ```
 
 We download the labels:
-```
+
+```python
 labels = requests.get(
     "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
 ).text.split("\n")[1:]
