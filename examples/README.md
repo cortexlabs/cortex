@@ -1,7 +1,5 @@
 # Examples
 
-Example models that are ready to be deployed with Cortex.
-
 | Example | Packaging |
 |:--- | :--- |
 | [BERT Sentiment Analysis](tensorflow/sentiment-analysis) </br> Demonstrates how to deploy a BERT for sentiment analysis with text preprocessing on requests. | TensorFlow |
@@ -12,8 +10,5 @@ Example models that are ready to be deployed with Cortex.
 | [Inception V3 Image Classifier](tensorflow/image-classifier) </br> Demonstrates how to deploy an Inception V3 Image Classifier with image preprocessing on requests. | TensorFlow |
 | [Alexnet Image Classifier](pytorch/image-classifier-onnx) </br> Demonstrates how to export a pretrained Alexnet from TorchVision to ONNX and deploy it. | ONNX |
 | [Iris Classifier](pytorch/iris-classifier) </br> Demonstrates how to deploy a PyTorch model using Cortex Predictor. Model state is downloaded from S3 and and loaded into an IrisNet PyTorch Class for serving. | Cortex Predictor |
-| [Iris Classifier](keras/iris-classifier-onnx) </br> Iris classifier written in Keras and exported to ONNX | ONNX |
-| [Iris Classifier](pytorch/iris-classifier-onnx) </br> Iris classifier written in PyTorch and exported to ONNX | ONNX |
-| [Iris Classifier](sklearn/iris-classifier-onnx) </br> Iris classifier written in Sklearn and exported to ONNX | ONNX |
 | [Iris Classifier](tensorflow/iris-classifier) </br> Iris classifier written in TensorFlow | TensorFlow |
 | [Iris Classifier](xgboost/iris-classifier-onnx) </br> Iris classifier written in XGBoost and exported to ONNX | ONNX |
