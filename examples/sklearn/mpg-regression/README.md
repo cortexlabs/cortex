@@ -52,8 +52,8 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
   tracker:
     model_type: regression
   metadata:
-    bucket: data-vishal
-    key: mpg.joblib
+    bucket: cortex-examples
+    key: mpg-regression/mpg.joblib
 ```
 
 ## Deploy to AWS

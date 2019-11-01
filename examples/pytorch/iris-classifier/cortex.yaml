@@ -7,5 +7,5 @@
   python:
     predictor: src/predictor.py
   metadata:
-    bucket: data-vishal
-    key: iris_model.pth
+    bucket: cortex-examples
+    key: iris-classifier/iris_pytorch.pth

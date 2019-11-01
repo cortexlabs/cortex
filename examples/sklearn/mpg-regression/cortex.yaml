@@ -8,5 +8,5 @@
   tracker:
     model_type: regression
   metadata:
-    bucket: data-vishal
-    key: mpg.joblib
+    bucket: cortex-examples
+    key: mpg-regression/mpg.joblib

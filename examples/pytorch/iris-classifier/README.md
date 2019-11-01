@@ -56,15 +56,15 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
 ```yaml
 - kind: deployment
   name: iris
-  python_path: src/
 
 - kind: api
   name: classifier
+  python_path: src/
   python:
     predictor: src/predictor.py
   metadata:
-    bucket: data-vishal
-    key: iris_model.pth
+    bucket: cortex-examples
+    key: iris-classifier/iris_pytorch.pth
 ```
 
 ## Deploy to AWS
