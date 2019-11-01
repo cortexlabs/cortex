@@ -46,6 +46,10 @@ def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float("Inf")
     return logits
 
 
+def init(metadata):
+    model.to(metadata["device"])
+
+
 def sample_sequence(
     model,
     length,
@@ -84,7 +88,9 @@ def sample_sequence(
 
 def predict(sample, metadata):
     indexed_tokens = tokenizer.encode(sample["text"])
-    output = sample_sequence(model, metadata.get("num_words", 20), indexed_tokens)
+    output = sample_sequence(
+        model, metadata.get("num_words", 20), indexed_tokens, device=metadata["device"]
+    )
     return tokenizer.decode(
         output[0, 0:].tolist(), clean_up_tokenization_spaces=True, skip_special_tokens=True
     )

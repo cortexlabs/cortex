@@ -7,3 +7,7 @@
     predictor: predictor.py
   metadata:
     num_words: 20
+    device: cuda
+  compute:
+    gpu: 1
+    cpu: 1

@@ -16,6 +16,12 @@ model.eval()
 tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
 ```
 
+We want to load the model onto a GPU:
+```python
+def init(metadata):
+    model.to(metadata["device"])
+```
+
 ### Predict
 
 The `predict` function will be triggered once per request to run the text generation model on a prompt provided in the request. We tokenize the prompt and generate the number of words specified in the deployment definition `cortex.yaml`. We decode the output of the model and respond with readable generated text.
@@ -23,7 +29,7 @@ The `predict` function will be triggered once per request to run the text genera
 ```python
 def predict(sample, metadata):
     indexed_tokens = tokenizer.encode(sample["text"])
-    output = sample_sequence(model, metadata['num_words'], indexed_tokens)
+    output = sample_sequence(model, metadata['num_words'], indexed_tokens, device=metadata['device'])
     return tokenizer.decode(
         output[0, 0:].tolist(), clean_up_tokenization_spaces=True, skip_special_tokens=True
     )
@@ -45,6 +51,10 @@ A `deployment` specifies a set of resources that are deployed as a single unit. 
     predictor: predictor.py
   metadata:
     num_words: 20
+    device: cuda
+  compute:
+    gpu: 1
+    cpu: 1
 ```
 
 ## Deploy to AWS
