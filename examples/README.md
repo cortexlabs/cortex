@@ -8,7 +8,6 @@
 | [Alexnet Image Classifier](pytorch/image-classifier) </br> Demonstrates how to deploy a pretrained Alexnet model from TorchVision with image preprocessing. | Cortex Predictor |
 | [MPG Linear Regression](sklearn/mpg-regression) </br> Demonstrates how to deploy an Sklearn Linear Regression model. Pickled model is downloaded from S3 and served. | Cortex Predictor |
 | [Inception V3 Image Classifier](tensorflow/image-classifier) </br> Demonstrates how to deploy an Inception V3 Image Classifier with image preprocessing on requests. | TensorFlow |
-| [Alexnet Image Classifier](pytorch/image-classifier-onnx) </br> Demonstrates how to export a pretrained Alexnet from TorchVision to ONNX and deploy it. | ONNX |
 | [Iris Classifier](pytorch/iris-classifier) </br> Demonstrates how to deploy a PyTorch model using Cortex Predictor. Model state is downloaded from S3 and and loaded into an IrisNet PyTorch Class for serving. | Cortex Predictor |
 | [Iris Classifier](tensorflow/iris-classifier) </br> Iris classifier written in TensorFlow | TensorFlow |
 | [Iris Classifier](xgboost/iris-classifier-onnx) </br> Iris classifier written in XGBoost and exported to ONNX | ONNX |
