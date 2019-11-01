@@ -29,7 +29,7 @@ Note: This will create resources in your AWS account which aren't included in th
 git clone -b master https://github.com/cortexlabs/cortex.git
 
 # Navigate to the iris classification example
-cd cortex/examples/iris-classifier
+cd cortex/examples/tensorflow/iris-classifier
 
 # Deploy the model to the cluster
 cortex deploy
@@ -38,7 +38,7 @@ cortex deploy
 cortex get --watch
 
 # Get the API's endpoint
-cortex get tensorflow
+cortex get classifier
 
 # Classify a sample
 curl -X POST -H "Content-Type: application/json" \
