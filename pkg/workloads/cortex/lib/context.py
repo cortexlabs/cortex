@@ -147,7 +147,7 @@ class Context:
                 "request_handler", api["name"], os.path.join(project_dir, request_handler_path)
             )
         except CortexException as e:
-            e.wrap("api " + api_name, "request_handler " + request_handler_path)
+            e.wrap("api " + api_name, "failed to load request_handler", request_handler_path)
             raise
 
         try:
@@ -164,7 +164,7 @@ class Context:
                 "predictor", api["name"], os.path.join(project_dir, api["python"]["predictor"])
             )
         except CortexException as e:
-            e.wrap("api " + api_name, "predictor " + api["python"]["predictor"])
+            e.wrap("api " + api_name, "failed to load predictor", api["python"]["predictor"])
             raise
 
         try:

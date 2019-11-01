@@ -123,7 +123,7 @@ def start(args):
         if util.has_function(local_cache["predictor"], "init"):
             try:
                 local_cache["predictor"].init(api["metadata"])
-            raise Exception as e:
+            except Exception as e:
                 raise UserRuntimeException(api["python"]["predictor"], "init", str(e)) from e
         logger.info("init ran successfully")
     except:
