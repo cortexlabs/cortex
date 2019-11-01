@@ -23,9 +23,6 @@ const (
 	KindKey    = "kind"
 	TagsKey    = "tags"
 
-	// App
-	PythonPathKey = "python_path"
-
 	// API
 	ModelKey          = "model"
 	PathKey           = "path"
