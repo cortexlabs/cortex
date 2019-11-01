@@ -7,7 +7,6 @@
     path: src/predictor.py
     python_path: src/
     metadata:
-      bucket: cortex-examples
-      key: pytorch/iris-classifier/nn.pth
+      model: s3://cortex-examples/pytorch/iris-classifier/nn.pth
   tracker:
     model_type: classification

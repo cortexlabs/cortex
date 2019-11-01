@@ -23,7 +23,8 @@ Let's assume that we have already trained a model uploaded the state_dict (weigh
 ```python
 def init(metadata):
     s3 = boto3.client("s3")
-    s3.download_file(metadata["bucket"], metadata["key"], "iris_model.pth")
+    bucket, key = re.match(r"s3:\/\/(.+?)\/(.+)", metadata["model"]).groups()
+    s3.download_file(bucket, key, "iris_model.pth")
     model.load_state_dict(torch.load("iris_model.pth"))
     model.eval()
 ```
@@ -65,8 +66,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
     path: src/predictor.py
     python_path: src/
     metadata:
-      bucket: cortex-examples
-      key: pytorch/iris-classifier/nn.pth
+      model: s3://cortex-examples/pytorch/iris-classifier/nn.pth
   tracker:
     model_type: classification
 ```

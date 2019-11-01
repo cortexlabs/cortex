@@ -1,6 +1,5 @@
 # Examples
 
-
 - [Iris classification with TensorFlow](tensorflow/iris-classifier): deploy a TensorFlow model to classify irises.
 
 - [Iris classification with PyTorch](pytorch/iris-classifier): deploy a PyTorch model to classify irises.
