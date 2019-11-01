@@ -1,6 +1,6 @@
 # Examples
 
-Example models that are ready to be deployed with Cortex and showcase various functionality.
+Example models that are ready to be deployed with Cortex.
 
 | Example | Packaging |
 |:--- | :--- |
