@@ -53,7 +53,7 @@ See `./src/predictor.py` for the complete code.
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed as a single unit. An `api` makes the Cortex python implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will be passed into the `init` function in `predictor.py` for model initialization. We specify the `python_path` in the deployment so that we can import our model as `from my_model import IrisNet` instead of `from src.my_model import IrisNet` in `predictor.py`.
+A `deployment` specifies a set of resources that are deployed together. An `api` makes the Predictor implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will be passed into the `init` function in `predictor.py` for model initialization. We specify the `python_path` in the deployment so that we can import our model as `from my_model import IrisNet` instead of `from src.my_model import IrisNet` in `predictor.py`.
 
 ```yaml
 - kind: deployment
