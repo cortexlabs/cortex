@@ -193,7 +193,7 @@ def predict():
                 debug_obj("pre_inference", prepared_sample, debug)
             except Exception as e:
                 raise UserRuntimeException(
-                    api["request_handler"], "pre_inference request handler", str(e)
+                    api["onnx"]["request_handler"], "pre_inference request handler", str(e)
                 ) from e
 
         inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
@@ -208,7 +208,7 @@ def predict():
                 )
             except Exception as e:
                 raise UserRuntimeException(
-                    api["request_handler"], "post_inference request handler", str(e)
+                    api["onnx"]["request_handler"], "post_inference request handler", str(e)
                 ) from e
 
             debug_obj("post_inference", result, debug)

@@ -187,7 +187,7 @@ def run_predict(sample, debug=False):
             debug_obj("pre_inference", prepared_sample, debug)
         except Exception as e:
             raise UserRuntimeException(
-                api["request_handler"], "pre_inference request handler", str(e)
+                api["tensorflow"]["request_handler"], "pre_inference request handler", str(e)
             ) from e
 
     validate_sample(prepared_sample)
@@ -205,7 +205,7 @@ def run_predict(sample, debug=False):
             debug_obj("post_inference", result, debug)
         except Exception as e:
             raise UserRuntimeException(
-                api["request_handler"], "post_inference request handler", str(e)
+                api["tensorflow"]["request_handler"], "post_inference request handler", str(e)
             ) from e
 
     return result
