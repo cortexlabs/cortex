@@ -1,5 +1,5 @@
 - kind: deployment
-  name: tensorflow-sentiment-analysis
+  name: sentiment
 
 - kind: api
   name: classifier

@@ -1,5 +1,5 @@
 - kind: deployment
-  name: pytorch-text-generator
+  name: text
 
 - kind: api
   name: generator

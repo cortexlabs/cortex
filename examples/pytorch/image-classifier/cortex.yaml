@@ -1,5 +1,5 @@
 - kind: deployment
-  name: pytorch-image-classifier
+  name: image
 
 - kind: api
   name: classifier

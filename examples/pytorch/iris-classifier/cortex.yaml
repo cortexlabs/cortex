@@ -1,5 +1,5 @@
 - kind: deployment
-  name: pytorch-iris-classifier
+  name: iris
 
 - kind: api
   name: classifier
