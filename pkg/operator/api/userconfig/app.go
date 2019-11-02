@@ -38,7 +38,3 @@ var appValidation = &cr.StructValidation{
 		typeFieldValidation,
 	},
 }
-
-func (app *App) Validate() error {
-	return nil
-}

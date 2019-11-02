@@ -35,13 +35,15 @@ function ecr_login() {
 }
 
 function create_registry() {
+  aws ecr create-repository --repository-name=cortexlabs/predictor-serve --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/predictor-serve-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve-gpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/tf-api --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/operator --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/manager --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tf-api --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/downloader --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/cluster-autoscaler --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/metrics-server --region=$REGISTRY_REGION || true
@@ -139,9 +141,11 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/istio-galley istio-galley latest
   fi
 
+  build_and_push $ROOT/images/predictor-serve predictor-serve latest
+  build_and_push $ROOT/images/predictor-serve-gpu predictor-serve-gpu latest
+  build_and_push $ROOT/images/tf-api tf-api latest
   build_and_push $ROOT/images/onnx-serve onnx-serve latest
   build_and_push $ROOT/images/onnx-serve-gpu onnx-serve-gpu latest
-  build_and_push $ROOT/images/tf-api tf-api latest
   build_and_push $ROOT/images/downloader downloader latest
 
   cleanup

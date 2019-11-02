@@ -58,7 +58,7 @@ You can run the code that generated the model [here](https://colab.research.goog
 
 ### Step 2: Add request handling
 
-The model requires encoded data for inference, but the API should accept strings of natural language as input. It should also decode the inference output.
+The model requires encoded data for inference, but the API should accept strings of natural language as input. It should also decode the inference output as human-readable text.
 
 ```python
 # handler.py
@@ -66,11 +66,9 @@ The model requires encoded data for inference, but the API should accept strings
 from encoder import get_encoder
 encoder = get_encoder()
 
-
 def pre_inference(sample, metadata):
     context = encoder.encode(sample["text"])
     return {"context": [context]}
-
 
 def post_inference(prediction, metadata):
     response = prediction["sample"]

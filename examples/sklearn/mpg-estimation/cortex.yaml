@@ -1,0 +1,11 @@
+- kind: deployment
+  name: auto
+
+- kind: api
+  name: mpg
+  predictor:
+    path: src/predictor.py
+    metadata:
+      model: s3://cortex-examples/sklearn/mpg-estimation/linreg.joblib
+  tracker:
+    model_type: regression

@@ -92,11 +92,13 @@ func (aw *APIWorkload) Start(ctx *context.Context) error {
 	desiredReplicas := getRequestedReplicasFromDeployment(api, k8sDeloyment, hpa)
 
 	var deploymentSpec *kapps.Deployment
-	switch api.ModelFormat {
-	case userconfig.TensorFlowModelFormat:
+	switch {
+	case api.TensorFlow != nil:
 		deploymentSpec = tfAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
-	case userconfig.ONNXModelFormat:
+	case api.ONNX != nil:
 		deploymentSpec = onnxAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
+	case api.Predictor != nil:
+		deploymentSpec = predictorAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
 	default:
 		return errors.New(api.Name, "unknown model format encountered") // unexpected
 	}
@@ -267,19 +269,37 @@ func tfAPISpec(
 
 	downloadArgs := []downloadContainerArg{
 		{
-			From:     ctx.APIs[api.Name].Model,
+			From:     ctx.APIs[api.Name].TensorFlow.Model,
 			To:       path.Join(consts.EmptyDirMountPath, "model"),
-			Unzip:    strings.HasSuffix(ctx.APIs[api.Name].Model, ".zip"),
+			Unzip:    strings.HasSuffix(ctx.APIs[api.Name].TensorFlow.Model, ".zip"),
 			ItemName: "model",
 		},
 	}
 
-	if api.RequestHandler != nil {
+	if api.TensorFlow.RequestHandler != nil {
 		downloadArgs = append(downloadArgs, downloadContainerArg{
 			From:     config.AWS.S3Path(ctx.ProjectKey),
 			To:       path.Join(consts.EmptyDirMountPath, "project"),
 			Unzip:    true,
 			ItemName: "project code",
+		})
+	}
+
+	envVars := append(
+		k8s.AWSCredentials(),
+		kcore.EnvVar{
+			Name: "HOST_IP",
+			ValueFrom: &kcore.EnvVarSource{
+				FieldRef: &kcore.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		},
+	)
+	if api.TensorFlow.PythonPath != nil {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  "PYTHON_PATH",
+			Value: path.Join(consts.EmptyDirMountPath, "project", *api.TensorFlow.PythonPath),
 		})
 	}
 
@@ -342,17 +362,7 @@ func tfAPISpec(
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
 						},
-						Env: append(
-							k8s.AWSCredentials(),
-							kcore.EnvVar{
-								Name: "HOST_IP",
-								ValueFrom: &kcore.EnvVarSource{
-									FieldRef: &kcore.ObjectFieldSelector{
-										FieldPath: "status.hostIP",
-									},
-								},
-							},
-						),
+						Env:          envVars,
 						VolumeMounts: defaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
@@ -421,6 +431,148 @@ func tfAPISpec(
 	})
 }
 
+func predictorAPISpec(
+	ctx *context.Context,
+	api *context.API,
+	workloadID string,
+	desiredReplicas int32,
+) *kapps.Deployment {
+	servingImage := config.Cluster.ImagePredictorServe
+	resourceList := kcore.ResourceList{}
+	resourceLimitsList := kcore.ResourceList{}
+	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
+
+	if api.Compute.Mem != nil {
+		resourceList[kcore.ResourceMemory] = api.Compute.Mem.Quantity
+	}
+
+	if api.Compute.GPU > 0 {
+		servingImage = config.Cluster.ImagePredictorServeGPU
+		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+	}
+
+	downloadArgs := []downloadContainerArg{
+		{
+			From:     config.AWS.S3Path(ctx.ProjectKey),
+			To:       path.Join(consts.EmptyDirMountPath, "project"),
+			Unzip:    true,
+			ItemName: "project code",
+		},
+	}
+
+	downloadArgsBytes, _ := json.Marshal(downloadArgs)
+	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
+
+	envVars := append(
+		k8s.AWSCredentials(),
+		kcore.EnvVar{
+			Name: "HOST_IP",
+			ValueFrom: &kcore.EnvVarSource{
+				FieldRef: &kcore.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		},
+	)
+	if api.Predictor.PythonPath != nil {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  "PYTHON_PATH",
+			Value: path.Join(consts.EmptyDirMountPath, "project", *api.Predictor.PythonPath),
+		})
+	}
+
+	return k8s.Deployment(&k8s.DeploymentSpec{
+		Name:     internalAPIName(api.Name, ctx.App.Name),
+		Replicas: desiredReplicas,
+		Labels: map[string]string{
+			"appName":      ctx.App.Name,
+			"workloadType": workloadTypeAPI,
+			"apiName":      api.Name,
+			"resourceID":   ctx.APIs[api.Name].ID,
+			"workloadID":   workloadID,
+		},
+		Selector: map[string]string{
+			"appName":      ctx.App.Name,
+			"workloadType": workloadTypeAPI,
+			"apiName":      api.Name,
+		},
+		PodSpec: k8s.PodSpec{
+			Labels: map[string]string{
+				"appName":      ctx.App.Name,
+				"workloadType": workloadTypeAPI,
+				"apiName":      api.Name,
+				"resourceID":   ctx.APIs[api.Name].ID,
+				"workloadID":   workloadID,
+				"userFacing":   "true",
+				"logGroupName": ctx.LogGroupName(api.Name),
+			},
+			Annotations: map[string]string{
+				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
+			},
+			K8sPodSpec: kcore.PodSpec{
+				RestartPolicy: "Always",
+				InitContainers: []kcore.Container{
+					{
+						Name:            downloaderInitContainerName,
+						Image:           config.Cluster.ImageDownloader,
+						ImagePullPolicy: "Always",
+						Args: []string{
+							"--download=" + downloadArgsStr,
+						},
+						Env:          k8s.AWSCredentials(),
+						VolumeMounts: defaultVolumeMounts(),
+					},
+				},
+				Containers: []kcore.Container{
+					{
+						Name:            apiContainerName,
+						Image:           servingImage,
+						ImagePullPolicy: kcore.PullAlways,
+						Args: []string{
+							"--workload-id=" + workloadID,
+							"--port=" + defaultPortStr,
+							"--context=" + config.AWS.S3Path(ctx.Key),
+							"--api=" + ctx.APIs[api.Name].ID,
+							"--cache-dir=" + consts.ContextCacheDir,
+							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
+						},
+						Env:          envVars,
+						VolumeMounts: defaultVolumeMounts(),
+						ReadinessProbe: &kcore.Probe{
+							InitialDelaySeconds: 5,
+							TimeoutSeconds:      5,
+							PeriodSeconds:       5,
+							SuccessThreshold:    1,
+							FailureThreshold:    2,
+							Handler: kcore.Handler{
+								HTTPGet: &kcore.HTTPGetAction{
+									Path: "/healthz",
+									Port: intstr.IntOrString{
+										IntVal: defaultPortInt32,
+									},
+								},
+							},
+						},
+						Resources: kcore.ResourceRequirements{
+							Requests: resourceList,
+							Limits:   resourceLimitsList,
+						},
+						Ports: []kcore.ContainerPort{
+							{
+								ContainerPort: defaultPortInt32,
+							},
+						},
+					},
+				},
+				Volumes:            defaultVolumes(),
+				ServiceAccountName: "default",
+			},
+		},
+		Namespace: consts.K8sNamespace,
+	})
+}
+
 func onnxAPISpec(
 	ctx *context.Context,
 	api *context.API,
@@ -444,18 +596,36 @@ func onnxAPISpec(
 
 	downloadArgs := []downloadContainerArg{
 		{
-			From:     ctx.APIs[api.Name].Model,
+			From:     ctx.APIs[api.Name].ONNX.Model,
 			To:       path.Join(consts.EmptyDirMountPath, "model"),
 			ItemName: "model",
 		},
 	}
 
-	if api.RequestHandler != nil {
+	if api.ONNX.RequestHandler != nil {
 		downloadArgs = append(downloadArgs, downloadContainerArg{
 			From:     config.AWS.S3Path(ctx.ProjectKey),
 			To:       path.Join(consts.EmptyDirMountPath, "project"),
 			Unzip:    true,
 			ItemName: "project code",
+		})
+	}
+
+	envVars := append(
+		k8s.AWSCredentials(),
+		kcore.EnvVar{
+			Name: "HOST_IP",
+			ValueFrom: &kcore.EnvVarSource{
+				FieldRef: &kcore.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		},
+	)
+	if api.ONNX.PythonPath != nil {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  "PYTHON_PATH",
+			Value: path.Join(consts.EmptyDirMountPath, "project", *api.ONNX.PythonPath),
 		})
 	}
 
@@ -516,17 +686,7 @@ func onnxAPISpec(
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
 						},
-						Env: append(
-							k8s.AWSCredentials(),
-							kcore.EnvVar{
-								Name: "HOST_IP",
-								ValueFrom: &kcore.EnvVarSource{
-									FieldRef: &kcore.ObjectFieldSelector{
-										FieldPath: "status.hostIP",
-									},
-								},
-							},
-						),
+						Env:          envVars,
 						VolumeMounts: defaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,

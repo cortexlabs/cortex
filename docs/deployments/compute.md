@@ -13,7 +13,7 @@ For example:
     gpu: 1
 ```
 
-CPU and memory requests in Cortex correspond to compute resource requests in Kubernetes. In the example above, the API service will only be scheduled once 2 CPUs, 1Gi of memory, and 1 GPU are available, and the job will be guaranteed to have access to those resources throughout it's execution. In some cases, a Cortex compute resource request can be (or may default to) `Null`.
+CPU and memory requests in Cortex correspond to compute resource requests in Kubernetes. In the example above, the API will only be scheduled once 2 CPUs, 1Gi of memory, and 1 GPU are available on any instance, and the deployment will be guaranteed to have access to those resources throughout its execution. In some cases, resource requests can be (or may default to) `Null`.
 
 ## CPU
 

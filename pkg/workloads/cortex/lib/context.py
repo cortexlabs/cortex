@@ -131,18 +131,46 @@ class Context:
 
     def get_request_handler_impl(self, api_name, project_dir):
         api = self.apis[api_name]
+        model_type = api.get("tensorflow")
+
+        if model_type is None:
+            model_type = api.get("onnx")
+
+        if model_type is None:  # unexpected
+            raise CortexException(
+                api_name, "failed to load request handler", "missing `tensorflow` or `onnx` key"
+            )
+
+        request_handler_path = model_type.get("request_handler")
         try:
             impl = self.load_module(
-                "request_handler", api["name"], os.path.join(project_dir, api["request_handler"])
+                "request_handler", api["name"], os.path.join(project_dir, request_handler_path)
             )
         except CortexException as e:
-            e.wrap("api " + api_name, "request_handler " + api["request_handler"])
+            e.wrap("api " + api_name, "failed to load request_handler", request_handler_path)
             raise
 
         try:
             _validate_impl(impl, REQUEST_HANDLER_IMPL_VALIDATION)
         except CortexException as e:
-            e.wrap("api " + api_name, "request_handler " + api["request_handler"])
+            e.wrap("api " + api_name, "request_handler " + request_handler_path)
+            raise
+        return impl
+
+    def get_predictor_impl(self, api_name, project_dir):
+        api = self.apis[api_name]
+        try:
+            impl = self.load_module(
+                "predictor", api["name"], os.path.join(project_dir, api["predictor"]["path"])
+            )
+        except CortexException as e:
+            e.wrap("api " + api_name, "failed to load predictor", api["predictor"]["path"])
+            raise
+
+        try:
+            _validate_impl(impl, INFERENCE_IMPL_VALIDATION)
+        except CortexException as e:
+            e.wrap("api " + api_name, "predictor " + api["predictor"]["path"])
             raise
         return impl
 
@@ -212,9 +240,14 @@ class Context:
 
 REQUEST_HANDLER_IMPL_VALIDATION = {
     "optional": [
-        {"name": "pre_inference", "args": ["sample", "metadata"]},
-        {"name": "post_inference", "args": ["prediction", "metadata"]},
+        {"name": "pre_inference", "args": ["sample", "signature", "metadata"]},
+        {"name": "post_inference", "args": ["prediction", "signature", "metadata"]},
     ]
+}
+
+INFERENCE_IMPL_VALIDATION = {
+    "optional": [{"name": "init", "args": ["metadata"]}],
+    "required": [{"name": "predict", "args": ["sample", "metadata"]}],
 }
 
 

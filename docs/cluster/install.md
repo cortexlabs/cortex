@@ -17,7 +17,7 @@ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/g
 cortex cluster up
 ```
 
-This will create resources in your AWS account which aren't included in the free tier, e.g. an EKS cluster, two Elastic Load Balancers, and EC2 instances (quantity and type as specified above). To use GPU nodes, you may need to subscribe to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) and [file an AWS support ticket](https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances) to increase the limit for your desired instance type.
+Note: This will create resources in your AWS account which aren't included in the free tier, e.g. an EKS cluster, two Elastic Load Balancers, and EC2 instances (quantity and type as specified above). To use GPU nodes, you may need to subscribe to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) and [file an AWS support ticket](https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances) to increase the limit for your desired instance type.
 
 ## Create a deployment
 
@@ -28,7 +28,7 @@ This will create resources in your AWS account which aren't included in the free
 git clone -b master https://github.com/cortexlabs/cortex.git
 
 # Navigate to the iris classification example
-cd cortex/examples/iris-classifier
+cd cortex/examples/tensorflow/iris-classifier
 
 # Deploy the model to the cluster
 cortex deploy
@@ -37,7 +37,7 @@ cortex deploy
 cortex get --watch
 
 # Get the API's endpoint
-cortex get tensorflow
+cortex get classifier
 
 # Classify a sample
 curl -X POST -H "Content-Type: application/json" \

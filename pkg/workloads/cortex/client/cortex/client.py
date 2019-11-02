@@ -68,9 +68,9 @@ class Client(object):
             deployment_name (string): deployment name
             api_name (string): API name
             model_path (string): S3 path to an exported model
+            model_format (string): model format, must be "tensorflow" or "onnx"
             pre_inference (function, optional): function used to prepare requests for model input
             post_inference (function, optional): function used to prepare model output for response
-            model_format (string, optional): model format, must be "tensorflow" or "onnx" (default: "onnx" if model path ends with .onnx, "tensorflow" if model path ends with .zip or is a directory)
             tf_serving_key (string, optional): name of the signature def to use for prediction (required if your model has more than one signature def)
 
         Returns:
@@ -81,13 +81,17 @@ class Client(object):
         api_working_dir = os.path.join(working_dir, api_name)
         pathlib.Path(api_working_dir).mkdir(parents=True, exist_ok=True)
 
-        api_config = {"kind": "api", "model": model_path, "name": api_name}
+        api_config = {"kind": "api", "name": api_name}
 
-        if tf_serving_key is not None:
-            api_config["tf_serving_key"] = tf_serving_key
+        if model_format != "tensorflow" and model_format != "onnx":
+            raise Exception("invalid model_format specified, please specify tensorflow or onnx")
 
-        if model_format is not None:
-            api_config["model_format"] = model_format
+        api_config[model_format] = {}
+
+        api_config[model_format]["model"] = model_path
+
+        if model_format == "tensorflow" and tf_serving_key is not None:
+            api_config[model_format]["serving_key"] = tf_serving_key
 
         if pre_inference is not None or post_inference is not None:
             reqs = subprocess.check_output([sys.executable, "-m", "pip", "freeze"])
@@ -106,7 +110,7 @@ class Client(object):
             with open(os.path.join(api_working_dir, "request_handler.pickle"), "wb") as f:
                 dill.dump(handlers, f, recurse=True)
 
-            api_config["request_handler"] = "request_handler.pickle"
+            api_config[model_format]["request_handler"] = "request_handler.pickle"
 
         deployment_config = [{"kind": "deployment", "name": deployment_name}, api_config]
 

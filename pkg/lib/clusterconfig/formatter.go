@@ -35,11 +35,20 @@ func (cc *InternalClusterConfig) String() string {
 	items = append(items, table.KV{K: "log group", V: cc.LogGroup})
 	items = append(items, table.KV{K: "telemetry", V: cc.Telemetry})
 
+	if cc.ImagePredictorServe != defaultCC.ImagePredictorServe {
+		items = append(items, table.KV{K: "image_predictor_serve", V: cc.ImagePredictorServe})
+	}
+	if cc.ImagePredictorServeGPU != defaultCC.ImagePredictorServeGPU {
+		items = append(items, table.KV{K: "image_predictor_serve_gpu", V: cc.ImagePredictorServeGPU})
+	}
 	if cc.ImageTFServe != defaultCC.ImageTFServe {
 		items = append(items, table.KV{K: "image_tf_serve", V: cc.ImageTFServe})
 	}
 	if cc.ImageTFServeGPU != defaultCC.ImageTFServeGPU {
 		items = append(items, table.KV{K: "image_tf_serve_gpu", V: cc.ImageTFServeGPU})
+	}
+	if cc.ImageTFAPI != defaultCC.ImageTFAPI {
+		items = append(items, table.KV{K: "image_tf_api", V: cc.ImageTFAPI})
 	}
 	if cc.ImageONNXServe != defaultCC.ImageONNXServe {
 		items = append(items, table.KV{K: "image_onnx_serve", V: cc.ImageONNXServe})
@@ -52,9 +61,6 @@ func (cc *InternalClusterConfig) String() string {
 	}
 	if cc.ImageManager != defaultCC.ImageManager {
 		items = append(items, table.KV{K: "image_manager", V: cc.ImageManager})
-	}
-	if cc.ImageTFAPI != defaultCC.ImageTFAPI {
-		items = append(items, table.KV{K: "image_tf_api", V: cc.ImageTFAPI})
 	}
 	if cc.ImageDownloader != defaultCC.ImageDownloader {
 		items = append(items, table.KV{K: "image_downloader", V: cc.ImageDownloader})

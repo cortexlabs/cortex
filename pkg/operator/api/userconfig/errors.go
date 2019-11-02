@@ -40,13 +40,12 @@ const (
 	ErrMinReplicasGreaterThanMax
 	ErrInitReplicasGreaterThanMax
 	ErrInitReplicasLessThanMin
-	ErrSpecifyOnlyOneMissing
+	ErrSpecifyOneModelFormatFoundNone
+	ErrSpecifyOneModelFormatFoundMultiple
 	ErrImplDoesNotExist
-	ErrUnableToInferModelFormat
 	ErrExternalNotFound
 	ErrONNXDoesntSupportZip
 	ErrInvalidTensorFlowDir
-	ErrIncompatibleWithModelFormat
 	ErrDuplicateEndpoints
 )
 
@@ -64,13 +63,12 @@ var errorKinds = []string{
 	"err_min_replicas_greater_than_max",
 	"err_init_replicas_greater_than_max",
 	"err_init_replicas_less_than_min",
-	"err_specify_only_one_missing",
+	"err_specify_one_model_format_found_none",
+	"err_specify_one_model_format_found_multiple",
 	"err_impl_does_not_exist",
-	"err_unable_to_infer_model_format",
 	"err_external_not_found",
 	"err_onnx_doesnt_support_zip",
 	"err_invalid_tensorflow_dir",
-	"err_tf_serving_options_for_tf_only",
 	"err_duplicate_endpoints",
 }
 
@@ -182,14 +180,18 @@ func ErrorSpecifyAllOrNone(vals ...string) error {
 	}
 }
 
-func ErrorSpecifyOnlyOne(vals ...string) error {
-	message := fmt.Sprintf("please specify exactly one of %s", s.UserStrsOr(vals))
-	if len(vals) == 2 {
-		message = fmt.Sprintf("please specify either %s or %s, but not both", s.UserStr(vals[0]), s.UserStr(vals[1]))
-	}
-
+func ErrorSpecifyOneModelFormatFoundNone(vals ...string) error {
+	message := fmt.Sprintf("please specify a model format (%s)", s.UserStrsOr(vals))
 	return Error{
-		Kind:    ErrSpecifyOnlyOne,
+		Kind:    ErrSpecifyOneModelFormatFoundNone,
+		message: message,
+	}
+}
+
+func ErrorSpecifyOneModelFormatFoundMultiple(found []string, vals ...string) error {
+	message := fmt.Sprintf("specified (%s), please specify only one model format (%s)", s.UserStrsAnd(found), s.UserStrsOr(vals))
+	return Error{
+		Kind:    ErrSpecifyOneModelFormatFoundNone,
 		message: message,
 	}
 }
@@ -231,18 +233,6 @@ func ErrorInitReplicasLessThanMin(init int32, min int32) error {
 	}
 }
 
-func ErrorSpecifyOnlyOneMissing(vals ...string) error {
-	message := fmt.Sprintf("please specify one of %s", s.UserStrsOr(vals))
-	if len(vals) == 2 {
-		message = fmt.Sprintf("please specify either %s or %s", s.UserStr(vals[0]), s.UserStr(vals[1]))
-	}
-
-	return Error{
-		Kind:    ErrSpecifyOnlyOneMissing,
-		message: message,
-	}
-}
-
 func ErrorImplDoesNotExist(path string) error {
 	return Error{
 		Kind:    ErrImplDoesNotExist,
@@ -275,27 +265,12 @@ var tfExpectedStructMessage = `For TensorFlow models, the path must contain a di
       ├── variables.data-00001-of-00003
       └── variables.data-00002-of-...`
 
-func ErrorUnableToInferModelFormat(path string) error {
-	message := fmt.Sprintf("%s not specified, and could not be inferred from %s path (%s)\n%s\n%s", ModelFormatKey, ModelKey, path, onnxExpectedStructMessage, tfExpectedStructMessage)
-	return Error{
-		Kind:    ErrUnableToInferModelFormat,
-		message: message,
-	}
-}
-
 func ErrorInvalidTensorFlowDir(path string) error {
 	message := "invalid TF export directory.\n"
 	message += tfExpectedStructMessage
 	return Error{
 		Kind:    ErrInvalidTensorFlowDir,
 		message: message,
-	}
-}
-
-func ErrorIncompatibleWithModelFormat(configKey string, format ModelFormat) error {
-	return Error{
-		Kind:    ErrIncompatibleWithModelFormat,
-		message: fmt.Sprintf("\"%s\" was specified, but is not supported by the %s model format", configKey, format.String()),
 	}
 }
 

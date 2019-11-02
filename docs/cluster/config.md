@@ -38,13 +38,15 @@ cluster_name: cortex
 telemetry: true
 
 # Image paths
+image_predictor_serve: cortexlabs/predictor-serve:master
+image_predictor_serve_gpu: cortexlabs/predictor-serve-gpu:master
 image_tf_serve: cortexlabs/tf-serve:master
 image_tf_serve_gpu: cortexlabs/tf-serve-gpu:master
+image_tf_api: cortexlabs/tf-api:master
 image_onnx_serve: cortexlabs/onnx-serve:master
 image_onnx_serve_gpu: cortexlabs/onnx-serve-gpu:master
 image_operator: cortexlabs/operator:master
 image_manager: cortexlabs/manager:master
-image_tf_api: cortexlabs/tf-api:master
 image_downloader: cortexlabs/downloader:master
 image_cluster_autoscaler: cortexlabs/cluster-autoscaler:master
 image_metrics_server: cortexlabs/metrics-server:master
