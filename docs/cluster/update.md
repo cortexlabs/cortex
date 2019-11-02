@@ -4,20 +4,28 @@
 
 1. [AWS credentials](aws.md)
 2. [Docker](https://docs.docker.com/install)
+3. See [cluster configuration](config.md) to learn how you can customize your cluster.
 
-## Upgrading Cortex
+## Updating your cluster configuration
 
-See [cluster configuration](config.md) for how to customize your installation.
+```bash
+cortex cluster update
+```
+
+## Upgrading to a newer version of Cortex
 
 <!-- CORTEX_VERSION_MINOR -->
 
 ```bash
-# Update the CLI
+# Spin down your cluster
+cortex cluster down
+
+# Update your CLI
 bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
 
-# Update the cluster
-cortex cluster update
-
 # Confirm version
-cortex version
+cortex --version
+
+# Spin up your cluster
+cortex cluster up
 ```
