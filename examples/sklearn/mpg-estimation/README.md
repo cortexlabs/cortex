@@ -4,28 +4,35 @@ This example shows how to deploy a sklearn linear regression model trained on th
 
 ## Predictor
 
-We implement Cortex's Python Predictor interface that describes how to load the model and make predictions using the model. Cortex will use this implementation to serve your model as an API of autoscaling replicas. We specify a `requirements.txt` to install dependencies necessary to implement the Cortex Predictor interface.
+We implement Cortex's Predictor interface to load the model and make predictions. Cortex will use this implementation to serve the model as an autoscaling API.
 
 ### Initialization
 
-Cortex executes the Python implementation and calls the `init` function once on startup. We download the model from S3 based on the location specified in the `metadata` key of our deployment configuration.
+We can place our code to download and initialize the model in the `init()` function:
 
 ```python
+# predictor.py
+
 model = None
 
 def init(metadata):
     global model
+
+    # download the model from S3 (location specified in the metadata field of our api configuration)
     s3 = boto3.client("s3")
     bucket, key = re.match(r"s3:\/\/(.+?)\/(.+)", metadata["model"]).groups()
     s3.download_file(bucket, key, "mpg.joblib")
+
     model = load("mpg.joblib")
 ```
 
 ### Predict
 
-The `predict` function will be triggered once per request to run the text generation model on a prompt provided in the request. In the `predict` function, we extract the features from the sample sent in the request and respond with a predicted mpg.
+The `predict()` function will be triggered once per request. We extract the features from the sample sent in the request, feed them to the model, and respond with a predicted mpg:
 
 ```python
+# predictor.py
+
 def predict(sample, metadata):
     arr = [
         sample["cylinders"],
@@ -42,9 +49,11 @@ See [predictor.py](./src/predictor.py) for the complete code.
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed together. An `api` makes the Predictor implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will be passed into the `init` function in `predictor.py` for model initialization. Once the model is initialized the `predict` function in `predictor.py` will be triggered every time a request is made to the API.
+A `deployment` specifies a set of resources that are deployed together. An `api` makes our implementation available as a web service that can serve real-time predictions. This configuration will deploy the implementation specified in `predictor.py`. Note that the `metadata` will be passed into the `init()` function.
 
 ```yaml
+# cortex.yaml
+
 - kind: deployment
   name: auto
 
@@ -68,9 +77,9 @@ $ cortex deploy
 deployment started
 ```
 
-Behind the scenes, Cortex containerizes the Predictor implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+Behind the scenes, Cortex containerizes our implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
-You can track the status of a deployment using `cortex get`:
+We can track the status of a deployment using `cortex get`:
 
 ```bash
 $ cortex get mpg --watch
@@ -79,9 +88,11 @@ status   up-to-date   available   requested   last update   avg latency
 live     1            1           1           9m            -
 ```
 
-The output above indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
+The output above indicates that one replica of the API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
 
 ## Serve real-time predictions
+
+We can use `curl` to test our prediction service:
 
 ```bash
 $ cortex get mpg

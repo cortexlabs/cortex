@@ -4,9 +4,11 @@ This example shows how to deploy a classifier trained on the famous [iris data s
 
 ## Define a deployment
 
-Define a `deployment` and an `api` resource in `cortex.yaml`. A `deployment` specifies a set of resources that are deployed together. An `api` makes a model available as a web service that can serve real-time predictions. This configuration will download the model from the `cortex-examples` S3 bucket.
+A `deployment` specifies a set of resources that are deployed together. An `api` makes our exported model available as a web service that can serve real-time predictions. This configuration will deploy our model from the `cortex-examples` S3 bucket:
 
 ```yaml
+# cortex.yaml
+
 - kind: deployment
   name: iris
 
@@ -20,16 +22,16 @@ Define a `deployment` and an `api` resource in `cortex.yaml`. A `deployment` spe
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-You can run the code that generated the exported models used in this folder example here:
-- [TensorFlow](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/tensorflow/iris-classifier/tensorflow.ipynb)
+You can run the code that generated the exported model used in this example [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/tensorflow/iris-classifier/tensorflow.ipynb).
 
 ## Add request handling
 
-The API should convert the model’s prediction to a human readable label before responding to the client. This can be implemented in a request handler file:
+The API should convert the model’s prediction to a human readable label before responding. This can be implemented in a request handler file:
 
 ```python
-labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
+# handler.py
 
+labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 def post_inference(prediction, metadata):
     label_index = int(prediction["class_ids"][0])
@@ -46,9 +48,9 @@ $ cortex deploy
 deployment started
 ```
 
-Behind the scenes, Cortex containerizes the model, makes it servable using TensorFlow Serving, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+Behind the scenes, Cortex containerizes our implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
-You can track the status of a deployment using `cortex get`:
+We can track the status of a deployment using `cortex get`:
 
 ```bash
 $ cortex get classifier --watch
@@ -57,9 +59,11 @@ status   up-to-date   available   requested   last update   avg latency
 live     1            1           1           8s            -
 ```
 
-The output above indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
+The output above indicates that one replica of the API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
 
 ## Serve real-time predictions
+
+We can use `curl` to test our prediction service:
 
 ```bash
 $ cortex get classifier

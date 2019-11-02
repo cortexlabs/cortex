@@ -4,9 +4,11 @@ This example shows how to deploy a sentiment analysis classifier trained using [
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed together. An `api` makes a model available as a web service that can serve real-time predictions. This configuration will download the model from the `cortex-examples` S3 bucket and preprocess the payload and postprocess the inference with functions defined in `handler.py`.
+A `deployment` specifies a set of resources that are deployed together. An `api` makes our exported model available as a web service that can serve real-time predictions. This configuration will download the model from the `cortex-examples` S3 bucket, and will preprocess the payload and postprocess the inference with functions defined in `handler.py`.
 
 ```yaml
+# cortex.yaml
+
 - kind: deployment
   name: sentiment
 
@@ -22,12 +24,13 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
 <!-- CORTEX_VERSION_MINOR -->
 You can run the code that generated the exported BERT model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/tensorflow/sentiment-analysis/bert.ipynb).
 
-
 ## Add request handling
 
-The model requires tokenized input for inference, but the API should accept strings of natural language as input. It should also map the model’s integer predictions to the actual sentiment label. This can be implemented in a request handler file. Define a `pre_inference` function to tokenize request payloads and a `post_inference` function to map inference output to labels before responding to the client:
+The model requires tokenized input for inference, but the API should accept strings of natural language as input. It should also map the model’s integer predictions to the actual sentiment label. This can be implemented in a request handler file. Define a `pre_inference()` function to tokenize request payloads and a `post_inference()` function to map inference output to labels before responding to the client:
 
 ```python
+# handler.py
+
 import tensorflow as tf
 import tensorflow_hub as hub
 from bert import tokenization, run_classifier
@@ -62,9 +65,9 @@ $ cortex deploy
 deployment started
 ```
 
-Behind the scenes, Cortex containerizes the model, makes it servable using TensorFlow Serving, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+Behind the scenes, Cortex containerizes our implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
-You can track the status of a deployment using `cortex get`:
+We can track the status of a deployment using `cortex get`:
 
 ```bash
 $ cortex get classifier --watch
@@ -73,9 +76,11 @@ status   up-to-date   available   requested   last update   avg latency
 live     1            1           1           8s            -
 ```
 
-The output above indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
+The output above indicates that one replica of the API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
 
 ## Serve real-time predictions
+
+We can use `curl` to test our prediction service:
 
 ```bash
 $ cortex get classifier

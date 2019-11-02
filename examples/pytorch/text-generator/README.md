@@ -4,30 +4,34 @@ This example shows how to deploy [HuggingFace's DistilGPT2](https://github.com/h
 
 ## Predictor
 
-We implement Cortex's Python Predictor interface that describes how to load the model and make predictions using the model. Cortex will use this implementation to serve your model as an API of autoscaling replicas. We specify a `requirements.txt` to install dependencies necessary to implement the Cortex Predictor interface.
+We implement Cortex's Predictor interface to load the model and make predictions. Cortex will use this implementation to serve the model as an autoscaling API.
 
 ### Initialization
 
-Cortex executes the Python implementation once per replica startup. We can place our initializations in the body of the implementation. Let us download the pretrained DistilGPT2 model and set it to evaluation:
+We can place our code to download and initialize the model in the body of the implementation, and we can load it onto a GPU in the `init()` function:
 
 ```python
+# predictor.py
+
+# download the pretrained DistilGPT2 model and set it to evaluation
 model = GPT2LMHeadModel.from_pretrained("distilgpt2")
 model.eval()
+
+# download the tokenizer
 tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
-```
 
-We want to load the model onto a GPU:
-
-```python
 def init(metadata):
+    # load the model onto the device specified in the metadata field of our api configuration
     model.to(metadata["device"])
 ```
 
 ### Predict
 
-The `predict` function will be triggered once per request to run the text generation model on a prompt provided in the request. We tokenize the prompt and generate the number of words specified in the deployment definition `cortex.yaml`. We decode the output of the model and respond with readable generated text.
+The `predict()` function will be triggered once per request. We tokenize the input, run it through the model, decode the output, and respond with the generated text.
 
 ```python
+# predictor.py
+
 def predict(sample, metadata):
     indexed_tokens = tokenizer.encode(sample["text"])
     output = sample_sequence(model, metadata['num_words'], indexed_tokens, device=metadata['device'])
@@ -40,9 +44,11 @@ See [predictor.py](./predictor.py) for the complete code.
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed together. An `api` makes the Predictor implementation available as a web service that can serve real-time predictions.  This configuration will deploy the implementation specified in `predictor.py` and generates 20 words per request.
+A `deployment` specifies a set of resources that are deployed together. An `api` makes our implementation available as a web service that can serve real-time predictions. This configuration will deploy the implementation specified in `predictor.py`:
 
 ```yaml
+# cortex.yaml
+
 - kind: deployment
   name: text
 
@@ -51,8 +57,8 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
   predictor:
     path: predictor.py
     metadata:
-      num_words: 20
-      device: cuda
+      num_words: 20  # generate 20 words per request
+      device: cuda  # run on GPU
   compute:
     gpu: 1
     cpu: 1
@@ -68,9 +74,9 @@ $ cortex deploy
 deployment started
 ```
 
-Behind the scenes, Cortex containerizes the Predictor implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+Behind the scenes, Cortex containerizes our implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
-You can track the status of a deployment using `cortex get`:
+We can track the status of a deployment using `cortex get`:
 
 ```bash
 $ cortex get generator --watch
@@ -79,9 +85,11 @@ status   up-to-date   available   requested   last update   avg latency
 live     1            1           1           9m            -
 ```
 
-The output above indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
+The output above indicates that one replica of the API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
 
 ## Serve real-time predictions
+
+We can use `curl` to test our prediction service:
 
 ```bash
 $ cortex get generator

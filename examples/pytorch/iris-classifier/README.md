@@ -4,36 +4,40 @@ This example shows how to deploy a classifier trained on the famous [iris data s
 
 ## Predictor
 
-We implement Cortex's Python Predictor interface that describes how to load the model and make predictions using the model. Cortex will use this implementation to serve your model as an API of autoscaling replicas. We specify a `requirements.txt` to install dependencies necessary to implement the Cortex Predictor interface.
+We implement Cortex's Predictor interface to load the model and make predictions. Cortex will use this implementation to serve the model as an autoscaling API.
 
 ### Initialization
 
-Cortex executes the Python implementation once per replica startup. We can place our initializations in the body of the implementation. The PyTorch model class is defined in [src/my_model.py](./src/my_model.py). Let us instantiate our model and define the labels.
+We can place our code to download and initialize the model in the `init()` function. The PyTorch model class is defined in [src/my_model.py](./src/my_model.py), and we assume that we've already trained the model and uploaded the state_dict (weights) to S3.
 
 ```python
+# predictor.py
+
 from my_model import IrisNet
 
+# instantiate the model
 model = IrisNet()
 
+# define the labels
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
-```
 
-Let's assume that we have already trained a model uploaded the state_dict (weights) to S3. We get the location of the weights from the metadata in the configuration and initialize our model with weights from S3 in the `init` function. Cortex calls the `init` once per replica startup.
-
-```python
 def init(metadata):
+    # download the model from S3 (location specified in the metadata field of our api configuration)
     s3 = boto3.client("s3")
     bucket, key = re.match(r"s3:\/\/(.+?)\/(.+)", metadata["model"]).groups()
     s3.download_file(bucket, key, "iris_model.pth")
+
     model.load_state_dict(torch.load("iris_model.pth"))
     model.eval()
 ```
 
 ### Predict
 
-The `predict` function will be triggered once per request to run the Iris model on the request payload and respond with a prediction. In the `predict` function, we extract the iris features from the sample sent in the request and respond with a human-readable label.
+The `predict()` function will be triggered once per request. We extract the features from the sample sent in the request, feed them to the model, and respond with a human-readable label:
 
 ```python
+# predictor.py
+
 def predict(sample, metadata):
     input_tensor = torch.FloatTensor(
         [
@@ -50,13 +54,15 @@ def predict(sample, metadata):
     return labels[torch.argmax(output[0])]
 ```
 
-See `./src/predictor.py` for the complete code.
+See [predictor.py](./src/predictor.py) for the complete code.
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed together. An `api` makes the Predictor implementation available as a web service that can serve real-time predictions. The metadata specified in this configuration will be passed into the `init` function in `predictor.py` for model initialization. We specify the `python_path` in the deployment so that we can import our model as `from my_model import IrisNet` instead of `from src.my_model import IrisNet` in `predictor.py`.
+A `deployment` specifies a set of resources that are deployed together. An `api` makes our implementation available as a web service that can serve real-time predictions. This configuration will deploy the implementation specified in `predictor.py`. Note that the `metadata` will be passed into the `init()` function, and we specify the `python_path` in the so  we can import our model as `from my_model import IrisNet` instead of `from src.my_model import IrisNet` in `predictor.py`.
 
 ```yaml
+# cortex.yaml
+
 - kind: deployment
   name: iris
 
@@ -81,9 +87,9 @@ $ cortex deploy
 deployment started
 ```
 
-Behind the scenes, Cortex containerizes the Predictor implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+Behind the scenes, Cortex containerizes our implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
-You can track the status of a deployment using `cortex get`:
+We can track the status of a deployment using `cortex get`:
 
 ```bash
 $ cortex get classifier --watch
@@ -92,9 +98,11 @@ status   up-to-date   available   requested   last update   avg latency
 live     1            1           1           8s            -
 ```
 
-The output above indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
+The output above indicates that one replica of the API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
 
 ## Serve real-time predictions
+
+We can use `curl` to test our prediction service:
 
 ```bash
 $ cortex get classifier

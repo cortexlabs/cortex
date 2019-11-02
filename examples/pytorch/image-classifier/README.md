@@ -1,32 +1,29 @@
 # Deploy Image Classification as an API
 
-This example shows how to deploy a Pretrained Image Classifier from TorchVision.
+This example shows how to deploy a pretrained image classifier from TorchVision.
 
 ## Predictor
 
-We implement Cortex's Python Predictor interface that describes how to load the model and make predictions using the model. Cortex will use this implementation to serve your model as an API of autoscaling replicas. We specify a `requirements.txt` to install dependencies necessary to implement the Cortex Predictor interface.
+We implement Cortex's Predictor interface to load the model and make predictions. Cortex will use this implementation to serve the model as an autoscaling API.
 
 ### Initialization
 
-Cortex executes the Python implementation once per replica startup. We can place our initializations in the body of the implementation. Let us download the pretrained AlexNet model and set it to evaluation:
+We can place our code to download and initialize the model in the body of the implementation:
 
 ```python
+# predictor.py
+
+# download the pretrained AlexNet model
 model = torchvision.models.alexnet(pretrained=True)
 model.eval()
-```
 
-We declare the necessary image preprocessing:
-
-```python
+# declare the necessary image preprocessing
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 preprocess = transforms.Compose(
     [transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor(), normalize]
 )
-```
 
-We download the labels:
-
-```python
+# download the labels
 labels = requests.get(
     "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
 ).text.split("\n")[1:]
@@ -34,9 +31,11 @@ labels = requests.get(
 
 ### Predict
 
-The `predict` function will be triggered once per request to run the AlexNet model on the request payload and respond with a prediction. The AlexNet model requires a 2 dimensional array of 3 valued tuples representing the RGB values for each pixel in the image, but the API should accept a simple input format such as a URL to an image. Instead of returning the model's output consisting of an array of probabilities, the API should return the class name with the highest probability. We define the `predict` function to download the image specified by the url in the request, process it, feed it to the model, convert the model output weights to a label and return the label.
+The `predict()` function will be triggered once per request. The AlexNet model requires a 2-dimensional array of 3-valued tuples representing the RGB values for each pixel in the image, but the API should accept a simple input format such as a URL to an image. Also, instead of returning the model's output as an array of probabilities, the API should return the class name with the highest probability. We use the `predict()` function to download the image specified by the url in the request, process it, feed it to the model, convert the model output weights to a label, and return the label:
 
 ```python
+# predictor.py
+
 def predict(sample, metadata):
     if "url" in sample:
         image = requests.get(sample["url"]).content
@@ -56,9 +55,11 @@ See [predictor.py](./predictor.py) for the complete code.
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed together. An `api` makes the Predictor implementation available as a web service that can serve real-time predictions. This configuration will deploy the implementation specified in `predictor.py` and trigger the `predict` function once per request.
+A `deployment` specifies a set of resources that are deployed together. An `api` makes our implementation available as a web service that can serve real-time predictions. This configuration will deploy the implementation specified in `predictor.py`:
 
 ```yaml
+# cortex.yaml
+
 - kind: deployment
   name: image
 
@@ -78,9 +79,9 @@ $ cortex deploy
 deployment started
 ```
 
-Behind the scenes, Cortex containerizes the Predictor implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+Behind the scenes, Cortex containerizes our implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
-You can track the statuses of the APIs using `cortex get`:
+We can track the statuses of the APIs using `cortex get`:
 
 ```bash
 $ cortex get classifier --watch
@@ -89,9 +90,11 @@ status   up-to-date   available   requested   last update   avg latency
 live     1            1           1           12s           -
 ```
 
-The output above indicates that one replica of the API was requested and one replica is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
+The output above indicates that one replica of the API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
 
 ## Serve real-time predictions
+
+We can use `curl` to test our prediction service:
 
 ```bash
 $ cortex get classifier
