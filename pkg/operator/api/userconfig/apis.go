@@ -55,6 +55,7 @@ var metadataValidation = &cr.StructFieldValidation{
 	StructField: "Metadata",
 	InterfaceMapValidation: &cr.InterfaceMapValidation{
 		StringKeysOnly: true,
+		AllowEmpty:     true,
 		Default:        map[string]interface{}{},
 	},
 }
