@@ -73,27 +73,8 @@ var rootCmd = &cobra.Command{
 	Long:    `Deploy machine learning models in production`,
 }
 
-// Copied from https://github.com/spf13/cobra/blob/master/command.go, in order to make the short descritpion start with lower case
-var helpCmd = &cobra.Command{
-	Use:   "help [command]",
-	Short: "help about any command",
-	Long: `help provides help for any command in the CLI.
-Type ` + rootCmd.Name() + ` help [path to command] for full details.`,
-	Run: func(c *cobra.Command, args []string) {
-		cmd, _, e := c.Root().Find(args)
-		if cmd == nil || e != nil {
-			c.Printf("Unknown help topic %#q\n", args)
-			c.Root().Usage()
-		} else {
-			cmd.InitDefaultHelpFlag()
-			cmd.Help()
-		}
-	},
-}
-
 func Execute() {
 	defer errors.RecoverAndExit()
-	rootCmd.SetHelpCommand(helpCmd)
 
 	cobra.EnableCommandSorting = false
 
@@ -111,8 +92,31 @@ func Execute() {
 	rootCmd.AddCommand(supportCmd)
 	rootCmd.AddCommand(completionCmd)
 
+	updateRootUsage()
+
 	printLeadingNewLine()
 	rootCmd.Execute()
+}
+
+func updateRootUsage() {
+	defaultUsageFunc := rootCmd.UsageFunc()
+	usage := rootCmd.UsageString()
+
+	rootCmd.SetUsageFunc(func(cmd *cobra.Command) error {
+		if cmd.Use != "cortex" {
+			return defaultUsageFunc(cmd)
+		}
+
+		usage = strings.Replace(usage, "Usage:\n  cortex [command]\n\nAliases:\n  cortex, cx\n\n", "", 1)
+		usage = strings.Replace(usage, "Available Commands:", "Deployment Commands:", 1)
+		usage = strings.Replace(usage, "\n  cluster", "\n\nCluster commands:\n  cluster", 1)
+		usage = strings.Replace(usage, "\n  configure", "\n\nOther commands:\n  configure", 1)
+		usage = strings.Replace(usage, "\nUse \"cortex", "  help        help about any command\n\nFlags:\n  -h, --help   help for cortex\n\nUse \"cortex", 1)
+
+		cmd.Print(usage)
+
+		return nil
+	})
 }
 
 func printLeadingNewLine() {
