@@ -37,7 +37,7 @@ function ensure_eks() {
   ng_info=$(eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --name ng-1 -o json)
   ng_instance_type=$(echo "$ng_info" | jq -r ".[] | select( .Cluster == \"$CORTEX_CLUSTER_NAME\" ) | select( .Name == \"ng-1\" ) | .InstanceType")
   if [ "$ng_instance_type" != "$CORTEX_INSTANCE_TYPE" ]; then
-    echo "error: Cortex does not currently support changing the instance type of a running cluster; please run \`cortex cluster down\` followed by \`cortex cluster up\` to create a new cluster"
+    echo -e "\nerror: Cortex does not currently support changing the instance type of a running cluster; please run \`cortex cluster down\` followed by \`cortex cluster up\` to create a new cluster"
     exit 1
   fi
 
