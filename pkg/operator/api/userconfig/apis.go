@@ -43,7 +43,6 @@ type API struct {
 	Predictor  *Predictor  `json:"predictor" yaml:"predictor"`
 	Tracker    *Tracker    `json:"tracker" yaml:"tracker"`
 	Compute    *APICompute `json:"compute" yaml:"compute"`
-	Tags       Tags        `json:"tags" yaml:"tags"`
 }
 
 type Tracker struct {
@@ -194,7 +193,6 @@ var apiValidation = &cr.StructValidation{
 			},
 		},
 		apiComputeFieldValidation,
-		tagsFieldValidation,
 		typeFieldValidation,
 	},
 }

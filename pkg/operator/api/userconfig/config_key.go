@@ -21,7 +21,6 @@ const (
 	UnknownKey = "unknown"
 	NameKey    = "name"
 	KindKey    = "kind"
-	TagsKey    = "tags"
 
 	// API
 	ModelKey          = "model"
