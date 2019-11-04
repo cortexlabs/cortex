@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
 
 type ClusterConfig struct {
@@ -359,4 +360,39 @@ func (cc *ClusterConfig) SetBucket(awsAccessKeyID string, awsSecretAccessKey str
 
 	cc.Bucket = "cortex-" + hash.String(awsAccountID)[:10]
 	return nil
+}
+
+func (cc *InternalClusterConfig) String() string {
+	var items []table.KV
+
+	items = append(items, table.KV{K: "cluster version", V: cc.APIVersion})
+	items = append(items, table.KV{K: "instance type", V: *cc.InstanceType})
+	items = append(items, table.KV{K: "min instances", V: *cc.MinInstances})
+	items = append(items, table.KV{K: "max instances", V: *cc.MaxInstances})
+	items = append(items, table.KV{K: "cluster name", V: cc.ClusterName})
+	items = append(items, table.KV{K: "region", V: cc.Region})
+	items = append(items, table.KV{K: "bucket", V: cc.Bucket})
+	items = append(items, table.KV{K: "log group", V: cc.LogGroup})
+	items = append(items, table.KV{K: "telemetry", V: cc.Telemetry})
+	items = append(items, table.KV{K: "image_predictor_serve", V: cc.ImagePredictorServe})
+	items = append(items, table.KV{K: "image_predictor_serve_gpu", V: cc.ImagePredictorServeGPU})
+	items = append(items, table.KV{K: "image_tf_serve", V: cc.ImageTFServe})
+	items = append(items, table.KV{K: "image_tf_serve_gpu", V: cc.ImageTFServeGPU})
+	items = append(items, table.KV{K: "image_tf_api", V: cc.ImageTFAPI})
+	items = append(items, table.KV{K: "image_onnx_serve", V: cc.ImageONNXServe})
+	items = append(items, table.KV{K: "image_onnx_serve_gpu", V: cc.ImageONNXServeGPU})
+	items = append(items, table.KV{K: "image_operator", V: cc.ImageOperator})
+	items = append(items, table.KV{K: "image_manager", V: cc.ImageManager})
+	items = append(items, table.KV{K: "image_downloader", V: cc.ImageDownloader})
+	items = append(items, table.KV{K: "image_cluster_autoscaler", V: cc.ImageClusterAutoscaler})
+	items = append(items, table.KV{K: "image_metrics_server", V: cc.ImageMetricsServer})
+	items = append(items, table.KV{K: "image_nvidia", V: cc.ImageNvidia})
+	items = append(items, table.KV{K: "image_fluentd", V: cc.ImageFluentd})
+	items = append(items, table.KV{K: "image_statsd", V: cc.ImageStatsd})
+	items = append(items, table.KV{K: "image_istio_proxy", V: cc.ImageIstioProxy})
+	items = append(items, table.KV{K: "image_istio_pilot", V: cc.ImageIstioPilot})
+	items = append(items, table.KV{K: "image_istio_citadel", V: cc.ImageIstioCitadel})
+	items = append(items, table.KV{K: "image_istio_galley", V: cc.ImageIstioGalley})
+
+	return table.AlignKeyValue(items, ":", 1)
 }
