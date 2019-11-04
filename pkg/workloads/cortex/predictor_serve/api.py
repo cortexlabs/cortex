@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import sys
 import argparse
 import time
@@ -122,7 +123,11 @@ def start(args):
 
         if util.has_function(local_cache["predictor"], "init"):
             try:
-                local_cache["predictor"].init(api["predictor"]["metadata"])
+                model_path = None
+                if api["predictor"].get("model") is not None:
+                    _, prefix = ctx.storage.deconstruct_s3_path(api["predictor"]["model"])
+                    model_path = os.path.join(args.model_dir, os.path.basename(prefix))
+                local_cache["predictor"].init(model_path, api["predictor"]["metadata"])
             except Exception as e:
                 raise UserRuntimeException(api["predictor"]["path"], "init", str(e)) from e
         logger.info("init ran successfully")
@@ -150,6 +155,7 @@ def main():
         help="S3 path to context (e.g. s3://bucket/path/to/context.json)",
     )
     na.add_argument("--api", required=True, help="Resource id of api to serve")
+    na.add_argument("--model-dir", required=True, help="Directory to download the model to")
     na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
     na.add_argument("--project-dir", required=True, help="Local path for the project zip file")
 

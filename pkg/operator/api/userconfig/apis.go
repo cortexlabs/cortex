@@ -89,6 +89,7 @@ type ONNX struct {
 
 type Predictor struct {
 	Path       string                 `json:"path" yaml:"path"`
+	Model      *string                `json:"model" yaml:"model"`
 	PythonPath *string                `json:"python_path" yaml:"python_path"`
 	Metadata   map[string]interface{} `json:"metadata" yaml:"metadata"`
 }
@@ -186,6 +187,12 @@ var apiValidation = &cr.StructValidation{
 						StructField: "Path",
 						StringValidation: &cr.StringValidation{
 							Required: true,
+						},
+					},
+					{
+						StructField: "Model",
+						StringPtrValidation: &cr.StringPtrValidation{
+							Validator: cr.S3PathValidator(),
 						},
 					},
 					pythonPathValidation,
@@ -431,6 +438,33 @@ func (predictor *Predictor) Validate(projectFileMap map[string][]byte) error {
 	if _, ok := projectFileMap[predictor.Path]; !ok {
 		return errors.Wrap(ErrorImplDoesNotExist(predictor.Path), PredictorKey, PathKey)
 	}
+	if predictor.Model != nil {
+		var err error
+		awsClient, err := aws.NewFromS3Path(*predictor.Model, false)
+		if err != nil {
+			return err
+		}
+
+		isPath := false
+		if isPath, err = awsClient.IsS3PathFile(*predictor.Model); err != nil {
+			return errors.Wrap(err, PredictorKey, ModelKey)
+		}
+
+		if !isPath {
+			isDir := false
+			modelPath := s.EnsureSuffix(*predictor.Model, "/")
+
+			if isDir, err = awsClient.IsS3PathDir(modelPath); err != nil {
+				return errors.Wrap(err, PredictorKey, ModelKey)
+			}
+
+			if !isDir {
+				return errors.Wrap(ErrorExternalNotFound(*predictor.Model), PredictorKey, ModelKey)
+			}
+
+			predictor.Model = pointer.String(modelPath)
+		}
+	}
 	if predictor.PythonPath != nil {
 		if err := ValidatePythonPath(*predictor.PythonPath, projectFileMap); err != nil {
 			return errors.Wrap(err, PredictorKey)
@@ -442,6 +476,9 @@ func (predictor *Predictor) Validate(projectFileMap map[string][]byte) error {
 func (predictor *Predictor) UserConfigStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, predictor.Path))
+	if predictor.Model != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, *predictor.Model))
+	}
 	if predictor.PythonPath != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
 	}

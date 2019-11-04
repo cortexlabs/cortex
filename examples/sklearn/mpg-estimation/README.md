@@ -15,14 +15,9 @@ We can place our code to download and initialize the model in the `init()` funct
 
 model = None
 
-def init(metadata):
+def init(model_path, metadata):
     global model
-
-    # download the model from S3 (path specified in the metadata field of our api configuration)
-    s3 = boto3.client("s3")
-    bucket, key = re.match(r"s3:\/\/(.+?)\/(.+)", metadata["model"]).groups()
-    s3.download_file(bucket, key, "linreg.joblib")
-    model = load("linreg.joblib")
+    model = load(model_path)
 ```
 
 ### Predict

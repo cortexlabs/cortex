@@ -461,6 +461,14 @@ func predictorAPISpec(
 		},
 	}
 
+	if api.Predictor.Model != nil {
+		downloadArgs = append(downloadArgs, downloadContainerArg{
+			From:     *api.Predictor.Model,
+			To:       path.Join(consts.EmptyDirMountPath, "model"),
+			ItemName: "model",
+		})
+	}
+
 	downloadArgsBytes, _ := json.Marshal(downloadArgs)
 	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
 
@@ -534,6 +542,7 @@ func predictorAPISpec(
 							"--port=" + defaultPortStr,
 							"--context=" + config.AWS.S3Path(ctx.Key),
 							"--api=" + ctx.APIs[api.Name].ID,
+							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
 							"--cache-dir=" + consts.ContextCacheDir,
 							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
 						},

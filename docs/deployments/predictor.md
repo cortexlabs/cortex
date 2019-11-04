@@ -11,12 +11,13 @@ Global variables can be shared across functions safely because each replica hand
 ```python
 # initialization code and variables can be declared here in global scope
 
-def init(metadata):
+def init(model_path, metadata):
     """Called once before the API is made available. Setup for model serving such
     as downloading/initializing the model or downloading vocabulary can be done here.
     Optional.
 
     Args:
+        model_path: Local path to model if specified by user in API configuration, otherwise None.
         metadata: Custom dictionary specified by the user in API configuration.
     """
     pass
@@ -45,14 +46,9 @@ from my_model import IrisNet
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 model = IrisNet()
 
-def init(metadata):
-    # Download model from S3 (location specified in the API's metadata)
-    s3 = boto3.client("s3")
-    bucket, key = re.match(r"s3:\/\/(.+?)\/(.+)", metadata["model"]).groups()
-    s3.download_file(bucket, key, "iris_model.pth")
-
+def init(model_path, metadata):
     # Initialize the model
-    model.load_state_dict(torch.load("iris_model.pth"))
+    model.load_state_dict(torch.load(model_path))
     model.eval()
 
 
