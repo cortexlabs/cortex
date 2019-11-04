@@ -18,11 +18,6 @@ with open("sklearn.onnx", "wb") as f:
     f.write(onnx_model.SerializeToString())
 ```
 
-<!-- CORTEX_VERSION_MINOR x4 -->
-Here are complete examples of converting models from some of the common ML frameworks to ONNX:
-
-* [XGBoost](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/xgboost/iris-classifier/xgboost.ipynb)
-
 Upload your exported model to Amazon S3 using the AWS web console or CLI:
 
 ```bash

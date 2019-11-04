@@ -15,7 +15,7 @@ Cortex is an open source platform that takes machine learning models—trained w
 
 - **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
 
-- **Multi framework:** Cortex supports TensorFlow, Keras, PyTorch, Scikit-learn, XGBoost, and more.
+- **Multi framework:** Cortex supports TensorFlow, PyTorch, scikit-learn, XGBoost, and more.
 
 - **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
 

@@ -11,27 +11,26 @@
 ## Deployments
 
 * [Deployments](deployments/deployments.md)
-* [APIs](deployments/apis.md)
-* [Predictor](deployments/predictor.md)
+* [Predictor APIs](deployments/predictor.md)
 * [TensorFlow APIs](deployments/tensorflow.md)
 * [ONNX APIs](deployments/onnx.md)
 * [Request handlers](deployments/request-handlers.md)
 * [Autoscaling](deployments/autoscaling.md)
-* [Prediction Monitoring](deployments/prediction-monitoring.md)
+* [Prediction monitoring](deployments/prediction-monitoring.md)
 * [Compute](deployments/compute.md)
 * [CLI commands](cluster/cli.md)
-* [Python client](deployments/python-client.md)
 * [API statuses](deployments/statuses.md)
-
-## Dependency management
-
-* [Python packages](dependencies/python-packages.md)
-* [System packages](dependencies/system-packages.md)
+* [Python client](deployments/python-client.md)
 
 ## Packaging models
 
 * [TensorFlow](packaging/tensorflow.md)
 * [ONNX](packaging/onnx.md)
+
+## Dependency management
+
+* [Python packages](dependencies/python-packages.md)
+* [System packages](dependencies/system-packages.md)
 
 ## Cluster management
 
