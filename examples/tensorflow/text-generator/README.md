@@ -1,6 +1,6 @@
 # Self-host OpenAI's GPT-2 as a service
 
-This example shows how to deploy OpenAI's GPT-2 model as a service on AWS.
+This example shows how to deploy OpenAI's GPT-2 model as a service on AWS. If you'd like to see a tutorial for training a GPT-2 model on your own text and deploying it, [see here.](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/text-generator/FeynmanBot)
 
 ## Define a deployment
 
