@@ -1,4 +1,4 @@
-# Deploy a Sklearn Linear Regression model
+# Deploy a scikit-learn linear regression model
 
 This example shows how to deploy a sklearn linear regression model trained on the MPG dataset.
 
@@ -18,12 +18,11 @@ model = None
 def init(metadata):
     global model
 
-    # download the model from S3 (location specified in the metadata field of our api configuration)
+    # download the model from S3 (path specified in the metadata field of our api configuration)
     s3 = boto3.client("s3")
     bucket, key = re.match(r"s3:\/\/(.+?)\/(.+)", metadata["model"]).groups()
-    s3.download_file(bucket, key, "mpg.joblib")
-
-    model = load("mpg.joblib")
+    s3.download_file(bucket, key, "linreg.joblib")
+    model = load("linreg.joblib")
 ```
 
 ### Predict
@@ -34,14 +33,15 @@ The `predict()` function will be triggered once per request. We extract the feat
 # predictor.py
 
 def predict(sample, metadata):
-    arr = [
+    input_array = [
         sample["cylinders"],
         sample["displacement"],
         sample["horsepower"],
         sample["weight"],
         sample["acceleration"],
     ]
-    result = model.predict([arr])
+
+    result = model.predict([input_array])
     return np.asscalar(result)
 ```
 
@@ -60,7 +60,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
 - kind: api
   name: mpg
   predictor:
-    path: src/predictor.py
+    path: predictor.py
     metadata:
       model: s3://cortex-examples/sklearn/mpg-estimation/linreg.joblib
   tracker:

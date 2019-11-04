@@ -15,14 +15,14 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
 - kind: api
   name: xgboost
   onnx:
-    model: s3://cortex-examples/xgboost/iris-classifier-onnx/gbtree.onnx
+    model: s3://cortex-examples/xgboost/iris-classifier/gbtree.onnx
     request_handler: handler.py
   tracker:
     model_type: classification
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-You can run the code that generated the exported model used in this example [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/xgboost/iris-classifier-onnx/xgboost.ipynb).
+You can run the code that generated the exported model used in this example [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/xgboost/iris-classifier/xgboost.ipynb).
 
 ## Add request handling
 

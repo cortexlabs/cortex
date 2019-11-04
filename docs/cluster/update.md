@@ -2,11 +2,12 @@
 
 ## Prerequisites
 
-1. [AWS credentials](aws.md)
-2. [Docker](https://docs.docker.com/install)
-3. See [cluster configuration](config.md) to learn how you can customize your cluster.
+1. [Docker](https://docs.docker.com/install)
+2. [AWS credentials](aws.md)
 
 ## Updating your cluster configuration
+
+See [cluster configuration](config.md) to learn how you can customize your cluster.
 
 ```bash
 cortex cluster update
@@ -24,7 +25,7 @@ cortex cluster down
 bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
 
 # Confirm version
-cortex --version
+cortex version
 
 # Spin up your cluster
 cortex cluster up

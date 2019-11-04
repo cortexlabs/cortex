@@ -1,9 +1,9 @@
-from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 
@@ -54,4 +54,4 @@ if __name__ == "__main__":
 
     print("prediction accuracy {}".format(accuracy_score(test_y.data, predict_y.data)))
 
-    torch.save(model.state_dict(), "iris_model.pth")
+    torch.save(model.state_dict(), "weights.pth")

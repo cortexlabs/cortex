@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from joblib import dump
-import boto3
+
 
 if __name__ == "__main__":
     df = pd.read_csv(
@@ -21,4 +21,4 @@ if __name__ == "__main__":
 
     regression_model = LinearRegression()
     regression_model.fit(X_train, y_train)
-    dump(regression_model, "mpg.joblib")
+    dump(regression_model, "linreg.joblib")

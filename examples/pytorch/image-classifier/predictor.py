@@ -1,5 +1,4 @@
 import requests
-import base64
 from PIL import Image
 from io import BytesIO
 from torchvision import transforms
@@ -21,11 +20,7 @@ labels = requests.get(
 
 
 def predict(sample, metadata):
-    if "url" in sample:
-        image = requests.get(sample["url"]).content
-    elif "base64" in sample:
-        image = base64.b64decode(sample["base64"])
-
+    image = requests.get(sample["url"]).content
     img_pil = Image.open(BytesIO(image))
     img_tensor = preprocess(img_pil)
     img_tensor.unsqueeze_(0)

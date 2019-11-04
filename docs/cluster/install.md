@@ -2,11 +2,12 @@
 
 ## Prerequisites
 
-1. [AWS credentials](aws.md)
-2. [Docker](https://docs.docker.com/install)
-3. See [cluster configuration](config.md) to learn how you can customize your cluster.
+1. [Docker](https://docs.docker.com/install)
+2. [AWS credentials](aws.md)
 
 ## Installation
+
+See [cluster configuration](config.md) to learn how you can customize your cluster.
 
 <!-- CORTEX_VERSION_MINOR -->
 ```bash
@@ -19,7 +20,7 @@ cortex cluster up
 
 Note: This will create resources in your AWS account which aren't included in the free tier, e.g. an EKS cluster, two Elastic Load Balancers, and EC2 instances (quantity and type as specified above). To use GPU nodes, you may need to subscribe to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) and [file an AWS support ticket](https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances) to increase the limit for your desired instance type.
 
-## Create a deployment
+## Deploy a model
 
 <!-- CORTEX_VERSION_MINOR -->
 
@@ -27,7 +28,7 @@ Note: This will create resources in your AWS account which aren't included in th
 # Clone the Cortex repository
 git clone -b master https://github.com/cortexlabs/cortex.git
 
-# Navigate to the iris classification example
+# Navigate to the iris classifier example
 cd cortex/examples/tensorflow/iris-classifier
 
 # Deploy the model to the cluster
