@@ -70,6 +70,10 @@ var upCmd = &cobra.Command{
 	Long:  `This command spins up a Cortex cluster on your AWS account.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		if err := checkDockerRunning(); err != nil {
+			errors.Exit(err)
+		}
+
 		promptForEmail()
 
 		clusterConfig, awsCreds, err := getInstallClusterConfig()
@@ -90,6 +94,10 @@ var updateCmd = &cobra.Command{
 	Long:  `This command updates a Cortex cluster.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		if err := checkDockerRunning(); err != nil {
+			errors.Exit(err)
+		}
+
 		clusterConfig, awsCreds, err := getUpdateClusterConfig()
 		if err != nil {
 			errors.Exit(err)
@@ -108,6 +116,10 @@ var infoCmd = &cobra.Command{
 	Long:  `This command gets information about a Cortex cluster.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		if err := checkDockerRunning(); err != nil {
+			errors.Exit(err)
+		}
+
 		clusterConfig, awsCreds, err := getAccessClusterConfig()
 		if err != nil {
 			errors.Exit(err)
@@ -142,6 +154,10 @@ var downCmd = &cobra.Command{
 	Long:  `This command spins down a Cortex cluster.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		if err := checkDockerRunning(); err != nil {
+			errors.Exit(err)
+		}
+
 		prompt.YesOrExit("Are you sure you want to uninstall Cortex? (Your cluster will be spun down and all APIs will be deleted)", "")
 
 		clusterConfig, awsCreds, err := getAccessClusterConfig()

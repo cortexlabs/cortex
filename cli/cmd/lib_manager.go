@@ -48,11 +48,32 @@ func getDockerClient() (*dockerclient.Client, error) {
 	var err error
 	cachedDockerClient, err = dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 	if err != nil {
-		return nil, err
+		return nil, wrapDockerError(err)
 	}
 
 	cachedDockerClient.NegotiateAPIVersion(context.Background())
 	return cachedDockerClient, nil
+}
+
+func wrapDockerError(err error) error {
+	if dockerclient.IsErrConnectionFailed(err) {
+		return errors.New("Unable to connect to the Docker daemon, please confirm Docker is running")
+	}
+
+	return errors.WithStack(err)
+}
+
+func checkDockerRunning() error {
+	docker, err := getDockerClient()
+	if err != nil {
+		return err
+	}
+
+	if _, err := docker.Info(context.Background()); err != nil {
+		return wrapDockerError(err)
+	}
+
+	return nil
 }
 
 func pullManager(clusterConfig *clusterconfig.ClusterConfig) error {
@@ -63,7 +84,7 @@ func pullManager(clusterConfig *clusterconfig.ClusterConfig) error {
 
 	images, err := docker.ImageList(context.Background(), dockertypes.ImageListOptions{})
 	if err != nil {
-		return err
+		return wrapDockerError(err)
 	}
 
 	for _, image := range images {
@@ -76,7 +97,7 @@ func pullManager(clusterConfig *clusterconfig.ClusterConfig) error {
 
 	pullOutput, err := docker.ImagePull(context.Background(), clusterConfig.ImageManager, dockertypes.ImagePullOptions{})
 	if err != nil {
-		return err
+		return wrapDockerError(err)
 	}
 	defer pullOutput.Close()
 
@@ -92,11 +113,14 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 		return "", err
 	}
 
-	pullManager(clusterConfig)
+	err = pullManager(clusterConfig)
+	if err != nil {
+		return "", err
+	}
 
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 	if err := files.WriteFile(clusterConfigBytes, cachedClusterConfigPath); err != nil {
 		return "", err
@@ -129,7 +153,7 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 
 	containerInfo, err := docker.ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
 	if err != nil {
-		errors.Exit(err)
+		return "", wrapDockerError(err)
 	}
 
 	removeContainer := func() {
@@ -154,7 +178,7 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 
 	err = docker.ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
-		return "", err
+		return "", wrapDockerError(err)
 	}
 
 	// There is a slight delay between the container starting at attaching to it, hence the sleep in Cmd
@@ -164,7 +188,7 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 		Stderr: true,
 	})
 	if err != nil {
-		return "", err
+		return "", wrapDockerError(err)
 	}
 	defer logsOutput.Close()
 
@@ -173,7 +197,7 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 
 	_, err = io.Copy(os.Stdout, tee)
 	if err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 
 	output := outputBuffer.String()
