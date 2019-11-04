@@ -445,12 +445,12 @@ func (predictor *Predictor) Validate(projectFileMap map[string][]byte) error {
 			return err
 		}
 
-		isPath := false
-		if isPath, err = awsClient.IsS3PathFile(*predictor.Model); err != nil {
+		isFile := false
+		if isFile, err = awsClient.IsS3PathFile(*predictor.Model); err != nil {
 			return errors.Wrap(err, PredictorKey, ModelKey)
 		}
 
-		if !isPath {
+		if !isFile {
 			isDir := false
 			modelPath := s.EnsureSuffix(*predictor.Model, "/")
 

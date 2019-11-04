@@ -9,6 +9,7 @@ We implement Cortex's Predictor interface to load the model and make predictions
 ### Initialization
 
 We can place our code to initialize the model in the `init()` function:
+
 ```python
 # predictor.py
 

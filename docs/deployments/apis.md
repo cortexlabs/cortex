@@ -15,7 +15,7 @@ In addition to supporting Python models via the Predictor interface, Cortex can 
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
   predictor:
     path: <string>  # path to the predictor Python file, relative to the Cortex root (required)
-    model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (optional)
+    model: <string>  # S3 path to a file or directory (e.g. s3://my-bucket/exported_model) (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     metadata: <string: value>  # dictionary that can be used to configure custom values (optional)
   tracker:
