@@ -1,6 +1,6 @@
 # Request handlers
 
-Request handlers can be used with `tensorflow` or `onnx` exported models. They contain a `pre_inference()` function and/or a `post_inference()` function that are to process data before and after running an inference. Global variables can be used safely in both functions because each replica handles one request at a time.
+Request handlers can be used with TensorFlow or ONNX exported models. They contain a `pre_inference()` function and/or a `post_inference()` function that are to process data before and after running an inference. Global variables can be used safely in both functions because each replica handles one request at a time.
 
 ## Implementation
 

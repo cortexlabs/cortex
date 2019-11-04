@@ -147,7 +147,8 @@ Flags:
 
 ## version
 
-This command prints the version of the CLI and cluster
+```text
+This command prints the version of the CLI and cluster.
 
 Usage:
   cortex version [flags]
@@ -155,6 +156,7 @@ Usage:
 Flags:
   -e, --env string   environment (default "default")
   -h, --help         help for version
+```
 
 ## configure
 
