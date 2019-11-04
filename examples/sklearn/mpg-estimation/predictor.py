@@ -1,18 +1,13 @@
-import boto3
-import re
-import numpy as np
 from joblib import load
+import numpy as np
 
 
 model = None
 
 
-def init(metadata):
+def init(model_path, metadata):
     global model
-    s3 = boto3.client("s3")
-    bucket, key = re.match(r"s3:\/\/(.+?)\/(.+)", metadata["model"]).groups()
-    s3.download_file(bucket, key, "linreg.joblib")
-    model = load("linreg.joblib")
+    model = load(model_path)
 
 
 def predict(sample, metadata):

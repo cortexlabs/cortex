@@ -168,7 +168,7 @@ class Context:
             raise
 
         try:
-            _validate_impl(impl, INFERENCE_IMPL_VALIDATION)
+            _validate_impl(impl, PREDICTOR_IMPL_VALIDATION)
         except CortexException as e:
             e.wrap("api " + api_name, "predictor " + api["predictor"]["path"])
             raise
@@ -245,8 +245,8 @@ REQUEST_HANDLER_IMPL_VALIDATION = {
     ]
 }
 
-INFERENCE_IMPL_VALIDATION = {
-    "optional": [{"name": "init", "args": ["metadata"]}],
+PREDICTOR_IMPL_VALIDATION = {
+    "optional": [{"name": "init", "args": ["model_path", "metadata"]}],
     "required": [{"name": "predict", "args": ["sample", "metadata"]}],
 }
 
