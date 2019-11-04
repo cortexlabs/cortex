@@ -22,7 +22,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-You can run the code that generated the exported model used in this example [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/xgboost/iris-classifier-onnx/xgboost.ipynb).
+You can run the code that generated the exported model used in this example [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/xgboost/iris-classifier/xgboost.ipynb).
 
 ## Add request handling
 

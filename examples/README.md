@@ -20,7 +20,7 @@
 
 ## XGBoost
 
-- [Iris classification](xgboost/iris-classifier-onnx): deploy a model to classify iris flowers (exported in ONNX).
+- [Iris classification](xgboost/iris-classifier): deploy a model to classify iris flowers (exported in ONNX).
 
 ## scikit-learn
 
