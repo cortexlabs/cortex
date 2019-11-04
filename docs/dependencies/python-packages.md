@@ -1,21 +1,8 @@
 # Python packages
 
-## Pre-installed packages
-
-The following packages have been pre-installed and can be used in your implementations:
-
-```text
-boto3==1.9.228
-msgpack==0.6.1
-numpy==1.17.2
-requests==2.22.0
-tensorflow==1.14.0  # For TensorFlow models only
-onnxruntime==0.5.0  # For ONNX models only
-```
-
 ## PyPI packages
 
-You can install additional PyPI packages and import them in your Python files. Cortex looks for a `requirements.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
+You can install your required PyPI packages and import them in your Python files. Cortex looks for a `requirements.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
 
 ```text
 ./iris-classifier/

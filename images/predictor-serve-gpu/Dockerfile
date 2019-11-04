@@ -22,8 +22,8 @@ ENV PYTHONPATH "${PYTHONPATH}:/src:/mnt/project"
 
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
 COPY pkg/workloads/cortex/predictor_serve/requirements.txt /src/cortex/predictor_serve/requirements.txt
-RUN pip install -r /src/cortex/lib/requirements.txt && \
-    pip install -r /src/cortex/predictor_serve/requirements.txt && \
+RUN pip install --no-cache-dir -r /src/cortex/lib/requirements.txt && \
+    pip install --no-cache-dir -r /src/cortex/predictor_serve/requirements.txt && \
     rm -rf /root/.cache/pip*
 
 COPY pkg/workloads/cortex/consts.py /src/cortex

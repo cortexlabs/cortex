@@ -71,3 +71,36 @@ def predict(sample, metadata):
     # Translate the model output to the corresponding label string
     return labels[torch.argmax(output[0])]
 ```
+
+## Pre-installed packages
+
+The following packages have been pre-installed and can be used in your implementations:
+
+```
+Keras==2.3.1
+Pillow==6.2.1
+cloudpickle==1.2.2
+dill==0.3.1.1
+flask-api==1.1
+flask==1.1.1
+joblib==0.14.0
+nltk==3.4.5
+np-utils==0.5.11.1
+numpy==1.17.3
+pandas==0.25.3
+torch==1.3.0
+scikit-image==0.16.2
+scikit-learn==0.21.3
+scipy==1.3.1
+six==1.12.0
+statsmodels==0.10.1
+sympy==1.4
+tensor2tensor==1.14.1
+tensorflow-hub==0.7.0
+tensorflow==2.0.0
+torchvision==0.4.1
+waitress==1.3.1
+xgboost==0.90
+```
+
+Learn how to install additional packages [here](../dependencies/python-packages.md).
