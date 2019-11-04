@@ -71,7 +71,7 @@ var awsCredentialsPromptValidation = &cr.PromptValidation{
 		{
 			StructField: "AWSAccessKeyID",
 			PromptOpts: &prompt.Options{
-				Prompt: "Enter AWS Access Key ID",
+				Prompt: "AWS Access Key ID",
 			},
 			StringValidation: &cr.StringValidation{
 				Required: true,
@@ -80,7 +80,7 @@ var awsCredentialsPromptValidation = &cr.PromptValidation{
 		{
 			StructField: "AWSSecretAccessKey",
 			PromptOpts: &prompt.Options{
-				Prompt:      "Enter AWS Secret Access Key",
+				Prompt:      "AWS Secret Access Key",
 				MaskDefault: true,
 				HideTyping:  true,
 			},
