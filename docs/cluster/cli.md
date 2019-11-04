@@ -47,22 +47,6 @@ Flags:
   -h, --help                help for logs
 ```
 
-## refresh
-
-```text
-This command sends all project configuration and code to Cortex.
-If validations pass, Cortex will attempt to create the desired state,
-and override the existing deployment.
-
-Usage:
-  cortex refresh [flags]
-
-Flags:
-  -e, --env string   environment (default "default")
-  -f, --force        stop all running jobs
-  -h, --help         help for refresh
-```
-
 ## predict
 
 ```text
@@ -79,6 +63,22 @@ Flags:
   -h, --help                help for predict
 ```
 
+## refresh
+
+```text
+This command sends all project configuration and code to Cortex.
+If validations pass, Cortex will attempt to create the desired state,
+and override the existing deployment.
+
+Usage:
+  cortex refresh [flags]
+
+Flags:
+  -e, --env string   environment (default "default")
+  -f, --force        stop all running jobs
+  -h, --help         help for refresh
+```
+
 ## delete
 
 ```text
@@ -91,22 +91,6 @@ Flags:
   -e, --env string   environment (default "default")
   -h, --help         help for delete
   -c, --keep-cache   keep cached data for the deployment
-```
-
-## configure
-
-```text
-This command configures the Cortex URL and AWS credentials
-in order to authenticate and send requests to Cortex.
-The configuration is stored in ~/.cortex.
-
-Usage:
-  cortex configure [flags]
-
-Flags:
-  -e, --env string   environment (default "default")
-  -h, --help         help for configure
-  -p, --print        print the configuration
 ```
 
 ## cluster up
@@ -161,6 +145,45 @@ Flags:
   -h, --help            help for down
 ```
 
+## version
+
+This command prints the version of the CLI and cluster
+
+Usage:
+  cortex version [flags]
+
+Flags:
+  -e, --env string   environment (default "default")
+  -h, --help         help for version
+
+## configure
+
+```text
+This command configures the Cortex URL and AWS credentials
+in order to authenticate and send requests to Cortex.
+The configuration is stored in ~/.cortex.
+
+Usage:
+  cortex configure [flags]
+
+Flags:
+  -e, --env string   environment (default "default")
+  -h, --help         help for configure
+  -p, --print        print the configuration
+```
+
+## support
+
+```text
+This command sends a support request to the Cortex maintainers
+
+Usage:
+  cortex support [flags]
+
+Flags:
+  -h, --help   help for support
+```
+
 ## completion
 
 ```text
@@ -181,26 +204,3 @@ Usage:
 Flags:
   -h, --help   help for completion
 ```
-
-## support
-
-```text
-This command sends a support request to the Cortex maintainers
-
-Usage:
-  cortex support [flags]
-
-Flags:
-  -h, --help   help for support
-```
-
-## version
-
-This command prints the version of the CLI and cluster
-
-Usage:
-  cortex version [flags]
-
-Flags:
-  -e, --env string   environment (default "default")
-  -h, --help         help for version
