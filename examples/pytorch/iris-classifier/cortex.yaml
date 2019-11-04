@@ -7,6 +7,6 @@
     path: src/predictor.py
     python_path: src/
     metadata:
-      model: s3://cortex-examples/pytorch/iris-classifier/nn.pth
+      model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
   tracker:
     model_type: classification

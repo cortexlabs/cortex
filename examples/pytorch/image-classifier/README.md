@@ -37,11 +37,7 @@ The `predict()` function will be triggered once per request. The AlexNet model r
 # predictor.py
 
 def predict(sample, metadata):
-    if "url" in sample:
-        image = requests.get(sample["url"]).content
-    elif "base64" in sample:
-        image = base64.b64decode(sample["base64"])
-
+    image = requests.get(sample["url"]).content
     img_pil = Image.open(BytesIO(image))
     img_tensor = preprocess(img_pil)
     img_tensor.unsqueeze_(0)

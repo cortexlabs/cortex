@@ -25,9 +25,9 @@ def init(metadata):
     # download the model from S3 (location specified in the metadata field of our api configuration)
     s3 = boto3.client("s3")
     bucket, key = re.match(r"s3:\/\/(.+?)\/(.+)", metadata["model"]).groups()
-    s3.download_file(bucket, key, "iris_model.pth")
+    s3.download_file(bucket, key, "weights.pth")
 
-    model.load_state_dict(torch.load("iris_model.pth"))
+    model.load_state_dict(torch.load("weights.pth"))
     model.eval()
 ```
 
@@ -72,7 +72,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
     path: src/predictor.py
     python_path: src/
     metadata:
-      model: s3://cortex-examples/pytorch/iris-classifier/nn.pth
+      model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
   tracker:
     model_type: classification
 ```

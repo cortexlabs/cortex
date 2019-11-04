@@ -15,7 +15,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
 - kind: api
   name: xgboost
   onnx:
-    model: s3://cortex-examples/xgboost/iris-classifier-onnx/gbtree.onnx
+    model: s3://cortex-examples/xgboost/iris-classifier/gbtree.onnx
     request_handler: handler.py
   tracker:
     model_type: classification
