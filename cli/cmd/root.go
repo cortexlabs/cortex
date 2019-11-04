@@ -73,7 +73,7 @@ var rootCmd = &cobra.Command{
 	Long:    `Deploy machine learning models in production`,
 }
 
-// Copied from https://github.com/spf13/cobra/blob/master/command.go
+// Copied from https://github.com/spf13/cobra/blob/master/command.go, in order to make the short descritpion start with lower case
 var helpCmd = &cobra.Command{
 	Use:   "help [command]",
 	Short: "help about any command",
@@ -100,16 +100,16 @@ func Execute() {
 	rootCmd.AddCommand(deployCmd)
 	rootCmd.AddCommand(getCmd)
 	rootCmd.AddCommand(logsCmd)
-	rootCmd.AddCommand(refreshCmd)
 	rootCmd.AddCommand(predictCmd)
+	rootCmd.AddCommand(refreshCmd)
 	rootCmd.AddCommand(deleteCmd)
 
-	rootCmd.AddCommand(configureCmd)
 	rootCmd.AddCommand(clusterCmd)
-
-	rootCmd.AddCommand(completionCmd)
-	rootCmd.AddCommand(supportCmd)
 	rootCmd.AddCommand(versionCmd)
+
+	rootCmd.AddCommand(configureCmd)
+	rootCmd.AddCommand(supportCmd)
+	rootCmd.AddCommand(completionCmd)
 
 	printLeadingNewLine()
 	rootCmd.Execute()

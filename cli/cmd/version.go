@@ -33,8 +33,8 @@ func init() {
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "print the version of the Cortex CLI and cluster",
-	Long:  `This command prints the version of the Cortex CLI and cluster`,
+	Short: "print the version of the CLI and cluster",
+	Long:  `This command prints the version of the CLI and cluster`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		httpResponse, err := HTTPGet("/info")
