@@ -185,7 +185,7 @@ Flags:
 ## support
 
 ```text
-This command sends a support request to Cortex developers.
+This command sends a support request to the Cortex maintainers
 
 Usage:
   cortex support [flags]
@@ -196,7 +196,7 @@ Flags:
 
 ## version
 
-This command prints the version of the Cortex CLI and cluster
+This command prints the version of the CLI and cluster
 
 Usage:
   cortex version [flags]

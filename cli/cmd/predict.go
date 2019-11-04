@@ -40,7 +40,7 @@ func init() {
 
 var predictCmd = &cobra.Command{
 	Use:   "predict API_NAME SAMPLE_FILE",
-	Short: "make predictions",
+	Short: "make a prediction request",
 	Long: `This command makes a prediction request using
 a JSON file and displays the response.`,
 	Args: cobra.ExactArgs(2),
