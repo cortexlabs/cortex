@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
 
 type AWSCredentials struct {
@@ -204,18 +205,88 @@ func setAWSCredentials(awsCreds *AWSCredentials) error {
 }
 
 func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) {
-	fmt.Printf("instance type:     %s\n", *clusterConfig.InstanceType)
-	fmt.Printf("min instances:     %d\n", *clusterConfig.MinInstances)
-	fmt.Printf("max instances:     %d\n", *clusterConfig.MaxInstances)
-	fmt.Printf("cluster name:      %s\n", clusterConfig.ClusterName)
-	fmt.Printf("region:            %s\n", clusterConfig.Region)
-	fmt.Printf("bucket:            %s\n", clusterConfig.Bucket)
-	fmt.Printf("log group:         %s\n", clusterConfig.LogGroup)
-	fmt.Printf("AWS access key ID: %s\n", s.MaskString(awsCreds.AWSAccessKeyID, 4))
-	if awsCreds.CortexAWSAccessKeyID != awsCreds.AWSAccessKeyID {
-		fmt.Printf("AWS access key ID: %s (cortex)\n", s.MaskString(awsCreds.CortexAWSAccessKeyID, 4))
+	defaultCC, _ := clusterconfig.GetFileDefaults()
+
+	var items []table.KV
+
+	items = append(items, table.KV{K: "instance type", V: *clusterConfig.InstanceType})
+	items = append(items, table.KV{K: "min instances", V: *clusterConfig.MinInstances})
+	items = append(items, table.KV{K: "max instances", V: *clusterConfig.MaxInstances})
+	items = append(items, table.KV{K: "cluster name", V: clusterConfig.ClusterName})
+	items = append(items, table.KV{K: "region", V: clusterConfig.Region})
+	items = append(items, table.KV{K: "bucket", V: clusterConfig.Bucket})
+
+	if clusterConfig.LogGroup != defaultCC.LogGroup {
+		items = append(items, table.KV{K: "log group", V: clusterConfig.LogGroup})
 	}
-	fmt.Println()
+	if clusterConfig.Telemetry != defaultCC.Telemetry {
+		items = append(items, table.KV{K: "telemetry", V: clusterConfig.Telemetry})
+	}
+
+	items = append(items, table.KV{K: "AWS access key ID", V: s.MaskString(awsCreds.AWSAccessKeyID, 4)})
+	if awsCreds.CortexAWSAccessKeyID != awsCreds.AWSAccessKeyID {
+		items = append(items, table.KV{K: "AWS access key ID", V: s.MaskString(awsCreds.CortexAWSAccessKeyID, 4) + " (cortex)"})
+	}
+
+	if clusterConfig.ImagePredictorServe != defaultCC.ImagePredictorServe {
+		items = append(items, table.KV{K: "image_predictor_serve", V: clusterConfig.ImagePredictorServe})
+	}
+	if clusterConfig.ImagePredictorServeGPU != defaultCC.ImagePredictorServeGPU {
+		items = append(items, table.KV{K: "image_predictor_serve_gpu", V: clusterConfig.ImagePredictorServeGPU})
+	}
+	if clusterConfig.ImageTFServe != defaultCC.ImageTFServe {
+		items = append(items, table.KV{K: "image_tf_serve", V: clusterConfig.ImageTFServe})
+	}
+	if clusterConfig.ImageTFServeGPU != defaultCC.ImageTFServeGPU {
+		items = append(items, table.KV{K: "image_tf_serve_gpu", V: clusterConfig.ImageTFServeGPU})
+	}
+	if clusterConfig.ImageTFAPI != defaultCC.ImageTFAPI {
+		items = append(items, table.KV{K: "image_tf_api", V: clusterConfig.ImageTFAPI})
+	}
+	if clusterConfig.ImageONNXServe != defaultCC.ImageONNXServe {
+		items = append(items, table.KV{K: "image_onnx_serve", V: clusterConfig.ImageONNXServe})
+	}
+	if clusterConfig.ImageONNXServeGPU != defaultCC.ImageONNXServeGPU {
+		items = append(items, table.KV{K: "image_onnx_serve_gpu", V: clusterConfig.ImageONNXServeGPU})
+	}
+	if clusterConfig.ImageOperator != defaultCC.ImageOperator {
+		items = append(items, table.KV{K: "image_operator", V: clusterConfig.ImageOperator})
+	}
+	if clusterConfig.ImageManager != defaultCC.ImageManager {
+		items = append(items, table.KV{K: "image_manager", V: clusterConfig.ImageManager})
+	}
+	if clusterConfig.ImageDownloader != defaultCC.ImageDownloader {
+		items = append(items, table.KV{K: "image_downloader", V: clusterConfig.ImageDownloader})
+	}
+	if clusterConfig.ImageClusterAutoscaler != defaultCC.ImageClusterAutoscaler {
+		items = append(items, table.KV{K: "image_cluster_autoscaler", V: clusterConfig.ImageClusterAutoscaler})
+	}
+	if clusterConfig.ImageMetricsServer != defaultCC.ImageMetricsServer {
+		items = append(items, table.KV{K: "image_metrics_server", V: clusterConfig.ImageMetricsServer})
+	}
+	if clusterConfig.ImageNvidia != defaultCC.ImageNvidia {
+		items = append(items, table.KV{K: "image_nvidia", V: clusterConfig.ImageNvidia})
+	}
+	if clusterConfig.ImageFluentd != defaultCC.ImageFluentd {
+		items = append(items, table.KV{K: "image_fluentd", V: clusterConfig.ImageFluentd})
+	}
+	if clusterConfig.ImageStatsd != defaultCC.ImageStatsd {
+		items = append(items, table.KV{K: "image_statsd", V: clusterConfig.ImageStatsd})
+	}
+	if clusterConfig.ImageIstioProxy != defaultCC.ImageIstioProxy {
+		items = append(items, table.KV{K: "image_istio_proxy", V: clusterConfig.ImageIstioProxy})
+	}
+	if clusterConfig.ImageIstioPilot != defaultCC.ImageIstioPilot {
+		items = append(items, table.KV{K: "image_istio_pilot", V: clusterConfig.ImageIstioPilot})
+	}
+	if clusterConfig.ImageIstioCitadel != defaultCC.ImageIstioCitadel {
+		items = append(items, table.KV{K: "image_istio_citadel", V: clusterConfig.ImageIstioCitadel})
+	}
+	if clusterConfig.ImageIstioGalley != defaultCC.ImageIstioGalley {
+		items = append(items, table.KV{K: "image_istio_galley", V: clusterConfig.ImageIstioGalley})
+	}
+
+	fmt.Println(table.AlignKeyValue(items, ":", 1) + "\n")
 
 	exitMessage := fmt.Sprintf("Cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersion)
 	prompt.YesOrExit("Is the configuration above correct?", exitMessage)
