@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -169,6 +170,8 @@ var downCmd = &cobra.Command{
 		if err != nil {
 			errors.Exit(err)
 		}
+
+		os.Remove(cachedClusterConfigPath)
 	},
 }
 
