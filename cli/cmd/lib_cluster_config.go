@@ -340,7 +340,8 @@ func getUpdateClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, er
 
 		readClusterConfigFile(clusterConfig, awsCreds, cachedClusterConfigPath)
 
-		err = cr.ReadPrompt(clusterConfig, clusterconfig.PromptValidation(false, false, clusterConfig))
+		promptInstanceType := clusterConfig.InstanceType == nil
+		err = cr.ReadPrompt(clusterConfig, clusterconfig.PromptValidation(false, promptInstanceType, clusterConfig))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -350,7 +351,8 @@ func getUpdateClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, er
 			return nil, nil, err
 		}
 
-		err = cr.ReadPrompt(clusterConfig, clusterconfig.PromptValidation(true, false, nil))
+		promptInstanceType := clusterConfig.InstanceType == nil
+		err = cr.ReadPrompt(clusterConfig, clusterconfig.PromptValidation(true, promptInstanceType, nil))
 		if err != nil {
 			return nil, nil, err
 		}
