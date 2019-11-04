@@ -73,7 +73,7 @@ var rootCmd = &cobra.Command{
 	Long:    `Deploy machine learning models in production`,
 }
 
-// Copied from https://github.com/spf13/cobra/blob/master/command.go
+// Copied from https://github.com/spf13/cobra/blob/master/command.go, in order to make the short descritpion start with lower case
 var helpCmd = &cobra.Command{
 	Use:   "help [command]",
 	Short: "help about any command",
