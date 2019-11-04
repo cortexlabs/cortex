@@ -4,7 +4,7 @@
 - kind: api
   name: mpg
   predictor:
-    path: src/predictor.py
+    path: predictor.py
     model: s3://cortex-examples/sklearn/mpg-estimation/linreg.joblib
   tracker:
     model_type: regression
