@@ -67,3 +67,19 @@ def post_inference(prediction, signature, metadata):
     predicted_class_id = prediction[0][0]
     return labels[predicted_class_id]
 ```
+
+## Pre-installed packages
+
+The following packages have been pre-installed and can be used in your implementations:
+
+```text
+boto3==1.9.228
+msgpack==0.6.1
+numpy==1.17.3
+requests==2.22.0
+dill==0.3.1.1
+tensorflow==1.14.0  # For TensorFlow models only
+onnxruntime==0.5.0  # For ONNX models only
+```
+
+Learn how to install additional packages [here](../dependencies/python-packages.md).
