@@ -17,7 +17,7 @@ def init(model_path, metadata):
     Optional.
 
     Args:
-        model_path: Local path to model if specified by user in API configuration, otherwise None.
+        model_path: Local path to model file or dir if specified by user in API configuration, otherwise None.
         metadata: Custom dictionary specified by the user in API configuration.
     """
     pass

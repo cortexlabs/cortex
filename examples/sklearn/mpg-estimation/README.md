@@ -8,8 +8,7 @@ We implement Cortex's Predictor interface to load the model and make predictions
 
 ### Initialization
 
-We can place our code to download and initialize the model in the `init()` function:
-
+We can place our code to initialize the model in the `init()` function:
 ```python
 # predictor.py
 
@@ -17,6 +16,7 @@ model = None
 
 def init(model_path, metadata):
     global model
+    # model_path is a local path pointing to your model
     model = load(model_path)
 ```
 
@@ -56,8 +56,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
   name: mpg
   predictor:
     path: predictor.py
-    metadata:
-      model: s3://cortex-examples/sklearn/mpg-estimation/linreg.joblib
+    model: s3://cortex-examples/sklearn/mpg-estimation/linreg.joblib
   tracker:
     model_type: regression
 ```
