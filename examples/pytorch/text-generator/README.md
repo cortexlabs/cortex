@@ -20,7 +20,7 @@ model.eval()
 # download the tokenizer
 tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
 
-def init(metadata):
+def init(model_path, metadata):
     # load the model onto the device specified in the metadata field of our api configuration
     model.to(metadata["device"])
 ```

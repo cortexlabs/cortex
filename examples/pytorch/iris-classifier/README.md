@@ -8,12 +8,12 @@ We implement Cortex's Predictor interface to load the model and make predictions
 
 ### Initialization
 
-We can place our code to download and initialize the model in the `init()` function. The PyTorch model class is defined in [src/my_model.py](./src/my_model.py), and we assume that we've already trained the model and uploaded the state_dict (weights) to S3.
+We can place our code to download and initialize the model in the `init()` function. The PyTorch model class is defined in [src/model.py](./src/model.py), and we assume that we've already trained the model and uploaded the state_dict (weights) to S3.
 
 ```python
 # predictor.py
 
-from my_model import IrisNet
+from model import IrisNet
 
 # instantiate the model
 model = IrisNet()
@@ -21,13 +21,9 @@ model = IrisNet()
 # define the labels
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
-def init(metadata):
-    # download the model from S3 (location specified in the metadata field of our api configuration)
-    s3 = boto3.client("s3")
-    bucket, key = re.match(r"s3:\/\/(.+?)\/(.+)", metadata["model"]).groups()
-    s3.download_file(bucket, key, "weights.pth")
-
-    model.load_state_dict(torch.load("weights.pth"))
+def init(model_path, metadata):
+    # model_path is a local path pointing to your model weights file
+    model.load_state_dict(torch.load(model_path))
     model.eval()
 ```
 
@@ -71,8 +67,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
   predictor:
     path: src/predictor.py
     python_path: src/
-    metadata:
-      model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
+    model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
   tracker:
     model_type: classification
 ```
