@@ -126,7 +126,10 @@ def start(args):
                 model_path = None
                 if api["predictor"].get("model") is not None:
                     _, prefix = ctx.storage.deconstruct_s3_path(api["predictor"]["model"])
-                    model_path = os.path.join(args.model_dir, os.path.basename(prefix))
+
+                    model_path = os.path.join(
+                        args.model_dir, os.path.basename(os.path.normpath(prefix))
+                    )
                 local_cache["predictor"].init(model_path, api["predictor"]["metadata"])
             except Exception as e:
                 raise UserRuntimeException(api["predictor"]["path"], "init", str(e)) from e
