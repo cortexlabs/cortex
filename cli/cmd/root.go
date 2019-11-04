@@ -103,7 +103,7 @@ func updateRootUsage() {
 	usage := rootCmd.UsageString()
 
 	rootCmd.SetUsageFunc(func(cmd *cobra.Command) error {
-		if cmd.Use != "cortex" {
+		if cmd != rootCmd {
 			return defaultUsageFunc(cmd)
 		}
 
