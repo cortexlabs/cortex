@@ -2,10 +2,6 @@
 
 Cortex is an open source platform that takes machine learning models—trained with nearly any framework—and turns them into production web APIs in one command. <br>
 
-<!-- Delete on release branches -->
-<!-- CORTEX_VERSION_README_MINOR x1 -->
-[install](https://www.cortex.dev/install) • [docs](https://www.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.9/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
-
 <!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
 ![Demo](https://cortex-public.s3-us-west-2.amazonaws.com/demo/gif/v0.8.gif)<br>
 
@@ -47,12 +43,15 @@ The configuration below will download the model from the `cortex-examples` S3 bu
 
 - kind: api
   name: generator
-  model: s3://cortex-examples/text-generator/gpt-2/124M
-  request_handler: handler.py
+  tensorflow:
+    model: s3://cortex-examples/tensorflow/text-generator/gpt-2/124M
+    request_handler: handler.py
+  compute:
+    gpu: 1
 ```
 
 <!-- CORTEX_VERSION_README_MINOR -->
-You can run the code that generated the model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/0.9/examples/text-generator/gpt-2.ipynb).
+You can run the code that generated the model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/0.10/examples/tensorflow/text-generator/gpt-2.ipynb).
 
 <br>
 
@@ -66,11 +65,11 @@ The model requires encoded data for inference, but the API should accept strings
 from encoder import get_encoder
 encoder = get_encoder()
 
-def pre_inference(sample, metadata):
+def pre_inference(sample, signature, metadata):
     context = encoder.encode(sample["text"])
     return {"context": [context]}
 
-def post_inference(prediction, metadata):
+def post_inference(prediction, signature, metadata):
     response = prediction["sample"]
     return encoder.decode(response)
 ```
@@ -126,9 +125,8 @@ The CLI sends configuration and code to the cluster every time you run `cortex d
 
 ## More examples
 
-<!-- CORTEX_VERSION_README_MINOR x3 -->
-- [Iris classification](https://github.com/cortexlabs/cortex/tree/0.9/examples/iris-classifier)
-
-- [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.9/examples/sentiment-analysis) with BERT
-
-- [Image classification](https://github.com/cortexlabs/cortex/tree/0.9/examples/image-classifier) with Inception v3 and AlexNet
+<!-- CORTEX_VERSION_README_MINOR x4 -->
+- [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.10/examples/tensorflow/sentiment-analysis) in TensorFlow with BERT
+- [Image classification](https://github.com/cortexlabs/cortex/tree/0.10/examples/tensorflow/image-classifier) in TensorFlow with Inception v3
+- [Text Generation](https://github.com/cortexlabs/cortex/tree/0.10/examples/pytorch/text-generator) in PyTorch with Hugging Face's DistilGPT2
+- [Iris classification](https://github.com/cortexlabs/cortex/tree/0.10/examples/xgboost/iris-classifier) in XGBoost / ONNX

@@ -16,7 +16,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="cortex",
-    version="master",  # CORTEX_VERSION
+    version="0.10.0",  # CORTEX_VERSION
     description="",
     author="Cortex Labs",
     author_email="dev@cortexlabs.com",
