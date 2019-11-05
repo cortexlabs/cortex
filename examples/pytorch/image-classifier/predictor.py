@@ -1,9 +1,9 @@
 import requests
+import torch
+import torchvision
+from torchvision import transforms
 from PIL import Image
 from io import BytesIO
-from torchvision import transforms
-import torchvision
-import torch
 
 model = torchvision.models.alexnet(pretrained=True)
 model.eval()

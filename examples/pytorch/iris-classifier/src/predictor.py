@@ -2,7 +2,6 @@ import re
 import torch
 from model import IrisNet
 
-labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 model = IrisNet()
 
@@ -10,6 +9,9 @@ model = IrisNet()
 def init(model_path, metadata):
     model.load_state_dict(torch.load(model_path))
     model.eval()
+
+
+labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
 def predict(sample, metadata):

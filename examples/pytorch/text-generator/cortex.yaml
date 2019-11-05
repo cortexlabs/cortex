@@ -6,7 +6,7 @@
   predictor:
     path: predictor.py
     metadata:
-      num_words: 20
+      num_words: 50
       device: cuda  # use "cpu" to run on CPUs
   compute:
     gpu: 1

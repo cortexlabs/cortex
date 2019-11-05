@@ -1,18 +1,18 @@
+# This file includes code which was modified from https://github.com/huggingface/transformers/blob/master/examples/run_generation.py
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import numpy as np
-import argparse
-import logging
-from tqdm import trange
-import torch.nn.functional as F
 import torch
+import torch.nn.functional as F
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
+from tqdm import trange
 
+
+tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
 model = GPT2LMHeadModel.from_pretrained("distilgpt2")
 model.eval()
-tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
 
-# adapted from: https://github.com/huggingface/transformers/blob/master/examples/run_generation.py
+
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float("Inf")):
     """ Filter a distribution of logits using top-k and/or nucleus (top-p) filtering
         Args:
