@@ -99,9 +99,9 @@ url: http://***.amazonaws.com/image/classifier
 
 $ curl http://***.amazonaws.com/image/classifier \
     -X POST -H "Content-Type: application/json" \
-    -d '{"url": "https://bowwowinsurance.com.au/wp-content/uploads/2018/10/akita-700x700.jpg"}'
+    -d '{"url": "https://i.imgur.com/PzXprwl.jpg"}'
 
-"Eskimo dog"
+"hotdog"
 ```
 
 Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).

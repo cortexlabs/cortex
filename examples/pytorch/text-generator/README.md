@@ -57,7 +57,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
   predictor:
     path: predictor.py
     metadata:
-      num_words: 20  # generate 20 words per request
+      num_words: 50  # generate 50 words per request
       device: cuda  # run on GPU
   compute:
     gpu: 1
