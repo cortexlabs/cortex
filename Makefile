@@ -25,56 +25,39 @@ devstart:
 	@./dev/operator_local.sh || true
 
 kubectl:
-	@source ./dev/config/cortex.sh && eksctl utils write-kubeconfig --name="$$CORTEX_CLUSTER" | grep -v "saved kubeconfig as" | grep -v "using region" || true
-	@source ./dev/config/cortex.sh && kubectl config set-context --current --namespace="$$CORTEX_NAMESPACE" >/dev/null
+	@eval $$(python ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --name="$$CORTEX_CLUSTER_NAME" | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
+	@kubectl config set-context --current --namespace=cortex >/dev/null
 
-cortex-up:
+cluster-up:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./cortex.sh -c=./dev/config/cortex.sh install
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster up
 	@$(MAKE) kubectl
 
-cortex-down:
+cluster-down:
 	@$(MAKE) manager-local
+	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./cortex.sh -c=./dev/config/cortex.sh uninstall
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster down
 
-cortex-install:
+cluster-info:
+	@$(MAKE) manager-local
+	@$(MAKE) cli
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster info
+
+cluster-update:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./cortex.sh -c=./dev/config/cortex.sh install cortex
-	@$(MAKE) kubectl
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster update
 
 cortex-uninstall:
 	@./dev/uninstall_cortex.sh
 
-cortex-info:
-	@$(MAKE) manager-local
-	@./cortex.sh -c=./dev/config/cortex.sh info
-
-cortex-update:
-	@$(MAKE) registry-all
-	@$(MAKE) cli
-	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./cortex.sh -c=./dev/config/cortex.sh update
-
-operator-start:
-	@$(MAKE) registry-all
-	@$(MAKE) cli
-	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./cortex.sh -c=./dev/config/cortex.sh update
-
-operator-update:
-	@$(MAKE) registry-all
-	@$(MAKE) cli
-	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./cortex.sh -c=./dev/config/cortex.sh update
-
 operator-stop:
 	@$(MAKE) kubectl
-	@source ./dev/config/cortex.sh && kubectl delete --namespace="$$CORTEX_NAMESPACE" --ignore-not-found=true deployment operator
+	@kubectl delete --namespace=cortex --ignore-not-found=true deployment operator
 
 # Docker images
 
@@ -139,43 +122,46 @@ test-examples:
 ###############
 
 ci-build-images:
-	@./build/build-image.sh images/manager manager
+	@./build/build-image.sh images/predictor-serve predictor-serve
+	@./build/build-image.sh images/predictor-serve-gpu predictor-serve-gpu
 	@./build/build-image.sh images/tf-serve tf-serve
 	@./build/build-image.sh images/tf-serve-gpu tf-serve-gpu
 	@./build/build-image.sh images/tf-api tf-api
 	@./build/build-image.sh images/onnx-serve onnx-serve
 	@./build/build-image.sh images/onnx-serve-gpu onnx-serve-gpu
 	@./build/build-image.sh images/operator operator
+	@./build/build-image.sh images/manager manager
+	@./build/build-image.sh images/downloader downloader
+	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
+	@./build/build-image.sh images/metrics-server metrics-server
+	@./build/build-image.sh images/nvidia nvidia
 	@./build/build-image.sh images/fluentd fluentd
 	@./build/build-image.sh images/statsd statsd
-	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
-	@./build/build-image.sh images/nvidia nvidia
-	@./build/build-image.sh images/metrics-server metrics-server
+	@./build/build-image.sh images/istio-proxy istio-proxy
+	@./build/build-image.sh images/istio-pilot istio-pilot
 	@./build/build-image.sh images/istio-citadel istio-citadel
 	@./build/build-image.sh images/istio-galley istio-galley
-	@./build/build-image.sh images/istio-pilot istio-pilot
-	@./build/build-image.sh images/istio-proxy istio-proxy
-	@./build/build-image.sh images/downloader downloader
 
 ci-push-images:
-	@./build/push-image.sh manager
+	@./build/push-image.sh predictor-serve
+	@./build/push-image.sh predictor-serve-gpu
 	@./build/push-image.sh tf-serve
 	@./build/push-image.sh tf-serve-gpu
 	@./build/push-image.sh tf-api
 	@./build/push-image.sh onnx-serve
 	@./build/push-image.sh onnx-serve-gpu
 	@./build/push-image.sh operator
+	@./build/push-image.sh manager
+	@./build/push-image.sh downloader
+	@./build/push-image.sh cluster-autoscaler
+	@./build/push-image.sh metrics-server
+	@./build/push-image.sh nvidia
 	@./build/push-image.sh fluentd
 	@./build/push-image.sh statsd
-	@./build/push-image.sh cluster-autoscaler
-	@./build/push-image.sh nvidia
-	@./build/push-image.sh metrics-server
+	@./build/push-image.sh istio-proxy
+	@./build/push-image.sh istio-pilot
 	@./build/push-image.sh istio-citadel
 	@./build/push-image.sh istio-galley
-	@./build/push-image.sh istio-pilot
-	@./build/push-image.sh istio-proxy
-	@./build/push-image.sh downloader
-
 
 ci-build-cli:
 	@./build/cli.sh

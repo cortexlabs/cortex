@@ -19,26 +19,26 @@ package context
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	userconfig "github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 type Context struct {
-	ID                string               `json:"id"`
-	Key               string               `json:"key"`
-	CreatedEpoch      int64                `json:"created_epoch"`
-	CortexConfig      *config.CortexConfig `json:"cortex_config"`
-	DeploymentVersion string               `json:"deployment_version"`
-	Root              string               `json:"root"`
-	MetadataRoot      string               `json:"metadata_root"`
-	StatusPrefix      string               `json:"status_prefix"`
-	App               *App                 `json:"app"`
-	APIs              APIs                 `json:"apis"`
-	ProjectID         string               `json:"project_id"`
-	ProjectKey        string               `json:"project_key"`
+	ID                string                               `json:"id"`
+	Key               string                               `json:"key"`
+	CreatedEpoch      int64                                `json:"created_epoch"`
+	ClusterConfig     *clusterconfig.InternalClusterConfig `json:"cluster_config"`
+	DeploymentVersion string                               `json:"deployment_version"`
+	Root              string                               `json:"root"`
+	MetadataRoot      string                               `json:"metadata_root"`
+	StatusPrefix      string                               `json:"status_prefix"`
+	App               *App                                 `json:"app"`
+	APIs              APIs                                 `json:"apis"`
+	ProjectID         string                               `json:"project_id"`
+	ProjectKey        string                               `json:"project_key"`
 }
 
 type Resource interface {
@@ -210,7 +210,7 @@ func (ctx *Context) VisibleResourceByNameAndType(name string, resourceTypeStr st
 }
 
 func (ctx *Context) LogGroupName(apiName string) string {
-	name := ctx.CortexConfig.LogGroup + "." + ctx.App.Name + "." + apiName
+	name := ctx.ClusterConfig.LogGroup + "." + ctx.App.Name + "." + apiName
 	return name
 }
 

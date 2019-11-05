@@ -29,6 +29,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 )
 
 type SupportRequest struct {
@@ -43,7 +44,7 @@ var supportPrompValidation = &cr.PromptValidation{
 	PromptItemValidations: []*cr.PromptItemValidation{
 		{
 			StructField: "Body",
-			PromptOpts: &cr.PromptOptions{
+			PromptOpts: &prompt.Options{
 				Prompt: "What is your question or issue",
 			},
 			StringValidation: &cr.StringValidation{
@@ -52,7 +53,7 @@ var supportPrompValidation = &cr.PromptValidation{
 		},
 		{
 			StructField: "EmailAddress",
-			PromptOpts: &cr.PromptOptions{
+			PromptOpts: &prompt.Options{
 				Prompt: "What is your email address",
 			},
 			StringValidation: &cr.StringValidation{
@@ -65,12 +66,10 @@ var supportPrompValidation = &cr.PromptValidation{
 
 var supportCmd = &cobra.Command{
 	Use:   "support",
-	Short: "request support from Cortex maintainers",
-	Long: `
-This command sends a support request to Cortex maintainers.`,
+	Short: "send a support request to Cortex maintainers",
+	Long:  `This command sends a support request to the Cortex maintainers`,
 	Run: func(cmd *cobra.Command, args []string) {
 		supportRequest := &SupportRequest{}
-		fmt.Println("")
 		err := cr.ReadPrompt(supportRequest, supportPrompValidation)
 		if err != nil {
 			errors.Exit(err)
@@ -86,11 +85,10 @@ This command sends a support request to Cortex maintainers.`,
 			errors.PrintError(err)
 			return
 		}
-
 		defer resp.Body.Close()
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			fmt.Println("Failed to send request, please file an issue on GitHub (https://github.com/cortexlabs/cortex) or email us at hello@cortex.dev")
+			fmt.Println("An error occured while submitting your request, please file an issue on GitHub (https://github.com/cortexlabs/cortex) or email us at hello@cortex.dev")
 			return
 		}
 

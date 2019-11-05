@@ -18,7 +18,6 @@ package context
 
 import (
 	"bytes"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -33,19 +32,18 @@ func getAPIs(config *userconfig.Config, deploymentVersion string, projectID stri
 	for _, apiConfig := range config.APIs {
 		var buf bytes.Buffer
 		buf.WriteString(apiConfig.Name)
+		buf.WriteString(*apiConfig.Endpoint)
 		buf.WriteString(s.Obj(apiConfig.Tracker))
-		buf.WriteString(apiConfig.ModelFormat.String())
 		buf.WriteString(deploymentVersion)
-		buf.WriteString(strings.TrimSuffix(apiConfig.Model, "/"))
-		buf.WriteString(s.Obj(apiConfig.TFSignatureKey))
+		buf.WriteString(s.Obj(apiConfig.TensorFlow))
+		buf.WriteString(s.Obj(apiConfig.ONNX))
+		buf.WriteString(s.Obj(apiConfig.Predictor))
 
-		if apiConfig.RequestHandler != nil {
+		if apiConfig.AreProjectFilesRequired() {
 			buf.WriteString(projectID)
-			buf.WriteString(*apiConfig.RequestHandler)
 		}
 
 		id := hash.Bytes(buf.Bytes())
-
 		apis[apiConfig.Name] = &context.API{
 			ComputedResourceFields: &context.ComputedResourceFields{
 				ResourceFields: &context.ResourceFields{
@@ -53,8 +51,7 @@ func getAPIs(config *userconfig.Config, deploymentVersion string, projectID stri
 					ResourceType: resource.APIType,
 				},
 			},
-			API:  apiConfig,
-			Path: context.APIPath(apiConfig.Name, config.App.Name),
+			API: apiConfig,
 		}
 	}
 	return apis, nil

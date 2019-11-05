@@ -21,18 +21,23 @@ const (
 	UnknownKey = "unknown"
 	NameKey    = "name"
 	KindKey    = "kind"
-	TagsKey    = "tags"
 
 	// API
 	ModelKey          = "model"
-	ModelFormatKey    = "model_format"
+	PathKey           = "path"
+	EndpointKey       = "endpoint"
 	RequestHandlerKey = "request_handler"
-	TFSignatureKeyKey = "tf_signature_key"
+	SignatureKeyKey   = "signature_key"
 	TrackerKey        = "tracker"
 	ModelTypeKey      = "model_type"
 	KeyKey            = "key"
+	TensorFlowKey     = "tensorflow"
+	ONNXKey           = "onnx"
+	PredictorKey      = "predictor"
+	MetadataKey       = "metadata"
+	PythonPathKey     = "python_path"
 
-	// compute
+	// Compute
 	ComputeKey              = "compute"
 	MinReplicasKey          = "min_replicas"
 	MaxReplicasKey          = "max_replicas"

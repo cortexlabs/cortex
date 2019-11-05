@@ -17,13 +17,13 @@ limitations under the License.
 package config
 
 import (
-	"path/filepath"
-
-	kresource "k8s.io/apimachinery/pkg/api/resource"
+	"os"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -31,112 +31,46 @@ import (
 )
 
 var (
-	Cortex          *CortexConfig
+	Cluster         *clusterconfig.InternalClusterConfig
 	AWS             *aws.Client
 	Kubernetes      *k8s.Client
 	IstioKubernetes *k8s.Client
 	Telemetry       *telemetry.Client
 )
 
-type CortexConfig struct {
-	ID         string             `json:"id"`
-	APIVersion string             `json:"api_version"`
-	Bucket     string             `json:"bucket"`
-	LogGroup   string             `json:"log_group"`
-	Region     string             `json:"region"`
-	Namespace  string             `json:"namespace"`
-	NodeType   string             `json:"node_type"`
-	NodeCPU    kresource.Quantity `json:"node_cpu"`
-	NodeMem    kresource.Quantity `json:"node_mem"`
-	NodeGPU    kresource.Quantity `json:"node_gpu"`
-
-	OperatorImage     string `json:"operator_image"`
-	TFServeImage      string `json:"tf_serve_image"`
-	TFAPIImage        string `json:"tf_api_image"`
-	DownloaderImage   string `json:"downloader_image"`
-	TFServeImageGPU   string `json:"tf_serve_image_gpu"`
-	ONNXServeImage    string `json:"onnx_serve_image"`
-	ONNXServeImageGPU string `json:"onnx_serve_gpu_image"`
-
-	TelemetryURL      string `json:"telemetry_url"`
-	EnableTelemetry   bool   `json:"enable_telemetry"`
-	OperatorInCluster bool   `json:"operator_in_cluster"`
-}
-
 func Init() error {
-	Cortex = &CortexConfig{
-		APIVersion: consts.CortexVersion,
-		Bucket:     getStr("BUCKET"),
-		LogGroup:   getStr("LOG_GROUP"),
-		Region:     getStr("REGION"),
-		Namespace:  getStr("NAMESPACE"),
-		NodeType:   getStr("NODE_TYPE"),
-		NodeCPU:    getQuantity("NODE_CPU"),
-		NodeMem:    getQuantity("NODE_MEM"),
-		NodeGPU:    getQuantity("NODE_GPU"),
-
-		OperatorImage:     getStr("IMAGE_OPERATOR"),
-		TFServeImage:      getStr("IMAGE_TF_SERVE"),
-		TFAPIImage:        getStr("IMAGE_TF_API"),
-		DownloaderImage:   getStr("IMAGE_DOWNLOADER"),
-		TFServeImageGPU:   getStr("IMAGE_TF_SERVE_GPU"),
-		ONNXServeImage:    getStr("IMAGE_ONNX_SERVE"),
-		ONNXServeImageGPU: getStr("IMAGE_ONNX_SERVE_GPU"),
-
-		TelemetryURL:      configreader.MustStringFromEnv("CORTEX_TELEMETRY_URL", &configreader.StringValidation{Required: false, Default: consts.TelemetryURL}),
-		EnableTelemetry:   getBool("ENABLE_TELEMETRY", false),
-		OperatorInCluster: getBool("OPERATOR_IN_CLUSTER", true),
-	}
-
-	Cortex.ID = hash.String(Cortex.Bucket + Cortex.Region + Cortex.LogGroup)
-
 	var err error
 
-	AWS, err = aws.New(Cortex.Region, Cortex.Bucket, true)
+	Cluster = &clusterconfig.InternalClusterConfig{
+		APIVersion:        consts.CortexVersion,
+		OperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
+	}
+
+	clusterConfigPath := os.Getenv("CORTEX_CLUSTER_CONFIG_PATH")
+	if clusterConfigPath == "" {
+		clusterConfigPath = consts.ClusterConfigPath
+	}
+
+	errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath)
+	if errors.HasErrors(errs) {
+		return errors.FirstError(errs...)
+	}
+
+	if Kubernetes, err = k8s.New(consts.K8sNamespace, Cluster.OperatorInCluster); err != nil {
+		return err
+	}
+
+	if IstioKubernetes, err = k8s.New("istio-system", Cluster.OperatorInCluster); err != nil {
+		return err
+	}
+
+	Cluster.ID = hash.String(Cluster.Bucket + Cluster.Region + Cluster.LogGroup)
+
+	AWS, err = aws.New(Cluster.Region, Cluster.Bucket, true)
 	if err != nil {
 		errors.Exit(err)
 	}
-	Telemetry = telemetry.New(Cortex.TelemetryURL, AWS.HashedAccountID, Cortex.EnableTelemetry)
-
-	if Kubernetes, err = k8s.New(Cortex.Namespace, Cortex.OperatorInCluster); err != nil {
-		return err
-	}
-
-	if IstioKubernetes, err = k8s.New("istio-system", Cortex.OperatorInCluster); err != nil {
-		return err
-	}
+	Telemetry = telemetry.New(consts.TelemetryURL, AWS.HashedAccountID, Cluster.Telemetry)
 
 	return nil
-}
-
-func getPaths(name string) (string, string) {
-	envVarName := "CORTEX_" + name
-	filePath := filepath.Join(consts.CortexConfigPath, name)
-	return envVarName, filePath
-}
-
-func getStrDefault(name string, defaultVal string) string {
-	v := &configreader.StringValidation{Required: false, Default: defaultVal}
-	envVarName, filePath := getPaths(name)
-	return configreader.MustStringFromEnvOrFile(envVarName, filePath, v)
-}
-
-func getStr(name string) string {
-	v := &configreader.StringValidation{Required: true}
-	envVarName, filePath := getPaths(name)
-	return configreader.MustStringFromEnvOrFile(envVarName, filePath, v)
-}
-
-func getQuantity(name string) kresource.Quantity {
-	v := &configreader.StringValidation{Required: true}
-	envVarName, filePath := getPaths(name)
-	value := configreader.MustStringFromEnvOrFile(envVarName, filePath, v)
-
-	return kresource.MustParse(value)
-}
-
-func getBool(name string, defaultVal bool) bool {
-	envVarName, filePath := getPaths(name)
-	v := &configreader.BoolValidation{Default: defaultVal}
-	return configreader.MustBoolFromEnvOrFile(envVarName, filePath, v)
 }

@@ -20,12 +20,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -35,16 +36,25 @@ import (
 
 var cmdStr string
 
-var flagEnv string
-var flagWatch bool
-var flagAppName string
-var flagVerbose bool
-var flagSummary bool
-var flagAllDeployments bool
-
 var configFileExts = []string{"yaml", "yml"}
 
+var localDir string
+var cachedClusterConfigPath string
+
 func init() {
+	homeDir, err := homedir.Dir()
+	if err != nil {
+		errors.Exit(err)
+	}
+
+	localDir = filepath.Join(homeDir, ".cortex")
+	err = os.MkdirAll(localDir, os.ModePerm)
+	if err != nil {
+		errors.Exit(err)
+	}
+
+	cachedClusterConfigPath = filepath.Join(localDir, "cluster.yaml")
+
 	cobra.EnablePrefixMatching = true
 
 	cmdStr = "cortex"
@@ -60,58 +70,71 @@ var rootCmd = &cobra.Command{
 	Use:     "cortex",
 	Aliases: []string{"cx"},
 	Short:   "deploy machine learning models in production",
-	Long:    "Deploy machine learning models in production",
-	Version: consts.CortexVersion,
+	Long:    `Deploy machine learning models in production`,
 }
 
 func Execute() {
 	defer errors.RecoverAndExit()
-	rootCmd.SetHelpCommand(&cobra.Command{Hidden: true})
+
 	cobra.EnableCommandSorting = false
 
 	rootCmd.AddCommand(deployCmd)
 	rootCmd.AddCommand(getCmd)
 	rootCmd.AddCommand(logsCmd)
-	rootCmd.AddCommand(refreshCmd)
 	rootCmd.AddCommand(predictCmd)
+	rootCmd.AddCommand(refreshCmd)
 	rootCmd.AddCommand(deleteCmd)
+
+	rootCmd.AddCommand(clusterCmd)
+	rootCmd.AddCommand(versionCmd)
 
 	rootCmd.AddCommand(configureCmd)
 	rootCmd.AddCommand(supportCmd)
 	rootCmd.AddCommand(completionCmd)
 
-	rootCmd.SetVersionTemplate(`{{printf "%s\n" .Version}}`)
+	updateRootUsage()
 
+	printLeadingNewLine()
 	rootCmd.Execute()
 }
 
-func setConfigFlag(flagStr string, description string, flag *string, cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(flag, flagStr+"-config", "", "", description)
-	cmd.PersistentFlags().SetAnnotation(flagStr+"-config", cobra.BashCompFilenameExt, configFileExts)
+func updateRootUsage() {
+	defaultUsageFunc := rootCmd.UsageFunc()
+	usage := rootCmd.UsageString()
+
+	rootCmd.SetUsageFunc(func(cmd *cobra.Command) error {
+		if cmd != rootCmd {
+			return defaultUsageFunc(cmd)
+		}
+
+		usage = strings.Replace(usage, "Usage:\n  cortex [command]\n\nAliases:\n  cortex, cx\n\n", "", 1)
+		usage = strings.Replace(usage, "Available Commands:", "Deployment Commands:", 1)
+		usage = strings.Replace(usage, "\n  cluster", "\n\nCluster commands:\n  cluster", 1)
+		usage = strings.Replace(usage, "\n  configure", "\n\nOther commands:\n  configure", 1)
+		usage = strings.Replace(usage, "\nUse \"cortex", "  help        help about any command\n\nFlags:\n  -h, --help   help for cortex\n\nUse \"cortex", 1)
+
+		cmd.Print(usage)
+
+		return nil
+	})
 }
+
+func printLeadingNewLine() {
+	if len(os.Args) == 2 && os.Args[1] == "completion" {
+		return
+	}
+	fmt.Println("")
+}
+
+var flagEnv string
+var flagAppName string
 
 func addEnvFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&flagEnv, "env", "e", "default", "environment")
 }
 
-func addWatchFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().BoolVarP(&flagWatch, "watch", "w", false, "re-run the command every second")
-}
-
 func addAppNameFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&flagAppName, "deployment", "d", "", "deployment name")
-}
-
-func addVerboseFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().BoolVarP(&flagVerbose, "verbose", "v", false, "show verbose output")
-}
-
-func addSummaryFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().BoolVarP(&flagSummary, "summary", "s", false, "show summarized output")
-}
-
-func addAllDeploymentsFlag(cmd *cobra.Command) {
-	getCmd.PersistentFlags().BoolVarP(&flagAllDeployments, "all-deployments", "a", false, "list all deployments")
 }
 
 var resourceTypesHelp = fmt.Sprintf("\nResource Types:\n  %s\n", strings.Join(resource.VisibleTypes.StringList(), "\n  "))
@@ -162,7 +185,7 @@ func rerun(f func() (string, error)) {
 				errors.Exit(err)
 			}
 
-			nextStr = watchHeader() + "\n" + nextStr
+			nextStr = watchHeader() + "\n\n" + nextStr
 			nextStr = strings.TrimRight(nextStr, "\n") + "\n" // ensure a single new line at the end
 			nextStrSlice := strings.Split(nextStr, "\n")
 

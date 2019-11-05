@@ -2,32 +2,31 @@
 
 ## Prerequisites
 
-1. [AWS credentials](aws.md)
-2. [Docker](https://docs.docker.com/install)
+1. [Docker](https://docs.docker.com/install)
+2. [AWS credentials](aws.md)
 
-## Upgrading Cortex
+## Updating your cluster configuration
 
-See [cluster configuration](config.md) to customize your installation.
+See [cluster configuration](config.md) to learn how you can customize your cluster.
+
+```bash
+cortex cluster update
+```
+
+## Upgrading to a newer version of Cortex
 
 <!-- CORTEX_VERSION_MINOR -->
 
 ```bash
-# Download
-curl -O https://raw.githubusercontent.com/cortexlabs/cortex/master/cortex.sh
+# Spin down your cluster
+cortex cluster down
 
-# Change permissions
-chmod +x cortex.sh
-
-# Set AWS credentials
-export AWS_ACCESS_KEY_ID=***
-export AWS_SECRET_ACCESS_KEY=***
-
-# Update Cortex
-./cortex.sh update
-
-# Update the CLI
-./cortex.sh install cli
+# Update your CLI
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
 
 # Confirm version
-cortex --version
+cortex version
+
+# Spin up your cluster
+cortex cluster up
 ```

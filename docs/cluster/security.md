@@ -39,7 +39,7 @@ The operator requires read permissions for any S3 bucket containing exported mod
 
 ### CLI
 
-In order to connect to the operator via the CLI, you must provide valid AWS credentials for any user with access to the account. No special permissions are required. The CLI can be configured using the command `cortex configure`.
+In order to connect to the operator via the CLI, you must provide valid AWS credentials for any user with access to the account. No special permissions are required. The CLI can be configured using the `cortex configure` command.
 
 ## API access
 

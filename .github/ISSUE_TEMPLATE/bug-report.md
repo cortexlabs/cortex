@@ -39,13 +39,13 @@ assignees: ''
 
 [If applicable, the stack trace which shows the error. Find it with `cortex logs <resource name>`, or use `kubectl get pods -n cortex` and use the name of the failed pod in `kubectl logs <pod name> -n cortex`]
 
-```
+```text
 <paste stack trace here>
 ```
 
 ### Version
 
-[e.g. `0.2.2` or `master` (find with `cortex --version`)]
+[e.g. `0.2.2` or `master` (find with `cortex version`)]
 
 ### Additional Context
 

@@ -8,7 +8,7 @@ commands:
       - run:
           name: Exit build step if should not be deployed
           command: |
-            if ! ([[ "$CIRCLE_BRANCH" =~ ^[0-9]\.[0-9]$ ]] || [[ "$CIRCLE_BRANCH" == "master" ]]); then
+            if ! ([[ "$CIRCLE_BRANCH" =~ ^[0-9]+\.[0-9]+$ ]] || [[ "$CIRCLE_BRANCH" == "master" ]]); then
               echo "Exiting build step for branch which should not be deployed ($CIRCLE_BRANCH)"
               circleci step halt
             fi
@@ -73,7 +73,7 @@ workflows:
           filters:
             branches:
               only:
-                - /^[0-9]\.[0-9]$/
+                - /^[0-9]+\.[0-9]+$/
       - build-and-deploy-approval:
           type: approval
           requires:
@@ -82,7 +82,7 @@ workflows:
           filters:
             branches:
               only:
-                - /^[0-9]\.[0-9]$/
+                - /^[0-9]+\.[0-9]+$/
       - build-and-deploy:
           requires:
             - test
@@ -92,4 +92,4 @@ workflows:
             branches:
               only:
                 - master
-                - /^[0-9]\.[0-9]$/
+                - /^[0-9]+\.[0-9]+$/

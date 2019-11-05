@@ -1,7 +1,7 @@
 boto3==1.9.228
 msgpack==0.6.1
-numpy==1.17.2
+numpy==1.17.3
 json_tricks==3.13.2
 requests==2.22.0
 datadog==0.30.0
-dill==0.3.0
+dill==0.3.1.1

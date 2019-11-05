@@ -24,6 +24,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
@@ -34,10 +35,11 @@ const operatorPortStr = "8888"
 
 func main() {
 	if err := config.Init(); err != nil {
-		config.Telemetry.ReportErrorBlocking(err)
+		if config.Telemetry != nil {
+			config.Telemetry.ReportErrorBlocking(err)
+		}
 		errors.Exit(err)
 	}
-
 	if err := workloads.Init(); err != nil {
 		config.Telemetry.ReportErrorBlocking(err)
 		errors.Exit(err)
@@ -50,6 +52,7 @@ func main() {
 	router.Use(apiVersionCheckMiddleware)
 	router.Use(authMiddleware)
 
+	router.HandleFunc("/info", endpoints.Info).Methods("GET")
 	router.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
 	router.HandleFunc("/delete", endpoints.Delete).Methods("POST")
 	router.HandleFunc("/deployments", endpoints.GetDeployments).Methods("GET")
@@ -84,14 +87,17 @@ func authMiddleware(next http.Handler) http.Handler {
 		}
 
 		accessKeyID, secretAccessKey := parts[0], parts[1]
-		authed, err := config.AWS.AuthUser(accessKeyID, secretAccessKey)
+		userAccountID, validCreds, err := aws.AccountID(accessKeyID, secretAccessKey, config.Cluster.Region)
 		if err != nil {
 			endpoints.RespondError(w, endpoints.ErrorAuthAPIError())
 			return
 		}
-
-		if !authed {
-			endpoints.RespondErrorCode(w, http.StatusForbidden, endpoints.ErrorAuthForbidden())
+		if !validCreds {
+			endpoints.RespondErrorCode(w, http.StatusForbidden, endpoints.ErrorAuthInvalid())
+			return
+		}
+		if userAccountID != config.AWS.AccountID {
+			endpoints.RespondErrorCode(w, http.StatusForbidden, endpoints.ErrorAuthOtherAccount())
 			return
 		}
 
@@ -101,6 +107,11 @@ func authMiddleware(next http.Handler) http.Handler {
 
 func apiVersionCheckMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/info" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		clientVersion := r.Header.Get("CortexAPIVersion")
 		if clientVersion != consts.CortexVersion {
 			endpoints.RespondError(w, ErrorAPIVersionMismatch(consts.CortexVersion, clientVersion))

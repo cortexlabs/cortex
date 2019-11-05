@@ -115,7 +115,6 @@ func getCurrentAPIStatuses(
 	}
 
 	for resourceID, apiStatus := range apiStatuses {
-		apiStatus.Path = context.APIPath(apiStatus.APIName, apiStatus.AppName)
 		apiStatus.ReplicaCounts = replicaCountsMap[resourceID]
 		apiStatus.PodStatuses = podStatusMap[resourceID]
 		apiStatus.Code = apiStatusCode(apiStatus)

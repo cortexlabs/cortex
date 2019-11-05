@@ -1,0 +1,11 @@
+- kind: deployment
+  name: text
+
+- kind: api
+  name: generator
+  tensorflow:
+    model: s3://cortex-examples/tensorflow/text-generator/gpt-2/124M
+    request_handler: handler.py
+  compute:
+    cpu: 1
+    gpu: 1

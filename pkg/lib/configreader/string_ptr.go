@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -159,10 +160,13 @@ func StringPtrFromEnvOrFile(envVarName string, filePath string, v *StringPtrVali
 	return StringPtrFromFile(filePath, v)
 }
 
-func StringPtrFromPrompt(promptOpts *PromptOptions, v *StringPtrValidation) (*string, error) {
-	valStr := prompt(promptOpts)
+func StringPtrFromPrompt(promptOpts *prompt.Options, v *StringPtrValidation) (*string, error) {
+	if v.Default != nil && promptOpts.DefaultStr == "" {
+		promptOpts.DefaultStr = *v.Default
+	}
+	valStr := prompt.Prompt(promptOpts)
 	if valStr == "" { // Treat empty prompt value as missing
-		ValidateStringPtrMissing(v)
+		return ValidateStringPtrMissing(v)
 	}
 	return StringPtrFromStr(valStr, v)
 }

@@ -189,7 +189,7 @@ class S3(object):
         except Exception as e:
             raise CortexException(
                 'key "{}" in bucket "{}" could not be accessed; '.format(key, self.bucket)
-                + "it may not exist, or you may not have suffienct permissions"
+                + "it may not exist, or you may not have sufficient permissions"
             ) from e
 
     def download_dir(self, prefix, local_dir):
@@ -200,6 +200,8 @@ class S3(object):
         util.mkdir_p(local_dir)
         prefix = util.ensure_suffix(prefix, "/")
         for key in self._get_matching_s3_keys_generator(prefix):
+            if key.endswith("/"):
+                continue
             rel_path = util.trim_prefix(key, prefix)
             local_dest_path = os.path.join(local_dir, rel_path)
             self.download_file(key, local_dest_path)

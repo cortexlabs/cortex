@@ -40,21 +40,25 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
+var flagWatch bool
+var flagVerbose bool
+var flagSummary bool
+var flagAllDeployments bool
+
 func init() {
 	addAppNameFlag(getCmd)
 	addEnvFlag(getCmd)
-	addWatchFlag(getCmd)
-	addSummaryFlag(getCmd)
-	addVerboseFlag(getCmd)
-	addAllDeploymentsFlag(getCmd)
+	getCmd.PersistentFlags().BoolVarP(&flagWatch, "watch", "w", false, "re-run the command every second")
+	getCmd.PersistentFlags().BoolVarP(&flagSummary, "summary", "s", false, "show summarized output")
+	getCmd.PersistentFlags().BoolVarP(&flagVerbose, "verbose", "v", false, "show verbose output")
+	getCmd.PersistentFlags().BoolVarP(&flagAllDeployments, "all-deployments", "a", false, "list all deployments")
 	// addResourceTypesToHelp(getCmd)
 }
 
 var getCmd = &cobra.Command{
 	Use:   "get [API_NAME]",
 	Short: "get information about APIs",
-	Long: `
-This command displays information about APIs.
+	Long: `This command displays information about APIs.
 Adding the -v or --verbose flag displays additonal information.`,
 	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -105,7 +109,7 @@ func allDeploymentsStr() (string, error) {
 	}
 
 	if len(resourcesRes.Deployments) == 0 {
-		return console.Bold("\nno deployments found"), nil
+		return console.Bold("no deployments found"), nil
 	}
 
 	rows := make([][]interface{}, len(resourcesRes.Deployments))
@@ -126,7 +130,7 @@ func allDeploymentsStr() (string, error) {
 		Rows: rows,
 	}
 
-	return "\n" + table.MustFormat(t), nil
+	return table.MustFormat(t), nil
 }
 
 func getResourcesResponse() (*schema.GetResourcesResponse, error) {
@@ -191,7 +195,7 @@ func apisStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
 		return ""
 	}
 
-	return "\n" + apiResourceTable(apiGroupStatuses)
+	return apiResourceTable(apiGroupStatuses)
 }
 
 func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVerbose bool) (string, error) {
@@ -203,13 +207,6 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	ctx := resourcesRes.Context
 	api := ctx.APIs[name]
 
-	var anyAPIStatus *resource.APIStatus
-	for _, apiStatus := range resourcesRes.APIStatuses {
-		if apiStatus.APIName == name {
-			anyAPIStatus = apiStatus
-			break
-		}
-	}
 	var updatedAt *time.Time
 	if groupStatus.ActiveStatus != nil {
 		updatedAt = groupStatus.ActiveStatus.Start
@@ -237,7 +234,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 		{Title: "last update"},
 	}
 
-	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, anyAPIStatus.Path)
+	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, *api.Endpoint)
 
 	statusTable := table.Table{
 		Headers: headers,
@@ -247,7 +244,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	var out string
 	apiMetrics, err := getAPIMetrics(ctx.App.Name, api.Name)
 	statusTable = appendNetworkMetrics(statusTable, apiMetrics) // adds blank stats when there is an error
-	out = "\n" + table.MustFormat(statusTable) + "\n"
+	out = table.MustFormat(statusTable) + "\n"
 
 	var predictionMetrics string
 	if err != nil {
@@ -270,7 +267,9 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	out += fmt.Sprintf("\n%s curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json", console.Bold("curl:"), apiEndpoint)
 
-	out += "\n\n" + describeModelInput(groupStatus, apiEndpoint)
+	if api.TensorFlow != nil || api.ONNX != nil {
+		out += "\n\n" + describeModelInput(groupStatus, apiEndpoint)
+	}
 
 	if api != nil {
 		out += "\n" + titleStr("configuration") + strings.TrimSpace(api.UserConfigStr())
@@ -496,7 +495,7 @@ func dataStatusSummary(dataStatus *resource.DataStatus) string {
 		Headers: headers,
 		Rows:    [][]interface{}{row},
 	}
-	return "\n" + table.MustFormat(t)
+	return table.MustFormat(t) + "\n"
 }
 
 func valueStr(value interface{}) string {
@@ -580,7 +579,7 @@ func resourceStatusesStr(resourcesRes *schema.GetResourcesResponse) string {
 
 	maxTitleLen := s.MaxLen(titles...)
 
-	out := "\n"
+	out := ""
 	for i, title := range titles {
 		paddingWidth := maxTitleLen - len(title) + 3
 		padding := strings.Repeat(" ", paddingWidth)

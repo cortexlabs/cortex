@@ -17,13 +17,20 @@
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-source $ROOT/dev/config/cortex.sh
+eval $(python $ROOT/manager/cluster_config_env.py $ROOT/dev/config/cluster.yaml)
 
-eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" || true
+eksctl utils write-kubeconfig --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 
 echo "Uninstalling Cortex ..."
 
 kubectl delete --ignore-not-found=true namespace istio-system
-kubectl delete --ignore-not-found=true namespace $CORTEX_NAMESPACE
+kubectl delete --ignore-not-found=true namespace cortex
+kubectl delete --ignore-not-found=true -n kube-system deployment cluster-autoscaler
+kubectl delete --ignore-not-found=true apiservice v1beta1.metrics.k8s.io
+kubectl delete --ignore-not-found=true -n kube-system deployment metrics-server
+kubectl delete --ignore-not-found=true -n kube-system service metrics-server
+kubectl delete --ignore-not-found=true -n kube-system daemonset istio-cni-node
+kubectl delete --ignore-not-found=true -n kube-system daemonset aws-node
+kubectl delete --all crds
 
 echo "✓ Uninstalled Cortex"

@@ -3,7 +3,7 @@
 ## deploy
 
 ```text
-This command sends all deployment configuration and code to Cortex.
+This command sends all project configuration and code to Cortex.
 If validations pass, Cortex will attempt to create the desired state.
 
 Usage:
@@ -47,22 +47,6 @@ Flags:
   -h, --help                help for logs
 ```
 
-## refresh
-
-```text
-This command sends all deployment configuration and code to Cortex.
-If validations pass, Cortex will attempt to create the desired state,
-and override the existing deployment.
-
-Usage:
-  cortex refresh [flags]
-
-Flags:
-  -e, --env string   environment (default "default")
-  -f, --force        stop all running jobs
-  -h, --help         help for refresh
-```
-
 ## predict
 
 ```text
@@ -79,6 +63,22 @@ Flags:
   -h, --help                help for predict
 ```
 
+## refresh
+
+```text
+This command sends all project configuration and code to Cortex.
+If validations pass, Cortex will attempt to create the desired state,
+and override the existing deployment.
+
+Usage:
+  cortex refresh [flags]
+
+Flags:
+  -e, --env string   environment (default "default")
+  -f, --force        stop all running jobs
+  -h, --help         help for refresh
+```
+
 ## delete
 
 ```text
@@ -91,6 +91,71 @@ Flags:
   -e, --env string   environment (default "default")
   -h, --help         help for delete
   -c, --keep-cache   keep cached data for the deployment
+```
+
+## cluster up
+
+```text
+This command spins up a Cortex cluster on your AWS account.
+
+Usage:
+  cortex cluster up [flags]
+
+Flags:
+  -c, --config string   path to a Cortex cluster configuration file
+  -h, --help            help for up
+```
+
+## cluster info
+
+```text
+This command gets information about a Cortex cluster.
+
+Usage:
+  cortex cluster info [flags]
+
+Flags:
+  -c, --config string   path to a Cortex cluster configuration file
+  -h, --help            help for info
+```
+
+## cluster update
+
+```text
+This command updates a Cortex cluster.
+
+Usage:
+  cortex cluster update [flags]
+
+Flags:
+  -c, --config string   path to a Cortex cluster configuration file
+  -h, --help            help for update
+```
+
+## cluster down
+
+```text
+This command spins down a Cortex cluster.
+
+Usage:
+  cortex cluster down [flags]
+
+Flags:
+  -c, --config string   path to a Cortex cluster configuration file
+  -h, --help            help for down
+```
+
+## version
+
+```text
+This command prints the version of the CLI and cluster.
+
+Usage:
+  cortex version [flags]
+
+Flags:
+  -e, --env string   environment (default "default")
+  -h, --help         help for version
 ```
 
 ## configure
@@ -112,7 +177,7 @@ Flags:
 ## support
 
 ```text
-This command sends a support request to Cortex developers.
+This command sends a support request to the Cortex maintainers
 
 Usage:
   cortex support [flags]

@@ -28,9 +28,8 @@ from tensorflow_serving.apis import prediction_service_pb2_grpc
 from google.protobuf import json_format
 
 from cortex.lib import util, Context, api_utils
-from cortex.lib.storage import S3
 from cortex.lib.log import get_logger, debug_obj
-from cortex.lib.exceptions import UserRuntimeException, UserException
+from cortex.lib.exceptions import UserRuntimeException, UserException, CortexException
 from cortex.lib.stringify import truncate
 
 logger = get_logger()
@@ -98,17 +97,21 @@ def before_request():
 
 @app.after_request
 def after_request(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+
+    if not (request.path == "/predict" and request.method == "POST"):
+        return response
+
     api = local_cache["api"]
     ctx = local_cache["ctx"]
-
-    if request.path != "/{}/{}".format(ctx.app["name"], api["name"]):
-        return response
 
     logger.info(response.status)
 
     prediction = None
     if "prediction" in g:
         prediction = g.prediction
+
     api_utils.post_request_metrics(
         ctx, api, response, prediction, g.start_time, local_cache["class_set"]
     )
@@ -179,12 +182,12 @@ def run_predict(sample, debug=False):
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         try:
             prepared_sample = request_handler.pre_inference(
-                sample, local_cache["model_metadata"]["signatureDef"]
+                sample, local_cache["model_metadata"]["signatureDef"], api["tensorflow"]["metadata"]
             )
             debug_obj("pre_inference", prepared_sample, debug)
         except Exception as e:
             raise UserRuntimeException(
-                api["request_handler"], "pre_inference request handler", str(e)
+                api["tensorflow"]["request_handler"], "pre_inference request handler", str(e)
             ) from e
 
     validate_sample(prepared_sample)
@@ -197,12 +200,12 @@ def run_predict(sample, debug=False):
     if request_handler is not None and util.has_function(request_handler, "post_inference"):
         try:
             result = request_handler.post_inference(
-                result, local_cache["model_metadata"]["signatureDef"]
+                result, local_cache["model_metadata"]["signatureDef"], api["tensorflow"]["metadata"]
             )
             debug_obj("post_inference", result, debug)
         except Exception as e:
             raise UserRuntimeException(
-                api["request_handler"], "post_inference request handler", str(e)
+                api["tensorflow"]["request_handler"], "post_inference request handler", str(e)
             ) from e
 
     return result
@@ -226,8 +229,8 @@ def health():
     return jsonify({"ok": True})
 
 
-@app.route("/<deployment_name>/<api_name>", methods=["POST"])
-def predict(deployment_name, api_name):
+@app.route("/predict", methods=["POST"])
+def predict():
     debug = request.args.get("debug", "false").lower() == "true"
 
     try:
@@ -261,19 +264,19 @@ def extract_signature(signature_def, signature_key):
     if signature_key is None:
         if len(available_keys) == 1:
             logger.info(
-                "tf_signature_key was not configured by user, using signature key '{}' (found in the signature def map)".format(
+                "signature_key was not configured by user, using signature key '{}' (found in the signature def map)".format(
                     available_keys[0]
                 )
             )
             signature_key = available_keys[0]
         elif "predict" in signature_def:
             logger.info(
-                "tf_signature_key was not configured by user, using signature key 'predict' (found in the signature def map)"
+                "signature_key was not configured by user, using signature key 'predict' (found in the signature def map)"
             )
             signature_key = "predict"
         else:
             raise UserException(
-                "tf_signature_key was not configured by user, please specify one the following keys '{}' (found in the signature def map)".format(
+                "signature_key was not configured by user, please specify one the following keys '{}' (found in the signature def map)".format(
                     "', '".join(available_keys)
                 )
             )
@@ -284,7 +287,7 @@ def extract_signature(signature_def, signature_key):
                 possibilities_str = "keys: '{}'".format("', '".join(available_keys))
 
             raise UserException(
-                "tf_signature_key '{}' was not found in signature def map, but found the following {}".format(
+                "signature_key '{}' was not found in signature def map, but found the following {}".format(
                     signature_key, possibilities_str
                 )
             )
@@ -303,8 +306,8 @@ def extract_signature(signature_def, signature_key):
     return signature_key, parsed_signature
 
 
-@app.route("/<app_name>/<api_name>/signature", methods=["GET"])
-def get_signature(app_name, api_name):
+@app.route("/predict/signature", methods=["GET"])
+def get_signature():
     signature = local_cache["parsed_signature"]
     response = {"signature": signature}
     return jsonify(response)
@@ -371,7 +374,10 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
-        if api.get("request_handler") is not None:
+        if api.get("tensorflow") is None:
+            raise CortexException(api["name"], "tensorflow key not configured")
+
+        if api["tensorflow"].get("request_handler") is not None:
             local_cache["request_handler"] = ctx.get_request_handler_impl(
                 api["name"], args.project_dir
             )
@@ -379,14 +385,18 @@ def start(args):
 
         if request_handler is not None and util.has_function(request_handler, "pre_inference"):
             logger.info(
-                "using pre_inference request handler provided in {}".format(api["request_handler"])
+                "using pre_inference request handler provided in {}".format(
+                    api["tensorflow"]["request_handler"]
+                )
             )
         else:
             logger.info("pre_inference request handler not found")
 
         if request_handler is not None and util.has_function(request_handler, "post_inference"):
             logger.info(
-                "using post_inference request handler provided in {}".format(api["request_handler"])
+                "using post_inference request handler provided in {}".format(
+                    api["tensorflow"]["request_handler"]
+                )
             )
         else:
             logger.info("post_inference request handler not found")
@@ -426,7 +436,7 @@ def start(args):
         time.sleep(5)
 
     signature_key, parsed_signature = extract_signature(
-        local_cache["model_metadata"]["signatureDef"], api["tf_signature_key"]
+        local_cache["model_metadata"]["signatureDef"], api["tensorflow"]["signature_key"]
     )
 
     local_cache["signature_key"] = signature_key

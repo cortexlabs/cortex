@@ -32,7 +32,6 @@ var emailRegex *regexp.Regexp
 func init() {
 	portRe = regexp.MustCompile(`:[0-9]+$`)
 	emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
-
 }
 
 func GetFilePathValidator(baseDir string) func(string) (string, error) {
@@ -55,7 +54,7 @@ func GetS3aPathValidator() func(string) (string, error) {
 	}
 }
 
-func GetS3PathValidator() func(string) (string, error) {
+func S3PathValidator() func(string) (string, error) {
 	return func(val string) (string, error) {
 		if !aws.IsValidS3Path(val) {
 			return "", aws.ErrorInvalidS3Path(val)

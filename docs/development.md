@@ -45,41 +45,40 @@ Make the config folder:
 mkdir dev/config
 ```
 
-Create `dev/config/cortex.sh`. Paste the following config, and update `CORTEX_BUCKET`, `CORTEX_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and all registry URLs accordingly:
+Create `dev/config/cluster.yaml`. Paste the following config, and update `cortex_bucket`, `cortex_region`, `aws_access_key_id`, `aws_secret_access_key`, and all registry URLs accordingly:
 
-```bash
-export AWS_ACCESS_KEY_ID="XXXXXX"
-export AWS_SECRET_ACCESS_KEY="XXXXXX"
+```yaml
+aws_access_key_id: ***
+aws_secret_access_key: ***
 
-export CORTEX_LOG_GROUP="cortex"
-export CORTEX_BUCKET="cortex-cluster-<your_name>"
-export CORTEX_REGION="us-west-2"
+instance_type: m5.large
+min_instances: 2
+max_instances: 5
+bucket: cortex-cluster-<your_name>
+region: us-west-2
+log_group: cortex
+cluster_name: cortex
+telemetry: false
 
-export CORTEX_CLUSTER="cortex"
-export CORTEX_NODE_TYPE="t3.medium"
-export CORTEX_NODES_MIN="2"
-export CORTEX_NODES_MAX="5"
-export CORTEX_NAMESPACE="cortex"
-
-export CORTEX_IMAGE_MANAGER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/manager:latest"
-export CORTEX_IMAGE_FLUENTD="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/fluentd:latest"
-export CORTEX_IMAGE_STATSD="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/statsd:latest"
-export CORTEX_IMAGE_ONNX_SERVE="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/onnx-serve:latest"
-export CORTEX_IMAGE_ONNX_SERVE_GPU="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/onnx-serve-gpu:latest"
-export CORTEX_IMAGE_OPERATOR="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/operator:latest"
-export CORTEX_IMAGE_TF_SERVE="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve:latest"
-export CORTEX_IMAGE_TF_SERVE_GPU="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve-gpu:latest"
-export CORTEX_IMAGE_TF_API="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-api:latest"
-export CORTEX_IMAGE_CLUSTER_AUTOSCALER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/cluster-autoscaler:latest"
-export CORTEX_IMAGE_NVIDIA="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/nvidia:latest"
-export CORTEX_IMAGE_METRICS_SERVER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/metrics-server:latest"
-export CORTEX_IMAGE_ISTIO_PROXY="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-proxy:latest"
-export CORTEX_IMAGE_ISTIO_PILOT="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-pilot:latest"
-export CORTEX_IMAGE_ISTIO_CITADEL="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-citadel:latest"
-export CORTEX_IMAGE_ISTIO_GALLEY="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-galley:latest"
-export CORTEX_IMAGE_DOWNLOADER="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/downloader:latest"
-
-export CORTEX_ENABLE_TELEMETRY="false"
+image_predictor_serve: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/predictor-serve:latest
+image_predictor_serve_gpu: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/predictor-serve-gpu:latest
+image_tf_serve: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve:latest
+image_tf_serve_gpu: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve-gpu:latest
+image_tf_api: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-api:latest
+image_onnx_serve: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/onnx-serve:latest
+image_onnx_serve_gpu: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/onnx-serve-gpu:latest
+image_operator: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/operator:latest
+image_manager: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/manager:latest
+image_downloader: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/downloader:latest
+image_cluster_autoscaler: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/cluster-autoscaler:latest
+image_metrics_server: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/metrics-server:latest
+image_nvidia: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/nvidia:latest
+image_fluentd: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/fluentd:latest
+image_statsd: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/statsd:latest
+image_istio_proxy: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-proxy:latest
+image_istio_pilot: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-pilot:latest
+image_istio_citadel: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-citadel:latest
+image_istio_galley: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-galley:latest
 ```
 
 Create `dev/config/build.sh`. Paste the following config, and update `CLI_BUCKET_NAME`, `CLI_BUCKET_REGION`, `REGISTRY_URL`, and `REGISTRY_REGION` accordingly:

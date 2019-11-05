@@ -1,0 +1,11 @@
+- kind: deployment
+  name: iris
+
+- kind: api
+  name: classifier
+  predictor:
+    path: src/predictor.py
+    python_path: src/
+    model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
+  tracker:
+    model_type: classification

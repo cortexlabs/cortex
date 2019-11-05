@@ -60,13 +60,13 @@ class Context:
         self.id = self.ctx["id"]
         self.key = self.ctx["key"]
         self.metadata_root = self.ctx["metadata_root"]
-        self.cortex_config = self.ctx["cortex_config"]
+        self.cluster_config = self.ctx["cluster_config"]
         self.deployment_version = self.ctx["deployment_version"]
         self.root = self.ctx["root"]
         self.status_prefix = self.ctx["status_prefix"]
         self.app = self.ctx["app"]
         self.apis = self.ctx["apis"] or {}
-        self.api_version = self.cortex_config["api_version"]
+        self.api_version = self.cluster_config["api_version"]
         self.monitoring = None
         self.project_id = self.ctx["project_id"]
         self.project_key = self.ctx["project_key"]
@@ -75,8 +75,8 @@ class Context:
             self.storage = LocalStorage(base_dir=kwargs["local_storage_path"])
         else:
             self.storage = S3(
-                bucket=self.cortex_config["bucket"],
-                region=self.cortex_config["region"],
+                bucket=self.cluster_config["bucket"],
+                region=self.cluster_config["region"],
                 client_config={},
             )
 
@@ -92,7 +92,7 @@ class Context:
             )
 
         # This affects TensorFlow S3 access
-        os.environ["AWS_REGION"] = self.cortex_config.get("region", "")
+        os.environ["AWS_REGION"] = self.cluster_config.get("region", "")
 
         # ID maps
         self.apis_id_map = ResourceMap(self.apis) if self.apis else None
@@ -131,18 +131,46 @@ class Context:
 
     def get_request_handler_impl(self, api_name, project_dir):
         api = self.apis[api_name]
+        model_type = api.get("tensorflow")
+
+        if model_type is None:
+            model_type = api.get("onnx")
+
+        if model_type is None:  # unexpected
+            raise CortexException(
+                api_name, "failed to load request handler", "missing `tensorflow` or `onnx` key"
+            )
+
+        request_handler_path = model_type.get("request_handler")
         try:
             impl = self.load_module(
-                "request_handler", api["name"], os.path.join(project_dir, api["request_handler"])
+                "request_handler", api["name"], os.path.join(project_dir, request_handler_path)
             )
         except CortexException as e:
-            e.wrap("api " + api_name, "request_handler " + api["request_handler"])
+            e.wrap("api " + api_name, "failed to load request_handler", request_handler_path)
             raise
 
         try:
             _validate_impl(impl, REQUEST_HANDLER_IMPL_VALIDATION)
         except CortexException as e:
-            e.wrap("api " + api_name, "request_handler " + api["request_handler"])
+            e.wrap("api " + api_name, "request_handler " + request_handler_path)
+            raise
+        return impl
+
+    def get_predictor_impl(self, api_name, project_dir):
+        api = self.apis[api_name]
+        try:
+            impl = self.load_module(
+                "predictor", api["name"], os.path.join(project_dir, api["predictor"]["path"])
+            )
+        except CortexException as e:
+            e.wrap("api " + api_name, "failed to load predictor", api["predictor"]["path"])
+            raise
+
+        try:
+            _validate_impl(impl, PREDICTOR_IMPL_VALIDATION)
+        except CortexException as e:
+            e.wrap("api " + api_name, "predictor " + api["predictor"]["path"])
             raise
         return impl
 
@@ -212,9 +240,14 @@ class Context:
 
 REQUEST_HANDLER_IMPL_VALIDATION = {
     "optional": [
-        {"name": "pre_inference", "args": ["sample", "metadata"]},
-        {"name": "post_inference", "args": ["prediction", "metadata"]},
+        {"name": "pre_inference", "args": ["sample", "signature", "metadata"]},
+        {"name": "post_inference", "args": ["prediction", "signature", "metadata"]},
     ]
+}
+
+PREDICTOR_IMPL_VALIDATION = {
+    "optional": [{"name": "init", "args": ["model_path", "metadata"]}],
+    "required": [{"name": "predict", "args": ["sample", "metadata"]}],
 }
 
 

@@ -16,11 +16,11 @@ from setuptools import setup, find_packages
 
 setup(
     name="cortex",
-    version="0.8.0",
+    version="master",  # CORTEX_VERSION
     description="",
     author="Cortex Labs",
     author_email="dev@cortexlabs.com",
-    install_requires=["dill>=0.3.0", "requests>=2.20.0", "msgpack>=0.6.0"],
+    install_requires=["dill>=0.3.1.1", "requests>=2.20.0", "msgpack>=0.6.0"],
     setup_requires=["setuptools"],
     packages=find_packages(),
 )

@@ -1,63 +1,60 @@
 # Cluster configuration
 
-These environment variables can be modified and exported before running `cortex.sh` commands. Alternatively, a configuration file may be provided to `cortex.sh` via the `--config` flag (e.g. `cortex.sh --config=./config.sh install`). Default values are shown.
+The Cortex cluster may be configured by providing a configuration file to `cortex cluster up` or `cortex cluster update` via the  `--config` flag (e.g. `cortex cluster up --config=cluster.yaml`). Below is the schema for the cluster configuration file, with default values shown:
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 
-```bash
-# config.sh
+```yaml
+# cluster.yaml
 
-# AWS credentials
-export AWS_ACCESS_KEY_ID="***"
-export AWS_SECRET_ACCESS_KEY="***"
+# AWS credentials (if not specified, ~/.aws/credentials will be checked) (can be overriden by $AWS_ACCESS_KEY_ID and $AWS_SECRET_ACCESS_KEY)
+aws_access_key_id: ***
+aws_secret_access_key: ***
 
 # Optional AWS credentials for the Operator which may be used to restrict its AWS access (defaults to the AWS credentials set above)
-export CORTEX_AWS_ACCESS_KEY_ID="***"
-export CORTEX_AWS_SECRET_ACCESS_KEY="***"
+cortex_aws_access_key_id: ***
+cortex_aws_secret_access_key: ***
 
-# The name of the CloudWatch log group Cortex will use
-export CORTEX_LOG_GROUP="cortex"
+# Instance type Cortex will use
+instance_type: m5.large
 
-# The name of the S3 bucket Cortex will use
-export CORTEX_BUCKET="cortex-[RANDOM_ID]"
+# Minimum and maximum number of instances in the cluster
+min_instances: 2
+max_instances: 5
 
-# The AWS region Cortex will use
-export CORTEX_REGION="us-west-2"
+# Name of the S3 bucket Cortex will use
+bucket: cortex-[RANDOM_ID]
 
-# The name of the EKS cluster Cortex will use
-export CORTEX_CLUSTER="cortex"
+# Region Cortex will use
+region: us-west-2
 
-# The AWS node type Cortex will use for worker nodes
-export CORTEX_NODE_TYPE="m5.large"
+# Name of the CloudWatch log group Cortex will use
+log_group: cortex
 
-# Minimum number of worker nodes in the cluster
-export CORTEX_NODES_MIN=2
+# Name of the EKS cluster Cortex will create
+cluster_name: cortex
 
-# Maximum number of worker nodes in the cluster
-export CORTEX_NODES_MAX=5
-
-# The name of the Kubernetes namespace Cortex will use
-export CORTEX_NAMESPACE="cortex"
+# Flag to enable collection of anonymous usage stats and error reports
+telemetry: true
 
 # Image paths
-export CORTEX_IMAGE_MANAGER="cortexlabs/manager:master"
-export CORTEX_IMAGE_FLUENTD="cortexlabs/fluentd:master"
-export CORTEX_IMAGE_STATSD="cortexlabs/statsd:master"
-export CORTEX_IMAGE_OPERATOR="cortexlabs/operator:master"
-export CORTEX_IMAGE_TF_SERVE="cortexlabs/tf-serve:master"
-export CORTEX_IMAGE_TF_API="cortexlabs/tf-api:master"
-export CORTEX_IMAGE_TF_SERVE_GPU="cortexlabs/tf-serve-gpu:master"
-export CORTEX_IMAGE_ONNX_SERVE="cortexlabs/onnx-serve:master"
-export CORTEX_IMAGE_ONNX_SERVE_GPU="cortexlabs/onnx-serve-gpu:master"
-export CORTEX_IMAGE_CLUSTER_AUTOSCALER="cortexlabs/cluster-autoscaler:master"
-export CORTEX_IMAGE_NVIDIA="cortexlabs/nvidia:master"
-export CORTEX_IMAGE_METRICS_SERVER="cortexlabs/metrics-server:master"
-export CORTEX_IMAGE_ISTIO_PROXY="cortexlabs/istio-proxy:master"
-export CORTEX_IMAGE_ISTIO_PILOT="cortexlabs/istio-pilot:master"
-export CORTEX_IMAGE_ISTIO_CITADEL="cortexlabs/istio-citadel:master"
-export CORTEX_IMAGE_ISTIO_GALLEY="cortexlabs/istio-galley:master"
-export CORTEX_IMAGE_DOWNLOADER="cortexlabs/downloader:master"
-
-# Flag to enable collecting error reports and usage stats. If flag is not set to either "true" or "false", you will be prompted.
-export CORTEX_ENABLE_TELEMETRY=""
+image_predictor_serve: cortexlabs/predictor-serve:master
+image_predictor_serve_gpu: cortexlabs/predictor-serve-gpu:master
+image_tf_serve: cortexlabs/tf-serve:master
+image_tf_serve_gpu: cortexlabs/tf-serve-gpu:master
+image_tf_api: cortexlabs/tf-api:master
+image_onnx_serve: cortexlabs/onnx-serve:master
+image_onnx_serve_gpu: cortexlabs/onnx-serve-gpu:master
+image_operator: cortexlabs/operator:master
+image_manager: cortexlabs/manager:master
+image_downloader: cortexlabs/downloader:master
+image_cluster_autoscaler: cortexlabs/cluster-autoscaler:master
+image_metrics_server: cortexlabs/metrics-server:master
+image_nvidia: cortexlabs/nvidia:master
+image_fluentd: cortexlabs/fluentd:master
+image_statsd: cortexlabs/statsd:master
+image_istio_proxy: cortexlabs/istio-proxy:master
+image_istio_pilot: cortexlabs/istio-pilot:master
+image_istio_citadel: cortexlabs/istio-citadel:master
+image_istio_galley: cortexlabs/istio-galley:master
 ```

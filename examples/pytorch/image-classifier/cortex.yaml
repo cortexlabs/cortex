@@ -1,0 +1,7 @@
+- kind: deployment
+  name: image
+
+- kind: api
+  name: classifier
+  predictor:
+    path: predictor.py

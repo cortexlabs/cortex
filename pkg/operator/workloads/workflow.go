@@ -24,6 +24,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
@@ -128,9 +129,9 @@ func DeleteApp(appName string, keepCache bool) bool {
 	uncacheDataSavedStatuses(nil, appName)
 	uncacheLatestWorkloadIDs(nil, appName)
 
-	virtualServices, _ := config.Kubernetes.ListVirtualServicesByLabel(config.Cortex.Namespace, "appName", appName)
+	virtualServices, _ := config.Kubernetes.ListVirtualServicesByLabel(consts.K8sNamespace, "appName", appName)
 	for _, virtualService := range virtualServices {
-		config.Kubernetes.DeleteVirtualService(virtualService.GetName(), config.Cortex.Namespace)
+		config.Kubernetes.DeleteVirtualService(virtualService.GetName(), consts.K8sNamespace)
 	}
 	services, _ := config.Kubernetes.ListServicesByLabel("appName", appName)
 	for _, service := range services {
@@ -301,11 +302,43 @@ func GetDeploymentStatus(appName string) (resource.DeploymentStatus, error) {
 }
 
 func ValidateDeploy(ctx *context.Context) error {
-	maxCPU := config.Cortex.NodeCPU.Copy()
-	maxCPU.Sub(cortexCPUReserve)
-	maxMem := config.Cortex.NodeMem.Copy()
-	maxMem.Sub(cortexMemReserve)
-	maxGPU := config.Cortex.NodeGPU.Copy()
+	// maxCPU := config.Cortex.NodeCPU.Copy()
+	// maxCPU.Sub(cortexCPUReserve)
+	// maxMem := config.Cortex.NodeMem.Copy()
+	// maxMem.Sub(cortexMemReserve)
+	// maxGPU := config.Cortex.NodeGPU.Copy()
+	if err := CheckAPIEndpointCollisions(ctx); err != nil {
+		return err
+	}
+
+	nodes, err := config.Kubernetes.ListNodes(nil)
+	if err != nil {
+		return err
+	}
+
+	var maxCPU, maxMem kresource.Quantity
+	var maxGPU int64
+	for _, node := range nodes {
+		curCPU := node.Status.Capacity.Cpu()
+		curMem := node.Status.Capacity.Memory()
+
+		var curGPU int64
+		if GPUQuantity, ok := node.Status.Allocatable["nvidia.com/gpu"]; ok {
+			curGPU, _ = GPUQuantity.AsInt64()
+		}
+
+		if curCPU != nil && maxCPU.Cmp(*curCPU) < 0 {
+			maxCPU = *curCPU
+		}
+
+		if curMem != nil && maxMem.Cmp(*curMem) < 0 {
+			maxMem = *curMem
+		}
+
+		if curGPU > maxGPU {
+			maxGPU = curGPU
+		}
+	}
 
 	for _, api := range ctx.APIs {
 		if maxCPU.Cmp(api.Compute.CPU.Quantity) < 0 {
@@ -321,5 +354,46 @@ func ValidateDeploy(ctx *context.Context) error {
 			return errors.Wrap(ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", gpu), fmt.Sprintf("%d", maxGPU.Value())), userconfig.Identify(api))
 		}
 	}
+	return nil
+}
+
+func CheckAPIEndpointCollisions(ctx *context.Context) error {
+	apiEndpoints := map[string]string{} // endpoint -> API identifiction string
+	for _, api := range ctx.APIs {
+		apiEndpoints[*api.Endpoint] = userconfig.Identify(api)
+	}
+
+	virtualServices, err := config.Kubernetes.ListVirtualServices(consts.K8sNamespace, nil)
+	if err != nil {
+		return err
+	}
+
+	for _, virtualService := range virtualServices {
+		gateways, err := k8s.GetVirtualServiceGateways(&virtualService)
+		if err != nil {
+			return err
+		}
+		if !gateways.Has("apis-gateway") {
+			continue
+		}
+
+		// Collisions within a deployment will already have been caught by config validation
+		labels := virtualService.GetLabels()
+		if labels["appName"] == ctx.App.Name {
+			continue
+		}
+
+		endpoints, err := k8s.GetVirtualServiceEndpoints(&virtualService)
+		if err != nil {
+			return err
+		}
+
+		for endpoint := range endpoints {
+			if apiIdentifier, ok := apiEndpoints[endpoint]; ok {
+				return errors.Wrap(ErrorDuplicateEndpointOtherDeployment(labels["appName"], labels["apiName"]), apiIdentifier, userconfig.EndpointKey, endpoint)
+			}
+		}
+	}
+
 	return nil
 }

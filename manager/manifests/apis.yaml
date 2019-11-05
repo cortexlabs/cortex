@@ -16,7 +16,7 @@ apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   name: apis-gateway
-  namespace: $CORTEX_NAMESPACE
+  namespace: cortex
 spec:
   selector:
     istio: apis-ingressgateway
@@ -37,5 +37,3 @@ spec:
       mode: SIMPLE
       serverCertificate: /etc/istio/customgateway-certs/tls.crt
       privateKey: /etc/istio/customgateway-certs/tls.key
-
----
