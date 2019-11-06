@@ -37,7 +37,7 @@ function ensure_eks() {
   fi
 
   if [ "$cluster_status" == "DELETING" ]; then
-    echo "error: your Cortex cluster named $CORTEX_CLUSTER_NAME in $CORTEX_REGION is currently spinning down; please try again once it is compeletely deleted (may take a few minutes)"
+    echo "error: your Cortex cluster named $CORTEX_CLUSTER_NAME in $CORTEX_REGION is currently spinning down; please try again once it is completely deleted (may take a few minutes)"
     exit 1
   fi
 
