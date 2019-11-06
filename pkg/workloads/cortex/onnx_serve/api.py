@@ -24,7 +24,7 @@ import onnxruntime as rt
 import numpy as np
 
 from cortex.lib import util, Context, api_utils
-from cortex.lib.log import cx_cx_logger(), debug_obj, refresh_cx_logger()
+from cortex.lib.log import cx_logger, debug_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 from cortex.lib.stringify import truncate
 
