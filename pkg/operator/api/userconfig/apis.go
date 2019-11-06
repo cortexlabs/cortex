@@ -236,6 +236,7 @@ func GetTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 	if err != nil {
 		return "", err
 	}
+	prefix = s.EnsureSuffix(prefix, "/")
 
 	resp, _ := awsClient.S3.ListObjects(&s3.ListObjectsInput{
 		Bucket: &bucket,
