@@ -18,9 +18,7 @@ import base64
 import time
 
 from cortex.lib.exceptions import UserException, CortexException
-from cortex.lib.log import get_logger
-
-logger = get_logger()
+from cortex.lib.log import cx_logger
 
 
 def get_classes(ctx, api_name):
@@ -157,10 +155,10 @@ def post_request_metrics(ctx, api, response, prediction_payload, start_time, cla
 
                 metrics_list += prediction_metrics(api_dimensions, api, prediction)
             except Exception as e:
-                logger.warn("unable to record prediction metric", exc_info=True)
+                cx_logger().warn("unable to record prediction metric", exc_info=True)
 
     metrics_list += latency_metric(api_dimensions, start_time)
     try:
         ctx.publish_metrics(metrics_list)
     except Exception as e:
-        logger.warn("failure encountered while publishing metrics", exc_info=True)
+        cx_logger().warn("failure encountered while publishing metrics", exc_info=True)

@@ -28,12 +28,9 @@ from tensorflow_serving.apis import prediction_service_pb2_grpc
 from google.protobuf import json_format
 
 from cortex.lib import util, Context, api_utils
-from cortex.lib.log import get_logger, debug_obj
+from cortex.lib.log import cx_logger, debug_obj
 from cortex.lib.exceptions import UserRuntimeException, UserException, CortexException
 from cortex.lib.stringify import truncate
-
-logger = get_logger()
-logger.propagate = False  # prevent double logging (flask modifies root logger)
 
 app = Flask(__name__)
 app.json_encoder = util.json_tricks_encoder
@@ -106,7 +103,7 @@ def after_request(response):
     api = local_cache["api"]
     ctx = local_cache["ctx"]
 
-    logger.info(response.status)
+    cx_logger().info(response.status)
 
     prediction = None
     if "prediction" in g:
@@ -220,7 +217,7 @@ def validate_sample(sample):
 
 def prediction_failed(reason):
     message = "prediction failed: {}".format(reason)
-    logger.error(message)
+    cx_logger().error(message)
     return message, status.HTTP_406_NOT_ACCEPTABLE
 
 
@@ -246,7 +243,7 @@ def predict():
     try:
         result = run_predict(sample, debug)
     except Exception as e:
-        logger.exception("prediction failed")
+        cx_logger().exception("prediction failed")
         return prediction_failed(str(e))
 
     g.prediction = result
@@ -255,7 +252,7 @@ def predict():
 
 
 def extract_signature(signature_def, signature_key):
-    logger.info("signature defs found in model: {}".format(signature_def))
+    cx_logger().info("signature defs found in model: {}".format(signature_def))
 
     available_keys = list(signature_def.keys())
     if len(available_keys) == 0:
@@ -263,14 +260,14 @@ def extract_signature(signature_def, signature_key):
 
     if signature_key is None:
         if len(available_keys) == 1:
-            logger.info(
+            cx_logger().info(
                 "signature_key was not configured by user, using signature key '{}' (found in the signature def map)".format(
                     available_keys[0]
                 )
             )
             signature_key = available_keys[0]
         elif "predict" in signature_def:
-            logger.info(
+            cx_logger().info(
                 "signature_key was not configured by user, using signature key 'predict' (found in the signature def map)"
             )
             signature_key = "predict"
@@ -331,30 +328,30 @@ def validate_model_dir(model_dir):
             break
 
     if version is None:
-        logger.error(tf_expected_dir_structure)
+        cx_logger().error(tf_expected_dir_structure)
         raise UserException("no top-level version folder found")
 
     if not os.path.isdir(os.path.join(model_dir, version)):
-        logger.error(tf_expected_dir_structure)
+        cx_logger().error(tf_expected_dir_structure)
         raise UserException("no top-level version folder found")
 
     if not os.path.isfile(os.path.join(model_dir, version, "saved_model.pb")):
-        logger.error(tf_expected_dir_structure)
+        cx_logger().error(tf_expected_dir_structure)
         raise UserException('expected a "saved_model.pb" file')
 
     if not os.path.isdir(os.path.join(model_dir, version, "variables")):
-        logger.error(tf_expected_dir_structure)
+        cx_logger().error(tf_expected_dir_structure)
         raise UserException('expected a "variables" directory')
 
     if not os.path.isfile(os.path.join(model_dir, version, "variables", "variables.index")):
-        logger.error(tf_expected_dir_structure)
+        cx_logger().error(tf_expected_dir_structure)
         raise UserException('expected a "variables/variables.index" file')
 
     for file_name in os.listdir(os.path.join(model_dir, version, "variables")):
         if file_name.startswith("variables.data-00000-of"):
             return
 
-    logger.error(tf_expected_dir_structure)
+    cx_logger().error(tf_expected_dir_structure)
     raise UserException(
         'expected at least one variables data file, starting with "variables.data-00000-of-"'
     )
@@ -362,7 +359,7 @@ def validate_model_dir(model_dir):
 
 @app.errorhandler(Exception)
 def exceptions(e):
-    logger.exception(e)
+    cx_logger().exception(e)
     return jsonify(error=str(e)), 500
 
 
@@ -384,38 +381,38 @@ def start(args):
         request_handler = local_cache.get("request_handler")
 
         if request_handler is not None and util.has_function(request_handler, "pre_inference"):
-            logger.info(
+            cx_logger().info(
                 "using pre_inference request handler provided in {}".format(
                     api["tensorflow"]["request_handler"]
                 )
             )
         else:
-            logger.info("pre_inference request handler not found")
+            cx_logger().info("pre_inference request handler not found")
 
         if request_handler is not None and util.has_function(request_handler, "post_inference"):
-            logger.info(
+            cx_logger().info(
                 "using post_inference request handler provided in {}".format(
                     api["tensorflow"]["request_handler"]
                 )
             )
         else:
-            logger.info("post_inference request handler not found")
+            cx_logger().info("post_inference request handler not found")
 
     except Exception as e:
-        logger.exception("failed to start api")
+        cx_logger().exception("failed to start api")
         sys.exit(1)
 
     try:
         validate_model_dir(args.model_dir)
     except Exception as e:
-        logger.exception("failed to validate model")
+        cx_logger().exception("failed to validate model")
         sys.exit(1)
 
     if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
         try:
             local_cache["class_set"] = api_utils.get_classes(ctx, api["name"])
         except Exception as e:
-            logger.warn("an error occurred while attempting to load classes", exc_info=True)
+            cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
     channel = grpc.insecure_channel("localhost:" + str(args.tf_serve_port))
     local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)
@@ -428,9 +425,11 @@ def start(args):
             break
         except Exception as e:
             if i > 6:
-                logger.warn("unable to read model metadata - model is still loading. Retrying...")
+                cx_logger().warn(
+                    "unable to read model metadata - model is still loading. Retrying..."
+                )
             if i == limit - 1:
-                logger.exception("retry limit exceeded")
+                cx_logger().exception("retry limit exceeded")
                 sys.exit(1)
 
         time.sleep(5)
@@ -441,7 +440,7 @@ def start(args):
 
     local_cache["signature_key"] = signature_key
     local_cache["parsed_signature"] = parsed_signature
-    logger.info("model_signature: {}".format(local_cache["parsed_signature"]))
+    cx_logger().info("model_signature: {}".format(local_cache["parsed_signature"]))
     serve(app, listen="*:{}".format(args.port))
 
 

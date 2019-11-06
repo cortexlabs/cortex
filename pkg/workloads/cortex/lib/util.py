@@ -27,12 +27,8 @@ import pathlib
 from copy import deepcopy
 from datetime import datetime
 
-from cortex.lib.log import get_logger
 from cortex.lib import stringify
 import json_tricks
-
-
-logger = get_logger()
 
 
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
