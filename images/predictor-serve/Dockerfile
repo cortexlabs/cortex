@@ -13,6 +13,7 @@ RUN apt-get update -qq && apt-get install -y -q \
         zlib1g-dev \
         python3.6-dev \
         python3.6-distutils \
+        git \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/* && \
     curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
     python3.6 get-pip.py && \
