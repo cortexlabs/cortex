@@ -13,6 +13,7 @@ RUN apt-get update -qq && apt-get install -y -q \
         pkg-config \
         software-properties-common \
         zlib1g-dev \
+        git \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
