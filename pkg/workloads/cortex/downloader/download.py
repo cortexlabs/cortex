@@ -44,6 +44,14 @@ def start(args):
                 os.path.join(to_path, os.path.basename(from_path)), delete_zip_file=True
             )
 
+        if download_arg["single_rename"] != "":
+            dest = util.trim_suffix(download_arg["single_rename"], "/")
+            dir_path = os.path.dirname(dest)
+            entries = os.listdir(dir_path)
+            if len(entries) == 1:
+                src = os.path.join(dir_path, entries[0])
+                os.rename(src, dest)
+
 
 def main():
     parser = argparse.ArgumentParser()

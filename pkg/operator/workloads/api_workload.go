@@ -234,10 +234,11 @@ func (aw *APIWorkload) IsFailed(ctx *context.Context) (bool, error) {
 }
 
 type downloadContainerArg struct {
-	From     string `json:"from"`
-	To       string `json:"to"`
-	Unzip    bool   `json:"unzip"`
-	ItemName string `json:"item_name"` // name of the item being downloaded, just for logging (if "" nothing will be logged)
+	From         string `json:"from"`
+	To           string `json:"to"`
+	Unzip        bool   `json:"unzip"`
+	ItemName     string `json:"item_name"`     // name of the item being downloaded, just for logging (if "" nothing will be logged)
+	SingleRename string `json:"single_rename"` // e.g. if path/to/target is set, path/to/* will be renamed to path/to/target only if there is one item in path/to/
 }
 
 func tfAPISpec(
@@ -269,10 +270,11 @@ func tfAPISpec(
 
 	downloadArgs := []downloadContainerArg{
 		{
-			From:     ctx.APIs[api.Name].TensorFlow.Model,
-			To:       path.Join(consts.EmptyDirMountPath, "model"),
-			Unzip:    strings.HasSuffix(ctx.APIs[api.Name].TensorFlow.Model, ".zip"),
-			ItemName: "model",
+			From:         ctx.APIs[api.Name].TensorFlow.Model,
+			To:           path.Join(consts.EmptyDirMountPath, "model"),
+			Unzip:        strings.HasSuffix(ctx.APIs[api.Name].TensorFlow.Model, ".zip"),
+			ItemName:     "model",
+			SingleRename: path.Join(consts.EmptyDirMountPath, "model", "1"),
 		},
 	}
 
