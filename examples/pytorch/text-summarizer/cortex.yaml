@@ -1,0 +1,9 @@
+- kind: deployment
+  name: text
+
+- kind: api
+  name: summarizer
+  predictor:
+    path: predictor.py
+  compute:
+    mem: "4G"
