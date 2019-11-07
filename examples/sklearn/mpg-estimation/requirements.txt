@@ -1,4 +1,4 @@
+mlflow==1.4.*
 scikit-learn==0.21.*
 numpy==1.17.*
 pandas==0.25.*
-joblib==0.14.*
