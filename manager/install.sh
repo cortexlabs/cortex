@@ -20,8 +20,10 @@ arg1="$1"
 
 function ensure_eks() {
   # Cluster statuses: https://github.com/aws/aws-sdk-go/blob/master/service/eks/api.go#L2785
+  set +e
   cluster_info=$(eksctl get cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json)
   cluster_info_exit_code=$?
+  set -e
 
   # No cluster
   if [ $cluster_info_exit_code -ne 0 ]; then
