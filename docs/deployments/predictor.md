@@ -127,7 +127,7 @@ def predict(sample, metadata):
 
 The following packages have been pre-installed and can be used in your implementations:
 
-```
+```text
 Keras==2.3.1
 Pillow==6.2.1
 cloudpickle==1.2.2
