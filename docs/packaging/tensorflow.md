@@ -8,7 +8,7 @@ import tensorflow as tf
 
 ...
 
-OUPUT_DIR="bert"
+OUTPUT_DIR="bert"
 estimator = tf.estimator.Estimator(model_fn=model_fn...)
 
 # TF Serving requires a special input_fn used at serving time
@@ -22,7 +22,7 @@ def serving_input_fn():
     }
     return tf.estimator.export.ServingInputReceiver(features=features, receiver_tensors=inputs)
 
-estimator.export_savedmodel(OUPUT_DIR, serving_input_fn, strip_default_attrs=True)
+estimator.export_savedmodel(OUTPUT_DIR, serving_input_fn, strip_default_attrs=True)
 ```
 
 Upload the checkpoint directory to Amazon S3 using the AWS web console or CLI:
