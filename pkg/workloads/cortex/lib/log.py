@@ -48,7 +48,9 @@ def register_logger(name):
 
 def refresh_logger():
     global current_logger
-    current_logger = register_logger("cortex-{}".format(int(time.time())))
+    if current_logger is not None:
+        current_logger.disabled = True
+    current_logger = register_logger("{}-cortex".format(int(time.time() * 1000000)))
 
 
 def cx_logger():
