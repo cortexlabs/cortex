@@ -5,7 +5,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 
 
-if if __name__ == "__main__":
+if __name__ == "__main__":
     df = pd.read_csv(
         "https://www.uio.no/studier/emner/sv/oekonomi/ECON4150/v16/statacourse/datafiles/auto.csv"
     )
