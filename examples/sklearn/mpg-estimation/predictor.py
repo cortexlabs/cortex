@@ -2,7 +2,12 @@ import mlflow.sklearn
 import numpy as np
 
 
-model = mlflow.sklearn.load_model("s3://cortex-examples/sklearn/mpg-estimation/linreg")
+model = None
+
+
+def init(model_path, metadata):
+    global model
+    model = mlflow.sklearn.load_model(model_path)
 
 
 def predict(sample, metadata):
