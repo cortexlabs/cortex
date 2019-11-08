@@ -7,5 +7,3 @@
     path: predictor.py
   tracker:
     model_type: classification
-  compute:
-    mem: 4G
