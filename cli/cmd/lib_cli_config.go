@@ -134,10 +134,8 @@ func readCLIConfig() (*CLIConfig, []error) {
 }
 
 func isCLIConfigured() bool {
-	if _, errs := readCLIConfig(); !errors.HasErrors(errs) {
-		return true
-	}
-	return false
+	_, errs := readCLIConfig()
+	return !errors.HasErrors(errs)
 }
 
 func getValidCLIConfig() *CLIConfig {
