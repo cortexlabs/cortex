@@ -19,6 +19,7 @@ RUN apt-get update -qq && apt-get install -y -q \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/* && \
     curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
     python3.6 get-pip.py && \
+    pip install --upgrade pip && \
     rm -rf /root/.cache/pip*
 
 ENV PYTHONPATH "${PYTHONPATH}:/src:/mnt/project"

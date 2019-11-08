@@ -7,7 +7,7 @@ The Cortex cluster may be configured by providing a configuration file to `corte
 ```yaml
 # cluster.yaml
 
-# AWS credentials (if not specified, ~/.aws/credentials will be checked) (can be overriden by $AWS_ACCESS_KEY_ID and $AWS_SECRET_ACCESS_KEY)
+# AWS credentials (if not specified, ~/.aws/credentials will be checked) (can be overridden by $AWS_ACCESS_KEY_ID and $AWS_SECRET_ACCESS_KEY)
 aws_access_key_id: ***
 aws_secret_access_key: ***
 

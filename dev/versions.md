@@ -65,7 +65,7 @@
 
 ## TensorFlow / TensorFlow Serving / Python / Python base operating system
 
-The Python version in the base images for `tf-api` and `onnx-serve-gpu` determines the Python version used throughout Cortex.
+The Python version in the base images for `tf-api` and `onnx-serve-gpu`/`predictor-serve-gpu` determines the Python version used throughout Cortex.
 
 1. Update the `tensorflow/tensorflow` base image in `images/tf-api/Dockerfile` to the desired version ([Dockerhub](https://hub.docker.com/r/tensorflow/tensorflow))
 1. Update the `nvidia/cuda` base image in `images/onnx-serve-gpu/Dockerfile` to the desired version ([Dockerhub](https://hub.docker.com/r/nvidia/cuda))
