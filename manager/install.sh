@@ -38,7 +38,9 @@ function ensure_eks() {
     return
   fi
 
+  set +e
   cluster_status=$(echo "$cluster_info" | jq -r 'first | .Status')
+  set -e
 
   if [ "$cluster_status" == "DELETING" ]; then
     echo "error: your Cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is currently spinning down; please try again once it is completely deleted (may take a few minutes)"
@@ -52,12 +54,6 @@ function ensure_eks() {
 
   if [ "$cluster_status" == "FAILED" ]; then
     echo "error: your Cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is failed; delete it with \`eksctl delete cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION\` and try again"
-    exit 1
-  fi
-
-  # Catch all
-  if [ "$cluster_status" != "ACTIVE" ]; then
-    echo "error: your Cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is not active; please wait until it is active, or delete it with \`eksctl delete cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION\` and try again"
     exit 1
   fi
 
