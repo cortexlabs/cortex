@@ -1,5 +1,4 @@
-scikit-learn
-numpy
-pandas
-joblib
 mlflow
+scikit-learn
+pandas
+numpy
