@@ -92,7 +92,7 @@ The CLI sends configuration and code to the cluster every time you run `cortex d
 
 <br>
 
-## More examples
+## Examples
 
 <!-- CORTEX_VERSION_README_MINOR x4 -->
 - [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.10/examples/tensorflow/sentiment-analysis) in TensorFlow with BERT
