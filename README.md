@@ -31,8 +31,6 @@ Cortex is an open source platform that takes machine learning models—trained w
 
 ## Usage
 
-<br>
-
 ### Step 1: define your API
 
 ```python
@@ -43,8 +41,6 @@ model = download_my_model()
 def predict(sample, metadata):
     return model.predict(sample["text"])
 ```
-
-<br>
 
 ### Step 2: configure your deployment
 
@@ -62,8 +58,6 @@ def predict(sample, metadata):
     gpu: 1
 ```
 
-<br>
-
 ### Step 3: deploy to AWS
 
 ```bash
@@ -79,8 +73,6 @@ live     1            1           1           8s            123ms
 
 url: http://***.amazonaws.com/sentiment/classifier
 ```
-
-<br>
 
 ### Step 4: serve real-time predictions
 
