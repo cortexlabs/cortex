@@ -73,13 +73,15 @@ def post_inference(prediction, signature, metadata):
 The following packages have been pre-installed and can be used in your implementations:
 
 ```text
-boto3==1.9.228
-msgpack==0.6.1
+boto3==1.10.13
+dill==0.3.1.1
+msgpack==0.6.2
 numpy==1.17.3
 requests==2.22.0
-dill==0.3.1.1
-tensorflow==2.0.0  # For TensorFlow models only
-onnxruntime==0.5.0  # For ONNX models only
+onnxruntime==0.5.0  # ONNX runtime only
+tensor2tensor==1.14.1  # TensorFlow runtime only
+tensorflow-hub==0.7.0  # TensorFlow runtime only
+tensorflow==2.0.0  # TensorFlow runtime only
 ```
 
 Learn how to install additional packages [here](../dependencies/python-packages.md).

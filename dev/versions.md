@@ -98,20 +98,11 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
    1. Check that your diff is reasonable
 1. Confirm GPUs work for TensorFlow and ONNX models
 
-## Misc Python packages
+## Python packages
 
-1. Update versions in `pkg/workloads/cortex/lib/requirements.txt`, `pkg/workloads/cortex/tf_api/requirements.txt`, and `pkg/workloads/cortex/onnx_serve/requirements.txt`
-   * [boto3](https://pypi.org/project/boto3/)
-   * [msgpack](https://pypi.org/project/msgpack/)
-   * [numpy](https://pypi.org/project/numpy/)
-   * [json_tricks](https://pypi.org/project/json_tricks/)
-   * [requests](https://pypi.org/project/requests/)
-   * [datadog](https://pypi.org/project/datadog/)
-   * [flask](https://pypi.org/project/flask/)
-   * [flask-api](https://pypi.org/project/flask-api/)
-   * [waitress](https://pypi.org/project/waitress/)
-   * [dill](https://pypi.org/project/dill/)
-1. Update the versions listed in "Pre-installed Packages" in `request-handlers.py`
+1. Update versions in `pkg/workloads/cortex/lib/requirements.txt`, `pkg/workloads/cortex/tf_api/requirements.txt`, `pkg/workloads/cortex/onnx_serve/requirements.txt`, and `pkg/workloads/cortex/predictor_serve/requirements.txt`
+1. Update the versions listed in "Pre-installed packages" in `request-handlers.md` and `predictor.md`
+1. Rerun all examples and check their logs
 
 ## Istio
 
