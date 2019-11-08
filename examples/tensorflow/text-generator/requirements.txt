@@ -1,2 +1,2 @@
-requests==2.21.0
-regex==2017.4.5
+requests
+regex

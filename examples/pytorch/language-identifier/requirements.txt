@@ -1,2 +1,2 @@
-wget
-fasttext
+wget==3.*
+fasttext==0.9.*

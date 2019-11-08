@@ -59,7 +59,7 @@ var getCmd = &cobra.Command{
 	Use:   "get [API_NAME]",
 	Short: "get information about APIs",
 	Long: `This command displays information about APIs.
-Adding the -v or --verbose flag displays additonal information.`,
+Adding the -v or --verbose flag displays additional information.`,
 	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		rerun(func() (string, error) {
@@ -419,7 +419,7 @@ func classificationMetricsTable(apiMetrics schema.APIMetrics) string {
 }
 
 func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string) string {
-	if groupStatus.Available() == 0 {
+	if groupStatus.ReadyUpdated+groupStatus.ReadyStaleCompute == 0 {
 		return "the model's input schema will be available when the API is live"
 	}
 

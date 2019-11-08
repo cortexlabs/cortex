@@ -1,1 +1,1 @@
-FROM tensorflow/serving:1.14.0
+FROM tensorflow/serving:2.0.0

@@ -8,4 +8,4 @@
   tracker:
     model_type: classification
   compute:
-    mem: "4G"
+    mem: 4G

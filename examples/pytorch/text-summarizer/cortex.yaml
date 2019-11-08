@@ -6,4 +6,4 @@
   predictor:
     path: predictor.py
   compute:
-    mem: "4G"
+    mem: 4G
