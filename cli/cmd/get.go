@@ -419,7 +419,7 @@ func classificationMetricsTable(apiMetrics schema.APIMetrics) string {
 }
 
 func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string) string {
-	if groupStatus.Available() == 0 {
+	if groupStatus.ReadyUpdated+groupStatus.ReadyStaleCompute == 0 {
 		return "the model's input schema will be available when the API is live"
 	}
 
