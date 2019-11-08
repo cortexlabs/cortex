@@ -22,11 +22,8 @@ from flask_api import status
 from waitress import serve
 
 from cortex.lib import util, Context, api_utils
-from cortex.lib.log import get_logger, debug_obj
+from cortex.lib.log import cx_logger, debug_obj, refresh_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException
-
-logger = get_logger()
-logger.propagate = False  # prevent double logging (flask modifies root logger)
 
 app = Flask(__name__)
 
@@ -51,7 +48,7 @@ def after_request(response):
     api = local_cache["api"]
     ctx = local_cache["ctx"]
 
-    logger.info(response.status)
+    cx_logger().info(response.status)
 
     prediction = None
     if "prediction" in g:
@@ -66,7 +63,7 @@ def after_request(response):
 
 def prediction_failed(reason):
     message = "prediction failed: {}".format(reason)
-    logger.error(message)
+    cx_logger().error(message)
     return message, status.HTTP_406_NOT_ACCEPTABLE
 
 
@@ -95,7 +92,7 @@ def predict():
         except Exception as e:
             raise UserRuntimeException(api["predictor"]["path"], "predict", str(e)) from e
     except Exception as e:
-        logger.exception("prediction failed")
+        cx_logger().exception("prediction failed")
         return prediction_failed(str(e))
 
     g.prediction = output
@@ -104,7 +101,7 @@ def predict():
 
 @app.errorhandler(Exception)
 def exceptions(e):
-    logger.exception(e)
+    cx_logger().exception(e)
     return jsonify(error=str(e)), 500
 
 
@@ -133,16 +130,18 @@ def start(args):
                 local_cache["predictor"].init(model_path, api["predictor"]["metadata"])
             except Exception as e:
                 raise UserRuntimeException(api["predictor"]["path"], "init", str(e)) from e
-        logger.info("init ran successfully")
+            finally:
+                refresh_logger()
     except:
-        logger.exception("failed to start api")
+        cx_logger().exception("failed to start api")
         sys.exit(1)
 
+    cx_logger().info("init ran successfully")
     if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
         try:
             local_cache["class_set"] = api_utils.get_classes(ctx, api["name"])
         except Exception as e:
-            logger.warn("an error occurred while attempting to load classes", exc_info=True)
+            cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
     serve(app, listen="*:{}".format(args.port))
 

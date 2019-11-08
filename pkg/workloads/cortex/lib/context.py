@@ -22,12 +22,10 @@ import dill
 
 from cortex import consts
 from cortex.lib import util
+from cortex.lib.log import refresh_logger
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import CortexException, UserException
 from cortex.lib.resources import ResourceMap
-from cortex.lib.log import get_logger
-
-logger = get_logger()
 
 
 class Context:
@@ -149,6 +147,8 @@ class Context:
         except CortexException as e:
             e.wrap("api " + api_name, "failed to load request_handler", request_handler_path)
             raise
+        finally:
+            refresh_logger()
 
         try:
             _validate_impl(impl, REQUEST_HANDLER_IMPL_VALIDATION)
@@ -163,9 +163,12 @@ class Context:
             impl = self.load_module(
                 "predictor", api["name"], os.path.join(project_dir, api["predictor"]["path"])
             )
+
         except CortexException as e:
             e.wrap("api " + api_name, "failed to load predictor", api["predictor"]["path"])
             raise
+        finally:
+            refresh_logger()
 
         try:
             _validate_impl(impl, PREDICTOR_IMPL_VALIDATION)
