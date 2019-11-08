@@ -143,6 +143,7 @@ def start(args):
         except Exception as e:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
+    cx_logger().info("API is ready")
     serve(app, listen="*:{}".format(args.port))
 
 

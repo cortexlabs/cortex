@@ -441,6 +441,8 @@ def start(args):
     local_cache["signature_key"] = signature_key
     local_cache["parsed_signature"] = parsed_signature
     cx_logger().info("model_signature: {}".format(local_cache["parsed_signature"]))
+
+    cx_logger().info("API is ready")
     serve(app, listen="*:{}".format(args.port))
 
 
