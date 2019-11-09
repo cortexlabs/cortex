@@ -54,6 +54,8 @@ def predict(sample, metadata):
   name: classifier
   predictor:
     path: predictor.py
+  tracker:
+    model_type: classification
   compute:
     gpu: 1
 ```
@@ -63,15 +65,7 @@ def predict(sample, metadata):
 ```bash
 $ cortex deploy
 
-deployment started
-
-
-$ cortex get classifier --watch
-
-status   up-to-date   available   requested   last update   avg latency
-live     1            1           1           8s            123ms
-
-url: http://***.amazonaws.com/sentiment/classifier
+created endpoint: http://***.amazonaws.com/sentiment/classifier
 ```
 
 ### Step 4: serve real-time predictions
@@ -82,6 +76,19 @@ $ curl http://***.amazonaws.com/sentiment/classifier \
     -d '{"text": "the movie was great!"}'
 
 positive
+```
+
+### Step 5: monitor your deployment
+
+```bash
+$ cortex get classifier --watch
+
+status   up-to-date   available   requested   last update   avg latency
+live     1            1           1           8s            123ms
+
+class     count
+positive  8
+negative  4
 ```
 
 <br>
