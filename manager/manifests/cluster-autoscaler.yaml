@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Source: https://github.com/kubernetes/autoscaler/blob/cluster-autoscaler-1.14.5/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml
+# Source: https://github.com/kubernetes/autoscaler/blob/cluster-autoscaler-1.14.6/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml
 
 ---
 apiVersion: v1
