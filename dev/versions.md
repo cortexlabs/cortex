@@ -6,17 +6,12 @@
 1. Update the version in `manager/Dockerfile`
 1. Update `eks.yaml` as necessary (make sure to maintain all Cortex environment variables)
 1. Check that `eksctl utils write-kubeconfig` log filter still behaves as desired
-1. Update eksctl on your dev machine: curl --location "https://github.com/weaveworks/eksctl/releases/download/0.5.3/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin
+1. Update eksctl on your dev machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.5.3/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
 
 ## Kubernetes
 
 1. Find the latest version of Kubernetes supported by eksctl ([source code](https://github.com/weaveworks/eksctl/blob/master/pkg/apis/eksctl.io/v1alpha5/types.go))
 1. Update the version in `eks.yaml`
-
-## AWS CNI
-
-1. Find the latest release on [GitHub](https://github.com/aws/amazon-vpc-cni-k8s/releases) and check the changelog
-1. Update the version in `manager/install.sh`
 
 ## Go
 
@@ -38,17 +33,6 @@
 
 ## Go modules
 
-### Non-versioned modules
-
-1. `rm go.mod go.sum`
-1. `go mod init`
-1. `go clean -modcache`
-1. `go get k8s.io/client-go@v12.0.0`
-1. `go get github.com/cortexlabs/yaml@v2.2.4`
-1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.0' >> go.mod`
-1. `go mod tidy`
-1. Check that the diff in `go.mod` is reasonable
-
 ### Kubernetes client
 
 1. Find the minor version of the latest stable release from the [README](https://github.com/kubernetes/client-go), and/or find the latest tagged patch version from [releases](https://github.com/kubernetes/client-go/releases)
@@ -62,6 +46,17 @@
 ### cortexlabs/yaml
 
 1. Follow the "Update non-versioned modules" instructions using the desired version for `cortexlabs/yaml`
+
+### Non-versioned modules
+
+1. `rm go.mod go.sum`
+1. `go mod init`
+1. `go clean -modcache`
+1. `go get k8s.io/client-go@v12.0.0`
+1. `go get github.com/cortexlabs/yaml@v2.2.4`
+1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.4' >> go.mod`
+1. `go mod tidy`
+1. Check that the diff in `go.mod` is reasonable
 
 ## TensorFlow / TensorFlow Serving / Python / Python base operating system
 
@@ -155,7 +150,7 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 
 ## Statsd
 
-1. Find the latest release on [Dockerhub](https://hub.docker.com/r/fluent/)
+1. Find the latest release on [Dockerhub](https://hub.docker.com/r/amazon/cloudwatch-agent/tags)
 1. Update the version in `images/statsd/Dockerfile`
 1. In this [GitHub Repo](https://github.com/aws-samples/amazon-cloudwatch-container-insights), set the tree to `master` and open [k8s-yaml-templates/cwagent-statsd/cwagent-statsd-daemonset.yaml](https://github.com/aws-samples/amazon-cloudwatch-container-insights/blob/master/k8s-yaml-templates/cwagent-statsd/cwagent-statsd-daemonset.yaml) and [k8s-yaml-templates/cwagent-statsd/cwagent-statsd-configmap.yaml](https://github.com/aws-samples/amazon-cloudwatch-container-insights/blob/master/k8s-yaml-templates/cwagent-statsd/cwagent-statsd-configmap.yaml)
 1. Update `statsd.yaml` as necessary (this wasn't copy-pasted, so you may need to check the diff intelligently)
