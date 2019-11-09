@@ -1,6 +1,6 @@
 FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04
 
-ARG ONNXRUNTIME_VERSION="0.5.0"
+ARG ONNXRUNTIME_VERSION="1.0.0"
 
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
