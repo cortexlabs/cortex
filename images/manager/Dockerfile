@@ -21,12 +21,12 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.16.2/b
     chmod +x ./kubectl && \
     mv ./kubectl /usr/local/bin/kubectl
 
-RUN curl -LO https://get.helm.sh/helm-v2.14.3-linux-amd64.tar.gz && \
-    tar -zxvf helm-v2.14.3-linux-amd64.tar.gz && \
+RUN curl -LO https://get.helm.sh/helm-v2.16.0-linux-amd64.tar.gz && \
+    tar -zxvf helm-v2.16.0-linux-amd64.tar.gz && \
     chmod +x linux-amd64/helm && \
     mv linux-amd64/helm /usr/local/bin/helm && \
     rm -rf linux-amd64 && \
-    rm helm-v2.14.3-linux-amd64.tar.gz
+    rm helm-v2.16.0-linux-amd64.tar.gz
 
 RUN ISTIO_VERSION=1.3.4 && \
     curl -L "https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istio-${ISTIO_VERSION}-linux.tar.gz" | tar xz && \
