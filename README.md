@@ -50,6 +50,8 @@ def predict(sample, metadata):
   name: classifier
   predictor:
     path: predictor.py
+  tracker:
+    model_type: classification
   compute:
     gpu: 1
 ```
@@ -59,15 +61,7 @@ def predict(sample, metadata):
 ```bash
 $ cortex deploy
 
-deployment started
-
-
-$ cortex get classifier --watch
-
-status   up-to-date   available   requested   last update   avg latency
-live     1            1           1           8s            123ms
-
-url: http://***.amazonaws.com/sentiment/classifier
+created endpoint: http://***.amazonaws.com/sentiment/classifier
 ```
 
 ### Step 4: serve real-time predictions
@@ -80,6 +74,19 @@ $ curl http://***.amazonaws.com/sentiment/classifier \
 positive
 ```
 
+### Step 5: monitor your deployment
+
+```bash
+$ cortex get classifier --watch
+
+status   up-to-date   available   requested   last update   avg latency
+live     1            1           1           8s            123ms
+
+class     count
+positive  8
+negative  4
+```
+
 <br>
 
 ## How Cortex works
@@ -88,7 +95,7 @@ The CLI sends configuration and code to the cluster every time you run `cortex d
 
 <br>
 
-## More examples
+## Examples
 
 <!-- CORTEX_VERSION_README_MINOR x4 -->
 - [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.10/examples/tensorflow/sentiment-analysis) in TensorFlow with BERT
