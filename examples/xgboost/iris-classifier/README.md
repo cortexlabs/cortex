@@ -68,7 +68,7 @@ We can use `curl` to test our prediction service:
 ```bash
 $ cortex get classifier
 
-url: http://***.amazonaws.com/iris/classifier
+endpoint: http://***.amazonaws.com/iris/classifier
 
 $ curl http://***.amazonaws.com/iris/classifier \
     -X POST -H "Content-Type: application/json" \

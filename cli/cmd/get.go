@@ -259,7 +259,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	out += predictionMetrics
 
-	out += "\n" + console.Bold("url: ") + apiEndpoint
+	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
 
 	if !flagVerbose {
 		return out, nil

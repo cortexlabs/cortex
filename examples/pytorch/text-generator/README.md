@@ -94,7 +94,7 @@ We can use `curl` to test our prediction service:
 ```bash
 $ cortex get generator
 
-url: http://***.amazonaws.com/text/generator
+endpoint: http://***.amazonaws.com/text/generator
 
 $ curl http://***.amazonaws.com/text/generator \
     -X POST -H "Content-Type: application/json" \

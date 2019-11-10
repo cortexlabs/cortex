@@ -95,7 +95,7 @@ We can use `curl` to test our prediction service:
 ```bash
 $ cortex get classifier
 
-url: http://***.amazonaws.com/image/classifier
+endpoint: http://***.amazonaws.com/image/classifier
 
 $ curl http://***.amazonaws.com/image/classifier \
     -X POST -H "Content-Type: application/json" \
