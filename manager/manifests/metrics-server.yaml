@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Source: https://github.com/kubernetes-incubator/metrics-server/tree/v0.3.4/deploy/1.8+
+# Source: https://github.com/kubernetes-incubator/metrics-server/tree/v0.3.6/deploy/1.8+
 
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
@@ -82,7 +82,7 @@ metadata:
   name: metrics-server
   namespace: kube-system
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: metrics-server
