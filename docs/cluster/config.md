@@ -38,23 +38,23 @@ cluster_name: cortex
 telemetry: true
 
 # Image paths
-image_predictor_serve: cortexlabs/predictor-serve:0.10.0
-image_predictor_serve_gpu: cortexlabs/predictor-serve-gpu:0.10.0
-image_tf_serve: cortexlabs/tf-serve:0.10.0
-image_tf_serve_gpu: cortexlabs/tf-serve-gpu:0.10.0
-image_tf_api: cortexlabs/tf-api:0.10.0
-image_onnx_serve: cortexlabs/onnx-serve:0.10.0
-image_onnx_serve_gpu: cortexlabs/onnx-serve-gpu:0.10.0
-image_operator: cortexlabs/operator:0.10.0
-image_manager: cortexlabs/manager:0.10.0
-image_downloader: cortexlabs/downloader:0.10.0
-image_cluster_autoscaler: cortexlabs/cluster-autoscaler:0.10.0
-image_metrics_server: cortexlabs/metrics-server:0.10.0
-image_nvidia: cortexlabs/nvidia:0.10.0
-image_fluentd: cortexlabs/fluentd:0.10.0
-image_statsd: cortexlabs/statsd:0.10.0
-image_istio_proxy: cortexlabs/istio-proxy:0.10.0
-image_istio_pilot: cortexlabs/istio-pilot:0.10.0
-image_istio_citadel: cortexlabs/istio-citadel:0.10.0
-image_istio_galley: cortexlabs/istio-galley:0.10.0
+image_predictor_serve: cortexlabs/predictor-serve:0.10.1
+image_predictor_serve_gpu: cortexlabs/predictor-serve-gpu:0.10.1
+image_tf_serve: cortexlabs/tf-serve:0.10.1
+image_tf_serve_gpu: cortexlabs/tf-serve-gpu:0.10.1
+image_tf_api: cortexlabs/tf-api:0.10.1
+image_onnx_serve: cortexlabs/onnx-serve:0.10.1
+image_onnx_serve_gpu: cortexlabs/onnx-serve-gpu:0.10.1
+image_operator: cortexlabs/operator:0.10.1
+image_manager: cortexlabs/manager:0.10.1
+image_downloader: cortexlabs/downloader:0.10.1
+image_cluster_autoscaler: cortexlabs/cluster-autoscaler:0.10.1
+image_metrics_server: cortexlabs/metrics-server:0.10.1
+image_nvidia: cortexlabs/nvidia:0.10.1
+image_fluentd: cortexlabs/fluentd:0.10.1
+image_statsd: cortexlabs/statsd:0.10.1
+image_istio_proxy: cortexlabs/istio-proxy:0.10.1
+image_istio_pilot: cortexlabs/istio-pilot:0.10.1
+image_istio_citadel: cortexlabs/istio-citadel:0.10.1
+image_istio_galley: cortexlabs/istio-galley:0.10.1
 ```
