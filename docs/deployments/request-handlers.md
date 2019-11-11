@@ -78,7 +78,7 @@ dill==0.3.1.1
 msgpack==0.6.2
 numpy==1.17.3
 requests==2.22.0
-onnxruntime==1.0.0  # ONNX runtime only
+onnxruntime==0.5.0  # ONNX runtime only
 tensor2tensor==1.14.1  # TensorFlow runtime only
 tensorflow-hub==0.7.0  # TensorFlow runtime only
 tensorflow==2.0.0  # TensorFlow runtime only
