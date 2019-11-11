@@ -29,9 +29,10 @@ type InfoResponse struct {
 }
 
 type DeployResponse struct {
-	Message     string           `json:"message"`
-	Context     *context.Context `json:"context"`
-	APIsBaseURL string           `json:"apis_base_url"`
+	Message           string           `json:"message"`
+	OperationsMessage string           `json:"operations_message"`
+	Context           *context.Context `json:"context"`
+	APIsBaseURL       string           `json:"apis_base_url"`
 }
 
 type DeleteResponse struct {

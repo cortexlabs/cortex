@@ -18,9 +18,11 @@ package endpoints
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
@@ -141,5 +143,59 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		deployResponse.Message = ResDeploymentUpdated
 	}
 
+	deployResponse.OperationsMessage = operationsMessage(existingCtx, ctx)
+
 	Respond(w, deployResponse)
+}
+
+func operationsMessage(existingCtx *context.Context, currentCtx *context.Context) string {
+	existingEndpoints := make(map[string]string, len(existingCtx.APIs)) // endpoint -> API ID + API compute ID
+	for _, api := range existingCtx.APIs {
+		existingEndpoints[*api.Endpoint] = api.ID + api.Compute.ID()
+	}
+
+	currentEndpoints := make(map[string]string, len(currentCtx.APIs)) // endpoint -> API ID + API compute ID
+	for _, api := range currentCtx.APIs {
+		currentEndpoints[*api.Endpoint] = api.ID + api.Compute.ID()
+	}
+
+	newEndpoints := strset.New()
+	updatedEndpoints := strset.New()
+	deletedEndpoints := strset.New()
+	unchangedEndpoints := strset.New()
+
+	for endpoint, currentID := range currentEndpoints {
+		if existingID, ok := existingEndpoints[endpoint]; ok {
+			if currentID == existingID {
+				unchangedEndpoints.Add(endpoint)
+			} else {
+				updatedEndpoints.Add(endpoint)
+			}
+		} else {
+			newEndpoints.Add(endpoint)
+		}
+	}
+
+	for endpoint := range existingEndpoints {
+		if _, ok := currentEndpoints[endpoint]; ok {
+			continue
+		}
+		deletedEndpoints.Add(endpoint)
+	}
+
+	var strs []string
+	for endpoint := range newEndpoints {
+		strs = append(strs, "created endpoint: "+endpoint)
+	}
+	for endpoint := range updatedEndpoints {
+		strs = append(strs, "updated endpoint: "+endpoint)
+	}
+	for endpoint := range deletedEndpoints {
+		strs = append(strs, "deleted endpoint: "+endpoint)
+	}
+	for endpoint := range unchangedEndpoints {
+		strs = append(strs, "endpoint not changed: "+endpoint)
+	}
+
+	return strings.Join(strs, "\n")
 }
