@@ -82,7 +82,6 @@ func Execute() {
 	rootCmd.AddCommand(getCmd)
 	rootCmd.AddCommand(logsCmd)
 	rootCmd.AddCommand(predictCmd)
-	rootCmd.AddCommand(refreshCmd)
 	rootCmd.AddCommand(deleteCmd)
 
 	rootCmd.AddCommand(clusterCmd)

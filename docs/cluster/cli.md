@@ -13,6 +13,7 @@ Flags:
   -e, --env string   environment (default "default")
   -f, --force        stop all running jobs
   -h, --help         help for deploy
+  -r, --refresh      re-deploy all APIs
 ```
 
 ## get
@@ -61,22 +62,6 @@ Flags:
   -d, --deployment string   deployment name
   -e, --env string          environment (default "default")
   -h, --help                help for predict
-```
-
-## refresh
-
-```text
-This command sends all project configuration and code to Cortex.
-If validations pass, Cortex will attempt to create the desired state,
-and override the existing deployment.
-
-Usage:
-  cortex refresh [flags]
-
-Flags:
-  -e, --env string   environment (default "default")
-  -f, --force        stop all running jobs
-  -h, --help         help for refresh
 ```
 
 ## delete
