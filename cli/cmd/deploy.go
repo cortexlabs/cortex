@@ -118,7 +118,4 @@ func deploy(force bool, ignoreCache bool) {
 	}
 
 	fmt.Println(console.Bold(deployResponse.Message))
-	if deployResponse.OperationsMessage != "" {
-		fmt.Println("\n" + deployResponse.OperationsMessage)
-	}
 }

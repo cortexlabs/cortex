@@ -29,13 +29,10 @@ import (
 )
 
 const (
-	ResDeploymentStarted              = "deployment started"
-	ResDeploymentUpdated              = "deployment updated"
-	ResDeploymentDeleted              = "deployment deleted"
-	ResDeploymentUpToDate             = "deployment is up-to-date"
-	ResDeploymentUpToDateUpdating     = "deployment is already updating"
-	ResDifferentDeploymentUpdating    = "previous deployment is currently updating, use --force to override"
-	ResCachedDeletedDeploymentStarted = "cache deleted, deployment started"
+	ResDeploymentDeleted           = "deleting deployment"
+	ResDeploymentUpToDate          = "all APIs are up-to-date"
+	ResDeploymentUpToDateUpdating  = "deployment is already updating"
+	ResDifferentDeploymentUpdating = "previous deployment is updating (override with --force)"
 )
 
 func Respond(w http.ResponseWriter, response interface{}) {

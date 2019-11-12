@@ -17,12 +17,12 @@ limitations under the License.
 package endpoints
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
@@ -126,75 +126,56 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	deployResponse := schema.DeployResponse{Context: ctx, APIsBaseURL: apisBaseURL}
-	switch {
-	case isUpdating && ignoreCache:
-		deployResponse.Message = ResCachedDeletedDeploymentStarted
-	case isUpdating && !ignoreCache:
-		deployResponse.Message = ResDeploymentUpdated
-	case !isUpdating && ignoreCache:
-		deployResponse.Message = ResCachedDeletedDeploymentStarted
-	case !isUpdating && !ignoreCache && existingCtx == nil:
-		deployResponse.Message = ResDeploymentStarted
-	case !isUpdating && !ignoreCache && existingCtx != nil && !fullCtxMatch:
-		deployResponse.Message = ResDeploymentUpdated
-	case !isUpdating && !ignoreCache && existingCtx != nil && fullCtxMatch:
-		deployResponse.Message = ResDeploymentUpToDate
-	default:
-		deployResponse.Message = ResDeploymentUpdated
-	}
 
-	deployResponse.OperationsMessage = operationsMessage(existingCtx, ctx)
+	if !isUpdating && !ignoreCache && existingCtx != nil && fullCtxMatch {
+		deployResponse.Message = ResDeploymentUpToDate
+	} else {
+		deployResponse.Message = apiDiffMessage(existingCtx, ctx, apisBaseURL)
+	}
 
 	Respond(w, deployResponse)
 }
 
-func operationsMessage(existingCtx *context.Context, currentCtx *context.Context) string {
-	existingEndpoints := make(map[string]string, len(existingCtx.APIs)) // endpoint -> API ID + API compute ID
-	for _, api := range existingCtx.APIs {
-		existingEndpoints[*api.Endpoint] = api.ID + api.Compute.ID()
-	}
+func apiDiffMessage(previousCtx *context.Context, currentCtx *context.Context, apisBaseURL string) string {
+	var newAPIs []context.API
+	var updatedAPIs []context.API
+	var deletedAPIs []context.API
+	var unchangedAPIs []context.API
 
-	currentEndpoints := make(map[string]string, len(currentCtx.APIs)) // endpoint -> API ID + API compute ID
-	for _, api := range currentCtx.APIs {
-		currentEndpoints[*api.Endpoint] = api.ID + api.Compute.ID()
-	}
-
-	newEndpoints := strset.New()
-	updatedEndpoints := strset.New()
-	deletedEndpoints := strset.New()
-	unchangedEndpoints := strset.New()
-
-	for endpoint, currentID := range currentEndpoints {
-		if existingID, ok := existingEndpoints[endpoint]; ok {
-			if currentID == existingID {
-				unchangedEndpoints.Add(endpoint)
+	if previousCtx == nil {
+		for _, api := range currentCtx.APIs {
+			newAPIs = append(newAPIs, *api)
+		}
+	} else {
+		for _, api := range currentCtx.APIs {
+			if prevAPI, ok := previousCtx.APIs[api.Name]; ok {
+				if api.ID == prevAPI.ID && api.Compute.ID() == prevAPI.Compute.ID() {
+					unchangedAPIs = append(unchangedAPIs, *api)
+				} else {
+					updatedAPIs = append(updatedAPIs, *api)
+				}
 			} else {
-				updatedEndpoints.Add(endpoint)
+				newAPIs = append(newAPIs, *api)
 			}
-		} else {
-			newEndpoints.Add(endpoint)
 		}
-	}
 
-	for endpoint := range existingEndpoints {
-		if _, ok := currentEndpoints[endpoint]; ok {
-			continue
+		for _, api := range previousCtx.APIs {
+			if _, ok := currentCtx.APIs[api.Name]; ok {
+				continue
+			}
+			deletedAPIs = append(deletedAPIs, *api)
 		}
-		deletedEndpoints.Add(endpoint)
 	}
 
 	var strs []string
-	for endpoint := range newEndpoints {
-		strs = append(strs, "created endpoint: "+endpoint)
+	for _, api := range newAPIs {
+		strs = append(strs, fmt.Sprintf("creating %s", api.Name))
 	}
-	for endpoint := range updatedEndpoints {
-		strs = append(strs, "updated endpoint: "+endpoint)
+	for _, api := range updatedAPIs {
+		strs = append(strs, fmt.Sprintf("updating %s", api.Name))
 	}
-	for endpoint := range deletedEndpoints {
-		strs = append(strs, "deleted endpoint: "+endpoint)
-	}
-	for endpoint := range unchangedEndpoints {
-		strs = append(strs, "endpoint not changed: "+endpoint)
+	for _, api := range deletedAPIs {
+		strs = append(strs, fmt.Sprintf("deleting %s", api.Name))
 	}
 
 	return strings.Join(strs, "\n")
