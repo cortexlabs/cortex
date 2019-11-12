@@ -11,9 +11,9 @@ Usage:
 
 Flags:
   -e, --env string   environment (default "default")
-  -f, --force        stop all running jobs
+  -f, --force        override the in-progress deployment update
   -h, --help         help for deploy
-  -r, --refresh      re-deploy all APIs
+  -r, --refresh      re-deploy with cleared cache and rolling updates
 ```
 
 ## get

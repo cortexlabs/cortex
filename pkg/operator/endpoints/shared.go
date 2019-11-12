@@ -30,7 +30,7 @@ import (
 
 const (
 	ResDeploymentDeleted           = "deleting deployment"
-	ResDeploymentUpToDate          = "all APIs are up-to-date"
+	ResDeploymentUpToDate          = "deployment is live"
 	ResDeploymentUpToDateUpdating  = "deployment is already updating"
 	ResDifferentDeploymentUpdating = "previous deployment is updating (override with --force)"
 )

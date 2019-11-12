@@ -140,7 +140,6 @@ func apiDiffMessage(previousCtx *context.Context, currentCtx *context.Context, a
 	var newAPIs []context.API
 	var updatedAPIs []context.API
 	var deletedAPIs []context.API
-	var unchangedAPIs []context.API
 
 	if previousCtx == nil {
 		for _, api := range currentCtx.APIs {
@@ -149,9 +148,7 @@ func apiDiffMessage(previousCtx *context.Context, currentCtx *context.Context, a
 	} else {
 		for _, api := range currentCtx.APIs {
 			if prevAPI, ok := previousCtx.APIs[api.Name]; ok {
-				if api.ID == prevAPI.ID && api.Compute.ID() == prevAPI.Compute.ID() {
-					unchangedAPIs = append(unchangedAPIs, *api)
-				} else {
+				if api.ID != prevAPI.ID || api.Compute.ID() != prevAPI.Compute.ID() {
 					updatedAPIs = append(updatedAPIs, *api)
 				}
 			} else {
