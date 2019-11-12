@@ -24,15 +24,14 @@ import zipfile
 import hashlib
 import msgpack
 import pathlib
+import inspect
+from inspect import Parameter
+
 from copy import deepcopy
 from datetime import datetime
 
-from cortex.lib.log import get_logger
 from cortex.lib import stringify
 import json_tricks
-
-
-logger = get_logger()
 
 
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
@@ -42,6 +41,17 @@ def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
 def json_tricks_encoder(*args, **kwargs):
     kwargs["primitives"] = True
     kwargs["obj_encoders"] = json_tricks.nonp.DEFAULT_ENCODERS
+    params = list(inspect.signature(json_tricks.TricksEncoder).parameters.values())
+    params += list(inspect.signature(json.JSONEncoder).parameters.values())
+    expected_keys = set()
+    for param in params:
+        if param.kind == Parameter.POSITIONAL_OR_KEYWORD or param.kind == Parameter.KEYWORD_ONLY:
+            expected_keys.add(param.name)
+
+    for key in list(kwargs.keys()):
+        if key not in expected_keys:
+            kwargs.pop(key)
+
     return json_tricks.TricksEncoder(*args, **kwargs)
 
 

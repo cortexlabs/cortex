@@ -24,12 +24,9 @@ import onnxruntime as rt
 import numpy as np
 
 from cortex.lib import util, Context, api_utils
-from cortex.lib.log import get_logger, debug_obj
+from cortex.lib.log import cx_logger, debug_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 from cortex.lib.stringify import truncate
-
-logger = get_logger()
-logger.propagate = False  # prevent double logging (flask modifies root logger)
 
 app = Flask(__name__)
 
@@ -79,7 +76,7 @@ def after_request(response):
     api = local_cache["api"]
     ctx = local_cache["ctx"]
 
-    logger.info(response.status)
+    cx_logger().info(response.status)
 
     prediction = None
     if "prediction" in g:
@@ -94,7 +91,7 @@ def after_request(response):
 
 def prediction_failed(reason):
     message = "prediction failed: {}".format(reason)
-    logger.error(message)
+    cx_logger().error(message)
     return message, status.HTTP_406_NOT_ACCEPTABLE
 
 
@@ -215,7 +212,7 @@ def predict():
 
             debug_obj("post_inference", result, debug)
     except Exception as e:
-        logger.exception("prediction failed")
+        cx_logger().exception("prediction failed")
         return prediction_failed(str(e))
 
     g.prediction = result
@@ -238,7 +235,7 @@ def get_signature():
 
 @app.errorhandler(Exception)
 def exceptions(e):
-    logger.exception(e)
+    cx_logger().exception(e)
     return jsonify(error=str(e)), 500
 
 
@@ -262,46 +259,47 @@ def start(args):
         request_handler = local_cache.get("request_handler")
 
         if request_handler is not None and util.has_function(request_handler, "pre_inference"):
-            logger.info(
+            cx_logger().info(
                 "using pre_inference request handler provided in {}".format(
                     api["onnx"]["request_handler"]
                 )
             )
         else:
-            logger.info("pre_inference request handler not found")
+            cx_logger().info("pre_inference request handler not found")
 
         if request_handler is not None and util.has_function(request_handler, "post_inference"):
-            logger.info(
+            cx_logger().info(
                 "using post_inference request handler provided in {}".format(
                     api["onnx"]["request_handler"]
                 )
             )
         else:
-            logger.info("post_inference request handler not found")
+            cx_logger().info("post_inference request handler not found")
 
         sess = rt.InferenceSession(model_path)
         local_cache["sess"] = sess
         local_cache["input_metadata"] = sess.get_inputs()
-        logger.info(
+        cx_logger().info(
             "input_metadata: {}".format(truncate(extract_signature(local_cache["input_metadata"])))
         )
         local_cache["output_metadata"] = sess.get_outputs()
-        logger.info(
+        cx_logger().info(
             "output_metadata: {}".format(
                 truncate(extract_signature(local_cache["output_metadata"]))
             )
         )
 
     except Exception as e:
-        logger.exception("failed to start api")
+        cx_logger().exception("failed to start api")
         sys.exit(1)
 
     if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
         try:
             local_cache["class_set"] = api_utils.get_classes(ctx, api["name"])
         except Exception as e:
-            logger.warn("an error occurred while attempting to load classes", exc_info=True)
+            cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
+    cx_logger().info("API is ready")
     serve(app, listen="*:{}".format(args.port))
 
 

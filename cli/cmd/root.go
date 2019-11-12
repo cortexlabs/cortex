@@ -82,7 +82,6 @@ func Execute() {
 	rootCmd.AddCommand(getCmd)
 	rootCmd.AddCommand(logsCmd)
 	rootCmd.AddCommand(predictCmd)
-	rootCmd.AddCommand(refreshCmd)
 	rootCmd.AddCommand(deleteCmd)
 
 	rootCmd.AddCommand(clusterCmd)
@@ -108,7 +107,7 @@ func updateRootUsage() {
 		}
 
 		usage = strings.Replace(usage, "Usage:\n  cortex [command]\n\nAliases:\n  cortex, cx\n\n", "", 1)
-		usage = strings.Replace(usage, "Available Commands:", "Deployment Commands:", 1)
+		usage = strings.Replace(usage, "Available Commands:", "Deployment commands:", 1)
 		usage = strings.Replace(usage, "\n  cluster", "\n\nCluster commands:\n  cluster", 1)
 		usage = strings.Replace(usage, "\n  configure", "\n\nOther commands:\n  configure", 1)
 		usage = strings.Replace(usage, "\nUse \"cortex", "  help        help about any command\n\nFlags:\n  -h, --help   help for cortex\n\nUse \"cortex", 1)

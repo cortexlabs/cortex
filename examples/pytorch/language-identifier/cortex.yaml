@@ -1,0 +1,9 @@
+- kind: deployment
+  name: language
+
+- kind: api
+  name: identifier
+  predictor:
+    path: predictor.py
+  tracker:
+    model_type: classification

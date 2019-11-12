@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:1.14.0-py3
+FROM tensorflow/tensorflow:2.0.0-py3
 
 RUN apt-get update -qq && apt-get install -y -q \
         zlib1g-dev \
@@ -13,11 +13,13 @@ RUN apt-get update -qq && apt-get install -y -q \
         pkg-config \
         software-properties-common \
         zlib1g-dev \
+        git \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
 COPY pkg/workloads/cortex/tf_api/requirements.txt /src/cortex/tf_api/requirements.txt
-RUN pip install -r /src/cortex/lib/requirements.txt && \
+RUN pip install --upgrade pip && \
+    pip install -r /src/cortex/lib/requirements.txt && \
     pip install -r /src/cortex/tf_api/requirements.txt && \
     rm -rf /root/.cache/pip*
 

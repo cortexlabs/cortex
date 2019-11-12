@@ -72,7 +72,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
 ```bash
 $ cortex deploy
 
-deployment started
+creating classifier
 ```
 
 Behind the scenes, Cortex containerizes our implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
@@ -95,13 +95,13 @@ We can use `curl` to test our prediction service:
 ```bash
 $ cortex get classifier
 
-url: http://***.amazonaws.com/image/classifier
+endpoint: http://***.amazonaws.com/image/classifier
 
 $ curl http://***.amazonaws.com/image/classifier \
     -X POST -H "Content-Type: application/json" \
-    -d '{"url": "https://bowwowinsurance.com.au/wp-content/uploads/2018/10/akita-700x700.jpg"}'
+    -d '{"url": "https://i.imgur.com/PzXprwl.jpg"}'
 
-"Eskimo dog"
+"hotdog"
 ```
 
 Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).

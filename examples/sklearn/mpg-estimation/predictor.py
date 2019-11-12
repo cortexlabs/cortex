@@ -1,4 +1,4 @@
-from joblib import load
+import mlflow.sklearn
 import numpy as np
 
 
@@ -7,7 +7,7 @@ model = None
 
 def init(model_path, metadata):
     global model
-    model = load(model_path)
+    model = mlflow.sklearn.load_model(model_path)
 
 
 def predict(sample, metadata):

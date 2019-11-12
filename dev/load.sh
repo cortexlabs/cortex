@@ -18,7 +18,7 @@
 SLEEP="0"  # seconds
 
 # Iris
-URL="https://a5a5afc3ba1bb11e9a4d20ab58369843-145237363.us-west-2.elb.amazonaws.com/iris/tensorflow"
+URL="http://a4ee971c803e211ea9dd806fb935f8b0-108090235.us-west-2.elb.amazonaws.com/iris/classifier"
 DATA='{ "sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3 }'
 
 trap ctrl_c INT

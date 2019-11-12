@@ -19,6 +19,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"os/signal"
@@ -103,6 +104,7 @@ func pullManager(clusterConfig *clusterconfig.ClusterConfig) error {
 
 	termFd, isTerm := term.GetFdInfo(os.Stderr)
 	jsonmessage.DisplayJSONMessagesStream(pullOutput, os.Stderr, termFd, isTerm, nil)
+	fmt.Println()
 
 	return nil
 }

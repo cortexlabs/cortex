@@ -26,7 +26,7 @@ for example in $ROOT/examples/*/cortex.yaml; do
 
   cd $example_base_dir
   echo "Deploying $example_base_dir"
-  $CORTEX refresh
+  $CORTEX deploy --refresh
 
   api_names="$($CORTEX get | sed '1,2d' | sed '/^$/d' | tr -s ' ' | cut -f 1 -d " ")"
   sample="$(find . -name "*.json")"
@@ -36,7 +36,7 @@ for example in $ROOT/examples/*/cortex.yaml; do
     echo "$current_status"
 
     error_count="$(echo $current_status | { grep "error" || test $? = 1; } | wc -l)"
-    # accomodate transient error `error: failed to connect to operator...`
+    # accommodate transient error `error: failed to connect to operator...`
     if [ $error_count -gt "0" ] && [[ ! $current_status =~ ^error\:\ failed\ to\ connect\ to\ the\ operator.* ]]; then
       exit 1
     fi
@@ -53,7 +53,7 @@ for example in $ROOT/examples/*/cortex.yaml; do
         prediction_exit_code=$?
         echo "$result"
         if [ $prediction_exit_code -ne 0 ]; then
-          # accomodate transient error `error: failed to connect to operator...`
+          # accommodate transient error `error: failed to connect to operator...`
           # handle `error: api ... is updating` error caused when the API status is set to `ready` but it actually isn't
           if [[ $result =~ ^error\:\ failed\ to\ connect\ to\ the\ operator.* ]] || [[ $result =~ ^error\:\ api.*is\ updating$ ]]; then
               echo "retrying prediction..."

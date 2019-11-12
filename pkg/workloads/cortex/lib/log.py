@@ -14,6 +14,7 @@
 
 import logging
 import sys
+import time
 
 from cortex.lib import stringify
 import datetime as dt
@@ -28,23 +29,39 @@ class MyFormatter(logging.Formatter):
         return s
 
 
-logger = logging.getLogger("cortex")
-handler = logging.StreamHandler(stream=sys.stdout)
-formatter = MyFormatter(
-    fmt="%(asctime)s:%(name)s:%(levelname)s:%(message)s", datefmt="%Y-%m-%d %H:%M:%S.%f"
-)
-handler.setFormatter(formatter)
+current_logger = None
 
-logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
+
+def register_logger(name):
+    logger = logging.getLogger(name)
+    handler = logging.StreamHandler(stream=sys.stdout)
+    formatter = MyFormatter(
+        fmt="%(asctime)s:cortex:%(levelname)s:%(message)s", datefmt="%Y-%m-%d %H:%M:%S.%f"
+    )
+    handler.setFormatter(formatter)
+
+    logger.propagate = False
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
+    return logger
+
+
+def refresh_logger():
+    global current_logger
+    if current_logger is not None:
+        current_logger.disabled = True
+    current_logger = register_logger("{}-cortex".format(int(time.time() * 1000000)))
+
+
+def cx_logger():
+    return current_logger
 
 
 def debug_obj(name, sample, debug):
     if not debug:
         return
 
-    logger.info("{}: {}".format(name, stringify.truncate(sample)))
+    cx_logger().info("{}: {}".format(name, stringify.truncate(sample)))
 
 
-def get_logger():
-    return logging.getLogger("cortex")
+refresh_logger()

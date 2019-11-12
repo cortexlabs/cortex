@@ -34,9 +34,11 @@ import (
 
 var MaxProjectSize = 1024 * 1024 * 50
 var flagDeployForce bool
+var flagDeployRefresh bool
 
 func init() {
-	deployCmd.PersistentFlags().BoolVarP(&flagDeployForce, "force", "f", false, "stop all running jobs")
+	deployCmd.PersistentFlags().BoolVarP(&flagDeployForce, "force", "f", false, "override the in-progress deployment update")
+	deployCmd.PersistentFlags().BoolVarP(&flagDeployRefresh, "refresh", "r", false, "re-deploy with cleared cache and rolling updates")
 	addEnvFlag(deployCmd)
 }
 
@@ -47,7 +49,7 @@ var deployCmd = &cobra.Command{
 If validations pass, Cortex will attempt to create the desired state.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		deploy(flagDeployForce, false)
+		deploy(flagDeployForce, flagDeployRefresh)
 	},
 }
 

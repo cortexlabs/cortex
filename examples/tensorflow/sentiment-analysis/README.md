@@ -62,7 +62,7 @@ def post_inference(prediction, signature, metadata):
 ```bash
 $ cortex deploy
 
-deployment started
+creating classifier
 ```
 
 Behind the scenes, Cortex containerizes our implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
@@ -85,7 +85,7 @@ We can use `curl` to test our prediction service:
 ```bash
 $ cortex get classifier
 
-url: http://***.amazonaws.com/sentiment/classifier
+endpoint: http://***.amazonaws.com/sentiment/classifier
 
 $ curl http://***.amazonaws.com/sentiment/classifier \
     -X POST -H "Content-Type: application/json" \

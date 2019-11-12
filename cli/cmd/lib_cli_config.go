@@ -133,6 +133,11 @@ func readCLIConfig() (*CLIConfig, []error) {
 	return cachedCLIConfig, errors.WrapAll(cachedCLIConfigErrs, configPath)
 }
 
+func isCLIConfigured() bool {
+	_, errs := readCLIConfig()
+	return !errors.HasErrors(errs)
+}
+
 func getValidCLIConfig() *CLIConfig {
 	cliConfig, errs := readCLIConfig()
 	if errors.HasErrors(errs) {

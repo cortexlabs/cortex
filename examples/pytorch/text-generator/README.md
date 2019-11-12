@@ -57,7 +57,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
   predictor:
     path: predictor.py
     metadata:
-      num_words: 20  # generate 20 words per request
+      num_words: 50  # generate 50 words per request
       device: cuda  # run on GPU
   compute:
     gpu: 1
@@ -71,7 +71,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
 ```bash
 $ cortex deploy
 
-deployment started
+creating generator
 ```
 
 Behind the scenes, Cortex containerizes our implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
@@ -94,7 +94,7 @@ We can use `curl` to test our prediction service:
 ```bash
 $ cortex get generator
 
-url: http://***.amazonaws.com/text/generator
+endpoint: http://***.amazonaws.com/text/generator
 
 $ curl http://***.amazonaws.com/text/generator \
     -X POST -H "Content-Type: application/json" \

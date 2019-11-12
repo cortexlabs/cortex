@@ -37,13 +37,21 @@ var versionCmd = &cobra.Command{
 	Long:  `This command prints the version of the CLI and cluster`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		if !isCLIConfigured() {
+			fmt.Println("CLI version: " + consts.CortexVersion + "\n")
+			fmt.Println("Run `cortex configure` to connect the CLI to a Cortex cluster")
+			return
+		}
+
 		httpResponse, err := HTTPGet("/info")
 		if err != nil {
+			fmt.Println("CLI version: " + consts.CortexVersion + "\n")
 			errors.Exit(err)
 		}
 		var infoResponse schema.InfoResponse
 		err = json.Unmarshal(httpResponse, &infoResponse)
 		if err != nil {
+			fmt.Println("CLI version: " + consts.CortexVersion + "\n")
 			errors.Exit(err, "/info", string(httpResponse))
 		}
 

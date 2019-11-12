@@ -17,7 +17,9 @@ limitations under the License.
 package endpoints
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -124,22 +126,54 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	deployResponse := schema.DeployResponse{Context: ctx, APIsBaseURL: apisBaseURL}
-	switch {
-	case isUpdating && ignoreCache:
-		deployResponse.Message = ResCachedDeletedDeploymentStarted
-	case isUpdating && !ignoreCache:
-		deployResponse.Message = ResDeploymentUpdated
-	case !isUpdating && ignoreCache:
-		deployResponse.Message = ResCachedDeletedDeploymentStarted
-	case !isUpdating && !ignoreCache && existingCtx == nil:
-		deployResponse.Message = ResDeploymentStarted
-	case !isUpdating && !ignoreCache && existingCtx != nil && !fullCtxMatch:
-		deployResponse.Message = ResDeploymentUpdated
-	case !isUpdating && !ignoreCache && existingCtx != nil && fullCtxMatch:
+
+	if !isUpdating && !ignoreCache && existingCtx != nil && fullCtxMatch {
 		deployResponse.Message = ResDeploymentUpToDate
-	default:
-		deployResponse.Message = ResDeploymentUpdated
+	} else {
+		deployResponse.Message = apiDiffMessage(existingCtx, ctx, apisBaseURL)
 	}
 
 	Respond(w, deployResponse)
+}
+
+func apiDiffMessage(previousCtx *context.Context, currentCtx *context.Context, apisBaseURL string) string {
+	var newAPIs []context.API
+	var updatedAPIs []context.API
+	var deletedAPIs []context.API
+
+	if previousCtx == nil {
+		for _, api := range currentCtx.APIs {
+			newAPIs = append(newAPIs, *api)
+		}
+	} else {
+		for _, api := range currentCtx.APIs {
+			if prevAPI, ok := previousCtx.APIs[api.Name]; ok {
+				if api.ID != prevAPI.ID || api.Compute.ID() != prevAPI.Compute.ID() {
+					updatedAPIs = append(updatedAPIs, *api)
+				}
+			} else {
+				newAPIs = append(newAPIs, *api)
+			}
+		}
+
+		for _, api := range previousCtx.APIs {
+			if _, ok := currentCtx.APIs[api.Name]; ok {
+				continue
+			}
+			deletedAPIs = append(deletedAPIs, *api)
+		}
+	}
+
+	var strs []string
+	for _, api := range newAPIs {
+		strs = append(strs, fmt.Sprintf("creating %s", api.Name))
+	}
+	for _, api := range updatedAPIs {
+		strs = append(strs, fmt.Sprintf("updating %s", api.Name))
+	}
+	for _, api := range deletedAPIs {
+		strs = append(strs, fmt.Sprintf("deleting %s", api.Name))
+	}
+
+	return strings.Join(strs, "\n")
 }
