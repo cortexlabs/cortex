@@ -73,7 +73,12 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 		return allDeploymentsStr()
 	}
 
-	resourcesRes, err := getResourcesResponse()
+	appName, err := AppNameFromFlagOrConfig()
+	if err != nil {
+		errors.Exit(err)
+	}
+
+	resourcesRes, err := getResourcesResponse(appName)
 	if err != nil {
 		return "", err
 	}
@@ -103,42 +108,41 @@ func allDeploymentsStr() (string, error) {
 		return "", err
 	}
 
-	var resourcesRes schema.GetDeploymentsResponse
-	if err = json.Unmarshal(httpResponse, &resourcesRes); err != nil {
+	var deploymentsRes schema.GetDeploymentsResponse
+	if err = json.Unmarshal(httpResponse, &deploymentsRes); err != nil {
 		return "", err
 	}
 
-	if len(resourcesRes.Deployments) == 0 {
+	if len(deploymentsRes.Deployments) == 0 {
 		return console.Bold("no deployments found"), nil
 	}
 
-	rows := make([][]interface{}, len(resourcesRes.Deployments))
-	for idx, deployment := range resourcesRes.Deployments {
-		rows[idx] = []interface{}{
-			deployment.Name,
-			deployment.Status.String(),
-			libtime.Since(&deployment.LastUpdated),
+	fullTable := table.Table{}
+
+	for deploymentIndex, deployment := range deploymentsRes.Deployments {
+		resourcesRes, err := getResourcesResponse(deployment.Name)
+		if err != nil {
+			return "", err
 		}
+
+		t := apiResourceTable(resourcesRes.APIGroupStatuses)
+
+		if deploymentIndex == 0 {
+			deploymentHeader := table.Header{Title: "deployment"}
+			fullTable.Headers = append([]table.Header{deploymentHeader}, t.Headers...)
+		}
+
+		for i := range t.Rows {
+			t.Rows[i] = append([]interface{}{deployment.Name}, t.Rows[i]...)
+		}
+
+		fullTable.Rows = append(fullTable.Rows, t.Rows...)
 	}
 
-	t := table.Table{
-		Headers: []table.Header{
-			{Title: "name", MaxWidth: 32},
-			{Title: "status", MaxWidth: 21},
-			{Title: "last update"},
-		},
-		Rows: rows,
-	}
-
-	return table.MustFormat(t), nil
+	return table.Format(fullTable)
 }
 
-func getResourcesResponse() (*schema.GetResourcesResponse, error) {
-	appName, err := AppNameFromFlagOrConfig()
-	if err != nil {
-		return nil, err
-	}
-
+func getResourcesResponse(appName string) (*schema.GetResourcesResponse, error) {
 	params := map[string]string{"appName": appName}
 	httpResponse, err := HTTPGet("/resources", params)
 	if err != nil {
@@ -195,7 +199,7 @@ func apisStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
 		return ""
 	}
 
-	return apiResourceTable(apiGroupStatuses)
+	return table.MustFormat(apiResourceTable(apiGroupStatuses))
 }
 
 func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVerbose bool) (string, error) {
@@ -259,7 +263,7 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 
 	out += predictionMetrics
 
-	out += "\n" + console.Bold("url: ") + apiEndpoint
+	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
 
 	if !flagVerbose {
 		return out, nil
@@ -526,7 +530,7 @@ func dataResourceTable(resources []context.Resource, dataStatuses map[string]*re
 	return table.MustFormat(t)
 }
 
-func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
+func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) table.Table {
 	rows := make([][]interface{}, 0, len(apiGroupStatuses))
 
 	totalFailed := 0
@@ -562,7 +566,7 @@ func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) stri
 		Rows: rows,
 	}
 
-	return table.MustFormat(t)
+	return t
 }
 
 func titleStr(title string) string {

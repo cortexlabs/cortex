@@ -48,7 +48,12 @@ a JSON file and displays the response.`,
 		apiName := args[0]
 		sampleJSONPath := args[1]
 
-		resourcesRes, err := getResourcesResponse()
+		appName, err := AppNameFromFlagOrConfig()
+		if err != nil {
+			errors.Exit(err)
+		}
+
+		resourcesRes, err := getResourcesResponse(appName)
 		if err != nil {
 			errors.Exit(err)
 		}

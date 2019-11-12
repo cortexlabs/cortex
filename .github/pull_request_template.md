@@ -1,9 +1,11 @@
 Closes #<issue ID>
 
 ---
+
 Checklist:
+
 - [ ] Run `make test` and `make lint`
-- [ ] Test end to end manually (e.g. build/push all images, restart operator, and run `cx refresh`)
+- [ ] Test end to end manually (e.g. build/push all images, restart operator, and run `cortex deploy --refresh`)
 - [ ] Update examples
 - [ ] Update documentation (add any new files to `summary.md`)
 - [ ] Merge to master

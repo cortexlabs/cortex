@@ -65,7 +65,7 @@ def predict(sample, metadata):
 ```bash
 $ cortex deploy
 
-created endpoint: http://***.amazonaws.com/sentiment/classifier
+creating classifier (http://***.amazonaws.com/sentiment/classifier)
 ```
 
 ### Serve real-time predictions
