@@ -48,23 +48,24 @@ nodeGroups:
     instanceType: $CORTEX_INSTANCE_TYPE
     minSize: $CORTEX_MIN_INSTANCES
     maxSize: $CORTEX_MAX_INSTANCES
-    desiredCapacity: $CORTEX_MIN_INSTANCES
+    desiredCapacity: $CORTEX_DESIRED_INSTANCES
     ami: auto
     iam:
       withAddonPolicies:
         autoScaler: true
-    taints:
-      workload: "true:NoSchedule"
     tags:
       k8s.io/cluster-autoscaler/enabled: 'true'
       k8s.io/cluster-autoscaler/node-template/label/nvidia.com/gpu: 'true'
-      k8s.io/cluster-autoscaler/node-template/taint/dedicated: workload=true
+      k8s.io/cluster-autoscaler/node-template/taint/dedicated: nvidia.com/gpu=true
       k8s.io/cluster-autoscaler/node-template/label/workload: 'true'
       k8s.io/cluster-autoscaler/node-template/label/lifecycle: 'Ec2Spot'
     labels:
       lifecycle: Ec2Spot
       workload: "true"
       nvidia.com/gpu: 'true'
+    taints:
+      nvidia.com/gpu: "true:NoSchedule"
+      workload: "true:NoSchedule"
     kubeletExtraConfig:
       kubeReserved:
         cpu: 150m

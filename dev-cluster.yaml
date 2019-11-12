@@ -1,52 +1,3 @@
-# apiVersion: eksctl.io/v1alpha5
-# kind: ClusterConfig
-
-# metadata:
-#   name: cortex
-#   region: us-west-2
-#   version: "1.14"
-
-# nodeGroups:
-  # spot workers NG - multi AZ, scale from 3
-  # - name: ng-3
-  #   ami: auto
-  #   instanceType: mixed
-  #   minSize: 0
-  #   maxSize: 5
-  #   volumeSize: 100
-  #   volumeType: gp2
-  #   volumeEncrypted: true
-  #   iam:
-  #     withAddonPolicies:
-  #       autoScaler: true
-  #   instancesDistribution:
-  #     instanceTypes: [t3.medium, t3.large]
-  #     onDemandPercentageAboveBaseCapacity: 0
-  #     spotInstancePools: 2
-  #   taints:
-  #     workload: "true:NoSchedule"
-  #   tags:
-  #     k8s.io/cluster-autoscaler/enabled: 'true'
-  #     k8s.io/cluster-autoscaler/node-template/taint/dedicated: workload=true
-  #     k8s.io/cluster-autoscaler/node-template/label/workload: 'true'
-  #     k8s.io/cluster-autoscaler/node-template/label/lifecycle: 'Ec2Spot'
-  #   labels:
-  #     lifecycle: Ec2Spot
-  #   kubeletExtraConfig:
-  #     kubeReserved:
-  #       cpu: 150m
-  #       memory: 300Mi
-  #       ephemeral-storage: 1Gi
-  #     kubeReservedCgroup: /kube-reserved
-  #     systemReserved:
-  #       cpu: 150m
-  #       memory: 300Mi
-  #       ephemeral-storage: 1Gi
-  #     evictionHard:
-  #       memory.available:  200Mi
-  #       nodefs.available: 5%
-
-
 apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
@@ -60,23 +11,24 @@ nodeGroups:
     instanceType: p2.xlarge
     minSize: 0
     maxSize: 2
-    desiredCapacity: 0
+    desiredCapacity: 1
     ami: auto
     iam:
       withAddonPolicies:
         autoScaler: true
-    taints:
-      workload: "true:NoSchedule"
     tags:
       k8s.io/cluster-autoscaler/enabled: 'true'
       k8s.io/cluster-autoscaler/node-template/label/nvidia.com/gpu: 'true'
-      k8s.io/cluster-autoscaler/node-template/taint/dedicated: workload=true
+      k8s.io/cluster-autoscaler/node-template/taint/dedicated: nvidia.com/gpu=true
       k8s.io/cluster-autoscaler/node-template/label/workload: 'true'
       k8s.io/cluster-autoscaler/node-template/label/lifecycle: 'Ec2Spot'
     labels:
       lifecycle: Ec2Spot
       workload: "true"
       nvidia.com/gpu: 'true'
+    taints:
+      nvidia.com/gpu: "true:NoSchedule"
+      workload: "true:NoSchedule"
     kubeletExtraConfig:
       kubeReserved:
         cpu: 150m
@@ -90,40 +42,3 @@ nodeGroups:
       evictionHard:
         memory.available: 200Mi
         nodefs.available: 5%
-
-
-
-# nodeGroups:
-#   - name: spot-ng
-#     ami: auto
-#     instanceType: mixed
-#     desiredCapacity: 0
-#     minSize: 0
-#     maxSize: 2
-#     volumeSize: 100
-#     volumeType: gp2
-#     volumeEncrypted: true
-#     instancesDistribution:
-#       instanceTypes: [p2.xlarge, p2.8xlarge]
-#     iam:
-#       withAddonPolicies:
-#         autoScaler: true
-#     # tags:
-#     #   k8s.io/cluster-autoscaler/node-template/taint/dedicated: nvidia.com/gpu=true
-#     #   k8s.io/cluster-autoscaler/node-template/label/nvidia.com/gpu: 'true'
-#     #   k8s.io/cluster-autoscaler/enabled: 'true'
-#     kubeletExtraConfig:
-#       kubeReserved:
-#         cpu: 150m
-#         memory: 300Mi
-#         ephemeral-storage: 1Gi
-#       kubeReservedCgroup: /kube-reserved
-#       systemReserved:
-#         cpu: 150m
-#         memory: 300Mi
-#         ephemeral-storage: 1Gi
-#       evictionHard:
-#         memory.available:  200Mi
-#         nodefs.available: 5%
-#     taints:
-#       nvidia.com/gpu: "true:NoSchedule"
