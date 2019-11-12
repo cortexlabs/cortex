@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package userconfig
+package k8s
 
 import (
 	"encoding/json"
@@ -23,7 +23,6 @@ import (
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -43,7 +42,7 @@ func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
 	return func(str string) (interface{}, error) {
 		k8sQuantity, err := kresource.ParseQuantity(str)
 		if err != nil {
-			return Quantity{}, k8s.ErrorParseQuantity(str)
+			return Quantity{}, ErrorParseQuantity(str)
 		}
 
 		if v.GreaterThan != nil {
@@ -107,7 +106,7 @@ func (quantity *Quantity) ID() string {
 	return s.Int64(quantity.MilliValue())
 }
 
-func k8sQuantityPtr(k8sQuantity kresource.Quantity) *kresource.Quantity {
+func QuantityPtr(k8sQuantity kresource.Quantity) *kresource.Quantity {
 	return &k8sQuantity
 }
 

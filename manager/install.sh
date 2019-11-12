@@ -26,7 +26,13 @@ function ensure_eks() {
     fi
 
     echo -e "\n￮ Spinning up the cluster ... (this will take about 15 minutes)\n"
-    envsubst < eks.yaml | eksctl create cluster -f -
+    if [ $CORTEX_INSTANCE_GPU -ne 0 ]; then
+      echo "GPU"
+      envsubst < eks_gpu.yaml | eksctl create cluster -f -
+    else
+      echo "CPU"
+      envsubst < eks.yaml | eksctl create cluster -f -
+    fi
     echo -e "\n✓ Spun up the cluster"
     return
   fi

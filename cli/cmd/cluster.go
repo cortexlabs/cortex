@@ -75,7 +75,7 @@ var upCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		promptForEmail()
+		//promptForEmail()
 
 		clusterConfig, awsCreds, err := getInstallClusterConfig()
 		if err != nil {

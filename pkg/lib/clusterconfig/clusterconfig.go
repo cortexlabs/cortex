@@ -21,42 +21,48 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
+	kresource "k8s.io/apimachinery/pkg/api/resource"
+
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
-	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
 
 type ClusterConfig struct {
-	InstanceType           *string `json:"instance_type" yaml:"instance_type"`
-	MinInstances           *int64  `json:"min_instances" yaml:"min_instances"`
-	MaxInstances           *int64  `json:"max_instances" yaml:"max_instances"`
-	ClusterName            string  `json:"cluster_name" yaml:"cluster_name"`
-	Region                 string  `json:"region" yaml:"region"`
-	Bucket                 string  `json:"bucket" yaml:"bucket"`
-	LogGroup               string  `json:"log_group" yaml:"log_group"`
-	Telemetry              bool    `json:"telemetry" yaml:"telemetry"`
-	ImagePredictorServe    string  `json:"image_predictor_serve" yaml:"image_predictor_serve"`
-	ImagePredictorServeGPU string  `json:"image_predictor_serve_gpu" yaml:"image_predictor_serve_gpu"`
-	ImageTFServe           string  `json:"image_tf_serve" yaml:"image_tf_serve"`
-	ImageTFServeGPU        string  `json:"image_tf_serve_gpu" yaml:"image_tf_serve_gpu"`
-	ImageTFAPI             string  `json:"image_tf_api" yaml:"image_tf_api"`
-	ImageONNXServe         string  `json:"image_onnx_serve" yaml:"image_onnx_serve"`
-	ImageONNXServeGPU      string  `json:"image_onnx_serve_gpu" yaml:"image_onnx_serve_gpu"`
-	ImageOperator          string  `json:"image_operator" yaml:"image_operator"`
-	ImageManager           string  `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader        string  `json:"image_downloader" yaml:"image_downloader"`
-	ImageClusterAutoscaler string  `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
-	ImageMetricsServer     string  `json:"image_metrics_server" yaml:"image_metrics_server"`
-	ImageNvidia            string  `json:"image_nvidia" yaml:"image_nvidia"`
-	ImageFluentd           string  `json:"image_fluentd" yaml:"image_fluentd"`
-	ImageStatsd            string  `json:"image_statsd" yaml:"image_statsd"`
-	ImageIstioProxy        string  `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot        string  `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImageIstioCitadel      string  `json:"image_istio_citadel" yaml:"image_istio_citadel"`
-	ImageIstioGalley       string  `json:"image_istio_galley" yaml:"image_istio_galley"`
+	InstanceType           *string       `json:"instance_type" yaml:"instance_type"`
+	InstanceCPU            *k8s.Quantity `json:"instance_cpu" yaml:"instance_cpu"`
+	InstanceMem            *k8s.Quantity `json:"instance_mem" yaml:"instance_mem"`
+	InstanceGPU            int64         `json:"instance_gpu" yaml:"instance_gpu"`
+	MinInstances           *int64        `json:"min_instances" yaml:"min_instances"`
+	MaxInstances           *int64        `json:"max_instances" yaml:"max_instances"`
+	ClusterName            string        `json:"cluster_name" yaml:"cluster_name"`
+	Region                 string        `json:"region" yaml:"region"`
+	Bucket                 string        `json:"bucket" yaml:"bucket"`
+	LogGroup               string        `json:"log_group" yaml:"log_group"`
+	Telemetry              bool          `json:"telemetry" yaml:"telemetry"`
+	ImagePredictorServe    string        `json:"image_predictor_serve" yaml:"image_predictor_serve"`
+	ImagePredictorServeGPU string        `json:"image_predictor_serve_gpu" yaml:"image_predictor_serve_gpu"`
+	ImageTFServe           string        `json:"image_tf_serve" yaml:"image_tf_serve"`
+	ImageTFServeGPU        string        `json:"image_tf_serve_gpu" yaml:"image_tf_serve_gpu"`
+	ImageTFAPI             string        `json:"image_tf_api" yaml:"image_tf_api"`
+	ImageONNXServe         string        `json:"image_onnx_serve" yaml:"image_onnx_serve"`
+	ImageONNXServeGPU      string        `json:"image_onnx_serve_gpu" yaml:"image_onnx_serve_gpu"`
+	ImageOperator          string        `json:"image_operator" yaml:"image_operator"`
+	ImageManager           string        `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader        string        `json:"image_downloader" yaml:"image_downloader"`
+	ImageClusterAutoscaler string        `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
+	ImageMetricsServer     string        `json:"image_metrics_server" yaml:"image_metrics_server"`
+	ImageNvidia            string        `json:"image_nvidia" yaml:"image_nvidia"`
+	ImageFluentd           string        `json:"image_fluentd" yaml:"image_fluentd"`
+	ImageStatsd            string        `json:"image_statsd" yaml:"image_statsd"`
+	ImageIstioProxy        string        `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot        string        `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImageIstioCitadel      string        `json:"image_istio_citadel" yaml:"image_istio_citadel"`
+	ImageIstioGalley       string        `json:"image_istio_galley" yaml:"image_istio_galley"`
 }
 
 type InternalClusterConfig struct {
@@ -75,9 +81,30 @@ var Validation = &cr.StructValidation{
 			},
 		},
 		{
+			StructField:         "InstanceCPU",
+			StringPtrValidation: &cr.StringPtrValidation{},
+			Parser: k8s.QuantityParser(&k8s.QuantityValidation{
+				GreaterThan: k8s.QuantityPtr(kresource.MustParse("0")),
+			}),
+		},
+		{
+			StructField:         "InstanceMem",
+			StringPtrValidation: &cr.StringPtrValidation{},
+			Parser: k8s.QuantityParser(&k8s.QuantityValidation{
+				GreaterThan: k8s.QuantityPtr(kresource.MustParse("0")),
+			}),
+		},
+		{
+			StructField: "InstanceGPU",
+			Int64Validation: &cr.Int64Validation{
+				Default:              0,
+				GreaterThanOrEqualTo: pointer.Int64(0),
+			},
+		},
+		{
 			StructField: "MinInstances",
 			Int64PtrValidation: &cr.Int64PtrValidation{
-				GreaterThan: pointer.Int64(0),
+				GreaterThanOrEqualTo: pointer.Int64(0),
 			},
 		},
 		{
@@ -168,7 +195,7 @@ var Validation = &cr.StructValidation{
 		{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/manager:" + consts.CortexVersion,
+				Default: "969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/manager:latest",
 			},
 		},
 		{
@@ -259,7 +286,7 @@ func PromptValidation(skipPopulatedFields bool, promptInstanceType bool, default
 		defaults.InstanceType = pointer.String("m5.large")
 	}
 	if defaults.MinInstances == nil {
-		defaults.MinInstances = pointer.Int64(2)
+		defaults.MinInstances = pointer.Int64(1)
 	}
 	if defaults.MaxInstances == nil {
 		defaults.MaxInstances = pointer.Int64(5)
@@ -326,8 +353,8 @@ func validateInstanceType(instanceType string) (string, error) {
 
 // This does not set defaults for fields that are prompted from the user
 func SetFileDefaults(clusterConfig *ClusterConfig) error {
-	var emtpyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(clusterConfig, emtpyMap, Validation)
+	var emptyMap interface{} = map[interface{}]interface{}{}
+	errs := cr.Struct(clusterConfig, emptyMap, Validation)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}

@@ -32,7 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-var cortexCPUReserve = kresource.MustParse("800m")   // FluentD (200), Nvidia (50), StatsD (100), Kube Procy, (100) Node capacity - Node availability 300 CPU
+var cortexCPUReserve = kresource.MustParse("800m")   // FluentD (200), Nvidia (50), StatsD (100), Kube Proxy, (100) Node capacity - Node availability 300 CPU
 var cortexMemReserve = kresource.MustParse("1500Mi") // FluentD (200), Nvidia (50), StatsD (100), KubeReserved (800), AWS node memory - Node capacity (200)
 
 func Init() error {
@@ -302,11 +302,6 @@ func GetDeploymentStatus(appName string) (resource.DeploymentStatus, error) {
 }
 
 func ValidateDeploy(ctx *context.Context) error {
-	// maxCPU := config.Cortex.NodeCPU.Copy()
-	// maxCPU.Sub(cortexCPUReserve)
-	// maxMem := config.Cortex.NodeMem.Copy()
-	// maxMem.Sub(cortexMemReserve)
-	// maxGPU := config.Cortex.NodeGPU.Copy()
 	if err := CheckAPIEndpointCollisions(ctx); err != nil {
 		return err
 	}
@@ -316,8 +311,11 @@ func ValidateDeploy(ctx *context.Context) error {
 		return err
 	}
 
-	var maxCPU, maxMem kresource.Quantity
-	var maxGPU int64
+	maxCPU := config.Cluster.InstanceCPU.Copy()
+	//maxCPU.Sub(cortexCPUReserve)
+	maxMem := config.Cluster.InstanceMem.Copy()
+	//maxMem.Sub(cortexMemReserve)
+	maxGPU := config.Cluster.InstanceGPU
 	for _, node := range nodes {
 		curCPU := node.Status.Capacity.Cpu()
 		curMem := node.Status.Capacity.Memory()
@@ -328,11 +326,11 @@ func ValidateDeploy(ctx *context.Context) error {
 		}
 
 		if curCPU != nil && maxCPU.Cmp(*curCPU) < 0 {
-			maxCPU = *curCPU
+			maxCPU = curCPU
 		}
 
 		if curMem != nil && maxMem.Cmp(*curMem) < 0 {
-			maxMem = *curMem
+			maxMem = curMem
 		}
 
 		if curGPU > maxGPU {
@@ -350,8 +348,8 @@ func ValidateDeploy(ctx *context.Context) error {
 			}
 		}
 		gpu := api.Compute.GPU
-		if gpu > maxGPU.Value() {
-			return errors.Wrap(ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", gpu), fmt.Sprintf("%d", maxGPU.Value())), userconfig.Identify(api))
+		if gpu > maxGPU {
+			return errors.Wrap(ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", gpu), fmt.Sprintf("%d", maxGPU)), userconfig.Identify(api))
 		}
 	}
 	return nil

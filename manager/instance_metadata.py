@@ -1,18 +1,19 @@
 import boto3
 import requests
-import argparse
+import sys
 import re
 import os
 import pathlib
 import json
+import yaml
 
 PRICING_ENDPOINT_TEMPLATE = (
     "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/{}/index.json"
 )
 
 
-def download_metadata(args):
-    response = requests.get(PRICING_ENDPOINT_TEMPLATE.format(args.region))
+def download_metadata(cluster_config):
+    response = requests.get(PRICING_ENDPOINT_TEMPLATE.format(cluster_config["region"]))
     offers = response.json()
 
     instance_mapping = {}
@@ -49,37 +50,30 @@ def download_metadata(args):
         if product["attributes"].get("gpu") is not None:
             metadata["gpu"] = product["attributes"]["gpu"]
         instance_mapping[instance_type] = metadata
-    with open(args.cache_dir, "w") as outfile:
-        json.dump(instance_mapping, outfile)
 
     return instance_mapping
 
 
-def get_metadata(args):
-    if pathlib.Path(args.cache_dir).exists():
-        return json.load(open(args.cache_dir))
-    else:
-        return download_metadata(args)
+def get_metadata(cluster_config):
+    return download_metadata(cluster_config)
 
 
-units = {"mem": "Mi"}
+def set_ec2_metadata(cluster_config_path):
+    with open(cluster_config_path, "r") as cluster_config_file:
+        cluster_config = yaml.safe_load(cluster_config_file)
+    instance_mapping = get_metadata(cluster_config)
+    instance_type = instance_mapping[cluster_config["instance_type"]]
 
+    cluster_config["instance_mem"] = str(instance_type["mem"]) + "Mi"
+    cluster_config["instance_cpu"] = str(instance_type["cpu"])
+    cluster_config["instance_gpu"] = int(instance_type.get("gpu", 0))
 
-def set_ec2_metadata(args):
-    instance_mapping = get_metadata(args)
-    instance_type = instance_mapping[args.instance_type]
-    print("{}{}".format(instance_type.get(args.feature, "0"), units.get(args.feature, "")))
+    with open(cluster_config_path, "w") as cluster_config_file:
+        yaml.dump(cluster_config, cluster_config_file, default_flow_style=False)
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    na = parser.add_argument_group("required named arguments")
-    na.add_argument("--region", required=True, help="AWS Region")
-    na.add_argument("--instance-type", required=True, help="Instance type")
-    na.add_argument("--feature", required=True, help="Feature to get")
-    na.add_argument("--cache-dir", required=True, help="Cache dir")
-    args = parser.parse_args()
-    set_ec2_metadata(args)
+    set_ec2_metadata(sys.argv[1])
 
 
 if __name__ == "__main__":

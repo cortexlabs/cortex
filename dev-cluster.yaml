@@ -1,12 +1,12 @@
-apiVersion: eksctl.io/v1alpha5
-kind: ClusterConfig
+# apiVersion: eksctl.io/v1alpha5
+# kind: ClusterConfig
 
-metadata:
-  name: cortex
-  region: us-west-2
-  version: "1.14"
+# metadata:
+#   name: cortex
+#   region: us-west-2
+#   version: "1.14"
 
-nodeGroups:
+# nodeGroups:
   # spot workers NG - multi AZ, scale from 3
   # - name: ng-3
   #   ami: auto
@@ -45,6 +45,52 @@ nodeGroups:
   #     evictionHard:
   #       memory.available:  200Mi
   #       nodefs.available: 5%
+
+
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: cortex
+  region: us-west-2
+  version: "1.14"
+
+nodeGroups:
+  - name: ng-cortex-worker1
+    instanceType: p2.xlarge
+    minSize: 0
+    maxSize: 2
+    desiredCapacity: 0
+    ami: auto
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+    taints:
+      workload: "true:NoSchedule"
+    tags:
+      k8s.io/cluster-autoscaler/enabled: 'true'
+      k8s.io/cluster-autoscaler/node-template/label/nvidia.com/gpu: 'true'
+      k8s.io/cluster-autoscaler/node-template/taint/dedicated: workload=true
+      k8s.io/cluster-autoscaler/node-template/label/workload: 'true'
+      k8s.io/cluster-autoscaler/node-template/label/lifecycle: 'Ec2Spot'
+    labels:
+      lifecycle: Ec2Spot
+      workload: "true"
+      nvidia.com/gpu: 'true'
+    kubeletExtraConfig:
+      kubeReserved:
+        cpu: 150m
+        memory: 300Mi
+        ephemeral-storage: 1Gi
+      kubeReservedCgroup: /kube-reserved
+      systemReserved:
+        cpu: 150m
+        memory: 300Mi
+        ephemeral-storage: 1Gi
+      evictionHard:
+        memory.available: 200Mi
+        nodefs.available: 5%
+
 
 
 # nodeGroups:

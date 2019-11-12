@@ -148,7 +148,7 @@ spec:
     spec:
       serviceAccountName: cluster-autoscaler
       containers:
-        - image: k8s.gcr.io/cluster-autoscaler:v1.16.1
+        - image: $CORTEX_IMAGE_CLUSTER_AUTOSCALER
           name: cluster-autoscaler
           resources:
             limits:

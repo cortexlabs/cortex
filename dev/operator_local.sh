@@ -24,9 +24,7 @@ export CORTEX_CLUSTER_CONFIG_PATH=$ROOT/dev/config/cluster.yaml
 
 pip3 install -r $ROOT/manager/requirements.txt
 
-export CORTEX_NODE_CPU=$(python3 $ROOT/manager/instance_metadata.py --region=$CORTEX_REGION --instance-type=$CORTEX_NODE_TYPE --cache-dir="$HOME/.cortex/ec2-metadata.json" --feature="cpu")
-export CORTEX_NODE_MEM=$(python3 $ROOT/manager/instance_metadata.py --region=$CORTEX_REGION --instance-type=$CORTEX_NODE_TYPE --cache-dir="$HOME/.cortex/ec2-metadata.json" --feature="mem")
-export CORTEX_NODE_GPU=$(python3 $ROOT/manager/instance_metadata.py --region=$CORTEX_REGION --instance-type=$CORTEX_NODE_TYPE --cache-dir="$HOME/.cortex/ec2-metadata.json" --feature="gpu")
+python3 $ROOT/manager/instance_metadata.py $CORTEX_CLUSTER_CONFIG_PATH
 
 kill $(pgrep -f rerun) >/dev/null 2>&1 || true
 updated_cli_config=$(cat $HOME/.cortex/default.json | jq '.cortex_url = "http://localhost:8888"') && echo $updated_cli_config > $HOME/.cortex/default.json

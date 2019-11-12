@@ -18,7 +18,7 @@ cortex_aws_secret_access_key: ***
 # Instance type Cortex will use
 instance_type: m5.large
 
-# Minimum and maximum number of instances in the cluster
+# Minimum and maximum number of instances in the cluster to run your API
 min_instances: 2
 max_instances: 5
 

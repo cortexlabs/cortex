@@ -425,7 +425,7 @@ func tfAPISpec(
 					},
 				},
 				NodeSelector: map[string]string{
-					"lifecycle": "Ec2Spot",
+					"workload": "true",
 				},
 				Tolerations:        tolerations,
 				Volumes:            defaultVolumes(),
@@ -580,9 +580,9 @@ func predictorAPISpec(
 					},
 				},
 				NodeSelector: map[string]string{
-					"lifecycle": "Ec2Spot",
+					"workload": "true",
 				},
-				Tolerations:        tolerations,
+				Tolerations:        k8s.Tolerations(),
 				Volumes:            defaultVolumes(),
 				ServiceAccountName: "default",
 			},
@@ -734,10 +734,10 @@ func onnxAPISpec(
 					},
 				},
 				NodeSelector: map[string]string{
-					"lifecycle": "Ec2Spot",
+					"workload": "true",
 				},
 				Tolerations:        tolerations,
-				Volumes:            k8s.DefaultVolumes(),
+				Volumes:            defaultVolumes(),
 				ServiceAccountName: "default",
 			},
 		},
@@ -788,10 +788,10 @@ func doesAPIComputeNeedsUpdating(api *context.API, k8sDeployment *kapps.Deployme
 	}
 
 	curCPU, curMem, curGPU := APIPodCompute(k8sDeployment.Spec.Template.Spec.Containers)
-	if !userconfig.QuantityPtrsEqual(curCPU, &api.Compute.CPU) {
+	if !k8s.QuantityPtrsEqual(curCPU, &api.Compute.CPU) {
 		return true
 	}
-	if !userconfig.QuantityPtrsEqual(curMem, api.Compute.Mem) {
+	if !k8s.QuantityPtrsEqual(curMem, api.Compute.Mem) {
 		return true
 	}
 	if curGPU != api.Compute.GPU {
@@ -887,7 +887,7 @@ func APIsBaseURL() (string, error) {
 func APIPodComputeID(containers []kcore.Container) string {
 	cpu, mem, gpu := APIPodCompute(containers)
 	if cpu == nil {
-		cpu = &userconfig.Quantity{} // unexpected, since 0 is disallowed
+		cpu = &k8s.Quantity{} // unexpected, since 0 is disallowed
 	}
 	podAPICompute := userconfig.APICompute{
 		CPU: *cpu,
@@ -897,9 +897,9 @@ func APIPodComputeID(containers []kcore.Container) string {
 	return podAPICompute.IDWithoutReplicas()
 }
 
-func APIPodCompute(containers []kcore.Container) (*userconfig.Quantity, *userconfig.Quantity, int64) {
-	var totalCPU *userconfig.Quantity
-	var totalMem *userconfig.Quantity
+func APIPodCompute(containers []kcore.Container) (*k8s.Quantity, *k8s.Quantity, int64) {
+	var totalCPU *k8s.Quantity
+	var totalMem *k8s.Quantity
 	var totalGPU int64
 
 	for _, container := range containers {
@@ -914,13 +914,13 @@ func APIPodCompute(containers []kcore.Container) (*userconfig.Quantity, *usercon
 
 		if cpu, ok := requests[kcore.ResourceCPU]; ok {
 			if totalCPU == nil {
-				totalCPU = &userconfig.Quantity{}
+				totalCPU = &k8s.Quantity{}
 			}
 			totalCPU.Add(cpu)
 		}
 		if mem, ok := requests[kcore.ResourceMemory]; ok {
 			if totalMem == nil {
-				totalMem = &userconfig.Quantity{}
+				totalMem = &k8s.Quantity{}
 			}
 			totalMem.Add(mem)
 		}

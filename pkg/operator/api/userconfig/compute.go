@@ -32,18 +32,19 @@ import (
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type APICompute struct {
-	MinReplicas          int32     `json:"min_replicas" yaml:"min_replicas"`
-	MaxReplicas          int32     `json:"max_replicas" yaml:"max_replicas"`
-	InitReplicas         int32     `json:"init_replicas" yaml:"init_replicas"`
-	TargetCPUUtilization int32     `json:"target_cpu_utilization" yaml:"target_cpu_utilization"`
-	CPU                  Quantity  `json:"cpu" yaml:"cpu"`
-	Mem                  *Quantity `json:"mem" yaml:"mem"`
-	GPU                  int64     `json:"gpu" yaml:"gpu"`
+	MinReplicas          int32         `json:"min_replicas" yaml:"min_replicas"`
+	MaxReplicas          int32         `json:"max_replicas" yaml:"max_replicas"`
+	InitReplicas         int32         `json:"init_replicas" yaml:"init_replicas"`
+	TargetCPUUtilization int32         `json:"target_cpu_utilization" yaml:"target_cpu_utilization"`
+	CPU                  k8s.Quantity  `json:"cpu" yaml:"cpu"`
+	Mem                  *k8s.Quantity `json:"mem" yaml:"mem"`
+	GPU                  int64         `json:"gpu" yaml:"gpu"`
 }
 
 var apiComputeFieldValidation = &cr.StructFieldValidation{
@@ -85,8 +86,8 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 					Default:     "200m",
 					CastNumeric: true,
 				},
-				Parser: QuantityParser(&QuantityValidation{
-					GreaterThan: k8sQuantityPtr(kresource.MustParse("0")),
+				Parser: k8s.QuantityParser(&k8s.QuantityValidation{
+					GreaterThan: k8s.QuantityPtr(kresource.MustParse("0")),
 				}),
 			},
 			{
@@ -94,8 +95,8 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 				StringPtrValidation: &cr.StringPtrValidation{
 					Default: nil,
 				},
-				Parser: QuantityParser(&QuantityValidation{
-					GreaterThan: k8sQuantityPtr(kresource.MustParse("0")),
+				Parser: k8s.QuantityParser(&k8s.QuantityValidation{
+					GreaterThan: k8s.QuantityPtr(kresource.MustParse("0")),
 				}),
 			},
 			{
@@ -150,7 +151,7 @@ func (ac *APICompute) ID() string {
 	buf.WriteString(s.Int32(ac.InitReplicas))
 	buf.WriteString(s.Int32(ac.TargetCPUUtilization))
 	buf.WriteString(ac.CPU.ID())
-	buf.WriteString(QuantityPtrID(ac.Mem))
+	buf.WriteString(k8s.QuantityPtrID(ac.Mem))
 	buf.WriteString(s.Int64(ac.GPU))
 	return hash.Bytes(buf.Bytes())
 }
@@ -159,7 +160,7 @@ func (ac *APICompute) ID() string {
 func (ac *APICompute) IDWithoutReplicas() string {
 	var buf bytes.Buffer
 	buf.WriteString(ac.CPU.ID())
-	buf.WriteString(QuantityPtrID(ac.Mem))
+	buf.WriteString(k8s.QuantityPtrID(ac.Mem))
 	buf.WriteString(s.Int64(ac.GPU))
 	return hash.Bytes(buf.Bytes())
 }

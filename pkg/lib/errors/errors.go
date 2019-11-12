@@ -144,14 +144,14 @@ func Panic(items ...interface{}) {
 		os.Exit(1)
 	}
 	err := MergeErrItems(items...)
-	// PrintStacktrace(err)
+	PrintStacktrace(err)
 	panic(err)
 }
 
 func PrintError(err error, strs ...string) {
 	wrappedErr := Wrap(err, strs...)
 	fmt.Println("error:", wrappedErr.Error())
-	// PrintStacktrace(wrappedErr)
+	PrintStacktrace(wrappedErr)
 }
 
 func PrintStacktrace(err error) {
