@@ -27,7 +27,7 @@ Cortex is an open source platform that takes machine learning models—trained w
 
 ## Usage
 
-### Step 1: define your API
+### Define your API
 
 ```python
 # predictor.py
@@ -38,7 +38,7 @@ def predict(sample, metadata):
     return model.predict(sample["text"])
 ```
 
-### Step 2: configure your deployment
+### Configure your deployment
 
 ```yaml
 # cortex.yaml
@@ -56,15 +56,15 @@ def predict(sample, metadata):
     gpu: 1
 ```
 
-### Step 3: deploy to AWS
+### Deploy to AWS
 
 ```bash
 $ cortex deploy
 
-created endpoint: http://***.amazonaws.com/sentiment/classifier
+creating classifier (http://***.amazonaws.com/sentiment/classifier)
 ```
 
-### Step 4: serve real-time predictions
+### Serve real-time predictions
 
 ```bash
 $ curl http://***.amazonaws.com/sentiment/classifier \
@@ -74,7 +74,7 @@ $ curl http://***.amazonaws.com/sentiment/classifier \
 positive
 ```
 
-### Step 5: monitor your deployment
+### Monitor your deployment
 
 ```bash
 $ cortex get classifier --watch
@@ -89,7 +89,7 @@ negative  4
 
 <br>
 
-## How Cortex works
+## How it works
 
 The CLI sends configuration and code to the cluster every time you run `cortex deploy`. Each model is loaded into a Docker container, along with any Python packages and request handling code. The model is exposed as a web service using Elastic Load Balancing (ELB), Flask, TensorFlow Serving, and ONNX Runtime. The containers are orchestrated on Elastic Kubernetes Service (EKS) while logs and metrics are streamed to CloudWatch.
 
