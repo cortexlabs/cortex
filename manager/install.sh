@@ -21,7 +21,7 @@ arg1="$1"
 function ensure_eks() {
   # Cluster statuses: https://github.com/aws/aws-sdk-go/blob/master/service/eks/api.go#L2785
   set +e
-  cluster_info=$(eksctl get cluster --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json)
+  cluster_info=$(eksctl get cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json)
   cluster_info_exit_code=$?
   set -e
 
@@ -53,7 +53,7 @@ function ensure_eks() {
   fi
 
   if [ "$cluster_status" == "FAILED" ]; then
-    echo "error: your Cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is failed; delete it with \`eksctl delete cluster --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION\` and try again"
+    echo "error: your Cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is failed; delete it with \`eksctl delete cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION\` and try again"
     exit 1
   fi
 
