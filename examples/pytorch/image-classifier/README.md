@@ -72,7 +72,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
 ```bash
 $ cortex deploy
 
-deployment started
+creating classifier
 ```
 
 Behind the scenes, Cortex containerizes our implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.

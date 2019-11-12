@@ -62,7 +62,7 @@ def post_inference(prediction, signature, metadata):
 ```bash
 $ cortex deploy
 
-deployment started
+creating classifier
 ```
 
 Behind the scenes, Cortex containerizes our implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
