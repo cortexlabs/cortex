@@ -9,6 +9,3 @@
     model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
   tracker:
     model_type: classification
-  compute:
-    cpu: 1.2
-    mem: 6.5Gi

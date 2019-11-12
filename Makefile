@@ -29,11 +29,11 @@ kubectl:
 	@kubectl config set-context --current --namespace=cortex >/dev/null
 
 cluster-up:
-	# @$(MAKE) registry-all
-	# @$(MAKE) cli
-	# @kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
+	@$(MAKE) registry-all
+	@$(MAKE) cli
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster up
-	# @$(MAKE) kubectl
+	@$(MAKE) kubectl
 
 cluster-down:
 	@$(MAKE) manager-local

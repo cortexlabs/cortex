@@ -94,7 +94,7 @@ spec:
             - name: cwagentconfig
               mountPath: /etc/cwagentconfig
       nodeSelector:
-        lifecycle: "Ec2Spot"
+        workload: "true"
       volumes:
         - name: cwagentconfig
           configMap:

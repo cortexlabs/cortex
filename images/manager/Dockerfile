@@ -8,6 +8,8 @@ RUN pip install --upgrade pip && \
     pip install awscli --upgrade --user && \
     rm -rf /root/.cache/pip*
 
+RUN pip install -r /root/requirements.txt
+
 RUN apk add --no-cache bash curl gettext jq openssl
 
 RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/0.8.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
@@ -35,7 +37,5 @@ RUN ISTIO_VERSION=1.3.4 && \
     rm -rf ./istio-${ISTIO_VERSION}
 
 COPY manager /root
-
-RUN pip install -r /root/requirements.txt
 
 ENTRYPOINT ["/bin/bash"]
