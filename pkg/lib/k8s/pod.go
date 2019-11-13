@@ -342,5 +342,11 @@ func Tolerations() []kcore.Toleration {
 			Value:    "true",
 			Effect:   kcore.TaintEffectNoSchedule,
 		},
+		{
+			Key:      "nvidia.com/gpu",
+			Operator: kcore.TolerationOpEqual,
+			Value:    "true",
+			Effect:   kcore.TaintEffectNoSchedule,
+		},
 	}
 }

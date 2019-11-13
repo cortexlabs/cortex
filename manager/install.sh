@@ -40,10 +40,8 @@ function ensure_eks() {
 
     echo -e "￮ Spinning up the cluster ... (this will take about 15 minutes)\n"
     if [ $CORTEX_INSTANCE_GPU -ne 0 ]; then
-      echo "GPU"
       envsubst < eks_gpu.yaml | eksctl create cluster -f -
     else
-      echo "CPU"
       envsubst < eks.yaml | eksctl create cluster -f -
     fi
     echo -e "\n✓ Spun up the cluster"
@@ -73,7 +71,10 @@ function ensure_eks() {
 
   # Check if instance type changed
   ng_info=$(eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --name ng-cortex-worker -o json)
+  echo $ng_info
   ng_instance_type=$(echo "$ng_info" | jq -r ".[] | select( .Cluster == \"$CORTEX_CLUSTER_NAME\" ) | select( .Name == \"ng-cortex-worker\" ) | .InstanceType")
+  echo $ng_instance_type
+  echo $CORTEX_INSTANCE_TYPE
   if [ "$ng_instance_type" != "$CORTEX_INSTANCE_TYPE" ]; then
     echo -e "\nerror: Cortex does not currently support changing the instance type of a running cluster; please run \`cortex cluster down\` followed by \`cortex cluster up\` to create a new cluster"
     exit 1

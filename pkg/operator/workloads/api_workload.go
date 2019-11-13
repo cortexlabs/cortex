@@ -250,7 +250,6 @@ func tfAPISpec(
 	apiResourceList := kcore.ResourceList{}
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
-	tolerations := k8s.Tolerations()
 
 	q1, q2 := api.Compute.CPU.SplitInTwo()
 	apiResourceList[kcore.ResourceCPU] = *q1
@@ -429,7 +428,7 @@ func tfAPISpec(
 				NodeSelector: map[string]string{
 					"workload": "true",
 				},
-				Tolerations:        tolerations,
+				Tolerations:        k8s.Tolerations(),
 				Volumes:            defaultVolumes(),
 				ServiceAccountName: "default",
 			},

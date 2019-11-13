@@ -32,8 +32,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-var cortexCPUReserve = kresource.MustParse("800m")   // FluentD (200), Nvidia (50), StatsD (100), Kube Proxy, (100) Node capacity - Node availability 300 CPU
-var cortexMemReserve = kresource.MustParse("1500Mi") // FluentD (200), Nvidia (50), StatsD (100), KubeReserved (800), AWS node memory - Node capacity (200)
+var cortexCPUReserve = kresource.MustParse("800m")   // FluentD (200), Nvidia (100), StatsD (100), Kube Proxy, (100) Node capacity - Node availability 300 CPU
+var cortexMemReserve = kresource.MustParse("1500Mi") // FluentD (200), Nvidia (100), StatsD (100), KubeReserved (800), AWS node memory - Node capacity (200)
 
 func Init() error {
 	err := reloadCurrentContexts()
@@ -312,9 +312,9 @@ func ValidateDeploy(ctx *context.Context) error {
 	}
 
 	maxCPU := config.Cluster.InstanceCPU.Copy()
-	//maxCPU.Sub(cortexCPUReserve)
+	maxCPU.Sub(cortexCPUReserve)
 	maxMem := config.Cluster.InstanceMem.Copy()
-	//maxMem.Sub(cortexMemReserve)
+	maxMem.Sub(cortexMemReserve)
 	maxGPU := config.Cluster.InstanceGPU
 	for _, node := range nodes {
 		curCPU := node.Status.Capacity.Cpu()

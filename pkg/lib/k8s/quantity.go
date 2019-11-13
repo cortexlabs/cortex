@@ -38,7 +38,7 @@ type QuantityValidation struct {
 	LessThanOrEqualTo    *kresource.Quantity
 }
 
-func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
+func K8sQuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
 	return func(str string) (interface{}, error) {
 		k8sQuantity, err := kresource.ParseQuantity(str)
 		if err != nil {
@@ -65,9 +65,19 @@ func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
 				return nil, configreader.ErrorMustBeLessThanOrEqualTo(str, *v.LessThanOrEqualTo)
 			}
 		}
+		return k8sQuantity, nil
+	}
+}
+
+func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
+	return func(str string) (interface{}, error) {
+		k8sQuantity, err := K8sQuantityParser(v)(str)
+		if err != nil {
+			return Quantity{}, err
+		}
 
 		return Quantity{
-			Quantity:   k8sQuantity,
+			Quantity:   k8sQuantity.(kresource.Quantity),
 			UserString: str,
 		}, nil
 	}
@@ -130,6 +140,10 @@ func QuantityPtrsEqual(quantity *Quantity, quantity2 *Quantity) bool {
 type quantityMarshalable struct {
 	Quantity   kresource.Quantity
 	UserString string
+}
+
+func (quantity Quantity) MarshalYAML() (interface{}, error) {
+	return quantity.String(), nil
 }
 
 func (quantity Quantity) MarshalJSON() ([]byte, error) {
