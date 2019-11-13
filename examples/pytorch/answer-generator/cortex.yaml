@@ -1,0 +1,12 @@
+- kind: deployment
+  name: answer
+
+- kind: api
+  name: generator
+  predictor:
+    path: predictor.py
+    metadata:
+      device: cpu  # use "cuda" to run on GPUs
+  compute:
+    cpu: 1
+    mem: 4G
