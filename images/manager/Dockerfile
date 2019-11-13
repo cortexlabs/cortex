@@ -4,13 +4,12 @@ WORKDIR /root
 
 ENV PATH /root/.local/bin:$PATH
 
-RUN pip install --upgrade pip && \
-    pip install awscli --upgrade --user && \
-    rm -rf /root/.cache/pip*
-
 COPY manager/requirements.txt /root/requirements.txt
 
-RUN pip install -r /root/requirements.txt
+RUN pip install --upgrade pip && \
+    pip install awscli --upgrade --user && \
+    pip install -r /root/requirements.txt && \
+    rm -rf /root/.cache/pip*
 
 RUN apk add --no-cache bash curl gettext jq openssl
 

@@ -19,7 +19,7 @@ cortex_aws_secret_access_key: ***
 instance_type: m5.large
 
 # Minimum and maximum number of instances in the cluster
-min_instances: 2
+min_instances: 1
 max_instances: 5
 
 # Name of the S3 bucket Cortex will use

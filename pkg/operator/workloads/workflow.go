@@ -32,7 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-var cortexCPUReserve = kresource.MustParse("800m")   // FluentD (200), Nvidia (100), StatsD (100), Kube Proxy, (100) Node capacity - Node availability 300 CPU
+var cortexCPUReserve = kresource.MustParse("800m")   // FluentD (200), Nvidia (100), StatsD (100), Kube Proxy (100), Node capacity - Node availability (300)
 var cortexMemReserve = kresource.MustParse("1500Mi") // FluentD (200), Nvidia (100), StatsD (100), KubeReserved (800), AWS node memory - Node capacity (200)
 
 func Init() error {
@@ -306,37 +306,11 @@ func ValidateDeploy(ctx *context.Context) error {
 		return err
 	}
 
-	nodes, err := config.Kubernetes.ListNodes(nil)
-	if err != nil {
-		return err
-	}
-
 	maxCPU := config.Cluster.InstanceCPU.Copy()
 	maxCPU.Sub(cortexCPUReserve)
 	maxMem := config.Cluster.InstanceMem.Copy()
 	maxMem.Sub(cortexMemReserve)
 	maxGPU := config.Cluster.InstanceGPU
-	for _, node := range nodes {
-		curCPU := node.Status.Capacity.Cpu()
-		curMem := node.Status.Capacity.Memory()
-
-		var curGPU int64
-		if GPUQuantity, ok := node.Status.Allocatable["nvidia.com/gpu"]; ok {
-			curGPU, _ = GPUQuantity.AsInt64()
-		}
-
-		if curCPU != nil && maxCPU.Cmp(*curCPU) < 0 {
-			maxCPU = curCPU
-		}
-
-		if curMem != nil && maxMem.Cmp(*curMem) < 0 {
-			maxMem = curMem
-		}
-
-		if curGPU > maxGPU {
-			maxGPU = curGPU
-		}
-	}
 
 	for _, api := range ctx.APIs {
 		if maxCPU.Cmp(api.Compute.CPU.Quantity) < 0 {

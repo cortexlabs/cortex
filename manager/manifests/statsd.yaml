@@ -66,7 +66,6 @@ spec:
               protocol: UDP
           resources:
             limits:
-              cpu:  200m
               memory: 100Mi
             requests:
               cpu: 100m

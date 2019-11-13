@@ -66,6 +66,8 @@ spec:
             memory: 100Mi
           limits:
             memory: 100Mi
+      nodeSelector:
+        workload: "true"
       volumes:
         - name: device-plugin
           hostPath:

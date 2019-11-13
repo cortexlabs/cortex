@@ -33,9 +33,9 @@ function ensure_eks() {
     fi
 
     if [ $CORTEX_MIN_INSTANCES -lt 1 ]; then
-      CORTEX_DESIRED_INSTANCES=1
+      export CORTEX_DESIRED_INSTANCES=1
     else
-      CORTEX_DESIRED_INSTANCES=$CORTEX_MIN_INSTANCES
+      export CORTEX_DESIRED_INSTANCES=$CORTEX_MIN_INSTANCES
     fi
 
     echo -e "￮ Spinning up the cluster ... (this will take about 15 minutes)\n"
