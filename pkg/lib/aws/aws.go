@@ -19,6 +19,7 @@ package aws
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -33,6 +34,7 @@ type Client struct {
 	Bucket               string
 	S3                   *s3.S3
 	stsClient            *sts.STS
+	autoscaling          *autoscaling.AutoScaling
 	CloudWatchLogsClient *cloudwatchlogs.CloudWatchLogs
 	CloudWatchMetrics    *cloudwatch.CloudWatch
 	AccountID            string
@@ -50,6 +52,7 @@ func New(region string, bucket string, withAccountID bool) (*Client, error) {
 		Region:               region,
 		S3:                   s3.New(sess),
 		stsClient:            sts.New(sess),
+		autoscaling:          autoscaling.New(sess),
 		CloudWatchMetrics:    cloudwatch.New(sess),
 		CloudWatchLogsClient: cloudwatchlogs.New(sess),
 	}
