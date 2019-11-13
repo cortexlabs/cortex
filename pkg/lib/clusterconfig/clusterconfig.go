@@ -195,8 +195,7 @@ var Validation = &cr.StructValidation{
 		{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
-				Default: "969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/manager:latest",
-			},
+				Default: "cortexlabs/manager:" + consts.CortexVersion},
 		},
 		{
 			StructField: "ImageDownloader",

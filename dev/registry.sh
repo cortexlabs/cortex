@@ -147,7 +147,6 @@ elif [ "$cmd" = "update" ]; then
   build_and_push $ROOT/images/onnx-serve onnx-serve latest
   build_and_push $ROOT/images/onnx-serve-gpu onnx-serve-gpu latest
   build_and_push $ROOT/images/downloader downloader latest
-  build_and_push $ROOT/images/manager manager latest
 
   cleanup
 fi

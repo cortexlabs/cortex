@@ -38,7 +38,7 @@ type QuantityValidation struct {
 	LessThanOrEqualTo    *kresource.Quantity
 }
 
-func K8sQuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
+func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
 	return func(str string) (interface{}, error) {
 		k8sQuantity, err := kresource.ParseQuantity(str)
 		if err != nil {
@@ -65,19 +65,9 @@ func K8sQuantityParser(v *QuantityValidation) func(string) (interface{}, error) 
 				return nil, configreader.ErrorMustBeLessThanOrEqualTo(str, *v.LessThanOrEqualTo)
 			}
 		}
-		return k8sQuantity, nil
-	}
-}
-
-func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
-	return func(str string) (interface{}, error) {
-		k8sQuantity, err := K8sQuantityParser(v)(str)
-		if err != nil {
-			return Quantity{}, err
-		}
 
 		return Quantity{
-			Quantity:   k8sQuantity.(kresource.Quantity),
+			Quantity:   k8sQuantity,
 			UserString: str,
 		}, nil
 	}

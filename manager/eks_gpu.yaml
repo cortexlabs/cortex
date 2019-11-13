@@ -57,8 +57,6 @@ nodeGroups:
       k8s.io/cluster-autoscaler/enabled: 'true'
       k8s.io/cluster-autoscaler/node-template/label/nvidia.com/gpu: 'true'
       k8s.io/cluster-autoscaler/node-template/taint/dedicated: nvidia.com/gpu=true
-      k8s.io/cluster-autoscaler/node-template/label/workload: 'true'
-      k8s.io/cluster-autoscaler/node-template/label/lifecycle: 'Ec2Spot'
     labels:
       lifecycle: Ec2Spot
       workload: "true"

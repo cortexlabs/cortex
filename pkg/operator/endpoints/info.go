@@ -26,7 +26,7 @@ import (
 )
 
 func Info(w http.ResponseWriter, r *http.Request) {
-	asgs, err := config.AWS.AutoscalingGroups(map[string]string{"alpha.eksctl.io/nodegroup-name": "ng-1"})
+	asgs, err := config.AWS.AutoscalingGroups(map[string]string{"alpha.eksctl.io/nodegroup-name": "ng-cortex-worker"})
 	if err != nil {
 		RespondError(w, errors.WithStack(err))
 		return
