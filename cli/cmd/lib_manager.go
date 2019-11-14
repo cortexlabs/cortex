@@ -124,6 +124,7 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 	if err != nil {
 		return "", errors.WithStack(err)
 	}
+
 	if err := files.WriteFile(clusterConfigBytes, cachedClusterConfigPath); err != nil {
 		return "", err
 	}
@@ -131,7 +132,7 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{"sleep 0.1 && eval $(python /root/cluster_config_env.py /.cortex/cluster.yaml) && " + entrypoint},
+		Cmd:          []string{"sleep 0.1 && eval $(python /root/instance_metadata.py /.cortex/cluster.yaml /.cortex/cluster_internal.yaml) && eval $(python /root/cluster_config_env.py /.cortex/cluster.yaml /.cortex/cluster_internal.yaml) && " + entrypoint},
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,

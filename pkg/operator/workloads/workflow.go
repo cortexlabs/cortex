@@ -32,8 +32,36 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
+/*
+CPU Reservations:
+
+FluentD 200
+StatsD 100
+KubeProxy 100
+Reserved (150 + 150) see eks.yaml for details
+Buffer (100)
+*/
+var cortexCPUReserve = kresource.MustParse("800m")
+
+/*
+Memory Reservations:
+
+FluentD 200
+StatsD 100
+Reserved (300 + 300 + 200) see eks.yaml for details
+Buffer (100)
+*/
+var cortexMemReserve = kresource.MustParse("1200Mi")
+
+var nvidiaCPUReserve = kresource.MustParse("100m")
+var nvidiaMemReserve = kresource.MustParse("100Mi")
+
 func Init() error {
 	err := reloadCurrentContexts()
+	if err != nil {
+		return errors.Wrap(err, "init")
+	}
+	_, err = UpdateMemoryCapacityConfigMap()
 	if err != nil {
 		return errors.Wrap(err, "init")
 	}
@@ -303,33 +331,18 @@ func ValidateDeploy(ctx *context.Context) error {
 		return err
 	}
 
-	nodes, err := config.Kubernetes.ListNodes(nil)
+	maxCPU := config.Cluster.InstanceCPU.Copy()
+	maxCPU.Sub(cortexCPUReserve)
+	maxMem, err := UpdateMemoryCapacityConfigMap()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "validating memory constraint")
 	}
-
-	var maxCPU, maxMem kresource.Quantity
-	var maxGPU int64
-	for _, node := range nodes {
-		curCPU := node.Status.Capacity.Cpu()
-		curMem := node.Status.Capacity.Memory()
-
-		var curGPU int64
-		if GPUQuantity, ok := node.Status.Allocatable["nvidia.com/gpu"]; ok {
-			curGPU, _ = GPUQuantity.AsInt64()
-		}
-
-		if curCPU != nil && maxCPU.Cmp(*curCPU) < 0 {
-			maxCPU = *curCPU
-		}
-
-		if curMem != nil && maxMem.Cmp(*curMem) < 0 {
-			maxMem = *curMem
-		}
-
-		if curGPU > maxGPU {
-			maxGPU = curGPU
-		}
+	maxMem.Sub(cortexMemReserve)
+	maxGPU := config.Cluster.InstanceGPU
+	if maxGPU > 0 {
+		// Reserve resources for nvidia device plugin daemonset
+		maxCPU.Sub(nvidiaCPUReserve)
+		maxMem.Sub(nvidiaMemReserve)
 	}
 
 	for _, api := range ctx.APIs {

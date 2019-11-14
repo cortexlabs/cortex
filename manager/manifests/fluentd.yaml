@@ -149,6 +149,12 @@ spec:
             secretKeyRef:
               name: aws-credentials
               key: AWS_SECRET_ACCESS_KEY
+        resources:
+          requests:
+            cpu: 200m
+            memory: 200Mi
+          limits:
+            memory: 200Mi
         volumeMounts:
         - name: varlog
           mountPath: /var/log
@@ -157,6 +163,13 @@ spec:
           readOnly: true
         - name: config
           mountPath: /fluentd/etc
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      - key: workload
+        operator: Exists
+        effect: NoSchedule
       terminationGracePeriodSeconds: 30
       volumes:
       - name: varlog

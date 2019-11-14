@@ -163,7 +163,6 @@ class Context:
             impl = self.load_module(
                 "predictor", api["name"], os.path.join(project_dir, api["predictor"]["path"])
             )
-
         except CortexException as e:
             e.wrap("api " + api_name, "failed to load predictor", api["predictor"]["path"])
             raise

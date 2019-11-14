@@ -143,11 +143,10 @@ spec:
         - image: $CORTEX_IMAGE_CLUSTER_AUTOSCALER
           name: cluster-autoscaler
           resources:
-            limits:
-              cpu: 100m
-              memory: 300Mi
             requests:
               cpu: 100m
+              memory: 300Mi
+            limits:
               memory: 300Mi
           command:
             - ./cluster-autoscaler

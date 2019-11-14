@@ -66,7 +66,6 @@ spec:
               protocol: UDP
           resources:
             limits:
-              cpu:  200m
               memory: 100Mi
             requests:
               cpu: 100m
@@ -93,8 +92,17 @@ spec:
           volumeMounts:
             - name: cwagentconfig
               mountPath: /etc/cwagentconfig
+      nodeSelector:
+        workload: "true"
       volumes:
         - name: cwagentconfig
           configMap:
             name: cwagentstatsdconfig
       terminationGracePeriodSeconds: 60
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      - key: workload
+        operator: Exists
+        effect: NoSchedule

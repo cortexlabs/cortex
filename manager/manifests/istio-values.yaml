@@ -71,7 +71,7 @@ gateways:
     autoscaleMax: 5
     resources:
       requests:
-       cpu: 100m
+       cpu: 200m
        memory: 128Mi
       limits:
        cpu: 2000m
@@ -126,7 +126,7 @@ pilot:
   sidecar: false
   resources:
     requests:
-      cpu: 150m
+      cpu: 200m
       memory: 128Mi
     limits:
       cpu: 2000m
