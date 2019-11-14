@@ -21,7 +21,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 export CORTEX_OPERATOR_IN_CLUSTER=false
 export CORTEX_CLUSTER_CONFIG_PATH=$ROOT/dev/config/cluster.yaml
-export CORTEX_INTERNAL_CLUSTER_CONFIG_PATH=$HOME/.cortex/cluster_internal.yaml
+export CORTEX_INTERNAL_CLUSTER_CONFIG_PATH=$ROOT/dev/config/cluster_internal.yaml
 
 pip3 install -r $ROOT/manager/requirements.txt
 
