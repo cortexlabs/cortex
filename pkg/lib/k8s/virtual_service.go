@@ -74,7 +74,7 @@ func VirtualService(spec *VirtualServiceSpec) *kunstructured.Unstructured {
 		"match": []map[string]interface{}{
 			{
 				"uri": map[string]interface{}{
-					"prefix": urls.CanonicalizeEndpoint(spec.Path),
+					"exact": urls.CanonicalizeEndpoint(spec.Path),
 				},
 			},
 		},
@@ -279,16 +279,16 @@ func GetVirtualServiceEndpoints(virtualService *kunstructured.Unstructured) (str
 				return nil, errors.New("uri is not a map[string]interface{}") // unexpected
 			}
 
-			prefixInferface, ok := uri["prefix"]
+			exactInferface, ok := uri["exact"]
 			if !ok {
 				return strset.New("/"), nil
 			}
-			prefix, ok := prefixInferface.(string)
+			exact, ok := exactInferface.(string)
 			if !ok {
-				return nil, errors.New("prefix is not a string") // unexpected
+				return nil, errors.New("url is not a string") // unexpected
 			}
 
-			endpoints.Add(urls.CanonicalizeEndpoint(prefix))
+			endpoints.Add(urls.CanonicalizeEndpoint(exact))
 		}
 	}
 
