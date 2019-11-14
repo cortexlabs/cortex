@@ -111,7 +111,7 @@ spec:
         volumeMounts:
         - name: tmp-dir
           mountPath: /tmp
-        resources: # https://github.com/kubernetes/kubernetes/blob/master/cluster/addons/device-plugins/nvidia-gpu/daemonset.yaml#L44
+        resources:
           requests:
             cpu: 100m
             memory: 100Mi
