@@ -41,7 +41,7 @@ KubeProxy 100
 Reserved (150 + 150) see eks.yaml for details
 Buffer (100)
 */
-var cortexCPUReserve = kresource.MustParse("800m") // FluentD (200), StatsD (100), KubeProxy (100), KubeReserved (150 + 150), buffer (100)
+var cortexCPUReserve = kresource.MustParse("800m")
 
 /*
 Memory Reservations:
@@ -51,7 +51,10 @@ StatsD 100
 Reserved (300 + 300 + 200) see eks.yaml for details
 Buffer (100)
 */
-var cortexMemReserve = kresource.MustParse("1200Mi") // FluentD (200), StatsD (100), KubeReserved (300 + 300 + 200), buffer (100)
+var cortexMemReserve = kresource.MustParse("1200Mi")
+
+var nvidiaCPUReserve = kresource.MustParse("100m")
+var nvidiaMemReserve = kresource.MustParse("100Mi")
 
 func Init() error {
 	err := reloadCurrentContexts()
@@ -338,8 +341,8 @@ func ValidateDeploy(ctx *context.Context) error {
 	maxGPU := config.Cluster.InstanceGPU
 	if maxGPU > 0 {
 		// Reserve resources for nvidia device plugin daemonset
-		maxCPU.Sub(kresource.MustParse("100m"))
-		maxMem.Sub(kresource.MustParse("100Mi"))
+		maxCPU.Sub(nvidiaCPUReserve)
+		maxMem.Sub(nvidiaMemReserve)
 	}
 
 	for _, api := range ctx.APIs {
