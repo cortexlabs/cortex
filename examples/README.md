@@ -18,6 +18,8 @@
 
 - [Text summarization with BERT](pytorch/text-summarizer): deploy a BERT model to summarize text.
 
+- [Reading comprehension with AllenNLP](pytorch/reading-comprehender): deploy an AllenNLP model for reading comprehension.
+
 - [Language identification with fastText](pytorch/language-identifier): deploy a fastText model to identify languages.
 
 - [Image Classification with AlexNet](pytorch/image-classifier): deploy an AlexNet model from TorchVision to classify images.
