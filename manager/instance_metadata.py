@@ -67,22 +67,24 @@ def download_metadata(cluster_config):
     return instance_mapping
 
 
-def set_ec2_metadata(cluster_config_path):
-    with open(cluster_config_path, "r") as cluster_config_file:
-        cluster_config = yaml.safe_load(cluster_config_file)
+def set_ec2_metadata(cluster_config_path, internal_cluster_config_path):
+    with open(cluster_config_path, "r") as f:
+        cluster_config = yaml.safe_load(f)
     instance_mapping = download_metadata(cluster_config)
     instance_metadata = instance_mapping[cluster_config["instance_type"]]
 
-    cluster_config["instance_mem"] = str(instance_metadata["mem"]) + "Mi"
-    cluster_config["instance_cpu"] = str(instance_metadata["cpu"])
-    cluster_config["instance_gpu"] = int(instance_metadata.get("gpu", 0))
+    internal_cluster_config = {
+        "instance_mem": str(instance_metadata["mem"]) + "Mi",
+        "instance_cpu": str(instance_metadata["cpu"]),
+        "instance_gpu": int(instance_metadata.get("gpu", 0)),
+    }
 
-    with open(cluster_config_path, "w") as cluster_config_file:
-        yaml.dump(cluster_config, cluster_config_file, default_flow_style=False)
+    with open(internal_cluster_config_path, "w") as f:
+        yaml.dump(internal_cluster_config, f)
 
 
 def main():
-    set_ec2_metadata(sys.argv[1])
+    set_ec2_metadata(sys.argv[1], sys.argv[2])
 
 
 if __name__ == "__main__":

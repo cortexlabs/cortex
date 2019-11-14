@@ -25,7 +25,7 @@ import (
 )
 
 type InfoResponse struct {
-	ClusterConfig *clusterconfig.ClusterConfig `json:"cluster_config"`
+	ClusterConfig *clusterconfig.InternalClusterConfig `json:"cluster_config"`
 }
 
 type DeployResponse struct {

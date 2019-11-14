@@ -31,7 +31,7 @@ import (
 )
 
 var (
-	Cluster         *clusterconfig.ClusterConfig
+	Cluster         *clusterconfig.InternalClusterConfig
 	AWS             *aws.Client
 	Kubernetes      *k8s.Client
 	IstioKubernetes *k8s.Client
@@ -41,7 +41,7 @@ var (
 func Init() error {
 	var err error
 
-	Cluster = &clusterconfig.ClusterConfig{
+	Cluster = &clusterconfig.InternalClusterConfig{
 		APIVersion:        consts.CortexVersion,
 		OperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 	}
@@ -51,7 +51,17 @@ func Init() error {
 		clusterConfigPath = consts.ClusterConfigPath
 	}
 
-	errs := cr.ParseYAMLFile(Cluster, clusterconfig.InternalValidation, clusterConfigPath)
+	internalClusterConfigPath := os.Getenv("CORTEX_INTERNAL_CLUSTER_CONFIG_PATH")
+	if internalClusterConfigPath == "" {
+		internalClusterConfigPath = consts.InternalClusterConfigPath
+	}
+
+	errs := cr.ParseYAMLFile(Cluster, clusterconfig.UserValidation, clusterConfigPath)
+	if errors.HasErrors(errs) {
+		return errors.FirstError(errs...)
+	}
+
+	errs = cr.ParseYAMLFile(Cluster, clusterconfig.InternalValidation, internalClusterConfigPath)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}

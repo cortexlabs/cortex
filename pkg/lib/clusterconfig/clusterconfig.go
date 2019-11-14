@@ -59,14 +59,20 @@ type ClusterConfig struct {
 	ImageIstioPilot        string  `json:"image_istio_pilot" yaml:"image_istio_pilot"`
 	ImageIstioCitadel      string  `json:"image_istio_citadel" yaml:"image_istio_citadel"`
 	ImageIstioGalley       string  `json:"image_istio_galley" yaml:"image_istio_galley"`
+}
 
-	// Internal
-	ID                string        `json:"id"`
-	APIVersion        string        `json:"api_version"`
-	OperatorInCluster bool          `json:"operator_in_cluster"`
-	InstanceCPU       *k8s.Quantity `json:"instance_cpu" yaml:"instance_cpu"`
-	InstanceMem       *k8s.Quantity `json:"instance_mem" yaml:"instance_mem"`
-	InstanceGPU       int64         `json:"instance_gpu" yaml:"instance_gpu"`
+type InternalClusterConfig struct {
+	ClusterConfig
+
+	// Populated via internal cluster config file
+	InstanceCPU k8s.Quantity `json:"instance_cpu" yaml:"instance_cpu"`
+	InstanceMem k8s.Quantity `json:"instance_mem" yaml:"instance_mem"`
+	InstanceGPU int64        `json:"instance_gpu" yaml:"instance_gpu"`
+
+	// Populated by operator
+	ID                string `json:"id"`
+	APIVersion        string `json:"api_version"`
+	OperatorInCluster bool   `json:"operator_in_cluster"`
 }
 
 var UserValidation = &cr.StructValidation{
@@ -254,29 +260,29 @@ var UserValidation = &cr.StructValidation{
 }
 
 var InternalValidation = &cr.StructValidation{
-	StructFieldValidations: append(UserValidation.StructFieldValidations,
-		&cr.StructFieldValidation{
-			StructField:         "InstanceCPU",
-			StringPtrValidation: &cr.StringPtrValidation{},
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField:      "InstanceCPU",
+			StringValidation: &cr.StringValidation{},
 			Parser: k8s.QuantityParser(&k8s.QuantityValidation{
 				GreaterThan: k8s.QuantityPtr(kresource.MustParse("0")),
 			}),
 		},
-		&cr.StructFieldValidation{
-			StructField:         "InstanceMem",
-			StringPtrValidation: &cr.StringPtrValidation{},
+		{
+			StructField:      "InstanceMem",
+			StringValidation: &cr.StringValidation{},
 			Parser: k8s.QuantityParser(&k8s.QuantityValidation{
 				GreaterThan: k8s.QuantityPtr(kresource.MustParse("0")),
 			}),
 		},
-		&cr.StructFieldValidation{
+		{
 			StructField: "InstanceGPU",
 			Int64Validation: &cr.Int64Validation{
 				Default:              0,
 				GreaterThanOrEqualTo: pointer.Int64(0),
 			},
 		},
-	),
+	},
 }
 
 func PromptValidation(skipPopulatedFields bool, promptInstanceType bool, defaults *ClusterConfig) *cr.PromptValidation {
@@ -390,7 +396,7 @@ func (cc *ClusterConfig) SetBucket(awsAccessKeyID string, awsSecretAccessKey str
 	return nil
 }
 
-func (cc *ClusterConfig) UserFacingString() string {
+func (cc *InternalClusterConfig) UserFacingString() string {
 	var items []table.KV
 
 	items = append(items, table.KV{K: "cluster version", V: cc.APIVersion})
