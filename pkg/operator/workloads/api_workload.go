@@ -428,7 +428,7 @@ func tfAPISpec(
 				NodeSelector: map[string]string{
 					"workload": "true",
 				},
-				Tolerations:        k8s.Tolerations(),
+				Tolerations:        tolerations(),
 				Volumes:            defaultVolumes(),
 				ServiceAccountName: "default",
 			},
@@ -583,7 +583,7 @@ func predictorAPISpec(
 				NodeSelector: map[string]string{
 					"workload": "true",
 				},
-				Tolerations:        k8s.Tolerations(),
+				Tolerations:        tolerations(),
 				Volumes:            defaultVolumes(),
 				ServiceAccountName: "default",
 			},
@@ -601,7 +601,6 @@ func onnxAPISpec(
 	servingImage := config.Cluster.ImageONNXServe
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
-	tolerations := k8s.Tolerations()
 	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
 
 	if api.Compute.Mem != nil {
@@ -737,7 +736,7 @@ func onnxAPISpec(
 				NodeSelector: map[string]string{
 					"workload": "true",
 				},
-				Tolerations:        tolerations,
+				Tolerations:        tolerations(),
 				Volumes:            defaultVolumes(),
 				ServiceAccountName: "default",
 			},
@@ -934,4 +933,21 @@ func APIPodCompute(containers []kcore.Container) (*k8s.Quantity, *k8s.Quantity, 
 	}
 
 	return totalCPU, totalMem, totalGPU
+}
+
+func tolerations() []kcore.Toleration {
+	return []kcore.Toleration{
+		{
+			Key:      "workload",
+			Operator: kcore.TolerationOpEqual,
+			Value:    "true",
+			Effect:   kcore.TaintEffectNoSchedule,
+		},
+		{
+			Key:      "nvidia.com/gpu",
+			Operator: kcore.TolerationOpEqual,
+			Value:    "true",
+			Effect:   kcore.TaintEffectNoSchedule,
+		},
+	}
 }

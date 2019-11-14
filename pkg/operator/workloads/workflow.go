@@ -32,11 +32,33 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-var cortexCPUReserve = kresource.MustParse("800m")   // FluentD (200), Nvidia (100), StatsD (100), Kube Proxy (100), Node capacity - Node availability (300)
-var cortexMemReserve = kresource.MustParse("1500Mi") // FluentD (200), Nvidia (100), StatsD (100), KubeReserved (800), AWS node memory - Node capacity (200)
+/*
+CPU Reservations:
+
+FluentD 200
+StatsD 100
+KubeProxy 100
+Reserved (150 + 150) see eks.yaml for details
+Buffer (100)
+*/
+var cortexCPUReserve = kresource.MustParse("800m") // FluentD (200), StatsD (100), KubeProxy (100), KubeReserved (150 + 150), buffer (100)
+
+/*
+Memory Reservations:
+
+FluentD 200
+StatsD 100
+Reserved (300 + 300 + 200) see eks.yaml for details
+Buffer (100)
+*/
+var cortexMemReserve = kresource.MustParse("1200Mi") // FluentD (200), StatsD (100), KubeReserved (300 + 300 + 200), buffer (100)
 
 func Init() error {
 	err := reloadCurrentContexts()
+	if err != nil {
+		return errors.Wrap(err, "init")
+	}
+	_, err = UpdateMemoryCapacityConfigMap()
 	if err != nil {
 		return errors.Wrap(err, "init")
 	}
@@ -308,9 +330,17 @@ func ValidateDeploy(ctx *context.Context) error {
 
 	maxCPU := config.Cluster.InstanceCPU.Copy()
 	maxCPU.Sub(cortexCPUReserve)
-	maxMem := config.Cluster.InstanceMem.Copy()
+	maxMem, err := UpdateMemoryCapacityConfigMap()
+	if err != nil {
+		return errors.Wrap(err, "validating memory constraint")
+	}
 	maxMem.Sub(cortexMemReserve)
 	maxGPU := config.Cluster.InstanceGPU
+	if maxGPU > 0 {
+		// Reserve resources for nvidia device plugin daemonset
+		maxCPU.Sub(kresource.MustParse("100m"))
+		maxMem.Sub(kresource.MustParse("100Mi"))
+	}
 
 	for _, api := range ctx.APIs {
 		if maxCPU.Cmp(api.Compute.CPU.Quantity) < 0 {

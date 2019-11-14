@@ -333,20 +333,3 @@ func (c *Client) StalledPods() ([]kcore.Pod, error) {
 
 	return stalledPods, nil
 }
-
-func Tolerations() []kcore.Toleration {
-	return []kcore.Toleration{
-		{
-			Key:      "workload",
-			Operator: kcore.TolerationOpEqual,
-			Value:    "true",
-			Effect:   kcore.TaintEffectNoSchedule,
-		},
-		{
-			Key:      "nvidia.com/gpu",
-			Operator: kcore.TolerationOpEqual,
-			Value:    "true",
-			Effect:   kcore.TaintEffectNoSchedule,
-		},
-	}
-}
