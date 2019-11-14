@@ -74,7 +74,7 @@ func ValidateEndpoint(str string) (string, error) {
 		return "", ErrorEndpointDoubleSlash(str)
 	}
 
-	path := CannonicalizeEndpoint(str)
+	path := CanonicalizeEndpoint(str)
 
 	if path == "/" {
 		return "", ErrorEndpointEmptyPath()
@@ -83,7 +83,7 @@ func ValidateEndpoint(str string) (string, error) {
 	return path, nil
 }
 
-func CannonicalizeEndpoint(str string) string {
+func CanonicalizeEndpoint(str string) string {
 	if str == "" || str == "/" {
 		return "/"
 	}

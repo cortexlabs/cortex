@@ -59,11 +59,11 @@ type VirtualServiceSpec struct {
 }
 
 func VirtualService(spec *VirtualServiceSpec) *kunstructured.Unstructured {
-	virtualServceConfig := &kunstructured.Unstructured{}
-	virtualServceConfig.SetGroupVersionKind(virtualServiceGVK)
-	virtualServceConfig.SetName(spec.Name)
-	virtualServceConfig.SetNamespace(spec.Namespace)
-	virtualServceConfig.Object["metadata"] = map[string]interface{}{
+	virtualServiceConfig := &kunstructured.Unstructured{}
+	virtualServiceConfig.SetGroupVersionKind(virtualServiceGVK)
+	virtualServiceConfig.SetName(spec.Name)
+	virtualServiceConfig.SetNamespace(spec.Namespace)
+	virtualServiceConfig.Object["metadata"] = map[string]interface{}{
 		"name":        spec.Name,
 		"namespace":   spec.Namespace,
 		"labels":      spec.Labels,
@@ -74,7 +74,7 @@ func VirtualService(spec *VirtualServiceSpec) *kunstructured.Unstructured {
 		"match": []map[string]interface{}{
 			{
 				"uri": map[string]interface{}{
-					"prefix": urls.CannonicalizeEndpoint(spec.Path),
+					"prefix": urls.CanonicalizeEndpoint(spec.Path),
 				},
 			},
 		},
@@ -90,19 +90,19 @@ func VirtualService(spec *VirtualServiceSpec) *kunstructured.Unstructured {
 		},
 	}
 
-	if spec.Rewrite != nil && urls.CannonicalizeEndpoint(*spec.Rewrite) != urls.CannonicalizeEndpoint(spec.Path) {
+	if spec.Rewrite != nil && urls.CanonicalizeEndpoint(*spec.Rewrite) != urls.CanonicalizeEndpoint(spec.Path) {
 		httpSpec["rewrite"] = map[string]interface{}{
-			"uri": urls.CannonicalizeEndpoint(*spec.Rewrite),
+			"uri": urls.CanonicalizeEndpoint(*spec.Rewrite),
 		}
 	}
 
-	virtualServceConfig.Object["spec"] = map[string]interface{}{
+	virtualServiceConfig.Object["spec"] = map[string]interface{}{
 		"hosts":    []string{"*"},
 		"gateways": spec.Gateways,
 		"http":     []map[string]interface{}{httpSpec},
 	}
 
-	return virtualServceConfig
+	return virtualServiceConfig
 }
 
 func (c *Client) CreateVirtualService(spec *kunstructured.Unstructured) (*kunstructured.Unstructured, error) {
@@ -288,7 +288,7 @@ func GetVirtualServiceEndpoints(virtualService *kunstructured.Unstructured) (str
 				return nil, errors.New("prefix is not a string") // unexpected
 			}
 
-			endpoints.Add(urls.CannonicalizeEndpoint(prefix))
+			endpoints.Add(urls.CanonicalizeEndpoint(prefix))
 		}
 	}
 
