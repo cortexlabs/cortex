@@ -25,7 +25,7 @@ import (
 )
 
 const key = "capacity"
-const configMemoryMapName = "cortex-node-memory"
+const configMemoryMapName = "cortex-instance-memory"
 
 func GetMemoryCapacityFromNodes() (*kresource.Quantity, error) {
 	opts := kmeta.ListOptions{
