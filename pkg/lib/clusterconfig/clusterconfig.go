@@ -177,7 +177,8 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/manager:" + consts.CortexVersion},
+				Default: "cortexlabs/manager:" + consts.CortexVersion,
+			},
 		},
 		{
 			StructField: "ImageDownloader",
