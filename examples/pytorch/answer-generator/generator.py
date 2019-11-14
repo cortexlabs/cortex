@@ -4,11 +4,14 @@ import torch
 import torch.nn.functional as F
 
 
+END_OF_TEXT = 50256
+
+
 def generate(model, conditioned_tokens, device):
     generated_tokens = []
     while True:
         result = recalc(model, conditioned_tokens, generated_tokens, device)
-        if result == 50256:
+        if result == END_OF_TEXT:
             return generated_tokens[:-1]
 
 
