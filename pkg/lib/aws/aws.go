@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//go:generate echo "hello"
+//go:generate python3 gen_instance_metadata.py
+//go:generate gofmt -s -w instance_metadata.go
 
 package aws
 
