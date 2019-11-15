@@ -584,7 +584,7 @@ func predictorAPISpec(
 				NodeSelector: map[string]string{
 					"workload": "true",
 				},
-				Tolerations:        k8s.Tolerations(),
+				Tolerations:        tolerations,
 				Volumes:            defaultVolumes(),
 				ServiceAccountName: "default",
 			},
@@ -935,4 +935,19 @@ func APIPodCompute(containers []kcore.Container) (*k8s.Quantity, *k8s.Quantity, 
 	}
 
 	return totalCPU, totalMem, totalGPU
+}
+
+var tolerations = []kcore.Toleration{
+	{
+		Key:      "workload",
+		Operator: kcore.TolerationOpEqual,
+		Value:    "true",
+		Effect:   kcore.TaintEffectNoSchedule,
+	},
+	{
+		Key:      "nvidia.com/gpu",
+		Operator: kcore.TolerationOpEqual,
+		Value:    "true",
+		Effect:   kcore.TaintEffectNoSchedule,
+	},
 }

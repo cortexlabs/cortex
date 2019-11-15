@@ -21,15 +21,14 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/table"
-	kresource "k8s.io/apimachinery/pkg/api/resource"
-
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
+	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
 type ClusterConfig struct {
@@ -67,12 +66,19 @@ type ClusterConfig struct {
 
 type InternalClusterConfig struct {
 	ClusterConfig
+
+	// Populated via internal cluster config file
+	InstanceCPU k8s.Quantity `json:"instance_cpu" yaml:"instance_cpu"`
+	InstanceMem k8s.Quantity `json:"instance_mem" yaml:"instance_mem"`
+	InstanceGPU int64        `json:"instance_gpu" yaml:"instance_gpu"`
+
+	// Populated by operator
 	ID                string `json:"id"`
 	APIVersion        string `json:"api_version"`
 	OperatorInCluster bool   `json:"operator_in_cluster"`
 }
 
-var Validation = &cr.StructValidation{
+var UserValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
 			StructField: "InstanceType",
@@ -278,6 +284,32 @@ var Validation = &cr.StructValidation{
 	},
 }
 
+var InternalValidation = &cr.StructValidation{
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField:      "InstanceCPU",
+			StringValidation: &cr.StringValidation{},
+			Parser: k8s.QuantityParser(&k8s.QuantityValidation{
+				GreaterThan: k8s.QuantityPtr(kresource.MustParse("0")),
+			}),
+		},
+		{
+			StructField:      "InstanceMem",
+			StringValidation: &cr.StringValidation{},
+			Parser: k8s.QuantityParser(&k8s.QuantityValidation{
+				GreaterThan: k8s.QuantityPtr(kresource.MustParse("0")),
+			}),
+		},
+		{
+			StructField: "InstanceGPU",
+			Int64Validation: &cr.Int64Validation{
+				Default:              0,
+				GreaterThanOrEqualTo: pointer.Int64(0),
+			},
+		},
+	},
+}
+
 func PromptValidation(skipPopulatedFields bool, promptInstanceType bool, defaults *ClusterConfig) *cr.PromptValidation {
 	if defaults == nil {
 		defaults = &ClusterConfig{}
@@ -354,7 +386,7 @@ func validateInstanceType(instanceType string) (string, error) {
 // This does not set defaults for fields that are prompted from the user
 func SetFileDefaults(clusterConfig *ClusterConfig) error {
 	var emptyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(clusterConfig, emptyMap, Validation)
+	errs := cr.Struct(clusterConfig, emptyMap, UserValidation)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}
@@ -389,7 +421,7 @@ func (cc *ClusterConfig) SetBucket(awsAccessKeyID string, awsSecretAccessKey str
 	return nil
 }
 
-func (cc *InternalClusterConfig) String() string {
+func (cc *InternalClusterConfig) UserFacingString() string {
 	var items []table.KV
 
 	items = append(items, table.KV{K: "cluster version", V: cc.APIVersion})

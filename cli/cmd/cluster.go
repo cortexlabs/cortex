@@ -145,7 +145,7 @@ var infoCmd = &cobra.Command{
 		if err != nil {
 			errors.Exit(err, "/info", string(httpResponse))
 		}
-		fmt.Println(infoResponse.ClusterConfig.String())
+		fmt.Println(infoResponse.ClusterConfig.UserFacingString())
 	},
 }
 

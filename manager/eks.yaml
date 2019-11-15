@@ -23,13 +23,15 @@ metadata:
 nodeGroups:
   - name: ng-cortex-operator
     instanceType: t3.medium
-    minSize: 2
+    minSize: 1
     maxSize: 2
-    desiredCapacity: 2
+    desiredCapacity: 1
     ami: auto
     iam:
       withAddonPolicies:
         autoScaler: true
+    tags:
+      k8s.io/cluster-autoscaler/enabled: 'true'
     kubeletExtraConfig:
       kubeReserved:
         cpu: 150m
@@ -55,9 +57,7 @@ nodeGroups:
         autoScaler: true
     tags:
       k8s.io/cluster-autoscaler/enabled: 'true'
-      k8s.io/cluster-autoscaler/node-template/label/nvidia.com/gpu: 'true'
       k8s.io/cluster-autoscaler/node-template/label/workload: 'true'
-      k8s.io/cluster-autoscaler/node-template/label/lifecycle: 'Ec2Spot'
     labels:
       lifecycle: Ec2Spot
       workload: "true"

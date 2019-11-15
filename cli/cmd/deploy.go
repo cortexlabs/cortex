@@ -38,7 +38,7 @@ var flagDeployRefresh bool
 
 func init() {
 	deployCmd.PersistentFlags().BoolVarP(&flagDeployForce, "force", "f", false, "override the in-progress deployment update")
-	deployCmd.PersistentFlags().BoolVarP(&flagDeployRefresh, "refresh", "r", false, "re-deploy with cleared cache and rolling updates")
+	deployCmd.PersistentFlags().BoolVarP(&flagDeployRefresh, "refresh", "r", false, "re-deploy all APIs with cleared cache and rolling updates")
 	addEnvFlag(deployCmd)
 }
 

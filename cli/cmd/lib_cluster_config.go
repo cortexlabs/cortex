@@ -93,7 +93,7 @@ var awsCredentialsPromptValidation = &cr.PromptValidation{
 }
 
 func readClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials, path string) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, path)
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, path)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}

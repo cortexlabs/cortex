@@ -132,22 +132,39 @@ type quantityMarshalable struct {
 	UserString string
 }
 
-func (quantity Quantity) MarshalJSON() ([]byte, error) {
-	marshalable := quantityMarshalable{
-		Quantity:   quantity.Quantity,
-		UserString: quantity.UserString,
-	}
-	return json.Marshal(marshalable)
+func (quantity Quantity) MarshalYAML() (interface{}, error) {
+	return quantity.String(), nil
 }
 
-func (quantity *Quantity) UnmarshalJSON(data []byte) error {
-	var unmarshaled quantityMarshalable
-	err := json.Unmarshal(data, &unmarshaled)
+func (quantity *Quantity) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var userString string
+	err := unmarshal(&userString)
 	if err != nil {
 		return err
 	}
-	quantity.Quantity = unmarshaled.Quantity
-	quantity.UserString = unmarshaled.UserString
+	err = quantity.UnmarshalJSON([]byte(userString))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (quantity Quantity) MarshalJSON() ([]byte, error) {
+	return json.Marshal(quantity.String())
+}
+
+func (quantity *Quantity) UnmarshalJSON(data []byte) error {
+	var userString string
+	err := json.Unmarshal(data, &userString)
+	quantity.UserString = userString
+
+	parsedQuantity, err := kresource.ParseQuantity(userString)
+	if err != nil {
+		return err
+	}
+
+	quantity.Quantity = parsedQuantity
+	quantity.UserString = userString
 	return nil
 }
 

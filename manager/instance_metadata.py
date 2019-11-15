@@ -1,4 +1,17 @@
-import boto3
+# Copyright 2019 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import requests
 import sys
 import re
@@ -54,26 +67,24 @@ def download_metadata(cluster_config):
     return instance_mapping
 
 
-def get_metadata(cluster_config):
-    return download_metadata(cluster_config)
+def set_ec2_metadata(cluster_config_path, internal_cluster_config_path):
+    with open(cluster_config_path, "r") as f:
+        cluster_config = yaml.safe_load(f)
+    instance_mapping = download_metadata(cluster_config)
+    instance_metadata = instance_mapping[cluster_config["instance_type"]]
 
+    internal_cluster_config = {
+        "instance_mem": str(instance_metadata["mem"]) + "Mi",
+        "instance_cpu": str(instance_metadata["cpu"]),
+        "instance_gpu": int(instance_metadata.get("gpu", 0)),
+    }
 
-def set_ec2_metadata(cluster_config_path):
-    with open(cluster_config_path, "r") as cluster_config_file:
-        cluster_config = yaml.safe_load(cluster_config_file)
-    instance_mapping = get_metadata(cluster_config)
-    instance_type = instance_mapping[cluster_config["instance_type"]]
-
-    cluster_config["instance_mem"] = str(instance_type["mem"]) + "Mi"
-    cluster_config["instance_cpu"] = str(instance_type["cpu"])
-    cluster_config["instance_gpu"] = int(instance_type.get("gpu", 0))
-
-    with open(cluster_config_path, "w") as cluster_config_file:
-        yaml.dump(cluster_config, cluster_config_file, default_flow_style=False)
+    with open(internal_cluster_config_path, "w") as f:
+        yaml.dump(internal_cluster_config, f)
 
 
 def main():
-    set_ec2_metadata(sys.argv[1])
+    set_ec2_metadata(sys.argv[1], sys.argv[2])
 
 
 if __name__ == "__main__":

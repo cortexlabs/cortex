@@ -33,17 +33,15 @@ function ensure_eks() {
     fi
 
     if [ $CORTEX_MIN_INSTANCES -lt 1 ]; then
-      CORTEX_DESIRED_INSTANCES=1
+      export CORTEX_DESIRED_INSTANCES=1
     else
-      CORTEX_DESIRED_INSTANCES=$CORTEX_MIN_INSTANCES
+      export CORTEX_DESIRED_INSTANCES=$CORTEX_MIN_INSTANCES
     fi
 
     echo -e "￮ Spinning up the cluster ... (this will take about 15 minutes)\n"
     if [ $CORTEX_INSTANCE_GPU -ne 0 ]; then
-      echo "GPU"
       envsubst < eks_gpu.yaml | eksctl create cluster -f -
     else
-      echo "CPU"
       envsubst < eks.yaml | eksctl create cluster -f -
     fi
     echo -e "\n✓ Spun up the cluster"
@@ -178,6 +176,7 @@ function setup_cloudwatch_logs() {
 function setup_configmap() {
   kubectl -n=cortex create configmap 'cluster-config' \
     --from-file='cluster.yaml'='/.cortex/cluster.yaml' \
+    --from-file='cluster_internal.yaml'='/.cortex/cluster_internal.yaml' \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 
