@@ -28,6 +28,7 @@ type BoolPtrValidation struct {
 	Required          bool
 	Default           *bool
 	AllowExplicitNull bool
+	StrToBool         map[string]bool
 }
 
 func BoolPtr(inter interface{}, v *BoolPtrValidation) (*bool, error) {
@@ -77,6 +78,23 @@ func BoolPtrFromStr(valStr string, v *BoolPtrValidation) (*bool, error) {
 	if valStr == "" {
 		return ValidateBoolPtrMissing(v)
 	}
+
+	if len(v.StrToBool) > 0 {
+		casted, ok := v.StrToBool[valStr]
+
+		if !ok {
+			keys := make([]string, len(v.StrToBool))
+			i := 0
+			for key := range v.StrToBool {
+				keys[i] = key
+				i++
+			}
+
+			return nil, ErrorInvalidStr(valStr, keys...)
+		}
+		return ValidateBoolPtrProvided(&casted, v)
+	}
+
 	casted, castOk := s.ParseBool(valStr)
 	if !castOk {
 		return nil, ErrorInvalidPrimitiveType(valStr, PrimTypeBool)
