@@ -34,7 +34,6 @@ const (
 	ErrIncompatibleSpotInstanceTypeMemory
 	ErrIncompatibleSpotInstanceTypeCPU
 	ErrIncompatibleSpotInstanceTypeGPU
-	ErrIncompatibleSpotInstanceType
 	ErrGPUInstanceTypeNotSupported
 	ErrAtLeastOneInstanceDistribution
 	ErrNoCompatibleSpotInstanceFound
