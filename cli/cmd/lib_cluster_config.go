@@ -212,6 +212,28 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 	items = append(items, table.KV{K: "instance type", V: *clusterConfig.InstanceType})
 	items = append(items, table.KV{K: "min instances", V: *clusterConfig.MinInstances})
 	items = append(items, table.KV{K: "max instances", V: *clusterConfig.MaxInstances})
+	items = append(items, table.KV{K: "spot", V: clusterConfig.Spot != nil && *clusterConfig.Spot})
+
+	if len(clusterConfig.InstanceDistribution) > 0 {
+		items = append(items, table.KV{K: "instance distribution", V: clusterConfig.InstanceDistribution})
+	}
+
+	if clusterConfig.OnDemandBaseCapacity != nil {
+		items = append(items, table.KV{K: "on demand base capacity", V: *clusterConfig.OnDemandBaseCapacity})
+	}
+
+	if clusterConfig.OnDemandPercentageAboveBaseCapacity != nil {
+		items = append(items, table.KV{K: "on demand percentage above base capacity", V: *clusterConfig.OnDemandPercentageAboveBaseCapacity})
+	}
+
+	if clusterConfig.MaxPrice != nil {
+		items = append(items, table.KV{K: "max price", V: *clusterConfig.MaxPrice})
+	}
+
+	if clusterConfig.SpotInstancePools != nil {
+		items = append(items, table.KV{K: "spot instance pools", V: *clusterConfig.SpotInstancePools})
+	}
+
 	items = append(items, table.KV{K: "cluster name", V: clusterConfig.ClusterName})
 	items = append(items, table.KV{K: "region", V: clusterConfig.Region})
 	items = append(items, table.KV{K: "bucket", V: clusterConfig.Bucket})
@@ -313,12 +335,12 @@ func getInstallClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, e
 		return nil, nil, err
 	}
 
+	clusterConfig.AutoFill()
+
 	err = clusterConfig.Validate()
 	if err != nil {
 		return nil, nil, err
 	}
-
-	clusterConfig.AutoFill()
 
 	err = setAWSCredentials(awsCreds)
 	if err != nil {
