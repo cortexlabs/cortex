@@ -39,6 +39,24 @@ cluster_name: cortex
 # Flag to enable collection of anonymous usage stats and error reports
 telemetry: true
 
+# Flag to enable using spot instances in worker cluster
+spot: false
+
+# Specify additional instances with identical or better specs than your instance type (configure only if spot is enabled)
+instance_distribution: [t3.large, t3a.large]
+
+# Specify the minimum number of instances in your cluster that should be on demand (configure only if spot is enabled)
+on_demand_base_capacity: 0
+
+# Specify percentage of instances on demand instances you want after the on demand base capacity has been met [1, 100] (configure only if spot is enabled)
+on_demand_percentage_above_base_capacity: 1
+
+# Max price for instances (configure only if spot is enabled and defaults to on demand price of specified instance type)
+max_price: 0.096
+
+# The number of Spot Instance pools across which to allocate your Spot instances [1, 20] (configure only if spot is enabled)
+spot_instance_pools: 2
+
 # Image paths
 image_predictor_serve: cortexlabs/predictor-serve:master
 image_predictor_serve_gpu: cortexlabs/predictor-serve-gpu:master
