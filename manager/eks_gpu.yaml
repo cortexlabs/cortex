@@ -47,7 +47,7 @@ nodeGroups:
         nodefs.available: 5%
 
   - name: ng-cortex-worker
-    instanceType: mixed
+    instanceType: $CORTEX_INSTANCE_TYPE
     minSize: $CORTEX_MIN_INSTANCES
     maxSize: $CORTEX_MAX_INSTANCES
     desiredCapacity: $CORTEX_DESIRED_INSTANCES

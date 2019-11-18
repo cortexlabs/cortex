@@ -37,7 +37,7 @@ function ensure_eks() {
     else
       export CORTEX_DESIRED_INSTANCES=$CORTEX_MIN_INSTANCES
     fi
-    echo $CORTEX_SPOT
+
     echo -e "￮ Spinning up the cluster ... (this will take about 15 minutes)\n"
     if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
       if [ "$CORTEX_SPOT" == "True" ]; then

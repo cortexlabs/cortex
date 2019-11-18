@@ -25,8 +25,9 @@ import (
 )
 
 type BoolValidation struct {
-	Required bool
-	Default  bool
+	Required  bool
+	Default   bool
+	StrToBool map[string]bool
 }
 
 func Bool(inter interface{}, v *BoolValidation) (bool, error) {
@@ -76,6 +77,22 @@ func BoolFromStr(valStr string, v *BoolValidation) (bool, error) {
 	if valStr == "" {
 		return ValidateBoolMissing(v)
 	}
+	if len(v.StrToBool) > 0 {
+		casted, ok := v.StrToBool[valStr]
+
+		if !ok {
+			keys := make([]string, len(v.StrToBool))
+			i := 0
+			for key := range v.StrToBool {
+				keys[i] = key
+				i++
+			}
+
+			return false, ErrorInvalidStr(valStr, keys...)
+		}
+		return ValidateBool(casted, v)
+	}
+
 	casted, castOk := s.ParseBool(valStr)
 	if !castOk {
 		return false, ErrorInvalidPrimitiveType(valStr, PrimTypeBool)

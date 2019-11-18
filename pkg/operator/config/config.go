@@ -24,7 +24,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -52,8 +51,6 @@ func Init() error {
 		clusterConfigPath = consts.ClusterConfigPath
 	}
 
-	i, _ := cr.ReadYAMLFile(clusterConfigPath)
-	debug.Pp(i)
 	errs := cr.ParseYAMLFile(Cluster, clusterconfig.UserValidation, clusterConfigPath)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)

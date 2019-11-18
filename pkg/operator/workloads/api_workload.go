@@ -250,7 +250,6 @@ func tfAPISpec(
 	apiResourceList := kcore.ResourceList{}
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
-	tolerations := k8s.Tolerations()
 
 	q1, q2 := api.Compute.CPU.SplitInTwo()
 	apiResourceList[kcore.ResourceCPU] = *q1
@@ -602,7 +601,6 @@ func onnxAPISpec(
 	servingImage := config.Cluster.ImageONNXServe
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
-	tolerations := k8s.Tolerations()
 	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
 
 	if api.Compute.Mem != nil {

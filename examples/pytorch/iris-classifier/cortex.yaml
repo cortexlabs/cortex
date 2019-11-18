@@ -2,14 +2,10 @@
   name: iris
 
 - kind: api
-  name: classifier1
+  name: classifier
   predictor:
     path: src/predictor.py
     python_path: src/
     model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
   tracker:
     model_type: classification
-  compute:
-    cpu: 1.2
-    mem: 2749456Ki
-    min_replicas: 5

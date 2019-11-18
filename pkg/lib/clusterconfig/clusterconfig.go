@@ -215,7 +215,7 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
-				Default: "969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/manager:latest",
+				Default: "cortexlabs/manager:" + consts.CortexVersion,
 			},
 		},
 		{
@@ -358,6 +358,11 @@ func (cc *ClusterConfig) Validate() error {
 }
 
 func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
+	if strings.HasSuffix(instanceMetadata.Type, "nano") ||
+		strings.HasSuffix(instanceMetadata.Type, "micro") ||
+		strings.HasSuffix(instanceMetadata.Type, "small") {
+		ErrorInstanceTypeTooSmall()
+	}
 	if instanceMetadata.GPU > 0 && !strings.HasPrefix(instanceMetadata.Type, "p2") && !strings.HasPrefix(instanceMetadata.Type, "p3") {
 		return ErrorGPUInstanceTypeNotSupported(instanceMetadata.Type)
 	}
@@ -577,12 +582,6 @@ func PromptValidation(skipPopulatedFields bool, promptInstanceType bool, default
 }
 
 func validateInstanceType(instanceType string) (string, error) {
-	if strings.HasSuffix(instanceType, "nano") ||
-		strings.HasSuffix(instanceType, "micro") ||
-		strings.HasSuffix(instanceType, "small") {
-		return "", ErrorInstanceTypeTooSmall()
-	}
-
 	var foundInstance *aws.InstanceMetadata
 	for _, instanceMap := range aws.InstanceMetadatas {
 		if instanceMetadata, ok := instanceMap[instanceType]; ok {

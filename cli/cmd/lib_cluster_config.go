@@ -24,7 +24,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -320,7 +319,6 @@ func getInstallClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, e
 	}
 
 	clusterConfig.AutoFill()
-	debug.Pp(clusterConfig)
 
 	err = setAWSCredentials(awsCreds)
 	if err != nil {
