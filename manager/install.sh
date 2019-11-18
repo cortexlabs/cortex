@@ -53,6 +53,10 @@ function ensure_eks() {
       fi
     fi
     echo -e "\n✓ Spun up the cluster"
+
+    asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query 'AutoScalingGroups[?contains(Tags[?Key==`alpha.eksctl.io/nodegroup-name`].Value, `ng-cortex-worker`)]')
+    asg_name=$(echo "$asg_info" | jq -r 'first | .AutoScalingGroupName')
+    aws autoscaling suspend-processes --auto-scaling-group-name $asg_name --scaling-processes AZRebalance
     return
   fi
   set +e
