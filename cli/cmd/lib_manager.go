@@ -205,7 +205,7 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 
 	output := outputBuffer.String()
 
-	// Let the ctrl+C hanlder run its course
+	// Let the ctrl+C handler run its course
 	if caughtCtrlC {
 		time.Sleep(time.Second)
 		return output, nil
