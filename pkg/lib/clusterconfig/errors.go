@@ -38,6 +38,7 @@ const (
 	ErrAtLeastOneInstanceDistribution
 	ErrNoCompatibleSpotInstanceFound
 	ErrConfiguredWhenSpotIsNotEnabled
+	ErrOnDemandBaseCapacityGreaterThanMax
 	ErrInvalidInstanceType
 )
 
@@ -55,6 +56,7 @@ var (
 		"err_at_least_one_instance_distribution",
 		"err_no_compatible_spot_instance_found",
 		"err_configured_when_spot_is_not_enabled",
+		"err_on_demand_base_capacity_greater_than_max",
 		"err_invalid_instance_type",
 	}
 )
@@ -179,6 +181,13 @@ func ErrorConfiguredWhenSpotIsNotEnabled(configKey string) error {
 	return Error{
 		Kind:    ErrConfiguredWhenSpotIsNotEnabled,
 		message: fmt.Sprintf("%s is configured when spot is not enabled", configKey),
+	}
+}
+
+func ErrorOnDemandBaseCapacityGreaterThanMax(onDemandBaseCapacity int64, max int64) error {
+	return Error{
+		Kind:    ErrOnDemandBaseCapacityGreaterThanMax,
+		message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", OnDemandBaseCapacityKey, MaxInstancesKey, onDemandBaseCapacity, max),
 	}
 }
 

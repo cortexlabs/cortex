@@ -336,6 +336,10 @@ func (cc *ClusterConfig) Validate() error {
 		if compatibleInstanceCount == 0 {
 			return ErrorAtLeastOneInstanceDistribution(chosenInstanceType, compatibleSpots[0].Type)
 		}
+
+		if cc.OnDemandBaseCapacity != nil && *cc.OnDemandBaseCapacity > *cc.MaxInstances {
+			return ErrorOnDemandBaseCapacityGreaterThanMax(*cc.OnDemandBaseCapacity, *cc.MaxInstances)
+		}
 	} else {
 		if len(cc.InstanceDistribution) > 0 {
 			return ErrorConfiguredWhenSpotIsNotEnabled(InstanceDistributionKey)
@@ -514,7 +518,7 @@ func InstallPromptValidation(defaults *ClusterConfig) *cr.PromptValidation {
 		{
 			StructField: "Spot",
 			PromptOpts: &prompt.Options{
-				Prompt:     "Enable spot",
+				Prompt:     "Enable spot (y/n)",
 				DefaultStr: "n",
 			},
 			BoolPtrValidation: &cr.BoolPtrValidation{
@@ -664,8 +668,8 @@ func (cc *InternalClusterConfig) UserFacingString() string {
 		items = append(items, table.KV{K: "on demand percentage above base capacity", V: *cc.OnDemandPercentageAboveBaseCapacity})
 		items = append(items, table.KV{K: "max price", V: *cc.MaxPrice})
 		items = append(items, table.KV{K: "spot instance pools", V: *cc.SpotInstancePools})
-
 	}
+
 	items = append(items, table.KV{K: "cluster name", V: cc.ClusterName})
 	items = append(items, table.KV{K: "region", V: cc.Region})
 	items = append(items, table.KV{K: "bucket", V: cc.Bucket})
