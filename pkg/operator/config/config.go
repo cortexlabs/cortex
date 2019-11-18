@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -51,20 +52,14 @@ func Init() error {
 		clusterConfigPath = consts.ClusterConfigPath
 	}
 
-	internalClusterConfigPath := os.Getenv("CORTEX_INTERNAL_CLUSTER_CONFIG_PATH")
-	if internalClusterConfigPath == "" {
-		internalClusterConfigPath = consts.InternalClusterConfigPath
-	}
-
+	i, _ := cr.ReadYAMLFile(clusterConfigPath)
+	debug.Pp(i)
 	errs := cr.ParseYAMLFile(Cluster, clusterconfig.UserValidation, clusterConfigPath)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}
 
-	errs = cr.ParseYAMLFile(Cluster, clusterconfig.InternalValidation, internalClusterConfigPath)
-	if errors.HasErrors(errs) {
-		return errors.FirstError(errs...)
-	}
+	Cluster.InstanceMetadata = aws.InstanceMetadatas[Cluster.Region][*Cluster.InstanceType]
 
 	if Kubernetes, err = k8s.New(consts.K8sNamespace, Cluster.OperatorInCluster); err != nil {
 		return err

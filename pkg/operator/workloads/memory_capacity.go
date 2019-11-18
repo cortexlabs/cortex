@@ -73,7 +73,7 @@ func GetMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
 }
 
 func UpdateMemoryCapacityConfigMap() (*kresource.Quantity, error) {
-	memFromConfig := config.Cluster.InstanceMem
+	memFromConfig := config.Cluster.InstanceMetadata.Memory
 	memFromNodes, err := GetMemoryCapacityFromNodes()
 	if err != nil {
 		return nil, err

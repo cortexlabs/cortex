@@ -37,17 +37,24 @@ function ensure_eks() {
     else
       export CORTEX_DESIRED_INSTANCES=$CORTEX_MIN_INSTANCES
     fi
-
+    echo $CORTEX_SPOT
     echo -e "￮ Spinning up the cluster ... (this will take about 15 minutes)\n"
-    if [ $CORTEX_INSTANCE_GPU -ne 0 ]; then
-      envsubst < eks_gpu.yaml | eksctl create cluster -f -
+    if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
+      if [ "$CORTEX_SPOT" == "True" ]; then
+        envsubst < eks_gpu_spot.yaml | eksctl create cluster -f -
+      else
+        envsubst < eks_gpu.yaml | eksctl create cluster -f -
+      fi
     else
-      envsubst < eks.yaml | eksctl create cluster -f -
+      if [ "$CORTEX_SPOT" == "True" ]; then
+        envsubst < eks_spot.yaml | eksctl create cluster -f -
+      else
+        envsubst < eks.yaml | eksctl create cluster -f -
+      fi
     fi
     echo -e "\n✓ Spun up the cluster"
     return
   fi
-
   set +e
   cluster_status=$(echo "$cluster_info" | jq -r 'first | .Status')
   set -e

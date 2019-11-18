@@ -313,8 +313,14 @@ func getInstallClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, e
 	if err != nil {
 		return nil, nil, err
 	}
+
+	err = clusterConfig.Validate()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	clusterConfig.AutoFill()
 	debug.Pp(clusterConfig)
-	return nil, nil, errors.New("hi")
 
 	err = setAWSCredentials(awsCreds)
 	if err != nil {

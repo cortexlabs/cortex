@@ -56,15 +56,11 @@ nodeGroups:
       withAddonPolicies:
         autoScaler: true
     instancesDistribution:
-      onDemandPercentageAboveBaseCapacity: 0
-      instanceTypes:
-        - p3.2xlarge
-        - p3.8xlarge
-        - p3.16xlarge
-        - p2.xlarge
-        - p2.8xlarge
-        - p2.16xlarge
-      spotInstancePools: 5
+      instanceTypes: $CORTEX_INSTANCE_DISTRIBUTION
+      maxPrice: $CORTEX_MAX_PRICE
+      onDemandBaseCapacity: $CORTEX_ON_DEMAND_BASE_CAPACITY
+      onDemandPercentageAboveBaseCapacity: $CORTEX_ON_DEMAND_PERCENTAGE_ABOVE_BASE_CAPACITY
+      spotInstancePools: $CORTEX_SPOT_INSTANCE_POOLS
     tags:
       k8s.io/cluster-autoscaler/enabled: 'true'
       k8s.io/cluster-autoscaler/node-template/label/nvidia.com/gpu: 'true'
@@ -90,48 +86,3 @@ nodeGroups:
       evictionHard:
         memory.available: 200Mi
         nodefs.available: 5%
-
-  - name: gpu-spot-ng-a
-    ami: auto
-    instanceType: mixed
-    desiredCapacity: 0
-    minSize: 0
-    maxSize: 10
-    volumeSize: 100
-    volumeType: gp2
-    volumeEncrypted: true
-    iam:
-      attachPolicyARNs:
-        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
-        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
-        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
-        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-      withAddonPolicies:
-        autoScaler: true
-        ebs: true
-        fsx: true
-        efs: true
-        albIngress: true
-        cloudWatch: true
-    instancesDistribution:
-      onDemandPercentageAboveBaseCapacity: 0
-      instanceTypes:
-        - p3.2xlarge
-        - p3.8xlarge
-        - p3.16xlarge
-        - p2.xlarge
-        - p2.8xlarge
-        - p2.16xlarge
-      spotInstancePools: 5
-    tags:
-      k8s.io/cluster-autoscaler/node-template/taint/dedicated: nvidia.com/gpu=true
-      k8s.io/cluster-autoscaler/node-template/label/nvidia.com/gpu: 'true'
-      k8s.io/cluster-autoscaler/enabled: 'true'
-    labels:
-      lifecycle: Ec2Spot
-      nvidia.com/gpu: 'true'
-      k8s.amazonaws.com/accelerator: nvidia-tesla
-    taints:
-      nvidia.com/gpu: "true:NoSchedule"
-    privateNetworking: true
-    availabilityZones: ["us-west-2a"]

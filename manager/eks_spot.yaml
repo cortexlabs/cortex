@@ -47,7 +47,7 @@ nodeGroups:
         nodefs.available: 5%
 
   - name: ng-cortex-worker
-    instanceType: $CORTEX_INSTANCE_TYPE
+    instanceType: mixed
     minSize: $CORTEX_MIN_INSTANCES
     maxSize: $CORTEX_MAX_INSTANCES
     desiredCapacity: $CORTEX_DESIRED_INSTANCES
@@ -55,6 +55,12 @@ nodeGroups:
     iam:
       withAddonPolicies:
         autoScaler: true
+    instancesDistribution:
+      instanceTypes: $CORTEX_INSTANCE_DISTRIBUTION
+      maxPrice: $CORTEX_MAX_PRICE
+      onDemandBaseCapacity: $CORTEX_ON_DEMAND_BASE_CAPACITY
+      onDemandPercentageAboveBaseCapacity: $CORTEX_ON_DEMAND_PERCENTAGE_ABOVE_BASE_CAPACITY
+      spotInstancePools: $CORTEX_SPOT_INSTANCE_POOLS
     tags:
       k8s.io/cluster-autoscaler/enabled: 'true'
       k8s.io/cluster-autoscaler/node-template/label/workload: 'true'
