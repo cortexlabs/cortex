@@ -1,6 +1,6 @@
 # Cluster configuration
 
-The Cortex cluster may be configured by providing a configuration file to `cortex cluster up` or `cortex cluster update` via the  `--config` flag (e.g. `cortex cluster up --config=cluster.yaml`). Below is the schema for the cluster configuration file, with default values shown:
+The Cortex cluster may be configured by providing a configuration file to `cortex cluster up` or `cortex cluster update` via the  `--config` flag (e.g. `cortex cluster up --config=cluster.yaml`). Below is the schema for the cluster configuration file, with default values shown (unless otherwise specified):
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 
@@ -42,7 +42,7 @@ telemetry: true
 # Flag to enable using spot instances in worker cluster
 spot: false
 
-# List of additional instances with identical or better specs than your instance type (configure only if spot is enabled)
+# List of additional instances with identical or better specs than your instance type (configure only if spot is enabled, auto-filled by default)
 instance_distribution: [t3.large, t3a.large]
 
 # The minimum number of instances in your cluster that should be on demand (configure only if spot is enabled)
