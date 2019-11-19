@@ -85,6 +85,17 @@ def predict(sample, metadata):
     return labels[label_id]
 ```
 
+## Specify Python dependencies
+
+Create a `requirements.txt` file to specify the dependencies needed by `predictor.py`. Cortex will automatically install them into your runtime once you deploy:
+
+```text
+boto3
+numpy
+```
+
+You can skip dependencies that are [pre-installed](https://www.cortex.dev/deployments/predictor#pre-installed-packages) to speed up the deployment process.
+
 ## Define a deployment
 
 A `deployment` specifies a set of resources that are deployed together. An `api` makes our implementation available as a web service that can serve real-time predictions. This configuration will deploy the implementation specified in `predictor.py`:
@@ -111,9 +122,9 @@ $ cortex deploy
 creating classifier api
 ```
 
-Behind the scenes, Cortex containerizes our implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
+Behind the scenes, Cortex containerizes your implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
-Track the status of a deployment using `cortex get`:
+Track the status of your deployment using `cortex get`:
 
 ```bash
 $ cortex get classifier --watch
@@ -221,5 +232,17 @@ class     count
 positive  8
 negative  4
 ```
+
+## Clean up
+
+Run `cortex delete` to spin down your API:
+
+```bash
+$ cortex delete
+
+deleting classifier api
+```
+
+Running `cortex delete` will free up cluster resources and allow Cortex to scale to the minimum number of instances you specified during cluster installation. It will not spin down your cluster.
 
 Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).
