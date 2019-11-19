@@ -130,28 +130,28 @@ func ErrorMinInstancesGreaterThanMax(min int64, max int64) error {
 func ErrorInstanceTypeNotSupportedInRegion(instanceType string, region string) error {
 	return Error{
 		Kind:    ErrInstanceTypeNotSupportedInRegion,
-		message: fmt.Sprintf("%s is not supported in region %s", instanceType, region),
+		message: fmt.Sprintf("%s instances are not available in %s", instanceType, region),
 	}
 }
 
 func ErrorIncompatibleSpotInstanceTypeMemory(target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
 	return Error{
 		Kind:    ErrIncompatibleSpotInstanceTypeMemory,
-		message: fmt.Sprintf("memory of %s can not be less than %s (%s < %s)", suggested.Type, target.Type, suggested.Memory.String(), target.Memory.String()),
+		message: fmt.Sprintf("all instances must have at least as much memory as %s (%s has %s memory, but %s only has %s memory)", target.Type, target.Type, target.Memory.String(), suggested.Type, suggested.Memory.String()),
 	}
 }
 
 func ErrorIncompatibleSpotInstanceTypeCPU(target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
 	return Error{
 		Kind:    ErrIncompatibleSpotInstanceTypeCPU,
-		message: fmt.Sprintf("CPU of %s can not be less than %s (%s < %s)", suggested.Type, target.Type, suggested.CPU.String(), target.CPU.String()),
+		message: fmt.Sprintf("all instances must have at least as much CPU as %s (%s has %s CPU, but %s only has %s CPU)", target.Type, target.Type, target.CPU.String(), suggested.Type, suggested.CPU.String()),
 	}
 }
 
 func ErrorIncompatibleSpotInstanceTypeGPU(target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
 	return Error{
 		Kind:    ErrIncompatibleSpotInstanceTypeGPU,
-		message: fmt.Sprintf("GPU of %s can not be less than %s (%d GPU < %d GPU)", suggested.Type, target.Type, suggested.GPU, target.GPU),
+		message: fmt.Sprintf("all instances must have at least as much GPU as %s (%s has %d GPU, but %s only has %d GPU)", target.Type, target.Type, target.GPU, suggested.Type, suggested.GPU),
 	}
 }
 
@@ -180,7 +180,7 @@ func ErrorNoCompatibleSpotInstanceFound(instanceType string) error {
 func ErrorConfiguredWhenSpotIsNotEnabled(configKey string) error {
 	return Error{
 		Kind:    ErrConfiguredWhenSpotIsNotEnabled,
-		message: fmt.Sprintf("%s is configured when spot is not enabled", configKey),
+		message: fmt.Sprintf("%s cannot be specified unless spot is enabled", configKey),
 	}
 }
 
@@ -194,6 +194,6 @@ func ErrorOnDemandBaseCapacityGreaterThanMax(onDemandBaseCapacity int64, max int
 func ErrorInvalidInstanceType(instanceType string) error {
 	return Error{
 		Kind:    ErrInvalidInstanceType,
-		message: fmt.Sprintf("%s is an invalid instance type", instanceType),
+		message: fmt.Sprintf("%s is not a valid instance type", instanceType),
 	}
 }
