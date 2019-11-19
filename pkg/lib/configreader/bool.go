@@ -18,6 +18,7 @@ package configreader
 
 import (
 	"io/ioutil"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
@@ -27,7 +28,7 @@ import (
 type BoolValidation struct {
 	Required  bool
 	Default   bool
-	StrToBool map[string]bool
+	StrToBool map[string]bool // lowercase
 }
 
 func Bool(inter interface{}, v *BoolValidation) (bool, error) {
@@ -78,7 +79,7 @@ func BoolFromStr(valStr string, v *BoolValidation) (bool, error) {
 		return ValidateBoolMissing(v)
 	}
 	if len(v.StrToBool) > 0 {
-		casted, ok := v.StrToBool[valStr]
+		casted, ok := v.StrToBool[strings.ToLower(valStr)]
 
 		if !ok {
 			keys := make([]string, 0, len(v.StrToBool))

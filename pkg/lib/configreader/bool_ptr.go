@@ -18,6 +18,7 @@ package configreader
 
 import (
 	"io/ioutil"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
@@ -28,7 +29,7 @@ type BoolPtrValidation struct {
 	Required          bool
 	Default           *bool
 	AllowExplicitNull bool
-	StrToBool         map[string]bool
+	StrToBool         map[string]bool // lowercase
 }
 
 func BoolPtr(inter interface{}, v *BoolPtrValidation) (*bool, error) {
@@ -80,7 +81,7 @@ func BoolPtrFromStr(valStr string, v *BoolPtrValidation) (*bool, error) {
 	}
 
 	if len(v.StrToBool) > 0 {
-		casted, ok := v.StrToBool[valStr]
+		casted, ok := v.StrToBool[strings.ToLower(valStr)]
 
 		if !ok {
 			keys := make([]string, 0, len(v.StrToBool))
