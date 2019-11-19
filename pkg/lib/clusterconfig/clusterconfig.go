@@ -446,6 +446,7 @@ func (cc *ClusterConfig) AutoFillSpot() error {
 		for _, instanceType := range cc.InstanceDistribution {
 			if *cc.InstanceType == instanceType {
 				found = true
+				break
 			}
 		}
 
