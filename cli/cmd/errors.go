@@ -136,7 +136,7 @@ func ErrorFailedToConnectOperator(urlStr string) error {
 func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) error {
 	return Error{
 		Kind:    ErrConfigCannotBeChangedOnUpdate,
-		message: fmt.Sprintf("modifying config key %s of a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
+		message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
 	}
 }
 
