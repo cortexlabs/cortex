@@ -81,11 +81,9 @@ func BoolFromStr(valStr string, v *BoolValidation) (bool, error) {
 		casted, ok := v.StrToBool[valStr]
 
 		if !ok {
-			keys := make([]string, len(v.StrToBool))
-			i := 0
+			keys := make([]string, 0, len(v.StrToBool))
 			for key := range v.StrToBool {
-				keys[i] = key
-				i++
+				keys = append(keys, key)
 			}
 
 			return false, ErrorInvalidStr(valStr, keys...)

@@ -37,6 +37,7 @@ const (
 	ErrAPINotFound
 	ErrFailedToConnectURL
 	ErrFailedToConnectOperator
+	ErrConfigCannotBeChangedOnUpdate
 	ErrCLINotInAppDir
 )
 
@@ -47,6 +48,7 @@ var errorKinds = []string{
 	"err_api_not_found",
 	"err_failed_to_connect_url",
 	"err_failed_to_connect_operator",
+	"err_config_cannot_be_changed_on_update",
 	"err_cli_not_in_app_dir",
 }
 
@@ -128,6 +130,13 @@ func ErrorFailedToConnectOperator(urlStr string) error {
 	return Error{
 		Kind:    ErrFailedToConnectOperator,
 		message: fmt.Sprintf("failed to connect to the operator (%s), run `cortex configure` if you need to update the operator URL", urlStr),
+	}
+}
+
+func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) error {
+	return Error{
+		Kind:    ErrConfigCannotBeChangedOnUpdate,
+		message: fmt.Sprintf("modifying config key %s of a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
 	}
 }
 
