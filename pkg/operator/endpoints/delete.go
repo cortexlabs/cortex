@@ -42,6 +42,6 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := schema.DeleteResponse{Message: ResDeploymentDeleted}
+	response := schema.DeleteResponse{Message: ResDeploymentDeleted(appName)}
 	Respond(w, response)
 }

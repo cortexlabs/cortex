@@ -17,7 +17,6 @@ limitations under the License.
 package endpoints
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -98,11 +97,11 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	if isUpdating {
 		if fullCtxMatch {
-			Respond(w, schema.DeployResponse{Message: ResDeploymentUpToDateUpdating})
+			Respond(w, schema.DeployResponse{Message: ResDeploymentUpToDateUpdating(ctx.App.Name)})
 			return
 		}
 		if !force {
-			Respond(w, schema.DeployResponse{Message: ResDifferentDeploymentUpdating})
+			Respond(w, schema.DeployResponse{Message: ResDifferentDeploymentUpdating(ctx.App.Name)})
 			return
 		}
 	}
@@ -128,7 +127,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	deployResponse := schema.DeployResponse{Context: ctx, APIsBaseURL: apisBaseURL}
 
 	if !isUpdating && !ignoreCache && existingCtx != nil && fullCtxMatch {
-		deployResponse.Message = ResDeploymentUpToDate
+		deployResponse.Message = ResDeploymentUpToDate(ctx.App.Name)
 	} else {
 		deployResponse.Message = apiDiffMessage(existingCtx, ctx, apisBaseURL)
 	}
@@ -166,13 +165,13 @@ func apiDiffMessage(previousCtx *context.Context, currentCtx *context.Context, a
 
 	var strs []string
 	for _, api := range newAPIs {
-		strs = append(strs, fmt.Sprintf("creating %s", api.Name))
+		strs = append(strs, ResCreatingAPI(api.Name))
 	}
 	for _, api := range updatedAPIs {
-		strs = append(strs, fmt.Sprintf("updating %s", api.Name))
+		strs = append(strs, ResUpdatingAPI(api.Name))
 	}
 	for _, api := range deletedAPIs {
-		strs = append(strs, fmt.Sprintf("deleting %s", api.Name))
+		strs = append(strs, ResDeletingAPI(api.Name))
 	}
 
 	return strings.Join(strs, "\n")
