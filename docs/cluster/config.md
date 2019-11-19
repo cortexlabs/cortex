@@ -25,7 +25,7 @@ min_instances: 1
 max_instances: 5
 
 # Name of the S3 bucket Cortex will use
-bucket: cortex-[RANDOM_ID]
+bucket: cortex-<RANDOM_ID>
 
 # Region Cortex will use
 region: us-west-2
@@ -42,19 +42,19 @@ telemetry: true
 # Flag to enable using spot instances in worker cluster
 spot: false
 
-# Specify additional instances with identical or better specs than your instance type (configure only if spot is enabled)
+# List of additional instances with identical or better specs than your instance type (configure only if spot is enabled)
 instance_distribution: [t3.large, t3a.large]
 
-# Specify the minimum number of instances in your cluster that should be on demand (configure only if spot is enabled)
+# The minimum number of instances in your cluster that should be on demand (configure only if spot is enabled)
 on_demand_base_capacity: 0
 
-# Specify percentage of instances on demand instances you want after the on demand base capacity has been met [1, 100] (configure only if spot is enabled)
+# The percentage of on demand instances to use after the on demand base capacity has been met [1, 100] (configure only if spot is enabled)
 on_demand_percentage_above_base_capacity: 1
 
-# Max price for instances (configure only if spot is enabled and defaults to on demand price of specified instance type)
+# The max price for instances (configure only if spot is enabled, defaults to the on demand price of the primary instance type)
 max_price: 0.096
 
-# The number of Spot Instance pools across which to allocate your Spot instances [1, 20] (configure only if spot is enabled)
+# The number of Spot Instance pools across which to allocate Spot instances [1, 20] (configure only if spot is enabled)
 spot_instance_pools: 2
 
 # Image paths
