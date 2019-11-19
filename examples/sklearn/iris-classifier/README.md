@@ -48,7 +48,7 @@ $ python3 trainer.py
 
 ## Define a predictor
 
-Create another Python file `predictor.py` annd add code to download your pickled model from S3:
+Create another Python file `predictor.py` and add code to download your pickled model from S3:
 
 ```python
 # predictor.py
@@ -94,7 +94,7 @@ boto3
 numpy
 ```
 
-You can skip dependencies that are [pre-installed](https://www.cortex.dev/deployments/predictor#pre-installed-packages) to speed up the deployment process.
+You can skip dependencies that are [pre-installed](https://www.cortex.dev/deployments/predictor#pre-installed-packages) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
 
 ## Define a deployment
 
