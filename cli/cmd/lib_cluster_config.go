@@ -415,7 +415,7 @@ func getUpdateClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, er
 		}
 	}
 
-	err := setAWSCredentials(awsCreds)
+	err = setAWSCredentials(awsCreds)
 	if err != nil {
 		return nil, nil, err
 	}
