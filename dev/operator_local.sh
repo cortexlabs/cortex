@@ -21,11 +21,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 export CORTEX_OPERATOR_IN_CLUSTER=false
 export CORTEX_CLUSTER_CONFIG_PATH=$ROOT/dev/config/cluster.yaml
-export CORTEX_INTERNAL_CLUSTER_CONFIG_PATH=$ROOT/dev/config/cluster_internal.yaml
-
-pip3 install -r $ROOT/manager/requirements.txt
-
-python3 $ROOT/manager/instance_metadata.py $CORTEX_CLUSTER_CONFIG_PATH $CORTEX_INTERNAL_CLUSTER_CONFIG_PATH
 
 kill $(pgrep -f rerun) >/dev/null 2>&1 || true
 updated_cli_config=$(cat $HOME/.cortex/default.json | jq '.cortex_url = "http://localhost:8888"') && echo $updated_cli_config > $HOME/.cortex/default.json

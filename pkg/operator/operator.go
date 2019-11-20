@@ -87,7 +87,7 @@ func authMiddleware(next http.Handler) http.Handler {
 		}
 
 		accessKeyID, secretAccessKey := parts[0], parts[1]
-		userAccountID, validCreds, err := aws.AccountID(accessKeyID, secretAccessKey, config.Cluster.Region)
+		userAccountID, validCreds, err := aws.AccountID(accessKeyID, secretAccessKey, *config.Cluster.Region)
 		if err != nil {
 			endpoints.RespondError(w, endpoints.ErrorAuthAPIError())
 			return

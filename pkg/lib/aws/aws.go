@@ -14,6 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//go:generate python3 gen_instance_metadata.py
+//go:generate gofmt -s -w instance_metadata.go
+
 package aws
 
 import (
@@ -27,6 +30,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 type Client struct {
@@ -39,6 +43,15 @@ type Client struct {
 	CloudWatchMetrics    *cloudwatch.CloudWatch
 	AccountID            string
 	HashedAccountID      string
+}
+
+var EKSSupportedRegions strset.Set
+
+func init() {
+	EKSSupportedRegions = strset.New()
+	for region := range InstanceMetadatas {
+		EKSSupportedRegions.Add(region)
+	}
 }
 
 func New(region string, bucket string, withAccountID bool) (*Client, error) {

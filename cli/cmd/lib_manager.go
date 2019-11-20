@@ -132,7 +132,7 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{"sleep 0.1 && eval $(python /root/instance_metadata.py /.cortex/cluster.yaml /.cortex/cluster_internal.yaml) && eval $(python /root/cluster_config_env.py /.cortex/cluster.yaml /.cortex/cluster_internal.yaml) && " + entrypoint},
+		Cmd:          []string{"sleep 0.1 && eval $(python /root/cluster_config_env.py /.cortex/cluster.yaml) && " + entrypoint},
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
@@ -205,7 +205,7 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 
 	output := outputBuffer.String()
 
-	// Let the ctrl+C hanlder run its course
+	// Let the ctrl+C handler run its course
 	if caughtCtrlC {
 		time.Sleep(time.Second)
 		return output, nil

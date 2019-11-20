@@ -39,12 +39,26 @@ function ensure_eks() {
     fi
 
     echo -e "￮ Spinning up the cluster ... (this will take about 15 minutes)\n"
-    if [ $CORTEX_INSTANCE_GPU -ne 0 ]; then
-      envsubst < eks_gpu.yaml | eksctl create cluster -f -
+    if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
+      if [ "$CORTEX_SPOT" == "True" ]; then
+        envsubst < eks_gpu_spot.yaml | eksctl create cluster -f -
+      else
+        envsubst < eks_gpu.yaml | eksctl create cluster -f -
+      fi
     else
-      envsubst < eks.yaml | eksctl create cluster -f -
+      if [ "$CORTEX_SPOT" == "True" ]; then
+        envsubst < eks_spot.yaml | eksctl create cluster -f -
+      else
+        envsubst < eks.yaml | eksctl create cluster -f -
+      fi
     fi
     echo -e "\n✓ Spun up the cluster"
+
+    if [ "$CORTEX_SPOT" == "True" ]; then
+      asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query 'AutoScalingGroups[?contains(Tags[?Key==`alpha.eksctl.io/nodegroup-name`].Value, `ng-cortex-worker`)]')
+      asg_name=$(echo "$asg_info" | jq -r 'first | .AutoScalingGroupName')
+      aws autoscaling suspend-processes --region $CORTEX_REGION --auto-scaling-group-name $asg_name --scaling-processes AZRebalance
+    fi
     return
   fi
 
@@ -176,7 +190,6 @@ function setup_cloudwatch_logs() {
 function setup_configmap() {
   kubectl -n=cortex create configmap 'cluster-config' \
     --from-file='cluster.yaml'='/.cortex/cluster.yaml' \
-    --from-file='cluster_internal.yaml'='/.cortex/cluster_internal.yaml' \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 

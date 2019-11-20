@@ -20,4 +20,13 @@ for config_path in sys.argv[1:]:
         config = yaml.safe_load(f)
 
     for key, value in config.items():
-        print("export CORTEX_{}={}".format(key.upper(), value))
+        if value is None:
+            continue
+        elif type(value) is list:
+            print(
+                'export CORTEX_{}="{}"'.format(
+                    key.upper(), yaml.dump(value, default_flow_style=True).strip()
+                )
+            )
+        else:
+            print('export CORTEX_{}="{}"'.format(key.upper(), value))

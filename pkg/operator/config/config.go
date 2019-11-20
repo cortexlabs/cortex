@@ -51,20 +51,12 @@ func Init() error {
 		clusterConfigPath = consts.ClusterConfigPath
 	}
 
-	internalClusterConfigPath := os.Getenv("CORTEX_INTERNAL_CLUSTER_CONFIG_PATH")
-	if internalClusterConfigPath == "" {
-		internalClusterConfigPath = consts.InternalClusterConfigPath
-	}
-
 	errs := cr.ParseYAMLFile(Cluster, clusterconfig.UserValidation, clusterConfigPath)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}
 
-	errs = cr.ParseYAMLFile(Cluster, clusterconfig.InternalValidation, internalClusterConfigPath)
-	if errors.HasErrors(errs) {
-		return errors.FirstError(errs...)
-	}
+	Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
 
 	if Kubernetes, err = k8s.New(consts.K8sNamespace, Cluster.OperatorInCluster); err != nil {
 		return err
@@ -74,9 +66,9 @@ func Init() error {
 		return err
 	}
 
-	Cluster.ID = hash.String(Cluster.Bucket + Cluster.Region + Cluster.LogGroup)
+	Cluster.ID = hash.String(Cluster.Bucket + *Cluster.Region + Cluster.LogGroup)
 
-	AWS, err = aws.New(Cluster.Region, Cluster.Bucket, true)
+	AWS, err = aws.New(*Cluster.Region, Cluster.Bucket, true)
 	if err != nil {
 		errors.Exit(err)
 	}

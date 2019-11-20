@@ -309,6 +309,13 @@ func strIndentValue(val reflect.Value, indent string, currentIndent string, newl
 	return "<hidden>"
 }
 
+func YesNo(val bool) string {
+	if val {
+		return "yes"
+	}
+	return "no"
+}
+
 func Obj(val interface{}) string {
 	return strIndent(val, "  ", "", "\n", `"`)
 }

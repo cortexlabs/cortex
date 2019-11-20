@@ -23,9 +23,8 @@ var (
 	EmptyDirMountPath  = "/mnt"
 	EmptyDirVolumeName = "mnt"
 
-	ClusterConfigPath         = "/configs/cluster/cluster.yaml"
-	InternalClusterConfigPath = "/configs/cluster/cluster_internal.yaml"
-	ClusterConfigName         = "cluster-config"
+	ClusterConfigPath = "/configs/cluster/cluster.yaml"
+	ClusterConfigName = "cluster-config"
 
 	AppsDir             = "apps"
 	DeploymentsDir      = "deployments"

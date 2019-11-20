@@ -331,14 +331,14 @@ func ValidateDeploy(ctx *context.Context) error {
 		return err
 	}
 
-	maxCPU := config.Cluster.InstanceCPU.Copy()
+	maxCPU := config.Cluster.InstanceMetadata.CPU
 	maxCPU.Sub(cortexCPUReserve)
 	maxMem, err := UpdateMemoryCapacityConfigMap()
 	if err != nil {
 		return errors.Wrap(err, "validating memory constraint")
 	}
 	maxMem.Sub(cortexMemReserve)
-	maxGPU := config.Cluster.InstanceGPU
+	maxGPU := config.Cluster.InstanceMetadata.GPU
 	if maxGPU > 0 {
 		// Reserve resources for nvidia device plugin daemonset
 		maxCPU.Sub(nvidiaCPUReserve)

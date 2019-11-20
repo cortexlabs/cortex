@@ -17,6 +17,7 @@ limitations under the License.
 package clusterconfig
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -24,55 +25,56 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
-	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
 type ClusterConfig struct {
-	InstanceType           *string `json:"instance_type" yaml:"instance_type"`
-	MinInstances           *int64  `json:"min_instances" yaml:"min_instances"`
-	MaxInstances           *int64  `json:"max_instances" yaml:"max_instances"`
-	ClusterName            string  `json:"cluster_name" yaml:"cluster_name"`
-	Region                 string  `json:"region" yaml:"region"`
-	Bucket                 string  `json:"bucket" yaml:"bucket"`
-	LogGroup               string  `json:"log_group" yaml:"log_group"`
-	Telemetry              bool    `json:"telemetry" yaml:"telemetry"`
-	ImagePredictorServe    string  `json:"image_predictor_serve" yaml:"image_predictor_serve"`
-	ImagePredictorServeGPU string  `json:"image_predictor_serve_gpu" yaml:"image_predictor_serve_gpu"`
-	ImageTFServe           string  `json:"image_tf_serve" yaml:"image_tf_serve"`
-	ImageTFServeGPU        string  `json:"image_tf_serve_gpu" yaml:"image_tf_serve_gpu"`
-	ImageTFAPI             string  `json:"image_tf_api" yaml:"image_tf_api"`
-	ImageONNXServe         string  `json:"image_onnx_serve" yaml:"image_onnx_serve"`
-	ImageONNXServeGPU      string  `json:"image_onnx_serve_gpu" yaml:"image_onnx_serve_gpu"`
-	ImageOperator          string  `json:"image_operator" yaml:"image_operator"`
-	ImageManager           string  `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader        string  `json:"image_downloader" yaml:"image_downloader"`
-	ImageClusterAutoscaler string  `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
-	ImageMetricsServer     string  `json:"image_metrics_server" yaml:"image_metrics_server"`
-	ImageNvidia            string  `json:"image_nvidia" yaml:"image_nvidia"`
-	ImageFluentd           string  `json:"image_fluentd" yaml:"image_fluentd"`
-	ImageStatsd            string  `json:"image_statsd" yaml:"image_statsd"`
-	ImageIstioProxy        string  `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot        string  `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImageIstioCitadel      string  `json:"image_istio_citadel" yaml:"image_istio_citadel"`
-	ImageIstioGalley       string  `json:"image_istio_galley" yaml:"image_istio_galley"`
+	InstanceType                        *string  `json:"instance_type" yaml:"instance_type"`
+	MinInstances                        *int64   `json:"min_instances" yaml:"min_instances"`
+	MaxInstances                        *int64   `json:"max_instances" yaml:"max_instances"`
+	Spot                                *bool    `json:"spot" yaml:"spot"`
+	InstanceDistribution                []string `json:"instance_distribution" yaml:"instance_distribution"`
+	OnDemandBaseCapacity                *int64   `json:"on_demand_base_capacity" yaml:"on_demand_base_capacity"`
+	OnDemandPercentageAboveBaseCapacity *int64   `json:"on_demand_percentage_above_base_capacity" yaml:"on_demand_percentage_above_base_capacity"`
+	MaxPrice                            *float64 `json:"max_price" yaml:"max_price"`
+	SpotInstancePools                   *int64   `json:"spot_instance_pools" yaml:"spot_instance_pools"`
+	ClusterName                         string   `json:"cluster_name" yaml:"cluster_name"`
+	Region                              *string  `json:"region" yaml:"region"`
+	Bucket                              string   `json:"bucket" yaml:"bucket"`
+	LogGroup                            string   `json:"log_group" yaml:"log_group"`
+	Telemetry                           bool     `json:"telemetry" yaml:"telemetry"`
+	ImagePredictorServe                 string   `json:"image_predictor_serve" yaml:"image_predictor_serve"`
+	ImagePredictorServeGPU              string   `json:"image_predictor_serve_gpu" yaml:"image_predictor_serve_gpu"`
+	ImageTFServe                        string   `json:"image_tf_serve" yaml:"image_tf_serve"`
+	ImageTFServeGPU                     string   `json:"image_tf_serve_gpu" yaml:"image_tf_serve_gpu"`
+	ImageTFAPI                          string   `json:"image_tf_api" yaml:"image_tf_api"`
+	ImageONNXServe                      string   `json:"image_onnx_serve" yaml:"image_onnx_serve"`
+	ImageONNXServeGPU                   string   `json:"image_onnx_serve_gpu" yaml:"image_onnx_serve_gpu"`
+	ImageOperator                       string   `json:"image_operator" yaml:"image_operator"`
+	ImageManager                        string   `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader                     string   `json:"image_downloader" yaml:"image_downloader"`
+	ImageClusterAutoscaler              string   `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
+	ImageMetricsServer                  string   `json:"image_metrics_server" yaml:"image_metrics_server"`
+	ImageNvidia                         string   `json:"image_nvidia" yaml:"image_nvidia"`
+	ImageFluentd                        string   `json:"image_fluentd" yaml:"image_fluentd"`
+	ImageStatsd                         string   `json:"image_statsd" yaml:"image_statsd"`
+	ImageIstioProxy                     string   `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot                     string   `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImageIstioCitadel                   string   `json:"image_istio_citadel" yaml:"image_istio_citadel"`
+	ImageIstioGalley                    string   `json:"image_istio_galley" yaml:"image_istio_galley"`
 }
 
 type InternalClusterConfig struct {
 	ClusterConfig
 
-	// Populated via internal cluster config file
-	InstanceCPU k8s.Quantity `json:"instance_cpu" yaml:"instance_cpu"`
-	InstanceMem k8s.Quantity `json:"instance_mem" yaml:"instance_mem"`
-	InstanceGPU int64        `json:"instance_gpu" yaml:"instance_gpu"`
-
 	// Populated by operator
-	ID                string `json:"id"`
-	APIVersion        string `json:"api_version"`
-	OperatorInCluster bool   `json:"operator_in_cluster"`
+	ID                string               `json:"id"`
+	APIVersion        string               `json:"api_version"`
+	OperatorInCluster bool                 `json:"operator_in_cluster"`
+	InstanceMetadata  aws.InstanceMetadata `json:"instance_metadata"`
 }
 
 var UserValidation = &cr.StructValidation{
@@ -96,6 +98,48 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
+			StructField:       "Spot",
+			BoolPtrValidation: &cr.BoolPtrValidation{},
+		},
+		{
+			StructField: "InstanceDistribution",
+			StringListValidation: &cr.StringListValidation{
+				DisallowDups: true,
+				AllowEmpty:   true,
+				Validator:    validateInstanceDistribution,
+			},
+		},
+		{
+			StructField: "OnDemandBaseCapacity",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				GreaterThanOrEqualTo: pointer.Int64(0),
+				AllowExplicitNull:    true,
+			},
+		},
+		{
+			StructField: "OnDemandPercentageAboveBaseCapacity",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				GreaterThanOrEqualTo: pointer.Int64(1),
+				LessThanOrEqualTo:    pointer.Int64(100),
+				AllowExplicitNull:    true,
+			},
+		},
+		{
+			StructField: "MaxPrice",
+			Float64PtrValidation: &cr.Float64PtrValidation{
+				GreaterThan:       pointer.Float64(0),
+				AllowExplicitNull: true,
+			},
+		},
+		{
+			StructField: "SpotInstancePools",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				GreaterThanOrEqualTo: pointer.Int64(1),
+				LessThanOrEqualTo:    pointer.Int64(20),
+				AllowExplicitNull:    true,
+			},
+		},
+		{
 			StructField: "ClusterName",
 			StringValidation: &cr.StringValidation{
 				Default: "cortex",
@@ -103,8 +147,9 @@ var UserValidation = &cr.StructValidation{
 		},
 		{
 			StructField: "Region",
-			StringValidation: &cr.StringValidation{
-				Default: "us-west-2",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Default:       pointer.String("us-west-2"),
+				AllowedValues: aws.EKSSupportedRegions.Slice(),
 			},
 		},
 		{
@@ -260,51 +305,237 @@ var UserValidation = &cr.StructValidation{
 	},
 }
 
-var InternalValidation = &cr.StructValidation{
-	StructFieldValidations: []*cr.StructFieldValidation{
-		{
-			StructField:      "InstanceCPU",
-			StringValidation: &cr.StringValidation{},
-			Parser: k8s.QuantityParser(&k8s.QuantityValidation{
-				GreaterThan: k8s.QuantityPtr(kresource.MustParse("0")),
-			}),
-		},
-		{
-			StructField:      "InstanceMem",
-			StringValidation: &cr.StringValidation{},
-			Parser: k8s.QuantityParser(&k8s.QuantityValidation{
-				GreaterThan: k8s.QuantityPtr(kresource.MustParse("0")),
-			}),
-		},
-		{
-			StructField: "InstanceGPU",
-			Int64Validation: &cr.Int64Validation{
-				Default:              0,
-				GreaterThanOrEqualTo: pointer.Int64(0),
-			},
-		},
-	},
+func (cc *ClusterConfig) Validate() error {
+	if *cc.MinInstances > *cc.MaxInstances {
+		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
+	}
+
+	if _, ok := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]; !ok {
+		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
+	}
+
+	if cc.Spot != nil && *cc.Spot {
+		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
+		compatibleSpots := CompatibleSpotInstances(chosenInstance)
+		if len(compatibleSpots) == 0 {
+			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
+		}
+
+		compatibleInstanceCount := 0
+		for _, instanceType := range cc.InstanceDistribution {
+			if instanceType == *cc.InstanceType {
+				continue
+			}
+			if _, ok := aws.InstanceMetadatas[*cc.Region][instanceType]; !ok {
+				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, *cc.Region), InstanceDistributionKey)
+			}
+
+			instanceMetadata := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
+
+			err := CheckSpotInstanceCompatibility(chosenInstance, instanceMetadata)
+			if err != nil {
+				return errors.Wrap(err, InstanceDistributionKey)
+			}
+
+			compatibleInstanceCount++
+		}
+
+		if compatibleInstanceCount == 0 {
+			suggestions := []string{}
+			compatibleSpots := CompatibleSpotInstances(chosenInstance)
+			for _, compatibleInstance := range compatibleSpots {
+				suggestions = append(suggestions, compatibleInstance.Type)
+				if len(suggestions) == 3 {
+					break
+				}
+			}
+			return ErrorAtLeastOneInstanceDistribution(*cc.InstanceType, suggestions...)
+		}
+
+		if cc.OnDemandBaseCapacity != nil && *cc.OnDemandBaseCapacity > *cc.MaxInstances {
+			return ErrorOnDemandBaseCapacityGreaterThanMax(*cc.OnDemandBaseCapacity, *cc.MaxInstances)
+		}
+	} else {
+		if len(cc.InstanceDistribution) > 0 {
+			return ErrorConfiguredWhenSpotIsNotEnabled(InstanceDistributionKey)
+		}
+		if cc.OnDemandBaseCapacity != nil {
+			return ErrorConfiguredWhenSpotIsNotEnabled(OnDemandBaseCapacityKey)
+		}
+		if cc.OnDemandPercentageAboveBaseCapacity != nil {
+			return ErrorConfiguredWhenSpotIsNotEnabled(OnDemandPercentageAboveBaseCapacityKey)
+		}
+		if cc.MaxPrice != nil {
+			return ErrorConfiguredWhenSpotIsNotEnabled(InstanceDistributionKey)
+		}
+		if cc.SpotInstancePools != nil {
+			return ErrorConfiguredWhenSpotIsNotEnabled(SpotInstancePoolsKey)
+		}
+	}
+
+	return nil
 }
 
-func PromptValidation(skipPopulatedFields bool, promptInstanceType bool, defaults *ClusterConfig) *cr.PromptValidation {
-	if defaults == nil {
-		defaults = &ClusterConfig{}
+func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
+	if strings.HasSuffix(instanceMetadata.Type, "nano") ||
+		strings.HasSuffix(instanceMetadata.Type, "micro") ||
+		strings.HasSuffix(instanceMetadata.Type, "small") {
+		ErrorInstanceTypeTooSmall()
 	}
-	if defaults.InstanceType == nil {
-		defaults.InstanceType = pointer.String("m5.large")
+	if instanceMetadata.GPU > 0 && !strings.HasPrefix(instanceMetadata.Type, "p2") && !strings.HasPrefix(instanceMetadata.Type, "p3") {
+		return ErrorGPUInstanceTypeNotSupported(instanceMetadata.Type)
 	}
-	if defaults.MinInstances == nil {
-		defaults.MinInstances = pointer.Int64(1)
-	}
-	if defaults.MaxInstances == nil {
-		defaults.MaxInstances = pointer.Int64(5)
+	return nil
+}
+
+func CheckSpotInstanceCompatibility(target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
+	if target.GPU > suggested.GPU {
+		return ErrorIncompatibleSpotInstanceTypeGPU(target, suggested)
 	}
 
-	var promptItemValidations []*cr.PromptItemValidation
+	if target.Memory.Cmp(suggested.Memory) > 0 {
+		return ErrorIncompatibleSpotInstanceTypeMemory(target, suggested)
+	}
 
-	if promptInstanceType {
-		promptItemValidations = append(promptItemValidations,
-			&cr.PromptItemValidation{
+	if target.CPU.Cmp(suggested.CPU) > 0 {
+		return ErrorIncompatibleSpotInstanceTypeCPU(target, suggested)
+	}
+
+	return nil
+}
+
+func CompatibleSpotInstances(targetInstance aws.InstanceMetadata) []aws.InstanceMetadata {
+	compatibleInstances := []aws.InstanceMetadata{}
+	instanceMap := aws.InstanceMetadatas[targetInstance.Region]
+	for instanceType, instanceMetadata := range instanceMap {
+		if instanceType == targetInstance.Type {
+			continue
+		}
+
+		if err := CheckCortexSupport(instanceMetadata); err != nil {
+			continue
+		}
+
+		if err := CheckSpotInstanceCompatibility(targetInstance, instanceMetadata); err != nil {
+			continue
+		}
+
+		compatibleInstances = append(compatibleInstances, instanceMetadata)
+	}
+
+	sort.Slice(compatibleInstances, func(i, j int) bool {
+		return compatibleInstances[i].Price < compatibleInstances[j].Price
+	})
+	return compatibleInstances
+}
+
+func (cc *ClusterConfig) AutoFillSpot() error {
+	chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
+	if len(cc.InstanceDistribution) == 0 {
+		cc.InstanceDistribution = append(cc.InstanceDistribution, chosenInstance.Type)
+
+		compatibleSpots := CompatibleSpotInstances(chosenInstance)
+		if len(compatibleSpots) == 0 {
+			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
+		}
+
+		for _, instance := range compatibleSpots {
+			cc.InstanceDistribution = append(cc.InstanceDistribution, instance.Type)
+			if len(cc.InstanceDistribution) == 3 {
+				break
+			}
+		}
+	} else {
+		found := false
+		for _, instanceType := range cc.InstanceDistribution {
+			if *cc.InstanceType == instanceType {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			cc.InstanceDistribution = append(cc.InstanceDistribution, chosenInstance.Type)
+		}
+	}
+
+	if cc.MaxPrice == nil {
+		cc.MaxPrice = &chosenInstance.Price
+	}
+
+	if cc.OnDemandBaseCapacity == nil {
+		cc.OnDemandBaseCapacity = pointer.Int64(0)
+	}
+
+	if cc.OnDemandPercentageAboveBaseCapacity == nil {
+		cc.OnDemandPercentageAboveBaseCapacity = pointer.Int64(1)
+	}
+
+	if cc.SpotInstancePools == nil {
+		cc.SpotInstancePools = pointer.Int64(2)
+	}
+
+	return nil
+}
+
+func applyPromptDefaults(defaults *ClusterConfig) *ClusterConfig {
+	defaultConfig := &ClusterConfig{
+		Region:       pointer.String("us-west-2"),
+		InstanceType: pointer.String("m5.large"),
+		MinInstances: pointer.Int64(1),
+		MaxInstances: pointer.Int64(5),
+		Spot:         pointer.Bool(true),
+	}
+
+	if defaults != nil {
+		if defaults.Region != nil {
+			defaultConfig.Region = defaults.Region
+		}
+		if defaults.InstanceType != nil {
+			defaultConfig.InstanceType = defaults.InstanceType
+		}
+		if defaults.MinInstances != nil {
+			defaultConfig.MinInstances = defaults.MinInstances
+		}
+		if defaults.MaxInstances != nil {
+			defaultConfig.MaxInstances = defaults.MaxInstances
+		}
+		if defaults.Spot != nil {
+			defaultConfig.Spot = defaults.Spot
+		}
+	}
+
+	return defaultConfig
+}
+
+func InstallPromptValidation(userClusterConfig *ClusterConfig) *cr.PromptValidation {
+	defaults := applyPromptDefaults(userClusterConfig)
+
+	return &cr.PromptValidation{
+		SkipPopulatedFields: true,
+		PromptItemValidations: []*cr.PromptItemValidation{
+			{
+				StructField: "Region",
+				PromptOpts: &prompt.Options{
+					Prompt: "Region",
+				},
+				StringPtrValidation: &cr.StringPtrValidation{
+					AllowedValues: aws.EKSSupportedRegions.Slice(),
+					Default:       defaults.Region,
+				},
+			},
+			{
+				StructField: "Spot",
+				PromptOpts: &prompt.Options{
+					Prompt:     "Use spot instances (y/n)",
+					DefaultStr: "y",
+				},
+				BoolPtrValidation: &cr.BoolPtrValidation{
+					Required:  true,
+					StrToBool: map[string]bool{"y": true, "n": false},
+				},
+			},
+			{
 				StructField: "InstanceType",
 				PromptOpts: &prompt.Options{
 					Prompt: "AWS instance type",
@@ -315,54 +546,99 @@ func PromptValidation(skipPopulatedFields bool, promptInstanceType bool, default
 					Validator: validateInstanceType,
 				},
 			},
-		)
+			{
+				StructField: "MinInstances",
+				PromptOpts: &prompt.Options{
+					Prompt: "Min instances",
+				},
+				Int64PtrValidation: &cr.Int64PtrValidation{
+					Required:             true,
+					Default:              defaults.MinInstances,
+					GreaterThanOrEqualTo: pointer.Int64(0),
+				},
+			},
+			{
+				StructField: "MaxInstances",
+				PromptOpts: &prompt.Options{
+					Prompt: "Max instances",
+				},
+				Int64PtrValidation: &cr.Int64PtrValidation{
+					Required:    true,
+					Default:     defaults.MaxInstances,
+					GreaterThan: pointer.Int64(0),
+				},
+			},
+		},
 	}
+}
 
-	promptItemValidations = append(promptItemValidations,
-		&cr.PromptItemValidation{
-			StructField: "MinInstances",
-			PromptOpts: &prompt.Options{
-				Prompt: "Min instances",
-			},
-			Int64PtrValidation: &cr.Int64PtrValidation{
-				Required:    true,
-				Default:     defaults.MinInstances,
-				GreaterThan: pointer.Int64(0),
-			},
-		},
-		&cr.PromptItemValidation{
-			StructField: "MaxInstances",
-			PromptOpts: &prompt.Options{
-				Prompt: "Max instances",
-			},
-			Int64PtrValidation: &cr.Int64PtrValidation{
-				Required:    true,
-				Default:     defaults.MaxInstances,
-				GreaterThan: pointer.Int64(0),
-			},
-		},
-	)
+func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *ClusterConfig) *cr.PromptValidation {
+	defaults := applyPromptDefaults(userClusterConfig)
 
 	return &cr.PromptValidation{
-		SkipPopulatedFields:   skipPopulatedFields,
-		PromptItemValidations: promptItemValidations,
+		SkipPopulatedFields: skipPopulatedFields,
+		PromptItemValidations: []*cr.PromptItemValidation{
+			{
+				StructField: "MinInstances",
+				PromptOpts: &prompt.Options{
+					Prompt: "Min instances",
+				},
+				Int64PtrValidation: &cr.Int64PtrValidation{
+					Required:             true,
+					Default:              defaults.MinInstances,
+					GreaterThanOrEqualTo: pointer.Int64(0),
+				},
+			},
+			{
+				StructField: "MaxInstances",
+				PromptOpts: &prompt.Options{
+					Prompt: "Max instances",
+				},
+				Int64PtrValidation: &cr.Int64PtrValidation{
+					Required:    true,
+					Default:     defaults.MaxInstances,
+					GreaterThan: pointer.Int64(0),
+				},
+			},
+		},
 	}
 }
 
 func validateInstanceType(instanceType string) (string, error) {
-	if strings.HasSuffix(instanceType, "nano") ||
-		strings.HasSuffix(instanceType, "micro") ||
-		strings.HasSuffix(instanceType, "small") {
-		return "", ErrorInstanceTypeTooSmall()
+	var foundInstance *aws.InstanceMetadata
+	for _, instanceMap := range aws.InstanceMetadatas {
+		if instanceMetadata, ok := instanceMap[instanceType]; ok {
+			foundInstance = &instanceMetadata
+			break
+		}
+	}
+
+	if foundInstance == nil {
+		return "", ErrorInvalidInstanceType(instanceType)
+	}
+
+	err := CheckCortexSupport(*foundInstance)
+	if err != nil {
+		return "", err
 	}
 
 	return instanceType, nil
 }
 
+func validateInstanceDistribution(instances []string) ([]string, error) {
+	for _, instance := range instances {
+		_, err := validateInstanceType(instance)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return instances, nil
+}
+
 // This does not set defaults for fields that are prompted from the user
-func SetFileDefaults(clusterConfig *ClusterConfig) error {
+func SetFileDefaults(cc *ClusterConfig) error {
 	var emptyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(clusterConfig, emptyMap, UserValidation)
+	errs := cr.Struct(cc, emptyMap, UserValidation)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}
@@ -371,13 +647,13 @@ func SetFileDefaults(clusterConfig *ClusterConfig) error {
 
 // This does not set defaults for fields that are prompted from the user
 func GetFileDefaults() (*ClusterConfig, error) {
-	clusterConfig := &ClusterConfig{}
-	err := SetFileDefaults(clusterConfig)
+	cc := &ClusterConfig{}
+	err := SetFileDefaults(cc)
 	if err != nil {
 		return nil, err
 	}
 
-	return clusterConfig, nil
+	return cc, nil
 }
 
 func (cc *ClusterConfig) SetBucket(awsAccessKeyID string, awsSecretAccessKey string) error {
@@ -385,7 +661,7 @@ func (cc *ClusterConfig) SetBucket(awsAccessKeyID string, awsSecretAccessKey str
 		return nil
 	}
 
-	awsAccountID, validCreds, err := aws.AccountID(awsAccessKeyID, awsSecretAccessKey, cc.Region)
+	awsAccountID, validCreds, err := aws.AccountID(awsAccessKeyID, awsSecretAccessKey, *cc.Region)
 	if err != nil {
 		return err
 	}
@@ -400,34 +676,44 @@ func (cc *ClusterConfig) SetBucket(awsAccessKeyID string, awsSecretAccessKey str
 func (cc *InternalClusterConfig) UserFacingString() string {
 	var items []table.KV
 
-	items = append(items, table.KV{K: "cluster version", V: cc.APIVersion})
-	items = append(items, table.KV{K: "instance type", V: *cc.InstanceType})
-	items = append(items, table.KV{K: "min instances", V: *cc.MinInstances})
-	items = append(items, table.KV{K: "max instances", V: *cc.MaxInstances})
-	items = append(items, table.KV{K: "cluster name", V: cc.ClusterName})
-	items = append(items, table.KV{K: "region", V: cc.Region})
-	items = append(items, table.KV{K: "bucket", V: cc.Bucket})
-	items = append(items, table.KV{K: "log group", V: cc.LogGroup})
-	items = append(items, table.KV{K: "telemetry", V: cc.Telemetry})
-	items = append(items, table.KV{K: "image_predictor_serve", V: cc.ImagePredictorServe})
-	items = append(items, table.KV{K: "image_predictor_serve_gpu", V: cc.ImagePredictorServeGPU})
-	items = append(items, table.KV{K: "image_tf_serve", V: cc.ImageTFServe})
-	items = append(items, table.KV{K: "image_tf_serve_gpu", V: cc.ImageTFServeGPU})
-	items = append(items, table.KV{K: "image_tf_api", V: cc.ImageTFAPI})
-	items = append(items, table.KV{K: "image_onnx_serve", V: cc.ImageONNXServe})
-	items = append(items, table.KV{K: "image_onnx_serve_gpu", V: cc.ImageONNXServeGPU})
-	items = append(items, table.KV{K: "image_operator", V: cc.ImageOperator})
-	items = append(items, table.KV{K: "image_manager", V: cc.ImageManager})
-	items = append(items, table.KV{K: "image_downloader", V: cc.ImageDownloader})
-	items = append(items, table.KV{K: "image_cluster_autoscaler", V: cc.ImageClusterAutoscaler})
-	items = append(items, table.KV{K: "image_metrics_server", V: cc.ImageMetricsServer})
-	items = append(items, table.KV{K: "image_nvidia", V: cc.ImageNvidia})
-	items = append(items, table.KV{K: "image_fluentd", V: cc.ImageFluentd})
-	items = append(items, table.KV{K: "image_statsd", V: cc.ImageStatsd})
-	items = append(items, table.KV{K: "image_istio_proxy", V: cc.ImageIstioProxy})
-	items = append(items, table.KV{K: "image_istio_pilot", V: cc.ImageIstioPilot})
-	items = append(items, table.KV{K: "image_istio_citadel", V: cc.ImageIstioCitadel})
-	items = append(items, table.KV{K: "image_istio_galley", V: cc.ImageIstioGalley})
+	items = append(items, table.KV{K: APIVersionUserFacingKey, V: cc.APIVersion})
+	items = append(items, table.KV{K: ClusterNameUserFacingKey, V: cc.ClusterName})
+	items = append(items, table.KV{K: RegionUserFacingKey, V: *cc.Region})
+	items = append(items, table.KV{K: BucketUserFacingKey, V: cc.Bucket})
+	items = append(items, table.KV{K: SpotUserFacingKey, V: s.YesNo(*cc.Spot)})
+	items = append(items, table.KV{K: InstanceTypeUserFacingKey, V: *cc.InstanceType})
+	if *cc.Spot {
+		items = append(items, table.KV{K: InstanceDistributionUserFacingKey, V: cc.InstanceDistribution})
+	}
+	items = append(items, table.KV{K: MinInstancesUserFacingKey, V: *cc.MinInstances})
+	items = append(items, table.KV{K: MaxInstancesUserFacingKey, V: *cc.MaxInstances})
+	if *cc.Spot {
+		items = append(items, table.KV{K: OnDemandBaseCapacityUserFacingKey, V: *cc.OnDemandBaseCapacity})
+		items = append(items, table.KV{K: OnDemandPercentageAboveBaseCapacityUserFacingKey, V: *cc.OnDemandPercentageAboveBaseCapacity})
+		items = append(items, table.KV{K: MaxPriceUserFacingKey, V: *cc.MaxPrice})
+		items = append(items, table.KV{K: SpotInstancePoolsUserFacingKey, V: *cc.SpotInstancePools})
+	}
+	items = append(items, table.KV{K: LogGroupUserFacingKey, V: cc.LogGroup})
+	items = append(items, table.KV{K: TelemetryUserFacingKey, V: cc.Telemetry})
+	items = append(items, table.KV{K: ImagePredictorServeUserFacingKey, V: cc.ImagePredictorServe})
+	items = append(items, table.KV{K: ImagePredictorServeGPUUserFacingKey, V: cc.ImagePredictorServeGPU})
+	items = append(items, table.KV{K: ImageTFServeUserFacingKey, V: cc.ImageTFServe})
+	items = append(items, table.KV{K: ImageTFServeGPUUserFacingKey, V: cc.ImageTFServeGPU})
+	items = append(items, table.KV{K: ImageTFAPIUserFacingKey, V: cc.ImageTFAPI})
+	items = append(items, table.KV{K: ImageONNXServeUserFacingKey, V: cc.ImageONNXServe})
+	items = append(items, table.KV{K: ImageONNXServeGPUUserFacingKey, V: cc.ImageONNXServeGPU})
+	items = append(items, table.KV{K: ImageOperatorUserFacingKey, V: cc.ImageOperator})
+	items = append(items, table.KV{K: ImageManagerUserFacingKey, V: cc.ImageManager})
+	items = append(items, table.KV{K: ImageDownloaderUserFacingKey, V: cc.ImageDownloader})
+	items = append(items, table.KV{K: ImageClusterAutoscalerUserFacingKey, V: cc.ImageClusterAutoscaler})
+	items = append(items, table.KV{K: ImageMetricsServerUserFacingKey, V: cc.ImageMetricsServer})
+	items = append(items, table.KV{K: ImageNvidiaUserFacingKey, V: cc.ImageNvidia})
+	items = append(items, table.KV{K: ImageFluentdUserFacingKey, V: cc.ImageFluentd})
+	items = append(items, table.KV{K: ImageStatsdUserFacingKey, V: cc.ImageStatsd})
+	items = append(items, table.KV{K: ImageIstioProxyUserFacingKey, V: cc.ImageIstioProxy})
+	items = append(items, table.KV{K: ImageIstioPilotUserFacingKey, V: cc.ImageIstioPilot})
+	items = append(items, table.KV{K: ImageIstioCitadelUserFacingKey, V: cc.ImageIstioCitadel})
+	items = append(items, table.KV{K: ImageIstioGalleyUserFacingKey, V: cc.ImageIstioGalley})
 
 	return table.AlignKeyValue(items, ":", 1)
 }
