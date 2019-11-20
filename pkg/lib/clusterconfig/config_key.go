@@ -47,7 +47,7 @@ const (
 	ImagePredictorServeGPUUserFacingKey              = "predictor serving gpu image"
 	ImageTFServeUserFacingKey                        = "TensorFlow serving image"
 	ImageTFServeGPUUserFacingKey                     = "TensorFlow serving gpu image"
-	ImageTFAPIUserFacingKey                          = "TensorFlow api image"
+	ImageTFAPIUserFacingKey                          = "TensorFlow API image"
 	ImageONNXServeUserFacingKey                      = "ONNX serving image"
 	ImageONNXServeGPUUserFacingKey                   = "ONNX serving gpu image"
 	ImageOperatorUserFacingKey                       = "operator image"

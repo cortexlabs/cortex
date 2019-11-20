@@ -327,7 +327,7 @@ func getInstallClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, e
 		}
 	}
 
-	err := cr.ReadPrompt(clusterConfig, clusterconfig.InstallPromptValidation(nil))
+	err := cr.ReadPrompt(clusterConfig, clusterconfig.InstallPromptValidation())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -386,7 +386,7 @@ func getUpdateClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, er
 			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *userClusterConfig.Spot)
 		}
 
-		if len(userClusterConfig.InstanceDistribution) != 0 && s.UserStr(userClusterConfig.InstanceDistribution) != s.UserStr(clusterConfig.InstanceDistribution) {
+		if len(userClusterConfig.InstanceDistribution) != 0 && s.Obj(userClusterConfig.InstanceDistribution) != s.Obj(clusterConfig.InstanceDistribution) {
 			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceDistributionKey, userClusterConfig.InstanceDistribution)
 		}
 

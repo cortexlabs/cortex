@@ -310,9 +310,9 @@ func (cc *ClusterConfig) Validate() error {
 
 	if cc.Spot != nil && *cc.Spot {
 		chosenInstance := aws.InstanceMetadatas[cc.Region][*cc.InstanceType]
-		compatibleSpots, err := CompatibleSpotInstances(chosenInstance)
-		if err != nil {
-			return err
+		compatibleSpots := CompatibleSpotInstances(chosenInstance)
+		if len(compatibleSpots) == 0 {
+			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
 		}
 
 		compatibleInstanceCount := 0
@@ -336,6 +336,7 @@ func (cc *ClusterConfig) Validate() error {
 
 		if compatibleInstanceCount == 0 {
 			suggestions := []string{}
+			compatibleSpots := CompatibleSpotInstances(chosenInstance)
 			for _, compatibleInstance := range compatibleSpots {
 				suggestions = append(suggestions, compatibleInstance.Type)
 				if len(suggestions) == 3 {
@@ -397,7 +398,7 @@ func CheckSpotInstanceCompatibility(target aws.InstanceMetadata, suggested aws.I
 	return nil
 }
 
-func CompatibleSpotInstances(targetInstance aws.InstanceMetadata) ([]aws.InstanceMetadata, error) {
+func CompatibleSpotInstances(targetInstance aws.InstanceMetadata) []aws.InstanceMetadata {
 	compatibleInstances := []aws.InstanceMetadata{}
 	instanceMap := aws.InstanceMetadatas[targetInstance.Region]
 	for instanceType, instanceMetadata := range instanceMap {
@@ -415,14 +416,11 @@ func CompatibleSpotInstances(targetInstance aws.InstanceMetadata) ([]aws.Instanc
 
 		compatibleInstances = append(compatibleInstances, instanceMetadata)
 	}
-	if len(compatibleInstances) == 0 {
-		return nil, ErrorNoCompatibleSpotInstanceFound(targetInstance.Type)
-	}
 
 	sort.Slice(compatibleInstances, func(i, j int) bool {
 		return compatibleInstances[i].Price < compatibleInstances[j].Price
 	})
-	return compatibleInstances, nil
+	return compatibleInstances
 }
 
 func (cc *ClusterConfig) AutoFillSpot() error {
@@ -430,9 +428,9 @@ func (cc *ClusterConfig) AutoFillSpot() error {
 	if len(cc.InstanceDistribution) == 0 {
 		cc.InstanceDistribution = append(cc.InstanceDistribution, chosenInstance.Type)
 
-		compatibleSpots, err := CompatibleSpotInstances(chosenInstance)
-		if err != nil {
-			return err
+		compatibleSpots := CompatibleSpotInstances(chosenInstance)
+		if len(compatibleSpots) == 0 {
+			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
 		}
 
 		for _, instance := range compatibleSpots {
@@ -476,6 +474,7 @@ func (cc *ClusterConfig) AutoFillSpot() error {
 
 func applyPromptDefaults(defaults *ClusterConfig) *ClusterConfig {
 	defaultConfig := &ClusterConfig{
+		Region:       "us-west-2",
 		InstanceType: pointer.String("m5.large"),
 		MinInstances: pointer.Int64(1),
 		MaxInstances: pointer.Int64(5),
@@ -500,12 +499,22 @@ func applyPromptDefaults(defaults *ClusterConfig) *ClusterConfig {
 	return defaultConfig
 }
 
-func InstallPromptValidation(defaults *ClusterConfig) *cr.PromptValidation {
-	defaults = applyPromptDefaults(defaults)
+func InstallPromptValidation() *cr.PromptValidation {
+	defaults := applyPromptDefaults(nil)
 
 	return &cr.PromptValidation{
 		SkipPopulatedFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
+			{
+				StructField: "Region",
+				PromptOpts: &prompt.Options{
+					Prompt:     "Region",
+					DefaultStr: "us-west-2",
+				},
+				StringValidation: &cr.StringValidation{
+					AllowedValues: aws.EKSSupportedRegions,
+				},
+			},
 			{
 				StructField: "Spot",
 				PromptOpts: &prompt.Options{
