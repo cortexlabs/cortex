@@ -57,7 +57,7 @@ function ensure_eks() {
     if [ "$CORTEX_SPOT" == "True" ]; then
       asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query 'AutoScalingGroups[?contains(Tags[?Key==`alpha.eksctl.io/nodegroup-name`].Value, `ng-cortex-worker`)]')
       asg_name=$(echo "$asg_info" | jq -r 'first | .AutoScalingGroupName')
-      aws autoscaling suspend-processes --auto-scaling-group-name $asg_name --scaling-processes AZRebalance
+      aws autoscaling suspend-processes --region $CORTEX_REGION --auto-scaling-group-name $asg_name --scaling-processes AZRebalance
     fi
     return
   fi
