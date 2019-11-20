@@ -379,11 +379,11 @@ func getUpdateClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, er
 		}
 
 		if userClusterConfig.InstanceType != nil && *userClusterConfig.InstanceType != *clusterConfig.InstanceType {
-			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, *userClusterConfig.InstanceType)
+			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, *clusterConfig.InstanceType)
 		}
 
 		if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *clusterConfig.Spot {
-			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *userClusterConfig.Spot)
+			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *clusterConfig.Spot)
 		}
 
 		if len(userClusterConfig.InstanceDistribution) != 0 && s.Obj(userClusterConfig.InstanceDistribution) != s.Obj(clusterConfig.InstanceDistribution) {
@@ -391,19 +391,19 @@ func getUpdateClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, er
 		}
 
 		if userClusterConfig.OnDemandBaseCapacity != nil && *userClusterConfig.OnDemandBaseCapacity != *clusterConfig.OnDemandBaseCapacity {
-			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandBaseCapacityKey, *userClusterConfig.OnDemandBaseCapacity)
+			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandBaseCapacityKey, *clusterConfig.OnDemandBaseCapacity)
 		}
 
 		if userClusterConfig.OnDemandPercentageAboveBaseCapacity != nil && *userClusterConfig.OnDemandPercentageAboveBaseCapacity != *clusterConfig.OnDemandPercentageAboveBaseCapacity {
-			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandPercentageAboveBaseCapacityKey, *userClusterConfig.OnDemandPercentageAboveBaseCapacity)
+			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandPercentageAboveBaseCapacityKey, *clusterConfig.OnDemandPercentageAboveBaseCapacity)
 		}
 
 		if userClusterConfig.MaxPrice != nil && *userClusterConfig.MaxPrice != *clusterConfig.MaxPrice {
-			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.MaxPriceKey, *userClusterConfig.MaxPrice)
+			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.MaxPriceKey, *clusterConfig.MaxPrice)
 		}
 
 		if userClusterConfig.SpotInstancePools != nil && *userClusterConfig.SpotInstancePools != *clusterConfig.SpotInstancePools {
-			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotInstancePoolsKey, *userClusterConfig.SpotInstancePools)
+			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotInstancePoolsKey, *clusterConfig.SpotInstancePools)
 		}
 
 		if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
