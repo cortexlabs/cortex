@@ -17,7 +17,6 @@ import re
 from string import Template
 
 # https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/
-# MAINTAINENCE: sync with aws.go
 REGIONS = [
     "us-east-1",  # N. Virginia
     "us-east-2",  # Ohio

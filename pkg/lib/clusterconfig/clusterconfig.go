@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -42,7 +43,7 @@ type ClusterConfig struct {
 	MaxPrice                            *float64 `json:"max_price" yaml:"max_price"`
 	SpotInstancePools                   *int64   `json:"spot_instance_pools" yaml:"spot_instance_pools"`
 	ClusterName                         string   `json:"cluster_name" yaml:"cluster_name"`
-	Region                              string   `json:"region" yaml:"region"`
+	Region                              *string  `json:"region" yaml:"region"`
 	Bucket                              string   `json:"bucket" yaml:"bucket"`
 	LogGroup                            string   `json:"log_group" yaml:"log_group"`
 	Telemetry                           bool     `json:"telemetry" yaml:"telemetry"`
@@ -105,6 +106,7 @@ var UserValidation = &cr.StructValidation{
 			StructField: "InstanceDistribution",
 			StringListValidation: &cr.StringListValidation{
 				DisallowDups: true,
+				AllowEmpty:   true,
 				Validator:    validateInstanceDistribution,
 			},
 		},
@@ -112,6 +114,7 @@ var UserValidation = &cr.StructValidation{
 			StructField: "OnDemandBaseCapacity",
 			Int64PtrValidation: &cr.Int64PtrValidation{
 				GreaterThanOrEqualTo: pointer.Int64(0),
+				AllowExplicitNull:    true,
 			},
 		},
 		{
@@ -119,12 +122,14 @@ var UserValidation = &cr.StructValidation{
 			Int64PtrValidation: &cr.Int64PtrValidation{
 				GreaterThanOrEqualTo: pointer.Int64(1),
 				LessThanOrEqualTo:    pointer.Int64(100),
+				AllowExplicitNull:    true,
 			},
 		},
 		{
 			StructField: "MaxPrice",
 			Float64PtrValidation: &cr.Float64PtrValidation{
-				GreaterThan: pointer.Float64(0),
+				GreaterThan:       pointer.Float64(0),
+				AllowExplicitNull: true,
 			},
 		},
 		{
@@ -132,6 +137,7 @@ var UserValidation = &cr.StructValidation{
 			Int64PtrValidation: &cr.Int64PtrValidation{
 				GreaterThanOrEqualTo: pointer.Int64(1),
 				LessThanOrEqualTo:    pointer.Int64(20),
+				AllowExplicitNull:    true,
 			},
 		},
 		{
@@ -142,8 +148,9 @@ var UserValidation = &cr.StructValidation{
 		},
 		{
 			StructField: "Region",
-			StringValidation: &cr.StringValidation{
-				Default: "us-west-2",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Default:       pointer.String("us-west-2"),
+				AllowedValues: aws.EKSSupportedRegions.Slice(),
 			},
 		},
 		{
@@ -304,12 +311,12 @@ func (cc *ClusterConfig) Validate() error {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
 
-	if _, ok := aws.InstanceMetadatas[cc.Region][*cc.InstanceType]; !ok {
-		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, cc.Region), InstanceTypeKey)
+	if _, ok := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]; !ok {
+		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
 	}
 
 	if cc.Spot != nil && *cc.Spot {
-		chosenInstance := aws.InstanceMetadatas[cc.Region][*cc.InstanceType]
+		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
 		compatibleSpots := CompatibleSpotInstances(chosenInstance)
 		if len(compatibleSpots) == 0 {
 			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
@@ -320,11 +327,11 @@ func (cc *ClusterConfig) Validate() error {
 			if instanceType == *cc.InstanceType {
 				continue
 			}
-			if _, ok := aws.InstanceMetadatas[cc.Region][instanceType]; !ok {
-				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, cc.Region), InstanceDistributionKey)
+			if _, ok := aws.InstanceMetadatas[*cc.Region][instanceType]; !ok {
+				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, *cc.Region), InstanceDistributionKey)
 			}
 
-			instanceMetadata := aws.InstanceMetadatas[cc.Region][*cc.InstanceType]
+			instanceMetadata := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
 
 			err := CheckSpotInstanceCompatibility(chosenInstance, instanceMetadata)
 			if err != nil {
@@ -350,6 +357,7 @@ func (cc *ClusterConfig) Validate() error {
 			return ErrorOnDemandBaseCapacityGreaterThanMax(*cc.OnDemandBaseCapacity, *cc.MaxInstances)
 		}
 	} else {
+		debug.Pp(cc.InstanceDistribution)
 		if len(cc.InstanceDistribution) > 0 {
 			return ErrorConfiguredWhenSpotIsNotEnabled(InstanceDistributionKey)
 		}
@@ -424,7 +432,7 @@ func CompatibleSpotInstances(targetInstance aws.InstanceMetadata) []aws.Instance
 }
 
 func (cc *ClusterConfig) AutoFillSpot() error {
-	chosenInstance := aws.InstanceMetadatas[cc.Region][*cc.InstanceType]
+	chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
 	if len(cc.InstanceDistribution) == 0 {
 		cc.InstanceDistribution = append(cc.InstanceDistribution, chosenInstance.Type)
 
@@ -474,7 +482,7 @@ func (cc *ClusterConfig) AutoFillSpot() error {
 
 func applyPromptDefaults(defaults *ClusterConfig) *ClusterConfig {
 	defaultConfig := &ClusterConfig{
-		Region:       "us-west-2",
+		Region:       pointer.String("us-west-2"),
 		InstanceType: pointer.String("m5.large"),
 		MinInstances: pointer.Int64(1),
 		MaxInstances: pointer.Int64(5),
@@ -482,6 +490,9 @@ func applyPromptDefaults(defaults *ClusterConfig) *ClusterConfig {
 	}
 
 	if defaults != nil {
+		if defaults.Region != nil {
+			defaultConfig.Region = defaults.Region
+		}
 		if defaults.InstanceType != nil {
 			defaultConfig.InstanceType = defaults.InstanceType
 		}
@@ -499,8 +510,8 @@ func applyPromptDefaults(defaults *ClusterConfig) *ClusterConfig {
 	return defaultConfig
 }
 
-func InstallPromptValidation() *cr.PromptValidation {
-	defaults := applyPromptDefaults(nil)
+func InstallPromptValidation(userClusterConfig *ClusterConfig) *cr.PromptValidation {
+	defaults := applyPromptDefaults(userClusterConfig)
 
 	return &cr.PromptValidation{
 		SkipPopulatedFields: true,
@@ -508,11 +519,11 @@ func InstallPromptValidation() *cr.PromptValidation {
 			{
 				StructField: "Region",
 				PromptOpts: &prompt.Options{
-					Prompt:     "Region",
-					DefaultStr: "us-west-2",
+					Prompt: "Region",
 				},
-				StringValidation: &cr.StringValidation{
-					AllowedValues: aws.EKSSupportedRegions,
+				StringPtrValidation: &cr.StringPtrValidation{
+					AllowedValues: aws.EKSSupportedRegions.Slice(),
+					Default:       defaults.Region,
 				},
 			},
 			{
@@ -563,8 +574,8 @@ func InstallPromptValidation() *cr.PromptValidation {
 	}
 }
 
-func UpdatePromptValidation(skipPopulatedFields bool, defaults *ClusterConfig) *cr.PromptValidation {
-	defaults = applyPromptDefaults(defaults)
+func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *ClusterConfig) *cr.PromptValidation {
+	defaults := applyPromptDefaults(userClusterConfig)
 
 	return &cr.PromptValidation{
 		SkipPopulatedFields: skipPopulatedFields,
@@ -652,7 +663,7 @@ func (cc *ClusterConfig) SetBucket(awsAccessKeyID string, awsSecretAccessKey str
 		return nil
 	}
 
-	awsAccountID, validCreds, err := aws.AccountID(awsAccessKeyID, awsSecretAccessKey, cc.Region)
+	awsAccountID, validCreds, err := aws.AccountID(awsAccessKeyID, awsSecretAccessKey, *cc.Region)
 	if err != nil {
 		return err
 	}
@@ -669,7 +680,7 @@ func (cc *InternalClusterConfig) UserFacingString() string {
 
 	items = append(items, table.KV{K: APIVersionUserFacingKey, V: cc.APIVersion})
 	items = append(items, table.KV{K: ClusterNameUserFacingKey, V: cc.ClusterName})
-	items = append(items, table.KV{K: RegionUserFacingKey, V: cc.Region})
+	items = append(items, table.KV{K: RegionUserFacingKey, V: *cc.Region})
 	items = append(items, table.KV{K: BucketUserFacingKey, V: cc.Bucket})
 	items = append(items, table.KV{K: SpotUserFacingKey, V: s.YesNo(*cc.Spot)})
 	items = append(items, table.KV{K: InstanceTypeUserFacingKey, V: *cc.InstanceType})

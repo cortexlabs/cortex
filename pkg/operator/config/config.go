@@ -56,7 +56,7 @@ func Init() error {
 		return errors.FirstError(errs...)
 	}
 
-	Cluster.InstanceMetadata = aws.InstanceMetadatas[Cluster.Region][*Cluster.InstanceType]
+	Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
 
 	if Kubernetes, err = k8s.New(consts.K8sNamespace, Cluster.OperatorInCluster); err != nil {
 		return err
@@ -66,9 +66,9 @@ func Init() error {
 		return err
 	}
 
-	Cluster.ID = hash.String(Cluster.Bucket + Cluster.Region + Cluster.LogGroup)
+	Cluster.ID = hash.String(Cluster.Bucket + *Cluster.Region + Cluster.LogGroup)
 
-	AWS, err = aws.New(Cluster.Region, Cluster.Bucket, true)
+	AWS, err = aws.New(*Cluster.Region, Cluster.Bucket, true)
 	if err != nil {
 		errors.Exit(err)
 	}

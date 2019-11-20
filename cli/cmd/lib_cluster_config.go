@@ -327,7 +327,7 @@ func getInstallClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, e
 		}
 	}
 
-	err := cr.ReadPrompt(clusterConfig, clusterconfig.InstallPromptValidation())
+	err := cr.ReadPrompt(clusterConfig, clusterconfig.InstallPromptValidation(clusterConfig))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -406,13 +406,16 @@ func getUpdateClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, er
 			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotInstancePoolsKey, *userClusterConfig.SpotInstancePools)
 		}
 
-		clusterConfig.MinInstances = userClusterConfig.MinInstances
-		clusterConfig.MaxInstances = userClusterConfig.MaxInstances
+		if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
+			userClusterConfig.AutoFillSpot()
+		}
 
-		err = cr.ReadPrompt(clusterConfig, clusterconfig.UpdatePromptValidation(true, clusterConfig))
+		err = cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(true, userClusterConfig))
 		if err != nil {
 			return nil, nil, err
 		}
+
+		clusterConfig = userClusterConfig
 	}
 
 	err = setAWSCredentials(awsCreds)

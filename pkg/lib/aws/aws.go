@@ -30,6 +30,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 type Client struct {
@@ -44,25 +45,13 @@ type Client struct {
 	HashedAccountID      string
 }
 
-// https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/
-// MAINTAINENCE: sync with gen_instance_metadata.py
-var EKSSupportedRegions = []string{
-	"us-east-1",      // N. Virginia
-	"us-east-2",      // Ohio
-	"us-west-2",      // Oregon
-	"sa-east-1",      // Sao Paulo
-	"eu-west-1",      // Ireland
-	"eu-central-1",   // Frankfurt
-	"eu-west-2",      // London
-	"eu-west-3",      // Paris
-	"eu-north-1",     // Stockholm
-	"me-south-1",     // Bahrain
-	"ap-southeast-1", // Singapore
-	"ap-northeast-1", // Tokyo
-	"ap-southeast-2", // Sydney
-	"ap-northeast-2", // Seoul
-	"ap-south-1",     // Mumbai
-	"ap-east-1",      // Hong Kong
+var EKSSupportedRegions strset.Set
+
+func init() {
+	EKSSupportedRegions = strset.New()
+	for region := range InstanceMetadatas {
+		EKSSupportedRegions.Add(region)
+	}
 }
 
 func New(region string, bucket string, withAccountID bool) (*Client, error) {
