@@ -23,7 +23,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -357,7 +356,6 @@ func (cc *ClusterConfig) Validate() error {
 			return ErrorOnDemandBaseCapacityGreaterThanMax(*cc.OnDemandBaseCapacity, *cc.MaxInstances)
 		}
 	} else {
-		debug.Pp(cc.InstanceDistribution)
 		if len(cc.InstanceDistribution) > 0 {
 			return ErrorConfiguredWhenSpotIsNotEnabled(InstanceDistributionKey)
 		}
