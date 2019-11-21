@@ -427,14 +427,14 @@ func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string
 		return "the model's input schema will be available when the API is live"
 	}
 
-	apiInfo, err := getAPIInfo(apiEndpoint)
+	apiSummary, err := getAPISummary(apiEndpoint)
 	if err != nil {
 		return "error retrieving the model's input schema: " + err.Error()
 	}
 
-	rows := make([][]interface{}, len(apiInfo.ModelSignature))
+	rows := make([][]interface{}, len(apiSummary.ModelSignature))
 	rowNum := 0
-	for inputName, featureSignature := range apiInfo.ModelSignature {
+	for inputName, featureSignature := range apiSummary.ModelSignature {
 		shapeStr := make([]string, len(featureSignature.Shape))
 		for idx, dim := range featureSignature.Shape {
 			shapeStr[idx] = s.ObjFlatNoQuotes(dim)
@@ -459,10 +459,10 @@ func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string
 	return table.MustFormat(t)
 }
 
-func getAPIInfo(apiEndpoint string) (*schema.APIInfo, error) {
+func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
 	req, err := http.NewRequest("GET", apiEndpoint, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to request API info")
+		return nil, errors.Wrap(err, "unable to request API summary")
 	}
 	req.Header.Set("Content-Type", "application/json")
 	response, err := httpsNoVerifyClient.makeRequest(req)
@@ -470,17 +470,17 @@ func getAPIInfo(apiEndpoint string) (*schema.APIInfo, error) {
 		return nil, err
 	}
 
-	var apiInfo schema.APIInfo
-	err = json.DecodeWithNumber(response, &apiInfo)
+	var apiSummary schema.APISummary
+	err = json.DecodeWithNumber(response, &apiSummary)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse API info response")
+		return nil, errors.Wrap(err, "unable to parse API summary response")
 	}
 
-	for _, featureSignature := range apiInfo.ModelSignature {
+	for _, featureSignature := range apiSummary.ModelSignature {
 		featureSignature.Shape = cast.JSONNumbers(featureSignature.Shape)
 	}
 
-	return &apiInfo, nil
+	return &apiSummary, nil
 }
 
 func dataStatusSummary(dataStatus *resource.DataStatus) string {

@@ -229,11 +229,11 @@ def extract_signature(metadata_list):
 
 
 @app.route("/predict", methods=["GET"])
-def get_info():
+def get_summary():
     return jsonify(
         {
             "model_signature": extract_signature(local_cache["input_metadata"]),
-            "message": api_utils.API_INFO_MESSAGE,
+            "message": api_utils.API_SUMMARY_MESSAGE,
         }
     )
 

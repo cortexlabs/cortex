@@ -304,9 +304,9 @@ def extract_signature(signature_def, signature_key):
 
 
 @app.route("/predict", methods=["GET"])
-def get_info():
+def get_summary():
     signature = local_cache["parsed_signature"]
-    response = {"model_signature": signature, "message": api_utils.API_INFO_MESSAGE}
+    response = {"model_signature": signature, "message": api_utils.API_SUMMARY_MESSAGE}
     return jsonify(response)
 
 
