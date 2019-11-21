@@ -429,7 +429,7 @@ func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string
 
 	modelInput, err := getModelInput(urls.Join(apiEndpoint, "signature"))
 	if err != nil {
-		return "error retreiving the model's input schema: " + err.Error()
+		return "error retrieving the model's input schema: " + err.Error()
 	}
 
 	rows := make([][]interface{}, len(modelInput.Signature))
