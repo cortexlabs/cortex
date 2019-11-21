@@ -219,6 +219,11 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 	if clusterConfig.LogGroup != defaultCC.LogGroup {
 		items = append(items, table.KV{K: "log group", V: clusterConfig.LogGroup})
 	}
+
+	if clusterConfig.InstanceVolumeSize != defaultCC.InstanceVolumeSize {
+		items = append(items, table.KV{K: "instance volume size", V: clusterConfig.InstanceVolumeSize})
+	}
+
 	if clusterConfig.Telemetry != defaultCC.Telemetry {
 		items = append(items, table.KV{K: "telemetry", V: clusterConfig.Telemetry})
 	}

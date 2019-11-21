@@ -23,6 +23,7 @@ metadata:
 nodeGroups:
   - name: ng-1
     instanceType: $CORTEX_INSTANCE_TYPE
+    volumeSize: $CORTEX_INSTANCE_VOLUME_SIZE
     minSize: $CORTEX_MIN_INSTANCES
     maxSize: $CORTEX_MAX_INSTANCES
     desiredCapacity: $CORTEX_MIN_INSTANCES

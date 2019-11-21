@@ -34,6 +34,9 @@ log_group: cortex
 # Name of the EKS cluster Cortex will create
 cluster_name: cortex
 
+# Volume size for each instance in the cluster (in GiB)
+instance_volume_size: 50
+
 # Flag to enable collection of anonymous usage stats and error reports
 telemetry: true
 

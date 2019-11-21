@@ -37,6 +37,7 @@ type ClusterConfig struct {
 	Region                 string  `json:"region" yaml:"region"`
 	Bucket                 string  `json:"bucket" yaml:"bucket"`
 	LogGroup               string  `json:"log_group" yaml:"log_group"`
+	InstanceVolumeSize     int64   `json:"instance_volume_size" yaml:"instance_volume_size"`
 	Telemetry              bool    `json:"telemetry" yaml:"telemetry"`
 	ImagePredictorServe    string  `json:"image_predictor_serve" yaml:"image_predictor_serve"`
 	ImagePredictorServeGPU string  `json:"image_predictor_serve_gpu" yaml:"image_predictor_serve_gpu"`
@@ -109,6 +110,14 @@ var Validation = &cr.StructValidation{
 			StructField: "LogGroup",
 			StringValidation: &cr.StringValidation{
 				Default: "cortex",
+			},
+		},
+		{
+			StructField: "InstanceVolumeSize",
+			Int64Validation: &cr.Int64Validation{
+				Default:              50,
+				GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
+				LessThanOrEqualTo:    pointer.Int64(16384),
 			},
 		},
 		{
@@ -373,6 +382,7 @@ func (cc *InternalClusterConfig) String() string {
 	items = append(items, table.KV{K: "region", V: cc.Region})
 	items = append(items, table.KV{K: "bucket", V: cc.Bucket})
 	items = append(items, table.KV{K: "log group", V: cc.LogGroup})
+	items = append(items, table.KV{K: "instance volume size", V: cc.InstanceVolumeSize})
 	items = append(items, table.KV{K: "telemetry", V: cc.Telemetry})
 	items = append(items, table.KV{K: "image_predictor_serve", V: cc.ImagePredictorServe})
 	items = append(items, table.KV{K: "image_predictor_serve_gpu", V: cc.ImagePredictorServeGPU})
