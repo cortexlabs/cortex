@@ -1,14 +1,15 @@
-import boto3
 import pickle
+
+model = None
+
+
+def init(model_path, metadata):
+    global model
+    model = pickle.load(open(model_path, "rb"))
+
+
 import numpy
 
-
-# Download the model
-
-object = boto3.client("s3").get_object(
-    Bucket="cortex-examples", Key="sklearn/iris-classifier/model.pkl"
-)
-model = pickle.loads(object["Body"].read())
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 

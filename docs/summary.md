@@ -2,11 +2,12 @@
 
 * [Deploy machine learning models in production](../README.md)
 * [Install](cluster/install.md)
+* [Quick start](../examples/sklearn/iris-classifier/README.md)
 * [GitHub](https://github.com/cortexlabs/cortex)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
-* [We're hiring](https://angel.co/cortex-labs-inc/jobs)
-* [Email us](mailto:hello@cortex.dev)
 * [Chat with us](https://gitter.im/cortexlabs/cortex)
+* [Email us](mailto:hello@cortex.dev)
+* [We're hiring](https://angel.co/cortex-labs-inc/jobs)
 
 ## Deployments
 

@@ -23,7 +23,7 @@ accuracy = model.score(test_data, test_labels)
 print("accuracy: {:.2f}".format(accuracy))
 ```
 
-Add code to pickle (you can use other serialization libraries such as joblib) and upload your model to S3. boto3 will need access to valid AWS credentials. You should also change "cortex-examples" to your bucket's name:
+Add code to pickle (you can use other serialization libraries such as joblib) and upload your model to S3. boto3 will need access to valid AWS credentials:
 
 ```python
 # trainer.py
@@ -33,7 +33,7 @@ import pickle
 
 pickle.dump(model, open("model.pkl", "wb"))
 s3 = boto3.client("s3")
-s3.upload_file("model.pkl", "cortex-examples", "model.pkl")
+s3.upload_file("model.pkl", "my-bucket", "sklearn/iris-classifier/model.pkl")
 ```
 
 Run the script locally:
@@ -48,21 +48,22 @@ $ python3 trainer.py
 
 ## Define a predictor
 
-Cortex's Predictor Interface allows Cortex to serve models from any framework by implementing them in a Python file. To use the Predictor Interface, create another Python file `predictor.py` and add code to download your pickled model from S3:
+Create another Python file `predictor.py` and add code to load and initialize your pickled model:
 
 ```python
 # predictor.py
 
-import boto3
 import pickle
 
-object = boto3.client("s3").get_object(
-    Bucket="cortex-examples", Key="sklearn/iris-classifier/model.pkl"
-)
-model = pickle.loads(object["Body"].read())
+model = None
+
+
+def init(model_path, metadata):
+    global model
+    model = pickle.load(open(model_path, "rb"))
 ```
 
-Cortex's Predictor Interface will search within your `predictor.py` file for a `predict()` function that accepts inputs and serves predictions. Add a prediction function that will accept a JSON sample and return a prediction from your model:
+Add a prediction function that will accept a JSON sample and return a prediction from your model:
 
 ```python
 # predictor.py
@@ -70,6 +71,7 @@ Cortex's Predictor Interface will search within your `predictor.py` file for a `
 import numpy
 
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
+
 
 def predict(sample, metadata):
     input_array = numpy.array(
@@ -90,7 +92,6 @@ def predict(sample, metadata):
 Create a `requirements.txt` file to specify the dependencies needed by `predictor.py`. Cortex will automatically install them into your runtime once you deploy:
 
 ```text
-boto3
 numpy
 ```
 
@@ -98,7 +99,7 @@ You can skip dependencies that are [pre-installed](https://www.cortex.dev/deploy
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed together. An `api` makes our implementation available as a web service that can serve real-time predictions. Cortex will configure your `deployment` and your `api` according to the instructions passed to it via a `cortex.yaml` configuration file. Create the following `cortex.yaml` to deploy the implementation specified in `predictor.py`:
+Create a `cortex.yaml` file and add the configuration below. A `deployment` specifies a set of resources that are deployed together. An `api` a runtime for inference and makes our `predictor.py` implementation available as a web service that can serve real-time predictions:
 
 ```yaml
 # cortex.yaml
@@ -110,19 +111,18 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
   name: classifier
   predictor:
     path: predictor.py
+    model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
 ```
 
 ## Deploy to AWS
 
-`cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on the cluster:
+`cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on your Cortex cluster:
 
 ```bash
 $ cortex deploy
 
 creating classifier api
 ```
-
-Behind the scenes, Cortex containerizes your implementation, makes it servable using Flask, exposes the endpoint with a load balancer, and orchestrates the workload on Kubernetes.
 
 Track the status of your deployment using `cortex get`:
 
@@ -131,6 +131,8 @@ $ cortex get classifier --watch
 
 status   up-to-date   available   requested   last update   avg latency
 live     1            1           1           8s            -
+
+endpoint: http://***.amazonaws.com/iris/classifier
 ```
 
 The output above indicates that one replica of the API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
@@ -140,10 +142,6 @@ The output above indicates that one replica of the API was requested and is avai
 We can use `curl` to test our prediction service:
 
 ```bash
-$ cortex get classifier
-
-endpoint: http://***.amazonaws.com/iris/classifier
-
 $ curl http://***.amazonaws.com/iris/classifier \
     -X POST -H "Content-Type: application/json" \
     -d '{"sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3}'
@@ -175,12 +173,6 @@ Run `cortex deploy` again to update your API with this configuration:
 $ cortex deploy
 
 updating classifier api
-
-
-$ cortex get classifier --watch
-
-status     up-to-date   available   requested   last update   avg latency
-updating   0            1           1           3s            -
 ```
 
 After making more predictions, your `cortex get` command will show information about your API's past predictions:
@@ -189,7 +181,7 @@ After making more predictions, your `cortex get` command will show information a
 $ cortex get classifier --watch
 
 status   up-to-date   available   requested   last update   avg latency
-live     1            1           1           16s           123ms
+live     1            1           1           16s           28ms
 
 class     count
 positive  8
@@ -221,16 +213,68 @@ You could also configure GPU compute here if your cluster supports it. Adding co
 $ cortex deploy
 
 updating classifier api
+```
 
+Run `cortex get` again:
 
+```bash
 $ cortex get classifier --watch
 
-status     up-to-date   available   requested   last update   avg latency
-updating   0            1           1           3s            88ms
+status   up-to-date   available   requested   last update   avg latency  
+live     1            1           1           16s           24 ms
 
 class     count
 positive  8
 negative  4
+```
+
+## Add another API
+
+If you trained another model and want to A/B test it with your previous model, simply add another `api` to your configuration and specify the new model:
+
+```yaml
+- kind: deployment
+  name: iris
+
+  - kind: api
+    name: classifier
+    predictor:
+      path: predictor.py
+      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+    tracker:
+      model_type: classification
+    compute:
+      cpu: 1
+      mem: 1G
+
+  - kind: api
+    name: another-classifier
+    predictor:
+      path: predictor.py
+      model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
+    tracker:
+      model_type: classification
+    compute:
+      cpu: 1
+      mem: 1G
+```
+
+Run `cortex deploy` to create the new API:
+
+```bash
+$ cortex deploy
+
+creating another-classifier api
+```
+
+`cortex deploy` is declarative so the `classifier` API is unchanged while `another-classifier` is created:
+
+```bash
+$ cortex get --watch
+
+api                  status   up-to-date   available   requested   last update
+another-classifier   live     1            1           1           8s
+classifier           live     1            1           1           5m
 ```
 
 ## Clean up
@@ -241,6 +285,7 @@ Run `cortex delete` to spin down your API:
 $ cortex delete
 
 deleting classifier api
+deleting another-classifier api
 ```
 
 Running `cortex delete` will free up cluster resources and allow Cortex to scale to the minimum number of instances you specified during cluster installation. It will not spin down your cluster.

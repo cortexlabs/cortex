@@ -21,4 +21,4 @@ import pickle
 
 pickle.dump(model, open("model.pkl", "wb"))
 s3 = boto3.client("s3")
-s3.upload_file("model.pkl", "my-bucket", "model.pkl")
+s3.upload_file("model.pkl", "my-bucket", "sklearn/iris-classifier/model.pkl")
