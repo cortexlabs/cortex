@@ -21,6 +21,11 @@ from cortex.lib.exceptions import UserException, CortexException
 from cortex.lib.log import cx_logger
 
 
+API_SUMMARY_MESSAGE = (
+    "send a POST request to this endpoint with a sample in JSON to make a prediction"
+)
+
+
 def get_classes(ctx, api_name):
     api = ctx.apis[api_name]
     prefix = os.path.join(ctx.metadata_root, api["id"], "classes")
