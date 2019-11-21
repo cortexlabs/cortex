@@ -48,7 +48,7 @@ $ python3 trainer.py
 
 ## Define a predictor
 
-Create another Python file `predictor.py` and add code to download your pickled model from S3:
+Cortex's Predictor Interface allows Cortex to serve models from any framework by implementing them in a Python file. To use the Predictor Interface, create another Python file `predictor.py` and add code to download your pickled model from S3:
 
 ```python
 # predictor.py
@@ -62,7 +62,7 @@ object = boto3.client("s3").get_object(
 model = pickle.loads(object["Body"].read())
 ```
 
-Add a prediction function that will accept a JSON sample and return a prediction from your model:
+Cortex's Predictor Interface will search within your `predictor.py` file for a `predict()` function that accepts inputs and serves predictions. Add a prediction function that will accept a JSON sample and return a prediction from your model:
 
 ```python
 # predictor.py
@@ -98,7 +98,7 @@ You can skip dependencies that are [pre-installed](https://www.cortex.dev/deploy
 
 ## Define a deployment
 
-A `deployment` specifies a set of resources that are deployed together. An `api` makes our implementation available as a web service that can serve real-time predictions. This configuration will deploy the implementation specified in `predictor.py`:
+A `deployment` specifies a set of resources that are deployed together. An `api` makes our implementation available as a web service that can serve real-time predictions. Cortex will configure your `deployment` and your `api` according to the instructions passed to it via a `cortex.yaml` configuration file. Create the following `cortex.yaml` to deploy the implementation specified in `predictor.py`:
 
 ```yaml
 # cortex.yaml
