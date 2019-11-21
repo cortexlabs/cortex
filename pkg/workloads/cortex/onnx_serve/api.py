@@ -228,9 +228,14 @@ def extract_signature(metadata_list):
     return metadata
 
 
-@app.route("/predict/signature", methods=["GET"])
-def get_signature():
-    return jsonify({"signature": extract_signature(local_cache["input_metadata"])})
+@app.route("/predict", methods=["GET"])
+def get_info():
+    return jsonify(
+        {
+            "model_signature": extract_signature(local_cache["input_metadata"]),
+            "message": api_utils.API_INFO_MESSAGE,
+        }
+    )
 
 
 @app.errorhandler(Exception)

@@ -65,6 +65,7 @@ type FeatureSignature struct {
 	Type  string        `json:"type"`
 }
 
-type ModelInput struct {
-	Signature map[string]FeatureSignature `json:"signature"`
+type APIInfo struct {
+	Message        string                      `json:"message"`
+	ModelSignature map[string]FeatureSignature `json:"model_signature"`
 }

@@ -427,14 +427,14 @@ func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string
 		return "the model's input schema will be available when the API is live"
 	}
 
-	modelInput, err := getModelInput(urls.Join(apiEndpoint, "signature"))
+	apiInfo, err := getAPIInfo(apiEndpoint)
 	if err != nil {
 		return "error retrieving the model's input schema: " + err.Error()
 	}
 
-	rows := make([][]interface{}, len(modelInput.Signature))
+	rows := make([][]interface{}, len(apiInfo.ModelSignature))
 	rowNum := 0
-	for inputName, featureSignature := range modelInput.Signature {
+	for inputName, featureSignature := range apiInfo.ModelSignature {
 		shapeStr := make([]string, len(featureSignature.Shape))
 		for idx, dim := range featureSignature.Shape {
 			shapeStr[idx] = s.ObjFlatNoQuotes(dim)
@@ -459,10 +459,10 @@ func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string
 	return table.MustFormat(t)
 }
 
-func getModelInput(infoAPIPath string) (*schema.ModelInput, error) {
-	req, err := http.NewRequest("GET", infoAPIPath, nil)
+func getAPIInfo(apiEndpoint string) (*schema.APIInfo, error) {
+	req, err := http.NewRequest("GET", apiEndpoint, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to request model input")
+		return nil, errors.Wrap(err, "unable to request API info")
 	}
 	req.Header.Set("Content-Type", "application/json")
 	response, err := httpsNoVerifyClient.makeRequest(req)
@@ -470,17 +470,17 @@ func getModelInput(infoAPIPath string) (*schema.ModelInput, error) {
 		return nil, err
 	}
 
-	var modelInput schema.ModelInput
-	err = json.DecodeWithNumber(response, &modelInput)
+	var apiInfo schema.APIInfo
+	err = json.DecodeWithNumber(response, &apiInfo)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse model input response")
+		return nil, errors.Wrap(err, "unable to parse API info response")
 	}
 
-	for _, featureSignature := range modelInput.Signature {
+	for _, featureSignature := range apiInfo.ModelSignature {
 		featureSignature.Shape = cast.JSONNumbers(featureSignature.Shape)
 	}
 
-	return &modelInput, nil
+	return &apiInfo, nil
 }
 
 func dataStatusSummary(dataStatus *resource.DataStatus) string {

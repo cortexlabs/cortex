@@ -99,6 +99,16 @@ def predict():
     return jsonify(output)
 
 
+@app.route("/predict", methods=["GET"])
+def get_info():
+    return jsonify(
+        {
+            "model_signature": extract_signature(local_cache["input_metadata"]),
+            "message": api_utils.API_INFO_MESSAGE,
+        }
+    )
+
+
 @app.errorhandler(Exception)
 def exceptions(e):
     cx_logger().exception(e)
