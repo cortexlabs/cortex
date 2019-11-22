@@ -257,7 +257,11 @@ def start(args):
 
         _, prefix = ctx.storage.deconstruct_s3_path(api["onnx"]["model"])
         model_path = os.path.join(args.model_dir, os.path.basename(prefix))
+
         if api["onnx"].get("request_handler") is not None:
+            cx_logger().info(
+                "loading the request handler from {}".format(api["onnx"]["request_handler"])
+            )
             local_cache["request_handler"] = ctx.get_request_handler_impl(
                 api["name"], args.project_dir
             )
@@ -265,7 +269,7 @@ def start(args):
 
         if request_handler is not None and util.has_function(request_handler, "pre_inference"):
             cx_logger().info(
-                "using pre_inference request handler provided in {}".format(
+                "using pre_inference request handler defined in {}".format(
                     api["onnx"]["request_handler"]
                 )
             )
@@ -274,12 +278,12 @@ def start(args):
 
         if request_handler is not None and util.has_function(request_handler, "post_inference"):
             cx_logger().info(
-                "using post_inference request handler provided in {}".format(
+                "using post_inference request handler defined in {}".format(
                     api["onnx"]["request_handler"]
                 )
             )
         else:
-            cx_logger().info("post_inference request handler not found")
+            cx_logger().info("post_inference request handler not defined")
 
         sess = rt.InferenceSession(model_path)
         local_cache["sess"] = sess
@@ -304,7 +308,7 @@ def start(args):
         except Exception as e:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
-    cx_logger().info("API is ready")
+    cx_logger().info("{} API is live".format(api["name"]))
     serve(app, listen="*:{}".format(args.port))
 
 

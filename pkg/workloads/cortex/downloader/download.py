@@ -23,8 +23,8 @@ from cortex.lib.log import cx_logger
 
 
 def start(args):
-    download = json.loads(base64.urlsafe_b64decode(args.download))
-    for download_arg in download:
+    download_config = json.loads(base64.urlsafe_b64decode(args.download))
+    for download_arg in download_config["download_args"]:
         from_path = download_arg["from"]
         to_path = download_arg["to"]
         item_name = download_arg.get("item_name", "")
@@ -32,11 +32,14 @@ def start(args):
         s3_client = S3(bucket_name, client_config={})
 
         if item_name != "":
-            cx_logger().info("downloading {} from {}".format(item_name, from_path))
+            if download_arg.get("hide_from_log", False):
+                cx_logger().info("downloading {}".format(item_name))
+            else:
+                cx_logger().info("downloading {} from {}".format(item_name, from_path))
         s3_client.download(prefix, to_path)
 
         if download_arg.get("unzip", False):
-            if item_name != "":
+            if item_name != "" and not download_arg.get("hide_unzipping_log", False):
                 cx_logger().info("unzipping {}".format(item_name))
             util.extract_zip(
                 os.path.join(to_path, os.path.basename(from_path)), delete_zip_file=True
@@ -50,6 +53,9 @@ def start(args):
                 src = os.path.join(dir_path, entries[0])
                 os.rename(src, dest)
 
+    if download_config.get("last_log", "") != "":
+        cx_logger().info(download_config["last_log"])
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -57,7 +63,7 @@ def main():
     na.add_argument(
         "--download",
         required=True,
-        help="a base64 encoded json array of download arg objects (see api_workload.go for the structure)",
+        help="a base64 encoded download_config (see api_workload.go for the structure)",
     )
     parser.set_defaults(func=start)
 
