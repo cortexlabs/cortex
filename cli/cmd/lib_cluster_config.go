@@ -114,6 +114,11 @@ func getUpdateClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterCon
 		}
 		userClusterConfig.InstanceType = cachedClusterConfig.InstanceType
 
+		if userClusterConfig.InstanceVolumeSize != cachedClusterConfig.InstanceVolumeSize {
+			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeSizeKey, cachedClusterConfig.InstanceVolumeSize)
+		}
+		userClusterConfig.InstanceVolumeSize = cachedClusterConfig.InstanceVolumeSize
+
 		if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
 			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
 		}
@@ -177,7 +182,9 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 	items = append(items, table.KV{K: clusterconfig.InstanceTypeUserFacingKey, V: *clusterConfig.InstanceType})
 	items = append(items, table.KV{K: clusterconfig.MinInstancesUserFacingKey, V: *clusterConfig.MinInstances})
 	items = append(items, table.KV{K: clusterconfig.MaxInstancesUserFacingKey, V: *clusterConfig.MaxInstances})
-
+	if clusterConfig.InstanceVolumeSize != prevConfig.InstanceVolumeSize {
+		items = append(items, table.KV{K: clusterconfig.InstanceVolumeSizeUserFacingKey, V: clusterConfig.InstanceVolumeSize})
+	}
 	if clusterConfig.LogGroup != prevConfig.LogGroup {
 		items = append(items, table.KV{K: clusterconfig.LogGroupUserFacingKey, V: clusterConfig.LogGroup})
 	}

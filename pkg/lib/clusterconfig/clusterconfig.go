@@ -35,6 +35,7 @@ type ClusterConfig struct {
 	InstanceType           *string     `json:"instance_type" yaml:"instance_type"`
 	MinInstances           *int64      `json:"min_instances" yaml:"min_instances"`
 	MaxInstances           *int64      `json:"max_instances" yaml:"max_instances"`
+	InstanceVolumeSize     int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
 	Spot                   *bool       `json:"spot" yaml:"spot"`
 	SpotConfig             *SpotConfig `json:"spot_config" yaml:"spot_config"`
 	ClusterName            string      `json:"cluster_name" yaml:"cluster_name"`
@@ -99,6 +100,14 @@ var UserValidation = &cr.StructValidation{
 			StructField: "MaxInstances",
 			Int64PtrValidation: &cr.Int64PtrValidation{
 				GreaterThan: pointer.Int64(0),
+			},
+		},
+		{
+			StructField: "InstanceVolumeSize",
+			Int64Validation: &cr.Int64Validation{
+				Default:              50,
+				GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
+				LessThanOrEqualTo:    pointer.Int64(16384),
 			},
 		},
 		{
@@ -721,12 +730,11 @@ func (cc *ClusterConfig) UserFacingTable() []table.KV {
 	items = append(items, table.KV{K: BucketUserFacingKey, V: *cc.Bucket})
 	items = append(items, table.KV{K: SpotUserFacingKey, V: s.YesNo(*cc.Spot)})
 	items = append(items, table.KV{K: InstanceTypeUserFacingKey, V: *cc.InstanceType})
-	if cc.SpotConfig != nil {
-		items = append(items, table.KV{K: InstanceDistributionUserFacingKey, V: cc.SpotConfig.InstanceDistribution})
-	}
+	items = append(items, table.KV{K: InstanceVolumeSizeUserFacingKey, V: cc.InstanceVolumeSize})
 	items = append(items, table.KV{K: MinInstancesUserFacingKey, V: *cc.MinInstances})
 	items = append(items, table.KV{K: MaxInstancesUserFacingKey, V: *cc.MaxInstances})
 	if cc.Spot != nil {
+		items = append(items, table.KV{K: InstanceDistributionUserFacingKey, V: cc.SpotConfig.InstanceDistribution})
 		items = append(items, table.KV{K: OnDemandBaseCapacityUserFacingKey, V: *cc.SpotConfig.OnDemandBaseCapacity})
 		items = append(items, table.KV{K: OnDemandPercentageAboveBaseCapacityUserFacingKey, V: *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity})
 		items = append(items, table.KV{K: MaxPriceUserFacingKey, V: *cc.SpotConfig.MaxPrice})

@@ -30,14 +30,14 @@ def get_autoscaling_group():
     )
     asgs = list(filtered_asgs)
     if len(asgs) != 1:
-        raise Exception("found %s matching autoscaling groups, expected only one".format(len(asgs)))
+        raise Exception("found {} matching autoscaling groups, expected only one".format(len(asgs)))
     return asgs[0]
 
 
-def get_instance_type(launch_template_id):
+def get_launch_template(launch_template_id):
     client = boto3.client("ec2", region_name=os.environ["CORTEX_REGION"])
     resp = client.describe_launch_template_versions(LaunchTemplateId=launch_template_id)
-    return resp["LaunchTemplateVersions"][0]["LaunchTemplateData"]["InstanceType"]
+    return resp["LaunchTemplateVersions"][0]["LaunchTemplateData"]
 
 
 def refresh_yaml(input_yaml_path, output_yaml_path):
@@ -49,20 +49,30 @@ def refresh_yaml(input_yaml_path, output_yaml_path):
     cluster_config["min_instances"] = asg["MinSize"]
     cluster_config["max_instances"] = asg["MaxSize"]
 
-    if asg.get("LaunchTemplate") is not None:
-        cluster_config["instance_type"] = get_instance_type(
-            asg["LaunchTemplate"]["LaunchTemplateId"]
+    if asg.get("MixedInstancesPolicy") is not None:
+        launch_template = get_launch_template(
+            asg["MixedInstancesPolicy"]["LaunchTemplate"]["LaunchTemplateSpecification"][
+                "LaunchTemplateId"
+            ]
         )
+    else:
+        launch_template = get_launch_template(asg["LaunchTemplate"]["LaunchTemplateId"])
+
+    cluster_config["instance_type"] = launch_template["InstanceType"]
+
+    if launch_template.get("BlockDeviceMappings"):
+        cluster_config["instance_volume_size"] = launch_template["BlockDeviceMappings"][0]["Ebs"][
+            "VolumeSize"
+        ]
+    else:
+        cluster_config["instance_volume_size"] = 20
+
+    if asg.get("LaunchTemplate") is not None:
         cluster_config["spot"] = False
         cluster_config["spot_config"] = None
 
     if asg.get("MixedInstancesPolicy") is not None:
-        mixed_instance_policy = asg.get("MixedInstancesPolicy")
-        cluster_config["instance_type"] = get_instance_type(
-            mixed_instance_policy["LaunchTemplate"]["LaunchTemplateSpecification"][
-                "LaunchTemplateId"
-            ]
-        )
+        mixed_instance_policy = asg["MixedInstancesPolicy"]
         cluster_config["spot"] = True
         spot_config = {}
         instances_distribution_metadata = mixed_instance_policy["InstancesDistribution"]

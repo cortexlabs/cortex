@@ -24,6 +24,9 @@ min_instances: 1
 # Maximum number of worker instances in the cluster (must be >= 1)
 max_instances: 5
 
+# Volume size for each instance in the cluster (in GiB)
+instance_volume_size: 50
+
 # Name of the S3 bucket Cortex will use
 bucket: cortex-<RANDOM_ID>
 
