@@ -123,7 +123,7 @@ class Context:
             try:
                 impl = imp.load_source(full_module_name, impl_path)
             except Exception as e:
-                raise UserException("unable to load python file", str(e)) from e
+                raise UserException(str(e)) from e
 
         return impl
 
@@ -135,9 +135,7 @@ class Context:
             model_type = api.get("onnx")
 
         if model_type is None:  # unexpected
-            raise CortexException(
-                api_name, "failed to load request handler", "missing `tensorflow` or `onnx` key"
-            )
+            raise CortexException(api_name, 'missing "tensorflow" or "onnx" key')
 
         request_handler_path = model_type.get("request_handler")
         try:
@@ -145,7 +143,7 @@ class Context:
                 "request_handler", api["name"], os.path.join(project_dir, request_handler_path)
             )
         except CortexException as e:
-            e.wrap("api " + api_name, "failed to load request_handler", request_handler_path)
+            e.wrap("api " + api_name, "error in " + request_handler_path)
             raise
         finally:
             refresh_logger()
@@ -153,7 +151,7 @@ class Context:
         try:
             _validate_impl(impl, REQUEST_HANDLER_IMPL_VALIDATION)
         except CortexException as e:
-            e.wrap("api " + api_name, "request_handler " + request_handler_path)
+            e.wrap("api " + api_name, request_handler_path)
             raise
         return impl
 
@@ -164,7 +162,7 @@ class Context:
                 "predictor", api["name"], os.path.join(project_dir, api["predictor"]["path"])
             )
         except CortexException as e:
-            e.wrap("api " + api_name, "failed to load predictor", api["predictor"]["path"])
+            e.wrap("api " + api_name, "error in " + api["predictor"]["path"])
             raise
         finally:
             refresh_logger()
@@ -172,7 +170,7 @@ class Context:
         try:
             _validate_impl(impl, PREDICTOR_IMPL_VALIDATION)
         except CortexException as e:
-            e.wrap("api " + api_name, "predictor " + api["predictor"]["path"])
+            e.wrap("api " + api_name, api["predictor"]["path"])
             raise
         return impl
 
@@ -273,23 +271,23 @@ def _validate_optional_fn_args(impl, fn_name, args):
 def _validate_required_fn_args(impl, fn_name, args):
     fn = getattr(impl, fn_name, None)
     if not fn:
-        raise UserException("function " + fn_name, "could not find function")
+        raise UserException('required function "{}" is not defined'.format(fn_name))
 
     if not callable(fn):
-        raise UserException("function " + fn_name, "not a function")
+        raise UserException('"{}" is defined, but is not a function'.format(fn_name))
 
     argspec = inspect.getargspec(fn)
     if argspec.varargs != None or argspec.keywords != None or argspec.defaults != None:
         raise UserException(
-            "function " + fn_name,
-            "invalid function signature, can only accept positional arguments",
+            'invalid signature for function "{}": can only accept positional arguments'.format(
+                fn_name
+            )
         )
 
     if args:
         if argspec.args != args:
             raise UserException(
-                "function " + fn_name,
-                "expected function arguments arguments ({}) but found ({})".format(
-                    ", ".join(args), ", ".join(argspec.args)
-                ),
+                'invalid signature for function "{}": expected arguments ({}) but found ({})'.format(
+                    fn_name, ", ".join(args), ", ".join(argspec.args)
+                )
             )
