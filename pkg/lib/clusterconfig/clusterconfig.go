@@ -129,7 +129,7 @@ var UserValidation = &cr.StructValidation{
 					{
 						StructField: "OnDemandPercentageAboveBaseCapacity",
 						Int64PtrValidation: &cr.Int64PtrValidation{
-							GreaterThanOrEqualTo: pointer.Int64(1),
+							GreaterThanOrEqualTo: pointer.Int64(0),
 							LessThanOrEqualTo:    pointer.Int64(100),
 							AllowExplicitNull:    true,
 						},
@@ -701,10 +701,21 @@ func (cc *ClusterConfig) SetBucket(awsAccessKeyID string, awsSecretAccessKey str
 	return nil
 }
 
-func (cc *InternalClusterConfig) UserFacingString() string {
+func (cc *InternalClusterConfig) UserFacingTable() []table.KV {
 	var items []table.KV
 
 	items = append(items, table.KV{K: APIVersionUserFacingKey, V: cc.APIVersion})
+	items = append(items, cc.ClusterConfig.UserFacingTable()...)
+	return items
+}
+
+func (cc *InternalClusterConfig) UserFacingString() string {
+	return table.AlignKeyValue(cc.UserFacingTable(), ":", 1)
+}
+
+func (cc *ClusterConfig) UserFacingTable() []table.KV {
+	var items []table.KV
+
 	items = append(items, table.KV{K: ClusterNameUserFacingKey, V: cc.ClusterName})
 	items = append(items, table.KV{K: RegionUserFacingKey, V: *cc.Region})
 	items = append(items, table.KV{K: BucketUserFacingKey, V: *cc.Bucket})
@@ -743,5 +754,9 @@ func (cc *InternalClusterConfig) UserFacingString() string {
 	items = append(items, table.KV{K: ImageIstioCitadelUserFacingKey, V: cc.ImageIstioCitadel})
 	items = append(items, table.KV{K: ImageIstioGalleyUserFacingKey, V: cc.ImageIstioGalley})
 
-	return table.AlignKeyValue(items, ":", 1)
+	return items
+}
+
+func (cc *ClusterConfig) UserFacingString() string {
+	return table.AlignKeyValue(cc.UserFacingTable(), ":", 1)
 }

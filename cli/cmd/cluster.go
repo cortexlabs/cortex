@@ -105,6 +105,7 @@ var updateCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
+		fmt.Println("Refreshing cluster configuration...\n")
 		refreshCachedClusterConfig(awsCreds)
 
 		clusterConfig, err := getUpdateClusterConfig(awsCreds)
@@ -132,6 +133,7 @@ var infoCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
+		fmt.Println("Refreshing cluster configuration...\n")
 		clusterConfig := refreshCachedClusterConfig(awsCreds)
 
 		out, err := runManagerCommand("/root/info.sh", clusterConfig, awsCreds)
@@ -146,13 +148,18 @@ var infoCmd = &cobra.Command{
 
 		httpResponse, err := HTTPGet("/info")
 		if err != nil {
-			errors.Exit(err)
+			fmt.Println(errors.Wrap(err, "unable to connect to operator").Error())
+			fmt.Println(clusterConfig.UserFacingString())
+			return
 		}
 		var infoResponse schema.InfoResponse
 		err = json.Unmarshal(httpResponse, &infoResponse)
 		if err != nil {
-			errors.Exit(err, "/info", string(httpResponse))
+			fmt.Println(errors.Wrap(err, "unable to parse operator response").Error())
+			fmt.Println(clusterConfig.UserFacingString())
+			return
 		}
+
 		infoResponse.ClusterConfig.ClusterConfig = *clusterConfig
 		fmt.Println(infoResponse.ClusterConfig.UserFacingString())
 	},
@@ -174,6 +181,7 @@ var downCmd = &cobra.Command{
 		if err != nil {
 			errors.Exit(err)
 		}
+
 		clusterConfig := refreshCachedClusterConfig(awsCreds)
 
 		_, err = runManagerCommand("/root/uninstall.sh", clusterConfig, awsCreds)
@@ -253,13 +261,14 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Cluster
 	}
 
 	if len(userClusterConfig.ClusterName) == 0 {
-		errors.Exit("error: unable to find cluster_name; please configure `cluster_name` to the name of an existing Cortex cluster or create a Cortex cluster with `cortex cluster up`")
+		errors.Exit("unable to find cluster_name; please configure `cluster_name` to the name of an existing Cortex cluster or create a Cortex cluster with `cortex cluster up`")
 	}
 
 	if userClusterConfig.Region == nil {
-		errors.Exit("error: unable to find region; please configure `region` to the S3 region of an existing Cortex cluster or create a Cortex cluster with `cortex cluster up`")
+		errors.Exit("unable to find region; please configure `region` to the S3 region of an existing Cortex cluster or create a Cortex cluster with `cortex cluster up`")
 	}
-	out, err := runManagerCommand("/root/refresh.sh", userClusterConfig, awsCreds)
+
+	out, err := runRefreshClusterConfig(userClusterConfig, awsCreds)
 	if err != nil {
 		errors.Exit(err)
 	}
@@ -267,6 +276,7 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Cluster
 		errors.Exit()
 	}
 
-	readClusterConfigFile(cachedClusterConfig, cachedClusterConfigPath)
-	return cachedClusterConfig
+	refreshedClusterConfig := &clusterconfig.ClusterConfig{}
+	readClusterConfigFile(refreshedClusterConfig, cachedClusterConfigPath)
+	return refreshedClusterConfig
 }
