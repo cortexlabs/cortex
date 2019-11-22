@@ -83,14 +83,6 @@ function ensure_eks() {
 
   echo "✓ Cluster is running"
 
-  # Check if instance type changed
-  ng_info=$(eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --name ng-cortex-worker -o json)
-  ng_instance_type=$(echo "$ng_info" | jq -r ".[] | select( .Cluster == \"$CORTEX_CLUSTER_NAME\" ) | select( .Name == \"ng-cortex-worker\" ) | .InstanceType")
-  if [ "$ng_instance_type" != "$CORTEX_INSTANCE_TYPE" ]; then
-    echo -e "\nerror: Cortex does not currently support changing the instance type of a running cluster; please run \`cortex cluster down\` followed by \`cortex cluster up\` to create a new cluster"
-    exit 1
-  fi
-
   # Check for change in min/max instances
   asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query 'AutoScalingGroups[?contains(Tags[?Key==`alpha.eksctl.io/nodegroup-name`].Value, `ng-cortex-worker`)]')
   asg_name=$(echo "$asg_info" | jq -r 'first | .AutoScalingGroupName')

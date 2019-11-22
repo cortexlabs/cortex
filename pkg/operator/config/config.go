@@ -66,9 +66,9 @@ func Init() error {
 		return err
 	}
 
-	Cluster.ID = hash.String(Cluster.Bucket + *Cluster.Region + Cluster.LogGroup)
+	Cluster.ID = hash.String(*Cluster.Bucket + *Cluster.Region + Cluster.LogGroup)
 
-	AWS, err = aws.New(*Cluster.Region, Cluster.Bucket, true)
+	AWS, err = aws.New(*Cluster.Region, *Cluster.Bucket, true)
 	if err != nil {
 		errors.Exit(err)
 	}
