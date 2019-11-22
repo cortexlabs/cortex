@@ -4,7 +4,7 @@ Cortex is an open source platform that takes machine learning models—trained w
 
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
-[install](https://www.cortex.dev/install) • [quick start](https://www.cortex.dev/quickstart) • [docs](https://www.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.10/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
+[install](https://www.cortex.dev/install) • [tutorial](https://www.cortex.dev/v/master/iris-classifier) • [docs](https://www.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.10/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
 
 <!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
 ![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.8.gif)
