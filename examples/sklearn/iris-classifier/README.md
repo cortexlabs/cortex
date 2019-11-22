@@ -249,27 +249,27 @@ If you trained another model and want to A/B test it with your previous model, s
 - kind: deployment
   name: iris
 
-  - kind: api
-    name: classifier
-    predictor:
-      path: predictor.py
-      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
-    tracker:
-      model_type: classification
-    compute:
-      cpu: 1
-      mem: 1G
+- kind: api
+  name: classifier
+  predictor:
+    path: predictor.py
+    model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+  tracker:
+    model_type: classification
+  compute:
+    cpu: 1
+    mem: 1G
 
-  - kind: api
-    name: another-classifier
-    predictor:
-      path: predictor.py
-      model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
-    tracker:
-      model_type: classification
-    compute:
-      cpu: 1
-      mem: 1G
+- kind: api
+  name: another-classifier
+  predictor:
+    path: predictor.py
+    model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
+  tracker:
+    model_type: classification
+  compute:
+    cpu: 1
+    mem: 1G
 ```
 
 Run `cortex deploy` to create the new API:
