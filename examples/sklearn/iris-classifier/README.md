@@ -95,7 +95,7 @@ Create a `requirements.txt` file to specify the dependencies needed by `predicto
 numpy
 ```
 
-You can skip dependencies that are [pre-installed](https://www.cortex.dev/deployments/predictor#pre-installed-packages) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
+You can skip dependencies that are [pre-installed](../../../docs/deployments/predictor#pre-installed-packages) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
 
 ## Define a deployment
 
