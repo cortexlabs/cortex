@@ -1,8 +1,11 @@
-# Train the model
+import boto3
+import pickle
 
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
+
+# Train the model
 
 iris = load_iris()
 data, labels = iris.data, iris.target
@@ -13,11 +16,7 @@ model.fit(training_data, training_labels)
 accuracy = model.score(test_data, test_labels)
 print("accuracy: {:.2f}".format(accuracy))
 
-
 # Upload the model
-
-import boto3
-import pickle
 
 pickle.dump(model, open("model.pkl", "wb"))
 s3 = boto3.client("s3")

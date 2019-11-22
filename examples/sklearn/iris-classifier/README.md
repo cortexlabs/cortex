@@ -39,8 +39,8 @@ s3.upload_file("model.pkl", "my-bucket", "sklearn/iris-classifier/model.pkl")
 Run the script locally:
 
 ```bash
-# Install scikit-learn
-$ pip3 install sklearn
+# Install scikit-learn and boto3
+$ pip3 install sklearn boto3
 
 # Run the script
 $ python3 trainer.py
@@ -99,7 +99,7 @@ You can skip dependencies that are [pre-installed](https://www.cortex.dev/deploy
 
 ## Define a deployment
 
-Create a `cortex.yaml` file and add the configuration below. A `deployment` specifies a set of resources that are deployed together. An `api` a runtime for inference and makes our `predictor.py` implementation available as a web service that can serve real-time predictions:
+Create a `cortex.yaml` file and add the configuration below. A `deployment` specifies a set of resources that are deployed together. An `api` provides a runtime for inference and makes our `predictor.py` implementation available as a web service that can serve real-time predictions:
 
 ```yaml
 # cortex.yaml
@@ -167,7 +167,7 @@ Add a `tracker` to your `cortex.yaml` and specify that this is a classification 
     model_type: classification
 ```
 
-Run `cortex deploy` again to update your API with this configuration:
+Run `cortex deploy` again to perform a rolling update to your API with the new configuration:
 
 ```bash
 $ cortex deploy

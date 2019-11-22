@@ -1,16 +1,14 @@
 import pickle
+import numpy
+
 
 model = None
+labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
 def init(model_path, metadata):
     global model
     model = pickle.load(open(model_path, "rb"))
-
-
-import numpy
-
-labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
 def predict(sample, metadata):
