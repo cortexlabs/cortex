@@ -1,17 +1,22 @@
-# Deploy an iris classification scikit-learn model as a web service
+# Deploy a scikit-learn model as a web service
 
 This example shows how to deploy a classifier trained on the famous [iris data set](https://archive.ics.uci.edu/ml/datasets/iris) using scikit-learn.
 
 ## Train your model
 
-Create a Python file `trainer.py` and use scikit-learn's `LogisticRegression` to train your model:
+1. Create a Python file `trainer.py`.
+2. Use scikit-learn's `LogisticRegression` to train your model.
+3. Add code to pickle your model (you can use other serialization libraries such as joblib).
+4. Upload it to S3 (boto3 will need access to valid AWS credentials).
 
 ```python
-# trainer.py
-
+import boto3
+import pickle
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
+
+# Train the model
 
 iris = load_iris()
 data, labels = iris.data, iris.target
@@ -21,15 +26,8 @@ model = LogisticRegression(solver="lbfgs", multi_class="multinomial")
 model.fit(training_data, training_labels)
 accuracy = model.score(test_data, test_labels)
 print("accuracy: {:.2f}".format(accuracy))
-```
 
-Add code to pickle your model (you can use other serialization libraries such as joblib) and upload it to S3 (boto3 will need access to valid AWS credentials):
-
-```python
-# trainer.py
-
-import boto3
-import pickle
+# Upload the model
 
 pickle.dump(model, open("model.pkl", "wb"))
 s3 = boto3.client("s3")
@@ -48,29 +46,24 @@ $ python3 trainer.py
 
 ## Define a predictor
 
-Create another Python file `predictor.py` and add code to load and initialize your pickled model:
+1. Create another Python file `predictor.py`.
+2. Add code to load and initialize your pickled model.
+3. Add a prediction function that will accept a sample and return a prediction from your model.
 
 ```python
 # predictor.py
 
 import pickle
+import numpy
+
 
 model = None
+labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
 def init(model_path, metadata):
     global model
     model = pickle.load(open(model_path, "rb"))
-```
-
-Add a prediction function that will accept a sample and return a prediction from your model:
-
-```python
-# predictor.py
-
-import numpy
-
-labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
 def predict(sample, metadata):
