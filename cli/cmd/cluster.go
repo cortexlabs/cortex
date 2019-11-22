@@ -105,7 +105,7 @@ var updateCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		fmt.Println("Refreshing cluster configuration...\n")
+		fmt.Println("Refreshing cluster configuration..." + "\n")
 		refreshCachedClusterConfig(awsCreds)
 
 		clusterConfig, err := getUpdateClusterConfig(awsCreds)
@@ -133,7 +133,7 @@ var infoCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		fmt.Println("Refreshing cluster configuration...\n")
+		fmt.Println("Refreshing cluster configuration..." + "\n")
 		clusterConfig := refreshCachedClusterConfig(awsCreds)
 
 		out, err := runManagerCommand("/root/info.sh", clusterConfig, awsCreds)
