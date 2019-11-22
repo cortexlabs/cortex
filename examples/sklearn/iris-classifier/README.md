@@ -2,6 +2,8 @@
 
 This example shows how to deploy a classifier trained on the famous [iris data set](https://archive.ics.uci.edu/ml/datasets/iris) using scikit-learn.
 
+<br>
+
 ## Train your model
 
 1. Create a Python file `trainer.py`.
@@ -44,6 +46,8 @@ $ pip3 install sklearn boto3
 $ python3 trainer.py
 ```
 
+<br>
+
 ## Define a predictor
 
 1. Create another Python file `predictor.py`.
@@ -80,6 +84,8 @@ def predict(sample, metadata):
     return labels[label_id]
 ```
 
+<br>
+
 ## Specify Python dependencies
 
 Create a `requirements.txt` file to specify the dependencies needed by `predictor.py`. Cortex will automatically install them into your runtime once you deploy:
@@ -89,6 +95,8 @@ numpy
 ```
 
 You can skip dependencies that are [pre-installed](../../../docs/deployments/predictor.md#pre-installed-packages) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
+
+<br>
 
 ## Define a deployment
 
@@ -106,6 +114,8 @@ Create a `cortex.yaml` file and add the configuration below. A `deployment` spec
     path: predictor.py
     model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
 ```
+
+<br>
 
 ## Deploy to AWS
 
@@ -130,6 +140,8 @@ endpoint: http://***.amazonaws.com/iris/classifier
 
 The output above indicates that one replica of the API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
 
+<br>
+
 ## Serve real-time predictions
 
 We can use `curl` to test our prediction service:
@@ -141,6 +153,8 @@ $ curl http://***.amazonaws.com/iris/classifier \
 
 "iris-setosa"
 ```
+
+<br>
 
 ## Add prediction tracking
 
@@ -181,6 +195,8 @@ positive  8
 negative  4
 ```
 
+<br>
+
 ## Configure compute resources
 
 This model is fairly small but larger models may require more compute resources. You can configure this in your `cortex.yaml`:
@@ -220,6 +236,8 @@ class     count
 positive  8
 negative  4
 ```
+
+<br>
 
 ## Add another API
 
@@ -269,6 +287,8 @@ api                  status   up-to-date   available   requested   last update
 another-classifier   live     1            1           1           8s
 classifier           live     1            1           1           5m
 ```
+
+<br>
 
 ## Clean up
 
