@@ -23,7 +23,7 @@ accuracy = model.score(test_data, test_labels)
 print("accuracy: {:.2f}".format(accuracy))
 ```
 
-Add code to pickle (you can use other serialization libraries such as joblib) and upload your model to S3. boto3 will need access to valid AWS credentials:
+Add code to pickle your model (you can use other serialization libraries such as joblib) and upload it to S3 (boto3 will need access to valid AWS credentials):
 
 ```python
 # trainer.py
@@ -63,7 +63,7 @@ def init(model_path, metadata):
     model = pickle.load(open(model_path, "rb"))
 ```
 
-Add a prediction function that will accept a JSON sample and return a prediction from your model:
+Add a prediction function that will accept a sample and return a prediction from your model:
 
 ```python
 # predictor.py
@@ -188,7 +188,7 @@ positive  8
 negative  4
 ```
 
-## Add compute resources
+## Configure compute resources
 
 This model is fairly small but larger models may require more compute resources. You can configure this in your `cortex.yaml`:
 
@@ -220,7 +220,7 @@ Run `cortex get` again:
 ```bash
 $ cortex get classifier --watch
 
-status   up-to-date   available   requested   last update   avg latency  
+status   up-to-date   available   requested   last update   avg latency
 live     1            1           1           16s           24 ms
 
 class     count
@@ -288,6 +288,6 @@ deleting classifier api
 deleting another-classifier api
 ```
 
-Running `cortex delete` will free up cluster resources and allow Cortex to scale to the minimum number of instances you specified during cluster installation. It will not spin down your cluster.
+Running `cortex delete` will free up cluster resources and allow Cortex to scale down to the minimum number of instances you specified during cluster installation. It will not spin down your cluster.
 
 Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).
