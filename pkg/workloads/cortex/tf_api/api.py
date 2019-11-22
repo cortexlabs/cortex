@@ -375,6 +375,9 @@ def start(args):
             raise CortexException(api["name"], "tensorflow key not configured")
 
         if api["tensorflow"].get("request_handler") is not None:
+            cx_logger().info(
+                "loading the request handler from {}".format(api["tensorflow"]["request_handler"])
+            )
             local_cache["request_handler"] = ctx.get_request_handler_impl(
                 api["name"], args.project_dir
             )
@@ -382,21 +385,21 @@ def start(args):
 
         if request_handler is not None and util.has_function(request_handler, "pre_inference"):
             cx_logger().info(
-                "using pre_inference request handler provided in {}".format(
+                "using pre_inference request handler defined in {}".format(
                     api["tensorflow"]["request_handler"]
                 )
             )
         else:
-            cx_logger().info("pre_inference request handler not found")
+            cx_logger().info("pre_inference request handler not defined")
 
         if request_handler is not None and util.has_function(request_handler, "post_inference"):
             cx_logger().info(
-                "using post_inference request handler provided in {}".format(
+                "using post_inference request handler defined in {}".format(
                     api["tensorflow"]["request_handler"]
                 )
             )
         else:
-            cx_logger().info("post_inference request handler not found")
+            cx_logger().info("post_inference request handler not defined")
 
     except Exception as e:
         cx_logger().exception("failed to start api")
@@ -442,7 +445,7 @@ def start(args):
     local_cache["parsed_signature"] = parsed_signature
     cx_logger().info("model_signature: {}".format(local_cache["parsed_signature"]))
 
-    cx_logger().info("API is ready")
+    cx_logger().info("{} API is live".format(api["name"]))
     serve(app, listen="*:{}".format(args.port))
 
 

@@ -18,6 +18,7 @@ package workloads
 
 import (
 	"encoding/base64"
+	"fmt"
 	"path"
 	"strings"
 
@@ -233,13 +234,22 @@ func (aw *APIWorkload) IsFailed(ctx *context.Context) (bool, error) {
 	return false, nil
 }
 
+type downloadContainerConfig struct {
+	DownloadArgs []downloadContainerArg `json:"download_args"`
+	LastLog      string                 `json:"last_log"` // string to log at the conclusion of the downloader (if "" nothing will be logged)
+}
+
 type downloadContainerArg struct {
 	From                 string `json:"from"`
 	To                   string `json:"to"`
 	Unzip                bool   `json:"unzip"`
 	ItemName             string `json:"item_name"`               // name of the item being downloaded, just for logging (if "" nothing will be logged)
 	TFModelVersionRename string `json:"tf_model_version_rename"` // e.g. passing in /mnt/model/1 will rename /mnt/model/* to /mnt/model/1 only if there is one item in /mnt/model/
+	HideFromLog          bool   `json:"hide_from_log"`           // if true, don't log where the file is being downloaded from
+	HideUnzippingLog     bool   `json:"hide_unzipping_log"`      // if true, don't log when unzipping
 }
+
+const downloaderLastLog = "pulling the %s Serving image"
 
 func tfAPISpec(
 	ctx *context.Context,
@@ -268,23 +278,31 @@ func tfAPISpec(
 		tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
-	downloadArgs := []downloadContainerArg{
-		{
-			From:                 ctx.APIs[api.Name].TensorFlow.Model,
-			To:                   path.Join(consts.EmptyDirMountPath, "model"),
-			Unzip:                strings.HasSuffix(ctx.APIs[api.Name].TensorFlow.Model, ".zip"),
-			ItemName:             "model",
-			TFModelVersionRename: path.Join(consts.EmptyDirMountPath, "model", "1"),
+	downloadConfig := downloadContainerConfig{
+		LastLog: fmt.Sprintf(downloaderLastLog, "TensorFlow"),
+		DownloadArgs: []downloadContainerArg{
+			{
+				From:                 ctx.APIs[api.Name].TensorFlow.Model,
+				To:                   path.Join(consts.EmptyDirMountPath, "model"),
+				Unzip:                strings.HasSuffix(ctx.APIs[api.Name].TensorFlow.Model, ".zip"),
+				ItemName:             "the model",
+				TFModelVersionRename: path.Join(consts.EmptyDirMountPath, "model", "1"),
+			},
 		},
 	}
 
 	if api.TensorFlow.RequestHandler != nil {
-		downloadArgs = append(downloadArgs, downloadContainerArg{
-			From:     config.AWS.S3Path(ctx.ProjectKey),
-			To:       path.Join(consts.EmptyDirMountPath, "project"),
-			Unzip:    true,
-			ItemName: "project code",
-		})
+		downloadConfig.DownloadArgs = append(
+			[]downloadContainerArg{
+				{
+					From:             config.AWS.S3Path(ctx.ProjectKey),
+					To:               path.Join(consts.EmptyDirMountPath, "project"),
+					Unzip:            true,
+					ItemName:         "the project code",
+					HideFromLog:      true,
+					HideUnzippingLog: true,
+				},
+			}, downloadConfig.DownloadArgs...)
 	}
 
 	envVars := append(
@@ -305,7 +323,7 @@ func tfAPISpec(
 		})
 	}
 
-	downloadArgsBytes, _ := json.Marshal(downloadArgs)
+	downloadArgsBytes, _ := json.Marshal(downloadConfig)
 	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:     internalAPIName(api.Name, ctx.App.Name),
@@ -458,24 +476,29 @@ func predictorAPISpec(
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
-	downloadArgs := []downloadContainerArg{
-		{
-			From:     config.AWS.S3Path(ctx.ProjectKey),
-			To:       path.Join(consts.EmptyDirMountPath, "project"),
-			Unzip:    true,
-			ItemName: "project code",
+	downloadConfig := downloadContainerConfig{
+		LastLog: fmt.Sprintf(downloaderLastLog, "Predictor"),
+		DownloadArgs: []downloadContainerArg{
+			{
+				From:             config.AWS.S3Path(ctx.ProjectKey),
+				To:               path.Join(consts.EmptyDirMountPath, "project"),
+				Unzip:            true,
+				ItemName:         "the project code",
+				HideFromLog:      true,
+				HideUnzippingLog: true,
+			},
 		},
 	}
 
 	if api.Predictor.Model != nil {
-		downloadArgs = append(downloadArgs, downloadContainerArg{
+		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
 			From:     *api.Predictor.Model,
 			To:       path.Join(consts.EmptyDirMountPath, "model"),
-			ItemName: "model",
+			ItemName: "the model",
 		})
 	}
 
-	downloadArgsBytes, _ := json.Marshal(downloadArgs)
+	downloadArgsBytes, _ := json.Marshal(downloadConfig)
 	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
 
 	envVars := append(
@@ -613,21 +636,29 @@ func onnxAPISpec(
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
-	downloadArgs := []downloadContainerArg{
-		{
-			From:     ctx.APIs[api.Name].ONNX.Model,
-			To:       path.Join(consts.EmptyDirMountPath, "model"),
-			ItemName: "model",
+	downloadConfig := downloadContainerConfig{
+		LastLog: fmt.Sprintf(downloaderLastLog, "ONNX"),
+		DownloadArgs: []downloadContainerArg{
+			{
+				From:     ctx.APIs[api.Name].ONNX.Model,
+				To:       path.Join(consts.EmptyDirMountPath, "model"),
+				ItemName: "the model",
+			},
 		},
 	}
 
 	if api.ONNX.RequestHandler != nil {
-		downloadArgs = append(downloadArgs, downloadContainerArg{
-			From:     config.AWS.S3Path(ctx.ProjectKey),
-			To:       path.Join(consts.EmptyDirMountPath, "project"),
-			Unzip:    true,
-			ItemName: "project code",
-		})
+		downloadConfig.DownloadArgs = append(
+			[]downloadContainerArg{
+				{
+					From:             config.AWS.S3Path(ctx.ProjectKey),
+					To:               path.Join(consts.EmptyDirMountPath, "project"),
+					Unzip:            true,
+					ItemName:         "the project code",
+					HideFromLog:      true,
+					HideUnzippingLog: true,
+				},
+			}, downloadConfig.DownloadArgs...)
 	}
 
 	envVars := append(
@@ -648,7 +679,7 @@ func onnxAPISpec(
 		})
 	}
 
-	downloadArgsBytes, _ := json.Marshal(downloadArgs)
+	downloadArgsBytes, _ := json.Marshal(downloadConfig)
 	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:     internalAPIName(api.Name, ctx.App.Name),

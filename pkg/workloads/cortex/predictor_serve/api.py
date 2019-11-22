@@ -126,6 +126,7 @@ def start(args):
         if api.get("predictor") is None:
             raise CortexException(api["name"], "predictor key not configured")
 
+        cx_logger().info("loading the Predictor from {}".format(api["predictor"]["path"]))
         local_cache["predictor"] = ctx.get_predictor_impl(api["name"], args.project_dir)
 
         if util.has_function(local_cache["predictor"], "init"):
@@ -133,10 +134,11 @@ def start(args):
                 model_path = None
                 if api["predictor"].get("model") is not None:
                     _, prefix = ctx.storage.deconstruct_s3_path(api["predictor"]["model"])
-
                     model_path = os.path.join(
                         args.model_dir, os.path.basename(os.path.normpath(prefix))
                     )
+
+                cx_logger().info("calling the Predictor's init() function")
                 local_cache["predictor"].init(model_path, api["predictor"]["metadata"])
             except Exception as e:
                 raise UserRuntimeException(api["predictor"]["path"], "init", str(e)) from e
@@ -146,14 +148,13 @@ def start(args):
         cx_logger().exception("failed to start api")
         sys.exit(1)
 
-    cx_logger().info("init ran successfully")
     if api.get("tracker") is not None and api["tracker"].get("model_type") == "classification":
         try:
             local_cache["class_set"] = api_utils.get_classes(ctx, api["name"])
         except Exception as e:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
-    cx_logger().info("API is ready")
+    cx_logger().info("{} API is live".format(api["name"]))
     serve(app, listen="*:{}".format(args.port))
 
 
