@@ -90,7 +90,9 @@ def predict(sample, metadata):
 
 Create a `requirements.txt` file to specify the dependencies needed by `predictor.py`. Cortex will automatically install them into your runtime once you deploy:
 
-```text
+```python
+# requirements.txt
+
 numpy
 ```
 
