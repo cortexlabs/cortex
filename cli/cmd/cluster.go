@@ -35,6 +35,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
 
@@ -105,7 +106,7 @@ var updateCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		fmt.Println("Refreshing cluster configuration..." + "\n")
+		fmt.Println("fetching cluster configuration ..." + "\n")
 		refreshCachedClusterConfig(awsCreds)
 
 		clusterConfig, err := getUpdateClusterConfig(awsCreds)
@@ -133,14 +134,14 @@ var infoCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		fmt.Println("Refreshing cluster configuration..." + "\n")
+		fmt.Println("fetching cluster configuration ..." + "\n")
 		clusterConfig := refreshCachedClusterConfig(awsCreds)
 
 		out, err := runManagerCommand("/root/info.sh", clusterConfig, awsCreds)
 		if err != nil {
 			errors.Exit(err)
 		}
-		if strings.Contains(out, "there isn't a Cortex cluster") {
+		if strings.Contains(out, "there isn't a cortex cluster") {
 			errors.Exit()
 		}
 
@@ -159,9 +160,12 @@ var infoCmd = &cobra.Command{
 			fmt.Println(clusterConfig.UserFacingString())
 			return
 		}
-
 		infoResponse.ClusterConfig.ClusterConfig = *clusterConfig
-		fmt.Println(infoResponse.ClusterConfig.UserFacingString())
+		var items []table.KV
+		items = append(items, table.KV{K: "aws access key id", V: infoResponse.MaskedAWSAccessKeyID})
+
+		items = append(items, infoResponse.ClusterConfig.UserFacingTable()...)
+		fmt.Println(table.AlignKeyValue(items, ":", 1))
 	},
 }
 
@@ -175,7 +179,7 @@ var downCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		prompt.YesOrExit("Are you sure you want to uninstall Cortex? (Your cluster will be spun down and all APIs will be deleted)", "")
+		prompt.YesOrExit("are you sure you want to uninstall cortex? (Your cluster will be spun down and all apis will be deleted)", "")
 
 		awsCreds, err := getAWSCredentials(&flagClusterConfig)
 		if err != nil {
@@ -198,7 +202,7 @@ var emailPrompValidation = &cr.PromptValidation{
 		{
 			StructField: "EmailAddress",
 			PromptOpts: &prompt.Options{
-				Prompt: "Email address [press enter to skip]",
+				Prompt: "email address [press enter to skip]",
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
 				Required:  false,
@@ -252,27 +256,19 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Cluster
 	cachedClusterConfig := &clusterconfig.ClusterConfig{}
 	readClusterConfigFile(cachedClusterConfig, cachedClusterConfigPath)
 
-	if len(userClusterConfig.ClusterName) == 0 {
-		userClusterConfig.ClusterName = cachedClusterConfig.ClusterName
-	}
-
 	if userClusterConfig.Region == nil {
 		userClusterConfig.Region = cachedClusterConfig.Region
 	}
 
-	if len(userClusterConfig.ClusterName) == 0 {
-		errors.Exit("unable to find cluster_name; please configure `cluster_name` to the name of an existing Cortex cluster or create a Cortex cluster with `cortex cluster up`")
-	}
-
 	if userClusterConfig.Region == nil {
-		errors.Exit("unable to find region; please configure `region` to the S3 region of an existing Cortex cluster or create a Cortex cluster with `cortex cluster up`")
+		errors.Exit("unable to find region; please configure `region` to the s3 region of an existing cortex cluster or create a cortex cluster with `cortex cluster up`")
 	}
 
 	out, err := runRefreshClusterConfig(userClusterConfig, awsCreds)
 	if err != nil {
 		errors.Exit(err)
 	}
-	if strings.Contains(out, "there isn't a Cortex cluster") {
+	if strings.Contains(out, "there isn't a cortex cluster") {
 		errors.Exit()
 	}
 

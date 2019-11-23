@@ -68,7 +68,7 @@ var awsCredentialsPromptValidation = &cr.PromptValidation{
 		{
 			StructField: "AWSAccessKeyID",
 			PromptOpts: &prompt.Options{
-				Prompt: "AWS Access Key ID",
+				Prompt: "aws access key id",
 			},
 			StringValidation: &cr.StringValidation{
 				Required: true,
@@ -77,7 +77,7 @@ var awsCredentialsPromptValidation = &cr.PromptValidation{
 		{
 			StructField: "AWSSecretAccessKey",
 			PromptOpts: &prompt.Options{
-				Prompt:      "AWS Secret Access Key",
+				Prompt:      "aws secret access key",
 				MaskDefault: true,
 				HideTyping:  true,
 			},
@@ -106,10 +106,10 @@ func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
 		return nil
 	}
 	if os.Getenv("AWS_ACCESS_KEY_ID") == "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
-		return errors.New("Only $AWS_SECRET_ACCESS_KEY is set; please run `export AWS_ACCESS_KEY_ID=***`")
+		return errors.New("only $AWS_SECRET_ACCESS_KEY is set; please run `export AWS_ACCESS_KEY_ID=***`")
 	}
 	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
-		return errors.New("Only $AWS_ACCESS_KEY_ID is set; please run `export AWS_SECRET_ACCESS_KEY=***`")
+		return errors.New("only $AWS_ACCESS_KEY_ID is set; please run `export AWS_SECRET_ACCESS_KEY=***`")
 	}
 
 	// Next check what was read from cluster config YAML
@@ -117,10 +117,10 @@ func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
 		return nil
 	}
 	if awsCreds.AWSAccessKeyID == "" && awsCreds.AWSSecretAccessKey != "" {
-		return errors.New(fmt.Sprintf("Only aws_secret_access_key is set in %s; please set aws_access_key_id as well", flagClusterConfig))
+		return errors.New(fmt.Sprintf("only aws_secret_access_key is set in %s; please set aws_access_key_id as well", flagClusterConfig))
 	}
 	if awsCreds.AWSAccessKeyID != "" && awsCreds.AWSSecretAccessKey == "" {
-		return errors.New(fmt.Sprintf("Only aws_access_key_id is set in %s; please set aws_secret_access_key as well", flagClusterConfig))
+		return errors.New(fmt.Sprintf("only aws_access_key_id is set in %s; please set aws_secret_access_key as well", flagClusterConfig))
 	}
 
 	// Next check AWS CLI config file
@@ -157,10 +157,10 @@ func setOperatorAWSCredentials(awsCreds *AWSCredentials) error {
 		return nil
 	}
 	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") == "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") != "" {
-		return errors.New("Only $CORTEX_AWS_SECRET_ACCESS_KEY is set; please run `export CORTEX_AWS_ACCESS_KEY_ID=***`")
+		return errors.New("only $CORTEX_AWS_SECRET_ACCESS_KEY is set; please run `export CORTEX_AWS_ACCESS_KEY_ID=***`")
 	}
 	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") == "" {
-		return errors.New("Only $CORTEX_AWS_ACCESS_KEY_ID is set; please run `export CORTEX_AWS_SECRET_ACCESS_KEY=***`")
+		return errors.New("only $CORTEX_AWS_ACCESS_KEY_ID is set; please run `export CORTEX_AWS_SECRET_ACCESS_KEY=***`")
 	}
 
 	// Next check what was read from cluster config YAML
@@ -168,10 +168,10 @@ func setOperatorAWSCredentials(awsCreds *AWSCredentials) error {
 		return nil
 	}
 	if awsCreds.CortexAWSAccessKeyID == "" && awsCreds.CortexAWSSecretAccessKey != "" {
-		return errors.New(fmt.Sprintf("Only cortex_aws_secret_access_key is set in %s; please set cortex_aws_access_key_id as well", flagClusterConfig))
+		return errors.New(fmt.Sprintf("only cortex_aws_secret_access_key is set in %s; please set cortex_aws_access_key_id as well", flagClusterConfig))
 	}
 	if awsCreds.CortexAWSAccessKeyID != "" && awsCreds.CortexAWSSecretAccessKey == "" {
-		return errors.New(fmt.Sprintf("Only cortex_aws_access_key_id is set in %s; please set cortex_aws_secret_access_key as well", flagClusterConfig))
+		return errors.New(fmt.Sprintf("only cortex_aws_access_key_id is set in %s; please set cortex_aws_secret_access_key as well", flagClusterConfig))
 	}
 
 	// Default to primary AWS credentials

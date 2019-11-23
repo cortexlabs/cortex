@@ -170,10 +170,9 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 	prevConfig, _ := clusterconfig.GetFileDefaults()
 
 	var items []table.KV
-	items = append(items, table.KV{K: "cluster name", V: clusterConfig.ClusterName})
-	items = append(items, table.KV{K: "AWS access key ID", V: s.MaskString(awsCreds.AWSAccessKeyID, 4)})
+	items = append(items, table.KV{K: "aws access key id", V: s.MaskString(awsCreds.AWSAccessKeyID, 4)})
 	if awsCreds.CortexAWSAccessKeyID != awsCreds.AWSAccessKeyID {
-		items = append(items, table.KV{K: "AWS access key ID", V: s.MaskString(awsCreds.CortexAWSAccessKeyID, 4) + " (cortex)"})
+		items = append(items, table.KV{K: "aws access key id", V: s.MaskString(awsCreds.CortexAWSAccessKeyID, 4) + " (cortex)"})
 	}
 	items = append(items, table.KV{K: clusterconfig.RegionUserFacingKey, V: clusterConfig.Region})
 	items = append(items, table.KV{K: clusterconfig.BucketUserFacingKey, V: clusterConfig.Bucket})
@@ -252,6 +251,6 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 
 	fmt.Println(table.AlignKeyValue(items, ":", 1) + "\n")
 
-	exitMessage := fmt.Sprintf("Cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersion)
-	prompt.YesOrExit("Is the configuration above correct?", exitMessage)
+	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersion)
+	prompt.YesOrExit("is the configuration above correct?", exitMessage)
 }

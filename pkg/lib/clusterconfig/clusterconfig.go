@@ -559,7 +559,7 @@ func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecre
 			{
 				StructField: "Spot",
 				PromptOpts: &prompt.Options{
-					Prompt:     "Use spot instances (y/n)",
+					Prompt:     "use spot instances (y/n)",
 					DefaultStr: "y",
 				},
 				BoolPtrValidation: &cr.BoolPtrValidation{
@@ -570,7 +570,7 @@ func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecre
 			{
 				StructField: "InstanceType",
 				PromptOpts: &prompt.Options{
-					Prompt: "AWS instance type",
+					Prompt: "aws instance type",
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
 					Required:  true,
@@ -581,7 +581,7 @@ func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecre
 			{
 				StructField: "MinInstances",
 				PromptOpts: &prompt.Options{
-					Prompt: "Min instances",
+					Prompt: "min instances",
 				},
 				Int64PtrValidation: &cr.Int64PtrValidation{
 					Required:             true,
@@ -592,7 +592,7 @@ func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecre
 			{
 				StructField: "MaxInstances",
 				PromptOpts: &prompt.Options{
-					Prompt: "Max instances",
+					Prompt: "max instances",
 				},
 				Int64PtrValidation: &cr.Int64PtrValidation{
 					Required:    true,
@@ -618,7 +618,7 @@ func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *Cluster
 			{
 				StructField: "MinInstances",
 				PromptOpts: &prompt.Options{
-					Prompt: "Min instances",
+					Prompt: "min instances",
 				},
 				Int64PtrValidation: &cr.Int64PtrValidation{
 					Required:             true,
@@ -629,7 +629,7 @@ func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *Cluster
 			{
 				StructField: "MaxInstances",
 				PromptOpts: &prompt.Options{
-					Prompt: "Max instances",
+					Prompt: "max instances",
 				},
 				Int64PtrValidation: &cr.Int64PtrValidation{
 					Required:    true,

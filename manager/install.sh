@@ -28,7 +28,7 @@ function ensure_eks() {
   # No cluster
   if [ $cluster_info_exit_code -ne 0 ]; then
     if [ "$arg1" = "--update" ]; then
-      echo "error: there isn't a Cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION; please update your configuration to point to an existing Cortex cluster or create a Cortex cluster with \`cortex cluster up\`"
+      echo "error: there isn't a cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION; please update your configuration to point to an existing cortex cluster or create a cortex cluster with \`cortex cluster up\`"
       exit 1
     fi
 
@@ -38,7 +38,7 @@ function ensure_eks() {
       export CORTEX_DESIRED_INSTANCES=$CORTEX_MIN_INSTANCES
     fi
 
-    echo -e "￮ Spinning up the cluster ... (this will take about 15 minutes)\n"
+    echo -e "￮ spinning up the cluster ... (this will take about 15 minutes)\n"
     if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
       if [ "$CORTEX_SPOT" == "True" ]; then
         envsubst < eks_gpu_spot.yaml | eksctl create cluster -f -
@@ -52,7 +52,7 @@ function ensure_eks() {
         envsubst < eks.yaml | eksctl create cluster -f -
       fi
     fi
-    echo -e "\n✓ Spun up the cluster"
+    echo -e "\n✓ spun up the cluster"
 
     if [ "$CORTEX_SPOT" == "True" ]; then
       asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query 'AutoScalingGroups[?contains(Tags[?Key==`alpha.eksctl.io/nodegroup-name`].Value, `ng-cortex-worker`)]')
@@ -67,21 +67,21 @@ function ensure_eks() {
   set -e
 
   if [ "$cluster_status" == "DELETING" ]; then
-    echo "error: your Cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is currently spinning down; please try again once it is completely deleted (may take a few minutes)"
+    echo "error: your cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is currently spinning down; please try again once it is completely deleted (may take a few minutes)"
     exit 1
   fi
 
   if [ "$cluster_status" == "CREATING" ]; then
-    echo "error: your Cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is currently spinning up; please try again once it is ready"
+    echo "error: your cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is currently spinning up; please try again once it is ready"
     exit 1
   fi
 
   if [ "$cluster_status" == "FAILED" ]; then
-    echo "error: your Cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is failed; delete it with \`eksctl delete cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION\` and try again"
+    echo "error: your cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is failed; delete it with \`eksctl delete cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION\` and try again"
     exit 1
   fi
 
-  echo "✓ Cluster is running"
+  echo "✓ cluster is running"
 
   # Check for change in min/max instances
   asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query 'AutoScalingGroups[?contains(Tags[?Key==`alpha.eksctl.io/nodegroup-name`].Value, `ng-cortex-worker`)]')
@@ -90,11 +90,11 @@ function ensure_eks() {
   asg_max_size=$(echo "$asg_info" | jq -r 'first | .MaxSize')
   if [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ]; then
     aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_name --min-size=$CORTEX_MIN_INSTANCES
-    echo "✓ Updated min instances to $CORTEX_MIN_INSTANCES"
+    echo "✓ updated min instances to $CORTEX_MIN_INSTANCES"
   fi
   if [ "$asg_max_size" != "$CORTEX_MAX_INSTANCES" ]; then
     aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_name --max-size=$CORTEX_MAX_INSTANCES
-    echo "✓ Updated max instances to $CORTEX_MAX_INSTANCES"
+    echo "✓ updated max instances to $CORTEX_MAX_INSTANCES"
   fi
 }
 
@@ -110,41 +110,41 @@ function main() {
 
   setup_configmap
   setup_secrets
-  echo "✓ Updated cluster configuration"
+  echo "✓ updated cluster configuration"
 
-  echo -n "￮ Configuring networking "
+  echo -n "￮ configuring networking "
   setup_istio
   envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
-  echo -e "\n✓ Configured networking"
+  echo -e "\n✓ configured networking"
 
   envsubst < manifests/cluster-autoscaler.yaml | kubectl apply -f - >/dev/null
-  echo "✓ Configured autoscaling"
+  echo "✓ configured autoscaling"
 
   kubectl -n=cortex delete --ignore-not-found=true daemonset fluentd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
   envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
-  echo "✓ Configured logging"
+  echo "✓ configured logging"
 
   kubectl -n=cortex delete --ignore-not-found=true daemonset cloudwatch-agent-statsd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
   envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
-  echo "✓ Configured metrics"
+  echo "✓ configured metrics"
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
     kubectl -n=cortex delete --ignore-not-found=true daemonset nvidia-device-plugin-daemonset >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
     envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
-    echo "✓ Configured GPU support"
+    echo "✓ configured gpu support"
   fi
 
   kubectl -n=cortex delete --ignore-not-found=true deployment operator >/dev/null 2>&1
   envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
-  echo "✓ Started operator"
+  echo "✓ started operator"
 
   validate_cortex
 
   echo "{\"cortex_url\": \"$operator_endpoint\", \"aws_access_key_id\": \"$CORTEX_AWS_ACCESS_KEY_ID\", \"aws_secret_access_key\": \"$CORTEX_AWS_SECRET_ACCESS_KEY\"}" > /.cortex/default.json
-  echo "✓ Configured CLI"
+  echo "✓ configured cli"
 
-  echo -e "\n✓ Cortex is ready!"
+  echo -e "\n✓ cortex is ready!"
 }
 
 function setup_bucket() {
@@ -160,22 +160,22 @@ function setup_bucket() {
                                 --create-bucket-configuration LocationConstraint=$CORTEX_REGION \
                                 >/dev/null
       fi
-      echo "✓ Created S3 bucket: $CORTEX_BUCKET"
+      echo "✓ created s3 bucket: $CORTEX_BUCKET"
     else
       echo "error: a bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
       exit 1
     fi
   else
-    echo "✓ Using existing S3 bucket: $CORTEX_BUCKET"
+    echo "✓ using existing s3 bucket: $CORTEX_BUCKET"
   fi
 }
 
 function setup_cloudwatch_logs() {
   if ! aws logs list-tags-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION --output json 2>&1 | grep -q "\"tags\":"; then
     aws logs create-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION
-    echo "✓ Created CloudWatch log group: $CORTEX_LOG_GROUP"
+    echo "✓ created cloudwatch log group: $CORTEX_LOG_GROUP"
   else
-    echo "✓ Using existing CloudWatch log group: $CORTEX_LOG_GROUP"
+    echo "✓ using existing cloudwatch log group: $CORTEX_LOG_GROUP"
   fi
 }
 
@@ -223,7 +223,7 @@ function setup_istio() {
 function validate_cortex() {
   set +e
 
-  echo -n "￮ Waiting for load balancers "
+  echo -n "￮ waiting for load balancers "
 
   operator_load_balancer="waiting"
   api_load_balancer="waiting"
@@ -277,7 +277,7 @@ function validate_cortex() {
     if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
       num_restart=$(kubectl -n=cortex get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
       if [[ $num_restart -ge 2 ]]; then
-        echo -e "\n\nAn error occurred when starting the Cortex operator. View the logs with:"
+        echo -e "\n\nan error occurred when starting the cortex operator. View the logs with:"
         echo "  kubectl logs $operator_pod_name --namespace=cortex"
         exit 1
       fi
@@ -291,7 +291,7 @@ function validate_cortex() {
     break
   done
 
-  echo -e "\n✓ Load balancers are ready"
+  echo -e "\n✓ load balancers are ready"
 }
 
 main

@@ -43,7 +43,7 @@ func getPromptValidation(defaults *CLIConfig) *cr.PromptValidation {
 			{
 				StructField: "CortexURL",
 				PromptOpts: &prompt.Options{
-					Prompt: "Cortex operator endpoint",
+					Prompt: "cortex operator endpoint",
 				},
 				StringValidation: &cr.StringValidation{
 					Required:  true,
@@ -54,7 +54,7 @@ func getPromptValidation(defaults *CLIConfig) *cr.PromptValidation {
 			{
 				StructField: "AWSAccessKeyID",
 				PromptOpts: &prompt.Options{
-					Prompt: "AWS Access Key ID",
+					Prompt: "aws access key id",
 				},
 				StringValidation: &cr.StringValidation{
 					Required: true,
@@ -64,7 +64,7 @@ func getPromptValidation(defaults *CLIConfig) *cr.PromptValidation {
 			{
 				StructField: "AWSSecretAccessKey",
 				PromptOpts: &prompt.Options{
-					Prompt:      "AWS Secret Access Key",
+					Prompt:      "aws secret access key",
 					MaskDefault: true,
 					HideTyping:  true,
 				},
@@ -168,7 +168,7 @@ func getDefaults() *CLIConfig {
 func configure() *CLIConfig {
 	defaults := getDefaults()
 	cachedCLIConfig = &CLIConfig{}
-	fmt.Println("Environment: " + flagEnv + "\n")
+	fmt.Println("environment: " + flagEnv + "\n")
 	err := cr.ReadPrompt(cachedCLIConfig, getPromptValidation(defaults))
 	if err != nil {
 		errors.Exit(err)

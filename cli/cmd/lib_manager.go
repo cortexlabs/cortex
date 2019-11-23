@@ -26,6 +26,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/yaml"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -33,10 +36,6 @@ import (
 	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/term"
-
-	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
 
 var cachedDockerClient *dockerclient.Client
@@ -181,7 +180,6 @@ func runManager(containerConfig *container.Config, hostConfig *container.HostCon
 }
 
 func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (string, error) {
-
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
 		return "", errors.WithStack(err)
@@ -224,6 +222,11 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 }
 
 func runRefreshClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (string, error) {
+	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
+	if err := files.CheckFile(cachedClusterConfigPath); err != nil {
+		files.MakeEmptyFile(cachedClusterConfigPath)
+	}
+
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},

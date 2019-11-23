@@ -42,9 +42,9 @@ The configuration is stored in ~/.cortex.`,
 		if flagPrint {
 			cliConfig := getDefaults()
 			fmt.Println()
-			fmt.Printf("Operator URL:           %s\n", cliConfig.CortexURL)
-			fmt.Printf("AWS Access Key ID:      %s\n", cliConfig.AWSAccessKeyID)
-			fmt.Printf("AWS Secret Access Key:  %s\n", s.MaskString(cliConfig.AWSSecretAccessKey, 4))
+			fmt.Printf("operator url:           %s\n", cliConfig.CortexURL)
+			fmt.Printf("aws access key id:      %s\n", cliConfig.AWSAccessKeyID)
+			fmt.Printf("aws secret access key:  %s\n", s.MaskString(cliConfig.AWSSecretAccessKey, 4))
 			return
 		}
 
