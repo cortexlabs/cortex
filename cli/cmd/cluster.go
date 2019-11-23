@@ -251,6 +251,7 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Cluster
 	if err != nil {
 		errors.Exit(err)
 	}
+
 	if flagClusterConfig != "" {
 		err := readClusterConfigFile(userClusterConfig, flagClusterConfig)
 		if err != nil {

@@ -91,6 +91,7 @@ def refresh_yaml(input_yaml_path, output_yaml_path):
         spot_config["instance_distribution"] = instance_distribution
 
         cluster_config["spot_config"] = spot_config
+
     with open(output_yaml_path, "w") as f:
         yaml.dump(cluster_config, f)
 

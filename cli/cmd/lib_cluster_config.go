@@ -145,6 +145,7 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 			return nil, err
 		}
 	}
+
 	err = userClusterConfig.Validate()
 	if err != nil {
 		return nil, err
