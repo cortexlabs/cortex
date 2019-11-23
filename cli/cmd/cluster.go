@@ -78,8 +78,12 @@ var upCmd = &cobra.Command{
 		}
 
 		promptForEmail()
+		awsCreds, err := getAWSCredentials(flagClusterConfig)
+		if err != nil {
+			errors.Exit(err)
+		}
 
-		clusterConfig, awsCreds, err := getInstallClusterConfig()
+		clusterConfig, awsCreds, err := getInstallClusterConfig(awsCreds)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -101,15 +105,15 @@ var updateCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		awsCreds, err := getAWSCredentials(&flagClusterConfig)
+		awsCreds, err := getAWSCredentials(flagClusterConfig)
 		if err != nil {
 			errors.Exit(err)
 		}
 
 		fmt.Println("fetching cluster configuration ..." + "\n")
-		refreshCachedClusterConfig(awsCreds)
+		cachedClusterConfig := refreshCachedClusterConfig(awsCreds)
 
-		clusterConfig, err := getUpdateClusterConfig(awsCreds)
+		clusterConfig, err := getUpdateClusterConfig(cachedClusterConfig, awsCreds)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -129,7 +133,7 @@ var infoCmd = &cobra.Command{
 		if err := checkDockerRunning(); err != nil {
 			errors.Exit(err)
 		}
-		awsCreds, err := getAWSCredentials(&flagClusterConfig)
+		awsCreds, err := getAWSCredentials(flagClusterConfig)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -149,22 +153,23 @@ var infoCmd = &cobra.Command{
 
 		httpResponse, err := HTTPGet("/info")
 		if err != nil {
-			fmt.Println(errors.Wrap(err, "unable to connect to operator").Error())
+			fmt.Println(errors.Wrap(err, "unable to connect to operator").Error() + "\n")
 			fmt.Println(clusterConfig.UserFacingString())
 			return
 		}
 		var infoResponse schema.InfoResponse
 		err = json.Unmarshal(httpResponse, &infoResponse)
 		if err != nil {
-			fmt.Println(errors.Wrap(err, "unable to parse operator response").Error())
+			fmt.Println(errors.Wrap(err, "unable to parse operator response").Error() + "\n")
 			fmt.Println(clusterConfig.UserFacingString())
 			return
 		}
 		infoResponse.ClusterConfig.ClusterConfig = *clusterConfig
+
 		var items []table.KV
 		items = append(items, table.KV{K: "aws access key id", V: infoResponse.MaskedAWSAccessKeyID})
-
 		items = append(items, infoResponse.ClusterConfig.UserFacingTable()...)
+
 		fmt.Println(table.AlignKeyValue(items, ":", 1))
 	},
 }
@@ -179,9 +184,9 @@ var downCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		prompt.YesOrExit("are you sure you want to uninstall cortex? (Your cluster will be spun down and all apis will be deleted)", "")
+		prompt.YesOrExit("are you sure you want to uninstall cortex? (your cluster will be spun down and all apis will be deleted)", "")
 
-		awsCreds, err := getAWSCredentials(&flagClusterConfig)
+		awsCreds, err := getAWSCredentials(flagClusterConfig)
 		if err != nil {
 			errors.Exit(err)
 		}

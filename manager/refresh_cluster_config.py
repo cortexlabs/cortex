@@ -65,7 +65,7 @@ def refresh_yaml(input_yaml_path, output_yaml_path):
             "VolumeSize"
         ]
     else:
-        cluster_config["instance_volume_size"] = 20
+        cluster_config["instance_volume_size"] = 20  # AWS volume default
 
     if asg.get("LaunchTemplate") is not None:
         cluster_config["spot"] = False

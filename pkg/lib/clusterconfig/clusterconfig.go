@@ -489,7 +489,7 @@ func (cc *ClusterConfig) AutoFillSpot() error {
 	return nil
 }
 
-func applyPromptDefaults(defaults *ClusterConfig) *ClusterConfig {
+func applyPromptDefaults(defaults ClusterConfig) *ClusterConfig {
 	defaultConfig := &ClusterConfig{
 		Region:       pointer.String("us-west-2"),
 		InstanceType: pointer.String("m5.large"),
@@ -498,29 +498,27 @@ func applyPromptDefaults(defaults *ClusterConfig) *ClusterConfig {
 		Spot:         pointer.Bool(true),
 	}
 
-	if defaults != nil {
-		if defaults.Region != nil {
-			defaultConfig.Region = defaults.Region
-		}
-		if defaults.InstanceType != nil {
-			defaultConfig.InstanceType = defaults.InstanceType
-		}
-		if defaults.MinInstances != nil {
-			defaultConfig.MinInstances = defaults.MinInstances
-		}
-		if defaults.MaxInstances != nil {
-			defaultConfig.MaxInstances = defaults.MaxInstances
-		}
-		if defaults.Spot != nil {
-			defaultConfig.Spot = defaults.Spot
-		}
+	if defaults.Region != nil {
+		defaultConfig.Region = defaults.Region
+	}
+	if defaults.InstanceType != nil {
+		defaultConfig.InstanceType = defaults.InstanceType
+	}
+	if defaults.MinInstances != nil {
+		defaultConfig.MinInstances = defaults.MinInstances
+	}
+	if defaults.MaxInstances != nil {
+		defaultConfig.MaxInstances = defaults.MaxInstances
+	}
+	if defaults.Spot != nil {
+		defaultConfig.Spot = defaults.Spot
 	}
 
 	return defaultConfig
 }
 
 func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecretAccessKey string) error {
-	defaults := applyPromptDefaults(clusterConfig)
+	defaults := applyPromptDefaults(*clusterConfig)
 
 	regionPrompt := &cr.PromptValidation{
 		SkipPopulatedFields: true,
@@ -542,7 +540,15 @@ func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecre
 		return err
 	}
 
-	defaults.SetBucket(awsAccessKeyID, awsSecretAccessKey)
+	awsAccountID, validCreds, err := aws.AccountID(awsAccessKeyID, awsSecretAccessKey, *clusterConfig.Region)
+	if err != nil {
+		return err
+	}
+	if !validCreds {
+		return ErrorInvalidAWSCredentials()
+	}
+
+	defaultBucket := pointer.String("cortex-" + hash.String(awsAccountID)[:10])
 
 	remainingPrompts := &cr.PromptValidation{
 		SkipPopulatedFields: true,
@@ -553,7 +559,7 @@ func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecre
 					Prompt: BucketUserFacingKey,
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
-					Default: defaults.Bucket,
+					Default: defaultBucket,
 				},
 			},
 			{
@@ -610,7 +616,7 @@ func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecre
 }
 
 func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *ClusterConfig) *cr.PromptValidation {
-	defaults := applyPromptDefaults(userClusterConfig)
+	defaults := applyPromptDefaults(*userClusterConfig)
 
 	return &cr.PromptValidation{
 		SkipPopulatedFields: skipPopulatedFields,
@@ -691,23 +697,6 @@ func GetFileDefaults() (*ClusterConfig, error) {
 	}
 
 	return cc, nil
-}
-
-func (cc *ClusterConfig) SetBucket(awsAccessKeyID string, awsSecretAccessKey string) error {
-	if cc.Bucket != nil {
-		return nil
-	}
-
-	awsAccountID, validCreds, err := aws.AccountID(awsAccessKeyID, awsSecretAccessKey, *cc.Region)
-	if err != nil {
-		return err
-	}
-	if !validCreds {
-		return ErrorInvalidAWSCredentials()
-	}
-
-	cc.Bucket = pointer.String("cortex-" + hash.String(awsAccountID)[:10])
-	return nil
 }
 
 func (cc *InternalClusterConfig) UserFacingTable() []table.KV {

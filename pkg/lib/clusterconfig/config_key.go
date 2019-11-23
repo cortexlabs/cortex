@@ -55,7 +55,7 @@ const (
 
 	// User facing string
 	APIVersionUserFacingKey                          = "cluster version"
-	ClusterNameUserFacingKey                         = "cluster"
+	ClusterNameUserFacingKey                         = "cluster name"
 	RegionUserFacingKey                              = "aws region"
 	BucketUserFacingKey                              = "s3 bucket"
 	SpotUserFacingKey                                = "use spot instances"

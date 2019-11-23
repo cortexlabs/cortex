@@ -38,15 +38,10 @@ func readClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig, path stri
 	return nil
 }
 
-func getInstallClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, error) {
-	awsCreds, err := getAWSCredentials(&flagClusterConfig)
-	if err != nil {
-		return nil, nil, err
-	}
-
+func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, *AWSCredentials, error) {
 	clusterConfig := &clusterconfig.ClusterConfig{}
 
-	err = clusterconfig.SetFileDefaults(clusterConfig)
+	err := clusterconfig.SetFileDefaults(clusterConfig)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -77,15 +72,9 @@ func getInstallClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, e
 	return clusterConfig, awsCreds, nil
 }
 
-func getUpdateClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, error) {
-	cachedClusterConfig := &clusterconfig.ClusterConfig{}
-	err := readClusterConfigFile(cachedClusterConfig, cachedClusterConfigPath)
-	if err != nil {
-		return nil, err
-	}
-
-	userClusterConfig := &clusterconfig.ClusterConfig{}
-	err = clusterconfig.SetFileDefaults(userClusterConfig)
+func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, error) {
+	var userClusterConfig *clusterconfig.ClusterConfig
+	err := clusterconfig.SetFileDefaults(userClusterConfig)
 	if err != nil {
 		return nil, err
 	}

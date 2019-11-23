@@ -180,11 +180,11 @@ func setOperatorAWSCredentials(awsCreds *AWSCredentials) error {
 	return nil
 }
 
-func getAWSCredentials(userClusterConfigPath *string) (*AWSCredentials, error) {
+func getAWSCredentials(userClusterConfigPath string) (*AWSCredentials, error) {
 	awsCreds := &AWSCredentials{}
 
-	if userClusterConfigPath != nil && *userClusterConfigPath != "" {
-		readAWSCredsFromConfigFile(awsCreds, *userClusterConfigPath)
+	if userClusterConfigPath != "" {
+		readAWSCredsFromConfigFile(awsCreds, userClusterConfigPath)
 	}
 
 	err := setInstallAWSCredentials(awsCreds)
