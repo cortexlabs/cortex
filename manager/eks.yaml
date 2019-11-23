@@ -48,6 +48,7 @@ nodeGroups:
 
   - name: ng-cortex-worker
     instanceType: $CORTEX_INSTANCE_TYPE
+    volumeSize: $CORTEX_INSTANCE_VOLUME_SIZE
     minSize: $CORTEX_MIN_INSTANCES
     maxSize: $CORTEX_MAX_INSTANCES
     desiredCapacity: $CORTEX_DESIRED_INSTANCES

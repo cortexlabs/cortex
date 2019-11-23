@@ -15,18 +15,25 @@
 import sys
 import yaml
 
+
+def export(base_key, value):
+    if value is None:
+        return
+    elif type(value) is list:
+        print(
+            'export {}="{}"'.format(
+                base_key.upper(), yaml.dump(value, default_flow_style=True).strip()
+            )
+        )
+    elif type(value) is dict:
+        for key, child in value.items():
+            export(base_key + "_" + key, child)
+    else:
+        print('export {}="{}"'.format(base_key.upper(), value))
+
+
 for config_path in sys.argv[1:]:
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
 
-    for key, value in config.items():
-        if value is None:
-            continue
-        elif type(value) is list:
-            print(
-                'export CORTEX_{}="{}"'.format(
-                    key.upper(), yaml.dump(value, default_flow_style=True).strip()
-                )
-            )
-        else:
-            print('export CORTEX_{}="{}"'.format(key.upper(), value))
+    export("CORTEX", config)

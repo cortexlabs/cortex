@@ -22,11 +22,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-// Returns account ID, whether the credentials were valid, any other error that occured
+// Returns account ID, whether the credentials were valid, any other error that occurred
 func AccountID(accessKeyID string, secretAccessKey string, region string) (string, bool, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(region),

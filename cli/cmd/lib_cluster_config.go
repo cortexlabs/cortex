@@ -18,318 +18,44 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
 
-type AWSCredentials struct {
-	AWSAccessKeyID           string `json:"aws_access_key_id"`
-	AWSSecretAccessKey       string `json:"aws_secret_access_key"`
-	CortexAWSAccessKeyID     string `json:"cortex_aws_access_key_id"`
-	CortexAWSSecretAccessKey string `json:"cortex_aws_secret_access_key"`
-}
-
-var awsCredentialsValidation = &cr.StructValidation{
-	AllowExtraFields: true,
-	StructFieldValidations: []*cr.StructFieldValidation{
-		{
-			StructField: "AWSAccessKeyID",
-			StringValidation: &cr.StringValidation{
-				AllowEmpty: true,
-			},
-		},
-		{
-			StructField: "AWSSecretAccessKey",
-			StringValidation: &cr.StringValidation{
-				AllowEmpty: true,
-			},
-		},
-		{
-			StructField: "CortexAWSAccessKeyID",
-			StringValidation: &cr.StringValidation{
-				AllowEmpty: true,
-			},
-		},
-		{
-			StructField: "CortexAWSSecretAccessKey",
-			StringValidation: &cr.StringValidation{
-				AllowEmpty: true,
-			},
-		},
-	},
-}
-
-var awsCredentialsPromptValidation = &cr.PromptValidation{
-	PromptItemValidations: []*cr.PromptItemValidation{
-		{
-			StructField: "AWSAccessKeyID",
-			PromptOpts: &prompt.Options{
-				Prompt: "AWS Access Key ID",
-			},
-			StringValidation: &cr.StringValidation{
-				Required: true,
-			},
-		},
-		{
-			StructField: "AWSSecretAccessKey",
-			PromptOpts: &prompt.Options{
-				Prompt:      "AWS Secret Access Key",
-				MaskDefault: true,
-				HideTyping:  true,
-			},
-			StringValidation: &cr.StringValidation{
-				Required: true,
-			},
-		},
-	},
-}
-
-func readClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials, path string) error {
+func readClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig, path string) error {
 	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, path)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}
 
-	errs = cr.ParseYAMLFile(awsCreds, awsCredentialsValidation, path)
-	if errors.HasErrors(errs) {
-		return errors.FirstError(errs...)
-	}
-
 	return nil
 }
 
-// awsCreds is what was read from the cluster config YAML
-func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
-	// First check env vars
-	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
-		awsCreds.AWSAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
-		awsCreds.AWSSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
-		return nil
-	}
-	if os.Getenv("AWS_ACCESS_KEY_ID") == "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
-		return errors.New("Only $AWS_SECRET_ACCESS_KEY is set; please run `export AWS_ACCESS_KEY_ID=***`")
-	}
-	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
-		return errors.New("Only $AWS_ACCESS_KEY_ID is set; please run `export AWS_SECRET_ACCESS_KEY=***`")
-	}
-
-	// Next check what was read from cluster config YAML
-	if awsCreds.AWSAccessKeyID != "" && awsCreds.AWSSecretAccessKey != "" {
-		return nil
-	}
-	if awsCreds.AWSAccessKeyID == "" && awsCreds.AWSSecretAccessKey != "" {
-		return errors.New(fmt.Sprintf("Only aws_secret_access_key is set in %s; please set aws_access_key_id as well", flagClusterConfig))
-	}
-	if awsCreds.AWSAccessKeyID != "" && awsCreds.AWSSecretAccessKey == "" {
-		return errors.New(fmt.Sprintf("Only aws_access_key_id is set in %s; please set aws_secret_access_key as well", flagClusterConfig))
-	}
-
-	// Next check AWS CLI config file
-	accessKeyID, secretAccessKey, err := aws.GetCredentialsFromCLIConfigFile()
-	if err == nil {
-		awsCreds.AWSAccessKeyID = accessKeyID
-		awsCreds.AWSSecretAccessKey = secretAccessKey
-		return nil
-	}
-
-	// Next check Cortex CLI config file
-	cliConfig, errs := readCLIConfig()
-	if !errors.HasErrors(errs) && cliConfig != nil && cliConfig.AWSAccessKeyID != "" && cliConfig.AWSSecretAccessKey != "" {
-		awsCreds.AWSAccessKeyID = cliConfig.AWSAccessKeyID
-		awsCreds.AWSSecretAccessKey = cliConfig.AWSSecretAccessKey
-		return nil
-	}
-
-	// Prompt
-	err = cr.ReadPrompt(awsCreds, awsCredentialsPromptValidation)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// awsCreds is what was read from the cluster config YAML, after being passed through setInstallAWSCredentials() (so those credentials should be set)
-func setOperatorAWSCredentials(awsCreds *AWSCredentials) error {
-	// First check env vars
-	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") != "" {
-		awsCreds.CortexAWSAccessKeyID = os.Getenv("CORTEX_AWS_ACCESS_KEY_ID")
-		awsCreds.CortexAWSSecretAccessKey = os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY")
-		return nil
-	}
-	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") == "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") != "" {
-		return errors.New("Only $CORTEX_AWS_SECRET_ACCESS_KEY is set; please run `export CORTEX_AWS_ACCESS_KEY_ID=***`")
-	}
-	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") == "" {
-		return errors.New("Only $CORTEX_AWS_ACCESS_KEY_ID is set; please run `export CORTEX_AWS_SECRET_ACCESS_KEY=***`")
-	}
-
-	// Next check what was read from cluster config YAML
-	if awsCreds.CortexAWSAccessKeyID != "" && awsCreds.CortexAWSSecretAccessKey != "" {
-		return nil
-	}
-	if awsCreds.CortexAWSAccessKeyID == "" && awsCreds.CortexAWSSecretAccessKey != "" {
-		return errors.New(fmt.Sprintf("Only cortex_aws_secret_access_key is set in %s; please set cortex_aws_access_key_id as well", flagClusterConfig))
-	}
-	if awsCreds.CortexAWSAccessKeyID != "" && awsCreds.CortexAWSSecretAccessKey == "" {
-		return errors.New(fmt.Sprintf("Only cortex_aws_access_key_id is set in %s; please set cortex_aws_secret_access_key as well", flagClusterConfig))
-	}
-
-	// Default to primary AWS credentials
-	awsCreds.CortexAWSAccessKeyID = awsCreds.AWSAccessKeyID
-	awsCreds.CortexAWSSecretAccessKey = awsCreds.AWSSecretAccessKey
-	return nil
-}
-
-// awsCreds is what was read from the cluster config YAML
-func setAWSCredentials(awsCreds *AWSCredentials) error {
-	err := setInstallAWSCredentials(awsCreds)
-	if err != nil {
-		return err
-	}
-
-	err = setOperatorAWSCredentials(awsCreds)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) {
-	defaultCC, _ := clusterconfig.GetFileDefaults()
-
-	var items []table.KV
-	items = append(items, table.KV{K: "cluster name", V: clusterConfig.ClusterName})
-	items = append(items, table.KV{K: "AWS access key ID", V: s.MaskString(awsCreds.AWSAccessKeyID, 4)})
-	if awsCreds.CortexAWSAccessKeyID != awsCreds.AWSAccessKeyID {
-		items = append(items, table.KV{K: "AWS access key ID", V: s.MaskString(awsCreds.CortexAWSAccessKeyID, 4) + " (cortex)"})
-	}
-	items = append(items, table.KV{K: clusterconfig.RegionUserFacingKey, V: clusterConfig.Region})
-	items = append(items, table.KV{K: clusterconfig.BucketUserFacingKey, V: clusterConfig.Bucket})
-
-	items = append(items, table.KV{K: clusterconfig.SpotUserFacingKey, V: s.YesNo(clusterConfig.Spot != nil && *clusterConfig.Spot)})
-	items = append(items, table.KV{K: clusterconfig.InstanceTypeUserFacingKey, V: *clusterConfig.InstanceType})
-	if len(clusterConfig.InstanceDistribution) > 0 {
-		items = append(items, table.KV{K: clusterconfig.InstanceDistributionUserFacingKey, V: clusterConfig.InstanceDistribution})
-	}
-	items = append(items, table.KV{K: clusterconfig.MinInstancesUserFacingKey, V: *clusterConfig.MinInstances})
-	items = append(items, table.KV{K: clusterconfig.MaxPriceUserFacingKey, V: *clusterConfig.MaxInstances})
-
-	if clusterConfig.OnDemandBaseCapacity != nil {
-		items = append(items, table.KV{K: clusterconfig.OnDemandBaseCapacityUserFacingKey, V: *clusterConfig.OnDemandBaseCapacity})
-	}
-
-	if clusterConfig.OnDemandPercentageAboveBaseCapacity != nil {
-		items = append(items, table.KV{K: clusterconfig.OnDemandPercentageAboveBaseCapacityUserFacingKey, V: *clusterConfig.OnDemandPercentageAboveBaseCapacity})
-	}
-
-	if clusterConfig.MaxPrice != nil {
-		items = append(items, table.KV{K: clusterconfig.MaxPriceUserFacingKey, V: *clusterConfig.MaxPrice})
-	}
-
-	if clusterConfig.SpotInstancePools != nil {
-		items = append(items, table.KV{K: clusterconfig.SpotInstancePoolsUserFacingKey, V: *clusterConfig.SpotInstancePools})
-	}
-
-	if clusterConfig.LogGroup != defaultCC.LogGroup {
-		items = append(items, table.KV{K: clusterconfig.LogGroupUserFacingKey, V: clusterConfig.LogGroup})
-	}
-	if clusterConfig.Telemetry != defaultCC.Telemetry {
-		items = append(items, table.KV{K: clusterconfig.TelemetryUserFacingKey, V: clusterConfig.Telemetry})
-	}
-
-	if clusterConfig.ImagePredictorServe != defaultCC.ImagePredictorServe {
-		items = append(items, table.KV{K: clusterconfig.ImagePredictorServeUserFacingKey, V: clusterConfig.ImagePredictorServe})
-	}
-	if clusterConfig.ImagePredictorServeGPU != defaultCC.ImagePredictorServeGPU {
-		items = append(items, table.KV{K: clusterconfig.ImagePredictorServeGPUUserFacingKey, V: clusterConfig.ImagePredictorServeGPU})
-	}
-	if clusterConfig.ImageTFServe != defaultCC.ImageTFServe {
-		items = append(items, table.KV{K: clusterconfig.ImageTFServeUserFacingKey, V: clusterConfig.ImageTFServe})
-	}
-	if clusterConfig.ImageTFServeGPU != defaultCC.ImageTFServeGPU {
-		items = append(items, table.KV{K: clusterconfig.ImageTFServeGPUUserFacingKey, V: clusterConfig.ImageTFServeGPU})
-	}
-	if clusterConfig.ImageTFAPI != defaultCC.ImageTFAPI {
-		items = append(items, table.KV{K: clusterconfig.ImageTFAPIUserFacingKey, V: clusterConfig.ImageTFAPI})
-	}
-	if clusterConfig.ImageONNXServe != defaultCC.ImageONNXServe {
-		items = append(items, table.KV{K: clusterconfig.ImageONNXServeUserFacingKey, V: clusterConfig.ImageONNXServe})
-	}
-	if clusterConfig.ImageONNXServeGPU != defaultCC.ImageONNXServeGPU {
-		items = append(items, table.KV{K: clusterconfig.ImageONNXServeGPUUserFacingKey, V: clusterConfig.ImageONNXServeGPU})
-	}
-	if clusterConfig.ImageOperator != defaultCC.ImageOperator {
-		items = append(items, table.KV{K: clusterconfig.ImageOperatorUserFacingKey, V: clusterConfig.ImageOperator})
-	}
-	if clusterConfig.ImageManager != defaultCC.ImageManager {
-		items = append(items, table.KV{K: clusterconfig.ImageManagerUserFacingKey, V: clusterConfig.ImageManager})
-	}
-	if clusterConfig.ImageDownloader != defaultCC.ImageDownloader {
-		items = append(items, table.KV{K: clusterconfig.ImageDownloaderUserFacingKey, V: clusterConfig.ImageDownloader})
-	}
-	if clusterConfig.ImageClusterAutoscaler != defaultCC.ImageClusterAutoscaler {
-		items = append(items, table.KV{K: clusterconfig.ImageClusterAutoscalerUserFacingKey, V: clusterConfig.ImageClusterAutoscaler})
-	}
-	if clusterConfig.ImageMetricsServer != defaultCC.ImageMetricsServer {
-		items = append(items, table.KV{K: clusterconfig.ImageMetricsServerUserFacingKey, V: clusterConfig.ImageMetricsServer})
-	}
-	if clusterConfig.ImageNvidia != defaultCC.ImageNvidia {
-		items = append(items, table.KV{K: clusterconfig.ImageNvidiaUserFacingKey, V: clusterConfig.ImageNvidia})
-	}
-	if clusterConfig.ImageFluentd != defaultCC.ImageFluentd {
-		items = append(items, table.KV{K: clusterconfig.ImageFluentdUserFacingKey, V: clusterConfig.ImageFluentd})
-	}
-	if clusterConfig.ImageStatsd != defaultCC.ImageStatsd {
-		items = append(items, table.KV{K: clusterconfig.ImageStatsdUserFacingKey, V: clusterConfig.ImageStatsd})
-	}
-	if clusterConfig.ImageIstioProxy != defaultCC.ImageIstioProxy {
-		items = append(items, table.KV{K: clusterconfig.ImageIstioProxyUserFacingKey, V: clusterConfig.ImageIstioProxy})
-	}
-	if clusterConfig.ImageIstioPilot != defaultCC.ImageIstioPilot {
-		items = append(items, table.KV{K: clusterconfig.ImageIstioPilotUserFacingKey, V: clusterConfig.ImageIstioPilot})
-	}
-	if clusterConfig.ImageIstioCitadel != defaultCC.ImageIstioCitadel {
-		items = append(items, table.KV{K: clusterconfig.ImageIstioCitadelUserFacingKey, V: clusterConfig.ImageIstioCitadel})
-	}
-	if clusterConfig.ImageIstioGalley != defaultCC.ImageIstioGalley {
-		items = append(items, table.KV{K: clusterconfig.ImageIstioGalleyUserFacingKey, V: clusterConfig.ImageIstioGalley})
-	}
-
-	fmt.Println(table.AlignKeyValue(items, ":", 1) + "\n")
-
-	exitMessage := fmt.Sprintf("Cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersion)
-	prompt.YesOrExit("Is the configuration above correct?", exitMessage)
-}
-
-func getInstallClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, error) {
+func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, error) {
 	clusterConfig := &clusterconfig.ClusterConfig{}
-	awsCreds := &AWSCredentials{}
 
-	if flagClusterConfig == "" {
-		err := clusterconfig.SetFileDefaults(clusterConfig)
+	err := clusterconfig.SetFileDefaults(clusterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	if flagClusterConfig != "" {
+		err := readClusterConfigFile(clusterConfig, flagClusterConfig)
 		if err != nil {
-			return nil, nil, err
-		}
-	} else {
-		err := readClusterConfigFile(clusterConfig, awsCreds, flagClusterConfig)
-		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
-	err := cr.ReadPrompt(clusterConfig, clusterconfig.InstallPromptValidation(clusterConfig))
+	err = clusterconfig.InstallPrompt(clusterConfig, awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
@@ -338,128 +64,179 @@ func getInstallClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, e
 
 	err = clusterConfig.Validate()
 	if err != nil {
-		return nil, nil, err
-	}
-
-	err = setAWSCredentials(awsCreds)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = clusterConfig.SetBucket(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
-	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	confirmClusterConfig(clusterConfig, awsCreds)
 
-	return clusterConfig, awsCreds, nil
+	return clusterConfig, nil
 }
 
-func getUpdateClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, error) {
-	clusterConfig := &clusterconfig.ClusterConfig{}
-	awsCreds := &AWSCredentials{}
-
-	err := readClusterConfigFile(clusterConfig, awsCreds, cachedClusterConfigPath)
-	if err != nil {
-		return nil, nil, err
-	}
+func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, error) {
+	userClusterConfig := &clusterconfig.ClusterConfig{}
 
 	if flagClusterConfig == "" {
-		err := cr.ReadPrompt(clusterConfig, clusterconfig.UpdatePromptValidation(false, clusterConfig))
+		userClusterConfig = cachedClusterConfig
+		err := cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(false, cachedClusterConfig))
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	} else {
-		userClusterConfig := &clusterconfig.ClusterConfig{}
-		err := readClusterConfigFile(userClusterConfig, awsCreds, flagClusterConfig)
-
+		err := readClusterConfigFile(userClusterConfig, flagClusterConfig)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
-		if userClusterConfig.InstanceType != nil && *userClusterConfig.InstanceType != *clusterConfig.InstanceType {
-			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, *clusterConfig.InstanceType)
+		userClusterConfig.ClusterName = cachedClusterConfig.ClusterName
+		userClusterConfig.Region = cachedClusterConfig.Region
+
+		if userClusterConfig.Bucket == nil {
+			userClusterConfig.Bucket = cachedClusterConfig.Bucket
 		}
 
-		if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *clusterConfig.Spot {
-			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *clusterConfig.Spot)
+		if userClusterConfig.InstanceType != nil && *userClusterConfig.InstanceType != *cachedClusterConfig.InstanceType {
+			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, *cachedClusterConfig.InstanceType)
 		}
+		userClusterConfig.InstanceType = cachedClusterConfig.InstanceType
 
-		if len(userClusterConfig.InstanceDistribution) != 0 && s.Obj(userClusterConfig.InstanceDistribution) != s.Obj(clusterConfig.InstanceDistribution) {
-			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceDistributionKey, userClusterConfig.InstanceDistribution)
+		if userClusterConfig.InstanceVolumeSize != cachedClusterConfig.InstanceVolumeSize {
+			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeSizeKey, cachedClusterConfig.InstanceVolumeSize)
 		}
+		userClusterConfig.InstanceVolumeSize = cachedClusterConfig.InstanceVolumeSize
 
-		if userClusterConfig.OnDemandBaseCapacity != nil && *userClusterConfig.OnDemandBaseCapacity != *clusterConfig.OnDemandBaseCapacity {
-			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandBaseCapacityKey, *clusterConfig.OnDemandBaseCapacity)
+		if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
+			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
 		}
+		userClusterConfig.Spot = cachedClusterConfig.Spot
 
-		if userClusterConfig.OnDemandPercentageAboveBaseCapacity != nil && *userClusterConfig.OnDemandPercentageAboveBaseCapacity != *clusterConfig.OnDemandPercentageAboveBaseCapacity {
-			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandPercentageAboveBaseCapacityKey, *clusterConfig.OnDemandPercentageAboveBaseCapacity)
+		if userClusterConfig.SpotConfig != nil && s.Obj(userClusterConfig.SpotConfig) != s.Obj(cachedClusterConfig.SpotConfig) {
+			if cachedClusterConfig.SpotConfig == nil {
+				return nil, clusterconfig.ErrorConfiguredWhenSpotIsNotEnabled(clusterconfig.SpotConfigKey)
+			}
+
+			if slices.StrSliceElementsMatch(userClusterConfig.SpotConfig.InstanceDistribution, cachedClusterConfig.SpotConfig.InstanceDistribution) {
+				return nil, errors.Wrap(ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceDistributionKey, cachedClusterConfig.SpotConfig.InstanceDistribution), clusterconfig.SpotConfigKey)
+			}
+
+			if userClusterConfig.SpotConfig.OnDemandBaseCapacity != nil && *userClusterConfig.SpotConfig.OnDemandBaseCapacity != *cachedClusterConfig.SpotConfig.OnDemandBaseCapacity {
+				return nil, errors.Wrap(ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandBaseCapacityKey, *cachedClusterConfig.SpotConfig.OnDemandBaseCapacity), clusterconfig.SpotConfigKey)
+			}
+
+			if userClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil && *userClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity != *cachedClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity {
+				return nil, errors.Wrap(ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandPercentageAboveBaseCapacityKey, *cachedClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity), clusterconfig.SpotConfigKey)
+			}
+
+			if userClusterConfig.SpotConfig.MaxPrice != nil && *userClusterConfig.SpotConfig.MaxPrice != *cachedClusterConfig.SpotConfig.MaxPrice {
+				return nil, errors.Wrap(ErrorConfigCannotBeChangedOnUpdate(clusterconfig.MaxPriceKey, *cachedClusterConfig.SpotConfig.MaxPrice), clusterconfig.SpotConfigKey)
+			}
+
+			if userClusterConfig.SpotConfig.InstancePools != nil && *userClusterConfig.SpotConfig.InstancePools != *cachedClusterConfig.SpotConfig.InstancePools {
+				return nil, errors.Wrap(ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstancePoolsKey, *cachedClusterConfig.SpotConfig.InstancePools), clusterconfig.SpotConfigKey)
+			}
 		}
+		userClusterConfig.SpotConfig = cachedClusterConfig.SpotConfig
 
-		if userClusterConfig.MaxPrice != nil && *userClusterConfig.MaxPrice != *clusterConfig.MaxPrice {
-			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.MaxPriceKey, *clusterConfig.MaxPrice)
-		}
-
-		if userClusterConfig.SpotInstancePools != nil && *userClusterConfig.SpotInstancePools != *clusterConfig.SpotInstancePools {
-			return nil, nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotInstancePoolsKey, *clusterConfig.SpotInstancePools)
-		}
-
-		if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
-			userClusterConfig.AutoFillSpot()
-		}
-
-		err = cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(true, userClusterConfig))
+		err = cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(true, cachedClusterConfig))
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-
-		clusterConfig = userClusterConfig
 	}
 
-	err = setAWSCredentials(awsCreds)
+	err := userClusterConfig.Validate()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	err = clusterConfig.SetBucket(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
-	if err != nil {
-		return nil, nil, err
-	}
+	confirmClusterConfig(userClusterConfig, awsCreds)
 
-	err = clusterConfig.Validate()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	confirmClusterConfig(clusterConfig, awsCreds)
-
-	return clusterConfig, awsCreds, nil
+	return userClusterConfig, nil
 }
 
-// This will only prompt for AWS credentials (if missing)
-func getAccessClusterConfig() (*clusterconfig.ClusterConfig, *AWSCredentials, error) {
-	clusterConfig := &clusterconfig.ClusterConfig{}
-	awsCreds := &AWSCredentials{}
+func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) {
+	prevConfig, _ := clusterconfig.GetFileDefaults()
 
-	if flagClusterConfig == "" {
-		err := clusterconfig.SetFileDefaults(clusterConfig)
-		if err != nil {
-			return nil, nil, err
-		}
-		readClusterConfigFile(clusterConfig, awsCreds, cachedClusterConfigPath)
-	} else {
-		err := readClusterConfigFile(clusterConfig, awsCreds, flagClusterConfig)
-		if err != nil {
-			return nil, nil, err
-		}
+	var items []table.KV
+	items = append(items, table.KV{K: "aws access key id", V: s.MaskString(awsCreds.AWSAccessKeyID, 4)})
+	if awsCreds.CortexAWSAccessKeyID != awsCreds.AWSAccessKeyID {
+		items = append(items, table.KV{K: "aws access key id", V: s.MaskString(awsCreds.CortexAWSAccessKeyID, 4) + " (cortex)"})
+	}
+	items = append(items, table.KV{K: clusterconfig.RegionUserFacingKey, V: clusterConfig.Region})
+	items = append(items, table.KV{K: clusterconfig.BucketUserFacingKey, V: clusterConfig.Bucket})
+
+	items = append(items, table.KV{K: clusterconfig.SpotUserFacingKey, V: s.YesNo(clusterConfig.Spot != nil && *clusterConfig.Spot)})
+	items = append(items, table.KV{K: clusterconfig.InstanceTypeUserFacingKey, V: *clusterConfig.InstanceType})
+	items = append(items, table.KV{K: clusterconfig.MinInstancesUserFacingKey, V: *clusterConfig.MinInstances})
+	items = append(items, table.KV{K: clusterconfig.MaxInstancesUserFacingKey, V: *clusterConfig.MaxInstances})
+	if clusterConfig.InstanceVolumeSize != prevConfig.InstanceVolumeSize {
+		items = append(items, table.KV{K: clusterconfig.InstanceVolumeSizeUserFacingKey, V: clusterConfig.InstanceVolumeSize})
+	}
+	if clusterConfig.LogGroup != prevConfig.LogGroup {
+		items = append(items, table.KV{K: clusterconfig.LogGroupUserFacingKey, V: clusterConfig.LogGroup})
+	}
+	if clusterConfig.Telemetry != prevConfig.Telemetry {
+		items = append(items, table.KV{K: clusterconfig.TelemetryUserFacingKey, V: clusterConfig.Telemetry})
 	}
 
-	err := setAWSCredentials(awsCreds)
-	if err != nil {
-		return nil, nil, err
+	if clusterConfig.ImagePredictorServe != prevConfig.ImagePredictorServe {
+		items = append(items, table.KV{K: clusterconfig.ImagePredictorServeUserFacingKey, V: clusterConfig.ImagePredictorServe})
+	}
+	if clusterConfig.ImagePredictorServeGPU != prevConfig.ImagePredictorServeGPU {
+		items = append(items, table.KV{K: clusterconfig.ImagePredictorServeGPUUserFacingKey, V: clusterConfig.ImagePredictorServeGPU})
+	}
+	if clusterConfig.ImageTFServe != prevConfig.ImageTFServe {
+		items = append(items, table.KV{K: clusterconfig.ImageTFServeUserFacingKey, V: clusterConfig.ImageTFServe})
+	}
+	if clusterConfig.ImageTFServeGPU != prevConfig.ImageTFServeGPU {
+		items = append(items, table.KV{K: clusterconfig.ImageTFServeGPUUserFacingKey, V: clusterConfig.ImageTFServeGPU})
+	}
+	if clusterConfig.ImageTFAPI != prevConfig.ImageTFAPI {
+		items = append(items, table.KV{K: clusterconfig.ImageTFAPIUserFacingKey, V: clusterConfig.ImageTFAPI})
+	}
+	if clusterConfig.ImageONNXServe != prevConfig.ImageONNXServe {
+		items = append(items, table.KV{K: clusterconfig.ImageONNXServeUserFacingKey, V: clusterConfig.ImageONNXServe})
+	}
+	if clusterConfig.ImageONNXServeGPU != prevConfig.ImageONNXServeGPU {
+		items = append(items, table.KV{K: clusterconfig.ImageONNXServeGPUUserFacingKey, V: clusterConfig.ImageONNXServeGPU})
+	}
+	if clusterConfig.ImageOperator != prevConfig.ImageOperator {
+		items = append(items, table.KV{K: clusterconfig.ImageOperatorUserFacingKey, V: clusterConfig.ImageOperator})
+	}
+	if clusterConfig.ImageManager != prevConfig.ImageManager {
+		items = append(items, table.KV{K: clusterconfig.ImageManagerUserFacingKey, V: clusterConfig.ImageManager})
+	}
+	if clusterConfig.ImageDownloader != prevConfig.ImageDownloader {
+		items = append(items, table.KV{K: clusterconfig.ImageDownloaderUserFacingKey, V: clusterConfig.ImageDownloader})
+	}
+	if clusterConfig.ImageClusterAutoscaler != prevConfig.ImageClusterAutoscaler {
+		items = append(items, table.KV{K: clusterconfig.ImageClusterAutoscalerUserFacingKey, V: clusterConfig.ImageClusterAutoscaler})
+	}
+	if clusterConfig.ImageMetricsServer != prevConfig.ImageMetricsServer {
+		items = append(items, table.KV{K: clusterconfig.ImageMetricsServerUserFacingKey, V: clusterConfig.ImageMetricsServer})
+	}
+	if clusterConfig.ImageNvidia != prevConfig.ImageNvidia {
+		items = append(items, table.KV{K: clusterconfig.ImageNvidiaUserFacingKey, V: clusterConfig.ImageNvidia})
+	}
+	if clusterConfig.ImageFluentd != prevConfig.ImageFluentd {
+		items = append(items, table.KV{K: clusterconfig.ImageFluentdUserFacingKey, V: clusterConfig.ImageFluentd})
+	}
+	if clusterConfig.ImageStatsd != prevConfig.ImageStatsd {
+		items = append(items, table.KV{K: clusterconfig.ImageStatsdUserFacingKey, V: clusterConfig.ImageStatsd})
+	}
+	if clusterConfig.ImageIstioProxy != prevConfig.ImageIstioProxy {
+		items = append(items, table.KV{K: clusterconfig.ImageIstioProxyUserFacingKey, V: clusterConfig.ImageIstioProxy})
+	}
+	if clusterConfig.ImageIstioPilot != prevConfig.ImageIstioPilot {
+		items = append(items, table.KV{K: clusterconfig.ImageIstioPilotUserFacingKey, V: clusterConfig.ImageIstioPilot})
+	}
+	if clusterConfig.ImageIstioCitadel != prevConfig.ImageIstioCitadel {
+		items = append(items, table.KV{K: clusterconfig.ImageIstioCitadelUserFacingKey, V: clusterConfig.ImageIstioCitadel})
+	}
+	if clusterConfig.ImageIstioGalley != prevConfig.ImageIstioGalley {
+		items = append(items, table.KV{K: clusterconfig.ImageIstioGalleyUserFacingKey, V: clusterConfig.ImageIstioGalley})
 	}
 
-	return clusterConfig, awsCreds, nil
+	fmt.Println(table.AlignKeyValue(items, ":", 1) + "\n")
+
+	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersion)
+	prompt.YesOrExit("is the configuration above correct?", exitMessage)
 }

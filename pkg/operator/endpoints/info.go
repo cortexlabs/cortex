@@ -17,30 +17,18 @@ limitations under the License.
 package endpoints
 
 import (
-	"fmt"
 	"net/http"
+	"os"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 func Info(w http.ResponseWriter, r *http.Request) {
-	asgs, err := config.AWS.AutoscalingGroups(map[string]string{"alpha.eksctl.io/nodegroup-name": "ng-cortex-worker"})
-	if err != nil {
-		RespondError(w, errors.WithStack(err))
-		return
+	response := schema.InfoResponse{
+		MaskedAWSAccessKeyID: s.MaskString(os.Getenv("AWS_ACCESS_KEY_ID"), 4),
+		ClusterConfig:        config.Cluster,
 	}
-
-	if len(asgs) != 1 {
-		message := fmt.Sprintf("found %d matching autoscaling groups, expected only one", len(asgs))
-		RespondError(w, errors.New(message)) // unexpected
-		return
-	}
-
-	config.Cluster.MinInstances = asgs[0].MinSize
-	config.Cluster.MaxInstances = asgs[0].MaxSize
-
-	response := schema.InfoResponse{ClusterConfig: config.Cluster}
 	Respond(w, response)
 }

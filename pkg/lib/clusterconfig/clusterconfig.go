@@ -32,39 +32,44 @@ import (
 )
 
 type ClusterConfig struct {
-	InstanceType                        *string  `json:"instance_type" yaml:"instance_type"`
-	MinInstances                        *int64   `json:"min_instances" yaml:"min_instances"`
-	MaxInstances                        *int64   `json:"max_instances" yaml:"max_instances"`
-	Spot                                *bool    `json:"spot" yaml:"spot"`
+	InstanceType           *string     `json:"instance_type" yaml:"instance_type"`
+	MinInstances           *int64      `json:"min_instances" yaml:"min_instances"`
+	MaxInstances           *int64      `json:"max_instances" yaml:"max_instances"`
+	InstanceVolumeSize     int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
+	Spot                   *bool       `json:"spot" yaml:"spot"`
+	SpotConfig             *SpotConfig `json:"spot_config" yaml:"spot_config"`
+	ClusterName            string      `json:"cluster_name" yaml:"cluster_name"`
+	Region                 *string     `json:"region" yaml:"region"`
+	Bucket                 *string     `json:"bucket" yaml:"bucket"`
+	LogGroup               string      `json:"log_group" yaml:"log_group"`
+	Telemetry              bool        `json:"telemetry" yaml:"telemetry"`
+	ImagePredictorServe    string      `json:"image_predictor_serve" yaml:"image_predictor_serve"`
+	ImagePredictorServeGPU string      `json:"image_predictor_serve_gpu" yaml:"image_predictor_serve_gpu"`
+	ImageTFServe           string      `json:"image_tf_serve" yaml:"image_tf_serve"`
+	ImageTFServeGPU        string      `json:"image_tf_serve_gpu" yaml:"image_tf_serve_gpu"`
+	ImageTFAPI             string      `json:"image_tf_api" yaml:"image_tf_api"`
+	ImageONNXServe         string      `json:"image_onnx_serve" yaml:"image_onnx_serve"`
+	ImageONNXServeGPU      string      `json:"image_onnx_serve_gpu" yaml:"image_onnx_serve_gpu"`
+	ImageOperator          string      `json:"image_operator" yaml:"image_operator"`
+	ImageManager           string      `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader        string      `json:"image_downloader" yaml:"image_downloader"`
+	ImageClusterAutoscaler string      `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
+	ImageMetricsServer     string      `json:"image_metrics_server" yaml:"image_metrics_server"`
+	ImageNvidia            string      `json:"image_nvidia" yaml:"image_nvidia"`
+	ImageFluentd           string      `json:"image_fluentd" yaml:"image_fluentd"`
+	ImageStatsd            string      `json:"image_statsd" yaml:"image_statsd"`
+	ImageIstioProxy        string      `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot        string      `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImageIstioCitadel      string      `json:"image_istio_citadel" yaml:"image_istio_citadel"`
+	ImageIstioGalley       string      `json:"image_istio_galley" yaml:"image_istio_galley"`
+}
+
+type SpotConfig struct {
 	InstanceDistribution                []string `json:"instance_distribution" yaml:"instance_distribution"`
 	OnDemandBaseCapacity                *int64   `json:"on_demand_base_capacity" yaml:"on_demand_base_capacity"`
 	OnDemandPercentageAboveBaseCapacity *int64   `json:"on_demand_percentage_above_base_capacity" yaml:"on_demand_percentage_above_base_capacity"`
 	MaxPrice                            *float64 `json:"max_price" yaml:"max_price"`
-	SpotInstancePools                   *int64   `json:"spot_instance_pools" yaml:"spot_instance_pools"`
-	ClusterName                         string   `json:"cluster_name" yaml:"cluster_name"`
-	Region                              *string  `json:"region" yaml:"region"`
-	Bucket                              string   `json:"bucket" yaml:"bucket"`
-	LogGroup                            string   `json:"log_group" yaml:"log_group"`
-	Telemetry                           bool     `json:"telemetry" yaml:"telemetry"`
-	ImagePredictorServe                 string   `json:"image_predictor_serve" yaml:"image_predictor_serve"`
-	ImagePredictorServeGPU              string   `json:"image_predictor_serve_gpu" yaml:"image_predictor_serve_gpu"`
-	ImageTFServe                        string   `json:"image_tf_serve" yaml:"image_tf_serve"`
-	ImageTFServeGPU                     string   `json:"image_tf_serve_gpu" yaml:"image_tf_serve_gpu"`
-	ImageTFAPI                          string   `json:"image_tf_api" yaml:"image_tf_api"`
-	ImageONNXServe                      string   `json:"image_onnx_serve" yaml:"image_onnx_serve"`
-	ImageONNXServeGPU                   string   `json:"image_onnx_serve_gpu" yaml:"image_onnx_serve_gpu"`
-	ImageOperator                       string   `json:"image_operator" yaml:"image_operator"`
-	ImageManager                        string   `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader                     string   `json:"image_downloader" yaml:"image_downloader"`
-	ImageClusterAutoscaler              string   `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
-	ImageMetricsServer                  string   `json:"image_metrics_server" yaml:"image_metrics_server"`
-	ImageNvidia                         string   `json:"image_nvidia" yaml:"image_nvidia"`
-	ImageFluentd                        string   `json:"image_fluentd" yaml:"image_fluentd"`
-	ImageStatsd                         string   `json:"image_statsd" yaml:"image_statsd"`
-	ImageIstioProxy                     string   `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot                     string   `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImageIstioCitadel                   string   `json:"image_istio_citadel" yaml:"image_istio_citadel"`
-	ImageIstioGalley                    string   `json:"image_istio_galley" yaml:"image_istio_galley"`
+	InstancePools                       *int64   `json:"instance_pools" yaml:"instance_pools"`
 }
 
 type InternalClusterConfig struct {
@@ -98,45 +103,62 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
+			StructField: "InstanceVolumeSize",
+			Int64Validation: &cr.Int64Validation{
+				Default:              50,
+				GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
+				LessThanOrEqualTo:    pointer.Int64(16384),
+			},
+		},
+		{
 			StructField:       "Spot",
 			BoolPtrValidation: &cr.BoolPtrValidation{},
 		},
 		{
-			StructField: "InstanceDistribution",
-			StringListValidation: &cr.StringListValidation{
-				DisallowDups: true,
-				AllowEmpty:   true,
-				Validator:    validateInstanceDistribution,
-			},
-		},
-		{
-			StructField: "OnDemandBaseCapacity",
-			Int64PtrValidation: &cr.Int64PtrValidation{
-				GreaterThanOrEqualTo: pointer.Int64(0),
-				AllowExplicitNull:    true,
-			},
-		},
-		{
-			StructField: "OnDemandPercentageAboveBaseCapacity",
-			Int64PtrValidation: &cr.Int64PtrValidation{
-				GreaterThanOrEqualTo: pointer.Int64(1),
-				LessThanOrEqualTo:    pointer.Int64(100),
-				AllowExplicitNull:    true,
-			},
-		},
-		{
-			StructField: "MaxPrice",
-			Float64PtrValidation: &cr.Float64PtrValidation{
-				GreaterThan:       pointer.Float64(0),
+			StructField: "SpotConfig",
+			StructValidation: &cr.StructValidation{
+				DefaultNil:        true,
 				AllowExplicitNull: true,
-			},
-		},
-		{
-			StructField: "SpotInstancePools",
-			Int64PtrValidation: &cr.Int64PtrValidation{
-				GreaterThanOrEqualTo: pointer.Int64(1),
-				LessThanOrEqualTo:    pointer.Int64(20),
-				AllowExplicitNull:    true,
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "InstanceDistribution",
+						StringListValidation: &cr.StringListValidation{
+							DisallowDups:      true,
+							Validator:         validateInstanceDistribution,
+							AllowExplicitNull: true,
+						},
+					},
+					{
+						StructField: "OnDemandBaseCapacity",
+						Int64PtrValidation: &cr.Int64PtrValidation{
+							GreaterThanOrEqualTo: pointer.Int64(0),
+							AllowExplicitNull:    true,
+						},
+					},
+					{
+						StructField: "OnDemandPercentageAboveBaseCapacity",
+						Int64PtrValidation: &cr.Int64PtrValidation{
+							GreaterThanOrEqualTo: pointer.Int64(0),
+							LessThanOrEqualTo:    pointer.Int64(100),
+							AllowExplicitNull:    true,
+						},
+					},
+					{
+						StructField: "MaxPrice",
+						Float64PtrValidation: &cr.Float64PtrValidation{
+							GreaterThan:       pointer.Float64(0),
+							AllowExplicitNull: true,
+						},
+					},
+					{
+						StructField: "InstancePools",
+						Int64PtrValidation: &cr.Int64PtrValidation{
+							GreaterThanOrEqualTo: pointer.Int64(1),
+							LessThanOrEqualTo:    pointer.Int64(20),
+							AllowExplicitNull:    true,
+						},
+					},
+				},
 			},
 		},
 		{
@@ -148,16 +170,12 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringPtrValidation: &cr.StringPtrValidation{
-				Default:       pointer.String("us-west-2"),
 				AllowedValues: aws.EKSSupportedRegions.Slice(),
 			},
 		},
 		{
-			StructField: "Bucket",
-			StringValidation: &cr.StringValidation{
-				Default:    "",
-				AllowEmpty: true,
-			},
+			StructField:         "Bucket",
+			StringPtrValidation: &cr.StringPtrValidation{},
 		},
 		{
 			StructField: "LogGroup",
@@ -322,7 +340,7 @@ func (cc *ClusterConfig) Validate() error {
 		}
 
 		compatibleInstanceCount := 0
-		for _, instanceType := range cc.InstanceDistribution {
+		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
 			if instanceType == *cc.InstanceType {
 				continue
 			}
@@ -352,24 +370,12 @@ func (cc *ClusterConfig) Validate() error {
 			return ErrorAtLeastOneInstanceDistribution(*cc.InstanceType, suggestions...)
 		}
 
-		if cc.OnDemandBaseCapacity != nil && *cc.OnDemandBaseCapacity > *cc.MaxInstances {
-			return ErrorOnDemandBaseCapacityGreaterThanMax(*cc.OnDemandBaseCapacity, *cc.MaxInstances)
+		if cc.SpotConfig.OnDemandBaseCapacity != nil && *cc.SpotConfig.OnDemandBaseCapacity > *cc.MaxInstances {
+			return ErrorOnDemandBaseCapacityGreaterThanMax(*cc.SpotConfig.OnDemandBaseCapacity, *cc.MaxInstances)
 		}
 	} else {
-		if len(cc.InstanceDistribution) > 0 {
-			return ErrorConfiguredWhenSpotIsNotEnabled(InstanceDistributionKey)
-		}
-		if cc.OnDemandBaseCapacity != nil {
-			return ErrorConfiguredWhenSpotIsNotEnabled(OnDemandBaseCapacityKey)
-		}
-		if cc.OnDemandPercentageAboveBaseCapacity != nil {
-			return ErrorConfiguredWhenSpotIsNotEnabled(OnDemandPercentageAboveBaseCapacityKey)
-		}
-		if cc.MaxPrice != nil {
-			return ErrorConfiguredWhenSpotIsNotEnabled(InstanceDistributionKey)
-		}
-		if cc.SpotInstancePools != nil {
-			return ErrorConfiguredWhenSpotIsNotEnabled(SpotInstancePoolsKey)
+		if cc.SpotConfig != nil {
+			return ErrorConfiguredWhenSpotIsNotEnabled(SpotConfigKey)
 		}
 	}
 
@@ -430,9 +436,13 @@ func CompatibleSpotInstances(targetInstance aws.InstanceMetadata) []aws.Instance
 }
 
 func (cc *ClusterConfig) AutoFillSpot() error {
+	spotConfig := cc.SpotConfig
+	if spotConfig == nil {
+		spotConfig = &SpotConfig{}
+	}
 	chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
-	if len(cc.InstanceDistribution) == 0 {
-		cc.InstanceDistribution = append(cc.InstanceDistribution, chosenInstance.Type)
+	if len(spotConfig.InstanceDistribution) == 0 {
+		spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, chosenInstance.Type)
 
 		compatibleSpots := CompatibleSpotInstances(chosenInstance)
 		if len(compatibleSpots) == 0 {
@@ -440,14 +450,14 @@ func (cc *ClusterConfig) AutoFillSpot() error {
 		}
 
 		for _, instance := range compatibleSpots {
-			cc.InstanceDistribution = append(cc.InstanceDistribution, instance.Type)
-			if len(cc.InstanceDistribution) == 3 {
+			spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, instance.Type)
+			if len(spotConfig.InstanceDistribution) == 3 {
 				break
 			}
 		}
 	} else {
 		found := false
-		for _, instanceType := range cc.InstanceDistribution {
+		for _, instanceType := range spotConfig.InstanceDistribution {
 			if *cc.InstanceType == instanceType {
 				found = true
 				break
@@ -455,30 +465,31 @@ func (cc *ClusterConfig) AutoFillSpot() error {
 		}
 
 		if !found {
-			cc.InstanceDistribution = append(cc.InstanceDistribution, chosenInstance.Type)
+			spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, chosenInstance.Type)
 		}
 	}
 
-	if cc.MaxPrice == nil {
-		cc.MaxPrice = &chosenInstance.Price
+	if spotConfig.MaxPrice == nil {
+		spotConfig.MaxPrice = &chosenInstance.Price
 	}
 
-	if cc.OnDemandBaseCapacity == nil {
-		cc.OnDemandBaseCapacity = pointer.Int64(0)
+	if spotConfig.OnDemandBaseCapacity == nil {
+		spotConfig.OnDemandBaseCapacity = pointer.Int64(0)
 	}
 
-	if cc.OnDemandPercentageAboveBaseCapacity == nil {
-		cc.OnDemandPercentageAboveBaseCapacity = pointer.Int64(1)
+	if spotConfig.OnDemandPercentageAboveBaseCapacity == nil {
+		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(1)
 	}
 
-	if cc.SpotInstancePools == nil {
-		cc.SpotInstancePools = pointer.Int64(2)
+	if spotConfig.InstancePools == nil {
+		spotConfig.InstancePools = pointer.Int64(2)
 	}
 
+	cc.SpotConfig = spotConfig
 	return nil
 }
 
-func applyPromptDefaults(defaults *ClusterConfig) *ClusterConfig {
+func applyPromptDefaults(defaults ClusterConfig) *ClusterConfig {
 	defaultConfig := &ClusterConfig{
 		Region:       pointer.String("us-west-2"),
 		InstanceType: pointer.String("m5.large"),
@@ -487,47 +498,74 @@ func applyPromptDefaults(defaults *ClusterConfig) *ClusterConfig {
 		Spot:         pointer.Bool(true),
 	}
 
-	if defaults != nil {
-		if defaults.Region != nil {
-			defaultConfig.Region = defaults.Region
-		}
-		if defaults.InstanceType != nil {
-			defaultConfig.InstanceType = defaults.InstanceType
-		}
-		if defaults.MinInstances != nil {
-			defaultConfig.MinInstances = defaults.MinInstances
-		}
-		if defaults.MaxInstances != nil {
-			defaultConfig.MaxInstances = defaults.MaxInstances
-		}
-		if defaults.Spot != nil {
-			defaultConfig.Spot = defaults.Spot
-		}
+	if defaults.Region != nil {
+		defaultConfig.Region = defaults.Region
+	}
+	if defaults.InstanceType != nil {
+		defaultConfig.InstanceType = defaults.InstanceType
+	}
+	if defaults.MinInstances != nil {
+		defaultConfig.MinInstances = defaults.MinInstances
+	}
+	if defaults.MaxInstances != nil {
+		defaultConfig.MaxInstances = defaults.MaxInstances
+	}
+	if defaults.Spot != nil {
+		defaultConfig.Spot = defaults.Spot
 	}
 
 	return defaultConfig
 }
 
-func InstallPromptValidation(userClusterConfig *ClusterConfig) *cr.PromptValidation {
-	defaults := applyPromptDefaults(userClusterConfig)
+func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecretAccessKey string) error {
+	defaults := applyPromptDefaults(*clusterConfig)
 
-	return &cr.PromptValidation{
+	regionPrompt := &cr.PromptValidation{
 		SkipPopulatedFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
 				StructField: "Region",
 				PromptOpts: &prompt.Options{
-					Prompt: "Region",
+					Prompt: RegionUserFacingKey,
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
 					AllowedValues: aws.EKSSupportedRegions.Slice(),
 					Default:       defaults.Region,
 				},
 			},
+		},
+	}
+	err := cr.ReadPrompt(clusterConfig, regionPrompt)
+	if err != nil {
+		return err
+	}
+
+	awsAccountID, validCreds, err := aws.AccountID(awsAccessKeyID, awsSecretAccessKey, *clusterConfig.Region)
+	if err != nil {
+		return err
+	}
+	if !validCreds {
+		return ErrorInvalidAWSCredentials()
+	}
+
+	defaultBucket := pointer.String("cortex-" + hash.String(awsAccountID)[:10])
+
+	remainingPrompts := &cr.PromptValidation{
+		SkipPopulatedFields: true,
+		PromptItemValidations: []*cr.PromptItemValidation{
+			{
+				StructField: "Bucket",
+				PromptOpts: &prompt.Options{
+					Prompt: BucketUserFacingKey,
+				},
+				StringPtrValidation: &cr.StringPtrValidation{
+					Default: defaultBucket,
+				},
+			},
 			{
 				StructField: "Spot",
 				PromptOpts: &prompt.Options{
-					Prompt:     "Use spot instances (y/n)",
+					Prompt:     "use spot instances (y/n)",
 					DefaultStr: "y",
 				},
 				BoolPtrValidation: &cr.BoolPtrValidation{
@@ -538,7 +576,7 @@ func InstallPromptValidation(userClusterConfig *ClusterConfig) *cr.PromptValidat
 			{
 				StructField: "InstanceType",
 				PromptOpts: &prompt.Options{
-					Prompt: "AWS instance type",
+					Prompt: "aws instance type",
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
 					Required:  true,
@@ -549,7 +587,7 @@ func InstallPromptValidation(userClusterConfig *ClusterConfig) *cr.PromptValidat
 			{
 				StructField: "MinInstances",
 				PromptOpts: &prompt.Options{
-					Prompt: "Min instances",
+					Prompt: "min instances",
 				},
 				Int64PtrValidation: &cr.Int64PtrValidation{
 					Required:             true,
@@ -560,7 +598,7 @@ func InstallPromptValidation(userClusterConfig *ClusterConfig) *cr.PromptValidat
 			{
 				StructField: "MaxInstances",
 				PromptOpts: &prompt.Options{
-					Prompt: "Max instances",
+					Prompt: "max instances",
 				},
 				Int64PtrValidation: &cr.Int64PtrValidation{
 					Required:    true,
@@ -570,10 +608,15 @@ func InstallPromptValidation(userClusterConfig *ClusterConfig) *cr.PromptValidat
 			},
 		},
 	}
+	err = cr.ReadPrompt(clusterConfig, remainingPrompts)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *ClusterConfig) *cr.PromptValidation {
-	defaults := applyPromptDefaults(userClusterConfig)
+	defaults := applyPromptDefaults(*userClusterConfig)
 
 	return &cr.PromptValidation{
 		SkipPopulatedFields: skipPopulatedFields,
@@ -581,7 +624,7 @@ func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *Cluster
 			{
 				StructField: "MinInstances",
 				PromptOpts: &prompt.Options{
-					Prompt: "Min instances",
+					Prompt: "min instances",
 				},
 				Int64PtrValidation: &cr.Int64PtrValidation{
 					Required:             true,
@@ -592,7 +635,7 @@ func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *Cluster
 			{
 				StructField: "MaxInstances",
 				PromptOpts: &prompt.Options{
-					Prompt: "Max instances",
+					Prompt: "max instances",
 				},
 				Int64PtrValidation: &cr.Int64PtrValidation{
 					Required:    true,
@@ -656,42 +699,35 @@ func GetFileDefaults() (*ClusterConfig, error) {
 	return cc, nil
 }
 
-func (cc *ClusterConfig) SetBucket(awsAccessKeyID string, awsSecretAccessKey string) error {
-	if cc.Bucket != "" {
-		return nil
-	}
-
-	awsAccountID, validCreds, err := aws.AccountID(awsAccessKeyID, awsSecretAccessKey, *cc.Region)
-	if err != nil {
-		return err
-	}
-	if !validCreds {
-		return ErrorInvalidAWSCredentials()
-	}
-
-	cc.Bucket = "cortex-" + hash.String(awsAccountID)[:10]
-	return nil
-}
-
-func (cc *InternalClusterConfig) UserFacingString() string {
+func (cc *InternalClusterConfig) UserFacingTable() []table.KV {
 	var items []table.KV
 
 	items = append(items, table.KV{K: APIVersionUserFacingKey, V: cc.APIVersion})
+	items = append(items, cc.ClusterConfig.UserFacingTable()...)
+	return items
+}
+
+func (cc *InternalClusterConfig) UserFacingString() string {
+	return table.AlignKeyValue(cc.UserFacingTable(), ":", 1)
+}
+
+func (cc *ClusterConfig) UserFacingTable() []table.KV {
+	var items []table.KV
+
 	items = append(items, table.KV{K: ClusterNameUserFacingKey, V: cc.ClusterName})
 	items = append(items, table.KV{K: RegionUserFacingKey, V: *cc.Region})
-	items = append(items, table.KV{K: BucketUserFacingKey, V: cc.Bucket})
+	items = append(items, table.KV{K: BucketUserFacingKey, V: *cc.Bucket})
 	items = append(items, table.KV{K: SpotUserFacingKey, V: s.YesNo(*cc.Spot)})
 	items = append(items, table.KV{K: InstanceTypeUserFacingKey, V: *cc.InstanceType})
-	if *cc.Spot {
-		items = append(items, table.KV{K: InstanceDistributionUserFacingKey, V: cc.InstanceDistribution})
-	}
+	items = append(items, table.KV{K: InstanceVolumeSizeUserFacingKey, V: cc.InstanceVolumeSize})
 	items = append(items, table.KV{K: MinInstancesUserFacingKey, V: *cc.MinInstances})
 	items = append(items, table.KV{K: MaxInstancesUserFacingKey, V: *cc.MaxInstances})
-	if *cc.Spot {
-		items = append(items, table.KV{K: OnDemandBaseCapacityUserFacingKey, V: *cc.OnDemandBaseCapacity})
-		items = append(items, table.KV{K: OnDemandPercentageAboveBaseCapacityUserFacingKey, V: *cc.OnDemandPercentageAboveBaseCapacity})
-		items = append(items, table.KV{K: MaxPriceUserFacingKey, V: *cc.MaxPrice})
-		items = append(items, table.KV{K: SpotInstancePoolsUserFacingKey, V: *cc.SpotInstancePools})
+	if cc.Spot != nil {
+		items = append(items, table.KV{K: InstanceDistributionUserFacingKey, V: cc.SpotConfig.InstanceDistribution})
+		items = append(items, table.KV{K: OnDemandBaseCapacityUserFacingKey, V: *cc.SpotConfig.OnDemandBaseCapacity})
+		items = append(items, table.KV{K: OnDemandPercentageAboveBaseCapacityUserFacingKey, V: *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity})
+		items = append(items, table.KV{K: MaxPriceUserFacingKey, V: *cc.SpotConfig.MaxPrice})
+		items = append(items, table.KV{K: InstancePoolsUserFacingKey, V: *cc.SpotConfig.InstancePools})
 	}
 	items = append(items, table.KV{K: LogGroupUserFacingKey, V: cc.LogGroup})
 	items = append(items, table.KV{K: TelemetryUserFacingKey, V: cc.Telemetry})
@@ -715,5 +751,9 @@ func (cc *InternalClusterConfig) UserFacingString() string {
 	items = append(items, table.KV{K: ImageIstioCitadelUserFacingKey, V: cc.ImageIstioCitadel})
 	items = append(items, table.KV{K: ImageIstioGalleyUserFacingKey, V: cc.ImageIstioGalley})
 
-	return table.AlignKeyValue(items, ":", 1)
+	return items
+}
+
+func (cc *ClusterConfig) UserFacingString() string {
+	return table.AlignKeyValue(cc.UserFacingTable(), ":", 1)
 }

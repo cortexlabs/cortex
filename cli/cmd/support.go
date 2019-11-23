@@ -45,7 +45,7 @@ var supportPrompValidation = &cr.PromptValidation{
 		{
 			StructField: "Body",
 			PromptOpts: &prompt.Options{
-				Prompt: "What is your question or issue",
+				Prompt: "what is your question or issue",
 			},
 			StringValidation: &cr.StringValidation{
 				Required: true,
@@ -54,7 +54,7 @@ var supportPrompValidation = &cr.PromptValidation{
 		{
 			StructField: "EmailAddress",
 			PromptOpts: &prompt.Options{
-				Prompt: "What is your email address",
+				Prompt: "what is your email address",
 			},
 			StringValidation: &cr.StringValidation{
 				Required:  true,
@@ -88,10 +88,10 @@ var supportCmd = &cobra.Command{
 		defer resp.Body.Close()
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			fmt.Println("An error occurred while submitting your request, please file an issue on GitHub (https://github.com/cortexlabs/cortex) or email us at hello@cortex.dev")
+			fmt.Println("an error occurred while submitting your request, please file an issue on github (https://github.com/cortexlabs/cortex) or email us at hello@cortex.dev")
 			return
 		}
 
-		fmt.Println("Thanks for letting us know, we will get back to you soon at " + supportRequest.EmailAddress)
+		fmt.Println("thanks for letting us know, we will get back to you soon at " + supportRequest.EmailAddress)
 	},
 }

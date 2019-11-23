@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type ErrorKind int
@@ -39,6 +40,7 @@ const (
 	ErrNoCompatibleSpotInstanceFound
 	ErrConfiguredWhenSpotIsNotEnabled
 	ErrOnDemandBaseCapacityGreaterThanMax
+	ErrConfigCannotBeChangedOnUpdate
 	ErrInvalidInstanceType
 )
 
@@ -57,6 +59,7 @@ var (
 		"err_no_compatible_spot_instance_found",
 		"err_configured_when_spot_is_not_enabled",
 		"err_on_demand_base_capacity_greater_than_max",
+		"err_config_cannot_be_changed_on_update",
 		"err_invalid_instance_type",
 	}
 )
@@ -188,6 +191,13 @@ func ErrorOnDemandBaseCapacityGreaterThanMax(onDemandBaseCapacity int64, max int
 	return Error{
 		Kind:    ErrOnDemandBaseCapacityGreaterThanMax,
 		message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", OnDemandBaseCapacityKey, MaxInstancesKey, onDemandBaseCapacity, max),
+	}
+}
+
+func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) error {
+	return Error{
+		Kind:    ErrConfigCannotBeChangedOnUpdate,
+		message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
 	}
 }
 
