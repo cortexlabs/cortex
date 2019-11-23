@@ -73,11 +73,7 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterCo
 }
 
 func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, error) {
-	var userClusterConfig *clusterconfig.ClusterConfig
-	err := clusterconfig.SetFileDefaults(userClusterConfig)
-	if err != nil {
-		return nil, err
-	}
+	userClusterConfig := &clusterconfig.ClusterConfig{}
 
 	if flagClusterConfig == "" {
 		userClusterConfig = cachedClusterConfig
@@ -86,7 +82,7 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 			return nil, err
 		}
 	} else {
-		err = readClusterConfigFile(userClusterConfig, flagClusterConfig)
+		err := readClusterConfigFile(userClusterConfig, flagClusterConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -140,13 +136,13 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 		}
 		userClusterConfig.SpotConfig = cachedClusterConfig.SpotConfig
 
-		err := cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(true, cachedClusterConfig))
+		err = cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(true, cachedClusterConfig))
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err = userClusterConfig.Validate()
+	err := userClusterConfig.Validate()
 	if err != nil {
 		return nil, err
 	}
