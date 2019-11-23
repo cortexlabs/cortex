@@ -83,7 +83,7 @@ var upCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		clusterConfig, awsCreds, err := getInstallClusterConfig(awsCreds)
+		clusterConfig, err := getInstallClusterConfig(awsCreds)
 		if err != nil {
 			errors.Exit(err)
 		}
@@ -267,7 +267,7 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Cluster
 	}
 
 	if userClusterConfig.Region == nil {
-		errors.Exit("unable to find region; please configure `region` to the s3 region of an existing cortex cluster or create a cortex cluster with `cortex cluster up`")
+		errors.Exit(fmt.Sprintf("unable to find %s; please configure \"%s\" to the s3 region of an existing cortex cluster or create a cortex cluster with `cortex cluster up`", clusterconfig.RegionKey, clusterconfig.RegionKey))
 	}
 
 	out, err := runRefreshClusterConfig(userClusterConfig, awsCreds)

@@ -38,24 +38,24 @@ func readClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig, path stri
 	return nil
 }
 
-func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, *AWSCredentials, error) {
+func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, error) {
 	clusterConfig := &clusterconfig.ClusterConfig{}
 
 	err := clusterconfig.SetFileDefaults(clusterConfig)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if flagClusterConfig != "" {
 		err := readClusterConfigFile(clusterConfig, flagClusterConfig)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
 	err = clusterconfig.InstallPrompt(clusterConfig, awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
@@ -64,12 +64,12 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterCo
 
 	err = clusterConfig.Validate()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	confirmClusterConfig(clusterConfig, awsCreds)
 
-	return clusterConfig, awsCreds, nil
+	return clusterConfig, nil
 }
 
 func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, error) {
