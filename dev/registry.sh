@@ -128,8 +128,6 @@ elif [ "$cmd" = "update" ]; then
     cache_builder $ROOT/images/operator operator
     build_and_push $ROOT/images/operator operator latest
 
-    build_and_push $ROOT/images/manager manager latest
-
     build_and_push $ROOT/images/cluster-autoscaler cluster-autoscaler latest
     build_and_push $ROOT/images/metrics-server metrics-server latest
     build_and_push $ROOT/images/nvidia nvidia latest
@@ -141,6 +139,7 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/istio-galley istio-galley latest
   fi
 
+  build_and_push $ROOT/images/manager manager latest
   build_and_push $ROOT/images/predictor-serve predictor-serve latest
   build_and_push $ROOT/images/predictor-serve-gpu predictor-serve-gpu latest
   build_and_push $ROOT/images/tf-api tf-api latest
