@@ -478,7 +478,7 @@ func (cc *ClusterConfig) AutoFillSpot() error {
 	}
 
 	if spotConfig.OnDemandPercentageAboveBaseCapacity == nil {
-		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(1)
+		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(0)
 	}
 
 	if spotConfig.InstancePools == nil {
