@@ -22,7 +22,7 @@ A `deployment` specifies a set of resources that are deployed together. An `api`
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-You can run the code that generated the exported BERT model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/master/examples/tensorflow/sentiment-analysis/bert.ipynb).
+You can run the code that generated the exported BERT model [here](https://colab.research.google.com/github/cortexlabs/cortex/blob/0.11/examples/tensorflow/sentiment-analysis/bert.ipynb).
 
 ## Add request handling
 
