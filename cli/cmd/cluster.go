@@ -184,7 +184,7 @@ var downCmd = &cobra.Command{
 			errors.Exit(err)
 		}
 
-		prompt.YesOrExit("are you sure you want to uninstall cortex? (your cluster will be spun down and all apis will be deleted)", "")
+		prompt.YesOrExit("your cluster will be spun down and all apis will be deleted, are you sure you want to uninstall cortex?", "")
 
 		awsCreds, err := getAWSCredentials(flagClusterConfig)
 		if err != nil {
