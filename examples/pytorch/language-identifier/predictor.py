@@ -1,10 +1,9 @@
 import wget
 import fasttext
 
-wget.download(
-    "https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin", "lid.176.bin"
-)
-model = fasttext.load_model("lid.176.bin")
+
+wget.download("https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin", "model")
+model = fasttext.load_model("model")
 
 
 def predict(sample, metadata):

@@ -7,4 +7,5 @@
     path: predictor.py
   compute:
     cpu: 1
+    gpu: 1
     mem: 4G
