@@ -141,6 +141,8 @@ var infoCmd = &cobra.Command{
 		if err != nil {
 			errors.Exit(err)
 		}
+
+		// note: if modifying this string, search the codebase for it and change all occurrences
 		if strings.Contains(out, "there is no cluster") {
 			errors.Exit()
 		}
@@ -269,6 +271,8 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Cluster
 	if err != nil {
 		errors.Exit(err)
 	}
+
+	// note: if modifying this string, search the codebase for it and change all occurrences
 	if strings.Contains(out, "there is no cluster") {
 		errors.Exit()
 	}
