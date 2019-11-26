@@ -5,3 +5,6 @@
   name: classifier
   predictor:
     path: predictor.py
+  compute:
+    gpu: 1
+    mem: 4G

@@ -45,9 +45,8 @@ func init() {
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "create or update a deployment",
-	Long: `This command sends all project configuration and code to Cortex.
-If validations pass, Cortex will attempt to create the desired state.`,
-	Args: cobra.NoArgs,
+	Long:  "create or update a deployment",
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		deploy(flagDeployForce, flagDeployRefresh)
 	},

@@ -33,11 +33,9 @@ func init() {
 
 var configureCmd = &cobra.Command{
 	Use:   "configure",
-	Short: "configure the CLI",
-	Long: `This command configures the Cortex URL and AWS credentials
-in order to authenticate and send requests to Cortex.
-The configuration is stored in ~/.cortex.`,
-	Args: cobra.NoArgs,
+	Short: "configure the cli",
+	Long:  "configure the cli",
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if flagPrint {
 			cliConfig := getDefaults()

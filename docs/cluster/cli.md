@@ -3,28 +3,27 @@
 ## deploy
 
 ```text
-This command sends all project configuration and code to Cortex.
-If validations pass, Cortex will attempt to create the desired state.
+create or update a deployment
 
-Usage:
+usage:
   cortex deploy [flags]
 
-Flags:
+flags:
   -e, --env string   environment (default "default")
   -f, --force        override the in-progress deployment update
   -h, --help         help for deploy
-  -r, --refresh      re-deploy all APIs with cleared cache and rolling updates
+  -r, --refresh      re-deploy all apis with cleared cache and rolling updates
 ```
 
 ## get
 
 ```text
-Get information about resources.
+get information about resources
 
-Usage:
+usage:
   cortex get [RESOURCE_NAME] [flags]
 
-Flags:
+flags:
   -a, --all-deployments     list all deployments
   -d, --deployment string   deployment name
   -e, --env string          environment (default "default")
@@ -37,12 +36,12 @@ Flags:
 ## logs
 
 ```text
-This command streams logs from a deployed API.
+stream logs from an api
 
-Usage:
+usage:
   cortex logs API_NAME [flags]
 
-Flags:
+flags:
   -d, --deployment string   deployment name
   -e, --env string          environment (default "default")
   -h, --help                help for logs
@@ -51,13 +50,12 @@ Flags:
 ## predict
 
 ```text
-This command makes a prediction request using
-a JSON file and displays the response.
+make a prediction request using a json file
 
-Usage:
+usage:
   cortex predict API_NAME SAMPLE_FILE [flags]
 
-Flags:
+flags:
       --debug               Predict with debug mode
   -d, --deployment string   deployment name
   -e, --env string          environment (default "default")
@@ -67,12 +65,12 @@ Flags:
 ## delete
 
 ```text
-This command deletes a deployment from the cluster.
+delete a deployment
 
-Usage:
+usage:
   cortex delete [DEPLOYMENT_NAME] [flags]
 
-Flags:
+flags:
   -e, --env string   environment (default "default")
   -h, --help         help for delete
   -c, --keep-cache   keep cached data for the deployment
@@ -81,64 +79,64 @@ Flags:
 ## cluster up
 
 ```text
-This command spins up a Cortex cluster on your AWS account.
+spin up a cluster
 
-Usage:
+usage:
   cortex cluster up [flags]
 
-Flags:
-  -c, --config string   path to a Cortex cluster configuration file
+flags:
+  -c, --config string   path to a cortex cluster configuration file
   -h, --help            help for up
 ```
 
 ## cluster info
 
 ```text
-This command gets information about a Cortex cluster.
+get information about a cluster
 
-Usage:
+usage:
   cortex cluster info [flags]
 
-Flags:
-  -c, --config string   path to a Cortex cluster configuration file
+flags:
+  -c, --config string   path to a cortex cluster configuration file
   -h, --help            help for info
 ```
 
 ## cluster update
 
 ```text
-This command updates a Cortex cluster.
+update a cluster
 
-Usage:
+usage:
   cortex cluster update [flags]
 
-Flags:
-  -c, --config string   path to a Cortex cluster configuration file
+flags:
+  -c, --config string   path to a cortex cluster configuration file
   -h, --help            help for update
 ```
 
 ## cluster down
 
 ```text
-This command spins down a Cortex cluster.
+spin down a cluster
 
-Usage:
+usage:
   cortex cluster down [flags]
 
-Flags:
-  -c, --config string   path to a Cortex cluster configuration file
+flags:
+  -c, --config string   path to a cortex cluster configuration file
   -h, --help            help for down
 ```
 
 ## version
 
 ```text
-This command prints the version of the CLI and cluster.
+print the cli and cluster versions
 
-Usage:
+usage:
   cortex version [flags]
 
-Flags:
+flags:
   -e, --env string   environment (default "default")
   -h, --help         help for version
 ```
@@ -146,14 +144,12 @@ Flags:
 ## configure
 
 ```text
-This command configures the Cortex URL and AWS credentials
-in order to authenticate and send requests to Cortex.
-The configuration is stored in ~/.cortex.
+configure the cli
 
-Usage:
+usage:
   cortex configure [flags]
 
-Flags:
+flags:
   -e, --env string   environment (default "default")
   -h, --help         help for configure
   -p, --print        print the configuration
@@ -162,32 +158,31 @@ Flags:
 ## support
 
 ```text
-This command sends a support request to the Cortex maintainers
+send a support request to the maintainers
 
-Usage:
+usage:
   cortex support [flags]
 
-Flags:
+flags:
   -h, --help   help for support
 ```
 
 ## completion
 
 ```text
-Generate bash completion scripts.
+generate bash completion scripts
 
-Add this to your bashrc or bash profile:
+add this to your bashrc or bash profile:
   source <(cortex completion)
-Or run:
-  echo 'source <(cortex completion)' >> ~/.bash_profile  # Mac
-  echo 'source <(cortex completion)' >> ~/.bashrc  # Linux
+or run:
+  echo 'source <(cortex completion)' >> ~/.bash_profile  # mac
+  echo 'source <(cortex completion)' >> ~/.bashrc  # linux
 
-This will also add the "cx" alias.
-Note: Cortex CLI completion requires the bash_completion package to be installed on your system.
+this will also add the "cx" alias (note: cli completion requires the bash_completion package to be installed on your system)
 
-Usage:
+usage:
   cortex completion [flags]
 
-Flags:
+flags:
   -h, --help   help for completion
 ```

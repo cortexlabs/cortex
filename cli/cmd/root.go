@@ -70,7 +70,7 @@ var rootCmd = &cobra.Command{
 	Use:     "cortex",
 	Aliases: []string{"cx"},
 	Short:   "deploy machine learning models in production",
-	Long:    `Deploy machine learning models in production`,
+	Long:    `deploy machine learning models in production`,
 }
 
 func Execute() {
@@ -106,11 +106,11 @@ func updateRootUsage() {
 			return defaultUsageFunc(cmd)
 		}
 
-		usage = strings.Replace(usage, "Usage:\n  cortex [command]\n\nAliases:\n  cortex, cx\n\n", "", 1)
-		usage = strings.Replace(usage, "Available Commands:", "Deployment commands:", 1)
-		usage = strings.Replace(usage, "\n  cluster", "\n\nCluster commands:\n  cluster", 1)
-		usage = strings.Replace(usage, "\n  configure", "\n\nOther commands:\n  configure", 1)
-		usage = strings.Replace(usage, "\nUse \"cortex", "  help        help about any command\n\nFlags:\n  -h, --help   help for cortex\n\nUse \"cortex", 1)
+		usage = strings.Replace(usage, "usage:\n  cortex [command]\n\naliases:\n  cortex, cx\n\n", "", 1)
+		usage = strings.Replace(usage, "available commands:", "deployment commands:", 1)
+		usage = strings.Replace(usage, "\n  cluster", "\n\ncluster commands:\n  cluster", 1)
+		usage = strings.Replace(usage, "\n  configure", "\n\nother commands:\n  configure", 1)
+		usage = strings.Replace(usage, "\nUse \"cortex", "  help        help about any command\n\nflags:\n  -h, --help   help for cortex\n\nUse \"cortex", 1)
 
 		cmd.Print(usage)
 
@@ -136,11 +136,11 @@ func addAppNameFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&flagAppName, "deployment", "d", "", "deployment name")
 }
 
-var resourceTypesHelp = fmt.Sprintf("\nResource Types:\n  %s\n", strings.Join(resource.VisibleTypes.StringList(), "\n  "))
+var resourceTypesHelp = fmt.Sprintf("\nresource types:\n  %s\n", strings.Join(resource.VisibleTypes.StringList(), "\n  "))
 
 func addResourceTypesToHelp(cmd *cobra.Command) {
 	usage := cmd.UsageTemplate()
-	usage = strings.Replace(usage, "\nFlags:\n", resourceTypesHelp+"\nFlags:\n", 1)
+	usage = strings.Replace(usage, "\nflags:\n", resourceTypesHelp+"\nflags:\n", 1)
 	cmd.SetUsageTemplate(usage)
 }
 

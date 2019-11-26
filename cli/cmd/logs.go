@@ -31,8 +31,8 @@ func init() {
 
 var logsCmd = &cobra.Command{
 	Use:   "logs API_NAME",
-	Short: "get logs for an API",
-	Long:  `This command streams logs from a deployed API.`,
+	Short: "stream logs from an api",
+	Long:  "stream logs from an api",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		resourceName := args[0]

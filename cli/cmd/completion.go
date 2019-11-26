@@ -26,16 +26,15 @@ import (
 var completionCmd = &cobra.Command{
 	Use:   "completion",
 	Short: "generate bash completion scripts",
-	Long: `Generate bash completion scripts.
+	Long: `generate bash completion scripts
 
-Add this to your bashrc or bash profile:
+add this to your bashrc or bash profile:
   source <(cortex completion)
-Or run:
-  echo 'source <(cortex completion)' >> ~/.bash_profile  # Mac
-  echo 'source <(cortex completion)' >> ~/.bashrc  # Linux
+or run:
+  echo 'source <(cortex completion)' >> ~/.bash_profile  # mac
+  echo 'source <(cortex completion)' >> ~/.bashrc  # linux
 
-This will also add the "cx" alias.
-Note: Cortex CLI completion requires the bash_completion package to be installed on your system.
+this will also add the "cx" alias (note: cli completion requires the bash_completion package to be installed on your system)
 `,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {

@@ -4,8 +4,7 @@
 - kind: api
   name: classifier
   predictor:
-    path: src/predictor.py
-    python_path: src/
+    path: predictor.py
     model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
   tracker:
     model_type: classification

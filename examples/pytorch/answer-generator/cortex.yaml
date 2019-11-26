@@ -6,7 +6,7 @@
   predictor:
     path: predictor.py
     metadata:
-      device: cpu  # use "cuda" to run on GPUs
+      device: cuda  # use "cpu" to run on CPUs
   compute:
-    cpu: 1
+    gpu: 1
     mem: 4G

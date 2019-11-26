@@ -38,7 +38,7 @@ func init() {
 var deleteCmd = &cobra.Command{
 	Use:   "delete [DEPLOYMENT_NAME]",
 	Short: "delete a deployment",
-	Long:  `This command deletes a deployment from the cluster.`,
+	Long:  "delete a deployment",
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var appName string

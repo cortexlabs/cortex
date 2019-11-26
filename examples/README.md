@@ -32,4 +32,6 @@
 
 ## scikit-learn
 
-- [MPG estimation with scikit-learn](sklearn/mpg-estimation): deploy a linear regression model to estimate MPG.
+- [Iris classification](sklearn/mpg-estimation): deploy a model to classify iris flowers.
+
+- [MPG estimation](sklearn/mpg-estimation): deploy a linear regression model to estimate MPG.

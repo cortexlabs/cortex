@@ -7,3 +7,6 @@
     path: predictor.py
   tracker:
     model_type: classification
+  compute:
+    gpu: 1
+    mem: 4G

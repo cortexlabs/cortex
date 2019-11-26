@@ -57,10 +57,9 @@ func init() {
 
 var getCmd = &cobra.Command{
 	Use:   "get [API_NAME]",
-	Short: "get information about APIs",
-	Long: `This command displays information about APIs.
-Adding the -v or --verbose flag displays additional information.`,
-	Args: cobra.RangeArgs(0, 1),
+	Short: "get information about deployments",
+	Long:  "get information about resources",
+	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		rerun(func() (string, error) {
 			return runGet(cmd, args)
@@ -424,7 +423,7 @@ func classificationMetricsTable(apiMetrics schema.APIMetrics) string {
 
 func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string) string {
 	if groupStatus.ReadyUpdated+groupStatus.ReadyStaleCompute == 0 {
-		return "the model's input schema will be available when the API is live"
+		return "the model's input schema will be available when the api is live"
 	}
 
 	apiSummary, err := getAPISummary(apiEndpoint)
@@ -462,7 +461,7 @@ func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string
 func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
 	req, err := http.NewRequest("GET", apiEndpoint, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to request API summary")
+		return nil, errors.Wrap(err, "unable to request api summary")
 	}
 	req.Header.Set("Content-Type", "application/json")
 	response, err := httpsNoVerifyClient.makeRequest(req)
@@ -473,7 +472,7 @@ func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
 	var apiSummary schema.APISummary
 	err = json.DecodeWithNumber(response, &apiSummary)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse API summary response")
+		return nil, errors.Wrap(err, "unable to parse api summary response")
 	}
 
 	for _, featureSignature := range apiSummary.ModelSignature {

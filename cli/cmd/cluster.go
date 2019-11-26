@@ -57,20 +57,20 @@ func init() {
 }
 
 func addClusterConfigFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&flagClusterConfig, "config", "c", "", "path to a Cortex cluster configuration file")
+	cmd.PersistentFlags().StringVarP(&flagClusterConfig, "config", "c", "", "path to a cluster configuration file")
 	cmd.PersistentFlags().SetAnnotation("config", cobra.BashCompFilenameExt, configFileExts)
 }
 
 var clusterCmd = &cobra.Command{
 	Use:   "cluster",
-	Short: "manage a Cortex cluster",
-	Long:  "Manage a Cortex cluster",
+	Short: "manage a cluster",
+	Long:  "manage a cluster",
 }
 
 var upCmd = &cobra.Command{
 	Use:   "up",
-	Short: "spin up a Cortex cluster",
-	Long:  `This command spins up a Cortex cluster on your AWS account.`,
+	Short: "spin up a cluster",
+	Long:  `spin up a cluster`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := checkDockerRunning(); err != nil {
@@ -97,8 +97,8 @@ var upCmd = &cobra.Command{
 
 var updateCmd = &cobra.Command{
 	Use:   "update",
-	Short: "update a Cortex cluster",
-	Long:  `This command updates a Cortex cluster.`,
+	Short: "update a cluster",
+	Long:  `update a cluster`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := checkDockerRunning(); err != nil {
@@ -126,8 +126,8 @@ var updateCmd = &cobra.Command{
 
 var infoCmd = &cobra.Command{
 	Use:   "info",
-	Short: "get information about a Cortex cluster",
-	Long:  `This command gets information about a Cortex cluster.`,
+	Short: "get information about a cluster",
+	Long:  "get information about a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := checkDockerRunning(); err != nil {
@@ -145,7 +145,7 @@ var infoCmd = &cobra.Command{
 		if err != nil {
 			errors.Exit(err)
 		}
-		if strings.Contains(out, "there isn't a cortex cluster") {
+		if strings.Contains(out, "there is no cluster") {
 			errors.Exit()
 		}
 
@@ -176,8 +176,8 @@ var infoCmd = &cobra.Command{
 
 var downCmd = &cobra.Command{
 	Use:   "down",
-	Short: "spin down a Cortex cluster",
-	Long:  `This command spins down a Cortex cluster.`,
+	Short: "spin down a cluster",
+	Long:  `spin down a cluster.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := checkDockerRunning(); err != nil {
@@ -267,14 +267,14 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Cluster
 	}
 
 	if userClusterConfig.Region == nil {
-		errors.Exit(fmt.Sprintf("unable to find an existing cortex cluster; please configure \"%s\" to the s3 region of an existing cortex cluster or create a cortex cluster with `cortex cluster up`", clusterconfig.RegionKey))
+		errors.Exit(fmt.Sprintf("unable to find an existing cluster; please configure \"%s\" to the s3 region of an existing cluster or create a cluster with `cortex cluster up`", clusterconfig.RegionKey))
 	}
 
 	out, err := runRefreshClusterConfig(userClusterConfig, awsCreds)
 	if err != nil {
 		errors.Exit(err)
 	}
-	if strings.Contains(out, "there isn't a cortex cluster") {
+	if strings.Contains(out, "there is no cluster") {
 		errors.Exit()
 	}
 
