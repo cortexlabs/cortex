@@ -429,7 +429,7 @@ def start(args):
         except Exception as e:
             if i > 6:
                 cx_logger().warn(
-                    "unable to read model metadata - model is still loading. retrying..."
+                    "unable to read model metadata - model is still loading, retrying..."
                 )
             if i == limit - 1:
                 cx_logger().exception("retry limit exceeded")
