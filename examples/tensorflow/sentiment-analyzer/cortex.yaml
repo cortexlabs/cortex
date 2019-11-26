@@ -2,9 +2,9 @@
   name: sentiment
 
 - kind: api
-  name: classifier
+  name: analyzer
   tensorflow:
-    model: s3://cortex-examples/tensorflow/sentiment-analysis/bert
+    model: s3://cortex-examples/tensorflow/sentiment-analyzer/bert
     request_handler: handler.py
   tracker:
     model_type: classification

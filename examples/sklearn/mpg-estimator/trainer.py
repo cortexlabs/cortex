@@ -11,12 +11,13 @@ df = pd.read_csv(
 df = df.replace("?", np.nan)
 df = df.dropna()
 df = df.drop(["name", "origin", "year"], axis=1)  # drop categorical variables for simplicity
-X = df.drop("mpg", axis=1)
-y = df[["mpg"]]
+data = df.drop("mpg", axis=1)
+labels = df[["mpg"]]
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
-
+training_data, test_data, training_labels, test_labels = train_test_split(data, labels)
 model = LinearRegression()
-model.fit(X_train, y_train)
+model.fit(training_data, training_labels)
+accuracy = model.score(test_data, test_labels)
+print("accuracy: {:.2f}".format(accuracy))
 
 mlflow.sklearn.save_model(model, "linreg")

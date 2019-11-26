@@ -1,8 +1,0 @@
-- kind: deployment
-  name: auto
-
-- kind: api
-  name: mpg
-  predictor:
-    path: predictor.py
-    model: s3://cortex-examples/sklearn/mpg-estimation/linreg

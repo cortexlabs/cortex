@@ -8,7 +8,7 @@
 
 - [Image classification with Inception V3](tensorflow/image-classifier): deploy an Inception V3 model to classify images.
 
-- [Sentiment analysis with BERT](tensorflow/sentiment-analysis): deploy a BERT model to classify sentiment.
+- [Sentiment analysis with BERT](tensorflow/sentiment-analyzer): deploy a BERT model for sentiment analysis.
 
 ## PyTorch
 
@@ -32,4 +32,6 @@
 
 ## scikit-learn
 
-- [MPG estimation with scikit-learn](sklearn/mpg-estimation): deploy a linear regression model to estimate MPG.
+- [Iris classification](sklearn/iris-classifier): deploy a model to classify iris flowers.
+
+- [MPG estimation](sklearn/mpg-estimator): deploy a linear regression model to estimate MPG.
