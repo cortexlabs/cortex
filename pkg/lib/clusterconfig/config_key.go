@@ -62,7 +62,7 @@ const (
 	InstanceTypeUserFacingKey                        = "instance type"
 	MinInstancesUserFacingKey                        = "min instances"
 	MaxInstancesUserFacingKey                        = "max instances"
-	InstanceVolumeSizeUserFacingKey                  = "instance volume size"
+	InstanceVolumeSizeUserFacingKey                  = "instance volume size (Gi)"
 	InstanceDistributionUserFacingKey                = "spot instance distribution"
 	OnDemandBaseCapacityUserFacingKey                = "spot on demand base capacity"
 	OnDemandPercentageAboveBaseCapacityUserFacingKey = "spot on demand percentage above base capacity"
