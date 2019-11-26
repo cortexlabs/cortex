@@ -249,7 +249,7 @@ type downloadContainerArg struct {
 	HideUnzippingLog     bool   `json:"hide_unzipping_log"`      // if true, don't log when unzipping
 }
 
-const downloaderLastLog = "pulling the %s Serving image"
+const downloaderLastLog = "pulling the %s serving image"
 
 func tfAPISpec(
 	ctx *context.Context,
@@ -279,7 +279,7 @@ func tfAPISpec(
 	}
 
 	downloadConfig := downloadContainerConfig{
-		LastLog: fmt.Sprintf(downloaderLastLog, "TensorFlow"),
+		LastLog: fmt.Sprintf(downloaderLastLog, "tensorflow"),
 		DownloadArgs: []downloadContainerArg{
 			{
 				From:                 ctx.APIs[api.Name].TensorFlow.Model,
@@ -477,7 +477,7 @@ func predictorAPISpec(
 	}
 
 	downloadConfig := downloadContainerConfig{
-		LastLog: fmt.Sprintf(downloaderLastLog, "Predictor"),
+		LastLog: fmt.Sprintf(downloaderLastLog, "predictor"),
 		DownloadArgs: []downloadContainerArg{
 			{
 				From:             config.AWS.S3Path(ctx.ProjectKey),
@@ -637,7 +637,7 @@ func onnxAPISpec(
 	}
 
 	downloadConfig := downloadContainerConfig{
-		LastLog: fmt.Sprintf(downloaderLastLog, "ONNX"),
+		LastLog: fmt.Sprintf(downloaderLastLog, "onnx"),
 		DownloadArgs: []downloadContainerArg{
 			{
 				From:     ctx.APIs[api.Name].ONNX.Model,

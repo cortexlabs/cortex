@@ -84,7 +84,7 @@ class Context:
 
         if self.api_version != consts.CORTEX_VERSION:
             raise ValueError(
-                "API version mismatch (Context: {}, Image: {})".format(
+                "api version mismatch (context: {}, image: {})".format(
                     self.api_version, consts.CORTEX_VERSION
                 )
             )
