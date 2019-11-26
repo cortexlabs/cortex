@@ -33,29 +33,28 @@ func init() {
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "print the version of the CLI and cluster",
-	Long:  `This command prints the version of the CLI and cluster`,
+	Short: "print the cli and cluster versions",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if !isCLIConfigured() {
-			fmt.Println("CLI version: " + consts.CortexVersion + "\n")
-			fmt.Println("Run `cortex configure` to connect the CLI to a Cortex cluster")
+			fmt.Println("cli version: " + consts.CortexVersion + "\n")
+			fmt.Println("run `cortex configure` to connect the cli to a cluster")
 			return
 		}
 
 		httpResponse, err := HTTPGet("/info")
 		if err != nil {
-			fmt.Println("CLI version: " + consts.CortexVersion + "\n")
+			fmt.Println("cli version: " + consts.CortexVersion + "\n")
 			errors.Exit(err)
 		}
 		var infoResponse schema.InfoResponse
 		err = json.Unmarshal(httpResponse, &infoResponse)
 		if err != nil {
-			fmt.Println("CLI version: " + consts.CortexVersion + "\n")
+			fmt.Println("cli version: " + consts.CortexVersion + "\n")
 			errors.Exit(err, "/info", string(httpResponse))
 		}
 
-		fmt.Println("CLI version:     " + consts.CortexVersion)
-		fmt.Println("Cluster version: " + infoResponse.ClusterConfig.APIVersion)
+		fmt.Println("cli version:     " + consts.CortexVersion)
+		fmt.Println("cluster version: " + infoResponse.ClusterConfig.APIVersion)
 	},
 }

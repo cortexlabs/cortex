@@ -1,0 +1,8 @@
+- kind: deployment
+  name: mpg
+
+- kind: api
+  name: estimator
+  predictor:
+    path: predictor.py
+    model: s3://cortex-examples/sklearn/mpg-estimator/linreg

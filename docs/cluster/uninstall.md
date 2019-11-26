@@ -5,6 +5,7 @@
 1. [AWS credentials](aws.md)
 2. [Docker](https://docs.docker.com/install)
 3. [Cortex CLI](install.md)
+4. [AWS CLI](https://aws.amazon.com/cli)
 
 ## Uninstalling Cortex
 
