@@ -121,7 +121,7 @@ class S3(object):
         except Exception as e:
             raise CortexException(
                 'key "{}" in bucket "{}" could not be accessed; '.format(key, bucket)
-                + "it may not exist, or you may not have suffienct permissions"
+                + "it may not exist, or you may not have sufficient permissions"
             ) from e
 
         return byte_array.strip()

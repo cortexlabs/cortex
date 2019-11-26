@@ -101,12 +101,7 @@ def predict():
 
 @app.route("/predict", methods=["GET"])
 def get_summary():
-    return jsonify(
-        {
-            "model_signature": extract_signature(local_cache["input_metadata"]),
-            "message": api_utils.API_SUMMARY_MESSAGE,
-        }
-    )
+    return jsonify({"message": api_utils.API_SUMMARY_MESSAGE})
 
 
 @app.errorhandler(Exception)
@@ -126,7 +121,7 @@ def start(args):
         if api.get("predictor") is None:
             raise CortexException(api["name"], "predictor key not configured")
 
-        cx_logger().info("loading the Predictor from {}".format(api["predictor"]["path"]))
+        cx_logger().info("loading the predictor from {}".format(api["predictor"]["path"]))
         local_cache["predictor"] = ctx.get_predictor_impl(api["name"], args.project_dir)
 
         if util.has_function(local_cache["predictor"], "init"):
@@ -138,7 +133,7 @@ def start(args):
                         args.model_dir, os.path.basename(os.path.normpath(prefix))
                     )
 
-                cx_logger().info("calling the Predictor's init() function")
+                cx_logger().info("calling the predictor's init() function")
                 local_cache["predictor"].init(model_path, api["predictor"]["metadata"])
             except Exception as e:
                 raise UserRuntimeException(api["predictor"]["path"], "init", str(e)) from e
@@ -154,24 +149,24 @@ def start(args):
         except Exception as e:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
-    cx_logger().info("{} API is live".format(api["name"]))
+    cx_logger().info("{} api is live".format(api["name"]))
     serve(app, listen="*:{}".format(args.port))
 
 
 def main():
     parser = argparse.ArgumentParser()
     na = parser.add_argument_group("required named arguments")
-    na.add_argument("--workload-id", required=True, help="Workload ID")
-    na.add_argument("--port", type=int, required=True, help="Port (on localhost) to use")
+    na.add_argument("--workload-id", required=True, help="workload id")
+    na.add_argument("--port", type=int, required=True, help="port (on localhost) to use")
     na.add_argument(
         "--context",
         required=True,
-        help="S3 path to context (e.g. s3://bucket/path/to/context.json)",
+        help="s3 path to context (e.g. s3://bucket/path/to/context.json)",
     )
-    na.add_argument("--api", required=True, help="Resource id of api to serve")
-    na.add_argument("--model-dir", required=True, help="Directory to download the model to")
-    na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
-    na.add_argument("--project-dir", required=True, help="Local path for the project zip file")
+    na.add_argument("--api", required=True, help="resource id of api to serve")
+    na.add_argument("--model-dir", required=True, help="directory to download the model to")
+    na.add_argument("--cache-dir", required=True, help="local path for the context cache")
+    na.add_argument("--project-dir", required=True, help="local path for the project zip file")
 
     parser.set_defaults(func=start)
 
