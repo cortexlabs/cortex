@@ -719,9 +719,10 @@ func (cc *ClusterConfig) UserFacingTable() []table.KV {
 	items = append(items, table.KV{K: BucketUserFacingKey, V: *cc.Bucket})
 	items = append(items, table.KV{K: SpotUserFacingKey, V: s.YesNo(*cc.Spot)})
 	items = append(items, table.KV{K: InstanceTypeUserFacingKey, V: *cc.InstanceType})
-	items = append(items, table.KV{K: InstanceVolumeSizeUserFacingKey, V: cc.InstanceVolumeSize})
 	items = append(items, table.KV{K: MinInstancesUserFacingKey, V: *cc.MinInstances})
 	items = append(items, table.KV{K: MaxInstancesUserFacingKey, V: *cc.MaxInstances})
+	items = append(items, table.KV{K: InstanceVolumeSizeUserFacingKey, V: cc.InstanceVolumeSize})
+
 	if cc.Spot != nil {
 		items = append(items, table.KV{K: InstanceDistributionUserFacingKey, V: cc.SpotConfig.InstanceDistribution})
 		items = append(items, table.KV{K: OnDemandBaseCapacityUserFacingKey, V: *cc.SpotConfig.OnDemandBaseCapacity})
