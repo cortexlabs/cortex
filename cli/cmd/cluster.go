@@ -64,13 +64,11 @@ func addClusterConfigFlag(cmd *cobra.Command) {
 var clusterCmd = &cobra.Command{
 	Use:   "cluster",
 	Short: "manage a cluster",
-	Long:  "manage a cluster",
 }
 
 var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "spin up a cluster",
-	Long:  `spin up a cluster`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := checkDockerRunning(); err != nil {
@@ -98,7 +96,6 @@ var upCmd = &cobra.Command{
 var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "update a cluster",
-	Long:  `update a cluster`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := checkDockerRunning(); err != nil {
@@ -127,7 +124,6 @@ var updateCmd = &cobra.Command{
 var infoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "get information about a cluster",
-	Long:  "get information about a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := checkDockerRunning(); err != nil {
@@ -177,7 +173,6 @@ var infoCmd = &cobra.Command{
 var downCmd = &cobra.Command{
 	Use:   "down",
 	Short: "spin down a cluster",
-	Long:  `spin down a cluster.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := checkDockerRunning(); err != nil {

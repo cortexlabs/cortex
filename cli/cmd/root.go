@@ -31,7 +31,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
 var cmdStr string
@@ -70,7 +69,6 @@ var rootCmd = &cobra.Command{
 	Use:     "cortex",
 	Aliases: []string{"cx"},
 	Short:   "deploy machine learning models in production",
-	Long:    `deploy machine learning models in production`,
 }
 
 func Execute() {
@@ -106,11 +104,11 @@ func updateRootUsage() {
 			return defaultUsageFunc(cmd)
 		}
 
-		usage = strings.Replace(usage, "usage:\n  cortex [command]\n\naliases:\n  cortex, cx\n\n", "", 1)
-		usage = strings.Replace(usage, "available commands:", "deployment commands:", 1)
+		usage = strings.Replace(usage, "Usage:\n  cortex [command]\n\nAliases:\n  cortex, cx\n\n", "", 1)
+		usage = strings.Replace(usage, "Available Commands:", "deployment commands:", 1)
 		usage = strings.Replace(usage, "\n  cluster", "\n\ncluster commands:\n  cluster", 1)
 		usage = strings.Replace(usage, "\n  configure", "\n\nother commands:\n  configure", 1)
-		usage = strings.Replace(usage, "\nUse \"cortex", "  help        help about any command\n\nflags:\n  -h, --help   help for cortex\n\nUse \"cortex", 1)
+		usage = strings.Replace(usage, "\n\nUse \"cortex [command] --help\" for more information about a command.", "", 1)
 
 		cmd.Print(usage)
 
@@ -134,14 +132,6 @@ func addEnvFlag(cmd *cobra.Command) {
 
 func addAppNameFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&flagAppName, "deployment", "d", "", "deployment name")
-}
-
-var resourceTypesHelp = fmt.Sprintf("\nresource types:\n  %s\n", strings.Join(resource.VisibleTypes.StringList(), "\n  "))
-
-func addResourceTypesToHelp(cmd *cobra.Command) {
-	usage := cmd.UsageTemplate()
-	usage = strings.Replace(usage, "\nflags:\n", resourceTypesHelp+"\nflags:\n", 1)
-	cmd.SetUsageTemplate(usage)
 }
 
 func getTerminalWidth() int {

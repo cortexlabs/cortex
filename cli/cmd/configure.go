@@ -34,7 +34,6 @@ func init() {
 var configureCmd = &cobra.Command{
 	Use:   "configure",
 	Short: "configure the cli",
-	Long:  "configure the cli",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if flagPrint {

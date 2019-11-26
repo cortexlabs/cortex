@@ -58,7 +58,6 @@ func init() {
 var getCmd = &cobra.Command{
 	Use:   "get [API_NAME]",
 	Short: "get information about deployments",
-	Long:  "get information about resources",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		rerun(func() (string, error) {

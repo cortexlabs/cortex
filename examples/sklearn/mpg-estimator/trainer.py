@@ -1,14 +1,14 @@
 import mlflow.sklearn
-import pandas
-import numpy
+import pandas as pd
+import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 
 
-df = pandas.read_csv(
+df = pd.read_csv(
     "https://www.uio.no/studier/emner/sv/oekonomi/ECON4150/v16/statacourse/datafiles/auto.csv"
 )
-df = df.replace("?", numpy.nan)
+df = df.replace("?", np.nan)
 df = df.dropna()
 df = df.drop(["name", "origin", "year"], axis=1)  # drop categorical variables for simplicity
 data = df.drop("mpg", axis=1)

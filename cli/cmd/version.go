@@ -34,7 +34,6 @@ func init() {
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "print the cli and cluster versions",
-	Long:  `print the cli and cluster versions`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if !isCLIConfigured() {

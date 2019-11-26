@@ -5,10 +5,10 @@
 ```text
 create or update a deployment
 
-usage:
+Usage:
   cortex deploy [flags]
 
-flags:
+Flags:
   -e, --env string   environment (default "default")
   -f, --force        override the in-progress deployment update
   -h, --help         help for deploy
@@ -18,12 +18,12 @@ flags:
 ## get
 
 ```text
-get information about resources
+get information about deployments
 
-usage:
-  cortex get [RESOURCE_NAME] [flags]
+Usage:
+  cortex get [API_NAME] [flags]
 
-flags:
+Flags:
   -a, --all-deployments     list all deployments
   -d, --deployment string   deployment name
   -e, --env string          environment (default "default")
@@ -38,10 +38,10 @@ flags:
 ```text
 stream logs from an api
 
-usage:
+Usage:
   cortex logs API_NAME [flags]
 
-flags:
+Flags:
   -d, --deployment string   deployment name
   -e, --env string          environment (default "default")
   -h, --help                help for logs
@@ -52,10 +52,10 @@ flags:
 ```text
 make a prediction request using a json file
 
-usage:
+Usage:
   cortex predict API_NAME SAMPLE_FILE [flags]
 
-flags:
+Flags:
       --debug               Predict with debug mode
   -d, --deployment string   deployment name
   -e, --env string          environment (default "default")
@@ -67,10 +67,10 @@ flags:
 ```text
 delete a deployment
 
-usage:
+Usage:
   cortex delete [DEPLOYMENT_NAME] [flags]
 
-flags:
+Flags:
   -e, --env string   environment (default "default")
   -h, --help         help for delete
   -c, --keep-cache   keep cached data for the deployment
@@ -81,10 +81,10 @@ flags:
 ```text
 spin up a cluster
 
-usage:
+Usage:
   cortex cluster up [flags]
 
-flags:
+Flags:
   -c, --config string   path to a cortex cluster configuration file
   -h, --help            help for up
 ```
@@ -94,10 +94,10 @@ flags:
 ```text
 get information about a cluster
 
-usage:
+Usage:
   cortex cluster info [flags]
 
-flags:
+Flags:
   -c, --config string   path to a cortex cluster configuration file
   -h, --help            help for info
 ```
@@ -107,10 +107,10 @@ flags:
 ```text
 update a cluster
 
-usage:
+Usage:
   cortex cluster update [flags]
 
-flags:
+Flags:
   -c, --config string   path to a cortex cluster configuration file
   -h, --help            help for update
 ```
@@ -120,10 +120,10 @@ flags:
 ```text
 spin down a cluster
 
-usage:
+Usage:
   cortex cluster down [flags]
 
-flags:
+Flags:
   -c, --config string   path to a cortex cluster configuration file
   -h, --help            help for down
 ```
@@ -133,10 +133,10 @@ flags:
 ```text
 print the cli and cluster versions
 
-usage:
+Usage:
   cortex version [flags]
 
-flags:
+Flags:
   -e, --env string   environment (default "default")
   -h, --help         help for version
 ```
@@ -146,10 +146,10 @@ flags:
 ```text
 configure the cli
 
-usage:
+Usage:
   cortex configure [flags]
 
-flags:
+Flags:
   -e, --env string   environment (default "default")
   -h, --help         help for configure
   -p, --print        print the configuration
@@ -160,10 +160,10 @@ flags:
 ```text
 send a support request to the maintainers
 
-usage:
+Usage:
   cortex support [flags]
 
-flags:
+Flags:
   -h, --help   help for support
 ```
 
@@ -180,9 +180,9 @@ or run:
 
 this will also add the "cx" alias (note: cli completion requires the bash_completion package to be installed on your system)
 
-usage:
+Usage:
   cortex completion [flags]
 
-flags:
+Flags:
   -h, --help   help for completion
 ```

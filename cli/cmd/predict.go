@@ -41,7 +41,6 @@ func init() {
 var predictCmd = &cobra.Command{
 	Use:   "predict API_NAME SAMPLE_FILE",
 	Short: "make a prediction request using a json file",
-	Long:  "make a prediction request using a json file",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		apiName := args[0]

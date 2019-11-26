@@ -67,7 +67,6 @@ var supportPrompValidation = &cr.PromptValidation{
 var supportCmd = &cobra.Command{
 	Use:   "support",
 	Short: "send a support request to the maintainers",
-	Long:  "send a support request to the maintainers",
 	Run: func(cmd *cobra.Command, args []string) {
 		supportRequest := &SupportRequest{}
 		err := cr.ReadPrompt(supportRequest, supportPrompValidation)
