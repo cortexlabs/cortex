@@ -48,7 +48,7 @@ $ python3 trainer.py
 
 <br>
 
-## Define a predictor
+## Implement a predictor
 
 1. Create another Python file `predictor.py`.
 2. Add code to load and initialize your pickled model.
@@ -100,7 +100,7 @@ You can skip dependencies that are [pre-installed](../../../docs/deployments/pre
 
 <br>
 
-## Define a deployment
+## Configure a deployment
 
 Create a `cortex.yaml` file and add the configuration below. A `deployment` specifies a set of resources that are deployed together. An `api` provides a runtime for inference and makes our `predictor.py` implementation available as a web service that can serve real-time predictions:
 
@@ -158,7 +158,7 @@ $ curl http://***.amazonaws.com/iris/classifier \
 
 <br>
 
-## Add prediction tracking
+## Configure prediction tracking
 
 Add a `tracker` to your `cortex.yaml` and specify that this is a classification model:
 

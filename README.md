@@ -1,6 +1,8 @@
 # Deploy machine learning models in production
 
-Cortex is an open source platform that takes machine learning models—trained with nearly any framework—and turns them into production web APIs in one command. <br>
+Cortex is an open source platform for deploying machine learning models—trained with nearly any framework—as production web services.
+
+<br>
 
 <!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
 ![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.8.gif)
@@ -15,6 +17,8 @@ Cortex is an open source platform that takes machine learning models—trained w
 
 - **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
 
+- **Spot instances:** Cortex supports EC2 spot instances.
+
 - **Rolling updates:** Cortex updates deployed APIs without any downtime.
 
 - **Log streaming:** Cortex streams logs from deployed models to your CLI.
@@ -27,12 +31,12 @@ Cortex is an open source platform that takes machine learning models—trained w
 
 ## Usage
 
-### Define your API
+### Implement your predictor
 
 ```python
 # predictor.py
 
-model = download_my_model()
+model = download_model()
 
 def predict(sample, metadata):
     return model.predict(sample["text"])
@@ -54,6 +58,7 @@ def predict(sample, metadata):
     model_type: classification
   compute:
     gpu: 1
+    mem: 4G
 ```
 
 ### Deploy to AWS
@@ -69,7 +74,7 @@ creating classifier (http://***.amazonaws.com/sentiment/classifier)
 ```bash
 $ curl http://***.amazonaws.com/sentiment/classifier \
     -X POST -H "Content-Type: application/json" \
-    -d '{"text": "the movie was great!"}'
+    -d '{"text": "the movie was amazing!"}'
 
 positive
 ```
@@ -80,7 +85,7 @@ positive
 $ cortex get classifier --watch
 
 status   up-to-date   available   requested   last update   avg latency
-live     1            1           1           8s            123ms
+live     1            1           1           8s            24ms
 
 class     count
 positive  8
@@ -91,7 +96,7 @@ negative  4
 
 ## How it works
 
-The CLI sends configuration and code to the cluster every time you run `cortex deploy`. Each model is loaded into a Docker container, along with any Python packages and request handling code. The model is exposed as a web service using Elastic Load Balancing (ELB), Flask, TensorFlow Serving, and ONNX Runtime. The containers are orchestrated on Elastic Kubernetes Service (EKS) while logs and metrics are streamed to CloudWatch.
+The CLI sends configuration and code to the cluster every time you run `cortex deploy`. Each model is loaded into a Docker container, along with any Python packages and request handling code. The model is exposed as a web service using Elastic Load Balancing (ELB), TensorFlow Serving, and ONNX Runtime. The containers are orchestrated on Elastic Kubernetes Service (EKS) while logs and metrics are streamed to CloudWatch.
 
 <br>
 
@@ -101,4 +106,5 @@ The CLI sends configuration and code to the cluster every time you run `cortex d
 - [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/sentiment-analysis) in TensorFlow with BERT
 - [Image classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/image-classifier) in TensorFlow with Inception
 - [Text generation](https://github.com/cortexlabs/cortex/tree/0.11/examples/pytorch/text-generator) in PyTorch with DistilGPT2
-- [Iris classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/xgboost/iris-classifier) in XGBoost / ONNX
+- [Reading comprehension](https://github.com/cortexlabs/cortex/tree/0.11/examples/pytorch/text-generator) in PyTorch with ELMo-BiDAF
+- [Iris classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/sklearn/iris-classifier) in scikit-learn

@@ -29,7 +29,7 @@ Note: This will create resources in your AWS account which aren't included in th
 git clone -b 0.11 https://github.com/cortexlabs/cortex.git
 
 # Navigate to the iris classifier example
-cd cortex/examples/tensorflow/iris-classifier
+cd cortex/examples/sklearn/iris-classifier
 
 # Deploy the model to the cluster
 cortex deploy
