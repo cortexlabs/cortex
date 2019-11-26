@@ -233,7 +233,7 @@ def predict():
     try:
         sample = request.get_json()
     except Exception as e:
-        return "Malformed JSON", status.HTTP_400_BAD_REQUEST
+        return "malformed json", status.HTTP_400_BAD_REQUEST
 
     ctx = local_cache["ctx"]
     api = local_cache["api"]
@@ -310,8 +310,8 @@ def get_summary():
     return jsonify(response)
 
 
-tf_expected_dir_structure = """TensorFlow model directories must have the following structure:
-  1523423423/ (Version prefix, usually a timestamp)
+tf_expected_dir_structure = """tensorflow model directories must have the following structure:
+  1523423423/ (version prefix, usually a timestamp)
   ├── saved_model.pb
   └── variables/
       ├── variables.index
@@ -429,7 +429,7 @@ def start(args):
         except Exception as e:
             if i > 6:
                 cx_logger().warn(
-                    "unable to read model metadata - model is still loading. Retrying..."
+                    "unable to read model metadata - model is still loading, retrying..."
                 )
             if i == limit - 1:
                 cx_logger().exception("retry limit exceeded")
@@ -445,27 +445,27 @@ def start(args):
     local_cache["parsed_signature"] = parsed_signature
     cx_logger().info("model_signature: {}".format(local_cache["parsed_signature"]))
 
-    cx_logger().info("{} API is live".format(api["name"]))
+    cx_logger().info("{} api is live".format(api["name"]))
     serve(app, listen="*:{}".format(args.port))
 
 
 def main():
     parser = argparse.ArgumentParser()
     na = parser.add_argument_group("required named arguments")
-    na.add_argument("--workload-id", required=True, help="Workload ID")
-    na.add_argument("--port", type=int, required=True, help="Port (on localhost) to use")
+    na.add_argument("--workload-id", required=True, help="workload id")
+    na.add_argument("--port", type=int, required=True, help="port (on localhost) to use")
     na.add_argument(
-        "--tf-serve-port", type=int, required=True, help="Port (on localhost) where TF Serving runs"
+        "--tf-serve-port", type=int, required=True, help="port (on localhost) where tf serving runs"
     )
     na.add_argument(
         "--context",
         required=True,
-        help="S3 path to context (e.g. s3://bucket/path/to/context.json)",
+        help="s3 path to context (e.g. s3://bucket/path/to/context.json)",
     )
-    na.add_argument("--api", required=True, help="Resource id of api to serve")
-    na.add_argument("--model-dir", required=True, help="Directory to download the model to")
-    na.add_argument("--cache-dir", required=True, help="Local path for the context cache")
-    na.add_argument("--project-dir", required=True, help="Local path for the project zip file")
+    na.add_argument("--api", required=True, help="resource id of api to serve")
+    na.add_argument("--model-dir", required=True, help="directory to download the model to")
+    na.add_argument("--cache-dir", required=True, help="local path for the context cache")
+    na.add_argument("--project-dir", required=True, help="local path for the project zip file")
     parser.set_defaults(func=start)
 
     args = parser.parse_args()

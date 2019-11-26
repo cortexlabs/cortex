@@ -22,7 +22,7 @@ from cortex.lib.log import cx_logger
 
 
 API_SUMMARY_MESSAGE = (
-    "send a POST request to this endpoint with a sample in JSON to make a prediction"
+    "send a post request to this endpoint with a sample in json to make a prediction"
 )
 
 

@@ -16,8 +16,8 @@
 
 set -e
 
-echo -e "Spinning down the cluster ... (this will take a few minutes)\n"
+echo -e "spinning down the cluster ... (this will take a few minutes)\n"
 
 eksctl delete cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION
 
-echo -e "\n✓ Spun down the cluster"
+echo -e "\n✓ spun down the cluster"
