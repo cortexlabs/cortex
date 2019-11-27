@@ -152,7 +152,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 				}
 
 				currentContextID = ctx.ID
-				writeString(socket, "retrieving logs...")
+				writeString(socket, "fetching logs...")
 			}
 
 			if lastLogStreamUpdateTime.Add(streamRefreshPeriod).Before(time.Now()) {
