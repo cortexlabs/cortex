@@ -245,6 +245,6 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 
 	fmt.Println(table.AlignKeyValue(items, ":", 1) + "\n")
 
-	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersion)
+	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor)
 	prompt.YesOrExit("is the configuration above correct?", exitMessage)
 }
