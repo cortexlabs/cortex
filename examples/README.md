@@ -14,6 +14,8 @@
 
 - [Iris classification](pytorch/iris-classifier): deploy a model to classify iris flowers.
 
+- [Search completion](pytorch/search-completer): deploy a model to complete search terms.
+
 - [Text generation with DistilGPT2](pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
 
 - [Answer generation with DialoGPT](pytorch/answer-generator): deploy Microsoft's DialoGPT model to answer questions.
