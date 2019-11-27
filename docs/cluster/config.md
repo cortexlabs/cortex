@@ -47,7 +47,7 @@ spot: false
 
 spot_config:
   # additional instances with identical or better specs than the primary instance type (defaults to 2 instances sorted by price)
-  instance_distribution: [t3.large, t3a.large]
+  instance_distribution: [t3.large, t3a.large]  # (defaults for the m5.large instance type)
 
   # minimum number of on demand instances (default: 0)
   on_demand_base_capacity: 0

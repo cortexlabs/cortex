@@ -24,6 +24,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
@@ -169,11 +170,31 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot != *defaultConfig.Spot {
 		items = append(items, table.KV{K: clusterconfig.SpotUserFacingKey, V: s.YesNo(clusterConfig.Spot != nil && *clusterConfig.Spot)})
-		items = append(items, table.KV{K: clusterconfig.InstanceDistributionUserFacingKey, V: clusterConfig.SpotConfig.InstanceDistribution})
-		items = append(items, table.KV{K: clusterconfig.OnDemandBaseCapacityUserFacingKey, V: *clusterConfig.SpotConfig.OnDemandBaseCapacity})
-		items = append(items, table.KV{K: clusterconfig.OnDemandPercentageAboveBaseCapacityUserFacingKey, V: *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity})
-		items = append(items, table.KV{K: clusterconfig.MaxPriceUserFacingKey, V: *clusterConfig.SpotConfig.MaxPrice})
-		items = append(items, table.KV{K: clusterconfig.InstancePoolsUserFacingKey, V: *clusterConfig.SpotConfig.InstancePools})
+
+		if clusterConfig.SpotConfig != nil {
+			defaultSpotConfig := clusterconfig.SpotConfig{}
+			clusterconfig.AutoGenerateSpotConfig(&defaultSpotConfig, *clusterConfig.Region, *clusterConfig.InstanceType)
+
+			if !strset.New(clusterConfig.SpotConfig.InstanceDistribution...).IsEqual(strset.New(defaultSpotConfig.InstanceDistribution...)) {
+				items = append(items, table.KV{K: clusterconfig.InstanceDistributionUserFacingKey, V: clusterConfig.SpotConfig.InstanceDistribution})
+			}
+
+			if *clusterConfig.SpotConfig.OnDemandBaseCapacity != *defaultSpotConfig.OnDemandBaseCapacity {
+				items = append(items, table.KV{K: clusterconfig.OnDemandBaseCapacityUserFacingKey, V: *clusterConfig.SpotConfig.OnDemandBaseCapacity})
+			}
+
+			if *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity != *defaultSpotConfig.OnDemandPercentageAboveBaseCapacity {
+				items = append(items, table.KV{K: clusterconfig.OnDemandPercentageAboveBaseCapacityUserFacingKey, V: *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity})
+			}
+
+			if *clusterConfig.SpotConfig.MaxPrice != *defaultSpotConfig.MaxPrice {
+				items = append(items, table.KV{K: clusterconfig.MaxPriceUserFacingKey, V: *clusterConfig.SpotConfig.MaxPrice})
+			}
+
+			if *clusterConfig.SpotConfig.InstancePools != *defaultSpotConfig.InstancePools {
+				items = append(items, table.KV{K: clusterconfig.InstancePoolsUserFacingKey, V: *clusterConfig.SpotConfig.InstancePools})
+			}
+		}
 	}
 	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
 		items = append(items, table.KV{K: clusterconfig.InstanceVolumeSizeUserFacingKey, V: clusterConfig.InstanceVolumeSize})
@@ -245,6 +266,6 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 
 	fmt.Println(table.AlignKeyValue(items, ":", 1) + "\n")
 
-	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersion)
+	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor)
 	prompt.YesOrExit("is the configuration above correct?", exitMessage)
 }
