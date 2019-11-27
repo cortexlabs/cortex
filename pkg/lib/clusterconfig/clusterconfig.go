@@ -457,12 +457,7 @@ func AutoGenerateSpotConfig(spotConfig *SpotConfig, region string, instanceType 
 	} else {
 		instanceDistributionSet := strset.New(spotConfig.InstanceDistribution...)
 		instanceDistributionSet.Remove(instanceType)
-
-		instanceDistribution := []string{}
-		instanceDistribution = append(instanceDistribution, instanceType)
-		instanceDistribution = append(instanceDistribution, instanceDistributionSet.Slice()...)
-
-		spotConfig.InstanceDistribution = instanceDistribution
+		spotConfig.InstanceDistribution = append([]string{instanceType}, instanceDistributionSet.Slice()...)
 	}
 	if spotConfig.MaxPrice == nil {
 		spotConfig.MaxPrice = &chosenInstance.Price
