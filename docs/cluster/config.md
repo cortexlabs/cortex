@@ -53,6 +53,7 @@ spot_config:
   on_demand_base_capacity: 0
 
   # percentage of on demand instances to use after the on demand base capacity has been met [0, 100] (default: 1)
+  # note: setting this to 0 may hinder cluster scale up when spot instances are not available
   on_demand_percentage_above_base_capacity: 1
 
   # max price for instances (defaults to the on demand price of the primary instance type)

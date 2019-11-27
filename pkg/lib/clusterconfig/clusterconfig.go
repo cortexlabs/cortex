@@ -112,7 +112,9 @@ var UserValidation = &cr.StructValidation{
 		},
 		{
 			StructField:       "Spot",
-			BoolPtrValidation: &cr.BoolPtrValidation{},
+			BoolPtrValidation: &cr.BoolPtrValidation{
+				Default: pointer.Bool(false),
+			},
 		},
 		{
 			StructField: "SpotConfig",
@@ -560,17 +562,6 @@ func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecre
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
 					Default: defaultBucket,
-				},
-			},
-			{
-				StructField: "Spot",
-				PromptOpts: &prompt.Options{
-					Prompt:     "use spot instances (y/n)",
-					DefaultStr: "y",
-				},
-				BoolPtrValidation: &cr.BoolPtrValidation{
-					Required:  true,
-					StrToBool: map[string]bool{"y": true, "n": false},
 				},
 			},
 			{
