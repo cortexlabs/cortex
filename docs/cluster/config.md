@@ -52,8 +52,8 @@ spot_config:
   # minimum number of on demand instances (default: 0)
   on_demand_base_capacity: 0
 
-  # percentage of on demand instances to use after the on demand base capacity has been met [0, 100] (default: 0)
-  on_demand_percentage_above_base_capacity: 0
+  # percentage of on demand instances to use after the on demand base capacity has been met [0, 100] (default: 1)
+  on_demand_percentage_above_base_capacity: 1
 
   # max price for instances (defaults to the on demand price of the primary instance type)
   max_price: 0.096
