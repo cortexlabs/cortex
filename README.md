@@ -21,8 +21,6 @@ Cortex is an open source platform for deploying machine learning models—traine
 
 - **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
 
-- **Spot instances:** Cortex supports EC2 spot instances.
-
 - **Rolling updates:** Cortex updates deployed APIs without any downtime.
 
 - **Log streaming:** Cortex streams logs from deployed models to your CLI.
