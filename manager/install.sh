@@ -53,7 +53,6 @@ function ensure_eks() {
         envsubst < eks.yaml | eksctl create cluster -f -
       fi
     fi
-    echo -e "\n✓ spun up the cluster"
 
     if [ "$CORTEX_SPOT" == "True" ]; then
       asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query 'AutoScalingGroups[?contains(Tags[?Key==`alpha.eksctl.io/nodegroup-name`].Value, `ng-cortex-worker`)]')
@@ -82,20 +81,20 @@ function ensure_eks() {
     exit 1
   fi
 
-  echo "✓ cluster is running"
-
   # Check for change in min/max instances
   asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query 'AutoScalingGroups[?contains(Tags[?Key==`alpha.eksctl.io/nodegroup-name`].Value, `ng-cortex-worker`)]')
   asg_name=$(echo "$asg_info" | jq -r 'first | .AutoScalingGroupName')
   asg_min_size=$(echo "$asg_info" | jq -r 'first | .MinSize')
   asg_max_size=$(echo "$asg_info" | jq -r 'first | .MaxSize')
   if [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ]; then
+    echo -n "￮ updating min instances to $CORTEX_MIN_INSTANCES "
     aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_name --min-size=$CORTEX_MIN_INSTANCES
-    echo "✓ updated min instances to $CORTEX_MIN_INSTANCES"
+    echo "✓"
   fi
   if [ "$asg_max_size" != "$CORTEX_MAX_INSTANCES" ]; then
+    echo -n "￮ updating max instances to $CORTEX_MAX_INSTANCES "
     aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_name --max-size=$CORTEX_MAX_INSTANCES
-    echo "✓ updated max instances to $CORTEX_MAX_INSTANCES"
+    echo "✓"
   fi
 }
 
@@ -107,82 +106,61 @@ function main() {
   setup_bucket
   setup_cloudwatch_logs
 
+  echo -n "￮ updating cluster configuration "
   envsubst < manifests/namespace.yaml | kubectl apply -f - >/dev/null
-
   setup_configmap
   setup_secrets
-  echo "✓ updated cluster configuration"
+  echo "✓"
 
   echo -n "￮ configuring networking "
   setup_istio
   envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
-  echo -e "\n✓ configured networking"
+  echo "✓"
 
+  echo -n "￮ configuring autoscaling "
   envsubst < manifests/cluster-autoscaler.yaml | kubectl apply -f - >/dev/null
-  echo "✓ configured autoscaling"
+  echo "✓"
 
+  echo -n "￮ configuring logging "
   kubectl -n=cortex delete --ignore-not-found=true daemonset fluentd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
-  if [ "$(kubectl -n=cortex get pods -l app=fluentd -o json | jq -j '.items | length')" -ne "0" ]; then
-    echo -n "￮ configuring logging "
-    until [ "$(kubectl -n=cortex get pods -l app=fluentd -o json | jq -j '.items | length')" -eq "0" ]; do
-      echo -n "."
-      sleep 2
-    done
-    echo
-  fi
+  until [ "$(kubectl -n=cortex get pods -l app=fluentd -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
   envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
-  echo "✓ configured logging"
+  echo "✓"
 
+  echo -n "￮ configuring metrics "
   kubectl -n=cortex delete --ignore-not-found=true daemonset cloudwatch-agent-statsd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
-  if [ "$(kubectl -n=cortex get pods -l name=cloudwatch-agent-statsd -o json | jq -j '.items | length')" -ne "0" ]; then
-    echo -n "￮ configuring metrics "
-    until [ "$(kubectl -n=cortex get pods -l name=cloudwatch-agent-statsd -o json | jq -j '.items | length')" -eq "0" ]; do
-      echo -n "."
-      sleep 2
-    done
-    echo
-  fi
+  until [ "$(kubectl -n=cortex get pods -l name=cloudwatch-agent-statsd -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
   envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
-  echo "✓ configured metrics"
+  echo "✓"
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
+    echo -n "￮ configuring gpu support "
     kubectl -n=kube-system delete --ignore-not-found=true daemonset nvidia-device-plugin-daemonset >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
-    if [ "$(kubectl -n=kube-system get pods -l name=nvidia-device-plugin-ds -o json | jq -j '.items | length')" -ne "0" ]; then
-      echo -n "￮ configuring gpu support "
-      until [ "$(kubectl -n=kube-system get pods -l name=nvidia-device-plugin-ds -o json | jq -j '.items | length')" -eq "0" ]; do
-        echo -n "."
-        sleep 2
-      done
-      echo
-    fi
+    until [ "$(kubectl -n=kube-system get pods -l name=nvidia-device-plugin-ds -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
     envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
-    echo "✓ configured gpu support"
+    echo "✓"
   fi
 
+  echo -n "￮ starting operator "
   kubectl -n=cortex delete --ignore-not-found=true --grace-period=10 deployment operator >/dev/null 2>&1
-  if [ "$(kubectl -n=cortex get pods -l workloadID=operator -o json | jq -j '.items | length')" -ne "0" ]; then
-    echo -n "￮ starting operator "
-    until [ "$(kubectl -n=cortex get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "0" ]; do
-      echo -n "."
-      sleep 2
-    done
-    echo
-  fi
+  until [ "$(kubectl -n=cortex get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
   envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
-  echo "✓ started operator"
+  echo "✓"
 
   validate_cortex
 
+  echo -n "￮ configuring cli "
   echo "{\"cortex_url\": \"$operator_endpoint\", \"aws_access_key_id\": \"$CORTEX_AWS_ACCESS_KEY_ID\", \"aws_secret_access_key\": \"$CORTEX_AWS_SECRET_ACCESS_KEY\"}" > /.cortex/default.json
-  echo "✓ configured cli"
+  echo "✓"
 
-  echo -e "\n✓ cortex is ready!"
+  echo -e "\ncortex is ready!"
 }
 
 function setup_bucket() {
   if ! aws s3api head-bucket --bucket $CORTEX_BUCKET --output json 2>/dev/null; then
     if aws s3 ls "s3://$CORTEX_BUCKET" --output json 2>&1 | grep -q 'NoSuchBucket'; then
+      echo -n "￮ creating s3 bucket: $CORTEX_BUCKET "
       if [ "$CORTEX_REGION" == "us-east-1" ]; then
         aws s3api create-bucket --bucket $CORTEX_BUCKET \
                                 --region $CORTEX_REGION \
@@ -193,22 +171,23 @@ function setup_bucket() {
                                 --create-bucket-configuration LocationConstraint=$CORTEX_REGION \
                                 >/dev/null
       fi
-      echo "✓ created s3 bucket: $CORTEX_BUCKET"
+      echo "✓"
     else
       echo "error: a bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
       exit 1
     fi
   else
-    echo "✓ using existing s3 bucket: $CORTEX_BUCKET"
+    echo "￮ using existing s3 bucket: $CORTEX_BUCKET"
   fi
 }
 
 function setup_cloudwatch_logs() {
   if ! aws logs list-tags-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION --output json 2>&1 | grep -q "\"tags\":"; then
+    echo -n "￮ creating cloudwatch log group: $CORTEX_LOG_GROUP "
     aws logs create-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION
-    echo "✓ created cloudwatch log group: $CORTEX_LOG_GROUP"
+    echo "✓"
   else
-    echo "✓ using existing cloudwatch log group: $CORTEX_LOG_GROUP"
+    echo "￮ using existing cloudwatch log group: $CORTEX_LOG_GROUP"
   fi
 }
 
@@ -324,7 +303,7 @@ function validate_cortex() {
     break
   done
 
-  echo -e "\n✓ load balancers are ready"
+  echo "✓"
 }
 
 main
