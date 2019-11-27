@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
@@ -437,12 +438,8 @@ func CompatibleSpotInstances(targetInstance aws.InstanceMetadata) []aws.Instance
 	return compatibleInstances
 }
 
-func (cc *ClusterConfig) AutoFillSpot() error {
-	spotConfig := cc.SpotConfig
-	if spotConfig == nil {
-		spotConfig = &SpotConfig{}
-	}
-	chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
+func AutoGenerateSpotConfig(spotConfig *SpotConfig, region string, instanceType string) error {
+	chosenInstance := aws.InstanceMetadatas[region][instanceType]
 	if len(spotConfig.InstanceDistribution) == 0 {
 		spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, chosenInstance.Type)
 
@@ -458,19 +455,15 @@ func (cc *ClusterConfig) AutoFillSpot() error {
 			}
 		}
 	} else {
-		found := false
-		for _, instanceType := range spotConfig.InstanceDistribution {
-			if *cc.InstanceType == instanceType {
-				found = true
-				break
-			}
-		}
+		instanceDistributionSet := strset.New(spotConfig.InstanceDistribution...)
+		instanceDistributionSet.Remove(instanceType)
 
-		if !found {
-			spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, chosenInstance.Type)
-		}
+		instanceDistribution := []string{}
+		instanceDistribution = append(instanceDistribution, instanceType)
+		instanceDistribution = append(instanceDistribution, instanceDistributionSet.Slice()...)
+
+		spotConfig.InstanceDistribution = instanceDistribution
 	}
-
 	if spotConfig.MaxPrice == nil {
 		spotConfig.MaxPrice = &chosenInstance.Price
 	}
@@ -487,6 +480,18 @@ func (cc *ClusterConfig) AutoFillSpot() error {
 		spotConfig.InstancePools = pointer.Int64(2)
 	}
 
+	return nil
+}
+
+func (cc *ClusterConfig) AutoFillSpot() error {
+	spotConfig := cc.SpotConfig
+	if spotConfig == nil {
+		spotConfig = &SpotConfig{}
+	}
+	err := AutoGenerateSpotConfig(spotConfig, *cc.Region, *cc.InstanceType)
+	if err != nil {
+		return err
+	}
 	cc.SpotConfig = spotConfig
 	return nil
 }
