@@ -479,15 +479,13 @@ func AutoGenerateSpotConfig(spotConfig *SpotConfig, region string, instanceType 
 }
 
 func (cc *ClusterConfig) AutoFillSpot() error {
-	spotConfig := cc.SpotConfig
-	if spotConfig == nil {
-		spotConfig = &SpotConfig{}
+	if cc.SpotConfig == nil {
+		cc.SpotConfig = &SpotConfig{}
 	}
-	err := AutoGenerateSpotConfig(spotConfig, *cc.Region, *cc.InstanceType)
+	err := AutoGenerateSpotConfig(cc.SpotConfig, *cc.Region, *cc.InstanceType)
 	if err != nil {
 		return err
 	}
-	cc.SpotConfig = spotConfig
 	return nil
 }
 
