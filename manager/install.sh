@@ -122,21 +122,53 @@ function main() {
   echo "✓ configured autoscaling"
 
   kubectl -n=cortex delete --ignore-not-found=true daemonset fluentd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
+  if [ "$(kubectl -n=cortex get pods -l app=fluentd -o json | jq -j '.items | length')" -ne "0" ]; then
+    echo -n "￮ configuring logging "
+    until [ "$(kubectl -n=cortex get pods -l app=fluentd -o json | jq -j '.items | length')" -eq "0" ]; do
+      echo -n "."
+      sleep 2
+    done
+    echo
+  fi
   envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
   echo "✓ configured logging"
 
   kubectl -n=cortex delete --ignore-not-found=true daemonset cloudwatch-agent-statsd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
+  if [ "$(kubectl -n=cortex get pods -l name=cloudwatch-agent-statsd -o json | jq -j '.items | length')" -ne "0" ]; then
+    echo -n "￮ configuring metrics "
+    until [ "$(kubectl -n=cortex get pods -l name=cloudwatch-agent-statsd -o json | jq -j '.items | length')" -eq "0" ]; do
+      echo -n "."
+      sleep 2
+    done
+    echo
+  fi
   envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
   echo "✓ configured metrics"
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
-    kubectl -n=cortex delete --ignore-not-found=true daemonset nvidia-device-plugin-daemonset >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
+    kubectl -n=kube-system delete --ignore-not-found=true daemonset nvidia-device-plugin-daemonset >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
+    if [ "$(kubectl -n=kube-system get pods -l name=nvidia-device-plugin-ds -o json | jq -j '.items | length')" -ne "0" ]; then
+      echo -n "￮ configuring gpu support "
+      until [ "$(kubectl -n=kube-system get pods -l name=nvidia-device-plugin-ds -o json | jq -j '.items | length')" -eq "0" ]; do
+        echo -n "."
+        sleep 2
+      done
+      echo
+    fi
     envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
     echo "✓ configured gpu support"
   fi
 
-  kubectl -n=cortex delete --ignore-not-found=true deployment operator >/dev/null 2>&1
+  kubectl -n=cortex delete --ignore-not-found=true --grace-period=10 deployment operator >/dev/null 2>&1
+  if [ "$(kubectl -n=cortex get pods -l workloadID=operator -o json | jq -j '.items | length')" -ne "0" ]; then
+    echo -n "￮ starting operator "
+    until [ "$(kubectl -n=cortex get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "0" ]; do
+      echo -n "."
+      sleep 2
+    done
+    echo
+  fi
   envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
   echo "✓ started operator"
 
