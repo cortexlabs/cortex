@@ -153,7 +153,7 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 }
 
 func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) {
-	prevConfig, _ := clusterconfig.GetFileDefaults()
+	defaultConfig, _ := clusterconfig.GetFileDefaults()
 
 	var items []table.KV
 	items = append(items, table.KV{K: "aws access key id", V: s.MaskString(awsCreds.AWSAccessKeyID, 4)})
@@ -167,7 +167,7 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 	items = append(items, table.KV{K: clusterconfig.MinInstancesUserFacingKey, V: *clusterConfig.MinInstances})
 	items = append(items, table.KV{K: clusterconfig.MaxInstancesUserFacingKey, V: *clusterConfig.MaxInstances})
 
-	if clusterConfig.Spot != nil && *clusterConfig.Spot != *prevConfig.Spot {
+	if clusterConfig.Spot != nil && *clusterConfig.Spot != *defaultConfig.Spot {
 		items = append(items, table.KV{K: clusterconfig.SpotUserFacingKey, V: s.YesNo(clusterConfig.Spot != nil && *clusterConfig.Spot)})
 		items = append(items, table.KV{K: clusterconfig.InstanceDistributionUserFacingKey, V: clusterConfig.SpotConfig.InstanceDistribution})
 		items = append(items, table.KV{K: clusterconfig.OnDemandBaseCapacityUserFacingKey, V: *clusterConfig.SpotConfig.OnDemandBaseCapacity})
@@ -175,71 +175,71 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 		items = append(items, table.KV{K: clusterconfig.MaxPriceUserFacingKey, V: *clusterConfig.SpotConfig.MaxPrice})
 		items = append(items, table.KV{K: clusterconfig.InstancePoolsUserFacingKey, V: *clusterConfig.SpotConfig.InstancePools})
 	}
-	if clusterConfig.InstanceVolumeSize != prevConfig.InstanceVolumeSize {
+	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
 		items = append(items, table.KV{K: clusterconfig.InstanceVolumeSizeUserFacingKey, V: clusterConfig.InstanceVolumeSize})
 	}
-	if clusterConfig.LogGroup != prevConfig.LogGroup {
+	if clusterConfig.LogGroup != defaultConfig.LogGroup {
 		items = append(items, table.KV{K: clusterconfig.LogGroupUserFacingKey, V: clusterConfig.LogGroup})
 	}
-	if clusterConfig.Telemetry != prevConfig.Telemetry {
+	if clusterConfig.Telemetry != defaultConfig.Telemetry {
 		items = append(items, table.KV{K: clusterconfig.TelemetryUserFacingKey, V: clusterConfig.Telemetry})
 	}
 
-	if clusterConfig.ImagePredictorServe != prevConfig.ImagePredictorServe {
+	if clusterConfig.ImagePredictorServe != defaultConfig.ImagePredictorServe {
 		items = append(items, table.KV{K: clusterconfig.ImagePredictorServeUserFacingKey, V: clusterConfig.ImagePredictorServe})
 	}
-	if clusterConfig.ImagePredictorServeGPU != prevConfig.ImagePredictorServeGPU {
+	if clusterConfig.ImagePredictorServeGPU != defaultConfig.ImagePredictorServeGPU {
 		items = append(items, table.KV{K: clusterconfig.ImagePredictorServeGPUUserFacingKey, V: clusterConfig.ImagePredictorServeGPU})
 	}
-	if clusterConfig.ImageTFServe != prevConfig.ImageTFServe {
+	if clusterConfig.ImageTFServe != defaultConfig.ImageTFServe {
 		items = append(items, table.KV{K: clusterconfig.ImageTFServeUserFacingKey, V: clusterConfig.ImageTFServe})
 	}
-	if clusterConfig.ImageTFServeGPU != prevConfig.ImageTFServeGPU {
+	if clusterConfig.ImageTFServeGPU != defaultConfig.ImageTFServeGPU {
 		items = append(items, table.KV{K: clusterconfig.ImageTFServeGPUUserFacingKey, V: clusterConfig.ImageTFServeGPU})
 	}
-	if clusterConfig.ImageTFAPI != prevConfig.ImageTFAPI {
+	if clusterConfig.ImageTFAPI != defaultConfig.ImageTFAPI {
 		items = append(items, table.KV{K: clusterconfig.ImageTFAPIUserFacingKey, V: clusterConfig.ImageTFAPI})
 	}
-	if clusterConfig.ImageONNXServe != prevConfig.ImageONNXServe {
+	if clusterConfig.ImageONNXServe != defaultConfig.ImageONNXServe {
 		items = append(items, table.KV{K: clusterconfig.ImageONNXServeUserFacingKey, V: clusterConfig.ImageONNXServe})
 	}
-	if clusterConfig.ImageONNXServeGPU != prevConfig.ImageONNXServeGPU {
+	if clusterConfig.ImageONNXServeGPU != defaultConfig.ImageONNXServeGPU {
 		items = append(items, table.KV{K: clusterconfig.ImageONNXServeGPUUserFacingKey, V: clusterConfig.ImageONNXServeGPU})
 	}
-	if clusterConfig.ImageOperator != prevConfig.ImageOperator {
+	if clusterConfig.ImageOperator != defaultConfig.ImageOperator {
 		items = append(items, table.KV{K: clusterconfig.ImageOperatorUserFacingKey, V: clusterConfig.ImageOperator})
 	}
-	if clusterConfig.ImageManager != prevConfig.ImageManager {
+	if clusterConfig.ImageManager != defaultConfig.ImageManager {
 		items = append(items, table.KV{K: clusterconfig.ImageManagerUserFacingKey, V: clusterConfig.ImageManager})
 	}
-	if clusterConfig.ImageDownloader != prevConfig.ImageDownloader {
+	if clusterConfig.ImageDownloader != defaultConfig.ImageDownloader {
 		items = append(items, table.KV{K: clusterconfig.ImageDownloaderUserFacingKey, V: clusterConfig.ImageDownloader})
 	}
-	if clusterConfig.ImageClusterAutoscaler != prevConfig.ImageClusterAutoscaler {
+	if clusterConfig.ImageClusterAutoscaler != defaultConfig.ImageClusterAutoscaler {
 		items = append(items, table.KV{K: clusterconfig.ImageClusterAutoscalerUserFacingKey, V: clusterConfig.ImageClusterAutoscaler})
 	}
-	if clusterConfig.ImageMetricsServer != prevConfig.ImageMetricsServer {
+	if clusterConfig.ImageMetricsServer != defaultConfig.ImageMetricsServer {
 		items = append(items, table.KV{K: clusterconfig.ImageMetricsServerUserFacingKey, V: clusterConfig.ImageMetricsServer})
 	}
-	if clusterConfig.ImageNvidia != prevConfig.ImageNvidia {
+	if clusterConfig.ImageNvidia != defaultConfig.ImageNvidia {
 		items = append(items, table.KV{K: clusterconfig.ImageNvidiaUserFacingKey, V: clusterConfig.ImageNvidia})
 	}
-	if clusterConfig.ImageFluentd != prevConfig.ImageFluentd {
+	if clusterConfig.ImageFluentd != defaultConfig.ImageFluentd {
 		items = append(items, table.KV{K: clusterconfig.ImageFluentdUserFacingKey, V: clusterConfig.ImageFluentd})
 	}
-	if clusterConfig.ImageStatsd != prevConfig.ImageStatsd {
+	if clusterConfig.ImageStatsd != defaultConfig.ImageStatsd {
 		items = append(items, table.KV{K: clusterconfig.ImageStatsdUserFacingKey, V: clusterConfig.ImageStatsd})
 	}
-	if clusterConfig.ImageIstioProxy != prevConfig.ImageIstioProxy {
+	if clusterConfig.ImageIstioProxy != defaultConfig.ImageIstioProxy {
 		items = append(items, table.KV{K: clusterconfig.ImageIstioProxyUserFacingKey, V: clusterConfig.ImageIstioProxy})
 	}
-	if clusterConfig.ImageIstioPilot != prevConfig.ImageIstioPilot {
+	if clusterConfig.ImageIstioPilot != defaultConfig.ImageIstioPilot {
 		items = append(items, table.KV{K: clusterconfig.ImageIstioPilotUserFacingKey, V: clusterConfig.ImageIstioPilot})
 	}
-	if clusterConfig.ImageIstioCitadel != prevConfig.ImageIstioCitadel {
+	if clusterConfig.ImageIstioCitadel != defaultConfig.ImageIstioCitadel {
 		items = append(items, table.KV{K: clusterconfig.ImageIstioCitadelUserFacingKey, V: clusterConfig.ImageIstioCitadel})
 	}
-	if clusterConfig.ImageIstioGalley != prevConfig.ImageIstioGalley {
+	if clusterConfig.ImageIstioGalley != defaultConfig.ImageIstioGalley {
 		items = append(items, table.KV{K: clusterconfig.ImageIstioGalleyUserFacingKey, V: clusterConfig.ImageIstioGalley})
 	}
 
