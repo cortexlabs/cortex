@@ -42,8 +42,8 @@ cluster_name: cortex
 # whether to collect anonymous usage stats and error reports (default: true)
 telemetry: true
 
-# whether to use spot instances in the cluster (default: true)
-spot: true
+# whether to use spot instances in the cluster (default: false)
+spot: false
 
 spot_config:
   # additional instances with identical or better specs than the primary instance type (defaults to 2 instances sorted by price)
