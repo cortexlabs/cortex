@@ -42,8 +42,8 @@ cluster_name: cortex
 # whether to collect anonymous usage stats and error reports (default: true)
 telemetry: true
 
-# whether to use spot instances in the cluster (default: true)
-spot: true
+# whether to use spot instances in the cluster (default: false)
+spot: false
 
 spot_config:
   # additional instances with identical or better specs than the primary instance type (defaults to 2 instances sorted by price)
@@ -53,6 +53,7 @@ spot_config:
   on_demand_base_capacity: 0
 
   # percentage of on demand instances to use after the on demand base capacity has been met [0, 100] (default: 1)
+  # note: setting this to 0 may hinder cluster scale up when spot instances are not available
   on_demand_percentage_above_base_capacity: 1
 
   # max price for instances (defaults to the on demand price of the primary instance type)

@@ -111,8 +111,10 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField:       "Spot",
-			BoolPtrValidation: &cr.BoolPtrValidation{},
+			StructField: "Spot",
+			BoolPtrValidation: &cr.BoolPtrValidation{
+				Default: pointer.Bool(false),
+			},
 		},
 		{
 			StructField: "SpotConfig",
@@ -563,17 +565,6 @@ func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecre
 				},
 			},
 			{
-				StructField: "Spot",
-				PromptOpts: &prompt.Options{
-					Prompt:     "use spot instances (y/n)",
-					DefaultStr: "y",
-				},
-				BoolPtrValidation: &cr.BoolPtrValidation{
-					Required:  true,
-					StrToBool: map[string]bool{"y": true, "n": false},
-				},
-			},
-			{
 				StructField: "InstanceType",
 				PromptOpts: &prompt.Options{
 					Prompt: "aws instance type",
@@ -717,13 +708,13 @@ func (cc *ClusterConfig) UserFacingTable() []table.KV {
 	items = append(items, table.KV{K: ClusterNameUserFacingKey, V: cc.ClusterName})
 	items = append(items, table.KV{K: RegionUserFacingKey, V: *cc.Region})
 	items = append(items, table.KV{K: BucketUserFacingKey, V: *cc.Bucket})
-	items = append(items, table.KV{K: SpotUserFacingKey, V: s.YesNo(*cc.Spot)})
 	items = append(items, table.KV{K: InstanceTypeUserFacingKey, V: *cc.InstanceType})
 	items = append(items, table.KV{K: MinInstancesUserFacingKey, V: *cc.MinInstances})
 	items = append(items, table.KV{K: MaxInstancesUserFacingKey, V: *cc.MaxInstances})
 	items = append(items, table.KV{K: InstanceVolumeSizeUserFacingKey, V: cc.InstanceVolumeSize})
+	items = append(items, table.KV{K: SpotUserFacingKey, V: s.YesNo(*cc.Spot)})
 
-	if cc.Spot != nil {
+	if cc.Spot != nil && *cc.Spot {
 		items = append(items, table.KV{K: InstanceDistributionUserFacingKey, V: cc.SpotConfig.InstanceDistribution})
 		items = append(items, table.KV{K: OnDemandBaseCapacityUserFacingKey, V: *cc.SpotConfig.OnDemandBaseCapacity})
 		items = append(items, table.KV{K: OnDemandPercentageAboveBaseCapacityUserFacingKey, V: *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity})
