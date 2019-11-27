@@ -59,6 +59,8 @@ function ensure_eks() {
       asg_name=$(echo "$asg_info" | jq -r 'first | .AutoScalingGroupName')
       aws autoscaling suspend-processes --region $CORTEX_REGION --auto-scaling-group-name $asg_name --scaling-processes AZRebalance
     fi
+
+    echo  # cluster is ready
     return
   fi
 
