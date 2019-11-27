@@ -18,15 +18,15 @@ cortex cluster update
 <!-- CORTEX_VERSION_MINOR -->
 
 ```bash
-# Spin down your cluster
+# spin down your cluster
 cortex cluster down
 
-# Update your CLI
+# update your CLI
 bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.11/get-cli.sh)"
 
-# Confirm version
+# confirm version
 cortex version
 
-# Spin up your cluster
+# spin up your cluster
 cortex cluster up
 ```
