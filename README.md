@@ -16,19 +16,12 @@ Cortex is an open source platform for deploying machine learning models—traine
 ## Key features
 
 * **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
-
 * **Multi framework:** Cortex supports TensorFlow, PyTorch, scikit-learn, XGBoost, and more.
-
 * **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
-
 * **Spot instances:** Cortex supports EC2 spot instances.
-
 * **Rolling updates:** Cortex updates deployed APIs without any downtime.
-
 * **Log streaming:** Cortex streams logs from deployed models to your CLI.
-
 * **Prediction monitoring:** Cortex monitors network metrics and tracks predictions.
-
 * **Minimal configuration:** Deployments are defined in a single `cortex.yaml` file.
 
 <br>
@@ -131,11 +124,7 @@ The CLI sends configuration and code to the cluster every time you run `cortex d
 
 <!-- CORTEX_VERSION_README_MINOR x5 -->
 * [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/sentiment-analyzer): deploy a BERT model for sentiment analysis.
-
 * [Image classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/image-classifier): deploy an Inception model to classify images.
-
 * [Search completion](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/search-completer): deploy Facebook's RoBERTa model to complete search terms.
-
 * [Text generation](https://github.com/cortexlabs/cortex/tree/0.11/examples/pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
-
 * [Iris classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/sklearn/iris-classifier): deploy a scikit-learn model to classify iris flowers.
