@@ -40,7 +40,7 @@ max instances: 10
 spot instances: yes
 
 ￮ spinning up your cluster ...
-your cortex cluster is ready!
+your cluster is ready!
 ```
 
 ## Deploying a model
