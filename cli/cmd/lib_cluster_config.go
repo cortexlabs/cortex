@@ -87,11 +87,6 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 			return nil, err
 		}
 
-		err = userClusterConfig.AutoFillSpot()
-		if err != nil {
-			return nil, err
-		}
-
 		userClusterConfig.ClusterName = cachedClusterConfig.ClusterName
 		userClusterConfig.Region = cachedClusterConfig.Region
 
@@ -113,6 +108,13 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
 		}
 		userClusterConfig.Spot = cachedClusterConfig.Spot
+
+		if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
+			err = userClusterConfig.AutoFillSpot()
+			if err != nil {
+				return nil, err
+			}
+		}
 
 		if userClusterConfig.SpotConfig != nil && s.Obj(userClusterConfig.SpotConfig) != s.Obj(cachedClusterConfig.SpotConfig) {
 			if cachedClusterConfig.SpotConfig == nil {
