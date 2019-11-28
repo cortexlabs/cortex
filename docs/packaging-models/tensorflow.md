@@ -1,9 +1,8 @@
-# Packaging TensorFlow models
+# TensorFlow
 
-<!-- CORTEX_VERSION_MINOR -->
-Export your trained model and upload the export directory, or a checkpoint directory containing the export directory (which is usually the case if you used `estimator.train_and_evaluate`). An example is shown below (here is the [complete example](https://github.com/cortexlabs/cortex/blob/0.11/examples/tensorflow/sentiment-analyzer)):
+Export your trained model and upload the export directory, or a checkpoint directory containing the export directory \(which is usually the case if you used `estimator.train_and_evaluate`\). An example is shown below \(here is the [complete example](https://github.com/cortexlabs/cortex/blob/0.11/examples/tensorflow/sentiment-analyzer)\):
 
-```Python
+```python
 import tensorflow as tf
 
 ...
@@ -56,3 +55,4 @@ Reference the zipped model in an `api`:
   tensorflow:
     model: s3://my-bucket/bert.zip
 ```
+

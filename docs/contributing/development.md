@@ -1,11 +1,11 @@
-# Development Environment
+# Development
 
 ## Prerequisites
 
-1. Go (>=1.12.9)
-1. Docker
-1. eksctl
-1. kubectl
+1. Go \(&gt;=1.12.9\)
+2. Docker
+3. eksctl
+4. kubectl
 
 ## Cortex Dev Environment
 
@@ -135,23 +135,24 @@ path/to/cortex/bin/cortex deploy
 If you're making changes in the operator and want faster iterations, you can run an off-cluster operator.
 
 1. `make operator-stop` to stop the in-cluster operator
-1. `make devstart` to run the off-cluster operator (which rebuilds the CLI and restarts the Operator when files change)
-1. `path/to/cortex/bin/cortex configure` (on a separate terminal) to configure your cortex CLI to use the off-cluster operator. When prompted for operator URL, use `http://localhost:8888`
+2. `make devstart` to run the off-cluster operator \(which rebuilds the CLI and restarts the Operator when files change\)
+3. `path/to/cortex/bin/cortex configure` \(on a separate terminal\) to configure your cortex CLI to use the off-cluster operator. When prompted for operator URL, use `http://localhost:8888`
 
 Note: `make cortex-up-dev` will start Cortex without installing the operator.
 
 If you want to switch back to the in-cluster operator:
 
 1. `<ctrl+C>` to stop your off-cluster operator
-1. `make operator-start` to install the operator in your cluster
-1. `path/to/cortex/bin/cortex configure` to configure your cortex CLI to use the in-cluster operator. When prompted for operator URL, use the URL shown when running `make cortex-info`
+2. `make operator-start` to install the operator in your cluster
+3. `path/to/cortex/bin/cortex configure` to configure your cortex CLI to use the in-cluster operator. When prompted for operator URL, use the URL shown when running `make cortex-info`
 
 ## Dev Workflow
 
 1. `make cortex-up-dev`
-1. `make devstart`
-1. Make changes
-1. `make registry-dev`
-1. Test your changes with projects in `examples` or your own
+2. `make devstart`
+3. Make changes
+4. `make registry-dev`
+5. Test your changes with projects in `examples` or your own
 
 See `Makefile` for additional dev commands
+

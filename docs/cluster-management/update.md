@@ -15,8 +15,6 @@ cortex cluster update
 
 ## Upgrading to a newer version of Cortex
 
-<!-- CORTEX_VERSION_MINOR -->
-
 ```bash
 # spin down your cluster
 cortex cluster down
@@ -30,3 +28,4 @@ cortex version
 # spin up your cluster
 cortex cluster up
 ```
+

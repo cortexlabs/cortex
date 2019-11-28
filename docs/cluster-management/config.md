@@ -1,8 +1,6 @@
 # Cluster configuration
 
-The Cortex cluster may be configured by providing a configuration file to `cortex cluster up` or `cortex cluster update` via the  `--config` flag (e.g. `cortex cluster up --config=cluster.yaml`). Below is the schema for the cluster configuration file, with default values shown (unless otherwise specified):
-
-<!-- CORTEX_VERSION_BRANCH_STABLE -->
+The Cortex cluster may be configured by providing a configuration file to `cortex cluster up` or `cortex cluster update` via the `--config` flag \(e.g. `cortex cluster up --config=cluster.yaml`\). Below is the schema for the cluster configuration file, with default values shown \(unless otherwise specified\):
 
 ```yaml
 # cluster.yaml
@@ -83,3 +81,4 @@ image_istio_pilot: cortexlabs/istio-pilot:0.11.0
 image_istio_citadel: cortexlabs/istio-citadel:0.11.0
 image_istio_galley: cortexlabs/istio-galley:0.11.0
 ```
+

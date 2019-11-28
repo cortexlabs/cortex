@@ -1,15 +1,13 @@
-# Deploy a scikit-learn model as a web service
+# Tutorial
 
 This example shows how to deploy a classifier trained on the famous [iris data set](https://archive.ics.uci.edu/ml/datasets/iris) using scikit-learn.
-
-<br>
 
 ## Train your model
 
 1. Create a Python file `trainer.py`.
 2. Use scikit-learn's `LogisticRegression` to train your model.
-3. Add code to pickle your model (you can use other serialization libraries such as joblib).
-4. Upload it to S3 (boto3 will need access to valid AWS credentials).
+3. Add code to pickle your model \(you can use other serialization libraries such as joblib\).
+4. Upload it to S3 \(boto3 will need access to valid AWS credentials\).
 
 ```python
 import boto3
@@ -45,8 +43,6 @@ $ pip3 install sklearn boto3
 # Run the script
 $ python3 trainer.py
 ```
-
-<br>
 
 ## Implement a predictor
 
@@ -84,8 +80,6 @@ def predict(sample, metadata):
     return labels[label_id]
 ```
 
-<br>
-
 ## Specify Python dependencies
 
 Create a `requirements.txt` file to specify the dependencies needed by `predictor.py`. Cortex will automatically install them into your runtime once you deploy:
@@ -96,9 +90,7 @@ Create a `requirements.txt` file to specify the dependencies needed by `predicto
 numpy
 ```
 
-You can skip dependencies that are [pre-installed](../../../docs/deployments/predictor.md#pre-installed-packages) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
-
-<br>
+You can skip dependencies that are [pre-installed](deployments/predictor.md#pre-installed-packages) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
 
 ## Configure a deployment
 
@@ -116,8 +108,6 @@ Create a `cortex.yaml` file and add the configuration below. A `deployment` spec
     path: predictor.py
     model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
 ```
-
-<br>
 
 ## Deploy to AWS
 
@@ -142,8 +132,6 @@ endpoint: http://***.amazonaws.com/iris/classifier
 
 The output above indicates that one replica of the API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
 
-<br>
-
 ## Serve real-time predictions
 
 We can use `curl` to test our prediction service:
@@ -155,8 +143,6 @@ $ curl http://***.amazonaws.com/iris/classifier \
 
 "iris-setosa"
 ```
-
-<br>
 
 ## Configure prediction tracking
 
@@ -197,8 +183,6 @@ positive  8
 negative  4
 ```
 
-<br>
-
 ## Configure compute resources
 
 This model is fairly small but larger models may require more compute resources. You can configure this in your `cortex.yaml`:
@@ -238,8 +222,6 @@ class     count
 positive  8
 negative  4
 ```
-
-<br>
 
 ## Add another API
 
@@ -290,8 +272,6 @@ another-classifier   live     1            1           1           8s
 classifier           live     1            1           1           5m
 ```
 
-<br>
-
 ## Clean up
 
 Run `cortex delete` to spin down your API:
@@ -306,3 +286,4 @@ deleting another-classifier api
 Running `cortex delete` will free up cluster resources and allow Cortex to scale down to the minimum number of instances you specified during cluster installation. It will not spin down your cluster.
 
 Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).
+

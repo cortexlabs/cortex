@@ -24,3 +24,4 @@ For classification models, the tracker should be configured with `model_type: cl
   tracker:
     model_type: classification
 ```
+

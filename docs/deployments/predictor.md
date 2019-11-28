@@ -1,13 +1,15 @@
 # Predictor APIs
 
+## Predictor APIs
+
 You can deploy models from any Python framework by implementing Cortex's Predictor interface. The interface consists of an `init()` function and a `predict()` function. The `init()` function is responsible for preparing the model for serving, downloading vocabulary files, etc. The `predict()` function is called on every request and is responsible for responding with a prediction.
 
 In addition to supporting Python models via the Predictor interface, Cortex can serve the following exported model formats:
 
-- [TensorFlow](tensorflow.md)
-- [ONNX](onnx.md)
+* [TensorFlow](tensorflow.md)
+* [ONNX](onnx.md)
 
-## Configuration
+### Configuration
 
 ```yaml
 - kind: api
@@ -31,7 +33,7 @@ In addition to supporting Python models via the Predictor interface, Cortex can 
     mem: <string>  # memory request per replica (default: Null)
 ```
 
-### Example
+#### Example
 
 ```yaml
 - kind: api
@@ -42,22 +44,22 @@ In addition to supporting Python models via the Predictor interface, Cortex can 
     gpu: 1
 ```
 
-## Debugging
+### Debugging
 
 You can log information about each request by adding a `?debug=true` parameter to your requests. This will print:
 
 1. The raw sample
 2. The value after running the `predict` function
 
-# Predictor
+## Predictor
 
 A Predictor is a Python file that describes how to initialize a model and use it to make a prediction.
 
-The lifecycle of a replica running a Predictor starts with loading the implementation file and executing code in the global scope. Once the implementation is loaded, Cortex calls the `init()` function to allow for any additional preparations. The `init()` function is typically used to download and initialize the model. It receives the metadata object, which is an arbitrary dictionary defined in the API configuration (it can be used to pass in the path to the exported/pickled model, vocabularies, aggregates, etc). Once the `init()` function is executed, the replica is available to accept requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload and the metadata object. The `predict()` function is responsible for returning a prediction from a sample.
+The lifecycle of a replica running a Predictor starts with loading the implementation file and executing code in the global scope. Once the implementation is loaded, Cortex calls the `init()` function to allow for any additional preparations. The `init()` function is typically used to download and initialize the model. It receives the metadata object, which is an arbitrary dictionary defined in the API configuration \(it can be used to pass in the path to the exported/pickled model, vocabularies, aggregates, etc\). Once the `init()` function is executed, the replica is available to accept requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload and the metadata object. The `predict()` function is responsible for returning a prediction from a sample.
 
 Global variables can be shared across functions safely because each replica handles one request at a time.
 
-## Implementation
+### Implementation
 
 ```python
 # initialization code and variables can be declared here in global scope
@@ -87,7 +89,7 @@ def predict(sample, metadata):
     """
 ```
 
-## Example
+### Example
 
 ```python
 import boto3
@@ -123,7 +125,7 @@ def predict(sample, metadata):
     return labels[torch.argmax(output[0])]
 ```
 
-## Pre-installed packages
+### Pre-installed packages
 
 The following packages have been pre-installed and can be used in your implementations:
 
@@ -154,4 +156,5 @@ torchvision==0.4.2
 xgboost==0.90
 ```
 
-Learn how to install additional packages [here](../dependencies/python-packages.md).
+Learn how to install additional packages [here](../dependency-management/python-packages.md).
+

@@ -3,13 +3,12 @@
 ## Prerequisites
 
 1. [Docker](https://docs.docker.com/install)
-2. [AWS credentials](aws.md)
+2. [AWS credentials](cluster-management/aws.md)
 
 ## Installation
 
-See [cluster configuration](config.md) to learn how you can customize your cluster.
+See [cluster configuration](cluster-management/config.md) to learn how you can customize your cluster.
 
-<!-- CORTEX_VERSION_MINOR -->
 ```bash
 # install the Cortex CLI on your machine
 bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.11/get-cli.sh)"
@@ -18,11 +17,9 @@ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.11/get
 cortex cluster up
 ```
 
-Note: This will create resources in your AWS account which aren't included in the free tier, e.g. an EKS cluster, two Elastic Load Balancers, and EC2 instances (quantity and type as specified above). To use GPU nodes, you may need to subscribe to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) and [file an AWS support ticket](https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances) to increase the limit for your desired instance type.
+Note: This will create resources in your AWS account which aren't included in the free tier, e.g. an EKS cluster, two Elastic Load Balancers, and EC2 instances \(quantity and type as specified above\). To use GPU nodes, you may need to subscribe to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) and [file an AWS support ticket](https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances) to increase the limit for your desired instance type.
 
 ## Deploy a model
-
-<!-- CORTEX_VERSION_MINOR -->
 
 ```bash
 # clone the Cortex repository
@@ -53,4 +50,5 @@ curl -X POST -H "Content-Type: application/json" \
 cortex delete iris
 ```
 
-See [uninstall](uninstall.md) if you'd like to uninstall Cortex.
+See [uninstall](cluster-management/uninstall.md) if you'd like to uninstall Cortex.
+

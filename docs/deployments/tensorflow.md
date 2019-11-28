@@ -27,7 +27,7 @@ Deploy TensorFlow models as web services.
     mem: <string>  # memory request per replica (default: Null)
 ```
 
-See [packaging TensorFlow models](../packaging/tensorflow.md) for how to export a TensorFlow model.
+See [packaging TensorFlow models](../packaging-models/tensorflow.md) for how to export a TensorFlow model.
 
 ## Example
 
@@ -46,6 +46,7 @@ See [packaging TensorFlow models](../packaging/tensorflow.md) for how to export 
 You can log information about each request by adding a `?debug=true` parameter to your requests. This will print:
 
 1. The raw sample
-2. The value after running the `pre_inference` function (if provided)
+2. The value after running the `pre_inference` function \(if provided\)
 3. The value after running inference
-4. The value after running the `post_inference` function (if provided)
+4. The value after running the `post_inference` function \(if provided\)
+

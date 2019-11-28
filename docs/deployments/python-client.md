@@ -2,7 +2,6 @@
 
 The Python client can be used to programmatically deploy models to a Cortex Cluster.
 
-<!-- CORTEX_VERSION_BRANCH_STABLE, e.g. v0.9.0 -->
 ```bash
 pip install git+https://github.com/cortexlabs/cortex.git@v0.11.0#egg=cortex\&subdirectory=pkg/workloads/cortex/client
 ```
@@ -43,3 +42,4 @@ sample = {
 resp = requests.post(api_url, json=sample)
 resp.json()
 ```
+

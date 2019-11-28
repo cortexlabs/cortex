@@ -2,7 +2,7 @@
 
 ## PyPI packages
 
-You can install your required PyPI packages and import them in your Python files. Cortex looks for a `requirements.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
+You can install your required PyPI packages and import them in your Python files. Cortex looks for a `requirements.txt` file in the top level Cortex project directory \(i.e. the directory which contains `cortex.yaml`\):
 
 ```text
 ./iris-classifier/
@@ -12,7 +12,7 @@ You can install your required PyPI packages and import them in your Python files
 └── requirements.txt
 ```
 
-Note that some packages are pre-installed by default (see [predictor](../deployments/predictor.md) or [request handlers](../deployments/request-handlers.md) depending on which runtime you're using).
+Note that some packages are pre-installed by default \(see [predictor](../deployments/predictor.md) or [request handlers](../deployments/request-handlers.md) depending on which runtime you're using\).
 
 ## Private packages on GitHub
 
@@ -28,7 +28,7 @@ You can generate a personal access token by following [these steps](https://help
 
 ## Project files
 
-Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available to request handlers. Python bytecode files (`*.pyc`, `*.pyo`, `*.pyd`), files or folders that start with `.`, and `cortex.yaml` are excluded.
+Cortex makes all files in the project directory \(i.e. the directory which contains `cortex.yaml`\) available to request handlers. Python bytecode files \(`*.pyc`, `*.pyo`, `*.pyd`\), files or folders that start with `.`, and `cortex.yaml` are excluded.
 
 The contents of the project directory is available in `/mnt/project/` in the API containers. For example, if this is your project directory:
 
@@ -53,3 +53,4 @@ def pre_inference(sample, signature, metadata):
   print(config)
   ...
 ```
+

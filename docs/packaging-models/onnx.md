@@ -1,8 +1,8 @@
-# Packaging ONNX models
+# ONNX
 
 Export your trained model to the ONNX model format. Here is an example of an sklearn model being exported to ONNX:
 
-```Python
+```python
 from sklearn.linear_model import LogisticRegression
 from onnxmltools import convert_sklearn
 from onnxconverter_common.data_types import FloatTensorType
@@ -32,3 +32,4 @@ Reference your model in an `api`:
   onnx:
     model: s3://my-bucket/model.onnx
 ```
+
