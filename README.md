@@ -6,7 +6,7 @@ Cortex is an open source platform for deploying machine learning models—traine
 
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
-[install](https://www.cortex.dev/install) • [tutorial](https://www.cortex.dev/v/master/iris-classifier) • [docs](https://www.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.10/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
+[install](https://www.cortex.dev/install) • [tutorial](https://www.cortex.dev/iris-classifier) • [docs](https://www.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.11/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
 
 <!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
 ![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.8.gif)
@@ -20,6 +20,8 @@ Cortex is an open source platform for deploying machine learning models—traine
 - **Multi framework:** Cortex supports TensorFlow, PyTorch, scikit-learn, XGBoost, and more.
 
 - **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
+
+- **Spot instances:** Cortex supports EC2 spot instances.
 
 - **Rolling updates:** Cortex updates deployed APIs without any downtime.
 
@@ -104,8 +106,9 @@ The CLI sends configuration and code to the cluster every time you run `cortex d
 
 ## Examples
 
-<!-- CORTEX_VERSION_README_MINOR x4 -->
-- [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.10/examples/tensorflow/sentiment-analysis) in TensorFlow with BERT
-- [Image classification](https://github.com/cortexlabs/cortex/tree/0.10/examples/tensorflow/image-classifier) in TensorFlow with Inception
-- [Text generation](https://github.com/cortexlabs/cortex/tree/0.10/examples/pytorch/text-generator) in PyTorch with DistilGPT2
-- [Iris classification](https://github.com/cortexlabs/cortex/tree/0.10/examples/xgboost/iris-classifier) in XGBoost / ONNX
+<!-- CORTEX_VERSION_README_MINOR x5 -->
+- [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/sentiment-analyzer) in TensorFlow with BERT
+- [Image classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/image-classifier) in TensorFlow with Inception
+- [Text generation](https://github.com/cortexlabs/cortex/tree/0.11/examples/pytorch/text-generator) in PyTorch with DistilGPT2
+- [Reading comprehension](https://github.com/cortexlabs/cortex/tree/0.11/examples/pytorch/reading-comprehender) in PyTorch with ELMo-BiDAF
+- [Iris classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/sklearn/iris-classifier) in scikit-learn

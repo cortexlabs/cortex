@@ -25,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
@@ -110,12 +109,19 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 		}
 		userClusterConfig.Spot = cachedClusterConfig.Spot
 
+		if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
+			err = userClusterConfig.AutoFillSpot()
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		if userClusterConfig.SpotConfig != nil && s.Obj(userClusterConfig.SpotConfig) != s.Obj(cachedClusterConfig.SpotConfig) {
 			if cachedClusterConfig.SpotConfig == nil {
 				return nil, clusterconfig.ErrorConfiguredWhenSpotIsNotEnabled(clusterconfig.SpotConfigKey)
 			}
 
-			if slices.StrSliceElementsMatch(userClusterConfig.SpotConfig.InstanceDistribution, cachedClusterConfig.SpotConfig.InstanceDistribution) {
+			if !strset.New(userClusterConfig.SpotConfig.InstanceDistribution...).IsEqual(strset.New(cachedClusterConfig.SpotConfig.InstanceDistribution...)) {
 				return nil, errors.Wrap(ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceDistributionKey, cachedClusterConfig.SpotConfig.InstanceDistribution), clusterconfig.SpotConfigKey)
 			}
 
