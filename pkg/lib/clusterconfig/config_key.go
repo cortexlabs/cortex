@@ -27,7 +27,7 @@ const (
 	OnDemandBaseCapacityKey                = "on_demand_base_capacity"
 	OnDemandPercentageAboveBaseCapacityKey = "on_demand_percentage_above_base_capacity"
 	MaxPriceKey                            = "max_price"
-	InstancePoolsKey                       = "spot_instance_pools"
+	InstancePoolsKey                       = "instance_pools"
 	ClusterNameKey                         = "cluster_name"
 	RegionKey                              = "region"
 	BucketKey                              = "bucket"
