@@ -27,7 +27,7 @@ Deploy TensorFlow models as web services.
     mem: <string>  # memory request per replica (default: Null)
 ```
 
-See [packaging TensorFlow models](../packaging/tensorflow.md) for how to export a TensorFlow model.
+See [packaging TensorFlow models](../packaging-models/tensorflow.md) for how to export a TensorFlow model.
 
 ## Example
 

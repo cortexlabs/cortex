@@ -1,8 +1,8 @@
 # System packages
 
-Cortex uses Docker images to deploy your models. These images can be replaced with custom images that you can augment with your system packages and libraries. You will need to push your custom images to a container registry that your cluster has access to (e.g. [Docker Hub](https://hub.docker.com/) or [AWS ECR](https://aws.amazon.com/ecr/)).
+Cortex uses Docker images to deploy your models. These images can be replaced with custom images that you can augment with your system packages and libraries. You will need to push your custom images to a container registry that your cluster has access to (e.g. [Docker Hub](https://hub.docker.com) or [AWS ECR](https://aws.amazon.com/ecr)).
 
-See the `image paths` section in [cluster configuration](../cluster/config.md) for a complete list of customizable images.
+See the `image paths` section in [cluster configuration](../cluster-management/config.md) for a complete list of customizable images.
 
 ## Create a custom image
 

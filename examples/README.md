@@ -4,29 +4,29 @@
 
 - [Iris classification](tensorflow/iris-classifier): deploy a model to classify iris flowers.
 
-- [Text generation with GPT-2](tensorflow/text-generator): deploy OpenAI's GPT-2 to generate text.
+- [Text generation](tensorflow/text-generator): deploy OpenAI's GPT-2 to generate text.
 
-- [Image classification with Inception V3](tensorflow/image-classifier): deploy an Inception V3 model to classify images.
+- [Sentiment analysis](tensorflow/sentiment-analyzer): deploy a BERT model for sentiment analysis.
 
-- [Sentiment analysis with BERT](tensorflow/sentiment-analyzer): deploy a BERT model for sentiment analysis.
+- [Image classification](tensorflow/image-classifier): deploy an Inception model to classify images.
 
 ## PyTorch
 
 - [Iris classification](pytorch/iris-classifier): deploy a model to classify iris flowers.
 
-- [Search completion](pytorch/search-completer): deploy a model to complete search terms.
+- [Search completion](pytorch/search-completer): deploy a Facebook's RoBERTa model to complete search terms.
 
-- [Text generation with DistilGPT2](pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
+- [Text generation](pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
 
-- [Answer generation with DialoGPT](pytorch/answer-generator): deploy Microsoft's DialoGPT model to answer questions.
+- [Answer generation](pytorch/answer-generator): deploy Microsoft's DialoGPT model to answer questions.
 
-- [Text summarization with BERT](pytorch/text-summarizer): deploy a BERT model to summarize text.
+- [Text summarization](pytorch/text-summarizer): deploy a BERT model to summarize text.
 
-- [Reading comprehension with AllenNLP](pytorch/reading-comprehender): deploy an AllenNLP model for reading comprehension.
+- [Reading comprehension](pytorch/reading-comprehender): deploy an AllenNLP model for reading comprehension.
 
-- [Language identification with fastText](pytorch/language-identifier): deploy a fastText model to identify languages.
+- [Language identification](pytorch/language-identifier): deploy a fastText model to identify languages.
 
-- [Image Classification with AlexNet](pytorch/image-classifier): deploy an AlexNet model from TorchVision to classify images.
+- [Image Classification](pytorch/image-classifier): deploy an AlexNet model from TorchVision to classify images.
 
 ## XGBoost
 

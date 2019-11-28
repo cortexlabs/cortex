@@ -15,25 +15,35 @@ Cortex is an open source platform for deploying machine learning models—traine
 
 ## Key features
 
-- **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
-
-- **Multi framework:** Cortex supports TensorFlow, PyTorch, scikit-learn, XGBoost, and more.
-
-- **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
-
-- **Spot instances:** Cortex supports EC2 spot instances.
-
-- **Rolling updates:** Cortex updates deployed APIs without any downtime.
-
-- **Log streaming:** Cortex streams logs from deployed models to your CLI.
-
-- **Prediction monitoring:** Cortex monitors network metrics and tracks predictions.
-
-- **Minimal configuration:** Deployments are defined in a single `cortex.yaml` file.
+* **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
+* **Multi framework:** Cortex supports TensorFlow, PyTorch, scikit-learn, XGBoost, and more.
+* **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
+* **Spot instances:** Cortex supports EC2 spot instances.
+* **Rolling updates:** Cortex updates deployed APIs without any downtime.
+* **Log streaming:** Cortex streams logs from deployed models to your CLI.
+* **Prediction monitoring:** Cortex monitors network metrics and tracks predictions.
+* **Minimal configuration:** Deployments are defined in a single `cortex.yaml` file.
 
 <br>
 
-## Usage
+## Spinning up a Cortex cluster
+
+Cortex is designed to be self-hosted on any AWS account. You can spin up a Cortex cluster with a single command:
+
+```bash
+$ cortex cluster up
+
+aws region: us-west-2
+aws instance type: p2.xlarge
+min instances: 0
+max instances: 10
+spot instances: yes
+
+￮ spinning up your cluster ...
+your cluster is ready!
+```
+
+## Deploying a model
 
 ### Implement your predictor
 
@@ -98,17 +108,23 @@ negative  4
 
 <br>
 
-## How it works
+## What is Cortex an alternative to?
+
+Cortex is an open source alternative to serving models with SageMaker or building your own model deployment platform on top of AWS services like Elastic Kubernetes Service (EKS), Elastic Container Service (ECS), Lambda, Fargate, and Elastic Compute Cloud (EC2) or open source projects like Docker, Kubernetes, and TensorFlow Serving.
+
+<br>
+
+## How does Cortex work?
 
 The CLI sends configuration and code to the cluster every time you run `cortex deploy`. Each model is loaded into a Docker container, along with any Python packages and request handling code. The model is exposed as a web service using Elastic Load Balancing (ELB), TensorFlow Serving, and ONNX Runtime. The containers are orchestrated on Elastic Kubernetes Service (EKS) while logs and metrics are streamed to CloudWatch.
 
 <br>
 
-## Examples
+## Examples of Cortex deployments
 
 <!-- CORTEX_VERSION_README_MINOR x5 -->
-- [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/sentiment-analyzer) in TensorFlow with BERT
-- [Image classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/image-classifier) in TensorFlow with Inception
-- [Text generation](https://github.com/cortexlabs/cortex/tree/0.11/examples/pytorch/text-generator) in PyTorch with DistilGPT2
-- [Reading comprehension](https://github.com/cortexlabs/cortex/tree/0.11/examples/pytorch/reading-comprehender) in PyTorch with ELMo-BiDAF
-- [Iris classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/sklearn/iris-classifier) in scikit-learn
+* [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/sentiment-analyzer): deploy a BERT model for sentiment analysis.
+* [Image classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/image-classifier): deploy an Inception model to classify images.
+* [Search completion](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/search-completer): deploy Facebook's RoBERTa model to complete search terms.
+* [Text generation](https://github.com/cortexlabs/cortex/tree/0.11/examples/pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
+* [Iris classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/sklearn/iris-classifier): deploy a scikit-learn model to classify iris flowers.
