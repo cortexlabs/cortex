@@ -11,7 +11,6 @@ For example:
     cpu: 1
     gpu: 1
     mem: 1G
-
 ```
 
 CPU, GPU, and memory requests in Cortex correspond to compute resource requests in Kubernetes. In the example above, the API will only be scheduled once 1 CPU, 1GPU, and 1G of memory are available on any instance, and the deployment will be guaranteed to have access to those resources throughout its execution. In some cases, resource requests can be (or may default to) `Null`.

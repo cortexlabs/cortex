@@ -1,7 +1,7 @@
 # API statuses
 
 | Status                | Meaning |
-|-----------------------|---|
+| :--- | :--- |
 | live                  | API is deployed and ready to serve prediction requests (at least one replica is running) |
 | pending               | API is pending |
 | creating              | API is being created |
