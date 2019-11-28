@@ -106,5 +106,5 @@ The CLI sends configuration and code to the cluster every time you run `cortex d
 - [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/sentiment-analyzer) in TensorFlow with BERT
 - [Image classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/image-classifier) in TensorFlow with Inception
 - [Text generation](https://github.com/cortexlabs/cortex/tree/0.11/examples/pytorch/text-generator) in PyTorch with DistilGPT2
-- [Reading comprehension](https://github.com/cortexlabs/cortex/tree/0.11/examples/pytorch/text-generator) in PyTorch with ELMo-BiDAF
+- [Reading comprehension](https://github.com/cortexlabs/cortex/tree/0.11/examples/pytorch/reading-comprehender) in PyTorch with ELMo-BiDAF
 - [Iris classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/sklearn/iris-classifier) in scikit-learn
