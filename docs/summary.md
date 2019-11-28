@@ -1,7 +1,7 @@
-# Summary
+# Table of contents
 
 * [Deploy machine learning models in production](../README.md)
-* [Install](cluster/install.md)
+* [Install](cluster-management/install.md)
 * [Tutorial](../examples/sklearn/iris-classifier/README.md)
 * [GitHub](https://github.com/cortexlabs/cortex)
 * [Examples](https://github.com/cortexlabs/cortex/tree/0.11/examples)  <!-- CORTEX_VERSION_MINOR -->
@@ -19,28 +19,28 @@
 * [Autoscaling](deployments/autoscaling.md)
 * [Prediction monitoring](deployments/prediction-monitoring.md)
 * [Compute](deployments/compute.md)
-* [CLI commands](cluster/cli.md)
 * [API statuses](deployments/statuses.md)
 * [Python client](deployments/python-client.md)
 
 ## Packaging models
 
-* [TensorFlow](packaging/tensorflow.md)
-* [ONNX](packaging/onnx.md)
+* [TensorFlow](packaging-models/tensorflow.md)
+* [ONNX](packaging-models/onnx.md)
 
 ## Dependency management
 
-* [Python packages](dependencies/python-packages.md)
-* [System packages](dependencies/system-packages.md)
+* [Python packages](dependency-management/python-packages.md)
+* [System packages](dependency-management/system-packages.md)
 
 ## Cluster management
 
-* [Cluster configuration](cluster/config.md)
-* [AWS credentials](cluster/aws.md)
-* [Security](cluster/security.md)
-* [Update](cluster/update.md)
-* [Uninstall](cluster/uninstall.md)
+* [CLI commands](cluster-management/cli.md)
+* [Cluster configuration](cluster-management/config.md)
+* [AWS credentials](cluster-management/aws.md)
+* [Security](cluster-management/security.md)
+* [Update](cluster-management/update.md)
+* [Uninstall](cluster-management/uninstall.md)
 
 ## Contributing
 
-* [Development](development.md)
+* [Development](contributing/development.md)
