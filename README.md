@@ -43,6 +43,8 @@ spot instances: yes
 your cluster is ready!
 ```
 
+<br>
+
 ## Deploying a model
 
 ### Implement your predictor
