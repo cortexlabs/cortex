@@ -84,4 +84,4 @@ tensorflow-hub==0.7.0  # TensorFlow runtime only
 tensorflow==2.0.0  # TensorFlow runtime only
 ```
 
-Learn how to install additional packages [here](../dependencies/python-packages.md).
+Learn how to install additional packages [here](../dependency-management/python-packages.md).

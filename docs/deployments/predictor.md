@@ -154,4 +154,4 @@ torchvision==0.4.2
 xgboost==0.90
 ```
 
-Learn how to install additional packages [here](../dependencies/python-packages.md).
+Learn how to install additional packages [here](../dependency-management/python-packages.md).

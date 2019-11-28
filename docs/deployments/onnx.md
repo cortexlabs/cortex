@@ -26,7 +26,7 @@ Deploy ONNX models as web services.
     mem: <string>  # memory request per replica (default: Null)
 ```
 
-See [packaging ONNX models](../packaging/onnx.md) for information about exporting ONNX models.
+See [packaging ONNX models](../packaging-models/onnx.md) for information about exporting ONNX models.
 
 ## Example
 
