@@ -60,7 +60,7 @@ spot_config:
   max_price: 0.096
 
   # number of spot instance pools across which to allocate spot instances [1, 20] (default: 2)
-  spot_instance_pools: 2
+  instance_pools: 2
 
 # docker image paths
 image_predictor_serve: cortexlabs/predictor-serve:0.11.0
