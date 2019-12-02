@@ -58,11 +58,11 @@ $ python3 trainer.py
 # predictor.py
 
 import pickle
-import numpy
+import numpy as np
 
 
 model = None
-labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
+labels = ["setosa", "versicolor", "virginica"]
 
 
 def init(model_path, metadata):
@@ -71,16 +71,14 @@ def init(model_path, metadata):
 
 
 def predict(sample, metadata):
-    input_array = numpy.array(
-        [
-            sample["sepal_length"],
-            sample["sepal_width"],
-            sample["petal_length"],
-            sample["petal_width"],
-        ]
-    )
+    measurements = [
+        sample["sepal_length"],
+        sample["sepal_width"],
+        sample["petal_length"],
+        sample["petal_width"],
+    ]
 
-    label_id = model.predict([input_array])[0]
+    label_id = model.predict(np.array([measurements]))[0]
     return labels[label_id]
 ```
 
@@ -153,7 +151,7 @@ $ curl http://***.amazonaws.com/iris/classifier \
     -X POST -H "Content-Type: application/json" \
     -d '{"sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3}'
 
-"iris-setosa"
+"setosa"
 ```
 
 <br>
@@ -214,7 +212,7 @@ This model is fairly small but larger models may require more compute resources.
   tracker:
     model_type: classification
   compute:
-    cpu: 1
+    cpu: 0.5
     mem: 1G
 ```
 
@@ -257,7 +255,7 @@ If you trained another model and want to A/B test it with your previous model, s
   tracker:
     model_type: classification
   compute:
-    cpu: 1
+    cpu: 0.5
     mem: 1G
 
 - kind: api
@@ -268,7 +266,7 @@ If you trained another model and want to A/B test it with your previous model, s
   tracker:
     model_type: classification
   compute:
-    cpu: 1
+    cpu: 0.5
     mem: 1G
 ```
 
@@ -286,8 +284,126 @@ creating another-classifier api
 $ cortex get --watch
 
 api                  status   up-to-date   available   requested   last update
-another-classifier   live     1            1           1           8s
 classifier           live     1            1           1           5m
+another-classifier   live     1            1           1           8s
+```
+
+## Add a batch API
+
+First, implement `batch-predictor.py` with a `predict` function that can process an array of samples:
+
+```python
+# batch-predictor.py
+
+import pickle
+import numpy as np
+
+
+model = None
+labels = ["setosa", "versicolor", "virginica"]
+
+
+def init(model_path, metadata):
+    global model
+    model = pickle.load(open(model_path, "rb"))
+
+
+def predict(sample, metadata):
+    measurements = [
+        [s["sepal_length"], s["sepal_width"], s["petal_length"], s["petal_width"]] for s in sample
+    ]
+
+    label_ids = model.predict(np.array(measurements))
+    return [labels[label_id] for label_id in label_ids]
+```
+
+Next, add the `api` to `cortex.yaml`:
+
+```yaml
+- kind: deployment
+  name: iris
+
+- kind: api
+  name: classifier
+  predictor:
+    path: predictor.py
+    model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+  tracker:
+    model_type: classification
+  compute:
+    cpu: 0.5
+    mem: 1G
+
+- kind: api
+  name: another-classifier
+  predictor:
+    path: predictor.py
+    model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
+  tracker:
+    model_type: classification
+  compute:
+    cpu: 0.5
+    mem: 1G
+
+
+- kind: api
+  name: batch-classifier
+  predictor:
+    path: batch-predictor.py
+    model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+  compute:
+    cpu: 0.5
+    mem: 1G
+```
+
+Run `cortex deploy` to create the batch API:
+
+```bash
+$ cortex deploy
+
+creating batch-classifier api
+```
+
+`cortex get` should show all three APIs now:
+
+```bash
+$ cortex get --watch
+
+api                  status   up-to-date   available   requested   last update
+classifier           live     1            1           1           10m
+another-classifier   live     1            1           1           5m
+batch-classifier     live     1            1           1           8s
+```
+
+<br>
+
+## Try a batch prediction
+
+```bash
+$ curl http://***.amazonaws.com/iris/classifier \
+    -X POST -H "Content-Type: application/json" \
+    -d '[
+          {
+        		"sepal_length": 5.2,
+        		"sepal_width": 3.6,
+        		"petal_length": 1.5,
+        		"petal_width": 0.3
+        	},
+        	{
+        		"sepal_length": 7.1,
+        		"sepal_width": 3.3,
+        		"petal_length": 4.8,
+        		"petal_width": 1.5
+        	},
+        	{
+        		"sepal_length": 6.4,
+        		"sepal_width": 3.4,
+        		"petal_length": 6.1,
+        		"petal_width": 2.6
+        	}
+        ]'
+
+["setosa","versicolor","virginica"]
 ```
 
 <br>
@@ -301,6 +417,7 @@ $ cortex delete
 
 deleting classifier api
 deleting another-classifier api
+deleting batch-classifier api
 ```
 
 Running `cortex delete` will free up cluster resources and allow Cortex to scale down to the minimum number of instances you specified during cluster installation. It will not spin down your cluster.
