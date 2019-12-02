@@ -13,11 +13,8 @@ def init(model_path, metadata):
 
 def predict(sample, metadata):
     measurements = [
-        sample["sepal_length"],
-        sample["sepal_width"],
-        sample["petal_length"],
-        sample["petal_width"],
+        [s["sepal_length"], s["sepal_width"], s["petal_length"], s["petal_width"]] for s in sample
     ]
 
-    label_id = model.predict(np.array([measurements]))[0]
-    return labels[label_id]
+    label_ids = model.predict(np.array(measurements))
+    return [labels[label_id] for label_id in label_ids]
