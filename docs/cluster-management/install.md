@@ -11,10 +11,10 @@ See [cluster configuration](config.md) to learn how you can customize your clust
 
 <!-- CORTEX_VERSION_MINOR -->
 ```bash
-# install the Cortex CLI on your machine
+# install the CLI on your machine
 bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
 
-# provision infrastructure on AWS and install Cortex
+# provision infrastructure on AWS and spin up a cluster
 cortex cluster up
 ```
 

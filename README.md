@@ -1,6 +1,6 @@
 # Deploy machine learning models in production
 
-Cortex is an open source platform for deploying machine learning models—trained with nearly any framework—as production web services.
+Cortex is an open source platform for deploying machine learning models as production web services.
 
 <br>
 
@@ -15,29 +15,34 @@ Cortex is an open source platform for deploying machine learning models—traine
 
 ## Key features
 
-* **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
 * **Multi framework:** Cortex supports TensorFlow, PyTorch, scikit-learn, XGBoost, and more.
+* **Autoscaling:** Cortex automatically scales APIs to handle production workloads.
 * **CPU / GPU support:** Cortex can run inference on CPU or GPU infrastructure.
 * **Spot instances:** Cortex supports EC2 spot instances.
 * **Rolling updates:** Cortex updates deployed APIs without any downtime.
 * **Log streaming:** Cortex streams logs from deployed models to your CLI.
 * **Prediction monitoring:** Cortex monitors network metrics and tracks predictions.
-* **Minimal configuration:** Deployments are defined in a single `cortex.yaml` file.
+* **Minimal configuration:** deployments are defined in a single `cortex.yaml` file.
 
 <br>
 
-## Spinning up a Cortex cluster
+## Spinning up a cluster
 
-Cortex is designed to be self-hosted on any AWS account. You can spin up a Cortex cluster with a single command:
+Cortex is designed to be self-hosted on any AWS account. You can spin up a cluster with a single command:
 
+<!-- CORTEX_VERSION_README_MINOR -->
 ```bash
+# install the CLI on your machine
+$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.11/get-cli.sh)"
+
+# provision infrastructure on AWS and spin up a cluster
 $ cortex cluster up
 
 aws region: us-west-2
 aws instance type: p2.xlarge
+spot instances: yes
 min instances: 0
 max instances: 10
-spot instances: yes
 
 ￮ spinning up your cluster ...
 your cluster is ready!
@@ -110,9 +115,9 @@ negative  4
 
 <br>
 
-## What is Cortex an alternative to?
+## What is Cortex similar to?
 
-Cortex is an open source alternative to serving models with SageMaker or building your own model deployment platform on top of AWS services like Elastic Kubernetes Service (EKS), Elastic Container Service (ECS), Lambda, Fargate, and Elastic Compute Cloud (EC2) or open source projects like Docker, Kubernetes, and TensorFlow Serving.
+Cortex is an open source alternative to serving models with SageMaker or building your own model deployment platform on top of AWS services like Elastic Kubernetes Service (EKS), Elastic Container Service (ECS), Lambda, Fargate, and Elastic Compute Cloud (EC2) and open source projects like Docker, Kubernetes, and TensorFlow Serving.
 
 <br>
 

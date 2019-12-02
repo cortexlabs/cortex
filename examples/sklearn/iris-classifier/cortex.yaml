@@ -9,7 +9,7 @@
   tracker:
     model_type: classification
   compute:
-    cpu: 1
+    cpu: 0.5
     mem: 1G
 
 - kind: api
@@ -20,5 +20,14 @@
   tracker:
     model_type: classification
   compute:
-    cpu: 1
+    cpu: 0.5
+    mem: 1G
+
+- kind: api
+  name: batch-classifier
+  predictor:
+    path: batch-predictor.py
+    model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+  compute:
+    cpu: 0.5
     mem: 1G
