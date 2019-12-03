@@ -179,7 +179,9 @@ def run_predict(payload, debug=False):
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         try:
             prepared_payload = request_handler.pre_inference(
-                payload, local_cache["model_metadata"]["signatureDef"], api["tensorflow"]["metadata"]
+                payload,
+                local_cache["model_metadata"]["signatureDef"],
+                api["tensorflow"]["metadata"],
             )
             debug_obj("pre_inference", prepared_payload, debug)
         except Exception as e:
