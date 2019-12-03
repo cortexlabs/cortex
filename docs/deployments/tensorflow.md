@@ -45,7 +45,7 @@ See [packaging TensorFlow models](../packaging-models/tensorflow.md) for how to 
 
 You can log information about each request by adding a `?debug=true` parameter to your requests. This will print:
 
-1. The raw payload
+1. The payload
 2. The value after running the `pre_inference` function (if provided)
 3. The value after running inference
 4. The value after running the `post_inference` function (if provided)

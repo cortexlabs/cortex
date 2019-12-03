@@ -310,7 +310,13 @@ def init(model_path, metadata):
 
 def predict(payload, metadata):
     measurements = [
-        [s["sepal_length"], s["sepal_width"], s["petal_length"], s["petal_width"]] for s in payload
+        [
+            sample["sepal_length"],
+            sample["sepal_width"],
+            sample["petal_length"],
+            sample["petal_width"],
+        ]
+        for sample in payload
     ]
 
     label_ids = model.predict(np.array(measurements))
