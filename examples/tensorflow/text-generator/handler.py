@@ -3,8 +3,8 @@ from encoder import get_encoder
 encoder = get_encoder()
 
 
-def pre_inference(sample, signature, metadata):
-    context = encoder.encode(sample["text"])
+def pre_inference(payload, signature, metadata):
+    context = encoder.encode(payload["text"])
     return {"context": [context]}
 
 

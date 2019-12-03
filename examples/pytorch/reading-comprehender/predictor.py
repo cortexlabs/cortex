@@ -6,6 +6,6 @@ predictor = Predictor.from_path(
 )
 
 
-def predict(sample, metadata):
-    prediction = predictor.predict(passage=sample["passage"], question=sample["question"])
+def predict(payload, metadata):
+    prediction = predictor.predict(passage=payload["passage"], question=payload["question"])
     return prediction["best_span_str"]

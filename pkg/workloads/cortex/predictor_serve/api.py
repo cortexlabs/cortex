@@ -77,7 +77,7 @@ def predict():
     debug = request.args.get("debug", "false").lower() == "true"
 
     try:
-        sample = request.get_json()
+        payload = request.get_json()
     except:
         return "malformed json", status.HTTP_400_BAD_REQUEST
 
@@ -86,8 +86,8 @@ def predict():
 
     try:
         try:
-            debug_obj("sample", sample, debug)
-            output = predictor.predict(sample, api["predictor"]["metadata"])
+            debug_obj("payload", payload, debug)
+            output = predictor.predict(payload, api["predictor"]["metadata"])
             debug_obj("prediction", output, debug)
         except Exception as e:
             raise UserRuntimeException(api["predictor"]["path"], "predict", str(e)) from e
