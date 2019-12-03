@@ -17,6 +17,6 @@
 export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
 
 if [ -f "/mnt/project/requirements.txt" ]; then
-    pip install -r /mnt/project/requirements.txt
+    pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 /usr/bin/python3.6 /src/cortex/onnx_serve/api.py "$@"
