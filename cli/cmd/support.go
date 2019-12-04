@@ -69,7 +69,7 @@ var supportCmd = &cobra.Command{
 			initTelemetry()
 		}
 
-		telemetry.RecordEmail(clientID(), supportRequest.EmailAddress)
+		telemetry.RecordEmail(supportRequest.EmailAddress)
 		telemetry.ReportEvent("cli.support", map[string]interface{}{
 			"message": supportRequest.Body,
 			"email":   supportRequest.EmailAddress,

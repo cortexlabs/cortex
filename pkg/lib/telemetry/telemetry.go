@@ -130,25 +130,25 @@ func ReportError(err error) {
 	})
 }
 
-func RecordEmail(userID string, email string) {
+func RecordEmail(email string) {
 	if _config == nil {
 		return
 	}
 
 	_segment.Enqueue(analytics.Identify{
-		UserId: userID,
+		UserId: _config.UserID,
 		Traits: analytics.NewTraits().
 			SetEmail(email),
 	})
 }
 
-func RecordOperatorID(userID string, operatorID string) {
+func RecordOperatorID(clientID string, operatorID string) {
 	if _config == nil {
 		return
 	}
 
 	_segment.Enqueue(analytics.Identify{
-		UserId: userID,
+		UserId: clientID,
 		Traits: analytics.NewTraits().
 			Set("operator_id", operatorID),
 	})

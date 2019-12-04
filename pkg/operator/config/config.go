@@ -67,7 +67,7 @@ func Init() error {
 		Enable:          Cluster.Telemetry,
 		UserID:          AWS.HashedAccountID,
 		Environment:     "operator",
-		ShouldLogErrors: false,
+		ShouldLogErrors: true,
 	})
 	if err != nil {
 		fmt.Println(err.Error())

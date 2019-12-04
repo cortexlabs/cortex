@@ -231,7 +231,7 @@ func promptForEmail() {
 			initTelemetry()
 		}
 
-		telemetry.RecordEmail(clientID(), *emailAddressContainer.EmailAddress)
+		telemetry.RecordEmail(*emailAddressContainer.EmailAddress)
 
 		if !isTelemetryEnabled() {
 			telemetry.Close()
