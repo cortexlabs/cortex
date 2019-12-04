@@ -17,7 +17,6 @@ limitations under the License.
 package telemetry
 
 import (
-	"fmt"
 	"os"
 	"time"
 
@@ -105,8 +104,6 @@ func Init(telemetryConfig Config) error {
 }
 
 func ReportEvent(name string, properties map[string]interface{}) {
-	fmt.Println("RECORDING EVENT:", name)
-
 	if _config == nil {
 		return
 	}
@@ -123,8 +120,6 @@ func ReportEvent(name string, properties map[string]interface{}) {
 }
 
 func ReportError(err error) {
-	fmt.Println("RECORDING ERROR:", err.Error())
-
 	if err == nil || _config == nil {
 		return
 	}
@@ -137,8 +132,6 @@ func ReportError(err error) {
 }
 
 func RecordEmail(userID string, email string) {
-	fmt.Println("RECORDING EMAIL:", email)
-
 	if _config == nil {
 		return
 	}
@@ -151,8 +144,6 @@ func RecordEmail(userID string, email string) {
 }
 
 func RecordOperatorID(userID string, operatorID string) {
-	fmt.Println("RECORDING OPERATOR ID:", operatorID)
-
 	if _config == nil {
 		return
 	}
