@@ -195,9 +195,9 @@ func TestFlattenInterfaceSlices(t *testing.T) {
 	in2 := [][]interface{}{in}
 	require.Equal(t, expected, FlattenInterfaceSlices(in2))
 
-	in3 := [][]interface{}{[]interface{}{"a"}, []interface{}{"b", "c"}}
+	in3 := [][]interface{}{{"a"}, {"b", "c"}}
 	require.Equal(t, expected, FlattenInterfaceSlices(in3))
 
-	in4 := [][]interface{}{[]interface{}{"a"}, []interface{}{[]interface{}{"b"}, "c"}}
+	in4 := [][]interface{}{{"a"}, {[]interface{}{"b"}, "c"}}
 	require.Equal(t, expected, FlattenInterfaceSlices(in4))
 }
