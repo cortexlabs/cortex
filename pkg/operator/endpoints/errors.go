@@ -141,7 +141,7 @@ func ErrorAuthOtherAccount() error {
 func ErrorAppNotDeployed(appName string) error {
 	return Error{
 		Kind:    ErrAppNotDeployed,
-		message: fmt.Sprintf("%s is not deployed", s.UserStr(appName)),
+		message: fmt.Sprintf("%s is not deployed", appName),
 	}
 }
 
