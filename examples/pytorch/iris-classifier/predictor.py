@@ -14,14 +14,14 @@ def init(model_path, metadata):
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
-def predict(sample, metadata):
+def predict(payload, metadata):
     input_tensor = torch.FloatTensor(
         [
             [
-                sample["sepal_length"],
-                sample["sepal_width"],
-                sample["petal_length"],
-                sample["petal_width"],
+                payload["sepal_length"],
+                payload["sepal_width"],
+                payload["petal_length"],
+                payload["petal_width"],
             ]
         ]
     )

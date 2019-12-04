@@ -29,7 +29,7 @@ for example in $ROOT/examples/*/cortex.yaml; do
   $CORTEX deploy --refresh
 
   api_names="$($CORTEX get | sed '1,2d' | sed '/^$/d' | tr -s ' ' | cut -f 1 -d " ")"
-  sample="$(find . -name "*.json")"
+  payload="$(find . -name "*.json")"
 
   while true; do
     current_status="$($CORTEX status)"
@@ -48,8 +48,8 @@ for example in $ROOT/examples/*/cortex.yaml; do
 
     if [ "$ready_count" == "$total_count" ] && [ $total_count -ne "0" ]; then
       for api_name in $api_names; do
-        echo "Running cx predict $api_name $sample"
-        result="$($CORTEX predict $api_name $sample)"
+        echo "Running cx predict $api_name $payload"
+        result="$($CORTEX predict $api_name $payload)"
         prediction_exit_code=$?
         echo "$result"
         if [ $prediction_exit_code -ne 0 ]; then

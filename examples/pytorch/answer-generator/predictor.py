@@ -23,7 +23,7 @@ def init(model_path, metadata):
     model.to(metadata["device"])
 
 
-def predict(sample, metadata):
-    conditioned_tokens = tokenizer.encode(sample["text"]) + [generator.END_OF_TEXT]
+def predict(payload, metadata):
+    conditioned_tokens = tokenizer.encode(payload["text"]) + [generator.END_OF_TEXT]
     prediction = generator.generate(model, conditioned_tokens, metadata["device"])
     return tokenizer.decode(prediction)
