@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"regexp"
 	"strings"
 	"time"
 
@@ -36,7 +35,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
-	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
@@ -213,21 +211,7 @@ func handleConnection(connection *websocket.Conn, done chan struct{}) {
 			if err != nil {
 				os.Exit(1)
 			}
-
-			lastLogRe := regexp.MustCompile(`^workload: (\w+), completed: (\S+)`)
-			msgStr := string(message)
-			if lastLogRe.MatchString(msgStr) {
-				match := lastLogRe.FindStringSubmatch(msgStr)
-				timestamp, err := time.Parse(time.RFC3339, match[2])
-				if err != nil {
-					fmt.Println(msgStr)
-				} else {
-					timestampHuman := libtime.LocalTimestampHuman(&timestamp)
-					fmt.Println("\nCompleted on " + timestampHuman)
-				}
-			} else {
-				fmt.Println(msgStr)
-			}
+			fmt.Println(string(message))
 		}
 	}()
 }
