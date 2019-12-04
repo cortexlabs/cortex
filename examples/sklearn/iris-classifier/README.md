@@ -190,9 +190,10 @@ $ cortex get classifier --watch
 status   up-to-date   available   requested   last update   avg latency
 live     1            1           1           16s           28ms
 
-class     count
-positive  8
-negative  4
+class        count
+setosa       8
+versicolor   2
+virginica    4
 ```
 
 <br>
@@ -232,9 +233,10 @@ $ cortex get classifier --watch
 status   up-to-date   available   requested   last update   avg latency
 live     1            1           1           16s           24 ms
 
-class     count
-positive  8
-negative  4
+class        count
+setosa       8
+versicolor   2
+virginica    4
 ```
 
 <br>
