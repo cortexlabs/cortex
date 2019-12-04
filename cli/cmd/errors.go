@@ -129,9 +129,12 @@ func ErrorFailedConnectURL(url url.URL) error {
 }
 
 func ErrorFailedToConnectOperator(urlStr string) error {
+	if urlStr != "" {
+		urlStr = fmt.Sprintf(" (%s)", urlStr)
+	}
 	return Error{
 		Kind:    ErrFailedToConnectOperator,
-		message: fmt.Sprintf("failed to connect to the operator (%s), run `cortex configure` if you need to update the operator endpoint", urlStr),
+		message: fmt.Sprintf("failed to connect to the operator%s, run `cortex configure` if you need to update the operator endpoint", urlStr),
 	}
 }
 

@@ -191,7 +191,7 @@ func StreamLogs(appName string, resourceName string, resourceType string) error 
 	if response == nil {
 		cliEnvConfig, _ := readCLIEnvConfig(flagEnv)
 		if cliEnvConfig == nil {
-			cliEnvConfig = &CLIEnvConfig{}
+			return ErrorFailedToConnectOperator("")
 		}
 		return ErrorFailedToConnectOperator(strings.Replace(cliEnvConfig.OperatorEndpoint, "http", "ws", 1))
 	}
@@ -202,7 +202,7 @@ func StreamLogs(appName string, resourceName string, resourceType string) error 
 		if err != nil || bodyBytes == nil || string(bodyBytes) == "" {
 			cliEnvConfig, _ := readCLIEnvConfig(flagEnv)
 			if cliEnvConfig == nil {
-				cliEnvConfig = &CLIEnvConfig{}
+				return ErrorFailedToConnectOperator("")
 			}
 			return ErrorFailedToConnectOperator(strings.Replace(cliEnvConfig.OperatorEndpoint, "http", "ws", 1))
 		}
@@ -300,10 +300,7 @@ func (client *cortexClient) makeRequest(request *http.Request) ([]byte, error) {
 	response, err := client.Do(request)
 	if err != nil {
 		cliEnvConfig, _ := readCLIEnvConfig(flagEnv)
-		if cliEnvConfig == nil {
-			cliEnvConfig = &CLIEnvConfig{}
-		}
-		if strings.HasPrefix(request.URL.String(), cliEnvConfig.OperatorEndpoint) {
+		if cliEnvConfig != nil && strings.HasPrefix(request.URL.String(), cliEnvConfig.OperatorEndpoint) {
 			return nil, ErrorFailedToConnectOperator(cliEnvConfig.OperatorEndpoint)
 		}
 		return nil, ErrorFailedConnectURL(*request.URL)
