@@ -98,6 +98,7 @@ format:
 # Tests #
 #########
 
+.PHONY: test
 test:
 	@./build/test.sh
 
