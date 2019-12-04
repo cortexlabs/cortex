@@ -46,12 +46,16 @@ var configureCmd = &cobra.Command{
 			}
 
 			if cliEnvConfig == nil {
-				fmt.Println()
-				fmt.Printf("cli is not configured")
-				return
+				if flagEnv == "default" {
+					telemetry.ExitErr("cli is not configured; run `cortex configure`")
+				} else {
+					telemetry.ExitErr(fmt.Sprintf("cli is not configured; run `cortex configure --env=%s`", flagEnv))
+				}
 			}
 
-			fmt.Println()
+			if flagEnv != "default" {
+				fmt.Printf("environment:              %s\n", flagEnv)
+			}
 			fmt.Printf("cortex operator endpoint: %s\n", cliEnvConfig.OperatorEndpoint)
 			fmt.Printf("aws access key id:        %s\n", cliEnvConfig.AWSAccessKeyID)
 			fmt.Printf("aws secret access key:    %s\n", s.MaskString(cliEnvConfig.AWSSecretAccessKey, 4))

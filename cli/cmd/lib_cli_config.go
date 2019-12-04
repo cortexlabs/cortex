@@ -210,7 +210,9 @@ func configureCLIEnv(environment string) (*CLIEnvConfig, error) {
 	}
 
 	cliEnvConfig := &CLIEnvConfig{}
-	fmt.Println("environment: " + environment + "\n")
+	if environment != "default" {
+		fmt.Println("environment: " + environment + "\n")
+	}
 	err = cr.ReadPrompt(cliEnvConfig, cliEnvPromptValidation(prevCLIEnvConfig))
 	if err != nil {
 		return nil, err
