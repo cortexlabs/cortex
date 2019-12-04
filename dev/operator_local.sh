@@ -26,7 +26,10 @@ eval $(python3 $ROOT/manager/cluster_config_env.py "$ROOT/dev/config/cluster.yam
 python3 $ROOT/manager/update_cli_config.py "$HOME/.cortex/cli.yaml" "default" "http://localhost:8888" "$CORTEX_AWS_ACCESS_KEY_ID" "$CORTEX_AWS_SECRET_ACCESS_KEY"
 
 cp -r $ROOT/dev/config/cluster.yaml ~/.cortex/cluster-local.yaml
-if grep -qiP '^telemetry:\s*false\s*$' ~/.cortex/cli.yaml; then
+
+if [ "$CORTEX_DISABLE_TELEMETRY" = "true" ]; then
+  echo "telemetry: false" >> ~/.cortex/cluster-local.yaml
+elif grep -qiP '^telemetry:\s*false\s*$' ~/.cortex/cli.yaml; then
   echo "telemetry: false" >> ~/.cortex/cluster-local.yaml
 fi
 

@@ -146,6 +146,10 @@ func cliEnvPromptValidation(defaults *CLIEnvConfig) *cr.PromptValidation {
 }
 
 func readTelemetryConfig() (bool, error) {
+	if os.Getenv("CORTEX_DISABLE_TELEMETRY") == "true" {
+		return false, nil
+	}
+
 	cliConfig, err := readCLIConfig()
 	if err != nil {
 		return false, err
