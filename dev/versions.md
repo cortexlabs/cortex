@@ -21,6 +21,7 @@
    * Linux:
      1. `wget https://dl.google.com/go/go1.12.9.linux-amd64.tar.gz`
      1. `tar -xvf go1.12.9.linux-amd64.tar.gz`
+     1. `sudo rm -rf /usr/local/go`
      1. `sudo mv -f go /usr/local`
      1. `rm go1.12.9.linux-amd64.tar.gz`
      1. refresh shell
