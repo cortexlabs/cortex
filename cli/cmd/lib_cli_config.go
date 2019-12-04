@@ -163,7 +163,7 @@ func isTelemetryEnabled() bool {
 	return enabled
 }
 
-// May return nil, or error
+// May return nil if not configured
 func readCLIEnvConfig(environment string) (*CLIEnvConfig, error) {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
@@ -188,59 +188,58 @@ func isCLIEnvConfigured(environment string) (bool, error) {
 	return cliEnvConfig != nil, nil
 }
 
-// Will not return nil (may still return error)
-func readOrConfigureCLIEnv(environment string) (*CLIEnvConfig, error) {
-	prevCLIEnvConfig, err := readCLIEnvConfig(environment)
+func readOrConfigureCLIEnv(environment string) (CLIEnvConfig, error) {
+	currentCLIEnvConfig, err := readCLIEnvConfig(environment)
 	if err != nil {
-		return nil, err
+		return CLIEnvConfig{}, err
 	}
 
-	if prevCLIEnvConfig != nil {
-		return prevCLIEnvConfig, nil
+	if currentCLIEnvConfig != nil {
+		return *currentCLIEnvConfig, nil
 	}
 
 	return configureCLIEnv(environment)
 }
 
-// Will not return nil (may still return error)
-func configureCLIEnv(environment string) (*CLIEnvConfig, error) {
+func configureCLIEnv(environment string) (CLIEnvConfig, error) {
 	prevCLIEnvConfig, err := readCLIEnvConfig(environment)
 	if err != nil {
-		return nil, err
+		return CLIEnvConfig{}, err
 	}
 
-	cliEnvConfig := &CLIEnvConfig{}
 	if environment != "default" {
 		fmt.Println("environment: " + environment + "\n")
 	}
-	err = cr.ReadPrompt(cliEnvConfig, cliEnvPromptValidation(prevCLIEnvConfig))
+
+	cliEnvConfig := CLIEnvConfig{}
+	err = cr.ReadPrompt(&cliEnvConfig, cliEnvPromptValidation(prevCLIEnvConfig))
 	if err != nil {
-		return nil, err
+		return CLIEnvConfig{}, err
 	}
 
 	cliEnvConfig.Name = environment
 
-	if err := addEnvToCLIConfig(*cliEnvConfig); err != nil {
-		return nil, err
+	if err := addEnvToCLIConfig(cliEnvConfig); err != nil {
+		return CLIEnvConfig{}, err
 	}
 
 	return cliEnvConfig, nil
 }
 
-func readCLIConfig() (*CLIConfig, error) {
+func readCLIConfig() (CLIConfig, error) {
 	if __cachedCLIConfig != nil {
-		return __cachedCLIConfig, __cachedCLIConfigErr
+		return *__cachedCLIConfig, __cachedCLIConfigErr
 	}
 
 	if !files.IsFile(_cliConfigPath) {
-		// add empty file so that the file output by manager container maintains current user permissions
+		// add empty file so that the file created by the manager container maintains current user permissions
 		files.MakeEmptyFile(_cliConfigPath)
 
 		__cachedCLIConfigErr = nil
 		__cachedCLIConfig = &CLIConfig{
 			Telemetry: true,
 		}
-		return __cachedCLIConfig, nil
+		return *__cachedCLIConfig, nil
 	}
 
 	__cachedCLIConfig = &CLIConfig{}
@@ -248,7 +247,7 @@ func readCLIConfig() (*CLIConfig, error) {
 	if errors.HasErrors(errs) {
 		__cachedCLIConfigErr = errors.FirstError(errs...)
 		__cachedCLIConfig = nil
-		return nil, __cachedCLIConfigErr
+		return CLIConfig{}, __cachedCLIConfigErr
 	}
 
 	envNames := strset.New()
@@ -256,12 +255,13 @@ func readCLIConfig() (*CLIConfig, error) {
 		if envNames.Has(cliEnvConfig.Name) {
 			__cachedCLIConfigErr = errors.Wrap(ErrorDuplicateCLIEnvNames(cliEnvConfig.Name), _cliConfigPath, "environments")
 			__cachedCLIConfig = nil
-			return nil, __cachedCLIConfigErr
+			return CLIConfig{}, __cachedCLIConfigErr
 		}
+		envNames.Add(cliEnvConfig.Name)
 	}
 
 	__cachedCLIConfigErr = nil
-	return __cachedCLIConfig, nil
+	return *__cachedCLIConfig, nil
 }
 
 func addEnvToCLIConfig(newCLIEnvConfig CLIEnvConfig) error {
@@ -291,7 +291,7 @@ func addEnvToCLIConfig(newCLIEnvConfig CLIEnvConfig) error {
 		return err
 	}
 
-	__cachedCLIConfig = cliConfig
+	__cachedCLIConfig = &cliConfig
 	__cachedCLIConfigErr = nil
 	return nil
 }
