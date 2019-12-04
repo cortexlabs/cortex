@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
@@ -43,17 +44,19 @@ var predictCmd = &cobra.Command{
 	Short: "make a prediction request using a json file",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
+		telemetry.ReportEvent("cli.predict", nil)
+
 		apiName := args[0]
 		sampleJSONPath := args[1]
 
 		appName, err := AppNameFromFlagOrConfig()
 		if err != nil {
-			errors.Exit(err)
+			telemetry.ExitErr(err)
 		}
 
 		resourcesRes, err := getResourcesResponse(appName)
 		if err != nil {
-			errors.Exit(err)
+			telemetry.ExitErr(err)
 		}
 
 		apiGroupStatus := resourcesRes.APIGroupStatuses[apiName]
@@ -64,18 +67,18 @@ var predictCmd = &cobra.Command{
 			for name := range resourcesRes.APIGroupStatuses {
 				if strings.HasPrefix(name, apiName) {
 					if matchedName != "" {
-						errors.Exit(ErrorAPINotFound(apiName)) // duplicates
+						telemetry.ExitErr(ErrorAPINotFound(apiName)) // duplicates
 					}
 					matchedName = name
 				}
 			}
 
 			if matchedName == "" {
-				errors.Exit(ErrorAPINotFound(apiName))
+				telemetry.ExitErr(ErrorAPINotFound(apiName))
 			}
 
 			if resourcesRes.Context.APIs[matchedName] == nil {
-				errors.Exit(ErrorAPINotFound(apiName))
+				telemetry.ExitErr(ErrorAPINotFound(apiName))
 			}
 
 			apiGroupStatus = resourcesRes.APIGroupStatuses[matchedName]
@@ -84,11 +87,11 @@ var predictCmd = &cobra.Command{
 
 		api := resourcesRes.Context.APIs[apiName]
 		if api == nil {
-			errors.Exit(ErrorAPINotFound(apiName))
+			telemetry.ExitErr(ErrorAPINotFound(apiName))
 		}
 
 		if apiGroupStatus.ActiveStatus == nil {
-			errors.Exit(ErrorAPINotReady(apiName, apiGroupStatus.Message()))
+			telemetry.ExitErr(ErrorAPINotReady(apiName, apiGroupStatus.Message()))
 		}
 
 		apiURL := urls.Join(resourcesRes.APIsBaseURL, *api.Endpoint)
@@ -98,14 +101,14 @@ var predictCmd = &cobra.Command{
 		predictResponse, err := makePredictRequest(apiURL, sampleJSONPath)
 		if err != nil {
 			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
-				errors.Exit(ErrorAPINotReady(apiName, "creating"))
+				telemetry.ExitErr(ErrorAPINotReady(apiName, "creating"))
 			}
-			errors.Exit(err)
+			telemetry.ExitErr(err)
 		}
 
 		prettyResp, err := json.Pretty(predictResponse)
 		if err != nil {
-			errors.Exit(err)
+			telemetry.ExitErr(err)
 		}
 		fmt.Println(prettyResp)
 	},
@@ -114,7 +117,7 @@ var predictCmd = &cobra.Command{
 func makePredictRequest(apiURL string, sampleJSONPath string) (interface{}, error) {
 	sampleBytes, err := files.ReadFileBytes(sampleJSONPath)
 	if err != nil {
-		errors.Exit(err)
+		telemetry.ExitErr(err)
 	}
 	payload := bytes.NewBuffer(sampleBytes)
 	req, err := http.NewRequest("POST", apiURL, payload)

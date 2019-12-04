@@ -775,3 +775,23 @@ func IsScalarType(in interface{}) bool {
 
 	return false
 }
+
+func FlattenInterfaceSlices(in ...interface{}) []interface{} {
+	var result []interface{}
+
+	for _, item := range in {
+		if item == nil {
+			result = append(result, nil)
+			continue
+		}
+		if subItems, ok := InterfaceToInterfaceSlice(item); ok {
+			if len(subItems) != 0 {
+				result = append(result, FlattenInterfaceSlices(subItems...)...)
+			}
+			continue
+		}
+		result = append(result, item)
+	}
+
+	return result
+}

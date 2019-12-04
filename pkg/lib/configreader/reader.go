@@ -82,6 +82,7 @@ type StructValidation struct {
 	StructFieldValidations []*StructFieldValidation
 	Required               bool
 	AllowExplicitNull      bool
+	TreatNullAsEmpty       bool // If explicit null or if it's top level and the file is empty, treat as empty map
 	DefaultNil             bool // If this struct is nested and its key is not defined, set it to nil instead of defaults or erroring (e.g. if any subfields are required)
 	ShortCircuit           bool
 	AllowExtraFields       bool
@@ -91,6 +92,7 @@ type StructListValidation struct {
 	StructValidation  *StructValidation
 	Required          bool
 	AllowExplicitNull bool
+	TreatNullAsEmpty  bool // If explicit null or if it's top level and the file is empty, treat as empty map
 	ShortCircuit      bool
 }
 
@@ -102,6 +104,7 @@ type InterfaceStructValidation struct {
 	Parser                     func(string) (interface{}, error)
 	Required                   bool
 	AllowExplicitNull          bool
+	TreatNullAsEmpty           bool // If explicit null or if it's top level and the file is empty, treat as empty map
 	ShortCircuit               bool
 	AllowExtraFields           bool
 }
@@ -115,6 +118,7 @@ type InterfaceStructListValidation struct {
 	InterfaceStructValidation *InterfaceStructValidation
 	Required                  bool
 	AllowExplicitNull         bool
+	TreatNullAsEmpty          bool // If explicit null or if it's top level and the file is empty, treat as empty map
 	ShortCircuit              bool
 }
 
@@ -124,10 +128,14 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 	var ok bool
 
 	if inter == nil {
-		if !v.AllowExplicitNull {
-			return []error{ErrorCannotBeNull()}
+		if v.TreatNullAsEmpty {
+			inter = make(map[interface{}]interface{}, 0)
+		} else {
+			if !v.AllowExplicitNull {
+				return []error{ErrorCannotBeNull()}
+			}
+			return nil
 		}
-		return nil
 	}
 
 	interMap, ok := cast.InterfaceToStrInterfaceMap(inter)
@@ -364,10 +372,14 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 
 func StructList(dest interface{}, inter interface{}, v *StructListValidation) (interface{}, []error) {
 	if inter == nil {
-		if !v.AllowExplicitNull {
-			return nil, []error{ErrorCannotBeNull()}
+		if v.TreatNullAsEmpty {
+			inter = make([]interface{}, 0)
+		} else {
+			if !v.AllowExplicitNull {
+				return nil, []error{ErrorCannotBeNull()}
+			}
+			return nil, nil
 		}
-		return nil, nil
 	}
 
 	interSlice, ok := cast.InterfaceToInterfaceSlice(inter)
@@ -397,10 +409,14 @@ func StructList(dest interface{}, inter interface{}, v *StructListValidation) (i
 
 func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface{}, []error) {
 	if inter == nil {
-		if !v.AllowExplicitNull {
-			return nil, []error{ErrorCannotBeNull()}
+		if v.TreatNullAsEmpty {
+			inter = make(map[interface{}]interface{}, 0)
+		} else {
+			if !v.AllowExplicitNull {
+				return nil, []error{ErrorCannotBeNull()}
+			}
+			return nil, nil
 		}
-		return nil, nil
 	}
 
 	interMap, ok := cast.InterfaceToStrInterfaceMap(inter)
@@ -476,10 +492,14 @@ func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface
 
 func InterfaceStructList(dest interface{}, inter interface{}, v *InterfaceStructListValidation) (interface{}, []error) {
 	if inter == nil {
-		if !v.AllowExplicitNull {
-			return nil, []error{ErrorCannotBeNull()}
+		if v.TreatNullAsEmpty {
+			inter = make([]interface{}, 0)
+		} else {
+			if !v.AllowExplicitNull {
+				return nil, []error{ErrorCannotBeNull()}
+			}
+			return nil, nil
 		}
-		return nil, nil
 	}
 
 	interSlice, ok := cast.InterfaceToInterfaceSlice(inter)
@@ -627,10 +647,14 @@ func StructFromStringMap(dest interface{}, strMap map[string]string, v *StructVa
 	var ok bool
 
 	if strMap == nil {
-		if !v.AllowExplicitNull {
-			return []error{ErrorCannotBeNull()}
+		if v.TreatNullAsEmpty {
+			strMap = make(map[string]string, 0)
+		} else {
+			if !v.AllowExplicitNull {
+				return []error{ErrorCannotBeNull()}
+			}
+			return nil
 		}
-		return nil
 	}
 
 	for _, structFieldValidation := range v.StructFieldValidations {

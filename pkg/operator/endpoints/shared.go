@@ -19,14 +19,14 @@ package endpoints
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 
-	"github.com/gorilla/mux"
+	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/gorilla/mux"
 )
 
 func ResDeploymentDeleted(appName string) string {
@@ -80,7 +80,7 @@ func RespondErrorCode(w http.ResponseWriter, code int, err error, strs ...string
 func RecoverAndRespond(w http.ResponseWriter, strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
-		config.Telemetry.ReportError(err)
+		telemetry.ReportError(err)
 		RespondError(w, err)
 	}
 }

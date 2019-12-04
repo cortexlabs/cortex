@@ -185,3 +185,19 @@ func TestInterfaceToInterfaceInterfaceMap(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, expected, casted)
 }
+
+func TestFlattenInterfaceSlices(t *testing.T) {
+	expected := []interface{}{"a", "b", "c"}
+
+	in := []interface{}{"a", "b", "c"}
+	require.Equal(t, expected, FlattenInterfaceSlices(in))
+
+	in2 := [][]interface{}{in}
+	require.Equal(t, expected, FlattenInterfaceSlices(in2))
+
+	in3 := [][]interface{}{[]interface{}{"a"}, []interface{}{"b", "c"}}
+	require.Equal(t, expected, FlattenInterfaceSlices(in3))
+
+	in4 := [][]interface{}{[]interface{}{"a"}, []interface{}{[]interface{}{"b"}, "c"}}
+	require.Equal(t, expected, FlattenInterfaceSlices(in4))
+}

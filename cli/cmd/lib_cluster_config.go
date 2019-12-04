@@ -29,8 +29,17 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
 
-func readClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig, path string) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, path)
+func readCachedClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig) error {
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, cachedClusterConfigPath)
+	if errors.HasErrors(errs) {
+		return errors.FirstError(errs...)
+	}
+
+	return nil
+}
+
+func readUserClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig) error {
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, flagClusterConfig)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}
@@ -41,19 +50,24 @@ func readClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig, path stri
 func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, error) {
 	clusterConfig := &clusterconfig.ClusterConfig{}
 
-	err := clusterconfig.SetFileDefaults(clusterConfig)
+	err := clusterconfig.SetDefaults(clusterConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	if flagClusterConfig != "" {
-		err := readClusterConfigFile(clusterConfig, flagClusterConfig)
+		err := readUserClusterConfigFile(clusterConfig)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	err = clusterconfig.InstallPrompt(clusterConfig, awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+	if err != nil {
+		return nil, err
+	}
+
+	clusterConfig.Telemetry, err = readTelemetryConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +96,7 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 			return nil, err
 		}
 	} else {
-		err := readClusterConfigFile(userClusterConfig, flagClusterConfig)
+		err := readUserClusterConfigFile(userClusterConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -149,7 +163,13 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 		}
 	}
 
-	err := userClusterConfig.Validate()
+	var err error
+	userClusterConfig.Telemetry, err = readTelemetryConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	err = userClusterConfig.Validate()
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +180,7 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 }
 
 func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) {
-	defaultConfig, _ := clusterconfig.GetFileDefaults()
+	defaultConfig, _ := clusterconfig.GetDefaults()
 
 	var items []table.KV
 	items = append(items, table.KV{K: "aws access key id", V: s.MaskString(awsCreds.AWSAccessKeyID, 4)})

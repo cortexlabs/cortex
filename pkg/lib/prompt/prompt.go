@@ -25,6 +25,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
 var ui = &input.UI{
@@ -66,9 +67,9 @@ func Prompt(opts *Options) string {
 
 	if err != nil {
 		if err.Error() == "interrupted" {
-			errors.Exit()
+			telemetry.ExitErr()
 		}
-		errors.Exit(err)
+		telemetry.ExitErr(err)
 	}
 
 	return val
@@ -89,7 +90,7 @@ func YesOrExit(prompt string, exitMessage string) {
 			if exitMessage != "" {
 				fmt.Println(exitMessage)
 			}
-			os.Exit(1)
+			errors.Exit()
 		}
 
 		fmt.Println("please enter \"y\" or \"n\"")

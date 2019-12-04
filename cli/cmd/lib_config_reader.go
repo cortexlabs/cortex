@@ -20,15 +20,15 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
 func appRootOrBlank() string {
 	dir, err := os.Getwd()
 	if err != nil {
-		errors.Exit(err)
+		telemetry.ExitErr(err)
 	}
 	for true {
 		if err := files.CheckFile(filepath.Join(dir, "cortex.yaml")); err == nil {
@@ -45,7 +45,7 @@ func appRootOrBlank() string {
 func mustAppRoot() string {
 	appRoot := appRootOrBlank()
 	if appRoot == "" {
-		errors.Exit(ErrorCliNotInAppDir())
+		telemetry.ExitErr(ErrorCliNotInAppDir())
 	}
 	return appRoot
 }
@@ -53,7 +53,7 @@ func mustAppRoot() string {
 func yamlPaths(dir string) []string {
 	yamlPaths, err := files.ListDirRecursive(dir, false, files.IgnoreNonYAML)
 	if err != nil {
-		errors.Exit(err)
+		telemetry.ExitErr(err)
 	}
 	return yamlPaths
 }
@@ -61,7 +61,7 @@ func yamlPaths(dir string) []string {
 func pythonPaths(dir string) []string {
 	pyPaths, err := files.ListDirRecursive(dir, false, files.IgnoreNonPython)
 	if err != nil {
-		errors.Exit(err)
+		telemetry.ExitErr(err)
 	}
 	return pyPaths
 }

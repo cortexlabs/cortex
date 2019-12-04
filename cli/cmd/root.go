@@ -30,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 )
 
@@ -39,20 +40,24 @@ var configFileExts = []string{"yaml", "yml"}
 
 var localDir string
 var cachedClusterConfigPath string
+var _cliConfigPath string
+var _clientIDPath string
 
 func init() {
 	homeDir, err := homedir.Dir()
 	if err != nil {
-		errors.Exit(err)
+		telemetry.ExitErr(err)
 	}
 
 	localDir = filepath.Join(homeDir, ".cortex")
 	err = os.MkdirAll(localDir, os.ModePerm)
 	if err != nil {
-		errors.Exit(err)
+		telemetry.ExitErr(err)
 	}
 
 	cachedClusterConfigPath = filepath.Join(localDir, "cluster.yaml")
+	_cliConfigPath = filepath.Join(localDir, "cli.yaml")
+	_clientIDPath = filepath.Join(localDir, "client-id.txt")
 
 	cobra.EnablePrefixMatching = true
 
@@ -63,6 +68,23 @@ func init() {
 		}
 		cmdStr += " " + arg
 	}
+
+	enableTelemetry, err := readTelemetryConfig()
+	if err != nil {
+		telemetry.ExitErr(err)
+	}
+	if enableTelemetry {
+		initTelemetry()
+	}
+}
+
+func initTelemetry() {
+	telemetry.Init(telemetry.Config{
+		Enable:          true,
+		UserID:          clientID(),
+		Environment:     "cli",
+		ShouldLogErrors: false,
+	})
 }
 
 var rootCmd = &cobra.Command{
@@ -93,6 +115,8 @@ func Execute() {
 
 	printLeadingNewLine()
 	rootCmd.Execute()
+
+	telemetry.ExitOk()
 }
 
 func updateRootUsage() {
@@ -171,7 +195,7 @@ func rerun(f func() (string, error)) {
 			nextStr, err := f()
 			if err != nil {
 				fmt.Println()
-				errors.Exit(err)
+				telemetry.ExitErr(err)
 			}
 
 			nextStr = watchHeader() + "\n\n" + nextStr
@@ -208,7 +232,7 @@ func rerun(f func() (string, error)) {
 	} else {
 		str, err := f()
 		if err != nil {
-			errors.Exit(err)
+			telemetry.ExitErr(err)
 		}
 		fmt.Println(str)
 	}

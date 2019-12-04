@@ -21,34 +21,34 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gorilla/mux"
-
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
+	"github.com/gorilla/mux"
 )
 
 const operatorPortStr = "8888"
 
+var __cachedClientIDs = strset.New()
+
 func main() {
 	if err := config.Init(); err != nil {
-		if config.Telemetry != nil {
-			config.Telemetry.ReportErrorBlocking(err)
-		}
-		errors.Exit(err)
-	}
-	if err := workloads.Init(); err != nil {
-		config.Telemetry.ReportErrorBlocking(err)
-		errors.Exit(err)
+		telemetry.Exit(err)
 	}
 
-	config.Telemetry.ReportEvent("operator.init")
+	telemetry.ReportEvent("operator.init", nil)
+
+	if err := workloads.Init(); err != nil {
+		telemetry.Exit(err)
+	}
 
 	router := mux.NewRouter()
 	router.Use(panicMiddleware)
+	router.Use(clientIDMiddleware)
 	router.Use(apiVersionCheckMiddleware)
 	router.Use(authMiddleware)
 
@@ -67,6 +67,18 @@ func main() {
 func panicMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer endpoints.RecoverAndRespond(w)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func clientIDMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if clientID := r.URL.Query().Get("client-id"); clientID != "" {
+			if !__cachedClientIDs.Has(clientID) {
+				telemetry.RecordOperatorID(clientID, config.AWS.HashedAccountID)
+				__cachedClientIDs.Add(clientID)
+			}
+		}
 		next.ServeHTTP(w, r)
 	})
 }

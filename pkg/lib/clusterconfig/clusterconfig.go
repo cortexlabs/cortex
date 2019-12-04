@@ -187,12 +187,6 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "Telemetry",
-			BoolValidation: &cr.BoolValidation{
-				Default: true,
-			},
-		},
-		{
 			StructField: "ImagePredictorServe",
 			StringValidation: &cr.StringValidation{
 				Default: "cortexlabs/predictor-serve:" + consts.CortexVersion,
@@ -324,6 +318,17 @@ var UserValidation = &cr.StructValidation{
 			Nil: true,
 		},
 	},
+}
+
+var Validation = &cr.StructValidation{
+	StructFieldValidations: append(UserValidation.StructFieldValidations,
+		&cr.StructFieldValidation{
+			StructField: "Telemetry",
+			BoolValidation: &cr.BoolValidation{
+				Default: true,
+			},
+		},
+	),
 }
 
 func (cc *ClusterConfig) Validate() error {
@@ -668,9 +673,9 @@ func validateInstanceDistribution(instances []string) ([]string, error) {
 }
 
 // This does not set defaults for fields that are prompted from the user
-func SetFileDefaults(cc *ClusterConfig) error {
+func SetDefaults(cc *ClusterConfig) error {
 	var emptyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(cc, emptyMap, UserValidation)
+	errs := cr.Struct(cc, emptyMap, Validation)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}
@@ -678,9 +683,9 @@ func SetFileDefaults(cc *ClusterConfig) error {
 }
 
 // This does not set defaults for fields that are prompted from the user
-func GetFileDefaults() (*ClusterConfig, error) {
+func GetDefaults() (*ClusterConfig, error) {
 	cc := &ClusterConfig{}
-	err := SetFileDefaults(cc)
+	err := SetDefaults(cc)
 	if err != nil {
 		return nil, err
 	}

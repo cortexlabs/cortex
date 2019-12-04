@@ -22,8 +22,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
 
@@ -36,7 +36,9 @@ var versionCmd = &cobra.Command{
 	Short: "print the cli and cluster versions",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		if !isCLIConfigured() {
+		telemetry.ReportEvent("cli.version", nil)
+
+		if cliConfigured, err := isCLIEnvConfigured(flagEnv); err != nil || !cliConfigured {
 			fmt.Println("cli version: " + consts.CortexVersion + "\n")
 			fmt.Println("run `cortex configure` to connect the cli to a cluster")
 			return
@@ -45,13 +47,13 @@ var versionCmd = &cobra.Command{
 		httpResponse, err := HTTPGet("/info")
 		if err != nil {
 			fmt.Println("cli version: " + consts.CortexVersion + "\n")
-			errors.Exit(err)
+			telemetry.ExitErr(err)
 		}
 		var infoResponse schema.InfoResponse
 		err = json.Unmarshal(httpResponse, &infoResponse)
 		if err != nil {
 			fmt.Println("cli version: " + consts.CortexVersion + "\n")
-			errors.Exit(err, "/info", string(httpResponse))
+			telemetry.ExitErr(err, "/info", string(httpResponse))
 		}
 
 		fmt.Println("cli version:     " + consts.CortexVersion)

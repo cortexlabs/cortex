@@ -17,121 +17,185 @@ limitations under the License.
 package telemetry
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"os"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/getsentry/sentry-go"
+	"gopkg.in/segmentio/analytics-go.v3"
 )
 
-const (
-	eventPath = "/events"
-	errorPath = "/errors"
-)
+var _segment analytics.Client
+var _config *Config
 
-type Client struct {
-	url             string
-	http            http.Client
-	EnableTelemetry bool
-	OperatorID      string
+type Config struct {
+	Enable          bool
+	UserID          string
+	Environment     string
+	ShouldLogErrors bool
 }
 
-func New(telemetryURL string, hashedAccountID string, enable bool) *Client {
-	timeout := time.Duration(10 * time.Second)
-	httpClient := http.Client{
-		Timeout: timeout,
+type silentSegmentLogger struct{}
+
+func (logger silentSegmentLogger) Logf(format string, args ...interface{}) {
+	return
+}
+
+func (logger silentSegmentLogger) Errorf(format string, args ...interface{}) {
+	return
+}
+
+type silentSentryLogger struct{}
+
+func (logger silentSentryLogger) Write(p []byte) (n int, err error) {
+	return len(p), nil
+}
+
+func Init(telemetryConfig Config) error {
+	if !telemetryConfig.Enable {
+		_config = nil
+		return nil
 	}
-	telem := &Client{
-		url:             telemetryURL,
-		http:            httpClient,
-		EnableTelemetry: enable,
-		OperatorID:      hashedAccountID,
+
+	if telemetryConfig.UserID == "" {
+		return errors.New("user ID must be specified to enable telemetry")
 	}
 
-	return telem
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn:         "https://5cea3d2d67194d028f7191fcc6ebca14@sentry.io/1825326",
+		Release:     consts.CortexVersion,
+		Environment: telemetryConfig.Environment,
+	})
+	if err != nil {
+		_config = nil
+		return err
+	}
+
+	var segmentLogger analytics.Logger
+	if !telemetryConfig.ShouldLogErrors {
+		sentry.Logger.SetOutput(silentSentryLogger{})
+		segmentLogger = silentSegmentLogger{}
+	}
+
+	_segment, err = analytics.NewWithConfig("0WvoJyCey9z1W2EW7rYTPJUMRYat46dl", analytics.Config{
+		BatchSize: 1,
+		Logger:    segmentLogger,
+		DefaultContext: &analytics.Context{
+			App: analytics.AppInfo{
+				Version: consts.CortexVersion,
+			},
+			Device: analytics.DeviceInfo{
+				Type: telemetryConfig.Environment,
+			},
+			Extra: map[string]interface{}{
+				"direct": true,
+			},
+		},
+	})
+	if err != nil {
+		_config = nil
+		return err
+	}
+
+	_config = &telemetryConfig
+	return nil
 }
 
-type UsageEvent struct {
-	Timestamp  time.Time `json:"timestamp"`
-	Version    string    `json:"version"`
-	OperatorID string    `json:"operator_id"`
-	Event      string    `json:"event"`
-}
+func ReportEvent(name string, properties map[string]interface{}) {
+	fmt.Println("RECORDING EVENT:", name)
 
-func (c *Client) sendUsageEvent(name string) {
-	usageEvent := UsageEvent{
-		Timestamp:  time.Now(),
-		Version:    consts.CortexVersion,
-		OperatorID: c.OperatorID,
+	if _config == nil {
+		return
+	}
+
+	err := _segment.Enqueue(analytics.Track{
 		Event:      name,
-	}
+		UserId:     _config.UserID,
+		Properties: properties,
+	})
 
-	byteArray, _ := json.Marshal(usageEvent)
-	resp, err := c.http.Post(c.url+eventPath, "application/json", bytes.NewReader(byteArray))
 	if err != nil {
-		errors.PrintError(err)
+		ReportError(err)
+	}
+}
+
+func ReportError(err error) {
+	fmt.Println("RECORDING ERROR:", err.Error())
+
+	if err == nil || _config == nil {
 		return
 	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if byteArray, err := ioutil.ReadAll(resp.Body); err == nil {
-			fmt.Println(string(byteArray))
-		}
-	}
+	sentry.WithScope(func(scope *sentry.Scope) {
+		scope.SetUser(sentry.User{ID: _config.UserID})
+		sentry.CaptureException(err)
+		go sentry.Flush(5 * time.Second)
+	})
 }
 
-type ErrorEvent struct {
-	Timestamp  time.Time `json:"timestamp"`
-	Version    string    `json:"version"`
-	OperatorID string    `json:"operator_id"`
-	Title      string    `json:"title"`
-	Stacktrace string    `json:"stacktrace"`
-}
+func RecordEmail(userID string, email string) {
+	fmt.Println("RECORDING EMAIL:", email)
 
-func (c *Client) sendErrorEvent(err error) {
-	errorEvent := ErrorEvent{
-		Timestamp:  time.Now(),
-		Version:    consts.CortexVersion,
-		OperatorID: c.OperatorID,
-		Title:      err.Error(),
-		Stacktrace: fmt.Sprintf("%+v", err),
-	}
-	byteArray, _ := json.Marshal(errorEvent)
-	resp, err := c.http.Post(c.url+errorPath, "application/json", bytes.NewReader(byteArray))
-	if err != nil {
-		errors.PrintError(err)
+	if _config == nil {
 		return
 	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if byteArray, err := ioutil.ReadAll(resp.Body); err == nil {
-			fmt.Println(string(byteArray))
-		}
-	}
+	_segment.Enqueue(analytics.Identify{
+		UserId: userID,
+		Traits: analytics.NewTraits().
+			SetEmail(email),
+	})
 }
 
-func (c *Client) ReportEvent(name string) {
-	if c.EnableTelemetry {
-		go c.sendUsageEvent(name)
+func RecordOperatorID(userID string, operatorID string) {
+	fmt.Println("RECORDING OPERATOR ID:", operatorID)
+
+	if _config == nil {
+		return
 	}
+
+	_segment.Enqueue(analytics.Identify{
+		UserId: userID,
+		Traits: analytics.NewTraits().
+			Set("operator_id", operatorID),
+	})
 }
 
-func (c *Client) ReportErrorBlocking(err error) {
-	if c.EnableTelemetry {
-		c.sendErrorEvent(err)
+func closeSentry() error {
+	if !sentry.Flush(5 * time.Second) {
+		return errors.New("sentry flush timout exceeded")
 	}
+	return nil
 }
 
-func (c *Client) ReportError(err error) {
-	if c.EnableTelemetry {
-		go c.sendErrorEvent(err)
+func closeSegment() error {
+	if _segment == nil {
+		return nil
 	}
+	return _segment.Close()
+}
+
+func Close() {
+	parallel.Run(closeSegment, closeSentry)
+	_config = nil
+}
+
+func ExitErr(errs ...interface{}) {
+	err := errors.MergeErrItems(errs...)
+	if err == nil {
+		err = errors.New("blank")
+	}
+	ReportError(err)
+
+	Close()
+
+	errors.Exit(errs...)
+}
+
+func ExitOk() {
+	Close()
+	os.Exit(0)
 }

@@ -32,6 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
@@ -60,6 +61,8 @@ var getCmd = &cobra.Command{
 	Short: "get information about deployments",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
+		telemetry.ReportEvent("cli.get", nil)
+
 		rerun(func() (string, error) {
 			return runGet(cmd, args)
 		})
@@ -73,7 +76,7 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 
 	appName, err := AppNameFromFlagOrConfig()
 	if err != nil {
-		errors.Exit(err)
+		telemetry.ExitErr(err)
 	}
 
 	resourcesRes, err := getResourcesResponse(appName)

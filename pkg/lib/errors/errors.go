@@ -23,6 +23,7 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -102,28 +103,38 @@ func FirstError(errs ...error) error {
 }
 
 func MergeErrItems(items ...interface{}) error {
-	var err error
-	switch casted := items[0].(type) {
-	case error:
-		err = casted
-	case string:
-		err = New(casted)
-	default:
-		err = New(s.UserStrStripped(casted))
+	items = cast.FlattenInterfaceSlices(items...)
+
+	if len(items) == 0 {
+		return nil
 	}
 
-	for i, item := range items {
-		if i == 0 {
+	var err error
+
+	for _, item := range items {
+		if item == nil {
 			continue
 		}
 
 		switch casted := item.(type) {
 		case error:
-			err = Wrap(err, casted.Error())
+			if err == nil {
+				err = casted
+			} else {
+				err = Wrap(err, casted.Error())
+			}
 		case string:
-			err = Wrap(err, casted)
+			if err == nil {
+				err = New(casted)
+			} else {
+				err = Wrap(err, casted)
+			}
 		default:
-			err = Wrap(err, s.UserStrStripped(casted))
+			if err == nil {
+				err = New(s.UserStrStripped(casted))
+			} else {
+				err = Wrap(err, s.UserStrStripped(casted))
+			}
 		}
 	}
 

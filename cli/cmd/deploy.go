@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
@@ -47,6 +48,7 @@ var deployCmd = &cobra.Command{
 	Short: "create or update a deployment",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		telemetry.ReportEvent("cli.deploy", nil)
 		deploy(flagDeployForce, flagDeployRefresh)
 	},
 }
@@ -55,7 +57,7 @@ func deploy(force bool, ignoreCache bool) {
 	root := mustAppRoot()
 	config, err := readConfig() // Check proper cortex.yaml
 	if err != nil {
-		errors.Exit(err)
+		telemetry.ExitErr(err)
 	}
 
 	params := map[string]string{
@@ -65,7 +67,7 @@ func deploy(force bool, ignoreCache bool) {
 
 	configBytes, err := ioutil.ReadFile("cortex.yaml")
 	if err != nil {
-		errors.Exit(errors.Wrap(err, "cortex.yaml", cr.ErrorReadConfig().Error()))
+		telemetry.ExitErr(errors.Wrap(err, "cortex.yaml", cr.ErrorReadConfig().Error()))
 	}
 
 	uploadBytes := map[string][]byte{
@@ -80,7 +82,7 @@ func deploy(force bool, ignoreCache bool) {
 			files.IgnorePythonGeneratedFiles,
 		)
 		if err != nil {
-			errors.Exit(err)
+			telemetry.ExitErr(err)
 		}
 
 		projectZipBytes, err := zip.ToMem(&zip.Input{
@@ -93,11 +95,11 @@ func deploy(force bool, ignoreCache bool) {
 		})
 
 		if err != nil {
-			errors.Exit(errors.Wrap(err, "failed to zip project folder"))
+			telemetry.ExitErr(errors.Wrap(err, "failed to zip project folder"))
 		}
 
 		if len(projectZipBytes) > MaxProjectSize {
-			errors.Exit(errors.New("zipped project folder exceeds " + s.Int(MaxProjectSize) + " bytes"))
+			telemetry.ExitErr(errors.New("zipped project folder exceeds " + s.Int(MaxProjectSize) + " bytes"))
 		}
 
 		uploadBytes["project.zip"] = projectZipBytes
@@ -109,12 +111,12 @@ func deploy(force bool, ignoreCache bool) {
 
 	response, err := HTTPUpload("/deploy", uploadInput, params)
 	if err != nil {
-		errors.Exit(err)
+		telemetry.ExitErr(err)
 	}
 
 	var deployResponse schema.DeployResponse
 	if err := json.Unmarshal(response, &deployResponse); err != nil {
-		errors.Exit(err, "/deploy", string(response))
+		telemetry.ExitErr(err, "/deploy", string(response))
 	}
 
 	fmt.Println(console.Bold(deployResponse.Message))

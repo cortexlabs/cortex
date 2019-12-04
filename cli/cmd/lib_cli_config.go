@@ -19,35 +19,103 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/yaml"
 )
 
-var cachedCLIConfig *CLIConfig
-var cachedCLIConfigErrs []error
+var __cachedCLIConfig *CLIConfig
+var __cachedCLIConfigErr error
 
 type CLIConfig struct {
-	CortexURL          string `json:"cortex_url"`
-	AWSAccessKeyID     string `json:"aws_access_key_id"`
-	AWSSecretAccessKey string `json:"aws_secret_access_key"`
+	Telemetry    bool            `json:"telemetry" yaml:"telemetry"`
+	Environments []*CLIEnvConfig `json:"environments" yaml:"environments"`
 }
 
-func getPromptValidation(defaults *CLIConfig) *cr.PromptValidation {
+type CLIEnvConfig struct {
+	Name               string `json:"name" yaml:"name"`
+	OperatorEndpoint   string `json:"operator_endpoint" yaml:"operator_endpoint"`
+	AWSAccessKeyID     string `json:"aws_access_key_id" yaml:"aws_access_key_id"`
+	AWSSecretAccessKey string `json:"aws_secret_access_key" yaml:"aws_secret_access_key"`
+}
+
+var cliConfigValidation = &cr.StructValidation{
+	TreatNullAsEmpty: true,
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField: "Telemetry",
+			BoolValidation: &cr.BoolValidation{
+				Default:  true,
+				Required: false,
+			},
+		},
+		{
+			StructField: "Environments",
+			StructListValidation: &cr.StructListValidation{
+				AllowExplicitNull: true,
+				StructValidation: &cr.StructValidation{
+					StructFieldValidations: []*cr.StructFieldValidation{
+						{
+							StructField: "Name",
+							StringValidation: &cr.StringValidation{
+								Required: true,
+							},
+						},
+						{
+							StructField: "OperatorEndpoint",
+							StringValidation: &cr.StringValidation{
+								Required:  true,
+								Validator: cr.GetURLValidator(false, false),
+							},
+						},
+						{
+							StructField: "AWSAccessKeyID",
+							StringValidation: &cr.StringValidation{
+								Required: true,
+							},
+						},
+						{
+							StructField: "AWSSecretAccessKey",
+							StringValidation: &cr.StringValidation{
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+}
+
+func cliEnvPromptValidation(defaults *CLIEnvConfig) *cr.PromptValidation {
+	if defaults == nil {
+		defaults = &CLIEnvConfig{}
+	}
+
+	if defaults.AWSAccessKeyID == "" && os.Getenv("AWS_ACCESS_KEY_ID") != "" {
+		defaults.AWSAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
+	}
+	if defaults.AWSSecretAccessKey == "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
+		defaults.AWSSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
+	}
+	if defaults.OperatorEndpoint == "" && os.Getenv("CORTEX_OPERATOR_ENDPOINT") != "" {
+		defaults.OperatorEndpoint = os.Getenv("CORTEX_OPERATOR_ENDPOINT")
+	}
+
 	return &cr.PromptValidation{
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
-				StructField: "CortexURL",
+				StructField: "OperatorEndpoint",
 				PromptOpts: &prompt.Options{
 					Prompt: "cortex operator endpoint",
 				},
 				StringValidation: &cr.StringValidation{
 					Required:  true,
-					Default:   defaults.CortexURL,
+					Default:   defaults.OperatorEndpoint,
 					Validator: cr.GetURLValidator(false, false),
 				},
 			},
@@ -77,106 +145,151 @@ func getPromptValidation(defaults *CLIConfig) *cr.PromptValidation {
 	}
 }
 
-var fileValidation = &cr.StructValidation{
-	ShortCircuit:     false,
-	AllowExtraFields: true,
-	StructFieldValidations: []*cr.StructFieldValidation{
-		{
-			Key:         "cortex_url",
-			StructField: "CortexURL",
-			StringValidation: &cr.StringValidation{
-				Required:  true,
-				Validator: cr.GetURLValidator(false, false),
-			},
-		},
-		{
-			Key:         "aws_access_key_id",
-			StructField: "AWSAccessKeyID",
-			StringValidation: &cr.StringValidation{
-				Required: true,
-			},
-		},
-		{
-			Key:         "aws_secret_access_key",
-			StructField: "AWSSecretAccessKey",
-			StringValidation: &cr.StringValidation{
-				Required: true,
-			},
-		},
-	},
-}
-
-func configPath() string {
-	return filepath.Join(localDir, flagEnv+".json")
-}
-
-func readCLIConfig() (*CLIConfig, []error) {
-	if cachedCLIConfig != nil {
-		return cachedCLIConfig, cachedCLIConfigErrs
-	}
-
-	configPath := configPath()
-	cachedCLIConfig = &CLIConfig{}
-
-	configBytes, err := files.ReadFileBytes(configPath)
+func readTelemetryConfig() (bool, error) {
+	cliConfig, err := readCLIConfig()
 	if err != nil {
-		return nil, []error{err}
+		return false, err
 	}
 
-	cliConfigData, err := cr.ReadJSONBytes(configBytes)
+	return cliConfig.Telemetry, nil
+}
+
+// Returns false if there is an error reading the CLI config
+func isTelemetryEnabled() bool {
+	enabled, err := readTelemetryConfig()
 	if err != nil {
-		cachedCLIConfigErrs = []error{err}
-		return cachedCLIConfig, cachedCLIConfigErrs
+		return false
+	}
+	return enabled
+}
+
+// May return nil, or error
+func readCLIEnvConfig(environment string) (*CLIEnvConfig, error) {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return nil, err
 	}
 
-	cachedCLIConfigErrs = cr.Struct(cachedCLIConfig, cliConfigData, fileValidation)
-	return cachedCLIConfig, errors.WrapAll(cachedCLIConfigErrs, configPath)
+	for _, cliEnvConfig := range cliConfig.Environments {
+		if cliEnvConfig.Name == environment {
+			return cliEnvConfig, nil
+		}
+	}
+
+	return nil, nil
 }
 
-func isCLIConfigured() bool {
-	_, errs := readCLIConfig()
-	return !errors.HasErrors(errs)
+func isCLIEnvConfigured(environment string) (bool, error) {
+	cliEnvConfig, err := readCLIEnvConfig(environment)
+	if err != nil {
+		return false, err
+	}
+
+	return cliEnvConfig != nil, nil
 }
 
-func getValidCLIConfig() *CLIConfig {
-	cliConfig, errs := readCLIConfig()
+// Will not return nil (may still return error)
+func readOrConfigureCLIEnv(environment string) (*CLIEnvConfig, error) {
+	prevCLIEnvConfig, err := readCLIEnvConfig(environment)
+	if err != nil {
+		return nil, err
+	}
+
+	if prevCLIEnvConfig != nil {
+		return prevCLIEnvConfig, nil
+	}
+
+	return configureCLIEnv(environment)
+}
+
+// Will not return nil (may still return error)
+func configureCLIEnv(environment string) (*CLIEnvConfig, error) {
+	prevCLIEnvConfig, err := readCLIEnvConfig(environment)
+	if err != nil {
+		return nil, err
+	}
+
+	cliEnvConfig := &CLIEnvConfig{}
+	fmt.Println("environment: " + environment + "\n")
+	err = cr.ReadPrompt(cliEnvConfig, cliEnvPromptValidation(prevCLIEnvConfig))
+	if err != nil {
+		return nil, err
+	}
+
+	cliEnvConfig.Name = environment
+
+	if err := addEnvToCLIConfig(*cliEnvConfig); err != nil {
+		return nil, err
+	}
+
+	return cliEnvConfig, nil
+}
+
+func readCLIConfig() (*CLIConfig, error) {
+	if __cachedCLIConfig != nil {
+		return __cachedCLIConfig, __cachedCLIConfigErr
+	}
+
+	if !files.IsFile(_cliConfigPath) {
+		// add empty file so that the file output by manager container maintains current user permissions
+		files.MakeEmptyFile(_cliConfigPath)
+
+		__cachedCLIConfigErr = nil
+		__cachedCLIConfig = &CLIConfig{
+			Telemetry: true,
+		}
+		return __cachedCLIConfig, nil
+	}
+
+	__cachedCLIConfig = &CLIConfig{}
+	errs := cr.ParseYAMLFile(__cachedCLIConfig, cliConfigValidation, _cliConfigPath)
 	if errors.HasErrors(errs) {
-		cliConfig = configure()
+		__cachedCLIConfigErr = errors.FirstError(errs...)
+		__cachedCLIConfig = nil
+		return nil, __cachedCLIConfigErr
 	}
-	return cliConfig
+
+	envNames := strset.New()
+	for _, cliEnvConfig := range __cachedCLIConfig.Environments {
+		if envNames.Has(cliEnvConfig.Name) {
+			__cachedCLIConfigErr = errors.Wrap(ErrorDuplicateCLIEnvNames(cliEnvConfig.Name), _cliConfigPath, "environments")
+			__cachedCLIConfig = nil
+			return nil, __cachedCLIConfigErr
+		}
+	}
+
+	__cachedCLIConfigErr = nil
+	return __cachedCLIConfig, nil
 }
 
-func getDefaults() *CLIConfig {
-	defaults, _ := readCLIConfig()
-	if defaults == nil {
-		defaults = &CLIConfig{}
-	}
-
-	if defaults.AWSAccessKeyID == "" && os.Getenv("AWS_ACCESS_KEY_ID") != "" {
-		defaults.AWSAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
-	}
-	if defaults.AWSSecretAccessKey == "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
-		defaults.AWSSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
-	}
-	if defaults.CortexURL == "" && os.Getenv("CORTEX_OPERATOR_ENDPOINT") != "" {
-		defaults.CortexURL = os.Getenv("CORTEX_OPERATOR_ENDPOINT")
-	}
-
-	return defaults
-}
-
-func configure() *CLIConfig {
-	defaults := getDefaults()
-	cachedCLIConfig = &CLIConfig{}
-	fmt.Println("environment: " + flagEnv + "\n")
-	err := cr.ReadPrompt(cachedCLIConfig, getPromptValidation(defaults))
+func addEnvToCLIConfig(newCLIEnvConfig CLIEnvConfig) error {
+	cliConfig, err := readCLIConfig()
 	if err != nil {
-		errors.Exit(err)
+		return err
 	}
-	if err := json.WriteJSON(cachedCLIConfig, configPath()); err != nil {
-		errors.Exit(err)
-	}
-	cachedCLIConfigErrs = nil
 
-	return cachedCLIConfig
+	replaced := false
+	for i, prevCLIEnvConfig := range cliConfig.Environments {
+		if prevCLIEnvConfig.Name == newCLIEnvConfig.Name {
+			cliConfig.Environments[i] = &newCLIEnvConfig
+			replaced = true
+			break
+		}
+	}
+
+	if !replaced {
+		cliConfig.Environments = append(cliConfig.Environments, &newCLIEnvConfig)
+	}
+
+	cliConfigBytes, err := yaml.Marshal(cliConfig)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if err := files.WriteFile(cliConfigBytes, _cliConfigPath); err != nil {
+		return err
+	}
+
+	__cachedCLIConfig = cliConfig
+	__cachedCLIConfigErr = nil
+	return nil
 }
