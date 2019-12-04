@@ -21,19 +21,19 @@ import (
 	"github.com/google/uuid"
 )
 
-var __cachedClientID string
+var _cachedClientID string
 
 func clientID() string {
-	if __cachedClientID != "" {
-		return __cachedClientID
+	if _cachedClientID != "" {
+		return _cachedClientID
 	}
 
 	var err error
-	__cachedClientID, err = files.ReadFile(_clientIDPath)
-	if err != nil || __cachedClientID == "" {
-		__cachedClientID = uuid.New().String()
-		files.WriteFile([]byte(__cachedClientID), _clientIDPath)
+	_cachedClientID, err = files.ReadFile(_clientIDPath)
+	if err != nil || _cachedClientID == "" {
+		_cachedClientID = uuid.New().String()
+		files.WriteFile([]byte(_cachedClientID), _clientIDPath)
 	}
 
-	return __cachedClientID
+	return _cachedClientID
 }

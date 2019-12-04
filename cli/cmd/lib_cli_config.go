@@ -28,8 +28,8 @@ import (
 	"github.com/cortexlabs/yaml"
 )
 
-var __cachedCLIConfig *CLIConfig
-var __cachedCLIConfigErr error
+var _cachedCLIConfig *CLIConfig
+var _cachedCLIConfigErr error
 
 type CLIConfig struct {
 	Telemetry    bool            `json:"telemetry" yaml:"telemetry"`
@@ -227,41 +227,41 @@ func configureCLIEnv(environment string) (CLIEnvConfig, error) {
 }
 
 func readCLIConfig() (CLIConfig, error) {
-	if __cachedCLIConfig != nil {
-		return *__cachedCLIConfig, __cachedCLIConfigErr
+	if _cachedCLIConfig != nil {
+		return *_cachedCLIConfig, _cachedCLIConfigErr
 	}
 
 	if !files.IsFile(_cliConfigPath) {
 		// add empty file so that the file created by the manager container maintains current user permissions
 		files.MakeEmptyFile(_cliConfigPath)
 
-		__cachedCLIConfigErr = nil
-		__cachedCLIConfig = &CLIConfig{
+		_cachedCLIConfigErr = nil
+		_cachedCLIConfig = &CLIConfig{
 			Telemetry: true,
 		}
-		return *__cachedCLIConfig, nil
+		return *_cachedCLIConfig, nil
 	}
 
-	__cachedCLIConfig = &CLIConfig{}
-	errs := cr.ParseYAMLFile(__cachedCLIConfig, cliConfigValidation, _cliConfigPath)
+	_cachedCLIConfig = &CLIConfig{}
+	errs := cr.ParseYAMLFile(_cachedCLIConfig, cliConfigValidation, _cliConfigPath)
 	if errors.HasErrors(errs) {
-		__cachedCLIConfigErr = errors.FirstError(errs...)
-		__cachedCLIConfig = nil
-		return CLIConfig{}, __cachedCLIConfigErr
+		_cachedCLIConfigErr = errors.FirstError(errs...)
+		_cachedCLIConfig = nil
+		return CLIConfig{}, _cachedCLIConfigErr
 	}
 
 	envNames := strset.New()
-	for _, cliEnvConfig := range __cachedCLIConfig.Environments {
+	for _, cliEnvConfig := range _cachedCLIConfig.Environments {
 		if envNames.Has(cliEnvConfig.Name) {
-			__cachedCLIConfigErr = errors.Wrap(ErrorDuplicateCLIEnvNames(cliEnvConfig.Name), _cliConfigPath, "environments")
-			__cachedCLIConfig = nil
-			return CLIConfig{}, __cachedCLIConfigErr
+			_cachedCLIConfigErr = errors.Wrap(ErrorDuplicateCLIEnvNames(cliEnvConfig.Name), _cliConfigPath, "environments")
+			_cachedCLIConfig = nil
+			return CLIConfig{}, _cachedCLIConfigErr
 		}
 		envNames.Add(cliEnvConfig.Name)
 	}
 
-	__cachedCLIConfigErr = nil
-	return *__cachedCLIConfig, nil
+	_cachedCLIConfigErr = nil
+	return *_cachedCLIConfig, nil
 }
 
 func addEnvToCLIConfig(newCLIEnvConfig CLIEnvConfig) error {
@@ -291,7 +291,7 @@ func addEnvToCLIConfig(newCLIEnvConfig CLIEnvConfig) error {
 		return err
 	}
 
-	__cachedCLIConfig = &cliConfig
-	__cachedCLIConfigErr = nil
+	_cachedCLIConfig = &cliConfig
+	_cachedCLIConfigErr = nil
 	return nil
 }

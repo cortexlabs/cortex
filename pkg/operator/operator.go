@@ -33,7 +33,7 @@ import (
 
 const operatorPortStr = "8888"
 
-var __cachedClientIDs = strset.New()
+var _cachedClientIDs = strset.New()
 
 func main() {
 	if err := config.Init(); err != nil {
@@ -74,9 +74,9 @@ func panicMiddleware(next http.Handler) http.Handler {
 func clientIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if clientID := r.URL.Query().Get("client-id"); clientID != "" {
-			if !__cachedClientIDs.Has(clientID) {
+			if !_cachedClientIDs.Has(clientID) {
 				telemetry.RecordOperatorID(clientID, config.AWS.HashedAccountID)
-				__cachedClientIDs.Add(clientID)
+				_cachedClientIDs.Add(clientID)
 			}
 		}
 		next.ServeHTTP(w, r)
