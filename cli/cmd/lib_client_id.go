@@ -30,7 +30,7 @@ func clientID() string {
 
 	var err error
 	__cachedClientID, err = files.ReadFile(_clientIDPath)
-	if err != nil {
+	if err != nil || __cachedClientID == "" {
 		__cachedClientID = uuid.New().String()
 		files.WriteFile([]byte(__cachedClientID), _clientIDPath)
 	}
