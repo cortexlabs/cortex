@@ -37,13 +37,13 @@ var __cachedClientIDs = strset.New()
 
 func main() {
 	if err := config.Init(); err != nil {
-		telemetry.Exit(err)
+		telemetry.ExitErr(err)
 	}
 
 	telemetry.ReportEvent("operator.init", nil)
 
 	if err := workloads.Init(); err != nil {
-		telemetry.Exit(err)
+		telemetry.ExitErr(err)
 	}
 
 	router := mux.NewRouter()
