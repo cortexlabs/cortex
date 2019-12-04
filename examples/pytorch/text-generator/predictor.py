@@ -86,8 +86,8 @@ def sample_sequence(
     return generated
 
 
-def predict(sample, metadata):
-    indexed_tokens = tokenizer.encode(sample["text"])
+def predict(payload, metadata):
+    indexed_tokens = tokenizer.encode(payload["text"])
     output = sample_sequence(
         model, metadata.get("num_words", 20), indexed_tokens, device=metadata["device"]
     )

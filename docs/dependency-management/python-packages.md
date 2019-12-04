@@ -49,7 +49,7 @@ import json
 with open('/mnt/project/config.json', 'r') as config_file:
   config = json.load(config_file)
 
-def pre_inference(sample, signature, metadata):
+def pre_inference(payload, signature, metadata):
   print(config)
   ...
 ```

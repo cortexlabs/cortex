@@ -75,7 +75,7 @@ Cortex will use your image to launch Python serving workloads and you will have 
 
 import subprocess
 
-def predict(sample, metadata):
+def predict(payload, metadata):
     subprocess.run(["tree"])
     ...
 ```

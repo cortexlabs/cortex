@@ -240,14 +240,14 @@ class Context:
 
 REQUEST_HANDLER_IMPL_VALIDATION = {
     "optional": [
-        {"name": "pre_inference", "args": ["sample", "signature", "metadata"]},
+        {"name": "pre_inference", "args": ["payload", "signature", "metadata"]},
         {"name": "post_inference", "args": ["prediction", "signature", "metadata"]},
     ]
 }
 
 PREDICTOR_IMPL_VALIDATION = {
     "optional": [{"name": "init", "args": ["model_path", "metadata"]}],
-    "required": [{"name": "predict", "args": ["sample", "metadata"]}],
+    "required": [{"name": "predict", "args": ["payload", "metadata"]}],
 }
 
 
