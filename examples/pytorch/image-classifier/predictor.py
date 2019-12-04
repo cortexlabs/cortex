@@ -19,8 +19,8 @@ labels = requests.get(
 ).text.split("\n")[1:]
 
 
-def predict(sample, metadata):
-    image = requests.get(sample["url"]).content
+def predict(payload, metadata):
+    image = requests.get(payload["url"]).content
     img_pil = Image.open(BytesIO(image))
     img_tensor = preprocess(img_pil)
     img_tensor.unsqueeze_(0)

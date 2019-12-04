@@ -30,7 +30,6 @@ import (
 func init() {
 	addAppNameFlag(logsCmd)
 	addEnvFlag(logsCmd)
-	// addResourceTypesToHelp(logsCmd)
 }
 
 var logsCmd = &cobra.Command{

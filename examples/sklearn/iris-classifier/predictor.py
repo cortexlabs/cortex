@@ -11,12 +11,12 @@ def init(model_path, metadata):
     model = pickle.load(open(model_path, "rb"))
 
 
-def predict(sample, metadata):
+def predict(payload, metadata):
     measurements = [
-        sample["sepal_length"],
-        sample["sepal_width"],
-        sample["petal_length"],
-        sample["petal_width"],
+        payload["sepal_length"],
+        payload["sepal_width"],
+        payload["petal_length"],
+        payload["petal_width"],
     ]
 
     label_id = model.predict(np.array([measurements]))[0]
