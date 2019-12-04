@@ -113,7 +113,6 @@ func ReportEvent(name string, properties map[string]interface{}) {
 		UserId:     _config.UserID,
 		Properties: properties,
 	})
-
 	if err != nil {
 		ReportError(err)
 	}
@@ -127,7 +126,7 @@ func ReportError(err error) {
 	sentry.WithScope(func(scope *sentry.Scope) {
 		scope.SetUser(sentry.User{ID: _config.UserID})
 		sentry.CaptureException(err)
-		go sentry.Flush(5 * time.Second)
+		go sentry.Flush(10 * time.Second)
 	})
 }
 
