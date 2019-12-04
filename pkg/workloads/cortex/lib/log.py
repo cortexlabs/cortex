@@ -57,11 +57,11 @@ def cx_logger():
     return current_logger
 
 
-def debug_obj(name, sample, debug):
+def debug_obj(name, payload, debug):
     if not debug:
         return
 
-    cx_logger().info("{}: {}".format(name, stringify.truncate(sample)))
+    cx_logger().info("{}: {}".format(name, stringify.truncate(payload)))
 
 
 refresh_logger()

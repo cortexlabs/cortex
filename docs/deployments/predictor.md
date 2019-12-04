@@ -46,14 +46,14 @@ In addition to supporting Python models via the Predictor interface, Cortex can 
 
 You can log information about each request by adding a `?debug=true` parameter to your requests. This will print:
 
-1. The raw sample
+1. The payload
 2. The value after running the `predict` function
 
 # Predictor
 
 A Predictor is a Python file that describes how to initialize a model and use it to make a prediction.
 
-The lifecycle of a replica running a Predictor starts with loading the implementation file and executing code in the global scope. Once the implementation is loaded, Cortex calls the `init()` function to allow for any additional preparations. The `init()` function is typically used to download and initialize the model. It receives the metadata object, which is an arbitrary dictionary defined in the API configuration (it can be used to pass in the path to the exported/pickled model, vocabularies, aggregates, etc). Once the `init()` function is executed, the replica is available to accept requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload and the metadata object. The `predict()` function is responsible for returning a prediction from a sample.
+The lifecycle of a replica running a Predictor starts with loading the implementation file and executing code in the global scope. Once the implementation is loaded, Cortex calls the `init()` function to allow for any additional preparations. The `init()` function is typically used to download and initialize the model. It receives the metadata object, which is an arbitrary dictionary defined in the API configuration (it can be used to pass in the path to the exported/pickled model, vocabularies, aggregates, etc). Once the `init()` function is executed, the replica is available to accept requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload and the metadata object. The `predict()` function is responsible for returning a prediction based on the request payload.
 
 Global variables can be shared across functions safely because each replica handles one request at a time.
 
@@ -73,13 +73,13 @@ def init(model_path, metadata):
     """
     pass
 
-def predict(sample, metadata):
+def predict(payload, metadata):
     """Called once per request. Model prediction is done here, including any
     preprocessing of the request payload and postprocessing of the model output.
     Required.
 
     Args:
-        sample: The JSON request payload (parsed as a Python object).
+        payload: The JSON request payload (parsed in Python).
         metadata: Custom dictionary specified by the user in API configuration.
 
     Returns:
@@ -103,15 +103,15 @@ def init(model_path, metadata):
     model.eval()
 
 
-def predict(sample, metadata):
+def predict(payload, metadata):
     # Convert the request to a tensor and pass it into the model
     input_tensor = torch.FloatTensor(
         [
             [
-                sample["sepal_length"],
-                sample["sepal_width"],
-                sample["petal_length"],
-                sample["petal_width"],
+                payload["sepal_length"],
+                payload["sepal_width"],
+                payload["petal_length"],
+                payload["petal_width"],
             ]
         ]
     )

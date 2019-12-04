@@ -7,6 +7,6 @@ roberta.eval()
 roberta.cuda()
 
 
-def predict(sample, metadata):
-    predictions = roberta.fill_mask(sample["text"] + " <mask>", topk=5)
+def predict(payload, metadata):
+    predictions = roberta.fill_mask(payload["text"] + " <mask>", topk=5)
     return [prediction[0] for prediction in predictions]

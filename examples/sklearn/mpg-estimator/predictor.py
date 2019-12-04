@@ -10,13 +10,13 @@ def init(model_path, metadata):
     model = mlflow.sklearn.load_model(model_path)
 
 
-def predict(sample, metadata):
+def predict(payload, metadata):
     input_array = [
-        sample["cylinders"],
-        sample["displacement"],
-        sample["horsepower"],
-        sample["weight"],
-        sample["acceleration"],
+        payload["cylinders"],
+        payload["displacement"],
+        payload["horsepower"],
+        payload["weight"],
+        payload["acceleration"],
     ]
 
     result = model.predict([input_array])

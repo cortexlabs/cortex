@@ -75,9 +75,8 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 			{
 				StructField: "TargetCPUUtilization",
 				Int32Validation: &cr.Int32Validation{
-					Default:           80,
-					GreaterThan:       pointer.Int32(0),
-					LessThanOrEqualTo: pointer.Int32(100),
+					Default:     80,
+					GreaterThan: pointer.Int32(0),
 				},
 			},
 			{

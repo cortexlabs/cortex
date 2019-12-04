@@ -53,7 +53,7 @@ Flags:
 make a prediction request using a json file
 
 Usage:
-  cortex predict API_NAME SAMPLE_FILE [flags]
+  cortex predict API_NAME JSON_FILE [flags]
 
 Flags:
       --debug               Predict with debug mode

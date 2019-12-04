@@ -116,14 +116,14 @@ def after_request(response):
     return response
 
 
-def create_prediction_request(sample):
+def create_prediction_request(payload):
     signature_def = local_cache["model_metadata"]["signatureDef"]
     signature_key = local_cache["signature_key"]
     prediction_request = predict_pb2.PredictRequest()
     prediction_request.model_spec.name = "model"
     prediction_request.model_spec.signature_name = signature_key
 
-    for column_name, value in sample.items():
+    for column_name, value in payload.items():
         shape = []
         for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
             shape.append(int(dim["size"]))
@@ -168,28 +168,30 @@ def parse_response_proto(response_proto):
     return outputs_simplified
 
 
-def run_predict(sample, debug=False):
+def run_predict(payload, debug=False):
     ctx = local_cache["ctx"]
     api = local_cache["api"]
     request_handler = local_cache.get("request_handler")
 
-    prepared_sample = sample
+    prepared_payload = payload
 
-    debug_obj("sample", sample, debug)
+    debug_obj("payload", payload, debug)
     if request_handler is not None and util.has_function(request_handler, "pre_inference"):
         try:
-            prepared_sample = request_handler.pre_inference(
-                sample, local_cache["model_metadata"]["signatureDef"], api["tensorflow"]["metadata"]
+            prepared_payload = request_handler.pre_inference(
+                payload,
+                local_cache["model_metadata"]["signatureDef"],
+                api["tensorflow"]["metadata"],
             )
-            debug_obj("pre_inference", prepared_sample, debug)
+            debug_obj("pre_inference", prepared_payload, debug)
         except Exception as e:
             raise UserRuntimeException(
                 api["tensorflow"]["request_handler"], "pre_inference request handler", str(e)
             ) from e
 
-    validate_sample(prepared_sample)
+    validate_payload(prepared_payload)
 
-    prediction_request = create_prediction_request(prepared_sample)
+    prediction_request = create_prediction_request(prepared_payload)
     response_proto = local_cache["stub"].Predict(prediction_request, timeout=300.0)
     result = parse_response_proto(response_proto)
     debug_obj("inference", result, debug)
@@ -208,10 +210,10 @@ def run_predict(sample, debug=False):
     return result
 
 
-def validate_sample(sample):
+def validate_payload(payload):
     signature = local_cache["parsed_signature"]
     for input_name, _ in signature.items():
-        if input_name not in sample:
+        if input_name not in payload:
             raise UserException('missing key "{}"'.format(input_name))
 
 
@@ -231,7 +233,7 @@ def predict():
     debug = request.args.get("debug", "false").lower() == "true"
 
     try:
-        sample = request.get_json()
+        payload = request.get_json()
     except Exception as e:
         return "malformed json", status.HTTP_400_BAD_REQUEST
 
@@ -241,7 +243,7 @@ def predict():
     response = {}
 
     try:
-        result = run_predict(sample, debug)
+        result = run_predict(payload, debug)
     except Exception as e:
         cx_logger().exception("prediction failed")
         return prediction_failed(str(e))

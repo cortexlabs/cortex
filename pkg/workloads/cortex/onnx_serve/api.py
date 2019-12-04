@@ -126,37 +126,37 @@ def transform_to_numpy(input_pyobj, input_metadata):
         raise UserException("failed to convert to numpy array", str(e)) from e
 
 
-def convert_to_onnx_input(sample, input_metadata_list):
+def convert_to_onnx_input(payload, input_metadata_list):
     input_dict = {}
     if len(input_metadata_list) == 1:
         input_metadata = input_metadata_list[0]
-        if util.is_dict(sample):
-            if sample.get(input_metadata.name) is None:
+        if util.is_dict(payload):
+            if payload.get(input_metadata.name) is None:
                 raise UserException('missing key "{}"'.format(input_metadata.name))
             input_dict[input_metadata.name] = transform_to_numpy(
-                sample[input_metadata.name], input_metadata
+                payload[input_metadata.name], input_metadata
             )
         else:
             try:
-                input_dict[input_metadata.name] = transform_to_numpy(sample, input_metadata)
+                input_dict[input_metadata.name] = transform_to_numpy(payload, input_metadata)
             except CortexException as e:
                 e.wrap('key "{}"'.format(input_metadata.name))
                 raise
     else:
         for input_metadata in input_metadata_list:
-            if not util.is_dict(sample):
+            if not util.is_dict(payload):
                 expected_keys = [metadata.name for metadata in input_metadata_list]
                 raise UserException(
-                    "expected sample to be a dictionary with keys {}".format(
+                    "expected payload to be a dictionary with keys {}".format(
                         ", ".join('"' + key + '"' for key in expected_keys)
                     )
                 )
 
-            if sample.get(input_metadata.name) is None:
+            if payload.get(input_metadata.name) is None:
                 raise UserException('missing key "{}"'.format(input_metadata.name))
             try:
                 input_dict[input_metadata.name] = transform_to_numpy(
-                    sample[input_metadata.name], input_metadata
+                    payload[input_metadata.name], input_metadata
                 )
             except CortexException as e:
                 e.wrap('key "{}"'.format(input_metadata.name))
@@ -169,7 +169,7 @@ def predict():
     debug = request.args.get("debug", "false").lower() == "true"
 
     try:
-        sample = request.get_json()
+        payload = request.get_json()
     except Exception as e:
         return "malformed json", status.HTTP_400_BAD_REQUEST
 
@@ -181,21 +181,21 @@ def predict():
     output_metadata = local_cache["output_metadata"]
 
     try:
-        debug_obj("sample", sample, debug)
+        debug_obj("payload", payload, debug)
 
-        prepared_sample = sample
+        prepared_payload = payload
         if request_handler is not None and util.has_function(request_handler, "pre_inference"):
             try:
-                prepared_sample = request_handler.pre_inference(
-                    sample, input_metadata, api["onnx"]["metadata"]
+                prepared_payload = request_handler.pre_inference(
+                    payload, input_metadata, api["onnx"]["metadata"]
                 )
-                debug_obj("pre_inference", prepared_sample, debug)
+                debug_obj("pre_inference", prepared_payload, debug)
             except Exception as e:
                 raise UserRuntimeException(
                     api["onnx"]["request_handler"], "pre_inference request handler", str(e)
                 ) from e
 
-        inference_input = convert_to_onnx_input(prepared_sample, input_metadata)
+        inference_input = convert_to_onnx_input(prepared_payload, input_metadata)
         model_output = sess.run([], inference_input)
 
         debug_obj("inference", model_output, debug)

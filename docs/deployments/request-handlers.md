@@ -5,11 +5,11 @@ Request handlers can be used with TensorFlow or ONNX exported models. They conta
 ## Implementation
 
 ```python
-def pre_inference(sample, signature, metadata):
-    """Prepare a sample before it is passed into the model.
+def pre_inference(payload, signature, metadata):
+    """Prepare a payload before it is passed into the model.
 
     Args:
-        sample: The JSON request payload (parsed as a Python object).
+        payload: The JSON request payload (parsed in Python).
 
         signature: Describes the expected shape and type of inputs to the model.
             If API model format is tensorflow: map<string, SignatureDef>
@@ -51,14 +51,14 @@ import numpy as np
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
-def pre_inference(sample, signature, metadata):
+def pre_inference(payload, signature, metadata):
     # Convert the request payload to a flattened list
     return {
         signature[0].name: [
-            sample["sepal_length"],
-            sample["sepal_width"],
-            sample["petal_length"],
-            sample["petal_width"],
+            payload["sepal_length"],
+            payload["sepal_width"],
+            payload["petal_length"],
+            payload["petal_width"],
         ]
     }
 

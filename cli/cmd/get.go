@@ -53,7 +53,6 @@ func init() {
 	getCmd.PersistentFlags().BoolVarP(&flagSummary, "summary", "s", false, "show summarized output")
 	getCmd.PersistentFlags().BoolVarP(&flagVerbose, "verbose", "v", false, "show verbose output")
 	getCmd.PersistentFlags().BoolVarP(&flagAllDeployments, "all-deployments", "a", false, "list all deployments")
-	// addResourceTypesToHelp(getCmd)
 }
 
 var getCmd = &cobra.Command{

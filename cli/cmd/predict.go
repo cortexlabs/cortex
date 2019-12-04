@@ -40,14 +40,14 @@ func init() {
 }
 
 var predictCmd = &cobra.Command{
-	Use:   "predict API_NAME SAMPLE_FILE",
+	Use:   "predict API_NAME JSON_FILE",
 	Short: "make a prediction request using a json file",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.ReportEvent("cli.predict", nil)
 
 		apiName := args[0]
-		sampleJSONPath := args[1]
+		jsonPath := args[1]
 
 		appName, err := AppNameFromFlagOrConfig()
 		if err != nil {
@@ -98,7 +98,7 @@ var predictCmd = &cobra.Command{
 		if predictDebug {
 			apiURL += "?debug=true"
 		}
-		predictResponse, err := makePredictRequest(apiURL, sampleJSONPath)
+		predictResponse, err := makePredictRequest(apiURL, jsonPath)
 		if err != nil {
 			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
 				telemetry.ExitErr(ErrorAPINotReady(apiName, "creating"))
@@ -114,12 +114,12 @@ var predictCmd = &cobra.Command{
 	},
 }
 
-func makePredictRequest(apiURL string, sampleJSONPath string) (interface{}, error) {
-	sampleBytes, err := files.ReadFileBytes(sampleJSONPath)
+func makePredictRequest(apiURL string, jsonPath string) (interface{}, error) {
+	jsonBytes, err := files.ReadFileBytes(jsonPath)
 	if err != nil {
 		telemetry.ExitErr(err)
 	}
-	payload := bytes.NewBuffer(sampleBytes)
+	payload := bytes.NewBuffer(jsonBytes)
 	req, err := http.NewRequest("POST", apiURL, payload)
 	if err != nil {
 		return nil, errors.Wrap(err, errStrCantMakeRequest)

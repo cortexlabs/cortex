@@ -52,7 +52,7 @@ $ python3 trainer.py
 
 1. Create another Python file `predictor.py`.
 2. Add code to load and initialize your pickled model.
-3. Add a prediction function that will accept a sample and return a prediction from your model.
+3. Add a prediction function that will accept a payload and return a prediction from your model.
 
 ```python
 # predictor.py
@@ -70,12 +70,12 @@ def init(model_path, metadata):
     model = pickle.load(open(model_path, "rb"))
 
 
-def predict(sample, metadata):
+def predict(payload, metadata):
     measurements = [
-        sample["sepal_length"],
-        sample["sepal_width"],
-        sample["petal_length"],
-        sample["petal_width"],
+        payload["sepal_length"],
+        payload["sepal_width"],
+        payload["petal_length"],
+        payload["petal_width"],
     ]
 
     label_id = model.predict(np.array([measurements]))[0]
@@ -292,7 +292,7 @@ another-classifier   live     1            1           1           8s
 
 ## Add a batch API
 
-First, implement `batch-predictor.py` with a `predict` function that can process an array of samples:
+First, implement `batch-predictor.py` with a `predict` function that can process an array of payloads:
 
 ```python
 # batch-predictor.py
@@ -310,9 +310,15 @@ def init(model_path, metadata):
     model = pickle.load(open(model_path, "rb"))
 
 
-def predict(sample, metadata):
+def predict(payload, metadata):
     measurements = [
-        [s["sepal_length"], s["sepal_width"], s["petal_length"], s["petal_width"]] for s in sample
+        [
+            sample["sepal_length"],
+            sample["sepal_width"],
+            sample["petal_length"],
+            sample["petal_width"],
+        ]
+        for sample in payload
     ]
 
     label_ids = model.predict(np.array(measurements))

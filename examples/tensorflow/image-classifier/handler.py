@@ -8,8 +8,8 @@ labels = requests.get(
 ).text.split("\n")
 
 
-def pre_inference(sample, signature, metadata):
-    image = requests.get(sample["url"]).content
+def pre_inference(payload, signature, metadata):
+    image = requests.get(payload["url"]).content
     decoded_image = np.asarray(Image.open(BytesIO(image)), dtype=np.float32) / 255
     return {"images": np.expand_dims(decoded_image, axis=0)}
 
