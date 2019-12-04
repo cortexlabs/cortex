@@ -112,11 +112,11 @@ var predictCmd = &cobra.Command{
 }
 
 func makePredictRequest(apiURL string, jsonPath string) (interface{}, error) {
-	sampleBytes, err := files.ReadFileBytes(jsonPath)
+	jsonBytes, err := files.ReadFileBytes(jsonPath)
 	if err != nil {
 		errors.Exit(err)
 	}
-	payload := bytes.NewBuffer(sampleBytes)
+	payload := bytes.NewBuffer(jsonBytes)
 	req, err := http.NewRequest("POST", apiURL, payload)
 	if err != nil {
 		return nil, errors.Wrap(err, errStrCantMakeRequest)
