@@ -17,7 +17,6 @@ limitations under the License.
 package telemetry
 
 import (
-	"os"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -183,21 +182,4 @@ func closeSegment() error {
 func Close() {
 	parallel.Run(closeSegment, closeSentry)
 	_config = nil
-}
-
-func ExitErr(errs ...interface{}) {
-	err := errors.MergeErrItems(errs...)
-	if err == nil {
-		err = errors.New("blank")
-	}
-	ReportError(err)
-
-	Close()
-
-	errors.Exit(errs...)
-}
-
-func ExitOk() {
-	Close()
-	os.Exit(0)
 }

@@ -25,6 +25,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -51,12 +52,12 @@ var predictCmd = &cobra.Command{
 
 		appName, err := AppNameFromFlagOrConfig()
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		resourcesRes, err := getResourcesResponse(appName)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		apiGroupStatus := resourcesRes.APIGroupStatuses[apiName]
@@ -67,18 +68,18 @@ var predictCmd = &cobra.Command{
 			for name := range resourcesRes.APIGroupStatuses {
 				if strings.HasPrefix(name, apiName) {
 					if matchedName != "" {
-						telemetry.ExitErr(ErrorAPINotFound(apiName)) // duplicates
+						exit.Error(ErrorAPINotFound(apiName)) // duplicates
 					}
 					matchedName = name
 				}
 			}
 
 			if matchedName == "" {
-				telemetry.ExitErr(ErrorAPINotFound(apiName))
+				exit.Error(ErrorAPINotFound(apiName))
 			}
 
 			if resourcesRes.Context.APIs[matchedName] == nil {
-				telemetry.ExitErr(ErrorAPINotFound(apiName))
+				exit.Error(ErrorAPINotFound(apiName))
 			}
 
 			apiGroupStatus = resourcesRes.APIGroupStatuses[matchedName]
@@ -87,11 +88,11 @@ var predictCmd = &cobra.Command{
 
 		api := resourcesRes.Context.APIs[apiName]
 		if api == nil {
-			telemetry.ExitErr(ErrorAPINotFound(apiName))
+			exit.Error(ErrorAPINotFound(apiName))
 		}
 
 		if apiGroupStatus.ActiveStatus == nil {
-			telemetry.ExitErr(ErrorAPINotReady(apiName, apiGroupStatus.Message()))
+			exit.Error(ErrorAPINotReady(apiName, apiGroupStatus.Message()))
 		}
 
 		apiURL := urls.Join(resourcesRes.APIsBaseURL, *api.Endpoint)
@@ -101,14 +102,14 @@ var predictCmd = &cobra.Command{
 		predictResponse, err := makePredictRequest(apiURL, jsonPath)
 		if err != nil {
 			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
-				telemetry.ExitErr(ErrorAPINotReady(apiName, "creating"))
+				exit.Error(ErrorAPINotReady(apiName, "creating"))
 			}
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		prettyResp, err := json.Pretty(predictResponse)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 		fmt.Println(prettyResp)
 	},
@@ -117,7 +118,7 @@ var predictCmd = &cobra.Command{
 func makePredictRequest(apiURL string, jsonPath string) (interface{}, error) {
 	jsonBytes, err := files.ReadFileBytes(jsonPath)
 	if err != nil {
-		telemetry.ExitErr(err)
+		exit.Error(err)
 	}
 	payload := bytes.NewBuffer(jsonBytes)
 	req, err := http.NewRequest("POST", apiURL, payload)

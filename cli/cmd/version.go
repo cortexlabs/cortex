@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
@@ -47,13 +48,13 @@ var versionCmd = &cobra.Command{
 		httpResponse, err := HTTPGet("/info")
 		if err != nil {
 			fmt.Println("cli version: " + consts.CortexVersion + "\n")
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 		var infoResponse schema.InfoResponse
 		err = json.Unmarshal(httpResponse, &infoResponse)
 		if err != nil {
 			fmt.Println("cli version: " + consts.CortexVersion + "\n")
-			telemetry.ExitErr(err, "/info", string(httpResponse))
+			exit.Error(err, "/info", string(httpResponse))
 		}
 
 		fmt.Println("cli version:     " + consts.CortexVersion)

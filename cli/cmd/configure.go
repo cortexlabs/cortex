@@ -21,6 +21,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
@@ -42,14 +43,14 @@ var configureCmd = &cobra.Command{
 		if flagPrint {
 			cliEnvConfig, err := readCLIEnvConfig(flagEnv)
 			if err != nil {
-				telemetry.ExitErr(err)
+				exit.Error(err)
 			}
 
 			if cliEnvConfig == nil {
 				if flagEnv == "default" {
-					telemetry.ExitErr("cli is not configured; run `cortex configure`")
+					exit.Error("cli is not configured; run `cortex configure`")
 				} else {
-					telemetry.ExitErr(fmt.Sprintf("cli is not configured; run `cortex configure --env=%s`", flagEnv))
+					exit.Error(fmt.Sprintf("cli is not configured; run `cortex configure --env=%s`", flagEnv))
 				}
 			}
 

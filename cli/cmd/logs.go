@@ -19,6 +19,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
@@ -39,12 +40,12 @@ var logsCmd = &cobra.Command{
 
 		appName, err := AppNameFromFlagOrConfig()
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		err = StreamLogs(appName, resourceName, resource.APIType.String())
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 	},
 }

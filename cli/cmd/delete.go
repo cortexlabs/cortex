@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -49,7 +50,7 @@ var deleteCmd = &cobra.Command{
 		} else {
 			config, err := readConfig()
 			if err != nil {
-				telemetry.ExitErr(err)
+				exit.Error(err)
 			}
 			appName = config.App.Name
 		}
@@ -60,13 +61,13 @@ var deleteCmd = &cobra.Command{
 		}
 		httpResponse, err := HTTPPostJSONData("/delete", nil, params)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		var deleteResponse schema.DeleteResponse
 		err = json.Unmarshal(httpResponse, &deleteResponse)
 		if err != nil {
-			telemetry.ExitErr(err, "/delete", string(httpResponse))
+			exit.Error(err, "/delete", string(httpResponse))
 		}
 		fmt.Println(console.Bold(deleteResponse.Message))
 	},

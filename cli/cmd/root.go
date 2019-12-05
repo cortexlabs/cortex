@@ -27,7 +27,7 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -46,13 +46,13 @@ var _clientIDPath string
 func init() {
 	homeDir, err := homedir.Dir()
 	if err != nil {
-		telemetry.ExitErr(err)
+		exit.Error(err)
 	}
 
 	localDir = filepath.Join(homeDir, ".cortex")
 	err = os.MkdirAll(localDir, os.ModePerm)
 	if err != nil {
-		telemetry.ExitErr(err)
+		exit.Error(err)
 	}
 
 	cachedClusterConfigPath = filepath.Join(localDir, "cluster.yaml")
@@ -71,7 +71,7 @@ func init() {
 
 	enableTelemetry, err := readTelemetryConfig()
 	if err != nil {
-		telemetry.ExitErr(err)
+		exit.Error(err)
 	}
 	if enableTelemetry {
 		initTelemetry()
@@ -94,7 +94,7 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	defer errors.RecoverAndExit()
+	defer exit.RecoverAndExit()
 
 	cobra.EnableCommandSorting = false
 
@@ -116,7 +116,7 @@ func Execute() {
 	printLeadingNewLine()
 	rootCmd.Execute()
 
-	telemetry.ExitOk()
+	exit.Ok()
 }
 
 func updateRootUsage() {
@@ -195,7 +195,7 @@ func rerun(f func() (string, error)) {
 			nextStr, err := f()
 			if err != nil {
 				fmt.Println()
-				telemetry.ExitErr(err)
+				exit.Error(err)
 			}
 
 			nextStr = watchHeader() + "\n\n" + nextStr
@@ -232,7 +232,7 @@ func rerun(f func() (string, error)) {
 	} else {
 		str, err := f()
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 		fmt.Println(str)
 	}

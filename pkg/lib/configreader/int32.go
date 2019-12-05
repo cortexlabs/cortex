@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -198,7 +199,7 @@ func ValidateInt32Val(val int32, v *Int32Validation) error {
 func MustInt32FromEnv(envVarName string, v *Int32Validation) int32 {
 	val, err := Int32FromEnv(envVarName, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }
@@ -206,7 +207,7 @@ func MustInt32FromEnv(envVarName string, v *Int32Validation) int32 {
 func MustInt32FromFile(filePath string, v *Int32Validation) int32 {
 	val, err := Int32FromFile(filePath, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }
@@ -214,7 +215,7 @@ func MustInt32FromFile(filePath string, v *Int32Validation) int32 {
 func MustInt32FromEnvOrFile(envVarName string, filePath string, v *Int32Validation) int32 {
 	val, err := Int32FromEnvOrFile(envVarName, filePath, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }

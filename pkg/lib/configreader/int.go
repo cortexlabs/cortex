@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -198,7 +199,7 @@ func ValidateIntVal(val int, v *IntValidation) error {
 func MustIntFromEnv(envVarName string, v *IntValidation) int {
 	val, err := IntFromEnv(envVarName, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }
@@ -206,7 +207,7 @@ func MustIntFromEnv(envVarName string, v *IntValidation) int {
 func MustIntFromFile(filePath string, v *IntValidation) int {
 	val, err := IntFromFile(filePath, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }
@@ -214,7 +215,7 @@ func MustIntFromFile(filePath string, v *IntValidation) int {
 func MustIntFromEnvOrFile(envVarName string, filePath string, v *IntValidation) int {
 	val, err := IntFromEnvOrFile(envVarName, filePath, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }

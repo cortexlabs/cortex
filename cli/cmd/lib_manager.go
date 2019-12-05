@@ -28,6 +28,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/yaml"
 	dockertypes "github.com/docker/docker/api/types"
@@ -141,8 +142,7 @@ func runManager(containerConfig *container.Config, hostConfig *container.HostCon
 		<-c
 		caughtCtrlC = true
 		removeContainer()
-		errors.Exit()
-		// TODO
+		exit.ErrorNoPrintNoTelemetry()
 	}()
 
 	err = docker.ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})

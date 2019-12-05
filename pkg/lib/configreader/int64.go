@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -198,7 +199,7 @@ func ValidateInt64Val(val int64, v *Int64Validation) error {
 func MustInt64FromEnv(envVarName string, v *Int64Validation) int64 {
 	val, err := Int64FromEnv(envVarName, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }
@@ -206,7 +207,7 @@ func MustInt64FromEnv(envVarName string, v *Int64Validation) int64 {
 func MustInt64FromFile(filePath string, v *Int64Validation) int64 {
 	val, err := Int64FromFile(filePath, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }
@@ -214,7 +215,7 @@ func MustInt64FromFile(filePath string, v *Int64Validation) int64 {
 func MustInt64FromEnvOrFile(envVarName string, filePath string, v *Int64Validation) int64 {
 	val, err := Int64FromEnvOrFile(envVarName, filePath, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }

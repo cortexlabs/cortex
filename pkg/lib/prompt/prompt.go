@@ -23,8 +23,8 @@ import (
 
 	input "github.com/tcnksm/go-input"
 
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
 var ui = &input.UI{
@@ -66,9 +66,9 @@ func Prompt(opts *Options) string {
 
 	if err != nil {
 		if err.Error() == "interrupted" {
-			telemetry.ExitErr()
+			exit.ErrorNoPrintNoTelemetry()
 		}
-		telemetry.ExitErr(err)
+		exit.Error(err)
 	}
 
 	return val
@@ -89,8 +89,7 @@ func YesOrExit(prompt string, exitMessage string) {
 			if exitMessage != "" {
 				fmt.Println(exitMessage)
 			}
-			telemetry.Close()
-			os.Exit(1)
+			exit.ErrorNoPrintNoTelemetry()
 		}
 
 		fmt.Println("please enter \"y\" or \"n\"")

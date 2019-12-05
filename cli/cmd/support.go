@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
@@ -62,7 +63,7 @@ var supportCmd = &cobra.Command{
 		supportRequest := &SupportRequest{}
 		err := cr.ReadPrompt(supportRequest, supportPrompValidation)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		if !isTelemetryEnabled() {

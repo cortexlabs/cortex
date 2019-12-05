@@ -18,7 +18,6 @@ package errors
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	pkgerrors "github.com/pkg/errors"
@@ -141,24 +140,6 @@ func MergeErrItems(items ...interface{}) error {
 	return err
 }
 
-func Exit(items ...interface{}) {
-	if len(items) == 0 {
-		os.Exit(1)
-	}
-	err := MergeErrItems(items...)
-	PrintError(err)
-	os.Exit(1)
-}
-
-func Panic(items ...interface{}) {
-	if len(items) == 0 {
-		os.Exit(1)
-	}
-	err := MergeErrItems(items...)
-	// PrintStacktrace(err)
-	panic(err)
-}
-
 func PrintError(err error, strs ...string) {
 	wrappedErr := Wrap(err, strs...)
 	fmt.Println("error:", wrappedErr.Error())
@@ -177,14 +158,6 @@ func CastRecoverError(errInterface interface{}, strs ...string) error {
 		err = New(fmt.Sprint(errInterface))
 	}
 	return Wrap(err, strs...)
-}
-
-func RecoverAndExit(strs ...string) {
-	if errInterface := recover(); errInterface != nil {
-		err := CastRecoverError(errInterface, strs...)
-		PrintError(err)
-		os.Exit(1)
-	}
 }
 
 func removeEmptyStrs(strs []string) []string {

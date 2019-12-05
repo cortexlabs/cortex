@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
@@ -75,7 +76,7 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 
 	appName, err := AppNameFromFlagOrConfig()
 	if err != nil {
-		telemetry.ExitErr(err)
+		exit.Error(err)
 	}
 
 	resourcesRes, err := getResourcesResponse(appName)

@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -60,7 +61,7 @@ func Init() error {
 
 	AWS, err = aws.New(*Cluster.Region, *Cluster.Bucket, true)
 	if err != nil {
-		telemetry.ExitErr(err)
+		exit.Error(err)
 	}
 
 	err = telemetry.Init(telemetry.Config{

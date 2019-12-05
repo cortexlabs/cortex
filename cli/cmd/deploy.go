@@ -25,6 +25,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -57,7 +58,7 @@ func deploy(force bool, ignoreCache bool) {
 	root := mustAppRoot()
 	config, err := readConfig() // Check proper cortex.yaml
 	if err != nil {
-		telemetry.ExitErr(err)
+		exit.Error(err)
 	}
 
 	params := map[string]string{
@@ -67,7 +68,7 @@ func deploy(force bool, ignoreCache bool) {
 
 	configBytes, err := ioutil.ReadFile("cortex.yaml")
 	if err != nil {
-		telemetry.ExitErr(errors.Wrap(err, "cortex.yaml", cr.ErrorReadConfig().Error()))
+		exit.Error(errors.Wrap(err, "cortex.yaml", cr.ErrorReadConfig().Error()))
 	}
 
 	uploadBytes := map[string][]byte{
@@ -82,7 +83,7 @@ func deploy(force bool, ignoreCache bool) {
 			files.IgnorePythonGeneratedFiles,
 		)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		projectZipBytes, err := zip.ToMem(&zip.Input{
@@ -95,11 +96,11 @@ func deploy(force bool, ignoreCache bool) {
 		})
 
 		if err != nil {
-			telemetry.ExitErr(errors.Wrap(err, "failed to zip project folder"))
+			exit.Error(errors.Wrap(err, "failed to zip project folder"))
 		}
 
 		if len(projectZipBytes) > MaxProjectSize {
-			telemetry.ExitErr(errors.New("zipped project folder exceeds " + s.Int(MaxProjectSize) + " bytes"))
+			exit.Error(errors.New("zipped project folder exceeds " + s.Int(MaxProjectSize) + " bytes"))
 		}
 
 		uploadBytes["project.zip"] = projectZipBytes
@@ -111,12 +112,12 @@ func deploy(force bool, ignoreCache bool) {
 
 	response, err := HTTPUpload("/deploy", uploadInput, params)
 	if err != nil {
-		telemetry.ExitErr(err)
+		exit.Error(err)
 	}
 
 	var deployResponse schema.DeployResponse
 	if err := json.Unmarshal(response, &deployResponse); err != nil {
-		telemetry.ExitErr(err, "/deploy", string(response))
+		exit.Error(err, "/deploy", string(response))
 	}
 
 	fmt.Println(console.Bold(deployResponse.Message))

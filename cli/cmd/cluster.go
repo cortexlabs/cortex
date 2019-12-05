@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
@@ -69,23 +70,23 @@ var upCmd = &cobra.Command{
 		telemetry.ReportEvent("cli.cluster.up", nil)
 
 		if err := checkDockerRunning(); err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		promptForEmail()
 		awsCreds, err := getAWSCredentials(flagClusterConfig)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		clusterConfig, err := getInstallClusterConfig(awsCreds)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		_, err = runManagerCommand("/root/install.sh", clusterConfig, awsCreds)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 	},
 }
@@ -98,12 +99,12 @@ var updateCmd = &cobra.Command{
 		telemetry.ReportEvent("cli.cluster.update", nil)
 
 		if err := checkDockerRunning(); err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		awsCreds, err := getAWSCredentials(flagClusterConfig)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		fmt.Println("fetching cluster configuration ..." + "\n")
@@ -111,11 +112,11 @@ var updateCmd = &cobra.Command{
 
 		clusterConfig, err := getUpdateClusterConfig(cachedClusterConfig, awsCreds)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 		_, err = runManagerCommand("/root/install.sh --update", clusterConfig, awsCreds)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 	},
 }
@@ -128,11 +129,11 @@ var infoCmd = &cobra.Command{
 		telemetry.ReportEvent("cli.cluster.info", nil)
 
 		if err := checkDockerRunning(); err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 		awsCreds, err := getAWSCredentials(flagClusterConfig)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		fmt.Println("fetching cluster configuration ..." + "\n")
@@ -140,12 +141,12 @@ var infoCmd = &cobra.Command{
 
 		out, err := runManagerCommand("/root/info.sh", clusterConfig, awsCreds)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		// note: if modifying this string, search the codebase for it and change all occurrences
 		if strings.Contains(out, "there is no cluster") {
-			telemetry.ExitErr()
+			exit.ErrorNoPrint()
 		}
 
 		fmt.Println()
@@ -181,21 +182,21 @@ var downCmd = &cobra.Command{
 		telemetry.ReportEvent("cli.cluster.down", nil)
 
 		if err := checkDockerRunning(); err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		prompt.YesOrExit("your cluster will be spun down and all apis will be deleted, are you sure you want to uninstall cortex?", "")
 
 		awsCreds, err := getAWSCredentials(flagClusterConfig)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		clusterConfig := refreshCachedClusterConfig(awsCreds)
 
 		_, err = runManagerCommand("/root/uninstall.sh", clusterConfig, awsCreds)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 
 		os.Remove(cachedClusterConfigPath)
@@ -223,7 +224,7 @@ func promptForEmail() {
 	}{}
 	err := cr.ReadPrompt(emailAddressContainer, emailPrompValidation)
 	if err != nil {
-		telemetry.ExitErr(err)
+		exit.Error(err)
 	}
 
 	if emailAddressContainer.EmailAddress != nil {
@@ -243,13 +244,13 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Cluster
 	userClusterConfig := &clusterconfig.ClusterConfig{}
 	err := clusterconfig.SetDefaults(userClusterConfig)
 	if err != nil {
-		telemetry.ExitErr(err)
+		exit.Error(err)
 	}
 
 	if flagClusterConfig != "" {
 		err := readUserClusterConfigFile(userClusterConfig)
 		if err != nil {
-			telemetry.ExitErr(err)
+			exit.Error(err)
 		}
 	}
 
@@ -261,17 +262,17 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Cluster
 	}
 
 	if userClusterConfig.Region == nil {
-		telemetry.ExitErr(fmt.Sprintf("unable to find an existing cluster; please configure \"%s\" to the s3 region of an existing cluster or create a cluster with `cortex cluster up`", clusterconfig.RegionKey))
+		exit.Error(fmt.Sprintf("unable to find an existing cluster; please configure \"%s\" to the s3 region of an existing cluster or create a cluster with `cortex cluster up`", clusterconfig.RegionKey))
 	}
 
 	out, err := runRefreshClusterConfig(userClusterConfig, awsCreds)
 	if err != nil {
-		telemetry.ExitErr(err)
+		exit.Error(err)
 	}
 
 	// note: if modifying this string, search the codebase for it and change all occurrences
 	if strings.Contains(out, "there is no cluster") {
-		telemetry.ExitErr()
+		exit.ErrorNoPrint()
 	}
 
 	refreshedClusterConfig := &clusterconfig.ClusterConfig{}

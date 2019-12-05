@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -37,13 +38,13 @@ var _cachedClientIDs = strset.New()
 
 func main() {
 	if err := config.Init(); err != nil {
-		telemetry.ExitErr(err)
+		exit.Error(err)
 	}
 
 	telemetry.ReportEvent("operator.init", nil)
 
 	if err := workloads.Init(); err != nil {
-		telemetry.ExitErr(err)
+		exit.Error(err)
 	}
 
 	router := mux.NewRouter()

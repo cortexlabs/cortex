@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
@@ -334,7 +335,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			}
 
 		} else {
-			errors.Panic("Undefined or unsupported validation type")
+			exit.Panic("Undefined or unsupported validation type")
 		}
 
 		allErrs, _ = errors.AddError(allErrs, err)
@@ -617,7 +618,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 			} else if promptItemValidation.Float64PtrValidation != nil {
 				val, err = Float64PtrFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.Float64PtrValidation)
 			} else {
-				errors.Panic("Undefined or unsupported validation type for ReadPrompt")
+				exit.Panic("Undefined or unsupported validation type for ReadPrompt")
 			}
 
 			if err == nil {
@@ -802,7 +803,7 @@ func StructFromStringMap(dest interface{}, strMap map[string]string, v *StructVa
 				val, err = ValidateFloat64PtrMissing(&validation)
 			}
 		} else {
-			errors.Panic("Undefined or unsupported validation type")
+			exit.Panic("Undefined or unsupported validation type")
 		}
 
 		err = errors.Wrap(err, key)
@@ -932,7 +933,7 @@ func ReadJSONBytes(jsonBytes []byte) (interface{}, error) {
 func MustReadYAMLStr(yamlStr string) interface{} {
 	parsed, err := ReadYAMLBytes([]byte(yamlStr))
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return parsed
 }
@@ -940,11 +941,11 @@ func MustReadYAMLStr(yamlStr string) interface{} {
 func MustReadYAMLStrMap(yamlStr string) map[string]interface{} {
 	parsed, err := ReadYAMLBytes([]byte(yamlStr))
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	casted, ok := cast.InterfaceToStrInterfaceMap(parsed)
 	if !ok {
-		errors.Panic(ErrorInvalidPrimitiveType(parsed, PrimTypeMap))
+		exit.Panic(ErrorInvalidPrimitiveType(parsed, PrimTypeMap))
 	}
 	return casted
 }
@@ -952,7 +953,7 @@ func MustReadYAMLStrMap(yamlStr string) map[string]interface{} {
 func MustReadJSONStr(jsonStr string) interface{} {
 	parsed, err := ReadJSONBytes([]byte(jsonStr))
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return parsed
 }
