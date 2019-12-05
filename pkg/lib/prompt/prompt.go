@@ -23,7 +23,6 @@ import (
 
 	input "github.com/tcnksm/go-input"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
@@ -90,7 +89,8 @@ func YesOrExit(prompt string, exitMessage string) {
 			if exitMessage != "" {
 				fmt.Println(exitMessage)
 			}
-			errors.Exit()
+			telemetry.Close()
+			os.Exit(1)
 		}
 
 		fmt.Println("please enter \"y\" or \"n\"")

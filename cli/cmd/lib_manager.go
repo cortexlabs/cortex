@@ -142,6 +142,7 @@ func runManager(containerConfig *container.Config, hostConfig *container.HostCon
 		caughtCtrlC = true
 		removeContainer()
 		errors.Exit()
+		// TODO
 	}()
 
 	err = docker.ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})

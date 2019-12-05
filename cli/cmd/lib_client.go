@@ -35,6 +35,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
@@ -225,7 +226,8 @@ func handleConnection(connection *websocket.Conn, done chan struct{}) {
 		for {
 			_, message, err := connection.ReadMessage()
 			if err != nil {
-				errors.Exit()
+				telemetry.ReportError(err)
+				telemetry.ExitErr()
 			}
 			fmt.Println(string(message))
 		}
