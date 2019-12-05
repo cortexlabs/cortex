@@ -81,6 +81,10 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 
 	resourcesRes, err := getResourcesResponse(appName)
 	if err != nil {
+		// note: if modifying this string, search the codebase for it and change all occurrences
+		if strings.HasSuffix(err.Error(), "is not deployed") {
+			return console.Bold(err.Error()), nil
+		}
 		return "", err
 	}
 
