@@ -17,8 +17,12 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/spf13/cobra"
 
+	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
@@ -42,6 +46,11 @@ var logsCmd = &cobra.Command{
 
 		err = StreamLogs(appName, resourceName, resource.APIType.String())
 		if err != nil {
+			// note: if modifying this string, search the codebase for it and change all occurrences
+			if strings.HasSuffix(err.Error(), "is not deployed") {
+				fmt.Println(console.Bold(err.Error()))
+				return
+			}
 			errors.Exit(err)
 		}
 	},
