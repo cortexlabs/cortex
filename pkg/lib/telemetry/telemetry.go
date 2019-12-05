@@ -100,21 +100,28 @@ func Init(telemetryConfig Config) error {
 }
 
 func Event(name string, properties ...map[string]interface{}) {
+	eventHelper(name, mergeProperties(properties...), nil)
+}
+
+func InternalEvent(name string, properties ...map[string]interface{}) {
+	integrations := map[string]interface{}{
+		"All": false,
+		"S3":  true,
+	}
+
+	eventHelper(name, mergeProperties(properties...), integrations)
+}
+
+func eventHelper(name string, properties map[string]interface{}, integrations map[string]interface{}) {
 	if _config == nil {
 		return
 	}
 
-	mergedProperties := make(map[string]interface{})
-	for _, p := range properties {
-		for k, v := range p {
-			mergedProperties[k] = v
-		}
-	}
-
 	err := _segment.Enqueue(analytics.Track{
-		Event:      name,
-		UserId:     _config.UserID,
-		Properties: mergedProperties,
+		Event:        name,
+		UserId:       _config.UserID,
+		Properties:   properties,
+		Integrations: integrations,
 	})
 	if err != nil {
 		Error(err)
@@ -186,4 +193,14 @@ func closeSegment() error {
 func Close() {
 	parallel.Run(closeSegment, closeSentry)
 	_config = nil
+}
+
+func mergeProperties(properties ...map[string]interface{}) map[string]interface{} {
+	mergedProperties := make(map[string]interface{})
+	for _, p := range properties {
+		for k, v := range p {
+			mergedProperties[k] = v
+		}
+	}
+	return mergedProperties
 }
