@@ -130,6 +130,18 @@ func ReportError(err error) {
 	})
 }
 
+func ErrorMessage(message string) {
+	if _config == nil {
+		return
+	}
+
+	sentry.WithScope(func(scope *sentry.Scope) {
+		scope.SetUser(sentry.User{ID: _config.UserID})
+		sentry.CaptureMessage(message)
+		go sentry.Flush(10 * time.Second)
+	})
+}
+
 func RecordEmail(email string) {
 	if _config == nil {
 		return
