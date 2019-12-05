@@ -38,7 +38,7 @@ var configureCmd = &cobra.Command{
 	Short: "configure the cli",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.ReportEvent("cli.configure", nil)
+		telemetry.ReportEvent("cli.configure")
 
 		if flagPrint {
 			cliEnvConfig, err := readCLIEnvConfig(flagEnv)

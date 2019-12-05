@@ -41,7 +41,7 @@ func main() {
 		exit.Error(err)
 	}
 
-	telemetry.ReportEvent("operator.init", nil)
+	telemetry.ReportEvent("operator.init")
 
 	if err := workloads.Init(); err != nil {
 		exit.Error(err)

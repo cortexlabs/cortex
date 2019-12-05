@@ -67,7 +67,7 @@ var upCmd = &cobra.Command{
 	Short: "spin up a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.ReportEvent("cli.cluster.up", nil)
+		telemetry.ReportEvent("cli.cluster.up")
 
 		if err := checkDockerRunning(); err != nil {
 			exit.Error(err)
@@ -96,7 +96,7 @@ var updateCmd = &cobra.Command{
 	Short: "update a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.ReportEvent("cli.cluster.update", nil)
+		telemetry.ReportEvent("cli.cluster.update")
 
 		if err := checkDockerRunning(); err != nil {
 			exit.Error(err)
@@ -126,7 +126,7 @@ var infoCmd = &cobra.Command{
 	Short: "get information about a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.ReportEvent("cli.cluster.info", nil)
+		telemetry.ReportEvent("cli.cluster.info")
 
 		if err := checkDockerRunning(); err != nil {
 			exit.Error(err)
@@ -179,7 +179,7 @@ var downCmd = &cobra.Command{
 	Short: "spin down a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.ReportEvent("cli.cluster.down", nil)
+		telemetry.ReportEvent("cli.cluster.down")
 
 		if err := checkDockerRunning(); err != nil {
 			exit.Error(err)

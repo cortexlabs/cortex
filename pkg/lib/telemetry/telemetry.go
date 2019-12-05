@@ -102,15 +102,22 @@ func Init(telemetryConfig Config) error {
 	return nil
 }
 
-func ReportEvent(name string, properties map[string]interface{}) {
+func ReportEvent(name string, properties ...map[string]interface{}) {
 	if _config == nil {
 		return
+	}
+
+	mergedProperties := make(map[string]interface{})
+	for _, p := range properties {
+		for k, v := range p {
+			mergedProperties[k] = v
+		}
 	}
 
 	err := _segment.Enqueue(analytics.Track{
 		Event:      name,
 		UserId:     _config.UserID,
-		Properties: properties,
+		Properties: mergedProperties,
 	})
 	if err != nil {
 		ReportError(err)

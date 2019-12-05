@@ -61,7 +61,7 @@ var getCmd = &cobra.Command{
 	Short: "get information about deployments",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.ReportEvent("cli.get", nil)
+		telemetry.ReportEvent("cli.get")
 
 		rerun(func() (string, error) {
 			return runGet(cmd, args)

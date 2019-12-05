@@ -37,7 +37,7 @@ var versionCmd = &cobra.Command{
 	Short: "print the cli and cluster versions",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.ReportEvent("cli.version", nil)
+		telemetry.ReportEvent("cli.version")
 
 		if cliConfigured, err := isCLIEnvConfigured(flagEnv); err != nil || !cliConfigured {
 			fmt.Println("cli version: " + consts.CortexVersion + "\n")

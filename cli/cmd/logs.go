@@ -38,7 +38,7 @@ var logsCmd = &cobra.Command{
 	Short: "stream logs from an api",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.ReportEvent("cli.logs", nil)
+		telemetry.ReportEvent("cli.logs")
 
 		resourceName := args[0]
 
