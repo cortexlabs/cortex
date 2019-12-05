@@ -26,7 +26,7 @@
 
 - [Language identification](pytorch/language-identifier): deploy a fastText model to identify languages.
 
-- [Image Classification](pytorch/image-classifier): deploy an AlexNet model from TorchVision to classify images.
+- [Image classification](pytorch/image-classifier): deploy an AlexNet model from TorchVision to classify images.
 
 ## XGBoost
 
