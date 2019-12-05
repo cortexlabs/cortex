@@ -28,9 +28,6 @@ import (
 	"github.com/cortexlabs/yaml"
 )
 
-var _cachedCLIConfig *CLIConfig
-var _cachedCLIConfigErr error
-
 type CLIConfig struct {
 	Telemetry    bool            `json:"telemetry" yaml:"telemetry"`
 	Environments []*CLIEnvConfig `json:"environments" yaml:"environments"`
@@ -232,36 +229,26 @@ func configureCLIEnv(environment string) (CLIEnvConfig, error) {
 }
 
 func readCLIConfig() (CLIConfig, error) {
-	if _cachedCLIConfig != nil {
-		return *_cachedCLIConfig, _cachedCLIConfigErr
-	}
-
 	if !files.IsFile(_cliConfigPath) {
 		// add empty file so that the file created by the manager container maintains current user permissions
 		files.MakeEmptyFile(_cliConfigPath)
 
-		_cachedCLIConfigErr = nil
-		_cachedCLIConfig = &CLIConfig{
+		return CLIConfig{
 			Telemetry: true,
-		}
-		return *_cachedCLIConfig, nil
+		}, nil
 	}
 
-	_cachedCLIConfig = &CLIConfig{}
-	errs := cr.ParseYAMLFile(_cachedCLIConfig, cliConfigValidation, _cliConfigPath)
+	cliConfig := CLIConfig{}
+	errs := cr.ParseYAMLFile(&cliConfig, cliConfigValidation, _cliConfigPath)
 	if errors.HasErrors(errs) {
-		_cachedCLIConfigErr = errors.FirstError(errs...)
-		_cachedCLIConfig = nil
-		return CLIConfig{}, _cachedCLIConfigErr
+		return CLIConfig{}, errors.FirstError(errs...)
 	}
 
-	if _cachedCLIConfigErr = _cachedCLIConfig.validate(); _cachedCLIConfigErr != nil {
-		_cachedCLIConfig = nil
-		return CLIConfig{}, _cachedCLIConfigErr
+	if err := cliConfig.validate(); err != nil {
+		return CLIConfig{}, err
 	}
 
-	_cachedCLIConfigErr = nil
-	return *_cachedCLIConfig, nil
+	return cliConfig, nil
 }
 
 func (cliConfig CLIConfig) validate() error {
@@ -302,7 +289,5 @@ func addEnvToCLIConfig(newCLIEnvConfig CLIEnvConfig) error {
 		return err
 	}
 
-	_cachedCLIConfig = &cliConfig
-	_cachedCLIConfigErr = nil
 	return nil
 }
