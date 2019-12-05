@@ -166,11 +166,11 @@ var infoCmd = &cobra.Command{
 		}
 		infoResponse.ClusterConfig.ClusterConfig = *clusterConfig
 
-		var items []table.KV
-		items = append(items, table.KV{K: "aws access key id", V: infoResponse.MaskedAWSAccessKeyID})
-		items = append(items, infoResponse.ClusterConfig.UserFacingTable()...)
+		var items table.KeyValuePairs
+		items.Add("aws access key id", infoResponse.MaskedAWSAccessKeyID)
+		items.AddAll(infoResponse.ClusterConfig.UserFacingTable())
 
-		fmt.Println(table.AlignKeyValue(items, ":", 1))
+		items.Print()
 	},
 }
 

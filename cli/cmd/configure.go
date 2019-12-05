@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
@@ -54,12 +55,16 @@ var configureCmd = &cobra.Command{
 				}
 			}
 
+			var items table.KeyValuePairs
+
 			if flagEnv != "default" {
-				fmt.Printf("environment:              %s\n", flagEnv)
+				items.Add("environment", flagEnv)
 			}
-			fmt.Printf("cortex operator endpoint: %s\n", cliEnvConfig.OperatorEndpoint)
-			fmt.Printf("aws access key id:        %s\n", cliEnvConfig.AWSAccessKeyID)
-			fmt.Printf("aws secret access key:    %s\n", s.MaskString(cliEnvConfig.AWSSecretAccessKey, 4))
+			items.Add("cortex operator endpoint", cliEnvConfig.OperatorEndpoint)
+			items.Add("aws access key id", cliEnvConfig.AWSAccessKeyID)
+			items.Add("aws secret access key", s.MaskString(cliEnvConfig.AWSSecretAccessKey, 4))
+
+			items.Print()
 			return
 		}
 
