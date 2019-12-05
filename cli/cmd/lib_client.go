@@ -166,7 +166,7 @@ func StreamLogs(appName string, resourceName string, resourceType string) error 
 	values.Set("appName", appName)
 
 	if isTelemetryEnabled() {
-		values.Set("client-id", clientID())
+		values.Set("clientID", clientID())
 	}
 
 	req.URL.RawQuery = values.Encode()
@@ -270,7 +270,7 @@ func operatorRequest(method string, endpoint string, body io.Reader, qParams []m
 func (client *cortexClient) makeRequest(request *http.Request) ([]byte, error) {
 	if isTelemetryEnabled() {
 		values := request.URL.Query()
-		values.Set("client-id", clientID())
+		values.Set("clientID", clientID())
 		request.URL.RawQuery = values.Encode()
 	}
 

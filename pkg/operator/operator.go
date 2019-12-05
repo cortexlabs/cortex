@@ -74,7 +74,7 @@ func panicMiddleware(next http.Handler) http.Handler {
 
 func clientIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if clientID := r.URL.Query().Get("client-id"); clientID != "" {
+		if clientID := r.URL.Query().Get("clientID"); clientID != "" {
 			if !_cachedClientIDs.Has(clientID) {
 				telemetry.RecordOperatorID(clientID, config.AWS.HashedAccountID)
 				_cachedClientIDs.Add(clientID)
