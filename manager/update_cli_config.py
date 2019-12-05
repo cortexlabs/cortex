@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import boto3
 import sys
 import yaml
-import os
 
 
 def update_cli_config(
@@ -36,7 +34,7 @@ def update_cli_config(
         with open(cli_config_file_path, "r") as f:
             cli_config = yaml.safe_load(f)
             if cli_config is None:
-                raise
+                raise Exception("blank cli config file")
     except:
         cli_config = {"environments": [cli_env_config]}
         with open(cli_config_file_path, "w") as f:
