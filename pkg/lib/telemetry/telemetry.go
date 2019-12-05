@@ -88,9 +88,6 @@ func Init(telemetryConfig Config) error {
 			Device: analytics.DeviceInfo{
 				Type: telemetryConfig.Environment,
 			},
-			Extra: map[string]interface{}{
-				"direct": true,
-			},
 		},
 	})
 	if err != nil {
