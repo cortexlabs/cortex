@@ -19,7 +19,6 @@ package endpoints
 import (
 	"encoding/json"
 	"fmt"
-
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
