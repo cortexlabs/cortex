@@ -119,3 +119,19 @@ func MillisToTime(epochMillis int64) time.Time {
 func ToMillis(t time.Time) int64 {
 	return t.UnixNano() / int64(time.Millisecond)
 }
+
+type Timer struct {
+	name  string
+	start time.Time
+}
+
+func StartTimer(name string) Timer {
+	return Timer{
+		name:  name,
+		start: time.Now(),
+	}
+}
+
+func (t Timer) PrintTimeElapsed() {
+	fmt.Printf("%s: %s\n", t.name, time.Since(t.start))
+}
