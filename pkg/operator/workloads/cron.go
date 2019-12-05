@@ -56,7 +56,7 @@ func runCron() {
 	defer reportAndRecover("cron failed")
 
 	if err := UpdateWorkflows(); err != nil {
-		telemetry.ReportError(err)
+		telemetry.Error(err)
 		errors.PrintError(err)
 	}
 
@@ -66,12 +66,12 @@ func runCron() {
 	})
 
 	if err != nil {
-		telemetry.ReportError(err)
+		telemetry.Error(err)
 		errors.PrintError(err)
 	}
 
 	if err := updateAPISavedStatuses(apiPods); err != nil {
-		telemetry.ReportError(err)
+		telemetry.Error(err)
 		errors.PrintError(err)
 	}
 
@@ -80,14 +80,14 @@ func runCron() {
 	})
 
 	if err != nil {
-		telemetry.ReportError(err)
+		telemetry.Error(err)
 		errors.PrintError(err)
 	}
 
 	deleteEvictedPods(failedPods)
 
 	if err := updateDataWorkloadErrors(failedPods); err != nil {
-		telemetry.ReportError(err)
+		telemetry.Error(err)
 		errors.PrintError(err)
 	}
 }
@@ -95,7 +95,7 @@ func runCron() {
 func reportAndRecover(strs ...string) error {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
-		telemetry.ReportError(err)
+		telemetry.Error(err)
 		errors.PrintError(err)
 		return err
 	}

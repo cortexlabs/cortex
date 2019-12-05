@@ -80,7 +80,7 @@ func RespondErrorCode(w http.ResponseWriter, code int, err error, strs ...string
 func RecoverAndRespond(w http.ResponseWriter, strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
-		telemetry.ReportError(err)
+		telemetry.Error(err)
 		RespondError(w, err)
 	}
 }

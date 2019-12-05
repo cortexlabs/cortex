@@ -49,7 +49,7 @@ var deployCmd = &cobra.Command{
 	Short: "create or update a deployment",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.ReportEvent("cli.deploy")
+		telemetry.Event("cli.deploy")
 		deploy(flagDeployForce, flagDeployRefresh)
 	},
 }

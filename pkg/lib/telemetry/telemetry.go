@@ -102,7 +102,7 @@ func Init(telemetryConfig Config) error {
 	return nil
 }
 
-func ReportEvent(name string, properties ...map[string]interface{}) {
+func Event(name string, properties ...map[string]interface{}) {
 	if _config == nil {
 		return
 	}
@@ -120,11 +120,11 @@ func ReportEvent(name string, properties ...map[string]interface{}) {
 		Properties: mergedProperties,
 	})
 	if err != nil {
-		ReportError(err)
+		Error(err)
 	}
 }
 
-func ReportError(err error) {
+func Error(err error) {
 	if err == nil || _config == nil {
 		return
 	}

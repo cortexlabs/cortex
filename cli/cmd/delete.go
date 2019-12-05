@@ -41,7 +41,7 @@ var deleteCmd = &cobra.Command{
 	Short: "delete a deployment",
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.ReportEvent("cli.delete")
+		telemetry.Event("cli.delete")
 
 		var appName string
 		var err error

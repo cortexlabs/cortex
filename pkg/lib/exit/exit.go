@@ -37,7 +37,7 @@ func Error(err interface{}, errs ...interface{}) {
 		telemetry.ErrorMessage("an error occurred")
 	} else {
 		errors.PrintError(mergedErr)
-		telemetry.ReportError(mergedErr)
+		telemetry.Error(mergedErr)
 	}
 
 	telemetry.Close()
@@ -64,7 +64,7 @@ func ErrorNoPrint(errs ...interface{}) {
 	if mergedErr == nil {
 		telemetry.ErrorMessage("an error occurred")
 	} else {
-		telemetry.ReportError(mergedErr)
+		telemetry.Error(mergedErr)
 	}
 
 	telemetry.Close()
@@ -83,7 +83,7 @@ func Panic(errs ...interface{}) {
 	if err == nil {
 		telemetry.ErrorMessage("a panic occurred")
 	} else {
-		telemetry.ReportError(err)
+		telemetry.Error(err)
 	}
 
 	telemetry.Close()
