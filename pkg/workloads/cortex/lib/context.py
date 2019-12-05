@@ -155,7 +155,7 @@ class Context:
             raise
         return impl
 
-    def get_predictor_impl(self, api_name, project_dir):
+    def get_predictor_class(self, api_name, project_dir):
         api = self.apis[api_name]
         try:
             impl = self.load_module(
@@ -168,11 +168,26 @@ class Context:
             refresh_logger()
 
         try:
-            _validate_impl(impl, PREDICTOR_IMPL_VALIDATION)
+            classes = inspect.getmembers(impl, inspect.isclass)
+            print(classes)
+            if len(classes) == 0:
+                raise UserException("no class definitions found")
+            predictor_class = None
+            for class_df in classes:
+                if class_df[0] == "Predictor":
+                    if predictor_class is not None:
+                        raise UserException(
+                            "multiple definitions for Predictor class found (%s)", str(classes)
+                        )
+                    predictor_class = class_df[1]
+
+            if predictor_class is None:
+                raise UserException("definition for Predictor class not found")
+            _validate_impl(predictor_class, PREDICTOR_CLASS_VALIDATION)
         except CortexException as e:
             e.wrap("api " + api_name, api["predictor"]["path"])
             raise
-        return impl
+        return predictor_class
 
     def get_resource_status(self, resource):
         key = self.resource_status_key(resource)
@@ -245,9 +260,11 @@ REQUEST_HANDLER_IMPL_VALIDATION = {
     ]
 }
 
-PREDICTOR_IMPL_VALIDATION = {
-    "optional": [{"name": "init", "args": ["model_path", "metadata"]}],
-    "required": [{"name": "predict", "args": ["payload", "metadata"]}],
+PREDICTOR_CLASS_VALIDATION = {
+    "required": [
+        {"name": "__init__", "args": ["self", "metadata"]},
+        {"name": "predict", "args": ["self", "payload"]},
+    ]
 }
 
 
@@ -257,10 +274,6 @@ def _validate_impl(impl, impl_req):
 
     for required_func in impl_req.get("required", []):
         _validate_required_fn_args(impl, required_func["name"], required_func["args"])
-
-
-def _validate_required_fn(impl, fn_name):
-    _validate_required_fn_args(impl, fn_name, None)
 
 
 def _validate_optional_fn_args(impl, fn_name, args):

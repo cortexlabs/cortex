@@ -87,7 +87,7 @@ def predict():
     try:
         try:
             debug_obj("payload", payload, debug)
-            output = predictor.predict(payload, api["predictor"]["metadata"])
+            output = predictor.predict(payload)
             debug_obj("prediction", output, debug)
         except Exception as e:
             raise UserRuntimeException(api["predictor"]["path"], "predict", str(e)) from e
@@ -122,23 +122,14 @@ def start(args):
             raise CortexException(api["name"], "predictor key not configured")
 
         cx_logger().info("loading the predictor from {}".format(api["predictor"]["path"]))
-        local_cache["predictor"] = ctx.get_predictor_impl(api["name"], args.project_dir)
+        predictor_class = ctx.get_predictor_class(api["name"], args.project_dir)
 
-        if util.has_function(local_cache["predictor"], "init"):
-            try:
-                model_path = None
-                if api["predictor"].get("model") is not None:
-                    _, prefix = ctx.storage.deconstruct_s3_path(api["predictor"]["model"])
-                    model_path = os.path.join(
-                        args.model_dir, os.path.basename(os.path.normpath(prefix))
-                    )
-
-                cx_logger().info("calling the predictor's init() function")
-                local_cache["predictor"].init(model_path, api["predictor"]["metadata"])
-            except Exception as e:
-                raise UserRuntimeException(api["predictor"]["path"], "init", str(e)) from e
-            finally:
-                refresh_logger()
+        try:
+            local_cache["predictor"] = predictor_class(api["predictor"]["metadata"])
+        except Exception as e:
+            raise UserRuntimeException(api["predictor"]["path"], "__init__", str(e)) from e
+        finally:
+            refresh_logger()
     except:
         cx_logger().exception("failed to start api")
         sys.exit(1)
@@ -164,7 +155,6 @@ def main():
         help="s3 path to context (e.g. s3://bucket/path/to/context.json)",
     )
     na.add_argument("--api", required=True, help="resource id of api to serve")
-    na.add_argument("--model-dir", required=True, help="directory to download the model to")
     na.add_argument("--cache-dir", required=True, help="local path for the context cache")
     na.add_argument("--project-dir", required=True, help="local path for the project zip file")
 

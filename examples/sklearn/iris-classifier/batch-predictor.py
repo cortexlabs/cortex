@@ -1,26 +1,28 @@
-import pickle
+import boto3
 import numpy as np
+import pickle
+import re
 
 
-model = None
-labels = ["setosa", "versicolor", "virginica"]
+class Predictor:
+    def __init__(self, metadata):
+        bucket, key = re.match("s3://(.+?)/(.+)", metadata["model"]).groups()
+        s3 = boto3.client("s3")
+        s3.download_file(bucket, key, "model.pkl")
 
+        self.model = pickle.load(open("model.pkl", "rb"))
+        self.labels = ["setosa", "versicolor", "virginica"]
 
-def init(model_path, metadata):
-    global model
-    model = pickle.load(open(model_path, "rb"))
-
-
-def predict(payload, metadata):
-    measurements = [
-        [
-            sample["sepal_length"],
-            sample["sepal_width"],
-            sample["petal_length"],
-            sample["petal_width"],
+    def predict(self, payload):
+        measurements = [
+            [
+                sample["sepal_length"],
+                sample["sepal_width"],
+                sample["petal_length"],
+                sample["petal_width"],
+            ]
+            for sample in payload
         ]
-        for sample in payload
-    ]
 
-    label_ids = model.predict(np.array(measurements))
-    return [labels[label_id] for label_id in label_ids]
+        label_ids = self.model.predict(np.array(measurements))
+        return [self.labels[label_id] for label_id in label_ids]

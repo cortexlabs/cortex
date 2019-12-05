@@ -4,26 +4,28 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPT2Config
 import generator
 
 
-medium_config = GPT2Config(n_embd=1024, n_layer=24, n_head=16)
-model = GPT2LMHeadModel(medium_config)
-tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+class Predictor:
+    def __init__(self, metadata):
+        medium_config = GPT2Config(n_embd=1024, n_layer=24, n_head=16)
+        model = GPT2LMHeadModel(medium_config)
+        wget.download(
+            "https://convaisharables.blob.core.windows.net/lsp/multiref/medium_ft.pkl",
+            "medium_ft.pkl",
+        )
 
+        weights = torch.load("medium_ft.pkl")
+        weights["lm_head.weight"] = weights["lm_head.decoder.weight"]
+        weights.pop("lm_head.decoder.weight", None)
 
-def init(model_path, metadata):
-    wget.download(
-        "https://convaisharables.blob.core.windows.net/lsp/multiref/medium_ft.pkl", "medium_ft.pkl"
-    )
+        model.load_state_dict(weights)
+        model.eval()
+        model.to(metadata["device"])
 
-    weights = torch.load("medium_ft.pkl")
-    weights["lm_head.weight"] = weights["lm_head.decoder.weight"]
-    weights.pop("lm_head.decoder.weight", None)
+        self.device = metadata["device"]
+        self.model = model
+        self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
-    model.load_state_dict(weights)
-    model.eval()
-    model.to(metadata["device"])
-
-
-def predict(payload, metadata):
-    conditioned_tokens = tokenizer.encode(payload["text"]) + [generator.END_OF_TEXT]
-    prediction = generator.generate(model, conditioned_tokens, metadata["device"])
-    return tokenizer.decode(prediction)
+    def predict(self, payload):
+        conditioned_tokens = self.tokenizer.encode(payload["text"]) + [generator.END_OF_TEXT]
+        prediction = generator.generate(self.model, conditioned_tokens, self.device)
+        return self.tokenizer.decode(prediction)

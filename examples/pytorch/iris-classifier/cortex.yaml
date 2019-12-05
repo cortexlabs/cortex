@@ -5,6 +5,7 @@
   name: classifier
   predictor:
     path: predictor.py
-    model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
+    metadata:
+      model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
   tracker:
     model_type: classification

@@ -1,30 +1,33 @@
 import re
 import torch
+import boto3
 from model import IrisNet
 
 
-model = IrisNet()
+class Predictor:
+    def __init__(self, metadata):
+        bucket, key = re.match("s3://(.+?)/(.+)", metadata["model"]).groups()
+        s3 = boto3.client("s3")
+        s3.download_file(bucket, key, "model.pth")
 
+        model = IrisNet()
+        model.load_state_dict(torch.load("model.pth"))
+        model.eval()
 
-def init(model_path, metadata):
-    model.load_state_dict(torch.load(model_path))
-    model.eval()
+        self.model = model
+        self.labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
-
-labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
-
-
-def predict(payload, metadata):
-    input_tensor = torch.FloatTensor(
-        [
+    def predict(self, payload):
+        input_tensor = torch.FloatTensor(
             [
-                payload["sepal_length"],
-                payload["sepal_width"],
-                payload["petal_length"],
-                payload["petal_width"],
+                [
+                    payload["sepal_length"],
+                    payload["sepal_width"],
+                    payload["petal_length"],
+                    payload["petal_width"],
+                ]
             ]
-        ]
-    )
+        )
 
-    output = model(input_tensor)
-    return labels[torch.argmax(output[0])]
+        output = self.model(input_tensor)
+        return self.labels[torch.argmax(output[0])]

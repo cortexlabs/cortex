@@ -5,4 +5,5 @@
   name: estimator
   predictor:
     path: predictor.py
-    model: s3://cortex-examples/sklearn/mpg-estimator/linreg
+    metadata:
+      model: s3://cortex-examples/sklearn/mpg-estimator/linreg
