@@ -215,13 +215,14 @@ func configureCLIEnv(environment string) (CLIEnvConfig, error) {
 		fmt.Println("environment: " + environment + "\n")
 	}
 
-	cliEnvConfig := CLIEnvConfig{}
+	cliEnvConfig := CLIEnvConfig{
+		Name: environment,
+	}
+
 	err = cr.ReadPrompt(&cliEnvConfig, cliEnvPromptValidation(prevCLIEnvConfig))
 	if err != nil {
 		return CLIEnvConfig{}, err
 	}
-
-	cliEnvConfig.Name = environment
 
 	if err := addEnvToCLIConfig(cliEnvConfig); err != nil {
 		return CLIEnvConfig{}, err
@@ -254,18 +255,24 @@ func readCLIConfig() (CLIConfig, error) {
 		return CLIConfig{}, _cachedCLIConfigErr
 	}
 
-	envNames := strset.New()
-	for _, cliEnvConfig := range _cachedCLIConfig.Environments {
-		if envNames.Has(cliEnvConfig.Name) {
-			_cachedCLIConfigErr = errors.Wrap(ErrorDuplicateCLIEnvNames(cliEnvConfig.Name), _cliConfigPath, "environments")
-			_cachedCLIConfig = nil
-			return CLIConfig{}, _cachedCLIConfigErr
-		}
-		envNames.Add(cliEnvConfig.Name)
+	if _cachedCLIConfigErr = _cachedCLIConfig.validate(); _cachedCLIConfigErr != nil {
+		_cachedCLIConfig = nil
+		return CLIConfig{}, _cachedCLIConfigErr
 	}
 
 	_cachedCLIConfigErr = nil
 	return *_cachedCLIConfig, nil
+}
+
+func (cliConfig CLIConfig) validate() error {
+	envNames := strset.New()
+	for _, cliEnvConfig := range cliConfig.Environments {
+		if envNames.Has(cliEnvConfig.Name) {
+			return errors.Wrap(ErrorDuplicateCLIEnvNames(cliEnvConfig.Name), _cliConfigPath, "environments")
+		}
+		envNames.Add(cliEnvConfig.Name)
+	}
+	return nil
 }
 
 func addEnvToCLIConfig(newCLIEnvConfig CLIEnvConfig) error {
