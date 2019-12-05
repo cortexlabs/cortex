@@ -1,6 +1,6 @@
 # Predictor APIs
 
-You can deploy models from any Python framework by implementing Cortex's Predictor interface. The interface consists of an `init()` function and a `predict()` function. The `init()` function is responsible for preparing the model for serving, downloading vocabulary files, etc. The `predict()` function is called on every request and is responsible for responding with a prediction.
+You can deploy models from any Python framework by defining a class definition that implements Cortex's Predictor interface. The class constructor is responsible for preparing the model for serving, downloading vocabulary files, etc. The `predict()` class function is called on every request and is responsible for responding with a prediction.
 
 In addition to supporting Python models via the Predictor interface, Cortex can serve the following exported model formats:
 
@@ -15,7 +15,6 @@ In addition to supporting Python models via the Predictor interface, Cortex can 
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
   predictor:
     path: <string>  # path to the predictor Python file, relative to the Cortex root (required)
-    model: <string>  # S3 path to a file or directory (e.g. s3://my-bucket/exported_model) (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     metadata: <string: value>  # dictionary that can be used to configure custom values (optional)
   tracker:
@@ -53,38 +52,34 @@ You can log information about each request by adding a `?debug=true` parameter t
 
 A Predictor is a Python class that describes how to initialize a model and use it to make a prediction.
 
-The lifecycle of a replica running using Predictor starts instantiating with loading the implementation file and executing code in the global scope. Once the implementation is loaded, Cortex calls the `init()` function to allow for any additional preparations. The `init()` function is typically used to download and initialize the model. It receives the metadata object, which is an arbitrary dictionary defined in the API configuration (it can be used to pass in the path to the exported/pickled model, vocabularies, aggregates, etc). Once the `init()` function is executed, the replica is available to accept requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload and the metadata object. The `predict()` function is responsible for returning a prediction from a sample.
-
-Global variables can be shared across functions safely because each replica handles one request at a time.
+The lifecycle of a replica running using a Predictor starts with instantiating an instance of the Predictor class defined in the implementation file. The constructor of the Predictor class is typically used to download and initialize the model. It receives the metadata object, which is an arbitrary dictionary defined in the API configuration (it can be used to pass in the path to the exported/pickled model, vocabularies, aggregates, etc). After a successful instantiation of the Predictor class, the replica is available to accept requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload. The `predict()` function is responsible for returning a prediction from a sample.
 
 ## Implementation
 
 ```python
 # initialization code and variables can be declared here in global scope
 
-def init(model_path, metadata):
-    """Called once before the API is made available. Setup for model serving such
-    as downloading/initializing the model or downloading vocabulary can be done here.
-    Optional.
+class Predictor:
+    def __init__(self, metadata):
+        """Called once before the API is made available. Setup for model serving such
+        as downloading/initializing the model or downloading vocabulary can be done here.
 
-    Args:
-        model_path: Local path to model file or directory if specified by user in API configuration, otherwise None.
-        metadata: Custom dictionary specified by the user in API configuration.
-    """
-    pass
+        Args:
+            metadata: Custom dictionary specified by the user in API configuration.
+        """
+        pass
 
-def predict(payload, metadata):
-    """Called once per request. Model prediction is done here, including any
-    preprocessing of the request payload and postprocessing of the model output.
-    Required.
+    def predict(self, payload):
+        """Called once per request. Model prediction is done here, including any
+        preprocessing of the request payload and postprocessing of the model output.
+        Required.
 
-    Args:
-        payload: The JSON request payload (parsed in Python).
-        metadata: Custom dictionary specified by the user in API configuration.
+        Args:
+            payload: The JSON request payload (parsed in Python).
 
-    Returns:
-        A prediction
-    """
+        Returns:
+            Predictions based on the request payload
+        """
 ```
 
 ## Example
@@ -93,34 +88,35 @@ def predict(payload, metadata):
 import boto3
 from my_model import IrisNet
 
-# variables declared in global scope can be used safely in both functions (one replica handles one request at a time)
-labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
-model = IrisNet()
+class Predictor:
+    def __init__(self, metadata):
+        # Initialize the model
+        model = IrisNet()
+        model.load_state_dict(torch.load(model_path))
+        model.eval()
 
-def init(model_path, metadata):
-    # Initialize the model
-    model.load_state_dict(torch.load(model_path))
-    model.eval()
+        self.model = model
+        self.labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
-def predict(payload, metadata):
-    # Convert the request to a tensor and pass it into the model
-    input_tensor = torch.FloatTensor(
-        [
+    def predict(self, payload):
+        # Convert the request to a tensor and pass it into the model
+        input_tensor = torch.FloatTensor(
             [
-                payload["sepal_length"],
-                payload["sepal_width"],
-                payload["petal_length"],
-                payload["petal_width"],
+                [
+                    payload["sepal_length"],
+                    payload["sepal_width"],
+                    payload["petal_length"],
+                    payload["petal_width"],
+                ]
             ]
-        ]
-    )
+        )
 
-    # Run the prediction
-    output = model(input_tensor)
+        # Run the prediction
+        output = self.model(input_tensor)
 
-    # Translate the model output to the corresponding label string
-    return labels[torch.argmax(output[0])]
+        # Translate the model output to the corresponding label string
+        return self.labels[torch.argmax(output[0])]
 ```
 
 ## Pre-installed packages
