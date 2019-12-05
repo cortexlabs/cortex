@@ -30,7 +30,7 @@ var _segment analytics.Client
 var _config *Config
 
 type Config struct {
-	Enable          bool
+	Enabled         bool
 	UserID          string
 	Environment     string
 	ShouldLogErrors bool
@@ -53,7 +53,7 @@ func (logger silentSentryLogger) Write(p []byte) (n int, err error) {
 }
 
 func Init(telemetryConfig Config) error {
-	if !telemetryConfig.Enable {
+	if !telemetryConfig.Enabled {
 		_config = nil
 		return nil
 	}
@@ -113,7 +113,7 @@ func InternalEvent(name string, properties ...map[string]interface{}) {
 }
 
 func eventHelper(name string, properties map[string]interface{}, integrations map[string]interface{}) {
-	if _config == nil {
+	if _config == nil || !_config.Enabled {
 		return
 	}
 
@@ -141,7 +141,7 @@ func Error(err error) {
 }
 
 func ErrorMessage(message string) {
-	if _config == nil {
+	if _config == nil || !_config.Enabled {
 		return
 	}
 
@@ -153,7 +153,7 @@ func ErrorMessage(message string) {
 }
 
 func RecordEmail(email string) {
-	if _config == nil {
+	if _config == nil || !_config.Enabled {
 		return
 	}
 
@@ -165,7 +165,7 @@ func RecordEmail(email string) {
 }
 
 func RecordOperatorID(clientID string, operatorID string) {
-	if _config == nil {
+	if _config == nil || !_config.Enabled {
 		return
 	}
 

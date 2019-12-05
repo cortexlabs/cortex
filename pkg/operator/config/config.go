@@ -65,7 +65,7 @@ func Init() error {
 	}
 
 	err = telemetry.Init(telemetry.Config{
-		Enable:          Cluster.Telemetry,
+		Enabled:         Cluster.Telemetry,
 		UserID:          AWS.HashedAccountID,
 		Environment:     "operator",
 		ShouldLogErrors: true,

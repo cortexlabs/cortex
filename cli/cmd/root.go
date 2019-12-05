@@ -80,7 +80,7 @@ func init() {
 
 func initTelemetry() {
 	telemetry.Init(telemetry.Config{
-		Enable:          true,
+		Enabled:         true,
 		UserID:          clientID(),
 		Environment:     "cli",
 		ShouldLogErrors: false,
