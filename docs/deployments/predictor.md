@@ -16,7 +16,7 @@ In addition to supporting Python models via the Predictor interface, Cortex can 
   predictor:
     path: <string>  # path to the predictor Python file, relative to the Cortex root (required)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    metadata: <string: value>  # dictionary that can be used to configure custom values (optional)
+    kwargs: <string: value>  # dictionary of args passed to constructor of predictor (optional)
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
@@ -60,12 +60,12 @@ The lifecycle of a replica running using a Predictor starts with instantiating a
 # initialization code and variables can be declared here in global scope
 
 class Predictor:
-    def __init__(self, metadata):
+    def __init__(self, **kwargs):
         """Called once before the API is made available. Setup for model serving such
         as downloading/initializing the model or downloading vocabulary can be done here.
 
         Args:
-            metadata: Custom dictionary specified by the user in API configuration.
+            **kwargs: Dictionary of args defined in API configuration, commonly contains path to model and other metadata.
         """
         pass
 

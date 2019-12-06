@@ -88,6 +88,7 @@ type ONNX struct {
 
 type Predictor struct {
 	Path       string                 `json:"path" yaml:"path"`
+	Model      *string                `json:"model" yaml:"model"`
 	PythonPath *string                `json:"python_path" yaml:"python_path"`
 	Metadata   map[string]interface{} `json:"metadata" yaml:"metadata"`
 }
@@ -185,6 +186,12 @@ var apiValidation = &cr.StructValidation{
 						StructField: "Path",
 						StringValidation: &cr.StringValidation{
 							Required: true,
+						},
+					},
+					{
+						StructField: "Model",
+						StringPtrValidation: &cr.StringPtrValidation{
+							Validator: cr.S3PathValidator(),
 						},
 					},
 					pythonPathValidation,
@@ -429,6 +436,33 @@ func (onnx *ONNX) UserConfigStr() string {
 func (predictor *Predictor) Validate(projectFileMap map[string][]byte) error {
 	if _, ok := projectFileMap[predictor.Path]; !ok {
 		return errors.Wrap(ErrorImplDoesNotExist(predictor.Path), PredictorKey, PathKey)
+	}
+	if predictor.Model != nil {
+		var err error
+		awsClient, err := aws.NewFromS3Path(*predictor.Model, false)
+		if err != nil {
+			return err
+		}
+
+		isFile := false
+		if isFile, err = awsClient.IsS3PathFile(*predictor.Model); err != nil {
+			return errors.Wrap(err, PredictorKey, ModelKey)
+		}
+
+		if !isFile {
+			isDir := false
+			modelPath := s.EnsureSuffix(*predictor.Model, "/")
+
+			if isDir, err = awsClient.IsS3PathDir(modelPath); err != nil {
+				return errors.Wrap(err, PredictorKey, ModelKey)
+			}
+
+			if !isDir {
+				return errors.Wrap(ErrorExternalNotFound(*predictor.Model), PredictorKey, ModelKey)
+			}
+
+			predictor.Model = pointer.String(modelPath)
+		}
 	}
 	if predictor.PythonPath != nil {
 		if err := ValidatePythonPath(*predictor.PythonPath, projectFileMap); err != nil {

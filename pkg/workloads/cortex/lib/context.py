@@ -169,7 +169,6 @@ class Context:
 
         try:
             classes = inspect.getmembers(impl, inspect.isclass)
-            print(classes)
             if len(classes) == 0:
                 raise UserException("no class definitions found")
             predictor_class = None
