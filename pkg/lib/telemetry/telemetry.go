@@ -18,6 +18,7 @@ package telemetry
 
 import (
 	"os"
+	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -127,7 +128,7 @@ func InternalEvent(name string, properties ...map[string]interface{}) {
 }
 
 func eventHelper(name string, properties map[string]interface{}, integrations map[string]interface{}) {
-	if _config == nil || !_config.Enabled || os.Getenv("CORTEX_TELEMETRY_DISABLE") == "true" {
+	if _config == nil || !_config.Enabled || strings.ToLower(os.Getenv("CORTEX_TELEMETRY_DISABLE")) == "true" {
 		return
 	}
 
@@ -155,7 +156,7 @@ func Error(err error) {
 }
 
 func ErrorMessage(message string) {
-	if _config == nil || !_config.Enabled || os.Getenv("CORTEX_TELEMETRY_DISABLE") == "true" {
+	if _config == nil || !_config.Enabled || strings.ToLower(os.Getenv("CORTEX_TELEMETRY_DISABLE")) == "true" {
 		return
 	}
 
@@ -167,7 +168,7 @@ func ErrorMessage(message string) {
 }
 
 func RecordEmail(email string) {
-	if _config == nil || !_config.Enabled || os.Getenv("CORTEX_TELEMETRY_DISABLE") == "true" {
+	if _config == nil || !_config.Enabled || strings.ToLower(os.Getenv("CORTEX_TELEMETRY_DISABLE")) == "true" {
 		return
 	}
 
@@ -179,7 +180,7 @@ func RecordEmail(email string) {
 }
 
 func RecordOperatorID(clientID string, operatorID string) {
-	if _config == nil || !_config.Enabled || os.Getenv("CORTEX_TELEMETRY_DISABLE") == "true" {
+	if _config == nil || !_config.Enabled || strings.ToLower(os.Getenv("CORTEX_TELEMETRY_DISABLE")) == "true" {
 		return
 	}
 
