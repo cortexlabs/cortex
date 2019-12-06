@@ -41,6 +41,7 @@ const (
 	ErrConfiguredWhenSpotIsNotEnabled
 	ErrOnDemandBaseCapacityGreaterThanMax
 	ErrConfigCannotBeChangedOnUpdate
+	ErrPFamilyInstanceUseNotPermitted
 	ErrInvalidInstanceType
 )
 
@@ -60,6 +61,7 @@ var (
 		"err_configured_when_spot_is_not_enabled",
 		"err_on_demand_base_capacity_greater_than_max",
 		"err_config_cannot_be_changed_on_update",
+		"err_p_family_instance_use_not_permitted",
 		"err_invalid_instance_type",
 	}
 )
@@ -198,6 +200,13 @@ func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) e
 	return Error{
 		Kind:    ErrConfigCannotBeChangedOnUpdate,
 		message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
+	}
+}
+
+func ErrorPFamilyInstanceUseNotPermitted() error {
+	return Error{
+		Kind:    ErrPFamilyInstanceUseNotPermitted,
+		message: "not permitted to use instances from P family; please navigate to AWS EC2 dashboard to request access",
 	}
 }
 
