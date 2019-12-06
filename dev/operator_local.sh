@@ -27,7 +27,7 @@ python3 $ROOT/manager/update_cli_config.py "$HOME/.cortex/cli.yaml" "default" "h
 
 cp -r $ROOT/dev/config/cluster.yaml ~/.cortex/cluster-local.yaml
 
-if if grep -qiP '^telemetry:\s*false\s*$' ~/.cortex/cli.yaml; then
+if grep -qiP '^telemetry:\s*false\s*$' ~/.cortex/cli.yaml; then
   echo "telemetry: false" >> ~/.cortex/cluster-local.yaml
 fi
 
