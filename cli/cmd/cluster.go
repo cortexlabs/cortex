@@ -27,6 +27,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
@@ -219,6 +220,10 @@ var emailPrompValidation = &cr.PromptValidation{
 }
 
 func promptForEmail() {
+	if email, err := files.ReadFile(_emailPath); err == nil && email != "" {
+		return
+	}
+
 	emailAddressContainer := &struct {
 		EmailAddress *string
 	}{}
@@ -237,6 +242,8 @@ func promptForEmail() {
 		if !isTelemetryEnabled() {
 			telemetry.Close()
 		}
+
+		files.WriteFile([]byte(*emailAddressContainer.EmailAddress), _emailPath)
 	}
 }
 

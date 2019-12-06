@@ -42,6 +42,7 @@ var localDir string
 var cachedClusterConfigPath string
 var _cliConfigPath string
 var _clientIDPath string
+var _emailPath string
 
 func init() {
 	homeDir, err := homedir.Dir()
@@ -58,6 +59,7 @@ func init() {
 	cachedClusterConfigPath = filepath.Join(localDir, "cluster.yaml")
 	_cliConfigPath = filepath.Join(localDir, "cli.yaml")
 	_clientIDPath = filepath.Join(localDir, "client-id.txt")
+	_emailPath = filepath.Join(localDir, "email.txt")
 
 	cobra.EnablePrefixMatching = true
 
