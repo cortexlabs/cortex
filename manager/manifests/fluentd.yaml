@@ -139,16 +139,9 @@ spec:
           value: $CORTEX_REGION
         - name: LOG_GROUP_NAME
           value: $CORTEX_LOG_GROUP
-        - name: AWS_ACCESS_KEY_ID
-          valueFrom:
-            secretKeyRef:
-              name: aws-credentials
-              key: AWS_ACCESS_KEY_ID
-        - name: AWS_SECRET_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: aws-credentials
-              key: AWS_SECRET_ACCESS_KEY
+        envFrom:
+        - secretRef:
+            name: aws-credentials
         resources:
           requests:
             cpu: 200m

@@ -17,6 +17,7 @@ limitations under the License.
 package telemetry
 
 import (
+	"os"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -25,6 +26,9 @@ import (
 	"github.com/getsentry/sentry-go"
 	"gopkg.in/segmentio/analytics-go.v3"
 )
+
+var _sentryDSN = "https://5cea3d2d67194d028f7191fcc6ebca14@sentry.io/1825326"
+var _segmentWriteKey = "BNhXifMk9EyhPICF2zAFpWYPCf4CRpV1"
 
 var _segment analytics.Client
 var _config *Config
@@ -62,8 +66,13 @@ func Init(telemetryConfig Config) error {
 		return errors.New("user ID must be specified to enable telemetry")
 	}
 
+	dsn := _sentryDSN
+	if envVar := os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"); envVar != "" {
+		dsn = envVar
+	}
+
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn:         "https://5cea3d2d67194d028f7191fcc6ebca14@sentry.io/1825326",
+		Dsn:         dsn,
 		Release:     consts.CortexVersion,
 		Environment: telemetryConfig.Environment,
 	})
@@ -78,7 +87,12 @@ func Init(telemetryConfig Config) error {
 		segmentLogger = silentSegmentLogger{}
 	}
 
-	_segment, err = analytics.NewWithConfig("0WvoJyCey9z1W2EW7rYTPJUMRYat46dl", analytics.Config{
+	writeKey := _segmentWriteKey
+	if envVar := os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"); envVar != "" {
+		writeKey = envVar
+	}
+
+	_segment, err = analytics.NewWithConfig(writeKey, analytics.Config{
 		BatchSize: 1,
 		Logger:    segmentLogger,
 		DefaultContext: &analytics.Context{
@@ -113,7 +127,7 @@ func InternalEvent(name string, properties ...map[string]interface{}) {
 }
 
 func eventHelper(name string, properties map[string]interface{}, integrations map[string]interface{}) {
-	if _config == nil || !_config.Enabled {
+	if _config == nil || !_config.Enabled || os.Getenv("CORTEX_TELEMETRY_DISABLE") == "true" {
 		return
 	}
 
@@ -141,7 +155,7 @@ func Error(err error) {
 }
 
 func ErrorMessage(message string) {
-	if _config == nil || !_config.Enabled {
+	if _config == nil || !_config.Enabled || os.Getenv("CORTEX_TELEMETRY_DISABLE") == "true" {
 		return
 	}
 
@@ -153,7 +167,7 @@ func ErrorMessage(message string) {
 }
 
 func RecordEmail(email string) {
-	if _config == nil || !_config.Enabled {
+	if _config == nil || !_config.Enabled || os.Getenv("CORTEX_TELEMETRY_DISABLE") == "true" {
 		return
 	}
 
@@ -165,7 +179,7 @@ func RecordEmail(email string) {
 }
 
 func RecordOperatorID(clientID string, operatorID string) {
-	if _config == nil || !_config.Enabled {
+	if _config == nil || !_config.Enabled || os.Getenv("CORTEX_TELEMETRY_DISABLE") == "true" {
 		return
 	}
 

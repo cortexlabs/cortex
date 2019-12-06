@@ -197,6 +197,12 @@ function setup_configmap() {
   kubectl -n=cortex create configmap 'cluster-config' \
     --from-file='cluster.yaml'='/.cortex/cluster.yaml' \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
+
+  kubectl -n=cortex create configmap 'env-vars' \
+    --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
+    --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
+    --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
+    -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 
 function setup_secrets() {

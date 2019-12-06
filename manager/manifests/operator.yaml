@@ -69,17 +69,11 @@ spec:
             memory: 1024Mi
         ports:
           - containerPort: 8888
-        env:
-          - name: AWS_ACCESS_KEY_ID
-            valueFrom:
-              secretKeyRef:
-                name: aws-credentials
-                key: AWS_ACCESS_KEY_ID
-          - name: AWS_SECRET_ACCESS_KEY
-            valueFrom:
-              secretKeyRef:
-                name: aws-credentials
-                key: AWS_SECRET_ACCESS_KEY
+        envFrom:
+          - secretRef:
+              name: aws-credentials
+          - configMapRef:
+              name: env-vars
         volumeMounts:
           - name: cluster-config
             mountPath: /configs/cluster
