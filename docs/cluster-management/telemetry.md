@@ -12,4 +12,4 @@ Telemetry helps us make Cortex better. For example, we discovered that people ar
 
 ## How do I opt out?
 
-If you'd like to disable telemetry, simply modify your `~/.cortex/cli.yaml` file (or create it if it doesn't exist) and add `telemetry: false`.
+If you'd like to disable telemetry, modify your `~/.cortex/cli.yaml` file (or create it if it doesn't exist) and add `telemetry: false`.
