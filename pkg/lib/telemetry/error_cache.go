@@ -32,10 +32,10 @@ const (
 )
 
 var _errorCache = struct {
-	m           map[string]errorStatus
+	m           map[string]*errorStatus
 	lastCleanup time.Time
 	sync.RWMutex
-}{m: make(map[string]errorStatus)}
+}{m: make(map[string]*errorStatus)}
 
 type errorStatus struct {
 	LastReportTime time.Time
@@ -56,8 +56,8 @@ func shouldBlock(err error) bool {
 
 	errStatus, ok := _errorCache.m[errMsg]
 
-	if !ok {
-		_errorCache.m[errMsg] = errorStatus{
+	if !ok || time.Since(errStatus.LastSeenTime) > _cacheEvictionPeriod {
+		_errorCache.m[errMsg] = &errorStatus{
 			LastReportTime: now,
 			LastSeenTime:   now,
 			CoolDownPeriod: _initialCoolDownPeriod,
@@ -65,10 +65,10 @@ func shouldBlock(err error) bool {
 		return false
 	}
 
-	if time.Since(errStatus.LastSeenTime) >= errStatus.CoolDownPeriod {
+	if time.Since(errStatus.LastReportTime) > errStatus.CoolDownPeriod {
 		errStatus.LastSeenTime = now
 		errStatus.LastReportTime = now
-		errStatus.CoolDownPeriod = _coolDownFactor * errStatus.CoolDownPeriod
+		errStatus.CoolDownPeriod = time.Duration(float64(errStatus.CoolDownPeriod.Nanoseconds())*_coolDownFactor) * time.Nanosecond
 		if errStatus.CoolDownPeriod > _maxCoolDownPeriod {
 			errStatus.CoolDownPeriod = _maxCoolDownPeriod
 		}
