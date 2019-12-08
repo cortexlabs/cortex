@@ -23,7 +23,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -37,11 +38,13 @@ var logsCmd = &cobra.Command{
 	Short: "stream logs from an api",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		telemetry.Event("cli.logs")
+
 		resourceName := args[0]
 
 		appName, err := AppNameFromFlagOrConfig()
 		if err != nil {
-			errors.Exit(err)
+			exit.Error(err)
 		}
 
 		err = StreamLogs(appName, resourceName, resource.APIType.String())
@@ -51,7 +54,7 @@ var logsCmd = &cobra.Command{
 				fmt.Println(console.Bold(err.Error()))
 				return
 			}
-			errors.Exit(err)
+			exit.Error(err)
 		}
 	},
 }

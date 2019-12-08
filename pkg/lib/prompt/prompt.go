@@ -23,7 +23,7 @@ import (
 
 	input "github.com/tcnksm/go-input"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -66,9 +66,9 @@ func Prompt(opts *Options) string {
 
 	if err != nil {
 		if err.Error() == "interrupted" {
-			errors.Exit()
+			exit.ErrorNoPrintNoTelemetry()
 		}
-		errors.Exit(err)
+		exit.Error(err)
 	}
 
 	return val
@@ -89,7 +89,7 @@ func YesOrExit(prompt string, exitMessage string) {
 			if exitMessage != "" {
 				fmt.Println(exitMessage)
 			}
-			os.Exit(1)
+			exit.ErrorNoPrintNoTelemetry()
 		}
 
 		fmt.Println("please enter \"y\" or \"n\"")

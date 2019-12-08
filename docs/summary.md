@@ -40,6 +40,7 @@
 * [Security](cluster-management/security.md)
 * [Update](cluster-management/update.md)
 * [Uninstall](cluster-management/uninstall.md)
+* [Telemetry](cluster-management/telemetry.md)
 
 ## Contributing
 
