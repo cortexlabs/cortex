@@ -20,12 +20,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -81,10 +77,10 @@ type InternalClusterConfig struct {
 	ClusterConfig
 
 	// Populated by operator
-	ID                string                  `json:"id"`
-	APIVersion        string                  `json:"api_version"`
-	OperatorInCluster bool                    `json:"operator_in_cluster"`
-	InstanceMetadata  awslib.InstanceMetadata `json:"instance_metadata"`
+	ID                string               `json:"id"`
+	APIVersion        string               `json:"api_version"`
+	OperatorInCluster bool                 `json:"operator_in_cluster"`
+	InstanceMetadata  aws.InstanceMetadata `json:"instance_metadata"`
 }
 
 var UserValidation = &cr.StructValidation{
@@ -177,7 +173,7 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringPtrValidation: &cr.StringPtrValidation{
-				AllowedValues: awslib.EKSSupportedRegions.Slice(),
+				AllowedValues: aws.EKSSupportedRegions.Slice(),
 			},
 		},
 		{
@@ -335,48 +331,17 @@ func (cc *ClusterConfig) Validate(accessKeyID string, secretAccessKey string) er
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
 
-	if _, ok := awslib.InstanceMetadatas[*cc.Region][*cc.InstanceType]; !ok {
+	if _, ok := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]; !ok {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
 	}
 
-	if strings.HasPrefix(*cc.InstanceType, "p") {
-		sess, err := session.NewSession(&aws.Config{
-			Region:      aws.String(*cc.Region),
-			DisableSSL:  aws.Bool(false),
-			Credentials: credentials.NewStaticCredentials(accessKeyID, secretAccessKey, ""),
-		})
-		if err != nil {
-			return err
-		}
-		svc := servicequotas.New(sess)
-
-		pFamilyCPULimit := 0
-		err = svc.ListServiceQuotasPages(
-			&servicequotas.ListServiceQuotasInput{
-				ServiceCode: aws.String("ec2"),
-			},
-			func(page *servicequotas.ListServiceQuotasOutput, lastPage bool) bool {
-				for _, quota := range page.Quotas {
-					if *quota.QuotaName == "Running On-Demand P instances" {
-						pFamilyCPULimit = int(*quota.Value) // quota is specified in number of vCPU permitted per family
-						return false
-					}
-				}
-				return true
-			},
-		)
-		if err != nil {
-			return err
-		}
-
-		if pFamilyCPULimit == 0 {
-			return ErrorPFamilyInstanceUseNotPermitted()
-		}
-
+	err := aws.VerifyInstanceQuota(accessKeyID, secretAccessKey, *cc.InstanceType, *cc.Region)
+	if err != nil {
+		return err
 	}
 
 	if cc.Spot != nil && *cc.Spot {
-		chosenInstance := awslib.InstanceMetadatas[*cc.Region][*cc.InstanceType]
+		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
 		compatibleSpots := CompatibleSpotInstances(chosenInstance)
 		if len(compatibleSpots) == 0 {
 			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
@@ -387,11 +352,11 @@ func (cc *ClusterConfig) Validate(accessKeyID string, secretAccessKey string) er
 			if instanceType == *cc.InstanceType {
 				continue
 			}
-			if _, ok := awslib.InstanceMetadatas[*cc.Region][instanceType]; !ok {
+			if _, ok := aws.InstanceMetadatas[*cc.Region][instanceType]; !ok {
 				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, *cc.Region), InstanceDistributionKey)
 			}
 
-			instanceMetadata := awslib.InstanceMetadatas[*cc.Region][*cc.InstanceType]
+			instanceMetadata := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
 
 			err := CheckSpotInstanceCompatibility(chosenInstance, instanceMetadata)
 			if err != nil {
@@ -425,7 +390,7 @@ func (cc *ClusterConfig) Validate(accessKeyID string, secretAccessKey string) er
 	return nil
 }
 
-func CheckCortexSupport(instanceMetadata awslib.InstanceMetadata) error {
+func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 	if strings.HasSuffix(instanceMetadata.Type, "nano") ||
 		strings.HasSuffix(instanceMetadata.Type, "micro") ||
 		strings.HasSuffix(instanceMetadata.Type, "small") {
@@ -437,7 +402,7 @@ func CheckCortexSupport(instanceMetadata awslib.InstanceMetadata) error {
 	return nil
 }
 
-func CheckSpotInstanceCompatibility(target awslib.InstanceMetadata, suggested awslib.InstanceMetadata) error {
+func CheckSpotInstanceCompatibility(target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
 	if target.GPU > suggested.GPU {
 		return ErrorIncompatibleSpotInstanceTypeGPU(target, suggested)
 	}
@@ -453,9 +418,9 @@ func CheckSpotInstanceCompatibility(target awslib.InstanceMetadata, suggested aw
 	return nil
 }
 
-func CompatibleSpotInstances(targetInstance awslib.InstanceMetadata) []awslib.InstanceMetadata {
-	compatibleInstances := []awslib.InstanceMetadata{}
-	instanceMap := awslib.InstanceMetadatas[targetInstance.Region]
+func CompatibleSpotInstances(targetInstance aws.InstanceMetadata) []aws.InstanceMetadata {
+	compatibleInstances := []aws.InstanceMetadata{}
+	instanceMap := aws.InstanceMetadatas[targetInstance.Region]
 	for instanceType, instanceMetadata := range instanceMap {
 		if instanceType == targetInstance.Type {
 			continue
@@ -479,7 +444,7 @@ func CompatibleSpotInstances(targetInstance awslib.InstanceMetadata) []awslib.In
 }
 
 func AutoGenerateSpotConfig(spotConfig *SpotConfig, region string, instanceType string) error {
-	chosenInstance := awslib.InstanceMetadatas[region][instanceType]
+	chosenInstance := aws.InstanceMetadatas[region][instanceType]
 	if len(spotConfig.InstanceDistribution) == 0 {
 		spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, chosenInstance.Type)
 
@@ -569,7 +534,7 @@ func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecre
 					Prompt: RegionUserFacingKey,
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
-					AllowedValues: awslib.EKSSupportedRegions.Slice(),
+					AllowedValues: aws.EKSSupportedRegions.Slice(),
 					Default:       defaults.Region,
 				},
 			},
@@ -580,7 +545,7 @@ func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecre
 		return err
 	}
 
-	awsAccountID, validCreds, err := awslib.AccountID(awsAccessKeyID, awsSecretAccessKey, *clusterConfig.Region)
+	awsAccountID, validCreds, err := aws.AccountID(awsAccessKeyID, awsSecretAccessKey, *clusterConfig.Region)
 	if err != nil {
 		return err
 	}
@@ -677,8 +642,8 @@ func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *Cluster
 }
 
 func validateInstanceType(instanceType string) (string, error) {
-	var foundInstance *awslib.InstanceMetadata
-	for _, instanceMap := range awslib.InstanceMetadatas {
+	var foundInstance *aws.InstanceMetadata
+	for _, instanceMap := range aws.InstanceMetadatas {
 		if instanceMetadata, ok := instanceMap[instanceType]; ok {
 			foundInstance = &instanceMetadata
 			break

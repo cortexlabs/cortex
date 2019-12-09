@@ -203,13 +203,6 @@ func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) e
 	}
 }
 
-func ErrorPFamilyInstanceUseNotPermitted() error {
-	return Error{
-		Kind:    ErrPFamilyInstanceUseNotPermitted,
-		message: "not permitted to use instances from P family; please navigate to AWS EC2 dashboard to request access",
-	}
-}
-
 func ErrorInvalidInstanceType(instanceType string) error {
 	return Error{
 		Kind:    ErrInvalidInstanceType,
