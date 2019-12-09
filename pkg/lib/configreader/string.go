@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
@@ -249,7 +250,7 @@ func ValidateStringVal(val string, v *StringValidation) error {
 func MustStringFromEnv(envVarName string, v *StringValidation) string {
 	val, err := StringFromEnv(envVarName, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }
@@ -257,7 +258,7 @@ func MustStringFromEnv(envVarName string, v *StringValidation) string {
 func MustStringFromFile(filePath string, v *StringValidation) string {
 	val, err := StringFromFile(filePath, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }
@@ -265,7 +266,7 @@ func MustStringFromFile(filePath string, v *StringValidation) string {
 func MustStringFromEnvOrFile(envVarName string, filePath string, v *StringValidation) string {
 	val, err := StringFromEnvOrFile(envVarName, filePath, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }

@@ -28,6 +28,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/yaml"
 	dockertypes "github.com/docker/docker/api/types"
@@ -141,7 +142,7 @@ func runManager(containerConfig *container.Config, hostConfig *container.HostCon
 		<-c
 		caughtCtrlC = true
 		removeContainer()
-		os.Exit(1)
+		exit.ErrorNoPrintNoTelemetry()
 	}()
 
 	err = docker.ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
@@ -197,10 +198,14 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
+			"CORTEX_ENVIRONMENT=" + flagEnv,
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CORTEX_AWS_ACCESS_KEY_ID=" + awsCreds.CortexAWSAccessKeyID,
 			"CORTEX_AWS_SECRET_ACCESS_KEY=" + awsCreds.CortexAWSSecretAccessKey,
+			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
+			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
+			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
 		},
 	}
 
@@ -223,7 +228,7 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 
 func runRefreshClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (string, error) {
 	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
-	if err := files.CheckFile(cachedClusterConfigPath); err != nil {
+	if !files.IsFile(cachedClusterConfigPath) {
 		files.MakeEmptyFile(cachedClusterConfigPath)
 	}
 

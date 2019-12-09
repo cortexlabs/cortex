@@ -29,9 +29,11 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
@@ -59,6 +61,8 @@ var getCmd = &cobra.Command{
 	Short: "get information about deployments",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
+		telemetry.Event("cli.get")
+
 		rerun(func() (string, error) {
 			return runGet(cmd, args)
 		})
@@ -72,7 +76,7 @@ func runGet(cmd *cobra.Command, args []string) (string, error) {
 
 	appName, err := AppNameFromFlagOrConfig()
 	if err != nil {
-		errors.Exit(err)
+		exit.Error(err)
 	}
 
 	resourcesRes, err := getResourcesResponse(appName)

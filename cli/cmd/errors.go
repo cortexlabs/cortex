@@ -38,6 +38,7 @@ const (
 	ErrFailedToConnectURL
 	ErrFailedToConnectOperator
 	ErrConfigCannotBeChangedOnUpdate
+	ErrDuplicateCLIEnvNames
 	ErrCLINotInAppDir
 )
 
@@ -49,6 +50,7 @@ var errorKinds = []string{
 	"err_failed_to_connect_url",
 	"err_failed_to_connect_operator",
 	"err_config_cannot_be_changed_on_update",
+	"err_duplicate_cli_env_names",
 	"err_cli_not_in_app_dir",
 }
 
@@ -127,9 +129,12 @@ func ErrorFailedConnectURL(url url.URL) error {
 }
 
 func ErrorFailedToConnectOperator(urlStr string) error {
+	if urlStr != "" {
+		urlStr = fmt.Sprintf(" (%s)", urlStr)
+	}
 	return Error{
 		Kind:    ErrFailedToConnectOperator,
-		message: fmt.Sprintf("failed to connect to the operator (%s), run `cortex configure` if you need to update the operator endpoint", urlStr),
+		message: fmt.Sprintf("failed to connect to the operator%s, run `cortex configure` if you need to update the operator endpoint", urlStr),
 	}
 }
 
@@ -137,6 +142,13 @@ func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) e
 	return Error{
 		Kind:    ErrConfigCannotBeChangedOnUpdate,
 		message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
+	}
+}
+
+func ErrorDuplicateCLIEnvNames(environment string) error {
+	return Error{
+		Kind:    ErrDuplicateCLIEnvNames,
+		message: fmt.Sprintf("duplicate environment names: %s is defined more than once", s.UserStr(environment)),
 	}
 }
 

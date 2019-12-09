@@ -22,9 +22,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
 
@@ -40,6 +41,8 @@ var deleteCmd = &cobra.Command{
 	Short: "delete a deployment",
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		telemetry.Event("cli.delete")
+
 		var appName string
 		var err error
 		if len(args) == 1 {
@@ -47,7 +50,7 @@ var deleteCmd = &cobra.Command{
 		} else {
 			config, err := readConfig()
 			if err != nil {
-				errors.Exit(err)
+				exit.Error(err)
 			}
 			appName = config.App.Name
 		}
@@ -58,13 +61,13 @@ var deleteCmd = &cobra.Command{
 		}
 		httpResponse, err := HTTPPostJSONData("/delete", nil, params)
 		if err != nil {
-			errors.Exit(err)
+			exit.Error(err)
 		}
 
 		var deleteResponse schema.DeleteResponse
 		err = json.Unmarshal(httpResponse, &deleteResponse)
 		if err != nil {
-			errors.Exit(err, "/delete", string(httpResponse))
+			exit.Error(err, "/delete", string(httpResponse))
 		}
 		fmt.Println(console.Bold(deleteResponse.Message))
 	},

@@ -21,7 +21,10 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
 var flagPrint bool
@@ -36,15 +39,35 @@ var configureCmd = &cobra.Command{
 	Short: "configure the cli",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		telemetry.Event("cli.configure")
+
 		if flagPrint {
-			cliConfig := getDefaults()
-			fmt.Println()
-			fmt.Printf("operator url:           %s\n", cliConfig.CortexURL)
-			fmt.Printf("aws access key id:      %s\n", cliConfig.AWSAccessKeyID)
-			fmt.Printf("aws secret access key:  %s\n", s.MaskString(cliConfig.AWSSecretAccessKey, 4))
+			cliEnvConfig, err := readCLIEnvConfig(flagEnv)
+			if err != nil {
+				exit.Error(err)
+			}
+
+			if cliEnvConfig == nil {
+				if flagEnv == "default" {
+					exit.Error("cli is not configured; run `cortex configure`")
+				} else {
+					exit.Error(fmt.Sprintf("cli is not configured; run `cortex configure --env=%s`", flagEnv))
+				}
+			}
+
+			var items table.KeyValuePairs
+
+			if flagEnv != "default" {
+				items.Add("environment", flagEnv)
+			}
+			items.Add("cortex operator endpoint", cliEnvConfig.OperatorEndpoint)
+			items.Add("aws access key id", cliEnvConfig.AWSAccessKeyID)
+			items.Add("aws secret access key", s.MaskString(cliEnvConfig.AWSSecretAccessKey, 4))
+
+			items.Print()
 			return
 		}
 
-		configure()
+		configureCLIEnv(flagEnv)
 	},
 }

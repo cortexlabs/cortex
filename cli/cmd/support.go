@@ -17,27 +17,19 @@ limitations under the License.
 package cmd
 
 import (
-	"bytes"
 	"fmt"
-	"net/http"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
 type SupportRequest struct {
-	Timestamp    time.Time `json:"timestamp"`
-	EmailAddress string    `json:"email_address"`
-	ID           string    `json:"support_id"`
-	Source       string    `json:"source"`
-	Body         string    `json:"body"`
+	EmailAddress string `json:"email_address"`
+	Body         string `json:"body"`
 }
 
 var supportPrompValidation = &cr.PromptValidation{
@@ -71,24 +63,21 @@ var supportCmd = &cobra.Command{
 		supportRequest := &SupportRequest{}
 		err := cr.ReadPrompt(supportRequest, supportPrompValidation)
 		if err != nil {
-			errors.Exit(err)
+			exit.Error(err)
 		}
-		supportRequest.Timestamp = time.Now()
-		supportRequest.Source = "cli.support"
-		supportRequest.ID = uuid.New().String()
 
-		byteArray, _ := json.Marshal(supportRequest)
-
-		resp, err := http.Post(consts.TelemetryURL+"/support", "application/json", bytes.NewReader(byteArray))
-		if err != nil {
-			errors.PrintError(err)
-			return
+		if !isTelemetryEnabled() {
+			initTelemetry()
 		}
-		defer resp.Body.Close()
 
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			fmt.Println("an error occurred while submitting your request, please file an issue on github (https://github.com/cortexlabs/cortex) or email us at hello@cortex.dev")
-			return
+		telemetry.RecordEmail(supportRequest.EmailAddress)
+		telemetry.Event("cli.support", map[string]interface{}{
+			"message": supportRequest.Body,
+			"email":   supportRequest.EmailAddress,
+		})
+
+		if !isTelemetryEnabled() {
+			telemetry.Close()
 		}
 
 		fmt.Println("thanks for letting us know, we will get back to you soon at " + supportRequest.EmailAddress)

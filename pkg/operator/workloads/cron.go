@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
@@ -55,7 +56,7 @@ func runCron() {
 	defer reportAndRecover("cron failed")
 
 	if err := UpdateWorkflows(); err != nil {
-		config.Telemetry.ReportError(err)
+		telemetry.Error(err)
 		errors.PrintError(err)
 	}
 
@@ -65,12 +66,12 @@ func runCron() {
 	})
 
 	if err != nil {
-		config.Telemetry.ReportError(err)
+		telemetry.Error(err)
 		errors.PrintError(err)
 	}
 
 	if err := updateAPISavedStatuses(apiPods); err != nil {
-		config.Telemetry.ReportError(err)
+		telemetry.Error(err)
 		errors.PrintError(err)
 	}
 
@@ -79,14 +80,14 @@ func runCron() {
 	})
 
 	if err != nil {
-		config.Telemetry.ReportError(err)
+		telemetry.Error(err)
 		errors.PrintError(err)
 	}
 
 	deleteEvictedPods(failedPods)
 
 	if err := updateDataWorkloadErrors(failedPods); err != nil {
-		config.Telemetry.ReportError(err)
+		telemetry.Error(err)
 		errors.PrintError(err)
 	}
 }
@@ -94,7 +95,7 @@ func runCron() {
 func reportAndRecover(strs ...string) error {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
-		config.Telemetry.ReportError(err)
+		telemetry.Error(err)
 		errors.PrintError(err)
 		return err
 	}

@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -35,7 +37,6 @@ var (
 	AWS             *aws.Client
 	Kubernetes      *k8s.Client
 	IstioKubernetes *k8s.Client
-	Telemetry       *telemetry.Client
 )
 
 func Init() error {
@@ -51,9 +52,26 @@ func Init() error {
 		clusterConfigPath = consts.ClusterConfigPath
 	}
 
-	errs := cr.ParseYAMLFile(Cluster, clusterconfig.UserValidation, clusterConfigPath)
+	errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
+	}
+
+	Cluster.ID = hash.String(*Cluster.Bucket + *Cluster.Region + Cluster.LogGroup)
+
+	AWS, err = aws.New(*Cluster.Region, *Cluster.Bucket, true)
+	if err != nil {
+		exit.Error(err)
+	}
+
+	err = telemetry.Init(telemetry.Config{
+		Enabled:         Cluster.Telemetry,
+		UserID:          AWS.HashedAccountID,
+		Environment:     "operator",
+		ShouldLogErrors: true,
+	})
+	if err != nil {
+		fmt.Println(err.Error())
 	}
 
 	Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
@@ -65,14 +83,6 @@ func Init() error {
 	if IstioKubernetes, err = k8s.New("istio-system", Cluster.OperatorInCluster); err != nil {
 		return err
 	}
-
-	Cluster.ID = hash.String(*Cluster.Bucket + *Cluster.Region + Cluster.LogGroup)
-
-	AWS, err = aws.New(*Cluster.Region, *Cluster.Bucket, true)
-	if err != nil {
-		errors.Exit(err)
-	}
-	Telemetry = telemetry.New(consts.TelemetryURL, AWS.HashedAccountID, Cluster.Telemetry)
 
 	return nil
 }
