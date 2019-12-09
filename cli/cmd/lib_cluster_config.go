@@ -76,7 +76,7 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterCo
 		clusterConfig.AutoFillSpot()
 	}
 
-	err = clusterConfig.Validate()
+	err = clusterConfig.Validate(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +169,7 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 		return nil, err
 	}
 
-	err = userClusterConfig.Validate()
+	err = userClusterConfig.Validate(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
 	if err != nil {
 		return nil, err
 	}

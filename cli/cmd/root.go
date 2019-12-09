@@ -82,10 +82,11 @@ func init() {
 
 func initTelemetry() {
 	telemetry.Init(telemetry.Config{
-		Enabled:         true,
-		UserID:          clientID(),
-		Environment:     "cli",
-		ShouldLogErrors: false,
+		Enabled:              true,
+		UserID:               clientID(),
+		Environment:          "cli",
+		LogErrors:            false,
+		BlockDuplicateErrors: false,
 	})
 }
 
