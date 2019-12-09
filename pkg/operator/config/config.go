@@ -65,10 +65,11 @@ func Init() error {
 	}
 
 	err = telemetry.Init(telemetry.Config{
-		Enabled:         Cluster.Telemetry,
-		UserID:          AWS.HashedAccountID,
-		Environment:     "operator",
-		ShouldLogErrors: true,
+		Enabled:              Cluster.Telemetry,
+		UserID:               AWS.HashedAccountID,
+		Environment:          "operator",
+		LogErrors:            true,
+		BlockDuplicateErrors: true,
 	})
 	if err != nil {
 		fmt.Println(err.Error())
