@@ -147,10 +147,10 @@ func ErrorBucketInaccessible(bucket string) error {
 	}
 }
 
-func ErrorPFamilyInstanceUseNotPermitted() error {
+func ErrorPFamilyInstanceUseNotPermitted(region string) error {
 	return Error{
 		Kind:    ErrPFamilyInstanceUseNotPermitted,
-		message: `your AWS account doesn't have access to "P" instances; please request access (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances)"`,
+		message: fmt.Sprintf(`your don't have access to "P" instances in region %s; please request access (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances)"`, region),
 	}
 }
 

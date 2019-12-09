@@ -66,7 +66,7 @@ func VerifyInstanceQuota(accessKeyID, secretAccessKey, region, instanceType stri
 	}
 
 	if pFamilyCPULimit == 0 {
-		return ErrorPFamilyInstanceUseNotPermitted()
+		return ErrorPFamilyInstanceUseNotPermitted(region)
 	}
 
 	return nil
