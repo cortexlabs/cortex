@@ -340,7 +340,7 @@ func (cc *ClusterConfig) Validate(accessKeyID string, secretAccessKey string) er
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
 	}
 
-	err := aws.VerifyInstanceQuota(accessKeyID, secretAccessKey, *cc.InstanceType, *cc.Region)
+	err := aws.VerifyInstanceQuota(accessKeyID, secretAccessKey, *cc.Region, *cc.InstanceType)
 	if err != nil {
 		return errors.Wrap(err, InstanceTypeKey)
 	}
