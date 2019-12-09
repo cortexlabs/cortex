@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -198,7 +199,7 @@ func ValidateFloat32Val(val float32, v *Float32Validation) error {
 func MustFloat32FromEnv(envVarName string, v *Float32Validation) float32 {
 	val, err := Float32FromEnv(envVarName, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }
@@ -206,7 +207,7 @@ func MustFloat32FromEnv(envVarName string, v *Float32Validation) float32 {
 func MustFloat32FromFile(filePath string, v *Float32Validation) float32 {
 	val, err := Float32FromFile(filePath, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }
@@ -214,7 +215,7 @@ func MustFloat32FromFile(filePath string, v *Float32Validation) float32 {
 func MustFloat32FromEnvOrFile(envVarName string, filePath string, v *Float32Validation) float32 {
 	val, err := Float32FromEnvOrFile(envVarName, filePath, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }

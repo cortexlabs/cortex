@@ -33,6 +33,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
@@ -163,12 +164,22 @@ func StreamLogs(appName string, resourceName string, resourceType string) error 
 	values.Set("resourceName", resourceName)
 	values.Set("resourceType", resourceType)
 	values.Set("appName", appName)
+
+	if isTelemetryEnabled() {
+		values.Set("clientID", clientID())
+	}
+
 	req.URL.RawQuery = values.Encode()
 	wsURL := req.URL.String()
 	wsURL = strings.Replace(wsURL, "http", "ws", 1)
 
+	authHeader, err := authHeader()
+	if err != nil {
+		return err
+	}
+
 	header := http.Header{}
-	header.Set("Authorization", authHeader())
+	header.Set("Authorization", authHeader)
 	header.Set("CortexAPIVersion", consts.CortexVersion)
 
 	var dialer = websocket.Dialer{
@@ -177,16 +188,22 @@ func StreamLogs(appName string, resourceName string, resourceType string) error 
 
 	connection, response, err := dialer.Dial(wsURL, header)
 	if response == nil {
-		cliConfig := getValidCLIConfig()
-		return ErrorFailedToConnectOperator(strings.Replace(cliConfig.CortexURL, "http", "ws", 1))
+		cliEnvConfig, _ := readCLIEnvConfig(flagEnv)
+		if cliEnvConfig == nil {
+			return ErrorFailedToConnectOperator("")
+		}
+		return ErrorFailedToConnectOperator(strings.Replace(cliEnvConfig.OperatorEndpoint, "http", "ws", 1))
 	}
 	defer response.Body.Close()
 
 	if err != nil {
 		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil || bodyBytes == nil || string(bodyBytes) == "" {
-			cliConfig := getValidCLIConfig()
-			return ErrorFailedToConnectOperator(strings.Replace(cliConfig.CortexURL, "http", "ws", 1))
+			cliEnvConfig, _ := readCLIEnvConfig(flagEnv)
+			if cliEnvConfig == nil {
+				return ErrorFailedToConnectOperator("")
+			}
+			return ErrorFailedToConnectOperator(strings.Replace(cliEnvConfig.OperatorEndpoint, "http", "ws", 1))
 		}
 		var output schema.ErrorResponse
 		err = json.Unmarshal(bodyBytes, &output)
@@ -209,7 +226,7 @@ func handleConnection(connection *websocket.Conn, done chan struct{}) {
 		for {
 			_, message, err := connection.ReadMessage()
 			if err != nil {
-				os.Exit(1)
+				exit.ErrorNoPrint(err)
 			}
 			fmt.Println(string(message))
 		}
@@ -229,8 +246,12 @@ func closeConnection(connection *websocket.Conn, done chan struct{}, interrupt c
 }
 
 func operatorRequest(method string, endpoint string, body io.Reader, qParams []map[string]string) (*http.Request, error) {
-	cliConfig := getValidCLIConfig()
-	req, err := http.NewRequest(method, cliConfig.CortexURL+endpoint, body)
+	cliEnvConfig, err := readOrConfigureCLIEnv(flagEnv)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(method, cliEnvConfig.OperatorEndpoint+endpoint, body)
 	if err != nil {
 		return nil, errors.Wrap(err, errStrCantMakeRequest)
 	}
@@ -247,14 +268,25 @@ func operatorRequest(method string, endpoint string, body io.Reader, qParams []m
 }
 
 func (client *cortexClient) makeRequest(request *http.Request) ([]byte, error) {
-	request.Header.Set("Authorization", authHeader())
+	if isTelemetryEnabled() {
+		values := request.URL.Query()
+		values.Set("clientID", clientID())
+		request.URL.RawQuery = values.Encode()
+	}
+
+	authHeader, err := authHeader()
+	if err != nil {
+		return nil, err
+	}
+
+	request.Header.Set("Authorization", authHeader)
 	request.Header.Set("CortexAPIVersion", consts.CortexVersion)
 
 	response, err := client.Do(request)
 	if err != nil {
-		cliConfig := getValidCLIConfig()
-		if strings.HasPrefix(request.URL.String(), cliConfig.CortexURL) {
-			return nil, ErrorFailedToConnectOperator(cliConfig.CortexURL)
+		cliEnvConfig, _ := readCLIEnvConfig(flagEnv)
+		if cliEnvConfig != nil && strings.HasPrefix(request.URL.String(), cliEnvConfig.OperatorEndpoint) {
+			return nil, ErrorFailedToConnectOperator(cliEnvConfig.OperatorEndpoint)
 		}
 		return nil, ErrorFailedConnectURL(*request.URL)
 	}
@@ -282,7 +314,10 @@ func (client *cortexClient) makeRequest(request *http.Request) ([]byte, error) {
 	return bodyBytes, nil
 }
 
-func authHeader() string {
-	cliConfig := getValidCLIConfig()
-	return fmt.Sprintf("CortexAWS %s|%s", cliConfig.AWSAccessKeyID, cliConfig.AWSSecretAccessKey)
+func authHeader() (string, error) {
+	cliEnvConfig, err := readOrConfigureCLIEnv(flagEnv)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("CortexAWS %s|%s", cliEnvConfig.AWSAccessKeyID, cliEnvConfig.AWSSecretAccessKey), err
 }

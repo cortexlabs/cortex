@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -167,7 +168,7 @@ func ValidateBool(val bool, v *BoolValidation) (bool, error) {
 func MustBoolFromEnv(envVarName string, v *BoolValidation) bool {
 	val, err := BoolFromEnv(envVarName, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }
@@ -175,7 +176,7 @@ func MustBoolFromEnv(envVarName string, v *BoolValidation) bool {
 func MustBoolFromFile(filePath string, v *BoolValidation) bool {
 	val, err := BoolFromFile(filePath, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }
@@ -183,7 +184,7 @@ func MustBoolFromFile(filePath string, v *BoolValidation) bool {
 func MustBoolFromEnvOrFile(envVarName string, filePath string, v *BoolValidation) bool {
 	val, err := BoolFromEnvOrFile(envVarName, filePath, v)
 	if err != nil {
-		errors.Panic(err)
+		exit.Panic(err)
 	}
 	return val
 }

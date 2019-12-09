@@ -14,23 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package workloads
+package cmd
 
 import (
-	kcore "k8s.io/api/core/v1"
-
-	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/google/uuid"
 )
 
-func defaultVolumes() []kcore.Volume {
-	return []kcore.Volume{
-		k8s.EmptyDirVolume(consts.EmptyDirVolumeName),
-	}
-}
+var _cachedClientID string
 
-func defaultVolumeMounts() []kcore.VolumeMount {
-	return []kcore.VolumeMount{
-		k8s.EmptyDirVolumeMount(consts.EmptyDirVolumeName, consts.EmptyDirMountPath),
+func clientID() string {
+	if _cachedClientID != "" {
+		return _cachedClientID
 	}
+
+	var err error
+	_cachedClientID, err = files.ReadFile(_clientIDPath)
+	if err != nil || _cachedClientID == "" {
+		_cachedClientID = uuid.New().String()
+		files.WriteFile([]byte(_cachedClientID), _clientIDPath)
+	}
+
+	return _cachedClientID
 }

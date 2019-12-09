@@ -17,10 +17,13 @@ limitations under the License.
 package workloads
 
 import (
+	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	kcore "k8s.io/api/core/v1"
 )
 
 // k8s needs all characters to be lower case, and the first to be a letter
@@ -76,4 +79,35 @@ func areAnyDataResourcesFailed(ctx *context.Context, resourceIDs strset.Set) (bo
 func areAllDataDependenciesSucceeded(ctx *context.Context, targetResourceIDs strset.Set) (bool, error) {
 	dependencies := ctx.DirectComputedResourceDependencies(targetResourceIDs.Slice()...)
 	return areAllDataResourcesSucceeded(ctx, dependencies)
+}
+
+func baseEnvVars() []kcore.EnvFromSource {
+	return []kcore.EnvFromSource{
+		{
+			ConfigMapRef: &kcore.ConfigMapEnvSource{
+				LocalObjectReference: kcore.LocalObjectReference{
+					Name: "env-vars",
+				},
+			},
+		},
+		{
+			SecretRef: &kcore.SecretEnvSource{
+				LocalObjectReference: kcore.LocalObjectReference{
+					Name: "aws-credentials",
+				},
+			},
+		},
+	}
+}
+
+func defaultVolumes() []kcore.Volume {
+	return []kcore.Volume{
+		k8s.EmptyDirVolume(consts.EmptyDirVolumeName),
+	}
+}
+
+func defaultVolumeMounts() []kcore.VolumeMount {
+	return []kcore.VolumeMount{
+		k8s.EmptyDirVolumeMount(consts.EmptyDirVolumeName, consts.EmptyDirMountPath),
+	}
 }

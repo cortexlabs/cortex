@@ -49,6 +49,15 @@ func OpenFile(path string, flag int, perm os.FileMode) (*os.File, error) {
 	return file, err
 }
 
+func ReadFile(path string) (string, error) {
+	fileBytes, err := ReadFileBytes(path)
+	if err != nil {
+		return "", err
+	}
+
+	return string(fileBytes), nil
+}
+
 func ReadFileBytes(path string) ([]byte, error) {
 	return ReadFileBytesErrPath(path, path)
 }
@@ -118,6 +127,13 @@ func IsFileOrDir(path string) bool {
 	return false
 }
 
+func IsDir(path string) bool {
+	if err := CheckDir(path); err != nil {
+		return false
+	}
+	return true
+}
+
 // CheckDir returns nil if the path is a directory
 func CheckDir(dirPath string) error {
 	return CheckDirErrPath(dirPath, dirPath)
@@ -134,6 +150,13 @@ func CheckDirErrPath(dirPath string, errMsgPath string) error {
 	}
 
 	return nil
+}
+
+func IsFile(path string) bool {
+	if err := CheckFile(path); err != nil {
+		return false
+	}
+	return true
 }
 
 // CheckFile returns nil if the path is a file

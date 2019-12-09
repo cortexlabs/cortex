@@ -153,7 +153,7 @@ function main() {
   validate_cortex
 
   echo -n "￮ configuring cli "
-  echo "{\"cortex_url\": \"$operator_endpoint\", \"aws_access_key_id\": \"$CORTEX_AWS_ACCESS_KEY_ID\", \"aws_secret_access_key\": \"$CORTEX_AWS_SECRET_ACCESS_KEY\"}" > /.cortex/default.json
+  python update_cli_config.py "/.cortex/cli.yaml" "$CORTEX_ENVIRONMENT" "$operator_endpoint" "$CORTEX_AWS_ACCESS_KEY_ID" "$CORTEX_AWS_SECRET_ACCESS_KEY"
   echo "✓"
 
   echo -e "\ncortex is ready!"
@@ -196,6 +196,12 @@ function setup_cloudwatch_logs() {
 function setup_configmap() {
   kubectl -n=cortex create configmap 'cluster-config' \
     --from-file='cluster.yaml'='/.cortex/cluster.yaml' \
+    -o yaml --dry-run | kubectl apply -f - >/dev/null
+
+  kubectl -n=cortex create configmap 'env-vars' \
+    --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
+    --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
+    --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 

@@ -305,9 +305,8 @@ func tfAPISpec(
 			}, downloadConfig.DownloadArgs...)
 	}
 
-	envVars := append(
-		k8s.AWSCredentials(),
-		kcore.EnvVar{
+	envVars := []kcore.EnvVar{
+		{
 			Name: "HOST_IP",
 			ValueFrom: &kcore.EnvVarSource{
 				FieldRef: &kcore.ObjectFieldSelector{
@@ -315,7 +314,7 @@ func tfAPISpec(
 				},
 			},
 		},
-	)
+	}
 	if api.TensorFlow.PythonPath != nil {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  "PYTHON_PATH",
@@ -363,7 +362,7 @@ func tfAPISpec(
 						Args: []string{
 							"--download=" + downloadArgsStr,
 						},
-						Env:          k8s.AWSCredentials(),
+						EnvFrom:      baseEnvVars(),
 						VolumeMounts: defaultVolumeMounts(),
 					},
 				},
@@ -383,6 +382,7 @@ func tfAPISpec(
 							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
 						},
 						Env:          envVars,
+						EnvFrom:      baseEnvVars(),
 						VolumeMounts: defaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
@@ -416,7 +416,7 @@ func tfAPISpec(
 							"--port=" + tfServingPortStr,
 							"--model_base_path=" + path.Join(consts.EmptyDirMountPath, "model"),
 						},
-						Env:          k8s.AWSCredentials(),
+						EnvFrom:      baseEnvVars(),
 						VolumeMounts: defaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
@@ -493,9 +493,8 @@ func predictorAPISpec(
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
 	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
 
-	envVars := append(
-		k8s.AWSCredentials(),
-		kcore.EnvVar{
+	envVars := []kcore.EnvVar{
+		{
 			Name: "HOST_IP",
 			ValueFrom: &kcore.EnvVarSource{
 				FieldRef: &kcore.ObjectFieldSelector{
@@ -503,7 +502,7 @@ func predictorAPISpec(
 				},
 			},
 		},
-	)
+	}
 	if api.Predictor.PythonPath != nil {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  "PYTHON_PATH",
@@ -549,7 +548,7 @@ func predictorAPISpec(
 						Args: []string{
 							"--download=" + downloadArgsStr,
 						},
-						Env:          k8s.AWSCredentials(),
+						EnvFrom:      baseEnvVars(),
 						VolumeMounts: defaultVolumeMounts(),
 					},
 				},
@@ -567,6 +566,7 @@ func predictorAPISpec(
 							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
 						},
 						Env:          envVars,
+						EnvFrom:      baseEnvVars(),
 						VolumeMounts: defaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
@@ -652,9 +652,8 @@ func onnxAPISpec(
 			}, downloadConfig.DownloadArgs...)
 	}
 
-	envVars := append(
-		k8s.AWSCredentials(),
-		kcore.EnvVar{
+	envVars := []kcore.EnvVar{
+		{
 			Name: "HOST_IP",
 			ValueFrom: &kcore.EnvVarSource{
 				FieldRef: &kcore.ObjectFieldSelector{
@@ -662,7 +661,7 @@ func onnxAPISpec(
 				},
 			},
 		},
-	)
+	}
 	if api.ONNX.PythonPath != nil {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  "PYTHON_PATH",
@@ -709,7 +708,7 @@ func onnxAPISpec(
 						Args: []string{
 							"--download=" + downloadArgsStr,
 						},
-						Env:          k8s.AWSCredentials(),
+						EnvFrom:      baseEnvVars(),
 						VolumeMounts: defaultVolumeMounts(),
 					},
 				},
@@ -728,6 +727,7 @@ func onnxAPISpec(
 							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
 						},
 						Env:          envVars,
+						EnvFrom:      baseEnvVars(),
 						VolumeMounts: defaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,

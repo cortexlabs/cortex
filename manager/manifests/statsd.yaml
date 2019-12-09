@@ -78,16 +78,9 @@ spec:
                   fieldPath: spec.nodeName
             - name: AWS_REGION
               value: $CORTEX_REGION
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: aws-credentials
-                  key: AWS_ACCESS_KEY_ID
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: aws-credentials
-                  key: AWS_SECRET_ACCESS_KEY
+          envFrom:
+            - secretRef:
+                name: aws-credentials
           # Please don't change the mountPath
           volumeMounts:
             - name: cwagentconfig

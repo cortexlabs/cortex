@@ -32,8 +32,6 @@ import (
 )
 
 func Deploy(w http.ResponseWriter, r *http.Request) {
-	config.Telemetry.ReportEvent("endpoint.deploy")
-
 	ignoreCache := getOptionalBoolQParam("ignoreCache", false, r)
 	force := getOptionalBoolQParam("force", false, r)
 

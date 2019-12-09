@@ -27,9 +27,10 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 )
 
@@ -39,20 +40,26 @@ var configFileExts = []string{"yaml", "yml"}
 
 var localDir string
 var cachedClusterConfigPath string
+var _cliConfigPath string
+var _clientIDPath string
+var _emailPath string
 
 func init() {
 	homeDir, err := homedir.Dir()
 	if err != nil {
-		errors.Exit(err)
+		exit.Error(err)
 	}
 
 	localDir = filepath.Join(homeDir, ".cortex")
 	err = os.MkdirAll(localDir, os.ModePerm)
 	if err != nil {
-		errors.Exit(err)
+		exit.Error(err)
 	}
 
 	cachedClusterConfigPath = filepath.Join(localDir, "cluster.yaml")
+	_cliConfigPath = filepath.Join(localDir, "cli.yaml")
+	_clientIDPath = filepath.Join(localDir, "client-id.txt")
+	_emailPath = filepath.Join(localDir, "email.txt")
 
 	cobra.EnablePrefixMatching = true
 
@@ -63,6 +70,23 @@ func init() {
 		}
 		cmdStr += " " + arg
 	}
+
+	enableTelemetry, err := readTelemetryConfig()
+	if err != nil {
+		exit.Error(err)
+	}
+	if enableTelemetry {
+		initTelemetry()
+	}
+}
+
+func initTelemetry() {
+	telemetry.Init(telemetry.Config{
+		Enabled:         true,
+		UserID:          clientID(),
+		Environment:     "cli",
+		ShouldLogErrors: false,
+	})
 }
 
 var rootCmd = &cobra.Command{
@@ -72,7 +96,7 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	defer errors.RecoverAndExit()
+	defer exit.RecoverAndExit()
 
 	cobra.EnableCommandSorting = false
 
@@ -93,6 +117,8 @@ func Execute() {
 
 	printLeadingNewLine()
 	rootCmd.Execute()
+
+	exit.Ok()
 }
 
 func updateRootUsage() {
@@ -171,7 +197,7 @@ func rerun(f func() (string, error)) {
 			nextStr, err := f()
 			if err != nil {
 				fmt.Println()
-				errors.Exit(err)
+				exit.Error(err)
 			}
 
 			nextStr = watchHeader() + "\n\n" + nextStr
@@ -208,7 +234,7 @@ func rerun(f func() (string, error)) {
 	} else {
 		str, err := f()
 		if err != nil {
-			errors.Exit(err)
+			exit.Error(err)
 		}
 		fmt.Println(str)
 	}

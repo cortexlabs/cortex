@@ -187,12 +187,6 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "Telemetry",
-			BoolValidation: &cr.BoolValidation{
-				Default: true,
-			},
-		},
-		{
 			StructField: "ImagePredictorServe",
 			StringValidation: &cr.StringValidation{
 				Default: "cortexlabs/predictor-serve:" + consts.CortexVersion,
@@ -324,6 +318,17 @@ var UserValidation = &cr.StructValidation{
 			Nil: true,
 		},
 	},
+}
+
+var Validation = &cr.StructValidation{
+	StructFieldValidations: append(UserValidation.StructFieldValidations,
+		&cr.StructFieldValidation{
+			StructField: "Telemetry",
+			BoolValidation: &cr.BoolValidation{
+				Default: true,
+			},
+		},
+	),
 }
 
 func (cc *ClusterConfig) Validate() error {
@@ -668,9 +673,9 @@ func validateInstanceDistribution(instances []string) ([]string, error) {
 }
 
 // This does not set defaults for fields that are prompted from the user
-func SetFileDefaults(cc *ClusterConfig) error {
+func SetDefaults(cc *ClusterConfig) error {
 	var emptyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(cc, emptyMap, UserValidation)
+	errs := cr.Struct(cc, emptyMap, Validation)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}
@@ -678,9 +683,9 @@ func SetFileDefaults(cc *ClusterConfig) error {
 }
 
 // This does not set defaults for fields that are prompted from the user
-func GetFileDefaults() (*ClusterConfig, error) {
+func GetDefaults() (*ClusterConfig, error) {
 	cc := &ClusterConfig{}
-	err := SetFileDefaults(cc)
+	err := SetDefaults(cc)
 	if err != nil {
 		return nil, err
 	}
@@ -688,62 +693,62 @@ func GetFileDefaults() (*ClusterConfig, error) {
 	return cc, nil
 }
 
-func (cc *InternalClusterConfig) UserFacingTable() []table.KV {
-	var items []table.KV
+func (cc *InternalClusterConfig) UserFacingTable() table.KeyValuePairs {
+	var items table.KeyValuePairs
 
-	items = append(items, table.KV{K: APIVersionUserFacingKey, V: cc.APIVersion})
-	items = append(items, cc.ClusterConfig.UserFacingTable()...)
+	items.Add(APIVersionUserFacingKey, cc.APIVersion)
+	items.AddAll(cc.ClusterConfig.UserFacingTable())
 	return items
 }
 
 func (cc *InternalClusterConfig) UserFacingString() string {
-	return table.AlignKeyValue(cc.UserFacingTable(), ":", 1)
+	return cc.UserFacingTable().String()
 }
 
-func (cc *ClusterConfig) UserFacingTable() []table.KV {
-	var items []table.KV
+func (cc *ClusterConfig) UserFacingTable() table.KeyValuePairs {
+	var items table.KeyValuePairs
 
-	items = append(items, table.KV{K: ClusterNameUserFacingKey, V: cc.ClusterName})
-	items = append(items, table.KV{K: RegionUserFacingKey, V: *cc.Region})
-	items = append(items, table.KV{K: BucketUserFacingKey, V: *cc.Bucket})
-	items = append(items, table.KV{K: InstanceTypeUserFacingKey, V: *cc.InstanceType})
-	items = append(items, table.KV{K: MinInstancesUserFacingKey, V: *cc.MinInstances})
-	items = append(items, table.KV{K: MaxInstancesUserFacingKey, V: *cc.MaxInstances})
-	items = append(items, table.KV{K: InstanceVolumeSizeUserFacingKey, V: cc.InstanceVolumeSize})
-	items = append(items, table.KV{K: SpotUserFacingKey, V: s.YesNo(*cc.Spot)})
+	items.Add(ClusterNameUserFacingKey, cc.ClusterName)
+	items.Add(RegionUserFacingKey, *cc.Region)
+	items.Add(BucketUserFacingKey, *cc.Bucket)
+	items.Add(InstanceTypeUserFacingKey, *cc.InstanceType)
+	items.Add(MinInstancesUserFacingKey, *cc.MinInstances)
+	items.Add(MaxInstancesUserFacingKey, *cc.MaxInstances)
+	items.Add(InstanceVolumeSizeUserFacingKey, cc.InstanceVolumeSize)
+	items.Add(SpotUserFacingKey, s.YesNo(*cc.Spot))
 
 	if cc.Spot != nil && *cc.Spot {
-		items = append(items, table.KV{K: InstanceDistributionUserFacingKey, V: cc.SpotConfig.InstanceDistribution})
-		items = append(items, table.KV{K: OnDemandBaseCapacityUserFacingKey, V: *cc.SpotConfig.OnDemandBaseCapacity})
-		items = append(items, table.KV{K: OnDemandPercentageAboveBaseCapacityUserFacingKey, V: *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity})
-		items = append(items, table.KV{K: MaxPriceUserFacingKey, V: *cc.SpotConfig.MaxPrice})
-		items = append(items, table.KV{K: InstancePoolsUserFacingKey, V: *cc.SpotConfig.InstancePools})
+		items.Add(InstanceDistributionUserFacingKey, cc.SpotConfig.InstanceDistribution)
+		items.Add(OnDemandBaseCapacityUserFacingKey, *cc.SpotConfig.OnDemandBaseCapacity)
+		items.Add(OnDemandPercentageAboveBaseCapacityUserFacingKey, *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity)
+		items.Add(MaxPriceUserFacingKey, *cc.SpotConfig.MaxPrice)
+		items.Add(InstancePoolsUserFacingKey, *cc.SpotConfig.InstancePools)
 	}
-	items = append(items, table.KV{K: LogGroupUserFacingKey, V: cc.LogGroup})
-	items = append(items, table.KV{K: TelemetryUserFacingKey, V: cc.Telemetry})
-	items = append(items, table.KV{K: ImagePredictorServeUserFacingKey, V: cc.ImagePredictorServe})
-	items = append(items, table.KV{K: ImagePredictorServeGPUUserFacingKey, V: cc.ImagePredictorServeGPU})
-	items = append(items, table.KV{K: ImageTFServeUserFacingKey, V: cc.ImageTFServe})
-	items = append(items, table.KV{K: ImageTFServeGPUUserFacingKey, V: cc.ImageTFServeGPU})
-	items = append(items, table.KV{K: ImageTFAPIUserFacingKey, V: cc.ImageTFAPI})
-	items = append(items, table.KV{K: ImageONNXServeUserFacingKey, V: cc.ImageONNXServe})
-	items = append(items, table.KV{K: ImageONNXServeGPUUserFacingKey, V: cc.ImageONNXServeGPU})
-	items = append(items, table.KV{K: ImageOperatorUserFacingKey, V: cc.ImageOperator})
-	items = append(items, table.KV{K: ImageManagerUserFacingKey, V: cc.ImageManager})
-	items = append(items, table.KV{K: ImageDownloaderUserFacingKey, V: cc.ImageDownloader})
-	items = append(items, table.KV{K: ImageClusterAutoscalerUserFacingKey, V: cc.ImageClusterAutoscaler})
-	items = append(items, table.KV{K: ImageMetricsServerUserFacingKey, V: cc.ImageMetricsServer})
-	items = append(items, table.KV{K: ImageNvidiaUserFacingKey, V: cc.ImageNvidia})
-	items = append(items, table.KV{K: ImageFluentdUserFacingKey, V: cc.ImageFluentd})
-	items = append(items, table.KV{K: ImageStatsdUserFacingKey, V: cc.ImageStatsd})
-	items = append(items, table.KV{K: ImageIstioProxyUserFacingKey, V: cc.ImageIstioProxy})
-	items = append(items, table.KV{K: ImageIstioPilotUserFacingKey, V: cc.ImageIstioPilot})
-	items = append(items, table.KV{K: ImageIstioCitadelUserFacingKey, V: cc.ImageIstioCitadel})
-	items = append(items, table.KV{K: ImageIstioGalleyUserFacingKey, V: cc.ImageIstioGalley})
+	items.Add(LogGroupUserFacingKey, cc.LogGroup)
+	items.Add(TelemetryUserFacingKey, cc.Telemetry)
+	items.Add(ImagePredictorServeUserFacingKey, cc.ImagePredictorServe)
+	items.Add(ImagePredictorServeGPUUserFacingKey, cc.ImagePredictorServeGPU)
+	items.Add(ImageTFServeUserFacingKey, cc.ImageTFServe)
+	items.Add(ImageTFServeGPUUserFacingKey, cc.ImageTFServeGPU)
+	items.Add(ImageTFAPIUserFacingKey, cc.ImageTFAPI)
+	items.Add(ImageONNXServeUserFacingKey, cc.ImageONNXServe)
+	items.Add(ImageONNXServeGPUUserFacingKey, cc.ImageONNXServeGPU)
+	items.Add(ImageOperatorUserFacingKey, cc.ImageOperator)
+	items.Add(ImageManagerUserFacingKey, cc.ImageManager)
+	items.Add(ImageDownloaderUserFacingKey, cc.ImageDownloader)
+	items.Add(ImageClusterAutoscalerUserFacingKey, cc.ImageClusterAutoscaler)
+	items.Add(ImageMetricsServerUserFacingKey, cc.ImageMetricsServer)
+	items.Add(ImageNvidiaUserFacingKey, cc.ImageNvidia)
+	items.Add(ImageFluentdUserFacingKey, cc.ImageFluentd)
+	items.Add(ImageStatsdUserFacingKey, cc.ImageStatsd)
+	items.Add(ImageIstioProxyUserFacingKey, cc.ImageIstioProxy)
+	items.Add(ImageIstioPilotUserFacingKey, cc.ImageIstioPilot)
+	items.Add(ImageIstioCitadelUserFacingKey, cc.ImageIstioCitadel)
+	items.Add(ImageIstioGalleyUserFacingKey, cc.ImageIstioGalley)
 
 	return items
 }
 
 func (cc *ClusterConfig) UserFacingString() string {
-	return table.AlignKeyValue(cc.UserFacingTable(), ":", 1)
+	return cc.UserFacingTable().String()
 }
