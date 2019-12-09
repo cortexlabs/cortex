@@ -51,7 +51,7 @@ $ python3 trainer.py
 ## Implement a predictor
 
 1. Create another Python file `predictor.py`.
-2. Define a Predictor class that loads and initializes your pickled model.
+2. Define a Predictor class with a constructor that loads and initializes your pickled model.
 3. Add a predict function that will accept a payload and return a prediction from your model.
 
 ```python
@@ -307,7 +307,7 @@ import re
 
 class Predictor:
     def __init__(self, config):
-        bucket, key = re.match("s3://(.+?)/(.+)", metadata["model"]).groups()
+        bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
         s3 = boto3.client("s3")
         s3.download_file(bucket, key, "model.pkl")
 

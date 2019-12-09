@@ -1,6 +1,6 @@
 # Predictor APIs
 
-You can deploy models from any Python framework by defining a class definition that implements Cortex's Predictor interface. The class constructor is responsible for preparing the model for serving, downloading vocabulary files, etc. The `predict()` class function is called on every request and is responsible for responding with a prediction.
+You can deploy models from any Python framework by defining a class that implements Cortex's Predictor interface. The class constructor is responsible for preparing the model for serving, downloading vocabulary files, etc. The `predict()` class function is called on every request and is responsible for responding with a prediction.
 
 In addition to supporting Python models via the Predictor interface, Cortex can serve the following exported model formats:
 
@@ -14,9 +14,9 @@ In addition to supporting Python models via the Predictor interface, Cortex can 
   name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
   predictor:
-    path: <string>  # path to the predictor Python file, relative to the Cortex root (required)
+    path: <string>  # path to a python file with a Predictor class definition, relative to the Cortex root (required)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    config: <string: value>  # dictionary of args passed to constructor of predictor (optional)
+    config: <string: value>  # dictionary of args passed to constructor of predictor typically containing paths to model weights and features
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
@@ -52,7 +52,7 @@ You can log information about each request by adding a `?debug=true` parameter t
 
 A Predictor is a Python class that describes how to initialize a model and use it to make a prediction.
 
-The lifecycle of a replica using a Predictor starts with instantiating an instance of the Predictor class defined in the implementation file. The constructor of the Predictor class is typically used to download and initialize the model. It receives the config object, which is an arbitrary dictionary defined in the API configuration (it can be used to pass in the path to the exported/pickled model, vocabularies, aggregates, etc). After successfully initializing an instance of the Predictor class, the replica is available to accept requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload. The `predict()` function is responsible for returning a prediction from a sample.
+The lifecycle of a replica using a Predictor starts with instantiating an instance of the Predictor class defined in your implementation file. The constructor of the Predictor class is typically used to download and initialize the model. It receives the config object, which is an arbitrary dictionary defined in the API configuration (it can be used to pass in the path to the exported/pickled model, vocabularies, aggregates, etc). After successfully initializing an instance of the Predictor class, the replica is available to accept requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload. The `predict()` function is responsible for returning a prediction or a batch of predictions.
 
 ## Implementation
 
@@ -78,7 +78,7 @@ class Predictor:
             payload: The JSON request payload (parsed in Python).
 
         Returns:
-            Predictions based on the request payload
+            Prediction or a batch of predictions
         """
 ```
 
@@ -90,9 +90,14 @@ from my_model import IrisNet
 
 class Predictor:
     def __init__(self, config):
-        # Initialize the model
+        # download the model
+        bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
+        s3 = boto3.client("s3")
+        s3.download_file(bucket, key, "model.pth")
+
+        # initialize the model
         model = IrisNet()
-        model.load_state_dict(torch.load(model_path))
+        model.load_state_dict(torch.load(config['model']))
         model.eval()
 
         self.model = model
