@@ -61,8 +61,7 @@ The lifecycle of a replica using a Predictor starts with instantiating an instan
 
 class Predictor:
     def __init__(self, config):
-        """Called once before the API is made available. Setup for model serving such
-        as downloading/initializing the model or downloading vocabulary can be done here.
+        """Called once before the API is made available. Setup for model serving such as downloading/initializing the model or downloading vocabulary can be done here.
 
         Args:
             config: Dictionary of args defined in API configuration, commonly contains path to model and other metadata.
@@ -70,9 +69,7 @@ class Predictor:
         pass
 
     def predict(self, payload):
-        """Called once per request. Model prediction is done here, including any
-        preprocessing of the request payload, batching of predictions and postprocessing of the model output.
-        Required.
+        """Called once per request. Model prediction is done here, including any preprocessing of the request payload, batching of predictions and postprocessing of the model output. Required.
 
         Args:
             payload: The JSON request payload (parsed in Python).

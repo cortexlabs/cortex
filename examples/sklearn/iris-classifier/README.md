@@ -79,7 +79,7 @@ class Predictor:
             payload["petal_width"],
         ]
 
-        label_id = self.model.predict(np.array([measurements]))[0]
+        label_id = self.model.predict([measurements])[0]
         return self.labels[label_id]
 ```
 
@@ -325,7 +325,7 @@ class Predictor:
             for sample in payload
         ]
 
-        label_ids = self.model.predict(np.array(measurements))
+        label_ids = self.model.predict(measurements)
         return [self.labels[label_id] for label_id in label_ids]
 ```
 

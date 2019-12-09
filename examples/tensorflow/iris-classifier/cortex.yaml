@@ -1,10 +1,10 @@
 - kind: deployment
-  name: dungeonmodel
+  name: iris
 
 - kind: api
-  name: aidungeonmodel  # API name (required)
-  endpoint: /aidungeon
+  name: classifier
   tensorflow:
     model: s3://cortex-examples/tensorflow/iris-classifier/nn
-  compute:
-    gpu: 1  # GPU request per replica (default: 0)
+    request_handler: handler.py
+  tracker:
+    model_type: classification

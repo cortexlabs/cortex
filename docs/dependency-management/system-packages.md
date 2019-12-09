@@ -76,7 +76,7 @@ Cortex will use your image to launch Python serving workloads and you will have 
 import subprocess
 
 class Predictor:
-    def init(self, config):
+    def __init__(self, config):
         subprocess.run(["tree"])
         ...
 ```

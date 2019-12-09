@@ -169,23 +169,20 @@ class Context:
 
         try:
             classes = inspect.getmembers(impl, inspect.isclass)
-            if len(classes) == 0:
-                raise UserException("no class definitions found")
             predictor_class = None
             for class_df in classes:
                 if class_df[0] == "Predictor":
                     if predictor_class is not None:
                         raise UserException(
-                            "multiple definitions for Predictor class found (%s); please check your imports and class definitions and ensure that there is only one Predictor class definition",
-                            str(classes),
+                            "multiple definitions for Predictor class found; please check your imports and class definitions and ensure that there is only one Predictor class definition"
                         )
                     predictor_class = class_df[1]
 
             if predictor_class is None:
-                raise UserException("definition for Predictor class not found")
+                raise UserException("Predictor class is not defined")
             _validate_impl(predictor_class, PREDICTOR_CLASS_VALIDATION)
         except CortexException as e:
-            e.wrap("api " + api_name, api["predictor"]["path"])
+            e.wrap("api " + api_name, "error in " + api["predictor"]["path"])
             raise
         return predictor_class
 
