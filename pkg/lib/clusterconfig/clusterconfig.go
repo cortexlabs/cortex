@@ -342,7 +342,7 @@ func (cc *ClusterConfig) Validate(accessKeyID string, secretAccessKey string) er
 
 	err := aws.VerifyInstanceQuota(accessKeyID, secretAccessKey, *cc.InstanceType, *cc.Region)
 	if err != nil {
-		return err
+		return errors.Wrap(err, InstanceTypeKey)
 	}
 
 	if cc.Spot != nil && *cc.Spot {

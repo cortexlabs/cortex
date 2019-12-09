@@ -26,39 +26,47 @@ import (
 )
 
 func VerifyInstanceQuota(accessKeyID, secretAccessKey, region, instanceType string) error {
-	if strings.HasPrefix(instanceType, "p") {
-		sess, err := session.NewSession(&aws.Config{
-			Region:      aws.String(region),
-			DisableSSL:  aws.Bool(false),
-			Credentials: credentials.NewStaticCredentials(accessKeyID, secretAccessKey, ""),
-		})
-		if err != nil {
-			return err
-		}
-		svc := servicequotas.New(sess)
+	if !strings.HasPrefix(instanceType, "p") {
+		return nil
+	}
 
-		pFamilyCPULimit := 0
-		err = svc.ListServiceQuotasPages(
-			&servicequotas.ListServiceQuotasInput{
-				ServiceCode: aws.String("ec2"),
-			},
-			func(page *servicequotas.ListServiceQuotasOutput, lastPage bool) bool {
-				for _, quota := range page.Quotas {
-					if *quota.QuotaName == "Running On-Demand P instances" {
-						pFamilyCPULimit = int(*quota.Value) // quota is specified in number of vCPU permitted per family
-						return false
-					}
+	sess, err := session.NewSession(&aws.Config{
+		Region:      aws.String(region),
+		DisableSSL:  aws.Bool(false),
+		Credentials: credentials.NewStaticCredentials(accessKeyID, secretAccessKey, ""),
+	})
+	if err != nil {
+		return err
+	}
+	svc := servicequotas.New(sess)
+
+	pFamilyCPULimit := 0
+	err = svc.ListServiceQuotasPages(
+		&servicequotas.ListServiceQuotasInput{
+			ServiceCode: aws.String("ec2"),
+		},
+		func(page *servicequotas.ListServiceQuotasOutput, lastPage bool) bool {
+			if page == nil {
+				return false
+			}
+			for _, quota := range page.Quotas {
+				if quota == nil {
+					continue
 				}
-				return true
-			},
-		)
-		if err != nil {
-			return err
-		}
+				if *quota.QuotaName == "Running On-Demand P instances" {
+					pFamilyCPULimit = int(*quota.Value) // quota is specified in number of vCPU permitted per family
+					return false
+				}
+			}
+			return true
+		},
+	)
+	if err != nil {
+		return err
+	}
 
-		if pFamilyCPULimit == 0 {
-			return ErrorPFamilyInstanceUseNotPermitted()
-		}
+	if pFamilyCPULimit == 0 {
+		return ErrorPFamilyInstanceUseNotPermitted()
 	}
 
 	return nil

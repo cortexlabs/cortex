@@ -150,7 +150,7 @@ func ErrorBucketInaccessible(bucket string) error {
 func ErrorPFamilyInstanceUseNotPermitted() error {
 	return Error{
 		Kind:    ErrPFamilyInstanceUseNotPermitted,
-		message: "not permitted to use instances from P family; please navigate to AWS EC2 dashboard to request access",
+		message: `your AWS account doesn't have access to "P" instances; please request access (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances)"`,
 	}
 }
 
