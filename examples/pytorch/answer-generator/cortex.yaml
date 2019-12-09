@@ -5,7 +5,7 @@
   name: generator
   predictor:
     path: predictor.py
-    metadata:
+    config:
       device: cuda  # use "cpu" to run on CPUs
   compute:
     cpu: 1

@@ -90,7 +90,7 @@ type Predictor struct {
 	Path       string                 `json:"path" yaml:"path"`
 	Model      *string                `json:"model" yaml:"model"`
 	PythonPath *string                `json:"python_path" yaml:"python_path"`
-	Metadata   map[string]interface{} `json:"metadata" yaml:"metadata"`
+	Config     map[string]interface{} `json:"config" yaml:"config"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -195,7 +195,14 @@ var apiValidation = &cr.StructValidation{
 						},
 					},
 					pythonPathValidation,
-					metadataValidation,
+					{
+						StructField: "Config",
+						InterfaceMapValidation: &cr.InterfaceMapValidation{
+							StringKeysOnly: true,
+							AllowEmpty:     true,
+							Default:        map[string]interface{}{},
+						},
+					},
 				},
 			},
 		},
@@ -478,9 +485,9 @@ func (predictor *Predictor) UserConfigStr() string {
 	if predictor.PythonPath != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
 	}
-	if len(predictor.Metadata) > 0 {
+	if len(predictor.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", MetadataKey))
-		d, _ := yaml.Marshal(&predictor.Metadata)
+		d, _ := yaml.Marshal(&predictor.Config)
 		sb.WriteString(s.Indent(string(d), "  "))
 	}
 	return sb.String()

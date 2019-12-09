@@ -7,7 +7,7 @@ from io import BytesIO
 
 
 class Predictor:
-    def __init__(self, metadata):
+    def __init__(self, config):
         model = torchvision.models.alexnet(pretrained=True)
         model.eval()
         # https://github.com/pytorch/examples/blob/447974f6337543d4de6b888e244a964d3c9b71f6/imagenet/main.py#L198-L199

@@ -1,12 +1,11 @@
 import boto3
-import numpy as np
 import pickle
 import re
 
 
 class Predictor:
-    def __init__(self, metadata):
-        bucket, key = re.match("s3://(.+?)/(.+)", metadata["model"]).groups()
+    def __init__(self, config):
+        bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
         s3 = boto3.client("s3")
         s3.download_file(bucket, key, "model.pkl")
 
@@ -21,5 +20,5 @@ class Predictor:
             payload["petal_width"],
         ]
 
-        label_id = self.model.predict(np.array([measurements]))[0]
+        label_id = self.model.predict([measurements])[0]
         return self.labels[label_id]

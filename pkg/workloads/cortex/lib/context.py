@@ -176,7 +176,8 @@ class Context:
                 if class_df[0] == "Predictor":
                     if predictor_class is not None:
                         raise UserException(
-                            "multiple definitions for Predictor class found (%s)", str(classes)
+                            "multiple definitions for Predictor class found (%s); please check your imports and class definitions and ensure that there is only one Predictor class definition",
+                            str(classes),
                         )
                     predictor_class = class_df[1]
 
@@ -261,7 +262,7 @@ REQUEST_HANDLER_IMPL_VALIDATION = {
 
 PREDICTOR_CLASS_VALIDATION = {
     "required": [
-        {"name": "__init__", "args": ["self", "metadata"]},
+        {"name": "__init__", "args": ["self", "config"]},
         {"name": "predict", "args": ["self", "payload"]},
     ]
 }

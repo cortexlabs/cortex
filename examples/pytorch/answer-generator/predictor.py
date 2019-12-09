@@ -5,7 +5,7 @@ import generator
 
 
 class Predictor:
-    def __init__(self, metadata):
+    def __init__(self, config):
         medium_config = GPT2Config(n_embd=1024, n_layer=24, n_head=16)
         model = GPT2LMHeadModel(medium_config)
         wget.download(
@@ -19,9 +19,9 @@ class Predictor:
 
         model.load_state_dict(weights)
         model.eval()
-        model.to(metadata["device"])
+        model.to(config["device"])
 
-        self.device = metadata["device"]
+        self.device = config["device"]
         self.model = model
         self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 

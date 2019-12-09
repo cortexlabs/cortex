@@ -78,9 +78,9 @@ def sample_sequence(
 
 
 class Predictor:
-    def __init__(self, metadata):
-        self.num_words = metadata.get("num_words", 20)
-        self.device = metadata.get("device", "cpu")
+    def __init__(self, config):
+        self.num_words = config.get("num_words", 20)
+        self.device = config.get("device", "cpu")
         self.tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
 
         model = GPT2LMHeadModel.from_pretrained("distilgpt2")

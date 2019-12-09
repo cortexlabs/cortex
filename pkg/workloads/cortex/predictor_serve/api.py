@@ -125,7 +125,7 @@ def start(args):
         predictor_class = ctx.get_predictor_class(api["name"], args.project_dir)
 
         try:
-            local_cache["predictor"] = predictor_class(api["predictor"]["metadata"])
+            local_cache["predictor"] = predictor_class(api["predictor"]["config"])
         except Exception as e:
             raise UserRuntimeException(api["predictor"]["path"], "__init__", str(e)) from e
         finally:

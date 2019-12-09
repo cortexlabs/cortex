@@ -2,9 +2,9 @@ import mlflow.sklearn
 import numpy as np
 
 
-class Predict:
-    def __init__(self, metadata):
-        self.model = mlflow.sklearn.load_model(metadata["model"])
+class Predictor:
+    def __init__(self, config):
+        self.model = mlflow.sklearn.load_model(config["model"])
 
     def predict(self, payload):
         input_array = [

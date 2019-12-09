@@ -58,14 +58,13 @@ $ python3 trainer.py
 # predictor.py
 
 import boto3
-import numpy as np
 import pickle
 import re
 
 
 class Predictor:
-    def __init__(self, metadata):
-        bucket, key = re.match("s3://(.+?)/(.+)", metadata["model"]).groups()
+    def __init__(self, config):
+        bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
         s3 = boto3.client("s3")
         s3.download_file(bucket, key, "model.pkl")
 
@@ -93,7 +92,7 @@ Create a `requirements.txt` file to specify the dependencies needed by `predicto
 ```python
 # requirements.txt
 
-numpy
+boto3
 ```
 
 You can skip dependencies that are [pre-installed](../../../docs/deployments/predictor.md#pre-installed-packages) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
@@ -255,7 +254,8 @@ If you trained another model and want to A/B test it with your previous model, s
   name: classifier
   predictor:
     path: predictor.py
-    model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
   tracker:
     model_type: classification
   compute:
@@ -266,7 +266,8 @@ If you trained another model and want to A/B test it with your previous model, s
   name: another-classifier
   predictor:
     path: predictor.py
-    model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
   tracker:
     model_type: classification
   compute:
@@ -300,13 +301,12 @@ First, implement `batch-predictor.py` with a `predict` function that can process
 # batch-predictor.py
 
 import boto3
-import numpy as np
 import pickle
 import re
 
 
 class Predictor:
-    def __init__(self, metadata):
+    def __init__(self, config):
         bucket, key = re.match("s3://(.+?)/(.+)", metadata["model"]).groups()
         s3 = boto3.client("s3")
         s3.download_file(bucket, key, "model.pkl")
@@ -339,7 +339,8 @@ Next, add the `api` to `cortex.yaml`:
   name: classifier
   predictor:
     path: predictor.py
-    model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
   tracker:
     model_type: classification
   compute:
@@ -350,7 +351,8 @@ Next, add the `api` to `cortex.yaml`:
   name: another-classifier
   predictor:
     path: predictor.py
-    model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
   tracker:
     model_type: classification
   compute:
@@ -362,7 +364,8 @@ Next, add the `api` to `cortex.yaml`:
   name: batch-classifier
   predictor:
     path: batch-predictor.py
-    model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
   compute:
     cpu: 0.5
     mem: 1G

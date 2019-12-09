@@ -5,8 +5,8 @@ from model import IrisNet
 
 
 class Predictor:
-    def __init__(self, metadata):
-        bucket, key = re.match("s3://(.+?)/(.+)", metadata["model"]).groups()
+    def __init__(self, config):
+        bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
         s3 = boto3.client("s3")
         s3.download_file(bucket, key, "model.pth")
 

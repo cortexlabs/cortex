@@ -4,7 +4,7 @@ import tqdm
 
 
 class Predictor:
-    def __init__(self, metadata):
+    def __init__(self, config):
         roberta = torch.hub.load("pytorch/fairseq", "roberta.large")
         roberta.eval()
         roberta.cuda()
