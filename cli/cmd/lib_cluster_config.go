@@ -300,7 +300,6 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 		spotPrice = aws.SpotInstancePrice(awsCreds.AWSAccessKeyID, awsCreds.CortexAWSSecretAccessKey, *clusterConfig.Region, *clusterConfig.InstanceType)
 	}
 
-	fmt.Println("configuration:")
 	items.Print()
 	fmt.Println()
 
