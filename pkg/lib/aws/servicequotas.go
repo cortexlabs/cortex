@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 func VerifyInstanceQuota(accessKeyID, secretAccessKey, region, instanceType string) error {
@@ -36,7 +37,7 @@ func VerifyInstanceQuota(accessKeyID, secretAccessKey, region, instanceType stri
 		Credentials: credentials.NewStaticCredentials(accessKeyID, secretAccessKey, ""),
 	})
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	svc := servicequotas.New(sess)
 
@@ -62,7 +63,7 @@ func VerifyInstanceQuota(accessKeyID, secretAccessKey, region, instanceType stri
 		},
 	)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if pFamilyCPULimit == 0 {
