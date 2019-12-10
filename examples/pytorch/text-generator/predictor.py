@@ -8,11 +8,6 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from tqdm import trange
 
 
-tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
-model = GPT2LMHeadModel.from_pretrained("distilgpt2")
-model.eval()
-
-
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float("Inf")):
     """ Filter a distribution of logits using top-k and/or nucleus (top-p) filtering
         Args:
@@ -44,10 +39,6 @@ def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float("Inf")
         indices_to_remove = sorted_indices[sorted_indices_to_remove]
         logits[indices_to_remove] = filter_value
     return logits
-
-
-def init(model_path, metadata):
-    model.to(metadata["device"])
 
 
 def sample_sequence(
@@ -86,11 +77,20 @@ def sample_sequence(
     return generated
 
 
-def predict(payload, metadata):
-    indexed_tokens = tokenizer.encode(payload["text"])
-    output = sample_sequence(
-        model, metadata.get("num_words", 20), indexed_tokens, device=metadata["device"]
-    )
-    return tokenizer.decode(
-        output[0, 0:].tolist(), clean_up_tokenization_spaces=True, skip_special_tokens=True
-    )
+class Predictor:
+    def __init__(self, config):
+        self.num_words = config.get("num_words", 20)
+        self.device = config.get("device", "cpu")
+        self.tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
+
+        model = GPT2LMHeadModel.from_pretrained("distilgpt2")
+        model.eval()
+        model.to(self.device)
+        self.model = model
+
+    def predict(self, payload):
+        indexed_tokens = self.tokenizer.encode(payload["text"])
+        output = sample_sequence(self.model, self.num_words, indexed_tokens, device=self.device)
+        return self.tokenizer.decode(
+            output[0, 0:].tolist(), clean_up_tokenization_spaces=True, skip_special_tokens=True
+        )

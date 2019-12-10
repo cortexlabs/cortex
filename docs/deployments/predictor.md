@@ -1,6 +1,6 @@
 # Predictor APIs
 
-You can deploy models from any Python framework by implementing Cortex's Predictor interface. The interface consists of an `init()` function and a `predict()` function. The `init()` function is responsible for preparing the model for serving, downloading vocabulary files, etc. The `predict()` function is called on every request and is responsible for responding with a prediction.
+You can deploy models from any Python framework by defining a class that implements Cortex's Predictor interface. The class constructor is responsible for preparing the model for serving, downloading vocabulary files, etc. The `predict()` class function is called on every request and is responsible for responding with a prediction.
 
 In addition to supporting Python models via the Predictor interface, Cortex can serve the following exported model formats:
 
@@ -14,10 +14,9 @@ In addition to supporting Python models via the Predictor interface, Cortex can 
   name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
   predictor:
-    path: <string>  # path to the predictor Python file, relative to the Cortex root (required)
-    model: <string>  # S3 path to a file or directory (e.g. s3://my-bucket/exported_model) (optional)
+    path: <string>  # path to a python file with a Predictor class definition, relative to the Cortex root (required)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    metadata: <string: value>  # dictionary that can be used to configure custom values (optional)
+    config: <string: value>  # dictionary passed to the constructor of a Predictor
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
@@ -51,40 +50,33 @@ You can log information about each request by adding a `?debug=true` parameter t
 
 # Predictor
 
-A Predictor is a Python file that describes how to initialize a model and use it to make a prediction.
+A Predictor is a Python class that describes how to initialize a model and use it to make a prediction.
 
-The lifecycle of a replica running a Predictor starts with loading the implementation file and executing code in the global scope. Once the implementation is loaded, Cortex calls the `init()` function to allow for any additional preparations. The `init()` function is typically used to download and initialize the model. It receives the metadata object, which is an arbitrary dictionary defined in the API configuration (it can be used to pass in the path to the exported/pickled model, vocabularies, aggregates, etc). Once the `init()` function is executed, the replica is available to accept requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload and the metadata object. The `predict()` function is responsible for returning a prediction based on the request payload.
-
-Global variables can be shared across functions safely because each replica handles one request at a time.
+The lifecycle of a replica starts with the initialization of the Predictor class defined in your implementation file. The constructor of the Predictor class is responsible for downloading and initializing the model. It receives the config object, which is an arbitrary dictionary defined in the API configuration (it can be used to pass in the path to the exported model, vocabularies, etc). After successfully initializing an instance of the Predictor class, the replica is available to serve requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload. The `predict()` function is responsible for returning a prediction or a batch of predictions.
 
 ## Implementation
 
 ```python
 # initialization code and variables can be declared here in global scope
 
-def init(model_path, metadata):
-    """Called once before the API is made available. Setup for model serving such
-    as downloading/initializing the model or downloading vocabulary can be done here.
-    Optional.
+class Predictor:
+    def __init__(self, config):
+        """Called once before the API becomes available. Setup for model serving such as downloading/initializing the model or downloading vocabulary can be done here. Required.
 
-    Args:
-        model_path: Local path to model file or directory if specified by user in API configuration, otherwise None.
-        metadata: Custom dictionary specified by the user in API configuration.
-    """
-    pass
+        Args:
+            config: Dictionary passed to the constructor of a Predictor.
+        """
+        pass
 
-def predict(payload, metadata):
-    """Called once per request. Model prediction is done here, including any
-    preprocessing of the request payload and postprocessing of the model output.
-    Required.
+    def predict(self, payload):
+        """Called once per request. Runs inference, any preprocessing of the request payload, and postprocessing of the inference output. Required.
 
-    Args:
-        payload: The JSON request payload (parsed in Python).
-        metadata: Custom dictionary specified by the user in API configuration.
+        Args:
+            payload: The JSON request payload (parsed in Python).
 
-    Returns:
-        A prediction
-    """
+        Returns:
+            Prediction or a batch of predictions.
+        """
 ```
 
 ## Example
@@ -93,34 +85,40 @@ def predict(payload, metadata):
 import boto3
 from my_model import IrisNet
 
-# variables declared in global scope can be used safely in both functions (one replica handles one request at a time)
-labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
-model = IrisNet()
+class Predictor:
+    def __init__(self, config):
+        # download the model
+        bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
+        s3 = boto3.client("s3")
+        s3.download_file(bucket, key, "model.pth")
 
-def init(model_path, metadata):
-    # Initialize the model
-    model.load_state_dict(torch.load(model_path))
-    model.eval()
+        # initialize the model
+        model = IrisNet()
+        model.load_state_dict(torch.load(config['model']))
+        model.eval()
+
+        self.model = model
+        self.labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
-def predict(payload, metadata):
-    # Convert the request to a tensor and pass it into the model
-    input_tensor = torch.FloatTensor(
-        [
+    def predict(self, payload):
+        # Convert the request to a tensor and pass it into the model
+        input_tensor = torch.FloatTensor(
             [
-                payload["sepal_length"],
-                payload["sepal_width"],
-                payload["petal_length"],
-                payload["petal_width"],
+                [
+                    payload["sepal_length"],
+                    payload["sepal_width"],
+                    payload["petal_length"],
+                    payload["petal_width"],
+                ]
             ]
-        ]
-    )
+        )
 
-    # Run the prediction
-    output = model(input_tensor)
+        # Run the prediction
+        output = self.model(input_tensor)
 
-    # Translate the model output to the corresponding label string
-    return labels[torch.argmax(output[0])]
+        # Translate the model output to the corresponding label string
+        return self.labels[torch.argmax(output[0])]
 ```
 
 ## Pre-installed packages

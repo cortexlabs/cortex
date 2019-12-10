@@ -1,8 +1,9 @@
 from summarizer import Summarizer
 
 
-model = Summarizer()
+class Predictor:
+    def __init__(self, config):
+        self.model = Summarizer()
 
-
-def predict(payload, metadata):
-    return model(payload["text"])
+    def predict(self, payload):
+        return self.model(payload["text"])
