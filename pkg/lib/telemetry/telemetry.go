@@ -35,10 +35,11 @@ var _segment analytics.Client
 var _config *Config
 
 type Config struct {
-	Enabled         bool
-	UserID          string
-	Environment     string
-	ShouldLogErrors bool
+	Enabled              bool
+	UserID               string
+	Environment          string
+	LogErrors            bool
+	BlockDuplicateErrors bool
 }
 
 type silentSegmentLogger struct{}
@@ -83,7 +84,7 @@ func Init(telemetryConfig Config) error {
 	}
 
 	var segmentLogger analytics.Logger
-	if !telemetryConfig.ShouldLogErrors {
+	if !telemetryConfig.LogErrors {
 		sentry.Logger.SetOutput(silentSentryLogger{})
 		segmentLogger = silentSegmentLogger{}
 	}
@@ -145,6 +146,10 @@ func eventHelper(name string, properties map[string]interface{}, integrations ma
 
 func Error(err error) {
 	if err == nil || _config == nil {
+		return
+	}
+
+	if _config.BlockDuplicateErrors && shouldBlock(err) {
 		return
 	}
 
