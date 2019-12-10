@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -226,6 +227,9 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
 		items.Add(clusterconfig.InstanceVolumeSizeUserFacingKey, clusterConfig.InstanceVolumeSize)
 	}
+	if clusterConfig.ClusterName != defaultConfig.ClusterName {
+		items.Add(clusterconfig.ClusterNameUserFacingKey, clusterConfig.ClusterName)
+	}
 	if clusterConfig.LogGroup != defaultConfig.LogGroup {
 		items.Add(clusterconfig.LogGroupUserFacingKey, clusterConfig.LogGroup)
 	}
@@ -291,9 +295,53 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 		items.Add(clusterconfig.ImageIstioGalleyUserFacingKey, clusterConfig.ImageIstioGalley)
 	}
 
+	var spotPrice float64
+	if clusterConfig.Spot != nil && *clusterConfig.Spot {
+		spotPrice = aws.SpotInstancePrice(awsCreds.AWSAccessKeyID, awsCreds.CortexAWSSecretAccessKey, *clusterConfig.Region, *clusterConfig.InstanceType)
+	}
+
+	fmt.Println("configuration:")
 	items.Print()
 	fmt.Println()
 
+	fmt.Printf("cortex will use the your %s aws access key id to provision the following resources in the %s region of your AWS account:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), *clusterConfig.Region)
+	fmt.Printf("- 1 S3 bucket (%s)\n", *clusterConfig.Bucket)
+	fmt.Printf("- 1 CloudWatch Log Group (%s)\n", clusterConfig.LogGroup)
+	fmt.Print("- 1 EKS cluster ($0.20 per hour)\n")
+	fmt.Printf("- 1 t3.medium EC2 instance for the operator ($%s per hour)\n", s.Float64(aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price))
+	fmt.Printf("- 1 20GB EBS volume for the operator ($%s per hour)\n", s.Round(aws.EBSMetadatas[*clusterConfig.Region].Price*20/30, 3, false))
+	fmt.Println(workloadInstancesStr(clusterConfig, spotPrice))
+	fmt.Printf("- 2 ELBs ($%s per hour each)\n", s.Float64(aws.ELBMetadatas[*clusterConfig.Region].Price))
+	fmt.Printf("- 1 NAT Gateway ($%s per hour)\n", s.Float64(aws.NATMetadatas[*clusterConfig.Region].Price))
+
+	fmt.Println()
+
 	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor)
-	prompt.YesOrExit("is the configuration above correct?", exitMessage)
+	prompt.YesOrExit("would you like to continue with this installation?", exitMessage)
+}
+
+func workloadInstancesStr(clusterConfig *clusterconfig.ClusterConfig, spotPrice float64) string {
+	instanceRangeStr := fmt.Sprintf("%d to %d", *clusterConfig.MinInstances, *clusterConfig.MaxInstances)
+	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
+		instanceRangeStr = s.Int64(*clusterConfig.MinInstances)
+	}
+
+	instancesStr := "instances"
+	if *clusterConfig.MinInstances == 1 && *clusterConfig.MaxInstances == 1 {
+		instancesStr = "instance"
+	}
+
+	instanceTypeStr := *clusterConfig.InstanceType
+	instancePriceStr := fmt.Sprintf("($%s per hour each)", s.Float64(aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price))
+
+	if clusterConfig.Spot != nil && *clusterConfig.Spot {
+		instanceTypeStr = s.StrsOr(clusterConfig.SpotConfig.InstanceDistribution)
+		spotPriceStr := "spot pricing not available"
+		if spotPrice != 0 {
+			spotPriceStr = fmt.Sprintf("~$%s per hour spot", s.Float64(spotPrice))
+		}
+		instancePriceStr = fmt.Sprintf("(%s: $%s per hour on-demand, %s)", *clusterConfig.InstanceType, s.Float64(aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price), spotPriceStr)
+	}
+
+	return fmt.Sprintf("- %s %s EC2 %s for inference workloads %s", instanceRangeStr, instanceTypeStr, instancesStr, instancePriceStr)
 }
