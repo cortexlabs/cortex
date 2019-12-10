@@ -16,7 +16,7 @@ In addition to supporting Python models via the Predictor interface, Cortex can 
   predictor:
     path: <string>  # path to a python file with a Predictor class definition, relative to the Cortex root (required)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    config: <string: value>  # dictionary of args passed to constructor of predictor typically containing paths to model weights and features
+    config: <string: value>  # dictionary passed to constructor of predictor typically containing paths to model weights and features
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
@@ -52,7 +52,7 @@ You can log information about each request by adding a `?debug=true` parameter t
 
 A Predictor is a Python class that describes how to initialize a model and use it to make a prediction.
 
-The lifecycle of a replica using a Predictor starts with instantiating an instance of the Predictor class defined in your implementation file. The constructor of the Predictor class is typically used to download and initialize the model. It receives the config object, which is an arbitrary dictionary defined in the API configuration (it can be used to pass in the path to the exported/pickled model, vocabularies, aggregates, etc). After successfully initializing an instance of the Predictor class, the replica is available to accept requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload. The `predict()` function is responsible for returning a prediction or a batch of predictions.
+The lifecycle of a replica starts with the initialization of the Predictor class defined in your implementation file. The constructor of the Predictor class is responsible for downloading and initializing the model. It receives the config object, which is an arbitrary dictionary defined in the API configuration (it can be used to pass in the path to the exported model, vocabularies, etc). After successfully initializing an instance of the Predictor class, the replica is available to serve requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload. The `predict()` function is responsible for returning a prediction or a batch of predictions.
 
 ## Implementation
 
@@ -61,15 +61,15 @@ The lifecycle of a replica using a Predictor starts with instantiating an instan
 
 class Predictor:
     def __init__(self, config):
-        """Called once before the API is made available. Setup for model serving such as downloading/initializing the model or downloading vocabulary can be done here.
+        """Called once before the API is made available. Setup for model serving such as downloading/initializing the model or downloading vocabulary can be done here. Required.
 
         Args:
-            config: Dictionary of args defined in API configuration, commonly contains path to model and other metadata.
+            config: Dictionary defined in API configuration, commonly contains paths to a model and other metadata.
         """
         pass
 
     def predict(self, payload):
-        """Called once per request. Model prediction is done here, including any preprocessing of the request payload, batching of predictions and postprocessing of the model output. Required.
+        """Called once per request. Runs inference, any preprocessing of the request payload, and postprocessing of the inference output. Required.
 
         Args:
             payload: The JSON request payload (parsed in Python).
