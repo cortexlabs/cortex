@@ -391,11 +391,8 @@ func tfAPISpec(
 							SuccessThreshold:    1,
 							FailureThreshold:    2,
 							Handler: kcore.Handler{
-								HTTPGet: &kcore.HTTPGetAction{
-									Path: "/healthz",
-									Port: intstr.IntOrString{
-										IntVal: defaultPortInt32,
-									},
+								Exec: &kcore.ExecAction{
+									Command: []string{"/bin/bash", "-c", "/bin/ps aux | grep \"api.py\" && test -f /health_check.txt"},
 								},
 							},
 						},
@@ -584,11 +581,8 @@ func predictorAPISpec(
 							SuccessThreshold:    1,
 							FailureThreshold:    2,
 							Handler: kcore.Handler{
-								HTTPGet: &kcore.HTTPGetAction{
-									Path: "/healthz",
-									Port: intstr.IntOrString{
-										IntVal: defaultPortInt32,
-									},
+								Exec: &kcore.ExecAction{
+									Command: []string{"/bin/bash", "-c", "/bin/ps aux | grep \"api.py\" && test -f /health_check.txt"},
 								},
 							},
 						},
@@ -745,11 +739,8 @@ func onnxAPISpec(
 							SuccessThreshold:    1,
 							FailureThreshold:    2,
 							Handler: kcore.Handler{
-								HTTPGet: &kcore.HTTPGetAction{
-									Path: "/healthz",
-									Port: intstr.IntOrString{
-										IntVal: defaultPortInt32,
-									},
+								Exec: &kcore.ExecAction{
+									Command: []string{"/bin/bash", "-c", "/bin/ps aux | grep \"api.py\" && test -f /health_check.txt"},
 								},
 							},
 						},
