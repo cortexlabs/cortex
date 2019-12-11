@@ -31,60 +31,13 @@ from cortex.lib import util, Context, api_utils
 from cortex.lib.log import cx_logger, debug_obj
 from cortex.lib.exceptions import UserRuntimeException, UserException, CortexException
 from cortex.lib.stringify import truncate
+from cortex.tf_api.client import TFClient
 
 app = Flask(__name__)
 app.json_encoder = util.json_tricks_encoder
 
 
-local_cache = {
-    "ctx": None,
-    "stub": None,
-    "api": None,
-    "signature_key": None,
-    "parsed_signature": None,
-    "model_metadata": None,
-    "request_handler": None,
-    "class_set": set(),
-}
-
-
-DTYPE_TO_VALUE_KEY = {
-    "DT_INT32": "intVal",
-    "DT_INT64": "int64Val",
-    "DT_FLOAT": "floatVal",
-    "DT_STRING": "stringVal",
-    "DT_BOOL": "boolVal",
-    "DT_DOUBLE": "doubleVal",
-    "DT_HALF": "halfVal",
-    "DT_COMPLEX64": "scomplexVal",
-    "DT_COMPLEX128": "dcomplexVal",
-}
-
-DTYPE_TO_TF_TYPE = {
-    "DT_FLOAT": tf.float32,
-    "DT_DOUBLE": tf.float64,
-    "DT_INT32": tf.int32,
-    "DT_UINT8": tf.uint8,
-    "DT_INT16": tf.int16,
-    "DT_INT8": tf.int8,
-    "DT_STRING": tf.string,
-    "DT_COMPLEX64": tf.complex64,
-    "DT_INT64": tf.int64,
-    "DT_BOOL": tf.bool,
-    "DT_QINT8": tf.qint8,
-    "DT_QUINT8": tf.quint8,
-    "DT_QINT32": tf.qint32,
-    "DT_BFLOAT16": tf.bfloat16,
-    "DT_QINT16": tf.qint16,
-    "DT_QUINT16": tf.quint16,
-    "DT_UINT16": tf.uint16,
-    "DT_COMPLEX128": tf.complex128,
-    "DT_HALF": tf.float16,
-    "DT_RESOURCE": tf.resource,
-    "DT_VARIANT": tf.variant,
-    "DT_UINT32": tf.uint32,
-    "DT_UINT64": tf.uint64,
-}
+local_cache = {"ctx": None, "api": None, "request_handler": None, "class_set": set()}
 
 
 @app.before_request
@@ -114,58 +67,6 @@ def after_request(response):
     )
 
     return response
-
-
-def create_prediction_request(payload):
-    signature_def = local_cache["model_metadata"]["signatureDef"]
-    signature_key = local_cache["signature_key"]
-    prediction_request = predict_pb2.PredictRequest()
-    prediction_request.model_spec.name = "model"
-    prediction_request.model_spec.signature_name = signature_key
-
-    for column_name, value in payload.items():
-        shape = []
-        for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
-            shape.append(int(dim["size"]))
-
-        sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
-
-        try:
-            tensor_proto = tf.compat.v1.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type])
-            prediction_request.inputs[column_name].CopyFrom(tensor_proto)
-        except Exception as e:
-            raise UserException(
-                'key "{}"'.format(column_name), "expected shape {}".format(shape), str(e)
-            ) from e
-
-    return prediction_request
-
-
-def create_get_model_metadata_request():
-    get_model_metadata_request = get_model_metadata_pb2.GetModelMetadataRequest()
-    get_model_metadata_request.model_spec.name = "model"
-    get_model_metadata_request.metadata_field.append("signature_def")
-    return get_model_metadata_request
-
-
-def run_get_model_metadata():
-    request = create_get_model_metadata_request()
-    resp = local_cache["stub"].GetModelMetadata(request, timeout=10.0)
-    sigAny = resp.metadata["signature_def"]
-    signature_def_map = get_model_metadata_pb2.SignatureDefMap()
-    sigAny.Unpack(signature_def_map)
-    sigmap = json_format.MessageToDict(signature_def_map)
-    return sigmap
-
-
-def parse_response_proto(response_proto):
-    results_dict = json_format.MessageToDict(response_proto)
-    outputs = results_dict["outputs"]
-    outputs_simplified = {}
-    for key in outputs:
-        value_key = DTYPE_TO_VALUE_KEY[outputs[key]["dtype"]]
-        outputs_simplified[key] = outputs[key][value_key]
-    return outputs_simplified
 
 
 def run_predict(payload, debug=False):
@@ -210,13 +111,6 @@ def run_predict(payload, debug=False):
     return result
 
 
-def validate_payload(payload):
-    signature = local_cache["parsed_signature"]
-    for input_name, _ in signature.items():
-        if input_name not in payload:
-            raise UserException('missing key "{}"'.format(input_name))
-
-
 def prediction_failed(reason):
     message = "prediction failed: {}".format(reason)
     cx_logger().error(message)
@@ -251,58 +145,6 @@ def predict():
     g.prediction = result
 
     return jsonify(result)
-
-
-def extract_signature(signature_def, signature_key):
-    cx_logger().info("signature defs found in model: {}".format(signature_def))
-
-    available_keys = list(signature_def.keys())
-    if len(available_keys) == 0:
-        raise UserException("unable to find signature defs in model")
-
-    if signature_key is None:
-        if len(available_keys) == 1:
-            cx_logger().info(
-                "signature_key was not configured by user, using signature key '{}' (found in the signature def map)".format(
-                    available_keys[0]
-                )
-            )
-            signature_key = available_keys[0]
-        elif "predict" in signature_def:
-            cx_logger().info(
-                "signature_key was not configured by user, using signature key 'predict' (found in the signature def map)"
-            )
-            signature_key = "predict"
-        else:
-            raise UserException(
-                "signature_key was not configured by user, please specify one the following keys '{}' (found in the signature def map)".format(
-                    "', '".join(available_keys)
-                )
-            )
-    else:
-        if signature_def.get(signature_key) is None:
-            possibilities_str = "key: '{}'".format(available_keys[0])
-            if len(available_keys) > 1:
-                possibilities_str = "keys: '{}'".format("', '".join(available_keys))
-
-            raise UserException(
-                "signature_key '{}' was not found in signature def map, but found the following {}".format(
-                    signature_key, possibilities_str
-                )
-            )
-
-    signature_def_val = signature_def.get(signature_key)
-
-    if signature_def_val.get("inputs") is None:
-        raise UserException("unable to find 'inputs' in signature def '{}'".format(signature_key))
-
-    parsed_signature = {}
-    for input_name, input_metadata in signature_def_val["inputs"].items():
-        parsed_signature[input_name] = {
-            "shape": [int(dim["size"]) for dim in input_metadata["tensorShape"]["dim"]],
-            "type": DTYPE_TO_TF_TYPE[input_metadata["dtype"]].name,
-        }
-    return signature_key, parsed_signature
 
 
 @app.route("/predict", methods=["GET"])
@@ -419,32 +261,10 @@ def start(args):
         except Exception as e:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
-    channel = grpc.insecure_channel("localhost:" + str(args.tf_serve_port))
-    local_cache["stub"] = prediction_service_pb2_grpc.PredictionServiceStub(channel)
-
-    # wait a bit for tf serving to start before querying metadata
-    limit = 60
-    for i in range(limit):
-        try:
-            local_cache["model_metadata"] = run_get_model_metadata()
-            break
-        except Exception as e:
-            if i > 6:
-                cx_logger().warn(
-                    "unable to read model metadata - model is still loading, retrying..."
-                )
-            if i == limit - 1:
-                cx_logger().exception("retry limit exceeded")
-                sys.exit(1)
-
-        time.sleep(5)
-
-    signature_key, parsed_signature = extract_signature(
-        local_cache["model_metadata"]["signatureDef"], api["tensorflow"]["signature_key"]
+    local_cache["client"] = TFClient(
+        "localhost:" + str(args.tf_serve_port), api["tensorflow"]["signature_key"]
     )
 
-    local_cache["signature_key"] = signature_key
-    local_cache["parsed_signature"] = parsed_signature
     cx_logger().info("model_signature: {}".format(local_cache["parsed_signature"]))
 
     cx_logger().info("{} api is live".format(api["name"]))
