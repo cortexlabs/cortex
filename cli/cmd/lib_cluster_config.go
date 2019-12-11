@@ -297,7 +297,11 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 
 	var spotPrice float64
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
-		spotPrice = aws.SpotInstancePrice(awsCreds.AWSAccessKeyID, awsCreds.CortexAWSSecretAccessKey, *clusterConfig.Region, *clusterConfig.InstanceType)
+		var err error
+		spotPrice, err = aws.SpotInstancePrice(awsCreds.AWSAccessKeyID, awsCreds.CortexAWSSecretAccessKey, *clusterConfig.Region, *clusterConfig.InstanceType)
+		if err != nil {
+			spotPrice = 0
+		}
 	}
 
 	items.Print()

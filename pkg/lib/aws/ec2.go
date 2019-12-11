@@ -24,18 +24,19 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 // Returns the minimum of all AZs in the region, 0 if unable to retreive spot price for any reason
-func SpotInstancePrice(accessKeyID string, secretAccessKey string, region string, instanceType string) float64 {
+func SpotInstancePrice(accessKeyID string, secretAccessKey string, region string, instanceType string) (float64, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(region),
 		DisableSSL:  aws.Bool(false),
 		Credentials: credentials.NewStaticCredentials(accessKeyID, secretAccessKey, ""),
 	})
 	if err != nil {
-		return 0
+		return 0, errors.WithStack(err)
 	}
 
 	svc := ec2.New(sess)
@@ -64,8 +65,12 @@ func SpotInstancePrice(accessKeyID string, secretAccessKey string, region string
 	}
 
 	if min == math.MaxFloat64 {
-		return 0
+		return 0, ErrorNoValidSpotPrices(instanceType, region)
 	}
 
-	return min
+	if min <= 0 {
+		return 0, ErrorNoValidSpotPrices(instanceType, region)
+	}
+
+	return min, nil
 }
