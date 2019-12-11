@@ -152,6 +152,7 @@ def start(args):
     waitress_kwargs["listen"] = "*:{}".format(args.port)
 
     cx_logger().info("{} api is live".format(api["name"]))
+    open("/health_check.txt", "a").close()
     serve(app, **waitress_kwargs)
 
 
