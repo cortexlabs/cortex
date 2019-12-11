@@ -1,5 +1,7 @@
 # Compute
 
+_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
 Compute resource requests in Cortex follow the syntax and meaning of [compute resources in Kubernetes](https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container).
 
 For example:

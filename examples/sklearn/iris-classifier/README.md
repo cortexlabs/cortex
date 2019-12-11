@@ -1,5 +1,7 @@
 # Deploy a scikit-learn model as a web service
 
+_WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`_
+
 This example shows how to deploy a classifier trained on the famous [iris data set](https://archive.ics.uci.edu/ml/datasets/iris) using scikit-learn.
 
 <br>

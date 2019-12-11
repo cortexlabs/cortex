@@ -1,3 +1,5 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
 import requests
 import numpy as np
 from PIL import Image

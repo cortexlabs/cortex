@@ -1,5 +1,7 @@
 # TensorFlow APIs
 
+_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
 Deploy TensorFlow models as web services.
 
 ## Config

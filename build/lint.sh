@@ -19,6 +19,16 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
+git_branch="${CIRCLE_BRANCH:-""}"
+if [ "$git_branch" = "" ]; then
+  git_branch=$(cd "$ROOT" && git rev-parse --abbrev-ref HEAD)
+fi
+
+is_release_branch="false"
+if echo "$git_branch" | grep -Eq ^[0-9]+.[0-9]+$; then
+  is_release_branch="true"
+fi
+
 if ! command -v golint >/dev/null 2>&1; then
   echo "golint must be installed"
   exit 1
@@ -75,6 +85,78 @@ if [[ $output ]]; then
   echo "File(s) are missing Cortex license:"
   echo "$output"
   exit 1
+fi
+
+if [ "$is_release_branch" = "true" ]; then
+  # Check for occurrences of "master" which should be changed to the version number
+  output=$(cd "$ROOT" && find . -type f \
+  ! -path "./build/lint.sh" \
+  ! -path "./vendor/*" \
+  ! -path "./bin/*" \
+  ! -path "./.git/*" \
+  ! -name ".*" \
+  -exec grep -R -A 100 -e "CORTEX_VERSION" {} \;)
+  output=$(echo "$output" | grep -e "master")
+  if [[ $output ]]; then
+    echo 'occurrences of "master" which should be changed to the version number:'
+    echo "$output"
+    exit 1
+  fi
+
+  # Check for no master version warnings
+  output=$(cd "$ROOT" && find . -type f \
+  ! -path "./vendor/*" \
+  ! -path "./bin/*" \
+  ! -path "./.git/*" \
+  ! -name ".*" \
+  -exec grep -l "WARNING: you are on the master branch" {} \;)
+  if [[ $output ]]; then
+    echo "file(s) have the master version warning:"
+    echo "$output"
+    exit 1
+  fi
+
+  # Check for version warning comments in examples
+  output=$(cd "$ROOT/examples" && find . -type f \
+  ! -name "README.md" \
+  ! -name "*.json" \
+  ! -name "*.txt" \
+  ! -name ".*" \
+  -exec grep -L -e "this is an example for cortex release ${git_branch} and may not deploy correctly on other releases of cortex" {} \;)
+  if [[ $output ]]; then
+    echo "examples file(s) are missing appropriate version comment:"
+    echo "$output"
+    exit 1
+  fi
+
+else
+  # Check for version warning comments in docs
+  output=$(cd "$ROOT/docs" && find . -type f \
+  ! -path "./README.md" \
+  ! -name "summary.md" \
+  ! -name "development.md" \
+  ! -name "*.json" \
+  ! -name "*.txt" \
+  ! -name ".*" \
+  -exec grep -L "WARNING: you are on the master branch, please refer to the docs on the branch that matches your \`cortex version\`" {} \;)
+  if [[ $output ]]; then
+    echo "docs file(s) are missing appropriate version comment:"
+    echo "$output"
+    exit 1
+  fi
+
+  # Check for version warning comments in examples
+  output=$(cd "$ROOT/examples" && find . -type f \
+  ! -name "README.md" \
+  ! -name "*.json" \
+  ! -name "*.txt" \
+  ! -name ".*" \
+  -exec grep -L "WARNING: you are on the master branch, please refer to the examples on the branch that matches your \`cortex version\`" {} \;)
+  if [[ $output ]]; then
+    echo "example file(s) are missing version appropriate comment:"
+    echo "$output"
+    exit 1
+  fi
 fi
 
 # Check for trailing whitespace

@@ -1,3 +1,5 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
 # This file includes code which was modified from https://github.com/openai/gpt-2
 
 import tensorflow as tf
