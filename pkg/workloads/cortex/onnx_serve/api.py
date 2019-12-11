@@ -308,8 +308,20 @@ def start(args):
         except Exception as e:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
+    waitress_kwargs = {}
+    if api["onnx"].get("metadata") is not None:
+        for key, value in api["onnx"]["metadata"].items():
+            if key.startswith("waitress_"):
+                waitress_kwargs[key[len("waitress_") :]] = value
+
+    if len(waitress_kwargs) > 0:
+        cx_logger().info("waitress parameters: {}".format(waitress_kwargs))
+
+    waitress_kwargs["listen"] = "*:{}".format(args.port)
+
     cx_logger().info("{} api is live".format(api["name"]))
-    serve(app, listen="*:{}".format(args.port))
+    open("/health_check.txt", "a").close()
+    serve(app, **waitress_kwargs)
 
 
 def main():
