@@ -1,3 +1,5 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
 import numpy as np
 
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]

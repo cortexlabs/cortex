@@ -1,3 +1,5 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
 import wget
 import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPT2Config

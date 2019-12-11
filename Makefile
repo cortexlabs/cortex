@@ -110,9 +110,6 @@ test-python:
 lint:
 	@./build/lint.sh
 
-find-missing-version:
-	@./build/find-missing-version.sh
-
 test-examples:
 	@$(MAKE) registry-all
 	@./build/test-examples.sh
