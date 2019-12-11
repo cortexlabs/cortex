@@ -303,15 +303,15 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 	items.Print()
 	fmt.Println()
 
-	fmt.Printf("cortex will use the your %s aws access key id to provision the following resources in the %s region of your AWS account:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), *clusterConfig.Region)
-	fmt.Printf("- 1 S3 bucket (%s)\n", *clusterConfig.Bucket)
-	fmt.Printf("- 1 CloudWatch Log Group (%s)\n", clusterConfig.LogGroup)
-	fmt.Print("- 1 EKS cluster ($0.20 per hour)\n")
-	fmt.Printf("- 1 t3.medium EC2 instance for the operator ($%s per hour)\n", s.Float64(aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price))
-	fmt.Printf("- 1 20GB EBS volume for the operator ($%s per hour)\n", s.Round(aws.EBSMetadatas[*clusterConfig.Region].Price*20/30, 3, false))
+	fmt.Printf("cortex will use your %s aws access key id to provision the following resources in the %s region of your aws account:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), *clusterConfig.Region)
+	fmt.Printf("￮ an s3 bucket named %s\n", *clusterConfig.Bucket)
+	fmt.Printf("￮ a cloudwatch log group named %s\n", clusterConfig.LogGroup)
+	fmt.Printf("￮ an eks cluster named %s ($0.20 per hour)\n", clusterConfig.ClusterName)
+	fmt.Printf("￮ a t3.medium ec2 instance for the operator ($%s per hour)\n", s.Float64(aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price))
+	fmt.Printf("￮ a 20gb ebs volume for the operator ($%s per hour)\n", s.Round(aws.EBSMetadatas[*clusterConfig.Region].Price*20/30, 3, false))
+	fmt.Printf("￮ an elb for the operator and an elb for apis ($%s per hour each)\n", s.Float64(aws.ELBMetadatas[*clusterConfig.Region].Price))
+	fmt.Printf("￮ a nat gateway ($%s per hour)\n", s.Float64(aws.NATMetadatas[*clusterConfig.Region].Price))
 	fmt.Println(workloadInstancesStr(clusterConfig, spotPrice))
-	fmt.Printf("- 2 ELBs ($%s per hour each)\n", s.Float64(aws.ELBMetadatas[*clusterConfig.Region].Price))
-	fmt.Printf("- 1 NAT Gateway ($%s per hour)\n", s.Float64(aws.NATMetadatas[*clusterConfig.Region].Price))
 
 	fmt.Println()
 
@@ -320,7 +320,7 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 }
 
 func workloadInstancesStr(clusterConfig *clusterconfig.ClusterConfig, spotPrice float64) string {
-	instanceRangeStr := fmt.Sprintf("%d to %d", *clusterConfig.MinInstances, *clusterConfig.MaxInstances)
+	instanceRangeStr := fmt.Sprintf("an autoscaling group of %d - %d", *clusterConfig.MinInstances, *clusterConfig.MaxInstances)
 	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
 		instanceRangeStr = s.Int64(*clusterConfig.MinInstances)
 	}
@@ -342,5 +342,5 @@ func workloadInstancesStr(clusterConfig *clusterconfig.ClusterConfig, spotPrice 
 		instancePriceStr = fmt.Sprintf("(%s: $%s per hour on-demand, %s)", *clusterConfig.InstanceType, s.Float64(aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price), spotPriceStr)
 	}
 
-	return fmt.Sprintf("- %s %s EC2 %s for inference workloads %s", instanceRangeStr, instanceTypeStr, instancesStr, instancePriceStr)
+	return fmt.Sprintf("￮ %s %s ec2 %s for apis %s", instanceRangeStr, instanceTypeStr, instancesStr, instancePriceStr)
 }
