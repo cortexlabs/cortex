@@ -1,23 +1,21 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
 import mlflow.sklearn
 import numpy as np
 
 
-model = None
+class Predictor:
+    def __init__(self, config):
+        self.model = mlflow.sklearn.load_model(config["model"])
 
+    def predict(self, payload):
+        input_array = [
+            payload["cylinders"],
+            payload["displacement"],
+            payload["horsepower"],
+            payload["weight"],
+            payload["acceleration"],
+        ]
 
-def init(model_path, metadata):
-    global model
-    model = mlflow.sklearn.load_model(model_path)
-
-
-def predict(payload, metadata):
-    input_array = [
-        payload["cylinders"],
-        payload["displacement"],
-        payload["horsepower"],
-        payload["weight"],
-        payload["acceleration"],
-    ]
-
-    result = model.predict([input_array])
-    return np.asscalar(result)
+        result = self.model.predict([input_array])
+        return np.asscalar(result)

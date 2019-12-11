@@ -331,13 +331,18 @@ var Validation = &cr.StructValidation{
 	),
 }
 
-func (cc *ClusterConfig) Validate() error {
+func (cc *ClusterConfig) Validate(accessKeyID string, secretAccessKey string) error {
 	if *cc.MinInstances > *cc.MaxInstances {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
 
 	if _, ok := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]; !ok {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
+	}
+
+	err := aws.VerifyInstanceQuota(accessKeyID, secretAccessKey, *cc.Region, *cc.InstanceType)
+	if err != nil {
+		return errors.Wrap(err, InstanceTypeKey)
 	}
 
 	if cc.Spot != nil && *cc.Spot {

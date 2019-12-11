@@ -1,3 +1,5 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
 - kind: deployment
   name: mpg
 
@@ -5,4 +7,5 @@
   name: estimator
   predictor:
     path: predictor.py
-    model: s3://cortex-examples/sklearn/mpg-estimator/linreg
+    config:
+      model: s3://cortex-examples/sklearn/mpg-estimator/linreg

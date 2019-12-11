@@ -1,3 +1,5 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
 - kind: deployment
   name: text
 
@@ -5,7 +7,7 @@
   name: generator
   predictor:
     path: predictor.py
-    metadata:
+    config:
       num_words: 50
       device: cuda  # use "cpu" to run on CPUs
   compute:

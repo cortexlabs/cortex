@@ -1,11 +1,16 @@
-from allennlp.predictors.predictor import Predictor
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
+from allennlp.predictors.predictor import Predictor as AllenNLPPredictor
 
 
-predictor = Predictor.from_path(
-    "https://storage.googleapis.com/allennlp-public-models/bidaf-elmo-model-2018.11.30-charpad.tar.gz"
-)
+class Predictor:
+    def __init__(self, config):
+        self.predictor = AllenNLPPredictor.from_path(
+            "https://storage.googleapis.com/allennlp-public-models/bidaf-elmo-model-2018.11.30-charpad.tar.gz"
+        )
 
-
-def predict(payload, metadata):
-    prediction = predictor.predict(passage=payload["passage"], question=payload["question"])
-    return prediction["best_span_str"]
+    def predict(self, payload):
+        prediction = self.predictor.predict(
+            passage=payload["passage"], question=payload["question"]
+        )
+        return prediction["best_span_str"]

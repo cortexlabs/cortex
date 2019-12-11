@@ -1,3 +1,5 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
 - kind: deployment
   name: iris
 
@@ -5,6 +7,7 @@
   name: classifier
   predictor:
     path: predictor.py
-    model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
+    config:
+      model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
   tracker:
     model_type: classification

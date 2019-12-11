@@ -1,3 +1,5 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
 - kind: deployment
   name: iris
 
@@ -5,7 +7,8 @@
   name: classifier
   predictor:
     path: predictor.py
-    model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
   tracker:
     model_type: classification
   compute:
@@ -16,7 +19,8 @@
   name: another-classifier
   predictor:
     path: predictor.py
-    model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
   tracker:
     model_type: classification
   compute:
@@ -27,7 +31,8 @@
   name: batch-classifier
   predictor:
     path: batch-predictor.py
-    model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
   compute:
     cpu: 0.5
     mem: 1G

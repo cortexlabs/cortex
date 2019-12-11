@@ -1,5 +1,7 @@
 # Deploy a scikit-learn model as a web service
 
+_WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`_
+
 This example shows how to deploy a classifier trained on the famous [iris data set](https://archive.ics.uci.edu/ml/datasets/iris) using scikit-learn.
 
 <br>
@@ -51,35 +53,36 @@ $ python3 trainer.py
 ## Implement a predictor
 
 1. Create another Python file `predictor.py`.
-2. Add code to load and initialize your pickled model.
-3. Add a prediction function that will accept a payload and return a prediction from your model.
+2. Define a Predictor class with a constructor that loads and initializes your pickled model.
+3. Add a predict function that will accept a payload and return a prediction from your model.
 
 ```python
 # predictor.py
 
+import boto3
 import pickle
-import numpy as np
+import re
 
 
-model = None
-labels = ["setosa", "versicolor", "virginica"]
+class Predictor:
+    def __init__(self, config):
+        bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
+        s3 = boto3.client("s3")
+        s3.download_file(bucket, key, "model.pkl")
 
+        self.model = pickle.load(open("model.pkl", "rb"))
+        self.labels = ["setosa", "versicolor", "virginica"]
 
-def init(model_path, metadata):
-    global model
-    model = pickle.load(open(model_path, "rb"))
+    def predict(self, payload):
+        measurements = [
+            payload["sepal_length"],
+            payload["sepal_width"],
+            payload["petal_length"],
+            payload["petal_width"],
+        ]
 
-
-def predict(payload, metadata):
-    measurements = [
-        payload["sepal_length"],
-        payload["sepal_width"],
-        payload["petal_length"],
-        payload["petal_width"],
-    ]
-
-    label_id = model.predict(np.array([measurements]))[0]
-    return labels[label_id]
+        label_id = self.model.predict([measurements])[0]
+        return self.labels[label_id]
 ```
 
 <br>
@@ -91,7 +94,7 @@ Create a `requirements.txt` file to specify the dependencies needed by `predicto
 ```python
 # requirements.txt
 
-numpy
+boto3
 ```
 
 You can skip dependencies that are [pre-installed](../../../docs/deployments/predictor.md#pre-installed-packages) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
@@ -253,7 +256,8 @@ If you trained another model and want to A/B test it with your previous model, s
   name: classifier
   predictor:
     path: predictor.py
-    model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
   tracker:
     model_type: classification
   compute:
@@ -264,7 +268,8 @@ If you trained another model and want to A/B test it with your previous model, s
   name: another-classifier
   predictor:
     path: predictor.py
-    model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
   tracker:
     model_type: classification
   compute:
@@ -297,32 +302,33 @@ First, implement `batch-predictor.py` with a `predict` function that can process
 ```python
 # batch-predictor.py
 
+import boto3
 import pickle
-import numpy as np
+import re
 
 
-model = None
-labels = ["setosa", "versicolor", "virginica"]
+class Predictor:
+    def __init__(self, config):
+        bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
+        s3 = boto3.client("s3")
+        s3.download_file(bucket, key, "model.pkl")
 
+        self.model = pickle.load(open("model.pkl", "rb"))
+        self.labels = ["setosa", "versicolor", "virginica"]
 
-def init(model_path, metadata):
-    global model
-    model = pickle.load(open(model_path, "rb"))
-
-
-def predict(payload, metadata):
-    measurements = [
-        [
-            sample["sepal_length"],
-            sample["sepal_width"],
-            sample["petal_length"],
-            sample["petal_width"],
+    def predict(self, payload):
+        measurements = [
+            [
+                sample["sepal_length"],
+                sample["sepal_width"],
+                sample["petal_length"],
+                sample["petal_width"],
+            ]
+            for sample in payload
         ]
-        for sample in payload
-    ]
 
-    label_ids = model.predict(np.array(measurements))
-    return [labels[label_id] for label_id in label_ids]
+        label_ids = self.model.predict(measurements)
+        return [self.labels[label_id] for label_id in label_ids]
 ```
 
 Next, add the `api` to `cortex.yaml`:
@@ -335,7 +341,8 @@ Next, add the `api` to `cortex.yaml`:
   name: classifier
   predictor:
     path: predictor.py
-    model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
   tracker:
     model_type: classification
   compute:
@@ -346,7 +353,8 @@ Next, add the `api` to `cortex.yaml`:
   name: another-classifier
   predictor:
     path: predictor.py
-    model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
   tracker:
     model_type: classification
   compute:
@@ -358,7 +366,8 @@ Next, add the `api` to `cortex.yaml`:
   name: batch-classifier
   predictor:
     path: batch-predictor.py
-    model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
   compute:
     cpu: 0.5
     mem: 1G

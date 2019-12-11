@@ -33,6 +33,7 @@ const (
 	ErrInvalidS3Path
 	ErrAuth
 	ErrBucketInaccessible
+	ErrPFamilyInstanceUseNotPermitted
 	ErrReadCredentials
 )
 
@@ -42,6 +43,7 @@ var errorKinds = []string{
 	"err_invalid_s3_path",
 	"err_auth",
 	"err_bucket_inaccessible",
+	"err_p_family_instance_use_not_permitted",
 	"err_read_credentials",
 }
 
@@ -142,6 +144,13 @@ func ErrorBucketInaccessible(bucket string) error {
 	return Error{
 		Kind:    ErrBucketInaccessible,
 		message: fmt.Sprintf("bucket \"%s\" not found or insufficient permissions", bucket),
+	}
+}
+
+func ErrorPFamilyInstanceUseNotPermitted(region string) error {
+	return Error{
+		Kind:    ErrPFamilyInstanceUseNotPermitted,
+		message: fmt.Sprintf(`your don't have access to "P" instances in region %s; please request access (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances)"`, region),
 	}
 }
 
