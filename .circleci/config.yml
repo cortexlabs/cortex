@@ -42,14 +42,6 @@ jobs:
       - run:
           name: Python Tests
           command: make test-python
-  test-release:
-    docker:
-      - image: circleci/python:3.6
-    steps:
-      - checkout
-      - run:
-          name: Version Test
-          command: make find-missing-version
   build-and-deploy:
     docker:
       - image: circleci/python:3.6
@@ -69,16 +61,10 @@ workflows:
   build:
     jobs:
       - test
-      - test-release:
-          filters:
-            branches:
-              only:
-                - /^[0-9]+\.[0-9]+$/
       - build-and-deploy-approval:
           type: approval
           requires:
             - test
-            - test-release
           filters:
             branches:
               only:
@@ -86,7 +72,6 @@ workflows:
       - build-and-deploy:
           requires:
             - test
-            - test-release
             - build-and-deploy-approval
           filters:
             branches:

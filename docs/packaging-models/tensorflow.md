@@ -1,5 +1,7 @@
 # TensorFlow
 
+_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
 <!-- CORTEX_VERSION_MINOR -->
 Export your trained model and upload the export directory, or a checkpoint directory containing the export directory (which is usually the case if you used `estimator.train_and_evaluate`). An example is shown below (here is the [complete example](https://github.com/cortexlabs/cortex/blob/master/examples/tensorflow/sentiment-analyzer)):
 

@@ -1,3 +1,5 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
 # This file includes code which was modified from https://github.com/huggingface/transformers/blob/master/examples/run_generation.py
 
 from __future__ import absolute_import, division, print_function, unicode_literals

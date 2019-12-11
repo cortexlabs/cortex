@@ -1,5 +1,7 @@
 # Deployments
 
+_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
 Deployments are used to group a set of APIs that are deployed together. It must be defined in every Cortex directory in a top-level `cortex.yaml` file.
 
 ## Configuration

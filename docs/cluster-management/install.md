@@ -1,5 +1,7 @@
 # Install
 
+_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
 ## Prerequisites
 
 1. [Docker](https://docs.docker.com/install)

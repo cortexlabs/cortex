@@ -1,5 +1,7 @@
 # Python client
 
+_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
 The Python client can be used to programmatically deploy models to a Cortex Cluster.
 
 <!-- CORTEX_VERSION_BRANCH_STABLE, e.g. v0.9.0 -->
