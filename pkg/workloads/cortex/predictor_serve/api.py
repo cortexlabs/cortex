@@ -150,8 +150,8 @@ def start(args):
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
     waitress_kwargs = {}
-    if api["tensorflow"].get("metadata") is not None:
-        for key, value in api["tensorflow"]["metadata"].items():
+    if api["predictor"].get("metadata") is not None:
+        for key, value in api["predictor"]["metadata"].items():
             if key.startswith("waitress_"):
                 waitress_kwargs[key[len("waitress_") :]] = value
 
