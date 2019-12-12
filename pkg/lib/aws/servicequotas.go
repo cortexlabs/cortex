@@ -17,6 +17,7 @@ limitations under the License.
 package aws
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -24,11 +25,23 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
+var _instancePrefixRegex = regexp.MustCompile(`[a-zA-Z]+`)
+var _standardInstancePrefixes = strset.New("a", "c", "d", "h", "i", "m", "r", "t", "z")
+var _knownInstancePrefixes = strset.Union(_standardInstancePrefixes, strset.New("p", "g", "inf", "x", "f"))
+
 func VerifyInstanceQuota(accessKeyID, secretAccessKey, region, instanceType string) error {
-	if !strings.HasPrefix(instanceType, "p") {
+	instancePrefix := _instancePrefixRegex.FindString(instanceType)
+
+	// Allow the instance if we don't recognize the type
+	if !_knownInstancePrefixes.Has(instancePrefix) {
 		return nil
+	}
+
+	if _standardInstancePrefixes.Has(instancePrefix) {
+		instancePrefix = "standard"
 	}
 
 	sess, err := session.NewSession(&aws.Config{
@@ -41,7 +54,7 @@ func VerifyInstanceQuota(accessKeyID, secretAccessKey, region, instanceType stri
 	}
 	svc := servicequotas.New(sess)
 
-	pFamilyCPULimit := 0
+	var cpuLimit int
 	err = svc.ListServiceQuotasPages(
 		&servicequotas.ListServiceQuotasInput{
 			ServiceCode: aws.String("ec2"),
@@ -51,11 +64,17 @@ func VerifyInstanceQuota(accessKeyID, secretAccessKey, region, instanceType stri
 				return false
 			}
 			for _, quota := range page.Quotas {
-				if quota == nil {
+				if quota == nil || quota.UsageMetric == nil || len(quota.UsageMetric.MetricDimensions) == 0 {
 					continue
 				}
-				if *quota.QuotaName == "Running On-Demand P instances" {
-					pFamilyCPULimit = int(*quota.Value) // quota is specified in number of vCPU permitted per family
+
+				metricClass, ok := quota.UsageMetric.MetricDimensions["Class"]
+				if !ok || metricClass == nil || !strings.HasSuffix(*metricClass, "/OnDemand") {
+					continue
+				}
+
+				if strings.ToLower(*metricClass) == instancePrefix+"/ondemand" {
+					cpuLimit = int(*quota.Value) // quota is specified in number of vCPU permitted per family
 					return false
 				}
 			}
@@ -66,8 +85,8 @@ func VerifyInstanceQuota(accessKeyID, secretAccessKey, region, instanceType stri
 		return errors.WithStack(err)
 	}
 
-	if pFamilyCPULimit == 0 {
-		return ErrorPFamilyInstanceUseNotPermitted(region)
+	if cpuLimit == 0 {
+		return ErrorInstanceTypeLimitIsZero(instanceType, region)
 	}
 
 	return nil
