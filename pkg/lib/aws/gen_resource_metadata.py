@@ -21,6 +21,7 @@ REGIONS = [
     "us-east-1",  # N. Virginia
     "us-east-2",  # Ohio
     "us-west-2",  # Oregon
+    "ca-central-1",  # Montreal
     "sa-east-1",  # Sao Paulo
     "eu-west-1",  # Ireland
     "eu-central-1",  # Frankfurt
@@ -36,20 +37,17 @@ REGIONS = [
     "ap-east-1",  # Hong Kong
 ]
 
-OUTPUT_FILE_NAME = "instance_metadata.go"
+OUTPUT_FILE_NAME = "resource_metadata.go"
 
 PRICING_ENDPOINT_TEMPLATE = (
     "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/{}/index.json"
 )
 
 
-def get_metadata(region):
-    response = requests.get(PRICING_ENDPOINT_TEMPLATE.format(region))
-    offers = response.json()
-
+def get_instance_metadatas(pricing):
     instance_mapping = {}
 
-    for product_id, product in offers["products"].items():
+    for product_id, product in pricing["products"].items():
         if product.get("attributes") is None:
             continue
         if product["attributes"].get("servicecode") != "AmazonEC2":
@@ -62,7 +60,7 @@ def get_metadata(region):
             continue
         if product["attributes"].get("operation") != "RunInstances":
             continue
-        price_dimensions = list(offers["terms"]["OnDemand"][product["sku"]].values())[0][
+        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[0][
             "priceDimensions"
         ]
 
@@ -82,6 +80,60 @@ def get_metadata(region):
         instance_mapping[instance_type] = metadata
 
     return instance_mapping
+
+
+def get_elb_metadata(pricing):
+    for product_id, product in pricing["products"].items():
+        if product.get("attributes") is None:
+            continue
+        if product.get("productFamily") != "Load Balancer":
+            continue
+        if product["attributes"].get("group") != "ELB:Balancer":
+            continue
+        if product["attributes"].get("operation") != "LoadBalancing":
+            continue
+
+        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[0][
+            "priceDimensions"
+        ]
+        price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
+        return {"price": float(price)}
+
+
+def get_nat_metadata(pricing):
+    for product_id, product in pricing["products"].items():
+        if product.get("attributes") is None:
+            continue
+        if product.get("productFamily") != "NAT Gateway":
+            continue
+        if product["attributes"].get("group") != "NGW:NatGateway":
+            continue
+        if product["attributes"].get("operation") != "NatGateway":
+            continue
+        if not product["attributes"].get("usagetype", "").endswith("-Hours"):
+            continue
+
+        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[0][
+            "priceDimensions"
+        ]
+        price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
+        return {"price": float(price)}
+
+
+def get_ebs_metadata(pricing):
+    for product_id, product in pricing["products"].items():
+        if product.get("attributes") is None:
+            continue
+        if product.get("productFamily") != "Storage":
+            continue
+        if product["attributes"].get("volumeApiName") != "gp2":
+            continue
+
+        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[0][
+            "priceDimensions"
+        ]
+        price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
+        return {"price": float(price)}
 
 
 file_template = Template(
@@ -118,14 +170,44 @@ type InstanceMetadata struct {
 	Price  float64            `json:"price"`
 }
 
+type ELBMetadata struct {
+	Region string  `json:"region"`
+	Price  float64 `json:"price"`
+}
+
+type NATMetadata struct {
+	Region string  `json:"region"`
+	Price  float64 `json:"price"`
+}
+
+type EBSMetadata struct {
+	Region string  `json:"region"`
+	Price  float64 `json:"price"`
+}
+
 // region -> instance type -> instance metadata
 var InstanceMetadatas = map[string]map[string]InstanceMetadata{
-    ${region_map}
+    ${instance_region_map}
+}
+
+// region -> ELB metadata
+var ELBMetadatas = map[string]ELBMetadata{
+    ${elb_region_map}
+}
+
+// region -> NAT metadata
+var NATMetadatas = map[string]NATMetadata{
+    ${nat_region_map}
+}
+
+// region -> EBS metadata
+var EBSMetadatas = map[string]EBSMetadata{
+    ${ebs_region_map}
 }
 """
 )
 
-region_map_template = Template(
+instance_region_map_template = Template(
     """"${region}": map[string]InstanceMetadata{
 	${instance_metadatas}
 },
@@ -137,14 +219,39 @@ instance_metadata_template = Template(
 """
 )
 
+elb_region_map_template = Template(
+    """"${region}": {Region: "${region}", Price: ${price}},
+"""
+)
+
+nat_region_map_template = Template(
+    """"${region}": {Region: "${region}", Price: ${price}},
+"""
+)
+
+ebs_region_map_template = Template(
+    """"${region}": {Region: "${region}", Price: ${price}},
+"""
+)
+
 
 def main():
-    region_map_str = ""
+    instance_region_map_str = ""
+    elb_region_map_str = ""
+    nat_region_map_str = ""
+    ebs_region_map_str = ""
 
     for i, region in enumerate(sorted(REGIONS), start=1):
         print("generating region {}/{} ({})...".format(i, len(REGIONS), region))
 
-        instance_metadatas = get_metadata(region)
+        response = requests.get(PRICING_ENDPOINT_TEMPLATE.format(region))
+        pricing = response.json()
+
+        instance_metadatas = get_instance_metadatas(pricing)
+        elb_metadata = get_elb_metadata(pricing)
+        nat_metadata = get_nat_metadata(pricing)
+        ebs_metadata = get_ebs_metadata(pricing)
+
         instance_metadatas_str = ""
 
         for instance_type in sorted(instance_metadatas.keys()):
@@ -160,11 +267,27 @@ def main():
                 }
             )
 
-        region_map_str += region_map_template.substitute(
-            {"instance_metadatas": instance_metadatas_str, "region": region}
+        instance_region_map_str += instance_region_map_template.substitute(
+            {"region": region, "instance_metadatas": instance_metadatas_str}
+        )
+        elb_region_map_str += elb_region_map_template.substitute(
+            {"region": region, "price": elb_metadata["price"]}
+        )
+        nat_region_map_str += nat_region_map_template.substitute(
+            {"region": region, "price": nat_metadata["price"]}
+        )
+        ebs_region_map_str += ebs_region_map_template.substitute(
+            {"region": region, "price": ebs_metadata["price"]}
         )
 
-    file_str = file_template.substitute({"region_map": region_map_str})
+    file_str = file_template.substitute(
+        {
+            "instance_region_map": instance_region_map_str,
+            "elb_region_map": elb_region_map_str,
+            "nat_region_map": nat_region_map_str,
+            "ebs_region_map": ebs_region_map_str,
+        }
+    )
 
     with open(OUTPUT_FILE_NAME, "w") as f:
         print("writing {}...".format(OUTPUT_FILE_NAME))

@@ -34,6 +34,7 @@ const (
 	ErrAuth
 	ErrBucketInaccessible
 	ErrPFamilyInstanceUseNotPermitted
+	ErrNoValidSpotPrices
 	ErrReadCredentials
 )
 
@@ -44,6 +45,7 @@ var errorKinds = []string{
 	"err_auth",
 	"err_bucket_inaccessible",
 	"err_p_family_instance_use_not_permitted",
+	"err_no_valid_spot_prices",
 	"err_read_credentials",
 }
 
@@ -151,6 +153,13 @@ func ErrorPFamilyInstanceUseNotPermitted(region string) error {
 	return Error{
 		Kind:    ErrPFamilyInstanceUseNotPermitted,
 		message: fmt.Sprintf(`your don't have access to "P" instances in region %s; please request access (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances)"`, region),
+	}
+}
+
+func ErrorNoValidSpotPrices(instanceType string, region string) error {
+	return Error{
+		Kind:    ErrNoValidSpotPrices,
+		message: fmt.Sprintf("no spot prices were found for %s instances in %s", instanceType, region),
 	}
 }
 
