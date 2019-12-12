@@ -39,6 +39,9 @@ cortex deploy
 # view the status of the deployment
 cortex get --watch
 
+# stream logs from the API
+cortex logs classifier
+
 # get the API's endpoint
 cortex get classifier
 

@@ -17,11 +17,14 @@ limitations under the License.
 package endpoints
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
@@ -95,11 +98,13 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	if isUpdating {
 		if fullCtxMatch {
-			Respond(w, schema.DeployResponse{Message: ResDeploymentUpToDateUpdating(ctx.App.Name)})
+			msg := deployResponseMessage(ResDeploymentUpToDateUpdating(ctx.App.Name), ctx, nil)
+			Respond(w, schema.DeployResponse{Message: msg})
 			return
 		}
 		if !force {
-			Respond(w, schema.DeployResponse{Message: ResDifferentDeploymentUpdating(ctx.App.Name)})
+			msg := deployResponseMessage(ResDifferentDeploymentUpdating(ctx.App.Name), ctx, nil)
+			Respond(w, schema.DeployResponse{Message: msg})
 			return
 		}
 	}
@@ -122,18 +127,22 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deployResponse := schema.DeployResponse{Context: ctx, APIsBaseURL: apisBaseURL}
-
+	var updatingAPIs []string
+	var baseMessage string
 	if !isUpdating && !ignoreCache && existingCtx != nil && fullCtxMatch {
-		deployResponse.Message = ResDeploymentUpToDate(ctx.App.Name)
+		baseMessage = ResDeploymentUpToDate(ctx.App.Name)
 	} else {
-		deployResponse.Message = apiDiffMessage(existingCtx, ctx, apisBaseURL)
+		baseMessage, updatingAPIs = apiDiffMessage(existingCtx, ctx, apisBaseURL)
 	}
 
-	Respond(w, deployResponse)
+	Respond(w, schema.DeployResponse{
+		Context:     ctx,
+		APIsBaseURL: apisBaseURL,
+		Message:     deployResponseMessage(baseMessage, ctx, updatingAPIs),
+	})
 }
 
-func apiDiffMessage(previousCtx *context.Context, currentCtx *context.Context, apisBaseURL string) string {
+func apiDiffMessage(previousCtx *context.Context, currentCtx *context.Context, apisBaseURL string) (string, []string) {
 	var newAPIs []context.API
 	var updatedAPIs []context.API
 	var deletedAPIs []context.API
@@ -161,16 +170,41 @@ func apiDiffMessage(previousCtx *context.Context, currentCtx *context.Context, a
 		}
 	}
 
+	var updatingAPIs []string
 	var strs []string
 	for _, api := range newAPIs {
 		strs = append(strs, ResCreatingAPI(api.Name))
+		updatingAPIs = append(updatingAPIs, api.Name)
 	}
 	for _, api := range updatedAPIs {
 		strs = append(strs, ResUpdatingAPI(api.Name))
+		updatingAPIs = append(updatingAPIs, api.Name)
 	}
 	for _, api := range deletedAPIs {
 		strs = append(strs, ResDeletingAPI(api.Name))
 	}
 
-	return strings.Join(strs, "\n")
+	return strings.Join(strs, "\n"), updatingAPIs
+}
+
+func deployResponseMessage(baseMessage string, ctx *context.Context, updatingAPIs []string) string {
+	apiName := "<api_name>"
+
+	if len(updatingAPIs) == 1 {
+		apiName = updatingAPIs[0]
+	} else if len(updatingAPIs) == 0 && len(ctx.APIs) == 1 {
+		for apiName = range ctx.APIs {
+			break
+		}
+	}
+
+	var items table.KeyValuePairs
+	items.Add("cortex get", "(show deployment status)")
+	items.Add(fmt.Sprintf("cortex get %s", apiName), "(show api info)")
+	items.Add(fmt.Sprintf("cortex logs %s", apiName), "(stream api logs)")
+
+	return baseMessage + "\n\n" + items.String(&table.KeyValuePairOpts{
+		Delimiter: pointer.String(""),
+		NumSpaces: pointer.Int(2),
+	})
 }

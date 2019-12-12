@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -120,5 +121,9 @@ func deploy(force bool, ignoreCache bool) {
 		exit.Error(err, "/deploy", string(response))
 	}
 
-	fmt.Println(console.Bold(deployResponse.Message))
+	msgParts := strings.Split(deployResponse.Message, "\n\n")
+	fmt.Println(console.Bold(msgParts[0]))
+	if len(msgParts) > 1 {
+		fmt.Println("\n" + strings.Join(msgParts[1:], "\n\n"))
+	}
 }
