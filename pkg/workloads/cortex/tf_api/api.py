@@ -267,8 +267,20 @@ def start(args):
 
     cx_logger().info("model_signature: {}".format(local_cache["parsed_signature"]))
 
+    waitress_kwargs = {}
+    if api["tensorflow"].get("metadata") is not None:
+        for key, value in api["tensorflow"]["metadata"].items():
+            if key.startswith("waitress_"):
+                waitress_kwargs[key[len("waitress_") :]] = value
+
+    if len(waitress_kwargs) > 0:
+        cx_logger().info("waitress parameters: {}".format(waitress_kwargs))
+
+    waitress_kwargs["listen"] = "*:{}".format(args.port)
+
     cx_logger().info("{} api is live".format(api["name"]))
-    serve(app, listen="*:{}".format(args.port))
+    open("/health_check.txt", "a").close()
+    serve(app, **waitress_kwargs)
 
 
 def main():

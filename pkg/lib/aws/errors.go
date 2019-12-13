@@ -33,7 +33,8 @@ const (
 	ErrInvalidS3Path
 	ErrAuth
 	ErrBucketInaccessible
-	ErrPFamilyInstanceUseNotPermitted
+	ErrInstanceTypeLimitIsZero
+	ErrNoValidSpotPrices
 	ErrReadCredentials
 )
 
@@ -43,7 +44,8 @@ var errorKinds = []string{
 	"err_invalid_s3_path",
 	"err_auth",
 	"err_bucket_inaccessible",
-	"err_p_family_instance_use_not_permitted",
+	"err_instance_type_limit_is_zero",
+	"err_no_valid_spot_prices",
 	"err_read_credentials",
 }
 
@@ -147,10 +149,17 @@ func ErrorBucketInaccessible(bucket string) error {
 	}
 }
 
-func ErrorPFamilyInstanceUseNotPermitted(region string) error {
+func ErrorInstanceTypeLimitIsZero(instanceType string, region string) error {
 	return Error{
-		Kind:    ErrPFamilyInstanceUseNotPermitted,
-		message: fmt.Sprintf(`your don't have access to "P" instances in region %s; please request access (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances)"`, region),
+		Kind:    ErrInstanceTypeLimitIsZero,
+		message: fmt.Sprintf(`you don't have access to %s instances in %s; please request access in the appropriate region (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances)"`, instanceType, region),
+	}
+}
+
+func ErrorNoValidSpotPrices(instanceType string, region string) error {
+	return Error{
+		Kind:    ErrNoValidSpotPrices,
+		message: fmt.Sprintf("no spot prices were found for %s instances in %s", instanceType, region),
 	}
 }
 

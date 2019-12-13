@@ -143,6 +143,12 @@ endpoint: http://***.amazonaws.com/iris/classifier
 
 The output above indicates that one replica of the API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
 
+You can also stream logs from your API:
+
+```bash
+$ cortex logs classifier
+```
+
 <br>
 
 ## Serve real-time predictions

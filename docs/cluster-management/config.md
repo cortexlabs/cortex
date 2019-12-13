@@ -41,9 +41,6 @@ log_group: cortex
 # EKS cluster name for cortex (default: cortex)
 cluster_name: cortex
 
-# whether to collect anonymous usage stats and error reports (default: true)
-telemetry: true
-
 # whether to use spot instances in the cluster (default: false)
 spot: false
 
