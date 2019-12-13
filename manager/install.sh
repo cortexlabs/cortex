@@ -40,17 +40,23 @@ function ensure_eks() {
     fi
 
     echo -e "￮ spinning up the cluster ... (this will take about 15 minutes)\n"
+
+    envsubst < eks_cluster.yaml | eksctl create cluster -f -
+
+    # https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
+    kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.5.5/config/v1.5/aws-k8s-cni.yaml >/dev/null
+
     if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
       if [ "$CORTEX_SPOT" == "True" ]; then
-        envsubst < eks_gpu_spot.yaml | eksctl create cluster -f -
+        envsubst < eks_gpu_spot.yaml | eksctl create nodegroup -f -
       else
-        envsubst < eks_gpu.yaml | eksctl create cluster -f -
+        envsubst < eks_gpu_ondemand.yaml | eksctl create nodegroup -f -
       fi
     else
       if [ "$CORTEX_SPOT" == "True" ]; then
-        envsubst < eks_spot.yaml | eksctl create cluster -f -
+        envsubst < eks_cpu_spot.yaml | eksctl create nodegroup -f -
       else
-        envsubst < eks.yaml | eksctl create cluster -f -
+        envsubst < eks_cpu_ondemand.yaml | eksctl create nodegroup -f -
       fi
     fi
 

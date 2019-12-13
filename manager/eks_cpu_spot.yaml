@@ -31,7 +31,7 @@ nodeGroups:
       withAddonPolicies:
         autoScaler: true
     tags:
-      k8s.io/cluster-autoscaler/enabled: 'true'
+      k8s.io/cluster-autoscaler/enabled: "true"
     kubeletExtraConfig:
       kubeReserved:
         cpu: 150m
@@ -47,7 +47,7 @@ nodeGroups:
         nodefs.available: 5%
 
   - name: ng-cortex-worker
-    instanceType: $CORTEX_INSTANCE_TYPE
+    instanceType: mixed
     volumeSize: $CORTEX_INSTANCE_VOLUME_SIZE
     minSize: $CORTEX_MIN_INSTANCES
     maxSize: $CORTEX_MAX_INSTANCES
@@ -56,17 +56,19 @@ nodeGroups:
     iam:
       withAddonPolicies:
         autoScaler: true
+    instancesDistribution:
+      instanceTypes: $CORTEX_SPOT_CONFIG_INSTANCE_DISTRIBUTION
+      maxPrice: $CORTEX_SPOT_CONFIG_MAX_PRICE
+      onDemandBaseCapacity: $CORTEX_SPOT_CONFIG_ON_DEMAND_BASE_CAPACITY
+      onDemandPercentageAboveBaseCapacity: $CORTEX_SPOT_CONFIG_ON_DEMAND_PERCENTAGE_ABOVE_BASE_CAPACITY
+      spotInstancePools: $CORTEX_SPOT_CONFIG_INSTANCE_POOLS
     tags:
-      k8s.io/cluster-autoscaler/enabled: 'true'
-      k8s.io/cluster-autoscaler/node-template/label/nvidia.com/gpu: 'true'
-      k8s.io/cluster-autoscaler/node-template/taint/dedicated: nvidia.com/gpu=true
-      k8s.io/cluster-autoscaler/node-template/label/workload: 'true'
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/node-template/label/workload: "true"
     labels:
       lifecycle: Ec2Spot
       workload: "true"
-      nvidia.com/gpu: 'true'
     taints:
-      nvidia.com/gpu: "true:NoSchedule"
       workload: "true:NoSchedule"
     kubeletExtraConfig:
       kubeReserved:

@@ -401,9 +401,11 @@ func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 		strings.HasSuffix(instanceMetadata.Type, "small") {
 		ErrorInstanceTypeTooSmall()
 	}
-	if instanceMetadata.GPU > 0 && !strings.HasPrefix(instanceMetadata.Type, "p2") && !strings.HasPrefix(instanceMetadata.Type, "p3") {
-		return ErrorGPUInstanceTypeNotSupported(instanceMetadata.Type)
+
+	if strings.HasPrefix(instanceMetadata.Type, "inf") {
+		return ErrorInstanceTypeNotSupported(instanceMetadata.Type)
 	}
+
 	return nil
 }
 

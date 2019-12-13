@@ -13,6 +13,12 @@
 1. Find the latest version of Kubernetes supported by eksctl ([source code](https://github.com/weaveworks/eksctl/blob/master/pkg/apis/eksctl.io/v1alpha5/types.go))
 1. Update the version in `eks.yaml`
 
+## AWS CNI
+
+1. Update the version in `eks_cluster.yaml`
+
+note: once the default AWS CNI version is >= 1.5.5 this may no longer be necessary (1.5.5 added support for new instance types)
+
 ## Go
 
 1. Find the latest release on Golang's [release page](https://golang.org/doc/devel/release.html) (or [downloads page](https://golang.org/dl/)) and check the changelog
