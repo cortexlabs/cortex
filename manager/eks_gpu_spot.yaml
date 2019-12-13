@@ -31,7 +31,7 @@ nodeGroups:
       withAddonPolicies:
         autoScaler: true
     tags:
-      k8s.io/cluster-autoscaler/enabled: 'true'
+      k8s.io/cluster-autoscaler/enabled: "true"
     kubeletExtraConfig:
       kubeReserved:
         cpu: 150m
@@ -63,14 +63,14 @@ nodeGroups:
       onDemandPercentageAboveBaseCapacity: $CORTEX_SPOT_CONFIG_ON_DEMAND_PERCENTAGE_ABOVE_BASE_CAPACITY
       spotInstancePools: $CORTEX_SPOT_CONFIG_INSTANCE_POOLS
     tags:
-      k8s.io/cluster-autoscaler/enabled: 'true'
-      k8s.io/cluster-autoscaler/node-template/label/nvidia.com/gpu: 'true'
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/node-template/label/nvidia.com/gpu: "true"
       k8s.io/cluster-autoscaler/node-template/taint/dedicated: nvidia.com/gpu=true
-      k8s.io/cluster-autoscaler/node-template/label/workload: 'true'
+      k8s.io/cluster-autoscaler/node-template/label/workload: "true"
     labels:
       lifecycle: Ec2Spot
       workload: "true"
-      nvidia.com/gpu: 'true'
+      nvidia.com/gpu: "true"
     taints:
       nvidia.com/gpu: "true:NoSchedule"
       workload: "true:NoSchedule"

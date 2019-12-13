@@ -35,7 +35,7 @@ const (
 	ErrIncompatibleSpotInstanceTypeMemory
 	ErrIncompatibleSpotInstanceTypeCPU
 	ErrIncompatibleSpotInstanceTypeGPU
-	ErrGPUInstanceTypeNotSupported
+	ErrInstanceTypeNotSupported
 	ErrAtLeastOneInstanceDistribution
 	ErrNoCompatibleSpotInstanceFound
 	ErrConfiguredWhenSpotIsNotEnabled
@@ -54,7 +54,7 @@ var (
 		"err_incompatible_spot_instance_type_memory",
 		"err_incompatible_spot_instance_type_cpu",
 		"err_incompatible_spot_instance_type_gpu",
-		"err_gpu_instance_type_not_supported",
+		"err_instance_type_not_supported",
 		"err_at_least_one_instance_distribution",
 		"err_no_compatible_spot_instance_found",
 		"err_configured_when_spot_is_not_enabled",
@@ -158,10 +158,10 @@ func ErrorIncompatibleSpotInstanceTypeGPU(target aws.InstanceMetadata, suggested
 	}
 }
 
-func ErrorGPUInstanceTypeNotSupported(instanceType string) error {
+func ErrorInstanceTypeNotSupported(instanceType string) error {
 	return Error{
-		Kind:    ErrGPUInstanceTypeNotSupported,
-		message: fmt.Sprintf("GPU instance type %s is not supported", instanceType),
+		Kind:    ErrInstanceTypeNotSupported,
+		message: fmt.Sprintf("instance type %s is not supported", instanceType),
 	}
 }
 
