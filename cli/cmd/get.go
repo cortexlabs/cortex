@@ -224,10 +224,8 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	row := []interface{}{
 		groupStatus.Message(),
 		groupStatus.ReadyUpdated,
-		groupStatus.Available(),
+		groupStatus.ReadyStale(),
 		groupStatus.Requested,
-		groupStatus.ReadyStaleCompute,
-		groupStatus.ReadyStaleModel,
 		groupStatus.FailedUpdated,
 		libtime.Since(updatedAt),
 	}
@@ -235,10 +233,8 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	headers := []table.Header{
 		{Title: "status"},
 		{Title: "up-to-date"},
-		{Title: "available"},
+		{Title: "stale", Hidden: groupStatus.ReadyStale() == 0},
 		{Title: "requested"},
-		{Title: "stale compute", Hidden: groupStatus.ReadyStaleCompute == 0},
-		{Title: "stale", Hidden: groupStatus.ReadyStaleModel == 0},
 		{Title: "failed", Hidden: groupStatus.FailedUpdated == 0},
 		{Title: "last update"},
 	}
@@ -538,7 +534,8 @@ func dataResourceTable(resources []context.Resource, dataStatuses map[string]*re
 func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) table.Table {
 	rows := make([][]interface{}, 0, len(apiGroupStatuses))
 
-	totalFailed := 0
+	var totalFailed int32
+	var totalStale int32
 	for name, groupStatus := range apiGroupStatuses {
 		var updatedAt *time.Time
 		if groupStatus.ActiveStatus != nil {
@@ -549,13 +546,14 @@ func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) tabl
 			name,
 			groupStatus.Message(),
 			groupStatus.ReadyUpdated,
-			groupStatus.Available(),
+			groupStatus.ReadyStale(),
 			groupStatus.Requested,
 			groupStatus.FailedUpdated,
 			libtime.Since(updatedAt),
 		})
 
-		totalFailed += int(groupStatus.FailedUpdated)
+		totalFailed += groupStatus.FailedUpdated
+		totalStale += groupStatus.ReadyStale()
 	}
 
 	t := table.Table{
@@ -563,7 +561,7 @@ func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) tabl
 			{Title: resource.APIType.UserFacing()},
 			{Title: "status"},
 			{Title: "up-to-date"},
-			{Title: "available"},
+			{Title: "stale", Hidden: totalStale == 0},
 			{Title: "requested"},
 			{Title: "failed", Hidden: totalFailed == 0},
 			{Title: "last update"},
