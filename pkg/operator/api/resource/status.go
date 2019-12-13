@@ -80,6 +80,10 @@ func (grc *GroupedReplicaCounts) Available() int32 {
 	return grc.ReadyUpdated + grc.ReadyStaleModel + grc.ReadyStaleCompute
 }
 
+func (grc *GroupedReplicaCounts) ReadyStale() int32 {
+	return grc.ReadyStaleModel + grc.ReadyStaleCompute
+}
+
 func (status *DataStatus) GetCode() StatusCode {
 	return status.Code
 }
