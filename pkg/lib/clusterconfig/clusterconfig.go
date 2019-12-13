@@ -20,6 +20,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -403,6 +404,10 @@ func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 	}
 
 	if strings.HasPrefix(instanceMetadata.Type, "inf") {
+		return ErrorInstanceTypeNotSupported(instanceMetadata.Type)
+	}
+
+	if _, ok := awsutils.InstanceENIsAvailable[instanceMetadata.Type]; !ok {
 		return ErrorInstanceTypeNotSupported(instanceMetadata.Type)
 	}
 
