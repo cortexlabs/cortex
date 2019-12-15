@@ -24,8 +24,11 @@ def get_autoscaling_group():
     page_iterator = paginator.paginate(PaginationConfig={"PageSize": 100})
 
     filtered_asgs = page_iterator.search(
-        "AutoScalingGroups[] | [?contains(Tags[?Key==`{}`].Value, `{}`)]".format(
-            "alpha.eksctl.io/nodegroup-name", "ng-cortex-worker"
+        "AutoScalingGroups[?contains(Tags[?Key==`{}`].Value, `{}`)]|[?contains(Tags[?Key==`{}`].Value, `{}`)]".format(
+            "alpha.eksctl.io/cluster-name",
+            os.environ["CORTEX_CLUSTER_NAME"],
+            "alpha.eksctl.io/nodegroup-name",
+            "ng-cortex-worker",
         )
     )
     asgs = list(filtered_asgs)
