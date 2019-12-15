@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: image-downloader
+  namespace: cortex
+spec:
+  selector:
+    matchLabels:
+      name: image-downloader
+  template:
+    metadata:
+      labels:
+        name: image-downloader
+    spec:
+      nodeSelector:
+        workload: "true"
+      tolerations:
+      - key: workload
+        value: "true"
+        operator: Equal
+        effect: NoSchedule
+      - key: nvidia.com/gpu
+        value: "true"
+        operator: Equal
+        effect: NoSchedule
+      terminationGracePeriodSeconds: 0
+      containers:
+      - name: predictor-serve
+        image: $CORTEX_IMAGE_PREDICTOR_SERVE_GPU
+        command: [ "/bin/sh" ]
+        args: [ "-c", "sleep 1000000" ]
+      - name: tf-serve
+        image: $CORTEX_IMAGE_TF_SERVE_GPU
+        command: [ "/bin/sh" ]
+        args: [ "-c", "sleep 1000000" ]
+      - name: tf-api
+        image: $CORTEX_IMAGE_TF_API
+        command: [ "/bin/sh" ]
+        args: [ "-c", "sleep 1000000" ]
+      - name: onnx-serve
+        image: $CORTEX_IMAGE_ONNX_SERVE_GPU
+        command: [ "/bin/sh" ]
+        args: [ "-c", "sleep 1000000" ]
+      - name: downloader
+        image: $CORTEX_IMAGE_DOWNLOADER
+        command: [ "/bin/sh" ]
+        args: [ "-c", "sleep 1000000" ]
