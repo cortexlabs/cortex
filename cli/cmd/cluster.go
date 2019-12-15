@@ -269,7 +269,7 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Cluster
 	}
 
 	if userClusterConfig.Region == nil {
-		exit.Error(fmt.Sprintf("unable to find an existing cluster; please configure \"%s\" to the s3 region of an existing cluster or create a cluster with `cortex cluster up`", clusterconfig.RegionKey))
+		exit.Error(fmt.Sprintf("unable to find an existing cluster; please configure \"%s\" (e.g. in cluster.yaml) to the s3 region of an existing cluster or create a cluster with `cortex cluster up`", clusterconfig.RegionKey))
 	}
 
 	out, err := runRefreshClusterConfig(userClusterConfig, awsCreds)
