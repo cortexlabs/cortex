@@ -25,8 +25,8 @@ fi
 
 eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 
-kubectl get -n=cortex configmap cluster-config -o yaml >> info_cluster.yaml
-python refresh_cluster_config.py info_cluster.yaml /.cortex/cluster.yaml
+kubectl get -n=cortex configmap cluster-config -o yaml >> cluster_configmap.yaml
+python refresh_cluster_config.py cluster_configmap.yaml /.cortex/cluster.yaml
 kubectl -n=cortex create configmap 'cluster-config' \
     --from-file='cluster.yaml'='/.cortex/cluster.yaml' \
     -o yaml --dry-run | kubectl apply -f - >/dev/null

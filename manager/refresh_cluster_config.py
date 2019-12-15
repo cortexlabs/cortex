@@ -40,11 +40,11 @@ def get_launch_template(launch_template_id):
     return resp["LaunchTemplateVersions"][0]["LaunchTemplateData"]
 
 
-def refresh_yaml(input_yaml_path, output_yaml_path):
-    with open(input_yaml_path, "r") as f:
-        config = yaml.safe_load(f)
+def refresh_yaml(configmap_yaml_path, output_yaml_path):
+    with open(configmap_yaml_path, "r") as f:
+        cluster_configmap = yaml.safe_load(f)
     asg = get_autoscaling_group()
-    cluster_config_str = config["data"]["cluster.yaml"]
+    cluster_config_str = cluster_configmap["data"]["cluster.yaml"]
     cluster_config = yaml.safe_load(cluster_config_str)
     cluster_config["min_instances"] = asg["MinSize"]
     cluster_config["max_instances"] = asg["MaxSize"]
@@ -91,6 +91,10 @@ def refresh_yaml(input_yaml_path, output_yaml_path):
         spot_config["instance_distribution"] = instance_distribution
 
         cluster_config["spot_config"] = spot_config
+
+    # reset region and cluster name as a final step to prevent broken state
+    cluster_config["region"] = os.environ["CORTEX_REGION"]
+    cluster_config["cluster_name"] = os.environ["CORTEX_CLUSTER_NAME"]
 
     with open(output_yaml_path, "w") as f:
         yaml.dump(cluster_config, f)

@@ -227,9 +227,13 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 }
 
 func runRefreshClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (string, error) {
-	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
-	if !files.IsFile(cachedClusterConfigPath) {
-		files.MakeEmptyFile(cachedClusterConfigPath)
+	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+
+	if err := files.WriteFile(clusterConfigBytes, cachedClusterConfigPath); err != nil {
+		return "", err
 	}
 
 	containerConfig := &container.Config{
