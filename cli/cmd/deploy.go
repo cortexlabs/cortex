@@ -57,10 +57,6 @@ var deployCmd = &cobra.Command{
 
 func deploy(force bool, ignoreCache bool) {
 	root := mustAppRoot()
-	config, err := readConfig() // Check proper cortex.yaml
-	if err != nil {
-		exit.Error(err)
-	}
 
 	params := map[string]string{
 		"force":       s.Bool(force),
