@@ -44,8 +44,8 @@ type ClusterConfig struct {
 	Bucket                 *string     `json:"bucket" yaml:"bucket"`
 	LogGroup               string      `json:"log_group" yaml:"log_group"`
 	Telemetry              bool        `json:"telemetry" yaml:"telemetry"`
-	ImagePredictorServe    string      `json:"image_predictor_serve" yaml:"image_predictor_serve"`
-	ImagePredictorServeGPU string      `json:"image_predictor_serve_gpu" yaml:"image_predictor_serve_gpu"`
+	ImagePythonServe       string      `json:"image_python_serve" yaml:"image_python_serve"`
+	ImagePythonServeGPU    string      `json:"image_python_serve_gpu" yaml:"image_python_serve_gpu"`
 	ImageTFServe           string      `json:"image_tf_serve" yaml:"image_tf_serve"`
 	ImageTFServeGPU        string      `json:"image_tf_serve_gpu" yaml:"image_tf_serve_gpu"`
 	ImageTFAPI             string      `json:"image_tf_api" yaml:"image_tf_api"`
@@ -187,15 +187,15 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "ImagePredictorServe",
+			StructField: "ImagePythonServe",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/predictor-serve:" + consts.CortexVersion,
+				Default: "cortexlabs/python-serve:" + consts.CortexVersion,
 			},
 		},
 		{
-			StructField: "ImagePredictorServeGPU",
+			StructField: "ImagePythonServeGPU",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/predictor-serve-gpu:" + consts.CortexVersion,
+				Default: "cortexlabs/python-serve-gpu:" + consts.CortexVersion,
 			},
 		},
 		{
@@ -731,8 +731,8 @@ func (cc *ClusterConfig) UserFacingTable() table.KeyValuePairs {
 	}
 	items.Add(LogGroupUserFacingKey, cc.LogGroup)
 	items.Add(TelemetryUserFacingKey, cc.Telemetry)
-	items.Add(ImagePredictorServeUserFacingKey, cc.ImagePredictorServe)
-	items.Add(ImagePredictorServeGPUUserFacingKey, cc.ImagePredictorServeGPU)
+	items.Add(ImagePythonServeUserFacingKey, cc.ImagePythonServe)
+	items.Add(ImagePythonServeGPUUserFacingKey, cc.ImagePythonServeGPU)
 	items.Add(ImageTFServeUserFacingKey, cc.ImageTFServe)
 	items.Add(ImageTFServeGPUUserFacingKey, cc.ImageTFServeGPU)
 	items.Add(ImageTFAPIUserFacingKey, cc.ImageTFAPI)

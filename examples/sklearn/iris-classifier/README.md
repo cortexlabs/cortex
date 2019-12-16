@@ -97,7 +97,7 @@ Create a `requirements.txt` file to specify the dependencies needed by `predicto
 boto3
 ```
 
-You can skip dependencies that are [pre-installed](../../../docs/deployments/predictor.md#pre-installed-packages) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
+You can skip dependencies that are [pre-installed](../../../docs/deployments/python.md#pre-installed-packages) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
 
 <br>
 
@@ -113,9 +113,10 @@ Create a `cortex.yaml` file and add the configuration below. A `deployment` spec
 
 - kind: api
   name: classifier
-  predictor:
-    path: predictor.py
-    model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+  python:
+    predictor: predictor.py
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
 ```
 
 <br>
@@ -177,8 +178,10 @@ Add a `tracker` to your `cortex.yaml` and specify that this is a classification 
 
 - kind: api
   name: classifier
-  predictor:
-    path: predictor.py
+  python:
+    predictor: predictor.py
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
   tracker:
     model_type: classification
 ```
@@ -217,8 +220,10 @@ This model is fairly small but larger models may require more compute resources.
 
 - kind: api
   name: classifier
-  predictor:
-    path: predictor.py
+  python:
+    predictor: predictor.py
+    config:
+      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
   tracker:
     model_type: classification
   compute:
@@ -260,8 +265,8 @@ If you trained another model and want to A/B test it with your previous model, s
 
 - kind: api
   name: classifier
-  predictor:
-    path: predictor.py
+  python:
+    predictor: predictor.py
     config:
       model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
   tracker:
@@ -272,8 +277,8 @@ If you trained another model and want to A/B test it with your previous model, s
 
 - kind: api
   name: another-classifier
-  predictor:
-    path: predictor.py
+  python:
+    predictor: predictor.py
     config:
       model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
   tracker:
@@ -345,8 +350,8 @@ Next, add the `api` to `cortex.yaml`:
 
 - kind: api
   name: classifier
-  predictor:
-    path: predictor.py
+  python:
+    predictor: predictor.py
     config:
       model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
   tracker:
@@ -357,8 +362,8 @@ Next, add the `api` to `cortex.yaml`:
 
 - kind: api
   name: another-classifier
-  predictor:
-    path: predictor.py
+  python:
+    predictor: predictor.py
     config:
       model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
   tracker:
@@ -370,8 +375,8 @@ Next, add the `api` to `cortex.yaml`:
 
 - kind: api
   name: batch-classifier
-  predictor:
-    path: batch-predictor.py
+  python:
+    predictor: batch-predictor.py
     config:
       model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
   compute:

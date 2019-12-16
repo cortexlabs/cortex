@@ -3,6 +3,11 @@
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
-def post_inference(prediction, signature, metadata):
-    predicted_class_id = int(prediction["class_ids"][0])
-    return labels[predicted_class_id]
+class TensorFlowPredictor:
+    def __init__(self, tf_client, config):
+        self.client = tf_client
+
+    def predict(self, payload):
+        prediction = self.client.predict(payload)
+        predicted_class_id = int(prediction["class_ids"][0])
+        return labels[predicted_class_id]

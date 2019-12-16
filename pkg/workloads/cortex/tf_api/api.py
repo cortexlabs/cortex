@@ -16,6 +16,7 @@ import sys
 import os
 import argparse
 import time
+import inspect
 
 import tensorflow as tf
 from flask import Flask, request, jsonify, g
@@ -37,7 +38,7 @@ app = Flask(__name__)
 app.json_encoder = util.json_tricks_encoder
 
 
-local_cache = {"ctx": None, "api": None, "request_handler": None, "class_set": set()}
+local_cache = {"ctx": None, "api": None, "client": None, "class_set": set()}
 
 
 @app.before_request
@@ -69,46 +70,31 @@ def after_request(response):
     return response
 
 
-def run_predict(payload, debug=False):
-    ctx = local_cache["ctx"]
+@app.route("/predict", methods=["POST"])
+def predict():
+    debug = request.args.get("debug", "false").lower() == "true"
+
+    try:
+        payload = request.get_json()
+    except:
+        return "malformed json", status.HTTP_400_BAD_REQUEST
+
     api = local_cache["api"]
-    request_handler = local_cache.get("request_handler")
+    predictor = local_cache["predictor"]
 
-    prepared_payload = payload
-
-    debug_obj("payload", payload, debug)
-    if request_handler is not None and util.has_function(request_handler, "pre_inference"):
+    try:
         try:
-            prepared_payload = request_handler.pre_inference(
-                payload,
-                local_cache["model_metadata"]["signatureDef"],
-                api["tensorflow"]["metadata"],
-            )
-            debug_obj("pre_inference", prepared_payload, debug)
+            debug_obj("payload", payload, debug)
+            output = predictor.predict(payload)
+            debug_obj("prediction", output, debug)
         except Exception as e:
-            raise UserRuntimeException(
-                api["tensorflow"]["request_handler"], "pre_inference request handler", str(e)
-            ) from e
+            raise UserRuntimeException(api["tensorflow"]["predictor"], "predict", str(e)) from e
+    except Exception as e:
+        cx_logger().exception("prediction failed")
+        return prediction_failed(str(e))
 
-    validate_payload(prepared_payload)
-
-    prediction_request = create_prediction_request(prepared_payload)
-    response_proto = local_cache["stub"].Predict(prediction_request, timeout=300.0)
-    result = parse_response_proto(response_proto)
-    debug_obj("inference", result, debug)
-
-    if request_handler is not None and util.has_function(request_handler, "post_inference"):
-        try:
-            result = request_handler.post_inference(
-                result, local_cache["model_metadata"]["signatureDef"], api["tensorflow"]["metadata"]
-            )
-            debug_obj("post_inference", result, debug)
-        except Exception as e:
-            raise UserRuntimeException(
-                api["tensorflow"]["request_handler"], "post_inference request handler", str(e)
-            ) from e
-
-    return result
+    g.prediction = output
+    return jsonify(output)
 
 
 def prediction_failed(reason):
@@ -117,40 +103,12 @@ def prediction_failed(reason):
     return message, status.HTTP_406_NOT_ACCEPTABLE
 
 
-@app.route("/healthz", methods=["GET"])
-def health():
-    return jsonify({"ok": True})
-
-
-@app.route("/predict", methods=["POST"])
-def predict():
-    debug = request.args.get("debug", "false").lower() == "true"
-
-    try:
-        payload = request.get_json()
-    except Exception as e:
-        return "malformed json", status.HTTP_400_BAD_REQUEST
-
-    ctx = local_cache["ctx"]
-    api = local_cache["api"]
-
-    response = {}
-
-    try:
-        result = run_predict(payload, debug)
-    except Exception as e:
-        cx_logger().exception("prediction failed")
-        return prediction_failed(str(e))
-
-    g.prediction = result
-
-    return jsonify(result)
-
-
 @app.route("/predict", methods=["GET"])
 def get_summary():
-    signature = local_cache["parsed_signature"]
-    response = {"model_signature": signature, "message": api_utils.API_SUMMARY_MESSAGE}
+    response = {
+        "model_signature": local_cache["client"].input_signature,
+        "message": api_utils.API_SUMMARY_MESSAGE,
+    }
     return jsonify(response)
 
 
@@ -215,36 +173,18 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
+        local_cache["client"] = TFClient(
+            "localhost:" + str(args.tf_serve_port), api["tensorflow"]["signature_key"]
+        )
+
         if api.get("tensorflow") is None:
             raise CortexException(api["name"], "tensorflow key not configured")
 
-        if api["tensorflow"].get("request_handler") is not None:
-            cx_logger().info(
-                "loading the request handler from {}".format(api["tensorflow"]["request_handler"])
-            )
-            local_cache["request_handler"] = ctx.get_request_handler_impl(
-                api["name"], args.project_dir
-            )
-        request_handler = local_cache.get("request_handler")
+        predictor_class = ctx.get_predictor_class(api["name"], args.project_dir)
 
-        if request_handler is not None and util.has_function(request_handler, "pre_inference"):
-            cx_logger().info(
-                "using pre_inference request handler defined in {}".format(
-                    api["tensorflow"]["request_handler"]
-                )
-            )
-        else:
-            cx_logger().info("pre_inference request handler not defined")
-
-        if request_handler is not None and util.has_function(request_handler, "post_inference"):
-            cx_logger().info(
-                "using post_inference request handler defined in {}".format(
-                    api["tensorflow"]["request_handler"]
-                )
-            )
-        else:
-            cx_logger().info("post_inference request handler not defined")
-
+        local_cache["predictor"] = predictor_class(
+            local_cache["client"], api["tensorflow"]["config"]
+        )
     except Exception as e:
         cx_logger().exception("failed to start api")
         sys.exit(1)
@@ -261,11 +201,7 @@ def start(args):
         except Exception as e:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
-    local_cache["client"] = TFClient(
-        "localhost:" + str(args.tf_serve_port), api["tensorflow"]["signature_key"]
-    )
-
-    cx_logger().info("model_signature: {}".format(local_cache["parsed_signature"]))
+    cx_logger().info("model_signature: {}".format(local_cache["client"].input_signature))
 
     waitress_kwargs = {}
     if api["tensorflow"].get("metadata") is not None:

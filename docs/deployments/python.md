@@ -15,10 +15,10 @@ In addition to supporting Python models via the Predictor interface, Cortex can 
 - kind: api
   name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
-  predictor:
-    path: <string>  # path to a python file with a Predictor class definition, relative to the Cortex root (required)
-    python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
+  python:
+    predictor: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
     config: <string: value>  # dictionary passed to the constructor of a Predictor
+    python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
@@ -50,9 +50,9 @@ You can log information about each request by adding a `?debug=true` parameter t
 1. The payload
 2. The value after running the `predict` function
 
-# Predictor
+# Python Predictor
 
-A Predictor is a Python class that describes how to initialize a model and use it to make a prediction.
+A Python Predictor is a Python class that describes how to initialize a model and use it to make a prediction.
 
 The lifecycle of a replica starts with the initialization of the Predictor class defined in your implementation file. The constructor of the Predictor class is responsible for downloading and initializing the model. It receives the config object, which is an arbitrary dictionary defined in the API configuration (it can be used to pass in the path to the exported model, vocabularies, etc). After successfully initializing an instance of the Predictor class, the replica is available to serve requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload. The `predict()` function is responsible for returning a prediction or a batch of predictions.
 

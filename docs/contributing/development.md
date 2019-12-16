@@ -59,8 +59,8 @@ region: us-west-2
 log_group: cortex
 cluster_name: cortex
 
-image_predictor_serve: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/predictor-serve:latest
-image_predictor_serve_gpu: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/predictor-serve-gpu:latest
+image_python_serve: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-serve:latest
+image_python_serve_gpu: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-serve-gpu:latest
 image_tf_serve: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve:latest
 image_tf_serve_gpu: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve-gpu:latest
 image_tf_api: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-api:latest

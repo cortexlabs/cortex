@@ -6,7 +6,7 @@ import boto3
 from model import IrisNet
 
 
-class Predictor:
+class PythonPredictor:
     def __init__(self, config):
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
         s3 = boto3.client("s3")

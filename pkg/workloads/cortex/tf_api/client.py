@@ -25,6 +25,48 @@ from google.protobuf import json_format
 from cortex.lib.exceptions import UserRuntimeException, UserException, CortexException
 from cortex.lib.log import cx_logger
 
+
+class TFClient:
+    def __init__(self, tf_serving_url, signature_key):
+        """Setup gRPC connection to TensorFlow Serving container.
+
+        Args:
+            tf_serving_url (string): Localhost URL to TF Serving container.
+            signature_key (string): The key to a signature in SignatureDefs in the model being served.
+        """
+        channel = grpc.insecure_channel(tf_serving_url)
+        self._stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
+        self._signature = get_signature_def(self._stub)
+        parsed_signature_key, parsed_signature = extract_signature(self._signature, signature_key)
+        self._signature_key = parsed_signature_key
+        self._input_signature = parsed_signature
+        self._tf_serving_url = tf_serving_url
+
+    def predict(self, payload):
+        """Validate payload, convert payload to Prediction Proto and make a request to TensorFlow Serving.
+
+        Args:
+            payload: Input to model.
+
+        Returns:
+            dict: TensorFlow Serving response converted to a dictionary.
+        """
+        validate_payload(self._input_signature, payload)
+        prediction_request = create_prediction_request(
+            self._signature, self._signature_key, payload
+        )
+        response_proto = self._stub.Predict(prediction_request, timeout=300.0)
+        return parse_response_proto(response_proto)
+
+    @property
+    def stub(self):
+        return self._stub
+
+    @property
+    def input_signature(self):
+        return self._input_signature
+
+
 DTYPE_TO_TF_TYPE = {
     "DT_FLOAT": tf.float32,
     "DT_DOUBLE": tf.float64,
@@ -64,21 +106,33 @@ DTYPE_TO_VALUE_KEY = {
 }
 
 
+def get_signature_def(stub):
+    limit = 60
+    for i in range(limit):
+        try:
+            request = create_get_model_metadata_request()
+            resp = stub.GetModelMetadata(request, timeout=10.0)
+            sigAny = resp.metadata["signature_def"]
+            signature_def_map = get_model_metadata_pb2.SignatureDefMap()
+            sigAny.Unpack(signature_def_map)
+            sigmap = json_format.MessageToDict(signature_def_map)
+            return sigmap["signatureDef"]
+        except:
+            if i > 6:
+                cx_logger().warn(
+                    "unable to read model metadata - model is still loading, retrying..."
+                )
+
+        time.sleep(5)
+
+    raise CortexException("timeout: unable to read model metadata")
+
+
 def create_get_model_metadata_request():
     get_model_metadata_request = get_model_metadata_pb2.GetModelMetadataRequest()
     get_model_metadata_request.model_spec.name = "model"
     get_model_metadata_request.metadata_field.append("signature_def")
     return get_model_metadata_request
-
-
-def run_get_model_metadata():
-    request = create_get_model_metadata_request()
-    resp = local_cache["stub"].GetModelMetadata(request, timeout=10.0)
-    sigAny = resp.metadata["signature_def"]
-    signature_def_map = get_model_metadata_pb2.SignatureDefMap()
-    sigAny.Unpack(signature_def_map)
-    sigmap = json_format.MessageToDict(signature_def_map)
-    return sigmap
 
 
 def extract_signature(signature_def, signature_key):
@@ -133,81 +187,40 @@ def extract_signature(signature_def, signature_key):
     return signature_key, parsed_signature
 
 
-class TFClient:
-    def __init__(self, tf_serving_url, signature_key):
-        self.tf_serving_url = tf_serving_url
-        channel = grpc.insecure_channel(tf_serving_url)
-        self.stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
-        limit = 60
-        for i in range(limit):
-            try:
-                self.signature = run_get_model_metadata()["signatureDef"]
-                break
-            except Exception as e:
-                if i > 6:
-                    cx_logger().warn(
-                        "unable to read model metadata - model is still loading, retrying..."
-                    )
-                if i == limit - 1:
-                    cx_logger().exception("retry limit exceeded")
-                    sys.exit(1)
+def create_prediction_request(signature_def, signature_key, payload):
+    prediction_request = predict_pb2.PredictRequest()
+    prediction_request.model_spec.name = "model"
+    prediction_request.model_spec.signature_name = signature_key
 
-            time.sleep(5)
+    for column_name, value in payload.items():
+        shape = []
+        for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
+            shape.append(int(dim["size"]))
 
-        parsed_signature_key, parsed_signature = extract_signature(self.signature, signature_key)
-        self.signature_key = parsed_signature_key
-        self.parsed_signature = parsed_signature
+        sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
 
-    def prediction_service_stub(self):
-        return self.stub
+        try:
+            tensor_proto = tf.compat.v1.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type])
+            prediction_request.inputs[column_name].CopyFrom(tensor_proto)
+        except Exception as e:
+            raise UserException(
+                'key "{}"'.format(column_name), "expected shape {}".format(shape), str(e)
+            ) from e
 
-    def _create_prediction_request(self, payload):
-        signature_def = self.signature
-        signature_key = self.signature_key
-        prediction_request = predict_pb2.PredictRequest()
-        prediction_request.model_spec.name = "model"
-        prediction_request.model_spec.signature_name = signature_key
+    return prediction_request
 
-        for column_name, value in payload.items():
-            shape = []
-            for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
-                shape.append(int(dim["size"]))
 
-            sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
+def parse_response_proto(response_proto):
+    results_dict = json_format.MessageToDict(response_proto)
+    outputs = results_dict["outputs"]
+    outputs_simplified = {}
+    for key in outputs:
+        value_key = DTYPE_TO_VALUE_KEY[outputs[key]["dtype"]]
+        outputs_simplified[key] = outputs[key][value_key]
+    return outputs_simplified
 
-            try:
-                tensor_proto = tf.compat.v1.make_tensor_proto(
-                    value, dtype=DTYPE_TO_TF_TYPE[sig_type]
-                )
-                prediction_request.inputs[column_name].CopyFrom(tensor_proto)
-            except Exception as e:
-                raise UserException(
-                    'key "{}"'.format(column_name), "expected shape {}".format(shape), str(e)
-                ) from e
 
-        return prediction_request
-
-    def _parse_response_proto(self, response_proto):
-        results_dict = json_format.MessageToDict(response_proto)
-        outputs = results_dict["outputs"]
-        outputs_simplified = {}
-        for key in outputs:
-            value_key = DTYPE_TO_VALUE_KEY[outputs[key]["dtype"]]
-            outputs_simplified[key] = outputs[key][value_key]
-        return outputs_simplified
-
-    def _validate_payload(self, payload):
-        signature = self.parsed_signature
-        for input_name, _ in signature.items():
-            if input_name not in payload:
-                raise UserException('missing key "{}"'.format(input_name))
-
-    def signature(self):
-        return self.metadata["signatureDef"]
-
-    def predict(self, payload):
-        self._validate_payload(payload)
-        prediction_request = self._create_prediction_request(payload)
-        response_proto = self.stub.Predict(prediction_request, timeout=300.0)
-        return self._parse_response_proto(response_proto)
-
+def validate_payload(input_signature, payload):
+    for input_name, _ in input_signature.items():
+        if input_name not in payload:
+            raise UserException('missing key "{}"'.format(input_name))

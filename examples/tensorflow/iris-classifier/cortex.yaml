@@ -7,6 +7,6 @@
   name: classifier
   tensorflow:
     model: s3://cortex-examples/tensorflow/iris-classifier/nn
-    request_handler: handler.py
+    predictor: handler.py
   tracker:
     model_type: classification

@@ -127,42 +127,24 @@ class Context:
 
         return impl
 
-    def get_request_handler_impl(self, api_name, project_dir):
-        api = self.apis[api_name]
-        model_type = api.get("tensorflow")
-
-        if model_type is None:
-            model_type = api.get("onnx")
-
-        if model_type is None:  # unexpected
-            raise CortexException(api_name, 'missing "tensorflow" or "onnx" key')
-
-        request_handler_path = model_type.get("request_handler")
-        try:
-            impl = self.load_module(
-                "request_handler", api["name"], os.path.join(project_dir, request_handler_path)
-            )
-        except CortexException as e:
-            e.wrap("api " + api_name, "error in " + request_handler_path)
-            raise
-        finally:
-            refresh_logger()
-
-        try:
-            _validate_impl(impl, REQUEST_HANDLER_IMPL_VALIDATION)
-        except CortexException as e:
-            e.wrap("api " + api_name, request_handler_path)
-            raise
-        return impl
-
     def get_predictor_class(self, api_name, project_dir):
         api = self.apis[api_name]
+        if api.get("tensorflow") is not None:
+            api_type = "tensorflow"
+            target_class_name = "TensorFlowPredictor"
+        elif api.get("onnx") is not None:
+            api_type = "onnx"
+            target_class_name = "ONNXPredictor"
+        elif api.get("python") is not None:
+            api_type = "python"
+            target_class_name = "PythonPredictor"
+
         try:
             impl = self.load_module(
-                "predictor", api["name"], os.path.join(project_dir, api["predictor"]["path"])
+                "predictor", api["name"], os.path.join(project_dir, api[api_type]["predictor"])
             )
         except CortexException as e:
-            e.wrap("api " + api_name, "error in " + api["predictor"]["path"])
+            e.wrap("api " + api_name, "error in " + api[api_type]["predictor"])
             raise
         finally:
             refresh_logger()
@@ -171,18 +153,26 @@ class Context:
             classes = inspect.getmembers(impl, inspect.isclass)
             predictor_class = None
             for class_df in classes:
-                if class_df[0] == "Predictor":
+                if class_df[0] == target_class_name:
                     if predictor_class is not None:
                         raise UserException(
-                            "multiple definitions for Predictor class found; please check your imports and class definitions and ensure that there is only one Predictor class definition"
+                            "multiple definitions for {} class found; please check your imports and class definitions and ensure that there is only one Predictor class definition".format(
+                                target_class_name
+                            )
                         )
                     predictor_class = class_df[1]
-
             if predictor_class is None:
-                raise UserException("Predictor class is not defined")
-            _validate_impl(predictor_class, PREDICTOR_CLASS_VALIDATION)
+                raise UserException("{} class is not defined".format(target_class_name))
+
+            if api.get("tensorflow") is not None:
+                _validate_impl(predictor_class, TENSORFLOW_CLASS_VALIDATION)
+            elif api.get("onnx") is not None:
+                _validate_impl(predictor_class, ONNX_CLASS_VALIDATION)
+            elif api.get("predictor") is not None:
+                _validate_impl(predictor_class, PREDICTOR_CLASS_VALIDATION)
+
         except CortexException as e:
-            e.wrap("api " + api_name, "error in " + api["predictor"]["path"])
+            e.wrap("api " + api_name, "error in " + api[api_type]["predictor"])
             raise
         return predictor_class
 
@@ -250,16 +240,23 @@ class Context:
                 self.statsd.histogram(metric["MetricName"], value=metric["Value"], tags=tags)
 
 
-REQUEST_HANDLER_IMPL_VALIDATION = {
-    "optional": [
-        {"name": "pre_inference", "args": ["payload", "signature", "metadata"]},
-        {"name": "post_inference", "args": ["prediction", "signature", "metadata"]},
-    ]
-}
-
 PREDICTOR_CLASS_VALIDATION = {
     "required": [
         {"name": "__init__", "args": ["self", "config"]},
+        {"name": "predict", "args": ["self", "payload"]},
+    ]
+}
+
+TENSORFLOW_CLASS_VALIDATION = {
+    "required": [
+        {"name": "__init__", "args": ["self", "tf_client", "config"]},
+        {"name": "predict", "args": ["self", "payload"]},
+    ]
+}
+
+ONNX_CLASS_VALIDATION = {
+    "required": [
+        {"name": "__init__", "args": ["self", "onnx_client", "config"]},
         {"name": "predict", "args": ["self", "payload"]},
     ]
 }
@@ -274,7 +271,7 @@ def _validate_impl(impl, impl_req):
 
 
 def _validate_optional_fn_args(impl, fn_name, args):
-    if hasattr(impl, fn_name):
+    if fn_name in vars(impl):
         _validate_required_fn_args(impl, fn_name, args)
 
 
@@ -287,17 +284,10 @@ def _validate_required_fn_args(impl, fn_name, args):
         raise UserException('"{}" is defined, but is not a function'.format(fn_name))
 
     argspec = inspect.getargspec(fn)
-    if argspec.varargs != None or argspec.keywords != None or argspec.defaults != None:
+
+    if argspec.args != args:
         raise UserException(
-            'invalid signature for function "{}": can only accept positional arguments'.format(
-                fn_name
+            'invalid signature for function "{}": expected arguments ({}) but found ({})'.format(
+                fn_name, ", ".join(args), ", ".join(argspec.args)
             )
         )
-
-    if args:
-        if argspec.args != args:
-            raise UserException(
-                'invalid signature for function "{}": expected arguments ({}) but found ({})'.format(
-                    fn_name, ", ".join(args), ", ".join(argspec.args)
-                )
-            )
