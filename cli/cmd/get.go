@@ -461,12 +461,13 @@ func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string
 }
 
 func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
-	req, err := http.NewRequest("GET", apiEndpoint, nil)
+	httpsAPIEndpoint := strings.Replace(apiEndpoint, "http://", "https://", 1)
+	req, err := http.NewRequest("GET", httpsAPIEndpoint, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to request api summary")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	response, err := httpsNoVerifyClient.makeRequest(req)
+	response, err := apiClient.MakeRequest(req)
 	if err != nil {
 		return nil, err
 	}

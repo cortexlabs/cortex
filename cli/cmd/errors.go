@@ -21,12 +21,17 @@ import (
 	"net/url"
 
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
 const (
 	errStrCantMakeRequest = "unable to make request"
 	errStrRead            = "unable to read"
 )
+
+func errStrFailedToConnect(u url.URL) string {
+	return "failed to connect to " + urls.TrimQueryParamsURL(u)
+}
 
 type ErrorKind int
 
@@ -35,7 +40,6 @@ const (
 	ErrCLIAlreadyInAppDir
 	ErrAPINotReady
 	ErrAPINotFound
-	ErrFailedToConnectURL
 	ErrFailedToConnectOperator
 	ErrConfigCannotBeChangedOnUpdate
 	ErrDuplicateCLIEnvNames
@@ -47,7 +51,6 @@ var errorKinds = []string{
 	"err_cli_already_in_app_dir",
 	"err_api_not_ready",
 	"err_api_not_found",
-	"err_failed_to_connect_url",
 	"err_failed_to_connect_operator",
 	"err_config_cannot_be_changed_on_update",
 	"err_duplicate_cli_env_names",
@@ -120,21 +123,20 @@ func ErrorAPINotFound(apiName string) error {
 	}
 }
 
-func ErrorFailedConnectURL(url url.URL) error {
-	url.RawQuery = ""
-	return Error{
-		Kind:    ErrFailedToConnectURL,
-		message: "failed to connect to " + url.String(),
+func ErrorFailedToConnectOperator(originalError error, operatorURL string) error {
+	operatorURLMsg := ""
+	if operatorURL != "" {
+		operatorURLMsg = fmt.Sprintf(" (%s)", operatorURL)
 	}
-}
 
-func ErrorFailedToConnectOperator(urlStr string) error {
-	if urlStr != "" {
-		urlStr = fmt.Sprintf(" (%s)", urlStr)
+	originalErrMsg := ""
+	if originalError != nil {
+		originalErrMsg = urls.TrimQueryParamsStr(originalError.Error()) + "\n\n"
 	}
+
 	return Error{
 		Kind:    ErrFailedToConnectOperator,
-		message: fmt.Sprintf("failed to connect to the operator%s, run `cortex configure` if you need to update the operator endpoint", urlStr),
+		message: fmt.Sprintf("%sfailed to connect to the operator%s, run `cortex configure` if you need to update the operator endpoint", originalErrMsg, operatorURLMsg),
 	}
 }
 
