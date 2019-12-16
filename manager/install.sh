@@ -61,7 +61,7 @@ function ensure_eks() {
     fi
 
     if [ "$CORTEX_SPOT" == "True" ]; then
-      asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query 'AutoScalingGroups[?contains(Tags[?Key==`alpha.eksctl.io/nodegroup-name`].Value, `ng-cortex-worker`)]')
+      asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker\`)]")
       asg_name=$(echo "$asg_info" | jq -r 'first | .AutoScalingGroupName')
       aws autoscaling suspend-processes --region $CORTEX_REGION --auto-scaling-group-name $asg_name --scaling-processes AZRebalance
     fi
@@ -90,7 +90,7 @@ function ensure_eks() {
   fi
 
   # Check for change in min/max instances
-  asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query 'AutoScalingGroups[?contains(Tags[?Key==`alpha.eksctl.io/nodegroup-name`].Value, `ng-cortex-worker`)]')
+  asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker\`)]")
   asg_name=$(echo "$asg_info" | jq -r 'first | .AutoScalingGroupName')
   asg_min_size=$(echo "$asg_info" | jq -r 'first | .MinSize')
   asg_max_size=$(echo "$asg_info" | jq -r 'first | .MaxSize')
