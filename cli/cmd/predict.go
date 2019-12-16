@@ -18,9 +18,11 @@ package cmd
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -33,6 +35,15 @@ import (
 )
 
 var predictDebug bool
+
+var predictClient = &GenericClient{
+	Client: &http.Client{
+		Timeout: 500 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	},
+}
 
 func init() {
 	addAppNameFlag(predictCmd)
@@ -127,7 +138,7 @@ func makePredictRequest(apiURL string, jsonPath string) (interface{}, error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	httpResponse, err := httpClient.makeRequest(req)
+	httpResponse, err := predictClient.MakeRequest(req)
 	if err != nil {
 		return nil, err
 	}
