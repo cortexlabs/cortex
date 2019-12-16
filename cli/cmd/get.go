@@ -461,7 +461,7 @@ func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string
 }
 
 func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
-	httpsAPIEndpoint := strings.Replace(apiEndpoint, "http://", "https://", -1)
+	httpsAPIEndpoint := strings.Replace(apiEndpoint, "http://", "https://", 1)
 	req, err := http.NewRequest("GET", httpsAPIEndpoint, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to request api summary")
