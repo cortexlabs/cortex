@@ -61,7 +61,7 @@ The lifecycle of a replica starts with the initialization of the Predictor class
 ```python
 # initialization code and variables can be declared here in global scope
 
-class Predictor:
+class PythonPredictor:
     def __init__(self, config):
         """Called once before the API becomes available. Setup for model serving such as downloading/initializing the model or downloading vocabulary can be done here. Required.
 
@@ -87,7 +87,7 @@ class Predictor:
 import boto3
 from my_model import IrisNet
 
-class Predictor:
+class PythonPredictor:
     def __init__(self, config):
         # download the model
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()

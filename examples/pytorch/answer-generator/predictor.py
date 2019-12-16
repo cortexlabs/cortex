@@ -6,7 +6,7 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPT2Config
 import generator
 
 
-class Predictor:
+class PythonPredictor:
     def __init__(self, config):
         medium_config = GPT2Config(n_embd=1024, n_layer=24, n_head=16)
         model = GPT2LMHeadModel(medium_config)

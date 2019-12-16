@@ -64,7 +64,7 @@ import pickle
 import re
 
 
-class Predictor:
+class PythonPredictor:
     def __init__(self, config):
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
         s3 = boto3.client("s3")
@@ -318,7 +318,7 @@ import pickle
 import re
 
 
-class Predictor:
+class PythonPredictor:
     def __init__(self, config):
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
         s3 = boto3.client("s3")

@@ -88,7 +88,7 @@ import numpy as np
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
-class Predictor:
+class ONNXPredictor:
     def __init__(self, onnx_client, config):
         self._onnx_client = onnx_client
 

@@ -12,12 +12,12 @@ labels = requests.get(
 
 class TensorFlowPredictor:
     def __init__(self, tf_client, config):
-        self._tf_client = tf_client
+        self.client = tf_client
 
     def predict(self, payload):
         image = requests.get(payload["url"]).content
         decoded_image = np.asarray(Image.open(BytesIO(image)), dtype=np.float32) / 255
         model_input = {"images": np.expand_dims(decoded_image, axis=0)}
-        prediction = self._tf_client.predict(model_input)
+        prediction = self.client.predict(model_input)
         return labels[np.argmax(prediction["classes"])]
 

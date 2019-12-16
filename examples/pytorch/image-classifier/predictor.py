@@ -8,7 +8,7 @@ from PIL import Image
 from io import BytesIO
 
 
-class Predictor:
+class PythonPredictor:
     def __init__(self, config):
         model = torchvision.models.alexnet(pretrained=True)
         model.eval()

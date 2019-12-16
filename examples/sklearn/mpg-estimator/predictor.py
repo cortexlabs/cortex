@@ -4,7 +4,7 @@ import mlflow.sklearn
 import numpy as np
 
 
-class Predictor:
+class PythonPredictor:
     def __init__(self, config):
         self.model = mlflow.sklearn.load_model(config["model"])
 

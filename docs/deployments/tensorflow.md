@@ -87,7 +87,7 @@ class TensorFlowPredictor:
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
-class Predictor:
+class TensorFlowPredictor:
     def __init__(self, tf_client, config):
         self._tf_client = tf_client
 

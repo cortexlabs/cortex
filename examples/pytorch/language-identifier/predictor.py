@@ -4,7 +4,7 @@ import wget
 import fasttext
 
 
-class Predictor:
+class PythonPredictor:
     def __init__(self, config):
         wget.download(
             "https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin", "model"

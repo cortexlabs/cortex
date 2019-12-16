@@ -17,7 +17,7 @@ class TensorFlowPredictor:
         self._tokenizer = tokenization.FullTokenizer(
             vocab_file=vocab_file, do_lower_case=do_lower_case
         )
-        self._tf_client = tf_client
+        self.client = tf_client
 
     def predict(self, payload):
         input_example = run_classifier.InputExample(guid="", text_a=payload["review"], label=0)
@@ -25,6 +25,6 @@ class TensorFlowPredictor:
             0, input_example, [0, 1], 128, self._tokenizer
         )
         model_input = {"input_ids": [input_feature.input_ids]}
-        prediction = self._tf_client.predict(model_input)
+        prediction = self.client.predict(model_input)
         return labels[prediction["labels"][0]]
 
