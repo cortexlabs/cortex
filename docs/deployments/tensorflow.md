@@ -55,27 +55,26 @@ You can log information about each request by adding a `?debug=true` parameter t
 A TensorFlow Predictor is a Python class that describes how to serve your TensorFlow model to make predictions.
 
 <!-- CORTEX_VERSION -->
-Cortex provides an `tensorflow_client` and a config object to initialize your implementation of the TensorFlow Predictor class. The `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/tf_api/client.py) and configured to make predictions using your model. Once your implementation of the TensorFlow Predictor class has been initialized,, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function can call `tensorflow_client.predict` to make an inference and respond to the request. Preprocessing of the JSON payload, postprocessing of predictions can be implemented in your `predict()` function.
-
+Cortex provides a `tensorflow_client` and a config object to initialize your implementation of the TensorFlow Predictor class. The `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/tf_api/client.py) and is configured to make predictions using your model. Once your implementation of the TensorFlow Predictor class has been initialized,, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with the JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function should call `tensorflow_client.predict()` to make an inference against your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
 ## Implementation
 
 ```python
 class TensorFlowPredictor:
     def __init__(self, tensorflow_client, config):
-        """Called once before the API becomes available. Setup for model serving such as downloading/initializing downloading vocabularies can be done here. Required.
+        """Called once before the API becomes available. Setup for model serving such as downloading/initializing vocabularies can be done here. Required.
 
         Args:
             tensorflow_client: TensorFlow client which can be used to make predictions.
-            config: Dictionary passed to the constructor of a Predictor.
+            config: Dictionary passed from API configuration in cortex.yaml (if specified).
         """
         pass
 
     def predict(self, payload):
-        """Called once per request. Runs inference, any preprocessing of the request payload, and postprocessing of the inference output. Required.
+        """Called once per request. Runs preprocessing of the request payload, inference, and postprocessing of the inference output. Required.
 
         Args:
-            payload: The JSON request payload (parsed in Python).
+            payload: The parsed JSON request payload.
 
         Returns:
             Prediction or a batch of predictions.
