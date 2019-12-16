@@ -261,15 +261,18 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Cluster
 		}
 	}
 
-	cachedClusterConfig := &clusterconfig.ClusterConfig{}
-	readCachedClusterConfigFile(cachedClusterConfig)
-
+	// If only one cached cluster.yaml, pull region and cluster name from that
+	// Otherwise: multple clusters, please specify cluster_name and region in your cluster config file (or create one).
+	// Delete cached cluster config on cx cluster down
 	if userClusterConfig.Region == nil {
+		cachedClusterConfig := &clusterconfig.ClusterConfig{}
+		readCachedClusterConfigFile(cachedClusterConfig)
 		userClusterConfig.Region = cachedClusterConfig.Region
+		userClusterConfig.ClusterName = cachedClusterConfig.ClusterName
 	}
 
 	if userClusterConfig.Region == nil {
-		exit.Error(fmt.Sprintf("unable to find a cortex cluster; please configure \"%s\" (e.g. in cluster.yaml) to the aws region of an existing cluster or create a cluster with cortex cluster up", clusterconfig.RegionKey))
+		exit.Error(fmt.Sprintf("please configure \"%s\" (e.g. in cluster.yaml) to the aws region of an existing cluster or create a cluster with cortex cluster up", clusterconfig.RegionKey))
 	}
 
 	out, err := runRefreshClusterConfig(userClusterConfig, awsCreds)

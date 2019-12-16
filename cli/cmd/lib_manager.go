@@ -226,18 +226,14 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 	return output, nil
 }
 
-func runRefreshClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (string, error) {
-	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
-	if err != nil {
-		return "", errors.WithStack(err)
-	}
-
-	if err := files.WriteFile(clusterConfigBytes, cachedClusterConfigPath); err != nil {
-		return "", err
+func runRefreshClusterConfig(clusterName string, region string, managerImage string, awsCreds *AWSCredentials) (string, error) {
+	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
+	if !files.IsFile(cachedClusterConfigPath) {
+		files.MakeEmptyFile(cachedClusterConfigPath)
 	}
 
 	containerConfig := &container.Config{
-		Image:        clusterConfig.ImageManager,
+		Image:        managerImage,
 		Entrypoint:   []string{"/bin/bash", "-c"},
 		Cmd:          []string{"sleep 0.1 && /root/refresh.sh"},
 		Tty:          true,
@@ -248,8 +244,8 @@ func runRefreshClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCred
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CORTEX_AWS_ACCESS_KEY_ID=" + awsCreds.CortexAWSAccessKeyID,
 			"CORTEX_AWS_SECRET_ACCESS_KEY=" + awsCreds.CortexAWSSecretAccessKey,
-			"CORTEX_CLUSTER_NAME=" + clusterConfig.ClusterName,
-			"CORTEX_REGION=" + *clusterConfig.Region,
+			"CORTEX_CLUSTER_NAME=" + clusterName,
+			"CORTEX_REGION=" + region,
 		},
 	}
 

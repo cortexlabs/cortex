@@ -27,6 +27,9 @@ eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_RE
 
 kubectl get -n=cortex configmap cluster-config -o yaml >> cluster_configmap.yaml
 python refresh_cluster_config.py cluster_configmap.yaml /.cortex/cluster.yaml
+
+# TODO use different name for each cluster, <cluster_name>_<region>.yaml
+
 kubectl -n=cortex create configmap 'cluster-config' \
     --from-file='cluster.yaml'='/.cortex/cluster.yaml' \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
