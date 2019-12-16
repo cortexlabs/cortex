@@ -32,7 +32,7 @@ from cortex.lib import util, Context, api_utils
 from cortex.lib.log import cx_logger, debug_obj
 from cortex.lib.exceptions import UserRuntimeException, UserException, CortexException
 from cortex.lib.stringify import truncate
-from cortex.tf_api.client import TFClient
+from cortex.tf_api.client import TensorFlowClient
 
 app = Flask(__name__)
 app.json_encoder = util.json_tricks_encoder
@@ -173,7 +173,7 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
-        local_cache["client"] = TFClient(
+        local_cache["client"] = TensorFlowClient(
             "localhost:" + str(args.tf_serve_port), api["tensorflow"]["signature_key"]
         )
 

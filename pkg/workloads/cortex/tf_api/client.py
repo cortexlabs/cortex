@@ -26,7 +26,7 @@ from cortex.lib.exceptions import UserRuntimeException, UserException, CortexExc
 from cortex.lib.log import cx_logger
 
 
-class TFClient:
+class TensorFlowClient:
     def __init__(self, tf_serving_url, signature_key):
         """Setup gRPC connection to TensorFlow Serving container.
 

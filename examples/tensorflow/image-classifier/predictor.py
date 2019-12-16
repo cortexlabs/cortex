@@ -11,8 +11,8 @@ labels = requests.get(
 
 
 class TensorFlowPredictor:
-    def __init__(self, tf_client, config):
-        self.client = tf_client
+    def __init__(self, tensorflow_client, config):
+        self.client = tensorflow_client
 
     def predict(self, payload):
         image = requests.get(payload["url"]).content

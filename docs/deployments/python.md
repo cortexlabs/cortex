@@ -54,7 +54,7 @@ You can log information about each request by adding a `?debug=true` parameter t
 
 A Python Predictor is a Python class that describes how to initialize a model and use it to make a prediction.
 
-The lifecycle of a replica starts with the initialization of the Predictor class defined in your implementation file. The constructor of the Predictor class is responsible for downloading and initializing the model. It receives the config object, which is an arbitrary dictionary defined in the API configuration (it can be used to pass in the path to the exported model, vocabularies, etc). After successfully initializing an instance of the Predictor class, the replica is available to serve requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload. The `predict()` function is responsible for returning a prediction or a batch of predictions.
+The lifecycle of a replica starts with the initialization of the Python Predictor class defined in your implementation file. The constructor is responsible for downloading and initializing the model. It receives the config object, which is an arbitrary dictionary defined in the API configuration (it can be used to pass in the path to the exported model, vocabularies, etc). After successfully initializing an instance of the Python Predictor class, the replica is available to serve requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload. The `predict()` function is responsible for returning a prediction or a batch of predictions. Preprocessing of the JSON payload, postprocessing of predictions can be implemented in your `predict()` function.
 
 ## Implementation
 

@@ -4,8 +4,8 @@ from encoder import get_encoder
 
 
 class TensorFlowPredictor:
-    def __init__(self, tf_client, config):
-        self.client = tf_client
+    def __init__(self, tensorflow_client, config):
+        self.client = tensorflow_client
         self.encoder = get_encoder()
 
     def predict(self, payload):

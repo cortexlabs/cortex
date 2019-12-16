@@ -249,7 +249,7 @@ PREDICTOR_CLASS_VALIDATION = {
 
 TENSORFLOW_CLASS_VALIDATION = {
     "required": [
-        {"name": "__init__", "args": ["self", "tf_client", "config"]},
+        {"name": "__init__", "args": ["self", "tensorflow_client", "config"]},
         {"name": "predict", "args": ["self", "payload"]},
     ]
 }

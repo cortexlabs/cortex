@@ -54,18 +54,19 @@ You can log information about each request by adding a `?debug=true` parameter t
 
 A TensorFlow Predictor is a Python class that describes how to serve your model to make predictions.
 
-Cortex provides an `tf_client` and a config object to initialize your implementation of the TensorFlow predictor. The `tf_client` an instance of `cortex.tf_api.TFClient` and is used to make predictions with your model. Once your implementation has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function can call `tf_client.predict` to make an inference and respond to the request. Preprocessing of the JSON payload, postprocessing of predictions can be implemented in your `predict()` function.
+<!-- CORTEX_VERSION -->
+Cortex provides a `tensorflow_client`, an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/tf-onnx-api-changes/pkg/workloads/cortex/tf_api/client.py), and a config object to initialize your implementation of the TensorFlow Predictor. Once your implementation has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function can call `tensorflow_client.predict` to make an inference and respond to the request. Preprocessing of the JSON payload, postprocessing of predictions can be implemented in your `predict()` function.
 
 
 ## Implementation
 
 ```python
 class TensorFlowPredictor:
-    def __init__(self, tf_client, config):
+    def __init__(self, tensorflow_client, config):
         """Called once before the API becomes available. Setup for model serving such as downloading/initializing downloading vocabularies can be done here. Required.
 
         Args:
-            tf_client: TensorFlow client which can be used to make predictions.
+            tensorflow_client: TensorFlow client which can be used to make predictions.
             config: Dictionary passed to the constructor of a Predictor.
         """
         pass
@@ -88,11 +89,11 @@ labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
 class TensorFlowPredictor:
-    def __init__(self, tf_client, config):
-        self._tf_client = tf_client
+    def __init__(self, tensorflow_client, config):
+        self.client = tensorflow_client
 
     def predict(self, payload):
-        prediction = self._tf_client.predict(payload)
+        prediction = self.client.predict(payload)
         predicted_class_id = int(prediction["class_ids"][0])
         return labels[predicted_class_id]
 ```

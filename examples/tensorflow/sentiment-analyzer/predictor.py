@@ -8,7 +8,7 @@ labels = ["negative", "positive"]
 
 
 class TensorFlowPredictor:
-    def __init__(self, tf_client, config):
+    def __init__(self, tensorflow_client, config):
         with tf.Graph().as_default():
             bert_module = hub.Module("https://tfhub.dev/google/bert_uncased_L-12_H-768_A-12/1")
             info = bert_module(signature="tokenization_info", as_dict=True)
@@ -17,7 +17,7 @@ class TensorFlowPredictor:
         self._tokenizer = tokenization.FullTokenizer(
             vocab_file=vocab_file, do_lower_case=do_lower_case
         )
-        self.client = tf_client
+        self.client = tensorflow_client
 
     def predict(self, payload):
         input_example = run_classifier.InputExample(guid="", text_a=payload["review"], label=0)

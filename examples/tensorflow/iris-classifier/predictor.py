@@ -4,8 +4,8 @@ labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
 class TensorFlowPredictor:
-    def __init__(self, tf_client, config):
-        self.client = tf_client
+    def __init__(self, tensorflow_client, config):
+        self.client = tensorflow_client
 
     def predict(self, payload):
         prediction = self.client.predict(payload)
