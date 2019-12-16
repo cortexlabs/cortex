@@ -115,6 +115,7 @@ var updateCmd = &cobra.Command{
 		if err != nil {
 			exit.Error(err)
 		}
+
 		_, err = runManagerCommand("/root/install.sh --update", clusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
@@ -186,14 +187,14 @@ var downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		prompt.YesOrExit("your cluster will be spun down and all apis will be deleted, are you sure you want to uninstall cortex?", "")
-
 		awsCreds, err := getAWSCredentials(flagClusterConfig)
 		if err != nil {
 			exit.Error(err)
 		}
 
 		clusterConfig := refreshCachedClusterConfig(awsCreds)
+
+		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), "")
 
 		_, err = runManagerCommand("/root/uninstall.sh", clusterConfig, awsCreds)
 		if err != nil {
