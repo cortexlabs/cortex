@@ -38,10 +38,7 @@ func getAPIs(config *userconfig.Config, deploymentVersion string, projectID stri
 		buf.WriteString(s.Obj(apiConfig.TensorFlow))
 		buf.WriteString(s.Obj(apiConfig.ONNX))
 		buf.WriteString(s.Obj(apiConfig.Python))
-
-		if apiConfig.AreProjectFilesRequired() {
-			buf.WriteString(projectID)
-		}
+		buf.WriteString(projectID)
 
 		id := hash.Bytes(buf.Bytes())
 		apis[apiConfig.Name] = &context.API{
