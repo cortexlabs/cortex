@@ -20,4 +20,3 @@ class TensorFlowPredictor:
         model_input = {"images": np.expand_dims(decoded_image, axis=0)}
         prediction = self.client.predict(model_input)
         return labels[np.argmax(prediction["classes"])]
-

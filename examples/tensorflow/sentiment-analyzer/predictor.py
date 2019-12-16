@@ -27,4 +27,3 @@ class TensorFlowPredictor:
         model_input = {"input_ids": [input_feature.input_ids]}
         prediction = self.client.predict(model_input)
         return labels[prediction["labels"][0]]
-
