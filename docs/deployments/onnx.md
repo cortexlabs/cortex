@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-You can deploy ONNX models as web services by defining a class that implements Cortex's ONNX Predictor interface. The constructor is responsible for model serving preparations such downloading vocabulary files. The `predict()` class function is called on every request and is responsible for responding with a prediction.
+You can deploy ONNX models as web services by defining a class that implements Cortex's ONNX Predictor interface.
 
 ## Config
 
@@ -51,10 +51,10 @@ You can log information about each request by adding a `?debug=true` parameter t
 
 # ONNX Predictor
 
-An ONNX Predictor is a Python class that describes how to serve your model to make predictions.
+An ONNX Predictor is a Python class that describes how to serve your ONNX model to make predictions.
 
 <!-- CORTEX_VERSION -->
-Cortex provides an `onnx_client`, an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/onnx_serve/client.py), and a config object to initialize your implementation of the ONNX Predictor class. Once your implementation has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function can call `onnx_client.predict` to make an inference and respond to the request. Preprocessing of the JSON payload, postprocessing of predictions can be implemented in your `predict()` function.
+Cortex provides an `onnx_client` and a config object to initialize your implementation of the ONNX Predictor class. The `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/onnx_serve/client.py) and configured to make predictions using your model. Once your implementation of the ONNX Predictor class has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function can call `onnx_client.predict` to make an inference and respond to the request. Preprocessing of the JSON payload, postprocessing of predictions can be implemented in your `predict()` function.
 
 
 ## Implementation

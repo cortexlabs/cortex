@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-You can deploy TensorFlow models as web services by defining a class that implements Cortex's TensorFlow Predictor interface. The constructor is responsible for model serving preparations such downloading vocabulary files. The `predict()` class function is called on every request and is responsible for responding with a prediction.
+You can deploy TensorFlow models as web services by defining a class that implements Cortex's TensorFlow Predictor interface.
 
 ## Config
 
@@ -52,10 +52,10 @@ You can log information about each request by adding a `?debug=true` parameter t
 
 # TensorFlow Predictor
 
-A TensorFlow Predictor is a Python class that describes how to serve your model to make predictions.
+A TensorFlow Predictor is a Python class that describes how to serve your TensorFlow model to make predictions.
 
 <!-- CORTEX_VERSION -->
-Cortex provides a `tensorflow_client`, an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/tf_api/client.py), and a config object to initialize your implementation of the TensorFlow Predictor. Once your implementation has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function can call `tensorflow_client.predict` to make an inference and respond to the request. Preprocessing of the JSON payload, postprocessing of predictions can be implemented in your `predict()` function.
+Cortex provides an `tensorflow_client` and a config object to initialize your implementation of the TensorFlow Predictor class. The `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/tf_api/client.py) and configured to make predictions using your model. Once your implementation of the TensorFlow Predictor class has been initialized,, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function can call `tensorflow_client.predict` to make an inference and respond to the request. Preprocessing of the JSON payload, postprocessing of predictions can be implemented in your `predict()` function.
 
 
 ## Implementation

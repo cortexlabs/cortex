@@ -21,8 +21,8 @@ For classification models, the tracker should be configured with `model_type: cl
 ```yaml
 - kind: api
   name: iris
-  predictor:
-    path: predictor.py
+  python:
+    predictor: predictor.py
   tracker:
     model_type: classification
 ```
