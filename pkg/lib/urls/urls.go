@@ -25,9 +25,10 @@ import (
 )
 
 var (
-	dns1035Regex  = regexp.MustCompile(`^[a-z]([-a-z0-9]*[a-z0-9])?$`)
-	dns1123Regex  = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
-	endpointRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-\./]*$`)
+	dns1035Regex    = regexp.MustCompile(`^[a-z]([-a-z0-9]*[a-z0-9])?$`)
+	dns1123Regex    = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+	endpointRegex   = regexp.MustCompile(`^[a-zA-Z0-9_\-\./]*$`)
+	_urlQParamRegex = regexp.MustCompile(`(https?://.*)\?[^:\s]*`)
 )
 
 func Parse(rawurl string) (*url.URL, error) {
@@ -88,4 +89,13 @@ func CanonicalizeEndpoint(str string) string {
 		return "/"
 	}
 	return strings.TrimSuffix(s.EnsurePrefix(str, "/"), "/")
+}
+
+func TrimQueryParamsURL(u url.URL) string {
+	u.RawQuery = ""
+	return u.String()
+}
+
+func TrimQueryParamsStr(str string) string {
+	return _urlQParamRegex.ReplaceAllString(str, "$1")
 }
