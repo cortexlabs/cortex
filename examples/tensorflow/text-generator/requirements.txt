@@ -1,2 +1,2 @@
 requests
-regex
+regex==2019.11.1
