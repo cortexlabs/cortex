@@ -1,0 +1,57 @@
+# Copyright 2019 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: image-downloader
+  namespace: cortex
+spec:
+  selector:
+    matchLabels:
+      name: image-downloader
+  template:
+    metadata:
+      labels:
+        name: image-downloader
+    spec:
+      nodeSelector:
+        workload: "true"
+      tolerations:
+      - key: workload
+        value: "true"
+        operator: Equal
+        effect: NoSchedule
+      terminationGracePeriodSeconds: 0
+      containers:
+      - name: predictor-serve
+        image: $CORTEX_IMAGE_PREDICTOR_SERVE
+        command: [ "/bin/sh" ]
+        args: [ "-c", "sleep 1000000" ]
+      - name: tf-serve
+        image: $CORTEX_IMAGE_TF_SERVE
+        command: [ "/bin/sh" ]
+        args: [ "-c", "sleep 1000000" ]
+      - name: tf-api
+        image: $CORTEX_IMAGE_TF_API
+        command: [ "/bin/sh" ]
+        args: [ "-c", "sleep 1000000" ]
+      - name: onnx-serve
+        image: $CORTEX_IMAGE_ONNX_SERVE
+        command: [ "/bin/sh" ]
+        args: [ "-c", "sleep 1000000" ]
+      - name: downloader
+        image: $CORTEX_IMAGE_DOWNLOADER
+        command: [ "/bin/sh" ]
+        args: [ "-c", "sleep 1000000" ]

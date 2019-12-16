@@ -13,6 +13,14 @@
 1. Find the latest version of Kubernetes supported by eksctl ([source code](https://github.com/weaveworks/eksctl/blob/master/pkg/apis/eksctl.io/v1alpha5/types.go))
 1. Update the version in `eks.yaml`
 
+## AWS CNI
+
+1. Update the version in `eks_cluster.yaml`
+1. Update the go module version (see `Go > Non-versioned modules` section below)
+1. If new instances types were added, check if `pkg/lib/aws/servicequotas.go` needs to be updated for the new instances
+
+note: once the default AWS CNI version is >= 1.5.5 this may no longer be necessary (1.5.5 added support for new instance types)
+
 ## Go
 
 1. Find the latest release on Golang's [release page](https://golang.org/doc/devel/release.html) (or [downloads page](https://golang.org/dl/)) and check the changelog
@@ -54,6 +62,7 @@
 1. `go mod init`
 1. `go clean -modcache`
 1. `go get k8s.io/client-go@v12.0.0`
+1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.5.5`
 1. `go get github.com/cortexlabs/yaml@v2.2.4`
 1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.4' >> go.mod`
 1. `go mod tidy`

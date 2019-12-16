@@ -82,7 +82,7 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterCo
 		return nil, err
 	}
 
-	confirmClusterConfig(clusterConfig, awsCreds)
+	confirmInstallClusterConfig(clusterConfig, awsCreds)
 
 	return clusterConfig, nil
 }
@@ -175,12 +175,47 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 		return nil, err
 	}
 
-	confirmClusterConfig(userClusterConfig, awsCreds)
+	confirmUpdateClusterConfig(userClusterConfig, awsCreds)
 
 	return userClusterConfig, nil
 }
 
-func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) {
+func confirmInstallClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) {
+	var spotPrice float64
+	if clusterConfig.Spot != nil && *clusterConfig.Spot {
+		var err error
+		spotPrice, err = aws.SpotInstancePrice(awsCreds.AWSAccessKeyID, awsCreds.CortexAWSSecretAccessKey, *clusterConfig.Region, *clusterConfig.InstanceType)
+		if err != nil {
+			spotPrice = 0
+		}
+	}
+
+	fmt.Println(clusterConfigConfirmaionStr(clusterConfig, awsCreds) + "\n")
+
+	fmt.Printf("cortex will use your %s aws access key id to provision the following resources in the %s region of your aws account:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), *clusterConfig.Region)
+	fmt.Printf("￮ an s3 bucket named %s\n", *clusterConfig.Bucket)
+	fmt.Printf("￮ a cloudwatch log group named %s\n", clusterConfig.LogGroup)
+	fmt.Printf("￮ an eks cluster named %s ($0.20 per hour)\n", clusterConfig.ClusterName)
+	fmt.Printf("￮ a t3.medium ec2 instance for the operator ($%s per hour)\n", s.Float64(aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price))
+	fmt.Printf("￮ a 20gb ebs volume for the operator ($%s per hour)\n", s.Round(aws.EBSMetadatas[*clusterConfig.Region].Price*20/30, 3, false))
+	fmt.Printf("￮ an elb for the operator and an elb for apis ($%s per hour each)\n", s.Float64(aws.ELBMetadatas[*clusterConfig.Region].Price))
+	fmt.Printf("￮ a nat gateway ($%s per hour)\n", s.Float64(aws.NATMetadatas[*clusterConfig.Region].Price))
+	fmt.Println(workloadInstancesStr(clusterConfig, spotPrice))
+
+	fmt.Println()
+
+	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor)
+	prompt.YesOrExit("would you like to continue with this installation?", exitMessage)
+}
+
+func confirmUpdateClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) {
+	fmt.Println(clusterConfigConfirmaionStr(clusterConfig, awsCreds) + "\n")
+
+	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor)
+	prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, would you like to continue?", clusterConfig.ClusterName, *clusterConfig.Region), exitMessage)
+}
+
+func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) string {
 	defaultConfig, _ := clusterconfig.GetDefaults()
 
 	var items table.KeyValuePairs
@@ -191,10 +226,17 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 	}
 	items.Add(clusterconfig.RegionUserFacingKey, clusterConfig.Region)
 	items.Add(clusterconfig.BucketUserFacingKey, clusterConfig.Bucket)
+	items.Add(clusterconfig.ClusterNameUserFacingKey, clusterConfig.ClusterName)
+	if clusterConfig.LogGroup != defaultConfig.LogGroup {
+		items.Add(clusterconfig.LogGroupUserFacingKey, clusterConfig.LogGroup)
+	}
 
 	items.Add(clusterconfig.InstanceTypeUserFacingKey, *clusterConfig.InstanceType)
 	items.Add(clusterconfig.MinInstancesUserFacingKey, *clusterConfig.MinInstances)
 	items.Add(clusterconfig.MaxInstancesUserFacingKey, *clusterConfig.MaxInstances)
+	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
+		items.Add(clusterconfig.InstanceVolumeSizeUserFacingKey, clusterConfig.InstanceVolumeSize)
+	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot != *defaultConfig.Spot {
 		items.Add(clusterconfig.SpotUserFacingKey, s.YesNo(clusterConfig.Spot != nil && *clusterConfig.Spot))
@@ -224,15 +266,7 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 			}
 		}
 	}
-	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
-		items.Add(clusterconfig.InstanceVolumeSizeUserFacingKey, clusterConfig.InstanceVolumeSize)
-	}
-	if clusterConfig.ClusterName != defaultConfig.ClusterName {
-		items.Add(clusterconfig.ClusterNameUserFacingKey, clusterConfig.ClusterName)
-	}
-	if clusterConfig.LogGroup != defaultConfig.LogGroup {
-		items.Add(clusterconfig.LogGroupUserFacingKey, clusterConfig.LogGroup)
-	}
+
 	if clusterConfig.Telemetry != defaultConfig.Telemetry {
 		items.Add(clusterconfig.TelemetryUserFacingKey, clusterConfig.Telemetry)
 	}
@@ -295,32 +329,7 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 		items.Add(clusterconfig.ImageIstioGalleyUserFacingKey, clusterConfig.ImageIstioGalley)
 	}
 
-	var spotPrice float64
-	if clusterConfig.Spot != nil && *clusterConfig.Spot {
-		var err error
-		spotPrice, err = aws.SpotInstancePrice(awsCreds.AWSAccessKeyID, awsCreds.CortexAWSSecretAccessKey, *clusterConfig.Region, *clusterConfig.InstanceType)
-		if err != nil {
-			spotPrice = 0
-		}
-	}
-
-	items.Print()
-	fmt.Println()
-
-	fmt.Printf("cortex will use your %s aws access key id to provision the following resources in the %s region of your aws account:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), *clusterConfig.Region)
-	fmt.Printf("￮ an s3 bucket named %s\n", *clusterConfig.Bucket)
-	fmt.Printf("￮ a cloudwatch log group named %s\n", clusterConfig.LogGroup)
-	fmt.Printf("￮ an eks cluster named %s ($0.20 per hour)\n", clusterConfig.ClusterName)
-	fmt.Printf("￮ a t3.medium ec2 instance for the operator ($%s per hour)\n", s.Float64(aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price))
-	fmt.Printf("￮ a 20gb ebs volume for the operator ($%s per hour)\n", s.Round(aws.EBSMetadatas[*clusterConfig.Region].Price*20/30, 3, false))
-	fmt.Printf("￮ an elb for the operator and an elb for apis ($%s per hour each)\n", s.Float64(aws.ELBMetadatas[*clusterConfig.Region].Price))
-	fmt.Printf("￮ a nat gateway ($%s per hour)\n", s.Float64(aws.NATMetadatas[*clusterConfig.Region].Price))
-	fmt.Println(workloadInstancesStr(clusterConfig, spotPrice))
-
-	fmt.Println()
-
-	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor)
-	prompt.YesOrExit("would you like to continue with this installation?", exitMessage)
+	return items.String()
 }
 
 func workloadInstancesStr(clusterConfig *clusterconfig.ClusterConfig, spotPrice float64) string {

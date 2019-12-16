@@ -40,19 +40,26 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
 
-type cortexClient struct {
+type OperatorClient struct {
 	*http.Client
 }
 
-var httpClient = &cortexClient{
+type GenericClient struct {
+	*http.Client
+}
+
+var operatorClient = &OperatorClient{
 	Client: &http.Client{
-		Timeout: time.Second * 300,
+		Timeout: 20 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
 	},
 }
 
-var httpsNoVerifyClient = &cortexClient{
+var apiClient = &GenericClient{
 	Client: &http.Client{
-		Timeout: time.Second * 20,
+		Timeout: 20 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
@@ -64,7 +71,7 @@ func HTTPGet(endpoint string, qParams ...map[string]string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return httpsNoVerifyClient.makeRequest(req)
+	return operatorClient.MakeRequest(req)
 }
 
 func HTTPPostJSONData(endpoint string, requestData interface{}, qParams ...map[string]string) ([]byte, error) {
@@ -82,7 +89,7 @@ func HTTPPostJSON(endpoint string, jsonRequestData []byte, qParams ...map[string
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	return httpsNoVerifyClient.makeRequest(req)
+	return operatorClient.MakeRequest(req)
 }
 
 type HTTPUploadInput struct {
@@ -122,7 +129,7 @@ func HTTPUpload(endpoint string, input *HTTPUploadInput, qParams ...map[string]s
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	return httpsNoVerifyClient.makeRequest(req)
+	return operatorClient.MakeRequest(req)
 }
 
 func addFileToMultipart(fileName string, writer *multipart.Writer, reader io.Reader) error {
@@ -187,23 +194,15 @@ func StreamLogs(appName string, resourceName string, resourceType string) error 
 	}
 
 	connection, response, err := dialer.Dial(wsURL, header)
-	if response == nil {
-		cliEnvConfig, _ := readCLIEnvConfig(flagEnv)
-		if cliEnvConfig == nil {
-			return ErrorFailedToConnectOperator("")
-		}
-		return ErrorFailedToConnectOperator(strings.Replace(cliEnvConfig.OperatorEndpoint, "http", "ws", 1))
+	if err != nil || response == nil {
+		return ErrorFailedToConnectOperator(err, strings.Replace(operatorEndpointOrBlank(), "http", "ws", 1))
 	}
 	defer response.Body.Close()
 
 	if err != nil {
 		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil || bodyBytes == nil || string(bodyBytes) == "" {
-			cliEnvConfig, _ := readCLIEnvConfig(flagEnv)
-			if cliEnvConfig == nil {
-				return ErrorFailedToConnectOperator("")
-			}
-			return ErrorFailedToConnectOperator(strings.Replace(cliEnvConfig.OperatorEndpoint, "http", "ws", 1))
+			return ErrorFailedToConnectOperator(err, strings.Replace(operatorEndpointOrBlank(), "http", "ws", 1))
 		}
 		var output schema.ErrorResponse
 		err = json.Unmarshal(bodyBytes, &output)
@@ -267,7 +266,7 @@ func operatorRequest(method string, endpoint string, body io.Reader, qParams []m
 	return req, nil
 }
 
-func (client *cortexClient) makeRequest(request *http.Request) ([]byte, error) {
+func (client *OperatorClient) MakeRequest(request *http.Request) ([]byte, error) {
 	if isTelemetryEnabled() {
 		values := request.URL.Query()
 		values.Set("clientID", clientID())
@@ -284,11 +283,7 @@ func (client *cortexClient) makeRequest(request *http.Request) ([]byte, error) {
 
 	response, err := client.Do(request)
 	if err != nil {
-		cliEnvConfig, _ := readCLIEnvConfig(flagEnv)
-		if cliEnvConfig != nil && strings.HasPrefix(request.URL.String(), cliEnvConfig.OperatorEndpoint) {
-			return nil, ErrorFailedToConnectOperator(cliEnvConfig.OperatorEndpoint)
-		}
-		return nil, ErrorFailedConnectURL(*request.URL)
+		return nil, ErrorFailedToConnectOperator(err, operatorEndpointOrBlank())
 	}
 	defer response.Body.Close()
 
@@ -314,10 +309,41 @@ func (client *cortexClient) makeRequest(request *http.Request) ([]byte, error) {
 	return bodyBytes, nil
 }
 
+func (client *GenericClient) MakeRequest(request *http.Request) ([]byte, error) {
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, errors.Wrap(err, errStrFailedToConnect(*request.URL))
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != 200 {
+		bodyBytes, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return nil, errors.Wrap(err, errStrRead)
+		}
+		return nil, errors.New(strings.TrimSpace(string(bodyBytes)))
+	}
+
+	bodyBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, errStrRead)
+	}
+	return bodyBytes, nil
+}
+
 func authHeader() (string, error) {
 	cliEnvConfig, err := readOrConfigureCLIEnv(flagEnv)
 	if err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("CortexAWS %s|%s", cliEnvConfig.AWSAccessKeyID, cliEnvConfig.AWSSecretAccessKey), err
+}
+
+// Returns empty string if not able to get operator endpoint
+func operatorEndpointOrBlank() string {
+	cliEnvConfig, _ := readCLIEnvConfig(flagEnv)
+	if cliEnvConfig != nil {
+		return cliEnvConfig.OperatorEndpoint
+	}
+	return ""
 }

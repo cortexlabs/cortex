@@ -224,10 +224,8 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	row := []interface{}{
 		groupStatus.Message(),
 		groupStatus.ReadyUpdated,
-		groupStatus.Available(),
+		groupStatus.ReadyStale(),
 		groupStatus.Requested,
-		groupStatus.ReadyStaleCompute,
-		groupStatus.ReadyStaleModel,
 		groupStatus.FailedUpdated,
 		libtime.Since(updatedAt),
 	}
@@ -235,10 +233,8 @@ func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVer
 	headers := []table.Header{
 		{Title: "status"},
 		{Title: "up-to-date"},
-		{Title: "available"},
+		{Title: "stale", Hidden: groupStatus.ReadyStale() == 0},
 		{Title: "requested"},
-		{Title: "stale compute", Hidden: groupStatus.ReadyStaleCompute == 0},
-		{Title: "stale", Hidden: groupStatus.ReadyStaleModel == 0},
 		{Title: "failed", Hidden: groupStatus.FailedUpdated == 0},
 		{Title: "last update"},
 	}
@@ -465,12 +461,13 @@ func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string
 }
 
 func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
-	req, err := http.NewRequest("GET", apiEndpoint, nil)
+	httpsAPIEndpoint := strings.Replace(apiEndpoint, "http://", "https://", 1)
+	req, err := http.NewRequest("GET", httpsAPIEndpoint, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to request api summary")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	response, err := httpsNoVerifyClient.makeRequest(req)
+	response, err := apiClient.MakeRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -538,7 +535,8 @@ func dataResourceTable(resources []context.Resource, dataStatuses map[string]*re
 func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) table.Table {
 	rows := make([][]interface{}, 0, len(apiGroupStatuses))
 
-	totalFailed := 0
+	var totalFailed int32
+	var totalStale int32
 	for name, groupStatus := range apiGroupStatuses {
 		var updatedAt *time.Time
 		if groupStatus.ActiveStatus != nil {
@@ -549,13 +547,14 @@ func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) tabl
 			name,
 			groupStatus.Message(),
 			groupStatus.ReadyUpdated,
-			groupStatus.Available(),
+			groupStatus.ReadyStale(),
 			groupStatus.Requested,
 			groupStatus.FailedUpdated,
 			libtime.Since(updatedAt),
 		})
 
-		totalFailed += int(groupStatus.FailedUpdated)
+		totalFailed += groupStatus.FailedUpdated
+		totalStale += groupStatus.ReadyStale()
 	}
 
 	t := table.Table{
@@ -563,7 +562,7 @@ func apiResourceTable(apiGroupStatuses map[string]*resource.APIGroupStatus) tabl
 			{Title: resource.APIType.UserFacing()},
 			{Title: "status"},
 			{Title: "up-to-date"},
-			{Title: "available"},
+			{Title: "stale", Hidden: totalStale == 0},
 			{Title: "requested"},
 			{Title: "failed", Hidden: totalFailed == 0},
 			{Title: "last update"},

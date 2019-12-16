@@ -5,14 +5,14 @@ go 1.12
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.4.14 // indirect
+	github.com/aws/amazon-vpc-cni-k8s v1.5.5
 	github.com/aws/aws-sdk-go v1.25.31
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/containerd/containerd v1.3.0 // indirect
 	github.com/cortexlabs/yaml v0.0.0-20190626164117-202ab3a3d475
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible // indirect
-	github.com/docker/docker v0.0.0-00010101000000-000000000000
-	github.com/docker/go-connections v0.4.0 // indirect
+	github.com/docker/docker v1.13.1
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fatih/color v1.7.0
 	github.com/getsentry/sentry-go v0.3.1

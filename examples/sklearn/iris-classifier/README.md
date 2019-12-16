@@ -136,8 +136,8 @@ Track the status of your deployment using `cortex get`:
 ```bash
 $ cortex get classifier --watch
 
-status   up-to-date   available   requested   last update   avg latency
-live     1            1           1           8s            -
+status   up-to-date   requested   last update   avg latency
+live     1            1           8s            -
 
 endpoint: http://***.amazonaws.com/iris/classifier
 ```
@@ -199,8 +199,8 @@ After making more predictions, your `cortex get` command will show information a
 ```bash
 $ cortex get classifier --watch
 
-status   up-to-date   available   requested   last update   avg latency
-live     1            1           1           16s           28ms
+status   up-to-date   requested   last update   avg latency
+live     1            1           16s           28ms
 
 class        count
 setosa       8
@@ -244,8 +244,8 @@ Run `cortex get` again:
 ```bash
 $ cortex get classifier --watch
 
-status   up-to-date   available   requested   last update   avg latency
-live     1            1           1           16s           24 ms
+status   up-to-date   requested   last update   avg latency
+live     1            1           16s           24 ms
 
 class        count
 setosa       8
@@ -301,9 +301,9 @@ creating another-classifier api
 ```bash
 $ cortex get --watch
 
-api                  status   up-to-date   available   requested   last update
-classifier           live     1            1           1           5m
-another-classifier   live     1            1           1           8s
+api                  status   up-to-date   requested   last update
+classifier           live     1            1           5m
+another-classifier   live     1            1           8s
 ```
 
 ## Add a batch API
@@ -397,10 +397,10 @@ creating batch-classifier api
 ```bash
 $ cortex get --watch
 
-api                  status   up-to-date   available   requested   last update
-classifier           live     1            1           1           10m
-another-classifier   live     1            1           1           5m
-batch-classifier     live     1            1           1           8s
+api                  status   up-to-date   requested   last update
+classifier           live     1            1           10m
+another-classifier   live     1            1           5m
+batch-classifier     live     1            1           8s
 ```
 
 <br>
