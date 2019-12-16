@@ -54,7 +54,7 @@ You can log information about each request by adding a `?debug=true` parameter t
 An ONNX Predictor is a Python class that describes how to serve your model to make predictions.
 
 <!-- CORTEX_VERSION -->
-Cortex provides an `onnx_client`, an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/tf-onnx-api-changes/pkg/workloads/cortex/onnx_serve/client.py), and a config object to initialize your implementation of the ONNX Predictor class. Once your implementation has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function can call `onnx_client.predict` to make an inference and respond to the request. Preprocessing of the JSON payload, postprocessing of predictions can be implemented in your `predict()` function.
+Cortex provides an `onnx_client`, an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/onnx_serve/client.py), and a config object to initialize your implementation of the ONNX Predictor class. Once your implementation has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function can call `onnx_client.predict` to make an inference and respond to the request. Preprocessing of the JSON payload, postprocessing of predictions can be implemented in your `predict()` function.
 
 
 ## Implementation
