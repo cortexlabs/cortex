@@ -212,7 +212,7 @@ func confirmUpdateClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsC
 	fmt.Println(clusterConfigConfirmaionStr(clusterConfig, awsCreds) + "\n")
 
 	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor)
-	prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the above configuration, would you like to continue?", clusterConfig.ClusterName, *clusterConfig.Region), exitMessage)
+	prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, would you like to continue?", clusterConfig.ClusterName, *clusterConfig.Region), exitMessage)
 }
 
 func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) string {
