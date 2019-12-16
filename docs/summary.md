@@ -19,7 +19,6 @@
 * [Prediction monitoring](deployments/prediction-monitoring.md)
 * [Compute](deployments/compute.md)
 * [API statuses](deployments/statuses.md)
-* [Python client](deployments/python-client.md)
 
 ## Packaging models
 
