@@ -37,7 +37,7 @@ See [packaging ONNX models](../packaging-models/onnx.md) for information about e
   name: my-api
   onnx:
     model: s3://my-bucket/my-model.onnx
-    predictor_path: predictor.py
+    predictor: predictor.py
   compute:
     gpu: 1
 ```

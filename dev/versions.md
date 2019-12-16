@@ -68,6 +68,7 @@ The Python version in the base images for `tf-api` and `onnx-serve-gpu`/`python-
 1. Run `docker run --rm -it tensorflow/tensorflow:***`, and in the container run `python3 --version` and `cat /etc/lsb-release`
 1. Run `docker run --rm -it nvidia/cuda:***`, and in the container run `python3 --version` and `cat /etc/lsb-release`
 1. The Ubuntu and Python versions must match; if they do not, downgrade whichever one is too advanced
+1. Update TensorFlow version in `tensorflow.md`
 1. Search the codebase for the current minor TensorFlow version (e.g. `1.14`) and update versions as appropriate
 1. Search the codebase for the minor Python version (e.g. `3.6`) and update versions as appropriate
 1. Search the codebase for `ubuntu` and update versions as appropriate
