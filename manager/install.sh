@@ -111,11 +111,21 @@ function main() {
 
   eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 
+  envsubst < manifests/namespace.yaml | kubectl apply -f - >/dev/null
+
+  # pre-download images on cortex cluster up
+  if [ "$arg1" != "--update" ]; then
+    if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
+      envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null
+    else
+      envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
+    fi
+  fi
+
   setup_bucket
   setup_cloudwatch_logs
 
   echo -n "￮ updating cluster configuration "
-  envsubst < manifests/namespace.yaml | kubectl apply -f - >/dev/null
   setup_configmap
   setup_secrets
   echo "✓"
@@ -157,6 +167,19 @@ function main() {
   echo "✓"
 
   validate_cortex
+
+  if kubectl get daemonset image-downloader -n cortex &>/dev/null; then
+    echo -n "￮ downloading docker images "
+    i=0
+    until [ "$(kubectl get daemonset image-downloader -n cortex -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset image-downloader -n cortex -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
+      if [ $i -eq 100 ]; then break; fi  # give up after 5 minutes
+      echo -n "."
+      ((i=i+1))
+      sleep 3
+    done
+    kubectl -n=cortex delete --ignore-not-found=true daemonset image-downloader &>/dev/null
+    echo "✓"
+  fi
 
   echo -n "￮ configuring cli "
   python update_cli_config.py "/.cortex/cli.yaml" "$CORTEX_ENVIRONMENT" "$operator_endpoint" "$CORTEX_AWS_ACCESS_KEY_ID" "$CORTEX_AWS_SECRET_ACCESS_KEY"
