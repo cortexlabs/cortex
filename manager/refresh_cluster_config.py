@@ -47,8 +47,8 @@ def refresh_yaml(configmap_yaml_path, output_yaml_path):
     with open(configmap_yaml_path, "r") as f:
         cluster_configmap = yaml.safe_load(f)
     asg = get_autoscaling_group()
-    cluster_config_str = cluster_configmap["data"]["cluster.yaml"]
-    cluster_config = yaml.safe_load(cluster_config_str)
+    cluster_configmap_str = cluster_configmap["data"]["cluster.yaml"]
+    cluster_config = yaml.safe_load(cluster_configmap_str)
     cluster_config["min_instances"] = asg["MinSize"]
     cluster_config["max_instances"] = asg["MaxSize"]
 

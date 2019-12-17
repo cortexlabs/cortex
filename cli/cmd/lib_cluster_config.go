@@ -34,6 +34,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
 
+var _cachedClusterConfigRegex = regexp.MustCompile(`^cluster_\S+\.yaml$`)
+
 func cachedClusterConfigPath(clusterName string, region string) string {
 	return filepath.Join(localDir, fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
 }
@@ -41,8 +43,6 @@ func cachedClusterConfigPath(clusterName string, region string) string {
 func mountedClusterConfigPath(clusterName string, region string) string {
 	return filepath.Join("/.cortex", fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
 }
-
-var _cachedClusterConfigRegex = regexp.MustCompile(`^cluster_\S+\.yaml$`)
 
 func existingCachedClusterConfigPaths() []string {
 	paths, err := files.ListDir(localDir, false)

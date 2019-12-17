@@ -84,7 +84,7 @@ type InternalClusterConfig struct {
 	InstanceMetadata  aws.InstanceMetadata `json:"instance_metadata"`
 }
 
-// Just the bare minimum to identify a cluster
+// The bare minimum to identify a cluster
 type AccessClusterConfig struct {
 	ClusterName  *string `json:"cluster_name" yaml:"cluster_name"`
 	Region       *string `json:"region" yaml:"region"`
