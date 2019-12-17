@@ -24,7 +24,6 @@ from waitress import serve
 from cortex.lib import util, Context, api_utils
 from cortex.lib.log import cx_logger, debug_obj
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
-from cortex.lib.stringify import truncate
 from cortex.onnx_serve.client import ONNXClient
 
 app = Flask(__name__)

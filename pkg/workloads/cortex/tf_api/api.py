@@ -16,22 +16,14 @@ import sys
 import os
 import argparse
 import time
-import inspect
 
-import tensorflow as tf
 from flask import Flask, request, jsonify, g
 from flask_api import status
 from waitress import serve
-import grpc
-from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import get_model_metadata_pb2
-from tensorflow_serving.apis import prediction_service_pb2_grpc
-from google.protobuf import json_format
 
 from cortex.lib import util, Context, api_utils
 from cortex.lib.log import cx_logger, debug_obj
 from cortex.lib.exceptions import UserRuntimeException, UserException, CortexException
-from cortex.lib.stringify import truncate
 from cortex.tf_api.client import TensorFlowClient
 
 app = Flask(__name__)
