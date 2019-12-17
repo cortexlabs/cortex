@@ -75,12 +75,13 @@ def predict():
     predictor = local_cache["predictor"]
 
     try:
+        debug_obj("payload", payload, debug)
         try:
-            debug_obj("payload", payload, debug)
             output = predictor.predict(payload)
-            debug_obj("prediction", output, debug)
         except Exception as e:
             raise UserRuntimeException(api["onnx"]["predictor"], "predict", str(e)) from e
+        debug_obj("prediction", output, debug)
+
     except Exception as e:
         cx_logger().exception("prediction failed")
         return prediction_failed(str(e))
@@ -138,7 +139,7 @@ def start(args):
         except Exception as e:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
-    cx_logger().info("model_signature: {}".format(local_cache["client"].input_signature))
+    cx_logger().info("ONNX model signature: {}".format(local_cache["client"].input_signature))
 
     waitress_kwargs = {}
     if api["onnx"].get("config") is not None:

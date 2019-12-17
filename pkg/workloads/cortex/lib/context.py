@@ -164,12 +164,12 @@ class Context:
             if predictor_class is None:
                 raise UserException("{} class is not defined".format(target_class_name))
 
-            if api.get("tensorflow") is not None:
+            if api_type == "tensorflow":
                 _validate_impl(predictor_class, TENSORFLOW_CLASS_VALIDATION)
-            elif api.get("onnx") is not None:
+            elif api_type == "onnx":
                 _validate_impl(predictor_class, ONNX_CLASS_VALIDATION)
-            elif api.get("predictor") is not None:
-                _validate_impl(predictor_class, PREDICTOR_CLASS_VALIDATION)
+            elif api_type == "python":
+                _validate_impl(predictor_class, PYTHON_CLASS_VALIDATION)
 
         except CortexException as e:
             e.wrap("api " + api_name, "error in " + api[api_type]["predictor"])
@@ -240,7 +240,7 @@ class Context:
                 self.statsd.histogram(metric["MetricName"], value=metric["Value"], tags=tags)
 
 
-PREDICTOR_CLASS_VALIDATION = {
+PYTHON_CLASS_VALIDATION = {
     "required": [
         {"name": "__init__", "args": ["self", "config"]},
         {"name": "predict", "args": ["self", "payload"]},

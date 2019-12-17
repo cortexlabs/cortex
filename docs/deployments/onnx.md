@@ -11,9 +11,9 @@ You can deploy ONNX models as web services by defining a class that implements C
   name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
   onnx:
-    model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx)
+    model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
     predictor: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
-    config: <string: value>  # dictionary that can be used to configure custom values (optional)
+    config: <string: value>  # dictionary passed to the constructor of a Predictor
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
@@ -53,7 +53,7 @@ You can log information about each request by adding a `?debug=true` parameter t
 
 An ONNX Predictor is a Python class that describes how to serve your ONNX model to make predictions.
 
-<!-- CORTEX_VERSION -->
+<!-- CORTEX_VERSION_MINOR -->
 Cortex provides an `onnx_client` and a config object to initialize your implementation of the ONNX Predictor class. The `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/onnx_serve/client.py) and configured to make predictions using your model. Once your implementation of the ONNX Predictor class has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function can call `onnx_client.predict` to make an inference and respond to the request. Preprocessing of the JSON payload, postprocessing of predictions can be implemented in your `predict()` function.
 
 

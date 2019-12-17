@@ -282,19 +282,19 @@ func tfAPISpec(
 		LastLog: fmt.Sprintf(downloaderLastLog, "tensorflow"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:                 ctx.APIs[api.Name].TensorFlow.Model,
-				To:                   path.Join(consts.EmptyDirMountPath, "model"),
-				Unzip:                strings.HasSuffix(ctx.APIs[api.Name].TensorFlow.Model, ".zip"),
-				ItemName:             "the model",
-				TFModelVersionRename: path.Join(consts.EmptyDirMountPath, "model", "1"),
-			},
-			{
 				From:             config.AWS.S3Path(ctx.ProjectKey),
 				To:               path.Join(consts.EmptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
 				HideFromLog:      true,
 				HideUnzippingLog: true,
+			},
+			{
+				From:                 ctx.APIs[api.Name].TensorFlow.Model,
+				To:                   path.Join(consts.EmptyDirMountPath, "model"),
+				Unzip:                strings.HasSuffix(ctx.APIs[api.Name].TensorFlow.Model, ".zip"),
+				ItemName:             "the model",
+				TFModelVersionRename: path.Join(consts.EmptyDirMountPath, "model", "1"),
 			},
 		},
 	}
@@ -619,17 +619,17 @@ func onnxAPISpec(
 		LastLog: fmt.Sprintf(downloaderLastLog, "onnx"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:     ctx.APIs[api.Name].ONNX.Model,
-				To:       path.Join(consts.EmptyDirMountPath, "model"),
-				ItemName: "the model",
-			},
-			{
 				From:             config.AWS.S3Path(ctx.ProjectKey),
 				To:               path.Join(consts.EmptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
 				HideFromLog:      true,
 				HideUnzippingLog: true,
+			},
+			{
+				From:     ctx.APIs[api.Name].ONNX.Model,
+				To:       path.Join(consts.EmptyDirMountPath, "model"),
+				ItemName: "the model",
 			},
 		},
 	}

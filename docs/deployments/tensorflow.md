@@ -54,7 +54,7 @@ You can log information about each request by adding a `?debug=true` parameter t
 
 A TensorFlow Predictor is a Python class that describes how to serve your TensorFlow model to make predictions.
 
-<!-- CORTEX_VERSION -->
+<!-- CORTEX_VERSION_MINOR -->
 Cortex provides an `tensorflow_client` and a config object to initialize your implementation of the TensorFlow Predictor class. The `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/tf_api/client.py) and configured to make predictions using your model. Once your implementation of the TensorFlow Predictor class has been initialized,, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function can call `tensorflow_client.predict` to make an inference and respond to the request. Preprocessing of the JSON payload, postprocessing of predictions can be implemented in your `predict()` function.
 
 
