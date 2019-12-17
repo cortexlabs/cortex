@@ -78,7 +78,7 @@ func readUserClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig) error
 	return nil
 }
 
-func getAccessConfig() (*clusterconfig.AccessClusterConfig, error) {
+func getAccessClusterConfig() (*clusterconfig.AccessClusterConfig, error) {
 	accessClusterConfig, err := clusterconfig.DefaultAccessConfig()
 	if err != nil {
 		return nil, err

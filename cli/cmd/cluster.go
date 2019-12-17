@@ -192,7 +192,7 @@ var downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessClusterConfig, err := getAccessConfig()
+		accessClusterConfig, err := getAccessClusterConfig()
 		if err != nil {
 			exit.Error(err)
 		}
@@ -253,7 +253,7 @@ func promptForEmail() {
 }
 
 func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.ClusterConfig {
-	accessClusterConfig, err := getAccessConfig()
+	accessClusterConfig, err := getAccessClusterConfig()
 	if err != nil {
 		exit.Error(err)
 	}
@@ -264,7 +264,9 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Cluster
 		files.MakeEmptyFile(cachedConfigPath)
 	}
 
-	out, err := runManagerAccessCommand("/root/refresh.sh", *accessClusterConfig.ClusterName, *accessClusterConfig.Region, accessClusterConfig.ImageManager, awsCreds)
+	mountedConfigPath := cachedClusterConfigPath(*accessClusterConfig.ClusterName, *accessClusterConfig.Region)
+
+	out, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessClusterConfig.ClusterName, *accessClusterConfig.Region, accessClusterConfig.ImageManager, awsCreds)
 	if err != nil {
 		exit.Error(err)
 	}

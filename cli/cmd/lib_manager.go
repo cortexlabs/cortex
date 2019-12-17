@@ -247,7 +247,6 @@ func runManagerAccessCommand(entrypoint string, clusterName string, region strin
 			"CORTEX_AWS_SECRET_ACCESS_KEY=" + awsCreds.CortexAWSSecretAccessKey,
 			"CORTEX_CLUSTER_NAME=" + clusterName,
 			"CORTEX_REGION=" + region,
-			"CORTEX_CLUSTER_CONFIG_FILE=" + mountedClusterConfigPath(clusterName, region),
 		},
 	}
 
