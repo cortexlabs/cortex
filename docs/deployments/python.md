@@ -87,6 +87,8 @@ class PythonPredictor:
 import boto3
 from my_model import IrisNet
 
+labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
+
 class PythonPredictor:
     def __init__(self, config):
         # download the model
@@ -100,7 +102,6 @@ class PythonPredictor:
         model.eval()
 
         self.model = model
-        self.labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
     def predict(self, payload):
@@ -120,7 +121,7 @@ class PythonPredictor:
         output = self.model(input_tensor)
 
         # Translate the model output to the corresponding label string
-        return self.labels[torch.argmax(output[0])]
+        return labels[torch.argmax(output[0])]
 ```
 
 ## Pre-installed packages

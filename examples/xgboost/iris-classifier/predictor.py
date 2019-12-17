@@ -20,5 +20,3 @@ class ONNXPredictor:
         prediction = self.client.predict(model_input)
         predicted_class_id = prediction[0][0]
         return labels[predicted_class_id]
-
-    #

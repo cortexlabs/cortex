@@ -63,6 +63,8 @@ import boto3
 import pickle
 import re
 
+labels = ["setosa", "versicolor", "virginica"]
+
 
 class PythonPredictor:
     def __init__(self, config):
@@ -71,7 +73,6 @@ class PythonPredictor:
         s3.download_file(bucket, key, "model.pkl")
 
         self.model = pickle.load(open("model.pkl", "rb"))
-        self.labels = ["setosa", "versicolor", "virginica"]
 
     def predict(self, payload):
         measurements = [
@@ -82,7 +83,7 @@ class PythonPredictor:
         ]
 
         label_id = self.model.predict([measurements])[0]
-        return self.labels[label_id]
+        return labels[label_id]
 ```
 
 <br>
@@ -317,6 +318,8 @@ import boto3
 import pickle
 import re
 
+labels = ["setosa", "versicolor", "virginica"]
+
 
 class PythonPredictor:
     def __init__(self, config):
@@ -325,7 +328,6 @@ class PythonPredictor:
         s3.download_file(bucket, key, "model.pkl")
 
         self.model = pickle.load(open("model.pkl", "rb"))
-        self.labels = ["setosa", "versicolor", "virginica"]
 
     def predict(self, payload):
         measurements = [
@@ -339,7 +341,7 @@ class PythonPredictor:
         ]
 
         label_ids = self.model.predict(measurements)
-        return [self.labels[label_id] for label_id in label_ids]
+        return [labels[label_id] for label_id in label_ids]
 ```
 
 Next, add the `api` to `cortex.yaml`:
