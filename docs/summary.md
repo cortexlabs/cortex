@@ -12,10 +12,9 @@
 ## Deployments
 
 * [Deployments](deployments/deployments.md)
-* [Predictor APIs](deployments/predictor.md)
+* [Python APIs](deployments/python.md)
 * [TensorFlow APIs](deployments/tensorflow.md)
 * [ONNX APIs](deployments/onnx.md)
-* [Request handlers](deployments/request-handlers.md)
 * [Autoscaling](deployments/autoscaling.md)
 * [Prediction monitoring](deployments/prediction-monitoring.md)
 * [Compute](deployments/compute.md)

@@ -40,6 +40,7 @@ Reference your model in an `api`:
   name: my-api
   tensorflow:
     model: s3://my-bucket/bert
+    predictor: predictor.py
 ```
 
 You may also zip the export directory before uploading it:
@@ -57,4 +58,5 @@ Reference the zipped model in an `api`:
   name: my-api
   tensorflow:
     model: s3://my-bucket/bert.zip
+    predictor: predictor.py
 ```

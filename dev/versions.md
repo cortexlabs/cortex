@@ -70,13 +70,14 @@ note: once the default AWS CNI version is >= 1.5.5 this may no longer be necessa
 
 ## TensorFlow / TensorFlow Serving / Python / Python base operating system
 
-The Python version in the base images for `tf-api` and `onnx-serve-gpu`/`predictor-serve-gpu` determines the Python version used throughout Cortex.
+The Python version in the base images for `tf-api` and `onnx-serve-gpu`/`python-serve-gpu` determines the Python version used throughout Cortex.
 
 1. Update the `tensorflow/tensorflow` base image in `images/tf-api/Dockerfile` to the desired version ([Dockerhub](https://hub.docker.com/r/tensorflow/tensorflow))
 1. Update the `nvidia/cuda` base image in `images/onnx-serve-gpu/Dockerfile` to the desired version ([Dockerhub](https://hub.docker.com/r/nvidia/cuda))
 1. Run `docker run --rm -it tensorflow/tensorflow:***`, and in the container run `python3 --version` and `cat /etc/lsb-release`
 1. Run `docker run --rm -it nvidia/cuda:***`, and in the container run `python3 --version` and `cat /etc/lsb-release`
 1. The Ubuntu and Python versions must match; if they do not, downgrade whichever one is too advanced
+1. Update TensorFlow version in `tensorflow.md`
 1. Search the codebase for the current minor TensorFlow version (e.g. `1.14`) and update versions as appropriate
 1. Search the codebase for the minor Python version (e.g. `3.6`) and update versions as appropriate
 1. Search the codebase for `ubuntu` and update versions as appropriate
@@ -86,7 +87,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 ## ONNX runtime
 
 1. Update `ONNXRUNTIME_VERSION` in `images/onnx-serve/Dockerfile` and `images/onnx-serve-gpu/Dockerfile` ([releases](https://github.com/microsoft/onnxruntime/releases))
-1. Update the version listed for `onnxruntime` in "Pre-installed Packages" in `request-handlers.py`
+1. Update the version listed for `onnxruntime` in "Pre-installed Packages" in `onnx.md`
 
 ## Nvidia device plugin
 
@@ -101,12 +102,12 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
    1. Update the link at the top of the file to the URL you copied from
    1. Check that your diff is reasonable
-1. Confirm GPUs work for TensorFlow and ONNX models
+1. Confirm GPUs work for PyTorch, TensorFlow, and ONNX models
 
 ## Python packages
 
-1. Update versions in `pkg/workloads/cortex/lib/requirements.txt`, `pkg/workloads/cortex/tf_api/requirements.txt`, `pkg/workloads/cortex/onnx_serve/requirements.txt`, and `pkg/workloads/cortex/predictor_serve/requirements.txt`
-1. Update the versions listed in "Pre-installed packages" in `request-handlers.md` and `predictor.md`
+1. Update versions in `pkg/workloads/cortex/lib/requirements.txt`, `pkg/workloads/cortex/tf_api/requirements.txt`, `pkg/workloads/cortex/onnx_serve/requirements.txt`, and `pkg/workloads/cortex/python_serve/requirements.txt`
+1. Update the versions listed in "Pre-installed packages" in `python.md`, `onnx.md`, and `tensorflow.md`
 1. Rerun all examples and check their logs
 
 ## Istio

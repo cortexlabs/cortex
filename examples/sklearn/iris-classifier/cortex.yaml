@@ -5,8 +5,8 @@
 
 - kind: api
   name: classifier
-  predictor:
-    path: predictor.py
+  python:
+    predictor: predictor.py
     config:
       model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
   tracker:
@@ -17,8 +17,8 @@
 
 - kind: api
   name: another-classifier
-  predictor:
-    path: predictor.py
+  python:
+    predictor: predictor.py
     config:
       model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
   tracker:
@@ -29,8 +29,8 @@
 
 - kind: api
   name: batch-classifier
-  predictor:
-    path: batch-predictor.py
+  python:
+    predictor: batch-predictor.py
     config:
       model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
   compute:

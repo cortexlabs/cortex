@@ -5,8 +5,8 @@
 
 - kind: api
   name: classifier
-  predictor:
-    path: predictor.py
+  python:
+    predictor: predictor.py
   compute:
     cpu: 1
     gpu: 1

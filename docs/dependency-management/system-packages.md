@@ -19,7 +19,7 @@ Specify the base image you want to override followed by your customizations. The
 ```dockerfile
 # Dockerfile
 
-FROM cortexlabs/predictor-serve
+FROM cortexlabs/python-serve
 
 RUN apt-get update \
     && apt-get install -y tree \
@@ -58,7 +58,7 @@ Update your cluster configuration file to point to your image:
 # cluster.yaml
 
 # ...
-image_predictor_serve: <repository_url>:latest
+image_python_serve: <repository_url>:latest
 # ...
 ```
 
@@ -77,7 +77,7 @@ Cortex will use your image to launch Python serving workloads and you will have 
 
 import subprocess
 
-class Predictor:
+class PythonPredictor:
     def __init__(self, config):
         subprocess.run(["tree"])
         ...

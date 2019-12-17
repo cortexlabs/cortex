@@ -5,17 +5,18 @@ import numpy as np
 labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
-def pre_inference(payload, signature, metadata):
-    return {
-        signature[0].name: [
+class ONNXPredictor:
+    def __init__(self, onnx_client, config):
+        self.client = onnx_client
+
+    def predict(self, payload):
+        model_input = [
             payload["sepal_length"],
             payload["sepal_width"],
             payload["petal_length"],
             payload["petal_width"],
         ]
-    }
 
-
-def post_inference(prediction, signature, metadata):
-    predicted_class_id = prediction[0][0]
-    return labels[predicted_class_id]
+        prediction = self.client.predict(model_input)
+        predicted_class_id = prediction[0][0]
+        return labels[predicted_class_id]

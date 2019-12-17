@@ -20,4 +20,4 @@ export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
 if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
-/usr/bin/python3.6 /src/cortex/predictor_serve/api.py "$@"
+/usr/bin/python3.6 /src/cortex/python_serve/api.py "$@"

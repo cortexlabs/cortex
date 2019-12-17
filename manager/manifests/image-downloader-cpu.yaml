@@ -35,8 +35,8 @@ spec:
         effect: NoSchedule
       terminationGracePeriodSeconds: 0
       containers:
-      - name: predictor-serve
-        image: $CORTEX_IMAGE_PREDICTOR_SERVE
+      - name: python-serve
+        image: $CORTEX_IMAGE_PYTHON_SERVE
         command: [ "/bin/sh" ]
         args: [ "-c", "sleep 1000000" ]
       - name: tf-serve

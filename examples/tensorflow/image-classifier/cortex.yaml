@@ -7,7 +7,7 @@
   name: classifier
   tensorflow:
     model: s3://cortex-examples/tensorflow/image-classifier/inception
-    request_handler: handler.py
+    predictor: predictor.py
   tracker:
     model_type: classification
   compute:

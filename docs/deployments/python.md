@@ -1,10 +1,10 @@
-# Predictor APIs
+# Python APIs
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-You can deploy models from any Python framework by defining a class that implements Cortex's Predictor interface. The class constructor is responsible for preparing the model for serving, downloading vocabulary files, etc. The `predict()` class function is called on every request and is responsible for responding with a prediction.
+You can deploy models from any Python framework by defining a class that implements Cortex's Python Predictor interface. The class constructor is responsible for preparing the model for serving, downloading vocabulary files, etc. The `predict()` class function is called on every request and is responsible for responding with a prediction.
 
-In addition to supporting Python models via the Predictor interface, Cortex can serve the following exported model formats:
+In addition to supporting Python models via the Python Predictor interface, Cortex can serve the following exported model formats:
 
 - [TensorFlow](tensorflow.md)
 - [ONNX](onnx.md)
@@ -15,10 +15,10 @@ In addition to supporting Python models via the Predictor interface, Cortex can 
 - kind: api
   name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
-  predictor:
-    path: <string>  # path to a python file with a Predictor class definition, relative to the Cortex root (required)
+  python:
+    predictor: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
+    config: <string: value>  # dictionary passed to the constructor of a Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    config: <string: value>  # dictionary passed to the constructor of a Predictor
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
@@ -37,8 +37,8 @@ In addition to supporting Python models via the Predictor interface, Cortex can 
 ```yaml
 - kind: api
   name: my-api
-  predictor:
-    path: predictor.py
+  python:
+    predictor: predictor.py
   compute:
     gpu: 1
 ```
@@ -50,31 +50,31 @@ You can log information about each request by adding a `?debug=true` parameter t
 1. The payload
 2. The value after running the `predict` function
 
-# Predictor
+# Python Predictor
 
-A Predictor is a Python class that describes how to initialize a model and use it to make a prediction.
+A Python Predictor is a Python class that describes how to initialize a model and use it to make a prediction.
 
-The lifecycle of a replica starts with the initialization of the Predictor class defined in your implementation file. The constructor of the Predictor class is responsible for downloading and initializing the model. It receives the config object, which is an arbitrary dictionary defined in the API configuration (it can be used to pass in the path to the exported model, vocabularies, etc). After successfully initializing an instance of the Predictor class, the replica is available to serve requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload. The `predict()` function is responsible for returning a prediction or a batch of predictions.
+The lifecycle of a replica starts with the initialization of the Python Predictor class defined in your implementation file. The constructor is responsible for downloading and initializing the model. It receives the config object, which is an arbitrary dictionary defined in the API configuration in `cortex.yaml` (it can be used to pass in the path to the exported model, vocabularies, etc). After successfully initializing an instance of the Python Predictor class, the replica is available to serve requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload. The `predict()` function is responsible for returning a prediction or a batch of predictions. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function.
 
 ## Implementation
 
 ```python
 # initialization code and variables can be declared here in global scope
 
-class Predictor:
+class PythonPredictor:
     def __init__(self, config):
         """Called once before the API becomes available. Setup for model serving such as downloading/initializing the model or downloading vocabulary can be done here. Required.
 
         Args:
-            config: Dictionary passed to the constructor of a Predictor.
+            config: Dictionary passed from API configuration in cortex.yaml (if specified).
         """
         pass
 
     def predict(self, payload):
-        """Called once per request. Runs inference, any preprocessing of the request payload, and postprocessing of the inference output. Required.
+        """Called once per request. Runs preprocessing of the request payload, inference, and postprocessing of the inference output. Required.
 
         Args:
-            payload: The JSON request payload (parsed in Python).
+            payload: The parsed JSON request payload.
 
         Returns:
             Prediction or a batch of predictions.
@@ -87,7 +87,9 @@ class Predictor:
 import boto3
 from my_model import IrisNet
 
-class Predictor:
+labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
+
+class PythonPredictor:
     def __init__(self, config):
         # download the model
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
@@ -100,7 +102,6 @@ class Predictor:
         model.eval()
 
         self.model = model
-        self.labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
 
     def predict(self, payload):
@@ -120,7 +121,7 @@ class Predictor:
         output = self.model(input_tensor)
 
         # Translate the model output to the corresponding label string
-        return self.labels[torch.argmax(output[0])]
+        return labels[torch.argmax(output[0])]
 ```
 
 ## Pre-installed packages
