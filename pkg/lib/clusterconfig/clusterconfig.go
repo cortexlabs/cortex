@@ -84,6 +84,13 @@ type InternalClusterConfig struct {
 	InstanceMetadata  aws.InstanceMetadata `json:"instance_metadata"`
 }
 
+// Just the bare minimum to identify a cluster
+type AccessClusterConfig struct {
+	ClusterName  *string `json:"cluster_name" yaml:"cluster_name"`
+	Region       *string `json:"region" yaml:"region"`
+	ImageManager string  `json:"image_manager" yaml:"image_manager"`
+}
+
 var UserValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
@@ -330,6 +337,27 @@ var Validation = &cr.StructValidation{
 			},
 		},
 	),
+}
+
+var AccessValidation = &cr.StructValidation{
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField:         "ClusterName",
+			StringPtrValidation: &cr.StringPtrValidation{},
+		},
+		{
+			StructField: "Region",
+			StringPtrValidation: &cr.StringPtrValidation{
+				AllowedValues: aws.EKSSupportedRegions.Slice(),
+			},
+		},
+		{
+			StructField: "ImageManager",
+			StringValidation: &cr.StringValidation{
+				Default: "cortexlabs/manager:" + consts.CortexVersion,
+			},
+		},
+	},
 }
 
 func (cc *ClusterConfig) Validate(accessKeyID string, secretAccessKey string) error {
@@ -653,6 +681,31 @@ func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *Cluster
 	}
 }
 
+var AccessPromptValidation = &cr.PromptValidation{
+	SkipPopulatedFields: true,
+	PromptItemValidations: []*cr.PromptItemValidation{
+		{
+			StructField: "ClusterName",
+			PromptOpts: &prompt.Options{
+				Prompt: ClusterNameUserFacingKey,
+			},
+			StringPtrValidation: &cr.StringPtrValidation{
+				Default: pointer.String("cortex"),
+			},
+		},
+		{
+			StructField: "Region",
+			PromptOpts: &prompt.Options{
+				Prompt: RegionUserFacingKey,
+			},
+			StringPtrValidation: &cr.StringPtrValidation{
+				AllowedValues: aws.EKSSupportedRegions.Slice(),
+				Default:       pointer.String("us-west-2"),
+			},
+		},
+	},
+}
+
 func validateInstanceType(instanceType string) (string, error) {
 	var foundInstance *aws.InstanceMetadata
 	for _, instanceMap := range aws.InstanceMetadatas {
@@ -703,6 +756,16 @@ func GetDefaults() (*ClusterConfig, error) {
 	}
 
 	return cc, nil
+}
+
+func DefaultAccessConfig() (*AccessClusterConfig, error) {
+	accessConfig := &AccessClusterConfig{}
+	var emptyMap interface{} = map[interface{}]interface{}{}
+	errs := cr.Struct(accessConfig, emptyMap, AccessValidation)
+	if errors.HasErrors(errs) {
+		return nil, errors.FirstError(errs...)
+	}
+	return accessConfig, nil
 }
 
 func (cc *InternalClusterConfig) UserFacingTable() table.KeyValuePairs {

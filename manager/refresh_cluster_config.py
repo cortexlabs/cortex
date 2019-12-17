@@ -95,13 +95,9 @@ def refresh_yaml(configmap_yaml_path, output_yaml_path):
 
         cluster_config["spot_config"] = spot_config
 
-    # reset region and cluster name as a final step to prevent broken state
-    cluster_config["region"] = os.environ["CORTEX_REGION"]
-    cluster_config["cluster_name"] = os.environ["CORTEX_CLUSTER_NAME"]
-
     with open(output_yaml_path, "w") as f:
         yaml.dump(cluster_config, f)
 
 
 if __name__ == "__main__":
-    refresh_yaml(sys.argv[1], sys.argv[2])
+    refresh_yaml(configmap_yaml_path=sys.argv[1], output_yaml_path=sys.argv[2])

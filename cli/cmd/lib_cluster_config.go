@@ -18,20 +18,50 @@ package cmd
 
 import (
 	"fmt"
+	"path"
+	"path/filepath"
+	"regexp"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
 
-func readCachedClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, cachedClusterConfigPath)
+func cachedClusterConfigPath(clusterName string, region string) string {
+	return filepath.Join(localDir, fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
+}
+
+func mountedClusterConfigPath(clusterName string, region string) string {
+	return filepath.Join("/.cortex", fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
+}
+
+var _cachedClusterConfigRegex = regexp.MustCompile(`^cluster_\S+\.yaml$`)
+
+func existingCachedClusterConfigPaths() []string {
+	paths, err := files.ListDir(localDir, false)
+	if err != nil {
+		return nil
+	}
+
+	var matches []string
+	for _, p := range paths {
+		if _cachedClusterConfigRegex.MatchString(path.Base(p)) {
+			matches = append(matches, p)
+		}
+	}
+
+	return matches
+}
+
+func readCachedClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig, filePath string) error {
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, filePath)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}
@@ -46,6 +76,43 @@ func readUserClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig) error
 	}
 
 	return nil
+}
+
+func getAccessConfig() (*clusterconfig.AccessClusterConfig, error) {
+	accessClusterConfig, err := clusterconfig.DefaultAccessConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	if flagClusterConfig != "" {
+		errs := cr.ParseYAMLFile(accessClusterConfig, clusterconfig.AccessValidation, flagClusterConfig)
+		if errors.HasErrors(errs) {
+			return nil, errors.FirstError(errs...)
+		}
+	}
+
+	if accessClusterConfig.ClusterName != nil && accessClusterConfig.Region != nil {
+		return accessClusterConfig, nil
+	}
+
+	cachedPaths := existingCachedClusterConfigPaths()
+	if len(cachedPaths) == 1 {
+		cachedAccessClusterConfig := &clusterconfig.AccessClusterConfig{}
+		cr.ParseYAMLFile(cachedAccessClusterConfig, clusterconfig.AccessValidation, cachedPaths[0])
+		if accessClusterConfig.ClusterName == nil {
+			accessClusterConfig.ClusterName = cachedAccessClusterConfig.ClusterName
+		}
+		if accessClusterConfig.Region == nil {
+			accessClusterConfig.Region = cachedAccessClusterConfig.Region
+		}
+	}
+
+	err = cr.ReadPrompt(accessClusterConfig, clusterconfig.AccessPromptValidation)
+	if err != nil {
+		return nil, err
+	}
+
+	return accessClusterConfig, nil
 }
 
 func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, error) {

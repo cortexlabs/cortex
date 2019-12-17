@@ -85,7 +85,7 @@ var upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		_, err = runManagerCommand("/root/install.sh", clusterConfig, awsCreds)
+		_, err = runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -116,7 +116,7 @@ var updateCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		_, err = runManagerCommand("/root/install.sh --update", clusterConfig, awsCreds)
+		_, err = runManagerUpdateCommand("/root/install.sh --update", clusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -141,7 +141,7 @@ var infoCmd = &cobra.Command{
 		fmt.Println("fetching cluster configuration ..." + "\n")
 		clusterConfig := refreshCachedClusterConfig(awsCreds)
 
-		out, err := runManagerCommand("/root/info.sh", clusterConfig, awsCreds)
+		out, err := runManagerAccessCommand("/root/info.sh", clusterConfig.ClusterName, *clusterConfig.Region, clusterConfig.ImageManager, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -192,16 +192,20 @@ var downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		clusterConfig := refreshCachedClusterConfig(awsCreds)
-
-		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), "")
-
-		_, err = runManagerCommand("/root/uninstall.sh", clusterConfig, awsCreds)
+		accessClusterConfig, err := getAccessConfig()
 		if err != nil {
 			exit.Error(err)
 		}
 
-		os.Remove(cachedClusterConfigPath)
+		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessClusterConfig.ClusterName, *accessClusterConfig.Region), "")
+
+		_, err = runManagerAccessCommand("/root/uninstall.sh", *accessClusterConfig.ClusterName, *accessClusterConfig.Region, accessClusterConfig.ImageManager, awsCreds)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		cachedConfigPath := cachedClusterConfigPath(*accessClusterConfig.ClusterName, *accessClusterConfig.Region)
+		os.Remove(cachedConfigPath)
 	},
 }
 
@@ -249,34 +253,18 @@ func promptForEmail() {
 }
 
 func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.ClusterConfig {
-	userClusterConfig := &clusterconfig.ClusterConfig{}
-	err := clusterconfig.SetDefaults(userClusterConfig)
+	accessClusterConfig, err := getAccessConfig()
 	if err != nil {
 		exit.Error(err)
 	}
 
-	if flagClusterConfig != "" {
-		err := readUserClusterConfigFile(userClusterConfig)
-		if err != nil {
-			exit.Error(err)
-		}
+	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
+	cachedConfigPath := cachedClusterConfigPath(*accessClusterConfig.ClusterName, *accessClusterConfig.Region)
+	if !files.IsFile(cachedConfigPath) {
+		files.MakeEmptyFile(cachedConfigPath)
 	}
 
-	// If only one cached cluster.yaml, pull region and cluster name from that
-	// Otherwise: multple clusters, please specify cluster_name and region in your cluster config file (or create one).
-	// Delete cached cluster config on cx cluster down
-	if userClusterConfig.Region == nil {
-		cachedClusterConfig := &clusterconfig.ClusterConfig{}
-		readCachedClusterConfigFile(cachedClusterConfig)
-		userClusterConfig.Region = cachedClusterConfig.Region
-		userClusterConfig.ClusterName = cachedClusterConfig.ClusterName
-	}
-
-	if userClusterConfig.Region == nil {
-		exit.Error(fmt.Sprintf("please configure \"%s\" (e.g. in cluster.yaml) to the aws region of an existing cluster or create a cluster with cortex cluster up", clusterconfig.RegionKey))
-	}
-
-	out, err := runRefreshClusterConfig(userClusterConfig, awsCreds)
+	out, err := runManagerAccessCommand("/root/refresh.sh", *accessClusterConfig.ClusterName, *accessClusterConfig.Region, accessClusterConfig.ImageManager, awsCreds)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -287,6 +275,6 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Cluster
 	}
 
 	refreshedClusterConfig := &clusterconfig.ClusterConfig{}
-	readCachedClusterConfigFile(refreshedClusterConfig)
+	readCachedClusterConfigFile(refreshedClusterConfig, cachedConfigPath)
 	return refreshedClusterConfig
 }

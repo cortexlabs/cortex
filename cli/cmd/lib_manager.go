@@ -109,7 +109,7 @@ func pullManager(managerImage string) error {
 	return nil
 }
 
-func runManager(containerConfig *container.Config, hostConfig *container.HostConfig) (string, error) {
+func runManager(containerConfig *container.Config) (string, error) {
 	docker, err := getDockerClient()
 	if err != nil {
 		return "", err
@@ -118,6 +118,16 @@ func runManager(containerConfig *container.Config, hostConfig *container.HostCon
 	err = pullManager(containerConfig.Image)
 	if err != nil {
 		return "", err
+	}
+
+	hostConfig := &container.HostConfig{
+		Mounts: []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: localDir,
+				Target: "/.cortex",
+			},
+		},
 	}
 
 	containerInfo, err := docker.ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
@@ -180,20 +190,23 @@ func runManager(containerConfig *container.Config, hostConfig *container.HostCon
 	return output, nil
 }
 
-func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (string, error) {
+func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (string, error) {
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
 		return "", errors.WithStack(err)
 	}
 
-	if err := files.WriteFile(clusterConfigBytes, cachedClusterConfigPath); err != nil {
+	cachedConfigPath := cachedClusterConfigPath(clusterConfig.ClusterName, *clusterConfig.Region)
+	if err := files.WriteFile(clusterConfigBytes, cachedConfigPath); err != nil {
 		return "", err
 	}
+
+	mountedConfigPath := mountedClusterConfigPath(clusterConfig.ClusterName, *clusterConfig.Region)
 
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{"sleep 0.1 && eval $(python /root/cluster_config_env.py /.cortex/cluster.yaml) && " + entrypoint},
+		Cmd:          []string{fmt.Sprintf("sleep 0.1 && eval $(python /root/cluster_config_env.py %s) && %s", mountedConfigPath, entrypoint)},
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
@@ -206,19 +219,11 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
 			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
 			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
+			"CORTEX_CLUSTER_CONFIG_FILE=" + mountedConfigPath,
 		},
 	}
 
-	hostConfig := &container.HostConfig{
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: localDir,
-				Target: "/.cortex",
-			},
-		},
-	}
-	output, err := runManager(containerConfig, hostConfig)
+	output, err := runManager(containerConfig)
 	if err != nil {
 		return "", err
 	}
@@ -226,39 +231,27 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 	return output, nil
 }
 
-func runRefreshClusterConfig(clusterName string, region string, managerImage string, awsCreds *AWSCredentials) (string, error) {
-	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
-	if !files.IsFile(cachedClusterConfigPath) {
-		files.MakeEmptyFile(cachedClusterConfigPath)
-	}
-
+func runManagerAccessCommand(entrypoint string, clusterName string, region string, managerImage string, awsCreds *AWSCredentials) (string, error) {
 	containerConfig := &container.Config{
 		Image:        managerImage,
 		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{"sleep 0.1 && /root/refresh.sh"},
+		Cmd:          []string{"sleep 0.1 && " + entrypoint},
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
+			"CORTEX_ENVIRONMENT=" + flagEnv,
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CORTEX_AWS_ACCESS_KEY_ID=" + awsCreds.CortexAWSAccessKeyID,
 			"CORTEX_AWS_SECRET_ACCESS_KEY=" + awsCreds.CortexAWSSecretAccessKey,
 			"CORTEX_CLUSTER_NAME=" + clusterName,
 			"CORTEX_REGION=" + region,
+			"CORTEX_CLUSTER_CONFIG_FILE=" + mountedClusterConfigPath(clusterName, region),
 		},
 	}
 
-	hostConfig := &container.HostConfig{
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: localDir,
-				Target: "/.cortex",
-			},
-		},
-	}
-	output, err := runManager(containerConfig, hostConfig)
+	output, err := runManager(containerConfig)
 	if err != nil {
 		return "", err
 	}
