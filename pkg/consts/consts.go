@@ -30,7 +30,6 @@ var (
 	AppsDir             = "apps"
 	DeploymentsDir      = "deployments"
 	APIsDir             = "apis"
-	RequestHandlersDir  = "request_handlers"
 	ProjectsDir         = "projects"
 	ContextsDir         = "contexts"
 	ResourceStatusesDir = "resource_statuses"

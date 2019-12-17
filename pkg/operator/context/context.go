@@ -69,12 +69,10 @@ func New(
 	}
 	ctx.APIs = apis
 
-	if userconf.AreProjectFilesRequired() {
-		ctx.ProjectID = projectID
-		ctx.ProjectKey = filepath.Join(consts.ProjectsDir, ctx.ProjectID+".zip")
-		if err = config.AWS.UploadBytesToS3(projectBytes, ctx.ProjectKey); err != nil {
-			return nil, err
-		}
+	ctx.ProjectID = projectID
+	ctx.ProjectKey = filepath.Join(consts.ProjectsDir, ctx.ProjectID+".zip")
+	if err = config.AWS.UploadBytesToS3(projectBytes, ctx.ProjectKey); err != nil {
+		return nil, err
 	}
 
 	err = ctx.Validate()

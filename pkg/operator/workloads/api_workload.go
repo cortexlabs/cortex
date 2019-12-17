@@ -98,8 +98,8 @@ func (aw *APIWorkload) Start(ctx *context.Context) error {
 		deploymentSpec = tfAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
 	case api.ONNX != nil:
 		deploymentSpec = onnxAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
-	case api.Predictor != nil:
-		deploymentSpec = predictorAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
+	case api.Python != nil:
+		deploymentSpec = pythonAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
 	default:
 		return errors.New(api.Name, "unknown model format encountered") // unexpected
 	}
@@ -282,6 +282,14 @@ func tfAPISpec(
 		LastLog: fmt.Sprintf(downloaderLastLog, "tensorflow"),
 		DownloadArgs: []downloadContainerArg{
 			{
+				From:             config.AWS.S3Path(ctx.ProjectKey),
+				To:               path.Join(consts.EmptyDirMountPath, "project"),
+				Unzip:            true,
+				ItemName:         "the project code",
+				HideFromLog:      true,
+				HideUnzippingLog: true,
+			},
+			{
 				From:                 ctx.APIs[api.Name].TensorFlow.Model,
 				To:                   path.Join(consts.EmptyDirMountPath, "model"),
 				Unzip:                strings.HasSuffix(ctx.APIs[api.Name].TensorFlow.Model, ".zip"),
@@ -289,20 +297,6 @@ func tfAPISpec(
 				TFModelVersionRename: path.Join(consts.EmptyDirMountPath, "model", "1"),
 			},
 		},
-	}
-
-	if api.TensorFlow.RequestHandler != nil {
-		downloadConfig.DownloadArgs = append(
-			[]downloadContainerArg{
-				{
-					From:             config.AWS.S3Path(ctx.ProjectKey),
-					To:               path.Join(consts.EmptyDirMountPath, "project"),
-					Unzip:            true,
-					ItemName:         "the project code",
-					HideFromLog:      true,
-					HideUnzippingLog: true,
-				},
-			}, downloadConfig.DownloadArgs...)
 	}
 
 	envVars := []kcore.EnvVar{
@@ -452,13 +446,13 @@ func tfAPISpec(
 	})
 }
 
-func predictorAPISpec(
+func pythonAPISpec(
 	ctx *context.Context,
 	api *context.API,
 	workloadID string,
 	desiredReplicas int32,
 ) *kapps.Deployment {
-	servingImage := config.Cluster.ImagePredictorServe
+	servingImage := config.Cluster.ImagePythonServe
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
@@ -468,13 +462,13 @@ func predictorAPISpec(
 	}
 
 	if api.Compute.GPU > 0 {
-		servingImage = config.Cluster.ImagePredictorServeGPU
+		servingImage = config.Cluster.ImagePythonServeGPU
 		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
 	downloadConfig := downloadContainerConfig{
-		LastLog: fmt.Sprintf(downloaderLastLog, "predictor"),
+		LastLog: fmt.Sprintf(downloaderLastLog, "python"),
 		DownloadArgs: []downloadContainerArg{
 			{
 				From:             config.AWS.S3Path(ctx.ProjectKey),
@@ -500,10 +494,10 @@ func predictorAPISpec(
 			},
 		},
 	}
-	if api.Predictor.PythonPath != nil {
+	if api.Python.PythonPath != nil {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  "PYTHON_PATH",
-			Value: path.Join(consts.EmptyDirMountPath, "project", *api.Predictor.PythonPath),
+			Value: path.Join(consts.EmptyDirMountPath, "project", *api.Python.PythonPath),
 		})
 	}
 
@@ -625,25 +619,19 @@ func onnxAPISpec(
 		LastLog: fmt.Sprintf(downloaderLastLog, "onnx"),
 		DownloadArgs: []downloadContainerArg{
 			{
+				From:             config.AWS.S3Path(ctx.ProjectKey),
+				To:               path.Join(consts.EmptyDirMountPath, "project"),
+				Unzip:            true,
+				ItemName:         "the project code",
+				HideFromLog:      true,
+				HideUnzippingLog: true,
+			},
+			{
 				From:     ctx.APIs[api.Name].ONNX.Model,
 				To:       path.Join(consts.EmptyDirMountPath, "model"),
 				ItemName: "the model",
 			},
 		},
-	}
-
-	if api.ONNX.RequestHandler != nil {
-		downloadConfig.DownloadArgs = append(
-			[]downloadContainerArg{
-				{
-					From:             config.AWS.S3Path(ctx.ProjectKey),
-					To:               path.Join(consts.EmptyDirMountPath, "project"),
-					Unzip:            true,
-					ItemName:         "the project code",
-					HideFromLog:      true,
-					HideUnzippingLog: true,
-				},
-			}, downloadConfig.DownloadArgs...)
 	}
 
 	envVars := []kcore.EnvVar{

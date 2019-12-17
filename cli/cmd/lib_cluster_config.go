@@ -271,11 +271,11 @@ func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.ClusterConfig, aws
 		items.Add(clusterconfig.TelemetryUserFacingKey, clusterConfig.Telemetry)
 	}
 
-	if clusterConfig.ImagePredictorServe != defaultConfig.ImagePredictorServe {
-		items.Add(clusterconfig.ImagePredictorServeUserFacingKey, clusterConfig.ImagePredictorServe)
+	if clusterConfig.ImagePythonServe != defaultConfig.ImagePythonServe {
+		items.Add(clusterconfig.ImagePythonServeUserFacingKey, clusterConfig.ImagePythonServe)
 	}
-	if clusterConfig.ImagePredictorServeGPU != defaultConfig.ImagePredictorServeGPU {
-		items.Add(clusterconfig.ImagePredictorServeGPUUserFacingKey, clusterConfig.ImagePredictorServeGPU)
+	if clusterConfig.ImagePythonServeGPU != defaultConfig.ImagePythonServeGPU {
+		items.Add(clusterconfig.ImagePythonServeGPUUserFacingKey, clusterConfig.ImagePythonServeGPU)
 	}
 	if clusterConfig.ImageTFServe != defaultConfig.ImageTFServe {
 		items.Add(clusterconfig.ImageTFServeUserFacingKey, clusterConfig.ImageTFServe)

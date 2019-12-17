@@ -7,7 +7,7 @@
   name: analyzer
   tensorflow:
     model: s3://cortex-examples/tensorflow/sentiment-analyzer/bert
-    request_handler: handler.py
+    predictor: predictor.py
   tracker:
     model_type: classification
   compute:

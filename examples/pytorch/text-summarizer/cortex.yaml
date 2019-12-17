@@ -5,7 +5,7 @@
 
 - kind: api
   name: summarizer
-  predictor:
-    path: predictor.py
+  python:
+    predictor: predictor.py
   compute:
     mem: 4G

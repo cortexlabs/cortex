@@ -3,7 +3,7 @@
 from summarizer import Summarizer
 
 
-class Predictor:
+class PythonPredictor:
     def __init__(self, config):
         self.model = Summarizer()
 

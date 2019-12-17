@@ -119,8 +119,8 @@ test-examples:
 ###############
 
 ci-build-images:
-	@./build/build-image.sh images/predictor-serve predictor-serve
-	@./build/build-image.sh images/predictor-serve-gpu predictor-serve-gpu
+	@./build/build-image.sh images/python-serve python-serve
+	@./build/build-image.sh images/python-serve-gpu python-serve-gpu
 	@./build/build-image.sh images/tf-serve tf-serve
 	@./build/build-image.sh images/tf-serve-gpu tf-serve-gpu
 	@./build/build-image.sh images/tf-api tf-api
@@ -140,8 +140,8 @@ ci-build-images:
 	@./build/build-image.sh images/istio-galley istio-galley
 
 ci-push-images:
-	@./build/push-image.sh predictor-serve
-	@./build/push-image.sh predictor-serve-gpu
+	@./build/push-image.sh python-serve
+	@./build/push-image.sh python-serve-gpu
 	@./build/push-image.sh tf-serve
 	@./build/push-image.sh tf-serve-gpu
 	@./build/push-image.sh tf-api

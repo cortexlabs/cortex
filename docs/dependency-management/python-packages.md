@@ -9,12 +9,12 @@ You can install your required PyPI packages and import them in your Python files
 ```text
 ./iris-classifier/
 ├── cortex.yaml
-├── handler.py
+├── predictor.py
 ├── ...
 └── requirements.txt
 ```
 
-Note that some packages are pre-installed by default (see [predictor](../deployments/predictor.md) or [request handlers](../deployments/request-handlers.md) depending on which runtime you're using).
+Note that some packages are pre-installed by default (see [python predictor](../deployments/python.md), [tensorflow predictor](../deployments/tensorflow.md), [onnx predictor](../deployments/onnx.md) depending on which runtime you're using).
 
 ## Private packages on GitHub
 
@@ -30,28 +30,27 @@ You can generate a personal access token by following [these steps](https://help
 
 ## Project files
 
-Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available to request handlers. Python bytecode files (`*.pyc`, `*.pyo`, `*.pyd`), files or folders that start with `.`, and `cortex.yaml` are excluded.
+Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available for use in your Predictor implementations. Python bytecode files (`*.pyc`, `*.pyo`, `*.pyd`), files or folders that start with `.`, and `cortex.yaml` are excluded.
 
 The contents of the project directory is available in `/mnt/project/` in the API containers. For example, if this is your project directory:
 
 ```text
 ./iris-classifier/
 ├── cortex.yaml
-├── config.json
-├── handler.py
+├── values.json
+├── predictor.py
 ├── ...
 └── requirements.txt
 ```
 
-You can access `config.json` in `handler.py` like this:
+You can access `values.json` in `predictor.py` like this:
 
 ```python
 import json
 
-with open('/mnt/project/config.json', 'r') as config_file:
-  config = json.load(config_file)
-
-def pre_inference(payload, signature, metadata):
-  print(config)
-  ...
+class PythonPredictor:
+    def __init__(self, config):
+        with open('/mnt/project/values.json', 'r') as values_file:
+            values = json.load(values_file)
+        self.values = values
 ```

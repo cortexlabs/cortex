@@ -79,7 +79,7 @@ def sample_sequence(
     return generated
 
 
-class Predictor:
+class PythonPredictor:
     def __init__(self, config):
         self.num_words = config.get("num_words", 20)
         self.device = config.get("device", "cpu")
