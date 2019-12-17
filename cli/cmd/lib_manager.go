@@ -231,9 +231,9 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Clu
 	return output, nil
 }
 
-func runManagerAccessCommand(entrypoint string, clusterName string, region string, managerImage string, awsCreds *AWSCredentials) (string, error) {
+func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.AccessClusterConfig, awsCreds *AWSCredentials) (string, error) {
 	containerConfig := &container.Config{
-		Image:        managerImage,
+		Image:        accessConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
 		Cmd:          []string{"sleep 0.1 && " + entrypoint},
 		Tty:          true,
@@ -245,8 +245,8 @@ func runManagerAccessCommand(entrypoint string, clusterName string, region strin
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CORTEX_AWS_ACCESS_KEY_ID=" + awsCreds.CortexAWSAccessKeyID,
 			"CORTEX_AWS_SECRET_ACCESS_KEY=" + awsCreds.CortexAWSSecretAccessKey,
-			"CORTEX_CLUSTER_NAME=" + clusterName,
-			"CORTEX_REGION=" + region,
+			"CORTEX_CLUSTER_NAME=" + *accessConfig.ClusterName,
+			"CORTEX_REGION=" + *accessConfig.Region,
 		},
 	}
 

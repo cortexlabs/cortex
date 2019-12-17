@@ -79,40 +79,40 @@ func readUserClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig) error
 }
 
 func getAccessClusterConfig() (*clusterconfig.AccessClusterConfig, error) {
-	accessClusterConfig, err := clusterconfig.DefaultAccessConfig()
+	accessConfig, err := clusterconfig.DefaultAccessConfig()
 	if err != nil {
 		return nil, err
 	}
 
 	if flagClusterConfig != "" {
-		errs := cr.ParseYAMLFile(accessClusterConfig, clusterconfig.AccessValidation, flagClusterConfig)
+		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, flagClusterConfig)
 		if errors.HasErrors(errs) {
 			return nil, errors.FirstError(errs...)
 		}
 	}
 
-	if accessClusterConfig.ClusterName != nil && accessClusterConfig.Region != nil {
-		return accessClusterConfig, nil
+	if accessConfig.ClusterName != nil && accessConfig.Region != nil {
+		return accessConfig, nil
 	}
 
 	cachedPaths := existingCachedClusterConfigPaths()
 	if len(cachedPaths) == 1 {
 		cachedAccessClusterConfig := &clusterconfig.AccessClusterConfig{}
 		cr.ParseYAMLFile(cachedAccessClusterConfig, clusterconfig.AccessValidation, cachedPaths[0])
-		if accessClusterConfig.ClusterName == nil {
-			accessClusterConfig.ClusterName = cachedAccessClusterConfig.ClusterName
+		if accessConfig.ClusterName == nil {
+			accessConfig.ClusterName = cachedAccessClusterConfig.ClusterName
 		}
-		if accessClusterConfig.Region == nil {
-			accessClusterConfig.Region = cachedAccessClusterConfig.Region
+		if accessConfig.Region == nil {
+			accessConfig.Region = cachedAccessClusterConfig.Region
 		}
 	}
 
-	err = cr.ReadPrompt(accessClusterConfig, clusterconfig.AccessPromptValidation)
+	err = cr.ReadPrompt(accessConfig, clusterconfig.AccessPromptValidation)
 	if err != nil {
 		return nil, err
 	}
 
-	return accessClusterConfig, nil
+	return accessConfig, nil
 }
 
 func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, error) {

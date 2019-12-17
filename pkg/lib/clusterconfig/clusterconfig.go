@@ -360,6 +360,16 @@ var AccessValidation = &cr.StructValidation{
 	},
 }
 
+func (cc *ClusterConfig) ToAccessConfig() AccessClusterConfig {
+	clusterName := cc.ClusterName
+	region := *cc.Region
+	return AccessClusterConfig{
+		ClusterName:  &clusterName,
+		Region:       &region,
+		ImageManager: cc.ImageManager,
+	}
+}
+
 func (cc *ClusterConfig) Validate(accessKeyID string, secretAccessKey string) error {
 	if *cc.MinInstances > *cc.MaxInstances {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)

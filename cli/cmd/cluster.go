@@ -141,7 +141,7 @@ var infoCmd = &cobra.Command{
 		fmt.Println("fetching cluster configuration ..." + "\n")
 		clusterConfig := refreshCachedClusterConfig(awsCreds)
 
-		out, err := runManagerAccessCommand("/root/info.sh", clusterConfig.ClusterName, *clusterConfig.Region, clusterConfig.ImageManager, awsCreds)
+		out, err := runManagerAccessCommand("/root/info.sh", clusterConfig.ToAccessConfig(), awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -192,19 +192,19 @@ var downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessClusterConfig, err := getAccessClusterConfig()
+		accessConfig, err := getAccessClusterConfig()
 		if err != nil {
 			exit.Error(err)
 		}
 
-		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessClusterConfig.ClusterName, *accessClusterConfig.Region), "")
+		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "")
 
-		_, err = runManagerAccessCommand("/root/uninstall.sh", *accessClusterConfig.ClusterName, *accessClusterConfig.Region, accessClusterConfig.ImageManager, awsCreds)
+		_, err = runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		cachedConfigPath := cachedClusterConfigPath(*accessClusterConfig.ClusterName, *accessClusterConfig.Region)
+		cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 		os.Remove(cachedConfigPath)
 	},
 }
@@ -253,20 +253,20 @@ func promptForEmail() {
 }
 
 func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.ClusterConfig {
-	accessClusterConfig, err := getAccessClusterConfig()
+	accessConfig, err := getAccessClusterConfig()
 	if err != nil {
 		exit.Error(err)
 	}
 
 	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
-	cachedConfigPath := cachedClusterConfigPath(*accessClusterConfig.ClusterName, *accessClusterConfig.Region)
+	cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 	if !files.IsFile(cachedConfigPath) {
 		files.MakeEmptyFile(cachedConfigPath)
 	}
 
-	mountedConfigPath := cachedClusterConfigPath(*accessClusterConfig.ClusterName, *accessClusterConfig.Region)
+	mountedConfigPath := mountedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 
-	out, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessClusterConfig.ClusterName, *accessClusterConfig.Region, accessClusterConfig.ImageManager, awsCreds)
+	out, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds)
 	if err != nil {
 		exit.Error(err)
 	}
