@@ -122,6 +122,8 @@ def start(args):
         if api.get("onnx") is None:
             raise CortexException(api["name"], "onnx key not configured")
 
+        cx_logger().info("loading the predictor from {}".format(api["onnx"]["predictor"]))
+
         _, prefix = ctx.storage.deconstruct_s3_path(api["onnx"]["model"])
         model_path = os.path.join(args.model_dir, os.path.basename(prefix))
         local_cache["client"] = ONNXClient(model_path)

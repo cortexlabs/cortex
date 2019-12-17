@@ -17,7 +17,7 @@ In addition to supporting Python models via the Python Predictor interface, Cort
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
   python:
     predictor: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
-    config: <string: value>  # dictionary passed to the constructor of a Predictor
+    config: <string: value>  # dictionary passed to the constructor of a Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)

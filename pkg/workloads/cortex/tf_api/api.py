@@ -172,6 +172,8 @@ def start(args):
         if api.get("tensorflow") is None:
             raise CortexException(api["name"], "tensorflow key not configured")
 
+        cx_logger().info("loading the predictor from {}".format(api["tensorflow"]["predictor"]))
+
         predictor_class = ctx.get_predictor_class(api["name"], args.project_dir)
 
         local_cache["predictor"] = predictor_class(
