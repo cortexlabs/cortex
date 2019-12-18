@@ -340,6 +340,7 @@ var Validation = &cr.StructValidation{
 }
 
 var AccessValidation = &cr.StructValidation{
+	AllowExtraFields: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
 			StructField:         "ClusterName",
