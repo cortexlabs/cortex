@@ -25,14 +25,14 @@ eval $(python3 $ROOT/manager/cluster_config_env.py "$ROOT/dev/config/cluster.yam
 
 python3 $ROOT/manager/update_cli_config.py "$HOME/.cortex/cli.yaml" "default" "http://localhost:8888" "$CORTEX_AWS_ACCESS_KEY_ID" "$CORTEX_AWS_SECRET_ACCESS_KEY"
 
-cp -r $ROOT/dev/config/cluster.yaml ~/.cortex/cluster-local.yaml
+cp -r $ROOT/dev/config/cluster.yaml ~/.cortex/cluster-dev.yaml
 
 if grep -qiP '^telemetry:\s*false\s*$' ~/.cortex/cli.yaml; then
-  echo "telemetry: false" >> ~/.cortex/cluster-local.yaml
+  echo "telemetry: false" >> ~/.cortex/cluster-dev.yaml
 fi
 
 export CORTEX_OPERATOR_IN_CLUSTER=false
-export CORTEX_CLUSTER_CONFIG_PATH=~/.cortex/cluster-local.yaml
+export CORTEX_CLUSTER_CONFIG_PATH=~/.cortex/cluster-dev.yaml
 
 rerun -watch $ROOT/pkg $ROOT/cli $ROOT/dev/config -ignore $ROOT/vendor $ROOT/bin -run sh -c \
 "go build -o $ROOT/bin/operator $ROOT/pkg/operator && go build -installsuffix cgo -o $ROOT/bin/cortex $ROOT/cli && $ROOT/bin/operator"

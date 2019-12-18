@@ -25,8 +25,8 @@ import (
 )
 
 type InfoResponse struct {
-	MaskedAWSAccessKeyID string                               `json:"masked_aws_access_key_id"`
-	ClusterConfig        *clusterconfig.InternalClusterConfig `json:"cluster_config"`
+	MaskedAWSAccessKeyID string                        `json:"masked_aws_access_key_id"`
+	ClusterConfig        *clusterconfig.InternalConfig `json:"cluster_config"`
 }
 
 type DeployResponse struct {

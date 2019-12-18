@@ -33,7 +33,7 @@ import (
 )
 
 var (
-	Cluster         *clusterconfig.InternalClusterConfig
+	Cluster         *clusterconfig.InternalConfig
 	AWS             *aws.Client
 	Kubernetes      *k8s.Client
 	IstioKubernetes *k8s.Client
@@ -42,7 +42,7 @@ var (
 func Init() error {
 	var err error
 
-	Cluster = &clusterconfig.InternalClusterConfig{
+	Cluster = &clusterconfig.InternalConfig{
 		APIVersion:        consts.CortexVersion,
 		OperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 	}

@@ -224,7 +224,7 @@ function setup_cloudwatch_logs() {
 
 function setup_configmap() {
   kubectl -n=cortex create configmap 'cluster-config' \
-    --from-file='cluster.yaml'='/.cortex/cluster.yaml' \
+    --from-file='cluster.yaml'=$CORTEX_CLUSTER_CONFIG_FILE \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 
   kubectl -n=cortex create configmap 'env-vars' \
