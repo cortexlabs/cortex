@@ -206,7 +206,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.ClusterConfig, aws
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
-			fmt.Println(fmt.Sprintf("WARNING: you've disabled on-demand instances (%ds=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey))
+			fmt.Println(fmt.Sprintf("WARNING: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey))
 		} else {
 			fmt.Println("WARNING: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters")
 		}
