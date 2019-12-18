@@ -110,7 +110,7 @@ var updateCmd = &cobra.Command{
 
 		cachedClusterConfig := refreshCachedClusterConfig(awsCreds)
 
-		clusterConfig, err := getUpdateClusterConfig(cachedClusterConfig, awsCreds)
+		clusterConfig, err := getClusterUpdateConfig(cachedClusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -164,7 +164,7 @@ var infoCmd = &cobra.Command{
 			fmt.Println("\n" + errors.Wrap(err, "unable to parse operator response").Error())
 			return
 		}
-		infoResponse.ClusterConfig.ClusterConfig = *clusterConfig
+		infoResponse.ClusterConfig.Config = *clusterConfig
 
 		var items table.KeyValuePairs
 		items.Add("aws access key id", infoResponse.MaskedAWSAccessKeyID)
@@ -190,7 +190,7 @@ var downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessConfig, err := getAccessClusterConfig()
+		accessConfig, err := getClusterAccessConfig()
 		if err != nil {
 			exit.Error(err)
 		}
@@ -250,8 +250,8 @@ func promptForEmail() {
 	}
 }
 
-func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.ClusterConfig {
-	accessConfig, err := getAccessClusterConfig()
+func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Config {
+	accessConfig, err := getClusterAccessConfig()
 	if err != nil {
 		exit.Error(err)
 	}
@@ -277,7 +277,7 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Cluster
 		exit.ErrorNoPrint()
 	}
 
-	refreshedClusterConfig := &clusterconfig.ClusterConfig{}
+	refreshedClusterConfig := &clusterconfig.Config{}
 	readCachedClusterConfigFile(refreshedClusterConfig, cachedConfigPath)
 	return refreshedClusterConfig
 }

@@ -33,7 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
 
-type ClusterConfig struct {
+type Config struct {
 	InstanceType           *string     `json:"instance_type" yaml:"instance_type"`
 	MinInstances           *int64      `json:"min_instances" yaml:"min_instances"`
 	MaxInstances           *int64      `json:"max_instances" yaml:"max_instances"`
@@ -74,8 +74,8 @@ type SpotConfig struct {
 	InstancePools                       *int64   `json:"instance_pools" yaml:"instance_pools"`
 }
 
-type InternalClusterConfig struct {
-	ClusterConfig
+type InternalConfig struct {
+	Config
 
 	// Populated by operator
 	ID                string               `json:"id"`
@@ -85,7 +85,7 @@ type InternalClusterConfig struct {
 }
 
 // The bare minimum to identify a cluster
-type AccessClusterConfig struct {
+type AccessConfig struct {
 	ClusterName  *string `json:"cluster_name" yaml:"cluster_name"`
 	Region       *string `json:"region" yaml:"region"`
 	ImageManager string  `json:"image_manager" yaml:"image_manager"`
@@ -361,17 +361,17 @@ var AccessValidation = &cr.StructValidation{
 	},
 }
 
-func (cc *ClusterConfig) ToAccessConfig() AccessClusterConfig {
+func (cc *Config) ToAccessConfig() AccessConfig {
 	clusterName := cc.ClusterName
 	region := *cc.Region
-	return AccessClusterConfig{
+	return AccessConfig{
 		ClusterName:  &clusterName,
 		Region:       &region,
 		ImageManager: cc.ImageManager,
 	}
 }
 
-func (cc *ClusterConfig) Validate(accessKeyID string, secretAccessKey string) error {
+func (cc *Config) Validate(accessKeyID string, secretAccessKey string) error {
 	if *cc.MinInstances > *cc.MaxInstances {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
@@ -534,7 +534,7 @@ func AutoGenerateSpotConfig(spotConfig *SpotConfig, region string, instanceType 
 	return nil
 }
 
-func (cc *ClusterConfig) AutoFillSpot() error {
+func (cc *Config) AutoFillSpot() error {
 	if cc.SpotConfig == nil {
 		cc.SpotConfig = &SpotConfig{}
 	}
@@ -545,8 +545,8 @@ func (cc *ClusterConfig) AutoFillSpot() error {
 	return nil
 }
 
-func applyPromptDefaults(defaults ClusterConfig) *ClusterConfig {
-	defaultConfig := &ClusterConfig{
+func applyPromptDefaults(defaults Config) *Config {
+	defaultConfig := &Config{
 		Region:       pointer.String("us-west-2"),
 		InstanceType: pointer.String("m5.large"),
 		MinInstances: pointer.Int64(1),
@@ -573,7 +573,7 @@ func applyPromptDefaults(defaults ClusterConfig) *ClusterConfig {
 	return defaultConfig
 }
 
-func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecretAccessKey string) error {
+func InstallPrompt(clusterConfig *Config, awsAccessKeyID string, awsSecretAccessKey string) error {
 	defaults := applyPromptDefaults(*clusterConfig)
 
 	regionPrompt := &cr.PromptValidation{
@@ -660,7 +660,7 @@ func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecre
 	return nil
 }
 
-func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *ClusterConfig) *cr.PromptValidation {
+func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *Config) *cr.PromptValidation {
 	defaults := applyPromptDefaults(*userClusterConfig)
 
 	return &cr.PromptValidation{
@@ -749,7 +749,7 @@ func validateInstanceDistribution(instances []string) ([]string, error) {
 }
 
 // This does not set defaults for fields that are prompted from the user
-func SetDefaults(cc *ClusterConfig) error {
+func SetDefaults(cc *Config) error {
 	var emptyMap interface{} = map[interface{}]interface{}{}
 	errs := cr.Struct(cc, emptyMap, Validation)
 	if errors.HasErrors(errs) {
@@ -759,8 +759,8 @@ func SetDefaults(cc *ClusterConfig) error {
 }
 
 // This does not set defaults for fields that are prompted from the user
-func GetDefaults() (*ClusterConfig, error) {
-	cc := &ClusterConfig{}
+func GetDefaults() (*Config, error) {
+	cc := &Config{}
 	err := SetDefaults(cc)
 	if err != nil {
 		return nil, err
@@ -769,8 +769,8 @@ func GetDefaults() (*ClusterConfig, error) {
 	return cc, nil
 }
 
-func DefaultAccessConfig() (*AccessClusterConfig, error) {
-	accessConfig := &AccessClusterConfig{}
+func DefaultAccessConfig() (*AccessConfig, error) {
+	accessConfig := &AccessConfig{}
 	var emptyMap interface{} = map[interface{}]interface{}{}
 	errs := cr.Struct(accessConfig, emptyMap, AccessValidation)
 	if errors.HasErrors(errs) {
@@ -779,19 +779,19 @@ func DefaultAccessConfig() (*AccessClusterConfig, error) {
 	return accessConfig, nil
 }
 
-func (cc *InternalClusterConfig) UserFacingTable() table.KeyValuePairs {
+func (cc *InternalConfig) UserFacingTable() table.KeyValuePairs {
 	var items table.KeyValuePairs
 
 	items.Add(APIVersionUserFacingKey, cc.APIVersion)
-	items.AddAll(cc.ClusterConfig.UserFacingTable())
+	items.AddAll(cc.Config.UserFacingTable())
 	return items
 }
 
-func (cc *InternalClusterConfig) UserFacingString() string {
+func (cc *InternalConfig) UserFacingString() string {
 	return cc.UserFacingTable().String()
 }
 
-func (cc *ClusterConfig) UserFacingTable() table.KeyValuePairs {
+func (cc *Config) UserFacingTable() table.KeyValuePairs {
 	var items table.KeyValuePairs
 
 	items.Add(ClusterNameUserFacingKey, cc.ClusterName)
@@ -835,6 +835,6 @@ func (cc *ClusterConfig) UserFacingTable() table.KeyValuePairs {
 	return items
 }
 
-func (cc *ClusterConfig) UserFacingString() string {
+func (cc *Config) UserFacingString() string {
 	return cc.UserFacingTable().String()
 }

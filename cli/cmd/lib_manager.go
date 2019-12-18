@@ -190,7 +190,7 @@ func runManager(containerConfig *container.Config) (string, error) {
 	return output, nil
 }
 
-func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (string, error) {
+func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) (string, error) {
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
 		return "", errors.WithStack(err)
@@ -231,7 +231,7 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Clu
 	return output, nil
 }
 
-func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.AccessClusterConfig, awsCreds *AWSCredentials) (string, error) {
+func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.AccessConfig, awsCreds *AWSCredentials) (string, error) {
 	containerConfig := &container.Config{
 		Image:        accessConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
