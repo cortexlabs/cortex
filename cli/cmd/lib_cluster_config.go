@@ -74,7 +74,7 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterCo
 	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
-		clusterConfig.AutoFillSpot()
+		clusterConfig.AutoFillSpot(awsCreds.CortexAWSAccessKeyID, awsCreds.AWSSecretAccessKey)
 	}
 
 	err = clusterConfig.Validate(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
@@ -125,7 +125,7 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 		userClusterConfig.Spot = cachedClusterConfig.Spot
 
 		if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
-			err = userClusterConfig.AutoFillSpot()
+			err = userClusterConfig.AutoFillSpot(awsCreds.CortexAWSAccessKeyID, awsCreds.AWSSecretAccessKey)
 			if err != nil {
 				return nil, err
 			}
@@ -204,6 +204,15 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.ClusterConfig, aws
 
 	fmt.Println()
 
+	if clusterConfig.Spot != nil && *clusterConfig.Spot {
+		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
+			fmt.Println(fmt.Sprintf("WARNING: you've disabled on-demand instances (%ds=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey)
+		} else {
+			fmt.Println("WARNING: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters")
+		}
+		fmt.Println()
+	}
+
 	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor)
 	prompt.YesOrExit("would you like to continue with this installation?", exitMessage)
 }
@@ -243,7 +252,7 @@ func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.ClusterConfig, aws
 
 		if clusterConfig.SpotConfig != nil {
 			defaultSpotConfig := clusterconfig.SpotConfig{}
-			clusterconfig.AutoGenerateSpotConfig(&defaultSpotConfig, *clusterConfig.Region, *clusterConfig.InstanceType)
+			clusterconfig.AutoGenerateSpotConfig(awsCreds.CortexAWSAccessKeyID, awsCreds.AWSSecretAccessKey, &defaultSpotConfig, *clusterConfig.Region, *clusterConfig.InstanceType)
 
 			if !strset.New(clusterConfig.SpotConfig.InstanceDistribution...).IsEqual(strset.New(defaultSpotConfig.InstanceDistribution...)) {
 				items.Add(clusterconfig.InstanceDistributionUserFacingKey, clusterConfig.SpotConfig.InstanceDistribution)

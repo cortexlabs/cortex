@@ -158,6 +158,13 @@ func ErrorIncompatibleSpotInstanceTypeGPU(target aws.InstanceMetadata, suggested
 	}
 }
 
+func ErrorSpotPriceGreaterThanTargetOnDemand(suggestedSpotPrice float64, target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
+	return Error{
+		Kind:    ErrIncompatibleSpotInstanceTypeGPU,
+		message: fmt.Sprintf("%s will not be allocated because its current spot price is %g which is greater than than %s on-demand price %g", suggested.Type, suggestedSpotPrice, target.Type, target.Price),
+	}
+}
+
 func ErrorInstanceTypeNotSupported(instanceType string) error {
 	return Error{
 		Kind:    ErrInstanceTypeNotSupported,
