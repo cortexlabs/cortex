@@ -42,24 +42,8 @@ log_group: cortex
 cluster_name: cortex
 
 # whether to use spot instances in the cluster (default: false)
+# see cortex.dev/cluster-management/spot-instances for additional details on spot configuration
 spot: false
-
-spot_config:
-  # additional instances with identical or better specs than the primary instance type (defaults to 2 instances sorted by price)
-  instance_distribution: [t3.large, t3a.large]  # (defaults for the m5.large instance type)
-
-  # minimum number of on demand instances (default: 0)
-  on_demand_base_capacity: 0
-
-  # percentage of on demand instances to use after the on demand base capacity has been met [0, 100] (default: 1)
-  # note: setting this to 0 may hinder cluster scale up when spot instances are not available
-  on_demand_percentage_above_base_capacity: 1
-
-  # max price for instances (defaults to the on demand price of the primary instance type)
-  max_price: 0.096
-
-  # number of spot instance pools across which to allocate spot instances [1, 20] (default: 2)
-  instance_pools: 2
 
 # docker image paths
 image_python_serve: cortexlabs/python-serve:master

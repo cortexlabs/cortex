@@ -33,6 +33,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
 
+var (
+	_spotInstanceDistributionLength     = 2
+	_onDemandPercentageAboveBaseDefault = 50
+	_maxInstancePools                   = 20
+)
+
 type ClusterConfig struct {
 	InstanceType           *string     `json:"instance_type" yaml:"instance_type"`
 	MinInstances           *int64      `json:"min_instances" yaml:"min_instances"`
@@ -158,7 +164,7 @@ var UserValidation = &cr.StructValidation{
 						StructField: "InstancePools",
 						Int64PtrValidation: &cr.Int64PtrValidation{
 							GreaterThanOrEqualTo: pointer.Int64(1),
-							LessThanOrEqualTo:    pointer.Int64(20),
+							LessThanOrEqualTo:    pointer.Int64(int64(_maxInstancePools)),
 							AllowExplicitNull:    true,
 						},
 					},
@@ -348,7 +354,7 @@ func (cc *ClusterConfig) Validate(accessKeyID string, secretAccessKey string) er
 
 	if cc.Spot != nil && *cc.Spot {
 		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
-		compatibleSpots := CompatibleSpotInstances(accessKeyID, secretAccessKey, chosenInstance)
+		compatibleSpots := CompatibleSpotInstances(accessKeyID, secretAccessKey, chosenInstance, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
 			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
 		}
@@ -362,8 +368,7 @@ func (cc *ClusterConfig) Validate(accessKeyID string, secretAccessKey string) er
 				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, *cc.Region), InstanceDistributionKey)
 			}
 
-			instanceMetadata := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
-
+			instanceMetadata := aws.InstanceMetadatas[*cc.Region][instanceType]
 			err := CheckSpotInstanceCompatibility(accessKeyID, secretAccessKey, chosenInstance, instanceMetadata)
 			if err != nil {
 				return errors.Wrap(err, InstanceDistributionKey)
@@ -374,12 +379,8 @@ func (cc *ClusterConfig) Validate(accessKeyID string, secretAccessKey string) er
 
 		if compatibleInstanceCount == 0 {
 			suggestions := []string{}
-			compatibleSpots := CompatibleSpotInstances(accessKeyID, secretAccessKey, chosenInstance)
 			for _, compatibleInstance := range compatibleSpots {
 				suggestions = append(suggestions, compatibleInstance.Type)
-				if len(suggestions) == 3 {
-					break
-				}
 			}
 			return ErrorAtLeastOneInstanceDistribution(*cc.InstanceType, suggestions...)
 		}
@@ -438,14 +439,23 @@ func CheckSpotInstanceCompatibility(accessKeyID string, secretAccessKey string, 
 	return nil
 }
 
-func CompatibleSpotInstances(accessKeyID string, secretAccessKey string, targetInstance aws.InstanceMetadata) []aws.InstanceMetadata {
+func CompatibleSpotInstances(accessKeyID string, secretAccessKey string, targetInstance aws.InstanceMetadata, numInstances int) []aws.InstanceMetadata {
 	compatibleInstances := []aws.InstanceMetadata{}
 	instanceMap := aws.InstanceMetadatas[targetInstance.Region]
+	availableInstances := []aws.InstanceMetadata{}
+
 	for instanceType, instanceMetadata := range instanceMap {
 		if instanceType == targetInstance.Type {
 			continue
 		}
+		availableInstances = append(availableInstances, instanceMetadata)
+	}
 
+	sort.Slice(availableInstances, func(i, j int) bool {
+		return availableInstances[i].Price < availableInstances[j].Price
+	})
+
+	for _, instanceMetadata := range availableInstances {
 		if err := CheckCortexSupport(instanceMetadata); err != nil {
 			continue
 		}
@@ -455,11 +465,12 @@ func CompatibleSpotInstances(accessKeyID string, secretAccessKey string, targetI
 		}
 
 		compatibleInstances = append(compatibleInstances, instanceMetadata)
+
+		if len(compatibleInstances) == numInstances {
+			break
+		}
 	}
 
-	sort.Slice(compatibleInstances, func(i, j int) bool {
-		return compatibleInstances[i].Price < compatibleInstances[j].Price
-	})
 	return compatibleInstances
 }
 
@@ -468,16 +479,13 @@ func AutoGenerateSpotConfig(accessKeyID string, secretAccessKey string, spotConf
 	if len(spotConfig.InstanceDistribution) == 0 {
 		spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, chosenInstance.Type)
 
-		compatibleSpots := CompatibleSpotInstances(accessKeyID, secretAccessKey, chosenInstance)
+		compatibleSpots := CompatibleSpotInstances(accessKeyID, secretAccessKey, chosenInstance, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
 			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
 		}
 
 		for _, instance := range compatibleSpots {
 			spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, instance.Type)
-			if len(spotConfig.InstanceDistribution) == 3 {
-				break
-			}
 		}
 	} else {
 		instanceDistributionSet := strset.New(spotConfig.InstanceDistribution...)
@@ -493,11 +501,15 @@ func AutoGenerateSpotConfig(accessKeyID string, secretAccessKey string, spotConf
 	}
 
 	if spotConfig.OnDemandPercentageAboveBaseCapacity == nil {
-		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(1)
+		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(int64(_onDemandPercentageAboveBaseDefault))
 	}
 
 	if spotConfig.InstancePools == nil {
-		spotConfig.InstancePools = pointer.Int64(int64(len(spotConfig.InstanceDistribution)))
+		if len(spotConfig.InstanceDistribution) < _maxInstancePools {
+			spotConfig.InstancePools = pointer.Int64(int64(len(spotConfig.InstanceDistribution)))
+		} else {
+			spotConfig.InstancePools = pointer.Int64(int64(_maxInstancePools))
+		}
 	}
 	return nil
 }
