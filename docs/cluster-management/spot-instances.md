@@ -1,5 +1,7 @@
 # Spot Instances
 
+_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
 [Spot Instances](https://aws.amazon.com/ec2/spot/) are spare capacity that AWS sells at a discount (up to 90%). The caveat is that Spot instances can be recalled by AWS at anytime. Cortex allows you to use Spot Instances in your cluster to take advantage of the discount while ensuring uptime and reliability of deployments. You can enable and configure your cluster to use Spot Instances using the configuration below.
 
 ```yaml
