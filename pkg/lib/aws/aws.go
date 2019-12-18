@@ -20,6 +20,8 @@ limitations under the License.
 package aws
 
 import (
+	"sort"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -46,12 +48,15 @@ type Client struct {
 }
 
 var EKSSupportedRegions strset.Set
+var EKSSupportedRegionsSlice []string
 
 func init() {
 	EKSSupportedRegions = strset.New()
 	for region := range InstanceMetadatas {
 		EKSSupportedRegions.Add(region)
 	}
+	EKSSupportedRegionsSlice = EKSSupportedRegions.Slice()
+	sort.Strings(EKSSupportedRegionsSlice)
 }
 
 func New(region string, bucket string, withAccountID bool) (*Client, error) {

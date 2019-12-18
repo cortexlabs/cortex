@@ -181,7 +181,7 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringPtrValidation: &cr.StringPtrValidation{
-				AllowedValues: aws.EKSSupportedRegions.Slice(),
+				AllowedValues: aws.EKSSupportedRegionsSlice,
 			},
 		},
 		{
@@ -349,7 +349,7 @@ var AccessValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringPtrValidation: &cr.StringPtrValidation{
-				AllowedValues: aws.EKSSupportedRegions.Slice(),
+				AllowedValues: aws.EKSSupportedRegionsSlice,
 			},
 		},
 		{
@@ -585,7 +585,7 @@ func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecre
 					Prompt: RegionUserFacingKey,
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
-					AllowedValues: aws.EKSSupportedRegions.Slice(),
+					AllowedValues: aws.EKSSupportedRegionsSlice,
 					Default:       defaults.Region,
 				},
 			},
@@ -710,7 +710,7 @@ var AccessPromptValidation = &cr.PromptValidation{
 				Prompt: RegionUserFacingKey,
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
-				AllowedValues: aws.EKSSupportedRegions.Slice(),
+				AllowedValues: aws.EKSSupportedRegionsSlice,
 				Default:       pointer.String("us-west-2"),
 			},
 		},

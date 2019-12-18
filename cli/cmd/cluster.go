@@ -108,7 +108,6 @@ var updateCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		fmt.Println("fetching cluster configuration ..." + "\n")
 		cachedClusterConfig := refreshCachedClusterConfig(awsCreds)
 
 		clusterConfig, err := getUpdateClusterConfig(cachedClusterConfig, awsCreds)
@@ -138,7 +137,6 @@ var infoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		fmt.Println("fetching cluster configuration ..." + "\n")
 		clusterConfig := refreshCachedClusterConfig(awsCreds)
 
 		out, err := runManagerAccessCommand("/root/info.sh", clusterConfig.ToAccessConfig(), awsCreds)
@@ -266,13 +264,16 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Cluster
 
 	mountedConfigPath := mountedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 
+	fmt.Println("fetching cluster configuration ..." + "\n")
 	out, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds)
 	if err != nil {
+		os.Remove(cachedConfigPath)
 		exit.Error(err)
 	}
 
 	// note: if modifying this string, search the codebase for it and change all occurrences
 	if strings.Contains(out, "there is no cluster") {
+		os.Remove(cachedConfigPath)
 		exit.ErrorNoPrint()
 	}
 
