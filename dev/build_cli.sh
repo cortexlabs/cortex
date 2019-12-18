@@ -21,4 +21,4 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 source $ROOT/dev/config/build.sh
 
-$ROOT/build/cli.sh
+$ROOT/build/cli.sh upload
