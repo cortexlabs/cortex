@@ -65,7 +65,7 @@ data:
       @type tail
       @id in_tail_container_logs
       @label @containers
-      path /var/log/containers/**_cortex_**.log
+      path /var/log/containers/*.log
       pos_file /var/log/fluentd-containers.log.pos
       tag *
       read_from_head true
