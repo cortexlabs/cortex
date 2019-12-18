@@ -15,7 +15,7 @@
 
 ## AWS CNI
 
-1. Update the version in `eks_cluster.yaml`
+1. Update the version in `install.sh`
 1. Update the go module version (see `Go > Non-versioned modules` section below)
 1. If new instances types were added, check if `pkg/lib/aws/servicequotas.go` needs to be updated for the new instances
 

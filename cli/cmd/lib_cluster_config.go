@@ -18,20 +18,50 @@ package cmd
 
 import (
 	"fmt"
+	"path"
+	"path/filepath"
+	"regexp"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
 
-func readCachedClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, cachedClusterConfigPath)
+var _cachedClusterConfigRegex = regexp.MustCompile(`^cluster_\S+\.yaml$`)
+
+func cachedClusterConfigPath(clusterName string, region string) string {
+	return filepath.Join(localDir, fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
+}
+
+func mountedClusterConfigPath(clusterName string, region string) string {
+	return filepath.Join("/.cortex", fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
+}
+
+func existingCachedClusterConfigPaths() []string {
+	paths, err := files.ListDir(localDir, false)
+	if err != nil {
+		return nil
+	}
+
+	var matches []string
+	for _, p := range paths {
+		if _cachedClusterConfigRegex.MatchString(path.Base(p)) {
+			matches = append(matches, p)
+		}
+	}
+
+	return matches
+}
+
+func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath string) error {
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, filePath)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
 	}
@@ -39,7 +69,7 @@ func readCachedClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig) err
 	return nil
 }
 
-func readUserClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig) error {
+func readUserClusterConfigFile(clusterConfig *clusterconfig.Config) error {
 	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, flagClusterConfig)
 	if errors.HasErrors(errs) {
 		return errors.FirstError(errs...)
@@ -48,8 +78,45 @@ func readUserClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig) error
 	return nil
 }
 
-func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, error) {
-	clusterConfig := &clusterconfig.ClusterConfig{}
+func getClusterAccessConfig() (*clusterconfig.AccessConfig, error) {
+	accessConfig, err := clusterconfig.DefaultAccessConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	if flagClusterConfig != "" {
+		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, flagClusterConfig)
+		if errors.HasErrors(errs) {
+			return nil, errors.FirstError(errs...)
+		}
+	}
+
+	if accessConfig.ClusterName != nil && accessConfig.Region != nil {
+		return accessConfig, nil
+	}
+
+	cachedPaths := existingCachedClusterConfigPaths()
+	if len(cachedPaths) == 1 {
+		cachedAccessConfig := &clusterconfig.AccessConfig{}
+		cr.ParseYAMLFile(cachedAccessConfig, clusterconfig.AccessValidation, cachedPaths[0])
+		if accessConfig.ClusterName == nil {
+			accessConfig.ClusterName = cachedAccessConfig.ClusterName
+		}
+		if accessConfig.Region == nil {
+			accessConfig.Region = cachedAccessConfig.Region
+		}
+	}
+
+	err = cr.ReadPrompt(accessConfig, clusterconfig.AccessPromptValidation)
+	if err != nil {
+		return nil, err
+	}
+
+	return accessConfig, nil
+}
+
+func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.Config, error) {
+	clusterConfig := &clusterconfig.Config{}
 
 	err := clusterconfig.SetDefaults(clusterConfig)
 	if err != nil {
@@ -87,8 +154,8 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterCo
 	return clusterConfig, nil
 }
 
-func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, error) {
-	userClusterConfig := &clusterconfig.ClusterConfig{}
+func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) (*clusterconfig.Config, error) {
+	userClusterConfig := &clusterconfig.Config{}
 
 	if flagClusterConfig == "" {
 		userClusterConfig = cachedClusterConfig
@@ -180,7 +247,7 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 	return userClusterConfig, nil
 }
 
-func confirmInstallClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) {
+func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) {
 	var spotPrice float64
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
 		var err error
@@ -208,14 +275,14 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.ClusterConfig, aws
 	prompt.YesOrExit("would you like to continue with this installation?", exitMessage)
 }
 
-func confirmUpdateClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) {
+func confirmUpdateClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) {
 	fmt.Println(clusterConfigConfirmaionStr(clusterConfig, awsCreds) + "\n")
 
 	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor)
 	prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, would you like to continue?", clusterConfig.ClusterName, *clusterConfig.Region), exitMessage)
 }
 
-func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) string {
+func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) string {
 	defaultConfig, _ := clusterconfig.GetDefaults()
 
 	var items table.KeyValuePairs
@@ -332,7 +399,7 @@ func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.ClusterConfig, aws
 	return items.String()
 }
 
-func workloadInstancesStr(clusterConfig *clusterconfig.ClusterConfig, spotPrice float64) string {
+func workloadInstancesStr(clusterConfig *clusterconfig.Config, spotPrice float64) string {
 	instanceRangeStr := fmt.Sprintf("an autoscaling group of %d - %d", *clusterConfig.MinInstances, *clusterConfig.MaxInstances)
 	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
 		instanceRangeStr = s.Int64(*clusterConfig.MinInstances)

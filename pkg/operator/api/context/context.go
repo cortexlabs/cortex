@@ -27,18 +27,18 @@ import (
 )
 
 type Context struct {
-	ID                string                               `json:"id"`
-	Key               string                               `json:"key"`
-	CreatedEpoch      int64                                `json:"created_epoch"`
-	ClusterConfig     *clusterconfig.InternalClusterConfig `json:"cluster_config"`
-	DeploymentVersion string                               `json:"deployment_version"`
-	Root              string                               `json:"root"`
-	MetadataRoot      string                               `json:"metadata_root"`
-	StatusPrefix      string                               `json:"status_prefix"`
-	App               *App                                 `json:"app"`
-	APIs              APIs                                 `json:"apis"`
-	ProjectID         string                               `json:"project_id"`
-	ProjectKey        string                               `json:"project_key"`
+	ID                string                        `json:"id"`
+	Key               string                        `json:"key"`
+	CreatedEpoch      int64                         `json:"created_epoch"`
+	ClusterConfig     *clusterconfig.InternalConfig `json:"cluster_config"`
+	DeploymentVersion string                        `json:"deployment_version"`
+	Root              string                        `json:"root"`
+	MetadataRoot      string                        `json:"metadata_root"`
+	StatusPrefix      string                        `json:"status_prefix"`
+	App               *App                          `json:"app"`
+	APIs              APIs                          `json:"apis"`
+	ProjectID         string                        `json:"project_id"`
+	ProjectKey        string                        `json:"project_key"`
 }
 
 type Resource interface {

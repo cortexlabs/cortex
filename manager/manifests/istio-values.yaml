@@ -33,11 +33,13 @@ gateways:
     autoscaleMax: 5
     resources:
       requests:
-       cpu: 100m
-       memory: 128Mi
+        cpu: 100m
+        memory: 128Mi
       limits:
-       cpu: 2000m
-       memory: 1024Mi
+        cpu: 2000m
+        memory: 1024Mi
+    serviceAnnotations:
+      service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "600"
     type: LoadBalancer
     ports:
     - port: 80
@@ -71,11 +73,11 @@ gateways:
     autoscaleMax: 5
     resources:
       requests:
-       cpu: 200m
-       memory: 128Mi
+        cpu: 200m
+        memory: 128Mi
       limits:
-       cpu: 2000m
-       memory: 1024Mi
+        cpu: 2000m
+        memory: 1024Mi
     serviceAnnotations:
       service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "600"
     type: LoadBalancer

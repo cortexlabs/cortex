@@ -33,7 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
 
-type ClusterConfig struct {
+type Config struct {
 	InstanceType           *string     `json:"instance_type" yaml:"instance_type"`
 	MinInstances           *int64      `json:"min_instances" yaml:"min_instances"`
 	MaxInstances           *int64      `json:"max_instances" yaml:"max_instances"`
@@ -74,14 +74,21 @@ type SpotConfig struct {
 	InstancePools                       *int64   `json:"instance_pools" yaml:"instance_pools"`
 }
 
-type InternalClusterConfig struct {
-	ClusterConfig
+type InternalConfig struct {
+	Config
 
 	// Populated by operator
 	ID                string               `json:"id"`
 	APIVersion        string               `json:"api_version"`
 	OperatorInCluster bool                 `json:"operator_in_cluster"`
 	InstanceMetadata  aws.InstanceMetadata `json:"instance_metadata"`
+}
+
+// The bare minimum to identify a cluster
+type AccessConfig struct {
+	ClusterName  *string `json:"cluster_name" yaml:"cluster_name"`
+	Region       *string `json:"region" yaml:"region"`
+	ImageManager string  `json:"image_manager" yaml:"image_manager"`
 }
 
 var UserValidation = &cr.StructValidation{
@@ -174,7 +181,7 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringPtrValidation: &cr.StringPtrValidation{
-				AllowedValues: aws.EKSSupportedRegions.Slice(),
+				AllowedValues: aws.EKSSupportedRegionsSlice,
 			},
 		},
 		{
@@ -332,7 +339,39 @@ var Validation = &cr.StructValidation{
 	),
 }
 
-func (cc *ClusterConfig) Validate(accessKeyID string, secretAccessKey string) error {
+var AccessValidation = &cr.StructValidation{
+	AllowExtraFields: true,
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField:         "ClusterName",
+			StringPtrValidation: &cr.StringPtrValidation{},
+		},
+		{
+			StructField: "Region",
+			StringPtrValidation: &cr.StringPtrValidation{
+				AllowedValues: aws.EKSSupportedRegionsSlice,
+			},
+		},
+		{
+			StructField: "ImageManager",
+			StringValidation: &cr.StringValidation{
+				Default: "cortexlabs/manager:" + consts.CortexVersion,
+			},
+		},
+	},
+}
+
+func (cc *Config) ToAccessConfig() AccessConfig {
+	clusterName := cc.ClusterName
+	region := *cc.Region
+	return AccessConfig{
+		ClusterName:  &clusterName,
+		Region:       &region,
+		ImageManager: cc.ImageManager,
+	}
+}
+
+func (cc *Config) Validate(accessKeyID string, secretAccessKey string) error {
 	if *cc.MinInstances > *cc.MaxInstances {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
@@ -495,7 +534,7 @@ func AutoGenerateSpotConfig(spotConfig *SpotConfig, region string, instanceType 
 	return nil
 }
 
-func (cc *ClusterConfig) AutoFillSpot() error {
+func (cc *Config) AutoFillSpot() error {
 	if cc.SpotConfig == nil {
 		cc.SpotConfig = &SpotConfig{}
 	}
@@ -506,8 +545,8 @@ func (cc *ClusterConfig) AutoFillSpot() error {
 	return nil
 }
 
-func applyPromptDefaults(defaults ClusterConfig) *ClusterConfig {
-	defaultConfig := &ClusterConfig{
+func applyPromptDefaults(defaults Config) *Config {
+	defaultConfig := &Config{
 		Region:       pointer.String("us-west-2"),
 		InstanceType: pointer.String("m5.large"),
 		MinInstances: pointer.Int64(1),
@@ -534,7 +573,7 @@ func applyPromptDefaults(defaults ClusterConfig) *ClusterConfig {
 	return defaultConfig
 }
 
-func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecretAccessKey string) error {
+func InstallPrompt(clusterConfig *Config, awsAccessKeyID string, awsSecretAccessKey string) error {
 	defaults := applyPromptDefaults(*clusterConfig)
 
 	regionPrompt := &cr.PromptValidation{
@@ -546,7 +585,7 @@ func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecre
 					Prompt: RegionUserFacingKey,
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
-					AllowedValues: aws.EKSSupportedRegions.Slice(),
+					AllowedValues: aws.EKSSupportedRegionsSlice,
 					Default:       defaults.Region,
 				},
 			},
@@ -621,7 +660,7 @@ func InstallPrompt(clusterConfig *ClusterConfig, awsAccessKeyID string, awsSecre
 	return nil
 }
 
-func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *ClusterConfig) *cr.PromptValidation {
+func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *Config) *cr.PromptValidation {
 	defaults := applyPromptDefaults(*userClusterConfig)
 
 	return &cr.PromptValidation{
@@ -651,6 +690,31 @@ func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *Cluster
 			},
 		},
 	}
+}
+
+var AccessPromptValidation = &cr.PromptValidation{
+	SkipPopulatedFields: true,
+	PromptItemValidations: []*cr.PromptItemValidation{
+		{
+			StructField: "ClusterName",
+			PromptOpts: &prompt.Options{
+				Prompt: ClusterNameUserFacingKey,
+			},
+			StringPtrValidation: &cr.StringPtrValidation{
+				Default: pointer.String("cortex"),
+			},
+		},
+		{
+			StructField: "Region",
+			PromptOpts: &prompt.Options{
+				Prompt: RegionUserFacingKey,
+			},
+			StringPtrValidation: &cr.StringPtrValidation{
+				AllowedValues: aws.EKSSupportedRegionsSlice,
+				Default:       pointer.String("us-west-2"),
+			},
+		},
+	},
 }
 
 func validateInstanceType(instanceType string) (string, error) {
@@ -685,7 +749,7 @@ func validateInstanceDistribution(instances []string) ([]string, error) {
 }
 
 // This does not set defaults for fields that are prompted from the user
-func SetDefaults(cc *ClusterConfig) error {
+func SetDefaults(cc *Config) error {
 	var emptyMap interface{} = map[interface{}]interface{}{}
 	errs := cr.Struct(cc, emptyMap, Validation)
 	if errors.HasErrors(errs) {
@@ -695,8 +759,8 @@ func SetDefaults(cc *ClusterConfig) error {
 }
 
 // This does not set defaults for fields that are prompted from the user
-func GetDefaults() (*ClusterConfig, error) {
-	cc := &ClusterConfig{}
+func GetDefaults() (*Config, error) {
+	cc := &Config{}
 	err := SetDefaults(cc)
 	if err != nil {
 		return nil, err
@@ -705,19 +769,29 @@ func GetDefaults() (*ClusterConfig, error) {
 	return cc, nil
 }
 
-func (cc *InternalClusterConfig) UserFacingTable() table.KeyValuePairs {
+func DefaultAccessConfig() (*AccessConfig, error) {
+	accessConfig := &AccessConfig{}
+	var emptyMap interface{} = map[interface{}]interface{}{}
+	errs := cr.Struct(accessConfig, emptyMap, AccessValidation)
+	if errors.HasErrors(errs) {
+		return nil, errors.FirstError(errs...)
+	}
+	return accessConfig, nil
+}
+
+func (cc *InternalConfig) UserFacingTable() table.KeyValuePairs {
 	var items table.KeyValuePairs
 
 	items.Add(APIVersionUserFacingKey, cc.APIVersion)
-	items.AddAll(cc.ClusterConfig.UserFacingTable())
+	items.AddAll(cc.Config.UserFacingTable())
 	return items
 }
 
-func (cc *InternalClusterConfig) UserFacingString() string {
+func (cc *InternalConfig) UserFacingString() string {
 	return cc.UserFacingTable().String()
 }
 
-func (cc *ClusterConfig) UserFacingTable() table.KeyValuePairs {
+func (cc *Config) UserFacingTable() table.KeyValuePairs {
 	var items table.KeyValuePairs
 
 	items.Add(ClusterNameUserFacingKey, cc.ClusterName)
@@ -761,6 +835,6 @@ func (cc *ClusterConfig) UserFacingTable() table.KeyValuePairs {
 	return items
 }
 
-func (cc *ClusterConfig) UserFacingString() string {
+func (cc *Config) UserFacingString() string {
 	return cc.UserFacingTable().String()
 }

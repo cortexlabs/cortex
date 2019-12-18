@@ -43,12 +43,12 @@ def get_launch_template(launch_template_id):
     return resp["LaunchTemplateVersions"][0]["LaunchTemplateData"]
 
 
-def refresh_yaml(input_yaml_path, output_yaml_path):
-    with open(input_yaml_path, "r") as f:
-        config = yaml.safe_load(f)
+def refresh_yaml(configmap_yaml_path, output_yaml_path):
+    with open(configmap_yaml_path, "r") as f:
+        cluster_configmap = yaml.safe_load(f)
     asg = get_autoscaling_group()
-    cluster_config_str = config["data"]["cluster.yaml"]
-    cluster_config = yaml.safe_load(cluster_config_str)
+    cluster_configmap_str = cluster_configmap["data"]["cluster.yaml"]
+    cluster_config = yaml.safe_load(cluster_configmap_str)
     cluster_config["min_instances"] = asg["MinSize"]
     cluster_config["max_instances"] = asg["MaxSize"]
 
@@ -100,4 +100,4 @@ def refresh_yaml(input_yaml_path, output_yaml_path):
 
 
 if __name__ == "__main__":
-    refresh_yaml(sys.argv[1], sys.argv[2])
+    refresh_yaml(configmap_yaml_path=sys.argv[1], output_yaml_path=sys.argv[2])

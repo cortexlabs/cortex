@@ -50,7 +50,7 @@ type GenericClient struct {
 
 var operatorClient = &OperatorClient{
 	Client: &http.Client{
-		Timeout: 20 * time.Second,
+		Timeout: 600 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
@@ -59,7 +59,7 @@ var operatorClient = &OperatorClient{
 
 var apiClient = &GenericClient{
 	Client: &http.Client{
-		Timeout: 20 * time.Second,
+		Timeout: 600 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
