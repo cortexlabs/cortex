@@ -38,7 +38,7 @@ var predictDebug bool
 
 var predictClient = &GenericClient{
 	Client: &http.Client{
-		Timeout: 500 * time.Second,
+		Timeout: 600 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},

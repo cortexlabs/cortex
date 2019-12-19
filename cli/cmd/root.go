@@ -39,7 +39,6 @@ var cmdStr string
 var configFileExts = []string{"yaml", "yml"}
 
 var localDir string
-var cachedClusterConfigPath string
 var _cliConfigPath string
 var _clientIDPath string
 var _emailPath string
@@ -56,7 +55,6 @@ func init() {
 		exit.Error(err)
 	}
 
-	cachedClusterConfigPath = filepath.Join(localDir, "cluster.yaml")
 	_cliConfigPath = filepath.Join(localDir, "cli.yaml")
 	_clientIDPath = filepath.Join(localDir, "client-id.txt")
 	_emailPath = filepath.Join(localDir, "email.txt")

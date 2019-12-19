@@ -83,7 +83,7 @@ image_istio_galley: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-ga
 Create `dev/config/build.sh`. Paste the following config, and update `CLI_BUCKET_NAME`, `CLI_BUCKET_REGION`, `REGISTRY_URL`, and `REGISTRY_REGION` accordingly:
 
 ```bash
-export VERSION="master"
+export CORTEX_VERSION="master"
 
 export REGISTRY_URL="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com"
 export REGISTRY_REGION="us-west-2"

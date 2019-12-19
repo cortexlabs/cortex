@@ -198,8 +198,8 @@ def start(args):
     cx_logger().info("TensorFlow model signature: {}".format(local_cache["client"].input_signature))
 
     waitress_kwargs = {}
-    if api["tensorflow"].get("metadata") is not None:
-        for key, value in api["tensorflow"]["metadata"].items():
+    if api["tensorflow"].get("config") is not None:
+        for key, value in api["tensorflow"]["config"].items():
             if key.startswith("waitress_"):
                 waitress_kwargs[key[len("waitress_") :]] = value
 

@@ -85,7 +85,7 @@ var upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		_, err = runManagerCommand("/root/install.sh", clusterConfig, awsCreds)
+		_, err = runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -108,15 +108,14 @@ var updateCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		fmt.Println("fetching cluster configuration ..." + "\n")
 		cachedClusterConfig := refreshCachedClusterConfig(awsCreds)
 
-		clusterConfig, err := getUpdateClusterConfig(cachedClusterConfig, awsCreds)
+		clusterConfig, err := getClusterUpdateConfig(cachedClusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		_, err = runManagerCommand("/root/install.sh --update", clusterConfig, awsCreds)
+		_, err = runManagerUpdateCommand("/root/install.sh --update", clusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -138,10 +137,9 @@ var infoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		fmt.Println("fetching cluster configuration ..." + "\n")
 		clusterConfig := refreshCachedClusterConfig(awsCreds)
 
-		out, err := runManagerCommand("/root/info.sh", clusterConfig, awsCreds)
+		out, err := runManagerAccessCommand("/root/info.sh", clusterConfig.ToAccessConfig(), awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -166,7 +164,7 @@ var infoCmd = &cobra.Command{
 			fmt.Println("\n" + errors.Wrap(err, "unable to parse operator response").Error())
 			return
 		}
-		infoResponse.ClusterConfig.ClusterConfig = *clusterConfig
+		infoResponse.ClusterConfig.Config = *clusterConfig
 
 		var items table.KeyValuePairs
 		items.Add("aws access key id", infoResponse.MaskedAWSAccessKeyID)
@@ -192,16 +190,20 @@ var downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		clusterConfig := refreshCachedClusterConfig(awsCreds)
-
-		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), "")
-
-		_, err = runManagerCommand("/root/uninstall.sh", clusterConfig, awsCreds)
+		accessConfig, err := getClusterAccessConfig()
 		if err != nil {
 			exit.Error(err)
 		}
 
-		os.Remove(cachedClusterConfigPath)
+		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "")
+
+		_, err = runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
+		os.Remove(cachedConfigPath)
 	},
 }
 
@@ -248,42 +250,34 @@ func promptForEmail() {
 	}
 }
 
-func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.ClusterConfig {
-	userClusterConfig := &clusterconfig.ClusterConfig{}
-	err := clusterconfig.SetDefaults(userClusterConfig)
+func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Config {
+	accessConfig, err := getClusterAccessConfig()
 	if err != nil {
 		exit.Error(err)
 	}
 
-	if flagClusterConfig != "" {
-		err := readUserClusterConfigFile(userClusterConfig)
-		if err != nil {
-			exit.Error(err)
-		}
+	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
+	cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
+	if !files.IsFile(cachedConfigPath) {
+		files.MakeEmptyFile(cachedConfigPath)
 	}
 
-	cachedClusterConfig := &clusterconfig.ClusterConfig{}
-	readCachedClusterConfigFile(cachedClusterConfig)
+	mountedConfigPath := mountedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 
-	if userClusterConfig.Region == nil {
-		userClusterConfig.Region = cachedClusterConfig.Region
-	}
-
-	if userClusterConfig.Region == nil {
-		exit.Error(fmt.Sprintf("unable to find a cortex cluster; please configure \"%s\" (e.g. in cluster.yaml) to the aws region of an existing cluster or create a cluster with cortex cluster up", clusterconfig.RegionKey))
-	}
-
-	out, err := runRefreshClusterConfig(userClusterConfig, awsCreds)
+	fmt.Println("fetching cluster configuration ..." + "\n")
+	out, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds)
 	if err != nil {
+		os.Remove(cachedConfigPath)
 		exit.Error(err)
 	}
 
 	// note: if modifying this string, search the codebase for it and change all occurrences
 	if strings.Contains(out, "there is no cluster") {
+		os.Remove(cachedConfigPath)
 		exit.ErrorNoPrint()
 	}
 
-	refreshedClusterConfig := &clusterconfig.ClusterConfig{}
-	readCachedClusterConfigFile(refreshedClusterConfig)
+	refreshedClusterConfig := &clusterconfig.Config{}
+	readCachedClusterConfigFile(refreshedClusterConfig, cachedConfigPath)
 	return refreshedClusterConfig
 }
