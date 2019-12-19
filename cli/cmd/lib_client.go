@@ -194,7 +194,7 @@ func StreamLogs(appName string, resourceName string, resourceType string) error 
 	}
 
 	connection, response, err := dialer.Dial(wsURL, header)
-	if err != nil || response == nil {
+	if err != nil && response == nil {
 		return ErrorFailedToConnectOperator(err, strings.Replace(operatorEndpointOrBlank(), "http", "ws", 1))
 	}
 	defer response.Body.Close()
