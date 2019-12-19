@@ -32,6 +32,7 @@ const (
 	ErrAuthInvalid
 	ErrAuthOtherAccount
 	ErrAppNotDeployed
+	ErrAPINotDeployed
 	ErrFormFileMustBeProvided
 	ErrQueryParamRequired
 	ErrPathParamRequired
@@ -49,6 +50,7 @@ var (
 		"err_auth_invalid",
 		"err_auth_other_account",
 		"err_app_not_deployed",
+		"err_api_not_deployed",
 		"err_form_file_must_be_provided",
 		"err_query_param_required",
 		"err_path_param_required",
@@ -143,6 +145,13 @@ func ErrorAppNotDeployed(appName string) error {
 		Kind: ErrAppNotDeployed,
 		// note: if modifying this string, search the codebase for it and change all occurrences
 		message: fmt.Sprintf("%s is not deployed", appName),
+	}
+}
+
+func ErrorAPINotDeployed(apiName string, appName string) error {
+	return Error{
+		Kind:    ErrAPINotDeployed,
+		message: fmt.Sprintf("there is no api named %s in the %s deployment", s.UserStr(apiName), appName),
 	}
 }
 

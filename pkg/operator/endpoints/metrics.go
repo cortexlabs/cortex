@@ -35,7 +35,18 @@ func GetMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiMetrics, err := workloads.GetMetrics(appName, apiName)
+	ctx := workloads.CurrentContext(appName)
+	if ctx == nil {
+		RespondError(w, ErrorAppNotDeployed(appName))
+		return
+	}
+
+	if ctx.APIs[apiName] == nil {
+		RespondError(w, ErrorAPINotDeployed(apiName, appName))
+		return
+	}
+
+	apiMetrics, err := workloads.GetMetrics(ctx, apiName)
 	if err != nil {
 		RespondError(w, err)
 		return
