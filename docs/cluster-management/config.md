@@ -42,7 +42,7 @@ log_group: cortex
 cluster_name: cortex
 
 # whether to use spot instances in the cluster (default: false)
-# see cortex.dev/cluster-management/spot-instances for additional details on spot configuration
+# see cortex.dev/v/master/cluster-management/spot-instances for additional details on spot configuration
 spot: false
 
 # docker image paths
