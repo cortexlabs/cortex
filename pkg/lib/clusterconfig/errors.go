@@ -42,6 +42,7 @@ const (
 	ErrConfiguredWhenSpotIsNotEnabled
 	ErrOnDemandBaseCapacityGreaterThanMax
 	ErrConfigCannotBeChangedOnUpdate
+	ErrInvalidAvailabilityZone
 	ErrInvalidInstanceType
 )
 
@@ -62,6 +63,7 @@ var (
 		"err_configured_when_spot_is_not_enabled",
 		"err_on_demand_base_capacity_greater_than_max",
 		"err_config_cannot_be_changed_on_update",
+		"err_invalid_availability_zone",
 		"err_invalid_instance_type",
 	}
 )
@@ -207,6 +209,13 @@ func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) e
 	return Error{
 		Kind:    ErrConfigCannotBeChangedOnUpdate,
 		message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
+	}
+}
+
+func ErrorInvalidAvailabilityZone(invalidZone string, validAvailabilityZones []string) error {
+	return Error{
+		Kind:    ErrInvalidAvailabilityZone,
+		message: fmt.Sprintf("%s is an invalid availability zone; please choose from the following valid zones %s", invalidZone, s.UserStrsOr(validAvailabilityZones)),
 	}
 }
 

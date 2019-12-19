@@ -48,6 +48,7 @@ type Config struct {
 	SpotConfig             *SpotConfig `json:"spot_config" yaml:"spot_config"`
 	ClusterName            string      `json:"cluster_name" yaml:"cluster_name"`
 	Region                 *string     `json:"region" yaml:"region"`
+	AvailabilityZones      []string    `json:"availability_zones" yaml:"availability_zones"`
 	Bucket                 *string     `json:"bucket" yaml:"bucket"`
 	LogGroup               string      `json:"log_group" yaml:"log_group"`
 	Telemetry              bool        `json:"telemetry" yaml:"telemetry"`
@@ -189,6 +190,10 @@ var UserValidation = &cr.StructValidation{
 			StringPtrValidation: &cr.StringPtrValidation{
 				AllowedValues: aws.EKSSupportedRegionsSlice,
 			},
+		},
+		{
+			StructField:          "AvailabilityZones",
+			StringListValidation: &cr.StringListValidation{},
 		},
 		{
 			StructField:         "Bucket",
@@ -389,6 +394,18 @@ func (cc *Config) Validate(accessKeyID string, secretAccessKey string) error {
 	err := aws.VerifyInstanceQuota(accessKeyID, secretAccessKey, *cc.Region, *cc.InstanceType)
 	if err != nil {
 		return errors.Wrap(err, InstanceTypeKey)
+	}
+
+	zones, err := aws.GetAvailabilityZones(accessKeyID, secretAccessKey, *cc.Region)
+	if err != nil {
+		return err
+	}
+	zoneSet := strset.New(zones...)
+
+	for _, az := range cc.AvailabilityZones {
+		if !zoneSet.Has(az) {
+			return errors.Wrap(ErrorInvalidAvailabilityZone(az, zones), AvailabilityZonesKey, *cc.Region)
+		}
 	}
 
 	if cc.Spot != nil && *cc.Spot {
@@ -815,6 +832,7 @@ func (cc *Config) UserFacingTable() table.KeyValuePairs {
 
 	items.Add(ClusterNameUserFacingKey, cc.ClusterName)
 	items.Add(RegionUserFacingKey, *cc.Region)
+	items.Add(AvailabilityZonesUserFacingKey, s.UserStr(cc.AvailabilityZones))
 	items.Add(BucketUserFacingKey, *cc.Bucket)
 	items.Add(InstanceTypeUserFacingKey, *cc.InstanceType)
 	items.Add(MinInstancesUserFacingKey, *cc.MinInstances)
