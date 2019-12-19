@@ -35,6 +35,7 @@
 
 * [CLI commands](cluster-management/cli.md)
 * [Cluster configuration](cluster-management/config.md)
+* [Spot instances](cluster-management/spot-instances.md)
 * [AWS credentials](cluster-management/aws.md)
 * [Security](cluster-management/security.md)
 * [Update](cluster-management/update.md)
