@@ -109,7 +109,7 @@ function update_bash_profile() {
       echo
       read -p "Would you like to modify your bash profile ($bash_profile_path) to enable cortex command completion and the cx alias? [y/n] " -r
       echo
-      if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ] || [ "$REPLY" = "yes" ] || [ "$REPLY" = "Yes" ] || [ "$REPLY" = "YES" ] || [ "$REPLY" = "" ]; then
+      if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ] || [ "$REPLY" = "yes" ] || [ "$REPLY" = "Yes" ] || [ "$REPLY" = "YES" ]; then
         echo -e "\nsource <(cortex completion)" >> $bash_profile_path
         echo -e "✓ Your bash profile has been updated"
         echo -e "\nCommand to update your current terminal session:"
