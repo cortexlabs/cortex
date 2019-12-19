@@ -192,8 +192,10 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField:          "AvailabilityZones",
-			StringListValidation: &cr.StringListValidation{},
+			StructField: "AvailabilityZones",
+			StringListValidation: &cr.StringListValidation{
+				AllowEmpty: false,
+			},
 		},
 		{
 			StructField:         "Bucket",
@@ -396,15 +398,17 @@ func (cc *Config) Validate(accessKeyID string, secretAccessKey string) error {
 		return errors.Wrap(err, InstanceTypeKey)
 	}
 
-	zones, err := aws.GetAvailabilityZones(accessKeyID, secretAccessKey, *cc.Region)
-	if err != nil {
-		return err
-	}
-	zoneSet := strset.New(zones...)
+	if len(cc.AvailabilityZones) > 0 {
+		zones, err := aws.GetAvailabilityZones(accessKeyID, secretAccessKey, *cc.Region)
+		if err != nil {
+			return err
+		}
+		zoneSet := strset.New(zones...)
 
-	for _, az := range cc.AvailabilityZones {
-		if !zoneSet.Has(az) {
-			return errors.Wrap(ErrorInvalidAvailabilityZone(az, zones), AvailabilityZonesKey, *cc.Region)
+		for _, az := range cc.AvailabilityZones {
+			if !zoneSet.Has(az) {
+				return errors.Wrap(ErrorInvalidAvailabilityZone(az, zones), AvailabilityZonesKey, *cc.Region)
+			}
 		}
 	}
 
