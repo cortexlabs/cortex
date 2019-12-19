@@ -157,18 +157,6 @@ Flags:
   -p, --print        print the configuration
 ```
 
-## support
-
-```text
-send a support request to the maintainers
-
-Usage:
-  cortex support [flags]
-
-Flags:
-  -h, --help   help for support
-```
-
 ## completion
 
 ```text
