@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -67,7 +68,7 @@ func deploy(force bool, ignoreCache bool) {
 		"ignoreCache": s.Bool(ignoreCache),
 	}
 
-	configBytes, err := ioutil.ReadFile("cortex.yaml")
+	configBytes, err := ioutil.ReadFile(filepath.Join(root, "cortex.yaml"))
 	if err != nil {
 		exit.Error(errors.Wrap(err, "cortex.yaml", cr.ErrorReadConfig().Error()))
 	}
