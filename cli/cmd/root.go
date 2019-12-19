@@ -109,7 +109,6 @@ func Execute() {
 	rootCmd.AddCommand(versionCmd)
 
 	rootCmd.AddCommand(configureCmd)
-	rootCmd.AddCommand(supportCmd)
 	rootCmd.AddCommand(completionCmd)
 
 	updateRootUsage()
