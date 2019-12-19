@@ -181,7 +181,7 @@ func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds 
 		}
 		userClusterConfig.InstanceType = cachedClusterConfig.InstanceType
 
-		if !strset.New(userClusterConfig.AvailabilityZones...).IsEqual(strset.New(cachedClusterConfig.AvailabilityZones...)) {
+		if len(userClusterConfig.AvailabilityZones) > 0 && !strset.New(userClusterConfig.AvailabilityZones...).IsEqual(strset.New(cachedClusterConfig.AvailabilityZones...)) {
 			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.AvailabilityZonesKey, cachedClusterConfig.AvailabilityZones)
 		}
 		userClusterConfig.AvailabilityZones = cachedClusterConfig.AvailabilityZones
@@ -307,7 +307,7 @@ func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.Config, awsCreds *
 	}
 	items.Add(clusterconfig.RegionUserFacingKey, clusterConfig.Region)
 	if len(clusterConfig.AvailabilityZones) > 0 {
-		items.Add(clusterconfig.AvailabilityZonesUserFacingKey, s.UserStr(clusterConfig.AvailabilityZones))
+		items.Add(clusterconfig.AvailabilityZonesUserFacingKey, clusterConfig.AvailabilityZones)
 	}
 	items.Add(clusterconfig.BucketUserFacingKey, clusterConfig.Bucket)
 	items.Add(clusterconfig.ClusterNameUserFacingKey, clusterConfig.ClusterName)

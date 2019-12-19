@@ -832,7 +832,9 @@ func (cc *Config) UserFacingTable() table.KeyValuePairs {
 
 	items.Add(ClusterNameUserFacingKey, cc.ClusterName)
 	items.Add(RegionUserFacingKey, *cc.Region)
-	items.Add(AvailabilityZonesUserFacingKey, s.UserStr(cc.AvailabilityZones))
+	if len(cc.AvailabilityZones) > 0 {
+		items.Add(AvailabilityZonesUserFacingKey, cc.AvailabilityZones)
+	}
 	items.Add(BucketUserFacingKey, *cc.Bucket)
 	items.Add(InstanceTypeUserFacingKey, *cc.InstanceType)
 	items.Add(MinInstancesUserFacingKey, *cc.MinInstances)
