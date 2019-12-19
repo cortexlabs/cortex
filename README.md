@@ -22,7 +22,7 @@ Cortex is an open source platform for deploying machine learning models as produ
 * **Rolling updates:** Cortex updates deployed APIs without any downtime.
 * **Log streaming:** Cortex streams logs from deployed models to your CLI.
 * **Prediction monitoring:** Cortex monitors network metrics and tracks predictions.
-* **Minimal configuration:** deployments are defined in a single `cortex.yaml` file.
+* **Minimal configuration:** Cortex deployments are defined in a single `cortex.yaml` file.
 
 <br>
 
@@ -105,7 +105,7 @@ positive
 ```bash
 $ cortex get classifier --watch
 
-status   up-to-date   requested   last update   avg latency
+status   up-to-date   requested   last update   avg inference
 live     1            1           8s            24ms
 
 class     count
