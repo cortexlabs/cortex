@@ -105,7 +105,7 @@ positive
 ```bash
 $ cortex get classifier --watch
 
-status   up-to-date   requested   last update   avg latency
+status   up-to-date   requested   last update   avg inference
 live     1            1           8s            24ms
 
 class     count
