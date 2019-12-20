@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
@@ -53,6 +54,18 @@ var deleteCmd = &cobra.Command{
 				exit.Error(err)
 			}
 			appName = config.App.Name
+		}
+
+		resources, err := getResourcesResponse(appName)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		for _, apiGroupStatuses := range resources.APIGroupStatuses {
+			if apiGroupStatuses.Requested > 2 {
+				prompt.YesOrExit("are you sure you want to delete your deployment?", "")
+				break
+			}
 		}
 
 		params := map[string]string{
