@@ -16,6 +16,7 @@ You can deploy TensorFlow models as web services by defining a class that implem
     signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
     config: <string: value>  # dictionary that can be used to configure custom values (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
+    env: <string: string>  # dictionary of environment variables
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)

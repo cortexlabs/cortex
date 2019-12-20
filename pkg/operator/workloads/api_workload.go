@@ -299,8 +299,17 @@ func tfAPISpec(
 		},
 	}
 
-	envVars := []kcore.EnvVar{
-		{
+	envVars := []kcore.EnvVar{}
+
+	for name, val := range api.TensorFlow.Env {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  name,
+			Value: val,
+		})
+	}
+
+	envVars = append(envVars,
+		kcore.EnvVar{
 			Name: "HOST_IP",
 			ValueFrom: &kcore.EnvVarSource{
 				FieldRef: &kcore.ObjectFieldSelector{
@@ -308,7 +317,8 @@ func tfAPISpec(
 				},
 			},
 		},
-	}
+	)
+
 	if api.TensorFlow.PythonPath != nil {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  "PYTHON_PATH",
@@ -407,6 +417,7 @@ func tfAPISpec(
 							"--port=" + tfServingPortStr,
 							"--model_base_path=" + path.Join(consts.EmptyDirMountPath, "model"),
 						},
+						Env:          envVars,
 						EnvFrom:      baseEnvVars(),
 						VolumeMounts: defaultVolumeMounts(),
 						ReadinessProbe: &kcore.Probe{
@@ -484,8 +495,17 @@ func pythonAPISpec(
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
 	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
 
-	envVars := []kcore.EnvVar{
-		{
+	envVars := []kcore.EnvVar{}
+
+	for name, val := range api.Python.Env {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  name,
+			Value: val,
+		})
+	}
+
+	envVars = append(envVars,
+		kcore.EnvVar{
 			Name: "HOST_IP",
 			ValueFrom: &kcore.EnvVarSource{
 				FieldRef: &kcore.ObjectFieldSelector{
@@ -493,7 +513,8 @@ func pythonAPISpec(
 				},
 			},
 		},
-	}
+	)
+
 	if api.Python.PythonPath != nil {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  "PYTHON_PATH",
@@ -634,8 +655,17 @@ func onnxAPISpec(
 		},
 	}
 
-	envVars := []kcore.EnvVar{
-		{
+	envVars := []kcore.EnvVar{}
+
+	for name, val := range api.ONNX.Env {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  name,
+			Value: val,
+		})
+	}
+
+	envVars = append(envVars,
+		kcore.EnvVar{
 			Name: "HOST_IP",
 			ValueFrom: &kcore.EnvVarSource{
 				FieldRef: &kcore.ObjectFieldSelector{
@@ -643,7 +673,8 @@ func onnxAPISpec(
 				},
 			},
 		},
-	}
+	)
+
 	if api.ONNX.PythonPath != nil {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  "PYTHON_PATH",
