@@ -497,7 +497,7 @@ func pythonAPISpec(
 
 	envVars := []kcore.EnvVar{}
 
-	for name, val := range api.TensorFlow.Env {
+	for name, val := range api.Python.Env {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  name,
 			Value: val,
@@ -657,7 +657,7 @@ func onnxAPISpec(
 
 	envVars := []kcore.EnvVar{}
 
-	for name, val := range api.TensorFlow.Env {
+	for name, val := range api.ONNX.Env {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  name,
 			Value: val,

@@ -62,7 +62,8 @@ var configValidation = &cr.StructFieldValidation{
 var envValidation = &cr.StructFieldValidation{
 	StructField: "Env",
 	StringMapValidation: &cr.StringMapValidation{
-		Default: map[string]string{},
+		Default:    map[string]string{},
+		AllowEmpty: true,
 	},
 }
 
