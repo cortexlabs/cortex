@@ -124,8 +124,8 @@ func telemetryCron() error {
 			instanceType = "unknown"
 		}
 
-		instanceTypeCounts[instanceType] += 1
-		totalInstances += 1
+		instanceTypeCounts[instanceType]++
+		totalInstances++
 	}
 
 	properties := map[string]interface{}{
