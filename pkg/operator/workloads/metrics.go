@@ -36,11 +36,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-func GetMetrics(appName, apiName string) (schema.APIMetrics, error) {
-	ctx := CurrentContext(appName)
+func GetMetrics(ctx *context.Context, apiName string) (schema.APIMetrics, error) {
 	api := ctx.APIs[apiName]
 
-	apiSavedStatus, err := getAPISavedStatus(api.ID, api.WorkloadID, appName)
+	apiSavedStatus, err := getAPISavedStatus(api.ID, api.WorkloadID, ctx.App.Name)
 	if err != nil {
 		return schema.APIMetrics{}, err
 	}

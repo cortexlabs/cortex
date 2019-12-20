@@ -300,7 +300,7 @@ func getAPIMetrics(appName, apiName string) (schema.APIMetrics, error) {
 }
 
 func appendNetworkMetrics(apiTable table.Table, apiMetrics schema.APIMetrics) table.Table {
-	latency := "-"
+	inferenceLatency := "-"
 	code2XX := "-"
 	code4XX := 0
 	code5XX := 0
@@ -310,9 +310,9 @@ func appendNetworkMetrics(apiTable table.Table, apiMetrics schema.APIMetrics) ta
 		code5XX = apiMetrics.NetworkStats.Code5XX
 		if apiMetrics.NetworkStats.Latency != nil {
 			if *apiMetrics.NetworkStats.Latency < 1000 {
-				latency = fmt.Sprintf("%.6g ms", *apiMetrics.NetworkStats.Latency)
+				inferenceLatency = fmt.Sprintf("%.6g ms", *apiMetrics.NetworkStats.Latency)
 			} else {
-				latency = fmt.Sprintf("%.6g s", (*apiMetrics.NetworkStats.Latency)/1000)
+				inferenceLatency = fmt.Sprintf("%.6g s", (*apiMetrics.NetworkStats.Latency)/1000)
 			}
 		}
 		if apiMetrics.NetworkStats.Code2XX != 0 {
@@ -321,14 +321,14 @@ func appendNetworkMetrics(apiTable table.Table, apiMetrics schema.APIMetrics) ta
 	}
 
 	headers := []table.Header{
-		{Title: "avg latency"},
+		{Title: "avg inference"},
 		{Title: "2XX"},
 		{Title: "4XX", Hidden: code4XX == 0},
 		{Title: "5XX", Hidden: code5XX == 0},
 	}
 
 	row := []interface{}{
-		latency,
+		inferenceLatency,
 		code2XX,
 		code4XX,
 		code5XX,
