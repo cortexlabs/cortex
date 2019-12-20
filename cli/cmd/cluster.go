@@ -21,7 +21,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
@@ -161,7 +160,7 @@ var infoCmd = &cobra.Command{
 			}
 
 			timestamp := time.Now().UTC().Format("2006-01-02-15-04-05")
-			userDebugPath := fmt.Sprintf("cortex-debug-%s.tgz", timestamp) // note: if changing this, also change it in files.IgnoreCortexDebug()
+			userDebugPath := fmt.Sprintf("cortex-debug-%s.tgz", timestamp) // note: if modifying this string, also change it in files.IgnoreCortexDebug()
 			err = os.Rename(_debugPath, userDebugPath)
 			if err != nil {
 				exit.Error(errors.WithStack(err))
@@ -173,16 +172,11 @@ var infoCmd = &cobra.Command{
 
 		clusterConfig := refreshCachedClusterConfig(awsCreds)
 
-		out, exitCode, err := runManagerAccessCommand("/root/info.sh", clusterConfig.ToAccessConfig(), awsCreds)
+		_, exitCode, err := runManagerAccessCommand("/root/info.sh", clusterConfig.ToAccessConfig(), awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			exit.ErrorNoPrint()
-		}
-
-		// note: if modifying this string, search the codebase for it and change all occurrences
-		if strings.Contains(out, "there is no cluster") {
 			exit.ErrorNoPrint()
 		}
 
@@ -305,18 +299,12 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Config 
 	mountedConfigPath := mountedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 
 	fmt.Println("fetching cluster configuration ..." + "\n")
-	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds)
+	_, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds)
 	if err != nil {
 		os.Remove(cachedConfigPath)
 		exit.Error(err)
 	}
 	if exitCode == nil || *exitCode != 0 {
-		os.Remove(cachedConfigPath)
-		exit.ErrorNoPrint()
-	}
-
-	// note: if modifying this string, search the codebase for it and change all occurrences
-	if strings.Contains(out, "there is no cluster") {
 		os.Remove(cachedConfigPath)
 		exit.ErrorNoPrint()
 	}
