@@ -17,14 +17,17 @@ aws_secret_access_key: ***
 cortex_aws_access_key_id: ***
 cortex_aws_secret_access_key: ***
 
+# EKS cluster name for cortex (default: cortex)
+cluster_name: cortex
+
 # AWS region
 region: us-west-2
 
+# S3 bucket (default: <cluster_name>-<RANDOM_ID>)
+bucket: cortex-<RANDOM_ID>
+
 # List of availability zones for your region (default: 3 random availability zones from the specified region)
 availability_zones: # e.g. [us-west-2a, us-west-2b, us-west-2c]
-
-# S3 bucket
-bucket: cortex-<RANDOM_ID>
 
 # instance type
 instance_type: m5.large
@@ -38,11 +41,8 @@ max_instances: 5
 # instance volume size (GB) (default: 50)
 instance_volume_size: 50
 
-# CloudWatch log group for cortex
+# CloudWatch log group for cortex (default: <cluster_name>)
 log_group: cortex
-
-# EKS cluster name for cortex (default: cortex)
-cluster_name: cortex
 
 # whether to use spot instances in the cluster (default: false)
 # see cortex.dev/v/master/cluster-management/spot-instances for additional details on spot configuration
