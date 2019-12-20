@@ -109,15 +109,15 @@ func pullManager(managerImage string) error {
 	return nil
 }
 
-func runManager(containerConfig *container.Config) (string, error) {
+func runManager(containerConfig *container.Config) (string, *int, error) {
 	docker, err := getDockerClient()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	err = pullManager(containerConfig.Image)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	hostConfig := &container.HostConfig{
@@ -132,7 +132,7 @@ func runManager(containerConfig *container.Config) (string, error) {
 
 	containerInfo, err := docker.ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
 	if err != nil {
-		return "", wrapDockerError(err)
+		return "", nil, wrapDockerError(err)
 	}
 
 	removeContainer := func() {
@@ -157,7 +157,7 @@ func runManager(containerConfig *container.Config) (string, error) {
 
 	err = docker.ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
-		return "", wrapDockerError(err)
+		return "", nil, wrapDockerError(err)
 	}
 
 	// There is a slight delay between the container starting at attaching to it, hence the sleep in Cmd
@@ -167,7 +167,7 @@ func runManager(containerConfig *container.Config) (string, error) {
 		Stderr: true,
 	})
 	if err != nil {
-		return "", wrapDockerError(err)
+		return "", nil, wrapDockerError(err)
 	}
 	defer logsOutput.Close()
 
@@ -176,29 +176,37 @@ func runManager(containerConfig *container.Config) (string, error) {
 
 	_, err = io.Copy(os.Stdout, tee)
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", nil, errors.WithStack(err)
 	}
 
 	output := outputBuffer.String()
 
 	// Let the ctrl+C handler run its course
 	if caughtCtrlC {
-		time.Sleep(time.Second)
-		return output, nil
+		time.Sleep(5 * time.Second)
 	}
 
-	return output, nil
+	info, err := docker.ContainerInspect(context.Background(), containerInfo.ID)
+	if err != nil {
+		return "", nil, errors.WithStack(err)
+	}
+
+	if info.State.Running {
+		return output, nil, nil
+	}
+
+	return output, &info.State.ExitCode, nil
 }
 
-func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) (string, error) {
+func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) (string, *int, error) {
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", nil, errors.WithStack(err)
 	}
 
 	cachedConfigPath := cachedClusterConfigPath(clusterConfig.ClusterName, *clusterConfig.Region)
 	if err := files.WriteFile(clusterConfigBytes, cachedConfigPath); err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	mountedConfigPath := mountedClusterConfigPath(clusterConfig.ClusterName, *clusterConfig.Region)
@@ -223,15 +231,15 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Con
 		},
 	}
 
-	output, err := runManager(containerConfig)
+	output, exitCode, err := runManager(containerConfig)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return output, nil
+	return output, exitCode, nil
 }
 
-func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.AccessConfig, awsCreds *AWSCredentials) (string, error) {
+func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.AccessConfig, awsCreds *AWSCredentials) (string, *int, error) {
 	containerConfig := &container.Config{
 		Image:        accessConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
@@ -250,10 +258,10 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 		},
 	}
 
-	output, err := runManager(containerConfig)
+	output, exitCode, err := runManager(containerConfig)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return output, nil
+	return output, exitCode, nil
 }
