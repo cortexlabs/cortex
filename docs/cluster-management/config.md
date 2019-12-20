@@ -20,6 +20,9 @@ cortex_aws_secret_access_key: ***
 # AWS region
 region: us-west-2
 
+# List of availability zones for your region (default: 3 random availability zones from the specified region)
+availability_zones: # e.g. [us-west-2a, us-west-2b, us-west-2c]
+
 # S3 bucket
 bucket: cortex-<RANDOM_ID>
 
