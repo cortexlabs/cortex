@@ -8,7 +8,8 @@
   python:
     predictor: predictor.py
     config:
-      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/model.pkl
   tracker:
     model_type: classification
   compute:
@@ -20,7 +21,8 @@
   python:
     predictor: predictor.py
     config:
-      model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/another-model.pkl
   tracker:
     model_type: classification
   compute:
@@ -32,7 +34,8 @@
   python:
     predictor: batch-predictor.py
     config:
-      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/model.pkl
   compute:
     cpu: 0.5
     mem: 1G
