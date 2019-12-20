@@ -435,7 +435,9 @@ func workloadInstancesStr(clusterConfig *clusterconfig.Config, spotPrice float64
 		instancePriceStr = fmt.Sprintf("(%s: $%s per hour on-demand, %s)", *clusterConfig.InstanceType, s.Float64(aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price), spotPriceStr)
 	}
 
+	ebsPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
+
 	str := fmt.Sprintf("￮ %s %s ec2 %s for apis %s\n", instanceRangeStr, instanceTypeStr, instancesStr, instancePriceStr)
-	str += fmt.Sprintf("￮ %s %dgb ebs %s for apis ($%s per hour each)", volumeRangeStr, clusterConfig.InstanceVolumeSize, volumesStr, s.Round(aws.EBSMetadatas[*clusterConfig.Region].Price*float64(clusterConfig.InstanceVolumeSize)/30/24, 3, false))
+	str += fmt.Sprintf("￮ %s %dgb ebs %s for apis ($%s per hour each)", volumeRangeStr, clusterConfig.InstanceVolumeSize, volumesStr, s.Round(ebsPrice, 3, false))
 	return str
 }
