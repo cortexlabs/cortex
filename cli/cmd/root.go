@@ -42,6 +42,7 @@ var localDir string
 var _cliConfigPath string
 var _clientIDPath string
 var _emailPath string
+var _debugPath string
 
 func init() {
 	homeDir, err := homedir.Dir()
@@ -58,6 +59,7 @@ func init() {
 	_cliConfigPath = filepath.Join(localDir, "cli.yaml")
 	_clientIDPath = filepath.Join(localDir, "client-id.txt")
 	_emailPath = filepath.Join(localDir, "email.txt")
+	_debugPath = filepath.Join(localDir, "cortex-debug.tgz")
 
 	cobra.EnablePrefixMatching = true
 

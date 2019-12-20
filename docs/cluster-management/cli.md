@@ -58,7 +58,7 @@ Usage:
   cortex predict API_NAME JSON_FILE [flags]
 
 Flags:
-      --debug               Predict with debug mode
+      --debug               predict with debug mode
   -d, --deployment string   deployment name
   -e, --env string          environment (default "default")
   -h, --help                help for predict
@@ -87,7 +87,7 @@ Usage:
   cortex cluster up [flags]
 
 Flags:
-  -c, --config string   path to a cortex cluster configuration file
+  -c, --config string   path to a cluster configuration file
   -h, --help            help for up
 ```
 
@@ -100,7 +100,9 @@ Usage:
   cortex cluster info [flags]
 
 Flags:
-  -c, --config string   path to a cortex cluster configuration file
+  -c, --config string   path to a cluster configuration file
+  -d, --debug           save the current cluster state to a file
+  -e, --env string      environment (default "default")
   -h, --help            help for info
 ```
 
@@ -113,7 +115,7 @@ Usage:
   cortex cluster update [flags]
 
 Flags:
-  -c, --config string   path to a cortex cluster configuration file
+  -c, --config string   path to a cluster configuration file
   -h, --help            help for update
 ```
 
@@ -126,7 +128,7 @@ Usage:
   cortex cluster down [flags]
 
 Flags:
-  -c, --config string   path to a cortex cluster configuration file
+  -c, --config string   path to a cluster configuration file
   -h, --help            help for down
 ```
 
