@@ -19,3 +19,5 @@ metadata:
   name: $CORTEX_CLUSTER_NAME
   region: $CORTEX_REGION
   version: "1.14"
+
+availabilityZones: $CORTEX_AVAILABILITY_ZONES

@@ -132,6 +132,6 @@ The CLI sends configuration and code to the cluster every time you run `cortex d
 <!-- CORTEX_VERSION_README_MINOR x5 -->
 * [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/sentiment-analyzer): deploy a BERT model for sentiment analysis.
 * [Image classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/image-classifier): deploy an Inception model to classify images.
-* [Search completion](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/search-completer): deploy Facebook's RoBERTa model to complete search terms.
+* [Search completion](https://github.com/cortexlabs/cortex/tree/0.11/examples/pytorch/search-completer): deploy Facebook's RoBERTa model to complete search terms.
 * [Text generation](https://github.com/cortexlabs/cortex/tree/0.11/examples/pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
 * [Iris classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/sklearn/iris-classifier): deploy a scikit-learn model to classify iris flowers.
