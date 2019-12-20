@@ -146,6 +146,9 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.Config, e
 
 	err = clusterConfig.Validate(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
 	if err != nil {
+		if flagClusterConfig != "" {
+			err = errors.Wrap(err, flagClusterConfig)
+		}
 		return nil, err
 	}
 
@@ -180,6 +183,11 @@ func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds 
 			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, *cachedClusterConfig.InstanceType)
 		}
 		userClusterConfig.InstanceType = cachedClusterConfig.InstanceType
+
+		if len(userClusterConfig.AvailabilityZones) > 0 && !strset.New(userClusterConfig.AvailabilityZones...).IsEqual(strset.New(cachedClusterConfig.AvailabilityZones...)) {
+			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.AvailabilityZonesKey, cachedClusterConfig.AvailabilityZones)
+		}
+		userClusterConfig.AvailabilityZones = cachedClusterConfig.AvailabilityZones
 
 		if userClusterConfig.InstanceVolumeSize != cachedClusterConfig.InstanceVolumeSize {
 			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeSizeKey, cachedClusterConfig.InstanceVolumeSize)
@@ -239,6 +247,9 @@ func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds 
 
 	err = userClusterConfig.Validate(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
 	if err != nil {
+		if flagClusterConfig != "" {
+			err = errors.Wrap(err, flagClusterConfig)
+		}
 		return nil, err
 	}
 
@@ -264,7 +275,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *
 	fmt.Printf("￮ a cloudwatch log group named %s\n", clusterConfig.LogGroup)
 	fmt.Printf("￮ an eks cluster named %s ($0.20 per hour)\n", clusterConfig.ClusterName)
 	fmt.Printf("￮ a t3.medium ec2 instance for the operator ($%s per hour)\n", s.Float64(aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price))
-	fmt.Printf("￮ a 20gb ebs volume for the operator ($%s per hour)\n", s.Round(aws.EBSMetadatas[*clusterConfig.Region].Price*20/30, 3, false))
+	fmt.Printf("￮ a 20gb ebs volume for the operator ($%s per hour)\n", s.Round(aws.EBSMetadatas[*clusterConfig.Region].Price*20/30/24, 3, false))
 	fmt.Printf("￮ an elb for the operator and an elb for apis ($%s per hour each)\n", s.Float64(aws.ELBMetadatas[*clusterConfig.Region].Price))
 	fmt.Printf("￮ a nat gateway ($%s per hour)\n", s.Float64(aws.NATMetadatas[*clusterConfig.Region].Price))
 	fmt.Println(workloadInstancesStr(clusterConfig, spotPrice))
@@ -301,6 +312,9 @@ func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.Config, awsCreds *
 		items.Add("aws access key id", s.MaskString(awsCreds.CortexAWSAccessKeyID, 4)+" (cortex)")
 	}
 	items.Add(clusterconfig.RegionUserFacingKey, clusterConfig.Region)
+	if len(clusterConfig.AvailabilityZones) > 0 {
+		items.Add(clusterconfig.AvailabilityZonesUserFacingKey, clusterConfig.AvailabilityZones)
+	}
 	items.Add(clusterconfig.BucketUserFacingKey, clusterConfig.Bucket)
 	items.Add(clusterconfig.ClusterNameUserFacingKey, clusterConfig.ClusterName)
 	if clusterConfig.LogGroup != defaultConfig.LogGroup {
@@ -410,13 +424,17 @@ func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.Config, awsCreds *
 
 func workloadInstancesStr(clusterConfig *clusterconfig.Config, spotPrice float64) string {
 	instanceRangeStr := fmt.Sprintf("an autoscaling group of %d - %d", *clusterConfig.MinInstances, *clusterConfig.MaxInstances)
+	volumeRangeStr := fmt.Sprintf("%d - %d", *clusterConfig.MinInstances, *clusterConfig.MaxInstances)
 	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
 		instanceRangeStr = s.Int64(*clusterConfig.MinInstances)
+		volumeRangeStr = s.Int64(*clusterConfig.MinInstances)
 	}
 
 	instancesStr := "instances"
+	volumesStr := "volumes"
 	if *clusterConfig.MinInstances == 1 && *clusterConfig.MaxInstances == 1 {
 		instancesStr = "instance"
+		volumesStr = "volume"
 	}
 
 	instanceTypeStr := *clusterConfig.InstanceType
@@ -431,5 +449,9 @@ func workloadInstancesStr(clusterConfig *clusterconfig.Config, spotPrice float64
 		instancePriceStr = fmt.Sprintf("(%s: $%s per hour on-demand, %s)", *clusterConfig.InstanceType, s.Float64(aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price), spotPriceStr)
 	}
 
-	return fmt.Sprintf("￮ %s %s ec2 %s for apis %s", instanceRangeStr, instanceTypeStr, instancesStr, instancePriceStr)
+	ebsPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
+
+	str := fmt.Sprintf("￮ %s %s ec2 %s for apis %s\n", instanceRangeStr, instanceTypeStr, instancesStr, instancePriceStr)
+	str += fmt.Sprintf("￮ %s %dgb ebs %s for apis ($%s per hour each)", volumeRangeStr, clusterConfig.InstanceVolumeSize, volumesStr, s.Round(ebsPrice, 3, false))
+	return str
 }

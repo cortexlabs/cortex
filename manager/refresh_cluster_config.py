@@ -51,7 +51,7 @@ def refresh_yaml(configmap_yaml_path, output_yaml_path):
     cluster_config = yaml.safe_load(cluster_configmap_str)
     cluster_config["min_instances"] = asg["MinSize"]
     cluster_config["max_instances"] = asg["MaxSize"]
-
+    cluster_config["availability_zones"] = asg["AvailabilityZones"]
     if asg.get("MixedInstancesPolicy") is not None:
         launch_template = get_launch_template(
             asg["MixedInstancesPolicy"]["LaunchTemplate"]["LaunchTemplateSpecification"][
