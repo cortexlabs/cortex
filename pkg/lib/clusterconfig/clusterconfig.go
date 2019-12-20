@@ -407,7 +407,7 @@ func (cc *Config) Validate(accessKeyID string, secretAccessKey string) error {
 
 		for _, az := range cc.AvailabilityZones {
 			if !zoneSet.Has(az) {
-				return errors.Wrap(ErrorInvalidAvailabilityZone(az, zones), AvailabilityZonesKey, *cc.Region)
+				return errors.Wrap(ErrorInvalidAvailabilityZone(az, zones), AvailabilityZonesKey)
 			}
 		}
 	}
