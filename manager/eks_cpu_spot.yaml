@@ -23,6 +23,7 @@ metadata:
 nodeGroups:
   - name: ng-cortex-operator
     instanceType: t3.medium
+    availabilityZones: $CORTEX_AVAILABILITY_ZONES
     minSize: 1
     maxSize: 2
     desiredCapacity: 1
