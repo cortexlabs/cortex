@@ -192,20 +192,17 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "AvailabilityZones",
-			StringListValidation: &cr.StringListValidation{
-				AllowEmpty: false,
-			},
+			StructField:          "AvailabilityZones",
+			StringListValidation: &cr.StringListValidation{},
 		},
 		{
 			StructField:         "Bucket",
 			StringPtrValidation: &cr.StringPtrValidation{},
 		},
 		{
-			StructField: "LogGroup",
-			StringValidation: &cr.StringValidation{
-				Default: "cortex",
-			},
+			StructField:      "LogGroup",
+			StringValidation: &cr.StringValidation{},
+			DefaultField:     "ClusterName",
 		},
 		{
 			StructField: "ImagePythonServe",
@@ -644,7 +641,7 @@ func InstallPrompt(clusterConfig *Config, awsAccessKeyID string, awsSecretAccess
 		return ErrorInvalidAWSCredentials()
 	}
 
-	defaultBucket := pointer.String("cortex-" + hash.String(awsAccountID)[:10])
+	defaultBucket := pointer.String(clusterConfig.ClusterName + "-" + hash.String(awsAccountID)[:10])
 
 	remainingPrompts := &cr.PromptValidation{
 		SkipPopulatedFields: true,
