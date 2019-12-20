@@ -137,7 +137,7 @@ Track the status of your deployment using `cortex get`:
 ```bash
 $ cortex get classifier --watch
 
-status   up-to-date   requested   last update   avg latency
+status   up-to-date   requested   last update   avg inference
 live     1            1           8s            -
 
 endpoint: http://***.amazonaws.com/iris/classifier
@@ -200,7 +200,7 @@ After making more predictions, your `cortex get` command will show information a
 ```bash
 $ cortex get classifier --watch
 
-status   up-to-date   requested   last update   avg latency
+status   up-to-date   requested   last update   avg inference
 live     1            1           16s           28ms
 
 class        count
@@ -245,7 +245,7 @@ Run `cortex get` again:
 ```bash
 $ cortex get classifier --watch
 
-status   up-to-date   requested   last update   avg latency
+status   up-to-date   requested   last update   avg inference
 live     1            1           16s           24 ms
 
 class        count

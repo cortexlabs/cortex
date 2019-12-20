@@ -181,6 +181,11 @@ func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds 
 		}
 		userClusterConfig.InstanceType = cachedClusterConfig.InstanceType
 
+		if len(userClusterConfig.AvailabilityZones) > 0 && !strset.New(userClusterConfig.AvailabilityZones...).IsEqual(strset.New(cachedClusterConfig.AvailabilityZones...)) {
+			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.AvailabilityZonesKey, cachedClusterConfig.AvailabilityZones)
+		}
+		userClusterConfig.AvailabilityZones = cachedClusterConfig.AvailabilityZones
+
 		if userClusterConfig.InstanceVolumeSize != cachedClusterConfig.InstanceVolumeSize {
 			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeSizeKey, cachedClusterConfig.InstanceVolumeSize)
 		}
@@ -301,6 +306,9 @@ func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.Config, awsCreds *
 		items.Add("aws access key id", s.MaskString(awsCreds.CortexAWSAccessKeyID, 4)+" (cortex)")
 	}
 	items.Add(clusterconfig.RegionUserFacingKey, clusterConfig.Region)
+	if len(clusterConfig.AvailabilityZones) > 0 {
+		items.Add(clusterconfig.AvailabilityZonesUserFacingKey, clusterConfig.AvailabilityZones)
+	}
 	items.Add(clusterconfig.BucketUserFacingKey, clusterConfig.Bucket)
 	items.Add(clusterconfig.ClusterNameUserFacingKey, clusterConfig.ClusterName)
 	if clusterConfig.LogGroup != defaultConfig.LogGroup {

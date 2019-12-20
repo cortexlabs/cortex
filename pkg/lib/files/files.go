@@ -290,6 +290,13 @@ func IgnoreCortexYAML(path string, fi os.FileInfo) (bool, error) {
 	return false, nil
 }
 
+func IgnoreCortexDebug(path string, fi os.FileInfo) (bool, error) {
+	if strings.HasPrefix(fi.Name(), "cortex-debug-") {
+		return true, nil
+	}
+	return false, nil
+}
+
 func IgnoreHiddenFolders(path string, fi os.FileInfo) (bool, error) {
 	if fi.IsDir() && strings.HasPrefix(fi.Name(), ".") {
 		return true, nil

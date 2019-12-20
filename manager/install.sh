@@ -28,7 +28,6 @@ function ensure_eks() {
   # No cluster
   if [ $cluster_info_exit_code -ne 0 ]; then
     if [ "$arg1" = "--update" ]; then
-      # note: if modifying this string, search the codebase for it and change all occurrences
       echo "error: there is no cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION; please update your configuration to point to an existing cortex cluster or create a cortex cluster with \`cortex cluster up\`"
       exit 1
     fi

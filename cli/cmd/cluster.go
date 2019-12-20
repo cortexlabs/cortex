@@ -21,7 +21,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -37,6 +37,7 @@ import (
 )
 
 var flagClusterConfig string
+var flagDebug bool
 
 func init() {
 	addClusterConfigFlag(updateCmd)
@@ -44,6 +45,7 @@ func init() {
 
 	addClusterConfigFlag(infoCmd)
 	addEnvFlag(infoCmd)
+	infoCmd.PersistentFlags().BoolVarP(&flagDebug, "debug", "d", false, "save the current cluster state to a file")
 	clusterCmd.AddCommand(infoCmd)
 
 	addClusterConfigFlag(upCmd)
@@ -85,9 +87,12 @@ var upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		_, err = runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds)
+		_, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
+		}
+		if exitCode == nil || *exitCode != 0 {
+			exit.ErrorNoPrint()
 		}
 	},
 }
@@ -115,9 +120,12 @@ var updateCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		_, err = runManagerUpdateCommand("/root/install.sh --update", clusterConfig, awsCreds)
+		_, exitCode, err := runManagerUpdateCommand("/root/install.sh --update", clusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
+		}
+		if exitCode == nil || *exitCode != 0 {
+			exit.ErrorNoPrint()
 		}
 	},
 }
@@ -137,15 +145,38 @@ var infoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		if flagDebug {
+			accessConfig, err := getClusterAccessConfig()
+			if err != nil {
+				exit.Error(err)
+			}
+
+			_, exitCode, err := runManagerAccessCommand("/root/debug.sh", *accessConfig, awsCreds)
+			if err != nil {
+				exit.Error(err)
+			}
+			if exitCode == nil || *exitCode != 0 {
+				exit.ErrorNoPrint()
+			}
+
+			timestamp := time.Now().UTC().Format("2006-01-02-15-04-05")
+			userDebugPath := fmt.Sprintf("cortex-debug-%s.tgz", timestamp) // note: if modifying this string, also change it in files.IgnoreCortexDebug()
+			err = os.Rename(_debugPath, userDebugPath)
+			if err != nil {
+				exit.Error(errors.WithStack(err))
+			}
+
+			fmt.Println("saved cluster info to ./" + userDebugPath)
+			return
+		}
+
 		clusterConfig := refreshCachedClusterConfig(awsCreds)
 
-		out, err := runManagerAccessCommand("/root/info.sh", clusterConfig.ToAccessConfig(), awsCreds)
+		_, exitCode, err := runManagerAccessCommand("/root/info.sh", clusterConfig.ToAccessConfig(), awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
-
-		// note: if modifying this string, search the codebase for it and change all occurrences
-		if strings.Contains(out, "there is no cluster") {
+		if exitCode == nil || *exitCode != 0 {
 			exit.ErrorNoPrint()
 		}
 
@@ -197,9 +228,12 @@ var downCmd = &cobra.Command{
 
 		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "")
 
-		_, err = runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds)
+		_, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
+		}
+		if exitCode == nil || *exitCode != 0 {
+			exit.ErrorNoPrint()
 		}
 
 		cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
@@ -265,14 +299,12 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Config 
 	mountedConfigPath := mountedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 
 	fmt.Println("fetching cluster configuration ..." + "\n")
-	out, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds)
+	_, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds)
 	if err != nil {
 		os.Remove(cachedConfigPath)
 		exit.Error(err)
 	}
-
-	// note: if modifying this string, search the codebase for it and change all occurrences
-	if strings.Contains(out, "there is no cluster") {
+	if exitCode == nil || *exitCode != 0 {
 		os.Remove(cachedConfigPath)
 		exit.ErrorNoPrint()
 	}
