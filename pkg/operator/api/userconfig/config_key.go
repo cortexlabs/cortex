@@ -35,6 +35,7 @@ const (
 	PythonKey       = "python"
 	ConfigKey       = "config"
 	PythonPathKey   = "python_path"
+	EnvKey          = "env"
 
 	// Compute
 	ComputeKey              = "compute"
