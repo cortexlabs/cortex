@@ -59,6 +59,14 @@ var configValidation = &cr.StructFieldValidation{
 	},
 }
 
+var envValidation = &cr.StructFieldValidation{
+	StructField: "Env",
+	StringMapValidation: &cr.StringMapValidation{
+		Default:    map[string]string{},
+		AllowEmpty: true,
+	},
+}
+
 func ensurePythonPathSuffix(path string) (string, error) {
 	return s.EnsureSuffix(path, "/"), nil
 }
@@ -77,6 +85,7 @@ type TensorFlow struct {
 	SignatureKey *string                `json:"signature_key" yaml:"signature_key"`
 	PythonPath   *string                `json:"python_path" yaml:"python_path"`
 	Config       map[string]interface{} `json:"config" yaml:"config"`
+	Env          map[string]string      `json:"env" yaml:"env"`
 }
 
 type ONNX struct {
@@ -84,12 +93,14 @@ type ONNX struct {
 	Predictor  string                 `json:"predictor" yaml:"predictor"`
 	PythonPath *string                `json:"python_path" yaml:"python_path"`
 	Config     map[string]interface{} `json:"config" yaml:"config"`
+	Env        map[string]string      `json:"env" yaml:"env"`
 }
 
 type Python struct {
 	Predictor  string                 `json:"predictor" yaml:"predictor"`
 	PythonPath *string                `json:"python_path" yaml:"python_path"`
 	Config     map[string]interface{} `json:"config" yaml:"config"`
+	Env        map[string]string      `json:"env" yaml:"env"`
 }
 
 var apiValidation = &cr.StructValidation{
@@ -154,6 +165,7 @@ var apiValidation = &cr.StructValidation{
 					},
 					pythonPathValidation,
 					configValidation,
+					envValidation,
 				},
 			},
 		},
@@ -177,6 +189,7 @@ var apiValidation = &cr.StructValidation{
 					},
 					pythonPathValidation,
 					configValidation,
+					envValidation,
 				},
 			},
 		},
@@ -191,8 +204,9 @@ var apiValidation = &cr.StructValidation{
 							Required: true,
 						},
 					},
-					configValidation,
 					pythonPathValidation,
+					configValidation,
+					envValidation,
 				},
 			},
 		},
@@ -385,6 +399,11 @@ func (tf *TensorFlow) UserConfigStr() string {
 		d, _ := yaml.Marshal(&tf.Config)
 		sb.WriteString(s.Indent(string(d), "  "))
 	}
+	if len(tf.Env) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
+		d, _ := yaml.Marshal(&tf.Env)
+		sb.WriteString(s.Indent(string(d), "  "))
+	}
 	return sb.String()
 }
 
@@ -420,6 +439,11 @@ func (onnx *ONNX) UserConfigStr() string {
 		d, _ := yaml.Marshal(&onnx.Config)
 		sb.WriteString(s.Indent(string(d), "  "))
 	}
+	if len(onnx.Env) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
+		d, _ := yaml.Marshal(&onnx.Env)
+		sb.WriteString(s.Indent(string(d), "  "))
+	}
 	return sb.String()
 }
 
@@ -444,6 +468,11 @@ func (python *Python) UserConfigStr() string {
 	if len(python.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
 		d, _ := yaml.Marshal(&python.Config)
+		sb.WriteString(s.Indent(string(d), "  "))
+	}
+	if len(python.Env) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
+		d, _ := yaml.Marshal(&python.Env)
 		sb.WriteString(s.Indent(string(d), "  "))
 	}
 	return sb.String()
