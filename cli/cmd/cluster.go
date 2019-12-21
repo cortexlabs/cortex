@@ -70,7 +70,7 @@ var upCmd = &cobra.Command{
 	Short: "spin up a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.up")
+		telemetry.EventNotify("cli.cluster.up")
 
 		if err := checkDockerRunning(); err != nil {
 			exit.Error(err)
