@@ -29,7 +29,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-const cronInterval = 5 // seconds
+const (
+	_cronInterval      = 5 * time.Second
+	_telemetryInterval = 1 * time.Hour
+)
+
+var _lastTelemetryCron time.Time
 
 var cronChannel = make(chan struct{}, 1)
 
@@ -44,7 +49,7 @@ func cronRunner() {
 		case <-timer.C:
 			runCron()
 		}
-		timer.Reset(5 * time.Second)
+		timer.Reset(_cronInterval)
 	}
 }
 
@@ -90,6 +95,47 @@ func runCron() {
 		telemetry.Error(err)
 		errors.PrintError(err)
 	}
+
+	if time.Since(_lastTelemetryCron) >= _telemetryInterval {
+		_lastTelemetryCron = time.Now()
+		if err := telemetryCron(); err != nil {
+			telemetry.Error(err)
+			errors.PrintError(err)
+		}
+	}
+}
+
+func telemetryCron() error {
+	nodes, err := config.Kubernetes.ListNodes(nil)
+	if err != nil {
+		return err
+	}
+
+	instanceTypeCounts := make(map[string]int)
+	var totalInstances int
+
+	for _, node := range nodes {
+		if node.Labels["workload"] != "true" {
+			continue
+		}
+
+		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
+		if instanceType == "" {
+			instanceType = "unknown"
+		}
+
+		instanceTypeCounts[instanceType]++
+		totalInstances++
+	}
+
+	properties := map[string]interface{}{
+		"instanceTypes": instanceTypeCounts,
+		"instanceCount": totalInstances,
+	}
+
+	telemetry.Event("operator.cron", properties)
+
+	return nil
 }
 
 func reportAndRecover(strs ...string) error {
