@@ -116,13 +116,17 @@ func Init(telemetryConfig Config) error {
 }
 
 func Event(name string, properties ...map[string]interface{}) {
-	eventHelper(name, mergeProperties(properties...), nil)
+	integrations := map[string]interface{}{
+		"All":   true,
+		"Slack": false,
+	}
+
+	eventHelper(name, mergeProperties(properties...), integrations)
 }
 
-func InternalEvent(name string, properties ...map[string]interface{}) {
+func EventNotify(name string, properties ...map[string]interface{}) {
 	integrations := map[string]interface{}{
-		"All": false,
-		"S3":  true,
+		"All": true,
 	}
 
 	eventHelper(name, mergeProperties(properties...), integrations)
