@@ -5,9 +5,10 @@
 
 - kind: api
   name: analyzer
-  tensorflow:
+  predictor:
+    type: tensorflow
+    path: predictor.py
     model: s3://cortex-examples/tensorflow/sentiment-analyzer/bert
-    predictor: predictor.py
   tracker:
     model_type: classification
   compute:

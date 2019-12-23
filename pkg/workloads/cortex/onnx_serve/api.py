@@ -22,7 +22,7 @@ from flask_api import status
 from waitress import serve
 
 from cortex.lib import util, Context, api_utils
-from cortex.lib.log import cx_logger, debug_obj
+from cortex.lib.log import cx_logger, debug_obj, refresh_logger
 from cortex.lib.exceptions import CortexException, UserRuntimeException, UserException
 from cortex.onnx_serve.client import ONNXClient
 
@@ -79,7 +79,7 @@ def predict():
         try:
             output = predictor.predict(payload)
         except Exception as e:
-            raise UserRuntimeException(api["onnx"]["predictor"], "predict", str(e)) from e
+            raise UserRuntimeException(api["predictor"]["path"], "predict", str(e)) from e
         debug_obj("prediction", output, debug)
 
     except Exception as e:
@@ -119,18 +119,25 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
-        if api.get("onnx") is None:
-            raise CortexException(api["name"], "onnx key not configured")
+        if api["predictor"]["type"] != "onnx":
+            raise CortexException(api["name"], "predictor type is not onnx")
 
-        cx_logger().info("loading the predictor from {}".format(api["onnx"]["predictor"]))
+        cx_logger().info("loading the predictor from {}".format(api["predictor"]["path"]))
 
-        _, prefix = ctx.storage.deconstruct_s3_path(api["onnx"]["model"])
+        _, prefix = ctx.storage.deconstruct_s3_path(api["predictor"]["model"])
         model_path = os.path.join(args.model_dir, os.path.basename(prefix))
         local_cache["client"] = ONNXClient(model_path)
 
         predictor_class = ctx.get_predictor_class(api["name"], args.project_dir)
 
-        local_cache["predictor"] = predictor_class(local_cache["client"], api["onnx"]["config"])
+        try:
+            local_cache["predictor"] = predictor_class(
+                local_cache["client"], api["predictor"]["config"]
+            )
+        except Exception as e:
+            raise UserRuntimeException(api["predictor"]["path"], "__init__", str(e)) from e
+        finally:
+            refresh_logger()
     except Exception as e:
         cx_logger().exception("failed to start api")
         sys.exit(1)
@@ -144,8 +151,8 @@ def start(args):
     cx_logger().info("ONNX model signature: {}".format(local_cache["client"].input_signature))
 
     waitress_kwargs = {}
-    if api["onnx"].get("config") is not None:
-        for key, value in api["onnx"]["config"].items():
+    if api["predictor"].get("config") is not None:
+        for key, value in api["predictor"]["config"].items():
             if key.startswith("waitress_"):
                 waitress_kwargs[key[len("waitress_") :]] = value
 

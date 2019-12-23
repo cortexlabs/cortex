@@ -5,8 +5,9 @@
 
 - kind: api
   name: classifier
-  tensorflow:
+  predictor:
+    type: tensorflow
+    path: predictor.py
     model: s3://cortex-examples/tensorflow/iris-classifier/nn
-    predictor: predictor.py
   tracker:
     model_type: classification

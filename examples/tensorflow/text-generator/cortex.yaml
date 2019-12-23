@@ -5,9 +5,10 @@
 
 - kind: api
   name: generator
-  tensorflow:
+  predictor:
+    type: tensorflow
+    path: predictor.py
     model: s3://cortex-examples/tensorflow/text-generator/gpt-2/124M
-    predictor: predictor.py
   compute:
     cpu: 1
     gpu: 1

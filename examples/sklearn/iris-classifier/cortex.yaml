@@ -5,8 +5,9 @@
 
 - kind: api
   name: classifier
-  python:
-    predictor: predictor.py
+  predictor:
+    type: python
+    path: predictor.py
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
@@ -18,8 +19,9 @@
 
 - kind: api
   name: another-classifier
-  python:
-    predictor: predictor.py
+  predictor:
+    type: python
+    path: predictor.py
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/another-model.pkl
@@ -31,8 +33,9 @@
 
 - kind: api
   name: batch-classifier
-  python:
-    predictor: batch-predictor.py
+  predictor:
+    type: python
+    path: batch-predictor.py
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl

@@ -5,9 +5,10 @@
 
 - kind: api
   name: classifier
-  tensorflow:
+  predictor:
+    type: tensorflow
+    path: predictor.py
     model: s3://cortex-examples/tensorflow/image-classifier/inception
-    predictor: predictor.py
   tracker:
     model_type: classification
   compute:

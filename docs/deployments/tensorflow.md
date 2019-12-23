@@ -10,9 +10,10 @@ You can deploy TensorFlow models as web services by defining a class that implem
 - kind: api
   name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
-  tensorflow:
+  predictor:
+    type: tensorflow
+    path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
     model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
-    predictor: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
     signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
     config: <string: value>  # dictionary that can be used to configure custom values (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
@@ -37,9 +38,10 @@ See [packaging TensorFlow models](../packaging-models/tensorflow.md) for how to 
 ```yaml
 - kind: api
   name: my-api
-  tensorflow:
+  predictor:
+    type: tensorflow
+    path: predictor.py
     model: s3://my-bucket/my-model
-    predictor: predictor.py
   compute:
     gpu: 1
 ```

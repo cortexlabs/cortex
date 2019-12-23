@@ -5,8 +5,9 @@
 
 - kind: api
   name: comprehender
-  python:
-    predictor: predictor.py
+  predictor:
+    type: python
+    path: predictor.py
   compute:
     cpu: 1
     gpu: 1

@@ -112,8 +112,9 @@ Create a `cortex.yaml` file and add the configuration below. A `deployment` spec
 
 - kind: api
   name: classifier
-  python:
-    predictor: predictor.py
+  predictor:
+    type: python
+    path: predictor.py
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
@@ -178,8 +179,9 @@ Add a `tracker` to your `cortex.yaml` and specify that this is a classification 
 
 - kind: api
   name: classifier
-  python:
-    predictor: predictor.py
+  predictor:
+    type: python
+    path: predictor.py
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
@@ -221,8 +223,9 @@ This model is fairly small but larger models may require more compute resources.
 
 - kind: api
   name: classifier
-  python:
-    predictor: predictor.py
+  predictor:
+    type: python
+    path: predictor.py
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
@@ -267,8 +270,9 @@ If you trained another model and want to A/B test it with your previous model, s
 
 - kind: api
   name: classifier
-  python:
-    predictor: predictor.py
+  predictor:
+    type: python
+    path: predictor.py
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
@@ -280,8 +284,9 @@ If you trained another model and want to A/B test it with your previous model, s
 
 - kind: api
   name: another-classifier
-  python:
-    predictor: predictor.py
+  predictor:
+    type: python
+    path: predictor.py
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/another-model.pkl
@@ -353,8 +358,9 @@ Next, add the `api` to `cortex.yaml`:
 
 - kind: api
   name: classifier
-  python:
-    predictor: predictor.py
+  predictor:
+    type: python
+    path: predictor.py
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
@@ -366,8 +372,9 @@ Next, add the `api` to `cortex.yaml`:
 
 - kind: api
   name: another-classifier
-  python:
-    predictor: predictor.py
+  predictor:
+    type: python
+    path: predictor.py
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/another-model.pkl
@@ -380,8 +387,9 @@ Next, add the `api` to `cortex.yaml`:
 
 - kind: api
   name: batch-classifier
-  python:
-    predictor: batch-predictor.py
+  predictor:
+    type: python
+    path: batch-predictor.py
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl

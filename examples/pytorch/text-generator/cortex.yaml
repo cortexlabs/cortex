@@ -5,8 +5,9 @@
 
 - kind: api
   name: generator
-  python:
-    predictor: predictor.py
+  predictor:
+    type: python
+    path: predictor.py
     config:
       num_words: 50
       device: cuda  # use "cpu" to run on CPUs

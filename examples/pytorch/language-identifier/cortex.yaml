@@ -5,8 +5,9 @@
 
 - kind: api
   name: identifier
-  python:
-    predictor: predictor.py
+  predictor:
+    type: python
+    path: predictor.py
   tracker:
     model_type: classification
   compute:

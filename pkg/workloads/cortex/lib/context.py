@@ -129,22 +129,23 @@ class Context:
 
     def get_predictor_class(self, api_name, project_dir):
         api = self.apis[api_name]
-        if api.get("tensorflow") is not None:
-            api_type = "tensorflow"
+
+        if api["predictor"]["type"] == "tensorflow":
             target_class_name = "TensorFlowPredictor"
-        elif api.get("onnx") is not None:
-            api_type = "onnx"
+            validations = TENSORFLOW_CLASS_VALIDATION
+        elif api["predictor"]["type"] == "onnx":
             target_class_name = "ONNXPredictor"
-        elif api.get("python") is not None:
-            api_type = "python"
+            validations = ONNX_CLASS_VALIDATION
+        elif api["predictor"]["type"] == "python":
             target_class_name = "PythonPredictor"
+            validations = PYTHON_CLASS_VALIDATION
 
         try:
             impl = self.load_module(
-                "predictor", api["name"], os.path.join(project_dir, api[api_type]["predictor"])
+                "predictor", api["name"], os.path.join(project_dir, api["predictor"]["path"])
             )
         except CortexException as e:
-            e.wrap("api " + api_name, "error in " + api[api_type]["predictor"])
+            e.wrap("api " + api_name, "error in " + api["predictor"]["path"])
             raise
         finally:
             refresh_logger()
@@ -164,15 +165,9 @@ class Context:
             if predictor_class is None:
                 raise UserException("{} class is not defined".format(target_class_name))
 
-            if api_type == "tensorflow":
-                _validate_impl(predictor_class, TENSORFLOW_CLASS_VALIDATION)
-            elif api_type == "onnx":
-                _validate_impl(predictor_class, ONNX_CLASS_VALIDATION)
-            elif api_type == "python":
-                _validate_impl(predictor_class, PYTHON_CLASS_VALIDATION)
-
+            _validate_impl(predictor_class, validations)
         except CortexException as e:
-            e.wrap("api " + api_name, "error in " + api[api_type]["predictor"])
+            e.wrap("api " + api_name, "error in " + api["predictor"]["path"])
             raise
         return predictor_class
 

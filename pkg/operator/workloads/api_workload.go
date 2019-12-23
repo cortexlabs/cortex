@@ -93,12 +93,12 @@ func (aw *APIWorkload) Start(ctx *context.Context) error {
 	desiredReplicas := getRequestedReplicasFromDeployment(api, k8sDeloyment, hpa)
 
 	var deploymentSpec *kapps.Deployment
-	switch {
-	case api.TensorFlow != nil:
+	switch api.Predictor.Type {
+	case userconfig.TensorFlowPredictorType:
 		deploymentSpec = tfAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
-	case api.ONNX != nil:
+	case userconfig.ONNXPredictorType:
 		deploymentSpec = onnxAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
-	case api.Python != nil:
+	case userconfig.PythonPredictorType:
 		deploymentSpec = pythonAPISpec(ctx, api, aw.WorkloadID, desiredReplicas)
 	default:
 		return errors.New(api.Name, "unknown model format encountered") // unexpected
@@ -278,6 +278,8 @@ func tfAPISpec(
 		tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
+	tensorflowModel := *ctx.APIs[api.Name].Predictor.Model
+
 	downloadConfig := downloadContainerConfig{
 		LastLog: fmt.Sprintf(downloaderLastLog, "tensorflow"),
 		DownloadArgs: []downloadContainerArg{
@@ -290,9 +292,9 @@ func tfAPISpec(
 				HideUnzippingLog: true,
 			},
 			{
-				From:                 ctx.APIs[api.Name].TensorFlow.Model,
+				From:                 tensorflowModel,
 				To:                   path.Join(consts.EmptyDirMountPath, "model"),
-				Unzip:                strings.HasSuffix(ctx.APIs[api.Name].TensorFlow.Model, ".zip"),
+				Unzip:                strings.HasSuffix(tensorflowModel, ".zip"),
 				ItemName:             "the model",
 				TFModelVersionRename: path.Join(consts.EmptyDirMountPath, "model", "1"),
 			},
@@ -301,7 +303,7 @@ func tfAPISpec(
 
 	envVars := []kcore.EnvVar{}
 
-	for name, val := range api.TensorFlow.Env {
+	for name, val := range api.Predictor.Env {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  name,
 			Value: val,
@@ -319,10 +321,10 @@ func tfAPISpec(
 		},
 	)
 
-	if api.TensorFlow.PythonPath != nil {
+	if api.Predictor.PythonPath != nil {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  "PYTHON_PATH",
-			Value: path.Join(consts.EmptyDirMountPath, "project", *api.TensorFlow.PythonPath),
+			Value: path.Join(consts.EmptyDirMountPath, "project", *api.Predictor.PythonPath),
 		})
 	}
 
@@ -497,7 +499,7 @@ func pythonAPISpec(
 
 	envVars := []kcore.EnvVar{}
 
-	for name, val := range api.Python.Env {
+	for name, val := range api.Predictor.Env {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  name,
 			Value: val,
@@ -515,10 +517,10 @@ func pythonAPISpec(
 		},
 	)
 
-	if api.Python.PythonPath != nil {
+	if api.Predictor.PythonPath != nil {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  "PYTHON_PATH",
-			Value: path.Join(consts.EmptyDirMountPath, "project", *api.Python.PythonPath),
+			Value: path.Join(consts.EmptyDirMountPath, "project", *api.Predictor.PythonPath),
 		})
 	}
 
@@ -648,7 +650,7 @@ func onnxAPISpec(
 				HideUnzippingLog: true,
 			},
 			{
-				From:     ctx.APIs[api.Name].ONNX.Model,
+				From:     *ctx.APIs[api.Name].Predictor.Model,
 				To:       path.Join(consts.EmptyDirMountPath, "model"),
 				ItemName: "the model",
 			},
@@ -657,7 +659,7 @@ func onnxAPISpec(
 
 	envVars := []kcore.EnvVar{}
 
-	for name, val := range api.ONNX.Env {
+	for name, val := range api.Predictor.Env {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  name,
 			Value: val,
@@ -675,10 +677,10 @@ func onnxAPISpec(
 		},
 	)
 
-	if api.ONNX.PythonPath != nil {
+	if api.Predictor.PythonPath != nil {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  "PYTHON_PATH",
-			Value: path.Join(consts.EmptyDirMountPath, "project", *api.ONNX.PythonPath),
+			Value: path.Join(consts.EmptyDirMountPath, "project", *api.Predictor.PythonPath),
 		})
 	}
 

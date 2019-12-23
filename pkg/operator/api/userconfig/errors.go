@@ -46,6 +46,8 @@ const (
 	ErrExternalNotFound
 	ErrONNXDoesntSupportZip
 	ErrInvalidTensorFlowDir
+	ErrFieldMustBeDefinedForPredictorType
+	ErrFieldNotSupportedByPredictorType
 	ErrDuplicateEndpoints
 )
 
@@ -69,6 +71,8 @@ var errorKinds = []string{
 	"err_external_not_found",
 	"err_onnx_doesnt_support_zip",
 	"err_invalid_tensorflow_dir",
+	"err_field_must_be_defined_for_predictor_type",
+	"err_field_not_supported_by_predictor_type",
 	"err_duplicate_endpoints",
 }
 
@@ -274,9 +278,23 @@ func ErrorInvalidTensorFlowDir(path string) error {
 	}
 }
 
+func ErrorFieldMustBeDefinedForPredictorType(fieldKey string, predictorType PredictorType) error {
+	return Error{
+		Kind:    ErrFieldMustBeDefinedForPredictorType,
+		message: fmt.Sprintf("%s field must be defined for a %s predictor", fieldKey, predictorType.String()),
+	}
+}
+
+func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType PredictorType) error {
+	return Error{
+		Kind:    ErrFieldNotSupportedByPredictorType,
+		message: fmt.Sprintf("%s is not a supported field for %s predictor", fieldKey, predictorType.String()),
+	}
+}
+
 func ErrorDuplicateEndpoints(endpoint string, apiNames ...string) error {
 	return Error{
 		Kind:    ErrDuplicateEndpoints,
-		message: fmt.Sprintf("multiple APIs specifiy the same endpoint (endpoint %s is used by the %s APIs)", s.UserStr(endpoint), s.UserStrsAnd(apiNames)),
+		message: fmt.Sprintf("multiple APIs specify the same endpoint (endpoint %s is used by the %s APIs)", s.UserStr(endpoint), s.UserStrsAnd(apiNames)),
 	}
 }

@@ -10,9 +10,10 @@ You can deploy ONNX models as web services by defining a class that implements C
 - kind: api
   name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
-  onnx:
+  predictor:
+    type: onnx
+    path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
     model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
-    predictor: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
     config: <string: value>  # dictionary passed to the constructor of a Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     env: <string: string>  # dictionary of environment variables
@@ -36,9 +37,10 @@ See [packaging ONNX models](../packaging-models/onnx.md) for information about e
 ```yaml
 - kind: api
   name: my-api
-  onnx:
+  predictor:
+    type: onnx
+    path: predictor.py
     model: s3://my-bucket/my-model.onnx
-    predictor: predictor.py
   compute:
     gpu: 1
 ```
