@@ -40,7 +40,9 @@ def before_request():
 @app.after_request
 def after_request(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = request.headers.get(
+        "Access-Control-Request-Headers", "*"
+    )
 
     if request.path != "/predict":
         return response
