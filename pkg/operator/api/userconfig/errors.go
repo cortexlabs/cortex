@@ -281,14 +281,14 @@ func ErrorInvalidTensorFlowDir(path string) error {
 func ErrorFieldMustBeDefinedForPredictorType(fieldKey string, predictorType PredictorType) error {
 	return Error{
 		Kind:    ErrFieldMustBeDefinedForPredictorType,
-		message: fmt.Sprintf("%s field must be defined for predictor of type %s", fieldKey, predictorType.String()),
+		message: fmt.Sprintf("%s field must be defined for predictor type %s", fieldKey, predictorType.String()),
 	}
 }
 
 func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType PredictorType) error {
 	return Error{
 		Kind:    ErrFieldNotSupportedByPredictorType,
-		message: fmt.Sprintf("%s is not a supported field for predictor of type %s", fieldKey, predictorType.String()),
+		message: fmt.Sprintf("%s is not supported field for predictor type %s", fieldKey, predictorType.String()),
 	}
 }
 
