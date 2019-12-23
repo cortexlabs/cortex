@@ -61,16 +61,14 @@ $ python3 trainer.py
 
 import boto3
 import pickle
-import re
 
 labels = ["setosa", "versicolor", "virginica"]
 
 
 class PythonPredictor:
     def __init__(self, config):
-        bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
         s3 = boto3.client("s3")
-        s3.download_file(bucket, key, "model.pkl")
+        s3.download_file(config["bucket"], config["key"], "model.pkl")
 
         self.model = pickle.load(open("model.pkl", "rb"))
 
@@ -117,7 +115,8 @@ Create a `cortex.yaml` file and add the configuration below. A `deployment` spec
   python:
     predictor: predictor.py
     config:
-      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/model.pkl
 ```
 
 <br>
@@ -182,7 +181,8 @@ Add a `tracker` to your `cortex.yaml` and specify that this is a classification 
   python:
     predictor: predictor.py
     config:
-      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/model.pkl
   tracker:
     model_type: classification
 ```
@@ -224,7 +224,8 @@ This model is fairly small but larger models may require more compute resources.
   python:
     predictor: predictor.py
     config:
-      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/model.pkl
   tracker:
     model_type: classification
   compute:
@@ -269,7 +270,8 @@ If you trained another model and want to A/B test it with your previous model, s
   python:
     predictor: predictor.py
     config:
-      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/model.pkl
   tracker:
     model_type: classification
   compute:
@@ -281,7 +283,8 @@ If you trained another model and want to A/B test it with your previous model, s
   python:
     predictor: predictor.py
     config:
-      model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/another-model.pkl
   tracker:
     model_type: classification
   compute:
@@ -316,16 +319,14 @@ First, implement `batch-predictor.py` with a `predict` function that can process
 
 import boto3
 import pickle
-import re
 
 labels = ["setosa", "versicolor", "virginica"]
 
 
 class PythonPredictor:
     def __init__(self, config):
-        bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
         s3 = boto3.client("s3")
-        s3.download_file(bucket, key, "model.pkl")
+        s3.download_file(config["bucket"], config["key"], "model.pkl")
 
         self.model = pickle.load(open("model.pkl", "rb"))
 
@@ -355,7 +356,8 @@ Next, add the `api` to `cortex.yaml`:
   python:
     predictor: predictor.py
     config:
-      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/model.pkl
   tracker:
     model_type: classification
   compute:
@@ -367,7 +369,8 @@ Next, add the `api` to `cortex.yaml`:
   python:
     predictor: predictor.py
     config:
-      model: s3://cortex-examples/sklearn/iris-classifier/another-model.pkl
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/another-model.pkl
   tracker:
     model_type: classification
   compute:
@@ -380,7 +383,8 @@ Next, add the `api` to `cortex.yaml`:
   python:
     predictor: batch-predictor.py
     config:
-      model: s3://cortex-examples/sklearn/iris-classifier/model.pkl
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/model.pkl
   compute:
     cpu: 0.5
     mem: 1G
