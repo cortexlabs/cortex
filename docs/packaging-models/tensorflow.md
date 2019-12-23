@@ -38,7 +38,8 @@ Reference your model in an `api`:
 ```yaml
 - kind: api
   name: my-api
-  tensorflow:
+  predictor:
+    type: tensorflow
     model: s3://my-bucket/bert
     predictor: predictor.py
 ```
@@ -56,7 +57,8 @@ Reference the zipped model in an `api`:
 ```yaml
 - kind: api
   name: my-api
-  tensorflow:
+  predictor:
+    type: tensorflow
     model: s3://my-bucket/bert.zip
     predictor: predictor.py
 ```

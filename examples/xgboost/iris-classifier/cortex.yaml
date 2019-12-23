@@ -5,8 +5,9 @@
 
 - kind: api
   name: classifier
-  onnx:
+  predictor:
+    type: onnx
+    path: predictor.py
     model: s3://cortex-examples/xgboost/iris-classifier/gbtree.onnx
-    predictor: predictor.py
   tracker:
     model_type: classification

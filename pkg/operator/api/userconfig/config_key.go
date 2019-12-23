@@ -24,6 +24,8 @@ const (
 
 	// API
 	ModelKey        = "model"
+	TypeKey         = "type"
+	PathKey         = "path"
 	PredictorKey    = "predictor"
 	EndpointKey     = "endpoint"
 	SignatureKeyKey = "signature_key"

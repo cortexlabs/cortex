@@ -22,7 +22,7 @@ from flask_api import status
 from waitress import serve
 
 from cortex.lib import util, Context, api_utils
-from cortex.lib.log import cx_logger, debug_obj
+from cortex.lib.log import cx_logger, debug_obj, refresh_logger
 from cortex.lib.exceptions import UserRuntimeException, UserException, CortexException
 from cortex.tf_api.client import TensorFlowClient
 
@@ -81,7 +81,7 @@ def predict():
         try:
             output = predictor.predict(payload)
         except Exception as e:
-            raise UserRuntimeException(api["tensorflow"]["predictor"], "predict", str(e)) from e
+            raise UserRuntimeException(api["predictor"]["path"], "predict", str(e)) from e
         debug_obj("prediction", output, debug)
     except Exception as e:
         cx_logger().exception("prediction failed")
@@ -167,20 +167,26 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
+        if api["predictor"]["type"] != "tensorflow":
+            raise CortexException(api["name"], "predictor type is not tensorflow")
+
         local_cache["client"] = TensorFlowClient(
-            "localhost:" + str(args.tf_serve_port), api["tensorflow"]["signature_key"]
+            "localhost:" + str(args.tf_serve_port), api["predictor"]["signature_key"]
         )
 
-        if api.get("tensorflow") is None:
-            raise CortexException(api["name"], "tensorflow key not configured")
-
-        cx_logger().info("loading the predictor from {}".format(api["tensorflow"]["predictor"]))
+        cx_logger().info("loading the predictor from {}".format(api["predictor"]["path"]))
 
         predictor_class = ctx.get_predictor_class(api["name"], args.project_dir)
 
-        local_cache["predictor"] = predictor_class(
-            local_cache["client"], api["tensorflow"]["config"]
-        )
+        try:
+            local_cache["predictor"] = predictor_class(
+                local_cache["client"], api["predictor"]["config"]
+            )
+        except Exception as e:
+            raise UserRuntimeException(api["predictor"]["path"], "__init__", str(e)) from e
+        finally:
+            refresh_logger()
+
     except Exception as e:
         cx_logger().exception("failed to start api")
         sys.exit(1)
@@ -200,8 +206,8 @@ def start(args):
     cx_logger().info("TensorFlow model signature: {}".format(local_cache["client"].input_signature))
 
     waitress_kwargs = {}
-    if api["tensorflow"].get("config") is not None:
-        for key, value in api["tensorflow"]["config"].items():
+    if api["predictor"].get("config") is not None:
+        for key, value in api["predictor"]["config"].items():
             if key.startswith("waitress_"):
                 waitress_kwargs[key[len("waitress_") :]] = value
 

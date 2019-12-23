@@ -31,7 +31,8 @@ Reference your model in an `api`:
 ```yaml
 - kind: api
   name: my-api
-  onnx:
+  predictor:
+    type: onnx
     model: s3://my-bucket/model.onnx
     predictor: predictor.py
 ```

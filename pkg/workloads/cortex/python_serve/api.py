@@ -92,7 +92,7 @@ def predict():
             output = predictor.predict(payload)
             debug_obj("prediction", output, debug)
         except Exception as e:
-            raise UserRuntimeException(api["python"]["path"], "predict", str(e)) from e
+            raise UserRuntimeException(api["predictor"]["path"], "predict", str(e)) from e
     except Exception as e:
         cx_logger().exception("prediction failed")
         return prediction_failed(str(e))
@@ -120,16 +120,16 @@ def start(args):
         local_cache["api"] = api
         local_cache["ctx"] = ctx
 
-        if api.get("python") is None:
-            raise CortexException(api["name"], "python key not configured")
+        if api["predictor"]["type"] != "python":
+            raise CortexException(api["name"], "predictor type is not python")
 
-        cx_logger().info("loading the predictor from {}".format(api["python"]["predictor"]))
+        cx_logger().info("loading the predictor from {}".format(api["predictor"]["path"]))
         predictor_class = ctx.get_predictor_class(api["name"], args.project_dir)
 
         try:
-            local_cache["predictor"] = predictor_class(api["python"]["config"])
+            local_cache["predictor"] = predictor_class(api["predictor"]["config"])
         except Exception as e:
-            raise UserRuntimeException(api["python"]["path"], "__init__", str(e)) from e
+            raise UserRuntimeException(api["predictor"]["path"], "__init__", str(e)) from e
         finally:
             refresh_logger()
     except:
@@ -143,8 +143,8 @@ def start(args):
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
     waitress_kwargs = {}
-    if api["python"].get("config") is not None:
-        for key, value in api["python"]["config"].items():
+    if api["predictor"].get("config") is not None:
+        for key, value in api["predictor"]["config"].items():
             if key.startswith("waitress_"):
                 waitress_kwargs[key[len("waitress_") :]] = value
 
