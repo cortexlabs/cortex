@@ -8,40 +8,42 @@ You can spin up a Cortex cluster on a variety of AWS instance types. If you are 
 
 [T3 instances](https://aws.amazon.com/ec2/instance-types/t3/) are useful for **development** clusters that primarily run model inferences with low compute and memory resource utilization.
 
-compute:  low
-memory:   low
-aws cost: starts at $0.0052 per hour&ast;
+* Compute:  low
+* Memory:   low
+* AWS cost: starts at $0.0052 per hour&ast;
 
-relevant example: [iris classification](../../examples/sklearn/iris-classifier) using scikit-learn
+Relevant example: [iris classification](../../examples/sklearn/iris-classifier) using scikit-learn.
 
 ## M5 instances
 
 [M5 instances](https://aws.amazon.com/ec2/instance-types/m5/) are useful for clusters that primarily run model inferences with low compute and memory resource utilization.
 
-compute:  low
-memory:   low
-aws cost: starts at $0.096 per hour&ast;
+* Compute:  low
+* Memory:   low
+* AWS cost: starts at $0.096 per hour&ast;
 
-relevant example: [MPG estimation](../../examples/sklearn/mpg-estimator) using scikit-learn
+Relevant example: [MPG estimation](../../examples/sklearn/mpg-estimator) using scikit-learn.
 
 ## G4 instances
 
 [G4 instances](https://aws.amazon.com/ec2/instance-types/g4/) are useful for clusters that primarily run model inferences with high compute and low memory resource utilization.
 
-compute:  high
-memory:   low
-aws cost: starts at $0.526 per hour&ast;
+* Compute:  high
+* Memory:   low
+* AWS cost: starts at $0.526 per hour&ast;
 
-relevant example: [language identification](../../examples/pytorch/language-identifier) using PyTorch
+Relevant example: [language identification](../../examples/pytorch/language-identifier) using PyTorch.
 
 ## P2 instances
 
 [P2 instances](https://aws.amazon.com/ec2/instance-types/p2/) are useful for clusters that primarily run model inferences with high compute and high memory resource utilization.
 
-compute:  high
-memory:   high
-aws cost: starts at $0.900 per hour&ast;
+* Compute:  high
+* Memory:   high
+* AWS cost: starts at $0.900 per hour&ast;
 
-relevant example: [text generation](../../examples/tensorflow/text-generator) using TensorFlow
+Relevant example: [text generation](../../examples/tensorflow/text-generator) using TensorFlow.
+
+<br>
 
 &ast; pricing is for the US West (Oregon) AWS region
