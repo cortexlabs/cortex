@@ -5,7 +5,7 @@ import torch
 import boto3
 from model import IrisNet
 
-labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
+labels = ["setosa", "versicolor", "virginica"]
 
 
 class PythonPredictor:

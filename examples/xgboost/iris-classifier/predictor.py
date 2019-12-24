@@ -2,7 +2,7 @@
 
 import numpy as np
 
-labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
+labels = ["setosa", "versicolor", "virginica"]
 
 
 class ONNXPredictor:
