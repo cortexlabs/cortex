@@ -303,6 +303,9 @@ func (predictor *Predictor) UserConfigStr() string {
 	if predictor.Model != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, *predictor.Model))
 	}
+	if predictor.SignatureKey != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
+	}
 	if predictor.PythonPath != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
 	}
@@ -315,9 +318,6 @@ func (predictor *Predictor) UserConfigStr() string {
 		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
 		d, _ := yaml.Marshal(&predictor.Env)
 		sb.WriteString(s.Indent(string(d), "  "))
-	}
-	if predictor.SignatureKey != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
 	}
 	return sb.String()
 }
@@ -364,12 +364,12 @@ func (predictor *Predictor) TensorFlowValidate() error {
 	}
 	if strings.HasSuffix(model, ".zip") {
 		if ok, err := awsClient.IsS3PathFile(model); err != nil || !ok {
-			return errors.Wrap(ErrorExternalNotFound(model), TensorFlowKey, ModelKey)
+			return errors.Wrap(ErrorExternalNotFound(model), ModelKey)
 		}
 	} else {
 		path, err := GetTFServingExportFromS3Path(model, awsClient)
 		if path == "" || err != nil {
-			return errors.Wrap(ErrorInvalidTensorFlowDir(model), TensorFlowKey, ModelKey)
+			return errors.Wrap(ErrorInvalidTensorFlowDir(model), ModelKey)
 		}
 		predictor.Model = pointer.String(path)
 	}
@@ -389,7 +389,7 @@ func (predictor *Predictor) ONNXValidate() error {
 		return err
 	}
 	if ok, err := awsClient.IsS3PathFile(model); err != nil || !ok {
-		return errors.Wrap(ErrorExternalNotFound(model), ONNXKey, ModelKey)
+		return errors.Wrap(ErrorExternalNotFound(model), ModelKey)
 	}
 
 	if predictor.SignatureKey != nil {

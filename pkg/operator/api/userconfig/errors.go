@@ -270,7 +270,7 @@ var tfExpectedStructMessage = `For TensorFlow models, the path must contain a di
       └── variables.data-00002-of-...`
 
 func ErrorInvalidTensorFlowDir(path string) error {
-	message := "invalid TF export directory.\n"
+	message := "invalid TensorFlow export directory.\n"
 	message += tfExpectedStructMessage
 	return Error{
 		Kind:    ErrInvalidTensorFlowDir,
@@ -281,14 +281,14 @@ func ErrorInvalidTensorFlowDir(path string) error {
 func ErrorFieldMustBeDefinedForPredictorType(fieldKey string, predictorType PredictorType) error {
 	return Error{
 		Kind:    ErrFieldMustBeDefinedForPredictorType,
-		message: fmt.Sprintf("%s field must be defined for predictor type %s", fieldKey, predictorType.String()),
+		message: fmt.Sprintf("%s field must be defined for the %s predictor type", fieldKey, predictorType.String()),
 	}
 }
 
 func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType PredictorType) error {
 	return Error{
 		Kind:    ErrFieldNotSupportedByPredictorType,
-		message: fmt.Sprintf("%s is not supported field for predictor type %s", fieldKey, predictorType.String()),
+		message: fmt.Sprintf("%s is not a supported field for the %s predictor type", fieldKey, predictorType.String()),
 	}
 }
 
