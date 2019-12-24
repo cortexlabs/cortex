@@ -8,38 +8,52 @@ You can spin up a Cortex cluster on a variety of AWS instance types. If you are 
 
 [T3 instances](https://aws.amazon.com/ec2/instance-types/t3/) are useful for **development** clusters that primarily run model inferences with low compute and memory resource utilization.
 
-* Example: [iris classification](../../examples/sklearn/iris-classifier) using scikit-learn
+* Example: [iris classification](../../examples/sklearn/iris-classifier)
 * Compute: low
 * Memory: low
+* GPU: no
 * AWS cost: starts at $0.0052 per hour&ast;
+
+## C5 instances
+
+[C5 instances](https://aws.amazon.com/ec2/instance-types/c5/) are useful for clusters that primarily run model inferences with medium compute and low memory resource utilization.
+
+* Example: [language identification](../../examples/pytorch/language-identifier)
+* Compute: medium
+* Memory: low
+* GPU: no
+* AWS cost: starts at $0.085 per hour&ast;
 
 ## M5 instances
 
 [M5 instances](https://aws.amazon.com/ec2/instance-types/m5/) are useful for clusters that primarily run model inferences with low compute and memory resource utilization.
 
-* Example: [MPG estimation](../../examples/sklearn/mpg-estimator) using scikit-learn
+* Example: [MPG estimation](../../examples/sklearn/mpg-estimator)
 * Compute: low
-* Memory: low
+* Memory: medium
+* GPU: no
 * AWS cost: starts at $0.096 per hour&ast;
 
 ## G4 instances
 
-[G4 instances](https://aws.amazon.com/ec2/instance-types/g4/) are useful for clusters that primarily run model inferences with high compute and low memory resource utilization.
+[G4 instances](https://aws.amazon.com/ec2/instance-types/g4/) are useful for clusters that primarily run model inferences with high compute and low memory resource utilization that can run on GPUs.
 
-* Example: [language identification](../../examples/pytorch/language-identifier) using PyTorch
+* Example: [image classification](../../examples/tensorflow/image-classifier)
 * Compute: high
-* Memory: low
+* Memory: medium
+* GPU: yes
 * AWS cost: starts at $0.526 per hour&ast;
 
 ## P2 instances
 
-[P2 instances](https://aws.amazon.com/ec2/instance-types/p2/) are useful for clusters that primarily run model inferences with high compute and high memory resource utilization.
+[P2 instances](https://aws.amazon.com/ec2/instance-types/p2/) are useful for clusters that primarily run model inferences with high compute and high memory resource utilization that can run on GPUs.
 
-* Example: [text generation](../../examples/tensorflow/text-generator) using TensorFlow
+* Example: [text generation](../../examples/tensorflow/text-generator)
 * Compute: high
 * Memory: high
+* GPU: yes
 * AWS cost: starts at $0.900 per hour&ast;
 
 <br>
 
-&ast; Pricing is for the US West (Oregon) AWS region.
+&ast; On-demand pricing for the US West (Oregon) AWS region.
