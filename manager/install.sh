@@ -74,7 +74,7 @@ function ensure_eks() {
   set -e
 
   if [[ "$cluster_status" == "ACTIVE" ]] && [[ "$arg1" != "--update" ]]; then
-    echo "error: there is already cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION"
+    echo "error: there is already a cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION"
     exit 1
   fi
 
