@@ -39,8 +39,9 @@ In addition to supporting Python models via the Python Predictor interface, Cort
 ```yaml
 - kind: api
   name: my-api
-  python:
-    predictor: predictor.py
+  predictor:
+    type: python
+    path: predictor.py
   compute:
     gpu: 1
 ```

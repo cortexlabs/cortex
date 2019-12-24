@@ -34,5 +34,5 @@ Reference your model in an `api`:
   predictor:
     type: onnx
     model: s3://my-bucket/model.onnx
-    predictor: predictor.py
+    path: predictor.py
 ```

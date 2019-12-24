@@ -41,7 +41,7 @@ Reference your model in an `api`:
   predictor:
     type: tensorflow
     model: s3://my-bucket/bert
-    predictor: predictor.py
+    path: predictor.py
 ```
 
 You may also zip the export directory before uploading it:
@@ -60,5 +60,5 @@ Reference the zipped model in an `api`:
   predictor:
     type: tensorflow
     model: s3://my-bucket/bert.zip
-    predictor: predictor.py
+    path: predictor.py
 ```
