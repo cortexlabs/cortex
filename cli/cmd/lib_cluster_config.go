@@ -284,7 +284,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
-			fmt.Printf(fmt.Sprintf("WARNING: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://www.cortex.dev/v/%s/cluster-management/spot-instances for more information\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor))
+			fmt.Printf("WARNING: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://www.cortex.dev/v/%s/cluster-management/spot-instances for more information\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
 		} else {
 			fmt.Printf("WARNING: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://www.cortex.dev/v/%s/cluster-management/spot-instances for more information\n", consts.CortexVersionMinor)
 		}
