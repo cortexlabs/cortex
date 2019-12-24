@@ -5,11 +5,11 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 ## Prerequisites
 
 1. [Docker](https://docs.docker.com/install)
-2. [AWS credentials](aws.md)
+2. [AWS credentials](aws-credentials.md)
 
 ## Installation
 
-See [cluster configuration](config.md) to learn how you can customize your cluster.
+See [cluster configuration](config.md) to learn how you can customize your installation and [EC2 instances](ec2-instances.md) for an overview of how to pick an appropriate EC2 instance type for your cluster.
 
 <!-- CORTEX_VERSION_MINOR -->
 ```bash
