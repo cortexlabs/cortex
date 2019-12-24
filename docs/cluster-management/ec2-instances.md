@@ -11,8 +11,7 @@ You can spin up a Cortex cluster on a variety of AWS instance types. If you are 
 * Compute:  low
 * Memory:   low
 * AWS cost: starts at $0.0052 per hour&ast;
-
-Relevant example: [iris classification](../../examples/sklearn/iris-classifier) using scikit-learn.
+* Example: [iris classification](../../examples/sklearn/iris-classifier) using scikit-learn.
 
 ## M5 instances
 
@@ -21,8 +20,7 @@ Relevant example: [iris classification](../../examples/sklearn/iris-classifier) 
 * Compute:  low
 * Memory:   low
 * AWS cost: starts at $0.096 per hour&ast;
-
-Relevant example: [MPG estimation](../../examples/sklearn/mpg-estimator) using scikit-learn.
+* Example: [MPG estimation](../../examples/sklearn/mpg-estimator) using scikit-learn.
 
 ## G4 instances
 
@@ -31,8 +29,7 @@ Relevant example: [MPG estimation](../../examples/sklearn/mpg-estimator) using s
 * Compute:  high
 * Memory:   low
 * AWS cost: starts at $0.526 per hour&ast;
-
-Relevant example: [language identification](../../examples/pytorch/language-identifier) using PyTorch.
+* Example: [language identification](../../examples/pytorch/language-identifier) using PyTorch.
 
 ## P2 instances
 
@@ -41,9 +38,8 @@ Relevant example: [language identification](../../examples/pytorch/language-iden
 * Compute:  high
 * Memory:   high
 * AWS cost: starts at $0.900 per hour&ast;
-
-Relevant example: [text generation](../../examples/tensorflow/text-generator) using TensorFlow.
+* Example: [text generation](../../examples/tensorflow/text-generator) using TensorFlow.
 
 <br>
 
-&ast; pricing is for the US West (Oregon) AWS region
+&ast; Pricing is for the US West (Oregon) AWS region.
