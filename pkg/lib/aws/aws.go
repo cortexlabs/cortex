@@ -65,10 +65,20 @@ func New(region string, bucket string, withAccountID bool) (*Client, error) {
 		DisableSSL: aws.Bool(false),
 	}))
 
+	bucketLocation, err := GetBucketRegion(bucket)
+	if err != nil {
+		return nil, err
+	}
+
+	bucketSess := session.Must(session.NewSession(&aws.Config{
+		Region:     aws.String(bucketLocation),
+		DisableSSL: aws.Bool(false),
+	}))
+
 	awsClient := &Client{
 		Bucket:               bucket,
 		Region:               region,
-		S3:                   s3.New(sess),
+		S3:                   s3.New(bucketSess),
 		stsClient:            sts.New(sess),
 		autoscaling:          autoscaling.New(sess),
 		CloudWatchMetrics:    cloudwatch.New(sess),
