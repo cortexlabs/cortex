@@ -1,7 +1,5 @@
 # ONNX
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 Export your trained model to the ONNX model format. Here is an example of an sklearn model being exported to ONNX:
 
 ```python

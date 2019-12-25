@@ -17,8 +17,8 @@ limitations under the License.
 package consts
 
 var (
-	CortexVersion      = "master" // CORTEX_VERSION
-	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
+	CortexVersion      = "0.12.0" // CORTEX_VERSION
+	CortexVersionMinor = "0.12"   // CORTEX_VERSION_MINOR
 
 	ContextCacheDir    = "/mnt/context"
 	EmptyDirMountPath  = "/mnt"

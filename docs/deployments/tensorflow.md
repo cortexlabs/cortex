@@ -1,7 +1,5 @@
 # TensorFlow APIs
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 You can deploy TensorFlow models as web services by defining a class that implements Cortex's TensorFlow Predictor interface.
 
 ## Config
@@ -58,7 +56,7 @@ You can log information about each request by adding a `?debug=true` parameter t
 A TensorFlow Predictor is a Python class that describes how to serve your TensorFlow model to make predictions.
 
 <!-- CORTEX_VERSION_MINOR -->
-Cortex provides a `tensorflow_client` and a config object to initialize your implementation of the TensorFlow Predictor class. The `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/tf_api/client.py) that manages a connection to a TensorFlow Serving container via gRPC to make predictions using your model. Once your implementation of the TensorFlow Predictor class has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with the JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function should call `tensorflow_client.predict()` to make an inference against your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
+Cortex provides a `tensorflow_client` and a config object to initialize your implementation of the TensorFlow Predictor class. The `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/0.12/pkg/workloads/cortex/tf_api/client.py) that manages a connection to a TensorFlow Serving container via gRPC to make predictions using your model. Once your implementation of the TensorFlow Predictor class has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with the JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function should call `tensorflow_client.predict()` to make an inference against your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
 ## Implementation
 

@@ -1,7 +1,5 @@
 # Update
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 ## Prerequisites
 
 1. [Docker](https://docs.docker.com/install)
@@ -24,7 +22,7 @@ cortex cluster update
 cortex cluster down
 
 # update your CLI
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.12/get-cli.sh)"
 
 # confirm version
 cortex version

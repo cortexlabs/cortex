@@ -1,4 +1,4 @@
-# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+# this is an example for cortex release 0.12 and may not deploy correctly on other releases of cortex your `cortex version`
 
 from summarizer import Summarizer
 

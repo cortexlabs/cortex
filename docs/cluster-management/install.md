@@ -1,7 +1,5 @@
 # Install
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 ## Prerequisites
 
 1. [Docker](https://docs.docker.com/install)
@@ -14,7 +12,7 @@ See [cluster configuration](config.md) to learn how you can customize your insta
 <!-- CORTEX_VERSION_MINOR -->
 ```bash
 # install the CLI on your machine
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.12/get-cli.sh)"
 
 # provision infrastructure on AWS and spin up a cluster
 cortex cluster up
@@ -28,7 +26,7 @@ Note: This will create resources in your AWS account which aren't included in th
 
 ```bash
 # clone the Cortex repository
-git clone -b master https://github.com/cortexlabs/cortex.git
+git clone -b 0.12 https://github.com/cortexlabs/cortex.git
 
 # navigate to the iris classifier example
 cd cortex/examples/sklearn/iris-classifier
