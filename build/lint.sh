@@ -92,11 +92,12 @@ if [ "$is_release_branch" = "true" ]; then
   output=$(cd "$ROOT" && find . -type f \
   ! -path "./build/lint.sh" \
   ! -path "./vendor/*" \
+  ! -path "./docs/contributing/development.md" \
   ! -path "./bin/*" \
   ! -path "./.git/*" \
   ! -name ".*" \
   -exec grep -R -A 100 -e "CORTEX_VERSION" {} \;)
-  output=$(echo "$output" | grep -e "master")
+  output=$(echo "$output" | grep -e "master" || true)
   if [[ $output ]]; then
     echo 'occurrences of "master" which should be changed to the version number:'
     echo "$output"
