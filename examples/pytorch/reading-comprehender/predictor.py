@@ -1,4 +1,4 @@
-# this is an example for cortex release 0.12 and may not deploy correctly on other releases of cortex your `cortex version`
+# this is an example for cortex release 0.12 and may not deploy correctly on other releases of cortex
 
 from allennlp.predictors.predictor import Predictor as AllenNLPPredictor
 
