@@ -292,7 +292,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *
 	}
 
 	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
-	prompt.YesOrExit("would you like to continue with this installation?", exitMessage)
+	prompt.YesOrExit("would you like to continue?", exitMessage)
 }
 
 func confirmUpdateClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) {
