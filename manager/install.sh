@@ -73,11 +73,6 @@ function ensure_eks() {
   cluster_status=$(echo "$cluster_info" | jq -r 'first | .Status')
   set -e
 
-  if [[ "$cluster_status" == "ACTIVE" ]] && [[ "$arg1" != "--update" ]]; then
-    echo "error: there is already cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION"
-    exit 1
-  fi
-
   if [ "$cluster_status" == "DELETING" ]; then
     echo "error: your cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is currently spinning down; please try again once it is completely deleted (may take a few minutes)"
     exit 1
