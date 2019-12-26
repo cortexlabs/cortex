@@ -6,7 +6,7 @@ Cortex is an open source platform for deploying machine learning models as produ
 
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
-[install](https://www.cortex.dev/install) • [tutorial](https://www.cortex.dev/iris-classifier) • [docs](https://www.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.11/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
+[install](https://www.cortex.dev/install) • [tutorial](https://www.cortex.dev/iris-classifier) • [docs](https://www.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.12/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
 
 <!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
 ![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.11.gif)
@@ -33,7 +33,7 @@ Cortex is designed to be self-hosted on any AWS account. You can spin up a clust
 <!-- CORTEX_VERSION_README_MINOR -->
 ```bash
 # install the CLI on your machine
-$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.11/get-cli.sh)"
+$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.12/get-cli.sh)"
 
 # provision infrastructure on AWS and spin up a cluster
 $ cortex cluster up
@@ -57,10 +57,12 @@ your cluster is ready!
 ```python
 # predictor.py
 
-model = download_model()
+class PythonPredictor:
+    def __init__(self, config):
+        self.model = download_model()
 
-def predict(sample, metadata):
-    return model.predict(sample["text"])
+    def predict(self, payload):
+        return model.predict(payload["text"])
 ```
 
 ### Configure your deployment
@@ -74,6 +76,7 @@ def predict(sample, metadata):
 - kind: api
   name: classifier
   predictor:
+    type: python
     path: predictor.py
   tracker:
     model_type: classification
@@ -130,8 +133,8 @@ The CLI sends configuration and code to the cluster every time you run `cortex d
 ## Examples of Cortex deployments
 
 <!-- CORTEX_VERSION_README_MINOR x5 -->
-* [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/sentiment-analyzer): deploy a BERT model for sentiment analysis.
-* [Image classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/tensorflow/image-classifier): deploy an Inception model to classify images.
-* [Search completion](https://github.com/cortexlabs/cortex/tree/0.11/examples/pytorch/search-completer): deploy Facebook's RoBERTa model to complete search terms.
-* [Text generation](https://github.com/cortexlabs/cortex/tree/0.11/examples/pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
-* [Iris classification](https://github.com/cortexlabs/cortex/tree/0.11/examples/sklearn/iris-classifier): deploy a scikit-learn model to classify iris flowers.
+* [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.12/examples/tensorflow/sentiment-analyzer): deploy a BERT model for sentiment analysis.
+* [Image classification](https://github.com/cortexlabs/cortex/tree/0.12/examples/tensorflow/image-classifier): deploy an Inception model to classify images.
+* [Search completion](https://github.com/cortexlabs/cortex/tree/0.12/examples/pytorch/search-completer): deploy Facebook's RoBERTa model to complete search terms.
+* [Text generation](https://github.com/cortexlabs/cortex/tree/0.12/examples/pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
+* [Iris classification](https://github.com/cortexlabs/cortex/tree/0.12/examples/sklearn/iris-classifier): deploy a scikit-learn model to classify iris flowers.
