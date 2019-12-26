@@ -90,7 +90,7 @@ class PythonPredictor:
 import boto3
 from my_model import IrisNet
 
-labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
+labels = ["setosa", "versicolor", "virginica"]
 
 class PythonPredictor:
     def __init__(self, config):
