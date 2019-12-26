@@ -85,7 +85,7 @@ class TensorFlowPredictor:
 ## Example
 
 ```python
-labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
+labels = ["setosa", "versicolor", "virginica"]
 
 
 class TensorFlowPredictor:
