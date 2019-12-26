@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -137,179 +138,179 @@ func (e Error) Error() string {
 }
 
 func ErrorParseConfig() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrParseConfig,
 		message: fmt.Sprintf("failed to parse config file"),
-	}
+	})
 }
 
 func ErrorReadConfig() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrReadConfig,
 		message: fmt.Sprintf("failed to read config file"),
-	}
+	})
 }
 
 func ErrorUnsupportedKey(key interface{}) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrUnsupportedKey,
 		message: fmt.Sprintf("key %s is not supported", s.UserStr(key)),
-	}
+	})
 }
 
 func ErrorInvalidYAML(err error) error {
 	str := strings.TrimPrefix(err.Error(), "yaml: ")
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInvalidYAML,
 		message: fmt.Sprintf("invalid yaml: %s", str),
-	}
+	})
 }
 
 func ErrorAlphaNumericDashUnderscore(provided string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrAlphaNumericDashUnderscore,
 		message: fmt.Sprintf("%s must contain only letters, numbers, underscores, and dashes", s.UserStr(provided)),
-	}
+	})
 }
 
 func ErrorAlphaNumericDashDotUnderscore(provided string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrAlphaNumericDashDotUnderscore,
 		message: fmt.Sprintf("%s must contain only letters, numbers, underscores, dashes, and periods", s.UserStr(provided)),
-	}
+	})
 }
 
 func ErrorMustHavePrefix(provided string, prefix string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrMustHavePrefix,
 		message: fmt.Sprintf("%s must start with %s", s.UserStr(provided), s.UserStr(prefix)),
-	}
+	})
 }
 
 func ErrorInvalidInterface(provided interface{}, allowed ...interface{}) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInvalidInterface,
 		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allowed)),
-	}
+	})
 }
 
 func ErrorInvalidFloat64(provided float64, allowed ...float64) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInvalidFloat64,
 		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allowed)),
-	}
+	})
 }
 
 func ErrorInvalidFloat32(provided float32, allowed ...float32) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInvalidFloat32,
 		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allowed)),
-	}
+	})
 }
 
 func ErrorInvalidInt64(provided int64, allowed ...int64) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInvalidInt64,
 		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allowed)),
-	}
+	})
 }
 
 func ErrorInvalidInt32(provided int32, allowed ...int32) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInvalidInt32,
 		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allowed)),
-	}
+	})
 }
 
 func ErrorInvalidInt(provided int, allowed ...int) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInvalidInt,
 		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allowed)),
-	}
+	})
 }
 
 func ErrorInvalidStr(provided string, allowed ...string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInvalidStr,
 		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allowed)),
-	}
+	})
 }
 
 func ErrorMustBeLessThanOrEqualTo(provided interface{}, boundary interface{}) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrMustBeLessThanOrEqualTo,
 		message: fmt.Sprintf("%s must be less than or equal to %s", s.UserStr(provided), s.UserStr(boundary)),
-	}
+	})
 }
 
 func ErrorMustBeLessThan(provided interface{}, boundary interface{}) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrMustBeLessThan,
 		message: fmt.Sprintf("%s must be less than %s", s.UserStr(provided), s.UserStr(boundary)),
-	}
+	})
 }
 
 func ErrorMustBeGreaterThanOrEqualTo(provided interface{}, boundary interface{}) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrMustBeGreaterThanOrEqualTo,
 		message: fmt.Sprintf("%s must be greater than or equal to %s", s.UserStr(provided), s.UserStr(boundary)),
-	}
+	})
 }
 
 func ErrorMustBeGreaterThan(provided interface{}, boundary interface{}) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrMustBeGreaterThan,
 		message: fmt.Sprintf("%s must be greater than %s", s.UserStr(provided), s.UserStr(boundary)),
-	}
+	})
 }
 
 func ErrorNonStringKeyFound(key interface{}) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrNonStringKeyFound,
 		message: fmt.Sprintf("non string key found: %s", s.ObjFlat(key)),
-	}
+	})
 }
 
 func ErrorInvalidPrimitiveType(provided interface{}, allowedTypes ...PrimitiveType) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInvalidPrimitiveType,
 		message: fmt.Sprintf("%s: invalid type (expected %s)", s.UserStr(provided), s.StrsOr(PrimitiveTypes(allowedTypes).StringList())),
-	}
+	})
 }
 
 func ErrorDuplicatedValue(val interface{}) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrDuplicatedValue,
 		message: fmt.Sprintf("%s is duplicated", s.UserStr(val)),
-	}
+	})
 }
 
 func ErrorCannotSetStructField() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrCannotSetStructField,
 		message: "unable to set struct field",
-	}
+	})
 }
 
 func ErrorCannotBeNull() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrCannotBeNull,
 		message: "cannot be null",
-	}
+	})
 }
 
 func ErrorCannotBeEmpty() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrCannotBeEmpty,
 		message: "cannot be empty",
-	}
+	})
 }
 
 func ErrorMustBeDefined() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrMustBeDefined,
 		message: "must be defined",
-	}
+	})
 }
 
 func ErrorMapMustBeDefined(keys ...string) error {
@@ -317,29 +318,29 @@ func ErrorMapMustBeDefined(keys ...string) error {
 	if len(keys) > 0 {
 		message = fmt.Sprintf("must be defined, and contain the following keys: %s", s.UserStrsAnd(keys))
 	}
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrMapMustBeDefined,
 		message: message,
-	}
+	})
 }
 
 func ErrorMustBeEmpty() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrMustBeEmpty,
 		message: "must be empty",
-	}
+	})
 }
 
 func ErrorCortexResourceOnlyAllowed(invalidStr string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrCortexResourceOnlyAllowed,
 		message: fmt.Sprintf("%s: only cortex resource references (which start with @) are allowed in this context", invalidStr),
-	}
+	})
 }
 
 func ErrorCortexResourceNotAllowed(resourceName string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrCortexResourceNotAllowed,
 		message: fmt.Sprintf("@%s: cortex resource references (which start with @) are not allowed in this context", resourceName),
-	}
+	})
 }

@@ -16,6 +16,10 @@ limitations under the License.
 
 package msgpack
 
+import (
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+)
+
 type ErrorKind int
 
 const (
@@ -76,15 +80,15 @@ func (e Error) Error() string {
 }
 
 func ErrorUnmarshalMsgpack() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrUnmarshalMsgpack,
 		message: "invalid messagepack",
-	}
+	})
 }
 
 func ErrorMarshalMsgpack() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrMarshalMsgpack,
 		message: "invalid messagepack cannot be serialized",
-	}
+	})
 }

@@ -16,7 +16,11 @@ limitations under the License.
 
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+)
 
 type ErrorKind int
 
@@ -78,8 +82,8 @@ func (e Error) Error() string {
 }
 
 func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrAPIVersionMismatch,
 		message: fmt.Sprintf("API version mismatch (Cluster: %s; Client: %s)", operatorVersion, clientVersion),
-	}
+	})
 }

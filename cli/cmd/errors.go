@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
@@ -103,24 +104,24 @@ func (e Error) Error() string {
 }
 
 func ErrorCliAlreadyInAppDir(dirPath string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrCLIAlreadyInAppDir,
 		message: fmt.Sprintf("your current working directory is already in a cortex directory (%s)", dirPath),
-	}
+	})
 }
 
 func ErrorAPINotReady(apiName string, status string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrAPINotReady,
 		message: fmt.Sprintf("api %s is %s", s.UserStr(apiName), status),
-	}
+	})
 }
 
 func ErrorAPINotFound(apiName string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrAPINotFound,
 		message: fmt.Sprintf("api %s not found", s.UserStr(apiName)),
-	}
+	})
 }
 
 func ErrorFailedToConnectOperator(originalError error, operatorURL string) error {
@@ -134,29 +135,29 @@ func ErrorFailedToConnectOperator(originalError error, operatorURL string) error
 		originalErrMsg = urls.TrimQueryParamsStr(originalError.Error()) + "\n\n"
 	}
 
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrFailedToConnectOperator,
 		message: fmt.Sprintf("%sfailed to connect to the operator%s, run `cortex configure` if you need to update the operator endpoint", originalErrMsg, operatorURLMsg),
-	}
+	})
 }
 
 func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrConfigCannotBeChangedOnUpdate,
 		message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
-	}
+	})
 }
 
 func ErrorDuplicateCLIEnvNames(environment string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrDuplicateCLIEnvNames,
 		message: fmt.Sprintf("duplicate environment names: %s is defined more than once", s.UserStr(environment)),
-	}
+	})
 }
 
 func ErrorCliNotInAppDir() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrCLINotInAppDir,
 		message: "your current working directory is not in or under a cortex directory (identified via a top-level cortex.yaml file)",
-	}
+	})
 }

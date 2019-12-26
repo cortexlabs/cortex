@@ -19,6 +19,7 @@ package resource
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -90,43 +91,43 @@ func (e Error) Error() string {
 }
 
 func ErrorNotFound(name string, resourceType Type) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrNotFound,
 		message: fmt.Sprintf("%s %s not found", resourceType, s.UserStr(name)),
-	}
+	})
 }
 
 func ErrorNameNotFound(name string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrNameNotFound,
 		message: fmt.Sprintf("resource name %s not found", s.UserStr(name)),
-	}
+	})
 }
 
 func ErrorNameOrTypeNotFound(nameOrType string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrNameOrTypeNotFound,
 		message: fmt.Sprintf("resource name or type %s not found", s.UserStr(nameOrType)),
-	}
+	})
 }
 
 func ErrorInvalidType(invalid string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInvalidType,
 		message: fmt.Sprintf("invalid resource type %s", s.UserStr(invalid)),
-	}
+	})
 }
 
 func ErrorUnknownKind(name string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrUnknownKind,
 		message: fmt.Sprintf("unknown kind %s", s.UserStr(name)),
-	}
+	})
 }
 
 func ErrorBeMoreSpecific(vals ...string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrBeMoreSpecific,
 		message: fmt.Sprintf("please specify %s", s.UserStrsOr(vals)),
-	}
+	})
 }

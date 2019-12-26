@@ -19,6 +19,7 @@ package userconfig
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
@@ -130,31 +131,31 @@ func ErrorDuplicateResourceName(resources ...Resource) error {
 		filePaths.Add(res.GetFilePath())
 	}
 
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrDuplicateResourceName,
 		message: fmt.Sprintf("name %s must be unique across %s (defined in %s)", s.UserStr(resources[0].GetName()), s.StrsAnd(resourceTypes.Slice()), s.StrsAnd(filePaths.Slice())),
-	}
+	})
 }
 
 func ErrorDuplicateConfig(resourceType resource.Type) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrDuplicateConfig,
 		message: fmt.Sprintf("%s resource may only be defined once", resourceType.String()),
-	}
+	})
 }
 
 func ErrorMalformedConfig() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrMalformedConfig,
 		message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps"),
-	}
+	})
 }
 
 func ErrorMissingAppDefinition() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrMissingAppDefinition,
 		message: fmt.Sprintf("cortex.yaml must define a deployment resource"),
-	}
+	})
 }
 
 func ErrorUndefinedResource(resourceName string, resourceTypes ...resource.Type) error {
@@ -166,10 +167,10 @@ func ErrorUndefinedResource(resourceName string, resourceTypes ...resource.Type)
 		message = fmt.Sprintf("%s is not defined as a %s", s.UserStr(resourceName), s.StrsOr(resource.Types(resourceTypes).StringList()))
 	}
 
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrUndefinedResource,
 		message: message,
-	}
+	})
 }
 
 func ErrorSpecifyAllOrNone(vals ...string) error {
@@ -178,84 +179,84 @@ func ErrorSpecifyAllOrNone(vals ...string) error {
 		message = fmt.Sprintf("please specify both %s and %s or neither of them", s.UserStr(vals[0]), s.UserStr(vals[1]))
 	}
 
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrSpecifyAllOrNone,
 		message: message,
-	}
+	})
 }
 
 func ErrorSpecifyOneModelFormatFoundNone(vals ...string) error {
 	message := fmt.Sprintf("please specify a model format (%s)", s.UserStrsOr(vals))
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrSpecifyOneModelFormatFoundNone,
 		message: message,
-	}
+	})
 }
 
 func ErrorSpecifyOneModelFormatFoundMultiple(found []string, vals ...string) error {
 	message := fmt.Sprintf("specified (%s), please specify only one model format (%s)", s.UserStrsAnd(found), s.UserStrsOr(vals))
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrSpecifyOneModelFormatFoundNone,
 		message: message,
-	}
+	})
 }
 
 func ErrorOneOfPrerequisitesNotDefined(argName string, prerequisites ...string) error {
 	message := fmt.Sprintf("%s specified without specifying %s", s.UserStr(argName), s.UserStrsOr(prerequisites))
 
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrOneOfPrerequisitesNotDefined,
 		message: message,
-	}
+	})
 }
 
 func ErrorCannotBeNull() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrCannotBeNull,
 		message: "cannot be null",
-	}
+	})
 }
 
 func ErrorMinReplicasGreaterThanMax(min int32, max int32) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrMinReplicasGreaterThanMax,
 		message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", MinReplicasKey, MaxReplicasKey, min, max),
-	}
+	})
 }
 
 func ErrorInitReplicasGreaterThanMax(init int32, max int32) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInitReplicasGreaterThanMax,
 		message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", InitReplicasKey, MaxReplicasKey, init, max),
-	}
+	})
 }
 
 func ErrorInitReplicasLessThanMin(init int32, min int32) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInitReplicasLessThanMin,
 		message: fmt.Sprintf("%s cannot be less than %s (%d < %d)", InitReplicasKey, MinReplicasKey, init, min),
-	}
+	})
 }
 
 func ErrorImplDoesNotExist(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrImplDoesNotExist,
 		message: fmt.Sprintf("%s: implementation file does not exist", path),
-	}
+	})
 }
 
 func ErrorExternalNotFound(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrExternalNotFound,
 		message: fmt.Sprintf("%s: not found or insufficient permissions", path),
-	}
+	})
 }
 
 func ErrorONNXDoesntSupportZip() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrONNXDoesntSupportZip,
 		message: fmt.Sprintf("zip files are not supported for ONNX models"),
-	}
+	})
 }
 
 var onnxExpectedStructMessage = `For ONNX models, the path should end in .onnx`
@@ -272,29 +273,29 @@ var tfExpectedStructMessage = `For TensorFlow models, the path must contain a di
 func ErrorInvalidTensorFlowDir(path string) error {
 	message := "invalid TensorFlow export directory.\n"
 	message += tfExpectedStructMessage
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInvalidTensorFlowDir,
 		message: message,
-	}
+	})
 }
 
 func ErrorFieldMustBeDefinedForPredictorType(fieldKey string, predictorType PredictorType) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrFieldMustBeDefinedForPredictorType,
 		message: fmt.Sprintf("%s field must be defined for the %s predictor type", fieldKey, predictorType.String()),
-	}
+	})
 }
 
 func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType PredictorType) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrFieldNotSupportedByPredictorType,
 		message: fmt.Sprintf("%s is not a supported field for the %s predictor type", fieldKey, predictorType.String()),
-	}
+	})
 }
 
 func ErrorDuplicateEndpoints(endpoint string, apiNames ...string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrDuplicateEndpoints,
 		message: fmt.Sprintf("multiple APIs specify the same endpoint (endpoint %s is used by the %s APIs)", s.UserStr(endpoint), s.UserStrsAnd(apiNames)),
-	}
+	})
 }

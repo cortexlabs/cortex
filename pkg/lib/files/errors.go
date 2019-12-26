@@ -19,6 +19,7 @@ package files
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -100,77 +101,78 @@ func (e Error) Error() string {
 }
 
 func ErrorCreateDir(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrCreateDir,
 		message: fmt.Sprintf("%s: unable to create directory", path),
-	}
+	})
 }
 
 func ErrorReadFormFile(fileName string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrReadFormFile,
 		message: fmt.Sprintf("unable to read request form file %s", s.UserStr(fileName)),
-	}
+	})
 }
 
 func ErrorCreateFile(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrCreateFile,
 		message: fmt.Sprintf("%s: unable to create file", path),
-	}
+	})
 }
 
 func ErrorReadDir(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrReadDir,
 		message: fmt.Sprintf("%s: unable to read directory", path),
-	}
+	})
 }
 
 func ErrorReadFile(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrReadFile,
 		message: fmt.Sprintf("%s: unable to read file", path),
-	}
+	})
 }
 
 func ErrorFileAlreadyExists(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrFileAlreadyExists,
 		message: fmt.Sprintf("%s: file already exists", path),
-	}
+	})
 }
 
 func ErrorUnexpected() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrUnexpected,
 		message: "an unexpected error occurred",
-	}
+	})
 }
+
 func ErrorFileDoesNotExist(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrFileDoesNotExist,
 		message: fmt.Sprintf("%s: file does not exist", path),
-	}
+	})
 }
 
 func ErrorDirDoesNotExist(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrDirDoesNotExist,
 		message: fmt.Sprintf("%s: directory does not exist", path),
-	}
+	})
 }
 
 func ErrorNotAFile(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrNotAFile,
 		message: fmt.Sprintf("%s: not a file path", path),
-	}
+	})
 }
 
 func ErrorNotADir(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrNotADir,
 		message: fmt.Sprintf("%s: not a directory path", path),
-	}
+	})
 }
