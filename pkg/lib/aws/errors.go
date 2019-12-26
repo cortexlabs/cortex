@@ -122,50 +122,50 @@ func (e Error) Error() string {
 }
 
 func ErrorInvalidS3aPath(provided string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInvalidS3aPath,
 		message: fmt.Sprintf("%s is not a valid s3a path (e.g. s3a://cortex-examples/iris-classifier/tensorflow is a valid s3a path)", s.UserStr(provided)),
-	}
+	})
 }
 
 func ErrorInvalidS3Path(provided string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInvalidS3Path,
 		message: fmt.Sprintf("%s is not a valid s3 path (e.g. s3://cortex-examples/iris-classifier/tensorflow is a valid s3 path)", s.UserStr(provided)),
-	}
+	})
 }
 
 func ErrorAuth() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrAuth,
 		message: "unable to authenticate with AWS",
-	}
+	})
 }
 
 func ErrorBucketInaccessible(bucket string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrBucketInaccessible,
 		message: fmt.Sprintf("bucket \"%s\" not found or insufficient permissions", bucket),
-	}
+	})
 }
 
 func ErrorInstanceTypeLimitIsZero(instanceType string, region string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInstanceTypeLimitIsZero,
 		message: fmt.Sprintf(`you don't have access to %s instances in %s; please request access in the appropriate region (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances)"`, instanceType, region),
-	}
+	})
 }
 
 func ErrorNoValidSpotPrices(instanceType string, region string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrNoValidSpotPrices,
 		message: fmt.Sprintf("no spot prices were found for %s instances in %s", instanceType, region),
-	}
+	})
 }
 
 func ErrorReadCredentials() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrReadCredentials,
 		message: "unable to read AWS credentials from credentials file",
-	}
+	})
 }

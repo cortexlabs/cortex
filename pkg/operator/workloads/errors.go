@@ -19,6 +19,7 @@ package workloads
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -92,38 +93,38 @@ func (e Error) Error() string {
 }
 
 func ErrorMoreThanOneWorkflow() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrMoreThanOneWorkflow,
 		message: "there is more than one workflow",
-	}
+	})
 }
 
 func ErrorCortexInstallationBroken() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrCortexInstallationBroken,
 		message: "cortex is out of date, or not installed properly on your cluster; run `cortex cluster update`",
-	}
+	})
 }
 
 func ErrorLoadBalancerInitializing() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrLoadBalancerInitializing,
 		message: "load balancer is still initializing",
-	}
+	})
 }
 
 func ErrorNotFound() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrNotFound,
 		message: "not found",
-	}
+	})
 }
 
 func ErrorAPIInitializing() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrAPIInitializing,
 		message: "api is still initializing",
-	}
+	})
 }
 
 func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr string) error {
@@ -131,15 +132,15 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 	if maxStr == "0" {
 		message = fmt.Sprintf("no available nodes can satisfy the requested %s quantity - requested %s %s but nodes don't have any %s", resource, reqStr, resource, resource)
 	}
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrNoAvailableNodeComputeLimit,
 		message: message,
-	}
+	})
 }
 
 func ErrorDuplicateEndpointOtherDeployment(appName string, apiName string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrDuplicateEndpointOtherDeployment,
 		message: fmt.Sprintf("endpoint is already in use by an API named %s in the %s deployment", s.UserStr(apiName), s.UserStr(appName)),
-	}
+	})
 }

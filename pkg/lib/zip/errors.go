@@ -19,6 +19,7 @@ package zip
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -85,8 +86,8 @@ func (e Error) Error() string {
 }
 
 func ErrorDuplicateZipPath(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrDuplicateZipPath,
 		message: fmt.Sprintf("conflicting path in zip (%s)", s.UserStr(path)),
-	}
+	})
 }
