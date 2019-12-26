@@ -268,8 +268,6 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *
 		}
 	}
 
-	fmt.Println(clusterConfigConfirmaionStr(clusterConfig, awsCreds) + "\n")
-
 	fmt.Printf("cortex will use your %s aws access key id to provision the following resources in the %s region of your aws account:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), *clusterConfig.Region)
 	fmt.Printf("￮ an s3 bucket named %s\n", *clusterConfig.Bucket)
 	fmt.Printf("￮ a cloudwatch log group named %s\n", clusterConfig.LogGroup)
