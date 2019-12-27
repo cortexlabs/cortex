@@ -15,6 +15,7 @@
 
 ## AWS CNI
 
+1. Find the latest release on [GitHub](https://github.com/aws/amazon-vpc-cni-k8s/releases) and check the changelog
 1. Update the version in `install.sh`
 1. Update the go module version (see `Go > Non-versioned modules` section below)
 1. If new instances types were added, check if `pkg/lib/aws/servicequotas.go` needs to be updated for the new instances
@@ -44,7 +45,9 @@ note: once the default AWS CNI version is >= 1.5.5 this may no longer be necessa
 
 ### Kubernetes client
 
-1. Find the minor version of the latest stable release from the [README](https://github.com/kubernetes/client-go), and/or find the latest tagged patch version from [releases](https://github.com/kubernetes/client-go/releases)
+Note: check their [install.md](https://github.com/kubernetes/client-go/blob/master/INSTALL.md) for the latest instructions. These apply for k8s versions before v1.17.0:
+
+1. Find the latest patch release for the minor kubernetes version that EKS uses by default (here are [their versions](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html))
 1. Follow the "Update non-versioned modules" instructions using the updated version for `k8s.io/client-go`
 
 ### docker/engine/client
@@ -54,17 +57,25 @@ note: once the default AWS CNI version is >= 1.5.5 this may no longer be necessa
 
 ### cortexlabs/yaml
 
-1. Follow the "Update non-versioned modules" instructions using the desired version for `cortexlabs/yaml`
+1. Check the upstream to see if there were new releases
+1. `git clone git@github.com:cortexlabs/yaml.git && cd yaml`
+1. `git remote add upstream https://github.com/go-yaml/yaml && git fetch upstream`
+1. `git merge upstream/v2`
+1. `git push origin v2`
+1. Follow the "Update non-versioned modules" instructions using the desired commit sha for `cortexlabs/yaml`
 
 ### Non-versioned modules
 
-1. `rm go.mod go.sum`
-1. `go mod init`
-1. `go clean -modcache`
-1. `go get k8s.io/client-go@v12.0.0`
+1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
+1. `go get k8s.io/client-go@kubernetes-1.14.10 && go get k8s.io/apimachinery@kubernetes-1.14.10 && go get k8s.io/api@kubernetes-1.14.10`
 1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.5.5`
-1. `go get github.com/cortexlabs/yaml@v2.2.4`
-1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.4' >> go.mod`
+1. `go get github.com/cortexlabs/yaml@6abcdc7064927c8fcebea0b0945992892d49b155`
+1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.5' >> go.mod`
+1. `go get -u github.com/docker/distribution`
+1. `go mod tidy`
+1. For every non-indirect, non-hardcoded dependency in go.mod, update with `go get -u <path>`
+1. `go mod tidy`
+1. `make test-go`
 1. `go mod tidy`
 1. Check that the diff in `go.mod` is reasonable
 
