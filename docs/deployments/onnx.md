@@ -113,12 +113,12 @@ class ONNXPredictor:
 The following packages have been pre-installed and can be used in your implementations:
 
 ```text
-boto3==1.10.13
+boto3==1.10.45
 dill==0.3.1.1
 msgpack==0.6.2
-numpy==1.17.3
-requests==2.22.0
+numpy==1.18.0
 onnxruntime==1.1.0
+requests==2.22.0
 ```
 
 Learn how to install additional packages [here](../dependency-management/python-packages.md).

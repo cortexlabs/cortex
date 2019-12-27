@@ -1,4 +1,4 @@
-tensor2tensor==1.14.1
+tensor2tensor==1.15.2
 tensorflow-hub==0.7.0
 
 flask-api==1.1

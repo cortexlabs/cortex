@@ -132,25 +132,25 @@ class PythonPredictor:
 The following packages have been pre-installed and can be used in your implementations:
 
 ```text
-boto3==1.10.13
+boto3==1.10.45
 cloudpickle==1.2.2
 dill==0.3.1.1
-joblib==0.14.0
+joblib==0.14.1
 Keras==2.3.1
 msgpack==0.6.2
 nltk==3.4.5
-np-utils==0.5.11.1
-numpy==1.17.3
+np-utils==0.5.12.1
+numpy==1.18.0
 pandas==0.25.3
 Pillow==6.2.1
 requests==2.22.0
 scikit-image==0.16.2
-scikit-learn==0.21.3
-scipy==1.3.1
+scikit-learn==0.22
+scipy==1.4.1
 six==1.13.0
-statsmodels==0.10.1
-sympy==1.4
-tensor2tensor==1.14.1
+statsmodels==0.10.2
+sympy==1.5
+tensor2tensor==1.15.2
 tensorflow-hub==0.7.0
 tensorflow==2.0.0
 torch==1.3.1

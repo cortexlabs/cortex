@@ -105,12 +105,12 @@ class TensorFlowPredictor:
 The following packages have been pre-installed and can be used in your implementations:
 
 ```text
-boto3==1.10.13
+boto3==1.10.45
 dill==0.3.1.1
 msgpack==0.6.2
-numpy==1.17.3
+numpy==1.18.0
 requests==2.22.0
-tensor2tensor==1.14.1
+tensor2tensor==1.15.2
 tensorflow-hub==0.7.0
 tensorflow==2.0.0
 ```

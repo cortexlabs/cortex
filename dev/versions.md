@@ -119,7 +119,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 ## Python packages
 
-1. Update versions in `pkg/workloads/cortex/lib/requirements.txt`, `pkg/workloads/cortex/tf_api/requirements.txt`, `pkg/workloads/cortex/onnx_serve/requirements.txt`, and `pkg/workloads/cortex/python_serve/requirements.txt`
+1. Update versions in `pkg/workloads/*/requirements.txt`
 1. Update the versions listed in "Pre-installed packages" in `python.md`, `onnx.md`, and `tensorflow.md`
 1. Rerun all examples and check their logs
 
