@@ -118,7 +118,7 @@ dill==0.3.1.1
 msgpack==0.6.2
 numpy==1.17.3
 requests==2.22.0
-onnxruntime==0.5.0
+onnxruntime==1.1.0
 ```
 
 Learn how to install additional packages [here](../dependency-management/python-packages.md).

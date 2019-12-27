@@ -1,7 +1,5 @@
 FROM ubuntu:18.04
 
-ARG ONNXRUNTIME_VERSION="0.5.0"
-
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
         curl \
@@ -26,6 +24,9 @@ ENV PYTHONPATH "${PYTHONPATH}:/src:/mnt/project"
 
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
 COPY pkg/workloads/cortex/onnx_serve/requirements.txt /src/cortex/onnx_serve/requirements.txt
+
+ARG ONNXRUNTIME_VERSION="1.1.0"
+
 RUN pip install -r /src/cortex/lib/requirements.txt && \
     pip install -r /src/cortex/onnx_serve/requirements.txt && \
     pip install onnxruntime==${ONNXRUNTIME_VERSION} && \
