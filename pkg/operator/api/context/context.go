@@ -181,7 +181,7 @@ func (ctx *Context) VisibleResourcesByName(name string) []ComputedResource {
 func (ctx *Context) VisibleResourceByName(name string) (ComputedResource, error) {
 	resources := ctx.VisibleResourcesByName(name)
 	if len(resources) == 0 {
-		return nil, resource.ErrorNameNotFound(name)
+		return nil, resource.ErrorNotFound(name, resource.APIType) // note: the non-resource-specific version is: resource.ErrorNameNotFound(name)
 	}
 	if len(resources) > 1 {
 		validStrs := make([]string, len(resources))
