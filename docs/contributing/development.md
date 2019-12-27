@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-1. Go (>=1.12.13)
+1. Go (>=1.13.5)
 2. Docker
 3. eksctl
 4. kubectl
