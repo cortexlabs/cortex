@@ -203,7 +203,7 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 
 ## helm
 
-1. Find the latest release on [GitHub](https://github.com/helm/helm/releases)
+1. Find the latest 2.X release on [GitHub](https://github.com/helm/helm/releases) (Istio does not work with helm 3)
 1. Update the version in `images/manager/Dockerfile`
 
 ## Alpine base images
