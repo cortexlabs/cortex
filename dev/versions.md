@@ -84,12 +84,13 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 The Python version in the base images for `tf-api` and `onnx-serve-gpu`/`python-serve-gpu` determines the Python version used throughout Cortex.
 
 1. Update the `tensorflow/tensorflow` base image in `images/tf-api/Dockerfile` to the desired version ([Dockerhub](https://hub.docker.com/r/tensorflow/tensorflow))
-1. Update the `nvidia/cuda` base image in `images/onnx-serve-gpu/Dockerfile` to the desired version ([Dockerhub](https://hub.docker.com/r/nvidia/cuda))
+1. Update the `nvidia/cuda` base image in `images/python-serve-gpu/Dockerfile` and `images/onnx-serve-gpu/Dockerfile` to the desired version ([Dockerhub](https://hub.docker.com/r/nvidia/cuda))
 1. Run `docker run --rm -it tensorflow/tensorflow:***`, and in the container run `python3 --version` and `cat /etc/lsb-release`
-1. Run `docker run --rm -it nvidia/cuda:***`, and in the container run `python3 --version` and `cat /etc/lsb-release`
-1. The Ubuntu and Python versions must match; if they do not, downgrade whichever one is too advanced
-1. Update TensorFlow version in `tensorflow.md`
-1. Search the codebase for the current minor TensorFlow version (e.g. `1.14`) and update versions as appropriate
+1. Run `docker run --rm -it nvidia/cuda:***`, and in the container run `cat /etc/lsb-release`
+1. The Ubuntu versions should match; if they do not, downgrade whichever one is too advanced
+1. The minor Python version in `tensorflow/tensorflow` must be used in all dockerfiles; search for e.g. `python3.6-dev` and update accordingly
+1. Update TensorFlow version listed in `tensorflow.md`
+1. Search the codebase for the current minor TensorFlow version (e.g. `2.0`) and update versions as appropriate
 1. Search the codebase for the minor Python version (e.g. `3.6`) and update versions as appropriate
 1. Search the codebase for `ubuntu` and update versions as appropriate
 
