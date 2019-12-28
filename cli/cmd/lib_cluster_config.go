@@ -473,6 +473,6 @@ func workloadInstancesStr(clusterConfig *clusterconfig.Config, spotPrice float64
 	ebsPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
 
 	str := fmt.Sprintf("￮ %s %s ec2 %s for apis %s\n", instanceRangeStr, instanceTypeStr, instancesStr, instancePriceStr)
-	str += fmt.Sprintf("￮ %s %dgb ebs %s for apis (%s per hour each)", volumeRangeStr, clusterConfig.InstanceVolumeSize, volumesStr, s.PriceTenths(ebsPrice))
+	str += fmt.Sprintf("￮ %s %dgb ebs %s, one for each api instance (%s per hour each)", volumeRangeStr, clusterConfig.InstanceVolumeSize, volumesStr, s.PriceTenths(ebsPrice))
 	return str
 }
