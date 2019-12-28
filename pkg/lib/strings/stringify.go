@@ -104,10 +104,10 @@ func Uintptr(val uintptr) string {
 	return fmt.Sprint(val)
 }
 
-func Round(val float64, decimalPlaces int, pad bool) string {
+func Round(val float64, decimalPlaces int, padToDecimalPlaces int) string {
 	rounded := math.Round(val*math.Pow10(decimalPlaces)) / math.Pow10(decimalPlaces)
 	str := strconv.FormatFloat(rounded, 'f', -1, 64)
-	if !pad || decimalPlaces == 0 {
+	if padToDecimalPlaces == 0 {
 		return str
 	}
 	split := strings.Split(str, ".")
@@ -116,8 +116,23 @@ func Round(val float64, decimalPlaces int, pad bool) string {
 	if len(split) > 1 {
 		decVal = split[1]
 	}
-	numZeros := decimalPlaces - len(decVal)
+	if len(decVal) >= padToDecimalPlaces {
+		return str
+	}
+	numZeros := padToDecimalPlaces - len(decVal)
 	return intVal + "." + decVal + strings.Repeat("0", numZeros)
+}
+
+func Price(val float64) string {
+	return "$" + Round(val, 2, 2)
+}
+
+func PriceTenths(val float64) string {
+	return "$" + Round(val, 3, 2)
+}
+
+func PriceMaxPrecision(val float64) string {
+	return "$" + Round(val, 100, 2)
 }
 
 // This is similar to json.Marshal, but handles non-string keys (which we support). It should be valid YAML since we use it in templates
