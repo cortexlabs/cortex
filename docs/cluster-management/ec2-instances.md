@@ -8,7 +8,7 @@ You can spin up a Cortex cluster on a variety of AWS instance types. If you are 
 
 [T3 instances](https://aws.amazon.com/ec2/instance-types/t3/) are useful for **development** clusters that primarily run model inferences with low compute and memory resource utilization.
 
-* Example: [iris classification](../../examples/sklearn/iris-classifier)
+* Example: iris classification with scikit-learn
 * Compute: low
 * Memory: low
 * GPU: no
@@ -18,7 +18,7 @@ You can spin up a Cortex cluster on a variety of AWS instance types. If you are 
 
 [C5 instances](https://aws.amazon.com/ec2/instance-types/c5/) are useful for clusters that primarily run model inferences with medium compute and low memory resource utilization.
 
-* Example: [language identification](../../examples/pytorch/language-identifier)
+* Example: language identification with fastText
 * Compute: medium
 * Memory: low
 * GPU: no
@@ -28,7 +28,7 @@ You can spin up a Cortex cluster on a variety of AWS instance types. If you are 
 
 [M5 instances](https://aws.amazon.com/ec2/instance-types/m5/) are useful for clusters that primarily run model inferences with low compute and memory resource utilization.
 
-* Example: [MPG estimation](../../examples/sklearn/mpg-estimator)
+* Example: MPG estimation with scikit-learn
 * Compute: low
 * Memory: medium
 * GPU: no
@@ -38,7 +38,7 @@ You can spin up a Cortex cluster on a variety of AWS instance types. If you are 
 
 [G4 instances](https://aws.amazon.com/ec2/instance-types/g4/) are useful for clusters that primarily run model inferences with high compute and low memory resource utilization that can run on GPUs.
 
-* Example: [image classification](../../examples/tensorflow/image-classifier)
+* Example: image classification with Inception
 * Compute: high
 * Memory: medium
 * GPU: yes
@@ -48,7 +48,7 @@ You can spin up a Cortex cluster on a variety of AWS instance types. If you are 
 
 [P2 instances](https://aws.amazon.com/ec2/instance-types/p2/) are useful for clusters that primarily run model inferences with high compute and high memory resource utilization that can run on GPUs.
 
-* Example: [text generation](../../examples/tensorflow/text-generator)
+* Example: text generation with GPT-2
 * Compute: high
 * Memory: high
 * GPU: yes

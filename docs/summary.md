@@ -36,7 +36,7 @@
 * [Cluster configuration](cluster-management/config.md)
 * [AWS credentials](cluster-management/aws-credentials.md)
 * [Security](cluster-management/security.md)
-* [AWS instances](cluster-management/ec2-instances.md)
+* [EC2 instances](cluster-management/ec2-instances.md)
 * [Spot instances](cluster-management/spot-instances.md)
 * [Update](cluster-management/update.md)
 * [Uninstall](cluster-management/uninstall.md)
