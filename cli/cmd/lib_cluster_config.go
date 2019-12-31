@@ -277,10 +277,10 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *
 	fmt.Printf("￮ an s3 bucket named %s\n", *clusterConfig.Bucket)
 	fmt.Printf("￮ a cloudwatch log group named %s\n", clusterConfig.LogGroup)
 	fmt.Printf("￮ an eks cluster named %s ($0.20 per hour)\n", clusterConfig.ClusterName)
-	fmt.Printf("￮ a t3.medium ec2 instance for the operator (%s per hour)\n", s.PriceMaxPrecision(operatorInstancePrice))
-	fmt.Printf("￮ a 20gb ebs volume for the operator (%s per hour)\n", s.PriceTenths(operatorEBSPrice))
-	fmt.Printf("￮ an elb for the operator and an elb for apis (%s per hour each)\n", s.PriceMaxPrecision(elbPrice))
-	fmt.Printf("￮ a nat gateway (%s per hour)\n", s.PriceMaxPrecision(natPrice))
+	fmt.Printf("￮ a t3.medium ec2 instance for the operator (%s per hour)\n", s.DollarsMaxPrecision(operatorInstancePrice))
+	fmt.Printf("￮ a 20gb ebs volume for the operator (%s per hour)\n", s.DollarsAndTenthsOfCents(operatorEBSPrice))
+	fmt.Printf("￮ an elb for the operator and an elb for apis (%s per hour each)\n", s.DollarsMaxPrecision(elbPrice))
+	fmt.Printf("￮ a nat gateway (%s per hour)\n", s.DollarsMaxPrecision(natPrice))
 	fmt.Println(workloadInstancesStr(clusterConfig, spotPrice))
 
 	fmt.Println()
@@ -297,9 +297,9 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *
 	}
 
 	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
-		fmt.Printf("this cluster will cost %s per hour%s\n\n", s.Price(totalMaxPrice), spotSuffix)
+		fmt.Printf("this cluster will cost %s per hour%s\n\n", s.DollarsAndCents(totalMaxPrice), spotSuffix)
 	} else {
-		fmt.Printf("this cluster will cost %s per hour if the minimum number of instances are running and %s per hour if the maximum number of instances are running%s\n\n", s.Price(totalMinPrice), s.Price(totalMaxPrice), spotSuffix)
+		fmt.Printf("this cluster will cost %s per hour if the minimum number of instances are running and %s per hour if the maximum number of instances are running%s\n\n", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice), spotSuffix)
 	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
@@ -459,20 +459,20 @@ func workloadInstancesStr(clusterConfig *clusterconfig.Config, spotPrice float64
 
 	instanceTypeStr := *clusterConfig.InstanceType
 	instancePrice := aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price
-	instancePriceStr := fmt.Sprintf("(%s per hour each)", s.PriceMaxPrecision(instancePrice))
+	instancePriceStr := fmt.Sprintf("(%s per hour each)", s.DollarsMaxPrecision(instancePrice))
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
 		instanceTypeStr = s.StrsOr(clusterConfig.SpotConfig.InstanceDistribution)
 		spotPriceStr := "spot pricing not available"
 		if spotPrice != 0 {
-			spotPriceStr = fmt.Sprintf("~%s per hour spot", s.PriceMaxPrecision(spotPrice))
+			spotPriceStr = fmt.Sprintf("~%s per hour spot", s.DollarsMaxPrecision(spotPrice))
 		}
-		instancePriceStr = fmt.Sprintf("(%s: %s per hour on-demand, %s)", *clusterConfig.InstanceType, s.PriceMaxPrecision(instancePrice), spotPriceStr)
+		instancePriceStr = fmt.Sprintf("(%s: %s per hour on-demand, %s)", *clusterConfig.InstanceType, s.DollarsMaxPrecision(instancePrice), spotPriceStr)
 	}
 
 	ebsPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
 
 	str := fmt.Sprintf("￮ %s %s ec2 %s for apis %s\n", instanceRangeStr, instanceTypeStr, instancesStr, instancePriceStr)
-	str += fmt.Sprintf("￮ %s %dgb ebs %s, one for each api instance (%s per hour each)", volumeRangeStr, clusterConfig.InstanceVolumeSize, volumesStr, s.PriceTenths(ebsPrice))
+	str += fmt.Sprintf("￮ %s %dgb ebs %s, one for each api instance (%s per hour each)", volumeRangeStr, clusterConfig.InstanceVolumeSize, volumesStr, s.DollarsAndTenthsOfCents(ebsPrice))
 	return str
 }

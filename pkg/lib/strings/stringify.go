@@ -123,15 +123,15 @@ func Round(val float64, decimalPlaces int, padToDecimalPlaces int) string {
 	return intVal + "." + decVal + strings.Repeat("0", numZeros)
 }
 
-func Price(val float64) string {
+func DollarsAndCents(val float64) string {
 	return "$" + Round(val, 2, 2)
 }
 
-func PriceTenths(val float64) string {
+func DollarsAndTenthsOfCents(val float64) string {
 	return "$" + Round(val, 3, 2)
 }
 
-func PriceMaxPrecision(val float64) string {
+func DollarsMaxPrecision(val float64) string {
 	return "$" + Round(val, 100, 2)
 }
 
