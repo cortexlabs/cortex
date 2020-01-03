@@ -458,8 +458,7 @@ func (cc *Config) Validate(accessKeyID string, secretAccessKey string) error {
 
 func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 	if strings.HasSuffix(instanceMetadata.Type, "nano") ||
-		strings.HasSuffix(instanceMetadata.Type, "micro") ||
-		strings.HasSuffix(instanceMetadata.Type, "small") {
+		strings.HasSuffix(instanceMetadata.Type, "micro") {
 		ErrorInstanceTypeTooSmall()
 	}
 
