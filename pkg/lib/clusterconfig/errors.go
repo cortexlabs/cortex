@@ -117,7 +117,7 @@ func (e Error) Error() string {
 func ErrorInstanceTypeTooSmall() error {
 	return errors.WithStack(Error{
 		Kind:    ErrInstanceTypeTooSmall,
-		message: "Cortex does not support nano, micro, or small instances - please specify a larger instance type",
+		message: "Cortex does not support nano or micro instances - please specify a larger instance type",
 	})
 }
 
