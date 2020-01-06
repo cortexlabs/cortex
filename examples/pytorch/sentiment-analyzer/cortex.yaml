@@ -1,0 +1,10 @@
+- kind: deployment
+  name: sentiment
+
+- kind: api
+  name: analyzer
+  predictor:
+    type: python
+    path: predictor.py
+  compute:
+    cpu: 1
