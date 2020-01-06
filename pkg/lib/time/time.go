@@ -19,6 +19,7 @@ package time
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -121,17 +122,34 @@ func ToMillis(t time.Time) int64 {
 }
 
 type Timer struct {
-	name  string
+	names []string
 	start time.Time
+	last  time.Time
 }
 
-func StartTimer(name string) Timer {
+func StartTimer(names ...string) Timer {
 	return Timer{
-		name:  name,
+		names: names,
 		start: time.Now(),
 	}
 }
 
-func (t Timer) PrintTimeElapsed() {
-	fmt.Printf("%s: %s\n", t.name, time.Since(t.start))
+func (t *Timer) Print(messages ...string) {
+	now := time.Now()
+
+	separator := ""
+	if len(t.names)+len(messages) > 0 {
+		separator = ": "
+	}
+
+	totalTime := fmt.Sprintf("%s total", now.Sub(t.start))
+
+	stepTime := ""
+	if !t.last.IsZero() {
+		stepTime = fmt.Sprintf("%s step, ", now.Sub(t.last))
+	}
+
+	fmt.Println(strings.Join(append(t.names, messages...), ": ") + separator + stepTime + totalTime)
+
+	t.last = now
 }
