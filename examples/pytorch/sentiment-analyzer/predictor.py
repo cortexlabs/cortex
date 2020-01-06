@@ -1,6 +1,7 @@
 from fastai.text import *
 import requests
 
+
 class PythonPredictor:
     def __init__(self, config):
         # Download model file
@@ -10,7 +11,6 @@ class PythonPredictor:
 
         # Initialize model
         self.predictor = load_learner(".")
-
 
     def predict(self, payload):
         prediction = self.predictor.predict(payload["text"])
