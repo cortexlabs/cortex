@@ -88,6 +88,7 @@ Usage:
 
 Flags:
   -c, --config string   path to a cluster configuration file
+  -e, --env string      environment (default "default")
   -h, --help            help for up
 ```
 
@@ -116,6 +117,7 @@ Usage:
 
 Flags:
   -c, --config string   path to a cluster configuration file
+  -e, --env string      environment (default "default")
   -h, --help            help for update
 ```
 
