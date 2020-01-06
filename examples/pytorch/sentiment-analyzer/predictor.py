@@ -9,7 +9,7 @@ class PythonPredictor:
             model.write(req.content)
 
         # Initialize model
-        self.predictor = load_learner("."")
+        self.predictor = load_learner(".")
 
 
     def predict(self, payload):
