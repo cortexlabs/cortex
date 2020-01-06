@@ -121,20 +121,20 @@ func ToMillis(t time.Time) int64 {
 	return t.UnixNano() / int64(time.Millisecond)
 }
 
-type timer struct {
+type Timer struct {
 	names []string
 	start time.Time
 	last  time.Time
 }
 
-func StartTimer(names ...string) timer {
-	return timer{
+func StartTimer(names ...string) Timer {
+	return Timer{
 		names: names,
 		start: time.Now(),
 	}
 }
 
-func (t *timer) Print(messages ...string) {
+func (t *Timer) Print(messages ...string) {
 	now := time.Now()
 
 	separator := ""
