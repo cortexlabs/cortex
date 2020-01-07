@@ -32,12 +32,6 @@ function ensure_eks() {
       exit 1
     fi
 
-    if [ $CORTEX_MIN_INSTANCES -lt 1 ]; then
-      export CORTEX_DESIRED_INSTANCES=1
-    else
-      export CORTEX_DESIRED_INSTANCES=$CORTEX_MIN_INSTANCES
-    fi
-
     echo -e "￮ spinning up the cluster ... (this will take about 15 minutes)\n"
 
     envsubst < eks_cluster.yaml | eksctl create cluster -f -
@@ -45,22 +39,11 @@ function ensure_eks() {
     # https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
     kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.5.5/config/v1.5/aws-k8s-cni.yaml >/dev/null
 
-    if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
-      if [ "$CORTEX_SPOT" == "True" ]; then
-        envsubst < eks_gpu_spot.yaml | eksctl create nodegroup -f -
-      else
-        envsubst < eks_gpu_ondemand.yaml | eksctl create nodegroup -f -
-      fi
-    else
-      if [ "$CORTEX_SPOT" == "True" ]; then
-        envsubst < eks_cpu_spot.yaml | eksctl create nodegroup -f -
-      else
-        envsubst < eks_cpu_ondemand.yaml | eksctl create nodegroup -f -
-      fi
-    fi
+    python3 generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > $CORTEX_CLUSTER_WORKSPACE/eks_nodegroup.yaml
+    eksctl create nodegroup -f $CORTEX_CLUSTER_WORKSPACE/eks_nodegroup.yaml
 
     if [ "$CORTEX_SPOT" == "True" ]; then
-      asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker\`)]")
+      asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
       asg_name=$(echo "$asg_info" | jq -r 'first | .AutoScalingGroupName')
       aws autoscaling suspend-processes --region $CORTEX_REGION --auto-scaling-group-name $asg_name --scaling-processes AZRebalance
     fi
@@ -94,23 +77,49 @@ function ensure_eks() {
   fi
 
   # Check for change in min/max instances
-  asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker\`)]")
-  asg_name=$(echo "$asg_info" | jq -r 'first | .AutoScalingGroupName')
-  asg_min_size=$(echo "$asg_info" | jq -r 'first | .MinSize')
-  asg_max_size=$(echo "$asg_info" | jq -r 'first | .MaxSize')
+  asg_on_demand_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-on-demand\`)]")
+  asg_on_demand_name=$(echo "$asg_on_demand_info" | jq -r 'first | .AutoScalingGroupName')
+
+  asg_spot_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
+  asg_spot_name=$(echo "$asg_spot_info" | jq -r 'first | .AutoScalingGroupName')
+
+  if [[ ! -z $asg_on_demand_name ]]; then
+    asg_min_size=$(echo "$asg_on_demand_info" | jq -r 'first | .MinSize')
+    asg_max_size=$(echo "$asg_on_demand_info" | jq -r 'first | .MaxSize')
+  else
+    asg_min_size=$(echo "$asg_spot_info" | jq -r 'first | .MinSize')
+    asg_max_size=$(echo "$asg_spot_info" | jq -r 'first | .MaxSize')
+  fi
+
+
   if [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ]; then
     echo -n "￮ updating min instances to $CORTEX_MIN_INSTANCES "
-    aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_name --min-size=$CORTEX_MIN_INSTANCES
+
+    if [[ ! -z $asg_on_demand_name ]] && [[ "$CORTEX_SPOT_CONFIG_ON_DEMAND_BACKUP" != "True" ]]; then
+      aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_on_demand_name --min-size=$CORTEX_MIN_INSTANCES
+    fi
+
+    if [[ ! -z $asg_spot_name ]]; then
+      aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_spot_name --min-size=$CORTEX_MIN_INSTANCES
+    fi
     echo "✓"
   fi
+
   if [ "$asg_max_size" != "$CORTEX_MAX_INSTANCES" ]; then
     echo -n "￮ updating max instances to $CORTEX_MAX_INSTANCES "
-    aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_name --max-size=$CORTEX_MAX_INSTANCES
+    if [[ ! -z $asg_on_demand_name ]]; then
+      aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_on_demand_name --max-size=$CORTEX_MAX_INSTANCES
+    fi
+    if [[ ! -z $asg_spot_name ]]; then
+      aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_spot_name --max-size=$CORTEX_MAX_INSTANCES
+    fi
     echo "✓"
   fi
 }
 
 function main() {
+  mkdir -p $CORTEX_CLUSTER_WORKSPACE
+
   ensure_eks
 
   eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
@@ -140,7 +149,8 @@ function main() {
   echo "✓"
 
   echo -n "￮ configuring autoscaling "
-  envsubst < manifests/cluster-autoscaler.yaml | kubectl apply -f - >/dev/null
+  python3 render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > $CORTEX_CLUSTER_WORKSPACE/cluster-autoscaler.yaml
+  kubectl apply -f $CORTEX_CLUSTER_WORKSPACE/cluster-autoscaler.yaml >/dev/null
   echo "✓"
 
   echo -n "￮ configuring logging "

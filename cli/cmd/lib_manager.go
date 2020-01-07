@@ -23,6 +23,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -210,6 +211,7 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Con
 	}
 
 	mountedConfigPath := mountedClusterConfigPath(clusterConfig.ClusterName, *clusterConfig.Region)
+	clusterWorkspace := strings.TrimSuffix(mountedConfigPath, ".yaml")
 
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
@@ -228,6 +230,7 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Con
 			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
 			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
 			"CORTEX_CLUSTER_CONFIG_FILE=" + mountedConfigPath,
+			"CORTEX_CLUSTER_WORKSPACE=" + clusterWorkspace,
 		},
 	}
 

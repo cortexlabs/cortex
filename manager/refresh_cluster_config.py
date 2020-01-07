@@ -24,17 +24,19 @@ def get_autoscaling_group():
     page_iterator = paginator.paginate(PaginationConfig={"PageSize": 100})
 
     filtered_asgs = page_iterator.search(
-        "AutoScalingGroups[?contains(Tags[?Key==`{}`].Value, `{}`)]|[?contains(Tags[?Key==`{}`].Value, `{}`)]".format(
+        "AutoScalingGroups[?contains(Tags[?Key==`{}`].Value, `{}`) && Tags[?Key==`{}`].Value]".format(
             "alpha.eksctl.io/cluster-name",
             os.environ["CORTEX_CLUSTER_NAME"],
-            "alpha.eksctl.io/nodegroup-name",
-            "ng-cortex-worker",
+            "k8s.io/cluster-autoscaler/node-template/label/workload",
         )
     )
     asgs = list(filtered_asgs)
-    if len(asgs) != 1:
-        raise Exception("found {} matching autoscaling groups, expected only one".format(len(asgs)))
-    return asgs[0]
+    if len(asgs) == 0:
+        raise Exception(
+            "unable to find autoscaling groups belong to cluster "
+            + os.environ["CORTEX_CLUSTER_NAME"]
+        )
+    return asgs
 
 
 def get_launch_template(launch_template_id):
@@ -43,12 +45,76 @@ def get_launch_template(launch_template_id):
     return resp["LaunchTemplateVersions"][0]["LaunchTemplateData"]
 
 
+def extract_nodegroup_name(asg):
+    for tag in asg["Tags"]:
+        if tag["Key"] == "eksctl.io/v1alpha2/nodegroup-name":
+            return tag["Value"]
+    raise Exception(
+        "tag {} not set for autoscaling group {}".format(
+            "eksctl.io/v1alpha2/nodegroup-name", asg["AutoScalingGroupName"]
+        )
+    )
+
+
 def refresh_yaml(configmap_yaml_path, output_yaml_path):
     with open(configmap_yaml_path, "r") as f:
         cluster_configmap = yaml.safe_load(f)
-    asg = get_autoscaling_group()
+
     cluster_configmap_str = cluster_configmap["data"]["cluster.yaml"]
     cluster_config = yaml.safe_load(cluster_configmap_str)
+
+    asgs = get_autoscaling_group()
+    # only possible when backup is enabled
+
+    if cluster_config["spot"] and cluster_config.get("spot_config", {}).get(
+        "on_demand_backup", False
+    ):
+        if len(asgs) != 2:
+            raise Exception(
+                "expected 2 autoscaling groups but found {} autoscaling groups".format(len(asgs))
+            )
+        asg_names = set()
+        for group in asgs:
+            nodegroup_name = extract_nodegroup_name(group)
+            if nodegroup_name == "ng-cortex-worker-spot":
+                asg = group
+            asg_names.add(nodegroup_name)
+        if "ng-cortex-worker-on-demand" not in asg_names:
+            raise Exception(
+                "expected autoscaling group with tag eksctl.io/v1alpha2/nodegroup-name={}".format(
+                    "ng-cortex-worker-on-demand"
+                )
+            )
+        if "ng-cortex-worker-spot" not in asg_names:
+            raise Exception(
+                "expected autoscaling group with tag eksctl.io/v1alpha2/nodegroup-name={}".format(
+                    "ng-cortex-worker-spot"
+                )
+            )
+    elif cluster_config["spot"]:
+        if len(asgs) != 1:
+            raise Exception(
+                "expected 1 autoscaling groups but found {} autoscaling groups".format(len(asgs))
+            )
+        if "ng-cortex-worker-spot" not in extract_nodegroup_name(asgs[0]):
+            raise Exception(
+                "unable to find autoscaling group with tag eksctl.io/v1alpha2/nodegroup-name={}".format(
+                    "ng-cortex-worker-spot"
+                )
+            )
+        asg = asgs[0]
+    else:
+        if len(asgs) != 1:
+            raise Exception(
+                "expected 1 autoscaling groups but found {} autoscaling groups".format(len(asgs))
+            )
+        if "ng-cortex-worker-on-demand" not in extract_nodegroup_name(asgs[0]):
+            raise Exception(
+                "unable to find autoscaling group with tag eksctl.io/v1alpha2/nodegroup-name={}".format(
+                    "ng-cortex-worker-on-demand"
+                )
+            )
+        asg = asgs[0]
     cluster_config["min_instances"] = asg["MinSize"]
     cluster_config["max_instances"] = asg["MaxSize"]
     cluster_config["availability_zones"] = asg["AvailabilityZones"]
@@ -77,7 +143,7 @@ def refresh_yaml(configmap_yaml_path, output_yaml_path):
     if asg.get("MixedInstancesPolicy") is not None:
         mixed_instance_policy = asg["MixedInstancesPolicy"]
         cluster_config["spot"] = True
-        spot_config = {}
+        spot_config = {"on_demand_backup": len(asgs) == 2}
         instances_distribution_metadata = mixed_instance_policy["InstancesDistribution"]
         spot_config["on_demand_base_capacity"] = instances_distribution_metadata[
             "OnDemandBaseCapacity"
