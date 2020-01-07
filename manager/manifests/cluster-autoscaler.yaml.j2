@@ -150,7 +150,7 @@ spec:
     spec:
       serviceAccountName: cluster-autoscaler
       containers:
-        - image: gcr.io/google-containers/cluster-autoscaler:v1.14.7
+        - image: {{ config["image_cluster_autoscaler"] }}
           name: cluster-autoscaler
           resources:
             requests:
