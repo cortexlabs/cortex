@@ -27,8 +27,8 @@ spot_config:
   # number of spot instance pools across which to allocate spot instances [1, 20] (default: number of instances in instance distribution)
   instance_pools: 3
 
-  # fallback to on-demand instances if spot instances were unable to be allocated (default: False)
-  on_demand_backup: False
+  # fallback to on-demand instances if spot instances were unable to be allocated (default: fsalse)
+  on_demand_backup: false
 ```
 
 Spot instances are not guaranteed to be available. The chances of getting spot instances can be improved by providing `instance_distribution`, a list of alternative instance types to the primary `instance_type` you specified. If left blank, Cortex will autofill `instance_distribution` with up to 2 other similar instances. Cortex defaults the `max_price` to the on-demand price of the primary instance.
