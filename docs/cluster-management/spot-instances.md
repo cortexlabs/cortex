@@ -27,7 +27,7 @@ spot_config:
   # number of spot instance pools across which to allocate spot instances [1, 20] (default: number of instances in instance distribution)
   instance_pools: 3
 
-  # fallback to on-demand instances if spot instances were unable to be allocated (default: fsalse)
+  # fallback to on-demand instances if spot instances were unable to be allocated (default: false)
   on_demand_backup: false
 ```
 
