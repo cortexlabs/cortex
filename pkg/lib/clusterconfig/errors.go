@@ -37,6 +37,7 @@ const (
 	ErrIncompatibleSpotInstanceTypeCPU
 	ErrIncompatibleSpotInstanceTypeGPU
 	ErrSpotPriceGreaterThanTargetOnDemand
+	ErrSpotPriceGreaterThanMaxPrice
 	ErrInstanceTypeNotSupported
 	ErrAtLeastOneInstanceDistribution
 	ErrNoCompatibleSpotInstanceFound
@@ -58,6 +59,7 @@ var (
 		"err_incompatible_spot_instance_type_cpu",
 		"err_incompatible_spot_instance_type_gpu",
 		"err_spot_price_greater_than_target_on_demand",
+		"err_spot_price_greater_than_max_price",
 		"err_instance_type_not_supported",
 		"err_at_least_one_instance_distribution",
 		"err_no_compatible_spot_instance_found",
@@ -167,6 +169,13 @@ func ErrorSpotPriceGreaterThanTargetOnDemand(suggestedSpotPrice float64, target 
 	return errors.WithStack(Error{
 		Kind:    ErrSpotPriceGreaterThanTargetOnDemand,
 		message: fmt.Sprintf("%s will not be allocated because its current spot price is %g which is greater than than %s's on-demand price of %g", suggested.Type, suggestedSpotPrice, target.Type, target.Price),
+	})
+}
+
+func ErrorSpotPriceGreaterThanMaxPrice(suggestedSpotPrice float64, maxPrice float64) error {
+	return errors.WithStack(Error{
+		Kind:    ErrSpotPriceGreaterThanMaxPrice,
+		message: fmt.Sprintf("%s will not be allocated because its current spot price is %g is greater than the configured max price %s", suggestedSpotPrice, maxPrice),
 	})
 }
 
