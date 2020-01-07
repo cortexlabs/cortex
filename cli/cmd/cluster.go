@@ -41,6 +41,7 @@ var flagDebug bool
 
 func init() {
 	addClusterConfigFlag(updateCmd)
+	addEnvFlag(updateCmd)
 	clusterCmd.AddCommand(updateCmd)
 
 	addClusterConfigFlag(infoCmd)
@@ -49,6 +50,7 @@ func init() {
 	clusterCmd.AddCommand(infoCmd)
 
 	addClusterConfigFlag(upCmd)
+	addEnvFlag(upCmd)
 	clusterCmd.AddCommand(upCmd)
 
 	addClusterConfigFlag(downCmd)
