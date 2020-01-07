@@ -25,14 +25,12 @@ nodeGroups:
     instanceType: t3.medium
     availabilityZones: $CORTEX_AVAILABILITY_ZONES
     minSize: 1
-    maxSize: 2
+    maxSize: 1
     desiredCapacity: 1
     ami: auto
     iam:
       withAddonPolicies:
         autoScaler: true
-    tags:
-      k8s.io/cluster-autoscaler/enabled: "true"
     kubeletExtraConfig:
       kubeReserved:
         cpu: 150m
