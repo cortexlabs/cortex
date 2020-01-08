@@ -38,38 +38,25 @@ func init() {
 }
 
 var deleteCmd = &cobra.Command{
-	Use:   "delete [DEPLOYMENT_NAME]",
-	Short: "delete a deployment",
-	Args:  cobra.MaximumNArgs(1),
+	Use:   "delete API_NAME",
+	Short: "delete an API",
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.delete")
 
-		var appName string
-		var err error
-		if len(args) == 1 {
-			appName = args[0]
-		} else {
-			config, err := readConfig()
-			if err != nil {
-				exit.Error(err)
-			}
-			appName = config.App.Name
-		}
+		apiName := args[0]
 
-		resources, err := getResourcesResponse(appName)
+		apiInfo, err := getAPIInfo(apiName)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		for _, apiGroupStatuses := range resources.APIGroupStatuses {
-			if apiGroupStatuses.Requested > 2 {
-				prompt.YesOrExit("are you sure you want to delete your deployment?", "")
-				break
-			}
+		if apiInfo.APIGroupStatus.Requested > 2 {
+			prompt.YesOrExit(fmt.Sprintf("are you sure you want to delete the %s API?", apiName), "")
 		}
 
 		params := map[string]string{
-			"appName":   appName,
+			"apiName":   apiName,
 			"keepCache": s.Bool(flagKeepCache),
 		}
 		httpResponse, err := HTTPPostJSONData("/delete", nil, params)

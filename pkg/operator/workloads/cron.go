@@ -60,16 +60,12 @@ func runCronNow() {
 func runCron() {
 	defer reportAndRecover("cron failed")
 
-	if err := UpdateWorkflows(); err != nil {
-		telemetry.Error(err)
-		errors.PrintError(err)
-	}
+	// TODO hpa
 
 	apiPods, err := config.Kubernetes.ListPodsByLabels(map[string]string{
 		"workloadType": workloadTypeAPI,
 		"userFacing":   "true",
 	})
-
 	if err != nil {
 		telemetry.Error(err)
 		errors.PrintError(err)

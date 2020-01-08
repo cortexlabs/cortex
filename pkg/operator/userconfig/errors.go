@@ -22,62 +22,47 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
 type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
-	ErrDuplicateResourceName
-	ErrDuplicateConfig
+	ErrDuplicateName
 	ErrMalformedConfig
-	ErrMissingAppDefinition
-	ErrUndefinedResource
+	ErrUndefinedAPI
 	ErrSpecifyAllOrNone
-	ErrSpecifyOnlyOne
 	ErrOneOfPrerequisitesNotDefined
-	ErrCannotBeNull
 	ErrMinReplicasGreaterThanMax
 	ErrInitReplicasGreaterThanMax
 	ErrInitReplicasLessThanMin
-	ErrSpecifyOneModelFormatFoundNone
-	ErrSpecifyOneModelFormatFoundMultiple
 	ErrImplDoesNotExist
 	ErrExternalNotFound
 	ErrONNXDoesntSupportZip
 	ErrInvalidTensorFlowDir
 	ErrFieldMustBeDefinedForPredictorType
 	ErrFieldNotSupportedByPredictorType
-	ErrDuplicateEndpoints
 )
 
 var errorKinds = []string{
 	"err_unknown",
-	"err_duplicate_resource_name",
-	"err_duplicate_config",
+	"err_duplicate_name",
 	"err_malformed_config",
-	"err_missing_app_definition",
-	"err_undefined_resource",
+	"err_undefined_api",
 	"err_specify_all_or_none",
-	"err_specify_only_one",
 	"err_one_of_prerequisites_not_defined",
-	"err_cannot_be_null",
 	"err_min_replicas_greater_than_max",
 	"err_init_replicas_greater_than_max",
 	"err_init_replicas_less_than_min",
-	"err_specify_one_model_format_found_none",
-	"err_specify_one_model_format_found_multiple",
 	"err_impl_does_not_exist",
 	"err_external_not_found",
 	"err_onnx_doesnt_support_zip",
 	"err_invalid_tensorflow_dir",
 	"err_field_must_be_defined_for_predictor_type",
 	"err_field_not_supported_by_predictor_type",
-	"err_duplicate_endpoints",
 }
 
-var _ = [1]int{}[int(ErrDuplicateEndpoints)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrFieldNotSupportedByPredictorType)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -122,25 +107,15 @@ func (e Error) Error() string {
 	return e.message
 }
 
-func ErrorDuplicateResourceName(resources ...Resource) error {
+func ErrorDuplicateName(apis []*API) error {
 	filePaths := strset.New()
-	resourceTypes := strset.New()
-
-	for _, res := range resources {
-		resourceTypes.Add(res.GetResourceType().Plural())
-		filePaths.Add(res.GetFilePath())
+	for _, api := range apis {
+		filePaths.Add(api.FilePath)
 	}
 
 	return errors.WithStack(Error{
-		Kind:    ErrDuplicateResourceName,
-		message: fmt.Sprintf("name %s must be unique across %s (defined in %s)", s.UserStr(resources[0].GetName()), s.StrsAnd(resourceTypes.Slice()), s.StrsAnd(filePaths.Slice())),
-	})
-}
-
-func ErrorDuplicateConfig(resourceType resource.Type) error {
-	return errors.WithStack(Error{
-		Kind:    ErrDuplicateConfig,
-		message: fmt.Sprintf("%s resource may only be defined once", resourceType.String()),
+		Kind:    ErrDuplicateName,
+		message: fmt.Sprintf("name %s must be unique across apis (defined in %s)", s.UserStr(apis[0].Name), s.StrsAnd(filePaths.Slice())),
 	})
 }
 
@@ -151,25 +126,10 @@ func ErrorMalformedConfig() error {
 	})
 }
 
-func ErrorMissingAppDefinition() error {
+func ErrorUndefinedAPI(apiName string) error {
 	return errors.WithStack(Error{
-		Kind:    ErrMissingAppDefinition,
-		message: fmt.Sprintf("cortex.yaml must define a deployment resource"),
-	})
-}
-
-func ErrorUndefinedResource(resourceName string, resourceTypes ...resource.Type) error {
-	message := fmt.Sprintf("%s is not defined", s.UserStr(resourceName))
-
-	if len(resourceTypes) == 1 {
-		message = fmt.Sprintf("%s %s is not defined", resourceTypes[0].String(), s.UserStr(resourceName))
-	} else if len(resourceTypes) > 1 {
-		message = fmt.Sprintf("%s is not defined as a %s", s.UserStr(resourceName), s.StrsOr(resource.Types(resourceTypes).StringList()))
-	}
-
-	return errors.WithStack(Error{
-		Kind:    ErrUndefinedResource,
-		message: message,
+		Kind:    ErrUndefinedAPI,
+		message: fmt.Sprintf("api %s is not defined", s.UserStr(apiName)),
 	})
 }
 
@@ -185,35 +145,12 @@ func ErrorSpecifyAllOrNone(vals ...string) error {
 	})
 }
 
-func ErrorSpecifyOneModelFormatFoundNone(vals ...string) error {
-	message := fmt.Sprintf("please specify a model format (%s)", s.UserStrsOr(vals))
-	return errors.WithStack(Error{
-		Kind:    ErrSpecifyOneModelFormatFoundNone,
-		message: message,
-	})
-}
-
-func ErrorSpecifyOneModelFormatFoundMultiple(found []string, vals ...string) error {
-	message := fmt.Sprintf("specified (%s), please specify only one model format (%s)", s.UserStrsAnd(found), s.UserStrsOr(vals))
-	return errors.WithStack(Error{
-		Kind:    ErrSpecifyOneModelFormatFoundNone,
-		message: message,
-	})
-}
-
 func ErrorOneOfPrerequisitesNotDefined(argName string, prerequisites ...string) error {
 	message := fmt.Sprintf("%s specified without specifying %s", s.UserStr(argName), s.UserStrsOr(prerequisites))
 
 	return errors.WithStack(Error{
 		Kind:    ErrOneOfPrerequisitesNotDefined,
 		message: message,
-	})
-}
-
-func ErrorCannotBeNull() error {
-	return errors.WithStack(Error{
-		Kind:    ErrCannotBeNull,
-		message: "cannot be null",
 	})
 }
 
@@ -290,12 +227,5 @@ func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType Predic
 	return errors.WithStack(Error{
 		Kind:    ErrFieldNotSupportedByPredictorType,
 		message: fmt.Sprintf("%s is not a supported field for the %s predictor type", fieldKey, predictorType.String()),
-	})
-}
-
-func ErrorDuplicateEndpoints(endpoint string, apiNames ...string) error {
-	return errors.WithStack(Error{
-		Kind:    ErrDuplicateEndpoints,
-		message: fmt.Sprintf("multiple APIs specify the same endpoint (endpoint %s is used by the %s APIs)", s.UserStr(endpoint), s.UserStrsAnd(apiNames)),
 	})
 }

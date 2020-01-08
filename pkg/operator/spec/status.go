@@ -14,24 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package resource
+package status
 
 import (
+	"time"
+
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 )
 
-type DataStatus struct {
-	DataSavedStatus
-	Code StatusCode `json:"status_code"`
-}
-
-// There is one APIStatus per API resource ID (including stale/removed models). There is always an APIStatus for APIs currently in the context.
-type APIStatus struct {
-	APISavedStatus
-	MinReplicas          int32 `json:"min_replicas"`
-	MaxReplicas          int32 `json:"max_replicas"`
-	InitReplicas         int32 `json:"init_replicas"`
-	TargetCPUUtilization int32 `json:"target_cpu_utilization"`
+// There is one Status per API resource ID (including stale/removed models)
+type Status struct {
+	APIName              string     `json:"api_name"`
+	ResourceID           string     `json:"resource_id"`
+	WorkloadID           string     `json:"workload_id"`
+	Start                *time.Time `json:"start"`
+	MinReplicas          int32      `json:"min_replicas"`
+	MaxReplicas          int32      `json:"max_replicas"`
+	InitReplicas         int32      `json:"init_replicas"`
+	TargetCPUUtilization int32      `json:"target_cpu_utilization"`
 	ReplicaCounts        `json:"replica_counts"`
 	PodStatuses          []k8s.PodStatus `json:"pod_statuses"`
 	Code                 StatusCode      `json:"status_code"`
@@ -45,10 +45,10 @@ type ReplicaCounts struct {
 	K8sRequested         int32 `json:"k8s_requested"` // Number of requested replicas in an active k8s.deployment for this resource ID
 }
 
-// There is one APIGroupStatus per API name/endpoint
-type APIGroupStatus struct {
+// There is one GroupStatus per API name/endpoint
+type GroupStatus struct {
 	APIName              string     `json:"api_name"`
-	ActiveStatus         *APIStatus `json:"active_status"` // The most recently ready API status, or the ctx API status if it's ready
+	ActiveStatus         *Status    `json:"active_status"` // The most recently ready API status, or the ctx API status if it's ready
 	Code                 StatusCode `json:"status_code"`
 	GroupedReplicaCounts `json:"grouped_replica_counts"`
 }
@@ -61,11 +61,6 @@ type GroupedReplicaCounts struct {
 	FailedStaleModel   int32 `json:"failed_stale_model"`
 	FailedStaleCompute int32 `json:"failed_stale_compute"`
 	Requested          int32 `json:"requested"`
-}
-
-type Status interface {
-	Message() string
-	GetCode() StatusCode
 }
 
 func (rc *ReplicaCounts) TotalReady() int32 {
@@ -84,39 +79,13 @@ func (grc *GroupedReplicaCounts) ReadyStale() int32 {
 	return grc.ReadyStaleModel + grc.ReadyStaleCompute
 }
 
-func (status *DataStatus) GetCode() StatusCode {
-	return status.Code
-}
-
-func (status *APIStatus) GetCode() StatusCode {
-	return status.Code
-}
-
-func (status *APIGroupStatus) GetCode() StatusCode {
-	return status.Code
-}
-
 type StatusCode int
 
 const (
 	StatusUnknown StatusCode = iota
-
-	// Shared statuses
-	StatusPending // Resource is pending other non-ready resources
 	StatusPendingCompute
-	StatusWaiting // Resource can be created based on resource DAG, but hasn't started yet
-	StatusSkipped
 	StatusError
-	StatusParentFailed
-	StatusParentKilled
 	StatusKilledOOM
-
-	// Data statuses
-	StatusRunning
-	StatusSucceeded
-	StatusKilled
-
-	// API statuses
 	StatusLive
 	StatusUpdating
 	StatusStopping
@@ -125,20 +94,9 @@ const (
 
 var statusCodes = []string{
 	"status_unknown",
-
-	"status_pending",
 	"status_pending_compute",
-	"status_waiting",
-	"status_skipped",
 	"status_error",
-	"status_parent_failed",
-	"status_parent_killed",
 	"status_killed_oom",
-
-	"status_running",
-	"status_succeeded",
-	"status_killed",
-
 	"status_live",
 	"status_updating",
 	"status_stopping",
@@ -148,52 +106,17 @@ var statusCodes = []string{
 var _ = [1]int{}[int(StatusStopped)-(len(statusCodes)-1)] // Ensure list length matches
 
 var statusCodeMessages = []string{
-	"unknown", // StatusUnknown
-
-	"pending",               // StatusPending
+	"unknown",               // StatusUnknown
 	"compute unavailable",   // StatusPendingCompute
-	"pending",               // StatusWaiting
-	"skipped",               // StatusSkipped
 	"error",                 // StatusError
-	"upstream error",        // StatusParentFailed
-	"upstream termination",  // StatusParentKilled
 	"error (out of memory)", // StatusKilledOOM
-
-	"running",    // StatusRunning
-	"ready",      // StatusSucceeded
-	"terminated", // StatusKilled
-
-	"live",     // StatusLive
-	"updating", // StatusUpdating
-	"stopping", // StatusStopping
-	"stopped",  // StatusStopped
+	"live",                  // StatusLive
+	"updating",              // StatusUpdating
+	"stopping",              // StatusStopping
+	"stopped",               // StatusStopped
 }
 
 var _ = [1]int{}[int(StatusStopped)-(len(statusCodeMessages)-1)] // Ensure list length matches
-
-var statusSortBuckets = []int{
-	999, // StatusUnknown
-
-	4, // StatusPending
-	4, // StatusPendingCompute
-	4, // StatusWaiting
-	2, // StatusSkipped
-	1, // StatusError
-	2, // StatusParentFailed
-	2, // StatusParentKilled
-	1, // StatusKilledOOM
-
-	3, // StatusRunning
-	0, // StatusSucceeded
-	1, // StatusKilled
-
-	0, // StatusLive
-	0, // StatusUpdating
-	3, // StatusStopping
-	1, // StatusStopped
-}
-
-var _ = [1]int{}[int(StatusStopped)-(len(statusSortBuckets)-1)] // Ensure list length matches
 
 func (code StatusCode) String() string {
 	if int(code) < 0 || int(code) >= len(statusCodes) {
@@ -209,22 +132,11 @@ func (code StatusCode) Message() string {
 	return statusCodeMessages[code]
 }
 
-func (code StatusCode) SortBucket() int {
-	if int(code) < 0 || int(code) >= len(statusSortBuckets) {
-		return statusSortBuckets[StatusUnknown]
-	}
-	return statusSortBuckets[code]
-}
-
-func (status *DataStatus) Message() string {
+func (status *Status) Message() string {
 	return status.Code.Message()
 }
 
-func (status *APIStatus) Message() string {
-	return status.Code.Message()
-}
-
-func (status *APIGroupStatus) Message() string {
+func (status *GroupStatus) Message() string {
 	return status.Code.Message()
 }
 

@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/api/context"
+	"github.com/cortexlabs/cortex/pkg/operator/api/spec"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 )
 
@@ -31,8 +31,8 @@ type InfoResponse struct {
 
 type DeployResponse struct {
 	Message     string           `json:"message"`
-	Context     *context.Context `json:"context"`
-	APIsBaseURL string           `json:"apis_base_url"`
+	API     *spec.API `json:"api"`
+	BaseURL string           `json:"apis_base_url"`
 }
 
 type DeleteResponse struct {
@@ -43,22 +43,22 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-type GetResourcesResponse struct {
-	Context          *context.Context                    `json:"context"`
-	DataStatuses     map[string]*resource.DataStatus     `json:"data_statuses"`
-	APIStatuses      map[string]*resource.APIStatus      `json:"api_statuses"`
-	APIGroupStatuses map[string]*resource.APIGroupStatus `json:"api_name_statuses"`
-	APIsBaseURL      string                              `json:"apis_base_url"`
+// type GetResourcesResponse struct {
+// 	Context          *context.Context                    `json:"context"`
+// 	DataStatuses     map[string]*resource.DataStatus     `json:"data_statuses"`
+// 	APIStatuses      map[string]*resource.APIStatus      `json:"api_statuses"`
+// 	APIGroupStatuses map[string]*resource.APIGroupStatus `json:"api_name_statuses"`
+// 	BaseURL      string                              `json:"apis_base_url"`
+// }
+
+type GetAPIsResponse struct {
+	APIs []spec.API `json:"apis"`
+	BaseURL      string                              `json:"apis_base_url"`
 }
 
-type Deployment struct {
-	Name        string                    `json:"name"`
-	Status      resource.DeploymentStatus `json:"status"`
-	LastUpdated time.Time                 `json:"last_updated"`
-}
-
-type GetDeploymentsResponse struct {
-	Deployments []Deployment `json:"deployments"`
+type GetAPIResponse struct {
+	API spec.API `json:"api"`
+	BaseURL      string                              `json:"apis_base_url"`
 }
 
 type FeatureSignature struct {

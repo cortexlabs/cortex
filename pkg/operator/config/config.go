@@ -57,7 +57,8 @@ func Init() error {
 		return errors.FirstError(errs...)
 	}
 
-	Cluster.ID = hash.String(*Cluster.Bucket + *Cluster.Region + Cluster.LogGroup)
+	// TODO where it this used?
+	Cluster.ID = hash.String(Cluster.ClusterName + *Cluster.Bucket + *Cluster.Region + Cluster.LogGroup)
 
 	AWS, err = aws.New(*Cluster.Region, *Cluster.Bucket, true)
 	if err != nil {
@@ -65,8 +66,9 @@ func Init() error {
 	}
 
 	err = telemetry.Init(telemetry.Config{
-		Enabled:              Cluster.Telemetry,
-		UserID:               AWS.HashedAccountID,
+		Enabled: Cluster.Telemetry,
+		UserID:  AWS.HashedAccountID,
+		// TODO add session ID?
 		Environment:          "operator",
 		LogErrors:            true,
 		BlockDuplicateErrors: true,

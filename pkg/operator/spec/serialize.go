@@ -14,28 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package context
+package spec
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 )
 
-func (ctx Context) ToMsgpackBytes() ([]byte, error) {
-	return msgpack.Marshal(ctx)
+func (api API) ToMsgpackBytes() ([]byte, error) {
+	return msgpack.Marshal(api)
 }
 
-func FromMsgpackBytes(b []byte) (*Context, error) {
-	var ctx Context
-	err := msgpack.Unmarshal(b, &ctx)
+func FromMsgpackBytes(b []byte) (*API, error) {
+	var api API
+	err := msgpack.Unmarshal(b, &api)
 	if err != nil {
 		return nil, err
 	}
-	return &ctx, nil
+	return &api, nil
 }
 
-func (ctx Context) MarshalJSON() ([]byte, error) {
-	msgpackBytes, err := ctx.ToMsgpackBytes()
+func (api API) MarshalJSON() ([]byte, error) {
+	msgpackBytes, err := api.ToMsgpackBytes()
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (ctx Context) MarshalJSON() ([]byte, error) {
 	return msgpackJSONBytes, nil
 }
 
-func (ctx *Context) UnmarshalJSON(b []byte) error {
+func (api *API) UnmarshalJSON(b []byte) error {
 	var msgpackBytes []byte
 	if err := json.Unmarshal(b, &msgpackBytes); err != nil {
 		return err
@@ -55,6 +55,6 @@ func (ctx *Context) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	*ctx = *ctxPtr
+	*api = *ctxPtr
 	return nil
 }

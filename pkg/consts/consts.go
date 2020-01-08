@@ -20,21 +20,16 @@ var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	ContextCacheDir    = "/mnt/context"
+	SpecCacheDir       = "/mnt/spec"
 	EmptyDirMountPath  = "/mnt"
 	EmptyDirVolumeName = "mnt"
 
 	ClusterConfigPath = "/configs/cluster/cluster.yaml"
 	ClusterConfigName = "cluster-config"
 
-	AppsDir             = "apps"
-	DeploymentsDir      = "deployments"
-	APIsDir             = "apis"
-	ProjectsDir         = "projects"
-	ContextsDir         = "contexts"
-	ResourceStatusesDir = "resource_statuses"
-	WorkloadSpecsDir    = "workload_specs"
-	MetadataDir         = "metadata"
+	APIsDir     = "apis"
+	ProjectsDir = "projects"
+	MetadataDir = "metadata"
 
 	K8sNamespace = "cortex"
 

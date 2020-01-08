@@ -138,6 +138,7 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 	})
 }
 
+// TODO update
 func ErrorDuplicateEndpointOtherDeployment(appName string, apiName string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrDuplicateEndpointOtherDeployment,

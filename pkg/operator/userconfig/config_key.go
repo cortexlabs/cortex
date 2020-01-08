@@ -17,12 +17,7 @@ limitations under the License.
 package userconfig
 
 const (
-	// Shared
-	UnknownKey = "unknown"
 	NameKey    = "name"
-	KindKey    = "kind"
-
-	// API
 	ModelKey        = "model"
 	TypeKey         = "type"
 	PathKey         = "path"

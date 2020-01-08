@@ -37,7 +37,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-type APICompute struct {
+type Compute struct {
 	MinReplicas          int32         `json:"min_replicas" yaml:"min_replicas"`
 	MaxReplicas          int32         `json:"max_replicas" yaml:"max_replicas"`
 	InitReplicas         int32         `json:"init_replicas" yaml:"init_replicas"`
@@ -47,7 +47,7 @@ type APICompute struct {
 	GPU                  int64         `json:"gpu" yaml:"gpu"`
 }
 
-var apiComputeFieldValidation = &cr.StructFieldValidation{
+var computeFieldValidation = &cr.StructFieldValidation{
 	StructField: "Compute",
 	StructValidation: &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
@@ -109,57 +109,57 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 	},
 }
 
-func (ac *APICompute) UserConfigStr() string {
+func (compute *Compute) UserConfigStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MinReplicasKey, s.Int32(ac.MinReplicas)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicasKey, s.Int32(ac.MaxReplicas)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(ac.InitReplicas)))
-	if ac.MinReplicas != ac.MaxReplicas {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", TargetCPUUtilizationKey, s.Int32(ac.TargetCPUUtilization)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MinReplicasKey, s.Int32(compute.MinReplicas)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicasKey, s.Int32(compute.MaxReplicas)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(compute.InitReplicas)))
+	if compute.MinReplicas != compute.MaxReplicas {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", TargetCPUUtilizationKey, s.Int32(compute.TargetCPUUtilization)))
 	}
-	sb.WriteString(fmt.Sprintf("%s: %s\n", CPUKey, ac.CPU.UserString))
-	if ac.GPU > 0 {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(ac.GPU)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", CPUKey, compute.CPU.UserString))
+	if compute.GPU > 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
 	}
-	if ac.Mem != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, ac.Mem.UserString))
+	if compute.Mem != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
 	}
 	return sb.String()
 }
 
-func (ac *APICompute) Validate() error {
-	if ac.MinReplicas > ac.MaxReplicas {
-		return ErrorMinReplicasGreaterThanMax(ac.MinReplicas, ac.MaxReplicas)
+func (compute *Compute) Validate() error {
+	if compute.MinReplicas > compute.MaxReplicas {
+		return ErrorMinReplicasGreaterThanMax(compute.MinReplicas, compute.MaxReplicas)
 	}
 
-	if ac.InitReplicas > ac.MaxReplicas {
-		return ErrorInitReplicasGreaterThanMax(ac.InitReplicas, ac.MaxReplicas)
+	if compute.InitReplicas > compute.MaxReplicas {
+		return ErrorInitReplicasGreaterThanMax(compute.InitReplicas, compute.MaxReplicas)
 	}
 
-	if ac.InitReplicas < ac.MinReplicas {
-		return ErrorInitReplicasLessThanMin(ac.InitReplicas, ac.MinReplicas)
+	if compute.InitReplicas < compute.MinReplicas {
+		return ErrorInitReplicasLessThanMin(compute.InitReplicas, compute.MinReplicas)
 	}
 
 	return nil
 }
 
-func (ac *APICompute) ID() string {
+func (compute *Compute) ID() string {
 	var buf bytes.Buffer
-	buf.WriteString(s.Int32(ac.MinReplicas))
-	buf.WriteString(s.Int32(ac.MaxReplicas))
-	buf.WriteString(s.Int32(ac.InitReplicas))
-	buf.WriteString(s.Int32(ac.TargetCPUUtilization))
-	buf.WriteString(ac.CPU.ID())
-	buf.WriteString(k8s.QuantityPtrID(ac.Mem))
-	buf.WriteString(s.Int64(ac.GPU))
+	buf.WriteString(s.Int32(compute.MinReplicas))
+	buf.WriteString(s.Int32(compute.MaxReplicas))
+	buf.WriteString(s.Int32(compute.InitReplicas))
+	buf.WriteString(s.Int32(compute.TargetCPUUtilization))
+	buf.WriteString(compute.CPU.ID())
+	buf.WriteString(k8s.QuantityPtrID(compute.Mem))
+	buf.WriteString(s.Int64(compute.GPU))
 	return hash.Bytes(buf.Bytes())
 }
 
 // Only consider CPU, Mem, GPU
-func (ac *APICompute) IDWithoutReplicas() string {
+func (compute *Compute) IDWithoutReplicas() string {
 	var buf bytes.Buffer
-	buf.WriteString(ac.CPU.ID())
-	buf.WriteString(k8s.QuantityPtrID(ac.Mem))
-	buf.WriteString(s.Int64(ac.GPU))
+	buf.WriteString(compute.CPU.ID())
+	buf.WriteString(k8s.QuantityPtrID(compute.Mem))
+	buf.WriteString(s.Int64(compute.GPU))
 	return hash.Bytes(buf.Bytes())
 }

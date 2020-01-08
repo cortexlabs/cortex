@@ -29,18 +29,18 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/yaml"
 )
 
-type APIs []*API
-
 type API struct {
-	ResourceFields
+	Name     string `json:"name" yaml:"name"`
 	Endpoint  *string     `json:"endpoint" yaml:"endpoint"`
 	Predictor *Predictor  `json:"predictor" yaml:"predictor"`
 	Tracker   *Tracker    `json:"tracker" yaml:"tracker"`
-	Compute   *APICompute `json:"compute" yaml:"compute"`
+	Compute   *Compute `json:"compute" yaml:"compute"`
+
+	Index    int    `json:"index" yaml:"-"`
+	FilePath string `json:"file_path" yaml:"-"`
 }
 
 type Tracker struct {
@@ -158,8 +158,7 @@ var apiValidation = &cr.StructValidation{
 			},
 		},
 		predictorValidation,
-		apiComputeFieldValidation,
-		typeFieldValidation,
+		computeFieldValidation,
 	},
 }
 
@@ -242,7 +241,7 @@ func ValidatePythonPath(path string, projectFileMap map[string][]byte) error {
 
 func (api *API) UserConfigStr() string {
 	var sb strings.Builder
-	sb.WriteString(api.ResourceFields.UserConfigStr())
+	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
 
 	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
@@ -266,34 +265,6 @@ func (tracker *Tracker) UserConfigStr() string {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", KeyKey, *tracker.Key))
 	}
 	return sb.String()
-}
-
-func (apis APIs) Validate(deploymentName string, projectFileMap map[string][]byte) error {
-	for _, api := range apis {
-		if err := api.Validate(deploymentName, projectFileMap); err != nil {
-			return err
-		}
-	}
-
-	endpoints := map[string]string{} // endpoint -> API name
-	for _, api := range apis {
-		if dupAPIName, ok := endpoints[*api.Endpoint]; ok {
-			return ErrorDuplicateEndpoints(*api.Endpoint, dupAPIName, api.Name)
-		}
-		endpoints[*api.Endpoint] = api.Name
-	}
-
-	resources := make([]Resource, len(apis))
-	for i, res := range apis {
-		resources[i] = res
-	}
-
-	dups := FindDuplicateResourceName(resources...)
-	if len(dups) > 0 {
-		return ErrorDuplicateResourceName(dups...)
-	}
-
-	return nil
 }
 
 func (predictor *Predictor) UserConfigStr() string {
@@ -411,30 +382,37 @@ func (predictor *Predictor) PythonValidate() error {
 	return nil
 }
 
-func (api *API) Validate(deploymentName string, projectFileMap map[string][]byte) error {
+func (api *API) Validate(projectFileMap map[string][]byte) error {
 	if api.Endpoint == nil {
-		api.Endpoint = pointer.String("/" + deploymentName + "/" + api.Name)
+		api.Endpoint = pointer.String("/" + api.Name)
 	}
 
 	if err := api.Predictor.Validate(projectFileMap); err != nil {
-		return errors.Wrap(err, Identify(api), PredictorKey)
+		return errors.Wrap(err, api.Identify(), PredictorKey)
 	}
 
 	if err := api.Compute.Validate(); err != nil {
-		return errors.Wrap(err, Identify(api), ComputeKey)
+		return errors.Wrap(err, api.Identify(), ComputeKey)
 	}
 
 	return nil
 }
 
-func (api *API) GetResourceType() resource.Type {
-	return resource.APIType
+func (api *API) Identify() string {
+	return identify(api.FilePath, api.Name, api.Index)
 }
 
-func (apis APIs) Names() []string {
-	names := make([]string, len(apis))
-	for i, api := range apis {
-		names[i] = api.Name
+func identify(filePath string, name string, index int) string {
+	str := ""
+
+	if filePath != "" {
+		str += filePath + ": "
 	}
-	return names
+
+	if name != "" {
+		return str + "api : " + name
+	} else if index >= 0 {
+		return str + "api at " + s.Index(index)
+	}
+	return str + "api"
 }

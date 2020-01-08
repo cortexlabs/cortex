@@ -443,3 +443,58 @@ func setInsufficientComputeAPIStatusCodes(apiStatuses map[string]*resource.APISt
 
 	return nil
 }
+
+func calculateAPISavedStatuses(podList []kcore.Pod, appName string) ([]*resource.APISavedStatus, error) {
+	podMap := make(map[string]map[string][]kcore.Pod)
+	for _, pod := range podList {
+		resourceID := pod.Labels["resourceID"]
+		workloadID := pod.Labels["workloadID"]
+		if _, ok := podMap[resourceID]; !ok {
+			podMap[resourceID] = make(map[string][]kcore.Pod)
+		}
+		podMap[resourceID][workloadID] = append(podMap[resourceID][workloadID], pod)
+	}
+
+	var savedStatuses []*resource.APISavedStatus
+	for resourceID := range podMap {
+		for workloadID, pods := range podMap[resourceID] {
+			savedStatus, err := getAPISavedStatus(resourceID, workloadID, appName)
+			if err != nil {
+				return nil, err
+			}
+			if savedStatus == nil {
+				savedStatus = &resource.APISavedStatus{
+					BaseSavedStatus: resource.BaseSavedStatus{
+						ResourceID:   resourceID,
+						ResourceType: resource.APIType,
+						WorkloadID:   workloadID,
+						AppName:      pods[0].Labels["appName"],
+					},
+					APIName: pods[0].Labels["apiName"],
+				}
+			}
+
+			updateAPISavedStatusStartTime(savedStatus, pods)
+
+			savedStatuses = append(savedStatuses, savedStatus)
+		}
+	}
+
+	return savedStatuses, nil
+}
+
+func updateAPISavedStatusStartTime(savedStatus *resource.APISavedStatus, pods []kcore.Pod) {
+	if savedStatus.Start != nil {
+		return
+	}
+
+	for _, pod := range pods {
+		podReadyTime := k8s.GetPodReadyTime(&pod)
+		if podReadyTime == nil {
+			continue
+		}
+		if savedStatus.Start == nil || (*podReadyTime).Before(*savedStatus.Start) {
+			savedStatus.Start = podReadyTime
+		}
+	}
+}
