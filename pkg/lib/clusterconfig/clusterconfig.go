@@ -78,7 +78,7 @@ type SpotConfig struct {
 	OnDemandPercentageAboveBaseCapacity *int64   `json:"on_demand_percentage_above_base_capacity" yaml:"on_demand_percentage_above_base_capacity"`
 	MaxPrice                            *float64 `json:"max_price" yaml:"max_price"`
 	InstancePools                       *int64   `json:"instance_pools" yaml:"instance_pools"`
-	OnDemandBackup                      bool     `json:"on_demand_backup" yaml:"on_demand_backup"`
+	OnDemandBackup                      *bool    `json:"on_demand_backup" yaml:"on_demand_backup"`
 }
 
 type InternalConfig struct {
@@ -178,8 +178,8 @@ var UserValidation = &cr.StructValidation{
 					},
 					{
 						StructField: "OnDemandBackup",
-						BoolValidation: &cr.BoolValidation{
-							Default: true,
+						BoolPtrValidation: &cr.BoolPtrValidation{
+							Default: pointer.Bool(true),
 						},
 					},
 				},
@@ -572,6 +572,10 @@ func AutoGenerateSpotConfig(accessKeyID string, secretAccessKey string, spotConf
 		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(0)
 	}
 
+	if spotConfig.OnDemandBackup == nil {
+		spotConfig.OnDemandBackup = pointer.Bool(true)
+	}
+
 	if spotConfig.InstancePools == nil {
 		if len(spotConfig.InstanceDistribution) < _maxInstancePools {
 			spotConfig.InstancePools = pointer.Int64(int64(len(spotConfig.InstanceDistribution)))
@@ -579,6 +583,7 @@ func AutoGenerateSpotConfig(accessKeyID string, secretAccessKey string, spotConf
 			spotConfig.InstancePools = pointer.Int64(int64(_maxInstancePools))
 		}
 	}
+
 	return nil
 }
 
@@ -860,7 +865,7 @@ func (cc *Config) UserFacingTable() table.KeyValuePairs {
 		items.Add(OnDemandPercentageAboveBaseCapacityUserFacingKey, *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity)
 		items.Add(MaxPriceUserFacingKey, *cc.SpotConfig.MaxPrice)
 		items.Add(InstancePoolsUserFacingKey, *cc.SpotConfig.InstancePools)
-		items.Add(OnDemandBackupUserFacingKey, s.YesNo(cc.SpotConfig.OnDemandBackup))
+		items.Add(OnDemandBackupUserFacingKey, s.YesNo(*cc.SpotConfig.OnDemandBackup))
 	}
 	items.Add(LogGroupUserFacingKey, cc.LogGroup)
 	items.Add(TelemetryUserFacingKey, cc.Telemetry)

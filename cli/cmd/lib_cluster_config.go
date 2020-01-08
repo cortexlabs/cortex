@@ -306,7 +306,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *
 		fmt.Printf("this cluster will cost %s - %s per hour based on the cluster size%s\n\n", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice), spotSuffix)
 	}
 
-	if clusterConfig.Spot != nil && *clusterConfig.Spot && !clusterConfig.SpotConfig.OnDemandBackup {
+	if clusterConfig.Spot != nil && *clusterConfig.Spot && clusterConfig.SpotConfig.OnDemandBackup != nil && *clusterConfig.SpotConfig.OnDemandBackup {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
 			fmt.Printf("WARNING: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://www.cortex.dev/v/%s/cluster-management/spot-instances for more information\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
 		} else {
@@ -379,8 +379,8 @@ func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.Config, awsCreds *
 				items.Add(clusterconfig.InstancePoolsUserFacingKey, *clusterConfig.SpotConfig.InstancePools)
 			}
 
-			if clusterConfig.SpotConfig.OnDemandBackup != defaultSpotConfig.OnDemandBackup {
-				items.Add(clusterconfig.OnDemandBackupUserFacingKey, clusterConfig.SpotConfig.OnDemandBackup)
+			if *clusterConfig.SpotConfig.OnDemandBackup != *defaultSpotConfig.OnDemandBackup {
+				items.Add(clusterconfig.OnDemandBackupUserFacingKey, s.YesNo(*clusterConfig.SpotConfig.OnDemandBackup))
 			}
 		}
 	}
