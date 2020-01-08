@@ -419,7 +419,7 @@ func (cc *Config) Validate(accessKeyID string, secretAccessKey string) error {
 
 	if cc.Spot != nil && *cc.Spot {
 		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
-		compatibleSpots := CompatibleSpotInstances(accessKeyID, secretAccessKey, chosenInstance, _spotInstanceDistributionLength)
+		compatibleSpots := CompatibleSpotInstances(accessKeyID, secretAccessKey, chosenInstance, cc.SpotConfig.MaxPrice, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
 			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
 		}
@@ -434,7 +434,7 @@ func (cc *Config) Validate(accessKeyID string, secretAccessKey string) error {
 			}
 
 			instanceMetadata := aws.InstanceMetadatas[*cc.Region][instanceType]
-			err := CheckSpotInstanceCompatibility(accessKeyID, secretAccessKey, chosenInstance, instanceMetadata)
+			err := CheckSpotInstanceCompatibility(accessKeyID, secretAccessKey, chosenInstance, instanceMetadata, cc.SpotConfig.MaxPrice)
 			if err != nil {
 				return errors.Wrap(err, InstanceDistributionKey)
 			}
@@ -479,7 +479,7 @@ func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 	return nil
 }
 
-func CheckSpotInstanceCompatibility(accessKeyID string, secretAccessKey string, target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
+func CheckSpotInstanceCompatibility(accessKeyID string, secretAccessKey string, target aws.InstanceMetadata, suggested aws.InstanceMetadata, maxPrice *float64) error {
 	if target.GPU > suggested.GPU {
 		return ErrorIncompatibleSpotInstanceTypeGPU(target, suggested)
 	}
@@ -497,13 +497,17 @@ func CheckSpotInstanceCompatibility(accessKeyID string, secretAccessKey string, 
 		return err
 	}
 
-	if target.Price < suggestedInstancePrice {
+	if (maxPrice == nil || *maxPrice == target.Price) && target.Price < suggestedInstancePrice {
 		return ErrorSpotPriceGreaterThanTargetOnDemand(suggestedInstancePrice, target, suggested)
+	}
+
+	if maxPrice != nil && *maxPrice < suggestedInstancePrice {
+		return ErrorSpotPriceGreaterThanMaxPrice(suggestedInstancePrice, *maxPrice, suggested)
 	}
 	return nil
 }
 
-func CompatibleSpotInstances(accessKeyID string, secretAccessKey string, targetInstance aws.InstanceMetadata, numInstances int) []aws.InstanceMetadata {
+func CompatibleSpotInstances(accessKeyID string, secretAccessKey string, targetInstance aws.InstanceMetadata, maxPrice *float64, numInstances int) []aws.InstanceMetadata {
 	compatibleInstances := []aws.InstanceMetadata{}
 	instanceMap := aws.InstanceMetadatas[targetInstance.Region]
 	availableInstances := []aws.InstanceMetadata{}
@@ -524,7 +528,7 @@ func CompatibleSpotInstances(accessKeyID string, secretAccessKey string, targetI
 			continue
 		}
 
-		if err := CheckSpotInstanceCompatibility(accessKeyID, secretAccessKey, targetInstance, instanceMetadata); err != nil {
+		if err := CheckSpotInstanceCompatibility(accessKeyID, secretAccessKey, targetInstance, instanceMetadata, maxPrice); err != nil {
 			continue
 		}
 
@@ -543,7 +547,7 @@ func AutoGenerateSpotConfig(accessKeyID string, secretAccessKey string, spotConf
 	if len(spotConfig.InstanceDistribution) == 0 {
 		spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, chosenInstance.Type)
 
-		compatibleSpots := CompatibleSpotInstances(accessKeyID, secretAccessKey, chosenInstance, _spotInstanceDistributionLength)
+		compatibleSpots := CompatibleSpotInstances(accessKeyID, secretAccessKey, chosenInstance, spotConfig.MaxPrice, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
 			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
 		}
