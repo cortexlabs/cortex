@@ -179,7 +179,7 @@ var UserValidation = &cr.StructValidation{
 					{
 						StructField: "OnDemandBackup",
 						BoolValidation: &cr.BoolValidation{
-							Default: false,
+							Default: true,
 						},
 					},
 				},
