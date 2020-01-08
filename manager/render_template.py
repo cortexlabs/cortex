@@ -15,7 +15,6 @@
 import sys
 import yaml
 import os
-from copy import deepcopy
 import pathlib
 from jinja2 import Environment, FileSystemLoader
 

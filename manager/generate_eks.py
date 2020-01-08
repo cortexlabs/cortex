@@ -167,6 +167,11 @@ def generate_eks(configmap_yaml_path):
 
 
 class IgnoreAliases(yaml.Dumper):
+    """By default, yaml dumper tries to compress yaml by annotating collections (lists and maps)
+    and replacing subsequent identical collections with aliases. This class overrides the default
+    behaviour to preserve the duplication of arrays.
+    """
+
     def ignore_aliases(self, data):
         return True
 

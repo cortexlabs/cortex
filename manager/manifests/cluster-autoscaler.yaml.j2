@@ -117,7 +117,7 @@ subjects:
     name: cluster-autoscaler
     namespace: kube-system
 ---
-{% if config.get('spot_config') is not none and config['spot_config'].get('on_demand_backup', False) %}
+{% if config.get('spot_config') is not none and config['spot_config'].get('on_demand_backup', false) %}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -164,8 +164,10 @@ spec:
             - --stderrthreshold=info
             - --cloud-provider=aws
             - --skip-nodes-with-local-storage=false
-            {% if config.get('spot_config') is not none and config['spot_config'].get('on_demand_backup', False) %}
+            {% if config.get('spot_config') is not none and config['spot_config'].get('on_demand_backup', false) %}
             - --expander=priority
+            {% else %}
+            - --expander=least-waste
             {% endif %}
             - --max-nodes-total={{ config['max_instances'] + 1 }}
             - --max-node-provision-time=5m

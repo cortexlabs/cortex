@@ -34,8 +34,9 @@ import (
 )
 
 var (
-	_spotInstanceDistributionLength = 2
-	_maxInstancePools               = 20
+	_spotInstanceDistributionLength      = 2
+	_onDemandPercentageAboveBaseCapacity = 50
+	_maxInstancePools                    = 20
 )
 
 type Config struct {
@@ -565,7 +566,7 @@ func AutoGenerateSpotConfig(accessKeyID string, secretAccessKey string, spotConf
 	}
 
 	if spotConfig.OnDemandPercentageAboveBaseCapacity == nil {
-		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(0)
+		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(int64(_onDemandPercentageAboveBaseCapacity))
 	}
 
 	if spotConfig.InstancePools == nil {
@@ -856,7 +857,7 @@ func (cc *Config) UserFacingTable() table.KeyValuePairs {
 		items.Add(OnDemandPercentageAboveBaseCapacityUserFacingKey, *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity)
 		items.Add(MaxPriceUserFacingKey, *cc.SpotConfig.MaxPrice)
 		items.Add(InstancePoolsUserFacingKey, *cc.SpotConfig.InstancePools)
-		items.Add(OnDemandBackupUserFacingKey, *cc.SpotConfig.InstancePools)
+		items.Add(OnDemandBackupUserFacingKey, s.YesNo(cc.SpotConfig.OnDemandBackup))
 	}
 	items.Add(LogGroupUserFacingKey, cc.LogGroup)
 	items.Add(TelemetryUserFacingKey, cc.Telemetry)
