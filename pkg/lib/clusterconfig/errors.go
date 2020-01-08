@@ -168,14 +168,14 @@ func ErrorIncompatibleSpotInstanceTypeGPU(target aws.InstanceMetadata, suggested
 func ErrorSpotPriceGreaterThanTargetOnDemand(suggestedSpotPrice float64, target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
 	return errors.WithStack(Error{
 		Kind:    ErrSpotPriceGreaterThanTargetOnDemand,
-		message: fmt.Sprintf("%s will not be allocated because its current spot price is %g which is greater than than %s's on-demand price of %g", suggested.Type, suggestedSpotPrice, target.Type, target.Price),
+		message: fmt.Sprintf("%s will not be allocated because its current spot price is $%g which is greater than than %s's on-demand price of $%g", suggested.Type, suggestedSpotPrice, target.Type, target.Price),
 	})
 }
 
-func ErrorSpotPriceGreaterThanMaxPrice(suggestedSpotPrice float64, maxPrice float64) error {
+func ErrorSpotPriceGreaterThanMaxPrice(suggestedSpotPrice float64, maxPrice float64, suggested aws.InstanceMetadata) error {
 	return errors.WithStack(Error{
 		Kind:    ErrSpotPriceGreaterThanMaxPrice,
-		message: fmt.Sprintf("%s will not be allocated because its current spot price is %g is greater than the configured max price %s", suggestedSpotPrice, maxPrice),
+		message: fmt.Sprintf("%s will not be allocated because its current spot price is $%g which is greater than the configured max price $%g", suggested.Type, suggestedSpotPrice, maxPrice),
 	})
 }
 

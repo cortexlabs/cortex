@@ -496,7 +496,7 @@ func CheckSpotInstanceCompatibility(accessKeyID string, secretAccessKey string, 
 	}
 
 	if maxPrice != nil && *maxPrice < suggestedInstancePrice {
-		return ErrorSpotPriceGreaterThanMaxPrice(suggestedInstancePrice, *maxPrice)
+		return ErrorSpotPriceGreaterThanMaxPrice(suggestedInstancePrice, *maxPrice, suggested)
 	}
 	return nil
 }
