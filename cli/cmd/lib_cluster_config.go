@@ -297,13 +297,13 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *
 
 	spotSuffix := ""
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
-		spotSuffix = " (not accounting for spot instances)"
+		spotSuffix = " (on-demand pricing)"
 	}
 
 	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
 		fmt.Printf("this cluster will cost %s per hour%s\n\n", s.DollarsAndCents(totalMaxPrice), spotSuffix)
 	} else {
-		fmt.Printf("this cluster will cost %s per hour if the minimum number of instances are running and %s per hour if the maximum number of instances are running%s\n\n", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice), spotSuffix)
+		fmt.Printf("this cluster will cost %s - %s per hour based on the cluster size%s\n\n", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice), spotSuffix)
 	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot && !clusterConfig.SpotConfig.OnDemandBackup {
