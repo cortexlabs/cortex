@@ -19,7 +19,7 @@ spot_config:
 
   # percentage of on demand instances to use after the on demand base capacity has been met [0, 100] (default: 50)
   # note: setting this to 0 may hinder cluster scale up when spot instances are not available
-  on_demand_percentage_above_base_capacity: 50
+  on_demand_percentage_above_base_capacity: 0
 
   # max price for spot instances (default: the on-demand price of the primary instance type)
   max_price: <float>
@@ -27,8 +27,8 @@ spot_config:
   # number of spot instance pools across which to allocate spot instances [1, 20] (default: number of instances in instance distribution)
   instance_pools: 3
 
-  # fallback to on-demand instances if spot instances were unable to be allocated (default: false)
-  on_demand_backup: false
+  # fallback to on-demand instances if spot instances were unable to be allocated (default: true)
+  on_demand_backup: true
 ```
 
 Spot instances are not guaranteed to be available. The chances of getting spot instances can be improved by providing `instance_distribution`, a list of alternative instance types to the primary `instance_type` you specified. If left blank, Cortex will autofill `instance_distribution` with up to 2 other similar instances. Cortex defaults the `max_price` to the on-demand price of the primary instance.

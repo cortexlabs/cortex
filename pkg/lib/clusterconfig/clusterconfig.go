@@ -34,9 +34,8 @@ import (
 )
 
 var (
-	_spotInstanceDistributionLength      = 2
-	_onDemandPercentageAboveBaseCapacity = 50
-	_maxInstancePools                    = 20
+	_spotInstanceDistributionLength = 2
+	_maxInstancePools               = 20
 )
 
 type Config struct {
@@ -566,7 +565,7 @@ func AutoGenerateSpotConfig(accessKeyID string, secretAccessKey string, spotConf
 	}
 
 	if spotConfig.OnDemandPercentageAboveBaseCapacity == nil {
-		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(int64(_onDemandPercentageAboveBaseCapacity))
+		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(0)
 	}
 
 	if spotConfig.InstancePools == nil {
