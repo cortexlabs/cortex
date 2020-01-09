@@ -61,7 +61,7 @@ var deployCmd = &cobra.Command{
 func PromptForFilesAboveSize(size int) files.IgnoreFn {
 	return func(path string, fi os.FileInfo) (bool, error) {
 		if !fi.IsDir() && fi.Size() > int64(size) {
-			prompt.YesOrExit(fmt.Sprintf("attempting to zip a file larger than %s: %s, continue zipping the file?", s.IntToBase2Byte(size), path), "error: cancelled deployment")
+			prompt.YesOrExit(fmt.Sprintf("are you sure you want to zip %s (%s)?", path, s.IntToBase2Byte(int(fi.Size()))), "error: cancelled deployment")
 		}
 		return false, nil
 	}
