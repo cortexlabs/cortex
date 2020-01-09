@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -30,13 +31,14 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
 
-var MaxProjectSize = 1024 * 1024 * 50
+var _warningFileSize = 1024 * 1024 * 10
 var flagDeployForce bool
 var flagDeployRefresh bool
 
@@ -54,6 +56,15 @@ var deployCmd = &cobra.Command{
 		telemetry.EventNotify("cli.deploy")
 		deploy(flagDeployForce, flagDeployRefresh)
 	},
+}
+
+func PromptForFilesAboveSize(size int) files.IgnoreFn {
+	return func(path string, fi os.FileInfo) (bool, error) {
+		if !fi.IsDir() && fi.Size() > int64(size) {
+			prompt.YesOrExit(fmt.Sprintf("attempting to zip a file larger than %s: %s, continue zipping the file?", s.IntToBase2Byte(size), path), "error: cancelled deployment")
+		}
+		return false, nil
+	}
 }
 
 func deploy(force bool, ignoreCache bool) {
@@ -76,13 +87,14 @@ func deploy(force bool, ignoreCache bool) {
 	uploadBytes := map[string][]byte{
 		"cortex.yaml": configBytes,
 	}
-
+	fmt.Println("zipping files in current working directory")
 	projectPaths, err := files.ListDirRecursive(root, false,
 		files.IgnoreCortexYAML,
 		files.IgnoreCortexDebug,
 		files.IgnoreHiddenFiles,
 		files.IgnoreHiddenFolders,
 		files.IgnorePythonGeneratedFiles,
+		PromptForFilesAboveSize(_warningFileSize),
 	)
 	if err != nil {
 		exit.Error(err)
@@ -99,10 +111,6 @@ func deploy(force bool, ignoreCache bool) {
 
 	if err != nil {
 		exit.Error(errors.Wrap(err, "failed to zip project folder"))
-	}
-
-	if len(projectZipBytes) > MaxProjectSize {
-		exit.Error(errors.New("zipped project folder exceeds " + s.Int(MaxProjectSize) + " bytes"))
 	}
 
 	uploadBytes["project.zip"] = projectZipBytes
