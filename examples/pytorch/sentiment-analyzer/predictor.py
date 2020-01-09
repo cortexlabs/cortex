@@ -7,7 +7,9 @@ import requests
 class PythonPredictor:
     def __init__(self, config):
         # Download model file
-        req = requests.get("https://cortex-examples.s3-us-west-2.amazonaws.com/pytorch/sentiment-analyzer/export.pkl")
+        req = requests.get(
+            "https://cortex-examples.s3-us-west-2.amazonaws.com/pytorch/sentiment-analyzer/export.pkl"
+        )
         with open("export.pkl", "wb") as model:
             model.write(req.content)
 
