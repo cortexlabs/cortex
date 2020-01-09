@@ -34,9 +34,8 @@ import (
 )
 
 var (
-	_spotInstanceDistributionLength     = 2
-	_onDemandPercentageAboveBaseDefault = 50
-	_maxInstancePools                   = 20
+	_spotInstanceDistributionLength = 2
+	_maxInstancePools               = 20
 )
 
 type Config struct {
@@ -79,6 +78,7 @@ type SpotConfig struct {
 	OnDemandPercentageAboveBaseCapacity *int64   `json:"on_demand_percentage_above_base_capacity" yaml:"on_demand_percentage_above_base_capacity"`
 	MaxPrice                            *float64 `json:"max_price" yaml:"max_price"`
 	InstancePools                       *int64   `json:"instance_pools" yaml:"instance_pools"`
+	OnDemandBackup                      *bool    `json:"on_demand_backup" yaml:"on_demand_backup"`
 }
 
 type InternalConfig struct {
@@ -174,6 +174,12 @@ var UserValidation = &cr.StructValidation{
 							GreaterThanOrEqualTo: pointer.Int64(1),
 							LessThanOrEqualTo:    pointer.Int64(int64(_maxInstancePools)),
 							AllowExplicitNull:    true,
+						},
+					},
+					{
+						StructField: "OnDemandBackup",
+						BoolPtrValidation: &cr.BoolPtrValidation{
+							Default: pointer.Bool(true),
 						},
 					},
 				},
@@ -563,7 +569,11 @@ func AutoGenerateSpotConfig(accessKeyID string, secretAccessKey string, spotConf
 	}
 
 	if spotConfig.OnDemandPercentageAboveBaseCapacity == nil {
-		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(int64(_onDemandPercentageAboveBaseDefault))
+		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(0)
+	}
+
+	if spotConfig.OnDemandBackup == nil {
+		spotConfig.OnDemandBackup = pointer.Bool(true)
 	}
 
 	if spotConfig.InstancePools == nil {
@@ -573,6 +583,7 @@ func AutoGenerateSpotConfig(accessKeyID string, secretAccessKey string, spotConf
 			spotConfig.InstancePools = pointer.Int64(int64(_maxInstancePools))
 		}
 	}
+
 	return nil
 }
 
@@ -854,6 +865,7 @@ func (cc *Config) UserFacingTable() table.KeyValuePairs {
 		items.Add(OnDemandPercentageAboveBaseCapacityUserFacingKey, *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity)
 		items.Add(MaxPriceUserFacingKey, *cc.SpotConfig.MaxPrice)
 		items.Add(InstancePoolsUserFacingKey, *cc.SpotConfig.InstancePools)
+		items.Add(OnDemandBackupUserFacingKey, s.YesNo(*cc.SpotConfig.OnDemandBackup))
 	}
 	items.Add(LogGroupUserFacingKey, cc.LogGroup)
 	items.Add(TelemetryUserFacingKey, cc.Telemetry)
