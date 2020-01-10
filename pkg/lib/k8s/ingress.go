@@ -93,7 +93,7 @@ func (c *Client) CreateIngress(ingress *kextensions.Ingress) (*kextensions.Ingre
 	return ingress, nil
 }
 
-func (c *Client) updateIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
+func (c *Client) UpdateIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
 	ingress.TypeMeta = ingressTypeMeta
 	ingress, err := c.ingressClient.Update(ingress)
 	if err != nil {
@@ -110,7 +110,7 @@ func (c *Client) ApplyIngress(ingress *kextensions.Ingress) (*kextensions.Ingres
 	if existing == nil {
 		return c.CreateIngress(ingress)
 	}
-	return c.updateIngress(ingress)
+	return c.UpdateIngress(ingress)
 }
 
 func (c *Client) GetIngress(name string) (*kextensions.Ingress, error) {

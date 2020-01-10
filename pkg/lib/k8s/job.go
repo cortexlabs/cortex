@@ -87,7 +87,7 @@ func (c *Client) CreateJob(job *kbatch.Job) (*kbatch.Job, error) {
 	return job, nil
 }
 
-func (c *Client) updateJob(job *kbatch.Job) (*kbatch.Job, error) {
+func (c *Client) UpdateJob(job *kbatch.Job) (*kbatch.Job, error) {
 	job.TypeMeta = jobTypeMeta
 	job, err := c.jobClient.Update(job)
 	if err != nil {
@@ -104,7 +104,7 @@ func (c *Client) ApplyJob(job *kbatch.Job) (*kbatch.Job, error) {
 	if existing == nil {
 		return c.CreateJob(job)
 	}
-	return c.updateJob(job)
+	return c.UpdateJob(job)
 }
 
 func (c *Client) GetJob(name string) (*kbatch.Job, error) {

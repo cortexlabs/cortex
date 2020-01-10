@@ -36,6 +36,7 @@ import (
 	kclienthomedir "k8s.io/client-go/util/homedir"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/random"
 )
 
 var (
@@ -98,6 +99,11 @@ func New(namespace string, inCluster bool) (*Client, error) {
 	return client, nil
 }
 
+// to be safe, k8s sometimes needs all characters to be lower case, and the first to be a letter
+func RandomName() string {
+	return random.LowercaseLetters(1) + random.LowercaseString(62)
+}
+
 // ValidName ensures name contains only lower case alphanumeric, '-', or '.'
 func ValidName(name string) string {
 	re := regexp.MustCompile(`[^a-zA-Z0-9\-\.]`)
@@ -135,14 +141,24 @@ func Mem(mem string) kresource.Quantity {
 }
 
 func LabelSelector(labels map[string]string) string {
-	if labels == nil {
+	if len(labels) == 0 {
 		return ""
 	}
-	labelSelectorStr := ""
+
+	terms := make([]string, 0, len(labels))
 	for key, value := range labels {
-		labelSelectorStr = labelSelectorStr + "," + key + "=" + value
+		terms = append(terms, key+"="+value)
 	}
-	return strings.TrimPrefix(labelSelectorStr, ",")
+
+	return strings.Join(terms, ",")
+}
+
+func LabelExistsSelector(labels ...string) string {
+	if len(labels) == 0 {
+		return ""
+	}
+
+	return strings.Join(labels, ",")
 }
 
 func FieldSelectorNotIn(key string, values []string) string {

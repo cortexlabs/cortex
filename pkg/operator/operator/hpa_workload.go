@@ -20,10 +20,8 @@ import (
 	"time"
 
 	kapps "k8s.io/api/apps/v1"
-	kautoscaling "k8s.io/api/autoscaling/v2beta2"
 	kcore "k8s.io/api/core/v1"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -117,19 +115,4 @@ func (hw *HPAWorkload) CanRun(ctx *context.Context) (bool, error) {
 
 func (hw *HPAWorkload) IsFailed(ctx *context.Context) (bool, error) {
 	return false, nil
-}
-
-func hpaSpec(ctx *context.Context, api *context.API) *kautoscaling.HorizontalPodAutoscaler {
-	return k8s.HPA(&k8s.HPASpec{
-		DeploymentName:       internalAPIName(api.Name, ctx.App.Name),
-		MinReplicas:          api.Compute.MinReplicas,
-		MaxReplicas:          api.Compute.MaxReplicas,
-		TargetCPUUtilization: api.Compute.TargetCPUUtilization,
-		Labels: map[string]string{
-			"appName":      ctx.App.Name,
-			"workloadType": workloadTypeAPI,
-			"apiName":      api.Name,
-		},
-		Namespace: consts.K8sNamespace,
-	})
 }

@@ -23,179 +23,125 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
-	"github.com/cortexlabs/cortex/pkg/operator/api/context"
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
-	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	ocontext "github.com/cortexlabs/cortex/pkg/operator/context"
-	"github.com/cortexlabs/cortex/pkg/operator/workloads"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
+
+type deployResult struct {
+	APISpec *spec.API
+	Message string
+	Error   error
+}
 
 func Deploy(w http.ResponseWriter, r *http.Request) {
 	ignoreCache := getOptionalBoolQParam("ignoreCache", false, r)
 	force := getOptionalBoolQParam("force", false, r)
 
-	configBytes, err := files.ReadReqFile(r, "cortex.yaml")
+	configBytes, err := files.ReadReqFile(r, "config.yaml")
 	if err != nil {
 		RespondError(w, errors.WithStack(err))
 		return
 	}
 
 	if len(configBytes) == 0 {
-		RespondError(w, ErrorFormFileMustBeProvided("cortex.yaml"))
+		RespondError(w, ErrorFormFileMustBeProvided("config.yaml"))
+		return
+	}
+
+	apisBaseURL, err := operator.APIsBaseURL()
+	if err != nil {
+		RespondError(w, err)
 		return
 	}
 
 	projectBytes, err := files.ReadReqFile(r, "project.zip")
+	if err != nil {
+		return err
+	}
+	projectID := hash.Bytes(projectBytes)
+	projectKey := operator.ProjectKey(projectID)
+	projectFileMap, err := zip.UnzipMemToMem(projectBytes)
+	if err != nil {
+		return err
+	}
 
-	userconf, err := userconfig.New("cortex.yaml", configBytes)
+	// TODO file path should be user's actual file path that they typed in
+	apiConfigs, err := operator.ExtractAPIConfigs(configBytes, projectFileMap, "cortex.yaml")
 	if err != nil {
 		RespondError(w, err)
 		return
 	}
 
-	err = userconf.Validate(projectBytes)
+	isProjectUploaded, err := config.AWS.IsS3File(projectKey)
 	if err != nil {
-		RespondError(w, err)
-		return
+		return err
 	}
-
-	ctx, err := ocontext.New(userconf, projectBytes, ignoreCache)
-	if err != nil {
-		RespondError(w, err)
-		return
-	}
-
-	err = workloads.PopulateWorkloadIDs(ctx)
-	if err != nil {
-		RespondError(w, err)
-		return
-	}
-
-	existingCtx := workloads.CurrentContext(ctx.App.Name)
-
-	fullCtxMatch := false
-	if existingCtx != nil && existingCtx.ID == ctx.ID && context.APIResourcesAndComputesMatch(ctx, existingCtx) {
-		fullCtxMatch = true
-	}
-
-	err = workloads.ValidateDeploy(ctx)
-	if err != nil {
-		RespondError(w, err)
-		return
-	}
-
-	deploymentStatus, err := workloads.GetDeploymentStatus(ctx.App.Name)
-	if err != nil {
-		RespondError(w, err)
-		return
-	}
-
-	isUpdating := deploymentStatus == resource.UpdatingDeploymentStatus
-
-	if isUpdating {
-		if fullCtxMatch {
-			msg := deployResponseMessage(ResDeploymentUpToDateUpdating(ctx.App.Name), ctx, nil)
-			Respond(w, schema.DeployResponse{Message: msg})
-			return
-		}
-		if !force {
-			msg := deployResponseMessage(ResDifferentDeploymentUpdating(ctx.App.Name), ctx, nil)
-			Respond(w, schema.DeployResponse{Message: msg})
-			return
+	if !isProjectUploaded {
+		if err = config.AWS.UploadBytesToS3(projectBytes, projectKey); err != nil {
+			return nil, err
 		}
 	}
 
-	err = config.AWS.UploadMsgpackToS3(ctx, ctx.Key)
-	if err != nil {
-		RespondError(w, err, ctx.App.Name, "upload context")
-		return
-	}
-
-	err = workloads.Run(ctx)
-	if err != nil {
-		RespondError(w, err)
-		return
-	}
-
-	apisBaseURL, err := workloads.APIsBaseURL()
-	if err != nil {
-		RespondError(w, err)
-		return
-	}
-
-	var updatingAPIs []string
-	var baseMessage string
-	if !isUpdating && !ignoreCache && existingCtx != nil && fullCtxMatch {
-		baseMessage = ResDeploymentUpToDate(ctx.App.Name)
-	} else {
-		baseMessage, updatingAPIs = apiDiffMessage(existingCtx, ctx, apisBaseURL)
+	results := make([]deployResult, len(apiConfigs))
+	for i, apiConfig := range apiConfigs {
+		results[i].Spec, deployResult[i].Message, deployResult[i].Error = operator.UpdateAPI(apiConfig, projectID, ignoreCache, force)
 	}
 
 	Respond(w, schema.DeployResponse{
-		Context:     ctx,
+		Results:     results,
 		APIsBaseURL: apisBaseURL,
-		Message:     deployResponseMessage(baseMessage, ctx, updatingAPIs),
+		Message:     deployMessage(results),
 	})
+
 }
 
-func apiDiffMessage(previousCtx *context.Context, currentCtx *context.Context, apisBaseURL string) (string, []string) {
-	var newAPIs []context.API
-	var updatedAPIs []context.API
-	var deletedAPIs []context.API
+func deployMessage(results []deployResult) string {
+	statusMessage := mergeResultMessages(results)
 
-	if previousCtx == nil {
-		for _, api := range currentCtx.APIs {
-			newAPIs = append(newAPIs, *api)
-		}
-	} else {
-		for _, api := range currentCtx.APIs {
-			if prevAPI, ok := previousCtx.APIs[api.Name]; ok {
-				if api.ID != prevAPI.ID || api.Compute.ID() != prevAPI.Compute.ID() {
-					updatedAPIs = append(updatedAPIs, *api)
-				}
-			} else {
-				newAPIs = append(newAPIs, *api)
-			}
-		}
-
-		for _, api := range previousCtx.APIs {
-			if _, ok := currentCtx.APIs[api.Name]; ok {
-				continue
-			}
-			deletedAPIs = append(deletedAPIs, *api)
-		}
+	if allResultsErrored(results) {
+		return statusMessage
 	}
 
-	var updatingAPIs []string
-	var strs []string
-	for _, api := range newAPIs {
-		strs = append(strs, ResCreatingAPI(api.Name))
-		updatingAPIs = append(updatingAPIs, api.Name)
-	}
-	for _, api := range updatedAPIs {
-		strs = append(strs, ResUpdatingAPI(api.Name))
-		updatingAPIs = append(updatingAPIs, api.Name)
-	}
-	for _, api := range deletedAPIs {
-		strs = append(strs, ResDeletingAPI(api.Name))
-	}
+	apiCommandsMessage := getAPICommandsMessage(results)
 
-	return strings.Join(strs, "\n"), updatingAPIs
+	return statusMessage + "\n\n" + apiCommandsMessage
 }
 
-func deployResponseMessage(baseMessage string, ctx *context.Context, updatingAPIs []string) string {
+func mergeResultMessages(results []deployResult) string {
+	var okMessages []string
+	var errMessages []string
+
+	for _, result := range results {
+		if result.Error != nil {
+			errMessages = append(errMessages, result.Error.Error())
+		} else {
+			okMessages = append(okMessages, result.Message)
+		}
+	}
+
+	messages := append(okMessages, errMessages...)
+
+	return strings.Join(messages, "\n")
+}
+
+func didAllResultsError(results []deployResult) bool {
+	for _, result := range results {
+		if result.Error == nil {
+			return false
+		}
+	}
+	return true
+}
+
+func getAPICommandsMessage(results []deployResult) string {
 	apiName := "<api_name>"
-
-	if len(updatingAPIs) == 1 {
-		apiName = updatingAPIs[0]
-	} else if len(updatingAPIs) == 0 && len(ctx.APIs) == 1 {
-		for apiName = range ctx.APIs {
-			break
-		}
+	if len(results) == 1 {
+		apiName = results[0].APISpec.Name
 	}
 
 	var items table.KeyValuePairs
@@ -203,7 +149,7 @@ func deployResponseMessage(baseMessage string, ctx *context.Context, updatingAPI
 	items.Add(fmt.Sprintf("cortex get %s", apiName), "(show api info)")
 	items.Add(fmt.Sprintf("cortex logs %s", apiName), "(stream api logs)")
 
-	return baseMessage + "\n\n" + items.String(&table.KeyValuePairOpts{
+	return items.String(&table.KeyValuePairOpts{
 		Delimiter: pointer.String(""),
 		NumSpaces: pointer.Int(2),
 	})

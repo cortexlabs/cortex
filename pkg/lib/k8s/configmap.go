@@ -63,7 +63,7 @@ func (c *Client) CreateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, 
 	return configMap, nil
 }
 
-func (c *Client) updateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, error) {
+func (c *Client) UpdateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, error) {
 	configMap.TypeMeta = configMapTypeMeta
 	configMap, err := c.configMapClient.Update(configMap)
 	if err != nil {
@@ -80,7 +80,7 @@ func (c *Client) ApplyConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, e
 	if existing == nil {
 		return c.CreateConfigMap(configMap)
 	}
-	return c.updateConfigMap(configMap)
+	return c.UpdateConfigMap(configMap)
 }
 
 func (c *Client) GetConfigMap(name string) (*kcore.ConfigMap, error) {

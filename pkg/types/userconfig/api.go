@@ -33,11 +33,11 @@ import (
 )
 
 type API struct {
-	Name     string `json:"name" yaml:"name"`
-	Endpoint  *string     `json:"endpoint" yaml:"endpoint"`
-	Predictor *Predictor  `json:"predictor" yaml:"predictor"`
-	Tracker   *Tracker    `json:"tracker" yaml:"tracker"`
-	Compute   *Compute `json:"compute" yaml:"compute"`
+	Name      string     `json:"name" yaml:"name"`
+	Endpoint  *string    `json:"endpoint" yaml:"endpoint"`
+	Predictor *Predictor `json:"predictor" yaml:"predictor"`
+	Tracker   *Tracker   `json:"tracker" yaml:"tracker"`
+	Compute   *Compute   `json:"compute" yaml:"compute"`
 
 	Index    int    `json:"index" yaml:"-"`
 	FilePath string `json:"file_path" yaml:"-"`

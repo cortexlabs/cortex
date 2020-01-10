@@ -20,7 +20,6 @@ import (
 	"time"
 
 	kapps "k8s.io/api/apps/v1"
-	kautoscaling "k8s.io/api/autoscaling/v2beta2"
 	kcore "k8s.io/api/core/v1"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -29,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
 func GetCurrentAPIAndGroupStatuses(
@@ -253,39 +253,6 @@ func apiStatusCode(apiStatus *resource.APIStatus) resource.StatusCode {
 	return resource.StatusPending
 }
 
-func updateAPIStatusCodeByParents(apiStatus *resource.APIStatus, dataStatuses map[string]*resource.DataStatus, ctx *context.Context) {
-	if apiStatus.Code != resource.StatusPending {
-		return
-	}
-
-	allDependencies := ctx.AllComputedResourceDependencies(apiStatus.ResourceID)
-	numSucceeded := 0
-	parentSkipped := false
-	for dependency := range allDependencies {
-		switch dataStatuses[dependency].Code {
-		case resource.StatusKilled, resource.StatusKilledOOM:
-			apiStatus.Code = resource.StatusParentKilled
-			return
-		case resource.StatusError:
-			apiStatus.Code = resource.StatusParentFailed
-			return
-		case resource.StatusSkipped:
-			parentSkipped = true
-		case resource.StatusSucceeded:
-			numSucceeded++
-		}
-	}
-
-	if parentSkipped {
-		apiStatus.Code = resource.StatusSkipped
-		return
-	}
-
-	if numSucceeded == len(allDependencies) {
-		apiStatus.Code = resource.StatusUpdating
-	}
-}
-
 func getAPIGroupStatuses(
 	apiStatuses map[string]*resource.APIStatus,
 	deployments map[string]*kapps.Deployment, // api.Name -> deployment
@@ -393,15 +360,15 @@ func getGroupedReplicaCounts(apiStatuses []*resource.APIStatus, ctx *context.Con
 	return groupedReplicaCounts
 }
 
-func getRequestedReplicas(api *context.API, k8sRequested int32, hpa *kautoscaling.HorizontalPodAutoscaler) int32 {
-	// In case HPA hasn't updated the k8s deployment yet. May not be common, so not necessary to pass in hpa
-	if hpa != nil && hpa.Spec.MinReplicas != nil && k8sRequested < *hpa.Spec.MinReplicas {
-		k8sRequested = *hpa.Spec.MinReplicas
+func getRequestedReplicasFromDeployment(api *spec.API, deployment *kapps.Deployment) int32 {
+	var k8sRequested int32
+	if deployment != nil && deployment.Spec.Replicas != nil {
+		k8sRequested = *deployment.Spec.Replicas
 	}
-	if hpa != nil && k8sRequested > hpa.Spec.MaxReplicas {
-		k8sRequested = hpa.Spec.MaxReplicas
-	}
+	return getRequestedReplicas(api, k8sRequested)
+}
 
+func getRequestedReplicas(api *spec.API, k8sRequested int32) int32 {
 	requestedReplicas := api.Compute.InitReplicas
 	if k8sRequested > 0 {
 		requestedReplicas = k8sRequested
@@ -413,14 +380,6 @@ func getRequestedReplicas(api *context.API, k8sRequested int32, hpa *kautoscalin
 		requestedReplicas = api.Compute.MaxReplicas
 	}
 	return requestedReplicas
-}
-
-func getRequestedReplicasFromDeployment(api *context.API, k8sDeployment *kapps.Deployment, hpa *kautoscaling.HorizontalPodAutoscaler) int32 {
-	var k8sRequested int32
-	if k8sDeployment != nil && k8sDeployment.Spec.Replicas != nil {
-		k8sRequested = *k8sDeployment.Spec.Replicas
-	}
-	return getRequestedReplicas(api, k8sRequested, hpa)
 }
 
 func setInsufficientComputeAPIStatusCodes(apiStatuses map[string]*resource.APIStatus, ctx *context.Context) error {
@@ -481,20 +440,4 @@ func calculateAPISavedStatuses(podList []kcore.Pod, appName string) ([]*resource
 	}
 
 	return savedStatuses, nil
-}
-
-func updateAPISavedStatusStartTime(savedStatus *resource.APISavedStatus, pods []kcore.Pod) {
-	if savedStatus.Start != nil {
-		return
-	}
-
-	for _, pod := range pods {
-		podReadyTime := k8s.GetPodReadyTime(&pod)
-		if podReadyTime == nil {
-			continue
-		}
-		if savedStatus.Start == nil || (*podReadyTime).Before(*savedStatus.Start) {
-			savedStatus.Start = podReadyTime
-		}
-	}
 }

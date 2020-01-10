@@ -86,7 +86,7 @@ func (c *Client) CreateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautosca
 	return hpa, nil
 }
 
-func (c *Client) updateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscaling.HorizontalPodAutoscaler, error) {
+func (c *Client) UpdateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscaling.HorizontalPodAutoscaler, error) {
 	hpa.TypeMeta = hpaTypeMeta
 	hpa, err := c.hpaClient.Update(hpa)
 	if err != nil {
@@ -103,7 +103,7 @@ func (c *Client) ApplyHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscal
 	if existing == nil {
 		return c.CreateHPA(hpa)
 	}
-	return c.updateHPA(hpa)
+	return c.UpdateHPA(hpa)
 }
 
 func (c *Client) GetHPA(name string) (*kautoscaling.HorizontalPodAutoscaler, error) {

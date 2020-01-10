@@ -24,14 +24,12 @@ Note: A t2.medium (4GiB memory) has ~ 4,000,000,000 bytes allocatable (i.e. base
 package userconfig
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -143,23 +141,23 @@ func (compute *Compute) Validate() error {
 	return nil
 }
 
-func (compute *Compute) ID() string {
-	var buf bytes.Buffer
-	buf.WriteString(s.Int32(compute.MinReplicas))
-	buf.WriteString(s.Int32(compute.MaxReplicas))
-	buf.WriteString(s.Int32(compute.InitReplicas))
-	buf.WriteString(s.Int32(compute.TargetCPUUtilization))
-	buf.WriteString(compute.CPU.ID())
-	buf.WriteString(k8s.QuantityPtrID(compute.Mem))
-	buf.WriteString(s.Int64(compute.GPU))
-	return hash.Bytes(buf.Bytes())
-}
+// func (compute *Compute) ID() string {
+// 	var buf bytes.Buffer
+// 	buf.WriteString(s.Int32(compute.MinReplicas))
+// 	buf.WriteString(s.Int32(compute.MaxReplicas))
+// 	buf.WriteString(s.Int32(compute.InitReplicas))
+// 	buf.WriteString(s.Int32(compute.TargetCPUUtilization))
+// 	buf.WriteString(compute.CPU.ID())
+// 	buf.WriteString(k8s.QuantityPtrID(compute.Mem))
+// 	buf.WriteString(s.Int64(compute.GPU))
+// 	return hash.Bytes(buf.Bytes())
+// }
 
-// Only consider CPU, Mem, GPU
-func (compute *Compute) IDWithoutReplicas() string {
-	var buf bytes.Buffer
-	buf.WriteString(compute.CPU.ID())
-	buf.WriteString(k8s.QuantityPtrID(compute.Mem))
-	buf.WriteString(s.Int64(compute.GPU))
-	return hash.Bytes(buf.Bytes())
-}
+// // Only consider CPU, Mem, GPU
+// func (compute *Compute) IDWithoutReplicas() string {
+// 	var buf bytes.Buffer
+// 	buf.WriteString(compute.CPU.ID())
+// 	buf.WriteString(k8s.QuantityPtrID(compute.Mem))
+// 	buf.WriteString(s.Int64(compute.GPU))
+// 	return hash.Bytes(buf.Bytes())
+// }

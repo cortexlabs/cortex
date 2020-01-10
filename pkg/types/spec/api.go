@@ -14,18 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package consts
+package spec
 
-var (
-	CortexVersion      = "master" // CORTEX_VERSION
-	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
-
-	SpecCacheDir       = "/mnt/spec"
-	EmptyDirMountPath  = "/mnt"
-	EmptyDirVolumeName = "mnt"
-
-	ClusterConfigPath = "/configs/cluster/cluster.yaml"
-	ClusterConfigName = "cluster-config"
-
-	MaxClassesPerRequest = 20 // cloudwatch.GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats
+import (
+	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
+
+type API struct {
+	*userconfig.API
+	ID           string `json:"id"`
+	Key          string `json:"key"`
+	DeploymentID string `json:"deployment_id"`
+	LastUpdated  int64  `json:"last_updated"`
+	MetadataRoot string `json:"metadata_root"`
+	ProjectID    string `json:"project_id"`
+	ProjectKey   string `json:"project_key"`
+}

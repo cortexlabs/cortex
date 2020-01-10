@@ -90,7 +90,7 @@ func (c *Client) CreatePod(pod *kcore.Pod) (*kcore.Pod, error) {
 	return pod, nil
 }
 
-func (c *Client) updatePod(pod *kcore.Pod) (*kcore.Pod, error) {
+func (c *Client) UpdatePod(pod *kcore.Pod) (*kcore.Pod, error) {
 	pod.TypeMeta = podTypeMeta
 	pod, err := c.podClient.Update(pod)
 	if err != nil {
@@ -107,7 +107,7 @@ func (c *Client) ApplyPod(pod *kcore.Pod) (*kcore.Pod, error) {
 	if existing == nil {
 		return c.CreatePod(pod)
 	}
-	return c.updatePod(pod)
+	return c.UpdatePod(pod)
 }
 
 func IsPodReady(pod *kcore.Pod) bool {

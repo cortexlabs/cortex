@@ -92,7 +92,7 @@ func (c *Client) CreateDeployment(deployment *kapps.Deployment) (*kapps.Deployme
 	return deployment, nil
 }
 
-func (c *Client) updateDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
+func (c *Client) UpdateDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
 	deployment.TypeMeta = deploymentTypeMeta
 	deployment, err := c.deploymentClient.Update(deployment)
 	if err != nil {
@@ -109,7 +109,7 @@ func (c *Client) ApplyDeployment(deployment *kapps.Deployment) (*kapps.Deploymen
 	if existing == nil {
 		return c.CreateDeployment(deployment)
 	}
-	return c.updateDeployment(deployment)
+	return c.UpdateDeployment(deployment)
 }
 
 func (c *Client) GetDeployment(name string) (*kapps.Deployment, error) {
@@ -168,6 +168,13 @@ func (c *Client) ListDeploymentsByLabel(labelKey string, labelValue string) ([]k
 	return c.ListDeploymentsByLabels(map[string]string{labelKey: labelValue})
 }
 
+func (c *Client) ListDeploymentsWithLabels(labelKeys ...string) ([]kapps.Deployment, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labels),
+	}
+	return c.ListDeployments(opts)
+}
+
 func DeploymentMap(deployments []kapps.Deployment) map[string]kapps.Deployment {
 	deploymentMap := map[string]kapps.Deployment{}
 	for _, deployment := range deployments {
@@ -185,4 +192,14 @@ func DeploymentStartTime(deployment *kapps.Deployment) *time.Time {
 		return nil
 	}
 	return &deployment.CreationTimestamp.Time
+}
+
+func AreDeploymentsEqual(d1, d2 *kapps.Deployment) bool {
+	if d1 == nil && d2 == nil {
+		return true
+	}
+	if d1 == nil || d2 == nil {
+		return false
+	}
+	// TODO (built in to k8s?)
 }

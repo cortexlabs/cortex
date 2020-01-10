@@ -18,7 +18,6 @@ package endpoints
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -28,33 +27,9 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func ResDeploymentDeleted(appName string) string {
-	return fmt.Sprintf("deleting %s deployment", appName)
-}
-
-func ResDeploymentUpToDate(appName string) string {
-	return fmt.Sprintf("%s deployment is up to date", appName)
-}
-
-func ResDeploymentUpToDateUpdating(appName string) string {
-	return fmt.Sprintf("%s deployment is already updating", appName)
-}
-
-func ResDifferentDeploymentUpdating(appName string) string {
-	return fmt.Sprintf("previous %s deployment is updating (override with --force)", appName)
-}
-
-func ResCreatingAPI(apiName string) string {
-	return fmt.Sprintf("creating %s api", apiName)
-}
-
-func ResUpdatingAPI(apiName string) string {
-	return fmt.Sprintf("updating %s api", apiName)
-}
-
-func ResDeletingAPI(apiName string) string {
-	return fmt.Sprintf("deleting %s api", apiName)
-}
+// func ResDeletingAPI(apiName string) string {
+// 	return fmt.Sprintf("deleting %s api", apiName)
+// }
 
 func Respond(w http.ResponseWriter, response interface{}) {
 	w.WriteHeader(http.StatusOK)

@@ -20,21 +20,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/zip"
 )
 
-// TODO only call in operator? move this to operator package?
-func ValidateAPIs(apis []*API, projectBytes []byte) error {
-	var err error
-	projectFileMap := make(map[string][]byte)
-
-	projectFileMap, err = zip.UnzipMemToMem(projectBytes)
-	if err != nil {
-		return err
-	}
-
-	dups := FindDuplicateNames(apis)
+func validateAPIConfigs(apis []*API, projectFileMap map[string][]byte) error {
+	dups := findDuplicateNames(apis)
 	if len(dups) > 0 {
 		return ErrorDuplicateName(dups)
 	}
@@ -48,7 +37,7 @@ func ValidateAPIs(apis []*API, projectBytes []byte) error {
 	return nil
 }
 
-func FindDuplicateNames(apis []*API) []*API {
+func findDuplicateNames(apis []*API) []*API {
 	names := make(map[string][]*API)
 
 	for _, api := range apis {
@@ -64,7 +53,7 @@ func FindDuplicateNames(apis []*API) []*API {
 	return nil
 }
 
-func New(filePath string, configBytes []byte) ([]*API, error) {
+func ExtractAPIConfigs(configBytes []byte, projectFileMap map[string][]byte, filePath string) ([]*API, error) {
 	var err error
 
 	configData, err := cr.ReadYAMLBytes(configBytes)
@@ -91,19 +80,11 @@ func New(filePath string, configBytes []byte) ([]*API, error) {
 		apis = append(apis, api)
 	}
 
-	return apis, nil
-}
-
-func ReadConfigFile(filePath string, relativePath string) ([]*API, error) {
-	configBytes, err := files.ReadFileBytesErrPath(filePath, relativePath)
-	if err != nil {
+	if err := validateAPIConfigs(apis, projectFileMap); err != nil {
 		return nil, err
 	}
 
-	apis, err := New(relativePath, configBytes)
-	if err != nil {
-		return nil, err
-	}
+	// TODO validate at least one API
 
 	return apis, nil
 }
