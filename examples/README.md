@@ -14,9 +14,11 @@
 
 - [Iris classification](pytorch/iris-classifier): deploy a model to classify iris flowers.
 
-- [Search completion](pytorch/search-completer): deploy a Facebook's RoBERTa model to complete search terms.
-
 - [Text generation](pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
+
+- [Sentiment analysis](pytorch/sentiment-analyzer): deploy a fastai model for sentiment analysis.
+
+- [Search completion](pytorch/search-completer): deploy a Facebook's RoBERTa model to complete search terms.
 
 - [Answer generation](pytorch/answer-generator): deploy Microsoft's DialoGPT model to answer questions.
 
