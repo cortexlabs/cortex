@@ -203,3 +203,8 @@ func AreDeploymentsEqual(d1, d2 *kapps.Deployment) bool {
 	}
 	// TODO (built in to k8s?)
 }
+
+func IsPodSpecLatest(pod *kcore.Pod, deployment *kapps.Deployment) bool {
+	// TODO (built in to k8s?) don't forget to check metadata
+	return true
+}

@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	kresource "k8s.io/apimachinery/pkg/api/resource"
-
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -31,99 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
-
-/*
-CPU Reservations:
-
-FluentD 200
-StatsD 100
-KubeProxy 100
-Reserved (150 + 150) see eks.yaml for details
-Buffer (100)
-*/
-var cortexCPUReserve = kresource.MustParse("800m")
-
-/*
-Memory Reservations:
-
-FluentD 200
-StatsD 100
-Reserved (300 + 300 + 200) see eks.yaml for details
-Buffer (100)
-*/
-var cortexMemReserve = kresource.MustParse("1200Mi")
-
-var nvidiaCPUReserve = kresource.MustParse("100m")
-var nvidiaMemReserve = kresource.MustParse("100Mi")
-
-func Init() error {
-	err := reloadCurrentContexts()
-	if err != nil {
-		return errors.Wrap(err, "init")
-	}
-	_, err = UpdateMemoryCapacityConfigMap()
-	if err != nil {
-		return errors.Wrap(err, "init")
-	}
-
-	go cronRunner()
-
-	return nil
-}
-
-func PopulateWorkloadIDs(ctx *context.Context) error {
-	resourceIDs := ctx.ComputedResourceIDs()
-	latestResourceWorkloadIDs, err := getSavedLatestWorkloadIDs(resourceIDs, ctx.App.Name)
-	if err != nil {
-		return err
-	}
-
-	populateAPIWorkloadIDs(ctx, latestResourceWorkloadIDs)
-
-	if err := ctx.CheckAllWorkloadIDsPopulated(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func extractWorkloads(ctx *context.Context) []Workload {
-	var workloads []Workload
-	workloads = append(workloads, extractAPIWorkloads(ctx)...)
-	workloads = append(workloads, extractHPAWorkloads(ctx)...)
-	return workloads
-}
-
-func Run(ctx *context.Context) error {
-	if err := ctx.CheckAllWorkloadIDsPopulated(); err != nil {
-		return err
-	}
-
-	prevCtx := CurrentContext(ctx.App.Name)
-	err := deleteOldDataJobs(prevCtx)
-	if err != nil {
-		return err
-	}
-
-	deleteOldAPIs(ctx)
-
-	err = setCurrentContext(ctx)
-	if err != nil {
-		return err
-	}
-
-	resourceWorkloadIDs := ctx.ComputedResourceResourceWorkloadIDs()
-	err = uploadLatestWorkloadIDs(resourceWorkloadIDs, ctx.App.Name)
-	if err != nil {
-		return err
-	}
-
-	uncacheDataSavedStatuses(resourceWorkloadIDs, ctx.App.Name)
-	uncacheLatestWorkloadIDs(ctx.ComputedResourceIDs(), ctx.App.Name)
-
-	runCronNow()
-
-	return nil
-}
 
 func deleteOldDataJobs(ctx *context.Context) error {
 	if ctx == nil {
@@ -332,17 +237,17 @@ func ValidateDeploy(ctx *context.Context) error {
 	}
 
 	maxCPU := config.Cluster.InstanceMetadata.CPU
-	maxCPU.Sub(cortexCPUReserve)
+	maxCPU.Sub(_cortexCPUReserve)
 	maxMem, err := UpdateMemoryCapacityConfigMap()
 	if err != nil {
 		return errors.Wrap(err, "validating memory constraint")
 	}
-	maxMem.Sub(cortexMemReserve)
+	maxMem.Sub(_cortexMemReserve)
 	maxGPU := config.Cluster.InstanceMetadata.GPU
 	if maxGPU > 0 {
 		// Reserve resources for nvidia device plugin daemonset
-		maxCPU.Sub(nvidiaCPUReserve)
-		maxMem.Sub(nvidiaMemReserve)
+		maxCPU.Sub(_nvidiaCPUReserve)
+		maxMem.Sub(_nvidiaMemReserve)
 	}
 
 	for _, api := range ctx.APIs {

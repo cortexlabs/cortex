@@ -24,8 +24,32 @@ import (
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const memConfigMapName = "cortex-instance-memory"
-const memConfigMapKey = "capacity"
+const _memConfigMapName = "cortex-instance-memory"
+const _memConfigMapKey = "capacity"
+
+/*
+CPU Reservations:
+
+FluentD 200
+StatsD 100
+KubeProxy 100
+Reserved (150 + 150) see eks.yaml for details
+Buffer (100)
+*/
+var _cortexCPUReserve = kresource.MustParse("800m")
+
+/*
+Memory Reservations:
+
+FluentD 200
+StatsD 100
+Reserved (300 + 300 + 200) see eks.yaml for details
+Buffer (100)
+*/
+var _cortexMemReserve = kresource.MustParse("1200Mi")
+
+var _nvidiaCPUReserve = kresource.MustParse("100m")
+var _nvidiaMemReserve = kresource.MustParse("100Mi")
 
 func GetMemoryCapacityFromNodes() (*kresource.Quantity, error) {
 	opts := kmeta.ListOptions{
@@ -55,7 +79,7 @@ func GetMemoryCapacityFromNodes() (*kresource.Quantity, error) {
 }
 
 func GetMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
-	configMapData, err := config.Kubernetes.GetConfigMapData(memConfigMapName)
+	configMapData, err := config.Kubernetes.GetConfigMapData(_memConfigMapName)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +88,7 @@ func GetMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
 		return nil, nil
 	}
 
-	memoryUserStr := configMapData[memConfigMapKey]
+	memoryUserStr := configMapData[_memConfigMapKey]
 	mem, err := kresource.ParseQuantity(memoryUserStr)
 	if err != nil {
 		return nil, err
@@ -96,10 +120,10 @@ func UpdateMemoryCapacityConfigMap() (*kresource.Quantity, error) {
 
 	if memFromConfigMap == nil || minMem.Cmp(*memFromConfigMap) != 0 {
 		configMap := k8s.ConfigMap(&k8s.ConfigMapSpec{
-			Name:      memConfigMapName,
+			Name:      _memConfigMapName,
 			Namespace: consts.K8sNamespace,
 			Data: map[string]string{
-				memConfigMapKey: minMem.String(),
+				_memConfigMapKey: minMem.String(),
 			},
 		})
 

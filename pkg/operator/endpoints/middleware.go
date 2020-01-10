@@ -14,65 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package endpoints
 
 import (
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
-	"github.com/cortexlabs/cortex/pkg/operator/workloads"
-	"github.com/gorilla/mux"
 )
-
-const operatorPortStr = "8888"
 
 var _cachedClientIDs = strset.New()
 
-func main() {
-	if err := config.Init(); err != nil {
-		exit.Error(err)
-	}
-
-	telemetry.Event("operator.init")
-
-	if err := workloads.Init(); err != nil {
-		exit.Error(err)
-	}
-
-	router := mux.NewRouter()
-	router.Use(panicMiddleware)
-	router.Use(clientIDMiddleware)
-	router.Use(apiVersionCheckMiddleware)
-	router.Use(authMiddleware)
-
-	router.HandleFunc("/info", endpoints.Info).Methods("GET")
-	router.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
-	router.HandleFunc("/delete", endpoints.Delete).Methods("POST")
-	router.HandleFunc("/deployments", endpoints.GetDeployments).Methods("GET")
-	router.HandleFunc("/metrics", endpoints.GetMetrics).Methods("GET")
-	router.HandleFunc("/resources", endpoints.GetResources).Methods("GET")
-	router.HandleFunc("/logs/read", endpoints.ReadLogs)
-
-	log.Print("Running on port " + operatorPortStr)
-	log.Fatal(http.ListenAndServe(":"+operatorPortStr, router))
-}
-
-func panicMiddleware(next http.Handler) http.Handler {
+func PanicMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer endpoints.RecoverAndRespond(w)
+		defer recoverAndRespond(w)
 		next.ServeHTTP(w, r)
 	})
 }
 
-func clientIDMiddleware(next http.Handler) http.Handler {
+func ClientIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if clientID := r.URL.Query().Get("clientID"); clientID != "" {
 			if !_cachedClientIDs.Has(clientID) {
@@ -84,33 +48,33 @@ func clientIDMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func authMiddleware(next http.Handler) http.Handler {
+func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 
 		if !strings.HasPrefix(authHeader, "CortexAWS") {
-			endpoints.RespondError(w, endpoints.ErrorAuthHeaderMissing())
+			respondError(w, ErrorAuthHeaderMissing())
 			return
 		}
 
 		parts := strings.Split(authHeader[10:], "|")
 		if len(parts) != 2 {
-			endpoints.RespondError(w, endpoints.ErrorAuthHeaderMalformed())
+			respondError(w, ErrorAuthHeaderMalformed())
 			return
 		}
 
 		accessKeyID, secretAccessKey := parts[0], parts[1]
 		userAccountID, validCreds, err := aws.AccountID(accessKeyID, secretAccessKey, *config.Cluster.Region)
 		if err != nil {
-			endpoints.RespondError(w, endpoints.ErrorAuthAPIError())
+			respondError(w, ErrorAuthAPIError())
 			return
 		}
 		if !validCreds {
-			endpoints.RespondErrorCode(w, http.StatusForbidden, endpoints.ErrorAuthInvalid())
+			respondErrorCode(w, http.StatusForbidden, ErrorAuthInvalid())
 			return
 		}
 		if userAccountID != config.AWS.AccountID {
-			endpoints.RespondErrorCode(w, http.StatusForbidden, endpoints.ErrorAuthOtherAccount())
+			respondErrorCode(w, http.StatusForbidden, ErrorAuthOtherAccount())
 			return
 		}
 
@@ -118,7 +82,7 @@ func authMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func apiVersionCheckMiddleware(next http.Handler) http.Handler {
+func ApiVersionCheckMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/info" {
 			next.ServeHTTP(w, r)
@@ -127,7 +91,7 @@ func apiVersionCheckMiddleware(next http.Handler) http.Handler {
 
 		clientVersion := r.Header.Get("CortexAPIVersion")
 		if clientVersion != consts.CortexVersion {
-			endpoints.RespondError(w, ErrorAPIVersionMismatch(consts.CortexVersion, clientVersion))
+			respondError(w, ErrorAPIVersionMismatch(consts.CortexVersion, clientVersion))
 			return
 		}
 		next.ServeHTTP(w, r)

@@ -31,52 +31,22 @@ import (
 )
 
 const (
-	_cronInterval      = 5 * time.Second
+
 	_telemetryInterval = 1 * time.Hour
 )
 
-var _lastTelemetryCron time.Time
-
-var cronChannel = make(chan struct{}, 1)
-
-func cronRunner() {
-	timer := time.NewTimer(0)
-	defer timer.Stop()
-
-	for {
-		select {
-		case <-cronChannel:
-			runCron()
-		case <-timer.C:
-			runCron()
-		}
-		timer.Reset(_cronInterval)
-	}
-}
-
-func runCronNow() {
-	cronChannel <- struct{}{}
-}
-
-func runCron() {
+func operatorCron() error {
 	defer reportAndRecover("cron failed")
 
 	deployments, failedPods, err := getCronK8sResources()
-
 	if err != nil {
-		errors.PrintError(err)
+		return err
 	}
 
-	deleteEvictedPods(failedPods)
-	updateHPAs(deployments)
-
-	if time.Since(_lastTelemetryCron) >= _telemetryInterval {
-		_lastTelemetryCron = time.Now()
-		if err := telemetryCron(); err != nil {
-			telemetry.Error(err)
-			errors.PrintError(err)
-		}
-	}
+	return parallel.RunFirstErr(
+		deleteEvictedPods(failedPods),
+		updateHPAs(deployments),
+	)
 }
 
 func getCronK8sResources() ([]kapps.Deployment, []kcore.Pod, error) {
@@ -101,31 +71,82 @@ func getCronK8sResources() ([]kapps.Deployment, []kcore.Pod, error) {
 	return deployments, failedPods, err
 }
 
-func deleteEvictedPods(failedPods []kcore.Pod) {
+func deleteEvictedPods(failedPods []kcore.Pod) error {
+	var errs []error
+
 	evictedPods := []kcore.Pod{}
 	for _, pod := range failedPods {
 		if pod.Status.Reason == k8s.ReasonEvicted {
 			_, err := config.Kubernetes.DeletePod(pod.Name)
 			if err != nil {
-				errors.PrintError(err)
+				errs = append(errs, err)
 			}
 		}
 	}
+
+	if errors.HasError(errs) {
+		return errors.FirstError(errs)
+	}
+	return nil
 }
 
-func updateHPAs(deployments []kapps.Deployment) {
+func updateHPAs(deployments []kapps.Deployment) error {
+	var allPods []kcore.Pod = nil
+
+	var errs []error
+
 	for _, deployment := range deployments {
 		if config.Kubernetes.HPAExists(deployment.Labels["apiName"]) {
 			continue // since the HPA is deleted every time the deployment is updated
 		}
 
-		// TODO continue if the deployment is not ready, see code in hpa_workload.go
+		if allPods == nil {
+			var err error
+			allPods, err = config.Kubernetes.ListPodsWithLabels("apiName")
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+		}
 
-		_, err := config.Kubernetes.ApplyHPA(hpaSpec(deployment))
-		if err != nil {
-			errors.PrintError(err)
+		updatedReplicas := numUpdatedReadyReplicas(&deployment, allPods)
+		if updatedReplicas < deployment.Spec.Replicas {
+			continue // not yet up-to-date
+		}
+
+		for _, condition := range deployment.Status.Conditions {
+			if condition.Type == kapps.DeploymentProgressing &&
+				condition.Status == kcore.ConditionTrue &&
+				!condition.LastUpdateTime.IsZero() &&
+				time.Now().After(condition.LastUpdateTime.Add(35*time.Second)) { // the metrics poll interval is 30 seconds, so 35 should be safe
+
+				_, err := config.Kubernetes.CreateHPA(hpaSpec(deployment))
+				if err != nil {
+					errs = append(errs, err)
+					continue
+				}
+			}
 		}
 	}
+
+	if errors.HasError(errs) {
+		return errors.FirstError(errs)
+	}
+	return nil
+}
+
+func numUpdatedReadyReplicas(deployment *kapps.Deployment, pods []kcore.Pod) int32 {
+	var readyReplicas int32
+	for _, pod := range pods {
+		if pod.Labels["apiName"] != deployment.Labels["apiName"] {
+			continue
+		}
+		if k8s.IsPodReady(&pod) && k8s.IsPodSpecLatest(&pod, deployment) {
+			readyReplicas++
+		}
+	}
+
+	return readyReplicas
 }
 
 func telemetryCron() error {
@@ -157,16 +178,22 @@ func telemetryCron() error {
 	}
 
 	telemetry.Event("operator.cron", properties)
-
-	return nil
 }
 
-func reportAndRecover(strs ...string) error {
-	if errInterface := recover(); errInterface != nil {
-		err := errors.CastRecoverError(errInterface, strs...)
+func cronErrHandler(cronName string) func(error) {
+	return func(error) {
+		err = errors.Wrap(cronName " cron failed")
 		telemetry.Error(err)
 		errors.PrintError(err)
-		return err
 	}
-	return nil
 }
+
+// func reportAndRecover(strs ...string) error {
+// 	if errInterface := recover(); errInterface != nil {
+// 		err := errors.CastRecoverError(errInterface, strs...)
+// 		telemetry.Error(err)
+// 		errors.PrintError(err)
+// 		return err
+// 	}
+// 	return nil
+// }

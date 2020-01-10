@@ -31,16 +31,16 @@ import (
 // 	return fmt.Sprintf("deleting %s api", apiName)
 // }
 
-func Respond(w http.ResponseWriter, response interface{}) {
+func respond(w http.ResponseWriter, response interface{}) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
 
-func RespondError(w http.ResponseWriter, err error, strs ...string) {
-	RespondErrorCode(w, http.StatusBadRequest, err, strs...)
+func respondError(w http.ResponseWriter, err error, strs ...string) {
+	respondErrorCode(w, http.StatusBadRequest, err, strs...)
 }
 
-func RespondErrorCode(w http.ResponseWriter, code int, err error, strs ...string) {
+func respondErrorCode(w http.ResponseWriter, code int, err error, strs ...string) {
 	err = errors.Wrap(err, strs...)
 	errors.PrintError(err)
 
@@ -51,11 +51,11 @@ func RespondErrorCode(w http.ResponseWriter, code int, err error, strs ...string
 	json.NewEncoder(w).Encode(response)
 }
 
-func RecoverAndRespond(w http.ResponseWriter, strs ...string) {
+func recoverAndRespond(w http.ResponseWriter, strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
 		telemetry.Error(err)
-		RespondError(w, err)
+		respondError(w, err)
 	}
 }
 

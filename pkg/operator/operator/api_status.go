@@ -196,28 +196,6 @@ func getReplicaCountsMap(
 	return replicaCountsMap, podStatusMap
 }
 
-func numUpdatedReadyReplicas(ctx *context.Context, api *context.API) (int32, error) {
-	podList, err := config.Kubernetes.ListPodsByLabels(map[string]string{
-		"workloadType": workloadTypeAPI,
-		"appName":      ctx.App.Name,
-		"resourceID":   api.ID,
-		"userFacing":   "true",
-	})
-	if err != nil {
-		return 0, errors.Wrap(err, ctx.App.Name)
-	}
-
-	var readyReplicas int32
-	apiComputeID := api.Compute.IDWithoutReplicas()
-	for _, pod := range podList {
-		if k8s.IsPodReady(&pod) && APIPodComputeID(pod.Spec.Containers) == apiComputeID {
-			readyReplicas++
-		}
-	}
-
-	return readyReplicas, nil
-}
-
 func apiStatusCode(apiStatus *resource.APIStatus) resource.StatusCode {
 	if apiStatus.MaxReplicas == 0 {
 		if apiStatus.TotalReady() > 0 {

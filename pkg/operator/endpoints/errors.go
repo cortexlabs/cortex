@@ -27,6 +27,7 @@ type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
+	ErrAPIVersionMismatch
 	ErrAuthHeaderMissing
 	ErrAuthHeaderMalformed
 	ErrAuthAPIError
@@ -45,6 +46,7 @@ const (
 var (
 	errorKinds = []string{
 		"err_unknown",
+		"err_api_version_mismatch",
 		"err_auth_header_missing",
 		"err_auth_header_malformed",
 		"err_auth_api_error",
@@ -104,6 +106,13 @@ type Error struct {
 
 func (e Error) Error() string {
 	return e.message
+}
+
+func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error {
+	return errors.WithStack(Error{
+		Kind:    ErrAPIVersionMismatch,
+		message: fmt.Sprintf("API version mismatch (Cluster: %s; Client: %s)", operatorVersion, clientVersion),
+	})
 }
 
 func ErrorAuthHeaderMissing() error {
