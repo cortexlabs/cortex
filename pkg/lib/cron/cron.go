@@ -75,14 +75,3 @@ func recoverer(errHandler func(error)) {
 		errHandler(errors.CastRecoverError(errInterface))
 	}
 }
-
-// func cronErrHandler(cronName string) func(error) {
-// 	return func(error) {
-// 		err = errors.Wrap(cronName " cron failed")
-// 		telemetry.Error(err)
-// 		errors.PrintError(err)
-// 	}
-// }
-
-// cron.Run(operatorCron, cronErrHandler("operator"), 5*time.Second)
-// cron.Run(telemetryCron, cronErrHandler("telemetry"), 1*time.Hour)

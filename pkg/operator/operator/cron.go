@@ -30,14 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-const (
-
-	_telemetryInterval = 1 * time.Hour
-)
-
 func operatorCron() error {
-	defer reportAndRecover("cron failed")
-
 	deployments, failedPods, err := getCronK8sResources()
 	if err != nil {
 		return err
@@ -187,13 +180,3 @@ func cronErrHandler(cronName string) func(error) {
 		errors.PrintError(err)
 	}
 }
-
-// func reportAndRecover(strs ...string) error {
-// 	if errInterface := recover(); errInterface != nil {
-// 		err := errors.CastRecoverError(errInterface, strs...)
-// 		telemetry.Error(err)
-// 		errors.PrintError(err)
-// 		return err
-// 	}
-// 	return nil
-// }

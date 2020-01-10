@@ -18,17 +18,10 @@ package userconfig
 
 import (
 	"fmt"
-	"path/filepath"
-	"strconv"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/yaml"
 )
 
@@ -58,207 +51,55 @@ type Predictor struct {
 	SignatureKey *string                `json:"signature_key" yaml:"signature_key"`
 }
 
-var predictorValidation = &cr.StructFieldValidation{
-	StructField: "Predictor",
-	StructValidation: &cr.StructValidation{
-		Required: true,
-		StructFieldValidations: []*cr.StructFieldValidation{
-			{
-				StructField: "Type",
-				StringValidation: &cr.StringValidation{
-					Required:      true,
-					AllowedValues: PredictorTypeStrings(),
-				},
-				Parser: func(str string) (interface{}, error) {
-					return PredictorTypeFromString(str), nil
-				},
-			},
-			{
-				StructField: "Path",
-				StringValidation: &cr.StringValidation{
-					Required: true,
-				},
-			},
-			{
-				StructField: "Model",
-				StringPtrValidation: &cr.StringPtrValidation{
-					Validator: cr.S3PathValidator(),
-				},
-			},
-			{
-				StructField: "PythonPath",
-				StringPtrValidation: &cr.StringPtrValidation{
-					AllowEmpty: true,
-					Validator:  ensurePythonPathSuffix,
-				},
-			},
-			{
-				StructField: "Config",
-				InterfaceMapValidation: &cr.InterfaceMapValidation{
-					StringKeysOnly: true,
-					AllowEmpty:     true,
-					Default:        map[string]interface{}{},
-				},
-			},
-			{
-				StructField: "Env",
-				StringMapValidation: &cr.StringMapValidation{
-					Default:    map[string]string{},
-					AllowEmpty: true,
-				},
-			},
-			{
-				StructField:         "SignatureKey",
-				StringPtrValidation: &cr.StringPtrValidation{},
-			},
-		},
-	},
+type Compute struct {
+	MinReplicas          int32         `json:"min_replicas" yaml:"min_replicas"`
+	MaxReplicas          int32         `json:"max_replicas" yaml:"max_replicas"`
+	InitReplicas         int32         `json:"init_replicas" yaml:"init_replicas"`
+	TargetCPUUtilization int32         `json:"target_cpu_utilization" yaml:"target_cpu_utilization"`
+	CPU                  k8s.Quantity  `json:"cpu" yaml:"cpu"`
+	Mem                  *k8s.Quantity `json:"mem" yaml:"mem"`
+	GPU                  int64         `json:"gpu" yaml:"gpu"`
 }
 
-func ensurePythonPathSuffix(path string) (string, error) {
-	return s.EnsureSuffix(path, "/"), nil
+func (api *API) Identify() string {
+	return identifyAPI(api.FilePath, api.Name, api.Index)
 }
 
-var apiValidation = &cr.StructValidation{
-	StructFieldValidations: []*cr.StructFieldValidation{
-		{
-			StructField: "Name",
-			StringValidation: &cr.StringValidation{
-				Required: true,
-				DNS1035:  true,
-			},
-		},
-		{
-			StructField: "Endpoint",
-			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: urls.ValidateEndpoint,
-			},
-		},
-		{
-			StructField: "Tracker",
-			StructValidation: &cr.StructValidation{
-				DefaultNil: true,
-				StructFieldValidations: []*cr.StructFieldValidation{
-					{
-						StructField:         "Key",
-						StringPtrValidation: &cr.StringPtrValidation{},
-					},
-					{
-						StructField: "ModelType",
-						StringValidation: &cr.StringValidation{
-							Required:      false,
-							AllowEmpty:    true,
-							AllowedValues: ModelTypeStrings(),
-						},
-						Parser: func(str string) (interface{}, error) {
-							return ModelTypeFromString(str), nil
-						},
-					},
-				},
-			},
-		},
-		predictorValidation,
-		computeFieldValidation,
-	},
+func identifyAPI(filePath string, name string, index int) string {
+	str := ""
+
+	if filePath != "" {
+		str += filePath + ": "
+	}
+
+	if name != "" {
+		return str + "api : " + name
+	} else if index >= 0 {
+		return str + "api at " + s.Index(index)
+	}
+	return str + "api"
 }
 
-// IsValidTensorFlowS3Directory checks that the path contains a valid S3 directory for TensorFlow models
-// Must contain the following structure:
-// - 1523423423/ (version prefix, usually a timestamp)
-// 		- saved_model.pb
-//		- variables/
-//			- variables.index
-//			- variables.data-00000-of-00001 (there are a variable number of these files)
-func IsValidTensorFlowS3Directory(path string, awsClient *aws.Client) bool {
-	if valid, err := awsClient.IsS3PathFile(
-		aws.S3PathJoin(path, "saved_model.pb"),
-		aws.S3PathJoin(path, "variables/variables.index"),
-	); err != nil || !valid {
-		return false
-	}
-
-	if valid, err := awsClient.IsS3PathPrefix(
-		aws.S3PathJoin(path, "variables/variables.data-00000-of"),
-	); err != nil || !valid {
-		return false
-	}
-	return true
-}
-
-func GetTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, error) {
-	if IsValidTensorFlowS3Directory(path, awsClient) {
-		return path, nil
-	}
-
-	bucket, prefix, err := aws.SplitS3Path(path)
-	if err != nil {
-		return "", err
-	}
-	prefix = s.EnsureSuffix(prefix, "/")
-
-	resp, _ := awsClient.S3.ListObjects(&s3.ListObjectsInput{
-		Bucket: &bucket,
-		Prefix: &prefix,
-	})
-
-	highestVersion := int64(0)
-	var highestPath string
-	for _, key := range resp.Contents {
-		if !strings.HasSuffix(*key.Key, "saved_model.pb") {
-			continue
-		}
-
-		keyParts := strings.Split(*key.Key, "/")
-		versionStr := keyParts[len(keyParts)-1]
-		version, err := strconv.ParseInt(versionStr, 10, 64)
-		if err != nil {
-			version = 0
-		}
-
-		possiblePath := "s3://" + filepath.Join(bucket, filepath.Join(keyParts[:len(keyParts)-1]...))
-		if version >= highestVersion && IsValidTensorFlowS3Directory(possiblePath, awsClient) {
-			highestVersion = version
-			highestPath = possiblePath
-		}
-	}
-
-	return highestPath, nil
-}
-
-func ValidatePythonPath(path string, projectFileMap map[string][]byte) error {
-	validPythonPath := false
-	for fileKey := range projectFileMap {
-		if strings.HasPrefix(fileKey, path) {
-			validPythonPath = true
-			break
-		}
-	}
-	if !validPythonPath {
-		return errors.Wrap(ErrorImplDoesNotExist(path), PythonPathKey)
-	}
-	return nil
-}
-
-func (api *API) UserConfigStr() string {
+func (api *API) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
 
 	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
-	sb.WriteString(s.Indent(api.Predictor.UserConfigStr(), "  "))
+	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
 
 	if api.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
-		sb.WriteString(s.Indent(api.Compute.UserConfigStr(), "  "))
+		sb.WriteString(s.Indent(api.Compute.UserStr(), "  "))
 	}
 	if api.Tracker != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", TrackerKey))
-		sb.WriteString(s.Indent(api.Tracker.UserConfigStr(), "  "))
+		sb.WriteString(s.Indent(api.Tracker.UserStr(), "  "))
 	}
 	return sb.String()
 }
 
-func (tracker *Tracker) UserConfigStr() string {
+func (tracker *Tracker) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelTypeKey, tracker.ModelType.String()))
 	if tracker.Key != nil {
@@ -267,7 +108,7 @@ func (tracker *Tracker) UserConfigStr() string {
 	return sb.String()
 }
 
-func (predictor *Predictor) UserConfigStr() string {
+func (predictor *Predictor) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, predictor.Type))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, predictor.Path))
@@ -293,126 +134,20 @@ func (predictor *Predictor) UserConfigStr() string {
 	return sb.String()
 }
 
-func (predictor *Predictor) Validate(projectFileMap map[string][]byte) error {
-	switch predictor.Type {
-	case PythonPredictorType:
-		if err := predictor.PythonValidate(); err != nil {
-			return err
-		}
-	case TensorFlowPredictorType:
-		if err := predictor.TensorFlowValidate(); err != nil {
-			return err
-		}
-	case ONNXPredictorType:
-		if err := predictor.ONNXValidate(); err != nil {
-			return err
-		}
+func (compute *Compute) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MinReplicasKey, s.Int32(compute.MinReplicas)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicasKey, s.Int32(compute.MaxReplicas)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(compute.InitReplicas)))
+	if compute.MinReplicas != compute.MaxReplicas {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", TargetCPUUtilizationKey, s.Int32(compute.TargetCPUUtilization)))
 	}
-
-	if _, ok := projectFileMap[predictor.Path]; !ok {
-		return errors.Wrap(ErrorImplDoesNotExist(predictor.Path), PathKey)
+	sb.WriteString(fmt.Sprintf("%s: %s\n", CPUKey, compute.CPU.UserString))
+	if compute.GPU > 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
 	}
-
-	if predictor.PythonPath != nil {
-		if err := ValidatePythonPath(*predictor.PythonPath, projectFileMap); err != nil {
-			return err
-		}
+	if compute.Mem != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
 	}
-
-	return nil
-}
-
-func (predictor *Predictor) TensorFlowValidate() error {
-	if predictor.Model == nil {
-		return ErrorFieldMustBeDefinedForPredictorType(ModelKey, TensorFlowPredictorType)
-	}
-
-	model := *predictor.Model
-
-	awsClient, err := aws.NewFromS3Path(model, false)
-	if err != nil {
-		return err
-	}
-	if strings.HasSuffix(model, ".zip") {
-		if ok, err := awsClient.IsS3PathFile(model); err != nil || !ok {
-			return errors.Wrap(ErrorExternalNotFound(model), ModelKey)
-		}
-	} else {
-		path, err := GetTFServingExportFromS3Path(model, awsClient)
-		if path == "" || err != nil {
-			return errors.Wrap(ErrorInvalidTensorFlowDir(model), ModelKey)
-		}
-		predictor.Model = pointer.String(path)
-	}
-
-	return nil
-}
-
-func (predictor *Predictor) ONNXValidate() error {
-	if predictor.Model == nil {
-		return ErrorFieldMustBeDefinedForPredictorType(ModelKey, ONNXPredictorType)
-	}
-
-	model := *predictor.Model
-
-	awsClient, err := aws.NewFromS3Path(model, false)
-	if err != nil {
-		return err
-	}
-	if ok, err := awsClient.IsS3PathFile(model); err != nil || !ok {
-		return errors.Wrap(ErrorExternalNotFound(model), ModelKey)
-	}
-
-	if predictor.SignatureKey != nil {
-		return ErrorFieldNotSupportedByPredictorType(SignatureKeyKey, ONNXPredictorType)
-	}
-
-	return nil
-}
-
-func (predictor *Predictor) PythonValidate() error {
-	if predictor.SignatureKey != nil {
-		return ErrorFieldNotSupportedByPredictorType(SignatureKeyKey, PythonPredictorType)
-	}
-
-	if predictor.Model != nil {
-		return ErrorFieldNotSupportedByPredictorType(ModelKey, PythonPredictorType)
-	}
-
-	return nil
-}
-
-func (api *API) Validate(projectFileMap map[string][]byte) error {
-	if api.Endpoint == nil {
-		api.Endpoint = pointer.String("/" + api.Name)
-	}
-
-	if err := api.Predictor.Validate(projectFileMap); err != nil {
-		return errors.Wrap(err, api.Identify(), PredictorKey)
-	}
-
-	if err := api.Compute.Validate(); err != nil {
-		return errors.Wrap(err, api.Identify(), ComputeKey)
-	}
-
-	return nil
-}
-
-func (api *API) Identify() string {
-	return identify(api.FilePath, api.Name, api.Index)
-}
-
-func identify(filePath string, name string, index int) string {
-	str := ""
-
-	if filePath != "" {
-		str += filePath + ": "
-	}
-
-	if name != "" {
-		return str + "api : " + name
-	} else if index >= 0 {
-		return str + "api at " + s.Index(index)
-	}
-	return str + "api"
+	return sb.String()
 }

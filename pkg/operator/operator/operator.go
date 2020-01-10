@@ -19,8 +19,11 @@ package operator
 import (
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 func Init() error {
@@ -31,9 +34,26 @@ func Init() error {
 		return errors.Wrap(err, "init")
 	}
 
-	// go cronRunner()
 	cron.Run(operatorCron, cronErrHandler("operator"), 5*time.Second)
 	cron.Run(telemetryCron, cronErrHandler("telemetry"), 1*time.Hour)
 
 	return nil
+}
+
+func deleteAPI(apiName string, keepCache bool) bool {
+	wasDeployed := config.Kubernetes.DeploymentExists(apiName)
+
+	parallel.Run(
+		func() error {
+			return deleteK8sResources(apiName)
+		},
+		func() error {
+			if keepCache {
+				return nil
+			}
+			return deleteS3Resources(apiName)
+		},
+	)
+
+	return wasDeployed
 }

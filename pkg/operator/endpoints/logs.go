@@ -64,7 +64,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if workloadID == "" {
-			RespondError(w, errors.Wrap(workloads.ErrorNotFound(), appName, "latest workload ID", resourceID))
+			RespondError(w, errors.New(appName, "latest workload ID", resourceID, "not found"))
 			return
 		}
 

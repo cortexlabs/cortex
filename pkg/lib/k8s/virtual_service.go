@@ -204,7 +204,7 @@ func (c *Client) ListVirtualServicesByLabel(namespace string, labelKey string, l
 	return c.ListVirtualServicesByLabels(namespace, map[string]string{labelKey: labelValue})
 }
 
-func GetVirtualServiceGateways(virtualService *kunstructured.Unstructured) (strset.Set, error) {
+func ExtractVirtualServiceGateways(virtualService *kunstructured.Unstructured) (strset.Set, error) {
 	spec, ok := virtualService.UnstructuredContent()["spec"].(map[string]interface{})
 	if !ok {
 		return nil, errors.New("virtual service spec is not a map[string]interface{}") // unexpected
@@ -232,7 +232,7 @@ func GetVirtualServiceGateways(virtualService *kunstructured.Unstructured) (strs
 	return gatewayStrs, nil
 }
 
-func GetVirtualServiceEndpoints(virtualService *kunstructured.Unstructured) (strset.Set, error) {
+func ExtractVirtualServiceEndpoints(virtualService *kunstructured.Unstructured) (strset.Set, error) {
 	spec, ok := virtualService.UnstructuredContent()["spec"].(map[string]interface{})
 	if !ok {
 		return nil, errors.New("virtual service spec is not a map[string]interface{}") // unexpected

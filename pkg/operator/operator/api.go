@@ -238,8 +238,8 @@ func ProjectKey(projectID string) string {
 	)
 }
 
-func deleteAPI(apiName string) {
-	parallel.Run(
+func deleteK8sResources(apiName string) error {
+	return parallel.RunFirstErr(
 		func() error {
 			return config.Kubernetes.DeleteDeployment(apiName)
 		},
@@ -253,6 +253,11 @@ func deleteAPI(apiName string) {
 			return config.Kubernetes.DeleteHPA(apiName)
 		},
 	)
+}
+
+func deleteS3Resources(apiName string) error {
+	prefix := s.EnsureSuffix(filepath.Join("apis", apiName), "/")
+	return config.AWS.DeleteFromS3ByPrefix(prefix, true)
 }
 
 func APIsBaseURL() (string, error) {
