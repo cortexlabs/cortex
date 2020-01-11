@@ -28,8 +28,8 @@ import (
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
@@ -38,10 +38,13 @@ const (
 	_socketCloseGracePeriod  = 10 * time.Second
 	_socketMaxMessageSize    = 8192
 	_maxCacheSize            = 10000
-	_maxLogLinesPerRequest   = 500
-	_maxStreamsPerRequest    = 50
+
+	_maxLogLinesPerRequest = 500
+	_maxStreamsPerRequest  = 50
+
 	_pollPeriod              = 250 * time.Millisecond
-	_streamRefreshPeriod     = 2 * time.Second
+	_logStreamRefreshPeriod  = 10 * time.Second
+	_deploymentRefreshPeriod = 30 * time.Second
 )
 
 type FluentdLog struct {
@@ -94,70 +97,57 @@ func pumpStdin(socket *websocket.Conn) {
 }
 
 func StreamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *websocket.Conn) {
+	logGroupName := getLogGroupName(ctx, apiName)
+	eventCache := newEventCache(_maxCacheSize)
+	lastLogStreamRefresh := time.Time{}
+	lastDeploymentRefresh := time.Time{}
+	lastLogTime := time.Now()
+	logStreamNames := strset.New()
+	didShowFetchingMessage := false
+	didFetchLogs := false
+
 	timer := time.NewTimer(0)
 	defer timer.Stop()
-
-	eventCache := newEventCache(_maxCacheSize)
-	lastLogTime := time.Now()
-	lastLogStreamUpdateTime := time.Now().Add(-1 * _streamRefreshPeriod)
-	logStreamNames := strset.New()
-
-	// if ctx == nil {
-	// 	writeAndCloseSocket(socket, "\ndeployment "+appName+" not found") // iris api not found
-	// 	return
-	// }
-
-	logGroupName, err := getLogGroupName(ctx, podLabels)
-	if err != nil {
-		writeAndCloseSocket(socket, err.Error()) // unexpected
-		return
-	}
 
 	for {
 		select {
 		case <-podCheckCancel:
 			return
 		case <-timer.C:
-			ctx = CurrentContext(appName)
+			if time.Since(lastDeploymentRefresh) > _deploymentRefreshPeriod {
+				deployment, err := config.Kubernetes.GetDeployment(apiName)
+				if err != nil {
+					telemetry.Error(err)
+					writeAndCloseSocket(socket, "error: "+err.Error())
+					continue
+				}
+				lastDeploymentRefresh := time.Now()
+			}
 
-			if ctx == nil {
-				writeAndCloseSocket(socket, "\ndeployment "+appName+" not found")
+			if deployment == nil {
+				writeAndCloseSocket(socket, "\n"+appName+" api not found")
 				continue
 			}
 
-			if ctx.ID != currentContextID {
-				if len(currentContextID) != 0 {
-					if podLabels["workloadType"] == resource.APIType.String() {
-						apiName := podLabels["apiName"]
-						if _, ok := ctx.APIs[apiName]; !ok {
-							writeAndCloseSocket(socket, "\napi "+apiName+" was not found in latest deployment")
-							continue
-						}
-						writeString(socket, "\na new deployment was detected, streaming logs from the latest deployment")
-					} else {
-						writeAndCloseSocket(socket, "\nlogging non-api workloads is not supported") // unexpected
-						continue
-					}
-				} else {
-					lastLogTime, _ = getPodStartTime(podLabels)
-				}
-
-				currentContextID = ctx.ID
+			if !didShowFetchingMessage {
 				writeString(socket, "fetching logs...")
+				didShowFetchingMessage = true
 			}
 
-			if lastLogStreamUpdateTime.Add(_streamRefreshPeriod).Before(time.Now()) {
+			if time.Since(lastLogStreamRefresh) > _logStreamRefreshPeriod {
 				newLogStreamNames, err := getLogStreams(logGroupName)
 				if err != nil {
+					telemetry.Error(err)
 					writeAndCloseSocket(socket, "error encountered while searching for log streams: "+err.Error())
 					continue
 				}
 
 				if !logStreamNames.IsEqual(newLogStreamNames) {
-					lastLogTime = lastLogTime.Add(-_streamRefreshPeriod)
+					lastLogTime = lastLogTime.Add(-_logStreamRefreshPeriod)
 					logStreamNames = newLogStreamNames
 				}
-				lastLogStreamUpdateTime = time.Now()
+
+				lastLogStreamRefresh = time.Now()
 			}
 
 			if len(logStreamNames) == 0 {
@@ -165,18 +155,24 @@ func StreamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 				continue
 			}
 
-			endTime := libtime.ToMillis(time.Now())
+			lastLogTime = lastLogTime.Add(-_pollPeriod)
+
+			if !didFetchLogs {
+				lastLogTime = deployment.CreationTimestamp.Time
+				didFetchLogs = true
+			}
 
 			logEventsOutput, err := config.AWS.CloudWatchLogsClient.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
 				LogGroupName:   aws.String(logGroupName),
 				LogStreamNames: aws.StringSlice(logStreamNames.Slice()),
-				StartTime:      aws.Int64(libtime.ToMillis(lastLogTime.Add(-_pollPeriod))),
-				EndTime:        aws.Int64(endTime),
+				StartTime:      aws.Int64(libtime.ToMillis(lastLogTime)),
+				EndTime:        aws.Int64(libtime.ToMillis(time.Now())),
 				Limit:          aws.Int64(int64(_maxLogLinesPerRequest)),
 			})
 
 			if err != nil {
 				if !awslib.CheckErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) {
+					telemetry.Error(err)
 					writeAndCloseSocket(socket, "error encountered while fetching logs from cloudwatch: "+err.Error())
 					continue
 				}
@@ -185,7 +181,12 @@ func StreamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 			lastLogTimestampMillis := libtime.ToMillis(lastLogTime)
 			for _, logEvent := range logEventsOutput.Events {
 				var log FluentdLog
-				json.Unmarshal([]byte(*logEvent.Message), &log)
+				err := json.Unmarshal([]byte(*logEvent.Message), &log)
+				if err != nil {
+					telemetry.Error(err)
+					writeAndCloseSocket(socket, "error encountered while parsing logs from cloudwatch: "+err.Error())
+				}
+
 				if !eventCache.Has(*logEvent.EventId) {
 					socket.WriteMessage(websocket.TextMessage, []byte(log.Log))
 					if *logEvent.Timestamp > lastLogTimestampMillis {
@@ -228,27 +229,7 @@ func getLogStreams(logGroupName string) (strset.Set, error) {
 	return streams, nil
 }
 
-func getPodStartTime(searchLabels map[string]string) (time.Time, error) {
-	pods, err := config.Kubernetes.ListPodsByLabels(searchLabels)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	if len(pods) == 0 {
-		return time.Now(), nil
-	}
-
-	startTime := pods[0].CreationTimestamp.Time
-	for _, pod := range pods[1:] {
-		if pod.CreationTimestamp.Time.Before(startTime) {
-			startTime = pod.CreationTimestamp.Time
-		}
-	}
-
-	return startTime, nil
-}
-
-func getLogGroupName(apiName string) (string, error) {
+func getLogGroupName(apiName string) string {
 	return config.LogGroup + "/" + apiName
 }
 
