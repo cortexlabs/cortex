@@ -36,16 +36,19 @@ import (
 )
 
 const (
-	socketWriteDeadlineWait = 10 * time.Second
-	socketCloseGracePeriod  = 10 * time.Second
-	socketMaxMessageSize    = 8192
-
-	maxCacheSize          = 10000
-	maxLogLinesPerRequest = 500
-	maxStreamsPerRequest  = 50
-	pollPeriod            = 250 * time.Millisecond
-	streamRefreshPeriod   = 2 * time.Second
+	_socketWriteDeadlineWait = 10 * time.Second
+	_socketCloseGracePeriod  = 10 * time.Second
+	_socketMaxMessageSize    = 8192
+	_maxCacheSize            = 10000
+	_maxLogLinesPerRequest   = 500
+	_maxStreamsPerRequest    = 50
+	_pollPeriod              = 250 * time.Millisecond
+	_streamRefreshPeriod     = 2 * time.Second
 )
+
+type FluentdLog struct {
+	Log string `json:"log"`
+}
 
 type eventCache struct {
 	size       int
@@ -74,16 +77,16 @@ func (c *eventCache) Add(eventID string) {
 	c.eventQueue.PushRight(eventID)
 }
 
-func ReadLogs(appName string, podLabels map[string]string, socket *websocket.Conn) {
+func ReadLogs(apiName string, socket *websocket.Conn) {
 	podCheckCancel := make(chan struct{})
 	defer close(podCheckCancel)
-	go StreamFromCloudWatch(podCheckCancel, appName, podLabels, socket)
+	go StreamFromCloudWatch(apiName, podCheckCancel, socket)
 	pumpStdin(socket)
 	podCheckCancel <- struct{}{}
 }
 
 func pumpStdin(socket *websocket.Conn) {
-	socket.SetReadLimit(socketMaxMessageSize)
+	socket.SetReadLimit(_socketMaxMessageSize)
 	for {
 		_, _, err := socket.ReadMessage()
 		if err != nil {
@@ -92,29 +95,19 @@ func pumpStdin(socket *websocket.Conn) {
 	}
 }
 
-type FluentdLog struct {
-	Log string `json:"log"`
-}
-
-func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabels map[string]string, socket *websocket.Conn) {
+func StreamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *websocket.Conn) {
 	timer := time.NewTimer(0)
 	defer timer.Stop()
 
+	eventCache := newEventCache(_maxCacheSize)
 	lastLogTime := time.Now()
-	lastLogStreamUpdateTime := time.Now().Add(-1 * streamRefreshPeriod)
-
+	lastLogStreamUpdateTime := time.Now().Add(-1 * _streamRefreshPeriod)
 	logStreamNames := strset.New()
 
-	var currentContextID string
-	var err error
-
-	var ctx = CurrentContext(appName)
-	eventCache := newEventCache(maxCacheSize)
-
-	if ctx == nil {
-		writeAndCloseSocket(socket, "\ndeployment "+appName+" not found")
-		return
-	}
+	// if ctx == nil {
+	// 	writeAndCloseSocket(socket, "\ndeployment "+appName+" not found") // iris api not found
+	// 	return
+	// }
 
 	logGroupName, err := getLogGroupName(ctx, podLabels)
 	if err != nil {
@@ -155,7 +148,7 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 				writeString(socket, "fetching logs...")
 			}
 
-			if lastLogStreamUpdateTime.Add(streamRefreshPeriod).Before(time.Now()) {
+			if lastLogStreamUpdateTime.Add(_streamRefreshPeriod).Before(time.Now()) {
 				newLogStreamNames, err := getLogStreams(logGroupName)
 				if err != nil {
 					writeAndCloseSocket(socket, "error encountered while searching for log streams: "+err.Error())
@@ -163,14 +156,14 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 				}
 
 				if !logStreamNames.IsEqual(newLogStreamNames) {
-					lastLogTime = lastLogTime.Add(-streamRefreshPeriod)
+					lastLogTime = lastLogTime.Add(-_streamRefreshPeriod)
 					logStreamNames = newLogStreamNames
 				}
 				lastLogStreamUpdateTime = time.Now()
 			}
 
 			if len(logStreamNames) == 0 {
-				timer.Reset(pollPeriod)
+				timer.Reset(_pollPeriod)
 				continue
 			}
 
@@ -179,9 +172,9 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 			logEventsOutput, err := config.AWS.CloudWatchLogsClient.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
 				LogGroupName:   aws.String(logGroupName),
 				LogStreamNames: aws.StringSlice(logStreamNames.Slice()),
-				StartTime:      aws.Int64(libtime.ToMillis(lastLogTime.Add(-pollPeriod))),
+				StartTime:      aws.Int64(libtime.ToMillis(lastLogTime.Add(-_pollPeriod))),
 				EndTime:        aws.Int64(endTime),
-				Limit:          aws.Int64(int64(maxLogLinesPerRequest)),
+				Limit:          aws.Int64(int64(_maxLogLinesPerRequest)),
 			})
 
 			if err != nil {
@@ -205,12 +198,12 @@ func StreamFromCloudWatch(podCheckCancel chan struct{}, appName string, podLabel
 			}
 
 			lastLogTime = libtime.MillisToTime(lastLogTimestampMillis)
-			if len(logEventsOutput.Events) == maxLogLinesPerRequest {
-				writeString(socket, "---- Showing at most "+s.Int(maxLogLinesPerRequest)+" lines. Visit AWS cloudwatch logs console and navigate to log group \""+logGroupName+"\" for complete logs ----")
+			if len(logEventsOutput.Events) == _maxLogLinesPerRequest {
+				writeString(socket, "---- Showing at most "+s.Int(_maxLogLinesPerRequest)+" lines. Visit AWS cloudwatch logs console and navigate to log group \""+logGroupName+"\" for complete logs ----")
 				lastLogTime = libtime.MillisToTime(endTime)
 			}
 
-			timer.Reset(pollPeriod)
+			timer.Reset(_pollPeriod)
 		}
 	}
 }
@@ -220,7 +213,7 @@ func getLogStreams(logGroupName string) (strset.Set, error) {
 		OrderBy:      aws.String(cloudwatchlogs.OrderByLastEventTime),
 		Descending:   aws.Bool(true),
 		LogGroupName: aws.String(logGroupName),
-		Limit:        aws.Int64(maxStreamsPerRequest),
+		Limit:        aws.Int64(_maxStreamsPerRequest),
 	})
 	if err != nil {
 		if !awslib.CheckErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) {
@@ -269,9 +262,9 @@ func writeString(socket *websocket.Conn, message string) {
 }
 
 func closeSocket(socket *websocket.Conn) {
-	socket.SetWriteDeadline(time.Now().Add(socketWriteDeadlineWait))
+	socket.SetWriteDeadline(time.Now().Add(_socketWriteDeadlineWait))
 	socket.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-	time.Sleep(socketCloseGracePeriod)
+	time.Sleep(_socketCloseGracePeriod)
 }
 
 func writeAndCloseSocket(socket *websocket.Conn, message string) {

@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 
+// TODO complain if can't find deployment (got nil from GetStatus or GetAllStatuses) (iris api not found)
 func GetResources(w http.ResponseWriter, r *http.Request) {
 	appName, err := getRequiredQueryParam("appName", r)
 	if err != nil {

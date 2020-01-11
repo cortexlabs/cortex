@@ -107,10 +107,6 @@ func LocalHourNow() string {
 	return time.Now().Local().Format("3:04:05pm MST")
 }
 
-func OlderThanSeconds(t time.Time, secs float64) bool {
-	return time.Since(t).Seconds() > secs
-}
-
 func MillisToTime(epochMillis int64) time.Time {
 	seconds := epochMillis / 1000
 	millis := epochMillis % 1000

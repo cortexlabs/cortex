@@ -273,3 +273,25 @@ func APIsBaseURL() (string, error) {
 	}
 	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
+
+func getRequestedReplicasFromDeployment(api *spec.API, deployment *kapps.Deployment) int32 {
+	var k8sRequested int32
+	if deployment != nil && deployment.Spec.Replicas != nil {
+		k8sRequested = *deployment.Spec.Replicas
+	}
+	return getRequestedReplicas(api, k8sRequested)
+}
+
+func getRequestedReplicas(api *spec.API, k8sRequested int32) int32 {
+	requestedReplicas := api.Compute.InitReplicas
+	if k8sRequested > 0 {
+		requestedReplicas = k8sRequested
+	}
+	if requestedReplicas < api.Compute.MinReplicas {
+		requestedReplicas = api.Compute.MinReplicas
+	}
+	if requestedReplicas > api.Compute.MaxReplicas {
+		requestedReplicas = api.Compute.MaxReplicas
+	}
+	return requestedReplicas
+}
