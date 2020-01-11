@@ -26,11 +26,9 @@ import (
 	"gopkg.in/karalabe/cookiejar.v2/collections/deque"
 
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
-	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
@@ -250,11 +248,8 @@ func getPodStartTime(searchLabels map[string]string) (time.Time, error) {
 	return startTime, nil
 }
 
-func getLogGroupName(ctx *context.Context, searchLabels map[string]string) (string, error) {
-	if searchLabels["workloadType"] == resource.APIType.String() {
-		return ctx.LogGroupName(searchLabels["apiName"]), nil
-	}
-	return "nil", errors.New("unsupported workload type") // unexpected
+func getLogGroupName(apiName string) (string, error) {
+	return config.LogGroup + "/" + apiName
 }
 
 func writeString(socket *websocket.Conn, message string) {
