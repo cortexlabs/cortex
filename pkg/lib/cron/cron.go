@@ -28,8 +28,8 @@ type Cron struct {
 }
 
 func Run(f func() error, errHandler func(error), interval time.Duration) Cron {
-	cronRun = make(chan struct{}, 1)
-	cancelChannel = make(chan struct{}, 1)
+	cronRun := make(chan struct{}, 1)
+	cronCancel := make(chan struct{}, 1)
 
 	runCron := func() {
 		defer recoverer(errHandler)
@@ -44,7 +44,7 @@ func Run(f func() error, errHandler func(error), interval time.Duration) Cron {
 		defer timer.Stop()
 		for {
 			select {
-			case <-cancelChannel:
+			case <-cronCancel:
 				// cleanup?
 				return
 			case <-cronRun:
@@ -57,8 +57,8 @@ func Run(f func() error, errHandler func(error), interval time.Duration) Cron {
 	}()
 
 	return Cron{
-		cronRun:       cronRun,
-		cancelChannel: cancelChannel,
+		cronRun:    cronRun,
+		cronCancel: cronCancel,
 	}
 }
 
@@ -67,7 +67,7 @@ func (c *Cron) RunNow() {
 }
 
 func (c *Cron) Cancel() {
-	c.cancelChannel <- struct{}{}
+	c.cronCancel <- struct{}{}
 }
 
 func recoverer(errHandler func(error)) {
