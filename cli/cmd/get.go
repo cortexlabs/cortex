@@ -417,8 +417,8 @@ func classificationMetricsTable(apiMetrics schema.APIMetrics) string {
 
 	out := table.MustFormat(t)
 
-	if len(classList) == consts.MaxClassesPerRequest {
-		out += fmt.Sprintf("\n\nlisting at most %d classes, the complete list can be found in your cloudwatch dashboard", consts.MaxClassesPerRequest)
+	if len(classList) == consts.MaxClassesPerTrackerRequest {
+		out += fmt.Sprintf("\n\nlisting at most %d classes, the complete list can be found in your cloudwatch dashboard", consts.MaxClassesPerTrackerRequest)
 	}
 	return out
 }

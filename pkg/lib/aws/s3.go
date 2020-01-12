@@ -359,6 +359,7 @@ func (c *Client) ExractS3PathPrefixes(s3Paths ...string) ([]string, error) {
 	return prefixes, nil
 }
 
+// TODO what is the auth on this?
 func GetBucketRegion(bucket string) (string, error) {
 	sess := session.Must(session.NewSession())
 	region, err := s3manager.GetBucketRegion(aws.BackgroundContext(), sess, bucket, endpoints.UsWest2RegionID)

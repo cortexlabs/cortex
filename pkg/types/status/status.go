@@ -40,6 +40,11 @@ type SubReplicaCounts struct {
 	Unknown      int32 `json:"unknown"`
 }
 
+func (status *Status) Message() string {
+	return status.Code.Message()
+}
+
+// TODO
 // func (rc *ReplicaCounts) TotalAvailable() int32 {
 // 	return rc.ReadyUpdated + rc.ReadyStaleModel + rc.ReadyStaleCompute
 // }
@@ -53,87 +58,3 @@ type SubReplicaCounts struct {
 // func (rc *ReplicaCounts) TotalAvailableStale() int32 {
 // 	return rc.ReadyStaleModel + rc.ReadyStaleCompute
 // }
-
-type Code int
-
-const (
-	Unknown Code = iota
-	Stalled
-	Error
-	OOM
-	Live
-	Updating
-	Stopping
-)
-
-var codes = []string{
-	"status_unknown",
-	"status_stalled",
-	"status_error",
-	"status_oom",
-	"status_live",
-	"status_updating",
-	"status_stopping",
-}
-
-var _ = [1]int{}[int(Stopped)-(len(codes)-1)] // Ensure list length matches
-
-var codeMessages = []string{
-	"unknown",               // Unknown
-	"compute unavailable",   // Stalled
-	"error",                 // Error
-	"error (out of memory)", // OOM
-	"live",                  // Live
-	"updating",              // Updating
-	"stopping",              // Stopping
-}
-
-var _ = [1]int{}[int(StatusStopped)-(len(codeMessages)-1)] // Ensure list length matches
-
-func (code Code) String() string {
-	if int(code) < 0 || int(code) >= len(codes) {
-		return codes[Unknown]
-	}
-	return codes[code]
-}
-
-func (code Code) Message() string {
-	if int(code) < 0 || int(code) >= len(codeMessages) {
-		return codeMessages[Unknown]
-	}
-	return codeMessages[code]
-}
-
-func (status *Status) Message() string {
-	return status.Code.Message()
-}
-
-// MarshalText satisfies TextMarshaler
-func (code Code) MarshalText() ([]byte, error) {
-	return []byte(code.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (code *Code) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(codes); i++ {
-		if enum == codes[i] {
-			*code = Code(i)
-			return nil
-		}
-	}
-
-	*code = Unknown
-	return nil
-}
-
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (code *Code) UnmarshalBinary(data []byte) error {
-	return code.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (code Code) MarshalBinary() ([]byte, error) {
-	return []byte(code.String()), nil
-}

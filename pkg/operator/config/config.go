@@ -32,6 +32,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
+const _cluster_config_path := "/configs/cluster/cluster.yaml"
+
 var (
 	Cluster         *clusterconfig.InternalConfig
 	AWS             *aws.Client
@@ -49,7 +51,7 @@ func Init() error {
 
 	clusterConfigPath := os.Getenv("CORTEX_CLUSTER_CONFIG_PATH")
 	if clusterConfigPath == "" {
-		clusterConfigPath = consts.ClusterConfigPath
+		clusterConfigPath = _cluster_config_path
 	}
 
 	errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath)

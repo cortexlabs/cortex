@@ -41,6 +41,10 @@ import (
 )
 
 const (
+	_spec_cache_dir = "/mnt/spec"
+	_empty_dir_mount_path  = "/mnt"
+	_empty_dir_volume_name = "mnt"
+
 	_apiContainerName            = "api"
 	_tfServingContainerName      = "serve"
 	_downloaderInitContainerName = "downloader"
@@ -147,9 +151,9 @@ func tfAPISpec(
 							"--port=" + _defaultPortStr,
 							"--tf-serve-port=" + _tfServingPortStr,
 							"--spec=" + config.AWS.S3Path(api.Key),
-							"--cache-dir=" + consts.SpecCacheDir,
-							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
-							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
+							"--cache-dir=" + _spec_cache_dir,
+							"--model-dir=" + path.Join(_empty_dir_mount_path, "model"),
+							"--project-dir=" + path.Join(_empty_dir_mount_path, "project"),
 						},
 						Env:          getEnvVars(api),
 						EnvFrom:      _baseEnvVars,
@@ -170,7 +174,7 @@ func tfAPISpec(
 						ImagePullPolicy: kcore.PullAlways,
 						Args: []string{
 							"--port=" + _tfServingPortStr,
-							"--model_base_path=" + path.Join(consts.EmptyDirMountPath, "model"),
+							"--model_base_path=" + path.Join(_empty_dir_mount_path, "model"),
 						},
 						Env:          getEnvVars(api),
 						EnvFrom:      _baseEnvVars,
@@ -220,7 +224,7 @@ func tfDownloadArgs(api *spec.API) string {
 		DownloadArgs: []downloadContainerArg{
 			{
 				From:             config.AWS.S3Path(api.ProjectKey),
-				To:               path.Join(consts.EmptyDirMountPath, "project"),
+				To:               path.Join(_empty_dir_mount_path, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
 				HideFromLog:      true,
@@ -228,10 +232,10 @@ func tfDownloadArgs(api *spec.API) string {
 			},
 			{
 				From:                 tensorflowModel,
-				To:                   path.Join(consts.EmptyDirMountPath, "model"),
+				To:                   path.Join(_empty_dir_mount_path, "model"),
 				Unzip:                strings.HasSuffix(tensorflowModel, ".zip"),
 				ItemName:             "the model",
-				TFModelVersionRename: path.Join(consts.EmptyDirMountPath, "model", "1"),
+				TFModelVersionRename: path.Join(_empty_dir_mount_path, "model", "1"),
 			},
 		},
 	}
@@ -302,8 +306,8 @@ func pythonAPISpec(
 						Args: []string{
 							"--port=" + _defaultPortStr,
 							"--spec=" + config.AWS.S3Path(api.Key),
-							"--cache-dir=" + consts.SpecCacheDir,
-							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
+							"--cache-dir=" + _spec_cache_dir,
+							"--project-dir=" + path.Join(_empty_dir_mount_path, "project"),
 						},
 						Env:          getEnvVars(api),
 						EnvFrom:      _baseEnvVars,
@@ -338,7 +342,7 @@ func pythonDownloadArgs(api *spec.API) string {
 		DownloadArgs: []downloadContainerArg{
 			{
 				From:             config.AWS.S3Path(ctx.ProjectKey),
-				To:               path.Join(consts.EmptyDirMountPath, "project"),
+				To:               path.Join(_empty_dir_mount_path, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
 				HideFromLog:      true,
@@ -412,9 +416,9 @@ func onnxAPISpec(
 						Args: []string{
 							"--port=" + _defaultPortStr,
 							"--spec=" + config.AWS.S3Path(api.Key),
-							"--cache-dir=" + consts.SpecCacheDir,
-							"--model-dir=" + path.Join(consts.EmptyDirMountPath, "model"),
-							"--project-dir=" + path.Join(consts.EmptyDirMountPath, "project"),
+							"--cache-dir=" + _spec_cache_dir,
+							"--model-dir=" + path.Join(_empty_dir_mount_path, "model"),
+							"--project-dir=" + path.Join(_empty_dir_mount_path, "project"),
 						},
 						Env:          getEnvVars(api),
 						EnvFrom:      _baseEnvVars,
@@ -449,7 +453,7 @@ func onnxDownloadArgs(api *spec.API) string {
 		DownloadArgs: []downloadContainerArg{
 			{
 				From:             config.AWS.S3Path(ctx.ProjectKey),
-				To:               path.Join(consts.EmptyDirMountPath, "project"),
+				To:               path.Join(_empty_dir_mount_path, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
 				HideFromLog:      true,
@@ -457,7 +461,7 @@ func onnxDownloadArgs(api *spec.API) string {
 			},
 			{
 				From:     *ctx.APIs[api.Name].Predictor.Model,
-				To:       path.Join(consts.EmptyDirMountPath, "model"),
+				To:       path.Join(_empty_dir_mount_path, "model"),
 				ItemName: "the model",
 			},
 		},
@@ -556,7 +560,7 @@ func getEnvVars(api *spec.API) []kcore.EnvVar{} {
 	if api.Predictor.PythonPath != nil {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  "PYTHON_PATH",
-			Value: path.Join(consts.EmptyDirMountPath, "project", *api.Predictor.PythonPath),
+			Value: path.Join(_empty_dir_mount_path, "project", *api.Predictor.PythonPath),
 		})
 	}
 
@@ -609,9 +613,9 @@ var _baseEnvVars = []kcore.EnvFromSource{
 }
 
 var _defaultVolumes = []kcore.Volume{
-	k8s.EmptyDirVolume(consts.EmptyDirVolumeName),
+	k8s.EmptyDirVolume(_empty_dir_volume_name),
 }
 
 var _defaultVolumeMounts = []kcore.VolumeMount{
-	k8s.EmptyDirVolumeMount(consts.EmptyDirVolumeName, consts.EmptyDirMountPath),
+	k8s.EmptyDirVolumeMount(_empty_dir_volume_name, _empty_dir_mount_path),
 }

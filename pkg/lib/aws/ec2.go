@@ -28,6 +28,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
+// TODO do you need a policy to run this? Move this to the operator?
 func SpotInstancePrice(accessKeyID string, secretAccessKey string, region string, instanceType string) (float64, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(region),
@@ -74,6 +75,7 @@ func SpotInstancePrice(accessKeyID string, secretAccessKey string, region string
 	return min, nil
 }
 
+// TODO do you need a policy to run this? Move this to the operator?
 func GetAvailabilityZones(accessKeyID string, secretAccessKey string, region string) ([]string, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(region),

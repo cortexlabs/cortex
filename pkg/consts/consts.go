@@ -20,12 +20,5 @@ var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	SpecCacheDir       = "/mnt/spec"
-	EmptyDirMountPath  = "/mnt"
-	EmptyDirVolumeName = "mnt"
-
-	ClusterConfigPath = "/configs/cluster/cluster.yaml"
-	ClusterConfigName = "cluster-config"
-
-	MaxClassesPerRequest = 20 // cloudwatch.GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats
+	MaxClassesPerTrackerRequest = 20 // cloudwatch.GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats
 )

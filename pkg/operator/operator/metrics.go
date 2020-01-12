@@ -337,7 +337,7 @@ func getNetworkStatsDef(api *spec.API, period int64) []*cloudwatch.MetricDataQue
 
 func getClassesMetricDef(api *spec.API, period int64) ([]*cloudwatch.MetricDataQuery, error) {
 	prefix := filepath.Join(api.MetadataRoot, api.ID, "classes") + "/"
-	classes, err := config.AWS.ListPrefix(prefix, int64(consts.MaxClassesPerRequest))
+	classes, err := config.AWS.ListPrefix(prefix, int64(consts.MaxClassesPerTrackerRequest))
 	if err != nil {
 		return nil, err
 	}
