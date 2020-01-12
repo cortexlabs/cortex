@@ -1,0 +1,14 @@
+# this is an example for cortex release 0.12 and may not deploy correctly on other releases of cortex
+
+- kind: deployment
+  name: image
+
+- kind: api
+  name: detector
+  predictor:
+    type: python
+    path: predictor.py
+  compute:
+    cpu: 1
+    gpu: 1
+    mem: 4G
