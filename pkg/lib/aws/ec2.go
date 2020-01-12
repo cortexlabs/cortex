@@ -29,6 +29,8 @@ import (
 )
 
 // TODO do you need a policy to run this? Move this to the operator?
+// Actually maybe OK if use cluster credentials since we have access to them on cluster up
+// Still would be better to use a proper client
 func SpotInstancePrice(accessKeyID string, secretAccessKey string, region string, instanceType string) (float64, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(region),
