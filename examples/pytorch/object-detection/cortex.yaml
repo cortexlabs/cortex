@@ -1,4 +1,4 @@
-# this is an example for cortex release 0.12 and may not deploy correctly on other releases of cortex
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
 - kind: deployment
   name: image
