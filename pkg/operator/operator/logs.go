@@ -47,7 +47,7 @@ const (
 	_deploymentRefreshPeriod = 30 * time.Second
 )
 
-type FluentdLog struct {
+type fluentdLog struct {
 	Log string `json:"log"`
 }
 
@@ -180,7 +180,7 @@ func StreamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 
 			lastLogTimestampMillis := libtime.ToMillis(lastLogTime)
 			for _, logEvent := range logEventsOutput.Events {
-				var log FluentdLog
+				var log fluentdLog
 				err := json.Unmarshal([]byte(*logEvent.Message), &log)
 				if err != nil {
 					telemetry.Error(err)

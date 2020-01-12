@@ -44,6 +44,7 @@ const (
 	_apiContainerName            = "api"
 	_tfServingContainerName      = "serve"
 	_downloaderInitContainerName = "downloader"
+	_downloaderLastLog = "pulling the %s serving image"
 
 	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
@@ -64,8 +65,6 @@ type downloadContainerArg struct {
 	HideUnzippingLog     bool   `json:"hide_unzipping_log"`      // if true, don't log when unzipping
 }
 
-const _downloaderLastLog = "pulling the %s serving image"
-
 func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	switch api.Predictor.Type {
 	case userconfig.TensorFlowPredictorType:
@@ -78,78 +77,6 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		return nil // unexpected
 	}
 }
-
-func getEnvVars(api *spec.API) []kcore.EnvVar{} {
-	envVars := []kcore.EnvVar{}
-
-	for name, val := range api.Predictor.Env {
-		envVars = append(envVars, kcore.EnvVar{
-			Name:  name,
-			Value: val,
-		})
-	}
-
-	envVars = append(envVars,
-		kcore.EnvVar{
-			Name: "HOST_IP",
-			ValueFrom: &kcore.EnvVarSource{
-				FieldRef: &kcore.ObjectFieldSelector{
-					FieldPath: "status.hostIP",
-				},
-			},
-		},
-	)
-
-	if api.Predictor.PythonPath != nil {
-		envVars = append(envVars, kcore.EnvVar{
-			Name:  "PYTHON_PATH",
-			Value: path.Join(consts.EmptyDirMountPath, "project", *api.Predictor.PythonPath),
-		})
-	}
-
-	return envVars
-}
-
-func tfDownloadArgs(api *spec.API) string {
-	tensorflowModel := *api.Predictor.Model
-
-	downloadConfig := downloadContainerConfig{
-		LastLog: fmt.Sprintf(_downloaderLastLog, "tensorflow"),
-		DownloadArgs: []downloadContainerArg{
-			{
-				From:             config.AWS.S3Path(api.ProjectKey),
-				To:               path.Join(consts.EmptyDirMountPath, "project"),
-				Unzip:            true,
-				ItemName:         "the project code",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
-			{
-				From:                 tensorflowModel,
-				To:                   path.Join(consts.EmptyDirMountPath, "model"),
-				Unzip:                strings.HasSuffix(tensorflowModel, ".zip"),
-				ItemName:             "the model",
-				TFModelVersionRename: path.Join(consts.EmptyDirMountPath, "model", "1"),
-			},
-		},
-	}
-
-	downloadArgsBytes, _ := json.Marshal(downloadConfig)
-	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
-}
-
-var _apiReadinessProbe := &kcore.Probe{
-	InitialDelaySeconds: 5,
-	TimeoutSeconds:      5,
-	PeriodSeconds:       5,
-	SuccessThreshold:    1,
-	FailureThreshold:    2,
-	Handler: kcore.Handler{
-		Exec: &kcore.ExecAction{
-			Command: []string{"/bin/bash", "-c", "/bin/ps aux | grep \"api.py\" && test -f /health_check.txt"},
-		},
-	},
-},
 
 func tfAPISpec(
 	api *spec.API,
@@ -285,17 +212,26 @@ func tfAPISpec(
 	})
 }
 
-func pythonDownloadArgs(api *spec.API) string {
+func tfDownloadArgs(api *spec.API) string {
+	tensorflowModel := *api.Predictor.Model
+
 	downloadConfig := downloadContainerConfig{
-		LastLog: fmt.Sprintf(_downloaderLastLog, "python"),
+		LastLog: fmt.Sprintf(_downloaderLastLog, "tensorflow"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             config.AWS.S3Path(ctx.ProjectKey),
+				From:             config.AWS.S3Path(api.ProjectKey),
 				To:               path.Join(consts.EmptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
 				HideFromLog:      true,
 				HideUnzippingLog: true,
+			},
+			{
+				From:                 tensorflowModel,
+				To:                   path.Join(consts.EmptyDirMountPath, "model"),
+				Unzip:                strings.HasSuffix(tensorflowModel, ".zip"),
+				ItemName:             "the model",
+				TFModelVersionRename: path.Join(consts.EmptyDirMountPath, "model", "1"),
 			},
 		},
 	}
@@ -396,9 +332,9 @@ func pythonAPISpec(
 	})
 }
 
-func onnxDownloadArgs(api *spec.API) string {
+func pythonDownloadArgs(api *spec.API) string {
 	downloadConfig := downloadContainerConfig{
-		LastLog: fmt.Sprintf(_downloaderLastLog, "onnx"),
+		LastLog: fmt.Sprintf(_downloaderLastLog, "python"),
 		DownloadArgs: []downloadContainerArg{
 			{
 				From:             config.AWS.S3Path(ctx.ProjectKey),
@@ -407,11 +343,6 @@ func onnxDownloadArgs(api *spec.API) string {
 				ItemName:         "the project code",
 				HideFromLog:      true,
 				HideUnzippingLog: true,
-			},
-			{
-				From:     *ctx.APIs[api.Name].Predictor.Model,
-				To:       path.Join(consts.EmptyDirMountPath, "model"),
-				ItemName: "the model",
 			},
 		},
 	}
@@ -512,6 +443,30 @@ func onnxAPISpec(
 	})
 }
 
+func onnxDownloadArgs(api *spec.API) string {
+	downloadConfig := downloadContainerConfig{
+		LastLog: fmt.Sprintf(_downloaderLastLog, "onnx"),
+		DownloadArgs: []downloadContainerArg{
+			{
+				From:             config.AWS.S3Path(ctx.ProjectKey),
+				To:               path.Join(consts.EmptyDirMountPath, "project"),
+				Unzip:            true,
+				ItemName:         "the project code",
+				HideFromLog:      true,
+				HideUnzippingLog: true,
+			},
+			{
+				From:     *ctx.APIs[api.Name].Predictor.Model,
+				To:       path.Join(consts.EmptyDirMountPath, "model"),
+				ItemName: "the model",
+			},
+		},
+	}
+
+	downloadArgsBytes, _ := json.Marshal(downloadConfig)
+	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
+}
+
 func serviceSpec(api *spec.API) *kcore.Service {
 	return k8s.Service(&k8s.ServiceSpec{
 		Name:       api.Name,
@@ -553,6 +508,72 @@ func hpaSpec(deployment *kapps.Deployment) *kautoscaling.HorizontalPodAutoscaler
 		},
 		Namespace: "default",
 	})
+}
+
+func getRequestedReplicasFromDeployment(api *spec.API, deployment *kapps.Deployment) int32 {
+	var k8sRequested int32
+	if deployment != nil && deployment.Spec.Replicas != nil {
+		k8sRequested = *deployment.Spec.Replicas
+	}
+	return getRequestedReplicas(api, k8sRequested)
+}
+
+func getRequestedReplicas(api *spec.API, k8sRequested int32) int32 {
+	requestedReplicas := api.Compute.InitReplicas
+	if k8sRequested > 0 {
+		requestedReplicas = k8sRequested
+	}
+	if requestedReplicas < api.Compute.MinReplicas {
+		requestedReplicas = api.Compute.MinReplicas
+	}
+	if requestedReplicas > api.Compute.MaxReplicas {
+		requestedReplicas = api.Compute.MaxReplicas
+	}
+	return requestedReplicas
+}
+
+func getEnvVars(api *spec.API) []kcore.EnvVar{} {
+	envVars := []kcore.EnvVar{}
+
+	for name, val := range api.Predictor.Env {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  name,
+			Value: val,
+		})
+	}
+
+	envVars = append(envVars,
+		kcore.EnvVar{
+			Name: "HOST_IP",
+			ValueFrom: &kcore.EnvVarSource{
+				FieldRef: &kcore.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		},
+	)
+
+	if api.Predictor.PythonPath != nil {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  "PYTHON_PATH",
+			Value: path.Join(consts.EmptyDirMountPath, "project", *api.Predictor.PythonPath),
+		})
+	}
+
+	return envVars
+}
+
+var _apiReadinessProbe := &kcore.Probe{
+	InitialDelaySeconds: 5,
+	TimeoutSeconds:      5,
+	PeriodSeconds:       5,
+	SuccessThreshold:    1,
+	FailureThreshold:    2,
+	Handler: kcore.Handler{
+		Exec: &kcore.ExecAction{
+			Command: []string{"/bin/bash", "-c", "/bin/ps aux | grep \"api.py\" && test -f /health_check.txt"},
+		},
+	},
 }
 
 var _tolerations = []kcore.Toleration{

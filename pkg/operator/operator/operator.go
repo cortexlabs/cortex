@@ -21,15 +21,13 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 func Init() error {
 	telemetry.Event("operator.init")
 
-	_, err = UpdateMemoryCapacityConfigMap()
+	_, err = updateMemoryCapacityConfigMap()
 	if err != nil {
 		return errors.Wrap(err, "init")
 	}
@@ -38,22 +36,4 @@ func Init() error {
 	cron.Run(telemetryCron, cronErrHandler("telemetry"), 1*time.Hour)
 
 	return nil
-}
-
-func deleteAPI(apiName string, keepCache bool) bool {
-	wasDeployed := config.Kubernetes.DeploymentExists(apiName)
-
-	parallel.Run(
-		func() error {
-			return deleteK8sResources(apiName)
-		},
-		func() error {
-			if keepCache {
-				return nil
-			}
-			return deleteS3Resources(apiName)
-		},
-	)
-
-	return wasDeployed
 }

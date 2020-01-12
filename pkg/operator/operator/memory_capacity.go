@@ -51,7 +51,7 @@ var _cortexMemReserve = kresource.MustParse("1200Mi")
 var _nvidiaCPUReserve = kresource.MustParse("100m")
 var _nvidiaMemReserve = kresource.MustParse("100Mi")
 
-func GetMemoryCapacityFromNodes() (*kresource.Quantity, error) {
+func getMemoryCapacityFromNodes() (*kresource.Quantity, error) {
 	opts := kmeta.ListOptions{
 		LabelSelector: k8s.LabelSelector(map[string]string{
 			"workload": "true",
@@ -78,7 +78,7 @@ func GetMemoryCapacityFromNodes() (*kresource.Quantity, error) {
 	return minMem, nil
 }
 
-func GetMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
+func getMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
 	configMapData, err := config.Kubernetes.GetConfigMapData(_memConfigMapName)
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func GetMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
 	return &mem, nil
 }
 
-func UpdateMemoryCapacityConfigMap() (*kresource.Quantity, error) {
+func updateMemoryCapacityConfigMap() (*kresource.Quantity, error) {
 	memFromConfig := config.Cluster.InstanceMetadata.Memory
 	memFromNodes, err := GetMemoryCapacityFromNodes()
 	if err != nil {

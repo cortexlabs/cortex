@@ -93,6 +93,87 @@ func UpdateAPI(
 	return apiSpec, msg, nil
 }
 
+func DeleteAPI(apiName string, keepCache bool) bool {
+	wasDeployed := config.Kubernetes.DeploymentExists(apiName)
+
+	parallel.Run(
+		func() error {
+			return deleteK8sResources(apiName)
+		},
+		func() error {
+			if keepCache {
+				return nil
+			}
+			return deleteS3Resources(apiName)
+		},
+	)
+
+	return wasDeployed
+}
+
+func getAPISpec(
+	apiConfig *userconfig.API,
+	projectID string,
+	deploymentID string,
+) (*context.Context, error) {
+
+	var buf bytes.Buffer
+	buf.WriteString(apiConfig.Name)
+	buf.WriteString(*apiConfig.Endpoint)
+	buf.WriteString(s.Obj(apiConfig.Predictor))
+	buf.WriteString(s.Obj(apiConfig.Tracker))
+	buf.WriteString(deploymentID)
+	buf.WriteString(projectID)
+	id := hash.Bytes(buf.Bytes())
+
+	return &spec.API{
+		API:          apiConfig,
+		ID:           id,
+		Key:          specKey(apiConfig.Name, id),
+		DeploymentID: deploymentID,
+		LastUpdated:  time.Now().Unix(),
+		MetadataRoot: metadataRoot(apiConfig.Name, id),
+		ProjectID:    projectID,
+		ProjectKey:   projectKey(projectID),
+	}
+
+	ctx.ID = calculateID(ctx)
+	ctx.Key = ctxKey(ctx.ID, ctx.App.Name)
+	return ctx, nil
+}
+
+func getK8sResources(apiConfig *userconfig.API) (
+	*kapps.Deployment,
+	*kcore.Service,
+	*kunstructured.Unstructured,
+	error,
+) {
+
+	var deployment *kapps.Deployment
+	var service *kcore.Service
+	var virtualService *kunstructured.Unstructured
+
+	err := parallel.RunFirstErr(
+		func() error {
+			var err error
+			deployment, err = config.Kubernetes.GetDeployment(apiConfig.Name)
+			return err
+		},
+		func() error {
+			var err error
+			service, err = config.Kubernetes.GetService(apiConfig.Name)
+			return err
+		},
+		func() error {
+			var err error
+			virtualService, err = config.Kubernetes.GetVirtualService(apiConfig.Name)
+			return err
+		},
+	)
+
+	return deployment, service, virtualService, err
+}
+
 func applyK8sResources(
 	apiSpec *spec.API,
 	prevDeployment *kapps.Deployment,
@@ -139,105 +220,6 @@ func applyK8sResources(
 	)
 }
 
-func getK8sResources(apiConfig *userconfig.API) (
-	*kapps.Deployment,
-	*kcore.Service,
-	*kunstructured.Unstructured,
-	error,
-) {
-
-	var deployment *kapps.Deployment
-	var service *kcore.Service
-	var virtualService *kunstructured.Unstructured
-
-	err := parallel.RunFirstErr(
-		func() error {
-			var err error
-			deployment, err = config.Kubernetes.GetDeployment(apiConfig.Name)
-			return err
-		},
-		func() error {
-			var err error
-			service, err = config.Kubernetes.GetService(apiConfig.Name)
-			return err
-		},
-		func() error {
-			var err error
-			virtualService, err = config.Kubernetes.GetVirtualService(apiConfig.Name)
-			return err
-		},
-	)
-
-	return deployment, service, virtualService, err
-}
-
-func getAPISpec(
-	apiConfig *userconfig.API,
-	projectID string,
-	deploymentID string,
-) (*context.Context, error) {
-
-	var buf bytes.Buffer
-	buf.WriteString(apiConfig.Name)
-	buf.WriteString(*apiConfig.Endpoint)
-	buf.WriteString(s.Obj(apiConfig.Predictor))
-	buf.WriteString(s.Obj(apiConfig.Tracker))
-	buf.WriteString(deploymentID)
-	buf.WriteString(projectID)
-	id := hash.Bytes(buf.Bytes())
-
-	return &spec.API{
-		API:          apiConfig,
-		ID:           id,
-		Key:          specKey(apiConfig.Name, id),
-		DeploymentID: deploymentID,
-		LastUpdated:  time.Now().Unix(),
-		MetadataRoot: metadataRoot(apiConfig.Name, id),
-		ProjectID:    projectID,
-		ProjectKey:   projectKey(projectID),
-	}
-
-	ctx.ID = calculateID(ctx)
-	ctx.Key = ctxKey(ctx.ID, ctx.App.Name)
-	return ctx, nil
-}
-
-func downloadSpec(apiName string, apiID string) (*spec.API, error) {
-	s3Key := specKey(apiName, apiID)
-	var spec spec.API
-
-	if err := config.AWS.ReadMsgpackFromS3(&spec, s3Key); err != nil {
-		return nil, err
-	}
-
-	return &spec, nil
-}
-
-func specKey(apiName string, apiID string) string {
-	return filepath.Join(
-		"apis",
-		apiName,
-		apiID,
-		"spec.msgpack",
-	)
-}
-
-func metadataRoot(apiName string, apiID string) string {
-	return filepath.Join(
-		"apis",
-		apiName,
-		apiID,
-		"metadata",
-	)
-}
-
-func ProjectKey(projectID string) string {
-	return filepath.Join(
-		"projects",
-		projectID+".zip",
-	)
-}
-
 func deleteK8sResources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
@@ -274,24 +256,38 @@ func APIsBaseURL() (string, error) {
 	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
 
-func getRequestedReplicasFromDeployment(api *spec.API, deployment *kapps.Deployment) int32 {
-	var k8sRequested int32
-	if deployment != nil && deployment.Spec.Replicas != nil {
-		k8sRequested = *deployment.Spec.Replicas
+func downloadSpec(apiName string, apiID string) (*spec.API, error) {
+	s3Key := specKey(apiName, apiID)
+	var spec spec.API
+
+	if err := config.AWS.ReadMsgpackFromS3(&spec, s3Key); err != nil {
+		return nil, err
 	}
-	return getRequestedReplicas(api, k8sRequested)
+
+	return &spec, nil
 }
 
-func getRequestedReplicas(api *spec.API, k8sRequested int32) int32 {
-	requestedReplicas := api.Compute.InitReplicas
-	if k8sRequested > 0 {
-		requestedReplicas = k8sRequested
-	}
-	if requestedReplicas < api.Compute.MinReplicas {
-		requestedReplicas = api.Compute.MinReplicas
-	}
-	if requestedReplicas > api.Compute.MaxReplicas {
-		requestedReplicas = api.Compute.MaxReplicas
-	}
-	return requestedReplicas
+func specKey(apiName string, apiID string) string {
+	return filepath.Join(
+		"apis",
+		apiName,
+		apiID,
+		"spec.msgpack",
+	)
+}
+
+func metadataRoot(apiName string, apiID string) string {
+	return filepath.Join(
+		"apis",
+		apiName,
+		apiID,
+		"metadata",
+	)
+}
+
+func ProjectKey(projectID string) string {
+	return filepath.Join(
+		"projects",
+		projectID+".zip",
+	)
 }

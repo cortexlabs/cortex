@@ -42,28 +42,6 @@ func operatorCron() error {
 	)
 }
 
-func getCronK8sResources() ([]kapps.Deployment, []kcore.Pod, error) {
-	var deployments []kapps.Deployment
-	var failedPods []kcore.Pod
-
-	err := parallel.RunFirstErr(
-		func() error {
-			var err error
-			deployments, err = config.Kubernetes.ListDeploymentsWithLabels("apiName")
-			return err
-		},
-		func() error {
-			var err error
-			failedPods, err = config.Kubernetes.ListPods(&kmeta.ListOptions{
-				FieldSelector: "status.phase=Failed",
-			})
-			return err
-		},
-	)
-
-	return deployments, failedPods, err
-}
-
 func deleteEvictedPods(failedPods []kcore.Pod) error {
 	var errs []error
 
@@ -140,6 +118,28 @@ func numUpdatedReadyReplicas(deployment *kapps.Deployment, pods []kcore.Pod) int
 	}
 
 	return readyReplicas
+}
+
+func getCronK8sResources() ([]kapps.Deployment, []kcore.Pod, error) {
+	var deployments []kapps.Deployment
+	var failedPods []kcore.Pod
+
+	err := parallel.RunFirstErr(
+		func() error {
+			var err error
+			deployments, err = config.Kubernetes.ListDeploymentsWithLabels("apiName")
+			return err
+		},
+		func() error {
+			var err error
+			failedPods, err = config.Kubernetes.ListPods(&kmeta.ListOptions{
+				FieldSelector: "status.phase=Failed",
+			})
+			return err
+		},
+	)
+
+	return deployments, failedPods, err
 }
 
 func telemetryCron() error {
