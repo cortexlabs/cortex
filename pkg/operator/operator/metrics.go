@@ -30,69 +30,41 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	"github.com/cortexlabs/cortex/pkg/operator/api/context"
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-func GetMetrics(ctx *context.Context, apiName string) (schema.APIMetrics, error) {
-	api := ctx.APIs[apiName]
-
-	apiSavedStatus, err := getAPISavedStatus(api.ID, api.WorkloadID, ctx.App.Name)
-	if err != nil {
-		return schema.APIMetrics{}, err
-	}
-
-	if apiSavedStatus == nil {
-		return schema.APIMetrics{}, errors.Wrap(ErrorAPIInitializing(), api.Name)
-	}
-
-	if apiSavedStatus.Start == nil {
-		return schema.APIMetrics{}, errors.Wrap(ErrorAPIInitializing(), api.Name)
-	}
-
-	apiStartTime := apiSavedStatus.Start.Truncate(time.Second)
-
+func GetMetrics(api *spec.API) (schema.APIMetrics, error) {
 	// Get realtime metrics for the seconds elapsed in the latest minute
 	realTimeEnd := time.Now().Truncate(time.Second)
 	realTimeStart := realTimeEnd.Truncate(time.Minute)
 
 	realTimeMetrics := schema.APIMetrics{}
 	batchMetrics := schema.APIMetrics{}
-
 	requestList := []func() error{}
+
 	if realTimeStart.Before(realTimeEnd) {
-		requestList = append(requestList, getAPIMetricsFunc(ctx, api, 1, &realTimeStart, &realTimeEnd, &realTimeMetrics))
+		requestList = append(requestList, getAPIMetricsFunc(api, 1, &realTimeStart, &realTimeEnd, &realTimeMetrics))
 	}
 
-	if apiStartTime.Before(realTimeStart) {
-		batchEnd := realTimeStart
-		twoWeeksAgo := batchEnd.Add(-14 * 24 * time.Hour)
+	batchEnd := realTimeStart
+	batchStart := batchEnd.Add(-14 * 24 * time.Hour) // two weeks ago
+	requestList = append(requestList, getAPIMetricsFunc(api, 60*60, &batchStart, &batchEnd, &batchMetrics))
 
-		var batchStart time.Time
-		if twoWeeksAgo.Before(*apiSavedStatus.Start) {
-			batchStart = *apiSavedStatus.Start
-		} else {
-			batchStart = twoWeeksAgo
-		}
-		requestList = append(requestList, getAPIMetricsFunc(ctx, api, 60*60, &batchStart, &batchEnd, &batchMetrics))
-	}
-
-	if len(requestList) != 0 {
-		err = parallel.RunFirstErr(requestList...)
-		if err != nil {
-			return schema.APIMetrics{}, err
-		}
+	err = parallel.RunFirstErr(requestList...)
+	if err != nil {
+		return schema.APIMetrics{}, err
 	}
 
 	mergedMetrics := realTimeMetrics.Merge(batchMetrics)
 	return mergedMetrics, nil
 }
 
-func getAPIMetricsFunc(ctx *context.Context, api *context.API, period int64, startTime *time.Time, endTime *time.Time, apiMetrics *schema.APIMetrics) func() error {
+func getAPIMetricsFunc(api *spec.API, period int64, startTime *time.Time, endTime *time.Time, apiMetrics *schema.APIMetrics) func() error {
 	return func() error {
-		metricDataResults, err := queryMetrics(ctx, api, period, startTime, endTime)
+		metricDataResults, err := queryMetrics(api, period, startTime, endTime)
 		if err != nil {
 			return err
 		}
@@ -117,18 +89,18 @@ func getAPIMetricsFunc(ctx *context.Context, api *context.API, period int64, sta
 	}
 }
 
-func queryMetrics(ctx *context.Context, api *context.API, period int64, startTime *time.Time, endTime *time.Time) ([]*cloudwatch.MetricDataResult, error) {
-	allMetrics := getNetworkStatsDef(ctx.App.Name, api, period)
+func queryMetrics(api *spec.API, period int64, startTime *time.Time, endTime *time.Time) ([]*cloudwatch.MetricDataResult, error) {
+	allMetrics := getNetworkStatsDef(api, period)
 
 	if api.Tracker != nil {
 		if api.Tracker.ModelType == userconfig.ClassificationModelType {
-			classMetrics, err := getClassesMetricDef(ctx, api, period)
+			classMetrics, err := getClassesMetricDef(api, period)
 			if err != nil {
 				return nil, err
 			}
 			allMetrics = append(allMetrics, classMetrics...)
 		} else {
-			regressionMetrics := getRegressionMetricDef(ctx.App.Name, api, period)
+			regressionMetrics := getRegressionMetricDef(api, period)
 			allMetrics = append(allMetrics, regressionMetrics...)
 		}
 	}
@@ -226,12 +198,8 @@ func extractRegressionMetrics(metricsDataResults []*cloudwatch.MetricDataResult)
 	return &regressionStats, nil
 }
 
-func getAPIDimensions(appName string, api *context.API) []*cloudwatch.Dimension {
+func getAPIDimensions(api *spec.API) []*cloudwatch.Dimension {
 	return []*cloudwatch.Dimension{
-		{
-			Name:  aws.String("AppName"),
-			Value: aws.String(appName),
-		},
 		{
 			Name:  aws.String("APIName"),
 			Value: aws.String(api.Name),
@@ -243,9 +211,9 @@ func getAPIDimensions(appName string, api *context.API) []*cloudwatch.Dimension 
 	}
 }
 
-func getAPIDimensionsCounter(appName string, api *context.API) []*cloudwatch.Dimension {
+func getAPIDimensionsCounter(api *spec.API) []*cloudwatch.Dimension {
 	return append(
-		getAPIDimensions(appName, api),
+		getAPIDimensions(api),
 		&cloudwatch.Dimension{
 			Name:  aws.String("metric_type"),
 			Value: aws.String("counter"),
@@ -253,9 +221,9 @@ func getAPIDimensionsCounter(appName string, api *context.API) []*cloudwatch.Dim
 	)
 }
 
-func getAPIDimensionsHistogram(appName string, api *context.API) []*cloudwatch.Dimension {
+func getAPIDimensionsHistogram(api *spec.API) []*cloudwatch.Dimension {
 	return append(
-		getAPIDimensions(appName, api),
+		getAPIDimensions(api),
 		&cloudwatch.Dimension{
 			Name:  aws.String("metric_type"),
 			Value: aws.String("histogram"),
@@ -263,11 +231,11 @@ func getAPIDimensionsHistogram(appName string, api *context.API) []*cloudwatch.D
 	)
 }
 
-func getRegressionMetricDef(appName string, api *context.API, period int64) []*cloudwatch.MetricDataQuery {
+func getRegressionMetricDef(api *spec.API, period int64) []*cloudwatch.MetricDataQuery {
 	metric := &cloudwatch.Metric{
 		Namespace:  aws.String(config.Cluster.LogGroup),
 		MetricName: aws.String("Prediction"),
-		Dimensions: getAPIDimensionsHistogram(appName, api),
+		Dimensions: getAPIDimensionsHistogram(api),
 	}
 
 	regressionMetric := []*cloudwatch.MetricDataQuery{
@@ -312,12 +280,12 @@ func getRegressionMetricDef(appName string, api *context.API, period int64) []*c
 	return regressionMetric
 }
 
-func getNetworkStatsDef(appName string, api *context.API, period int64) []*cloudwatch.MetricDataQuery {
+func getNetworkStatsDef(api *spec.API, period int64) []*cloudwatch.MetricDataQuery {
 	statusCodes := []string{"2XX", "4XX", "5XX"}
 	networkDataQueries := make([]*cloudwatch.MetricDataQuery, len(statusCodes)+2)
 
 	for i, code := range statusCodes {
-		dimensions := getAPIDimensionsCounter(appName, api)
+		dimensions := getAPIDimensionsCounter(api)
 		statusCodeDimensions := append(dimensions, &cloudwatch.Dimension{
 			Name:  aws.String("Code"),
 			Value: aws.String(code),
@@ -344,7 +312,7 @@ func getNetworkStatsDef(appName string, api *context.API, period int64) []*cloud
 			Metric: &cloudwatch.Metric{
 				Namespace:  aws.String(config.Cluster.LogGroup),
 				MetricName: aws.String("Latency"),
-				Dimensions: getAPIDimensionsHistogram(appName, api),
+				Dimensions: getAPIDimensionsHistogram(api),
 			},
 			Stat:   aws.String("Average"),
 			Period: aws.Int64(period),
@@ -358,7 +326,7 @@ func getNetworkStatsDef(appName string, api *context.API, period int64) []*cloud
 			Metric: &cloudwatch.Metric{
 				Namespace:  aws.String(config.Cluster.LogGroup),
 				MetricName: aws.String("Latency"),
-				Dimensions: getAPIDimensionsHistogram(appName, api),
+				Dimensions: getAPIDimensionsHistogram(api),
 			},
 			Stat:   aws.String("SampleCount"),
 			Period: aws.Int64(period),
@@ -367,8 +335,8 @@ func getNetworkStatsDef(appName string, api *context.API, period int64) []*cloud
 	return networkDataQueries
 }
 
-func getClassesMetricDef(ctx *context.Context, api *context.API, period int64) ([]*cloudwatch.MetricDataQuery, error) {
-	prefix := filepath.Join(ctx.MetadataRoot, api.ID, "classes") + "/"
+func getClassesMetricDef(api *spec.API, period int64) ([]*cloudwatch.MetricDataQuery, error) {
+	prefix := filepath.Join(api.MetadataRoot, api.ID, "classes") + "/"
 	classes, err := config.AWS.ListPrefix(prefix, int64(consts.MaxClassesPerRequest))
 	if err != nil {
 		return nil, err
@@ -400,7 +368,7 @@ func getClassesMetricDef(ctx *context.Context, api *context.API, period int64) (
 				Metric: &cloudwatch.Metric{
 					Namespace:  aws.String(config.Cluster.LogGroup),
 					MetricName: aws.String("Prediction"),
-					Dimensions: append(getAPIDimensionsCounter(ctx.App.Name, api), &cloudwatch.Dimension{
+					Dimensions: append(getAPIDimensionsCounter(api), &cloudwatch.Dimension{
 						Name:  aws.String("Class"),
 						Value: aws.String(className),
 					}),

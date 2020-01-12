@@ -29,7 +29,6 @@ type ErrorKind int
 const (
 	ErrUnknown ErrorKind = iota
 	ErrCortexInstallationBroken
-	ErrLoadBalancerInitializing
 	ErrAPIInitializing
 	ErrMalformedConfig
 	ErrNoAPIs
@@ -52,7 +51,6 @@ const (
 var errorKinds = []string{
 	"err_unknown",
 	"err_cortex_installation_broken",
-	"err_load_balancer_initializing",
 	"err_api_initializing",
 	"err_malformed_config",
 	"err_no_apis",
@@ -128,13 +126,6 @@ func ErrorLoadBalancerInitializing() error {
 	return errors.WithStack(Error{
 		Kind:    ErrLoadBalancerInitializing,
 		message: "load balancer is still initializing",
-	})
-}
-
-func ErrorAPIInitializing() error {
-	return errors.WithStack(Error{
-		Kind:    ErrAPIInitializing,
-		message: "api is still initializing",
 	})
 }
 
