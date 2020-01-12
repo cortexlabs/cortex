@@ -1,11 +1,12 @@
 # this is an example for cortex release 0.12 and may not deploy correctly on other releases of cortex
 
+from io import BytesIO
+
 import requests
 import torch
+from PIL import Image
 from torchvision import models
 from torchvision import transforms
-from PIL import Image
-from io import BytesIO
 
 
 class PythonPredictor:
@@ -28,7 +29,8 @@ class PythonPredictor:
             'bottle', 'N/A', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl',
             'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza',
             'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'N/A', 'dining table',
-            'N/A', 'N/A', 'toilet', 'N/A', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+            'N/A', 'N/A', 'toilet', 'N/A', 'tv', 'laptop',
+            'mouse', 'remote', 'keyboard', 'cell phone',
             'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'N/A', 'book',
             'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
         ]
@@ -52,8 +54,8 @@ class PythonPredictor:
         pred_t = [pred_score.index(x) for x in pred_score if x > threshold]
         if len(pred_t) == 0:
             return [], []
-        else:
-            pred_t = pred_t[-1]
-            pred_boxes = pred_boxes[:pred_t + 1]
-            pred_class = pred_class[:pred_t + 1]
-            return pred_boxes, pred_class
+
+        pred_t = pred_t[-1]
+        pred_boxes = pred_boxes[:pred_t + 1]
+        pred_class = pred_class[:pred_t + 1]
+        return pred_boxes, pred_class
