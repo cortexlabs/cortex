@@ -30,6 +30,8 @@
 
 - [Image classification](pytorch/image-classifier): deploy an AlexNet model from TorchVision to classify images.
 
+- [Object Detection](pytorch/object-detection): deploy a Faster R-CNN model from TorchVision to detect objects in images.
+
 ## XGBoost
 
 - [Iris classification](xgboost/iris-classifier): deploy a model to classify iris flowers (exported in ONNX).
