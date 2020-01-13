@@ -48,6 +48,7 @@ func (kvs *KeyValuePairs) AddAll(kvs2 KeyValuePairs) {
 	}
 }
 
+// TODO return with trailing new line
 func (kvs KeyValuePairs) String(options ...*KeyValuePairOpts) string {
 	opts := mergeOptions(options...)
 

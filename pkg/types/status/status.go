@@ -45,6 +45,10 @@ func (status *Status) Message() string {
 	return status.Code.Message()
 }
 
+func (src *SubReplicaCounts) TotalFailed() int32 {
+	return src.Failed + src.Killed + src.KilledOOM + src.Stalled
+}
+
 // TODO
 // func (rc *ReplicaCounts) TotalAvailable() int32 {
 // 	return rc.ReadyUpdated + rc.ReadyStaleModel + rc.ReadyStaleCompute

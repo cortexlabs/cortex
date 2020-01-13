@@ -25,7 +25,7 @@ type API struct {
 	ID           string `json:"id"`
 	Key          string `json:"key"`
 	DeploymentID string `json:"deployment_id"`
-	LastUpdated  int64  `json:"last_updated"`
+	LastUpdated  time.Time  `json:"last_updated"`
 	MetadataRoot string `json:"metadata_root"`
 	ProjectID    string `json:"project_id"`
 	ProjectKey   string `json:"project_key"`

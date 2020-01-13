@@ -37,14 +37,17 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	refresh := getOptionalBoolQParam("refresh", false, r)
 	force := getOptionalBoolQParam("force", false, r)
 
-	configBytes, err := files.ReadReqFile(r, "config.yaml")
+	configPath := getOptionalStringQParam("configPath", false, r)
+	if configPath == "" {
+		configPath = "api config file"
+	}
+
+	configBytes, err := files.ReadReqFile(r, "config")
 	if err != nil {
 		respondError(w, errors.WithStack(err))
 		return
-	}
-
-	if len(configBytes) == 0 {
-		respondError(w, ErrorFormFileMustBeProvided("config.yaml"))
+	} else if len(configBytes) == 0 {
+		respondError(w, ErrorFormFileMustBeProvided("config"))
 		return
 	}
 
@@ -65,8 +68,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return err
 	}
 
-	// TODO file path should be user's actual file path that they typed in
-	apiConfigs, err := operator.ExtractAPIConfigs(configBytes, projectFileMap, "cortex.yaml")
+	apiConfigs, err := operator.ExtractAPIConfigs(configBytes, projectFileMap, configPath)
 	if err != nil {
 		respondError(w, err)
 		return

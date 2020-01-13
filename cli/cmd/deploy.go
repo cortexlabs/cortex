@@ -36,49 +36,54 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
 
-var MaxProjectSize = 1024 * 1024 * 50
-var flagDeployForce bool
-var flagDeployRefresh bool
+var _maxProjectSize = 1024 * 1024 * 50
+var _flagForce bool
+var _flagRefresh bool
 
 func init() {
-	deployCmd.PersistentFlags().BoolVarP(&flagDeployForce, "force", "f", false, "override the in-progress deployment update")
-	deployCmd.PersistentFlags().BoolVarP(&flagDeployRefresh, "refresh", "r", false, "re-deploy all apis with cleared cache and rolling updates")
+	deployCmd.PersistentFlags().BoolVarP(&_flagForce, "force", "f", false, "override the in-progress deployment update")
+	deployCmd.PersistentFlags().BoolVarP(&_flagRefresh, "refresh", "r", false, "re-deploy all apis with cleared cache and rolling updates")
 	addEnvFlag(deployCmd)
 }
 
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "create or update a deployment",
-	Args:  cobra.NoArgs,
+	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.deploy")
-		deploy(flagDeployForce, flagDeployRefresh)
+
+		// TODO move to helper
+		var configPath string
+		if len(args) == 0 {
+			// TODO check that ./cortex.yaml exists, show useful error if not (e.g. specify a path or create a cortex.yaml)
+			configPath = "cortex.yaml"
+		} else {
+			configPath = args[0]
+		}
+
+		deploy(configPath, _flagForce, _flagRefresh)
 	},
 }
 
-func deploy(force bool, ignoreCache bool) {
-	root := mustAppRoot()
-	_, err := readConfig() // Check proper cortex.yaml
-	if err != nil {
-		exit.Error(err)
-	}
-
+func deploy(configPath string, force bool, refresh bool) {
 	params := map[string]string{
 		"force":       s.Bool(force),
-		"ignoreCache": s.Bool(ignoreCache),
+		"refresh": s.Bool(refresh),
+		"configPath": configPath,
 	}
 
-	configBytes, err := ioutil.ReadFile(filepath.Join(root, "cortex.yaml"))
+	configBytes, err := ioutil.ReadFile(filepath.Join(root, configPath))
 	if err != nil {
-		exit.Error(errors.Wrap(err, "cortex.yaml", cr.ErrorReadConfig().Error()))
+		exit.Error(errors.Wrap(err, configPath, cr.ErrorReadConfig().Error()))
 	}
 
 	uploadBytes := map[string][]byte{
-		"cortex.yaml": configBytes,
+		"config": configBytes,
 	}
 
 	projectPaths, err := files.ListDirRecursive(root, false,
-		files.IgnoreCortexYAML,
+		files.IgnoreCortexYAML, // TODO ignore the actual file specified, even if it's in a subdir. Or remove from list after the fact.
 		files.IgnoreCortexDebug,
 		files.IgnoreHiddenFiles,
 		files.IgnoreHiddenFolders,
@@ -101,8 +106,8 @@ func deploy(force bool, ignoreCache bool) {
 		exit.Error(errors.Wrap(err, "failed to zip project folder"))
 	}
 
-	if len(projectZipBytes) > MaxProjectSize {
-		exit.Error(errors.New("zipped project folder exceeds " + s.Int(MaxProjectSize) + " bytes"))
+	if len(projectZipBytes) > _maxProjectSize {
+		exit.Error(errors.New("zipped project folder exceeds " + s.Int(_maxProjectSize) + " bytes"))
 	}
 
 	uploadBytes["project.zip"] = projectZipBytes

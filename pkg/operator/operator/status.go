@@ -74,6 +74,8 @@ func GetAllStatuses() ([]*status.Status, error) {
 		return nil, err
 	}
 
+	// TODO sort
+
 	statuses := make([]*Status.status, len(deployments))
 	for i, deployment := range deployments {
 		status, err := apiStatus(deployment, pods)

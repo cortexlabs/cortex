@@ -30,10 +30,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 )
 
-var flagKeepCache bool
+var _flagKeepCache bool
 
 func init() {
-	deleteCmd.PersistentFlags().BoolVarP(&flagKeepCache, "keep-cache", "c", false, "keep cached data for the deployment")
+	deleteCmd.PersistentFlags().BoolVarP(&_flagKeepCache, "keep-cache", "c", false, "keep cached data for the deployment")
 	addEnvFlag(deleteCmd)
 }
 
@@ -43,32 +43,36 @@ var deleteCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.delete")
-
-		apiName := args[0]
-
-		apiInfo, err := getAPIInfo(apiName)
-		if err != nil {
-			exit.Error(err)
-		}
-
-		if apiInfo.APIGroupStatus.Requested > 2 {
-			prompt.YesOrExit(fmt.Sprintf("are you sure you want to delete the %s API?", apiName), "")
-		}
-
-		params := map[string]string{
-			"apiName":   apiName,
-			"keepCache": s.Bool(flagKeepCache),
-		}
-		httpResponse, err := HTTPPostJSONData("/delete", nil, params)
-		if err != nil {
-			exit.Error(err)
-		}
-
-		var deleteResponse schema.DeleteResponse
-		err = json.Unmarshal(httpResponse, &deleteResponse)
-		if err != nil {
-			exit.Error(err, "/delete", string(httpResponse))
-		}
-		fmt.Println(console.Bold(deleteResponse.Message))
+		// delete(args[0], _flagKeepCache)
 	},
 }
+
+// func delete(apiName string, keepCache bool) {
+// 	apiName := args[0]
+
+// 	apiInfo, err := getAPIInfo(apiName)
+// 	if err != nil {
+// 		exit.Error(err)
+// 	}
+
+// 	if apiInfo.APIGroupStatus.Requested > 2 {
+// 		prompt.YesOrExit(fmt.Sprintf("are you sure you want to delete the %s API?", apiName), "")
+// 	}
+
+// 	params := map[string]string{
+// 		"apiName":   apiName,
+// 		"keepCache": s.Bool(keepCache),
+// 	}
+// 	httpResponse, err := HTTPPostJSONData("/delete", nil, params)
+// 	if err != nil {
+// 		exit.Error(err)
+// 	}
+
+// 	var deleteResponse schema.DeleteResponse
+// 	err = json.Unmarshal(httpResponse, &deleteResponse)
+// 	if err != nil {
+// 		exit.Error(err, "/delete", string(httpResponse))
+// 	}
+
+// 	fmt.Println(console.Bold(deleteResponse.Message))
+// }

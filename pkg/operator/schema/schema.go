@@ -36,7 +36,7 @@ type DeployResponse struct {
 }
 
 type DeployResult struct {
-	APISpec *spec.API
+	API *spec.API
 	Message string
 	Error   error
 }
@@ -51,7 +51,7 @@ type GetAPIsResponse struct {
 type GetAPIResponse struct {
 	API *spec.API `json:"api"`
 	Status status.Status `json:"status"`
-	Metrics []metrics.Metrics `json:"metrics"`
+	Metrics metrics.Metrics `json:"metrics"`
 	BaseURL      string                              `json:"base_url"`
 }
 
