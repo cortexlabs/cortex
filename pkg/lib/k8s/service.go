@@ -157,6 +157,13 @@ func (c *Client) ListServicesByLabel(labelKey string, labelValue string) ([]kcor
 	return c.ListServicesByLabels(map[string]string{labelKey: labelValue})
 }
 
+func (c *Client) ListServicesWithLabelKeys(labelKeys ...string) ([]kcore.Service, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListServices(opts)
+}
+
 func ServiceMap(services []kcore.Service) map[string]kcore.Service {
 	serviceMap := map[string]kcore.Service{}
 	for _, service := range services {

@@ -37,7 +37,7 @@ import (
 var _cachedClusterConfigRegex = regexp.MustCompile(`^cluster_\S+\.yaml$`)
 
 func cachedClusterConfigPath(clusterName string, region string) string {
-	return filepath.Join(localDir, fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
+	return filepath.Join(_localDir, fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
 }
 
 func mountedClusterConfigPath(clusterName string, region string) string {
@@ -45,7 +45,7 @@ func mountedClusterConfigPath(clusterName string, region string) string {
 }
 
 func existingCachedClusterConfigPaths() []string {
-	paths, err := files.ListDir(localDir, false)
+	paths, err := files.ListDir(_localDir, false)
 	if err != nil {
 		return nil
 	}

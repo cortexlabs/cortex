@@ -17,29 +17,9 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"net/http"
-	"sort"
-	"strings"
-	"time"
-
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/cast"
-	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
-	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/operator/api/context"
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
-	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
 var _flagWatch bool

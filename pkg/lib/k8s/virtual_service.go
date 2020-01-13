@@ -204,6 +204,13 @@ func (c *Client) ListVirtualServicesByLabel(namespace string, labelKey string, l
 	return c.ListVirtualServicesByLabels(namespace, map[string]string{labelKey: labelValue})
 }
 
+func (c *Client) ListVirtualServicesWithLabelKeys(namespace string, labelKeys ...string) ([]kunstructured.Unstructured, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListVirtualServices(namespace, opts)
+}
+
 func ExtractVirtualServiceGateways(virtualService *kunstructured.Unstructured) (strset.Set, error) {
 	spec, ok := virtualService.UnstructuredContent()["spec"].(map[string]interface{})
 	if !ok {

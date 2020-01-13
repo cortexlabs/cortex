@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package schema
+package metrics
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -22,7 +22,7 @@ import (
 )
 
 type Metrics struct {
-	APIName      string    `json:"api_name"`
+	APIName           string           `json:"api_name"`
 	NetworkStats      *NetworkStats    `json:"network_stats"`
 	ClassDistribution map[string]int   `json:"class_distribution"`
 	RegressionStats   *RegressionStats `json:"regression_stats"`
@@ -105,6 +105,10 @@ func (left RegressionStats) Merge(right RegressionStats) RegressionStats {
 		SampleCount: totalSampleCount,
 	}
 }
+
+func mergeAvg(left *float64, leftCount int, right *float64, rightCount int) *float64 {
+	leftCountFloat64Ptr := pointer.Float64(float64(leftCount))
+	rightCountFloat64Ptr := pointer.Float64(float64(rightCount))
 
 	avg, _ := slices.Float64PtrAvg([]*float64{left, right}, []*float64{leftCountFloat64Ptr, rightCountFloat64Ptr})
 	return avg

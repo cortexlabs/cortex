@@ -17,21 +17,13 @@ limitations under the License.
 package cmd
 
 import (
-	"bytes"
 	"crypto/tls"
-	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
 var predictDebug bool
@@ -58,96 +50,96 @@ var predictCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.predict")
 
-		apiName := args[0]
-		jsonPath := args[1]
+		// apiName := args[0]
+		// jsonPath := args[1]
 
-		appName, err := AppNameFromFlagOrConfig()
-		if err != nil {
-			exit.Error(err)
-		}
+		// appName, err := AppNameFromFlagOrConfig()
+		// if err != nil {
+		// 	exit.Error(err)
+		// }
 
-		resourcesRes, err := getResourcesResponse(appName)
-		if err != nil {
-			exit.Error(err)
-		}
+		// resourcesRes, err := getResourcesResponse(appName)
+		// if err != nil {
+		// 	exit.Error(err)
+		// }
 
-		apiGroupStatus := resourcesRes.APIGroupStatuses[apiName]
+		// apiGroupStatus := resourcesRes.APIGroupStatuses[apiName]
 
-		// Check for prefix match
-		if apiGroupStatus == nil {
-			var matchedName string
-			for name := range resourcesRes.APIGroupStatuses {
-				if strings.HasPrefix(name, apiName) {
-					if matchedName != "" {
-						exit.Error(ErrorAPINotFound(apiName)) // duplicates
-					}
-					matchedName = name
-				}
-			}
+		// // Check for prefix match
+		// if apiGroupStatus == nil {
+		// 	var matchedName string
+		// 	for name := range resourcesRes.APIGroupStatuses {
+		// 		if strings.HasPrefix(name, apiName) {
+		// 			if matchedName != "" {
+		// 				exit.Error(ErrorAPINotFound(apiName)) // duplicates
+		// 			}
+		// 			matchedName = name
+		// 		}
+		// 	}
 
-			if matchedName == "" {
-				exit.Error(ErrorAPINotFound(apiName))
-			}
+		// 	if matchedName == "" {
+		// 		exit.Error(ErrorAPINotFound(apiName))
+		// 	}
 
-			if resourcesRes.Context.APIs[matchedName] == nil {
-				exit.Error(ErrorAPINotFound(apiName))
-			}
+		// 	if resourcesRes.Context.APIs[matchedName] == nil {
+		// 		exit.Error(ErrorAPINotFound(apiName))
+		// 	}
 
-			apiGroupStatus = resourcesRes.APIGroupStatuses[matchedName]
-			apiName = matchedName
-		}
+		// 	apiGroupStatus = resourcesRes.APIGroupStatuses[matchedName]
+		// 	apiName = matchedName
+		// }
 
-		api := resourcesRes.Context.APIs[apiName]
-		if api == nil {
-			exit.Error(ErrorAPINotFound(apiName))
-		}
+		// api := resourcesRes.Context.APIs[apiName]
+		// if api == nil {
+		// 	exit.Error(ErrorAPINotFound(apiName))
+		// }
 
-		if apiGroupStatus.ActiveStatus == nil {
-			exit.Error(ErrorAPINotReady(apiName, apiGroupStatus.Message()))
-		}
+		// if apiGroupStatus.ActiveStatus == nil {
+		// 	exit.Error(ErrorAPINotReady(apiName, apiGroupStatus.Message()))
+		// }
 
-		apiURL := urls.Join(resourcesRes.APIsBaseURL, *api.Endpoint)
-		if predictDebug {
-			apiURL += "?debug=true"
-		}
-		predictResponse, err := makePredictRequest(apiURL, jsonPath)
-		if err != nil {
-			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
-				exit.Error(ErrorAPINotReady(apiName, "creating"))
-			}
-			exit.Error(err)
-		}
+		// apiURL := urls.Join(resourcesRes.APIsBaseURL, *api.Endpoint)
+		// if predictDebug {
+		// 	apiURL += "?debug=true"
+		// }
+		// predictResponse, err := makePredictRequest(apiURL, jsonPath)
+		// if err != nil {
+		// 	if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
+		// 		exit.Error(ErrorAPINotReady(apiName, "creating"))
+		// 	}
+		// 	exit.Error(err)
+		// }
 
-		prettyResp, err := json.Pretty(predictResponse)
-		if err != nil {
-			exit.Error(err)
-		}
-		fmt.Println(prettyResp)
+		// prettyResp, err := json.Pretty(predictResponse)
+		// if err != nil {
+		// 	exit.Error(err)
+		// }
+		// fmt.Println(prettyResp)
 	},
 }
 
-func makePredictRequest(apiURL string, jsonPath string) (interface{}, error) {
-	jsonBytes, err := files.ReadFileBytes(jsonPath)
-	if err != nil {
-		exit.Error(err)
-	}
-	payload := bytes.NewBuffer(jsonBytes)
-	req, err := http.NewRequest("POST", apiURL, payload)
-	if err != nil {
-		return nil, errors.Wrap(err, errStrCantMakeRequest)
-	}
+// func makePredictRequest(apiURL string, jsonPath string) (interface{}, error) {
+// 	jsonBytes, err := files.ReadFileBytes(jsonPath)
+// 	if err != nil {
+// 		exit.Error(err)
+// 	}
+// 	payload := bytes.NewBuffer(jsonBytes)
+// 	req, err := http.NewRequest("POST", apiURL, payload)
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, errStrCantMakeRequest)
+// 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	httpResponse, err := predictClient.MakeRequest(req)
-	if err != nil {
-		return nil, err
-	}
+// 	req.Header.Set("Content-Type", "application/json")
+// 	httpResponse, err := predictClient.MakeRequest(req)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	var predictResponse interface{}
-	err = json.DecodeWithNumber(httpResponse, &predictResponse)
-	if err != nil {
-		return nil, errors.Wrap(err, "prediction response")
-	}
+// 	var predictResponse interface{}
+// 	err = json.DecodeWithNumber(httpResponse, &predictResponse)
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "prediction response")
+// 	}
 
-	return predictResponse, nil
-}
+// 	return predictResponse, nil
+// }

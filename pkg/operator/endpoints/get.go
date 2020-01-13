@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/operator/workloads"
 )
 

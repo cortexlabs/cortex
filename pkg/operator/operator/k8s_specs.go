@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package workloads
+package operator
 
 import (
 	"encoding/base64"
@@ -35,8 +35,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/operator/api/context"
-	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 

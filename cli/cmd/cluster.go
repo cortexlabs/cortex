@@ -32,7 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/spf13/cobra"
 )
 
@@ -59,7 +59,7 @@ func init() {
 
 func addClusterConfigFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&flagClusterConfig, "config", "c", "", "path to a cluster configuration file")
-	cmd.PersistentFlags().SetAnnotation("config", cobra.BashCompFilenameExt, configFileExts)
+	cmd.PersistentFlags().SetAnnotation("config", cobra.BashCompFilenameExt, _configFileExts)
 }
 
 var clusterCmd = &cobra.Command{

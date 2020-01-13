@@ -21,7 +21,7 @@ import (
 	"os"
 
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 

@@ -48,18 +48,3 @@ func (status *Status) Message() string {
 func (src *SubReplicaCounts) TotalFailed() int32 {
 	return src.Failed + src.Killed + src.KilledOOM + src.Stalled
 }
-
-// TODO
-// func (rc *ReplicaCounts) TotalAvailable() int32 {
-// 	return rc.ReadyUpdated + rc.ReadyStaleModel + rc.ReadyStaleCompute
-// }
-
-// func (rc *ReplicaCounts) TotalFailed() int32 {
-// 	return rc.FailedUpdated + rc.FailedStaleModel + rc.FailedStaleCompute +
-// 	rc.KilledUpdated + rc.KilledStaleModel + rc.KilledStaleCompute +
-// 	rc.KilledOOMUpdated + rc.KilledOOMStaleModel + rc.KilledOOMStaleCompute +
-// }
-
-// func (rc *ReplicaCounts) TotalAvailableStale() int32 {
-// 	return rc.ReadyStaleModel + rc.ReadyStaleCompute
-// }

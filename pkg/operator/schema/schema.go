@@ -17,11 +17,10 @@ limitations under the License.
 package schema
 
 import (
-	"time"
-
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/api/spec"
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	"github.com/cortexlabs/cortex/pkg/types/metrics"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/status"
 )
 
 type InfoResponse struct {
@@ -31,28 +30,28 @@ type InfoResponse struct {
 
 type DeployResponse struct {
 	Results []DeployResult `json:"results"`
-	BaseURL string           `json:"base_url"`
-	Message     string           `json:"message"`
+	BaseURL string         `json:"base_url"`
+	Message string         `json:"message"`
 }
 
 type DeployResult struct {
-	API *spec.API
+	API     *spec.API
 	Message string
 	Error   error
 }
 
 type GetAPIsResponse struct {
-	APIs []spec.API `json:"apis"`
-	Statuses []status.Status `json:"statuses"`
+	APIs       []spec.API        `json:"apis"`
+	Statuses   []status.Status   `json:"statuses"`
 	AllMetrics []metrics.Metrics `json:"all_metrics"`
-	BaseURL      string                              `json:"base_url"`
+	BaseURL    string            `json:"base_url"`
 }
 
 type GetAPIResponse struct {
-	API *spec.API `json:"api"`
-	Status status.Status `json:"status"`
+	API     *spec.API       `json:"api"`
+	Status  status.Status   `json:"status"`
 	Metrics metrics.Metrics `json:"metrics"`
-	BaseURL      string                              `json:"base_url"`
+	BaseURL string          `json:"base_url"`
 }
 
 type DeleteResponse struct {

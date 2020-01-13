@@ -38,7 +38,7 @@ var codes = []string{
 	"status_stopping",
 }
 
-var _ = [1]int{}[int(Stopped)-(len(codes)-1)] // Ensure list length matches
+var _ = [1]int{}[int(Stopping)-(len(codes)-1)] // Ensure list length matches
 
 var codeMessages = []string{
 	"unknown",               // Unknown

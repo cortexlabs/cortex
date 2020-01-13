@@ -25,7 +25,6 @@ import (
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 )
 
 var podTypeMeta = kmeta.TypeMeta{
@@ -307,29 +306,17 @@ func (c *Client) ListPodsByLabel(labelKey string, labelValue string) ([]kcore.Po
 	return c.ListPodsByLabels(map[string]string{labelKey: labelValue})
 }
 
+func (c *Client) ListPodsWithLabelKeys(labelKeys ...string) ([]kcore.Pod, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListPods(opts)
+}
+
 func PodMap(pods []kcore.Pod) map[string]kcore.Pod {
 	podMap := map[string]kcore.Pod{}
 	for _, pod := range pods {
 		podMap[pod.Name] = pod
 	}
 	return podMap
-}
-
-func (c *Client) StalledPods() ([]kcore.Pod, error) {
-	var stalledPods []kcore.Pod
-
-	pods, err := c.ListPods(&kmeta.ListOptions{
-		FieldSelector: "status.phase=Pending",
-	})
-	if err != nil {
-		return nil, err
-	}
-	for _, pod := range pods {
-		if !libtime.OlderThanSeconds(pod.CreationTimestamp.Time, 5*60) {
-			continue
-		}
-		stalledPods = append(stalledPods, pod)
-	}
-
-	return stalledPods, nil
 }

@@ -124,7 +124,7 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: localDir,
+				Source: _localDir,
 				Target: "/.cortex",
 			},
 		},

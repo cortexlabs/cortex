@@ -170,7 +170,7 @@ func (c *Client) ListDeploymentsByLabel(labelKey string, labelValue string) ([]k
 
 func (c *Client) ListDeploymentsWithLabelKeys(labelKeys ...string) ([]kapps.Deployment, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: LabelExistsSelector(labels),
+		LabelSelector: LabelExistsSelector(labelKeys...),
 	}
 	return c.ListDeployments(opts)
 }
@@ -202,9 +202,10 @@ func AreDeploymentsEqual(d1, d2 *kapps.Deployment) bool {
 		return false
 	}
 	// TODO (built in to k8s?)
+	return false
 }
 
 func IsPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
 	// TODO (built in to k8s?) don't forget to check metadata
-	return true
+	return false
 }

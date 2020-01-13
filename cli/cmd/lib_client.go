@@ -37,7 +37,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
 type OperatorClient struct {

@@ -81,7 +81,7 @@ func (t *Table) MustFormat() string {
 }
 
 func (t *Table) Format() (string, error) {
-	if err := validate(t); err != nil {
+	if err := validate(*t); err != nil {
 		return "", err
 	}
 

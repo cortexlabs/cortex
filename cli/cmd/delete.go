@@ -17,17 +17,15 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 
-	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
-	"github.com/cortexlabs/cortex/pkg/lib/prompt"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	// "github.com/cortexlabs/cortex/pkg/lib/console"
+	// "github.com/cortexlabs/cortex/pkg/lib/exit"
+	// "github.com/cortexlabs/cortex/pkg/lib/json"
+	// "github.com/cortexlabs/cortex/pkg/lib/prompt"
+	// s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	// "github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
 var _flagKeepCache bool

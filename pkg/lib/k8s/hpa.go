@@ -162,6 +162,13 @@ func (c *Client) ListHPAsByLabel(labelKey string, labelValue string) ([]kautosca
 	return c.ListHPAsByLabels(map[string]string{labelKey: labelValue})
 }
 
+func (c *Client) ListHPAsWithLabelKeys(labelKeys ...string) ([]kautoscaling.HorizontalPodAutoscaler, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListHPAs(opts)
+}
+
 func HPAMap(hpas []kautoscaling.HorizontalPodAutoscaler) map[string]kautoscaling.HorizontalPodAutoscaler {
 	hpaMap := map[string]kautoscaling.HorizontalPodAutoscaler{}
 	for _, hpa := range hpas {

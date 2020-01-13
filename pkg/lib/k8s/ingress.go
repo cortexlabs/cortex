@@ -169,6 +169,13 @@ func (c *Client) ListIngressesByLabel(labelKey string, labelValue string) ([]kex
 	return c.ListIngressesByLabels(map[string]string{labelKey: labelValue})
 }
 
+func (c *Client) ListIngressesWithLabelKeys(labelKeys ...string) ([]kextensions.Ingress, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListIngresses(opts)
+}
+
 func IngressMap(ingresses []kextensions.Ingress) map[string]kextensions.Ingress {
 	ingressMap := map[string]kextensions.Ingress{}
 	for _, ingress := range ingresses {

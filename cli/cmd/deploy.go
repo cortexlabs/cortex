@@ -33,7 +33,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
 var _maxProjectSize = 1024 * 1024 * 50
@@ -68,12 +68,12 @@ var deployCmd = &cobra.Command{
 
 func deploy(configPath string, force bool, refresh bool) {
 	params := map[string]string{
-		"force":       s.Bool(force),
-		"refresh": s.Bool(refresh),
+		"force":      s.Bool(force),
+		"refresh":    s.Bool(refresh),
 		"configPath": configPath,
 	}
 
-	configBytes, err := ioutil.ReadFile(filepath.Join(root, configPath))
+	configBytes, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		exit.Error(errors.Wrap(err, configPath, cr.ErrorReadConfig().Error()))
 	}
@@ -82,7 +82,8 @@ func deploy(configPath string, force bool, refresh bool) {
 		"config": configBytes,
 	}
 
-	projectPaths, err := files.ListDirRecursive(root, false,
+	projectRoot := filepath.Dir(configPath)
+	projectPaths, err := files.ListDirRecursive(projectRoot, false,
 		files.IgnoreCortexYAML, // TODO ignore the actual file specified, even if it's in a subdir. Or remove from list after the fact.
 		files.IgnoreCortexDebug,
 		files.IgnoreHiddenFiles,
@@ -97,7 +98,7 @@ func deploy(configPath string, force bool, refresh bool) {
 		FileLists: []zip.FileListInput{
 			{
 				Sources:      projectPaths,
-				RemovePrefix: root,
+				RemovePrefix: projectRoot,
 			},
 		},
 	})

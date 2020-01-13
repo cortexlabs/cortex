@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package workloads
+package operator
 
 import (
 	"encoding/base64"
@@ -30,10 +30,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
-	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 func GetMultipleMetrics(apis []spec.API) ([]metrics.Metrics, error) {

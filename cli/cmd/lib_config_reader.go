@@ -22,7 +22,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
 )
 
 func appRootOrBlank() string {
@@ -64,30 +63,4 @@ func pythonPaths(dir string) []string {
 		exit.Error(err)
 	}
 	return pyPaths
-}
-
-func readConfig() (*userconfig.Config, error) {
-	appRoot := mustAppRoot()
-	config, err := userconfig.ReadConfigFile(filepath.Join(appRoot, "cortex.yaml"), "cortex.yaml")
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
-}
-
-func AppNameFromFlagOrConfig() (string, error) {
-	if flagAppName != "" {
-		return flagAppName, nil
-	}
-
-	config, err := readConfig()
-	if err != nil {
-		return "", err
-	}
-
-	return config.App.Name, nil
-}
-
-func IsAppNameSpecified() bool {
-	return flagAppName != "" || appRootOrBlank() != ""
 }

@@ -30,7 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

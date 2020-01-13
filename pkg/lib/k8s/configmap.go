@@ -150,6 +150,13 @@ func (c *Client) ListConfigMapsByLabel(labelKey string, labelValue string) ([]kc
 	return c.ListConfigMapsByLabels(map[string]string{labelKey: labelValue})
 }
 
+func (c *Client) ListConfigMapsWithLabelKeys(labelKeys ...string) ([]kcore.ConfigMap, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListConfigMaps(opts)
+}
+
 func ConfigMapMap(configMaps []kcore.ConfigMap) map[string]kcore.ConfigMap {
 	configMapMap := map[string]kcore.ConfigMap{}
 	for _, configMap := range configMaps {

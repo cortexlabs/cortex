@@ -163,6 +163,13 @@ func (c *Client) ListJobsByLabel(labelKey string, labelValue string) ([]kbatch.J
 	return c.ListJobsByLabels(map[string]string{labelKey: labelValue})
 }
 
+func (c *Client) ListJobsWithLabelKeys(labelKeys ...string) ([]kbatch.Job, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListJobs(opts)
+}
+
 func JobMap(jobs []kbatch.Job) map[string]kbatch.Job {
 	jobMap := map[string]kbatch.Job{}
 	for _, job := range jobs {

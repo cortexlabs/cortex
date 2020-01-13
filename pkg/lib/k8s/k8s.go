@@ -153,12 +153,12 @@ func LabelSelector(labels map[string]string) string {
 	return strings.Join(terms, ",")
 }
 
-func LabelExistsSelector(labels ...string) string {
-	if len(labels) == 0 {
+func LabelExistsSelector(labelKeys ...string) string {
+	if len(labelKeys) == 0 {
 		return ""
 	}
 
-	return strings.Join(labels, ",")
+	return strings.Join(labelKeys, ",")
 }
 
 func FieldSelectorNotIn(key string, values []string) string {

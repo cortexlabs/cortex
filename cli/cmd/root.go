@@ -34,11 +34,11 @@ import (
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 )
 
-var cmdStr string
+var _cmdStr string
 
-var configFileExts = []string{"yaml", "yml"}
+var _configFileExts = []string{"yaml", "yml"}
 
-var localDir string
+var _localDir string
 var _cliConfigPath string
 var _clientIDPath string
 var _emailPath string
@@ -50,25 +50,25 @@ func init() {
 		exit.Error(err)
 	}
 
-	localDir = filepath.Join(homeDir, ".cortex")
-	err = os.MkdirAll(localDir, os.ModePerm)
+	_localDir = filepath.Join(homeDir, ".cortex")
+	err = os.MkdirAll(_localDir, os.ModePerm)
 	if err != nil {
 		exit.Error(err)
 	}
 
-	_cliConfigPath = filepath.Join(localDir, "cli.yaml")
-	_clientIDPath = filepath.Join(localDir, "client-id.txt")
-	_emailPath = filepath.Join(localDir, "email.txt")
-	_debugPath = filepath.Join(localDir, "cortex-debug.tgz")
+	_cliConfigPath = filepath.Join(_localDir, "cli.yaml")
+	_clientIDPath = filepath.Join(_localDir, "client-id.txt")
+	_emailPath = filepath.Join(_localDir, "email.txt")
+	_debugPath = filepath.Join(_localDir, "cortex-debug.tgz")
 
 	cobra.EnablePrefixMatching = true
 
-	cmdStr = "cortex"
+	_cmdStr = "cortex"
 	for _, arg := range os.Args[1:] {
 		if arg == "-w" || arg == "--watch" {
 			continue
 		}
-		cmdStr += " " + arg
+		_cmdStr += " " + arg
 	}
 
 	enableTelemetry, err := readTelemetryConfig()
@@ -183,12 +183,12 @@ func watchHeader() string {
 	timeStr := libtime.LocalHourNow()
 	width := getTerminalWidth()
 	numExtraChars := 4
-	padding := strings.Repeat(" ", slices.MaxInt(width-len(cmdStr)-len(timeStr)-numExtraChars, 0))
-	return fmt.Sprintf("$ %s  %s%s", cmdStr, padding, libtime.LocalHourNow())
+	padding := strings.Repeat(" ", slices.MaxInt(width-len(_cmdStr)-len(timeStr)-numExtraChars, 0))
+	return fmt.Sprintf("$ %s  %s%s", _cmdStr, padding, libtime.LocalHourNow())
 }
 
 func rerun(f func() (string, error)) {
-	if flagWatch {
+	if _flagWatch {
 		print("\033[H\033[2J") // clear the screen
 
 		var prevStrSlice []string

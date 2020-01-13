@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package workloads
+package operator
 
 import (
 	"bytes"
@@ -26,8 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/operator/api/context"
-	"github.com/cortexlabs/cortex/pkg/operator/api/userconfig"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	kapps "k8s.io/api/apps/v1"
@@ -115,7 +114,7 @@ func getAPISpec(
 	apiConfig *userconfig.API,
 	projectID string,
 	deploymentID string,
-) (*context.Context, error) {
+) (*spec.API, error) {
 
 	var buf bytes.Buffer
 	buf.WriteString(apiConfig.Name)
@@ -136,10 +135,6 @@ func getAPISpec(
 		ProjectID:    projectID,
 		ProjectKey:   projectKey(projectID),
 	}
-
-	ctx.ID = calculateID(ctx)
-	ctx.Key = ctxKey(ctx.ID, ctx.App.Name)
-	return ctx, nil
 }
 
 func getK8sResources(apiConfig *userconfig.API) (
