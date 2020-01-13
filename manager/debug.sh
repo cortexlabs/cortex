@@ -35,6 +35,10 @@ done
 mkdir -p /.cortex/cortex-debug/logs
 kubectl get pods --all-namespaces -o json | jq '.items[] | "kubectl logs -n \(.metadata.namespace) \(.metadata.name) --all-containers --timestamps --tail=10000 &>/dev/null > /.cortex/cortex-debug/logs/\(.metadata.namespace).\(.metadata.name) && echo -n ."' | xargs -n 1 bash -c
 
+kubectl top pods --all-namespaces --containers=true &>/dev/null > "/.cortex/cortex-debug/k8s/top_pods"
+kubectl top nodes &>/dev/null > "/.cortex/cortex-debug/k8s/top_nodes"
+
+
 mkdir -p /.cortex/cortex-debug/aws
 aws --region=$CORTEX_REGION autoscaling describe-auto-scaling-groups &>/dev/null > "/.cortex/cortex-debug/aws/asgs"
 echo -n "."
