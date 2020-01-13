@@ -18,10 +18,11 @@ package endpoints
 
 import (
 	"net/http"
-	"time"
 
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/operator/workloads"
+	"github.com/cortexlabs/cortex/pkg/types/status"
+	"github.com/gorilla/mux"
 )
 
 func GetAPIs(w http.ResponseWriter, r *http.Request) {
@@ -51,20 +52,16 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TOOD CLI should handle no APIs
-	Respond(w, schema.GetAPIsResponse{
-		APIs: apis,
-		Statuses: statuses,
+	respond(w, schema.GetAPIsResponse{
+		APIs:       apis,
+		Statuses:   statuses,
 		AllMetrics: allMetrics,
-		BaseURL: baseURL,
+		BaseURL:    baseURL,
 	})
 }
 
 func GetAPI(w http.ResponseWriter, r *http.Request) {
-	apiName, err := getRequiredQueryParam("apiName", r)
-	if err != nil {
-		respondError(w, err)
-		return
-	}
+	apiName := mux.Vars(r)["apiName"]
 
 	status, err := operator.GetStatus(apiName)
 	if err != nil {
@@ -83,7 +80,7 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metrics, err := operator.GetMetrics(&api)
+	metrics, err := operator.GetMetrics(api)
 	if err != nil {
 		respondError(w, err)
 		return
@@ -95,9 +92,9 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	Respond(w, schema.GetAPIsResponse{
-		API: api,
-		Status: status,
+	respond(w, schema.GetAPIResponse{
+		API:     api,
+		Status:  status,
 		Metrics: metrics,
 		BaseURL: baseURL,
 	})

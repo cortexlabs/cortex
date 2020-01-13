@@ -132,7 +132,7 @@ func (c *Client) UpdateVirtualService(spec *kunstructured.Unstructured) (*kunstr
 }
 
 func (c *Client) ApplyVirtualService(spec *kunstructured.Unstructured) (*kunstructured.Unstructured, error) {
-	existing, err := c.GetVirtualService(spec.GetName(), spec.GetNamespace())
+	existing, err := c.GetVirtualService(spec.GetName())
 	if err != nil {
 		return nil, err
 	}
@@ -143,8 +143,8 @@ func (c *Client) ApplyVirtualService(spec *kunstructured.Unstructured) (*kunstru
 	return c.UpdateVirtualService(spec)
 }
 
-func (c *Client) GetVirtualService(name, namespace string) (*kunstructured.Unstructured, error) {
-	virtualService, err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(namespace).Get(name, kmeta.GetOptions{
+func (c *Client) GetVirtualService(name string) (*kunstructured.Unstructured, error) {
+	virtualService, err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(c.Namespace).Get(name, kmeta.GetOptions{
 		TypeMeta: virtualServiceTypeMeta,
 	})
 
@@ -157,16 +157,16 @@ func (c *Client) GetVirtualService(name, namespace string) (*kunstructured.Unstr
 	return virtualService, nil
 }
 
-func (c *Client) VirtualServiceExists(name, namespace string) (bool, error) {
-	service, err := c.GetVirtualService(name, namespace)
+func (c *Client) VirtualServiceExists(name string) (bool, error) {
+	service, err := c.GetVirtualService(name)
 	if err != nil {
 		return false, err
 	}
 	return service != nil, nil
 }
 
-func (c *Client) DeleteVirtualService(name, namespace string) (bool, error) {
-	err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(namespace).Delete(name, &kmeta.DeleteOptions{
+func (c *Client) DeleteVirtualService(name string) (bool, error) {
+	err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(c.Namespace).Delete(name, &kmeta.DeleteOptions{
 		TypeMeta: virtualServiceTypeMeta,
 	})
 	if kerrors.IsNotFound(err) {
@@ -178,12 +178,12 @@ func (c *Client) DeleteVirtualService(name, namespace string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) ListVirtualServices(namespace string, opts *kmeta.ListOptions) ([]kunstructured.Unstructured, error) {
+func (c *Client) ListVirtualServices(opts *kmeta.ListOptions) ([]kunstructured.Unstructured, error) {
 	if opts == nil {
 		opts = &kmeta.ListOptions{}
 	}
 
-	vsList, err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(namespace).List(*opts)
+	vsList, err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(c.Namespace).List(*opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -193,22 +193,22 @@ func (c *Client) ListVirtualServices(namespace string, opts *kmeta.ListOptions) 
 	return vsList.Items, nil
 }
 
-func (c *Client) ListVirtualServicesByLabels(namespace string, labels map[string]string) ([]kunstructured.Unstructured, error) {
+func (c *Client) ListVirtualServicesByLabels(labels map[string]string) ([]kunstructured.Unstructured, error) {
 	opts := &kmeta.ListOptions{
 		LabelSelector: LabelSelector(labels),
 	}
-	return c.ListVirtualServices(namespace, opts)
+	return c.ListVirtualServices(opts)
 }
 
-func (c *Client) ListVirtualServicesByLabel(namespace string, labelKey string, labelValue string) ([]kunstructured.Unstructured, error) {
-	return c.ListVirtualServicesByLabels(namespace, map[string]string{labelKey: labelValue})
+func (c *Client) ListVirtualServicesByLabel(labelKey string, labelValue string) ([]kunstructured.Unstructured, error) {
+	return c.ListVirtualServicesByLabels(map[string]string{labelKey: labelValue})
 }
 
-func (c *Client) ListVirtualServicesWithLabelKeys(namespace string, labelKeys ...string) ([]kunstructured.Unstructured, error) {
+func (c *Client) ListVirtualServicesWithLabelKeys(labelKeys ...string) ([]kunstructured.Unstructured, error) {
 	opts := &kmeta.ListOptions{
 		LabelSelector: LabelExistsSelector(labelKeys...),
 	}
-	return c.ListVirtualServices(namespace, opts)
+	return c.ListVirtualServices(opts)
 }
 
 func ExtractVirtualServiceGateways(virtualService *kunstructured.Unstructured) (strset.Set, error) {

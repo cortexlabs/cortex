@@ -37,18 +37,21 @@ func operatorCron() error {
 	}
 
 	return parallel.RunFirstErr(
-		deleteEvictedPods(failedPods),
-		updateHPAs(deployments),
+		func() error {
+			return deleteEvictedPods(failedPods)
+		},
+		func() error {
+			return updateHPAs(deployments)
+		},
 	)
 }
 
 func deleteEvictedPods(failedPods []kcore.Pod) error {
 	var errs []error
 
-	evictedPods := []kcore.Pod{}
 	for _, pod := range failedPods {
 		if pod.Status.Reason == k8s.ReasonEvicted {
-			_, err := config.Kubernetes.DeletePod(pod.Name)
+			_, err := config.K8s.Default.DeletePod(pod.Name)
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -56,7 +59,7 @@ func deleteEvictedPods(failedPods []kcore.Pod) error {
 	}
 
 	if errors.HasError(errs) {
-		return errors.FirstError(errs)
+		return errors.FirstError(errs...)
 	}
 	return nil
 }
@@ -67,13 +70,19 @@ func updateHPAs(deployments []kapps.Deployment) error {
 	var errs []error
 
 	for _, deployment := range deployments {
-		if config.Kubernetes.HPAExists(deployment.Labels["apiName"]) {
+		hpaExists, err := config.K8s.Default.HPAExists(deployment.Labels["apiName"])
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		if hpaExists {
 			continue // since the HPA is deleted every time the deployment is updated
 		}
 
 		if allPods == nil {
 			var err error
-			allPods, err = config.Kubernetes.ListPodsWithLabels("apiName")
+			allPods, err = config.K8s.Default.ListPodsWithLabelKeys("apiName")
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -81,7 +90,7 @@ func updateHPAs(deployments []kapps.Deployment) error {
 		}
 
 		updatedReplicas := numUpdatedReadyReplicas(&deployment, allPods)
-		if updatedReplicas < deployment.Spec.Replicas {
+		if deployment.Spec.Replicas == nil || updatedReplicas < *deployment.Spec.Replicas {
 			continue // not yet up-to-date
 		}
 
@@ -91,7 +100,13 @@ func updateHPAs(deployments []kapps.Deployment) error {
 				!condition.LastUpdateTime.IsZero() &&
 				time.Now().After(condition.LastUpdateTime.Add(35*time.Second)) { // the metrics poll interval is 30 seconds, so 35 should be safe
 
-				_, err := config.Kubernetes.CreateHPA(hpaSpec(deployment))
+				spec, err := hpaSpec(&deployment)
+				if err != nil {
+					errs = append(errs, err)
+					continue
+				}
+
+				_, err = config.K8s.Default.CreateHPA(spec)
 				if err != nil {
 					errs = append(errs, err)
 					continue
@@ -101,7 +116,7 @@ func updateHPAs(deployments []kapps.Deployment) error {
 	}
 
 	if errors.HasError(errs) {
-		return errors.FirstError(errs)
+		return errors.FirstError(errs...)
 	}
 	return nil
 }
@@ -112,7 +127,7 @@ func numUpdatedReadyReplicas(deployment *kapps.Deployment, pods []kcore.Pod) int
 		if pod.Labels["apiName"] != deployment.Labels["apiName"] {
 			continue
 		}
-		if k8s.IsPodReady(&pod) && k8s.IsPodSpecLatest(&pod, deployment) {
+		if k8s.IsPodReady(&pod) && k8s.IsPodSpecLatest(deployment, &pod) {
 			readyReplicas++
 		}
 	}
@@ -127,12 +142,12 @@ func getCronK8sResources() ([]kapps.Deployment, []kcore.Pod, error) {
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployments, err = config.Kubernetes.ListDeploymentsWithLabels("apiName")
+			deployments, err = config.K8s.Default.ListDeploymentsWithLabelKeys("apiName")
 			return err
 		},
 		func() error {
 			var err error
-			failedPods, err = config.Kubernetes.ListPods(&kmeta.ListOptions{
+			failedPods, err = config.K8s.Default.ListPods(&kmeta.ListOptions{
 				FieldSelector: "status.phase=Failed",
 			})
 			return err
@@ -143,7 +158,7 @@ func getCronK8sResources() ([]kapps.Deployment, []kcore.Pod, error) {
 }
 
 func telemetryCron() error {
-	nodes, err := config.Kubernetes.ListNodes(nil)
+	nodes, err := config.K8s.Default.ListNodes(nil)
 	if err != nil {
 		return err
 	}
@@ -171,11 +186,13 @@ func telemetryCron() error {
 	}
 
 	telemetry.Event("operator.cron", properties)
+
+	return nil
 }
 
 func cronErrHandler(cronName string) func(error) {
-	return func(error) {
-		err = errors.Wrap(cronName " cron failed")
+	return func(err error) {
+		err = errors.Wrap(err, cronName+" cron failed")
 		telemetry.Error(err)
 		errors.PrintError(err)
 	}

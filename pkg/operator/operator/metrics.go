@@ -31,7 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -48,7 +48,7 @@ func GetMultipleMetrics(apis []spec.API) ([]metrics.Metrics, error) {
 			if err != nil {
 				return err
 			}
-			allMetrics[localIdx] = metrics
+			allMetrics[localIdx] = *metrics
 			return nil
 		}
 	}
@@ -61,7 +61,7 @@ func GetMultipleMetrics(apis []spec.API) ([]metrics.Metrics, error) {
 	return allMetrics, nil
 }
 
-func GetMetrics(api *spec.API) (metrics.Metrics, error) {
+func GetMetrics(api *spec.API) (*metrics.Metrics, error) {
 	// Get realtime metrics for the seconds elapsed in the latest minute
 	realTimeEnd := time.Now().Truncate(time.Second)
 	realTimeStart := realTimeEnd.Truncate(time.Minute)
@@ -78,14 +78,14 @@ func GetMetrics(api *spec.API) (metrics.Metrics, error) {
 	batchStart := batchEnd.Add(-14 * 24 * time.Hour) // two weeks ago
 	requestList = append(requestList, getMetricsFunc(api, 60*60, &batchStart, &batchEnd, &batchMetrics))
 
-	err = parallel.RunFirstErr(requestList...)
+	err := parallel.RunFirstErr(requestList...)
 	if err != nil {
-		return metrics.Metrics{}, err
+		return nil, err
 	}
 
 	mergedMetrics := realTimeMetrics.Merge(batchMetrics)
 	mergedMetrics.APIName = api.Name
-	return mergedMetrics, nil
+	return &mergedMetrics, nil
 }
 
 func getMetricsFunc(api *spec.API, period int64, startTime *time.Time, endTime *time.Time, metrics *metrics.Metrics) func() error {
@@ -143,8 +143,8 @@ func queryMetrics(api *spec.API, period int64, startTime *time.Time, endTime *ti
 	return output.MetricDataResults, nil
 }
 
-func extractNetworkMetrics(metricsDataResults []*cloudwatch.MetricDataResult) (*schema.NetworkStats, error) {
-	var networkStats schema.NetworkStats
+func extractNetworkMetrics(metricsDataResults []*cloudwatch.MetricDataResult) (*metrics.NetworkStats, error) {
+	var networkStats metrics.NetworkStats
 	var requestCounts []*float64
 	var latencyAvgs []*float64
 
@@ -192,8 +192,8 @@ func extractClassificationMetrics(metricsDataResults []*cloudwatch.MetricDataRes
 	return classDistribution
 }
 
-func extractRegressionMetrics(metricsDataResults []*cloudwatch.MetricDataResult) (*schema.RegressionStats, error) {
-	var regressionStats schema.RegressionStats
+func extractRegressionMetrics(metricsDataResults []*cloudwatch.MetricDataResult) (*metrics.RegressionStats, error) {
+	var regressionStats metrics.RegressionStats
 	var predictionAvgs []*float64
 	var requestCounts []*float64
 

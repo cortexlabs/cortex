@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/gorilla/websocket"
 	"gopkg.in/karalabe/cookiejar.v2/collections/deque"
+	kapps "k8s.io/api/apps/v1"
 
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -97,7 +98,7 @@ func pumpStdin(socket *websocket.Conn) {
 }
 
 func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *websocket.Conn) {
-	logGroupName := getLogGroupName(ctx, apiName)
+	logGroupName := getLogGroupName(apiName)
 	eventCache := newEventCache(_maxCacheSize)
 	lastLogStreamRefresh := time.Time{}
 	lastDeploymentRefresh := time.Time{}
@@ -105,6 +106,7 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 	logStreamNames := strset.New()
 	didShowFetchingMessage := false
 	didFetchLogs := false
+	var deployment *kapps.Deployment
 
 	timer := time.NewTimer(0)
 	defer timer.Stop()
@@ -115,13 +117,14 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 			return
 		case <-timer.C:
 			if time.Since(lastDeploymentRefresh) > _deploymentRefreshPeriod {
-				deployment, err := config.Kubernetes.GetDeployment(apiName)
+				var err error
+				deployment, err = config.K8s.Default.GetDeployment(apiName)
 				if err != nil {
 					telemetry.Error(err)
 					writeAndCloseSocket(socket, "error: "+err.Error())
 					continue
 				}
-				lastDeploymentRefresh := time.Now()
+				lastDeploymentRefresh = time.Now()
 			}
 
 			if deployment == nil {
@@ -162,11 +165,13 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 				didFetchLogs = true
 			}
 
+			endTime := libtime.ToMillis(time.Now())
+
 			logEventsOutput, err := config.AWS.CloudWatchLogsClient.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
 				LogGroupName:   aws.String(logGroupName),
 				LogStreamNames: aws.StringSlice(logStreamNames.Slice()),
 				StartTime:      aws.Int64(libtime.ToMillis(lastLogTime)),
-				EndTime:        aws.Int64(libtime.ToMillis(time.Now())),
+				EndTime:        aws.Int64(endTime),
 				Limit:          aws.Int64(int64(_maxLogLinesPerRequest)),
 			})
 
@@ -230,7 +235,7 @@ func getLogStreams(logGroupName string) (strset.Set, error) {
 }
 
 func getLogGroupName(apiName string) string {
-	return config.LogGroup + "/" + apiName
+	return config.Cluster.LogGroup + "/" + apiName
 }
 
 func writeString(socket *websocket.Conn, message string) {

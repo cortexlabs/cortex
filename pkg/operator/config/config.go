@@ -32,14 +32,19 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
-const _cluster_config_path := "/configs/cluster/cluster.yaml"
+const _cluster_config_path = "/configs/cluster/cluster.yaml"
 
 var (
-	Cluster         *clusterconfig.InternalConfig
-	AWS             *aws.Client
-	Kubernetes      *k8s.Client
-	IstioKubernetes *k8s.Client
+	Cluster *clusterconfig.InternalConfig
+	AWS     *aws.Client
+	K8s     K8sClients
 )
+
+type K8sClients struct {
+	Default *k8s.Client
+	Cortex  *k8s.Client
+	Istio   *k8s.Client
+}
 
 func Init() error {
 	var err error
@@ -55,7 +60,7 @@ func Init() error {
 	}
 
 	errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath)
-	if errors.HasErrors(errs) {
+	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
 
@@ -81,11 +86,13 @@ func Init() error {
 
 	Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
 
-	if Kubernetes, err = k8s.New(consts.K8sNamespace, Cluster.OperatorInCluster); err != nil {
+	if K8s.Default, err = k8s.New("default", Cluster.OperatorInCluster); err != nil {
 		return err
 	}
-
-	if IstioKubernetes, err = k8s.New("istio-system", Cluster.OperatorInCluster); err != nil {
+	if K8s.Cortex, err = k8s.New("cortex", Cluster.OperatorInCluster); err != nil {
+		return err
+	}
+	if K8s.Istio, err = k8s.New("istio-system", Cluster.OperatorInCluster); err != nil {
 		return err
 	}
 

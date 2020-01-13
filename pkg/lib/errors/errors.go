@@ -73,7 +73,7 @@ func AddErrors(errs []error, newErrs []error, strs ...string) ([]error, bool) {
 }
 
 func WrapAll(errs []error, strs ...string) []error {
-	if !HasErrors(errs) {
+	if !HasError(errs) {
 		return nil
 	}
 	wrappedErrs := make([]error, len(errs))
@@ -83,7 +83,7 @@ func WrapAll(errs []error, strs ...string) []error {
 	return wrappedErrs
 }
 
-func HasErrors(errs []error) bool {
+func HasError(errs []error) bool {
 	for _, err := range errs {
 		if err != nil {
 			return true

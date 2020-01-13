@@ -25,13 +25,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -200,7 +202,7 @@ var _computeFieldValidation = &cr.StructFieldValidation{
 	},
 }
 
-func ExtractAPIConfigs(configBytes []byte, projectFileMap map[string][]byte, filePath string) ([]*API, error) {
+func ExtractAPIConfigs(configBytes []byte, projectFileMap map[string][]byte, filePath string) ([]userconfig.API, error) {
 	var err error
 
 	configData, err := cr.ReadYAMLBytes(configBytes)
@@ -213,12 +215,12 @@ func ExtractAPIConfigs(configBytes []byte, projectFileMap map[string][]byte, fil
 		return nil, errors.Wrap(ErrorMalformedConfig(), filePath)
 	}
 
-	apis := make([]*API, len(configDataSlice))
+	apis := make([]userconfig.API, len(configDataSlice))
 	for i, data := range configDataSlice {
-		api := &API{}
-		errs := cr.Struct(api, data, apiValidation)
-		if errors.HasErrors(errs) {
-			name, _ := data[NameKey].(string)
+		api := userconfig.API{}
+		errs := cr.Struct(&api, data, _apiValidation)
+		if errors.HasError(errs) {
+			name, _ := data[userconfig.NameKey].(string)
 			return nil, errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
 		}
 
@@ -234,7 +236,7 @@ func ExtractAPIConfigs(configBytes []byte, projectFileMap map[string][]byte, fil
 	return apis, nil
 }
 
-func validateAPIs(apis []*userconfig.API, projectFileMap map[string][]byte) error {
+func validateAPIs(apis []userconfig.API, projectFileMap map[string][]byte) error {
 	if len(apis) == 0 {
 		return ErrorNoAPIs()
 	}
@@ -244,16 +246,18 @@ func validateAPIs(apis []*userconfig.API, projectFileMap map[string][]byte) erro
 		return ErrorDuplicateName(dups)
 	}
 
-	maxMem, virtualServices, err := getValidationK8sResources()
+	virtualServices, maxMem, err := getValidationK8sResources()
 	if err != nil {
 		return err
 	}
 
 	for _, api := range apis {
-		if err := validateAPI(api, projectFileMap, virtualServices, maxMem); err != nil {
+		if err := validateAPI(&api, projectFileMap, virtualServices, maxMem); err != nil {
 			return err
 		}
 	}
+
+	return nil
 }
 
 func validateAPI(
@@ -268,11 +272,11 @@ func validateAPI(
 	}
 
 	if err := validatePredictor(api.Predictor, projectFileMap); err != nil {
-		return errors.Wrap(err, api.Identify(), PredictorKey)
+		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
 	}
 
 	if err := validateCompute(api.Compute, maxMem); err != nil {
-		return errors.Wrap(err, api.Identify(), ComputeKey)
+		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}
 
 	if err := validateEndpointCollisions(api, virtualServices); err != nil {
@@ -299,12 +303,12 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 	}
 
 	if _, ok := projectFileMap[predictor.Path]; !ok {
-		return errors.Wrap(ErrorImplDoesNotExist(predictor.Path), PathKey)
+		return errors.Wrap(ErrorImplDoesNotExist(predictor.Path), userconfig.PathKey)
 	}
 
 	if predictor.PythonPath != nil {
 		if err := validatePythonPath(*predictor.PythonPath, projectFileMap); err != nil {
-			return errors.Wrap(err, PythonPathKey)
+			return errors.Wrap(err, userconfig.PythonPathKey)
 		}
 	}
 
@@ -313,11 +317,11 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 
 func validatePythonPredictor(predictor *userconfig.Predictor) error {
 	if predictor.SignatureKey != nil {
-		return ErrorFieldNotSupportedByPredictorType(SignatureKeyKey, PythonPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.PythonPredictorType)
 	}
 
 	if predictor.Model != nil {
-		return ErrorFieldNotSupportedByPredictorType(ModelKey, PythonPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelKey, userconfig.PythonPredictorType)
 	}
 
 	return nil
@@ -325,7 +329,7 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 
 func validateTensorFlowPredictor(predictor *userconfig.Predictor) error {
 	if predictor.Model == nil {
-		return ErrorFieldMustBeDefinedForPredictorType(ModelKey, TensorFlowPredictorType)
+		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.TensorFlowPredictorType)
 	}
 
 	model := *predictor.Model
@@ -337,12 +341,12 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor) error {
 
 	if strings.HasSuffix(model, ".zip") {
 		if ok, err := awsClient.IsS3PathFile(model); err != nil || !ok {
-			return errors.Wrap(ErrorS3FileNotFound(model), ModelKey)
+			return errors.Wrap(ErrorS3FileNotFound(model), userconfig.ModelKey)
 		}
 	} else {
 		path, err := getTFServingExportFromS3Path(model, awsClient)
 		if path == "" || err != nil {
-			return errors.Wrap(ErrorInvalidTensorFlowDir(model), ModelKey)
+			return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
 		}
 		predictor.Model = pointer.String(path)
 	}
@@ -352,7 +356,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor) error {
 
 func validateONNXPredictor(predictor *userconfig.Predictor) error {
 	if predictor.Model == nil {
-		return ErrorFieldMustBeDefinedForPredictorType(ModelKey, ONNXPredictorType)
+		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.ONNXPredictorType)
 	}
 
 	model := *predictor.Model
@@ -363,12 +367,14 @@ func validateONNXPredictor(predictor *userconfig.Predictor) error {
 	}
 
 	if ok, err := awsClient.IsS3PathFile(model); err != nil || !ok {
-		return errors.Wrap(ErrorS3FileNotFound(model), ModelKey)
+		return errors.Wrap(ErrorS3FileNotFound(model), userconfig.ModelKey)
 	}
 
 	if predictor.SignatureKey != nil {
-		return ErrorFieldNotSupportedByPredictorType(SignatureKeyKey, ONNXPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.ONNXPredictorType)
 	}
+
+	return nil
 }
 
 func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, error) {
@@ -402,7 +408,7 @@ func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 		}
 
 		possiblePath := "s3://" + filepath.Join(bucket, filepath.Join(keyParts[:len(keyParts)-1]...))
-		if version >= highestVersion && IsValidTensorFlowS3Directory(possiblePath, awsClient) {
+		if version >= highestVersion && isValidTensorFlowS3Directory(possiblePath, awsClient) {
 			highestVersion = version
 			highestPath = possiblePath
 		}
@@ -448,7 +454,7 @@ func validatePythonPath(pythonPath string, projectFileMap map[string][]byte) err
 	return nil
 }
 
-func validateCompute(compute *Compute, maxMem *kresource.Quantity) error {
+func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) error {
 	if compute.MinReplicas > compute.MaxReplicas {
 		return ErrorMinReplicasGreaterThanMax(compute.MinReplicas, compute.MaxReplicas)
 	}
@@ -512,8 +518,8 @@ func validateEndpointCollisions(api *userconfig.API, virtualServices []kunstruct
 		}
 
 		for endpoint := range endpoints {
-			if endpoint == *api.Endpoint && virtualService.Labels["apiName"] != api.Name {
-				return errors.Wrap(ErrorDuplicateEndpointOtherDeployment(virtualService.Labels["apiName"]), api.Identify(), userconfig.EndpointKey, endpoint)
+			if endpoint == *api.Endpoint && virtualService.GetLabels()["apiName"] != api.Name {
+				return errors.Wrap(ErrorDuplicateEndpoint(virtualService.GetLabels()["apiName"]), api.Identify(), userconfig.EndpointKey, endpoint)
 			}
 		}
 	}
@@ -521,8 +527,8 @@ func validateEndpointCollisions(api *userconfig.API, virtualServices []kunstruct
 	return nil
 }
 
-func findDuplicateNames(apis []*userconfig.API) []*API {
-	names := make(map[string][]*userconfig.API)
+func findDuplicateNames(apis []userconfig.API) []userconfig.API {
+	names := make(map[string][]userconfig.API)
 
 	for _, api := range apis {
 		names[api.Name] = append(names[api.Name], api)
@@ -543,21 +549,19 @@ func getValidationK8sResources() (
 	error,
 ) {
 
-	var virtualServices *kunstructured.Unstructured
+	var virtualServices []kunstructured.Unstructured
 	var maxMem *kresource.Quantity
 
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			virtualServices, err = config.Kubernetes.ListVirtualServices("default", nil)
+			virtualServices, err = config.K8s.Default.ListVirtualServices(nil)
 			return err
 		},
 		func() error {
 			var err error
 			maxMem, err = updateMemoryCapacityConfigMap()
-			if err != nil {
-				return errors.Wrap(err, "validating memory constraint")
-			}
+			return err
 		},
 	)
 

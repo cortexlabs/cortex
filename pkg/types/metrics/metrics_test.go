@@ -111,7 +111,7 @@ func TestNetworkStatsMerge(t *testing.T) {
 }
 
 func TestAPIMetricsMerge(t *testing.T) {
-	require.Equal(t, APIMetrics{}, APIMetrics{}.Merge(APIMetrics{}))
+	require.Equal(t, Metrics{}, Metrics{}.Merge(Metrics{}))
 
 	classDistribution := map[string]int{
 		"class_a": 1,
@@ -143,16 +143,16 @@ func TestAPIMetricsMerge(t *testing.T) {
 		"class_c": 8,
 	}
 
-	require.Equal(t, APIMetrics{ClassDistribution: classDistribution}, APIMetrics{ClassDistribution: classDistribution}.Merge(APIMetrics{}))
-	require.Equal(t, APIMetrics{ClassDistribution: classDistribution}, APIMetrics{}.Merge(APIMetrics{ClassDistribution: classDistribution}))
+	require.Equal(t, Metrics{ClassDistribution: classDistribution}, Metrics{ClassDistribution: classDistribution}.Merge(Metrics{}))
+	require.Equal(t, Metrics{ClassDistribution: classDistribution}, Metrics{}.Merge(Metrics{ClassDistribution: classDistribution}))
 
-	mergedAPIMetrics := APIMetrics{
+	mergedAPIMetrics := Metrics{
 		ClassDistribution: mergedClassDistribution,
 		NetworkStats:      &mergedNetworkStats,
 		RegressionStats:   &mergedRegressionStats,
 	}
 
-	apiMetrics := APIMetrics{
+	apiMetrics := Metrics{
 		ClassDistribution: classDistribution,
 		NetworkStats:      &networkStats,
 		RegressionStats:   &regressionStats,

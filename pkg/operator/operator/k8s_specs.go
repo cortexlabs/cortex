@@ -22,32 +22,31 @@ import (
 	"path"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
-	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
+	kautoscaling "k8s.io/api/autoscaling/v2beta2"
 	kcore "k8s.io/api/core/v1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
-
-	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 const (
-	_spec_cache_dir = "/mnt/spec"
+	_spec_cache_dir        = "/mnt/spec"
 	_empty_dir_mount_path  = "/mnt"
 	_empty_dir_volume_name = "mnt"
 
 	_apiContainerName            = "api"
 	_tfServingContainerName      = "serve"
 	_downloaderInitContainerName = "downloader"
-	_downloaderLastLog = "pulling the %s serving image"
+	_downloaderLastLog           = "pulling the %s serving image"
 
 	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
@@ -68,7 +67,7 @@ type downloadContainerArg struct {
 	HideUnzippingLog     bool   `json:"hide_unzipping_log"`      // if true, don't log when unzipping
 }
 
-func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
+func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	switch api.Predictor.Type {
 	case userconfig.TensorFlowPredictorType:
 		return tfAPISpec(api, prevDeployment)
@@ -111,19 +110,19 @@ func tfAPISpec(
 		Name:     api.Name,
 		Replicas: getRequestedReplicasFromDeployment(api, prevDeployment),
 		Labels: map[string]string{
-			"apiName":      api.Name,
+			"apiName": api.Name,
 			"apiID":   api.ID,
 			// these labels are important to determine if the deployment was changed in any way
-			"minReplicas": s.Int32(api.MinReplicas),
-			"maxReplicas": s.Int32(api.MaxReplicas),
-			"targetCPUUtilization": s.Int32(api.TargetCPUUtilization),
+			"minReplicas":          s.Int32(api.Compute.MinReplicas),
+			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
+			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
 		},
 		Selector: map[string]string{
-			"apiName":      api.Name,
+			"apiName": api.Name,
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName":      api.Name,
+				"apiName": api.Name,
 				"apiID":   api.ID,
 			},
 			Annotations: map[string]string{
@@ -136,9 +135,9 @@ func tfAPISpec(
 						Name:            _downloaderInitContainerName,
 						Image:           config.Cluster.ImageDownloader,
 						ImagePullPolicy: "Always",
-						Args: []string{"--download=" + tfDownloadArgs(api)},
-						EnvFrom:      _baseEnvVars,
-						VolumeMounts: defaultVolumeMounts(),
+						Args:            []string{"--download=" + tfDownloadArgs(api)},
+						EnvFrom:         _baseEnvVars,
+						VolumeMounts:    _defaultVolumeMounts,
 					},
 				},
 				Containers: []kcore.Container{
@@ -154,9 +153,9 @@ func tfAPISpec(
 							"--model-dir=" + path.Join(_empty_dir_mount_path, "model"),
 							"--project-dir=" + path.Join(_empty_dir_mount_path, "project"),
 						},
-						Env:          getEnvVars(api),
-						EnvFrom:      _baseEnvVars,
-						VolumeMounts: defaultVolumeMounts(),
+						Env:            getEnvVars(api),
+						EnvFrom:        _baseEnvVars,
+						VolumeMounts:   _defaultVolumeMounts,
 						ReadinessProbe: _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: apiResourceList,
@@ -177,7 +176,7 @@ func tfAPISpec(
 						},
 						Env:          getEnvVars(api),
 						EnvFrom:      _baseEnvVars,
-						VolumeMounts: defaultVolumeMounts(),
+						VolumeMounts: _defaultVolumeMounts,
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
 							TimeoutSeconds:      5,
@@ -267,19 +266,19 @@ func pythonAPISpec(
 		Name:     api.Name,
 		Replicas: getRequestedReplicasFromDeployment(api, prevDeployment),
 		Labels: map[string]string{
-			"apiName":      api.Name,
+			"apiName": api.Name,
 			"apiID":   api.ID,
 			// these labels are important to determine if the deployment was changed in any way
-			"minReplicas": s.Int32(api.MinReplicas),
-			"maxReplicas": s.Int32(api.MaxReplicas),
-			"targetCPUUtilization": s.Int32(api.TargetCPUUtilization),
+			"minReplicas":          s.Int32(api.Compute.MinReplicas),
+			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
+			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
 		},
 		Selector: map[string]string{
-			"apiName":      api.Name,
+			"apiName": api.Name,
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName":      api.Name,
+				"apiName": api.Name,
 				"apiID":   api.ID,
 			},
 			Annotations: map[string]string{
@@ -292,9 +291,9 @@ func pythonAPISpec(
 						Name:            _downloaderInitContainerName,
 						Image:           config.Cluster.ImageDownloader,
 						ImagePullPolicy: "Always",
-						Args: []string{"--download=" + pythonDownloadArgs(api)},
-						EnvFrom:      _baseEnvVars,
-						VolumeMounts: defaultVolumeMounts(),
+						Args:            []string{"--download=" + pythonDownloadArgs(api)},
+						EnvFrom:         _baseEnvVars,
+						VolumeMounts:    _defaultVolumeMounts,
 					},
 				},
 				Containers: []kcore.Container{
@@ -308,9 +307,9 @@ func pythonAPISpec(
 							"--cache-dir=" + _spec_cache_dir,
 							"--project-dir=" + path.Join(_empty_dir_mount_path, "project"),
 						},
-						Env:          getEnvVars(api),
-						EnvFrom:      _baseEnvVars,
-						VolumeMounts: defaultVolumeMounts(),
+						Env:            getEnvVars(api),
+						EnvFrom:        _baseEnvVars,
+						VolumeMounts:   _defaultVolumeMounts,
 						ReadinessProbe: _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
@@ -340,7 +339,7 @@ func pythonDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "python"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             config.AWS.S3Path(ctx.ProjectKey),
+				From:             config.AWS.S3Path(api.ProjectKey),
 				To:               path.Join(_empty_dir_mount_path, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -378,19 +377,19 @@ func onnxAPISpec(
 		Name:     api.Name,
 		Replicas: getRequestedReplicasFromDeployment(api, prevDeployment),
 		Labels: map[string]string{
-			"apiName":      api.Name,
+			"apiName": api.Name,
 			"apiID":   api.ID,
 			// these labels are important to determine if the deployment was changed in any way
-			"minReplicas": s.Int32(api.MinReplicas),
-			"maxReplicas": s.Int32(api.MaxReplicas),
-			"targetCPUUtilization": s.Int32(api.TargetCPUUtilization),
+			"minReplicas":          s.Int32(api.Compute.MinReplicas),
+			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
+			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
 		},
 		Selector: map[string]string{
-			"apiName":      api.Name,
+			"apiName": api.Name,
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName":      api.Name,
+				"apiName": api.Name,
 				"apiID":   api.ID,
 			},
 			Annotations: map[string]string{
@@ -402,9 +401,9 @@ func onnxAPISpec(
 						Name:            _downloaderInitContainerName,
 						Image:           config.Cluster.ImageDownloader,
 						ImagePullPolicy: "Always",
-						Args: []string{"--download=" + onnxDownloadArgs(api)},
-						EnvFrom:      _baseEnvVars,
-						VolumeMounts: defaultVolumeMounts(),
+						Args:            []string{"--download=" + onnxDownloadArgs(api)},
+						EnvFrom:         _baseEnvVars,
+						VolumeMounts:    _defaultVolumeMounts,
 					},
 				},
 				Containers: []kcore.Container{
@@ -419,10 +418,10 @@ func onnxAPISpec(
 							"--model-dir=" + path.Join(_empty_dir_mount_path, "model"),
 							"--project-dir=" + path.Join(_empty_dir_mount_path, "project"),
 						},
-						Env:          getEnvVars(api),
-						EnvFrom:      _baseEnvVars,
-						VolumeMounts: defaultVolumeMounts(),
-						ReadinessProbe:  _apiReadinessProbe,,
+						Env:            getEnvVars(api),
+						EnvFrom:        _baseEnvVars,
+						VolumeMounts:   _defaultVolumeMounts,
+						ReadinessProbe: _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
@@ -451,7 +450,7 @@ func onnxDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "onnx"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             config.AWS.S3Path(ctx.ProjectKey),
+				From:             config.AWS.S3Path(api.ProjectKey),
 				To:               path.Join(_empty_dir_mount_path, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -459,7 +458,7 @@ func onnxDownloadArgs(api *spec.API) string {
 				HideUnzippingLog: true,
 			},
 			{
-				From:     *ctx.APIs[api.Name].Predictor.Model,
+				From:     *api.Predictor.Model,
 				To:       path.Join(_empty_dir_mount_path, "model"),
 				ItemName: "the model",
 			},
@@ -476,10 +475,10 @@ func serviceSpec(api *spec.API) *kcore.Service {
 		Port:       _defaultPortInt32,
 		TargetPort: _defaultPortInt32,
 		Labels: map[string]string{
-			"apiName":      api.Name,
+			"apiName": api.Name,
 		},
 		Selector: map[string]string{
-			"apiName":      api.Name,
+			"apiName": api.Name,
 		},
 		Namespace: "default",
 	})
@@ -495,22 +494,35 @@ func virtualServiceSpec(api *spec.API) *kunstructured.Unstructured {
 		Path:        *api.Endpoint,
 		Rewrite:     pointer.String("predict"),
 		Labels: map[string]string{
-			"apiName":      api.Name,
+			"apiName": api.Name,
 		},
 	})
 }
 
-func hpaSpec(deployment *kapps.Deployment) *kautoscaling.HorizontalPodAutoscaler {
+func hpaSpec(deployment *kapps.Deployment) (*kautoscaling.HorizontalPodAutoscaler, error) {
+	minReplicas, ok := s.ParseInt32(deployment.Labels["minReplicas"])
+	if !ok {
+		return nil, errors.New("unable to parse minReplicas from deployment") // unexpected
+	}
+	maxReplicas, ok := s.ParseInt32(deployment.Labels["maxReplicas"])
+	if !ok {
+		return nil, errors.New("unable to parse maxReplicas from deployment") // unexpected
+	}
+	targetCPUUtilization, ok := s.ParseInt32(deployment.Labels["targetCPUUtilization"])
+	if !ok {
+		return nil, errors.New("unable to parse targetCPUUtilization from deployment") // unexpected
+	}
+
 	return k8s.HPA(&k8s.HPASpec{
-		DeploymentName:       internalAPIName(api.Name, ctx.App.Name),
-		MinReplicas:          s.ParseInt32(deployment.Labels["minReplicas"]),
-		MaxReplicas:          s.ParseInt32(deployment.Labels["maxReplicas"]),
-		TargetCPUUtilization: s.ParseInt32(deployment.Labels["targetCPUUtilization"]),,
+		DeploymentName:       deployment.Labels["apiName"],
+		MinReplicas:          minReplicas,
+		MaxReplicas:          maxReplicas,
+		TargetCPUUtilization: targetCPUUtilization,
 		Labels: map[string]string{
-			"apiName":      deployment.Labels["apiName"],
+			"apiName": deployment.Labels["apiName"],
 		},
 		Namespace: "default",
-	})
+	}), nil
 }
 
 func getRequestedReplicasFromDeployment(api *spec.API, deployment *kapps.Deployment) int32 {
@@ -535,7 +547,7 @@ func getRequestedReplicas(api *spec.API, k8sRequested int32) int32 {
 	return requestedReplicas
 }
 
-func getEnvVars(api *spec.API) []kcore.EnvVar{} {
+func getEnvVars(api *spec.API) []kcore.EnvVar {
 	envVars := []kcore.EnvVar{}
 
 	for name, val := range api.Predictor.Env {
@@ -566,7 +578,7 @@ func getEnvVars(api *spec.API) []kcore.EnvVar{} {
 	return envVars
 }
 
-var _apiReadinessProbe := &kcore.Probe{
+var _apiReadinessProbe = &kcore.Probe{
 	InitialDelaySeconds: 5,
 	TimeoutSeconds:      5,
 	PeriodSeconds:       5,

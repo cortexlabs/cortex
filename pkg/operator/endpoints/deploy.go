@@ -27,17 +27,16 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
-	"github.com/cortexlabs/cortex/pkg/operator/types/schema"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
 func Deploy(w http.ResponseWriter, r *http.Request) {
 	refresh := getOptionalBoolQParam("refresh", false, r)
 	force := getOptionalBoolQParam("force", false, r)
 
-	configPath := getOptionalStringQParam("configPath", false, r)
+	configPath := getOptionalQParam("configPath", r)
 	if configPath == "" {
 		configPath = "api config file"
 	}
@@ -59,13 +58,15 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	projectBytes, err := files.ReadReqFile(r, "project.zip")
 	if err != nil {
-		return err
+		respondError(w, err)
+		return
 	}
 	projectID := hash.Bytes(projectBytes)
 	projectKey := operator.ProjectKey(projectID)
 	projectFileMap, err := zip.UnzipMemToMem(projectBytes)
 	if err != nil {
-		return err
+		respondError(w, err)
+		return
 	}
 
 	apiConfigs, err := operator.ExtractAPIConfigs(configBytes, projectFileMap, configPath)
@@ -89,17 +90,17 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	// TODO parallelize?
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
-		results[i].Spec, deployResult[i].Message, deployResult[i].Error = operator.UpdateAPI(apiConfig, projectID, refresh, force)
+		results[i].API, results[i].Message, results[i].Error = operator.UpdateAPI(&apiConfig, projectID, refresh, force)
 	}
 
 	respond(w, schema.DeployResponse{
-		Results:     results,
-		APIsBaseURL: baseURL,
-		Message:     deployMessage(results),
+		Results: results,
+		BaseURL: baseURL,
+		Message: deployMessage(results),
 	})
 }
 
-func deployMessage(results []deployResult) string {
+func deployMessage(results []schema.DeployResult) string {
 	statusMessage := mergeResultMessages(results)
 
 	if didAllResultsError(results) {
@@ -111,7 +112,7 @@ func deployMessage(results []deployResult) string {
 	return statusMessage + "\n\n" + apiCommandsMessage
 }
 
-func mergeResultMessages(results []deployResult) string {
+func mergeResultMessages(results []schema.DeployResult) string {
 	var okMessages []string
 	var errMessages []string
 
@@ -128,7 +129,7 @@ func mergeResultMessages(results []deployResult) string {
 	return strings.Join(messages, "\n")
 }
 
-func didAllResultsError(results []deployResult) bool {
+func didAllResultsError(results []schema.DeployResult) bool {
 	for _, result := range results {
 		if result.Error == nil {
 			return false
@@ -137,10 +138,10 @@ func didAllResultsError(results []deployResult) bool {
 	return true
 }
 
-func getAPICommandsMessage(results []deployResult) string {
+func getAPICommandsMessage(results []schema.DeployResult) string {
 	apiName := "<api_name>"
 	if len(results) == 1 {
-		apiName = results[0].APISpec.Name
+		apiName = results[0].API.Name
 	}
 
 	var items table.KeyValuePairs

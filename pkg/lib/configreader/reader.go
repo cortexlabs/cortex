@@ -340,7 +340,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 
 		allErrs, _ = errors.AddError(allErrs, err)
 		allErrs, _ = errors.AddErrors(allErrs, errs)
-		if errors.HasErrors(allErrs) {
+		if errors.HasError(allErrs) {
 			if v.ShortCircuit {
 				return allErrs
 			}
@@ -365,7 +365,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			allErrs = append(allErrs, ErrorUnsupportedKey(extraField))
 		}
 	}
-	if errors.HasErrors(allErrs) {
+	if errors.HasError(allErrs) {
 		return allErrs
 	}
 	return nil
@@ -811,7 +811,7 @@ func StructFromStringMap(dest interface{}, strMap map[string]string, v *StructVa
 
 		allErrs, _ = errors.AddError(allErrs, err)
 		allErrs, _ = errors.AddErrors(allErrs, errs)
-		if errors.HasErrors(allErrs) {
+		if errors.HasError(allErrs) {
 			if v.ShortCircuit {
 				return allErrs
 			}
@@ -836,7 +836,7 @@ func StructFromStringMap(dest interface{}, strMap map[string]string, v *StructVa
 			allErrs = append(allErrs, ErrorUnsupportedKey(extraField))
 		}
 	}
-	if errors.HasErrors(allErrs) {
+	if errors.HasError(allErrs) {
 		return allErrs
 	}
 	return nil
@@ -885,7 +885,7 @@ func ParseYAMLFile(dest interface{}, validation *StructValidation, filePath stri
 	}
 
 	errs := Struct(dest, fileInterface, validation)
-	if errors.HasErrors(errs) {
+	if errors.HasError(errs) {
 		return errors.WrapAll(errs, filePath)
 	}
 

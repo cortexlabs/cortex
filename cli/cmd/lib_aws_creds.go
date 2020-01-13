@@ -90,7 +90,7 @@ var awsCredentialsPromptValidation = &cr.PromptValidation{
 
 func readAWSCredsFromConfigFile(awsCreds *AWSCredentials, path string) error {
 	errs := cr.ParseYAMLFile(awsCreds, awsCredentialsValidation, path)
-	if errors.HasErrors(errs) {
+	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
 

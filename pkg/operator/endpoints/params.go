@@ -17,13 +17,9 @@ limitations under the License.
 package endpoints
 
 import (
-	"encoding/json"
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/gorilla/mux"
 )
 

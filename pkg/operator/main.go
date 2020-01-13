@@ -21,9 +21,9 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/gorilla/mux"
 )
 
@@ -47,9 +47,8 @@ func main() {
 	router.HandleFunc("/info", endpoints.Info).Methods("GET")
 	router.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
 	router.HandleFunc("/delete", endpoints.Delete).Methods("POST")
-	router.HandleFunc("/deployments", endpoints.GetDeployments).Methods("GET")
-	router.HandleFunc("/metrics", endpoints.GetMetrics).Methods("GET")
-	router.HandleFunc("/resources", endpoints.GetResources).Methods("GET")
+	router.HandleFunc("/get", endpoints.GetAPIs).Methods("GET")
+	router.HandleFunc("/get/{apiName}", endpoints.GetAPI).Methods("GET")
 	router.HandleFunc("/logs/read", endpoints.ReadLogs)
 
 	log.Print("Running on port " + _operatorPortStr)

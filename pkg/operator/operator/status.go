@@ -25,23 +25,24 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 )
 
 func GetStatus(apiName string) (*status.Status, error) {
 	var deployment *kapps.Deployment
-	var pods []*kcore.Pod
+	var pods []kcore.Pod
 
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployment, err = config.Kubernetes.GetDeployment(apiName)
+			deployment, err = config.K8s.Default.GetDeployment(apiName)
 			return err
 		},
 		func() error {
 			var err error
-			pods, err = config.Kubernetes.ListPodsByLabel("apiName", apiName)
+			pods, err = config.K8s.Default.ListPodsWithLabelKeys("apiName", apiName)
 			return err
 		},
 	)
@@ -53,19 +54,19 @@ func GetStatus(apiName string) (*status.Status, error) {
 	return apiStatus(deployment, pods)
 }
 
-func GetAllStatuses() ([]*status.Status, error) {
-	var deployments *kapps.Deployment
-	var pods []*kcore.Pod
+func GetAllStatuses() ([]status.Status, error) {
+	var deployments []kapps.Deployment
+	var pods []kcore.Pod
 
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployments, err = config.Kubernetes.ListDeploymentsWithLabelKeys("apiName")
+			deployments, err = config.K8s.Default.ListDeploymentsWithLabelKeys("apiName")
 			return err
 		},
 		func() error {
 			var err error
-			pods, err = config.Kubernetes.ListPodsWithLabelKeys("apiName")
+			pods, err = config.K8s.Default.ListPodsWithLabelKeys("apiName")
 			return err
 		},
 	)
@@ -76,13 +77,13 @@ func GetAllStatuses() ([]*status.Status, error) {
 
 	// TODO sort
 
-	statuses := make([]*Status.status, len(deployments))
+	statuses := make([]status.Status, len(deployments))
 	for i, deployment := range deployments {
-		status, err := apiStatus(deployment, pods)
+		status, err := apiStatus(&deployment, pods)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		statuses[i] = status
+		statuses[i] = *status
 	}
 
 	return statuses, nil
@@ -90,7 +91,7 @@ func GetAllStatuses() ([]*status.Status, error) {
 
 func apiStatus(deployment *kapps.Deployment, allPods []kcore.Pod) (*status.Status, error) {
 	if deployment == nil {
-		return nil
+		return nil, nil
 	}
 
 	minReplicas, ok := s.ParseInt32(deployment.Labels["apiName"])
@@ -101,7 +102,7 @@ func apiStatus(deployment *kapps.Deployment, allPods []kcore.Pod) (*status.Statu
 	status := &status.Status{}
 	status.APIName = deployment.Labels["apiName"]
 	status.APIID = deployment.Labels["apiID"]
-	status.ReplicaCounts = getReplicaCounts(deployment, allPods)
+	status.ReplicaCounts = *getReplicaCounts(deployment, allPods)
 	status.Code = getStatusCode(&status.ReplicaCounts, minReplicas)
 
 	return status, nil
@@ -160,8 +161,8 @@ func updateReplicaCounts(counts *status.ReplicaCounts, deployment *kapps.Deploym
 }
 
 func getStatusCode(counts *status.ReplicaCounts, minReplicas int32) status.Code {
-	if counts.Updated.Ready >= counts.Desired {
-		return status.StatusLive
+	if counts.Updated.Ready >= counts.Requested {
+		return status.Live
 	}
 
 	if counts.Updated.Failed > 0 || counts.Updated.Killed > 0 {
@@ -177,7 +178,7 @@ func getStatusCode(counts *status.ReplicaCounts, minReplicas int32) status.Code 
 	}
 
 	if counts.Updated.Ready >= minReplicas {
-		return status.StatusLive
+		return status.Live
 	}
 
 	if counts.Updated.Pending+counts.Updated.Initializing+counts.Updated.Ready+counts.Updated.Stalled+

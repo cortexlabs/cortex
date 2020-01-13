@@ -17,7 +17,6 @@ limitations under the License.
 package operator
 
 import (
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
@@ -57,7 +56,7 @@ func getMemoryCapacityFromNodes() (*kresource.Quantity, error) {
 			"workload": "true",
 		}),
 	}
-	nodes, err := config.Kubernetes.ListNodes(&opts)
+	nodes, err := config.K8s.Default.ListNodes(&opts)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +78,7 @@ func getMemoryCapacityFromNodes() (*kresource.Quantity, error) {
 }
 
 func getMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
-	configMapData, err := config.Kubernetes.GetConfigMapData(_memConfigMapName)
+	configMapData, err := config.K8s.Cortex.GetConfigMapData(_memConfigMapName)
 	if err != nil {
 		return nil, err
 	}
@@ -98,12 +97,12 @@ func getMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
 
 func updateMemoryCapacityConfigMap() (*kresource.Quantity, error) {
 	memFromConfig := config.Cluster.InstanceMetadata.Memory
-	memFromNodes, err := GetMemoryCapacityFromNodes()
+	memFromNodes, err := getMemoryCapacityFromNodes()
 	if err != nil {
 		return nil, err
 	}
 
-	memFromConfigMap, err := GetMemoryCapacityFromConfigMap()
+	memFromConfigMap, err := getMemoryCapacityFromConfigMap()
 	if err != nil {
 		return nil, err
 	}
@@ -121,13 +120,13 @@ func updateMemoryCapacityConfigMap() (*kresource.Quantity, error) {
 	if memFromConfigMap == nil || minMem.Cmp(*memFromConfigMap) != 0 {
 		configMap := k8s.ConfigMap(&k8s.ConfigMapSpec{
 			Name:      _memConfigMapName,
-			Namespace: consts.K8sNamespace,
+			Namespace: "cortex",
 			Data: map[string]string{
 				_memConfigMapKey: minMem.String(),
 			},
 		})
 
-		_, err := config.Kubernetes.ApplyConfigMap(configMap)
+		_, err := config.K8s.Cortex.ApplyConfigMap(configMap)
 		if err != nil {
 			return nil, err
 		}

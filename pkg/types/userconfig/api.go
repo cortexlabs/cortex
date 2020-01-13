@@ -62,10 +62,10 @@ type Compute struct {
 }
 
 func (api *API) Identify() string {
-	return identifyAPI(api.FilePath, api.Name, api.Index)
+	return IdentifyAPI(api.FilePath, api.Name, api.Index)
 }
 
-func identifyAPI(filePath string, name string, index int) string {
+func IdentifyAPI(filePath string, name string, index int) string {
 	str := ""
 
 	if filePath != "" {

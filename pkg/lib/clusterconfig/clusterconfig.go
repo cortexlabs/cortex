@@ -790,7 +790,7 @@ func validateInstanceDistribution(instances []string) ([]string, error) {
 func SetDefaults(cc *Config) error {
 	var emptyMap interface{} = map[interface{}]interface{}{}
 	errs := cr.Struct(cc, emptyMap, Validation)
-	if errors.HasErrors(errs) {
+	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
 	return nil
@@ -811,7 +811,7 @@ func DefaultAccessConfig() (*AccessConfig, error) {
 	accessConfig := &AccessConfig{}
 	var emptyMap interface{} = map[interface{}]interface{}{}
 	errs := cr.Struct(accessConfig, emptyMap, AccessValidation)
-	if errors.HasErrors(errs) {
+	if errors.HasError(errs) {
 		return nil, errors.FirstError(errs...)
 	}
 	return accessConfig, nil

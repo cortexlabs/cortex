@@ -27,7 +27,7 @@ import (
 func Init() error {
 	telemetry.Event("operator.init")
 
-	_, err = updateMemoryCapacityConfigMap()
+	_, err := updateMemoryCapacityConfigMap()
 	if err != nil {
 		return errors.Wrap(err, "init")
 	}

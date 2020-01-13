@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -29,6 +30,7 @@ type ErrorKind int
 const (
 	ErrUnknown ErrorKind = iota
 	ErrCortexInstallationBroken
+	ErrLoadBalancerInitializing
 	ErrAPIInitializing
 	ErrMalformedConfig
 	ErrNoAPIs
@@ -39,7 +41,7 @@ const (
 	ErrInitReplicasGreaterThanMax
 	ErrInitReplicasLessThanMin
 	ErrImplDoesNotExist
-	ErrExternalNotFound
+	ErrS3FileNotFound
 	ErrONNXDoesntSupportZip
 	ErrInvalidTensorFlowDir
 	ErrFieldMustBeDefinedForPredictorType
@@ -51,6 +53,7 @@ const (
 var errorKinds = []string{
 	"err_unknown",
 	"err_cortex_installation_broken",
+	"err_load_balancer_initializing",
 	"err_api_initializing",
 	"err_malformed_config",
 	"err_no_apis",
@@ -143,7 +146,7 @@ func ErrorNoAPIs() error {
 	})
 }
 
-func ErrorDuplicateName(apis []*userconfig.API) error {
+func ErrorDuplicateName(apis []userconfig.API) error {
 	filePaths := strset.New()
 	for _, api := range apis {
 		filePaths.Add(api.FilePath)
@@ -179,21 +182,21 @@ func ErrorOneOfPrerequisitesNotDefined(argName string, prerequisites ...string) 
 func ErrorMinReplicasGreaterThanMax(min int32, max int32) error {
 	return errors.WithStack(Error{
 		Kind:    ErrMinReplicasGreaterThanMax,
-		message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", MinReplicasKey, MaxReplicasKey, min, max),
+		message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", userconfig.MinReplicasKey, userconfig.MaxReplicasKey, min, max),
 	})
 }
 
 func ErrorInitReplicasGreaterThanMax(init int32, max int32) error {
 	return errors.WithStack(Error{
 		Kind:    ErrInitReplicasGreaterThanMax,
-		message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", InitReplicasKey, MaxReplicasKey, init, max),
+		message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", userconfig.InitReplicasKey, userconfig.MaxReplicasKey, init, max),
 	})
 }
 
 func ErrorInitReplicasLessThanMin(init int32, min int32) error {
 	return errors.WithStack(Error{
 		Kind:    ErrInitReplicasLessThanMin,
-		message: fmt.Sprintf("%s cannot be less than %s (%d < %d)", InitReplicasKey, MinReplicasKey, init, min),
+		message: fmt.Sprintf("%s cannot be less than %s (%d < %d)", userconfig.InitReplicasKey, userconfig.MinReplicasKey, init, min),
 	})
 }
 
@@ -236,14 +239,14 @@ func ErrorInvalidTensorFlowDir(path string) error {
 	})
 }
 
-func ErrorFieldMustBeDefinedForPredictorType(fieldKey string, predictorType PredictorType) error {
+func ErrorFieldMustBeDefinedForPredictorType(fieldKey string, predictorType userconfig.PredictorType) error {
 	return errors.WithStack(Error{
 		Kind:    ErrFieldMustBeDefinedForPredictorType,
 		message: fmt.Sprintf("%s field must be defined for the %s predictor type", fieldKey, predictorType.String()),
 	})
 }
 
-func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType PredictorType) error {
+func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType userconfig.PredictorType) error {
 	return errors.WithStack(Error{
 		Kind:    ErrFieldNotSupportedByPredictorType,
 		message: fmt.Sprintf("%s is not a supported field for the %s predictor type", fieldKey, predictorType.String()),

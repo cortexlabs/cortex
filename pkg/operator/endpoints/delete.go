@@ -17,10 +17,11 @@ limitations under the License.
 package endpoints
 
 import (
+	"fmt"
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
 func Delete(w http.ResponseWriter, r *http.Request) {
@@ -32,10 +33,14 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	keepCache := getOptionalBoolQParam("keepCache", false, r)
 
-	wasDeployed := operator.DeleteAPI(apiName, keepCache)
+	wasDeployed, err := operator.DeleteAPI(apiName, keepCache)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
 
 	if !wasDeployed {
-		respondError(w, ErrorAppNotDeployed(apiName))
+		respondError(w, ErrorAPINotDeployed(apiName))
 		return
 	}
 

@@ -26,9 +26,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -51,51 +52,51 @@ func UpdateAPI(
 		deploymentID = prevDeployment.Labels["deploymentID"]
 	}
 
-	apiSpec, err := getAPISpec(apiConfig, projectID, deploymentID)
-	if err != nil {
-		return nil, "", err
-	}
+	api := getAPISpec(apiConfig, projectID, deploymentID)
 
 	var msg string
 
 	if prevDeployment == nil {
-		err = config.AWS.UploadMsgpackToS3(apiSpec, apiSpec.Key)
+		err = config.AWS.UploadMsgpackToS3(api, api.Key)
 		if err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
-		if err = applyK8sResources(apiSpec, prevDeployment, prevService, prevVirtualService); err != nil {
+		if err = applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			return nil, "", err
 		}
-		msg = fmt.Sprintf("creating %s api", apiSpec.Name)
+		msg = fmt.Sprintf("creating %s api", api.Name)
 
-	} else if !k8s.AreDeploymentsEqual(prevDeployment, deploymentSpec(apiSpec)) {
-		if isDeploymentUpdating(prevDeployment) && !force {
-			return nil, "", errors.New(fmt.Sprintf("%s api is updating (override with --force)", apiSpec.Name))
+	} else if !k8s.AreDeploymentsEqual(prevDeployment, deploymentSpec(api, prevDeployment)) {
+		if prevDeployment.Status.UpdatedReplicas < api.Compute.MinReplicas && !force { // TODO: UpdatedReplicas may include replicas that are not ready
+			return nil, "", errors.New(fmt.Sprintf("%s api is updating (override with --force)", api.Name))
 		}
-		err = config.AWS.UploadMsgpackToS3(apiSpec, apiSpec.Key)
+		err = config.AWS.UploadMsgpackToS3(api, api.Key)
 		if err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
-		if err = applyK8sResources(apiSpec, prevDeployment, prevService, prevVirtualService); err != nil {
+		if err = applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			return nil, "", err
 		}
-		msg = fmt.Sprintf("updating %s api", apiSpec.Name)
+		msg = fmt.Sprintf("updating %s api", api.Name)
 
 	} else { // deployment didn't change
-		if isDeploymentUpdating(prevDeployment) {
-			msg = fmt.Sprintf("%s api is already updating", apiSpec.Name)
+		if prevDeployment.Status.UpdatedReplicas < api.Compute.MinReplicas { // TODO: UpdatedReplicas may include replicas that are not ready
+			msg = fmt.Sprintf("%s api is already updating", api.Name)
 		} else {
-			msg = fmt.Sprintf("%s api is up to date", apiSpec.Name)
+			msg = fmt.Sprintf("%s api is up to date", api.Name)
 		}
 	}
 
-	return apiSpec, msg, nil
+	return api, msg, nil
 }
 
-func DeleteAPI(apiName string, keepCache bool) bool {
-	wasDeployed := config.Kubernetes.DeploymentExists(apiName)
+func DeleteAPI(apiName string, keepCache bool) (bool, error) {
+	wasDeployed, err := config.K8s.Default.DeploymentExists(apiName)
+	if err != nil {
+		return false, err
+	}
 
-	parallel.Run(
+	err = parallel.RunFirstErr(
 		func() error {
 			return deleteK8sResources(apiName)
 		},
@@ -107,14 +108,18 @@ func DeleteAPI(apiName string, keepCache bool) bool {
 		},
 	)
 
-	return wasDeployed
+	if err != nil {
+		return false, err
+	}
+
+	return wasDeployed, nil
 }
 
 func getAPISpec(
 	apiConfig *userconfig.API,
 	projectID string,
 	deploymentID string,
-) (*spec.API, error) {
+) *spec.API {
 
 	var buf bytes.Buffer
 	buf.WriteString(apiConfig.Name)
@@ -130,10 +135,10 @@ func getAPISpec(
 		ID:           id,
 		Key:          specKey(apiConfig.Name, id),
 		DeploymentID: deploymentID,
-		LastUpdated:  time.Now().Unix(),
+		LastUpdated:  time.Now(),
 		MetadataRoot: metadataRoot(apiConfig.Name, id),
 		ProjectID:    projectID,
-		ProjectKey:   projectKey(projectID),
+		ProjectKey:   ProjectKey(projectID),
 	}
 }
 
@@ -151,17 +156,17 @@ func getK8sResources(apiConfig *userconfig.API) (
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployment, err = config.Kubernetes.GetDeployment(apiConfig.Name)
+			deployment, err = config.K8s.Default.GetDeployment(apiConfig.Name)
 			return err
 		},
 		func() error {
 			var err error
-			service, err = config.Kubernetes.GetService(apiConfig.Name)
+			service, err = config.K8s.Default.GetService(apiConfig.Name)
 			return err
 		},
 		func() error {
 			var err error
-			virtualService, err = config.Kubernetes.GetVirtualService(apiConfig.Name)
+			virtualService, err = config.K8s.Default.GetVirtualService(apiConfig.Name)
 			return err
 		},
 	)
@@ -170,46 +175,53 @@ func getK8sResources(apiConfig *userconfig.API) (
 }
 
 func applyK8sResources(
-	apiSpec *spec.API,
+	api *spec.API,
 	prevDeployment *kapps.Deployment,
 	prevService *kcore.Service,
 	prevVirtualService *kunstructured.Unstructured,
 ) error {
 
-	newDeployment := deploymentSpec(apiSpec, prevDeployment)
-	newService := serviceSpec(apiSpec)
-	newVirtualService := virtualServiceSpec(apiSpec)
+	newDeployment := deploymentSpec(api, prevDeployment)
+	newService := serviceSpec(api)
+	newVirtualService := virtualServiceSpec(api)
 
 	return parallel.RunFirstErr(
 		func() error {
 			if prevDeployment == nil {
-				return config.Kubernetes.CreateDeployment(newDeployment)
+				_, err := config.K8s.Default.CreateDeployment(newDeployment)
+				return err
 			} else {
 				// Delete deployment if it never became ready
 				if prevDeployment.Status.ReadyReplicas == 0 {
-					config.Kubernetes.DeleteDeployment(apiSpec.Name)
-					return config.Kubernetes.CreateDeployment(newDeployment)
+					config.K8s.Default.DeleteDeployment(api.Name)
+					_, err := config.K8s.Default.CreateDeployment(newDeployment)
+					return err
 				}
-				return config.Kubernetes.UpdateDeployment(newDeployment)
+				_, err := config.K8s.Default.UpdateDeployment(newDeployment)
+				return err
 			}
 		},
 		func() error {
 			if prevService == nil {
-				return config.Kubernetes.CreateService(newService)
+				_, err := config.K8s.Default.CreateService(newService)
+				return err
 			} else {
-				return config.Kubernetes.UpdateService(newService)
+				_, err := config.K8s.Default.UpdateService(newService)
+				return err
 			}
 		},
 		func() error {
 			if prevVirtualService == nil {
-				return config.Kubernetes.CreateVirtualService(newVirtualService)
+				_, err := config.K8s.Default.CreateVirtualService(newVirtualService)
+				return err
 			} else {
-				return config.Kubernetes.UpdateVirtualService(newVirtualService)
+				_, err := config.K8s.Default.UpdateVirtualService(newVirtualService)
+				return err
 			}
 		},
 		func() error {
 			// Delete HPA while updating replicas to avoid unwanted autoscaling due to CPU fluctuations
-			config.Kubernetes.DeleteHPA(apiSpec.Name)
+			config.K8s.Default.DeleteHPA(api.Name)
 			return nil
 		},
 	)
@@ -218,16 +230,20 @@ func applyK8sResources(
 func deleteK8sResources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
-			return config.Kubernetes.DeleteDeployment(apiName)
+			_, err := config.K8s.Default.DeleteDeployment(apiName)
+			return err
 		},
 		func() error {
-			return config.Kubernetes.DeleteService(apiName)
+			_, err := config.K8s.Default.DeleteService(apiName)
+			return err
 		},
 		func() error {
-			return config.Kubernetes.DeleteVirtualService(apiName, "default")
+			_, err := config.K8s.Default.DeleteVirtualService(apiName)
+			return err
 		},
 		func() error {
-			return config.Kubernetes.DeleteHPA(apiName)
+			_, err := config.K8s.Default.DeleteHPA(apiName)
+			return err
 		},
 	)
 }
@@ -238,7 +254,7 @@ func deleteS3Resources(apiName string) error {
 }
 
 func APIsBaseURL() (string, error) {
-	service, err := config.IstioKubernetes.GetService("apis-ingressgateway")
+	service, err := config.K8s.Istio.GetService("apis-ingressgateway")
 	if err != nil {
 		return "", err
 	}
@@ -273,7 +289,7 @@ func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
 			if err != nil {
 				return err
 			}
-			apis[localIdx] = api
+			apis[localIdx] = *api
 			return nil
 		}
 	}
