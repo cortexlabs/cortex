@@ -94,6 +94,7 @@ var upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
+			fmt.Println("additional information may be found in the activity history of your cluster's autoscaling groups https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
 			exit.ErrorNoPrint()
 		}
 	},
