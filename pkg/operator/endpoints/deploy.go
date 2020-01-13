@@ -48,7 +48,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apisBaseURL, err := operator.APIsBaseURL()
+	baseURL, err := operator.APIsBaseURL()
 	if err != nil {
 		respondError(w, err)
 		return
@@ -92,7 +92,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	respond(w, schema.DeployResponse{
 		Results:     results,
-		APIsBaseURL: apisBaseURL,
+		APIsBaseURL: baseURL,
 		Message:     deployMessage(results),
 	})
 }
