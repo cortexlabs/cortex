@@ -30,9 +30,15 @@ type InfoResponse struct {
 }
 
 type DeployResponse struct {
+	Results []DeployResult `json:"results"`
+	APIsBaseURL string           `json:"apis_base_url"`
 	Message     string           `json:"message"`
-	API     *spec.API `json:"api"`
-	BaseURL string           `json:"apis_base_url"`
+}
+
+type DeployResult struct {
+	APISpec *spec.API
+	Message string
+	Error   error
 }
 
 type DeleteResponse struct {
@@ -53,20 +59,24 @@ type ErrorResponse struct {
 
 type GetAPIsResponse struct {
 	APIs []spec.API `json:"apis"`
-	BaseURL      string                              `json:"apis_base_url"`
+	Statuses []status.Status `json:"statuses"`
+	AllMetrics []metrics.Metrics `json:"all_metrics"`
+	BaseURL      string                              `json:"abase_url"`
 }
 
 type GetAPIResponse struct {
-	API spec.API `json:"api"`
-	BaseURL      string                              `json:"apis_base_url"`
+	API *spec.API `json:"api"`
+	Status status.Status `json:"status"`
+	Metrics []metrics.Metrics `json:"metrics"`
+	BaseURL      string                              `json:"abase_url"`
 }
 
-type FeatureSignature struct {
-	Shape []interface{} `json:"shape"`
-	Type  string        `json:"type"`
-}
+// type FeatureSignature struct {
+// 	Shape []interface{} `json:"shape"`
+// 	Type  string        `json:"type"`
+// }
 
-type APISummary struct {
-	Message        string                      `json:"message"`
-	ModelSignature map[string]FeatureSignature `json:"model_signature"`
-}
+// type APISummary struct {
+// 	Message        string                      `json:"message"`
+// 	ModelSignature map[string]FeatureSignature `json:"model_signature"`
+// }

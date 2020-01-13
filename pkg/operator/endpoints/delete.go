@@ -20,25 +20,27 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
-	"github.com/cortexlabs/cortex/pkg/operator/workloads"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 )
 
 func Delete(w http.ResponseWriter, r *http.Request) {
-	appName, err := getRequiredQueryParam("appName", r)
+	apiName, err := getRequiredQueryParam("apiName", r)
 	if err != nil {
-		RespondError(w, err)
+		respondError(w, err)
 		return
 	}
 
 	keepCache := getOptionalBoolQParam("keepCache", false, r)
 
-	wasDeployed := workloads.DeleteApp(appName, keepCache)
+	wasDeployed := operator.DeleteAPI(apiName, keepCache)
 
 	if !wasDeployed {
-		RespondError(w, ErrorAppNotDeployed(appName))
+		respondError(w, ErrorAppNotDeployed(apiName))
 		return
 	}
 
-	response := schema.DeleteResponse{Message: ResDeploymentDeleted(appName)}
-	Respond(w, response)
+	response := schema.DeleteResponse{
+		Message: fmt.Sprintf("deleting %s api", apiName),
+	}
+	respond(w, response)
 }

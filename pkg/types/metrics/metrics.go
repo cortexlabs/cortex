@@ -21,22 +21,11 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 )
 
-type RegressionStats struct {
-	Min         *float64 `json:"min"`
-	Max         *float64 `json:"max"`
-	Avg         *float64 `json:"avg"`
-	SampleCount int      `json:"sample_count"`
-}
-
-func (left RegressionStats) Merge(right RegressionStats) RegressionStats {
-	totalSampleCount := left.SampleCount + right.SampleCount
-
-	return RegressionStats{
-		Min:         slices.Float64PtrMin(left.Min, right.Min),
-		Max:         slices.Float64PtrMax(left.Max, right.Max),
-		Avg:         mergeAvg(left.Avg, left.SampleCount, right.Avg, right.SampleCount),
-		SampleCount: totalSampleCount,
-	}
+type Metrics struct {
+	APIName      string    `json:"api_name"`
+	NetworkStats      *NetworkStats    `json:"network_stats"`
+	ClassDistribution map[string]int   `json:"class_distribution"`
+	RegressionStats   *RegressionStats `json:"regression_stats"`
 }
 
 type NetworkStats struct {
@@ -47,23 +36,14 @@ type NetworkStats struct {
 	Total   int      `json:"total"`
 }
 
-func (left NetworkStats) Merge(right NetworkStats) NetworkStats {
-	return NetworkStats{
-		Latency: mergeAvg(left.Latency, left.Total, right.Latency, right.Total),
-		Code2XX: left.Code2XX + right.Code2XX,
-		Code4XX: left.Code4XX + right.Code4XX,
-		Code5XX: left.Code5XX + right.Code5XX,
-		Total:   left.Total + right.Total,
-	}
+type RegressionStats struct {
+	Min         *float64 `json:"min"`
+	Max         *float64 `json:"max"`
+	Avg         *float64 `json:"avg"`
+	SampleCount int      `json:"sample_count"`
 }
 
-type APIMetrics struct {
-	NetworkStats      *NetworkStats    `json:"network_stats"`
-	ClassDistribution map[string]int   `json:"class_distribution"`
-	RegressionStats   *RegressionStats `json:"regression_stats"`
-}
-
-func (left APIMetrics) Merge(right APIMetrics) APIMetrics {
+func (left Metrics) Merge(right Metrics) Metrics {
 	mergedClassDistribution := left.ClassDistribution
 
 	if right.ClassDistribution != nil {
@@ -98,16 +78,33 @@ func (left APIMetrics) Merge(right APIMetrics) APIMetrics {
 		mergedRegressionStats = right.RegressionStats
 	}
 
-	return APIMetrics{
+	return Metrics{
 		NetworkStats:      mergedNetworkStats,
 		RegressionStats:   mergedRegressionStats,
 		ClassDistribution: mergedClassDistribution,
 	}
 }
 
-func mergeAvg(left *float64, leftCount int, right *float64, rightCount int) *float64 {
-	leftCountFloat64Ptr := pointer.Float64(float64(leftCount))
-	rightCountFloat64Ptr := pointer.Float64(float64(rightCount))
+func (left NetworkStats) Merge(right NetworkStats) NetworkStats {
+	return NetworkStats{
+		Latency: mergeAvg(left.Latency, left.Total, right.Latency, right.Total),
+		Code2XX: left.Code2XX + right.Code2XX,
+		Code4XX: left.Code4XX + right.Code4XX,
+		Code5XX: left.Code5XX + right.Code5XX,
+		Total:   left.Total + right.Total,
+	}
+}
+
+func (left RegressionStats) Merge(right RegressionStats) RegressionStats {
+	totalSampleCount := left.SampleCount + right.SampleCount
+
+	return RegressionStats{
+		Min:         slices.Float64PtrMin(left.Min, right.Min),
+		Max:         slices.Float64PtrMax(left.Max, right.Max),
+		Avg:         mergeAvg(left.Avg, left.SampleCount, right.Avg, right.SampleCount),
+		SampleCount: totalSampleCount,
+	}
+}
 
 	avg, _ := slices.Float64PtrAvg([]*float64{left, right}, []*float64{leftCountFloat64Ptr, rightCountFloat64Ptr})
 	return avg

@@ -33,14 +33,12 @@ const (
 	ErrAuthAPIError
 	ErrAuthInvalid
 	ErrAuthOtherAccount
-	ErrAppNotDeployed
 	ErrAPINotDeployed
 	ErrFormFileMustBeProvided
 	ErrQueryParamRequired
 	ErrPathParamRequired
 	ErrAnyQueryParamRequired
 	ErrAnyPathParamRequired
-	ErrPending
 )
 
 var (
@@ -52,18 +50,16 @@ var (
 		"err_auth_api_error",
 		"err_auth_invalid",
 		"err_auth_other_account",
-		"err_app_not_deployed",
 		"err_api_not_deployed",
 		"err_form_file_must_be_provided",
 		"err_query_param_required",
 		"err_path_param_required",
 		"err_any_query_param_required",
 		"err_any_path_param_required",
-		"err_pending",
 	}
 )
 
-var _ = [1]int{}[int(ErrPending)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrAnyPathParamRequired)-(len(errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return errorKinds[t]
@@ -150,18 +146,10 @@ func ErrorAuthOtherAccount() error {
 	})
 }
 
-func ErrorAppNotDeployed(appName string) error {
-	return errors.WithStack(Error{
-		Kind: ErrAppNotDeployed,
-		// note: if modifying this string, search the codebase for it and change all occurrences
-		message: fmt.Sprintf("%s is not deployed", appName),
-	})
-}
-
-func ErrorAPINotDeployed(apiName string, appName string) error {
+func ErrorAPINotDeployed(apiName string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrAPINotDeployed,
-		message: fmt.Sprintf("there is no api named %s in the %s deployment", s.UserStr(apiName), appName),
+		message: fmt.Sprintf("%s api is not deployed", apiName),
 	})
 }
 
@@ -196,12 +184,5 @@ func ErrorAnyPathParamRequired(params ...string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrAnyPathParamRequired,
 		message: fmt.Sprintf("path params required: %s", s.UserStrsOr(params)),
-	})
-}
-
-func ErrorPending() error {
-	return errors.WithStack(Error{
-		Kind:    ErrPending,
-		message: "pending",
 	})
 }

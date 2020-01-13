@@ -30,5 +30,5 @@ func Info(w http.ResponseWriter, r *http.Request) {
 		MaskedAWSAccessKeyID: s.MaskString(os.Getenv("AWS_ACCESS_KEY_ID"), 4),
 		ClusterConfig:        config.Cluster,
 	}
-	Respond(w, response)
+	respond(w, response)
 }

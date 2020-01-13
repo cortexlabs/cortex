@@ -53,7 +53,7 @@ func GetStatus(apiName string) (*status.Status, error) {
 	return apiStatus(deployment, pods)
 }
 
-func GetAllStatuses(apiName string) []*status.Status {
+func GetAllStatuses() ([]*status.Status, error) {
 	var deployments *kapps.Deployment
 	var pods []*kcore.Pod
 
@@ -98,6 +98,7 @@ func apiStatus(deployment *kapps.Deployment, allPods []kcore.Pod) (*status.Statu
 
 	status := &status.Status{}
 	status.APIName = deployment.Labels["apiName"]
+	status.APIID = deployment.Labels["apiID"]
 	status.ReplicaCounts = getReplicaCounts(deployment, allPods)
 	status.Code = getStatusCode(&status.ReplicaCounts, minReplicas)
 

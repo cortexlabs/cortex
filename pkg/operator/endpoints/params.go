@@ -27,38 +27,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// func ResDeletingAPI(apiName string) string {
-// 	return fmt.Sprintf("deleting %s api", apiName)
-// }
-
-func respond(w http.ResponseWriter, response interface{}) {
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
-}
-
-func respondError(w http.ResponseWriter, err error, strs ...string) {
-	respondErrorCode(w, http.StatusBadRequest, err, strs...)
-}
-
-func respondErrorCode(w http.ResponseWriter, code int, err error, strs ...string) {
-	err = errors.Wrap(err, strs...)
-	errors.PrintError(err)
-
-	w.WriteHeader(code)
-	response := schema.ErrorResponse{
-		Error: err.Error(),
-	}
-	json.NewEncoder(w).Encode(response)
-}
-
-func recoverAndRespond(w http.ResponseWriter, strs ...string) {
-	if errInterface := recover(); errInterface != nil {
-		err := errors.CastRecoverError(errInterface, strs...)
-		telemetry.Error(err)
-		respondError(w, err)
-	}
-}
-
 func getRequiredPathParam(paramName string, r *http.Request) (string, error) {
 	param := mux.Vars(r)[paramName]
 	if param == "" {

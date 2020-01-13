@@ -81,7 +81,7 @@ func (c *eventCache) Add(eventID string) {
 func ReadLogs(apiName string, socket *websocket.Conn) {
 	podCheckCancel := make(chan struct{})
 	defer close(podCheckCancel)
-	go StreamFromCloudWatch(apiName, podCheckCancel, socket)
+	go streamFromCloudWatch(apiName, podCheckCancel, socket)
 	pumpStdin(socket)
 	podCheckCancel <- struct{}{}
 }
@@ -96,7 +96,7 @@ func pumpStdin(socket *websocket.Conn) {
 	}
 }
 
-func StreamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *websocket.Conn) {
+func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *websocket.Conn) {
 	logGroupName := getLogGroupName(ctx, apiName)
 	eventCache := newEventCache(_maxCacheSize)
 	lastLogStreamRefresh := time.Time{}
@@ -125,7 +125,7 @@ func StreamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 			}
 
 			if deployment == nil {
-				writeAndCloseSocket(socket, "\n"+appName+" api not found")
+				writeAndCloseSocket(socket, "\n"+apiName+" api not found")
 				continue
 			}
 

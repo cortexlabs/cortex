@@ -36,6 +36,7 @@ func errStrFailedToConnect(u url.URL) string {
 
 type ErrorKind int
 
+// TODO go through these
 const (
 	ErrUnknown ErrorKind = iota
 	ErrCLIAlreadyInAppDir
@@ -110,6 +111,7 @@ func ErrorCliAlreadyInAppDir(dirPath string) error {
 	})
 }
 
+// TODO delete or update word choice
 func ErrorAPINotReady(apiName string, status string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrAPINotReady,
@@ -117,6 +119,7 @@ func ErrorAPINotReady(apiName string, status string) error {
 	})
 }
 
+// TODO delete or update word choice
 func ErrorAPINotFound(apiName string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrAPINotFound,

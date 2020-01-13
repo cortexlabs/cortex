@@ -27,35 +27,30 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/types/schema"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-type deployResult struct {
-	APISpec *spec.API
-	Message string
-	Error   error
-}
-
 func Deploy(w http.ResponseWriter, r *http.Request) {
-	ignoreCache := getOptionalBoolQParam("ignoreCache", false, r)
+	refresh := getOptionalBoolQParam("refresh", false, r)
 	force := getOptionalBoolQParam("force", false, r)
 
 	configBytes, err := files.ReadReqFile(r, "config.yaml")
 	if err != nil {
-		RespondError(w, errors.WithStack(err))
+		respondError(w, errors.WithStack(err))
 		return
 	}
 
 	if len(configBytes) == 0 {
-		RespondError(w, ErrorFormFileMustBeProvided("config.yaml"))
+		respondError(w, ErrorFormFileMustBeProvided("config.yaml"))
 		return
 	}
 
 	apisBaseURL, err := operator.APIsBaseURL()
 	if err != nil {
-		RespondError(w, err)
+		respondError(w, err)
 		return
 	}
 
@@ -73,37 +68,39 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	// TODO file path should be user's actual file path that they typed in
 	apiConfigs, err := operator.ExtractAPIConfigs(configBytes, projectFileMap, "cortex.yaml")
 	if err != nil {
-		RespondError(w, err)
+		respondError(w, err)
 		return
 	}
 
 	isProjectUploaded, err := config.AWS.IsS3File(projectKey)
 	if err != nil {
-		return err
+		respondError(w, err)
+		return
 	}
 	if !isProjectUploaded {
 		if err = config.AWS.UploadBytesToS3(projectBytes, projectKey); err != nil {
-			return nil, err
+			respondError(w, err)
+			return
 		}
 	}
 
-	results := make([]deployResult, len(apiConfigs))
+	// TODO parallelize?
+	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
-		results[i].Spec, deployResult[i].Message, deployResult[i].Error = operator.UpdateAPI(apiConfig, projectID, ignoreCache, force)
+		results[i].Spec, deployResult[i].Message, deployResult[i].Error = operator.UpdateAPI(apiConfig, projectID, refresh, force)
 	}
 
-	Respond(w, schema.DeployResponse{
+	respond(w, schema.DeployResponse{
 		Results:     results,
 		APIsBaseURL: apisBaseURL,
 		Message:     deployMessage(results),
 	})
-
 }
 
 func deployMessage(results []deployResult) string {
 	statusMessage := mergeResultMessages(results)
 
-	if allResultsErrored(results) {
+	if didAllResultsError(results) {
 		return statusMessage
 	}
 

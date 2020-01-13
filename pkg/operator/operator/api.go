@@ -256,15 +256,39 @@ func APIsBaseURL() (string, error) {
 	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
 
-func downloadSpec(apiName string, apiID string) (*spec.API, error) {
+func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
 	s3Key := specKey(apiName, apiID)
-	var spec spec.API
+	var api spec.API
 
-	if err := config.AWS.ReadMsgpackFromS3(&spec, s3Key); err != nil {
+	if err := config.AWS.ReadMsgpackFromS3(&api, s3Key); err != nil {
 		return nil, err
 	}
 
-	return &spec, nil
+	return &api, nil
+}
+
+func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
+	apis := make([]spec.API, len(apiNames))
+	fns := make([]func() error, len(apiNames))
+
+	for i := range apiNames {
+		localIdx := i
+		fns[i] = func() error {
+			api, err := DownloadAPISpec(apiNames[localIdx], apiIDs[localIdx])
+			if err != nil {
+				return err
+			}
+			apis[localIdx] = api
+			return nil
+		}
+	}
+
+	err := parallel.RunFirstErr(fns...)
+	if err != nil {
+		return nil, err
+	}
+
+	return apis, nil
 }
 
 func specKey(apiName string, apiID string) string {

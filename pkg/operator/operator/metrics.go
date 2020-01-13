@@ -36,33 +36,59 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-func GetMetrics(api *spec.API) (schema.APIMetrics, error) {
+func GetMultipleMetrics(apis []spec.API) ([]metrics.Metrics, error) {
+	allMetrics := make([]metrics.Metrics, len(apis))
+	fns := make([]func() error, len(apis))
+
+	for i := range apis {
+		localIdx := i
+		api := apis[i]
+		fns[i] = func() error {
+			metrics, err := GetMetrics(&api)
+			if err != nil {
+				return err
+			}
+			allMetrics[localIdx] = metrics
+			return nil
+		}
+	}
+
+	err := parallel.RunFirstErr(fns...)
+	if err != nil {
+		return nil, err
+	}
+
+	return allMetrics, nil
+}
+
+func GetMetrics(api *spec.API) (metrics.Metrics, error) {
 	// Get realtime metrics for the seconds elapsed in the latest minute
 	realTimeEnd := time.Now().Truncate(time.Second)
 	realTimeStart := realTimeEnd.Truncate(time.Minute)
 
-	realTimeMetrics := schema.APIMetrics{}
-	batchMetrics := schema.APIMetrics{}
+	realTimeMetrics := metrics.Metrics{}
+	batchMetrics := metrics.Metrics{}
 	requestList := []func() error{}
 
 	if realTimeStart.Before(realTimeEnd) {
-		requestList = append(requestList, getAPIMetricsFunc(api, 1, &realTimeStart, &realTimeEnd, &realTimeMetrics))
+		requestList = append(requestList, getMetricsFunc(api, 1, &realTimeStart, &realTimeEnd, &realTimeMetrics))
 	}
 
 	batchEnd := realTimeStart
 	batchStart := batchEnd.Add(-14 * 24 * time.Hour) // two weeks ago
-	requestList = append(requestList, getAPIMetricsFunc(api, 60*60, &batchStart, &batchEnd, &batchMetrics))
+	requestList = append(requestList, getMetricsFunc(api, 60*60, &batchStart, &batchEnd, &batchMetrics))
 
 	err = parallel.RunFirstErr(requestList...)
 	if err != nil {
-		return schema.APIMetrics{}, err
+		return metrics.Metrics{}, err
 	}
 
 	mergedMetrics := realTimeMetrics.Merge(batchMetrics)
+	mergedMetrics.APIName = api.Name
 	return mergedMetrics, nil
 }
 
-func getAPIMetricsFunc(api *spec.API, period int64, startTime *time.Time, endTime *time.Time, apiMetrics *schema.APIMetrics) func() error {
+func getMetricsFunc(api *spec.API, period int64, startTime *time.Time, endTime *time.Time, metrics *metrics.Metrics) func() error {
 	return func() error {
 		metricDataResults, err := queryMetrics(api, period, startTime, endTime)
 		if err != nil {
@@ -72,17 +98,17 @@ func getAPIMetricsFunc(api *spec.API, period int64, startTime *time.Time, endTim
 		if err != nil {
 			return err
 		}
-		apiMetrics.NetworkStats = networkStats
+		metrics.NetworkStats = networkStats
 
 		if api.Tracker != nil {
 			if api.Tracker.ModelType == userconfig.ClassificationModelType {
-				apiMetrics.ClassDistribution = extractClassificationMetrics(metricDataResults)
+				metrics.ClassDistribution = extractClassificationMetrics(metricDataResults)
 			} else {
 				regressionStats, err := extractRegressionMetrics(metricDataResults)
 				if err != nil {
 					return err
 				}
-				apiMetrics.RegressionStats = regressionStats
+				metrics.RegressionStats = regressionStats
 			}
 		}
 		return nil

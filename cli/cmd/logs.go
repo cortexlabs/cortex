@@ -50,6 +50,7 @@ var logsCmd = &cobra.Command{
 		err = StreamLogs(appName, resourceName, resource.APIType.String())
 		if err != nil {
 			// note: if modifying this string, search the codebase for it and change all occurrences
+			// TODO
 			if strings.HasSuffix(err.Error(), "is not deployed") {
 				fmt.Println(console.Bold(err.Error()))
 				return

@@ -18,6 +18,7 @@ package status
 
 type Status struct {
 	APIName       string `json:"api_name"`
+	APIID         string `json:"api_id"`
 	Code          Code   `json:"status_code"`
 	ReplicaCounts `json:"replica_counts"`
 }
