@@ -149,7 +149,7 @@ func ErrorAuthOtherAccount() error {
 func ErrorAPINotDeployed(apiName string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrAPINotDeployed,
-		message: fmt.Sprintf("%s api is not deployed", apiName),
+		message: fmt.Sprintf("%s api is not deployed", apiName), // note: if modifying this string, search the codebase for it and change all occurrences
 	})
 }
 

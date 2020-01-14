@@ -30,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/status"
 )
 
+// will return nil if API does not exist
 func GetStatus(apiName string) (*status.Status, error) {
 	var deployment *kapps.Deployment
 	var pods []kcore.Pod

@@ -26,10 +26,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -52,36 +54,64 @@ var getCmd = &cobra.Command{
 		telemetry.Event("cli.get")
 
 		rerun(func() (string, error) {
-			return get(cmd, args)
+			return get(args)
 		})
 	},
 }
 
-func get(cmd *cobra.Command, args []string) (string, error) {
-	resourcesRes, err := getResourcesResponse(appName)
+func get(args []string) (string, error) {
+
+	switch len(args) {
+	case 0:
+		return getAPIs()
+
+	case 1:
+		return getAPI(args[0])
+	}
+
+	return "", errors.New("too many args") // unexpected
+}
+
+func getAPI(apiName string) (string, error) {
+	httpRes, err := HTTPGet("/get/" + apiName)
 	if err != nil {
 		// note: if modifying this string, search the codebase for it and change all occurrences
-		// TODO
 		if strings.HasSuffix(err.Error(), "is not deployed") {
 			return console.Bold(err.Error()), nil
 		}
 		return "", err
 	}
 
-	switch len(args) {
-	case 0:
-		return allResourcesStr(resourcesRes), nil
-
-	case 1:
-		resourceName := args[0]
-		if _, err = resourcesRes.Context.VisibleResourceByName(resourceName); err != nil {
-			return "", err
-		}
-
-		return resourceByNameStr(resourceName, resourcesRes, flagVerbose)
+	var apiRes schema.GetAPIResponse
+	if err = json.Unmarshal(httpRes, &apiRes); err != nil {
+		return "", err
 	}
 
-	return "", errors.New("too many args") // unexpected
+	var out string
+
+	t := apiTable([]spec.API{*apiRes.API}, []status.Status{*apiRes.Status}, []metrics.Metrics{*apiRes.Metrics})
+	out += t.MustFormat()
+
+	return out, nil
+}
+
+func getAPIs() (string, error) {
+	httpRes, err := HTTPGet("/get")
+	if err != nil {
+		return "", err
+	}
+
+	var apisRes schema.GetAPIsResponse
+	if err = json.Unmarshal(httpRes, &apisRes); err != nil {
+		return "", err
+	}
+
+	if len(apisRes.APIs) == 0 {
+		return console.Bold("no apis are deployed, see cortex.dev for a guides and examples"), nil
+	}
+
+	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics)
+	return t.MustFormat(), nil
 }
 
 // func getResourcesResponse(appName string) (*schema.GetResourcesResponse, error) {
@@ -202,6 +232,59 @@ func get(cmd *cobra.Command, args []string) (string, error) {
 // 	return out, nil
 // }
 
+func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Metrics) table.Table {
+	rows := make([][]interface{}, 0, len(apis))
+
+	var totalFailed int32
+	var totalStale int32
+	var total4XX int
+	var total5XX int
+
+	for i, api := range apis {
+		metrics := allMetrics[i]
+		status := statuses[i]
+
+		rows = append(rows, []interface{}{
+			api.Name,
+			status.Message(),
+			status.Updated.Ready,
+			status.Stale.Ready,
+			status.Requested,
+			status.Updated.TotalFailed(),
+			libtime.SinceStr(&api.LastUpdated),
+			latencyStr(&metrics),
+			code2XXStr(&metrics),
+			code4XXStr(&metrics),
+			code5XXStr(&metrics),
+		})
+
+		totalFailed += status.Updated.TotalFailed()
+		totalStale += status.Stale.Ready
+
+		if metrics.NetworkStats != nil {
+			total4XX += metrics.NetworkStats.Code4XX
+			total5XX += metrics.NetworkStats.Code5XX
+		}
+	}
+
+	return table.Table{
+		Headers: []table.Header{
+			{Title: "api"},
+			{Title: "status"},
+			{Title: "up-to-date"},
+			{Title: "stale", Hidden: totalStale == 0},
+			{Title: "requested"},
+			{Title: "failed", Hidden: totalFailed == 0},
+			{Title: "last update"},
+			{Title: "avg inference"},
+			{Title: "2XX"},
+			{Title: "4XX", Hidden: total4XX == 0},
+			{Title: "5XX", Hidden: total5XX == 0},
+		},
+		Rows: rows,
+	}
+}
+
 func metricsStrs(metrics *metrics.Metrics) (string, string, string, string) {
 	inferenceLatency := "-"
 	code2XX := "-"
@@ -261,59 +344,6 @@ func code5XXStr(metrics *metrics.Metrics) string {
 		return s.Int(metrics.NetworkStats.Code5XX)
 	}
 	return "-"
-}
-
-func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Metrics) table.Table {
-	rows := make([][]interface{}, 0, len(apis))
-
-	var totalFailed int32
-	var totalStale int32
-	var total4XX int
-	var total5XX int
-
-	for i, api := range apis {
-		metrics := allMetrics[i]
-		status := statuses[i]
-
-		rows = append(rows, []interface{}{
-			api.Name,
-			status.Message(),
-			status.Updated.Ready,
-			status.Stale.Ready,
-			status.Requested,
-			status.Updated.TotalFailed(),
-			libtime.SinceStr(&api.LastUpdated),
-			latencyStr(&metrics),
-			code2XXStr(&metrics),
-			code4XXStr(&metrics),
-			code5XXStr(&metrics),
-		})
-
-		totalFailed += status.Updated.TotalFailed()
-		totalStale += status.Stale.Ready
-
-		if metrics.NetworkStats != nil {
-			total4XX += metrics.NetworkStats.Code4XX
-			total5XX += metrics.NetworkStats.Code5XX
-		}
-	}
-
-	return table.Table{
-		Headers: []table.Header{
-			{Title: "api"},
-			{Title: "status"},
-			{Title: "up-to-date"},
-			{Title: "stale", Hidden: totalStale == 0},
-			{Title: "requested"},
-			{Title: "failed", Hidden: totalFailed == 0},
-			{Title: "last update"},
-			{Title: "avg inference"},
-			{Title: "2XX"},
-			{Title: "4XX", Hidden: total4XX == 0},
-			{Title: "5XX", Hidden: total5XX == 0},
-		},
-		Rows: rows,
-	}
 }
 
 func predictionMetricsStr(api *spec.API, metrics metrics.Metrics) string {
