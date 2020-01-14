@@ -17,9 +17,23 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+	"sort"
+	"strings"
+
 	"github.com/spf13/cobra"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
+	"github.com/cortexlabs/cortex/pkg/types/metrics"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/status"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 var _flagWatch bool
@@ -37,38 +51,38 @@ var getCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.get")
 
-		// rerun(func() (string, error) {
-		// 	return get(cmd, args)
-		// })
+		rerun(func() (string, error) {
+			return get(cmd, args)
+		})
 	},
 }
 
-// func get(cmd *cobra.Command, args []string) (string, error) {
-// 	resourcesRes, err := getResourcesResponse(appName)
-// 	if err != nil {
-// 		// note: if modifying this string, search the codebase for it and change all occurrences
-// 		// TODO
-// 		if strings.HasSuffix(err.Error(), "is not deployed") {
-// 			return console.Bold(err.Error()), nil
-// 		}
-// 		return "", err
-// 	}
+func get(cmd *cobra.Command, args []string) (string, error) {
+	resourcesRes, err := getResourcesResponse(appName)
+	if err != nil {
+		// note: if modifying this string, search the codebase for it and change all occurrences
+		// TODO
+		if strings.HasSuffix(err.Error(), "is not deployed") {
+			return console.Bold(err.Error()), nil
+		}
+		return "", err
+	}
 
-// 	switch len(args) {
-// 	case 0:
-// 		return allResourcesStr(resourcesRes), nil
+	switch len(args) {
+	case 0:
+		return allResourcesStr(resourcesRes), nil
 
-// 	case 1:
-// 		resourceName := args[0]
-// 		if _, err = resourcesRes.Context.VisibleResourceByName(resourceName); err != nil {
-// 			return "", err
-// 		}
+	case 1:
+		resourceName := args[0]
+		if _, err = resourcesRes.Context.VisibleResourceByName(resourceName); err != nil {
+			return "", err
+		}
 
-// 		return resourceByNameStr(resourceName, resourcesRes, flagVerbose)
-// 	}
+		return resourceByNameStr(resourceName, resourcesRes, flagVerbose)
+	}
 
-// 	return "", errors.New("too many args") // unexpected
-// }
+	return "", errors.New("too many args") // unexpected
+}
 
 // func getResourcesResponse(appName string) (*schema.GetResourcesResponse, error) {
 // 	params := map[string]string{"appName": appName}
@@ -152,8 +166,8 @@ var getCmd = &cobra.Command{
 // 	}
 
 // 	var out string
-// 	apiMetrics, err := getAPIMetrics(ctx.App.Name, api.Name)
-// 	statusTable = appendNetworkMetrics(statusTable, apiMetrics) // adds blank stats when there is an error
+// 	metrics, err := getAPIMetrics(ctx.App.Name, api.Name)
+// 	statusTable = appendNetworkMetrics(statusTable, metrics) // adds blank stats when there is an error
 // 	out = table.MustFormat(statusTable) + "\n"
 
 // 	var predictionMetrics string
@@ -164,7 +178,7 @@ var getCmd = &cobra.Command{
 // 	}
 
 // 	if api.Tracker != nil && len(predictionMetrics) == 0 {
-// 		predictionMetrics = "\n" + predictionMetricsTable(apiMetrics, api) + "\n"
+// 		predictionMetrics = "\n" + predictionMetricsStr(metrics, api)
 // 	}
 
 // 	out += predictionMetrics
@@ -188,187 +202,202 @@ var getCmd = &cobra.Command{
 // 	return out, nil
 // }
 
-// func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Metrics) *table.Table {
-// 	rows := make([][]interface{}, 0, len(apis))
+func metricsStrs(metrics *metrics.Metrics) (string, string, string, string) {
+	inferenceLatency := "-"
+	code2XX := "-"
+	code4XX := "-"
+	code5XX := "-"
 
-// 	var totalFailed int32
-// 	var totalStale int32
-// 	for i := range apis {
-// 		rows = append(rows, []interface{}{
-// 			apis[i].Name,
-// 			statuses[i].Message(),
-// 			statuses[i].Updated.Ready,
-// 			statuses[i].Stale.Ready,
-// 			statuses[i].Requested,
-// 			statuses[i].Updated.TotalFailed(),
-// 			libtime.Since(apis[i].LastUpdated),
-// 		})
+	if metrics.NetworkStats != nil {
+		if metrics.NetworkStats.Latency != nil {
+			if *metrics.NetworkStats.Latency < 1000 {
+				inferenceLatency = fmt.Sprintf("%.6g ms", *metrics.NetworkStats.Latency)
+			} else {
+				inferenceLatency = fmt.Sprintf("%.6g s", (*metrics.NetworkStats.Latency)/1000)
+			}
+		}
 
-// 		totalFailed += statuses[i].Updated.TotalFailed()
-// 		totalStale += statuses[i].Stale.Ready
-// 	}
+		if metrics.NetworkStats.Code2XX != 0 {
+			code2XX = s.Int(metrics.NetworkStats.Code2XX)
+		}
+		if metrics.NetworkStats.Code4XX != 0 {
+			code4XX = s.Int(metrics.NetworkStats.Code4XX)
+		}
+		if metrics.NetworkStats.Code5XX != 0 {
+			code5XX = s.Int(metrics.NetworkStats.Code5XX)
+		}
+	}
 
-// 	t := table.Table{
-// 		Headers: []table.Header{
-// 			{Title: "api"},
-// 			{Title: "status"},
-// 			{Title: "up-to-date"},
-// 			{Title: "stale", Hidden: totalStale == 0},
-// 			{Title: "requested"},
-// 			{Title: "failed", Hidden: totalFailed == 0},
-// 			{Title: "last update"},
-// 		},
-// 		Rows: rows,
-// 	}
+	return inferenceLatency, code2XX, code4XX, code5XX
+}
 
-// 	// TODO left off here
-// 	var out string
-// 	apiMetrics, err := getAPIMetrics(ctx.App.Name, api.Name)
-// 	statusTable = appendNetworkMetrics(statusTable, apiMetrics) // adds blank stats when there is an error
-// 	out = table.MustFormat(statusTable) + "\n"
+func latencyStr(metrics *metrics.Metrics) string {
+	if metrics.NetworkStats != nil && metrics.NetworkStats.Latency != nil {
+		if *metrics.NetworkStats.Latency < 1000 {
+			return fmt.Sprintf("%.6g ms", *metrics.NetworkStats.Latency)
+		} else {
+			return fmt.Sprintf("%.6g s", (*metrics.NetworkStats.Latency)/1000)
+		}
+	}
+	return "-"
+}
 
-// 	return t
-// }
+func code2XXStr(metrics *metrics.Metrics) string {
+	if metrics.NetworkStats != nil && metrics.NetworkStats.Code2XX != 0 {
+		return s.Int(metrics.NetworkStats.Code2XX)
+	}
+	return "-"
+}
 
-// func getAPIMetrics(appName, apiName string) (schema.APIMetrics, error) {
-// 	params := map[string]string{"appName": appName, "apiName": apiName}
-// 	httpResponse, err := HTTPGet("/metrics", params)
-// 	if err != nil {
-// 		return schema.APIMetrics{}, err
-// 	}
+func code4XXStr(metrics *metrics.Metrics) string {
+	if metrics.NetworkStats != nil && metrics.NetworkStats.Code4XX != 0 {
+		return s.Int(metrics.NetworkStats.Code4XX)
+	}
+	return "-"
+}
 
-// 	var apiMetrics schema.APIMetrics
-// 	err = json.Unmarshal(httpResponse, &apiMetrics)
-// 	if err != nil {
-// 		return schema.APIMetrics{}, err
-// 	}
+func code5XXStr(metrics *metrics.Metrics) string {
+	if metrics.NetworkStats != nil && metrics.NetworkStats.Code5XX != 0 {
+		return s.Int(metrics.NetworkStats.Code5XX)
+	}
+	return "-"
+}
 
-// 	return apiMetrics, nil
-// }
+func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Metrics) table.Table {
+	rows := make([][]interface{}, 0, len(apis))
 
-// func appendNetworkMetrics(apiTable table.Table, apiMetrics schema.APIMetrics) table.Table {
-// 	inferenceLatency := "-"
-// 	code2XX := "-"
-// 	code4XX := 0
-// 	code5XX := 0
+	var totalFailed int32
+	var totalStale int32
+	var total4XX int
+	var total5XX int
 
-// 	if apiMetrics.NetworkStats != nil {
-// 		code4XX = apiMetrics.NetworkStats.Code4XX
-// 		code5XX = apiMetrics.NetworkStats.Code5XX
-// 		if apiMetrics.NetworkStats.Latency != nil {
-// 			if *apiMetrics.NetworkStats.Latency < 1000 {
-// 				inferenceLatency = fmt.Sprintf("%.6g ms", *apiMetrics.NetworkStats.Latency)
-// 			} else {
-// 				inferenceLatency = fmt.Sprintf("%.6g s", (*apiMetrics.NetworkStats.Latency)/1000)
-// 			}
-// 		}
-// 		if apiMetrics.NetworkStats.Code2XX != 0 {
-// 			code2XX = s.Int(apiMetrics.NetworkStats.Code2XX)
-// 		}
-// 	}
+	for i, api := range apis {
+		metrics := allMetrics[i]
+		status := statuses[i]
 
-// 	headers := []table.Header{
-// 		{Title: "avg inference"},
-// 		{Title: "2XX"},
-// 		{Title: "4XX", Hidden: code4XX == 0},
-// 		{Title: "5XX", Hidden: code5XX == 0},
-// 	}
+		rows = append(rows, []interface{}{
+			api.Name,
+			status.Message(),
+			status.Updated.Ready,
+			status.Stale.Ready,
+			status.Requested,
+			status.Updated.TotalFailed(),
+			libtime.SinceStr(&api.LastUpdated),
+			latencyStr(&metrics),
+			code2XXStr(&metrics),
+			code4XXStr(&metrics),
+			code5XXStr(&metrics),
+		})
 
-// 	row := []interface{}{
-// 		inferenceLatency,
-// 		code2XX,
-// 		code4XX,
-// 		code5XX,
-// 	}
+		totalFailed += status.Updated.TotalFailed()
+		totalStale += status.Stale.Ready
 
-// 	apiTable.Headers = append(apiTable.Headers, headers...)
-// 	apiTable.Rows[0] = append(apiTable.Rows[0], row...)
+		if metrics.NetworkStats != nil {
+			total4XX += metrics.NetworkStats.Code4XX
+			total5XX += metrics.NetworkStats.Code5XX
+		}
+	}
 
-// 	return apiTable
-// }
+	return table.Table{
+		Headers: []table.Header{
+			{Title: "api"},
+			{Title: "status"},
+			{Title: "up-to-date"},
+			{Title: "stale", Hidden: totalStale == 0},
+			{Title: "requested"},
+			{Title: "failed", Hidden: totalFailed == 0},
+			{Title: "last update"},
+			{Title: "avg inference"},
+			{Title: "2XX"},
+			{Title: "4XX", Hidden: total4XX == 0},
+			{Title: "5XX", Hidden: total5XX == 0},
+		},
+		Rows: rows,
+	}
+}
 
-// func predictionMetricsTable(apiMetrics schema.APIMetrics, api *context.API) string {
-// 	if api.Tracker == nil {
-// 		return ""
-// 	}
+func predictionMetricsStr(api *spec.API, metrics metrics.Metrics) string {
+	if api.Tracker == nil {
+		return ""
+	}
 
-// 	if api.Tracker.ModelType == userconfig.ClassificationModelType {
-// 		return classificationMetricsTable(apiMetrics)
-// 	}
-// 	return regressionMetricsTable(apiMetrics)
-// }
+	if api.Tracker.ModelType == userconfig.ClassificationModelType {
+		return classificationMetricsStr(metrics)
+	}
+	return regressionMetricsStr(metrics)
+}
 
-// func regressionMetricsTable(apiMetrics schema.APIMetrics) string {
-// 	minStr := "-"
-// 	maxStr := "-"
-// 	avgStr := "-"
+func regressionMetricsStr(metrics metrics.Metrics) string {
+	minStr := "-"
+	maxStr := "-"
+	avgStr := "-"
 
-// 	if apiMetrics.RegressionStats != nil {
-// 		if apiMetrics.RegressionStats.Min != nil {
-// 			minStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Min)
-// 		}
+	if metrics.RegressionStats != nil {
+		if metrics.RegressionStats.Min != nil {
+			minStr = fmt.Sprintf("%.9g", *metrics.RegressionStats.Min)
+		}
 
-// 		if apiMetrics.RegressionStats.Max != nil {
-// 			maxStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Max)
-// 		}
+		if metrics.RegressionStats.Max != nil {
+			maxStr = fmt.Sprintf("%.9g", *metrics.RegressionStats.Max)
+		}
 
-// 		if apiMetrics.RegressionStats.Avg != nil {
-// 			avgStr = fmt.Sprintf("%.9g", *apiMetrics.RegressionStats.Avg)
-// 		}
-// 	}
+		if metrics.RegressionStats.Avg != nil {
+			avgStr = fmt.Sprintf("%.9g", *metrics.RegressionStats.Avg)
+		}
+	}
 
-// 	t := table.Table{
-// 		Headers: []table.Header{
-// 			{Title: "min", MaxWidth: 10},
-// 			{Title: "max", MaxWidth: 10},
-// 			{Title: "avg", MaxWidth: 10},
-// 		},
-// 		Rows: [][]interface{}{{minStr, maxStr, avgStr}},
-// 	}
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "min", MaxWidth: 10},
+			{Title: "max", MaxWidth: 10},
+			{Title: "avg", MaxWidth: 10},
+		},
+		Rows: [][]interface{}{{minStr, maxStr, avgStr}},
+	}
 
-// 	return table.MustFormat(t)
-// }
+	return t.MustFormat()
+}
 
-// func classificationMetricsTable(apiMetrics schema.APIMetrics) string {
-// 	classList := make([]string, len(apiMetrics.ClassDistribution))
+func classificationMetricsStr(metrics metrics.Metrics) string {
+	classList := make([]string, len(metrics.ClassDistribution))
 
-// 	i := 0
-// 	for inputName := range apiMetrics.ClassDistribution {
-// 		classList[i] = inputName
-// 		i++
-// 	}
-// 	sort.Strings(classList)
+	i := 0
+	for inputName := range metrics.ClassDistribution {
+		classList[i] = inputName
+		i++
+	}
+	sort.Strings(classList)
 
-// 	rows := make([][]interface{}, len(classList))
-// 	for rowNum, className := range classList {
-// 		rows[rowNum] = []interface{}{
-// 			className,
-// 			apiMetrics.ClassDistribution[className],
-// 		}
-// 	}
+	rows := make([][]interface{}, len(classList))
+	for rowNum, className := range classList {
+		rows[rowNum] = []interface{}{
+			className,
+			metrics.ClassDistribution[className],
+		}
+	}
 
-// 	if len(classList) == 0 {
-// 		rows = append(rows, []interface{}{
-// 			"-",
-// 			"-",
-// 		})
-// 	}
+	if len(classList) == 0 {
+		rows = append(rows, []interface{}{
+			"-",
+			"-",
+		})
+	}
 
-// 	t := table.Table{
-// 		Headers: []table.Header{
-// 			{Title: "class", MaxWidth: 40},
-// 			{Title: "count", MaxWidth: 20},
-// 		},
-// 		Rows: rows,
-// 	}
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "class", MaxWidth: 40},
+			{Title: "count", MaxWidth: 20},
+		},
+		Rows: rows,
+	}
 
-// 	out := table.MustFormat(t)
+	out := t.MustFormat()
 
-// 	if len(classList) == consts.MaxClassesPerTrackerRequest {
-// 		out += fmt.Sprintf("\n\nlisting at most %d classes, the complete list can be found in your cloudwatch dashboard", consts.MaxClassesPerTrackerRequest)
-// 	}
-// 	return out
-// }
+	if len(classList) == consts.MaxClassesPerTrackerRequest {
+		out += fmt.Sprintf("\nlisting at most %d classes, the complete list can be found in your cloudwatch dashboard\n", consts.MaxClassesPerTrackerRequest)
+	}
+	return out
+}
 
 // func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string) string {
 // 	if groupStatus.ReadyUpdated+groupStatus.ReadyStaleCompute == 0 {
@@ -432,6 +461,6 @@ var getCmd = &cobra.Command{
 // 	return &apiSummary, nil
 // }
 
-// func titleStr(title string) string {
-// 	return "\n" + console.Bold(title) + "\n"
-// }
+func titleStr(title string) string {
+	return "\n" + console.Bold(title) + "\n"
+}

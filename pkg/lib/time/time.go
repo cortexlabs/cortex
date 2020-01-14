@@ -57,7 +57,7 @@ func CopyPtr(t *time.Time) *time.Time {
 	return &tCopy
 }
 
-func Difference(t1 *time.Time, t2 *time.Time) string {
+func DifferenceStr(t1 *time.Time, t2 *time.Time) string {
 	var duration time.Duration
 	if t1 == nil && t2 == nil {
 		return "-"
@@ -81,12 +81,12 @@ func Difference(t1 *time.Time, t2 *time.Time) string {
 	}
 }
 
-func Since(t *time.Time) string {
+func SinceStr(t *time.Time) string {
 	if t == nil {
 		return "-"
 	}
 	now := time.Now()
-	return Difference(t, &now)
+	return DifferenceStr(t, &now)
 }
 
 func LocalTimestamp(t *time.Time) string {
