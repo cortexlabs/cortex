@@ -34,7 +34,6 @@ var deploymentTypeMeta = kmeta.TypeMeta{
 
 type DeploymentSpec struct {
 	Name        string
-	Namespace   string
 	Replicas    int32
 	PodSpec     PodSpec
 	Selector    map[string]string
@@ -43,12 +42,6 @@ type DeploymentSpec struct {
 }
 
 func Deployment(spec *DeploymentSpec) *kapps.Deployment {
-	if spec.Namespace == "" {
-		spec.Namespace = "default"
-	}
-	if spec.PodSpec.Namespace == "" {
-		spec.PodSpec.Namespace = spec.Namespace
-	}
 	if spec.PodSpec.Name == "" {
 		spec.PodSpec.Name = spec.Name
 	}
@@ -60,7 +53,6 @@ func Deployment(spec *DeploymentSpec) *kapps.Deployment {
 		TypeMeta: deploymentTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
-			Namespace:   spec.Namespace,
 			Labels:      spec.Labels,
 			Annotations: spec.Annotations,
 		},
@@ -69,7 +61,6 @@ func Deployment(spec *DeploymentSpec) *kapps.Deployment {
 			Template: kcore.PodTemplateSpec{
 				ObjectMeta: kmeta.ObjectMeta{
 					Name:        spec.PodSpec.Name,
-					Namespace:   spec.PodSpec.Namespace,
 					Labels:      spec.PodSpec.Labels,
 					Annotations: spec.PodSpec.Annotations,
 				},

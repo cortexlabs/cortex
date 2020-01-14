@@ -210,7 +210,6 @@ func tfAPISpec(
 				ServiceAccountName: "default",
 			},
 		},
-		Namespace: "default",
 	})
 }
 
@@ -330,7 +329,6 @@ func pythonAPISpec(
 				ServiceAccountName: "default",
 			},
 		},
-		Namespace: "default",
 	})
 }
 
@@ -441,7 +439,6 @@ func onnxAPISpec(
 				ServiceAccountName: "default",
 			},
 		},
-		Namespace: "default",
 	})
 }
 
@@ -480,14 +477,12 @@ func serviceSpec(api *spec.API) *kcore.Service {
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},
-		Namespace: "default",
 	})
 }
 
 func virtualServiceSpec(api *spec.API) *kunstructured.Unstructured {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:        api.Name,
-		Namespace:   "default",
 		Gateways:    []string{"apis-gateway"},
 		ServiceName: api.Name,
 		ServicePort: _defaultPortInt32,
@@ -521,7 +516,6 @@ func hpaSpec(deployment *kapps.Deployment) (*kautoscaling.HorizontalPodAutoscale
 		Labels: map[string]string{
 			"apiName": deployment.Labels["apiName"],
 		},
-		Namespace: "default",
 	}), nil
 }
 

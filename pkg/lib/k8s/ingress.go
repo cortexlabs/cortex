@@ -32,7 +32,6 @@ var ingressTypeMeta = kmeta.TypeMeta{
 
 type IngressSpec struct {
 	Name         string
-	Namespace    string
 	IngressClass string
 	ServiceName  string
 	ServicePort  int32
@@ -42,10 +41,6 @@ type IngressSpec struct {
 }
 
 func Ingress(spec *IngressSpec) *kextensions.Ingress {
-	if spec.Namespace == "" {
-		spec.Namespace = "default"
-	}
-
 	if spec.Annotations == nil {
 		spec.Annotations = make(map[string]string)
 	}
@@ -55,7 +50,6 @@ func Ingress(spec *IngressSpec) *kextensions.Ingress {
 		TypeMeta: ingressTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
-			Namespace:   spec.Namespace,
 			Annotations: spec.Annotations,
 			Labels:      spec.Labels,
 		},

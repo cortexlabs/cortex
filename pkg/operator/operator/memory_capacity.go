@@ -119,8 +119,7 @@ func updateMemoryCapacityConfigMap() (*kresource.Quantity, error) {
 
 	if memFromConfigMap == nil || minMem.Cmp(*memFromConfigMap) != 0 {
 		configMap := k8s.ConfigMap(&k8s.ConfigMapSpec{
-			Name:      _memConfigMapName,
-			Namespace: "cortex",
+			Name: _memConfigMapName,
 			Data: map[string]string{
 				_memConfigMapKey: minMem.String(),
 			},

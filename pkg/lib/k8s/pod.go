@@ -57,21 +57,16 @@ var killStatuses = map[int32]bool{
 
 type PodSpec struct {
 	Name        string
-	Namespace   string
 	K8sPodSpec  kcore.PodSpec
 	Labels      map[string]string
 	Annotations map[string]string
 }
 
 func Pod(spec *PodSpec) *kcore.Pod {
-	if spec.Namespace == "" {
-		spec.Namespace = "default"
-	}
 	pod := &kcore.Pod{
 		TypeMeta: podTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
-			Namespace:   spec.Namespace,
 			Labels:      spec.Labels,
 			Annotations: spec.Annotations,
 		},

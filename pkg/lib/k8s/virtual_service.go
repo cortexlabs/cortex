@@ -48,7 +48,6 @@ var (
 
 type VirtualServiceSpec struct {
 	Name        string
-	Namespace   string
 	Gateways    []string
 	ServiceName string
 	ServicePort int32
@@ -62,10 +61,8 @@ func VirtualService(spec *VirtualServiceSpec) *kunstructured.Unstructured {
 	virtualServiceConfig := &kunstructured.Unstructured{}
 	virtualServiceConfig.SetGroupVersionKind(virtualServiceGVK)
 	virtualServiceConfig.SetName(spec.Name)
-	virtualServiceConfig.SetNamespace(spec.Namespace)
 	virtualServiceConfig.Object["metadata"] = map[string]interface{}{
 		"name":        spec.Name,
-		"namespace":   spec.Namespace,
 		"labels":      spec.Labels,
 		"annotations": spec.Annotations,
 	}

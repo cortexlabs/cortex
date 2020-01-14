@@ -32,7 +32,6 @@ var hpaTypeMeta = kmeta.TypeMeta{
 
 type HPASpec struct {
 	DeploymentName       string
-	Namespace            string
 	MinReplicas          int32
 	MaxReplicas          int32
 	TargetCPUUtilization int32
@@ -41,14 +40,10 @@ type HPASpec struct {
 }
 
 func HPA(spec *HPASpec) *kautoscaling.HorizontalPodAutoscaler {
-	if spec.Namespace == "" {
-		spec.Namespace = "default"
-	}
 	hpa := &kautoscaling.HorizontalPodAutoscaler{
 		TypeMeta: hpaTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.DeploymentName,
-			Namespace:   spec.Namespace,
 			Labels:      spec.Labels,
 			Annotations: spec.Annotations,
 		},

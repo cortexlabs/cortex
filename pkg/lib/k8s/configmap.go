@@ -31,21 +31,16 @@ var configMapTypeMeta = kmeta.TypeMeta{
 
 type ConfigMapSpec struct {
 	Name        string
-	Namespace   string
 	Data        map[string]string
 	Labels      map[string]string
 	Annotations map[string]string
 }
 
 func ConfigMap(spec *ConfigMapSpec) *kcore.ConfigMap {
-	if spec.Namespace == "" {
-		spec.Namespace = "default"
-	}
 	configMap := &kcore.ConfigMap{
 		TypeMeta: configMapTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
-			Namespace:   spec.Namespace,
 			Labels:      spec.Labels,
 			Annotations: spec.Annotations,
 		},

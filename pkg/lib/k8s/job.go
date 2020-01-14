@@ -32,19 +32,12 @@ var jobTypeMeta = kmeta.TypeMeta{
 
 type JobSpec struct {
 	Name        string
-	Namespace   string
 	PodSpec     PodSpec
 	Labels      map[string]string
 	Annotations map[string]string
 }
 
 func Job(spec *JobSpec) *kbatch.Job {
-	if spec.Namespace == "" {
-		spec.Namespace = "default"
-	}
-	if spec.PodSpec.Namespace == "" {
-		spec.PodSpec.Namespace = spec.Namespace
-	}
 	if spec.PodSpec.Name == "" {
 		spec.PodSpec.Name = spec.Name
 	}
@@ -57,7 +50,6 @@ func Job(spec *JobSpec) *kbatch.Job {
 		TypeMeta: jobTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
-			Namespace:   spec.Namespace,
 			Labels:      spec.Labels,
 			Annotations: spec.Annotations,
 		},
@@ -67,9 +59,8 @@ func Job(spec *JobSpec) *kbatch.Job {
 			Completions:  &completions,
 			Template: kcore.PodTemplateSpec{
 				ObjectMeta: kmeta.ObjectMeta{
-					Name:      spec.PodSpec.Name,
-					Namespace: spec.PodSpec.Namespace,
-					Labels:    spec.PodSpec.Labels,
+					Name:   spec.PodSpec.Name,
+					Labels: spec.PodSpec.Labels,
 				},
 				Spec: spec.PodSpec.K8sPodSpec,
 			},
