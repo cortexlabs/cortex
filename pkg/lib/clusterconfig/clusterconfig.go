@@ -620,7 +620,7 @@ func InstallPrompt(clusterConfig *Config, awsAccessKeyID string, awsSecretAccess
 			{
 				StructField: "Region",
 				PromptOpts: &prompt.Options{
-					Prompt: RegionUserFacingKey,
+					Prompt: RegionUserKey,
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
 					AllowedValues: aws.EKSSupportedRegionsSlice,
@@ -650,7 +650,7 @@ func InstallPrompt(clusterConfig *Config, awsAccessKeyID string, awsSecretAccess
 			{
 				StructField: "Bucket",
 				PromptOpts: &prompt.Options{
-					Prompt: BucketUserFacingKey,
+					Prompt: BucketUserKey,
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
 					Default: defaultBucket,
@@ -736,7 +736,7 @@ var AccessPromptValidation = &cr.PromptValidation{
 		{
 			StructField: "ClusterName",
 			PromptOpts: &prompt.Options{
-				Prompt: ClusterNameUserFacingKey,
+				Prompt: ClusterNameUserKey,
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
 				Default: pointer.String("cortex"),
@@ -745,7 +745,7 @@ var AccessPromptValidation = &cr.PromptValidation{
 		{
 			StructField: "Region",
 			PromptOpts: &prompt.Options{
-				Prompt: RegionUserFacingKey,
+				Prompt: RegionUserKey,
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
 				AllowedValues: aws.EKSSupportedRegionsSlice,
@@ -817,65 +817,65 @@ func DefaultAccessConfig() (*AccessConfig, error) {
 	return accessConfig, nil
 }
 
-func (cc *InternalConfig) UserFacingTable() table.KeyValuePairs {
+func (cc *InternalConfig) UserTable() table.KeyValuePairs {
 	var items table.KeyValuePairs
 
-	items.Add(APIVersionUserFacingKey, cc.APIVersion)
-	items.AddAll(cc.Config.UserFacingTable())
+	items.Add(APIVersionUserKey, cc.APIVersion)
+	items.AddAll(cc.Config.UserTable())
 	return items
 }
 
-func (cc *InternalConfig) UserFacingString() string {
-	return cc.UserFacingTable().String()
+func (cc *InternalConfig) UserStr() string {
+	return cc.UserTable().String()
 }
 
-func (cc *Config) UserFacingTable() table.KeyValuePairs {
+func (cc *Config) UserTable() table.KeyValuePairs {
 	var items table.KeyValuePairs
 
-	items.Add(ClusterNameUserFacingKey, cc.ClusterName)
-	items.Add(RegionUserFacingKey, *cc.Region)
+	items.Add(ClusterNameUserKey, cc.ClusterName)
+	items.Add(RegionUserKey, *cc.Region)
 	if len(cc.AvailabilityZones) > 0 {
-		items.Add(AvailabilityZonesUserFacingKey, cc.AvailabilityZones)
+		items.Add(AvailabilityZonesUserKey, cc.AvailabilityZones)
 	}
-	items.Add(BucketUserFacingKey, *cc.Bucket)
-	items.Add(InstanceTypeUserFacingKey, *cc.InstanceType)
-	items.Add(MinInstancesUserFacingKey, *cc.MinInstances)
-	items.Add(MaxInstancesUserFacingKey, *cc.MaxInstances)
-	items.Add(InstanceVolumeSizeUserFacingKey, cc.InstanceVolumeSize)
-	items.Add(SpotUserFacingKey, s.YesNo(*cc.Spot))
+	items.Add(BucketUserKey, *cc.Bucket)
+	items.Add(InstanceTypeUserKey, *cc.InstanceType)
+	items.Add(MinInstancesUserKey, *cc.MinInstances)
+	items.Add(MaxInstancesUserKey, *cc.MaxInstances)
+	items.Add(InstanceVolumeSizeUserKey, cc.InstanceVolumeSize)
+	items.Add(SpotUserKey, s.YesNo(*cc.Spot))
 
 	if cc.Spot != nil && *cc.Spot {
-		items.Add(InstanceDistributionUserFacingKey, cc.SpotConfig.InstanceDistribution)
-		items.Add(OnDemandBaseCapacityUserFacingKey, *cc.SpotConfig.OnDemandBaseCapacity)
-		items.Add(OnDemandPercentageAboveBaseCapacityUserFacingKey, *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity)
-		items.Add(MaxPriceUserFacingKey, *cc.SpotConfig.MaxPrice)
-		items.Add(InstancePoolsUserFacingKey, *cc.SpotConfig.InstancePools)
+		items.Add(InstanceDistributionUserKey, cc.SpotConfig.InstanceDistribution)
+		items.Add(OnDemandBaseCapacityUserKey, *cc.SpotConfig.OnDemandBaseCapacity)
+		items.Add(OnDemandPercentageAboveBaseCapacityUserKey, *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity)
+		items.Add(MaxPriceUserKey, *cc.SpotConfig.MaxPrice)
+		items.Add(InstancePoolsUserKey, *cc.SpotConfig.InstancePools)
 	}
-	items.Add(LogGroupUserFacingKey, cc.LogGroup)
-	items.Add(TelemetryUserFacingKey, cc.Telemetry)
-	items.Add(ImagePythonServeUserFacingKey, cc.ImagePythonServe)
-	items.Add(ImagePythonServeGPUUserFacingKey, cc.ImagePythonServeGPU)
-	items.Add(ImageTFServeUserFacingKey, cc.ImageTFServe)
-	items.Add(ImageTFServeGPUUserFacingKey, cc.ImageTFServeGPU)
-	items.Add(ImageTFAPIUserFacingKey, cc.ImageTFAPI)
-	items.Add(ImageONNXServeUserFacingKey, cc.ImageONNXServe)
-	items.Add(ImageONNXServeGPUUserFacingKey, cc.ImageONNXServeGPU)
-	items.Add(ImageOperatorUserFacingKey, cc.ImageOperator)
-	items.Add(ImageManagerUserFacingKey, cc.ImageManager)
-	items.Add(ImageDownloaderUserFacingKey, cc.ImageDownloader)
-	items.Add(ImageClusterAutoscalerUserFacingKey, cc.ImageClusterAutoscaler)
-	items.Add(ImageMetricsServerUserFacingKey, cc.ImageMetricsServer)
-	items.Add(ImageNvidiaUserFacingKey, cc.ImageNvidia)
-	items.Add(ImageFluentdUserFacingKey, cc.ImageFluentd)
-	items.Add(ImageStatsdUserFacingKey, cc.ImageStatsd)
-	items.Add(ImageIstioProxyUserFacingKey, cc.ImageIstioProxy)
-	items.Add(ImageIstioPilotUserFacingKey, cc.ImageIstioPilot)
-	items.Add(ImageIstioCitadelUserFacingKey, cc.ImageIstioCitadel)
-	items.Add(ImageIstioGalleyUserFacingKey, cc.ImageIstioGalley)
+	items.Add(LogGroupUserKey, cc.LogGroup)
+	items.Add(TelemetryUserKey, cc.Telemetry)
+	items.Add(ImagePythonServeUserKey, cc.ImagePythonServe)
+	items.Add(ImagePythonServeGPUUserKey, cc.ImagePythonServeGPU)
+	items.Add(ImageTFServeUserKey, cc.ImageTFServe)
+	items.Add(ImageTFServeGPUUserKey, cc.ImageTFServeGPU)
+	items.Add(ImageTFAPIUserKey, cc.ImageTFAPI)
+	items.Add(ImageONNXServeUserKey, cc.ImageONNXServe)
+	items.Add(ImageONNXServeGPUUserKey, cc.ImageONNXServeGPU)
+	items.Add(ImageOperatorUserKey, cc.ImageOperator)
+	items.Add(ImageManagerUserKey, cc.ImageManager)
+	items.Add(ImageDownloaderUserKey, cc.ImageDownloader)
+	items.Add(ImageClusterAutoscalerUserKey, cc.ImageClusterAutoscaler)
+	items.Add(ImageMetricsServerUserKey, cc.ImageMetricsServer)
+	items.Add(ImageNvidiaUserKey, cc.ImageNvidia)
+	items.Add(ImageFluentdUserKey, cc.ImageFluentd)
+	items.Add(ImageStatsdUserKey, cc.ImageStatsd)
+	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
+	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
+	items.Add(ImageIstioCitadelUserKey, cc.ImageIstioCitadel)
+	items.Add(ImageIstioGalleyUserKey, cc.ImageIstioGalley)
 
 	return items
 }
 
-func (cc *Config) UserFacingString() string {
-	return cc.UserFacingTable().String()
+func (cc *Config) UserStr() string {
+	return cc.UserTable().String()
 }

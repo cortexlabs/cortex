@@ -331,112 +331,112 @@ func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.Config, awsCreds *
 	if awsCreds.CortexAWSAccessKeyID != awsCreds.AWSAccessKeyID {
 		items.Add("aws access key id", s.MaskString(awsCreds.CortexAWSAccessKeyID, 4)+" (cortex)")
 	}
-	items.Add(clusterconfig.RegionUserFacingKey, clusterConfig.Region)
+	items.Add(clusterconfig.RegionUserKey, clusterConfig.Region)
 	if len(clusterConfig.AvailabilityZones) > 0 {
-		items.Add(clusterconfig.AvailabilityZonesUserFacingKey, clusterConfig.AvailabilityZones)
+		items.Add(clusterconfig.AvailabilityZonesUserKey, clusterConfig.AvailabilityZones)
 	}
-	items.Add(clusterconfig.BucketUserFacingKey, clusterConfig.Bucket)
-	items.Add(clusterconfig.ClusterNameUserFacingKey, clusterConfig.ClusterName)
+	items.Add(clusterconfig.BucketUserKey, clusterConfig.Bucket)
+	items.Add(clusterconfig.ClusterNameUserKey, clusterConfig.ClusterName)
 	if clusterConfig.LogGroup != defaultConfig.LogGroup {
-		items.Add(clusterconfig.LogGroupUserFacingKey, clusterConfig.LogGroup)
+		items.Add(clusterconfig.LogGroupUserKey, clusterConfig.LogGroup)
 	}
 
-	items.Add(clusterconfig.InstanceTypeUserFacingKey, *clusterConfig.InstanceType)
-	items.Add(clusterconfig.MinInstancesUserFacingKey, *clusterConfig.MinInstances)
-	items.Add(clusterconfig.MaxInstancesUserFacingKey, *clusterConfig.MaxInstances)
+	items.Add(clusterconfig.InstanceTypeUserKey, *clusterConfig.InstanceType)
+	items.Add(clusterconfig.MinInstancesUserKey, *clusterConfig.MinInstances)
+	items.Add(clusterconfig.MaxInstancesUserKey, *clusterConfig.MaxInstances)
 	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
-		items.Add(clusterconfig.InstanceVolumeSizeUserFacingKey, clusterConfig.InstanceVolumeSize)
+		items.Add(clusterconfig.InstanceVolumeSizeUserKey, clusterConfig.InstanceVolumeSize)
 	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot != *defaultConfig.Spot {
-		items.Add(clusterconfig.SpotUserFacingKey, s.YesNo(clusterConfig.Spot != nil && *clusterConfig.Spot))
+		items.Add(clusterconfig.SpotUserKey, s.YesNo(clusterConfig.Spot != nil && *clusterConfig.Spot))
 
 		if clusterConfig.SpotConfig != nil {
 			defaultSpotConfig := clusterconfig.SpotConfig{}
 			clusterconfig.AutoGenerateSpotConfig(awsCreds.CortexAWSAccessKeyID, awsCreds.AWSSecretAccessKey, &defaultSpotConfig, *clusterConfig.Region, *clusterConfig.InstanceType)
 
 			if !strset.New(clusterConfig.SpotConfig.InstanceDistribution...).IsEqual(strset.New(defaultSpotConfig.InstanceDistribution...)) {
-				items.Add(clusterconfig.InstanceDistributionUserFacingKey, clusterConfig.SpotConfig.InstanceDistribution)
+				items.Add(clusterconfig.InstanceDistributionUserKey, clusterConfig.SpotConfig.InstanceDistribution)
 			}
 
 			if *clusterConfig.SpotConfig.OnDemandBaseCapacity != *defaultSpotConfig.OnDemandBaseCapacity {
-				items.Add(clusterconfig.OnDemandBaseCapacityUserFacingKey, *clusterConfig.SpotConfig.OnDemandBaseCapacity)
+				items.Add(clusterconfig.OnDemandBaseCapacityUserKey, *clusterConfig.SpotConfig.OnDemandBaseCapacity)
 			}
 
 			if *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity != *defaultSpotConfig.OnDemandPercentageAboveBaseCapacity {
-				items.Add(clusterconfig.OnDemandPercentageAboveBaseCapacityUserFacingKey, *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity)
+				items.Add(clusterconfig.OnDemandPercentageAboveBaseCapacityUserKey, *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity)
 			}
 
 			if *clusterConfig.SpotConfig.MaxPrice != *defaultSpotConfig.MaxPrice {
-				items.Add(clusterconfig.MaxPriceUserFacingKey, *clusterConfig.SpotConfig.MaxPrice)
+				items.Add(clusterconfig.MaxPriceUserKey, *clusterConfig.SpotConfig.MaxPrice)
 			}
 
 			if *clusterConfig.SpotConfig.InstancePools != *defaultSpotConfig.InstancePools {
-				items.Add(clusterconfig.InstancePoolsUserFacingKey, *clusterConfig.SpotConfig.InstancePools)
+				items.Add(clusterconfig.InstancePoolsUserKey, *clusterConfig.SpotConfig.InstancePools)
 			}
 		}
 	}
 
 	if clusterConfig.Telemetry != defaultConfig.Telemetry {
-		items.Add(clusterconfig.TelemetryUserFacingKey, clusterConfig.Telemetry)
+		items.Add(clusterconfig.TelemetryUserKey, clusterConfig.Telemetry)
 	}
 
 	if clusterConfig.ImagePythonServe != defaultConfig.ImagePythonServe {
-		items.Add(clusterconfig.ImagePythonServeUserFacingKey, clusterConfig.ImagePythonServe)
+		items.Add(clusterconfig.ImagePythonServeUserKey, clusterConfig.ImagePythonServe)
 	}
 	if clusterConfig.ImagePythonServeGPU != defaultConfig.ImagePythonServeGPU {
-		items.Add(clusterconfig.ImagePythonServeGPUUserFacingKey, clusterConfig.ImagePythonServeGPU)
+		items.Add(clusterconfig.ImagePythonServeGPUUserKey, clusterConfig.ImagePythonServeGPU)
 	}
 	if clusterConfig.ImageTFServe != defaultConfig.ImageTFServe {
-		items.Add(clusterconfig.ImageTFServeUserFacingKey, clusterConfig.ImageTFServe)
+		items.Add(clusterconfig.ImageTFServeUserKey, clusterConfig.ImageTFServe)
 	}
 	if clusterConfig.ImageTFServeGPU != defaultConfig.ImageTFServeGPU {
-		items.Add(clusterconfig.ImageTFServeGPUUserFacingKey, clusterConfig.ImageTFServeGPU)
+		items.Add(clusterconfig.ImageTFServeGPUUserKey, clusterConfig.ImageTFServeGPU)
 	}
 	if clusterConfig.ImageTFAPI != defaultConfig.ImageTFAPI {
-		items.Add(clusterconfig.ImageTFAPIUserFacingKey, clusterConfig.ImageTFAPI)
+		items.Add(clusterconfig.ImageTFAPIUserKey, clusterConfig.ImageTFAPI)
 	}
 	if clusterConfig.ImageONNXServe != defaultConfig.ImageONNXServe {
-		items.Add(clusterconfig.ImageONNXServeUserFacingKey, clusterConfig.ImageONNXServe)
+		items.Add(clusterconfig.ImageONNXServeUserKey, clusterConfig.ImageONNXServe)
 	}
 	if clusterConfig.ImageONNXServeGPU != defaultConfig.ImageONNXServeGPU {
-		items.Add(clusterconfig.ImageONNXServeGPUUserFacingKey, clusterConfig.ImageONNXServeGPU)
+		items.Add(clusterconfig.ImageONNXServeGPUUserKey, clusterConfig.ImageONNXServeGPU)
 	}
 	if clusterConfig.ImageOperator != defaultConfig.ImageOperator {
-		items.Add(clusterconfig.ImageOperatorUserFacingKey, clusterConfig.ImageOperator)
+		items.Add(clusterconfig.ImageOperatorUserKey, clusterConfig.ImageOperator)
 	}
 	if clusterConfig.ImageManager != defaultConfig.ImageManager {
-		items.Add(clusterconfig.ImageManagerUserFacingKey, clusterConfig.ImageManager)
+		items.Add(clusterconfig.ImageManagerUserKey, clusterConfig.ImageManager)
 	}
 	if clusterConfig.ImageDownloader != defaultConfig.ImageDownloader {
-		items.Add(clusterconfig.ImageDownloaderUserFacingKey, clusterConfig.ImageDownloader)
+		items.Add(clusterconfig.ImageDownloaderUserKey, clusterConfig.ImageDownloader)
 	}
 	if clusterConfig.ImageClusterAutoscaler != defaultConfig.ImageClusterAutoscaler {
-		items.Add(clusterconfig.ImageClusterAutoscalerUserFacingKey, clusterConfig.ImageClusterAutoscaler)
+		items.Add(clusterconfig.ImageClusterAutoscalerUserKey, clusterConfig.ImageClusterAutoscaler)
 	}
 	if clusterConfig.ImageMetricsServer != defaultConfig.ImageMetricsServer {
-		items.Add(clusterconfig.ImageMetricsServerUserFacingKey, clusterConfig.ImageMetricsServer)
+		items.Add(clusterconfig.ImageMetricsServerUserKey, clusterConfig.ImageMetricsServer)
 	}
 	if clusterConfig.ImageNvidia != defaultConfig.ImageNvidia {
-		items.Add(clusterconfig.ImageNvidiaUserFacingKey, clusterConfig.ImageNvidia)
+		items.Add(clusterconfig.ImageNvidiaUserKey, clusterConfig.ImageNvidia)
 	}
 	if clusterConfig.ImageFluentd != defaultConfig.ImageFluentd {
-		items.Add(clusterconfig.ImageFluentdUserFacingKey, clusterConfig.ImageFluentd)
+		items.Add(clusterconfig.ImageFluentdUserKey, clusterConfig.ImageFluentd)
 	}
 	if clusterConfig.ImageStatsd != defaultConfig.ImageStatsd {
-		items.Add(clusterconfig.ImageStatsdUserFacingKey, clusterConfig.ImageStatsd)
+		items.Add(clusterconfig.ImageStatsdUserKey, clusterConfig.ImageStatsd)
 	}
 	if clusterConfig.ImageIstioProxy != defaultConfig.ImageIstioProxy {
-		items.Add(clusterconfig.ImageIstioProxyUserFacingKey, clusterConfig.ImageIstioProxy)
+		items.Add(clusterconfig.ImageIstioProxyUserKey, clusterConfig.ImageIstioProxy)
 	}
 	if clusterConfig.ImageIstioPilot != defaultConfig.ImageIstioPilot {
-		items.Add(clusterconfig.ImageIstioPilotUserFacingKey, clusterConfig.ImageIstioPilot)
+		items.Add(clusterconfig.ImageIstioPilotUserKey, clusterConfig.ImageIstioPilot)
 	}
 	if clusterConfig.ImageIstioCitadel != defaultConfig.ImageIstioCitadel {
-		items.Add(clusterconfig.ImageIstioCitadelUserFacingKey, clusterConfig.ImageIstioCitadel)
+		items.Add(clusterconfig.ImageIstioCitadelUserKey, clusterConfig.ImageIstioCitadel)
 	}
 	if clusterConfig.ImageIstioGalley != defaultConfig.ImageIstioGalley {
-		items.Add(clusterconfig.ImageIstioGalleyUserFacingKey, clusterConfig.ImageIstioGalley)
+		items.Add(clusterconfig.ImageIstioGalleyUserKey, clusterConfig.ImageIstioGalley)
 	}
 
 	return items.String()

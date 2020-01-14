@@ -186,14 +186,14 @@ var _infoCmd = &cobra.Command{
 
 		httpResponse, err := HTTPGet("/info")
 		if err != nil {
-			fmt.Println(clusterConfig.UserFacingString())
+			fmt.Println(clusterConfig.UserStr())
 			fmt.Println("\n" + errors.Wrap(err, "unable to connect to operator").Error())
 			return
 		}
 		var infoResponse schema.InfoResponse
 		err = json.Unmarshal(httpResponse, &infoResponse)
 		if err != nil {
-			fmt.Println(clusterConfig.UserFacingString())
+			fmt.Println(clusterConfig.UserStr())
 			fmt.Println("\n" + errors.Wrap(err, "unable to parse operator response").Error())
 			return
 		}
@@ -201,7 +201,7 @@ var _infoCmd = &cobra.Command{
 
 		var items table.KeyValuePairs
 		items.Add("aws access key id", infoResponse.MaskedAWSAccessKeyID)
-		items.AddAll(infoResponse.ClusterConfig.UserFacingTable())
+		items.AddAll(infoResponse.ClusterConfig.UserTable())
 
 		items.Print()
 	},
