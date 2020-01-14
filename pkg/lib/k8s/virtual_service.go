@@ -103,6 +103,8 @@ func VirtualService(spec *VirtualServiceSpec) *kunstructured.Unstructured {
 }
 
 func (c *Client) CreateVirtualService(spec *kunstructured.Unstructured) (*kunstructured.Unstructured, error) {
+	spec.Object["metadata"].(map[string]interface{})["namespace"] = c.Namespace
+
 	virtualService, err := c.dynamicClient.
 		Resource(virtualServiceGVR).
 		Namespace(spec.GetNamespace()).
@@ -116,6 +118,8 @@ func (c *Client) CreateVirtualService(spec *kunstructured.Unstructured) (*kunstr
 }
 
 func (c *Client) UpdateVirtualService(spec *kunstructured.Unstructured) (*kunstructured.Unstructured, error) {
+	spec.Object["metadata"].(map[string]interface{})["namespace"] = c.Namespace
+
 	virtualService, err := c.dynamicClient.
 		Resource(virtualServiceGVR).
 		Namespace(spec.GetNamespace()).
@@ -129,6 +133,8 @@ func (c *Client) UpdateVirtualService(spec *kunstructured.Unstructured) (*kunstr
 }
 
 func (c *Client) ApplyVirtualService(spec *kunstructured.Unstructured) (*kunstructured.Unstructured, error) {
+	spec.Object["metadata"].(map[string]interface{})["namespace"] = c.Namespace
+
 	existing, err := c.GetVirtualService(spec.GetName())
 	if err != nil {
 		return nil, err
