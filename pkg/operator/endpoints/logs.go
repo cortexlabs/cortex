@@ -19,15 +19,24 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/gorilla/websocket"
-
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/gorilla/websocket"
 )
 
 func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	apiName, err := getRequiredQueryParam("apiName", r)
 	if err != nil {
 		respondError(w, err)
+		return
+	}
+
+	isDeployed, err := config.K8s.Default.DeploymentExists(apiName)
+	if err != nil {
+		respondError(w, err)
+		return
+	} else if !isDeployed {
+		respondError(w, ErrorAPINotDeployed(apiName))
 		return
 	}
 

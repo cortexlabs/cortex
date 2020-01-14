@@ -19,12 +19,11 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
-
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/spf13/cobra"
 )
 
 var _flagPrint bool

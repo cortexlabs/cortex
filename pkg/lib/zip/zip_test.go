@@ -22,10 +22,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
+	"github.com/stretchr/testify/require"
 )
 
 func TestZip(t *testing.T) {

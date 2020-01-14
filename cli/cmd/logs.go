@@ -17,9 +17,13 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/spf13/cobra"
+	"fmt"
+	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -34,22 +38,16 @@ var _logsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.logs")
 
-		// resourceName := args[0]
+		apiName := args[0]
 
-		// appName, err := AppNameFromFlagOrConfig()
-		// if err != nil {
-		// 	exit.Error(err)
-		// }
-
-		// err = StreamLogs(appName, resourceName, resource.APIType.String())
-		// if err != nil {
-		// 	// note: if modifying this string, search the codebase for it and change all occurrences
-		// 	// TODO
-		// 	if strings.HasSuffix(err.Error(), "is not deployed") {
-		// 		fmt.Println(console.Bold(err.Error()))
-		// 		return
-		// 	}
-		// 	exit.Error(err)
-		// }
+		err := StreamLogs(apiName)
+		if err != nil {
+			// note: if modifying this string, search the codebase for it and change all occurrences
+			if strings.HasSuffix(err.Error(), "is not deployed") {
+				fmt.Println(console.Bold(err.Error()))
+				return
+			}
+			exit.Error(err)
+		}
 	},
 }

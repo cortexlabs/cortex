@@ -29,8 +29,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/websocket"
-
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -38,6 +36,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/gorilla/websocket"
 )
 
 type OperatorClient struct {
@@ -158,7 +157,7 @@ func HTTPUploadZip(endpoint string, zipInput *zip.Input, fileName string, qParam
 	return HTTPUpload(endpoint, uploadInput, qParams...)
 }
 
-func StreamLogs(appName string, resourceName string, resourceType string) error {
+func StreamLogs(apiName string) error {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
@@ -168,10 +167,7 @@ func StreamLogs(appName string, resourceName string, resourceType string) error 
 	}
 
 	values := req.URL.Query()
-	values.Set("resourceName", resourceName)
-	values.Set("resourceType", resourceType)
-	values.Set("appName", appName)
-
+	values.Set("apiName", apiName)
 	if isTelemetryEnabled() {
 		values.Set("clientID", clientID())
 	}

@@ -20,10 +20,9 @@ import (
 	"encoding/json"
 	"math"
 
-	kresource "k8s.io/apimachinery/pkg/api/resource"
-
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
 type Quantity struct {

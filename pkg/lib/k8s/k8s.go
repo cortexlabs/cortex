@@ -21,6 +21,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/random"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientdynamic "k8s.io/client-go/dynamic"
@@ -34,9 +36,6 @@ import (
 	kclientrest "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclienthomedir "k8s.io/client-go/util/homedir"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/random"
 )
 
 var (

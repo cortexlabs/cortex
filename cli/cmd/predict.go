@@ -17,13 +17,20 @@ limitations under the License.
 package cmd
 
 import (
+	"bytes"
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/spf13/cobra"
-
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/spf13/cobra"
 )
 
 var _flagPredictDebug bool
@@ -50,96 +57,65 @@ var _predictCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.predict")
 
-		// apiName := args[0]
-		// jsonPath := args[1]
+		apiName := args[0]
+		jsonPath := args[1]
 
-		// appName, err := AppNameFromFlagOrConfig()
-		// if err != nil {
-		// 	exit.Error(err)
-		// }
+		httpRes, err := HTTPGet("/get/" + apiName)
+		if err != nil {
+			exit.Error(err)
+		}
 
-		// resourcesRes, err := getResourcesResponse(appName)
-		// if err != nil {
-		// 	exit.Error(err)
-		// }
+		var apiRes schema.GetAPIResponse
+		if err = json.Unmarshal(httpRes, &apiRes); err != nil {
+			exit.Error(err)
+		}
 
-		// apiGroupStatus := resourcesRes.APIGroupStatuses[apiName]
+		totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
+		if totalReady == 0 {
+			exit.Error(ErrorAPINotReady(apiName, apiRes.Status.Message()))
+		}
 
-		// // Check for prefix match
-		// if apiGroupStatus == nil {
-		// 	var matchedName string
-		// 	for name := range resourcesRes.APIGroupStatuses {
-		// 		if strings.HasPrefix(name, apiName) {
-		// 			if matchedName != "" {
-		// 				exit.Error(ErrorAPINotFound(apiName)) // duplicates
-		// 			}
-		// 			matchedName = name
-		// 		}
-		// 	}
+		apiEndpoint := urls.Join(apiRes.BaseURL, *apiRes.API.Endpoint)
+		if _flagPredictDebug {
+			apiEndpoint += "?debug=true"
+		}
 
-		// 	if matchedName == "" {
-		// 		exit.Error(ErrorAPINotFound(apiName))
-		// 	}
+		predictResponse, err := makePredictRequest(apiEndpoint, jsonPath)
+		if err != nil {
+			exit.Error(err)
+		}
 
-		// 	if resourcesRes.Context.APIs[matchedName] == nil {
-		// 		exit.Error(ErrorAPINotFound(apiName))
-		// 	}
-
-		// 	apiGroupStatus = resourcesRes.APIGroupStatuses[matchedName]
-		// 	apiName = matchedName
-		// }
-
-		// api := resourcesRes.Context.APIs[apiName]
-		// if api == nil {
-		// 	exit.Error(ErrorAPINotFound(apiName))
-		// }
-
-		// if apiGroupStatus.ActiveStatus == nil {
-		// 	exit.Error(ErrorAPINotReady(apiName, apiGroupStatus.Message()))
-		// }
-
-		// apiURL := urls.Join(resourcesRes.APIsBaseURL, *api.Endpoint)
-		// if _flagPredictDebug {
-		// 	apiURL += "?debug=true"
-		// }
-		// predictResponse, err := makePredictRequest(apiURL, jsonPath)
-		// if err != nil {
-		// 	if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
-		// 		exit.Error(ErrorAPINotReady(apiName, "creating"))
-		// 	}
-		// 	exit.Error(err)
-		// }
-
-		// prettyResp, err := json.Pretty(predictResponse)
-		// if err != nil {
-		// 	exit.Error(err)
-		// }
-		// fmt.Println(prettyResp)
+		prettyResp, err := json.Pretty(predictResponse)
+		if err != nil {
+			exit.Error(err)
+		}
+		fmt.Println(prettyResp)
 	},
 }
 
-// func makePredictRequest(apiURL string, jsonPath string) (interface{}, error) {
-// 	jsonBytes, err := files.ReadFileBytes(jsonPath)
-// 	if err != nil {
-// 		exit.Error(err)
-// 	}
-// 	payload := bytes.NewBuffer(jsonBytes)
-// 	req, err := http.NewRequest("POST", apiURL, payload)
-// 	if err != nil {
-// 		return nil, errors.Wrap(err, errStrCantMakeRequest)
-// 	}
+func makePredictRequest(apiEndpoint string, jsonPath string) (interface{}, error) {
+	jsonBytes, err := files.ReadFileBytes(jsonPath)
+	if err != nil {
+		exit.Error(err)
+	}
 
-// 	req.Header.Set("Content-Type", "application/json")
-// 	httpResponse, err := _predictClient.MakeRequest(req)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	payload := bytes.NewBuffer(jsonBytes)
+	req, err := http.NewRequest("POST", apiEndpoint, payload)
+	if err != nil {
+		return nil, errors.Wrap(err, _errStrCantMakeRequest)
+	}
 
-// 	var predictResponse interface{}
-// 	err = json.DecodeWithNumber(httpResponse, &predictResponse)
-// 	if err != nil {
-// 		return nil, errors.Wrap(err, "prediction response")
-// 	}
+	req.Header.Set("Content-Type", "application/json")
+	httpResponse, err := _predictClient.MakeRequest(req)
+	if err != nil {
+		return nil, err
+	}
 
-// 	return predictResponse, nil
-// }
+	var predictResponse interface{}
+	err = json.DecodeWithNumber(httpResponse, &predictResponse)
+	if err != nil {
+		return nil, errors.Wrap(err, "prediction response")
+	}
+
+	return predictResponse, nil
+}

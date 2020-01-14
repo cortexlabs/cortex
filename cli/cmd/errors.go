@@ -41,7 +41,6 @@ const (
 	ErrUnknown ErrorKind = iota
 	ErrCLIAlreadyInAppDir
 	ErrAPINotReady
-	ErrAPINotFound
 	ErrFailedToConnectOperator
 	ErrConfigCannotBeChangedOnUpdate
 	ErrDuplicateCLIEnvNames
@@ -52,7 +51,6 @@ var _errorKinds = []string{
 	"err_unknown",
 	"err_cli_already_in_app_dir",
 	"err_api_not_ready",
-	"err_api_not_found",
 	"err_failed_to_connect_operator",
 	"err_config_cannot_be_changed_on_update",
 	"err_duplicate_cli_env_names",
@@ -111,19 +109,10 @@ func ErrorCliAlreadyInAppDir(dirPath string) error {
 	})
 }
 
-// TODO delete or update word choice
 func ErrorAPINotReady(apiName string, status string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrAPINotReady,
-		message: fmt.Sprintf("api %s is %s", s.UserStr(apiName), status),
-	})
-}
-
-// TODO delete or update word choice
-func ErrorAPINotFound(apiName string) error {
-	return errors.WithStack(Error{
-		Kind:    ErrAPINotFound,
-		message: fmt.Sprintf("api %s not found", s.UserStr(apiName)),
+		message: fmt.Sprintf("%s api is %s", s.UserStr(apiName), status),
 	})
 }
 

@@ -24,14 +24,13 @@ import (
 	"strings"
 	"time"
 
-	homedir "github.com/mitchellh/go-homedir"
-	"github.com/spf13/cobra"
-
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
+	homedir "github.com/mitchellh/go-homedir"
+	"github.com/spf13/cobra"
 )
 
 var _cmdStr string

@@ -17,12 +17,11 @@ limitations under the License.
 package k8s
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	kextensions "k8s.io/api/extensions/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 var _ingressTypeMeta = kmeta.TypeMeta{

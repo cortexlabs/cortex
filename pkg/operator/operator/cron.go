@@ -19,15 +19,14 @@ package operator
 import (
 	"time"
 
-	kapps "k8s.io/api/apps/v1"
-	kcore "k8s.io/api/core/v1"
-	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	kapps "k8s.io/api/apps/v1"
+	kcore "k8s.io/api/core/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func operatorCron() error {

@@ -19,15 +19,14 @@ package operator
 import (
 	"time"
 
-	kapps "k8s.io/api/apps/v1"
-	kcore "k8s.io/api/core/v1"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/status"
+	kapps "k8s.io/api/apps/v1"
+	kcore "k8s.io/api/core/v1"
 )
 
 // will return nil if API does not exist

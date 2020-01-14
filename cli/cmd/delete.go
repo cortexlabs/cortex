@@ -17,21 +17,24 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/spf13/cobra"
+	"fmt"
 
-	// "github.com/cortexlabs/cortex/pkg/lib/console"
-	// "github.com/cortexlabs/cortex/pkg/lib/exit"
-	// "github.com/cortexlabs/cortex/pkg/lib/json"
-	// "github.com/cortexlabs/cortex/pkg/lib/prompt"
-	// s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	// "github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/spf13/cobra"
 )
 
 var _flagKeepCache bool
+var _flagDeleteForce bool
 
 func init() {
 	_deleteCmd.PersistentFlags().BoolVarP(&_flagKeepCache, "keep-cache", "c", false, "keep cached data for the deployment")
+	_deployCmd.PersistentFlags().BoolVarP(&_flagDeleteForce, "force", "f", false, "delete the api without confirmation")
 	addEnvFlag(_deleteCmd)
 }
 
@@ -41,36 +44,48 @@ var _deleteCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.delete")
-		// delete(args[0], _flagKeepCache)
+		delete(args[0], _flagKeepCache)
 	},
 }
 
-// func delete(apiName string, keepCache bool) {
-// 	apiName := args[0]
+func delete(apiName string, keepCache bool) {
+	if !_flagDeleteForce {
+		readyReplicas := getReadyReplicasOrNil(apiName)
+		if readyReplicas != nil && *readyReplicas > 2 {
+			prompt.YesOrExit(fmt.Sprintf("are you sure you want to delete the %s api (which has %d running replicas)?", apiName, *readyReplicas), "")
+		}
+	}
 
-// 	apiInfo, err := getAPIInfo(apiName)
-// 	if err != nil {
-// 		exit.Error(err)
-// 	}
+	params := map[string]string{
+		"apiName":   apiName,
+		"keepCache": s.Bool(keepCache),
+	}
 
-// 	if apiInfo.APIGroupStatus.Requested > 2 {
-// 		prompt.YesOrExit(fmt.Sprintf("are you sure you want to delete the %s API?", apiName), "")
-// 	}
+	httpRes, err := HTTPPostJSONData("/delete", nil, params)
+	if err != nil {
+		exit.Error(err)
+	}
 
-// 	params := map[string]string{
-// 		"apiName":   apiName,
-// 		"keepCache": s.Bool(keepCache),
-// 	}
-// 	httpResponse, err := HTTPPostJSONData("/delete", nil, params)
-// 	if err != nil {
-// 		exit.Error(err)
-// 	}
+	var deleteRes schema.DeleteResponse
+	err = json.Unmarshal(httpRes, &deleteRes)
+	if err != nil {
+		exit.Error(err, "/delete", string(httpRes))
+	}
 
-// 	var deleteResponse schema.DeleteResponse
-// 	err = json.Unmarshal(httpResponse, &deleteResponse)
-// 	if err != nil {
-// 		exit.Error(err, "/delete", string(httpResponse))
-// 	}
+	fmt.Println(console.Bold(deleteRes.Message))
+}
 
-// 	fmt.Println(console.Bold(deleteResponse.Message))
-// }
+func getReadyReplicasOrNil(apiName string) *int32 {
+	httpRes, err := HTTPGet("/get/" + apiName)
+	if err != nil {
+		return nil
+	}
+
+	var apiRes schema.GetAPIResponse
+	if err = json.Unmarshal(httpRes, &apiRes); err != nil {
+		return nil
+	}
+
+	totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
+	return &totalReady
+}

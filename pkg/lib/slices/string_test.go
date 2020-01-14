@@ -19,9 +19,8 @@ package slices_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStrSliceElementsMatch(t *testing.T) {

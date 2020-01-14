@@ -20,10 +20,9 @@ import (
 	"fmt"
 	"strings"
 
-	pkgerrors "github.com/pkg/errors"
-
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	pkgerrors "github.com/pkg/errors"
 )
 
 func New(strs ...string) error {

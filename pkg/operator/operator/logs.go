@@ -22,16 +22,15 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	"github.com/gorilla/websocket"
-	"gopkg.in/karalabe/cookiejar.v2/collections/deque"
-	kapps "k8s.io/api/apps/v1"
-
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/gorilla/websocket"
+	"gopkg.in/karalabe/cookiejar.v2/collections/deque"
+	kapps "k8s.io/api/apps/v1"
 )
 
 const (

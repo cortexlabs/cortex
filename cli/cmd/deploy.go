@@ -22,8 +22,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -34,14 +32,15 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/spf13/cobra"
 )
 
 var _maxProjectSize = 1024 * 1024 * 50
-var _flagForce bool
+var _flagDeployForce bool
 var _flagRefresh bool
 
 func init() {
-	_deployCmd.PersistentFlags().BoolVarP(&_flagForce, "force", "f", false, "override the in-progress deployment update")
+	_deployCmd.PersistentFlags().BoolVarP(&_flagDeployForce, "force", "f", false, "override the in-progress deployment update")
 	_deployCmd.PersistentFlags().BoolVarP(&_flagRefresh, "refresh", "r", false, "re-deploy all apis with cleared cache and rolling updates")
 	addEnvFlag(_deployCmd)
 }
@@ -62,7 +61,7 @@ var _deployCmd = &cobra.Command{
 			configPath = args[0]
 		}
 
-		deploy(configPath, _flagForce, _flagRefresh)
+		deploy(configPath, _flagDeployForce, _flagRefresh)
 	},
 }
 

@@ -21,10 +21,9 @@ import (
 	"os"
 	"strings"
 
-	input "github.com/tcnksm/go-input"
-
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	input "github.com/tcnksm/go-input"
 )
 
 var _ui = &input.UI{

@@ -17,9 +17,8 @@ limitations under the License.
 package msgpack
 
 import (
-	"github.com/ugorji/go/codec"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/ugorji/go/codec"
 )
 
 var _mh codec.MsgpackHandle

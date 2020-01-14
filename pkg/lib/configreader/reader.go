@@ -23,8 +23,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/cortexlabs/yaml"
-
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -35,6 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/yaml"
 )
 
 type StructFieldValidation struct {
