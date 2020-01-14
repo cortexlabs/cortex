@@ -86,7 +86,8 @@ func Init() error {
 
 	Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
 
-	if K8s.Default, err = k8s.New("default", Cluster.OperatorInCluster); err != nil {
+	// TODO remove Default
+	if K8s.Default, err = k8s.New("cortex", Cluster.OperatorInCluster); err != nil {
 		return err
 	}
 	if K8s.Cortex, err = k8s.New("cortex", Cluster.OperatorInCluster); err != nil {

@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
@@ -155,7 +156,7 @@ func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Me
 	for i, api := range apis {
 		metrics := allMetrics[i]
 		status := statuses[i]
-
+		lastUpdated := time.Unix(api.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			api.Name,
 			status.Message(),
@@ -163,7 +164,7 @@ func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Me
 			status.Stale.Ready,
 			status.Requested,
 			status.Updated.TotalFailed(),
-			libtime.SinceStr(&api.LastUpdated),
+			libtime.SinceStr(&lastUpdated),
 			latencyStr(&metrics),
 			code2XXStr(&metrics),
 			code4XXStr(&metrics),

@@ -214,7 +214,6 @@ func ExtractAPIConfigs(configBytes []byte, projectFileMap map[string][]byte, fil
 	if !ok {
 		return nil, errors.Wrap(ErrorMalformedConfig(), filePath)
 	}
-
 	apis := make([]userconfig.API, len(configDataSlice))
 	for i, data := range configDataSlice {
 		api := userconfig.API{}
@@ -223,10 +222,9 @@ func ExtractAPIConfigs(configBytes []byte, projectFileMap map[string][]byte, fil
 			name, _ := data[userconfig.NameKey].(string)
 			return nil, errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
 		}
-
 		api.Index = i
 		api.FilePath = filePath
-		apis = append(apis, api)
+		apis[i] = api
 	}
 
 	if err := validateAPIs(apis, projectFileMap); err != nil {
@@ -251,12 +249,12 @@ func validateAPIs(apis []userconfig.API, projectFileMap map[string][]byte) error
 		return err
 	}
 
-	for _, api := range apis {
+	for i, api := range apis {
 		if err := validateAPI(&api, projectFileMap, virtualServices, maxMem); err != nil {
 			return err
 		}
+		apis[i] = api // TODO fix
 	}
-
 	return nil
 }
 
@@ -279,7 +277,7 @@ func validateAPI(
 		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}
 
-	if err := validateEndpointCollisions(api, virtualServices); err != nil {
+	if err := validateEndpointCollisions(*api, virtualServices); err != nil {
 		return err
 	}
 
@@ -502,7 +500,7 @@ func validateAvailableCompute(compute *userconfig.Compute, maxMem *kresource.Qua
 	return nil
 }
 
-func validateEndpointCollisions(api *userconfig.API, virtualServices []kunstructured.Unstructured) error {
+func validateEndpointCollisions(api userconfig.API, virtualServices []kunstructured.Unstructured) error {
 	for _, virtualService := range virtualServices {
 		gateways, err := k8s.ExtractVirtualServiceGateways(&virtualService)
 		if err != nil {

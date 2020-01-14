@@ -19,7 +19,8 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
+	"os"
+	"path"
 	"strings"
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -81,7 +82,15 @@ func deploy(configPath string, force bool, refresh bool) {
 		"config": configBytes,
 	}
 
-	projectRoot := filepath.Dir(configPath)
+	projectRoot := configPath
+	if !path.IsAbs(configPath) {
+		curDir, err := os.Getwd()
+		if err != nil {
+			exit.Error(err)
+		}
+		projectRoot = path.Dir(path.Join(curDir, configPath))
+	}
+
 	projectPaths, err := files.ListDirRecursive(projectRoot, false,
 		files.IgnoreCortexYAML, // TODO ignore the actual file specified, even if it's in a subdir. Or remove from list after the fact.
 		files.IgnoreCortexDebug,

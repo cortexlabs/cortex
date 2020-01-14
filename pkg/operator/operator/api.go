@@ -120,7 +120,6 @@ func getAPISpec(
 	projectID string,
 	deploymentID string,
 ) *spec.API {
-
 	var buf bytes.Buffer
 	buf.WriteString(apiConfig.Name)
 	buf.WriteString(*apiConfig.Endpoint)
@@ -135,7 +134,7 @@ func getAPISpec(
 		ID:           id,
 		Key:          specKey(apiConfig.Name, id),
 		DeploymentID: deploymentID,
-		LastUpdated:  time.Now(),
+		LastUpdated:  time.Now().Unix(),
 		MetadataRoot: metadataRoot(apiConfig.Name, id),
 		ProjectID:    projectID,
 		ProjectKey:   ProjectKey(projectID),

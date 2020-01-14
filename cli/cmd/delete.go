@@ -34,7 +34,7 @@ var _flagDeleteForce bool
 
 func init() {
 	_deleteCmd.PersistentFlags().BoolVarP(&_flagKeepCache, "keep-cache", "c", false, "keep cached data for the deployment")
-	_deployCmd.PersistentFlags().BoolVarP(&_flagDeleteForce, "force", "f", false, "delete the api without confirmation")
+	_deleteCmd.PersistentFlags().BoolVarP(&_flagDeleteForce, "force", "f", false, "delete the api without confirmation")
 	addEnvFlag(_deleteCmd)
 }
 

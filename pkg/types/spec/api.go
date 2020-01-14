@@ -17,18 +17,16 @@ limitations under the License.
 package spec
 
 import (
-	"time"
-
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 type API struct {
 	*userconfig.API
-	ID           string    `json:"id"`
-	Key          string    `json:"key"`
-	DeploymentID string    `json:"deployment_id"`
-	LastUpdated  time.Time `json:"last_updated"`
-	MetadataRoot string    `json:"metadata_root"`
-	ProjectID    string    `json:"project_id"`
-	ProjectKey   string    `json:"project_key"`
+	ID           string `json:"id"`
+	Key          string `json:"key"`
+	DeploymentID string `json:"deployment_id"`
+	LastUpdated  int64  `json:"last_updated"`
+	MetadataRoot string `json:"metadata_root"`
+	ProjectID    string `json:"project_id"`
+	ProjectKey   string `json:"project_key"`
 }
