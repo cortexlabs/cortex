@@ -25,7 +25,7 @@ const (
 	ONNXPredictorType
 )
 
-var predictorTypes = []string{
+var _predictorTypes = []string{
 	"unknown",
 	"python",
 	"tensorflow",
@@ -33,8 +33,8 @@ var predictorTypes = []string{
 }
 
 func PredictorTypeFromString(s string) PredictorType {
-	for i := 0; i < len(predictorTypes); i++ {
-		if s == predictorTypes[i] {
+	for i := 0; i < len(_predictorTypes); i++ {
+		if s == _predictorTypes[i] {
 			return PredictorType(i)
 		}
 	}
@@ -42,11 +42,11 @@ func PredictorTypeFromString(s string) PredictorType {
 }
 
 func PredictorTypeStrings() []string {
-	return predictorTypes[1:]
+	return _predictorTypes[1:]
 }
 
 func (t PredictorType) String() string {
-	return predictorTypes[t]
+	return _predictorTypes[t]
 }
 
 // MarshalText satisfies TextMarshaler
@@ -57,8 +57,8 @@ func (t PredictorType) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *PredictorType) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(predictorTypes); i++ {
-		if enum == predictorTypes[i] {
+	for i := 0; i < len(_predictorTypes); i++ {
+		if enum == _predictorTypes[i] {
 			*t = PredictorType(i)
 			return nil
 		}

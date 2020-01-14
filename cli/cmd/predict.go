@@ -26,9 +26,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
-var predictDebug bool
+var _flagPredictDebug bool
 
-var predictClient = &GenericClient{
+var _predictClient = &GenericClient{
 	Client: &http.Client{
 		Timeout: 600 * time.Second,
 		Transport: &http.Transport{
@@ -38,12 +38,12 @@ var predictClient = &GenericClient{
 }
 
 func init() {
-	addAppNameFlag(predictCmd)
-	addEnvFlag(predictCmd)
-	predictCmd.Flags().BoolVar(&predictDebug, "debug", false, "predict with debug mode")
+	addAppNameFlag(_predictCmd)
+	addEnvFlag(_predictCmd)
+	_predictCmd.Flags().BoolVar(&_flagPredictDebug, "debug", false, "predict with debug mode")
 }
 
-var predictCmd = &cobra.Command{
+var _predictCmd = &cobra.Command{
 	Use:   "predict API_NAME JSON_FILE",
 	Short: "make a prediction request using a json file",
 	Args:  cobra.ExactArgs(2),
@@ -99,7 +99,7 @@ var predictCmd = &cobra.Command{
 		// }
 
 		// apiURL := urls.Join(resourcesRes.APIsBaseURL, *api.Endpoint)
-		// if predictDebug {
+		// if _flagPredictDebug {
 		// 	apiURL += "?debug=true"
 		// }
 		// predictResponse, err := makePredictRequest(apiURL, jsonPath)
@@ -130,7 +130,7 @@ var predictCmd = &cobra.Command{
 // 	}
 
 // 	req.Header.Set("Content-Type", "application/json")
-// 	httpResponse, err := predictClient.MakeRequest(req)
+// 	httpResponse, err := _predictClient.MakeRequest(req)
 // 	if err != nil {
 // 		return nil, err
 // 	}

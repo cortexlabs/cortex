@@ -44,6 +44,9 @@ var _clientIDPath string
 var _emailPath string
 var _debugPath string
 
+var _flagEnv string
+var _flagAppName string
+
 func init() {
 	homeDir, err := homedir.Dir()
 	if err != nil {
@@ -90,7 +93,7 @@ func initTelemetry() {
 	})
 }
 
-var rootCmd = &cobra.Command{
+var _rootCmd = &cobra.Command{
 	Use:     "cortex",
 	Aliases: []string{"cx"},
 	Short:   "deploy machine learning models in production",
@@ -101,32 +104,32 @@ func Execute() {
 
 	cobra.EnableCommandSorting = false
 
-	rootCmd.AddCommand(deployCmd)
-	rootCmd.AddCommand(getCmd)
-	rootCmd.AddCommand(logsCmd)
-	rootCmd.AddCommand(predictCmd)
-	rootCmd.AddCommand(deleteCmd)
+	_rootCmd.AddCommand(_deployCmd)
+	_rootCmd.AddCommand(_getCmd)
+	_rootCmd.AddCommand(_logsCmd)
+	_rootCmd.AddCommand(_predictCmd)
+	_rootCmd.AddCommand(_deleteCmd)
 
-	rootCmd.AddCommand(clusterCmd)
-	rootCmd.AddCommand(versionCmd)
+	_rootCmd.AddCommand(_clusterCmd)
+	_rootCmd.AddCommand(_versionCmd)
 
-	rootCmd.AddCommand(configureCmd)
-	rootCmd.AddCommand(completionCmd)
+	_rootCmd.AddCommand(_configureCmd)
+	_rootCmd.AddCommand(_completionCmd)
 
 	updateRootUsage()
 
 	printLeadingNewLine()
-	rootCmd.Execute()
+	_rootCmd.Execute()
 
 	exit.Ok()
 }
 
 func updateRootUsage() {
-	defaultUsageFunc := rootCmd.UsageFunc()
-	usage := rootCmd.UsageString()
+	defaultUsageFunc := _rootCmd.UsageFunc()
+	usage := _rootCmd.UsageString()
 
-	rootCmd.SetUsageFunc(func(cmd *cobra.Command) error {
-		if cmd != rootCmd {
+	_rootCmd.SetUsageFunc(func(cmd *cobra.Command) error {
+		if cmd != _rootCmd {
 			return defaultUsageFunc(cmd)
 		}
 
@@ -149,15 +152,12 @@ func printLeadingNewLine() {
 	fmt.Println("")
 }
 
-var flagEnv string
-var flagAppName string
-
 func addEnvFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&flagEnv, "env", "e", "default", "environment")
+	cmd.PersistentFlags().StringVarP(&_flagEnv, "env", "e", "default", "environment")
 }
 
 func addAppNameFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&flagAppName, "deployment", "d", "", "deployment name")
+	cmd.PersistentFlags().StringVarP(&_flagAppName, "deployment", "d", "", "deployment name")
 }
 
 func getTerminalWidth() int {

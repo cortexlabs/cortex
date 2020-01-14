@@ -25,7 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-var jobTypeMeta = kmeta.TypeMeta{
+var _jobTypeMeta = kmeta.TypeMeta{
 	APIVersion: "batch/v1",
 	Kind:       "Job",
 }
@@ -47,7 +47,7 @@ func Job(spec *JobSpec) *kbatch.Job {
 	completions := int32(1)
 
 	job := &kbatch.Job{
-		TypeMeta: jobTypeMeta,
+		TypeMeta: _jobTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
 			Labels:      spec.Labels,
@@ -70,7 +70,7 @@ func Job(spec *JobSpec) *kbatch.Job {
 }
 
 func (c *Client) CreateJob(job *kbatch.Job) (*kbatch.Job, error) {
-	job.TypeMeta = jobTypeMeta
+	job.TypeMeta = _jobTypeMeta
 	job, err := c.jobClient.Create(job)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -79,7 +79,7 @@ func (c *Client) CreateJob(job *kbatch.Job) (*kbatch.Job, error) {
 }
 
 func (c *Client) UpdateJob(job *kbatch.Job) (*kbatch.Job, error) {
-	job.TypeMeta = jobTypeMeta
+	job.TypeMeta = _jobTypeMeta
 	job, err := c.jobClient.Update(job)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -106,12 +106,12 @@ func (c *Client) GetJob(name string) (*kbatch.Job, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	job.TypeMeta = jobTypeMeta
+	job.TypeMeta = _jobTypeMeta
 	return job, nil
 }
 
 func (c *Client) DeleteJob(name string) (bool, error) {
-	err := c.jobClient.Delete(name, deleteOpts)
+	err := c.jobClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -138,7 +138,7 @@ func (c *Client) ListJobs(opts *kmeta.ListOptions) ([]kbatch.Job, error) {
 		return nil, errors.WithStack(err)
 	}
 	for i := range jobList.Items {
-		jobList.Items[i].TypeMeta = jobTypeMeta
+		jobList.Items[i].TypeMeta = _jobTypeMeta
 	}
 	return jobList.Items, nil
 }

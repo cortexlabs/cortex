@@ -35,7 +35,7 @@ const (
 	ErrEndpointDoubleSlash
 )
 
-var errorKinds = []string{
+var _errorKinds = []string{
 	"err_unknown",
 	"err_invalid_url",
 	"err_dns1035",
@@ -45,10 +45,10 @@ var errorKinds = []string{
 	"err_endpoint_double_slash",
 }
 
-var _ = [1]int{}[int(ErrEndpointDoubleSlash)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrEndpointDoubleSlash)-(len(_errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
-	return errorKinds[t]
+	return _errorKinds[t]
 }
 
 // MarshalText satisfies TextMarshaler
@@ -59,8 +59,8 @@ func (t ErrorKind) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *ErrorKind) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(errorKinds); i++ {
-		if enum == errorKinds[i] {
+	for i := 0; i < len(_errorKinds); i++ {
+		if enum == _errorKinds[i] {
 			*t = ErrorKind(i)
 			return nil
 		}

@@ -48,7 +48,7 @@ type GenericClient struct {
 	*http.Client
 }
 
-var operatorClient = &OperatorClient{
+var _operatorClient = &OperatorClient{
 	Client: &http.Client{
 		Timeout: 600 * time.Second,
 		Transport: &http.Transport{
@@ -57,7 +57,7 @@ var operatorClient = &OperatorClient{
 	},
 }
 
-var apiClient = &GenericClient{
+var _apiClient = &GenericClient{
 	Client: &http.Client{
 		Timeout: 600 * time.Second,
 		Transport: &http.Transport{
@@ -71,7 +71,7 @@ func HTTPGet(endpoint string, qParams ...map[string]string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return operatorClient.MakeRequest(req)
+	return _operatorClient.MakeRequest(req)
 }
 
 func HTTPPostJSONData(endpoint string, requestData interface{}, qParams ...map[string]string) ([]byte, error) {
@@ -89,7 +89,7 @@ func HTTPPostJSON(endpoint string, jsonRequestData []byte, qParams ...map[string
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	return operatorClient.MakeRequest(req)
+	return _operatorClient.MakeRequest(req)
 }
 
 type HTTPUploadInput struct {
@@ -120,7 +120,7 @@ func HTTPUpload(endpoint string, input *HTTPUploadInput, qParams ...map[string]s
 	}
 
 	if err := writer.Close(); err != nil {
-		return nil, errors.Wrap(err, errStrCantMakeRequest)
+		return nil, errors.Wrap(err, _errStrCantMakeRequest)
 	}
 
 	req, err := operatorRequest("POST", endpoint, body, qParams)
@@ -129,17 +129,17 @@ func HTTPUpload(endpoint string, input *HTTPUploadInput, qParams ...map[string]s
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	return operatorClient.MakeRequest(req)
+	return _operatorClient.MakeRequest(req)
 }
 
 func addFileToMultipart(fileName string, writer *multipart.Writer, reader io.Reader) error {
 	part, err := writer.CreateFormFile(fileName, fileName)
 	if err != nil {
-		return errors.Wrap(err, errStrCantMakeRequest)
+		return errors.Wrap(err, _errStrCantMakeRequest)
 	}
 
 	if _, err = io.Copy(part, reader); err != nil {
-		return errors.Wrap(err, errStrCantMakeRequest)
+		return errors.Wrap(err, _errStrCantMakeRequest)
 	}
 	return nil
 }
@@ -245,14 +245,14 @@ func closeConnection(connection *websocket.Conn, done chan struct{}, interrupt c
 }
 
 func operatorRequest(method string, endpoint string, body io.Reader, qParams []map[string]string) (*http.Request, error) {
-	cliEnvConfig, err := readOrConfigureCLIEnv(flagEnv)
+	cliEnvConfig, err := readOrConfigureCLIEnv(_flagEnv)
 	if err != nil {
 		return nil, err
 	}
 
 	req, err := http.NewRequest(method, cliEnvConfig.OperatorEndpoint+endpoint, body)
 	if err != nil {
-		return nil, errors.Wrap(err, errStrCantMakeRequest)
+		return nil, errors.Wrap(err, _errStrCantMakeRequest)
 	}
 
 	values := req.URL.Query()
@@ -290,7 +290,7 @@ func (client *OperatorClient) MakeRequest(request *http.Request) ([]byte, error)
 	if response.StatusCode != 200 {
 		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return nil, errors.Wrap(err, errStrRead)
+			return nil, errors.Wrap(err, _errStrRead)
 		}
 
 		var output schema.ErrorResponse
@@ -304,7 +304,7 @@ func (client *OperatorClient) MakeRequest(request *http.Request) ([]byte, error)
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, errStrRead)
+		return nil, errors.Wrap(err, _errStrRead)
 	}
 	return bodyBytes, nil
 }
@@ -319,20 +319,20 @@ func (client *GenericClient) MakeRequest(request *http.Request) ([]byte, error) 
 	if response.StatusCode != 200 {
 		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return nil, errors.Wrap(err, errStrRead)
+			return nil, errors.Wrap(err, _errStrRead)
 		}
 		return nil, errors.New(strings.TrimSpace(string(bodyBytes)))
 	}
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, errStrRead)
+		return nil, errors.Wrap(err, _errStrRead)
 	}
 	return bodyBytes, nil
 }
 
 func authHeader() (string, error) {
-	cliEnvConfig, err := readOrConfigureCLIEnv(flagEnv)
+	cliEnvConfig, err := readOrConfigureCLIEnv(_flagEnv)
 	if err != nil {
 		return "", err
 	}
@@ -341,7 +341,7 @@ func authHeader() (string, error) {
 
 // Returns empty string if not able to get operator endpoint
 func operatorEndpointOrBlank() string {
-	cliEnvConfig, _ := readCLIEnvConfig(flagEnv)
+	cliEnvConfig, _ := readCLIEnvConfig(_flagEnv)
 	if cliEnvConfig != nil {
 		return cliEnvConfig.OperatorEndpoint
 	}

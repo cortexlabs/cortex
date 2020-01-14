@@ -20,10 +20,8 @@ import (
 	"github.com/fatih/color"
 )
 
-var (
-	bold = color.New(color.Bold).SprintFunc()
-)
+var _bold = color.New(color.Bold).SprintFunc()
 
 func Bold(a ...interface{}) string {
-	return bold(a...)
+	return _bold(a...)
 }

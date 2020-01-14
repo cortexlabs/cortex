@@ -70,7 +70,7 @@ func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath s
 }
 
 func readUserClusterConfigFile(clusterConfig *clusterconfig.Config) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, flagClusterConfig)
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, _flagClusterConfig)
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
@@ -84,8 +84,8 @@ func getClusterAccessConfig() (*clusterconfig.AccessConfig, error) {
 		return nil, err
 	}
 
-	if flagClusterConfig != "" {
-		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, flagClusterConfig)
+	if _flagClusterConfig != "" {
+		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, _flagClusterConfig)
 		if errors.HasError(errs) {
 			return nil, errors.FirstError(errs...)
 		}
@@ -123,7 +123,7 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.Config, e
 		return nil, err
 	}
 
-	if flagClusterConfig != "" {
+	if _flagClusterConfig != "" {
 		err := readUserClusterConfigFile(clusterConfig)
 		if err != nil {
 			return nil, err
@@ -146,8 +146,8 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.Config, e
 
 	err = clusterConfig.Validate(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
 	if err != nil {
-		if flagClusterConfig != "" {
-			err = errors.Wrap(err, flagClusterConfig)
+		if _flagClusterConfig != "" {
+			err = errors.Wrap(err, _flagClusterConfig)
 		}
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.Config, e
 func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) (*clusterconfig.Config, error) {
 	userClusterConfig := &clusterconfig.Config{}
 
-	if flagClusterConfig == "" {
+	if _flagClusterConfig == "" {
 		userClusterConfig = cachedClusterConfig
 		err := cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(false, cachedClusterConfig))
 		if err != nil {
@@ -247,8 +247,8 @@ func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds 
 
 	err = userClusterConfig.Validate(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
 	if err != nil {
-		if flagClusterConfig != "" {
-			err = errors.Wrap(err, flagClusterConfig)
+		if _flagClusterConfig != "" {
+			err = errors.Wrap(err, _flagClusterConfig)
 		}
 		return nil, err
 	}

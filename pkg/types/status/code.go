@@ -28,7 +28,7 @@ const (
 	Stopping
 )
 
-var codes = []string{
+var _codes = []string{
 	"status_unknown",
 	"status_stalled",
 	"status_error",
@@ -38,9 +38,9 @@ var codes = []string{
 	"status_stopping",
 }
 
-var _ = [1]int{}[int(Stopping)-(len(codes)-1)] // Ensure list length matches
+var _ = [1]int{}[int(Stopping)-(len(_codes)-1)] // Ensure list length matches
 
-var codeMessages = []string{
+var _codeMessages = []string{
 	"unknown",               // Unknown
 	"compute unavailable",   // Stalled
 	"error",                 // Error
@@ -50,18 +50,18 @@ var codeMessages = []string{
 	"stopping",              // Stopping
 }
 
-var _ = [1]int{}[int(Stopping)-(len(codeMessages)-1)] // Ensure list length matches
+var _ = [1]int{}[int(Stopping)-(len(_codeMessages)-1)] // Ensure list length matches
 
 func (code Code) String() string {
-	if int(code) < 0 || int(code) >= len(codes) {
-		return codes[Unknown]
+	if int(code) < 0 || int(code) >= len(_codes) {
+		return _codes[Unknown]
 	}
-	return codes[code]
+	return _codes[code]
 }
 
 func (code Code) Message() string {
-	if int(code) < 0 || int(code) >= len(codeMessages) {
-		return codeMessages[Unknown]
+	if int(code) < 0 || int(code) >= len(_codeMessages) {
+		return _codeMessages[Unknown]
 	}
-	return codeMessages[code]
+	return _codeMessages[code]
 }

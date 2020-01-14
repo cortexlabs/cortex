@@ -24,8 +24,8 @@ import (
 )
 
 const (
-	errStrUnzip     = "unable to unzip file"
-	errStrCreateZip = "unable to create zip file"
+	_errStrUnzip     = "unable to unzip file"
+	_errStrCreateZip = "unable to create zip file"
 )
 
 type ErrorKind int
@@ -35,15 +35,15 @@ const (
 	ErrDuplicateZipPath
 )
 
-var errorKinds = []string{
+var _errorKinds = []string{
 	"err_unknown",
 	"err_duplicate_zip_path",
 }
 
-var _ = [1]int{}[int(ErrDuplicateZipPath)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrDuplicateZipPath)-(len(_errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
-	return errorKinds[t]
+	return _errorKinds[t]
 }
 
 // MarshalText satisfies TextMarshaler
@@ -54,8 +54,8 @@ func (t ErrorKind) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *ErrorKind) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(errorKinds); i++ {
-		if enum == errorKinds[i] {
+	for i := 0; i < len(_errorKinds); i++ {
+		if enum == _errorKinds[i] {
 			*t = ErrorKind(i)
 			return nil
 		}

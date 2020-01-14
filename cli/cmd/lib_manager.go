@@ -39,21 +39,21 @@ import (
 	"github.com/docker/docker/pkg/term"
 )
 
-var cachedDockerClient *dockerclient.Client
+var _cachedDockerClient *dockerclient.Client
 
 func getDockerClient() (*dockerclient.Client, error) {
-	if cachedDockerClient != nil {
-		return cachedDockerClient, nil
+	if _cachedDockerClient != nil {
+		return _cachedDockerClient, nil
 	}
 
 	var err error
-	cachedDockerClient, err = dockerclient.NewClientWithOpts(dockerclient.FromEnv)
+	_cachedDockerClient, err = dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 	if err != nil {
 		return nil, wrapDockerError(err)
 	}
 
-	cachedDockerClient.NegotiateAPIVersion(context.Background())
-	return cachedDockerClient, nil
+	_cachedDockerClient.NegotiateAPIVersion(context.Background())
+	return _cachedDockerClient, nil
 }
 
 func wrapDockerError(err error) error {
@@ -219,7 +219,7 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Con
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"CORTEX_ENVIRONMENT=" + flagEnv,
+			"CORTEX_ENVIRONMENT=" + _flagEnv,
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CORTEX_AWS_ACCESS_KEY_ID=" + awsCreds.CortexAWSAccessKeyID,
@@ -248,7 +248,7 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"CORTEX_ENVIRONMENT=" + flagEnv,
+			"CORTEX_ENVIRONMENT=" + _flagEnv,
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CORTEX_AWS_ACCESS_KEY_ID=" + awsCreds.CortexAWSAccessKeyID,

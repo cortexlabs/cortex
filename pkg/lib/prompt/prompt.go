@@ -27,7 +27,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-var ui = &input.UI{
+var _ui = &input.UI{
 	Writer: os.Stdout,
 	Reader: os.Stdin,
 }
@@ -53,7 +53,7 @@ func Prompt(opts *Options) string {
 		prompt = fmt.Sprintf("%s [%s]", opts.Prompt, defaultStr)
 	}
 
-	val, err := ui.Ask(prompt, &input.Options{
+	val, err := _ui.Ask(prompt, &input.Options{
 		Default:     opts.DefaultStr,
 		Hide:        opts.HideTyping,
 		Mask:        opts.MaskTyping,

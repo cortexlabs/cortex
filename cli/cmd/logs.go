@@ -23,11 +23,11 @@ import (
 )
 
 func init() {
-	addAppNameFlag(logsCmd)
-	addEnvFlag(logsCmd)
+	addAppNameFlag(_logsCmd)
+	addEnvFlag(_logsCmd)
 }
 
-var logsCmd = &cobra.Command{
+var _logsCmd = &cobra.Command{
 	Use:   "logs API_NAME",
 	Short: "stream logs from an api",
 	Args:  cobra.ExactArgs(1),

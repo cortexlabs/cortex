@@ -22,15 +22,15 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-var mh codec.MsgpackHandle
+var _mh codec.MsgpackHandle
 
 func init() {
-	mh.RawToString = true
+	_mh.RawToString = true
 }
 
 func Marshal(obj interface{}) ([]byte, error) {
 	var bytes []byte
-	enc := codec.NewEncoderBytes(&bytes, &mh)
+	enc := codec.NewEncoderBytes(&bytes, &_mh)
 	err := enc.Encode(obj)
 	if err != nil {
 		return nil, errors.Wrap(err, ErrorMarshalMsgpack().Error())
@@ -56,6 +56,6 @@ func UnmarshalToInterface(b []byte) (interface{}, error) {
 }
 
 func Unmarshal(b []byte, obj interface{}) error {
-	dec := codec.NewDecoderBytes(b, &mh)
+	dec := codec.NewDecoderBytes(b, &_mh)
 	return dec.Decode(&obj)
 }

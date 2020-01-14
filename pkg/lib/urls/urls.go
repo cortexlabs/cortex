@@ -25,9 +25,9 @@ import (
 )
 
 var (
-	dns1035Regex    = regexp.MustCompile(`^[a-z]([-a-z0-9]*[a-z0-9])?$`)
-	dns1123Regex    = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
-	endpointRegex   = regexp.MustCompile(`^[a-zA-Z0-9_\-\./]*$`)
+	_dns1035Regex   = regexp.MustCompile(`^[a-z]([-a-z0-9]*[a-z0-9])?$`)
+	_dns1123Regex   = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+	_endpointRegex  = regexp.MustCompile(`^[a-zA-Z0-9_\-\./]*$`)
 	_urlQParamRegex = regexp.MustCompile(`(https?://.*)\?[^:\s]*`)
 )
 
@@ -53,21 +53,21 @@ func Join(strs ...string) string {
 }
 
 func CheckDNS1035(str string) error {
-	if !dns1035Regex.MatchString(str) {
+	if !_dns1035Regex.MatchString(str) {
 		return ErrorDNS1035(str)
 	}
 	return nil
 }
 
 func CheckDNS1123(str string) error {
-	if !dns1123Regex.MatchString(str) {
+	if !_dns1123Regex.MatchString(str) {
 		return ErrorDNS1123(str)
 	}
 	return nil
 }
 
 func ValidateEndpoint(str string) (string, error) {
-	if !endpointRegex.MatchString(str) {
+	if !_endpointRegex.MatchString(str) {
 		return "", ErrorEndpoint(str)
 	}
 

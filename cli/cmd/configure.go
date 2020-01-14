@@ -27,38 +27,38 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
-var flagPrint bool
+var _flagPrint bool
 
 func init() {
-	addEnvFlag(configureCmd)
-	configureCmd.PersistentFlags().BoolVarP(&flagPrint, "print", "p", false, "print the configuration")
+	addEnvFlag(_configureCmd)
+	_configureCmd.PersistentFlags().BoolVarP(&_flagPrint, "print", "p", false, "print the configuration")
 }
 
-var configureCmd = &cobra.Command{
+var _configureCmd = &cobra.Command{
 	Use:   "configure",
 	Short: "configure the cli",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.configure")
 
-		if flagPrint {
-			cliEnvConfig, err := readCLIEnvConfig(flagEnv)
+		if _flagPrint {
+			cliEnvConfig, err := readCLIEnvConfig(_flagEnv)
 			if err != nil {
 				exit.Error(err)
 			}
 
 			if cliEnvConfig == nil {
-				if flagEnv == "default" {
+				if _flagEnv == "default" {
 					exit.Error("cli is not configured; run `cortex configure`")
 				} else {
-					exit.Error(fmt.Sprintf("cli is not configured; run `cortex configure --env=%s`", flagEnv))
+					exit.Error(fmt.Sprintf("cli is not configured; run `cortex configure --env=%s`", _flagEnv))
 				}
 			}
 
 			var items table.KeyValuePairs
 
-			if flagEnv != "default" {
-				items.Add("environment", flagEnv)
+			if _flagEnv != "default" {
+				items.Add("environment", _flagEnv)
 			}
 			items.Add("cortex operator endpoint", cliEnvConfig.OperatorEndpoint)
 			items.Add("aws access key id", cliEnvConfig.AWSAccessKeyID)
@@ -68,6 +68,6 @@ var configureCmd = &cobra.Command{
 			return
 		}
 
-		configureCLIEnv(flagEnv)
+		configureCLIEnv(_flagEnv)
 	},
 }

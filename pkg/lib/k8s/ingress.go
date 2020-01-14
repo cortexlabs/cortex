@@ -25,7 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-var ingressTypeMeta = kmeta.TypeMeta{
+var _ingressTypeMeta = kmeta.TypeMeta{
 	APIVersion: "extensions/v1beta1",
 	Kind:       "Ingress",
 }
@@ -47,7 +47,7 @@ func Ingress(spec *IngressSpec) *kextensions.Ingress {
 	spec.Annotations["kubernetes.io/ingress.class"] = spec.IngressClass
 
 	ingress := &kextensions.Ingress{
-		TypeMeta: ingressTypeMeta,
+		TypeMeta: _ingressTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
 			Annotations: spec.Annotations,
@@ -79,7 +79,7 @@ func Ingress(spec *IngressSpec) *kextensions.Ingress {
 }
 
 func (c *Client) CreateIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
-	ingress.TypeMeta = ingressTypeMeta
+	ingress.TypeMeta = _ingressTypeMeta
 	ingress, err := c.ingressClient.Create(ingress)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -88,7 +88,7 @@ func (c *Client) CreateIngress(ingress *kextensions.Ingress) (*kextensions.Ingre
 }
 
 func (c *Client) UpdateIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
-	ingress.TypeMeta = ingressTypeMeta
+	ingress.TypeMeta = _ingressTypeMeta
 	ingress, err := c.ingressClient.Update(ingress)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -115,12 +115,12 @@ func (c *Client) GetIngress(name string) (*kextensions.Ingress, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	ingress.TypeMeta = ingressTypeMeta
+	ingress.TypeMeta = _ingressTypeMeta
 	return ingress, nil
 }
 
 func (c *Client) DeleteIngress(name string) (bool, error) {
-	err := c.ingressClient.Delete(name, deleteOpts)
+	err := c.ingressClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -147,7 +147,7 @@ func (c *Client) ListIngresses(opts *kmeta.ListOptions) ([]kextensions.Ingress, 
 		return nil, errors.WithStack(err)
 	}
 	for i := range ingressList.Items {
-		ingressList.Items[i].TypeMeta = ingressTypeMeta
+		ingressList.Items[i].TypeMeta = _ingressTypeMeta
 	}
 	return ingressList.Items, nil
 }

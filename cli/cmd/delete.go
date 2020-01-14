@@ -31,11 +31,11 @@ import (
 var _flagKeepCache bool
 
 func init() {
-	deleteCmd.PersistentFlags().BoolVarP(&_flagKeepCache, "keep-cache", "c", false, "keep cached data for the deployment")
-	addEnvFlag(deleteCmd)
+	_deleteCmd.PersistentFlags().BoolVarP(&_flagKeepCache, "keep-cache", "c", false, "keep cached data for the deployment")
+	addEnvFlag(_deleteCmd)
 }
 
-var deleteCmd = &cobra.Command{
+var _deleteCmd = &cobra.Command{
 	Use:   "delete API_NAME",
 	Short: "delete an API",
 	Args:  cobra.ExactArgs(1),

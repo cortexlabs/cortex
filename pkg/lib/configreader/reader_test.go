@@ -346,7 +346,7 @@ type TypedConfig struct {
 	Typed `json:"typed"`
 }
 
-var interfaceStructValidation = &InterfaceStructValidation{
+var _interfaceStructValidation = &InterfaceStructValidation{
 	TypeKey: "type",
 	InterfaceStructTypes: map[string]*InterfaceStructType{
 		"type1": {
@@ -382,7 +382,7 @@ var interfaceStructValidation = &InterfaceStructValidation{
 	},
 }
 
-var interfaceStructValidationWithTypeKeyConfig = &InterfaceStructValidation{
+var _interfaceStructValidationWithTypeKeyConfig = &InterfaceStructValidation{
 	TypeKey:         "type",
 	TypeStructField: "Type",
 	InterfaceStructTypes: map[string]*InterfaceStructType{
@@ -425,7 +425,7 @@ func TestInterface(t *testing.T) {
 			{
 				// Key:         "typed",
 				StructField:               "Typed",
-				InterfaceStructValidation: interfaceStructValidation,
+				InterfaceStructValidation: _interfaceStructValidation,
 			},
 		},
 	}
@@ -468,7 +468,7 @@ func TestInterface(t *testing.T) {
 			{
 				// Key:         "typed",
 				StructField:               "Typed",
-				InterfaceStructValidation: interfaceStructValidationWithTypeKeyConfig,
+				InterfaceStructValidation: _interfaceStructValidationWithTypeKeyConfig,
 			},
 		},
 	}
@@ -504,7 +504,7 @@ func TestInterfaceList(t *testing.T) {
 				// Key:         "typeds",
 				StructField: "Typeds",
 				InterfaceStructListValidation: &InterfaceStructListValidation{
-					InterfaceStructValidation: interfaceStructValidation,
+					InterfaceStructValidation: _interfaceStructValidation,
 				},
 			},
 		},
@@ -559,7 +559,7 @@ func TestInterfaceList(t *testing.T) {
 				// Key:         "typeds",
 				StructField: "Typeds",
 				InterfaceStructListValidation: &InterfaceStructListValidation{
-					InterfaceStructValidation: interfaceStructValidationWithTypeKeyConfig,
+					InterfaceStructValidation: _interfaceStructValidationWithTypeKeyConfig,
 				},
 			},
 		},

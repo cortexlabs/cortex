@@ -41,28 +41,26 @@ const (
 	ErrAnyPathParamRequired
 )
 
-var (
-	errorKinds = []string{
-		"err_unknown",
-		"err_api_version_mismatch",
-		"err_auth_header_missing",
-		"err_auth_header_malformed",
-		"err_auth_api_error",
-		"err_auth_invalid",
-		"err_auth_other_account",
-		"err_api_not_deployed",
-		"err_form_file_must_be_provided",
-		"err_query_param_required",
-		"err_path_param_required",
-		"err_any_query_param_required",
-		"err_any_path_param_required",
-	}
-)
+var _errorKinds = []string{
+	"err_unknown",
+	"err_api_version_mismatch",
+	"err_auth_header_missing",
+	"err_auth_header_malformed",
+	"err_auth_api_error",
+	"err_auth_invalid",
+	"err_auth_other_account",
+	"err_api_not_deployed",
+	"err_form_file_must_be_provided",
+	"err_query_param_required",
+	"err_path_param_required",
+	"err_any_query_param_required",
+	"err_any_path_param_required",
+}
 
-var _ = [1]int{}[int(ErrAnyPathParamRequired)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrAnyPathParamRequired)-(len(_errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
-	return errorKinds[t]
+	return _errorKinds[t]
 }
 
 // MarshalText satisfies TextMarshaler
@@ -73,8 +71,8 @@ func (t ErrorKind) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *ErrorKind) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(errorKinds); i++ {
-		if enum == errorKinds[i] {
+	for i := 0; i < len(_errorKinds); i++ {
+		if enum == _errorKinds[i] {
 			*t = ErrorKind(i)
 			return nil
 		}

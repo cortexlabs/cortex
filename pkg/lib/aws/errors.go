@@ -38,7 +38,7 @@ const (
 	ErrReadCredentials
 )
 
-var errorKinds = []string{
+var _errorKinds = []string{
 	"err_unknown",
 	"err_invalid_s3a_path",
 	"err_invalid_s3_path",
@@ -49,10 +49,10 @@ var errorKinds = []string{
 	"err_read_credentials",
 }
 
-var _ = [1]int{}[int(ErrReadCredentials)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrReadCredentials)-(len(_errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
-	return errorKinds[t]
+	return _errorKinds[t]
 }
 
 // MarshalText satisfies TextMarshaler
@@ -63,8 +63,8 @@ func (t ErrorKind) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *ErrorKind) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(errorKinds); i++ {
-		if enum == errorKinds[i] {
+	for i := 0; i < len(_errorKinds); i++ {
+		if enum == _errorKinds[i] {
 			*t = ErrorKind(i)
 			return nil
 		}

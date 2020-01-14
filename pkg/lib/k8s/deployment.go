@@ -27,7 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-var deploymentTypeMeta = kmeta.TypeMeta{
+var _deploymentTypeMeta = kmeta.TypeMeta{
 	APIVersion: "apps/v1",
 	Kind:       "Deployment",
 }
@@ -50,7 +50,7 @@ func Deployment(spec *DeploymentSpec) *kapps.Deployment {
 	}
 
 	deployment := &kapps.Deployment{
-		TypeMeta: deploymentTypeMeta,
+		TypeMeta: _deploymentTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
 			Labels:      spec.Labels,
@@ -75,7 +75,7 @@ func Deployment(spec *DeploymentSpec) *kapps.Deployment {
 }
 
 func (c *Client) CreateDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
-	deployment.TypeMeta = deploymentTypeMeta
+	deployment.TypeMeta = _deploymentTypeMeta
 	deployment, err := c.deploymentClient.Create(deployment)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -84,7 +84,7 @@ func (c *Client) CreateDeployment(deployment *kapps.Deployment) (*kapps.Deployme
 }
 
 func (c *Client) UpdateDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
-	deployment.TypeMeta = deploymentTypeMeta
+	deployment.TypeMeta = _deploymentTypeMeta
 	deployment, err := c.deploymentClient.Update(deployment)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -111,12 +111,12 @@ func (c *Client) GetDeployment(name string) (*kapps.Deployment, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	deployment.TypeMeta = deploymentTypeMeta
+	deployment.TypeMeta = _deploymentTypeMeta
 	return deployment, nil
 }
 
 func (c *Client) DeleteDeployment(name string) (bool, error) {
-	err := c.deploymentClient.Delete(name, deleteOpts)
+	err := c.deploymentClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -143,7 +143,7 @@ func (c *Client) ListDeployments(opts *kmeta.ListOptions) ([]kapps.Deployment, e
 		return nil, errors.WithStack(err)
 	}
 	for i := range deploymentList.Items {
-		deploymentList.Items[i].TypeMeta = deploymentTypeMeta
+		deploymentList.Items[i].TypeMeta = _deploymentTypeMeta
 	}
 	return deploymentList.Items, nil
 }

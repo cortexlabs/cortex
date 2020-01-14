@@ -41,12 +41,12 @@ var _flagForce bool
 var _flagRefresh bool
 
 func init() {
-	deployCmd.PersistentFlags().BoolVarP(&_flagForce, "force", "f", false, "override the in-progress deployment update")
-	deployCmd.PersistentFlags().BoolVarP(&_flagRefresh, "refresh", "r", false, "re-deploy all apis with cleared cache and rolling updates")
-	addEnvFlag(deployCmd)
+	_deployCmd.PersistentFlags().BoolVarP(&_flagForce, "force", "f", false, "override the in-progress deployment update")
+	_deployCmd.PersistentFlags().BoolVarP(&_flagRefresh, "refresh", "r", false, "re-deploy all apis with cleared cache and rolling updates")
+	addEnvFlag(_deployCmd)
 }
 
-var deployCmd = &cobra.Command{
+var _deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "create or update a deployment",
 	Args:  cobra.RangeArgs(0, 1),

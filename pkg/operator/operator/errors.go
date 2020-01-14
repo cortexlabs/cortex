@@ -50,7 +50,7 @@ const (
 	ErrDuplicateEndpoint
 )
 
-var errorKinds = []string{
+var _errorKinds = []string{
 	"err_unknown",
 	"err_cortex_installation_broken",
 	"err_load_balancer_initializing",
@@ -73,10 +73,10 @@ var errorKinds = []string{
 	"err_duplicate_endpoint",
 }
 
-var _ = [1]int{}[int(ErrDuplicateEndpoint)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrDuplicateEndpoint)-(len(_errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
-	return errorKinds[t]
+	return _errorKinds[t]
 }
 
 // MarshalText satisfies TextMarshaler
@@ -87,8 +87,8 @@ func (t ErrorKind) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *ErrorKind) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(errorKinds); i++ {
-		if enum == errorKinds[i] {
+	for i := 0; i < len(_errorKinds); i++ {
+		if enum == _errorKinds[i] {
 			*t = ErrorKind(i)
 			return nil
 		}
@@ -221,7 +221,7 @@ func ErrorONNXDoesntSupportZip() error {
 	})
 }
 
-var tfExpectedStructMessage = `For TensorFlow models, the path must contain a directory with the following structure:
+var _tfExpectedStructMessage = `For TensorFlow models, the path must contain a directory with the following structure:
   1523423423/ (Version prefix, usually a timestamp)
   ├── saved_model.pb
   └── variables/
@@ -232,7 +232,7 @@ var tfExpectedStructMessage = `For TensorFlow models, the path must contain a di
 
 func ErrorInvalidTensorFlowDir(path string) error {
 	message := "invalid TensorFlow export directory.\n"
-	message += tfExpectedStructMessage
+	message += _tfExpectedStructMessage
 	return errors.WithStack(Error{
 		Kind:    ErrInvalidTensorFlowDir,
 		message: message,

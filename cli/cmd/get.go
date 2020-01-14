@@ -44,12 +44,12 @@ import (
 var _flagWatch bool
 
 func init() {
-	addAppNameFlag(getCmd)
-	addEnvFlag(getCmd)
-	getCmd.PersistentFlags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every second")
+	addAppNameFlag(_getCmd)
+	addEnvFlag(_getCmd)
+	_getCmd.PersistentFlags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every second")
 }
 
-var getCmd = &cobra.Command{
+var _getCmd = &cobra.Command{
 	Use:   "get [API_NAME]",
 	Short: "get information about apis",
 	Args:  cobra.RangeArgs(0, 1),
@@ -63,7 +63,6 @@ var getCmd = &cobra.Command{
 }
 
 func get(args []string) (string, error) {
-
 	switch len(args) {
 	case 0:
 		return getAPIs()
@@ -377,7 +376,7 @@ func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
 		return nil, errors.Wrap(err, "unable to request api summary")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	response, err := apiClient.MakeRequest(req)
+	response, err := _apiClient.MakeRequest(req)
 	if err != nil {
 		return nil, err
 	}

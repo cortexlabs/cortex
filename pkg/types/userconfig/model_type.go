@@ -24,15 +24,15 @@ const (
 	RegressionModelType
 )
 
-var modelTypes = []string{
+var _modelTypes = []string{
 	"unknown",
 	"classification",
 	"regression",
 }
 
 func ModelTypeFromString(s string) ModelType {
-	for i := 0; i < len(modelTypes); i++ {
-		if s == modelTypes[i] {
+	for i := 0; i < len(_modelTypes); i++ {
+		if s == _modelTypes[i] {
 			return ModelType(i)
 		}
 	}
@@ -40,11 +40,11 @@ func ModelTypeFromString(s string) ModelType {
 }
 
 func ModelTypeStrings() []string {
-	return modelTypes[1:]
+	return _modelTypes[1:]
 }
 
 func (t ModelType) String() string {
-	return modelTypes[t]
+	return _modelTypes[t]
 }
 
 // MarshalText satisfies TextMarshaler
@@ -55,8 +55,8 @@ func (t ModelType) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *ModelType) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(modelTypes); i++ {
-		if enum == modelTypes[i] {
+	for i := 0; i < len(_modelTypes); i++ {
+		if enum == _modelTypes[i] {
 			*t = ModelType(i)
 			return nil
 		}

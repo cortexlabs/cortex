@@ -27,7 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-var podTypeMeta = kmeta.TypeMeta{
+var _podTypeMeta = kmeta.TypeMeta{
 	APIVersion: "v1",
 	Kind:       "Pod",
 }
@@ -48,7 +48,7 @@ const (
 	PodStatusKilledOOM    PodStatus = "Out of Memory"
 )
 
-var killStatuses = map[int32]bool{
+var _killStatuses = map[int32]bool{
 	137: true, // SIGKILL
 	143: true, // SIGTERM
 	130: true, // SIGINT
@@ -64,7 +64,7 @@ type PodSpec struct {
 
 func Pod(spec *PodSpec) *kcore.Pod {
 	pod := &kcore.Pod{
-		TypeMeta: podTypeMeta,
+		TypeMeta: _podTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
 			Labels:      spec.Labels,
@@ -76,7 +76,7 @@ func Pod(spec *PodSpec) *kcore.Pod {
 }
 
 func (c *Client) CreatePod(pod *kcore.Pod) (*kcore.Pod, error) {
-	pod.TypeMeta = podTypeMeta
+	pod.TypeMeta = _podTypeMeta
 	pod, err := c.podClient.Create(pod)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -85,7 +85,7 @@ func (c *Client) CreatePod(pod *kcore.Pod) (*kcore.Pod, error) {
 }
 
 func (c *Client) UpdatePod(pod *kcore.Pod) (*kcore.Pod, error) {
-	pod.TypeMeta = podTypeMeta
+	pod.TypeMeta = _podTypeMeta
 	pod, err := c.podClient.Update(pod)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -127,7 +127,7 @@ func GetPodReadyTime(pod *kcore.Pod) *time.Time {
 	return nil
 }
 
-var evictedMemoryMessageRegex = regexp.MustCompile(`(?i)low\W+on\W+resource\W+memory`)
+var _evictedMemoryMessageRegex = regexp.MustCompile(`(?i)low\W+on\W+resource\W+memory`)
 
 func GetPodStatus(pod *kcore.Pod) PodStatus {
 	if pod == nil {
@@ -144,7 +144,7 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 	case kcore.PodSucceeded:
 		return PodStatusSucceeded
 	case kcore.PodFailed:
-		if pod.Status.Reason == ReasonEvicted && evictedMemoryMessageRegex.MatchString(pod.Status.Message) {
+		if pod.Status.Reason == ReasonEvicted && _evictedMemoryMessageRegex.MatchString(pod.Status.Message) {
 			return PodStatusKilledOOM
 		}
 
@@ -154,7 +154,7 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 				if exitCode == 137 {
 					return PodStatusKilledOOM
 				}
-				if killStatuses[exitCode] {
+				if _killStatuses[exitCode] {
 					return PodStatusKilled
 				}
 			} else if containerStatus.State.Terminated != nil {
@@ -162,7 +162,7 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 				if exitCode == 137 {
 					return PodStatusKilledOOM
 				}
-				if killStatuses[exitCode] {
+				if _killStatuses[exitCode] {
 					return PodStatusKilled
 				}
 			}
@@ -195,7 +195,7 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 				numSucceeded++
 			} else if exitCode == 137 {
 				numKilledOOM++
-			} else if killStatuses[exitCode] {
+			} else if _killStatuses[exitCode] {
 				numKilled++
 			} else {
 				numFailed++
@@ -206,7 +206,7 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 				numSucceeded++
 			} else if exitCode == 137 {
 				numKilledOOM++
-			} else if killStatuses[exitCode] {
+			} else if _killStatuses[exitCode] {
 				numKilled++
 			} else {
 				numFailed++
@@ -253,12 +253,12 @@ func (c *Client) GetPod(name string) (*kcore.Pod, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	pod.TypeMeta = podTypeMeta
+	pod.TypeMeta = _podTypeMeta
 	return pod, nil
 }
 
 func (c *Client) DeletePod(name string) (bool, error) {
-	err := c.podClient.Delete(name, deleteOpts)
+	err := c.podClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -285,7 +285,7 @@ func (c *Client) ListPods(opts *kmeta.ListOptions) ([]kcore.Pod, error) {
 		return nil, errors.WithStack(err)
 	}
 	for i := range podList.Items {
-		podList.Items[i].TypeMeta = podTypeMeta
+		podList.Items[i].TypeMeta = _podTypeMeta
 	}
 	return podList.Items, nil
 }

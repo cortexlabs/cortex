@@ -28,18 +28,18 @@ import (
 )
 
 var (
-	virtualServiceTypeMeta = kmeta.TypeMeta{
+	_virtualServiceTypeMeta = kmeta.TypeMeta{
 		APIVersion: "v1alpha3",
 		Kind:       "VirtualService",
 	}
 
-	virtualServiceGVR = kschema.GroupVersionResource{
+	_virtualServiceGVR = kschema.GroupVersionResource{
 		Group:    "networking.istio.io",
 		Version:  "v1alpha3",
 		Resource: "virtualservices",
 	}
 
-	virtualServiceGVK = kschema.GroupVersionKind{
+	_virtualServiceGVK = kschema.GroupVersionKind{
 		Group:   "networking.istio.io",
 		Version: "v1alpha3",
 		Kind:    "VirtualService",
@@ -59,7 +59,7 @@ type VirtualServiceSpec struct {
 
 func VirtualService(spec *VirtualServiceSpec) *kunstructured.Unstructured {
 	virtualServiceConfig := &kunstructured.Unstructured{}
-	virtualServiceConfig.SetGroupVersionKind(virtualServiceGVK)
+	virtualServiceConfig.SetGroupVersionKind(_virtualServiceGVK)
 	virtualServiceConfig.SetName(spec.Name)
 	virtualServiceConfig.Object["metadata"] = map[string]interface{}{
 		"name":        spec.Name,
@@ -106,10 +106,10 @@ func (c *Client) CreateVirtualService(spec *kunstructured.Unstructured) (*kunstr
 	spec.Object["metadata"].(map[string]interface{})["namespace"] = c.Namespace
 
 	virtualService, err := c.dynamicClient.
-		Resource(virtualServiceGVR).
+		Resource(_virtualServiceGVR).
 		Namespace(spec.GetNamespace()).
 		Create(spec, kmeta.CreateOptions{
-			TypeMeta: virtualServiceTypeMeta,
+			TypeMeta: _virtualServiceTypeMeta,
 		})
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -121,10 +121,10 @@ func (c *Client) UpdateVirtualService(spec *kunstructured.Unstructured) (*kunstr
 	spec.Object["metadata"].(map[string]interface{})["namespace"] = c.Namespace
 
 	virtualService, err := c.dynamicClient.
-		Resource(virtualServiceGVR).
+		Resource(_virtualServiceGVR).
 		Namespace(spec.GetNamespace()).
 		Update(spec, kmeta.UpdateOptions{
-			TypeMeta: virtualServiceTypeMeta,
+			TypeMeta: _virtualServiceTypeMeta,
 		})
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -147,8 +147,8 @@ func (c *Client) ApplyVirtualService(spec *kunstructured.Unstructured) (*kunstru
 }
 
 func (c *Client) GetVirtualService(name string) (*kunstructured.Unstructured, error) {
-	virtualService, err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(c.Namespace).Get(name, kmeta.GetOptions{
-		TypeMeta: virtualServiceTypeMeta,
+	virtualService, err := c.dynamicClient.Resource(_virtualServiceGVR).Namespace(c.Namespace).Get(name, kmeta.GetOptions{
+		TypeMeta: _virtualServiceTypeMeta,
 	})
 
 	if kerrors.IsNotFound(err) {
@@ -169,8 +169,8 @@ func (c *Client) VirtualServiceExists(name string) (bool, error) {
 }
 
 func (c *Client) DeleteVirtualService(name string) (bool, error) {
-	err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(c.Namespace).Delete(name, &kmeta.DeleteOptions{
-		TypeMeta: virtualServiceTypeMeta,
+	err := c.dynamicClient.Resource(_virtualServiceGVR).Namespace(c.Namespace).Delete(name, &kmeta.DeleteOptions{
+		TypeMeta: _virtualServiceTypeMeta,
 	})
 	if kerrors.IsNotFound(err) {
 		return false, nil
@@ -186,12 +186,12 @@ func (c *Client) ListVirtualServices(opts *kmeta.ListOptions) ([]kunstructured.U
 		opts = &kmeta.ListOptions{}
 	}
 
-	vsList, err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(c.Namespace).List(*opts)
+	vsList, err := c.dynamicClient.Resource(_virtualServiceGVR).Namespace(c.Namespace).List(*opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	for i := range vsList.Items {
-		vsList.Items[i].SetGroupVersionKind(virtualServiceGVK)
+		vsList.Items[i].SetGroupVersionKind(_virtualServiceGVK)
 	}
 	return vsList.Items, nil
 }

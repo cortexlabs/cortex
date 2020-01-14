@@ -25,7 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-var serviceTypeMeta = kmeta.TypeMeta{
+var _serviceTypeMeta = kmeta.TypeMeta{
 	APIVersion: "v1",
 	Kind:       "Service",
 }
@@ -41,7 +41,7 @@ type ServiceSpec struct {
 
 func Service(spec *ServiceSpec) *kcore.Service {
 	service := &kcore.Service{
-		TypeMeta: serviceTypeMeta,
+		TypeMeta: _serviceTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
 			Labels:      spec.Labels,
@@ -65,7 +65,7 @@ func Service(spec *ServiceSpec) *kcore.Service {
 }
 
 func (c *Client) CreateService(service *kcore.Service) (*kcore.Service, error) {
-	service.TypeMeta = serviceTypeMeta
+	service.TypeMeta = _serviceTypeMeta
 	service, err := c.serviceClient.Create(service)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -74,7 +74,7 @@ func (c *Client) CreateService(service *kcore.Service) (*kcore.Service, error) {
 }
 
 func (c *Client) UpdateService(service *kcore.Service) (*kcore.Service, error) {
-	service.TypeMeta = serviceTypeMeta
+	service.TypeMeta = _serviceTypeMeta
 	service, err := c.serviceClient.Update(service)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -104,12 +104,12 @@ func (c *Client) GetService(name string) (*kcore.Service, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	service.TypeMeta = serviceTypeMeta
+	service.TypeMeta = _serviceTypeMeta
 	return service, nil
 }
 
 func (c *Client) DeleteService(name string) (bool, error) {
-	err := c.serviceClient.Delete(name, deleteOpts)
+	err := c.serviceClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -136,7 +136,7 @@ func (c *Client) ListServices(opts *kmeta.ListOptions) ([]kcore.Service, error) 
 		return nil, errors.WithStack(err)
 	}
 	for i := range serviceList.Items {
-		serviceList.Items[i].TypeMeta = serviceTypeMeta
+		serviceList.Items[i].TypeMeta = _serviceTypeMeta
 	}
 	return serviceList.Items, nil
 }

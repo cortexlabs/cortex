@@ -36,38 +36,38 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var flagClusterConfig string
-var flagDebug bool
+var _flagClusterConfig string
+var _flagDebug bool
 
 func init() {
-	addClusterConfigFlag(updateCmd)
-	addEnvFlag(updateCmd)
-	clusterCmd.AddCommand(updateCmd)
+	addClusterConfigFlag(_updateCmd)
+	addEnvFlag(_updateCmd)
+	_clusterCmd.AddCommand(_updateCmd)
 
-	addClusterConfigFlag(infoCmd)
-	addEnvFlag(infoCmd)
-	infoCmd.PersistentFlags().BoolVarP(&flagDebug, "debug", "d", false, "save the current cluster state to a file")
-	clusterCmd.AddCommand(infoCmd)
+	addClusterConfigFlag(_infoCmd)
+	addEnvFlag(_infoCmd)
+	_infoCmd.PersistentFlags().BoolVarP(&_flagDebug, "debug", "d", false, "save the current cluster state to a file")
+	_clusterCmd.AddCommand(_infoCmd)
 
-	addClusterConfigFlag(upCmd)
-	addEnvFlag(upCmd)
-	clusterCmd.AddCommand(upCmd)
+	addClusterConfigFlag(_upCmd)
+	addEnvFlag(_upCmd)
+	_clusterCmd.AddCommand(_upCmd)
 
-	addClusterConfigFlag(downCmd)
-	clusterCmd.AddCommand(downCmd)
+	addClusterConfigFlag(_downCmd)
+	_clusterCmd.AddCommand(_downCmd)
 }
 
 func addClusterConfigFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&flagClusterConfig, "config", "c", "", "path to a cluster configuration file")
+	cmd.PersistentFlags().StringVarP(&_flagClusterConfig, "config", "c", "", "path to a cluster configuration file")
 	cmd.PersistentFlags().SetAnnotation("config", cobra.BashCompFilenameExt, _configFileExts)
 }
 
-var clusterCmd = &cobra.Command{
+var _clusterCmd = &cobra.Command{
 	Use:   "cluster",
 	Short: "manage a cluster",
 }
 
-var upCmd = &cobra.Command{
+var _upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "spin up a cluster",
 	Args:  cobra.NoArgs,
@@ -79,7 +79,7 @@ var upCmd = &cobra.Command{
 		}
 
 		promptForEmail()
-		awsCreds, err := getAWSCredentials(flagClusterConfig)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -99,7 +99,7 @@ var upCmd = &cobra.Command{
 	},
 }
 
-var updateCmd = &cobra.Command{
+var _updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "update a cluster",
 	Args:  cobra.NoArgs,
@@ -110,7 +110,7 @@ var updateCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := getAWSCredentials(flagClusterConfig)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -132,7 +132,7 @@ var updateCmd = &cobra.Command{
 	},
 }
 
-var infoCmd = &cobra.Command{
+var _infoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "get information about a cluster",
 	Args:  cobra.NoArgs,
@@ -142,12 +142,12 @@ var infoCmd = &cobra.Command{
 		if err := checkDockerRunning(); err != nil {
 			exit.Error(err)
 		}
-		awsCreds, err := getAWSCredentials(flagClusterConfig)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		if flagDebug {
+		if _flagDebug {
 			accessConfig, err := getClusterAccessConfig()
 			if err != nil {
 				exit.Error(err)
@@ -207,7 +207,7 @@ var infoCmd = &cobra.Command{
 	},
 }
 
-var downCmd = &cobra.Command{
+var _downCmd = &cobra.Command{
 	Use:   "down",
 	Short: "spin down a cluster",
 	Args:  cobra.NoArgs,
@@ -218,7 +218,7 @@ var downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := getAWSCredentials(flagClusterConfig)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -243,7 +243,7 @@ var downCmd = &cobra.Command{
 	},
 }
 
-var emailPrompValidation = &cr.PromptValidation{
+var _emailPrompValidation = &cr.PromptValidation{
 	PromptItemValidations: []*cr.PromptItemValidation{
 		{
 			StructField: "EmailAddress",
@@ -266,7 +266,7 @@ func promptForEmail() {
 	emailAddressContainer := &struct {
 		EmailAddress *string
 	}{}
-	err := cr.ReadPrompt(emailAddressContainer, emailPrompValidation)
+	err := cr.ReadPrompt(emailAddressContainer, _emailPrompValidation)
 	if err != nil {
 		exit.Error(err)
 	}

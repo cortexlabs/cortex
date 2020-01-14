@@ -33,7 +33,7 @@ type AWSCredentials struct {
 	CortexAWSSecretAccessKey string `json:"cortex_aws_secret_access_key"`
 }
 
-var awsCredentialsValidation = &cr.StructValidation{
+var _awsCredentialsValidation = &cr.StructValidation{
 	AllowExtraFields: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
@@ -63,7 +63,7 @@ var awsCredentialsValidation = &cr.StructValidation{
 	},
 }
 
-var awsCredentialsPromptValidation = &cr.PromptValidation{
+var _awsCredentialsPromptValidation = &cr.PromptValidation{
 	PromptItemValidations: []*cr.PromptItemValidation{
 		{
 			StructField: "AWSAccessKeyID",
@@ -89,7 +89,7 @@ var awsCredentialsPromptValidation = &cr.PromptValidation{
 }
 
 func readAWSCredsFromConfigFile(awsCreds *AWSCredentials, path string) error {
-	errs := cr.ParseYAMLFile(awsCreds, awsCredentialsValidation, path)
+	errs := cr.ParseYAMLFile(awsCreds, _awsCredentialsValidation, path)
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
@@ -117,10 +117,10 @@ func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
 		return nil
 	}
 	if awsCreds.AWSAccessKeyID == "" && awsCreds.AWSSecretAccessKey != "" {
-		return errors.New(fmt.Sprintf("only aws_secret_access_key is set in %s; please set aws_access_key_id as well", flagClusterConfig))
+		return errors.New(fmt.Sprintf("only aws_secret_access_key is set in %s; please set aws_access_key_id as well", _flagClusterConfig))
 	}
 	if awsCreds.AWSAccessKeyID != "" && awsCreds.AWSSecretAccessKey == "" {
-		return errors.New(fmt.Sprintf("only aws_access_key_id is set in %s; please set aws_secret_access_key as well", flagClusterConfig))
+		return errors.New(fmt.Sprintf("only aws_access_key_id is set in %s; please set aws_secret_access_key as well", _flagClusterConfig))
 	}
 
 	// Next check AWS CLI config file
@@ -132,7 +132,7 @@ func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
 	}
 
 	// Next check Cortex CLI config file
-	cliEnvConfig, err := readCLIEnvConfig(flagEnv)
+	cliEnvConfig, err := readCLIEnvConfig(_flagEnv)
 	if err != nil && cliEnvConfig != nil && cliEnvConfig.AWSAccessKeyID != "" && cliEnvConfig.AWSSecretAccessKey != "" {
 		awsCreds.AWSAccessKeyID = cliEnvConfig.AWSAccessKeyID
 		awsCreds.AWSSecretAccessKey = cliEnvConfig.AWSSecretAccessKey
@@ -140,7 +140,7 @@ func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
 	}
 
 	// Prompt
-	err = cr.ReadPrompt(awsCreds, awsCredentialsPromptValidation)
+	err = cr.ReadPrompt(awsCreds, _awsCredentialsPromptValidation)
 	if err != nil {
 		return err
 	}
@@ -168,10 +168,10 @@ func setOperatorAWSCredentials(awsCreds *AWSCredentials) error {
 		return nil
 	}
 	if awsCreds.CortexAWSAccessKeyID == "" && awsCreds.CortexAWSSecretAccessKey != "" {
-		return errors.New(fmt.Sprintf("only cortex_aws_secret_access_key is set in %s; please set cortex_aws_access_key_id as well", flagClusterConfig))
+		return errors.New(fmt.Sprintf("only cortex_aws_secret_access_key is set in %s; please set cortex_aws_access_key_id as well", _flagClusterConfig))
 	}
 	if awsCreds.CortexAWSAccessKeyID != "" && awsCreds.CortexAWSSecretAccessKey == "" {
-		return errors.New(fmt.Sprintf("only cortex_aws_access_key_id is set in %s; please set cortex_aws_secret_access_key as well", flagClusterConfig))
+		return errors.New(fmt.Sprintf("only cortex_aws_access_key_id is set in %s; please set cortex_aws_secret_access_key as well", _flagClusterConfig))
 	}
 
 	// Default to primary AWS credentials

@@ -25,7 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-var hpaTypeMeta = kmeta.TypeMeta{
+var _hpaTypeMeta = kmeta.TypeMeta{
 	APIVersion: "autoscaling/v1",
 	Kind:       "HorizontalPodAutoscaler",
 }
@@ -41,7 +41,7 @@ type HPASpec struct {
 
 func HPA(spec *HPASpec) *kautoscaling.HorizontalPodAutoscaler {
 	hpa := &kautoscaling.HorizontalPodAutoscaler{
-		TypeMeta: hpaTypeMeta,
+		TypeMeta: _hpaTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.DeploymentName,
 			Labels:      spec.Labels,
@@ -63,9 +63,9 @@ func HPA(spec *HPASpec) *kautoscaling.HorizontalPodAutoscaler {
 				},
 			},
 			ScaleTargetRef: kautoscaling.CrossVersionObjectReference{
-				Kind:       deploymentTypeMeta.Kind,
+				Kind:       _deploymentTypeMeta.Kind,
 				Name:       spec.DeploymentName,
-				APIVersion: deploymentTypeMeta.APIVersion,
+				APIVersion: _deploymentTypeMeta.APIVersion,
 			},
 		},
 	}
@@ -73,7 +73,7 @@ func HPA(spec *HPASpec) *kautoscaling.HorizontalPodAutoscaler {
 }
 
 func (c *Client) CreateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscaling.HorizontalPodAutoscaler, error) {
-	hpa.TypeMeta = hpaTypeMeta
+	hpa.TypeMeta = _hpaTypeMeta
 	hpa, err := c.hpaClient.Create(hpa)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -82,7 +82,7 @@ func (c *Client) CreateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautosca
 }
 
 func (c *Client) UpdateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscaling.HorizontalPodAutoscaler, error) {
-	hpa.TypeMeta = hpaTypeMeta
+	hpa.TypeMeta = _hpaTypeMeta
 	hpa, err := c.hpaClient.Update(hpa)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -109,12 +109,12 @@ func (c *Client) GetHPA(name string) (*kautoscaling.HorizontalPodAutoscaler, err
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	hpa.TypeMeta = hpaTypeMeta
+	hpa.TypeMeta = _hpaTypeMeta
 	return hpa, nil
 }
 
 func (c *Client) DeleteHPA(name string) (bool, error) {
-	err := c.hpaClient.Delete(name, deleteOpts)
+	err := c.hpaClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -141,7 +141,7 @@ func (c *Client) ListHPAs(opts *kmeta.ListOptions) ([]kautoscaling.HorizontalPod
 		return nil, errors.WithStack(err)
 	}
 	for i := range hpaList.Items {
-		hpaList.Items[i].TypeMeta = hpaTypeMeta
+		hpaList.Items[i].TypeMeta = _hpaTypeMeta
 	}
 	return hpaList.Items, nil
 }

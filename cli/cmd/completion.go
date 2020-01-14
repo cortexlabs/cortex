@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var completionCmd = &cobra.Command{
+var _completionCmd = &cobra.Command{
 	Use:   "completion",
 	Short: "generate bash completion scripts",
 	Long: `generate bash completion scripts
@@ -38,7 +38,7 @@ this will also add the "cx" alias (note: cli completion requires the bash_comple
 `,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		rootCmd.GenBashCompletion(os.Stdout)
+		_rootCmd.GenBashCompletion(os.Stdout)
 		aliasText := `
 # alias
 

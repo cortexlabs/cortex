@@ -40,10 +40,10 @@ import (
 )
 
 var (
-	home         = kclienthomedir.HomeDir()
-	deletePolicy = kmeta.DeletePropagationBackground
-	deleteOpts   = &kmeta.DeleteOptions{
-		PropagationPolicy: &deletePolicy,
+	_home         = kclienthomedir.HomeDir()
+	_deletePolicy = kmeta.DeletePropagationBackground
+	_deleteOpts   = &kmeta.DeleteOptions{
+		PropagationPolicy: &_deletePolicy,
 	}
 )
 
@@ -70,7 +70,7 @@ func New(namespace string, inCluster bool) (*Client, error) {
 	if inCluster {
 		client.RestConfig, err = kclientrest.InClusterConfig()
 	} else {
-		kubeConfig := path.Join(home, ".kube", "config")
+		kubeConfig := path.Join(_home, ".kube", "config")
 		client.RestConfig, err = kclientcmd.BuildConfigFromFlags("", kubeConfig)
 	}
 

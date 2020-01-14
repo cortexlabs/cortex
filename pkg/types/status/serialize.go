@@ -24,8 +24,8 @@ func (code Code) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (code *Code) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(codes); i++ {
-		if enum == codes[i] {
+	for i := 0; i < len(_codes); i++ {
+		if enum == _codes[i] {
 			*code = Code(i)
 			return nil
 		}

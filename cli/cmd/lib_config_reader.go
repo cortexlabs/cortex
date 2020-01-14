@@ -41,6 +41,7 @@ func appRootOrBlank() string {
 	return "" // unreachable
 }
 
+// TODO
 func mustAppRoot() string {
 	appRoot := appRootOrBlank()
 	if appRoot == "" {

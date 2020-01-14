@@ -47,32 +47,30 @@ const (
 	ErrInvalidInstanceType
 )
 
-var (
-	errorKinds = []string{
-		"err_unknown",
-		"err_instance_type_too_small",
-		"err_invalid_aws_credentials",
-		"err_min_instances_greater_than_max",
-		"err_instance_type_not_supported_in_region",
-		"err_incompatible_spot_instance_type_memory",
-		"err_incompatible_spot_instance_type_cpu",
-		"err_incompatible_spot_instance_type_gpu",
-		"err_spot_price_greater_than_target_on_demand",
-		"err_instance_type_not_supported",
-		"err_at_least_one_instance_distribution",
-		"err_no_compatible_spot_instance_found",
-		"err_configured_when_spot_is_not_enabled",
-		"err_on_demand_base_capacity_greater_than_max",
-		"err_config_cannot_be_changed_on_update",
-		"err_invalid_availability_zone",
-		"err_invalid_instance_type",
-	}
-)
+var _errorKinds = []string{
+	"err_unknown",
+	"err_instance_type_too_small",
+	"err_invalid_aws_credentials",
+	"err_min_instances_greater_than_max",
+	"err_instance_type_not_supported_in_region",
+	"err_incompatible_spot_instance_type_memory",
+	"err_incompatible_spot_instance_type_cpu",
+	"err_incompatible_spot_instance_type_gpu",
+	"err_spot_price_greater_than_target_on_demand",
+	"err_instance_type_not_supported",
+	"err_at_least_one_instance_distribution",
+	"err_no_compatible_spot_instance_found",
+	"err_configured_when_spot_is_not_enabled",
+	"err_on_demand_base_capacity_greater_than_max",
+	"err_config_cannot_be_changed_on_update",
+	"err_invalid_availability_zone",
+	"err_invalid_instance_type",
+}
 
-var _ = [1]int{}[int(ErrInvalidInstanceType)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrInvalidInstanceType)-(len(_errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
-	return errorKinds[t]
+	return _errorKinds[t]
 }
 
 // MarshalText satisfies TextMarshaler
@@ -83,8 +81,8 @@ func (t ErrorKind) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *ErrorKind) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(errorKinds); i++ {
-		if enum == errorKinds[i] {
+	for i := 0; i < len(_errorKinds); i++ {
+		if enum == _errorKinds[i] {
 			*t = ErrorKind(i)
 			return nil
 		}

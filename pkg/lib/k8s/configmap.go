@@ -24,7 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-var configMapTypeMeta = kmeta.TypeMeta{
+var _configMapTypeMeta = kmeta.TypeMeta{
 	APIVersion: "v1",
 	Kind:       "ConfigMap",
 }
@@ -38,7 +38,7 @@ type ConfigMapSpec struct {
 
 func ConfigMap(spec *ConfigMapSpec) *kcore.ConfigMap {
 	configMap := &kcore.ConfigMap{
-		TypeMeta: configMapTypeMeta,
+		TypeMeta: _configMapTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
 			Labels:      spec.Labels,
@@ -50,7 +50,7 @@ func ConfigMap(spec *ConfigMapSpec) *kcore.ConfigMap {
 }
 
 func (c *Client) CreateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, error) {
-	configMap.TypeMeta = configMapTypeMeta
+	configMap.TypeMeta = _configMapTypeMeta
 	configMap, err := c.configMapClient.Create(configMap)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -59,7 +59,7 @@ func (c *Client) CreateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, 
 }
 
 func (c *Client) UpdateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, error) {
-	configMap.TypeMeta = configMapTypeMeta
+	configMap.TypeMeta = _configMapTypeMeta
 	configMap, err := c.configMapClient.Update(configMap)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -86,7 +86,7 @@ func (c *Client) GetConfigMap(name string) (*kcore.ConfigMap, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	configMap.TypeMeta = configMapTypeMeta
+	configMap.TypeMeta = _configMapTypeMeta
 	return configMap, nil
 }
 
@@ -102,7 +102,7 @@ func (c *Client) GetConfigMapData(name string) (map[string]string, error) {
 }
 
 func (c *Client) DeleteConfigMap(name string) (bool, error) {
-	err := c.configMapClient.Delete(name, deleteOpts)
+	err := c.configMapClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -129,7 +129,7 @@ func (c *Client) ListConfigMaps(opts *kmeta.ListOptions) ([]kcore.ConfigMap, err
 		return nil, errors.WithStack(err)
 	}
 	for i := range configMapList.Items {
-		configMapList.Items[i].TypeMeta = configMapTypeMeta
+		configMapList.Items[i].TypeMeta = _configMapTypeMeta
 	}
 	return configMapList.Items, nil
 }
