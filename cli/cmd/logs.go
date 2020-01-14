@@ -27,7 +27,6 @@ import (
 )
 
 func init() {
-	addAppNameFlag(_logsCmd)
 	addEnvFlag(_logsCmd)
 }
 

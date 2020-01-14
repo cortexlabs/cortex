@@ -51,10 +51,10 @@ func (api *API) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &msgpackBytes); err != nil {
 		return err
 	}
-	ctxPtr, err := FromMsgpackBytes(msgpackBytes)
+	apiPtr, err := FromMsgpackBytes(msgpackBytes)
 	if err != nil {
 		return err
 	}
-	*api = *ctxPtr
+	*api = *apiPtr
 	return nil
 }

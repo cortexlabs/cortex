@@ -44,7 +44,6 @@ var _emailPath string
 var _debugPath string
 
 var _flagEnv string
-var _flagAppName string
 
 func init() {
 	homeDir, err := homedir.Dir()
@@ -153,10 +152,6 @@ func printLeadingNewLine() {
 
 func addEnvFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&_flagEnv, "env", "e", "default", "environment")
-}
-
-func addAppNameFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&_flagAppName, "deployment", "d", "", "deployment name")
 }
 
 func getTerminalWidth() int {
