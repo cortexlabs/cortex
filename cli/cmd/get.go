@@ -18,12 +18,14 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
@@ -31,6 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -72,6 +75,25 @@ func get(args []string) (string, error) {
 	return "", errors.New("too many args") // unexpected
 }
 
+func getAPIs() (string, error) {
+	httpRes, err := HTTPGet("/get")
+	if err != nil {
+		return "", err
+	}
+
+	var apisRes schema.GetAPIsResponse
+	if err = json.Unmarshal(httpRes, &apisRes); err != nil {
+		return "", err
+	}
+
+	if len(apisRes.APIs) == 0 {
+		return console.Bold("no apis are deployed, see cortex.dev for a guides and examples"), nil
+	}
+
+	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics)
+	return t.MustFormat(), nil
+}
+
 func getAPI(apiName string) (string, error) {
 	httpRes, err := HTTPGet("/get/" + apiName)
 	if err != nil {
@@ -92,145 +114,38 @@ func getAPI(apiName string) (string, error) {
 	t := apiTable([]spec.API{*apiRes.API}, []status.Status{*apiRes.Status}, []metrics.Metrics{*apiRes.Metrics})
 	out += t.MustFormat()
 
+	api := apiRes.API
+
+	if api.Tracker != nil {
+		switch api.Tracker.ModelType {
+		case userconfig.ClassificationModelType:
+			out += classificationMetricsStr(apiRes.Metrics)
+		case userconfig.RegressionModelType:
+			out += regressionMetricsStr(apiRes.Metrics)
+		}
+
+		// TODO?
+		// 	var predictionMetrics string
+		// 	if err != nil {
+		// 		if !strings.Contains(err.Error(), "api is still initializing") {
+		// 			predictionMetrics = fmt.Sprintf("\nerror fetching metrics: %s\n", err.Error())
+		// 		}
+		// 	}
+	}
+
+	apiEndpoint := urls.Join(apiRes.BaseURL, *api.Endpoint)
+	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
+
+	out += fmt.Sprintf("\n%s curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json", console.Bold("curl:"), apiEndpoint)
+
+	if api.Predictor.Type == userconfig.TensorFlowPredictorType || api.Predictor.Type == userconfig.ONNXPredictorType {
+		out += "\n\n" + describeModelInput(apiRes.Status, apiEndpoint)
+	}
+
+	out += "\n" + titleStr("configuration") + strings.TrimSpace(api.UserStr())
+
 	return out, nil
 }
-
-func getAPIs() (string, error) {
-	httpRes, err := HTTPGet("/get")
-	if err != nil {
-		return "", err
-	}
-
-	var apisRes schema.GetAPIsResponse
-	if err = json.Unmarshal(httpRes, &apisRes); err != nil {
-		return "", err
-	}
-
-	if len(apisRes.APIs) == 0 {
-		return console.Bold("no apis are deployed, see cortex.dev for a guides and examples"), nil
-	}
-
-	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics)
-	return t.MustFormat(), nil
-}
-
-// func getResourcesResponse(appName string) (*schema.GetResourcesResponse, error) {
-// 	params := map[string]string{"appName": appName}
-// 	httpResponse, err := HTTPGet("/resources", params)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	var resourcesRes schema.GetResourcesResponse
-// 	if err = json.Unmarshal(httpResponse, &resourcesRes); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return &resourcesRes, nil
-// }
-
-// func resourceByNameStr(resourceName string, resourcesRes *schema.GetResourcesResponse, flagVerbose bool) (string, error) {
-// 	rs, err := resourcesRes.Context.VisibleResourceByName(resourceName)
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	switch resourceType := rs.GetResourceType(); resourceType {
-// 	case resource.APIType:
-// 		return describeAPI(resourceName, resourcesRes, flagVerbose)
-// 	default:
-// 		return "", resource.ErrorInvalidType(resourceType.String())
-// 	}
-// }
-
-// func allResourcesStr(resourcesRes *schema.GetResourcesResponse) string {
-// 	out := ""
-// 	out += apisStr(resourcesRes.APIGroupStatuses)
-// 	return out
-// }
-
-// func apisStr(apiGroupStatuses map[string]*resource.APIGroupStatus) string {
-// 	if len(apiGroupStatuses) == 0 {
-// 		return ""
-// 	}
-
-// 	return table.MustFormat(apiResourceTable(apiGroupStatuses))
-// }
-
-// func describeAPI(name string, resourcesRes *schema.GetResourcesResponse, flagVerbose bool) (string, error) {
-// 	groupStatus := resourcesRes.APIGroupStatuses[name]
-// 	if groupStatus == nil {
-// 		return "", userconfig.ErrorUndefinedResource(name, resource.APIType)
-// 	}
-
-// 	ctx := resourcesRes.Context
-// 	api := ctx.APIs[name]
-
-// 	var updatedAt *time.Time
-// 	if groupStatus.ActiveStatus != nil {
-// 		updatedAt = groupStatus.ActiveStatus.Start
-// 	}
-
-// 	row := []interface{}{
-// 		groupStatus.Message(),
-// 		groupStatus.ReadyUpdated,
-// 		groupStatus.ReadyStale(),
-// 		groupStatus.Requested,
-// 		groupStatus.FailedUpdated,
-// 		libtime.Since(updatedAt),
-// 	}
-
-// 	headers := []table.Header{
-// 		{Title: "status"},
-// 		{Title: "up-to-date"},
-// 		{Title: "stale", Hidden: groupStatus.ReadyStale() == 0},
-// 		{Title: "requested"},
-// 		{Title: "failed", Hidden: groupStatus.FailedUpdated == 0},
-// 		{Title: "last update"},
-// 	}
-
-// 	apiEndpoint := urls.Join(resourcesRes.APIsBaseURL, *api.Endpoint)
-
-// 	statusTable := table.Table{
-// 		Headers: headers,
-// 		Rows:    [][]interface{}{row},
-// 	}
-
-// 	var out string
-// 	metrics, err := getAPIMetrics(ctx.App.Name, api.Name)
-// 	statusTable = appendNetworkMetrics(statusTable, metrics) // adds blank stats when there is an error
-// 	out = table.MustFormat(statusTable) + "\n"
-
-// 	var predictionMetrics string
-// 	if err != nil {
-// 		if !strings.Contains(err.Error(), "api is still initializing") {
-// 			predictionMetrics = fmt.Sprintf("\nerror fetching metrics: %s\n", err.Error())
-// 		}
-// 	}
-
-// 	if api.Tracker != nil && len(predictionMetrics) == 0 {
-// 		predictionMetrics = "\n" + predictionMetricsStr(metrics, api)
-// 	}
-
-// 	out += predictionMetrics
-
-// 	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
-
-// 	if !flagVerbose {
-// 		return out, nil
-// 	}
-
-// 	out += fmt.Sprintf("\n%s curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json", console.Bold("curl:"), apiEndpoint)
-
-// 	if api.Predictor.Type == userconfig.TensorFlowPredictorType || api.Predictor.Type == userconfig.ONNXPredictorType {
-// 		out += "\n\n" + describeModelInput(groupStatus, apiEndpoint)
-// 	}
-
-// 	if api != nil {
-// 		out += "\n" + titleStr("configuration") + strings.TrimSpace(api.UserConfigStr())
-// 	}
-
-// 	return out, nil
-// }
 
 func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Metrics) table.Table {
 	rows := make([][]interface{}, 0, len(apis))
@@ -346,18 +261,7 @@ func code5XXStr(metrics *metrics.Metrics) string {
 	return "-"
 }
 
-func predictionMetricsStr(api *spec.API, metrics metrics.Metrics) string {
-	if api.Tracker == nil {
-		return ""
-	}
-
-	if api.Tracker.ModelType == userconfig.ClassificationModelType {
-		return classificationMetricsStr(metrics)
-	}
-	return regressionMetricsStr(metrics)
-}
-
-func regressionMetricsStr(metrics metrics.Metrics) string {
+func regressionMetricsStr(metrics *metrics.Metrics) string {
 	minStr := "-"
 	maxStr := "-"
 	avgStr := "-"
@@ -388,7 +292,7 @@ func regressionMetricsStr(metrics metrics.Metrics) string {
 	return t.MustFormat()
 }
 
-func classificationMetricsStr(metrics metrics.Metrics) string {
+func classificationMetricsStr(metrics *metrics.Metrics) string {
 	classList := make([]string, len(metrics.ClassDistribution))
 
 	i := 0
@@ -429,67 +333,67 @@ func classificationMetricsStr(metrics metrics.Metrics) string {
 	return out
 }
 
-// func describeModelInput(groupStatus *resource.APIGroupStatus, apiEndpoint string) string {
-// 	if groupStatus.ReadyUpdated+groupStatus.ReadyStaleCompute == 0 {
-// 		return "the model's input schema will be available when the api is live"
-// 	}
+func describeModelInput(status *status.Status, apiEndpoint string) string {
+	if status.Updated.Ready+status.Stale.Ready == 0 {
+		return "the model's input schema will be available when the api is live"
+	}
 
-// 	apiSummary, err := getAPISummary(apiEndpoint)
-// 	if err != nil {
-// 		return "error retrieving the model's input schema: " + err.Error()
-// 	}
+	apiSummary, err := getAPISummary(apiEndpoint)
+	if err != nil {
+		return "error retrieving the model's input schema: " + err.Error()
+	}
 
-// 	rows := make([][]interface{}, len(apiSummary.ModelSignature))
-// 	rowNum := 0
-// 	for inputName, featureSignature := range apiSummary.ModelSignature {
-// 		shapeStr := make([]string, len(featureSignature.Shape))
-// 		for idx, dim := range featureSignature.Shape {
-// 			shapeStr[idx] = s.ObjFlatNoQuotes(dim)
-// 		}
-// 		rows[rowNum] = []interface{}{
-// 			inputName,
-// 			featureSignature.Type,
-// 			"(" + strings.Join(shapeStr, ", ") + ")",
-// 		}
-// 		rowNum++
-// 	}
+	rows := make([][]interface{}, len(apiSummary.ModelSignature))
+	rowNum := 0
+	for inputName, featureSignature := range apiSummary.ModelSignature {
+		shapeStr := make([]string, len(featureSignature.Shape))
+		for idx, dim := range featureSignature.Shape {
+			shapeStr[idx] = s.ObjFlatNoQuotes(dim)
+		}
+		rows[rowNum] = []interface{}{
+			inputName,
+			featureSignature.Type,
+			"(" + strings.Join(shapeStr, ", ") + ")",
+		}
+		rowNum++
+	}
 
-// 	t := table.Table{
-// 		Headers: []table.Header{
-// 			{Title: "model input", MaxWidth: 32},
-// 			{Title: "type", MaxWidth: 10},
-// 			{Title: "shape", MaxWidth: 20},
-// 		},
-// 		Rows: rows,
-// 	}
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "model input", MaxWidth: 32},
+			{Title: "type", MaxWidth: 10},
+			{Title: "shape", MaxWidth: 20},
+		},
+		Rows: rows,
+	}
 
-// 	return table.MustFormat(t)
-// }
+	return t.MustFormat()
+}
 
-// func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
-// 	httpsAPIEndpoint := strings.Replace(apiEndpoint, "http://", "https://", 1)
-// 	req, err := http.NewRequest("GET", httpsAPIEndpoint, nil)
-// 	if err != nil {
-// 		return nil, errors.Wrap(err, "unable to request api summary")
-// 	}
-// 	req.Header.Set("Content-Type", "application/json")
-// 	response, err := apiClient.MakeRequest(req)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
+	httpsAPIEndpoint := strings.Replace(apiEndpoint, "http://", "https://", 1)
+	req, err := http.NewRequest("GET", httpsAPIEndpoint, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to request api summary")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	response, err := apiClient.MakeRequest(req)
+	if err != nil {
+		return nil, err
+	}
 
-// 	var apiSummary schema.APISummary
-// 	err = json.DecodeWithNumber(response, &apiSummary)
-// 	if err != nil {
-// 		return nil, errors.Wrap(err, "unable to parse api summary response")
-// 	}
+	var apiSummary schema.APISummary
+	err = json.DecodeWithNumber(response, &apiSummary)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse api summary response")
+	}
 
-// 	for _, featureSignature := range apiSummary.ModelSignature {
-// 		featureSignature.Shape = cast.JSONNumbers(featureSignature.Shape)
-// 	}
+	for _, featureSignature := range apiSummary.ModelSignature {
+		featureSignature.Shape = cast.JSONNumbers(featureSignature.Shape)
+	}
 
-// 	return &apiSummary, nil
-// }
+	return &apiSummary, nil
+}
 
 func titleStr(title string) string {
 	return "\n" + console.Bold(title) + "\n"

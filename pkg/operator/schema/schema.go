@@ -62,13 +62,12 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-// TODO
-// type FeatureSignature struct {
-// 	Shape []interface{} `json:"shape"`
-// 	Type  string        `json:"type"`
-// }
+type FeatureSignature struct {
+	Shape []interface{} `json:"shape"`
+	Type  string        `json:"type"`
+}
 
-// type APISummary struct {
-// 	Message        string                      `json:"message"`
-// 	ModelSignature map[string]FeatureSignature `json:"model_signature"`
-// }
+type APISummary struct {
+	Message        string                      `json:"message"`
+	ModelSignature map[string]FeatureSignature `json:"model_signature"`
+}
