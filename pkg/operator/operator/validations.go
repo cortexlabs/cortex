@@ -249,11 +249,10 @@ func validateAPIs(apis []userconfig.API, projectFileMap map[string][]byte) error
 		return err
 	}
 
-	for i, api := range apis {
-		if err := validateAPI(&api, projectFileMap, virtualServices, maxMem); err != nil {
+	for i := range apis {
+		if err := validateAPI(&apis[i], projectFileMap, virtualServices, maxMem); err != nil {
 			return err
 		}
-		apis[i] = api // TODO fix
 	}
 	return nil
 }
@@ -277,7 +276,7 @@ func validateAPI(
 		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}
 
-	if err := validateEndpointCollisions(*api, virtualServices); err != nil {
+	if err := validateEndpointCollisions(api, virtualServices); err != nil {
 		return err
 	}
 
@@ -500,7 +499,7 @@ func validateAvailableCompute(compute *userconfig.Compute, maxMem *kresource.Qua
 	return nil
 }
 
-func validateEndpointCollisions(api userconfig.API, virtualServices []kunstructured.Unstructured) error {
+func validateEndpointCollisions(api *userconfig.API, virtualServices []kunstructured.Unstructured) error {
 	for _, virtualService := range virtualServices {
 		gateways, err := k8s.ExtractVirtualServiceGateways(&virtualService)
 		if err != nil {
