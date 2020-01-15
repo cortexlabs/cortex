@@ -106,16 +106,16 @@ func TrimDirPrefix(fullPath string, dirPath string) string {
 	return strings.TrimPrefix(fullPath, dirPath)
 }
 
-func RelPath(userPath string, baseDir string) string {
-	if !filepath.IsAbs(userPath) {
-		userPath = filepath.Join(baseDir, userPath)
+func RelToAbsPath(relativePath string, baseDir string) string {
+	if !filepath.IsAbs(relativePath) {
+		relativePath = filepath.Join(baseDir, relativePath)
 	}
-	return filepath.Clean(userPath)
+	return filepath.Clean(relativePath)
 }
 
-func UserPath(userPath string) string {
+func UserRelToAbsPath(relativePath string) string {
 	baseDir, _ := os.Getwd()
-	return RelPath(userPath, baseDir)
+	return RelToAbsPath(relativePath, baseDir)
 }
 
 func IsFileOrDir(path string) bool {
