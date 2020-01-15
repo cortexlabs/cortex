@@ -236,6 +236,7 @@ function setup_configmap() {
   kubectl -n=cortex create configmap 'env-vars' \
     --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
     --from-literal='CORTEX_REGION'=$CORTEX_REGION \
+    --from-literal='AWS_REGION'=$CORTEX_REGION \
     --from-literal='CORTEX_BUCKET'=$CORTEX_BUCKET \
     --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
     --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
