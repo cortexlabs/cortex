@@ -94,9 +94,9 @@ func apiStatus(deployment *kapps.Deployment, allPods []kcore.Pod) (*status.Statu
 		return nil, nil
 	}
 
-	minReplicas, ok := s.ParseInt32(deployment.Labels["apiName"])
+	minReplicas, ok := s.ParseInt32(deployment.Labels["minReplicas"])
 	if !ok {
-		return nil, errors.New("unable to parse min replicas from " + deployment.Labels["apiName"]) // unexpected
+		return nil, errors.New("unable to parse min replicas from " + deployment.Labels["minReplicas"]) // unexpected
 	}
 
 	status := &status.Status{}
