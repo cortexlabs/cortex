@@ -66,12 +66,12 @@ func Init() error {
 	Cluster.ID = hash.String(Cluster.ClusterName + *Cluster.Region + AWS.HashedAccountID)
 
 	err = telemetry.Init(telemetry.Config{
-		Enabled:              Cluster.Telemetry,
-		UserID:               AWS.HashedAccountID,
-		Properties:           map[string]interface{}{"clusterID": Cluster.ID},
-		Environment:          "operator",
-		LogErrors:            true,
-		BlockDuplicateErrors: true,
+		Enabled:     Cluster.Telemetry,
+		UserID:      AWS.HashedAccountID,
+		Properties:  map[string]interface{}{"clusterID": Cluster.ID},
+		Environment: "operator",
+		LogErrors:   true,
+		BackoffMode: telemetry.BackoffAnyMessages,
 	})
 	if err != nil {
 		fmt.Println(err.Error())

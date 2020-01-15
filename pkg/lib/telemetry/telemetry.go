@@ -35,13 +35,21 @@ var _segment analytics.Client
 var _config *Config
 
 type Config struct {
-	Enabled              bool
-	UserID               string
-	Properties           map[string]interface{}
-	Environment          string
-	LogErrors            bool
-	BlockDuplicateErrors bool
+	Enabled     bool
+	UserID      string
+	Properties  map[string]interface{}
+	Environment string
+	LogErrors   bool
+	BackoffMode BackoffMode
 }
+
+type BackoffMode int
+
+const (
+	NoBackoff BackoffMode = iota
+	BackoffDuplicateMessages
+	BackoffAnyMessages
+)
 
 type silentSegmentLogger struct{}
 
@@ -154,7 +162,7 @@ func Error(err error) {
 		return
 	}
 
-	if _config.BlockDuplicateErrors && shouldBlock(err) {
+	if shouldBlock(err, _config.BackoffMode) {
 		return
 	}
 

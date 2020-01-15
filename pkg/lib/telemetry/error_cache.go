@@ -43,9 +43,17 @@ type errorStatus struct {
 	CoolDownPeriod time.Duration
 }
 
-func shouldBlock(err error) bool {
+func shouldBlock(err error, backoffMode BackoffMode) bool {
+	if backoffMode == NoBackoff {
+		return false
+	}
+
 	errMsg := err.Error()
 	now := time.Now()
+
+	if backoffMode == BackoffAnyMessages {
+		errMsg = "<msg>"
+	}
 
 	defer func() {
 		go cleanupCache()
