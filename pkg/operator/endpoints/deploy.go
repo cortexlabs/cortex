@@ -87,7 +87,6 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// TODO parallelize?
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
 		results[i].API, results[i].Message, results[i].Error = operator.UpdateAPI(&apiConfig, projectID, refresh, force)
