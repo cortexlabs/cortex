@@ -29,7 +29,6 @@ type ErrorKind int
 const (
 	ErrUnknown ErrorKind = iota
 	ErrParseConfig
-	ErrReadConfig
 	ErrUnsupportedKey
 	ErrInvalidYAML
 	ErrAlphaNumericDashUnderscore
@@ -62,7 +61,6 @@ const (
 var _errorKinds = []string{
 	"err_unknown",
 	"err_parse_config",
-	"err_read_config",
 	"err_unsupported_key",
 	"err_invalid_yaml",
 	"err_alpha_numeric_dash_underscore",
@@ -141,13 +139,6 @@ func ErrorParseConfig() error {
 	return errors.WithStack(Error{
 		Kind:    ErrParseConfig,
 		message: fmt.Sprintf("failed to parse config file"),
-	})
-}
-
-func ErrorReadConfig() error {
-	return errors.WithStack(Error{
-		Kind:    ErrReadConfig,
-		message: fmt.Sprintf("failed to read config file"),
 	})
 }
 

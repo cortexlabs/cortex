@@ -22,7 +22,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -46,23 +45,33 @@ func init() {
 }
 
 var _deployCmd = &cobra.Command{
-	Use:   "deploy",
+	Use:   "deploy [CONFIG_FILE]",
 	Short: "create or update a deployment",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.deploy")
 
-		// TODO move to helper
-		var configPath string
-		if len(args) == 0 {
-			// TODO check that ./cortex.yaml exists, show useful error if not (e.g. specify a path or create a cortex.yaml)
-			configPath = "cortex.yaml"
-		} else {
-			configPath = args[0]
-		}
-
+		configPath := getConfigPath(args)
 		deploy(configPath, _flagDeployForce, _flagRefresh)
 	},
+}
+
+func getConfigPath(args []string) string {
+	var configPath string
+
+	if len(args) == 0 {
+		configPath = "cortex.yaml"
+		if !files.IsFile(configPath) {
+			exit.Error("no api config file was specified, and ./cortex.yaml does not exits; create cortex.yaml, or reference an existing config file by running `cortex deploy <config_file_path>`")
+		}
+	} else {
+		configPath = args[0]
+		if !files.IsFile(configPath) {
+			exit.Error("no such file", configPath)
+		}
+	}
+
+	return configPath
 }
 
 func deploy(configPath string, force bool, refresh bool) {
@@ -74,7 +83,7 @@ func deploy(configPath string, force bool, refresh bool) {
 
 	configBytes, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		exit.Error(errors.Wrap(err, configPath, cr.ErrorReadConfig().Error()))
+		exit.Error(errors.Wrap(err, configPath))
 	}
 
 	uploadBytes := map[string][]byte{
