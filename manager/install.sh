@@ -16,6 +16,8 @@
 
 set -e
 
+CORTEX_VERSION=master
+
 arg1="$1"
 
 function ensure_eks() {
@@ -232,10 +234,12 @@ function setup_configmap() {
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 
   kubectl -n=cortex create configmap 'env-vars' \
+    --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
+    --from-literal='CORTEX_REGION'=$CORTEX_REGION \
+    --from-literal='CORTEX_BUCKET'=$CORTEX_BUCKET \
     --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
     --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
     --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
-    # TODO move env vars here
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 }
 

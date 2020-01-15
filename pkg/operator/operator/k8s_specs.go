@@ -22,7 +22,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -560,18 +559,6 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 					FieldPath: "status.hostIP",
 				},
 			},
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_VERSION",
-			Value: consts.CortexVersion,
-		},
-		kcore.EnvVar{
-			Name:  "AWS_REGION",
-			Value: *config.Cluster.Region,
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_BUCKET",
-			Value: *config.Cluster.Bucket,
 		},
 	)
 
