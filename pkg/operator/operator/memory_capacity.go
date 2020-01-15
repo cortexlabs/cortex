@@ -56,7 +56,7 @@ func getMemoryCapacityFromNodes() (*kresource.Quantity, error) {
 			"workload": "true",
 		}),
 	}
-	nodes, err := config.K8s.Default.ListNodes(&opts)
+	nodes, err := config.K8s.ListNodes(&opts)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func getMemoryCapacityFromNodes() (*kresource.Quantity, error) {
 }
 
 func getMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
-	configMapData, err := config.K8s.Cortex.GetConfigMapData(_memConfigMapName)
+	configMapData, err := config.K8s.GetConfigMapData(_memConfigMapName)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func updateMemoryCapacityConfigMap() (*kresource.Quantity, error) {
 			},
 		})
 
-		_, err := config.K8s.Cortex.ApplyConfigMap(configMap)
+		_, err := config.K8s.ApplyConfigMap(configMap)
 		if err != nil {
 			return nil, err
 		}

@@ -117,7 +117,7 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 		case <-timer.C:
 			if time.Since(lastDeploymentRefresh) > _deploymentRefreshPeriod {
 				var err error
-				deployment, err = config.K8s.Default.GetDeployment(apiName)
+				deployment, err = config.K8s.GetDeployment(apiName)
 				if err != nil {
 					telemetry.Error(err)
 					writeAndCloseSocket(socket, "error: "+err.Error())

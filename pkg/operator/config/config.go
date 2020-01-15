@@ -37,14 +37,8 @@ const _cluster_config_path = "/configs/cluster/cluster.yaml"
 var (
 	Cluster *clusterconfig.InternalConfig
 	AWS     *aws.Client
-	K8s     K8sClients
+	K8s     *k8s.Client
 )
-
-type K8sClients struct {
-	Default *k8s.Client
-	Cortex  *k8s.Client
-	Istio   *k8s.Client
-}
 
 func Init() error {
 	var err error
@@ -86,14 +80,7 @@ func Init() error {
 
 	Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
 
-	// TODO remove Default
-	if K8s.Default, err = k8s.New("cortex", Cluster.OperatorInCluster); err != nil {
-		return err
-	}
-	if K8s.Cortex, err = k8s.New("cortex", Cluster.OperatorInCluster); err != nil {
-		return err
-	}
-	if K8s.Istio, err = k8s.New("istio-system", Cluster.OperatorInCluster); err != nil {
+	if K8s, err = k8s.New("default", Cluster.OperatorInCluster); err != nil {
 		return err
 	}
 

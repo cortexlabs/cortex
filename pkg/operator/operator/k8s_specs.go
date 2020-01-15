@@ -107,7 +107,7 @@ func tfAPISpec(
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:     api.Name,
+		Name:     k8sName(api.Name),
 		Replicas: getRequestedReplicasFromDeployment(api, prevDeployment),
 		Labels: map[string]string{
 			"apiName": api.Name,
@@ -262,7 +262,7 @@ func pythonAPISpec(
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:     api.Name,
+		Name:     k8sName(api.Name),
 		Replicas: getRequestedReplicasFromDeployment(api, prevDeployment),
 		Labels: map[string]string{
 			"apiName": api.Name,
@@ -372,7 +372,7 @@ func onnxAPISpec(
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:     api.Name,
+		Name:     k8sName(api.Name),
 		Replicas: getRequestedReplicasFromDeployment(api, prevDeployment),
 		Labels: map[string]string{
 			"apiName": api.Name,
@@ -468,7 +468,7 @@ func onnxDownloadArgs(api *spec.API) string {
 
 func serviceSpec(api *spec.API) *kcore.Service {
 	return k8s.Service(&k8s.ServiceSpec{
-		Name:       api.Name,
+		Name:       k8sName(api.Name),
 		Port:       _defaultPortInt32,
 		TargetPort: _defaultPortInt32,
 		Labels: map[string]string{
@@ -482,9 +482,9 @@ func serviceSpec(api *spec.API) *kcore.Service {
 
 func virtualServiceSpec(api *spec.API) *kunstructured.Unstructured {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
-		Name:        api.Name,
+		Name:        k8sName(api.Name),
 		Gateways:    []string{"apis-gateway"},
-		ServiceName: api.Name,
+		ServiceName: k8sName(api.Name),
 		ServicePort: _defaultPortInt32,
 		Path:        *api.Endpoint,
 		Rewrite:     pointer.String("predict"),
@@ -509,7 +509,7 @@ func hpaSpec(deployment *kapps.Deployment) (*kautoscaling.HorizontalPodAutoscale
 	}
 
 	return k8s.HPA(&k8s.HPASpec{
-		DeploymentName:       deployment.Labels["apiName"],
+		DeploymentName:       k8sName(deployment.Labels["apiName"]),
 		MinReplicas:          minReplicas,
 		MaxReplicas:          maxReplicas,
 		TargetCPUUtilization: targetCPUUtilization,
@@ -570,6 +570,10 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 	}
 
 	return envVars
+}
+
+func k8sName(apiName string) string {
+	return "api-" + apiName
 }
 
 var _apiReadinessProbe = &kcore.Probe{

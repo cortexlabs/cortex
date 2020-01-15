@@ -31,7 +31,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isDeployed, err := config.K8s.Default.DeploymentExists(apiName)
+	isDeployed, err := config.K8s.DeploymentExists(apiName)
 	if err != nil {
 		respondError(w, err)
 		return

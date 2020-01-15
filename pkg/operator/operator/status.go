@@ -37,12 +37,12 @@ func GetStatus(apiName string) (*status.Status, error) {
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployment, err = config.K8s.Default.GetDeployment(apiName)
+			deployment, err = config.K8s.GetDeployment(apiName)
 			return err
 		},
 		func() error {
 			var err error
-			pods, err = config.K8s.Default.ListPodsWithLabelKeys("apiName", apiName)
+			pods, err = config.K8s.ListPodsWithLabelKeys("apiName", apiName)
 			return err
 		},
 	)
@@ -61,12 +61,12 @@ func GetAllStatuses() ([]status.Status, error) {
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployments, err = config.K8s.Default.ListDeploymentsWithLabelKeys("apiName")
+			deployments, err = config.K8s.ListDeploymentsWithLabelKeys("apiName")
 			return err
 		},
 		func() error {
 			var err error
-			pods, err = config.K8s.Default.ListPodsWithLabelKeys("apiName")
+			pods, err = config.K8s.ListPodsWithLabelKeys("apiName")
 			return err
 		},
 	)

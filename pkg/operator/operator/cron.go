@@ -50,7 +50,7 @@ func deleteEvictedPods(failedPods []kcore.Pod) error {
 
 	for _, pod := range failedPods {
 		if pod.Status.Reason == k8s.ReasonEvicted {
-			_, err := config.K8s.Default.DeletePod(pod.Name)
+			_, err := config.K8s.DeletePod(pod.Name)
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -69,7 +69,7 @@ func updateHPAs(deployments []kapps.Deployment) error {
 	var errs []error
 
 	for _, deployment := range deployments {
-		hpaExists, err := config.K8s.Default.HPAExists(deployment.Labels["apiName"])
+		hpaExists, err := config.K8s.HPAExists(k8sName(deployment.Labels["apiName"]))
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -81,7 +81,7 @@ func updateHPAs(deployments []kapps.Deployment) error {
 
 		if allPods == nil {
 			var err error
-			allPods, err = config.K8s.Default.ListPodsWithLabelKeys("apiName")
+			allPods, err = config.K8s.ListPodsWithLabelKeys("apiName")
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -105,7 +105,7 @@ func updateHPAs(deployments []kapps.Deployment) error {
 					continue
 				}
 
-				_, err = config.K8s.Default.CreateHPA(spec)
+				_, err = config.K8s.CreateHPA(spec)
 				if err != nil {
 					errs = append(errs, err)
 					continue
@@ -141,12 +141,12 @@ func getCronK8sResources() ([]kapps.Deployment, []kcore.Pod, error) {
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployments, err = config.K8s.Default.ListDeploymentsWithLabelKeys("apiName")
+			deployments, err = config.K8s.ListDeploymentsWithLabelKeys("apiName")
 			return err
 		},
 		func() error {
 			var err error
-			failedPods, err = config.K8s.Default.ListPods(&kmeta.ListOptions{
+			failedPods, err = config.K8s.ListPods(&kmeta.ListOptions{
 				FieldSelector: "status.phase=Failed",
 			})
 			return err
@@ -157,7 +157,7 @@ func getCronK8sResources() ([]kapps.Deployment, []kcore.Pod, error) {
 }
 
 func telemetryCron() error {
-	nodes, err := config.K8s.Default.ListNodes(nil)
+	nodes, err := config.K8s.ListNodes(nil)
 	if err != nil {
 		return err
 	}

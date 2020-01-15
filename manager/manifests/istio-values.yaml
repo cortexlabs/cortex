@@ -23,7 +23,7 @@ gateways:
   istio-ingressgateway:
     enabled: false
   operator-ingressgateway:
-    namespace: istio-system
+    namespace: default
     enabled: true
     labels:
       app: operator-istio-gateway
@@ -63,7 +63,7 @@ gateways:
       secretName: istio-customgateway-ca-certs
       mountPath: /etc/istio/customgateway-ca-certs
   apis-ingressgateway:
-    namespace: istio-system
+    namespace: default
     enabled: true
     labels:
       app: apis-istio-gateway

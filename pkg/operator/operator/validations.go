@@ -552,7 +552,7 @@ func getValidationK8sResources() (
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			virtualServices, err = config.K8s.Default.ListVirtualServices(nil)
+			virtualServices, err = config.K8s.ListVirtualServices(nil)
 			return err
 		},
 		func() error {

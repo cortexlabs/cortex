@@ -39,13 +39,13 @@ data:
 kind: ConfigMap
 metadata:
   name: cwagentstatsdconfig
-  namespace: cortex
+  namespace: default
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: cloudwatch-agent-statsd
-  namespace: cortex
+  namespace: default
 spec:
   selector:
     matchLabels:
