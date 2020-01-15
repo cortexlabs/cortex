@@ -93,7 +93,7 @@ func deploy(configPath string, force bool, refresh bool) {
 	projectRoot := filepath.Dir(files.UserRelToAbsPath(configPath))
 
 	projectPaths, err := files.ListDirRecursive(projectRoot, false,
-		files.IgnoreCortexYAML, // TODO ignore the actual file specified, even if it's in a subdir. Or remove from list after the fact.
+		files.IgnoreSpecificFiles(files.UserRelToAbsPath(configPath)),
 		files.IgnoreCortexDebug,
 		files.IgnoreHiddenFiles,
 		files.IgnoreHiddenFolders,

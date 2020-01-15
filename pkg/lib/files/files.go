@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/xlab/treeprint"
 )
@@ -323,6 +324,13 @@ func IgnoreNonYAML(path string, fi os.FileInfo) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+func IgnoreSpecificFiles(absPaths ...string) func(path string, fi os.FileInfo) (bool, error) {
+	absPathsSet := strset.New(absPaths...)
+	return func(path string, fi os.FileInfo) (bool, error) {
+		return absPathsSet.Has(path), nil
+	}
 }
 
 type DirsOrder string
