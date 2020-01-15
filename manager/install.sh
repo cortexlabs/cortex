@@ -117,8 +117,6 @@ function main() {
 
   eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 
-  envsubst < manifests/namespace.yaml | kubectl apply -f - >/dev/null
-
   # pre-download images on cortex cluster up
   if [ "$arg1" != "--update" ]; then
     if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
@@ -146,14 +144,14 @@ function main() {
   echo "✓"
 
   echo -n "￮ configuring logging "
-  kubectl -n=cortex delete --ignore-not-found=true daemonset fluentd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
-  until [ "$(kubectl -n=cortex get pods -l app=fluentd -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
+  kubectl -n=default delete --ignore-not-found=true daemonset fluentd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
+  until [ "$(kubectl -n=default get pods -l app=fluentd -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
   envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
   echo -n "￮ configuring metrics "
-  kubectl -n=cortex delete --ignore-not-found=true daemonset cloudwatch-agent-statsd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
-  until [ "$(kubectl -n=cortex get pods -l name=cloudwatch-agent-statsd -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
+  kubectl -n=default delete --ignore-not-found=true daemonset cloudwatch-agent-statsd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
+  until [ "$(kubectl -n=default get pods -l name=cloudwatch-agent-statsd -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
   envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
   echo "✓"
@@ -167,23 +165,23 @@ function main() {
   fi
 
   echo -n "￮ starting operator "
-  kubectl -n=cortex delete --ignore-not-found=true --grace-period=10 deployment operator >/dev/null 2>&1
-  until [ "$(kubectl -n=cortex get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
+  kubectl -n=default delete --ignore-not-found=true --grace-period=10 deployment operator >/dev/null 2>&1
+  until [ "$(kubectl -n=default get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
   envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
   validate_cortex
 
-  if kubectl get daemonset image-downloader -n cortex &>/dev/null; then
+  if kubectl get daemonset image-downloader -n=default &>/dev/null; then
     echo -n "￮ downloading docker images "
     i=0
-    until [ "$(kubectl get daemonset image-downloader -n cortex -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset image-downloader -n cortex -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
+    until [ "$(kubectl get daemonset image-downloader -n=default -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset image-downloader -n=default -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
       if [ $i -eq 100 ]; then break; fi  # give up after 5 minutes
       echo -n "."
       ((i=i+1))
       sleep 3
     done
-    kubectl -n=cortex delete --ignore-not-found=true daemonset image-downloader &>/dev/null
+    kubectl -n=default delete --ignore-not-found=true daemonset image-downloader &>/dev/null
     echo "✓"
   fi
 
@@ -229,11 +227,11 @@ function setup_cloudwatch_logs() {
 }
 
 function setup_configmap() {
-  kubectl -n=cortex create configmap 'cluster-config' \
+  kubectl -n=default create configmap 'cluster-config' \
     --from-file='cluster.yaml'=$CORTEX_CLUSTER_CONFIG_FILE \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 
-  kubectl -n=cortex create configmap 'env-vars' \
+  kubectl -n=default create configmap 'env-vars' \
     --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
     --from-literal='CORTEX_REGION'=$CORTEX_REGION \
     --from-literal='AWS_REGION'=$CORTEX_REGION \
@@ -245,7 +243,7 @@ function setup_configmap() {
 }
 
 function setup_secrets() {
-  kubectl -n=cortex create secret generic 'aws-credentials' \
+  kubectl -n=default create secret generic 'aws-credentials' \
     --from-literal='AWS_ACCESS_KEY_ID'=$CORTEX_AWS_ACCESS_KEY_ID \
     --from-literal='AWS_SECRET_ACCESS_KEY'=$CORTEX_AWS_SECRET_ACCESS_KEY \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
@@ -255,10 +253,10 @@ function setup_istio() {
   echo -n "."
   envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
 
-  if ! kubectl get secret -n istio-system | grep -q istio-customgateway-certs; then
+  if ! kubectl get secret -n default | grep -q istio-customgateway-certs; then
     WEBSITE=localhost
     openssl req -subj "/C=US/CN=$WEBSITE" -newkey rsa:2048 -nodes -keyout $WEBSITE.key -x509 -days 3650 -out $WEBSITE.crt >/dev/null 2>&1
-    kubectl create -n istio-system secret tls istio-customgateway-certs --key $WEBSITE.key --cert $WEBSITE.crt >/dev/null
+    kubectl create -n default secret tls istio-customgateway-certs --key $WEBSITE.key --cert $WEBSITE.crt >/dev/null
   fi
 
   helm template istio-manifests/istio-init --name istio-init --namespace istio-system | kubectl apply -f - >/dev/null
@@ -294,11 +292,11 @@ function validate_cortex() {
     echo -n "."
     sleep 3
 
-    operator_pod_name=$(kubectl -n=cortex get pods -o=name --sort-by=.metadata.creationTimestamp | grep "^pod/operator-" | tail -1)
+    operator_pod_name=$(kubectl -n=default get pods -o=name --sort-by=.metadata.creationTimestamp | grep "^pod/operator-" | tail -1)
     if [ "$operator_pod_name" == "" ]; then
       operator_pod_ready_cycles=0
     else
-      is_ready=$(kubectl -n=cortex get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].ready}')
+      is_ready=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].ready}')
       if [ "$is_ready" == "true" ]; then
         ((operator_pod_ready_cycles++))
       else
@@ -307,7 +305,7 @@ function validate_cortex() {
     fi
 
     if [ "$operator_load_balancer" != "ready" ]; then
-      out=$(kubectl -n=istio-system get service operator-ingressgateway -o json | tr -d '[:space:]')
+      out=$(kubectl -n=default get service operator-ingressgateway -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
         continue
       fi
@@ -315,7 +313,7 @@ function validate_cortex() {
     fi
 
     if [ "$api_load_balancer" != "ready" ]; then
-      out=$(kubectl -n=istio-system get service apis-ingressgateway -o json | tr -d '[:space:]')
+      out=$(kubectl -n=default get service apis-ingressgateway -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
         continue
       fi
@@ -323,7 +321,7 @@ function validate_cortex() {
     fi
 
     if [ "$operator_endpoint" = "" ]; then
-      operator_endpoint=$(kubectl -n=istio-system get service operator-ingressgateway -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
+      operator_endpoint=$(kubectl -n=default get service operator-ingressgateway -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
     fi
 
     if [ "$operator_endpoint_reachable" != "ready" ]; then
@@ -334,10 +332,10 @@ function validate_cortex() {
     fi
 
     if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
-      num_restart=$(kubectl -n=cortex get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
+      num_restart=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
       if [[ $num_restart -ge 2 ]]; then
         echo -e "\n\nan error occurred when starting the cortex operator. View the logs with:"
-        echo "  kubectl logs $operator_pod_name --namespace=cortex"
+        echo "  kubectl logs $operator_pod_name"
         exit 1
       fi
       continue
