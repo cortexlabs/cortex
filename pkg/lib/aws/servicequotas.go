@@ -32,7 +32,7 @@ var _instancePrefixRegex = regexp.MustCompile(`[a-zA-Z]+`)
 var _standardInstancePrefixes = strset.New("a", "c", "d", "h", "i", "m", "r", "t", "z")
 var _knownInstancePrefixes = strset.Union(_standardInstancePrefixes, strset.New("p", "g", "inf", "x", "f"))
 
-// TODO auth?
+// TODO convert to client method, use CortexOperator AWS creds when creating it
 func VerifyInstanceQuota(accessKeyID, secretAccessKey, region, instanceType string) error {
 	instancePrefix := _instancePrefixRegex.FindString(instanceType)
 

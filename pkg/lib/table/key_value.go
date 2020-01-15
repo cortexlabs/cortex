@@ -48,7 +48,6 @@ func (kvs *KeyValuePairs) AddAll(kvs2 KeyValuePairs) {
 	}
 }
 
-// TODO return with trailing new line
 func (kvs KeyValuePairs) String(options ...*KeyValuePairOpts) string {
 	opts := mergeOptions(options...)
 
@@ -69,7 +68,7 @@ func (kvs KeyValuePairs) String(options ...*KeyValuePairOpts) string {
 		b.WriteString(keyStr + *opts.Delimiter + spaces + valStr + "\n")
 	}
 
-	return strings.TrimSpace(b.String())
+	return b.String()
 }
 
 func (kvs KeyValuePairs) Print(options ...*KeyValuePairOpts) {
