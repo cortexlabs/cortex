@@ -17,6 +17,7 @@ limitations under the License.
 package operator
 
 import (
+	"sort"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -75,8 +76,6 @@ func GetAllStatuses() ([]status.Status, error) {
 		return nil, err
 	}
 
-	// TODO sort
-
 	statuses := make([]status.Status, len(deployments))
 	for i, deployment := range deployments {
 		status, err := apiStatus(&deployment, pods)
@@ -85,6 +84,10 @@ func GetAllStatuses() ([]status.Status, error) {
 		}
 		statuses[i] = *status
 	}
+
+	sort.Slice(statuses, func(i, j int) bool {
+		return statuses[i].APIName < statuses[j].APIName
+	})
 
 	return statuses, nil
 }
