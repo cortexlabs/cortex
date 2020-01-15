@@ -21,7 +21,7 @@ from cortex.lib.log import cx_logger
 
 
 def get_classes(api):
-    prefix = os.path.join(api.spec["metadata_root"], api.spec["id"], "classes")
+    prefix = os.path.join(api.metadata_root, api.id, "classes")
     class_paths = api.storage.search(prefix=prefix)
     class_set = set()
     for class_path in class_paths:
@@ -34,19 +34,14 @@ def upload_class(api, class_name):
     try:
         ascii_encoded = class_name.encode("ascii")  # cloudwatch only supports ascii
         encoded_class_name = base64.urlsafe_b64encode(ascii_encoded)
-        key = os.path.join(
-            api.spec["metadata_root"], api.spec["id"], "classes", encoded_class_name.decode()
-        )
+        key = os.path.join(api.metadata_root, api.id, "classes", encoded_class_name.decode())
         api.storage.put_json("", key)
     except Exception as e:
         raise ValueError("unable to store class {}".format(class_name)) from e
 
 
 def api_metric_dimensions(api):
-    return [
-        {"Name": "APIName", "Value": api.spec["name"]},
-        {"Name": "APIID", "Value": api.spec["id"]},
-    ]
+    return [{"Name": "APIName", "Value": api.name}, {"Name": "APIID", "Value": api.id}]
 
 
 def status_code_metric(dimensions, status_code):
@@ -75,24 +70,22 @@ def latency_metric(dimensions, start_time):
 
 
 def extract_prediction(api, prediction):
-    tracker = api.spec.get("tracker")
-    if tracker.get("key") is not None:
-        key = tracker["key"]
+    if api.tracker.key is not None:
         if type(prediction) != dict:
             raise ValueError(
                 "failed to track key '{}': expected prediction to be of type dict but found '{}'".format(
-                    key, type(prediction)
+                    api.tracker.key, type(prediction)
                 )
             )
-        if prediction.get(key) is None:
+        if prediction.get(api.tracker.key) is None:
             raise ValueError(
-                "failed to track key '{}': not found in prediction".format(tracker["key"])
+                "failed to track key '{}': not found in prediction".format(api.tracker.key)
             )
-        predicted_value = prediction[key]
+        predicted_value = prediction[api.tracker.key]
     else:
         predicted_value = prediction
 
-    if tracker["model_type"] == "classification":
+    if api.tracker.model_type == "classification":
         if type(predicted_value) != str and type(predicted_value) != int:
             raise ValueError(
                 "failed to track classification prediction: expected type 'str' or 'int' but encountered '{}'".format(
@@ -112,8 +105,7 @@ def extract_prediction(api, prediction):
 
 def prediction_metrics(dimensions, api, prediction):
     metric_list = []
-    tracker = api.spec.get("tracker")
-    if tracker["model_type"] == "classification":
+    if api.tracker.model_type == "classification":
         dimensions_with_class = dimensions + [{"Name": "Class", "Value": str(prediction)}]
         metric = {
             "MetricName": "Prediction",
@@ -131,7 +123,7 @@ def prediction_metrics(dimensions, api, prediction):
 
 def cache_classes(api, prediction, class_set):
     if prediction not in class_set:
-        upload_class(api.spec.get("name"), prediction)
+        upload_class(api.name, prediction)
         class_set.add(prediction)
 
 
@@ -141,11 +133,11 @@ def post_request_metrics(api, response, prediction_payload, start_time, class_se
     metrics_list += status_code_metric(api_dimensions, response.status_code)
 
     if prediction_payload is not None:
-        if api.spec.get("tracker") is not None:
+        if api.tracker is not None:
             try:
                 prediction = extract_prediction(api, prediction_payload)
 
-                if api.spec["tracker"]["model_type"] == "classification":
+                if api.tracker.model_type == "classification":
                     cache_classes(api, prediction, class_set)
 
                 metrics_list += prediction_metrics(api_dimensions, api, prediction)
@@ -154,6 +146,14 @@ def post_request_metrics(api, response, prediction_payload, start_time, class_se
 
     metrics_list += latency_metric(api_dimensions, start_time)
     try:
-        api.publish_metrics(metrics_list)
+        if api.statsd is None:
+            raise CortexException("statsd client not initialized")  # unexpected
+
+        for metric in metrics_list:
+            tags = ["{}:{}".format(dim["Name"], dim["Value"]) for dim in metric["Dimensions"]]
+            if metric.get("Unit") == "Count":
+                api.statsd.increment(metric["MetricName"], value=metric["Value"], tags=tags)
+            else:
+                api.statsd.histogram(metric["MetricName"], value=metric["Value"], tags=tags)
     except Exception as e:
         cx_logger().warn("failure encountered while publishing metrics", exc_info=True)

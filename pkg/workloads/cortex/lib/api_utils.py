@@ -53,10 +53,10 @@ def get_statsd_client():
     return datadog.statsd
 
 
-def extract_waitress_params(api):
+def extract_waitress_params(config):
     waitress_kwargs = {}
-    if api.spec["predictor"].get("config") is not None:
-        for key, value in api.spec["predictor"]["config"].items():
+    if config is not None:
+        for key, value in config.items():
             if key.startswith("waitress_"):
                 waitress_kwargs[key[len("waitress_") :]] = value
 

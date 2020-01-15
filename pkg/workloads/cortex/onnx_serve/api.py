@@ -79,7 +79,7 @@ def predict():
         try:
             output = predictor.predict(payload)
         except Exception as e:
-            raise UserRuntimeException(api.spec["predictor"]["path"], "predict", str(e)) from e
+            raise UserRuntimeException(api.predictor.path, "predict", str(e)) from e
         debug_obj("prediction", output, debug)
 
     except Exception as e:
@@ -117,47 +117,42 @@ def start(args):
     statsd = api_utils.get_statsd_client()
     try:
         raw_api_spec = api_utils.get_spec(args.cache_dir, args.spec)
-        api = API(raw_api_spec, storage=storage, cache_dir=args.cache_dir, statsd=statsd)
+        api = API(storage=storage, cache_dir=args.cache_dir, statsd=statsd, **raw_api_spec)
         local_cache["api"] = api
 
-        if api.spec["predictor"]["type"] != "onnx":
-            raise CortexException(api.spec["name"], "predictor type is not onnx")
+        if api.predictor.type != "onnx":
+            raise CortexException(api.name, "predictor type is not onnx")
 
-        cx_logger().info("loading the predictor from {}".format(api.spec["predictor"]["path"]))
-
-        _, prefix = storage.deconstruct_s3_path(api.spec["predictor"]["model"])
+        cx_logger().info("loading the predictor from {}".format(api.predictor.path))
+        _, prefix = storage.deconstruct_s3_path(api.predictor.model)
         model_path = os.path.join(args.model_dir, os.path.basename(prefix))
         local_cache["client"] = ONNXClient(model_path)
 
-        predictor_class = api.get_predictor_class(args.project_dir)
+        predictor_class = api.predictor.class_impl(args.project_dir)
 
         try:
-            local_cache["predictor"] = predictor_class(
-                local_cache["client"], api.spec["predictor"]["config"]
-            )
+            local_cache["predictor"] = predictor_class(local_cache["client"], api.predictor.config)
         except Exception as e:
-            raise UserRuntimeException(api.spec["predictor"]["path"], "__init__", str(e)) from e
+            raise UserRuntimeException(api.predictor.path, "__init__", str(e)) from e
         finally:
             refresh_logger()
     except Exception as e:
+
         cx_logger().exception("failed to start api")
         sys.exit(1)
 
-    if (
-        api.spec.get("tracker") is not None
-        and api.spec["tracker"].get("model_type") == "classification"
-    ):
+    if api.tracker is not None and api.tracker.model_type == "classification":
         try:
-            local_cache["class_set"] = metrics.get_classes(api.spec["name"])
+            local_cache["class_set"] = metrics.get_classes(api.name)
         except Exception as e:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
     cx_logger().info("ONNX model signature: {}".format(local_cache["client"].input_signature))
 
-    waitress_kwargs = api_utils.extract_waitress_params(api)
+    waitress_kwargs = api_utils.extract_waitress_params(api.predictor.config)
     waitress_kwargs["listen"] = "*:{}".format(args.port)
 
-    cx_logger().info("{} api is live".format(api.spec["name"]))
+    cx_logger().info("{} api is live".format(api.name))
     open("/health_check.txt", "a").close()
     serve(app, **waitress_kwargs)
 
@@ -170,7 +165,7 @@ def main():
         "--spec", required=True, help="s3 path to api spec (e.g. s3://bucket/path/to/api_spec.json)"
     )
     na.add_argument("--model-dir", required=True, help="directory to download the model to")
-    na.add_argument("--cache-dir", required=True, help="local path for the context cache")
+    na.add_argument("--cache-dir", required=True, help="local path for the api cache")
     na.add_argument("--project-dir", required=True, help="local path for the project zip file")
     parser.set_defaults(func=start)
 

@@ -50,10 +50,44 @@ os.environ["AWS_REGION"] = self.cluster_config.get("region", "")
 
 
 class API:
-    def __init__(self, spec, cache_dir=".", storage=None, statsd=None):
+    def __init__(self, storage, statsd, cache_dir=".", **kwargs):
+        self.id = kwargs["id"]
+        self.key = kwargs["key"]
+        self.metadata_root = kwargs["metadata_root"]
+        self.name = kwargs["name"]
+        self.endpoint = kwargs["endpoint"]
+        self.predictor = Predictor(storage, cache_dir, **kwargs["predictor"])
+        self.tracker = None
+
+        if kwargs.get("tracker") is None:
+            self.tracker = Tracker(**kwargs["tracker"])
+
         self.cache_dir = cache_dir
-        self.spec = spec
         self.statsd = statsd
+        self.storage = storage
+
+        self._spec = kwargs
+
+
+class Tracker:
+    def __init__(self, **kwargs):
+        self.key = kwargs.get("key")
+        self.model_type = kwargs["model_type"]
+
+
+class Predictor:
+    def __init__(self, storage, cache_dir, **kwargs):
+        print(kwargs)
+        print(kwargs["path"])
+        self.type = kwargs["type"]
+        self.path = kwargs["path"]
+        self.model = kwargs.get("model")
+        self.python_path = kwargs.get("python_path")
+        self.config = kwargs.get("config", {})
+        self.env = kwargs.get("env")
+        self.signature_key = kwargs.get("signature_key")
+
+        self.cache_dir = cache_dir
         self.storage = storage
 
     def _download_file(self, impl_key, cache_impl_path):
@@ -66,12 +100,10 @@ class API:
         self._download_file(impl_key, cache_impl_path)
         return cache_impl_path
 
-    def _load_module(self, module_prefix, module_name, impl_path):
-        full_module_name = "{}_{}".format(module_prefix, module_name)
-
+    def _load_module(self, module_name, impl_path):
         if impl_path.endswith(".pickle"):
             try:
-                impl = imp.new_module(full_module_name)
+                impl = imp.new_module(module_name)
 
                 with open(impl_path, "rb") as pickle_file:
                     pickled_dict = dill.load(pickle_file)
@@ -81,31 +113,27 @@ class API:
                 raise UserException("unable to load pickle", str(e)) from e
         else:
             try:
-                impl = imp.load_source(full_module_name, impl_path)
+                impl = imp.load_source(module_name, impl_path)
             except Exception as e:
                 raise UserException(str(e)) from e
 
         return impl
 
-    def get_predictor_class(self, project_dir):
-        if self.spec["predictor"]["type"] == "tensorflow":
+    def class_impl(self, project_dir):
+        if self.type == "tensorflow":
             target_class_name = "TensorFlowPredictor"
             validations = TENSORFLOW_CLASS_VALIDATION
-        elif self.spec["predictor"]["type"] == "onnx":
+        elif self.type == "onnx":
             target_class_name = "ONNXPredictor"
             validations = ONNX_CLASS_VALIDATION
-        elif self.spec["predictor"]["type"] == "python":
+        elif self.type == "python":
             target_class_name = "PythonPredictor"
             validations = PYTHON_CLASS_VALIDATION
 
         try:
-            impl = self._load_module(
-                "predictor",
-                self.spec["name"],
-                os.path.join(project_dir, self.spec["predictor"]["path"]),
-            )
+            impl = self._load_module("cortex_predictor", os.path.join(project_dir, self.path))
         except CortexException as e:
-            e.wrap("api " + self.spec["name"], "error in " + self.spec["predictor"]["path"])
+            e.wrap("error in " + self.path)
             raise
         finally:
             refresh_logger()
@@ -127,20 +155,9 @@ class API:
 
             _validate_impl(predictor_class, validations)
         except CortexException as e:
-            e.wrap("api " + self.spec["name"], "error in " + self.spec["predictor"]["path"])
+            e.wrap("error in " + self.path)
             raise
         return predictor_class
-
-    def publish_metrics(self, metrics):
-        if self.statsd is None:
-            raise CortexException("statsd client not initialized")  # unexpected
-
-        for metric in metrics:
-            tags = ["{}:{}".format(dim["Name"], dim["Value"]) for dim in metric["Dimensions"]]
-            if metric.get("Unit") == "Count":
-                self.statsd.increment(metric["MetricName"], value=metric["Value"], tags=tags)
-            else:
-                self.statsd.histogram(metric["MetricName"], value=metric["Value"], tags=tags)
 
 
 PYTHON_CLASS_VALIDATION = {

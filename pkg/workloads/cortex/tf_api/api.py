@@ -79,7 +79,7 @@ def predict():
         try:
             output = predictor.predict(payload)
         except Exception as e:
-            raise UserRuntimeException(api.spec["predictor"]["path"], "predict", str(e)) from e
+            raise UserRuntimeException(api.predictor.path, "predict", str(e)) from e
         debug_obj("prediction", output, debug)
     except Exception as e:
         cx_logger().exception("prediction failed")
@@ -163,26 +163,24 @@ def start(args):
     statsd = api_utils.get_statsd_client()
     try:
         raw_api_spec = api_utils.get_spec(args.cache_dir, args.spec)
-        api = API(raw_api_spec, storage=storage, cache_dir=args.cache_dir, statsd=statsd)
+        api = API(storage=storage, cache_dir=args.cache_dir, statsd=statsd, **raw_api_spec)
         local_cache["api"] = api
 
-        if api.spec["predictor"]["type"] != "tensorflow":
-            raise CortexException(api.spec["name"], "predictor type is not tensorflow")
+        if api.predictor.type != "tensorflow":
+            raise CortexException(api.name, "predictor type is not tensorflow")
 
         local_cache["client"] = TensorFlowClient(
-            "localhost:" + str(args.tf_serve_port), api.spec["predictor"]["signature_key"]
+            "localhost:" + str(args.tf_serve_port), api.predictor.signature_key
         )
 
-        cx_logger().info("loading the predictor from {}".format(api.spec["predictor"]["path"]))
+        cx_logger().info("loading the predictor from {}".format(api.predictor.path))
 
-        predictor_class = api.get_predictor_class(args.project_dir)
+        predictor_class = api.predictor.class_impl(args.project_dir)
 
         try:
-            local_cache["predictor"] = predictor_class(
-                local_cache["client"], api.spec["predictor"]["config"]
-            )
+            local_cache["predictor"] = predictor_class(local_cache["client"], api.predictor.config)
         except Exception as e:
-            raise UserRuntimeException(api.spec["predictor"]["path"], "__init__", str(e)) from e
+            raise UserRuntimeException(api.predictor.path, "__init__", str(e)) from e
         finally:
             refresh_logger()
 
@@ -196,10 +194,7 @@ def start(args):
         cx_logger().exception("failed to validate model")
         sys.exit(1)
 
-    if (
-        api.spec.get("tracker") is not None
-        and api.spec["tracker"].get("model_type") == "classification"
-    ):
+    if api.tracker is not None and api.tracker.model_type == "classification":
         try:
             local_cache["class_set"] = metrics.get_classes(api)
         except Exception as e:
@@ -207,10 +202,10 @@ def start(args):
 
     cx_logger().info("TensorFlow model signature: {}".format(local_cache["client"].input_signature))
 
-    waitress_kwargs = api_utils.extract_waitress_params(api)
+    waitress_kwargs = api_utils.extract_waitress_params(api.predictor.config)
     waitress_kwargs["listen"] = "*:{}".format(args.port)
 
-    cx_logger().info("{} api is live".format(api.spec["name"]))
+    cx_logger().info("{} api is live".format(api.name))
     open("/health_check.txt", "a").close()
     serve(app, **waitress_kwargs)
 
