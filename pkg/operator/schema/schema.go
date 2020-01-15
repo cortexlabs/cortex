@@ -37,7 +37,7 @@ type DeployResponse struct {
 type DeployResult struct {
 	API     *spec.API
 	Message string
-	Error   error
+	Error   string
 }
 
 type GetAPIsResponse struct {

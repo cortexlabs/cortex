@@ -89,7 +89,10 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
-		results[i].API, results[i].Message, results[i].Error = operator.UpdateAPI(&apiConfig, projectID, refresh, force)
+		api, msg, err := operator.UpdateAPI(&apiConfig, projectID, refresh, force)
+		results[i].API = api
+		results[i].Message = msg
+		results[i].Error = err.Error()
 	}
 
 	respond(w, schema.DeployResponse{
@@ -116,8 +119,8 @@ func mergeResultMessages(results []schema.DeployResult) string {
 	var errMessages []string
 
 	for _, result := range results {
-		if result.Error != nil {
-			errMessages = append(errMessages, result.Error.Error())
+		if result.Error != "" {
+			errMessages = append(errMessages, result.Error)
 		} else {
 			okMessages = append(okMessages, result.Message)
 		}
@@ -130,7 +133,7 @@ func mergeResultMessages(results []schema.DeployResult) string {
 
 func didAllResultsError(results []schema.DeployResult) bool {
 	for _, result := range results {
-		if result.Error == nil {
+		if result.Error == "" {
 			return false
 		}
 	}
