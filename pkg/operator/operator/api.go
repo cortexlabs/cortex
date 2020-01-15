@@ -253,7 +253,7 @@ func deleteS3Resources(apiName string) error {
 }
 
 func APIsBaseURL() (string, error) {
-	service, err := config.K8s.GetService("apis-ingressgateway")
+	service, err := config.K8sIstio.GetService("ingressgateway-apis")
 	if err != nil {
 		return "", err
 	}

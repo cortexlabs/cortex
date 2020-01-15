@@ -22,12 +22,12 @@ gateways:
   enabled: true
   istio-ingressgateway:
     enabled: false
-  operator-ingressgateway:
-    namespace: default
+  ingressgateway-operator:
+    namespace: istio-system
     enabled: true
     labels:
       app: operator-istio-gateway
-      istio: operator-ingressgateway
+      istio: ingressgateway-operator
     replicaCount: 1
     autoscaleMin: 1
     autoscaleMax: 5
@@ -62,12 +62,12 @@ gateways:
     - name: customgateway-ca-certs
       secretName: istio-customgateway-ca-certs
       mountPath: /etc/istio/customgateway-ca-certs
-  apis-ingressgateway:
-    namespace: default
+  ingressgateway-apis:
+    namespace: istio-system
     enabled: true
     labels:
       app: apis-istio-gateway
-      istio: apis-ingressgateway
+      istio: ingressgateway-apis
     replicaCount: 1
     autoscaleMin: 1
     autoscaleMax: 5

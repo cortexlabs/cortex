@@ -45,7 +45,7 @@ In order to connect to the operator via the CLI, you must provide valid AWS cred
 
 ## API access
 
-By default, your Cortex APIs will be accessible to all traffic. You can restrict access using AWS security groups. Specifically, you will need to edit the security group with the description: "Security group for Kubernetes ELB <ELB name> (default/apis-ingressgateway)".
+By default, your Cortex APIs will be accessible to all traffic. You can restrict access using AWS security groups. Specifically, you will need to edit the security group with the description: "Security group for Kubernetes ELB <ELB name> (istio-system/ingressgateway-apis)".
 
 ## HTTPS
 

@@ -109,7 +109,7 @@ metadata:
   namespace: default
 spec:
   selector:
-    istio: operator-ingressgateway
+    istio: ingressgateway-operator
   servers:
   - port:
       number: 80

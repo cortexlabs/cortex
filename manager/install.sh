@@ -253,10 +253,10 @@ function setup_istio() {
   echo -n "."
   envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
 
-  if ! kubectl get secret -n default | grep -q istio-customgateway-certs; then
+  if ! kubectl get secret -n istio-system | grep -q istio-customgateway-certs; then
     WEBSITE=localhost
     openssl req -subj "/C=US/CN=$WEBSITE" -newkey rsa:2048 -nodes -keyout $WEBSITE.key -x509 -days 3650 -out $WEBSITE.crt >/dev/null 2>&1
-    kubectl create -n default secret tls istio-customgateway-certs --key $WEBSITE.key --cert $WEBSITE.crt >/dev/null
+    kubectl create -n istio-system secret tls istio-customgateway-certs --key $WEBSITE.key --cert $WEBSITE.crt >/dev/null
   fi
 
   helm template istio-manifests/istio-init --name istio-init --namespace istio-system | kubectl apply -f - >/dev/null
@@ -305,7 +305,7 @@ function validate_cortex() {
     fi
 
     if [ "$operator_load_balancer" != "ready" ]; then
-      out=$(kubectl -n=default get service operator-ingressgateway -o json | tr -d '[:space:]')
+      out=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
         continue
       fi
@@ -313,7 +313,7 @@ function validate_cortex() {
     fi
 
     if [ "$api_load_balancer" != "ready" ]; then
-      out=$(kubectl -n=default get service apis-ingressgateway -o json | tr -d '[:space:]')
+      out=$(kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
         continue
       fi
@@ -321,7 +321,7 @@ function validate_cortex() {
     fi
 
     if [ "$operator_endpoint" = "" ]; then
-      operator_endpoint=$(kubectl -n=default get service operator-ingressgateway -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
+      operator_endpoint=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
     fi
 
     if [ "$operator_endpoint_reachable" != "ready" ]; then
