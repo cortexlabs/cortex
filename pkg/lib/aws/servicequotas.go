@@ -43,7 +43,7 @@ func (c *Client) VerifyInstanceQuota(instanceType string) error {
 	}
 
 	var cpuLimit int
-	err := c.servicequotas.ListServiceQuotasPages(
+	err := c.ServiceQuotas().ListServiceQuotasPages(
 		&servicequotas.ListServiceQuotasInput{
 			ServiceCode: aws.String("ec2"),
 		},

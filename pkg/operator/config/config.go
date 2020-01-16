@@ -58,25 +58,21 @@ func Init() error {
 		return errors.FirstError(errs...)
 	}
 
-	AWS = aws.NewInferCreds(*Cluster.Region)
-	validCreds, err := AWS.VerifyAccountID()
-	if err != nil {
-		return err
-	}
-	if !validCreds {
-		return ErrorInvalidAWSCredentials()
-	}
-
-	AWS.InitializeBucket(*Cluster.Bucket)
+	AWS, err = aws.NewFromEnv(*Cluster.Region)
 	if err != nil {
 		return err
 	}
 
-	Cluster.ID = hash.String(Cluster.ClusterName + *Cluster.Region + AWS.HashedAccountID)
+	_, hashedAccountID, err := AWS.CheckCredentials()
+	if err != nil {
+		return err
+	}
+
+	Cluster.ID = hash.String(Cluster.ClusterName + *Cluster.Region + hashedAccountID)
 
 	err = telemetry.Init(telemetry.Config{
 		Enabled:     Cluster.Telemetry,
-		UserID:      AWS.HashedAccountID,
+		UserID:      hashedAccountID,
 		Properties:  map[string]interface{}{"clusterID": Cluster.ID},
 		Environment: "operator",
 		LogErrors:   true,

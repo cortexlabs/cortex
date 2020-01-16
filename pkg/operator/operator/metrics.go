@@ -135,7 +135,7 @@ func queryMetrics(api *spec.API, period int64, startTime *time.Time, endTime *ti
 		StartTime:         startTime,
 		MetricDataQueries: allMetrics,
 	}
-	output, err := config.AWS.CloudWatchMetrics.GetMetricData(&metricsDataQuery)
+	output, err := config.AWS.CloudWatchMetrics().GetMetricData(&metricsDataQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -362,7 +362,7 @@ func getNetworkStatsDef(api *spec.API, period int64) []*cloudwatch.MetricDataQue
 
 func getClassesMetricDef(api *spec.API, period int64) ([]*cloudwatch.MetricDataQuery, error) {
 	prefix := filepath.Join(api.MetadataRoot, api.ID, "classes") + "/"
-	classes, err := config.AWS.ListPrefix(prefix, int64(consts.MaxClassesPerTrackerRequest))
+	classes, err := config.AWS.ListPrefix(*config.Cluster.Bucket, prefix, int64(consts.MaxClassesPerTrackerRequest))
 	if err != nil {
 		return nil, err
 	}

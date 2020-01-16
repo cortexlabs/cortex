@@ -20,123 +20,71 @@ limitations under the License.
 package aws
 
 import (
-	"sort"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
-
-	"github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/servicequotas"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
-type Credentials struct {
-	AWSAccessKeyID           string `json:"aws_access_key_id"`
-	AWSSecretAccessKey       string `json:"aws_secret_access_key"`
-	CortexAWSAccessKeyID     string `json:"cortex_aws_access_key_id"`
-	CortexAWSSecretAccessKey string `json:"cortex_aws_secret_access_key"`
-}
-
 type Client struct {
-	Region               string
-	Bucket               string
-	Credentials          *Credentials
-	sess                 *session.Session
-	S3                   *s3.S3
-	stsClient            *sts.STS
-	ec2                  *ec2.EC2
-	autoscaling          *autoscaling.AutoScaling
-	CloudWatchLogsClient *cloudwatchlogs.CloudWatchLogs
-	CloudWatchMetrics    *cloudwatch.CloudWatch
-	servicequotas        *servicequotas.ServiceQuotas
-	AccountID            string
-	HashedAccountID      string
+	Region          string
+	sess            *session.Session
+	clients         clients
+	accountID       *string
+	hashedAccountID *string
 }
 
-var EKSSupportedRegions strset.Set
-var EKSSupportedRegionsSlice []string
-
-func init() {
-	EKSSupportedRegions = strset.New()
-	for region := range InstanceMetadatas {
-		EKSSupportedRegions.Add(region)
-	}
-	EKSSupportedRegionsSlice = EKSSupportedRegions.Slice()
-	sort.Strings(EKSSupportedRegionsSlice)
+func NewFromEnv(region string) (*Client, error) {
+	return New(region, nil)
 }
 
-func (c *Client) InitializeBucket(bucket string) error {
-
-	bucketLocation, err := GetBucketRegion(bucket)
-	if err != nil {
-		return err
-	}
-
-	bucketSess := session.Must(session.NewSession(&aws.Config{
-		Region:     aws.String(bucketLocation),
-		DisableSSL: aws.Bool(false),
-	}))
-
-	c.Bucket = bucket
-	c.S3 = s3.New(bucketSess)
-	return nil
+func NewFromCreds(region string, accessKeyId string, secretAccessKey string) (*Client, error) {
+	creds := credentials.NewStaticCredentials(accessKeyId, secretAccessKey, "")
+	return New(region, creds)
 }
 
-func newClient(sess *session.Session) *Client {
-	return &Client{
-		sess:                 sess,
-		Region:               *sess.Config.Region,
-		stsClient:            sts.New(sess),
-		ec2:                  ec2.New(sess),
-		autoscaling:          autoscaling.New(sess),
-		CloudWatchMetrics:    cloudwatch.New(sess),
-		CloudWatchLogsClient: cloudwatchlogs.New(sess),
-	}
-}
-
-func NewInferCreds(region string) *Client {
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region:     aws.String(region),
-		DisableSSL: aws.Bool(false),
-	}))
-
-	return newClient(sess)
-}
-
-func NewFromCreds(creds Credentials, region string) *Client {
-	sess := session.Must(session.NewSession(&aws.Config{
-		Credentials: credentials.NewStaticCredentials(creds.AWSAccessKeyID, creds.AWSSecretAccessKey, ""),
-		Region:      aws.String(region),
-		DisableSSL:  aws.Bool(false),
-	}))
-
-	client := newClient(sess)
-	client.Credentials = &creds
-	return client
-}
-
-func NewFromS3Path(s3Path string) (*Client, error) {
+func NewFromEnvS3Path(s3Path string) (*Client, error) {
 	bucket, _, err := SplitS3Path(s3Path)
 	if err != nil {
 		return nil, err
 	}
+	return NewFromEnvS3Bucket(bucket)
+}
 
+func NewFromEnvS3Bucket(bucket string) (*Client, error) {
 	region, err := GetBucketRegion(bucket)
 	if err != nil {
 		return nil, err
 	}
+	return NewFromEnv(region)
+}
 
-	awsClient := NewInferCreds(region)
+func NewFromCredsS3Path(s3Path string, accessKeyId string, secretAccessKey string) (*Client, error) {
+	bucket, _, err := SplitS3Path(s3Path)
+	if err != nil {
+		return nil, err
+	}
+	return NewFromCredsS3Bucket(bucket, accessKeyId, secretAccessKey)
+}
 
-	if err = awsClient.InitializeBucket(bucket); err != nil {
+func NewFromCredsS3Bucket(bucket string, accessKeyId string, secretAccessKey string) (*Client, error) {
+	region, err := GetBucketRegion(bucket)
+	if err != nil {
+		return nil, err
+	}
+	return NewFromCreds(region, accessKeyId, secretAccessKey)
+}
+
+func New(region string, creds *credentials.Credentials) (*Client, error) {
+	sess, err := session.NewSession(&aws.Config{
+		Credentials: creds,
+		Region:      aws.String(region),
+	})
+	if err != nil {
 		return nil, err
 	}
 
-	return awsClient, nil
+	return &Client{
+		sess:   sess,
+		Region: *sess.Config.Region,
+	}, nil
 }

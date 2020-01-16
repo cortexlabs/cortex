@@ -22,7 +22,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -331,7 +330,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor) error {
 
 	model := *predictor.Model
 
-	awsClient, err := aws.NewFromS3Path(model)
+	awsClient, err := aws.NewFromEnvS3Path(model)
 	if err != nil {
 		return err
 	}
@@ -358,7 +357,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor) error {
 
 	model := *predictor.Model
 
-	awsClient, err := aws.NewFromS3Path(model)
+	awsClient, err := aws.NewFromEnvS3Path(model)
 	if err != nil {
 		return err
 	}
@@ -379,20 +378,19 @@ func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 		return path, nil
 	}
 
-	bucket, prefix, err := aws.SplitS3Path(path)
+	bucket, _, err := aws.SplitS3Path(path)
 	if err != nil {
 		return "", err
 	}
-	prefix = s.EnsureSuffix(prefix, "/")
 
-	resp, _ := awsClient.S3.ListObjects(&s3.ListObjectsInput{
-		Bucket: &bucket,
-		Prefix: &prefix,
-	})
+	objects, err := config.AWS.ListPathDir(path, 1000)
+	if err != nil {
+		return "", err
+	}
 
 	highestVersion := int64(0)
 	var highestPath string
-	for _, key := range resp.Contents {
+	for _, key := range objects {
 		if !strings.HasSuffix(*key.Key, "saved_model.pb") {
 			continue
 		}
@@ -423,14 +421,14 @@ func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 //			- variables.data-00000-of-00001 (there are a variable number of these files)
 func isValidTensorFlowS3Directory(path string, awsClient *aws.Client) bool {
 	if valid, err := awsClient.IsS3PathFile(
-		aws.S3PathJoin(path, "saved_model.pb"),
-		aws.S3PathJoin(path, "variables/variables.index"),
+		aws.JoinS3Path(path, "saved_model.pb"),
+		aws.JoinS3Path(path, "variables/variables.index"),
 	); err != nil || !valid {
 		return false
 	}
 
 	if valid, err := awsClient.IsS3PathPrefix(
-		aws.S3PathJoin(path, "variables/variables.data-00000-of"),
+		aws.JoinS3Path(path, "variables/variables.data-00000-of"),
 	); err != nil || !valid {
 		return false
 	}

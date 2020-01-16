@@ -27,7 +27,7 @@ import (
 )
 
 func (c *Client) SpotInstancePrice(region string, instanceType string) (float64, error) {
-	result, err := c.ec2.DescribeSpotPriceHistory(&ec2.DescribeSpotPriceHistoryInput{
+	result, err := c.EC2().DescribeSpotPriceHistory(&ec2.DescribeSpotPriceHistoryInput{
 		InstanceTypes:       []*string{aws.String(instanceType)},
 		ProductDescriptions: []*string{aws.String("Linux/UNIX")},
 		StartTime:           aws.Time(time.Now()),
@@ -66,7 +66,7 @@ func (c *Client) SpotInstancePrice(region string, instanceType string) (float64,
 
 func (c *Client) GetAvailabilityZones() ([]string, error) {
 	input := &ec2.DescribeAvailabilityZonesInput{}
-	result, err := c.ec2.DescribeAvailabilityZones(input)
+	result, err := c.EC2().DescribeAvailabilityZones(input)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

@@ -166,7 +166,7 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 
 			endTime := libtime.ToMillis(time.Now())
 
-			logEventsOutput, err := config.AWS.CloudWatchLogsClient.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
+			logEventsOutput, err := config.AWS.CloudWatchLogs().FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
 				LogGroupName:   aws.String(logGroupName),
 				LogStreamNames: aws.StringSlice(logStreamNames.Slice()),
 				StartTime:      aws.Int64(libtime.ToMillis(lastLogTime)),
@@ -212,7 +212,7 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 }
 
 func getLogStreams(logGroupName string) (strset.Set, error) {
-	describeLogStreamsOutput, err := config.AWS.CloudWatchLogsClient.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
+	describeLogStreamsOutput, err := config.AWS.CloudWatchLogs().DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
 		OrderBy:      aws.String(cloudwatchlogs.OrderByLastEventTime),
 		Descending:   aws.Bool(true),
 		LogGroupName: aws.String(logGroupName),

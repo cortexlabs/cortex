@@ -382,7 +382,7 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 	}
 }
 
-func (cc *Config) Validate(client *aws.Client) error {
+func (cc *Config) Validate(awsClient *aws.Client) error {
 	if *cc.MinInstances > *cc.MaxInstances {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
@@ -391,13 +391,13 @@ func (cc *Config) Validate(client *aws.Client) error {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
 	}
 
-	err := client.VerifyInstanceQuota(*cc.InstanceType)
+	err := awsClient.VerifyInstanceQuota(*cc.InstanceType)
 	if err != nil {
 		return errors.Wrap(err, InstanceTypeKey)
 	}
 
 	if len(cc.AvailabilityZones) > 0 {
-		zones, err := client.GetAvailabilityZones()
+		zones, err := awsClient.GetAvailabilityZones()
 		if err != nil {
 			return err
 		}
@@ -412,7 +412,7 @@ func (cc *Config) Validate(client *aws.Client) error {
 
 	if cc.Spot != nil && *cc.Spot {
 		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
-		compatibleSpots := CompatibleSpotInstances(client, chosenInstance, _spotInstanceDistributionLength)
+		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
 			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
 		}
@@ -427,7 +427,7 @@ func (cc *Config) Validate(client *aws.Client) error {
 			}
 
 			instanceMetadata := aws.InstanceMetadatas[*cc.Region][instanceType]
-			err := CheckSpotInstanceCompatibility(client, chosenInstance, instanceMetadata)
+			err := CheckSpotInstanceCompatibility(awsClient, chosenInstance, instanceMetadata)
 			if err != nil {
 				return errors.Wrap(err, InstanceDistributionKey)
 			}
@@ -472,7 +472,7 @@ func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 	return nil
 }
 
-func CheckSpotInstanceCompatibility(client *aws.Client, target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
+func CheckSpotInstanceCompatibility(awsClient *aws.Client, target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
 	if target.GPU > suggested.GPU {
 		return ErrorIncompatibleSpotInstanceTypeGPU(target, suggested)
 	}
@@ -485,7 +485,7 @@ func CheckSpotInstanceCompatibility(client *aws.Client, target aws.InstanceMetad
 		return ErrorIncompatibleSpotInstanceTypeCPU(target, suggested)
 	}
 
-	suggestedInstancePrice, err := client.SpotInstancePrice(target.Region, suggested.Type)
+	suggestedInstancePrice, err := awsClient.SpotInstancePrice(target.Region, suggested.Type)
 	if err != nil {
 		return err
 	}
@@ -496,7 +496,7 @@ func CheckSpotInstanceCompatibility(client *aws.Client, target aws.InstanceMetad
 	return nil
 }
 
-func CompatibleSpotInstances(client *aws.Client, targetInstance aws.InstanceMetadata, numInstances int) []aws.InstanceMetadata {
+func CompatibleSpotInstances(awsClient *aws.Client, targetInstance aws.InstanceMetadata, numInstances int) []aws.InstanceMetadata {
 	compatibleInstances := []aws.InstanceMetadata{}
 	instanceMap := aws.InstanceMetadatas[targetInstance.Region]
 	availableInstances := []aws.InstanceMetadata{}
@@ -517,7 +517,7 @@ func CompatibleSpotInstances(client *aws.Client, targetInstance aws.InstanceMeta
 			continue
 		}
 
-		if err := CheckSpotInstanceCompatibility(client, targetInstance, instanceMetadata); err != nil {
+		if err := CheckSpotInstanceCompatibility(awsClient, targetInstance, instanceMetadata); err != nil {
 			continue
 		}
 
@@ -531,12 +531,12 @@ func CompatibleSpotInstances(client *aws.Client, targetInstance aws.InstanceMeta
 	return compatibleInstances
 }
 
-func AutoGenerateSpotConfig(client *aws.Client, spotConfig *SpotConfig, region string, instanceType string) error {
+func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, region string, instanceType string) error {
 	chosenInstance := aws.InstanceMetadatas[region][instanceType]
 	if len(spotConfig.InstanceDistribution) == 0 {
 		spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, chosenInstance.Type)
 
-		compatibleSpots := CompatibleSpotInstances(client, chosenInstance, _spotInstanceDistributionLength)
+		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
 			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
 		}
@@ -571,11 +571,11 @@ func AutoGenerateSpotConfig(client *aws.Client, spotConfig *SpotConfig, region s
 	return nil
 }
 
-func (cc *Config) AutoFillSpot(client *aws.Client) error {
+func (cc *Config) AutoFillSpot(awsClient *aws.Client) error {
 	if cc.SpotConfig == nil {
 		cc.SpotConfig = &SpotConfig{}
 	}
-	err := AutoGenerateSpotConfig(client, cc.SpotConfig, *cc.Region, *cc.InstanceType)
+	err := AutoGenerateSpotConfig(awsClient, cc.SpotConfig, *cc.Region, *cc.InstanceType)
 	if err != nil {
 		return err
 	}
@@ -635,10 +635,15 @@ func RegionPrompt(clusterConfig *Config) error {
 	return nil
 }
 
-func InstallPrompt(clusterConfig *Config, client *aws.Client) error {
+func InstallPrompt(clusterConfig *Config, awsClient *aws.Client) error {
 	defaults := applyPromptDefaults(*clusterConfig)
 
-	defaultBucket := pointer.String(clusterConfig.ClusterName + "-" + client.HashedAccountID[:10])
+	_, hashedAccountID, err := awsClient.GetCachedAccountID()
+	if err != nil {
+		return err
+	}
+
+	defaultBucket := pointer.String(clusterConfig.ClusterName + "-" + hashedAccountID[:10])
 
 	remainingPrompts := &cr.PromptValidation{
 		SkipPopulatedFields: true,
@@ -687,10 +692,12 @@ func InstallPrompt(clusterConfig *Config, client *aws.Client) error {
 			},
 		},
 	}
-	err := cr.ReadPrompt(clusterConfig, remainingPrompts)
+
+	err = cr.ReadPrompt(clusterConfig, remainingPrompts)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

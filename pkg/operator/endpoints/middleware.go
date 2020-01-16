@@ -40,8 +40,11 @@ func ClientIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if clientID := r.URL.Query().Get("clientID"); clientID != "" {
 			if !_cachedClientIDs.Has(clientID) {
-				telemetry.RecordOperatorID(clientID, config.AWS.HashedAccountID)
-				_cachedClientIDs.Add(clientID)
+				_, hashedAccountID, err := config.AWS.GetCachedAccountID()
+				if err != nil {
+					telemetry.RecordOperatorID(clientID, hashedAccountID)
+					_cachedClientIDs.Add(clientID)
+				}
 			}
 		}
 		next.ServeHTTP(w, r)
@@ -64,17 +67,30 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		accessKeyID, secretAccessKey := parts[0], parts[1]
-		client := aws.NewFromCreds(aws.Credentials{AWSAccessKeyID: accessKeyID, AWSSecretAccessKey: secretAccessKey}, *config.Cluster.Region)
-		validCreds, err := client.VerifyAccountID()
+		awsClient, err := aws.NewFromCreds(*config.Cluster.Region, accessKeyID, secretAccessKey)
 		if err != nil {
 			respondError(w, ErrorAuthAPIError())
 			return
 		}
-		if !validCreds {
+
+		accountID, _, isValid, err := awsClient.AreCredentialsValid()
+		if err != nil {
+			respondError(w, ErrorAuthAPIError())
+			return
+		}
+
+		if !isValid {
 			respondErrorCode(w, http.StatusForbidden, ErrorAuthInvalid())
 			return
 		}
-		if client.AccountID != config.AWS.AccountID {
+
+		operatorAccountID, _, err := config.AWS.GetCachedAccountID()
+		if err != nil {
+			respondError(w, ErrorAuthAPIError())
+			return
+		}
+
+		if accountID != operatorAccountID {
 			respondErrorCode(w, http.StatusForbidden, ErrorAuthOtherAccount())
 			return
 		}

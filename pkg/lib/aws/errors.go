@@ -28,6 +28,7 @@ type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
+	ErrInvalidAWSCredentials
 	ErrInvalidS3aPath
 	ErrInvalidS3Path
 	ErrAuth
@@ -39,6 +40,7 @@ const (
 
 var _errorKinds = []string{
 	"err_unknown",
+	"err_invalid_aws_credentials",
 	"err_invalid_s3a_path",
 	"err_invalid_s3_path",
 	"err_auth",
@@ -118,6 +120,13 @@ type Error struct {
 
 func (e Error) Error() string {
 	return e.message
+}
+
+func ErrorInvalidAWSCredentials() error {
+	return errors.WithStack(Error{
+		Kind:    ErrInvalidAWSCredentials,
+		message: "invalid AWS credentials",
+	})
 }
 
 func ErrorInvalidS3aPath(provided string) error {

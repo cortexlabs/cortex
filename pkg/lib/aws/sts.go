@@ -18,27 +18,49 @@ package aws
 
 import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 )
 
 // Returns account ID, whether the credentials were valid, any other error that occurred
-func (c *Client) VerifyAccountID() (bool, error) {
-	if c.stsClient == nil {
-		c.stsClient = sts.New(c.sess)
-	}
-
-	response, err := c.stsClient.GetCallerIdentity(nil)
+// Ignores cache, so will re-run on every call to this method
+func (c *Client) AreCredentialsValid() (string, string, bool, error) {
+	response, err := c.STS().GetCallerIdentity(nil)
 	if awsErr, ok := err.(awserr.RequestFailure); ok {
 		if awsErr.StatusCode() == 403 {
-			return false, nil
+			return "", "", false, nil
 		}
 	}
 	if err != nil {
-		return false, errors.WithStack(err)
+		return "", "", false, errors.WithStack(err)
 	}
-	c.AccountID = *response.Account
-	c.HashedAccountID = hash.String(c.AccountID)
-	return true, nil
+
+	c.accountID = response.Account
+	c.hashedAccountID = pointer.String(hash.String(*c.accountID))
+
+	return *c.accountID, *c.hashedAccountID, true, nil
+}
+
+// Returns an error if credentials were not valid or if another error occurred
+// Ignores cache, so will re-run on every call to this method
+func (c *Client) CheckCredentials() (string, string, error) {
+	_, _, isValid, err := c.AreCredentialsValid()
+	if !isValid {
+		return "", "", ErrorInvalidAWSCredentials()
+	}
+	if err != nil {
+		return "", "", err
+	}
+	return *c.accountID, *c.hashedAccountID, nil
+}
+
+// Only re-checks the credentials if they have never been checked (so will not catch e.g. credentials expiring or getting revoked)
+func (c *Client) GetCachedAccountID() (string, string, error) {
+	if c.accountID == nil || c.hashedAccountID == nil {
+		if _, _, err := c.CheckCredentials(); err != nil {
+			return "", "", err
+		}
+	}
+	return *c.accountID, *c.hashedAccountID, nil
 }

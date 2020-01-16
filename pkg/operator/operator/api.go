@@ -57,7 +57,7 @@ func UpdateAPI(
 	var msg string
 
 	if prevDeployment == nil {
-		err = config.AWS.UploadMsgpackToS3(api, api.Key)
+		err = config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key)
 		if err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
@@ -74,7 +74,7 @@ func UpdateAPI(
 		if !isMinReady && !force {
 			return nil, "", errors.New(fmt.Sprintf("%s api is updating (override with --force)", api.Name))
 		}
-		err = config.AWS.UploadMsgpackToS3(api, api.Key)
+		err = config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key)
 		if err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
@@ -257,7 +257,7 @@ func deleteK8sResources(apiName string) error {
 
 func deleteS3Resources(apiName string) error {
 	prefix := s.EnsureSuffix(filepath.Join("apis", apiName), "/")
-	return config.AWS.DeleteFromS3ByPrefix(prefix, true)
+	return config.AWS.DeleteFromS3ByPrefix(*config.Cluster.Bucket, prefix, true)
 }
 
 func isDeploymentMinReady(deployment *kapps.Deployment) (bool, error) {
@@ -335,7 +335,7 @@ func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
 	s3Key := specKey(apiName, apiID)
 	var api spec.API
 
-	if err := config.AWS.ReadMsgpackFromS3(&api, s3Key); err != nil {
+	if err := config.AWS.ReadMsgpackFromS3(&api, *config.Cluster.Bucket, s3Key); err != nil {
 		return nil, err
 	}
 

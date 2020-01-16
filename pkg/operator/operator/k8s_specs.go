@@ -150,7 +150,7 @@ func tfAPISpec(
 						Args: []string{
 							"--port=" + _defaultPortStr,
 							"--tf-serve-port=" + _tfServingPortStr,
-							"--spec=" + config.AWS.S3Path(api.Key),
+							"--spec=" + config.AWS.S3Path(*config.Cluster.Bucket, api.Key),
 							"--cache-dir=" + _spec_cache_dir,
 							"--model-dir=" + path.Join(_empty_dir_mount_path, "model"),
 							"--project-dir=" + path.Join(_empty_dir_mount_path, "project"),
@@ -222,7 +222,7 @@ func tfDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "tensorflow"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             config.AWS.S3Path(api.ProjectKey),
+				From:             config.AWS.S3Path(*config.Cluster.Bucket, api.ProjectKey),
 				To:               path.Join(_empty_dir_mount_path, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -306,7 +306,7 @@ func pythonAPISpec(
 						ImagePullPolicy: kcore.PullAlways,
 						Args: []string{
 							"--port=" + _defaultPortStr,
-							"--spec=" + config.AWS.S3Path(api.Key),
+							"--spec=" + config.AWS.S3Path(*config.Cluster.Bucket, api.Key),
 							"--cache-dir=" + _spec_cache_dir,
 							"--project-dir=" + path.Join(_empty_dir_mount_path, "project"),
 						},
@@ -341,7 +341,7 @@ func pythonDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "python"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             config.AWS.S3Path(api.ProjectKey),
+				From:             config.AWS.S3Path(*config.Cluster.Bucket, api.ProjectKey),
 				To:               path.Join(_empty_dir_mount_path, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -417,7 +417,7 @@ func onnxAPISpec(
 						ImagePullPolicy: kcore.PullAlways,
 						Args: []string{
 							"--port=" + _defaultPortStr,
-							"--spec=" + config.AWS.S3Path(api.Key),
+							"--spec=" + config.AWS.S3Path(*config.Cluster.Bucket, api.Key),
 							"--cache-dir=" + _spec_cache_dir,
 							"--model-dir=" + path.Join(_empty_dir_mount_path, "model"),
 							"--project-dir=" + path.Join(_empty_dir_mount_path, "project"),
@@ -453,7 +453,7 @@ func onnxDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "onnx"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             config.AWS.S3Path(api.ProjectKey),
+				From:             config.AWS.S3Path(*config.Cluster.Bucket, api.ProjectKey),
 				To:               path.Join(_empty_dir_mount_path, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",

@@ -30,7 +30,6 @@ type ErrorKind int
 const (
 	ErrUnknown ErrorKind = iota
 	ErrInstanceTypeTooSmall
-	ErrInvalidAWSCredentials
 	ErrMinInstancesGreaterThanMax
 	ErrInstanceTypeNotSupportedInRegion
 	ErrIncompatibleSpotInstanceTypeMemory
@@ -50,7 +49,6 @@ const (
 var _errorKinds = []string{
 	"err_unknown",
 	"err_instance_type_too_small",
-	"err_invalid_aws_credentials",
 	"err_min_instances_greater_than_max",
 	"err_instance_type_not_supported_in_region",
 	"err_incompatible_spot_instance_type_memory",
@@ -116,13 +114,6 @@ func ErrorInstanceTypeTooSmall() error {
 	return errors.WithStack(Error{
 		Kind:    ErrInstanceTypeTooSmall,
 		message: "Cortex does not support nano or micro instances - please specify a larger instance type",
-	})
-}
-
-func ErrorInvalidAWSCredentials() error {
-	return errors.WithStack(Error{
-		Kind:    ErrInvalidAWSCredentials,
-		message: "invalid AWS credentials",
 	})
 }
 

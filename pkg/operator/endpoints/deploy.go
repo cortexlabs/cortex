@@ -81,7 +81,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !isProjectUploaded {
-		if err = config.AWS.UploadBytesToS3(projectBytes, projectKey); err != nil {
+		if err = config.AWS.UploadBytesToS3(projectBytes, *config.Cluster.Bucket, projectKey); err != nil {
 			respondError(w, err)
 			return
 		}
