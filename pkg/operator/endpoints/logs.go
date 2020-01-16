@@ -19,7 +19,6 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/gorilla/websocket"
 )
@@ -31,7 +30,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isDeployed, err := config.K8s.DeploymentExists(apiName)
+	isDeployed, err := operator.IsAPIDeployed(apiName)
 	if err != nil {
 		respondError(w, err)
 		return

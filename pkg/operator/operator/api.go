@@ -91,7 +91,7 @@ func UpdateAPI(
 }
 
 func DeleteAPI(apiName string, keepCache bool) (bool, error) {
-	wasDeployed, err := config.K8s.DeploymentExists(apiName)
+	wasDeployed, err := config.K8s.DeploymentExists(k8sName(apiName))
 	if err != nil {
 		return false, err
 	}
@@ -155,17 +155,17 @@ func getK8sResources(apiConfig *userconfig.API) (
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployment, err = config.K8s.GetDeployment(apiConfig.Name)
+			deployment, err = config.K8s.GetDeployment(k8sName(apiConfig.Name))
 			return err
 		},
 		func() error {
 			var err error
-			service, err = config.K8s.GetService(apiConfig.Name)
+			service, err = config.K8s.GetService(k8sName(apiConfig.Name))
 			return err
 		},
 		func() error {
 			var err error
-			virtualService, err = config.K8s.GetVirtualService(apiConfig.Name)
+			virtualService, err = config.K8s.GetVirtualService(k8sName(apiConfig.Name))
 			return err
 		},
 	)
@@ -192,7 +192,7 @@ func applyK8sResources(
 			} else {
 				// Delete deployment if it never became ready
 				if prevDeployment.Status.ReadyReplicas == 0 {
-					config.K8s.DeleteDeployment(api.Name)
+					config.K8s.DeleteDeployment(k8sName(api.Name))
 					_, err := config.K8s.CreateDeployment(newDeployment)
 					return err
 				}
@@ -220,7 +220,7 @@ func applyK8sResources(
 		},
 		func() error {
 			// Delete HPA while updating replicas to avoid unwanted autoscaling due to CPU fluctuations
-			config.K8s.DeleteHPA(api.Name)
+			config.K8s.DeleteHPA(k8sName(api.Name))
 			return nil
 		},
 	)
@@ -229,19 +229,19 @@ func applyK8sResources(
 func deleteK8sResources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
-			_, err := config.K8s.DeleteDeployment(apiName)
+			_, err := config.K8s.DeleteDeployment(k8sName(apiName))
 			return err
 		},
 		func() error {
-			_, err := config.K8s.DeleteService(apiName)
+			_, err := config.K8s.DeleteService(k8sName(apiName))
 			return err
 		},
 		func() error {
-			_, err := config.K8s.DeleteVirtualService(apiName)
+			_, err := config.K8s.DeleteVirtualService(k8sName(apiName))
 			return err
 		},
 		func() error {
-			_, err := config.K8s.DeleteHPA(apiName)
+			_, err := config.K8s.DeleteHPA(k8sName(apiName))
 			return err
 		},
 	)
@@ -250,6 +250,10 @@ func deleteK8sResources(apiName string) error {
 func deleteS3Resources(apiName string) error {
 	prefix := s.EnsureSuffix(filepath.Join("apis", apiName), "/")
 	return config.AWS.DeleteFromS3ByPrefix(prefix, true)
+}
+
+func IsAPIDeployed(apiName string) (bool, error) {
+	return config.K8s.DeploymentExists(k8sName(apiName))
 }
 
 func APIsBaseURL() (string, error) {

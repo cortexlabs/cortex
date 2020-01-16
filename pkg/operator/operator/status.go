@@ -38,12 +38,12 @@ func GetStatus(apiName string) (*status.Status, error) {
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployment, err = config.K8s.GetDeployment(apiName)
+			deployment, err = config.K8s.GetDeployment(k8sName(apiName))
 			return err
 		},
 		func() error {
 			var err error
-			pods, err = config.K8s.ListPodsWithLabelKeys("apiName", apiName)
+			pods, err = config.K8s.ListPodsByLabel("apiName", apiName)
 			return err
 		},
 	)
