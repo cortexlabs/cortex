@@ -92,7 +92,9 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		api, msg, err := operator.UpdateAPI(&apiConfig, projectID, refresh, force)
 		results[i].API = api
 		results[i].Message = msg
-		results[i].Error = err.Error()
+		if err != nil {
+			results[i].Error = err.Error()
+		}
 	}
 
 	respond(w, schema.DeployResponse{
