@@ -25,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -383,7 +382,7 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 	}
 }
 
-func (cc *Config) Validate(accessKeyID string, secretAccessKey string) error {
+func (cc *Config) Validate(client *aws.Client) error {
 	if *cc.MinInstances > *cc.MaxInstances {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
@@ -392,13 +391,13 @@ func (cc *Config) Validate(accessKeyID string, secretAccessKey string) error {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
 	}
 
-	err := aws.VerifyInstanceQuota(accessKeyID, secretAccessKey, *cc.Region, *cc.InstanceType)
+	err := client.VerifyInstanceQuota(*cc.InstanceType)
 	if err != nil {
 		return errors.Wrap(err, InstanceTypeKey)
 	}
 
 	if len(cc.AvailabilityZones) > 0 {
-		zones, err := aws.GetAvailabilityZones(accessKeyID, secretAccessKey, *cc.Region)
+		zones, err := client.GetAvailabilityZones()
 		if err != nil {
 			return err
 		}
@@ -413,7 +412,7 @@ func (cc *Config) Validate(accessKeyID string, secretAccessKey string) error {
 
 	if cc.Spot != nil && *cc.Spot {
 		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
-		compatibleSpots := CompatibleSpotInstances(accessKeyID, secretAccessKey, chosenInstance, _spotInstanceDistributionLength)
+		compatibleSpots := CompatibleSpotInstances(client, chosenInstance, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
 			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
 		}
@@ -428,7 +427,7 @@ func (cc *Config) Validate(accessKeyID string, secretAccessKey string) error {
 			}
 
 			instanceMetadata := aws.InstanceMetadatas[*cc.Region][instanceType]
-			err := CheckSpotInstanceCompatibility(accessKeyID, secretAccessKey, chosenInstance, instanceMetadata)
+			err := CheckSpotInstanceCompatibility(client, chosenInstance, instanceMetadata)
 			if err != nil {
 				return errors.Wrap(err, InstanceDistributionKey)
 			}
@@ -473,7 +472,7 @@ func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 	return nil
 }
 
-func CheckSpotInstanceCompatibility(accessKeyID string, secretAccessKey string, target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
+func CheckSpotInstanceCompatibility(client *aws.Client, target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
 	if target.GPU > suggested.GPU {
 		return ErrorIncompatibleSpotInstanceTypeGPU(target, suggested)
 	}
@@ -486,7 +485,7 @@ func CheckSpotInstanceCompatibility(accessKeyID string, secretAccessKey string, 
 		return ErrorIncompatibleSpotInstanceTypeCPU(target, suggested)
 	}
 
-	suggestedInstancePrice, err := aws.SpotInstancePrice(accessKeyID, secretAccessKey, target.Region, suggested.Type)
+	suggestedInstancePrice, err := client.SpotInstancePrice(target.Region, suggested.Type)
 	if err != nil {
 		return err
 	}
@@ -497,7 +496,7 @@ func CheckSpotInstanceCompatibility(accessKeyID string, secretAccessKey string, 
 	return nil
 }
 
-func CompatibleSpotInstances(accessKeyID string, secretAccessKey string, targetInstance aws.InstanceMetadata, numInstances int) []aws.InstanceMetadata {
+func CompatibleSpotInstances(client *aws.Client, targetInstance aws.InstanceMetadata, numInstances int) []aws.InstanceMetadata {
 	compatibleInstances := []aws.InstanceMetadata{}
 	instanceMap := aws.InstanceMetadatas[targetInstance.Region]
 	availableInstances := []aws.InstanceMetadata{}
@@ -518,7 +517,7 @@ func CompatibleSpotInstances(accessKeyID string, secretAccessKey string, targetI
 			continue
 		}
 
-		if err := CheckSpotInstanceCompatibility(accessKeyID, secretAccessKey, targetInstance, instanceMetadata); err != nil {
+		if err := CheckSpotInstanceCompatibility(client, targetInstance, instanceMetadata); err != nil {
 			continue
 		}
 
@@ -532,12 +531,12 @@ func CompatibleSpotInstances(accessKeyID string, secretAccessKey string, targetI
 	return compatibleInstances
 }
 
-func AutoGenerateSpotConfig(accessKeyID string, secretAccessKey string, spotConfig *SpotConfig, region string, instanceType string) error {
+func AutoGenerateSpotConfig(client *aws.Client, spotConfig *SpotConfig, region string, instanceType string) error {
 	chosenInstance := aws.InstanceMetadatas[region][instanceType]
 	if len(spotConfig.InstanceDistribution) == 0 {
 		spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, chosenInstance.Type)
 
-		compatibleSpots := CompatibleSpotInstances(accessKeyID, secretAccessKey, chosenInstance, _spotInstanceDistributionLength)
+		compatibleSpots := CompatibleSpotInstances(client, chosenInstance, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
 			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
 		}
@@ -572,11 +571,11 @@ func AutoGenerateSpotConfig(accessKeyID string, secretAccessKey string, spotConf
 	return nil
 }
 
-func (cc *Config) AutoFillSpot(accessKeyID string, secretAccessKey string) error {
+func (cc *Config) AutoFillSpot(client *aws.Client) error {
 	if cc.SpotConfig == nil {
 		cc.SpotConfig = &SpotConfig{}
 	}
-	err := AutoGenerateSpotConfig(accessKeyID, secretAccessKey, cc.SpotConfig, *cc.Region, *cc.InstanceType)
+	err := AutoGenerateSpotConfig(client, cc.SpotConfig, *cc.Region, *cc.InstanceType)
 	if err != nil {
 		return err
 	}
@@ -611,9 +610,8 @@ func applyPromptDefaults(defaults Config) *Config {
 	return defaultConfig
 }
 
-func InstallPrompt(clusterConfig *Config, awsAccessKeyID string, awsSecretAccessKey string) error {
+func RegionPrompt(clusterConfig *Config) error {
 	defaults := applyPromptDefaults(*clusterConfig)
-
 	regionPrompt := &cr.PromptValidation{
 		SkipPopulatedFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
@@ -634,15 +632,13 @@ func InstallPrompt(clusterConfig *Config, awsAccessKeyID string, awsSecretAccess
 		return err
 	}
 
-	awsAccountID, validCreds, err := aws.AccountID(awsAccessKeyID, awsSecretAccessKey, *clusterConfig.Region)
-	if err != nil {
-		return err
-	}
-	if !validCreds {
-		return ErrorInvalidAWSCredentials()
-	}
+	return nil
+}
 
-	defaultBucket := pointer.String(clusterConfig.ClusterName + "-" + hash.String(awsAccountID)[:10])
+func InstallPrompt(clusterConfig *Config, client *aws.Client) error {
+	defaults := applyPromptDefaults(*clusterConfig)
+
+	defaultBucket := pointer.String(clusterConfig.ClusterName + "-" + client.HashedAccountID[:10])
 
 	remainingPrompts := &cr.PromptValidation{
 		SkipPopulatedFields: true,
@@ -691,7 +687,7 @@ func InstallPrompt(clusterConfig *Config, awsAccessKeyID string, awsSecretAccess
 			},
 		},
 	}
-	err = cr.ReadPrompt(clusterConfig, remainingPrompts)
+	err := cr.ReadPrompt(clusterConfig, remainingPrompts)
 	if err != nil {
 		return err
 	}

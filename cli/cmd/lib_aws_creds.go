@@ -26,13 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 )
 
-type AWSCredentials struct {
-	AWSAccessKeyID           string `json:"aws_access_key_id"`
-	AWSSecretAccessKey       string `json:"aws_secret_access_key"`
-	CortexAWSAccessKeyID     string `json:"cortex_aws_access_key_id"`
-	CortexAWSSecretAccessKey string `json:"cortex_aws_secret_access_key"`
-}
-
 var _awsCredentialsValidation = &cr.StructValidation{
 	AllowExtraFields: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
@@ -88,7 +81,7 @@ var _awsCredentialsPromptValidation = &cr.PromptValidation{
 	},
 }
 
-func readAWSCredsFromConfigFile(awsCreds *AWSCredentials, path string) error {
+func readAWSCredsFromConfigFile(awsCreds *aws.Credentials, path string) error {
 	errs := cr.ParseYAMLFile(awsCreds, _awsCredentialsValidation, path)
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
@@ -98,7 +91,7 @@ func readAWSCredsFromConfigFile(awsCreds *AWSCredentials, path string) error {
 }
 
 // awsCreds is what was read from the cluster config YAML
-func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
+func setInstallAWSCredentials(awsCreds *aws.Credentials) error {
 	// First check env vars
 	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
 		awsCreds.AWSAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
@@ -149,7 +142,7 @@ func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
 }
 
 // awsCreds is what was read from the cluster config YAML, after being passed through setInstallAWSCredentials() (so those credentials should be set)
-func setOperatorAWSCredentials(awsCreds *AWSCredentials) error {
+func setOperatorAWSCredentials(awsCreds *aws.Credentials) error {
 	// First check env vars
 	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") != "" {
 		awsCreds.CortexAWSAccessKeyID = os.Getenv("CORTEX_AWS_ACCESS_KEY_ID")
@@ -180,21 +173,21 @@ func setOperatorAWSCredentials(awsCreds *AWSCredentials) error {
 	return nil
 }
 
-func getAWSCredentials(userClusterConfigPath string) (*AWSCredentials, error) {
-	awsCreds := &AWSCredentials{}
+func getAWSCredentials(userClusterConfigPath string) (aws.Credentials, error) {
+	awsCreds := aws.Credentials{}
 
 	if userClusterConfigPath != "" {
-		readAWSCredsFromConfigFile(awsCreds, userClusterConfigPath)
+		readAWSCredsFromConfigFile(&awsCreds, userClusterConfigPath)
 	}
 
-	err := setInstallAWSCredentials(awsCreds)
+	err := setInstallAWSCredentials(&awsCreds)
 	if err != nil {
-		return nil, err
+		return aws.Credentials{}, err
 	}
 
-	err = setOperatorAWSCredentials(awsCreds)
+	err = setOperatorAWSCredentials(&awsCreds)
 	if err != nil {
-		return nil, err
+		return aws.Credentials{}, err
 	}
 
 	return awsCreds, nil

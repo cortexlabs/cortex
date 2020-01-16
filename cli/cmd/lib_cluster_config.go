@@ -115,7 +115,7 @@ func getClusterAccessConfig() (*clusterconfig.AccessConfig, error) {
 	return accessConfig, nil
 }
 
-func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.Config, error) {
+func getInstallClusterConfig(awsCreds aws.Credentials) (*clusterconfig.Config, error) {
 	clusterConfig := &clusterconfig.Config{}
 
 	err := clusterconfig.SetDefaults(clusterConfig)
@@ -130,7 +130,21 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.Config, e
 		}
 	}
 
-	err = clusterconfig.InstallPrompt(clusterConfig, awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+	err = clusterconfig.RegionPrompt(clusterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	client := aws.NewFromCreds(awsCreds, *clusterConfig.Region)
+	isValid, err := client.VerifyAccountID()
+	if err != nil {
+		return nil, err
+	}
+	if !isValid {
+		return nil, clusterconfig.ErrorInvalidAWSCredentials()
+	}
+
+	err = clusterconfig.InstallPrompt(clusterConfig, client)
 	if err != nil {
 		return nil, err
 	}
@@ -141,10 +155,10 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.Config, e
 	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
-		clusterConfig.AutoFillSpot(awsCreds.CortexAWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+		clusterConfig.AutoFillSpot(client)
 	}
 
-	err = clusterConfig.Validate(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+	err = clusterConfig.Validate(client)
 	if err != nil {
 		if _flagClusterConfig != "" {
 			err = errors.Wrap(err, _flagClusterConfig)
@@ -152,20 +166,22 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.Config, e
 		return nil, err
 	}
 
-	confirmInstallClusterConfig(clusterConfig, awsCreds)
+	confirmInstallClusterConfig(clusterConfig, client)
 
 	return clusterConfig, nil
 }
 
-func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) (*clusterconfig.Config, error) {
+func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds aws.Credentials) (*clusterconfig.Config, error) {
 	userClusterConfig := &clusterconfig.Config{}
+	var client *aws.Client
 
 	if _flagClusterConfig == "" {
-		userClusterConfig = cachedClusterConfig
-		err := cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(false, cachedClusterConfig))
+		userClusterConfig = &cachedClusterConfig
+		err := cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(false, &cachedClusterConfig))
 		if err != nil {
 			return nil, err
 		}
+		client = aws.NewFromCreds(awsCreds, *userClusterConfig.Region)
 	} else {
 		err := readUserClusterConfigFile(userClusterConfig)
 		if err != nil {
@@ -174,6 +190,7 @@ func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds 
 
 		userClusterConfig.ClusterName = cachedClusterConfig.ClusterName
 		userClusterConfig.Region = cachedClusterConfig.Region
+		client = aws.NewFromCreds(awsCreds, *userClusterConfig.Region)
 
 		if userClusterConfig.Bucket == nil {
 			userClusterConfig.Bucket = cachedClusterConfig.Bucket
@@ -200,7 +217,7 @@ func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds 
 		userClusterConfig.Spot = cachedClusterConfig.Spot
 
 		if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
-			err = userClusterConfig.AutoFillSpot(awsCreds.CortexAWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+			err = userClusterConfig.AutoFillSpot(client)
 			if err != nil {
 				return nil, err
 			}
@@ -233,7 +250,7 @@ func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds 
 		}
 		userClusterConfig.SpotConfig = cachedClusterConfig.SpotConfig
 
-		err = cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(true, cachedClusterConfig))
+		err = cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(true, &cachedClusterConfig))
 		if err != nil {
 			return nil, err
 		}
@@ -245,7 +262,7 @@ func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds 
 		return nil, err
 	}
 
-	err = userClusterConfig.Validate(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+	err = userClusterConfig.Validate(client)
 	if err != nil {
 		if _flagClusterConfig != "" {
 			err = errors.Wrap(err, _flagClusterConfig)
@@ -253,16 +270,16 @@ func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds 
 		return nil, err
 	}
 
-	confirmUpdateClusterConfig(userClusterConfig, awsCreds)
+	confirmUpdateClusterConfig(*userClusterConfig, client)
 
 	return userClusterConfig, nil
 }
 
-func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) {
+func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, client *aws.Client) {
 	var spotPrice float64
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
 		var err error
-		spotPrice, err = aws.SpotInstancePrice(awsCreds.AWSAccessKeyID, awsCreds.CortexAWSSecretAccessKey, *clusterConfig.Region, *clusterConfig.InstanceType)
+		spotPrice, err = client.SpotInstancePrice(*clusterConfig.Region, *clusterConfig.InstanceType)
 		if err != nil {
 			spotPrice = 0
 		}
@@ -273,7 +290,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *
 	elbPrice := aws.ELBMetadatas[*clusterConfig.Region].Price
 	natPrice := aws.NATMetadatas[*clusterConfig.Region].Price
 
-	fmt.Printf("cortex will use your %s aws access key id to provision the following resources in the %s region of your aws account:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), *clusterConfig.Region)
+	fmt.Printf("cortex will use your %s aws access key id to provision the following resources in the %s region of your aws account:\n\n", s.MaskString(client.Credentials.AWSAccessKeyID, 4), *clusterConfig.Region)
 	fmt.Printf("￮ an s3 bucket named %s\n", *clusterConfig.Bucket)
 	fmt.Printf("￮ a cloudwatch log group named %s\n", clusterConfig.LogGroup)
 	fmt.Printf("￮ an eks cluster named %s ($0.20 per hour)\n", clusterConfig.ClusterName)
@@ -315,21 +332,21 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *
 	prompt.YesOrExit("would you like to continue?", exitMessage)
 }
 
-func confirmUpdateClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) {
-	fmt.Println(clusterConfigConfirmaionStr(clusterConfig, awsCreds))
+func confirmUpdateClusterConfig(clusterConfig clusterconfig.Config, client *aws.Client) {
+	fmt.Println(clusterConfigConfirmaionStr(clusterConfig, client))
 
 	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
 	prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be updated according to the configuration above, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), exitMessage)
 }
 
-func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) string {
+func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, client *aws.Client) string {
 	defaultConfig, _ := clusterconfig.GetDefaults()
 
 	var items table.KeyValuePairs
 
-	items.Add("aws access key id", s.MaskString(awsCreds.AWSAccessKeyID, 4))
-	if awsCreds.CortexAWSAccessKeyID != awsCreds.AWSAccessKeyID {
-		items.Add("aws access key id", s.MaskString(awsCreds.CortexAWSAccessKeyID, 4)+" (cortex)")
+	items.Add("aws access key id", s.MaskString(client.Credentials.AWSAccessKeyID, 4))
+	if client.Credentials.CortexAWSAccessKeyID != client.Credentials.AWSAccessKeyID {
+		items.Add("aws access key id", s.MaskString(client.Credentials.CortexAWSAccessKeyID, 4)+" (cortex)")
 	}
 	items.Add(clusterconfig.RegionUserKey, clusterConfig.Region)
 	if len(clusterConfig.AvailabilityZones) > 0 {
@@ -353,7 +370,7 @@ func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.Config, awsCreds *
 
 		if clusterConfig.SpotConfig != nil {
 			defaultSpotConfig := clusterconfig.SpotConfig{}
-			clusterconfig.AutoGenerateSpotConfig(awsCreds.CortexAWSAccessKeyID, awsCreds.AWSSecretAccessKey, &defaultSpotConfig, *clusterConfig.Region, *clusterConfig.InstanceType)
+			clusterconfig.AutoGenerateSpotConfig(client, &defaultSpotConfig, *clusterConfig.Region, *clusterConfig.InstanceType)
 
 			if !strset.New(clusterConfig.SpotConfig.InstanceDistribution...).IsEqual(strset.New(defaultSpotConfig.InstanceDistribution...)) {
 				items.Add(clusterconfig.InstanceDistributionUserKey, clusterConfig.SpotConfig.InstanceDistribution)

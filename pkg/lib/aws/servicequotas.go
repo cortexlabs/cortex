@@ -21,8 +21,6 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -32,8 +30,7 @@ var _instancePrefixRegex = regexp.MustCompile(`[a-zA-Z]+`)
 var _standardInstancePrefixes = strset.New("a", "c", "d", "h", "i", "m", "r", "t", "z")
 var _knownInstancePrefixes = strset.Union(_standardInstancePrefixes, strset.New("p", "g", "inf", "x", "f"))
 
-// TODO convert to client method, use CortexOperator AWS creds when creating it
-func VerifyInstanceQuota(accessKeyID, secretAccessKey, region, instanceType string) error {
+func (c *Client) VerifyInstanceQuota(instanceType string) error {
 	instancePrefix := _instancePrefixRegex.FindString(instanceType)
 
 	// Allow the instance if we don't recognize the type
@@ -45,18 +42,8 @@ func VerifyInstanceQuota(accessKeyID, secretAccessKey, region, instanceType stri
 		instancePrefix = "standard"
 	}
 
-	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(region),
-		DisableSSL:  aws.Bool(false),
-		Credentials: credentials.NewStaticCredentials(accessKeyID, secretAccessKey, ""),
-	})
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	svc := servicequotas.New(sess)
-
 	var cpuLimit int
-	err = svc.ListServiceQuotasPages(
+	err := c.servicequotas.ListServiceQuotasPages(
 		&servicequotas.ListServiceQuotasInput{
 			ServiceCode: aws.String("ec2"),
 		},
@@ -87,7 +74,7 @@ func VerifyInstanceQuota(accessKeyID, secretAccessKey, region, instanceType stri
 	}
 
 	if cpuLimit == 0 {
-		return ErrorInstanceTypeLimitIsZero(instanceType, region)
+		return ErrorInstanceTypeLimitIsZero(instanceType, c.Region)
 	}
 
 	return nil

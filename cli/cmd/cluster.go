@@ -23,6 +23,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -197,7 +198,7 @@ var _infoCmd = &cobra.Command{
 			fmt.Println("\n" + errors.Wrap(err, "unable to parse operator response").Error())
 			return
 		}
-		infoResponse.ClusterConfig.Config = *clusterConfig
+		infoResponse.ClusterConfig.Config = clusterConfig
 
 		var items table.KeyValuePairs
 		items.Add("aws access key id", infoResponse.MaskedAWSAccessKeyID)
@@ -286,7 +287,7 @@ func promptForEmail() {
 	}
 }
 
-func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Config {
+func refreshCachedClusterConfig(awsCreds aws.Credentials) clusterconfig.Config {
 	accessConfig, err := getClusterAccessConfig()
 	if err != nil {
 		exit.Error(err)
@@ -313,5 +314,5 @@ func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.Config 
 
 	refreshedClusterConfig := &clusterconfig.Config{}
 	readCachedClusterConfigFile(refreshedClusterConfig, cachedConfigPath)
-	return refreshedClusterConfig
+	return *refreshedClusterConfig
 }

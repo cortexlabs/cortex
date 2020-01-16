@@ -17,36 +17,28 @@ limitations under the License.
 package aws
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 )
 
 // Returns account ID, whether the credentials were valid, any other error that occurred
-func AccountID(accessKeyID string, secretAccessKey string, region string) (string, bool, error) {
-	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(region),
-		DisableSSL:  aws.Bool(false),
-		Credentials: credentials.NewStaticCredentials(accessKeyID, secretAccessKey, ""),
-	})
-	if err != nil {
-		return "", false, errors.WithStack(err)
+func (c *Client) VerifyAccountID() (bool, error) {
+	if c.stsClient == nil {
+		c.stsClient = sts.New(c.sess)
 	}
 
-	stsClient := sts.New(sess)
-
-	response, err := stsClient.GetCallerIdentity(nil)
+	response, err := c.stsClient.GetCallerIdentity(nil)
 	if awsErr, ok := err.(awserr.RequestFailure); ok {
 		if awsErr.StatusCode() == 403 {
-			return "", false, nil
+			return false, nil
 		}
 	}
 	if err != nil {
-		return "", false, errors.WithStack(err)
+		return false, errors.WithStack(err)
 	}
-
-	return *response.Account, true, nil
+	c.AccountID = *response.Account
+	c.HashedAccountID = hash.String(c.AccountID)
+	return true, nil
 }

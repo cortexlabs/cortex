@@ -64,7 +64,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		accessKeyID, secretAccessKey := parts[0], parts[1]
-		userAccountID, validCreds, err := aws.AccountID(accessKeyID, secretAccessKey, *config.Cluster.Region)
+		client := aws.NewFromCreds(aws.Credentials{AWSAccessKeyID: accessKeyID, AWSSecretAccessKey: secretAccessKey}, *config.Cluster.Region)
+		validCreds, err := client.VerifyAccountID()
 		if err != nil {
 			respondError(w, ErrorAuthAPIError())
 			return
@@ -73,7 +74,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			respondErrorCode(w, http.StatusForbidden, ErrorAuthInvalid())
 			return
 		}
-		if userAccountID != config.AWS.AccountID {
+		if client.AccountID != config.AWS.AccountID {
 			respondErrorCode(w, http.StatusForbidden, ErrorAuthOtherAccount())
 			return
 		}

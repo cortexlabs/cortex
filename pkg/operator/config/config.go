@@ -26,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -59,9 +58,18 @@ func Init() error {
 		return errors.FirstError(errs...)
 	}
 
-	AWS, err = aws.New(*Cluster.Region, *Cluster.Bucket, true)
+	AWS = aws.NewInferCreds(*Cluster.Region)
+	validCreds, err := AWS.VerifyAccountID()
 	if err != nil {
-		exit.Error(err)
+		return err
+	}
+	if !validCreds {
+		return ErrorInvalidAWSCredentials()
+	}
+
+	AWS.InitializeBucket(*Cluster.Bucket)
+	if err != nil {
+		return err
 	}
 
 	Cluster.ID = hash.String(Cluster.ClusterName + *Cluster.Region + AWS.HashedAccountID)

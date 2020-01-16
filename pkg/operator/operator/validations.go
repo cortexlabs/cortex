@@ -331,7 +331,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor) error {
 
 	model := *predictor.Model
 
-	awsClient, err := aws.NewFromS3Path(model, false)
+	awsClient, err := aws.NewFromS3Path(model)
 	if err != nil {
 		return err
 	}
@@ -358,7 +358,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor) error {
 
 	model := *predictor.Model
 
-	awsClient, err := aws.NewFromS3Path(model, false)
+	awsClient, err := aws.NewFromS3Path(model)
 	if err != nil {
 		return err
 	}
