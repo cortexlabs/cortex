@@ -113,10 +113,9 @@ def exceptions(e):
 def start(args):
     api_utils.assert_api_version()
     storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
-    statsd = api_utils.get_statsd_client()
     try:
         raw_api_spec = api_utils.get_spec(args.cache_dir, args.spec)
-        api = API(storage=storage, cache_dir=args.cache_dir, statsd=statsd, **raw_api_spec)
+        api = API(storage=storage, cache_dir=args.cache_dir, **raw_api_spec)
         local_cache["api"] = api
 
         if api.predictor.type != "python":

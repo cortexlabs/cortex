@@ -21,7 +21,7 @@ import datadog
 import dill
 
 from cortex import consts
-from cortex.lib import util
+from cortex.lib import util, api_utils
 from cortex.lib.log import refresh_logger
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import CortexException, UserException
@@ -50,7 +50,7 @@ os.environ["AWS_REGION"] = self.cluster_config.get("region", "")
 
 
 class API:
-    def __init__(self, storage, statsd, cache_dir=".", **kwargs):
+    def __init__(self, storage, cache_dir=".", **kwargs):
         self.id = kwargs["id"]
         self.key = kwargs["key"]
         self.metadata_root = kwargs["metadata_root"]
@@ -63,7 +63,7 @@ class API:
             self.tracker = Tracker(**kwargs["tracker"])
 
         self.cache_dir = cache_dir
-        self.statsd = statsd
+        self.statsd = api_utils.get_statsd_client()
         self.storage = storage
 
         self._spec = kwargs
