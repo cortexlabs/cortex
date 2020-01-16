@@ -40,7 +40,7 @@ func init() {
 
 var _deleteCmd = &cobra.Command{
 	Use:   "delete API_NAME",
-	Short: "delete an API",
+	Short: "delete an api",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.delete")

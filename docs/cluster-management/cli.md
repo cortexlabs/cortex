@@ -61,7 +61,7 @@ Flags:
 ## delete
 
 ```text
-delete an API
+delete an api
 
 Usage:
   cortex delete API_NAME [flags]
