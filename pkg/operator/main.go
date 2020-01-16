@@ -41,7 +41,7 @@ func main() {
 	router := mux.NewRouter()
 	router.Use(endpoints.PanicMiddleware)
 	router.Use(endpoints.ClientIDMiddleware)
-	router.Use(endpoints.ApiVersionCheckMiddleware)
+	router.Use(endpoints.APIVersionCheckMiddleware)
 	router.Use(endpoints.AuthMiddleware)
 
 	router.HandleFunc("/info", endpoints.Info).Methods("GET")

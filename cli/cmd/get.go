@@ -231,9 +231,8 @@ func latencyStr(metrics *metrics.Metrics) string {
 	if metrics.NetworkStats != nil && metrics.NetworkStats.Latency != nil {
 		if *metrics.NetworkStats.Latency < 1000 {
 			return fmt.Sprintf("%.6g ms", *metrics.NetworkStats.Latency)
-		} else {
-			return fmt.Sprintf("%.6g s", (*metrics.NetworkStats.Latency)/1000)
 		}
+		return fmt.Sprintf("%.6g s", (*metrics.NetworkStats.Latency)/1000)
 	}
 	return "-"
 }

@@ -99,7 +99,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func ApiVersionCheckMiddleware(next http.Handler) http.Handler {
+func APIVersionCheckMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/info" {
 			next.ServeHTTP(w, r)

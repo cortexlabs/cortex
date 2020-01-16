@@ -21,8 +21,8 @@ import (
 	"os"
 
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
 func Info(w http.ResponseWriter, r *http.Request) {

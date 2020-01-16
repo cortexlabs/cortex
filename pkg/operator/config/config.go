@@ -31,7 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
 
-const _cluster_config_path = "/configs/cluster/cluster.yaml"
+const _clusterConfigPath = "/configs/cluster/cluster.yaml"
 
 var (
 	Cluster  *clusterconfig.InternalConfig
@@ -50,7 +50,7 @@ func Init() error {
 
 	clusterConfigPath := os.Getenv("CORTEX_CLUSTER_CONFIG_PATH")
 	if clusterConfigPath == "" {
-		clusterConfigPath = _cluster_config_path
+		clusterConfigPath = _clusterConfigPath
 	}
 
 	errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath)

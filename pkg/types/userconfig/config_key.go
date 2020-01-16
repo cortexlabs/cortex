@@ -17,7 +17,7 @@ limitations under the License.
 package userconfig
 
 const (
-	NameKey    = "name"
+	NameKey         = "name"
 	ModelKey        = "model"
 	TypeKey         = "type"
 	PathKey         = "path"

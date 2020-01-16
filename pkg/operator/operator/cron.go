@@ -64,7 +64,7 @@ func deleteEvictedPods(failedPods []kcore.Pod) error {
 }
 
 func updateHPAs(deployments []kapps.Deployment) error {
-	var allPods []kcore.Pod = nil
+	var allPods []kcore.Pod
 
 	var errs []error
 

@@ -197,34 +197,31 @@ func applyK8sResources(
 			if prevDeployment == nil {
 				_, err := config.K8s.CreateDeployment(newDeployment)
 				return err
-			} else {
-				// Delete deployment if it never became ready
-				if prevDeployment.Status.ReadyReplicas == 0 {
-					config.K8s.DeleteDeployment(k8sName(api.Name))
-					_, err := config.K8s.CreateDeployment(newDeployment)
-					return err
-				}
-				_, err := config.K8s.UpdateDeployment(newDeployment)
+			}
+			// Delete deployment if it never became ready
+			if prevDeployment.Status.ReadyReplicas == 0 {
+				config.K8s.DeleteDeployment(k8sName(api.Name))
+				_, err := config.K8s.CreateDeployment(newDeployment)
 				return err
 			}
+			_, err := config.K8s.UpdateDeployment(newDeployment)
+			return err
 		},
 		func() error {
 			if prevService == nil {
 				_, err := config.K8s.CreateService(newService)
 				return err
-			} else {
-				_, err := config.K8s.UpdateService(prevService, newService)
-				return err
 			}
+			_, err := config.K8s.UpdateService(prevService, newService)
+			return err
 		},
 		func() error {
 			if prevVirtualService == nil {
 				_, err := config.K8s.CreateVirtualService(newVirtualService)
 				return err
-			} else {
-				_, err := config.K8s.UpdateVirtualService(prevVirtualService, newVirtualService)
-				return err
 			}
+			_, err := config.K8s.UpdateVirtualService(prevVirtualService, newVirtualService)
+			return err
 		},
 		func() error {
 			// Delete HPA while updating replicas to avoid unwanted autoscaling due to CPU fluctuations

@@ -37,8 +37,8 @@ func NewFromEnv(region string) (*Client, error) {
 	return New(region, nil)
 }
 
-func NewFromCreds(region string, accessKeyId string, secretAccessKey string) (*Client, error) {
-	creds := credentials.NewStaticCredentials(accessKeyId, secretAccessKey, "")
+func NewFromCreds(region string, accessKeyID string, secretAccessKey string) (*Client, error) {
+	creds := credentials.NewStaticCredentials(accessKeyID, secretAccessKey, "")
 	return New(region, creds)
 }
 
@@ -58,20 +58,20 @@ func NewFromEnvS3Bucket(bucket string) (*Client, error) {
 	return NewFromEnv(region)
 }
 
-func NewFromCredsS3Path(s3Path string, accessKeyId string, secretAccessKey string) (*Client, error) {
+func NewFromCredsS3Path(s3Path string, accessKeyID string, secretAccessKey string) (*Client, error) {
 	bucket, _, err := SplitS3Path(s3Path)
 	if err != nil {
 		return nil, err
 	}
-	return NewFromCredsS3Bucket(bucket, accessKeyId, secretAccessKey)
+	return NewFromCredsS3Bucket(bucket, accessKeyID, secretAccessKey)
 }
 
-func NewFromCredsS3Bucket(bucket string, accessKeyId string, secretAccessKey string) (*Client, error) {
+func NewFromCredsS3Bucket(bucket string, accessKeyID string, secretAccessKey string) (*Client, error) {
 	region, err := GetBucketRegion(bucket)
 	if err != nil {
 		return nil, err
 	}
-	return NewFromCreds(region, accessKeyId, secretAccessKey)
+	return NewFromCreds(region, accessKeyID, secretAccessKey)
 }
 
 func New(region string, creds *credentials.Credentials) (*Client, error) {
