@@ -17,7 +17,7 @@ limitations under the License.
 package schema
 
 import (
-	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"

@@ -23,7 +23,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -33,6 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/spf13/cobra"
 )
 
