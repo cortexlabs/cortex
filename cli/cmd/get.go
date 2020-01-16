@@ -117,18 +117,10 @@ func getAPI(apiName string) (string, error) {
 	if api.Tracker != nil {
 		switch api.Tracker.ModelType {
 		case userconfig.ClassificationModelType:
-			out += classificationMetricsStr(apiRes.Metrics)
+			out += "\n" + classificationMetricsStr(apiRes.Metrics)
 		case userconfig.RegressionModelType:
-			out += regressionMetricsStr(apiRes.Metrics)
+			out += "\n" + regressionMetricsStr(apiRes.Metrics)
 		}
-
-		// TODO?
-		// 	var predictionMetrics string
-		// 	if err != nil {
-		// 		if !strings.Contains(err.Error(), "api is still initializing") {
-		// 			predictionMetrics = fmt.Sprintf("\nerror fetching metrics: %s\n", err.Error())
-		// 		}
-		// 	}
 	}
 
 	apiEndpoint := urls.Join(apiRes.BaseURL, *api.Endpoint)
@@ -140,7 +132,7 @@ func getAPI(apiName string) (string, error) {
 		out += "\n\n" + describeModelInput(apiRes.Status, apiEndpoint)
 	}
 
-	out += "\n" + titleStr("configuration") + strings.TrimSpace(api.UserStr())
+	out += titleStr("configuration") + strings.TrimSpace(api.UserStr())
 
 	return out, nil
 }
