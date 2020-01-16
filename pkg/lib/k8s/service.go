@@ -72,9 +72,12 @@ func (c *Client) CreateService(service *kcore.Service) (*kcore.Service, error) {
 	return service, nil
 }
 
-func (c *Client) UpdateService(service *kcore.Service) (*kcore.Service, error) {
-	service.TypeMeta = _serviceTypeMeta
-	service, err := c.serviceClient.Update(service)
+func (c *Client) UpdateService(existing, updated *kcore.Service) (*kcore.Service, error) {
+	updated.TypeMeta = _serviceTypeMeta
+	updated.Spec.ClusterIP = existing.Spec.ClusterIP
+	updated.ResourceVersion = existing.ResourceVersion
+
+	service, err := c.serviceClient.Update(updated)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -89,10 +92,7 @@ func (c *Client) ApplyService(service *kcore.Service) (*kcore.Service, error) {
 	if existing == nil {
 		return c.CreateService(service)
 	}
-
-	service.Spec.ClusterIP = existing.Spec.ClusterIP
-	service.ResourceVersion = existing.ResourceVersion
-	return c.UpdateService(service)
+	return c.UpdateService(existing, service)
 }
 
 func (c *Client) GetService(name string) (*kcore.Service, error) {

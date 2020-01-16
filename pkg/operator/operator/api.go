@@ -205,7 +205,7 @@ func applyK8sResources(
 				_, err := config.K8s.CreateService(newService)
 				return err
 			} else {
-				_, err := config.K8s.UpdateService(newService)
+				_, err := config.K8s.UpdateService(prevService, newService)
 				return err
 			}
 		},
@@ -214,7 +214,7 @@ func applyK8sResources(
 				_, err := config.K8s.CreateVirtualService(newVirtualService)
 				return err
 			} else {
-				_, err := config.K8s.UpdateVirtualService(newVirtualService)
+				_, err := config.K8s.UpdateVirtualService(prevVirtualService, newVirtualService)
 				return err
 			}
 		},
