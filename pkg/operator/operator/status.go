@@ -128,7 +128,7 @@ func getReplicaCounts(deployment *kapps.Deployment, allPods []kcore.Pod) *status
 
 func updateReplicaCounts(counts *status.ReplicaCounts, deployment *kapps.Deployment, pod *kcore.Pod) {
 	var subCounts *status.SubReplicaCounts
-	if k8s.IsPodSpecLatest(deployment, pod) {
+	if isPodSpecLatest(deployment, pod) {
 		subCounts = &counts.Updated
 	} else {
 		subCounts = &counts.Stale

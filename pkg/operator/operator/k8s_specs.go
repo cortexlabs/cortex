@@ -110,8 +110,9 @@ func tfAPISpec(
 		Name:     k8sName(api.Name),
 		Replicas: getRequestedReplicasFromDeployment(api, prevDeployment),
 		Labels: map[string]string{
-			"apiName": api.Name,
-			"apiID":   api.ID,
+			"apiName":      api.Name,
+			"apiID":        api.ID,
+			"deploymentID": api.DeploymentID,
 			// these labels are important to determine if the deployment was changed in any way
 			"minReplicas":          s.Int32(api.Compute.MinReplicas),
 			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
@@ -122,8 +123,9 @@ func tfAPISpec(
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName": api.Name,
-				"apiID":   api.ID,
+				"apiName":      api.Name,
+				"apiID":        api.ID,
+				"deploymentID": api.DeploymentID,
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -265,9 +267,10 @@ func pythonAPISpec(
 		Name:     k8sName(api.Name),
 		Replicas: getRequestedReplicasFromDeployment(api, prevDeployment),
 		Labels: map[string]string{
-			"apiName": api.Name,
-			"apiID":   api.ID,
-			// these labels are important to determine if the deployment was changed in any way
+			"apiName":      api.Name,
+			"apiID":        api.ID,
+			"deploymentID": api.DeploymentID,
+			// these labels allow us to determine if the deployment was changed in any way
 			"minReplicas":          s.Int32(api.Compute.MinReplicas),
 			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
 			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
@@ -277,8 +280,9 @@ func pythonAPISpec(
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName": api.Name,
-				"apiID":   api.ID,
+				"apiName":      api.Name,
+				"apiID":        api.ID,
+				"deploymentID": api.DeploymentID,
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -375,8 +379,9 @@ func onnxAPISpec(
 		Name:     k8sName(api.Name),
 		Replicas: getRequestedReplicasFromDeployment(api, prevDeployment),
 		Labels: map[string]string{
-			"apiName": api.Name,
-			"apiID":   api.ID,
+			"apiName":      api.Name,
+			"apiID":        api.ID,
+			"deploymentID": api.DeploymentID,
 			// these labels are important to determine if the deployment was changed in any way
 			"minReplicas":          s.Int32(api.Compute.MinReplicas),
 			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
@@ -387,8 +392,9 @@ func onnxAPISpec(
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName": api.Name,
-				"apiID":   api.ID,
+				"apiName":      api.Name,
+				"apiID":        api.ID,
+				"deploymentID": api.DeploymentID,
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",

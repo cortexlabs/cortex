@@ -66,8 +66,12 @@ func UpdateAPI(
 		}
 		msg = fmt.Sprintf("creating %s api", api.Name)
 
-	} else if !k8s.AreDeploymentsEqual(prevDeployment, deploymentSpec(api, prevDeployment)) {
-		if prevDeployment.Status.UpdatedReplicas < api.Compute.MinReplicas && !force { // TODO: UpdatedReplicas may include replicas that are not ready
+	} else if !areDeploymentsEqual(prevDeployment, deploymentSpec(api, prevDeployment)) {
+		isMinReady, err := isDeploymentMinReady(prevDeployment)
+		if err != nil {
+			return nil, "", err
+		}
+		if !isMinReady && !force {
 			return nil, "", errors.New(fmt.Sprintf("%s api is updating (override with --force)", api.Name))
 		}
 		err = config.AWS.UploadMsgpackToS3(api, api.Key)
@@ -80,7 +84,11 @@ func UpdateAPI(
 		msg = fmt.Sprintf("updating %s api", api.Name)
 
 	} else { // deployment didn't change
-		if prevDeployment.Status.UpdatedReplicas < api.Compute.MinReplicas { // TODO: UpdatedReplicas may include replicas that are not ready
+		isMinReady, err := isDeploymentMinReady(prevDeployment)
+		if err != nil {
+			return nil, "", err
+		}
+		if !isMinReady {
 			msg = fmt.Sprintf("%s api is already updating", api.Name)
 		} else {
 			msg = fmt.Sprintf("%s api is up to date", api.Name)
@@ -250,6 +258,59 @@ func deleteK8sResources(apiName string) error {
 func deleteS3Resources(apiName string) error {
 	prefix := s.EnsureSuffix(filepath.Join("apis", apiName), "/")
 	return config.AWS.DeleteFromS3ByPrefix(prefix, true)
+}
+
+func isDeploymentMinReady(deployment *kapps.Deployment) (bool, error) {
+	pods, err := config.K8s.ListPodsByLabel("apiName", deployment.Labels["apiName"])
+	if err != nil {
+		return false, err
+	}
+	updatedReady := numUpdatedReadyReplicas(deployment, pods)
+
+	minReplicas, ok := s.ParseInt32(deployment.Labels["minReplicas"])
+	if !ok {
+		return false, errors.New("unable to parse minReplicas from deployment") // unexpected
+	}
+
+	return updatedReady >= minReplicas, nil
+}
+
+func numUpdatedReadyReplicas(deployment *kapps.Deployment, pods []kcore.Pod) int32 {
+	var readyReplicas int32
+	for _, pod := range pods {
+		if pod.Labels["apiName"] != deployment.Labels["apiName"] {
+			continue
+		}
+		if k8s.IsPodReady(&pod) && isPodSpecLatest(deployment, &pod) {
+			readyReplicas++
+		}
+	}
+	return readyReplicas
+}
+
+func areDeploymentsEqual(d1, d2 *kapps.Deployment) bool {
+	return deploymentLabelsEqual(d1.Labels, d2.Labels) &&
+		k8s.PodComputesEqual(&d1.Spec.Template.Spec, &d2.Spec.Template.Spec)
+}
+
+func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
+	return podLabelsEqual(deployment.Spec.Template.Labels, pod.Labels) &&
+		k8s.PodComputesEqual(&deployment.Spec.Template.Spec, &pod.Spec)
+}
+
+func podLabelsEqual(labels1, labels2 map[string]string) bool {
+	return labels1["apiName"] == labels2["apiName"] &&
+		labels1["apiID"] == labels2["apiID"] &&
+		labels1["deploymentID"] == labels2["deploymentID"]
+}
+
+func deploymentLabelsEqual(labels1, labels2 map[string]string) bool {
+	return labels1["apiName"] == labels2["apiName"] &&
+		labels1["apiID"] == labels2["apiID"] &&
+		labels1["deploymentID"] == labels2["deploymentID"] &&
+		labels1["minReplicas"] == labels2["minReplicas"] &&
+		labels1["maxReplicas"] == labels2["maxReplicas"] &&
+		labels1["targetCPUUtilization"] == labels2["targetCPUUtilization"]
 }
 
 func IsAPIDeployed(apiName string) (bool, error) {

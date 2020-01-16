@@ -183,19 +183,3 @@ func DeploymentStartTime(deployment *kapps.Deployment) *time.Time {
 	}
 	return &deployment.CreationTimestamp.Time
 }
-
-func AreDeploymentsEqual(d1, d2 *kapps.Deployment) bool {
-	if d1 == nil && d2 == nil {
-		return true
-	}
-	if d1 == nil || d2 == nil {
-		return false
-	}
-	// TODO (built in to k8s?)
-	return false
-}
-
-func IsPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
-	// TODO (built in to k8s?) don't forget to check metadata
-	return false
-}

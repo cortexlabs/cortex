@@ -120,20 +120,6 @@ func updateHPAs(deployments []kapps.Deployment) error {
 	return nil
 }
 
-func numUpdatedReadyReplicas(deployment *kapps.Deployment, pods []kcore.Pod) int32 {
-	var readyReplicas int32
-	for _, pod := range pods {
-		if pod.Labels["apiName"] != deployment.Labels["apiName"] {
-			continue
-		}
-		if k8s.IsPodReady(&pod) && k8s.IsPodSpecLatest(deployment, &pod) {
-			readyReplicas++
-		}
-	}
-
-	return readyReplicas
-}
-
 func getCronK8sResources() ([]kapps.Deployment, []kcore.Pod, error) {
 	var deployments []kapps.Deployment
 	var failedPods []kcore.Pod

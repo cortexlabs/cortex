@@ -314,3 +314,36 @@ func PodMap(pods []kcore.Pod) map[string]kcore.Pod {
 	}
 	return podMap
 }
+
+func PodComputesEqual(podSpec1, podSpec2 *kcore.PodSpec) bool {
+	cpu1, mem1, gpu1 := TotalPodCompute(podSpec1)
+	cpu2, mem2, gpu2 := TotalPodCompute(podSpec2)
+	return cpu1.Equal(cpu2) && mem1.Equal(mem2) && gpu1 == gpu2
+}
+
+func TotalPodCompute(podSpec *kcore.PodSpec) (Quantity, Quantity, int64) {
+	totalCPU := Quantity{}
+	totalMem := Quantity{}
+	var totalGPU int64
+
+	if podSpec == nil {
+		return totalCPU, totalMem, totalGPU
+	}
+
+	for _, container := range podSpec.Containers {
+		requests := container.Resources.Requests
+		if len(requests) == 0 {
+			continue
+		}
+		totalCPU.Add(requests[kcore.ResourceCPU])
+		totalMem.Add(requests[kcore.ResourceMemory])
+		if gpu, ok := requests["nvidia.com/gpu"]; ok {
+			gpuVal, ok := gpu.AsInt64()
+			if ok {
+				totalGPU += gpuVal
+			}
+		}
+	}
+
+	return totalCPU, totalMem, totalGPU
+}
