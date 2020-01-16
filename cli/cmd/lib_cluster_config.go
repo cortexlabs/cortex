@@ -135,12 +135,8 @@ func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, er
 		return nil, err
 	}
 
-	awsClient, err := aws.NewFromCreds(*clusterConfig.Region, awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+	awsClient, err := newAWSClient(*clusterConfig.Region, awsCreds)
 	if err != nil {
-		return nil, err
-	}
-
-	if _, _, err := awsClient.CheckCredentials(); err != nil {
 		return nil, err
 	}
 
@@ -181,7 +177,7 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		if err != nil {
 			return nil, err
 		}
-		awsClient, err = aws.NewFromCreds(*userClusterConfig.Region, awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds)
 		if err != nil {
 			return nil, err
 		}
@@ -193,7 +189,7 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 
 		userClusterConfig.ClusterName = cachedClusterConfig.ClusterName
 		userClusterConfig.Region = cachedClusterConfig.Region
-		awsClient, err = aws.NewFromCreds(*userClusterConfig.Region, awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds)
 		if err != nil {
 			return nil, err
 		}

@@ -33,6 +33,19 @@ type AWSCredentials struct {
 	CortexAWSSecretAccessKey string `json:"cortex_aws_secret_access_key"`
 }
 
+func newAWSClient(region string, awsCreds AWSCredentials) (*aws.Client, error) {
+	awsClient, err := aws.NewFromCreds(region, awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, _, err := awsClient.CheckCredentials(); err != nil {
+		return nil, err
+	}
+
+	return awsClient, nil
+}
+
 var _awsCredentialsValidation = &cr.StructValidation{
 	AllowExtraFields: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
