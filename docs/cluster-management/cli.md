@@ -5,10 +5,10 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 ## deploy
 
 ```text
-create or update a deployment
+create or update apis
 
 Usage:
-  cortex deploy [flags]
+  cortex deploy [CONFIG_FILE] [flags]
 
 Flags:
   -e, --env string   environment (default "default")
@@ -20,19 +20,15 @@ Flags:
 ## get
 
 ```text
-get information about deployments
+get information about apis
 
 Usage:
   cortex get [API_NAME] [flags]
 
 Flags:
-  -a, --all-deployments     list all deployments
-  -d, --deployment string   deployment name
-  -e, --env string          environment (default "default")
-  -h, --help                help for get
-  -s, --summary             show summarized output
-  -v, --verbose             show verbose output
-  -w, --watch               re-run the command every second
+  -e, --env string   environment (default "default")
+  -h, --help         help for get
+  -w, --watch        re-run the command every second
 ```
 
 ## logs
@@ -44,9 +40,8 @@ Usage:
   cortex logs API_NAME [flags]
 
 Flags:
-  -d, --deployment string   deployment name
-  -e, --env string          environment (default "default")
-  -h, --help                help for logs
+  -e, --env string   environment (default "default")
+  -h, --help         help for logs
 ```
 
 ## predict
@@ -58,22 +53,22 @@ Usage:
   cortex predict API_NAME JSON_FILE [flags]
 
 Flags:
-      --debug               predict with debug mode
-  -d, --deployment string   deployment name
-  -e, --env string          environment (default "default")
-  -h, --help                help for predict
+      --debug        predict with debug mode
+  -e, --env string   environment (default "default")
+  -h, --help         help for predict
 ```
 
 ## delete
 
 ```text
-delete a deployment
+delete an API
 
 Usage:
-  cortex delete [DEPLOYMENT_NAME] [flags]
+  cortex delete API_NAME [flags]
 
 Flags:
   -e, --env string   environment (default "default")
+  -f, --force        delete the api without confirmation
   -h, --help         help for delete
   -c, --keep-cache   keep cached data for the deployment
 ```

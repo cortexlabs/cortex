@@ -46,7 +46,7 @@ func init() {
 
 var _deployCmd = &cobra.Command{
 	Use:   "deploy [CONFIG_FILE]",
-	Short: "create or update a deployment",
+	Short: "create or update apis",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.deploy")
