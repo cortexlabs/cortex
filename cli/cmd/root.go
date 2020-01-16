@@ -19,16 +19,11 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
@@ -152,84 +147,4 @@ func printLeadingNewLine() {
 
 func addEnvFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&_flagEnv, "env", "e", "default", "environment")
-}
-
-func getTerminalWidth() int {
-	cmd := exec.Command("stty", "size")
-	cmd.Stdin = os.Stdin
-	out, err := cmd.Output()
-	if err != nil {
-		return 0
-	}
-	dimensions := strings.Split(strings.TrimSpace(string(out)), " ")
-	if len(dimensions) != 2 {
-		return 0
-	}
-	widthStr := dimensions[1]
-	width, ok := s.ParseInt(widthStr)
-	if !ok {
-		return 0
-	}
-	return width
-}
-
-func watchHeader() string {
-	timeStr := libtime.LocalHourNow()
-	width := getTerminalWidth()
-	numExtraChars := 4
-	padding := strings.Repeat(" ", slices.MaxInt(width-len(_cmdStr)-len(timeStr)-numExtraChars, 0))
-	return fmt.Sprintf("$ %s  %s%s", _cmdStr, padding, libtime.LocalHourNow())
-}
-
-func rerun(f func() (string, error)) {
-	if _flagWatch {
-		print("\033[H\033[2J") // clear the screen
-
-		var prevStrSlice []string
-
-		for true {
-			nextStr, err := f()
-			if err != nil {
-				fmt.Println()
-				exit.Error(err)
-			}
-
-			nextStr = watchHeader() + "\n\n" + nextStr
-			nextStr = strings.TrimRight(nextStr, "\n") + "\n" // ensure a single new line at the end
-			nextStrSlice := strings.Split(nextStr, "\n")
-
-			terminalWidth := getTerminalWidth()
-
-			nextNumLines := 0
-			for _, strLine := range nextStrSlice {
-				nextNumLines += (len(strLine)-1)/terminalWidth + 1
-			}
-			prevNumLines := 0
-			for _, strLine := range prevStrSlice {
-				prevNumLines += (len(strLine)-1)/terminalWidth + 1
-			}
-
-			for i := prevNumLines; i > nextNumLines; i-- {
-				fmt.Printf("\033[%dA\033[2K", 1) // move the cursor up and clear the line
-			}
-
-			for i := 0; i < prevNumLines; i++ {
-				fmt.Printf("\033[%dA", 1) // move the cursor up
-			}
-
-			for _, strLine := range nextStrSlice {
-				fmt.Printf("\033[2K%s\n", strLine) // clear the line and print the new line
-			}
-
-			prevStrSlice = nextStrSlice
-
-			time.Sleep(time.Second)
-		}
-	} else {
-		str, err := f()
-		if err != nil {
-			exit.Error(err)
-		}
-		fmt.Println(str)
-	}
 }
