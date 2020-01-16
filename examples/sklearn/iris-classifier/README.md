@@ -102,13 +102,10 @@ You can skip dependencies that are [pre-installed](../../../docs/deployments/pyt
 
 ## Configure a deployment
 
-Create a `cortex.yaml` file and add the configuration below. A `deployment` specifies a set of resources that are deployed together. An `api` provides a runtime for inference and makes our `predictor.py` implementation available as a web service that can serve real-time predictions:
+Create a `cortex.yaml` file and add the configuration below. An `api` provides a runtime for inference and makes our `predictor.py` implementation available as a web service that can serve real-time predictions:
 
 ```yaml
 # cortex.yaml
-
-- kind: deployment
-  name: iris
 
 - kind: api
   name: classifier
