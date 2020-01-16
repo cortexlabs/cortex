@@ -42,7 +42,6 @@ metadata:
   name: operator
   namespace: default
   labels:
-    workloadType: operator
     workloadID: operator
 spec:
   replicas: 1
@@ -53,7 +52,6 @@ spec:
     metadata:
       labels:
         workloadID: operator
-        workloadType: operator
     spec:
       serviceAccountName: operator
       containers:
@@ -89,8 +87,6 @@ kind: Service
 metadata:
   namespace: default
   name: operator
-  labels:
-    workloadType: operator
 spec:
   selector:
     workloadID: operator
