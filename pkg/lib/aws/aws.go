@@ -94,6 +94,7 @@ func newClient(sess *session.Session) *Client {
 		Region:               *sess.Config.Region,
 		stsClient:            sts.New(sess),
 		ec2:                  ec2.New(sess),
+		servicequotas:        servicequotas.New(sess),
 		autoscaling:          autoscaling.New(sess),
 		CloudWatchMetrics:    cloudwatch.New(sess),
 		CloudWatchLogsClient: cloudwatchlogs.New(sess),
