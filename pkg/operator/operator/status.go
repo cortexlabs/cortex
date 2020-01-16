@@ -184,10 +184,5 @@ func getStatusCode(counts *status.ReplicaCounts, minReplicas int32) status.Code 
 		return status.Live
 	}
 
-	if counts.Updated.Pending+counts.Updated.Initializing+counts.Updated.Ready+counts.Updated.Stalled+
-		counts.Stale.Pending+counts.Stale.Initializing+counts.Stale.Ready+counts.Stale.Stalled == 0 {
-		return status.Stopping
-	}
-
 	return status.Updating
 }

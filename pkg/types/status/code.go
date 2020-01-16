@@ -25,7 +25,6 @@ const (
 	OOM
 	Live
 	Updating
-	Stopping
 )
 
 var _codes = []string{
@@ -35,10 +34,9 @@ var _codes = []string{
 	"status_oom",
 	"status_live",
 	"status_updating",
-	"status_stopping",
 }
 
-var _ = [1]int{}[int(Stopping)-(len(_codes)-1)] // Ensure list length matches
+var _ = [1]int{}[int(Updating)-(len(_codes)-1)] // Ensure list length matches
 
 var _codeMessages = []string{
 	"unknown",               // Unknown
@@ -47,10 +45,9 @@ var _codeMessages = []string{
 	"error (out of memory)", // OOM
 	"live",                  // Live
 	"updating",              // Updating
-	"stopping",              // Stopping
 }
 
-var _ = [1]int{}[int(Stopping)-(len(_codeMessages)-1)] // Ensure list length matches
+var _ = [1]int{}[int(Updating)-(len(_codeMessages)-1)] // Ensure list length matches
 
 func (code Code) String() string {
 	if int(code) < 0 || int(code) >= len(_codes) {
