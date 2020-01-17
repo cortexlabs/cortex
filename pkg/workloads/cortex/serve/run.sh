@@ -19,4 +19,7 @@ export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
 if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
-/usr/bin/python3.6 /src/cortex/tf_api/api.py "$@"
+
+cd /mnt/project
+
+/usr/bin/python3.6 /src/cortex/serve/serve.py "$@"

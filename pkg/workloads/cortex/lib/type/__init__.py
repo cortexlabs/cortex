@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Copyright 2019 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,13 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
-
-if [ -f "/mnt/project/requirements.txt" ]; then
-    pip --no-cache-dir install -r /mnt/project/requirements.txt
-fi
-
-cd /mnt/project
-
-/usr/bin/python3.6 /src/cortex/python_serve/api.py "$@"
+from cortex.lib.type.api import API
+from cortex.lib.type.predictor import Predictor
+from cortex.lib.type.tracker import Tracker

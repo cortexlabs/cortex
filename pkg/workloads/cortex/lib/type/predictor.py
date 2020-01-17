@@ -22,63 +22,13 @@ import dill
 
 from cortex import consts
 from cortex.lib import util, api_utils
-from cortex.lib.log import refresh_logger
+from cortex.lib.log import refresh_logger, cx_logger
 from cortex.lib.storage import S3, LocalStorage
-from cortex.lib.exceptions import CortexException, UserException
-from cortex.lib.resources import ResourceMap
-
-
-"""
-local_ctx_path = os.path.join(self.cache_dir, "context.msgpack")
-bucket, key = S3.deconstruct_s3_path(kwargs["s3_path"])
-S3(bucket, client_config={}).download_file(key, local_ctx_path)
-self.ctx = util.read_msgpack(local_ctx_path)
-
-host_ip = os.environ["HOST_IP"]
-datadog.initialize(statsd_host=host_ip, statsd_port="8125")
-self.statsd = datadog.statsd
-
-if self.api_version != consts.CORTEX_VERSION:
-    raise ValueError(
-        "api version mismatch (context: {}, image: {})".format(
-            self.api_version, consts.CORTEX_VERSION
-        )
-    )
-
-os.environ["AWS_REGION"] = self.cluster_config.get("region", "")
-"""
-
-
-class API:
-    def __init__(self, storage, cache_dir=".", **kwargs):
-        self.id = kwargs["id"]
-        self.key = kwargs["key"]
-        self.metadata_root = kwargs["metadata_root"]
-        self.name = kwargs["name"]
-        self.endpoint = kwargs["endpoint"]
-        self.predictor = Predictor(storage, cache_dir, **kwargs["predictor"])
-        self.tracker = None
-
-        if kwargs.get("tracker") is None:
-            self.tracker = Tracker(**kwargs["tracker"])
-
-        self.cache_dir = cache_dir
-        self.statsd = api_utils.get_statsd_client()
-        self.storage = storage
-
-        self._spec = kwargs
-
-
-class Tracker:
-    def __init__(self, **kwargs):
-        self.key = kwargs.get("key")
-        self.model_type = kwargs["model_type"]
+from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
 
 
 class Predictor:
     def __init__(self, storage, cache_dir, **kwargs):
-        print(kwargs)
-        print(kwargs["path"])
         self.type = kwargs["type"]
         self.path = kwargs["path"]
         self.model = kwargs.get("model")
@@ -118,6 +68,37 @@ class Predictor:
                 raise UserException(str(e)) from e
 
         return impl
+
+    def initialize_client(self, args):
+        if self.type == "onnx":
+            from cortex.lib.client.onnx import ONNXClient
+
+            _, prefix = self.storage.deconstruct_s3_path(self.model)
+            model_path = os.path.join(args.model_dir, os.path.basename(prefix))
+            client = ONNXClient(model_path)
+            cx_logger().info("ONNX model signature: {}".format(client.input_signature))
+            return client
+        elif self.type == "tensorflow":
+            from cortex.lib.client.tensorflow import TensorFlowClient
+
+            validate_model_dir(args.model_dir)
+            client = TensorFlowClient("localhost:" + str(args.tf_serve_port), self.signature_key)
+            cx_logger().info("TensorFlow model signature: {}".format(client.input_signature))
+            return client
+
+        return None
+
+    def initialize_impl(self, project_dir, client=None):
+        class_impl = self.class_impl(project_dir)
+        try:
+            if self.type == "python":
+                return class_impl(self.config)
+            else:
+                return class_impl(client, self.config)
+        except Exception as e:
+            raise UserRuntimeException(self.path, "__init__", str(e)) from e
+        finally:
+            refresh_logger()
 
     def class_impl(self, project_dir):
         if self.type == "tensorflow":
@@ -211,3 +192,50 @@ def _validate_required_fn_args(impl, fn_name, args):
                 fn_name, ", ".join(args), ", ".join(argspec.args)
             )
         )
+
+
+tf_expected_dir_structure = """tensorflow model directories must have the following structure:
+  1523423423/ (version prefix, usually a timestamp)
+  ├── saved_model.pb
+  └── variables/
+      ├── variables.index
+      ├── variables.data-00000-of-00003
+      ├── variables.data-00001-of-00003
+      └── variables.data-00002-of-...`"""
+
+
+def validate_model_dir(model_dir):
+    version = None
+    for file_name in os.listdir(model_dir):
+        if file_name.isdigit():
+            version = file_name
+            break
+
+    if version is None:
+        cx_logger().error(tf_expected_dir_structure)
+        raise UserException("no top-level version folder found")
+
+    if not os.path.isdir(os.path.join(model_dir, version)):
+        cx_logger().error(tf_expected_dir_structure)
+        raise UserException("no top-level version folder found")
+
+    if not os.path.isfile(os.path.join(model_dir, version, "saved_model.pb")):
+        cx_logger().error(tf_expected_dir_structure)
+        raise UserException('expected a "saved_model.pb" file')
+
+    if not os.path.isdir(os.path.join(model_dir, version, "variables")):
+        cx_logger().error(tf_expected_dir_structure)
+        raise UserException('expected a "variables" directory')
+
+    if not os.path.isfile(os.path.join(model_dir, version, "variables", "variables.index")):
+        cx_logger().error(tf_expected_dir_structure)
+        raise UserException('expected a "variables/variables.index" file')
+
+    for file_name in os.listdir(os.path.join(model_dir, version, "variables")):
+        if file_name.startswith("variables.data-00000-of"):
+            return
+
+    cx_logger().error(tf_expected_dir_structure)
+    raise UserException(
+        'expected at least one variables data file, starting with "variables.data-00000-of-"'
+    )
