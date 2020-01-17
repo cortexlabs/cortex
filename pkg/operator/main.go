@@ -46,10 +46,11 @@ func main() {
 
 	router.HandleFunc("/info", endpoints.Info).Methods("GET")
 	router.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
-	router.HandleFunc("/delete", endpoints.Delete).Methods("POST")
+	router.HandleFunc("/refresh/{apiName}", endpoints.Refresh).Methods("POST")
+	router.HandleFunc("/delete/{apiName}", endpoints.Delete).Methods("DELETE")
 	router.HandleFunc("/get", endpoints.GetAPIs).Methods("GET")
 	router.HandleFunc("/get/{apiName}", endpoints.GetAPI).Methods("GET")
-	router.HandleFunc("/logs/read", endpoints.ReadLogs)
+	router.HandleFunc("/logs/{apiName}", endpoints.ReadLogs)
 
 	log.Print("Running on port " + _operatorPortStr)
 	log.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))

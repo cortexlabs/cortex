@@ -31,7 +31,6 @@ const (
 	ErrUnknown ErrorKind = iota
 	ErrCortexInstallationBroken
 	ErrLoadBalancerInitializing
-	ErrAPIInitializing
 	ErrMalformedConfig
 	ErrNoAPIs
 	ErrDuplicateName
@@ -47,6 +46,7 @@ const (
 	ErrFieldMustBeDefinedForPredictorType
 	ErrFieldNotSupportedByPredictorType
 	ErrNoAvailableNodeComputeLimit
+	ErrAPINotDeployed
 	ErrDuplicateEndpoint
 )
 
@@ -54,7 +54,6 @@ var _errorKinds = []string{
 	"err_unknown",
 	"err_cortex_installation_broken",
 	"err_load_balancer_initializing",
-	"err_api_initializing",
 	"err_malformed_config",
 	"err_no_apis",
 	"err_duplicate_name",
@@ -70,6 +69,7 @@ var _errorKinds = []string{
 	"err_field_must_be_defined_for_predictor_type",
 	"err_field_not_supported_by_predictor_type",
 	"err_no_available_node_compute_limit",
+	"err_api_not_deployed",
 	"err_duplicate_endpoint",
 }
 
@@ -135,14 +135,14 @@ func ErrorLoadBalancerInitializing() error {
 func ErrorMalformedConfig() error {
 	return errors.WithStack(Error{
 		Kind:    ErrMalformedConfig,
-		message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see cortex.dev for documentation)"),
+		message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://cortex.dev for documentation)"),
 	})
 }
 
 func ErrorNoAPIs() error {
 	return errors.WithStack(Error{
 		Kind:    ErrNoAPIs,
-		message: fmt.Sprintf("at least one API must be configured (see cortex.dev for documentation)"),
+		message: fmt.Sprintf("at least one API must be configured (see https://cortex.dev for documentation)"),
 	})
 }
 
@@ -264,9 +264,16 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 	})
 }
 
+func ErrorAPINotDeployed(apiName string) error {
+	return errors.WithStack(Error{
+		Kind:    ErrAPINotDeployed,
+		message: fmt.Sprintf("%s api is not deployed", apiName), // note: if modifying this string, search the codebase for it and change all occurrences
+	})
+}
+
 func ErrorDuplicateEndpoint(apiName string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrDuplicateEndpoint,
-		message: fmt.Sprintf("endpoint is already being used by the %s API", apiName),
+		message: fmt.Sprintf("endpoint is already being used by the %s api", apiName),
 	})
 }

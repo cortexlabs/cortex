@@ -98,6 +98,44 @@ func UpdateAPI(
 	return api, msg, nil
 }
 
+func RefreshAPI(apiName string, force bool) (string, error) {
+	prevDeployment, err := config.K8s.GetDeployment(k8sName(apiName))
+	if err != nil {
+		return "", ErrorAPINotDeployed(apiName)
+	}
+
+	isMinReady, err := isDeploymentMinReady(prevDeployment)
+	if err != nil {
+		return "", err
+	}
+	if !isMinReady && !force {
+		return "", errors.New(fmt.Sprintf("%s api is updating (override with --force)", apiName))
+	}
+
+	apiID := prevDeployment.Labels["apiID"]
+	if apiID == "" {
+		return "", errors.New("unable to retreive api ID from deployment") // unexpected
+	}
+
+	api, err := DownloadAPISpec(apiName, apiID)
+	if err != nil {
+		return "", err
+	}
+
+	api = getAPISpec(api.API, api.ProjectID, k8s.RandomName())
+
+	err = config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key)
+	if err != nil {
+		return "", errors.Wrap(err, "upload api spec")
+	}
+
+	if err := applyK8sDeployment(api, prevDeployment); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("updating %s api", api.Name), nil
+}
+
 func DeleteAPI(apiName string, keepCache bool) error {
 	err := parallel.RunFirstErr(
 		func() error {
@@ -183,40 +221,15 @@ func applyK8sResources(
 	prevVirtualService *kunstructured.Unstructured,
 ) error {
 
-	newDeployment := deploymentSpec(api, prevDeployment)
-	newService := serviceSpec(api)
-	newVirtualService := virtualServiceSpec(api)
-
 	return parallel.RunFirstErr(
 		func() error {
-			if prevDeployment == nil {
-				_, err := config.K8s.CreateDeployment(newDeployment)
-				return err
-			}
-			// Delete deployment if it never became ready
-			if prevDeployment.Status.ReadyReplicas == 0 {
-				config.K8s.DeleteDeployment(k8sName(api.Name))
-				_, err := config.K8s.CreateDeployment(newDeployment)
-				return err
-			}
-			_, err := config.K8s.UpdateDeployment(newDeployment)
-			return err
+			return applyK8sDeployment(api, prevDeployment)
 		},
 		func() error {
-			if prevService == nil {
-				_, err := config.K8s.CreateService(newService)
-				return err
-			}
-			_, err := config.K8s.UpdateService(prevService, newService)
-			return err
+			return applyK8sService(api, prevService)
 		},
 		func() error {
-			if prevVirtualService == nil {
-				_, err := config.K8s.CreateVirtualService(newVirtualService)
-				return err
-			}
-			_, err := config.K8s.UpdateVirtualService(prevVirtualService, newVirtualService)
-			return err
+			return applyK8sVirtualService(api, prevVirtualService)
 		},
 		func() error {
 			// Delete HPA while updating replicas to avoid unwanted autoscaling due to CPU fluctuations
@@ -224,6 +237,49 @@ func applyK8sResources(
 			return nil
 		},
 	)
+}
+
+func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
+	newDeployment := deploymentSpec(api, prevDeployment)
+
+	if prevDeployment == nil {
+		_, err := config.K8s.CreateDeployment(newDeployment)
+		return err
+	}
+
+	// Delete deployment if it never became ready
+	if prevDeployment.Status.ReadyReplicas == 0 {
+		config.K8s.DeleteDeployment(k8sName(api.Name))
+		_, err := config.K8s.CreateDeployment(newDeployment)
+		return err
+	}
+
+	_, err := config.K8s.UpdateDeployment(newDeployment)
+	return err
+}
+
+func applyK8sService(api *spec.API, prevService *kcore.Service) error {
+	newService := serviceSpec(api)
+
+	if prevService == nil {
+		_, err := config.K8s.CreateService(newService)
+		return err
+	}
+
+	_, err := config.K8s.UpdateService(prevService, newService)
+	return err
+}
+
+func applyK8sVirtualService(api *spec.API, prevVirtualService *kunstructured.Unstructured) error {
+	newVirtualService := virtualServiceSpec(api)
+
+	if prevVirtualService == nil {
+		_, err := config.K8s.CreateVirtualService(newVirtualService)
+		return err
+	}
+
+	_, err := config.K8s.UpdateVirtualService(prevVirtualService, newVirtualService)
+	return err
 }
 
 func deleteK8sResources(apiName string) error {

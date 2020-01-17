@@ -73,7 +73,7 @@ func HTTPGet(endpoint string, qParams ...map[string]string) ([]byte, error) {
 	return _operatorClient.MakeRequest(req)
 }
 
-func HTTPPostJSONData(endpoint string, requestData interface{}, qParams ...map[string]string) ([]byte, error) {
+func HTTPPostObjAsJSON(endpoint string, requestData interface{}, qParams ...map[string]string) ([]byte, error) {
 	jsonRequestData, err := json.Marshal(requestData)
 	if err != nil {
 		return nil, err
@@ -88,6 +88,22 @@ func HTTPPostJSON(endpoint string, jsonRequestData []byte, qParams ...map[string
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	return _operatorClient.MakeRequest(req)
+}
+
+func HTTPPostNoBody(endpoint string, qParams ...map[string]string) ([]byte, error) {
+	req, err := operatorRequest("POST", endpoint, nil, qParams)
+	if err != nil {
+		return nil, err
+	}
+	return _operatorClient.MakeRequest(req)
+}
+
+func HTTPDelete(endpoint string, qParams ...map[string]string) ([]byte, error) {
+	req, err := operatorRequest("DELETE", endpoint, nil, qParams)
+	if err != nil {
+		return nil, err
+	}
 	return _operatorClient.MakeRequest(req)
 }
 
@@ -161,13 +177,12 @@ func StreamLogs(apiName string) error {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	req, err := operatorRequest("GET", "/logs/read", nil, nil)
+	req, err := operatorRequest("GET", "/logs/"+apiName, nil, nil)
 	if err != nil {
 		return err
 	}
 
 	values := req.URL.Query()
-	values.Set("apiName", apiName)
 	if isTelemetryEnabled() {
 		values.Set("clientID", clientID())
 	}

@@ -20,22 +20,19 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
 
 func ReadLogs(w http.ResponseWriter, r *http.Request) {
-	apiName, err := getRequiredQueryParam("apiName", r)
-	if err != nil {
-		respondError(w, err)
-		return
-	}
+	apiName := mux.Vars(r)["apiName"]
 
 	isDeployed, err := operator.IsAPIDeployed(apiName)
 	if err != nil {
 		respondError(w, err)
 		return
 	} else if !isDeployed {
-		respondError(w, ErrorAPINotDeployed(apiName))
+		respondError(w, operator.ErrorAPINotDeployed(apiName))
 		return
 	}
 

@@ -33,7 +33,6 @@ const (
 	ErrAuthAPIError
 	ErrAuthInvalid
 	ErrAuthOtherAccount
-	ErrAPINotDeployed
 	ErrFormFileMustBeProvided
 	ErrQueryParamRequired
 	ErrPathParamRequired
@@ -49,7 +48,6 @@ var _errorKinds = []string{
 	"err_auth_api_error",
 	"err_auth_invalid",
 	"err_auth_other_account",
-	"err_api_not_deployed",
 	"err_form_file_must_be_provided",
 	"err_query_param_required",
 	"err_path_param_required",
@@ -141,13 +139,6 @@ func ErrorAuthOtherAccount() error {
 	return errors.WithStack(Error{
 		Kind:    ErrAuthOtherAccount,
 		message: "AWS account associated with CLI AWS credentials differs from account associated with cluster AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as your cluster",
-	})
-}
-
-func ErrorAPINotDeployed(apiName string) error {
-	return errors.WithStack(Error{
-		Kind:    ErrAPINotDeployed,
-		message: fmt.Sprintf("%s api is not deployed", apiName), // note: if modifying this string, search the codebase for it and change all occurrences
 	})
 }
 

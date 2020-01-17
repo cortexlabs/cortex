@@ -62,7 +62,7 @@ func delete(apiName string, keepCache bool) {
 		"keepCache": s.Bool(keepCache),
 	}
 
-	httpRes, err := HTTPPostJSONData("/delete", nil, params)
+	httpRes, err := HTTPDelete("/delete/"+apiName, params)
 	if err != nil {
 		// note: if modifying this string, search the codebase for it and change all occurrences
 		if strings.HasSuffix(err.Error(), "is not deployed") {

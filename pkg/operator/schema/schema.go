@@ -58,6 +58,10 @@ type DeleteResponse struct {
 	Message string `json:"message"`
 }
 
+type RefreshResponse struct {
+	Message string `json:"message"`
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }

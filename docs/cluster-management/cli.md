@@ -44,6 +44,19 @@ Flags:
   -h, --help         help for logs
 ```
 
+## refresh
+
+```text
+restart all replicas for an api (witout downtime)
+
+Usage:
+  cortex refresh API_NAME [flags]
+
+Flags:
+  -e, --env string   environment (default "default")
+  -h, --help         help for refresh
+```
+
 ## predict
 
 ```text

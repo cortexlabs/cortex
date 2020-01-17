@@ -30,7 +30,6 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
-// will return nil if API does not exist
 func GetStatus(apiName string) (*status.Status, error) {
 	var deployment *kapps.Deployment
 	var pods []kcore.Pod
@@ -50,6 +49,10 @@ func GetStatus(apiName string) (*status.Status, error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	if deployment == nil {
+		return nil, ErrorAPINotDeployed(apiName)
 	}
 
 	return apiStatus(deployment, pods)

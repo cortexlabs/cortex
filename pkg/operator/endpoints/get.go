@@ -63,24 +63,9 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 func GetAPI(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 
-	isDeployed, err := operator.IsAPIDeployed(apiName)
-	if err != nil {
-		respondError(w, err)
-		return
-	}
-	if !isDeployed {
-		respondErrorCode(w, http.StatusNotFound, ErrorAPINotDeployed(apiName))
-		return
-	}
-
 	status, err := operator.GetStatus(apiName)
 	if err != nil {
 		respondError(w, err)
-		return
-	}
-
-	if status == nil {
-		respondErrorCode(w, http.StatusNotFound, ErrorAPINotDeployed(apiName))
 		return
 	}
 
