@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -75,6 +76,7 @@ var _predictCmd = &cobra.Command{
 		}
 
 		apiEndpoint := urls.Join(apiRes.BaseURL, *apiRes.API.Endpoint)
+		debug.Pp(apiEndpoint)
 		if _flagPredictDebug {
 			apiEndpoint += "?debug=true"
 		}

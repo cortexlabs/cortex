@@ -40,9 +40,8 @@ func Parse(rawurl string) (*url.URL, error) {
 }
 
 func Join(str string, strs ...string) string {
-	allStrs := append(strs, str)
-	fullPath := ""
-	for i, str := range allStrs {
+	fullPath := str
+	for i, str := range strs {
 		if i == 0 {
 			fullPath = str
 		} else {
