@@ -22,6 +22,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -150,7 +151,7 @@ func tfAPISpec(
 						Args: []string{
 							"--port=" + _defaultPortStr,
 							"--tf-serve-port=" + _tfServingPortStr,
-							"--spec=" + config.AWS.S3Path(*config.Cluster.Bucket, api.Key),
+							"--spec=" + aws.S3Path(*config.Cluster.Bucket, api.Key),
 							"--cache-dir=" + _specCacheDir,
 							"--model-dir=" + path.Join(_emptyDirMountPath, "model"),
 							"--project-dir=" + path.Join(_emptyDirMountPath, "project"),
@@ -222,7 +223,7 @@ func tfDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "tensorflow"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             config.AWS.S3Path(*config.Cluster.Bucket, api.ProjectKey),
+				From:             aws.S3Path(*config.Cluster.Bucket, api.ProjectKey),
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -306,7 +307,7 @@ func pythonAPISpec(
 						ImagePullPolicy: kcore.PullAlways,
 						Args: []string{
 							"--port=" + _defaultPortStr,
-							"--spec=" + config.AWS.S3Path(*config.Cluster.Bucket, api.Key),
+							"--spec=" + aws.S3Path(*config.Cluster.Bucket, api.Key),
 							"--cache-dir=" + _specCacheDir,
 							"--project-dir=" + path.Join(_emptyDirMountPath, "project"),
 						},
@@ -341,7 +342,7 @@ func pythonDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "python"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             config.AWS.S3Path(*config.Cluster.Bucket, api.ProjectKey),
+				From:             aws.S3Path(*config.Cluster.Bucket, api.ProjectKey),
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -417,7 +418,7 @@ func onnxAPISpec(
 						ImagePullPolicy: kcore.PullAlways,
 						Args: []string{
 							"--port=" + _defaultPortStr,
-							"--spec=" + config.AWS.S3Path(*config.Cluster.Bucket, api.Key),
+							"--spec=" + aws.S3Path(*config.Cluster.Bucket, api.Key),
 							"--cache-dir=" + _specCacheDir,
 							"--model-dir=" + path.Join(_emptyDirMountPath, "model"),
 							"--project-dir=" + path.Join(_emptyDirMountPath, "project"),
@@ -453,7 +454,7 @@ func onnxDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "onnx"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             config.AWS.S3Path(*config.Cluster.Bucket, api.ProjectKey),
+				From:             aws.S3Path(*config.Cluster.Bucket, api.ProjectKey),
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",

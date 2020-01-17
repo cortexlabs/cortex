@@ -54,7 +54,7 @@ func init() {
 	}
 }
 
-func (c *Client) S3Path(bucket string, key string) string {
+func S3Path(bucket string, key string) string {
 	return "s3://" + filepath.Join(bucket, key)
 }
 
@@ -151,7 +151,7 @@ func (c *Client) IsS3File(bucket string, fileKey string, fileKeys ...string) (bo
 			return false, nil
 		}
 		if err != nil {
-			return false, errors.Wrap(err, key)
+			return false, errors.Wrap(err, S3Path(bucket, key))
 		}
 	}
 
@@ -188,7 +188,7 @@ func (c *Client) IsS3Prefix(bucket string, prefix string, prefixes ...string) (b
 		})
 
 		if err != nil {
-			return false, errors.Wrap(err, prefix)
+			return false, errors.Wrap(err, S3Path(bucket, prefix))
 		}
 
 		if *out.KeyCount == 0 {
@@ -238,7 +238,7 @@ func (c *Client) UploadBytesToS3(data []byte, bucket string, key string) error {
 		ContentDisposition:   aws.String("attachment"),
 		ServerSideEncryption: aws.String("AES256"),
 	})
-	return errors.Wrap(err, key)
+	return errors.Wrap(err, S3Path(bucket, key))
 }
 
 func (c *Client) UploadBytesesToS3(data []byte, bucket string, key string, keys ...string) error {
@@ -283,7 +283,7 @@ func (c *Client) ReadJSONFromS3(objPtr interface{}, bucket string, key string) e
 	if err != nil {
 		return err
 	}
-	return errors.Wrap(json.Unmarshal(jsonBytes, objPtr), key)
+	return errors.Wrap(json.Unmarshal(jsonBytes, objPtr), S3Path(bucket, key))
 }
 
 func (c *Client) UploadMsgpackToS3(obj interface{}, bucket string, key string) error {
@@ -299,7 +299,7 @@ func (c *Client) ReadMsgpackFromS3(objPtr interface{}, bucket string, key string
 	if err != nil {
 		return err
 	}
-	return errors.Wrap(msgpack.Unmarshal(msgpackBytes, objPtr), key)
+	return errors.Wrap(msgpack.Unmarshal(msgpackBytes, objPtr), S3Path(bucket, key))
 }
 
 func (c *Client) ReadStringFromS3Path(s3Path string) (string, error) {
@@ -317,7 +317,7 @@ func (c *Client) ReadStringFromS3(bucket string, key string) (string, error) {
 	})
 
 	if err != nil {
-		return "", errors.Wrap(err, key)
+		return "", errors.Wrap(err, S3Path(bucket, key))
 	}
 
 	buf := new(bytes.Buffer)
@@ -340,7 +340,7 @@ func (c *Client) ReadBytesFromS3(bucket string, key string) ([]byte, error) {
 	})
 
 	if err != nil {
-		return nil, errors.Wrap(err, key)
+		return nil, errors.Wrap(err, S3Path(bucket, key))
 	}
 
 	buf := new(bytes.Buffer)
@@ -367,7 +367,7 @@ func (c *Client) ListPrefix(bucket string, prefix string, maxResults int64) ([]*
 
 	output, err := c.S3().ListObjectsV2(listObjectsInput)
 	if err != nil {
-		return nil, errors.Wrap(err, prefix)
+		return nil, errors.Wrap(err, S3Path(bucket, prefix))
 	}
 
 	return output.Contents, nil
@@ -419,9 +419,14 @@ func (c *Client) DeletePrefix(bucket string, prefix string, continueIfFailure bo
 		})
 
 	if subErr != nil {
-		return errors.Wrap(subErr, prefix)
+		return errors.Wrap(subErr, S3Path(bucket, prefix))
 	}
-	return errors.Wrap(err, prefix)
+
+	if err != nil {
+		return errors.Wrap(err, S3Path(bucket, prefix))
+	}
+
+	return nil
 }
 
 func GetBucketRegion(bucket string) (string, error) {
