@@ -162,16 +162,18 @@ func ErrorPathParamRequired(param string) error {
 	})
 }
 
-func ErrorAnyQueryParamRequired(params ...string) error {
+func ErrorAnyQueryParamRequired(param string, params ...string) error {
+	allParams := append(params, param)
 	return errors.WithStack(Error{
 		Kind:    ErrAnyQueryParamRequired,
-		message: fmt.Sprintf("query params required: %s", s.UserStrsOr(params)),
+		message: fmt.Sprintf("query params required: %s", s.UserStrsOr(allParams)),
 	})
 }
 
-func ErrorAnyPathParamRequired(params ...string) error {
+func ErrorAnyPathParamRequired(param string, params ...string) error {
+	allParams := append(params, param)
 	return errors.WithStack(Error{
 		Kind:    ErrAnyPathParamRequired,
-		message: fmt.Sprintf("path params required: %s", s.UserStrsOr(params)),
+		message: fmt.Sprintf("path params required: %s", s.UserStrsOr(allParams)),
 	})
 }

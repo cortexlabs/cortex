@@ -185,7 +185,7 @@ func ValidateInt32Val(val int32, v *Int32Validation) error {
 
 	if v.AllowedValues != nil {
 		if !slices.HasInt32(v.AllowedValues, val) {
-			return ErrorInvalidInt32(val, v.AllowedValues...)
+			return ErrorInvalidInt32(val, v.AllowedValues[0], v.AllowedValues[1:]...)
 		}
 	}
 

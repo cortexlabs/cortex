@@ -52,9 +52,11 @@ func GetMultipleMetrics(apis []spec.API) ([]metrics.Metrics, error) {
 		}
 	}
 
-	err := parallel.RunFirstErr(fns...)
-	if err != nil {
-		return nil, err
+	if len(fns) > 0 {
+		err := parallel.RunFirstErr(fns[0], fns[1:]...)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return allMetrics, nil
@@ -77,7 +79,7 @@ func GetMetrics(api *spec.API) (*metrics.Metrics, error) {
 	batchStart := batchEnd.Add(-14 * 24 * time.Hour) // two weeks ago
 	requestList = append(requestList, getMetricsFunc(api, 60*60, &batchStart, &batchEnd, &batchMetrics))
 
-	err := parallel.RunFirstErr(requestList...)
+	err := parallel.RunFirstErr(requestList[0], requestList[1:]...)
 	if err != nil {
 		return nil, err
 	}

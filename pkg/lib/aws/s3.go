@@ -118,8 +118,9 @@ func IsValidS3aPath(s3aPath string) bool {
 	return true
 }
 
-func (c *Client) IsS3PathFile(s3Paths ...string) (bool, error) {
-	for _, s3Path := range s3Paths {
+func (c *Client) IsS3PathFile(s3Path string, s3Paths ...string) (bool, error) {
+	allS3Paths := append(s3Paths, s3Path)
+	for _, s3Path := range allS3Paths {
 		bucket, prefix, err := SplitS3Path(s3Path)
 		if err != nil {
 			return false, err
@@ -138,8 +139,9 @@ func (c *Client) IsS3PathFile(s3Paths ...string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) IsS3File(bucket string, keys ...string) (bool, error) {
-	for _, key := range keys {
+func (c *Client) IsS3File(bucket string, fileKey string, fileKeys ...string) (bool, error) {
+	allFileKeys := append(fileKeys, fileKey)
+	for _, key := range allFileKeys {
 		_, err := c.S3().HeadObject(&s3.HeadObjectInput{
 			Bucket: aws.String(bucket),
 			Key:    aws.String(key),
@@ -156,8 +158,9 @@ func (c *Client) IsS3File(bucket string, keys ...string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) IsS3PathPrefix(s3Paths ...string) (bool, error) {
-	for _, s3Path := range s3Paths {
+func (c *Client) IsS3PathPrefix(s3Path string, s3Paths ...string) (bool, error) {
+	allS3Paths := append(s3Paths, s3Path)
+	for _, s3Path := range allS3Paths {
 		bucket, prefix, err := SplitS3Path(s3Path)
 		if err != nil {
 			return false, err
@@ -176,8 +179,9 @@ func (c *Client) IsS3PathPrefix(s3Paths ...string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) IsS3Prefix(bucket string, prefixes ...string) (bool, error) {
-	for _, prefix := range prefixes {
+func (c *Client) IsS3Prefix(bucket string, prefix string, prefixes ...string) (bool, error) {
+	allPrefixes := append(prefixes, prefix)
+	for _, prefix := range allPrefixes {
 		out, err := c.S3().ListObjectsV2(&s3.ListObjectsV2Input{
 			Bucket: aws.String(bucket),
 			Prefix: aws.String(prefix),
@@ -195,8 +199,9 @@ func (c *Client) IsS3Prefix(bucket string, prefixes ...string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) IsS3PathDir(s3Paths ...string) (bool, error) {
-	for _, s3Path := range s3Paths {
+func (c *Client) IsS3PathDir(s3Path string, s3Paths ...string) (bool, error) {
+	allS3Paths := append(s3Paths, s3Path)
+	for _, s3Path := range allS3Paths {
 		bucket, prefix, err := SplitS3Path(s3Path)
 		if err != nil {
 			return false, err
@@ -215,12 +220,13 @@ func (c *Client) IsS3PathDir(s3Paths ...string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) IsS3Dir(bucket string, dirPaths ...string) (bool, error) {
-	fullDirPaths := make([]string, len(dirPaths))
-	for i, dirPath := range dirPaths {
+func (c *Client) IsS3Dir(bucket string, dirPath string, dirPaths ...string) (bool, error) {
+	fullDirPaths := make([]string, len(dirPaths)+1)
+	allDirPaths := append(dirPaths, dirPath)
+	for i, dirPath := range allDirPaths {
 		fullDirPaths[i] = s.EnsureSuffix(dirPath, "/")
 	}
-	return c.IsS3Prefix(bucket, fullDirPaths...)
+	return c.IsS3Prefix(bucket, fullDirPaths[0], fullDirPaths[1:]...)
 }
 
 func (c *Client) UploadBytesToS3(data []byte, bucket string, key string) error {
@@ -235,15 +241,16 @@ func (c *Client) UploadBytesToS3(data []byte, bucket string, key string) error {
 	return errors.Wrap(err, key)
 }
 
-func (c *Client) UploadBytesesToS3(data []byte, bucket string, keys ...string) error {
-	fns := make([]func() error, len(keys))
-	for i, key := range keys {
+func (c *Client) UploadBytesesToS3(data []byte, bucket string, key string, keys ...string) error {
+	allKeys := append(keys, key)
+	fns := make([]func() error, len(allKeys))
+	for i, key := range allKeys {
 		key := key
 		fns[i] = func() error {
 			return c.UploadBytesToS3(data, bucket, key)
 		}
 	}
-	return parallel.RunFirstErr(fns...)
+	return parallel.RunFirstErr(fns[0], fns[1:]...)
 }
 
 func (c *Client) UploadFileToS3(filePath string, bucket string, key string) error {

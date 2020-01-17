@@ -474,7 +474,7 @@ func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface
 			for typeObj := range v.ParsedInterfaceStructTypes {
 				validTypeObjs = append(validTypeObjs, typeObj)
 			}
-			return nil, []error{errors.Wrap(ErrorInvalidInterface(typeStr, validTypeObjs...), v.TypeKey)}
+			return nil, []error{errors.Wrap(ErrorInvalidInterface(typeStr, validTypeObjs[0], validTypeObjs[1:]...), v.TypeKey)}
 		}
 	}
 

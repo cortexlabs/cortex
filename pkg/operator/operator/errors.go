@@ -158,10 +158,11 @@ func ErrorDuplicateName(apis []userconfig.API) error {
 	})
 }
 
-func ErrorSpecifyAllOrNone(vals ...string) error {
-	message := fmt.Sprintf("please specify all or none of %s", s.UserStrsAnd(vals))
-	if len(vals) == 2 {
-		message = fmt.Sprintf("please specify both %s and %s or neither of them", s.UserStr(vals[0]), s.UserStr(vals[1]))
+func ErrorSpecifyAllOrNone(val string, vals ...string) error {
+	allVals := append(vals, val)
+	message := fmt.Sprintf("please specify all or none of %s", s.UserStrsAnd(allVals))
+	if len(allVals) == 2 {
+		message = fmt.Sprintf("please specify both %s and %s or neither of them", s.UserStr(allVals[0]), s.UserStr(allVals[1]))
 	}
 
 	return errors.WithStack(Error{
@@ -170,8 +171,9 @@ func ErrorSpecifyAllOrNone(vals ...string) error {
 	})
 }
 
-func ErrorOneOfPrerequisitesNotDefined(argName string, prerequisites ...string) error {
-	message := fmt.Sprintf("%s specified without specifying %s", s.UserStr(argName), s.UserStrsOr(prerequisites))
+func ErrorOneOfPrerequisitesNotDefined(argName string, prerequisite string, prerequisites ...string) error {
+	allPrerequisites := append(prerequisites, prerequisite)
+	message := fmt.Sprintf("%s specified without specifying %s", s.UserStr(argName), s.UserStrsOr(allPrerequisites))
 
 	return errors.WithStack(Error{
 		Kind:    ErrOneOfPrerequisitesNotDefined,

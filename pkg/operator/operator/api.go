@@ -406,11 +406,12 @@ func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
 		}
 	}
 
-	err := parallel.RunFirstErr(fns...)
-	if err != nil {
-		return nil, err
+	if len(fns) > 0 {
+		err := parallel.RunFirstErr(fns[0], fns[1:]...)
+		if err != nil {
+			return nil, err
+		}
 	}
-
 	return apis, nil
 }
 

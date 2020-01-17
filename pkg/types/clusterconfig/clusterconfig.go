@@ -440,7 +440,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 			for _, compatibleInstance := range compatibleSpots {
 				suggestions = append(suggestions, compatibleInstance.Type)
 			}
-			return ErrorAtLeastOneInstanceDistribution(*cc.InstanceType, suggestions...)
+			return ErrorAtLeastOneInstanceDistribution(*cc.InstanceType, suggestions[0], suggestions[1:]...)
 		}
 
 		if cc.SpotConfig.OnDemandBaseCapacity != nil && *cc.SpotConfig.OnDemandBaseCapacity > *cc.MaxInstances {

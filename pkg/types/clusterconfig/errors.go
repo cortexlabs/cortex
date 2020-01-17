@@ -166,8 +166,9 @@ func ErrorInstanceTypeNotSupported(instanceType string) error {
 	})
 }
 
-func ErrorAtLeastOneInstanceDistribution(instanceType string, suggestions ...string) error {
-	message := strings.Join(suggestions, ", ")
+func ErrorAtLeastOneInstanceDistribution(instanceType string, suggestion string, suggestions ...string) error {
+	allSuggestions := append(suggestions, suggestion)
+	message := strings.Join(allSuggestions, ", ")
 	return errors.WithStack(Error{
 		Kind:    ErrAtLeastOneInstanceDistribution,
 		message: fmt.Sprintf("at least one compatible instance type other than %s must be specified (suggestions: %s)", instanceType, message),

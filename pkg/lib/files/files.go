@@ -244,8 +244,9 @@ func MakeEmptyFile(path string) error {
 	return nil
 }
 
-func MakeEmptyFiles(paths ...string) error {
-	for _, path := range paths {
+func MakeEmptyFiles(path string, paths ...string) error {
+	allPaths := append(paths, path)
+	for _, path := range allPaths {
 		if err := MakeEmptyFile(path); err != nil {
 			return err
 		}
@@ -253,8 +254,9 @@ func MakeEmptyFiles(paths ...string) error {
 	return nil
 }
 
-func MakeEmptyFilesInDir(dir string, paths ...string) error {
-	for _, path := range paths {
+func MakeEmptyFilesInDir(dir string, path string, paths ...string) error {
+	allPaths := append(paths, path)
+	for _, path := range allPaths {
 		fullPath := filepath.Join(dir, path)
 		if err := MakeEmptyFile(fullPath); err != nil {
 			return err
@@ -506,8 +508,9 @@ func ListDir(dir string, relative bool) ([]string, error) {
 	return filenames, nil
 }
 
-func CloseSilent(closers ...io.Closer) {
-	for _, closer := range closers {
+func CloseSilent(closer io.Closer, closers ...io.Closer) {
+	allClosers := append(closers, closer)
+	for _, closer := range allClosers {
 		closer.Close()
 	}
 }

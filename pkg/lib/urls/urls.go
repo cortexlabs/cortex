@@ -39,9 +39,10 @@ func Parse(rawurl string) (*url.URL, error) {
 	return u, nil
 }
 
-func Join(strs ...string) string {
+func Join(str string, strs ...string) string {
+	allStrs := append(strs, str)
 	fullPath := ""
-	for i, str := range strs {
+	for i, str := range allStrs {
 		if i == 0 {
 			fullPath = str
 		} else {
