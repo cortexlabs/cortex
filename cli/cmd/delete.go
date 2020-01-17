@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -78,7 +79,11 @@ func delete(apiName string, keepCache bool) {
 func getReadyReplicasOrNil(apiName string) *int32 {
 	httpRes, err := HTTPGet("/get/" + apiName)
 	if err != nil {
-		return nil
+		// note: if modifying this string, search the codebase for it and change all occurrences
+		if strings.HasSuffix(err.Error(), "is not deployed") {
+			fmt.Println(console.Bold(err.Error()))
+		}
+		exit.ErrorNoPrintNoTelemetry()
 	}
 
 	var apiRes schema.GetAPIResponse

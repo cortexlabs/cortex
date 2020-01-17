@@ -33,14 +33,19 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	keepCache := getOptionalBoolQParam("keepCache", false, r)
 
-	wasDeployed, err := operator.DeleteAPI(apiName, keepCache)
+	wasDeployed, err := operator.IsAPIDeployed(apiName)
 	if err != nil {
 		respondError(w, err)
 		return
 	}
-
 	if !wasDeployed {
-		respondError(w, ErrorAPINotDeployed(apiName))
+		respondErrorCode(w, http.StatusNotFound, ErrorAPINotDeployed(apiName))
+		return
+	}
+
+	err = operator.DeleteAPI(apiName, keepCache)
+	if err != nil {
+		respondError(w, err)
 		return
 	}
 

@@ -98,13 +98,8 @@ func UpdateAPI(
 	return api, msg, nil
 }
 
-func DeleteAPI(apiName string, keepCache bool) (bool, error) {
-	wasDeployed, err := config.K8s.DeploymentExists(k8sName(apiName))
-	if err != nil {
-		return false, err
-	}
-
-	err = parallel.RunFirstErr(
+func DeleteAPI(apiName string, keepCache bool) error {
+	err := parallel.RunFirstErr(
 		func() error {
 			return deleteK8sResources(apiName)
 		},
@@ -117,10 +112,10 @@ func DeleteAPI(apiName string, keepCache bool) (bool, error) {
 	)
 
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	return wasDeployed, nil
+	return nil
 }
 
 func getAPISpec(
