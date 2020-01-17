@@ -64,6 +64,11 @@ func delete(apiName string, keepCache bool) {
 
 	httpRes, err := HTTPPostJSONData("/delete", nil, params)
 	if err != nil {
+		// note: if modifying this string, search the codebase for it and change all occurrences
+		if strings.HasSuffix(err.Error(), "is not deployed") {
+			fmt.Println(console.Bold(err.Error()))
+			exit.ErrorNoPrintNoTelemetry()
+		}
 		exit.Error(err)
 	}
 
@@ -79,11 +84,7 @@ func delete(apiName string, keepCache bool) {
 func getReadyReplicasOrNil(apiName string) *int32 {
 	httpRes, err := HTTPGet("/get/" + apiName)
 	if err != nil {
-		// note: if modifying this string, search the codebase for it and change all occurrences
-		if strings.HasSuffix(err.Error(), "is not deployed") {
-			fmt.Println(console.Bold(err.Error()))
-		}
-		exit.ErrorNoPrintNoTelemetry()
+		return nil
 	}
 
 	var apiRes schema.GetAPIResponse

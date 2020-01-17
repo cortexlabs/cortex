@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
@@ -33,12 +34,21 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	keepCache := getOptionalBoolQParam("keepCache", false, r)
 
-	wasDeployed, err := operator.IsAPIDeployed(apiName)
+	isDeployed, err := operator.IsAPIDeployed(apiName)
 	if err != nil {
 		respondError(w, err)
 		return
 	}
-	if !wasDeployed {
+
+	if !isDeployed {
+		// Delete anyways just to be sure everything is deleted
+		go func() {
+			err = operator.DeleteAPI(apiName, keepCache)
+			if err != nil {
+				telemetry.Error(err)
+			}
+		}()
+
 		respondErrorCode(w, http.StatusNotFound, ErrorAPINotDeployed(apiName))
 		return
 	}
