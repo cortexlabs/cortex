@@ -73,7 +73,7 @@ func IdentifyAPI(filePath string, name string, index int) string {
 	}
 
 	if name != "" {
-		return str + "api : " + name
+		return str + "api: " + name
 	} else if index >= 0 {
 		return str + "api at " + s.Index(index)
 	}
