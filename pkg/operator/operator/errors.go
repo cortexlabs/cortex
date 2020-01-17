@@ -221,7 +221,7 @@ func ErrorS3FileNotFound(path string) error {
 func ErrorS3DirNotFoundOrEmpty(path string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrS3DirNotFoundOrEmpty,
-		message: fmt.Sprintf("%s: dir not found, empty or insufficient permissions", path),
+		message: fmt.Sprintf("%s: directory not found or empty", path),
 	})
 }
 

@@ -343,8 +343,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor) error {
 		path, err := getTFServingExportFromS3Path(model, awsClient)
 		if err != nil {
 			return err
-		}
-		if path == "" {
+		} else if path == "" {
 			return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
 		}
 		predictor.Model = pointer.String(path)
@@ -387,7 +386,9 @@ func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 	}
 
 	objects, err := config.AWS.ListPathDir(path, 1000)
-	if err != nil || len(objects) == 0 {
+	if err != nil {
+		return "", err
+	} else if len(objects) == 0 {
 		return "", ErrorS3DirNotFoundOrEmpty(path)
 	}
 
