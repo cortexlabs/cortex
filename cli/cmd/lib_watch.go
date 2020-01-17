@@ -69,8 +69,7 @@ func rerun(f func() (string, error)) {
 				exit.Error(err)
 			}
 
-			nextStr = watchHeader() + "\n\n" + nextStr
-			nextStr = strings.TrimRight(nextStr, "\n") + "\n" // ensure a single new line at the end
+			nextStr = watchHeader() + "\n\n" + s.EnsureSingleTrailingNewLine(nextStr)
 			nextStrSlice := strings.Split(nextStr, "\n")
 
 			terminalWidth := getTerminalWidth()
@@ -105,7 +104,6 @@ func rerun(f func() (string, error)) {
 		if err != nil {
 			exit.Error(err)
 		}
-		str = strings.TrimRight(str, "\n") + "\n" // ensure a single new line at the end
-		fmt.Print(str)
+		fmt.Print(s.EnsureSingleTrailingNewLine(str))
 	}
 }
