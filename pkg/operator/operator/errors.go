@@ -41,6 +41,7 @@ const (
 	ErrInitReplicasLessThanMin
 	ErrImplDoesNotExist
 	ErrS3FileNotFound
+	ErrS3DirNotFoundOrEmpty
 	ErrONNXDoesntSupportZip
 	ErrInvalidTensorFlowDir
 	ErrFieldMustBeDefinedForPredictorType
@@ -64,6 +65,7 @@ var _errorKinds = []string{
 	"err_init_replicas_less_than_min",
 	"err_impl_does_not_exist",
 	"err_s3_file_not_found",
+	"err_s3_dir_not_found_or_empty",
 	"err_onnx_doesnt_support_zip",
 	"err_invalid_tensorflow_dir",
 	"err_field_must_be_defined_for_predictor_type",
@@ -213,6 +215,13 @@ func ErrorS3FileNotFound(path string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrS3FileNotFound,
 		message: fmt.Sprintf("%s: not found or insufficient permissions", path),
+	})
+}
+
+func ErrorS3DirNotFoundOrEmpty(path string) error {
+	return errors.WithStack(Error{
+		Kind:    ErrS3DirNotFoundOrEmpty,
+		message: fmt.Sprintf("%s: dir not found, empty or insufficient permissions", path),
 	})
 }
 
