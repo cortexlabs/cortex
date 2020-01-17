@@ -304,8 +304,8 @@ func deleteK8sResources(apiName string) error {
 }
 
 func deleteS3Resources(apiName string) error {
-	prefix := s.EnsureSuffix(filepath.Join("apis", apiName), "/")
-	return config.AWS.DeleteFromS3ByPrefix(*config.Cluster.Bucket, prefix, true)
+	prefix := filepath.Join("apis", apiName)
+	return config.AWS.DeleteDir(*config.Cluster.Bucket, prefix, true)
 }
 
 func isDeploymentMinReady(deployment *kapps.Deployment) (bool, error) {

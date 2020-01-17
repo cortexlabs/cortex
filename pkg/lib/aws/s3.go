@@ -381,7 +381,12 @@ func (c *Client) ListPathPrefix(s3Path string, maxResults int64) ([]*s3.Object, 
 	return c.ListPrefix(bucket, prefix, maxResults)
 }
 
-func (c *Client) DeleteFromS3ByPrefix(bucket string, prefix string, continueIfFailure bool) error {
+func (c *Client) DeleteDir(bucket string, prefix string, continueIfFailure bool) error {
+	prefix = s.EnsureSuffix(prefix, "/")
+	return c.DeletePrefix(bucket, prefix, continueIfFailure)
+}
+
+func (c *Client) DeletePrefix(bucket string, prefix string, continueIfFailure bool) error {
 	listObjectsInput := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(bucket),
 		Prefix:  aws.String(prefix),
