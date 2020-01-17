@@ -41,13 +41,9 @@ func Parse(rawurl string) (*url.URL, error) {
 
 func Join(str string, strs ...string) string {
 	fullPath := str
-	for i, str := range strs {
-		if i == 0 {
-			fullPath = str
-		} else {
-			fullPath = s.EnsureSuffix(fullPath, "/")
-			fullPath = fullPath + strings.TrimPrefix(str, "/")
-		}
+	for _, str := range strs {
+		fullPath = s.EnsureSuffix(fullPath, "/")
+		fullPath = fullPath + strings.TrimPrefix(str, "/")
 	}
 	return fullPath
 }
