@@ -85,7 +85,7 @@ func getAPIs() (string, error) {
 	}
 
 	if len(apisRes.APIs) == 0 {
-		return console.Bold("no apis are deployed, see cortex.dev for a guides and examples"), nil
+		return console.Bold("no apis are deployed, see cortex.dev for guides and examples"), nil
 	}
 
 	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics)
