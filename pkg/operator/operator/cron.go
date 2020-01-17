@@ -21,7 +21,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	kapps "k8s.io/api/apps/v1"
@@ -29,25 +28,15 @@ import (
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func operatorCron() error {
-	deployments, failedPods, err := getCronK8sResources()
+func deleteEvictedPods() error {
+	failedPods, err := config.K8s.ListPods(&kmeta.ListOptions{
+		FieldSelector: "status.phase=Failed",
+	})
 	if err != nil {
 		return err
 	}
 
-	return parallel.RunFirstErr(
-		func() error {
-			return deleteEvictedPods(failedPods)
-		},
-		func() error {
-			return updateHPAs(deployments)
-		},
-	)
-}
-
-func deleteEvictedPods(failedPods []kcore.Pod) error {
 	var errs []error
-
 	for _, pod := range failedPods {
 		if pod.Status.Reason == k8s.ReasonEvicted {
 			_, err := config.K8s.DeletePod(pod.Name)
@@ -63,7 +52,12 @@ func deleteEvictedPods(failedPods []kcore.Pod) error {
 	return nil
 }
 
-func updateHPAs(deployments []kapps.Deployment) error {
+func updateHPAs() error {
+	deployments, err := config.K8s.ListDeploymentsWithLabelKeys("apiName")
+	if err != nil {
+		return err
+	}
+
 	var allPods []kcore.Pod
 
 	var errs []error
@@ -120,29 +114,7 @@ func updateHPAs(deployments []kapps.Deployment) error {
 	return nil
 }
 
-func getCronK8sResources() ([]kapps.Deployment, []kcore.Pod, error) {
-	var deployments []kapps.Deployment
-	var failedPods []kcore.Pod
-
-	err := parallel.RunFirstErr(
-		func() error {
-			var err error
-			deployments, err = config.K8s.ListDeploymentsWithLabelKeys("apiName")
-			return err
-		},
-		func() error {
-			var err error
-			failedPods, err = config.K8s.ListPods(&kmeta.ListOptions{
-				FieldSelector: "status.phase=Failed",
-			})
-			return err
-		},
-	)
-
-	return deployments, failedPods, err
-}
-
-func telemetryCron() error {
+func operatorTelemetry() error {
 	nodes, err := config.K8s.ListNodes(nil)
 	if err != nil {
 		return err

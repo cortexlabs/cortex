@@ -32,8 +32,9 @@ func Init() error {
 		return errors.Wrap(err, "init")
 	}
 
-	cron.Run(operatorCron, cronErrHandler("operator"), 5*time.Second)
-	cron.Run(telemetryCron, cronErrHandler("telemetry"), 1*time.Hour)
+	cron.Run(updateHPAs, cronErrHandler("update hpas"), 20*time.Second)
+	cron.Run(deleteEvictedPods, cronErrHandler("delete evicted pods"), 12*time.Hour)
+	cron.Run(operatorTelemetry, cronErrHandler("operator telemetry"), 1*time.Hour)
 
 	return nil
 }
