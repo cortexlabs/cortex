@@ -1,1 +1,1 @@
-Please refer to the [tutorial](https://cortex.dev/iris-classifier) to see how to deploy an example with Cortex.
+Please refer to the [tutorial](https://www.cortex.dev/iris-classifier) to see how to deploy an example with Cortex.
