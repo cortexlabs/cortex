@@ -105,6 +105,7 @@ func rerun(f func() (string, error)) {
 		if err != nil {
 			exit.Error(err)
 		}
-		fmt.Println(str)
+		str = strings.TrimRight(str, "\n") + "\n" // ensure a single new line at the end
+		fmt.Print(str)
 	}
 }

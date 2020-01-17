@@ -51,7 +51,6 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TOOD CLI should handle no APIs
 	respond(w, schema.GetAPIsResponse{
 		APIs:       apis,
 		Statuses:   statuses,

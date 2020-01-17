@@ -153,8 +153,8 @@ func getAPICommandsMessage(results []schema.DeployResult) string {
 	items.Add(fmt.Sprintf("cortex get %s", apiName), "(show api info)")
 	items.Add(fmt.Sprintf("cortex logs %s", apiName), "(stream api logs)")
 
-	return items.String(&table.KeyValuePairOpts{
+	return strings.TrimSpace(items.String(&table.KeyValuePairOpts{
 		Delimiter: pointer.String(""),
 		NumSpaces: pointer.Int(2),
-	})
+	}))
 }
