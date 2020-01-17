@@ -34,6 +34,12 @@ func Run(fn func() error, fns ...func() error) []error {
 	for i := range allFns {
 		fn := allFns[i]
 		errChannel := errChannels[i]
+
+		if fn == nil {
+			errChannel <- nil
+			continue
+		}
+
 		go func() {
 			errChannel <- fn()
 		}()
