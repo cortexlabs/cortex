@@ -114,12 +114,12 @@ func apiStatus(deployment *kapps.Deployment, allPods []kcore.Pod) (*status.Statu
 	return status, nil
 }
 
-func getReplicaCounts(deployment *kapps.Deployment, allPods []kcore.Pod) *status.ReplicaCounts {
+func getReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) *status.ReplicaCounts {
 	counts := &status.ReplicaCounts{}
 
 	counts.Requested = *deployment.Spec.Replicas
 
-	for _, pod := range allPods {
+	for _, pod := range pods {
 		if pod.Labels["apiName"] != deployment.Labels["apiName"] {
 			continue
 		}

@@ -82,8 +82,8 @@ func updateHPAs() error {
 			}
 		}
 
-		updatedReplicas := numUpdatedReadyReplicas(&deployment, allPods)
-		if deployment.Spec.Replicas == nil || updatedReplicas < *deployment.Spec.Replicas {
+		replicaCounts := getReplicaCounts(&deployment, allPods)
+		if deployment.Spec.Replicas == nil || replicaCounts.Updated.Ready < *deployment.Spec.Replicas {
 			continue // not yet up-to-date
 		}
 

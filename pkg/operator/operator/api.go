@@ -67,11 +67,11 @@ func UpdateAPI(
 		msg = fmt.Sprintf("creating %s api", api.Name)
 
 	} else if !areDeploymentsEqual(prevDeployment, deploymentSpec(api, prevDeployment)) {
-		isMinReady, err := isDeploymentMinReady(prevDeployment)
+		isUpdating, err := isAPIUpdating(prevDeployment)
 		if err != nil {
 			return nil, "", err
 		}
-		if !isMinReady && !force {
+		if isUpdating && !force {
 			return nil, "", errors.New(fmt.Sprintf("%s api is updating (override with --force)", api.Name))
 		}
 		err = config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key)
@@ -84,11 +84,11 @@ func UpdateAPI(
 		msg = fmt.Sprintf("updating %s api", api.Name)
 
 	} else { // deployment didn't change
-		isMinReady, err := isDeploymentMinReady(prevDeployment)
+		isUpdating, err := isAPIUpdating(prevDeployment)
 		if err != nil {
 			return nil, "", err
 		}
-		if !isMinReady {
+		if isUpdating {
 			msg = fmt.Sprintf("%s api is already updating", api.Name)
 		} else {
 			msg = fmt.Sprintf("%s api is up to date", api.Name)
@@ -104,11 +104,11 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", ErrorAPINotDeployed(apiName)
 	}
 
-	isMinReady, err := isDeploymentMinReady(prevDeployment)
+	isUpdating, err := isAPIUpdating(prevDeployment)
 	if err != nil {
 		return "", err
 	}
-	if !isMinReady && !force {
+	if isUpdating && !force {
 		return "", errors.New(fmt.Sprintf("%s api is updating (override with --force)", apiName))
 	}
 
@@ -308,32 +308,24 @@ func deleteS3Resources(apiName string) error {
 	return config.AWS.DeleteDir(*config.Cluster.Bucket, prefix, true)
 }
 
-func isDeploymentMinReady(deployment *kapps.Deployment) (bool, error) {
+// returns true if min_replicas are not ready and no updated replicas have errored
+func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 	pods, err := config.K8s.ListPodsByLabel("apiName", deployment.Labels["apiName"])
 	if err != nil {
 		return false, err
 	}
-	updatedReady := numUpdatedReadyReplicas(deployment, pods)
+	replicaCounts := getReplicaCounts(deployment, pods)
 
 	minReplicas, ok := s.ParseInt32(deployment.Labels["minReplicas"])
 	if !ok {
 		return false, errors.New("unable to parse minReplicas from deployment") // unexpected
 	}
 
-	return updatedReady >= minReplicas, nil
-}
-
-func numUpdatedReadyReplicas(deployment *kapps.Deployment, pods []kcore.Pod) int32 {
-	var readyReplicas int32
-	for _, pod := range pods {
-		if pod.Labels["apiName"] != deployment.Labels["apiName"] {
-			continue
-		}
-		if k8s.IsPodReady(&pod) && isPodSpecLatest(deployment, &pod) {
-			readyReplicas++
-		}
+	if replicaCounts.Updated.Ready < minReplicas && replicaCounts.Updated.TotalFailed() == 0 {
+		return true, nil
 	}
-	return readyReplicas
+
+	return false, nil
 }
 
 func areDeploymentsEqual(d1, d2 *kapps.Deployment) bool {
