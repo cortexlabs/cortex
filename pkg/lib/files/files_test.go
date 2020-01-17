@@ -183,7 +183,7 @@ func TestListDirRecursive(t *testing.T) {
 		filepath.Join(tmpDir, "4/.git/HEAD"),
 	}
 
-	err = MakeEmptyFiles(filesList...)
+	err = MakeEmptyFiles(filesList[0], filesList[1:]...)
 	require.NoError(t, err)
 
 	var filesListRecursive []string
