@@ -141,7 +141,7 @@ func MergeErrItems(items ...interface{}) error {
 
 func PrintError(err error, strs ...string) {
 	wrappedErr := Wrap(err, strs...)
-	fmt.Print("error:", s.EnsureSingleTrailingNewLine(wrappedErr.Error()))
+	fmt.Print("error: ", s.EnsureSingleTrailingNewLine(wrappedErr.Error()))
 	// PrintStacktrace(wrappedErr)
 }
 
