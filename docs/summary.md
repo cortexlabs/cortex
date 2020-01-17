@@ -11,7 +11,6 @@
 
 ## Deployments
 
-* [Deployments](deployments/deployments.md)
 * [TensorFlow APIs](deployments/tensorflow.md)
 * [Python APIs](deployments/python.md)
 * [ONNX APIs](deployments/onnx.md)
