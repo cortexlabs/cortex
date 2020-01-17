@@ -16,14 +16,9 @@ import os
 import imp
 import inspect
 
-import boto3
-import datadog
 import dill
 
-from cortex import consts
-from cortex.lib import util, api_utils
 from cortex.lib.log import refresh_logger, cx_logger
-from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
 
 

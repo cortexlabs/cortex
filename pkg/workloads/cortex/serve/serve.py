@@ -21,15 +21,19 @@ from flask import Flask, request, jsonify, g
 from flask_api import status
 from waitress import serve
 
-from cortex.lib import util, api_utils
+from cortex import consts
+from cortex.lib import util
 from cortex.lib.type import API
-from cortex.lib.log import cx_logger, debug_obj, refresh_logger
+from cortex.lib.log import cx_logger, debug_obj
 from cortex.lib.storage import S3
 from cortex.lib.exceptions import UserRuntimeException
 
 app = Flask(__name__)
 app.json_encoder = util.json_tricks_encoder
 
+API_SUMMARY_MESSAGE = (
+    "make a prediction by sending a post request to this endpoint with a json payload"
+)
 
 local_cache = {"api": None, "predictor_impl": None, "client": None, "class_set": set()}
 
@@ -106,7 +110,7 @@ def prediction_failed(reason):
 
 @app.route("/predict", methods=["GET"])
 def get_summary():
-    response = {"message": api_utils.API_SUMMARY_MESSAGE}
+    response = {"message": API_SUMMARY_MESSAGE}
 
     if hasattr(local_cache["client"], "input_signature"):
         response["model_signature"] = local_cache["client"].input_signature
@@ -119,11 +123,40 @@ def exceptions(e):
     return jsonify(error=str(e)), 500
 
 
+def assert_api_version():
+    if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
+        raise ValueError(
+            "api version mismatch (context: {}, image: {})".format(
+                os.environ["CORTEX_VERSION"], consts.CORTEX_VERSION
+            )
+        )
+
+
+def get_spec(cache_dir, s3_path):
+    local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
+    bucket, key = S3.deconstruct_s3_path(s3_path)
+    S3(bucket, client_config={}).download_file(key, local_spec_path)
+    return util.read_msgpack(local_spec_path)
+
+
+def extract_waitress_params(config):
+    waitress_kwargs = {}
+    if config is not None:
+        for key, value in config.items():
+            if key.startswith("waitress_"):
+                waitress_kwargs[key[len("waitress_") :]] = value
+
+    if len(waitress_kwargs) > 0:
+        cx_logger().info("waitress parameters: {}".format(waitress_kwargs))
+
+    return waitress_kwargs
+
+
 def start(args):
-    api_utils.assert_api_version()
+    assert_api_version()
     storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
     try:
-        raw_api_spec = api_utils.get_spec(args.cache_dir, args.spec)
+        raw_api_spec = get_spec(args.cache_dir, args.spec)
         api = API(storage=storage, cache_dir=args.cache_dir, **raw_api_spec)
         client = api.predictor.initialize_client(args)
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
@@ -142,7 +175,7 @@ def start(args):
         except Exception as e:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
-    waitress_kwargs = api_utils.extract_waitress_params(api.predictor.config)
+    waitress_kwargs = extract_waitress_params(api.predictor.config)
     waitress_kwargs["listen"] = "*:{}".format(args.port)
 
     cx_logger().info("{} api is live".format(api.name))

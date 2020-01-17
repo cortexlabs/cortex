@@ -13,17 +13,11 @@
 # limitations under the License.
 
 import os
-import imp
-import inspect
 import base64
 import time
 
-import boto3
 import datadog
-import dill
 
-from cortex import consts
-from cortex.lib import util, api_utils
 from cortex.lib.log import cx_logger
 from cortex.lib.exceptions import CortexException
 from cortex.lib.type.predictor import Predictor
@@ -43,7 +37,10 @@ class API:
             self.tracker = Tracker(**kwargs["tracker"])
 
         self.cache_dir = cache_dir
-        self.statsd = api_utils.get_statsd_client()
+        host_ip = os.environ["HOST_IP"]
+        datadog.initialize(statsd_host=host_ip, statsd_port="8125")
+        self.statsd = datadog.statsd
+
         self.storage = storage
 
     def get_cached_classes(self):
