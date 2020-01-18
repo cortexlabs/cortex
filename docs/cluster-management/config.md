@@ -45,7 +45,7 @@ instance_volume_size: 50
 log_group: cortex
 
 # whether to use spot instances in the cluster (default: false)
-# see cortex.dev/v/master/cluster-management/spot-instances for additional details on spot configuration
+# see https://cortex.dev/v/master/cluster-management/spot-instances for additional details on spot configuration
 spot: false
 
 # docker image paths

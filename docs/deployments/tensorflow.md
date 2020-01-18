@@ -7,9 +7,8 @@ You can deploy TensorFlow models as web services by defining a class that implem
 ## Config
 
 ```yaml
-- kind: api
-  name: <string>  # API name (required)
-  endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
+- name: <string>  # API name (required)
+  endpoint: <string>  # the endpoint for the API (default: /<api_name>)
   predictor:
     type: tensorflow
     path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
@@ -36,8 +35,7 @@ See [packaging TensorFlow models](../packaging-models/tensorflow.md) for how to 
 ## Example
 
 ```yaml
-- kind: api
-  name: my-api
+- name: my-api
   predictor:
     type: tensorflow
     path: predictor.py
@@ -58,7 +56,7 @@ You can log information about each request by adding a `?debug=true` parameter t
 A TensorFlow Predictor is a Python class that describes how to serve your TensorFlow model to make predictions.
 
 <!-- CORTEX_VERSION_MINOR -->
-Cortex provides a `tensorflow_client` and a config object to initialize your implementation of the TensorFlow Predictor class. The `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/tf_api/client.py) that manages a connection to a TensorFlow Serving container via gRPC to make predictions using your model. Once your implementation of the TensorFlow Predictor class has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with the JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function should call `tensorflow_client.predict()` to make an inference against your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
+Cortex provides a `tensorflow_client` and a config object to initialize your implementation of the TensorFlow Predictor class. The `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/tensorflow.py) that manages a connection to a TensorFlow Serving container via gRPC to make predictions using your model. Once your implementation of the TensorFlow Predictor class has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with the JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function should call `tensorflow_client.predict()` to make an inference against your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
 ## Implementation
 
@@ -69,7 +67,7 @@ class TensorFlowPredictor:
 
         Args:
             tensorflow_client: TensorFlow client which can be used to make predictions.
-            config: Dictionary passed from API configuration in cortex.yaml (if specified).
+            config: Dictionary passed from API configuration (if specified).
         """
         pass
 

@@ -17,22 +17,20 @@ limitations under the License.
 package k8s
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	kautoscaling "k8s.io/api/autoscaling/v2beta2"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-var hpaTypeMeta = kmeta.TypeMeta{
+var _hpaTypeMeta = kmeta.TypeMeta{
 	APIVersion: "autoscaling/v1",
 	Kind:       "HorizontalPodAutoscaler",
 }
 
 type HPASpec struct {
 	DeploymentName       string
-	Namespace            string
 	MinReplicas          int32
 	MaxReplicas          int32
 	TargetCPUUtilization int32
@@ -41,14 +39,10 @@ type HPASpec struct {
 }
 
 func HPA(spec *HPASpec) *kautoscaling.HorizontalPodAutoscaler {
-	if spec.Namespace == "" {
-		spec.Namespace = "default"
-	}
 	hpa := &kautoscaling.HorizontalPodAutoscaler{
-		TypeMeta: hpaTypeMeta,
+		TypeMeta: _hpaTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.DeploymentName,
-			Namespace:   spec.Namespace,
 			Labels:      spec.Labels,
 			Annotations: spec.Annotations,
 		},
@@ -68,9 +62,9 @@ func HPA(spec *HPASpec) *kautoscaling.HorizontalPodAutoscaler {
 				},
 			},
 			ScaleTargetRef: kautoscaling.CrossVersionObjectReference{
-				Kind:       deploymentTypeMeta.Kind,
+				Kind:       _deploymentTypeMeta.Kind,
 				Name:       spec.DeploymentName,
-				APIVersion: deploymentTypeMeta.APIVersion,
+				APIVersion: _deploymentTypeMeta.APIVersion,
 			},
 		},
 	}
@@ -78,7 +72,7 @@ func HPA(spec *HPASpec) *kautoscaling.HorizontalPodAutoscaler {
 }
 
 func (c *Client) CreateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscaling.HorizontalPodAutoscaler, error) {
-	hpa.TypeMeta = hpaTypeMeta
+	hpa.TypeMeta = _hpaTypeMeta
 	hpa, err := c.hpaClient.Create(hpa)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -86,8 +80,8 @@ func (c *Client) CreateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautosca
 	return hpa, nil
 }
 
-func (c *Client) updateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscaling.HorizontalPodAutoscaler, error) {
-	hpa.TypeMeta = hpaTypeMeta
+func (c *Client) UpdateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscaling.HorizontalPodAutoscaler, error) {
+	hpa.TypeMeta = _hpaTypeMeta
 	hpa, err := c.hpaClient.Update(hpa)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -103,7 +97,7 @@ func (c *Client) ApplyHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscal
 	if existing == nil {
 		return c.CreateHPA(hpa)
 	}
-	return c.updateHPA(hpa)
+	return c.UpdateHPA(hpa)
 }
 
 func (c *Client) GetHPA(name string) (*kautoscaling.HorizontalPodAutoscaler, error) {
@@ -114,12 +108,12 @@ func (c *Client) GetHPA(name string) (*kautoscaling.HorizontalPodAutoscaler, err
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	hpa.TypeMeta = hpaTypeMeta
+	hpa.TypeMeta = _hpaTypeMeta
 	return hpa, nil
 }
 
 func (c *Client) DeleteHPA(name string) (bool, error) {
-	err := c.hpaClient.Delete(name, deleteOpts)
+	err := c.hpaClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -146,7 +140,7 @@ func (c *Client) ListHPAs(opts *kmeta.ListOptions) ([]kautoscaling.HorizontalPod
 		return nil, errors.WithStack(err)
 	}
 	for i := range hpaList.Items {
-		hpaList.Items[i].TypeMeta = hpaTypeMeta
+		hpaList.Items[i].TypeMeta = _hpaTypeMeta
 	}
 	return hpaList.Items, nil
 }
@@ -160,6 +154,13 @@ func (c *Client) ListHPAsByLabels(labels map[string]string) ([]kautoscaling.Hori
 
 func (c *Client) ListHPAsByLabel(labelKey string, labelValue string) ([]kautoscaling.HorizontalPodAutoscaler, error) {
 	return c.ListHPAsByLabels(map[string]string{labelKey: labelValue})
+}
+
+func (c *Client) ListHPAsWithLabelKeys(labelKeys ...string) ([]kautoscaling.HorizontalPodAutoscaler, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListHPAs(opts)
 }
 
 func HPAMap(hpas []kautoscaling.HorizontalPodAutoscaler) map[string]kautoscaling.HorizontalPodAutoscaler {

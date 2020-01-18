@@ -27,10 +27,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/yaml"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -40,21 +40,21 @@ import (
 	"github.com/docker/docker/pkg/term"
 )
 
-var cachedDockerClient *dockerclient.Client
+var _cachedDockerClient *dockerclient.Client
 
 func getDockerClient() (*dockerclient.Client, error) {
-	if cachedDockerClient != nil {
-		return cachedDockerClient, nil
+	if _cachedDockerClient != nil {
+		return _cachedDockerClient, nil
 	}
 
 	var err error
-	cachedDockerClient, err = dockerclient.NewClientWithOpts(dockerclient.FromEnv)
+	_cachedDockerClient, err = dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 	if err != nil {
 		return nil, wrapDockerError(err)
 	}
 
-	cachedDockerClient.NegotiateAPIVersion(context.Background())
-	return cachedDockerClient, nil
+	_cachedDockerClient.NegotiateAPIVersion(context.Background())
+	return _cachedDockerClient, nil
 }
 
 func wrapDockerError(err error) error {
@@ -125,7 +125,7 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: localDir,
+				Source: _localDir,
 				Target: "/.cortex",
 			},
 		},
@@ -199,7 +199,7 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 	return output, &info.State.ExitCode, nil
 }
 
-func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) (string, *int, error) {
+func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Config, awsCreds AWSCredentials) (string, *int, error) {
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
 		return "", nil, errors.WithStack(err)
@@ -221,7 +221,7 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Con
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"CORTEX_ENVIRONMENT=" + flagEnv,
+			"CORTEX_ENVIRONMENT=" + _flagEnv,
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CORTEX_AWS_ACCESS_KEY_ID=" + awsCreds.CortexAWSAccessKeyID,
@@ -242,7 +242,7 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Con
 	return output, exitCode, nil
 }
 
-func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.AccessConfig, awsCreds *AWSCredentials) (string, *int, error) {
+func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.AccessConfig, awsCreds AWSCredentials) (string, *int, error) {
 	containerConfig := &container.Config{
 		Image:        accessConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
@@ -251,7 +251,7 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"CORTEX_ENVIRONMENT=" + flagEnv,
+			"CORTEX_ENVIRONMENT=" + _flagEnv,
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CORTEX_AWS_ACCESS_KEY_ID=" + awsCreds.CortexAWSAccessKeyID,

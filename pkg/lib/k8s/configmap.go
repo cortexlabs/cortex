@@ -17,35 +17,29 @@ limitations under the License.
 package k8s
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-var configMapTypeMeta = kmeta.TypeMeta{
+var _configMapTypeMeta = kmeta.TypeMeta{
 	APIVersion: "v1",
 	Kind:       "ConfigMap",
 }
 
 type ConfigMapSpec struct {
 	Name        string
-	Namespace   string
 	Data        map[string]string
 	Labels      map[string]string
 	Annotations map[string]string
 }
 
 func ConfigMap(spec *ConfigMapSpec) *kcore.ConfigMap {
-	if spec.Namespace == "" {
-		spec.Namespace = "default"
-	}
 	configMap := &kcore.ConfigMap{
-		TypeMeta: configMapTypeMeta,
+		TypeMeta: _configMapTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
-			Namespace:   spec.Namespace,
 			Labels:      spec.Labels,
 			Annotations: spec.Annotations,
 		},
@@ -55,7 +49,7 @@ func ConfigMap(spec *ConfigMapSpec) *kcore.ConfigMap {
 }
 
 func (c *Client) CreateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, error) {
-	configMap.TypeMeta = configMapTypeMeta
+	configMap.TypeMeta = _configMapTypeMeta
 	configMap, err := c.configMapClient.Create(configMap)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -63,8 +57,8 @@ func (c *Client) CreateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, 
 	return configMap, nil
 }
 
-func (c *Client) updateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, error) {
-	configMap.TypeMeta = configMapTypeMeta
+func (c *Client) UpdateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, error) {
+	configMap.TypeMeta = _configMapTypeMeta
 	configMap, err := c.configMapClient.Update(configMap)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -80,7 +74,7 @@ func (c *Client) ApplyConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, e
 	if existing == nil {
 		return c.CreateConfigMap(configMap)
 	}
-	return c.updateConfigMap(configMap)
+	return c.UpdateConfigMap(configMap)
 }
 
 func (c *Client) GetConfigMap(name string) (*kcore.ConfigMap, error) {
@@ -91,7 +85,7 @@ func (c *Client) GetConfigMap(name string) (*kcore.ConfigMap, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	configMap.TypeMeta = configMapTypeMeta
+	configMap.TypeMeta = _configMapTypeMeta
 	return configMap, nil
 }
 
@@ -107,7 +101,7 @@ func (c *Client) GetConfigMapData(name string) (map[string]string, error) {
 }
 
 func (c *Client) DeleteConfigMap(name string) (bool, error) {
-	err := c.configMapClient.Delete(name, deleteOpts)
+	err := c.configMapClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -134,7 +128,7 @@ func (c *Client) ListConfigMaps(opts *kmeta.ListOptions) ([]kcore.ConfigMap, err
 		return nil, errors.WithStack(err)
 	}
 	for i := range configMapList.Items {
-		configMapList.Items[i].TypeMeta = configMapTypeMeta
+		configMapList.Items[i].TypeMeta = _configMapTypeMeta
 	}
 	return configMapList.Items, nil
 }
@@ -148,6 +142,13 @@ func (c *Client) ListConfigMapsByLabels(labels map[string]string) ([]kcore.Confi
 
 func (c *Client) ListConfigMapsByLabel(labelKey string, labelValue string) ([]kcore.ConfigMap, error) {
 	return c.ListConfigMapsByLabels(map[string]string{labelKey: labelValue})
+}
+
+func (c *Client) ListConfigMapsWithLabelKeys(labelKeys ...string) ([]kcore.ConfigMap, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListConfigMaps(opts)
 }
 
 func ConfigMapMap(configMaps []kcore.ConfigMap) map[string]kcore.ConfigMap {

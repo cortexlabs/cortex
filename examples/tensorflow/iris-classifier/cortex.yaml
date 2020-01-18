@@ -1,13 +1,13 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
-- kind: deployment
-  name: iris
-
-- kind: api
-  name: classifier
+- name: iris-classifier
   predictor:
     type: tensorflow
     path: predictor.py
     model: s3://cortex-examples/tensorflow/iris-classifier/nn
   tracker:
     model_type: classification
+  compute:
+    cpu: 0.5
+    min_replicas: 1
+    max_replicas: 5

@@ -21,13 +21,13 @@ import (
 	"os"
 	"strings"
 
-	input "github.com/tcnksm/go-input"
-
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	input "github.com/tcnksm/go-input"
 )
 
-var ui = &input.UI{
+var _ui = &input.UI{
 	Writer: os.Stdout,
 	Reader: os.Stdin,
 }
@@ -53,7 +53,7 @@ func Prompt(opts *Options) string {
 		prompt = fmt.Sprintf("%s [%s]", opts.Prompt, defaultStr)
 	}
 
-	val, err := ui.Ask(prompt, &input.Options{
+	val, err := _ui.Ask(prompt, &input.Options{
 		Default:     opts.DefaultStr,
 		Hide:        opts.HideTyping,
 		Mask:        opts.MaskTyping,
@@ -65,7 +65,7 @@ func Prompt(opts *Options) string {
 	})
 
 	if err != nil {
-		if err.Error() == "interrupted" {
+		if errors.Message(err) == "interrupted" {
 			exit.ErrorNoPrintNoTelemetry()
 		}
 		exit.Error(err)

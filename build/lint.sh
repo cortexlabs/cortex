@@ -75,7 +75,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./.circleci/*" \
 ! -path "./.git/*" \
 ! -name LICENSE \
-! -name requirements.txt \
+! -name "*requirements.txt" \
 ! -name "go.*" \
 ! -name "*.md" \
 ! -name ".*" \

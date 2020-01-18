@@ -30,9 +30,9 @@ You can generate a personal access token by following [these steps](https://help
 
 ## Project files
 
-Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available for use in your Predictor implementations. Python bytecode files (`*.pyc`, `*.pyo`, `*.pyd`), files or folders that start with `.`, and `cortex.yaml` are excluded.
+Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available for use in your Predictor implementations. Python bytecode files (`*.pyc`, `*.pyo`, `*.pyd`), files or folders that start with `.`, and the api config file (e.g. `cortex.yaml`) are excluded.
 
-The contents of the project directory is available in `/mnt/project/` in the API containers. For example, if this is your project directory:
+The contents of the project directory is available in the API containers. For example, if this is your project directory:
 
 ```text
 ./iris-classifier/
@@ -50,7 +50,7 @@ import json
 
 class PythonPredictor:
     def __init__(self, config):
-        with open('/mnt/project/values.json', 'r') as values_file:
+        with open('values.json', 'r') as values_file:
             values = json.load(values_file)
         self.values = values
 ```

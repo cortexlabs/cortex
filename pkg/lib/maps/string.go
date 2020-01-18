@@ -45,3 +45,25 @@ func MergeStrMaps(maps ...map[string]string) map[string]string {
 	}
 	return merged
 }
+
+func StrMapsEqual(m1, m2 map[string]string) bool {
+	if len(m1) != len(m2) {
+		return false
+	}
+
+	if len(m1) == 0 && len(m2) == 0 {
+		return true
+	}
+
+	if len(m1) == 0 || len(m2) == 0 {
+		return false
+	}
+
+	for k, v1 := range m1 {
+		if v2, ok := m2[k]; !ok || v2 != v1 {
+			return false
+		}
+	}
+
+	return true
+}

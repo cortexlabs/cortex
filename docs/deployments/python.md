@@ -12,9 +12,8 @@ In addition to supporting Python models via the Python Predictor interface, Cort
 ## Configuration
 
 ```yaml
-- kind: api
-  name: <string>  # API name (required)
-  endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
+- name: <string>  # API name (required)
+  endpoint: <string>  # the endpoint for the API (default: /<api_name>)
   predictor:
     type: python
     path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
@@ -37,8 +36,7 @@ In addition to supporting Python models via the Python Predictor interface, Cort
 ### Example
 
 ```yaml
-- kind: api
-  name: my-api
+- name: my-api
   predictor:
     type: python
     path: predictor.py
@@ -57,7 +55,7 @@ You can log information about each request by adding a `?debug=true` parameter t
 
 A Python Predictor is a Python class that describes how to initialize a model and use it to make a prediction.
 
-The lifecycle of a replica starts with the initialization of the Python Predictor class defined in your implementation file. The constructor is responsible for downloading and initializing the model. It receives the config object, which is an arbitrary dictionary defined in the API configuration in `cortex.yaml` (it can be used to pass in the path to the exported model, vocabularies, etc). After successfully initializing an instance of the Python Predictor class, the replica is available to serve requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload. The `predict()` function is responsible for returning a prediction or a batch of predictions. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function.
+The lifecycle of a replica starts with the initialization of the Python Predictor class defined in your implementation file. The constructor is responsible for downloading and initializing the model. It receives the config object, which is an arbitrary dictionary defined in the API configuration (e.g. `cortex.yaml`) that can be used to pass in the path to the exported model, vocabularies, etc. After successfully initializing an instance of the Python Predictor class, the replica is available to serve requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload. The `predict()` function is responsible for returning a prediction or a batch of predictions. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function.
 
 ## Implementation
 
@@ -69,7 +67,7 @@ class PythonPredictor:
         """Called once before the API becomes available. Setup for model serving such as downloading/initializing the model or downloading vocabulary can be done here. Required.
 
         Args:
-            config: Dictionary passed from API configuration in cortex.yaml (if specified).
+            config: Dictionary passed from API configuration (if specified).
         """
         pass
 

@@ -29,7 +29,6 @@ type ErrorKind int
 const (
 	ErrUnknown ErrorKind = iota
 	ErrParseConfig
-	ErrReadConfig
 	ErrUnsupportedKey
 	ErrInvalidYAML
 	ErrAlphaNumericDashUnderscore
@@ -59,10 +58,9 @@ const (
 	ErrCortexResourceNotAllowed
 )
 
-var errorKinds = []string{
+var _errorKinds = []string{
 	"err_unknown",
 	"err_parse_config",
-	"err_read_config",
 	"err_unsupported_key",
 	"err_invalid_yaml",
 	"err_alpha_numeric_dash_underscore",
@@ -92,10 +90,10 @@ var errorKinds = []string{
 	"err_cortex_resource_not_allowed",
 }
 
-var _ = [1]int{}[int(ErrCortexResourceNotAllowed)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrCortexResourceNotAllowed)-(len(_errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
-	return errorKinds[t]
+	return _errorKinds[t]
 }
 
 // MarshalText satisfies TextMarshaler
@@ -106,8 +104,8 @@ func (t ErrorKind) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *ErrorKind) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(errorKinds); i++ {
-		if enum == errorKinds[i] {
+	for i := 0; i < len(_errorKinds); i++ {
+		if enum == _errorKinds[i] {
 			*t = ErrorKind(i)
 			return nil
 		}
@@ -144,13 +142,6 @@ func ErrorParseConfig() error {
 	})
 }
 
-func ErrorReadConfig() error {
-	return errors.WithStack(Error{
-		Kind:    ErrReadConfig,
-		message: fmt.Sprintf("failed to read config file"),
-	})
-}
-
 func ErrorUnsupportedKey(key interface{}) error {
 	return errors.WithStack(Error{
 		Kind:    ErrUnsupportedKey,
@@ -159,7 +150,7 @@ func ErrorUnsupportedKey(key interface{}) error {
 }
 
 func ErrorInvalidYAML(err error) error {
-	str := strings.TrimPrefix(err.Error(), "yaml: ")
+	str := strings.TrimPrefix(errors.Message(err), "yaml: ")
 	return errors.WithStack(Error{
 		Kind:    ErrInvalidYAML,
 		message: fmt.Sprintf("invalid yaml: %s", str),
@@ -187,52 +178,59 @@ func ErrorMustHavePrefix(provided string, prefix string) error {
 	})
 }
 
-func ErrorInvalidInterface(provided interface{}, allowed ...interface{}) error {
+func ErrorInvalidInterface(provided interface{}, allowed interface{}, allowedVals ...interface{}) error {
+	allAllowedVals := append(allowedVals, allowed)
 	return errors.WithStack(Error{
 		Kind:    ErrInvalidInterface,
-		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allowed)),
+		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
 	})
 }
 
-func ErrorInvalidFloat64(provided float64, allowed ...float64) error {
+func ErrorInvalidFloat64(provided float64, allowed float64, allowedVals ...float64) error {
+	allAllowedVals := append(allowedVals, allowed)
 	return errors.WithStack(Error{
 		Kind:    ErrInvalidFloat64,
-		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allowed)),
+		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
 	})
 }
 
-func ErrorInvalidFloat32(provided float32, allowed ...float32) error {
+func ErrorInvalidFloat32(provided float32, allowed float32, allowedVals ...float32) error {
+	allAllowedVals := append(allowedVals, allowed)
 	return errors.WithStack(Error{
 		Kind:    ErrInvalidFloat32,
-		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allowed)),
+		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
 	})
 }
 
-func ErrorInvalidInt64(provided int64, allowed ...int64) error {
+func ErrorInvalidInt64(provided int64, allowed int64, allowedVals ...int64) error {
+	allAllowedVals := append(allowedVals, allowed)
 	return errors.WithStack(Error{
 		Kind:    ErrInvalidInt64,
-		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allowed)),
+		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
 	})
 }
 
-func ErrorInvalidInt32(provided int32, allowed ...int32) error {
+func ErrorInvalidInt32(provided int32, allowed int32, allowedVals ...int32) error {
+	allAllowedVals := append(allowedVals, allowed)
 	return errors.WithStack(Error{
 		Kind:    ErrInvalidInt32,
-		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allowed)),
+		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
 	})
 }
 
-func ErrorInvalidInt(provided int, allowed ...int) error {
+func ErrorInvalidInt(provided int, allowed int, allowedVals ...int) error {
+	allAllowedVals := append(allowedVals, allowed)
 	return errors.WithStack(Error{
 		Kind:    ErrInvalidInt,
-		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allowed)),
+		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
 	})
 }
 
-func ErrorInvalidStr(provided string, allowed ...string) error {
+func ErrorInvalidStr(provided string, allowed string, allowedVals ...string) error {
+	allAllowedVals := append(allowedVals, allowed)
 	return errors.WithStack(Error{
 		Kind:    ErrInvalidStr,
-		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allowed)),
+		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
 	})
 }
 
@@ -271,10 +269,11 @@ func ErrorNonStringKeyFound(key interface{}) error {
 	})
 }
 
-func ErrorInvalidPrimitiveType(provided interface{}, allowedTypes ...PrimitiveType) error {
+func ErrorInvalidPrimitiveType(provided interface{}, allowedType PrimitiveType, allowedTypes ...PrimitiveType) error {
+	allAllowedTypes := append(allowedTypes, allowedType)
 	return errors.WithStack(Error{
 		Kind:    ErrInvalidPrimitiveType,
-		message: fmt.Sprintf("%s: invalid type (expected %s)", s.UserStr(provided), s.StrsOr(PrimitiveTypes(allowedTypes).StringList())),
+		message: fmt.Sprintf("%s: invalid type (expected %s)", s.UserStr(provided), s.StrsOr(PrimitiveTypes(allAllowedTypes).StringList())),
 	})
 }
 

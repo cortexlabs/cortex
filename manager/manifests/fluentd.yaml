@@ -16,7 +16,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: fluentd
-  namespace: cortex
+  namespace: default
   labels:
     app: fluentd
 ---
@@ -24,7 +24,7 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
   name: fluentd
-  namespace: cortex
+  namespace: default
 rules:
 - apiGroups: [""]
   resources:
@@ -37,11 +37,11 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: fluentd
-  namespace: cortex
+  namespace: default
 subjects:
 - kind: ServiceAccount
   name: fluentd
-  namespace: cortex
+  namespace: default
 roleRef:
   kind: ClusterRole
   name: fluentd
@@ -52,7 +52,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: fluentd
-  namespace: cortex
+  namespace: default
 data:
   fluent.conf: |
     @include containers.conf
@@ -66,6 +66,22 @@ data:
       @id in_tail_container_logs
       @label @containers
       path /var/log/containers/*.log
+      exclude_path ["/var/log/containers/fluentd*.log"]
+      pos_file /var/log/containers.log.pos
+      tag *
+      read_from_head true
+      refresh_interval 1
+      <parse>
+        @type json
+        time_format %Y-%m-%dT%H:%M:%S.%NZ
+      </parse>
+    </source>
+
+    <source>
+      @type tail
+      @id in_tail_fluentd_logs
+      @label @fluentd
+      path /var/log/containers/fluentd-*.log
       pos_file /var/log/fluentd-containers.log.pos
       tag *
       read_from_head true
@@ -76,16 +92,41 @@ data:
       </parse>
     </source>
 
+    <label @fluentd>
+      <filter **>
+        @type grep
+        <exclude>
+          key log
+          pattern /Aws::CloudWatchLogs::Client 200/
+        </exclude>
+      </filter>
+      <filter **>
+        @type grep
+        <exclude>
+          key log
+          pattern /^\s*$/
+        </exclude>
+      </filter>
+      <match **>
+        @type relabel
+        @label @containers
+      </match>
+    </label>
+
     <label @containers>
       <filter **>
         @type kubernetes_metadata
         @id filter_kube_metadata
+        skip_namespace_metadata false
+        skip_container_metadata true
+        cache_ttl -1
+        watch false
       </filter>
 
       <filter **>
         @type record_modifier
         <record>
-          group_name  ${record.dig("kubernetes", "labels", "logGroupName") || ENV['LOG_GROUP_NAME']}
+          group_name  ${record["kubernetes"]["labels"].has_key?("apiName") ? "#{ENV['LOG_GROUP_NAME']}/#{record['kubernetes']['labels']['apiName']}" : ENV['LOG_GROUP_NAME']}
           stream_name ${record.dig("kubernetes", "pod_name")}_${record.dig("kubernetes", "container_name")}
           log ${record.dig("log").rstrip}
         </record>
@@ -107,13 +148,17 @@ data:
         </buffer>
       </match>
     </label>
+
+    <match **>
+      @type null
+    </match>
 ---
 
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: fluentd
-  namespace: cortex
+  namespace: default
 spec:
   template:
     metadata:
@@ -139,6 +184,10 @@ spec:
           value: $CORTEX_REGION
         - name: LOG_GROUP_NAME
           value: $CORTEX_LOG_GROUP
+        - name: K8S_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         envFrom:
         - secretRef:
             name: aws-credentials

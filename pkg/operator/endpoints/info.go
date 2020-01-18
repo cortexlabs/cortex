@@ -21,8 +21,8 @@ import (
 	"os"
 
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
 func Info(w http.ResponseWriter, r *http.Request) {
@@ -30,5 +30,5 @@ func Info(w http.ResponseWriter, r *http.Request) {
 		MaskedAWSAccessKeyID: s.MaskString(os.Getenv("AWS_ACCESS_KEY_ID"), 4),
 		ClusterConfig:        config.Cluster,
 	}
-	Respond(w, response)
+	respond(w, response)
 }

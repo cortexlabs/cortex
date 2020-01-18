@@ -23,32 +23,36 @@ import (
 // Alternative: https://golang.org/pkg/sync/#WaitGroup (with error channel)
 // Alternative: https://godoc.org/golang.org/x/sync/errgroup
 
-func Run(fns ...func() error) []error {
-	if len(fns) == 0 {
-		return nil
-	}
+func Run(fn func() error, fns ...func() error) []error {
+	allFns := append(fns, fn)
 
-	errChannels := make([]chan error, len(fns))
+	errChannels := make([]chan error, len(allFns))
 	for i := range errChannels {
 		errChannels[i] = make(chan error)
 	}
 
-	for i := range fns {
-		fn := fns[i]
+	for i := range allFns {
+		fn := allFns[i]
 		errChannel := errChannels[i]
+
+		if fn == nil {
+			errChannel <- nil
+			continue
+		}
+
 		go func() {
 			errChannel <- fn()
 		}()
 	}
 
-	errors := make([]error, len(fns))
-	for i := range fns {
+	errors := make([]error, len(allFns))
+	for i := range allFns {
 		errors[i] = <-errChannels[i]
 	}
 	return errors
 }
 
-func RunFirstErr(fns ...func() error) error {
-	errs := Run(fns...)
+func RunFirstErr(fn func() error, fns ...func() error) error {
+	errs := Run(fn, fns...)
 	return errors.FirstError(errs...)
 }

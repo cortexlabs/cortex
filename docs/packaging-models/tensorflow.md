@@ -36,8 +36,7 @@ aws s3 sync ./bert s3://my-bucket/bert
 Reference your model in an `api`:
 
 ```yaml
-- kind: api
-  name: my-api
+- name: my-api
   predictor:
     type: tensorflow
     model: s3://my-bucket/bert
@@ -55,8 +54,7 @@ aws s3 cp bert.zip s3://my-bucket/bert.zip --profile prod
 Reference the zipped model in an `api`:
 
 ```yaml
-- kind: api
-  name: my-api
+- name: my-api
   predictor:
     type: tensorflow
     model: s3://my-bucket/bert.zip

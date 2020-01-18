@@ -26,17 +26,17 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
-var portRe *regexp.Regexp
-var emailRegex *regexp.Regexp
+var _portRe *regexp.Regexp
+var _emailRegex *regexp.Regexp
 
 func init() {
-	portRe = regexp.MustCompile(`:[0-9]+$`)
-	emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+	_portRe = regexp.MustCompile(`:[0-9]+$`)
+	_emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 }
 
 func GetFilePathValidator(baseDir string) func(string) (string, error) {
 	return func(val string) (string, error) {
-		val = files.RelPath(val, baseDir)
+		val = files.RelToAbsPath(val, baseDir)
 		if err := files.CheckFile(val); err != nil {
 			return "", err
 		}
@@ -69,7 +69,7 @@ func EmailValidator() func(string) (string, error) {
 			return "", errors.New("email exceeds max-length")
 		}
 
-		if !emailRegex.MatchString(val) {
+		if !_emailRegex.MatchString(val) {
 			return "", errors.New("invalid email address")
 		}
 
@@ -91,7 +91,7 @@ func GetURLValidator(defaultHTTP bool, addPort bool) func(string) (string, error
 		}
 
 		if addPort {
-			if !portRe.MatchString(urlStr) {
+			if !_portRe.MatchString(urlStr) {
 				if strings.HasPrefix(strings.ToLower(urlStr), "https") {
 					urlStr = urlStr + ":443"
 				} else {
