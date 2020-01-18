@@ -324,12 +324,12 @@ func classificationMetricsStr(metrics *metrics.Metrics) string {
 
 func describeModelInput(status *status.Status, apiEndpoint string) string {
 	if status.Updated.Ready+status.Stale.Ready == 0 {
-		return "the model's input schema will be available when the api is live"
+		return "the model's input schema will be available when the api is live\n"
 	}
 
 	apiSummary, err := getAPISummary(apiEndpoint)
 	if err != nil {
-		return "error retrieving the model's input schema: " + errors.Message(err)
+		return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
 	}
 
 	rows := make([][]interface{}, len(apiSummary.ModelSignature))
