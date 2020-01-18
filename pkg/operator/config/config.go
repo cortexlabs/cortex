@@ -76,7 +76,7 @@ func Init() error {
 		Properties:  map[string]interface{}{"clusterID": Cluster.ID},
 		Environment: "operator",
 		LogErrors:   true,
-		BackoffMode: telemetry.BackoffAnyMessages,
+		BackoffMode: telemetry.BackoffDuplicateMessages,
 	})
 	if err != nil {
 		fmt.Println(errors.Message(err))
