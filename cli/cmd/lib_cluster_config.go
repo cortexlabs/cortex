@@ -399,7 +399,7 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 			}
 
 			if *clusterConfig.SpotConfig.OnDemandBackup != *defaultSpotConfig.OnDemandBackup {
-				items.Add(clusterconfig.OnDemandBackupUserFacingKey, s.YesNo(*clusterConfig.SpotConfig.OnDemandBackup))
+				items.Add(clusterconfig.OnDemandBackupUserKey, s.YesNo(*clusterConfig.SpotConfig.OnDemandBackup))
 			}
 		}
 	}
