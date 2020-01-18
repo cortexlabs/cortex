@@ -10,8 +10,8 @@
   tracker:
     model_type: classification
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 
 - name: another-iris-classifier
   predictor:
@@ -23,8 +23,8 @@
   tracker:
     model_type: classification
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 
 - name: batch-iris-classifier
   predictor:
@@ -34,5 +34,5 @@
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M

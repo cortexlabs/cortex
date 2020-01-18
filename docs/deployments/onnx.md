@@ -7,9 +7,8 @@ You can deploy ONNX models as web services by defining a class that implements C
 ## Config
 
 ```yaml
-- kind: api
-  name: <string>  # API name (required)
-  endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
+- name: <string>  # API name (required)
+  endpoint: <string>  # the endpoint for the API (default: /<api_name>)
   predictor:
     type: onnx
     path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
@@ -35,8 +34,7 @@ See [packaging ONNX models](../packaging-models/onnx.md) for information about e
 ## Example
 
 ```yaml
-- kind: api
-  name: my-api
+- name: my-api
   predictor:
     type: onnx
     path: predictor.py
@@ -68,7 +66,7 @@ class ONNXPredictor:
 
         Args:
             onnx_client: ONNX client which can be used to make predictions.
-            config: Dictionary passed from API configuration in cortex.yaml (if specified).
+            config: Dictionary passed from API configuration (if specified).
         """
         pass
 

@@ -7,9 +7,8 @@ You can deploy TensorFlow models as web services by defining a class that implem
 ## Config
 
 ```yaml
-- kind: api
-  name: <string>  # API name (required)
-  endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
+- name: <string>  # API name (required)
+  endpoint: <string>  # the endpoint for the API (default: /<api_name>)
   predictor:
     type: tensorflow
     path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
@@ -36,8 +35,7 @@ See [packaging TensorFlow models](../packaging-models/tensorflow.md) for how to 
 ## Example
 
 ```yaml
-- kind: api
-  name: my-api
+- name: my-api
   predictor:
     type: tensorflow
     path: predictor.py
@@ -69,7 +67,7 @@ class TensorFlowPredictor:
 
         Args:
             tensorflow_client: TensorFlow client which can be used to make predictions.
-            config: Dictionary passed from API configuration in cortex.yaml (if specified).
+            config: Dictionary passed from API configuration (if specified).
         """
         pass
 

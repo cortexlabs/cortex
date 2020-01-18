@@ -100,15 +100,14 @@ You can skip dependencies that are [pre-installed](../../../docs/deployments/pyt
 
 <br>
 
-## Configure a deployment
+## Configure an API
 
 Create a `cortex.yaml` file and add the configuration below. An `api` provides a runtime for inference and makes our `predictor.py` implementation available as a web service that can serve real-time predictions:
 
 ```yaml
 # cortex.yaml
 
-- kind: api
-  name: iris-classifier
+- name: iris-classifier
   predictor:
     type: python
     path: predictor.py
@@ -129,7 +128,7 @@ $ cortex deploy
 creating iris-classifier api
 ```
 
-Track the status of your deployment using `cortex get`:
+Track the status of your api using `cortex get`:
 
 ```bash
 $ cortex get iris-classifier --watch
@@ -221,8 +220,8 @@ This model is fairly small but larger models may require more compute resources.
   tracker:
     model_type: classification
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 ```
 
 You could also configure GPU compute here if your cluster supports it. Adding compute resources may help reduce your inference latency. Run `cortex deploy` again to update your API with this configuration:
@@ -264,8 +263,8 @@ If you trained another model and want to A/B test it with your previous model, s
   tracker:
     model_type: classification
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 
 - name: another-iris-classifier
   predictor:
@@ -277,8 +276,8 @@ If you trained another model and want to A/B test it with your previous model, s
   tracker:
     model_type: classification
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 ```
 
 Run `cortex deploy` to create the new API:
@@ -347,8 +346,8 @@ Next, add the `api` to `cortex.yaml`:
   tracker:
     model_type: classification
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 
 - name: another-iris-classifier
   predictor:
@@ -360,8 +359,8 @@ Next, add the `api` to `cortex.yaml`:
   tracker:
     model_type: classification
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 
 
 - name: batch-iris-classifier
@@ -372,8 +371,8 @@ Next, add the `api` to `cortex.yaml`:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 ```
 
 Run `cortex deploy` to create the batch API:

@@ -128,7 +128,7 @@ func updateRootUsage() {
 		}
 
 		usage = strings.Replace(usage, "Usage:\n  cortex [command]\n\nAliases:\n  cortex, cx\n\n", "", 1)
-		usage = strings.Replace(usage, "Available Commands:", "deployment commands:", 1)
+		usage = strings.Replace(usage, "Available Commands:", "api commands:", 1)
 		usage = strings.Replace(usage, "\n  cluster", "\n\ncluster commands:\n  cluster", 1)
 		usage = strings.Replace(usage, "\n  configure", "\n\nother commands:\n  configure", 1)
 		usage = strings.Replace(usage, "\n\nUse \"cortex [command] --help\" for more information about a command.", "", 1)

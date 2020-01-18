@@ -33,7 +33,7 @@ import (
 var _flagRefreshForce bool
 
 func init() {
-	_refreshCmd.PersistentFlags().BoolVarP(&_flagRefreshForce, "force", "f", false, "override the in-progress deployment update")
+	_refreshCmd.PersistentFlags().BoolVarP(&_flagRefreshForce, "force", "f", false, "override the in-progress api update")
 	addEnvFlag(_refreshCmd)
 }
 

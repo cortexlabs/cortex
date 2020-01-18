@@ -12,9 +12,9 @@ Usage:
 
 Flags:
   -e, --env string   environment (default "default")
-  -f, --force        override the in-progress deployment update
+  -f, --force        override the in-progress api update
   -h, --help         help for deploy
-  -r, --refresh      re-deploy all apis with cleared cache and rolling updates
+  -r, --refresh      re-deploy with cleared cache and rolling updates
 ```
 
 ## get
@@ -54,6 +54,7 @@ Usage:
 
 Flags:
   -e, --env string   environment (default "default")
+  -f, --force        override the in-progress api update
   -h, --help         help for refresh
 ```
 
@@ -83,7 +84,7 @@ Flags:
   -e, --env string   environment (default "default")
   -f, --force        delete the api without confirmation
   -h, --help         help for delete
-  -c, --keep-cache   keep cached data for the deployment
+  -c, --keep-cache   keep cached data for the api
 ```
 
 ## cluster up

@@ -149,7 +149,7 @@ func getAPICommandsMessage(results []schema.DeployResult) string {
 	}
 
 	var items table.KeyValuePairs
-	items.Add("cortex get", "(show deployment status)")
+	items.Add("cortex get", "(show api statuses)")
 	items.Add(fmt.Sprintf("cortex get %s", apiName), "(show api info)")
 	items.Add(fmt.Sprintf("cortex logs %s", apiName), "(stream api logs)")
 
