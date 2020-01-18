@@ -104,6 +104,10 @@ func (c *Client) ApplyPod(pod *kcore.Pod) (*kcore.Pod, error) {
 }
 
 func IsPodReady(pod *kcore.Pod) bool {
+	if GetPodStatus(pod) != PodStatusRunning {
+		return false
+	}
+
 	for _, condition := range pod.Status.Conditions {
 		if condition.Type == "Ready" && condition.Status == kcore.ConditionTrue {
 			return true
