@@ -33,9 +33,8 @@ import (
 )
 
 var (
-	_spotInstanceDistributionLength     = 2
-	_onDemandPercentageAboveBaseDefault = 50
-	_maxInstancePools                   = 20
+	_spotInstanceDistributionLength = 2
+	_maxInstancePools               = 20
 )
 
 type Config struct {
@@ -78,6 +77,7 @@ type SpotConfig struct {
 	OnDemandPercentageAboveBaseCapacity *int64   `json:"on_demand_percentage_above_base_capacity" yaml:"on_demand_percentage_above_base_capacity"`
 	MaxPrice                            *float64 `json:"max_price" yaml:"max_price"`
 	InstancePools                       *int64   `json:"instance_pools" yaml:"instance_pools"`
+	OnDemandBackup                      *bool    `json:"on_demand_backup" yaml:"on_demand_backup"`
 }
 
 type InternalConfig struct {
@@ -173,6 +173,12 @@ var UserValidation = &cr.StructValidation{
 							GreaterThanOrEqualTo: pointer.Int64(1),
 							LessThanOrEqualTo:    pointer.Int64(int64(_maxInstancePools)),
 							AllowExplicitNull:    true,
+						},
+					},
+					{
+						StructField: "OnDemandBackup",
+						BoolPtrValidation: &cr.BoolPtrValidation{
+							Default: pointer.Bool(true),
 						},
 					},
 				},
@@ -412,7 +418,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 
 	if cc.Spot != nil && *cc.Spot {
 		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
-		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, _spotInstanceDistributionLength)
+		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, cc.SpotConfig.MaxPrice, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
 			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
 		}
@@ -427,7 +433,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 			}
 
 			instanceMetadata := aws.InstanceMetadatas[*cc.Region][instanceType]
-			err := CheckSpotInstanceCompatibility(awsClient, chosenInstance, instanceMetadata)
+			err := CheckSpotInstanceCompatibility(awsClient, chosenInstance, instanceMetadata, cc.SpotConfig.MaxPrice)
 			if err != nil {
 				return errors.Wrap(err, InstanceDistributionKey)
 			}
@@ -472,7 +478,7 @@ func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 	return nil
 }
 
-func CheckSpotInstanceCompatibility(awsClient *aws.Client, target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
+func CheckSpotInstanceCompatibility(awsClient *aws.Client, target aws.InstanceMetadata, suggested aws.InstanceMetadata, maxPrice *float64) error {
 	if target.GPU > suggested.GPU {
 		return ErrorIncompatibleSpotInstanceTypeGPU(target, suggested)
 	}
@@ -490,13 +496,17 @@ func CheckSpotInstanceCompatibility(awsClient *aws.Client, target aws.InstanceMe
 		return err
 	}
 
-	if target.Price < suggestedInstancePrice {
+	if (maxPrice == nil || *maxPrice == target.Price) && target.Price < suggestedInstancePrice {
 		return ErrorSpotPriceGreaterThanTargetOnDemand(suggestedInstancePrice, target, suggested)
+	}
+
+	if maxPrice != nil && *maxPrice < suggestedInstancePrice {
+		return ErrorSpotPriceGreaterThanMaxPrice(suggestedInstancePrice, *maxPrice, suggested)
 	}
 	return nil
 }
 
-func CompatibleSpotInstances(awsClient *aws.Client, targetInstance aws.InstanceMetadata, numInstances int) []aws.InstanceMetadata {
+func CompatibleSpotInstances(awsClient *aws.Client, targetInstance aws.InstanceMetadata, maxPrice *float64, numInstances int) []aws.InstanceMetadata {
 	compatibleInstances := []aws.InstanceMetadata{}
 	instanceMap := aws.InstanceMetadatas[targetInstance.Region]
 	availableInstances := []aws.InstanceMetadata{}
@@ -517,7 +527,7 @@ func CompatibleSpotInstances(awsClient *aws.Client, targetInstance aws.InstanceM
 			continue
 		}
 
-		if err := CheckSpotInstanceCompatibility(awsClient, targetInstance, instanceMetadata); err != nil {
+		if err := CheckSpotInstanceCompatibility(awsClient, targetInstance, instanceMetadata, maxPrice); err != nil {
 			continue
 		}
 
@@ -536,7 +546,7 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 	if len(spotConfig.InstanceDistribution) == 0 {
 		spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, chosenInstance.Type)
 
-		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, _spotInstanceDistributionLength)
+		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, spotConfig.MaxPrice, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
 			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
 		}
@@ -558,7 +568,11 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 	}
 
 	if spotConfig.OnDemandPercentageAboveBaseCapacity == nil {
-		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(int64(_onDemandPercentageAboveBaseDefault))
+		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(0)
+	}
+
+	if spotConfig.OnDemandBackup == nil {
+		spotConfig.OnDemandBackup = pointer.Bool(true)
 	}
 
 	if spotConfig.InstancePools == nil {
@@ -568,6 +582,7 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 			spotConfig.InstancePools = pointer.Int64(int64(_maxInstancePools))
 		}
 	}
+
 	return nil
 }
 
@@ -853,6 +868,7 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 		items.Add(OnDemandPercentageAboveBaseCapacityUserKey, *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity)
 		items.Add(MaxPriceUserKey, *cc.SpotConfig.MaxPrice)
 		items.Add(InstancePoolsUserKey, *cc.SpotConfig.InstancePools)
+		items.Add(OnDemandBackupUserKey, s.YesNo(*cc.SpotConfig.OnDemandBackup))
 	}
 	items.Add(LogGroupUserKey, cc.LogGroup)
 	items.Add(TelemetryUserKey, cc.Telemetry)
