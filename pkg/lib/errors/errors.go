@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	pkgerrors "github.com/pkg/errors"
@@ -119,7 +120,7 @@ func MergeErrItems(items ...interface{}) error {
 			if err == nil {
 				err = casted
 			} else {
-				err = Wrap(err, casted.Error())
+				err = Wrap(err, Message(casted))
 			}
 		case string:
 			if err == nil {
@@ -141,8 +142,21 @@ func MergeErrItems(items ...interface{}) error {
 
 func PrintError(err error, strs ...string) {
 	wrappedErr := Wrap(err, strs...)
-	fmt.Print("error: ", s.EnsureSingleTrailingNewLine(wrappedErr.Error()))
+	fmt.Print("error: ", s.EnsureSingleTrailingNewLine(Message(wrappedErr)))
 	// PrintStacktrace(wrappedErr)
+}
+
+func Message(err error, strs ...string) string {
+	wrappedErr := Wrap(err, strs...)
+
+	var errStr string
+	if _, ok := Cause(wrappedErr).(awserr.Error); ok {
+		errStr = strings.Split(wrappedErr.Error(), "\n")[0]
+	} else {
+		errStr = wrappedErr.Error()
+	}
+
+	return s.RemoveTrailingNewLines(errStr)
 }
 
 func PrintStacktrace(err error) {

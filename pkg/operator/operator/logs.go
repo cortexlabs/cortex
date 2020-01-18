@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -120,7 +121,7 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 				deployment, err = config.K8s.GetDeployment(k8sName(apiName))
 				if err != nil {
 					telemetry.Error(err)
-					writeAndCloseSocket(socket, "error: "+err.Error())
+					writeAndCloseSocket(socket, "error: "+errors.Message(err))
 					continue
 				}
 				lastDeploymentRefresh = time.Now()
@@ -140,7 +141,7 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 				newLogStreamNames, err := getLogStreams(logGroupName)
 				if err != nil {
 					telemetry.Error(err)
-					writeAndCloseSocket(socket, "error encountered while searching for log streams: "+err.Error())
+					writeAndCloseSocket(socket, "error encountered while searching for log streams: "+errors.Message(err))
 					continue
 				}
 
@@ -177,7 +178,7 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 			if err != nil {
 				if !awslib.CheckErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) {
 					telemetry.Error(err)
-					writeAndCloseSocket(socket, "error encountered while fetching logs from cloudwatch: "+err.Error())
+					writeAndCloseSocket(socket, "error encountered while fetching logs from cloudwatch: "+errors.Message(err))
 					continue
 				}
 			}
@@ -188,7 +189,7 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 				err := json.Unmarshal([]byte(*logEvent.Message), &log)
 				if err != nil {
 					telemetry.Error(err)
-					writeAndCloseSocket(socket, "error encountered while parsing logs from cloudwatch: "+err.Error())
+					writeAndCloseSocket(socket, "error encountered while parsing logs from cloudwatch: "+errors.Message(err))
 				}
 
 				if !eventCache.Has(*logEvent.EventId) {

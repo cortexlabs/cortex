@@ -93,7 +93,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		results[i].API = api
 		results[i].Message = msg
 		if err != nil {
-			results[i].Error = err.Error()
+			results[i].Error = errors.Message(err)
 		}
 	}
 

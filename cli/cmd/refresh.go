@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -54,8 +55,8 @@ func refresh(apiName string, force bool) {
 	httpRes, err := HTTPPostNoBody("/refresh/"+apiName, params)
 	if err != nil {
 		// note: if modifying this string, search the codebase for it and change all occurrences
-		if strings.HasSuffix(err.Error(), "is not deployed") || strings.Contains(err.Error(), "--force") {
-			fmt.Println(console.Bold(err.Error()))
+		if strings.HasSuffix(errors.Message(err), "is not deployed") || strings.Contains(errors.Message(err), "--force") {
+			fmt.Println(console.Bold(errors.Message(err)))
 			exit.ErrorNoPrintNoTelemetry()
 		}
 		exit.Error(err)

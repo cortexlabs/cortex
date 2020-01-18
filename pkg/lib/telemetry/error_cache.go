@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
@@ -48,7 +49,7 @@ func shouldBlock(err error, backoffMode BackoffMode) bool {
 		return false
 	}
 
-	errMsg := err.Error()
+	errMsg := errors.Message(err)
 	now := time.Now()
 
 	if backoffMode == BackoffAnyMessages {

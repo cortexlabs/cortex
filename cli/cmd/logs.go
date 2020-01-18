@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/spf13/cobra"
@@ -42,8 +43,8 @@ var _logsCmd = &cobra.Command{
 		err := StreamLogs(apiName)
 		if err != nil {
 			// note: if modifying this string, search the codebase for it and change all occurrences
-			if strings.HasSuffix(err.Error(), "is not deployed") {
-				fmt.Println(console.Bold(err.Error()))
+			if strings.HasSuffix(errors.Message(err), "is not deployed") {
+				fmt.Println(console.Bold(errors.Message(err)))
 				return
 			}
 			exit.Error(err)

@@ -38,6 +38,10 @@ func EnsureSuffix(str string, suffix string) string {
 	return str
 }
 
+func RemoveTrailingNewLines(str string) string {
+	return strings.TrimRight(str, "\n")
+}
+
 func EnsureSingleTrailingNewLine(str string) string {
 	return strings.TrimRight(str, "\n") + "\n"
 }

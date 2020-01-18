@@ -76,10 +76,10 @@ func Init() error {
 		Properties:  map[string]interface{}{"clusterID": Cluster.ID},
 		Environment: "operator",
 		LogErrors:   true,
-		BackoffMode: telemetry.BackoffAnyMessages,
+		BackoffMode: telemetry.BackoffDuplicateMessages,
 	})
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(errors.Message(err))
 	}
 
 	Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]

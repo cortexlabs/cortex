@@ -21,6 +21,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	input "github.com/tcnksm/go-input"
@@ -64,7 +65,7 @@ func Prompt(opts *Options) string {
 	})
 
 	if err != nil {
-		if err.Error() == "interrupted" {
+		if errors.Message(err) == "interrupted" {
 			exit.ErrorNoPrintNoTelemetry()
 		}
 		exit.Error(err)
