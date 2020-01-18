@@ -34,7 +34,7 @@ import (
 func Open(path string) (*os.File, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorReadFile(path).Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorReadFile(path)))
 	}
 
 	return file, nil
@@ -43,7 +43,7 @@ func Open(path string) (*os.File, error) {
 func OpenFile(path string, flag int, perm os.FileMode) (*os.File, error) {
 	file, err := os.OpenFile(path, flag, perm)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorCreateFile(path).Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
 	}
 
 	return file, err
@@ -69,7 +69,7 @@ func ReadFileBytesErrPath(path string, errMsgPath string) ([]byte, error) {
 
 	fileBytes, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorReadFile(errMsgPath).Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorReadFile(errMsgPath)))
 	}
 
 	return fileBytes, nil
@@ -78,7 +78,7 @@ func ReadFileBytesErrPath(path string, errMsgPath string) ([]byte, error) {
 func CreateFile(path string) (*os.File, error) {
 	file, err := os.Create(path)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorCreateFile(path).Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
 	}
 
 	return file, nil
@@ -86,7 +86,7 @@ func CreateFile(path string) (*os.File, error) {
 
 func WriteFile(data []byte, path string) error {
 	if err := ioutil.WriteFile(path, data, 0664); err != nil {
-		return errors.Wrap(err, ErrorCreateFile(path).Error())
+		return errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
 	}
 
 	return nil
@@ -94,7 +94,7 @@ func WriteFile(data []byte, path string) error {
 
 func MkdirAll(path string) error {
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		return errors.Wrap(err, ErrorCreateDir(path).Error())
+		return errors.Wrap(err, errors.Message(ErrorCreateDir(path)))
 	}
 
 	return nil
@@ -143,7 +143,7 @@ func CheckDir(dirPath string) error {
 func CheckDirErrPath(dirPath string, errMsgPath string) error {
 	fileInfo, err := os.Stat(dirPath)
 	if err != nil {
-		return errors.Wrap(err, ErrorDirDoesNotExist(errMsgPath).Error())
+		return errors.Wrap(err, errors.Message(ErrorDirDoesNotExist(errMsgPath)))
 	}
 	if !fileInfo.IsDir() {
 		return ErrorNotADir(errMsgPath)
@@ -211,7 +211,7 @@ func SearchForFile(filename string, dir string) (string, error) {
 	for true {
 		files, err := ioutil.ReadDir(dir)
 		if err != nil {
-			return "", errors.Wrap(err, ErrorReadDir(dir).Error())
+			return "", errors.Wrap(err, errors.Message(ErrorReadDir(dir)))
 		}
 
 		for _, file := range files {
@@ -234,11 +234,11 @@ func MakeEmptyFile(path string) error {
 	path = filepath.Clean(path)
 	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
 	if err != nil {
-		return errors.Wrap(err, ErrorCreateDir(filepath.Dir(path)).Error())
+		return errors.Wrap(err, errors.Message(ErrorCreateDir(filepath.Dir(path))))
 	}
 	f, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
-		return errors.Wrap(err, ErrorCreateFile(path).Error())
+		return errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
 	}
 	defer f.Close()
 	return nil
@@ -496,7 +496,7 @@ func ListDir(dir string, relative bool) ([]string, error) {
 	var filenames []string
 	fileInfo, err := ioutil.ReadDir(dir)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorReadDir(dir).Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorReadDir(dir)))
 	}
 	for _, file := range fileInfo {
 		filename := file.Name()
@@ -519,15 +519,15 @@ func CloseSilent(closer io.Closer, closers ...io.Closer) {
 func ReadReqFile(r *http.Request, fileName string) ([]byte, error) {
 	mpFile, _, err := r.FormFile(fileName)
 	if err != nil {
-		if strings.Contains(err.Error(), "no such file") {
+		if strings.Contains(errors.Message(err), "no such file") {
 			return nil, nil
 		}
-		return nil, errors.Wrap(err, ErrorReadFormFile(fileName).Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorReadFormFile(fileName)))
 	}
 	defer mpFile.Close()
 	fileBytes, err := ioutil.ReadAll(mpFile)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorReadFormFile(fileName).Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorReadFormFile(fileName)))
 	}
 	return fileBytes, nil
 }

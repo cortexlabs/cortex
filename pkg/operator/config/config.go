@@ -79,7 +79,7 @@ func Init() error {
 		BackoffMode: telemetry.BackoffAnyMessages,
 	})
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(errors.Message(err))
 	}
 
 	Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]

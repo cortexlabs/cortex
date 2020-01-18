@@ -187,14 +187,14 @@ var _infoCmd = &cobra.Command{
 		httpResponse, err := HTTPGet("/info")
 		if err != nil {
 			fmt.Println(clusterConfig.UserStr())
-			fmt.Println("\n" + errors.Wrap(err, "unable to connect to operator").Error())
+			fmt.Println("\n" + errors.Message(err, "unable to connect to operator"))
 			return
 		}
 		var infoResponse schema.InfoResponse
 		err = json.Unmarshal(httpResponse, &infoResponse)
 		if err != nil {
 			fmt.Println(clusterConfig.UserStr())
-			fmt.Println("\n" + errors.Wrap(err, "unable to parse operator response").Error())
+			fmt.Println("\n" + errors.Message(err, "unable to parse operator response"))
 			return
 		}
 		infoResponse.ClusterConfig.Config = clusterConfig

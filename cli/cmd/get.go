@@ -96,8 +96,8 @@ func getAPI(apiName string) (string, error) {
 	httpRes, err := HTTPGet("/get/" + apiName)
 	if err != nil {
 		// note: if modifying this string, search the codebase for it and change all occurrences
-		if strings.HasSuffix(err.Error(), "is not deployed") {
-			return console.Bold(err.Error()), nil
+		if strings.HasSuffix(errors.Message(err), "is not deployed") {
+			return console.Bold(errors.Message(err)), nil
 		}
 		return "", err
 	}
@@ -329,7 +329,7 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 
 	apiSummary, err := getAPISummary(apiEndpoint)
 	if err != nil {
-		return "error retrieving the model's input schema: " + err.Error()
+		return "error retrieving the model's input schema: " + errors.Message(err)
 	}
 
 	rows := make([][]interface{}, len(apiSummary.ModelSignature))

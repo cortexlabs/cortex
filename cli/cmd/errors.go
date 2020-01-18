@@ -112,7 +112,7 @@ func ErrorFailedToConnectOperator(originalError error, operatorURL string) error
 
 	originalErrMsg := ""
 	if originalError != nil {
-		originalErrMsg = urls.TrimQueryParamsStr(originalError.Error()) + "\n\n"
+		originalErrMsg = urls.TrimQueryParamsStr(errors.Message(originalError)) + "\n\n"
 	}
 
 	return errors.WithStack(Error{

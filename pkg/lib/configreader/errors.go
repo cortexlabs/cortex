@@ -150,7 +150,7 @@ func ErrorUnsupportedKey(key interface{}) error {
 }
 
 func ErrorInvalidYAML(err error) error {
-	str := strings.TrimPrefix(err.Error(), "yaml: ")
+	str := strings.TrimPrefix(errors.Message(err), "yaml: ")
 	return errors.WithStack(Error{
 		Kind:    ErrInvalidYAML,
 		message: fmt.Sprintf("invalid yaml: %s", str),

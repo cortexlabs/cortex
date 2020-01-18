@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1025,7 +1026,7 @@ func testConfig(structValidation *StructValidation, configData interface{}, expe
 
 	if errs != nil {
 		for _, err := range errs {
-			fmt.Println("ERROR: " + err.Error())
+			fmt.Println("ERROR: " + errors.Message(err))
 		}
 	}
 	require.Empty(t, errs)

@@ -75,7 +75,7 @@ func (t *Table) MustPrint() {
 func (t *Table) MustFormat() string {
 	str, err := t.Format()
 	if err != nil {
-		return "error: " + err.Error()
+		return "error: " + errors.Message(err)
 	}
 	return str
 }

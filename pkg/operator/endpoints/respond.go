@@ -40,7 +40,7 @@ func respondErrorCode(w http.ResponseWriter, code int, err error, strs ...string
 
 	w.WriteHeader(code)
 	response := schema.ErrorResponse{
-		Error: err.Error(),
+		Error: errors.Message(err),
 	}
 	json.NewEncoder(w).Encode(response)
 }

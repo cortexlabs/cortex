@@ -32,7 +32,7 @@ func Marshal(obj interface{}) ([]byte, error) {
 	enc := codec.NewEncoderBytes(&bytes, &_mh)
 	err := enc.Encode(obj)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorMarshalMsgpack().Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorMarshalMsgpack()))
 	}
 	return bytes, nil
 }
@@ -49,7 +49,7 @@ func UnmarshalToInterface(b []byte) (interface{}, error) {
 	var obj interface{}
 	err := Unmarshal(b, &obj)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorUnmarshalMsgpack().Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorUnmarshalMsgpack()))
 	}
 	return obj, nil
 }
