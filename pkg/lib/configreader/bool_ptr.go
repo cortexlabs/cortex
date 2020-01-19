@@ -89,7 +89,7 @@ func BoolPtrFromStr(valStr string, v *BoolPtrValidation) (*bool, error) {
 				keys = append(keys, key)
 			}
 
-			return nil, ErrorInvalidStr(valStr, keys...)
+			return nil, ErrorInvalidStr(valStr, keys[0], keys[1:]...)
 		}
 		return ValidateBoolPtrProvided(&casted, v)
 	}

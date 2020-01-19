@@ -26,7 +26,6 @@ devstart:
 
 kubectl:
 	@eval $$(python ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
-	@kubectl config set-context --current --namespace=cortex >/dev/null
 
 cluster-up:
 	@$(MAKE) registry-all
@@ -52,12 +51,9 @@ cluster-update:
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster update
 
-cortex-uninstall:
-	@./dev/uninstall_cortex.sh
-
 operator-stop:
 	@$(MAKE) kubectl
-	@kubectl delete --namespace=cortex --ignore-not-found=true deployment operator
+	@kubectl delete --namespace=default --ignore-not-found=true deployment operator
 
 # Docker images
 

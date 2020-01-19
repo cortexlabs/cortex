@@ -35,12 +35,21 @@ var _segment analytics.Client
 var _config *Config
 
 type Config struct {
-	Enabled              bool
-	UserID               string
-	Environment          string
-	LogErrors            bool
-	BlockDuplicateErrors bool
+	Enabled     bool
+	UserID      string
+	Properties  map[string]interface{}
+	Environment string
+	LogErrors   bool
+	BackoffMode BackoffMode
 }
+
+type BackoffMode int
+
+const (
+	NoBackoff BackoffMode = iota
+	BackoffDuplicateMessages
+	BackoffAnyMessages
+)
 
 type silentSegmentLogger struct{}
 
@@ -140,7 +149,7 @@ func eventHelper(name string, properties map[string]interface{}, integrations ma
 	err := _segment.Enqueue(analytics.Track{
 		Event:        name,
 		UserId:       _config.UserID,
-		Properties:   properties,
+		Properties:   mergeProperties(properties, _config.Properties),
 		Integrations: integrations,
 	})
 	if err != nil {
@@ -153,12 +162,13 @@ func Error(err error) {
 		return
 	}
 
-	if _config.BlockDuplicateErrors && shouldBlock(err) {
+	if shouldBlock(err, _config.BackoffMode) {
 		return
 	}
 
 	sentry.WithScope(func(scope *sentry.Scope) {
 		scope.SetUser(sentry.User{ID: _config.UserID})
+		scope.SetExtras(_config.Properties)
 		sentry.CaptureException(err)
 		go sentry.Flush(10 * time.Second)
 	})
@@ -171,6 +181,7 @@ func ErrorMessage(message string) {
 
 	sentry.WithScope(func(scope *sentry.Scope) {
 		scope.SetUser(sentry.User{ID: _config.UserID})
+		scope.SetExtras(_config.Properties)
 		sentry.CaptureMessage(message)
 		go sentry.Flush(10 * time.Second)
 	})

@@ -27,44 +27,38 @@ type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
+	ErrAPIVersionMismatch
 	ErrAuthHeaderMissing
 	ErrAuthHeaderMalformed
 	ErrAuthAPIError
 	ErrAuthInvalid
 	ErrAuthOtherAccount
-	ErrAppNotDeployed
-	ErrAPINotDeployed
 	ErrFormFileMustBeProvided
 	ErrQueryParamRequired
 	ErrPathParamRequired
 	ErrAnyQueryParamRequired
 	ErrAnyPathParamRequired
-	ErrPending
 )
 
-var (
-	errorKinds = []string{
-		"err_unknown",
-		"err_auth_header_missing",
-		"err_auth_header_malformed",
-		"err_auth_api_error",
-		"err_auth_invalid",
-		"err_auth_other_account",
-		"err_app_not_deployed",
-		"err_api_not_deployed",
-		"err_form_file_must_be_provided",
-		"err_query_param_required",
-		"err_path_param_required",
-		"err_any_query_param_required",
-		"err_any_path_param_required",
-		"err_pending",
-	}
-)
+var _errorKinds = []string{
+	"err_unknown",
+	"err_api_version_mismatch",
+	"err_auth_header_missing",
+	"err_auth_header_malformed",
+	"err_auth_api_error",
+	"err_auth_invalid",
+	"err_auth_other_account",
+	"err_form_file_must_be_provided",
+	"err_query_param_required",
+	"err_path_param_required",
+	"err_any_query_param_required",
+	"err_any_path_param_required",
+}
 
-var _ = [1]int{}[int(ErrPending)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrAnyPathParamRequired)-(len(_errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
-	return errorKinds[t]
+	return _errorKinds[t]
 }
 
 // MarshalText satisfies TextMarshaler
@@ -75,8 +69,8 @@ func (t ErrorKind) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *ErrorKind) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(errorKinds); i++ {
-		if enum == errorKinds[i] {
+	for i := 0; i < len(_errorKinds); i++ {
+		if enum == _errorKinds[i] {
 			*t = ErrorKind(i)
 			return nil
 		}
@@ -104,6 +98,13 @@ type Error struct {
 
 func (e Error) Error() string {
 	return e.message
+}
+
+func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error {
+	return errors.WithStack(Error{
+		Kind:    ErrAPIVersionMismatch,
+		message: fmt.Sprintf("API version mismatch (Cluster: %s; Client: %s)", operatorVersion, clientVersion),
+	})
 }
 
 func ErrorAuthHeaderMissing() error {
@@ -141,21 +142,6 @@ func ErrorAuthOtherAccount() error {
 	})
 }
 
-func ErrorAppNotDeployed(appName string) error {
-	return errors.WithStack(Error{
-		Kind: ErrAppNotDeployed,
-		// note: if modifying this string, search the codebase for it and change all occurrences
-		message: fmt.Sprintf("%s is not deployed", appName),
-	})
-}
-
-func ErrorAPINotDeployed(apiName string, appName string) error {
-	return errors.WithStack(Error{
-		Kind:    ErrAPINotDeployed,
-		message: fmt.Sprintf("there is no api named %s in the %s deployment", s.UserStr(apiName), appName),
-	})
-}
-
 func ErrorFormFileMustBeProvided(fileName string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrFormFileMustBeProvided,
@@ -176,23 +162,18 @@ func ErrorPathParamRequired(param string) error {
 	})
 }
 
-func ErrorAnyQueryParamRequired(params ...string) error {
+func ErrorAnyQueryParamRequired(param string, params ...string) error {
+	allParams := append(params, param)
 	return errors.WithStack(Error{
 		Kind:    ErrAnyQueryParamRequired,
-		message: fmt.Sprintf("query params required: %s", s.UserStrsOr(params)),
+		message: fmt.Sprintf("query params required: %s", s.UserStrsOr(allParams)),
 	})
 }
 
-func ErrorAnyPathParamRequired(params ...string) error {
+func ErrorAnyPathParamRequired(param string, params ...string) error {
+	allParams := append(params, param)
 	return errors.WithStack(Error{
 		Kind:    ErrAnyPathParamRequired,
-		message: fmt.Sprintf("path params required: %s", s.UserStrsOr(params)),
-	})
-}
-
-func ErrorPending() error {
-	return errors.WithStack(Error{
-		Kind:    ErrPending,
-		message: "pending",
+		message: fmt.Sprintf("path params required: %s", s.UserStrsOr(allParams)),
 	})
 }

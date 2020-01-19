@@ -36,14 +36,14 @@ cd cortex/examples/sklearn/iris-classifier
 # deploy the model to the cluster
 cortex deploy
 
-# view the status of the deployment
+# view the status of the api
 cortex get --watch
 
-# stream logs from the API
-cortex logs classifier
+# stream logs from the api
+cortex logs iris-classifier
 
 # get the API's endpoint
-cortex get classifier
+cortex get iris-classifier
 
 # classify a sample
 curl -X POST -H "Content-Type: application/json" \
@@ -54,8 +54,8 @@ curl -X POST -H "Content-Type: application/json" \
 ## Cleanup
 
 ```bash
-# delete the deployment
-cortex delete iris
+# delete the api
+cortex delete iris-classifier
 ```
 
 See [uninstall](uninstall.md) if you'd like to uninstall Cortex.

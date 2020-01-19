@@ -17,28 +17,46 @@ limitations under the License.
 package endpoints
 
 import (
+	"fmt"
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
-	"github.com/cortexlabs/cortex/pkg/operator/workloads"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/gorilla/mux"
 )
 
 func Delete(w http.ResponseWriter, r *http.Request) {
-	appName, err := getRequiredQueryParam("appName", r)
-	if err != nil {
-		RespondError(w, err)
-		return
-	}
-
+	apiName := mux.Vars(r)["apiName"]
 	keepCache := getOptionalBoolQParam("keepCache", false, r)
 
-	wasDeployed := workloads.DeleteApp(appName, keepCache)
-
-	if !wasDeployed {
-		RespondError(w, ErrorAppNotDeployed(appName))
+	isDeployed, err := operator.IsAPIDeployed(apiName)
+	if err != nil {
+		respondError(w, err)
 		return
 	}
 
-	response := schema.DeleteResponse{Message: ResDeploymentDeleted(appName)}
-	Respond(w, response)
+	if !isDeployed {
+		// Delete anyways just to be sure everything is deleted
+		go func() {
+			err = operator.DeleteAPI(apiName, keepCache)
+			if err != nil {
+				telemetry.Error(err)
+			}
+		}()
+
+		respondErrorCode(w, http.StatusNotFound, operator.ErrorAPINotDeployed(apiName))
+		return
+	}
+
+	err = operator.DeleteAPI(apiName, keepCache)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	response := schema.DeleteResponse{
+		Message: fmt.Sprintf("deleting %s api", apiName),
+	}
+	respond(w, response)
 }

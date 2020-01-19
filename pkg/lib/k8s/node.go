@@ -18,7 +18,6 @@ package k8s
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-
 	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

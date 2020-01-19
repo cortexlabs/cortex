@@ -20,38 +20,31 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/api/resource"
+	"github.com/spf13/cobra"
 )
 
 func init() {
-	addAppNameFlag(logsCmd)
-	addEnvFlag(logsCmd)
+	addEnvFlag(_logsCmd)
 }
 
-var logsCmd = &cobra.Command{
+var _logsCmd = &cobra.Command{
 	Use:   "logs API_NAME",
 	Short: "stream logs from an api",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.logs")
 
-		resourceName := args[0]
+		apiName := args[0]
 
-		appName, err := AppNameFromFlagOrConfig()
-		if err != nil {
-			exit.Error(err)
-		}
-
-		err = StreamLogs(appName, resourceName, resource.APIType.String())
+		err := StreamLogs(apiName)
 		if err != nil {
 			// note: if modifying this string, search the codebase for it and change all occurrences
-			if strings.HasSuffix(err.Error(), "is not deployed") {
-				fmt.Println(console.Bold(err.Error()))
+			if strings.HasSuffix(errors.Message(err), "is not deployed") {
+				fmt.Println(console.Bold(errors.Message(err)))
 				return
 			}
 			exit.Error(err)
