@@ -63,13 +63,13 @@ func updateHPAs() error {
 	var errs []error
 
 	for _, deployment := range deployments {
-		hpaExists, err := config.K8s.HPAExists(k8sName(deployment.Labels["apiName"]))
+		hpa, err := config.K8s.GetHPA(k8sName(deployment.Labels["apiName"]))
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
 
-		if hpaExists {
+		if hpa != nil {
 			continue // since the HPA is deleted every time the deployment is updated
 		}
 

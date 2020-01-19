@@ -120,14 +120,6 @@ func (c *Client) DeleteJob(name string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) JobExists(name string) (bool, error) {
-	job, err := c.GetJob(name)
-	if err != nil {
-		return false, err
-	}
-	return job != nil, nil
-}
-
 func (c *Client) ListJobs(opts *kmeta.ListOptions) ([]kbatch.Job, error) {
 	if opts == nil {
 		opts = &kmeta.ListOptions{}

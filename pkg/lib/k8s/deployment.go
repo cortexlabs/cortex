@@ -125,14 +125,6 @@ func (c *Client) DeleteDeployment(name string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) DeploymentExists(name string) (bool, error) {
-	deployment, err := c.GetDeployment(name)
-	if err != nil {
-		return false, err
-	}
-	return deployment != nil, nil
-}
-
 func (c *Client) ListDeployments(opts *kmeta.ListOptions) ([]kapps.Deployment, error) {
 	if opts == nil {
 		opts = &kmeta.ListOptions{}

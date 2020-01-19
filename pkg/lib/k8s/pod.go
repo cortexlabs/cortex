@@ -271,14 +271,6 @@ func (c *Client) DeletePod(name string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) PodExists(name string) (bool, error) {
-	pod, err := c.GetPod(name)
-	if err != nil {
-		return false, err
-	}
-	return pod != nil, nil
-}
-
 func (c *Client) ListPods(opts *kmeta.ListOptions) ([]kcore.Pod, error) {
 	if opts == nil {
 		opts = &kmeta.ListOptions{}

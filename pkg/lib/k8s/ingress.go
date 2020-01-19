@@ -129,14 +129,6 @@ func (c *Client) DeleteIngress(name string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) IngressExists(name string) (bool, error) {
-	ingress, err := c.GetIngress(name)
-	if err != nil {
-		return false, err
-	}
-	return ingress != nil, nil
-}
-
 func (c *Client) ListIngresses(opts *kmeta.ListOptions) ([]kextensions.Ingress, error) {
 	if opts == nil {
 		opts = &kmeta.ListOptions{}

@@ -111,14 +111,6 @@ func (c *Client) DeleteConfigMap(name string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) ConfigMapExists(name string) (bool, error) {
-	configMap, err := c.GetConfigMap(name)
-	if err != nil {
-		return false, err
-	}
-	return configMap != nil, nil
-}
-
 func (c *Client) ListConfigMaps(opts *kmeta.ListOptions) ([]kcore.ConfigMap, error) {
 	if opts == nil {
 		opts = &kmeta.ListOptions{}

@@ -356,7 +356,11 @@ func deploymentLabelsEqual(labels1, labels2 map[string]string) bool {
 }
 
 func IsAPIDeployed(apiName string) (bool, error) {
-	return config.K8s.DeploymentExists(k8sName(apiName))
+	deployment, err := config.K8s.GetDeployment(k8sName(apiName))
+	if err != nil {
+		return false, err
+	}
+	return deployment != nil, nil
 }
 
 func APIsBaseURL() (string, error) {

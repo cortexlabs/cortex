@@ -123,14 +123,6 @@ func (c *Client) DeleteHPA(name string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) HPAExists(name string) (bool, error) {
-	hpa, err := c.GetHPA(name)
-	if err != nil {
-		return false, err
-	}
-	return hpa != nil, nil
-}
-
 func (c *Client) ListHPAs(opts *kmeta.ListOptions) ([]kautoscaling.HorizontalPodAutoscaler, error) {
 	if opts == nil {
 		opts = &kmeta.ListOptions{}

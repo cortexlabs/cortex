@@ -118,14 +118,6 @@ func (c *Client) DeleteService(name string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) ServiceExists(name string) (bool, error) {
-	service, err := c.GetService(name)
-	if err != nil {
-		return false, err
-	}
-	return service != nil, nil
-}
-
 func (c *Client) ListServices(opts *kmeta.ListOptions) ([]kcore.Service, error) {
 	if opts == nil {
 		opts = &kmeta.ListOptions{}
