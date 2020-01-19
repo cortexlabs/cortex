@@ -199,8 +199,46 @@ var _computeFieldValidation = &cr.StructFieldValidation{
 					GreaterThanOrEqualTo: pointer.Int64(0),
 				},
 			},
+			{
+				StructField: "MaxSurge",
+				StringValidation: &cr.StringValidation{
+					Default:   "25%",
+					CastInt:   true,
+					Validator: surgeOrUnavailableValidator,
+				},
+			},
+			{
+				StructField: "MaxUnavailable",
+				StringValidation: &cr.StringValidation{
+					Default:   "25%",
+					CastInt:   true,
+					Validator: surgeOrUnavailableValidator,
+				},
+			},
 		},
 	},
+}
+
+func surgeOrUnavailableValidator(str string) (string, error) {
+	if strings.HasSuffix(str, "%") {
+		parsed, ok := s.ParseInt32(strings.TrimSuffix(str, "%"))
+		if !ok {
+			return "", ErrorInvalidSurgeOrUnavailable(str)
+		}
+		if parsed < 0 || parsed > 100 {
+			return "", ErrorInvalidSurgeOrUnavailable(str)
+		}
+	} else {
+		parsed, ok := s.ParseInt32(str)
+		if !ok {
+			return "", ErrorInvalidSurgeOrUnavailable(str)
+		}
+		if parsed < 0 {
+			return "", ErrorInvalidSurgeOrUnavailable(str)
+		}
+	}
+
+	return str, nil
 }
 
 func ExtractAPIConfigs(configBytes []byte, projectFileMap map[string][]byte, filePath string) ([]userconfig.API, error) {
@@ -466,6 +504,10 @@ func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) er
 
 	if compute.InitReplicas < compute.MinReplicas {
 		return ErrorInitReplicasLessThanMin(compute.InitReplicas, compute.MinReplicas)
+	}
+
+	if (compute.MaxSurge == "0" || compute.MaxSurge == "0%") && (compute.MaxUnavailable == "0" || compute.MaxUnavailable == "0%") {
+		return ErrorSurgeAndUnavailableBothZero()
 	}
 
 	if err := validateAvailableCompute(compute, maxMem); err != nil {

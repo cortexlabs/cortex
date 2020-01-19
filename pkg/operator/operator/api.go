@@ -352,7 +352,9 @@ func deploymentLabelsEqual(labels1, labels2 map[string]string) bool {
 		labels1["deploymentID"] == labels2["deploymentID"] &&
 		labels1["minReplicas"] == labels2["minReplicas"] &&
 		labels1["maxReplicas"] == labels2["maxReplicas"] &&
-		labels1["targetCPUUtilization"] == labels2["targetCPUUtilization"]
+		labels1["targetCPUUtilization"] == labels2["targetCPUUtilization"] &&
+		labels1["maxSurge"] == labels2["maxSurge"] &&
+		labels1["maxUnavailable"] == labels2["maxUnavailable"]
 }
 
 func IsAPIDeployed(apiName string) (bool, error) {

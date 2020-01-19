@@ -59,6 +59,8 @@ type Compute struct {
 	CPU                  k8s.Quantity  `json:"cpu" yaml:"cpu"`
 	Mem                  *k8s.Quantity `json:"mem" yaml:"mem"`
 	GPU                  int64         `json:"gpu" yaml:"gpu"`
+	MaxSurge             string        `json:"max_surge" yaml:"max_surge"`
+	MaxUnavailable       string        `json:"max_unavailable" yaml:"max_unavailable"`
 }
 
 func (api *API) Identify() string {
@@ -149,5 +151,7 @@ func (compute *Compute) UserStr() string {
 	if compute.Mem != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
 	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxSurgeKey, compute.MaxSurge))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxUnavailableKey, compute.MaxUnavailable))
 	return sb.String()
 }

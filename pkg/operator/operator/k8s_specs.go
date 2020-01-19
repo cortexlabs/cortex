@@ -108,8 +108,10 @@ func tfAPISpec(
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:     k8sName(api.Name),
-		Replicas: getRequestedReplicasFromDeployment(api, prevDeployment),
+		Name:           k8sName(api.Name),
+		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
+		MaxSurge:       pointer.String(api.Compute.MaxSurge),
+		MaxUnavailable: pointer.String(api.Compute.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
 			"apiID":        api.ID,
@@ -118,6 +120,8 @@ func tfAPISpec(
 			"minReplicas":          s.Int32(api.Compute.MinReplicas),
 			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
 			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
+			"maxSurge":             api.Compute.MaxSurge,
+			"maxUnavailable":       api.Compute.MaxUnavailable,
 		},
 		Selector: map[string]string{
 			"apiName": api.Name,
@@ -265,8 +269,10 @@ func pythonAPISpec(
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:     k8sName(api.Name),
-		Replicas: getRequestedReplicasFromDeployment(api, prevDeployment),
+		Name:           k8sName(api.Name),
+		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
+		MaxSurge:       pointer.String(api.Compute.MaxSurge),
+		MaxUnavailable: pointer.String(api.Compute.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
 			"apiID":        api.ID,
@@ -275,6 +281,8 @@ func pythonAPISpec(
 			"minReplicas":          s.Int32(api.Compute.MinReplicas),
 			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
 			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
+			"maxSurge":             api.Compute.MaxSurge,
+			"maxUnavailable":       api.Compute.MaxUnavailable,
 		},
 		Selector: map[string]string{
 			"apiName": api.Name,
@@ -377,8 +385,10 @@ func onnxAPISpec(
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:     k8sName(api.Name),
-		Replicas: getRequestedReplicasFromDeployment(api, prevDeployment),
+		Name:           k8sName(api.Name),
+		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
+		MaxSurge:       pointer.String(api.Compute.MaxSurge),
+		MaxUnavailable: pointer.String(api.Compute.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
 			"apiID":        api.ID,
@@ -387,6 +397,8 @@ func onnxAPISpec(
 			"minReplicas":          s.Int32(api.Compute.MinReplicas),
 			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
 			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
+			"maxSurge":             api.Compute.MaxSurge,
+			"maxUnavailable":       api.Compute.MaxUnavailable,
 		},
 		Selector: map[string]string{
 			"apiName": api.Name,

@@ -39,6 +39,8 @@ const (
 	ErrMinReplicasGreaterThanMax
 	ErrInitReplicasGreaterThanMax
 	ErrInitReplicasLessThanMin
+	ErrInvalidSurgeOrUnavailable
+	ErrSurgeAndUnavailableBothZero
 	ErrImplDoesNotExist
 	ErrS3FileNotFound
 	ErrS3DirNotFoundOrEmpty
@@ -63,6 +65,8 @@ var _errorKinds = []string{
 	"err_min_replicas_greater_than_max",
 	"err_init_replicas_greater_than_max",
 	"err_init_replicas_less_than_min",
+	"err_invalid_surge_or_unavailable",
+	"err_surge_and_unavailable_both_zero",
 	"err_impl_does_not_exist",
 	"err_s3_file_not_found",
 	"err_s3_dir_not_found_or_empty",
@@ -202,6 +206,20 @@ func ErrorInitReplicasLessThanMin(init int32, min int32) error {
 		Kind:    ErrInitReplicasLessThanMin,
 		message: fmt.Sprintf("%s cannot be less than %s (%d < %d)", userconfig.InitReplicasKey, userconfig.MinReplicasKey, init, min),
 	})
+}
+
+func ErrorInvalidSurgeOrUnavailable(val string) error {
+	return Error{
+		Kind:    ErrInvalidSurgeOrUnavailable,
+		message: fmt.Sprintf("%s is not a valid value - must be an integer percentage (e.g. 25%%, to denote a percentage of desired replicas) or a positive integer (e.g. 5, to denote a number of replicas)", s.UserStr(val)),
+	}
+}
+
+func ErrorSurgeAndUnavailableBothZero() error {
+	return Error{
+		Kind:    ErrSurgeAndUnavailableBothZero,
+		message: fmt.Sprintf("%s and %s cannot both be zero", userconfig.MaxSurgeKey, userconfig.MaxUnavailableKey),
+	}
 }
 
 func ErrorImplDoesNotExist(path string) error {
