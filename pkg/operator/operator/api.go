@@ -101,6 +101,8 @@ func UpdateAPI(
 func RefreshAPI(apiName string, force bool) (string, error) {
 	prevDeployment, err := config.K8s.GetDeployment(k8sName(apiName))
 	if err != nil {
+		return "", err
+	} else if prevDeployment == nil {
 		return "", ErrorAPINotDeployed(apiName)
 	}
 
