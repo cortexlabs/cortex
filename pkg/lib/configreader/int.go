@@ -185,7 +185,7 @@ func ValidateIntVal(val int, v *IntValidation) error {
 
 	if v.AllowedValues != nil {
 		if !slices.HasInt(v.AllowedValues, val) {
-			return ErrorInvalidInt(val, v.AllowedValues...)
+			return ErrorInvalidInt(val, v.AllowedValues[0], v.AllowedValues[1:]...)
 		}
 	}
 

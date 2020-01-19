@@ -16,10 +16,10 @@ apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   name: apis-gateway
-  namespace: cortex
+  namespace: default
 spec:
   selector:
-    istio: apis-ingressgateway
+    istio: ingressgateway-apis
   servers:
   - port:
       number: 80

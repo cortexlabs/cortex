@@ -40,7 +40,7 @@ const (
 	ErrNotADir
 )
 
-var errorKinds = []string{
+var _errorKinds = []string{
 	"err_unknown",
 	"err_create_dir",
 	"err_read_form_file",
@@ -55,10 +55,10 @@ var errorKinds = []string{
 	"err_not_a_dir",
 }
 
-var _ = [1]int{}[int(ErrNotADir)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrNotADir)-(len(_errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
-	return errorKinds[t]
+	return _errorKinds[t]
 }
 
 // MarshalText satisfies TextMarshaler
@@ -69,8 +69,8 @@ func (t ErrorKind) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *ErrorKind) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(errorKinds); i++ {
-		if enum == errorKinds[i] {
+	for i := 0; i < len(_errorKinds); i++ {
+		if enum == _errorKinds[i] {
 			*t = ErrorKind(i)
 			return nil
 		}

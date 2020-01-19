@@ -68,7 +68,7 @@ func (kvs KeyValuePairs) String(options ...*KeyValuePairOpts) string {
 		b.WriteString(keyStr + *opts.Delimiter + spaces + valStr + "\n")
 	}
 
-	return strings.TrimSpace(b.String())
+	return b.String()
 }
 
 func (kvs KeyValuePairs) Print(options ...*KeyValuePairOpts) {

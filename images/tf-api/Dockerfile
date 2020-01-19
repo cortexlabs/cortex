@@ -17,14 +17,14 @@ RUN apt-get update -qq && apt-get install -y -q \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
-COPY pkg/workloads/cortex/tf_api/requirements.txt /src/cortex/tf_api/requirements.txt
+COPY pkg/workloads/cortex/serve/tf.requirements.txt /src/cortex/serve/requirements.txt
 RUN pip install --upgrade pip && \
-    pip install -r /src/cortex/lib/requirements.txt && \
-    pip install -r /src/cortex/tf_api/requirements.txt && \
+    pip install --no-cache-dir -r /src/cortex/lib/requirements.txt && \
+    pip install --no-cache-dir -r /src/cortex/serve/requirements.txt && \
     rm -rf /root/.cache/pip*
 
 COPY pkg/workloads/cortex/consts.py /src/cortex/
 COPY pkg/workloads/cortex/lib /src/cortex/lib
-COPY pkg/workloads/cortex/tf_api /src/cortex/tf_api
+COPY pkg/workloads/cortex/serve /src/cortex/serve
 
-ENTRYPOINT ["/src/cortex/tf_api/run.sh"]
+ENTRYPOINT ["/src/cortex/serve/run.sh"]

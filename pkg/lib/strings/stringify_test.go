@@ -19,9 +19,8 @@ package strings
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/stretchr/testify/require"
 )
 
 type MyFloat float64

@@ -20,15 +20,13 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 )
 
-var podTypeMeta = kmeta.TypeMeta{
+var _podTypeMeta = kmeta.TypeMeta{
 	APIVersion: "v1",
 	Kind:       "Pod",
 }
@@ -49,7 +47,7 @@ const (
 	PodStatusKilledOOM    PodStatus = "Out of Memory"
 )
 
-var killStatuses = map[int32]bool{
+var _killStatuses = map[int32]bool{
 	137: true, // SIGKILL
 	143: true, // SIGTERM
 	130: true, // SIGINT
@@ -58,21 +56,16 @@ var killStatuses = map[int32]bool{
 
 type PodSpec struct {
 	Name        string
-	Namespace   string
 	K8sPodSpec  kcore.PodSpec
 	Labels      map[string]string
 	Annotations map[string]string
 }
 
 func Pod(spec *PodSpec) *kcore.Pod {
-	if spec.Namespace == "" {
-		spec.Namespace = "default"
-	}
 	pod := &kcore.Pod{
-		TypeMeta: podTypeMeta,
+		TypeMeta: _podTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
-			Namespace:   spec.Namespace,
 			Labels:      spec.Labels,
 			Annotations: spec.Annotations,
 		},
@@ -82,7 +75,7 @@ func Pod(spec *PodSpec) *kcore.Pod {
 }
 
 func (c *Client) CreatePod(pod *kcore.Pod) (*kcore.Pod, error) {
-	pod.TypeMeta = podTypeMeta
+	pod.TypeMeta = _podTypeMeta
 	pod, err := c.podClient.Create(pod)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -90,8 +83,8 @@ func (c *Client) CreatePod(pod *kcore.Pod) (*kcore.Pod, error) {
 	return pod, nil
 }
 
-func (c *Client) updatePod(pod *kcore.Pod) (*kcore.Pod, error) {
-	pod.TypeMeta = podTypeMeta
+func (c *Client) UpdatePod(pod *kcore.Pod) (*kcore.Pod, error) {
+	pod.TypeMeta = _podTypeMeta
 	pod, err := c.podClient.Update(pod)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -107,10 +100,14 @@ func (c *Client) ApplyPod(pod *kcore.Pod) (*kcore.Pod, error) {
 	if existing == nil {
 		return c.CreatePod(pod)
 	}
-	return c.updatePod(pod)
+	return c.UpdatePod(pod)
 }
 
 func IsPodReady(pod *kcore.Pod) bool {
+	if GetPodStatus(pod) != PodStatusRunning {
+		return false
+	}
+
 	for _, condition := range pod.Status.Conditions {
 		if condition.Type == "Ready" && condition.Status == kcore.ConditionTrue {
 			return true
@@ -133,7 +130,7 @@ func GetPodReadyTime(pod *kcore.Pod) *time.Time {
 	return nil
 }
 
-var evictedMemoryMessageRegex = regexp.MustCompile(`(?i)low\W+on\W+resource\W+memory`)
+var _evictedMemoryMessageRegex = regexp.MustCompile(`(?i)low\W+on\W+resource\W+memory`)
 
 func GetPodStatus(pod *kcore.Pod) PodStatus {
 	if pod == nil {
@@ -150,7 +147,7 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 	case kcore.PodSucceeded:
 		return PodStatusSucceeded
 	case kcore.PodFailed:
-		if pod.Status.Reason == ReasonEvicted && evictedMemoryMessageRegex.MatchString(pod.Status.Message) {
+		if pod.Status.Reason == ReasonEvicted && _evictedMemoryMessageRegex.MatchString(pod.Status.Message) {
 			return PodStatusKilledOOM
 		}
 
@@ -160,7 +157,7 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 				if exitCode == 137 {
 					return PodStatusKilledOOM
 				}
-				if killStatuses[exitCode] {
+				if _killStatuses[exitCode] {
 					return PodStatusKilled
 				}
 			} else if containerStatus.State.Terminated != nil {
@@ -168,7 +165,7 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 				if exitCode == 137 {
 					return PodStatusKilledOOM
 				}
-				if killStatuses[exitCode] {
+				if _killStatuses[exitCode] {
 					return PodStatusKilled
 				}
 			}
@@ -201,7 +198,7 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 				numSucceeded++
 			} else if exitCode == 137 {
 				numKilledOOM++
-			} else if killStatuses[exitCode] {
+			} else if _killStatuses[exitCode] {
 				numKilled++
 			} else {
 				numFailed++
@@ -212,7 +209,7 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 				numSucceeded++
 			} else if exitCode == 137 {
 				numKilledOOM++
-			} else if killStatuses[exitCode] {
+			} else if _killStatuses[exitCode] {
 				numKilled++
 			} else {
 				numFailed++
@@ -259,12 +256,12 @@ func (c *Client) GetPod(name string) (*kcore.Pod, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	pod.TypeMeta = podTypeMeta
+	pod.TypeMeta = _podTypeMeta
 	return pod, nil
 }
 
 func (c *Client) DeletePod(name string) (bool, error) {
-	err := c.podClient.Delete(name, deleteOpts)
+	err := c.podClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -291,7 +288,7 @@ func (c *Client) ListPods(opts *kmeta.ListOptions) ([]kcore.Pod, error) {
 		return nil, errors.WithStack(err)
 	}
 	for i := range podList.Items {
-		podList.Items[i].TypeMeta = podTypeMeta
+		podList.Items[i].TypeMeta = _podTypeMeta
 	}
 	return podList.Items, nil
 }
@@ -307,6 +304,13 @@ func (c *Client) ListPodsByLabel(labelKey string, labelValue string) ([]kcore.Po
 	return c.ListPodsByLabels(map[string]string{labelKey: labelValue})
 }
 
+func (c *Client) ListPodsWithLabelKeys(labelKeys ...string) ([]kcore.Pod, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListPods(opts)
+}
+
 func PodMap(pods []kcore.Pod) map[string]kcore.Pod {
 	podMap := map[string]kcore.Pod{}
 	for _, pod := range pods {
@@ -315,21 +319,35 @@ func PodMap(pods []kcore.Pod) map[string]kcore.Pod {
 	return podMap
 }
 
-func (c *Client) StalledPods() ([]kcore.Pod, error) {
-	var stalledPods []kcore.Pod
+func PodComputesEqual(podSpec1, podSpec2 *kcore.PodSpec) bool {
+	cpu1, mem1, gpu1 := TotalPodCompute(podSpec1)
+	cpu2, mem2, gpu2 := TotalPodCompute(podSpec2)
+	return cpu1.Equal(cpu2) && mem1.Equal(mem2) && gpu1 == gpu2
+}
 
-	pods, err := c.ListPods(&kmeta.ListOptions{
-		FieldSelector: "status.phase=Pending",
-	})
-	if err != nil {
-		return nil, err
+func TotalPodCompute(podSpec *kcore.PodSpec) (Quantity, Quantity, int64) {
+	totalCPU := Quantity{}
+	totalMem := Quantity{}
+	var totalGPU int64
+
+	if podSpec == nil {
+		return totalCPU, totalMem, totalGPU
 	}
-	for _, pod := range pods {
-		if !libtime.OlderThanSeconds(pod.CreationTimestamp.Time, 5*60) {
+
+	for _, container := range podSpec.Containers {
+		requests := container.Resources.Requests
+		if len(requests) == 0 {
 			continue
 		}
-		stalledPods = append(stalledPods, pod)
+		totalCPU.Add(requests[kcore.ResourceCPU])
+		totalMem.Add(requests[kcore.ResourceMemory])
+		if gpu, ok := requests["nvidia.com/gpu"]; ok {
+			gpuVal, ok := gpu.AsInt64()
+			if ok {
+				totalGPU += gpuVal
+			}
+		}
 	}
 
-	return stalledPods, nil
+	return totalCPU, totalMem, totalGPU
 }

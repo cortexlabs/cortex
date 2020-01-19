@@ -5,8 +5,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 `tracker` can be configured to collect API prediction metrics and display real-time stats in `cortex get <api_name>`. The tracker looks for scalar values in the response payload. If the response payload is a JSON object, `key` can be set to extract the desired scalar value.
 
 ```yaml
-- kind: api
-  name: <string>  # API name (required)
+- name: my-api
   ...
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
@@ -19,8 +18,7 @@ For classification models, the tracker should be configured with `model_type: cl
 ## Example
 
 ```yaml
-- kind: api
-  name: iris
+- name: iris
   predictor:
     type: python
     path: predictor.py

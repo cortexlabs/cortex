@@ -23,20 +23,21 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
 
+const _clusterConfigPath = "/configs/cluster/cluster.yaml"
+
 var (
-	Cluster         *clusterconfig.InternalConfig
-	AWS             *aws.Client
-	Kubernetes      *k8s.Client
-	IstioKubernetes *k8s.Client
+	Cluster  *clusterconfig.InternalConfig
+	AWS      *aws.Client
+	K8s      *k8s.Client
+	K8sIstio *k8s.Client
 )
 
 func Init() error {
@@ -49,39 +50,45 @@ func Init() error {
 
 	clusterConfigPath := os.Getenv("CORTEX_CLUSTER_CONFIG_PATH")
 	if clusterConfigPath == "" {
-		clusterConfigPath = consts.ClusterConfigPath
+		clusterConfigPath = _clusterConfigPath
 	}
 
 	errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath)
-	if errors.HasErrors(errs) {
+	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
 
-	Cluster.ID = hash.String(*Cluster.Bucket + *Cluster.Region + Cluster.LogGroup)
-
-	AWS, err = aws.New(*Cluster.Region, *Cluster.Bucket, true)
+	AWS, err = aws.NewFromEnv(*Cluster.Region)
 	if err != nil {
-		exit.Error(err)
+		return err
 	}
 
+	_, hashedAccountID, err := AWS.CheckCredentials()
+	if err != nil {
+		return err
+	}
+
+	Cluster.ID = hash.String(Cluster.ClusterName + *Cluster.Region + hashedAccountID)
+
 	err = telemetry.Init(telemetry.Config{
-		Enabled:              Cluster.Telemetry,
-		UserID:               AWS.HashedAccountID,
-		Environment:          "operator",
-		LogErrors:            true,
-		BlockDuplicateErrors: true,
+		Enabled:     Cluster.Telemetry,
+		UserID:      hashedAccountID,
+		Properties:  map[string]interface{}{"clusterID": Cluster.ID},
+		Environment: "operator",
+		LogErrors:   true,
+		BackoffMode: telemetry.BackoffDuplicateMessages,
 	})
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(errors.Message(err))
 	}
 
 	Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
 
-	if Kubernetes, err = k8s.New(consts.K8sNamespace, Cluster.OperatorInCluster); err != nil {
+	if K8s, err = k8s.New("default", Cluster.OperatorInCluster); err != nil {
 		return err
 	}
 
-	if IstioKubernetes, err = k8s.New("istio-system", Cluster.OperatorInCluster); err != nil {
+	if K8sIstio, err = k8s.New("istio-system", Cluster.OperatorInCluster); err != nil {
 		return err
 	}
 

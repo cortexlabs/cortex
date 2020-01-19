@@ -25,7 +25,7 @@ import (
 func (c *Client) AutoscalingGroups(tags map[string]string) ([]*autoscaling.Group, error) {
 	var asgs []*autoscaling.Group
 
-	err := c.autoscaling.DescribeAutoScalingGroupsPages(nil,
+	err := c.Autoscaling().DescribeAutoScalingGroupsPages(nil,
 		func(page *autoscaling.DescribeAutoScalingGroupsOutput, lastPage bool) bool {
 			for _, asg := range page.AutoScalingGroups {
 				asgTags := make(map[string]string, len(asg.Tags))

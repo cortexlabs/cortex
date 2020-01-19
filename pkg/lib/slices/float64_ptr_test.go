@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var float64NilPtr = (*float64)(nil)
+var _float64NilPtr = (*float64)(nil)
 
 func TestFloat64PtrSumInt(t *testing.T) {
 	require.Equal(t, 0, Float64PtrSumInt(nil))
@@ -32,17 +32,17 @@ func TestFloat64PtrSumInt(t *testing.T) {
 }
 
 func TestFloat64PtrMin(t *testing.T) {
-	require.Equal(t, float64NilPtr, Float64PtrMin())
-	require.Equal(t, float64NilPtr, Float64PtrMin(nil))
+	require.Equal(t, _float64NilPtr, Float64PtrMin())
+	require.Equal(t, _float64NilPtr, Float64PtrMin(nil))
 	require.Equal(t, pointer.Float64(1), Float64PtrMin(pointer.Float64(1)))
-	require.Equal(t, pointer.Float64(-1), Float64PtrMin(float64NilPtr, pointer.Float64(1), pointer.Float64(-1)))
+	require.Equal(t, pointer.Float64(-1), Float64PtrMin(_float64NilPtr, pointer.Float64(1), pointer.Float64(-1)))
 }
 
 func TestFloat64PtrMax(t *testing.T) {
-	require.Equal(t, float64NilPtr, Float64PtrMax())
-	require.Equal(t, float64NilPtr, Float64PtrMax(nil))
+	require.Equal(t, _float64NilPtr, Float64PtrMax())
+	require.Equal(t, _float64NilPtr, Float64PtrMax(nil))
 	require.Equal(t, pointer.Float64(1), Float64PtrMax(pointer.Float64(1)))
-	require.Equal(t, pointer.Float64(1.5), Float64PtrMax(pointer.Float64(1), pointer.Float64(1.5), float64NilPtr))
+	require.Equal(t, pointer.Float64(1.5), Float64PtrMax(pointer.Float64(1), pointer.Float64(1.5), _float64NilPtr))
 }
 
 func TestFloat64PtrAvg(t *testing.T) {
@@ -57,24 +57,24 @@ func TestFloat64PtrAvg(t *testing.T) {
 	require.Equal(t, pointer.Float64(10), avg)
 	require.NoError(t, err)
 
-	avg, err = Float64PtrAvg([]*float64{pointer.Float64(1), pointer.Float64(4), float64NilPtr}, []*float64{pointer.Float64(2), pointer.Float64(1), pointer.Float64(1)})
+	avg, err = Float64PtrAvg([]*float64{pointer.Float64(1), pointer.Float64(4), _float64NilPtr}, []*float64{pointer.Float64(2), pointer.Float64(1), pointer.Float64(1)})
 	require.Equal(t, pointer.Float64(2), avg)
 	require.NoError(t, err)
 
-	avg, err = Float64PtrAvg([]*float64{pointer.Float64(1), pointer.Float64(4), pointer.Float64(1)}, []*float64{pointer.Float64(2), pointer.Float64(1), float64NilPtr})
+	avg, err = Float64PtrAvg([]*float64{pointer.Float64(1), pointer.Float64(4), pointer.Float64(1)}, []*float64{pointer.Float64(2), pointer.Float64(1), _float64NilPtr})
 	require.Equal(t, pointer.Float64(2), avg)
 	require.NoError(t, err)
 
-	avg, err = Float64PtrAvg([]*float64{pointer.Float64(1), pointer.Float64(4), float64NilPtr}, []*float64{pointer.Float64(2), pointer.Float64(1), float64NilPtr})
+	avg, err = Float64PtrAvg([]*float64{pointer.Float64(1), pointer.Float64(4), _float64NilPtr}, []*float64{pointer.Float64(2), pointer.Float64(1), _float64NilPtr})
 	require.Equal(t, pointer.Float64(2), avg)
 	require.NoError(t, err)
 
 	avg, err = Float64PtrAvg([]*float64{pointer.Float64(1)}, []*float64{pointer.Float64(2), pointer.Float64(1)})
-	require.Equal(t, float64NilPtr, avg)
+	require.Equal(t, _float64NilPtr, avg)
 	require.Error(t, err)
 
 	avg, err = Float64PtrAvg([]*float64{pointer.Float64(2)}, []*float64{pointer.Float64(0)})
-	require.Equal(t, float64NilPtr, avg)
+	require.Equal(t, _float64NilPtr, avg)
 	require.NoError(t, err)
 
 	avg, err = Float64PtrAvg([]*float64{pointer.Float64(0)}, []*float64{pointer.Float64(2)})
@@ -82,7 +82,7 @@ func TestFloat64PtrAvg(t *testing.T) {
 	require.NoError(t, err)
 
 	avg, err = Float64PtrAvg([]*float64{nil}, []*float64{pointer.Float64(2)})
-	require.Equal(t, float64NilPtr, avg)
+	require.Equal(t, _float64NilPtr, avg)
 	require.NoError(t, err)
 
 }

@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
@@ -43,9 +44,17 @@ type errorStatus struct {
 	CoolDownPeriod time.Duration
 }
 
-func shouldBlock(err error) bool {
-	errMsg := err.Error()
+func shouldBlock(err error, backoffMode BackoffMode) bool {
+	if backoffMode == NoBackoff {
+		return false
+	}
+
+	errMsg := errors.Message(err)
 	now := time.Now()
+
+	if backoffMode == BackoffAnyMessages {
+		errMsg = "<msg>"
+	}
 
 	defer func() {
 		go cleanupCache()

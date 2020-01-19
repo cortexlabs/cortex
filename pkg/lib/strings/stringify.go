@@ -24,13 +24,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/cortexlabs/yaml"
 )
-
-var emptyTime time.Time
-var timeType = reflect.ValueOf(emptyTime).Type()
 
 func Bool(val bool) string {
 	return strconv.FormatBool(val)

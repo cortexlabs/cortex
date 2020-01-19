@@ -88,7 +88,7 @@ func BoolFromStr(valStr string, v *BoolValidation) (bool, error) {
 				keys = append(keys, key)
 			}
 
-			return false, ErrorInvalidStr(valStr, keys...)
+			return false, ErrorInvalidStr(valStr, keys[0], keys[1:]...)
 		}
 		return ValidateBool(casted, v)
 	}

@@ -7,7 +7,7 @@ Compute resource requests in Cortex follow the syntax and meaning of [compute re
 For example:
 
 ```yaml
-- kind: api
+- name: my-api
   ...
   compute:
     cpu: 1
@@ -15,7 +15,7 @@ For example:
     mem: 1G
 ```
 
-CPU, GPU, and memory requests in Cortex correspond to compute resource requests in Kubernetes. In the example above, the API will only be scheduled once 1 CPU, 1GPU, and 1G of memory are available on any instance, and the deployment will be guaranteed to have access to those resources throughout its execution. In some cases, resource requests can be (or may default to) `Null`.
+CPU, GPU, and memory requests in Cortex correspond to compute resource requests in Kubernetes. In the example above, the API will only be scheduled once 1 CPU, 1 GPU, and 1G of memory are available on any instance, and it will be guaranteed to have access to those resources throughout its execution. In some cases, resource requests can be (or may default to) `Null`.
 
 ## CPU
 

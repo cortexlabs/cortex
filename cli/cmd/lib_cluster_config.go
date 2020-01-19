@@ -24,7 +24,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -32,12 +31,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
 
 var _cachedClusterConfigRegex = regexp.MustCompile(`^cluster_\S+\.yaml$`)
 
 func cachedClusterConfigPath(clusterName string, region string) string {
-	return filepath.Join(localDir, fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
+	return filepath.Join(_localDir, fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
 }
 
 func mountedClusterConfigPath(clusterName string, region string) string {
@@ -45,7 +45,7 @@ func mountedClusterConfigPath(clusterName string, region string) string {
 }
 
 func existingCachedClusterConfigPaths() []string {
-	paths, err := files.ListDir(localDir, false)
+	paths, err := files.ListDir(_localDir, false)
 	if err != nil {
 		return nil
 	}
@@ -62,7 +62,7 @@ func existingCachedClusterConfigPaths() []string {
 
 func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath string) error {
 	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, filePath)
-	if errors.HasErrors(errs) {
+	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
 
@@ -70,8 +70,8 @@ func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath s
 }
 
 func readUserClusterConfigFile(clusterConfig *clusterconfig.Config) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, flagClusterConfig)
-	if errors.HasErrors(errs) {
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, _flagClusterConfig)
+	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
 
@@ -84,9 +84,9 @@ func getClusterAccessConfig() (*clusterconfig.AccessConfig, error) {
 		return nil, err
 	}
 
-	if flagClusterConfig != "" {
-		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, flagClusterConfig)
-		if errors.HasErrors(errs) {
+	if _flagClusterConfig != "" {
+		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, _flagClusterConfig)
+		if errors.HasError(errs) {
 			return nil, errors.FirstError(errs...)
 		}
 	}
@@ -115,7 +115,7 @@ func getClusterAccessConfig() (*clusterconfig.AccessConfig, error) {
 	return accessConfig, nil
 }
 
-func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.Config, error) {
+func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, error) {
 	clusterConfig := &clusterconfig.Config{}
 
 	err := clusterconfig.SetDefaults(clusterConfig)
@@ -123,14 +123,24 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.Config, e
 		return nil, err
 	}
 
-	if flagClusterConfig != "" {
+	if _flagClusterConfig != "" {
 		err := readUserClusterConfigFile(clusterConfig)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err = clusterconfig.InstallPrompt(clusterConfig, awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+	err = clusterconfig.RegionPrompt(clusterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	awsClient, err := newAWSClient(*clusterConfig.Region, awsCreds)
+	if err != nil {
+		return nil, err
+	}
+
+	err = clusterconfig.InstallPrompt(clusterConfig, awsClient)
 	if err != nil {
 		return nil, err
 	}
@@ -141,28 +151,33 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.Config, e
 	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
-		clusterConfig.AutoFillSpot(awsCreds.CortexAWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+		clusterConfig.AutoFillSpot(awsClient)
 	}
 
-	err = clusterConfig.Validate(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+	err = clusterConfig.Validate(awsClient)
 	if err != nil {
-		if flagClusterConfig != "" {
-			err = errors.Wrap(err, flagClusterConfig)
+		if _flagClusterConfig != "" {
+			err = errors.Wrap(err, _flagClusterConfig)
 		}
 		return nil, err
 	}
 
-	confirmInstallClusterConfig(clusterConfig, awsCreds)
+	confirmInstallClusterConfig(clusterConfig, awsCreds, awsClient)
 
 	return clusterConfig, nil
 }
 
-func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) (*clusterconfig.Config, error) {
+func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds AWSCredentials) (*clusterconfig.Config, error) {
 	userClusterConfig := &clusterconfig.Config{}
+	var awsClient *aws.Client
 
-	if flagClusterConfig == "" {
-		userClusterConfig = cachedClusterConfig
-		err := cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(false, cachedClusterConfig))
+	if _flagClusterConfig == "" {
+		userClusterConfig = &cachedClusterConfig
+		err := cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(false, &cachedClusterConfig))
+		if err != nil {
+			return nil, err
+		}
+		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds)
 		if err != nil {
 			return nil, err
 		}
@@ -174,6 +189,10 @@ func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds 
 
 		userClusterConfig.ClusterName = cachedClusterConfig.ClusterName
 		userClusterConfig.Region = cachedClusterConfig.Region
+		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds)
+		if err != nil {
+			return nil, err
+		}
 
 		if userClusterConfig.Bucket == nil {
 			userClusterConfig.Bucket = cachedClusterConfig.Bucket
@@ -200,7 +219,7 @@ func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds 
 		userClusterConfig.Spot = cachedClusterConfig.Spot
 
 		if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
-			err = userClusterConfig.AutoFillSpot(awsCreds.CortexAWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+			err = userClusterConfig.AutoFillSpot(awsClient)
 			if err != nil {
 				return nil, err
 			}
@@ -237,7 +256,7 @@ func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds 
 		}
 		userClusterConfig.SpotConfig = cachedClusterConfig.SpotConfig
 
-		err = cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(true, cachedClusterConfig))
+		err = cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(true, &cachedClusterConfig))
 		if err != nil {
 			return nil, err
 		}
@@ -249,24 +268,24 @@ func getClusterUpdateConfig(cachedClusterConfig *clusterconfig.Config, awsCreds 
 		return nil, err
 	}
 
-	err = userClusterConfig.Validate(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+	err = userClusterConfig.Validate(awsClient)
 	if err != nil {
-		if flagClusterConfig != "" {
-			err = errors.Wrap(err, flagClusterConfig)
+		if _flagClusterConfig != "" {
+			err = errors.Wrap(err, _flagClusterConfig)
 		}
 		return nil, err
 	}
 
-	confirmUpdateClusterConfig(userClusterConfig, awsCreds)
+	confirmUpdateClusterConfig(*userClusterConfig, awsCreds, awsClient)
 
 	return userClusterConfig, nil
 }
 
-func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) {
+func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) {
 	var spotPrice float64
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
 		var err error
-		spotPrice, err = aws.SpotInstancePrice(awsCreds.AWSAccessKeyID, awsCreds.CortexAWSSecretAccessKey, *clusterConfig.Region, *clusterConfig.InstanceType)
+		spotPrice, err = awsClient.SpotInstancePrice(*clusterConfig.Region, *clusterConfig.InstanceType)
 		if err != nil {
 			spotPrice = 0
 		}
@@ -308,25 +327,25 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot && clusterConfig.SpotConfig.OnDemandBackup != nil && *clusterConfig.SpotConfig.OnDemandBackup {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
-			fmt.Printf("WARNING: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://www.cortex.dev/v/%s/cluster-management/spot-instances for more information\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
+			fmt.Printf("WARNING: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
 		} else {
-			fmt.Printf("WARNING: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://www.cortex.dev/v/%s/cluster-management/spot-instances for more information\n", consts.CortexVersionMinor)
+			fmt.Printf("WARNING: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n", consts.CortexVersionMinor)
 		}
 		fmt.Println()
 	}
 
-	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
+	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
 	prompt.YesOrExit("would you like to continue?", exitMessage)
 }
 
-func confirmUpdateClusterConfig(clusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) {
-	fmt.Println(clusterConfigConfirmaionStr(clusterConfig, awsCreds) + "\n")
+func confirmUpdateClusterConfig(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) {
+	fmt.Println(clusterConfigConfirmaionStr(clusterConfig, awsCreds, awsClient))
 
-	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
+	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
 	prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be updated according to the configuration above, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), exitMessage)
 }
 
-func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.Config, awsCreds *AWSCredentials) string {
+func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) string {
 	defaultConfig, _ := clusterconfig.GetDefaults()
 
 	var items table.KeyValuePairs
@@ -335,116 +354,116 @@ func clusterConfigConfirmaionStr(clusterConfig *clusterconfig.Config, awsCreds *
 	if awsCreds.CortexAWSAccessKeyID != awsCreds.AWSAccessKeyID {
 		items.Add("aws access key id", s.MaskString(awsCreds.CortexAWSAccessKeyID, 4)+" (cortex)")
 	}
-	items.Add(clusterconfig.RegionUserFacingKey, clusterConfig.Region)
+	items.Add(clusterconfig.RegionUserKey, clusterConfig.Region)
 	if len(clusterConfig.AvailabilityZones) > 0 {
-		items.Add(clusterconfig.AvailabilityZonesUserFacingKey, clusterConfig.AvailabilityZones)
+		items.Add(clusterconfig.AvailabilityZonesUserKey, clusterConfig.AvailabilityZones)
 	}
-	items.Add(clusterconfig.BucketUserFacingKey, clusterConfig.Bucket)
-	items.Add(clusterconfig.ClusterNameUserFacingKey, clusterConfig.ClusterName)
+	items.Add(clusterconfig.BucketUserKey, clusterConfig.Bucket)
+	items.Add(clusterconfig.ClusterNameUserKey, clusterConfig.ClusterName)
 	if clusterConfig.LogGroup != defaultConfig.LogGroup {
-		items.Add(clusterconfig.LogGroupUserFacingKey, clusterConfig.LogGroup)
+		items.Add(clusterconfig.LogGroupUserKey, clusterConfig.LogGroup)
 	}
 
-	items.Add(clusterconfig.InstanceTypeUserFacingKey, *clusterConfig.InstanceType)
-	items.Add(clusterconfig.MinInstancesUserFacingKey, *clusterConfig.MinInstances)
-	items.Add(clusterconfig.MaxInstancesUserFacingKey, *clusterConfig.MaxInstances)
+	items.Add(clusterconfig.InstanceTypeUserKey, *clusterConfig.InstanceType)
+	items.Add(clusterconfig.MinInstancesUserKey, *clusterConfig.MinInstances)
+	items.Add(clusterconfig.MaxInstancesUserKey, *clusterConfig.MaxInstances)
 	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
-		items.Add(clusterconfig.InstanceVolumeSizeUserFacingKey, clusterConfig.InstanceVolumeSize)
+		items.Add(clusterconfig.InstanceVolumeSizeUserKey, clusterConfig.InstanceVolumeSize)
 	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot != *defaultConfig.Spot {
-		items.Add(clusterconfig.SpotUserFacingKey, s.YesNo(clusterConfig.Spot != nil && *clusterConfig.Spot))
+		items.Add(clusterconfig.SpotUserKey, s.YesNo(clusterConfig.Spot != nil && *clusterConfig.Spot))
 
 		if clusterConfig.SpotConfig != nil {
 			defaultSpotConfig := clusterconfig.SpotConfig{}
-			clusterconfig.AutoGenerateSpotConfig(awsCreds.CortexAWSAccessKeyID, awsCreds.AWSSecretAccessKey, &defaultSpotConfig, *clusterConfig.Region, *clusterConfig.InstanceType)
+			clusterconfig.AutoGenerateSpotConfig(awsClient, &defaultSpotConfig, *clusterConfig.Region, *clusterConfig.InstanceType)
 
 			if !strset.New(clusterConfig.SpotConfig.InstanceDistribution...).IsEqual(strset.New(defaultSpotConfig.InstanceDistribution...)) {
-				items.Add(clusterconfig.InstanceDistributionUserFacingKey, clusterConfig.SpotConfig.InstanceDistribution)
+				items.Add(clusterconfig.InstanceDistributionUserKey, clusterConfig.SpotConfig.InstanceDistribution)
 			}
 
 			if *clusterConfig.SpotConfig.OnDemandBaseCapacity != *defaultSpotConfig.OnDemandBaseCapacity {
-				items.Add(clusterconfig.OnDemandBaseCapacityUserFacingKey, *clusterConfig.SpotConfig.OnDemandBaseCapacity)
+				items.Add(clusterconfig.OnDemandBaseCapacityUserKey, *clusterConfig.SpotConfig.OnDemandBaseCapacity)
 			}
 
 			if *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity != *defaultSpotConfig.OnDemandPercentageAboveBaseCapacity {
-				items.Add(clusterconfig.OnDemandPercentageAboveBaseCapacityUserFacingKey, *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity)
+				items.Add(clusterconfig.OnDemandPercentageAboveBaseCapacityUserKey, *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity)
 			}
 
 			if *clusterConfig.SpotConfig.MaxPrice != *defaultSpotConfig.MaxPrice {
-				items.Add(clusterconfig.MaxPriceUserFacingKey, *clusterConfig.SpotConfig.MaxPrice)
+				items.Add(clusterconfig.MaxPriceUserKey, *clusterConfig.SpotConfig.MaxPrice)
 			}
 
 			if *clusterConfig.SpotConfig.InstancePools != *defaultSpotConfig.InstancePools {
-				items.Add(clusterconfig.InstancePoolsUserFacingKey, *clusterConfig.SpotConfig.InstancePools)
+				items.Add(clusterconfig.InstancePoolsUserKey, *clusterConfig.SpotConfig.InstancePools)
 			}
 
 			if *clusterConfig.SpotConfig.OnDemandBackup != *defaultSpotConfig.OnDemandBackup {
-				items.Add(clusterconfig.OnDemandBackupUserFacingKey, s.YesNo(*clusterConfig.SpotConfig.OnDemandBackup))
+				items.Add(clusterconfig.OnDemandBackupUserKey, s.YesNo(*clusterConfig.SpotConfig.OnDemandBackup))
 			}
 		}
 	}
 
 	if clusterConfig.Telemetry != defaultConfig.Telemetry {
-		items.Add(clusterconfig.TelemetryUserFacingKey, clusterConfig.Telemetry)
+		items.Add(clusterconfig.TelemetryUserKey, clusterConfig.Telemetry)
 	}
 
 	if clusterConfig.ImagePythonServe != defaultConfig.ImagePythonServe {
-		items.Add(clusterconfig.ImagePythonServeUserFacingKey, clusterConfig.ImagePythonServe)
+		items.Add(clusterconfig.ImagePythonServeUserKey, clusterConfig.ImagePythonServe)
 	}
 	if clusterConfig.ImagePythonServeGPU != defaultConfig.ImagePythonServeGPU {
-		items.Add(clusterconfig.ImagePythonServeGPUUserFacingKey, clusterConfig.ImagePythonServeGPU)
+		items.Add(clusterconfig.ImagePythonServeGPUUserKey, clusterConfig.ImagePythonServeGPU)
 	}
 	if clusterConfig.ImageTFServe != defaultConfig.ImageTFServe {
-		items.Add(clusterconfig.ImageTFServeUserFacingKey, clusterConfig.ImageTFServe)
+		items.Add(clusterconfig.ImageTFServeUserKey, clusterConfig.ImageTFServe)
 	}
 	if clusterConfig.ImageTFServeGPU != defaultConfig.ImageTFServeGPU {
-		items.Add(clusterconfig.ImageTFServeGPUUserFacingKey, clusterConfig.ImageTFServeGPU)
+		items.Add(clusterconfig.ImageTFServeGPUUserKey, clusterConfig.ImageTFServeGPU)
 	}
 	if clusterConfig.ImageTFAPI != defaultConfig.ImageTFAPI {
-		items.Add(clusterconfig.ImageTFAPIUserFacingKey, clusterConfig.ImageTFAPI)
+		items.Add(clusterconfig.ImageTFAPIUserKey, clusterConfig.ImageTFAPI)
 	}
 	if clusterConfig.ImageONNXServe != defaultConfig.ImageONNXServe {
-		items.Add(clusterconfig.ImageONNXServeUserFacingKey, clusterConfig.ImageONNXServe)
+		items.Add(clusterconfig.ImageONNXServeUserKey, clusterConfig.ImageONNXServe)
 	}
 	if clusterConfig.ImageONNXServeGPU != defaultConfig.ImageONNXServeGPU {
-		items.Add(clusterconfig.ImageONNXServeGPUUserFacingKey, clusterConfig.ImageONNXServeGPU)
+		items.Add(clusterconfig.ImageONNXServeGPUUserKey, clusterConfig.ImageONNXServeGPU)
 	}
 	if clusterConfig.ImageOperator != defaultConfig.ImageOperator {
-		items.Add(clusterconfig.ImageOperatorUserFacingKey, clusterConfig.ImageOperator)
+		items.Add(clusterconfig.ImageOperatorUserKey, clusterConfig.ImageOperator)
 	}
 	if clusterConfig.ImageManager != defaultConfig.ImageManager {
-		items.Add(clusterconfig.ImageManagerUserFacingKey, clusterConfig.ImageManager)
+		items.Add(clusterconfig.ImageManagerUserKey, clusterConfig.ImageManager)
 	}
 	if clusterConfig.ImageDownloader != defaultConfig.ImageDownloader {
-		items.Add(clusterconfig.ImageDownloaderUserFacingKey, clusterConfig.ImageDownloader)
+		items.Add(clusterconfig.ImageDownloaderUserKey, clusterConfig.ImageDownloader)
 	}
 	if clusterConfig.ImageClusterAutoscaler != defaultConfig.ImageClusterAutoscaler {
-		items.Add(clusterconfig.ImageClusterAutoscalerUserFacingKey, clusterConfig.ImageClusterAutoscaler)
+		items.Add(clusterconfig.ImageClusterAutoscalerUserKey, clusterConfig.ImageClusterAutoscaler)
 	}
 	if clusterConfig.ImageMetricsServer != defaultConfig.ImageMetricsServer {
-		items.Add(clusterconfig.ImageMetricsServerUserFacingKey, clusterConfig.ImageMetricsServer)
+		items.Add(clusterconfig.ImageMetricsServerUserKey, clusterConfig.ImageMetricsServer)
 	}
 	if clusterConfig.ImageNvidia != defaultConfig.ImageNvidia {
-		items.Add(clusterconfig.ImageNvidiaUserFacingKey, clusterConfig.ImageNvidia)
+		items.Add(clusterconfig.ImageNvidiaUserKey, clusterConfig.ImageNvidia)
 	}
 	if clusterConfig.ImageFluentd != defaultConfig.ImageFluentd {
-		items.Add(clusterconfig.ImageFluentdUserFacingKey, clusterConfig.ImageFluentd)
+		items.Add(clusterconfig.ImageFluentdUserKey, clusterConfig.ImageFluentd)
 	}
 	if clusterConfig.ImageStatsd != defaultConfig.ImageStatsd {
-		items.Add(clusterconfig.ImageStatsdUserFacingKey, clusterConfig.ImageStatsd)
+		items.Add(clusterconfig.ImageStatsdUserKey, clusterConfig.ImageStatsd)
 	}
 	if clusterConfig.ImageIstioProxy != defaultConfig.ImageIstioProxy {
-		items.Add(clusterconfig.ImageIstioProxyUserFacingKey, clusterConfig.ImageIstioProxy)
+		items.Add(clusterconfig.ImageIstioProxyUserKey, clusterConfig.ImageIstioProxy)
 	}
 	if clusterConfig.ImageIstioPilot != defaultConfig.ImageIstioPilot {
-		items.Add(clusterconfig.ImageIstioPilotUserFacingKey, clusterConfig.ImageIstioPilot)
+		items.Add(clusterconfig.ImageIstioPilotUserKey, clusterConfig.ImageIstioPilot)
 	}
 	if clusterConfig.ImageIstioCitadel != defaultConfig.ImageIstioCitadel {
-		items.Add(clusterconfig.ImageIstioCitadelUserFacingKey, clusterConfig.ImageIstioCitadel)
+		items.Add(clusterconfig.ImageIstioCitadelUserKey, clusterConfig.ImageIstioCitadel)
 	}
 	if clusterConfig.ImageIstioGalley != defaultConfig.ImageIstioGalley {
-		items.Add(clusterconfig.ImageIstioGalleyUserFacingKey, clusterConfig.ImageIstioGalley)
+		items.Add(clusterconfig.ImageIstioGalleyUserKey, clusterConfig.ImageIstioGalley)
 	}
 
 	return items.String()
