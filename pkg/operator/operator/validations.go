@@ -42,14 +42,16 @@ var _apiValidation = &cr.StructValidation{
 		{
 			StructField: "Name",
 			StringValidation: &cr.StringValidation{
-				Required: true,
-				DNS1035:  true,
+				Required:  true,
+				DNS1035:   true,
+				MaxLength: 63 - len(k8sName("")),
 			},
 		},
 		{
 			StructField: "Endpoint",
 			StringPtrValidation: &cr.StringPtrValidation{
 				Validator: urls.ValidateEndpoint,
+				MaxLength: 1000, // no particular reason other than it works
 			},
 		},
 		{

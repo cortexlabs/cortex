@@ -17,6 +17,7 @@ limitations under the License.
 package clusterconfig
 
 import (
+	"regexp"
 	"sort"
 	"strings"
 
@@ -35,6 +36,9 @@ import (
 var (
 	_spotInstanceDistributionLength = 2
 	_maxInstancePools               = 20
+
+	// This regex is stricter than the actual S3 rules
+	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 )
 
 type Config struct {
@@ -187,7 +191,10 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "ClusterName",
 			StringValidation: &cr.StringValidation{
-				Default: "cortex",
+				Default:   "cortex",
+				MaxLength: 63,
+				MinLength: 3,
+				Validator: validateClusterName,
 			},
 		},
 		{
@@ -207,9 +214,11 @@ var UserValidation = &cr.StructValidation{
 			StringPtrValidation: &cr.StringPtrValidation{},
 		},
 		{
-			StructField:      "LogGroup",
-			StringValidation: &cr.StringValidation{},
-			DefaultField:     "ClusterName",
+			StructField: "LogGroup",
+			StringValidation: &cr.StringValidation{
+				MaxLength: 63,
+			},
+			DefaultField: "ClusterName",
 		},
 		{
 			StructField: "ImagePythonServe",
@@ -360,8 +369,12 @@ var AccessValidation = &cr.StructValidation{
 	AllowExtraFields: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
-			StructField:         "ClusterName",
-			StringPtrValidation: &cr.StringPtrValidation{},
+			StructField: "ClusterName",
+			StringPtrValidation: &cr.StringPtrValidation{
+				MaxLength: 63,
+				MinLength: 3,
+				Validator: validateClusterName,
+			},
 		},
 		{
 			StructField: "Region",
@@ -658,7 +671,13 @@ func InstallPrompt(clusterConfig *Config, awsClient *aws.Client) error {
 		return err
 	}
 
-	defaultBucket := pointer.String(clusterConfig.ClusterName + "-" + hashedAccountID[:10])
+	defaultBucket := clusterConfig.ClusterName + "-" + hashedAccountID[:10]
+	if len(defaultBucket) > 63 {
+		defaultBucket = defaultBucket[:63]
+	}
+	if strings.HasSuffix(defaultBucket, "-") {
+		defaultBucket = defaultBucket[:len(defaultBucket)-1]
+	}
 
 	remainingPrompts := &cr.PromptValidation{
 		SkipPopulatedFields: true,
@@ -669,7 +688,9 @@ func InstallPrompt(clusterConfig *Config, awsClient *aws.Client) error {
 					Prompt: BucketUserKey,
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
-					Default: defaultBucket,
+					Default:   &defaultBucket,
+					MinLength: 3,
+					MaxLength: 63,
 				},
 			},
 			{
@@ -757,7 +778,10 @@ var AccessPromptValidation = &cr.PromptValidation{
 				Prompt: ClusterNameUserKey,
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
-				Default: pointer.String("cortex"),
+				Default:   pointer.String("cortex"),
+				MaxLength: 63,
+				MinLength: 3,
+				Validator: validateClusterName,
 			},
 		},
 		{
@@ -771,6 +795,13 @@ var AccessPromptValidation = &cr.PromptValidation{
 			},
 		},
 	},
+}
+
+func validateClusterName(clusterName string) (string, error) {
+	if !_strictS3BucketRegex.MatchString(clusterName) {
+		return "", errors.Wrap(ErrorDidNotMatchStrictS3Regex(), ClusterNameKey, clusterName)
+	}
+	return clusterName, nil
 }
 
 func validateInstanceType(instanceType string) (string, error) {

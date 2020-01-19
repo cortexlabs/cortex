@@ -122,6 +122,9 @@ function ensure_eks() {
 function main() {
   mkdir -p $CORTEX_CLUSTER_WORKSPACE
 
+  setup_bucket
+  setup_cloudwatch_logs
+
   ensure_eks
 
   eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
@@ -134,9 +137,6 @@ function main() {
       envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
     fi
   fi
-
-  setup_bucket
-  setup_cloudwatch_logs
 
   echo -n "￮ updating cluster configuration "
   setup_configmap
