@@ -123,13 +123,13 @@ func getReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) *status.Re
 		if pod.Labels["apiName"] != deployment.Labels["apiName"] {
 			continue
 		}
-		updateReplicaCounts(counts, deployment, &pod)
+		addPodToReplicaCounts(counts, deployment, &pod)
 	}
 
 	return counts
 }
 
-func updateReplicaCounts(counts *status.ReplicaCounts, deployment *kapps.Deployment, pod *kcore.Pod) {
+func addPodToReplicaCounts(counts *status.ReplicaCounts, deployment *kapps.Deployment, pod *kcore.Pod) {
 	var subCounts *status.SubReplicaCounts
 	if isPodSpecLatest(deployment, pod) {
 		subCounts = &counts.Updated
