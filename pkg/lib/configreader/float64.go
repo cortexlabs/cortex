@@ -185,7 +185,7 @@ func ValidateFloat64Val(val float64, v *Float64Validation) error {
 
 	if v.AllowedValues != nil {
 		if !slices.HasFloat64(v.AllowedValues, val) {
-			return ErrorInvalidFloat64(val, v.AllowedValues...)
+			return ErrorInvalidFloat64(val, v.AllowedValues[0], v.AllowedValues[1:]...)
 		}
 	}
 

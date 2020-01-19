@@ -17,34 +17,26 @@ limitations under the License.
 package k8s
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-var jobTypeMeta = kmeta.TypeMeta{
+var _jobTypeMeta = kmeta.TypeMeta{
 	APIVersion: "batch/v1",
 	Kind:       "Job",
 }
 
 type JobSpec struct {
 	Name        string
-	Namespace   string
 	PodSpec     PodSpec
 	Labels      map[string]string
 	Annotations map[string]string
 }
 
 func Job(spec *JobSpec) *kbatch.Job {
-	if spec.Namespace == "" {
-		spec.Namespace = "default"
-	}
-	if spec.PodSpec.Namespace == "" {
-		spec.PodSpec.Namespace = spec.Namespace
-	}
 	if spec.PodSpec.Name == "" {
 		spec.PodSpec.Name = spec.Name
 	}
@@ -54,10 +46,9 @@ func Job(spec *JobSpec) *kbatch.Job {
 	completions := int32(1)
 
 	job := &kbatch.Job{
-		TypeMeta: jobTypeMeta,
+		TypeMeta: _jobTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
-			Namespace:   spec.Namespace,
 			Labels:      spec.Labels,
 			Annotations: spec.Annotations,
 		},
@@ -67,9 +58,8 @@ func Job(spec *JobSpec) *kbatch.Job {
 			Completions:  &completions,
 			Template: kcore.PodTemplateSpec{
 				ObjectMeta: kmeta.ObjectMeta{
-					Name:      spec.PodSpec.Name,
-					Namespace: spec.PodSpec.Namespace,
-					Labels:    spec.PodSpec.Labels,
+					Name:   spec.PodSpec.Name,
+					Labels: spec.PodSpec.Labels,
 				},
 				Spec: spec.PodSpec.K8sPodSpec,
 			},
@@ -79,7 +69,7 @@ func Job(spec *JobSpec) *kbatch.Job {
 }
 
 func (c *Client) CreateJob(job *kbatch.Job) (*kbatch.Job, error) {
-	job.TypeMeta = jobTypeMeta
+	job.TypeMeta = _jobTypeMeta
 	job, err := c.jobClient.Create(job)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -87,8 +77,8 @@ func (c *Client) CreateJob(job *kbatch.Job) (*kbatch.Job, error) {
 	return job, nil
 }
 
-func (c *Client) updateJob(job *kbatch.Job) (*kbatch.Job, error) {
-	job.TypeMeta = jobTypeMeta
+func (c *Client) UpdateJob(job *kbatch.Job) (*kbatch.Job, error) {
+	job.TypeMeta = _jobTypeMeta
 	job, err := c.jobClient.Update(job)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -104,7 +94,7 @@ func (c *Client) ApplyJob(job *kbatch.Job) (*kbatch.Job, error) {
 	if existing == nil {
 		return c.CreateJob(job)
 	}
-	return c.updateJob(job)
+	return c.UpdateJob(job)
 }
 
 func (c *Client) GetJob(name string) (*kbatch.Job, error) {
@@ -115,12 +105,12 @@ func (c *Client) GetJob(name string) (*kbatch.Job, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	job.TypeMeta = jobTypeMeta
+	job.TypeMeta = _jobTypeMeta
 	return job, nil
 }
 
 func (c *Client) DeleteJob(name string) (bool, error) {
-	err := c.jobClient.Delete(name, deleteOpts)
+	err := c.jobClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -147,7 +137,7 @@ func (c *Client) ListJobs(opts *kmeta.ListOptions) ([]kbatch.Job, error) {
 		return nil, errors.WithStack(err)
 	}
 	for i := range jobList.Items {
-		jobList.Items[i].TypeMeta = jobTypeMeta
+		jobList.Items[i].TypeMeta = _jobTypeMeta
 	}
 	return jobList.Items, nil
 }
@@ -161,6 +151,13 @@ func (c *Client) ListJobsByLabels(labels map[string]string) ([]kbatch.Job, error
 
 func (c *Client) ListJobsByLabel(labelKey string, labelValue string) ([]kbatch.Job, error) {
 	return c.ListJobsByLabels(map[string]string{labelKey: labelValue})
+}
+
+func (c *Client) ListJobsWithLabelKeys(labelKeys ...string) ([]kbatch.Job, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListJobs(opts)
 }
 
 func JobMap(jobs []kbatch.Job) map[string]kbatch.Job {

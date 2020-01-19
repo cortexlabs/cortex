@@ -66,17 +66,22 @@ func validate(t Table) error {
 	return nil
 }
 
+// Prints the error message as a string (if there is an error)
+func (t *Table) MustPrint() {
+	fmt.Print(t.MustFormat())
+}
+
 // Return the error message as a string
-func MustFormat(t Table) string {
-	str, err := Format(t)
+func (t *Table) MustFormat() string {
+	str, err := t.Format()
 	if err != nil {
-		return "error: " + err.Error()
+		return "error: " + errors.Message(err)
 	}
 	return str
 }
 
-func Format(t Table) (string, error) {
-	if err := validate(t); err != nil {
+func (t *Table) Format() (string, error) {
+	if err := validate(*t); err != nil {
 		return "", err
 	}
 
@@ -153,5 +158,5 @@ func Format(t Table) (string, error) {
 
 	sort.Strings(rowStrs)
 
-	return headerStr + "\n" + strings.Join(rowStrs, "\n"), nil
+	return headerStr + "\n" + strings.Join(rowStrs, "\n") + "\n", nil
 }

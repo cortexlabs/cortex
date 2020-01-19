@@ -20,11 +20,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cortexlabs/yaml"
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/yaml"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func Pp(obj interface{}) {

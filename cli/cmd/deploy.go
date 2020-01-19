@@ -23,9 +23,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/spf13/cobra"
-
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -35,61 +32,71 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/spf13/cobra"
 )
 
 var _warningFileSize = 1024 * 1024 * 10
-var flagDeployForce bool
-var flagDeployRefresh bool
+var _flagDeployForce bool
+var _flagRefresh bool
 
 func init() {
-	deployCmd.PersistentFlags().BoolVarP(&flagDeployForce, "force", "f", false, "override the in-progress deployment update")
-	deployCmd.PersistentFlags().BoolVarP(&flagDeployRefresh, "refresh", "r", false, "re-deploy all apis with cleared cache and rolling updates")
-	addEnvFlag(deployCmd)
+	_deployCmd.PersistentFlags().BoolVarP(&_flagDeployForce, "force", "f", false, "override the in-progress api update")
+	_deployCmd.PersistentFlags().BoolVarP(&_flagRefresh, "refresh", "r", false, "re-deploy with cleared cache and rolling updates")
+	addEnvFlag(_deployCmd)
 }
 
-var deployCmd = &cobra.Command{
-	Use:   "deploy",
-	Short: "create or update a deployment",
-	Args:  cobra.NoArgs,
+var _deployCmd = &cobra.Command{
+	Use:   "deploy [CONFIG_FILE]",
+	Short: "create or update apis",
+	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.EventNotify("cli.deploy")
-		deploy(flagDeployForce, flagDeployRefresh)
+		telemetry.Event("cli.deploy")
+
+		configPath := getConfigPath(args)
+		deploy(configPath, _flagDeployForce, _flagRefresh)
 	},
 }
 
-func PromptForFilesAboveSize(size int) files.IgnoreFn {
-	return func(path string, fi os.FileInfo) (bool, error) {
-		if !fi.IsDir() && fi.Size() > int64(size) {
-			prompt.YesOrExit(fmt.Sprintf("are you sure you want to zip %s (%s)?", path, s.IntToBase2Byte(int(fi.Size()))), "error: cancelled deployment")
+func getConfigPath(args []string) string {
+	var configPath string
+
+	if len(args) == 0 {
+		configPath = "cortex.yaml"
+		if !files.IsFile(configPath) {
+			exit.Error("no api config file was specified, and ./cortex.yaml does not exits; create cortex.yaml, or reference an existing config file by running `cortex deploy <config_file_path>`")
 		}
-		return false, nil
+	} else {
+		configPath = args[0]
+		if !files.IsFile(configPath) {
+			exit.Error("no such file", configPath)
+		}
 	}
+
+	return configPath
 }
 
-func deploy(force bool, ignoreCache bool) {
-	root := mustAppRoot()
-	_, err := readConfig() // Check proper cortex.yaml
-	if err != nil {
-		exit.Error(err)
-	}
-
+func deploy(configPath string, force bool, refresh bool) {
 	params := map[string]string{
-		"force":       s.Bool(force),
-		"ignoreCache": s.Bool(ignoreCache),
+		"force":      s.Bool(force),
+		"refresh":    s.Bool(refresh),
+		"configPath": configPath,
 	}
 
-	configBytes, err := ioutil.ReadFile(filepath.Join(root, "cortex.yaml"))
+	configBytes, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		exit.Error(errors.Wrap(err, "cortex.yaml", cr.ErrorReadConfig().Error()))
+		exit.Error(errors.Wrap(err, configPath))
 	}
 
 	uploadBytes := map[string][]byte{
-		"cortex.yaml": configBytes,
+		"config": configBytes,
 	}
+
+	projectRoot := filepath.Dir(files.UserRelToAbsPath(configPath))
+
 	fmt.Println("zipping files in current working directory")
-	projectPaths, err := files.ListDirRecursive(root, false,
-		files.IgnoreCortexYAML,
+	projectPaths, err := files.ListDirRecursive(projectRoot, false,
+		files.IgnoreSpecificFiles(files.UserRelToAbsPath(configPath)),
 		files.IgnoreCortexDebug,
 		files.IgnoreHiddenFiles,
 		files.IgnoreHiddenFolders,
@@ -104,7 +111,7 @@ func deploy(force bool, ignoreCache bool) {
 		FileLists: []zip.FileListInput{
 			{
 				Sources:      projectPaths,
-				RemovePrefix: root,
+				RemovePrefix: projectRoot,
 			},
 		},
 	})
@@ -133,5 +140,14 @@ func deploy(force bool, ignoreCache bool) {
 	fmt.Println(console.Bold(msgParts[0]))
 	if len(msgParts) > 1 {
 		fmt.Println("\n" + strings.Join(msgParts[1:], "\n\n"))
+	}
+}
+
+func PromptForFilesAboveSize(size int) files.IgnoreFn {
+	return func(path string, fi os.FileInfo) (bool, error) {
+		if !fi.IsDir() && fi.Size() > int64(size) {
+			prompt.YesOrExit(fmt.Sprintf("are you sure you want to zip %s (%s)?", path, s.IntToBase2Byte(int(fi.Size()))), "error: cancelled deployment")
+		}
+		return false, nil
 	}
 }

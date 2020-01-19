@@ -100,18 +100,14 @@ You can skip dependencies that are [pre-installed](../../../docs/deployments/pyt
 
 <br>
 
-## Configure a deployment
+## Configure an API
 
-Create a `cortex.yaml` file and add the configuration below. A `deployment` specifies a set of resources that are deployed together. An `api` provides a runtime for inference and makes our `predictor.py` implementation available as a web service that can serve real-time predictions:
+Create a `cortex.yaml` file and add the configuration below. An `api` provides a runtime for inference and makes our `predictor.py` implementation available as a web service that can serve real-time predictions:
 
 ```yaml
 # cortex.yaml
 
-- kind: deployment
-  name: iris
-
-- kind: api
-  name: classifier
+- name: iris-classifier
   predictor:
     type: python
     path: predictor.py
@@ -129,18 +125,18 @@ Create a `cortex.yaml` file and add the configuration below. A `deployment` spec
 ```bash
 $ cortex deploy
 
-creating classifier api
+creating iris-classifier api
 ```
 
-Track the status of your deployment using `cortex get`:
+Track the status of your api using `cortex get`:
 
 ```bash
-$ cortex get classifier --watch
+$ cortex get iris-classifier --watch
 
 status   up-to-date   requested   last update   avg inference
 live     1            1           8s            -
 
-endpoint: http://***.amazonaws.com/iris/classifier
+endpoint: http://***.amazonaws.com/iris-classifier
 ```
 
 The output above indicates that one replica of the API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
@@ -148,7 +144,7 @@ The output above indicates that one replica of the API was requested and is avai
 You can also stream logs from your API:
 
 ```bash
-$ cortex logs classifier
+$ cortex logs iris-classifier
 ```
 
 <br>
@@ -158,7 +154,7 @@ $ cortex logs classifier
 We can use `curl` to test our prediction service:
 
 ```bash
-$ curl http://***.amazonaws.com/iris/classifier \
+$ curl http://***.amazonaws.com/iris-classifier \
     -X POST -H "Content-Type: application/json" \
     -d '{"sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3}'
 
@@ -174,11 +170,7 @@ Add a `tracker` to your `cortex.yaml` and specify that this is a classification 
 ```yaml
 # cortex.yaml
 
-- kind: deployment
-  name: iris
-
-- kind: api
-  name: classifier
+- name: iris-classifier
   predictor:
     type: python
     path: predictor.py
@@ -194,13 +186,13 @@ Run `cortex deploy` again to perform a rolling update to your API with the new c
 ```bash
 $ cortex deploy
 
-updating classifier api
+updating iris-classifier api
 ```
 
 After making more predictions, your `cortex get` command will show information about your API's past predictions:
 
 ```bash
-$ cortex get classifier --watch
+$ cortex get iris-classifier --watch
 
 status   up-to-date   requested   last update   avg inference
 live     1            1           16s           28ms
@@ -218,11 +210,7 @@ virginica    4
 This model is fairly small but larger models may require more compute resources. You can configure this in your `cortex.yaml`:
 
 ```yaml
-- kind: deployment
-  name: iris
-
-- kind: api
-  name: classifier
+- name: iris-classifier
   predictor:
     type: python
     path: predictor.py
@@ -232,8 +220,8 @@ This model is fairly small but larger models may require more compute resources.
   tracker:
     model_type: classification
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 ```
 
 You could also configure GPU compute here if your cluster supports it. Adding compute resources may help reduce your inference latency. Run `cortex deploy` again to update your API with this configuration:
@@ -241,13 +229,13 @@ You could also configure GPU compute here if your cluster supports it. Adding co
 ```bash
 $ cortex deploy
 
-updating classifier api
+updating iris-classifier api
 ```
 
 Run `cortex get` again:
 
 ```bash
-$ cortex get classifier --watch
+$ cortex get iris-classifier --watch
 
 status   up-to-date   requested   last update   avg inference
 live     1            1           16s           24 ms
@@ -265,11 +253,7 @@ virginica    4
 If you trained another model and want to A/B test it with your previous model, simply add another `api` to your configuration and specify the new model:
 
 ```yaml
-- kind: deployment
-  name: iris
-
-- kind: api
-  name: classifier
+- name: iris-classifier
   predictor:
     type: python
     path: predictor.py
@@ -279,11 +263,10 @@ If you trained another model and want to A/B test it with your previous model, s
   tracker:
     model_type: classification
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 
-- kind: api
-  name: another-classifier
+- name: another-iris-classifier
   predictor:
     type: python
     path: predictor.py
@@ -293,8 +276,8 @@ If you trained another model and want to A/B test it with your previous model, s
   tracker:
     model_type: classification
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 ```
 
 Run `cortex deploy` to create the new API:
@@ -302,17 +285,17 @@ Run `cortex deploy` to create the new API:
 ```bash
 $ cortex deploy
 
-creating another-classifier api
+creating another-iris-classifier api
 ```
 
-`cortex deploy` is declarative so the `classifier` API is unchanged while `another-classifier` is created:
+`cortex deploy` is declarative so the `iris-classifier` API is unchanged while `another-iris-classifier` is created:
 
 ```bash
 $ cortex get --watch
 
 api                  status   up-to-date   requested   last update
-classifier           live     1            1           5m
-another-classifier   live     1            1           8s
+iris-classifier           live     1            1           5m
+another-iris-classifier   live     1            1           8s
 ```
 
 ## Add a batch API
@@ -353,11 +336,7 @@ class PythonPredictor:
 Next, add the `api` to `cortex.yaml`:
 
 ```yaml
-- kind: deployment
-  name: iris
-
-- kind: api
-  name: classifier
+- name: iris-classifier
   predictor:
     type: python
     path: predictor.py
@@ -367,11 +346,10 @@ Next, add the `api` to `cortex.yaml`:
   tracker:
     model_type: classification
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 
-- kind: api
-  name: another-classifier
+- name: another-iris-classifier
   predictor:
     type: python
     path: predictor.py
@@ -381,12 +359,11 @@ Next, add the `api` to `cortex.yaml`:
   tracker:
     model_type: classification
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 
 
-- kind: api
-  name: batch-classifier
+- name: batch-iris-classifier
   predictor:
     type: python
     path: batch-predictor.py
@@ -394,8 +371,8 @@ Next, add the `api` to `cortex.yaml`:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 ```
 
 Run `cortex deploy` to create the batch API:
@@ -403,7 +380,7 @@ Run `cortex deploy` to create the batch API:
 ```bash
 $ cortex deploy
 
-creating batch-classifier api
+creating batch-iris-classifier api
 ```
 
 `cortex get` should show all three APIs now:
@@ -412,9 +389,9 @@ creating batch-classifier api
 $ cortex get --watch
 
 api                  status   up-to-date   requested   last update
-classifier           live     1            1           10m
-another-classifier   live     1            1           5m
-batch-classifier     live     1            1           8s
+iris-classifier           live     1            1           10m
+another-iris-classifier   live     1            1           5m
+batch-iris-classifier     live     1            1           8s
 ```
 
 <br>
@@ -422,7 +399,7 @@ batch-classifier     live     1            1           8s
 ## Try a batch prediction
 
 ```bash
-$ curl http://***.amazonaws.com/iris/classifier \
+$ curl http://***.amazonaws.com/batch-iris-classifier \
     -X POST -H "Content-Type: application/json" \
     -d '[
           {
@@ -455,11 +432,9 @@ $ curl http://***.amazonaws.com/iris/classifier \
 Run `cortex delete` to spin down your API:
 
 ```bash
-$ cortex delete
+$ cortex delete iris-classifier
 
-deleting classifier api
-deleting another-classifier api
-deleting batch-classifier api
+deleting iris-classifier api
 ```
 
 Running `cortex delete` will free up cluster resources and allow Cortex to scale down to the minimum number of instances you specified during cluster installation. It will not spin down your cluster.

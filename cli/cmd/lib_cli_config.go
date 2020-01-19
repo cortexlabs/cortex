@@ -40,7 +40,7 @@ type CLIEnvConfig struct {
 	AWSSecretAccessKey string `json:"aws_secret_access_key" yaml:"aws_secret_access_key"`
 }
 
-var cliConfigValidation = &cr.StructValidation{
+var _cliConfigValidation = &cr.StructValidation{
 	TreatNullAsEmpty: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
@@ -235,8 +235,8 @@ func readCLIConfig() (CLIConfig, error) {
 	}
 
 	cliConfig := CLIConfig{}
-	errs := cr.ParseYAMLFile(&cliConfig, cliConfigValidation, _cliConfigPath)
-	if errors.HasErrors(errs) {
+	errs := cr.ParseYAMLFile(&cliConfig, _cliConfigValidation, _cliConfigPath)
+	if errors.HasError(errs) {
 		return CLIConfig{}, errors.FirstError(errs...)
 	}
 

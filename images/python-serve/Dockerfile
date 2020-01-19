@@ -23,13 +23,14 @@ RUN apt-get update -qq && apt-get install -y -q \
 ENV PYTHONPATH "${PYTHONPATH}:/src:/mnt/project"
 
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
-COPY pkg/workloads/cortex/python_serve/requirements.txt /src/cortex/python_serve/requirements.txt
-RUN pip install --no-cache-dir -r /src/cortex/lib/requirements.txt && \
-    pip install --no-cache-dir -r /src/cortex/python_serve/requirements.txt && \
+COPY pkg/workloads/cortex/serve/python.requirements.txt /src/cortex/serve/requirements.txt
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r /src/cortex/lib/requirements.txt && \
+    pip install --no-cache-dir -r /src/cortex/serve/requirements.txt && \
     rm -rf /root/.cache/pip*
 
 COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib
-COPY pkg/workloads/cortex/python_serve /src/cortex/python_serve
+COPY pkg/workloads/cortex/serve /src/cortex/serve
 
-ENTRYPOINT ["/src/cortex/python_serve/run.sh"]
+ENTRYPOINT ["/src/cortex/serve/run.sh"]

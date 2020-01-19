@@ -17,23 +17,22 @@ limitations under the License.
 package msgpack
 
 import (
-	"github.com/ugorji/go/codec"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/ugorji/go/codec"
 )
 
-var mh codec.MsgpackHandle
+var _mh codec.MsgpackHandle
 
 func init() {
-	mh.RawToString = true
+	_mh.RawToString = true
 }
 
 func Marshal(obj interface{}) ([]byte, error) {
 	var bytes []byte
-	enc := codec.NewEncoderBytes(&bytes, &mh)
+	enc := codec.NewEncoderBytes(&bytes, &_mh)
 	err := enc.Encode(obj)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorMarshalMsgpack().Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorMarshalMsgpack()))
 	}
 	return bytes, nil
 }
@@ -50,12 +49,12 @@ func UnmarshalToInterface(b []byte) (interface{}, error) {
 	var obj interface{}
 	err := Unmarshal(b, &obj)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorUnmarshalMsgpack().Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorUnmarshalMsgpack()))
 	}
 	return obj, nil
 }
 
 func Unmarshal(b []byte, obj interface{}) error {
-	dec := codec.NewDecoderBytes(b, &mh)
+	dec := codec.NewDecoderBytes(b, &_mh)
 	return dec.Decode(&obj)
 }

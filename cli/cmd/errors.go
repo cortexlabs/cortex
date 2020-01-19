@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	errStrCantMakeRequest = "unable to make request"
-	errStrRead            = "unable to read"
+	_errStrCantMakeRequest = "unable to make request"
+	_errStrRead            = "unable to read"
 )
 
 func errStrFailedToConnect(u url.URL) string {
@@ -38,30 +38,24 @@ type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
-	ErrCLIAlreadyInAppDir
 	ErrAPINotReady
-	ErrAPINotFound
 	ErrFailedToConnectOperator
 	ErrConfigCannotBeChangedOnUpdate
 	ErrDuplicateCLIEnvNames
-	ErrCLINotInAppDir
 )
 
-var errorKinds = []string{
+var _errorKinds = []string{
 	"err_unknown",
-	"err_cli_already_in_app_dir",
 	"err_api_not_ready",
-	"err_api_not_found",
 	"err_failed_to_connect_operator",
 	"err_config_cannot_be_changed_on_update",
 	"err_duplicate_cli_env_names",
-	"err_cli_not_in_app_dir",
 }
 
-var _ = [1]int{}[int(ErrCLINotInAppDir)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrDuplicateCLIEnvNames)-(len(_errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
-	return errorKinds[t]
+	return _errorKinds[t]
 }
 
 // MarshalText satisfies TextMarshaler
@@ -72,8 +66,8 @@ func (t ErrorKind) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *ErrorKind) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(errorKinds); i++ {
-		if enum == errorKinds[i] {
+	for i := 0; i < len(_errorKinds); i++ {
+		if enum == _errorKinds[i] {
 			*t = ErrorKind(i)
 			return nil
 		}
@@ -103,24 +97,10 @@ func (e Error) Error() string {
 	return e.message
 }
 
-func ErrorCliAlreadyInAppDir(dirPath string) error {
-	return errors.WithStack(Error{
-		Kind:    ErrCLIAlreadyInAppDir,
-		message: fmt.Sprintf("your current working directory is already in a cortex directory (%s)", dirPath),
-	})
-}
-
 func ErrorAPINotReady(apiName string, status string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrAPINotReady,
-		message: fmt.Sprintf("api %s is %s", s.UserStr(apiName), status),
-	})
-}
-
-func ErrorAPINotFound(apiName string) error {
-	return errors.WithStack(Error{
-		Kind:    ErrAPINotFound,
-		message: fmt.Sprintf("api %s not found", s.UserStr(apiName)),
+		message: fmt.Sprintf("%s api is %s", s.UserStr(apiName), status),
 	})
 }
 
@@ -132,7 +112,7 @@ func ErrorFailedToConnectOperator(originalError error, operatorURL string) error
 
 	originalErrMsg := ""
 	if originalError != nil {
-		originalErrMsg = urls.TrimQueryParamsStr(originalError.Error()) + "\n\n"
+		originalErrMsg = urls.TrimQueryParamsStr(errors.Message(originalError)) + "\n\n"
 	}
 
 	return errors.WithStack(Error{
@@ -152,12 +132,5 @@ func ErrorDuplicateCLIEnvNames(environment string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrDuplicateCLIEnvNames,
 		message: fmt.Sprintf("duplicate environment names: %s is defined more than once", s.UserStr(environment)),
-	})
-}
-
-func ErrorCliNotInAppDir() error {
-	return errors.WithStack(Error{
-		Kind:    ErrCLINotInAppDir,
-		message: "your current working directory is not in or under a cortex directory (identified via a top-level cortex.yaml file)",
 	})
 }

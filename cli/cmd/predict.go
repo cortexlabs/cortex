@@ -21,10 +21,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
-
-	"github.com/spf13/cobra"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -32,11 +29,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/spf13/cobra"
 )
 
-var predictDebug bool
+var _flagPredictDebug bool
 
-var predictClient = &GenericClient{
+var _predictClient = &GenericClient{
 	Client: &http.Client{
 		Timeout: 600 * time.Second,
 		Transport: &http.Transport{
@@ -46,12 +45,11 @@ var predictClient = &GenericClient{
 }
 
 func init() {
-	addAppNameFlag(predictCmd)
-	addEnvFlag(predictCmd)
-	predictCmd.Flags().BoolVar(&predictDebug, "debug", false, "predict with debug mode")
+	addEnvFlag(_predictCmd)
+	_predictCmd.Flags().BoolVar(&_flagPredictDebug, "debug", false, "predict with debug mode")
 }
 
-var predictCmd = &cobra.Command{
+var _predictCmd = &cobra.Command{
 	Use:   "predict API_NAME JSON_FILE",
 	Short: "make a prediction request using a json file",
 	Args:  cobra.ExactArgs(2),
@@ -61,60 +59,28 @@ var predictCmd = &cobra.Command{
 		apiName := args[0]
 		jsonPath := args[1]
 
-		appName, err := AppNameFromFlagOrConfig()
+		httpRes, err := HTTPGet("/get/" + apiName)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		resourcesRes, err := getResourcesResponse(appName)
-		if err != nil {
+		var apiRes schema.GetAPIResponse
+		if err = json.Unmarshal(httpRes, &apiRes); err != nil {
 			exit.Error(err)
 		}
 
-		apiGroupStatus := resourcesRes.APIGroupStatuses[apiName]
-
-		// Check for prefix match
-		if apiGroupStatus == nil {
-			var matchedName string
-			for name := range resourcesRes.APIGroupStatuses {
-				if strings.HasPrefix(name, apiName) {
-					if matchedName != "" {
-						exit.Error(ErrorAPINotFound(apiName)) // duplicates
-					}
-					matchedName = name
-				}
-			}
-
-			if matchedName == "" {
-				exit.Error(ErrorAPINotFound(apiName))
-			}
-
-			if resourcesRes.Context.APIs[matchedName] == nil {
-				exit.Error(ErrorAPINotFound(apiName))
-			}
-
-			apiGroupStatus = resourcesRes.APIGroupStatuses[matchedName]
-			apiName = matchedName
+		totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
+		if totalReady == 0 {
+			exit.Error(ErrorAPINotReady(apiName, apiRes.Status.Message()))
 		}
 
-		api := resourcesRes.Context.APIs[apiName]
-		if api == nil {
-			exit.Error(ErrorAPINotFound(apiName))
+		apiEndpoint := urls.Join(apiRes.BaseURL, *apiRes.API.Endpoint)
+		if _flagPredictDebug {
+			apiEndpoint += "?debug=true"
 		}
 
-		if apiGroupStatus.ActiveStatus == nil {
-			exit.Error(ErrorAPINotReady(apiName, apiGroupStatus.Message()))
-		}
-
-		apiURL := urls.Join(resourcesRes.APIsBaseURL, *api.Endpoint)
-		if predictDebug {
-			apiURL += "?debug=true"
-		}
-		predictResponse, err := makePredictRequest(apiURL, jsonPath)
+		predictResponse, err := makePredictRequest(apiEndpoint, jsonPath)
 		if err != nil {
-			if strings.Contains(err.Error(), "503 Service Temporarily Unavailable") || strings.Contains(err.Error(), "502 Bad Gateway") {
-				exit.Error(ErrorAPINotReady(apiName, "creating"))
-			}
 			exit.Error(err)
 		}
 
@@ -126,19 +92,20 @@ var predictCmd = &cobra.Command{
 	},
 }
 
-func makePredictRequest(apiURL string, jsonPath string) (interface{}, error) {
+func makePredictRequest(apiEndpoint string, jsonPath string) (interface{}, error) {
 	jsonBytes, err := files.ReadFileBytes(jsonPath)
 	if err != nil {
 		exit.Error(err)
 	}
+
 	payload := bytes.NewBuffer(jsonBytes)
-	req, err := http.NewRequest("POST", apiURL, payload)
+	req, err := http.NewRequest("POST", apiEndpoint, payload)
 	if err != nil {
-		return nil, errors.Wrap(err, errStrCantMakeRequest)
+		return nil, errors.Wrap(err, _errStrCantMakeRequest)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	httpResponse, err := predictClient.MakeRequest(req)
+	httpResponse, err := _predictClient.MakeRequest(req)
 	if err != nil {
 		return nil, err
 	}
