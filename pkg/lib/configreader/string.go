@@ -200,7 +200,7 @@ func ValidateStringVal(val string, v *StringValidation) error {
 
 	if v.AllowedValues != nil {
 		if !slices.HasString(v.AllowedValues, val) {
-			return ErrorInvalidStr(val, v.AllowedValues...)
+			return ErrorInvalidStr(val, v.AllowedValues[0], v.AllowedValues[1:]...)
 		}
 	}
 

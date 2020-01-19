@@ -21,30 +21,20 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-func SpotInstancePrice(accessKeyID string, secretAccessKey string, region string, instanceType string) (float64, error) {
-	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(region),
-		DisableSSL:  aws.Bool(false),
-		Credentials: credentials.NewStaticCredentials(accessKeyID, secretAccessKey, ""),
-	})
-	if err != nil {
-		return 0, errors.WithStack(err)
-	}
-
-	svc := ec2.New(sess)
-
-	result, err := svc.DescribeSpotPriceHistory(&ec2.DescribeSpotPriceHistoryInput{
+func (c *Client) SpotInstancePrice(region string, instanceType string) (float64, error) {
+	result, err := c.EC2().DescribeSpotPriceHistory(&ec2.DescribeSpotPriceHistoryInput{
 		InstanceTypes:       []*string{aws.String(instanceType)},
 		ProductDescriptions: []*string{aws.String("Linux/UNIX")},
 		StartTime:           aws.Time(time.Now()),
 	})
+	if err != nil {
+		return 0, errors.WithStack(err)
+	}
 
 	min := math.MaxFloat64
 
@@ -74,19 +64,9 @@ func SpotInstancePrice(accessKeyID string, secretAccessKey string, region string
 	return min, nil
 }
 
-func GetAvailabilityZones(accessKeyID string, secretAccessKey string, region string) ([]string, error) {
-	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(region),
-		DisableSSL:  aws.Bool(false),
-		Credentials: credentials.NewStaticCredentials(accessKeyID, secretAccessKey, ""),
-	})
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	svc := ec2.New(sess)
+func (c *Client) GetAvailabilityZones() ([]string, error) {
 	input := &ec2.DescribeAvailabilityZonesInput{}
-	result, err := svc.DescribeAvailabilityZones(input)
+	result, err := c.EC2().DescribeAvailabilityZones(input)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

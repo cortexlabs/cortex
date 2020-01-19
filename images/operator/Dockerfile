@@ -10,6 +10,7 @@ RUN go mod download
 COPY pkg/consts /go/src/github.com/cortexlabs/cortex/pkg/consts
 COPY pkg/lib /go/src/github.com/cortexlabs/cortex/pkg/lib
 COPY pkg/operator /go/src/github.com/cortexlabs/cortex/pkg/operator
+COPY pkg/types /go/src/github.com/cortexlabs/cortex/pkg/types
 WORKDIR /go/src/github.com/cortexlabs/cortex/pkg/operator
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -installsuffix cgo -o operator .
 

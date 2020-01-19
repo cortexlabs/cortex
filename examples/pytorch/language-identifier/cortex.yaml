@@ -1,10 +1,6 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
-- kind: deployment
-  name: language
-
-- kind: api
-  name: identifier
+- name: language-identifier
   predictor:
     type: python
     path: predictor.py

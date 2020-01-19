@@ -115,7 +115,7 @@ func ToWriter(zipInput *Input, writer io.Writer) error {
 
 	err = archive.Close()
 	if err != nil {
-		return errors.Wrap(err, errStrCreateZip)
+		return errors.Wrap(err, _errStrCreateZip)
 	}
 	return nil
 }
@@ -134,7 +134,7 @@ func ToFile(zipInput *Input, destPath string) error {
 
 	err = zipfile.Close()
 	if err != nil {
-		return errors.Wrap(err, destPath, errStrCreateZip)
+		return errors.Wrap(err, destPath, _errStrCreateZip)
 	}
 	return nil
 }
@@ -162,11 +162,11 @@ func addBytesToZip(byteInput *BytesInput, zipInput *Input, archive *zip.Writer, 
 
 	f, err := archive.Create(path)
 	if err != nil {
-		return errors.Wrap(err, errStrCreateZip)
+		return errors.Wrap(err, _errStrCreateZip)
 	}
 	_, err = f.Write(byteInput.Content)
 	if err != nil {
-		return errors.Wrap(err, errStrCreateZip)
+		return errors.Wrap(err, _errStrCreateZip)
 	}
 	return nil
 }
@@ -261,14 +261,14 @@ func UnzipToFile(src string, destPath string) ([]string, error) {
 
 	r, err := zip.OpenReader(src)
 	if err != nil {
-		return nil, errors.Wrap(err, errStrUnzip)
+		return nil, errors.Wrap(err, _errStrUnzip)
 	}
 	defer r.Close()
 
 	for _, f := range r.File {
 		rc, err := f.Open()
 		if err != nil {
-			return nil, errors.Wrap(err, errStrUnzip)
+			return nil, errors.Wrap(err, _errStrUnzip)
 		}
 		defer rc.Close()
 
@@ -294,7 +294,7 @@ func UnzipToFile(src string, destPath string) ([]string, error) {
 			_, err = io.Copy(outFile, rc)
 			outFile.Close()
 			if err != nil {
-				return nil, errors.Wrap(err, errStrUnzip)
+				return nil, errors.Wrap(err, _errStrUnzip)
 			}
 		}
 	}
@@ -304,7 +304,7 @@ func UnzipToFile(src string, destPath string) ([]string, error) {
 func UnzipMemToMem(zipBytes []byte) (map[string][]byte, error) {
 	r, err := zip.NewReader(bytes.NewReader(zipBytes), int64(len(zipBytes)))
 	if err != nil {
-		return nil, errors.Wrap(err, errStrUnzip)
+		return nil, errors.Wrap(err, _errStrUnzip)
 	}
 
 	return UnzipToMem(r)
@@ -313,7 +313,7 @@ func UnzipMemToMem(zipBytes []byte) (map[string][]byte, error) {
 func UnzipFileToMem(src string) (map[string][]byte, error) {
 	r, err := zip.OpenReader(src)
 	if err != nil {
-		return nil, errors.Wrap(err, errStrUnzip)
+		return nil, errors.Wrap(err, _errStrUnzip)
 	}
 	defer r.Close()
 
@@ -327,13 +327,13 @@ func UnzipToMem(r *zip.Reader) (map[string][]byte, error) {
 		if !f.FileInfo().IsDir() {
 			rc, err := f.Open()
 			if err != nil {
-				return nil, errors.Wrap(err, errStrUnzip)
+				return nil, errors.Wrap(err, _errStrUnzip)
 			}
 			defer rc.Close()
 
 			bytes, err := ioutil.ReadAll(rc)
 			if err != nil {
-				return nil, errors.Wrap(err, errStrUnzip)
+				return nil, errors.Wrap(err, _errStrUnzip)
 			}
 
 			path := strings.TrimPrefix(f.Name, "/")

@@ -16,7 +16,9 @@ limitations under the License.
 
 package main
 
-import "github.com/cortexlabs/cortex/cli/cmd"
+import (
+	"github.com/cortexlabs/cortex/cli/cmd"
+)
 
 func main() {
 	cmd.Execute()

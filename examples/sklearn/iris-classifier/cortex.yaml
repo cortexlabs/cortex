@@ -1,10 +1,6 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
-- kind: deployment
-  name: iris
-
-- kind: api
-  name: classifier
+- name: iris-classifier
   predictor:
     type: python
     path: predictor.py
@@ -14,11 +10,10 @@
   tracker:
     model_type: classification
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 
-- kind: api
-  name: another-classifier
+- name: another-iris-classifier
   predictor:
     type: python
     path: predictor.py
@@ -28,11 +23,10 @@
   tracker:
     model_type: classification
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M
 
-- kind: api
-  name: batch-classifier
+- name: batch-iris-classifier
   predictor:
     type: python
     path: batch-predictor.py
@@ -40,5 +34,5 @@
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
   compute:
-    cpu: 0.5
-    mem: 1G
+    cpu: 0.2
+    mem: 100M

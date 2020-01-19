@@ -17,22 +17,20 @@ limitations under the License.
 package k8s
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	kextensions "k8s.io/api/extensions/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-var ingressTypeMeta = kmeta.TypeMeta{
+var _ingressTypeMeta = kmeta.TypeMeta{
 	APIVersion: "extensions/v1beta1",
 	Kind:       "Ingress",
 }
 
 type IngressSpec struct {
 	Name         string
-	Namespace    string
 	IngressClass string
 	ServiceName  string
 	ServicePort  int32
@@ -42,20 +40,15 @@ type IngressSpec struct {
 }
 
 func Ingress(spec *IngressSpec) *kextensions.Ingress {
-	if spec.Namespace == "" {
-		spec.Namespace = "default"
-	}
-
 	if spec.Annotations == nil {
 		spec.Annotations = make(map[string]string)
 	}
 	spec.Annotations["kubernetes.io/ingress.class"] = spec.IngressClass
 
 	ingress := &kextensions.Ingress{
-		TypeMeta: ingressTypeMeta,
+		TypeMeta: _ingressTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
-			Namespace:   spec.Namespace,
 			Annotations: spec.Annotations,
 			Labels:      spec.Labels,
 		},
@@ -85,7 +78,7 @@ func Ingress(spec *IngressSpec) *kextensions.Ingress {
 }
 
 func (c *Client) CreateIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
-	ingress.TypeMeta = ingressTypeMeta
+	ingress.TypeMeta = _ingressTypeMeta
 	ingress, err := c.ingressClient.Create(ingress)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -93,8 +86,8 @@ func (c *Client) CreateIngress(ingress *kextensions.Ingress) (*kextensions.Ingre
 	return ingress, nil
 }
 
-func (c *Client) updateIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
-	ingress.TypeMeta = ingressTypeMeta
+func (c *Client) UpdateIngress(ingress *kextensions.Ingress) (*kextensions.Ingress, error) {
+	ingress.TypeMeta = _ingressTypeMeta
 	ingress, err := c.ingressClient.Update(ingress)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -110,7 +103,7 @@ func (c *Client) ApplyIngress(ingress *kextensions.Ingress) (*kextensions.Ingres
 	if existing == nil {
 		return c.CreateIngress(ingress)
 	}
-	return c.updateIngress(ingress)
+	return c.UpdateIngress(ingress)
 }
 
 func (c *Client) GetIngress(name string) (*kextensions.Ingress, error) {
@@ -121,12 +114,12 @@ func (c *Client) GetIngress(name string) (*kextensions.Ingress, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	ingress.TypeMeta = ingressTypeMeta
+	ingress.TypeMeta = _ingressTypeMeta
 	return ingress, nil
 }
 
 func (c *Client) DeleteIngress(name string) (bool, error) {
-	err := c.ingressClient.Delete(name, deleteOpts)
+	err := c.ingressClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -153,7 +146,7 @@ func (c *Client) ListIngresses(opts *kmeta.ListOptions) ([]kextensions.Ingress, 
 		return nil, errors.WithStack(err)
 	}
 	for i := range ingressList.Items {
-		ingressList.Items[i].TypeMeta = ingressTypeMeta
+		ingressList.Items[i].TypeMeta = _ingressTypeMeta
 	}
 	return ingressList.Items, nil
 }
@@ -167,6 +160,13 @@ func (c *Client) ListIngressesByLabels(labels map[string]string) ([]kextensions.
 
 func (c *Client) ListIngressesByLabel(labelKey string, labelValue string) ([]kextensions.Ingress, error) {
 	return c.ListIngressesByLabels(map[string]string{labelKey: labelValue})
+}
+
+func (c *Client) ListIngressesWithLabelKeys(labelKeys ...string) ([]kextensions.Ingress, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListIngresses(opts)
 }
 
 func IngressMap(ingresses []kextensions.Ingress) map[string]kextensions.Ingress {

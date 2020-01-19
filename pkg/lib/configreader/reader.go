@@ -23,8 +23,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/cortexlabs/yaml"
-
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -35,6 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/yaml"
 )
 
 type StructFieldValidation struct {
@@ -340,7 +339,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 
 		allErrs, _ = errors.AddError(allErrs, err)
 		allErrs, _ = errors.AddErrors(allErrs, errs)
-		if errors.HasErrors(allErrs) {
+		if errors.HasError(allErrs) {
 			if v.ShortCircuit {
 				return allErrs
 			}
@@ -365,7 +364,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			allErrs = append(allErrs, ErrorUnsupportedKey(extraField))
 		}
 	}
-	if errors.HasErrors(allErrs) {
+	if errors.HasError(allErrs) {
 		return allErrs
 	}
 	return nil
@@ -475,7 +474,7 @@ func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface
 			for typeObj := range v.ParsedInterfaceStructTypes {
 				validTypeObjs = append(validTypeObjs, typeObj)
 			}
-			return nil, []error{errors.Wrap(ErrorInvalidInterface(typeStr, validTypeObjs...), v.TypeKey)}
+			return nil, []error{errors.Wrap(ErrorInvalidInterface(typeStr, validTypeObjs[0], validTypeObjs[1:]...), v.TypeKey)}
 		}
 	}
 
@@ -624,7 +623,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 			if err == nil {
 				break
 			}
-			fmt.Printf("error: %s\n\n", err.Error())
+			fmt.Printf("error: %s\n\n", errors.Message(err))
 		}
 
 		if val == nil {
@@ -811,7 +810,7 @@ func StructFromStringMap(dest interface{}, strMap map[string]string, v *StructVa
 
 		allErrs, _ = errors.AddError(allErrs, err)
 		allErrs, _ = errors.AddErrors(allErrs, errs)
-		if errors.HasErrors(allErrs) {
+		if errors.HasError(allErrs) {
 			if v.ShortCircuit {
 				return allErrs
 			}
@@ -836,7 +835,7 @@ func StructFromStringMap(dest interface{}, strMap map[string]string, v *StructVa
 			allErrs = append(allErrs, ErrorUnsupportedKey(extraField))
 		}
 	}
-	if errors.HasErrors(allErrs) {
+	if errors.HasError(allErrs) {
 		return allErrs
 	}
 	return nil
@@ -885,7 +884,7 @@ func ParseYAMLFile(dest interface{}, validation *StructValidation, filePath stri
 	}
 
 	errs := Struct(dest, fileInterface, validation)
-	if errors.HasErrors(errs) {
+	if errors.HasError(errs) {
 		return errors.WrapAll(errs, filePath)
 	}
 

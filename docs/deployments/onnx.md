@@ -7,9 +7,8 @@ You can deploy ONNX models as web services by defining a class that implements C
 ## Config
 
 ```yaml
-- kind: api
-  name: <string>  # API name (required)
-  endpoint: <string>  # the endpoint for the API (default: /<deployment_name>/<api_name>)
+- name: <string>  # API name (required)
+  endpoint: <string>  # the endpoint for the API (default: /<api_name>)
   predictor:
     type: onnx
     path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
@@ -35,8 +34,7 @@ See [packaging ONNX models](../packaging-models/onnx.md) for information about e
 ## Example
 
 ```yaml
-- kind: api
-  name: my-api
+- name: my-api
   predictor:
     type: onnx
     path: predictor.py
@@ -57,7 +55,7 @@ You can log information about each request by adding a `?debug=true` parameter t
 An ONNX Predictor is a Python class that describes how to serve your ONNX model to make predictions.
 
 <!-- CORTEX_VERSION_MINOR -->
-Cortex provides an `onnx_client` and a config object to initialize your implementation of the ONNX Predictor class. The `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/onnx_serve/client.py) that manages an ONNX Runtime session and helps make predictions using your model. Once your implementation of the ONNX Predictor class has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with the JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function should call `onnx_client.predict()` to make an inference against your exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
+Cortex provides an `onnx_client` and a config object to initialize your implementation of the ONNX Predictor class. The `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/onnx.py) that manages an ONNX Runtime session and helps make predictions using your model. Once your implementation of the ONNX Predictor class has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with the JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function should call `onnx_client.predict()` to make an inference against your exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
 ## Implementation
 
@@ -68,7 +66,7 @@ class ONNXPredictor:
 
         Args:
             onnx_client: ONNX client which can be used to make predictions.
-            config: Dictionary passed from API configuration in cortex.yaml (if specified).
+            config: Dictionary passed from API configuration (if specified).
         """
         pass
 

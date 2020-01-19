@@ -19,27 +19,26 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
-
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/spf13/cobra"
 )
 
 func init() {
-	addEnvFlag(versionCmd)
+	addEnvFlag(_versionCmd)
 }
 
-var versionCmd = &cobra.Command{
+var _versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "print the cli and cluster versions",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.version")
 
-		if cliConfigured, err := isCLIEnvConfigured(flagEnv); err != nil || !cliConfigured {
+		if cliConfigured, err := isCLIEnvConfigured(_flagEnv); err != nil || !cliConfigured {
 			fmt.Println("cli version: " + consts.CortexVersion + "\n")
 			fmt.Println("run `cortex configure` to connect the cli to a cluster")
 			return
