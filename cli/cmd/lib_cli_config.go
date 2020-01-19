@@ -59,7 +59,8 @@ var _cliConfigValidation = &cr.StructValidation{
 						{
 							StructField: "Name",
 							StringValidation: &cr.StringValidation{
-								Required: true,
+								Required:  true,
+								MaxLength: 63,
 							},
 						},
 						{

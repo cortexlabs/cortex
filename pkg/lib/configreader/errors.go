@@ -31,6 +31,8 @@ const (
 	ErrParseConfig
 	ErrUnsupportedKey
 	ErrInvalidYAML
+	ErrTooLong
+	ErrTooShort
 	ErrAlphaNumericDashUnderscore
 	ErrAlphaNumericDashDotUnderscore
 	ErrMustHavePrefix
@@ -63,6 +65,8 @@ var _errorKinds = []string{
 	"err_parse_config",
 	"err_unsupported_key",
 	"err_invalid_yaml",
+	"err_too_long",
+	"err_too_short",
 	"err_alpha_numeric_dash_underscore",
 	"err_alpha_numeric_dash_dot_underscore",
 	"err_must_have_prefix",
@@ -154,6 +158,20 @@ func ErrorInvalidYAML(err error) error {
 	return errors.WithStack(Error{
 		Kind:    ErrInvalidYAML,
 		message: fmt.Sprintf("invalid yaml: %s", str),
+	})
+}
+
+func ErrorTooLong(provided string, maxLen int) error {
+	return errors.WithStack(Error{
+		Kind:    ErrTooLong,
+		message: fmt.Sprintf("%s must be no more than %d characters", s.UserStr(provided), maxLen),
+	})
+}
+
+func ErrorTooShort(provided string, minLen int) error {
+	return errors.WithStack(Error{
+		Kind:    ErrTooShort,
+		message: fmt.Sprintf("%s must be no fewer than %d characters", s.UserStr(provided), minLen),
 	})
 }
 
