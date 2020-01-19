@@ -17,6 +17,7 @@ limitations under the License.
 package files
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -26,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/xlab/treeprint"
@@ -115,8 +117,14 @@ func RelToAbsPath(relativePath string, baseDir string) string {
 }
 
 func UserRelToAbsPath(relativePath string) string {
-	baseDir, _ := os.Getwd()
-	return RelToAbsPath(relativePath, baseDir)
+	cwd, _ := os.Getwd()
+	return RelToAbsPath(relativePath, cwd)
+}
+
+func PathRelativeToCWD(absPath string) string {
+	cwd, _ := os.Getwd()
+	cwd = s.EnsureSuffix(cwd, "/")
+	return strings.TrimPrefix(absPath, cwd)
 }
 
 func IsFileOrDir(path string) bool {
@@ -328,10 +336,20 @@ func IgnoreNonYAML(path string, fi os.FileInfo) (bool, error) {
 	return false, nil
 }
 
-func IgnoreSpecificFiles(absPaths ...string) func(path string, fi os.FileInfo) (bool, error) {
+func IgnoreSpecificFiles(absPaths ...string) IgnoreFn {
 	absPathsSet := strset.New(absPaths...)
 	return func(path string, fi os.FileInfo) (bool, error) {
 		return absPathsSet.Has(path), nil
+	}
+}
+
+func PromptForFilesAboveSize(size int) IgnoreFn {
+	return func(path string, fi os.FileInfo) (bool, error) {
+		if !fi.IsDir() && fi.Size() > int64(size) {
+			promptMsg := fmt.Sprintf("do you want to zip %s (%s)?", PathRelativeToCWD(path), s.IntToBase2Byte(int(fi.Size())))
+			return !prompt.YesOrNo(promptMsg, true), nil
+		}
+		return false, nil
 	}
 }
 

@@ -119,6 +119,22 @@ func Round(val float64, decimalPlaces int, padToDecimalPlaces int) string {
 	return intVal + "." + decVal + strings.Repeat("0", numZeros)
 }
 
+// copied from https://yourbasic.org/golang/formatting-byte-size-to-human-readable-format/
+func IntToBase2Byte(size int) string {
+	const unit = 1024
+	if size < unit {
+		return fmt.Sprintf("%d B", size)
+	}
+	div, exp := int64(unit), 0
+	for n := size / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB",
+		float64(size)/float64(div), "KMGTPE"[exp])
+
+}
+
 func DollarsAndCents(val float64) string {
 	return "$" + Round(val, 2, 2)
 }

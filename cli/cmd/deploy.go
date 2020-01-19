@@ -34,7 +34,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _maxProjectSize = 1024 * 1024 * 50
+var _warningFileSize = 1024 * 1024 * 10
 var _flagDeployForce bool
 var _flagRefresh bool
 
@@ -98,6 +98,7 @@ func deploy(configPath string, force bool, refresh bool) {
 		files.IgnoreHiddenFiles,
 		files.IgnoreHiddenFolders,
 		files.IgnorePythonGeneratedFiles,
+		files.PromptForFilesAboveSize(_warningFileSize),
 	)
 	if err != nil {
 		exit.Error(err)
@@ -114,10 +115,6 @@ func deploy(configPath string, force bool, refresh bool) {
 
 	if err != nil {
 		exit.Error(errors.Wrap(err, "failed to zip project folder"))
-	}
-
-	if len(projectZipBytes) > _maxProjectSize {
-		exit.Error(errors.New("zipped project folder exceeds " + s.Int(_maxProjectSize) + " bytes"))
 	}
 
 	uploadBytes["project.zip"] = projectZipBytes

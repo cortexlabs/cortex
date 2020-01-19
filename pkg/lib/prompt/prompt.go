@@ -96,3 +96,31 @@ func YesOrExit(prompt string, exitMessage string) {
 		fmt.Println()
 	}
 }
+
+func YesOrNo(prompt string, showCancelHint bool) bool {
+	for true {
+		var fullPrompt string
+		if showCancelHint {
+			fullPrompt = prompt + " (y/n, ctrl+C to cancel)"
+		} else {
+			fullPrompt = prompt + " (y/n)"
+		}
+
+		str := Prompt(&Options{
+			Prompt:      fullPrompt,
+			HideDefault: true,
+		})
+
+		if strings.ToLower(str) == "y" {
+			return true
+		}
+
+		if strings.ToLower(str) == "n" {
+			return false
+		}
+
+		fmt.Println("please enter \"y\" or \"n\"")
+		fmt.Println()
+	}
+	return false
+}
