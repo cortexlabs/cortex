@@ -19,7 +19,6 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -28,7 +27,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
-	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
@@ -94,14 +92,13 @@ func deploy(configPath string, force bool, refresh bool) {
 
 	projectRoot := filepath.Dir(files.UserRelToAbsPath(configPath))
 
-	fmt.Println("zipping files in current working directory")
 	projectPaths, err := files.ListDirRecursive(projectRoot, false,
 		files.IgnoreSpecificFiles(files.UserRelToAbsPath(configPath)),
 		files.IgnoreCortexDebug,
 		files.IgnoreHiddenFiles,
 		files.IgnoreHiddenFolders,
 		files.IgnorePythonGeneratedFiles,
-		PromptForFilesAboveSize(_warningFileSize),
+		files.PromptForFilesAboveSize(_warningFileSize),
 	)
 	if err != nil {
 		exit.Error(err)
@@ -140,14 +137,5 @@ func deploy(configPath string, force bool, refresh bool) {
 	fmt.Println(console.Bold(msgParts[0]))
 	if len(msgParts) > 1 {
 		fmt.Println("\n" + strings.Join(msgParts[1:], "\n\n"))
-	}
-}
-
-func PromptForFilesAboveSize(size int) files.IgnoreFn {
-	return func(path string, fi os.FileInfo) (bool, error) {
-		if !fi.IsDir() && fi.Size() > int64(size) {
-			prompt.YesOrExit(fmt.Sprintf("are you sure you want to zip %s (%s)?", path, s.IntToBase2Byte(int(fi.Size()))), "error: cancelled deployment")
-		}
-		return false, nil
 	}
 }
