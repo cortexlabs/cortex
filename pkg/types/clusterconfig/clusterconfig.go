@@ -477,7 +477,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 	if strings.HasSuffix(instanceMetadata.Type, "nano") ||
 		strings.HasSuffix(instanceMetadata.Type, "micro") {
-		ErrorInstanceTypeTooSmall()
+		return ErrorInstanceTypeTooSmall()
 	}
 
 	if strings.HasPrefix(instanceMetadata.Type, "inf") {
