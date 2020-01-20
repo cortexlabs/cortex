@@ -54,8 +54,6 @@ func UpdateAPI(
 
 	api := getAPISpec(apiConfig, projectID, deploymentID)
 
-	var msg string
-
 	if prevDeployment == nil {
 		err = config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key)
 		if err != nil {
@@ -65,9 +63,10 @@ func UpdateAPI(
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-		msg = fmt.Sprintf("creating %s api", api.Name)
+		return api, fmt.Sprintf("creating %s api", api.Name), nil
+	}
 
-	} else if !areDeploymentsEqual(prevDeployment, deploymentSpec(api, prevDeployment)) {
+	if !areDeploymentsEqual(prevDeployment, deploymentSpec(api, prevDeployment)) {
 		isUpdating, err := isAPIUpdating(prevDeployment)
 		if err != nil {
 			return nil, "", err
@@ -82,21 +81,18 @@ func UpdateAPI(
 		if err = applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			return nil, "", err
 		}
-		msg = fmt.Sprintf("updating %s api", api.Name)
-
-	} else { // deployment didn't change
-		isUpdating, err := isAPIUpdating(prevDeployment)
-		if err != nil {
-			return nil, "", err
-		}
-		if isUpdating {
-			msg = fmt.Sprintf("%s api is already updating", api.Name)
-		} else {
-			msg = fmt.Sprintf("%s api is up to date", api.Name)
-		}
+		return api, fmt.Sprintf("updating %s api", api.Name), nil
 	}
 
-	return api, msg, nil
+	// deployment didn't change
+	isUpdating, err := isAPIUpdating(prevDeployment)
+	if err != nil {
+		return nil, "", err
+	}
+	if isUpdating {
+		return api, fmt.Sprintf("%s api is already updating", api.Name), nil
+	}
+	return api, fmt.Sprintf("%s api is up to date", api.Name), nil
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
