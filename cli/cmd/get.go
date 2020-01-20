@@ -126,10 +126,10 @@ func getAPI(apiName string) (string, error) {
 	apiEndpoint := urls.Join(apiRes.BaseURL, *api.Endpoint)
 	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
 
-	out += fmt.Sprintf("\n%s curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json", console.Bold("curl:"), apiEndpoint)
+	out += fmt.Sprintf("\n%s curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiEndpoint)
 
 	if api.Predictor.Type == userconfig.TensorFlowPredictorType || api.Predictor.Type == userconfig.ONNXPredictorType {
-		out += "\n\n" + describeModelInput(apiRes.Status, apiEndpoint)
+		out += "\n" + describeModelInput(apiRes.Status, apiEndpoint)
 	}
 
 	out += titleStr("configuration") + strings.TrimSpace(api.UserStr())
