@@ -103,7 +103,7 @@ func deploy(configPath string, force bool) {
 		files.IgnorePythonGeneratedFiles,
 	}
 	if !_flagDeployYes {
-		ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes))
+		ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
 	}
 
 	projectPaths, err := files.ListDirRecursive(projectRoot, false, ignoreFns...)

@@ -347,11 +347,16 @@ func IgnoreSpecificFiles(absPaths ...string) IgnoreFn {
 	}
 }
 
-func PromptForFilesAboveSize(size int) IgnoreFn {
+// promptMsgTemplate should have two placeholders: the first is for the file path and the second is for the file size
+func PromptForFilesAboveSize(size int, promptMsgTemplate string) IgnoreFn {
+	if promptMsgTemplate == "" {
+		promptMsgTemplate = "do you want to zip %s (%s)?"
+	}
+
 	return func(path string, fi os.FileInfo) (bool, error) {
 		if !fi.IsDir() && fi.Size() > int64(size) {
-			promptMsg := fmt.Sprintf("do you want to zip %s (%s)?", PathRelativeToCWD(path), s.IntToBase2Byte(int(fi.Size())))
-			return !prompt.YesOrNo(promptMsg, true), nil
+			promptMsg := fmt.Sprintf(promptMsgTemplate, PathRelativeToCWD(path), s.IntToBase2Byte(int(fi.Size())))
+			return !prompt.YesOrNo(promptMsg, false), nil
 		}
 		return false, nil
 	}
