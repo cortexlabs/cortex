@@ -116,11 +116,11 @@ func deploy(configPath string, force bool) {
 		rootDirMsg = fmt.Sprintf("./%s", files.DirPathRelativeToCWD(projectRoot))
 	}
 
-	showedFileCountPrompt := false
+	didPromptFileCount := false
 	if !_flagDeployYes && len(projectPaths) >= _warningFileCount {
 		msg := fmt.Sprintf("cortex will zip %d files in %s and upload them to the cluster, though we recommend you upload large files (e.g. models) to s3 and download them in your api's __init__ function. Would you like to continue?", len(projectPaths), rootDirMsg)
 		prompt.YesOrExit(msg, "")
-		showedFileCountPrompt = true
+		didPromptFileCount = true
 	}
 
 	projectZipBytes, err := zip.ToMem(&zip.Input{
@@ -135,7 +135,7 @@ func deploy(configPath string, force bool) {
 		exit.Error(errors.Wrap(err, "failed to zip project folder"))
 	}
 
-	if !_flagDeployYes && !showedFileCountPrompt && len(projectZipBytes) >= _warningProjectBytes {
+	if !_flagDeployYes && !didPromptFileCount && len(projectZipBytes) >= _warningProjectBytes {
 		msg := fmt.Sprintf("cortex will zip %d files in %s (%s) and upload them to the cluster, though we recommend you upload large files (e.g. models) to s3 and download them in your api's __init__ function. Would you like to continue?", len(projectPaths), rootDirMsg, s.IntToBase2Byte(len(projectZipBytes)))
 		prompt.YesOrExit(msg, "")
 	}
