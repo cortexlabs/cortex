@@ -44,7 +44,7 @@ var _apiValidation = &cr.StructValidation{
 			StringValidation: &cr.StringValidation{
 				Required:  true,
 				DNS1035:   true,
-				MaxLength: 63 - len(k8sName("")),
+				MaxLength: 42, // k8s adds 21 characters to the pod name, and 63 is the max before it starts to truncate
 			},
 		},
 		{
