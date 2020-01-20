@@ -7,7 +7,3 @@
     model: s3://cortex-examples/tensorflow/iris-classifier/nn
   tracker:
     model_type: classification
-  compute:
-    cpu: 0.5
-    min_replicas: 1
-    max_replicas: 5
