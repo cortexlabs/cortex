@@ -62,6 +62,7 @@ func UpdateAPI(
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 		if err = applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
+			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
 		msg = fmt.Sprintf("creating %s api", api.Name)
