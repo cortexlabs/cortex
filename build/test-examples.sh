@@ -26,7 +26,7 @@ for example in $ROOT/examples/*/cortex.yaml; do
 
   cd $example_base_dir
   echo "Deploying $example_base_dir"
-  $CORTEX deploy --refresh
+  $CORTEX deploy
 
   api_names="$($CORTEX get | sed '1,2d' | sed '/^$/d' | tr -s ' ' | cut -f 1 -d " ")"
   payload="$(find . -name "*.json")"

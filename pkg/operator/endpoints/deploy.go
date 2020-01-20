@@ -33,7 +33,6 @@ import (
 )
 
 func Deploy(w http.ResponseWriter, r *http.Request) {
-	refresh := getOptionalBoolQParam("refresh", false, r)
 	force := getOptionalBoolQParam("force", false, r)
 
 	configPath := getOptionalQParam("configPath", r)
@@ -89,7 +88,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
-		api, msg, err := operator.UpdateAPI(&apiConfig, projectID, refresh, force)
+		api, msg, err := operator.UpdateAPI(&apiConfig, projectID, force)
 		results[i].API = api
 		results[i].Message = msg
 		if err != nil {

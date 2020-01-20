@@ -14,7 +14,6 @@ Flags:
   -e, --env string   environment (default "default")
   -f, --force        override the in-progress api update
   -h, --help         help for deploy
-  -r, --refresh      re-deploy with cleared cache and rolling updates
 ```
 
 ## get

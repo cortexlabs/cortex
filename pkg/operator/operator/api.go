@@ -35,20 +35,14 @@ import (
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-func UpdateAPI(
-	apiConfig *userconfig.API,
-	projectID string,
-	refresh bool,
-	force bool,
-) (*spec.API, string, error) {
-
+func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
 	prevDeployment, prevService, prevVirtualService, err := getK8sResources(apiConfig)
 	if err != nil {
 		return nil, "", err
 	}
 
 	deploymentID := k8s.RandomName()
-	if prevDeployment != nil && prevDeployment.Labels["deploymentID"] != "" && !refresh {
+	if prevDeployment != nil && prevDeployment.Labels["deploymentID"] != "" {
 		deploymentID = prevDeployment.Labels["deploymentID"]
 	}
 

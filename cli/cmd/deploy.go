@@ -36,11 +36,9 @@ import (
 
 var _warningFileSize = 1024 * 1024 * 10
 var _flagDeployForce bool
-var _flagRefresh bool
 
 func init() {
 	_deployCmd.PersistentFlags().BoolVarP(&_flagDeployForce, "force", "f", false, "override the in-progress api update")
-	_deployCmd.PersistentFlags().BoolVarP(&_flagRefresh, "refresh", "r", false, "re-deploy with cleared cache and rolling updates")
 	addEnvFlag(_deployCmd)
 }
 
@@ -52,7 +50,7 @@ var _deployCmd = &cobra.Command{
 		telemetry.Event("cli.deploy")
 
 		configPath := getConfigPath(args)
-		deploy(configPath, _flagDeployForce, _flagRefresh)
+		deploy(configPath, _flagDeployForce)
 	},
 }
 
@@ -74,10 +72,9 @@ func getConfigPath(args []string) string {
 	return configPath
 }
 
-func deploy(configPath string, force bool, refresh bool) {
+func deploy(configPath string, force bool) {
 	params := map[string]string{
 		"force":      s.Bool(force),
-		"refresh":    s.Bool(refresh),
 		"configPath": configPath,
 	}
 
