@@ -89,13 +89,13 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		_, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds)
+		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
 			fmt.Printf("additional information may be found in the activity history of your cluster's autoscaling groups https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:\n", *clusterConfig.Region)
-			exit.ErrorNoPrint()
+			exit.ErrorNoPrint(out)
 		}
 	},
 }
@@ -123,12 +123,12 @@ var _updateCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		_, exitCode, err := runManagerUpdateCommand("/root/install.sh --update", clusterConfig, awsCreds)
+		out, exitCode, err := runManagerUpdateCommand("/root/install.sh --update", clusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			exit.ErrorNoPrint()
+			exit.ErrorNoPrint(out)
 		}
 	},
 }
@@ -154,12 +154,12 @@ var _infoCmd = &cobra.Command{
 				exit.Error(err)
 			}
 
-			_, exitCode, err := runManagerAccessCommand("/root/debug.sh", *accessConfig, awsCreds)
+			out, exitCode, err := runManagerAccessCommand("/root/debug.sh", *accessConfig, awsCreds)
 			if err != nil {
 				exit.Error(err)
 			}
 			if exitCode == nil || *exitCode != 0 {
-				exit.ErrorNoPrint()
+				exit.ErrorNoPrint(out)
 			}
 
 			timestamp := time.Now().UTC().Format("2006-01-02-15-04-05")
@@ -175,12 +175,12 @@ var _infoCmd = &cobra.Command{
 
 		clusterConfig := refreshCachedClusterConfig(awsCreds)
 
-		_, exitCode, err := runManagerAccessCommand("/root/info.sh", clusterConfig.ToAccessConfig(), awsCreds)
+		out, exitCode, err := runManagerAccessCommand("/root/info.sh", clusterConfig.ToAccessConfig(), awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			exit.ErrorNoPrint()
+			exit.ErrorNoPrint(out)
 		}
 
 		fmt.Println()
@@ -231,12 +231,12 @@ var _downCmd = &cobra.Command{
 
 		prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "")
 
-		_, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds)
+		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			exit.ErrorNoPrint()
+			exit.ErrorNoPrint(out)
 		}
 
 		cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
@@ -302,14 +302,14 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials) clusterconfig.Config {
 	mountedConfigPath := mountedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 
 	fmt.Println("fetching cluster configuration ..." + "\n")
-	_, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds)
+	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds)
 	if err != nil {
 		os.Remove(cachedConfigPath)
 		exit.Error(err)
 	}
 	if exitCode == nil || *exitCode != 0 {
 		os.Remove(cachedConfigPath)
-		exit.ErrorNoPrint()
+		exit.ErrorNoPrint(out)
 	}
 
 	refreshedClusterConfig := &clusterconfig.Config{}
