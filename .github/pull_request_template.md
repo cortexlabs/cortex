@@ -12,4 +12,3 @@ checklist:
 - [ ] cherry-pick into release branches if applicable
 - [ ] check that the docs are up-to-date in [gitbook](https://cortex.dev/v/master)
 - [ ] alert the dev team if the dev environment changed
-- [ ] delete the branch once it's merged
