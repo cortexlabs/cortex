@@ -120,8 +120,6 @@ func tfAPISpec(
 			"minReplicas":          s.Int32(api.Compute.MinReplicas),
 			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
 			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
-			"maxSurge":             api.Compute.MaxSurge,
-			"maxUnavailable":       api.Compute.MaxUnavailable,
 		},
 		Selector: map[string]string{
 			"apiName": api.Name,
@@ -281,8 +279,6 @@ func pythonAPISpec(
 			"minReplicas":          s.Int32(api.Compute.MinReplicas),
 			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
 			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
-			"maxSurge":             api.Compute.MaxSurge,
-			"maxUnavailable":       api.Compute.MaxUnavailable,
 		},
 		Selector: map[string]string{
 			"apiName": api.Name,
@@ -397,8 +393,6 @@ func onnxAPISpec(
 			"minReplicas":          s.Int32(api.Compute.MinReplicas),
 			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
 			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
-			"maxSurge":             api.Compute.MaxSurge,
-			"maxUnavailable":       api.Compute.MaxUnavailable,
 		},
 		Selector: map[string]string{
 			"apiName": api.Name,

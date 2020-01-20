@@ -197,3 +197,32 @@ func DeploymentStartTime(deployment *kapps.Deployment) *time.Time {
 	}
 	return &deployment.CreationTimestamp.Time
 }
+
+func DeploymentStrategiesMatch(s1, s2 kapps.DeploymentStrategy) bool {
+	if s1.Type != s2.Type {
+		return false
+	}
+	if s1.RollingUpdate == nil && s2.RollingUpdate == nil {
+		return true
+	}
+	if s1.RollingUpdate == nil || s2.RollingUpdate == nil {
+		return false
+	}
+	if !intOrStrPtrsMatch(s1.RollingUpdate.MaxUnavailable, s2.RollingUpdate.MaxUnavailable) {
+		return false
+	}
+	if !intOrStrPtrsMatch(s1.RollingUpdate.MaxSurge, s2.RollingUpdate.MaxSurge) {
+		return false
+	}
+	return true
+}
+
+func intOrStrPtrsMatch(i1, i2 *intstr.IntOrString) bool {
+	if i1 == nil && i2 == nil {
+		return true
+	}
+	if i1 == nil || i2 == nil {
+		return false
+	}
+	return (*i1).String() == (*i2).String()
+}
