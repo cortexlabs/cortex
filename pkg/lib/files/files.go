@@ -356,7 +356,7 @@ func PromptForFilesAboveSize(size int, promptMsgTemplate string) IgnoreFn {
 	return func(path string, fi os.FileInfo) (bool, error) {
 		if !fi.IsDir() && fi.Size() > int64(size) {
 			promptMsg := fmt.Sprintf(promptMsgTemplate, PathRelativeToCWD(path), s.IntToBase2Byte(int(fi.Size())))
-			return !prompt.YesOrNo(promptMsg, false), nil
+			return !prompt.YesOrNo(promptMsg, "", ""), nil
 		}
 		return false, nil
 	}

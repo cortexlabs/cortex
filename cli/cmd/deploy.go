@@ -111,6 +111,7 @@ func deploy(configPath string, force bool) {
 		exit.Error(err)
 	}
 
+	canSkipPromptMsg := "you can skip this prompt next time with `cortex deploy --yes`\n"
 	rootDirMsg := "this directory"
 	if s.EnsureSuffix(projectRoot, "/") != _cwd {
 		rootDirMsg = fmt.Sprintf("./%s", files.DirPathRelativeToCWD(projectRoot))
@@ -119,7 +120,7 @@ func deploy(configPath string, force bool) {
 	didPromptFileCount := false
 	if !_flagDeployYes && len(projectPaths) >= _warningFileCount {
 		msg := fmt.Sprintf("cortex will zip %d files in %s and upload them to the cluster, though we recommend you upload large files (e.g. models) to s3 and download them in your api's __init__ function. Would you like to continue?", len(projectPaths), rootDirMsg)
-		prompt.YesOrExit(msg, "")
+		prompt.YesOrExit(msg, canSkipPromptMsg, "")
 		didPromptFileCount = true
 	}
 
@@ -137,7 +138,7 @@ func deploy(configPath string, force bool) {
 
 	if !_flagDeployYes && !didPromptFileCount && len(projectZipBytes) >= _warningProjectBytes {
 		msg := fmt.Sprintf("cortex will zip %d files in %s (%s) and upload them to the cluster, though we recommend you upload large files (e.g. models) to s3 and download them in your api's __init__ function. Would you like to continue?", len(projectPaths), rootDirMsg, s.IntToBase2Byte(len(projectZipBytes)))
-		prompt.YesOrExit(msg, "")
+		prompt.YesOrExit(msg, canSkipPromptMsg, "")
 	}
 
 	uploadBytes["project.zip"] = projectZipBytes

@@ -74,7 +74,7 @@ func Prompt(opts *Options) string {
 	return val
 }
 
-func YesOrExit(prompt string, exitMessage string) {
+func YesOrExit(prompt string, yesMessage string, noMessage string) {
 	for true {
 		str := Prompt(&Options{
 			Prompt:      prompt + " (y/n)",
@@ -82,12 +82,15 @@ func YesOrExit(prompt string, exitMessage string) {
 		})
 
 		if strings.ToLower(str) == "y" {
+			if yesMessage != "" {
+				fmt.Println(yesMessage)
+			}
 			return
 		}
 
 		if strings.ToLower(str) == "n" {
-			if exitMessage != "" {
-				fmt.Println(exitMessage)
+			if noMessage != "" {
+				fmt.Println(noMessage)
 			}
 			exit.ErrorNoPrintNoTelemetry()
 		}
@@ -97,25 +100,24 @@ func YesOrExit(prompt string, exitMessage string) {
 	}
 }
 
-func YesOrNo(prompt string, showCancelHint bool) bool {
+func YesOrNo(prompt string, yesMessage string, noMessage string) bool {
 	for true {
-		var fullPrompt string
-		if showCancelHint {
-			fullPrompt = prompt + " (y/n, ctrl+c to cancel)"
-		} else {
-			fullPrompt = prompt + " (y/n)"
-		}
-
 		str := Prompt(&Options{
-			Prompt:      fullPrompt,
+			Prompt:      prompt + " (y/n)",
 			HideDefault: true,
 		})
 
 		if strings.ToLower(str) == "y" {
+			if yesMessage != "" {
+				fmt.Println(yesMessage)
+			}
 			return true
 		}
 
 		if strings.ToLower(str) == "n" {
+			if noMessage != "" {
+				fmt.Println(noMessage)
+			}
 			return false
 		}
 
