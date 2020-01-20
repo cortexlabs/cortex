@@ -217,12 +217,12 @@ func DeploymentStrategiesMatch(s1, s2 kapps.DeploymentStrategy) bool {
 	return true
 }
 
-func intOrStrPtrsMatch(i1, i2 *intstr.IntOrString) bool {
-	if i1 == nil && i2 == nil {
+func intOrStrPtrsMatch(intStr1, intStr2 *intstr.IntOrString) bool {
+	if intStr1 == nil && intStr2 == nil {
 		return true
 	}
-	if i1 == nil || i2 == nil {
+	if intStr1 == nil || intStr2 == nil {
 		return false
 	}
-	return (*i1).String() == (*i2).String()
+	return (*intStr1).String() == (*intStr2).String()
 }
