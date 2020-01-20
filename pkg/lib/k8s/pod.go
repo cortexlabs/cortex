@@ -189,8 +189,11 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 	numFailed := 0
 	numKilled := 0
 	numKilledOOM := 0
+
 	for _, containerStatus := range containerStatuses {
-		if containerStatus.State.Running != nil && containerStatus.RestartCount == 0 {
+		if containerStatus.State.Running != nil && containerStatus.Ready == true {
+			numRunning++
+		} else if containerStatus.State.Running != nil && containerStatus.RestartCount == 0 {
 			numRunning++
 		} else if containerStatus.State.Terminated != nil {
 			exitCode := containerStatus.State.Terminated.ExitCode
