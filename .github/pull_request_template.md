@@ -5,10 +5,8 @@ closes #<issue ID>
 checklist:
 
 - [ ] run `make test` and `make lint`
-- [ ] test end to end manually (i.e. build/push all images, restart operator, and run `cortex deploy --refresh`)
-- [ ] update the examples
-- [ ] update the docs and add any new files to `summary.md`
-- [ ] merge to master
+- [ ] test manually (i.e. build/push all images, restart operator, and re-deploy APIs)
+- [ ] update examples
+- [ ] update docs and add any new files to `summary.md` (view in [gitbook](https://cortex.dev/v/master) after merging)
 - [ ] cherry-pick into release branches if applicable
-- [ ] check that the docs are up-to-date in [gitbook](https://cortex.dev/v/master)
 - [ ] alert the dev team if the dev environment changed
