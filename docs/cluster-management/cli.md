@@ -165,9 +165,12 @@ Usage:
   cortex configure [flags]
 
 Flags:
-  -e, --env string   environment (default "default")
-  -h, --help         help for configure
-  -p, --print        print the configuration
+  -k, --aws-access-key-id string       set the aws access key id without prompting
+  -s, --aws-secret-access-key string   set the aws secret access key without prompting
+  -e, --env string                     environment (default "default")
+  -h, --help                           help for configure
+  -o, --operator-endpoint string       set the operator endpoint without prompting
+  -p, --print                          print the configuration
 ```
 
 ## completion

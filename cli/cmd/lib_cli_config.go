@@ -105,6 +105,7 @@ func cliEnvPromptValidation(defaults *CLIEnvConfig) *cr.PromptValidation {
 	}
 
 	return &cr.PromptValidation{
+		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
 				StructField: "OperatorEndpoint",
@@ -196,10 +197,10 @@ func readOrConfigureCLIEnv(environment string) (CLIEnvConfig, error) {
 		return *currentCLIEnvConfig, nil
 	}
 
-	return configureCLIEnv(environment)
+	return configureCLIEnv(environment, CLIEnvConfig{})
 }
 
-func configureCLIEnv(environment string) (CLIEnvConfig, error) {
+func configureCLIEnv(environment string, fieldsToSkipPrompt CLIEnvConfig) (CLIEnvConfig, error) {
 	prevCLIEnvConfig, err := readCLIEnvConfig(environment)
 	if err != nil {
 		return CLIEnvConfig{}, err
@@ -210,7 +211,10 @@ func configureCLIEnv(environment string) (CLIEnvConfig, error) {
 	}
 
 	cliEnvConfig := CLIEnvConfig{
-		Name: environment,
+		Name:               environment,
+		OperatorEndpoint:   fieldsToSkipPrompt.OperatorEndpoint,
+		AWSAccessKeyID:     fieldsToSkipPrompt.AWSAccessKeyID,
+		AWSSecretAccessKey: fieldsToSkipPrompt.AWSSecretAccessKey,
 	}
 
 	err = cr.ReadPrompt(&cliEnvConfig, cliEnvPromptValidation(prevCLIEnvConfig))

@@ -572,7 +572,8 @@ type PromptItemValidation struct {
 
 type PromptValidation struct {
 	PromptItemValidations []*PromptItemValidation
-	SkipPopulatedFields   bool
+	SkipNonEmptyFields    bool // skips fields that are not zero-valued
+	SkipNonNilFields      bool // skips pointer fields that are not nil
 }
 
 func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
@@ -580,7 +581,12 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 	var err error
 
 	for _, promptItemValidation := range promptValidation.PromptItemValidations {
-		if promptValidation.SkipPopulatedFields {
+		if promptValidation.SkipNonEmptyFields {
+			v := reflect.ValueOf(dest).Elem().FieldByName(promptItemValidation.StructField)
+			if !v.IsZero() {
+				continue
+			}
+		} else if promptValidation.SkipNonNilFields {
 			v := reflect.ValueOf(dest).Elem().FieldByName(promptItemValidation.StructField)
 			if v.Kind() == reflect.Ptr && !v.IsNil() {
 				continue

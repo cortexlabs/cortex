@@ -641,7 +641,7 @@ func applyPromptDefaults(defaults Config) *Config {
 func RegionPrompt(clusterConfig *Config) error {
 	defaults := applyPromptDefaults(*clusterConfig)
 	regionPrompt := &cr.PromptValidation{
-		SkipPopulatedFields: true,
+		SkipNonNilFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
 				StructField: "Region",
@@ -680,7 +680,7 @@ func InstallPrompt(clusterConfig *Config, awsClient *aws.Client) error {
 	}
 
 	remainingPrompts := &cr.PromptValidation{
-		SkipPopulatedFields: true,
+		SkipNonNilFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
 				StructField: "Bucket",
@@ -741,7 +741,7 @@ func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *Config)
 	defaults := applyPromptDefaults(*userClusterConfig)
 
 	return &cr.PromptValidation{
-		SkipPopulatedFields: skipPopulatedFields,
+		SkipNonNilFields: skipPopulatedFields,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
 				StructField: "MinInstances",
@@ -770,7 +770,7 @@ func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *Config)
 }
 
 var AccessPromptValidation = &cr.PromptValidation{
-	SkipPopulatedFields: true,
+	SkipNonNilFields: true,
 	PromptItemValidations: []*cr.PromptItemValidation{
 		{
 			StructField: "ClusterName",
