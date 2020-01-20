@@ -85,14 +85,13 @@ function ensure_eks() {
   asg_spot_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
   asg_spot_name=$(echo "$asg_spot_info" | jq -r 'first | .AutoScalingGroupName')
 
-  if [[ -n $asg_on_demand_name ]]; then
+  if [[ -z $asg_spot_name ]]; then
     asg_min_size=$(echo "$asg_on_demand_info" | jq -r 'first | .MinSize')
     asg_max_size=$(echo "$asg_on_demand_info" | jq -r 'first | .MaxSize')
   else
     asg_min_size=$(echo "$asg_spot_info" | jq -r 'first | .MinSize')
     asg_max_size=$(echo "$asg_spot_info" | jq -r 'first | .MaxSize')
   fi
-
 
   if [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ]; then
     echo -n "￮ updating min instances to $CORTEX_MIN_INSTANCES "
