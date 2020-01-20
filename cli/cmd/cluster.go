@@ -143,6 +143,7 @@ var _infoCmd = &cobra.Command{
 		if err := checkDockerRunning(); err != nil {
 			exit.Error(err)
 		}
+
 		awsCreds, err := getAWSCredentials(_flagClusterConfig)
 		if err != nil {
 			exit.Error(err)
@@ -191,6 +192,7 @@ var _infoCmd = &cobra.Command{
 			fmt.Println("\n" + errors.Message(err, "unable to connect to operator"))
 			return
 		}
+
 		var infoResponse schema.InfoResponse
 		err = json.Unmarshal(httpResponse, &infoResponse)
 		if err != nil {

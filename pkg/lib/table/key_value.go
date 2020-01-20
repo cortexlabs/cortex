@@ -72,7 +72,7 @@ func (kvs KeyValuePairs) String(options ...*KeyValuePairOpts) string {
 }
 
 func (kvs KeyValuePairs) Print(options ...*KeyValuePairOpts) {
-	fmt.Println(kvs.String(options...))
+	fmt.Print(kvs.String(options...))
 }
 
 func mergeOptions(options ...*KeyValuePairOpts) KeyValuePairOpts {
