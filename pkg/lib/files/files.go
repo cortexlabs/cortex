@@ -127,6 +127,10 @@ func PathRelativeToCWD(absPath string) string {
 	return strings.TrimPrefix(absPath, cwd)
 }
 
+func DirPathRelativeToCWD(absPath string) string {
+	return s.EnsureSuffix(PathRelativeToCWD(absPath), "/")
+}
+
 func IsFileOrDir(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {

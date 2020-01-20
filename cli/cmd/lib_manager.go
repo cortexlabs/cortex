@@ -182,7 +182,7 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 
 	output := outputBuffer.String()
 
-	// Let the ctrl+C handler run its course
+	// Let the ctrl+c handler run its course
 	if caughtCtrlC {
 		time.Sleep(5 * time.Second)
 	}

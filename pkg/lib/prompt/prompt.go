@@ -101,7 +101,7 @@ func YesOrNo(prompt string, showCancelHint bool) bool {
 	for true {
 		var fullPrompt string
 		if showCancelHint {
-			fullPrompt = prompt + " (y/n, ctrl+C to cancel)"
+			fullPrompt = prompt + " (y/n, ctrl+c to cancel)"
 		} else {
 			fullPrompt = prompt + " (y/n)"
 		}
