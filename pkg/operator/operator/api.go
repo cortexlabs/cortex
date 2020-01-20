@@ -113,7 +113,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 
 	apiID := prevDeployment.Labels["apiID"]
 	if apiID == "" {
-		return "", errors.New("unable to retreive api ID from deployment") // unexpected
+		return "", errors.New("unable to retrieve api ID from deployment") // unexpected
 	}
 
 	api, err := DownloadAPISpec(apiName, apiID)
