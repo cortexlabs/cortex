@@ -31,6 +31,8 @@ In addition to supporting Python models via the Python Predictor interface, Cort
     cpu: <string | int | float>  # CPU request per replica (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica (default: Null)
+    max_surge: <string | int>  # maximum number of replicas that can be scheduled above the desired number of replicas during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
+    max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
 ### Example

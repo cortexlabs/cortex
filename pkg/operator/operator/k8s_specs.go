@@ -108,8 +108,10 @@ func tfAPISpec(
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:     k8sName(api.Name),
-		Replicas: getRequestedReplicasFromDeployment(api, prevDeployment),
+		Name:           k8sName(api.Name),
+		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
+		MaxSurge:       pointer.String(api.Compute.MaxSurge),
+		MaxUnavailable: pointer.String(api.Compute.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
 			"apiID":        api.ID,
@@ -265,8 +267,10 @@ func pythonAPISpec(
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:     k8sName(api.Name),
-		Replicas: getRequestedReplicasFromDeployment(api, prevDeployment),
+		Name:           k8sName(api.Name),
+		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
+		MaxSurge:       pointer.String(api.Compute.MaxSurge),
+		MaxUnavailable: pointer.String(api.Compute.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
 			"apiID":        api.ID,
@@ -377,8 +381,10 @@ func onnxAPISpec(
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:     k8sName(api.Name),
-		Replicas: getRequestedReplicasFromDeployment(api, prevDeployment),
+		Name:           k8sName(api.Name),
+		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
+		MaxSurge:       pointer.String(api.Compute.MaxSurge),
+		MaxUnavailable: pointer.String(api.Compute.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
 			"apiID":        api.ID,

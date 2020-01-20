@@ -331,7 +331,7 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 }
 
 func areDeploymentsEqual(d1, d2 *kapps.Deployment) bool {
-	return deploymentLabelsEqual(d1.Labels, d2.Labels) &&
+	return deploymentsMatch(d1, d2) &&
 		k8s.PodComputesEqual(&d1.Spec.Template.Spec, &d2.Spec.Template.Spec)
 }
 
@@ -346,13 +346,14 @@ func podLabelsEqual(labels1, labels2 map[string]string) bool {
 		labels1["deploymentID"] == labels2["deploymentID"]
 }
 
-func deploymentLabelsEqual(labels1, labels2 map[string]string) bool {
-	return labels1["apiName"] == labels2["apiName"] &&
-		labels1["apiID"] == labels2["apiID"] &&
-		labels1["deploymentID"] == labels2["deploymentID"] &&
-		labels1["minReplicas"] == labels2["minReplicas"] &&
-		labels1["maxReplicas"] == labels2["maxReplicas"] &&
-		labels1["targetCPUUtilization"] == labels2["targetCPUUtilization"]
+func deploymentsMatch(d1, d2 *kapps.Deployment) bool {
+	return k8s.DeploymentStrategiesMatch(d1.Spec.Strategy, d2.Spec.Strategy) &&
+		d1.Labels["apiName"] == d2.Labels["apiName"] &&
+		d1.Labels["apiID"] == d2.Labels["apiID"] &&
+		d1.Labels["deploymentID"] == d2.Labels["deploymentID"] &&
+		d1.Labels["minReplicas"] == d2.Labels["minReplicas"] &&
+		d1.Labels["maxReplicas"] == d2.Labels["maxReplicas"] &&
+		d1.Labels["targetCPUUtilization"] == d2.Labels["targetCPUUtilization"]
 }
 
 func IsAPIDeployed(apiName string) (bool, error) {
