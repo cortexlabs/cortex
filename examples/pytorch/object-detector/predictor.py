@@ -32,7 +32,9 @@ class PythonPredictor:
             pred = self.model(img_tensor)
 
         predicted_class = [self.coco_labels[i] for i in list(pred[0]["labels"].numpy())]
-        predicted_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]["boxes"].detach().numpy())]
+        predicted_boxes = [
+            [(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]["boxes"].detach().numpy())
+        ]
         predicted_score = list(pred[0]["scores"].detach().numpy())
         predicted_t = [predicted_score.index(x) for x in predicted_score if x > threshold]
         if len(predicted_t) == 0:
