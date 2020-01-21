@@ -27,6 +27,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -282,42 +283,61 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 }
 
 func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) {
-	var spotPrice float64
-	if clusterConfig.Spot != nil && *clusterConfig.Spot {
-		var err error
-		spotPrice, err = awsClient.SpotInstancePrice(*clusterConfig.Region, *clusterConfig.InstanceType)
-		if err != nil {
-			spotPrice = 0
-		}
-	}
-
 	operatorInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * 20 / 30 / 24
 	elbPrice := aws.ELBMetadatas[*clusterConfig.Region].Price
 	natPrice := aws.NATMetadatas[*clusterConfig.Region].Price
-
-	fmt.Printf("cortex will use your %s aws access key id to provision the following resources in the %s region of your aws account:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), *clusterConfig.Region)
-	fmt.Printf("￮ an s3 bucket named %s\n", *clusterConfig.Bucket)
-	fmt.Printf("￮ a cloudwatch log group named %s\n", clusterConfig.LogGroup)
-	fmt.Printf("￮ an eks cluster named %s ($0.20 per hour)\n", clusterConfig.ClusterName)
-	fmt.Printf("￮ a t3.medium ec2 instance for the operator (%s per hour)\n", s.DollarsMaxPrecision(operatorInstancePrice))
-	fmt.Printf("￮ a 20gb ebs volume for the operator (%s per hour)\n", s.DollarsAndTenthsOfCents(operatorEBSPrice))
-	fmt.Printf("￮ an elb for the operator and an elb for apis (%s per hour each)\n", s.DollarsMaxPrecision(elbPrice))
-	fmt.Printf("￮ a nat gateway (%s per hour)\n", s.DollarsMaxPrecision(natPrice))
-	fmt.Println(workloadInstancesStr(clusterConfig, spotPrice))
-
-	fmt.Println()
-
 	apiInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price
 	apiEBSPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
 	fixedPrice := 0.20 + operatorInstancePrice + operatorEBSPrice + 2*elbPrice + natPrice
 	totalMinPrice := fixedPrice + float64(*clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
 	totalMaxPrice := fixedPrice + float64(*clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)
 
+	fmt.Printf("cortex will use your %s aws access key id to provision cluster named %s in %s:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), clusterConfig.ClusterName, *clusterConfig.Region)
+
+	var items table.KeyValuePairs
+	items.Add("resource", "cost per hour")
+	items.Add("1 eks cluster", "$0.20")
+	items.Add("1 t3.medium for the operator", s.DollarsMaxPrecision(operatorInstancePrice))
+	items.Add("1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice))
+	items.Add("1 nat gateway", s.DollarsMaxPrecision(natPrice))
+	items.Add("2 elastic load balancers", s.DollarsMaxPrecision(elbPrice)+" each")
+
+	instanceStr := "instances"
+	volumeStr := "volumes"
+	if *clusterConfig.MinInstances == 1 && *clusterConfig.MaxInstances == 1 {
+		instanceStr = "instance"
+		volumeStr = "volume"
+	}
+	workerInstanceStr := fmt.Sprintf("%d - %d %s %s for your api", *clusterConfig.MinInstances, *clusterConfig.MaxInstances, *clusterConfig.InstanceType, instanceStr)
+	ebsInstanceStr := fmt.Sprintf("%d - %d %dgb ebs %s for your api", *clusterConfig.MinInstances, *clusterConfig.MaxInstances, clusterConfig.InstanceVolumeSize, volumeStr)
+	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
+		workerInstanceStr = fmt.Sprintf("%d %s %s for your api", *clusterConfig.MinInstances, *clusterConfig.InstanceType, instanceStr)
+		ebsInstanceStr = fmt.Sprintf("%d %dgb ebs %s for your api", *clusterConfig.MinInstances, clusterConfig.InstanceVolumeSize, volumeStr)
+	}
+
+	workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
 	spotSuffix := ""
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
+		spotPrice, err := awsClient.SpotInstancePrice(*clusterConfig.Region, *clusterConfig.InstanceType)
+		if err == nil {
+			workerPriceStr += " (spot pricing unavailable)"
+		}
+		if spotPrice != 0 {
+			workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsMaxPrecision(spotPrice), s.DollarsMaxPrecision(apiInstancePrice))
+		}
 		spotSuffix = " (on-demand pricing)"
 	}
+
+	items.Add(workerInstanceStr, workerPriceStr)
+	items.Add(ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice)+" each")
+
+	items.Print(&table.KeyValuePairOpts{
+		Delimiter: pointer.String(""),
+		NumSpaces: pointer.Int(4),
+	})
+
+	fmt.Println()
 
 	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
 		fmt.Printf("this cluster will cost %s per hour%s\n\n", s.DollarsAndCents(totalMaxPrice), spotSuffix)
@@ -325,7 +345,9 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 		fmt.Printf("this cluster will cost %s - %s per hour based on the cluster size%s\n\n", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice), spotSuffix)
 	}
 
-	if clusterConfig.Spot != nil && *clusterConfig.Spot && clusterConfig.SpotConfig.OnDemandBackup != nil && *clusterConfig.SpotConfig.OnDemandBackup {
+	fmt.Printf("cortex will also create an s3 bucket named %s and a cloudwatch log group named %s if they don't exist\n\n", *clusterConfig.Bucket, clusterConfig.LogGroup)
+
+	if clusterConfig.Spot != nil && *clusterConfig.Spot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
 			fmt.Printf("WARNING: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
 		} else {
@@ -467,39 +489,4 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 	}
 
 	return items.String()
-}
-
-func workloadInstancesStr(clusterConfig *clusterconfig.Config, spotPrice float64) string {
-	instanceRangeStr := fmt.Sprintf("an autoscaling group of %d - %d", *clusterConfig.MinInstances, *clusterConfig.MaxInstances)
-	volumeRangeStr := fmt.Sprintf("%d - %d", *clusterConfig.MinInstances, *clusterConfig.MaxInstances)
-	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
-		instanceRangeStr = s.Int64(*clusterConfig.MinInstances)
-		volumeRangeStr = s.Int64(*clusterConfig.MinInstances)
-	}
-
-	instancesStr := "instances"
-	volumesStr := "volumes"
-	if *clusterConfig.MinInstances == 1 && *clusterConfig.MaxInstances == 1 {
-		instancesStr = "instance"
-		volumesStr = "volume"
-	}
-
-	instanceTypeStr := *clusterConfig.InstanceType
-	instancePrice := aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price
-	instancePriceStr := fmt.Sprintf("(%s per hour each)", s.DollarsMaxPrecision(instancePrice))
-
-	if clusterConfig.Spot != nil && *clusterConfig.Spot {
-		instanceTypeStr = s.StrsOr(clusterConfig.SpotConfig.InstanceDistribution)
-		spotPriceStr := "spot pricing not available"
-		if spotPrice != 0 {
-			spotPriceStr = fmt.Sprintf("~%s per hour spot", s.DollarsMaxPrecision(spotPrice))
-		}
-		instancePriceStr = fmt.Sprintf("(%s: %s per hour on-demand, %s)", *clusterConfig.InstanceType, s.DollarsMaxPrecision(instancePrice), spotPriceStr)
-	}
-
-	ebsPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
-
-	str := fmt.Sprintf("￮ %s %s ec2 %s for apis %s\n", instanceRangeStr, instanceTypeStr, instancesStr, instancePriceStr)
-	str += fmt.Sprintf("￮ %s %dgb ebs %s, one for each api instance (%s per hour each)", volumeRangeStr, clusterConfig.InstanceVolumeSize, volumesStr, s.DollarsAndTenthsOfCents(ebsPrice))
-	return str
 }
