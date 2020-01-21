@@ -41,12 +41,12 @@ type Header struct {
 	Hidden   bool
 }
 
-type TableOpts struct {
+type Opts struct {
 	Sort *bool // default is true
 }
 
-func mergeTableOptions(options ...*TableOpts) TableOpts {
-	mergedOpts := TableOpts{}
+func mergeTableOptions(options ...*Opts) Opts {
+	mergedOpts := Opts{}
 
 	for _, opt := range options {
 		if opt != nil && opt.Sort != nil {
@@ -93,7 +93,7 @@ func (t *Table) MustPrint() {
 }
 
 // Return the error message as a string
-func (t *Table) MustFormat(opts ...*TableOpts) string {
+func (t *Table) MustFormat(opts ...*Opts) string {
 	mergedOpts := mergeTableOptions(opts...)
 	str, err := t.Format(&mergedOpts)
 	if err != nil {
@@ -102,7 +102,7 @@ func (t *Table) MustFormat(opts ...*TableOpts) string {
 	return str
 }
 
-func (t *Table) Format(opts ...*TableOpts) (string, error) {
+func (t *Table) Format(opts ...*Opts) (string, error) {
 	mergedOpts := mergeTableOptions(opts...)
 	if err := validate(*t); err != nil {
 		return "", err

@@ -342,7 +342,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 		Headers: headers,
 		Rows:    rows,
 	}
-	fmt.Println(items.MustFormat(&table.TableOpts{Sort: pointer.Bool(false)}))
+	fmt.Println(items.MustFormat(&table.Opts{Sort: pointer.Bool(false)}))
 
 	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
 		fmt.Printf("this cluster will cost %s per hour%s\n\n", s.DollarsAndCents(totalMaxPrice), spotSuffix)
