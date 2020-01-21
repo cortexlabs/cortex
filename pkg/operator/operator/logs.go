@@ -128,7 +128,7 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 			}
 
 			if deployment == nil {
-				writeAndCloseSocket(socket, "\n"+apiName+" api not found")
+				writeAndCloseSocket(socket, "\n"+apiName+" not found")
 				continue
 			}
 

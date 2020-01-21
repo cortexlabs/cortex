@@ -56,7 +56,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-		return api, fmt.Sprintf("creating %s api", api.Name), nil
+		return api, fmt.Sprintf("creating %s", api.Name), nil
 	}
 
 	if !areAPIsEqual(prevDeployment, deploymentSpec(api, prevDeployment)) {
@@ -65,7 +65,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			return nil, "", err
 		}
 		if isUpdating && !force {
-			return nil, "", errors.New(fmt.Sprintf("%s api is updating (override with --force)", api.Name))
+			return nil, "", errors.New(fmt.Sprintf("%s is updating (override with --force)", api.Name))
 		}
 		if err := config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
@@ -73,7 +73,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			return nil, "", err
 		}
-		return api, fmt.Sprintf("updating %s api", api.Name), nil
+		return api, fmt.Sprintf("updating %s", api.Name), nil
 	}
 
 	// deployment didn't change
@@ -82,9 +82,9 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return nil, "", err
 	}
 	if isUpdating {
-		return api, fmt.Sprintf("%s api is already updating", api.Name), nil
+		return api, fmt.Sprintf("%s is already updating", api.Name), nil
 	}
-	return api, fmt.Sprintf("%s api is up to date", api.Name), nil
+	return api, fmt.Sprintf("%s is up to date", api.Name), nil
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
@@ -101,7 +101,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	}
 
 	if isUpdating && !force {
-		return "", errors.New(fmt.Sprintf("%s api is updating (override with --force)", apiName))
+		return "", errors.New(fmt.Sprintf("%s is updating (override with --force)", apiName))
 	}
 
 	apiID := prevDeployment.Labels["apiID"]
@@ -124,7 +124,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("updating %s api", api.Name), nil
+	return fmt.Sprintf("updating %s", api.Name), nil
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {

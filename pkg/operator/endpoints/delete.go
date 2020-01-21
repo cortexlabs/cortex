@@ -56,7 +56,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := schema.DeleteResponse{
-		Message: fmt.Sprintf("deleting %s api", apiName),
+		Message: fmt.Sprintf("deleting %s", apiName),
 	}
 	respond(w, response)
 }
