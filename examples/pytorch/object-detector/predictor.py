@@ -25,22 +25,20 @@ class PythonPredictor:
         threshold = float(payload["threshold"])
         image = requests.get(payload["url"]).content
         img_pil = Image.open(BytesIO(image))
-
         img_tensor = self.preprocess(img_pil)
-
         img_tensor.unsqueeze_(0)
 
         with torch.no_grad():
             pred = self.model(img_tensor)
 
-        pred_class = [self.coco_labels[i] for i in list(pred[0]["labels"].numpy())]
-        pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]["boxes"].detach().numpy())]
-        pred_score = list(pred[0]["scores"].detach().numpy())
-        pred_t = [pred_score.index(x) for x in pred_score if x > threshold]
-        if len(pred_t) == 0:
+        predicted_class = [self.coco_labels[i] for i in list(pred[0]["labels"].numpy())]
+        predicted_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]["boxes"].detach().numpy())]
+        predicted_score = list(pred[0]["scores"].detach().numpy())
+        predicted_t = [predicted_score.index(x) for x in predicted_score if x > threshold]
+        if len(predicted_t) == 0:
             return [], []
 
-        pred_t = pred_t[-1]
-        pred_boxes = pred_boxes[: pred_t + 1]
-        pred_class = pred_class[: pred_t + 1]
-        return pred_boxes, pred_class
+        predicted_t = predicted_t[-1]
+        predicted_boxes = predicted_boxes[: predicted_t + 1]
+        predicted_class = predicted_class[: predicted_t + 1]
+        return predicted_boxes, predicted_class
