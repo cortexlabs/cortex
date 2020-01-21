@@ -35,35 +35,6 @@ class Predictor:
         self.cache_dir = cache_dir
         self.storage = storage
 
-    def _download_file(self, impl_key, cache_impl_path):
-        if not os.path.isfile(cache_impl_path):
-            self.storage.download_file(impl_key, cache_impl_path)
-        return cache_impl_path
-
-    def _download_python_file(self, impl_key, module_name):
-        cache_impl_path = os.path.join(self.cache_dir, "{}.py".format(module_name))
-        self._download_file(impl_key, cache_impl_path)
-        return cache_impl_path
-
-    def _load_module(self, module_name, impl_path):
-        if impl_path.endswith(".pickle"):
-            try:
-                impl = imp.new_module(module_name)
-
-                with open(impl_path, "rb") as pickle_file:
-                    pickled_dict = dill.load(pickle_file)
-                    for key in pickled_dict:
-                        setattr(impl, key, pickled_dict[key])
-            except Exception as e:
-                raise UserException("unable to load pickle", str(e)) from e
-        else:
-            try:
-                impl = imp.load_source(module_name, impl_path)
-            except Exception as e:
-                raise UserException(str(e)) from e
-
-        return impl
-
     def initialize_client(self, args):
         if self.type == "onnx":
             from cortex.lib.client.onnx import ONNXClient
@@ -134,6 +105,25 @@ class Predictor:
             e.wrap("error in " + self.path)
             raise
         return predictor_class
+
+    def _load_module(self, module_name, impl_path):
+        if impl_path.endswith(".pickle"):
+            try:
+                impl = imp.new_module(module_name)
+
+                with open(impl_path, "rb") as pickle_file:
+                    pickled_dict = dill.load(pickle_file)
+                    for key in pickled_dict:
+                        setattr(impl, key, pickled_dict[key])
+            except Exception as e:
+                raise UserException("unable to load pickle", str(e)) from e
+        else:
+            try:
+                impl = imp.load_source(module_name, impl_path)
+            except Exception as e:
+                raise UserException(str(e)) from e
+
+        return impl
 
 
 PYTHON_CLASS_VALIDATION = {

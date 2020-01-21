@@ -49,18 +49,17 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 	api := getAPISpec(apiConfig, projectID, deploymentID)
 
 	if prevDeployment == nil {
-		err = config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key)
-		if err != nil {
+		if err := config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
-		if err = applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
+		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
 		return api, fmt.Sprintf("creating %s api", api.Name), nil
 	}
 
-	if !areDeploymentsEqual(prevDeployment, deploymentSpec(api, prevDeployment)) {
+	if !areAPIsEqual(prevDeployment, deploymentSpec(api, prevDeployment)) {
 		isUpdating, err := isAPIUpdating(prevDeployment)
 		if err != nil {
 			return nil, "", err
@@ -68,11 +67,10 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if isUpdating && !force {
 			return nil, "", errors.New(fmt.Sprintf("%s api is updating (override with --force)", api.Name))
 		}
-		err = config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key)
-		if err != nil {
+		if err := config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
-		if err = applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
+		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			return nil, "", err
 		}
 		return api, fmt.Sprintf("updating %s api", api.Name), nil
@@ -101,6 +99,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	if isUpdating && !force {
 		return "", errors.New(fmt.Sprintf("%s api is updating (override with --force)", apiName))
 	}
@@ -117,8 +116,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 
 	api = getAPISpec(api.API, api.ProjectID, k8s.RandomName())
 
-	err = config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key)
-	if err != nil {
+	if err := config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")
 	}
 
@@ -149,11 +147,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
-func getAPISpec(
-	apiConfig *userconfig.API,
-	projectID string,
-	deploymentID string,
-) *spec.API {
+func getAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string) *spec.API {
 	var buf bytes.Buffer
 	buf.WriteString(apiConfig.Name)
 	buf.WriteString(*apiConfig.Endpoint)
@@ -175,13 +169,7 @@ func getAPISpec(
 	}
 }
 
-func getK8sResources(apiConfig *userconfig.API) (
-	*kapps.Deployment,
-	*kcore.Service,
-	*kunstructured.Unstructured,
-	error,
-) {
-
+func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Service, *kunstructured.Unstructured, error) {
 	var deployment *kapps.Deployment
 	var service *kcore.Service
 	var virtualService *kunstructured.Unstructured
@@ -207,13 +195,7 @@ func getK8sResources(apiConfig *userconfig.API) (
 	return deployment, service, virtualService, err
 }
 
-func applyK8sResources(
-	api *spec.API,
-	prevDeployment *kapps.Deployment,
-	prevService *kcore.Service,
-	prevVirtualService *kunstructured.Unstructured,
-) error {
-
+func applyK8sResources(api *spec.API, prevDeployment *kapps.Deployment, prevService *kcore.Service, prevVirtualService *kunstructured.Unstructured) error {
 	return parallel.RunFirstErr(
 		func() error {
 			return applyK8sDeployment(api, prevDeployment)
@@ -307,6 +289,7 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
 	replicaCounts := getReplicaCounts(deployment, pods)
 
 	minReplicas, ok := s.ParseInt32(deployment.Labels["minReplicas"])
@@ -321,24 +304,16 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 	return false, nil
 }
 
-func areDeploymentsEqual(d1, d2 *kapps.Deployment) bool {
-	return deploymentsMatch(d1, d2) &&
-		k8s.PodComputesEqual(&d1.Spec.Template.Spec, &d2.Spec.Template.Spec)
-}
-
 func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
-	return podLabelsEqual(deployment.Spec.Template.Labels, pod.Labels) &&
-		k8s.PodComputesEqual(&deployment.Spec.Template.Spec, &pod.Spec)
+	return k8s.PodComputesEqual(&deployment.Spec.Template.Spec, &pod.Spec) &&
+		deployment.Spec.Template.Labels["apiName"] == pod.Labels["apiName"] &&
+		deployment.Spec.Template.Labels["apiID"] == pod.Labels["apiID"] &&
+		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
 }
 
-func podLabelsEqual(labels1, labels2 map[string]string) bool {
-	return labels1["apiName"] == labels2["apiName"] &&
-		labels1["apiID"] == labels2["apiID"] &&
-		labels1["deploymentID"] == labels2["deploymentID"]
-}
-
-func deploymentsMatch(d1, d2 *kapps.Deployment) bool {
-	return k8s.DeploymentStrategiesMatch(d1.Spec.Strategy, d2.Spec.Strategy) &&
+func areAPIsEqual(d1, d2 *kapps.Deployment) bool {
+	return k8s.PodComputesEqual(&d1.Spec.Template.Spec, &d2.Spec.Template.Spec) &&
+		k8s.DeploymentStrategiesMatch(d1.Spec.Strategy, d2.Spec.Strategy) &&
 		d1.Labels["apiName"] == d2.Labels["apiName"] &&
 		d1.Labels["apiID"] == d2.Labels["apiID"] &&
 		d1.Labels["deploymentID"] == d2.Labels["deploymentID"] &&

@@ -28,7 +28,7 @@ import (
 func Info(w http.ResponseWriter, r *http.Request) {
 	response := schema.InfoResponse{
 		MaskedAWSAccessKeyID: s.MaskString(os.Getenv("AWS_ACCESS_KEY_ID"), 4),
-		ClusterConfig:        config.Cluster,
+		ClusterConfig:        *config.Cluster,
 	}
 	respond(w, response)
 }

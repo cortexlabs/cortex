@@ -116,7 +116,7 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 		case <-podCheckCancel:
 			return
 		case <-timer.C:
-			if time.Since(lastDeploymentRefresh) > _deploymentRefreshPeriod {
+			if deployment == nil || time.Since(lastDeploymentRefresh) > _deploymentRefreshPeriod {
 				var err error
 				deployment, err = config.K8s.GetDeployment(k8sName(apiName))
 				if err != nil {

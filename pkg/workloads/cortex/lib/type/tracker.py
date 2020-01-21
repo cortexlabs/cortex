@@ -43,7 +43,7 @@ class Tracker:
                 )
             return str(predicted_value)
         else:
-            if type(predicted_value) != float and type(predicted_value) != int:  # allow ints
+            if type(predicted_value) != float and type(predicted_value) != int:
                 raise ValueError(
                     "failed to track regression prediction: expected type 'float' or 'int' but encountered '{}'".format(
                         type(predicted_value)

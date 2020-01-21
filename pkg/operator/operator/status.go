@@ -30,6 +30,8 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
+const _stalledPodTimeout = 10 * time.Minute
+
 func GetStatus(apiName string) (*status.Status, error) {
 	var deployment *kapps.Deployment
 	var pods []kcore.Pod
@@ -46,7 +48,6 @@ func GetStatus(apiName string) (*status.Status, error) {
 			return err
 		},
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +75,6 @@ func GetAllStatuses() ([]status.Status, error) {
 			return err
 		},
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -96,10 +96,6 @@ func GetAllStatuses() ([]status.Status, error) {
 }
 
 func apiStatus(deployment *kapps.Deployment, allPods []kcore.Pod) (*status.Status, error) {
-	if deployment == nil {
-		return nil, nil
-	}
-
 	minReplicas, ok := s.ParseInt32(deployment.Labels["minReplicas"])
 	if !ok {
 		return nil, errors.New("unable to parse min replicas from " + deployment.Labels["minReplicas"]) // unexpected
@@ -108,28 +104,27 @@ func apiStatus(deployment *kapps.Deployment, allPods []kcore.Pod) (*status.Statu
 	status := &status.Status{}
 	status.APIName = deployment.Labels["apiName"]
 	status.APIID = deployment.Labels["apiID"]
-	status.ReplicaCounts = *getReplicaCounts(deployment, allPods)
+	status.ReplicaCounts = getReplicaCounts(deployment, allPods)
 	status.Code = getStatusCode(&status.ReplicaCounts, minReplicas)
 
 	return status, nil
 }
 
-func getReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) *status.ReplicaCounts {
-	counts := &status.ReplicaCounts{}
-
+func getReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) status.ReplicaCounts {
+	counts := status.ReplicaCounts{}
 	counts.Requested = *deployment.Spec.Replicas
 
 	for _, pod := range pods {
 		if pod.Labels["apiName"] != deployment.Labels["apiName"] {
 			continue
 		}
-		addPodToReplicaCounts(counts, deployment, &pod)
+		addPodToReplicaCounts(&pod, deployment, &counts)
 	}
 
 	return counts
 }
 
-func addPodToReplicaCounts(counts *status.ReplicaCounts, deployment *kapps.Deployment, pod *kcore.Pod) {
+func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts *status.ReplicaCounts) {
 	var subCounts *status.SubReplicaCounts
 	if isPodSpecLatest(deployment, pod) {
 		subCounts = &counts.Updated
@@ -144,7 +139,7 @@ func addPodToReplicaCounts(counts *status.ReplicaCounts, deployment *kapps.Deplo
 
 	switch k8s.GetPodStatus(pod) {
 	case k8s.PodStatusPending:
-		if time.Since(pod.CreationTimestamp.Time) > 10*time.Minute {
+		if time.Since(pod.CreationTimestamp.Time) > _stalledPodTimeout {
 			subCounts.Stalled++
 		} else {
 			subCounts.Pending++

@@ -37,14 +37,14 @@ class API:
             self.tracker = Tracker(**kwargs["tracker"])
 
         self.cache_dir = cache_dir
+        self.storage = storage
+
         host_ip = os.environ["HOST_IP"]
         datadog.initialize(statsd_host=host_ip, statsd_port="8125")
         self.statsd = datadog.statsd
 
-        self.storage = storage
-
     def get_cached_classes(self):
-        prefix = os.path.join(self.metadata_root, self.id, "classes")
+        prefix = os.path.join(self.metadata_root, self.id, "classes") + "/"
         class_paths = self.storage.search(prefix=prefix)
         class_set = set()
         for class_path in class_paths:
