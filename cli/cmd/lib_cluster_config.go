@@ -334,7 +334,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 
 	items.Print(&table.KeyValuePairOpts{
 		Delimiter: pointer.String(""),
-		NumSpaces: pointer.Int(4),
+		NumSpaces: pointer.Int(3),
 	})
 
 	fmt.Println()
