@@ -408,7 +408,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	}
 
 	bucketRegion, err := aws.GetBucketRegion(*cc.Bucket)
-	if err != nil && bucketRegion != "" && bucketRegion != *cc.Region {
+	if err == nil && bucketRegion != "" && bucketRegion != *cc.Region {
 		return ErrorS3RegionDiffersFromCluster(*cc.Bucket, bucketRegion, *cc.Region)
 	}
 
