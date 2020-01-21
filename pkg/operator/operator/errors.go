@@ -181,7 +181,7 @@ func ErrorDuplicateEndpointInOneDeploy(apis []userconfig.API) error {
 func ErrorDuplicateEndpoint(apiName string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrDuplicateEndpoint,
-		message: fmt.Sprintf("endpoint is already being used by the %s api", apiName),
+		message: fmt.Sprintf("endpoint is already being used by %s", apiName),
 	})
 }
 
@@ -317,6 +317,6 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 func ErrorAPINotDeployed(apiName string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrAPINotDeployed,
-		message: fmt.Sprintf("%s api is not deployed", apiName), // note: if modifying this string, search the codebase for it and change all occurrences
+		message: fmt.Sprintf("%s is not deployed", apiName), // note: if modifying this string, search the codebase for it and change all occurrences
 	})
 }
