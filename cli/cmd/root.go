@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -37,10 +38,17 @@ var _cliConfigPath string
 var _clientIDPath string
 var _emailPath string
 var _debugPath string
+var _cwd string
 
 var _flagEnv string
 
 func init() {
+	cwd, err := os.Getwd()
+	if err != nil {
+		exit.Error(err)
+	}
+	_cwd = s.EnsureSuffix(cwd, "/")
+
 	homeDir, err := homedir.Dir()
 	if err != nil {
 		exit.Error(err)

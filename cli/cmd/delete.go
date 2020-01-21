@@ -54,7 +54,7 @@ func delete(apiName string, keepCache bool) {
 	if !_flagDeleteForce {
 		readyReplicas := getReadyReplicasOrNil(apiName)
 		if readyReplicas != nil && *readyReplicas > 2 {
-			prompt.YesOrExit(fmt.Sprintf("are you sure you want to delete the %s api (which has %d running replicas)?", apiName, *readyReplicas), "")
+			prompt.YesOrExit(fmt.Sprintf("are you sure you want to delete the %s api (which has %d running replicas)?", apiName, *readyReplicas), "", "")
 		}
 	}
 
