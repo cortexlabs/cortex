@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -406,6 +407,11 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
 
+	bucketRegion, _ := aws.GetBucketRegion(*cc.Bucket)
+	if bucketRegion != "" && bucketRegion != *cc.Region {
+		return ErrorS3RegionDiffersFromCluster(*cc.Bucket, bucketRegion, *cc.Region)
+	}
+
 	if _, ok := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]; !ok {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
 	}
@@ -666,12 +672,13 @@ func RegionPrompt(clusterConfig *Config) error {
 func InstallPrompt(clusterConfig *Config, awsClient *aws.Client) error {
 	defaults := applyPromptDefaults(*clusterConfig)
 
-	_, hashedAccountID, err := awsClient.GetCachedAccountID()
+	accountID, _, err := awsClient.GetCachedAccountID()
 	if err != nil {
 		return err
 	}
+	bucketID := hash.String(accountID + *clusterConfig.Region)
 
-	defaultBucket := clusterConfig.ClusterName + "-" + hashedAccountID[:10]
+	defaultBucket := clusterConfig.ClusterName + "-" + bucketID[:10] // TODO one bucket per region or region + cluster name?
 	if len(defaultBucket) > 63 {
 		defaultBucket = defaultBucket[:63]
 	}
