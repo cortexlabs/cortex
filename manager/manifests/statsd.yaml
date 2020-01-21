@@ -41,6 +41,14 @@ metadata:
   name: cwagentstatsdconfig
   namespace: default
 ---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: statsd
+value: 1000
+globalDefault: false
+description: "This priority class should be used for statsd daemonset only."
+---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -55,6 +63,7 @@ spec:
       labels:
         name: cloudwatch-agent-statsd
     spec:
+      priorityClassName: statsd
       containers:
         - name: cloudwatch-agent
           image: $CORTEX_IMAGE_STATSD

@@ -170,7 +170,10 @@ spec:
             - --expander=least-waste
             {% endif %}
             - --max-nodes-total={{ config['max_instances'] + 1 }}
+            - --max-total-unready-percentage=5
+            - --ok-total-unready-count=30
             - --max-node-provision-time=5m
+            - --scan-interval=20s
             - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/{{ config['cluster_name'] }}
           volumeMounts:
             - name: ssl-certs

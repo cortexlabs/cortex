@@ -1,4 +1,4 @@
-# Deploy a scikit-learn model as a web service
+# Deploy a model as a web service
 
 _WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`_
 
@@ -50,7 +50,7 @@ $ python3 trainer.py
 
 <br>
 
-## Implement a predictor
+## Implement your predictor
 
 1. Create another Python file `predictor.py`.
 2. Define a Predictor class with a constructor that loads and initializes your pickled model.
@@ -69,7 +69,6 @@ class PythonPredictor:
     def __init__(self, config):
         s3 = boto3.client("s3")
         s3.download_file(config["bucket"], config["key"], "model.pkl")
-
         self.model = pickle.load(open("model.pkl", "rb"))
 
     def predict(self, payload):
@@ -86,7 +85,7 @@ class PythonPredictor:
 
 <br>
 
-## Specify Python dependencies
+## Specify your Python dependencies
 
 Create a `requirements.txt` file to specify the dependencies needed by `predictor.py`. Cortex will automatically install them into your runtime once you deploy:
 
@@ -100,9 +99,9 @@ You can skip dependencies that are [pre-installed](../../../docs/deployments/pyt
 
 <br>
 
-## Configure an API
+## Configure your API
 
-Create a `cortex.yaml` file and add the configuration below. An `api` provides a runtime for inference and makes our `predictor.py` implementation available as a web service that can serve real-time predictions:
+Create a `cortex.yaml` file and add the configuration below. An `api` provides a runtime for inference and makes your `predictor.py` implementation available as a web service that can serve real-time predictions:
 
 ```yaml
 # cortex.yaml
@@ -120,7 +119,7 @@ Create a `cortex.yaml` file and add the configuration below. An `api` provides a
 
 ## Deploy to AWS
 
-`cortex deploy` takes the declarative configuration from `cortex.yaml` and creates it on your Cortex cluster:
+`cortex deploy` takes the configuration from `cortex.yaml` and creates it on your cluster:
 
 ```bash
 $ cortex deploy
@@ -139,7 +138,7 @@ live     1            1           8s            -
 endpoint: http://***.amazonaws.com/iris-classifier
 ```
 
-The output above indicates that one replica of the API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
+The output above indicates that one replica of your API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
 
 You can also stream logs from your API:
 
@@ -315,7 +314,6 @@ class PythonPredictor:
     def __init__(self, config):
         s3 = boto3.client("s3")
         s3.download_file(config["bucket"], config["key"], "model.pkl")
-
         self.model = pickle.load(open("model.pkl", "rb"))
 
     def predict(self, payload):
@@ -362,7 +360,6 @@ Next, add the `api` to `cortex.yaml`:
     cpu: 0.2
     mem: 100M
 
-
 - name: batch-iris-classifier
   predictor:
     type: python
@@ -375,7 +372,7 @@ Next, add the `api` to `cortex.yaml`:
     mem: 100M
 ```
 
-Run `cortex deploy` to create the batch API:
+Run `cortex deploy` to create your batch API:
 
 ```bash
 $ cortex deploy
@@ -383,12 +380,12 @@ $ cortex deploy
 creating batch-iris-classifier api
 ```
 
-`cortex get` should show all three APIs now:
+`cortex get` should show all 3 APIs now:
 
 ```bash
 $ cortex get --watch
 
-api                  status   up-to-date   requested   last update
+api                       status   up-to-date   requested   last update
 iris-classifier           live     1            1           10m
 another-iris-classifier   live     1            1           5m
 batch-iris-classifier     live     1            1           8s
@@ -427,16 +424,22 @@ $ curl http://***.amazonaws.com/batch-iris-classifier \
 
 <br>
 
-## Clean up
+## Cleanup
 
-Run `cortex delete` to spin down your API:
+Run `cortex delete` to delete each API:
 
 ```bash
 $ cortex delete iris-classifier
 
 deleting iris-classifier api
+
+$ cortex delete another-iris-classifier
+
+deleting another-iris-classifier api
+
+$ cortex delete batch-iris-classifier
+
+deleting batch-iris-classifier api
 ```
 
 Running `cortex delete` will free up cluster resources and allow Cortex to scale down to the minimum number of instances you specified during cluster installation. It will not spin down your cluster.
-
-Any questions? [chat with us](https://gitter.im/cortexlabs/cortex).

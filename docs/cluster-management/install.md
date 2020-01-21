@@ -7,9 +7,9 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 1. [Docker](https://docs.docker.com/install)
 2. [AWS credentials](aws-credentials.md)
 
-## Installation
+## Spin up a cluster
 
-See [cluster configuration](config.md) to learn how you can customize your installation and [EC2 instances](ec2-instances.md) for an overview of how to pick an appropriate EC2 instance type for your cluster.
+See [cluster configuration](config.md) to learn how you can customize your cluster and [EC2 instances](ec2-instances.md) for an overview of several EC2 instance types.
 
 <!-- CORTEX_VERSION_MINOR -->
 ```bash
@@ -30,8 +30,8 @@ Note: This will create resources in your AWS account which aren't included in th
 # clone the Cortex repository
 git clone -b master https://github.com/cortexlabs/cortex.git
 
-# navigate to the iris classifier example
-cd cortex/examples/sklearn/iris-classifier
+# navigate to the TensorFlow iris classification example
+cd cortex/examples/tensorflow/iris-classifier
 
 # deploy the model to the cluster
 cortex deploy
@@ -42,7 +42,7 @@ cortex get --watch
 # stream logs from the api
 cortex logs iris-classifier
 
-# get the API's endpoint
+# get the api's endpoint
 cortex get iris-classifier
 
 # classify a sample
@@ -58,4 +58,4 @@ curl -X POST -H "Content-Type: application/json" \
 cortex delete iris-classifier
 ```
 
-See [uninstall](uninstall.md) if you'd like to uninstall Cortex.
+See [uninstall](uninstall.md) if you'd like to spin down your cluster.
