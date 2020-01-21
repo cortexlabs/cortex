@@ -233,7 +233,7 @@ func ErrorDidNotMatchStrictS3Regex() error {
 func ErrorS3RegionDiffersFromCluster(bucketName string, bucketRegion string, clusterRegion string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrS3RegionDiffersFromCluster,
-		message: fmt.Sprintf("the %s bucket is in %s, but your cluster is in %s; either change the region of your cluster to %s, use a bucket that is in %s, or remove your bucket configuration to allow cortex to make one for you", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
+		message: fmt.Sprintf("the %s bucket is in %s, but your cluster is in %s; either change the region of your cluster to %s, use a bucket that is in %s, or remove your bucket configuration to allow cortex to make the bucket for you", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
 	})
 }
 
