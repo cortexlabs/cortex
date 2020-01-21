@@ -78,7 +78,7 @@ class API:
             if self.statsd is None:
                 raise CortexException("statsd client not initialized")  # unexpected
 
-            for metric in metrics_list:
+            for metric in metrics:
                 tags = ["{}:{}".format(dim["Name"], dim["Value"]) for dim in metric["Dimensions"]]
                 if metric.get("Unit") == "Count":
                     self.statsd.increment(metric["MetricName"], value=metric["Value"], tags=tags)
