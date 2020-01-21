@@ -149,8 +149,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 
 func getAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string) *spec.API {
 	var buf bytes.Buffer
-	buf.WriteString(config.Cluster.ClusterName) // TODO?
-	buf.WriteString(*config.Cluster.Region)     // TODO?
 	buf.WriteString(apiConfig.Name)
 	buf.WriteString(*apiConfig.Endpoint)
 	buf.WriteString(s.Obj(apiConfig.Predictor))
@@ -281,7 +279,7 @@ func deleteK8sResources(apiName string) error {
 }
 
 func deleteS3Resources(apiName string) error {
-	prefix := filepath.Join("apis", apiName) // TODO?
+	prefix := filepath.Join("apis", apiName)
 	return config.AWS.DeleteDir(*config.Cluster.Bucket, prefix, true)
 }
 
@@ -384,7 +382,6 @@ func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
 }
 
 func specKey(apiName string, apiID string) string {
-	// TODO?
 	return filepath.Join(
 		"apis",
 		apiName,
@@ -394,7 +391,6 @@ func specKey(apiName string, apiID string) string {
 }
 
 func metadataRoot(apiName string, apiID string) string {
-	// TODO?
 	return filepath.Join(
 		"apis",
 		apiName,
@@ -404,7 +400,6 @@ func metadataRoot(apiName string, apiID string) string {
 }
 
 func ProjectKey(projectID string) string {
-	// TODO?
 	return filepath.Join(
 		"projects",
 		projectID+".zip",

@@ -676,9 +676,9 @@ func InstallPrompt(clusterConfig *Config, awsClient *aws.Client) error {
 	if err != nil {
 		return err
 	}
-	bucketID := hash.String(accountID + *clusterConfig.Region)
+	bucketID := hash.String(accountID + *clusterConfig.Region)[:10]
 
-	defaultBucket := clusterConfig.ClusterName + "-" + bucketID[:10] // TODO one bucket per region or region + cluster name?
+	defaultBucket := clusterConfig.ClusterName + "-" + bucketID
 	if len(defaultBucket) > 63 {
 		defaultBucket = defaultBucket[:63]
 	}
