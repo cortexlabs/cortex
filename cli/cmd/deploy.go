@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
@@ -34,11 +35,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _warningFileSize = 1024 * 1024 * 10
+var _warningFileBytes = 1024 * 1024 * 10
+var _warningProjectBytes = 1024 * 1024 * 10
+var _warningFileCount = 100
+
 var _flagDeployForce bool
+var _flagDeployYes bool
 
 func init() {
 	_deployCmd.PersistentFlags().BoolVarP(&_flagDeployForce, "force", "f", false, "override the in-progress api update")
+	_deployCmd.PersistentFlags().BoolVarP(&_flagDeployYes, "yes", "y", false, "skip prompts")
 	addEnvFlag(_deployCmd)
 }
 
@@ -89,16 +95,33 @@ func deploy(configPath string, force bool) {
 
 	projectRoot := filepath.Dir(files.UserRelToAbsPath(configPath))
 
-	projectPaths, err := files.ListDirRecursive(projectRoot, false,
+	ignoreFns := []files.IgnoreFn{
 		files.IgnoreSpecificFiles(files.UserRelToAbsPath(configPath)),
 		files.IgnoreCortexDebug,
 		files.IgnoreHiddenFiles,
 		files.IgnoreHiddenFolders,
 		files.IgnorePythonGeneratedFiles,
-		files.PromptForFilesAboveSize(_warningFileSize),
-	)
+	}
+	if !_flagDeployYes {
+		ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
+	}
+
+	projectPaths, err := files.ListDirRecursive(projectRoot, false, ignoreFns...)
 	if err != nil {
 		exit.Error(err)
+	}
+
+	canSkipPromptMsg := "you can skip this prompt next time with `cortex deploy --yes`\n"
+	rootDirMsg := "this directory"
+	if s.EnsureSuffix(projectRoot, "/") != _cwd {
+		rootDirMsg = fmt.Sprintf("./%s", files.DirPathRelativeToCWD(projectRoot))
+	}
+
+	didPromptFileCount := false
+	if !_flagDeployYes && len(projectPaths) >= _warningFileCount {
+		msg := fmt.Sprintf("cortex will zip %d files in %s and upload them to the cluster, though we recommend you upload large files (e.g. models) to s3 and download them in your api's __init__ function. Would you like to continue?", len(projectPaths), rootDirMsg)
+		prompt.YesOrExit(msg, canSkipPromptMsg, "")
+		didPromptFileCount = true
 	}
 
 	projectZipBytes, err := zip.ToMem(&zip.Input{
@@ -109,9 +132,13 @@ func deploy(configPath string, force bool) {
 			},
 		},
 	})
-
 	if err != nil {
 		exit.Error(errors.Wrap(err, "failed to zip project folder"))
+	}
+
+	if !_flagDeployYes && !didPromptFileCount && len(projectZipBytes) >= _warningProjectBytes {
+		msg := fmt.Sprintf("cortex will zip %d files in %s (%s) and upload them to the cluster, though we recommend you upload large files (e.g. models) to s3 and download them in your api's __init__ function. Would you like to continue?", len(projectPaths), rootDirMsg, s.IntToBase2Byte(len(projectZipBytes)))
+		prompt.YesOrExit(msg, canSkipPromptMsg, "")
 	}
 
 	uploadBytes["project.zip"] = projectZipBytes
