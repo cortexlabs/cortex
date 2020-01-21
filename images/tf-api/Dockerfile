@@ -14,6 +14,9 @@ RUN apt-get update -qq && apt-get install -y -q \
         software-properties-common \
         zlib1g-dev \
         git \
+        libsm6 \
+        libxext6 \
+        libxrender-dev \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt

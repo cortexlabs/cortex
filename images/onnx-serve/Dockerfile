@@ -14,6 +14,9 @@ RUN apt-get update -qq && apt-get install -y -q \
         python3.6-dev \
         python3.6-distutils \
         git \
+        libsm6 \
+        libxext6 \
+        libxrender-dev \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/* && \
     curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
     python3.6 get-pip.py && \
