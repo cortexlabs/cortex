@@ -120,9 +120,11 @@ def after_request(response):
         prediction = g.prediction
 
     try:
+        api.post_latency_metrics(response.status_code, g.start_time)
+
         if api.tracker is not None:
             predicted_value = api.tracker.extract_predicted_value(prediction)
-            api.post_request_metrics(response.status_code, g.start_time, predicted_value)
+            api.post_tracker_metrics(predicted_value)
             if predicted_value is not None and predicted_value not in local_cache["class_set"]:
                 api.upload_class(predicted_value)
                 local_cache["class_set"].add(predicted_value)
