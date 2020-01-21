@@ -40,15 +40,13 @@ import (
 )
 
 const (
-	_specCacheDir       = "/mnt/spec"
-	_emptyDirMountPath  = "/mnt"
-	_emptyDirVolumeName = "mnt"
-
-	_apiContainerName            = "api"
-	_tfServingContainerName      = "serve"
-	_downloaderInitContainerName = "downloader"
-	_downloaderLastLog           = "pulling the %s serving image"
-
+	_specCacheDir                          = "/mnt/spec"
+	_emptyDirMountPath                     = "/mnt"
+	_emptyDirVolumeName                    = "mnt"
+	_apiContainerName                      = "api"
+	_tfServingContainerName                = "serve"
+	_downloaderInitContainerName           = "downloader"
+	_downloaderLastLog                     = "pulling the %s serving image"
 	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
 )
@@ -81,11 +79,7 @@ func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Depl
 	}
 }
 
-func tfAPISpec(
-	api *spec.API,
-	prevDeployment *kapps.Deployment,
-) *kapps.Deployment {
-
+func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	apiResourceList := kcore.ResourceList{}
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
@@ -116,7 +110,7 @@ func tfAPISpec(
 			"apiName":      api.Name,
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
-			// these labels are important to determine if the deployment was changed in any way
+			// these labels are important to determine if the deployment was changed in any way, since they don't appear in the deployment spec
 			"minReplicas":          s.Int32(api.Compute.MinReplicas),
 			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
 			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
@@ -166,9 +160,7 @@ func tfAPISpec(
 							Requests: apiResourceList,
 						},
 						Ports: []kcore.ContainerPort{
-							{
-								ContainerPort: _defaultPortInt32,
-							},
+							{ContainerPort: _defaultPortInt32},
 						},
 					},
 					{
@@ -246,11 +238,7 @@ func tfDownloadArgs(api *spec.API) string {
 	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
 }
 
-func pythonAPISpec(
-	api *spec.API,
-	prevDeployment *kapps.Deployment,
-) *kapps.Deployment {
-
+func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	servingImage := config.Cluster.ImagePythonServe
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
@@ -324,9 +312,7 @@ func pythonAPISpec(
 							Limits:   resourceLimitsList,
 						},
 						Ports: []kcore.ContainerPort{
-							{
-								ContainerPort: _defaultPortInt32,
-							},
+							{ContainerPort: _defaultPortInt32},
 						},
 					},
 				},
@@ -360,11 +346,7 @@ func pythonDownloadArgs(api *spec.API) string {
 	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
 }
 
-func onnxAPISpec(
-	api *spec.API,
-	prevDeployment *kapps.Deployment,
-) *kapps.Deployment {
-
+func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	servingImage := config.Cluster.ImageONNXServe
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
@@ -389,7 +371,7 @@ func onnxAPISpec(
 			"apiName":      api.Name,
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
-			// these labels are important to determine if the deployment was changed in any way
+			// these labels are important to determine if the deployment was changed in any way, since they don't appear in the deployment spec
 			"minReplicas":          s.Int32(api.Compute.MinReplicas),
 			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
 			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
@@ -438,9 +420,7 @@ func onnxAPISpec(
 							Limits:   resourceLimitsList,
 						},
 						Ports: []kcore.ContainerPort{
-							{
-								ContainerPort: _defaultPortInt32,
-							},
+							{ContainerPort: _defaultPortInt32},
 						},
 					},
 				},

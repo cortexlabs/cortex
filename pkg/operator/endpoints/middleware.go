@@ -77,9 +77,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		if err != nil {
 			respondError(w, ErrorAuthAPIError())
 			return
-		}
-
-		if !isValid {
+		} else if !isValid {
 			respondErrorCode(w, http.StatusForbidden, ErrorAuthInvalid())
 			return
 		}

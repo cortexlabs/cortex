@@ -45,7 +45,6 @@ func Run(f func() error, errHandler func(error), interval time.Duration) Cron {
 		for {
 			select {
 			case <-cronCancel:
-				// cleanup?
 				return
 			case <-cronRun:
 				runCron()

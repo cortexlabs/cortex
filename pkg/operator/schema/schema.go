@@ -24,8 +24,8 @@ import (
 )
 
 type InfoResponse struct {
-	MaskedAWSAccessKeyID string                        `json:"masked_aws_access_key_id"`
-	ClusterConfig        *clusterconfig.InternalConfig `json:"cluster_config"`
+	MaskedAWSAccessKeyID string                       `json:"masked_aws_access_key_id"`
+	ClusterConfig        clusterconfig.InternalConfig `json:"cluster_config"`
 }
 
 type DeployResponse struct {
@@ -35,7 +35,7 @@ type DeployResponse struct {
 }
 
 type DeployResult struct {
-	API     *spec.API
+	API     spec.API
 	Message string
 	Error   string
 }
@@ -48,10 +48,10 @@ type GetAPIsResponse struct {
 }
 
 type GetAPIResponse struct {
-	API     *spec.API        `json:"api"`
-	Status  *status.Status   `json:"status"`
-	Metrics *metrics.Metrics `json:"metrics"`
-	BaseURL string           `json:"base_url"`
+	API     spec.API        `json:"api"`
+	Status  status.Status   `json:"status"`
+	Metrics metrics.Metrics `json:"metrics"`
+	BaseURL string          `json:"base_url"`
 }
 
 type DeleteResponse struct {

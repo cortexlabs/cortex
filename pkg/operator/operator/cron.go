@@ -21,9 +21,11 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	kapps "k8s.io/api/apps/v1"
+	kautoscaling "k8s.io/api/autoscaling/v2beta2"
 	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -53,23 +55,34 @@ func deleteEvictedPods() error {
 }
 
 func updateHPAs() error {
-	deployments, err := config.K8s.ListDeploymentsWithLabelKeys("apiName")
+	var deployments []kapps.Deployment
+	var hpas []kautoscaling.HorizontalPodAutoscaler
+	err := parallel.RunFirstErr(
+		func() error {
+			var err error
+			deployments, err = config.K8s.ListDeploymentsWithLabelKeys("apiName")
+			return err
+		},
+		func() error {
+			var err error
+			hpas, err = config.K8s.ListHPAsWithLabelKeys("apiName")
+			return err
+		},
+	)
 	if err != nil {
 		return err
 	}
 
-	var allPods []kcore.Pod
+	hpaMap := make(map[string]*kautoscaling.HorizontalPodAutoscaler, len(hpas))
+	for _, hpa := range hpas {
+		hpaMap[hpa.Name] = &hpa
+	}
 
+	var allPods []kcore.Pod
 	var errs []error
 
 	for _, deployment := range deployments {
-		hpa, err := config.K8s.GetHPA(k8sName(deployment.Labels["apiName"]))
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-
-		if hpa != nil {
+		if hpaMap[deployment.Name] != nil {
 			continue // since the HPA is deleted every time the deployment is updated
 		}
 
@@ -77,8 +90,7 @@ func updateHPAs() error {
 			var err error
 			allPods, err = config.K8s.ListPodsWithLabelKeys("apiName")
 			if err != nil {
-				errs = append(errs, err)
-				continue
+				return err
 			}
 		}
 
@@ -99,8 +111,7 @@ func updateHPAs() error {
 					continue
 				}
 
-				_, err = config.K8s.CreateHPA(spec)
-				if err != nil {
+				if _, err = config.K8s.CreateHPA(spec); err != nil {
 					errs = append(errs, err)
 					continue
 				}
