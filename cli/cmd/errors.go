@@ -100,7 +100,7 @@ func (e Error) Error() string {
 func ErrorAPINotReady(apiName string, status string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrAPINotReady,
-		message: fmt.Sprintf("%s api is %s", s.UserStr(apiName), status),
+		message: fmt.Sprintf("%s is %s", s.UserStr(apiName), status),
 	})
 }
 

@@ -124,7 +124,7 @@ Create a `cortex.yaml` file and add the configuration below. An `api` provides a
 ```bash
 $ cortex deploy
 
-creating iris-classifier api
+creating iris-classifier
 ```
 
 Track the status of your api using `cortex get`:
@@ -185,7 +185,7 @@ Run `cortex deploy` again to perform a rolling update to your API with the new c
 ```bash
 $ cortex deploy
 
-updating iris-classifier api
+updating iris-classifier
 ```
 
 After making more predictions, your `cortex get` command will show information about your API's past predictions:
@@ -228,7 +228,7 @@ You could also configure GPU compute here if your cluster supports it. Adding co
 ```bash
 $ cortex deploy
 
-updating iris-classifier api
+updating iris-classifier
 ```
 
 Run `cortex get` again:
@@ -284,8 +284,8 @@ Run `cortex deploy` to create the new API:
 ```bash
 $ cortex deploy
 
-iris-classifier api is up to date
-creating another-iris-classifier api
+iris-classifier is up to date
+creating another-iris-classifier
 ```
 
 `cortex deploy` is declarative so the `iris-classifier` API is unchanged while `another-iris-classifier` is created:
@@ -378,7 +378,7 @@ Run `cortex deploy` to create your batch API:
 ```bash
 $ cortex deploy
 
-creating batch-iris-classifier api
+creating batch-iris-classifier
 ```
 
 `cortex get` should show all 3 APIs now:
@@ -432,15 +432,15 @@ Run `cortex delete` to delete each API:
 ```bash
 $ cortex delete iris-classifier
 
-deleting iris-classifier api
+deleting iris-classifier
 
 $ cortex delete another-iris-classifier
 
-deleting another-iris-classifier api
+deleting another-iris-classifier
 
 $ cortex delete batch-iris-classifier
 
-deleting batch-iris-classifier api
+deleting batch-iris-classifier
 ```
 
 Running `cortex delete` will free up cluster resources and allow Cortex to scale down to the minimum number of instances you specified during cluster installation. It will not spin down your cluster.
