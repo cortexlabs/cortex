@@ -14,6 +14,14 @@
 
 # Source: https://github.com/NVIDIA/k8s-device-plugin/blob/1.0.0-beta4/nvidia-device-plugin.yml
 
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: nvidia
+value: 1000
+globalDefault: false
+description: "This priority class should be used for nvidia daemonset only."
+---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -34,6 +42,7 @@ spec:
       labels:
         name: nvidia-device-plugin-ds
     spec:
+      priorityClassName: nvidia
       tolerations:
       # This toleration is deprecated. Kept here for backward compatibility
       # See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/
