@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -38,6 +39,26 @@ type Header struct {
 	MaxWidth int // Max width of the text (not including spacing). Items that are longer will be truncated to less than MaxWidth to fit the ellipses. If 0 is provided, it defaults to no max.
 	MinWidth int // Min width of the text (not including spacing)
 	Hidden   bool
+}
+
+type TableOpts struct {
+	Sort *bool // default is true
+}
+
+func mergeTableOptions(options ...*TableOpts) TableOpts {
+	mergedOpts := TableOpts{}
+
+	for _, opt := range options {
+		if opt != nil && opt.Sort != nil {
+			mergedOpts.Sort = opt.Sort
+		}
+	}
+
+	if mergedOpts.Sort == nil {
+		mergedOpts.Sort = pointer.Bool(true)
+	}
+
+	return mergedOpts
 }
 
 func validate(t Table) error {
@@ -72,15 +93,17 @@ func (t *Table) MustPrint() {
 }
 
 // Return the error message as a string
-func (t *Table) MustFormat() string {
-	str, err := t.Format()
+func (t *Table) MustFormat(opts ...*TableOpts) string {
+	mergedOpts := mergeTableOptions(opts...)
+	str, err := t.Format(&mergedOpts)
 	if err != nil {
 		return "error: " + errors.Message(err)
 	}
 	return str
 }
 
-func (t *Table) Format() (string, error) {
+func (t *Table) Format(opts ...*TableOpts) (string, error) {
+	mergedOpts := mergeTableOptions(opts...)
 	if err := validate(*t); err != nil {
 		return "", err
 	}
@@ -156,7 +179,9 @@ func (t *Table) Format() (string, error) {
 		rowStrs[rowNum] = rowStr
 	}
 
-	sort.Strings(rowStrs)
+	if *mergedOpts.Sort {
+		sort.Strings(rowStrs)
+	}
 
 	return headerStr + "\n" + strings.Join(rowStrs, "\n") + "\n", nil
 }

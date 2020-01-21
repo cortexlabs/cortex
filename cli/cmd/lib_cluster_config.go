@@ -293,15 +293,21 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	totalMinPrice := fixedPrice + float64(*clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
 	totalMaxPrice := fixedPrice + float64(*clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)
 
-	fmt.Printf("cortex will use your %s aws access key id to provision cluster named %s in %s:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), clusterConfig.ClusterName, *clusterConfig.Region)
+	fmt.Printf("aws access key id %s will be used to provision a cluster (%s) in %s:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), clusterConfig.ClusterName, *clusterConfig.Region)
 
-	var items table.KeyValuePairs
-	items.Add("resource", "cost per hour")
-	items.Add("1 eks cluster", "$0.20")
-	items.Add("1 t3.medium for the operator", s.DollarsMaxPrecision(operatorInstancePrice))
-	items.Add("1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice))
-	items.Add("1 nat gateway", s.DollarsMaxPrecision(natPrice))
-	items.Add("2 elastic load balancers", s.DollarsMaxPrecision(elbPrice)+" each")
+	// var items table.KeyValuePairs
+
+	headers := []table.Header{
+		{Title: "aws resource"},
+		{Title: "cost per hour"},
+	}
+
+	rows := [][]interface{}{}
+	rows = append(rows, []interface{}{"1 eks cluster", "$0.20"})
+	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
+	rows = append(rows, []interface{}{"1 t3.medium for the operator", s.DollarsMaxPrecision(operatorInstancePrice)})
+	rows = append(rows, []interface{}{"1 nat gateway", s.DollarsMaxPrecision(natPrice)})
+	rows = append(rows, []interface{}{"2 elastic load balancers", s.DollarsMaxPrecision(elbPrice) + " each"})
 
 	instanceStr := "instances"
 	volumeStr := "volumes"
@@ -309,11 +315,11 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 		instanceStr = "instance"
 		volumeStr = "volume"
 	}
-	workerInstanceStr := fmt.Sprintf("%d - %d %s %s for your api", *clusterConfig.MinInstances, *clusterConfig.MaxInstances, *clusterConfig.InstanceType, instanceStr)
-	ebsInstanceStr := fmt.Sprintf("%d - %d %dgb ebs %s for your api", *clusterConfig.MinInstances, *clusterConfig.MaxInstances, clusterConfig.InstanceVolumeSize, volumeStr)
+	workerInstanceStr := fmt.Sprintf("%d - %d %s %s for your apis", *clusterConfig.MinInstances, *clusterConfig.MaxInstances, *clusterConfig.InstanceType, instanceStr)
+	ebsInstanceStr := fmt.Sprintf("%d - %d %dgb ebs %s for your apis", *clusterConfig.MinInstances, *clusterConfig.MaxInstances, clusterConfig.InstanceVolumeSize, volumeStr)
 	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
-		workerInstanceStr = fmt.Sprintf("%d %s %s for your api", *clusterConfig.MinInstances, *clusterConfig.InstanceType, instanceStr)
-		ebsInstanceStr = fmt.Sprintf("%d %dgb ebs %s for your api", *clusterConfig.MinInstances, clusterConfig.InstanceVolumeSize, volumeStr)
+		workerInstanceStr = fmt.Sprintf("%d %s %s for your apis", *clusterConfig.MinInstances, *clusterConfig.InstanceType, instanceStr)
+		ebsInstanceStr = fmt.Sprintf("%d %dgb ebs %s for your apis", *clusterConfig.MinInstances, clusterConfig.InstanceVolumeSize, volumeStr)
 	}
 
 	workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
@@ -329,15 +335,14 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 		spotSuffix = " (on-demand pricing)"
 	}
 
-	items.Add(workerInstanceStr, workerPriceStr)
-	items.Add(ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice)+" each")
+	rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
+	rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
 
-	items.Print(&table.KeyValuePairOpts{
-		Delimiter: pointer.String(""),
-		NumSpaces: pointer.Int(3),
-	})
-
-	fmt.Println()
+	items := table.Table{
+		Headers: headers,
+		Rows:    rows,
+	}
+	fmt.Println(items.MustFormat(&table.TableOpts{Sort: pointer.Bool(false)}))
 
 	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
 		fmt.Printf("this cluster will cost %s per hour%s\n\n", s.DollarsAndCents(totalMaxPrice), spotSuffix)
@@ -345,13 +350,13 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 		fmt.Printf("this cluster will cost %s - %s per hour based on the cluster size%s\n\n", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice), spotSuffix)
 	}
 
-	fmt.Printf("cortex will also create an s3 bucket named %s and a cloudwatch log group named %s if they don't exist\n\n", *clusterConfig.Bucket, clusterConfig.LogGroup)
+	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)\n\n", *clusterConfig.Bucket, clusterConfig.LogGroup)
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
-			fmt.Printf("WARNING: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
+			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
 		} else {
-			fmt.Printf("WARNING: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n", consts.CortexVersionMinor)
+			fmt.Printf("warning: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n", consts.CortexVersionMinor)
 		}
 		fmt.Println()
 	}
