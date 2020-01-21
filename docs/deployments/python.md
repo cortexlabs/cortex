@@ -142,6 +142,7 @@ nltk==3.4.5
 np-utils==0.5.12.1
 numpy==1.18.0
 pandas==0.25.3
+opencv-python==4.1.2.30
 Pillow==6.2.1
 requests==2.22.0
 scikit-image==0.16.2
