@@ -70,7 +70,7 @@ class API:
 
     def post_tracker_metrics(self, prediction_value=None):
         if prediction_value is not None:
-            metrics = [self.prediction_metrics(prediction_value))]
+            metrics = [self.prediction_metrics(prediction_value)]
             self.post_metrics(metrics)
 
     def post_metrics(self, metrics):
