@@ -284,6 +284,7 @@ Run `cortex deploy` to create the new API:
 ```bash
 $ cortex deploy
 
+iris-classifier api is up to date
 creating another-iris-classifier api
 ```
 
@@ -292,7 +293,7 @@ creating another-iris-classifier api
 ```bash
 $ cortex get --watch
 
-api                  status   up-to-date   requested   last update
+api                       status   up-to-date   requested   last update
 iris-classifier           live     1            1           5m
 another-iris-classifier   live     1            1           8s
 ```
