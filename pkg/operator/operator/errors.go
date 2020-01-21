@@ -34,6 +34,8 @@ const (
 	ErrMalformedConfig
 	ErrNoAPIs
 	ErrDuplicateName
+	ErrDuplicateEndpointInOneDeploy
+	ErrDuplicateEndpoint
 	ErrSpecifyAllOrNone
 	ErrOneOfPrerequisitesNotDefined
 	ErrMinReplicasGreaterThanMax
@@ -50,7 +52,6 @@ const (
 	ErrFieldNotSupportedByPredictorType
 	ErrNoAvailableNodeComputeLimit
 	ErrAPINotDeployed
-	ErrDuplicateEndpoint
 )
 
 var _errorKinds = []string{
@@ -60,6 +61,8 @@ var _errorKinds = []string{
 	"err_malformed_config",
 	"err_no_apis",
 	"err_duplicate_name",
+	"err_duplicate_endpoint_in_one_deploy",
+	"err_duplicate_endpoint",
 	"err_specify_all_or_none",
 	"err_one_of_prerequisites_not_defined",
 	"err_min_replicas_greater_than_max",
@@ -76,10 +79,9 @@ var _errorKinds = []string{
 	"err_field_not_supported_by_predictor_type",
 	"err_no_available_node_compute_limit",
 	"err_api_not_deployed",
-	"err_duplicate_endpoint",
 }
 
-var _ = [1]int{}[int(ErrDuplicateEndpoint)-(len(_errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrAPINotDeployed)-(len(_errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
 	return _errorKinds[t]
@@ -161,6 +163,25 @@ func ErrorDuplicateName(apis []userconfig.API) error {
 	return errors.WithStack(Error{
 		Kind:    ErrDuplicateName,
 		message: fmt.Sprintf("name %s must be unique across apis (defined in %s)", s.UserStr(apis[0].Name), s.StrsAnd(filePaths.Slice())),
+	})
+}
+
+func ErrorDuplicateEndpointInOneDeploy(apis []userconfig.API) error {
+	names := make([]string, len(apis))
+	for i, api := range apis {
+		names[i] = api.Name
+	}
+
+	return errors.WithStack(Error{
+		Kind:    ErrDuplicateEndpointInOneDeploy,
+		message: fmt.Sprintf("endpoint %s must be unique across apis (defined in %s)", s.UserStr(*apis[0].Endpoint), s.StrsAnd(names)),
+	})
+}
+
+func ErrorDuplicateEndpoint(apiName string) error {
+	return errors.WithStack(Error{
+		Kind:    ErrDuplicateEndpoint,
+		message: fmt.Sprintf("endpoint is already being used by the %s api", apiName),
 	})
 }
 
@@ -297,12 +318,5 @@ func ErrorAPINotDeployed(apiName string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrAPINotDeployed,
 		message: fmt.Sprintf("%s api is not deployed", apiName), // note: if modifying this string, search the codebase for it and change all occurrences
-	})
-}
-
-func ErrorDuplicateEndpoint(apiName string) error {
-	return errors.WithStack(Error{
-		Kind:    ErrDuplicateEndpoint,
-		message: fmt.Sprintf("endpoint is already being used by the %s api", apiName),
 	})
 }

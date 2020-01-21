@@ -278,11 +278,6 @@ func validateAPIs(apis []userconfig.API, projectFileMap map[string][]byte) error
 		return ErrorNoAPIs()
 	}
 
-	dups := findDuplicateNames(apis)
-	if len(dups) > 0 {
-		return ErrorDuplicateName(dups)
-	}
-
 	virtualServices, maxMem, err := getValidationK8sResources()
 	if err != nil {
 		return err
@@ -293,6 +288,17 @@ func validateAPIs(apis []userconfig.API, projectFileMap map[string][]byte) error
 			return err
 		}
 	}
+
+	dups := findDuplicateNames(apis)
+	if len(dups) > 0 {
+		return ErrorDuplicateName(dups)
+	}
+
+	dups = findDuplicateEndpoints(apis)
+	if len(dups) > 0 {
+		return ErrorDuplicateEndpointInOneDeploy(dups)
+	}
+
 	return nil
 }
 
@@ -579,6 +585,22 @@ func findDuplicateNames(apis []userconfig.API) []userconfig.API {
 	for name := range names {
 		if len(names[name]) > 1 {
 			return names[name]
+		}
+	}
+
+	return nil
+}
+
+func findDuplicateEndpoints(apis []userconfig.API) []userconfig.API {
+	endpoints := make(map[string][]userconfig.API)
+
+	for _, api := range apis {
+		endpoints[*api.Endpoint] = append(endpoints[*api.Endpoint], api)
+	}
+
+	for endpoint := range endpoints {
+		if len(endpoints[endpoint]) > 1 {
+			return endpoints[endpoint]
 		}
 	}
 
