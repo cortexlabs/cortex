@@ -109,7 +109,7 @@ func getAPI(apiName string) (string, error) {
 
 	var out string
 
-	t := apiTable([]spec.API{*apiRes.API}, []status.Status{*apiRes.Status}, []metrics.Metrics{*apiRes.Metrics})
+	t := apiTable([]spec.API{apiRes.API}, []status.Status{apiRes.Status}, []metrics.Metrics{apiRes.Metrics})
 	out += t.MustFormat()
 
 	api := apiRes.API
@@ -117,9 +117,9 @@ func getAPI(apiName string) (string, error) {
 	if api.Tracker != nil {
 		switch api.Tracker.ModelType {
 		case userconfig.ClassificationModelType:
-			out += "\n" + classificationMetricsStr(apiRes.Metrics)
+			out += "\n" + classificationMetricsStr(&apiRes.Metrics)
 		case userconfig.RegressionModelType:
-			out += "\n" + regressionMetricsStr(apiRes.Metrics)
+			out += "\n" + regressionMetricsStr(&apiRes.Metrics)
 		}
 	}
 
@@ -129,7 +129,7 @@ func getAPI(apiName string) (string, error) {
 	out += fmt.Sprintf("\n%s curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiEndpoint)
 
 	if api.Predictor.Type == userconfig.TensorFlowPredictorType || api.Predictor.Type == userconfig.ONNXPredictorType {
-		out += "\n" + describeModelInput(apiRes.Status, apiEndpoint)
+		out += "\n" + describeModelInput(&apiRes.Status, apiEndpoint)
 	}
 
 	out += titleStr("configuration") + strings.TrimSpace(api.UserStr())
@@ -190,64 +190,35 @@ func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Me
 	}
 }
 
-func metricsStrs(metrics *metrics.Metrics) (string, string, string, string) {
-	inferenceLatency := "-"
-	code2XX := "-"
-	code4XX := "-"
-	code5XX := "-"
-
-	if metrics.NetworkStats != nil {
-		if metrics.NetworkStats.Latency != nil {
-			if *metrics.NetworkStats.Latency < 1000 {
-				inferenceLatency = fmt.Sprintf("%.6g ms", *metrics.NetworkStats.Latency)
-			} else {
-				inferenceLatency = fmt.Sprintf("%.6g s", (*metrics.NetworkStats.Latency)/1000)
-			}
-		}
-
-		if metrics.NetworkStats.Code2XX != 0 {
-			code2XX = s.Int(metrics.NetworkStats.Code2XX)
-		}
-		if metrics.NetworkStats.Code4XX != 0 {
-			code4XX = s.Int(metrics.NetworkStats.Code4XX)
-		}
-		if metrics.NetworkStats.Code5XX != 0 {
-			code5XX = s.Int(metrics.NetworkStats.Code5XX)
-		}
-	}
-
-	return inferenceLatency, code2XX, code4XX, code5XX
-}
-
 func latencyStr(metrics *metrics.Metrics) string {
-	if metrics.NetworkStats != nil && metrics.NetworkStats.Latency != nil {
-		if *metrics.NetworkStats.Latency < 1000 {
-			return fmt.Sprintf("%.6g ms", *metrics.NetworkStats.Latency)
-		}
-		return fmt.Sprintf("%.6g s", (*metrics.NetworkStats.Latency)/1000)
+	if metrics.NetworkStats == nil || metrics.NetworkStats.Latency == nil {
+		return "-"
 	}
-	return "-"
+	if *metrics.NetworkStats.Latency < 1000 {
+		return fmt.Sprintf("%.6g ms", *metrics.NetworkStats.Latency)
+	}
+	return fmt.Sprintf("%.6g s", (*metrics.NetworkStats.Latency)/1000)
 }
 
 func code2XXStr(metrics *metrics.Metrics) string {
-	if metrics.NetworkStats != nil && metrics.NetworkStats.Code2XX != 0 {
-		return s.Int(metrics.NetworkStats.Code2XX)
+	if metrics.NetworkStats == nil || metrics.NetworkStats.Code2XX == 0 {
+		return "-"
 	}
-	return "-"
+	return s.Int(metrics.NetworkStats.Code2XX)
 }
 
 func code4XXStr(metrics *metrics.Metrics) string {
-	if metrics.NetworkStats != nil && metrics.NetworkStats.Code4XX != 0 {
-		return s.Int(metrics.NetworkStats.Code4XX)
+	if metrics.NetworkStats == nil || metrics.NetworkStats.Code4XX == 0 {
+		return "-"
 	}
-	return "-"
+	return s.Int(metrics.NetworkStats.Code4XX)
 }
 
 func code5XXStr(metrics *metrics.Metrics) string {
-	if metrics.NetworkStats != nil && metrics.NetworkStats.Code5XX != 0 {
-		return s.Int(metrics.NetworkStats.Code5XX)
+	if metrics.NetworkStats == nil || metrics.NetworkStats.Code5XX == 0 {
+		return "-"
 	}
-	return "-"
+	return s.Int(metrics.NetworkStats.Code5XX)
 }
 
 func regressionMetricsStr(metrics *metrics.Metrics) string {
@@ -282,12 +253,9 @@ func regressionMetricsStr(metrics *metrics.Metrics) string {
 }
 
 func classificationMetricsStr(metrics *metrics.Metrics) string {
-	classList := make([]string, len(metrics.ClassDistribution))
-
-	i := 0
+	classList := make([]string, 0, len(metrics.ClassDistribution))
 	for inputName := range metrics.ClassDistribution {
-		classList[i] = inputName
-		i++
+		classList = append(classList, inputName)
 	}
 	sort.Strings(classList)
 

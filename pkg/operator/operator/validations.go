@@ -538,9 +538,8 @@ func validateAvailableCompute(compute *userconfig.Compute, maxMem *kresource.Qua
 			return ErrorNoAvailableNodeComputeLimit("Memory", compute.Mem.String(), maxMem.String())
 		}
 	}
-	gpu := compute.GPU
-	if gpu > maxGPU {
-		return ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", gpu), fmt.Sprintf("%d", maxGPU))
+	if compute.GPU > maxGPU {
+		return ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", compute.GPU), fmt.Sprintf("%d", maxGPU))
 	}
 	return nil
 }
@@ -561,7 +560,7 @@ func validateEndpointCollisions(api *userconfig.API, virtualServices []kunstruct
 		}
 
 		for endpoint := range endpoints {
-			if endpoint == *api.Endpoint && virtualService.GetLabels()["apiName"] != api.Name {
+			if s.EnsureSuffix(endpoint, "/") == s.EnsureSuffix(*api.Endpoint, "/") && virtualService.GetLabels()["apiName"] != api.Name {
 				return errors.Wrap(ErrorDuplicateEndpoint(virtualService.GetLabels()["apiName"]), api.Identify(), userconfig.EndpointKey, endpoint)
 			}
 		}
@@ -586,12 +585,7 @@ func findDuplicateNames(apis []userconfig.API) []userconfig.API {
 	return nil
 }
 
-func getValidationK8sResources() (
-	[]kunstructured.Unstructured,
-	*kresource.Quantity,
-	error,
-) {
-
+func getValidationK8sResources() ([]kunstructured.Unstructured, *kresource.Quantity, error) {
 	var virtualServices []kunstructured.Unstructured
 	var maxMem *kresource.Quantity
 

@@ -38,41 +38,35 @@ API_SUMMARY_MESSAGE = (
 local_cache = {"api": None, "predictor_impl": None, "client": None, "class_set": set()}
 
 
-@app.before_request
-def before_request():
-    g.start_time = time.time()
-
-
-@app.after_request
-def after_request(response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = request.headers.get(
-        "Access-Control-Request-Headers", "*"
-    )
-
-    if not (request.path == "/predict" and request.method == "POST"):
-        return response
-
-    api = local_cache["api"]
-
-    cx_logger().info(response.status)
-
-    prediction = None
-    if "prediction" in g:
-        prediction = g.prediction
-
+def start(args):
+    assert_api_version()
+    storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
     try:
-        predicted_value = None
-        if api.tracker is not None:
-            predicted_value = api.tracker.extract_predicted_value(prediction)
-            api.post_request_metrics(response.status_code, g.start_time, predicted_value)
-            if predicted_value is not None and predicted_value not in local_cache["class_set"]:
-                api.upload_class(predicted_value)
-                local_cache["class_set"].add(predicted_value)
-    except Exception as e:
-        cx_logger().warn("unable to record prediction metric", exc_info=True)
+        raw_api_spec = get_spec(args.cache_dir, args.spec)
+        api = API(storage=storage, cache_dir=args.cache_dir, **raw_api_spec)
+        client = api.predictor.initialize_client(args)
+        cx_logger().info("loading the predictor from {}".format(api.predictor.path))
+        predictor_impl = api.predictor.initialize_impl(args.project_dir, client)
 
-    return response
+        local_cache["api"] = api
+        local_cache["client"] = client
+        local_cache["predictor_impl"] = predictor_impl
+    except:
+        cx_logger().exception("failed to start api")
+        sys.exit(1)
+
+    if api.tracker is not None and api.tracker.model_type == "classification":
+        try:
+            local_cache["class_set"] = api.get_cached_classes()
+        except Exception as e:
+            cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
+
+    waitress_kwargs = extract_waitress_params(api.predictor.config)
+    waitress_kwargs["listen"] = "*:{}".format(args.port)
+
+    open("/health_check.txt", "a").close()
+    cx_logger().info("{} api is live".format(api.name))
+    serve(app, **waitress_kwargs)
 
 
 @app.route("/predict", methods=["POST"])
@@ -102,10 +96,40 @@ def predict():
     return jsonify(output)
 
 
-def prediction_failed(reason):
-    message = "prediction failed: {}".format(reason)
-    cx_logger().error(message)
-    return message, status.HTTP_406_NOT_ACCEPTABLE
+@app.before_request
+def before_request():
+    g.start_time = time.time()
+
+
+@app.after_request
+def after_request(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = request.headers.get(
+        "Access-Control-Request-Headers", "*"
+    )
+
+    if not (request.path == "/predict" and request.method == "POST"):
+        return response
+
+    api = local_cache["api"]
+
+    cx_logger().info(response.status)
+
+    prediction = None
+    if "prediction" in g:
+        prediction = g.prediction
+
+    try:
+        if api.tracker is not None:
+            predicted_value = api.tracker.extract_predicted_value(prediction)
+            api.post_request_metrics(response.status_code, g.start_time, predicted_value)
+            if predicted_value is not None and predicted_value not in local_cache["class_set"]:
+                api.upload_class(predicted_value)
+                local_cache["class_set"].add(predicted_value)
+    except Exception as e:
+        cx_logger().warn("unable to record prediction metric", exc_info=True)
+
+    return response
 
 
 @app.route("/predict", methods=["GET"])
@@ -123,10 +147,16 @@ def exceptions(e):
     return jsonify(error=str(e)), 500
 
 
+def prediction_failed(reason):
+    message = "prediction failed: {}".format(reason)
+    cx_logger().error(message)
+    return message, status.HTTP_406_NOT_ACCEPTABLE
+
+
 def assert_api_version():
     if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
         raise ValueError(
-            "api version mismatch (context: {}, image: {})".format(
+            "api version mismatch (operator: {}, image: {})".format(
                 os.environ["CORTEX_VERSION"], consts.CORTEX_VERSION
             )
         )
@@ -150,37 +180,6 @@ def extract_waitress_params(config):
         cx_logger().info("waitress parameters: {}".format(waitress_kwargs))
 
     return waitress_kwargs
-
-
-def start(args):
-    assert_api_version()
-    storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
-    try:
-        raw_api_spec = get_spec(args.cache_dir, args.spec)
-        api = API(storage=storage, cache_dir=args.cache_dir, **raw_api_spec)
-        client = api.predictor.initialize_client(args)
-        cx_logger().info("loading the predictor from {}".format(api.predictor.path))
-        predictor_impl = api.predictor.initialize_impl(args.project_dir, client)
-
-        local_cache["api"] = api
-        local_cache["client"] = client
-        local_cache["predictor_impl"] = predictor_impl
-    except:
-        cx_logger().exception("failed to start api")
-        sys.exit(1)
-
-    if api.tracker is not None and api.tracker.model_type == "classification":
-        try:
-            local_cache["class_set"] = api.get_cached_classes()
-        except Exception as e:
-            cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
-
-    waitress_kwargs = extract_waitress_params(api.predictor.config)
-    waitress_kwargs["listen"] = "*:{}".format(args.port)
-
-    cx_logger().info("{} api is live".format(api.name))
-    open("/health_check.txt", "a").close()
-    serve(app, **waitress_kwargs)
 
 
 def main():

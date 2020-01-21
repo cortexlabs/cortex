@@ -193,7 +193,7 @@ spec:
           value: $CORTEX_REGION
         - name: LOG_GROUP_NAME
           value: $CORTEX_LOG_GROUP
-        - name: K8S_NODE_NAME
+        - name: K8S_NODE_NAME  # used by fluentd to avoid a k8s query
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
