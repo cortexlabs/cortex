@@ -407,8 +407,8 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
 
-	bucketRegion, _ := aws.GetBucketRegion(*cc.Bucket)
-	if bucketRegion != "" && bucketRegion != *cc.Region {
+	bucketRegion, err := aws.GetBucketRegion(*cc.Bucket)
+	if err != nil && bucketRegion != "" && bucketRegion != *cc.Region {
 		return ErrorS3RegionDiffersFromCluster(*cc.Bucket, bucketRegion, *cc.Region)
 	}
 
@@ -416,8 +416,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
 	}
 
-	err := awsClient.VerifyInstanceQuota(*cc.InstanceType)
-	if err != nil {
+	if err := awsClient.VerifyInstanceQuota(*cc.InstanceType); err != nil {
 		return errors.Wrap(err, InstanceTypeKey)
 	}
 
