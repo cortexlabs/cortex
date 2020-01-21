@@ -3,6 +3,7 @@ joblib==0.14.1
 Keras==2.3.1
 nltk==3.4.5
 np-utils==0.5.12.1
+opencv-python==4.1.2.30
 pandas==0.25.3
 Pillow==6.2.1
 scikit-image==0.16.2
