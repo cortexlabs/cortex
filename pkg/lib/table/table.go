@@ -94,8 +94,7 @@ func (t *Table) MustPrint() {
 
 // Return the error message as a string
 func (t *Table) MustFormat(opts ...*Opts) string {
-	mergedOpts := mergeTableOptions(opts...)
-	str, err := t.Format(&mergedOpts)
+	str, err := t.Format(opts...)
 	if err != nil {
 		return "error: " + errors.Message(err)
 	}

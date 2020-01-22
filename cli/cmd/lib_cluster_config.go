@@ -295,8 +295,6 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 
 	fmt.Printf("aws access key id %s will be used to provision a cluster (%s) in %s:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), clusterConfig.ClusterName, *clusterConfig.Region)
 
-	// var items table.KeyValuePairs
-
 	headers := []table.Header{
 		{Title: "aws resource"},
 		{Title: "cost per hour"},
