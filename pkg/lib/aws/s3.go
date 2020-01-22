@@ -433,7 +433,7 @@ func GetBucketRegion(bucket string) (string, error) {
 	sess := session.Must(session.NewSession()) // credentials are not necessary for this request, and will not be used
 	region, err := s3manager.GetBucketRegion(aws.BackgroundContext(), sess, bucket, endpoints.UsWest2RegionID)
 	if err != nil {
-		return "", ErrorBucketInaccessible(bucket)
+		return "", ErrorBucketNotFound(bucket)
 	}
 	return region, nil
 }
