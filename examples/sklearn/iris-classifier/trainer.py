@@ -22,4 +22,4 @@ print("accuracy: {:.2f}".format(accuracy))
 
 pickle.dump(model, open("model.pkl", "wb"))
 s3 = boto3.client("s3")
-s3.upload_file("model.pkl", "my-bucket", "sklearn/iris-classifier/model.pkl")
+s3.upload_file("model.pkl", "cortex-examples", "sklearn/iris-classifier/model.pkl")
