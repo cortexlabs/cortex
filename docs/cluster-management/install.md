@@ -12,7 +12,7 @@ See [cluster configuration](config.md) to learn how you can customize your clust
 <!-- CORTEX_VERSION_MINOR -->
 ```bash
 # install the CLI on your machine
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.13/get-cli.sh)"
 
 # provision infrastructure on AWS and spin up a cluster
 cortex cluster up
@@ -26,7 +26,7 @@ Note: This will create resources in your AWS account which aren't included in th
 
 ```bash
 # clone the Cortex repository
-git clone -b master https://github.com/cortexlabs/cortex.git
+git clone -b 0.13 https://github.com/cortexlabs/cortex.git
 
 # navigate to the TensorFlow iris classification example
 cd cortex/examples/tensorflow/iris-classifier

@@ -16,7 +16,7 @@
 
 set -e
 
-CORTEX_VERSION_BRANCH_STABLE=master
+CORTEX_VERSION_BRANCH_STABLE=0.13.0
 
 case "$OSTYPE" in
   darwin*)  parsed_os="darwin" ;;
