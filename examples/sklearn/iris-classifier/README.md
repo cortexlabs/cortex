@@ -302,6 +302,8 @@ iris-classifier           live     1            1           5m
 another-iris-classifier   live     1            1           1m
 ```
 
+<br>
+
 ## Add a batch API
 
 First, implement `batch-predictor.py` with a `predict` function that can process an array of payloads:
