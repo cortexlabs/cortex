@@ -45,6 +45,7 @@ const (
 	ErrConfigCannotBeChangedOnUpdate
 	ErrInvalidAvailabilityZone
 	ErrDidNotMatchStrictS3Regex
+	ErrS3RegionDiffersFromCluster
 	ErrInvalidInstanceType
 )
 
@@ -66,6 +67,7 @@ var _errorKinds = []string{
 	"err_config_cannot_be_changed_on_update",
 	"err_invalid_availability_zone",
 	"err_did_not_match_strict_s3_regex",
+	"err_s3_region_differs_from_cluster",
 	"err_invalid_instance_type",
 }
 
@@ -225,6 +227,13 @@ func ErrorDidNotMatchStrictS3Regex() error {
 	return errors.WithStack(Error{
 		Kind:    ErrDidNotMatchStrictS3Regex,
 		message: fmt.Sprintf("only lowercase alphanumeric characters and dashes are allowed, with no consecutive dashes and no leading or trailing dashes"),
+	})
+}
+
+func ErrorS3RegionDiffersFromCluster(bucketName string, bucketRegion string, clusterRegion string) error {
+	return errors.WithStack(Error{
+		Kind:    ErrS3RegionDiffersFromCluster,
+		message: fmt.Sprintf("the %s bucket is in %s, but your cluster is in %s; either change the region of your cluster to %s, use a bucket that is in %s, or remove your bucket configuration to allow cortex to make the bucket for you", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
 	})
 }
 
