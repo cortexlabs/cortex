@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,36 +19,31 @@ package k8s
 import (
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	intstr "k8s.io/apimachinery/pkg/util/intstr"
 )
 
-var deploymentTypeMeta = kmeta.TypeMeta{
+var _deploymentTypeMeta = kmeta.TypeMeta{
 	APIVersion: "apps/v1",
 	Kind:       "Deployment",
 }
 
 type DeploymentSpec struct {
-	Name        string
-	Namespace   string
-	Replicas    int32
-	PodSpec     PodSpec
-	Selector    map[string]string
-	Labels      map[string]string
-	Annotations map[string]string
+	Name           string
+	Replicas       int32
+	PodSpec        PodSpec
+	MaxSurge       *string // Can be a percentage (e.g. 10%) or an absolute number (e.g. 2)
+	MaxUnavailable *string // Can be a percentage (e.g. 10%) or an absolute number (e.g. 2)
+	Selector       map[string]string
+	Labels         map[string]string
+	Annotations    map[string]string
 }
 
 func Deployment(spec *DeploymentSpec) *kapps.Deployment {
-	if spec.Namespace == "" {
-		spec.Namespace = "default"
-	}
-	if spec.PodSpec.Namespace == "" {
-		spec.PodSpec.Namespace = spec.Namespace
-	}
 	if spec.PodSpec.Name == "" {
 		spec.PodSpec.Name = spec.Name
 	}
@@ -56,20 +51,37 @@ func Deployment(spec *DeploymentSpec) *kapps.Deployment {
 		spec.Selector = spec.PodSpec.Labels
 	}
 
+	var maxSurge *intstr.IntOrString
+	if spec.MaxSurge != nil {
+		intStr := intstr.Parse(*spec.MaxSurge)
+		maxSurge = &intStr
+	}
+
+	var maxUnavailable *intstr.IntOrString
+	if spec.MaxUnavailable != nil {
+		intStr := intstr.Parse(*spec.MaxUnavailable)
+		maxUnavailable = &intStr
+	}
+
 	deployment := &kapps.Deployment{
-		TypeMeta: deploymentTypeMeta,
+		TypeMeta: _deploymentTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
-			Namespace:   spec.Namespace,
 			Labels:      spec.Labels,
 			Annotations: spec.Annotations,
 		},
 		Spec: kapps.DeploymentSpec{
 			Replicas: &spec.Replicas,
+			Strategy: kapps.DeploymentStrategy{
+				Type: kapps.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &kapps.RollingUpdateDeployment{
+					MaxSurge:       maxSurge,
+					MaxUnavailable: maxUnavailable,
+				},
+			},
 			Template: kcore.PodTemplateSpec{
 				ObjectMeta: kmeta.ObjectMeta{
 					Name:        spec.PodSpec.Name,
-					Namespace:   spec.PodSpec.Namespace,
 					Labels:      spec.PodSpec.Labels,
 					Annotations: spec.PodSpec.Annotations,
 				},
@@ -84,7 +96,7 @@ func Deployment(spec *DeploymentSpec) *kapps.Deployment {
 }
 
 func (c *Client) CreateDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
-	deployment.TypeMeta = deploymentTypeMeta
+	deployment.TypeMeta = _deploymentTypeMeta
 	deployment, err := c.deploymentClient.Create(deployment)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -92,8 +104,8 @@ func (c *Client) CreateDeployment(deployment *kapps.Deployment) (*kapps.Deployme
 	return deployment, nil
 }
 
-func (c *Client) updateDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
-	deployment.TypeMeta = deploymentTypeMeta
+func (c *Client) UpdateDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
+	deployment.TypeMeta = _deploymentTypeMeta
 	deployment, err := c.deploymentClient.Update(deployment)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -109,7 +121,7 @@ func (c *Client) ApplyDeployment(deployment *kapps.Deployment) (*kapps.Deploymen
 	if existing == nil {
 		return c.CreateDeployment(deployment)
 	}
-	return c.updateDeployment(deployment)
+	return c.UpdateDeployment(deployment)
 }
 
 func (c *Client) GetDeployment(name string) (*kapps.Deployment, error) {
@@ -120,12 +132,12 @@ func (c *Client) GetDeployment(name string) (*kapps.Deployment, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	deployment.TypeMeta = deploymentTypeMeta
+	deployment.TypeMeta = _deploymentTypeMeta
 	return deployment, nil
 }
 
 func (c *Client) DeleteDeployment(name string) (bool, error) {
-	err := c.deploymentClient.Delete(name, deleteOpts)
+	err := c.deploymentClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -133,14 +145,6 @@ func (c *Client) DeleteDeployment(name string) (bool, error) {
 		return false, errors.WithStack(err)
 	}
 	return true, nil
-}
-
-func (c *Client) DeploymentExists(name string) (bool, error) {
-	deployment, err := c.GetDeployment(name)
-	if err != nil {
-		return false, err
-	}
-	return deployment != nil, nil
 }
 
 func (c *Client) ListDeployments(opts *kmeta.ListOptions) ([]kapps.Deployment, error) {
@@ -152,7 +156,7 @@ func (c *Client) ListDeployments(opts *kmeta.ListOptions) ([]kapps.Deployment, e
 		return nil, errors.WithStack(err)
 	}
 	for i := range deploymentList.Items {
-		deploymentList.Items[i].TypeMeta = deploymentTypeMeta
+		deploymentList.Items[i].TypeMeta = _deploymentTypeMeta
 	}
 	return deploymentList.Items, nil
 }
@@ -166,6 +170,13 @@ func (c *Client) ListDeploymentsByLabels(labels map[string]string) ([]kapps.Depl
 
 func (c *Client) ListDeploymentsByLabel(labelKey string, labelValue string) ([]kapps.Deployment, error) {
 	return c.ListDeploymentsByLabels(map[string]string{labelKey: labelValue})
+}
+
+func (c *Client) ListDeploymentsWithLabelKeys(labelKeys ...string) ([]kapps.Deployment, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListDeployments(opts)
 }
 
 func DeploymentMap(deployments []kapps.Deployment) map[string]kapps.Deployment {
@@ -185,4 +196,33 @@ func DeploymentStartTime(deployment *kapps.Deployment) *time.Time {
 		return nil
 	}
 	return &deployment.CreationTimestamp.Time
+}
+
+func DeploymentStrategiesMatch(s1, s2 kapps.DeploymentStrategy) bool {
+	if s1.Type != s2.Type {
+		return false
+	}
+	if s1.RollingUpdate == nil && s2.RollingUpdate == nil {
+		return true
+	}
+	if s1.RollingUpdate == nil || s2.RollingUpdate == nil {
+		return false
+	}
+	if !intOrStrPtrsMatch(s1.RollingUpdate.MaxUnavailable, s2.RollingUpdate.MaxUnavailable) {
+		return false
+	}
+	if !intOrStrPtrsMatch(s1.RollingUpdate.MaxSurge, s2.RollingUpdate.MaxSurge) {
+		return false
+	}
+	return true
+}
+
+func intOrStrPtrsMatch(intStr1, intStr2 *intstr.IntOrString) bool {
+	if intStr1 == nil && intStr2 == nil {
+		return true
+	}
+	if intStr1 == nil || intStr2 == nil {
+		return false
+	}
+	return (*intStr1).String() == (*intStr2).String()
 }

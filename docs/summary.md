@@ -11,16 +11,13 @@
 
 ## Deployments
 
-* [Deployments](deployments/deployments.md)
-* [Predictor APIs](deployments/predictor.md)
 * [TensorFlow APIs](deployments/tensorflow.md)
+* [Python APIs](deployments/python.md)
 * [ONNX APIs](deployments/onnx.md)
-* [Request handlers](deployments/request-handlers.md)
 * [Autoscaling](deployments/autoscaling.md)
 * [Prediction monitoring](deployments/prediction-monitoring.md)
 * [Compute](deployments/compute.md)
 * [API statuses](deployments/statuses.md)
-* [Python client](deployments/python-client.md)
 
 ## Packaging models
 
@@ -36,8 +33,10 @@
 
 * [CLI commands](cluster-management/cli.md)
 * [Cluster configuration](cluster-management/config.md)
-* [AWS credentials](cluster-management/aws.md)
+* [AWS credentials](cluster-management/aws-credentials.md)
 * [Security](cluster-management/security.md)
+* [EC2 instances](cluster-management/ec2-instances.md)
+* [Spot instances](cluster-management/spot-instances.md)
 * [Update](cluster-management/update.md)
 * [Uninstall](cluster-management/uninstall.md)
 * [Telemetry](cluster-management/telemetry.md)

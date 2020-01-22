@@ -1,4 +1,4 @@
-# Copyright 2019 Cortex Labs, Inc.
+# Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,8 +25,7 @@ devstart:
 	@./dev/operator_local.sh || true
 
 kubectl:
-	@eval $$(python ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
-	@kubectl config set-context --current --namespace=cortex >/dev/null
+	@eval $$(python ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 
 cluster-up:
 	@$(MAKE) registry-all
@@ -52,12 +51,9 @@ cluster-update:
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster update
 
-cortex-uninstall:
-	@./dev/uninstall_cortex.sh
-
 operator-stop:
 	@$(MAKE) kubectl
-	@kubectl delete --namespace=cortex --ignore-not-found=true deployment operator
+	@kubectl delete --namespace=default --ignore-not-found=true deployment operator
 
 # Docker images
 
@@ -119,8 +115,8 @@ test-examples:
 ###############
 
 ci-build-images:
-	@./build/build-image.sh images/predictor-serve predictor-serve
-	@./build/build-image.sh images/predictor-serve-gpu predictor-serve-gpu
+	@./build/build-image.sh images/python-serve python-serve
+	@./build/build-image.sh images/python-serve-gpu python-serve-gpu
 	@./build/build-image.sh images/tf-serve tf-serve
 	@./build/build-image.sh images/tf-serve-gpu tf-serve-gpu
 	@./build/build-image.sh images/tf-api tf-api
@@ -140,8 +136,8 @@ ci-build-images:
 	@./build/build-image.sh images/istio-galley istio-galley
 
 ci-push-images:
-	@./build/push-image.sh predictor-serve
-	@./build/push-image.sh predictor-serve-gpu
+	@./build/push-image.sh python-serve
+	@./build/push-image.sh python-serve-gpu
 	@./build/push-image.sh tf-serve
 	@./build/push-image.sh tf-serve-gpu
 	@./build/push-image.sh tf-api

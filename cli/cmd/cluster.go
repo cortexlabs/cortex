@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,9 +21,8 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
+	"time"
 
-	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -32,50 +31,55 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/api/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/spf13/cobra"
 )
 
-var flagClusterConfig string
+var _flagClusterConfig string
+var _flagDebug bool
 
 func init() {
-	addClusterConfigFlag(updateCmd)
-	clusterCmd.AddCommand(updateCmd)
+	addClusterConfigFlag(_updateCmd)
+	addEnvFlag(_updateCmd)
+	_clusterCmd.AddCommand(_updateCmd)
 
-	addClusterConfigFlag(infoCmd)
-	addEnvFlag(infoCmd)
-	clusterCmd.AddCommand(infoCmd)
+	addClusterConfigFlag(_infoCmd)
+	addEnvFlag(_infoCmd)
+	_infoCmd.PersistentFlags().BoolVarP(&_flagDebug, "debug", "d", false, "save the current cluster state to a file")
+	_clusterCmd.AddCommand(_infoCmd)
 
-	addClusterConfigFlag(upCmd)
-	clusterCmd.AddCommand(upCmd)
+	addClusterConfigFlag(_upCmd)
+	addEnvFlag(_upCmd)
+	_clusterCmd.AddCommand(_upCmd)
 
-	addClusterConfigFlag(downCmd)
-	clusterCmd.AddCommand(downCmd)
+	addClusterConfigFlag(_downCmd)
+	_clusterCmd.AddCommand(_downCmd)
 }
 
 func addClusterConfigFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&flagClusterConfig, "config", "c", "", "path to a cluster configuration file")
-	cmd.PersistentFlags().SetAnnotation("config", cobra.BashCompFilenameExt, configFileExts)
+	cmd.PersistentFlags().StringVarP(&_flagClusterConfig, "config", "c", "", "path to a cluster configuration file")
+	cmd.PersistentFlags().SetAnnotation("config", cobra.BashCompFilenameExt, _configFileExts)
 }
 
-var clusterCmd = &cobra.Command{
+var _clusterCmd = &cobra.Command{
 	Use:   "cluster",
 	Short: "manage a cluster",
 }
 
-var upCmd = &cobra.Command{
+var _upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "spin up a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.up")
+		telemetry.EventNotify("cli.cluster.up")
 
 		if err := checkDockerRunning(); err != nil {
 			exit.Error(err)
 		}
 
 		promptForEmail()
-		awsCreds, err := getAWSCredentials(flagClusterConfig)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -85,14 +89,18 @@ var upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		_, err = runManagerCommand("/root/install.sh", clusterConfig, awsCreds)
+		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
+		}
+		if exitCode == nil || *exitCode != 0 {
+			fmt.Printf("additional information may be found in the activity history of your cluster's autoscaling groups https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:\n", *clusterConfig.Region)
+			exit.ErrorNoPrint(out)
 		}
 	},
 }
 
-var updateCmd = &cobra.Command{
+var _updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "update a cluster",
 	Args:  cobra.NoArgs,
@@ -103,26 +111,29 @@ var updateCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := getAWSCredentials(flagClusterConfig)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		fmt.Println("fetching cluster configuration ..." + "\n")
 		cachedClusterConfig := refreshCachedClusterConfig(awsCreds)
 
-		clusterConfig, err := getUpdateClusterConfig(cachedClusterConfig, awsCreds)
+		clusterConfig, err := getClusterUpdateConfig(cachedClusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
-		_, err = runManagerCommand("/root/install.sh --update", clusterConfig, awsCreds)
+
+		out, exitCode, err := runManagerUpdateCommand("/root/install.sh --update", clusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
+		}
+		if exitCode == nil || *exitCode != 0 {
+			exit.ErrorNoPrint(out)
 		}
 	},
 }
 
-var infoCmd = &cobra.Command{
+var _infoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "get information about a cluster",
 	Args:  cobra.NoArgs,
@@ -132,50 +143,74 @@ var infoCmd = &cobra.Command{
 		if err := checkDockerRunning(); err != nil {
 			exit.Error(err)
 		}
-		awsCreds, err := getAWSCredentials(flagClusterConfig)
+
+		awsCreds, err := getAWSCredentials(_flagClusterConfig)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		fmt.Println("fetching cluster configuration ..." + "\n")
+		if _flagDebug {
+			accessConfig, err := getClusterAccessConfig()
+			if err != nil {
+				exit.Error(err)
+			}
+
+			out, exitCode, err := runManagerAccessCommand("/root/debug.sh", *accessConfig, awsCreds)
+			if err != nil {
+				exit.Error(err)
+			}
+			if exitCode == nil || *exitCode != 0 {
+				exit.ErrorNoPrint(out)
+			}
+
+			timestamp := time.Now().UTC().Format("2006-01-02-15-04-05")
+			userDebugPath := fmt.Sprintf("cortex-debug-%s.tgz", timestamp) // note: if modifying this string, also change it in files.IgnoreCortexDebug()
+			err = os.Rename(_debugPath, userDebugPath)
+			if err != nil {
+				exit.Error(errors.WithStack(err))
+			}
+
+			fmt.Println("saved cluster info to ./" + userDebugPath)
+			return
+		}
+
 		clusterConfig := refreshCachedClusterConfig(awsCreds)
 
-		out, err := runManagerCommand("/root/info.sh", clusterConfig, awsCreds)
+		out, exitCode, err := runManagerAccessCommand("/root/info.sh", clusterConfig.ToAccessConfig(), awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
-
-		// note: if modifying this string, search the codebase for it and change all occurrences
-		if strings.Contains(out, "there is no cluster") {
-			exit.ErrorNoPrint()
+		if exitCode == nil || *exitCode != 0 {
+			exit.ErrorNoPrint(out)
 		}
 
 		fmt.Println()
 
 		httpResponse, err := HTTPGet("/info")
 		if err != nil {
-			fmt.Println(clusterConfig.UserFacingString())
-			fmt.Println("\n" + errors.Wrap(err, "unable to connect to operator").Error())
+			fmt.Println(clusterConfig.UserStr())
+			fmt.Println("\n" + errors.Message(err, "unable to connect to operator"))
 			return
 		}
+
 		var infoResponse schema.InfoResponse
 		err = json.Unmarshal(httpResponse, &infoResponse)
 		if err != nil {
-			fmt.Println(clusterConfig.UserFacingString())
-			fmt.Println("\n" + errors.Wrap(err, "unable to parse operator response").Error())
+			fmt.Println(clusterConfig.UserStr())
+			fmt.Println("\n" + errors.Message(err, "unable to parse operator response"))
 			return
 		}
-		infoResponse.ClusterConfig.ClusterConfig = *clusterConfig
+		infoResponse.ClusterConfig.Config = clusterConfig
 
 		var items table.KeyValuePairs
 		items.Add("aws access key id", infoResponse.MaskedAWSAccessKeyID)
-		items.AddAll(infoResponse.ClusterConfig.UserFacingTable())
+		items.AddAll(infoResponse.ClusterConfig.UserTable())
 
 		items.Print()
 	},
 }
 
-var downCmd = &cobra.Command{
+var _downCmd = &cobra.Command{
 	Use:   "down",
 	Short: "spin down a cluster",
 	Args:  cobra.NoArgs,
@@ -186,25 +221,32 @@ var downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		prompt.YesOrExit("your cluster will be spun down and all apis will be deleted, are you sure you want to uninstall cortex?", "")
-
-		awsCreds, err := getAWSCredentials(flagClusterConfig)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		clusterConfig := refreshCachedClusterConfig(awsCreds)
-
-		_, err = runManagerCommand("/root/uninstall.sh", clusterConfig, awsCreds)
+		accessConfig, err := getClusterAccessConfig()
 		if err != nil {
 			exit.Error(err)
 		}
 
-		os.Remove(cachedClusterConfigPath)
+		prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
+
+		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds)
+		if err != nil {
+			exit.Error(err)
+		}
+		if exitCode == nil || *exitCode != 0 {
+			exit.ErrorNoPrint(out)
+		}
+
+		cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
+		os.Remove(cachedConfigPath)
 	},
 }
 
-var emailPrompValidation = &cr.PromptValidation{
+var _emailPrompValidation = &cr.PromptValidation{
 	PromptItemValidations: []*cr.PromptItemValidation{
 		{
 			StructField: "EmailAddress",
@@ -227,7 +269,7 @@ func promptForEmail() {
 	emailAddressContainer := &struct {
 		EmailAddress *string
 	}{}
-	err := cr.ReadPrompt(emailAddressContainer, emailPrompValidation)
+	err := cr.ReadPrompt(emailAddressContainer, _emailPrompValidation)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -247,42 +289,32 @@ func promptForEmail() {
 	}
 }
 
-func refreshCachedClusterConfig(awsCreds *AWSCredentials) *clusterconfig.ClusterConfig {
-	userClusterConfig := &clusterconfig.ClusterConfig{}
-	err := clusterconfig.SetDefaults(userClusterConfig)
+func refreshCachedClusterConfig(awsCreds AWSCredentials) clusterconfig.Config {
+	accessConfig, err := getClusterAccessConfig()
 	if err != nil {
 		exit.Error(err)
 	}
 
-	if flagClusterConfig != "" {
-		err := readUserClusterConfigFile(userClusterConfig)
-		if err != nil {
-			exit.Error(err)
-		}
+	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
+	cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
+	if !files.IsFile(cachedConfigPath) {
+		files.MakeEmptyFile(cachedConfigPath)
 	}
 
-	cachedClusterConfig := &clusterconfig.ClusterConfig{}
-	readCachedClusterConfigFile(cachedClusterConfig)
+	mountedConfigPath := mountedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 
-	if userClusterConfig.Region == nil {
-		userClusterConfig.Region = cachedClusterConfig.Region
-	}
-
-	if userClusterConfig.Region == nil {
-		exit.Error(fmt.Sprintf("unable to find an existing cluster; please configure \"%s\" to the s3 region of an existing cluster or create a cluster with `cortex cluster up`", clusterconfig.RegionKey))
-	}
-
-	out, err := runRefreshClusterConfig(userClusterConfig, awsCreds)
+	fmt.Println("fetching cluster configuration ..." + "\n")
+	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds)
 	if err != nil {
+		os.Remove(cachedConfigPath)
 		exit.Error(err)
 	}
-
-	// note: if modifying this string, search the codebase for it and change all occurrences
-	if strings.Contains(out, "there is no cluster") {
-		exit.ErrorNoPrint()
+	if exitCode == nil || *exitCode != 0 {
+		os.Remove(cachedConfigPath)
+		exit.ErrorNoPrint(out)
 	}
 
-	refreshedClusterConfig := &clusterconfig.ClusterConfig{}
-	readCachedClusterConfigFile(refreshedClusterConfig)
-	return refreshedClusterConfig
+	refreshedClusterConfig := &clusterconfig.Config{}
+	readCachedClusterConfigFile(refreshedClusterConfig, cachedConfigPath)
+	return *refreshedClusterConfig
 }

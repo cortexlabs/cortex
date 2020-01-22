@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"strings"
 
-	pkgerrors "github.com/pkg/errors"
-
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	pkgerrors "github.com/pkg/errors"
 )
 
 func New(strs ...string) error {
@@ -73,7 +73,7 @@ func AddErrors(errs []error, newErrs []error, strs ...string) ([]error, bool) {
 }
 
 func WrapAll(errs []error, strs ...string) []error {
-	if !HasErrors(errs) {
+	if !HasError(errs) {
 		return nil
 	}
 	wrappedErrs := make([]error, len(errs))
@@ -83,7 +83,7 @@ func WrapAll(errs []error, strs ...string) []error {
 	return wrappedErrs
 }
 
-func HasErrors(errs []error) bool {
+func HasError(errs []error) bool {
 	for _, err := range errs {
 		if err != nil {
 			return true
@@ -120,7 +120,7 @@ func MergeErrItems(items ...interface{}) error {
 			if err == nil {
 				err = casted
 			} else {
-				err = Wrap(err, casted.Error())
+				err = Wrap(err, Message(casted))
 			}
 		case string:
 			if err == nil {
@@ -142,8 +142,21 @@ func MergeErrItems(items ...interface{}) error {
 
 func PrintError(err error, strs ...string) {
 	wrappedErr := Wrap(err, strs...)
-	fmt.Println("error:", wrappedErr.Error())
+	fmt.Print("error: ", s.EnsureSingleTrailingNewLine(Message(wrappedErr)))
 	// PrintStacktrace(wrappedErr)
+}
+
+func Message(err error, strs ...string) string {
+	wrappedErr := Wrap(err, strs...)
+
+	var errStr string
+	if _, ok := Cause(wrappedErr).(awserr.Error); ok {
+		errStr = strings.Split(wrappedErr.Error(), "\n")[0]
+	} else {
+		errStr = wrappedErr.Error()
+	}
+
+	return s.RemoveTrailingNewLines(errStr)
 }
 
 func PrintStacktrace(err error) {

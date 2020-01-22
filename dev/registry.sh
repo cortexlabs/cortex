@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2019 Cortex Labs, Inc.
+# Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,8 +35,8 @@ function ecr_login() {
 }
 
 function create_registry() {
-  aws ecr create-repository --repository-name=cortexlabs/predictor-serve --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/predictor-serve-gpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/python-serve --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/python-serve-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-api --region=$REGISTRY_REGION || true
@@ -140,8 +140,8 @@ elif [ "$cmd" = "update" ]; then
   fi
 
   build_and_push $ROOT/images/manager manager latest
-  build_and_push $ROOT/images/predictor-serve predictor-serve latest
-  build_and_push $ROOT/images/predictor-serve-gpu predictor-serve-gpu latest
+  build_and_push $ROOT/images/python-serve python-serve latest
+  build_and_push $ROOT/images/python-serve-gpu python-serve-gpu latest
   build_and_push $ROOT/images/tf-api tf-api latest
   build_and_push $ROOT/images/onnx-serve onnx-serve latest
   build_and_push $ROOT/images/onnx-serve-gpu onnx-serve-gpu latest

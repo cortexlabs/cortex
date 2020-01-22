@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,9 +27,7 @@ import (
 // Set functionality adapted from github.com/scylladb/go-set
 type Set map[string]struct{}
 
-var (
-	keyExists = struct{}{}
-)
+var _keyExists = struct{}{}
 
 // New creates and initializes a new Set.
 func New(ts ...string) Set {
@@ -47,7 +45,7 @@ func NewWithSize(size int) Set {
 // Set s is modified. If passed nothing it silently returns.
 func (s Set) Add(items ...string) {
 	for _, item := range items {
-		s[item] = keyExists
+		s[item] = _keyExists
 	}
 }
 
@@ -150,7 +148,7 @@ func (s Set) IsSuperset(t Set) bool {
 func (s Set) Copy() Set {
 	u := make(Set, len(s))
 	for item := range s {
-		u[item] = keyExists
+		u[item] = _keyExists
 	}
 	return u
 }
@@ -178,7 +176,7 @@ func (s Set) Slice() []string {
 func (s Set) Merge(sets ...Set) {
 	for _, set := range sets {
 		for item := range set {
-			s[item] = keyExists
+			s[item] = _keyExists
 		}
 	}
 }
@@ -215,7 +213,7 @@ func Union(sets ...Set) Set {
 			continue
 		}
 		for item := range set {
-			u[item] = keyExists
+			u[item] = _keyExists
 		}
 	}
 	return u

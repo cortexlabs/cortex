@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ limitations under the License.
 package files
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -25,16 +26,17 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/xlab/treeprint"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/xlab/treeprint"
 )
 
 func Open(path string) (*os.File, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorReadFile(path).Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorReadFile(path)))
 	}
 
 	return file, nil
@@ -43,7 +45,7 @@ func Open(path string) (*os.File, error) {
 func OpenFile(path string, flag int, perm os.FileMode) (*os.File, error) {
 	file, err := os.OpenFile(path, flag, perm)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorCreateFile(path).Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
 	}
 
 	return file, err
@@ -69,7 +71,7 @@ func ReadFileBytesErrPath(path string, errMsgPath string) ([]byte, error) {
 
 	fileBytes, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorReadFile(errMsgPath).Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorReadFile(errMsgPath)))
 	}
 
 	return fileBytes, nil
@@ -78,7 +80,7 @@ func ReadFileBytesErrPath(path string, errMsgPath string) ([]byte, error) {
 func CreateFile(path string) (*os.File, error) {
 	file, err := os.Create(path)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorCreateFile(path).Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
 	}
 
 	return file, nil
@@ -86,7 +88,7 @@ func CreateFile(path string) (*os.File, error) {
 
 func WriteFile(data []byte, path string) error {
 	if err := ioutil.WriteFile(path, data, 0664); err != nil {
-		return errors.Wrap(err, ErrorCreateFile(path).Error())
+		return errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
 	}
 
 	return nil
@@ -94,7 +96,7 @@ func WriteFile(data []byte, path string) error {
 
 func MkdirAll(path string) error {
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		return errors.Wrap(err, ErrorCreateDir(path).Error())
+		return errors.Wrap(err, errors.Message(ErrorCreateDir(path)))
 	}
 
 	return nil
@@ -107,16 +109,26 @@ func TrimDirPrefix(fullPath string, dirPath string) string {
 	return strings.TrimPrefix(fullPath, dirPath)
 }
 
-func RelPath(userPath string, baseDir string) string {
-	if !filepath.IsAbs(userPath) {
-		userPath = filepath.Join(baseDir, userPath)
+func RelToAbsPath(relativePath string, baseDir string) string {
+	if !filepath.IsAbs(relativePath) {
+		relativePath = filepath.Join(baseDir, relativePath)
 	}
-	return filepath.Clean(userPath)
+	return filepath.Clean(relativePath)
 }
 
-func UserPath(userPath string) string {
-	baseDir, _ := os.Getwd()
-	return RelPath(userPath, baseDir)
+func UserRelToAbsPath(relativePath string) string {
+	cwd, _ := os.Getwd()
+	return RelToAbsPath(relativePath, cwd)
+}
+
+func PathRelativeToCWD(absPath string) string {
+	cwd, _ := os.Getwd()
+	cwd = s.EnsureSuffix(cwd, "/")
+	return strings.TrimPrefix(absPath, cwd)
+}
+
+func DirPathRelativeToCWD(absPath string) string {
+	return s.EnsureSuffix(PathRelativeToCWD(absPath), "/")
 }
 
 func IsFileOrDir(path string) bool {
@@ -143,7 +155,7 @@ func CheckDir(dirPath string) error {
 func CheckDirErrPath(dirPath string, errMsgPath string) error {
 	fileInfo, err := os.Stat(dirPath)
 	if err != nil {
-		return errors.Wrap(err, ErrorDirDoesNotExist(errMsgPath).Error())
+		return errors.Wrap(err, errors.Message(ErrorDirDoesNotExist(errMsgPath)))
 	}
 	if !fileInfo.IsDir() {
 		return ErrorNotADir(errMsgPath)
@@ -211,7 +223,7 @@ func SearchForFile(filename string, dir string) (string, error) {
 	for true {
 		files, err := ioutil.ReadDir(dir)
 		if err != nil {
-			return "", errors.Wrap(err, ErrorReadDir(dir).Error())
+			return "", errors.Wrap(err, errors.Message(ErrorReadDir(dir)))
 		}
 
 		for _, file := range files {
@@ -234,18 +246,19 @@ func MakeEmptyFile(path string) error {
 	path = filepath.Clean(path)
 	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
 	if err != nil {
-		return errors.Wrap(err, ErrorCreateDir(filepath.Dir(path)).Error())
+		return errors.Wrap(err, errors.Message(ErrorCreateDir(filepath.Dir(path))))
 	}
 	f, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
-		return errors.Wrap(err, ErrorCreateFile(path).Error())
+		return errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
 	}
 	defer f.Close()
 	return nil
 }
 
-func MakeEmptyFiles(paths ...string) error {
-	for _, path := range paths {
+func MakeEmptyFiles(path string, paths ...string) error {
+	allPaths := append(paths, path)
+	for _, path := range allPaths {
 		if err := MakeEmptyFile(path); err != nil {
 			return err
 		}
@@ -253,8 +266,9 @@ func MakeEmptyFiles(paths ...string) error {
 	return nil
 }
 
-func MakeEmptyFilesInDir(dir string, paths ...string) error {
-	for _, path := range paths {
+func MakeEmptyFilesInDir(dir string, path string, paths ...string) error {
+	allPaths := append(paths, path)
+	for _, path := range allPaths {
 		fullPath := filepath.Join(dir, path)
 		if err := MakeEmptyFile(fullPath); err != nil {
 			return err
@@ -290,6 +304,13 @@ func IgnoreCortexYAML(path string, fi os.FileInfo) (bool, error) {
 	return false, nil
 }
 
+func IgnoreCortexDebug(path string, fi os.FileInfo) (bool, error) {
+	if strings.HasPrefix(fi.Name(), "cortex-debug-") {
+		return true, nil
+	}
+	return false, nil
+}
+
 func IgnoreHiddenFolders(path string, fi os.FileInfo) (bool, error) {
 	if fi.IsDir() && strings.HasPrefix(fi.Name(), ".") {
 		return true, nil
@@ -317,6 +338,28 @@ func IgnoreNonYAML(path string, fi os.FileInfo) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+func IgnoreSpecificFiles(absPaths ...string) IgnoreFn {
+	absPathsSet := strset.New(absPaths...)
+	return func(path string, fi os.FileInfo) (bool, error) {
+		return absPathsSet.Has(path), nil
+	}
+}
+
+// promptMsgTemplate should have two placeholders: the first is for the file path and the second is for the file size
+func PromptForFilesAboveSize(size int, promptMsgTemplate string) IgnoreFn {
+	if promptMsgTemplate == "" {
+		promptMsgTemplate = "do you want to zip %s (%s)?"
+	}
+
+	return func(path string, fi os.FileInfo) (bool, error) {
+		if !fi.IsDir() && fi.Size() > int64(size) {
+			promptMsg := fmt.Sprintf(promptMsgTemplate, PathRelativeToCWD(path), s.IntToBase2Byte(int(fi.Size())))
+			return !prompt.YesOrNo(promptMsg, "", ""), nil
+		}
+		return false, nil
+	}
 }
 
 type DirsOrder string
@@ -480,7 +523,7 @@ func ListDir(dir string, relative bool) ([]string, error) {
 	var filenames []string
 	fileInfo, err := ioutil.ReadDir(dir)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorReadDir(dir).Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorReadDir(dir)))
 	}
 	for _, file := range fileInfo {
 		filename := file.Name()
@@ -492,8 +535,9 @@ func ListDir(dir string, relative bool) ([]string, error) {
 	return filenames, nil
 }
 
-func CloseSilent(closers ...io.Closer) {
-	for _, closer := range closers {
+func CloseSilent(closer io.Closer, closers ...io.Closer) {
+	allClosers := append(closers, closer)
+	for _, closer := range allClosers {
 		closer.Close()
 	}
 }
@@ -502,15 +546,15 @@ func CloseSilent(closers ...io.Closer) {
 func ReadReqFile(r *http.Request, fileName string) ([]byte, error) {
 	mpFile, _, err := r.FormFile(fileName)
 	if err != nil {
-		if strings.Contains(err.Error(), "no such file") {
+		if strings.Contains(errors.Message(err), "no such file") {
 			return nil, nil
 		}
-		return nil, errors.Wrap(err, ErrorReadFormFile(fileName).Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorReadFormFile(fileName)))
 	}
 	defer mpFile.Close()
 	fileBytes, err := ioutil.ReadAll(mpFile)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrorReadFormFile(fileName).Error())
+		return nil, errors.Wrap(err, errors.Message(ErrorReadFormFile(fileName)))
 	}
 	return fileBytes, nil
 }

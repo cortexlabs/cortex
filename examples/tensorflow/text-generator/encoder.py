@@ -2,13 +2,10 @@
 
 # This file includes code which was modified from https://github.com/openai/gpt-2
 
-import tensorflow as tf
-import os
-import json
-import regex as re
-from functools import lru_cache
-import requests
 import boto3
+import json
+import regex
+from functools import lru_cache
 
 
 @lru_cache()
@@ -47,7 +44,7 @@ class Encoder:
         self.byte_decoder = {v: k for k, v in self.byte_encoder.items()}
         self.bpe_ranks = dict(zip(bpe_merges, range(len(bpe_merges))))
         self.cache = {}
-        self.pat = re.compile(
+        self.pat = regex.compile(
             r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
         )
 
@@ -94,7 +91,7 @@ class Encoder:
 
     def encode(self, text):
         bpe_tokens = []
-        for token in re.findall(self.pat, text):
+        for token in regex.findall(self.pat, text):
             token = "".join(self.byte_encoder[b] for b in token.encode("utf-8"))
             bpe_tokens.extend(self.encoder[bpe_token] for bpe_token in self.bpe(token).split(" "))
         return bpe_tokens
@@ -108,10 +105,14 @@ class Encoder:
 def get_encoder():
     s3 = boto3.client("s3")
     encoder = json.load(
-        s3.get_object(Bucket="cortex-examples", Key="text-generator/gpt-2/encoder.json")["Body"]
+        s3.get_object(Bucket="cortex-examples", Key="tensorflow/text-generator/gpt-2/encoder.json")[
+            "Body"
+        ]
     )
     bpe_data = (
-        s3.get_object(Bucket="cortex-examples", Key="text-generator/gpt-2/vocab.bpe")["Body"]
+        s3.get_object(Bucket="cortex-examples", Key="tensorflow/text-generator/gpt-2/vocab.bpe")[
+            "Body"
+        ]
         .read()
         .decode("utf-8")
     )

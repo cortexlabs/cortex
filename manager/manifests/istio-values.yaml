@@ -1,4 +1,4 @@
-# Copyright 2019 Cortex Labs, Inc.
+# Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,22 +22,24 @@ gateways:
   enabled: true
   istio-ingressgateway:
     enabled: false
-  operator-ingressgateway:
+  ingressgateway-operator:
     namespace: istio-system
     enabled: true
     labels:
       app: operator-istio-gateway
-      istio: operator-ingressgateway
+      istio: ingressgateway-operator
     replicaCount: 1
     autoscaleMin: 1
     autoscaleMax: 5
     resources:
       requests:
-       cpu: 100m
-       memory: 128Mi
+        cpu: 100m
+        memory: 128Mi
       limits:
-       cpu: 2000m
-       memory: 1024Mi
+        cpu: 2000m
+        memory: 1024Mi
+    serviceAnnotations:
+      service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "600"
     type: LoadBalancer
     ports:
     - port: 80
@@ -60,22 +62,22 @@ gateways:
     - name: customgateway-ca-certs
       secretName: istio-customgateway-ca-certs
       mountPath: /etc/istio/customgateway-ca-certs
-  apis-ingressgateway:
+  ingressgateway-apis:
     namespace: istio-system
     enabled: true
     labels:
       app: apis-istio-gateway
-      istio: apis-ingressgateway
+      istio: ingressgateway-apis
     replicaCount: 1
     autoscaleMin: 1
     autoscaleMax: 5
     resources:
       requests:
-       cpu: 200m
-       memory: 128Mi
+        cpu: 200m
+        memory: 128Mi
       limits:
-       cpu: 2000m
-       memory: 1024Mi
+        cpu: 2000m
+        memory: 1024Mi
     serviceAnnotations:
       service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "600"
     type: LoadBalancer

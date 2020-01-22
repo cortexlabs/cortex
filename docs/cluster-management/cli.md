@@ -5,34 +5,30 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 ## deploy
 
 ```text
-create or update a deployment
+create or update apis
 
 Usage:
-  cortex deploy [flags]
+  cortex deploy [CONFIG_FILE] [flags]
 
 Flags:
   -e, --env string   environment (default "default")
-  -f, --force        override the in-progress deployment update
+  -f, --force        override the in-progress api update
   -h, --help         help for deploy
-  -r, --refresh      re-deploy all apis with cleared cache and rolling updates
+  -y, --yes          skip prompts
 ```
 
 ## get
 
 ```text
-get information about deployments
+get information about apis
 
 Usage:
   cortex get [API_NAME] [flags]
 
 Flags:
-  -a, --all-deployments     list all deployments
-  -d, --deployment string   deployment name
-  -e, --env string          environment (default "default")
-  -h, --help                help for get
-  -s, --summary             show summarized output
-  -v, --verbose             show verbose output
-  -w, --watch               re-run the command every second
+  -e, --env string   environment (default "default")
+  -h, --help         help for get
+  -w, --watch        re-run the command every second
 ```
 
 ## logs
@@ -44,9 +40,22 @@ Usage:
   cortex logs API_NAME [flags]
 
 Flags:
-  -d, --deployment string   deployment name
-  -e, --env string          environment (default "default")
-  -h, --help                help for logs
+  -e, --env string   environment (default "default")
+  -h, --help         help for logs
+```
+
+## refresh
+
+```text
+restart all replicas for an api (witout downtime)
+
+Usage:
+  cortex refresh API_NAME [flags]
+
+Flags:
+  -e, --env string   environment (default "default")
+  -f, --force        override the in-progress api update
+  -h, --help         help for refresh
 ```
 
 ## predict
@@ -58,24 +67,24 @@ Usage:
   cortex predict API_NAME JSON_FILE [flags]
 
 Flags:
-      --debug               Predict with debug mode
-  -d, --deployment string   deployment name
-  -e, --env string          environment (default "default")
-  -h, --help                help for predict
+      --debug        predict with debug mode
+  -e, --env string   environment (default "default")
+  -h, --help         help for predict
 ```
 
 ## delete
 
 ```text
-delete a deployment
+delete an api
 
 Usage:
-  cortex delete [DEPLOYMENT_NAME] [flags]
+  cortex delete API_NAME [flags]
 
 Flags:
   -e, --env string   environment (default "default")
+  -f, --force        delete the api without confirmation
   -h, --help         help for delete
-  -c, --keep-cache   keep cached data for the deployment
+  -c, --keep-cache   keep cached data for the api
 ```
 
 ## cluster up
@@ -87,7 +96,8 @@ Usage:
   cortex cluster up [flags]
 
 Flags:
-  -c, --config string   path to a cortex cluster configuration file
+  -c, --config string   path to a cluster configuration file
+  -e, --env string      environment (default "default")
   -h, --help            help for up
 ```
 
@@ -100,7 +110,9 @@ Usage:
   cortex cluster info [flags]
 
 Flags:
-  -c, --config string   path to a cortex cluster configuration file
+  -c, --config string   path to a cluster configuration file
+  -d, --debug           save the current cluster state to a file
+  -e, --env string      environment (default "default")
   -h, --help            help for info
 ```
 
@@ -113,7 +125,8 @@ Usage:
   cortex cluster update [flags]
 
 Flags:
-  -c, --config string   path to a cortex cluster configuration file
+  -c, --config string   path to a cluster configuration file
+  -e, --env string      environment (default "default")
   -h, --help            help for update
 ```
 
@@ -126,7 +139,7 @@ Usage:
   cortex cluster down [flags]
 
 Flags:
-  -c, --config string   path to a cortex cluster configuration file
+  -c, --config string   path to a cluster configuration file
   -h, --help            help for down
 ```
 
@@ -152,21 +165,12 @@ Usage:
   cortex configure [flags]
 
 Flags:
-  -e, --env string   environment (default "default")
-  -h, --help         help for configure
-  -p, --print        print the configuration
-```
-
-## support
-
-```text
-send a support request to the maintainers
-
-Usage:
-  cortex support [flags]
-
-Flags:
-  -h, --help   help for support
+  -k, --aws-access-key-id string       set the aws access key id without prompting
+  -s, --aws-secret-access-key string   set the aws secret access key without prompting
+  -e, --env string                     environment (default "default")
+  -h, --help                           help for configure
+  -o, --operator-endpoint string       set the operator endpoint without prompting
+  -p, --print                          print the configuration
 ```
 
 ## completion

@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,11 +20,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cortexlabs/yaml"
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/yaml"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func Pp(obj interface{}) {

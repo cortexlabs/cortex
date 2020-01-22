@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -89,7 +89,7 @@ func BoolPtrFromStr(valStr string, v *BoolPtrValidation) (*bool, error) {
 				keys = append(keys, key)
 			}
 
-			return nil, ErrorInvalidStr(valStr, keys...)
+			return nil, ErrorInvalidStr(valStr, keys[0], keys[1:]...)
 		}
 		return ValidateBoolPtrProvided(&casted, v)
 	}

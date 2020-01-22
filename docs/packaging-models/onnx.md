@@ -29,8 +29,9 @@ aws s3 cp model.onnx s3://my-bucket/model.onnx
 Reference your model in an `api`:
 
 ```yaml
-- kind: api
-  name: my-api
-  onnx:
+- name: my-api
+  predictor:
+    type: onnx
     model: s3://my-bucket/model.onnx
+    path: predictor.py
 ```

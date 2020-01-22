@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,10 +20,9 @@ import (
 	"encoding/json"
 	"math"
 
-	kresource "k8s.io/apimachinery/pkg/api/resource"
-
 	"github.com/cortexlabs/cortex/pkg/lib/configreader"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
 type Quantity struct {

@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-The Cortex cluster may be configured by providing a configuration file to `cortex cluster up` or `cortex cluster update` via the  `--config` flag (e.g. `cortex cluster up --config=cluster.yaml`). Below is the schema for the cluster configuration file, with default values shown (unless otherwise specified):
+The Cortex cluster may be configured by providing a configuration file to `cortex cluster up` or `cortex cluster update` via the `--config` flag (e.g. `cortex cluster up --config=cluster.yaml`). Below is the schema for the cluster configuration file, with default values shown (unless otherwise specified):
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 
@@ -17,11 +17,17 @@ aws_secret_access_key: ***
 cortex_aws_access_key_id: ***
 cortex_aws_secret_access_key: ***
 
+# EKS cluster name for cortex (default: cortex)
+cluster_name: cortex
+
 # AWS region
 region: us-west-2
 
-# S3 bucket
+# S3 bucket (default: <cluster_name>-<RANDOM_ID>)
 bucket: cortex-<RANDOM_ID>
+
+# List of availability zones for your region (default: 3 random availability zones from the specified region)
+availability_zones: # e.g. [us-west-2a, us-west-2b, us-west-2c]
 
 # instance type
 instance_type: m5.large
@@ -35,38 +41,16 @@ max_instances: 5
 # instance volume size (GB) (default: 50)
 instance_volume_size: 50
 
-# CloudWatch log group for cortex
+# CloudWatch log group for cortex (default: <cluster_name>)
 log_group: cortex
 
-# EKS cluster name for cortex (default: cortex)
-cluster_name: cortex
-
-# whether to collect anonymous usage stats and error reports (default: true)
-telemetry: true
-
 # whether to use spot instances in the cluster (default: false)
+# see https://cortex.dev/v/master/cluster-management/spot-instances for additional details on spot configuration
 spot: false
 
-spot_config:
-  # additional instances with identical or better specs than the primary instance type (defaults to 2 instances sorted by price)
-  instance_distribution: [t3.large, t3a.large]  # (defaults for the m5.large instance type)
-
-  # minimum number of on demand instances (default: 0)
-  on_demand_base_capacity: 0
-
-  # percentage of on demand instances to use after the on demand base capacity has been met [0, 100] (default: 1)
-  # note: setting this to 0 may hinder cluster scale up when spot instances are not available
-  on_demand_percentage_above_base_capacity: 1
-
-  # max price for instances (defaults to the on demand price of the primary instance type)
-  max_price: 0.096
-
-  # number of spot instance pools across which to allocate spot instances [1, 20] (default: 2)
-  instance_pools: 2
-
 # docker image paths
-image_predictor_serve: cortexlabs/predictor-serve:master
-image_predictor_serve_gpu: cortexlabs/predictor-serve-gpu:master
+image_python_serve: cortexlabs/python-serve:master
+image_python_serve_gpu: cortexlabs/python-serve-gpu:master
 image_tf_serve: cortexlabs/tf-serve:master
 image_tf_serve_gpu: cortexlabs/tf-serve-gpu:master
 image_tf_api: cortexlabs/tf-api:master

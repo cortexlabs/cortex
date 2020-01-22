@@ -1,0 +1,10 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
+- name: object-detector
+  predictor:
+    type: python
+    path: predictor.py
+  compute:
+    cpu: 1
+    gpu: 1
+    mem: 4G

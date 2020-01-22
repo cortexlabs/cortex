@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,9 +19,8 @@ package slices_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStrSliceElementsMatch(t *testing.T) {

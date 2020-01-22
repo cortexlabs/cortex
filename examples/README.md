@@ -14,9 +14,11 @@
 
 - [Iris classification](pytorch/iris-classifier): deploy a model to classify iris flowers.
 
-- [Search completion](pytorch/search-completer): deploy a Facebook's RoBERTa model to complete search terms.
-
 - [Text generation](pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
+
+- [Sentiment analysis](pytorch/sentiment-analyzer): deploy a fastai model for sentiment analysis.
+
+- [Search completion](pytorch/search-completer): deploy a Facebook's RoBERTa model to complete search terms.
 
 - [Answer generation](pytorch/answer-generator): deploy Microsoft's DialoGPT model to answer questions.
 
@@ -27,6 +29,8 @@
 - [Language identification](pytorch/language-identifier): deploy a fastText model to identify languages.
 
 - [Image classification](pytorch/image-classifier): deploy an AlexNet model from TorchVision to classify images.
+
+- [Object detection](pytorch/object-detector): deploy a Faster R-CNN model from TorchVision to detect objects in images.
 
 ## XGBoost
 

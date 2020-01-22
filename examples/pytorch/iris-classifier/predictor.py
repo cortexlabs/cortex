@@ -5,8 +5,10 @@ import torch
 import boto3
 from model import IrisNet
 
+labels = ["setosa", "versicolor", "virginica"]
 
-class Predictor:
+
+class PythonPredictor:
     def __init__(self, config):
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
         s3 = boto3.client("s3")
@@ -17,7 +19,6 @@ class Predictor:
         model.eval()
 
         self.model = model
-        self.labels = ["iris-setosa", "iris-versicolor", "iris-virginica"]
 
     def predict(self, payload):
         input_tensor = torch.FloatTensor(
@@ -32,4 +33,4 @@ class Predictor:
         )
 
         output = self.model(input_tensor)
-        return self.labels[torch.argmax(output[0])]
+        return labels[torch.argmax(output[0])]

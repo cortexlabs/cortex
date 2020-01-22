@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -37,11 +37,14 @@ type StringValidation struct {
 	AllowEmpty                           bool
 	AllowedValues                        []string
 	Prefix                               string
+	MaxLength                            int
+	MinLength                            int
 	AlphaNumericDashDotUnderscoreOrEmpty bool
 	AlphaNumericDashDotUnderscore        bool
 	AlphaNumericDashUnderscore           bool
 	DNS1035                              bool
 	DNS1123                              bool
+	CastInt                              bool
 	CastNumeric                          bool
 	CastScalar                           bool
 	AllowCortexResources                 bool
@@ -67,6 +70,11 @@ func String(inter interface{}, v *StringValidation) (string, error) {
 		} else if v.CastNumeric {
 			if !cast.IsNumericType(inter) {
 				return "", ErrorInvalidPrimitiveType(inter, PrimTypeString, PrimTypeInt, PrimTypeFloat)
+			}
+			casted = s.ObjFlatNoQuotes(inter)
+		} else if v.CastInt {
+			if !cast.IsIntType(inter) {
+				return "", ErrorInvalidPrimitiveType(inter, PrimTypeString, PrimTypeInt)
 			}
 			casted = s.ObjFlatNoQuotes(inter)
 		} else {
@@ -200,8 +208,16 @@ func ValidateStringVal(val string, v *StringValidation) error {
 
 	if v.AllowedValues != nil {
 		if !slices.HasString(v.AllowedValues, val) {
-			return ErrorInvalidStr(val, v.AllowedValues...)
+			return ErrorInvalidStr(val, v.AllowedValues[0], v.AllowedValues[1:]...)
 		}
+	}
+
+	if v.MaxLength > 0 && len(val) > v.MaxLength {
+		return ErrorTooLong(val, v.MaxLength)
+	}
+
+	if v.MinLength > 0 && len(val) < v.MinLength {
+		return ErrorTooShort(val, v.MinLength)
 	}
 
 	if v.Prefix != "" {

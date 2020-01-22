@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,10 +22,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
+	"github.com/stretchr/testify/require"
 )
 
 func TestZip(t *testing.T) {
@@ -47,7 +46,7 @@ func TestZip(t *testing.T) {
 		filepath.Join(tmpDir, "5/4/3/2/2/1.py"),
 	}
 
-	err = files.MakeEmptyFiles(filesList...)
+	err = files.MakeEmptyFiles(filesList[0], filesList[1:]...)
 	require.NoError(t, err)
 
 	var zipInput *Input

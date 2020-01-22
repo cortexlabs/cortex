@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -185,7 +185,7 @@ func ValidateFloat64Val(val float64, v *Float64Validation) error {
 
 	if v.AllowedValues != nil {
 		if !slices.HasFloat64(v.AllowedValues, val) {
-			return ErrorInvalidFloat64(val, v.AllowedValues...)
+			return ErrorInvalidFloat64(val, v.AllowedValues[0], v.AllowedValues[1:]...)
 		}
 	}
 

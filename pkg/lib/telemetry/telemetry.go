@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,12 +35,21 @@ var _segment analytics.Client
 var _config *Config
 
 type Config struct {
-	Enabled              bool
-	UserID               string
-	Environment          string
-	LogErrors            bool
-	BlockDuplicateErrors bool
+	Enabled     bool
+	UserID      string
+	Properties  map[string]interface{}
+	Environment string
+	LogErrors   bool
+	BackoffMode BackoffMode
 }
+
+type BackoffMode int
+
+const (
+	NoBackoff BackoffMode = iota
+	BackoffDuplicateMessages
+	BackoffAnyMessages
+)
 
 type silentSegmentLogger struct{}
 
@@ -116,13 +125,17 @@ func Init(telemetryConfig Config) error {
 }
 
 func Event(name string, properties ...map[string]interface{}) {
-	eventHelper(name, mergeProperties(properties...), nil)
+	integrations := map[string]interface{}{
+		"All":   true,
+		"Slack": false,
+	}
+
+	eventHelper(name, mergeProperties(properties...), integrations)
 }
 
-func InternalEvent(name string, properties ...map[string]interface{}) {
+func EventNotify(name string, properties ...map[string]interface{}) {
 	integrations := map[string]interface{}{
-		"All": false,
-		"S3":  true,
+		"All": true,
 	}
 
 	eventHelper(name, mergeProperties(properties...), integrations)
@@ -136,7 +149,7 @@ func eventHelper(name string, properties map[string]interface{}, integrations ma
 	err := _segment.Enqueue(analytics.Track{
 		Event:        name,
 		UserId:       _config.UserID,
-		Properties:   properties,
+		Properties:   mergeProperties(properties, _config.Properties),
 		Integrations: integrations,
 	})
 	if err != nil {
@@ -149,12 +162,13 @@ func Error(err error) {
 		return
 	}
 
-	if _config.BlockDuplicateErrors && shouldBlock(err) {
+	if shouldBlock(err, _config.BackoffMode) {
 		return
 	}
 
 	sentry.WithScope(func(scope *sentry.Scope) {
 		scope.SetUser(sentry.User{ID: _config.UserID})
+		scope.SetExtras(_config.Properties)
 		sentry.CaptureException(err)
 		go sentry.Flush(10 * time.Second)
 	})
@@ -167,6 +181,7 @@ func ErrorMessage(message string) {
 
 	sentry.WithScope(func(scope *sentry.Scope) {
 		scope.SetUser(sentry.User{ID: _config.UserID})
+		scope.SetExtras(_config.Properties)
 		sentry.CaptureMessage(message)
 		go sentry.Flush(10 * time.Second)
 	})

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2019 Cortex Labs, Inc.
+# Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -107,12 +107,9 @@ function update_bash_profile() {
   if [ "$bash_profile_path" != "" ]; then
     if ! grep -Fxq "source <(cortex completion)" "$bash_profile_path"; then
       echo
-      read -p "Would you like to modify your bash profile ($bash_profile_path) to enable cortex command completion and the cx alias? [y/n] " -n 1 -r
+      read -p "Would you like to modify your bash profile ($bash_profile_path) to enable cortex command completion and the cx alias? [y/n] " -r
       echo
-      if [ "$REPLY" != "" ]; then
-        echo
-      fi
-      if [[ "$REPLY" =~ ^[Yy]$ ]] || [ "$REPLY" = "" ]; then
+      if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ] || [ "$REPLY" = "yes" ] || [ "$REPLY" = "Yes" ] || [ "$REPLY" = "YES" ]; then
         echo -e "\nsource <(cortex completion)" >> $bash_profile_path
         echo -e "✓ Your bash profile has been updated"
         echo -e "\nCommand to update your current terminal session:"

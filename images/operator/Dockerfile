@@ -1,4 +1,4 @@
-FROM golang:1.12.13 as builder
+FROM golang:1.13.5 as builder
 
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && \
     mv ./kubectl /tmp/kubectl
@@ -10,11 +10,12 @@ RUN go mod download
 COPY pkg/consts /go/src/github.com/cortexlabs/cortex/pkg/consts
 COPY pkg/lib /go/src/github.com/cortexlabs/cortex/pkg/lib
 COPY pkg/operator /go/src/github.com/cortexlabs/cortex/pkg/operator
+COPY pkg/types /go/src/github.com/cortexlabs/cortex/pkg/types
 WORKDIR /go/src/github.com/cortexlabs/cortex/pkg/operator
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -installsuffix cgo -o operator .
 
 
-FROM alpine:3.10
+FROM alpine:3.11
 
 RUN apk --no-cache add ca-certificates bash
 

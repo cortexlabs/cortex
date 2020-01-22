@@ -1,11 +1,8 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
-- kind: deployment
-  name: answer
-
-- kind: api
-  name: generator
+- name: answer-generator
   predictor:
+    type: python
     path: predictor.py
     config:
       device: cuda  # use "cpu" to run on CPUs

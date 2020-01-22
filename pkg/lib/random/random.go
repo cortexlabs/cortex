@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,30 +21,30 @@ import (
 	"time"
 )
 
-const uppercaseBytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-const lowercaseBytes = "abcdefghijklmnopqrstuvwxyz"
-const letterBytes = lowercaseBytes + uppercaseBytes
-const numberBytes = "0123456789"
-const stringBytes = letterBytes + numberBytes
-
 const (
-	letterIdxBits = 6                    // 6 bits to represent a letter index
-	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
-	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
+	_uppercaseBytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	_lowercaseBytes = "abcdefghijklmnopqrstuvwxyz"
+	_letterBytes    = _lowercaseBytes + _uppercaseBytes
+	_numberBytes    = "0123456789"
+	_stringBytes    = _letterBytes + _numberBytes
+
+	_letterIdxBits = 6                     // 6 bits to represent a letter index
+	_letterIdxMask = 1<<_letterIdxBits - 1 // All 1-bits, as many as _letterIdxBits
+	_letterIdxMax  = 63 / _letterIdxBits   // # of letter indices fitting in 63 bits
 )
 
 func randomString(n int, src rand.Source, charset string) string {
 	b := make([]byte, n)
-	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
-	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
+	// A src.Int63() generates 63 random bits, enough for _letterIdxMax characters!
+	for i, cache, remain := n-1, src.Int63(), _letterIdxMax; i >= 0; {
 		if remain == 0 {
-			cache, remain = src.Int63(), letterIdxMax
+			cache, remain = src.Int63(), _letterIdxMax
 		}
-		if idx := int(cache & letterIdxMask); idx < len(charset) {
+		if idx := int(cache & _letterIdxMask); idx < len(charset) {
 			b[i] = charset[idx]
 			i--
 		}
-		cache >>= letterIdxBits
+		cache >>= _letterIdxBits
 		remain--
 	}
 
@@ -53,24 +53,24 @@ func randomString(n int, src rand.Source, charset string) string {
 
 // Digits generates a random string containing only digits
 func Digits(n int) string {
-	return randomString(n, rand.NewSource(time.Now().UnixNano()), numberBytes)
+	return randomString(n, rand.NewSource(time.Now().UnixNano()), _numberBytes)
 }
 
 // Letters generates a random string containing only english alphabet characters (upper and lower case)
 func Letters(n int) string {
-	return randomString(n, rand.NewSource(time.Now().UnixNano()), letterBytes)
+	return randomString(n, rand.NewSource(time.Now().UnixNano()), _letterBytes)
 }
 
 // LowercaseLetters generates a random string containing only lower case english alphabet characters
 func LowercaseLetters(n int) string {
-	return randomString(n, rand.NewSource(time.Now().UnixNano()), lowercaseBytes)
+	return randomString(n, rand.NewSource(time.Now().UnixNano()), _lowercaseBytes)
 }
 
 // String generates a random string containing both digits and english alphabet characters (upper and lower)
 func String(n int) string {
-	return randomString(n, rand.NewSource(time.Now().UnixNano()), stringBytes)
+	return randomString(n, rand.NewSource(time.Now().UnixNano()), _stringBytes)
 }
 
 func LowercaseString(n int) string {
-	return randomString(n, rand.NewSource(time.Now().UnixNano()), lowercaseBytes+numberBytes)
+	return randomString(n, rand.NewSource(time.Now().UnixNano()), _lowercaseBytes+_numberBytes)
 }

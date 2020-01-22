@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -113,7 +113,7 @@ func validateInterfaceMap(val map[string]interface{}, v *InterfaceMapValidation)
 		}
 		for _, leafVal := range leafVals {
 			if !slices.HasString(v.AllowedLeafValues, leafVal) {
-				return nil, ErrorInvalidStr(leafVal, v.AllowedLeafValues...)
+				return nil, ErrorInvalidStr(leafVal, v.AllowedLeafValues[0], v.AllowedLeafValues[1:]...)
 			}
 		}
 	}

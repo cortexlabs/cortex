@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,22 +17,20 @@ limitations under the License.
 package k8s
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-var serviceTypeMeta = kmeta.TypeMeta{
+var _serviceTypeMeta = kmeta.TypeMeta{
 	APIVersion: "v1",
 	Kind:       "Service",
 }
 
 type ServiceSpec struct {
 	Name        string
-	Namespace   string
 	Port        int32
 	TargetPort  int32
 	Selector    map[string]string
@@ -41,14 +39,10 @@ type ServiceSpec struct {
 }
 
 func Service(spec *ServiceSpec) *kcore.Service {
-	if spec.Namespace == "" {
-		spec.Namespace = "default"
-	}
 	service := &kcore.Service{
-		TypeMeta: serviceTypeMeta,
+		TypeMeta: _serviceTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
-			Namespace:   spec.Namespace,
 			Labels:      spec.Labels,
 			Annotations: spec.Annotations,
 		},
@@ -70,7 +64,7 @@ func Service(spec *ServiceSpec) *kcore.Service {
 }
 
 func (c *Client) CreateService(service *kcore.Service) (*kcore.Service, error) {
-	service.TypeMeta = serviceTypeMeta
+	service.TypeMeta = _serviceTypeMeta
 	service, err := c.serviceClient.Create(service)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -78,9 +72,12 @@ func (c *Client) CreateService(service *kcore.Service) (*kcore.Service, error) {
 	return service, nil
 }
 
-func (c *Client) updateService(service *kcore.Service) (*kcore.Service, error) {
-	service.TypeMeta = serviceTypeMeta
-	service, err := c.serviceClient.Update(service)
+func (c *Client) UpdateService(existing, updated *kcore.Service) (*kcore.Service, error) {
+	updated.TypeMeta = _serviceTypeMeta
+	updated.Spec.ClusterIP = existing.Spec.ClusterIP
+	updated.ResourceVersion = existing.ResourceVersion
+
+	service, err := c.serviceClient.Update(updated)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -95,10 +92,7 @@ func (c *Client) ApplyService(service *kcore.Service) (*kcore.Service, error) {
 	if existing == nil {
 		return c.CreateService(service)
 	}
-
-	service.Spec.ClusterIP = existing.Spec.ClusterIP
-	service.ResourceVersion = existing.ResourceVersion
-	return c.updateService(service)
+	return c.UpdateService(existing, service)
 }
 
 func (c *Client) GetService(name string) (*kcore.Service, error) {
@@ -109,12 +103,12 @@ func (c *Client) GetService(name string) (*kcore.Service, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	service.TypeMeta = serviceTypeMeta
+	service.TypeMeta = _serviceTypeMeta
 	return service, nil
 }
 
 func (c *Client) DeleteService(name string) (bool, error) {
-	err := c.serviceClient.Delete(name, deleteOpts)
+	err := c.serviceClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -122,14 +116,6 @@ func (c *Client) DeleteService(name string) (bool, error) {
 		return false, errors.WithStack(err)
 	}
 	return true, nil
-}
-
-func (c *Client) ServiceExists(name string) (bool, error) {
-	service, err := c.GetService(name)
-	if err != nil {
-		return false, err
-	}
-	return service != nil, nil
 }
 
 func (c *Client) ListServices(opts *kmeta.ListOptions) ([]kcore.Service, error) {
@@ -141,7 +127,7 @@ func (c *Client) ListServices(opts *kmeta.ListOptions) ([]kcore.Service, error) 
 		return nil, errors.WithStack(err)
 	}
 	for i := range serviceList.Items {
-		serviceList.Items[i].TypeMeta = serviceTypeMeta
+		serviceList.Items[i].TypeMeta = _serviceTypeMeta
 	}
 	return serviceList.Items, nil
 }
@@ -155,6 +141,13 @@ func (c *Client) ListServicesByLabels(labels map[string]string) ([]kcore.Service
 
 func (c *Client) ListServicesByLabel(labelKey string, labelValue string) ([]kcore.Service, error) {
 	return c.ListServicesByLabels(map[string]string{labelKey: labelValue})
+}
+
+func (c *Client) ListServicesWithLabelKeys(labelKeys ...string) ([]kcore.Service, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListServices(opts)
 }
 
 func ServiceMap(services []kcore.Service) map[string]kcore.Service {

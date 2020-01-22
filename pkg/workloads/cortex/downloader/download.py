@@ -1,4 +1,4 @@
-# Copyright 2019 Cortex Labs, Inc.
+# Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ def main():
     na.add_argument(
         "--download",
         required=True,
-        help="a base64 encoded download_config (see api_workload.go for the structure)",
+        help="a base64 encoded download_config (see k8s_specs.go for the structure)",
     )
     parser.set_defaults(func=start)
 

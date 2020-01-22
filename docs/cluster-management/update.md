@@ -5,7 +5,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 ## Prerequisites
 
 1. [Docker](https://docs.docker.com/install)
-2. [AWS credentials](aws.md)
+2. [AWS credentials](aws-credentials.md)
 
 ## Updating your cluster configuration
 

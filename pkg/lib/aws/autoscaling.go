@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import (
 func (c *Client) AutoscalingGroups(tags map[string]string) ([]*autoscaling.Group, error) {
 	var asgs []*autoscaling.Group
 
-	err := c.autoscaling.DescribeAutoScalingGroupsPages(nil,
+	err := c.Autoscaling().DescribeAutoScalingGroupsPages(nil,
 		func(page *autoscaling.DescribeAutoScalingGroupsOutput, lastPage bool) bool {
 			for _, asg := range page.AutoScalingGroups {
 				asgTags := make(map[string]string, len(asg.Tags))

@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,52 +18,130 @@ package cmd
 
 import (
 	"fmt"
+	"path"
+	"path/filepath"
+	"regexp"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
 
-func readCachedClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, cachedClusterConfigPath)
-	if errors.HasErrors(errs) {
+var _cachedClusterConfigRegex = regexp.MustCompile(`^cluster_\S+\.yaml$`)
+
+func cachedClusterConfigPath(clusterName string, region string) string {
+	return filepath.Join(_localDir, fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
+}
+
+func mountedClusterConfigPath(clusterName string, region string) string {
+	return filepath.Join("/.cortex", fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
+}
+
+func existingCachedClusterConfigPaths() []string {
+	paths, err := files.ListDir(_localDir, false)
+	if err != nil {
+		return nil
+	}
+
+	var matches []string
+	for _, p := range paths {
+		if _cachedClusterConfigRegex.MatchString(path.Base(p)) {
+			matches = append(matches, p)
+		}
+	}
+
+	return matches
+}
+
+func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath string) error {
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, filePath)
+	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
 
 	return nil
 }
 
-func readUserClusterConfigFile(clusterConfig *clusterconfig.ClusterConfig) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, flagClusterConfig)
-	if errors.HasErrors(errs) {
+func readUserClusterConfigFile(clusterConfig *clusterconfig.Config) error {
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, _flagClusterConfig)
+	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
 
 	return nil
 }
 
-func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, error) {
-	clusterConfig := &clusterconfig.ClusterConfig{}
+func getClusterAccessConfig() (*clusterconfig.AccessConfig, error) {
+	accessConfig, err := clusterconfig.DefaultAccessConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	if _flagClusterConfig != "" {
+		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, _flagClusterConfig)
+		if errors.HasError(errs) {
+			return nil, errors.FirstError(errs...)
+		}
+	}
+
+	if accessConfig.ClusterName != nil && accessConfig.Region != nil {
+		return accessConfig, nil
+	}
+
+	cachedPaths := existingCachedClusterConfigPaths()
+	if len(cachedPaths) == 1 {
+		cachedAccessConfig := &clusterconfig.AccessConfig{}
+		cr.ParseYAMLFile(cachedAccessConfig, clusterconfig.AccessValidation, cachedPaths[0])
+		if accessConfig.ClusterName == nil {
+			accessConfig.ClusterName = cachedAccessConfig.ClusterName
+		}
+		if accessConfig.Region == nil {
+			accessConfig.Region = cachedAccessConfig.Region
+		}
+	}
+
+	err = cr.ReadPrompt(accessConfig, clusterconfig.AccessPromptValidation)
+	if err != nil {
+		return nil, err
+	}
+
+	return accessConfig, nil
+}
+
+func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, error) {
+	clusterConfig := &clusterconfig.Config{}
 
 	err := clusterconfig.SetDefaults(clusterConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	if flagClusterConfig != "" {
+	if _flagClusterConfig != "" {
 		err := readUserClusterConfigFile(clusterConfig)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err = clusterconfig.InstallPrompt(clusterConfig, awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+	err = clusterconfig.RegionPrompt(clusterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	awsClient, err := newAWSClient(*clusterConfig.Region, awsCreds)
+	if err != nil {
+		return nil, err
+	}
+
+	err = clusterconfig.InstallPrompt(clusterConfig, awsClient)
 	if err != nil {
 		return nil, err
 	}
@@ -74,25 +152,33 @@ func getInstallClusterConfig(awsCreds *AWSCredentials) (*clusterconfig.ClusterCo
 	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot {
-		clusterConfig.AutoFillSpot()
+		clusterConfig.AutoFillSpot(awsClient)
 	}
 
-	err = clusterConfig.Validate(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+	err = clusterConfig.Validate(awsClient)
 	if err != nil {
+		if _flagClusterConfig != "" {
+			err = errors.Wrap(err, _flagClusterConfig)
+		}
 		return nil, err
 	}
 
-	confirmClusterConfig(clusterConfig, awsCreds)
+	confirmInstallClusterConfig(clusterConfig, awsCreds, awsClient)
 
 	return clusterConfig, nil
 }
 
-func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (*clusterconfig.ClusterConfig, error) {
-	userClusterConfig := &clusterconfig.ClusterConfig{}
+func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds AWSCredentials) (*clusterconfig.Config, error) {
+	userClusterConfig := &clusterconfig.Config{}
+	var awsClient *aws.Client
 
-	if flagClusterConfig == "" {
-		userClusterConfig = cachedClusterConfig
-		err := cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(false, cachedClusterConfig))
+	if _flagClusterConfig == "" {
+		userClusterConfig = &cachedClusterConfig
+		err := cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(false, &cachedClusterConfig))
+		if err != nil {
+			return nil, err
+		}
+		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds)
 		if err != nil {
 			return nil, err
 		}
@@ -104,6 +190,10 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 
 		userClusterConfig.ClusterName = cachedClusterConfig.ClusterName
 		userClusterConfig.Region = cachedClusterConfig.Region
+		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds)
+		if err != nil {
+			return nil, err
+		}
 
 		if userClusterConfig.Bucket == nil {
 			userClusterConfig.Bucket = cachedClusterConfig.Bucket
@@ -113,6 +203,11 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, *cachedClusterConfig.InstanceType)
 		}
 		userClusterConfig.InstanceType = cachedClusterConfig.InstanceType
+
+		if len(userClusterConfig.AvailabilityZones) > 0 && !strset.New(userClusterConfig.AvailabilityZones...).IsEqual(strset.New(cachedClusterConfig.AvailabilityZones...)) {
+			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.AvailabilityZonesKey, cachedClusterConfig.AvailabilityZones)
+		}
+		userClusterConfig.AvailabilityZones = cachedClusterConfig.AvailabilityZones
 
 		if userClusterConfig.InstanceVolumeSize != cachedClusterConfig.InstanceVolumeSize {
 			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeSizeKey, cachedClusterConfig.InstanceVolumeSize)
@@ -125,7 +220,7 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 		userClusterConfig.Spot = cachedClusterConfig.Spot
 
 		if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
-			err = userClusterConfig.AutoFillSpot()
+			err = userClusterConfig.AutoFillSpot(awsClient)
 			if err != nil {
 				return nil, err
 			}
@@ -155,10 +250,14 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 			if userClusterConfig.SpotConfig.InstancePools != nil && *userClusterConfig.SpotConfig.InstancePools != *cachedClusterConfig.SpotConfig.InstancePools {
 				return nil, errors.Wrap(ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstancePoolsKey, *cachedClusterConfig.SpotConfig.InstancePools), clusterconfig.SpotConfigKey)
 			}
+
+			if userClusterConfig.SpotConfig.OnDemandBackup != cachedClusterConfig.SpotConfig.OnDemandBackup {
+				return nil, errors.Wrap(ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandBackupKey, cachedClusterConfig.SpotConfig.OnDemandBackup), clusterconfig.SpotConfigKey)
+			}
 		}
 		userClusterConfig.SpotConfig = cachedClusterConfig.SpotConfig
 
-		err = cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(true, cachedClusterConfig))
+		err = cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(true, &cachedClusterConfig))
 		if err != nil {
 			return nil, err
 		}
@@ -170,17 +269,108 @@ func getUpdateClusterConfig(cachedClusterConfig *clusterconfig.ClusterConfig, aw
 		return nil, err
 	}
 
-	err = userClusterConfig.Validate(awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
+	err = userClusterConfig.Validate(awsClient)
 	if err != nil {
+		if _flagClusterConfig != "" {
+			err = errors.Wrap(err, _flagClusterConfig)
+		}
 		return nil, err
 	}
 
-	confirmClusterConfig(userClusterConfig, awsCreds)
+	confirmUpdateClusterConfig(*userClusterConfig, awsCreds, awsClient)
 
 	return userClusterConfig, nil
 }
 
-func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) {
+func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) {
+	operatorInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price
+	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * 20 / 30 / 24
+	elbPrice := aws.ELBMetadatas[*clusterConfig.Region].Price
+	natPrice := aws.NATMetadatas[*clusterConfig.Region].Price
+	apiInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price
+	apiEBSPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
+	fixedPrice := 0.20 + operatorInstancePrice + operatorEBSPrice + 2*elbPrice + natPrice
+	totalMinPrice := fixedPrice + float64(*clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
+	totalMaxPrice := fixedPrice + float64(*clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)
+
+	fmt.Printf("aws access key id %s will be used to provision a cluster (%s) in %s:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), clusterConfig.ClusterName, *clusterConfig.Region)
+
+	headers := []table.Header{
+		{Title: "aws resource"},
+		{Title: "cost per hour"},
+	}
+
+	rows := [][]interface{}{}
+	rows = append(rows, []interface{}{"1 eks cluster", "$0.20"})
+	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
+	rows = append(rows, []interface{}{"1 t3.medium for the operator", s.DollarsMaxPrecision(operatorInstancePrice)})
+	rows = append(rows, []interface{}{"1 nat gateway", s.DollarsMaxPrecision(natPrice)})
+	rows = append(rows, []interface{}{"2 elastic load balancers", s.DollarsMaxPrecision(elbPrice) + " each"})
+
+	instanceStr := "instances"
+	volumeStr := "volumes"
+	if *clusterConfig.MinInstances == 1 && *clusterConfig.MaxInstances == 1 {
+		instanceStr = "instance"
+		volumeStr = "volume"
+	}
+	workerInstanceStr := fmt.Sprintf("%d - %d %s %s for your apis", *clusterConfig.MinInstances, *clusterConfig.MaxInstances, *clusterConfig.InstanceType, instanceStr)
+	ebsInstanceStr := fmt.Sprintf("%d - %d %dgb ebs %s for your apis", *clusterConfig.MinInstances, *clusterConfig.MaxInstances, clusterConfig.InstanceVolumeSize, volumeStr)
+	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
+		workerInstanceStr = fmt.Sprintf("%d %s %s for your apis", *clusterConfig.MinInstances, *clusterConfig.InstanceType, instanceStr)
+		ebsInstanceStr = fmt.Sprintf("%d %dgb ebs %s for your apis", *clusterConfig.MinInstances, clusterConfig.InstanceVolumeSize, volumeStr)
+	}
+
+	workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
+	spotSuffix := ""
+	if clusterConfig.Spot != nil && *clusterConfig.Spot {
+		spotPrice, err := awsClient.SpotInstancePrice(*clusterConfig.Region, *clusterConfig.InstanceType)
+		if err == nil {
+			workerPriceStr += " (spot pricing unavailable)"
+		}
+		if spotPrice != 0 {
+			workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsMaxPrecision(spotPrice), s.DollarsMaxPrecision(apiInstancePrice))
+		}
+		spotSuffix = " (assuming 100% on-demand instances, will be less if spot instances are available)"
+	}
+
+	rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
+	rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
+
+	items := table.Table{
+		Headers: headers,
+		Rows:    rows,
+	}
+	fmt.Println(items.MustFormat(&table.Opts{Sort: pointer.Bool(false)}))
+
+	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
+		fmt.Printf("this cluster will cost %s per hour%s\n\n", s.DollarsAndCents(totalMaxPrice), spotSuffix)
+	} else {
+		fmt.Printf("this cluster will cost %s - %s per hour based on the cluster size%s\n\n", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice), spotSuffix)
+	}
+
+	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)\n\n", *clusterConfig.Bucket, clusterConfig.LogGroup)
+
+	if clusterConfig.Spot != nil && *clusterConfig.Spot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
+		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
+			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
+		} else {
+			fmt.Printf("warning: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n", consts.CortexVersionMinor)
+		}
+		fmt.Println()
+	}
+
+	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
+	prompt.YesOrExit("would you like to continue?", "", exitMessage)
+}
+
+func confirmUpdateClusterConfig(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) {
+	fmt.Println(clusterConfigConfirmaionStr(clusterConfig, awsCreds, awsClient))
+
+	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
+	prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be updated according to the configuration above, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), "", exitMessage)
+}
+
+func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) string {
 	defaultConfig, _ := clusterconfig.GetDefaults()
 
 	var items table.KeyValuePairs
@@ -189,162 +379,117 @@ func confirmClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *
 	if awsCreds.CortexAWSAccessKeyID != awsCreds.AWSAccessKeyID {
 		items.Add("aws access key id", s.MaskString(awsCreds.CortexAWSAccessKeyID, 4)+" (cortex)")
 	}
-	items.Add(clusterconfig.RegionUserFacingKey, clusterConfig.Region)
-	items.Add(clusterconfig.BucketUserFacingKey, clusterConfig.Bucket)
+	items.Add(clusterconfig.RegionUserKey, clusterConfig.Region)
+	if len(clusterConfig.AvailabilityZones) > 0 {
+		items.Add(clusterconfig.AvailabilityZonesUserKey, clusterConfig.AvailabilityZones)
+	}
+	items.Add(clusterconfig.BucketUserKey, clusterConfig.Bucket)
+	items.Add(clusterconfig.ClusterNameUserKey, clusterConfig.ClusterName)
+	if clusterConfig.LogGroup != defaultConfig.LogGroup {
+		items.Add(clusterconfig.LogGroupUserKey, clusterConfig.LogGroup)
+	}
 
-	items.Add(clusterconfig.InstanceTypeUserFacingKey, *clusterConfig.InstanceType)
-	items.Add(clusterconfig.MinInstancesUserFacingKey, *clusterConfig.MinInstances)
-	items.Add(clusterconfig.MaxInstancesUserFacingKey, *clusterConfig.MaxInstances)
+	items.Add(clusterconfig.InstanceTypeUserKey, *clusterConfig.InstanceType)
+	items.Add(clusterconfig.MinInstancesUserKey, *clusterConfig.MinInstances)
+	items.Add(clusterconfig.MaxInstancesUserKey, *clusterConfig.MaxInstances)
+	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
+		items.Add(clusterconfig.InstanceVolumeSizeUserKey, clusterConfig.InstanceVolumeSize)
+	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot != *defaultConfig.Spot {
-		items.Add(clusterconfig.SpotUserFacingKey, s.YesNo(clusterConfig.Spot != nil && *clusterConfig.Spot))
+		items.Add(clusterconfig.SpotUserKey, s.YesNo(clusterConfig.Spot != nil && *clusterConfig.Spot))
 
 		if clusterConfig.SpotConfig != nil {
 			defaultSpotConfig := clusterconfig.SpotConfig{}
-			clusterconfig.AutoGenerateSpotConfig(&defaultSpotConfig, *clusterConfig.Region, *clusterConfig.InstanceType)
+			clusterconfig.AutoGenerateSpotConfig(awsClient, &defaultSpotConfig, *clusterConfig.Region, *clusterConfig.InstanceType)
 
 			if !strset.New(clusterConfig.SpotConfig.InstanceDistribution...).IsEqual(strset.New(defaultSpotConfig.InstanceDistribution...)) {
-				items.Add(clusterconfig.InstanceDistributionUserFacingKey, clusterConfig.SpotConfig.InstanceDistribution)
+				items.Add(clusterconfig.InstanceDistributionUserKey, clusterConfig.SpotConfig.InstanceDistribution)
 			}
 
 			if *clusterConfig.SpotConfig.OnDemandBaseCapacity != *defaultSpotConfig.OnDemandBaseCapacity {
-				items.Add(clusterconfig.OnDemandBaseCapacityUserFacingKey, *clusterConfig.SpotConfig.OnDemandBaseCapacity)
+				items.Add(clusterconfig.OnDemandBaseCapacityUserKey, *clusterConfig.SpotConfig.OnDemandBaseCapacity)
 			}
 
 			if *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity != *defaultSpotConfig.OnDemandPercentageAboveBaseCapacity {
-				items.Add(clusterconfig.OnDemandPercentageAboveBaseCapacityUserFacingKey, *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity)
+				items.Add(clusterconfig.OnDemandPercentageAboveBaseCapacityUserKey, *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity)
 			}
 
 			if *clusterConfig.SpotConfig.MaxPrice != *defaultSpotConfig.MaxPrice {
-				items.Add(clusterconfig.MaxPriceUserFacingKey, *clusterConfig.SpotConfig.MaxPrice)
+				items.Add(clusterconfig.MaxPriceUserKey, *clusterConfig.SpotConfig.MaxPrice)
 			}
 
 			if *clusterConfig.SpotConfig.InstancePools != *defaultSpotConfig.InstancePools {
-				items.Add(clusterconfig.InstancePoolsUserFacingKey, *clusterConfig.SpotConfig.InstancePools)
+				items.Add(clusterconfig.InstancePoolsUserKey, *clusterConfig.SpotConfig.InstancePools)
+			}
+
+			if *clusterConfig.SpotConfig.OnDemandBackup != *defaultSpotConfig.OnDemandBackup {
+				items.Add(clusterconfig.OnDemandBackupUserKey, s.YesNo(*clusterConfig.SpotConfig.OnDemandBackup))
 			}
 		}
 	}
-	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
-		items.Add(clusterconfig.InstanceVolumeSizeUserFacingKey, clusterConfig.InstanceVolumeSize)
-	}
-	if clusterConfig.ClusterName != defaultConfig.ClusterName {
-		items.Add(clusterconfig.ClusterNameUserFacingKey, clusterConfig.ClusterName)
-	}
-	if clusterConfig.LogGroup != defaultConfig.LogGroup {
-		items.Add(clusterconfig.LogGroupUserFacingKey, clusterConfig.LogGroup)
-	}
+
 	if clusterConfig.Telemetry != defaultConfig.Telemetry {
-		items.Add(clusterconfig.TelemetryUserFacingKey, clusterConfig.Telemetry)
+		items.Add(clusterconfig.TelemetryUserKey, clusterConfig.Telemetry)
 	}
 
-	if clusterConfig.ImagePredictorServe != defaultConfig.ImagePredictorServe {
-		items.Add(clusterconfig.ImagePredictorServeUserFacingKey, clusterConfig.ImagePredictorServe)
+	if clusterConfig.ImagePythonServe != defaultConfig.ImagePythonServe {
+		items.Add(clusterconfig.ImagePythonServeUserKey, clusterConfig.ImagePythonServe)
 	}
-	if clusterConfig.ImagePredictorServeGPU != defaultConfig.ImagePredictorServeGPU {
-		items.Add(clusterconfig.ImagePredictorServeGPUUserFacingKey, clusterConfig.ImagePredictorServeGPU)
+	if clusterConfig.ImagePythonServeGPU != defaultConfig.ImagePythonServeGPU {
+		items.Add(clusterconfig.ImagePythonServeGPUUserKey, clusterConfig.ImagePythonServeGPU)
 	}
 	if clusterConfig.ImageTFServe != defaultConfig.ImageTFServe {
-		items.Add(clusterconfig.ImageTFServeUserFacingKey, clusterConfig.ImageTFServe)
+		items.Add(clusterconfig.ImageTFServeUserKey, clusterConfig.ImageTFServe)
 	}
 	if clusterConfig.ImageTFServeGPU != defaultConfig.ImageTFServeGPU {
-		items.Add(clusterconfig.ImageTFServeGPUUserFacingKey, clusterConfig.ImageTFServeGPU)
+		items.Add(clusterconfig.ImageTFServeGPUUserKey, clusterConfig.ImageTFServeGPU)
 	}
 	if clusterConfig.ImageTFAPI != defaultConfig.ImageTFAPI {
-		items.Add(clusterconfig.ImageTFAPIUserFacingKey, clusterConfig.ImageTFAPI)
+		items.Add(clusterconfig.ImageTFAPIUserKey, clusterConfig.ImageTFAPI)
 	}
 	if clusterConfig.ImageONNXServe != defaultConfig.ImageONNXServe {
-		items.Add(clusterconfig.ImageONNXServeUserFacingKey, clusterConfig.ImageONNXServe)
+		items.Add(clusterconfig.ImageONNXServeUserKey, clusterConfig.ImageONNXServe)
 	}
 	if clusterConfig.ImageONNXServeGPU != defaultConfig.ImageONNXServeGPU {
-		items.Add(clusterconfig.ImageONNXServeGPUUserFacingKey, clusterConfig.ImageONNXServeGPU)
+		items.Add(clusterconfig.ImageONNXServeGPUUserKey, clusterConfig.ImageONNXServeGPU)
 	}
 	if clusterConfig.ImageOperator != defaultConfig.ImageOperator {
-		items.Add(clusterconfig.ImageOperatorUserFacingKey, clusterConfig.ImageOperator)
+		items.Add(clusterconfig.ImageOperatorUserKey, clusterConfig.ImageOperator)
 	}
 	if clusterConfig.ImageManager != defaultConfig.ImageManager {
-		items.Add(clusterconfig.ImageManagerUserFacingKey, clusterConfig.ImageManager)
+		items.Add(clusterconfig.ImageManagerUserKey, clusterConfig.ImageManager)
 	}
 	if clusterConfig.ImageDownloader != defaultConfig.ImageDownloader {
-		items.Add(clusterconfig.ImageDownloaderUserFacingKey, clusterConfig.ImageDownloader)
+		items.Add(clusterconfig.ImageDownloaderUserKey, clusterConfig.ImageDownloader)
 	}
 	if clusterConfig.ImageClusterAutoscaler != defaultConfig.ImageClusterAutoscaler {
-		items.Add(clusterconfig.ImageClusterAutoscalerUserFacingKey, clusterConfig.ImageClusterAutoscaler)
+		items.Add(clusterconfig.ImageClusterAutoscalerUserKey, clusterConfig.ImageClusterAutoscaler)
 	}
 	if clusterConfig.ImageMetricsServer != defaultConfig.ImageMetricsServer {
-		items.Add(clusterconfig.ImageMetricsServerUserFacingKey, clusterConfig.ImageMetricsServer)
+		items.Add(clusterconfig.ImageMetricsServerUserKey, clusterConfig.ImageMetricsServer)
 	}
 	if clusterConfig.ImageNvidia != defaultConfig.ImageNvidia {
-		items.Add(clusterconfig.ImageNvidiaUserFacingKey, clusterConfig.ImageNvidia)
+		items.Add(clusterconfig.ImageNvidiaUserKey, clusterConfig.ImageNvidia)
 	}
 	if clusterConfig.ImageFluentd != defaultConfig.ImageFluentd {
-		items.Add(clusterconfig.ImageFluentdUserFacingKey, clusterConfig.ImageFluentd)
+		items.Add(clusterconfig.ImageFluentdUserKey, clusterConfig.ImageFluentd)
 	}
 	if clusterConfig.ImageStatsd != defaultConfig.ImageStatsd {
-		items.Add(clusterconfig.ImageStatsdUserFacingKey, clusterConfig.ImageStatsd)
+		items.Add(clusterconfig.ImageStatsdUserKey, clusterConfig.ImageStatsd)
 	}
 	if clusterConfig.ImageIstioProxy != defaultConfig.ImageIstioProxy {
-		items.Add(clusterconfig.ImageIstioProxyUserFacingKey, clusterConfig.ImageIstioProxy)
+		items.Add(clusterconfig.ImageIstioProxyUserKey, clusterConfig.ImageIstioProxy)
 	}
 	if clusterConfig.ImageIstioPilot != defaultConfig.ImageIstioPilot {
-		items.Add(clusterconfig.ImageIstioPilotUserFacingKey, clusterConfig.ImageIstioPilot)
+		items.Add(clusterconfig.ImageIstioPilotUserKey, clusterConfig.ImageIstioPilot)
 	}
 	if clusterConfig.ImageIstioCitadel != defaultConfig.ImageIstioCitadel {
-		items.Add(clusterconfig.ImageIstioCitadelUserFacingKey, clusterConfig.ImageIstioCitadel)
+		items.Add(clusterconfig.ImageIstioCitadelUserKey, clusterConfig.ImageIstioCitadel)
 	}
 	if clusterConfig.ImageIstioGalley != defaultConfig.ImageIstioGalley {
-		items.Add(clusterconfig.ImageIstioGalleyUserFacingKey, clusterConfig.ImageIstioGalley)
+		items.Add(clusterconfig.ImageIstioGalleyUserKey, clusterConfig.ImageIstioGalley)
 	}
 
-	var spotPrice float64
-	if clusterConfig.Spot != nil && *clusterConfig.Spot {
-		var err error
-		spotPrice, err = aws.SpotInstancePrice(awsCreds.AWSAccessKeyID, awsCreds.CortexAWSSecretAccessKey, *clusterConfig.Region, *clusterConfig.InstanceType)
-		if err != nil {
-			spotPrice = 0
-		}
-	}
-
-	items.Print()
-	fmt.Println()
-
-	fmt.Printf("cortex will use your %s aws access key id to provision the following resources in the %s region of your aws account:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), *clusterConfig.Region)
-	fmt.Printf("￮ an s3 bucket named %s\n", *clusterConfig.Bucket)
-	fmt.Printf("￮ a cloudwatch log group named %s\n", clusterConfig.LogGroup)
-	fmt.Printf("￮ an eks cluster named %s ($0.20 per hour)\n", clusterConfig.ClusterName)
-	fmt.Printf("￮ a t3.medium ec2 instance for the operator ($%s per hour)\n", s.Float64(aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price))
-	fmt.Printf("￮ a 20gb ebs volume for the operator ($%s per hour)\n", s.Round(aws.EBSMetadatas[*clusterConfig.Region].Price*20/30, 3, false))
-	fmt.Printf("￮ an elb for the operator and an elb for apis ($%s per hour each)\n", s.Float64(aws.ELBMetadatas[*clusterConfig.Region].Price))
-	fmt.Printf("￮ a nat gateway ($%s per hour)\n", s.Float64(aws.NATMetadatas[*clusterConfig.Region].Price))
-	fmt.Println(workloadInstancesStr(clusterConfig, spotPrice))
-
-	fmt.Println()
-
-	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor)
-	prompt.YesOrExit("would you like to continue with this installation?", exitMessage)
-}
-
-func workloadInstancesStr(clusterConfig *clusterconfig.ClusterConfig, spotPrice float64) string {
-	instanceRangeStr := fmt.Sprintf("an autoscaling group of %d - %d", *clusterConfig.MinInstances, *clusterConfig.MaxInstances)
-	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
-		instanceRangeStr = s.Int64(*clusterConfig.MinInstances)
-	}
-
-	instancesStr := "instances"
-	if *clusterConfig.MinInstances == 1 && *clusterConfig.MaxInstances == 1 {
-		instancesStr = "instance"
-	}
-
-	instanceTypeStr := *clusterConfig.InstanceType
-	instancePriceStr := fmt.Sprintf("($%s per hour each)", s.Float64(aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price))
-
-	if clusterConfig.Spot != nil && *clusterConfig.Spot {
-		instanceTypeStr = s.StrsOr(clusterConfig.SpotConfig.InstanceDistribution)
-		spotPriceStr := "spot pricing not available"
-		if spotPrice != 0 {
-			spotPriceStr = fmt.Sprintf("~$%s per hour spot", s.Float64(spotPrice))
-		}
-		instancePriceStr = fmt.Sprintf("(%s: $%s per hour on-demand, %s)", *clusterConfig.InstanceType, s.Float64(aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price), spotPriceStr)
-	}
-
-	return fmt.Sprintf("￮ %s %s ec2 %s for apis %s", instanceRangeStr, instanceTypeStr, instancesStr, instancePriceStr)
+	return items.String()
 }

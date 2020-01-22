@@ -1,13 +1,10 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
-- kind: deployment
-  name: image
-
-- kind: api
-  name: classifier
-  tensorflow:
+- name: image-classifier
+  predictor:
+    type: tensorflow
+    path: predictor.py
     model: s3://cortex-examples/tensorflow/image-classifier/inception
-    request_handler: handler.py
   tracker:
     model_type: classification
   compute:

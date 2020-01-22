@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/random"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientdynamic "k8s.io/client-go/dynamic"
@@ -34,15 +36,13 @@ import (
 	kclientrest "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclienthomedir "k8s.io/client-go/util/homedir"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 var (
-	home         = kclienthomedir.HomeDir()
-	deletePolicy = kmeta.DeletePropagationBackground
-	deleteOpts   = &kmeta.DeleteOptions{
-		PropagationPolicy: &deletePolicy,
+	_home         = kclienthomedir.HomeDir()
+	_deletePolicy = kmeta.DeletePropagationBackground
+	_deleteOpts   = &kmeta.DeleteOptions{
+		PropagationPolicy: &_deletePolicy,
 	}
 )
 
@@ -69,7 +69,7 @@ func New(namespace string, inCluster bool) (*Client, error) {
 	if inCluster {
 		client.RestConfig, err = kclientrest.InClusterConfig()
 	} else {
-		kubeConfig := path.Join(home, ".kube", "config")
+		kubeConfig := path.Join(_home, ".kube", "config")
 		client.RestConfig, err = kclientcmd.BuildConfigFromFlags("", kubeConfig)
 	}
 
@@ -96,6 +96,11 @@ func New(namespace string, inCluster bool) (*Client, error) {
 	client.ingressClient = client.clientset.ExtensionsV1beta1().Ingresses(namespace)
 	client.hpaClient = client.clientset.AutoscalingV2beta2().HorizontalPodAutoscalers(namespace)
 	return client, nil
+}
+
+// to be safe, k8s sometimes needs all characters to be lower case, and the first to be a letter
+func RandomName() string {
+	return random.LowercaseLetters(1) + random.LowercaseString(62)
 }
 
 // ValidName ensures name contains only lower case alphanumeric, '-', or '.'
@@ -135,14 +140,24 @@ func Mem(mem string) kresource.Quantity {
 }
 
 func LabelSelector(labels map[string]string) string {
-	if labels == nil {
+	if len(labels) == 0 {
 		return ""
 	}
-	labelSelectorStr := ""
+
+	terms := make([]string, 0, len(labels))
 	for key, value := range labels {
-		labelSelectorStr = labelSelectorStr + "," + key + "=" + value
+		terms = append(terms, key+"="+value)
 	}
-	return strings.TrimPrefix(labelSelectorStr, ",")
+
+	return strings.Join(terms, ",")
+}
+
+func LabelExistsSelector(labelKeys ...string) string {
+	if len(labelKeys) == 0 {
+		return ""
+	}
+
+	return strings.Join(labelKeys, ",")
 }
 
 func FieldSelectorNotIn(key string, values []string) string {

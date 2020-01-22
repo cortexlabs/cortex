@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -68,11 +68,11 @@ func (kvs KeyValuePairs) String(options ...*KeyValuePairOpts) string {
 		b.WriteString(keyStr + *opts.Delimiter + spaces + valStr + "\n")
 	}
 
-	return strings.TrimSpace(b.String())
+	return b.String()
 }
 
 func (kvs KeyValuePairs) Print(options ...*KeyValuePairOpts) {
-	fmt.Println(kvs.String(options...))
+	fmt.Print(kvs.String(options...))
 }
 
 func mergeOptions(options ...*KeyValuePairOpts) KeyValuePairOpts {

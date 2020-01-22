@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,12 +32,15 @@ type StringPtrValidation struct {
 	AllowEmpty                    bool
 	AllowedValues                 []string
 	Prefix                        string
+	MaxLength                     int
+	MinLength                     int
 	AlphaNumericDashDotUnderscore bool
 	AlphaNumericDashUnderscore    bool
 	DNS1035                       bool
 	DNS1123                       bool
-	CastScalar                    bool
+	CastInt                       bool
 	CastNumeric                   bool
+	CastScalar                    bool
 	AllowCortexResources          bool
 	RequireCortexResources        bool
 	Validator                     func(string) (string, error)
@@ -48,12 +51,15 @@ func makeStringValValidation(v *StringPtrValidation) *StringValidation {
 		AllowEmpty:                    v.AllowEmpty,
 		AllowedValues:                 v.AllowedValues,
 		Prefix:                        v.Prefix,
+		MaxLength:                     v.MaxLength,
+		MinLength:                     v.MinLength,
 		AlphaNumericDashDotUnderscore: v.AlphaNumericDashDotUnderscore,
 		AlphaNumericDashUnderscore:    v.AlphaNumericDashUnderscore,
 		DNS1035:                       v.DNS1035,
 		DNS1123:                       v.DNS1123,
-		CastScalar:                    v.CastScalar,
+		CastInt:                       v.CastInt,
 		CastNumeric:                   v.CastNumeric,
+		CastScalar:                    v.CastScalar,
 		AllowCortexResources:          v.AllowCortexResources,
 		RequireCortexResources:        v.RequireCortexResources,
 	}
@@ -73,6 +79,11 @@ func StringPtr(inter interface{}, v *StringPtrValidation) (*string, error) {
 		} else if v.CastNumeric {
 			if !cast.IsNumericType(inter) {
 				return nil, ErrorInvalidPrimitiveType(inter, PrimTypeString, PrimTypeInt, PrimTypeFloat)
+			}
+			casted = s.ObjFlatNoQuotes(inter)
+		} else if v.CastInt {
+			if !cast.IsIntType(inter) {
+				return nil, ErrorInvalidPrimitiveType(inter, PrimTypeString, PrimTypeInt)
 			}
 			casted = s.ObjFlatNoQuotes(inter)
 		} else {

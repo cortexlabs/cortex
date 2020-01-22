@@ -1,11 +1,8 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
-- kind: deployment
-  name: reading
-
-- kind: api
-  name: comprehender
+- name: reading-comprehender
   predictor:
+    type: python
     path: predictor.py
   compute:
     cpu: 1

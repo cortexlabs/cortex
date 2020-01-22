@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package time
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -56,7 +57,7 @@ func CopyPtr(t *time.Time) *time.Time {
 	return &tCopy
 }
 
-func Difference(t1 *time.Time, t2 *time.Time) string {
+func DifferenceStr(t1 *time.Time, t2 *time.Time) string {
 	var duration time.Duration
 	if t1 == nil && t2 == nil {
 		return "-"
@@ -80,12 +81,12 @@ func Difference(t1 *time.Time, t2 *time.Time) string {
 	}
 }
 
-func Since(t *time.Time) string {
+func SinceStr(t *time.Time) string {
 	if t == nil {
 		return "-"
 	}
 	now := time.Now()
-	return Difference(t, &now)
+	return DifferenceStr(t, &now)
 }
 
 func LocalTimestamp(t *time.Time) string {
@@ -106,10 +107,6 @@ func LocalHourNow() string {
 	return time.Now().Local().Format("3:04:05pm MST")
 }
 
-func OlderThanSeconds(t time.Time, secs float64) bool {
-	return time.Since(t).Seconds() > secs
-}
-
 func MillisToTime(epochMillis int64) time.Time {
 	seconds := epochMillis / 1000
 	millis := epochMillis % 1000
@@ -121,17 +118,34 @@ func ToMillis(t time.Time) int64 {
 }
 
 type Timer struct {
-	name  string
+	names []string
 	start time.Time
+	last  time.Time
 }
 
-func StartTimer(name string) Timer {
+func StartTimer(names ...string) Timer {
 	return Timer{
-		name:  name,
+		names: names,
 		start: time.Now(),
 	}
 }
 
-func (t Timer) PrintTimeElapsed() {
-	fmt.Printf("%s: %s\n", t.name, time.Since(t.start))
+func (t *Timer) Print(messages ...string) {
+	now := time.Now()
+
+	separator := ""
+	if len(t.names)+len(messages) > 0 {
+		separator = ": "
+	}
+
+	totalTime := fmt.Sprintf("%s total", now.Sub(t.start))
+
+	stepTime := ""
+	if !t.last.IsZero() {
+		stepTime = fmt.Sprintf("%s step, ", now.Sub(t.last))
+	}
+
+	fmt.Println(strings.Join(append(t.names, messages...), ": ") + separator + stepTime + totalTime)
+
+	t.last = now
 }

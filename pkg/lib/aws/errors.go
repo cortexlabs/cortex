@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -29,30 +28,34 @@ type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
+	ErrInvalidAWSCredentials
 	ErrInvalidS3aPath
 	ErrInvalidS3Path
 	ErrAuth
 	ErrBucketInaccessible
-	ErrPFamilyInstanceUseNotPermitted
+	ErrBucketNotFound
+	ErrInstanceTypeLimitIsZero
 	ErrNoValidSpotPrices
 	ErrReadCredentials
 )
 
-var errorKinds = []string{
+var _errorKinds = []string{
 	"err_unknown",
+	"err_invalid_aws_credentials",
 	"err_invalid_s3a_path",
 	"err_invalid_s3_path",
 	"err_auth",
 	"err_bucket_inaccessible",
-	"err_p_family_instance_use_not_permitted",
+	"err_bucket_not_found",
+	"err_instance_type_limit_is_zero",
 	"err_no_valid_spot_prices",
 	"err_read_credentials",
 }
 
-var _ = [1]int{}[int(ErrReadCredentials)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrReadCredentials)-(len(_errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
-	return errorKinds[t]
+	return _errorKinds[t]
 }
 
 // MarshalText satisfies TextMarshaler
@@ -63,8 +66,8 @@ func (t ErrorKind) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *ErrorKind) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(errorKinds); i++ {
-		if enum == errorKinds[i] {
+	for i := 0; i < len(_errorKinds); i++ {
+		if enum == _errorKinds[i] {
 			*t = ErrorKind(i)
 			return nil
 		}
@@ -121,51 +124,65 @@ func (e Error) Error() string {
 	return e.message
 }
 
+func ErrorInvalidAWSCredentials() error {
+	return errors.WithStack(Error{
+		Kind:    ErrInvalidAWSCredentials,
+		message: "invalid AWS credentials",
+	})
+}
+
 func ErrorInvalidS3aPath(provided string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInvalidS3aPath,
 		message: fmt.Sprintf("%s is not a valid s3a path (e.g. s3a://cortex-examples/iris-classifier/tensorflow is a valid s3a path)", s.UserStr(provided)),
-	}
+	})
 }
 
 func ErrorInvalidS3Path(provided string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrInvalidS3Path,
 		message: fmt.Sprintf("%s is not a valid s3 path (e.g. s3://cortex-examples/iris-classifier/tensorflow is a valid s3 path)", s.UserStr(provided)),
-	}
+	})
 }
 
 func ErrorAuth() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrAuth,
 		message: "unable to authenticate with AWS",
-	}
+	})
 }
 
 func ErrorBucketInaccessible(bucket string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrBucketInaccessible,
 		message: fmt.Sprintf("bucket \"%s\" not found or insufficient permissions", bucket),
-	}
+	})
 }
 
-func ErrorPFamilyInstanceUseNotPermitted(region string) error {
-	return Error{
-		Kind:    ErrPFamilyInstanceUseNotPermitted,
-		message: fmt.Sprintf(`your don't have access to "P" instances in region %s; please request access (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances)"`, region),
-	}
+func ErrorBucketNotFound(bucket string) error {
+	return errors.WithStack(Error{
+		Kind:    ErrBucketNotFound,
+		message: fmt.Sprintf("bucket \"%s\" not found", bucket),
+	})
+}
+
+func ErrorInstanceTypeLimitIsZero(instanceType string, region string) error {
+	return errors.WithStack(Error{
+		Kind:    ErrInstanceTypeLimitIsZero,
+		message: fmt.Sprintf(`you don't have access to %s instances in %s; please request access in the appropriate region (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances)"`, instanceType, region),
+	})
 }
 
 func ErrorNoValidSpotPrices(instanceType string, region string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrNoValidSpotPrices,
 		message: fmt.Sprintf("no spot prices were found for %s instances in %s", instanceType, region),
-	}
+	})
 }
 
 func ErrorReadCredentials() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrReadCredentials,
 		message: "unable to read AWS credentials from credentials file",
-	}
+	})
 }

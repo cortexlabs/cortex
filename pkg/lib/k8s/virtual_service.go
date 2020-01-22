@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,29 +17,28 @@ limitations under the License.
 package k8s
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kschema "k8s.io/apimachinery/pkg/runtime/schema"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
 var (
-	virtualServiceTypeMeta = kmeta.TypeMeta{
+	_virtualServiceTypeMeta = kmeta.TypeMeta{
 		APIVersion: "v1alpha3",
 		Kind:       "VirtualService",
 	}
 
-	virtualServiceGVR = kschema.GroupVersionResource{
+	_virtualServiceGVR = kschema.GroupVersionResource{
 		Group:    "networking.istio.io",
 		Version:  "v1alpha3",
 		Resource: "virtualservices",
 	}
 
-	virtualServiceGVK = kschema.GroupVersionKind{
+	_virtualServiceGVK = kschema.GroupVersionKind{
 		Group:   "networking.istio.io",
 		Version: "v1alpha3",
 		Kind:    "VirtualService",
@@ -48,7 +47,6 @@ var (
 
 type VirtualServiceSpec struct {
 	Name        string
-	Namespace   string
 	Gateways    []string
 	ServiceName string
 	ServicePort int32
@@ -60,12 +58,10 @@ type VirtualServiceSpec struct {
 
 func VirtualService(spec *VirtualServiceSpec) *kunstructured.Unstructured {
 	virtualServiceConfig := &kunstructured.Unstructured{}
-	virtualServiceConfig.SetGroupVersionKind(virtualServiceGVK)
+	virtualServiceConfig.SetGroupVersionKind(_virtualServiceGVK)
 	virtualServiceConfig.SetName(spec.Name)
-	virtualServiceConfig.SetNamespace(spec.Namespace)
 	virtualServiceConfig.Object["metadata"] = map[string]interface{}{
 		"name":        spec.Name,
-		"namespace":   spec.Namespace,
 		"labels":      spec.Labels,
 		"annotations": spec.Annotations,
 	}
@@ -106,11 +102,13 @@ func VirtualService(spec *VirtualServiceSpec) *kunstructured.Unstructured {
 }
 
 func (c *Client) CreateVirtualService(spec *kunstructured.Unstructured) (*kunstructured.Unstructured, error) {
+	spec.Object["metadata"].(map[string]interface{})["namespace"] = c.Namespace
+
 	virtualService, err := c.dynamicClient.
-		Resource(virtualServiceGVR).
+		Resource(_virtualServiceGVR).
 		Namespace(spec.GetNamespace()).
 		Create(spec, kmeta.CreateOptions{
-			TypeMeta: virtualServiceTypeMeta,
+			TypeMeta: _virtualServiceTypeMeta,
 		})
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -118,12 +116,15 @@ func (c *Client) CreateVirtualService(spec *kunstructured.Unstructured) (*kunstr
 	return virtualService, nil
 }
 
-func (c *Client) updateVirtualService(spec *kunstructured.Unstructured) (*kunstructured.Unstructured, error) {
+func (c *Client) UpdateVirtualService(existing, updated *kunstructured.Unstructured) (*kunstructured.Unstructured, error) {
+	updated.Object["metadata"].(map[string]interface{})["namespace"] = c.Namespace
+	updated.SetResourceVersion(existing.GetResourceVersion())
+
 	virtualService, err := c.dynamicClient.
-		Resource(virtualServiceGVR).
-		Namespace(spec.GetNamespace()).
-		Update(spec, kmeta.UpdateOptions{
-			TypeMeta: virtualServiceTypeMeta,
+		Resource(_virtualServiceGVR).
+		Namespace(updated.GetNamespace()).
+		Update(updated, kmeta.UpdateOptions{
+			TypeMeta: _virtualServiceTypeMeta,
 		})
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -132,20 +133,19 @@ func (c *Client) updateVirtualService(spec *kunstructured.Unstructured) (*kunstr
 }
 
 func (c *Client) ApplyVirtualService(spec *kunstructured.Unstructured) (*kunstructured.Unstructured, error) {
-	existing, err := c.GetVirtualService(spec.GetName(), spec.GetNamespace())
+	existing, err := c.GetVirtualService(spec.GetName())
 	if err != nil {
 		return nil, err
 	}
 	if existing == nil {
 		return c.CreateVirtualService(spec)
 	}
-	spec.SetResourceVersion(existing.GetResourceVersion())
-	return c.updateVirtualService(spec)
+	return c.UpdateVirtualService(existing, spec)
 }
 
-func (c *Client) GetVirtualService(name, namespace string) (*kunstructured.Unstructured, error) {
-	virtualService, err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(namespace).Get(name, kmeta.GetOptions{
-		TypeMeta: virtualServiceTypeMeta,
+func (c *Client) GetVirtualService(name string) (*kunstructured.Unstructured, error) {
+	virtualService, err := c.dynamicClient.Resource(_virtualServiceGVR).Namespace(c.Namespace).Get(name, kmeta.GetOptions{
+		TypeMeta: _virtualServiceTypeMeta,
 	})
 
 	if kerrors.IsNotFound(err) {
@@ -157,17 +157,9 @@ func (c *Client) GetVirtualService(name, namespace string) (*kunstructured.Unstr
 	return virtualService, nil
 }
 
-func (c *Client) VirtualServiceExists(name, namespace string) (bool, error) {
-	service, err := c.GetVirtualService(name, namespace)
-	if err != nil {
-		return false, err
-	}
-	return service != nil, nil
-}
-
-func (c *Client) DeleteVirtualService(name, namespace string) (bool, error) {
-	err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(namespace).Delete(name, &kmeta.DeleteOptions{
-		TypeMeta: virtualServiceTypeMeta,
+func (c *Client) DeleteVirtualService(name string) (bool, error) {
+	err := c.dynamicClient.Resource(_virtualServiceGVR).Namespace(c.Namespace).Delete(name, &kmeta.DeleteOptions{
+		TypeMeta: _virtualServiceTypeMeta,
 	})
 	if kerrors.IsNotFound(err) {
 		return false, nil
@@ -178,33 +170,40 @@ func (c *Client) DeleteVirtualService(name, namespace string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) ListVirtualServices(namespace string, opts *kmeta.ListOptions) ([]kunstructured.Unstructured, error) {
+func (c *Client) ListVirtualServices(opts *kmeta.ListOptions) ([]kunstructured.Unstructured, error) {
 	if opts == nil {
 		opts = &kmeta.ListOptions{}
 	}
 
-	vsList, err := c.dynamicClient.Resource(virtualServiceGVR).Namespace(namespace).List(*opts)
+	vsList, err := c.dynamicClient.Resource(_virtualServiceGVR).Namespace(c.Namespace).List(*opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	for i := range vsList.Items {
-		vsList.Items[i].SetGroupVersionKind(virtualServiceGVK)
+		vsList.Items[i].SetGroupVersionKind(_virtualServiceGVK)
 	}
 	return vsList.Items, nil
 }
 
-func (c *Client) ListVirtualServicesByLabels(namespace string, labels map[string]string) ([]kunstructured.Unstructured, error) {
+func (c *Client) ListVirtualServicesByLabels(labels map[string]string) ([]kunstructured.Unstructured, error) {
 	opts := &kmeta.ListOptions{
 		LabelSelector: LabelSelector(labels),
 	}
-	return c.ListVirtualServices(namespace, opts)
+	return c.ListVirtualServices(opts)
 }
 
-func (c *Client) ListVirtualServicesByLabel(namespace string, labelKey string, labelValue string) ([]kunstructured.Unstructured, error) {
-	return c.ListVirtualServicesByLabels(namespace, map[string]string{labelKey: labelValue})
+func (c *Client) ListVirtualServicesByLabel(labelKey string, labelValue string) ([]kunstructured.Unstructured, error) {
+	return c.ListVirtualServicesByLabels(map[string]string{labelKey: labelValue})
 }
 
-func GetVirtualServiceGateways(virtualService *kunstructured.Unstructured) (strset.Set, error) {
+func (c *Client) ListVirtualServicesWithLabelKeys(labelKeys ...string) ([]kunstructured.Unstructured, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListVirtualServices(opts)
+}
+
+func ExtractVirtualServiceGateways(virtualService *kunstructured.Unstructured) (strset.Set, error) {
 	spec, ok := virtualService.UnstructuredContent()["spec"].(map[string]interface{})
 	if !ok {
 		return nil, errors.New("virtual service spec is not a map[string]interface{}") // unexpected
@@ -232,7 +231,7 @@ func GetVirtualServiceGateways(virtualService *kunstructured.Unstructured) (strs
 	return gatewayStrs, nil
 }
 
-func GetVirtualServiceEndpoints(virtualService *kunstructured.Unstructured) (strset.Set, error) {
+func ExtractVirtualServiceEndpoints(virtualService *kunstructured.Unstructured) (strset.Set, error) {
 	spec, ok := virtualService.UnstructuredContent()["spec"].(map[string]interface{})
 	if !ok {
 		return nil, errors.New("virtual service spec is not a map[string]interface{}") // unexpected

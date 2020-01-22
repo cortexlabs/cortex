@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2019 Cortex Labs, Inc.
+# Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -75,12 +75,12 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./.circleci/*" \
 ! -path "./.git/*" \
 ! -name LICENSE \
-! -name requirements.txt \
+! -name "*requirements.txt" \
 ! -name "go.*" \
 ! -name "*.md" \
 ! -name ".*" \
 ! -name "Dockerfile" \
--exec grep -L "Copyright 2019 Cortex Labs, Inc" {} \;)
+-exec grep -L "Copyright 2020 Cortex Labs, Inc" {} \;)
 if [[ $output ]]; then
   echo "File(s) are missing Cortex license:"
   echo "$output"
@@ -92,11 +92,12 @@ if [ "$is_release_branch" = "true" ]; then
   output=$(cd "$ROOT" && find . -type f \
   ! -path "./build/lint.sh" \
   ! -path "./vendor/*" \
+  ! -path "./docs/contributing/development.md" \
   ! -path "./bin/*" \
   ! -path "./.git/*" \
   ! -name ".*" \
   -exec grep -R -A 100 -e "CORTEX_VERSION" {} \;)
-  output=$(echo "$output" | grep -e "master")
+  output=$(echo "$output" | grep -e "master" || true)
   if [[ $output ]]; then
     echo 'occurrences of "master" which should be changed to the version number:'
     echo "$output"

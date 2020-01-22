@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,13 +23,14 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/lib/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/yaml"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -39,21 +40,21 @@ import (
 	"github.com/docker/docker/pkg/term"
 )
 
-var cachedDockerClient *dockerclient.Client
+var _cachedDockerClient *dockerclient.Client
 
 func getDockerClient() (*dockerclient.Client, error) {
-	if cachedDockerClient != nil {
-		return cachedDockerClient, nil
+	if _cachedDockerClient != nil {
+		return _cachedDockerClient, nil
 	}
 
 	var err error
-	cachedDockerClient, err = dockerclient.NewClientWithOpts(dockerclient.FromEnv)
+	_cachedDockerClient, err = dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 	if err != nil {
 		return nil, wrapDockerError(err)
 	}
 
-	cachedDockerClient.NegotiateAPIVersion(context.Background())
-	return cachedDockerClient, nil
+	_cachedDockerClient.NegotiateAPIVersion(context.Background())
+	return _cachedDockerClient, nil
 }
 
 func wrapDockerError(err error) error {
@@ -109,20 +110,30 @@ func pullManager(managerImage string) error {
 	return nil
 }
 
-func runManager(containerConfig *container.Config, hostConfig *container.HostConfig) (string, error) {
+func runManager(containerConfig *container.Config) (string, *int, error) {
 	docker, err := getDockerClient()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	err = pullManager(containerConfig.Image)
 	if err != nil {
-		return "", err
+		return "", nil, err
+	}
+
+	hostConfig := &container.HostConfig{
+		Mounts: []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: _localDir,
+				Target: "/.cortex",
+			},
+		},
 	}
 
 	containerInfo, err := docker.ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
 	if err != nil {
-		return "", wrapDockerError(err)
+		return "", nil, wrapDockerError(err)
 	}
 
 	removeContainer := func() {
@@ -147,7 +158,7 @@ func runManager(containerConfig *container.Config, hostConfig *container.HostCon
 
 	err = docker.ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
-		return "", wrapDockerError(err)
+		return "", nil, wrapDockerError(err)
 	}
 
 	// There is a slight delay between the container starting at attaching to it, hence the sleep in Cmd
@@ -157,7 +168,7 @@ func runManager(containerConfig *container.Config, hostConfig *container.HostCon
 		Stderr: true,
 	})
 	if err != nil {
-		return "", wrapDockerError(err)
+		return "", nil, wrapDockerError(err)
 	}
 	defer logsOutput.Close()
 
@@ -166,39 +177,51 @@ func runManager(containerConfig *container.Config, hostConfig *container.HostCon
 
 	_, err = io.Copy(os.Stdout, tee)
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", nil, errors.WithStack(err)
 	}
 
 	output := outputBuffer.String()
 
-	// Let the ctrl+C handler run its course
+	// Let the ctrl+c handler run its course
 	if caughtCtrlC {
-		time.Sleep(time.Second)
-		return output, nil
+		time.Sleep(5 * time.Second)
 	}
 
-	return output, nil
+	info, err := docker.ContainerInspect(context.Background(), containerInfo.ID)
+	if err != nil {
+		return "", nil, errors.WithStack(err)
+	}
+
+	if info.State.Running {
+		return output, nil, nil
+	}
+
+	return output, &info.State.ExitCode, nil
 }
 
-func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (string, error) {
+func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Config, awsCreds AWSCredentials) (string, *int, error) {
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", nil, errors.WithStack(err)
 	}
 
-	if err := files.WriteFile(clusterConfigBytes, cachedClusterConfigPath); err != nil {
-		return "", err
+	cachedConfigPath := cachedClusterConfigPath(clusterConfig.ClusterName, *clusterConfig.Region)
+	if err := files.WriteFile(clusterConfigBytes, cachedConfigPath); err != nil {
+		return "", nil, err
 	}
+
+	mountedConfigPath := mountedClusterConfigPath(clusterConfig.ClusterName, *clusterConfig.Region)
+	clusterWorkspace := strings.TrimSuffix(mountedConfigPath, ".yaml")
 
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{"sleep 0.1 && eval $(python /root/cluster_config_env.py /.cortex/cluster.yaml) && " + entrypoint},
+		Cmd:          []string{fmt.Sprintf("sleep 0.1 && eval $(python /root/cluster_config_env.py %s) && %s", mountedConfigPath, entrypoint)},
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"CORTEX_ENVIRONMENT=" + flagEnv,
+			"CORTEX_ENVIRONMENT=" + _flagEnv,
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CORTEX_AWS_ACCESS_KEY_ID=" + awsCreds.CortexAWSAccessKeyID,
@@ -206,62 +229,42 @@ func runManagerCommand(entrypoint string, clusterConfig *clusterconfig.ClusterCo
 			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
 			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
 			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
+			"CORTEX_CLUSTER_CONFIG_FILE=" + mountedConfigPath,
+			"CORTEX_CLUSTER_WORKSPACE=" + clusterWorkspace,
 		},
 	}
 
-	hostConfig := &container.HostConfig{
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: localDir,
-				Target: "/.cortex",
-			},
-		},
-	}
-	output, err := runManager(containerConfig, hostConfig)
+	output, exitCode, err := runManager(containerConfig)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return output, nil
+	return output, exitCode, nil
 }
 
-func runRefreshClusterConfig(clusterConfig *clusterconfig.ClusterConfig, awsCreds *AWSCredentials) (string, error) {
-	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
-	if !files.IsFile(cachedClusterConfigPath) {
-		files.MakeEmptyFile(cachedClusterConfigPath)
-	}
-
+func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.AccessConfig, awsCreds AWSCredentials) (string, *int, error) {
 	containerConfig := &container.Config{
-		Image:        clusterConfig.ImageManager,
+		Image:        accessConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{"sleep 0.1 && /root/refresh.sh"},
+		Cmd:          []string{"sleep 0.1 && " + entrypoint},
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
+			"CORTEX_ENVIRONMENT=" + _flagEnv,
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CORTEX_AWS_ACCESS_KEY_ID=" + awsCreds.CortexAWSAccessKeyID,
 			"CORTEX_AWS_SECRET_ACCESS_KEY=" + awsCreds.CortexAWSSecretAccessKey,
-			"CORTEX_CLUSTER_NAME=" + clusterConfig.ClusterName,
-			"CORTEX_REGION=" + *clusterConfig.Region,
+			"CORTEX_CLUSTER_NAME=" + *accessConfig.ClusterName,
+			"CORTEX_REGION=" + *accessConfig.Region,
 		},
 	}
 
-	hostConfig := &container.HostConfig{
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: localDir,
-				Target: "/.cortex",
-			},
-		},
-	}
-	output, err := runManager(containerConfig, hostConfig)
+	output, exitCode, err := runManager(containerConfig)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return output, nil
+	return output, exitCode, nil
 }

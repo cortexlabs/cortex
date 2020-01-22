@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -183,7 +183,7 @@ func TestListDirRecursive(t *testing.T) {
 		filepath.Join(tmpDir, "4/.git/HEAD"),
 	}
 
-	err = MakeEmptyFiles(filesList...)
+	err = MakeEmptyFiles(filesList[0], filesList[1:]...)
 	require.NoError(t, err)
 
 	var filesListRecursive []string

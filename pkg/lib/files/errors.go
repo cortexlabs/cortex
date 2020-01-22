@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package files
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -39,7 +40,7 @@ const (
 	ErrNotADir
 )
 
-var errorKinds = []string{
+var _errorKinds = []string{
 	"err_unknown",
 	"err_create_dir",
 	"err_read_form_file",
@@ -54,10 +55,10 @@ var errorKinds = []string{
 	"err_not_a_dir",
 }
 
-var _ = [1]int{}[int(ErrNotADir)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrNotADir)-(len(_errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
-	return errorKinds[t]
+	return _errorKinds[t]
 }
 
 // MarshalText satisfies TextMarshaler
@@ -68,8 +69,8 @@ func (t ErrorKind) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *ErrorKind) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(errorKinds); i++ {
-		if enum == errorKinds[i] {
+	for i := 0; i < len(_errorKinds); i++ {
+		if enum == _errorKinds[i] {
 			*t = ErrorKind(i)
 			return nil
 		}
@@ -100,77 +101,78 @@ func (e Error) Error() string {
 }
 
 func ErrorCreateDir(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrCreateDir,
 		message: fmt.Sprintf("%s: unable to create directory", path),
-	}
+	})
 }
 
 func ErrorReadFormFile(fileName string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrReadFormFile,
 		message: fmt.Sprintf("unable to read request form file %s", s.UserStr(fileName)),
-	}
+	})
 }
 
 func ErrorCreateFile(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrCreateFile,
 		message: fmt.Sprintf("%s: unable to create file", path),
-	}
+	})
 }
 
 func ErrorReadDir(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrReadDir,
 		message: fmt.Sprintf("%s: unable to read directory", path),
-	}
+	})
 }
 
 func ErrorReadFile(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrReadFile,
 		message: fmt.Sprintf("%s: unable to read file", path),
-	}
+	})
 }
 
 func ErrorFileAlreadyExists(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrFileAlreadyExists,
 		message: fmt.Sprintf("%s: file already exists", path),
-	}
+	})
 }
 
 func ErrorUnexpected() error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrUnexpected,
 		message: "an unexpected error occurred",
-	}
+	})
 }
+
 func ErrorFileDoesNotExist(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrFileDoesNotExist,
 		message: fmt.Sprintf("%s: file does not exist", path),
-	}
+	})
 }
 
 func ErrorDirDoesNotExist(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrDirDoesNotExist,
 		message: fmt.Sprintf("%s: directory does not exist", path),
-	}
+	})
 }
 
 func ErrorNotAFile(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrNotAFile,
 		message: fmt.Sprintf("%s: not a file path", path),
-	}
+	})
 }
 
 func ErrorNotADir(path string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrNotADir,
 		message: fmt.Sprintf("%s: not a directory path", path),
-	}
+	})
 }

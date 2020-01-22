@@ -36,10 +36,11 @@ aws s3 sync ./bert s3://my-bucket/bert
 Reference your model in an `api`:
 
 ```yaml
-- kind: api
-  name: my-api
-  tensorflow:
+- name: my-api
+  predictor:
+    type: tensorflow
     model: s3://my-bucket/bert
+    path: predictor.py
 ```
 
 You may also zip the export directory before uploading it:
@@ -53,8 +54,9 @@ aws s3 cp bert.zip s3://my-bucket/bert.zip --profile prod
 Reference the zipped model in an `api`:
 
 ```yaml
-- kind: api
-  name: my-api
-  tensorflow:
+- name: my-api
+  predictor:
+    type: tensorflow
     model: s3://my-bucket/bert.zip
+    path: predictor.py
 ```

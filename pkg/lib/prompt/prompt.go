@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,13 +21,13 @@ import (
 	"os"
 	"strings"
 
-	input "github.com/tcnksm/go-input"
-
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	input "github.com/tcnksm/go-input"
 )
 
-var ui = &input.UI{
+var _ui = &input.UI{
 	Writer: os.Stdout,
 	Reader: os.Stdin,
 }
@@ -53,7 +53,7 @@ func Prompt(opts *Options) string {
 		prompt = fmt.Sprintf("%s [%s]", opts.Prompt, defaultStr)
 	}
 
-	val, err := ui.Ask(prompt, &input.Options{
+	val, err := _ui.Ask(prompt, &input.Options{
 		Default:     opts.DefaultStr,
 		Hide:        opts.HideTyping,
 		Mask:        opts.MaskTyping,
@@ -65,7 +65,7 @@ func Prompt(opts *Options) string {
 	})
 
 	if err != nil {
-		if err.Error() == "interrupted" {
+		if errors.Message(err) == "interrupted" {
 			exit.ErrorNoPrintNoTelemetry()
 		}
 		exit.Error(err)
@@ -74,7 +74,7 @@ func Prompt(opts *Options) string {
 	return val
 }
 
-func YesOrExit(prompt string, exitMessage string) {
+func YesOrExit(prompt string, yesMessage string, noMessage string) {
 	for true {
 		str := Prompt(&Options{
 			Prompt:      prompt + " (y/n)",
@@ -82,12 +82,15 @@ func YesOrExit(prompt string, exitMessage string) {
 		})
 
 		if strings.ToLower(str) == "y" {
+			if yesMessage != "" {
+				fmt.Println(yesMessage)
+			}
 			return
 		}
 
 		if strings.ToLower(str) == "n" {
-			if exitMessage != "" {
-				fmt.Println(exitMessage)
+			if noMessage != "" {
+				fmt.Println(noMessage)
 			}
 			exit.ErrorNoPrintNoTelemetry()
 		}
@@ -95,4 +98,31 @@ func YesOrExit(prompt string, exitMessage string) {
 		fmt.Println("please enter \"y\" or \"n\"")
 		fmt.Println()
 	}
+}
+
+func YesOrNo(prompt string, yesMessage string, noMessage string) bool {
+	for true {
+		str := Prompt(&Options{
+			Prompt:      prompt + " (y/n)",
+			HideDefault: true,
+		})
+
+		if strings.ToLower(str) == "y" {
+			if yesMessage != "" {
+				fmt.Println(yesMessage)
+			}
+			return true
+		}
+
+		if strings.ToLower(str) == "n" {
+			if noMessage != "" {
+				fmt.Println(noMessage)
+			}
+			return false
+		}
+
+		fmt.Println("please enter \"y\" or \"n\"")
+		fmt.Println()
+	}
+	return false
 }

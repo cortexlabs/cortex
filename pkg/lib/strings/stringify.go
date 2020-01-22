@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,13 +24,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/cortexlabs/yaml"
 )
-
-var emptyTime time.Time
-var timeType = reflect.ValueOf(emptyTime).Type()
 
 func Bool(val bool) string {
 	return strconv.FormatBool(val)
@@ -104,10 +100,10 @@ func Uintptr(val uintptr) string {
 	return fmt.Sprint(val)
 }
 
-func Round(val float64, decimalPlaces int, pad bool) string {
+func Round(val float64, decimalPlaces int, padToDecimalPlaces int) string {
 	rounded := math.Round(val*math.Pow10(decimalPlaces)) / math.Pow10(decimalPlaces)
 	str := strconv.FormatFloat(rounded, 'f', -1, 64)
-	if !pad || decimalPlaces == 0 {
+	if padToDecimalPlaces == 0 {
 		return str
 	}
 	split := strings.Split(str, ".")
@@ -116,8 +112,39 @@ func Round(val float64, decimalPlaces int, pad bool) string {
 	if len(split) > 1 {
 		decVal = split[1]
 	}
-	numZeros := decimalPlaces - len(decVal)
+	if len(decVal) >= padToDecimalPlaces {
+		return str
+	}
+	numZeros := padToDecimalPlaces - len(decVal)
 	return intVal + "." + decVal + strings.Repeat("0", numZeros)
+}
+
+// copied from https://yourbasic.org/golang/formatting-byte-size-to-human-readable-format/
+func IntToBase2Byte(size int) string {
+	const unit = 1024
+	if size < unit {
+		return fmt.Sprintf("%d B", size)
+	}
+	div, exp := int64(unit), 0
+	for n := size / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB",
+		float64(size)/float64(div), "KMGTPE"[exp])
+
+}
+
+func DollarsAndCents(val float64) string {
+	return "$" + Round(val, 2, 2)
+}
+
+func DollarsAndTenthsOfCents(val float64) string {
+	return "$" + Round(val, 3, 2)
+}
+
+func DollarsMaxPrecision(val float64) string {
+	return "$" + Round(val, 100, 2)
 }
 
 // This is similar to json.Marshal, but handles non-string keys (which we support). It should be valid YAML since we use it in templates

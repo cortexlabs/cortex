@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,9 +19,8 @@ package strings
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/stretchr/testify/require"
 )
 
 type MyFloat float64
@@ -258,29 +257,41 @@ func TestObj(t *testing.T) {
 }
 
 func TestRound(t *testing.T) {
-	require.Equal(t, Round(1.111, 2, false), "1.11")
-	require.Equal(t, Round(1.111, 3, false), "1.111")
-	require.Equal(t, Round(1.111, 4, false), "1.111")
-	require.Equal(t, Round(1.555, 2, false), "1.56")
-	require.Equal(t, Round(1.555, 3, false), "1.555")
-	require.Equal(t, Round(1.555, 4, false), "1.555")
-	require.Equal(t, Round(1.100, 2, false), "1.1")
+	require.Equal(t, Round(1.111, 2, 0), "1.11")
+	require.Equal(t, Round(1.111, 3, 0), "1.111")
+	require.Equal(t, Round(1.111, 4, 0), "1.111")
+	require.Equal(t, Round(1.555, 2, 0), "1.56")
+	require.Equal(t, Round(1.555, 3, 0), "1.555")
+	require.Equal(t, Round(1.555, 4, 0), "1.555")
+	require.Equal(t, Round(1.100, 2, 0), "1.1")
 
-	require.Equal(t, Round(1.111, 2, true), "1.11")
-	require.Equal(t, Round(1.111, 3, true), "1.111")
-	require.Equal(t, Round(1.111, 4, true), "1.1110")
-	require.Equal(t, Round(1.555, 2, true), "1.56")
-	require.Equal(t, Round(1.555, 3, true), "1.555")
-	require.Equal(t, Round(1.555, 4, true), "1.5550")
-	require.Equal(t, Round(1.100, 2, true), "1.10")
+	require.Equal(t, Round(1.111, 2, 2), "1.11")
+	require.Equal(t, Round(1.111, 3, 3), "1.111")
+	require.Equal(t, Round(1.111, 4, 4), "1.1110")
+	require.Equal(t, Round(1.555, 2, 2), "1.56")
+	require.Equal(t, Round(1.555, 3, 3), "1.555")
+	require.Equal(t, Round(1.555, 4, 4), "1.5550")
+	require.Equal(t, Round(1.100, 2, 2), "1.10")
 
-	require.Equal(t, Round(30, 0, true), "30")
-	require.Equal(t, Round(2, 1, true), "2.0")
-	require.Equal(t, Round(1, 2, true), "1.00")
-	require.Equal(t, Round(20, 3, true), "20.000")
+	require.Equal(t, Round(30, 0, 0), "30")
+	require.Equal(t, Round(2, 1, 1), "2.0")
+	require.Equal(t, Round(1, 2, 2), "1.00")
+	require.Equal(t, Round(20, 3, 3), "20.000")
 
-	require.Equal(t, Round(30, 0, false), "30")
-	require.Equal(t, Round(2, 1, false), "2")
-	require.Equal(t, Round(1, 2, false), "1")
-	require.Equal(t, Round(20, 3, false), "20")
+	require.Equal(t, Round(1.5555, 3, 2), "1.556")
+	require.Equal(t, Round(1.5, 3, 2), "1.50")
+	require.Equal(t, Round(1, 3, 2), "1.00")
+
+	require.Equal(t, Round(1.5555, 3, 1), "1.556")
+	require.Equal(t, Round(1.5, 3, 1), "1.5")
+	require.Equal(t, Round(1, 3, 1), "1.0")
+
+	require.Equal(t, Round(1.5555, 3, 4), "1.5560")
+	require.Equal(t, Round(1.5, 3, 4), "1.5000")
+	require.Equal(t, Round(1, 3, 4), "1.0000")
+
+	require.Equal(t, Round(30, 0, 0), "30")
+	require.Equal(t, Round(2, 1, 0), "2")
+	require.Equal(t, Round(1, 2, 0), "1")
+	require.Equal(t, Round(20, 3, 0), "20")
 }

@@ -1,4 +1,4 @@
-# Copyright 2019 Cortex Labs, Inc.
+# Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@ apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   name: apis-gateway
-  namespace: cortex
+  namespace: default
 spec:
   selector:
-    istio: apis-ingressgateway
+    istio: ingressgateway-apis
   servers:
   - port:
       number: 80

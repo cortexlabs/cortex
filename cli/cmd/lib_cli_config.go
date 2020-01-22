@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ type CLIEnvConfig struct {
 	AWSSecretAccessKey string `json:"aws_secret_access_key" yaml:"aws_secret_access_key"`
 }
 
-var cliConfigValidation = &cr.StructValidation{
+var _cliConfigValidation = &cr.StructValidation{
 	TreatNullAsEmpty: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
@@ -59,7 +59,8 @@ var cliConfigValidation = &cr.StructValidation{
 						{
 							StructField: "Name",
 							StringValidation: &cr.StringValidation{
-								Required: true,
+								Required:  true,
+								MaxLength: 63,
 							},
 						},
 						{
@@ -104,6 +105,7 @@ func cliEnvPromptValidation(defaults *CLIEnvConfig) *cr.PromptValidation {
 	}
 
 	return &cr.PromptValidation{
+		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
 				StructField: "OperatorEndpoint",
@@ -195,10 +197,10 @@ func readOrConfigureCLIEnv(environment string) (CLIEnvConfig, error) {
 		return *currentCLIEnvConfig, nil
 	}
 
-	return configureCLIEnv(environment)
+	return configureCLIEnv(environment, CLIEnvConfig{})
 }
 
-func configureCLIEnv(environment string) (CLIEnvConfig, error) {
+func configureCLIEnv(environment string, fieldsToSkipPrompt CLIEnvConfig) (CLIEnvConfig, error) {
 	prevCLIEnvConfig, err := readCLIEnvConfig(environment)
 	if err != nil {
 		return CLIEnvConfig{}, err
@@ -209,7 +211,10 @@ func configureCLIEnv(environment string) (CLIEnvConfig, error) {
 	}
 
 	cliEnvConfig := CLIEnvConfig{
-		Name: environment,
+		Name:               environment,
+		OperatorEndpoint:   fieldsToSkipPrompt.OperatorEndpoint,
+		AWSAccessKeyID:     fieldsToSkipPrompt.AWSAccessKeyID,
+		AWSSecretAccessKey: fieldsToSkipPrompt.AWSSecretAccessKey,
 	}
 
 	err = cr.ReadPrompt(&cliEnvConfig, cliEnvPromptValidation(prevCLIEnvConfig))
@@ -235,8 +240,8 @@ func readCLIConfig() (CLIConfig, error) {
 	}
 
 	cliConfig := CLIConfig{}
-	errs := cr.ParseYAMLFile(&cliConfig, cliConfigValidation, _cliConfigPath)
-	if errors.HasErrors(errs) {
+	errs := cr.ParseYAMLFile(&cliConfig, _cliConfigValidation, _cliConfigPath)
+	if errors.HasError(errs) {
 		return CLIConfig{}, errors.FirstError(errs...)
 	}
 

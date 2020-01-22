@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,6 +16,10 @@ limitations under the License.
 
 package k8s
 
+import (
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+)
+
 type ErrorKind int
 
 const (
@@ -23,15 +27,15 @@ const (
 	ErrParseQuantity ErrorKind = iota
 )
 
-var errorKinds = []string{
+var _errorKinds = []string{
 	"err_unknown",
 	"err_parse_quantity",
 }
 
-var _ = [1]int{}[int(ErrParseQuantity)-(len(errorKinds)-1)] // Ensure list length matches
+var _ = [1]int{}[int(ErrParseQuantity)-(len(_errorKinds)-1)] // Ensure list length matches
 
 func (t ErrorKind) String() string {
-	return errorKinds[t]
+	return _errorKinds[t]
 }
 
 // MarshalText satisfies TextMarshaler
@@ -42,8 +46,8 @@ func (t ErrorKind) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *ErrorKind) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(errorKinds); i++ {
-		if enum == errorKinds[i] {
+	for i := 0; i < len(_errorKinds); i++ {
+		if enum == _errorKinds[i] {
 			*t = ErrorKind(i)
 			return nil
 		}
@@ -74,8 +78,8 @@ func (e Error) Error() string {
 }
 
 func ErrorParseQuantity(qtyStr string) error {
-	return Error{
+	return errors.WithStack(Error{
 		Kind:    ErrParseQuantity,
-		message: qtyStr + ": invalid kubernetes quantity, some valid examples are 1, 200m, 500Mi, 2G (see here for more information: https://www.cortex.dev/deployments/compute)",
-	}
+		message: qtyStr + ": invalid kubernetes quantity, some valid examples are 1, 200m, 500Mi, 2G (see here for more information: https://cortex.dev/deployments/compute)",
+	})
 }

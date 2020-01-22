@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -185,7 +185,7 @@ func ValidateInt64Val(val int64, v *Int64Validation) error {
 
 	if v.AllowedValues != nil {
 		if !slices.HasInt64(v.AllowedValues, val) {
-			return ErrorInvalidInt64(val, v.AllowedValues...)
+			return ErrorInvalidInt64(val, v.AllowedValues[0], v.AllowedValues[1:]...)
 		}
 	}
 

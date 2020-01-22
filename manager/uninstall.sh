@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2019 Cortex Labs, Inc.
+# Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,10 @@
 
 set -e
 
-echo -e "spinning down the cluster ... (this will take a few minutes)\n"
+EKSCTL_TIMEOUT=45m
 
-eksctl delete cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION
+echo -e "spinning down the cluster ...\n"
 
-echo -e "\n✓ spun down the cluster"
+eksctl delete cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --timeout=$EKSCTL_TIMEOUT
+
+echo -e "\n✓ please check cloudformation to ensure that all resources for the ${CORTEX_CLUSTER_NAME} cluster are successfully deleted: https://${CORTEX_REGION}.console.aws.amazon.com/cloudformation"

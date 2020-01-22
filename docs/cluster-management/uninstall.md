@@ -4,7 +4,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 ## Prerequisites
 
-1. [AWS credentials](aws.md)
+1. [AWS credentials](aws-credentials.md)
 2. [Docker](https://docs.docker.com/install)
 3. [Cortex CLI](install.md)
 4. [AWS CLI](https://aws.amazon.com/cli)

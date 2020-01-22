@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -38,6 +39,26 @@ type Header struct {
 	MaxWidth int // Max width of the text (not including spacing). Items that are longer will be truncated to less than MaxWidth to fit the ellipses. If 0 is provided, it defaults to no max.
 	MinWidth int // Min width of the text (not including spacing)
 	Hidden   bool
+}
+
+type Opts struct {
+	Sort *bool // default is true
+}
+
+func mergeTableOptions(options ...*Opts) Opts {
+	mergedOpts := Opts{}
+
+	for _, opt := range options {
+		if opt != nil && opt.Sort != nil {
+			mergedOpts.Sort = opt.Sort
+		}
+	}
+
+	if mergedOpts.Sort == nil {
+		mergedOpts.Sort = pointer.Bool(true)
+	}
+
+	return mergedOpts
 }
 
 func validate(t Table) error {
@@ -66,17 +87,23 @@ func validate(t Table) error {
 	return nil
 }
 
+// Prints the error message as a string (if there is an error)
+func (t *Table) MustPrint() {
+	fmt.Print(t.MustFormat())
+}
+
 // Return the error message as a string
-func MustFormat(t Table) string {
-	str, err := Format(t)
+func (t *Table) MustFormat(opts ...*Opts) string {
+	str, err := t.Format(opts...)
 	if err != nil {
-		return "error: " + err.Error()
+		return "error: " + errors.Message(err)
 	}
 	return str
 }
 
-func Format(t Table) (string, error) {
-	if err := validate(t); err != nil {
+func (t *Table) Format(opts ...*Opts) (string, error) {
+	mergedOpts := mergeTableOptions(opts...)
+	if err := validate(*t); err != nil {
 		return "", err
 	}
 
@@ -151,7 +178,9 @@ func Format(t Table) (string, error) {
 		rowStrs[rowNum] = rowStr
 	}
 
-	sort.Strings(rowStrs)
+	if *mergedOpts.Sort {
+		sort.Strings(rowStrs)
+	}
 
-	return headerStr + "\n" + strings.Join(rowStrs, "\n"), nil
+	return headerStr + "\n" + strings.Join(rowStrs, "\n") + "\n", nil
 }
