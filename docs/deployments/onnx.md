@@ -1,7 +1,5 @@
 # ONNX APIs
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 You can deploy ONNX models as web services by defining a class that implements Cortex's ONNX Predictor interface.
 
 ## Config

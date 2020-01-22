@@ -1,7 +1,5 @@
 # Python APIs
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 You can deploy models from any Python framework by defining a class that implements Cortex's Python Predictor interface. The class constructor is responsible for preparing the model for serving, downloading vocabulary files, etc. The `predict()` class function is called on every request and is responsible for responding with a prediction.
 
 In addition to supporting Python models via the Python Predictor interface, Cortex can serve the following exported model formats:
