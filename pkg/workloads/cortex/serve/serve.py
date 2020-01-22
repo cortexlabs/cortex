@@ -42,7 +42,7 @@ def start(args):
     assert_api_version()
     storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
     try:
-        raw_api_spec = get_spec(args.cache_dir, args.spec)
+        raw_api_spec = get_spec(storage, args.cache_dir, args.spec)
         api = API(storage=storage, cache_dir=args.cache_dir, **raw_api_spec)
         client = api.predictor.initialize_client(args)
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
@@ -164,10 +164,10 @@ def assert_api_version():
         )
 
 
-def get_spec(cache_dir, s3_path):
+def get_spec(storage, cache_dir, s3_path):
     local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
-    bucket, key = S3.deconstruct_s3_path(s3_path)
-    S3(bucket, client_config={}).download_file(key, local_spec_path)
+    _, key = S3.deconstruct_s3_path(s3_path)
+    storage.download_file(key, local_spec_path)
     return util.read_msgpack(local_spec_path)
 
 
