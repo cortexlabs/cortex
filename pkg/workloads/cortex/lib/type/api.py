@@ -64,20 +64,21 @@ class API:
     def metric_dimensions(self):
         return [{"Name": "APIName", "Value": self.name}, {"Name": "APIID", "Value": self.id}]
 
-    def post_request_metrics(self, status_code, start_time, prediction_value=None):
-        metrics_list = []
-        metrics_list.append(self.status_code_metric(status_code))
+    def post_latency_metrics(self, status_code, start_time):
+        metrics = [self.status_code_metric(status_code), self.latency_metric(start_time)]
+        self.post_metrics(metrics)
 
+    def post_tracker_metrics(self, prediction_value=None):
         if prediction_value is not None:
-            metrics_list.append(self.prediction_metrics(prediction_value))
+            metrics = [self.prediction_metrics(prediction_value)]
+            self.post_metrics(metrics)
 
-        metrics_list.append(self.latency_metric(start_time))
-
+    def post_metrics(self, metrics):
         try:
             if self.statsd is None:
                 raise CortexException("statsd client not initialized")  # unexpected
 
-            for metric in metrics_list:
+            for metric in metrics:
                 tags = ["{}:{}".format(dim["Name"], dim["Value"]) for dim in metric["Dimensions"]]
                 if metric.get("Unit") == "Count":
                     self.statsd.increment(metric["MetricName"], value=metric["Value"], tags=tags)
