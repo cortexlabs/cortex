@@ -122,7 +122,7 @@ def after_request(response):
     try:
         api.post_latency_metrics(response.status_code, g.start_time)
 
-        if int(response.status_code / 100) == 2 and api.tracker is not None and response:
+        if int(response.status_code / 100) == 2 and api.tracker is not None:
             predicted_value = api.tracker.extract_predicted_value(prediction)
             api.post_tracker_metrics(predicted_value)
             if predicted_value is not None and predicted_value not in local_cache["class_set"]:
