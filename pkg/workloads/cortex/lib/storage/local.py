@@ -106,21 +106,6 @@ class LocalStorage(object):
             return None
         return msgpack.loads(f.read_bytes())
 
-    def put_pyobj(self, obj, key):
-        f = self._get_or_create_path(key)
-        f.write_bytes(pickle.dumps(obj))
-
-    def get_pyobj(self, key, bucket, allow_missing=False, num_retries=0, retry_delay_sec=2):
-        f = self._get_path_if_exists(
-            key,
-            allow_missing=allow_missing,
-            num_retries=num_retries,
-            retry_delay_sec=retry_delay_sec,
-        )
-        if f is None:
-            return None
-        return pickle.loads(f.read_bytes())
-
     def upload_file(self, local_path, key):
         shutil.copy(local_path, str(self._get_or_create_path(key)))
 
@@ -130,11 +115,6 @@ class LocalStorage(object):
             shutil.copy(str(self._get_path(key)), local_path)
         except Exception as e:
             raise CortexException("file not found", key) from e
-
-    def zip_and_upload(self, local_path, key):
-        util.zip_dir(local_path, "temp.zip")
-        self.upload_file("temp.zip", key)
-        util.rm_file("temp.zip")
 
     def download_and_unzip(self, key, local_dir):
         util.mkdir_p(local_dir)

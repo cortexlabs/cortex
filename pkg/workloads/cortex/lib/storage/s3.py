@@ -160,20 +160,6 @@ class S3(object):
             return None
         return msgpack.loads(obj, raw=False)
 
-    def put_pyobj(self, obj, key):
-        self._upload_string_to_s3(pickle.dumps(obj), key)
-
-    def get_pyobj(self, key, allow_missing=False, num_retries=0, retry_delay_sec=2):
-        obj = self._read_bytes_from_s3(
-            key,
-            allow_missing=allow_missing,
-            num_retries=num_retries,
-            retry_delay_sec=retry_delay_sec,
-        )
-        if obj is None:
-            return None
-        return pickle.loads(obj)
-
     def upload_file(self, local_path, key):
         self.s3.upload_file(local_path, self.bucket, key)
 
@@ -205,11 +191,6 @@ class S3(object):
             rel_path = util.trim_prefix(key, prefix)
             local_dest_path = os.path.join(local_dir, rel_path)
             self.download_file(key, local_dest_path)
-
-    def zip_and_upload(self, local_path, key):
-        util.zip_dir(local_path, "temp.zip")
-        self.s3.upload_file("temp.zip", self.bucket, key)
-        util.rm_file("temp.zip")
 
     def download_and_unzip(self, key, local_dir):
         util.mkdir_p(local_dir)
