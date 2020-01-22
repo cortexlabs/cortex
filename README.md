@@ -9,7 +9,7 @@ Cortex is an open source platform for deploying machine learning models as produ
 [install](https://cortex.dev/install) • [tutorial](https://cortex.dev/iris-classifier) • [docs](https://cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.13/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
 
 <!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
-![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.12.gif)
+![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.13.gif)
 
 <br>
 
