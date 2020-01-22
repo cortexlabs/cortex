@@ -7,11 +7,10 @@ from utils.utils import get_yolo_boxes
 class YOLOv3Predictor():
     def __init__(self, config):
         s3 = boto3.client("s3")
-        model_name = "license_plate.h5"
-        s3.download_file(config["bucket"], config["key"], model_name)
-        self.model = load_model(model_name)
+        s3.download_file(config["bucket"], config["key"], config["model_name"])
+        self.model = load_model(config["model_name"])
 
-        with open('data.txt') as json_file:
+        with open(config["model_config"]) as json_file:
             data = json.load(json_file)
         for key in data:
             setattr(self, key, data[key])
