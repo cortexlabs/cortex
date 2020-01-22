@@ -88,7 +88,7 @@ func getAPIs() (string, error) {
 		return console.Bold("no apis are deployed"), nil
 	}
 
-	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics)
+	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics, true)
 	return t.MustFormat(), nil
 }
 
@@ -109,7 +109,7 @@ func getAPI(apiName string) (string, error) {
 
 	var out string
 
-	t := apiTable([]spec.API{apiRes.API}, []status.Status{apiRes.Status}, []metrics.Metrics{apiRes.Metrics})
+	t := apiTable([]spec.API{apiRes.API}, []status.Status{apiRes.Status}, []metrics.Metrics{apiRes.Metrics}, false)
 	out += t.MustFormat()
 
 	api := apiRes.API
@@ -137,7 +137,7 @@ func getAPI(apiName string) (string, error) {
 	return out, nil
 }
 
-func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Metrics) table.Table {
+func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Metrics, includeAPIName bool) table.Table {
 	rows := make([][]interface{}, 0, len(apis))
 
 	var totalFailed int32
@@ -174,7 +174,7 @@ func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Me
 
 	return table.Table{
 		Headers: []table.Header{
-			{Title: "api"},
+			{Title: "api", Hidden: !includeAPIName},
 			{Title: "status"},
 			{Title: "up-to-date"},
 			{Title: "stale", Hidden: totalStale == 0},

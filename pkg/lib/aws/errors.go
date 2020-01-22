@@ -33,6 +33,7 @@ const (
 	ErrInvalidS3Path
 	ErrAuth
 	ErrBucketInaccessible
+	ErrBucketNotFound
 	ErrInstanceTypeLimitIsZero
 	ErrNoValidSpotPrices
 	ErrReadCredentials
@@ -45,6 +46,7 @@ var _errorKinds = []string{
 	"err_invalid_s3_path",
 	"err_auth",
 	"err_bucket_inaccessible",
+	"err_bucket_not_found",
 	"err_instance_type_limit_is_zero",
 	"err_no_valid_spot_prices",
 	"err_read_credentials",
@@ -154,6 +156,13 @@ func ErrorBucketInaccessible(bucket string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrBucketInaccessible,
 		message: fmt.Sprintf("bucket \"%s\" not found or insufficient permissions", bucket),
+	})
+}
+
+func ErrorBucketNotFound(bucket string) error {
+	return errors.WithStack(Error{
+		Kind:    ErrBucketNotFound,
+		message: fmt.Sprintf("bucket \"%s\" not found", bucket),
 	})
 }
 
