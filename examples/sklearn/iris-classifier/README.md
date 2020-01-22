@@ -132,8 +132,8 @@ Track the status of your api using `cortex get`:
 ```bash
 $ cortex get iris-classifier --watch
 
-status   up-to-date   requested   last update   avg inference
-live     1            1           8s            -
+status   up-to-date   requested   last update   avg inference   2XX
+live     1            1           8s            -               -
 
 endpoint: http://***.amazonaws.com/iris-classifier
 ```
@@ -150,7 +150,7 @@ $ cortex logs iris-classifier
 
 ## Serve real-time predictions
 
-We can use `curl` to test our prediction service:
+You can use `curl` to test your prediction service:
 
 ```bash
 $ curl http://***.amazonaws.com/iris-classifier \
@@ -193,8 +193,8 @@ After making more predictions, your `cortex get` command will show information a
 ```bash
 $ cortex get iris-classifier --watch
 
-status   up-to-date   requested   last update   avg inference
-live     1            1           16s           28ms
+status   up-to-date   requested   last update   avg inference   2XX
+live     1            1           10m           28ms            14
 
 class        count
 setosa       8
@@ -236,8 +236,8 @@ Run `cortex get` again:
 ```bash
 $ cortex get iris-classifier --watch
 
-status   up-to-date   requested   last update   avg inference
-live     1            1           16s           24 ms
+status   up-to-date   requested   last update   avg inference   2XX
+live     1            1           10m           24ms            14
 
 class        count
 setosa       8
@@ -378,8 +378,12 @@ Run `cortex deploy` to create your batch API:
 ```bash
 $ cortex deploy
 
+updating iris-classifier
+updating another-iris-classifier
 creating batch-iris-classifier
 ```
+
+Since a new file was added to the directory, and all files in the directory containing `cortex.yaml` are made available in your APIs, the previous two APIs were updated in addition to the the batch classifier being created.
 
 `cortex get` should show all 3 APIs now:
 
@@ -387,9 +391,9 @@ creating batch-iris-classifier
 $ cortex get --watch
 
 api                       status   up-to-date   requested   last update
-iris-classifier           live     1            1           10m
-another-iris-classifier   live     1            1           5m
-batch-iris-classifier     live     1            1           8s
+iris-classifier           live     1            1           17s
+another-iris-classifier   live     1            1           17s
+batch-iris-classifier     live     1            1           17s
 ```
 
 <br>
@@ -401,23 +405,23 @@ $ curl http://***.amazonaws.com/batch-iris-classifier \
     -X POST -H "Content-Type: application/json" \
     -d '[
           {
-        		"sepal_length": 5.2,
-        		"sepal_width": 3.6,
-        		"petal_length": 1.5,
-        		"petal_width": 0.3
-        	},
-        	{
-        		"sepal_length": 7.1,
-        		"sepal_width": 3.3,
-        		"petal_length": 4.8,
-        		"petal_width": 1.5
-        	},
-        	{
-        		"sepal_length": 6.4,
-        		"sepal_width": 3.4,
-        		"petal_length": 6.1,
-        		"petal_width": 2.6
-        	}
+            "sepal_length": 5.2,
+            "sepal_width": 3.6,
+            "petal_length": 1.5,
+            "petal_width": 0.3
+          },
+          {
+            "sepal_length": 7.1,
+            "sepal_width": 3.3,
+            "petal_length": 4.8,
+            "petal_width": 1.5
+          },
+          {
+            "sepal_length": 6.4,
+            "sepal_width": 3.4,
+            "petal_length": 6.1,
+            "petal_width": 2.6
+          }
         ]'
 
 ["setosa","versicolor","virginica"]
