@@ -407,8 +407,8 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
 
-	bucketRegion, err := aws.GetBucketRegion(*cc.Bucket)
-	if err == nil && bucketRegion != "" && bucketRegion != *cc.Region {
+	bucketRegion, _ := aws.GetBucketRegion(*cc.Bucket)
+	if bucketRegion != "" && bucketRegion != *cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
 		return ErrorS3RegionDiffersFromCluster(*cc.Bucket, bucketRegion, *cc.Region)
 	}
 
