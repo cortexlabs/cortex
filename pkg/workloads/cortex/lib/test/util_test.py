@@ -13,19 +13,7 @@
 # limitations under the License.
 
 from copy import deepcopy
-import pytest
-
 from cortex.lib import util
-import logging
-
-
-def test_snake_to_camel():
-    assert util.snake_to_camel("ONE_TWO_THREE") == "oneTwoThree"
-    assert util.snake_to_camel("ONE_TWO_THREE", lower=False) == "OneTwoThree"
-    assert util.snake_to_camel("ONE_TWO_THREE", sep="-") == "one_two_three"
-    assert util.snake_to_camel("ONE-TWO-THREE", sep="-") == "oneTwoThree"
-    assert util.snake_to_camel("ONE") == "one"
-    assert util.snake_to_camel("ONE", lower=False) == "One"
 
 
 def test_merge_dicts():
@@ -54,13 +42,3 @@ def test_merge_dicts():
     util.merge_dicts_in_place_no_overwrite(dict1_copy, dict2)
     assert expected2 == dict1_copy
     assert dict1 != dict1_copy
-
-
-def test_is_number_col():
-    assert util.is_number_col([1, 2, 3, 4])
-    assert util.is_number_col([1, 0.2, 3, 0.4])
-    assert not util.is_number_col([1, "2", 3, 0.4])
-    assert not util.is_number_col(["1", "2", "3", ".4"])
-    assert util.is_number_col([None, 1, None])
-    assert util.is_number_col([None, 1.1, None])
-    assert not util.is_number_col([None, None, None])
