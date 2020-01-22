@@ -60,7 +60,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   ! -path "./.git/*" \
   ! -name ".*" \
   -print0 | \
-  xargs -0 sed -i '' -e "s/WARNING: you are on the master branch, please refer to the examples on the branch that matches.*/this is an example for cortex release ${git_branch} and may not deploy correctly on other releases of cortex/"
+  xargs -0 sed -i '' -e "s/WARNING: you are on the master branch, please refer to the examples on the branch that matches your \`cortex version\`/this is an example for cortex release ${git_branch} and may not deploy correctly on other releases of cortex/"
 else
   cd "$ROOT" && find . -type f \
   ! -path "./build/lint.sh" \
@@ -70,7 +70,7 @@ else
   ! -path "./.git/*" \
   ! -name ".*" \
   -print0 | \
-  xargs -0 sed -i "s/WARNING: you are on the master branch, please refer to the examples on the branch that matches.*/this is an example for cortex release ${git_branch} and may not deploy correctly on other releases of cortex/"
+  xargs -0 sed -i "s/WARNING: you are on the master branch, please refer to the examples on the branch that matches your \`cortex version\`/this is an example for cortex release ${git_branch} and may not deploy correctly on other releases of cortex/"
 fi
 
 echo "done"
