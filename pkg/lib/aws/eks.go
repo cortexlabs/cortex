@@ -14,9 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//go:generate python3 gen_resource_metadata.py
-//go:generate gofmt -s -w resource_metadata.go
-
 package aws
 
 import (
