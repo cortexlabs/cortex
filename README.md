@@ -5,7 +5,7 @@ Cortex is an open source platform for deploying machine learning models as produ
 <br>
 
 <!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
-![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.12.gif)
+![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.13.gif)
 
 <br>
 
