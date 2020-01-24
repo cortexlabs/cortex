@@ -59,6 +59,21 @@ def draw_boxes(image, boxes, labels, obj_thresh, quiet=True):
         
     return image
 
+def _interval_overlap(interval_a, interval_b):
+    x1, x2 = interval_a
+    x3, x4 = interval_b
+
+    if x3 < x1:
+        if x4 < x1:
+            return 0
+        else:
+            return min(x2,x4) - x1
+    else:
+        if x2 < x3:
+             return 0
+        else:
+            return min(x2,x4) - x3  
+
 def bbox_iou(box1, box2):
     intersect_w = _interval_overlap([box1.xmin, box1.xmax], [box2.xmin, box2.xmax])
     intersect_h = _interval_overlap([box1.ymin, box1.ymax], [box2.ymin, box2.ymax])  
