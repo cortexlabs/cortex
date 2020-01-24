@@ -4,5 +4,18 @@ First, download the license plate model. Its name is `license_plate.h5`. Downloa
 
 Then, make sure `aws` is configured and upload it to the cortex cluster's bucket.
 ```bash
-aws s3 cp file.txt s3://my-bucket/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers full=emailaddress=user@example.com
+aws s3 cp mymodel.h5 s3://my-bucket/path/to/file.h5
+```
+
+## To Save an Image as String
+
+```python
+# encode image in b64 format
+img = open("image.jpg", "rb").read()
+img_enc = base64.b64encode().decode("utf-8")
+
+# decode b64 image back to its original form
+img_dec = base64.b64decode(img_enc.encode("utf-8"))
+jpg_as_np = np.frombuffer(img_dec, dtype=np.uint8)
+img_final = cv2.imdecode(jpg_as_np, flags=1)
 ```
