@@ -2,7 +2,6 @@
 import boto3
 import json
 import re
-import requests
 import base64
 import numpy as np
 import cv2
@@ -44,4 +43,4 @@ class PythonPredictor():
         self.anchors, self.obj_thresh, self.nms_thresh)[0]
         no_license_plates = len(boxes)
 
-        return boxes
+        return no_license_plates
