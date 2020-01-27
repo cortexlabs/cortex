@@ -39,8 +39,12 @@ REGIONS = [
 
 OUTPUT_FILE_NAME = "resource_metadata.go"
 
-PRICING_ENDPOINT_TEMPLATE = (
+EC2_PRICING_ENDPOINT_TEMPLATE = (
     "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/{}/index.json"
+)
+
+EKS_PRICING_ENDPOINT_TEMPLATE = (
+    "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEKS/current/{}/index.json"
 )
 
 
@@ -136,6 +140,29 @@ def get_ebs_metadata(pricing):
         return {"price": float(price)}
 
 
+def get_eks_price(region):
+    response = requests.get(EKS_PRICING_ENDPOINT_TEMPLATE.format(region))
+    pricing = response.json()
+
+    for product_id, product in pricing["products"].items():
+        if product.get("attributes") is None:
+            continue
+        if product.get("productFamily") != "Compute":
+            continue
+        if product["attributes"].get("servicecode") != "AmazonEKS":
+            continue
+        if product["attributes"].get("operation") != "CreateOperation":
+            continue
+        if not product["attributes"].get("usagetype", "").endswith("-AmazonEKS-Hours:perCluster"):
+            continue
+
+        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[0][
+            "priceDimensions"
+        ]
+        price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
+        return float(price)
+
+
 file_template = Template(
     """/*
 Copyright 2020 Cortex Labs, Inc.
@@ -204,6 +231,11 @@ var NATMetadatas = map[string]NATMetadata{
 var EBSMetadatas = map[string]EBSMetadata{
     ${ebs_region_map}
 }
+
+// region -> EKS price
+var EKSPrices = map[string]float64{
+    ${eks_region_map}
+}
 """
 )
 
@@ -234,23 +266,30 @@ ebs_region_map_template = Template(
 """
 )
 
+eks_region_map_template = Template(
+    """"${region}": ${price},
+"""
+)
+
 
 def main():
     instance_region_map_str = ""
     elb_region_map_str = ""
     nat_region_map_str = ""
     ebs_region_map_str = ""
+    eks_region_map_str = ""
 
     for i, region in enumerate(sorted(REGIONS), start=1):
         print("generating region {}/{} ({})...".format(i, len(REGIONS), region))
 
-        response = requests.get(PRICING_ENDPOINT_TEMPLATE.format(region))
+        response = requests.get(EC2_PRICING_ENDPOINT_TEMPLATE.format(region))
         pricing = response.json()
 
         instance_metadatas = get_instance_metadatas(pricing)
         elb_metadata = get_elb_metadata(pricing)
         nat_metadata = get_nat_metadata(pricing)
         ebs_metadata = get_ebs_metadata(pricing)
+        eks_price = get_eks_price(region)
 
         instance_metadatas_str = ""
 
@@ -279,6 +318,9 @@ def main():
         ebs_region_map_str += ebs_region_map_template.substitute(
             {"region": region, "price": ebs_metadata["price"]}
         )
+        eks_region_map_str += eks_region_map_template.substitute(
+            {"region": region, "price": eks_price}
+        )
 
     file_str = file_template.substitute(
         {
@@ -286,6 +328,7 @@ def main():
             "elb_region_map": elb_region_map_str,
             "nat_region_map": nat_region_map_str,
             "ebs_region_map": ebs_region_map_str,
+            "eks_region_map": eks_region_map_str,
         }
     )
 
