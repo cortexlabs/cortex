@@ -17,11 +17,15 @@ RUN apt-get update -qq && apt-get install -y -q \
         libsm6 \
         libxext6 \
         libxrender-dev \
+        locales \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/* && \
     curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
     python3.6 get-pip.py && \
     pip install --upgrade pip && \
     rm -rf /root/.cache/pip*
+
+RUN locale-gen en_US.UTF-8
+ENV LANG=en_US.UTF-8 LANGUAGE=en_US.en LC_ALL=en_US.UTF-8
 
 ENV PYTHONPATH "${PYTHONPATH}:/src:/mnt/project"
 
