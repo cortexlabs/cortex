@@ -805,7 +805,7 @@ var AccessPromptValidation = &cr.PromptValidation{
 
 func validateClusterName(clusterName string) (string, error) {
 	if !_strictS3BucketRegex.MatchString(clusterName) {
-		return "", errors.Wrap(ErrorDidNotMatchStrictS3Regex(), ClusterNameKey, clusterName)
+		return "", errors.Wrap(ErrorDidNotMatchStrictS3Regex(), clusterName)
 	}
 	return clusterName, nil
 }
