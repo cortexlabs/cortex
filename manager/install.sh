@@ -81,10 +81,18 @@ function ensure_eks() {
 
   # Check for change in min/max instances
   asg_on_demand_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-on-demand\`)]")
-  asg_on_demand_name=$(echo "$asg_on_demand_info" | jq -r 'first | .AutoScalingGroupName')
+  asg_on_demand_length=$(echo "$asg_on_demand_info" | jq -r 'length')
+  asg_on_demand_name=""
+  if (( "$asg_on_demand_length" > "0" )); then
+    asg_on_demand_name=$(echo "$asg_on_demand_info" | jq -r 'first | .AutoScalingGroupName')
+  fi
 
   asg_spot_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
-  asg_spot_name=$(echo "$asg_spot_info" | jq -r 'first | .AutoScalingGroupName')
+  asg_spot_length=$(echo "$asg_spot_info" | jq -r 'length')
+  asg_spot_name=""
+  if (( "$asg_spot_length" > "0" )); then
+    asg_spot_name=$(echo "$asg_spot_info" | jq -r 'first | .AutoScalingGroupName')
+  fi
 
   if [[ -z $asg_spot_name ]]; then
     asg_min_size=$(echo "$asg_on_demand_info" | jq -r 'first | .MinSize')
@@ -94,9 +102,14 @@ function ensure_eks() {
     asg_max_size=$(echo "$asg_spot_info" | jq -r 'first | .MaxSize')
   fi
 
+  if [[ -z "$asg_spot_name" ]] && [[ -z "$asg_on_demand_name" ]]; then
+    echo "error: unable to find valid autoscaling groups"
+    exit 1
+  fi
+
   if [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ]; then
     echo -n "￮ updating min instances to $CORTEX_MIN_INSTANCES "
-
+    # only update min if on demand nodegroup exists and on demand nodegroup is not a backup
     if [[ -n $asg_on_demand_name ]] && [[ "$CORTEX_SPOT_CONFIG_ON_DEMAND_BACKUP" != "True" ]]; then
       aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_on_demand_name --min-size=$CORTEX_MIN_INSTANCES
     fi
