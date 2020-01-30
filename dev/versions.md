@@ -96,6 +96,10 @@ The Python version in the base images for `tf-api` and `onnx-serve-gpu`/`python-
 
 Note: it's ok if example training notebooks aren't upgraded, as long as the exported model still works
 
+## TensorRT
+
+1. Update to the latest version of TensorRT in `images/tf-serve-gpu/Dockerfile` ([install guide](https://docs.nvidia.com/deeplearning/sdk/tensorrt-install-guide/index.html), [release notes](https://docs.nvidia.com/deeplearning/sdk/tensorrt-release-notes/index.html))
+
 ## ONNX runtime
 
 1. Update the version in `onnx-cpu.requirements.txt` and `onnx-gpu.requirements.txt` ([releases](https://github.com/microsoft/onnxruntime/releases))
