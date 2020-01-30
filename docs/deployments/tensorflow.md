@@ -113,7 +113,7 @@ requests==2.22.0
 opencv-python==4.1.2.30
 tensor2tensor==1.15.2
 tensorflow-hub==0.7.0
-tensorflow==2.0.0
+tensorflow==2.1.0
 ```
 
 Learn how to install additional packages [here](../dependency-management/python-packages.md).

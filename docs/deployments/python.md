@@ -153,7 +153,7 @@ statsmodels==0.10.2
 sympy==1.5
 tensor2tensor==1.15.2
 tensorflow-hub==0.7.0
-tensorflow==2.0.0
+tensorflow==2.1.0
 torch==1.3.1
 torchvision==0.4.2
 xgboost==0.90

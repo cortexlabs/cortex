@@ -1,1 +1,1 @@
-FROM tensorflow/serving:2.0.0-gpu
+FROM tensorflow/serving:2.1.0-gpu
