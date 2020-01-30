@@ -1,5 +1,5 @@
 opencv-python==4.1.2.30
-tensor2tensor==1.15.2
+tensor2tensor==1.15.4
 tensorflow-hub==0.7.0
 
 flask-api==1.1
