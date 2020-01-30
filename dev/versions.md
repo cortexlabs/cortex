@@ -89,8 +89,8 @@ The Python version in the base images for `tf-api` and `onnx-serve-gpu`/`python-
 1. Run `docker run --rm -it nvidia/cuda:***`, and in the container run `cat /etc/lsb-release`
 1. The Ubuntu versions should match; if they do not, downgrade whichever one is too advanced
 1. The minor Python version in `tensorflow/tensorflow` must be used in all dockerfiles; search for e.g. `python3.6-dev` and update accordingly
-1. Update TensorFlow version listed in `tensorflow.md`
-1. Search the codebase for the current minor TensorFlow version (e.g. `2.0`) and update versions as appropriate
+1. Update TensorFlow version listed in `tensorflow.md` and `python.md`
+1. Search the codebase for the current minor TensorFlow version (e.g. `2.1`) and update versions as appropriate
 1. Search the codebase for the minor Python version (e.g. `3.6`) and update versions as appropriate
 1. Search the codebase for `ubuntu` and update versions as appropriate
 
@@ -98,7 +98,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 ## ONNX runtime
 
-1. Update `ONNXRUNTIME_VERSION` in `images/onnx-serve/Dockerfile` and `images/onnx-serve-gpu/Dockerfile` ([releases](https://github.com/microsoft/onnxruntime/releases))
+1. Update the version in `onnx-cpu.requirements.txt` and `onnx-gpu.requirements.txt` ([releases](https://github.com/microsoft/onnxruntime/releases))
 1. Update the version listed for `onnxruntime` in "Pre-installed Packages" in `onnx.md`
 1. Search the codebase for the previous ONNX runtime version
 
