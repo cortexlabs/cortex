@@ -4,12 +4,15 @@ import base64
 import pickle
 import json
 import picamera
+import cv2
 import logging
 import requests
 import queue
 import threading as td
 import multiprocessing as mp
+import numpy as np
 from utils.bbox import BoundBox
+from requests_toolbelt.adapters.source import SourceAddressAdapter
 
 logger = logging.getLogger(__name__)
 stream_handler = logging.StreamHandler()
@@ -20,6 +23,12 @@ logger.addHandler(stream_handler)
 logger.setLevel(logging.DEBUG)
 
 api_endpoint = "http://Roberts-MacBook-2.local/predict"
+# api_endpoint = "http://a8ebac3e744d111ea981b06a64f9c668-1180365019.eu-central-1.elb.amazonaws.com/yolov3"
+
+session = requests.Session()
+interface_ip = "192.168.0.59"
+session.mount('http://', SourceAddressAdapter(interface_ip))
+session.mount('https://', SourceAddressAdapter(interface_ip))
 
 class GracefullKiller():
     kill_now = False
@@ -52,14 +61,24 @@ class InferenceWorker(td.Thread):
             # logger.warning("no data available for worker")
             return
 
+        # extract frame
         frame_num = data["frame_num"]
         img = data["jpeg"]
-        img_enc = base64.b64encode(img).decode("utf-8")
+
+        # preprocess/compress the image
+        image = self.image_from_bytes(img)
+        reduced = self.compress_image(image)
+        byte_im = self.image_to_jpeg_bytes(reduced)
+        # logger.debug("reduced image size from {}KB down to {}KB".format(len(img) // 1024, len(byte_im) // 1024))
+
+        # encode image
+        img_enc = base64.b64encode(byte_im).decode("utf-8")
         dump = json.dumps({"img": img_enc})
 
+        # make inference request
         try:
             start = time.time()
-            resp = requests.post("http://Roberts-MacBook-2.local/predict", 
+            resp = session.post(api_endpoint, 
             data=dump, headers={'content-type':'application/json'}, timeout=1.000)
             end = time.time()
         except requests.exceptions.Timeout as e:
@@ -68,16 +87,53 @@ class InferenceWorker(td.Thread):
         except:
             logger.warning("timing/connection error")
             return
+
+        # calculate average rtt (use complementary filter)
         current = int((end - start) * 1000)
         if not self.rtt_ms:
             self.rtt_ms = current
         else:
             self.rtt_ms = self.rtt_ms * 0.98 + current * 0.02
-        logger.debug("Frame Count: {} - Avg RTT: {}".format(frame_num, self.rtt_ms))
         
+        # parse response
         r_dict = resp.json()
-        data = pickle.loads(r_dict.encode('utf-8'))
+        boxes_raw = r_dict["boxes"]
+        boxes = []
+        for box in boxes_raw:
+            boxes.append(BoundBox(*box))
+        logger.debug("Frame Count: {} - Avg RTT: {} - Detected: {}".format(frame_num, self.rtt_ms, len(boxes) != 0))
         
+        # push data for further processing in the queue
+        output = {
+            "boxes": boxes,
+            "frame_num": frame_num,
+            "avg_rtt": self.rtt_ms,
+            "image": img
+        }
+
+        self.out_queue.put(output)
+
+    def compress_image(self, image, desired_square_height=416, top_crop_percent=0.45):
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        width = image.shape[1]
+        scale_percent = desired_square_height / width
+        width = int(image.shape[1] * scale_percent)
+        height = int(image.shape[0] * scale_percent)
+        image = cv2.resize(image, (width, height), interpolation = cv2.INTER_AREA)
+        image[:int(height * top_crop_percent)] = 128
+
+        return image
+
+    def image_from_bytes(self, byte_im):
+        nparr = np.frombuffer(byte_im, np.uint8)
+        img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        return img_np
+
+    def image_to_jpeg_bytes(self, image):
+        is_success, im_buf_arr = cv2.imencode(".jpg", image)
+        byte_im = im_buf_arr.tobytes()
+        return byte_im
 
 class WorkerPool(mp.Process):
     def __init__(self, in_queue, out_queue, pool_size, name=None, daemon=None):
@@ -124,7 +180,7 @@ class DistributeFramesAndInfer():
 
 def main():
     killer = GracefullKiller()
-    workers = 4
+    workers = 12
     logger.info("initializing pool w/ " + str(workers) + " workers")
     output = DistributeFramesAndInfer(workers)
     logger.info("initialized worker pool")
@@ -144,7 +200,7 @@ def main():
         while not killer.kill_now:
             camera.wait_recording(timeout=0.5, splitter_port=0)
             camera.wait_recording(timeout=0.5, splitter_port=1)
-            logger.info('avg producing queue size: {}'.format(output.in_queue.qsize()))
+            logger.info('avg producing/consuming queue size: {}, {}'.format(output.in_queue.qsize(), output.out_queue.qsize()))
 
         logger.info("gracefully exiting")
         camera.stop_recording(splitter_port=0)
