@@ -1,0 +1,4 @@
+requests
+picamera
+numpy
+opencv-contrib-python==4.1.0.25
