@@ -1,11 +1,13 @@
 - name: yolov3
   predictor:
-    type: python
+    type: tensorflow
     path: predictor.py
+    model: s3://cortex-0/examples/tensorflow/license-plate-reader/yolov3
+    signature_key: serving_default
     config:
-        model: s3://cortex-0/examples/tensorflow/license-plate-reader/model.h5
         model_config: config.json
   compute:
-    cpu: 1
-    mem: 6G
-    max_replicas: 5
+    cpu: 2
+    gpu: 1
+    mem: 8G
+    max_replicas: 3

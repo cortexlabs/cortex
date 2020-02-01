@@ -1,7 +1,7 @@
 # cluster.yaml
 
 # EKS cluster name for cortex (default: cortex)
-cluster_name: cortex-0
+cluster_name: cortex-1
 
 # AWS region
 region: eu-central-1
@@ -10,7 +10,7 @@ region: eu-central-1
 bucket: cortex-0
 
 # instance type
-instance_type: t2.large
+instance_type: p2.xlarge
 
 # minimum number of instances (must be >= 0)
 min_instances: 1
@@ -30,17 +30,19 @@ spot: true
 
 spot_config:
     # additional instances with identical or better specs than the primary instance type (defaults to 2 instances sorted by price)
-    instance_distribution: [t3a.large, m5.large]
+    # instance_distribution: [p2.xlarge]
   
     # minimum number of on demand instances (default: 0)
     on_demand_base_capacity: 0
   
     # percentage of on demand instances to use after the on demand base capacity has been met [0, 100] (default: 50)
     # note: setting this to 0 may hinder cluster scale up when spot instances are not available
-    on_demand_percentage_above_base_capacity: 10
+    on_demand_percentage_above_base_capacity: 0
   
     # number of spot instance pools across which to allocate spot instances [1, 20] (default: number of instances in instance distribution)
     instance_pools: 3
   
     # fallback to on-demand instances if spot instances were unable to be allocated (default: true)
     on_demand_backup: true
+
+image_tf_serve_gpu: cortexlabs/tf-serve-gpu:0.12.0
