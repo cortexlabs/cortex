@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import math
 from .bbox import BoundBox, bbox_iou
 from scipy.special import expit
 
@@ -103,8 +104,9 @@ def preprocess_input(image, net_h, net_w):
     new_image = np.expand_dims(new_image, 0)
 
     return new_image
-       
-def get_yolo_boxes(model, images, net_h, net_w, anchors, obj_thresh, nms_thresh):
+    
+
+def get_yolo_boxes(model, images, net_h, net_w, anchors, obj_thresh, nms_thresh, classes):
     image_h, image_w, _ = images[0].shape
     nb_images           = len(images)
     batch_input         = np.zeros((nb_images, net_h, net_w, 3))
@@ -114,28 +116,29 @@ def get_yolo_boxes(model, images, net_h, net_w, anchors, obj_thresh, nms_thresh)
         batch_input[i] = preprocess_input(images[i], net_h, net_w)        
 
     # run the prediction
-    batch_output = model.predict_on_batch(batch_input)
-    batch_boxes  = [None]*nb_images
+    output = model.predict({"input_1": batch_input})
+    yolos = [output["conv_81"], output["conv_93"], output["conv_105"]]
 
-    for i in range(nb_images):
-        yolos = [batch_output[0][i], batch_output[1][i], batch_output[2][i]]
-        boxes = []
+    filters = 3 * (5 + classes)
+    for i in range(len(yolos)):
+        length = len(yolos[i])
+        box_size = int(math.sqrt(length / filters))
+        yolos[i] = np.array(yolos[i]).reshape((box_size, box_size, filters))
 
-        # decode the output of the network
-        for j in range(len(yolos)):
-            yolo_anchors = anchors[(2-j)*6:(3-j)*6] # config['model']['anchors']
-            boxes += decode_netout(yolos[j], yolo_anchors, obj_thresh, net_h, net_w)
+    boxes = []
+    # decode the output of the network
+    for j in range(len(yolos)):
+        yolo_anchors = anchors[(2-j)*6:(3-j)*6] # config['model']['anchors']
+        boxes += decode_netout(yolos[j], yolo_anchors, obj_thresh, net_h, net_w)
 
-        # correct the sizes of the bounding boxes
-        correct_yolo_boxes(boxes, image_h, image_w, net_h, net_w)
+    # correct the sizes of the bounding boxes
+    correct_yolo_boxes(boxes, image_h, image_w, net_h, net_w)
 
-        # suppress non-maximal boxes
-        do_nms(boxes, nms_thresh)        
-           
-        batch_boxes[i] = boxes
+    # suppress non-maximal boxes
+    do_nms(boxes, nms_thresh)        
 
-    return batch_boxes        
-    
+    return boxes  
+
 def _softmax(x, axis=-1):
     x = x - np.amax(x, axis, keepdims=True)
     e_x = np.exp(x)
