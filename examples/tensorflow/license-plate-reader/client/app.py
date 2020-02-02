@@ -24,8 +24,8 @@ stream_handler.setFormatter(stream_format)
 logger.addHandler(stream_handler)
 logger.setLevel(logging.DEBUG)
 
-api_endpoint = "http://Roberts-MacBook-2.local/predict"
-# api_endpoint = "http://a8ebac3e744d111ea981b06a64f9c668-1180365019.eu-central-1.elb.amazonaws.com/yolov3"
+# api_endpoint = "http://Roberts-MacBook-2.local/predict"
+api_endpoint = "http://a065a55b5459e11eaa4af06b95661afb-914798017.eu-central-1.elb.amazonaws.com/yolov3"
 
 session = requests.Session()
 interface_ip = "192.168.0.59"
@@ -54,6 +54,9 @@ class WorkerTemplate(td.Thread):
                 self.runnable()
                 time.sleep(0.001)
             logger.debug("worker stopped")
+
+    def stop(self):
+        self.event_stopper.set()
 
     def compress_image(self, image, grayscale=True, desired_width=416, top_crop_percent=0.45):
         if grayscale:
@@ -89,7 +92,7 @@ class BroadcastReassembled(WorkerTemplate):
         self.current_detections = 0
         self.buffer = []
         self.oldest_broadcasted_frame = 0
-        self.target_buffer_size = 10
+        self.target_buffer_size = 5
         self.max_buffer_size_variation = 5
         self.max_fps_variation = 15
         self.target_fps = 30
@@ -168,12 +171,6 @@ class BroadcastReassembled(WorkerTemplate):
         if len(self.buffer) == 0:
             return None, delay
 
-        # oldest = -1
-        # index = 0
-        # for idx, frame in enumerate(self.buffer):
-        #     if frame["frame_num"] < oldest:
-        #         oldest = frame["frame_num"]
-        #         index = idx
         newlist = sorted(self.buffer, key=lambda k: k["frame_num"])
         idx_to_del = 0
         for idx, frame in enumerate(newlist):
@@ -265,21 +262,23 @@ class InferenceWorker(WorkerTemplate):
         r_dict = resp.json()
         boxes_raw = r_dict["boxes"]
         boxes = []
-        old_width = image.shape[1]
+        # old_width = image.shape[1]
+        upscale_width = 640
         new_width = 416
-        scale_percent = old_width / new_width
+        # scale_percent = old_width / new_width
+        scale_percent = 640 / new_width
         for box in boxes_raw:
             b = BoundBox(*box)
-            b.xmin = (b.xmin * scale_percent)
-            b.ymin = (b.ymin * scale_percent)
-            b.xmax = (b.xmax * scale_percent)
-            b.ymax = (b.ymax * scale_percent)
+            b.xmin = int(b.xmin * scale_percent)
+            b.ymin = int(b.ymin * scale_percent)
+            b.xmax = int(b.xmax * scale_percent)
+            b.ymax = int(b.ymax * scale_percent)
             boxes.append(b)
         logger.debug("Frame Count: {} - Avg RTT: {} - Detected: {}".format(frame_num, self.rtt_ms, len(boxes) != 0))
         
         # draw detections
-        draw_image = draw_boxes(image, boxes, labels=["license-plate"], obj_thresh=0.8)
-        draw_image = self.compress_image(draw_image, grayscale=False, desired_width=480, top_crop_percent=False)
+        upscaled = self.compress_image(image, grayscale=False, desired_width=upscale_width, top_crop_percent=False)
+        draw_image = draw_boxes(upscaled, boxes, labels=["license-plate"], obj_thresh=0.8)
         draw_byte_im = self.image_to_jpeg_bytes(draw_image, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
 
         # base = 0.200
@@ -296,6 +295,24 @@ class InferenceWorker(WorkerTemplate):
         }
 
         self.out_queue.put(output)
+
+class Flusher(WorkerTemplate):
+    def __init__(self, event_stopper, queue, threshold, name=None):
+        super(Flusher, self).__init__(event_stopper=event_stopper, name=name)
+        self.queue = queue
+        self.threshold = threshold
+        self.runnable = self.flush_pipe
+
+    def flush_pipe(self):
+        current = self.queue.qsize()
+        if current > self.threshold:
+            try:
+                for i in range(current):
+                    self.queue.get_nowait()
+                logger.warning("flushed {} elements from the producing queue".format(current))
+            except queue.Empty:
+                logger.warning("flushed too many elements from the queue")
+        time.sleep(0.5)
 
 class WorkerPool(mp.Process):
     def __init__(self, name, worker, pool_size, *args, **kwargs):
@@ -345,7 +362,7 @@ def main():
     killer = GracefullKiller()
     
     # workers on a separate process to run inference on the data
-    workers = 10
+    workers = 20
     logger.info("initializing pool w/ " + str(workers) + " workers")
     output = DistributeFramesAndInfer(workers)
     logger.info("initialized worker pool")
@@ -353,6 +370,11 @@ def main():
     # a single worker in a separate process to reassemble the data
     reassembler = WorkerPool("BroadcastReassembled", BroadcastReassembled, 1, output.out_queue, serve_address=("", 8000))
     reassembler.start()
+
+    # a single thread to flush the producing queue
+    # when there are too many frames in the pipe
+    flusher = Flusher(td.Event(), output.in_queue, threshold=30, name="Flusher")
+    flusher.start()
 
     with picamera.PiCamera() as camera:
         camera.sensor_mode = 5
@@ -377,6 +399,7 @@ def main():
         output.stop() 
 
     reassembler.stop()
+    flusher.stop()
 
 if __name__ == "__main__":
     main()
