@@ -11,7 +11,9 @@ import queue
 import threading as td
 import multiprocessing as mp
 import numpy as np
-from utils.bbox import BoundBox
+import broadcast
+from random import randint
+from utils.bbox import BoundBox, draw_boxes
 from requests_toolbelt.adapters.source import SourceAddressAdapter
 
 logger = logging.getLogger(__name__)
@@ -39,20 +41,184 @@ class GracefullKiller():
     def exit_gracefully(self, signum, frame):
         self.kill_now = True
 
-class InferenceWorker(td.Thread):
-    def __init__(self, event_stopper, in_queue, out_queue, name=None):
-        super(InferenceWorker, self).__init__(name=name)
+class WorkerTemplate(td.Thread):
+    def __init__(self, event_stopper, name=None):
+        super(WorkerTemplate, self).__init__(name=name)
         self.event_stopper = event_stopper
+        self.runnable = None
+
+    def run(self):
+        if self.runnable:
+            logger.debug("worker started")
+            while not self.event_stopper.is_set():
+                self.runnable()
+                time.sleep(0.001)
+            logger.debug("worker stopped")
+
+    def compress_image(self, image, grayscale=True, desired_width=416, top_crop_percent=0.45):
+        if grayscale:
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        width = image.shape[1]
+        scale_percent = desired_width / width
+        width = int(image.shape[1] * scale_percent)
+        height = int(image.shape[0] * scale_percent)
+        image = cv2.resize(image, (width, height), interpolation = cv2.INTER_AREA)
+        if top_crop_percent:
+            image[:int(height * top_crop_percent)] = 128
+
+        return image
+
+    def image_from_bytes(self, byte_im):
+        nparr = np.frombuffer(byte_im, np.uint8)
+        img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        return img_np
+
+    def image_to_jpeg_bytes(self, image, quality=[int(cv2.IMWRITE_JPEG_QUALITY), 95]):
+        is_success, im_buf_arr = cv2.imencode(".jpg", image, quality)
+        byte_im = im_buf_arr.tobytes()
+        return byte_im 
+
+class BroadcastReassembled(WorkerTemplate):
+    def __init__(self, event_stopper, in_queue, serve_address, name=None):
+        super(BroadcastReassembled, self).__init__(event_stopper=event_stopper, name=name)
+        self.in_queue = in_queue
+        self.serve_address = serve_address
+        
+        self.rtt_ms = None
+        self.detections = 0
+        self.current_detections = 0
+        self.buffer = []
+        self.oldest_broadcasted_frame = 0
+        self.target_buffer_size = 10
+        self.max_buffer_size_variation = 5
+        self.max_fps_variation = 15
+        self.target_fps = 30
+
+    def run(self):
+        def lambda_func():
+            server = broadcast.StreamingServer(self.serve_address, broadcast.StreamingHandler)
+            server.serve_forever()
+
+        td.Thread(
+            target=lambda_func, 
+            args=(),
+            daemon=True).start()
+        logger.debug("listening for stream on {}".format(self.serve_address))
+
+        logger.debug("worker started")
+        counter = 0
+        while not self.event_stopper.is_set():
+            if counter == self.target_fps:
+                logger.info("buffer queue size: {}".format(len(self.buffer)))
+                counter = 0
+            self.reassemble()
+            time.sleep(0.001)
+            counter += 1
+        logger.debug("worker stopped")
+
+    def reassemble(self):
+        start = time.time()
+        self.pull_and_push()
+        self.purge_stale_frames()
+        frame, delay = self.pick_new_frame()
+        # delay loop to stabilize the video fps
+        end = time.time()
+        elapsed_time = end - start
+        elapsed_time += 0.001 # count in the millisecond in self.run
+        if delay - elapsed_time > 0.0:
+            time.sleep(delay - elapsed_time)
+        if frame:
+            # pull and push again in case 
+            # write buffer (assume it takes an insignificant time to execute)
+            self.pull_and_push()
+            broadcast.output.write(frame)
+
+    def pull_and_push(self):
+        try:
+            data = self.in_queue.get_nowait()
+        except queue.Empty:
+            # logger.warning("no data available for worker")
+            return
+
+        # extract data
+        boxes = data["boxes"]
+        frame_num = data["frame_num"]
+        rtt = data["avg_rtt"]
+        byte_im = data["image"]
+
+        # run statistics
+        self.statistics(rtt, len(boxes))
+
+        # push frames to buffer and pick new frame
+        self.buffer.append({
+            "image": byte_im,
+            "frame_num": frame_num
+        })
+
+    def purge_stale_frames(self):
+        new_buffer = []
+        for frame in self.buffer:
+            if frame["frame_num"] > self.oldest_broadcasted_frame:
+                new_buffer.append(frame)
+        self.buffer = new_buffer
+    
+    def pick_new_frame(self):
+        current_desired_fps = self.target_fps - self.max_fps_variation
+        delay = 1 / current_desired_fps
+        if len(self.buffer) == 0:
+            return None, delay
+
+        # oldest = -1
+        # index = 0
+        # for idx, frame in enumerate(self.buffer):
+        #     if frame["frame_num"] < oldest:
+        #         oldest = frame["frame_num"]
+        #         index = idx
+        newlist = sorted(self.buffer, key=lambda k: k["frame_num"])
+        idx_to_del = 0
+        for idx, frame in enumerate(newlist):
+            if frame["frame_num"] < self.oldest_broadcasted_frame:
+                idx_to_del = idx + 1
+        newlist = newlist[idx_to_del:]
+                
+        if len(newlist) == 0:
+            return None, delay
+        
+        self.buffer = newlist[::-1]
+        element = self.buffer.pop()
+        frame = element["image"]
+        self.oldest_broadcasted_frame = element["frame_num"]
+
+        size = len(self.buffer)
+        variation = size - self.target_buffer_size
+        var_perc = variation / self.max_buffer_size_variation
+        current_desired_fps = self.target_fps + var_perc * self.max_fps_variation
+        if current_desired_fps < 0:
+            current_desired_fps = self.target_fps - self.max_fps_variation
+        try:
+            delay = 1 / current_desired_fps
+        except ZeroDivisionError:
+            current_desired_fps = self.target_fps - self.max_fps_variation
+            delay = 1 / current_desired_fps
+
+        return frame, delay
+
+    def statistics(self, rtt_ms, detections):
+        if not self.rtt_ms:
+            self.rtt_ms = rtt_ms
+        else:
+            self.rtt_ms = self.rtt_ms * 0.98 + rtt_ms * 0.02
+        self.detections += detections
+        self.current_detections = detections
+
+
+class InferenceWorker(WorkerTemplate):
+    def __init__(self, event_stopper, in_queue, out_queue, name=None):
+        super(InferenceWorker, self).__init__(event_stopper=event_stopper, name=name)
         self.in_queue = in_queue
         self.out_queue = out_queue
         self.rtt_ms = None
-
-    def run(self):
-        logger.debug("worker started")
-        while not self.event_stopper.is_set():
-            self.cloud_infer()
-            time.sleep(0.001)
-        logger.debug("worker stopped")
+        self.runnable = self.cloud_infer
 
     def cloud_infer(self):
         try:
@@ -64,10 +230,10 @@ class InferenceWorker(td.Thread):
         # extract frame
         frame_num = data["frame_num"]
         img = data["jpeg"]
-
         # preprocess/compress the image
         image = self.image_from_bytes(img)
         reduced = self.compress_image(image)
+        # reduced = self.compress_image(image, grayscale=False, desired_width=480, top_crop_percent=None)
         byte_im = self.image_to_jpeg_bytes(reduced)
         # logger.debug("reduced image size from {}KB down to {}KB".format(len(img) // 1024, len(byte_im) // 1024))
 
@@ -99,53 +265,50 @@ class InferenceWorker(td.Thread):
         r_dict = resp.json()
         boxes_raw = r_dict["boxes"]
         boxes = []
+        old_width = image.shape[1]
+        new_width = 416
+        scale_percent = old_width / new_width
         for box in boxes_raw:
-            boxes.append(BoundBox(*box))
+            b = BoundBox(*box)
+            b.xmin = (b.xmin * scale_percent)
+            b.ymin = (b.ymin * scale_percent)
+            b.xmax = (b.xmax * scale_percent)
+            b.ymax = (b.ymax * scale_percent)
+            boxes.append(b)
         logger.debug("Frame Count: {} - Avg RTT: {} - Detected: {}".format(frame_num, self.rtt_ms, len(boxes) != 0))
         
+        # draw detections
+        draw_image = draw_boxes(image, boxes, labels=["license-plate"], obj_thresh=0.8)
+        draw_image = self.compress_image(draw_image, grayscale=False, desired_width=480, top_crop_percent=False)
+        draw_byte_im = self.image_to_jpeg_bytes(draw_image, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+
+        # base = 0.200
+        # variation = randint(50, 100) / 1000
+        # delay = base + variation
+        # time.sleep(delay)
+
         # push data for further processing in the queue
         output = {
             "boxes": boxes,
             "frame_num": frame_num,
             "avg_rtt": self.rtt_ms,
-            "image": img
+            "image": draw_byte_im
         }
 
         self.out_queue.put(output)
 
-    def compress_image(self, image, desired_square_height=416, top_crop_percent=0.45):
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-        width = image.shape[1]
-        scale_percent = desired_square_height / width
-        width = int(image.shape[1] * scale_percent)
-        height = int(image.shape[0] * scale_percent)
-        image = cv2.resize(image, (width, height), interpolation = cv2.INTER_AREA)
-        image[:int(height * top_crop_percent)] = 128
-
-        return image
-
-    def image_from_bytes(self, byte_im):
-        nparr = np.frombuffer(byte_im, np.uint8)
-        img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-        return img_np
-
-    def image_to_jpeg_bytes(self, image):
-        is_success, im_buf_arr = cv2.imencode(".jpg", image)
-        byte_im = im_buf_arr.tobytes()
-        return byte_im
-
 class WorkerPool(mp.Process):
-    def __init__(self, in_queue, out_queue, pool_size, name=None, daemon=None):
-        super(WorkerPool, self).__init__(name=name, daemon=daemon)
+    def __init__(self, name, worker, pool_size, *args, **kwargs):
+        super(WorkerPool, self).__init__(name=name)
         self.event_stopper = mp.Event()
-        self.in_queue = in_queue
-        self.out_queue = out_queue
+        self.Worker = worker
         self.pool_size = pool_size
+        self.args = args
+        self.kwargs = kwargs
 
     def run(self):
         logger.info("spawning workers on separate process")
-        pool = [InferenceWorker(self.event_stopper, self.in_queue, self.out_queue, "Worker-{}".format(i)) for i in range(self.pool_size)]
+        pool = [self.Worker(self.event_stopper, *self.args, **self.kwargs, name="{}-Worker-{}".format(self.name, i)) for i in range(self.pool_size)]
         [worker.start() for worker in pool]
         while not self.event_stopper.is_set():
             time.sleep(0.001)
@@ -160,7 +323,7 @@ class DistributeFramesAndInfer():
         self.in_queue = mp.Queue()
         self.out_queue = mp.Queue()
         self.no_workers = no_workers
-        self.pool = WorkerPool(self.in_queue, self.out_queue, self.no_workers, name="WorkerPool")
+        self.pool = WorkerPool("InferencePool", InferenceWorker, self.no_workers, self.in_queue, self.out_queue)
         self.pool.start()
 
     def write(self, buf):
@@ -180,21 +343,27 @@ class DistributeFramesAndInfer():
 
 def main():
     killer = GracefullKiller()
-    workers = 12
+    
+    # workers on a separate process to run inference on the data
+    workers = 10
     logger.info("initializing pool w/ " + str(workers) + " workers")
     output = DistributeFramesAndInfer(workers)
     logger.info("initialized worker pool")
 
+    # a single worker in a separate process to reassemble the data
+    reassembler = WorkerPool("BroadcastReassembled", BroadcastReassembled, 1, output.out_queue, serve_address=("", 8000))
+    reassembler.start()
+
     with picamera.PiCamera() as camera:
         camera.sensor_mode = 5
-        camera.resolution = (1280, 720)
+        camera.resolution = (480, 270)
         camera.framerate = 30
         logger.info("picamera initialized w/ mode={} resolution={} framerate={}".format(
             camera.sensor_mode, camera.resolution, camera.framerate
         ))
 
         camera.start_recording(output="recording.h264", format="h264", splitter_port=0, bitrate=10000000)
-        camera.start_recording(output=output, format="mjpeg", splitter_port=1, bitrate=17000000, quality=100)
+        camera.start_recording(output=output, format="mjpeg", splitter_port=1, bitrate=10000000, quality=95)
         logger.info("started recording to file and to queue")
 
         while not killer.kill_now:
@@ -206,6 +375,8 @@ def main():
         camera.stop_recording(splitter_port=0)
         camera.stop_recording(splitter_port=1)
         output.stop() 
+
+    reassembler.stop()
 
 if __name__ == "__main__":
     main()
