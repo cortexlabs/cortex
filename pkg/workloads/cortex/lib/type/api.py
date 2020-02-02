@@ -106,11 +106,10 @@ class API:
             "Value": (time.time() - start_time) * 1000,  # milliseconds
         }
 
-    def prediction_metrics(self, prediction):
-        predicted_value = self.tracker.extract_predicted_value(prediction)
+    def prediction_metrics(self, prediction_value):
         if self.tracker.model_type == "classification":
             dimensions_with_class = self.metric_dimensions() + [
-                {"Name": "Class", "Value": str(predicted_value)}
+                {"Name": "Class", "Value": str(prediction_value)}
             ]
             return {
                 "MetricName": "Prediction",
@@ -122,5 +121,5 @@ class API:
             return {
                 "MetricName": "Prediction",
                 "Dimensions": self.metric_dimensions(),
-                "Value": float(predicted_value),
+                "Value": float(prediction_value),
             }
