@@ -1,13 +1,25 @@
 - name: yolov3
   predictor:
     type: tensorflow
-    path: predictor.py
+    path: predictor_yolo.py
     model: s3://cortex-0/examples/tensorflow/license-plate-reader/yolov3
     signature_key: serving_default
     config:
         model_config: config.json
   compute:
-    cpu: 2
+    cpu: 1
     gpu: 1
     mem: 8G
-    max_replicas: 3
+    target_cpu_utilization: 2
+    max_replicas: 1
+
+- name: crnn
+  predictor:
+    type: python
+    path: predictor_rcnn.py
+  compute:
+    cpu: 1
+    gpu: 1
+    mem: 8G
+    target_cpu_utilization: 2
+    max_replicas: 1
