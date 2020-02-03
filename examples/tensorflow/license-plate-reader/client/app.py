@@ -25,7 +25,8 @@ logger.addHandler(stream_handler)
 logger.setLevel(logging.DEBUG)
 
 # api_endpoint = "http://Roberts-MacBook-2.local/predict"
-api_endpoint = "http://a065a55b5459e11eaa4af06b95661afb-914798017.eu-central-1.elb.amazonaws.com/yolov3"
+api_endpoint_yolo3 = "http://ac3c5f94c460e11ea9ddb06e98ba2b1d-1793700636.eu-central-1.elb.amazonaws.com/yolov3"
+api_endpoint_rcnn = "http://ac3c5f94c460e11ea9ddb06e98ba2b1d-1793700636.eu-central-1.elb.amazonaws.com/crnn"
 
 session = requests.Session()
 interface_ip = "192.168.0.59"
@@ -75,10 +76,14 @@ class WorkerTemplate(td.Thread):
         nparr = np.frombuffer(byte_im, np.uint8)
         img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         return img_np
+    
+    def image_to_jpeg_nparray(self, image, quality=[int(cv2.IMWRITE_JPEG_QUALITY), 95]):
+        is_success, im_buf_arr = cv2.imencode(".jpg", image, quality)
+        return im_buf_arr
 
     def image_to_jpeg_bytes(self, image, quality=[int(cv2.IMWRITE_JPEG_QUALITY), 95]):
-        is_success, im_buf_arr = cv2.imencode(".jpg", image, quality)
-        byte_im = im_buf_arr.tobytes()
+        buf = self.image_to_jpeg_nparray(image, quality)
+        byte_im = buf.tobytes()
         return byte_im 
 
 class BroadcastReassembled(WorkerTemplate):
@@ -87,9 +92,12 @@ class BroadcastReassembled(WorkerTemplate):
         self.in_queue = in_queue
         self.serve_address = serve_address
         
-        self.rtt_ms = None
+        self.yolo3_rtt = None
+        self.crnn_rtt = None
         self.detections = 0
         self.current_detections = 0
+        self.recognitions = 0
+        self.current_recognitions = 0
         self.buffer = []
         self.oldest_broadcasted_frame = 0
         self.target_buffer_size = 5
@@ -146,11 +154,12 @@ class BroadcastReassembled(WorkerTemplate):
         # extract data
         boxes = data["boxes"]
         frame_num = data["frame_num"]
-        rtt = data["avg_rtt"]
+        yolo3_rtt = data["avg_yolo3_rtt"]
+        crnn_rtt = data["avg_crnn_rtt"]
         byte_im = data["image"]
 
         # run statistics
-        self.statistics(rtt, len(boxes))
+        self.statistics(yolo3_rtt, crnn_rtt, len(boxes), 0)
 
         # push frames to buffer and pick new frame
         self.buffer.append({
@@ -200,13 +209,20 @@ class BroadcastReassembled(WorkerTemplate):
 
         return frame, delay
 
-    def statistics(self, rtt_ms, detections):
-        if not self.rtt_ms:
-            self.rtt_ms = rtt_ms
+    def statistics(self, yolo3_rtt, crnn_rtt, detections, recognitions):
+        if not self.yolo3_rtt:
+            self.yolo3_rtt = yolo3_rtt
         else:
-            self.rtt_ms = self.rtt_ms * 0.98 + rtt_ms * 0.02
+            self.yolo3_rtt = self.yolo3_rtt * 0.98 + yolo3_rtt * 0.02
+        if not self.crnn_rtt:
+            self.crnn_rtt = crnn_rtt
+        else:
+            self.crnn_rtt = self.crnn_rtt * 0.98 + crnn_rtt * 0.02
+
         self.detections += detections
         self.current_detections = detections
+        self.recognitions += recognitions
+        self.current_recognitions = recognitions
 
 
 class InferenceWorker(WorkerTemplate):
@@ -214,7 +230,8 @@ class InferenceWorker(WorkerTemplate):
         super(InferenceWorker, self).__init__(event_stopper=event_stopper, name=name)
         self.in_queue = in_queue
         self.out_queue = out_queue
-        self.rtt_ms = None
+        self.rtt_yolo3_ms = None
+        self.rtt_crnn_ms = 0
         self.runnable = self.cloud_infer
 
     def cloud_infer(self):
@@ -236,49 +253,120 @@ class InferenceWorker(WorkerTemplate):
 
         # encode image
         img_enc = base64.b64encode(byte_im).decode("utf-8")
-        dump = json.dumps({"img": img_enc})
+        img_dump = json.dumps({"img": img_enc})
 
         # make inference request
         try:
             start = time.time()
-            resp = session.post(api_endpoint, 
-            data=dump, headers={'content-type':'application/json'}, timeout=1.000)
-            end = time.time()
+            resp = None
+            resp = session.post(api_endpoint_yolo3, 
+            data=img_dump, headers={'content-type':'application/json'}, timeout=1.000)
         except requests.exceptions.Timeout as e:
             logger.warning("timeout on inference request")
+            time.sleep(0.10)
             return
         except:
+            time.sleep(0.10)
             logger.warning("timing/connection error")
             return
+        finally:
+            end = time.time()
+            if not resp:
+                pass
+            elif resp.status_code != 200:
+                logger.warning("received {} status code".format(resp.status_code))
+                return
 
         # calculate average rtt (use complementary filter)
         current = int((end - start) * 1000)
-        if not self.rtt_ms:
-            self.rtt_ms = current
+        if not self.rtt_yolo3_ms:
+            self.rtt_yolo3_ms = current
         else:
-            self.rtt_ms = self.rtt_ms * 0.98 + current * 0.02
+            self.rtt_yolo3_ms = self.rtt_yolo3_ms * 0.98 + current * 0.02
         
         # parse response
         r_dict = resp.json()
         boxes_raw = r_dict["boxes"]
         boxes = []
+        for b in boxes_raw:
+            box = BoundBox(*b)
+            boxes.append(box)
+
+        # purge bounding boxes with a low confidence score
+        obj_thresh = 0.8
+        aux = []
+        for b in boxes:
+            label = -1
+            for i in range(len(b.classes)):
+                if b.classes[i] > obj_thresh:
+                    label = i
+            if label >= 0: aux.append(b)
+        boxes = aux
+        del aux
+        
+        # recognize the license plates in case
+        # any bounding boxes have been detected
+        if len(boxes):
+            # create set of images of the detected license plates
+            lps = []
+            try:
+                for b in boxes:
+                    lp = reduced[b.ymin:b.ymax, b.xmin:b.xmax]
+                    jpeg = self.image_to_jpeg_nparray(lp)
+                    lps.append(jpeg)
+            except:
+                logger.warning("encountered error while converting to jpeg")
+                pass
+
+            lps = pickle.dumps(lps, protocol=0)
+            lps_enc = base64.b64encode(lps).decode("utf-8")
+            lps_dump = json.dumps({"imgs": lps_enc})
+
+            # make request to rcnn API
+            try:
+                start = time.time()
+                resp = None
+                resp = session.post(api_endpoint_rcnn, 
+                data=lps_dump, headers={'content-type':'application/json'}, timeout=1.000)
+            except requests.exceptions.Timeout as e:
+                logger.warning("timeout on inference request")
+            except:
+                logger.warning("timing/connection error")
+            finally:
+                end = time.time()
+                dec_lps = []
+                if not resp:
+                    pass
+                elif resp.status_code != 200:
+                    logger.warning("received {} status code".format(resp.status_code))
+                else:
+                    r_dict = resp.json()
+                    dec_lps = r_dict["license-plates"]
+
+            if len(dec_lps):
+                logger.debug("Detected the following words: {}".format(dec_lps))
+
+            # calculate average rtt (use complementary filter)
+            current = int((end - start) * 1000)
+            self.rtt_crnn_ms = self.rtt_crnn_ms * 0.98 + current * 0.02
+        
+        # scaling for drawing more clear boxes
         # old_width = image.shape[1]
         upscale_width = 640
         new_width = 416
         # scale_percent = old_width / new_width
         scale_percent = 640 / new_width
-        for box in boxes_raw:
-            b = BoundBox(*box)
+        for b in boxes:
             b.xmin = int(b.xmin * scale_percent)
             b.ymin = int(b.ymin * scale_percent)
             b.xmax = int(b.xmax * scale_percent)
             b.ymax = int(b.ymax * scale_percent)
-            boxes.append(b)
-        logger.debug("Frame Count: {} - Avg RTT: {} - Detected: {}".format(frame_num, self.rtt_ms, len(boxes) != 0))
-        
+        logger.debug("Frame Count: {} - Avg YOLO3 RTT: {} - Avg CRNN RTT: {} - Detected: {}".format(
+            frame_num, self.rtt_yolo3_ms, self.rtt_crnn_ms, len(boxes)))
+
         # draw detections
         upscaled = self.compress_image(image, grayscale=False, desired_width=upscale_width, top_crop_percent=False)
-        draw_image = draw_boxes(upscaled, boxes, labels=["license-plate"], obj_thresh=0.8)
+        draw_image = draw_boxes(upscaled, boxes, labels=["license-plate"], obj_thresh=obj_thresh)
         draw_byte_im = self.image_to_jpeg_bytes(draw_image, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
 
         # base = 0.200
@@ -290,7 +378,8 @@ class InferenceWorker(WorkerTemplate):
         output = {
             "boxes": boxes,
             "frame_num": frame_num,
-            "avg_rtt": self.rtt_ms,
+            "avg_yolo3_rtt": self.rtt_yolo3_ms,
+            "avg_crnn_rtt": self.rtt_crnn_ms,
             "image": draw_byte_im
         }
 
@@ -362,7 +451,7 @@ def main():
     killer = GracefullKiller()
     
     # workers on a separate process to run inference on the data
-    workers = 20
+    workers = 5
     logger.info("initializing pool w/ " + str(workers) + " workers")
     output = DistributeFramesAndInfer(workers)
     logger.info("initialized worker pool")
