@@ -413,6 +413,10 @@ class InferenceWorker(WorkerTemplate):
 
         return dec_lps
 
+    def reorder_lps(self, lps):
+        for lp in lps:
+            lp = lp[::-1]
+
 class Flusher(WorkerTemplate):
     def __init__(self, event_stopper, queue, threshold, name=None):
         super(Flusher, self).__init__(event_stopper=event_stopper, name=name)
