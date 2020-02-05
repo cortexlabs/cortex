@@ -12,24 +12,25 @@ import threading as td
 import multiprocessing as mp
 import numpy as np
 import broadcast
+import copy
 from random import randint
 from utils.bbox import BoundBox, draw_boxes
 from requests_toolbelt.adapters.source import SourceAddressAdapter
 
 logger = logging.getLogger(__name__)
 stream_handler = logging.StreamHandler()
-stream_handler.setLevel(logging.DEBUG)
+stream_handler.setLevel(logging.INFO)
 stream_format = logging.Formatter("%(asctime)s - %(name)s - %(threadName)s - %(levelname)s - %(message)s")
 stream_handler.setFormatter(stream_format)
 logger.addHandler(stream_handler)
 logger.setLevel(logging.DEBUG)
 
 # api_endpoint = "http://Roberts-MacBook-2.local/predict"
-api_endpoint_yolo3 = "http://ac3c5f94c460e11ea9ddb06e98ba2b1d-1793700636.eu-central-1.elb.amazonaws.com/yolov3"
-api_endpoint_rcnn = "http://ac3c5f94c460e11ea9ddb06e98ba2b1d-1793700636.eu-central-1.elb.amazonaws.com/crnn"
+API_ENDPOINT_YOLO3 = "http://ab8ce587e47a011ea9f4a0ad90ccbc5a-839674254.eu-central-1.elb.amazonaws.com/yolov3"
+API_ENDPOINT_RCNN = "http://ab8ce587e47a011ea9f4a0ad90ccbc5a-839674254.eu-central-1.elb.amazonaws.com/crnn"
 
 session = requests.Session()
-interface_ip = "192.168.0.59"
+interface_ip = "192.168.0.46"
 session.mount('http://', SourceAddressAdapter(interface_ip))
 session.mount('https://', SourceAddressAdapter(interface_ip))
 
@@ -53,20 +54,25 @@ class WorkerTemplate(td.Thread):
             logger.debug("worker started")
             while not self.event_stopper.is_set():
                 self.runnable()
-                time.sleep(0.001)
+                time.sleep(0.030)
             logger.debug("worker stopped")
 
     def stop(self):
         self.event_stopper.set()
 
+    def resize_image(self, image, desired_width):
+        current_width = image.shape[1]
+        scale_percent = desired_width / current_width
+        width = int(image.shape[1] * scale_percent)
+        height = int(image.shape[0] * scale_percent)
+        resized = cv2.resize(image, (width, height), interpolation = cv2.INTER_AREA)
+        return resized
+
     def compress_image(self, image, grayscale=True, desired_width=416, top_crop_percent=0.45):
         if grayscale:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-        width = image.shape[1]
-        scale_percent = desired_width / width
-        width = int(image.shape[1] * scale_percent)
-        height = int(image.shape[0] * scale_percent)
-        image = cv2.resize(image, (width, height), interpolation = cv2.INTER_AREA)
+        image = self.resize_image(image, desired_width)
+        height = image.shape[0]
         if top_crop_percent:
             image[:int(height * top_crop_percent)] = 128
 
@@ -241,48 +247,25 @@ class InferenceWorker(WorkerTemplate):
             # logger.warning("no data available for worker")
             return
 
+        #############################
+
         # extract frame
         frame_num = data["frame_num"]
         img = data["jpeg"]
         # preprocess/compress the image
         image = self.image_from_bytes(img)
         reduced = self.compress_image(image)
-        # reduced = self.compress_image(image, grayscale=False, desired_width=480, top_crop_percent=None)
         byte_im = self.image_to_jpeg_bytes(reduced)
-        # logger.debug("reduced image size from {}KB down to {}KB".format(len(img) // 1024, len(byte_im) // 1024))
-
         # encode image
         img_enc = base64.b64encode(byte_im).decode("utf-8")
         img_dump = json.dumps({"img": img_enc})
 
         # make inference request
-        try:
-            start = time.time()
-            resp = None
-            resp = session.post(api_endpoint_yolo3, 
-            data=img_dump, headers={'content-type':'application/json'}, timeout=1.000)
-        except requests.exceptions.Timeout as e:
-            logger.warning("timeout on inference request")
-            time.sleep(0.10)
+        resp = self.yolov3_api_request(img_dump)
+        if not resp:
             return
-        except:
-            time.sleep(0.10)
-            logger.warning("timing/connection error")
-            return
-        finally:
-            end = time.time()
-            if not resp:
-                pass
-            elif resp.status_code != 200:
-                logger.warning("received {} status code".format(resp.status_code))
-                return
 
-        # calculate average rtt (use complementary filter)
-        current = int((end - start) * 1000)
-        if not self.rtt_yolo3_ms:
-            self.rtt_yolo3_ms = current
-        else:
-            self.rtt_yolo3_ms = self.rtt_yolo3_ms * 0.98 + current * 0.02
+        #############################
         
         # parse response
         r_dict = resp.json()
@@ -303,15 +286,24 @@ class InferenceWorker(WorkerTemplate):
             if label >= 0: aux.append(b)
         boxes = aux
         del aux
+
+        # also scale the boxes for later uses
+        yolo3_image_width = 416
+        upscale640_width = 640
+        camera_source_width = image.shape[1]
+        boxes640 = self.scale_bbox(boxes, yolo3_image_width, upscale640_width)
+        boxes_source = self.scale_bbox(boxes, yolo3_image_width, camera_source_width)
+
+        #############################
         
         # recognize the license plates in case
         # any bounding boxes have been detected
-        if len(boxes):
+        dec_lps = []
+        if len(boxes) > 0:
             # create set of images of the detected license plates
-            lps = []
             try:
-                for b in boxes:
-                    lp = reduced[b.ymin:b.ymax, b.xmin:b.xmax]
+                for b in boxes_source:
+                    lp = image[b.ymin:b.ymax, b.xmin:b.xmax]
                     jpeg = self.image_to_jpeg_nparray(lp)
                     lps.append(jpeg)
             except:
@@ -323,56 +315,20 @@ class InferenceWorker(WorkerTemplate):
             lps_dump = json.dumps({"imgs": lps_enc})
 
             # make request to rcnn API
-            try:
-                start = time.time()
-                resp = None
-                resp = session.post(api_endpoint_rcnn, 
-                data=lps_dump, headers={'content-type':'application/json'}, timeout=1.000)
-            except requests.exceptions.Timeout as e:
-                logger.warning("timeout on inference request")
-            except:
-                logger.warning("timing/connection error")
-            finally:
-                end = time.time()
-                dec_lps = []
-                if not resp:
-                    pass
-                elif resp.status_code != 200:
-                    logger.warning("received {} status code".format(resp.status_code))
-                else:
-                    r_dict = resp.json()
-                    dec_lps = r_dict["license-plates"]
+            dec_lps = self.rcnn_api_request(lps_dump)
+            self.reorder_lps(dec_lps)
 
-            if len(dec_lps):
-                logger.debug("Detected the following words: {}".format(dec_lps))
+        if len(dec_lps) > 0:
+            logger.info("Detected the following words: {}".format(dec_lps))
 
-            # calculate average rtt (use complementary filter)
-            current = int((end - start) * 1000)
-            self.rtt_crnn_ms = self.rtt_crnn_ms * 0.98 + current * 0.02
+        #############################
         
-        # scaling for drawing more clear boxes
-        # old_width = image.shape[1]
-        upscale_width = 640
-        new_width = 416
-        # scale_percent = old_width / new_width
-        scale_percent = 640 / new_width
-        for b in boxes:
-            b.xmin = int(b.xmin * scale_percent)
-            b.ymin = int(b.ymin * scale_percent)
-            b.xmax = int(b.xmax * scale_percent)
-            b.ymax = int(b.ymax * scale_percent)
-        logger.debug("Frame Count: {} - Avg YOLO3 RTT: {} - Avg CRNN RTT: {} - Detected: {}".format(
-            frame_num, self.rtt_yolo3_ms, self.rtt_crnn_ms, len(boxes)))
-
         # draw detections
-        upscaled = self.compress_image(image, grayscale=False, desired_width=upscale_width, top_crop_percent=False)
-        draw_image = draw_boxes(upscaled, boxes, labels=["license-plate"], obj_thresh=obj_thresh)
+        upscaled = self.resize_image(image, upscale640_width)
+        draw_image = draw_boxes(upscaled, boxes640, labels=["LP"], obj_thresh=obj_thresh)
         draw_byte_im = self.image_to_jpeg_bytes(draw_image, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
 
-        # base = 0.200
-        # variation = randint(50, 100) / 1000
-        # delay = base + variation
-        # time.sleep(delay)
+        #############################
 
         # push data for further processing in the queue
         output = {
@@ -382,8 +338,80 @@ class InferenceWorker(WorkerTemplate):
             "avg_crnn_rtt": self.rtt_crnn_ms,
             "image": draw_byte_im
         }
-
         self.out_queue.put(output)
+
+        logger.info("Frame Count: {} - Avg YOLO3 RTT: {} - Avg CRNN RTT: {} - Detected: {}".format(
+        frame_num, self.rtt_yolo3_ms, self.rtt_crnn_ms, len(boxes)))
+
+    def scale_bbox(self, boxes, old_width, new_width):
+        boxes = copy.deepcopy(boxes)
+        scale_percent = new_width / old_width
+        for b in boxes:
+            b.xmin = int(b.xmin * scale_percent)
+            b.ymin = int(b.ymin * scale_percent)
+            b.xmax = int(b.xmax * scale_percent)
+            b.ymax = int(b.ymax * scale_percent)
+        return boxes
+
+    def yolov3_api_request(self, img_dump, timeout=1.200):
+        # make inference request
+        try:
+            start = time.time()
+            resp = None
+            resp = session.post(API_ENDPOINT_YOLO3, 
+            data=img_dump, headers={'content-type':'application/json'}, timeout=timeout)
+        except requests.exceptions.Timeout as e:
+            logger.warning("timeout on yolov3 inference request")
+            time.sleep(0.10)
+            return None
+        except Exception as e:
+            time.sleep(0.10)
+            logger.warning("timing/connection error on yolov3", exc_info=True)
+            return None
+        finally:
+            end = time.time()
+            if not resp:
+                pass
+            elif resp.status_code != 200:
+                logger.warning("received {} status code from yolov3 api".format(resp.status_code))
+                return None
+
+        # calculate average rtt (use complementary filter)
+        current = int((end - start) * 1000)
+        if not self.rtt_yolo3_ms:
+            self.rtt_yolo3_ms = current
+        else:
+            self.rtt_yolo3_ms = self.rtt_yolo3_ms * 0.98 + current * 0.02
+
+        return resp
+
+    def rcnn_api_request(self, lps_dump, timeout=1.200):
+        # make request to rcnn API
+        try:
+            start = time.time()
+            resp = None
+            resp = session.post(API_ENDPOINT_RCNN, 
+            data=lps_dump, headers={'content-type':'application/json'}, timeout=timeout)
+        except requests.exceptions.Timeout as e:
+            logger.warning("timeout on rcnn inference request")
+        except:
+            logger.warning("timing/connection error on rnn", exc_info=True)
+        finally:
+            end = time.time()
+            dec_lps = []
+            if not resp:
+                pass
+            elif resp.status_code != 200:
+                logger.warning("received {} status code from rcnn api".format(resp.status_code))
+            else:
+                r_dict = resp.json()
+                dec_lps = r_dict["license-plates"]
+
+        # calculate average rtt (use complementary filter)
+        current = int((end - start) * 1000)
+        self.rtt_crnn_ms = self.rtt_crnn_ms * 0.98 + current * 0.02
+
+        return dec_lps
 
 class Flusher(WorkerTemplate):
     def __init__(self, event_stopper, queue, threshold, name=None):
@@ -424,21 +452,23 @@ class WorkerPool(mp.Process):
         self.event_stopper.set()
 
 class DistributeFramesAndInfer():
-    def __init__(self, no_workers):
+    def __init__(self, no_workers, pick_every_nth_frame=1):
         self.frame_num = 0
         self.in_queue = mp.Queue()
         self.out_queue = mp.Queue()
         self.no_workers = no_workers
+        self.nth_frame = pick_every_nth_frame
         self.pool = WorkerPool("InferencePool", InferenceWorker, self.no_workers, self.in_queue, self.out_queue)
         self.pool.start()
 
     def write(self, buf):
         if buf.startswith(b"\xff\xd8"):
             # start of new frame; close the old one (if any) and
-            self.in_queue.put({
-                "frame_num": self.frame_num,
-                "jpeg": buf
-            })
+            if self.frame_num % self.nth_frame == 0:
+                self.in_queue.put({
+                    "frame_num": self.frame_num,
+                    "jpeg": buf
+                })
             self.frame_num += 1
 
     def stop(self):
@@ -451,9 +481,9 @@ def main():
     killer = GracefullKiller()
     
     # workers on a separate process to run inference on the data
-    workers = 5
+    workers = 20
     logger.info("initializing pool w/ " + str(workers) + " workers")
-    output = DistributeFramesAndInfer(workers)
+    output = DistributeFramesAndInfer(workers, pick_every_nth_frame=1)
     logger.info("initialized worker pool")
 
     # a single worker in a separate process to reassemble the data
@@ -462,7 +492,7 @@ def main():
 
     # a single thread to flush the producing queue
     # when there are too many frames in the pipe
-    flusher = Flusher(td.Event(), output.in_queue, threshold=30, name="Flusher")
+    flusher = Flusher(td.Event(), output.in_queue, threshold=10, name="Flusher")
     flusher.start()
 
     with picamera.PiCamera() as camera:
