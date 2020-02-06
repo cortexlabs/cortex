@@ -127,7 +127,7 @@ class BroadcastReassembled(WorkerTemplate):
         counter = 0
         while not self.event_stopper.is_set():
             if counter == self.target_fps:
-                logger.info("buffer queue size: {}".format(len(self.buffer)))
+                logger.debug("buffer queue size: {}".format(len(self.buffer)))
                 counter = 0
             self.reassemble()
             time.sleep(0.001)
@@ -230,7 +230,6 @@ class BroadcastReassembled(WorkerTemplate):
         self.current_detections = detections
         self.recognitions += recognitions
         self.current_recognitions = recognitions
-
 
 class InferenceWorker(WorkerTemplate):
     def __init__(self, event_stopper, in_queue, out_queue, name=None):
@@ -447,8 +446,8 @@ class InferenceWorker(WorkerTemplate):
         return reordered_images
 
 class Flusher(WorkerTemplate):
-    def __init__(self, event_stopper, queue, threshold, name=None):
-        super(Flusher, self).__init__(event_stopper=event_stopper, name=name)
+    def __init__(self, queue, threshold, name=None):
+        super(Flusher, self).__init__(event_stopper=td.Event(), name=name)
         self.queue = queue
         self.threshold = threshold
         self.runnable = self.flush_pipe
@@ -479,6 +478,7 @@ class WorkerPool(mp.Process):
         [worker.start() for worker in pool]
         while not self.event_stopper.is_set():
             time.sleep(0.001)
+        logger.info("stoppping workers on separate process")
         [worker.join() for worker in pool]
 
     def stop(self):
@@ -510,25 +510,38 @@ class DistributeFramesAndInfer():
         qs = [self.in_queue, self.out_queue]
         [q.cancel_join_thread() for q in qs]
 
+    def get_queues(self):
+        return self.in_queue, self.out_queue
+
 def main():
     killer = GracefullKiller()
+
+    try:
+        config = open('config.json')
+        settings = json.load(config)
+    except Exception as error:
+        logger.critical(str(error), exc_info = 1)
+        return
     
     # workers on a separate process to run inference on the data
     workers = 20
     logger.info("initializing pool w/ " + str(workers) + " workers")
     output = DistributeFramesAndInfer(workers, pick_every_nth_frame=1)
+    frames_queue, inferenced_queue = output.get_queues()
     logger.info("initialized worker pool")
 
     # a single worker in a separate process to reassemble the data
-    reassembler = WorkerPool("BroadcastReassembled", BroadcastReassembled, 1, output.out_queue, serve_address=("", 8000))
+    reassembler = WorkerPool("BroadcastReassembled", BroadcastReassembled, 1, inferenced_queue, serve_address=("", 8000))
     reassembler.start()
 
     # a single thread to flush the producing queue
     # when there are too many frames in the pipe
-    flusher = Flusher(td.Event(), output.in_queue, threshold=10, name="Flusher")
+    flusher = Flusher(frames_queue, threshold=10, name="Flusher")
     flusher.start()
 
+    # start the pi camera
     with picamera.PiCamera() as camera:
+        # configure the camera
         camera.sensor_mode = 5
         camera.resolution = (480, 270)
         camera.framerate = 30
@@ -536,15 +549,18 @@ def main():
             camera.sensor_mode, camera.resolution, camera.framerate
         ))
 
+        # start recording both to disk and to the queue
         camera.start_recording(output="recording.h264", format="h264", splitter_port=0, bitrate=10000000)
         camera.start_recording(output=output, format="mjpeg", splitter_port=1, bitrate=10000000, quality=95)
         logger.info("started recording to file and to queue")
 
+        # wait until SIGINT is detected
         while not killer.kill_now:
             camera.wait_recording(timeout=0.5, splitter_port=0)
             camera.wait_recording(timeout=0.5, splitter_port=1)
             logger.info('avg producing/consuming queue size: {}, {}'.format(output.in_queue.qsize(), output.out_queue.qsize()))
 
+        # stop recording
         logger.info("gracefully exiting")
         camera.stop_recording(splitter_port=0)
         camera.stop_recording(splitter_port=1)
