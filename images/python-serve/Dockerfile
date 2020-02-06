@@ -40,4 +40,6 @@ COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib
 COPY pkg/workloads/cortex/serve /src/cortex/serve
 
+COPY images/python-serve/ss.py /src/ss.py
+
 ENTRYPOINT ["/src/cortex/serve/run.sh"]

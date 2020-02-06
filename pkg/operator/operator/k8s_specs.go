@@ -303,7 +303,32 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 							"--cache-dir=" + _specCacheDir,
 							"--project-dir=" + path.Join(_emptyDirMountPath, "project"),
 						},
-						Env:            getEnvVars(api),
+						Env: append(getEnvVars(api),
+							kcore.EnvVar{
+								Name:  "MY_PORT",
+								Value: _defaultPortStr,
+							},
+							kcore.EnvVar{
+								Name:  "DOWNLOAD_CONFIG",
+								Value: pythonDownloadArgs(api),
+							},
+							kcore.EnvVar{
+								Name:  "PYTHONUNBUFFERED",
+								Value: "TRUE",
+							},
+							kcore.EnvVar{
+								Name:  "SPEC",
+								Value: aws.S3Path(*config.Cluster.Bucket, api.Key),
+							},
+							kcore.EnvVar{
+								Name:  "CACHE_DIR",
+								Value: _specCacheDir,
+							},
+							kcore.EnvVar{
+								Name:  "PROJECT_DIR",
+								Value: path.Join(_emptyDirMountPath, "project"),
+							},
+						),
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
 						ReadinessProbe: _apiReadinessProbe,
@@ -314,6 +339,15 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						Ports: []kcore.ContainerPort{
 							{ContainerPort: _defaultPortInt32},
 						},
+					},
+					{
+						Name:            "ss",
+						Image:           servingImage,
+						ImagePullPolicy: kcore.PullAlways,
+						Command:         []string{"/bin/sh", "-c", "/usr/bin/python3.6 /src/ss.py"},
+						Env:             getEnvVars(api),
+						EnvFrom:         _baseEnvVars,
+						VolumeMounts:    _defaultVolumeMounts,
 					},
 				},
 				NodeSelector: map[string]string{
@@ -577,7 +611,7 @@ var _apiReadinessProbe = &kcore.Probe{
 	FailureThreshold:    2,
 	Handler: kcore.Handler{
 		Exec: &kcore.ExecAction{
-			Command: []string{"/bin/bash", "-c", "/bin/ps aux | grep \"serve/run.sh\" | grep -v \"grep\" && test -f /health_check.txt"},
+			Command: []string{"/bin/bash", "-c", "/bin/ps aux | grep \"gunicorn\" | grep -v \"grep\" && test -f /health_check.txt"},
 		},
 	},
 }

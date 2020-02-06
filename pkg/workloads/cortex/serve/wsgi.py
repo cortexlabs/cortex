@@ -12,20 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: eksctl.io/v1alpha5
-kind: ClusterConfig
+from cortex.serve.serve import start
 
-metadata:
-  name: $CORTEX_CLUSTER_NAME
-  region: $CORTEX_REGION
-  version: "1.14"
-
-availabilityZones: $CORTEX_AVAILABILITY_ZONES
-
-cloudWatch:
-  clusterLogging:
-    enableTypes: ["*"]
-
-vpc:
-  nat:
-    gateway: Disable
+app = start()

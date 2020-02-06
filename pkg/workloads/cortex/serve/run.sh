@@ -24,4 +24,4 @@ fi
 
 cd /mnt/project
 
-/usr/bin/python3.6 /src/cortex/serve/serve.py "$@"
+exec gunicorn -b 0.0.0.0:$MY_PORT --access-logfile=- --pythonpath=$PYTHONPATH --chdir /mnt/project --log-level debug cortex.serve.wsgi:app
