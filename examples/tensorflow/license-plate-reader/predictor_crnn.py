@@ -16,16 +16,13 @@ class PythonPredictor:
         imgs = payload["imgs"]
         imgs = base64.b64decode(imgs.encode("utf-8"))
         jpgs_as_np = pickle.loads(imgs)
-        print(len(jpgs_as_np), jpgs_as_np)
-        print(type(jpgs_as_np[0]))
-        print(jpgs_as_np[0].shape)
         images = [cv2.imdecode(jpg_as_np, flags=cv2.IMREAD_COLOR) for jpg_as_np in jpgs_as_np]
         
         # run batch inference
         prediction_groups = self.pipeline.recognize(images)
-        lps = {"license-plates": []}
-        for pred in prediction_groups:
-            words = [x[0] for x in pred]
-            lps["license-plates"].append(words)
+        for img_predictions in prediction_groups:
+            for predictions in img_predictions:
+                predictions = tuple([predictions[0], predictions[1].tolist()])
+        lps = {"license-plates": prediction_groups}
             
         return lps
