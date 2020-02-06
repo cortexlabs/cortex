@@ -17,6 +17,7 @@ limitations under the License.
 package k8s
 
 import (
+	"bytes"
 	"regexp"
 	"time"
 
@@ -24,6 +25,8 @@ import (
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kscheme "k8s.io/client-go/kubernetes/scheme"
+	kremotecommand "k8s.io/client-go/tools/remotecommand"
 )
 
 var _podTypeMeta = kmeta.TypeMeta{
@@ -345,4 +348,39 @@ func TotalPodCompute(podSpec *kcore.PodSpec) (Quantity, Quantity, int64) {
 	}
 
 	return totalCPU, totalMem, totalGPU
+}
+
+// Example of running a shell command: []string{"/bin/bash", "-c", "ps aux | grep my-proc"}
+func (c *Client) Exec(podName string, containerName string, command []string) (string, error) {
+	options := &kcore.PodExecOptions{
+		Container: containerName,
+		Command:   command,
+		Stdin:     false,
+		Stdout:    true,
+		Stderr:    true,
+		TTY:       true,
+	}
+
+	req := c.clientset.CoreV1().RESTClient().Post().Namespace(c.Namespace).Resource("pods").Name(podName).SubResource("exec")
+	req.VersionedParams(options, kscheme.ParameterCodec)
+
+	exec, err := kremotecommand.NewSPDYExecutor(c.RestConfig, "POST", req.URL())
+	if err != nil {
+		return "", err
+	}
+
+	buf := &bytes.Buffer{}
+
+	err = exec.Stream(kremotecommand.StreamOptions{
+		Stdin:  nil,
+		Stdout: buf,
+		Stderr: nil, // TTY merges stdout and stderr
+		Tty:    true,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
+
 }
