@@ -12,6 +12,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v1.13.1
+	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/fatih/color v1.7.0
 	github.com/getsentry/sentry-go v0.3.1
 	github.com/google/go-cmp v0.3.1 // indirect
