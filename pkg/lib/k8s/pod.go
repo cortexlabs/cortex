@@ -350,6 +350,7 @@ func TotalPodCompute(podSpec *kcore.PodSpec) (Quantity, Quantity, int64) {
 	return totalCPU, totalMem, totalGPU
 }
 
+// Example of running a shell command: []string{"/bin/bash", "-c", "ps aux | grep my-proc"}
 func (c *Client) Exec(podName string, containerName string, command []string) (string, error) {
 	options := &kcore.PodExecOptions{
 		Container: containerName,
