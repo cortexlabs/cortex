@@ -13,6 +13,7 @@ import multiprocessing as mp
 import numpy as np
 import broadcast
 import copy
+from statistics import mean 
 from random import randint
 from utils.bbox import BoundBox, draw_boxes
 from requests_toolbelt.adapters.source import SourceAddressAdapter
@@ -26,8 +27,8 @@ logger.addHandler(stream_handler)
 logger.setLevel(logging.DEBUG)
 
 # api_endpoint = "http://Roberts-MacBook-2.local/predict"
-API_ENDPOINT_YOLO3 = "http://ab8ce587e47a011ea9f4a0ad90ccbc5a-839674254.eu-central-1.elb.amazonaws.com/yolov3"
-API_ENDPOINT_RCNN = "http://ab8ce587e47a011ea9f4a0ad90ccbc5a-839674254.eu-central-1.elb.amazonaws.com/crnn"
+API_ENDPOINT_YOLO3 = "http://a8298330e487b11ea8da50a51eff149e-893187381.eu-central-1.elb.amazonaws.com/yolov3"
+API_ENDPOINT_RCNN = "http://a8298330e487b11ea8da50a51eff149e-893187381.eu-central-1.elb.amazonaws.com/crnn"
 
 session = requests.Session()
 interface_ip = "192.168.0.46"
@@ -298,14 +299,15 @@ class InferenceWorker(WorkerTemplate):
         
         # recognize the license plates in case
         # any bounding boxes have been detected
-        dec_lps = []
+        dec_words = []
         if len(boxes) > 0:
             # create set of images of the detected license plates
+            lps = []
             try:
                 for b in boxes_source:
                     lp = image[b.ymin:b.ymax, b.xmin:b.xmax]
-                    jpeg = self.image_to_jpeg_nparray(lp)
-                    lps.append(jpeg)
+                    # jpeg = self.image_to_jpeg_nparray(lp, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+                    # lps.append(jpeg)
             except:
                 logger.warning("encountered error while converting to jpeg")
                 pass
@@ -316,17 +318,23 @@ class InferenceWorker(WorkerTemplate):
 
             # make request to rcnn API
             dec_lps = self.rcnn_api_request(lps_dump)
-            self.reorder_lps(dec_lps)
+            dec_lps = self.reorder_recognized_words(dec_lps)
+            for dec_lp in dec_lps:
+                dec_words.append([
+                    word[0] for word in dec_lp
+                ])
 
-        if len(dec_lps) > 0:
-            logger.info("Detected the following words: {}".format(dec_lps))
+        if len(dec_words) > 0:
+            logger.info("Detected the following words: {}".format(dec_words))
+        else:
+            dec_words = [[] for i in range(len(boxes))]
 
         #############################
         
         # draw detections
         upscaled = self.resize_image(image, upscale640_width)
-        draw_image = draw_boxes(upscaled, boxes640, labels=["LP"], obj_thresh=obj_thresh)
-        draw_byte_im = self.image_to_jpeg_bytes(draw_image, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+        draw_image = draw_boxes(upscaled, boxes640, overlay_text=dec_words, labels=["LP"], obj_thresh=obj_thresh)
+        draw_byte_im = self.image_to_jpeg_bytes(draw_image, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
 
         #############################
 
@@ -393,9 +401,9 @@ class InferenceWorker(WorkerTemplate):
             resp = session.post(API_ENDPOINT_RCNN, 
             data=lps_dump, headers={'content-type':'application/json'}, timeout=timeout)
         except requests.exceptions.Timeout as e:
-            logger.warning("timeout on rcnn inference request")
+            logger.warning("timeout on crnn inference request")
         except:
-            logger.warning("timing/connection error on rnn", exc_info=True)
+            logger.warning("timing/connection error on crnn", exc_info=True)
         finally:
             end = time.time()
             dec_lps = []
@@ -413,9 +421,30 @@ class InferenceWorker(WorkerTemplate):
 
         return dec_lps
 
-    def reorder_lps(self, lps):
-        for lp in lps:
-            lp = lp[::-1]
+    def reorder_recognized_words(self, detected_images):
+        # reorder the detected words in each image
+        # based on the average horizontal position of each word
+        # sorting them in ascending order
+
+        reordered_images = []
+        for detected_image in detected_images:
+            
+            # computing the mean average position for each word
+            mean_horizontal_positions = []
+            for words in detected_image:
+                box = words[1]
+                y_positions = [point[0] for point in box]
+                mean_y_position = mean(y_positions)
+                mean_horizontal_positions.append(mean_y_position)
+            indexes = np.argsort(mean_horizontal_positions)
+
+            # and reordering them
+            reordered = []
+            for index, words in zip(indexes, detected_image):
+                reordered.append(detected_image[index])
+            reordered_images.append(reordered)
+
+        return reordered_images
 
 class Flusher(WorkerTemplate):
     def __init__(self, event_stopper, queue, threshold, name=None):
