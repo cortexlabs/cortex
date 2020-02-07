@@ -18,6 +18,7 @@ package operator
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	kapps "k8s.io/api/apps/v1"
@@ -88,11 +90,12 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 	var concurrency int32 = 1
 	downscaleStabilizationPeriod := 5 * time.Minute
 	upscaleStabilizationPeriod := 0 * time.Minute
-	var maxUpscaleFactor float64 = 100   // must be > 1
 	var maxDownscaleFactor float64 = 0.5 // must be < 1
+	var maxUpscaleFactor float64 = 100   // must be > 1
 
 	var startTime time.Time
 
+	apiName := initialDeployment.Labels["apiName"]
 	currentReplicas := *initialDeployment.Spec.Replicas
 
 	minReplicas, err := getMinReplicas(initialDeployment)
@@ -105,6 +108,8 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 		return nil, err
 	}
 
+	log.Printf("%s autoscaler init: min_replicas=%d, max_replicas=%d, concurrency=%d, downscale_stabilization_period=%s, upscale_stabilization_period=%s, max_downscale_factor=%s, max_upscale_factor=%s", apiName, minReplicas, maxReplicas, concurrency, downscaleStabilizationPeriod, upscaleStabilizationPeriod, s.Round(maxDownscaleFactor, 100, 0), s.Round(maxUpscaleFactor, 100, 0))
+
 	recs := make(recommendations)
 
 	return func() error {
@@ -113,19 +118,20 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 		}
 
 		totalInFlight := getInflightRequests() // TODO window will go here
-		recommendationFloat := totalInFlight / (float64(concurrency) + targetQueueLen)
-		recommendation := int32(math.Ceil(recommendationFloat))
+		rawRecommendation := totalInFlight / (float64(concurrency) + targetQueueLen)
 
-		// always allow addition of 1
-		upscaleFactorCeil := libmath.MaxInt32(currentReplicas+1, int32(math.Ceil(float64(currentReplicas)*maxUpscaleFactor)))
-		if recommendation > upscaleFactorCeil {
-			recommendation = upscaleFactorCeil
-		}
+		recommendation := int32(math.Ceil(rawRecommendation))
 
 		// always allow subtraction of 1
 		downscaleFactorFloor := libmath.MinInt32(currentReplicas-1, int32(math.Ceil(float64(currentReplicas)*maxDownscaleFactor)))
 		if recommendation < downscaleFactorFloor {
 			recommendation = downscaleFactorFloor
+		}
+
+		// always allow addition of 1
+		upscaleFactorCeil := libmath.MaxInt32(currentReplicas+1, int32(math.Ceil(float64(currentReplicas)*maxUpscaleFactor)))
+		if recommendation > upscaleFactorCeil {
+			recommendation = upscaleFactorCeil
 		}
 
 		if recommendation < 1 {
@@ -153,7 +159,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 		if time.Since(startTime) < downscaleStabilizationPeriod {
 			downscaleStabilizationFloor = nil
 		}
-		if downscaleStabilizationFloor != nil && recommendation < *downscaleStabilizationFloor {
+		if downscaleStabilizationFloor != nil && request < *downscaleStabilizationFloor {
 			request = *downscaleStabilizationFloor
 		}
 
@@ -161,11 +167,15 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 		if time.Since(startTime) < upscaleStabilizationPeriod {
 			upscaleStabilizationCeil = nil
 		}
-		if upscaleStabilizationCeil != nil && recommendation > *upscaleStabilizationCeil {
+		if upscaleStabilizationCeil != nil && request > *upscaleStabilizationCeil {
 			request = *upscaleStabilizationCeil
 		}
 
+		log.Printf("%s autoscaler tick: total_in_flight=%d, raw_recommendation=%s, downscale_factor_floor=%d, upscale_factor_ceil=%d, min_replicas=%d, max_replicas=%d, recommendation=%d, downscale_stabilization_floor=%d, upscale_stabilization_ceil=%d, current_replicas=%d, request=%d", apiName, int64(totalInFlight), s.Round(rawRecommendation, 2, 0), downscaleFactorFloor, upscaleFactorCeil, minReplicas, maxReplicas, recommendation, downscaleStabilizationFloor, upscaleStabilizationCeil, currentReplicas, request)
+
 		if currentReplicas != request {
+			log.Printf("%s autoscaling event: %d -> %d", apiName, currentReplicas, request)
+
 			deployment, err := config.K8s.GetDeployment(initialDeployment.Name)
 			if err != nil {
 				return err
@@ -179,8 +189,6 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 
 			currentReplicas = request
 		}
-
-		// TODO add logs
 
 		return nil
 	}, nil
