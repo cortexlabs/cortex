@@ -23,6 +23,7 @@ import (
 
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	kapps "k8s.io/api/apps/v1"
 )
 
@@ -78,21 +79,21 @@ func (recs recommendations) minSince(period time.Duration) *int32 {
 	return &min
 }
 
-func autoscaleFn(deployment *kapps.Deployment) func() error {
+func autoscaleFn(initialDeployment *kapps.Deployment) func() error {
+	// window := 60 * time.Second
 	var targetQueueLen float64 = 0
 	var concurrency int32 = 1
-	// window := 60 * time.Second
 	downscaleStabilizationPeriod := 5 * time.Minute
 	upscaleStabilizationPeriod := 0 * time.Minute
-	var maxUpscaleFactor float64 = 2     // must be > 1
+	var maxUpscaleFactor float64 = 100   // must be > 1
 	var maxDownscaleFactor float64 = 0.5 // must be < 1
 
-	currentReplicas := *deployment.Spec.Replicas
+	currentReplicas := *initialDeployment.Spec.Replicas
 
 	recs := make(recommendations)
 
 	return func() error {
-		totalInFlight := rand.Float64() * 100 // window will go here
+		totalInFlight := rand.Float64() * 100 // TODO window will go here
 
 		recommendationFloat := totalInFlight / (float64(concurrency) + targetQueueLen)
 		recommendation := int32(math.Ceil(recommendationFloat))
@@ -127,8 +128,18 @@ func autoscaleFn(deployment *kapps.Deployment) func() error {
 			request = *upscaleStabilizationCeil
 		}
 
-		// scale
 		if currentReplicas != request {
+			deployment, err := config.K8s.GetDeployment(initialDeployment.Name)
+			if err != nil {
+				return err
+			}
+
+			deployment.Spec.Replicas = &request
+
+			if _, err := config.K8s.UpdateDeployment(deployment); err != nil {
+				return err
+			}
+
 			currentReplicas = request
 		}
 

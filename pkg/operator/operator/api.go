@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -34,6 +35,8 @@ import (
 	kcore "k8s.io/api/core/v1"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
+
+var _autoscalerCrons = make(map[string]cron.Cron) // apiName -> cron
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
 	prevDeployment, prevService, prevVirtualService, err := getK8sResources(apiConfig)
@@ -208,6 +211,7 @@ func applyK8sResources(api *spec.API, prevDeployment *kapps.Deployment, prevServ
 		},
 		func() error {
 			// Delete HPA while updating replicas to avoid unwanted autoscaling due to CPU fluctuations
+			// TODO remove all HPA stuff
 			config.K8s.DeleteHPA(k8sName(api.Name))
 			return nil
 		},
@@ -219,18 +223,37 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 
 	if prevDeployment == nil {
 		_, err := config.K8s.CreateDeployment(newDeployment)
-		return err
-	}
-
-	// Delete deployment if it never became ready
-	if prevDeployment.Status.ReadyReplicas == 0 {
+		if err != nil {
+			return err
+		}
+	} else if prevDeployment.Status.ReadyReplicas == 0 {
+		// Delete deployment if it never became ready
 		config.K8s.DeleteDeployment(k8sName(api.Name))
 		_, err := config.K8s.CreateDeployment(newDeployment)
-		return err
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err := config.K8s.UpdateDeployment(newDeployment)
+		if err != nil {
+			return err
+		}
 	}
 
-	_, err := config.K8s.UpdateDeployment(newDeployment)
-	return err
+	updateAutoscalerCron(newDeployment)
+
+	return nil
+}
+
+func updateAutoscalerCron(deployment *kapps.Deployment) {
+	apiName := deployment.Labels["apiName"]
+
+	if prevAutoscalerCron, ok := _autoscalerCrons[apiName]; ok {
+		prevAutoscalerCron.Cancel()
+	}
+
+	tickPeriod := 2 * time.Second
+	_autoscalerCrons[apiName] = cron.Run(autoscaleFn(deployment), cronErrHandler(apiName+" autoscaler"), tickPeriod)
 }
 
 func applyK8sService(api *spec.API, prevService *kcore.Service) error {
