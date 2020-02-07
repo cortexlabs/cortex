@@ -24,9 +24,9 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
+	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 )
 
 func getTerminalWidth() int {
@@ -52,7 +52,7 @@ func watchHeader() string {
 	timeStr := libtime.LocalHourNow()
 	width := getTerminalWidth()
 	numExtraChars := 4
-	padding := strings.Repeat(" ", slices.MaxInt(width-len(_cmdStr)-len(timeStr)-numExtraChars, 0))
+	padding := strings.Repeat(" ", libmath.MaxInt(width-len(_cmdStr)-len(timeStr)-numExtraChars, 0))
 	return fmt.Sprintf("$ %s  %s%s", _cmdStr, padding, libtime.LocalHourNow())
 }
 
