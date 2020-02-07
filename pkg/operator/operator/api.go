@@ -283,6 +283,11 @@ func applyK8sVirtualService(api *spec.API, prevVirtualService *kunstructured.Uns
 func deleteK8sResources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
+			if autoscalerCron, ok := _autoscalerCrons[apiName]; ok {
+				autoscalerCron.Cancel()
+				delete(_autoscalerCrons, apiName)
+			}
+
 			_, err := config.K8s.DeleteDeployment(k8sName(apiName))
 			return err
 		},
