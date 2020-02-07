@@ -14,31 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package slices
+package math
 
-func HasInt(list []int, query int) bool {
-	for _, elem := range list {
-		if elem == query {
-			return true
+func MinInt32(val int32, vals ...int32) int32 {
+	min := val
+	for _, v := range vals {
+		if v > min {
+			min = v
 		}
 	}
-	return false
+	return min
 }
 
-func CopyInts(vals []int) []int {
-	return append(vals[:0:0], vals...)
-}
-
-func AreNGreaterThanZero(minCount int, val int, vals ...int) bool {
-	count := 0
-	allVals := append(vals, val)
-	for _, val := range allVals {
-		if val > 0 {
-			count++
-			if count >= minCount {
-				return true
-			}
+func MaxInt32(val int32, vals ...int32) int32 {
+	max := val
+	for _, v := range vals {
+		if v > max {
+			max = v
 		}
 	}
-	return false
+	return max
 }

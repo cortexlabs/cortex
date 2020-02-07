@@ -149,3 +149,14 @@ func (t *Timer) Print(messages ...string) {
 
 	t.last = now
 }
+
+func MaxDuration(duration time.Duration, durations ...time.Duration) time.Duration {
+	max := duration
+	for _, d := range durations {
+		if d > max {
+			max = d
+		}
+	}
+
+	return max
+}

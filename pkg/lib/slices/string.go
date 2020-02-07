@@ -17,6 +17,7 @@ limitations under the License.
 package slices
 
 import (
+	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
@@ -191,7 +192,7 @@ func MergeStrSlices(slices ...[]string) []string {
 
 func ZipStrsToMap(strs1 []string, strs2 []string) map[string]string {
 	strMap := map[string]string{}
-	length := MinInt(len(strs1), len(strs2))
+	length := libmath.MinInt(len(strs1), len(strs2))
 	for i := 0; i < length; i++ {
 		strMap[strs1[i]] = strs2[i]
 	}
