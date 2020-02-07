@@ -37,6 +37,8 @@ Spot instances can be mixed with on-demand instances by configuring `on_demand_b
 
 Even if multiple instances are specified in your `instance_distribution` on-demand instances are mixed, there is still a possibility of running into scale up issues when attempting to spin up spot instances. Spot instance requests may not be fulfilled for several reasons. Spot instance pricing fluctuates, therefore the `max_price` may be lower than the current spot pricing rate. Another possibility could be that the availability zones of the cluster ran out of spot instances. `on_demand_backup` can be used mitigate the impact of unfulfilled spot requests by enabling the cluster to spin up on-demand instances if spot instance requests are not fulfilled within 5 minutes.
 
+There is a spot instance limit associated with your AWS account for each region. You can check your current limit [here](https://us-west-2.console.aws.amazon.com/ec2/v2/home?#Limits:)] (change the region in the upper right corner to your desired region, and search for "spot"). Please note that the spot instance limit is not an actual instance count. The instance limit you see listed may not be the actual limit depending on the instance type you are requesting. For example, even if the limit shows `20`, if you are requesting large instances like `p2.xlarge`, the actual limit may be lower due to the way AWS calculates this limit. If you are not getting the number of spot instances that you are expecting for your instance type, you can request a limit increase [here](https://console.aws.amazon.com/support/home#/case/create?issueType=service-limit-increase&limitType=service-code-ec2-spot-instances).
+
 ## Example spot configuration
 
 ### Only spot instances with backup
