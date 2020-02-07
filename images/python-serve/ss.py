@@ -6,11 +6,11 @@ import os.path
 from datetime import datetime
 import datadog
 import collections
+import math
 
 cloudwatch = boto3.client("cloudwatch", region_name=os.environ["AWS_REGION"])
 host_ip = os.environ["HOST_IP"]
-print(host_ip)
-tick_len = 10
+tick_len = 5
 
 
 def main():
@@ -20,17 +20,20 @@ def main():
     # for response in paginator.paginate():
     #     print([metric["MetricName"] for metric in response["Metrics"][:3]])  # just get a few
 
+    counter = 0
+    statsd = datadog.initialize(statsd_host=host_ip, statsd_port="8125")
+    statsd = datadog.statsd
+    queue = collections.deque([], tick_len)
+
+    target_start_time = math.ceil(time.time() / 10) * 10 + 2
+    time.sleep(target_start_time - time.time())
+
     while True:
         if not os.path.isfile("/mnt/health_check.txt"):
             print("waiting...", flush=True)
         else:
             break
-        time.sleep(1)
-
-    counter = 0
-    statsd = datadog.initialize(statsd_host=host_ip, statsd_port="8125")
-    statsd = datadog.statsd
-    queue = collections.deque([], tick_len)
+        time.sleep(10)
     while True:
         cur_time = time.time()
         new_conn = get_open_conn()
@@ -39,8 +42,9 @@ def main():
         if counter == 0:
             open_conn = sum(queue) / len(queue)
             publish_queue(statsd, open_conn)
-        sleep_time = cur_time + 1.0 - time.time()
-        time.sleep(1)
+        sleep_time = cur_time + 2 - time.time()
+        if sleep_time > 0:
+            time.sleep(sleep_time)
 
 
 def get_open_conn():

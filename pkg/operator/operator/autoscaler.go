@@ -17,7 +17,6 @@ limitations under the License.
 package operator
 
 import (
-	"fmt"
 	"log"
 	"math"
 	"time"
@@ -117,8 +116,16 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			startTime = time.Now()
 		}
 
-		totalInFlight := getInflightRequests() // TODO window will go here
-		rawRecommendation := totalInFlight / (float64(concurrency) + targetQueueLen)
+		totalInFlight, err := getInflightRequests() // TODO window will go here
+		if err != nil {
+			debug.Pp(err)
+			return nil
+		}
+		if totalInFlight == nil {
+			return nil
+		}
+
+		rawRecommendation := *totalInFlight / (float64(concurrency) + targetQueueLen)
 
 		recommendation := int32(math.Ceil(rawRecommendation))
 
@@ -171,7 +178,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			request = *upscaleStabilizationCeil
 		}
 
-		log.Printf("%s autoscaler tick: total_in_flight=%d, raw_recommendation=%s, downscale_factor_floor=%d, upscale_factor_ceil=%d, min_replicas=%d, max_replicas=%d, recommendation=%d, downscale_stabilization_floor=%d, upscale_stabilization_ceil=%d, current_replicas=%d, request=%d", apiName, int64(totalInFlight), s.Round(rawRecommendation, 2, 0), downscaleFactorFloor, upscaleFactorCeil, minReplicas, maxReplicas, recommendation, downscaleStabilizationFloor, upscaleStabilizationCeil, currentReplicas, request)
+		log.Printf("%s autoscaler tick: total_in_flight=%s, raw_recommendation=%s, downscale_factor_floor=%d, upscale_factor_ceil=%d, min_replicas=%d, max_replicas=%d, recommendation=%d, downscale_stabilization_floor=%d, upscale_stabilization_ceil=%d, current_replicas=%d, request=%d", apiName, s.Round(*totalInFlight, 2, 0), s.Round(rawRecommendation, 2, 0), downscaleFactorFloor, upscaleFactorCeil, minReplicas, maxReplicas, recommendation, downscaleStabilizationFloor, upscaleStabilizationCeil, currentReplicas, request)
 
 		if currentReplicas != request {
 			log.Printf("%s autoscaling event: %d -> %d", apiName, currentReplicas, request)
@@ -194,8 +201,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 	}, nil
 }
 
-func getInflightRequests() float64 {
-	debug.Pp("Hello!")
+func getInflightRequests() (*float64, error) {
 	endTime := time.Now().Truncate(time.Second)
 	debug.Pp(endTime)
 	startTime := endTime.Add(-60 * time.Second)
@@ -225,9 +231,12 @@ func getInflightRequests() float64 {
 	}
 	output, err := config.AWS.CloudWatchMetrics().GetMetricData(&metricsDataQuery)
 	if err != nil {
-		debug.Pp(err)
+		return nil, err
 	}
 
+	if len(output.MetricDataResults[0].Timestamps) == 0 {
+		return nil, nil
+	}
 	timestampCounter := 0
 	for i, timeStamp := range output.MetricDataResults[0].Timestamps {
 		if endTime.Sub(*timeStamp) < 20*time.Second {
@@ -237,7 +246,5 @@ func getInflightRequests() float64 {
 		}
 	}
 	value := output.MetricDataResults[0].Values[timestampCounter]
-	debug.Pp(output.MetricDataResults[0])
-	fmt.Printf("inflight: %f\n", *value)
-	return *value
+	return value, nil
 }
