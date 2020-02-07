@@ -1,5 +1,37 @@
 {
-    "camera": {
-        
+    "video_source": {
+        "type": "camera",
+        "sensor_mode": 5,
+        "resolution": [480, 270],
+        "framerate": 30
+    },
+    "video_source": {
+        "type": "filesource",
+        "input_file": "dashcam.mp4"
+    },
+    "broadcaster": {
+        "target_buffer_size": 5,
+        "max_buffer_size_variation": 5,
+        "max_fps_variation": 15,
+        "target_fps": 30,
+        "serve_address": ["0.0.0.0", 8000]
+    },
+    "inferencing_worker": {
+        "yolov3_input_size_px": 416,
+        "bounding_boxes_upscale_px": 640,
+        "yolov3_obj_thresh": 0.8,
+        "crnn_quality": 80,
+        "broadcast_quality": 85,
+        "timeout": 1.20,
+        "api_endpoint_yolov3": "http://acc71063d493811ea822b02a0e1c9db9-1687072714.eu-central-1.elb.amazonaws.com/yolov3",
+        "api_endpoint_crnn": "http://acc71063d493811ea822b02a0e1c9db9-1687072714.eu-central-1.elb.amazonaws.com/crnn"
+    },
+    "inferencing_pool": {
+        "workers": 1,
+        "pick_every_nth_frame": 1
+    },
+    "general": {
+        "frame_count_threshold": 10,
+        "output_file": "recording.h264",
     }
 }

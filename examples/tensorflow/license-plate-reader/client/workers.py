@@ -1,23 +1,16 @@
 from utils.image import resize_image, compress_image, image_from_bytes, image_to_jpeg_nparray, image_to_jpeg_bytes
 from utils.bbox import BoundBox, draw_boxes
+from statistics import mean
 import time, base64, pickle, json, cv2, logging, requests, queue, broadcast, copy, statistics
 
 import numpy as np
 import threading as td
 import multiprocessing as mp
 
-from requests_toolbelt.adapters.source import SourceAddressAdapter
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 session = requests.Session()
-interface_ip = "192.168.0.46"
-session.mount('http://', SourceAddressAdapter(interface_ip))
-# session.mount('https://', SourceAddressAdapter(interface_ip))
-
-API_ENDPOINT_YOLO3 = "http://acc71063d493811ea822b02a0e1c9db9-1687072714.eu-central-1.elb.amazonaws.com/yolov3"
-API_ENDPOINT_RCNN = "http://acc71063d493811ea822b02a0e1c9db9-1687072714.eu-central-1.elb.amazonaws.com/crnn"
 
 class WorkerTemplateThread(td.Thread):
     def __init__(self, event_stopper, name=None, runnable=None):
@@ -54,11 +47,9 @@ class WorkerTemplateProcess(mp.Process):
         self.event_stopper.set()
 
 class BroadcastReassembled(WorkerTemplateProcess):
-    def __init__(self, in_queue, serve_address, name=None):
+    def __init__(self, in_queue, cfg, name=None):
         super(BroadcastReassembled, self).__init__(event_stopper=mp.Event(), name=name)
         self.in_queue = in_queue
-        self.serve_address = serve_address
-        
         self.yolo3_rtt = None
         self.crnn_rtt = None
         self.detections = 0
@@ -67,14 +58,13 @@ class BroadcastReassembled(WorkerTemplateProcess):
         self.current_recognitions = 0
         self.buffer = []
         self.oldest_broadcasted_frame = 0
-        self.target_buffer_size = 5
-        self.max_buffer_size_variation = 5
-        self.max_fps_variation = 15
-        self.target_fps = 30
+
+        for key, value in cfg.items():
+            setattr(self, key, value)
 
     def run(self):
         def lambda_func():
-            server = broadcast.StreamingServer(self.serve_address, broadcast.StreamingHandler)
+            server = broadcast.StreamingServer(tuple(self.serve_address), broadcast.StreamingHandler)
             server.serve_forever()
 
         td.Thread(
@@ -192,13 +182,16 @@ class BroadcastReassembled(WorkerTemplateProcess):
         self.current_recognitions = recognitions
 
 class InferenceWorker(WorkerTemplateThread):
-    def __init__(self, event_stopper, in_queue, out_queue, name=None):
+    def __init__(self, event_stopper, in_queue, out_queue, cfg, name=None):
         super(InferenceWorker, self).__init__(event_stopper=event_stopper, name=name)
         self.in_queue = in_queue
         self.out_queue = out_queue
         self.rtt_yolo3_ms = None
         self.rtt_crnn_ms = 0
         self.runnable = self.cloud_infer
+
+        for key, value in cfg.items():
+            setattr(self, key, value)
 
     def cloud_infer(self):
         try:
@@ -236,23 +229,20 @@ class InferenceWorker(WorkerTemplateThread):
             boxes.append(box)
 
         # purge bounding boxes with a low confidence score
-        obj_thresh = 0.8
         aux = []
         for b in boxes:
             label = -1
             for i in range(len(b.classes)):
-                if b.classes[i] > obj_thresh:
+                if b.classes[i] > self.yolov3_obj_thresh:
                     label = i
             if label >= 0: aux.append(b)
         boxes = aux
         del aux
 
         # also scale the boxes for later uses
-        yolo3_image_width = 416
-        upscale640_width = 640
         camera_source_width = image.shape[1]
-        boxes640 = self.scale_bbox(boxes, yolo3_image_width, upscale640_width)
-        boxes_source = self.scale_bbox(boxes, yolo3_image_width, camera_source_width)
+        boxes640 = self.scale_bbox(boxes, self.yolov3_input_size_px, self.bounding_boxes_upscale_px)
+        boxes_source = self.scale_bbox(boxes, self.yolov3_input_size_px, camera_source_width)
 
         #############################
         
@@ -265,8 +255,8 @@ class InferenceWorker(WorkerTemplateThread):
             try:
                 for b in boxes_source:
                     lp = image[b.ymin:b.ymax, b.xmin:b.xmax]
-                    # jpeg = image_to_jpeg_nparray(lp, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-                    # lps.append(jpeg)
+                    jpeg = image_to_jpeg_nparray(lp, [int(cv2.IMWRITE_JPEG_QUALITY), self.crnn_quality])
+                    lps.append(jpeg)
             except:
                 logger.warning("encountered error while converting to jpeg")
                 pass
@@ -291,9 +281,9 @@ class InferenceWorker(WorkerTemplateThread):
         #############################
         
         # draw detections
-        upscaled = resize_image(image, upscale640_width)
-        draw_image = draw_boxes(upscaled, boxes640, overlay_text=dec_words, labels=["LP"], obj_thresh=obj_thresh)
-        draw_byte_im = image_to_jpeg_bytes(draw_image, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
+        upscaled = resize_image(image, self.bounding_boxes_upscale_px)
+        draw_image = draw_boxes(upscaled, boxes640, overlay_text=dec_words, labels=["LP"], obj_thresh=self.yolov3_obj_thresh)
+        draw_byte_im = image_to_jpeg_bytes(draw_image, [int(cv2.IMWRITE_JPEG_QUALITY), self.broadcast_quality])
 
         #############################
 
@@ -320,13 +310,13 @@ class InferenceWorker(WorkerTemplateThread):
             b.ymax = int(b.ymax * scale_percent)
         return boxes
 
-    def yolov3_api_request(self, img_dump, timeout=1.200):
+    def yolov3_api_request(self, img_dump):
         # make inference request
         try:
             start = time.time()
             resp = None
-            resp = session.post(API_ENDPOINT_YOLO3, 
-            data=img_dump, headers={'content-type':'application/json'}, timeout=timeout)
+            resp = session.post(self.api_endpoint_yolov3, 
+            data=img_dump, headers={'content-type':'application/json'}, timeout=self.timeout)
         except requests.exceptions.Timeout as e:
             logger.warning("timeout on yolov3 inference request")
             time.sleep(0.10)
@@ -357,8 +347,8 @@ class InferenceWorker(WorkerTemplateThread):
         try:
             start = time.time()
             resp = None
-            resp = session.post(API_ENDPOINT_RCNN, 
-            data=lps_dump, headers={'content-type':'application/json'}, timeout=timeout)
+            resp = session.post(self.api_endpoint_crnn, 
+            data=lps_dump, headers={'content-type':'application/json'}, timeout=self.timeout)
         except requests.exceptions.Timeout as e:
             logger.warning("timeout on crnn inference request")
         except:
