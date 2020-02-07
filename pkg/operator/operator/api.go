@@ -240,20 +240,29 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 		}
 	}
 
-	updateAutoscalerCron(newDeployment)
+	if err := updateAutoscalerCron(newDeployment); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func updateAutoscalerCron(deployment *kapps.Deployment) {
+func updateAutoscalerCron(deployment *kapps.Deployment) error {
 	apiName := deployment.Labels["apiName"]
 
 	if prevAutoscalerCron, ok := _autoscalerCrons[apiName]; ok {
 		prevAutoscalerCron.Cancel()
 	}
 
+	autoscaler, err := autoscaleFn(deployment)
+	if err != nil {
+		return err
+	}
+
 	tickPeriod := 10 * time.Second
-	_autoscalerCrons[apiName] = cron.Run(autoscaleFn(deployment), cronErrHandler(apiName+" autoscaler"), tickPeriod)
+	_autoscalerCrons[apiName] = cron.Run(autoscaler, cronErrHandler(apiName+" autoscaler"), tickPeriod)
+
+	return nil
 }
 
 func applyK8sService(api *spec.API, prevService *kcore.Service) error {
@@ -407,6 +416,22 @@ func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
 	}
 
 	return apis, nil
+}
+
+func getMinReplicas(deployment *kapps.Deployment) (int32, error) {
+	minReplicas, ok := s.ParseInt32(deployment.Labels["minReplicas"])
+	if !ok {
+		return 0, errors.New("unable to parse minReplicas from deployment") // unexpected
+	}
+	return minReplicas, nil
+}
+
+func getMaxReplicas(deployment *kapps.Deployment) (int32, error) {
+	maxReplicas, ok := s.ParseInt32(deployment.Labels["maxReplicas"])
+	if !ok {
+		return 0, errors.New("unable to parse maxReplicas from deployment") // unexpected
+	}
+	return maxReplicas, nil
 }
 
 func specKey(apiName string, apiID string) string {

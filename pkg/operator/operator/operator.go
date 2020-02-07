@@ -39,7 +39,9 @@ func Init() error {
 	}
 
 	for _, deployment := range deployments {
-		updateAutoscalerCron(&deployment)
+		if err := updateAutoscalerCron(&deployment); err != nil {
+			return err
+		}
 	}
 
 	// cron.Run(updateHPAs, cronErrHandler("update hpas"), 20*time.Second)

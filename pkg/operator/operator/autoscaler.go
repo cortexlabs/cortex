@@ -82,7 +82,7 @@ func (recs recommendations) minSince(period time.Duration) *int32 {
 	return &min
 }
 
-func autoscaleFn(initialDeployment *kapps.Deployment) func() error {
+func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 	// window := 60 * time.Second
 	var targetQueueLen float64 = 0
 	var concurrency int32 = 1
@@ -91,11 +91,26 @@ func autoscaleFn(initialDeployment *kapps.Deployment) func() error {
 	var maxUpscaleFactor float64 = 100   // must be > 1
 	var maxDownscaleFactor float64 = 0.5 // must be < 1
 
+	var startTime time.Time
+
 	currentReplicas := *initialDeployment.Spec.Replicas
-	debug.Pp(currentReplicas)
+
+	minReplicas, err := getMinReplicas(initialDeployment)
+	if err != nil {
+		return nil, err
+	}
+
+	maxReplicas, err := getMaxReplicas(initialDeployment)
+	if err != nil {
+		return nil, err
+	}
+
 	recs := make(recommendations)
 
 	return func() error {
+		if startTime.IsZero() {
+			startTime = time.Now()
+		}
 
 		totalInFlight := getInflightRequests() // TODO window will go here
 		recommendationFloat := totalInFlight / (float64(concurrency) + targetQueueLen)
@@ -117,21 +132,39 @@ func autoscaleFn(initialDeployment *kapps.Deployment) func() error {
 			recommendation = 1
 		}
 
+		if recommendation < minReplicas {
+			recommendation = minReplicas
+		}
+
+		if recommendation > maxReplicas {
+			recommendation = maxReplicas
+		}
+
+		// Rule of thumb: any modifications that don't consider historical recommendations should be performed before
+		// recording the recommendation, any modifications that use historical recommendations should be performed after
 		recs.add(recommendation)
+
+		// This is just for garbage collection
 		recs.clearOlderThan(libtime.MaxDuration(downscaleStabilizationPeriod, upscaleStabilizationPeriod))
 
 		request := recommendation
+
 		downscaleStabilizationFloor := recs.maxSince(downscaleStabilizationPeriod)
+		if time.Since(startTime) < downscaleStabilizationPeriod {
+			downscaleStabilizationFloor = nil
+		}
 		if downscaleStabilizationFloor != nil && recommendation < *downscaleStabilizationFloor {
 			request = *downscaleStabilizationFloor
 		}
 
 		upscaleStabilizationCeil := recs.minSince(upscaleStabilizationPeriod)
+		if time.Since(startTime) < upscaleStabilizationPeriod {
+			upscaleStabilizationCeil = nil
+		}
 		if upscaleStabilizationCeil != nil && recommendation > *upscaleStabilizationCeil {
 			request = *upscaleStabilizationCeil
 		}
 
-		fmt.Printf("requested replica: %d", request)
 		if currentReplicas != request {
 			deployment, err := config.K8s.GetDeployment(initialDeployment.Name)
 			if err != nil {
@@ -147,8 +180,10 @@ func autoscaleFn(initialDeployment *kapps.Deployment) func() error {
 			currentReplicas = request
 		}
 
+		// TODO add logs
+
 		return nil
-	}
+	}, nil
 }
 
 func getInflightRequests() float64 {
