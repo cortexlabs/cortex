@@ -19,7 +19,7 @@ package math
 func MinFloat32(val float32, vals ...float32) float32 {
 	min := val
 	for _, v := range vals {
-		if v > min {
+		if v < min {
 			min = v
 		}
 	}

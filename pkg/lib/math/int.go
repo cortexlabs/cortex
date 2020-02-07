@@ -19,7 +19,7 @@ package math
 func MinInt(val int, vals ...int) int {
 	min := val
 	for _, v := range vals {
-		if v > min {
+		if v < min {
 			min = v
 		}
 	}

@@ -19,7 +19,7 @@ package math
 func MinFloat64(val float64, vals ...float64) float64 {
 	min := val
 	for _, v := range vals {
-		if v > min {
+		if v < min {
 			min = v
 		}
 	}

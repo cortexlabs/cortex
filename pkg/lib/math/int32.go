@@ -19,7 +19,7 @@ package math
 func MinInt32(val int32, vals ...int32) int32 {
 	min := val
 	for _, v := range vals {
-		if v > min {
+		if v < min {
 			min = v
 		}
 	}

@@ -19,7 +19,7 @@ package math
 func MinInt64(val int64, vals ...int64) int64 {
 	min := val
 	for _, v := range vals {
-		if v > min {
+		if v < min {
 			min = v
 		}
 	}
