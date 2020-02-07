@@ -169,6 +169,9 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 		if downscaleStabilizationFloor != nil && request < *downscaleStabilizationFloor {
 			request = *downscaleStabilizationFloor
 		}
+		if downscaleStabilizationFloor == nil && request < currentReplicas {
+			request = currentReplicas
+		}
 
 		upscaleStabilizationCeil := recs.minSince(upscaleStabilizationPeriod)
 		if time.Since(startTime) < upscaleStabilizationPeriod {
@@ -177,8 +180,11 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 		if upscaleStabilizationCeil != nil && request > *upscaleStabilizationCeil {
 			request = *upscaleStabilizationCeil
 		}
+		if upscaleStabilizationCeil == nil && request > currentReplicas {
+			request = currentReplicas
+		}
 
-		log.Printf("%s autoscaler tick: total_in_flight=%s, raw_recommendation=%s, downscale_factor_floor=%d, upscale_factor_ceil=%d, min_replicas=%d, max_replicas=%d, recommendation=%d, downscale_stabilization_floor=%d, upscale_stabilization_ceil=%d, current_replicas=%d, request=%d", apiName, s.Round(*totalInFlight, 2, 0), s.Round(rawRecommendation, 2, 0), downscaleFactorFloor, upscaleFactorCeil, minReplicas, maxReplicas, recommendation, downscaleStabilizationFloor, upscaleStabilizationCeil, currentReplicas, request)
+		log.Printf("%s autoscaler tick: total_in_flight=%s, raw_recommendation=%s, downscale_factor_floor=%d, upscale_factor_ceil=%d, min_replicas=%d, max_replicas=%d, recommendation=%d, downscale_stabilization_floor=%s, upscale_stabilization_ceil=%s, current_replicas=%d, request=%d", apiName, s.Round(*totalInFlight, 2, 0), s.Round(rawRecommendation, 2, 0), downscaleFactorFloor, upscaleFactorCeil, minReplicas, maxReplicas, recommendation, s.ObjFlatNoQuotes(downscaleStabilizationFloor), s.ObjFlatNoQuotes(upscaleStabilizationCeil), currentReplicas, request)
 
 		if currentReplicas != request {
 			log.Printf("%s autoscaling event: %d -> %d", apiName, currentReplicas, request)
