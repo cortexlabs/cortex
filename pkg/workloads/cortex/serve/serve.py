@@ -62,7 +62,7 @@ def start():
         except Exception as e:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
-    open("/health_check.txt", "a").close()
+    open("/mnt/health_check.txt", "a").close()
     cx_logger().info("{} api is live".format(api.name))
     return app
 

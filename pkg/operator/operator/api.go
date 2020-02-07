@@ -252,7 +252,7 @@ func updateAutoscalerCron(deployment *kapps.Deployment) {
 		prevAutoscalerCron.Cancel()
 	}
 
-	tickPeriod := 2 * time.Second
+	tickPeriod := 10 * time.Second
 	_autoscalerCrons[apiName] = cron.Run(autoscaleFn(deployment), cronErrHandler(apiName+" autoscaler"), tickPeriod)
 }
 

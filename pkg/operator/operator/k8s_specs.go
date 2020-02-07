@@ -611,7 +611,7 @@ var _apiReadinessProbe = &kcore.Probe{
 	FailureThreshold:    2,
 	Handler: kcore.Handler{
 		Exec: &kcore.ExecAction{
-			Command: []string{"/bin/bash", "-c", "/bin/ps aux | grep \"gunicorn\" | grep -v \"grep\" && test -f /health_check.txt"},
+			Command: []string{"/bin/bash", "-c", "/bin/ps aux | grep \"gunicorn\" | grep -v \"grep\" && test -f /mnt/health_check.txt"},
 		},
 	},
 }

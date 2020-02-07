@@ -17,10 +17,13 @@ limitations under the License.
 package operator
 
 import (
+	"fmt"
 	"math"
-	"math/rand"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -89,12 +92,12 @@ func autoscaleFn(initialDeployment *kapps.Deployment) func() error {
 	var maxDownscaleFactor float64 = 0.5 // must be < 1
 
 	currentReplicas := *initialDeployment.Spec.Replicas
-
+	debug.Pp(currentReplicas)
 	recs := make(recommendations)
 
 	return func() error {
-		totalInFlight := rand.Float64() * 100 // TODO window will go here
 
+		totalInFlight := getInflightRequests() // TODO window will go here
 		recommendationFloat := totalInFlight / (float64(concurrency) + targetQueueLen)
 		recommendation := int32(math.Ceil(recommendationFloat))
 
@@ -128,6 +131,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) func() error {
 			request = *upscaleStabilizationCeil
 		}
 
+		fmt.Printf("requested replica: %d", request)
 		if currentReplicas != request {
 			deployment, err := config.K8s.GetDeployment(initialDeployment.Name)
 			if err != nil {
@@ -145,4 +149,52 @@ func autoscaleFn(initialDeployment *kapps.Deployment) func() error {
 
 		return nil
 	}
+}
+
+func getInflightRequests() float64 {
+	debug.Pp("Hello!")
+	endTime := time.Now().Truncate(time.Second)
+	debug.Pp(endTime)
+	startTime := endTime.Add(-60 * time.Second)
+	metricsDataQuery := cloudwatch.GetMetricDataInput{
+		EndTime:   &endTime,
+		StartTime: &startTime,
+		MetricDataQueries: []*cloudwatch.MetricDataQuery{
+			{
+				Id:    aws.String("inflight"),
+				Label: aws.String("InFlight"),
+				MetricStat: &cloudwatch.MetricStat{
+					Metric: &cloudwatch.Metric{
+						Namespace:  aws.String("cortex"),
+						MetricName: aws.String("in-flight"),
+						Dimensions: []*cloudwatch.Dimension{
+							&cloudwatch.Dimension{
+								Name:  aws.String("apiName"),
+								Value: aws.String("test"),
+							},
+						},
+					},
+					Stat:   aws.String("Average"),
+					Period: aws.Int64(10),
+				},
+			},
+		},
+	}
+	output, err := config.AWS.CloudWatchMetrics().GetMetricData(&metricsDataQuery)
+	if err != nil {
+		debug.Pp(err)
+	}
+
+	timestampCounter := 0
+	for i, timeStamp := range output.MetricDataResults[0].Timestamps {
+		if endTime.Sub(*timeStamp) < 20*time.Second {
+			timestampCounter = i
+		} else {
+			break
+		}
+	}
+	value := output.MetricDataResults[0].Values[timestampCounter]
+	debug.Pp(output.MetricDataResults[0])
+	fmt.Printf("inflight: %f\n", *value)
+	return *value
 }
