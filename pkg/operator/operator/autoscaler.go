@@ -203,7 +203,6 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 
 func getInflightRequests() (*float64, error) {
 	endTime := time.Now().Truncate(time.Second)
-	debug.Pp(endTime)
 	startTime := endTime.Add(-60 * time.Second)
 	metricsDataQuery := cloudwatch.GetMetricDataInput{
 		EndTime:   &endTime,
