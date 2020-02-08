@@ -224,12 +224,13 @@ func getInflightRequests() (*float64, error) {
 							},
 						},
 					},
-					Stat:   aws.String("Average"),
+					Stat:   aws.String("Sum"),
 					Period: aws.Int64(10),
 				},
 			},
 		},
 	}
+
 	output, err := config.AWS.CloudWatchMetrics().GetMetricData(&metricsDataQuery)
 	if err != nil {
 		return nil, err
@@ -246,6 +247,16 @@ func getInflightRequests() (*float64, error) {
 			break
 		}
 	}
-	value := output.MetricDataResults[0].Values[timestampCounter]
-	return value, nil
+
+	endTimeStampCounter := libmath.MinInt(timestampCounter+6, len(output.MetricDataResults[0].Timestamps))
+
+	values := output.MetricDataResults[0].Values[timestampCounter:endTimeStampCounter]
+
+	avg := 0.0
+	for _, val := range values {
+		avg += *val
+	}
+	avg = avg / float64(len(values))
+
+	return &avg, nil
 }
