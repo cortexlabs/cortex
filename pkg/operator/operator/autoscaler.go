@@ -84,13 +84,15 @@ func (recs recommendations) minSince(period time.Duration) *int32 {
 }
 
 func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
-	// window := 60 * time.Second
-	var targetQueueLen float64 = 0
-	var concurrency int32 = 1
-	downscaleStabilizationPeriod := 5 * time.Minute
-	upscaleStabilizationPeriod := 0 * time.Minute
-	var maxDownscaleFactor float64 = 0.5 // must be < 1
-	var maxUpscaleFactor float64 = 100   // must be > 1
+	// window := 60 * time.Second // must be multiple of 10, >0
+	var threadsPerReplica int32 = 1                 // threads_per_replica, int, > 0, in compute
+	var targetQueueLen float64 = 0                  // target_queue_length, float, > 0
+	downscaleStabilizationPeriod := 5 * time.Minute // duration, > 0
+	upscaleStabilizationPeriod := 0 * time.Minute   // duration, > 0
+	var maxDownscaleFactor float64 = 0.5            // must be < 1
+	var maxUpscaleFactor float64 = 100              // must be > 1
+	var upscaleTolerance float64 = 0.1
+	var downscaleTolerance float64 = 0.1
 
 	var startTime time.Time
 
@@ -107,7 +109,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 		return nil, err
 	}
 
-	log.Printf("%s autoscaler init: min_replicas=%d, max_replicas=%d, concurrency=%d, downscale_stabilization_period=%s, upscale_stabilization_period=%s, max_downscale_factor=%s, max_upscale_factor=%s", apiName, minReplicas, maxReplicas, concurrency, downscaleStabilizationPeriod, upscaleStabilizationPeriod, s.Round(maxDownscaleFactor, 100, 0), s.Round(maxUpscaleFactor, 100, 0))
+	log.Printf("%s autoscaler init: min_replicas=%d, max_replicas=%d, threads_per_replica=%d, downscale_tolerance=%s, upscale_tolerance=%s, downscale_stabilization_period=%s, upscale_stabilization_period=%s, max_downscale_factor=%s, max_upscale_factor=%s", apiName, minReplicas, maxReplicas, threadsPerReplica, s.Round(downscaleTolerance, 100, 0), s.Round(upscaleTolerance, 100, 0), downscaleStabilizationPeriod, upscaleStabilizationPeriod, s.Round(maxDownscaleFactor, 100, 0), s.Round(maxUpscaleFactor, 100, 0))
 
 	recs := make(recommendations)
 
@@ -125,9 +127,16 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			return nil
 		}
 
-		rawRecommendation := *totalInFlight / (float64(concurrency) + targetQueueLen)
-
+		rawRecommendation := *totalInFlight / (float64(threadsPerReplica) + targetQueueLen)
 		recommendation := int32(math.Ceil(rawRecommendation))
+
+		if rawRecommendation < float64(currentReplicas) && rawRecommendation > float64(currentReplicas)*(1-downscaleTolerance) {
+			recommendation = currentReplicas
+		}
+
+		if rawRecommendation > float64(currentReplicas) && rawRecommendation < float64(currentReplicas)*(1+upscaleTolerance) {
+			recommendation = currentReplicas
+		}
 
 		// always allow subtraction of 1
 		downscaleFactorFloor := libmath.MinInt32(currentReplicas-1, int32(math.Ceil(float64(currentReplicas)*maxDownscaleFactor)))
