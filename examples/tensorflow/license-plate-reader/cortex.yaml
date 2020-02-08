@@ -5,21 +5,26 @@
     model: s3://cortex-0/examples/tensorflow/license-plate-reader/yolov3
     signature_key: serving_default
     config:
-        model_config: config.json
+      model_config: config.json
+      waitress_threads: 8
   compute:
     cpu: 1
     gpu: 1
     mem: 8G
-    target_cpu_utilization: 2
-    max_replicas: 1
+    target_cpu_utilization: 80
+    min_replicas: 5
+    max_replicas: 5
 
 - name: crnn
   predictor:
     type: python
-    path: predictor_rcnn.py
+    path: predictor_crnn.py
+    config:
+      waitress_threads: 8
   compute:
     cpu: 1
     gpu: 1
     mem: 8G
-    target_cpu_utilization: 2
-    max_replicas: 1
+    target_cpu_utilization: 80
+    min_replicas: 5
+    max_replicas: 5
