@@ -150,6 +150,14 @@ func (t *Timer) Print(messages ...string) {
 	t.last = now
 }
 
+func MustParseDuration(str string) time.Duration {
+	d, err := time.ParseDuration(str)
+	if err != nil {
+		panic(err)
+	}
+	return d
+}
+
 func MaxDuration(duration time.Duration, durations ...time.Duration) time.Duration {
 	max := duration
 	for _, d := range durations {

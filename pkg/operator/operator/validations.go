@@ -219,6 +219,18 @@ var _computeFieldValidation = &cr.StructFieldValidation{
 	},
 }
 
+// {
+// 	StructField: "Window",
+// 	StringValidation: &cr.StringValidation{
+// 		Default: "60s",
+// 	},
+// 	Parser: cr.DurationParser(&cr.DurationValidation{
+// 		GreaterThan:       pointer.Duration(libtime.MustParseDuration("0s")),
+// 		LessThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("29s")),
+// 	}),
+//   TODO multiple of 10
+// },
+
 func surgeOrUnavailableValidator(str string) (string, error) {
 	if strings.HasSuffix(str, "%") {
 		parsed, ok := s.ParseInt32(strings.TrimSuffix(str, "%"))
