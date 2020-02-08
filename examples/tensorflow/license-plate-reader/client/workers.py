@@ -249,7 +249,7 @@ class InferenceWorker(WorkerTemplateThread):
         # recognize the license plates in case
         # any bounding boxes have been detected
         dec_words = []
-        if len(boxes) > 0:
+        if len(boxes) > 0 and len(self.api_endpoint_crnn) > 0:
             # create set of images of the detected license plates
             lps = []
             try:
