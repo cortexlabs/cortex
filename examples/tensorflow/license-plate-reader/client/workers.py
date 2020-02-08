@@ -71,7 +71,7 @@ class BroadcastReassembled(WorkerTemplateProcess):
             target=lambda_func, 
             args=(),
             daemon=True).start()
-        logger.info("listening for stream on {}".format(self.serve_address))
+        logger.info("listening for stream clients on {}".format(self.serve_address))
 
         logger.info("worker started")
         counter = 0

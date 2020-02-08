@@ -4,7 +4,9 @@ import json
 import queue
 import socket
 import click
+import cv2
 import multiprocessing as mp
+import threading as td
 
 import logging
 logger = logging.getLogger()
@@ -22,6 +24,7 @@ for name, logger in logging.root.manager.loggerDict.items():
 
 from workers import BroadcastReassembled, InferenceWorker, Flusher, session
 from utils.image import resize_image, image_to_jpeg_bytes
+from utils.queue import MPQueue
 from requests_toolbelt.adapters.source import SourceAddressAdapter
 
 class GracefullKiller():
@@ -57,8 +60,10 @@ class WorkerPool(mp.Process):
 class DistributeFramesAndInfer():
     def __init__(self, pool_cfg, worker_cfg):
         self.frame_num = 0
-        self.in_queue = mp.Queue()
-        self.out_queue = mp.Queue()
+        self.in_queue = MPQueue()
+        self.out_queue = MPQueue()
+        # self.in_queue = mp.Queue()
+        # self.out_queue = mp.Queue()
         for key, value in pool_cfg.items():
             setattr(self, key, value)
         self.pool = WorkerPool("InferencePool", InferenceWorker, self.workers, self.in_queue, self.out_queue, worker_cfg)
@@ -82,6 +87,10 @@ class DistributeFramesAndInfer():
 
     def get_queues(self):
         return self.in_queue, self.out_queue
+
+class ReadGPSData(td.Thread):
+    def __init__(self, port):
+        pass
 
 @click.command(help=("Identify license plates from a given video source"
 " while outsourcing the predictions using REST API endpoints."))
@@ -142,7 +151,7 @@ def main(config):
             ))
 
             # start recording both to disk and to the queue
-            camera.start_recording(output=gen_cfg["output_file"], format="h264", splitter_port=0, bitrate=10000000)
+            camera.start_recording(output=source_cfg["output_file"], format="h264", splitter_port=0, bitrate=10000000)
             camera.start_recording(output=output, format="mjpeg", splitter_port=1, bitrate=10000000, quality=95)
             logger.info("started recording to file and to queue")
 
@@ -161,20 +170,28 @@ def main(config):
     elif source_cfg["type"] == "file":
         # open video file
         video_reader = cv2.VideoCapture(source_cfg["input"])
+        video_reader.set(cv2.CAP_PROP_POS_FRAMES, source_cfg["frames_to_skip"])
 
         # get # of frames and determine target width
         nb_frames = int(video_reader.get(cv2.CAP_PROP_FRAME_COUNT))
         frame_h = int(video_reader.get(cv2.CAP_PROP_FRAME_HEIGHT))
         frame_w = int(video_reader.get(cv2.CAP_PROP_FRAME_WIDTH))
-        target_w = int(frame_w * cfg["scale_video"])
-        period = 1.0 / cfg["framerate"]
+        target_h = int(frame_h * source_cfg["scale_video"])
+        target_w = int(frame_w * source_cfg["scale_video"])
+        period = 1.0 / source_cfg["framerate"]
+
+        logger.info("file-based video stream initialized w/ resolution={} framerate={} and {} skipped frames".format(
+                (target_w, target_h), source_cfg["framerate"], source_cfg["frames_to_skip"]
+        ))
 
         # serve each frame to the workers iteratively
         last_log = time.time()
         for i in range(nb_frames):
             # write frame to queue
             _, frame = video_reader.read()
-            frame = resize_image(frame, target_w)
+            # if target_w != frame_w:
+            #     frame = resize_image(frame, target_w)
+            frame = frame[int(0.2 * 1080) : int(1080 * 0.8), int(1920 * 0.2) : int(1920 * 0.8)]
             jpeg = image_to_jpeg_bytes(frame)
             output.write(jpeg)
             time.sleep(period)

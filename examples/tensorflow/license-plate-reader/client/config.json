@@ -1,16 +1,20 @@
 {
-    "video_source": {
+    "video_source1": {
         "type": "camera",
         "sensor_mode": 5,
         "resolution": [480, 270],
-        "framerate": 30
+        "framerate": 30,
+        "output_file": "recording.h264"
     },
     "video_source": {
-        "type": "filesource",
-        "input_file": "dashcam.mp4"
+        "type": "file",
+        "input": "/Users/robert/Dropbox/Projects/cortex/license-plate-detector/recordings/mp4/airport_ride_fhd30fps.mp4",
+        "scale_video": 1.0,
+        "frames_to_skip": 4750,
+        "framerate": 13
     },
     "broadcaster": {
-        "target_buffer_size": 5,
+        "target_buffer_size": 15,
         "max_buffer_size_variation": 5,
         "max_fps_variation": 15,
         "target_fps": 30,
@@ -18,20 +22,28 @@
     },
     "inferencing_worker": {
         "yolov3_input_size_px": 416,
-        "bounding_boxes_upscale_px": 640,
+        "bounding_boxes_upscale_px": 800,
         "yolov3_obj_thresh": 0.8,
-        "crnn_quality": 80,
-        "broadcast_quality": 85,
+        "crnn_quality": 98,
+        "broadcast_quality": 98,
         "timeout": 1.20,
-        "api_endpoint_yolov3": "http://acc71063d493811ea822b02a0e1c9db9-1687072714.eu-central-1.elb.amazonaws.com/yolov3",
-        "api_endpoint_crnn": "http://acc71063d493811ea822b02a0e1c9db9-1687072714.eu-central-1.elb.amazonaws.com/crnn"
+        "api_endpoint_yolov3": "http://aa33c7c0c4aa111eaa21302a7d6067f9-926628385.eu-central-1.elb.amazonaws.com/yolov3",
+        "api_endpoint_crnn": "http://aa33c7c0c4aa111eaa21302a7d6067f9-926628385.eu-central-1.elb.amazonaws.com/crnn"
     },
     "inferencing_pool": {
-        "workers": 1,
+        "workers": 9,
         "pick_every_nth_frame": 1
+    }, 
+    "flusher": {
+        "frame_count_threshold": 5
+    },
+    "gps": {
+        "use_gps": true,
+        "write_port": "/dev/ttyUSB2",
+        "read_port": "/dev/ttyUSB1",
+        "baudrate": 115200
     },
     "general": {
-        "frame_count_threshold": 10,
-        "output_file": "recording.h264",
+        "bind_ip": "0.0.0.0"
     }
 }
