@@ -299,10 +299,10 @@ func TestReadAllIgnorePatterns(t *testing.T) {
 	}
 
 	if diLen := len(di); diLen != 0 {
-		t.Fatalf("Expected to have zero dockerignore entry, got %d", diLen)
+		t.Fatalf("Expected to have zero cortexignore entry, got %d", diLen)
 	}
 
-	diName := filepath.Join(tmpDir, ".dockerignore")
+	diName := filepath.Join(tmpDir, ".cortexignore")
 	content := fmt.Sprintf("test1\n/test2\n/a/file/here\n\nlastfile\n# this is a comment\n! /inverted/abs/path\n!\n! \n")
 	err = ioutil.WriteFile(diName, []byte(content), 0777)
 	if err != nil {
@@ -321,7 +321,7 @@ func TestReadAllIgnorePatterns(t *testing.T) {
 	}
 
 	if len(di) != 7 {
-		t.Fatalf("Expected 5 entries, got %v", len(di))
+		t.Fatalf("Expected 7 entries, got %v", len(di))
 	}
 	if di[0] != "test1" {
 		t.Fatal("First element is not test1")
