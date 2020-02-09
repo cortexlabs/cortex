@@ -1,10 +1,4 @@
-import signal
-import time
-import json
-import queue
-import socket
-import click
-import cv2
+import signal, time, json, queue, socket, click, cv2, serial, pynmea2
 import multiprocessing as mp
 import threading as td
 
@@ -89,8 +83,44 @@ class DistributeFramesAndInfer():
         return self.in_queue, self.out_queue
 
 class ReadGPSData(td.Thread):
-    def __init__(self, port):
-        pass
+    def __init__(self, write_port, read_port, baudrate, name="GPS"):
+        super(ReadGPSData, self).__init__(name=name)
+        self.write_port = write_port
+        self.read_port = read_port
+        self.baudrate = baudrate
+        self.event = td.Event()
+
+    def run(self):
+        logger.info("configuring GPS on port {}".format(self.write_port))
+        self.serw = serial.Serial(
+            self.write_port, 
+            baudrate=self.baudrate, 
+            timeout=1, rtscts=True, dsrdtr=True)
+        self.serw.write("AT+QGPS=1\r".encode("utf-8"))
+        self.serw.close()
+        time.sleep(0.5)
+
+        self.serr = serial.Serial(
+            self.read_port,
+            baudrate = self.baudrate,
+            timeout=1, rtscts=True, dsrdtr=True
+        )
+        logger.info("configured GPS to read from port {}".format(self.read_port))
+
+        while not self.event.is_set():
+            data = self.serr.readline()
+            self.__msg = pynmea2.parse(data.decode("utf-8"))
+            logger.info(self.__msg)
+            time.sleep(1)
+
+        logger.info("stopped GPS thread")
+
+    @property
+    def parsed(self):
+        return self.__msg
+
+    def stop(self):
+        self.event.set()
 
 @click.command(help=("Identify license plates from a given video source"
 " while outsourcing the predictions using REST API endpoints."))
@@ -111,6 +141,7 @@ def main(config):
     pool_cfg = cfg["inferencing_pool"]
     worker_cfg = cfg["inferencing_worker"]
     flusher_cfg = cfg["flusher"]
+    gps_cfg = cfg["gps"]
     gen_cfg = cfg["general"]
 
     # bind requests module to use a given network interface
@@ -121,6 +152,13 @@ def main(config):
     except OSError as e:
         logger.error("bind IP is invalid, resorting to default interface", exc_info=True)
     
+    if gps_cfg["use_gps"]:
+        wport = gps_cfg["write_port"]
+        rport = gps_cfg["read_port"]
+        br = gps_cfg["baudrate"]
+        gps = ReadGPSData(wport, rport, br)
+        gps.start()
+
     # workers on a separate process to run inference on the data
     logger.info("initializing pool w/ " + str(pool_cfg["workers"]) + " workers")
     output = DistributeFramesAndInfer(pool_cfg, worker_cfg)
@@ -212,6 +250,9 @@ def main(config):
         logger.info("gracefully exiting")
         video_reader.release()  
         output.stop()
+
+    if gps_cfg["use_gps"]:
+        gps.stop()
 
     reassembler.stop()
     flusher.stop()
