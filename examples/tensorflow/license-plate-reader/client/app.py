@@ -187,14 +187,16 @@ def main(config):
         # serve each frame to the workers iteratively
         last_log = time.time()
         for i in range(nb_frames):
-            # write frame to queue
-            _, frame = video_reader.read()
-            # if target_w != frame_w:
-            #     frame = resize_image(frame, target_w)
-            frame = frame[int(0.2 * 1080) : int(1080 * 0.8), int(1920 * 0.2) : int(1920 * 0.8)]
-            jpeg = image_to_jpeg_bytes(frame)
-            output.write(jpeg)
-            time.sleep(period)
+            try:
+                # write frame to queue
+                _, frame = video_reader.read()
+                if target_w != frame_w:
+                    frame = resize_image(frame, target_w)
+                jpeg = image_to_jpeg_bytes(frame)
+                output.write(jpeg)
+            except Exception as error:
+                logger.error("unexpected error occurred", exc_info=True)
+                break
 
             # check if SIGINT has been sent
             if killer.kill_now:
@@ -208,7 +210,7 @@ def main(config):
                 last_log = current
         
         logger.info("gracefully exiting")
-        video_reader.release()
+        video_reader.release()  
         output.stop()
 
     reassembler.stop()
