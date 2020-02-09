@@ -509,7 +509,7 @@ func ListDirRecursive(dir string, relative bool, excludes []string, ignoreFns ..
 				path = path[len(dir)+1:]
 			}
 
-			if strings.Contains(path, ".cortexignore") { 
+			if strings.Contains(path, ".cortexignore") {
 				return nil
 			}
 
