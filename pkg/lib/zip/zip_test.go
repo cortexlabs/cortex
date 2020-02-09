@@ -356,6 +356,7 @@ func CheckZip(zipInput *Input, expected []string, shouldErr bool, t *testing.T) 
 	tmpDir, err := files.TmpDir()
 	defer os.RemoveAll(tmpDir)
 	require.NoError(t, err)
+	emptyExcludes := make([]string, 0)
 
 	err = ToFile(zipInput, filepath.Join(tmpDir, "zip.zip"))
 	if shouldErr {
@@ -367,7 +368,7 @@ func CheckZip(zipInput *Input, expected []string, shouldErr bool, t *testing.T) 
 	_, err = UnzipToFile(filepath.Join(tmpDir, "zip.zip"), filepath.Join(tmpDir, "zip"))
 	require.NoError(t, err)
 
-	unzippedFiles, err := files.ListDirRecursive(filepath.Join(tmpDir, "zip"), true)
+	unzippedFiles, err := files.ListDirRecursive(filepath.Join(tmpDir, "zip"), true, emptyExcludes)
 	require.NoError(t, err)
 
 	require.ElementsMatch(t, expected, unzippedFiles)
