@@ -256,7 +256,7 @@ func updateAutoscalerCron(deployment *kapps.Deployment) error {
 		return err
 	}
 
-	tickPeriod := 10 * time.Second
+	tickPeriod := 10 * time.Second // TODO?
 	_autoscalerCrons[apiName] = cron.Run(autoscaler, cronErrHandler(apiName+" autoscaler"), tickPeriod)
 
 	return nil
