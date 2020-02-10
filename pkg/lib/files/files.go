@@ -485,7 +485,7 @@ func DirPaths(paths []string, addTrailingSlash bool) []string {
 func ListDirRecursive(dir string, relative bool, excludes []string, ignoreFns ...IgnoreFn) ([]string, error) {
 	dir = filepath.Clean(dir)
 
-	fileList := make([]string, 0)
+	var fileList []string
 	walkErr := filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return errors.Wrap(err, path)
@@ -516,7 +516,11 @@ func ListDirRecursive(dir string, relative bool, excludes []string, ignoreFns ..
 			if len(excludes) > 0 {
 				ignore := false
 				for _, exclude := range excludes {
-					match, _ := filepath.Match(exclude, path)
+					match, err := filepath.Match(exclude, path)
+					if err != nil {
+						// The only possible returned error is ErrBadPattern, when pattern is malformed
+						return errors.Wrap(err, path)
+					}
 
 					if match {
 						ignore = true
@@ -530,7 +534,6 @@ func ListDirRecursive(dir string, relative bool, excludes []string, ignoreFns ..
 			} else {
 				fileList = append(fileList, path)
 			}
-
 		}
 		return nil
 	})
