@@ -11,9 +11,8 @@
     cpu: 1
     gpu: 1
     mem: 8G
-    target_cpu_utilization: 80
-    min_replicas: 5
-    max_replicas: 5
+    min_replicas: 8
+    max_replicas: 8
 
 - name: crnn
   predictor:
@@ -25,6 +24,5 @@
     cpu: 1
     gpu: 1
     mem: 8G
-    target_cpu_utilization: 80
-    min_replicas: 5
-    max_replicas: 5
+    min_replicas: 12
+    max_replicas: 12

@@ -182,10 +182,11 @@ class BroadcastReassembled(WorkerTemplateProcess):
         self.current_recognitions = recognitions
 
 class InferenceWorker(WorkerTemplateThread):
-    def __init__(self, event_stopper, in_queue, out_queue, cfg, name=None):
+    def __init__(self, event_stopper, in_queue, bc_queue, predicts_queue, cfg, name=None):
         super(InferenceWorker, self).__init__(event_stopper=event_stopper, name=name)
         self.in_queue = in_queue
-        self.out_queue = out_queue
+        self.bc_queue = bc_queue
+        self.predicts_queue = predicts_queue
         self.rtt_yolo3_ms = None
         self.rtt_crnn_ms = 0
         self.runnable = self.cloud_infer
@@ -295,7 +296,17 @@ class InferenceWorker(WorkerTemplateThread):
             "avg_crnn_rtt": self.rtt_crnn_ms,
             "image": draw_byte_im
         }
-        self.out_queue.put(output)
+        self.bc_queue.put(output)
+
+        # push predictions to write to disk
+        if len(dec_words) > 0:
+            timestamp = time.time()
+            literal_time = time.ctime(timestamp)
+            predicts = {
+                "predicts": dec_words,
+                "date": literal_time
+            }
+            self.predicts_queue.put(predicts)
 
         logger.info("Frame Count: {} - Avg YOLO3 RTT: {}ms - Avg CRNN RTT: {}ms - Detected: {}".format(
         frame_num, int(self.rtt_yolo3_ms), int(self.rtt_crnn_ms), len(boxes)))
@@ -359,7 +370,7 @@ class InferenceWorker(WorkerTemplateThread):
             if not resp:
                 pass
             elif resp.status_code != 200:
-                logger.warning("received {} status code from rcnn api".format(resp.status_code))
+                logger.warning("received {} status code from crnn api".format(resp.status_code))
             else:
                 r_dict = resp.json()
                 dec_lps = r_dict["license-plates"]

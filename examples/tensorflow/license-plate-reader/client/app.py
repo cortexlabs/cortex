@@ -1,4 +1,4 @@
-import signal, time, json, queue, socket, click, cv2, serial, pynmea2
+import signal, os, time, json, queue, socket, click, cv2, pandas as pd
 import multiprocessing as mp
 import threading as td
 
@@ -16,6 +16,7 @@ for name, logger in logging.root.manager.loggerDict.items():
     if name in disable_loggers:
         logger.disabled = True
 
+from gps import ReadGPSData
 from workers import BroadcastReassembled, InferenceWorker, Flusher, session
 from utils.image import resize_image, image_to_jpeg_bytes
 from utils.queue import MPQueue
@@ -55,12 +56,12 @@ class DistributeFramesAndInfer():
     def __init__(self, pool_cfg, worker_cfg):
         self.frame_num = 0
         self.in_queue = MPQueue()
-        self.out_queue = MPQueue()
-        # self.in_queue = mp.Queue()
-        # self.out_queue = mp.Queue()
+        self.bc_queue = MPQueue()
+        self.predicts_queue = MPQueue()
         for key, value in pool_cfg.items():
             setattr(self, key, value)
-        self.pool = WorkerPool("InferencePool", InferenceWorker, self.workers, self.in_queue, self.out_queue, worker_cfg)
+        self.pool = WorkerPool("InferencePool", InferenceWorker, 
+        self.workers, self.in_queue, self.bc_queue, self.predicts_queue, worker_cfg)
         self.pool.start()
 
     def write(self, buf):
@@ -76,51 +77,11 @@ class DistributeFramesAndInfer():
     def stop(self):
         self.pool.stop()
         self.pool.join()
-        qs = [self.in_queue, self.out_queue]
+        qs = [self.in_queue, self.bc_queue]
         [q.cancel_join_thread() for q in qs]
 
     def get_queues(self):
-        return self.in_queue, self.out_queue
-
-class ReadGPSData(td.Thread):
-    def __init__(self, write_port, read_port, baudrate, name="GPS"):
-        super(ReadGPSData, self).__init__(name=name)
-        self.write_port = write_port
-        self.read_port = read_port
-        self.baudrate = baudrate
-        self.event = td.Event()
-
-    def run(self):
-        logger.info("configuring GPS on port {}".format(self.write_port))
-        self.serw = serial.Serial(
-            self.write_port, 
-            baudrate=self.baudrate, 
-            timeout=1, rtscts=True, dsrdtr=True)
-        self.serw.write("AT+QGPS=1\r".encode("utf-8"))
-        self.serw.close()
-        time.sleep(0.5)
-
-        self.serr = serial.Serial(
-            self.read_port,
-            baudrate = self.baudrate,
-            timeout=1, rtscts=True, dsrdtr=True
-        )
-        logger.info("configured GPS to read from port {}".format(self.read_port))
-
-        while not self.event.is_set():
-            data = self.serr.readline()
-            self.__msg = pynmea2.parse(data.decode("utf-8"))
-            logger.info(self.__msg)
-            time.sleep(1)
-
-        logger.info("stopped GPS thread")
-
-    @property
-    def parsed(self):
-        return self.__msg
-
-    def stop(self):
-        self.event.set()
+        return self.in_queue, self.bc_queue, self.predicts_queue
 
 @click.command(help=("Identify license plates from a given video source"
 " while outsourcing the predictions using REST API endpoints."))
@@ -151,28 +112,59 @@ def main(config):
         logger.info("binding requests module to {} IP".format(gen_cfg["bind_ip"]))
     except OSError as e:
         logger.error("bind IP is invalid, resorting to default interface", exc_info=True)
-    
+
+    # start polling the GPS
     if gps_cfg["use_gps"]:
         wport = gps_cfg["write_port"]
         rport = gps_cfg["read_port"]
         br = gps_cfg["baudrate"]
         gps = ReadGPSData(wport, rport, br)
         gps.start()
+    else: gps = None
 
     # workers on a separate process to run inference on the data
     logger.info("initializing pool w/ " + str(pool_cfg["workers"]) + " workers")
     output = DistributeFramesAndInfer(pool_cfg, worker_cfg)
-    frames_queue, inferenced_queue = output.get_queues()
+    frames_queue, bc_queue, predicts_queue = output.get_queues()
     logger.info("initialized worker pool")
 
     # a single worker in a separate process to reassemble the data
-    reassembler = BroadcastReassembled(inferenced_queue, broadcast_cfg, name="BroadcastReassembled")
+    reassembler = BroadcastReassembled(bc_queue, broadcast_cfg, name="BroadcastReassembled")
     reassembler.start()
 
     # a single thread to flush the producing queue
     # when there are too many frames in the pipe
     flusher = Flusher(frames_queue, threshold=flusher_cfg["frame_count_threshold"], name="Flusher")
     flusher.start()
+
+    # data aggregator to write things to disk
+    def results_writer():
+        if len(gen_cfg["saved_data"]) > 0:
+            df = pd.DataFrame(columns=["Date", "License Plate", "Coordinates"])
+            while not killer.kill_now:
+                time.sleep(0.01)
+                try:
+                    data = predicts_queue.get_nowait()
+                except queue.Empty:
+                    continue
+                predicts = data["predicts"]
+                date = data["date"]
+                for lp in predicts:
+                    if len(lp) > 0:
+                        lp = " ".join(lp)
+                        entry = {"Date": date, "License Plate": lp, "Coordinates": ""}
+                        if gps: entry["Coordinates"] = "{}, {}".format(gps.latitude, gps.longitude).upper()
+                        df = df.append(entry, ignore_index=True)
+
+            logger.info("dumping results to csv file {}".format(gen_cfg["saved_data"]))
+            if os.path.isfile(gen_cfg["saved_data"]): header = False
+            else: header = True
+            with open(gen_cfg["saved_data"], "a") as f:
+                df.to_csv(f, header=header)
+
+    # data aggregator thread
+    results_thread = td.Thread(target=results_writer)
+    results_thread.start()
 
     if source_cfg["type"] == "camera":
         # import module
@@ -197,7 +189,8 @@ def main(config):
             while not killer.kill_now:
                 camera.wait_recording(timeout=0.5, splitter_port=0)
                 camera.wait_recording(timeout=0.5, splitter_port=1)
-                logger.info('frames qsize: {}, inferenced qsize: {}'.format(output.in_queue.qsize(), output.out_queue.qsize()))
+                logger.info('frames qsize: {}, broadcast qsize: {}, predicts qsize: {}'.format(
+                    frames_queue.qsize(), bc_queue.qsize(), predicts_queue.qsize()))
 
             # stop recording
             logger.info("gracefully exiting")
@@ -243,8 +236,8 @@ def main(config):
             # do logs every second
             current = time.time()
             if current - last_log >= 1.0:
-                logger.info("frames qsize: {}, inferenced qsize: {}".format(
-                    output.in_queue.qsize(), output.out_queue.qsize()))
+                logger.info("frames qsize: {}, broadcast qsize: {}, predicts qsize: {}".format(
+                    frames_queue.qsize(), bc_queue.qsize(), predicts_queue.qsize()))
                 last_log = current
         
         logger.info("gracefully exiting")
