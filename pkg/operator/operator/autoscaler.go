@@ -224,7 +224,7 @@ func getInflightRequests() (*float64, error) {
 						Namespace:  aws.String("cortex"),
 						MetricName: aws.String("in-flight"),
 						Dimensions: []*cloudwatch.Dimension{
-							&cloudwatch.Dimension{
+							{
 								Name:  aws.String("apiName"),
 								Value: aws.String("test"),
 							},
