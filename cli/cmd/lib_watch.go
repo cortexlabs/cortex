@@ -24,9 +24,9 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
-	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 )
 
 func getTerminalWidth() int {
