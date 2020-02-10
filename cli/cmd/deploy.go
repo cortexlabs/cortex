@@ -110,7 +110,7 @@ func deploy(configPath string, force bool) {
 
 	cortexIgnorePath := path.Join(projectRoot, ".cortexignore")
 	cortexIgnore, err := os.Open(cortexIgnorePath)
-	excludes := make([]string, 0)
+	var excludes []string
 	if err != nil {
 		if !os.IsNotExist(err) {
 			exit.Error(err)
