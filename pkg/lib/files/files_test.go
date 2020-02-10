@@ -17,8 +17,6 @@ limitations under the License.
 package files
 
 import (
-	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -166,9 +164,7 @@ func TestPrintFileTree(t *testing.T) {
 }
 
 func TestListDirRecursive(t *testing.T) {
-	var emptyExcludes []string
-
-	_, err := ListDirRecursive("/home/path/to/fake/dir", false, emptyExcludes)
+	_, err := ListDirRecursive("/home/path/to/fake/dir", false)
 	require.Error(t, err)
 
 	tmpDir, err := TmpDir()
@@ -181,47 +177,27 @@ func TestListDirRecursive(t *testing.T) {
 		filepath.Join(tmpDir, "3/1.py"),
 		filepath.Join(tmpDir, "3/2/1.py"),
 		filepath.Join(tmpDir, "3/2/2.txt"),
+		filepath.Join(tmpDir, "3/2/4.md"),
 		filepath.Join(tmpDir, "3/2/3/.tmp"),
 		filepath.Join(tmpDir, "4/1.yaml"),
 		filepath.Join(tmpDir, "4/2.pyc"),
+		filepath.Join(tmpDir, "4/3.md"),
 		filepath.Join(tmpDir, "4/.git/HEAD"),
 		filepath.Join(tmpDir, "README.md"),
+		filepath.Join(tmpDir, ".ignore"),
 	}
 
-	excludes := []string{
-		filepath.Join(tmpDir, "*.txt"),
-		filepath.Join(tmpDir, "*/1.py"),
-		filepath.Join(tmpDir, "3/*/1.py"),
-		filepath.Join(tmpDir, "3/2/*/.tmp"),
-		filepath.Join(tmpDir, "4/*.yaml"),
-		filepath.Join(tmpDir, "*.md"),
-	}
+	ignoreContents := `
+*.md
+*.txt
+4/.git
+3/2/1.py
+!README.md
+  `
+	WriteFile([]byte(ignoreContents), filepath.Join(tmpDir, ".ignore"))
 
-	excludesWithRelativePaths := []string{
-		filepath.Join("*.txt"),
-		filepath.Join("*/1.py"),
-		filepath.Join("3/*/1.py"),
-		filepath.Join("3/2/*/.tmp"),
-		filepath.Join("4/*.yaml"),
-		filepath.Join(tmpDir, "*.md"),
-	}
-
-	excludesWithBadPatterns := []string{
-		filepath.Join(tmpDir, "1.txt"),
-		filepath.Join(tmpDir, "2.py"),
-		filepath.Join(tmpDir, "[a-b-c]"),
-		filepath.Join(tmpDir, "3/1.py"),
-		filepath.Join(tmpDir, "[]a]"),
-		filepath.Join(tmpDir, "*.md"),
-	}
-
-	excludesWithBadPatternsAndRelativePaths := []string{
-		filepath.Join("1.txt"),
-		filepath.Join("2.py"),
-		filepath.Join("[a-b-c]"),
-		filepath.Join("3/1.py"),
-		filepath.Join("[]a]"),
-	}
+	ignoreFn, err := GitIgnoreFn(filepath.Join(tmpDir, ".ignore"))
+	require.NoError(t, err)
 
 	err = MakeEmptyFiles(filesList[0], filesList[1:]...)
 	require.NoError(t, err)
@@ -229,51 +205,56 @@ func TestListDirRecursive(t *testing.T) {
 	var filesListRecursive []string
 	var expected []string
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, false, emptyExcludes)
+	filesListRecursive, err = ListDirRecursive(tmpDir, false)
 	require.NoError(t, err)
 	require.ElementsMatch(t, filesList, filesListRecursive)
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, false, emptyExcludes, IgnoreHiddenFiles)
+	filesListRecursive, err = ListDirRecursive(tmpDir, false, IgnoreHiddenFiles)
 	expected = []string{
 		filepath.Join(tmpDir, "1.txt"),
 		filepath.Join(tmpDir, "2.py"),
 		filepath.Join(tmpDir, "3/1.py"),
 		filepath.Join(tmpDir, "3/2/1.py"),
 		filepath.Join(tmpDir, "3/2/2.txt"),
+		filepath.Join(tmpDir, "3/2/4.md"),
 		filepath.Join(tmpDir, "4/1.yaml"),
 		filepath.Join(tmpDir, "4/2.pyc"),
+		filepath.Join(tmpDir, "4/3.md"),
 		filepath.Join(tmpDir, "4/.git/HEAD"),
 		filepath.Join(tmpDir, "README.md"),
 	}
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, false, emptyExcludes, IgnoreHiddenFiles, IgnoreHiddenFolders)
+	filesListRecursive, err = ListDirRecursive(tmpDir, false, IgnoreHiddenFiles, IgnoreHiddenFolders)
 	expected = []string{
 		filepath.Join(tmpDir, "1.txt"),
 		filepath.Join(tmpDir, "2.py"),
 		filepath.Join(tmpDir, "3/1.py"),
 		filepath.Join(tmpDir, "3/2/1.py"),
 		filepath.Join(tmpDir, "3/2/2.txt"),
+		filepath.Join(tmpDir, "3/2/4.md"),
 		filepath.Join(tmpDir, "4/1.yaml"),
 		filepath.Join(tmpDir, "4/2.pyc"),
+		filepath.Join(tmpDir, "4/3.md"),
 		filepath.Join(tmpDir, "README.md"),
 	}
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, false, emptyExcludes, IgnoreHiddenFiles, IgnoreDir3, IgnorePythonGeneratedFiles)
+	filesListRecursive, err = ListDirRecursive(tmpDir, false, IgnoreHiddenFiles, IgnoreDir3, IgnorePythonGeneratedFiles)
 	expected = []string{
 		filepath.Join(tmpDir, "1.txt"),
 		filepath.Join(tmpDir, "2.py"),
 		filepath.Join(tmpDir, "4/1.yaml"),
+		filepath.Join(tmpDir, "4/3.md"),
 		filepath.Join(tmpDir, "4/.git/HEAD"),
 		filepath.Join(tmpDir, "README.md"),
 	}
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, false, emptyExcludes, IgnoreNonPython)
+	filesListRecursive, err = ListDirRecursive(tmpDir, false, IgnoreNonPython)
 	expected = []string{
 		filepath.Join(tmpDir, "2.py"),
 		filepath.Join(tmpDir, "3/1.py"),
@@ -282,7 +263,7 @@ func TestListDirRecursive(t *testing.T) {
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, true, emptyExcludes, IgnoreNonPython)
+	filesListRecursive, err = ListDirRecursive(tmpDir, true, IgnoreNonPython)
 	expected = []string{
 		filepath.Join("2.py"),
 		filepath.Join("3/1.py"),
@@ -291,74 +272,16 @@ func TestListDirRecursive(t *testing.T) {
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, false, excludes)
-	expected = []string{
-		filepath.Join(tmpDir, "2.py"),
-		filepath.Join(tmpDir, "3/2/2.txt"),
-		filepath.Join(tmpDir, "4/2.pyc"),
-		filepath.Join(tmpDir, "4/.git/HEAD"),
-	}
-	require.NoError(t, err)
-	require.ElementsMatch(t, expected, filesListRecursive)
-
-	filesListRecursive, err = ListDirRecursive(tmpDir, true, excludes)
+	filesListRecursive, err = ListDirRecursive(tmpDir, true, ignoreFn)
 	expected = []string{
 		"2.py",
-		"3/2/2.txt",
+		"3/1.py",
+		"3/2/3/.tmp",
+		"4/1.yaml",
 		"4/2.pyc",
-		"4/.git/HEAD",
+		"README.md",
+		".ignore",
 	}
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
-
-	filesListRecursive, err = ListDirRecursive(tmpDir, false, excludesWithRelativePaths, IgnoreNonPython)
-	expected = []string{
-		filepath.Join(tmpDir, "2.py"),
-	}
-	require.NoError(t, err)
-	require.ElementsMatch(t, expected, filesListRecursive)
-
-	filesListRecursive, err = ListDirRecursive(tmpDir, true, excludesWithRelativePaths, IgnoreNonPython)
-	expected = []string{
-		filepath.Join("2.py"),
-	}
-	require.NoError(t, err)
-	require.ElementsMatch(t, expected, filesListRecursive)
-
-	_, err = ListDirRecursive(tmpDir, false, excludesWithBadPatterns)
-	require.Error(t, err)
-
-	_, err = ListDirRecursive(tmpDir, true, excludesWithBadPatternsAndRelativePaths)
-	require.Error(t, err)
-}
-
-func TestReadAllIgnorePatterns(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "cortexignore-test")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
-
-	di, err := ReadAllIgnorePatterns(nil)
-	require.NoError(t, err)
-	require.Equalf(t, len(di), 0, "Expected to have zero cortexignore entry, got %d", len(di))
-
-	diName := filepath.Join(tmpDir, ".cortexignore")
-	content := fmt.Sprintf("test1\n/test2\n/a/file/here\n\nlastfile\n# this is a comment\n! /inverted/abs/path\n!\n! \n")
-	err = ioutil.WriteFile(diName, []byte(content), 0777)
-	require.NoError(t, err)
-
-	diFd, err := os.Open(diName)
-	require.NoError(t, err)
-	defer diFd.Close()
-
-	di, err = ReadAllIgnorePatterns(diFd)
-	require.NoError(t, err)
-
-	require.Equalf(t, len(di), 7, "Expected 7 entries, got %v", len(di))
-	require.Equalf(t, di[0], "test1", "Expected value: test1, got %s", di[0])
-	require.Equalf(t, di[1], "test2", "Expected value: test2, got %s", di[1])
-	require.Equalf(t, di[2], "a/file/here", "Expected value: a/file/here, got %s", di[2])
-	require.Equalf(t, di[3], "lastfile", "Expected value: lastfile, got %s", di[3])
-	require.Equalf(t, di[4], "!inverted/abs/path", "Expected value: !inverted/abs/path, got %s", di[4])
-	require.Equalf(t, di[5], "!", "Expected value: !, got %s", di[5])
-	require.Equalf(t, di[6], "!", "Expected value: !, got %s", di[6])
 }
