@@ -3,9 +3,8 @@ chardet==3.0.4
 idna==2.8
 numpy==1.18.1
 opencv-contrib-python==4.1.0.25
-picamera==1.13
-pyzmq==18.1.1
 requests==2.22.0
 requests-toolbelt==0.9.1
-speedtest-cli==2.1.2
 urllib3==1.25.8
+pynmea2==1.15.0
+Click==7.0
