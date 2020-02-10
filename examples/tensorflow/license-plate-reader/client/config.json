@@ -1,14 +1,7 @@
 {
-    "video_source1": {
-        "type": "camera",
-        "sensor_mode": 5,
-        "resolution": [480, 270],
-        "framerate": 30,
-        "output_file": "recording.h264"
-    },
     "video_source": {
         "type": "file",
-        "input": "/Users/robert/Dropbox/Projects/cortex/license-plate-detector/recordings/mp4/airport_ride_fhd30fps.mp4",
+        "input": "/Users/robert/Dropbox/Projects/cortex/license-plate-detector/recordings/mp4/airport_ride_480p.mp4",
         "scale_video": 1.0,
         "frames_to_skip": 0,
         "framerate": 30
@@ -27,8 +20,8 @@
         "crnn_quality": 98,
         "broadcast_quality": 90,
         "timeout": 1.20,
-        "api_endpoint_yolov3": "http://aa33c7c0c4aa111eaa21302a7d6067f9-926628385.eu-central-1.elb.amazonaws.com/yolov3",
-        "api_endpoint_crnn": "http://aa33c7c0c4aa111eaa21302a7d6067f9-926628385.eu-central-1.elb.amazonaws.com/crnn"
+        "api_endpoint_yolov3": "http://a23893c574c0511ea9f430a8bed50c69-1100298247.eu-central-1.elb.amazonaws.com/yolov3",
+        "api_endpoint_crnn": "http://a23893c574c0511ea9f430a8bed50c69-1100298247.eu-central-1.elb.amazonaws.com/crnn"
     },
     "inferencing_pool": {
         "workers": 20,
@@ -38,12 +31,13 @@
         "frame_count_threshold": 5
     },
     "gps": {
-        "use_gps": true,
+        "use_gps": false,
         "write_port": "/dev/ttyUSB2",
         "read_port": "/dev/ttyUSB1",
         "baudrate": 115200
     },
     "general": {
-        "bind_ip": "0.0.0.0"
+        "bind_ip": "0.0.0.0",
+        "saved_data": "saved_data.csv"
     }
 }
