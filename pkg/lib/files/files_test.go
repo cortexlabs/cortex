@@ -301,6 +301,23 @@ func TestListDirRecursive(t *testing.T) {
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
 
+	filesListRecursive, err = ListDirRecursive(tmpDir, true, excludes)
+	expected = []string{
+		"2.py",
+		"3/2/2.txt",
+		"4/2.pyc",
+		"4/.git/HEAD",
+	}
+	require.NoError(t, err)
+	require.ElementsMatch(t, expected, filesListRecursive)
+
+	filesListRecursive, err = ListDirRecursive(tmpDir, false, excludesWithRelativePaths, IgnoreNonPython)
+	expected = []string{
+		filepath.Join(tmpDir, "2.py"),
+	}
+	require.NoError(t, err)
+	require.ElementsMatch(t, expected, filesListRecursive)
+
 	filesListRecursive, err = ListDirRecursive(tmpDir, true, excludesWithRelativePaths, IgnoreNonPython)
 	expected = []string{
 		filepath.Join("2.py"),

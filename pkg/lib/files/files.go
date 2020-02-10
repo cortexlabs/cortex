@@ -505,36 +505,41 @@ func ListDirRecursive(dir string, relative bool, excludes []string, ignoreFns ..
 		}
 
 		if !fi.IsDir() {
-			if relative {
-				path = path[len(dir)+1:]
-			}
-
 			if strings.Contains(path, ".cortexignore") {
 				return nil
 			}
 
+			relPath := path[len(dir)+1:]
+
 			if len(excludes) > 0 {
-				ignore := false
 				for _, exclude := range excludes {
-					match, err := filepath.Match(exclude, path)
+					matchAbs, err := filepath.Match(exclude, path)
 					if err != nil {
 						// The only possible returned error is ErrBadPattern, when pattern is malformed
-						return errors.Wrap(err, path)
+						return errors.Wrap(err, relPath)
+					}
+					if matchAbs {
+						return nil
 					}
 
-					if match {
-						ignore = true
-						break
+					matchRel, err := filepath.Match(exclude, relPath)
+					if err != nil {
+						// The only possible returned error is ErrBadPattern, when pattern is malformed
+						return errors.Wrap(err, relPath)
+					}
+					if matchRel {
+						return nil
 					}
 				}
+			}
 
-				if !ignore {
-					fileList = append(fileList, path)
-				}
+			if relative {
+				fileList = append(fileList, relPath)
 			} else {
 				fileList = append(fileList, path)
 			}
 		}
+
 		return nil
 	})
 
