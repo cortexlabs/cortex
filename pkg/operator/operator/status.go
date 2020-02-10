@@ -20,10 +20,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	kapps "k8s.io/api/apps/v1"
@@ -96,9 +94,9 @@ func GetAllStatuses() ([]status.Status, error) {
 }
 
 func apiStatus(deployment *kapps.Deployment, allPods []kcore.Pod) (*status.Status, error) {
-	minReplicas, ok := s.ParseInt32(deployment.Labels["minReplicas"])
-	if !ok {
-		return nil, errors.New("unable to parse min replicas from " + deployment.Labels["minReplicas"]) // unexpected
+	minReplicas, err := getMinReplicas(deployment)
+	if err != nil {
+		return nil, err
 	}
 
 	status := &status.Status{}

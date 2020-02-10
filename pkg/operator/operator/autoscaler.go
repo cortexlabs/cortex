@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
@@ -84,33 +85,29 @@ func (recs recommendations) minSince(period time.Duration) *int32 {
 }
 
 func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
-	// window := 60 * time.Second // must be multiple of 10, >0
-	var threadsPerReplica int32 = 1                 // threads_per_replica, int, > 0, in compute
-	var targetQueueLen float64 = 0                  // target_queue_length, float, > 0
-	downscaleStabilizationPeriod := 5 * time.Minute // duration, > 0
-	upscaleStabilizationPeriod := 0 * time.Minute   // duration, > 0
-	var maxDownscaleFactor float64 = 0.5            // must be < 1
-	var maxUpscaleFactor float64 = 100              // must be > 1
-	var upscaleTolerance float64 = 0.1
-	var downscaleTolerance float64 = 0.1
+	minReplicas, err1 := getMinReplicas(initialDeployment)
+	maxReplicas, err2 := getMaxReplicas(initialDeployment)
+	threadsPerReplica, err3 := getThreadsPerReplicas(initialDeployment)
+	targetQueueLen, err4 := getTargetQueueLength(initialDeployment)
+	window, err5 := getWindow(initialDeployment)
+	downscaleStabilizationPeriod, err6 := getDownscaleStabilizationPeriod(initialDeployment)
+	upscaleStabilizationPeriod, err7 := getUpscaleStabilizationPeriod(initialDeployment)
+	maxDownscaleFactor, err8 := getMaxDownscaleFactor(initialDeployment)
+	maxUpscaleFactor, err9 := getMaxUpscaleFactor(initialDeployment)
+	downscaleTolerance, err10 := getDownscaleTolerance(initialDeployment)
+	upscaleTolerance, err11 := getUpscaleTolerance(initialDeployment)
 
-	var startTime time.Time
+	err := errors.FirstError(err1, err2, err3, err4, err5, err6, err7, err8, err9, err10, err11)
+	if err != nil {
+		return nil, err
+	}
 
 	apiName := initialDeployment.Labels["apiName"]
 	currentReplicas := *initialDeployment.Spec.Replicas
 
-	minReplicas, err := getMinReplicas(initialDeployment)
-	if err != nil {
-		return nil, err
-	}
+	log.Printf("%s autoscaler init: min_replicas=%d, max_replicas=%d, window=%s, target_queue_length=%s, threads_per_replica=%d, downscale_tolerance=%s, upscale_tolerance=%s, downscale_stabilization_period=%s, upscale_stabilization_period=%s, max_downscale_factor=%s, max_upscale_factor=%s", apiName, minReplicas, maxReplicas, window, s.Float64(targetQueueLen), threadsPerReplica, s.Float64(downscaleTolerance), s.Float64(upscaleTolerance), downscaleStabilizationPeriod, upscaleStabilizationPeriod, s.Float64(maxDownscaleFactor), s.Float64(maxUpscaleFactor))
 
-	maxReplicas, err := getMaxReplicas(initialDeployment)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("%s autoscaler init: min_replicas=%d, max_replicas=%d, threads_per_replica=%d, downscale_tolerance=%s, upscale_tolerance=%s, downscale_stabilization_period=%s, upscale_stabilization_period=%s, max_downscale_factor=%s, max_upscale_factor=%s", apiName, minReplicas, maxReplicas, threadsPerReplica, s.Round(downscaleTolerance, 100, 0), s.Round(upscaleTolerance, 100, 0), downscaleStabilizationPeriod, upscaleStabilizationPeriod, s.Round(maxDownscaleFactor, 100, 0), s.Round(maxUpscaleFactor, 100, 0))
-
+	var startTime time.Time
 	recs := make(recommendations)
 
 	return func() error {

@@ -44,7 +44,6 @@ func Init() error {
 		}
 	}
 
-	// cron.Run(updateHPAs, cronErrHandler("update hpas"), 20*time.Second)
 	cron.Run(deleteEvictedPods, cronErrHandler("delete evicted pods"), 12*time.Hour)
 	cron.Run(operatorTelemetry, cronErrHandler("operator telemetry"), 1*time.Hour)
 

@@ -20,12 +20,14 @@ import (
 	"bytes"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -33,6 +35,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -209,12 +212,6 @@ func applyK8sResources(api *spec.API, prevDeployment *kapps.Deployment, prevServ
 		func() error {
 			return applyK8sVirtualService(api, prevVirtualService)
 		},
-		func() error {
-			// Delete HPA while updating replicas to avoid unwanted autoscaling due to CPU fluctuations
-			// TODO remove all HPA stuff
-			config.K8s.DeleteHPA(k8sName(api.Name))
-			return nil
-		},
 	)
 }
 
@@ -308,10 +305,6 @@ func deleteK8sResources(apiName string) error {
 			_, err := config.K8s.DeleteVirtualService(k8sName(apiName))
 			return err
 		},
-		func() error {
-			_, err := config.K8s.DeleteHPA(k8sName(apiName))
-			return err
-		},
 	)
 }
 
@@ -329,9 +322,9 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 
 	replicaCounts := getReplicaCounts(deployment, pods)
 
-	minReplicas, ok := s.ParseInt32(deployment.Labels["minReplicas"])
-	if !ok {
-		return false, errors.New("unable to parse minReplicas from deployment") // unexpected
+	minReplicas, err := getMinReplicas(deployment)
+	if err != nil {
+		return false, err
 	}
 
 	if replicaCounts.Updated.Ready < minReplicas && replicaCounts.Updated.TotalFailed() == 0 {
@@ -354,9 +347,23 @@ func areAPIsEqual(d1, d2 *kapps.Deployment) bool {
 		d1.Labels["apiName"] == d2.Labels["apiName"] &&
 		d1.Labels["apiID"] == d2.Labels["apiID"] &&
 		d1.Labels["deploymentID"] == d2.Labels["deploymentID"] &&
-		d1.Labels["minReplicas"] == d2.Labels["minReplicas"] &&
-		d1.Labels["maxReplicas"] == d2.Labels["maxReplicas"] &&
-		d1.Labels["targetCPUUtilization"] == d2.Labels["targetCPUUtilization"]
+		doCortexAnnotationsMatch(d1, d2)
+}
+
+func doCortexAnnotationsMatch(obj1, obj2 kmeta.Object) bool {
+	cortexAnnotations1 := extractCortexAnnotations(obj1)
+	cortexAnnotations2 := extractCortexAnnotations(obj2)
+	return maps.StrMapsEqual(cortexAnnotations1, cortexAnnotations2)
+}
+
+func extractCortexAnnotations(obj kmeta.Object) map[string]string {
+	cortexAnnotations := make(map[string]string)
+	for key, value := range obj.GetAnnotations() {
+		if strings.Contains(key, "cortex.dev/") {
+			cortexAnnotations[key] = value
+		}
+	}
+	return cortexAnnotations
 }
 
 func IsAPIDeployed(apiName string) (bool, error) {
@@ -419,19 +426,47 @@ func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
 }
 
 func getMinReplicas(deployment *kapps.Deployment) (int32, error) {
-	minReplicas, ok := s.ParseInt32(deployment.Labels["minReplicas"])
-	if !ok {
-		return 0, errors.New("unable to parse minReplicas from deployment") // unexpected
-	}
-	return minReplicas, nil
+	return k8s.ParseInt32Annotation(deployment, "autoscaling.cortex.dev/min-replicas")
 }
 
 func getMaxReplicas(deployment *kapps.Deployment) (int32, error) {
-	maxReplicas, ok := s.ParseInt32(deployment.Labels["maxReplicas"])
-	if !ok {
-		return 0, errors.New("unable to parse maxReplicas from deployment") // unexpected
-	}
-	return maxReplicas, nil
+	return k8s.ParseInt32Annotation(deployment, "autoscaling.cortex.dev/max-replicas")
+}
+
+func getThreadsPerReplicas(deployment *kapps.Deployment) (int32, error) {
+	return k8s.ParseInt32Annotation(deployment, "autoscaling.cortex.dev/threads-per-replica")
+}
+
+func getTargetQueueLength(deployment *kapps.Deployment) (float64, error) {
+	return k8s.ParseFloat64Annotation(deployment, "autoscaling.cortex.dev/target-queue-length")
+}
+
+func getWindow(deployment *kapps.Deployment) (time.Duration, error) {
+	return k8s.ParseDurationAnnotation(deployment, "autoscaling.cortex.dev/window")
+}
+
+func getDownscaleStabilizationPeriod(deployment *kapps.Deployment) (time.Duration, error) {
+	return k8s.ParseDurationAnnotation(deployment, "autoscaling.cortex.dev/downscale-stabilization-period")
+}
+
+func getUpscaleStabilizationPeriod(deployment *kapps.Deployment) (time.Duration, error) {
+	return k8s.ParseDurationAnnotation(deployment, "autoscaling.cortex.dev/upscale-stabilization-period")
+}
+
+func getMaxDownscaleFactor(deployment *kapps.Deployment) (float64, error) {
+	return k8s.ParseFloat64Annotation(deployment, "autoscaling.cortex.dev/max-downscale-factor")
+}
+
+func getMaxUpscaleFactor(deployment *kapps.Deployment) (float64, error) {
+	return k8s.ParseFloat64Annotation(deployment, "autoscaling.cortex.dev/max-upscale-factor")
+}
+
+func getDownscaleTolerance(deployment *kapps.Deployment) (float64, error) {
+	return k8s.ParseFloat64Annotation(deployment, "autoscaling.cortex.dev/downscale-tolerance")
+}
+
+func getUpscaleTolerance(deployment *kapps.Deployment) (float64, error) {
+	return k8s.ParseFloat64Annotation(deployment, "autoscaling.cortex.dev/upscale-tolerance")
 }
 
 func specKey(apiName string, apiID string) string {

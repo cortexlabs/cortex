@@ -17,29 +17,48 @@ limitations under the License.
 package userconfig
 
 const (
-	NameKey         = "name"
-	ModelKey        = "model"
+	// API
+	NameKey           = "name"
+	EndpointKey       = "endpoint"
+	PredictorKey      = "predictor"
+	TrackerKey        = "tracker"
+	ComputeKey        = "compute"
+	AutoscalingKey    = "autoscaling"
+	UpdateStrategyKey = "update_strategy"
+
+	// Predictor
 	TypeKey         = "type"
 	PathKey         = "path"
-	PredictorKey    = "predictor"
-	EndpointKey     = "endpoint"
-	SignatureKeyKey = "signature_key"
-	TrackerKey      = "tracker"
-	ModelTypeKey    = "model_type"
-	KeyKey          = "key"
-	ConfigKey       = "config"
+	ModelKey        = "model"
 	PythonPathKey   = "python_path"
+	ConfigKey       = "config"
 	EnvKey          = "env"
+	SignatureKeyKey = "signature_key"
+
+	// Tracker
+	KeyKey       = "key"
+	ModelTypeKey = "model_type"
 
 	// Compute
-	ComputeKey              = "compute"
-	MinReplicasKey          = "min_replicas"
-	MaxReplicasKey          = "max_replicas"
-	InitReplicasKey         = "init_replicas"
-	TargetCPUUtilizationKey = "target_cpu_utilization"
-	CPUKey                  = "cpu"
-	GPUKey                  = "gpu"
-	MemKey                  = "mem"
-	MaxSurgeKey             = "max_surge"
-	MaxUnavailableKey       = "max_unavailable"
+	CPUKey = "cpu"
+	MemKey = "mem"
+	GPUKey = "gpu"
+
+	// Autoscaling
+	MinReplicasKey                  = "min_replicas"
+	MaxReplicasKey                  = "max_replicas"
+	InitReplicasKey                 = "init_replicas"
+	ThreadsPerReplicaKey            = "threads_per_replica"
+	TargetQueueLengthKey            = "target_queue_length"
+	WindowKey                       = "window"
+	DownscaleStabilizationPeriodKey = "downscale_stabilization_period"
+	UpscaleStabilizationPeriodKey   = "upscale_stabilization_period"
+	MaxDownscaleFactorKey           = "max_downscale_factor"
+	MaxUpscaleFactorKey             = "max_upscale_factor"
+	DownscaleToleranceKey           = "downscale_tolerance"
+	UpscaleToleranceKey             = "upscale_tolerance"
+
+	// UpdateStrategy
+	MaxSurgeKey       = "max_surge"
+	MaxUnavailableKey = "max_unavailable"
 )

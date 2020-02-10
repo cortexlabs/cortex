@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -32,7 +31,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
-	kautoscaling "k8s.io/api/autoscaling/v2beta2"
 	kcore "k8s.io/api/core/v1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -104,17 +102,14 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
-		MaxSurge:       pointer.String(api.Compute.MaxSurge),
-		MaxUnavailable: pointer.String(api.Compute.MaxUnavailable),
+		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
+		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
-			// these labels are important to determine if the deployment was changed in any way, since they don't appear in the deployment spec
-			"minReplicas":          s.Int32(api.Compute.MinReplicas),
-			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
-			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
 		},
+		Annotations: apiAnnotations(api),
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},
@@ -257,17 +252,14 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
-		MaxSurge:       pointer.String(api.Compute.MaxSurge),
-		MaxUnavailable: pointer.String(api.Compute.MaxUnavailable),
+		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
+		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
-			// these labels allow us to determine if the deployment was changed in any way
-			"minReplicas":          s.Int32(api.Compute.MinReplicas),
-			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
-			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
 		},
+		Annotations: apiAnnotations(api),
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},
@@ -399,17 +391,14 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
-		MaxSurge:       pointer.String(api.Compute.MaxSurge),
-		MaxUnavailable: pointer.String(api.Compute.MaxUnavailable),
+		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
+		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
-			// these labels are important to determine if the deployment was changed in any way, since they don't appear in the deployment spec
-			"minReplicas":          s.Int32(api.Compute.MinReplicas),
-			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
-			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
 		},
+		Annotations: apiAnnotations(api),
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},
@@ -521,50 +510,21 @@ func virtualServiceSpec(api *spec.API) *kunstructured.Unstructured {
 	})
 }
 
-func hpaSpec(deployment *kapps.Deployment) (*kautoscaling.HorizontalPodAutoscaler, error) {
-	minReplicas, ok := s.ParseInt32(deployment.Labels["minReplicas"])
-	if !ok {
-		return nil, errors.New("unable to parse minReplicas from deployment") // unexpected
-	}
-	maxReplicas, ok := s.ParseInt32(deployment.Labels["maxReplicas"])
-	if !ok {
-		return nil, errors.New("unable to parse maxReplicas from deployment") // unexpected
-	}
-	targetCPUUtilization, ok := s.ParseInt32(deployment.Labels["targetCPUUtilization"])
-	if !ok {
-		return nil, errors.New("unable to parse targetCPUUtilization from deployment") // unexpected
-	}
-
-	return k8s.HPA(&k8s.HPASpec{
-		DeploymentName:       k8sName(deployment.Labels["apiName"]),
-		MinReplicas:          minReplicas,
-		MaxReplicas:          maxReplicas,
-		TargetCPUUtilization: targetCPUUtilization,
-		Labels: map[string]string{
-			"apiName": deployment.Labels["apiName"],
-		},
-	}), nil
-}
-
 func getRequestedReplicasFromDeployment(api *spec.API, deployment *kapps.Deployment) int32 {
-	var k8sRequested int32
-	if deployment != nil && deployment.Spec.Replicas != nil {
-		k8sRequested = *deployment.Spec.Replicas
-	}
-	return getRequestedReplicas(api, k8sRequested)
-}
+	requestedReplicas := api.Autoscaling.InitReplicas
 
-func getRequestedReplicas(api *spec.API, k8sRequested int32) int32 {
-	requestedReplicas := api.Compute.InitReplicas
-	if k8sRequested > 0 {
-		requestedReplicas = k8sRequested
+	if deployment != nil && deployment.Spec.Replicas != nil && *deployment.Spec.Replicas > 0 {
+		requestedReplicas = *deployment.Spec.Replicas
 	}
-	if requestedReplicas < api.Compute.MinReplicas {
-		requestedReplicas = api.Compute.MinReplicas
+
+	if requestedReplicas < api.Autoscaling.MinReplicas {
+		requestedReplicas = api.Autoscaling.MinReplicas
 	}
-	if requestedReplicas > api.Compute.MaxReplicas {
-		requestedReplicas = api.Compute.MaxReplicas
+
+	if requestedReplicas > api.Autoscaling.MaxReplicas {
+		requestedReplicas = api.Autoscaling.MaxReplicas
 	}
+
 	return requestedReplicas
 }
 
@@ -601,6 +561,22 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 
 func k8sName(apiName string) string {
 	return "api-" + apiName
+}
+
+func apiAnnotations(api *spec.API) map[string]string {
+	return map[string]string{
+		"autoscaling.cortex.dev/min-replicas":                   s.Int32(api.Autoscaling.MinReplicas),
+		"autoscaling.cortex.dev/max-replicas":                   s.Int32(api.Autoscaling.MaxReplicas),
+		"autoscaling.cortex.dev/threads-per-replica":            s.Int32(api.Autoscaling.ThreadsPerReplica),
+		"autoscaling.cortex.dev/target-queue-length":            s.Float64(api.Autoscaling.TargetQueueLength),
+		"autoscaling.cortex.dev/window":                         api.Autoscaling.Window.String(),
+		"autoscaling.cortex.dev/downscale-stabilization-period": api.Autoscaling.DownscaleStabilizationPeriod.String(),
+		"autoscaling.cortex.dev/upscale-stabilization-period":   api.Autoscaling.UpscaleStabilizationPeriod.String(),
+		"autoscaling.cortex.dev/max-downscale-factor":           s.Float64(api.Autoscaling.MaxDownscaleFactor),
+		"autoscaling.cortex.dev/max-upscale-factor":             s.Float64(api.Autoscaling.MaxUpscaleFactor),
+		"autoscaling.cortex.dev/downscale-tolerance":            s.Float64(api.Autoscaling.DownscaleTolerance),
+		"autoscaling.cortex.dev/upscale-tolerance":              s.Float64(api.Autoscaling.UpscaleTolerance),
+	}
 }
 
 var _apiReadinessProbe = &kcore.Probe{

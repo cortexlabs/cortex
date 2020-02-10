@@ -19,6 +19,7 @@ package userconfig
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -26,19 +27,16 @@ import (
 )
 
 type API struct {
-	Name      string     `json:"name" yaml:"name"`
-	Endpoint  *string    `json:"endpoint" yaml:"endpoint"`
-	Predictor *Predictor `json:"predictor" yaml:"predictor"`
-	Tracker   *Tracker   `json:"tracker" yaml:"tracker"`
-	Compute   *Compute   `json:"compute" yaml:"compute"`
+	Name           string          `json:"name" yaml:"name"`
+	Endpoint       *string         `json:"endpoint" yaml:"endpoint"`
+	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
+	Tracker        *Tracker        `json:"tracker" yaml:"tracker"`
+	Compute        *Compute        `json:"compute" yaml:"compute"`
+	Autoscaling    *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
+	UpdateStrategy *UpdateStrategy `json:"update_strategy" yaml:"update_strategy"`
 
 	Index    int    `json:"index" yaml:"-"`
 	FilePath string `json:"file_path" yaml:"-"`
-}
-
-type Tracker struct {
-	Key       *string   `json:"key" yaml:"key"`
-	ModelType ModelType `json:"model_type" yaml:"model_type"`
 }
 
 type Predictor struct {
@@ -51,16 +49,35 @@ type Predictor struct {
 	SignatureKey *string                `json:"signature_key" yaml:"signature_key"`
 }
 
+type Tracker struct {
+	Key       *string   `json:"key" yaml:"key"`
+	ModelType ModelType `json:"model_type" yaml:"model_type"`
+}
+
 type Compute struct {
-	MinReplicas          int32         `json:"min_replicas" yaml:"min_replicas"`
-	MaxReplicas          int32         `json:"max_replicas" yaml:"max_replicas"`
-	InitReplicas         int32         `json:"init_replicas" yaml:"init_replicas"`
-	TargetCPUUtilization int32         `json:"target_cpu_utilization" yaml:"target_cpu_utilization"`
-	CPU                  k8s.Quantity  `json:"cpu" yaml:"cpu"`
-	Mem                  *k8s.Quantity `json:"mem" yaml:"mem"`
-	GPU                  int64         `json:"gpu" yaml:"gpu"`
-	MaxSurge             string        `json:"max_surge" yaml:"max_surge"`
-	MaxUnavailable       string        `json:"max_unavailable" yaml:"max_unavailable"`
+	CPU k8s.Quantity  `json:"cpu" yaml:"cpu"`
+	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
+	GPU int64         `json:"gpu" yaml:"gpu"`
+}
+
+type Autoscaling struct {
+	MinReplicas                  int32         `json:"min_replicas" yaml:"min_replicas"`
+	MaxReplicas                  int32         `json:"max_replicas" yaml:"max_replicas"`
+	InitReplicas                 int32         `json:"init_replicas" yaml:"init_replicas"`
+	ThreadsPerReplica            int32         `json:"threads_per_replica" yaml:"threads_per_replica"`
+	TargetQueueLength            float64       `json:"target_queue_length" yaml:"target_queue_length"`
+	Window                       time.Duration `json:"window" yaml:"window"`
+	DownscaleStabilizationPeriod time.Duration `json:"downscale_stabilization_period" yaml:"downscale_stabilization_period"`
+	UpscaleStabilizationPeriod   time.Duration `json:"upscale_stabilization_period" yaml:"upscale_stabilization_period"`
+	MaxDownscaleFactor           float64       `json:"max_downscale_factor" yaml:"max_downscale_factor"`
+	MaxUpscaleFactor             float64       `json:"max_upscale_factor" yaml:"max_upscale_factor"`
+	DownscaleTolerance           float64       `json:"downscale_tolerance" yaml:"downscale_tolerance"`
+	UpscaleTolerance             float64       `json:"upscale_tolerance" yaml:"upscale_tolerance"`
+}
+
+type UpdateStrategy struct {
+	MaxSurge       string `json:"max_surge" yaml:"max_surge"`
+	MaxUnavailable string `json:"max_unavailable" yaml:"max_unavailable"`
 }
 
 func (api *API) Identify() string {
@@ -90,23 +107,26 @@ func (api *API) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
 
-	if api.Compute != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
-		sb.WriteString(s.Indent(api.Compute.UserStr(), "  "))
-	}
 	if api.Tracker != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", TrackerKey))
 		sb.WriteString(s.Indent(api.Tracker.UserStr(), "  "))
 	}
-	return sb.String()
-}
 
-func (tracker *Tracker) UserStr() string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelTypeKey, tracker.ModelType.String()))
-	if tracker.Key != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", KeyKey, *tracker.Key))
+	if api.Compute != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
+		sb.WriteString(s.Indent(api.Compute.UserStr(), "  "))
 	}
+
+	if api.Autoscaling != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", AutoscalingKey))
+		sb.WriteString(s.Indent(api.Autoscaling.UserStr(), "  "))
+	}
+
+	if api.UpdateStrategy != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", UpdateStrategyKey))
+		sb.WriteString(s.Indent(api.UpdateStrategy.UserStr(), "  "))
+	}
+
 	return sb.String()
 }
 
@@ -136,14 +156,17 @@ func (predictor *Predictor) UserStr() string {
 	return sb.String()
 }
 
+func (tracker *Tracker) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelTypeKey, tracker.ModelType.String()))
+	if tracker.Key != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", KeyKey, *tracker.Key))
+	}
+	return sb.String()
+}
+
 func (compute *Compute) UserStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MinReplicasKey, s.Int32(compute.MinReplicas)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicasKey, s.Int32(compute.MaxReplicas)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(compute.InitReplicas)))
-	if compute.MinReplicas != compute.MaxReplicas {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", TargetCPUUtilizationKey, s.Int32(compute.TargetCPUUtilization)))
-	}
 	sb.WriteString(fmt.Sprintf("%s: %s\n", CPUKey, compute.CPU.UserString))
 	if compute.GPU > 0 {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
@@ -151,7 +174,29 @@ func (compute *Compute) UserStr() string {
 	if compute.Mem != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
 	}
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxSurgeKey, compute.MaxSurge))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxUnavailableKey, compute.MaxUnavailable))
+	return sb.String()
+}
+
+func (autoscaling *Autoscaling) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MinReplicasKey, s.Int32(autoscaling.MinReplicas)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicasKey, s.Int32(autoscaling.MaxReplicas)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(autoscaling.InitReplicas)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerReplicaKey, s.Int32(autoscaling.ThreadsPerReplica)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetQueueLengthKey, s.Float64(autoscaling.TargetQueueLength)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", WindowKey, autoscaling.Window.String()))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", DownscaleStabilizationPeriodKey, autoscaling.DownscaleStabilizationPeriod.String()))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", UpscaleStabilizationPeriodKey, autoscaling.UpscaleStabilizationPeriod.String()))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxDownscaleFactorKey, s.Float64(autoscaling.MaxDownscaleFactor)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxUpscaleFactorKey, s.Float64(autoscaling.MaxUpscaleFactor)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", DownscaleToleranceKey, s.Float64(autoscaling.DownscaleTolerance)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", UpscaleToleranceKey, s.Float64(autoscaling.UpscaleTolerance)))
+	return sb.String()
+}
+
+func (updateStrategy *UpdateStrategy) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxSurgeKey, updateStrategy.MaxSurge))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxUnavailableKey, updateStrategy.MaxUnavailable))
 	return sb.String()
 }

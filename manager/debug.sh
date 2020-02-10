@@ -26,7 +26,7 @@ rm -rf /.cortex/cortex-debug*
 echo -n "gathering cluster data"
 
 mkdir -p /.cortex/cortex-debug/k8s
-for resource in pods pods.metrics nodes nodes.metrics daemonsets deployments hpa services virtualservices gateways ingresses configmaps jobs replicasets events; do
+for resource in pods pods.metrics nodes nodes.metrics daemonsets deployments services virtualservices gateways ingresses configmaps jobs replicasets events; do
   kubectl describe $resource --all-namespaces &>/dev/null > "/.cortex/cortex-debug/k8s/${resource}"
   kubectl get $resource --all-namespaces &>/dev/null > "/.cortex/cortex-debug/k8s/${resource}-list"
   echo -n "."
