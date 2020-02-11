@@ -1,4 +1,3 @@
-
 import json
 import base64
 import numpy as np
@@ -7,7 +6,8 @@ import pickle
 from utils.utils import get_yolo_boxes
 from utils.bbox import BoundBox
 
-class TensorFlowPredictor():
+
+class TensorFlowPredictor:
     def __init__(self, tensorflow_client, config):
         self.client = tensorflow_client
 
@@ -21,14 +21,22 @@ class TensorFlowPredictor():
         img = base64.b64decode(img)
         jpg_as_np = np.frombuffer(img, dtype=np.uint8)
         image = cv2.imdecode(jpg_as_np, flags=cv2.IMREAD_COLOR)
-        
-        boxes = get_yolo_boxes(self.client, [image], self.net_h, self.net_w,
-        self.anchors, self.obj_thresh, self.nms_thresh, len(self.labels))
+
+        boxes = get_yolo_boxes(
+            self.client,
+            [image],
+            self.net_h,
+            self.net_w,
+            self.anchors,
+            self.obj_thresh,
+            self.nms_thresh,
+            len(self.labels),
+        )
 
         response = {"boxes": []}
         for box in boxes:
-            response["boxes"].append([
-                box.xmin, box.ymin, box.xmax, box.ymax, box.c, box.classes
-            ])
+            response["boxes"].append(
+                [box.xmin, box.ymin, box.xmax, box.ymax, box.c, box.classes]
+            )
 
         return response

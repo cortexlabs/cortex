@@ -1,6 +1,7 @@
 from multiprocessing.queues import Queue as mp_queue
 import multiprocessing as mp
 
+
 class SharedCounter(object):
     """ A synchronized shared counter.
 
@@ -16,10 +17,10 @@ class SharedCounter(object):
 
     """
 
-    def __init__(self, n = 0):
-        self.count = mp.Value('i', n)
+    def __init__(self, n=0):
+        self.count = mp.Value("i", n)
 
-    def increment(self, n = 1):
+    def increment(self, n=1):
         """ Increment the counter by n (default = 1) """
         with self.count.get_lock():
             self.count.value += n
@@ -34,6 +35,7 @@ class SharedCounter(object):
         """ Return the value of the counter """
         return self.count.value
 
+
 class MPQueue(mp_queue):
     """ A portable implementation of multiprocessing.Queue.
 
@@ -47,6 +49,7 @@ class MPQueue(mp_queue):
     qsize() and empty().
 
     """
+
     def __init__(self, *args, **kwargs):
         self.ctx = mp.get_context()
         super(MPQueue, self).__init__(*args, **kwargs, ctx=self.ctx)

@@ -3,10 +3,13 @@ import multiprocessing as mp
 import threading as td
 
 import logging
+
 logger = logging.getLogger()
 stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.INFO)
-stream_format = logging.Formatter("%(asctime)s - %(name)s - %(threadName)s - %(levelname)s - %(message)s")
+stream_format = logging.Formatter(
+    "%(asctime)s - %(name)s - %(threadName)s - %(levelname)s - %(message)s"
+)
 stream_handler.setFormatter(stream_format)
 logger.addHandler(stream_handler)
 logger.setLevel(logging.DEBUG)
@@ -22,14 +25,17 @@ from utils.image import resize_image, image_to_jpeg_bytes
 from utils.queue import MPQueue
 from requests_toolbelt.adapters.source import SourceAddressAdapter
 
-class GracefullKiller():
+
+class GracefullKiller:
     kill_now = False
+
     def __init__(self):
         signal.signal(signal.SIGINT, self.exit_gracefully)
         signal.signal(signal.SIGTERM, self.exit_gracefully)
-    
+
     def exit_gracefully(self, signum, frame):
         self.kill_now = True
+
 
 class WorkerPool(mp.Process):
     def __init__(self, name, worker, pool_size, *args, **kwargs):
@@ -42,7 +48,15 @@ class WorkerPool(mp.Process):
 
     def run(self):
         logger.info("spawning workers on separate process")
-        pool = [self.Worker(self.event_stopper, *self.args, **self.kwargs, name="{}-Worker-{}".format(self.name, i)) for i in range(self.pool_size)]
+        pool = [
+            self.Worker(
+                self.event_stopper,
+                *self.args,
+                **self.kwargs,
+                name="{}-Worker-{}".format(self.name, i),
+            )
+            for i in range(self.pool_size)
+        ]
         [worker.start() for worker in pool]
         while not self.event_stopper.is_set():
             time.sleep(0.001)
@@ -52,7 +66,8 @@ class WorkerPool(mp.Process):
     def stop(self):
         self.event_stopper.set()
 
-class DistributeFramesAndInfer():
+
+class DistributeFramesAndInfer:
     def __init__(self, pool_cfg, worker_cfg):
         self.frame_num = 0
         self.in_queue = MPQueue()
@@ -60,18 +75,22 @@ class DistributeFramesAndInfer():
         self.predicts_queue = MPQueue()
         for key, value in pool_cfg.items():
             setattr(self, key, value)
-        self.pool = WorkerPool("InferencePool", InferenceWorker, 
-        self.workers, self.in_queue, self.bc_queue, self.predicts_queue, worker_cfg)
+        self.pool = WorkerPool(
+            "InferencePool",
+            InferenceWorker,
+            self.workers,
+            self.in_queue,
+            self.bc_queue,
+            self.predicts_queue,
+            worker_cfg,
+        )
         self.pool.start()
 
     def write(self, buf):
         if buf.startswith(b"\xff\xd8"):
             # start of new frame; close the old one (if any) and
             if self.frame_num % self.pick_every_nth_frame == 0:
-                self.in_queue.put({
-                    "frame_num": self.frame_num,
-                    "jpeg": buf
-                })
+                self.in_queue.put({"frame_num": self.frame_num, "jpeg": buf})
             self.frame_num += 1
 
     def stop(self):
@@ -83,8 +102,13 @@ class DistributeFramesAndInfer():
     def get_queues(self):
         return self.in_queue, self.bc_queue, self.predicts_queue
 
-@click.command(help=("Identify license plates from a given video source"
-" while outsourcing the predictions using REST API endpoints."))
+
+@click.command(
+    help=(
+        "Identify license plates from a given video source"
+        " while outsourcing the predictions using REST API endpoints."
+    )
+)
 @click.option("--config", "-c", required=True, type=str)
 def main(config):
     killer = GracefullKiller()
@@ -94,7 +118,7 @@ def main(config):
         cfg = json.load(file)
         file.close()
     except Exception as error:
-        logger.critical(str(error), exc_info = 1)
+        logger.critical(str(error), exc_info=1)
         return
 
     source_cfg = cfg["video_source"]
@@ -111,7 +135,9 @@ def main(config):
         session.mount("http://", SourceAddressAdapter(gen_cfg["bind_ip"]))
         logger.info("binding requests module to {} IP".format(gen_cfg["bind_ip"]))
     except OSError as e:
-        logger.error("bind IP is invalid, resorting to default interface", exc_info=True)
+        logger.error(
+            "bind IP is invalid, resorting to default interface", exc_info=True
+        )
 
     # start polling the GPS
     if gps_cfg["use_gps"]:
@@ -120,7 +146,8 @@ def main(config):
         br = gps_cfg["baudrate"]
         gps = ReadGPSData(wport, rport, br)
         gps.start()
-    else: gps = None
+    else:
+        gps = None
 
     # workers on a separate process to run inference on the data
     logger.info("initializing pool w/ " + str(pool_cfg["workers"]) + " workers")
@@ -129,12 +156,16 @@ def main(config):
     logger.info("initialized worker pool")
 
     # a single worker in a separate process to reassemble the data
-    reassembler = BroadcastReassembled(bc_queue, broadcast_cfg, name="BroadcastReassembled")
+    reassembler = BroadcastReassembled(
+        bc_queue, broadcast_cfg, name="BroadcastReassembled"
+    )
     reassembler.start()
 
     # a single thread to flush the producing queue
     # when there are too many frames in the pipe
-    flusher = Flusher(frames_queue, threshold=flusher_cfg["frame_count_threshold"], name="Flusher")
+    flusher = Flusher(
+        frames_queue, threshold=flusher_cfg["frame_count_threshold"], name="Flusher"
+    )
     flusher.start()
 
     # data aggregator to write things to disk
@@ -153,12 +184,17 @@ def main(config):
                     if len(lp) > 0:
                         lp = " ".join(lp)
                         entry = {"Date": date, "License Plate": lp, "Coordinates": ""}
-                        if gps: entry["Coordinates"] = "{}, {}".format(gps.latitude, gps.longitude).upper()
+                        if gps:
+                            entry["Coordinates"] = "{}, {}".format(
+                                gps.latitude, gps.longitude
+                            ).upper()
                         df = df.append(entry, ignore_index=True)
 
             logger.info("dumping results to csv file {}".format(gen_cfg["saved_data"]))
-            if os.path.isfile(gen_cfg["saved_data"]): header = False
-            else: header = True
+            if os.path.isfile(gen_cfg["saved_data"]):
+                header = False
+            else:
+                header = True
             with open(gen_cfg["saved_data"], "a") as f:
                 df.to_csv(f, header=header)
 
@@ -176,21 +212,37 @@ def main(config):
             camera.sensor_mode = source_cfg["sensor_mode"]
             camera.resolution = source_cfg["resolution"]
             camera.framerate = source_cfg["framerate"]
-            logger.info("picamera initialized w/ mode={} resolution={} framerate={}".format(
-                camera.sensor_mode, camera.resolution, camera.framerate
-            ))
+            logger.info(
+                "picamera initialized w/ mode={} resolution={} framerate={}".format(
+                    camera.sensor_mode, camera.resolution, camera.framerate
+                )
+            )
 
             # start recording both to disk and to the queue
-            camera.start_recording(output=source_cfg["output_file"], format="h264", splitter_port=0, bitrate=10000000)
-            camera.start_recording(output=output, format="mjpeg", splitter_port=1, bitrate=10000000, quality=95)
+            camera.start_recording(
+                output=source_cfg["output_file"],
+                format="h264",
+                splitter_port=0,
+                bitrate=10000000,
+            )
+            camera.start_recording(
+                output=output,
+                format="mjpeg",
+                splitter_port=1,
+                bitrate=10000000,
+                quality=95,
+            )
             logger.info("started recording to file and to queue")
 
             # wait until SIGINT is detected
             while not killer.kill_now:
                 camera.wait_recording(timeout=0.5, splitter_port=0)
                 camera.wait_recording(timeout=0.5, splitter_port=1)
-                logger.info('frames qsize: {}, broadcast qsize: {}, predicts qsize: {}'.format(
-                    frames_queue.qsize(), bc_queue.qsize(), predicts_queue.qsize()))
+                logger.info(
+                    "frames qsize: {}, broadcast qsize: {}, predicts qsize: {}".format(
+                        frames_queue.qsize(), bc_queue.qsize(), predicts_queue.qsize()
+                    )
+                )
 
             # stop recording
             logger.info("gracefully exiting")
@@ -211,9 +263,13 @@ def main(config):
         target_w = int(frame_w * source_cfg["scale_video"])
         period = 1.0 / source_cfg["framerate"]
 
-        logger.info("file-based video stream initialized w/ resolution={} framerate={} and {} skipped frames".format(
-                (target_w, target_h), source_cfg["framerate"], source_cfg["frames_to_skip"]
-        ))
+        logger.info(
+            "file-based video stream initialized w/ resolution={} framerate={} and {} skipped frames".format(
+                (target_w, target_h),
+                source_cfg["framerate"],
+                source_cfg["frames_to_skip"],
+            )
+        )
 
         # serve each frame to the workers iteratively
         last_log = time.time()
@@ -232,16 +288,19 @@ def main(config):
             # check if SIGINT has been sent
             if killer.kill_now:
                 break
-            
+
             # do logs every second
             current = time.time()
             if current - last_log >= 1.0:
-                logger.info("frames qsize: {}, broadcast qsize: {}, predicts qsize: {}".format(
-                    frames_queue.qsize(), bc_queue.qsize(), predicts_queue.qsize()))
+                logger.info(
+                    "frames qsize: {}, broadcast qsize: {}, predicts qsize: {}".format(
+                        frames_queue.qsize(), bc_queue.qsize(), predicts_queue.qsize()
+                    )
+                )
                 last_log = current
-        
+
         logger.info("gracefully exiting")
-        video_reader.release()  
+        video_reader.release()
         output.stop()
 
     if gps_cfg["use_gps"]:
@@ -249,6 +308,7 @@ def main(config):
 
     reassembler.stop()
     flusher.stop()
+
 
 if __name__ == "__main__":
     main()

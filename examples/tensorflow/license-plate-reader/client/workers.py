@@ -1,4 +1,10 @@
-from utils.image import resize_image, compress_image, image_from_bytes, image_to_jpeg_nparray, image_to_jpeg_bytes
+from utils.image import (
+    resize_image,
+    compress_image,
+    image_from_bytes,
+    image_to_jpeg_nparray,
+    image_to_jpeg_bytes,
+)
 from utils.bbox import BoundBox, draw_boxes
 from statistics import mean
 import time, base64, pickle, json, cv2, logging, requests, queue, broadcast, copy, statistics
@@ -11,6 +17,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 session = requests.Session()
+
 
 class WorkerTemplateThread(td.Thread):
     def __init__(self, event_stopper, name=None, runnable=None):
@@ -29,12 +36,13 @@ class WorkerTemplateThread(td.Thread):
     def stop(self):
         self.event_stopper.set()
 
+
 class WorkerTemplateProcess(mp.Process):
     def __init__(self, event_stopper, name=None, runnable=None):
         mp.Process.__init__(self, name=name)
         self.event_stopper = event_stopper
         self.runnable = runnable
-    
+
     def run(self):
         if self.runnable:
             logger.debug("worker started")
@@ -45,6 +53,7 @@ class WorkerTemplateProcess(mp.Process):
 
     def stop(self):
         self.event_stopper.set()
+
 
 class BroadcastReassembled(WorkerTemplateProcess):
     def __init__(self, in_queue, cfg, name=None):
@@ -64,13 +73,12 @@ class BroadcastReassembled(WorkerTemplateProcess):
 
     def run(self):
         def lambda_func():
-            server = broadcast.StreamingServer(tuple(self.serve_address), broadcast.StreamingHandler)
+            server = broadcast.StreamingServer(
+                tuple(self.serve_address), broadcast.StreamingHandler
+            )
             server.serve_forever()
 
-        td.Thread(
-            target=lambda_func, 
-            args=(),
-            daemon=True).start()
+        td.Thread(target=lambda_func, args=(), daemon=True).start()
         logger.info("listening for stream clients on {}".format(self.serve_address))
 
         logger.info("worker started")
@@ -92,11 +100,11 @@ class BroadcastReassembled(WorkerTemplateProcess):
         # delay loop to stabilize the video fps
         end = time.time()
         elapsed_time = end - start
-        elapsed_time += 0.001 # count in the millisecond in self.run
+        elapsed_time += 0.001  # count in the millisecond in self.run
         if delay - elapsed_time > 0.0:
             time.sleep(delay - elapsed_time)
         if frame:
-            # pull and push again in case 
+            # pull and push again in case
             # write buffer (assume it takes an insignificant time to execute)
             self.pull_and_push()
             broadcast.output.write(frame)
@@ -119,10 +127,7 @@ class BroadcastReassembled(WorkerTemplateProcess):
         self.statistics(yolo3_rtt, crnn_rtt, len(boxes), 0)
 
         # push frames to buffer and pick new frame
-        self.buffer.append({
-            "image": byte_im,
-            "frame_num": frame_num
-        })
+        self.buffer.append({"image": byte_im, "frame_num": frame_num})
 
     def purge_stale_frames(self):
         new_buffer = []
@@ -130,7 +135,7 @@ class BroadcastReassembled(WorkerTemplateProcess):
             if frame["frame_num"] > self.oldest_broadcasted_frame:
                 new_buffer.append(frame)
         self.buffer = new_buffer
-    
+
     def pick_new_frame(self):
         current_desired_fps = self.target_fps - self.max_fps_variation
         delay = 1 / current_desired_fps
@@ -143,10 +148,10 @@ class BroadcastReassembled(WorkerTemplateProcess):
             if frame["frame_num"] < self.oldest_broadcasted_frame:
                 idx_to_del = idx + 1
         newlist = newlist[idx_to_del:]
-                
+
         if len(newlist) == 0:
             return None, delay
-        
+
         self.buffer = newlist[::-1]
         element = self.buffer.pop()
         frame = element["image"]
@@ -181,8 +186,11 @@ class BroadcastReassembled(WorkerTemplateProcess):
         self.recognitions += recognitions
         self.current_recognitions = recognitions
 
+
 class InferenceWorker(WorkerTemplateThread):
-    def __init__(self, event_stopper, in_queue, bc_queue, predicts_queue, cfg, name=None):
+    def __init__(
+        self, event_stopper, in_queue, bc_queue, predicts_queue, cfg, name=None
+    ):
         super(InferenceWorker, self).__init__(event_stopper=event_stopper, name=name)
         self.in_queue = in_queue
         self.bc_queue = bc_queue
@@ -220,7 +228,7 @@ class InferenceWorker(WorkerTemplateThread):
             return
 
         #############################
-        
+
         # parse response
         r_dict = resp.json()
         boxes_raw = r_dict["boxes"]
@@ -236,17 +244,22 @@ class InferenceWorker(WorkerTemplateThread):
             for i in range(len(b.classes)):
                 if b.classes[i] > self.yolov3_obj_thresh:
                     label = i
-            if label >= 0: aux.append(b)
+            if label >= 0:
+                aux.append(b)
         boxes = aux
         del aux
 
         # also scale the boxes for later uses
         camera_source_width = image.shape[1]
-        boxes640 = self.scale_bbox(boxes, self.yolov3_input_size_px, self.bounding_boxes_upscale_px)
-        boxes_source = self.scale_bbox(boxes, self.yolov3_input_size_px, camera_source_width)
+        boxes640 = self.scale_bbox(
+            boxes, self.yolov3_input_size_px, self.bounding_boxes_upscale_px
+        )
+        boxes_source = self.scale_bbox(
+            boxes, self.yolov3_input_size_px, camera_source_width
+        )
 
         #############################
-        
+
         # recognize the license plates in case
         # any bounding boxes have been detected
         dec_words = []
@@ -255,8 +268,10 @@ class InferenceWorker(WorkerTemplateThread):
             lps = []
             try:
                 for b in boxes_source:
-                    lp = image[b.ymin:b.ymax, b.xmin:b.xmax]
-                    jpeg = image_to_jpeg_nparray(lp, [int(cv2.IMWRITE_JPEG_QUALITY), self.crnn_quality])
+                    lp = image[b.ymin : b.ymax, b.xmin : b.xmax]
+                    jpeg = image_to_jpeg_nparray(
+                        lp, [int(cv2.IMWRITE_JPEG_QUALITY), self.crnn_quality]
+                    )
                     lps.append(jpeg)
             except:
                 logger.warning("encountered error while converting to jpeg")
@@ -270,9 +285,7 @@ class InferenceWorker(WorkerTemplateThread):
             dec_lps = self.rcnn_api_request(lps_dump)
             dec_lps = self.reorder_recognized_words(dec_lps)
             for dec_lp in dec_lps:
-                dec_words.append([
-                    word[0] for word in dec_lp
-                ])
+                dec_words.append([word[0] for word in dec_lp])
 
         if len(dec_words) > 0:
             logger.info("Detected the following words: {}".format(dec_words))
@@ -280,11 +293,19 @@ class InferenceWorker(WorkerTemplateThread):
             dec_words = [[] for i in range(len(boxes))]
 
         #############################
-        
+
         # draw detections
         upscaled = resize_image(image, self.bounding_boxes_upscale_px)
-        draw_image = draw_boxes(upscaled, boxes640, overlay_text=dec_words, labels=["LP"], obj_thresh=self.yolov3_obj_thresh)
-        draw_byte_im = image_to_jpeg_bytes(draw_image, [int(cv2.IMWRITE_JPEG_QUALITY), self.broadcast_quality])
+        draw_image = draw_boxes(
+            upscaled,
+            boxes640,
+            overlay_text=dec_words,
+            labels=["LP"],
+            obj_thresh=self.yolov3_obj_thresh,
+        )
+        draw_byte_im = image_to_jpeg_bytes(
+            draw_image, [int(cv2.IMWRITE_JPEG_QUALITY), self.broadcast_quality]
+        )
 
         #############################
 
@@ -294,7 +315,7 @@ class InferenceWorker(WorkerTemplateThread):
             "frame_num": frame_num,
             "avg_yolo3_rtt": self.rtt_yolo3_ms,
             "avg_crnn_rtt": self.rtt_crnn_ms,
-            "image": draw_byte_im
+            "image": draw_byte_im,
         }
         self.bc_queue.put(output)
 
@@ -302,14 +323,14 @@ class InferenceWorker(WorkerTemplateThread):
         if len(dec_words) > 0:
             timestamp = time.time()
             literal_time = time.ctime(timestamp)
-            predicts = {
-                "predicts": dec_words,
-                "date": literal_time
-            }
+            predicts = {"predicts": dec_words, "date": literal_time}
             self.predicts_queue.put(predicts)
 
-        logger.info("Frame Count: {} - Avg YOLO3 RTT: {}ms - Avg CRNN RTT: {}ms - Detected: {}".format(
-        frame_num, int(self.rtt_yolo3_ms), int(self.rtt_crnn_ms), len(boxes)))
+        logger.info(
+            "Frame Count: {} - Avg YOLO3 RTT: {}ms - Avg CRNN RTT: {}ms - Detected: {}".format(
+                frame_num, int(self.rtt_yolo3_ms), int(self.rtt_crnn_ms), len(boxes)
+            )
+        )
 
     def scale_bbox(self, boxes, old_width, new_width):
         boxes = copy.deepcopy(boxes)
@@ -326,8 +347,12 @@ class InferenceWorker(WorkerTemplateThread):
         try:
             start = time.time()
             resp = None
-            resp = session.post(self.api_endpoint_yolov3, 
-            data=img_dump, headers={'content-type':'application/json'}, timeout=self.timeout)
+            resp = session.post(
+                self.api_endpoint_yolov3,
+                data=img_dump,
+                headers={"content-type": "application/json"},
+                timeout=self.timeout,
+            )
         except requests.exceptions.Timeout as e:
             logger.warning("timeout on yolov3 inference request")
             time.sleep(0.10)
@@ -341,7 +366,9 @@ class InferenceWorker(WorkerTemplateThread):
             if not resp:
                 pass
             elif resp.status_code != 200:
-                logger.warning("received {} status code from yolov3 api".format(resp.status_code))
+                logger.warning(
+                    "received {} status code from yolov3 api".format(resp.status_code)
+                )
                 return None
 
         # calculate average rtt (use complementary filter)
@@ -358,8 +385,12 @@ class InferenceWorker(WorkerTemplateThread):
         try:
             start = time.time()
             resp = None
-            resp = session.post(self.api_endpoint_crnn, 
-            data=lps_dump, headers={'content-type':'application/json'}, timeout=self.timeout)
+            resp = session.post(
+                self.api_endpoint_crnn,
+                data=lps_dump,
+                headers={"content-type": "application/json"},
+                timeout=self.timeout,
+            )
         except requests.exceptions.Timeout as e:
             logger.warning("timeout on crnn inference request")
         except:
@@ -370,7 +401,9 @@ class InferenceWorker(WorkerTemplateThread):
             if not resp:
                 pass
             elif resp.status_code != 200:
-                logger.warning("received {} status code from crnn api".format(resp.status_code))
+                logger.warning(
+                    "received {} status code from crnn api".format(resp.status_code)
+                )
             else:
                 r_dict = resp.json()
                 dec_lps = r_dict["license-plates"]
@@ -388,7 +421,7 @@ class InferenceWorker(WorkerTemplateThread):
 
         reordered_images = []
         for detected_image in detected_images:
-            
+
             # computing the mean average position for each word
             mean_horizontal_positions = []
             for words in detected_image:
@@ -406,6 +439,7 @@ class InferenceWorker(WorkerTemplateThread):
 
         return reordered_images
 
+
 class Flusher(WorkerTemplateThread):
     def __init__(self, queue, threshold, name=None):
         super(Flusher, self).__init__(event_stopper=td.Event(), name=name)
@@ -419,7 +453,9 @@ class Flusher(WorkerTemplateThread):
             try:
                 for i in range(current):
                     self.queue.get_nowait()
-                logger.warning("flushed {} elements from the frames queue".format(current))
+                logger.warning(
+                    "flushed {} elements from the frames queue".format(current)
+                )
             except queue.Empty:
                 logger.debug("flushed too many elements from the queue")
         time.sleep(0.5)

@@ -3,6 +3,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class ReadGPSData(td.Thread):
     def __init__(self, write_port, read_port, baudrate, name="GPS"):
         super(ReadGPSData, self).__init__(name=name)
@@ -15,17 +16,14 @@ class ReadGPSData(td.Thread):
     def run(self):
         logger.info("configuring GPS on port {}".format(self.write_port))
         self.serw = serial.Serial(
-            self.write_port, 
-            baudrate=self.baudrate, 
-            timeout=1, rtscts=True, dsrdtr=True)
+            self.write_port, baudrate=self.baudrate, timeout=1, rtscts=True, dsrdtr=True
+        )
         self.serw.write("AT+QGPS=1\r".encode("utf-8"))
         self.serw.close()
         time.sleep(0.5)
 
         self.serr = serial.Serial(
-            self.read_port,
-            baudrate = self.baudrate,
-            timeout=1, rtscts=True, dsrdtr=True
+            self.read_port, baudrate=self.baudrate, timeout=1, rtscts=True, dsrdtr=True
         )
         logger.info("configured GPS to read from port {}".format(self.read_port))
 
@@ -38,7 +36,7 @@ class ReadGPSData(td.Thread):
                 pass
             finally:
                 self.lock.release()
-            logger.info(self.__msg) 
+            logger.info(self.__msg)
             time.sleep(1)
 
         logger.info("stopped GPS thread")
