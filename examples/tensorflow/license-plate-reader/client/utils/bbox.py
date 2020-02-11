@@ -1,3 +1,5 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
 import numpy as np
 import cv2
 from .colors import get_color

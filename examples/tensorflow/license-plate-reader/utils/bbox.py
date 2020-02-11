@@ -29,6 +29,9 @@ class BoundBox:
         return self.score
 
 
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
+
 def _interval_overlap(interval_a, interval_b):
     x1, x2 = interval_a
     x3, x4 = interval_b

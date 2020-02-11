@@ -1,3 +1,5 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
 import signal, os, time, json, queue, socket, click, cv2, pandas as pd
 import multiprocessing as mp
 import threading as td
