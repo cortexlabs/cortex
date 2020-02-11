@@ -13,6 +13,7 @@ To learn more about how the actual device was constructed, check out [this](http
 ## Target Machine
 
 Target machine **1**: Raspberry Pi.
+
 Target machine **2**: Any x86 machine.
 
 The app's primary target machine is the *Raspberry Pi* (3/3B+/4) - the Raspberry Pi is a small embedded computer system that got adopted by many hobbyists and institutions all around the world as the de-facto choice for hardware/software experiments. 

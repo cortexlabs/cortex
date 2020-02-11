@@ -44,7 +44,7 @@ aws s3 cp yolov3/ "s3://$BUCKET/$YOLO3_PATH" --recursive
 
 Before executing `cortex deploy`, make sure you've got these 3 covered:
 
-1. The recommended number of instances to run this smoothly is about 20 instances equipped with GPUs. It doesn't really matter how powerful the GPU is, just pick the cheapest ones (K80s or T4s) since we're already limited by how many requests the web server can answer to concurrently. `cortex.yaml` is already set up to use the 20 instances. This won't be a problem in the very near future when `waitress` will be replaced with a multitprocessed WSGI server (i.e. `gunicorn`).  A multiprocessed WSGI will allow for the GPU to be fully utilized, thus reducing the cluster's cost/hr.
+1. The recommended number of instances to run this smoothly is about 20 instances equipped with GPUs. It doesn't really matter how powerful the GPU is, just pick the cheapest ones (K80s or T4s) since we're already limited by how many requests the web server can answer to concurrently. `cortex.yaml` is already set up to use the 20 instances. This won't be a problem in the very near future when `waitress` will be replaced with a multiprocessed WSGI server (i.e. `gunicorn`).  A multiprocessed WSGI will allow for the GPU to be fully utilized, thus reducing the cluster's cost/hr.
 
 1. Use the same S3 bucket for both the model and the cluster.
 
@@ -61,7 +61,7 @@ cortex get --watch
 
 #### Note
 
-One other way to reduce the inference time is to convert the models to use FP16/BFP16, in mixed mode or not and then choose the accelerator that gives the best performance in half precision mode - i.e. T4/V100.
+One other way to reduce the inference time is to convert the models to use FP16/BFP16, in mixed mode or not and then choose the accelerator that gives the best performance in half precision mode - i.e. T4/V100. A difference of an order of a magnitude can be expected.
 
 ## Launching the Client
 
