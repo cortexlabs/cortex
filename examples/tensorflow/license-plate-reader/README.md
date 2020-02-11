@@ -17,9 +17,9 @@ In our example, we assume we have a dashcam mounted on a car and we want to dete
 The identification of license plates is done in 3 steps:
 1. Detecting the bounding boxes of each license plate using *YOLOv3* model.
 1. Detecting the very specific region of each word inside each bounding box with high accuracy using a pretrained *CRAFT* text detector.
-1. Recognizing the text inside the previously detected boxes using a pretrained *CRNN* model. 
+1. Recognizing the text inside the previously detected boxes using a pretrained *CRNN* model.
 
-Out of all these 3 models (*YOLOv3*, *CRAFT* and *CRNN*) only *YOLOv3* has been fine-tuned with a rather small dataset to better work with license plates. This dataset can be found [here](https://github.com/RobertLucian/license-plate-dataset). This *YOLOv3* model has in turn been trained using [this](https://github.com/experiencor/keras-yolo3) GitHub project. To get more details about our fine-tuned model, check the project's description page. 
+Out of all these 3 models (*YOLOv3*, *CRAFT* and *CRNN*) only *YOLOv3* has been fine-tuned with a rather small dataset to better work with license plates. This dataset can be found [here](https://github.com/RobertLucian/license-plate-dataset). This *YOLOv3* model has in turn been trained using [this](https://github.com/experiencor/keras-yolo3) GitHub project. To get more details about our fine-tuned model, check the project's description page.
 
 The other 2 models, *CRAFT* and *CRNN*, are to be found in [keras-ocr](https://github.com/faustomorales/keras-ocr), which is a nicely packed and flexible version of these 2 models.
 
@@ -46,7 +46,7 @@ aws s3 cp yolov3/ "s3://$BUCKET/$YOLO3_PATH" --recursive
 
 ## Configuring YOLOv3 Predictor
 
-The `yolov3` API predictor requires a [config.json](config.json) file to configure the input size of the image (dependent on the model's architecture), the anchor boxes, the object threshold and the IoU threshold. All of these are already set appropriately so no other change is required. 
+The `yolov3` API predictor requires a [config.json](config.json) file to configure the input size of the image (dependent on the model's architecture), the anchor boxes, the object threshold and the IoU threshold. All of these are already set appropriately so no other change is required.
 
 The configuration file's content is based on [this](https://github.com/experiencor/keras-yolo3/blob/bf37c87561caeccc4f1b879e313d4a3fec1b987e/zoo/config_license_plates.json#L2-L7) one.
 

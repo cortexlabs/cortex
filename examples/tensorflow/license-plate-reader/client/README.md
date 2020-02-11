@@ -16,7 +16,7 @@ Target machine **1**: Raspberry Pi.
 
 Target machine **2**: Any x86 machine.
 
-The app's primary target machine is the *Raspberry Pi* (3/3B+/4) - the Raspberry Pi is a small embedded computer system that got adopted by many hobbyists and institutions all around the world as the de-facto choice for hardware/software experiments. 
+The app's primary target machine is the *Raspberry Pi* (3/3B+/4) - the Raspberry Pi is a small embedded computer system that got adopted by many hobbyists and institutions all around the world as the de-facto choice for hardware/software experiments.
 
 Unfortunately for the Raspberry Pi, the $35 pocket-sized computer, doesn't have enough oomph (far from it) to do any inference: not only it doesn't have enough memory to load a model, but should it have enough RAM, it would still take dozens of minutes just to get a single inference. Let alone run inferences at 30 FPS, with a number of inferences for each frame.
 
@@ -57,7 +57,7 @@ The configuration file can be in this form
         "scale_video": 1.0,
         // how many frames to skip on the video file; applicable just for "file" type
         "frames_to_skip": 0,
-        // framerate 
+        // framerate
         "framerate": 30
         // camera sensor mode; applicable just for "camera" type
         // "sensor_mode": 5
@@ -79,12 +79,12 @@ The configuration file can be in this form
     "inferencing_worker": {
         // YOLOv3's input size of the image in pixels (must consider the existing model)
         "yolov3_input_size_px": 416,
-        // when drawing the bounding boxes, use a higher res image to draw boxes more precisely 
+        // when drawing the bounding boxes, use a higher res image to draw boxes more precisely
         // (this way text is more readable)
         "bounding_boxes_upscale_px": 640,
         // object detection accuracy threshold in percentages with range (0, 1)
         "yolov3_obj_thresh": 0.8,
-        // the jpeg quality of the image for the CRAFT/CRNN models in percentanges; 
+        // the jpeg quality of the image for the CRAFT/CRNN models in percentanges;
         // these models receive the cropped images of each detected license plate
         "crnn_quality": 98,
         // broadcast quality - aim for a lower value since this stream doesn't influence the predictions; measured in percentages
@@ -107,7 +107,7 @@ The configuration file can be in this form
         // as if the input stream runs at 30/2=15 fps
         // ideally, you have a high fps camera (90-180) and you only pick every 3rd-6th frame
         "pick_every_nth_frame": 1
-    }, 
+    },
     "flusher": {
         // if there are more than this given number of frames in the input stream's buffer, flush them
         // it's useful if the inference workers (due to a number of reasons) can't keep up with the input flow
@@ -157,7 +157,7 @@ To save the broascasted MJPEG stream, you can run the following command
 ```bash
 PORT=8000
 FRAMERATE=30
-ffmpeg -i http://localhost:PORT/stream.mjpg -an -vcodec libx264 -r FRAMERATE saved_video.h264 
+ffmpeg -i http://localhost:PORT/stream.mjpg -an -vcodec libx264 -r FRAMERATE saved_video.h264
 ```
 
 To terminate the app, press `CTRL-C` and wait a bit.

@@ -26,7 +26,7 @@
     "inferencing_pool": {
         "workers": 20,
         "pick_every_nth_frame": 1
-    }, 
+    },
     "flusher": {
         "frame_count_threshold": 5
     },

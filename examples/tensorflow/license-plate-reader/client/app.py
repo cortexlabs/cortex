@@ -30,7 +30,7 @@ from requests_toolbelt.adapters.source import SourceAddressAdapter
 
 class GracefullKiller:
     """
-    For killing the app gracefully. 
+    For killing the app gracefully.
     """
 
     kill_now = False
@@ -115,7 +115,7 @@ class DistributeFramesAndInfer:
     def write(self, buf):
         """
         Mandatory custom output method for the PiCamera class.
-        buf - Frame as a bytes object. 
+        buf - Frame as a bytes object.
         """
         if buf.startswith(b"\xff\xd8"):
             # start of new frame; close the old one (if any) and
