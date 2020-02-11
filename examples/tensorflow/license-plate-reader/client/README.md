@@ -6,6 +6,10 @@ The app must be configured to use the API endpoints as shown when calling `corte
 
 The app also saves a `csv` file containing the dates and GPS coordinates of each identified license plate.
 
+The observable latency between capturing the frame and broadcasting the predictions in the browser (with all the inference stuff going on) takes about 0.5-0.7 seconds.
+
+To learn more about how the actual device was constructed, check out [this](https://www.robertlucian.com/2020/02/12/real-time-license-plate-identification/) article.
+
 ## Target Machine
 
 Target machine **1**: Raspberry Pi.
@@ -157,4 +161,17 @@ ffmpeg -i http://localhost:PORT/stream.mjpg -an -vcodec libx264 -r FRAMERATE sav
 
 To terminate the app, press `CTRL-C` and wait a bit.
 
-## Structure
+## Creating Your Own Device
+
+To create your own Raspberry Pi-powered device to record and display the predictions in real time in your car, you're gonna need the following things:
+1. A Raspberry Pi - preferably a 4, because that one has more oomph.
+1. A Pi Camera - doesn't matter which version of it.
+1. A good buck converter to step-down from 12V down to 5V - aim for 4-5 amps. You can use a SBEC/UBEC/BEC regulators - they are easy to find and cheap.
+1. A power outlet for the car's cigarette port to get the 12V DC.
+1. 4G/GPS shield to host a GSM module - in this project, an EC25-E module has been used. You will also need antennas.
+1. A 3D-printed support to hold the electronics and be able to hold it against the rear mirror or dashboard. Must be built to accomodate to your own car.
+
+Without convoluting this README too much:
+
+* Here are the [STLs/SLDPRTs](https://www.dropbox.com/sh/fw16vy1okrp606y/AAAwkoWXODmoaOP4yR-z4T8Va?dl=0) to the car's 3D printed support.
+* Here's an [article](https://www.robertlucian.com/2020/02/12/real-time-license-plate-identification/) that talks about this in full detail.

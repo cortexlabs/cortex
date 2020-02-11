@@ -1,8 +1,10 @@
-# License Plate Identification System
+# Real-Time License Plate Identification System
 
 This project is about a license plate identification system. On resource-constraint systems, running inferences may prove to be too computationally expensive or just plain impossible. That's why a solution is to run the ML in the cloud and have the local (embedded) system act as a client of these services.
 
 ![Imgur](https://i.imgur.com/jgkJB59.gif)
+
+*Check out this real-time recording [video](https://www.youtube.com/watch?v=gsYEZtecXlA) of predictions*
 
 In our example, we assume we have a dashcam mounted on a car and we want to detect and recognize all license plates in the stream in real-time. We can use an embedded computer system to do the video recording, then have that streamed and inferred frame-by-frame using a web service, relay back the results, reassemble the stream and finally display the stream on a screen. The web service in our case is a set of 2 web APIs deployed using cortex.
 
@@ -20,6 +22,8 @@ The other 2 models, *CRAFT* and *CRNN*, are to be found in [keras-ocr](https://g
 ## Uploading the SavedModel to S3
 
 The only model that has to be uploaded to an S3 bucket to be further used by cortex when being deployed is the *YOLOv3* model. The other 2 are downloaded automatically upon deploying the service.
+
+*Note: The Keras model from [here](https://github.com/experiencor/keras-yolo3) has been converted to SavedModel model instead.*
 
 Download the *SavedModel* model
 ```bash
