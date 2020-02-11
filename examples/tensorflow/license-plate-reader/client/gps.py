@@ -5,7 +5,19 @@ logger = logging.getLogger(__name__)
 
 
 class ReadGPSData(td.Thread):
+    """
+    Class to read the data off of the EC25-E's GPS module.
+
+    Can be easily adapted to work with any other GPS module.
+    """
+
     def __init__(self, write_port, read_port, baudrate, name="GPS"):
+        """
+        write_port - The serial port to use for activating the GPS.
+        read_port - The serial port from which to read the GPS data.
+        baudrate - Transport rate over the serial port.
+        name - Name of the thread.
+        """
         super(ReadGPSData, self).__init__(name=name)
         self.write_port = write_port
         self.read_port = read_port
@@ -43,6 +55,9 @@ class ReadGPSData(td.Thread):
 
     @property
     def parsed(self):
+        """
+        Get the whole parsed data.
+        """
         self.lock.acquire()
         try:
             data = self.__msg
@@ -54,6 +69,9 @@ class ReadGPSData(td.Thread):
 
     @property
     def latitude(self):
+        """
+        Returns latitude expressed as a float.
+        """
         self.lock.acquire()
         try:
             latitude = self.__msg.latitude
@@ -65,6 +83,9 @@ class ReadGPSData(td.Thread):
 
     @property
     def longitude(self):
+        """
+        Returns longitude expressed as a float.
+        """
         self.lock.acquire()
         try:
             longitude = self.__msg.longitude
@@ -75,4 +96,7 @@ class ReadGPSData(td.Thread):
         return longitude
 
     def stop(self):
+        """
+        Stop the thread.
+        """
         self.event.set()

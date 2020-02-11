@@ -17,11 +17,13 @@ class TensorFlowPredictor:
             setattr(self, key, data[key])
 
     def predict(self, payload):
+        # decode the payload
         img = payload["img"]
         img = base64.b64decode(img)
         jpg_as_np = np.frombuffer(img, dtype=np.uint8)
         image = cv2.imdecode(jpg_as_np, flags=cv2.IMREAD_COLOR)
 
+        # detect the bounding boxes
         boxes = get_yolo_boxes(
             self.client,
             [image],
@@ -33,6 +35,7 @@ class TensorFlowPredictor:
             len(self.labels),
         )
 
+        # package the response
         response = {"boxes": []}
         for box in boxes:
             response["boxes"].append(

@@ -71,7 +71,7 @@ cortex get --watch
 
 #### Note
 
-One other way to reduce the inference time is to convert the models to use FP16/BFP16, in mixed mode or not and then choose the accelerator that gives the best performance in half precision mode - i.e. T4/V100. A difference of an order of a magnitude can be expected.
+One other way to reduce the inference time is to convert the models to use FP16/BFP16, in mixed mode or not and then choose the accelerator that gives the best performance in half precision mode - i.e. T4/V100. A difference of an order of magnitude can be expected.
 
 ## Launching the Client
 

@@ -27,6 +27,10 @@ from requests_toolbelt.adapters.source import SourceAddressAdapter
 
 
 class GracefullKiller:
+    """
+    For killing the app gracefully. 
+    """
+
     kill_now = False
 
     def __init__(self):
@@ -38,7 +42,16 @@ class GracefullKiller:
 
 
 class WorkerPool(mp.Process):
+    """
+    Pool of threads running in a different process.
+    """
+
     def __init__(self, name, worker, pool_size, *args, **kwargs):
+        """
+        name - Name of the process.
+        worker - Derived class of thread to execute.
+        pool_size - Number of workers to have.
+        """
         super(WorkerPool, self).__init__(name=name)
         self.event_stopper = mp.Event()
         self.Worker = worker
@@ -68,7 +81,18 @@ class WorkerPool(mp.Process):
 
 
 class DistributeFramesAndInfer:
+    """
+    Custom output class primarly built for the PiCamera class.
+    Has 3 process-safe queues: in_queue for the incoming frames from the source,
+    bc_queue for the frames with the predicted overlays heading off to the broadcaster,
+    predicts_queue for the predictions to be written off to the disk.
+    """
+
     def __init__(self, pool_cfg, worker_cfg):
+        """
+        pool_cfg - Configuration dictionary for the pool manager.
+        worker_cfg - Configuration dictionary for the pool workers.
+        """
         self.frame_num = 0
         self.in_queue = MPQueue()
         self.bc_queue = MPQueue()
@@ -87,6 +111,10 @@ class DistributeFramesAndInfer:
         self.pool.start()
 
     def write(self, buf):
+        """
+        Mandatory custom output method for the PiCamera class.
+        buf - Frame as a bytes object. 
+        """
         if buf.startswith(b"\xff\xd8"):
             # start of new frame; close the old one (if any) and
             if self.frame_num % self.pick_every_nth_frame == 0:
@@ -94,12 +122,18 @@ class DistributeFramesAndInfer:
             self.frame_num += 1
 
     def stop(self):
+        """
+        Stop all workers and the process altogether.
+        """
         self.pool.stop()
         self.pool.join()
         qs = [self.in_queue, self.bc_queue]
         [q.cancel_join_thread() for q in qs]
 
     def get_queues(self):
+        """
+        Retrieve all queues.
+        """
         return self.in_queue, self.bc_queue, self.predicts_queue
 
 
@@ -113,6 +147,7 @@ class DistributeFramesAndInfer:
 def main(config):
     killer = GracefullKiller()
 
+    # open config file
     try:
         file = open(config)
         cfg = json.load(file)
@@ -121,6 +156,7 @@ def main(config):
         logger.critical(str(error), exc_info=1)
         return
 
+    # give meaningful names to each sub config
     source_cfg = cfg["video_source"]
     broadcast_cfg = cfg["broadcaster"]
     pool_cfg = cfg["inferencing_pool"]

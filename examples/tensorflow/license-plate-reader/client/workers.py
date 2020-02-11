@@ -56,7 +56,16 @@ class WorkerTemplateProcess(mp.Process):
 
 
 class BroadcastReassembled(WorkerTemplateProcess):
+    """
+    Separate process to broadcast the stream with the overlayed predictions on top of it.
+    """
+
     def __init__(self, in_queue, cfg, name=None):
+        """
+        in_queue - Queue from which to extract the frames with the overlayed predictions on top of it.
+        cfg - The dictionary config for the broadcaster.
+        name - Name of the process.
+        """
         super(BroadcastReassembled, self).__init__(event_stopper=mp.Event(), name=name)
         self.in_queue = in_queue
         self.yolo3_rtt = None
@@ -72,6 +81,7 @@ class BroadcastReassembled(WorkerTemplateProcess):
             setattr(self, key, value)
 
     def run(self):
+        # start streaming server
         def lambda_func():
             server = broadcast.StreamingServer(
                 tuple(self.serve_address), broadcast.StreamingHandler
@@ -81,6 +91,7 @@ class BroadcastReassembled(WorkerTemplateProcess):
         td.Thread(target=lambda_func, args=(), daemon=True).start()
         logger.info("listening for stream clients on {}".format(self.serve_address))
 
+        # start polling for new processed frames from the queue and broadcast
         logger.info("worker started")
         counter = 0
         while not self.event_stopper.is_set():
@@ -93,9 +104,14 @@ class BroadcastReassembled(WorkerTemplateProcess):
         logger.info("worker stopped")
 
     def reassemble(self):
+        """
+        Main method to run in the loop.
+        """
+
         start = time.time()
         self.pull_and_push()
         self.purge_stale_frames()
+
         frame, delay = self.pick_new_frame()
         # delay loop to stabilize the video fps
         end = time.time()
@@ -110,6 +126,9 @@ class BroadcastReassembled(WorkerTemplateProcess):
             broadcast.output.write(frame)
 
     def pull_and_push(self):
+        """
+        Get new frame and push it in the broadcaster's little buffer for stabilization.
+        """
         try:
             data = self.in_queue.get_nowait()
         except queue.Empty:
@@ -130,6 +149,9 @@ class BroadcastReassembled(WorkerTemplateProcess):
         self.buffer.append({"image": byte_im, "frame_num": frame_num})
 
     def purge_stale_frames(self):
+        """
+        Remove any frames older than the latest broadcasted frame.
+        """
         new_buffer = []
         for frame in self.buffer:
             if frame["frame_num"] > self.oldest_broadcasted_frame:
@@ -137,6 +159,9 @@ class BroadcastReassembled(WorkerTemplateProcess):
         self.buffer = new_buffer
 
     def pick_new_frame(self):
+        """
+        Get the oldest frame from the buffer that isn't older than the last broadcasted frame.
+        """
         current_desired_fps = self.target_fps - self.max_fps_variation
         delay = 1 / current_desired_fps
         if len(self.buffer) == 0:
@@ -172,6 +197,9 @@ class BroadcastReassembled(WorkerTemplateProcess):
         return frame, delay
 
     def statistics(self, yolo3_rtt, crnn_rtt, detections, recognitions):
+        """
+        A bunch of RTT and detection/recognition statistics. Not used.
+        """
         if not self.yolo3_rtt:
             self.yolo3_rtt = yolo3_rtt
         else:
@@ -188,9 +216,22 @@ class BroadcastReassembled(WorkerTemplateProcess):
 
 
 class InferenceWorker(WorkerTemplateThread):
+    """
+    Worker that receives frames from a queue, sends requests to 2 cortex APIs for inference reasons,
+    and retrieves the results and puts them in their appropriate queues.
+    """
+
     def __init__(
         self, event_stopper, in_queue, bc_queue, predicts_queue, cfg, name=None
     ):
+        """
+        event_stopper - Event to stop the worker.
+        in_queue - Queue that holds the unprocessed frames.
+        bc_queue - Queue to push into the frames with the overlayed predictions.
+        predicts_queue - Queue to push into the detected license plates that will eventually get written to the disk.
+        cfg - Dictionary config for the worker.
+        name - Name of the worker thread.
+        """
         super(InferenceWorker, self).__init__(event_stopper=event_stopper, name=name)
         self.in_queue = in_queue
         self.bc_queue = bc_queue
@@ -203,6 +244,9 @@ class InferenceWorker(WorkerTemplateThread):
             setattr(self, key, value)
 
     def cloud_infer(self):
+        """
+        Main method that runs in the loop.
+        """
         try:
             data = self.in_queue.get_nowait()
         except queue.Empty:
@@ -333,6 +377,9 @@ class InferenceWorker(WorkerTemplateThread):
         )
 
     def scale_bbox(self, boxes, old_width, new_width):
+        """
+        Scale a bounding box.
+        """
         boxes = copy.deepcopy(boxes)
         scale_percent = new_width / old_width
         for b in boxes:
@@ -343,6 +390,9 @@ class InferenceWorker(WorkerTemplateThread):
         return boxes
 
     def yolov3_api_request(self, img_dump):
+        """
+        Make a request to the YOLOv3 API.
+        """
         # make inference request
         try:
             start = time.time()
@@ -381,6 +431,9 @@ class InferenceWorker(WorkerTemplateThread):
         return resp
 
     def rcnn_api_request(self, lps_dump, timeout=1.200):
+        """
+        Make a request to the CRNN API.
+        """
         # make request to rcnn API
         try:
             start = time.time()
@@ -415,9 +468,10 @@ class InferenceWorker(WorkerTemplateThread):
         return dec_lps
 
     def reorder_recognized_words(self, detected_images):
-        # reorder the detected words in each image
-        # based on the average horizontal position of each word
-        # sorting them in ascending order
+        """
+        Reorder the detected words in each image based on the average horizontal position of each word.
+        Sorting them in ascending order.
+        """
 
         reordered_images = []
         for detected_image in detected_images:
@@ -441,13 +495,26 @@ class InferenceWorker(WorkerTemplateThread):
 
 
 class Flusher(WorkerTemplateThread):
+    """
+    Thread which removes the elements of a queue when its size crosses a threshold.
+    Used when there are too many frames are pilling up in the queue.
+    """
+
     def __init__(self, queue, threshold, name=None):
+        """
+        queue - Queue to remove the elements from when the threshold is triggered.
+        threshold - Number of elements.
+        name - Name of the thread.
+        """
         super(Flusher, self).__init__(event_stopper=td.Event(), name=name)
         self.queue = queue
         self.threshold = threshold
         self.runnable = self.flush_pipe
 
     def flush_pipe(self):
+        """
+        Main method to run in the loop.
+        """
         current = self.queue.qsize()
         if current > self.threshold:
             try:
