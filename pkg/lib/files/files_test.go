@@ -166,7 +166,7 @@ func TestPrintFileTree(t *testing.T) {
 }
 
 func TestListDirRecursive(t *testing.T) {
-	emptyExcludes := make([]string, 0)
+	var emptyExcludes []string
 
 	_, err := ListDirRecursive("/home/path/to/fake/dir", false, emptyExcludes)
 	require.Error(t, err)
@@ -185,6 +185,7 @@ func TestListDirRecursive(t *testing.T) {
 		filepath.Join(tmpDir, "4/1.yaml"),
 		filepath.Join(tmpDir, "4/2.pyc"),
 		filepath.Join(tmpDir, "4/.git/HEAD"),
+		filepath.Join(tmpDir, "README.md"),
 	}
 
 	excludes := []string{
@@ -193,6 +194,7 @@ func TestListDirRecursive(t *testing.T) {
 		filepath.Join(tmpDir, "3/*/1.py"),
 		filepath.Join(tmpDir, "3/2/*/.tmp"),
 		filepath.Join(tmpDir, "4/*.yaml"),
+		filepath.Join(tmpDir, "*.md"),
 	}
 
 	excludesWithRelativePaths := []string{
@@ -201,6 +203,24 @@ func TestListDirRecursive(t *testing.T) {
 		filepath.Join("3/*/1.py"),
 		filepath.Join("3/2/*/.tmp"),
 		filepath.Join("4/*.yaml"),
+		filepath.Join(tmpDir, "*.md"),
+	}
+
+	excludesWithBadPatterns := []string{
+		filepath.Join(tmpDir, "1.txt"),
+		filepath.Join(tmpDir, "2.py"),
+		filepath.Join(tmpDir, "[a-b-c]"),
+		filepath.Join(tmpDir, "3/1.py"),
+		filepath.Join(tmpDir, "[]a]"),
+		filepath.Join(tmpDir, "*.md"),
+	}
+
+	excludesWithBadPatternsAndRelativePaths := []string{
+		filepath.Join("1.txt"),
+		filepath.Join("2.py"),
+		filepath.Join("[a-b-c]"),
+		filepath.Join("3/1.py"),
+		filepath.Join("[]a]"),
 	}
 
 	err = MakeEmptyFiles(filesList[0], filesList[1:]...)
@@ -223,6 +243,7 @@ func TestListDirRecursive(t *testing.T) {
 		filepath.Join(tmpDir, "4/1.yaml"),
 		filepath.Join(tmpDir, "4/2.pyc"),
 		filepath.Join(tmpDir, "4/.git/HEAD"),
+		filepath.Join(tmpDir, "README.md"),
 	}
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
@@ -236,6 +257,7 @@ func TestListDirRecursive(t *testing.T) {
 		filepath.Join(tmpDir, "3/2/2.txt"),
 		filepath.Join(tmpDir, "4/1.yaml"),
 		filepath.Join(tmpDir, "4/2.pyc"),
+		filepath.Join(tmpDir, "README.md"),
 	}
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
@@ -246,6 +268,7 @@ func TestListDirRecursive(t *testing.T) {
 		filepath.Join(tmpDir, "2.py"),
 		filepath.Join(tmpDir, "4/1.yaml"),
 		filepath.Join(tmpDir, "4/.git/HEAD"),
+		filepath.Join(tmpDir, "README.md"),
 	}
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
@@ -284,64 +307,41 @@ func TestListDirRecursive(t *testing.T) {
 	}
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
+
+	_, err = ListDirRecursive(tmpDir, false, excludesWithBadPatterns)
+	require.Error(t, err)
+
+	_, err = ListDirRecursive(tmpDir, true, excludesWithBadPatternsAndRelativePaths)
+	require.Error(t, err)
 }
 
 func TestReadAllIgnorePatterns(t *testing.T) {
 	tmpDir, err := ioutil.TempDir("", "cortexignore-test")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
 	di, err := ReadAllIgnorePatterns(nil)
-	if err != nil {
-		t.Fatalf("Expected not to have error, got %v", err)
-	}
-
-	if diLen := len(di); diLen != 0 {
-		t.Fatalf("Expected to have zero cortexignore entry, got %d", diLen)
-	}
+	require.NoError(t, err)
+	require.Equalf(t, len(di), 0, "Expected to have zero cortexignore entry, got %d", len(di))
 
 	diName := filepath.Join(tmpDir, ".cortexignore")
 	content := fmt.Sprintf("test1\n/test2\n/a/file/here\n\nlastfile\n# this is a comment\n! /inverted/abs/path\n!\n! \n")
 	err = ioutil.WriteFile(diName, []byte(content), 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	diFd, err := os.Open(diName)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer diFd.Close()
 
 	di, err = ReadAllIgnorePatterns(diFd)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	if len(di) != 7 {
-		t.Fatalf("Expected 7 entries, got %v", len(di))
-	}
-	if di[0] != "test1" {
-		t.Fatal("First element is not test1")
-	}
-	if di[1] != "test2" {
-		t.Fatal("Second element is not test2")
-	}
-	if di[2] != "a/file/here" {
-		t.Fatal("Third element is not a/file/here")
-	}
-	if di[3] != "lastfile" {
-		t.Fatal("Fourth element is not lastfile")
-	}
-	if di[4] != "!inverted/abs/path" {
-		t.Fatal("Fifth element is not !inverted/abs/path")
-	}
-	if di[5] != "!" {
-		t.Fatalf("Sixth element is not !, but %s", di[5])
-	}
-	if di[6] != "!" {
-		t.Fatalf("Sixth element is not !, but %s", di[6])
-	}
+	require.Equalf(t, len(di), 7, "Expected 7 entries, got %v", len(di))
+	require.Equalf(t, di[0], "test1", "Expected value: test1, got %s", di[0])
+	require.Equalf(t, di[1], "test2", "Expected value: test2, got %s", di[1])
+	require.Equalf(t, di[2], "a/file/here", "Expected value: a/file/here, got %s", di[2])
+	require.Equalf(t, di[3], "lastfile", "Expected value: lastfile, got %s", di[3])
+	require.Equalf(t, di[4], "!inverted/abs/path", "Expected value: !inverted/abs/path, got %s", di[4])
+	require.Equalf(t, di[5], "!", "Expected value: !, got %s", di[5])
+	require.Equalf(t, di[6], "!", "Expected value: !, got %s", di[6])
 }
