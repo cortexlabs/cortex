@@ -138,7 +138,7 @@ The configuration file can be in this form
 
 Be aware that for having a functional application, the minimum amount of things that have to be adjusted in the config file are:
 
-1. The input file in case you are using a video to feed the application with.
+1. The input file in case you are using a video to feed the application with. You can download the following `mp4` video file to use as input. Download it by running `wget -O airport_ride_480p.mp4 "https://www.dropbox.com/s/q9j57y5k95wg2zt/airport_ride_480p.mp4?dl=0"`
 1. Both API endpoints from your cortex APIs. Use `cortex get your-api-name-here` command to get those.
 
 ## Running It
