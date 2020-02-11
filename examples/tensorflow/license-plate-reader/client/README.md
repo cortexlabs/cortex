@@ -41,7 +41,7 @@ pip3 install -r deps/requirements_base.txt
 ## Configuring
 
 The configuration file can be in this form
-```json
+```jsonc
 {
     "video_source": {
         // "file" for reading from file or "camera" for pi camera
