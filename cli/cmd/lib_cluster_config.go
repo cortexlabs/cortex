@@ -464,6 +464,9 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 	if clusterConfig.ImageDownloader != defaultConfig.ImageDownloader {
 		items.Add(clusterconfig.ImageDownloaderUserKey, clusterConfig.ImageDownloader)
 	}
+	if clusterConfig.ImageRequestMonitor != defaultConfig.ImageRequestMonitor {
+		items.Add(clusterconfig.ImageRequestMonitorUserKey, clusterConfig.ImageRequestMonitor)
+	}
 	if clusterConfig.ImageClusterAutoscaler != defaultConfig.ImageClusterAutoscaler {
 		items.Add(clusterconfig.ImageClusterAutoscalerUserKey, clusterConfig.ImageClusterAutoscaler)
 	}

@@ -333,13 +333,20 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						},
 					},
 					{
-						Name:            "ss",
-						Image:           servingImage,
+						Name:            "request-monitor",
+						Image:           config.Cluster.ImageRequestMonitor,
 						ImagePullPolicy: kcore.PullAlways,
-						Command:         []string{"/bin/sh", "-c", "/usr/bin/python3.6 /src/ss.py"},
-						Env:             getEnvVars(api),
-						EnvFrom:         _baseEnvVars,
-						VolumeMounts:    _defaultVolumeMounts,
+						Env: append(
+							getEnvVars(api),
+							kcore.EnvVar{
+								Name:  "API_NAME",
+								Value: api.Name,
+							}, kcore.EnvVar{
+								Name:  "CORTEX_LOG_GROUP",
+								Value: config.Cluster.LogGroup,
+							}),
+						EnvFrom:      _baseEnvVars,
+						VolumeMounts: _defaultVolumeMounts,
 					},
 				},
 				NodeSelector: map[string]string{

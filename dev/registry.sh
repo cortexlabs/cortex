@@ -54,6 +54,7 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/istio-pilot --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/istio-citadel --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/istio-galley --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/request-monitor --region=$REGISTRY_REGION || true
 }
 
 ### HELPERS ###

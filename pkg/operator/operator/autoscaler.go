@@ -115,7 +115,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			startTime = time.Now()
 		}
 
-		totalInFlight, err := getInflightRequests() // TODO window will go here
+		totalInFlight, err := getInflightRequests(apiName) // TODO window will go here
 		if err != nil {
 			debug.Pp(err)
 			return nil
@@ -209,7 +209,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 	}, nil
 }
 
-func getInflightRequests() (*float64, error) {
+func getInflightRequests(apiName string) (*float64, error) {
 	endTime := time.Now().Truncate(time.Second)
 	startTime := endTime.Add(-60 * time.Second)
 	metricsDataQuery := cloudwatch.GetMetricDataInput{
@@ -226,7 +226,7 @@ func getInflightRequests() (*float64, error) {
 						Dimensions: []*cloudwatch.Dimension{
 							{
 								Name:  aws.String("apiName"),
-								Value: aws.String("test"),
+								Value: aws.String(apiName),
 							},
 						},
 					},

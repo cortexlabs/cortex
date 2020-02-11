@@ -59,6 +59,7 @@ image_onnx_serve_gpu: cortexlabs/onnx-serve-gpu:master
 image_operator: cortexlabs/operator:master
 image_manager: cortexlabs/manager:master
 image_downloader: cortexlabs/downloader:master
+image_request_monitor: cortexlabs/request-monitor:master
 image_cluster_autoscaler: cortexlabs/cluster-autoscaler:master
 image_metrics_server: cortexlabs/metrics-server:master
 image_nvidia: cortexlabs/nvidia:master
