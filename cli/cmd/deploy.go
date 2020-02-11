@@ -103,9 +103,6 @@ func deploy(configPath string, force bool) {
 		files.IgnoreHiddenFolders,
 		files.IgnorePythonGeneratedFiles,
 	}
-	if !_flagDeployYes {
-		ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
-	}
 
 	cortexIgnorePath := path.Join(projectRoot, ".cortexignore")
 	if files.IsFile(cortexIgnorePath) {
@@ -114,6 +111,10 @@ func deploy(configPath string, force bool) {
 			exit.Error(err)
 		}
 		ignoreFns = append(ignoreFns, cortexIgnore)
+	}
+
+	if !_flagDeployYes {
+		ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
 	}
 
 	projectPaths, err := files.ListDirRecursive(projectRoot, false, ignoreFns...)
