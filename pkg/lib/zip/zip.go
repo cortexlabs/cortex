@@ -193,8 +193,7 @@ func addFileToZip(fileInput *FileInput, zipInput *Input, archive *zip.Writer, ad
 }
 
 func addDirToZip(dirInput *DirInput, zipInput *Input, archive *zip.Writer, addedPaths strset.Set) error {
-	emptyExcludes := make([]string, 0)
-	paths, err := files.ListDirRecursive(dirInput.Source, true, emptyExcludes, dirInput.IgnoreFns...)
+	paths, err := files.ListDirRecursive(dirInput.Source, true, dirInput.IgnoreFns...)
 	if err != nil {
 		return err
 	}

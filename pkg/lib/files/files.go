@@ -17,8 +17,6 @@ limitations under the License.
 package files
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -32,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/denormal/go-gitignore"
 	"github.com/xlab/treeprint"
 )
 
@@ -289,7 +288,7 @@ func IsFilePathPython(path string) bool {
 	return ext == ".py"
 }
 
-// IgnoreFn if passed a dir, returning false will ignore all subdirs of dir
+// IgnoreFn if passed a dir, returning true will ignore all subdirs of dir
 type IgnoreFn func(string, os.FileInfo) (bool, error)
 
 func IgnoreHiddenFiles(path string, fi os.FileInfo) (bool, error) {
@@ -347,6 +346,23 @@ func IgnoreSpecificFiles(absPaths ...string) IgnoreFn {
 	return func(path string, fi os.FileInfo) (bool, error) {
 		return absPathsSet.Has(path), nil
 	}
+}
+
+func GitIgnoreFn(gitIgnorePath string) (IgnoreFn, error) {
+	gitIgnoreDir := filepath.Dir(gitIgnorePath)
+
+	ignore, err := gitignore.NewFromFile(gitIgnorePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return func(path string, fi os.FileInfo) (bool, error) {
+		if path == gitIgnoreDir {
+			// This is to avoid a bug in ignore.Ignore()
+			return false, nil
+		}
+		return ignore.Ignore(path), nil
+	}, nil
 }
 
 // promptMsgTemplate should have two placeholders: the first is for the file path and the second is for the file size
@@ -482,7 +498,7 @@ func DirPaths(paths []string, addTrailingSlash bool) []string {
 	return dirPaths
 }
 
-func ListDirRecursive(dir string, relative bool, excludes []string, ignoreFns ...IgnoreFn) ([]string, error) {
+func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]string, error) {
 	dir = filepath.Clean(dir)
 
 	var fileList []string
@@ -508,32 +524,7 @@ func ListDirRecursive(dir string, relative bool, excludes []string, ignoreFns ..
 			if relative {
 				path = path[len(dir)+1:]
 			}
-
-			if strings.Contains(path, ".cortexignore") {
-				return nil
-			}
-
-			if len(excludes) > 0 {
-				ignore := false
-				for _, exclude := range excludes {
-					match, err := filepath.Match(exclude, path)
-					if err != nil {
-						// The only possible returned error is ErrBadPattern, when pattern is malformed
-						return errors.Wrap(err, path)
-					}
-
-					if match {
-						ignore = true
-						break
-					}
-				}
-
-				if !ignore {
-					fileList = append(fileList, path)
-				}
-			} else {
-				fileList = append(fileList, path)
-			}
+			fileList = append(fileList, path)
 		}
 		return nil
 	})
@@ -584,58 +575,4 @@ func ReadReqFile(r *http.Request, fileName string) ([]byte, error) {
 		return nil, errors.Wrap(err, errors.Message(ErrorReadFormFile(fileName)))
 	}
 	return fileBytes, nil
-}
-
-// ReadAll reads a .cortexignore file and returns the list of file patterns
-// to ignore. Note this will trim whitespace from each line as well
-// as use GO's "clean" func to get the shortest/cleanest path for each.
-func ReadAllIgnorePatterns(reader io.Reader) ([]string, error) {
-	if reader == nil {
-		return nil, nil
-	}
-
-	scanner := bufio.NewScanner(reader)
-	var excludes []string
-	currentLine := 0
-
-	utf8bom := []byte{0xEF, 0xBB, 0xBF}
-	for scanner.Scan() {
-		scannedBytes := scanner.Bytes()
-		// We trim UTF8 BOM
-		if currentLine == 0 {
-			scannedBytes = bytes.TrimPrefix(scannedBytes, utf8bom)
-		}
-		pattern := string(scannedBytes)
-		currentLine++
-		// Lines starting with # (comments) are ignored before processing
-		if strings.HasPrefix(pattern, "#") {
-			continue
-		}
-		pattern = strings.TrimSpace(pattern)
-		if pattern == "" {
-			continue
-		}
-		// normalize absolute paths to paths relative to the context
-		// (taking care of '!' prefix)
-		invert := pattern[0] == '!'
-		if invert {
-			pattern = strings.TrimSpace(pattern[1:])
-		}
-		if len(pattern) > 0 {
-			pattern = filepath.Clean(pattern)
-			pattern = filepath.ToSlash(pattern)
-			if len(pattern) > 1 && pattern[0] == '/' {
-				pattern = pattern[1:]
-			}
-		}
-		if invert {
-			pattern = "!" + pattern
-		}
-
-		excludes = append(excludes, pattern)
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, errors.Wrap(err, "error reading .cortexignore")
-	}
-	return excludes, nil
 }

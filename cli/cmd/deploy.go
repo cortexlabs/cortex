@@ -19,7 +19,6 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -109,20 +108,15 @@ func deploy(configPath string, force bool) {
 	}
 
 	cortexIgnorePath := path.Join(projectRoot, ".cortexignore")
-	cortexIgnore, err := os.Open(cortexIgnorePath)
-	var excludes []string
-	if err != nil {
-		if !os.IsNotExist(err) {
-			exit.Error(err)
-		}
-	} else {
-		excludes, err = files.ReadAllIgnorePatterns(cortexIgnore)
+	if files.IsFile(cortexIgnorePath) {
+		cortexIgnore, err := files.GitIgnoreFn(cortexIgnorePath)
 		if err != nil {
 			exit.Error(err)
 		}
+		ignoreFns = append(ignoreFns, cortexIgnore)
 	}
 
-	projectPaths, err := files.ListDirRecursive(projectRoot, false, excludes, ignoreFns...)
+	projectPaths, err := files.ListDirRecursive(projectRoot, false, ignoreFns...)
 	if err != nil {
 		exit.Error(err)
 	}
