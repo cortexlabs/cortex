@@ -2,7 +2,7 @@
   predictor:
     type: tensorflow
     path: predictor_yolo.py
-    model: s3://cortex-0/examples/tensorflow/license-plate-reader/yolov3
+    model: s3://cortex-bucketname/examples/tensorflow/license-plate-reader/yolov3
     signature_key: serving_default
     config:
       model_config: config.json
