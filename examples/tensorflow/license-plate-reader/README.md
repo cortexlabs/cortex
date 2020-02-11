@@ -4,7 +4,11 @@ This project is about a license plate identification system. On resource-constra
 
 ![Imgur](https://i.imgur.com/jgkJB59.gif)
 
-*Check out this real-time recording [video](https://www.youtube.com/watch?v=gsYEZtecXlA) of predictions*
+*Figure 1 - GIF taken from this real-time recording [video](https://www.youtube.com/watch?v=gsYEZtecXlA) of predictions*
+
+![Imgur](https://i.imgur.com/MvDAXWU.jpg)
+
+*Figure 2 - Raspberry Pi-powered client with 4G access and onboard GPS that connects to cortex's APIs for inference purposes. More on that [here](client/README.md#creating-your-own-device).*
 
 In our example, we assume we have a dashcam mounted on a car and we want to detect and recognize all license plates in the stream in real-time. We can use an embedded computer system to do the video recording, then have that streamed and inferred frame-by-frame using a web service, relay back the results, reassemble the stream and finally display the stream on a screen. The web service in our case is a set of 2 web APIs deployed using cortex.
 

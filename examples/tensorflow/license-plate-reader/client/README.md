@@ -20,7 +20,7 @@ The app's primary target machine is the *Raspberry Pi* (3/3B+/4) - the Raspberry
 
 Unfortunately for the Raspberry Pi, the $35 pocket-sized computer, doesn't have enough oomph (far from it) to do any inference: not only it doesn't have enough memory to load a model, but should it have enough RAM, it would still take dozens of minutes just to get a single inference. Let alone run inferences at 30 FPS, with a number of inferences for each frame.
 
-The app is built to be used with a *Pi Camera* alongside the *Raspberry Pi*.
+The app is built to be used with a *Pi Camera* alongside the *Raspberry Pi*. The details on how to build such a system are found [here](#creating-your-own-device).
 
 Since many developers don't have a Raspberry Pi laying around or are just purely interested in seeing results right away, the app can also be configured to take in a video file and treat it exactly as if it was a camera.
 
@@ -33,8 +33,8 @@ For either target machine, the minimum version of Python has to be `3.6.x`.
 ```bash
 pip3 install --user -r deps/requirements_rpi.txt
 sudo apt-get update
-# dependencies for opencv and pandas
-sudo apt-get install $(cat deps/requirements_dpkg_rpi.txt)
+# dependencies for opencv and pandas package
+sudo apt-get install --no-install-recommends $(cat deps/requirements_dpkg_rpi.txt)
 ```
 
 #### For x86 Machine
@@ -164,6 +164,8 @@ To terminate the app, press `CTRL-C` and wait a bit.
 
 ## Creating Your Own Device
 
+![Imgur](https://i.imgur.com/MvDAXWU.jpg)
+
 To create your own Raspberry Pi-powered device to record and display the predictions in real time in your car, you're gonna need the following things:
 1. A Raspberry Pi - preferably a 4, because that one has more oomph.
 1. A Pi Camera - doesn't matter which version of it.
@@ -174,5 +176,5 @@ To create your own Raspberry Pi-powered device to record and display the predict
 
 Without convoluting this README too much:
 
-* Here are the [STLs/SLDPRTs](https://www.dropbox.com/sh/fw16vy1okrp606y/AAAwkoWXODmoaOP4yR-z4T8Va?dl=0) to the car's 3D printed support.
+* Here are the [STLs/SLDPRTs/Renders](https://www.dropbox.com/sh/fw16vy1okrp606y/AAAwkoWXODmoaOP4yR-z4T8Va?dl=0) to the car's 3D printed support.
 * Here's an [article](https://www.robertlucian.com/2020/02/12/real-time-license-plate-identification/) that talks about this in full detail.
