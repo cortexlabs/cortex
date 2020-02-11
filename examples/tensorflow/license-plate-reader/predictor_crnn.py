@@ -16,9 +16,7 @@ class PythonPredictor:
         imgs = payload["imgs"]
         imgs = base64.b64decode(imgs.encode("utf-8"))
         jpgs_as_np = pickle.loads(imgs)
-        images = [
-            cv2.imdecode(jpg_as_np, flags=cv2.IMREAD_COLOR) for jpg_as_np in jpgs_as_np
-        ]
+        images = [cv2.imdecode(jpg_as_np, flags=cv2.IMREAD_COLOR) for jpg_as_np in jpgs_as_np]
 
         # run batch inference
         prediction_groups = self.pipeline.recognize(images)

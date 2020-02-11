@@ -84,9 +84,7 @@ def decode_netout(netout, anchors, obj_thresh, net_h, net_w):
             # last elements are class probabilities
             classes = netout[row, col, b, 5:]
 
-            box = BoundBox(
-                x - w / 2, y - h / 2, x + w / 2, y + h / 2, objectness, classes
-            )
+            box = BoundBox(x - w / 2, y - h / 2, x + w / 2, y + h / 2, objectness, classes)
 
             boxes.append(box)
 
@@ -110,18 +108,14 @@ def preprocess_input(image, net_h, net_w):
     # embed the image into the standard letter box
     new_image = np.ones((net_h, net_w, 3)) * 0.5
     new_image[
-        (net_h - new_h) // 2 : (net_h + new_h) // 2,
-        (net_w - new_w) // 2 : (net_w + new_w) // 2,
-        :,
+        (net_h - new_h) // 2 : (net_h + new_h) // 2, (net_w - new_w) // 2 : (net_w + new_w) // 2, :,
     ] = resized
     new_image = np.expand_dims(new_image, 0)
 
     return new_image
 
 
-def get_yolo_boxes(
-    model, images, net_h, net_w, anchors, obj_thresh, nms_thresh, classes
-):
+def get_yolo_boxes(model, images, net_h, net_w, anchors, obj_thresh, nms_thresh, classes):
     image_h, image_w, _ = images[0].shape
     nb_images = len(images)
     batch_input = np.zeros((nb_images, net_h, net_w, 3))

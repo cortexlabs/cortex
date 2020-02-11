@@ -38,9 +38,7 @@ def draw_boxes(image, boxes, overlay_text, labels, obj_thresh, quiet=True):
             if box.classes[i] > obj_thresh:
                 if label_str != "":
                     label_str += ", "
-                label_str += (
-                    labels[i] + " " + str(round(box.get_score() * 100, 2)) + "%"
-                )
+                label_str += labels[i] + " " + str(round(box.get_score() * 100, 2)) + "%"
                 label = i
             if not quiet:
                 print(label_str)
@@ -51,9 +49,7 @@ def draw_boxes(image, boxes, overlay_text, labels, obj_thresh, quiet=True):
             else:
                 text = label_str
             text = text.upper()
-            text_size = cv2.getTextSize(
-                text, cv2.FONT_HERSHEY_SIMPLEX, 1.1e-3 * image.shape[0], 5
-            )
+            text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1.1e-3 * image.shape[0], 5)
             width, height = text_size[0][0], text_size[0][1]
             region = np.array(
                 [

@@ -221,9 +221,7 @@ class InferenceWorker(WorkerTemplateThread):
     and retrieves the results and puts them in their appropriate queues.
     """
 
-    def __init__(
-        self, event_stopper, in_queue, bc_queue, predicts_queue, cfg, name=None
-    ):
+    def __init__(self, event_stopper, in_queue, bc_queue, predicts_queue, cfg, name=None):
         """
         event_stopper - Event to stop the worker.
         in_queue - Queue that holds the unprocessed frames.
@@ -295,12 +293,8 @@ class InferenceWorker(WorkerTemplateThread):
 
         # also scale the boxes for later uses
         camera_source_width = image.shape[1]
-        boxes640 = self.scale_bbox(
-            boxes, self.yolov3_input_size_px, self.bounding_boxes_upscale_px
-        )
-        boxes_source = self.scale_bbox(
-            boxes, self.yolov3_input_size_px, camera_source_width
-        )
+        boxes640 = self.scale_bbox(boxes, self.yolov3_input_size_px, self.bounding_boxes_upscale_px)
+        boxes_source = self.scale_bbox(boxes, self.yolov3_input_size_px, camera_source_width)
 
         #############################
 
@@ -416,9 +410,7 @@ class InferenceWorker(WorkerTemplateThread):
             if not resp:
                 pass
             elif resp.status_code != 200:
-                logger.warning(
-                    "received {} status code from yolov3 api".format(resp.status_code)
-                )
+                logger.warning("received {} status code from yolov3 api".format(resp.status_code))
                 return None
 
         # calculate average rtt (use complementary filter)
@@ -454,9 +446,7 @@ class InferenceWorker(WorkerTemplateThread):
             if not resp:
                 pass
             elif resp.status_code != 200:
-                logger.warning(
-                    "received {} status code from crnn api".format(resp.status_code)
-                )
+                logger.warning("received {} status code from crnn api".format(resp.status_code))
             else:
                 r_dict = resp.json()
                 dec_lps = r_dict["license-plates"]
@@ -520,9 +510,7 @@ class Flusher(WorkerTemplateThread):
             try:
                 for i in range(current):
                     self.queue.get_nowait()
-                logger.warning(
-                    "flushed {} elements from the frames queue".format(current)
-                )
+                logger.warning("flushed {} elements from the frames queue".format(current))
             except queue.Empty:
                 logger.debug("flushed too many elements from the queue")
         time.sleep(0.5)

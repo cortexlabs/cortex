@@ -171,9 +171,7 @@ def main(config):
         session.mount("http://", SourceAddressAdapter(gen_cfg["bind_ip"]))
         logger.info("binding requests module to {} IP".format(gen_cfg["bind_ip"]))
     except OSError as e:
-        logger.error(
-            "bind IP is invalid, resorting to default interface", exc_info=True
-        )
+        logger.error("bind IP is invalid, resorting to default interface", exc_info=True)
 
     # start polling the GPS
     if gps_cfg["use_gps"]:
@@ -192,16 +190,12 @@ def main(config):
     logger.info("initialized worker pool")
 
     # a single worker in a separate process to reassemble the data
-    reassembler = BroadcastReassembled(
-        bc_queue, broadcast_cfg, name="BroadcastReassembled"
-    )
+    reassembler = BroadcastReassembled(bc_queue, broadcast_cfg, name="BroadcastReassembled")
     reassembler.start()
 
     # a single thread to flush the producing queue
     # when there are too many frames in the pipe
-    flusher = Flusher(
-        frames_queue, threshold=flusher_cfg["frame_count_threshold"], name="Flusher"
-    )
+    flusher = Flusher(frames_queue, threshold=flusher_cfg["frame_count_threshold"], name="Flusher")
     flusher.start()
 
     # data aggregator to write things to disk
@@ -256,17 +250,10 @@ def main(config):
 
             # start recording both to disk and to the queue
             camera.start_recording(
-                output=source_cfg["output_file"],
-                format="h264",
-                splitter_port=0,
-                bitrate=10000000,
+                output=source_cfg["output_file"], format="h264", splitter_port=0, bitrate=10000000,
             )
             camera.start_recording(
-                output=output,
-                format="mjpeg",
-                splitter_port=1,
-                bitrate=10000000,
-                quality=95,
+                output=output, format="mjpeg", splitter_port=1, bitrate=10000000, quality=95,
             )
             logger.info("started recording to file and to queue")
 
@@ -301,9 +288,7 @@ def main(config):
 
         logger.info(
             "file-based video stream initialized w/ resolution={} framerate={} and {} skipped frames".format(
-                (target_w, target_h),
-                source_cfg["framerate"],
-                source_cfg["frames_to_skip"],
+                (target_w, target_h), source_cfg["framerate"], source_cfg["frames_to_skip"],
             )
         )
 
