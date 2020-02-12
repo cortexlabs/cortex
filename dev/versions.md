@@ -79,6 +79,13 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 1. `go mod tidy`
 1. Check that the diff in `go.mod` is reasonable
 
+### request-monitor
+
+1. `cd images/request-monitor/`
+1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
+1. `go mod tidy`
+1. Check that the diff in `go.mod` is reasonable
+
 ## TensorFlow / TensorFlow Serving / Python / Python base operating system
 
 The Python version in the base images for `tf-api` and `onnx-serve-gpu`/`python-serve-gpu` determines the Python version used throughout Cortex.
