@@ -1,6 +1,6 @@
 # Real-Time License Plate Identification System
 
-This project is about a license plate identification system. On resource-constraint systems, running inferences may prove to be too computationally expensive or just plain impossible. That's why a solution is to run the ML in the cloud and have the local (embedded) system act as a client of these services.
+This project is about a license plate identification system. On resource-constrained systems, running inferences may prove to be too computationally expensive or just plain impossible. That's why a solution is to run the ML in the cloud and have the local (embedded) system act as a client of these services.
 
 ![Imgur](https://i.imgur.com/jgkJB59.gif)
 
