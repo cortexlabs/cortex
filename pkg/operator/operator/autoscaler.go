@@ -31,6 +31,8 @@ import (
 	kapps "k8s.io/api/apps/v1"
 )
 
+const _tickInterval = 10 * time.Second
+
 type recommendations map[time.Time]int32
 
 func (recs recommendations) add(rec int32) {
@@ -83,7 +85,7 @@ func (recs recommendations) minSince(period time.Duration) *int32 {
 	return &min
 }
 
-func autoscaleFn(tickInterval time.Duration, initialDeployment *kapps.Deployment) (func() error, error) {
+func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(initialDeployment)
 	if err != nil {
 		return nil, err
@@ -102,7 +104,7 @@ func autoscaleFn(tickInterval time.Duration, initialDeployment *kapps.Deployment
 			startTime = time.Now()
 		}
 
-		totalInFlight, err := getInflightRequests(apiName, autoscalingSpec.Window, tickInterval)
+		totalInFlight, err := getInflightRequests(apiName, autoscalingSpec.Window)
 		if err != nil {
 			return err
 		}
@@ -196,7 +198,7 @@ func autoscaleFn(tickInterval time.Duration, initialDeployment *kapps.Deployment
 	}, nil
 }
 
-func getInflightRequests(apiName string, window time.Duration, tickInterval time.Duration) (*float64, error) {
+func getInflightRequests(apiName string, window time.Duration) (*float64, error) {
 	endTime := time.Now().Truncate(time.Second)
 	startTime := endTime.Add(-2 * window)
 	metricsDataQuery := cloudwatch.GetMetricDataInput{
@@ -241,7 +243,7 @@ func getInflightRequests(apiName string, window time.Duration, tickInterval time
 			break
 		}
 	}
-	steps := int(window.Nanoseconds() / tickInterval.Nanoseconds())
+	steps := int(window.Nanoseconds() / _tickInterval.Nanoseconds())
 
 	endTimeStampCounter := libmath.MinInt(timestampCounter+steps, len(output.MetricDataResults[0].Timestamps))
 
