@@ -72,7 +72,7 @@ func main() {
 		Region:      aws.String(region),
 	})
 	if err != nil {
-		panic(err) // TODO
+		panic(err)
 	}
 
 	client = cloudwatch.New(sess)
@@ -85,7 +85,7 @@ func main() {
 			fmt.Println("waiting...")
 			time.Sleep(_tickInterval)
 		} else {
-			panic("unexpected error encountered") // TODO
+			log.Printf("error encountered while looking for /mnt/health_check.txt") // unexpected
 		}
 	}
 
@@ -156,7 +156,7 @@ func publishStats(apiName string, counter *Counter, client *cloudwatch.CloudWatc
 	}
 	_, err := client.PutMetricData(&metricData)
 	if err != nil {
-		fmt.Println(err.Error()) // TODO
+		log.Printf("error: publishing metrics: %s", err.Error()) // TODO
 	}
 }
 

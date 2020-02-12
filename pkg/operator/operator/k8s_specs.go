@@ -109,7 +109,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
 		},
-		Annotations: apiAnnotations(api),
+		Annotations: api.Autoscaling.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},
@@ -259,7 +259,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
 		},
-		Annotations: apiAnnotations(api),
+		Annotations: api.Autoscaling.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},
@@ -296,6 +296,14 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 							"--project-dir=" + path.Join(_emptyDirMountPath, "project"),
 						},
 						Env: append(getEnvVars(api),
+							kcore.EnvVar{
+								Name:  "REPLICA_PARALLELISM",
+								Value: s.Int32(api.Autoscaling.ReplicaParallelism),
+							},
+							kcore.EnvVar{
+								Name:  "REQUEST_BACKLOG",
+								Value: s.Int32(api.Autoscaling.RequestBacklog),
+							},
 							kcore.EnvVar{
 								Name:  "MY_PORT",
 								Value: _defaultPortStr,
@@ -405,7 +413,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
 		},
-		Annotations: apiAnnotations(api),
+		Annotations: api.Autoscaling.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},
@@ -574,7 +582,8 @@ func apiAnnotations(api *spec.API) map[string]string {
 	return map[string]string{
 		"autoscaling.cortex.dev/min-replicas":                   s.Int32(api.Autoscaling.MinReplicas),
 		"autoscaling.cortex.dev/max-replicas":                   s.Int32(api.Autoscaling.MaxReplicas),
-		"autoscaling.cortex.dev/threads-per-replica":            s.Int32(api.Autoscaling.ThreadsPerReplica),
+		"autoscaling.cortex.dev/replica-parallelism":            s.Int32(api.Autoscaling.ReplicaParallelism),
+		"autoscaling.cortex.dev/request-backlog":                s.Int32(api.Autoscaling.RequestBacklog),
 		"autoscaling.cortex.dev/target-queue-length":            s.Float64(api.Autoscaling.TargetQueueLength),
 		"autoscaling.cortex.dev/window":                         api.Autoscaling.Window.String(),
 		"autoscaling.cortex.dev/downscale-stabilization-period": api.Autoscaling.DownscaleStabilizationPeriod.String(),
@@ -594,7 +603,8 @@ var _apiReadinessProbe = &kcore.Probe{
 	FailureThreshold:    2,
 	Handler: kcore.Handler{
 		Exec: &kcore.ExecAction{
-			Command: []string{"/bin/bash", "-c", "/bin/ps aux | grep \"gunicorn\" | grep -v \"grep\" && test -f /mnt/health_check.txt"},
+			// Check the gunicorn master process and at least one other worker is alive
+			Command: []string{"/bin/bash", "-c", "/bin/ps aux | grep \"gunicorn\" | grep -v \"grep\" | wc -l | xargs test 2 -le && test -f /mnt/health_check.txt"},
 		},
 	},
 }

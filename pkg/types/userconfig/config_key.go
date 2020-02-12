@@ -48,7 +48,8 @@ const (
 	MinReplicasKey                  = "min_replicas"
 	MaxReplicasKey                  = "max_replicas"
 	InitReplicasKey                 = "init_replicas"
-	ThreadsPerReplicaKey            = "threads_per_replica"
+	ReplicaParallelismKey           = "replica_parallelism"
+	RequestBacklogKey               = "request_backlog"
 	TargetQueueLengthKey            = "target_queue_length"
 	WindowKey                       = "window"
 	DownscaleStabilizationPeriodKey = "downscale_stabilization_period"
@@ -61,4 +62,19 @@ const (
 	// UpdateStrategy
 	MaxSurgeKey       = "max_surge"
 	MaxUnavailableKey = "max_unavailable"
+
+	// K8s annotation
+	MinReplicasAnnotationKey                  = "autoscaling.cortex.dev/min-replicas"
+	MaxReplicasAnnotationKey                  = "autoscaling.cortex.dev/max-replicas"
+	InitReplicasAnnotationKey                 = "autoscaling.cortex.dev/init-replicas"
+	ReplicaParallelismAnnotationKey           = "autoscaling.cortex.dev/replica-parallelism"
+	RequestBacklogAnnotationKey               = "autoscaling.cortex.dev/request-backlog"
+	TargetQueueLengthAnnotationKey            = "autoscaling.cortex.dev/target-queue-length"
+	WindowAnnotationKey                       = "autoscaling.cortex.dev/window"
+	DownscaleStabilizationPeriodAnnotationKey = "autoscaling.cortex.dev/downscale-stabilization-period"
+	UpscaleStabilizationPeriodAnnotationKey   = "autoscaling.cortex.dev/upscale-stabilization-period"
+	MaxDownscaleFactorAnnotationKey           = "autoscaling.cortex.dev/max-downscale-factor"
+	MaxUpscaleFactorAnnotationKey             = "autoscaling.cortex.dev/max-upscale-factor"
+	DownscaleToleranceAnnotationKey           = "autoscaling.cortex.dev/downscale-tolerance"
+	UpscaleToleranceAnnotationKey             = "autoscaling.cortex.dev/upscale-tolerance"
 )

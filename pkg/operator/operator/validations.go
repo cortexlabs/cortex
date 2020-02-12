@@ -206,9 +206,16 @@ var _autoscalingValidation = &cr.StructFieldValidation{
 				},
 			},
 			{
-				StructField: "ThreadsPerReplica",
+				StructField: "ReplicaParallelism",
 				Int32Validation: &cr.Int32Validation{
 					Default:              4,
+					GreaterThanOrEqualTo: pointer.Int32(1),
+				},
+			},
+			{
+				StructField: "RequestBacklog",
+				Int32Validation: &cr.Int32Validation{
+					Default:              2048,
 					GreaterThanOrEqualTo: pointer.Int32(1),
 				},
 			},

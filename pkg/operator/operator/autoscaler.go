@@ -23,12 +23,11 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
 )
 
@@ -84,20 +83,8 @@ func (recs recommendations) minSince(period time.Duration) *int32 {
 	return &min
 }
 
-func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
-	minReplicas, err1 := getMinReplicas(initialDeployment)
-	maxReplicas, err2 := getMaxReplicas(initialDeployment)
-	threadsPerReplica, err3 := getThreadsPerReplicas(initialDeployment)
-	targetQueueLen, err4 := getTargetQueueLength(initialDeployment)
-	window, err5 := getWindow(initialDeployment)
-	downscaleStabilizationPeriod, err6 := getDownscaleStabilizationPeriod(initialDeployment)
-	upscaleStabilizationPeriod, err7 := getUpscaleStabilizationPeriod(initialDeployment)
-	maxDownscaleFactor, err8 := getMaxDownscaleFactor(initialDeployment)
-	maxUpscaleFactor, err9 := getMaxUpscaleFactor(initialDeployment)
-	downscaleTolerance, err10 := getDownscaleTolerance(initialDeployment)
-	upscaleTolerance, err11 := getUpscaleTolerance(initialDeployment)
-
-	err := errors.FirstError(err1, err2, err3, err4, err5, err6, err7, err8, err9, err10, err11)
+func autoscaleFn(tickInterval time.Duration, initialDeployment *kapps.Deployment) (func() error, error) {
+	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(initialDeployment)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +92,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 	apiName := initialDeployment.Labels["apiName"]
 	currentReplicas := *initialDeployment.Spec.Replicas
 
-	log.Printf("%s autoscaler init: min_replicas=%d, max_replicas=%d, window=%s, target_queue_length=%s, threads_per_replica=%d, downscale_tolerance=%s, upscale_tolerance=%s, downscale_stabilization_period=%s, upscale_stabilization_period=%s, max_downscale_factor=%s, max_upscale_factor=%s", apiName, minReplicas, maxReplicas, window, s.Float64(targetQueueLen), threadsPerReplica, s.Float64(downscaleTolerance), s.Float64(upscaleTolerance), downscaleStabilizationPeriod, upscaleStabilizationPeriod, s.Float64(maxDownscaleFactor), s.Float64(maxUpscaleFactor))
+	log.Printf("%s autoscaler init: min_replicas=%d, max_replicas=%d, window=%s, target_queue_length=%s, replica_parallelism=%d, downscale_tolerance=%s, upscale_tolerance=%s, downscale_stabilization_period=%s, upscale_stabilization_period=%s, max_downscale_factor=%s, max_upscale_factor=%s", apiName, autoscalingSpec.MinReplicas, autoscalingSpec.MaxReplicas, autoscalingSpec.Window, s.Float64(autoscalingSpec.TargetQueueLength), autoscalingSpec.ReplicaParallelism, s.Float64(autoscalingSpec.DownscaleTolerance), s.Float64(autoscalingSpec.UpscaleTolerance), autoscalingSpec.DownscaleStabilizationPeriod, autoscalingSpec.UpscaleStabilizationPeriod, s.Float64(autoscalingSpec.MaxDownscaleFactor), s.Float64(autoscalingSpec.MaxUpscaleFactor))
 
 	var startTime time.Time
 	recs := make(recommendations)
@@ -115,34 +102,34 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			startTime = time.Now()
 		}
 
-		totalInFlight, err := getInflightRequests(apiName) // TODO window will go here
+		totalInFlight, err := getInflightRequests(apiName, autoscalingSpec.Window, tickInterval)
 		if err != nil {
-			debug.Pp(err)
-			return nil
+			return err
 		}
 		if totalInFlight == nil {
+			log.Printf("metrics not found")
 			return nil
 		}
 
-		rawRecommendation := *totalInFlight / (float64(threadsPerReplica) + targetQueueLen)
+		rawRecommendation := *totalInFlight / (float64(autoscalingSpec.ReplicaParallelism) + autoscalingSpec.TargetQueueLength)
 		recommendation := int32(math.Ceil(rawRecommendation))
 
-		if rawRecommendation < float64(currentReplicas) && rawRecommendation > float64(currentReplicas)*(1-downscaleTolerance) {
+		if rawRecommendation < float64(currentReplicas) && rawRecommendation > float64(currentReplicas)*(1-autoscalingSpec.DownscaleTolerance) {
 			recommendation = currentReplicas
 		}
 
-		if rawRecommendation > float64(currentReplicas) && rawRecommendation < float64(currentReplicas)*(1+upscaleTolerance) {
+		if rawRecommendation > float64(currentReplicas) && rawRecommendation < float64(currentReplicas)*(1+autoscalingSpec.UpscaleTolerance) {
 			recommendation = currentReplicas
 		}
 
 		// always allow subtraction of 1
-		downscaleFactorFloor := libmath.MinInt32(currentReplicas-1, int32(math.Ceil(float64(currentReplicas)*maxDownscaleFactor)))
+		downscaleFactorFloor := libmath.MinInt32(currentReplicas-1, int32(math.Ceil(float64(currentReplicas)*autoscalingSpec.MaxDownscaleFactor)))
 		if recommendation < downscaleFactorFloor {
 			recommendation = downscaleFactorFloor
 		}
 
 		// always allow addition of 1
-		upscaleFactorCeil := libmath.MaxInt32(currentReplicas+1, int32(math.Ceil(float64(currentReplicas)*maxUpscaleFactor)))
+		upscaleFactorCeil := libmath.MaxInt32(currentReplicas+1, int32(math.Ceil(float64(currentReplicas)*autoscalingSpec.MaxUpscaleFactor)))
 		if recommendation > upscaleFactorCeil {
 			recommendation = upscaleFactorCeil
 		}
@@ -151,12 +138,12 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			recommendation = 1
 		}
 
-		if recommendation < minReplicas {
-			recommendation = minReplicas
+		if recommendation < autoscalingSpec.MinReplicas {
+			recommendation = autoscalingSpec.MinReplicas
 		}
 
-		if recommendation > maxReplicas {
-			recommendation = maxReplicas
+		if recommendation > autoscalingSpec.MaxReplicas {
+			recommendation = autoscalingSpec.MaxReplicas
 		}
 
 		// Rule of thumb: any modifications that don't consider historical recommendations should be performed before
@@ -164,12 +151,12 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 		recs.add(recommendation)
 
 		// This is just for garbage collection
-		recs.clearOlderThan(libtime.MaxDuration(downscaleStabilizationPeriod, upscaleStabilizationPeriod))
+		recs.clearOlderThan(libtime.MaxDuration(autoscalingSpec.DownscaleStabilizationPeriod, autoscalingSpec.UpscaleStabilizationPeriod))
 
 		request := recommendation
 
-		downscaleStabilizationFloor := recs.maxSince(downscaleStabilizationPeriod)
-		if time.Since(startTime) < downscaleStabilizationPeriod {
+		downscaleStabilizationFloor := recs.maxSince(autoscalingSpec.DownscaleStabilizationPeriod)
+		if time.Since(startTime) < autoscalingSpec.DownscaleStabilizationPeriod {
 			if request < currentReplicas {
 				request = currentReplicas
 			}
@@ -177,8 +164,8 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			request = *downscaleStabilizationFloor
 		}
 
-		upscaleStabilizationCeil := recs.minSince(upscaleStabilizationPeriod)
-		if time.Since(startTime) < upscaleStabilizationPeriod {
+		upscaleStabilizationCeil := recs.minSince(autoscalingSpec.UpscaleStabilizationPeriod)
+		if time.Since(startTime) < autoscalingSpec.UpscaleStabilizationPeriod {
 			if request > currentReplicas {
 				request = currentReplicas
 			}
@@ -186,7 +173,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			request = *upscaleStabilizationCeil
 		}
 
-		log.Printf("%s autoscaler tick: total_in_flight=%s, raw_recommendation=%s, downscale_factor_floor=%d, upscale_factor_ceil=%d, min_replicas=%d, max_replicas=%d, recommendation=%d, downscale_stabilization_floor=%s, upscale_stabilization_ceil=%s, current_replicas=%d, request=%d", apiName, s.Round(*totalInFlight, 2, 0), s.Round(rawRecommendation, 2, 0), downscaleFactorFloor, upscaleFactorCeil, minReplicas, maxReplicas, recommendation, s.ObjFlatNoQuotes(downscaleStabilizationFloor), s.ObjFlatNoQuotes(upscaleStabilizationCeil), currentReplicas, request)
+		log.Printf("%s autoscaler tick: total_in_flight=%s, raw_recommendation=%s, downscale_factor_floor=%d, upscale_factor_ceil=%d, min_replicas=%d, max_replicas=%d, recommendation=%d, downscale_stabilization_floor=%s, upscale_stabilization_ceil=%s, current_replicas=%d, request=%d", apiName, s.Round(*totalInFlight, 2, 0), s.Round(rawRecommendation, 2, 0), downscaleFactorFloor, upscaleFactorCeil, autoscalingSpec.MinReplicas, autoscalingSpec.MaxReplicas, recommendation, s.ObjFlatNoQuotes(downscaleStabilizationFloor), s.ObjFlatNoQuotes(upscaleStabilizationCeil), currentReplicas, request)
 
 		if currentReplicas != request {
 			log.Printf("%s autoscaling event: %d -> %d", apiName, currentReplicas, request)
@@ -209,9 +196,9 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 	}, nil
 }
 
-func getInflightRequests(apiName string) (*float64, error) {
+func getInflightRequests(apiName string, window time.Duration, tickInterval time.Duration) (*float64, error) {
 	endTime := time.Now().Truncate(time.Second)
-	startTime := endTime.Add(-60 * time.Second)
+	startTime := endTime.Add(-2 * window)
 	metricsDataQuery := cloudwatch.GetMetricDataInput{
 		EndTime:   &endTime,
 		StartTime: &startTime,
@@ -221,7 +208,7 @@ func getInflightRequests(apiName string) (*float64, error) {
 				Label: aws.String("InFlight"),
 				MetricStat: &cloudwatch.MetricStat{
 					Metric: &cloudwatch.Metric{
-						Namespace:  aws.String("cortex"),
+						Namespace:  aws.String(config.Cluster.LogGroup),
 						MetricName: aws.String("in-flight"),
 						Dimensions: []*cloudwatch.Dimension{
 							{
@@ -245,6 +232,7 @@ func getInflightRequests(apiName string) (*float64, error) {
 	if len(output.MetricDataResults[0].Timestamps) == 0 {
 		return nil, nil
 	}
+
 	timestampCounter := 0
 	for i, timeStamp := range output.MetricDataResults[0].Timestamps {
 		if endTime.Sub(*timeStamp) < 20*time.Second {
@@ -253,8 +241,9 @@ func getInflightRequests(apiName string) (*float64, error) {
 			break
 		}
 	}
+	steps := int(window.Nanoseconds() / tickInterval.Nanoseconds())
 
-	endTimeStampCounter := libmath.MinInt(timestampCounter+6, len(output.MetricDataResults[0].Timestamps))
+	endTimeStampCounter := libmath.MinInt(timestampCounter+steps, len(output.MetricDataResults[0].Timestamps))
 
 	values := output.MetricDataResults[0].Values[timestampCounter:endTimeStampCounter]
 

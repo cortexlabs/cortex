@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/status"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 )
@@ -94,7 +95,7 @@ func GetAllStatuses() ([]status.Status, error) {
 }
 
 func apiStatus(deployment *kapps.Deployment, allPods []kcore.Pod) (*status.Status, error) {
-	minReplicas, err := getMinReplicas(deployment)
+	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(deployment)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +104,7 @@ func apiStatus(deployment *kapps.Deployment, allPods []kcore.Pod) (*status.Statu
 	status.APIName = deployment.Labels["apiName"]
 	status.APIID = deployment.Labels["apiID"]
 	status.ReplicaCounts = getReplicaCounts(deployment, allPods)
-	status.Code = getStatusCode(&status.ReplicaCounts, minReplicas)
+	status.Code = getStatusCode(&status.ReplicaCounts, autoscalingSpec.MinReplicas)
 
 	return status, nil
 }

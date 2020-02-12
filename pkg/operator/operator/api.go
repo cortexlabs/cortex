@@ -251,12 +251,13 @@ func updateAutoscalerCron(deployment *kapps.Deployment) error {
 		prevAutoscalerCron.Cancel()
 	}
 
-	autoscaler, err := autoscaleFn(deployment)
+	tickPeriod := 10 * time.Second // TODO?
+
+	autoscaler, err := autoscaleFn(tickPeriod, deployment)
 	if err != nil {
 		return err
 	}
 
-	tickPeriod := 10 * time.Second // TODO?
 	_autoscalerCrons[apiName] = cron.Run(autoscaler, cronErrHandler(apiName+" autoscaler"), tickPeriod)
 
 	return nil
@@ -322,12 +323,12 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 
 	replicaCounts := getReplicaCounts(deployment, pods)
 
-	minReplicas, err := getMinReplicas(deployment)
+	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(deployment)
 	if err != nil {
 		return false, err
 	}
 
-	if replicaCounts.Updated.Ready < minReplicas && replicaCounts.Updated.TotalFailed() == 0 {
+	if replicaCounts.Updated.Ready < autoscalingSpec.MinReplicas && replicaCounts.Updated.TotalFailed() == 0 {
 		return true, nil
 	}
 
@@ -423,50 +424,6 @@ func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
 	}
 
 	return apis, nil
-}
-
-func getMinReplicas(deployment *kapps.Deployment) (int32, error) {
-	return k8s.ParseInt32Annotation(deployment, "autoscaling.cortex.dev/min-replicas")
-}
-
-func getMaxReplicas(deployment *kapps.Deployment) (int32, error) {
-	return k8s.ParseInt32Annotation(deployment, "autoscaling.cortex.dev/max-replicas")
-}
-
-func getThreadsPerReplicas(deployment *kapps.Deployment) (int32, error) {
-	return k8s.ParseInt32Annotation(deployment, "autoscaling.cortex.dev/threads-per-replica")
-}
-
-func getTargetQueueLength(deployment *kapps.Deployment) (float64, error) {
-	return k8s.ParseFloat64Annotation(deployment, "autoscaling.cortex.dev/target-queue-length")
-}
-
-func getWindow(deployment *kapps.Deployment) (time.Duration, error) {
-	return k8s.ParseDurationAnnotation(deployment, "autoscaling.cortex.dev/window")
-}
-
-func getDownscaleStabilizationPeriod(deployment *kapps.Deployment) (time.Duration, error) {
-	return k8s.ParseDurationAnnotation(deployment, "autoscaling.cortex.dev/downscale-stabilization-period")
-}
-
-func getUpscaleStabilizationPeriod(deployment *kapps.Deployment) (time.Duration, error) {
-	return k8s.ParseDurationAnnotation(deployment, "autoscaling.cortex.dev/upscale-stabilization-period")
-}
-
-func getMaxDownscaleFactor(deployment *kapps.Deployment) (float64, error) {
-	return k8s.ParseFloat64Annotation(deployment, "autoscaling.cortex.dev/max-downscale-factor")
-}
-
-func getMaxUpscaleFactor(deployment *kapps.Deployment) (float64, error) {
-	return k8s.ParseFloat64Annotation(deployment, "autoscaling.cortex.dev/max-upscale-factor")
-}
-
-func getDownscaleTolerance(deployment *kapps.Deployment) (float64, error) {
-	return k8s.ParseFloat64Annotation(deployment, "autoscaling.cortex.dev/downscale-tolerance")
-}
-
-func getUpscaleTolerance(deployment *kapps.Deployment) (float64, error) {
-	return k8s.ParseFloat64Annotation(deployment, "autoscaling.cortex.dev/upscale-tolerance")
 }
 
 func specKey(apiName string, apiID string) string {

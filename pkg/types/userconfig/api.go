@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/yaml"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type API struct {
@@ -64,7 +65,8 @@ type Autoscaling struct {
 	MinReplicas                  int32         `json:"min_replicas" yaml:"min_replicas"`
 	MaxReplicas                  int32         `json:"max_replicas" yaml:"max_replicas"`
 	InitReplicas                 int32         `json:"init_replicas" yaml:"init_replicas"`
-	ThreadsPerReplica            int32         `json:"threads_per_replica" yaml:"threads_per_replica"`
+	ReplicaParallelism           int32         `json:"replica_parallelism" yaml:"replica_parallelism"`
+	RequestBacklog               int32         `json:"request_backlog" yaml:"request_backlog"`
 	TargetQueueLength            float64       `json:"target_queue_length" yaml:"target_queue_length"`
 	Window                       time.Duration `json:"window" yaml:"window"`
 	DownscaleStabilizationPeriod time.Duration `json:"downscale_stabilization_period" yaml:"downscale_stabilization_period"`
@@ -73,6 +75,102 @@ type Autoscaling struct {
 	MaxUpscaleFactor             float64       `json:"max_upscale_factor" yaml:"max_upscale_factor"`
 	DownscaleTolerance           float64       `json:"downscale_tolerance" yaml:"downscale_tolerance"`
 	UpscaleTolerance             float64       `json:"upscale_tolerance" yaml:"upscale_tolerance"`
+}
+
+func (a *Autoscaling) ToK8sAnnotations() map[string]string {
+	return map[string]string{
+		MinReplicasAnnotationKey:                  s.Int32(a.MinReplicas),
+		MaxReplicasAnnotationKey:                  s.Int32(a.MaxReplicas),
+		InitReplicasAnnotationKey:                 s.Int32(a.InitReplicas),
+		ReplicaParallelismAnnotationKey:           s.Int32(a.ReplicaParallelism),
+		RequestBacklogAnnotationKey:               s.Int32(a.RequestBacklog),
+		TargetQueueLengthAnnotationKey:            s.Float64(a.TargetQueueLength),
+		WindowAnnotationKey:                       a.Window.String(),
+		DownscaleStabilizationPeriodAnnotationKey: a.DownscaleStabilizationPeriod.String(),
+		UpscaleStabilizationPeriodAnnotationKey:   a.UpscaleStabilizationPeriod.String(),
+		MaxDownscaleFactorAnnotationKey:           s.Float64(a.MaxDownscaleFactor),
+		MaxUpscaleFactorAnnotationKey:             s.Float64(a.MaxUpscaleFactor),
+		DownscaleToleranceAnnotationKey:           s.Float64(a.DownscaleTolerance),
+		UpscaleToleranceAnnotationKey:             s.Float64(a.UpscaleTolerance),
+	}
+}
+
+func AutoscalingFromAnnotations(deployment kmeta.Object) (*Autoscaling, error) {
+	a := Autoscaling{}
+
+	minReplicas, err := k8s.ParseInt32Annotation(deployment, MinReplicasAnnotationKey)
+	if err != nil {
+		return nil, err
+	}
+	a.MinReplicas = minReplicas
+
+	maxReplicas, err := k8s.ParseInt32Annotation(deployment, MaxReplicasAnnotationKey)
+	if err != nil {
+		return nil, err
+	}
+	a.MaxReplicas = maxReplicas
+
+	replicaParallelism, err := k8s.ParseInt32Annotation(deployment, ReplicaParallelismAnnotationKey)
+	if err != nil {
+		return nil, err
+	}
+	a.ReplicaParallelism = replicaParallelism
+
+	requestBacklog, err := k8s.ParseInt32Annotation(deployment, RequestBacklogAnnotationKey)
+	if err != nil {
+		return nil, err
+	}
+	a.RequestBacklog = requestBacklog
+
+	targetQueueLength, err := k8s.ParseFloat64Annotation(deployment, TargetQueueLengthAnnotationKey)
+	if err != nil {
+		return nil, err
+	}
+	a.TargetQueueLength = targetQueueLength
+
+	window, err := k8s.ParseDurationAnnotation(deployment, WindowAnnotationKey)
+	if err != nil {
+		return nil, err
+	}
+	a.Window = window
+
+	downscaleStabilizationPeriod, err := k8s.ParseDurationAnnotation(deployment, DownscaleStabilizationPeriodAnnotationKey)
+	if err != nil {
+		return nil, err
+	}
+	a.DownscaleStabilizationPeriod = downscaleStabilizationPeriod
+
+	upscaleStabilizationPeriod, err := k8s.ParseDurationAnnotation(deployment, UpscaleStabilizationPeriodAnnotationKey)
+	if err != nil {
+		return nil, err
+	}
+	a.UpscaleStabilizationPeriod = upscaleStabilizationPeriod
+
+	maxDownscaleFactor, err := k8s.ParseFloat64Annotation(deployment, MaxDownscaleFactorAnnotationKey)
+	if err != nil {
+		return nil, err
+	}
+	a.MaxDownscaleFactor = maxDownscaleFactor
+
+	maxUpscaleFactor, err := k8s.ParseFloat64Annotation(deployment, MaxUpscaleFactorAnnotationKey)
+	if err != nil {
+		return nil, err
+	}
+	a.MaxUpscaleFactor = maxUpscaleFactor
+
+	downscaleTolerance, err := k8s.ParseFloat64Annotation(deployment, DownscaleToleranceAnnotationKey)
+	if err != nil {
+		return nil, err
+	}
+	a.DownscaleTolerance = downscaleTolerance
+
+	upscaleTolerance, err := k8s.ParseFloat64Annotation(deployment, UpscaleToleranceAnnotationKey)
+	if err != nil {
+		return nil, err
+	}
+	a.UpscaleTolerance = upscaleTolerance
+
+	return &a, nil
 }
 
 type UpdateStrategy struct {
@@ -182,7 +280,8 @@ func (autoscaling *Autoscaling) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MinReplicasKey, s.Int32(autoscaling.MinReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicasKey, s.Int32(autoscaling.MaxReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(autoscaling.InitReplicas)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerReplicaKey, s.Int32(autoscaling.ThreadsPerReplica)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ReplicaParallelismKey, s.Int32(autoscaling.ReplicaParallelism)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", RequestBacklogKey, s.Int32(autoscaling.RequestBacklog)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetQueueLengthKey, s.Float64(autoscaling.TargetQueueLength)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WindowKey, autoscaling.Window.String()))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", DownscaleStabilizationPeriodKey, autoscaling.DownscaleStabilizationPeriod.String()))
