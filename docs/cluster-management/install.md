@@ -20,7 +20,24 @@ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/g
 cortex cluster up
 ```
 
-Note: This will create resources in your AWS account which aren't included in the free tier, e.g. an EKS cluster, two Elastic Load Balancers, and EC2 instances (quantity and type as specified above). To use GPU nodes, you may need to subscribe to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) and [file an AWS support ticket](https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances) to increase the limit for your desired instance type.
+Note: To use GPU nodes, you may need to subscribe to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) and [file an AWS support ticket](https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances) to increase the limit for your desired instance type.
+
+Note: Cortex creates and manages resources in your AWS account. The `cortex cluster up` command will display the cost of your cluster. Here is an example:
+
+```text
+aws resource                             cost per hour
+1 eks cluster                            $0.10
+1 - 4 m5.large instances for your apis   $0.0338 - $0.096 each (varies based on spot price)
+1 - 4 20gb ebs volumes for your apis     $0.003 each
+1 t3.medium instance for the operator    $0.0416
+1 20gb ebs volume for the operator       $0.003
+2 elastic load balancers                 $0.025 each
+1 nat gateway                            $0.045
+
+your cluster will cost $0.28 - $0.63 per hour based on the cluster size and spot instance availability
+```
+
+See [EC2 Instances](ec2-instances.md) for a list of some common EC2 instance types and their suggested use cases.
 
 ## Deploy a model
 

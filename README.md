@@ -126,6 +126,27 @@ The CLI sends configuration and code to the cluster every time you run `cortex d
 
 <br>
 
+## How much does Cortex cost?
+
+Cortex is free, however the resources that are created and managed by Cortex in your AWS account are not. After running `cortex cluster up`, the CLI will display the cost of your cluster. Here is an example:
+
+```text
+$ cortex cluster up
+
+aws resource                             cost per hour
+1 eks cluster                            $0.10
+1 - 4 m5.large instances for your apis   $0.0338 - $0.096 each (varies based on spot price)
+1 - 4 20gb ebs volumes for your apis     $0.003 each
+1 t3.medium instance for the operator    $0.0416
+1 20gb ebs volume for the operator       $0.003
+2 elastic load balancers                 $0.025 each
+1 nat gateway                            $0.045
+
+your cluster will cost $0.28 - $0.63 per hour based on the cluster size and spot instance availability
+```
+
+<br>
+
 ## Examples of Cortex deployments
 
 <!-- CORTEX_VERSION_README_MINOR x5 -->
