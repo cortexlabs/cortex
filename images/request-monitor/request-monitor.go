@@ -62,10 +62,11 @@ func (c *Counter) GetAllAndDelete() []int {
 	return output
 }
 
+// ./request-monitor api_name log_group
 func main() {
-	apiName = os.Getenv("API_NAME")
+	apiName = os.Args[1]
+	logGroup = os.Args[2]
 	region = os.Getenv("CORTEX_REGION")
-	logGroup = os.Getenv("CORTEX_LOG_GROUP")
 
 	sess, err := session.NewSession(&aws.Config{
 		Credentials: nil,

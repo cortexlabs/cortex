@@ -66,7 +66,6 @@ const (
 	// K8s annotation
 	MinReplicasAnnotationKey                  = "autoscaling.cortex.dev/min-replicas"
 	MaxReplicasAnnotationKey                  = "autoscaling.cortex.dev/max-replicas"
-	InitReplicasAnnotationKey                 = "autoscaling.cortex.dev/init-replicas"
 	ReplicaParallelismAnnotationKey           = "autoscaling.cortex.dev/replica-parallelism"
 	RequestBacklogAnnotationKey               = "autoscaling.cortex.dev/request-backlog"
 	TargetQueueLengthAnnotationKey            = "autoscaling.cortex.dev/target-queue-length"

@@ -31,8 +31,6 @@ import (
 	kapps "k8s.io/api/apps/v1"
 )
 
-const _tickInterval = 10 * time.Second
-
 type recommendations map[time.Time]int32
 
 func (recs recommendations) add(rec int32) {
@@ -85,7 +83,7 @@ func (recs recommendations) minSince(period time.Duration) *int32 {
 	return &min
 }
 
-func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
+func autoscaleFn(initialDeployment *kapps.Deployment, tickInterval time.Duration) (func() error, error) {
 	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(initialDeployment)
 	if err != nil {
 		return nil, err
@@ -94,7 +92,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 	apiName := initialDeployment.Labels["apiName"]
 	currentReplicas := *initialDeployment.Spec.Replicas
 
-	log.Printf("%s autoscaler init: min_replicas=%d, max_replicas=%d, window=%s, target_queue_length=%s, replica_parallelism=%d, downscale_tolerance=%s, upscale_tolerance=%s, downscale_stabilization_period=%s, upscale_stabilization_period=%s, max_downscale_factor=%s, max_upscale_factor=%s", apiName, autoscalingSpec.MinReplicas, autoscalingSpec.MaxReplicas, autoscalingSpec.Window, s.Float64(autoscalingSpec.TargetQueueLength), autoscalingSpec.ReplicaParallelism, s.Float64(autoscalingSpec.DownscaleTolerance), s.Float64(autoscalingSpec.UpscaleTolerance), autoscalingSpec.DownscaleStabilizationPeriod, autoscalingSpec.UpscaleStabilizationPeriod, s.Float64(autoscalingSpec.MaxDownscaleFactor), s.Float64(autoscalingSpec.MaxUpscaleFactor))
+	log.Printf("%s autoscaler init: min_replicas=%d, max_replicas=%d, replica_parallelism=%d, window=%s, target_queue_length=%s, replica_parallelism=%d, downscale_tolerance=%s, upscale_tolerance=%s, downscale_stabilization_period=%s, upscale_stabilization_period=%s, max_downscale_factor=%s, max_upscale_factor=%s", apiName, autoscalingSpec.MinReplicas, autoscalingSpec.MaxReplicas, autoscalingSpec.ReplicaParallelism, autoscalingSpec.Window, s.Float64(autoscalingSpec.TargetQueueLength), autoscalingSpec.ReplicaParallelism, s.Float64(autoscalingSpec.DownscaleTolerance), s.Float64(autoscalingSpec.UpscaleTolerance), autoscalingSpec.DownscaleStabilizationPeriod, autoscalingSpec.UpscaleStabilizationPeriod, s.Float64(autoscalingSpec.MaxDownscaleFactor), s.Float64(autoscalingSpec.MaxUpscaleFactor))
 
 	var startTime time.Time
 	recs := make(recommendations)
@@ -104,7 +102,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			startTime = time.Now()
 		}
 
-		totalInFlight, err := getInflightRequests(apiName, autoscalingSpec.Window)
+		totalInFlight, err := getInflightRequests(apiName, autoscalingSpec.Window, tickInterval)
 		if err != nil {
 			return err
 		}
@@ -198,7 +196,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 	}, nil
 }
 
-func getInflightRequests(apiName string, window time.Duration) (*float64, error) {
+func getInflightRequests(apiName string, window time.Duration, tickInterval time.Duration) (*float64, error) {
 	endTime := time.Now().Truncate(time.Second)
 	startTime := endTime.Add(-2 * window)
 	metricsDataQuery := cloudwatch.GetMetricDataInput{
@@ -243,12 +241,11 @@ func getInflightRequests(apiName string, window time.Duration) (*float64, error)
 			break
 		}
 	}
-	steps := int(window.Nanoseconds() / _tickInterval.Nanoseconds())
+	steps := int(window.Nanoseconds() / tickInterval.Nanoseconds())
 
 	endTimeStampCounter := libmath.MinInt(timestampCounter+steps, len(output.MetricDataResults[0].Timestamps))
 
 	values := output.MetricDataResults[0].Values[timestampCounter:endTimeStampCounter]
-
 	avg := 0.0
 	for _, val := range values {
 		avg += *val

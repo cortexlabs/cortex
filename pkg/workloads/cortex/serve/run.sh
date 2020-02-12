@@ -29,4 +29,4 @@ fi
 cd /mnt/project
 
 # TODO threads
-exec gunicorn -b 0.0.0.0:$MY_PORT --workers=$REPLICA_PARALLELISM --threads=4 --backlog=$REQUEST_BACKLOG --access-logfile=- --pythonpath=$PYTHONPATH --chdir /mnt/project --log-level debug cortex.serve.wsgi:app
+exec gunicorn -b 0.0.0.0:$CORTEX_SERVING_PORT --workers=$CORTEX_REPLICA_PARALLELISM --backlog=$CORTEX_REQUEST_BACKLOG --access-logfile=- --pythonpath=$PYTHONPATH --chdir /mnt/project --log-level debug cortex.serve.wsgi:app

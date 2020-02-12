@@ -38,14 +38,17 @@ local_cache = {"api": None, "predictor_impl": None, "client": None, "class_set":
 
 
 def start():
-    cache_dir = os.environ["CACHE_DIR"]
-    spec = os.environ["SPEC"]
-    project_dir = os.environ["PROJECT_DIR"]
+    cache_dir = os.environ["CORTEX_CACHE_DIR"]
+    spec = os.environ["CORTEX_API_SPEC"]
+    project_dir = os.environ["CORTEX_PROJECT_DIR"]
+    model_dir = os.getenv("CORTEX_MODEL_DIR", None)
+    tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", None)
     storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
+
     try:
         raw_api_spec = get_spec(storage, cache_dir, spec)
         api = API(storage=storage, cache_dir=cache_dir, **raw_api_spec)
-        client = api.predictor.initialize_client()
+        client = api.predictor.initialize_client(model_dir, tf_serving_port)
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client)
 
@@ -181,25 +184,3 @@ def extract_waitress_params(config):
         cx_logger().info("waitress parameters: {}".format(waitress_kwargs))
 
     return waitress_kwargs
-
-
-def main():
-    assert_api_version()
-    parser = argparse.ArgumentParser()
-    na = parser.add_argument_group("required named arguments")
-    na.add_argument("--port", type=int, required=True, help="port (on localhost) to use")
-    na.add_argument(
-        "--tf-serve-port",
-        type=int,
-        required=False,
-        help="port (on localhost) where tf serving runs",
-    )
-    na.add_argument(
-        "--spec", required=True, help="s3 path to api spec (e.g. s3://bucket/path/to/api_spec.json)"
-    )
-    na.add_argument("--model-dir", required=False, help="directory to download the model to")
-    na.add_argument("--cache-dir", required=True, help="local path for the api cache")
-    na.add_argument("--project-dir", required=True, help="local path for the project zip file")
-    parser.set_defaults(func=start)
-
-    start()

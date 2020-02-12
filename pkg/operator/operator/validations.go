@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -232,8 +233,7 @@ var _autoscalingValidation = &cr.StructFieldValidation{
 					Default: "60s",
 				},
 				Parser: cr.DurationParser(&cr.DurationValidation{
-					GreaterThan: pointer.Duration(libtime.MustParseDuration("0s")),
-					// TODO multiple of 10
+					GreaterThanOrEqualTo: &consts.AutoscalingTickInterval,
 				}),
 			},
 			{
@@ -445,6 +445,12 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 		}
 	}
 
+	for key := range predictor.Env {
+		if strings.HasPrefix(key, "CORTEX_") {
+			return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed(), userconfig.EnvKey, key)
+		}
+	}
+
 	if _, ok := projectFileMap[predictor.Path]; !ok {
 		return errors.Wrap(ErrorImplDoesNotExist(predictor.Path), userconfig.PathKey)
 	}
@@ -638,6 +644,10 @@ func validateAutoscaling(autoscaling *userconfig.Autoscaling) error {
 
 	if autoscaling.InitReplicas < autoscaling.MinReplicas {
 		return ErrorInitReplicasLessThanMin(autoscaling.InitReplicas, autoscaling.MinReplicas)
+	}
+
+	if autoscaling.Window.Nanoseconds()%consts.AutoscalingTickInterval.Nanoseconds() != 0 {
+		return errors.Wrap(ErrorMustBeMultiple(autoscaling.Window.String(), consts.AutoscalingTickInterval.String()), userconfig.WindowKey)
 	}
 
 	return nil

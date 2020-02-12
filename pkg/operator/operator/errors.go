@@ -51,6 +51,8 @@ const (
 	ErrFieldMustBeDefinedForPredictorType
 	ErrFieldNotSupportedByPredictorType
 	ErrNoAvailableNodeComputeLimit
+	ErrCortexPrefixedEnvVarNotAllowed
+	ErrMustBeMultiple
 	ErrAPINotDeployed
 )
 
@@ -78,6 +80,8 @@ var _errorKinds = []string{
 	"err_field_must_be_defined_for_predictor_type",
 	"err_field_not_supported_by_predictor_type",
 	"err_no_available_node_compute_limit",
+	"err_cortex_prefixed_env_var_not_allowed",
+	"err_must_be_multiple",
 	"err_api_not_deployed",
 }
 
@@ -311,6 +315,20 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 	return errors.WithStack(Error{
 		Kind:    ErrNoAvailableNodeComputeLimit,
 		message: message,
+	})
+}
+
+func ErrorCortexPrefixedEnvVarNotAllowed() error {
+	return errors.WithStack(Error{
+		Kind:    ErrCortexPrefixedEnvVarNotAllowed,
+		message: fmt.Sprintf("environment variables starting with CORTEX_ are reserved"),
+	})
+}
+
+func ErrorMustBeMultiple(val string, multiple string) error {
+	return errors.WithStack(Error{
+		Kind:    ErrMustBeMultiple,
+		message: fmt.Sprintf("%s must be a multiple of %s", val, multiple),
 	})
 }
 

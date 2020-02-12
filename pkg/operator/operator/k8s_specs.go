@@ -139,15 +139,17 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 						Name:            _apiContainerName,
 						Image:           config.Cluster.ImageTFAPI,
 						ImagePullPolicy: kcore.PullAlways,
-						Args: []string{
-							"--port=" + _defaultPortStr,
-							"--tf-serve-port=" + _tfServingPortStr,
-							"--spec=" + aws.S3Path(*config.Cluster.Bucket, api.Key),
-							"--cache-dir=" + _specCacheDir,
-							"--model-dir=" + path.Join(_emptyDirMountPath, "model"),
-							"--project-dir=" + path.Join(_emptyDirMountPath, "project"),
-						},
-						Env:            getEnvVars(api),
+						Env: append(
+							getEnvVars(api),
+							kcore.EnvVar{
+								Name:  "CORTEX_MODEL_DIR",
+								Value: path.Join(_emptyDirMountPath, "model"),
+							},
+							kcore.EnvVar{
+								Name:  "CORTEX_TF_SERVING_PORT",
+								Value: _tfServingPortStr,
+							},
+						),
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
 						ReadinessProbe: _apiReadinessProbe,
@@ -157,10 +159,8 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 						Ports: []kcore.ContainerPort{
 							{ContainerPort: _defaultPortInt32},
 						},
-						SecurityContext: &kcore.SecurityContext{
-							Privileged: pointer.Bool(true),
-						},
 					},
+					*requestMonitorContainer(api),
 					{
 						Name:            _tfServingContainerName,
 						Image:           servingImage,
@@ -292,49 +292,10 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						Name:            _apiContainerName,
 						Image:           servingImage,
 						ImagePullPolicy: kcore.PullAlways,
-						Args: []string{
-							"--port=" + _defaultPortStr,
-							"--spec=" + aws.S3Path(*config.Cluster.Bucket, api.Key),
-							"--cache-dir=" + _specCacheDir,
-							"--project-dir=" + path.Join(_emptyDirMountPath, "project"),
-						},
-						Env: append(getEnvVars(api),
-							kcore.EnvVar{
-								Name:  "REPLICA_PARALLELISM",
-								Value: s.Int32(api.Autoscaling.ReplicaParallelism),
-							},
-							kcore.EnvVar{
-								Name:  "REQUEST_BACKLOG",
-								Value: s.Int32(api.Autoscaling.RequestBacklog),
-							},
-							kcore.EnvVar{
-								Name:  "MY_PORT",
-								Value: _defaultPortStr,
-							},
-							kcore.EnvVar{
-								Name:  "DOWNLOAD_CONFIG",
-								Value: pythonDownloadArgs(api),
-							},
-							kcore.EnvVar{
-								Name:  "PYTHONUNBUFFERED",
-								Value: "TRUE",
-							},
-							kcore.EnvVar{
-								Name:  "SPEC",
-								Value: aws.S3Path(*config.Cluster.Bucket, api.Key),
-							},
-							kcore.EnvVar{
-								Name:  "CACHE_DIR",
-								Value: _specCacheDir,
-							},
-							kcore.EnvVar{
-								Name:  "PROJECT_DIR",
-								Value: path.Join(_emptyDirMountPath, "project"),
-							},
-						),
-						EnvFrom:        _baseEnvVars,
-						VolumeMounts:   _defaultVolumeMounts,
-						ReadinessProbe: _apiReadinessProbe,
+						Env:             getEnvVars(api),
+						EnvFrom:         _baseEnvVars,
+						VolumeMounts:    _defaultVolumeMounts,
+						ReadinessProbe:  _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
@@ -342,26 +303,8 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						Ports: []kcore.ContainerPort{
 							{ContainerPort: _defaultPortInt32},
 						},
-						SecurityContext: &kcore.SecurityContext{
-							Privileged: pointer.Bool(true),
-						},
 					},
-					{
-						Name:            "request-monitor",
-						Image:           config.Cluster.ImageRequestMonitor,
-						ImagePullPolicy: kcore.PullAlways,
-						Env: append(
-							getEnvVars(api),
-							kcore.EnvVar{
-								Name:  "API_NAME",
-								Value: api.Name,
-							}, kcore.EnvVar{
-								Name:  "CORTEX_LOG_GROUP",
-								Value: config.Cluster.LogGroup,
-							}),
-						EnvFrom:      _baseEnvVars,
-						VolumeMounts: _defaultVolumeMounts,
-					},
+					*requestMonitorContainer(api),
 				},
 				NodeSelector: map[string]string{
 					"workload": "true",
@@ -372,6 +315,17 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 			},
 		},
 	})
+}
+
+func requestMonitorContainer(api *spec.API) *kcore.Container {
+	return &kcore.Container{
+		Name:            "request-monitor",
+		Image:           config.Cluster.ImageRequestMonitor,
+		ImagePullPolicy: kcore.PullAlways,
+		Args:            []string{api.Name, config.Cluster.LogGroup},
+		EnvFrom:         _baseEnvVars,
+		VolumeMounts:    _defaultVolumeMounts,
+	}
 }
 
 func pythonDownloadArgs(api *spec.API) string {
@@ -448,14 +402,13 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 						Name:            _apiContainerName,
 						Image:           servingImage,
 						ImagePullPolicy: kcore.PullAlways,
-						Args: []string{
-							"--port=" + _defaultPortStr,
-							"--spec=" + aws.S3Path(*config.Cluster.Bucket, api.Key),
-							"--cache-dir=" + _specCacheDir,
-							"--model-dir=" + path.Join(_emptyDirMountPath, "model"),
-							"--project-dir=" + path.Join(_emptyDirMountPath, "project"),
-						},
-						Env:            getEnvVars(api),
+						Env: append(
+							getEnvVars(api),
+							kcore.EnvVar{
+								Name:  "CORTEX_MODEL_DIR",
+								Value: path.Join(_emptyDirMountPath, "model"),
+							},
+						),
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
 						ReadinessProbe: _apiReadinessProbe,
@@ -466,10 +419,8 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 						Ports: []kcore.ContainerPort{
 							{ContainerPort: _defaultPortInt32},
 						},
-						SecurityContext: &kcore.SecurityContext{
-							Privileged: pointer.Bool(true),
-						},
 					},
+					*requestMonitorContainer(api),
 				},
 				NodeSelector: map[string]string{
 					"workload": "true",
@@ -571,6 +522,30 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 				},
 			},
 		},
+		kcore.EnvVar{
+			Name:  "CORTEX_REPLICA_PARALLELISM",
+			Value: s.Int32(api.Autoscaling.ReplicaParallelism),
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_REQUEST_BACKLOG",
+			Value: s.Int32(api.Autoscaling.RequestBacklog),
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_SERVING_PORT",
+			Value: _defaultPortStr,
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_API_SPEC",
+			Value: aws.S3Path(*config.Cluster.Bucket, api.Key),
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_CACHE_DIR",
+			Value: _specCacheDir,
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_PROJECT_DIR",
+			Value: path.Join(_emptyDirMountPath, "project"),
+		},
 	)
 
 	if api.Predictor.PythonPath != nil {
@@ -585,23 +560,6 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 
 func k8sName(apiName string) string {
 	return "api-" + apiName
-}
-
-func apiAnnotations(api *spec.API) map[string]string {
-	return map[string]string{
-		"autoscaling.cortex.dev/min-replicas":                   s.Int32(api.Autoscaling.MinReplicas),
-		"autoscaling.cortex.dev/max-replicas":                   s.Int32(api.Autoscaling.MaxReplicas),
-		"autoscaling.cortex.dev/replica-parallelism":            s.Int32(api.Autoscaling.ReplicaParallelism),
-		"autoscaling.cortex.dev/request-backlog":                s.Int32(api.Autoscaling.RequestBacklog),
-		"autoscaling.cortex.dev/target-queue-length":            s.Float64(api.Autoscaling.TargetQueueLength),
-		"autoscaling.cortex.dev/window":                         api.Autoscaling.Window.String(),
-		"autoscaling.cortex.dev/downscale-stabilization-period": api.Autoscaling.DownscaleStabilizationPeriod.String(),
-		"autoscaling.cortex.dev/upscale-stabilization-period":   api.Autoscaling.UpscaleStabilizationPeriod.String(),
-		"autoscaling.cortex.dev/max-downscale-factor":           s.Float64(api.Autoscaling.MaxDownscaleFactor),
-		"autoscaling.cortex.dev/max-upscale-factor":             s.Float64(api.Autoscaling.MaxUpscaleFactor),
-		"autoscaling.cortex.dev/downscale-tolerance":            s.Float64(api.Autoscaling.DownscaleTolerance),
-		"autoscaling.cortex.dev/upscale-tolerance":              s.Float64(api.Autoscaling.UpscaleTolerance),
-	}
 }
 
 var _apiReadinessProbe = &kcore.Probe{
