@@ -523,8 +523,16 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 			},
 		},
 		kcore.EnvVar{
-			Name:  "CORTEX_REPLICA_PARALLELISM",
-			Value: s.Int32(api.Autoscaling.ReplicaParallelism),
+			Name:  "CORTEX_OS_MAX_CONN",
+			Value: s.Int32(api.Autoscaling.WorkersPerReplica + api.Autoscaling.ThreadsPerWorker*api.Autoscaling.RequestBacklog),
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_WORKERS_PER_REPLICA",
+			Value: s.Int32(api.Autoscaling.WorkersPerReplica),
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_THREADS_PER_WORKER",
+			Value: s.Int32(api.Autoscaling.ThreadsPerWorker),
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_REQUEST_BACKLOG",

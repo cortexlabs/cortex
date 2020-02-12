@@ -207,9 +207,17 @@ var _autoscalingValidation = &cr.StructFieldValidation{
 				},
 			},
 			{
-				StructField: "ReplicaParallelism",
+				StructField: "WorkersPerReplica",
 				Int32Validation: &cr.Int32Validation{
 					Default:              4,
+					GreaterThanOrEqualTo: pointer.Int32(1),
+					LessThanOrEqualTo:    pointer.Int32(20),
+				},
+			},
+			{
+				StructField: "ThreadsPerWorker",
+				Int32Validation: &cr.Int32Validation{
+					Default:              1,
 					GreaterThanOrEqualTo: pointer.Int32(1),
 				},
 			},

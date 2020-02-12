@@ -65,7 +65,8 @@ type Autoscaling struct {
 	MinReplicas                  int32         `json:"min_replicas" yaml:"min_replicas"`
 	MaxReplicas                  int32         `json:"max_replicas" yaml:"max_replicas"`
 	InitReplicas                 int32         `json:"init_replicas" yaml:"init_replicas"`
-	ReplicaParallelism           int32         `json:"replica_parallelism" yaml:"replica_parallelism"`
+	WorkersPerReplica            int32         `json:"workers_per_replica" yaml:"workers_per_replica"`
+	ThreadsPerWorker             int32         `json:"threads_per_worker" yaml:"threads_per_worker"`
 	RequestBacklog               int32         `json:"request_backlog" yaml:"request_backlog"`
 	TargetQueueLength            float64       `json:"target_queue_length" yaml:"target_queue_length"`
 	Window                       time.Duration `json:"window" yaml:"window"`
@@ -82,7 +83,8 @@ func (a *Autoscaling) ToK8sAnnotations() map[string]string {
 	return map[string]string{
 		MinReplicasAnnotationKey:                  s.Int32(a.MinReplicas),
 		MaxReplicasAnnotationKey:                  s.Int32(a.MaxReplicas),
-		ReplicaParallelismAnnotationKey:           s.Int32(a.ReplicaParallelism),
+		WorkersPerReplicaAnnotationKey:            s.Int32(a.WorkersPerReplica),
+		ThreadsPerWorkerAnnotationKey:             s.Int32(a.ThreadsPerWorker),
 		RequestBacklogAnnotationKey:               s.Int32(a.RequestBacklog),
 		TargetQueueLengthAnnotationKey:            s.Float64(a.TargetQueueLength),
 		WindowAnnotationKey:                       a.Window.String(),
@@ -110,11 +112,17 @@ func AutoscalingFromAnnotations(deployment kmeta.Object) (*Autoscaling, error) {
 	}
 	a.MaxReplicas = maxReplicas
 
-	replicaParallelism, err := k8s.ParseInt32Annotation(deployment, ReplicaParallelismAnnotationKey)
+	workersPerReplica, err := k8s.ParseInt32Annotation(deployment, WorkersPerReplicaAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
-	a.ReplicaParallelism = replicaParallelism
+	a.WorkersPerReplica = workersPerReplica
+
+	threadsPerWorker, err := k8s.ParseInt32Annotation(deployment, ThreadsPerWorkerAnnotationKey)
+	if err != nil {
+		return nil, err
+	}
+	a.ThreadsPerWorker = threadsPerWorker
 
 	requestBacklog, err := k8s.ParseInt32Annotation(deployment, RequestBacklogAnnotationKey)
 	if err != nil {
@@ -280,7 +288,8 @@ func (autoscaling *Autoscaling) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MinReplicasKey, s.Int32(autoscaling.MinReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicasKey, s.Int32(autoscaling.MaxReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(autoscaling.InitReplicas)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ReplicaParallelismKey, s.Int32(autoscaling.ReplicaParallelism)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", WorkersPerReplicaKey, s.Int32(autoscaling.WorkersPerReplica)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerWorkerKey, s.Int32(autoscaling.ThreadsPerWorker)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", RequestBacklogKey, s.Int32(autoscaling.RequestBacklog)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetQueueLengthKey, s.Float64(autoscaling.TargetQueueLength)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WindowKey, autoscaling.Window.String()))

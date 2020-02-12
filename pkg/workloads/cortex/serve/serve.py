@@ -72,7 +72,6 @@ def start():
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    print(request)
     debug = request.args.get("debug", "false").lower() == "true"
 
     try:
@@ -114,8 +113,6 @@ def after_request(response):
         return response
 
     api = local_cache["api"]
-
-    cx_logger().info(response.status)
 
     prediction = None
     if "prediction" in g:
