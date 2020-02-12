@@ -140,6 +140,7 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/istio-galley istio-galley latest
   fi
 
+  build_and_push $ROOT/images/request-monitor request-monitor latest
   build_and_push $ROOT/images/manager manager latest
   build_and_push $ROOT/images/python-serve python-serve latest
   build_and_push $ROOT/images/python-serve-gpu python-serve-gpu latest
