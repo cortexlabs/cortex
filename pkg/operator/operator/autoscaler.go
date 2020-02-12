@@ -109,7 +109,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			return err
 		}
 		if totalInFlight == nil {
-			log.Printf("metrics not found")
+			log.Printf("%s autoscaler tick: metrics not found", apiName)
 			return nil
 		}
 
