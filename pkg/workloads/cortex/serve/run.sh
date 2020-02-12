@@ -18,10 +18,15 @@ set -e
 
 export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
 
+sysctl -w net.core.somaxconn=4096  # TODO workers * threads + backlog
+sysctl -w net.ipv4.ip_local_port_range="15000 64000"
+sysctl -w net.ipv4.tcp_fin_timeout=30
+
 if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
 cd /mnt/project
 
-exec gunicorn -b 0.0.0.0:$MY_PORT --workers=$REPLICA_PARALLELISM --backlog=$REQUEST_BACKLOG --access-logfile=- --pythonpath=$PYTHONPATH --chdir /mnt/project --log-level debug cortex.serve.wsgi:app
+# TODO threads
+exec gunicorn -b 0.0.0.0:$MY_PORT --workers=$REPLICA_PARALLELISM --threads=4 --backlog=$REQUEST_BACKLOG --access-logfile=- --pythonpath=$PYTHONPATH --chdir /mnt/project --log-level debug cortex.serve.wsgi:app
