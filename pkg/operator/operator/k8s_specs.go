@@ -524,7 +524,7 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_OS_MAX_CONN",
-			Value: s.Int32(api.Autoscaling.WorkersPerReplica + api.Autoscaling.ThreadsPerWorker*api.Autoscaling.RequestBacklog),
+			Value: s.Int32(api.Autoscaling.WorkersPerReplica*api.Autoscaling.ThreadsPerWorker + api.Autoscaling.RequestBacklog),
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_WORKERS_PER_REPLICA",
