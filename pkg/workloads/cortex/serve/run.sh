@@ -18,7 +18,7 @@ set -e
 
 export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
 
-sysctl -w net.core.somaxconn=$CORTEX_OS_MAX_CONN  # TODO workers * threads + backlog
+sysctl -w net.core.somaxconn=$CORTEX_OS_MAX_CONN
 sysctl -w net.ipv4.ip_local_port_range="15000 64000"
 sysctl -w net.ipv4.tcp_fin_timeout=30
 

@@ -33,7 +33,6 @@ You can deploy TensorFlow models as web services by defining a class that implem
     request_backlog: <int>  # maximum number of pending connections per replica
     target_queue_length: <float>  # the desired queue length per replica (default: 0)
     window: <duration>  # the time over which to average the API's queue length (default: 60s)
-    # tick: <duration>  # the time between each execution of the autoscaler  # TODO maybe don't make this configurable
     downscale_stabilization_period: <duration>  # the API will not scale below the highest recommendation made during this period (default: 5m)
     upscale_stabilization_period: <duration>  # the API will not scale above the lowest recommendation made during this period (default: 0m)
     max_downscale_factor: <float>  # the maximum factor by which to scale down the API on a single scaling event (default: 0.5)

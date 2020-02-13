@@ -157,7 +157,7 @@ func publishStats(apiName string, counter *Counter, client *cloudwatch.CloudWatc
 	}
 	_, err := client.PutMetricData(&metricData)
 	if err != nil {
-		log.Printf("error: publishing metrics: %s", err.Error()) // TODO
+		log.Printf("error: publishing metrics: %s", err.Error())
 	}
 }
 
