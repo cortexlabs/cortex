@@ -28,4 +28,4 @@ fi
 
 cd /mnt/project
 
-exec gunicorn -b 0.0.0.0:$CORTEX_SERVING_PORT --threads=$CORTEX_THREADS_PER_WORKER --workers=$CORTEX_WORKERS_PER_REPLICA --backlog=$CORTEX_REQUEST_BACKLOG --log-level=warning --access-logfile=- --pythonpath=$PYTHONPATH --chdir /mnt/project cortex.serve.wsgi:app
+exec gunicorn -b 0.0.0.0:$CORTEX_SERVING_PORT --threads=$CORTEX_THREADS_PER_WORKER --workers=$CORTEX_WORKERS_PER_REPLICA --backlog=$CORTEX_REQUEST_BACKLOG --access-logfile=- --pythonpath=$PYTHONPATH --chdir /mnt/project cortex.serve.wsgi:app
