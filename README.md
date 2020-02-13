@@ -51,9 +51,8 @@ aws resource                                cost per hour
 1 t3.medium instance for the operator       $0.0416
 1 20gb ebs volume for the operator          $0.003
 2 elastic load balancers                    $0.025 each
-1 nat gateway                               $0.045
 
-your cluster will cost $0.24 - $2.88 per hour based on the cluster size and spot instance availability
+your cluster will cost $0.19 - $2.84 per hour based on the cluster size and spot instance availability
 
 ￮ spinning up your cluster ...
 
