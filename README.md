@@ -39,12 +39,24 @@ $ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.13/g
 $ cortex cluster up
 
 aws region: us-west-2
-aws instance type: p2.xlarge
+aws instance type: g4dn.xlarge
 spot instances: yes
 min instances: 0
-max instances: 10
+max instances: 5
+
+aws resource                                cost per hour
+1 eks cluster                               $0.10
+0 - 5 g4dn.xlarge instances for your apis   $0.1578 - $0.526 each (varies based on spot price)
+0 - 5 20gb ebs volumes for your apis        $0.003 each
+1 t3.medium instance for the operator       $0.0416
+1 20gb ebs volume for the operator          $0.003
+2 elastic load balancers                    $0.025 each
+1 nat gateway                               $0.045
+
+your cluster will cost $0.24 - $2.88 per hour based on the cluster size and spot instance availability
 
 ￮ spinning up your cluster ...
+
 your cluster is ready!
 ```
 
@@ -123,27 +135,6 @@ Cortex is an open source alternative to serving models with SageMaker or buildin
 ## How does Cortex work?
 
 The CLI sends configuration and code to the cluster every time you run `cortex deploy`. Each model is loaded into a Docker container, along with any Python packages and request handling code. The model is exposed as a web service using Elastic Load Balancing (ELB), TensorFlow Serving, and ONNX Runtime. The containers are orchestrated on Elastic Kubernetes Service (EKS) while logs and metrics are streamed to CloudWatch.
-
-<br>
-
-## How much does Cortex cost?
-
-Cortex is free, however the resources that are created and managed by Cortex in your AWS account are not. After running `cortex cluster up`, the CLI will display the cost of your cluster. Here is an example:
-
-```text
-$ cortex cluster up
-
-aws resource                             cost per hour
-1 eks cluster                            $0.10
-1 - 4 m5.large instances for your apis   $0.0338 - $0.096 each (varies based on spot price)
-1 - 4 20gb ebs volumes for your apis     $0.003 each
-1 t3.medium instance for the operator    $0.0416
-1 20gb ebs volume for the operator       $0.003
-2 elastic load balancers                 $0.025 each
-1 nat gateway                            $0.045
-
-your cluster will cost $0.28 - $0.63 per hour based on the cluster size and spot instance availability
-```
 
 <br>
 
