@@ -79,21 +79,21 @@ type Autoscaling struct {
 }
 
 // InitReplicas was left out deliberately
-func (a *Autoscaling) ToK8sAnnotations() map[string]string {
+func (autoscaling *Autoscaling) ToK8sAnnotations() map[string]string {
 	return map[string]string{
-		MinReplicasAnnotationKey:                  s.Int32(a.MinReplicas),
-		MaxReplicasAnnotationKey:                  s.Int32(a.MaxReplicas),
-		WorkersPerReplicaAnnotationKey:            s.Int32(a.WorkersPerReplica),
-		ThreadsPerWorkerAnnotationKey:             s.Int32(a.ThreadsPerWorker),
-		RequestBacklogAnnotationKey:               s.Int32(a.RequestBacklog),
-		TargetQueueLengthAnnotationKey:            s.Float64(a.TargetQueueLength),
-		WindowAnnotationKey:                       a.Window.String(),
-		DownscaleStabilizationPeriodAnnotationKey: a.DownscaleStabilizationPeriod.String(),
-		UpscaleStabilizationPeriodAnnotationKey:   a.UpscaleStabilizationPeriod.String(),
-		MaxDownscaleFactorAnnotationKey:           s.Float64(a.MaxDownscaleFactor),
-		MaxUpscaleFactorAnnotationKey:             s.Float64(a.MaxUpscaleFactor),
-		DownscaleToleranceAnnotationKey:           s.Float64(a.DownscaleTolerance),
-		UpscaleToleranceAnnotationKey:             s.Float64(a.UpscaleTolerance),
+		MinReplicasAnnotationKey:                  s.Int32(autoscaling.MinReplicas),
+		MaxReplicasAnnotationKey:                  s.Int32(autoscaling.MaxReplicas),
+		WorkersPerReplicaAnnotationKey:            s.Int32(autoscaling.WorkersPerReplica),
+		ThreadsPerWorkerAnnotationKey:             s.Int32(autoscaling.ThreadsPerWorker),
+		RequestBacklogAnnotationKey:               s.Int32(autoscaling.RequestBacklog),
+		TargetQueueLengthAnnotationKey:            s.Float64(autoscaling.TargetQueueLength),
+		WindowAnnotationKey:                       autoscaling.Window.String(),
+		DownscaleStabilizationPeriodAnnotationKey: autoscaling.DownscaleStabilizationPeriod.String(),
+		UpscaleStabilizationPeriodAnnotationKey:   autoscaling.UpscaleStabilizationPeriod.String(),
+		MaxDownscaleFactorAnnotationKey:           s.Float64(autoscaling.MaxDownscaleFactor),
+		MaxUpscaleFactorAnnotationKey:             s.Float64(autoscaling.MaxUpscaleFactor),
+		DownscaleToleranceAnnotationKey:           s.Float64(autoscaling.DownscaleTolerance),
+		UpscaleToleranceAnnotationKey:             s.Float64(autoscaling.UpscaleTolerance),
 	}
 }
 
