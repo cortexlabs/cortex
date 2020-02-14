@@ -159,6 +159,9 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 						Ports: []kcore.ContainerPort{
 							{ContainerPort: _defaultPortInt32},
 						},
+						SecurityContext: &kcore.SecurityContext{
+							Privileged: pointer.Bool(true),
+						},
 					},
 					*requestMonitorContainer(api),
 					{
@@ -303,6 +306,9 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						Ports: []kcore.ContainerPort{
 							{ContainerPort: _defaultPortInt32},
 						},
+						SecurityContext: &kcore.SecurityContext{
+							Privileged: pointer.Bool(true),
+						},
 					},
 					*requestMonitorContainer(api),
 				},
@@ -418,6 +424,9 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 						},
 						Ports: []kcore.ContainerPort{
 							{ContainerPort: _defaultPortInt32},
+						},
+						SecurityContext: &kcore.SecurityContext{
+							Privileged: pointer.Bool(true),
 						},
 					},
 					*requestMonitorContainer(api),
