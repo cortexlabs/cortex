@@ -75,4 +75,28 @@ One other way to reduce the inference time is to convert the models to use FP16/
 
 ## Launching the Client
 
-Once the APIs are up and running, go on and launch the client by following the instructions [here](client/README.md).
+### Verifying the Deployed APIs
+
+We want to verify that both APIs are working as expected. To do this, we can run the inference on a sample image. Take the following example hosted on imgur.
+
+![](https://i.imgur.com/r8xdI7P.png)
+
+On your local machine run
+```
+pip install requests click opencv-contrib-python numpy
+``` 
+and run the following script with Python >= `3.6.x`. The application expects the argument to be a link to an image. The following link is for the above sample image.
+
+```bash
+export YOLOV3_ENDPOINT=api_endpoint_for_yolov3
+export CRNN_ENDPOINT=api_endpoint_for_crnn
+python sample_inference.py "https://i.imgur.com/r8xdI7P.png"
+```
+
+### Running the Client
+
+Once the APIs are up and running, go on and launch the client by following the instructions in the following repository.
+
+*Note: The client is kept in a separate repository to maintain the cortex project clean and focused. Keeping some of the projects that are more complex out of this repository can reduce the confusion.*
+
+This is the client's repository: [robertlucian/cortex-license-plate-reader-client](https://github.com/RobertLucian/cortex-license-plate-reader-client).
