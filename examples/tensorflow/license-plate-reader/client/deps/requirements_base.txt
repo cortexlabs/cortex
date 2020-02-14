@@ -1,9 +1,0 @@
-certifi==2019.11.28
-idna==2.8
-numpy==1.18.1
-opencv-contrib-python==4.1.0.25
-requests==2.22.0
-requests-toolbelt==0.9.1
-urllib3==1.25.8
-pynmea2==1.15.0
-Click==7.0
