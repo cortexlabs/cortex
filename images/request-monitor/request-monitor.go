@@ -131,11 +131,13 @@ func publishStats(apiName string, counter *Counter, client *cloudwatch.CloudWatc
 	requestCounts := counter.GetAllAndDelete()
 
 	total := 0.0
-	for _, val := range requestCounts {
-		total += float64(val)
-	}
+	if len(requestCounts) > 0 {
+		for _, val := range requestCounts {
+			total += float64(val)
+		}
 
-	total /= float64(len(requestCounts))
+		total /= float64(len(requestCounts))
+	}
 	log.Printf("recorded %.2f in-flight requests on replica", total)
 	curTime := time.Now()
 	metricData := cloudwatch.PutMetricDataInput{
