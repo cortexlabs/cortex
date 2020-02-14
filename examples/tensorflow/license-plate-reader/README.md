@@ -84,7 +84,7 @@ We want to verify that both APIs are working as expected before we move on to ru
 On your local machine run
 ```
 pip install requests click opencv-contrib-python numpy
-``` 
+```
 and run the following script with Python >= `3.6.x`. The application expects the argument to be a link to an image. The following link is for the above sample image.
 
 ```bash
@@ -97,7 +97,7 @@ If all goes well and no timeouts are encountered, no errors, no nothing, then a 
 
 ![Imgur](https://i.imgur.com/JaD4A05.jpg)
 
-If this verification works, then move on to the next chapter where we actually run the main client. 
+If this verification works, then move on to the next chapter where we actually run the main client.
 
 ### Running the Client
 
