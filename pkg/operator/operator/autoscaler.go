@@ -107,7 +107,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment, tickInterval time.Duration
 			return err
 		}
 		if totalInFlight == nil {
-			log.Printf("%s autoscaler tick: metrics not found", apiName)
+			log.Printf("%s autoscaler tick: metrics not available yet", apiName)
 			return nil
 		}
 
