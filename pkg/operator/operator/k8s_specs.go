@@ -49,6 +49,11 @@ const (
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
 )
 
+var (
+	_requestMonitorCPURequest = kresource.MustParse("10m")
+	_requestMonitorMemRequest = kresource.MustParse("10Mi")
+)
+
 type downloadContainerConfig struct {
 	DownloadArgs []downloadContainerArg `json:"download_args"`
 	LastLog      string                 `json:"last_log"` // string to log at the conclusion of the downloader (if "" nothing will be logged)
@@ -82,12 +87,16 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
 
-	q1, q2 := api.Compute.CPU.SplitInTwo()
+	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
+	userPodCPURequest.Sub(_requestMonitorCPURequest)
+	q1, q2 := k8s.SplitInTwo(userPodCPURequest)
 	apiResourceList[kcore.ResourceCPU] = *q1
 	tfServingResourceList[kcore.ResourceCPU] = *q2
 
 	if api.Compute.Mem != nil {
-		q1, q2 := api.Compute.Mem.SplitInTwo()
+		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
+		userPodMemRequest.Sub(_requestMonitorMemRequest)
+		q1, q2 := k8s.SplitInTwo(userPodMemRequest)
 		apiResourceList[kcore.ResourceMemory] = *q1
 		tfServingResourceList[kcore.ResourceMemory] = *q2
 	}
@@ -243,10 +252,15 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	servingImage := config.Cluster.ImagePythonServe
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
-	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
+
+	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
+	userPodCPURequest.Sub(_requestMonitorCPURequest)
+	resourceList[kcore.ResourceCPU] = *userPodCPURequest
 
 	if api.Compute.Mem != nil {
-		resourceList[kcore.ResourceMemory] = api.Compute.Mem.Quantity
+		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
+		userPodMemRequest.Sub(_requestMonitorMemRequest)
+		resourceList[kcore.ResourceMemory] = *userPodMemRequest
 	}
 
 	if api.Compute.GPU > 0 {
@@ -323,17 +337,6 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	})
 }
 
-func requestMonitorContainer(api *spec.API) *kcore.Container {
-	return &kcore.Container{
-		Name:            "request-monitor",
-		Image:           config.Cluster.ImageRequestMonitor,
-		ImagePullPolicy: kcore.PullAlways,
-		Args:            []string{api.Name, config.Cluster.LogGroup},
-		EnvFrom:         _baseEnvVars,
-		VolumeMounts:    _defaultVolumeMounts,
-	}
-}
-
 func pythonDownloadArgs(api *spec.API) string {
 	downloadConfig := downloadContainerConfig{
 		LastLog: fmt.Sprintf(_downloaderLastLog, "python"),
@@ -357,10 +360,15 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 	servingImage := config.Cluster.ImageONNXServe
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
-	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
+
+	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
+	userPodCPURequest.Sub(_requestMonitorCPURequest)
+	resourceList[kcore.ResourceCPU] = *userPodCPURequest
 
 	if api.Compute.Mem != nil {
-		resourceList[kcore.ResourceMemory] = api.Compute.Mem.Quantity
+		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
+		userPodMemRequest.Sub(_requestMonitorMemRequest)
+		resourceList[kcore.ResourceMemory] = *userPodMemRequest
 	}
 
 	if api.Compute.GPU > 0 {
@@ -573,6 +581,23 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 	}
 
 	return envVars
+}
+
+func requestMonitorContainer(api *spec.API) *kcore.Container {
+	return &kcore.Container{
+		Name:            "request-monitor",
+		Image:           config.Cluster.ImageRequestMonitor,
+		ImagePullPolicy: kcore.PullAlways,
+		Args:            []string{api.Name, config.Cluster.LogGroup},
+		EnvFrom:         _baseEnvVars,
+		VolumeMounts:    _defaultVolumeMounts,
+		Resources: kcore.ResourceRequirements{
+			Requests: kcore.ResourceList{
+				kcore.ResourceCPU:    _requestMonitorCPURequest,
+				kcore.ResourceMemory: _requestMonitorMemRequest,
+			},
+		},
+	}
 }
 
 func k8sName(apiName string) string {
