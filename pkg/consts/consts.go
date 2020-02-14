@@ -16,12 +16,9 @@ limitations under the License.
 
 package consts
 
-import "time"
-
 var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
 	MaxClassesPerTrackerRequest = 20 // cloudwatch.GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats
-	AutoscalingTickInterval     = 10 * time.Second
 )

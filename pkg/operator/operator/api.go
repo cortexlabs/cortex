@@ -23,7 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -252,12 +251,12 @@ func updateAutoscalerCron(deployment *kapps.Deployment) error {
 		prevAutoscalerCron.Cancel()
 	}
 
-	autoscaler, err := autoscaleFn(deployment, consts.AutoscalingTickInterval)
+	autoscaler, err := autoscaleFn(deployment, _autoscalingTickInterval)
 	if err != nil {
 		return err
 	}
 
-	_autoscalerCrons[apiName] = cron.Run(autoscaler, cronErrHandler(apiName+" autoscaler"), consts.AutoscalingTickInterval)
+	_autoscalerCrons[apiName] = cron.Run(autoscaler, cronErrHandler(apiName+" autoscaler"), _autoscalingTickInterval)
 
 	return nil
 }

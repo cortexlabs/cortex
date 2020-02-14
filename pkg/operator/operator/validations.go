@@ -22,7 +22,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -234,7 +233,7 @@ var _autoscalingValidation = &cr.StructFieldValidation{
 					Default: "60s",
 				},
 				Parser: cr.DurationParser(&cr.DurationValidation{
-					GreaterThanOrEqualTo: &consts.AutoscalingTickInterval,
+					GreaterThanOrEqualTo: &_autoscalingTickInterval,
 				}),
 			},
 			{
@@ -647,8 +646,8 @@ func validateAutoscaling(autoscaling *userconfig.Autoscaling) error {
 		return ErrorInitReplicasLessThanMin(autoscaling.InitReplicas, autoscaling.MinReplicas)
 	}
 
-	if autoscaling.Window.Nanoseconds()%consts.AutoscalingTickInterval.Nanoseconds() != 0 {
-		return errors.Wrap(ErrorMustBeMultiple(autoscaling.Window.String(), consts.AutoscalingTickInterval.String()), userconfig.WindowKey)
+	if autoscaling.Window.Nanoseconds()%_autoscalingTickInterval.Nanoseconds() != 0 {
+		return errors.Wrap(ErrorMustBeMultiple(autoscaling.Window.String(), _autoscalingTickInterval.String()), userconfig.WindowKey)
 	}
 
 	return nil

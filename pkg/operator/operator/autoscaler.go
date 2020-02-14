@@ -31,6 +31,8 @@ import (
 	kapps "k8s.io/api/apps/v1"
 )
 
+const _autoscalingTickInterval = 10 * time.Second
+
 type recommendations map[time.Time]int32
 
 func (recs recommendations) add(rec int32) {
