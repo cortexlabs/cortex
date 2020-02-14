@@ -30,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/denormal/go-gitignore"
 	"github.com/xlab/treeprint"
 )
 
@@ -287,7 +288,7 @@ func IsFilePathPython(path string) bool {
 	return ext == ".py"
 }
 
-// IgnoreFn if passed a dir, returning false will ignore all subdirs of dir
+// IgnoreFn if passed a dir, returning true will ignore all subdirs of dir
 type IgnoreFn func(string, os.FileInfo) (bool, error)
 
 func IgnoreHiddenFiles(path string, fi os.FileInfo) (bool, error) {
@@ -345,6 +346,23 @@ func IgnoreSpecificFiles(absPaths ...string) IgnoreFn {
 	return func(path string, fi os.FileInfo) (bool, error) {
 		return absPathsSet.Has(path), nil
 	}
+}
+
+func GitIgnoreFn(gitIgnorePath string) (IgnoreFn, error) {
+	gitIgnoreDir := filepath.Dir(gitIgnorePath)
+
+	ignore, err := gitignore.NewFromFile(gitIgnorePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return func(path string, fi os.FileInfo) (bool, error) {
+		if path == gitIgnoreDir {
+			// This is to avoid a bug in ignore.Ignore()
+			return false, nil
+		}
+		return ignore.Ignore(path), nil
+	}, nil
 }
 
 // promptMsgTemplate should have two placeholders: the first is for the file path and the second is for the file size
@@ -483,7 +501,7 @@ func DirPaths(paths []string, addTrailingSlash bool) []string {
 func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]string, error) {
 	dir = filepath.Clean(dir)
 
-	fileList := []string{}
+	var fileList []string
 	walkErr := filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return errors.Wrap(err, path)

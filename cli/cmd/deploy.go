@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -102,6 +103,16 @@ func deploy(configPath string, force bool) {
 		files.IgnoreHiddenFolders,
 		files.IgnorePythonGeneratedFiles,
 	}
+
+	cortexIgnorePath := path.Join(projectRoot, ".cortexignore")
+	if files.IsFile(cortexIgnorePath) {
+		cortexIgnore, err := files.GitIgnoreFn(cortexIgnorePath)
+		if err != nil {
+			exit.Error(err)
+		}
+		ignoreFns = append(ignoreFns, cortexIgnore)
+	}
+
 	if !_flagDeployYes {
 		ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
 	}
