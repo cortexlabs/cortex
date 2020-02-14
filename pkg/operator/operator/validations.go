@@ -647,7 +647,7 @@ func validateAutoscaling(autoscaling *userconfig.Autoscaling) error {
 	}
 
 	if autoscaling.Window.Nanoseconds()%_autoscalingTickInterval.Nanoseconds() != 0 {
-		return errors.Wrap(ErrorMustBeMultiple(autoscaling.Window.String(), _autoscalingTickInterval.String()), userconfig.WindowKey)
+		return errors.Wrap(ErrorIsNotMultiple(autoscaling.Window.String(), _autoscalingTickInterval.String()), userconfig.WindowKey)
 	}
 
 	return nil
