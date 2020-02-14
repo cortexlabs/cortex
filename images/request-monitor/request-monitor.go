@@ -49,16 +49,16 @@ type Counter struct {
 
 func (c *Counter) Append(val int) {
 	c.Lock()
+	defer c.Unlock()
 	c.s = append(c.s, val)
-	c.Unlock()
 }
 
 func (c *Counter) GetAllAndDelete() []int {
 	var output []int
 	c.Lock()
+	defer c.Unlock()
 	output = c.s
 	c.s = []int{}
-	c.Unlock()
 	return output
 }
 
