@@ -173,7 +173,7 @@ func updateOpenConnections(requestCounter *Counter, timer *time.Timer) {
 	output := out.String()
 	count := 0
 	for _, str := range strings.Split(output, "\n") {
-		if strings.Contains(str, ":8888 ") {
+		if strings.Contains(str, ":8888 ") && strings.Contains(str, "ESTAB") {
 			count++
 		}
 	}

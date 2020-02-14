@@ -233,7 +233,7 @@ func getInflightRequests(apiName string, window time.Duration, tickInterval time
 		return nil, nil
 	}
 
-	timestampCounter := 0
+	timestampCounter := -1
 	for i, timeStamp := range output.MetricDataResults[0].Timestamps {
 		if endTime.Sub(*timeStamp) < 20*time.Second {
 			timestampCounter = i
@@ -241,6 +241,11 @@ func getInflightRequests(apiName string, window time.Duration, tickInterval time
 			break
 		}
 	}
+
+	if timestampCounter == -1 {
+		return nil, nil // no metrics were available in the last 2 tick intervals
+	}
+
 	steps := int(window.Nanoseconds() / tickInterval.Nanoseconds())
 
 	endTimeStampCounter := libmath.MinInt(timestampCounter+steps, len(output.MetricDataResults[0].Timestamps))
