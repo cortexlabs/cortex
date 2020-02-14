@@ -135,7 +135,7 @@ func publishStats(apiName string, counter *Counter, client *cloudwatch.CloudWatc
 	}
 
 	total /= float64(len(requestCounts))
-	log.Printf("recorded %.2f in-flight requests", total)
+	log.Printf("recorded %.2f in-flight requests on replica", total)
 	curTime := time.Now()
 	metricData := cloudwatch.PutMetricDataInput{
 		Namespace: aws.String(logGroup),
