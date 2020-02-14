@@ -222,13 +222,6 @@ var _autoscalingValidation = &cr.StructFieldValidation{
 				},
 			},
 			{
-				StructField: "RequestBacklog",
-				Int32Validation: &cr.Int32Validation{
-					Default:              2048,
-					GreaterThanOrEqualTo: pointer.Int32(1),
-				},
-			},
-			{
 				StructField: "TargetQueueLength",
 				Float64Validation: &cr.Float64Validation{
 					Default:              0,

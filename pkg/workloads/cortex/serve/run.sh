@@ -18,7 +18,7 @@ set -e
 
 export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
 
-sysctl -w net.core.somaxconn=$CORTEX_OS_MAX_CONN
+sysctl -w net.core.somaxconn=4096
 sysctl -w net.ipv4.ip_local_port_range="15000 64000"
 sysctl -w net.ipv4.tcp_fin_timeout=30
 
@@ -28,4 +28,4 @@ fi
 
 cd /mnt/project
 
-exec gunicorn -b 0.0.0.0:$CORTEX_SERVING_PORT --threads=$CORTEX_THREADS_PER_WORKER --workers=$CORTEX_WORKERS_PER_REPLICA --backlog=$CORTEX_REQUEST_BACKLOG --access-logfile=- --pythonpath=$PYTHONPATH --chdir /mnt/project cortex.serve.wsgi:app
+exec gunicorn -b 0.0.0.0:$CORTEX_SERVING_PORT --threads=$CORTEX_THREADS_PER_WORKER --workers=$CORTEX_WORKERS_PER_REPLICA --backlog=4096 --access-logfile=- --pythonpath=$PYTHONPATH --chdir /mnt/project cortex.serve.wsgi:app

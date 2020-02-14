@@ -67,7 +67,6 @@ type Autoscaling struct {
 	InitReplicas                 int32         `json:"init_replicas" yaml:"init_replicas"`
 	WorkersPerReplica            int32         `json:"workers_per_replica" yaml:"workers_per_replica"`
 	ThreadsPerWorker             int32         `json:"threads_per_worker" yaml:"threads_per_worker"`
-	RequestBacklog               int32         `json:"request_backlog" yaml:"request_backlog"`
 	TargetQueueLength            float64       `json:"target_queue_length" yaml:"target_queue_length"`
 	Window                       time.Duration `json:"window" yaml:"window"`
 	DownscaleStabilizationPeriod time.Duration `json:"downscale_stabilization_period" yaml:"downscale_stabilization_period"`
@@ -85,7 +84,6 @@ func (autoscaling *Autoscaling) ToK8sAnnotations() map[string]string {
 		MaxReplicasAnnotationKey:                  s.Int32(autoscaling.MaxReplicas),
 		WorkersPerReplicaAnnotationKey:            s.Int32(autoscaling.WorkersPerReplica),
 		ThreadsPerWorkerAnnotationKey:             s.Int32(autoscaling.ThreadsPerWorker),
-		RequestBacklogAnnotationKey:               s.Int32(autoscaling.RequestBacklog),
 		TargetQueueLengthAnnotationKey:            s.Float64(autoscaling.TargetQueueLength),
 		WindowAnnotationKey:                       autoscaling.Window.String(),
 		DownscaleStabilizationPeriodAnnotationKey: autoscaling.DownscaleStabilizationPeriod.String(),
@@ -123,12 +121,6 @@ func AutoscalingFromAnnotations(deployment kmeta.Object) (*Autoscaling, error) {
 		return nil, err
 	}
 	a.ThreadsPerWorker = threadsPerWorker
-
-	requestBacklog, err := k8s.ParseInt32Annotation(deployment, RequestBacklogAnnotationKey)
-	if err != nil {
-		return nil, err
-	}
-	a.RequestBacklog = requestBacklog
 
 	targetQueueLength, err := k8s.ParseFloat64Annotation(deployment, TargetQueueLengthAnnotationKey)
 	if err != nil {
@@ -290,7 +282,6 @@ func (autoscaling *Autoscaling) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(autoscaling.InitReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WorkersPerReplicaKey, s.Int32(autoscaling.WorkersPerReplica)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerWorkerKey, s.Int32(autoscaling.ThreadsPerWorker)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", RequestBacklogKey, s.Int32(autoscaling.RequestBacklog)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetQueueLengthKey, s.Float64(autoscaling.TargetQueueLength)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WindowKey, autoscaling.Window.String()))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", DownscaleStabilizationPeriodKey, autoscaling.DownscaleStabilizationPeriod.String()))
