@@ -87,6 +87,7 @@ func main() {
 			time.Sleep(_tickInterval)
 		} else {
 			log.Printf("error encountered while looking for /mnt/health_check.txt") // unexpected
+			time.Sleep(_tickInterval)
 		}
 	}
 
