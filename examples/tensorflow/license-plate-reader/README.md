@@ -8,7 +8,7 @@ This project is about a license plate identification system. On resource-constra
 
 ![Imgur](https://i.imgur.com/MvDAXWU.jpg)
 
-*Figure 2 - Raspberry Pi-powered client with 4G access and onboard GPS that connects to cortex's APIs for inference purposes. More on that [here](client/README.md#creating-your-own-device).*
+*Figure 2 - Raspberry Pi-powered client with 4G access and onboard GPS that connects to cortex's APIs for inference purposes. More on that [here](https://github.com/RobertLucian/cortex-license-plate-reader-client).*
 
 In our example, we assume we have a dashcam mounted on a car and we want to detect and recognize all license plates in the stream in real-time. We can use an embedded computer system to do the video recording, then have that streamed and inferred frame-by-frame using a web service, relay back the results, reassemble the stream and finally display the stream on a screen. The web service in our case is a set of 2 web APIs deployed using cortex.
 
@@ -58,7 +58,7 @@ Before executing `cortex deploy`, make sure you've got these 3 covered:
 
 1. Use the same S3 bucket for both the model and the cluster.
 
-If you don't have access to this many GPU-equipped instances, you could just lower the number and expect dropped frames. It will still prove the point, albeit at a much lower framerate and reliability. Also, the latency will suffer considerably. More on that [here](client/README.md).
+If you don't have access to this many GPU-equipped instances, you could just lower the number and expect dropped frames. It will still prove the point, albeit at a much lower framerate and reliability. Also, the latency will suffer considerably. More on that [here](https://github.com/RobertLucian/cortex-license-plate-reader-client).
 
 Then after the cortex cluster is created, hit
 ```bash
