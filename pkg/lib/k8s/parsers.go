@@ -45,7 +45,7 @@ func ParseBoolAnnotation(obj kmeta.Object, key string) (bool, error) {
 	}
 	casted, ok := s.ParseBool(val)
 	if !ok {
-		return false, errors.New(fmt.Sprintf("unable to parse %s from annotation %s as int", val, key))
+		return false, errors.New(fmt.Sprintf("unable to parse %s from annotation %s as bool", val, key))
 	}
 	return casted, nil
 }
