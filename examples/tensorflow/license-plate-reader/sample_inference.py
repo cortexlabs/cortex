@@ -1,10 +1,8 @@
-import click
-import cv2
-import requests
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
+
+import click, cv2, requests, pickle, base64, json
 import numpy as np
-import pickle
-import base64
-import json
 from utils.image import (
     resize_image,
     compress_image,
@@ -12,11 +10,9 @@ from utils.image import (
     image_to_jpeg_nparray,
     image_to_jpeg_bytes,
 )
-from utils.bbox import (
-    BoundBox,
-    draw_boxes
-)
+from utils.bbox import BoundBox, draw_boxes
 from statistics import mean
+
 
 def get_url_image(url_image):
     """
@@ -26,6 +22,7 @@ def get_url_image(url_image):
     image = np.asarray(bytearray(resp.read()), dtype="uint8")
     image = cv2.imdecode(image, cv2.IMREAD_COLOR)
     return image
+
 
 def reorder_recognized_words(detected_images):
     """
@@ -53,15 +50,25 @@ def reorder_recognized_words(detected_images):
 
     return reordered_images
 
-@click.command(help=(
-    "Identify license plates in a given image"
-    " while outsourcing the predictions using the REST API endpoints."
-    " Both API endpoints have to be exported as environment variables."
-))
+
+@click.command(
+    help=(
+        "Identify license plates in a given image"
+        " while outsourcing the predictions using the REST API endpoints."
+        " Both API endpoints have to be exported as environment variables."
+    )
+)
 @click.argument("img_url_src", type=str)
-@click.argument('yolov3_endpoint', envvar='YOLOV3_ENDPOINT')
+@click.argument("yolov3_endpoint", envvar="YOLOV3_ENDPOINT")
 @click.argument("crnn_endpoint", envvar="CRNN_ENDPOINT")
-@click.option("--output", "-o", type=str, default="prediction.jpg", show_default=True, help="File to save the prediction to.")
+@click.option(
+    "--output",
+    "-o",
+    type=str,
+    default="prediction.jpg",
+    show_default=True,
+    help="File to save the prediction to.",
+)
 def main(img_url_src, yolov3_endpoint, crnn_endpoint, output):
 
     # get the image in bytes representation
@@ -74,13 +81,10 @@ def main(img_url_src, yolov3_endpoint, crnn_endpoint, output):
 
     # make yolov3 api request
     resp = requests.post(
-        yolov3_endpoint,
-        data=image_dump,
-        headers={"content-type": "application/json"},
-        timeout=3.0,
+        yolov3_endpoint, data=image_dump, headers={"content-type": "application/json"}, timeout=3.0,
     )
 
-     # parse response
+    # parse response
     r_dict = resp.json()
     boxes_raw = r_dict["boxes"]
     boxes = []
@@ -116,10 +120,7 @@ def main(img_url_src, yolov3_endpoint, crnn_endpoint, output):
 
         # make yolov3 api request
         resp = requests.post(
-            crnn_endpoint,
-            data=lps_dump,
-            headers={"content-type": "application/json"},
-            timeout=3.0,
+            crnn_endpoint, data=lps_dump, headers={"content-type": "application/json"}, timeout=3.0,
         )
 
         # make request to rcnn API
@@ -127,21 +128,18 @@ def main(img_url_src, yolov3_endpoint, crnn_endpoint, output):
         dec_lps = reorder_recognized_words(dec_lps)
         for dec_lp in dec_lps:
             dec_words.append([word[0] for word in dec_lp])
-    
+
     if len(dec_words) == 0:
         dec_words = [[] for i in range(len(boxes))]
-    
+
     # draw predictions as overlays on the source image
     draw_image = draw_boxes(
-        image,
-        boxes,
-        overlay_text=dec_words,
-        labels=["LP"],
-        obj_thresh=confidence_score,
+        image, boxes, overlay_text=dec_words, labels=["LP"], obj_thresh=confidence_score,
     )
-    
+
     # and save it to disk
     cv2.imwrite(output, draw_image)
+
 
 if __name__ == "__main__":
     main()
