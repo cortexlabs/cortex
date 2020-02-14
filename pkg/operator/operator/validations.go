@@ -158,7 +158,7 @@ var _computeValidation = &cr.StructFieldValidation{
 					CastNumeric: true,
 				},
 				Parser: k8s.QuantityParser(&k8s.QuantityValidation{
-					GreaterThan: k8s.QuantityPtr(kresource.MustParse("0")),
+					GreaterThanOrEqualTo: k8s.QuantityPtr(kresource.MustParse("20m")),
 				}),
 			},
 			{
@@ -167,7 +167,7 @@ var _computeValidation = &cr.StructFieldValidation{
 					Default: nil,
 				},
 				Parser: k8s.QuantityParser(&k8s.QuantityValidation{
-					GreaterThan: k8s.QuantityPtr(kresource.MustParse("0")),
+					GreaterThanOrEqualTo: k8s.QuantityPtr(kresource.MustParse("20Mi")),
 				}),
 			},
 			{

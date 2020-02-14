@@ -83,6 +83,11 @@ func (quantity *Quantity) ToKi() int64 {
 
 // SplitInTwo divides the quantity in two and return both halves (ensuring they add up to the original value)
 func (quantity *Quantity) SplitInTwo() (*kresource.Quantity, *kresource.Quantity) {
+	return SplitInTwo(&quantity.Quantity)
+}
+
+// SplitInTwo divides the quantity in two and return both halves (ensuring they add up to the original value)
+func SplitInTwo(quantity *kresource.Quantity) (*kresource.Quantity, *kresource.Quantity) {
 	milliValue := quantity.MilliValue()
 	halfMilliValue := milliValue / 2
 	q1 := kresource.NewMilliQuantity(milliValue-halfMilliValue, kresource.DecimalSI)
