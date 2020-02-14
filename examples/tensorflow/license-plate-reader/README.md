@@ -77,7 +77,7 @@ One other way to reduce the inference time is to convert the models to use FP16/
 
 ### Verifying the Deployed APIs
 
-We want to verify that both APIs are working as expected. To do this, we can run the inference on a sample image. Take the following example hosted on imgur.
+We want to verify that both APIs are working as expected before we move on to running the client. To do this, we can run the inference on a sample image. Take the following example hosted on imgur.
 
 ![](https://i.imgur.com/r8xdI7P.png)
 
@@ -93,9 +93,15 @@ export CRNN_ENDPOINT=api_endpoint_for_crnn
 python sample_inference.py "https://i.imgur.com/r8xdI7P.png"
 ```
 
+If all goes well and no timeouts are encountered, no errors, no nothing, then a prediction like the one that follows will be saved as a JPEG image to disk. By default, it's saved to `prediction.jpg`. You can use `python sample_inference.py --help` to find out more. Keep in mind that any detected license plates with a confidence score lower than 80% are discarded.
+
+![Imgur](https://i.imgur.com/JaD4A05.jpg)
+
+If this verification works, then move on to the next chapter where we actually run the main client. 
+
 ### Running the Client
 
-Once the APIs are up and running, go on and launch the client by following the instructions in the following repository.
+Once the APIs are up and running, now go on and launch the main client by following the instructions in the following repository.
 
 *Note: The client is kept in a separate repository to maintain the cortex project clean and focused. Keeping some of the projects that are more complex out of this repository can reduce the confusion.*
 
