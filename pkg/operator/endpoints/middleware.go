@@ -41,7 +41,7 @@ func ClientIDMiddleware(next http.Handler) http.Handler {
 		if clientID := r.URL.Query().Get("clientID"); clientID != "" {
 			if !_cachedClientIDs.Has(clientID) {
 				_, hashedAccountID, err := config.AWS.GetCachedAccountID()
-				if err != nil {
+				if err == nil {
 					telemetry.RecordOperatorID(clientID, hashedAccountID)
 					_cachedClientIDs.Add(clientID)
 				}

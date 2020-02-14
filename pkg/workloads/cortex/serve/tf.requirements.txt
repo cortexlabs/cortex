@@ -5,4 +5,4 @@ tensorflow-hub==0.7.0
 flask-api==1.1
 flask==1.1.1
 tensorflow-serving-api==2.1.0
-waitress==1.4.2
+waitress==1.4.3

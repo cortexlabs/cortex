@@ -39,12 +39,23 @@ $ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.13/g
 $ cortex cluster up
 
 aws region: us-west-2
-aws instance type: p2.xlarge
+aws instance type: g4dn.xlarge
 spot instances: yes
 min instances: 0
-max instances: 10
+max instances: 5
+
+aws resource                                cost per hour
+1 eks cluster                               $0.10
+0 - 5 g4dn.xlarge instances for your apis   $0.1578 - $0.526 each (varies based on spot price)
+0 - 5 20gb ebs volumes for your apis        $0.003 each
+1 t3.medium instance for the operator       $0.0416
+1 20gb ebs volume for the operator          $0.003
+2 elastic load balancers                    $0.025 each
+
+your cluster will cost $0.19 - $2.84 per hour based on the cluster size and spot instance availability
 
 ￮ spinning up your cluster ...
+
 your cluster is ready!
 ```
 

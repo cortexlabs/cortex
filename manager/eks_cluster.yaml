@@ -25,3 +25,7 @@ availabilityZones: $CORTEX_AVAILABILITY_ZONES
 cloudWatch:
   clusterLogging:
     enableTypes: ["*"]
+
+vpc:
+  nat:
+    gateway: Disable
