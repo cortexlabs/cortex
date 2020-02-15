@@ -37,4 +37,5 @@ exec gunicorn \
 --pythonpath $PYTHONPATH \
 --chdir /mnt/project \
 --access-logformat '%(t)s:cortex:INFO:%(s)s %(m)s %(U)s' \
+--config /src/cortex/serve/gunicorn_config.py \
 cortex.serve.wsgi:app

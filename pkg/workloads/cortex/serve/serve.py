@@ -65,9 +65,12 @@ def start():
         except Exception as e:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
-    open("/mnt/health_check.txt", "a").close()
     cx_logger().info("{} api is live".format(api.name))
     return app
+
+
+def post_worker_init(server):
+    open("/mnt/health_check.txt", "a").close()
 
 
 @app.route("/predict", methods=["POST"])
