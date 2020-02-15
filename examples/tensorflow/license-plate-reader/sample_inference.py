@@ -6,6 +6,7 @@ import numpy as np
 from utils.bbox import BoundBox, draw_boxes
 from statistics import mean
 
+
 def image_to_jpeg_nparray(image, quality=[int(cv2.IMWRITE_JPEG_QUALITY), 95]):
     """
     Convert numpy image to jpeg numpy vector.
