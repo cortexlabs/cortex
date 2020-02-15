@@ -3,15 +3,24 @@
 
 import click, cv2, requests, pickle, base64, json
 import numpy as np
-from utils.image import (
-    resize_image,
-    compress_image,
-    image_from_bytes,
-    image_to_jpeg_nparray,
-    image_to_jpeg_bytes,
-)
 from utils.bbox import BoundBox, draw_boxes
 from statistics import mean
+
+def image_to_jpeg_nparray(image, quality=[int(cv2.IMWRITE_JPEG_QUALITY), 95]):
+    """
+    Convert numpy image to jpeg numpy vector.
+    """
+    is_success, im_buf_arr = cv2.imencode(".jpg", image, quality)
+    return im_buf_arr
+
+
+def image_to_jpeg_bytes(image, quality=[int(cv2.IMWRITE_JPEG_QUALITY), 95]):
+    """
+    Convert numpy image to bytes-encoded jpeg image.
+    """
+    buf = image_to_jpeg_nparray(image, quality)
+    byte_im = buf.tobytes()
+    return byte_im
 
 
 def get_url_image(url_image):
