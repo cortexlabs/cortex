@@ -23,7 +23,7 @@ from flask_api import status
 from cortex import consts
 from cortex.lib import util
 from cortex.lib.type import API
-from cortex.lib.log import cx_logger, debug_obj
+from cortex.lib.log import cx_logger, debug_obj, refresh_logger
 from cortex.lib.storage import S3
 from cortex.lib.exceptions import UserRuntimeException
 
@@ -38,6 +38,8 @@ local_cache = {"api": None, "predictor_impl": None, "client": None, "class_set":
 
 
 def start():
+    refresh_logger()  # reset process ID
+
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
     spec = os.environ["CORTEX_API_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]

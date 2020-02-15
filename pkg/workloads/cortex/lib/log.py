@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+import os
 import sys
 import time
 
@@ -32,12 +33,19 @@ class MyFormatter(logging.Formatter):
 current_logger = None
 
 
-def register_logger(name):
+def register_logger(name, show_pid=True):
     logger = logging.getLogger(name)
     handler = logging.StreamHandler(stream=sys.stdout)
-    formatter = MyFormatter(
-        fmt="%(asctime)s:cortex:%(levelname)s:%(message)s", datefmt="%Y-%m-%d %H:%M:%S.%f"
-    )
+    if show_pid:
+        formatter = MyFormatter(
+            fmt="%(asctime)s:cortex:pid-{}:%(levelname)s:%(message)s".format(os.getpid()),
+            datefmt="%Y-%m-%d %H:%M:%S.%f",
+        )
+    else:
+        formatter = MyFormatter(
+            fmt="%(asctime)s:cortex:%(levelname)s:%(message)s", datefmt="%Y-%m-%d %H:%M:%S.%f"
+        )
+
     handler.setFormatter(formatter)
 
     logger.propagate = False
@@ -46,11 +54,11 @@ def register_logger(name):
     return logger
 
 
-def refresh_logger():
+def refresh_logger(show_pid=True):
     global current_logger
     if current_logger is not None:
         current_logger.disabled = True
-    current_logger = register_logger("{}-cortex".format(int(time.time() * 1000000)))
+    current_logger = register_logger("{}-cortex".format(int(time.time() * 1000000)), show_pid)
 
 
 def cx_logger():
