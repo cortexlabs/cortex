@@ -95,8 +95,7 @@ def main(img_url_src, yolov3_endpoint, crnn_endpoint, output):
     )
 
     # parse response
-    r_dict = resp.json()
-    boxes_raw = r_dict["boxes"]
+    boxes_raw = resp.json()["boxes"]
     boxes = []
     for b in boxes_raw:
         box = BoundBox(*b)
@@ -124,16 +123,17 @@ def main(img_url_src, yolov3_endpoint, crnn_endpoint, output):
             jpeg = image_to_jpeg_nparray(lp)
             lps.append(jpeg)
 
+        # encode the cropped license plates
         lps = pickle.dumps(lps, protocol=0)
         lps_enc = base64.b64encode(lps).decode("utf-8")
         lps_dump = json.dumps({"imgs": lps_enc})
 
-        # make yolov3 api request
+        # make crnn api request
         resp = requests.post(
             crnn_endpoint, data=lps_dump, headers={"content-type": "application/json"}, timeout=3.0,
         )
 
-        # make request to rcnn API
+        # parse the response
         dec_lps = resp.json()["license-plates"]
         dec_lps = reorder_recognized_words(dec_lps)
         for dec_lp in dec_lps:
