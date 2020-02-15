@@ -21,13 +21,23 @@ from cortex.lib import stringify
 import datetime as dt
 
 
-class MyFormatter(logging.Formatter):
+class CortexFormatter(logging.Formatter):
     converter = dt.datetime.fromtimestamp
 
     def formatTime(self, record, datefmt):
         ct = self.converter(record.created)
         s = ct.strftime(datefmt)
         return s
+
+
+formatter_pid = CortexFormatter(
+    fmt="%(asctime)s:cortex:pid-%(process)d:%(levelname)s:%(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S.%f",
+)
+
+formatter_no_pid = CortexFormatter(
+    fmt="%(asctime)s:cortex:%(levelname)s:%(message)s", datefmt="%Y-%m-%d %H:%M:%S.%f"
+)
 
 
 current_logger = None
@@ -37,14 +47,9 @@ def register_logger(name, show_pid=True):
     logger = logging.getLogger(name)
     handler = logging.StreamHandler(stream=sys.stdout)
     if show_pid:
-        formatter = MyFormatter(
-            fmt="%(asctime)s:cortex:pid-{}:%(levelname)s:%(message)s".format(os.getpid()),
-            datefmt="%Y-%m-%d %H:%M:%S.%f",
-        )
+        formatter = formatter_pid
     else:
-        formatter = MyFormatter(
-            fmt="%(asctime)s:cortex:%(levelname)s:%(message)s", datefmt="%Y-%m-%d %H:%M:%S.%f"
-        )
+        formatter = formatter_no_pid
 
     handler.setFormatter(formatter)
 

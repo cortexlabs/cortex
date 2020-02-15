@@ -36,6 +36,7 @@ exec gunicorn \
 --access-logfile - \
 --pythonpath $PYTHONPATH \
 --chdir /mnt/project \
---access-logformat '%(t)s:cortex:pid-%(p)s:INFO:%(s)s %(m)s %(U)s' \
+--access-logformat '%(s)s %(m)s %(U)s' \
+--logger-class "cortex.serve.gunicorn_logger.CortexGunicornLogger" \
 --config /src/cortex/serve/gunicorn_config.py \
 cortex.serve.wsgi:app

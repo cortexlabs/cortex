@@ -38,8 +38,6 @@ local_cache = {"api": None, "predictor_impl": None, "client": None, "class_set":
 
 
 def start():
-    refresh_logger()  # reset process ID
-
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
     spec = os.environ["CORTEX_API_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
