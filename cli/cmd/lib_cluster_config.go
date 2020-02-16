@@ -317,8 +317,8 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	}
 
 	workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
-	spotSuffix := ""
-	if clusterConfig.Spot != nil && *clusterConfig.Spot {
+	isSpot := clusterConfig.Spot != nil && *clusterConfig.Spot
+	if isSpot {
 		spotPrice, err := awsClient.SpotInstancePrice(*clusterConfig.Region, *clusterConfig.InstanceType)
 		if err == nil {
 			workerPriceStr += " (spot pricing unavailable)"
@@ -327,7 +327,6 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 			workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsMaxPrecision(spotPrice), s.DollarsMaxPrecision(apiInstancePrice))
 			totalMinPrice = fixedPrice + float64(*clusterConfig.MinInstances)*(spotPrice+apiEBSPrice)
 		}
-		spotSuffix = " and spot instance availability"
 	}
 
 	rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
@@ -342,15 +341,25 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	}
 	fmt.Println(items.MustFormat(&table.Opts{Sort: pointer.Bool(false)}))
 
-	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
-		fmt.Printf("your cluster will cost %s per hour%s\n\n", s.DollarsAndCents(totalMaxPrice), spotSuffix)
-	} else {
-		fmt.Printf("your cluster will cost %s - %s per hour based on the cluster size%s\n\n", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice), spotSuffix)
+	suffix := ""
+	priceStr := s.DollarsAndCents(totalMaxPrice)
+
+	if totalMinPrice != totalMaxPrice {
+		priceStr = fmt.Sprintf("%s - %s", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice))
+		if isSpot && *clusterConfig.MinInstances != *clusterConfig.MaxInstances {
+			suffix = " based on cluster size and spot pricing"
+		} else if isSpot && *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
+			suffix = " based on spot pricing"
+		} else if !isSpot && *clusterConfig.MinInstances != *clusterConfig.MaxInstances {
+			suffix = " based on cluster size"
+		}
 	}
+
+	fmt.Printf("your cluster will cost %s per hour%s\n\n", priceStr, suffix)
 
 	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)\n\n", *clusterConfig.Bucket, clusterConfig.LogGroup)
 
-	if clusterConfig.Spot != nil && *clusterConfig.Spot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
+	if isSpot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
 			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
 		} else {
