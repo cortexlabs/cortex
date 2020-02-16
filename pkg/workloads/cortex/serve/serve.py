@@ -23,7 +23,7 @@ from flask_api import status
 from cortex import consts
 from cortex.lib import util
 from cortex.lib.type import API
-from cortex.lib.log import cx_logger, debug_obj, refresh_logger
+from cortex.lib.log import cx_logger, debug_obj
 from cortex.lib.storage import S3
 from cortex.lib.exceptions import UserRuntimeException
 
