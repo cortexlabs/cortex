@@ -39,7 +39,7 @@ func (recs recommendations) add(rec int32) {
 	recs[time.Now()] = rec
 }
 
-func (recs recommendations) clearOlderThan(period time.Duration) {
+func (recs recommendations) deleteOlderThan(period time.Duration) {
 	for t := range recs {
 		if time.Since(t) > period {
 			delete(recs, t)
@@ -85,7 +85,7 @@ func (recs recommendations) minSince(period time.Duration) *int32 {
 	return &min
 }
 
-func autoscaleFn(initialDeployment *kapps.Deployment, tickInterval time.Duration) (func() error, error) {
+func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(initialDeployment)
 	if err != nil {
 		return nil, err
@@ -104,16 +104,16 @@ func autoscaleFn(initialDeployment *kapps.Deployment, tickInterval time.Duration
 			startTime = time.Now()
 		}
 
-		totalInFlight, err := getInflightRequests(apiName, autoscalingSpec.Window, tickInterval)
+		avgInFlight, err := getInflightRequests(apiName, autoscalingSpec.Window)
 		if err != nil {
 			return err
 		}
-		if totalInFlight == nil {
+		if avgInFlight == nil {
 			log.Printf("%s autoscaler tick: metrics not available yet", apiName)
 			return nil
 		}
 
-		rawRecommendation := *totalInFlight / (float64(autoscalingSpec.WorkersPerReplica*autoscalingSpec.ThreadsPerWorker) + autoscalingSpec.TargetQueueLength)
+		rawRecommendation := *avgInFlight / (float64(autoscalingSpec.WorkersPerReplica*autoscalingSpec.ThreadsPerWorker) + autoscalingSpec.TargetQueueLength)
 		recommendation := int32(math.Ceil(rawRecommendation))
 
 		if rawRecommendation < float64(currentReplicas) && rawRecommendation > float64(currentReplicas)*(1-autoscalingSpec.DownscaleTolerance) {
@@ -153,7 +153,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment, tickInterval time.Duration
 		recs.add(recommendation)
 
 		// This is just for garbage collection
-		recs.clearOlderThan(libtime.MaxDuration(autoscalingSpec.DownscaleStabilizationPeriod, autoscalingSpec.UpscaleStabilizationPeriod))
+		recs.deleteOlderThan(libtime.MaxDuration(autoscalingSpec.DownscaleStabilizationPeriod, autoscalingSpec.UpscaleStabilizationPeriod))
 
 		request := recommendation
 
@@ -175,7 +175,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment, tickInterval time.Duration
 			request = *upscaleStabilizationCeil
 		}
 
-		log.Printf("%s autoscaler tick: total_in_flight=%s, raw_recommendation=%s, downscale_factor_floor=%d, upscale_factor_ceil=%d, min_replicas=%d, max_replicas=%d, recommendation=%d, downscale_stabilization_floor=%s, upscale_stabilization_ceil=%s, current_replicas=%d, request=%d", apiName, s.Round(*totalInFlight, 2, 0), s.Round(rawRecommendation, 2, 0), downscaleFactorFloor, upscaleFactorCeil, autoscalingSpec.MinReplicas, autoscalingSpec.MaxReplicas, recommendation, s.ObjFlatNoQuotes(downscaleStabilizationFloor), s.ObjFlatNoQuotes(upscaleStabilizationCeil), currentReplicas, request)
+		log.Printf("%s autoscaler tick: avg_in_flight=%s, raw_recommendation=%s, downscale_factor_floor=%d, upscale_factor_ceil=%d, min_replicas=%d, max_replicas=%d, recommendation=%d, downscale_stabilization_floor=%s, upscale_stabilization_ceil=%s, current_replicas=%d, request=%d", apiName, s.Round(*avgInFlight, 2, 0), s.Round(rawRecommendation, 2, 0), downscaleFactorFloor, upscaleFactorCeil, autoscalingSpec.MinReplicas, autoscalingSpec.MaxReplicas, recommendation, s.ObjFlatNoQuotes(downscaleStabilizationFloor), s.ObjFlatNoQuotes(upscaleStabilizationCeil), currentReplicas, request)
 
 		if currentReplicas != request {
 			log.Printf("%s autoscaling event: %d -> %d", apiName, currentReplicas, request)
@@ -198,7 +198,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment, tickInterval time.Duration
 	}, nil
 }
 
-func getInflightRequests(apiName string, window time.Duration, tickInterval time.Duration) (*float64, error) {
+func getInflightRequests(apiName string, window time.Duration) (*float64, error) {
 	endTime := time.Now().Truncate(time.Second)
 	startTime := endTime.Add(-2 * window)
 	metricsDataQuery := cloudwatch.GetMetricDataInput{
@@ -248,7 +248,7 @@ func getInflightRequests(apiName string, window time.Duration, tickInterval time
 		return nil, nil // no metrics were available in the last 2 tick intervals
 	}
 
-	steps := int(window.Nanoseconds() / tickInterval.Nanoseconds())
+	steps := int(window.Nanoseconds() / _autoscalingTickInterval.Nanoseconds())
 
 	endTimeStampCounter := libmath.MinInt(timestampCounter+steps, len(output.MetricDataResults[0].Timestamps))
 

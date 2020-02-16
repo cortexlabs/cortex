@@ -251,7 +251,7 @@ func updateAutoscalerCron(deployment *kapps.Deployment) error {
 		prevAutoscalerCron.Cancel()
 	}
 
-	autoscaler, err := autoscaleFn(deployment, _autoscalingTickInterval)
+	autoscaler, err := autoscaleFn(deployment)
 	if err != nil {
 		return err
 	}
