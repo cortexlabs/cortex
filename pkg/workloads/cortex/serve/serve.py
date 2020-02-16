@@ -171,16 +171,3 @@ def get_spec(storage, cache_dir, s3_path):
     _, key = S3.deconstruct_s3_path(s3_path)
     storage.download_file(key, local_spec_path)
     return util.read_msgpack(local_spec_path)
-
-
-def extract_waitress_params(config):
-    waitress_kwargs = {}
-    if config is not None:
-        for key, value in config.items():
-            if key.startswith("waitress_"):
-                waitress_kwargs[key[len("waitress_") :]] = value
-
-    if len(waitress_kwargs) > 0:
-        cx_logger().info("waitress parameters: {}".format(waitress_kwargs))
-
-    return waitress_kwargs
