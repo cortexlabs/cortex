@@ -35,20 +35,20 @@ class Predictor:
         self.cache_dir = cache_dir
         self.storage = storage
 
-    def initialize_client(self, args):
+    def initialize_client(self, model_dir=None, tf_serve_port=None):
         if self.type == "onnx":
             from cortex.lib.client.onnx import ONNXClient
 
             _, prefix = self.storage.deconstruct_s3_path(self.model)
-            model_path = os.path.join(args.model_dir, os.path.basename(prefix))
+            model_path = os.path.join(model_dir, os.path.basename(prefix))
             client = ONNXClient(model_path)
             cx_logger().info("ONNX model signature: {}".format(client.input_signature))
             return client
         elif self.type == "tensorflow":
             from cortex.lib.client.tensorflow import TensorFlowClient
 
-            validate_model_dir(args.model_dir)
-            client = TensorFlowClient("localhost:" + str(args.tf_serve_port), self.signature_key)
+            validate_model_dir(model_dir)
+            client = TensorFlowClient("localhost:" + str(tf_serve_port), self.signature_key)
             cx_logger().info("TensorFlow model signature: {}".format(client.input_signature))
             return client
 

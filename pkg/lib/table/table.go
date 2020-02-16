@@ -23,8 +23,8 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -133,7 +133,7 @@ func (t *Table) Format(opts ...*Opts) (string, error) {
 		if t.Headers[colNum].MaxWidth <= 0 {
 			maxColWidths[colNum] = colWidth
 		} else {
-			maxColWidths[colNum] = slices.MinInt(colWidth, t.Headers[colNum].MaxWidth)
+			maxColWidths[colNum] = libmath.MinInt(colWidth, t.Headers[colNum].MaxWidth)
 		}
 
 		if maxColWidths[colNum] < t.Headers[colNum].MinWidth {

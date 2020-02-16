@@ -19,6 +19,7 @@ package configreader
 import (
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -105,5 +106,54 @@ func GetURLValidator(defaultHTTP bool, addPort bool) func(string) (string, error
 		}
 
 		return urlStr, nil
+	}
+}
+
+type DurationValidation struct {
+	GreaterThan          *time.Duration
+	GreaterThanOrEqualTo *time.Duration
+	LessThan             *time.Duration
+	LessThanOrEqualTo    *time.Duration
+	MultipleOf           *time.Duration
+}
+
+func DurationParser(v *DurationValidation) func(string) (interface{}, error) {
+	return func(str string) (interface{}, error) {
+		d, err := time.ParseDuration(str)
+		if err != nil {
+			return nil, err
+		}
+
+		if v.GreaterThan != nil {
+			if d <= *v.GreaterThan {
+				return nil, ErrorMustBeGreaterThan(str, *v.GreaterThan)
+			}
+		}
+
+		if v.GreaterThanOrEqualTo != nil {
+			if d < *v.GreaterThanOrEqualTo {
+				return nil, ErrorMustBeGreaterThanOrEqualTo(str, *v.GreaterThanOrEqualTo)
+			}
+		}
+
+		if v.LessThan != nil {
+			if d >= *v.LessThan {
+				return nil, ErrorMustBeLessThan(str, *v.LessThan)
+			}
+		}
+
+		if v.LessThanOrEqualTo != nil {
+			if d > *v.LessThanOrEqualTo {
+				return nil, ErrorMustBeLessThanOrEqualTo(str, *v.LessThanOrEqualTo)
+			}
+		}
+
+		if v.MultipleOf != nil {
+			if d.Nanoseconds()%(*v.MultipleOf).Nanoseconds() != 0 {
+				return nil, ErrorIsNotMultiple(d, *v.MultipleOf)
+			}
+		}
+
+		return d, nil
 	}
 }
