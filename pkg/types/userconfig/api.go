@@ -77,6 +77,30 @@ type Autoscaling struct {
 	UpscaleTolerance             float64       `json:"upscale_tolerance" yaml:"upscale_tolerance"`
 }
 
+type UpdateStrategy struct {
+	MaxSurge       string `json:"max_surge" yaml:"max_surge"`
+	MaxUnavailable string `json:"max_unavailable" yaml:"max_unavailable"`
+}
+
+func (api *API) Identify() string {
+	return IdentifyAPI(api.FilePath, api.Name, api.Index)
+}
+
+func IdentifyAPI(filePath string, name string, index int) string {
+	str := ""
+
+	if filePath != "" {
+		str += filePath + ": "
+	}
+
+	if name != "" {
+		return str + name
+	} else if index >= 0 {
+		return str + "api at " + s.Index(index)
+	}
+	return str + "api"
+}
+
 // InitReplicas was left out deliberately
 func (autoscaling *Autoscaling) ToK8sAnnotations() map[string]string {
 	return map[string]string{
@@ -171,30 +195,6 @@ func AutoscalingFromAnnotations(deployment kmeta.Object) (*Autoscaling, error) {
 	a.UpscaleTolerance = upscaleTolerance
 
 	return &a, nil
-}
-
-type UpdateStrategy struct {
-	MaxSurge       string `json:"max_surge" yaml:"max_surge"`
-	MaxUnavailable string `json:"max_unavailable" yaml:"max_unavailable"`
-}
-
-func (api *API) Identify() string {
-	return IdentifyAPI(api.FilePath, api.Name, api.Index)
-}
-
-func IdentifyAPI(filePath string, name string, index int) string {
-	str := ""
-
-	if filePath != "" {
-		str += filePath + ": "
-	}
-
-	if name != "" {
-		return str + name
-	} else if index >= 0 {
-		return str + "api at " + s.Index(index)
-	}
-	return str + "api"
 }
 
 func (api *API) UserStr() string {
