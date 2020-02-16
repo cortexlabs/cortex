@@ -231,10 +231,6 @@ func getInflightRequests(apiName string, window time.Duration) (*float64, error)
 		return nil, err
 	}
 
-	if len(output.MetricDataResults[0].Timestamps) == 0 {
-		return nil, nil
-	}
-
 	timestampCounter := -1
 	for i, timeStamp := range output.MetricDataResults[0].Timestamps {
 		if endTime.Sub(*timeStamp) < 20*time.Second {
@@ -253,6 +249,10 @@ func getInflightRequests(apiName string, window time.Duration) (*float64, error)
 	endTimeStampCounter := libmath.MinInt(timestampCounter+steps, len(output.MetricDataResults[0].Timestamps))
 
 	values := output.MetricDataResults[0].Values[timestampCounter:endTimeStampCounter]
+	if len(values) == 0 {
+		return nil, nil
+	}
+
 	avg := 0.0
 	for _, val := range values {
 		avg += *val
