@@ -114,6 +114,7 @@ type DurationValidation struct {
 	GreaterThanOrEqualTo *time.Duration
 	LessThan             *time.Duration
 	LessThanOrEqualTo    *time.Duration
+	MultipleOf           *time.Duration
 }
 
 func DurationParser(v *DurationValidation) func(string) (interface{}, error) {
@@ -144,6 +145,12 @@ func DurationParser(v *DurationValidation) func(string) (interface{}, error) {
 		if v.LessThanOrEqualTo != nil {
 			if d > *v.LessThanOrEqualTo {
 				return nil, ErrorMustBeLessThanOrEqualTo(str, *v.LessThanOrEqualTo)
+			}
+		}
+
+		if v.MultipleOf != nil {
+			if d.Nanoseconds()%(*v.MultipleOf).Nanoseconds() != 0 {
+				return nil, ErrorIsNotMultiple(d, *v.MultipleOf)
 			}
 		}
 

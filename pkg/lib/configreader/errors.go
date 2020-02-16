@@ -47,6 +47,7 @@ const (
 	ErrMustBeLessThan
 	ErrMustBeGreaterThanOrEqualTo
 	ErrMustBeGreaterThan
+	ErrIsNotMultiple
 	ErrNonStringKeyFound
 	ErrInvalidPrimitiveType
 	ErrDuplicatedValue
@@ -81,6 +82,7 @@ var _errorKinds = []string{
 	"err_must_be_less_than",
 	"err_must_be_greater_than_or_equal_to",
 	"err_must_be_greater_than",
+	"err_is_not_multiple",
 	"err_non_string_key_found",
 	"err_invalid_primitive_type",
 	"err_duplicated_value",
@@ -277,6 +279,13 @@ func ErrorMustBeGreaterThan(provided interface{}, boundary interface{}) error {
 	return errors.WithStack(Error{
 		Kind:    ErrMustBeGreaterThan,
 		message: fmt.Sprintf("%s must be greater than %s", s.UserStr(provided), s.UserStr(boundary)),
+	})
+}
+
+func ErrorIsNotMultiple(provided interface{}, multiple interface{}) error {
+	return errors.WithStack(Error{
+		Kind:    ErrIsNotMultiple,
+		message: fmt.Sprintf("%s is not a multiple of %s", s.UserStr(provided), s.UserStr(multiple)),
 	})
 }
 

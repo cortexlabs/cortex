@@ -234,6 +234,7 @@ var _autoscalingValidation = &cr.StructFieldValidation{
 				},
 				Parser: cr.DurationParser(&cr.DurationValidation{
 					GreaterThanOrEqualTo: &_autoscalingTickInterval,
+					MultipleOf:           &_autoscalingTickInterval,
 				}),
 			},
 			{
@@ -644,10 +645,6 @@ func validateAutoscaling(autoscaling *userconfig.Autoscaling) error {
 
 	if autoscaling.InitReplicas < autoscaling.MinReplicas {
 		return ErrorInitReplicasLessThanMin(autoscaling.InitReplicas, autoscaling.MinReplicas)
-	}
-
-	if autoscaling.Window.Nanoseconds()%_autoscalingTickInterval.Nanoseconds() != 0 {
-		return errors.Wrap(ErrorIsNotMultiple(autoscaling.Window.String(), _autoscalingTickInterval.String()), userconfig.WindowKey)
 	}
 
 	return nil
