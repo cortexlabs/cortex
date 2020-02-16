@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 # Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
