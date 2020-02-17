@@ -13,7 +13,7 @@ RUN pip install --upgrade pip && \
 
 RUN apk add --no-cache bash curl gettext jq openssl
 
-RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/0.11.1/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
+RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/0.13.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
     mv /tmp/eksctl /usr/local/bin
 
 RUN curl -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.14.6/2019-08-22/bin/linux/amd64/aws-iam-authenticator && \
