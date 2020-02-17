@@ -32,6 +32,7 @@ exec gunicorn \
 --bind 0.0.0.0:$CORTEX_SERVING_PORT \
 --threads $CORTEX_THREADS_PER_WORKER \
 --workers $CORTEX_WORKERS_PER_REPLICA \
+--worker-class gthread \
 --backlog 4096 \
 --access-logfile - \
 --pythonpath $PYTHONPATH \
