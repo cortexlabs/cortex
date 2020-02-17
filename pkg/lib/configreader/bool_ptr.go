@@ -17,10 +17,10 @@ limitations under the License.
 package configreader
 
 import (
-	"io/ioutil"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -118,15 +118,26 @@ func BoolPtrFromEnv(envVarName string, v *BoolPtrValidation) (*bool, error) {
 }
 
 func BoolPtrFromFile(filePath string, v *BoolPtrValidation) (*bool, error) {
-	valBytes, err := ioutil.ReadFile(filePath)
-	if err != nil || len(valBytes) == 0 {
+	if !files.IsFile(filePath) {
 		val, err := ValidateBoolPtrMissing(v)
 		if err != nil {
 			return nil, errors.Wrap(err, filePath)
 		}
 		return val, nil
 	}
-	valStr := string(valBytes)
+
+	valStr, err := files.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	if len(valStr) == 0 {
+		val, err := ValidateBoolPtrMissing(v)
+		if err != nil {
+			return nil, errors.Wrap(err, filePath)
+		}
+		return val, nil
+	}
+
 	val, err := BoolPtrFromStr(valStr, v)
 	if err != nil {
 		return nil, errors.Wrap(err, filePath)

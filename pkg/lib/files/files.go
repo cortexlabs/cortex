@@ -31,11 +31,19 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/denormal/go-gitignore"
+	"github.com/mitchellh/go-homedir"
 	"github.com/xlab/treeprint"
 )
 
+var _homeDir string
+
 func Open(path string) (*os.File, error) {
-	file, err := os.Open(path)
+	cleanPath, err := EscapeTilde(path)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.Open(cleanPath)
 	if err != nil {
 		return nil, errors.Wrap(err, errors.Message(ErrorReadFile(path)))
 	}
@@ -44,7 +52,12 @@ func Open(path string) (*os.File, error) {
 }
 
 func OpenFile(path string, flag int, perm os.FileMode) (*os.File, error) {
-	file, err := os.OpenFile(path, flag, perm)
+	cleanPath, err := EscapeTilde(path)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.OpenFile(cleanPath, flag, perm)
 	if err != nil {
 		return nil, errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
 	}
@@ -66,6 +79,11 @@ func ReadFileBytes(path string) ([]byte, error) {
 }
 
 func ReadFileBytesErrPath(path string, errMsgPath string) ([]byte, error) {
+	path, err := EscapeTilde(path)
+	if err != nil {
+		return nil, err
+	}
+
 	if err := CheckFileErrPath(path, errMsgPath); err != nil {
 		return nil, err
 	}
@@ -79,7 +97,12 @@ func ReadFileBytesErrPath(path string, errMsgPath string) ([]byte, error) {
 }
 
 func CreateFile(path string) (*os.File, error) {
-	file, err := os.Create(path)
+	cleanPath, err := EscapeTilde(path)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.Create(cleanPath)
 	if err != nil {
 		return nil, errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
 	}
@@ -88,7 +111,12 @@ func CreateFile(path string) (*os.File, error) {
 }
 
 func WriteFile(data []byte, path string) error {
-	if err := ioutil.WriteFile(path, data, 0664); err != nil {
+	cleanPath, err := EscapeTilde(path)
+	if err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(cleanPath, data, 0664); err != nil {
 		return errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
 	}
 
@@ -96,11 +124,38 @@ func WriteFile(data []byte, path string) error {
 }
 
 func MkdirAll(path string) error {
-	if err := os.MkdirAll(path, os.ModePerm); err != nil {
+	cleanPath, err := EscapeTilde(path)
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(cleanPath, os.ModePerm); err != nil {
 		return errors.Wrap(err, errors.Message(ErrorCreateDir(path)))
 	}
 
 	return nil
+}
+
+// Returns original path if there was an error
+func EscapeTilde(path string) (string, error) {
+	if !(path == "~" || strings.HasPrefix(path, "~/")) {
+		return path, nil
+	}
+
+	if _homeDir == "" {
+		homeDir, err := homedir.Dir()
+		if err != nil {
+			return path, err
+		}
+		_homeDir = homeDir
+	}
+
+	if path == "~" {
+		return _homeDir, nil
+	}
+
+	// path starts with "~/"
+	return filepath.Join(_homeDir, path[2:]), nil
 }
 
 func TrimDirPrefix(fullPath string, dirPath string) string {
@@ -133,6 +188,7 @@ func DirPathRelativeToCWD(absPath string) string {
 }
 
 func IsFileOrDir(path string) bool {
+	path, _ = EscapeTilde(path)
 	_, err := os.Stat(path)
 	if err == nil {
 		return true
@@ -154,6 +210,11 @@ func CheckDir(dirPath string) error {
 
 // CheckDir returns nil if the path is a directory
 func CheckDirErrPath(dirPath string, errMsgPath string) error {
+	dirPath, err := EscapeTilde(dirPath)
+	if err != nil {
+		return err
+	}
+
 	fileInfo, err := os.Stat(dirPath)
 	if err != nil {
 		return errors.Wrap(err, errors.Message(ErrorDirDoesNotExist(errMsgPath)))
@@ -179,6 +240,11 @@ func CheckFile(path string) error {
 
 // CheckFile returns nil if the path is a file
 func CheckFileErrPath(path string, errMsgPath string) error {
+	path, err := EscapeTilde(path)
+	if err != nil {
+		return err
+	}
+
 	fileInfo, err := os.Stat(path)
 	if err != nil {
 		return ErrorFileDoesNotExist(errMsgPath)
@@ -191,6 +257,11 @@ func CheckFileErrPath(path string, errMsgPath string) error {
 }
 
 func CreateDirIfMissing(path string) (bool, error) {
+	cleanPath, err := EscapeTilde(path)
+	if err != nil {
+		return false, err
+	}
+
 	if err := CheckDir(path); err == nil {
 		return false, nil
 	}
@@ -199,7 +270,7 @@ func CreateDirIfMissing(path string) (bool, error) {
 		return false, ErrorFileAlreadyExists(path)
 	}
 
-	err := os.MkdirAll(path, os.ModePerm)
+	err = os.MkdirAll(cleanPath, os.ModePerm)
 	if err != nil {
 		return false, errors.Wrap(err, path)
 	}
@@ -220,7 +291,12 @@ func ParentDir(dir string) string {
 }
 
 func SearchForFile(filename string, dir string) (string, error) {
+	dir, err := EscapeTilde(dir)
+	if err != nil {
+		return "", err
+	}
 	dir = filepath.Clean(dir)
+
 	for true {
 		files, err := ioutil.ReadDir(dir)
 		if err != nil {
@@ -244,12 +320,17 @@ func SearchForFile(filename string, dir string) (string, error) {
 }
 
 func MakeEmptyFile(path string) error {
-	path = filepath.Clean(path)
-	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
+	cleanPath, err := EscapeTilde(path)
+	if err != nil {
+		return err
+	}
+	cleanPath = filepath.Clean(cleanPath)
+
+	err = os.MkdirAll(filepath.Dir(cleanPath), os.ModePerm)
 	if err != nil {
 		return errors.Wrap(err, errors.Message(ErrorCreateDir(filepath.Dir(path))))
 	}
-	f, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, 0666)
+	f, err := os.OpenFile(cleanPath, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
 	}
@@ -537,16 +618,21 @@ func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]strin
 }
 
 func ListDir(dir string, relative bool) ([]string, error) {
-	dir = filepath.Clean(dir)
+	cleanDir, err := EscapeTilde(dir)
+	if err != nil {
+		return nil, err
+	}
+	cleanDir = filepath.Clean(cleanDir)
+
 	var filenames []string
-	fileInfo, err := ioutil.ReadDir(dir)
+	fileInfo, err := ioutil.ReadDir(cleanDir)
 	if err != nil {
 		return nil, errors.Wrap(err, errors.Message(ErrorReadDir(dir)))
 	}
 	for _, file := range fileInfo {
 		filename := file.Name()
 		if !relative {
-			filename = filepath.Join(dir, filename)
+			filename = filepath.Join(cleanDir, filename)
 		}
 		filenames = append(filenames, filename)
 	}

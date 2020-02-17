@@ -18,12 +18,12 @@ package configreader
 
 import (
 	"fmt"
-	"io/ioutil"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
@@ -137,15 +137,26 @@ func StringFromEnv(envVarName string, v *StringValidation) (string, error) {
 }
 
 func StringFromFile(filePath string, v *StringValidation) (string, error) {
-	valBytes, err := ioutil.ReadFile(filePath)
-	if err != nil {
+	if !files.IsFile(filePath) {
 		val, err := ValidateStringMissing(v)
 		if err != nil {
 			return "", errors.Wrap(err, filePath)
 		}
 		return val, nil
 	}
-	valStr := string(valBytes)
+
+	valStr, err := files.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+	if len(valStr) == 0 {
+		val, err := ValidateStringMissing(v)
+		if err != nil {
+			return "", errors.Wrap(err, filePath)
+		}
+		return val, nil
+	}
+
 	val, err := StringFromStr(valStr, v)
 	if err != nil {
 		return "", errors.Wrap(err, filePath)

@@ -17,11 +17,10 @@ limitations under the License.
 package configreader
 
 import (
-	"io/ioutil"
-
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -109,15 +108,26 @@ func Int64FromEnv(envVarName string, v *Int64Validation) (int64, error) {
 }
 
 func Int64FromFile(filePath string, v *Int64Validation) (int64, error) {
-	valBytes, err := ioutil.ReadFile(filePath)
-	if err != nil || len(valBytes) == 0 {
+	if !files.IsFile(filePath) {
 		val, err := ValidateInt64Missing(v)
 		if err != nil {
 			return 0, errors.Wrap(err, filePath)
 		}
 		return val, nil
 	}
-	valStr := string(valBytes)
+
+	valStr, err := files.ReadFile(filePath)
+	if err != nil {
+		return 0, err
+	}
+	if len(valStr) == 0 {
+		val, err := ValidateInt64Missing(v)
+		if err != nil {
+			return 0, errors.Wrap(err, filePath)
+		}
+		return val, nil
+	}
+
 	val, err := Int64FromStr(valStr, v)
 	if err != nil {
 		return 0, errors.Wrap(err, filePath)

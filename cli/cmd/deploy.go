@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"path"
 	"path/filepath"
 	"strings"
@@ -85,9 +84,9 @@ func deploy(configPath string, force bool) {
 		"configPath": configPath,
 	}
 
-	configBytes, err := ioutil.ReadFile(configPath)
+	configBytes, err := files.ReadFileBytes(configPath)
 	if err != nil {
-		exit.Error(errors.Wrap(err, configPath))
+		exit.Error(err)
 	}
 
 	uploadBytes := map[string][]byte{
