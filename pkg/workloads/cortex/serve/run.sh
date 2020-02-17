@@ -28,6 +28,9 @@ fi
 
 cd /mnt/project
 
+# Ensure predictor print() statements are always flushed
+export PYTHONUNBUFFERED=TRUE
+
 exec gunicorn \
 --bind 0.0.0.0:$CORTEX_SERVING_PORT \
 --threads $CORTEX_THREADS_PER_WORKER \
