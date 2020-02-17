@@ -208,7 +208,8 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "AvailabilityZones",
 			StringListValidation: &cr.StringListValidation{
-				AllowEmpty: true,
+				AllowEmpty:        true,
+				AllowExplicitNull: true,
 			},
 		},
 		{
