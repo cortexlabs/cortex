@@ -17,7 +17,7 @@ See [cluster configuration](config.md) to learn how you can customize your clust
 $ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
 
 # provision infrastructure on AWS and spin up a cluster
-$ cortex cluster up --config=cluster.yaml
+$ cortex cluster up
 
 aws resource                                cost per hour
 1 eks cluster                               $0.10
