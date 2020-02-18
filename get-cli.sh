@@ -25,7 +25,7 @@ case "$OSTYPE" in
 esac
 
 function main() {
-  echo -e "\nInstalling CLI (/usr/local/bin/cortex) ...\n"
+  echo -e "\nDownloading CLI (/usr/local/bin/cortex) ...\n"
 
   cortex_sh_tmp_dir="$HOME/.cortex-sh-tmp"
   rm -rf $cortex_sh_tmp_dir && mkdir -p $cortex_sh_tmp_dir
