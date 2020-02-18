@@ -10,7 +10,7 @@
 
 - [Image classification](tensorflow/image-classifier): deploy an Inception model to classify images.
 
-- [License plate reader](tensorflow/license-plate-reader): deploy a YOLOv3 model (and others) to predict license plates in real time.
+- [License plate reader](tensorflow/license-plate-reader): deploy a YOLOv3 model (and others) to identify license plates in real time.
 
 ## PyTorch
 
