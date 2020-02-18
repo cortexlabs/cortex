@@ -4,7 +4,7 @@
   predictor:
     type: tensorflow
     path: predictor_yolo.py
-    model: s3://cortex-bucketname/examples/tensorflow/license-plate-reader/yolov3
+    model: s3://cortex-examples/tensorflow/license-plate-reader/yolov3
     signature_key: serving_default
     config:
       model_config: config.json
@@ -13,6 +13,7 @@
     cpu: 1
     gpu: 1
     mem: 8G
+  autoscaling:
     min_replicas: 8
     max_replicas: 8
 
@@ -26,5 +27,6 @@
     cpu: 1
     gpu: 1
     mem: 8G
+  autoscaling:
     min_replicas: 12
     max_replicas: 12
