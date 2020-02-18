@@ -111,6 +111,6 @@ If this verification works, then we can move on and run the main client.
 
 ### Running the Client
 
-Once the APIs are up and running, launch the streaming client by following the instructions at [robertlucian/cortex-license-plate-reader-client](https://github.com/RobertLucian/cortex-license-plate-reader-client). 
+Once the APIs are up and running, launch the streaming client by following the instructions at [robertlucian/cortex-license-plate-reader-client](https://github.com/RobertLucian/cortex-license-plate-reader-client).
 
 *Note: The client is kept in a separate repository to maintain the cortex project clean and focused. Keeping some of the projects that are more complex out of this repository can reduce the confusion.*

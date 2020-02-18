@@ -91,7 +91,7 @@ def main(img_url_src, yolov3_endpoint, crnn_endpoint, output):
 
     # make yolov3 api request
     resp = requests.post(
-        yolov3_endpoint, data=image_dump, headers={"content-type": "application/json"}, timeout=3.0,
+        yolov3_endpoint, data=image_dump, headers={"content-type": "application/json"}, timeout=3.0
     )
 
     # parse response
@@ -130,7 +130,7 @@ def main(img_url_src, yolov3_endpoint, crnn_endpoint, output):
 
         # make crnn api request
         resp = requests.post(
-            crnn_endpoint, data=lps_dump, headers={"content-type": "application/json"}, timeout=3.0,
+            crnn_endpoint, data=lps_dump, headers={"content-type": "application/json"}, timeout=3.0
         )
 
         # parse the response
@@ -144,7 +144,7 @@ def main(img_url_src, yolov3_endpoint, crnn_endpoint, output):
 
     # draw predictions as overlays on the source image
     draw_image = draw_boxes(
-        image, boxes, overlay_text=dec_words, labels=["LP"], obj_thresh=confidence_score,
+        image, boxes, overlay_text=dec_words, labels=["LP"], obj_thresh=confidence_score
     )
 
     # and save it to disk
