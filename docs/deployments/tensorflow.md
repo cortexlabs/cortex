@@ -28,7 +28,7 @@ You can deploy TensorFlow models as web services by defining a class that implem
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
     init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
-    workers_per_replica: <int>  # the number of parallel serving workers to run on each replica (default: 4)
+    workers_per_replica: <int>  # the number of parallel serving workers to run on each replica (default: 1)
     threads_per_worker: <int>  # the number of threads per worker (default: 1)
     target_queue_length: <float>  # the desired queue length per replica (default: 0)
     window: <duration>  # the time over which to average the API's queue length (default: 60s)

@@ -208,7 +208,7 @@ var _autoscalingValidation = &cr.StructFieldValidation{
 			{
 				StructField: "WorkersPerReplica",
 				Int32Validation: &cr.Int32Validation{
-					Default:              4,
+					Default:              1,
 					GreaterThanOrEqualTo: pointer.Int32(1),
 					LessThanOrEqualTo:    pointer.Int32(20),
 				},
