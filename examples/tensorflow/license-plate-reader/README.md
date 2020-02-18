@@ -14,69 +14,33 @@ In our example, we assume we have a dashcam mounted on a car and we want to dete
 
 ## Used Models
 
-The identification of license plates is done in 3 steps:
+The identification of license plates is done in three steps:
 
 1. Detecting the bounding boxes of each license plate using *YOLOv3* model.
 1. Detecting the very specific region of each word inside each bounding box with high accuracy using a pretrained *CRAFT* text detector.
 1. Recognizing the text inside the previously detected boxes using a pretrained *CRNN* model.
 
-Out of these 3 models (*YOLOv3*, *CRAFT* and *CRNN*) only *YOLOv3* has been fine-tuned with a rather small dataset to better work with license plates. This dataset can be found [here](https://github.com/RobertLucian/license-plate-dataset). This *YOLOv3* model has in turn been trained using [this](https://github.com/experiencor/keras-yolo3) GitHub project. To get more details about our fine-tuned model, check the project's description page.
+Out of these three models (*YOLOv3*, *CRAFT* and *CRNN*) only *YOLOv3* has been fine-tuned with a rather small dataset to better work with license plates. This dataset can be found [here](https://github.com/RobertLucian/license-plate-dataset). This *YOLOv3* model has in turn been trained using [this](https://github.com/experiencor/keras-yolo3) GitHub project. To get more details about our fine-tuned model, check the project's description page.
 
-The other 2 models, *CRAFT* and *CRNN*, can be found in [keras-ocr](https://github.com/faustomorales/keras-ocr).
-
-## Uploading the SavedModel to S3
-
-The only model that has to be uploaded to an S3 bucket (for Cortex to deploy) is the *YOLOv3* model. The other 2 are downloaded automatically upon deploying the service.
-
-*Note: The Keras model from [here](https://github.com/experiencor/keras-yolo3) has been converted to SavedModel model instead.*
-
-Download the *SavedModel*
-
-```bash
-wget -O yolov3.zip "https://www.dropbox.com/sh/4ltffycnzfeul01/AAB7Xdmmi59w0EPOwhQ1nkvua/yolov3?dl=0"
-```
-
-Unzip it
-
-```bash
-unzip yolov3.zip -d yolov3
-```
-
-And then upload it to your bucket (also make sure [cortex.yaml](cortex.yaml) points to this bucket).
-
-```bash
-BUCKET=cortex-bucketname
-YOLO3_PATH=examples/tensorflow/license-plate-reader/yolov3
-aws s3 cp yolov3/ "s3://$BUCKET/$YOLO3_PATH" --recursive
-```
-
-## Configuring YOLOv3 Predictor
-
-The `yolov3` API predictor requires a [config.json](config.json) file to configure the input size of the image (dependent on the model's architecture), the anchor boxes, the object threshold, and the IoU threshold. All of these are already set appropriately so no other change is required.
-
-The configuration file's content is based on [this](https://github.com/experiencor/keras-yolo3/blob/bf37c87561caeccc4f1b879e313d4a3fec1b987e/zoo/config_license_plates.json#L2-L7) one.
+The other two models, *CRAFT* and *CRNN*, can be found in [keras-ocr](https://github.com/faustomorales/keras-ocr).
 
 ## Deploying
 
-Before executing `cortex deploy`, make sure you've got these 2 covered:
-
-1. Upload the model to a bucket which your AWS credentials have access to , and update the path in [cortex.yaml](cortex.yaml) (see above).
-1. The recommended number of instances to run this smoothly on a video stream is about 20 GPU instances. `cortex.yaml` is already set up to use the 20 instances. (note: currently the system is limited by how many requests the web server can answer to concurrently, since the Keras model is not thread-safe; this won't be a problem in v0.14 when `waitress` will be replaced with a multiprocessed WSGI server (i.e. `gunicorn`), which will allow for the GPU to be fully utilized, thus reducing the cluster's cost/hr)
+The recommended number of instances to run this smoothly on a video stream is about 20 GPU instances. `cortex.yaml` is already set up to use the 20 instances. (note: currently the system is limited by how many requests the web server can answer to concurrently, since the Keras model is not thread-safe; this won't be a problem in v0.14 when `waitress` will be replaced with a multiprocessed WSGI server (i.e. `gunicorn`), which will allow for the GPU to be fully utilized, thus reducing the cluster's cost/hr)
 
 If you don't have access to this many GPU-equipped instances, you could just lower the number and expect dropped frames. It will still prove the point, albeit at a much lower framerate and with higher latency. More on that [here](https://github.com/RobertLucian/cortex-license-plate-reader-client).
 
-Then after the cortex cluster is created, hit
+Then after the cortex cluster is created, run
+
 ```bash
 cortex deploy
 ```
-And wait for its magic by monitoring the APIs with
+
+And monitor the APIs with
+
 ```bash
 cortex get --watch
 ```
-
-#### Note
-
-One other way to reduce the inference time is to convert the models to use FP16/BFP16 (in mixed mode or not) and then choose the accelerator that gives the best performance in half precision mode - i.e. T4/V100. A difference of an order of magnitude can be expected.
 
 ## Launching the Client
 
@@ -114,3 +78,43 @@ If this verification works, then we can move on and run the main client.
 Once the APIs are up and running, launch the streaming client by following the instructions at [robertlucian/cortex-license-plate-reader-client](https://github.com/RobertLucian/cortex-license-plate-reader-client).
 
 *Note: The client is kept in a separate repository to maintain the cortex project clean and focused. Keeping some of the projects that are more complex out of this repository can reduce the confusion.*
+
+## Customization/Optimization
+
+### Uploading the SavedModel to S3
+
+The only model that has to be uploaded to an S3 bucket (for Cortex to deploy) is the *YOLOv3* model. The other two models are downloaded automatically upon deploying the service.
+
+*Note: The Keras model from [here](https://github.com/experiencor/keras-yolo3) has been converted to SavedModel model instead.*
+
+If you would like to host the model from your own bucket, or if you want to fine tune the model for your needs, you can:
+
+Download the *SavedModel*:
+
+```bash
+wget -O yolov3.zip "https://www.dropbox.com/sh/4ltffycnzfeul01/AAB7Xdmmi59w0EPOwhQ1nkvua/yolov3?dl=0"
+```
+
+Unzip it:
+
+```bash
+unzip yolov3.zip -d yolov3
+```
+
+And then upload it to your bucket (also make sure [cortex.yaml](cortex.yaml) points to this bucket):
+
+```bash
+BUCKET=my-bucket
+YOLO3_PATH=examples/tensorflow/license-plate-reader/yolov3
+aws s3 cp yolov3/ "s3://$BUCKET/$YOLO3_PATH" --recursive
+```
+
+### Configuring YOLOv3 Predictor
+
+The `yolov3` API predictor requires a [config.json](config.json) file to configure the input size of the image (dependent on the model's architecture), the anchor boxes, the object threshold, and the IoU threshold. All of these are already set appropriately so no other change is required.
+
+The configuration file's content is based on [this](https://github.com/experiencor/keras-yolo3/blob/bf37c87561caeccc4f1b879e313d4a3fec1b987e/zoo/config_license_plates.json#L2-L7).
+
+### Opportunities for performance improvements
+
+One way to reduce the inference time is to convert the models to use FP16/BFP16 (in mixed mode or not) and then choose the accelerator that gives the best performance in half precision mode - i.e. T4/V100. A speedup of an order of magnitude can be expected.
