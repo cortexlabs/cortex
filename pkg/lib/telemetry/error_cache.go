@@ -49,7 +49,7 @@ func shouldBlock(err error, backoffMode BackoffMode) bool {
 		return false
 	}
 
-	errMsg := errors.Message(err)
+	errMsg := errors.MessageFirstLine(err)
 	now := time.Now()
 
 	if backoffMode == BackoffAnyMessages {
