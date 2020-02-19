@@ -21,7 +21,11 @@ class PythonPredictor:
         images = [cv2.imdecode(jpg_as_np, flags=cv2.IMREAD_COLOR) for jpg_as_np in jpgs_as_np]
 
         # run batch inference
-        prediction_groups = self.pipeline.recognize(images)
+        try:
+            prediction_groups = self.pipeline.recognize(images)
+        except ValueError:
+            # exception can occur when the images are too small
+            prediction_groups = []
         for img_predictions in prediction_groups:
             for predictions in img_predictions:
                 predictions = tuple([predictions[0], predictions[1].tolist()])
