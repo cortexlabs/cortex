@@ -18,16 +18,16 @@
     workers_per_replica: 4
     threads_per_worker: 3
 
-# - name: crnn
-#   predictor:
-#     type: python
-#     path: predictor_crnn.py
-#   compute:
-#     cpu: 1
-#     gpu: 1
-#     mem: 8G
-#   autoscaling:
-#     min_replicas: 10
-#     max_replicas: 10
-#     workers_per_replica: 4
-#     threads_per_worker: 1
+- name: crnn
+  predictor:
+    type: python
+    path: predictor_crnn.py
+  compute:
+    cpu: 1
+    gpu: 1
+    mem: 8G
+  autoscaling:
+    min_replicas: 10
+    max_replicas: 10
+    workers_per_replica: 4
+    threads_per_worker: 1
