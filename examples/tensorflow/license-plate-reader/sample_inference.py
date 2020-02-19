@@ -1,6 +1,5 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
-
 import click, cv2, requests, pickle, base64, json
 import numpy as np
 from utils.bbox import BoundBox, draw_boxes

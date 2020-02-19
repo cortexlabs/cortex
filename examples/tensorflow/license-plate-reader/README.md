@@ -26,7 +26,7 @@ The other two models, *CRAFT* and *CRNN*, can be found in [keras-ocr](https://gi
 
 ## Deploying
 
-The recommended number of instances to run this smoothly on a video stream is about 12 GPU instances. `cortex.yaml` is already set up to use the 12 instances. 2 GPU instances for *YOLOv3* and 10 for *CRNN* + *CRAFT*. For the client to work smoothly, the number of workers per replica can be adjusted, especially for `p3` or `g4` instances, where the GPU has a lot of compute capacity. The number of GPU instances was determined on the kind of used instance: `g4`s with a single GPU per node.
+The recommended number of instances to run this smoothly on a video stream is about 12 GPU instances (2 GPU instances for *YOLOv3* and 10 for *CRNN* + *CRAFT*). `cortex.yaml` is already set up to use these 12 instances. Note: this is the optimal number of instances when using the `g4dn.xlarge` instance type. For the client to work smoothly, the number of workers per replica can be adjusted, especially for `p3` or `g4` instances, where the GPU has a lot of compute capacity.
 
 If you don't have access to this many GPU-equipped instances, you could just lower the number and expect dropped frames. It will still prove the point, albeit at a much lower framerate and with higher latency. More on that [here](https://github.com/RobertLucian/cortex-license-plate-reader-client).
 
