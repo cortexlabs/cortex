@@ -66,7 +66,7 @@ func getConfigPath(args []string) string {
 	if len(args) == 0 {
 		configPath = "cortex.yaml"
 		if !files.IsFile(configPath) {
-			exit.Error("no api config file was specified, and ./cortex.yaml does not exits; create cortex.yaml, or reference an existing config file by running `cortex deploy <config_file_path>`")
+			exit.Error("no api config file was specified, and ./cortex.yaml does not exist; create cortex.yaml, or reference an existing config file by running `cortex deploy <config_file_path>`")
 		}
 	} else {
 		configPath = args[0]
