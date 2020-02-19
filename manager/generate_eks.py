@@ -19,6 +19,7 @@ from copy import deepcopy
 import collections
 
 
+# kublet config schema: https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/config/v1beta1/types.go
 default_nodegroup = {
     "ami": "auto",
     "iam": {"withAddonPolicies": {"autoScaler": True}},

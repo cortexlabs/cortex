@@ -117,7 +117,7 @@ func ErrorFailedToConnectOperator(originalError error, operatorURL string) error
 
 	return errors.WithStack(Error{
 		Kind:    ErrFailedToConnectOperator,
-		message: fmt.Sprintf("%sfailed to connect to the operator%s, run `cortex configure` if you need to update the operator endpoint", originalErrMsg, operatorURLMsg),
+		message: fmt.Sprintf("%sfailed to connect to the operator%s, run `cortex configure` if you need to update the operator endpoint, run `cortex cluster info` to show your operator endpoint", originalErrMsg, operatorURLMsg),
 	})
 }
 

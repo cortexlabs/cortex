@@ -30,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -54,31 +55,11 @@ var _apiValidation = &cr.StructValidation{
 				MaxLength: 1000, // no particular reason other than it works
 			},
 		},
-		{
-			StructField: "Tracker",
-			StructValidation: &cr.StructValidation{
-				DefaultNil: true,
-				StructFieldValidations: []*cr.StructFieldValidation{
-					{
-						StructField:         "Key",
-						StringPtrValidation: &cr.StringPtrValidation{},
-					},
-					{
-						StructField: "ModelType",
-						StringValidation: &cr.StringValidation{
-							Required:      false,
-							AllowEmpty:    true,
-							AllowedValues: userconfig.ModelTypeStrings(),
-						},
-						Parser: func(str string) (interface{}, error) {
-							return userconfig.ModelTypeFromString(str), nil
-						},
-					},
-				},
-			},
-		},
 		_predictorValidation,
-		_computeFieldValidation,
+		_trackerValidation,
+		_computeValidation,
+		_autoscalingValidation,
+		_updateStrategyValidation,
 	},
 }
 
@@ -141,8 +122,66 @@ var _predictorValidation = &cr.StructFieldValidation{
 	},
 }
 
-var _computeFieldValidation = &cr.StructFieldValidation{
+var _trackerValidation = &cr.StructFieldValidation{
+	StructField: "Tracker",
+	StructValidation: &cr.StructValidation{
+		DefaultNil: true,
+		StructFieldValidations: []*cr.StructFieldValidation{
+			{
+				StructField:         "Key",
+				StringPtrValidation: &cr.StringPtrValidation{},
+			},
+			{
+				StructField: "ModelType",
+				StringValidation: &cr.StringValidation{
+					Required:      false,
+					AllowEmpty:    true,
+					AllowedValues: userconfig.ModelTypeStrings(),
+				},
+				Parser: func(str string) (interface{}, error) {
+					return userconfig.ModelTypeFromString(str), nil
+				},
+			},
+		},
+	},
+}
+
+var _computeValidation = &cr.StructFieldValidation{
 	StructField: "Compute",
+	StructValidation: &cr.StructValidation{
+		StructFieldValidations: []*cr.StructFieldValidation{
+			{
+				StructField: "CPU",
+				StringValidation: &cr.StringValidation{
+					Default:     "200m",
+					CastNumeric: true,
+				},
+				Parser: k8s.QuantityParser(&k8s.QuantityValidation{
+					GreaterThanOrEqualTo: k8s.QuantityPtr(kresource.MustParse("20m")),
+				}),
+			},
+			{
+				StructField: "Mem",
+				StringPtrValidation: &cr.StringPtrValidation{
+					Default: nil,
+				},
+				Parser: k8s.QuantityParser(&k8s.QuantityValidation{
+					GreaterThanOrEqualTo: k8s.QuantityPtr(kresource.MustParse("20Mi")),
+				}),
+			},
+			{
+				StructField: "GPU",
+				Int64Validation: &cr.Int64Validation{
+					Default:              0,
+					GreaterThanOrEqualTo: pointer.Int64(0),
+				},
+			},
+		},
+	},
+}
+
+var _autoscalingValidation = &cr.StructFieldValidation{
+	StructField: "Autoscaling",
 	StructValidation: &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
 			{
@@ -167,38 +206,93 @@ var _computeFieldValidation = &cr.StructFieldValidation{
 				},
 			},
 			{
-				StructField: "TargetCPUUtilization",
+				StructField: "WorkersPerReplica",
 				Int32Validation: &cr.Int32Validation{
-					Default:     80,
-					GreaterThan: pointer.Int32(0),
+					Default:              1,
+					GreaterThanOrEqualTo: pointer.Int32(1),
+					LessThanOrEqualTo:    pointer.Int32(20),
 				},
 			},
 			{
-				StructField: "CPU",
-				StringValidation: &cr.StringValidation{
-					Default:     "200m",
-					CastNumeric: true,
+				StructField: "ThreadsPerWorker",
+				Int32Validation: &cr.Int32Validation{
+					Default:              1,
+					GreaterThanOrEqualTo: pointer.Int32(1),
 				},
-				Parser: k8s.QuantityParser(&k8s.QuantityValidation{
-					GreaterThan: k8s.QuantityPtr(kresource.MustParse("0")),
-				}),
 			},
 			{
-				StructField: "Mem",
-				StringPtrValidation: &cr.StringPtrValidation{
-					Default: nil,
-				},
-				Parser: k8s.QuantityParser(&k8s.QuantityValidation{
-					GreaterThan: k8s.QuantityPtr(kresource.MustParse("0")),
-				}),
-			},
-			{
-				StructField: "GPU",
-				Int64Validation: &cr.Int64Validation{
+				StructField: "TargetQueueLength",
+				Float64Validation: &cr.Float64Validation{
 					Default:              0,
-					GreaterThanOrEqualTo: pointer.Int64(0),
+					GreaterThanOrEqualTo: pointer.Float64(0),
 				},
 			},
+			{
+				StructField: "Window",
+				StringValidation: &cr.StringValidation{
+					Default: "60s",
+				},
+				Parser: cr.DurationParser(&cr.DurationValidation{
+					GreaterThanOrEqualTo: &_autoscalingTickInterval,
+					MultipleOf:           &_autoscalingTickInterval,
+				}),
+			},
+			{
+				StructField: "DownscaleStabilizationPeriod",
+				StringValidation: &cr.StringValidation{
+					Default: "5m",
+				},
+				Parser: cr.DurationParser(&cr.DurationValidation{
+					GreaterThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("0s")),
+				}),
+			},
+			{
+				StructField: "UpscaleStabilizationPeriod",
+				StringValidation: &cr.StringValidation{
+					Default: "0s",
+				},
+				Parser: cr.DurationParser(&cr.DurationValidation{
+					GreaterThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("0s")),
+				}),
+			},
+			{
+				StructField: "MaxDownscaleFactor",
+				Float64Validation: &cr.Float64Validation{
+					Default:              0.5,
+					GreaterThanOrEqualTo: pointer.Float64(0),
+					LessThan:             pointer.Float64(1),
+				},
+			},
+			{
+				StructField: "MaxUpscaleFactor",
+				Float64Validation: &cr.Float64Validation{
+					Default:     10,
+					GreaterThan: pointer.Float64(1),
+				},
+			},
+			{
+				StructField: "DownscaleTolerance",
+				Float64Validation: &cr.Float64Validation{
+					Default:              0.1,
+					GreaterThanOrEqualTo: pointer.Float64(0),
+					LessThan:             pointer.Float64(1),
+				},
+			},
+			{
+				StructField: "UpscaleTolerance",
+				Float64Validation: &cr.Float64Validation{
+					Default:              0.1,
+					GreaterThanOrEqualTo: pointer.Float64(0),
+				},
+			},
+		},
+	},
+}
+
+var _updateStrategyValidation = &cr.StructFieldValidation{
+	StructField: "UpdateStrategy",
+	StructValidation: &cr.StructValidation{
+		StructFieldValidations: []*cr.StructFieldValidation{
 			{
 				StructField: "MaxSurge",
 				StringValidation: &cr.StringValidation{
@@ -321,6 +415,14 @@ func validateAPI(
 		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}
 
+	if err := validateAutoscaling(api.Autoscaling); err != nil {
+		return errors.Wrap(err, api.Identify(), userconfig.AutoscalingKey)
+	}
+
+	if err := validateUpdateStrategy(api.UpdateStrategy); err != nil {
+		return errors.Wrap(err, api.Identify(), userconfig.UpdateStrategyKey)
+	}
+
 	if err := validateEndpointCollisions(api, virtualServices); err != nil {
 		return err
 	}
@@ -341,6 +443,12 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 	case userconfig.ONNXPredictorType:
 		if err := validateONNXPredictor(predictor); err != nil {
 			return err
+		}
+	}
+
+	for key := range predictor.Env {
+		if strings.HasPrefix(key, "CORTEX_") {
+			return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed(), userconfig.EnvKey, key)
 		}
 	}
 
@@ -500,30 +608,6 @@ func validatePythonPath(pythonPath string, projectFileMap map[string][]byte) err
 }
 
 func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) error {
-	if compute.MinReplicas > compute.MaxReplicas {
-		return ErrorMinReplicasGreaterThanMax(compute.MinReplicas, compute.MaxReplicas)
-	}
-
-	if compute.InitReplicas > compute.MaxReplicas {
-		return ErrorInitReplicasGreaterThanMax(compute.InitReplicas, compute.MaxReplicas)
-	}
-
-	if compute.InitReplicas < compute.MinReplicas {
-		return ErrorInitReplicasLessThanMin(compute.InitReplicas, compute.MinReplicas)
-	}
-
-	if (compute.MaxSurge == "0" || compute.MaxSurge == "0%") && (compute.MaxUnavailable == "0" || compute.MaxUnavailable == "0%") {
-		return ErrorSurgeAndUnavailableBothZero()
-	}
-
-	if err := validateAvailableCompute(compute, maxMem); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func validateAvailableCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) error {
 	maxMem.Sub(_cortexMemReserve)
 
 	maxCPU := config.Cluster.InstanceMetadata.CPU
@@ -547,6 +631,30 @@ func validateAvailableCompute(compute *userconfig.Compute, maxMem *kresource.Qua
 	if compute.GPU > maxGPU {
 		return ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", compute.GPU), fmt.Sprintf("%d", maxGPU))
 	}
+	return nil
+}
+
+func validateAutoscaling(autoscaling *userconfig.Autoscaling) error {
+	if autoscaling.MinReplicas > autoscaling.MaxReplicas {
+		return ErrorMinReplicasGreaterThanMax(autoscaling.MinReplicas, autoscaling.MaxReplicas)
+	}
+
+	if autoscaling.InitReplicas > autoscaling.MaxReplicas {
+		return ErrorInitReplicasGreaterThanMax(autoscaling.InitReplicas, autoscaling.MaxReplicas)
+	}
+
+	if autoscaling.InitReplicas < autoscaling.MinReplicas {
+		return ErrorInitReplicasLessThanMin(autoscaling.InitReplicas, autoscaling.MinReplicas)
+	}
+
+	return nil
+}
+
+func validateUpdateStrategy(updateStrategy *userconfig.UpdateStrategy) error {
+	if (updateStrategy.MaxSurge == "0" || updateStrategy.MaxSurge == "0%") && (updateStrategy.MaxUnavailable == "0" || updateStrategy.MaxUnavailable == "0%") {
+		return ErrorSurgeAndUnavailableBothZero()
+	}
+
 	return nil
 }
 

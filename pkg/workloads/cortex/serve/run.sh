@@ -14,7 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -e
+
 export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
+
+sysctl -w net.core.somaxconn=4096 >/dev/null
+sysctl -w net.ipv4.ip_local_port_range="15000 64000" >/dev/null
+sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
 
 if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
@@ -22,4 +28,19 @@ fi
 
 cd /mnt/project
 
-/usr/bin/python3.6 /src/cortex/serve/serve.py "$@"
+# Ensure predictor print() statements are always flushed
+export PYTHONUNBUFFERED=TRUE
+
+exec gunicorn \
+--bind 0.0.0.0:$CORTEX_SERVING_PORT \
+--threads $CORTEX_THREADS_PER_WORKER \
+--workers $CORTEX_WORKERS_PER_REPLICA \
+--worker-class gthread \
+--backlog 4096 \
+--access-logfile - \
+--pythonpath $PYTHONPATH \
+--chdir /mnt/project \
+--access-logformat '%(s)s %(m)s %(U)s' \
+--logger-class "cortex.serve.gunicorn_logger.CortexGunicornLogger" \
+--config /src/cortex/serve/gunicorn_config.py \
+cortex.serve.wsgi:app

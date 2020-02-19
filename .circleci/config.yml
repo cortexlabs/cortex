@@ -53,7 +53,9 @@ jobs:
       - run: make ci-build-cli
       - return-if-not-deployed-branch
       - run: sudo pip install awscli
-      - run: make ci-push-images
+      - run:
+          command: make ci-push-images
+          no_output_timeout: 20m
       - run: make ci-build-and-upload-cli
 
 workflows:

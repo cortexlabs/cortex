@@ -19,7 +19,6 @@ import time
 
 from flask import Flask, request, jsonify, g
 from flask_api import status
-from waitress import serve
 
 from cortex import consts
 from cortex.lib import util
@@ -38,15 +37,20 @@ API_SUMMARY_MESSAGE = (
 local_cache = {"api": None, "predictor_impl": None, "client": None, "class_set": set()}
 
 
-def start(args):
-    assert_api_version()
+def start():
+    cache_dir = os.environ["CORTEX_CACHE_DIR"]
+    spec = os.environ["CORTEX_API_SPEC"]
+    project_dir = os.environ["CORTEX_PROJECT_DIR"]
+    model_dir = os.getenv("CORTEX_MODEL_DIR", None)
+    tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", None)
     storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
+
     try:
-        raw_api_spec = get_spec(storage, args.cache_dir, args.spec)
-        api = API(storage=storage, cache_dir=args.cache_dir, **raw_api_spec)
-        client = api.predictor.initialize_client(args)
+        raw_api_spec = get_spec(storage, cache_dir, spec)
+        api = API(storage=storage, cache_dir=cache_dir, **raw_api_spec)
+        client = api.predictor.initialize_client(model_dir, tf_serving_port)
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
-        predictor_impl = api.predictor.initialize_impl(args.project_dir, client)
+        predictor_impl = api.predictor.initialize_impl(project_dir, client)
 
         local_cache["api"] = api
         local_cache["client"] = client
@@ -61,12 +65,12 @@ def start(args):
         except Exception as e:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
-    waitress_kwargs = extract_waitress_params(api.predictor.config)
-    waitress_kwargs["listen"] = "*:{}".format(args.port)
-
-    open("/health_check.txt", "a").close()
     cx_logger().info("{} api is live".format(api.name))
-    serve(app, **waitress_kwargs)
+    return app
+
+
+def post_worker_init(server):
+    open("/mnt/health_check.txt", "a").close()
 
 
 @app.route("/predict", methods=["POST"])
@@ -112,8 +116,6 @@ def after_request(response):
         return response
 
     api = local_cache["api"]
-
-    cx_logger().info(response.status)
 
     prediction = None
     if "prediction" in g:
@@ -169,42 +171,3 @@ def get_spec(storage, cache_dir, s3_path):
     _, key = S3.deconstruct_s3_path(s3_path)
     storage.download_file(key, local_spec_path)
     return util.read_msgpack(local_spec_path)
-
-
-def extract_waitress_params(config):
-    waitress_kwargs = {}
-    if config is not None:
-        for key, value in config.items():
-            if key.startswith("waitress_"):
-                waitress_kwargs[key[len("waitress_") :]] = value
-
-    if len(waitress_kwargs) > 0:
-        cx_logger().info("waitress parameters: {}".format(waitress_kwargs))
-
-    return waitress_kwargs
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    na = parser.add_argument_group("required named arguments")
-    na.add_argument("--port", type=int, required=True, help="port (on localhost) to use")
-    na.add_argument(
-        "--tf-serve-port",
-        type=int,
-        required=False,
-        help="port (on localhost) where tf serving runs",
-    )
-    na.add_argument(
-        "--spec", required=True, help="s3 path to api spec (e.g. s3://bucket/path/to/api_spec.json)"
-    )
-    na.add_argument("--model-dir", required=False, help="directory to download the model to")
-    na.add_argument("--cache-dir", required=True, help="local path for the api cache")
-    na.add_argument("--project-dir", required=True, help="local path for the project zip file")
-    parser.set_defaults(func=start)
-
-    args = parser.parse_args()
-    args.func(args)
-
-
-if __name__ == "__main__":
-    main()

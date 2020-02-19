@@ -6,10 +6,10 @@ Cortex is an open source platform for deploying machine learning models as produ
 
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
-[install](https://cortex.dev/install) • [tutorial](https://cortex.dev/iris-classifier) • [docs](https://cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.12/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
+[install](https://cortex.dev/install) • [tutorial](https://cortex.dev/iris-classifier) • [docs](https://cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.13/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
 
 <!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
-![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.12.gif)
+![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.13_2.gif)
 
 <br>
 
@@ -33,18 +33,29 @@ Cortex is designed to be self-hosted on any AWS account. You can spin up a clust
 <!-- CORTEX_VERSION_README_MINOR -->
 ```bash
 # install the CLI on your machine
-$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.12/get-cli.sh)"
+$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.13/get-cli.sh)"
 
 # provision infrastructure on AWS and spin up a cluster
 $ cortex cluster up
 
 aws region: us-west-2
-aws instance type: p2.xlarge
+aws instance type: g4dn.xlarge
 spot instances: yes
 min instances: 0
-max instances: 10
+max instances: 5
+
+aws resource                                cost per hour
+1 eks cluster                               $0.10
+0 - 5 g4dn.xlarge instances for your apis   $0.1578 - $0.526 each (varies based on spot price)
+0 - 5 20gb ebs volumes for your apis        $0.003 each
+1 t3.medium instance for the operator       $0.0416
+1 20gb ebs volume for the operator          $0.003
+2 elastic load balancers                    $0.025 each
+
+your cluster will cost $0.19 - $2.84 per hour based on the cluster size and spot instance availability
 
 ￮ spinning up your cluster ...
+
 your cluster is ready!
 ```
 
@@ -70,11 +81,7 @@ class PythonPredictor:
 ```yaml
 # cortex.yaml
 
-- kind: deployment
-  name: sentiment
-
-- kind: api
-  name: classifier
+- name: sentiment-classifier
   predictor:
     type: python
     path: predictor.py
@@ -90,13 +97,13 @@ class PythonPredictor:
 ```bash
 $ cortex deploy
 
-creating classifier (http://***.amazonaws.com/sentiment/classifier)
+creating sentiment-classifier
 ```
 
 ### Serve real-time predictions
 
 ```bash
-$ curl http://***.amazonaws.com/sentiment/classifier \
+$ curl http://***.amazonaws.com/sentiment-classifier \
     -X POST -H "Content-Type: application/json" \
     -d '{"text": "the movie was amazing!"}'
 
@@ -106,10 +113,10 @@ positive
 ### Monitor your deployment
 
 ```bash
-$ cortex get classifier --watch
+$ cortex get sentiment-classifier --watch
 
-status   up-to-date   requested   last update   avg inference
-live     1            1           8s            24ms
+status   up-to-date   requested   last update   avg inference   2XX
+live     1            1           8s            24ms            12
 
 class     count
 positive  8
@@ -133,8 +140,8 @@ The CLI sends configuration and code to the cluster every time you run `cortex d
 ## Examples of Cortex deployments
 
 <!-- CORTEX_VERSION_README_MINOR x5 -->
-* [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.12/examples/tensorflow/sentiment-analyzer): deploy a BERT model for sentiment analysis.
-* [Image classification](https://github.com/cortexlabs/cortex/tree/0.12/examples/tensorflow/image-classifier): deploy an Inception model to classify images.
-* [Search completion](https://github.com/cortexlabs/cortex/tree/0.12/examples/pytorch/search-completer): deploy Facebook's RoBERTa model to complete search terms.
-* [Text generation](https://github.com/cortexlabs/cortex/tree/0.12/examples/pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
-* [Iris classification](https://github.com/cortexlabs/cortex/tree/0.12/examples/sklearn/iris-classifier): deploy a scikit-learn model to classify iris flowers.
+* [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.13/examples/tensorflow/sentiment-analyzer): deploy a BERT model for sentiment analysis.
+* [Image classification](https://github.com/cortexlabs/cortex/tree/0.13/examples/tensorflow/image-classifier): deploy an Inception model to classify images.
+* [Search completion](https://github.com/cortexlabs/cortex/tree/0.13/examples/pytorch/search-completer): deploy Facebook's RoBERTa model to complete search terms.
+* [Text generation](https://github.com/cortexlabs/cortex/tree/0.13/examples/pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
+* [Iris classification](https://github.com/cortexlabs/cortex/tree/0.13/examples/sklearn/iris-classifier): deploy a scikit-learn model to classify iris flowers.

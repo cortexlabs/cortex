@@ -226,7 +226,7 @@ func ErrorInvalidAvailabilityZone(invalidZone string, validAvailabilityZones []s
 func ErrorDidNotMatchStrictS3Regex() error {
 	return errors.WithStack(Error{
 		Kind:    ErrDidNotMatchStrictS3Regex,
-		message: fmt.Sprintf("only lowercase alphanumeric characters and dashes are allowed, with no consecutive dashes and no leading or trailing dashes"),
+		message: "only lowercase alphanumeric characters and dashes are allowed, with no consecutive dashes and no leading or trailing dashes",
 	})
 }
 

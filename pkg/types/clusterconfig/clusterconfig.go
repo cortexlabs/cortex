@@ -65,6 +65,7 @@ type Config struct {
 	ImageOperator          string      `json:"image_operator" yaml:"image_operator"`
 	ImageManager           string      `json:"image_manager" yaml:"image_manager"`
 	ImageDownloader        string      `json:"image_downloader" yaml:"image_downloader"`
+	ImageRequestMonitor    string      `json:"image_request_monitor" yaml:"image_request_monitor"`
 	ImageClusterAutoscaler string      `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
 	ImageMetricsServer     string      `json:"image_metrics_server" yaml:"image_metrics_server"`
 	ImageNvidia            string      `json:"image_nvidia" yaml:"image_nvidia"`
@@ -207,7 +208,8 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "AvailabilityZones",
 			StringListValidation: &cr.StringListValidation{
-				AllowEmpty: true,
+				AllowEmpty:        true,
+				AllowExplicitNull: true,
 			},
 		},
 		{
@@ -279,6 +281,12 @@ var UserValidation = &cr.StructValidation{
 			StructField: "ImageDownloader",
 			StringValidation: &cr.StringValidation{
 				Default: "cortexlabs/downloader:" + consts.CortexVersion,
+			},
+		},
+		{
+			StructField: "ImageRequestMonitor",
+			StringValidation: &cr.StringValidation{
+				Default: "cortexlabs/request-monitor:" + consts.CortexVersion,
 			},
 		},
 		{
@@ -805,7 +813,7 @@ var AccessPromptValidation = &cr.PromptValidation{
 
 func validateClusterName(clusterName string) (string, error) {
 	if !_strictS3BucketRegex.MatchString(clusterName) {
-		return "", errors.Wrap(ErrorDidNotMatchStrictS3Regex(), ClusterNameKey, clusterName)
+		return "", errors.Wrap(ErrorDidNotMatchStrictS3Regex(), clusterName)
 	}
 	return clusterName, nil
 }
@@ -919,6 +927,7 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(ImageOperatorUserKey, cc.ImageOperator)
 	items.Add(ImageManagerUserKey, cc.ImageManager)
 	items.Add(ImageDownloaderUserKey, cc.ImageDownloader)
+	items.Add(ImageRequestMonitorUserKey, cc.ImageRequestMonitor)
 	items.Add(ImageClusterAutoscalerUserKey, cc.ImageClusterAutoscaler)
 	items.Add(ImageMetricsServerUserKey, cc.ImageMetricsServer)
 	items.Add(ImageNvidiaUserKey, cc.ImageNvidia)

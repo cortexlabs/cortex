@@ -11,8 +11,8 @@
 
 ## Deployments
 
-* [TensorFlow APIs](deployments/tensorflow.md)
 * [Python APIs](deployments/python.md)
+* [TensorFlow APIs](deployments/tensorflow.md)
 * [ONNX APIs](deployments/onnx.md)
 * [Autoscaling](deployments/autoscaling.md)
 * [Prediction monitoring](deployments/prediction-monitoring.md)

@@ -1,3 +1,0 @@
-flask-api==1.1
-flask==1.1.1
-waitress==1.4.2

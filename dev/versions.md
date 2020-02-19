@@ -6,7 +6,7 @@
 1. Update the version in `manager/Dockerfile`
 1. Update `eks.yaml` as necessary (make sure to maintain all Cortex environment variables)
 1. Check that `eksctl utils write-kubeconfig` log filter still behaves as desired
-1. Update eksctl on your dev machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.5.3/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
+1. Update eksctl on your dev machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.13.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
 
 ## Kubernetes
 
@@ -79,6 +79,13 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 1. `go mod tidy`
 1. Check that the diff in `go.mod` is reasonable
 
+### request-monitor
+
+1. `cd images/request-monitor/`
+1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
+1. `go mod tidy`
+1. Check that the diff in `go.mod` is reasonable
+
 ## TensorFlow / TensorFlow Serving / Python / Python base operating system
 
 The Python version in the base images for `tf-api` and `onnx-serve-gpu`/`python-serve-gpu` determines the Python version used throughout Cortex.
@@ -89,16 +96,20 @@ The Python version in the base images for `tf-api` and `onnx-serve-gpu`/`python-
 1. Run `docker run --rm -it nvidia/cuda:***`, and in the container run `cat /etc/lsb-release`
 1. The Ubuntu versions should match; if they do not, downgrade whichever one is too advanced
 1. The minor Python version in `tensorflow/tensorflow` must be used in all dockerfiles; search for e.g. `python3.6-dev` and update accordingly
-1. Update TensorFlow version listed in `tensorflow.md`
-1. Search the codebase for the current minor TensorFlow version (e.g. `2.0`) and update versions as appropriate
+1. Update TensorFlow version listed in `tensorflow.md` and `python.md`
+1. Search the codebase for the current minor TensorFlow version (e.g. `2.1`) and update versions as appropriate
 1. Search the codebase for the minor Python version (e.g. `3.6`) and update versions as appropriate
 1. Search the codebase for `ubuntu` and update versions as appropriate
 
 Note: it's ok if example training notebooks aren't upgraded, as long as the exported model still works
 
+## TensorRT
+
+1. Update to the latest version of TensorRT in `images/tf-serve-gpu/Dockerfile` ([install guide](https://docs.nvidia.com/deeplearning/sdk/tensorrt-install-guide/index.html), [release notes](https://docs.nvidia.com/deeplearning/sdk/tensorrt-release-notes/index.html))
+
 ## ONNX runtime
 
-1. Update `ONNXRUNTIME_VERSION` in `images/onnx-serve/Dockerfile` and `images/onnx-serve-gpu/Dockerfile` ([releases](https://github.com/microsoft/onnxruntime/releases))
+1. Update the version in `onnx-cpu.requirements.txt` and `onnx-gpu.requirements.txt` ([releases](https://github.com/microsoft/onnxruntime/releases))
 1. Update the version listed for `onnxruntime` in "Pre-installed Packages" in `onnx.md`
 1. Search the codebase for the previous ONNX runtime version
 

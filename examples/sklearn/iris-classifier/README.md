@@ -11,7 +11,7 @@ This example shows how to deploy a classifier trained on the famous [iris data s
 1. Create a Python file `trainer.py`.
 2. Use scikit-learn's `LogisticRegression` to train your model.
 3. Add code to pickle your model (you can use other serialization libraries such as joblib).
-4. Upload it to S3 (boto3 will need access to valid AWS credentials).
+4. Replace the bucket name "cortex-examples" with your bucket and upload it to S3 (boto3 will need access to valid AWS credentials).
 
 ```python
 import boto3
@@ -35,7 +35,7 @@ print("accuracy: {:.2f}".format(accuracy))
 
 pickle.dump(model, open("model.pkl", "wb"))
 s3 = boto3.client("s3")
-s3.upload_file("model.pkl", "my-bucket", "sklearn/iris-classifier/model.pkl")
+s3.upload_file("model.pkl", "cortex-examples", "sklearn/iris-classifier/model.pkl")
 ```
 
 Run the script locally:
@@ -101,7 +101,7 @@ You can skip dependencies that are [pre-installed](../../../docs/deployments/pyt
 
 ## Configure your API
 
-Create a `cortex.yaml` file and add the configuration below. An `api` provides a runtime for inference and makes your `predictor.py` implementation available as a web service that can serve real-time predictions:
+Create a `cortex.yaml` file and add the configuration below and replace `cortex-examples` with your S3 bucket. An `api` provides a runtime for inference and makes your `predictor.py` implementation available as a web service that can serve real-time predictions:
 
 ```yaml
 # cortex.yaml
@@ -133,7 +133,7 @@ Track the status of your api using `cortex get`:
 $ cortex get iris-classifier --watch
 
 status   up-to-date   requested   last update   avg inference   2XX
-live     1            1           8s            -               -
+live     1            1           1m            -               -
 
 endpoint: http://***.amazonaws.com/iris-classifier
 ```
@@ -194,7 +194,7 @@ After making more predictions, your `cortex get` command will show information a
 $ cortex get iris-classifier --watch
 
 status   up-to-date   requested   last update   avg inference   2XX
-live     1            1           10m           28ms            14
+live     1            1           1m            1.1 ms          14
 
 class        count
 setosa       8
@@ -209,6 +209,8 @@ virginica    4
 This model is fairly small but larger models may require more compute resources. You can configure this in your `cortex.yaml`:
 
 ```yaml
+# cortex.yaml
+
 - name: iris-classifier
   predictor:
     type: python
@@ -237,7 +239,7 @@ Run `cortex get` again:
 $ cortex get iris-classifier --watch
 
 status   up-to-date   requested   last update   avg inference   2XX
-live     1            1           10m           24ms            14
+live     1            1           1m            1.1 ms          14
 
 class        count
 setosa       8
@@ -252,6 +254,8 @@ virginica    4
 If you trained another model and want to A/B test it with your previous model, simply add another `api` to your configuration and specify the new model:
 
 ```yaml
+# cortex.yaml
+
 - name: iris-classifier
   predictor:
     type: python
@@ -295,8 +299,10 @@ $ cortex get --watch
 
 api                       status   up-to-date   requested   last update
 iris-classifier           live     1            1           5m
-another-iris-classifier   live     1            1           8s
+another-iris-classifier   live     1            1           1m
 ```
+
+<br>
 
 ## Add a batch API
 
@@ -335,6 +341,8 @@ class PythonPredictor:
 Next, add the `api` to `cortex.yaml`:
 
 ```yaml
+# cortex.yaml
+
 - name: iris-classifier
   predictor:
     type: python
@@ -391,9 +399,9 @@ Since a new file was added to the directory, and all files in the directory cont
 $ cortex get --watch
 
 api                       status   up-to-date   requested   last update
-iris-classifier           live     1            1           17s
-another-iris-classifier   live     1            1           17s
-batch-iris-classifier     live     1            1           17s
+iris-classifier           live     1            1           1m
+another-iris-classifier   live     1            1           1m
+batch-iris-classifier     live     1            1           1m
 ```
 
 <br>

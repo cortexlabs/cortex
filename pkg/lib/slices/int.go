@@ -29,26 +29,6 @@ func CopyInts(vals []int) []int {
 	return append(vals[:0:0], vals...)
 }
 
-func MinInt(val int, vals ...int) int {
-	min := val
-	for _, val := range vals {
-		if val < min {
-			min = val
-		}
-	}
-	return min
-}
-
-func MaxInt(val int, vals ...int) int {
-	max := val
-	for _, val := range vals {
-		if val > max {
-			max = val
-		}
-	}
-	return max
-}
-
 func AreNGreaterThanZero(minCount int, val int, vals ...int) bool {
 	count := 0
 	allVals := append(vals, val)

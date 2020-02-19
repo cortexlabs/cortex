@@ -17,10 +17,9 @@ limitations under the License.
 package configreader
 
 import (
-	"io/ioutil"
-
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -147,15 +146,26 @@ func StringPtrFromEnv(envVarName string, v *StringPtrValidation) (*string, error
 }
 
 func StringPtrFromFile(filePath string, v *StringPtrValidation) (*string, error) {
-	valBytes, err := ioutil.ReadFile(filePath)
-	if err != nil {
+	if !files.IsFile(filePath) {
 		val, err := ValidateStringPtrMissing(v)
 		if err != nil {
 			return nil, errors.Wrap(err, filePath)
 		}
 		return val, nil
 	}
-	valStr := string(valBytes)
+
+	valStr, err := files.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	if len(valStr) == 0 {
+		val, err := ValidateStringPtrMissing(v)
+		if err != nil {
+			return nil, errors.Wrap(err, filePath)
+		}
+		return val, nil
+	}
+
 	val, err := StringPtrFromStr(valStr, v)
 	if err != nil {
 		return nil, errors.Wrap(err, filePath)
