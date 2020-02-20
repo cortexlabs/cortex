@@ -125,6 +125,7 @@ ci-build-images:
 	@./build/build-image.sh images/operator operator
 	@./build/build-image.sh images/manager manager
 	@./build/build-image.sh images/downloader downloader
+	@./build/build-image.sh images/request-monitor request-monitor
 	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
 	@./build/build-image.sh images/metrics-server metrics-server
 	@./build/build-image.sh images/nvidia nvidia
@@ -146,6 +147,7 @@ ci-push-images:
 	@./build/push-image.sh operator
 	@./build/push-image.sh manager
 	@./build/push-image.sh downloader
+	@./build/push-image.sh request-monitor
 	@./build/push-image.sh cluster-autoscaler
 	@./build/push-image.sh metrics-server
 	@./build/push-image.sh nvidia

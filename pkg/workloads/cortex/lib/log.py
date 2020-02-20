@@ -20,7 +20,7 @@ from cortex.lib import stringify
 import datetime as dt
 
 
-class MyFormatter(logging.Formatter):
+class CortexFormatter(logging.Formatter):
     converter = dt.datetime.fromtimestamp
 
     def formatTime(self, record, datefmt):
@@ -29,15 +29,27 @@ class MyFormatter(logging.Formatter):
         return s
 
 
+formatter_pid = CortexFormatter(
+    fmt="%(asctime)s:cortex:pid-%(process)d:%(levelname)s:%(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S.%f",
+)
+
+formatter_no_pid = CortexFormatter(
+    fmt="%(asctime)s:cortex:%(levelname)s:%(message)s", datefmt="%Y-%m-%d %H:%M:%S.%f"
+)
+
+
 current_logger = None
 
 
-def register_logger(name):
+def register_logger(name, show_pid=True):
     logger = logging.getLogger(name)
     handler = logging.StreamHandler(stream=sys.stdout)
-    formatter = MyFormatter(
-        fmt="%(asctime)s:cortex:%(levelname)s:%(message)s", datefmt="%Y-%m-%d %H:%M:%S.%f"
-    )
+    if show_pid:
+        formatter = formatter_pid
+    else:
+        formatter = formatter_no_pid
+
     handler.setFormatter(formatter)
 
     logger.propagate = False
@@ -46,11 +58,11 @@ def register_logger(name):
     return logger
 
 
-def refresh_logger():
+def refresh_logger(show_pid=True):
     global current_logger
     if current_logger is not None:
         current_logger.disabled = True
-    current_logger = register_logger("{}-cortex".format(int(time.time() * 1000000)))
+    current_logger = register_logger("{}-cortex".format(int(time.time() * 1000000)), show_pid)
 
 
 def cx_logger():

@@ -54,6 +54,7 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/istio-pilot --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/istio-citadel --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/istio-galley --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/request-monitor --region=$REGISTRY_REGION || true
 }
 
 ### HELPERS ###
@@ -138,6 +139,9 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/istio-citadel istio-citadel latest
     build_and_push $ROOT/images/istio-galley istio-galley latest
   fi
+
+  cache_builder $ROOT/images/request-monitor request-monitor
+  build_and_push $ROOT/images/request-monitor request-monitor latest
 
   build_and_push $ROOT/images/manager manager latest
   build_and_push $ROOT/images/python-serve python-serve latest

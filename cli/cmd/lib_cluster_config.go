@@ -287,10 +287,9 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	operatorInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * 20 / 30 / 24
 	elbPrice := aws.ELBMetadatas[*clusterConfig.Region].Price
-	natPrice := aws.NATMetadatas[*clusterConfig.Region].Price
 	apiInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price
 	apiEBSPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
-	fixedPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + 2*elbPrice + natPrice
+	fixedPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + 2*elbPrice
 	totalMinPrice := fixedPrice + float64(*clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
 	totalMaxPrice := fixedPrice + float64(*clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)
 
@@ -303,10 +302,6 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 
 	rows := [][]interface{}{}
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
-	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
-	rows = append(rows, []interface{}{"1 t3.medium for the operator", s.DollarsMaxPrecision(operatorInstancePrice)})
-	rows = append(rows, []interface{}{"1 nat gateway", s.DollarsMaxPrecision(natPrice)})
-	rows = append(rows, []interface{}{"2 elastic load balancers", s.DollarsMaxPrecision(elbPrice) + " each"})
 
 	instanceStr := "instances"
 	volumeStr := "volumes"
@@ -322,20 +317,23 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	}
 
 	workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
-	spotSuffix := ""
-	if clusterConfig.Spot != nil && *clusterConfig.Spot {
+	isSpot := clusterConfig.Spot != nil && *clusterConfig.Spot
+	if isSpot {
 		spotPrice, err := awsClient.SpotInstancePrice(*clusterConfig.Region, *clusterConfig.InstanceType)
 		if err == nil {
 			workerPriceStr += " (spot pricing unavailable)"
 		}
 		if spotPrice != 0 {
 			workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsMaxPrecision(spotPrice), s.DollarsMaxPrecision(apiInstancePrice))
+			totalMinPrice = fixedPrice + float64(*clusterConfig.MinInstances)*(spotPrice+apiEBSPrice)
 		}
-		spotSuffix = " (assuming 100% on-demand instances, will be less if spot instances are available)"
 	}
 
-	rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
 	rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
+	rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
+	rows = append(rows, []interface{}{"1 t3.medium instance for the operator", s.DollarsMaxPrecision(operatorInstancePrice)})
+	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
+	rows = append(rows, []interface{}{"2 elastic load balancers", s.DollarsMaxPrecision(elbPrice) + " each"})
 
 	items := table.Table{
 		Headers: headers,
@@ -343,15 +341,25 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	}
 	fmt.Println(items.MustFormat(&table.Opts{Sort: pointer.Bool(false)}))
 
-	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
-		fmt.Printf("this cluster will cost %s per hour%s\n\n", s.DollarsAndCents(totalMaxPrice), spotSuffix)
-	} else {
-		fmt.Printf("this cluster will cost %s - %s per hour based on the cluster size%s\n\n", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice), spotSuffix)
+	suffix := ""
+	priceStr := s.DollarsAndCents(totalMaxPrice)
+
+	if totalMinPrice != totalMaxPrice {
+		priceStr = fmt.Sprintf("%s - %s", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice))
+		if isSpot && *clusterConfig.MinInstances != *clusterConfig.MaxInstances {
+			suffix = " based on cluster size and spot pricing"
+		} else if isSpot && *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
+			suffix = " based on spot pricing"
+		} else if !isSpot && *clusterConfig.MinInstances != *clusterConfig.MaxInstances {
+			suffix = " based on cluster size"
+		}
 	}
+
+	fmt.Printf("your cluster will cost %s per hour%s\n\n", priceStr, suffix)
 
 	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)\n\n", *clusterConfig.Bucket, clusterConfig.LogGroup)
 
-	if clusterConfig.Spot != nil && *clusterConfig.Spot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
+	if isSpot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
 			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
 		} else {
@@ -463,6 +471,9 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 	}
 	if clusterConfig.ImageDownloader != defaultConfig.ImageDownloader {
 		items.Add(clusterconfig.ImageDownloaderUserKey, clusterConfig.ImageDownloader)
+	}
+	if clusterConfig.ImageRequestMonitor != defaultConfig.ImageRequestMonitor {
+		items.Add(clusterconfig.ImageRequestMonitorUserKey, clusterConfig.ImageRequestMonitor)
 	}
 	if clusterConfig.ImageClusterAutoscaler != defaultConfig.ImageClusterAutoscaler {
 		items.Add(clusterconfig.ImageClusterAutoscalerUserKey, clusterConfig.ImageClusterAutoscaler)

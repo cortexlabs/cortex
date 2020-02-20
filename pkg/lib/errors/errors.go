@@ -148,6 +148,12 @@ func PrintError(err error, strs ...string) {
 
 func Message(err error, strs ...string) string {
 	wrappedErr := Wrap(err, strs...)
+	errStr := wrappedErr.Error()
+	return s.RemoveTrailingNewLines(errStr)
+}
+
+func MessageFirstLine(err error, strs ...string) string {
+	wrappedErr := Wrap(err, strs...)
 
 	var errStr string
 	if _, ok := Cause(wrappedErr).(awserr.Error); ok {

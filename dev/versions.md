@@ -6,7 +6,7 @@
 1. Update the version in `manager/Dockerfile`
 1. Update `eks.yaml` as necessary (make sure to maintain all Cortex environment variables)
 1. Check that `eksctl utils write-kubeconfig` log filter still behaves as desired
-1. Update eksctl on your dev machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.5.3/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
+1. Update eksctl on your dev machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.13.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
 
 ## Kubernetes
 
@@ -76,6 +76,13 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 1. For every non-indirect, non-hardcoded dependency in go.mod, update with `go get -u <path>`
 1. `go mod tidy`
 1. `make test-go`
+1. `go mod tidy`
+1. Check that the diff in `go.mod` is reasonable
+
+### request-monitor
+
+1. `cd images/request-monitor/`
+1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
 1. `go mod tidy`
 1. Check that the diff in `go.mod` is reasonable
 

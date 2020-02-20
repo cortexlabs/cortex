@@ -158,8 +158,6 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 				continue
 			}
 
-			lastLogTime = lastLogTime.Add(-_pollPeriod)
-
 			if !didFetchLogs {
 				lastLogTime = deployment.CreationTimestamp.Time
 				didFetchLogs = true
@@ -170,7 +168,7 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 			logEventsOutput, err := config.AWS.CloudWatchLogs().FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
 				LogGroupName:   aws.String(logGroupName),
 				LogStreamNames: aws.StringSlice(logStreamNames.Slice()),
-				StartTime:      aws.Int64(libtime.ToMillis(lastLogTime)),
+				StartTime:      aws.Int64(libtime.ToMillis(lastLogTime.Add(-_pollPeriod))),
 				EndTime:        aws.Int64(endTime),
 				Limit:          aws.Int64(int64(_maxLogLinesPerRequest)),
 			})

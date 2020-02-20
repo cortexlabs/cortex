@@ -17,16 +17,10 @@ limitations under the License.
 package operator
 
 import (
-	"time"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	kapps "k8s.io/api/apps/v1"
-	kautoscaling "k8s.io/api/autoscaling/v2beta2"
-	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -44,77 +38,6 @@ func deleteEvictedPods() error {
 			_, err := config.K8s.DeletePod(pod.Name)
 			if err != nil {
 				errs = append(errs, err)
-			}
-		}
-	}
-
-	if errors.HasError(errs) {
-		return errors.FirstError(errs...)
-	}
-	return nil
-}
-
-func updateHPAs() error {
-	var deployments []kapps.Deployment
-	var hpas []kautoscaling.HorizontalPodAutoscaler
-	err := parallel.RunFirstErr(
-		func() error {
-			var err error
-			deployments, err = config.K8s.ListDeploymentsWithLabelKeys("apiName")
-			return err
-		},
-		func() error {
-			var err error
-			hpas, err = config.K8s.ListHPAsWithLabelKeys("apiName")
-			return err
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	hpaMap := make(map[string]*kautoscaling.HorizontalPodAutoscaler, len(hpas))
-	for _, hpa := range hpas {
-		hpaMap[hpa.Name] = &hpa
-	}
-
-	var allPods []kcore.Pod
-	var errs []error
-
-	for _, deployment := range deployments {
-		if hpaMap[deployment.Name] != nil {
-			continue // since the HPA is deleted every time the deployment is updated
-		}
-
-		if allPods == nil {
-			var err error
-			allPods, err = config.K8s.ListPodsWithLabelKeys("apiName")
-			if err != nil {
-				return err
-			}
-		}
-
-		replicaCounts := getReplicaCounts(&deployment, allPods)
-		if deployment.Spec.Replicas == nil || replicaCounts.Updated.Ready < *deployment.Spec.Replicas {
-			continue // not yet up-to-date
-		}
-
-		for _, condition := range deployment.Status.Conditions {
-			if condition.Type == kapps.DeploymentProgressing &&
-				condition.Status == kcore.ConditionTrue &&
-				!condition.LastUpdateTime.IsZero() &&
-				time.Now().After(condition.LastUpdateTime.Add(35*time.Second)) { // the metrics poll interval is 30 seconds, so 35 should be safe
-
-				spec, err := hpaSpec(&deployment)
-				if err != nil {
-					errs = append(errs, err)
-					continue
-				}
-
-				if _, err = config.K8s.CreateHPA(spec); err != nil {
-					errs = append(errs, err)
-					continue
-				}
 			}
 		}
 	}

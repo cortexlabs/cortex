@@ -22,6 +22,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 func Init() error {
@@ -32,7 +33,17 @@ func Init() error {
 		return errors.Wrap(err, "init")
 	}
 
-	cron.Run(updateHPAs, cronErrHandler("update hpas"), 20*time.Second)
+	deployments, err := config.K8s.ListDeploymentsWithLabelKeys("apiName")
+	if err != nil {
+		return err
+	}
+
+	for _, deployment := range deployments {
+		if err := updateAutoscalerCron(&deployment); err != nil {
+			return err
+		}
+	}
+
 	cron.Run(deleteEvictedPods, cronErrHandler("delete evicted pods"), 12*time.Hour)
 	cron.Run(operatorTelemetry, cronErrHandler("operator telemetry"), 1*time.Hour)
 

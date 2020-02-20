@@ -18,7 +18,7 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -66,7 +66,7 @@ func getConfigPath(args []string) string {
 	if len(args) == 0 {
 		configPath = "cortex.yaml"
 		if !files.IsFile(configPath) {
-			exit.Error("no api config file was specified, and ./cortex.yaml does not exits; create cortex.yaml, or reference an existing config file by running `cortex deploy <config_file_path>`")
+			exit.Error("no api config file was specified, and ./cortex.yaml does not exist; create cortex.yaml, or reference an existing config file by running `cortex deploy <config_file_path>`")
 		}
 	} else {
 		configPath = args[0]
@@ -84,9 +84,9 @@ func deploy(configPath string, force bool) {
 		"configPath": configPath,
 	}
 
-	configBytes, err := ioutil.ReadFile(configPath)
+	configBytes, err := files.ReadFileBytes(configPath)
 	if err != nil {
-		exit.Error(errors.Wrap(err, configPath))
+		exit.Error(err)
 	}
 
 	uploadBytes := map[string][]byte{
@@ -102,6 +102,16 @@ func deploy(configPath string, force bool) {
 		files.IgnoreHiddenFolders,
 		files.IgnorePythonGeneratedFiles,
 	}
+
+	cortexIgnorePath := path.Join(projectRoot, ".cortexignore")
+	if files.IsFile(cortexIgnorePath) {
+		cortexIgnore, err := files.GitIgnoreFn(cortexIgnorePath)
+		if err != nil {
+			exit.Error(err)
+		}
+		ignoreFns = append(ignoreFns, cortexIgnore)
+	}
+
 	if !_flagDeployYes {
 		ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
 	}

@@ -20,11 +20,14 @@ import (
 	"bytes"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -32,8 +35,11 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
+
+var _autoscalerCrons = make(map[string]cron.Cron) // apiName -> cron
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
 	prevDeployment, prevService, prevVirtualService, err := getK8sResources(apiConfig)
@@ -206,11 +212,6 @@ func applyK8sResources(api *spec.API, prevDeployment *kapps.Deployment, prevServ
 		func() error {
 			return applyK8sVirtualService(api, prevVirtualService)
 		},
-		func() error {
-			// Delete HPA while updating replicas to avoid unwanted autoscaling due to CPU fluctuations
-			config.K8s.DeleteHPA(k8sName(api.Name))
-			return nil
-		},
 	)
 }
 
@@ -219,18 +220,45 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 
 	if prevDeployment == nil {
 		_, err := config.K8s.CreateDeployment(newDeployment)
-		return err
-	}
-
-	// Delete deployment if it never became ready
-	if prevDeployment.Status.ReadyReplicas == 0 {
+		if err != nil {
+			return err
+		}
+	} else if prevDeployment.Status.ReadyReplicas == 0 {
+		// Delete deployment if it never became ready
 		config.K8s.DeleteDeployment(k8sName(api.Name))
 		_, err := config.K8s.CreateDeployment(newDeployment)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err := config.K8s.UpdateDeployment(newDeployment)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := updateAutoscalerCron(newDeployment); err != nil {
 		return err
 	}
 
-	_, err := config.K8s.UpdateDeployment(newDeployment)
-	return err
+	return nil
+}
+
+func updateAutoscalerCron(deployment *kapps.Deployment) error {
+	apiName := deployment.Labels["apiName"]
+
+	if prevAutoscalerCron, ok := _autoscalerCrons[apiName]; ok {
+		prevAutoscalerCron.Cancel()
+	}
+
+	autoscaler, err := autoscaleFn(deployment)
+	if err != nil {
+		return err
+	}
+
+	_autoscalerCrons[apiName] = cron.Run(autoscaler, cronErrHandler(apiName+" autoscaler"), _autoscalingTickInterval)
+
+	return nil
 }
 
 func applyK8sService(api *spec.API, prevService *kcore.Service) error {
@@ -260,6 +288,11 @@ func applyK8sVirtualService(api *spec.API, prevVirtualService *kunstructured.Uns
 func deleteK8sResources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
+			if autoscalerCron, ok := _autoscalerCrons[apiName]; ok {
+				autoscalerCron.Cancel()
+				delete(_autoscalerCrons, apiName)
+			}
+
 			_, err := config.K8s.DeleteDeployment(k8sName(apiName))
 			return err
 		},
@@ -269,10 +302,6 @@ func deleteK8sResources(apiName string) error {
 		},
 		func() error {
 			_, err := config.K8s.DeleteVirtualService(k8sName(apiName))
-			return err
-		},
-		func() error {
-			_, err := config.K8s.DeleteHPA(k8sName(apiName))
 			return err
 		},
 	)
@@ -292,12 +321,12 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 
 	replicaCounts := getReplicaCounts(deployment, pods)
 
-	minReplicas, ok := s.ParseInt32(deployment.Labels["minReplicas"])
-	if !ok {
-		return false, errors.New("unable to parse minReplicas from deployment") // unexpected
+	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(deployment)
+	if err != nil {
+		return false, err
 	}
 
-	if replicaCounts.Updated.Ready < minReplicas && replicaCounts.Updated.TotalFailed() == 0 {
+	if replicaCounts.Updated.Ready < autoscalingSpec.MinReplicas && replicaCounts.Updated.TotalFailed() == 0 {
 		return true, nil
 	}
 
@@ -317,9 +346,23 @@ func areAPIsEqual(d1, d2 *kapps.Deployment) bool {
 		d1.Labels["apiName"] == d2.Labels["apiName"] &&
 		d1.Labels["apiID"] == d2.Labels["apiID"] &&
 		d1.Labels["deploymentID"] == d2.Labels["deploymentID"] &&
-		d1.Labels["minReplicas"] == d2.Labels["minReplicas"] &&
-		d1.Labels["maxReplicas"] == d2.Labels["maxReplicas"] &&
-		d1.Labels["targetCPUUtilization"] == d2.Labels["targetCPUUtilization"]
+		doCortexAnnotationsMatch(d1, d2)
+}
+
+func doCortexAnnotationsMatch(obj1, obj2 kmeta.Object) bool {
+	cortexAnnotations1 := extractCortexAnnotations(obj1)
+	cortexAnnotations2 := extractCortexAnnotations(obj2)
+	return maps.StrMapsEqual(cortexAnnotations1, cortexAnnotations2)
+}
+
+func extractCortexAnnotations(obj kmeta.Object) map[string]string {
+	cortexAnnotations := make(map[string]string)
+	for key, value := range obj.GetAnnotations() {
+		if strings.Contains(key, "cortex.dev/") {
+			cortexAnnotations[key] = value
+		}
+	}
+	return cortexAnnotations
 }
 
 func IsAPIDeployed(apiName string) (bool, error) {

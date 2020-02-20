@@ -40,7 +40,7 @@ function ensure_eks() {
     envsubst < eks_cluster.yaml | eksctl create cluster --timeout=$EKSCTL_TIMEOUT -f -
 
     # https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
-    kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.5.5/config/v1.5/aws-k8s-cni.yaml >/dev/null
+    kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/release-1.6/config/v1.6/aws-k8s-cni.yaml >/dev/null
 
     python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > $CORTEX_CLUSTER_WORKSPACE/eks_nodegroup.yaml
     eksctl create nodegroup --timeout=$EKSCTL_TIMEOUT -f $CORTEX_CLUSTER_WORKSPACE/eks_nodegroup.yaml

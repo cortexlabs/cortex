@@ -134,7 +134,7 @@ data:
       <filter **>
         @type record_modifier
         <record>
-          group_name  ${record["kubernetes"]["labels"].has_key?("apiName") ? "#{ENV['LOG_GROUP_NAME']}/#{record['kubernetes']['labels']['apiName']}" : ENV['LOG_GROUP_NAME']}
+          group_name  ${(record["kubernetes"]["labels"].has_key?("apiName") && record.dig("kubernetes", "container_name") != "request-monitor") ? "#{ENV['LOG_GROUP_NAME']}/#{record['kubernetes']['labels']['apiName']}" : ENV['LOG_GROUP_NAME']}
           stream_name ${record.dig("kubernetes", "pod_name")}_${record.dig("kubernetes", "container_name")}
           log ${record.dig("log").rstrip}
         </record>

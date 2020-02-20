@@ -61,6 +61,10 @@ func Time(val time.Time) *time.Time {
 	return &val
 }
 
+func Duration(val time.Duration) *time.Duration {
+	return &val
+}
+
 // IndirectSafe dereferences if obj is a pointer, otherwise no-op
 func IndirectSafe(obj interface{}) interface{} {
 	if obj == nil {
