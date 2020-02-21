@@ -169,7 +169,7 @@ func ErrorBucketNotFound(bucket string) error {
 func ErrorInstanceTypeLimitIsZero(instanceType string, region string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrInstanceTypeLimitIsZero,
-		message: fmt.Sprintf(`you don't have access to %s instances in %s; please request access in the appropriate region (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances)"`, instanceType, region),
+		message: fmt.Sprintf(`you don't have access to %s instances in %s; please request access in the appropriate region (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances). If you submitted a request and it was recently approved, please allow ~30 minutes for AWS to reflect this change."`, instanceType, region),
 	})
 }
 
