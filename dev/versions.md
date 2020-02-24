@@ -91,7 +91,7 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 The Python version in the base images for `tf-api` and `onnx-serve-gpu`/`python-serve-gpu` determines the Python version used throughout Cortex.
 
 1. Update the `tensorflow/tensorflow` base image in `images/tf-api/Dockerfile` to the desired version ([Dockerhub](https://hub.docker.com/r/tensorflow/tensorflow))
-1. Update the `nvidia/cuda` base image in `images/python-serve-gpu/Dockerfile` and `images/onnx-serve-gpu/Dockerfile` to the desired version ([Dockerhub](https://hub.docker.com/r/nvidia/cuda)) (it's possible these versions will diverge depending on ONNX runtime support)
+1. Update the `nvidia/cuda` base image in `images/python-serve-gpu/Dockerfile` and `images/onnx-serve-gpu/Dockerfile` (as well as `libnvinfer` in `images/python-serve-gpu/Dockerfile` and `images/tf-serve-gpu/Dockerfile`) to the desired version based on [TensorFlow's documentation](https://www.tensorflow.org/install/gpu#ubuntu_1804_cuda_101) ([Dockerhub](https://hub.docker.com/r/nvidia/cuda)) (it's possible these versions will diverge depending on ONNX runtime support)
 1. Run `docker run --rm -it tensorflow/tensorflow:***`, and in the container run `python3 --version` and `cat /etc/lsb-release`
 1. Run `docker run --rm -it nvidia/cuda:***`, and in the container run `cat /etc/lsb-release`
 1. The Ubuntu versions should match; if they do not, downgrade whichever one is too advanced
@@ -102,10 +102,6 @@ The Python version in the base images for `tf-api` and `onnx-serve-gpu`/`python-
 1. Search the codebase for `ubuntu` and update versions as appropriate
 
 Note: it's ok if example training notebooks aren't upgraded, as long as the exported model still works
-
-## TensorRT
-
-1. Update to the latest version of TensorRT in `images/tf-serve-gpu/Dockerfile` ([install guide](https://docs.nvidia.com/deeplearning/sdk/tensorrt-install-guide/index.html), [release notes](https://docs.nvidia.com/deeplearning/sdk/tensorrt-release-notes/index.html))
 
 ## ONNX runtime
 
