@@ -29,5 +29,8 @@ else
     echo "There is no script $PRE_START_PATH"
 fi
 
+mkdir -p /requests
+
 # Start Gunicorn
-exec gunicorn -k uvicorn.workers.UvicornWorker -c "$GUNICORN_CONF" "$APP_MODULE"
+exec uvicorn main:app --port $MY_PORT --host $HOST --workers $WORKERS --backlog $BACKLOG --limit-concurrency $CONCURRENCY
+# exec gunicorn -k uvicorn.workers.UvicornWorker -c "$GUNICORN_CONF" "$APP_MODULE"
