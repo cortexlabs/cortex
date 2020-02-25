@@ -17,6 +17,7 @@ RUN apt-get update -qq && apt-get install -y -q \
         libsm6 \
         libxext6 \
         libxrender-dev \
+        libsndfile1 \
         locales \
         libnvinfer6=6.0.1-1+cuda10.1 \
         libnvinfer-plugin6=6.0.1-1+cuda10.1 \
