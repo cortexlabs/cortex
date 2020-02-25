@@ -17,6 +17,9 @@ limitations under the License.
 package operator
 
 import (
+	"strings"
+
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -48,6 +51,13 @@ func deleteEvictedPods() error {
 	return nil
 }
 
+type instanceInfo struct {
+	InstanceType string  `json:"instance_type" yaml:"instance_type"`
+	IsSpot       bool    `json:"is_spot" yaml:"is_spot"`
+	Price        float64 `json:"price" yaml:"price"`
+	Count        int32   `json:"count" yaml:"count"`
+}
+
 func operatorTelemetry() error {
 	nodes, err := config.K8s.ListNodes(nil)
 	if err != nil {
@@ -55,6 +65,7 @@ func operatorTelemetry() error {
 	}
 
 	instanceTypeCounts := make(map[string]int)
+	instanceInfos := make(map[string]*instanceInfo)
 	var totalInstances int
 
 	for _, node := range nodes {
@@ -67,13 +78,47 @@ func operatorTelemetry() error {
 			instanceType = "unknown"
 		}
 
+		isSpot := false
+		if strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot") {
+			isSpot = true
+		}
+
 		instanceTypeCounts[instanceType]++
 		totalInstances++
+
+		instanceInfosKey := instanceType + "_ondemand"
+		if isSpot {
+			instanceInfosKey = instanceType + "_spot"
+		}
+
+		if info, ok := instanceInfos[instanceInfosKey]; ok {
+			info.Count++
+			continue
+		}
+
+		price := aws.InstanceMetadatas[*config.Cluster.Region][instanceType].Price
+		if isSpot {
+			spotPrice, err := config.AWS.SpotInstancePrice(*config.Cluster.Region, instanceType)
+			if err == nil && spotPrice != 0 {
+				price = spotPrice
+			}
+		}
+
+		info := instanceInfo{
+			InstanceType: instanceType,
+			IsSpot:       isSpot,
+			Price:        price,
+			Count:        1,
+		}
+
+		instanceInfos[instanceInfosKey] = &info
 	}
 
 	properties := map[string]interface{}{
+		"region":        *config.Cluster.Region,
 		"instanceTypes": instanceTypeCounts,
 		"instanceCount": totalInstances,
+		"instances":     instanceInfos,
 	}
 
 	telemetry.Event("operator.cron", properties)
