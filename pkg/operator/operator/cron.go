@@ -64,7 +64,6 @@ func operatorTelemetry() error {
 		return err
 	}
 
-	instanceTypeCounts := make(map[string]int)
 	instanceInfos := make(map[string]*instanceInfo)
 	var totalInstances int
 
@@ -83,7 +82,6 @@ func operatorTelemetry() error {
 			isSpot = true
 		}
 
-		instanceTypeCounts[instanceType]++
 		totalInstances++
 
 		instanceInfosKey := instanceType + "_ondemand"
@@ -116,7 +114,6 @@ func operatorTelemetry() error {
 
 	properties := map[string]interface{}{
 		"region":        *config.Cluster.Region,
-		"instanceTypes": instanceTypeCounts,
 		"instanceCount": totalInstances,
 		"instances":     instanceInfos,
 	}
