@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/aws/amazon-vpc-cni-k8s v1.5.5
-	github.com/aws/aws-sdk-go v1.29.9
+	github.com/aws/aws-sdk-go v1.26.8
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/containerd/containerd v1.3.2 // indirect
 	github.com/cortexlabs/yaml v0.0.0-20191227012959-6abcdc706492
@@ -27,7 +27,7 @@ require (
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
-	github.com/pkg/errors v0.9.1
+	github.com/pkg/errors v0.8.1
 	github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5 // indirect
