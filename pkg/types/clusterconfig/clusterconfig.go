@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -425,7 +426,10 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	}
 
 	if err := awsClient.VerifyInstanceQuota(*cc.InstanceType); err != nil {
-		return errors.Wrap(err, InstanceTypeKey)
+		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+		if _, ok := errors.Cause(err).(awserr.Error); !ok {
+			return errors.Wrap(err, InstanceTypeKey)
+		}
 	}
 
 	if len(cc.AvailabilityZones) > 0 {
