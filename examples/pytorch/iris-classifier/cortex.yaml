@@ -6,5 +6,20 @@
     path: predictor.py
     config:
       model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
+    env:
+      WEB_CONCURRENCY: "1"
+      BACKLOG: "10"
+      LOG_LEVEL: debug
+      WORKER_CONNECTIONS: "50"
+      MY_PORT: "8888"
+      HOST: "0.0.0.0"
+      WORKERS: "2"
+      THREADS: "100"
+      CONCURRENCY: "1000"
   tracker:
     model_type: classification
+  compute:
+    mem: 0.5G
+  autoscaling:
+    init_replicas: 1
+    max_replicas: 1

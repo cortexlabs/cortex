@@ -1,6 +1,21 @@
 #! /usr/bin/env sh
 set -e
 
+export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
+
+sysctl -w net.core.somaxconn=4096 >/dev/null
+sysctl -w net.ipv4.ip_local_port_range="15000 64000" >/dev/null
+sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
+
+if [ -f "/mnt/project/requirements.txt" ]; then
+    pip --no-cache-dir install -r /mnt/project/requirements.txt
+fi
+
+cd /mnt/project
+
+# Ensure predictor print() statements are always flushed
+export PYTHONUNBUFFERED=TRUE
+
 if [ -f /app/app/main.py ]; then
     DEFAULT_MODULE_NAME=app.main
 elif [ -f /app/main.py ]; then
@@ -32,5 +47,5 @@ fi
 mkdir -p /requests
 
 # Start Gunicorn
-exec uvicorn main:app --port $MY_PORT --host $HOST --workers $WORKERS --backlog $BACKLOG --limit-concurrency $CONCURRENCY
+exec uvicorn cortex.serve.wsgi:app --port $MY_PORT --host $HOST --workers $WORKERS --backlog $BACKLOG --limit-concurrency $CONCURRENCY
 # exec gunicorn -k uvicorn.workers.UvicornWorker -c "$GUNICORN_CONF" "$APP_MODULE"

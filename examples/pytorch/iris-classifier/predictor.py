@@ -21,6 +21,7 @@ class PythonPredictor:
         self.model = model
 
     def predict(self, payload):
+        print("starting")
         input_tensor = torch.FloatTensor(
             [
                 [

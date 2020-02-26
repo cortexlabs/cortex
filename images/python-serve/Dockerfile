@@ -53,7 +53,7 @@ COPY images/python-serve//gunicorn_conf.py /gunicorn_conf.py
 COPY images/python-serve//start-reload.sh /start-reload.sh
 RUN chmod +x /start-reload.sh
 
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/src
 
 EXPOSE 80
 
