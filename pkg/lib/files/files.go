@@ -65,6 +65,20 @@ func OpenFile(path string, flag int, perm os.FileMode) (*os.File, error) {
 	return file, err
 }
 
+func OpenNewFile(path string) (*os.File, error) {
+	cleanPath, err := EscapeTilde(path)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.Create(cleanPath)
+	if err != nil {
+		return nil, errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
+	}
+
+	return file, nil
+}
+
 func ReadFile(path string) (string, error) {
 	fileBytes, err := ReadFileBytes(path)
 	if err != nil {
@@ -96,18 +110,19 @@ func ReadFileBytesErrPath(path string, errMsgPath string) ([]byte, error) {
 	return fileBytes, nil
 }
 
-func CreateFile(path string) (*os.File, error) {
+func CreateFile(path string) error {
 	cleanPath, err := EscapeTilde(path)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	file, err := os.Create(cleanPath)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
+		return errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
 	}
+	defer file.Close()
 
-	return file, nil
+	return nil
 }
 
 func WriteFile(data []byte, path string) error {
@@ -118,19 +133,6 @@ func WriteFile(data []byte, path string) error {
 
 	if err := ioutil.WriteFile(cleanPath, data, 0664); err != nil {
 		return errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
-	}
-
-	return nil
-}
-
-func MkdirAll(path string) error {
-	cleanPath, err := EscapeTilde(path)
-	if err != nil {
-		return err
-	}
-
-	if err := os.MkdirAll(cleanPath, os.ModePerm); err != nil {
-		return errors.Wrap(err, errors.Message(ErrorCreateDir(path)))
 	}
 
 	return nil
@@ -256,23 +258,61 @@ func CheckFileErrPath(path string, errMsgPath string) error {
 	return nil
 }
 
-func CreateDirIfMissing(path string) (bool, error) {
+func CreateDir(path string) error {
 	cleanPath, err := EscapeTilde(path)
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(cleanPath, os.ModePerm); err != nil {
+		return errors.Wrap(err, errors.Message(ErrorCreateDir(path)))
+	}
+
+	return nil
+}
+
+func CreateDirIfMissing(path string) (bool, error) {
+	if IsDir(path) {
+		return false, nil
+	}
+
+	if IsFile(path) {
+		return false, ErrorFileAlreadyExists(path)
+	}
+
+	err := CreateDir(path)
 	if err != nil {
 		return false, err
 	}
 
-	if err := CheckDir(path); err == nil {
-		return false, nil
+	return true, nil
+}
+
+func DeleteDir(path string) error {
+	cleanPath, err := EscapeTilde(path)
+	if err != nil {
+		return err
 	}
 
-	if err := CheckFile(path); err == nil {
+	if err := os.RemoveAll(cleanPath); err != nil {
+		return errors.Wrap(err, errors.Message(ErrorDeleteDir(path)))
+	}
+
+	return nil
+}
+
+func DeleteDirIfPresent(path string) (bool, error) {
+	if IsFile(path) {
 		return false, ErrorFileAlreadyExists(path)
 	}
 
-	err = os.MkdirAll(cleanPath, os.ModePerm)
+	if !IsDir(path) {
+		return false, nil
+	}
+
+	err := DeleteDir(path)
 	if err != nil {
-		return false, errors.Wrap(err, path)
+		return false, err
 	}
 
 	return true, nil

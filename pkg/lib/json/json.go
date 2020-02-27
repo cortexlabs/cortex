@@ -63,7 +63,7 @@ func WriteJSON(obj interface{}, outPath string) error {
 	if err != nil {
 		return err
 	}
-	if err := files.MkdirAll(filepath.Dir(outPath)); err != nil {
+	if err := files.CreateDir(filepath.Dir(outPath)); err != nil {
 		return err
 	}
 
