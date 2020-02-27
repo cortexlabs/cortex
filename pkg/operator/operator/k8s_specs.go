@@ -556,6 +556,10 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 			Value: s.Int64(api.Autoscaling.MaxQueueLength + int64(api.Autoscaling.ThreadsPerWorker*api.Autoscaling.WorkersPerReplica)),
 		},
 		kcore.EnvVar{
+			Name:  "CORTEX_SO_MAX_CONN",
+			Value: s.Int64(api.Autoscaling.MaxQueueLength + int64(api.Autoscaling.ThreadsPerWorker*api.Autoscaling.WorkersPerReplica) + 100), // add a buffer to be safe
+		},
+		kcore.EnvVar{
 			Name:  "CORTEX_SERVING_PORT",
 			Value: _defaultPortStr,
 		},
