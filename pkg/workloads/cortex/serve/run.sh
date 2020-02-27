@@ -34,4 +34,4 @@ export PYTHONUNBUFFERED=TRUE
 mkdir -p /mnt/requests
 
 # Start Gunicorn
-exec uvicorn cortex.serve.wsgi:app --port $MY_PORT --host $HOST --workers $WORKERS --backlog $BACKLOG --limit-concurrency $CONCURRENCY
+exec uvicorn cortex.serve.wsgi:app --port $MY_PORT --host $HOST --workers $WORKERS --backlog $BACKLOG --limit-concurrency $CORTEX_MAX_IN_FLIGHT
