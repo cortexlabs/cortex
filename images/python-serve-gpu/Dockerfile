@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04
+FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04
 
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
@@ -17,7 +17,10 @@ RUN apt-get update -qq && apt-get install -y -q \
         libsm6 \
         libxext6 \
         libxrender-dev \
+        libsndfile1 \
         locales \
+        libnvinfer6=6.0.1-1+cuda10.1 \
+        libnvinfer-plugin6=6.0.1-1+cuda10.1 \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/* && \
     curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
     python3.6 get-pip.py && \

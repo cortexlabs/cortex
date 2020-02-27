@@ -12,6 +12,7 @@ RUN apt-get update -qq && apt-get install -y -q \
         libsm6 \
         libxext6 \
         libxrender-dev \
+        libsndfile1 \
         locales \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
