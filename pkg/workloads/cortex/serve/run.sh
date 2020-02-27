@@ -31,16 +31,7 @@ cd /mnt/project
 # Ensure predictor print() statements are always flushed
 export PYTHONUNBUFFERED=TRUE
 
-exec gunicorn \
---bind 0.0.0.0:$CORTEX_SERVING_PORT \
---threads $CORTEX_THREADS_PER_WORKER \
---workers $CORTEX_WORKERS_PER_REPLICA \
---worker-class gthread \
---backlog 4096 \
---access-logfile - \
---pythonpath $PYTHONPATH \
---chdir /mnt/project \
---access-logformat '%(s)s %(m)s %(U)s' \
---logger-class "cortex.serve.gunicorn_logger.CortexGunicornLogger" \
---config /src/cortex/serve/gunicorn_config.py \
-cortex.serve.wsgi:app
+mkdir -p /mnt/requests
+
+# Start Gunicorn
+exec uvicorn cortex.serve.wsgi:app --port $MY_PORT --host $HOST --workers $WORKERS --backlog $BACKLOG --limit-concurrency $CONCURRENCY
