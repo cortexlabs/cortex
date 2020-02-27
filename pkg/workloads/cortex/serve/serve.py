@@ -37,7 +37,6 @@ from cortex.lib.exceptions import UserRuntimeException
 
 loop = asyncio.get_event_loop()
 loop.set_default_executor(ThreadPoolExecutor(max_workers=int(os.environ["THREADS"])))
-lock = asyncio.Lock()
 
 logger = logging.getLogger("api")
 
@@ -100,19 +99,14 @@ async def my_middleware(request: Request, call_next):
 
 
 @app.post("/predict")
-async def predict(request: Request):
-    global local_cache
-    debug = request.query_params.get("debug", "false").lower() == "true"
-
-    payload = await request.json()
-
+def predict(request: dict, debug=False):
     api = local_cache["api"]
     predictor_impl = local_cache["predictor_impl"]
 
     try:
-        debug_obj("payload", payload, debug)
+        debug_obj("payload", request, debug)
         try:
-            output = predictor_impl.predict(payload)
+            output = predictor_impl.predict(request)
         except Exception as e:
             raise UserRuntimeException(api.predictor.path, "predict", str(e)) from e
         debug_obj("prediction", output, debug)
@@ -131,6 +125,15 @@ async def predict(request: Request):
         cx_logger().warn("unable to record prediction metric", exc_info=True)
 
     return output
+
+
+@app.get("/predict")
+def get_summary():
+    response = {"message": API_SUMMARY_MESSAGE}
+
+    if hasattr(local_cache["client"], "input_signature"):
+        response["model_signature"] = local_cache["client"].input_signature
+    return response
 
 
 def prediction_failed(reason):
@@ -156,7 +159,6 @@ def get_spec(storage, cache_dir, s3_path):
 
 
 def after_request(request: Request, response: Response, start_time: float):
-    global local_cache
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = request.headers.get(
         "Access-Control-Request-Headers", "*"
