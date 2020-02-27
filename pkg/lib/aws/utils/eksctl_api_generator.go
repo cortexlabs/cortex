@@ -82,15 +82,13 @@ type TemplateArgs struct {
 	CommandToExecute     []string
 }
 
-// DebugFlags used to determine which flags have been assigned to which commands
-// and which persist.
-func DebugFlags(c *cobra.Command) {
+func CompileCommandTemplate(c *cobra.Command) {
 	var commandName []string
 	var commandOptions = make(map[string]string)
 	var latestCommandOptions = make(map[string]string)
-	var debugFlags func(*cobra.Command)
+	var compileCommandTemplate func(*cobra.Command)
 
-	debugFlags = func(x *cobra.Command) {
+	compileCommandTemplate = func(x *cobra.Command) {
 		commandName = append(commandName, x.Name())
 
 		if x.HasFlags() {
@@ -108,7 +106,7 @@ func DebugFlags(c *cobra.Command) {
 		if x.HasSubCommands() {
 			for _, y := range x.Commands() {
 				latestCommandOptions = make(map[string]string)
-				debugFlags(y)
+				compileCommandTemplate(y)
 			}
 		} else {
 			templateArgs := TemplateArgs{
@@ -147,11 +145,7 @@ func DebugFlags(c *cobra.Command) {
 		}
 	}
 
-	debugFlags(c)
-}
-
-type CreateClusterCommandArgsBuilder interface {
-	Region(string) CreateClusterCommandArgsBuilder
+	compileCommandTemplate(c)
 }
 
 func main() {
@@ -162,16 +156,16 @@ func main() {
 	fmt.Println("import \"github.com/iancoleman/strcase\"")
 
 	flagGrouping := cmdutils.NewGrouping()
-	DebugFlags(create.Command(flagGrouping))
-	DebugFlags(get.Command(flagGrouping))
-	DebugFlags(update.Command(flagGrouping))
-	DebugFlags(upgrade.Command(flagGrouping))
-	DebugFlags(del.Command(flagGrouping))
-	DebugFlags(set.Command(flagGrouping))
-	DebugFlags(unset.Command(flagGrouping))
-	DebugFlags(scale.Command(flagGrouping))
-	DebugFlags(drain.Command(flagGrouping))
-	DebugFlags(generate.Command(flagGrouping))
-	DebugFlags(enable.Command(flagGrouping))
-	DebugFlags(utils.Command(flagGrouping))
+	CompileCommandTemplate(create.Command(flagGrouping))
+	CompileCommandTemplate(get.Command(flagGrouping))
+	CompileCommandTemplate(update.Command(flagGrouping))
+	CompileCommandTemplate(upgrade.Command(flagGrouping))
+	CompileCommandTemplate(del.Command(flagGrouping))
+	CompileCommandTemplate(set.Command(flagGrouping))
+	CompileCommandTemplate(unset.Command(flagGrouping))
+	CompileCommandTemplate(scale.Command(flagGrouping))
+	CompileCommandTemplate(drain.Command(flagGrouping))
+	CompileCommandTemplate(generate.Command(flagGrouping))
+	CompileCommandTemplate(enable.Command(flagGrouping))
+	CompileCommandTemplate(utils.Command(flagGrouping))
 }
