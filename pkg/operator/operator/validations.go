@@ -228,6 +228,13 @@ var _autoscalingValidation = &cr.StructFieldValidation{
 				},
 			},
 			{
+				StructField: "MaxQueueLength",
+				Int64Validation: &cr.Int64Validation{
+					Default:              100,
+					GreaterThanOrEqualTo: pointer.Int64(0),
+				},
+			},
+			{
 				StructField: "Window",
 				StringValidation: &cr.StringValidation{
 					Default: "60s",
