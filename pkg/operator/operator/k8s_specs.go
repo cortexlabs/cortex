@@ -47,6 +47,8 @@ const (
 	_downloaderLastLog                     = "pulling the %s serving image"
 	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
+	_requestMonitorReadinessFile           = "/request_monitor_ready.txt"
+	_apiReadinessFile                      = "/mnt/api_ready.txt"
 )
 
 var (
@@ -161,7 +163,8 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 						),
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
-						ReadinessProbe: _apiReadinessProbe,
+						LivenessProbe:  apiLivenessProbe(api),
+						ReadinessProbe: apiReadinessProbe(_apiReadinessFile),
 						Resources: kcore.ResourceRequirements{
 							Requests: apiResourceList,
 						},
@@ -312,7 +315,8 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						Env:             getEnvVars(api),
 						EnvFrom:         _baseEnvVars,
 						VolumeMounts:    _defaultVolumeMounts,
-						ReadinessProbe:  _apiReadinessProbe,
+						ReadinessProbe:  apiReadinessProbe(_apiReadinessFile),
+						LivenessProbe:   apiLivenessProbe(api),
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
@@ -425,7 +429,8 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 						),
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
-						ReadinessProbe: _apiReadinessProbe,
+						LivenessProbe:  apiLivenessProbe(api),
+						ReadinessProbe: apiReadinessProbe(_apiReadinessFile),
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
@@ -595,6 +600,7 @@ func requestMonitorContainer(api *spec.API) *kcore.Container {
 		Args:            []string{api.Name, config.Cluster.LogGroup},
 		EnvFrom:         _baseEnvVars,
 		VolumeMounts:    _defaultVolumeMounts,
+		ReadinessProbe:  apiReadinessProbe(_requestMonitorReadinessFile),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
 				kcore.ResourceCPU:    _requestMonitorCPURequest,
@@ -608,18 +614,41 @@ func k8sName(apiName string) string {
 	return "api-" + apiName
 }
 
-var _apiReadinessProbe = &kcore.Probe{
-	InitialDelaySeconds: 5,
-	TimeoutSeconds:      5,
-	PeriodSeconds:       5,
-	SuccessThreshold:    1,
-	FailureThreshold:    2,
-	Handler: kcore.Handler{
-		Exec: &kcore.ExecAction{
-			// Check the gunicorn master process and at least one other worker is alive
-			Command: []string{"/bin/bash", "-c", "true"},
+func apiLivenessProbe(api *spec.API) *kcore.Probe {
+	cmd := "/bin/ps aux | grep \"uvicorn\" | grep -v \"grep\" | wc -l | xargs test 1 -eq"
+	if api.Autoscaling.WorkersPerReplica > 1 {
+		// check that at least one process is running
+		cmd = fmt.Sprintf("/bin/ps aux | grep \"from multiprocessing.spawn import spawn_main;\" | grep -v \"grep\" | wc -l | xargs test %d -eq", api.Autoscaling.WorkersPerReplica)
+	}
+
+	return &kcore.Probe{
+		InitialDelaySeconds: 5,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       5,
+		SuccessThreshold:    1,
+		FailureThreshold:    2,
+		Handler: kcore.Handler{
+			Exec: &kcore.ExecAction{
+				Command: []string{"/bin/bash", "-c", cmd},
+			},
 		},
-	},
+	}
+}
+
+func apiReadinessProbe(fileName string) *kcore.Probe {
+	return &kcore.Probe{
+		InitialDelaySeconds: 5,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       5,
+		SuccessThreshold:    1,
+		FailureThreshold:    2,
+		Handler: kcore.Handler{
+			Exec: &kcore.ExecAction{
+				// Check the gunicorn master process and at least one other worker is alive
+				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -f %s", fileName)},
+			},
+		},
+	}
 }
 
 var _tolerations = []kcore.Toleration{

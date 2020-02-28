@@ -22,7 +22,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
@@ -80,8 +80,12 @@ def start():
         except Exception as e:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
-    open("/mnt/health_check.txt", "a").close()
     return app
+
+
+@app.on_event("startup")
+def startup():
+    open("/mnt/api_ready.txt", "a").close()
 
 
 @app.middleware("http")
@@ -108,12 +112,14 @@ def predict(request: dict, debug=False):
         debug_obj("payload", request, debug)
         try:
             output = predictor_impl.predict(request)
+        except HTTPException:
+            raise
         except Exception as e:
             raise UserRuntimeException(api.predictor.path, "predict", str(e)) from e
         debug_obj("prediction", output, debug)
-    except Exception as e:
+    except UserRuntimeException as e:
         cx_logger().exception("prediction failed")
-        return prediction_failed(str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
     try:
         if api.tracker is not None:
@@ -135,12 +141,6 @@ def get_summary():
     if hasattr(local_cache["client"], "input_signature"):
         response["model_signature"] = local_cache["client"].input_signature
     return response
-
-
-def prediction_failed(reason):
-    message = "prediction failed: {}".format(reason)
-    cx_logger().error(message)
-    return message
 
 
 def assert_api_version():

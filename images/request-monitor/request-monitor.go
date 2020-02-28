@@ -77,19 +77,18 @@ func main() {
 	requestCounter := Counter{}
 
 	for {
-		if _, err := os.Stat("/mnt/health_check.txt"); err == nil {
-			fmt.Println("healthy")
+		if _, err := os.Stat("/mnt/api_ready.txt"); err == nil {
 			break
-			// time.Sleep(_tickInterval)
 		} else if os.IsNotExist(err) {
 			fmt.Println("waiting...")
 			time.Sleep(_tickInterval)
 		} else {
-			log.Printf("error encountered while looking for /mnt/health_check.txt") // unexpected
+			log.Printf("error encountered while looking for /mnt/api_ready.txt") // unexpected
 			time.Sleep(_tickInterval)
 		}
 	}
-	fmt.Println("hello")
+	os.OpenFile("/request_monitor_ready.txt", os.O_RDONLY|os.O_CREATE, 0666)
+
 	targetTime := time.Now()
 	roundedTime := targetTime.Round(_tickInterval)
 	if roundedTime.Before(targetTime) {
