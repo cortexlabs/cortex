@@ -102,14 +102,24 @@ async def my_middleware(request: Request, call_next):
     pid = os.getpid()
     rid = uuid.uuid4()
     file_id = f"/mnt/requests/{pid}.{rid}"
+
     open(file_id, "a").close()
+
     request_start_time = time.time()
 
     response = await call_next(request)
+    if response.background is None:
+        response.background = BackgroundTasks()
 
+    response.background.add_task(
+        post_response,
+        request=request,
+        response=response,
+        total_time=time.time() - request_start_time,
+    )
+    apply_headers(request, response)
     os.remove(file_id)
 
-    after_request(request, response, request_start_time)
     return response
 
 
@@ -129,13 +139,14 @@ def run_predictor_impl(request: dict, debug=False):
     try:
         json_string = json.dumps(prediction)
     except Exception as e:
-        cx_logger().exception("failed to convert prediction to json")
-        raise HTTPException(status_code=500, detail=str(e))
+        json_string = util.json_tricks_encoder().encode(prediction)
 
     tasks = BackgroundTasks()
     if api.tracker is not None:
         tasks.add_task(track_prediction, api=api, prediction=prediction)
-    return Response(content=json_string, media_type="application/json", background=tasks)
+    response = Response(content=json_string, media_type="application/json", background=tasks)
+
+    return response
 
 
 def track_prediction(api, prediction):
@@ -174,17 +185,15 @@ def get_spec(storage, cache_dir, s3_path):
     return util.read_msgpack(local_spec_path)
 
 
-def after_request(request: Request, response: Response, start_time: float):
+def apply_headers(request: Request, response: Response):
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = request.headers.get(
         "Access-Control-Request-Headers", "*"
     )
-    response.headers["pid"] = str(os.getpid())
-
-    if not (request.url.path == "/predict" and request.method == "POST"):
-        return response
-
-    api = local_cache["api"]
-    api.post_latency_metrics(response.status_code, start_time)
-
     return response
+
+
+def post_response(request: Request, response: Response, total_time: float):
+    if request.url.path == "/predict" and request.method == "POST":
+        api = local_cache["api"]
+        api.post_latency_metrics(response.status_code, total_time)
