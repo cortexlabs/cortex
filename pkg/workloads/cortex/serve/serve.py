@@ -36,7 +36,9 @@ from cortex.lib.exceptions import UserRuntimeException
 
 
 loop = asyncio.get_event_loop()
-loop.set_default_executor(ThreadPoolExecutor(max_workers=int(os.environ["THREADS"])))
+loop.set_default_executor(
+    ThreadPoolExecutor(max_workers=int(os.environ["CORTEX_THREADS_PER_WORKER"]))
+)
 
 logger = logging.getLogger("api")
 

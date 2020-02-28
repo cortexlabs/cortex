@@ -22,10 +22,10 @@ if __name__ == "__main__":
 
     uvicorn.run(
         "cortex.serve.wsgi:app",
-        host=os.environ["HOST"],
-        port=int(os.environ["MY_PORT"]),
-        backlog=int(os.environ["BACKLOG"]),
-        workers=int(os.environ["WORKERS"]),
+        host="0.0.0.0",
+        port=int(os.environ["CORTEX_SERVING_PORT"]),
+        workers=int(os.environ["CORTEX_WORKERS_PER_REPLICA"]),
+        backlog=int(os.environ["CORTEX_MAX_IN_FLIGHT"]),
         limit_concurrency=int(os.environ["CORTEX_MAX_IN_FLIGHT"]),
         log_config=log_config,
         log_level="info",
