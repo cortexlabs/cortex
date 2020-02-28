@@ -23,9 +23,11 @@ from concurrent.futures import ThreadPoolExecutor
 import asyncio
 
 from fastapi import FastAPI, HTTPException
+from fastapi.encoders import jsonable_encoder
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import Response, JSONResponse
+from starlette.background import BackgroundTasks
 
 from cortex import consts
 from cortex.lib import util
@@ -33,23 +35,30 @@ from cortex.lib.type import API
 from cortex.lib.log import cx_logger, debug_obj
 from cortex.lib.storage import S3
 from cortex.lib.exceptions import UserRuntimeException
+import functools
+import typing
+from typing import Any, AsyncGenerator, Iterator
 
 
-loop = asyncio.get_event_loop()
-loop.set_default_executor(
-    ThreadPoolExecutor(max_workers=int(os.environ["CORTEX_THREADS_PER_WORKER"]))
-)
-
-logger = logging.getLogger("api")
+worker_thread_pool = ThreadPoolExecutor(max_workers=int(os.environ["CORTEX_THREADS_PER_WORKER"]))
 
 app = FastAPI()
-
 
 API_SUMMARY_MESSAGE = (
     "make a prediction by sending a post request to this endpoint with a json payload"
 )
 
 local_cache = {"api": None, "predictor_impl": None, "client": None, "class_set": set()}
+
+T = typing.TypeVar("T")
+
+
+async def run_in_threadpool(
+    func: typing.Callable[..., T], *args: typing.Any, **kwargs: typing.Any
+) -> T:
+    loop = asyncio.get_event_loop()
+    func = functools.partial(func, **kwargs)
+    return await loop.run_in_executor(worker_thread_pool, func, *args)
 
 
 def start():
@@ -99,39 +108,45 @@ async def my_middleware(request: Request, call_next):
     response = await call_next(request)
 
     os.remove(file_id)
+
     after_request(request, response, request_start_time)
     return response
 
 
 @app.post("/predict")
-def predict(request: dict, debug=False):
+async def predict(request: dict, debug=False):
+    return await run_in_threadpool(run_predictor_impl, request, debug)
+
+
+def run_predictor_impl(request: dict, debug=False):
     api = local_cache["api"]
     predictor_impl = local_cache["predictor_impl"]
 
+    debug_obj("payload", request, debug)
+    prediction = predictor_impl.predict(request)
+    debug_obj("prediction", prediction, debug)
+
     try:
-        debug_obj("payload", request, debug)
-        try:
-            output = predictor_impl.predict(request)
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise UserRuntimeException(api.predictor.path, "predict", str(e)) from e
-        debug_obj("prediction", output, debug)
-    except UserRuntimeException as e:
-        cx_logger().exception("prediction failed")
+        json_string = json.dumps(prediction)
+    except Exception as e:
+        cx_logger().exception("failed to convert prediction to json")
         raise HTTPException(status_code=500, detail=str(e))
 
+    tasks = BackgroundTasks()
+    if api.tracker is not None:
+        tasks.add_task(track_prediction, api=api, prediction=prediction)
+    return Response(content=json_string, media_type="application/json", background=tasks)
+
+
+def track_prediction(api, prediction):
     try:
-        if api.tracker is not None:
-            predicted_value = api.tracker.extract_predicted_value(output)
-            api.post_tracker_metrics(predicted_value)
-            if predicted_value is not None and predicted_value not in local_cache["class_set"]:
-                api.upload_class(predicted_value)
-                local_cache["class_set"].add(predicted_value)
+        predicted_value = api.tracker.extract_predicted_value(prediction)
+        api.post_tracker_metrics(predicted_value)
+        if predicted_value is not None and predicted_value not in local_cache["class_set"]:
+            api.upload_class(predicted_value)
+            local_cache["class_set"].add(predicted_value)
     except Exception as e:
         cx_logger().warn("unable to record prediction metric", exc_info=True)
-
-    return output
 
 
 @app.get("/predict")
@@ -164,6 +179,7 @@ def after_request(request: Request, response: Response, start_time: float):
     response.headers["Access-Control-Allow-Headers"] = request.headers.get(
         "Access-Control-Request-Headers", "*"
     )
+    response.headers["pid"] = str(os.getpid())
 
     if not (request.url.path == "/predict" and request.method == "POST"):
         return response
