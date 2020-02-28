@@ -20,6 +20,7 @@ if __name__ == "__main__":
     with open("/src/cortex/serve/log_config.yaml", "r") as f:
         log_config = yaml.load(f, yaml.FullLoader)
 
+    # https://github.com/encode/uvicorn/blob/master/uvicorn/config.py
     uvicorn.run(
         "cortex.serve.wsgi:app",
         host="0.0.0.0",
