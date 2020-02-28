@@ -130,6 +130,7 @@ dill==0.3.1.1
 msgpack==0.6.2
 numpy==1.18.0
 onnxruntime==1.1.0
+pyyaml==5.3
 requests==2.22.0
 ```
 

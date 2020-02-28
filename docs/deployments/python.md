@@ -156,6 +156,7 @@ numpy==1.18.0
 pandas==0.25.3
 opencv-python==4.1.2.30
 Pillow==6.2.1
+pyyaml==5.3
 requests==2.22.0
 scikit-image==0.16.2
 scikit-learn==0.22

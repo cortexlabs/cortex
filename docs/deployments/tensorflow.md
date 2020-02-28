@@ -123,6 +123,7 @@ msgpack==0.6.2
 numpy==1.18.0
 requests==2.22.0
 opencv-python==4.1.2.30
+pyyaml==5.3
 tensor2tensor==1.15.4
 tensorflow-hub==0.7.0
 tensorflow==2.1.0
