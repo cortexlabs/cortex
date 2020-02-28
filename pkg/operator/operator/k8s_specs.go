@@ -49,6 +49,7 @@ const (
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
 	_requestMonitorReadinessFile           = "/request_monitor_ready.txt"
 	_apiReadinessFile                      = "/mnt/api_ready.txt"
+	_apiReadinessStalePeriod               = 10 // seconds
 )
 
 var (
@@ -164,7 +165,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
 						LivenessProbe:  apiLivenessProbe(api),
-						ReadinessProbe: apiReadinessProbe(_apiReadinessFile),
+						ReadinessProbe: fileTimestampReadinessProbe(_apiReadinessFile, _apiReadinessStalePeriod),
 						Resources: kcore.ResourceRequirements{
 							Requests: apiResourceList,
 						},
@@ -315,7 +316,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						Env:             getEnvVars(api),
 						EnvFrom:         _baseEnvVars,
 						VolumeMounts:    _defaultVolumeMounts,
-						ReadinessProbe:  apiReadinessProbe(_apiReadinessFile),
+						ReadinessProbe:  fileTimestampReadinessProbe(_apiReadinessFile, _apiReadinessStalePeriod),
 						LivenessProbe:   apiLivenessProbe(api),
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
@@ -430,7 +431,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
 						LivenessProbe:  apiLivenessProbe(api),
-						ReadinessProbe: apiReadinessProbe(_apiReadinessFile),
+						ReadinessProbe: fileTimestampReadinessProbe(_apiReadinessFile, _apiReadinessStalePeriod),
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
@@ -600,7 +601,7 @@ func requestMonitorContainer(api *spec.API) *kcore.Container {
 		Args:            []string{api.Name, config.Cluster.LogGroup},
 		EnvFrom:         _baseEnvVars,
 		VolumeMounts:    _defaultVolumeMounts,
-		ReadinessProbe:  apiReadinessProbe(_requestMonitorReadinessFile),
+		ReadinessProbe:  fileExistsReadinessProbe(_requestMonitorReadinessFile),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
 				kcore.ResourceCPU:    _requestMonitorCPURequest,
@@ -635,7 +636,7 @@ func apiLivenessProbe(api *spec.API) *kcore.Probe {
 	}
 }
 
-func apiReadinessProbe(fileName string) *kcore.Probe {
+func fileExistsReadinessProbe(fileName string) *kcore.Probe {
 	return &kcore.Probe{
 		InitialDelaySeconds: 5,
 		TimeoutSeconds:      5,
@@ -644,8 +645,22 @@ func apiReadinessProbe(fileName string) *kcore.Probe {
 		FailureThreshold:    2,
 		Handler: kcore.Handler{
 			Exec: &kcore.ExecAction{
-				// Check the gunicorn master process and at least one other worker is alive
 				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -f %s", fileName)},
+			},
+		},
+	}
+}
+
+func fileTimestampReadinessProbe(fileName string, stalePeriodSecs int) *kcore.Probe {
+	return &kcore.Probe{
+		InitialDelaySeconds: 10,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       5,
+		SuccessThreshold:    1,
+		FailureThreshold:    2,
+		Handler: kcore.Handler{
+			Exec: &kcore.ExecAction{
+				Command: []string{"/bin/bash", "-c", `now="$(date +%s)" && min="$(($now-` + s.Int(stalePeriodSecs) + `))" && test "$(cat ` + fileName + ` | tr -d '[:space:]')" -ge "$min"`},
 			},
 		},
 	}
