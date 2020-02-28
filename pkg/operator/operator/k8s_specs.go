@@ -49,7 +49,7 @@ const (
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
 	_requestMonitorReadinessFile           = "/request_monitor_ready.txt"
 	_apiReadinessFile                      = "/mnt/api_ready.txt"
-	_apiReadinessStalePeriod               = 10 // seconds
+	_apiReadinessStalePeriod               = 7 // seconds (there is a 2-second buffer to be safe)
 )
 
 var (

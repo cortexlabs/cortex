@@ -20,6 +20,8 @@ import logging
 import json
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+import threading
+import math
 import asyncio
 
 from fastapi import FastAPI, HTTPException
@@ -47,6 +49,8 @@ app = FastAPI()
 API_SUMMARY_MESSAGE = (
     "make a prediction by sending a post request to this endpoint with a json payload"
 )
+
+API_READINESS_UPDATE_PERIOD = 5  # seconds
 
 local_cache = {"api": None, "predictor_impl": None, "client": None, "class_set": set()}
 
@@ -92,9 +96,15 @@ def start():
     return app
 
 
+def update_api_ready_file_timer():
+    threading.Timer(API_READINESS_UPDATE_PERIOD, update_api_ready_file_timer).start()
+    with open("/mnt/api_ready.txt", "w") as f:
+        f.write(str(math.ceil(time.time())))
+
+
 @app.on_event("startup")
 def startup():
-    open("/mnt/api_ready.txt", "a").close()
+    update_api_ready_file_timer()
 
 
 @app.middleware("http")
