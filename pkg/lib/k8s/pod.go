@@ -162,9 +162,8 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 				if _killStatuses[exitCode] {
 					if strings.Contains(reason, "oom") {
 						return PodStatusKilledOOM
-					} else {
-						return PodStatusKilled
 					}
+					return PodStatusKilled
 				}
 			} else if containerStatus.State.Terminated != nil {
 				exitCode := containerStatus.State.Terminated.ExitCode
@@ -172,9 +171,8 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 				if _killStatuses[exitCode] {
 					if strings.Contains(reason, "oom") {
 						return PodStatusKilledOOM
-					} else {
-						return PodStatusKilled
 					}
+					return PodStatusKilled
 				}
 			}
 		}
