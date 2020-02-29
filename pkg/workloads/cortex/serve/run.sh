@@ -16,6 +16,11 @@
 
 set -e
 
+rm -rf /mnt/api_readiness.txt
+
+# Allow for the liveness check to pass until the API is running
+echo "9999999999" > /mnt/api_liveness.txt
+
 export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
 
 sysctl -w net.core.somaxconn=$CORTEX_SO_MAX_CONN >/dev/null
@@ -32,5 +37,8 @@ cd /mnt/project
 export PYTHONUNBUFFERED=TRUE
 
 mkdir -p /mnt/requests
+
+# allow API server to take over responsibility of liveness check
+rm /mnt/api_liveness.txt
 
 /usr/bin/python3.6 /src/cortex/serve/start_uvicorn.py

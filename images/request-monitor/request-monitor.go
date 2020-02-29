@@ -76,18 +76,19 @@ func main() {
 	client = cloudwatch.New(sess)
 	requestCounter := Counter{}
 
+	os.OpenFile("/request_monitor_ready.txt", os.O_RDONLY|os.O_CREATE, 0666)
+
 	for {
-		if _, err := os.Stat("/mnt/api_ready.txt"); err == nil {
+		if _, err := os.Stat("/mnt/api_readiness.txt"); err == nil {
 			break
 		} else if os.IsNotExist(err) {
-			fmt.Println("waiting...")
+			fmt.Println("waiting for replica to be ready...")
 			time.Sleep(_tickInterval)
 		} else {
-			log.Printf("error encountered while looking for /mnt/api_ready.txt") // unexpected
+			log.Printf("error encountered while looking for /mnt/api_readiness.txt") // unexpected
 			time.Sleep(_tickInterval)
 		}
 	}
-	os.OpenFile("/request_monitor_ready.txt", os.O_RDONLY|os.O_CREATE, 0666)
 
 	targetTime := time.Now()
 	roundedTime := targetTime.Round(_tickInterval)

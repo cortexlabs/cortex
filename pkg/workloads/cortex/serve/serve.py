@@ -50,7 +50,7 @@ API_SUMMARY_MESSAGE = (
     "make a prediction by sending a post request to this endpoint with a json payload"
 )
 
-API_READINESS_UPDATE_PERIOD = 5  # seconds
+API_LIVENESS_UPDATE_PERIOD = 5  # seconds
 
 local_cache = {"api": None, "predictor_impl": None, "client": None, "class_set": set()}
 
@@ -96,15 +96,29 @@ def start():
     return app
 
 
-def update_api_ready_file_timer():
-    threading.Timer(API_READINESS_UPDATE_PERIOD, update_api_ready_file_timer).start()
-    with open("/mnt/api_ready.txt", "w") as f:
+def update_api_liveness():
+    threading.Timer(API_LIVENESS_UPDATE_PERIOD, update_api_liveness).start()
+    with open("/mnt/api_liveness.txt", "w") as f:
         f.write(str(math.ceil(time.time())))
 
 
 @app.on_event("startup")
 def startup():
-    update_api_ready_file_timer()
+    open("/mnt/api_readiness.txt", "a").close()
+    update_api_liveness()
+
+
+@app.on_event("shutdown")
+def shutdown():
+    try:
+        os.remove("/mnt/api_readiness.txt")
+    except:
+        pass
+
+    try:
+        os.remove("/mnt/api_liveness.txt")
+    except:
+        pass
 
 
 @app.middleware("http")

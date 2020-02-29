@@ -48,8 +48,9 @@ const (
 	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
 	_requestMonitorReadinessFile           = "/request_monitor_ready.txt"
-	_apiReadinessFile                      = "/mnt/api_ready.txt"
-	_apiReadinessStalePeriod               = 7 // seconds (there is a 2-second buffer to be safe)
+	_apiReadinessFile                      = "/mnt/api_readiness.txt"
+	_apiLivenessFile                       = "/mnt/api_liveness.txt"
+	_apiLivenessStalePeriod                = 7 // seconds (there is a 2-second buffer to be safe)
 )
 
 var (
@@ -164,8 +165,8 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 						),
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
-						LivenessProbe:  apiLivenessProbe(api),
-						ReadinessProbe: fileTimestampReadinessProbe(_apiReadinessFile, _apiReadinessStalePeriod),
+						ReadinessProbe: fileExistsProbe(_apiReadinessFile),
+						LivenessProbe:  apiLivenessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: apiResourceList,
 						},
@@ -316,8 +317,8 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						Env:             getEnvVars(api),
 						EnvFrom:         _baseEnvVars,
 						VolumeMounts:    _defaultVolumeMounts,
-						ReadinessProbe:  fileTimestampReadinessProbe(_apiReadinessFile, _apiReadinessStalePeriod),
-						LivenessProbe:   apiLivenessProbe(api),
+						ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
+						LivenessProbe:   apiLivenessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
@@ -430,8 +431,8 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 						),
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
-						LivenessProbe:  apiLivenessProbe(api),
-						ReadinessProbe: fileTimestampReadinessProbe(_apiReadinessFile, _apiReadinessStalePeriod),
+						ReadinessProbe: fileExistsProbe(_apiReadinessFile),
+						LivenessProbe:  apiLivenessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
@@ -601,7 +602,7 @@ func requestMonitorContainer(api *spec.API) *kcore.Container {
 		Args:            []string{api.Name, config.Cluster.LogGroup},
 		EnvFrom:         _baseEnvVars,
 		VolumeMounts:    _defaultVolumeMounts,
-		ReadinessProbe:  fileExistsReadinessProbe(_requestMonitorReadinessFile),
+		ReadinessProbe:  fileExistsProbe(_requestMonitorReadinessFile),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
 				kcore.ResourceCPU:    _requestMonitorCPURequest,
@@ -615,52 +616,29 @@ func k8sName(apiName string) string {
 	return "api-" + apiName
 }
 
-func apiLivenessProbe(api *spec.API) *kcore.Probe {
-	cmd := "/bin/ps aux | grep \"uvicorn\" | grep -v \"grep\" | wc -l | xargs test 1 -eq"
-	if api.Autoscaling.WorkersPerReplica > 1 {
-		// check that at least one process is running
-		cmd = fmt.Sprintf("/bin/ps aux | grep \"from multiprocessing.spawn import spawn_main;\" | grep -v \"grep\" | wc -l | xargs test %d -eq", api.Autoscaling.WorkersPerReplica)
-	}
-
-	return &kcore.Probe{
-		InitialDelaySeconds: 5,
-		TimeoutSeconds:      5,
-		PeriodSeconds:       5,
-		SuccessThreshold:    1,
-		FailureThreshold:    2,
-		Handler: kcore.Handler{
-			Exec: &kcore.ExecAction{
-				Command: []string{"/bin/bash", "-c", cmd},
-			},
+var apiLivenessProbe = &kcore.Probe{
+	InitialDelaySeconds: 5,
+	TimeoutSeconds:      5,
+	PeriodSeconds:       5,
+	SuccessThreshold:    1,
+	FailureThreshold:    2,
+	Handler: kcore.Handler{
+		Exec: &kcore.ExecAction{
+			Command: []string{"/bin/bash", "-c", `now="$(date +%s)" && min="$(($now-` + s.Int(_apiLivenessStalePeriod) + `))" && test "$(cat ` + _apiLivenessFile + ` | tr -d '[:space:]')" -ge "$min"`},
 		},
-	}
+	},
 }
 
-func fileExistsReadinessProbe(fileName string) *kcore.Probe {
+func fileExistsProbe(fileName string) *kcore.Probe {
 	return &kcore.Probe{
-		InitialDelaySeconds: 5,
+		InitialDelaySeconds: 3,
 		TimeoutSeconds:      5,
 		PeriodSeconds:       5,
 		SuccessThreshold:    1,
-		FailureThreshold:    2,
+		FailureThreshold:    1,
 		Handler: kcore.Handler{
 			Exec: &kcore.ExecAction{
 				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -f %s", fileName)},
-			},
-		},
-	}
-}
-
-func fileTimestampReadinessProbe(fileName string, stalePeriodSecs int) *kcore.Probe {
-	return &kcore.Probe{
-		InitialDelaySeconds: 10,
-		TimeoutSeconds:      5,
-		PeriodSeconds:       5,
-		SuccessThreshold:    1,
-		FailureThreshold:    2,
-		Handler: kcore.Handler{
-			Exec: &kcore.ExecAction{
-				Command: []string{"/bin/bash", "-c", `now="$(date +%s)" && min="$(($now-` + s.Int(stalePeriodSecs) + `))" && test "$(cat ` + fileName + ` | tr -d '[:space:]')" -ge "$min"`},
 			},
 		},
 	}
