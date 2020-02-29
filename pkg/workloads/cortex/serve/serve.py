@@ -125,9 +125,8 @@ def shutdown():
 async def my_middleware(request: Request, call_next):
     file_id = ""
     if request.url.path == "/predict" and request.method == "POST":
-        pid = os.getpid()
-        rid = uuid.uuid4()
-        file_id = f"/mnt/requests/{pid}.{rid}"
+        request_id = request.headers["x-request-id"]
+        file_id = f"/mnt/requests/{request_id}"
         open(file_id, "a").close()
 
     request_start_time = time.time()
