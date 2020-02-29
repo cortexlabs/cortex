@@ -123,15 +123,16 @@ def shutdown():
 
 @app.middleware("http")
 async def my_middleware(request: Request, call_next):
+    request_start_time = time.time()
+
     file_id = ""
     if request.url.path == "/predict" and request.method == "POST":
         request_id = request.headers["x-request-id"]
         file_id = f"/mnt/requests/{request_id}"
         open(file_id, "a").close()
 
-    request_start_time = time.time()
-
     response = await call_next(request)
+
     if response.background is None:
         response.background = BackgroundTasks()
 
@@ -142,6 +143,7 @@ async def my_middleware(request: Request, call_next):
         file_id=file_id,
         total_time=time.time() - request_start_time,
     )
+
     apply_headers(request, response)
 
     return response
