@@ -1,0 +1,9 @@
+- name: document-denoiser
+  predictor:
+    type: python
+    path: predictor.py
+    config:
+      model: s3://cortex-examples/keras/document-denoiser
+      resize_shape: [540, 260]
+  compute:
+    cpu: 1
