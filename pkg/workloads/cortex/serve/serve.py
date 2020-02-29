@@ -123,11 +123,12 @@ def shutdown():
 
 @app.middleware("http")
 async def my_middleware(request: Request, call_next):
-    pid = os.getpid()
-    rid = uuid.uuid4()
-    file_id = f"/mnt/requests/{pid}.{rid}"
-
-    open(file_id, "a").close()
+    file_id = ""
+    if request.url.path == "/predict" and request.method == "POST":
+        pid = os.getpid()
+        rid = uuid.uuid4()
+        file_id = f"/mnt/requests/{pid}.{rid}"
+        open(file_id, "a").close()
 
     request_start_time = time.time()
 
@@ -139,10 +140,10 @@ async def my_middleware(request: Request, call_next):
         post_response,
         request=request,
         response=response,
+        file_id=file_id,
         total_time=time.time() - request_start_time,
     )
     apply_headers(request, response)
-    os.remove(file_id)
 
     return response
 
@@ -217,7 +218,13 @@ def apply_headers(request: Request, response: Response):
     return response
 
 
-def post_response(request: Request, response: Response, total_time: float):
+def post_response(request: Request, response: Response, file_id: str, total_time: float):
     if request.url.path == "/predict" and request.method == "POST":
         api = local_cache["api"]
         api.post_latency_metrics(response.status_code, total_time)
+
+    if file_id:
+        try:
+            os.remove(file_id)
+        except:
+            pass
