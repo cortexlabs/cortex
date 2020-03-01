@@ -8,8 +8,3 @@
       model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
   tracker:
     model_type: classification
-  compute:
-    mem: 0.5G
-  autoscaling:
-    init_replicas: 1
-    max_replicas: 1
