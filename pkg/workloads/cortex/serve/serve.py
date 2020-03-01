@@ -90,7 +90,7 @@ def start():
     if api.tracker is not None and api.tracker.model_type == "classification":
         try:
             local_cache["class_set"] = api.get_cached_classes()
-        except Exception as e:
+        except:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
     return app
@@ -164,7 +164,7 @@ def run_predictor_impl(request: dict, debug=False):
 
     try:
         json_string = json.dumps(prediction)
-    except Exception as e:
+    except:
         json_string = util.json_tricks_encoder().encode(prediction)
 
     tasks = BackgroundTasks()
@@ -182,7 +182,7 @@ def track_prediction(api, prediction):
         if predicted_value is not None and predicted_value not in local_cache["class_set"]:
             api.upload_class(predicted_value)
             local_cache["class_set"].add(predicted_value)
-    except Exception as e:
+    except:
         cx_logger().warn("unable to record prediction metric", exc_info=True)
 
 
