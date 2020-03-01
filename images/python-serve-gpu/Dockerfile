@@ -1,7 +1,5 @@
 FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04
 
-RUN sed -i'' 's/archive\.ubuntu\.com/us\.archive\.ubuntu\.com/' /etc/apt/sources.list
-
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
         curl \
