@@ -30,18 +30,14 @@ def get_url_image(url_image):
     image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
     return image
 
+
 def image_from_bytes(byte_im):
     nparr = np.frombuffer(byte_im, np.uint8)
     img_np = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
     return img_np
 
 
-@click.command(
-    help=(
-        "Clean dirty documents whilst using"
-        " the given REST API endpoint."
-    )
-)
+@click.command(help=("Clean dirty documents whilst using" " the given REST API endpoint."))
 @click.argument("img_url_src", type=str)
 @click.argument("endpoint", envvar="ENDPOINT")
 @click.option(
@@ -63,9 +59,7 @@ def main(img_url_src, endpoint, output):
     image_dump = json.dumps({"img": image_enc})
 
     # make yolov3 api request
-    resp = requests.post(
-        endpoint, data=image_dump, headers={"content-type": "application/json"}
-    )
+    resp = requests.post(endpoint, data=image_dump, headers={"content-type": "application/json"})
 
     # parse the response
     img_enc = resp.json()

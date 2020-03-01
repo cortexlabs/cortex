@@ -1,6 +1,9 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
 import boto3, base64, cv2, re, os, json
 import numpy as np
 from tensorflow.keras.models import load_model
+
 
 def image_to_png_nparray(image):
     """
@@ -26,6 +29,7 @@ def image_from_bytes(byte_im):
     nparr = np.frombuffer(byte_im, np.uint8)
     img_np = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
     return img_np
+
 
 class PythonPredictor:
     def __init__(self, config):
@@ -60,7 +64,7 @@ class PythonPredictor:
         # encode image
         image_enc = base64.b64encode(byte_im).decode("utf-8")
         image_dump = json.dumps({"img_pred": image_enc})
-        
+
         return image_dump
 
     def make_prediction(self, img):
