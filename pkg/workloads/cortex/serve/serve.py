@@ -24,9 +24,7 @@ import threading
 import math
 import asyncio
 
-from fastapi import FastAPI, HTTPException
-from fastapi.encoders import jsonable_encoder
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from fastapi import FastAPI
 from starlette.requests import Request
 from starlette.responses import Response, JSONResponse
 from starlette.background import BackgroundTasks
@@ -36,15 +34,7 @@ from cortex.lib import util
 from cortex.lib.type import API
 from cortex.lib.log import cx_logger, debug_obj
 from cortex.lib.storage import S3
-from cortex.lib.exceptions import UserRuntimeException
-import functools
-import typing
-from typing import Any, AsyncGenerator, Iterator
 
-
-worker_thread_pool = ThreadPoolExecutor(max_workers=int(os.environ["CORTEX_THREADS_PER_WORKER"]))
-
-app = FastAPI()
 
 API_SUMMARY_MESSAGE = (
     "make a prediction by sending a post request to this endpoint with a json payload"
@@ -52,54 +42,24 @@ API_SUMMARY_MESSAGE = (
 
 API_LIVENESS_UPDATE_PERIOD = 5  # seconds
 
+
+loop = asyncio.get_event_loop()
+loop.set_default_executor(
+    ThreadPoolExecutor(max_workers=int(os.environ["CORTEX_THREADS_PER_WORKER"]))
+)
+
+app = FastAPI()
 local_cache = {"api": None, "predictor_impl": None, "client": None, "class_set": set()}
-
-T = typing.TypeVar("T")
-
-
-async def run_in_threadpool(
-    func: typing.Callable[..., T], *args: typing.Any, **kwargs: typing.Any
-) -> T:
-    loop = asyncio.get_event_loop()
-    func = functools.partial(func, **kwargs)
-    return await loop.run_in_executor(worker_thread_pool, func, *args)
-
-
-def start():
-    cache_dir = os.environ["CORTEX_CACHE_DIR"]
-    spec = os.environ["CORTEX_API_SPEC"]
-    project_dir = os.environ["CORTEX_PROJECT_DIR"]
-    model_dir = os.getenv("CORTEX_MODEL_DIR", None)
-    tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", None)
-    storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
-
-    try:
-        raw_api_spec = get_spec(storage, cache_dir, spec)
-        api = API(storage=storage, cache_dir=cache_dir, **raw_api_spec)
-        client = api.predictor.initialize_client(model_dir, tf_serving_port)
-        cx_logger().info("loading the predictor from {}".format(api.predictor.path))
-        predictor_impl = api.predictor.initialize_impl(project_dir, client)
-
-        local_cache["api"] = api
-        local_cache["client"] = client
-        local_cache["predictor_impl"] = predictor_impl
-    except:
-        cx_logger().exception("failed to start api")
-        sys.exit(1)
-
-    if api.tracker is not None and api.tracker.model_type == "classification":
-        try:
-            local_cache["class_set"] = api.get_cached_classes()
-        except:
-            cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
-
-    return app
 
 
 def update_api_liveness():
     threading.Timer(API_LIVENESS_UPDATE_PERIOD, update_api_liveness).start()
     with open("/mnt/api_liveness.txt", "w") as f:
         f.write(str(math.ceil(time.time())))
+
+
+def is_prediction_request(request):
+    return request.url.path == "/predict" and request.method == "POST"
 
 
 @app.on_event("startup")
@@ -122,17 +82,34 @@ def shutdown():
 
 
 @app.middleware("http")
-async def my_middleware(request: Request, call_next):
-    request_start_time = time.time()
+async def register_request(request: Request, call_next):
+    file_id = None
+    request.state.started_time = time.time()
+    try:
+        if is_prediction_request(request):
+            request_id = request.headers["x-request-id"]
+            file_id = f"/mnt/requests/{request_id}"
+            start_time = time.time()
+            open(file_id, "a").close()
+            request.state.creation_time = time.time() - start_time
 
-    file_id = ""
-    if request.url.path == "/predict" and request.method == "POST":
-        request_id = request.headers["x-request-id"]
-        file_id = f"/mnt/requests/{request_id}"
-        open(file_id, "a").close()
+        response = await call_next(request)
+        if is_prediction_request(request):
+            add_metrics_background_task(request, response)
+            apply_cors_headers(request, response)
+    except:
+        raise
+    finally:
+        if file_id is not None:
+            try:
+                os.remove(file_id)
+            except:
+                pass
 
-    response = await call_next(request)
+    return response
 
+
+def add_metrics_background_task(request: Request, response: Response):
     if response.background is None:
         response.background = BackgroundTasks()
 
@@ -140,21 +117,28 @@ async def my_middleware(request: Request, call_next):
         post_response,
         request=request,
         response=response,
-        file_id=file_id,
-        total_time=time.time() - request_start_time,
+        total_time=time.time() - request.state.started_time,
     )
 
-    apply_headers(request, response)
+    return response
+
+
+def post_response(request: Request, response: Response, total_time: float):
+    api = local_cache["api"]
+    api.post_latency_metrics(response.status_code, total_time)
+
+
+def apply_cors_headers(request: Request, response: Response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = request.headers.get(
+        "Access-Control-Request-Headers", "*"
+    )
 
     return response
 
 
 @app.post("/predict")
-async def predict(request: dict, debug=False):
-    return await run_in_threadpool(run_predictor_impl, request, debug)
-
-
-def run_predictor_impl(request: dict, debug=False):
+def predict(request: dict, debug=False):
     api = local_cache["api"]
     predictor_impl = local_cache["predictor_impl"]
 
@@ -211,21 +195,32 @@ def get_spec(storage, cache_dir, s3_path):
     return util.read_msgpack(local_spec_path)
 
 
-def apply_headers(request: Request, response: Response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = request.headers.get(
-        "Access-Control-Request-Headers", "*"
-    )
-    return response
+def start():
+    cache_dir = os.environ["CORTEX_CACHE_DIR"]
+    spec = os.environ["CORTEX_API_SPEC"]
+    project_dir = os.environ["CORTEX_PROJECT_DIR"]
+    model_dir = os.getenv("CORTEX_MODEL_DIR", None)
+    tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", None)
+    storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
 
+    try:
+        raw_api_spec = get_spec(storage, cache_dir, spec)
+        api = API(storage=storage, cache_dir=cache_dir, **raw_api_spec)
+        client = api.predictor.initialize_client(model_dir, tf_serving_port)
+        cx_logger().info("loading the predictor from {}".format(api.predictor.path))
+        predictor_impl = api.predictor.initialize_impl(project_dir, client)
 
-def post_response(request: Request, response: Response, file_id: str, total_time: float):
-    if request.url.path == "/predict" and request.method == "POST":
-        api = local_cache["api"]
-        api.post_latency_metrics(response.status_code, total_time)
+        local_cache["api"] = api
+        local_cache["client"] = client
+        local_cache["predictor_impl"] = predictor_impl
+    except:
+        cx_logger().exception("failed to start api")
+        sys.exit(1)
 
-    if file_id:
+    if api.tracker is not None and api.tracker.model_type == "classification":
         try:
-            os.remove(file_id)
+            local_cache["class_set"] = api.get_cached_classes()
         except:
-            pass
+            cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
+
+    return app
