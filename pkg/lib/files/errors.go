@@ -28,6 +28,7 @@ type ErrorKind int
 const (
 	ErrUnknown ErrorKind = iota
 	ErrCreateDir
+	ErrDeleteDir
 	ErrReadFormFile
 	ErrCreateFile
 	ErrReadDir
@@ -43,6 +44,7 @@ const (
 var _errorKinds = []string{
 	"err_unknown",
 	"err_create_dir",
+	"err_delete_dir",
 	"err_read_form_file",
 	"err_create_file",
 	"err_read_dir",
@@ -104,6 +106,13 @@ func ErrorCreateDir(path string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrCreateDir,
 		message: fmt.Sprintf("%s: unable to create directory", path),
+	})
+}
+
+func ErrorDeleteDir(path string) error {
+	return errors.WithStack(Error{
+		Kind:    ErrDeleteDir,
+		message: fmt.Sprintf("%s: unable to delete directory", path),
 	})
 }
 

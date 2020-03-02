@@ -121,7 +121,7 @@ func ToWriter(zipInput *Input, writer io.Writer) error {
 }
 
 func ToFile(zipInput *Input, destPath string) error {
-	zipfile, err := files.CreateFile(destPath)
+	zipfile, err := files.OpenNewFile(destPath)
 	if err != nil {
 		return err
 	}
@@ -276,12 +276,12 @@ func UnzipToFile(src string, destPath string) ([]string, error) {
 		filenames = append(filenames, fpath)
 
 		if f.FileInfo().IsDir() {
-			err := files.MkdirAll(fpath)
+			err := files.CreateDir(fpath)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			err := files.MkdirAll(filepath.Dir(fpath))
+			err := files.CreateDir(filepath.Dir(fpath))
 			if err != nil {
 				return nil, err
 			}
