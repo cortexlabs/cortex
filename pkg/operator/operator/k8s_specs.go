@@ -166,7 +166,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
 						ReadinessProbe: fileExistsProbe(_apiReadinessFile),
-						LivenessProbe:  apiLivenessProbe,
+						LivenessProbe:  _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: apiResourceList,
 						},
@@ -318,7 +318,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						EnvFrom:         _baseEnvVars,
 						VolumeMounts:    _defaultVolumeMounts,
 						ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
-						LivenessProbe:   apiLivenessProbe,
+						LivenessProbe:   _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
@@ -432,7 +432,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
 						ReadinessProbe: fileExistsProbe(_apiReadinessFile),
-						LivenessProbe:  apiLivenessProbe,
+						LivenessProbe:  _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
@@ -616,12 +616,12 @@ func k8sName(apiName string) string {
 	return "api-" + apiName
 }
 
-var apiLivenessProbe = &kcore.Probe{
+var _apiReadinessProbe = &kcore.Probe{
 	InitialDelaySeconds: 5,
 	TimeoutSeconds:      5,
 	PeriodSeconds:       5,
 	SuccessThreshold:    1,
-	FailureThreshold:    2,
+	FailureThreshold:    3,
 	Handler: kcore.Handler{
 		Exec: &kcore.ExecAction{
 			Command: []string{"/bin/bash", "-c", `now="$(date +%s)" && min="$(($now-` + s.Int(_apiLivenessStalePeriod) + `))" && test "$(cat ` + _apiLivenessFile + ` | tr -d '[:space:]')" -ge "$min"`},

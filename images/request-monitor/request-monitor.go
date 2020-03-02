@@ -163,7 +163,7 @@ func publishStats(apiName string, counter *Counter, client *cloudwatch.CloudWatc
 	}
 }
 
-func getFileNames() int {
+func getFileCount() int {
 	dir, err := os.Open("/mnt/requests")
 	if err != nil {
 		panic(err)
@@ -177,7 +177,7 @@ func getFileNames() int {
 }
 
 func updateOpenConnections(requestCounter *Counter, timer *time.Timer) {
-	count := getFileNames()
+	count := getFileCount()
 	requestCounter.Append(count)
 	timer.Reset(_requestSampleInterval)
 }

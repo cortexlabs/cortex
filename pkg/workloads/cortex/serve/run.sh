@@ -16,6 +16,7 @@
 
 set -e
 
+# If the container restarted, ensure that it is not perceived as ready
 rm -rf /mnt/api_readiness.txt
 
 # Allow for the liveness check to pass until the API is running

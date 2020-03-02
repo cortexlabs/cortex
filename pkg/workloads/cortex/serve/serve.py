@@ -16,9 +16,7 @@ import sys
 import os
 import argparse
 import time
-import logging
 import json
-import uuid
 from concurrent.futures import ThreadPoolExecutor
 import threading
 import math
@@ -26,7 +24,7 @@ import asyncio
 
 from fastapi import FastAPI
 from starlette.requests import Request
-from starlette.responses import Response, JSONResponse
+from starlette.responses import Response
 from starlette.background import BackgroundTasks
 
 from cortex import consts
@@ -58,10 +56,6 @@ def update_api_liveness():
         f.write(str(math.ceil(time.time())))
 
 
-def is_prediction_request(request):
-    return request.url.path == "/predict" and request.method == "POST"
-
-
 @app.on_event("startup")
 def startup():
     open("/mnt/api_readiness.txt", "a").close()
@@ -81,6 +75,10 @@ def shutdown():
         pass
 
 
+def is_prediction_request(request):
+    return request.url.path == "/predict" and request.method == "POST"
+
+
 @app.middleware("http")
 async def register_request(request: Request, call_next):
     request.state.started_time = time.time()
@@ -90,15 +88,13 @@ async def register_request(request: Request, call_next):
         if is_prediction_request(request):
             request_id = request.headers["x-request-id"]
             file_id = f"/mnt/requests/{request_id}"
-            start_time = time.time()
             open(file_id, "a").close()
 
         response = await call_next(request)
+
         if is_prediction_request(request):
-            add_metrics_background_task(request, response)
+            add_response_background_task(request, response)
             apply_cors_headers(request, response)
-    except:
-        raise
     finally:
         if file_id is not None:
             try:
@@ -109,7 +105,7 @@ async def register_request(request: Request, call_next):
     return response
 
 
-def add_metrics_background_task(request: Request, response: Response):
+def add_response_background_task(request: Request, response: Response):
     if response.background is None:
         response.background = BackgroundTasks()
 
@@ -119,8 +115,6 @@ def add_metrics_background_task(request: Request, response: Response):
         response=response,
         total_time=time.time() - request.state.started_time,
     )
-
-    return response
 
 
 def post_response(request: Request, response: Response, total_time: float):
@@ -133,8 +127,6 @@ def apply_cors_headers(request: Request, response: Response):
     response.headers["Access-Control-Allow-Headers"] = request.headers.get(
         "Access-Control-Request-Headers", "*"
     )
-
-    return response
 
 
 @app.post("/predict")
@@ -152,11 +144,11 @@ def predict(request: dict, debug=False):
         json_string = util.json_tricks_encoder().encode(prediction)
 
     tasks = BackgroundTasks()
+
     if api.tracker is not None:
         tasks.add_task(track_prediction, api=api, prediction=prediction)
-    response = Response(content=json_string, media_type="application/json", background=tasks)
 
-    return response
+    return Response(content=json_string, media_type="application/json", background=tasks)
 
 
 def track_prediction(api, prediction):
