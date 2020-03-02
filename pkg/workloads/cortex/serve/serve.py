@@ -83,15 +83,15 @@ def shutdown():
 
 @app.middleware("http")
 async def register_request(request: Request, call_next):
-    file_id = None
     request.state.started_time = time.time()
+
+    file_id = None
     try:
         if is_prediction_request(request):
             request_id = request.headers["x-request-id"]
             file_id = f"/mnt/requests/{request_id}"
             start_time = time.time()
             open(file_id, "a").close()
-            request.state.creation_time = time.time() - start_time
 
         response = await call_next(request)
         if is_prediction_request(request):
