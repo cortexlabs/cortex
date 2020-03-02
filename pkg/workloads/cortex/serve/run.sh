@@ -38,7 +38,4 @@ export PYTHONUNBUFFERED=TRUE
 
 mkdir -p /mnt/requests
 
-# allow API server to take over responsibility of liveness check
-rm /mnt/api_liveness.txt
-
 /usr/bin/python3.6 /src/cortex/serve/start_uvicorn.py
