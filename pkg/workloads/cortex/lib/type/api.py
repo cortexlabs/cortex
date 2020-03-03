@@ -64,7 +64,7 @@ class API:
     def metric_dimensions(self):
         return [{"Name": "APIName", "Value": self.name}, {"Name": "APIID", "Value": self.id}]
 
-    def post_latency_metrics(self, status_code, total_time):
+    def post_request_metrics(self, status_code, total_time):
         metrics = [self.status_code_metric(status_code), self.latency_metric(total_time)]
         self.post_metrics(metrics)
 

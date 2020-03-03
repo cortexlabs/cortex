@@ -23,9 +23,11 @@ import math
 import asyncio
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.background import BackgroundTasks
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from cortex import consts
 from cortex.lib import util
@@ -79,11 +81,33 @@ def is_prediction_request(request):
     return request.url.path == "/predict" and request.method == "POST"
 
 
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request, e):
+    response = Response(content=str(e.detail), status_code=e.status_code)
+    apply_cors_headers(request, response)
+    return response
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, e):
+    response = Response(content=str(e), status_code=400)
+    apply_cors_headers(request, response)
+    return response
+
+
+@app.exception_handler(Exception)
+async def uncaught_exception_handler(request, e):
+    response = Response(content="internal server error", status_code=500)
+    apply_cors_headers(request, response)
+    return response
+
+
 @app.middleware("http")
 async def register_request(request: Request, call_next):
-    request.state.started_time = time.time()
+    request.state.start_time = time.time()
 
     file_id = None
+    response = None
     try:
         if is_prediction_request(request):
             request_id = request.headers["x-request-id"]
@@ -91,10 +115,6 @@ async def register_request(request: Request, call_next):
             open(file_id, "a").close()
 
         response = await call_next(request)
-
-        if is_prediction_request(request):
-            add_response_background_task(request, response)
-            apply_cors_headers(request, response)
     finally:
         if file_id is not None:
             try:
@@ -102,24 +122,15 @@ async def register_request(request: Request, call_next):
             except:
                 pass
 
+        if is_prediction_request(request):
+            status_code = 500
+            if response is not None:
+                status_code = response.status_code
+                apply_cors_headers(request, response)
+            api = local_cache["api"]
+            api.post_request_metrics(status_code, time.time() - request.state.start_time)
+
     return response
-
-
-def add_response_background_task(request: Request, response: Response):
-    if response.background is None:
-        response.background = BackgroundTasks()
-
-    response.background.add_task(
-        post_response,
-        request=request,
-        response=response,
-        total_time=time.time() - request.state.started_time,
-    )
-
-
-def post_response(request: Request, response: Response, total_time: float):
-    api = local_cache["api"]
-    api.post_latency_metrics(response.status_code, total_time)
 
 
 def apply_cors_headers(request: Request, response: Response):
@@ -143,23 +154,24 @@ def predict(request: dict, debug=False):
     except:
         json_string = util.json_tricks_encoder().encode(prediction)
 
-    tasks = BackgroundTasks()
+    response = Response(content=json_string, media_type="application/json")
 
     if api.tracker is not None:
-        tasks.add_task(track_prediction, api=api, prediction=prediction)
+        try:
+            predicted_value = api.tracker.extract_predicted_value(prediction)
+            api.post_tracker_metrics(predicted_value)
+            if (
+                api.tracker.model_type == "classification"
+                and predicted_value not in local_cache["class_set"]
+            ):
+                tasks = BackgroundTasks()
+                tasks.add_task(api.upload_class, class_name=predicted_value)
+                local_cache["class_set"].add(predicted_value)
+                response.background = tasks
+        except:
+            cx_logger().warn("unable to record prediction metric", exc_info=True)
 
-    return Response(content=json_string, media_type="application/json", background=tasks)
-
-
-def track_prediction(api, prediction):
-    try:
-        predicted_value = api.tracker.extract_predicted_value(prediction)
-        api.post_tracker_metrics(predicted_value)
-        if predicted_value is not None and predicted_value not in local_cache["class_set"]:
-            api.upload_class(predicted_value)
-            local_cache["class_set"].add(predicted_value)
-    except:
-        cx_logger().warn("unable to record prediction metric", exc_info=True)
+    return response
 
 
 @app.get("/predict")
