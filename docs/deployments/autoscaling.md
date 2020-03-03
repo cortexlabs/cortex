@@ -16,21 +16,17 @@ Here are the parameters which affect the autoscaling behavior:
 
 * `target_replica_concurrency` (default: `workers_per_replica` * `threads_per_worker`): This is the desired number of in-flight requests per replica, and is the metric which the autoscaler uses to make scaling decisions.
 
-Replica concurrency is simply how many requests have been sent to a replica and have not yet been responded to. Therefore, it includes requests which are currently being processed and requests which are waiting in the replica's queue. For example, if `workers_per_replica` is 2 and `threads_per_worker` is 2, and the replica was hit with 5 concurrent requests, 4 would immediately begin to be processed, 1 would be waiting for a thread to become available, and the concurrency for the replica would be 5. With only 3 concurrent requests, all three would begin processing immediately, and the replica concurrency would be 3.
+  Replica concurrency is simply how many requests have been sent to a replica and have not yet been responded to. Therefore, it includes requests which are currently being processed and requests which are waiting in the replica's queue. For example, if `workers_per_replica` is 2 and `threads_per_worker` is 2, and the replica was hit with 5 concurrent requests, 4 would immediately begin to be processed, 1 would be waiting for a thread to become available, and the concurrency for the replica would be 5. With only 3 concurrent requests, all three would begin processing immediately, and the replica concurrency would be 3.
 
-Here is the equation that the autoscaler maintains:
+  Here is the equation that the autoscaler maintains:
+  
+  `target_replica_concurrency = average in-flight requests per replica = cluster-wide in-flight requests / desired replicas`
 
-```text
-target_replica_concurrency = average in-flight requests per replica = cluster-wide in-flight requests / desired replicas
-```
+  or, solving for desired replicas:
 
-or, solving for desired replicas:
+  `desired replicas = cluster-wide in-flight requests / target_replica_concurrency`
 
-```text
-desired replicas = cluster-wide in-flight requests / target_replica_concurrency
-```
-
-For example, setting `target_replica_concurrency` to `workers_per_replica` * `threads_per_worker` (the default) causes the cluster to adjust the number of replicas so that on average, requests are immediately processed without waiting in a queue, and workers/threads are never idle.
+  For example, setting `target_replica_concurrency` to `workers_per_replica` * `threads_per_worker` (the default) causes the cluster to adjust the number of replicas so that on average, requests are immediately processed without waiting in a queue, and workers/threads are never idle.
 
 * `max_replica_concurrency` (default: 100): This is the maximum number of in-flight requests per replica before requests are rejected with HTTP error code 503. `max_replica_concurrency` includes requests that are currently being processed as well as requests that are waiting in the replica's queue (a replica can actively process `workers_per_replica` * `threads_per_worker` requests concurrently, and will hold any additional requests in a local queue). Decreasing `max_replica_concurrency` and configuring the client to retry when it receives 503 responses will improve cross-replica queue fairness.
 
