@@ -230,6 +230,9 @@ func getInflightRequests(apiName string, window time.Duration) (*float64, error)
 	if err != nil {
 		return nil, err
 	}
+	if len(output.MetricDataResults) == 0 {
+		return nil, nil
+	}
 
 	timestampCounter := -1
 	for i, timeStamp := range output.MetricDataResults[0].Timestamps {
