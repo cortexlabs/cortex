@@ -14,17 +14,25 @@ Here are the parameters which affect the autoscaling behavior:
 
 * `threads_per_worker` (default: 1): Each worker uses a thread pool of size `threads_per_worker` to process requests. For CPU-bound applications, using 1 thread per worker is recommended to avoid unnecessary context switching. For applications with I/O, or for applications which utilize both the CPU and the GPU heavily, increasing the number of threads per worker can increase throughput. Some applications are not thread-safe, and therefore must be run with 1 thread per worker.
 
-* `target_queue_length` (default: 0): This is the desired queue length per replica, and is the metric which the autoscaler uses to make scaling decisions. The queue length is not inclusive of requests that are currently being processed. For example, if `workers_per_replica` is 2 and `threads_per_worker` is 2, and the replica was hit with 5 concurrent requests, 4 would immediately begin to be processed, and 1 would be waiting for a thread to become available, leading to a queue length of 1. With only 4 concurrent requests, all would be processed immediately, and the queue length would be 0. (these are slightly idealized numbers, since in practice requests are assigned to workers at random)
+* `target_replica_concurrency` (default: `workers_per_replica` * `threads_per_worker`): This is the desired number of in-flight requests per replica, and is the metric which the autoscaler uses to make scaling decisions.
 
-In other words, the autoscaler creates or removes replicas so that for the average request, there are `target_queue_length` requests ahead of it in the queue (note that each replica has it's own queue).
+Replica concurrency is simply how many requests have been sent to a replica and have not yet been responded to. Therefore, it includes requests which are currently being processed and requests which are waiting in the replica's queue. For example, if `workers_per_replica` is 2 and `threads_per_worker` is 2, and the replica was hit with 5 concurrent requests, 4 would immediately begin to be processed, 1 would be waiting for a thread to become available, and the concurrency for the replica would be 5. With only 3 concurrent requests, all three would begin processing immediately, and the replica concurrency would be 3.
 
 Here is the equation that the autoscaler maintains:
 
-`(workers_per_replica * threads_per_worker) + target_queue_length = average in-flight requests per replica`
+```text
+target_replica_concurrency = average in-flight requests per replica = cluster-wide in-flight requests / desired replicas
+```
 
-For example, setting `target_queue_length` to 0 (the default) causes the cluster to adjust the number of replicas so that on average, requests are immediately processed without waiting in a queue, and workers/threads are never idle.
+or, solving for desired replicas:
 
-* `max_queue_length` (default: 100): This is the maximum number of queued requests per replica before requests are rejected with HTTP error code 503. `queue_length` does not include requests that are currently being processed by the replica (a replica can process `workers_per_replica * threads_per_worker` requests concurrently).
+```text
+desired replicas = cluster-wide in-flight requests / target_replica_concurrency
+```
+
+For example, setting `target_replica_concurrency` to `workers_per_replica` * `threads_per_worker` (the default) causes the cluster to adjust the number of replicas so that on average, requests are immediately processed without waiting in a queue, and workers/threads are never idle.
+
+* `max_replica_concurrency` (default: 100): This is the maximum number of in-flight requests per replica before requests are rejected with HTTP error code 503. `max_replica_concurrency` includes requests that are currently being processed as well as requests that are waiting in the replica's queue (a replica can actively process `workers_per_replica` * `threads_per_worker` requests concurrently, and will hold any additional requests in a local queue).
 
 * `window` (default: 60s): The time over which to average an API's queue length. The longer the window, the slower the autoscaler will be to react to changes in queue length, since queue length values will be averaged over the `window`. Queue length is calculated by each replica every second, and is reported every 10 seconds, so `window` must be a multiple of 10 seconds.
 
