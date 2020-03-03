@@ -19,7 +19,7 @@ Here are the parameters which affect the autoscaling behavior:
   Replica concurrency is simply how many requests have been sent to a replica and have not yet been responded to. Therefore, it includes requests which are currently being processed and requests which are waiting in the replica's queue. For example, if `workers_per_replica` is 2 and `threads_per_worker` is 2, and the replica was hit with 5 concurrent requests, 4 would immediately begin to be processed, 1 would be waiting for a thread to become available, and the concurrency for the replica would be 5. With only 3 concurrent requests, all three would begin processing immediately, and the replica concurrency would be 3.
 
   Here is the equation that the autoscaler maintains:
-  
+
   `target_replica_concurrency = average in-flight requests per replica = cluster-wide in-flight requests / desired replicas`
 
   or, solving for desired replicas:
