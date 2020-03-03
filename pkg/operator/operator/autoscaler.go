@@ -94,7 +94,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 	apiName := initialDeployment.Labels["apiName"]
 	currentReplicas := *initialDeployment.Spec.Replicas
 
-	log.Printf("%s autoscaler init: min_replicas=%d, max_replicas=%d, workers_per_replica=%d, threads_per_worker=%d, window=%s, target_queue_length=%s, downscale_tolerance=%s, upscale_tolerance=%s, downscale_stabilization_period=%s, upscale_stabilization_period=%s, max_downscale_factor=%s, max_upscale_factor=%s", apiName, autoscalingSpec.MinReplicas, autoscalingSpec.MaxReplicas, autoscalingSpec.WorkersPerReplica, autoscalingSpec.ThreadsPerWorker, autoscalingSpec.Window, s.Float64(autoscalingSpec.TargetQueueLength), s.Float64(autoscalingSpec.DownscaleTolerance), s.Float64(autoscalingSpec.UpscaleTolerance), autoscalingSpec.DownscaleStabilizationPeriod, autoscalingSpec.UpscaleStabilizationPeriod, s.Float64(autoscalingSpec.MaxDownscaleFactor), s.Float64(autoscalingSpec.MaxUpscaleFactor))
+	log.Printf("%s autoscaler init: min_replicas=%d, max_replicas=%d, workers_per_replica=%d, threads_per_worker=%d, window=%s, target_replica_concurrency=%s, downscale_tolerance=%s, upscale_tolerance=%s, downscale_stabilization_period=%s, upscale_stabilization_period=%s, max_downscale_factor=%s, max_upscale_factor=%s", apiName, autoscalingSpec.MinReplicas, autoscalingSpec.MaxReplicas, autoscalingSpec.WorkersPerReplica, autoscalingSpec.ThreadsPerWorker, autoscalingSpec.Window, s.Float64(*autoscalingSpec.TargetReplicaConcurrency), s.Float64(autoscalingSpec.DownscaleTolerance), s.Float64(autoscalingSpec.UpscaleTolerance), autoscalingSpec.DownscaleStabilizationPeriod, autoscalingSpec.UpscaleStabilizationPeriod, s.Float64(autoscalingSpec.MaxDownscaleFactor), s.Float64(autoscalingSpec.MaxUpscaleFactor))
 
 	var startTime time.Time
 	recs := make(recommendations)
@@ -113,7 +113,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			return nil
 		}
 
-		rawRecommendation := *avgInFlight / (float64(autoscalingSpec.WorkersPerReplica*autoscalingSpec.ThreadsPerWorker) + autoscalingSpec.TargetQueueLength)
+		rawRecommendation := *avgInFlight / *autoscalingSpec.TargetReplicaConcurrency
 		recommendation := int32(math.Ceil(rawRecommendation))
 
 		if rawRecommendation < float64(currentReplicas) && rawRecommendation > float64(currentReplicas)*(1-autoscalingSpec.DownscaleTolerance) {

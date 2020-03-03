@@ -555,16 +555,12 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 			Value: s.Int32(api.Autoscaling.ThreadsPerWorker),
 		},
 		kcore.EnvVar{
-			Name:  "CORTEX_MAX_QUEUE_LENGTH",
-			Value: s.Int64(api.Autoscaling.MaxQueueLength),
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_MAX_IN_FLIGHT",
-			Value: s.Int64(api.Autoscaling.MaxQueueLength + int64(api.Autoscaling.ThreadsPerWorker*api.Autoscaling.WorkersPerReplica)),
+			Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
+			Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_SO_MAX_CONN",
-			Value: s.Int64(api.Autoscaling.MaxQueueLength + int64(api.Autoscaling.ThreadsPerWorker*api.Autoscaling.WorkersPerReplica) + 100), // add a buffer to be safe
+			Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency + 100), // add a buffer to be safe
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_SERVING_PORT",

@@ -26,8 +26,8 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=int(os.environ["CORTEX_SERVING_PORT"]),
         workers=int(os.environ["CORTEX_WORKERS_PER_REPLICA"]),
-        backlog=int(os.environ["CORTEX_MAX_IN_FLIGHT"]),
-        limit_concurrency=int(os.environ["CORTEX_MAX_IN_FLIGHT"]),
+        limit_concurrency=int(os.environ["CORTEX_MAX_REPLICA_CONCURRENCY"]),
+        backlog=int(os.environ["CORTEX_MAX_REPLICA_CONCURRENCY"]),
         log_config=log_config,
         log_level="info",
     )

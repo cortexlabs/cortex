@@ -67,8 +67,8 @@ type Autoscaling struct {
 	InitReplicas                 int32         `json:"init_replicas" yaml:"init_replicas"`
 	WorkersPerReplica            int32         `json:"workers_per_replica" yaml:"workers_per_replica"`
 	ThreadsPerWorker             int32         `json:"threads_per_worker" yaml:"threads_per_worker"`
-	TargetQueueLength            float64       `json:"target_queue_length" yaml:"target_queue_length"`
-	MaxQueueLength               int64         `json:"max_queue_length" yaml:"max_queue_length"`
+	TargetReplicaConcurrency     *float64      `json:"target_replica_concurrency" yaml:"target_replica_concurrency"`
+	MaxReplicaConcurrency        int64         `json:"max_replica_concurrency" yaml:"max_replica_concurrency"`
 	Window                       time.Duration `json:"window" yaml:"window"`
 	DownscaleStabilizationPeriod time.Duration `json:"downscale_stabilization_period" yaml:"downscale_stabilization_period"`
 	UpscaleStabilizationPeriod   time.Duration `json:"upscale_stabilization_period" yaml:"upscale_stabilization_period"`
@@ -109,8 +109,8 @@ func (autoscaling *Autoscaling) ToK8sAnnotations() map[string]string {
 		MaxReplicasAnnotationKey:                  s.Int32(autoscaling.MaxReplicas),
 		WorkersPerReplicaAnnotationKey:            s.Int32(autoscaling.WorkersPerReplica),
 		ThreadsPerWorkerAnnotationKey:             s.Int32(autoscaling.ThreadsPerWorker),
-		TargetQueueLengthAnnotationKey:            s.Float64(autoscaling.TargetQueueLength),
-		MaxQueueLengthAnnotationKey:               s.Int64(autoscaling.MaxQueueLength),
+		TargetReplicaConcurrencyAnnotationKey:     s.Float64(*autoscaling.TargetReplicaConcurrency),
+		MaxReplicaConcurrencyAnnotationKey:        s.Int64(autoscaling.MaxReplicaConcurrency),
 		WindowAnnotationKey:                       autoscaling.Window.String(),
 		DownscaleStabilizationPeriodAnnotationKey: autoscaling.DownscaleStabilizationPeriod.String(),
 		UpscaleStabilizationPeriodAnnotationKey:   autoscaling.UpscaleStabilizationPeriod.String(),
@@ -148,17 +148,17 @@ func AutoscalingFromAnnotations(deployment kmeta.Object) (*Autoscaling, error) {
 	}
 	a.ThreadsPerWorker = threadsPerWorker
 
-	targetQueueLength, err := k8s.ParseFloat64Annotation(deployment, TargetQueueLengthAnnotationKey)
+	targetReplicaConcurrency, err := k8s.ParseFloat64Annotation(deployment, TargetReplicaConcurrencyAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
-	a.TargetQueueLength = targetQueueLength
+	a.TargetReplicaConcurrency = &targetReplicaConcurrency
 
-	maxQueueLength, err := k8s.ParseInt64Annotation(deployment, MaxQueueLengthAnnotationKey)
+	maxReplicaConcurrency, err := k8s.ParseInt64Annotation(deployment, MaxReplicaConcurrencyAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
-	a.MaxQueueLength = maxQueueLength
+	a.MaxReplicaConcurrency = maxReplicaConcurrency
 
 	window, err := k8s.ParseDurationAnnotation(deployment, WindowAnnotationKey)
 	if err != nil {
@@ -290,8 +290,8 @@ func (autoscaling *Autoscaling) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(autoscaling.InitReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WorkersPerReplicaKey, s.Int32(autoscaling.WorkersPerReplica)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerWorkerKey, s.Int32(autoscaling.ThreadsPerWorker)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetQueueLengthKey, s.Float64(autoscaling.TargetQueueLength)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxQueueLengthKey, s.Int64(autoscaling.MaxQueueLength)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetReplicaConcurrencyKey, s.Float64(*autoscaling.TargetReplicaConcurrency)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicaConcurrencyKey, s.Int64(autoscaling.MaxReplicaConcurrency)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WindowKey, autoscaling.Window.String()))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", DownscaleStabilizationPeriodKey, autoscaling.DownscaleStabilizationPeriod.String()))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", UpscaleStabilizationPeriodKey, autoscaling.UpscaleStabilizationPeriod.String()))
