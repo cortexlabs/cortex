@@ -94,7 +94,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 	apiName := initialDeployment.Labels["apiName"]
 	currentReplicas := *initialDeployment.Spec.Replicas
 
-	log.Printf("%s autoscaler init: min_replicas=%d, max_replicas=%d, workers_per_replica=%d, threads_per_worker=%d, window=%s, target_replica_concurrency=%s, downscale_tolerance=%s, upscale_tolerance=%s, downscale_stabilization_period=%s, upscale_stabilization_period=%s, max_downscale_factor=%s, max_upscale_factor=%s", apiName, autoscalingSpec.MinReplicas, autoscalingSpec.MaxReplicas, autoscalingSpec.WorkersPerReplica, autoscalingSpec.ThreadsPerWorker, autoscalingSpec.Window, s.Float64(*autoscalingSpec.TargetReplicaConcurrency), s.Float64(autoscalingSpec.DownscaleTolerance), s.Float64(autoscalingSpec.UpscaleTolerance), autoscalingSpec.DownscaleStabilizationPeriod, autoscalingSpec.UpscaleStabilizationPeriod, s.Float64(autoscalingSpec.MaxDownscaleFactor), s.Float64(autoscalingSpec.MaxUpscaleFactor))
+	log.Printf("%s autoscaler init", apiName)
 
 	var startTime time.Time
 	recs := make(recommendations)
@@ -175,7 +175,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			request = *upscaleStabilizationCeil
 		}
 
-		log.Printf("%s autoscaler tick: avg_in_flight=%s, raw_recommendation=%s, downscale_factor_floor=%d, upscale_factor_ceil=%d, min_replicas=%d, max_replicas=%d, recommendation=%d, downscale_stabilization_floor=%s, upscale_stabilization_ceil=%s, current_replicas=%d, request=%d", apiName, s.Round(*avgInFlight, 2, 0), s.Round(rawRecommendation, 2, 0), downscaleFactorFloor, upscaleFactorCeil, autoscalingSpec.MinReplicas, autoscalingSpec.MaxReplicas, recommendation, s.ObjFlatNoQuotes(downscaleStabilizationFloor), s.ObjFlatNoQuotes(upscaleStabilizationCeil), currentReplicas, request)
+		log.Printf("%s autoscaler tick: avg_in_flight=%s, target_replica_concurrency=%s, raw_recommendation=%s, current_replicas=%d, downscale_tolerance=%s, upscale_tolerance=%s, max_downscale_factor=%s, downscale_factor_floor=%d, max_upscale_factor=%s, upscale_factor_ceil=%d, min_replicas=%d, max_replicas=%d, recommendation=%d, downscale_stabilization_period=%s, downscale_stabilization_floor=%s, upscale_stabilization_period=%s, upscale_stabilization_ceil=%s, request=%d", apiName, s.Round(*avgInFlight, 2, 0), s.Float64(*autoscalingSpec.TargetReplicaConcurrency), s.Round(rawRecommendation, 2, 0), currentReplicas, s.Float64(autoscalingSpec.DownscaleTolerance), s.Float64(autoscalingSpec.UpscaleTolerance), s.Float64(autoscalingSpec.MaxDownscaleFactor), downscaleFactorFloor, s.Float64(autoscalingSpec.MaxUpscaleFactor), upscaleFactorCeil, autoscalingSpec.MinReplicas, autoscalingSpec.MaxReplicas, recommendation, autoscalingSpec.DownscaleStabilizationPeriod, s.ObjFlatNoQuotes(downscaleStabilizationFloor), autoscalingSpec.UpscaleStabilizationPeriod, s.ObjFlatNoQuotes(upscaleStabilizationCeil), request)
 
 		if currentReplicas != request {
 			log.Printf("%s autoscaling event: %d -> %d", apiName, currentReplicas, request)
