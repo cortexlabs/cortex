@@ -113,10 +113,6 @@ func readAWSCredsFromConfigFile(awsCreds *AWSCredentials, path string) error {
 // awsCreds is what was read from the cluster config YAML
 func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
 	// First check env vars
-	if os.Getenv("AWS_SESSION_TOKEN") != "" {
-		return errors.New("aws session tokens are currently not supported")
-	}
-
 	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
 		awsCreds.AWSAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
 		awsCreds.AWSSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
