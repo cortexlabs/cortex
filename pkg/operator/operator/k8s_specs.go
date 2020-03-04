@@ -559,6 +559,11 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 			Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
 		},
 		kcore.EnvVar{
+			Name: "CORTEX_MAX_WORKER_CONCURRENCY",
+			// first integer divide and add 1 to always round up
+			Value: s.Int64((api.Autoscaling.MaxReplicaConcurrency / int64(api.Autoscaling.WorkersPerReplica)) + 1),
+		},
+		kcore.EnvVar{
 			Name:  "CORTEX_SO_MAX_CONN",
 			Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency + 100), // add a buffer to be safe
 		},
