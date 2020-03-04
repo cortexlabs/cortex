@@ -73,7 +73,7 @@ class PythonPredictor:
         self.model = download_model()
 
     def predict(self, payload):
-        return model.predict(payload["text"])
+        return self.model.predict(payload["text"])
 ```
 
 ### Configure your deployment
