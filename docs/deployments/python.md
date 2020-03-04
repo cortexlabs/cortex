@@ -145,7 +145,7 @@ The following packages have been pre-installed and can be used in your implement
 
 ```text
 boto3==1.10.45
-cloudpickle==1.2.2
+cloudpickle==1.3.0
 dill==0.3.1.1
 joblib==0.14.1
 Keras==2.3.1
